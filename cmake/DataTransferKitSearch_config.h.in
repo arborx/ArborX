@@ -1,0 +1,2 @@
+/* Define if user requested explicit instantiation of classes into libtpetra */
+#cmakedefine HAVE_DATATRANSFERKIT_EXPLICIT_INSTANTIATION
