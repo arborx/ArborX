@@ -18,16 +18,7 @@ class Point
 {
   public:
     KOKKOS_INLINE_FUNCTION
-    const double &operator()( unsigned int const i ) const
-    {
-        return _coords[i];
-    }
-
-    KOKKOS_INLINE_FUNCTION
     const double &operator[]( unsigned int i ) const { return _coords[i]; }
-
-    KOKKOS_INLINE_FUNCTION
-    double &operator()( unsigned int const i ) { return _coords[i]; }
 
     KOKKOS_INLINE_FUNCTION
     double &operator[]( unsigned int i ) { return _coords[i]; }
