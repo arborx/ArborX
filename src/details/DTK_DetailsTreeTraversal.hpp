@@ -17,13 +17,50 @@
 #include <DTK_DetailsPriorityQueue.hpp>
 #include <DTK_DetailsStack.hpp>
 
-#include <DTK_BVHQuery.hpp>
 #include <DTK_LinearBVH.hpp>
 
 namespace DataTransferKit
 {
 namespace Details
 {
+template <typename NO>
+struct TreeTraversal
+{
+  public:
+    using DeviceType = typename NO::device_type;
+    using ExecutionSpace = typename DeviceType::execution_space;
+
+    /**
+     * Return true if the node is a leaf.
+     */
+    KOKKOS_INLINE_FUNCTION
+    static bool isLeaf( BVH<NO> bvh, Node const *node )
+    {
+        // COMMENT: could also check that pointer is in the range [leaf_nodes,
+        // leaf_nodes+n]
+        (void)bvh;
+        return ( node->children.first == nullptr ) &&
+               ( node->children.second == nullptr );
+    }
+
+    /**
+     * Return the index of the leaf node.
+     */
+    KOKKOS_INLINE_FUNCTION
+    static int getIndex( BVH<NO> bvh, Node const *leaf )
+    {
+        return bvh.indices[leaf - bvh.leaf_nodes.data()];
+    }
+
+    /**
+     * Return the root node of the BVH.
+     */
+    KOKKOS_INLINE_FUNCTION
+    static Node const *getRoot( BVH<NO> bvh )
+    {
+        return bvh.internal_nodes.data();
+    }
+};
 
 // There are two (related) families of search: one using a spatial predicate and
 // one using nearest neighbours query (see boost::geometry::queries
@@ -35,7 +72,7 @@ spatial_query( BVH<NO> const bvh, Predicate const &predicate, int *indices,
 {
     Stack<Node const *> stack;
 
-    Node const *node = BVHQuery<NO>::getRoot( bvh );
+    Node const *node = TreeTraversal<NO>::getRoot( bvh );
     stack.push( node );
     n_indices = 0;
 
@@ -44,7 +81,7 @@ spatial_query( BVH<NO> const bvh, Predicate const &predicate, int *indices,
         node = stack.top();
         stack.pop();
 
-        if ( BVHQuery<NO>::isLeaf( node ) )
+        if ( TreeTraversal<NO>::isLeaf( bvh, node ) )
         {
 #if HAVE_DTK_DBC
             if ( n_indices > max_n_indices )
@@ -54,7 +91,7 @@ spatial_query( BVH<NO> const bvh, Predicate const &predicate, int *indices,
             // and just to make compilers happy if NDEBUG
             (void)max_n_indices;
 
-            indices[n_indices++] = BVHQuery<NO>::getIndex( bvh, node );
+            indices[n_indices++] = TreeTraversal<NO>::getIndex( bvh, node );
         }
         else
         {
@@ -109,7 +146,7 @@ nearest_query( BVH<NO> const bvh, Point const &query_point, int k, int *indices,
     // priority does not matter for the root since the node will be
     // processed directly and removed from the priority queue we don't even
     // bother computing the distance to it
-    Node const *node = BVHQuery<NO>::getRoot( bvh );
+    Node const *node = TreeTraversal<NO>::getRoot( bvh );
     double node_distance = 0.0;
     queue.push( node, node_distance );
     n_indices = 0;
@@ -120,7 +157,7 @@ nearest_query( BVH<NO> const bvh, Point const &query_point, int k, int *indices,
         // closest to the query point)
         node = queue.top().first; // std::tie(node, std::ignore) = ...
         queue.pop();
-        if ( BVHQuery<NO>::isLeaf( node ) )
+        if ( TreeTraversal<NO>::isLeaf( bvh, node ) )
         {
 #if HAVE_DTK_DBC
             if ( n_indices > max_n_indices )
@@ -130,7 +167,7 @@ nearest_query( BVH<NO> const bvh, Point const &query_point, int k, int *indices,
             // and just to make compilers happy if NDEBUG
             (void)max_n_indices;
 
-            indices[n_indices++] = BVHQuery<NO>::getIndex( bvh, node );
+            indices[n_indices++] = TreeTraversal<NO>::getIndex( bvh, node );
         }
         else
         {

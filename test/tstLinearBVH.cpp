@@ -10,6 +10,7 @@
 #include <DTK_DetailsPredicate.hpp>
 #include <DTK_DetailsTreeTraversal.hpp>
 
+#include <DTK_BVHQuery.hpp>
 #include <DTK_LinearBVH.hpp>
 
 #include <Teuchos_UnitTestHarness.hpp>

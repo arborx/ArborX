@@ -33,36 +33,6 @@ class BVHQuery
      */
     static int query( BVH<NO> const bvh, Details::Within const &predicates,
                       Kokkos::View<int *, DeviceType> out );
-
-    // COMMENT: could also check that pointer is in the range [leaf_nodes,
-    // leaf_nodes+n]
-    /**
-     * Return true if the node is a leaf.
-     */
-    KOKKOS_INLINE_FUNCTION
-    static bool isLeaf( Node const *node )
-    {
-        return ( node->children.first == nullptr ) &&
-               ( node->children.second == nullptr );
-    }
-
-    /**
-     * Return the index of the leaf node.
-     */
-    KOKKOS_INLINE_FUNCTION
-    static int getIndex( BVH<NO> bvh, Node const *leaf )
-    {
-        return bvh.indices[leaf - bvh.leaf_nodes.data()];
-    }
-
-    /**
-     * Return the root node of the BVH.
-     */
-    KOKKOS_INLINE_FUNCTION
-    static Node const *getRoot( BVH<NO> bvh )
-    {
-        return bvh.internal_nodes.data();
-    }
 };
 }
 
