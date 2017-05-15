@@ -75,7 +75,6 @@ template <typename DeviceType>
 class FillK
 {
   public:
-    KOKKOS_INLINE_FUNCTION
     FillK( Kokkos::View<unsigned int *, DeviceType> k )
         : _k( k )
     {
