@@ -108,7 +108,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, indirect_sort, NO )
     std::vector<int> ref = {3, 2, 1, 0};
     // distribute ids to unsorted objects
     Kokkos::View<int *, DeviceType> ids( "ids", n );
-    DataTransferKit::Iota<DeviceType> fill_ids_functor( ids );
+    DataTransferKit::Iota<NO> fill_ids_functor( ids );
     Kokkos::parallel_for( "fill_ids",
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
                           fill_ids_functor );
