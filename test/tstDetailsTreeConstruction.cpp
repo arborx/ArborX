@@ -104,6 +104,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, indirect_sort, NO )
     FillK<DeviceType> fill_k_functor( k );
     Kokkos::parallel_for( "fill_k", Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
                           fill_k_functor );
+    Kokkos::fence();
 
     std::vector<int> ref = {3, 2, 1, 0};
     // distribute ids to unsorted objects
@@ -112,6 +113,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, indirect_sort, NO )
     Kokkos::parallel_for( "fill_ids",
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
                           fill_ids_functor );
+    Kokkos::fence();
 
     // sort morton codes and object ids
     dtk::TreeConstruction<NO> tc;
