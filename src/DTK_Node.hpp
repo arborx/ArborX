@@ -26,7 +26,7 @@ struct Node
 
     Node *parent = nullptr;
     Kokkos::pair<Node *, Node *> children;
-    BBox bounding_box;
+    Box bounding_box;
 };
 }
 

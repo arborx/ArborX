@@ -15,7 +15,7 @@ namespace DataTransferKit
 namespace Details
 {
 
-void expand( BBox &box, Point const &point )
+void expand( Box &box, Point const &point )
 {
     for ( int d = 0; d < 3; ++d )
     {

@@ -175,7 +175,7 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
     auto cloud = make_stuctured_cloud( Lx, Ly, Lz, nx, ny, nz );
     int n = cloud.size();
 
-    Kokkos::View<DataTransferKit::BBox *, DeviceType> bounding_boxes(
+    Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes(
         "bounding_boxes", n );
     auto bounding_boxes_host = Kokkos::create_mirror_view( bounding_boxes );
     // build bounding volume hierarchy

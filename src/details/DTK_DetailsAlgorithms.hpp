@@ -34,7 +34,7 @@ double distance( Point const &a, Point const &b )
 
 // distance point-box
 KOKKOS_INLINE_FUNCTION
-double distance( Point const &point, BBox const &box )
+double distance( Point const &point, Box const &box )
 {
     Point projected_point;
     for ( int d = 0; d < 3; ++d )
@@ -50,11 +50,11 @@ double distance( Point const &point, BBox const &box )
 }
 
 // expand an axis-aligned bounding box to include a point
-void expand( BBox &box, Point const &point );
+void expand( Box &box, Point const &point );
 
 // expand an axis-aligned bounding box to include another box
 KOKKOS_INLINE_FUNCTION
-void expand( BBox &box, BBox const &other )
+void expand( Box &box, Box const &other )
 {
     for ( int d = 0; d < 3; ++d )
     {
@@ -67,7 +67,7 @@ void expand( BBox &box, BBox const &other )
 
 // check if two axis-aligned bounding boxes overlap
 KOKKOS_INLINE_FUNCTION
-bool overlaps( BBox const &box, BBox const &other )
+bool overlaps( Box const &box, Box const &other )
 {
     for ( int d = 0; d < 3; ++d )
         if ( box[2 * d + 0] > other[2 * d + 1] ||
@@ -78,7 +78,7 @@ bool overlaps( BBox const &box, BBox const &other )
 
 // calculate the centroid of a box
 KOKKOS_INLINE_FUNCTION
-void centroid( BBox const &box, Point &c )
+void centroid( Box const &box, Point &c )
 {
     for ( int d = 0; d < 3; ++d )
         c[d] = 0.5 * ( box[2 * d + 0] + box[2 * d + 1] );
@@ -165,7 +165,7 @@ class ExpandBoxWithBoxFunctor
 {
   public:
     ExpandBoxWithBoxFunctor(
-        Kokkos::View<BBox const *, DeviceType> bounding_boxes )
+        Kokkos::View<Box const *, DeviceType> bounding_boxes )
         : _greatest( Kokkos::ArithTraits<double>::max() )
         , _lowest( -_greatest )
         , _bounding_boxes( bounding_boxes )
@@ -173,7 +173,7 @@ class ExpandBoxWithBoxFunctor
     }
 
     KOKKOS_INLINE_FUNCTION
-    void init( BBox &box ) const
+    void init( Box &box ) const
     {
         for ( int d = 0; d < 3; ++d )
         {
@@ -183,7 +183,7 @@ class ExpandBoxWithBoxFunctor
     }
 
     KOKKOS_INLINE_FUNCTION
-    void operator()( int const i, BBox &box ) const
+    void operator()( int const i, Box &box ) const
     {
         for ( int d = 0; d < 3; ++d )
         {
@@ -195,7 +195,7 @@ class ExpandBoxWithBoxFunctor
     }
 
     KOKKOS_INLINE_FUNCTION
-    void join( volatile BBox &dst, volatile BBox const &src ) const
+    void join( volatile Box &dst, volatile Box const &src ) const
     {
         for ( int d = 0; d < 3; ++d )
         {
@@ -208,7 +208,7 @@ class ExpandBoxWithBoxFunctor
   private:
     double const _greatest;
     double const _lowest;
-    Kokkos::View<BBox const *, DeviceType> _bounding_boxes;
+    Kokkos::View<Box const *, DeviceType> _bounding_boxes;
 };
 
 } // end namespace Details

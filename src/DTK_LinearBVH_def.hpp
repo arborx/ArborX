@@ -30,7 +30,7 @@ class SetBoundingBoxesFunctor
     SetBoundingBoxesFunctor(
         Kokkos::View<Node *, DeviceType> leaf_nodes,
         Kokkos::View<int *, DeviceType> indices,
-        Kokkos::View<BBox const *, DeviceType> bounding_boxes )
+        Kokkos::View<Box const *, DeviceType> bounding_boxes )
         : _leaf_nodes( leaf_nodes )
         , _indices( indices )
         , _bounding_boxes( bounding_boxes )
@@ -46,11 +46,11 @@ class SetBoundingBoxesFunctor
   private:
     Kokkos::View<Node *, DeviceType> _leaf_nodes;
     Kokkos::View<int *, DeviceType> _indices;
-    Kokkos::View<BBox const *, DeviceType> _bounding_boxes;
+    Kokkos::View<Box const *, DeviceType> _bounding_boxes;
 };
 
 template <typename NO>
-BVH<NO>::BVH( Kokkos::View<BBox const *, DeviceType> bounding_boxes )
+BVH<NO>::BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes )
     : leaf_nodes( "leaf_nodes", bounding_boxes.extent( 0 ) )
     , internal_nodes( "internal_nodes", bounding_boxes.extent( 0 ) - 1 )
     , indices( "sorted_indices", bounding_boxes.extent( 0 ) )

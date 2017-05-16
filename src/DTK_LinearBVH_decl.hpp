@@ -32,7 +32,7 @@ struct BVH
   public:
     using DeviceType = typename NO::device_type;
 
-    BVH( Kokkos::View<BBox const *, DeviceType> bounding_boxes );
+    BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes );
 
     Kokkos::View<Node *, DeviceType> leaf_nodes;
     Kokkos::View<Node *, DeviceType> internal_nodes;

@@ -19,13 +19,13 @@ namespace DataTransferKit
  * size 2x spatial dimension with a default constructor to initialize
  * properly an "empty" box.
  */
-struct BBox
+struct Box
 {
     using ArrayType = double[6]; // Kokkos::Array<double, 6>;
     using SizeType = size_t;     // ArrayType::size_type;
 
     KOKKOS_INLINE_FUNCTION
-    BBox()
+    Box()
     {
         _minmax[0] = Kokkos::ArithTraits<double>::max();
         _minmax[1] = -Kokkos::ArithTraits<double>::max();
@@ -36,14 +36,14 @@ struct BBox
     }
 
     KOKKOS_INLINE_FUNCTION
-    BBox( ArrayType const &minmax )
+    Box( ArrayType const &minmax )
     {
         for ( unsigned int i = 0; i < 6; ++i )
             _minmax[i] = minmax[i];
     }
 
     KOKKOS_INLINE_FUNCTION
-    BBox &operator=( ArrayType const &minmax )
+    Box &operator=( ArrayType const &minmax )
     {
         for ( unsigned int i = 0; i < 6; ++i )
             _minmax[i] = minmax[i];
@@ -68,7 +68,7 @@ struct BBox
 
     ArrayType _minmax;
 
-    friend std::ostream &operator<<( std::ostream &os, BBox const &aabb )
+    friend std::ostream &operator<<( std::ostream &os, Box const &aabb )
     {
         os << "{";
         for ( int d = 0; d < 3; ++d )

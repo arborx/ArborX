@@ -34,16 +34,16 @@ struct TreeConstruction
     using ExecutionSpace = typename DeviceType::execution_space;
 
     static void calculateBoundingBoxOfTheScene(
-        Kokkos::View<BBox const *, DeviceType> bounding_boxes,
-        BBox &scene_bounding_box );
+        Kokkos::View<Box const *, DeviceType> bounding_boxes,
+        Box &scene_bounding_box );
 
     // to assign the Morton code for a given object, we use the centroid point
     // of its bounding box, and express it relative to the bounding box of the
     // scene.
     static void
-    assignMortonCodes( Kokkos::View<BBox const *, DeviceType> bounding_boxes,
+    assignMortonCodes( Kokkos::View<Box const *, DeviceType> bounding_boxes,
                        Kokkos::View<unsigned int *, DeviceType> morton_codes,
-                       BBox const &scene_bounding_box );
+                       Box const &scene_bounding_box );
 
     static void
     sortObjects( Kokkos::View<unsigned int *, DeviceType> morton_codes,

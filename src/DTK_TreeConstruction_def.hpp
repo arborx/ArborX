@@ -26,9 +26,9 @@ class AssignMortonCodesFunctor
 {
   public:
     AssignMortonCodesFunctor(
-        Kokkos::View<BBox const *, DeviceType> bounding_boxes,
+        Kokkos::View<Box const *, DeviceType> bounding_boxes,
         Kokkos::View<unsigned int *, DeviceType> morton_codes,
-        BBox const &scene_bounding_box )
+        Box const &scene_bounding_box )
         : _bounding_boxes( bounding_boxes )
         , _morton_codes( morton_codes )
         , _scene_bounding_box( scene_bounding_box )
@@ -52,9 +52,9 @@ class AssignMortonCodesFunctor
     }
 
   private:
-    Kokkos::View<BBox const *, DeviceType> _bounding_boxes;
+    Kokkos::View<Box const *, DeviceType> _bounding_boxes;
     Kokkos::View<unsigned int *, DeviceType> _morton_codes;
-    BBox const &_scene_bounding_box;
+    Box const &_scene_bounding_box;
 };
 
 template <typename NO>
@@ -176,8 +176,8 @@ class CalculateBoundingBoxesFunctor
 
 template <typename NO>
 void TreeConstruction<NO>::calculateBoundingBoxOfTheScene(
-    Kokkos::View<BBox const *, DeviceType> bounding_boxes,
-    BBox &scene_bounding_box )
+    Kokkos::View<Box const *, DeviceType> bounding_boxes,
+    Box &scene_bounding_box )
 {
     int const n = bounding_boxes.extent( 0 );
     Details::ExpandBoxWithBoxFunctor<DeviceType> functor( bounding_boxes );
@@ -189,9 +189,9 @@ void TreeConstruction<NO>::calculateBoundingBoxOfTheScene(
 
 template <typename NO>
 void TreeConstruction<NO>::assignMortonCodes(
-    Kokkos::View<BBox const *, DeviceType> bounding_boxes,
+    Kokkos::View<Box const *, DeviceType> bounding_boxes,
     Kokkos::View<unsigned int *, DeviceType> morton_codes,
-    BBox const &scene_bounding_box )
+    Box const &scene_bounding_box )
 {
     int const n = morton_codes.extent( 0 );
     AssignMortonCodesFunctor<DeviceType> functor( bounding_boxes, morton_codes,

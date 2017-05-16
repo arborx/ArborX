@@ -28,7 +28,7 @@ class FillBoxes
 {
   public:
     KOKKOS_INLINE_FUNCTION
-    FillBoxes( Kokkos::View<DataTransferKit::BBox *, DeviceType> boxes )
+    FillBoxes( Kokkos::View<DataTransferKit::Box *, DeviceType> boxes )
         : _boxes( boxes )
     {
     }
@@ -43,7 +43,7 @@ class FillBoxes
     }
 
   private:
-    Kokkos::View<DataTransferKit::BBox *, DeviceType> _boxes;
+    Kokkos::View<DataTransferKit::Box *, DeviceType> _boxes;
 };
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, tag_dispatching, NO )
@@ -51,7 +51,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, tag_dispatching, NO )
     using DeviceType = typename DataTransferKit::BVH<NO>::DeviceType;
     using ExecutionSpace = typename DeviceType::execution_space;
     int const n = 2;
-    Kokkos::View<DataTransferKit::BBox *, DeviceType> boxes( "boxes", n );
+    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", n );
     FillBoxes<DeviceType> fill_boxes_functor( boxes );
     Kokkos::parallel_for( "file_boxes_functor",
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
@@ -72,7 +72,7 @@ class Overlap
 {
   public:
     KOKKOS_INLINE_FUNCTION
-    Overlap( DataTransferKit::BBox const &queryBox )
+    Overlap( DataTransferKit::Box const &queryBox )
         : _queryBox( queryBox )
     {
     }
@@ -84,7 +84,7 @@ class Overlap
     }
 
   private:
-    DataTransferKit::BBox const &_queryBox;
+    DataTransferKit::Box const &_queryBox;
 };
 
 template <typename NO>
@@ -94,7 +94,7 @@ class FillBoundingBoxes
     using DeviceType = typename DataTransferKit::BVH<NO>::DeviceType;
 
     FillBoundingBoxes(
-        Kokkos::View<DataTransferKit::BBox *, DeviceType> bounding_boxes,
+        Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes,
         double Lx, double Ly, double Lz, double eps, int nx, int ny, int nz )
         : _bounding_boxes( bounding_boxes )
         , _Lx( Lx )
@@ -121,7 +121,7 @@ class FillBoundingBoxes
     }
 
   private:
-    Kokkos::View<DataTransferKit::BBox *, DeviceType> _bounding_boxes;
+    Kokkos::View<DataTransferKit::Box *, DeviceType> _bounding_boxes;
     double _Lx;
     double _Ly;
     double _Lz;
@@ -137,7 +137,7 @@ class CheckIdentity
   public:
     using DeviceType = typename DataTransferKit::BVH<NO>::DeviceType;
     CheckIdentity(
-        Kokkos::View<DataTransferKit::BBox *, DeviceType> bounding_boxes,
+        Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes,
         DataTransferKit::BVH<NO> bvh,
         Kokkos::View<int * [2], DeviceType> identity )
         : _bounding_boxes( bounding_boxes )
@@ -160,7 +160,7 @@ class CheckIdentity
     }
 
   private:
-    Kokkos::View<DataTransferKit::BBox *, DeviceType> _bounding_boxes;
+    Kokkos::View<DataTransferKit::Box *, DeviceType> _bounding_boxes;
     DataTransferKit::BVH<NO> _bvh;
     Kokkos::View<int * [2], DeviceType> _identity;
 };
@@ -171,7 +171,7 @@ class CheckFirstNeighbor
   public:
     using DeviceType = typename DataTransferKit::BVH<NO>::DeviceType;
     CheckFirstNeighbor(
-        Kokkos::View<DataTransferKit::BBox *, DeviceType> bounding_boxes,
+        Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes,
         DataTransferKit::BVH<NO> bvh,
         Kokkos::View<int * [2], DeviceType> first_neighbor, int nx, int ny,
         int nz )
@@ -208,7 +208,7 @@ class CheckFirstNeighbor
     }
 
   private:
-    Kokkos::View<DataTransferKit::BBox *, DeviceType> _bounding_boxes;
+    Kokkos::View<DataTransferKit::Box *, DeviceType> _bounding_boxes;
     DataTransferKit::BVH<NO> _bvh;
     Kokkos::View<int * [2], DeviceType> _first_neighbor;
     int _nx;
@@ -221,7 +221,7 @@ class CheckRandom
 {
   public:
     using DeviceType = typename DataTransferKit::BVH<NO>::DeviceType;
-    CheckRandom( Kokkos::View<DataTransferKit::BBox *, DeviceType> aabb,
+    CheckRandom( Kokkos::View<DataTransferKit::Box *, DeviceType> aabb,
                  DataTransferKit::BVH<NO> bvh,
                  Kokkos::View<int * [2], DeviceType> random )
         : _aabb( aabb )
@@ -244,7 +244,7 @@ class CheckRandom
     }
 
   private:
-    Kokkos::View<DataTransferKit::BBox *, DeviceType> _aabb;
+    Kokkos::View<DataTransferKit::Box *, DeviceType> _aabb;
     DataTransferKit::BVH<NO> _bvh;
     Kokkos::View<int * [2], DeviceType> _random;
 };
@@ -262,7 +262,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, NO )
 
     using DeviceType = typename DataTransferKit::BVH<NO>::DeviceType;
     using ExecutionSpace = typename DeviceType::execution_space;
-    Kokkos::View<DataTransferKit::BBox *, DeviceType> bounding_boxes(
+    Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes(
         "bounding_boxes", n );
     FillBoundingBoxes<NO> fill_bounding_boxes( bounding_boxes, Lx, Ly, Lz, eps,
                                                nx, ny, nz );
@@ -404,7 +404,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, NO )
 
     int nn = 1000;
     int count = 0; // drop point if mapped into [0.5-eps], 0.5+eps]^3
-    Kokkos::View<DataTransferKit::BBox *, ExecutionSpace> aabb( "aabb", nn );
+    Kokkos::View<DataTransferKit::Box *, ExecutionSpace> aabb( "aabb", nn );
     auto aabb_host = Kokkos::create_mirror_view( aabb );
     std::vector<int> indices( nn );
     for ( int l = 0; l < nn; ++l )
@@ -603,7 +603,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, NO )
         rtree.insert( std::make_pair( BPoint( x, y, z ), i ) );
     }
     using DeviceType = typename DataTransferKit::BVH<NO>::DeviceType;
-    Kokkos::View<DataTransferKit::BBox *, DeviceType> bounding_boxes(
+    Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes(
         "bounding_boxes", n );
     auto bounding_boxes_host = Kokkos::create_mirror_view( bounding_boxes );
     // build bounding volume hierarchy
