@@ -61,11 +61,34 @@ class Within
     double const _radius;
 };
 
+class Overlap
+{
+  public:
+    using Tag = SpatialPredicateTag;
+    KOKKOS_INLINE_FUNCTION
+    Overlap( BBox const &queryBox )
+        : _queryBox( queryBox )
+    {
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    bool operator()( Node const *node ) const
+    {
+        return overlaps( node->bounding_box, _queryBox );
+    }
+
+  private:
+    DataTransferKit::BBox const &_queryBox;
+};
+
 KOKKOS_INLINE_FUNCTION
 Nearest nearest( Point const &p, int k = 1 ) { return Nearest( p, k ); }
 
 KOKKOS_INLINE_FUNCTION
 Within within( Point const &p, double r ) { return Within( p, r ); }
+
+KOKKOS_INLINE_FUNCTION
+Overlap overlap( BBox const &b ) { return Overlap( b ); }
 
 } // end namesapce Details}
 } // end namespace DataTransferKit

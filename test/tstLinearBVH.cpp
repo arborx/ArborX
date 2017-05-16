@@ -70,25 +70,6 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, tag_dispatching, NO )
                                        n_results );
 }
 
-class Overlap
-{
-  public:
-    KOKKOS_INLINE_FUNCTION
-    Overlap( DataTransferKit::Box const &queryBox )
-        : _queryBox( queryBox )
-    {
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    bool operator()( DataTransferKit::Node const *node ) const
-    {
-        return details::overlaps( node->bounding_box, _queryBox );
-    }
-
-  private:
-    DataTransferKit::Box const &_queryBox;
-};
-
 template <typename NO>
 class FillBoundingBoxes
 {
@@ -151,12 +132,11 @@ class CheckIdentity
     KOKKOS_INLINE_FUNCTION
     void operator()( int const i ) const
     {
-        Overlap overlap_predicate( _bounding_boxes[i] );
         unsigned int constexpr max_n_indices = 10;
         int indices[max_n_indices];
         unsigned int n_indices = 0;
-        details::spatial_query( _bvh, overlap_predicate, indices, n_indices,
-                                max_n_indices );
+        details::spatial_query( _bvh, details::overlap( _bounding_boxes[i] ),
+                                indices, n_indices, max_n_indices );
         _identity( i, 0 ) = n_indices;
         _identity( i, 1 ) = indices[0];
     }
@@ -193,12 +173,12 @@ class CheckFirstNeighbor
             for ( int k = 0; k < _nz; ++k )
             {
                 int const index = i + j * _nx + k * ( _nx * _ny );
-                Overlap overlap_predicate( _bounding_boxes[index] );
                 unsigned int constexpr max_n_indices = 10000;
                 int indices[max_n_indices];
                 unsigned int n_indices = 0;
-                details::spatial_query( _bvh, overlap_predicate, indices,
-                                        n_indices, max_n_indices );
+                details::spatial_query(
+                    _bvh, details::overlap( _bounding_boxes[index] ), indices,
+                    n_indices, max_n_indices );
                 _first_neighbor( index, 0 ) = n_indices;
                 // Only check the first element because we don't know how many
                 // elements there are when we build the View. To check the other
@@ -235,12 +215,11 @@ class CheckRandom
     KOKKOS_INLINE_FUNCTION
     void operator()( int const i ) const
     {
-        Overlap overlap_predicate( _aabb[i] );
         unsigned int constexpr max_n_indices = 1000;
         int indices[max_n_indices];
         unsigned int n_indices = 0;
-        details::spatial_query( _bvh, overlap_predicate, indices, n_indices,
-                                max_n_indices );
+        details::spatial_query( _bvh, details::overlap( _aabb[i] ), indices,
+                                n_indices, max_n_indices );
         _random( i, 0 ) = n_indices;
         _random( i, 1 ) = indices[0];
     }
