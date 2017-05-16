@@ -211,6 +211,8 @@ void TreeConstruction<NO>::sortObjects(
                   CompType( n / 2, result.min_val, result.max_val ), true );
     bin_sort.create_permute_vector();
     bin_sort.sort( morton_codes );
+    // TODO: We might be able to just use `bin_sort.get_permute_vector()`
+    // instead of initializing the indices with Iota and sorting the vector
     bin_sort.sort( object_ids );
 }
 
