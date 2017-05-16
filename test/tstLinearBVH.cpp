@@ -10,8 +10,8 @@
 #include <DTK_DetailsPredicate.hpp>
 #include <DTK_DetailsTreeTraversal.hpp>
 
-#include <DTK_BVHQuery.hpp>
 #include <DTK_LinearBVH.hpp>
+#include <details/DTK_DetailsTreeTraversal.hpp>
 
 #include <Teuchos_UnitTestHarness.hpp>
 
@@ -60,13 +60,14 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, tag_dispatching, NO )
     Kokkos::fence();
 
     DataTransferKit::BVH<NO> bvh( boxes );
-    Kokkos::View<int *, DeviceType> results;
+    int results[255];
+    unsigned int n_results;
     DataTransferKit::Point p1 = {0., 0., 0.};
-    DataTransferKit::BVHQuery<NO>::query( bvh, details::nearest( p1, 1 ),
-                                          results );
+    details::TreeTraversal<NO>::query( bvh, details::nearest( p1, 1 ), results,
+                                       n_results );
 
-    details::Within within_predicate( p1, 0.5 );
-    DataTransferKit::BVHQuery<NO>::query( bvh, within_predicate, results );
+    details::TreeTraversal<NO>::query( bvh, details::within( p1, 0.5 ), results,
+                                       n_results );
 }
 
 class Overlap

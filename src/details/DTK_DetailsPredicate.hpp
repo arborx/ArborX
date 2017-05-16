@@ -14,7 +14,6 @@
 
 namespace DataTransferKit
 {
-
 namespace Details
 {
 
@@ -63,8 +62,12 @@ class Within
 };
 
 KOKKOS_INLINE_FUNCTION
-Nearest nearest( Point const &g, int k = 1 ) { return Nearest( g, k ); }
-}
-}
+Nearest nearest( Point const &p, int k = 1 ) { return Nearest( p, k ); }
+
+KOKKOS_INLINE_FUNCTION
+Within within( Point const &p, double r ) { return Within( p, r ); }
+
+} // end namesapce Details}
+} // end namespace DataTransferKit
 
 #endif

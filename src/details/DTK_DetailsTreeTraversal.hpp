@@ -30,6 +30,15 @@ struct TreeTraversal
     using DeviceType = typename NO::device_type;
     using ExecutionSpace = typename DeviceType::execution_space;
 
+    template <typename Predicate>
+    KOKKOS_INLINE_FUNCTION static int
+    query( BVH<NO> const bvh, Predicate const &pred, int *indices,
+           unsigned int &n_indices )
+    {
+        using Tag = typename Predicate::Tag;
+        return query_dispatch( bvh, pred, indices, n_indices, Tag{} );
+    }
+
     /**
      * Return true if the node is a leaf.
      */
@@ -108,19 +117,12 @@ spatial_query( BVH<NO> const bvh, Predicate const &predicate, int *indices,
 }
 
 template <typename NO, typename Predicate>
-unsigned int query_dispatch( BVH<NO> const bvh, Predicate const &pred,
-                             Kokkos::View<int *, typename NO::device_type> out,
-                             SpatialPredicateTag )
+KOKKOS_FUNCTION unsigned int
+query_dispatch( BVH<NO> const bvh, Predicate const &pred, int *indices,
+                unsigned int &n_indices, SpatialPredicateTag )
 {
-    unsigned int constexpr max_n_indices = 1000;
-    int indices[max_n_indices];
-    unsigned int n_indices = 0;
-    spatial_query( bvh, pred, indices, n_indices, max_n_indices );
-    out = Kokkos::View<int *, typename NO::device_type>( "dummy", n_indices );
-    for ( unsigned int i = 0; i < n_indices; ++i )
-    {
-        out[i] = indices[i];
-    }
+    unsigned int constexpr dummy_max_n_indices = 1000;
+    spatial_query( bvh, pred, indices, n_indices, dummy_max_n_indices );
     return n_indices;
 }
 
@@ -184,21 +186,14 @@ nearest_query( BVH<NO> const bvh, Point const &query_point, int k, int *indices,
 }
 
 template <typename NO, typename Predicate>
-int query_dispatch( BVH<NO> const bvh, Predicate const &pred,
-                    Kokkos::View<int *, typename NO::device_type> out,
-                    NearestPredicateTag )
+KOKKOS_FUNCTION int query_dispatch( BVH<NO> const bvh, Predicate const &pred,
+                                    int *indices, unsigned int &n_indices,
+                                    NearestPredicateTag )
 {
-    unsigned int constexpr max_n_indices = 1000;
-    int indices[max_n_indices];
-    unsigned int n_indices = 0;
+    unsigned int constexpr dummy_max_n_indices = 1000;
     nearest_query( bvh, pred._query_point, pred._k, indices, n_indices,
-                   max_n_indices );
-    int const n = n_indices;
-    out = Kokkos::View<int *, typename NO::device_type>( "dummy", n );
-    for ( unsigned int i = 0; i < n_indices; ++i )
-        out[i] = indices[i];
-
-    return n;
+                   dummy_max_n_indices );
+    return n_indices;
 }
 
 } // end namespace Details
