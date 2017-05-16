@@ -123,22 +123,6 @@ class GenerateHierarchyFunctor
 };
 
 template <typename DeviceType>
-class FillReadyFlagsFunctor
-{
-  public:
-    FillReadyFlagsFunctor( Kokkos::View<int *, DeviceType> ready_flags )
-        : _ready_flags( ready_flags )
-    {
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    void operator()( int const i ) const { _ready_flags[i] = 0; }
-
-  private:
-    Kokkos::View<int *, DeviceType> _ready_flags;
-};
-
-template <typename DeviceType>
 class CalculateBoundingBoxesFunctor
 {
   public:
@@ -258,10 +242,9 @@ void TreeConstruction<NO>::calculateBoundingBoxes(
 
     // Use int instead of bool because CAS on CUDA does not support boolean
     Kokkos::View<int *, DeviceType> ready_flags( "ready_flags", n - 1 );
-    FillReadyFlagsFunctor<DeviceType> fill_functor( ready_flags );
     Kokkos::parallel_for( "fill_ready_flags",
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n - 1 ),
-                          fill_functor );
+                          KOKKOS_LAMBDA( int i ) { ready_flags[i] = 0; } );
     Kokkos::fence();
 
     Node *root = &internal_nodes[0];
