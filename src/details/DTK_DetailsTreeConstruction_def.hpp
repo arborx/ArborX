@@ -261,6 +261,7 @@ void TreeConstruction<NO>::calculateBoundingBoxes(
     Kokkos::parallel_for( "fill_ready_flags",
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n - 1 ),
                           fill_functor );
+    Kokkos::fence();
 
     Node *root = &internal_nodes[0];
 
