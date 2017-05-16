@@ -21,6 +21,7 @@ namespace DataTransferKit
 {
 namespace Details
 {
+
 template <typename DeviceType>
 class AssignMortonCodesFunctor
 {
@@ -40,7 +41,7 @@ class AssignMortonCodesFunctor
     {
         Point xyz;
         double a, b;
-        Details::centroid( _bounding_boxes[i], xyz );
+        centroid( _bounding_boxes[i], xyz );
         // scale coordinates with respect to bounding box of the scene
         for ( int d = 0; d < 3; ++d )
         {
@@ -48,7 +49,7 @@ class AssignMortonCodesFunctor
             b = _scene_bounding_box[2 * d + 1];
             xyz[d] = ( a != b ? ( xyz[d] - a ) / ( b - a ) : 0 );
         }
-        _morton_codes[i] = Details::morton3D( xyz[0], xyz[1], xyz[2] );
+        _morton_codes[i] = morton3D( xyz[0], xyz[1], xyz[2] );
     }
 
   private:
@@ -160,7 +161,7 @@ class CalculateBoundingBoxesFunctor
                      &_ready_flags[node - _root], 0, 1 ) )
                 break;
             for ( Node *child : {node->children.first, node->children.second} )
-                Details::expand( node->bounding_box, child->bounding_box );
+                expand( node->bounding_box, child->bounding_box );
             node = node->parent;
         }
         // NOTE: could stop at node != root and then just check that what we
@@ -180,7 +181,7 @@ void TreeConstruction<NO>::calculateBoundingBoxOfTheScene(
     Box &scene_bounding_box )
 {
     int const n = bounding_boxes.extent( 0 );
-    Details::ExpandBoxWithBoxFunctor<DeviceType> functor( bounding_boxes );
+    ExpandBoxWithBoxFunctor<DeviceType> functor( bounding_boxes );
     Kokkos::parallel_reduce( "calculate_bouding_of_the_scene",
                              Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
                              functor, scene_bounding_box );
