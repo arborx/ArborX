@@ -7,8 +7,8 @@
  * the LICENSE file in the top-level directory.                             *
  ****************************************************************************/
 
+#include <DTK_DetailsPredicate.hpp>
 #include <DTK_DetailsTreeTraversal.hpp>
-#include <DTK_Predicate.hpp>
 
 #include <DTK_LinearBVH.hpp>
 

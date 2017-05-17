@@ -10,7 +10,7 @@
 #define DTK_PREDICATE_HPP
 
 #include <DTK_DetailsAlgorithms.hpp>
-#include <DTK_Node.hpp>
+#include <DTK_DetailsNode.hpp>
 
 namespace DataTransferKit
 {

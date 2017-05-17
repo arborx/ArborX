@@ -7,8 +7,8 @@
  * the LICENSE file in the top-level directory.                             *
  ****************************************************************************/
 #include <DTK_DetailsAlgorithms.hpp>
+#include <DTK_DetailsTreeConstruction.hpp>
 #include <DTK_KokkosHelpers.hpp>
-#include <DTK_TreeConstruction.hpp>
 
 #include <Kokkos_ArithTraits.hpp>
 #include <Teuchos_UnitTestHarness.hpp>

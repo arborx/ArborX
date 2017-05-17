@@ -14,10 +14,10 @@
 #include <Kokkos_Array.hpp>
 #include <Kokkos_View.hpp>
 
-#include <DTK_Box.hpp>
 #include <DTK_DetailsAlgorithms.hpp>
-#include <DTK_Node.hpp>
-#include <DTK_Predicate.hpp>
+#include <DTK_DetailsBox.hpp>
+#include <DTK_DetailsNode.hpp>
+#include <DTK_DetailsPredicate.hpp>
 
 #include "DTK_ConfigDefs.hpp"
 

@@ -10,12 +10,13 @@
 #ifndef DTK_LINEARBVH_DEF_HPP
 #define DTK_LINEARBVH_DEF_HPP
 
+#include "DTK_ConfigDefs.hpp"
+
 #include <DTK_DetailsAlgorithms.hpp>
+#include <DTK_DetailsTreeConstruction.hpp>
 #include <DTK_DetailsTreeTraversal.hpp>
 #include <DTK_KokkosHelpers.hpp>
-#include <DTK_TreeConstruction.hpp>
 
-#include "DTK_ConfigDefs.hpp"
 #include <Kokkos_ArithTraits.hpp>
 
 namespace DataTransferKit

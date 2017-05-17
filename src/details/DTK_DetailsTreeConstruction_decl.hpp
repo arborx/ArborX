@@ -11,10 +11,11 @@
 #define DTK_TREECONSTRUCTION_DECL_HPP
 
 #include "DTK_ConfigDefs.hpp"
-#include <DTK_DetailsAlgorithms.hpp>
 
-#include <DTK_Box.hpp>
-#include <DTK_Node.hpp>
+#include <DTK_DetailsAlgorithms.hpp>
+#include <DTK_DetailsBox.hpp>
+#include <DTK_DetailsNode.hpp>
+
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Pair.hpp>
 
