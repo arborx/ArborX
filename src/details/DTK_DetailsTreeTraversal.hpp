@@ -30,13 +30,12 @@ struct TreeTraversal
     using DeviceType = typename NO::device_type;
     using ExecutionSpace = typename DeviceType::execution_space;
 
-    template <typename Predicate>
+    template <typename Predicate, typename Insert>
     KOKKOS_INLINE_FUNCTION static int
-    query( BVH<NO> const bvh, Predicate const &pred, int *indices,
-           unsigned int &n_indices )
+    query( BVH<NO> const bvh, Predicate const &pred, Insert const &insert )
     {
         using Tag = typename Predicate::Tag;
-        return query_dispatch( bvh, pred, indices, n_indices, Tag{} );
+        return query_dispatch( bvh, pred, insert, Tag{} );
     }
 
     /**
@@ -75,14 +74,15 @@ struct TreeTraversal
 // one using nearest neighbours query (see boost::geometry::queries
 // documentation).
 template <typename NO, typename Predicate, typename Insert>
-KOKKOS_FUNCTION void spatial_query( BVH<NO> const bvh,
-                                    Predicate const &predicate,
-                                    Insert const &insert )
+KOKKOS_FUNCTION int spatial_query( BVH<NO> const bvh,
+                                   Predicate const &predicate,
+                                   Insert const &insert )
 {
     Stack<Node const *> stack;
 
     Node const *node = TreeTraversal<NO>::getRoot( bvh );
     stack.push( node );
+    int count = 0;
 
     while ( !stack.empty() )
     {
@@ -92,6 +92,7 @@ KOKKOS_FUNCTION void spatial_query( BVH<NO> const bvh,
         if ( TreeTraversal<NO>::isLeaf( bvh, node ) )
         {
             insert( TreeTraversal<NO>::getIndex( bvh, node ) );
+            count++;
         }
         else
         {
@@ -105,11 +106,12 @@ KOKKOS_FUNCTION void spatial_query( BVH<NO> const bvh,
             }
         }
     }
+    return count;
 }
 
 // DEPRECATED
 template <typename NO, typename Predicate>
-KOKKOS_FUNCTION void
+KOKKOS_INLINE_FUNCTION int
 spatial_query( BVH<NO> const bvh, Predicate const &predicate, int *indices,
                unsigned int &n_indices, unsigned int max_n_indices )
 {
@@ -124,23 +126,21 @@ spatial_query( BVH<NO> const bvh, Predicate const &predicate, int *indices,
         assert( n_indices < max_n_indices );
         indices[n_indices++] = index;
     };
-    spatial_query( bvh, predicate, insert );
+    return spatial_query( bvh, predicate, insert );
 }
 
-template <typename NO, typename Predicate>
-KOKKOS_FUNCTION unsigned int
-query_dispatch( BVH<NO> const bvh, Predicate const &pred, int *indices,
-                unsigned int &n_indices, SpatialPredicateTag )
+template <typename NO, typename Predicate, typename Insert>
+KOKKOS_INLINE_FUNCTION int
+query_dispatch( BVH<NO> const bvh, Predicate const &pred, Insert const &insert,
+                SpatialPredicateTag )
 {
-    unsigned int constexpr dummy_max_n_indices = 1000;
-    spatial_query( bvh, pred, indices, n_indices, dummy_max_n_indices );
-    return n_indices;
+    return spatial_query( bvh, pred, insert );
 }
 
 // query k nearest neighbours
 template <typename NO, typename Insert>
-KOKKOS_FUNCTION void nearest_query( BVH<NO> const bvh, Point const &query_point,
-                                    int k, Insert const &insert )
+KOKKOS_FUNCTION int nearest_query( BVH<NO> const bvh, Point const &query_point,
+                                   int k, Insert const &insert )
 {
     using PairNodePtrDistance = Kokkos::pair<Node const *, double>;
 
@@ -186,11 +186,12 @@ KOKKOS_FUNCTION void nearest_query( BVH<NO> const bvh, Point const &query_point,
             }
         }
     }
+    return count;
 }
 
 // DEPRECATED
 template <typename NO>
-KOKKOS_FUNCTION void
+KOKKOS_INLINE_FUNCTION int
 nearest_query( BVH<NO> const bvh, Point const &query_point, int k, int *indices,
                unsigned int &n_indices, unsigned int max_n_indices )
 {
@@ -206,18 +207,15 @@ nearest_query( BVH<NO> const bvh, Point const &query_point, int k, int *indices,
 
         indices[n_indices++] = index;
     };
-    nearest_query( bvh, query_point, k, insert );
+    return nearest_query( bvh, query_point, k, insert );
 }
 
-template <typename NO, typename Predicate>
-KOKKOS_FUNCTION int query_dispatch( BVH<NO> const bvh, Predicate const &pred,
-                                    int *indices, unsigned int &n_indices,
-                                    NearestPredicateTag )
+template <typename NO, typename Predicate, typename Insert>
+KOKKOS_INLINE_FUNCTION int
+query_dispatch( BVH<NO> const bvh, Predicate const &pred, Insert const &insert,
+                NearestPredicateTag )
 {
-    unsigned int constexpr dummy_max_n_indices = 1000;
-    nearest_query( bvh, pred._query_point, pred._k, indices, n_indices,
-                   dummy_max_n_indices );
-    return n_indices;
+    return nearest_query( bvh, pred._query_point, pred._k, insert );
 }
 
 } // end namespace Details

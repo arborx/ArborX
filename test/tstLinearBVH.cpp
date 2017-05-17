@@ -60,14 +60,13 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, tag_dispatching, NO )
     Kokkos::fence();
 
     DataTransferKit::BVH<NO> bvh( boxes );
-    int results[255];
-    unsigned int n_results;
+    auto do_nothing = KOKKOS_LAMBDA( int ){};
     DataTransferKit::Point p1 = {0., 0., 0.};
-    details::TreeTraversal<NO>::query( bvh, details::nearest( p1, 1 ), results,
-                                       n_results );
+    details::TreeTraversal<NO>::query( bvh, details::nearest( p1, 1 ),
+                                       do_nothing );
 
-    details::TreeTraversal<NO>::query( bvh, details::within( p1, 0.5 ), results,
-                                       n_results );
+    details::TreeTraversal<NO>::query( bvh, details::within( p1, 0.5 ),
+                                       do_nothing );
 }
 
 template <typename NO>
