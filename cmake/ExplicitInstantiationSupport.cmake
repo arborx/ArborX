@@ -94,7 +94,4 @@ TRIBITS_ETI_GENERATE_TYPEDEF_MACRO(DTK_ETI_TYPEDEFS "DTK_ETI_MANGLING_TYPEDEFS" 
 # ${PACKAGE_NAME}_ETIHelperMacros.h.in
 CONFIGURE_FILE(
   ${DataTransferKit_SOURCE_DIR}/packages/Search/cmake/${PACKAGE_NAME}_ETIHelperMacros.h.in
-  ${DataTransferKit_BINARY_DIR}/packages/Search/src/details/${PACKAGE_NAME}_ETIHelperMacros.h)
-CONFIGURE_FILE(
-  ${DataTransferKit_SOURCE_DIR}/packages/Search/cmake/${PACKAGE_NAME}_ETIHelperMacros.h.in
   ${DataTransferKit_BINARY_DIR}/packages/Search/src/${PACKAGE_NAME}_ETIHelperMacros.h)
