@@ -202,122 +202,6 @@ FUNCTION(DTK_PROCESS_ALL_N_TEMPLATES OUTPUT_FILES TEMPLATE_FILE CLASS_NAME CLASS
 ENDFUNCTION(DTK_PROCESS_ALL_N_TEMPLATES)
 
 
-# Function to generate one .cpp file for the given (Scalar,
-# LocalOrdinal, GlobalOrdinal, Node) template parameter combination.
-# This is meant to be called by
-# DTK_PROCESS_ALL_SLGN_TEMPLATES.  This function takes the names
-# already mangled, to avoid unnecessary string processing overhead.
-#
-# OUTPUT_FILE [out] Name of the generated .cpp file.
-#
-# TEMPLATE_FILE [in] Name of the input .tmpl "template" file.  This
-#   function does string substitution in that file, using the input
-#   arguments of this function.  For example, @SC_MACRO_EXPR@ (Scalar
-#   macro expression) gets substituted for the value of this
-#   function's SC_MACRO_EXPR input argument.
-#
-# CLASS_NAME [in] Name of the DTK class (without namespace
-#   qualifiers; must live in the DataTransferKit namespace)
-#
-# CLASS_MACRO_NAME [in] Name of the DTK class, suitably mangled for
-#   use in a macro name.
-#
-# SC_MANGLED_NAME [in] Name of the Scalar (SC) type, mangled for use
-#   as a macro argument (e.g., spaces and colons removed).  In the
-#   arguments that follow, LO stands for LocalOrdinal, GO for
-#   GlobalOrdinal, and NT for Node.
-#
-# SC_MACRO_EXPR [in] Expression that asks DTK whether the given
-#   Scalar (SC) type is supported.
-#
-# LO_MACRO_NAME [in] Name of the LocalOrdinal (LO) type, mangled for
-#   use as a macro argument.  In the arguments that follow, LO stands
-#   for LocalOrdinal, GO for GlobalOrdinal, and NT for Node.
-#
-FUNCTION(DTK_PROCESS_ONE_SLGN_TEMPLATE OUTPUT_FILE TEMPLATE_FILE CLASS_NAME CLASS_MACRO_NAME SC_MANGLED_NAME LO_MANGLED_NAME GO_MANGLED_NAME NT_MANGLED_NAME SC_MACRO_EXPR LO_MACRO_NAME GO_MACRO_NAME NT_MACRO_NAME)
-  STRING(REPLACE "ETI_SC_LO_GO_NT.tmpl" "${CLASS_NAME}_${SC_MACRO_NAME}_${LO_MACRO_NAME}_${GO_MACRO_NAME}_${NT_MACRO_NAME}.cpp" OUT_FILE "${TEMPLATE_FILE}")
-  CONFIGURE_FILE("${TEMPLATE_FILE}" "${OUT_FILE}")
-
-  SET(${OUTPUT_FILE} ${OUT_FILE} PARENT_SCOPE)
-ENDFUNCTION(DTK_PROCESS_ONE_SLGN_TEMPLATE)
-
-# Function to generate .cpp files for ETI of a DTK class, over all
-# enabled Scalar, LocalOrdinal, GlobalOrdinal, and Node template
-# parameters.  We generate one .cpp file for each (Scalar,
-# LocalOrdinal, GlobalOrdinal, Node) type combination over which
-# DTK does ETI.
-#
-# OUTPUT_FILES [out] List of the generated .cpp files.
-#
-# TEMPLATE_FILE [in] Name of the input .tmpl "template" file.  This
-#   function does string substitution in that file, using the input
-#   arguments of this function.  For example, @SC_MACRO_EXPR@ (Scalar
-#   macro expression) gets substituted for the value of this
-#   function's SC_MACRO_EXPR input argument.
-#
-# CLASS_NAME [in] Name of the DTK class (without namespace
-#   qualifiers; must live in the DTK namespace)
-#
-# CLASS_MACRO_NAME [in] Name of the DTK class, suitably mangled for
-#   use in a macro name.
-#
-# SCALAR_TYPES [in] All Scalar types over which to do ETI for the given
-#   class.  This may include Scalar = GlobalOrdinal and/or Scalar =
-#   int, if appropriate for that class.
-#
-# LOCALORDINAL_TYPES [in] All LocalOrdinal types over which to do ETI
-#   for the given class.
-#
-# GLOBALORDINAL_TYPES [in] All GlobalOrdinal types over which to do
-#   ETI for the given class.
-#
-# NODE_TYPES [in] All Node types over which to do ETI for the given
-#   class.
-#
-# MUST_HAVE_SCALAR_INT [in] (Boolean) Whether the class must be
-#   instantiated with Scalar = int, even if int is not in the set of
-#   GlobalOrdinal types.
-FUNCTION(DTK_PROCESS_ALL_SLGN_TEMPLATES OUTPUT_FILES TEMPLATE_FILE CLASS_NAME CLASS_MACRO_NAME SCALAR_TYPES LOCALORDINAL_TYPES GLOBALORDINAL_TYPES NODE_TYPES MUST_HAVE_SCALAR_INT)
-  SET(OUT_FILES "")
-  FOREACH(NT ${NODE_TYPES})
-    DTK_MANGLE_TEMPLATE_PARAMETER(NT_MANGLED "${NT}")
-    DTK_NODE_MACRO_NAME(NT_MACRO_NAME "${NT}")
-    FOREACH(GO ${GLOBALORDINAL_TYPES})
-      DTK_MANGLE_TEMPLATE_PARAMETER(GO_MANGLED "${GO}")
-      DTK_SLG_MACRO_NAME(GO_MACRO_NAME "${GO}")
-      FOREACH(LO ${LOCALORDINAL_TYPES})
-        DTK_MANGLE_TEMPLATE_PARAMETER(LO_MANGLED "${LO}")
-        DTK_SLG_MACRO_NAME(LO_MACRO_NAME "${LO}")
-        FOREACH(SC ${SCALAR_TYPES})
-          DTK_MANGLE_TEMPLATE_PARAMETER(SC_MANGLED "${SC}")
-          DTK_SLG_MACRO_NAME(SC_MACRO_NAME "${SC}")
-          DTK_SC_MACRO_EXPR(SC_MACRO_EXPR "${SC}" "${GO}" "${SC_MACRO_NAME}")
-
-          #MESSAGE(STATUS ">> SC = ${SC}, SC_MACRO_EXPR = ${SC_MACRO_EXPR}")
-
-          # If SC is NOT a GlobalOrdinal type of some kind (not
-          # necessarily the current GO), or if it is "int", process
-          # it.  Otherwise, then we only have to process it if it
-          # equals the current GO.
-          DTK_SC_IS_GO(IS_GO "${SC}")
-          STRING(COMPARE EQUAL "${SC}" "${GO}" IS_CURRENT_GO)
-          STRING(COMPARE EQUAL "${SC}" "int" IS_INT)
-
-          IF ((MUST_HAVE_SCALAR_INT AND IS_INT) OR (NOT IS_GO OR IS_CURRENT_GO))
-            DTK_PROCESS_ONE_SLGN_TEMPLATE(OUT_FILE "${TEMPLATE_FILE}" "${CLASS_NAME}" "${CLASS_MACRO_NAME}" "${SC_MANGLED}" "${LO_MANGLED}" "${GO_MANGLED}" "${NT_MANGLED}" "${SC_MACRO_EXPR}" "${LO_MACRO_NAME}" "${GO_MACRO_NAME}" "${NT_MACRO_NAME}")
-            LIST(APPEND OUT_FILES ${OUT_FILE})
-          ENDIF()
-        ENDFOREACH() # SC
-      ENDFOREACH() # LO
-    ENDFOREACH() # GO
-  ENDFOREACH() # NT
-
-  # This is the standard CMake idiom for setting an output variable so
-  # that the caller can see the result.
-  SET(${OUTPUT_FILES} ${OUT_FILES} PARENT_SCOPE)
-ENDFUNCTION(DTK_PROCESS_ALL_SLGN_TEMPLATES)
-
-
 #
 # A) Package-specific configuration options
 #
@@ -348,12 +232,6 @@ APPEND_SET(HEADERS ${DIR}/${PACKAGE_NAME}_ETIHelperMacros.h)
 
 # Explicitly instantiate classes.
 IF (${PACKAGE_NAME}_ENABLE_EXPLICIT_INSTANTIATION)
-
-  # # Generate ETI .cpp files for DataTransferKit::<ClassName>.
-  # DTK_PROCESS_ALL_SLGN_TEMPLATES(<CLASSNAME>_OUTPUT_FILES "DTK_ETI_SC_LO_GO_NT.tmpl" "<ClassName>" "<CLASSNAME>" "${${PACKAGE_NAME}_ETI_SCALARS}" "${${PACKAGE_NAME}_ETI_LORDS}" "${${PACKAGE_NAME}_ETI_GORDS}" "${${PACKAGE_NAME}_ETI_NODES}" TRUE)
-  # LIST(APPEND SOURCES ${<CLASSNAME>_OUTPUT_FILES})
-
-  #MESSAGE(STATUS "SOURCES = ${SOURCES}")
 
   # Generate ETI .cpp files for DataTransferKit::LinearBVH.
   DTK_PROCESS_ALL_N_TEMPLATES(LINEARBVH_OUTPUT_FILES
