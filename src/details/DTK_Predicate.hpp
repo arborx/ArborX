@@ -9,8 +9,8 @@
 #ifndef DTK_PREDICATE_HPP
 #define DTK_PREDICATE_HPP
 
+#include <DTK_DetailsAlgorithms.hpp>
 #include <DTK_Node.hpp>
-#include <details/DTK_DetailsAlgorithms.hpp>
 
 namespace DataTransferKit
 {

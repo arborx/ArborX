@@ -10,7 +10,7 @@
 #define DTK_BVHQUERY_DEF_HPP
 
 #include "DTK_ConfigDefs.hpp"
-#include "details/DTK_DetailsTreeTraversal.hpp"
+#include "DTK_DetailsTreeTraversal.hpp"
 
 namespace DataTransferKit
 {

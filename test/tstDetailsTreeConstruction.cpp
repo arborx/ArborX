@@ -6,9 +6,9 @@
  * distributed under a BSD 3-clause license. For the licensing terms see    *
  * the LICENSE file in the top-level directory.                             *
  ****************************************************************************/
+#include <DTK_DetailsAlgorithms.hpp>
 #include <DTK_KokkosHelpers.hpp>
 #include <DTK_TreeConstruction.hpp>
-#include <details/DTK_DetailsAlgorithms.hpp>
 
 #include <Kokkos_ArithTraits.hpp>
 #include <Teuchos_UnitTestHarness.hpp>

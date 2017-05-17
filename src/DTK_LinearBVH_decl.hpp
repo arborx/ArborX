@@ -15,9 +15,9 @@
 #include <Kokkos_View.hpp>
 
 #include <DTK_Box.hpp>
+#include <DTK_DetailsAlgorithms.hpp>
 #include <DTK_Node.hpp>
-#include <details/DTK_DetailsAlgorithms.hpp>
-#include <details/DTK_Predicate.hpp>
+#include <DTK_Predicate.hpp>
 
 #include "DTK_ConfigDefs.hpp"
 

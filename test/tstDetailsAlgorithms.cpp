@@ -6,7 +6,7 @@
  * distributed under a BSD 3-clause license. For the licensing terms see    *
  * the LICENSE file in the top-level directory.                             *
  ****************************************************************************/
-#include <details/DTK_DetailsAlgorithms.hpp>
+#include <DTK_DetailsAlgorithms.hpp>
 
 #include <Teuchos_UnitTestHarness.hpp>
 
