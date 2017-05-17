@@ -74,16 +74,15 @@ struct TreeTraversal
 // There are two (related) families of search: one using a spatial predicate and
 // one using nearest neighbours query (see boost::geometry::queries
 // documentation).
-template <typename NO, typename Predicate>
-KOKKOS_FUNCTION void
-spatial_query( BVH<NO> const bvh, Predicate const &predicate, int *indices,
-               unsigned int &n_indices, unsigned int max_n_indices )
+template <typename NO, typename Predicate, typename Insert>
+KOKKOS_FUNCTION void spatial_query( BVH<NO> const bvh,
+                                    Predicate const &predicate,
+                                    Insert const &insert )
 {
     Stack<Node const *> stack;
 
     Node const *node = TreeTraversal<NO>::getRoot( bvh );
     stack.push( node );
-    n_indices = 0;
 
     while ( !stack.empty() )
     {
@@ -92,15 +91,7 @@ spatial_query( BVH<NO> const bvh, Predicate const &predicate, int *indices,
 
         if ( TreeTraversal<NO>::isLeaf( bvh, node ) )
         {
-#if HAVE_DTK_DBC
-            if ( n_indices > max_n_indices )
-                printf( "Increase the size of indices array\n" );
-#endif
-            assert( n_indices < max_n_indices );
-            // and just to make compilers happy if NDEBUG
-            (void)max_n_indices;
-
-            indices[n_indices++] = TreeTraversal<NO>::getIndex( bvh, node );
+            insert( TreeTraversal<NO>::getIndex( bvh, node ) );
         }
         else
         {
@@ -116,6 +107,26 @@ spatial_query( BVH<NO> const bvh, Predicate const &predicate, int *indices,
     }
 }
 
+// DEPRECATED
+template <typename NO, typename Predicate>
+KOKKOS_FUNCTION void
+spatial_query( BVH<NO> const bvh, Predicate const &predicate, int *indices,
+               unsigned int &n_indices, unsigned int max_n_indices )
+{
+    n_indices = 0;
+    auto insert = [&]( int index ) {
+#if HAVE_DTK_DBC
+        if ( n_indices > max_n_indices )
+            printf( "Increase the size of indices array\n" );
+#endif
+        // and just to make compilers happy if NDEBUG
+        (void)max_n_indices;
+        assert( n_indices < max_n_indices );
+        indices[n_indices++] = index;
+    };
+    spatial_query( bvh, predicate, insert );
+}
+
 template <typename NO, typename Predicate>
 KOKKOS_FUNCTION unsigned int
 query_dispatch( BVH<NO> const bvh, Predicate const &pred, int *indices,
@@ -127,10 +138,9 @@ query_dispatch( BVH<NO> const bvh, Predicate const &pred, int *indices,
 }
 
 // query k nearest neighbours
-template <typename NO>
-KOKKOS_FUNCTION void
-nearest_query( BVH<NO> const bvh, Point const &query_point, int k, int *indices,
-               unsigned int &n_indices, unsigned int max_n_indices )
+template <typename NO, typename Insert>
+KOKKOS_FUNCTION void nearest_query( BVH<NO> const bvh, Point const &query_point,
+                                    int k, Insert const &insert )
 {
     using PairNodePtrDistance = Kokkos::pair<Node const *, double>;
 
@@ -151,9 +161,9 @@ nearest_query( BVH<NO> const bvh, Point const &query_point, int k, int *indices,
     Node const *node = TreeTraversal<NO>::getRoot( bvh );
     double node_distance = 0.0;
     queue.push( node, node_distance );
-    n_indices = 0;
+    int count = 0;
 
-    while ( !queue.empty() && static_cast<int>( n_indices ) < k )
+    while ( !queue.empty() && count < k )
     {
         // get the node that is on top of the priority list (i.e. is the
         // closest to the query point)
@@ -161,15 +171,8 @@ nearest_query( BVH<NO> const bvh, Point const &query_point, int k, int *indices,
         queue.pop();
         if ( TreeTraversal<NO>::isLeaf( bvh, node ) )
         {
-#if HAVE_DTK_DBC
-            if ( n_indices > max_n_indices )
-                printf( "Increase the size of indices array\n" );
-#endif
-            assert( n_indices < max_n_indices );
-            // and just to make compilers happy if NDEBUG
-            (void)max_n_indices;
-
-            indices[n_indices++] = TreeTraversal<NO>::getIndex( bvh, node );
+            insert( TreeTraversal<NO>::getIndex( bvh, node ) );
+            count++;
         }
         else
         {
@@ -183,6 +186,27 @@ nearest_query( BVH<NO> const bvh, Point const &query_point, int k, int *indices,
             }
         }
     }
+}
+
+// DEPRECATED
+template <typename NO>
+KOKKOS_FUNCTION void
+nearest_query( BVH<NO> const bvh, Point const &query_point, int k, int *indices,
+               unsigned int &n_indices, unsigned int max_n_indices )
+{
+    n_indices = 0;
+    auto insert = [&]( int index ) {
+#if HAVE_DTK_DBC
+        if ( n_indices > max_n_indices )
+            printf( "Increase the size of indices array\n" );
+#endif
+        assert( n_indices < max_n_indices );
+        // and just to make compilers happy if NDEBUG
+        (void)max_n_indices;
+
+        indices[n_indices++] = index;
+    };
+    nearest_query( bvh, query_point, k, insert );
 }
 
 template <typename NO, typename Predicate>
