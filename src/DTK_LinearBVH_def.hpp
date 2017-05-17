@@ -11,9 +11,9 @@
 #define DTK_LINEARBVH_DEF_HPP
 
 #include <DTK_KokkosHelpers.hpp>
-#include <DTK_TreeConstruction.hpp>
 #include <details/DTK_DetailsAlgorithms.hpp>
 #include <details/DTK_DetailsTreeTraversal.hpp>
+#include <details/DTK_TreeConstruction.hpp>
 
 #include "DTK_ConfigDefs.hpp"
 #include <Kokkos_ArithTraits.hpp>

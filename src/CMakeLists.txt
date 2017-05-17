@@ -331,11 +331,14 @@ TRIBITS_CONFIGURE_FILE(${PACKAGE_NAME}_config.h)
 SET(HEADERS "")
 SET(SOURCES "")
 
+ADD_SUBDIRECTORY(details)
+
 SET_AND_INC_DIRS(DIR ${CMAKE_CURRENT_SOURCE_DIR})
 APPEND_GLOB(HEADERS ${DIR}/*.h)
 APPEND_GLOB(HEADERS ${DIR}/*.hpp)
 APPEND_GLOB(SOURCES ${DIR}/*.cpp)
 TRILINOS_CREATE_CLIENT_TEMPLATE_HEADERS(${DIR})
+
 
 # Must glob the binary dir last to get all of the auto-generated headers
 SET_AND_INC_DIRS(DIR ${CMAKE_CURRENT_BINARY_DIR})
@@ -352,12 +355,6 @@ IF (${PACKAGE_NAME}_ENABLE_EXPLICIT_INSTANTIATION)
 
   #MESSAGE(STATUS "SOURCES = ${SOURCES}")
 
-  # Generate ETI .ccp files for DataTransferKit::TreeConstruction.
-  DTK_PROCESS_ALL_N_TEMPLATES(TREECONSTRUCTION_OUTPUT_FILES
-    "DTK_ETI_NT.tmpl" "TreeConstruction" "TREECONSTRUCTION"
-    "${${PACKAGE_NAME}_ETI_NODES}" TRUE)
-  LIST(APPEND SOURCES ${TREECONSTRUCTION_OUTPUT_FILES})
-
   # Generate ETI .cpp files for DataTransferKit::LinearBVH.
   DTK_PROCESS_ALL_N_TEMPLATES(LINEARBVH_OUTPUT_FILES
     "DTK_ETI_NT.tmpl" "LinearBVH" "LINEARBVH"
@@ -372,14 +369,6 @@ IF (${PACKAGE_NAME}_ENABLE_EXPLICIT_INSTANTIATION)
 
 ENDIF()
 
-APPEND_SET(HEADERS
-    details/DTK_DetailsTreeTraversal.hpp
-    details/DTK_DetailsAlgorithms.hpp
-)
-
-APPEND_SET(SOURCES
-    details/DTK_DetailsAlgorithms.cpp
-)
 
 #
 # C) Define the targets for package's library(s)

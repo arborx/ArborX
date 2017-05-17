@@ -11,7 +11,7 @@
 #define DTK_TREECONSTRUCTION_DECL_HPP
 
 #include "DTK_ConfigDefs.hpp"
-#include <details/DTK_DetailsAlgorithms.hpp>
+#include <DTK_DetailsAlgorithms.hpp>
 
 #include <DTK_Box.hpp>
 #include <DTK_Node.hpp>
