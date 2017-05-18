@@ -665,6 +665,70 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, NO )
     Kokkos::deep_copy( radii, radii_host );
     Kokkos::deep_copy( k, k_host );
 
+    Kokkos::View<int *, ExecutionSpace> offset( "offset", n_points + 1 );
+    Kokkos::parallel_for(
+        "first_pass", Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
+        KOKKOS_LAMBDA( int i ) {
+            offset( i ) = 0;
+            int count = details::TreeTraversal<NO>::query(
+                bvh,
+                details::nearest( {point_coords( i, 0 ), point_coords( i, 1 ),
+                                   point_coords( i, 2 )},
+                                  k( i ) ),
+                [offset, i]( int index ) { offset( i )++; } );
+            assert( count == offset( i ) );
+        } );
+    Kokkos::fence();
+
+    Kokkos::parallel_scan(
+        "compute_offset",
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n_points + 1 ),
+        KOKKOS_LAMBDA( int i, int &update, bool final_pass ) {
+            int const offset_i = offset( i );
+            if ( final_pass )
+                offset( i ) = update;
+            update += offset_i;
+        } );
+    Kokkos::fence();
+
+    // COMMENT: I feel like there is more efficient way to copy a single element
+    // of a View on the device to the host...
+    auto total_count = Kokkos::subview( offset, n_points );
+    auto total_count_host = Kokkos::create_mirror_view( total_count );
+    Kokkos::deep_copy( total_count_host, total_count );
+    Kokkos::View<int *, ExecutionSpace> indices( "indices", total_count( 0 ) );
+    Kokkos::parallel_for(
+        "second_pass", Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
+        KOKKOS_LAMBDA( int i ) {
+            int count = 0;
+            details::TreeTraversal<NO>::query(
+                bvh,
+                details::nearest( {point_coords( i, 0 ), point_coords( i, 1 ),
+                                   point_coords( i, 2 )},
+                                  k( i ) ),
+                [indices, offset, i, &count]( int index ) {
+                    indices( offset( i ) + count++ ) = index;
+                } );
+            // assert( count == offset( i ) );
+        } );
+    Kokkos::fence();
+    auto indices_host = Kokkos::create_mirror_view( indices );
+    auto offset_host = Kokkos::create_mirror_view( offset );
+    Kokkos::deep_copy( indices_host, indices );
+    Kokkos::deep_copy( offset_host, offset );
+
+    for ( int i = 0; i < n_points; ++i )
+    {
+        auto const &ref = returned_values_nearest[i];
+        std::set<int> ref_ids;
+        for ( auto const &id : ref )
+            ref_ids.emplace( id.second );
+        for ( int j = offset_host( i ); j < offset_host( i + 1 ); ++j )
+        {
+            TEST_ASSERT( ref_ids.count( indices_host( j ) ) != 0 );
+        }
+    }
+
     RandomWithinLambda<NO> random_within_lambda( point_coords, radii,
                                                  within_n_pts, bvh );
 
