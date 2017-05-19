@@ -100,7 +100,7 @@ class Overlap
   public:
     using Tag = SpatialPredicateTag;
     KOKKOS_INLINE_FUNCTION
-    Overlap( BBox const &queryBox )
+    Overlap( Box const &queryBox )
         : _queryBox( queryBox )
     {
     }
@@ -112,7 +112,7 @@ class Overlap
     }
 
   private:
-    DataTransferKit::BBox const &_queryBox;
+    DataTransferKit::Box const &_queryBox;
 };
 
 KOKKOS_INLINE_FUNCTION
@@ -122,7 +122,7 @@ KOKKOS_INLINE_FUNCTION
 Within within( Point const &p, double r ) { return Within( p, r ); }
 
 KOKKOS_INLINE_FUNCTION
-Overlap overlap( BBox const &b ) { return Overlap( b ); }
+Overlap overlap( Box const &b ) { return Overlap( b ); }
 
 } // end namesapce Details}
 } // end namespace DataTransferKit
