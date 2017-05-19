@@ -475,85 +475,80 @@ std::vector<std::array<double, 3>> make_random_cloud( double Lx, double Ly,
     return cloud;
 }
 
-template <typename NO>
-class RandomWithinLambda
+template <typename NO, typename Query>
+void query( DataTransferKit::BVH<NO> const &bvh,
+            Kokkos::View<Query *, typename NO::device_type> queries,
+            Kokkos::View<int *, typename NO::device_type> &indices,
+            Kokkos::View<int *, typename NO::device_type> &offset )
 {
-  public:
     using DeviceType = typename DataTransferKit::BVH<NO>::DeviceType;
     using ExecutionSpace = typename DeviceType::execution_space;
 
-    RandomWithinLambda( Kokkos::View<double * [3], ExecutionSpace> point_coords,
-                        Kokkos::View<double *, ExecutionSpace> radii,
-                        Kokkos::View<int * [2], ExecutionSpace> within_n_pts,
-                        DataTransferKit::BVH<NO> bvh )
-        : _point_coords( point_coords )
-        , _radii( radii )
-        , _within_n_pts( within_n_pts )
-        , _bvh( bvh )
-    {
-    }
+    int const n_queries = queries.extent( 0 );
 
-    KOKKOS_INLINE_FUNCTION
-    void operator()( int const i ) const
-    {
-        details::Within within_predicate( {_point_coords( i, 0 ),
-                                           _point_coords( i, 1 ),
-                                           _point_coords( i, 2 )},
-                                          _radii( i ) );
-        unsigned int constexpr max_n_indices = 10000;
-        int indices[max_n_indices];
-        unsigned int n_indices = 0;
-        details::spatial_query( _bvh, within_predicate, indices, n_indices,
-                                max_n_indices );
-        _within_n_pts( i, 0 ) = n_indices;
-        _within_n_pts( i, 1 ) = indices[0];
-    }
+    // Initialize view
+    // [ 0 0 0 .... 0 0 ]
+    //                ^
+    //                N
+    Kokkos::resize( offset, n_queries + 1 );
+    Kokkos::parallel_for(
+        "query(): initialize offset (set all entries to zero)",
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries + 1 ),
+        KOKKOS_LAMBDA( int i ) { offset[i]; } );
+    Kokkos::fence();
 
-  private:
-    Kokkos::View<double * [3], ExecutionSpace> _point_coords;
-    Kokkos::View<double *, ExecutionSpace> _radii;
-    Kokkos::View<int * [2], ExecutionSpace> _within_n_pts;
-    DataTransferKit::BVH<NO> _bvh;
-};
+    // Say we found exactly two object for each query:
+    // [ 2 2 2 .... 2 0 ]
+    //   ^            ^
+    //   0th          Nth element in the view
+    Kokkos::parallel_for(
+        "query(): first pass at the search count the number of indices",
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
+        KOKKOS_LAMBDA( int i ) {
+            offset( i ) = details::TreeTraversal<NO>::query(
+                bvh, queries( i ), []( int index ) {} );
+        } );
+    Kokkos::fence();
 
-template <typename NO>
-class RandomNearestLambda
-{
-  public:
-    using DeviceType = typename DataTransferKit::BVH<NO>::DeviceType;
-    using ExecutionSpace = typename DeviceType::execution_space;
+    // Then we would get:
+    // [ 0 2 4 .... 2N-2 2N ]
+    //                    ^
+    //                    N
+    Kokkos::parallel_scan(
+        "query(): compute offset",
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries + 1 ),
+        KOKKOS_LAMBDA( int i, int &update, bool final_pass ) {
+            int const offset_i = offset( i );
+            if ( final_pass )
+                offset( i ) = update;
+            update += offset_i;
+        } );
+    Kokkos::fence();
 
-    RandomNearestLambda(
-        Kokkos::View<double * [3], ExecutionSpace> point_coords,
-        Kokkos::View<int * [2], ExecutionSpace> nearest_n_pts,
-        Kokkos::View<int *, ExecutionSpace> k, DataTransferKit::BVH<NO> bvh )
-        : _point_coords( point_coords )
-        , _nearest_n_pts( nearest_n_pts )
-        , _k( k )
-        , _bvh( bvh )
-    {
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    void operator()( int const i ) const
-    {
-        unsigned int constexpr max_n_indices = 1000;
-        int indices[max_n_indices];
-        unsigned int n_indices = 0;
-        details::nearest_query( _bvh,
-                                {_point_coords( i, 0 ), _point_coords( i, 1 ),
-                                 _point_coords( i, 2 )},
-                                _k[i], indices, n_indices, max_n_indices );
-        _nearest_n_pts( i, 0 ) = n_indices;
-        _nearest_n_pts( i, 1 ) = indices[0];
-    }
-
-  private:
-    Kokkos::View<double * [3], ExecutionSpace> _point_coords;
-    Kokkos::View<int * [2], ExecutionSpace> _nearest_n_pts;
-    Kokkos::View<int *, ExecutionSpace> _k;
-    DataTransferKit::BVH<NO> _bvh;
-};
+    // Let us extract the last element in the view which is the total count of
+    // objects which where found to meet the query predicates:
+    //
+    // [ 2N ]
+    auto total_count = Kokkos::subview( offset, n_queries );
+    auto total_count_host = Kokkos::create_mirror_view( total_count );
+    // We allocate the memory and fill
+    //
+    // [ A0 A1 B0 B1 C0 C1 ... X0 X1 ]
+    //   ^     ^     ^         ^     ^
+    //   0     2     4         2N-2  2N
+    Kokkos::deep_copy( total_count_host, total_count );
+    Kokkos::resize( indices, total_count( 0 ) );
+    Kokkos::parallel_for(
+        "second_pass", Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
+        KOKKOS_LAMBDA( int i ) {
+            int count = 0;
+            details::TreeTraversal<NO>::query(
+                bvh, queries( i ), [indices, offset, i, &count]( int index ) {
+                    indices( offset( i ) + count++ ) = index;
+                } );
+        } );
+    Kokkos::fence();
+}
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, NO )
 {
@@ -665,115 +660,79 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, NO )
     Kokkos::deep_copy( radii, radii_host );
     Kokkos::deep_copy( k, k_host );
 
-    Kokkos::View<int *, ExecutionSpace> offset( "offset", n_points + 1 );
-    Kokkos::parallel_for(
-        "first_pass", Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
-        KOKKOS_LAMBDA( int i ) {
-            offset( i ) = 0;
-            int count = details::TreeTraversal<NO>::query(
-                bvh,
-                details::nearest( {point_coords( i, 0 ), point_coords( i, 1 ),
+    Kokkos::View<details::Nearest *, DeviceType> nearest_queries(
+        "neatest_queries", n_points );
+    Kokkos::parallel_for( "register_nearest_queries",
+                          Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
+                          KOKKOS_LAMBDA( int i ) {
+                              nearest_queries( i ) = details::nearest(
+                                  {point_coords( i, 0 ), point_coords( i, 1 ),
                                    point_coords( i, 2 )},
-                                  k( i ) ),
-                [offset, i]( int index ) { offset( i )++; } );
-            assert( count == offset( i ) );
-        } );
+                                  k( i ) );
+                          } );
     Kokkos::fence();
 
-    Kokkos::parallel_scan(
-        "compute_offset",
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n_points + 1 ),
-        KOKKOS_LAMBDA( int i, int &update, bool final_pass ) {
-            int const offset_i = offset( i );
-            if ( final_pass )
-                offset( i ) = update;
-            update += offset_i;
-        } );
-    Kokkos::fence();
-
-    // COMMENT: I feel like there is more efficient way to copy a single element
-    // of a View on the device to the host...
-    auto total_count = Kokkos::subview( offset, n_points );
-    auto total_count_host = Kokkos::create_mirror_view( total_count );
-    Kokkos::deep_copy( total_count_host, total_count );
-    Kokkos::View<int *, ExecutionSpace> indices( "indices", total_count( 0 ) );
-    Kokkos::parallel_for(
-        "second_pass", Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
-        KOKKOS_LAMBDA( int i ) {
-            int count = 0;
-            details::TreeTraversal<NO>::query(
-                bvh,
-                details::nearest( {point_coords( i, 0 ), point_coords( i, 1 ),
+    Kokkos::View<details::Within *, DeviceType> within_queries(
+        "within_queries", n_points );
+    Kokkos::parallel_for( "register_within_queries",
+                          Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
+                          KOKKOS_LAMBDA( int i ) {
+                              within_queries( i ) = details::within(
+                                  {point_coords( i, 0 ), point_coords( i, 1 ),
                                    point_coords( i, 2 )},
-                                  k( i ) ),
-                [indices, offset, i, &count]( int index ) {
-                    indices( offset( i ) + count++ ) = index;
-                } );
-            // assert( count == offset( i ) );
-        } );
+                                  radii( i ) );
+                          } );
     Kokkos::fence();
-    auto indices_host = Kokkos::create_mirror_view( indices );
-    auto offset_host = Kokkos::create_mirror_view( offset );
-    Kokkos::deep_copy( indices_host, indices );
-    Kokkos::deep_copy( offset_host, offset );
 
-    for ( int i = 0; i < n_points; ++i )
+    Kokkos::View<int *, DeviceType> offset_nearest( "offset_nearest" );
+    Kokkos::View<int *, DeviceType> indices_nearest( "indices_nearest" );
+    query( bvh, nearest_queries, indices_nearest, offset_nearest );
+
+    Kokkos::View<int *, DeviceType> offset_within( "offset_within" );
+    Kokkos::View<int *, DeviceType> indices_within( "indices_within" );
+    query( bvh, within_queries, indices_within, offset_within );
+
+    struct Dumpster
     {
-        auto const &ref = returned_values_nearest[i];
-        std::set<int> ref_ids;
-        for ( auto const &id : ref )
-            ref_ids.emplace( id.second );
-        for ( int j = offset_host( i ); j < offset_host( i + 1 ); ++j )
+        Dumpster( std::vector<std::vector<std::pair<BPoint, int>>> const
+                      &returned_values,
+                  Kokkos::View<int *, DeviceType> indices,
+                  Kokkos::View<int *, DeviceType> offset )
+            : _returned_values( returned_values )
+            , _indices( indices )
+            , _offset( offset )
         {
-            TEST_ASSERT( ref_ids.count( indices_host( j ) ) != 0 );
         }
-    }
+        std::vector<std::vector<std::pair<BPoint, int>>> const
+            &_returned_values;
+        Kokkos::View<int *, DeviceType> _indices;
+        Kokkos::View<int *, DeviceType> _offset;
+    };
 
-    RandomWithinLambda<NO> random_within_lambda( point_coords, radii,
-                                                 within_n_pts, bvh );
-
-    Kokkos::parallel_for( "random_within",
-                          Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
-                          random_within_lambda );
-    Kokkos::fence();
-
-    auto within_n_pts_host = Kokkos::create_mirror_view( within_n_pts );
-    Kokkos::deep_copy( within_n_pts_host, within_n_pts );
-
-    for ( int i = 0; i < n_points; ++i )
+    for ( auto data :
+          {Dumpster( returned_values_nearest, indices_nearest, offset_nearest ),
+           Dumpster( returned_values_within, indices_within, offset_within )} )
     {
-        auto const &ref = returned_values_within[i];
-        TEST_EQUALITY( within_n_pts_host( i, 0 ),
-                       static_cast<int>( ref.size() ) );
-        std::set<int> ref_ids;
-        for ( auto const &id : ref )
-            ref_ids.emplace( id.second );
+        auto returned_values = data._returned_values;
+        auto indices = data._indices;
+        auto offset = data._offset;
 
-        if ( ref.size() > 0 )
-            TEST_EQUALITY( ref_ids.count( within_n_pts_host( i, 1 ) ), 1 );
-    }
+        auto indices_host = Kokkos::create_mirror_view( indices );
+        auto offset_host = Kokkos::create_mirror_view( offset );
+        Kokkos::deep_copy( indices_host, indices );
+        Kokkos::deep_copy( offset_host, offset );
 
-    RandomNearestLambda<NO> random_nearest_lambda( point_coords, nearest_n_pts,
-                                                   k, bvh );
-
-    Kokkos::parallel_for( "random_nearest",
-                          Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
-                          random_nearest_lambda );
-    Kokkos::fence();
-
-    auto nearest_n_pts_host = Kokkos::create_mirror_view( nearest_n_pts );
-    Kokkos::deep_copy( nearest_n_pts_host, nearest_n_pts );
-
-    for ( int i = 0; i < n_points; ++i )
-    {
-        auto const &ref = returned_values_nearest[i];
-        TEST_EQUALITY( nearest_n_pts_host( i, 0 ),
-                       static_cast<int>( ref.size() ) );
-        std::set<int> ref_ids;
-        for ( auto const &id : ref )
-            ref_ids.emplace( id.second );
-
-        TEST_EQUALITY( ref_ids.count( nearest_n_pts_host( i, 1 ) ), 1 );
+        for ( int i = 0; i < n_points; ++i )
+        {
+            auto const &ref = returned_values[i];
+            std::set<int> ref_ids;
+            for ( auto const &id : ref )
+                ref_ids.emplace( id.second );
+            for ( int j = offset_host( i ); j < offset_host( i + 1 ); ++j )
+            {
+                TEST_ASSERT( ref_ids.count( indices_host( j ) ) != 0 );
+            }
+        }
     }
 }
 
