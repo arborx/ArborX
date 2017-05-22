@@ -57,7 +57,7 @@ struct TreeTraversal
     KOKKOS_INLINE_FUNCTION
     static int getIndex( BVH<NO> bvh, Node const *leaf )
     {
-        return bvh.indices[leaf - bvh.leaf_nodes.data()];
+        return bvh._indices[leaf - bvh._leaf_nodes.data()];
     }
 
     /**
@@ -66,7 +66,7 @@ struct TreeTraversal
     KOKKOS_INLINE_FUNCTION
     static Node const *getRoot( BVH<NO> bvh )
     {
-        return bvh.internal_nodes.data();
+        return bvh._internal_nodes.data();
     }
 };
 

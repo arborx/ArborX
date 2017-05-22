@@ -49,14 +49,14 @@ struct BVH
   private:
     friend struct Details::TreeTraversal<NO>;
 
-    Kokkos::View<Node *, DeviceType> leaf_nodes;
-    Kokkos::View<Node *, DeviceType> internal_nodes;
+    Kokkos::View<Node *, DeviceType> _leaf_nodes;
+    Kokkos::View<Node *, DeviceType> _internal_nodes;
     /*
      * Array of indices that sort the boxes used to construct the hierarchy.
      * The leaf nodes are ordered so we need these to identify objects that
      * meet a predicate.
      */
-    Kokkos::View<int *, DeviceType> indices;
+    Kokkos::View<int *, DeviceType> _indices;
 };
 
 template <typename NO>
