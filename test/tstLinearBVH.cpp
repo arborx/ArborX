@@ -475,81 +475,6 @@ std::vector<std::array<double, 3>> make_random_cloud( double Lx, double Ly,
     return cloud;
 }
 
-template <typename NO, typename Query>
-void query( DataTransferKit::BVH<NO> const &bvh,
-            Kokkos::View<Query *, typename NO::device_type> queries,
-            Kokkos::View<int *, typename NO::device_type> &indices,
-            Kokkos::View<int *, typename NO::device_type> &offset )
-{
-    using DeviceType = typename DataTransferKit::BVH<NO>::DeviceType;
-    using ExecutionSpace = typename DeviceType::execution_space;
-
-    int const n_queries = queries.extent( 0 );
-
-    // Initialize view
-    // [ 0 0 0 .... 0 0 ]
-    //                ^
-    //                N
-    Kokkos::resize( offset, n_queries + 1 );
-    Kokkos::parallel_for(
-        "query(): initialize offset (set all entries to zero)",
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries + 1 ),
-        KOKKOS_LAMBDA( int i ) { offset[i]; } );
-    Kokkos::fence();
-
-    // Say we found exactly two object for each query:
-    // [ 2 2 2 .... 2 0 ]
-    //   ^            ^
-    //   0th          Nth element in the view
-    Kokkos::parallel_for(
-        "query(): first pass at the search count the number of indices",
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
-        KOKKOS_LAMBDA( int i ) {
-            offset( i ) = details::TreeTraversal<NO>::query(
-                bvh, queries( i ), []( int index ) {} );
-        } );
-    Kokkos::fence();
-
-    // Then we would get:
-    // [ 0 2 4 .... 2N-2 2N ]
-    //                    ^
-    //                    N
-    Kokkos::parallel_scan(
-        "query(): compute offset",
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries + 1 ),
-        KOKKOS_LAMBDA( int i, int &update, bool final_pass ) {
-            int const offset_i = offset( i );
-            if ( final_pass )
-                offset( i ) = update;
-            update += offset_i;
-        } );
-    Kokkos::fence();
-
-    // Let us extract the last element in the view which is the total count of
-    // objects which where found to meet the query predicates:
-    //
-    // [ 2N ]
-    auto total_count = Kokkos::subview( offset, n_queries );
-    auto total_count_host = Kokkos::create_mirror_view( total_count );
-    // We allocate the memory and fill
-    //
-    // [ A0 A1 B0 B1 C0 C1 ... X0 X1 ]
-    //   ^     ^     ^         ^     ^
-    //   0     2     4         2N-2  2N
-    Kokkos::deep_copy( total_count_host, total_count );
-    Kokkos::resize( indices, total_count( 0 ) );
-    Kokkos::parallel_for(
-        "second_pass", Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
-        KOKKOS_LAMBDA( int i ) {
-            int count = 0;
-            details::TreeTraversal<NO>::query(
-                bvh, queries( i ), [indices, offset, i, &count]( int index ) {
-                    indices( offset( i ) + count++ ) = index;
-                } );
-        } );
-    Kokkos::fence();
-}
-
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, NO )
 {
     namespace bg = boost::geometry;
@@ -686,11 +611,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, NO )
 
     Kokkos::View<int *, DeviceType> offset_nearest( "offset_nearest" );
     Kokkos::View<int *, DeviceType> indices_nearest( "indices_nearest" );
-    query( bvh, nearest_queries, indices_nearest, offset_nearest );
+    bvh.query( nearest_queries, indices_nearest, offset_nearest );
 
     Kokkos::View<int *, DeviceType> offset_within( "offset_within" );
     Kokkos::View<int *, DeviceType> indices_within( "indices_within" );
-    query( bvh, within_queries, indices_within, offset_within );
+    bvh.query( within_queries, indices_within, offset_within );
 
     struct Dumpster
     {

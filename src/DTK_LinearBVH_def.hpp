@@ -14,7 +14,6 @@
 
 #include <DTK_DetailsAlgorithms.hpp>
 #include <DTK_DetailsTreeConstruction.hpp>
-#include <DTK_DetailsTreeTraversal.hpp>
 #include <DTK_KokkosHelpers.hpp>
 
 #include <Kokkos_ArithTraits.hpp>
