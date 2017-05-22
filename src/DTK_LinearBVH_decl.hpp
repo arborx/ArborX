@@ -32,7 +32,11 @@ struct BVH
   public:
     using DeviceType = typename NO::device_type;
 
+  public:
     BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes );
+
+  private:
+    friend struct Details::TreeTraversal<NO>;
 
     Kokkos::View<Node *, DeviceType> leaf_nodes;
     Kokkos::View<Node *, DeviceType> internal_nodes;
