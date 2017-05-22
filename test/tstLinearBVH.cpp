@@ -70,50 +70,6 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, tag_dispatching, NO )
 }
 
 template <typename NO>
-class FillBoundingBoxes
-{
-  public:
-    using DeviceType = typename DataTransferKit::BVH<NO>::DeviceType;
-
-    FillBoundingBoxes(
-        Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes,
-        double Lx, double Ly, double Lz, double eps, int nx, int ny, int nz )
-        : _bounding_boxes( bounding_boxes )
-        , _Lx( Lx )
-        , _Ly( Ly )
-        , _Lz( Lz )
-        , _nx( nx )
-        , _ny( ny )
-        , _nz( nz )
-    {
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    void operator()( int const i ) const
-    {
-        for ( int j = 0; j < _ny; ++j )
-            for ( int k = 0; k < _nz; ++k )
-            {
-                _bounding_boxes[i + j * _nx + k * ( _nx * _ny )] = {
-                    i * _Lx / ( _nx - 1 ) - _eps, i * _Lx / ( _nx - 1 ) + _eps,
-                    j * _Ly / ( _ny - 1 ) - _eps, j * _Ly / ( _ny - 1 ) + _eps,
-                    k * _Lz / ( _nz - 1 ) - _eps, k * _Lz / ( _nz - 1 ) + _eps,
-                };
-            }
-    }
-
-  private:
-    Kokkos::View<DataTransferKit::Box *, DeviceType> _bounding_boxes;
-    double _Lx;
-    double _Ly;
-    double _Lz;
-    double _eps;
-    int const _nx;
-    int const _ny;
-    int const _nz;
-};
-
-template <typename NO>
 class CheckIdentity
 {
   public:
@@ -244,11 +200,19 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, NO )
     using ExecutionSpace = typename DeviceType::execution_space;
     Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes(
         "bounding_boxes", n );
-    FillBoundingBoxes<NO> fill_bounding_boxes( bounding_boxes, Lx, Ly, Lz, eps,
-                                               nx, ny, nz );
-    Kokkos::parallel_for( "fill_bounding_boxes",
-                          Kokkos::RangePolicy<ExecutionSpace>( 0, nx ),
-                          fill_bounding_boxes );
+    Kokkos::parallel_for(
+        "fill_bounding_boxes", Kokkos::RangePolicy<ExecutionSpace>( 0, nx ),
+        KOKKOS_LAMBDA( int i ) {
+            for ( int j = 0; j < ny; ++j )
+                for ( int k = 0; k < nz; ++k )
+                {
+                    bounding_boxes[i + j * nx + k * ( nx * ny )] = {
+                        i * Lx / ( nx - 1 ) - eps, i * Lx / ( nx - 1 ) + eps,
+                        j * Ly / ( ny - 1 ) - eps, j * Ly / ( ny - 1 ) + eps,
+                        k * Lz / ( nz - 1 ) - eps, k * Lz / ( nz - 1 ) + eps,
+                    };
+                }
+        } );
     Kokkos::fence();
 
     DataTransferKit::BVH<NO> bvh( bounding_boxes );
