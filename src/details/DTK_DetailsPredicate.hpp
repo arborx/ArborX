@@ -99,20 +99,33 @@ class Overlap
 {
   public:
     using Tag = SpatialPredicateTag;
+
     KOKKOS_INLINE_FUNCTION
-    Overlap( Box const &queryBox )
-        : _queryBox( queryBox )
+    Overlap()
+        : _query_box( Box() )
+    {
+    }
+
+    KOKKOS_INLINE_FUNCTION Overlap &operator=( Overlap const &other )
+    {
+        _query_box = other._query_box;
+        return *this;
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    Overlap( Box const &query_box )
+        : _query_box( query_box )
     {
     }
 
     KOKKOS_INLINE_FUNCTION
     bool operator()( Node const *node ) const
     {
-        return overlaps( node->bounding_box, _queryBox );
+        return overlaps( node->bounding_box, _query_box );
     }
 
   private:
-    DataTransferKit::Box const &_queryBox;
+    DataTransferKit::Box _query_box;
 };
 
 KOKKOS_INLINE_FUNCTION
