@@ -79,7 +79,7 @@ void BVH<NO>::query( Kokkos::View<Query *, DeviceType> queries,
     Kokkos::parallel_for(
         "query(): initialize offset (set all entries to zero)",
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries + 1 ),
-        KOKKOS_LAMBDA( int i ) { offset[i]; } );
+        KOKKOS_LAMBDA( int i ) { offset[i] = 0; } );
     Kokkos::fence();
 
     // Make a copy of *this. We need this to put is on the device. Otherwise,
