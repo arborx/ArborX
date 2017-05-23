@@ -41,6 +41,8 @@ struct BVH
   public:
     BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes );
 
+    // Views are passed by reference here because Kokkos::resize() effectively
+    // calls the assignment operator.
     template <typename Query>
     void query( Kokkos::View<Query *, DeviceType> queries,
                 Kokkos::View<int *, DeviceType> &indices,
