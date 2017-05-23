@@ -7,8 +7,8 @@
  * the LICENSE file in the top-level directory.                             *
  ****************************************************************************/
 
-#ifndef DTK_POINT_HPP
-#define DTK_POINT_HPP
+#ifndef DTK_DETAILS_POINT_HPP
+#define DTK_DETAILS_POINT_HPP
 
 #include <Kokkos_Macros.hpp>
 
