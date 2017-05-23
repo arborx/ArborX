@@ -12,9 +12,9 @@
 
 #include "DTK_ConfigDefs.hpp"
 
-#include <DTK_DetailsAlgorithms.hpp>
 #include <DTK_DetailsBox.hpp>
 #include <DTK_DetailsNode.hpp>
+#include <DTK_KokkosHelpers.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Pair.hpp>
@@ -72,10 +72,36 @@ struct TreeConstruction
         // a bit representation of its index.
         if ( morton_codes[i] == morton_codes[j] )
         {
-            // countLeadingZeros( k[i] ^ k[j] ) == 32
-            return 32 + countLeadingZeros( i ^ j );
+            // clz( k[i] ^ k[j] ) == 32
+            return 32 + KokkosHelpers::clz( i ^ j );
         }
-        return countLeadingZeros( morton_codes[i] ^ morton_codes[j] );
+        return KokkosHelpers::clz( morton_codes[i] ^ morton_codes[j] );
+    }
+    //
+    // Expands a 10-bit integer into 30 bits
+    // by inserting 2 zeros after each bit.
+    KOKKOS_INLINE_FUNCTION
+    static unsigned int expandBits( unsigned int v )
+    {
+        v = ( v * 0x00010001u ) & 0xFF0000FFu;
+        v = ( v * 0x00000101u ) & 0x0F00F00Fu;
+        v = ( v * 0x00000011u ) & 0xC30C30C3u;
+        v = ( v * 0x00000005u ) & 0x49249249u;
+        return v;
+    }
+
+    // Calculates a 30-bit Morton code for the
+    // given 3D point located within the unit cube [0,1].
+    KOKKOS_INLINE_FUNCTION
+    static unsigned int morton3D( double x, double y, double z )
+    {
+        x = KokkosHelpers::min( KokkosHelpers::max( x * 1024.0, 0.0 ), 1023.0 );
+        y = KokkosHelpers::min( KokkosHelpers::max( y * 1024.0, 0.0 ), 1023.0 );
+        z = KokkosHelpers::min( KokkosHelpers::max( z * 1024.0, 0.0 ), 1023.0 );
+        unsigned int xx = expandBits( (unsigned int)x );
+        unsigned int yy = expandBits( (unsigned int)y );
+        unsigned int zz = expandBits( (unsigned int)z );
+        return xx * 4 + yy * 2 + zz;
     }
 
     KOKKOS_FUNCTION
