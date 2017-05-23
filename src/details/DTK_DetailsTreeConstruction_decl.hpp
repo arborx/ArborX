@@ -73,9 +73,9 @@ struct TreeConstruction
         if ( morton_codes[i] == morton_codes[j] )
         {
             // countLeadingZeros( k[i] ^ k[j] ) == 32
-            return 32 + Details::countLeadingZeros( i ^ j );
+            return 32 + countLeadingZeros( i ^ j );
         }
-        return Details::countLeadingZeros( morton_codes[i] ^ morton_codes[j] );
+        return countLeadingZeros( morton_codes[i] ^ morton_codes[j] );
     }
 
     KOKKOS_FUNCTION
