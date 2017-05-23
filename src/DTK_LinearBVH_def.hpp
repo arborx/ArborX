@@ -91,21 +91,6 @@ BVH<NO>::BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes )
                                                            _internal_nodes );
 }
 
-// template <typename SC, typename LO, typename GO, typename NO>
-// template <typename Predicate>
-// int BVH<SC,LO,GO,NO>::query( Predicate const &predicates,
-//                Kokkos::View<int *, BVH::DeviceType> out ) const
-//{
-//    using Tag = typename Predicate::Tag;
-//    return Details::query_dispatch( this, predicates, out, Tag{} );
-//}
-//
-// template int BVH::query( Details::Nearest<Details::Point> const &,
-//                         Kokkos::View<int *, BVH::DeviceType> ) const;
-//
-// template int BVH::query( Details::Within<Details::Point> const &,
-//                         Kokkos::View<int *, BVH::DeviceType> ) const;
-//
 } // end namespace DataTransferKit
 
 // Explicit instantiation macro
