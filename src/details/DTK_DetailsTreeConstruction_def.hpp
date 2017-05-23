@@ -316,8 +316,6 @@ Kokkos::pair<int, int> TreeConstruction<DeviceType>::determineRange(
     // compute upper bound for the length of the range
     int max_step = 2;
     int common_prefix = commonPrefix( sorted_morton_codes, i, i - direction );
-
-    // compute upper bound for the length of the range
     while ( commonPrefix( sorted_morton_codes, i, i + direction * max_step ) >
             common_prefix )
     {
