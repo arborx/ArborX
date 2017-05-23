@@ -146,9 +146,9 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         Kokkos::deep_copy( k, k_host );
 
         Kokkos::View<details::Nearest *, DeviceType> nearest_queries(
-            "neatest_queries", n_points );
+            "nearest_queries", n_points );
         Kokkos::parallel_for(
-            "register_nearest_queries",
+            REGION_NAME( "register_nearest_queries" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
             KOKKOS_LAMBDA( int i ) {
                 nearest_queries( i ) = details::nearest( {point_coords( i, 0 ),
@@ -185,7 +185,7 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         Kokkos::View<details::Within *, DeviceType> within_queries(
             "within_queries", n_points );
         Kokkos::parallel_for(
-            "register_within_queries",
+            REGION_NAME( "register_within_queries" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
             KOKKOS_LAMBDA( int i ) {
                 within_queries( i ) = details::within( {point_coords( i, 0 ),
