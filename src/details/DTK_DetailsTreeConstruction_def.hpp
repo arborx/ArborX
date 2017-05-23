@@ -58,11 +58,10 @@ class AssignMortonCodesFunctor
     Box const &_scene_bounding_box;
 };
 
-template <typename NO>
+template <typename DeviceType>
 class GenerateHierarchyFunctor
 {
   public:
-    using DeviceType = typename NO::device_type;
     GenerateHierarchyFunctor(
         Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes,
         Kokkos::View<Node *, DeviceType> leaf_nodes,
@@ -82,15 +81,15 @@ class GenerateHierarchyFunctor
         // Find out which range of objects the node corresponds to.
         // (This is where the magic happens!)
 
-        auto range =
-            TreeConstruction<NO>::determineRange( _sorted_morton_codes, i );
+        auto range = TreeConstruction<DeviceType>::determineRange(
+            _sorted_morton_codes, i );
         int first = range.first;
         int last = range.second;
 
         // Determine where to split the range.
 
-        int split = TreeConstruction<NO>::findSplit( _sorted_morton_codes,
-                                                     first, last );
+        int split = TreeConstruction<DeviceType>::findSplit(
+            _sorted_morton_codes, first, last );
 
         // Select childA.
 
@@ -159,8 +158,8 @@ class CalculateBoundingBoxesFunctor
     Kokkos::View<int *, DeviceType> _ready_flags;
 };
 
-template <typename NO>
-void TreeConstruction<NO>::calculateBoundingBoxOfTheScene(
+template <typename DeviceType>
+void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
     Kokkos::View<Box const *, DeviceType> bounding_boxes,
     Box &scene_bounding_box )
 {
@@ -172,8 +171,8 @@ void TreeConstruction<NO>::calculateBoundingBoxOfTheScene(
     Kokkos::fence();
 }
 
-template <typename NO>
-void TreeConstruction<NO>::assignMortonCodes(
+template <typename DeviceType>
+void TreeConstruction<DeviceType>::assignMortonCodes(
     Kokkos::View<Box const *, DeviceType> bounding_boxes,
     Kokkos::View<unsigned int *, DeviceType> morton_codes,
     Box const &scene_bounding_box )
@@ -187,8 +186,8 @@ void TreeConstruction<NO>::assignMortonCodes(
     Kokkos::fence();
 }
 
-template <typename NO>
-void TreeConstruction<NO>::sortObjects(
+template <typename DeviceType>
+void TreeConstruction<DeviceType>::sortObjects(
     Kokkos::View<unsigned int *, DeviceType> morton_codes,
     Kokkos::View<int *, DeviceType> object_ids )
 {
@@ -216,14 +215,14 @@ void TreeConstruction<NO>::sortObjects(
     bin_sort.sort( object_ids );
 }
 
-template <typename NO>
-Node *TreeConstruction<NO>::generateHierarchy(
+template <typename DeviceType>
+Node *TreeConstruction<DeviceType>::generateHierarchy(
     Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes,
     Kokkos::View<Node *, DeviceType> leaf_nodes,
     Kokkos::View<Node *, DeviceType> internal_nodes )
 {
-    GenerateHierarchyFunctor<NO> functor( sorted_morton_codes, leaf_nodes,
-                                          internal_nodes );
+    GenerateHierarchyFunctor<DeviceType> functor( sorted_morton_codes,
+                                                  leaf_nodes, internal_nodes );
 
     int const n = sorted_morton_codes.extent( 0 );
     Kokkos::parallel_for( "generate_hierarchy",
@@ -235,8 +234,8 @@ Node *TreeConstruction<NO>::generateHierarchy(
     return &( internal_nodes.data()[0] );
 }
 
-template <typename NO>
-void TreeConstruction<NO>::calculateBoundingBoxes(
+template <typename DeviceType>
+void TreeConstruction<DeviceType>::calculateBoundingBoxes(
     Kokkos::View<Node *, DeviceType> leaf_nodes,
     Kokkos::View<Node *, DeviceType> internal_nodes )
 {
@@ -259,8 +258,8 @@ void TreeConstruction<NO>::calculateBoundingBoxes(
     Kokkos::fence();
 }
 
-template <typename NO>
-int TreeConstruction<NO>::findSplit(
+template <typename DeviceType>
+int TreeConstruction<DeviceType>::findSplit(
     Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes, int first,
     int last )
 {
@@ -301,8 +300,8 @@ int TreeConstruction<NO>::findSplit(
     return split;
 }
 
-template <typename NO>
-Kokkos::pair<int, int> TreeConstruction<NO>::determineRange(
+template <typename DeviceType>
+Kokkos::pair<int, int> TreeConstruction<DeviceType>::determineRange(
     Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes, int i )
 {
     // determine direction of the range (+1 or -1)
@@ -343,7 +342,7 @@ Kokkos::pair<int, int> TreeConstruction<NO>::determineRange(
 #define DTK_TREECONSTRUCTION_INSTANT( NODE )                                   \
     namespace Details                                                          \
     {                                                                          \
-    template struct TreeConstruction<NODE>;                                    \
+    template struct TreeConstruction<typename NODE::device_type>;              \
     }
 
 #endif

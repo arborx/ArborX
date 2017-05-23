@@ -48,9 +48,8 @@ class FillBoxes
     Kokkos::View<DataTransferKit::Box *, DeviceType> _boxes;
 };
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, tag_dispatching, NO )
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, tag_dispatching, DeviceType )
 {
-    using DeviceType = typename DataTransferKit::BVH<NO>::DeviceType;
     using ExecutionSpace = typename DeviceType::execution_space;
     int const n = 2;
     Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", n );
@@ -60,17 +59,17 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, tag_dispatching, NO )
                           fill_boxes_functor );
     Kokkos::fence();
 
-    DataTransferKit::BVH<NO> bvh( boxes );
+    DataTransferKit::BVH<DeviceType> bvh( boxes );
     auto do_nothing = KOKKOS_LAMBDA( int ){};
     DataTransferKit::Point p1 = {0., 0., 0.};
-    details::TreeTraversal<NO>::query( bvh, details::nearest( p1, 1 ),
-                                       do_nothing );
+    details::TreeTraversal<DeviceType>::query( bvh, details::nearest( p1, 1 ),
+                                               do_nothing );
 
-    details::TreeTraversal<NO>::query( bvh, details::within( p1, 0.5 ),
-                                       do_nothing );
+    details::TreeTraversal<DeviceType>::query( bvh, details::within( p1, 0.5 ),
+                                               do_nothing );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, NO )
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
 {
     double Lx = 100.0;
     double Ly = 100.0;
@@ -80,7 +79,6 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, NO )
     int constexpr nz = 11;
     int constexpr n = nx * ny * nz;
 
-    using DeviceType = typename DataTransferKit::BVH<NO>::DeviceType;
     using ExecutionSpace = typename DeviceType::execution_space;
 
     Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes(
@@ -101,7 +99,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, NO )
         } );
     Kokkos::fence();
 
-    DataTransferKit::BVH<NO> bvh( bounding_boxes );
+    DataTransferKit::BVH<DeviceType> bvh( bounding_boxes );
 
     // (i) use same objects for the queries than the objects we constructed the
     // BVH
@@ -344,7 +342,7 @@ std::vector<std::array<double, 3>> make_random_cloud( double Lx, double Ly,
     return cloud;
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, NO )
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
 {
     namespace bg = boost::geometry;
     namespace bgi = boost::geometry::index;
@@ -371,7 +369,6 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, NO )
         double z = std::get<2>( point );
         rtree.insert( std::make_pair( BPoint( x, y, z ), i ) );
     }
-    using DeviceType = typename DataTransferKit::BVH<NO>::DeviceType;
     Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes(
         "bounding_boxes", n );
     auto bounding_boxes_host = Kokkos::create_mirror_view( bounding_boxes );
@@ -389,7 +386,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, NO )
 
     Kokkos::deep_copy( bounding_boxes, bounding_boxes_host );
 
-    DataTransferKit::BVH<NO> bvh( bounding_boxes );
+    DataTransferKit::BVH<DeviceType> bvh( bounding_boxes );
 
     // random points for radius search and kNN queries
     // compare our solution against Boost R-tree
@@ -519,9 +516,12 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, NO )
 
 // Create the test group
 #define UNIT_TEST_GROUP( NODE )                                                \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, tag_dispatching, NODE )   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, structured_grid, NODE )   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, rtree, NODE )
+    using DeviceType##NODE = typename NODE::device_type;                       \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, tag_dispatching,          \
+                                          DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, structured_grid,          \
+                                          DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, rtree, DeviceType##NODE )
 
 // Demangle the types
 DTK_ETI_MANGLING_TYPEDEFS()

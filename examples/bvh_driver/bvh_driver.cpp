@@ -61,7 +61,7 @@ std::vector<std::array<double, 3>> make_random_cloud( double Lx, double Ly,
 template <class NO>
 int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
 {
-    using DeviceType = typename DataTransferKit::BVH<NO>::DeviceType;
+    using DeviceType = typename NO::device_type;
     using ExecutionSpace = typename DeviceType::execution_space;
 
     double Lx = 100.0;
@@ -112,7 +112,7 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
     }
     Kokkos::deep_copy( bounding_boxes, bounding_boxes_host );
 
-    DataTransferKit::BVH<NO> bvh( bounding_boxes );
+    DataTransferKit::BVH<DeviceType> bvh( bounding_boxes );
 
     // random points for radius search and kNN queries
     auto queries = make_random_cloud( Lx, Ly, Lz, n_points );

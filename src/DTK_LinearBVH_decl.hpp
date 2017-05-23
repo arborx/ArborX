@@ -25,19 +25,16 @@ namespace DataTransferKit
 {
 namespace Details
 {
-template <typename NO>
+template <typename DeviceType>
 struct TreeTraversal;
 }
 
 /**
  * Bounding Volume Hierarchy.
  */
-template <typename NO>
+template <typename DeviceType>
 struct BVH
 {
-  public:
-    using DeviceType = typename NO::device_type;
-
   public:
     BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes );
 
@@ -49,7 +46,7 @@ struct BVH
                 Kokkos::View<int *, DeviceType> &offset ) const;
 
   private:
-    friend struct Details::TreeTraversal<NO>;
+    friend struct Details::TreeTraversal<DeviceType>;
 
     Kokkos::View<Node *, DeviceType> _leaf_nodes;
     Kokkos::View<Node *, DeviceType> _internal_nodes;
@@ -61,11 +58,11 @@ struct BVH
     Kokkos::View<int *, DeviceType> _indices;
 };
 
-template <typename NO>
+template <typename DeviceType>
 template <typename Query>
-void BVH<NO>::query( Kokkos::View<Query *, DeviceType> queries,
-                     Kokkos::View<int *, DeviceType> &indices,
-                     Kokkos::View<int *, DeviceType> &offset ) const
+void BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
+                             Kokkos::View<int *, DeviceType> &indices,
+                             Kokkos::View<int *, DeviceType> &offset ) const
 {
     using ExecutionSpace = typename DeviceType::execution_space;
 
@@ -86,7 +83,7 @@ void BVH<NO>::query( Kokkos::View<Query *, DeviceType> queries,
 
     // Make a copy of *this. We need this to put is on the device. Otherwise,
     // it will throw illegal address error in the paralle_for loops below.
-    BVH<NO> bvh = *this;
+    BVH<DeviceType> bvh = *this;
 
     // Say we found exactly two object for each query:
     // [ 2 2 2 .... 2 0 ]
@@ -96,7 +93,7 @@ void BVH<NO>::query( Kokkos::View<Query *, DeviceType> queries,
         "query(): first pass at the search count the number of indices",
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
         KOKKOS_LAMBDA( int i ) {
-            offset( i ) = details::TreeTraversal<NO>::query(
+            offset( i ) = details::TreeTraversal<DeviceType>::query(
                 bvh, queries( i ), []( int index ) {} );
         } );
     Kokkos::fence();
@@ -133,7 +130,7 @@ void BVH<NO>::query( Kokkos::View<Query *, DeviceType> queries,
         "second_pass", Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
         KOKKOS_LAMBDA( int i ) {
             int count = 0;
-            details::TreeTraversal<NO>::query(
+            details::TreeTraversal<DeviceType>::query(
                 bvh, queries( i ), [indices, offset, i, &count]( int index ) {
                     indices( offset( i ) + count++ ) = index;
                 } );

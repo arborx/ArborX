@@ -27,11 +27,10 @@ namespace Details
  * This structure contains all the functions used to build the BVH. All the
  * functions are static.
  */
-template <typename NO>
+template <typename DeviceType>
 struct TreeConstruction
 {
   public:
-    using DeviceType = typename NO::device_type;
     using ExecutionSpace = typename DeviceType::execution_space;
 
     static void calculateBoundingBoxOfTheScene(

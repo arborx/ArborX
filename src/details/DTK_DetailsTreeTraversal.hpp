@@ -23,16 +23,16 @@ namespace DataTransferKit
 {
 namespace Details
 {
-template <typename NO>
+template <typename DeviceType>
 struct TreeTraversal
 {
   public:
-    using DeviceType = typename NO::device_type;
     using ExecutionSpace = typename DeviceType::execution_space;
 
     template <typename Predicate, typename Insert>
-    KOKKOS_INLINE_FUNCTION static int
-    query( BVH<NO> const bvh, Predicate const &pred, Insert const &insert )
+    KOKKOS_INLINE_FUNCTION static int query( BVH<DeviceType> const bvh,
+                                             Predicate const &pred,
+                                             Insert const &insert )
     {
         using Tag = typename Predicate::Tag;
         return query_dispatch( bvh, pred, insert, Tag{} );
@@ -42,7 +42,7 @@ struct TreeTraversal
      * Return true if the node is a leaf.
      */
     KOKKOS_INLINE_FUNCTION
-    static bool isLeaf( BVH<NO> bvh, Node const *node )
+    static bool isLeaf( BVH<DeviceType> bvh, Node const *node )
     {
         // COMMENT: could also check that pointer is in the range [leaf_nodes,
         // leaf_nodes+n]
@@ -55,7 +55,7 @@ struct TreeTraversal
      * Return the index of the leaf node.
      */
     KOKKOS_INLINE_FUNCTION
-    static int getIndex( BVH<NO> bvh, Node const *leaf )
+    static int getIndex( BVH<DeviceType> bvh, Node const *leaf )
     {
         return bvh._indices[leaf - bvh._leaf_nodes.data()];
     }
@@ -64,7 +64,7 @@ struct TreeTraversal
      * Return the root node of the BVH.
      */
     KOKKOS_INLINE_FUNCTION
-    static Node const *getRoot( BVH<NO> bvh )
+    static Node const *getRoot( BVH<DeviceType> bvh )
     {
         return bvh._internal_nodes.data();
     }
@@ -73,14 +73,14 @@ struct TreeTraversal
 // There are two (related) families of search: one using a spatial predicate and
 // one using nearest neighbours query (see boost::geometry::queries
 // documentation).
-template <typename NO, typename Predicate, typename Insert>
-KOKKOS_FUNCTION int spatial_query( BVH<NO> const bvh,
+template <typename DeviceType, typename Predicate, typename Insert>
+KOKKOS_FUNCTION int spatial_query( BVH<DeviceType> const bvh,
                                    Predicate const &predicate,
                                    Insert const &insert )
 {
     Stack<Node const *> stack;
 
-    Node const *node = TreeTraversal<NO>::getRoot( bvh );
+    Node const *node = TreeTraversal<DeviceType>::getRoot( bvh );
     stack.push( node );
     int count = 0;
 
@@ -89,9 +89,9 @@ KOKKOS_FUNCTION int spatial_query( BVH<NO> const bvh,
         node = stack.top();
         stack.pop();
 
-        if ( TreeTraversal<NO>::isLeaf( bvh, node ) )
+        if ( TreeTraversal<DeviceType>::isLeaf( bvh, node ) )
         {
-            insert( TreeTraversal<NO>::getIndex( bvh, node ) );
+            insert( TreeTraversal<DeviceType>::getIndex( bvh, node ) );
             count++;
         }
         else
@@ -110,9 +110,10 @@ KOKKOS_FUNCTION int spatial_query( BVH<NO> const bvh,
 }
 
 // query k nearest neighbours
-template <typename NO, typename Insert>
-KOKKOS_FUNCTION int nearest_query( BVH<NO> const bvh, Point const &query_point,
-                                   int k, Insert const &insert )
+template <typename DeviceType, typename Insert>
+KOKKOS_FUNCTION int nearest_query( BVH<DeviceType> const bvh,
+                                   Point const &query_point, int k,
+                                   Insert const &insert )
 {
     using PairNodePtrDistance = Kokkos::pair<Node const *, double>;
 
@@ -130,7 +131,7 @@ KOKKOS_FUNCTION int nearest_query( BVH<NO> const bvh, Point const &query_point,
     // priority does not matter for the root since the node will be
     // processed directly and removed from the priority queue we don't even
     // bother computing the distance to it
-    Node const *node = TreeTraversal<NO>::getRoot( bvh );
+    Node const *node = TreeTraversal<DeviceType>::getRoot( bvh );
     double node_distance = 0.0;
     queue.push( node, node_distance );
     int count = 0;
@@ -141,9 +142,9 @@ KOKKOS_FUNCTION int nearest_query( BVH<NO> const bvh, Point const &query_point,
         // closest to the query point)
         node = queue.top().first; // std::tie(node, std::ignore) = ...
         queue.pop();
-        if ( TreeTraversal<NO>::isLeaf( bvh, node ) )
+        if ( TreeTraversal<DeviceType>::isLeaf( bvh, node ) )
         {
-            insert( TreeTraversal<NO>::getIndex( bvh, node ) );
+            insert( TreeTraversal<DeviceType>::getIndex( bvh, node ) );
             count++;
         }
         else
@@ -161,18 +162,18 @@ KOKKOS_FUNCTION int nearest_query( BVH<NO> const bvh, Point const &query_point,
     return count;
 }
 
-template <typename NO, typename Predicate, typename Insert>
+template <typename DeviceType, typename Predicate, typename Insert>
 KOKKOS_INLINE_FUNCTION int
-query_dispatch( BVH<NO> const bvh, Predicate const &pred, Insert const &insert,
-                SpatialPredicateTag )
+query_dispatch( BVH<DeviceType> const bvh, Predicate const &pred,
+                Insert const &insert, SpatialPredicateTag )
 {
     return spatial_query( bvh, pred, insert );
 }
 
-template <typename NO, typename Predicate, typename Insert>
+template <typename DeviceType, typename Predicate, typename Insert>
 KOKKOS_INLINE_FUNCTION int
-query_dispatch( BVH<NO> const bvh, Predicate const &pred, Insert const &insert,
-                NearestPredicateTag )
+query_dispatch( BVH<DeviceType> const bvh, Predicate const &pred,
+                Insert const &insert, NearestPredicateTag )
 {
     return nearest_query( bvh, pred._query_point, pred._k, insert );
 }

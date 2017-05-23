@@ -20,7 +20,7 @@
 
 namespace dtk = DataTransferKit::Details;
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, morton_codes, NO )
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, morton_codes, DeviceType )
 {
     std::vector<DataTransferKit::Point> points = {
         {0.0, 0.0, 0.0},          {0.25, 0.75, 0.25}, {0.75, 0.25, 0.25},
@@ -45,13 +45,12 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, morton_codes, NO )
         ref[i] = fun( anchors[i] );
     // using points rather than boxes for convenience here but still have to
     // build the axis-aligned bounding boxes around them
-    using DeviceType = typename NO::device_type;
     Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", n );
     for ( int i = 0; i < n; ++i )
         dtk::expand( boxes[i], points[i] );
 
     Kokkos::View<DataTransferKit::Box *, DeviceType> scene( "scene", 1 );
-    dtk::TreeConstruction<NO> tc;
+    dtk::TreeConstruction<DeviceType> tc;
     tc.calculateBoundingBoxOfTheScene( boxes, scene[0] );
 
     // Copy the result on the host
@@ -87,7 +86,7 @@ class FillK
     Kokkos::View<unsigned int *, DeviceType> _k;
 };
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, indirect_sort, NO )
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, indirect_sort, DeviceType )
 {
     // need a functionality that sort objects based on their Morton code and
     // also returns the indices in the original configuration
@@ -95,7 +94,6 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, indirect_sort, NO )
     // dummy unsorted Morton codes and corresponding sorted indices as reference
     // solution
     //
-    using DeviceType = typename NO::device_type;
     using ExecutionSpace = typename DeviceType::execution_space;
     unsigned int const n = 4;
     Kokkos::View<unsigned int *, DeviceType> k( "k", n );
@@ -108,14 +106,14 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, indirect_sort, NO )
     std::vector<int> ref = {3, 2, 1, 0};
     // distribute ids to unsorted objects
     Kokkos::View<int *, DeviceType> ids( "ids", n );
-    DataTransferKit::Iota<NO> fill_ids_functor( ids );
+    DataTransferKit::Iota<DeviceType> fill_ids_functor( ids );
     Kokkos::parallel_for( "fill_ids",
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
                           fill_ids_functor );
     Kokkos::fence();
 
     // sort morton codes and object ids
-    dtk::TreeConstruction<NO> tc;
+    dtk::TreeConstruction<DeviceType> tc;
     tc.sortObjects( k, ids );
 
     auto k_host = Kokkos::create_mirror_view( k );
@@ -179,11 +177,10 @@ class FillFi
     Kokkos::View<unsigned int *, DeviceType> _fi;
 };
 
-template <typename NO>
+template <typename DeviceType>
 class ComputeResults
 {
   public:
-    using DeviceType = typename NO::device_type;
     KOKKOS_INLINE_FUNCTION
     ComputeResults( Kokkos::View<unsigned int *, DeviceType> fi,
                     Kokkos::View<int *, DeviceType> results, int n )
@@ -198,9 +195,8 @@ class ComputeResults
         int index_1[] = {0, 0, 1, 1, 1, 2, 2, 0, 12, 12};
         int index_2[] = {0, 1, 0, 1, 2, 1, 2, -1, 12, 13};
 
-        _results[i] =
-            DataTransferKit::Details::TreeConstruction<NO>::commonPrefix(
-                _fi, index_1[i], index_2[i] );
+        _results[i] = DataTransferKit::Details::TreeConstruction<
+            DeviceType>::commonPrefix( _fi, index_1[i], index_2[i] );
     }
 
   private:
@@ -208,9 +204,8 @@ class ComputeResults
     Kokkos::View<int *, DeviceType> _results;
 };
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, common_prefix, NO )
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, common_prefix, DeviceType )
 {
-    using DeviceType = typename NO::device_type;
     using ExecutionSpace = typename DeviceType::execution_space;
     int const n = 13;
     Kokkos::View<unsigned int *, DeviceType> fi( "fi", n );
@@ -223,7 +218,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, common_prefix, NO )
     int const n_tests = 10;
     Kokkos::View<int *, DeviceType> results( "results", n_tests );
 
-    ComputeResults<NO> compute_results_functor( fi, results, n );
+    ComputeResults<DeviceType> compute_results_functor( fi, results, n );
     Kokkos::parallel_for( "compute_results",
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_tests ),
                           compute_results_functor );
@@ -251,12 +246,12 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, common_prefix, NO )
     TEST_EQUALITY( results_host[9], -1 );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, example_tree_construction, NO )
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, example_tree_construction,
+                                   DeviceType )
 {
     // This is the example from the articles by Karras.
     // See
     // https://devblogs.nvidia.com/parallelforall/thinking-parallel-part-iii-tree-construction-gpu/
-    using DeviceType = typename NO::device_type;
     int const n = 8;
     Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes(
         "sorted_morton_codes", n );
@@ -315,7 +310,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, example_tree_construction, NO )
         }
     };
 
-    dtk::TreeConstruction<NO> tc;
+    dtk::TreeConstruction<DeviceType> tc;
     tc.generateHierarchy( sorted_morton_codes, leaf_nodes, internal_nodes );
 
     DataTransferKit::Node *root = internal_nodes.data();
@@ -333,11 +328,15 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, example_tree_construction, NO )
 
 // Create the test group
 #define UNIT_TEST_GROUP( NODE )                                                \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsBVH, morton_codes, NODE )     \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsBVH, indirect_sort, NODE )    \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsBVH, common_prefix, NODE )    \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsBVH,                          \
-                                          example_tree_construction, NODE )
+    using DeviceType##NODE = typename NODE::device_type;                       \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsBVH, morton_codes,            \
+                                          DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsBVH, indirect_sort,           \
+                                          DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsBVH, common_prefix,           \
+                                          DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT(                                      \
+        DetailsBVH, example_tree_construction, DeviceType##NODE )
 // Demangle the types
 DTK_ETI_MANGLING_TYPEDEFS()
 
