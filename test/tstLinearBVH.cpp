@@ -21,6 +21,7 @@
 #include <bitset>
 #include <iostream>
 #include <random>
+#include <tuple>
 
 namespace details = DataTransferKit::Details;
 
@@ -485,30 +486,14 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, NO )
     Kokkos::View<int *, DeviceType> indices_within( "indices_within" );
     bvh.query( within_queries, indices_within, offset_within );
 
-    struct Dumpster
+    for ( auto data : {std::make_tuple( returned_values_nearest,
+                                        indices_nearest, offset_nearest ),
+                       std::make_tuple( returned_values_within, indices_within,
+                                        offset_within )} )
     {
-        Dumpster( std::vector<std::vector<std::pair<BPoint, int>>> const
-                      &returned_values,
-                  Kokkos::View<int *, DeviceType> indices,
-                  Kokkos::View<int *, DeviceType> offset )
-            : _returned_values( returned_values )
-            , _indices( indices )
-            , _offset( offset )
-        {
-        }
-        std::vector<std::vector<std::pair<BPoint, int>>> const
-            &_returned_values;
-        Kokkos::View<int *, DeviceType> _indices;
-        Kokkos::View<int *, DeviceType> _offset;
-    };
-
-    for ( auto data :
-          {Dumpster( returned_values_nearest, indices_nearest, offset_nearest ),
-           Dumpster( returned_values_within, indices_within, offset_within )} )
-    {
-        auto returned_values = data._returned_values;
-        auto indices = data._indices;
-        auto offset = data._offset;
+        auto returned_values = std::get<0>( data );
+        auto indices = std::get<1>( data );
+        auto offset = std::get<2>( data );
 
         auto indices_host = Kokkos::create_mirror_view( indices );
         auto offset_host = Kokkos::create_mirror_view( offset );
