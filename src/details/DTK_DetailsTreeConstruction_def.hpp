@@ -191,7 +191,6 @@ void TreeConstruction<DeviceType>::sortObjects(
     Kokkos::View<unsigned int *, DeviceType> morton_codes,
     Kokkos::View<int *, DeviceType> object_ids )
 {
-    using ExecutionSpace = typename DeviceType::execution_space;
     int const n = morton_codes.extent( 0 );
 
     typedef Kokkos::BinOp1D<Kokkos::View<unsigned int *, DeviceType>> CompType;
