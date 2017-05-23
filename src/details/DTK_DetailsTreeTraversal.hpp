@@ -109,34 +109,6 @@ KOKKOS_FUNCTION int spatial_query( BVH<NO> const bvh,
     return count;
 }
 
-// DEPRECATED
-template <typename NO, typename Predicate>
-KOKKOS_INLINE_FUNCTION int
-spatial_query( BVH<NO> const bvh, Predicate const &predicate, int *indices,
-               unsigned int &n_indices, unsigned int max_n_indices )
-{
-    n_indices = 0;
-    auto insert = [&]( int index ) {
-#if HAVE_DTK_DBC
-        if ( n_indices > max_n_indices )
-            printf( "Increase the size of indices array\n" );
-#endif
-        // and just to make compilers happy if NDEBUG
-        (void)max_n_indices;
-        assert( n_indices < max_n_indices );
-        indices[n_indices++] = index;
-    };
-    return spatial_query( bvh, predicate, insert );
-}
-
-template <typename NO, typename Predicate, typename Insert>
-KOKKOS_INLINE_FUNCTION int
-query_dispatch( BVH<NO> const bvh, Predicate const &pred, Insert const &insert,
-                SpatialPredicateTag )
-{
-    return spatial_query( bvh, pred, insert );
-}
-
 // query k nearest neighbours
 template <typename NO, typename Insert>
 KOKKOS_FUNCTION int nearest_query( BVH<NO> const bvh, Point const &query_point,
@@ -189,25 +161,12 @@ KOKKOS_FUNCTION int nearest_query( BVH<NO> const bvh, Point const &query_point,
     return count;
 }
 
-// DEPRECATED
-template <typename NO>
+template <typename NO, typename Predicate, typename Insert>
 KOKKOS_INLINE_FUNCTION int
-nearest_query( BVH<NO> const bvh, Point const &query_point, int k, int *indices,
-               unsigned int &n_indices, unsigned int max_n_indices )
+query_dispatch( BVH<NO> const bvh, Predicate const &pred, Insert const &insert,
+                SpatialPredicateTag )
 {
-    n_indices = 0;
-    auto insert = [&]( int index ) {
-#if HAVE_DTK_DBC
-        if ( n_indices > max_n_indices )
-            printf( "Increase the size of indices array\n" );
-#endif
-        assert( n_indices < max_n_indices );
-        // and just to make compilers happy if NDEBUG
-        (void)max_n_indices;
-
-        indices[n_indices++] = index;
-    };
-    return nearest_query( bvh, query_point, k, insert );
+    return spatial_query( bvh, pred, insert );
 }
 
 template <typename NO, typename Predicate, typename Insert>
