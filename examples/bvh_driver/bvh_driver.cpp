@@ -205,13 +205,14 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
 
 int main( int argc, char *argv[] )
 {
+    Kokkos::initialize( argc, argv );
+
     bool success = false;
     bool verbose = true;
 
+    int rv = 0;
     try
     {
-        Kokkos::initialize();
-
         const bool throwExceptions = false;
 
         Teuchos::CommandLineProcessor clp( throwExceptions );
@@ -223,24 +224,27 @@ int main( int argc, char *argv[] )
         switch ( clp.parse( argc, argv, NULL ) )
         {
         case Teuchos::CommandLineProcessor::PARSE_ERROR:
-            return EXIT_FAILURE;
+            rv = 1;
         case Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED:
         case Teuchos::CommandLineProcessor::PARSE_UNRECOGNIZED_OPTION:
         case Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL:
             break;
         }
 
-        if ( node == "" )
+        if ( rv )
+        {
+            // do nothing, just skip other if clauses
+        }
+        else if ( node == "" )
         {
             typedef KokkosClassic::DefaultNode::DefaultNodeType Node;
-            return main_<Node>( clp, argc, argv );
+            rv = main_<Node>( clp, argc, argv );
         }
         else if ( node == "serial" )
         {
 #ifdef KOKKOS_HAVE_SERIAL
             typedef Kokkos::Compat::KokkosSerialWrapperNode Node;
-
-            return main_<Node>( clp, argc, argv );
+            rv = main_<Node>( clp, argc, argv );
 #else
             throw std::runtime_error( "Serial node type is disabled" );
 #endif
@@ -249,8 +253,7 @@ int main( int argc, char *argv[] )
         {
 #ifdef KOKKOS_HAVE_OPENMP
             typedef Kokkos::Compat::KokkosOpenMPWrapperNode Node;
-
-            return main_<Node>( clp, argc, argv );
+            rv = main_<Node>( clp, argc, argv );
 #else
             throw std::runtime_error( "OpenMP node type is disabled" );
 #endif
@@ -259,8 +262,7 @@ int main( int argc, char *argv[] )
         {
 #ifdef KOKKOS_HAVE_CUDA
             typedef Kokkos::Compat::KokkosCudaWrapperNode Node;
-
-            return main_<Node>( clp, argc, argv );
+            rv = main_<Node>( clp, argc, argv );
 #else
             throw std::runtime_error( "CUDA node type is disabled" );
 #endif
@@ -269,9 +271,13 @@ int main( int argc, char *argv[] )
         {
             throw std::runtime_error( "Unrecognized node type" );
         }
-        Kokkos::finalize();
+
+        if ( rv )
+            success = false;
     }
     TEUCHOS_STANDARD_CATCH_STATEMENTS( verbose, std::cerr, success );
+
+    Kokkos::finalize();
 
     return ( success ? EXIT_SUCCESS : EXIT_FAILURE );
 }
