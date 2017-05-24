@@ -77,7 +77,7 @@ struct TreeConstruction
         }
         return KokkosHelpers::clz( morton_codes[i] ^ morton_codes[j] );
     }
-    //
+
     // Expands a 10-bit integer into 30 bits
     // by inserting 2 zeros after each bit.
     KOKKOS_INLINE_FUNCTION
@@ -95,6 +95,12 @@ struct TreeConstruction
     KOKKOS_INLINE_FUNCTION
     static unsigned int morton3D( double x, double y, double z )
     {
+        // The interval [0,1] is subdivided into 1024 bins (in each direction).
+        // If we were to use more bits to encode the Morton code, we would need
+        // to reflect these changes in expandBits() as well as in the clz()
+        // function that returns the number of leading zero bits since it
+        // currently assumes that the code can be represented by a 32 bit
+        // integer.
         x = KokkosHelpers::min( KokkosHelpers::max( x * 1024.0, 0.0 ), 1023.0 );
         y = KokkosHelpers::min( KokkosHelpers::max( y * 1024.0, 0.0 ), 1023.0 );
         z = KokkosHelpers::min( KokkosHelpers::max( z * 1024.0, 0.0 ), 1023.0 );
