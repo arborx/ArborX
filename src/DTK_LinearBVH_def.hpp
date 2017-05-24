@@ -68,7 +68,7 @@ BVH<DeviceType>::BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes )
 
     // sort them along the Z-order space-filling curve
     Iota<DeviceType> iota_functor( _indices );
-    Kokkos::parallel_for( "set_indices",
+    Kokkos::parallel_for( REGION_NAME( "set_indices" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
                           iota_functor );
     Kokkos::fence();
@@ -78,7 +78,7 @@ BVH<DeviceType>::BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes )
     // generate bounding volume hierarchy
     SetBoundingBoxesFunctor<DeviceType> set_bounding_boxes_functor(
         _leaf_nodes, _indices, bounding_boxes );
-    Kokkos::parallel_for( "set_bounding_boxes",
+    Kokkos::parallel_for( REGION_NAME( "set_bounding_boxes" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
                           set_bounding_boxes_functor );
     Kokkos::fence();

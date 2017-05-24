@@ -76,7 +76,7 @@ void BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
     //                N
     Kokkos::resize( offset, n_queries + 1 );
     Kokkos::parallel_for(
-        "query(): initialize offset (set all entries to zero)",
+        REGION_NAME( "initialize_offset_set_all_entries_to_zero)" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries + 1 ),
         KOKKOS_LAMBDA( int i ) { offset[i] = 0; } );
     Kokkos::fence();
@@ -90,7 +90,7 @@ void BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
     //   ^            ^
     //   0th          Nth element in the view
     Kokkos::parallel_for(
-        "query(): first pass at the search count the number of indices",
+        REGION_NAME( "first_pass_at_the_search_count_the_number_of_indices" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
         KOKKOS_LAMBDA( int i ) {
             offset( i ) = details::TreeTraversal<DeviceType>::query(
@@ -103,7 +103,7 @@ void BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
     //                    ^
     //                    N
     Kokkos::parallel_scan(
-        "query(): compute offset",
+        REGION_NAME( "compute_offset" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries + 1 ),
         KOKKOS_LAMBDA( int i, int &update, bool final_pass ) {
             int const offset_i = offset( i );
@@ -126,15 +126,16 @@ void BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
     //   0     2     4         2N-2  2N
     Kokkos::deep_copy( total_count_host, total_count );
     Kokkos::resize( indices, total_count( 0 ) );
-    Kokkos::parallel_for(
-        "second_pass", Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
-        KOKKOS_LAMBDA( int i ) {
-            int count = 0;
-            details::TreeTraversal<DeviceType>::query(
-                bvh, queries( i ), [indices, offset, i, &count]( int index ) {
-                    indices( offset( i ) + count++ ) = index;
-                } );
-        } );
+    Kokkos::parallel_for( REGION_NAME( "second_pass" ),
+                          Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
+                          KOKKOS_LAMBDA( int i ) {
+                              int count = 0;
+                              details::TreeTraversal<DeviceType>::query(
+                                  bvh, queries( i ),
+                                  [indices, offset, i, &count]( int index ) {
+                                      indices( offset( i ) + count++ ) = index;
+                                  } );
+                          } );
     Kokkos::fence();
 }
 
