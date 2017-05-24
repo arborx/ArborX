@@ -36,8 +36,9 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, morton_codes, DeviceType )
         unsigned int i = std::get<0>( anchor );
         unsigned int j = std::get<1>( anchor );
         unsigned int k = std::get<2>( anchor );
-        return 4 * dtk::expandBits( i ) + 2 * dtk::expandBits( j ) +
-               dtk::expandBits( k );
+        return 4 * dtk::TreeConstruction<DeviceType>::expandBits( i ) +
+               2 * dtk::TreeConstruction<DeviceType>::expandBits( j ) +
+               dtk::TreeConstruction<DeviceType>::expandBits( k );
     };
     std::vector<unsigned int> ref( n,
                                    Kokkos::ArithTraits<unsigned int>::max() );
@@ -50,8 +51,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, morton_codes, DeviceType )
         dtk::expand( boxes[i], points[i] );
 
     Kokkos::View<DataTransferKit::Box *, DeviceType> scene( "scene", 1 );
-    dtk::TreeConstruction<DeviceType> tc;
-    tc.calculateBoundingBoxOfTheScene( boxes, scene[0] );
+    dtk::TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
+        boxes, scene[0] );
 
     // Copy the result on the host
     auto scene_host = Kokkos::create_mirror_view( scene );
@@ -64,7 +65,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, morton_codes, DeviceType )
     }
 
     Kokkos::View<unsigned int *, DeviceType> morton_codes( "morton_codes", n );
-    tc.assignMortonCodes( boxes, morton_codes, scene[0] );
+    dtk::TreeConstruction<DeviceType>::assignMortonCodes( boxes, morton_codes,
+                                                          scene[0] );
     auto morton_codes_host = Kokkos::create_mirror_view( morton_codes );
     Kokkos::deep_copy( morton_codes_host, morton_codes );
     TEST_COMPARE_ARRAYS( morton_codes_host, ref );
@@ -113,8 +115,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, indirect_sort, DeviceType )
     Kokkos::fence();
 
     // sort morton codes and object ids
-    dtk::TreeConstruction<DeviceType> tc;
-    tc.sortObjects( k, ids );
+    dtk::TreeConstruction<DeviceType>::sortObjects( k, ids );
 
     auto k_host = Kokkos::create_mirror_view( k );
     Kokkos::deep_copy( k_host, k );
@@ -128,29 +129,30 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, indirect_sort, DeviceType )
     TEST_COMPARE_ARRAYS( ids_host, ref );
 }
 
-TEUCHOS_UNIT_TEST( DetailsBVH, number_of_leading_zero_bits )
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, number_of_leading_zero_bits,
+                                   DeviceType )
 {
-    TEST_EQUALITY( dtk::countLeadingZeros( 0 ), 32 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 1 ), 31 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 2 ), 30 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 3 ), 30 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 4 ), 29 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 5 ), 29 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 6 ), 29 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 7 ), 29 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 8 ), 28 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 9 ), 28 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 0 ), 32 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 1 ), 31 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 2 ), 30 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 3 ), 30 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 4 ), 29 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 5 ), 29 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 6 ), 29 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 7 ), 29 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 8 ), 28 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 9 ), 28 );
     // bitwise exclusive OR operator to compare bits
-    TEST_EQUALITY( dtk::countLeadingZeros( 1 ^ 0 ), 31 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 2 ^ 0 ), 30 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 2 ^ 1 ), 30 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 3 ^ 0 ), 30 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 3 ^ 1 ), 30 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 3 ^ 2 ), 31 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 4 ^ 0 ), 29 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 4 ^ 1 ), 29 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 4 ^ 2 ), 29 );
-    TEST_EQUALITY( dtk::countLeadingZeros( 4 ^ 3 ), 29 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 1 ^ 0 ), 31 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 2 ^ 0 ), 30 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 2 ^ 1 ), 30 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 3 ^ 0 ), 30 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 3 ^ 1 ), 30 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 3 ^ 2 ), 31 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 4 ^ 0 ), 29 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 4 ^ 1 ), 29 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 4 ^ 2 ), 29 );
+    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 4 ^ 3 ), 29 );
 }
 
 template <typename DeviceType>
@@ -310,8 +312,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, example_tree_construction,
         }
     };
 
-    dtk::TreeConstruction<DeviceType> tc;
-    tc.generateHierarchy( sorted_morton_codes, leaf_nodes, internal_nodes );
+    dtk::TreeConstruction<DeviceType>::generateHierarchy(
+        sorted_morton_codes, leaf_nodes, internal_nodes );
 
     DataTransferKit::Node *root = internal_nodes.data();
     TEST_ASSERT( root->parent == nullptr );
@@ -331,6 +333,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, example_tree_construction,
     using DeviceType##NODE = typename NODE::device_type;                       \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsBVH, morton_codes,            \
                                           DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT(                                      \
+        DetailsBVH, number_of_leading_zero_bits, DeviceType##NODE )            \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsBVH, indirect_sort,           \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsBVH, common_prefix,           \

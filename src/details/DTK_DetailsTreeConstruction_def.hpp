@@ -11,7 +11,10 @@
 #define DTK_DETAILSTREECONSTRUCTION_DEF_HPP
 
 #include "DTK_ConfigDefs.hpp"
-#include "DTK_KokkosHelpers.hpp"
+
+#include <DTK_DetailsAlgorithms.hpp>
+#include <DTK_KokkosHelpers.hpp>
+
 #include <Kokkos_Atomic.hpp>
 #include <Kokkos_Sort.hpp>
 
@@ -49,7 +52,8 @@ class AssignMortonCodesFunctor
             b = _scene_bounding_box[2 * d + 1];
             xyz[d] = ( a != b ? ( xyz[d] - a ) / ( b - a ) : 0 );
         }
-        _morton_codes[i] = morton3D( xyz[0], xyz[1], xyz[2] );
+        _morton_codes[i] =
+            TreeConstruction<DeviceType>::morton3D( xyz[0], xyz[1], xyz[2] );
     }
 
   private:
@@ -191,7 +195,6 @@ void TreeConstruction<DeviceType>::sortObjects(
     Kokkos::View<unsigned int *, DeviceType> morton_codes,
     Kokkos::View<int *, DeviceType> object_ids )
 {
-    using ExecutionSpace = typename DeviceType::execution_space;
     int const n = morton_codes.extent( 0 );
 
     typedef Kokkos::BinOp1D<Kokkos::View<unsigned int *, DeviceType>> CompType;
@@ -274,7 +277,7 @@ int TreeConstruction<DeviceType>::findSplit(
     // Calculate the number of highest bits that are the same
     // for all objects, using the count-leading-zeros intrinsic.
 
-    int common_prefix = clz( first_code ^ last_code );
+    int common_prefix = KokkosHelpers::clz( first_code ^ last_code );
 
     // Use binary search to find where the next bit differs.
     // Specifically, we are looking for the highest object that
@@ -291,7 +294,7 @@ int TreeConstruction<DeviceType>::findSplit(
         if ( new_split < last )
         {
             unsigned int split_code = sorted_morton_codes[new_split];
-            int split_prefix = clz( first_code ^ split_code );
+            int split_prefix = KokkosHelpers::clz( first_code ^ split_code );
             if ( split_prefix > common_prefix )
                 split = new_split; // accept proposal
         }
@@ -313,8 +316,6 @@ Kokkos::pair<int, int> TreeConstruction<DeviceType>::determineRange(
     // compute upper bound for the length of the range
     int max_step = 2;
     int common_prefix = commonPrefix( sorted_morton_codes, i, i - direction );
-
-    // compute upper bound for the length of the range
     while ( commonPrefix( sorted_morton_codes, i, i + direction * max_step ) >
             common_prefix )
     {
