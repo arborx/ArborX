@@ -216,6 +216,7 @@ void TreeConstruction<DeviceType>::sortObjects(
     // TODO: We might be able to just use `bin_sort.get_permute_vector()`
     // instead of initializing the indices with Iota and sorting the vector
     bin_sort.sort( object_ids );
+    Kokkos::fence();
 }
 
 template <typename DeviceType>
