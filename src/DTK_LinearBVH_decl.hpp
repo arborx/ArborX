@@ -82,7 +82,7 @@ void BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
     Kokkos::fence();
 
     // Make a copy of *this. We need this to put is on the device. Otherwise,
-    // it will throw illegal address error in the paralle_for loops below.
+    // it will throw illegal address error in the parallel_for loops below.
     BVH<DeviceType> bvh = *this;
 
     // Say we found exactly two object for each query:

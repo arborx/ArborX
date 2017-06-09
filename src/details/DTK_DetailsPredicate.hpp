@@ -137,7 +137,7 @@ Within within( Point const &p, double r ) { return Within( p, r ); }
 KOKKOS_INLINE_FUNCTION
 Overlap overlap( Box const &b ) { return Overlap( b ); }
 
-} // end namesapce Details}
+} // end namespace Details
 } // end namespace DataTransferKit
 
 #endif
