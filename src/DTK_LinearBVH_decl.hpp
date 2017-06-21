@@ -45,6 +45,8 @@ class BVH
                 Kokkos::View<int *, DeviceType> &indices,
                 Kokkos::View<int *, DeviceType> &offset ) const;
 
+    Box bounds() const;
+
   private:
     friend struct Details::TreeTraversal<DeviceType>;
 

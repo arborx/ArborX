@@ -69,6 +69,23 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, tag_dispatching, DeviceType )
                                                do_nothing );
 }
 
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, bounds, DeviceType )
+{
+    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", 2 );
+    auto boxes_host = Kokkos::create_mirror_view( boxes );
+    boxes_host( 0 ) = DataTransferKit::Box( {2., 2., 4., 4., 6., 6.} );
+    boxes_host( 1 ) = DataTransferKit::Box( {1., 1., 3., 3., 5., 5.} );
+    Kokkos::deep_copy( boxes, boxes_host );
+    DataTransferKit::BVH<DeviceType> bvh( boxes );
+    auto bounds = bvh.bounds();
+    TEST_EQUALITY( bounds[0], 1.0 );
+    TEST_EQUALITY( bounds[1], 2.0 );
+    TEST_EQUALITY( bounds[2], 3.0 );
+    TEST_EQUALITY( bounds[3], 4.0 );
+    TEST_EQUALITY( bounds[4], 5.0 );
+    TEST_EQUALITY( bounds[5], 6.0 );
+}
+
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
 {
     double Lx = 100.0;
@@ -518,6 +535,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
 #define UNIT_TEST_GROUP( NODE )                                                \
     using DeviceType##NODE = typename NODE::device_type;                       \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, tag_dispatching,          \
+                                          DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, bounds,                   \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, structured_grid,          \
                                           DeviceType##NODE )                   \
