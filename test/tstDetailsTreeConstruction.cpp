@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <bitset>
+#include <functional>
 #include <sstream>
 #include <vector>
 
