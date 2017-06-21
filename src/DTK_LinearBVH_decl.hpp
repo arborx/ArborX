@@ -127,7 +127,7 @@ void BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
     //   ^     ^     ^         ^     ^
     //   0     2     4         2N-2  2N
     Kokkos::deep_copy( total_count_host, total_count );
-    Kokkos::resize( indices, total_count( 0 ) );
+    Kokkos::resize( indices, total_count_host( 0 ) );
     Kokkos::parallel_for( REGION_NAME( "second_pass" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                           KOKKOS_LAMBDA( int i ) {
