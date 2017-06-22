@@ -17,6 +17,7 @@
 #include <DTK_LinearBVH.hpp>
 
 #include <cmath>
+#include <functional>
 #include <random>
 
 namespace details = DataTransferKit::Details;
