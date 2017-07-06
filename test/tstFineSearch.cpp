@@ -12,6 +12,11 @@
 #include <Shards_CellTopologyManagedData.hpp>
 #include <Teuchos_UnitTestHarness.hpp>
 
+// We only test shards::Hexahedron<8> and shards::Quadrilateral<4> Testing all
+// the topologies would require a lot of code (need to create a bunch of meshes)
+// and the only difference in the search is the template parameters in the
+// Functor.
+
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( FineSearch, hex_8, DeviceType )
 {
     unsigned int constexpr dim = 3;

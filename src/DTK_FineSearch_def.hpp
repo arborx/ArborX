@@ -38,6 +38,9 @@ void FineSearch<DeviceType>::search(
 
     // Perform the fine search. We hide the template parameters used by
     // Intrepid2, using the CellType template.
+    // Note that if the Newton solver does not converge, Intrepid2 will just
+    // return the last results and there is no way to know that the coordinates
+    // in the reference frames where not found.
     unsigned int const cell_topo_key = cell_topo.getKey();
     if ( cell_topo_key ==
          shards::getCellTopologyData<shards::Hexahedron<8>>()->key )
