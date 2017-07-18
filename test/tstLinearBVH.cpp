@@ -39,9 +39,9 @@ class FillBoxes
     void operator()( int const i ) const
     {
         if ( i == 0 )
-            _boxes[0] = {0, 0, 0, 0, 0, 0};
+            _boxes[0] = {{0, 0, 0, 0, 0, 0}};
         else
-            _boxes[1] = {1, 1, 1, 1, 1, 1};
+            _boxes[1] = {{1, 1, 1, 1, 1, 1}};
     }
 
   private:
@@ -61,7 +61,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, tag_dispatching, DeviceType )
 
     DataTransferKit::BVH<DeviceType> bvh( boxes );
     auto do_nothing = KOKKOS_LAMBDA( int ){};
-    DataTransferKit::Point p1 = {0., 0., 0.};
+    DataTransferKit::Point p1 = {{0., 0., 0.}};
     details::TreeTraversal<DeviceType>::query( bvh, details::nearest( p1, 1 ),
                                                do_nothing );
 
@@ -319,7 +319,7 @@ make_stuctured_cloud( double Lx, double Ly, double Lz, int nx, int ny, int nz )
                 x = i * Lx / ( nx - 1 );
                 y = j * Ly / ( ny - 1 );
                 z = k * Lz / ( nz - 1 );
-                cloud[ind( i, j, k )] = {x, y, z};
+                cloud[ind( i, j, k )] = {{x, y, z}};
             }
     return cloud;
 }
@@ -337,7 +337,7 @@ std::vector<std::array<double, 3>> make_random_cloud( double Lx, double Ly,
         double x = distribution_x( generator );
         double y = distribution_y( generator );
         double z = distribution_z( generator );
-        cloud[i] = {x, y, z};
+        cloud[i] = {{x, y, z}};
     }
     return cloud;
 }
@@ -457,8 +457,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
                           KOKKOS_LAMBDA( int i ) {
                               nearest_queries( i ) = details::nearest(
-                                  {point_coords( i, 0 ), point_coords( i, 1 ),
-                                   point_coords( i, 2 )},
+                                  {{point_coords( i, 0 ), point_coords( i, 1 ),
+                                    point_coords( i, 2 )}},
                                   k( i ) );
                           } );
     Kokkos::fence();
@@ -469,8 +469,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
                           KOKKOS_LAMBDA( int i ) {
                               within_queries( i ) = details::within(
-                                  {point_coords( i, 0 ), point_coords( i, 1 ),
-                                   point_coords( i, 2 )},
+                                  {{point_coords( i, 0 ), point_coords( i, 1 ),
+                                    point_coords( i, 2 )}},
                                   radii( i ) );
                           } );
     Kokkos::fence();

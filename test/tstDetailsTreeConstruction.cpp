@@ -24,15 +24,15 @@ namespace dtk = DataTransferKit::Details;
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, morton_codes, DeviceType )
 {
     std::vector<DataTransferKit::Point> points = {
-        {0.0, 0.0, 0.0},          {0.25, 0.75, 0.25}, {0.75, 0.25, 0.25},
-        {0.75, 0.75, 0.25},       {1.33, 2.33, 3.33}, {1.66, 2.66, 3.66},
-        {1024.0, 1024.0, 1024.0},
+        {{0.0, 0.0, 0.0}},          {{0.25, 0.75, 0.25}}, {{0.75, 0.25, 0.25}},
+        {{0.75, 0.75, 0.25}},       {{1.33, 2.33, 3.33}}, {{1.66, 2.66, 3.66}},
+        {{1024.0, 1024.0, 1024.0}},
     };
     int const n = points.size();
     // lower left front corner corner of the octant the points fall in
     std::vector<std::array<unsigned int, 3>> anchors = {
-        {0, 0, 0}, {0, 0, 0}, {0, 0, 0},         {0, 0, 0},
-        {1, 2, 3}, {1, 2, 3}, {1023, 1023, 1023}};
+        {{0, 0, 0}}, {{0, 0, 0}}, {{0, 0, 0}},         {{0, 0, 0}},
+        {{1, 2, 3}}, {{1, 2, 3}}, {{1023, 1023, 1023}}};
     auto fun = []( std::array<unsigned int, 3> const &anchor ) {
         unsigned int i = std::get<0>( anchor );
         unsigned int j = std::get<1>( anchor );
