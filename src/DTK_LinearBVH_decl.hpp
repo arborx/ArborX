@@ -33,7 +33,7 @@ struct TreeTraversal;
  * Bounding Volume Hierarchy.
  */
 template <typename DeviceType>
-struct BVH
+class BVH
 {
   public:
     BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes );
