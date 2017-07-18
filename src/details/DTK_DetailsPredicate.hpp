@@ -34,7 +34,7 @@ struct Nearest
 
     KOKKOS_INLINE_FUNCTION
     Nearest()
-        : _query_point( {0., 0., 0.} )
+        : _query_point( {{0., 0., 0.}} )
         , _k( 0 )
     {
     }
@@ -64,7 +64,7 @@ class Within
 
     KOKKOS_INLINE_FUNCTION
     Within()
-        : _query_point( {0., 0., 0.} )
+        : _query_point( {{0., 0., 0.}} )
         , _radius( 0. )
     {
     }
