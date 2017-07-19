@@ -88,7 +88,7 @@ void FineSearch<DeviceType>::search(
             search_functor );
     }
     else if ( cell_topo_key ==
-              shards::getCellTopologyData<shards::Quadrilateral<8>>()->key )
+              shards::getCellTopologyData<shards::Quadrilateral<9>>()->key )
     {
         Functor::FineSearch<CellType::Quadrilateral_9, DeviceType>
             search_functor( reference_points, point_in_cell, physical_points,
