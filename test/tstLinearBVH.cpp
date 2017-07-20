@@ -147,6 +147,77 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, queries, DeviceType )
     // QUESTION: does it make sense to have len( offset ) = 1 ???
 }
 
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty, DeviceType )
+{
+    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", 1 );
+    auto boxes_host = Kokkos::create_mirror_view( boxes );
+    boxes_host( 0 ) = DataTransferKit::Box( {1., 2., 3., 4., 5., 6.} );
+    Kokkos::deep_copy( boxes, boxes_host );
+    DataTransferKit::BVH<DeviceType> bvh( boxes );
+    TEST_ASSERT( !bvh.empty() );
+    TEST_EQUALITY( bvh.size(), 1 );
+    auto bounds = bvh.bounds();
+    TEST_EQUALITY( bounds[0], 1.0 );
+    TEST_EQUALITY( bounds[1], 2.0 );
+    TEST_EQUALITY( bounds[2], 3.0 );
+    TEST_EQUALITY( bounds[3], 4.0 );
+    TEST_EQUALITY( bounds[4], 5.0 );
+    TEST_EQUALITY( bounds[5], 6.0 );
+
+    Kokkos::resize( boxes, 0 );
+    DataTransferKit::BVH<DeviceType> empty_bvh( boxes );
+    TEST_ASSERT( empty_bvh.empty() );
+    TEST_EQUALITY( empty_bvh.size(), 0 );
+    bounds = empty_bvh.bounds();
+    DataTransferKit::Box empty_box;
+    TEST_EQUALITY( bounds[0], empty_box[0] );
+    TEST_EQUALITY( bounds[1], empty_box[1] );
+    TEST_EQUALITY( bounds[2], empty_box[2] );
+    TEST_EQUALITY( bounds[3], empty_box[3] );
+    TEST_EQUALITY( bounds[4], empty_box[4] );
+    TEST_EQUALITY( bounds[5], empty_box[5] );
+
+    Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType> queries(
+        "queries", 2 );
+    auto queries_host = Kokkos::create_mirror_view( queries );
+    queries_host( 0 ) = DataTransferKit::Details::Overlap(
+        DataTransferKit::Box( {0.0, 0.5, 0.0, 0.5, 0.0, 0.5} ) );
+    queries_host( 1 ) = DataTransferKit::Details::Overlap(
+        DataTransferKit::Box( {0.0, 10.0, 0.0, 10.0, 0.0, 10.0} ) );
+    Kokkos::deep_copy( queries, queries_host );
+    Kokkos::View<int *, DeviceType> indices( "indices" );
+    Kokkos::View<int *, DeviceType> offset( "offset" );
+    bvh.query( queries, indices, offset );
+
+    // This helped catching a bug where we assumed that any leaf node in the
+    // stack (for spatial queries) does satisfy the predicate which is not
+    // true when the tree was built from only one object.  In that case
+    // TreeTraversal::getRoot returns directly the leaf and we still need to
+    // check the predicate before insertion in the stack.
+    auto indices_host = Kokkos::create_mirror_view( indices );
+    auto offset_host = Kokkos::create_mirror_view( offset );
+    Kokkos::deep_copy( indices_host, indices );
+    Kokkos::deep_copy( offset_host, offset );
+    TEST_EQUALITY( indices_host.extent( 0 ), 1 );
+    TEST_EQUALITY( indices_host( 0 ), 0 );
+    TEST_EQUALITY( offset_host.extent( 0 ), 3 );
+    TEST_EQUALITY( offset_host( 0 ), 0 );
+    TEST_EQUALITY( offset_host( 1 ), 0 );
+    TEST_EQUALITY( offset_host( 2 ), 1 );
+
+    // empty tree won't find anything
+    empty_bvh.query( queries, indices, offset );
+    indices_host = Kokkos::create_mirror_view( indices );
+    offset_host = Kokkos::create_mirror_view( offset );
+    Kokkos::deep_copy( indices_host, indices );
+    Kokkos::deep_copy( offset_host, offset );
+    TEST_EQUALITY( indices_host.extent( 0 ), 0 );
+    TEST_EQUALITY( offset_host.extent( 0 ), 3 );
+    TEST_EQUALITY( offset_host( 0 ), 0 );
+    TEST_EQUALITY( offset_host( 1 ), 0 );
+    TEST_EQUALITY( offset_host( 2 ), 0 );
+}
+
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
 {
     double Lx = 100.0;
@@ -601,6 +672,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, queries,                  \
                                           DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, empty, DeviceType##NODE ) \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, structured_grid,          \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, rtree, DeviceType##NODE )
