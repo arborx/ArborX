@@ -86,6 +86,67 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, bounds, DeviceType )
     TEST_EQUALITY( bounds[5], 6.0 );
 }
 
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, queries, DeviceType )
+{
+    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", 2 );
+    auto boxes_host = Kokkos::create_mirror_view( boxes );
+    boxes_host( 0 ) = DataTransferKit::Box( {0., 0., 0., 0., 0., 0.} );
+    boxes_host( 1 ) = DataTransferKit::Box( {1., 1., 1., 1., 1., 1.} );
+    Kokkos::deep_copy( boxes, boxes_host );
+    DataTransferKit::BVH<DeviceType> bvh( boxes );
+
+    // `out` and `successs` need to be captured by reference  They come from the
+    // test assertion macros expansion.
+    auto check_results = [&bvh, &out, &success](
+        std::vector<DataTransferKit::Box> const &overlap_boxes,
+        std::vector<int> const &indices_ref,
+        std::vector<int> const &offset_ref ) {
+        Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType> queries(
+            "queries", overlap_boxes.size() );
+        auto queries_host = Kokkos::create_mirror_view( queries );
+        for ( int i = 0; i < queries.extent_int( 0 ); ++i )
+            queries_host( i ) =
+                DataTransferKit::Details::Overlap( overlap_boxes[i] );
+        Kokkos::deep_copy( queries, queries_host );
+
+        Kokkos::View<int *, DeviceType> indices( "indices" );
+        Kokkos::View<int *, DeviceType> offset( "offset" );
+        bvh.query( queries, indices, offset );
+
+        auto indices_host = Kokkos::create_mirror_view( indices );
+        deep_copy( indices_host, indices );
+        auto offset_host = Kokkos::create_mirror_view( offset );
+        deep_copy( offset_host, offset );
+
+        TEST_COMPARE_ARRAYS( indices_host, indices_ref );
+        TEST_COMPARE_ARRAYS( offset_host, offset_ref );
+    };
+
+    // single query overlap with nothing
+    check_results( {DataTransferKit::Box()}, {}, {0, 0} );
+
+    // single query overlap with both
+    check_results( {DataTransferKit::Box( {0., 1., 0., 1., 0., 1.} )}, {1, 0},
+                   {0, 2} );
+
+    // single query overlap with only one
+    check_results( {DataTransferKit::Box( {0.5, 1.5, 0.5, 1.5, 0.5, 1.5} )},
+                   {1}, {0, 1} );
+
+    // a couple queries both overlap with nothing
+    check_results( {DataTransferKit::Box(), DataTransferKit::Box()}, {},
+                   {0, 0, 0} );
+
+    // a couple queries first overlap with nothing second with only one
+    check_results( {DataTransferKit::Box(),
+                    DataTransferKit::Box( {0., 0., 0., 0., 0., 0.} )},
+                   {0}, {0, 0, 1} );
+
+    // no query
+    check_results( {}, {}, {0} );
+    // QUESTION: does it make sense to have len( offset ) = 1 ???
+}
+
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
 {
     double Lx = 100.0;
@@ -537,6 +598,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, tag_dispatching,          \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, bounds,                   \
+                                          DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, queries,                  \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, structured_grid,          \
                                           DeviceType##NODE )                   \
