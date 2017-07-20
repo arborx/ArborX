@@ -66,7 +66,10 @@ struct TreeTraversal
     KOKKOS_INLINE_FUNCTION
     static Node const *getRoot( BVH<DeviceType> bvh )
     {
-        return bvh._internal_nodes.data();
+        if ( bvh._internal_nodes.extent( 0 ) > 0 )
+            return bvh._internal_nodes.data();
+        else
+            return bvh._leaf_nodes.data();
     }
 };
 
@@ -78,10 +81,17 @@ KOKKOS_FUNCTION int spatial_query( BVH<DeviceType> const bvh,
                                    Predicate const &predicate,
                                    Insert const &insert )
 {
+    if ( bvh.empty() )
+        return 0;
+
     Stack<Node const *> stack;
 
     Node const *node = TreeTraversal<DeviceType>::getRoot( bvh );
-    stack.push( node );
+    // need to actually check that the node verifies the predicate because
+    // getRoot directly returns the leaf node in the case there is only one in
+    // the tree.
+    if ( predicate( node ) )
+        stack.push( node );
     int count = 0;
 
     while ( !stack.empty() )
@@ -115,6 +125,9 @@ KOKKOS_FUNCTION int nearest_query( BVH<DeviceType> const bvh,
                                    Point const &query_point, int k,
                                    Insert const &insert )
 {
+    if ( bvh.empty() )
+        return 0;
+
     using PairNodePtrDistance = Kokkos::pair<Node const *, double>;
 
     struct CompareDistance
