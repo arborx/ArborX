@@ -45,7 +45,20 @@ class BVH
                 Kokkos::View<int *, DeviceType> &indices,
                 Kokkos::View<int *, DeviceType> &offset ) const;
 
-    Box bounds() const;
+    KOKKOS_INLINE_FUNCTION
+    Box bounds() const
+    {
+        if ( empty() )
+            return Box();
+        return ( size() > 1 ? _internal_nodes : _leaf_nodes )[0].bounding_box;
+    }
+
+    using SizeType = typename Kokkos::View<int *, DeviceType>::size_type;
+    KOKKOS_INLINE_FUNCTION
+    SizeType size() const { return _leaf_nodes.extent( 0 ); }
+
+    KOKKOS_INLINE_FUNCTION
+    bool empty() const { return size() == 0; }
 
   private:
     friend struct Details::TreeTraversal<DeviceType>;

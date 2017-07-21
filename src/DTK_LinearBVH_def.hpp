@@ -110,18 +110,6 @@ BVH<DeviceType>::BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes )
         _leaf_nodes, _internal_nodes );
 }
 
-template <typename DeviceType>
-Box BVH<DeviceType>::bounds() const
-{
-    if ( empty() )
-        return Box();
-    auto root_node = Kokkos::subview(
-        size() > 1 ? _internal_nodes : _leaf_nodes, std::make_pair( 0, 1 ) );
-    auto root_node_host = Kokkos::create_mirror_view( root_node );
-    Kokkos::deep_copy( root_node_host, root_node );
-    return root_node_host( 0 ).bounding_box;
-}
-
 } // end namespace DataTransferKit
 
 // Explicit instantiation macro
