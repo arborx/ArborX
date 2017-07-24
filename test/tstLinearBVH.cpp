@@ -216,6 +216,9 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty, DeviceType )
     TEST_EQUALITY( offset_host( 0 ), 0 );
     TEST_EQUALITY( offset_host( 1 ), 0 );
     TEST_EQUALITY( offset_host( 2 ), 0 );
+
+    TEST_ASSERT( details::TreeTraversal<DeviceType>::getRoot( bvh ) );
+    TEST_ASSERT( !details::TreeTraversal<DeviceType>::getRoot( empty_bvh ) );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )

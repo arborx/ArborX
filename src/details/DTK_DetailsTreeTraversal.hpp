@@ -66,10 +66,10 @@ struct TreeTraversal
     KOKKOS_INLINE_FUNCTION
     static Node const *getRoot( BVH<DeviceType> bvh )
     {
-        if ( bvh._internal_nodes.extent( 0 ) > 0 )
-            return bvh._internal_nodes.data();
-        else
-            return bvh._leaf_nodes.data();
+        if ( bvh.empty() )
+            return nullptr;
+        return ( bvh.size() > 1 ? bvh._internal_nodes : bvh._leaf_nodes )
+            .data();
     }
 };
 
