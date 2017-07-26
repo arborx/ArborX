@@ -18,6 +18,7 @@
 #include <DTK_DetailsBox.hpp>
 #include <DTK_DetailsNode.hpp>
 #include <DTK_DetailsPredicate.hpp>
+#include <DTK_DetailsUtils.hpp>
 
 #include "DTK_ConfigDefs.hpp"
 
@@ -38,12 +39,20 @@ class BVH
   public:
     BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes );
 
-    // Views are passed by reference here because Kokkos::resize() effectively
-    // calls the assignment operator.
+    // Views are passed by reference here because internally Kokkos::realloc()
+    // is called.
     template <typename Query>
     void query( Kokkos::View<Query *, DeviceType> queries,
                 Kokkos::View<int *, DeviceType> &indices,
                 Kokkos::View<int *, DeviceType> &offset ) const;
+    template <typename Query>
+    typename std::enable_if<
+        std::is_same<typename Query::Tag, Details::NearestPredicateTag>::value,
+        void>::type
+    query( Kokkos::View<Query *, DeviceType> queries,
+           Kokkos::View<int *, DeviceType> &indices,
+           Kokkos::View<int *, DeviceType> &offset,
+           Kokkos::View<double *, DeviceType> &distances ) const;
 
     KOKKOS_INLINE_FUNCTION
     Box bounds() const
@@ -73,15 +82,79 @@ class BVH
     Kokkos::View<int *, DeviceType> _indices;
 };
 
-template <typename DeviceType>
-template <typename Query>
-void BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
-                             Kokkos::View<int *, DeviceType> &indices,
-                             Kokkos::View<int *, DeviceType> &offset ) const
+template <typename DeviceType, typename Query>
+void query_dispatch(
+    BVH<DeviceType> const bvh, Kokkos::View<Query *, DeviceType> queries,
+    Kokkos::View<int *, DeviceType> &indices,
+    Kokkos::View<int *, DeviceType> &offset, Details::NearestPredicateTag,
+    Kokkos::View<double *, DeviceType> *distances_ptr = nullptr )
 {
     using ExecutionSpace = typename DeviceType::execution_space;
 
-    namespace details = DataTransferKit::Details;
+    int const n_queries = queries.extent( 0 );
+
+    Kokkos::realloc( offset, n_queries + 1 );
+    fill( offset, 0 );
+
+    Kokkos::parallel_for(
+        REGION_NAME( "scan_queries_for_numbers_of_nearest_neighbors" ),
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
+        KOKKOS_LAMBDA( int i ) { offset( i ) = queries( i )._k; } );
+    Kokkos::fence();
+
+    exclusive_prefix_sum( offset );
+    int const n_results = last_element( offset );
+
+    Kokkos::realloc( indices, n_results );
+    fill( indices, -1 );
+    if ( distances_ptr )
+    {
+        Kokkos::View<double *, DeviceType> &distances = *distances_ptr;
+        Kokkos::realloc( distances, n_results );
+        fill( distances, Kokkos::ArithTraits<double>::max() );
+
+        Kokkos::parallel_for(
+            REGION_NAME( "perform_nearest_queries_and_return_distances" ),
+            Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
+            KOKKOS_LAMBDA( int i ) {
+                int count = 0;
+                Details::TreeTraversal<DeviceType>::query(
+                    bvh, queries( i ), [indices, offset, distances, i,
+                                        &count]( int index, double distance ) {
+                        indices( offset( i ) + count ) = index;
+                        distances( offset( i ) + count ) = distance;
+                        count++;
+                    } );
+            } );
+        Kokkos::fence();
+    }
+    else
+    {
+        Kokkos::parallel_for(
+            REGION_NAME( "perform_nearest_queries" ),
+            Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
+            KOKKOS_LAMBDA( int i ) {
+                int count = 0;
+                Details::TreeTraversal<DeviceType>::query(
+                    bvh, queries( i ),
+                    [indices, offset, i, &count]( int index, double distance ) {
+                        indices( offset( i ) + count++ ) = index;
+                    } );
+            } );
+        Kokkos::fence();
+    }
+    // NOTE: possible improvement is to find out if they are any -1 in indices
+    // (resp. +infty in distances) and truncate if necessary
+}
+
+template <typename DeviceType, typename Query>
+void query_dispatch( BVH<DeviceType> const bvh,
+                     Kokkos::View<Query *, DeviceType> queries,
+                     Kokkos::View<int *, DeviceType> &indices,
+                     Kokkos::View<int *, DeviceType> &offset,
+                     Details::SpatialPredicateTag )
+{
+    using ExecutionSpace = typename DeviceType::execution_space;
 
     int const n_queries = queries.extent( 0 );
 
@@ -89,16 +162,8 @@ void BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
     // [ 0 0 0 .... 0 0 ]
     //                ^
     //                N
-    Kokkos::resize( offset, n_queries + 1 );
-    Kokkos::parallel_for(
-        REGION_NAME( "initialize_offset_set_all_entries_to_zero)" ),
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries + 1 ),
-        KOKKOS_LAMBDA( int i ) { offset[i] = 0; } );
-    Kokkos::fence();
-
-    // Make a copy of *this. We need this to put is on the device. Otherwise,
-    // it will throw illegal address error in the parallel_for loops below.
-    BVH<DeviceType> bvh = *this;
+    Kokkos::realloc( offset, n_queries + 1 );
+    fill( offset, 0 );
 
     // Say we found exactly two object for each query:
     // [ 2 2 2 .... 2 0 ]
@@ -108,7 +173,7 @@ void BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
         REGION_NAME( "first_pass_at_the_search_count_the_number_of_indices" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
         KOKKOS_LAMBDA( int i ) {
-            offset( i ) = details::TreeTraversal<DeviceType>::query(
+            offset( i ) = Details::TreeTraversal<DeviceType>::query(
                 bvh, queries( i ), []( int index ) {} );
         } );
     Kokkos::fence();
@@ -117,41 +182,54 @@ void BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
     // [ 0 2 4 .... 2N-2 2N ]
     //                    ^
     //                    N
-    Kokkos::parallel_scan(
-        REGION_NAME( "compute_offset" ),
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries + 1 ),
-        KOKKOS_LAMBDA( int i, int &update, bool final_pass ) {
-            int const offset_i = offset( i );
-            if ( final_pass )
-                offset( i ) = update;
-            update += offset_i;
-        } );
-    Kokkos::fence();
+    exclusive_prefix_sum( offset );
 
     // Let us extract the last element in the view which is the total count of
     // objects which where found to meet the query predicates:
     //
     // [ 2N ]
-    auto total_count = Kokkos::subview( offset, n_queries );
-    auto total_count_host = Kokkos::create_mirror_view( total_count );
+    int const n_results = last_element( offset );
     // We allocate the memory and fill
     //
     // [ A0 A1 B0 B1 C0 C1 ... X0 X1 ]
     //   ^     ^     ^         ^     ^
     //   0     2     4         2N-2  2N
-    Kokkos::deep_copy( total_count_host, total_count );
-    Kokkos::resize( indices, total_count_host( 0 ) );
+    Kokkos::realloc( indices, n_results );
     Kokkos::parallel_for( REGION_NAME( "second_pass" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                           KOKKOS_LAMBDA( int i ) {
                               int count = 0;
-                              details::TreeTraversal<DeviceType>::query(
+                              Details::TreeTraversal<DeviceType>::query(
                                   bvh, queries( i ),
                                   [indices, offset, i, &count]( int index ) {
                                       indices( offset( i ) + count++ ) = index;
                                   } );
                           } );
     Kokkos::fence();
+}
+
+template <typename DeviceType>
+template <typename Query>
+void BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
+                             Kokkos::View<int *, DeviceType> &indices,
+                             Kokkos::View<int *, DeviceType> &offset ) const
+{
+    using Tag = typename Query::Tag;
+    query_dispatch( *this, queries, indices, offset, Tag{} );
+}
+
+template <typename DeviceType>
+template <typename Query>
+typename std::enable_if<
+    std::is_same<typename Query::Tag, Details::NearestPredicateTag>::value,
+    void>::type
+BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
+                        Kokkos::View<int *, DeviceType> &indices,
+                        Kokkos::View<int *, DeviceType> &offset,
+                        Kokkos::View<double *, DeviceType> &distances ) const
+{
+    using Tag = typename Query::Tag;
+    query_dispatch( *this, queries, indices, offset, Tag{}, &distances );
 }
 
 } // end namespace DataTransferKit

@@ -153,11 +153,15 @@ KOKKOS_FUNCTION int nearest_query( BVH<DeviceType> const bvh,
     {
         // get the node that is on top of the priority list (i.e. is the
         // closest to the query point)
-        node = queue.top().first; // std::tie(node, std::ignore) = ...
+        node = queue.top().first;
+        node_distance = queue.top().second;
+        // NOTE: it would be nice to be able to do something like
+        // tie( node, node_distance = queue.top();
         queue.pop();
         if ( TreeTraversal<DeviceType>::isLeaf( bvh, node ) )
         {
-            insert( TreeTraversal<DeviceType>::getIndex( bvh, node ) );
+            insert( TreeTraversal<DeviceType>::getIndex( bvh, node ),
+                    node_distance );
             count++;
         }
         else

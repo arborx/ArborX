@@ -60,13 +60,14 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, tag_dispatching, DeviceType )
     Kokkos::fence();
 
     DataTransferKit::BVH<DeviceType> bvh( boxes );
-    auto do_nothing = KOKKOS_LAMBDA( int ){};
+    auto do_nothing_1 = KOKKOS_LAMBDA( int ){};
+    auto do_nothing_2 = KOKKOS_LAMBDA( int, double ){};
     DataTransferKit::Point p1 = {{0., 0., 0.}};
     details::TreeTraversal<DeviceType>::query( bvh, details::nearest( p1, 1 ),
-                                               do_nothing );
+                                               do_nothing_2 );
 
     details::TreeTraversal<DeviceType>::query( bvh, details::within( p1, 0.5 ),
-                                               do_nothing );
+                                               do_nothing_1 );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, bounds, DeviceType )
