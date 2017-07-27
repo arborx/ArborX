@@ -54,6 +54,24 @@ void exclusive_prefix_sum( Kokkos::View<T *, DeviceType> in,
     Kokkos::fence();
 }
 
+/** \brief Get a copy of the last element on the host.
+ *
+ *  Returns a copy of the last element in the view on the host.  Note that it
+ *  may require communication between host and device (e.g. if the view passed
+ *  as an argument lives on the device).
+ *
+ *  \pre \c in is not empty.
+ */
+template <typename T, typename DeviceType>
+T last_element( Kokkos::View<T *, DeviceType> in )
+{
+    DTK_INSIST( in.extent( 0 ) > 0 );
+    auto in_subview = Kokkos::subview( in, in.extent( 0 ) - 1 );
+    auto in_host = Kokkos::create_mirror_view( in_subview );
+    Kokkos::deep_copy( in_host, in_subview );
+    return in_host( 0 );
+}
+
 } // end namespace DataTransferKit
 
 #endif

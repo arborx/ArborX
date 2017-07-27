@@ -55,6 +55,19 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, prefix_sum, DeviceType )
                 DataTransferKit::DataTransferKitException );
 }
 
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, last_element, DeviceType )
+{
+    Kokkos::View<int *, DeviceType> v( "v", 2 );
+    auto v_host = Kokkos::create_mirror_view( v );
+    v_host( 0 ) = 33;
+    v_host( 1 ) = 24;
+    Kokkos::deep_copy( v, v_host );
+    TEST_EQUALITY( DataTransferKit::last_element( v ), 24 );
+    Kokkos::View<int *, DeviceType> w( "w", 0 );
+    TEST_THROW( DataTransferKit::last_element( w ),
+                DataTransferKit::DataTransferKitException );
+}
+
 // Include the test macros.
 #include "DataTransferKitSearch_ETIHelperMacros.h"
 
@@ -64,6 +77,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, prefix_sum, DeviceType )
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, fill,                  \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, prefix_sum,            \
+                                          DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, last_element,          \
                                           DeviceType##NODE )
 
 // Demangle the types
