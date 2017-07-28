@@ -32,15 +32,19 @@ void fill( Kokkos::View<T *, DeviceType> out, T const &value )
 
 /** \brief Computes an exclusive scan.
  *
- *  When \c in and \c out are the same view, the scan is performed in-place.
+ *  When \c out is not provided or if \c in and \c out are the same view, the
+ *  scan is performed in-place.
  *
  *  \pre \c in and \c out must have the same size.
  */
 template <typename T, typename DeviceType>
-void exclusive_prefix_sum( Kokkos::View<T *, DeviceType> in,
-                           Kokkos::View<T *, DeviceType> out )
+void exclusive_prefix_sum(
+    Kokkos::View<T *, DeviceType> in,
+    Kokkos::View<T *, DeviceType> out = Kokkos::View<T *, DeviceType>() )
 {
     using ExecutionSpace = typename DeviceType::execution_space;
+    if ( out.size() == 0 )
+        out = in;
     DTK_INSIST( in.extent( 0 ) == out.extent( 0 ) );
     Kokkos::parallel_scan(
         "exclusive_scan",
