@@ -348,14 +348,12 @@ class FineSearch
         Kokkos::View<bool *, DeviceType> point_in_cell,
         Kokkos::View<Coordinate **, DeviceType> physical_points,
         Kokkos::View<Coordinate ***, DeviceType> cells,
-        Kokkos::View<unsigned int *, DeviceType> coarse_search_output_points,
         Kokkos::View<unsigned int *, DeviceType> coarse_search_output_cells )
         : _threshold( 0. )
         , _reference_points( reference_points )
         , _point_in_cell( point_in_cell )
         , _physical_points( physical_points )
         , _cells( cells )
-        , _coarse_search_output_points( coarse_search_output_points )
         , _coarse_search_output_cells( coarse_search_output_cells )
     {
     }
@@ -364,7 +362,6 @@ class FineSearch
     void operator()( unsigned int const i ) const
     {
         // Extract the indices computed by the coarse search
-        unsigned int const point_index = _coarse_search_output_points( i );
         unsigned int const cell_index = _coarse_search_output_cells( i );
         // Get the subviews corresponding the reference point (dim), the
         // physical point (dim), the current cell (nodes, dim)
@@ -372,7 +369,7 @@ class FineSearch
         Kokkos::View<Coordinate *, Kokkos::LayoutStride, ExecutionSpace>
             ref_point( _reference_points, i, Kokkos::ALL() );
         Kokkos::View<Coordinate *, Kokkos::LayoutStride, ExecutionSpace>
-            phys_point( _physical_points, point_index, Kokkos::ALL() );
+            phys_point( _physical_points, i, Kokkos::ALL() );
         Kokkos::View<Coordinate **, Kokkos::LayoutStride, ExecutionSpace> nodes(
             _cells, cell_index, Kokkos::ALL(), Kokkos::ALL() );
 
@@ -390,7 +387,6 @@ class FineSearch
     Kokkos::View<bool *, DeviceType> _point_in_cell;
     Kokkos::View<Coordinate **, DeviceType> _physical_points;
     Kokkos::View<Coordinate ***, DeviceType> _cells;
-    Kokkos::View<unsigned int *, DeviceType> _coarse_search_output_points;
     Kokkos::View<unsigned int *, DeviceType> _coarse_search_output_cells;
 };
 }
