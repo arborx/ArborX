@@ -148,6 +148,50 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, queries, DeviceType )
     // QUESTION: does it make sense to have len( offset ) = 1 ???
 }
 
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, nearest_queries, DeviceType )
+{
+    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", 2 );
+    auto boxes_host = Kokkos::create_mirror_view( boxes );
+    boxes_host( 0 ) = DataTransferKit::Box( {0., 0., 0., 0., 0., 0.} );
+    boxes_host( 1 ) = DataTransferKit::Box( {1., 1., 1., 1., 1., 1.} );
+    Kokkos::deep_copy( boxes, boxes_host );
+    DataTransferKit::BVH<DeviceType> bvh( boxes );
+
+    std::vector<std::pair<DataTransferKit::Point, int>> points = {
+        {DataTransferKit::Point( {0., 0., 0.} ), 2},
+        {DataTransferKit::Point( {1., 0., 0.} ), 4},
+    };
+    std::vector<int> indices_ref = {0, 1, 0, 1, -1, -1};
+    std::vector<int> offset_ref = {0, 2, 6};
+    double const infty = std::numeric_limits<double>::max();
+    std::vector<double> distances_ref = {0.,         sqrt( 3. ), 1.,
+                                         sqrt( 2. ), infty,      infty};
+
+    Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType> queries(
+        "nearest_queries", points.size() );
+    auto queries_host = Kokkos::create_mirror_view( queries );
+    for ( int i = 0; i < queries.extent_int( 0 ); ++i )
+        queries_host( i ) = DataTransferKit::Details::Nearest(
+            points[i].first, points[i].second );
+    Kokkos::deep_copy( queries, queries_host );
+
+    Kokkos::View<int *, DeviceType> indices( "indices" );
+    Kokkos::View<int *, DeviceType> offset( "offset" );
+    Kokkos::View<double *, DeviceType> distances( "distances" );
+    bvh.query( queries, indices, offset, distances );
+
+    auto indices_host = Kokkos::create_mirror_view( indices );
+    auto offset_host = Kokkos::create_mirror_view( offset );
+    auto distances_host = Kokkos::create_mirror_view( distances );
+    Kokkos::deep_copy( indices_host, indices );
+    Kokkos::deep_copy( offset_host, offset );
+    Kokkos::deep_copy( distances_host, distances );
+
+    TEST_COMPARE_ARRAYS( indices_host, indices_ref );
+    TEST_COMPARE_ARRAYS( offset_host, offset_ref );
+    TEST_COMPARE_ARRAYS( distances_host, distances_ref );
+}
+
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty, DeviceType )
 {
     Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", 1 );
@@ -675,6 +719,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, bounds,                   \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, queries,                  \
+                                          DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, nearest_queries,          \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, empty, DeviceType##NODE ) \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, structured_grid,          \
