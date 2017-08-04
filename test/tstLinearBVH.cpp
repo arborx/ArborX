@@ -158,8 +158,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, nearest_queries, DeviceType )
     DataTransferKit::BVH<DeviceType> bvh( boxes );
 
     std::vector<std::pair<DataTransferKit::Point, int>> points = {
-        {DataTransferKit::Point( {0., 0., 0.} ), 2},
-        {DataTransferKit::Point( {1., 0., 0.} ), 4},
+        {{{0., 0., 0.}}, 2}, {{{1., 0., 0.}}, 4},
     };
     std::vector<int> indices_ref = {0, 1, 0, 1, -1, -1};
     std::vector<int> offset_ref = {0, 2, 6};
