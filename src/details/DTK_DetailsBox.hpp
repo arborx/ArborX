@@ -43,6 +43,13 @@ struct Box
     }
 
     KOKKOS_INLINE_FUNCTION
+    Box( double const *minmax )
+    {
+        for ( unsigned int i = 0; i < 6; ++i )
+            _minmax[i] = minmax[i];
+    }
+
+    KOKKOS_INLINE_FUNCTION
     Box &operator=( ArrayType const &minmax )
     {
         for ( unsigned int i = 0; i < 6; ++i )
