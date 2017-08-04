@@ -15,6 +15,8 @@
 #include <Teuchos_DefaultComm.hpp>
 #include <Teuchos_UnitTestHarness.hpp>
 
+#include <boost/geometry/index/rtree.hpp>
+
 #include <algorithm>
 #include <bitset>
 #include <iostream>
@@ -166,6 +168,153 @@ make_random_cloud( double const Lx, double const Ly, double const Lz,
     return cloud;
 }
 
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
+                                   DeviceType )
+{
+    namespace bg = boost::geometry;
+    namespace bgi = boost::geometry::index;
+    using BPoint = bg::model::point<double, 3, bg::cs::cartesian>;
+    using RTree = bgi::rtree<std::pair<BPoint, int>, bgi::linear<16>>;
+
+    Teuchos::RCP<const Teuchos::Comm<int>> comm =
+        Teuchos::DefaultComm<int>::getComm();
+    unsigned int const comm_rank = Teuchos::rank( *comm );
+    unsigned int const comm_size = Teuchos::size( *comm );
+
+    // Construct a random cloud of point. We use the same seed on all the
+    // processors.
+    double const Lx = 10.0;
+    double const Ly = 10.0;
+    double const Lz = 10.0;
+    int const n = 100;
+    auto cloud = make_random_cloud( Lx, Ly, Lz, n, 0 );
+    auto queries = make_random_cloud( Lx, Ly, Lz, n, 1234 );
+
+    // Create a R-tree to compare radius search results against
+    RTree rtree;
+    for ( int i = 0; i < n; ++i )
+    {
+        auto const &point = cloud[i];
+        double const x = std::get<0>( point );
+        double const y = std::get<1>( point );
+        double const z = std::get<2>( point );
+        rtree.insert( std::make_pair( BPoint( x, y, z ), i ) );
+    }
+
+    unsigned int const local_n = n / comm_size;
+    Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes(
+        "bounding_boxes", local_n );
+    auto bounding_boxes_host = Kokkos::create_mirror_view( bounding_boxes );
+    for ( unsigned int i = 0; i < n; ++i )
+    {
+        if ( i % comm_size == comm_rank )
+        {
+            auto const &point = cloud[i];
+            double const x = std::get<0>( point );
+            double const y = std::get<1>( point );
+            double const z = std::get<2>( point );
+            bounding_boxes_host[i / comm_size] = {x, x, y, y, z, z};
+        }
+    }
+
+    std::map<std::pair<unsigned int, unsigned int>, unsigned int> indices_map;
+    for ( unsigned int i = 0; i < n; ++i )
+        for ( unsigned int j = 0; j < comm_size; ++j )
+            if ( i % comm_size == j )
+                indices_map[std::make_pair( i / comm_size, j )] = i;
+
+    Kokkos::deep_copy( bounding_boxes, bounding_boxes_host );
+
+    // Initialize the distributed search tree
+    DataTransferKit::DistributedSearchTree<DeviceType> distributed_tree(
+        comm, bounding_boxes );
+    using ExecutionSpace = typename DeviceType::execution_space;
+    Kokkos::View<double * [3], ExecutionSpace> point_coords( "point_coords",
+                                                             local_n );
+    auto point_coords_host = Kokkos::create_mirror_view( point_coords );
+    Kokkos::View<double *, ExecutionSpace> radii( "radii", local_n );
+    auto radii_host = Kokkos::create_mirror_view( radii );
+    Kokkos::View<int * [2], ExecutionSpace> within_n_pts( "within_n_pts",
+                                                          local_n );
+    Kokkos::View<int *, ExecutionSpace> k( "distribution_k", local_n );
+    auto k_host = Kokkos::create_mirror_view( k );
+    std::vector<std::vector<std::pair<BPoint, int>>> returned_values_within(
+        local_n );
+    std::default_random_engine generator( 0 );
+    std::uniform_real_distribution<double> distribution_radius(
+        0.0, std::sqrt( Lx * Lx + Ly * Ly + Lz * Lz ) );
+    std::uniform_int_distribution<int> distribution_k(
+        1, std::floor( sqrt( n * n ) ) );
+    for ( unsigned int i = 0; i < n; ++i )
+    {
+        if ( i % comm_size == comm_rank )
+        {
+            auto const &point = queries[i];
+            unsigned int const j = i / comm_size;
+            double const x = std::get<0>( point );
+            double const y = std::get<1>( point );
+            double const z = std::get<2>( point );
+            BPoint centroid( x, y, z );
+            radii_host[j] = distribution_radius( generator );
+            double radius = radii_host[j];
+
+            point_coords_host( j, 0 ) = x;
+            point_coords_host( j, 1 ) = y;
+            point_coords_host( j, 2 ) = z;
+
+            // use the R-tree to obtain a reference solution
+            rtree.query( bgi::satisfies( [centroid, radius](
+                             std::pair<BPoint, int> const &val ) {
+                             return bg::distance( centroid, val.first ) <=
+                                    radius;
+                         } ),
+                         std::back_inserter( returned_values_within[j] ) );
+        }
+    }
+
+    Kokkos::deep_copy( point_coords, point_coords_host );
+    Kokkos::deep_copy( radii, radii_host );
+
+    Kokkos::View<details::Within *, DeviceType> within_queries(
+        "within_queries", local_n );
+    Kokkos::parallel_for( "register_within_queries",
+                          Kokkos::RangePolicy<ExecutionSpace>( 0, local_n ),
+                          KOKKOS_LAMBDA( int i ) {
+                              within_queries( i ) = details::within(
+                                  {{point_coords( i, 0 ), point_coords( i, 1 ),
+                                    point_coords( i, 2 )}},
+                                  radii( i ) );
+                          } );
+    Kokkos::fence();
+
+    // Perform the search
+    Kokkos::View<int *, DeviceType> indices( "indices" );
+    Kokkos::View<int *, DeviceType> offset( "offset" );
+    Kokkos::View<int *, DeviceType> ranks( "ranks" );
+    distributed_tree.query( within_queries, indices, offset, ranks );
+
+    auto indices_host = Kokkos::create_mirror_view( indices );
+    auto offset_host = Kokkos::create_mirror_view( offset );
+    auto ranks_host = Kokkos::create_mirror_view( ranks );
+
+    for ( unsigned int i = 0; i < n; ++i )
+    {
+        if ( i % comm_size == comm_rank )
+        {
+            unsigned int k = i / comm_size;
+            auto const &ref = returned_values_within[k];
+            std::set<int> ref_ids;
+            for ( auto const &id : ref )
+                ref_ids.emplace( id.second );
+            for ( int j = offset_host( k ); j < offset_host( k + 1 ); ++j )
+            {
+                TEST_ASSERT( ref_ids.count( indices_map[std::make_pair(
+                                 indices_host( j ), ranks( j ) )] ) != 0 );
+            }
+        }
+    }
+}
+
 // Include the test macros.
 #include "DataTransferKitSearch_ETIHelperMacros.h"
 
@@ -173,7 +322,9 @@ make_random_cloud( double const Lx, double const Ly, double const Lz,
 #define UNIT_TEST_GROUP( NODE )                                                \
     using DeviceType##NODE = typename NODE::device_type;                       \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DistributedSearchTree, hello_world,  \
-                                          DeviceType##NODE )
+                                          DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DistributedSearchTree,               \
+                                          boost_comparison, DeviceType##NODE )
 
 // Demangle the types
 DTK_ETI_MANGLING_TYPEDEFS()
