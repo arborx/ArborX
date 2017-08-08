@@ -32,6 +32,32 @@ class DistributedSearchTree
         Teuchos::RCP<Teuchos::Comm<int> const> comm,
         Kokkos::View<Box const *, DeviceType> bounding_boxes );
 
+    /** \brief Finds object satisfying the passed predicates (e.g. nearest to
+     *  some point or overlaping with some box)
+     *
+     *  This query function performs a batch of spatial or k-nearest neighbors
+     *  searches.  The results give indices of the objects that satisfy
+     *  predicates (as given to the constructor).  They are organized in a
+     *  distributed compressed row storage format.
+     *
+     *  \c indices stores the indices of the objects that satisfy the
+     *  predicates.  \c offset stores the locations in the \c indices view that
+     *  start a predicate, that is, \c queries(q) is satisfied by \c indices(o)
+     *  for <code>objects(q) <= o < objects(q+1)</code> that live on processes
+     *  \c ranks(o) respectively.  Following the usual convention,
+     *  <code>offset(n) = nnz</code>, where \c n is the number of queries that
+     *  were performed and \c nnz is the total number of collisions.
+     *
+     *  \note The views \c indices, \c offset, and \c ranks are passed by
+     *  reference because \c Kokkos::realloc() calls the assignment operator.
+     *
+     *  \param[in] queries Collection of predicates of the same type.  These
+     *  may be spatial predicates or nearest predicates.
+     *  \param[out] indices Object local indices that satisfy the predicates.
+     *  \param[out] offset Array of predicate offsets for one-dimensional
+     *  storage.
+     *  \param[out] ranks Process ranks that own objects.
+     */
     template <typename Query>
     void query( Kokkos::View<Query *, DeviceType> queries,
                 Kokkos::View<int *, DeviceType> &indices,
