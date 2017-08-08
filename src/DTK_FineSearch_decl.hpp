@@ -66,7 +66,15 @@ class FineSearch
     {
         throw std::runtime_error( "Not implemented" );
     }
+
+    static double threshold;
 };
+
+// Default value for threshold matches the inclusion tolerance in DTK-2.0 which
+// is arbitrary and might need adjustement in client code. See
+// https://github.com/ORNL-CEES/DataTransferKit/blob/dtk-2.0/packages/Adapters/Libmesh/src/DTK_LibmeshEntityLocalMap.cpp#L58
+template <typename DeviceType>
+double FineSearch<DeviceType>::threshold = 1e-6;
 }
 
 #endif

@@ -44,7 +44,7 @@ void FineSearch<DeviceType>::search(
          shards::getCellTopologyData<shards::Hexahedron<8>>()->key )
     {
         Functor::FineSearch<CellType::Hexahedron_8, DeviceType> search_functor(
-            reference_points, point_in_cell, physical_points, cells,
+            threshold, reference_points, point_in_cell, physical_points, cells,
             coarse_search_output_cells );
         Kokkos::parallel_for(
             REGION_NAME( "compute_pos_in_ref_space_hex_8" ),
@@ -55,7 +55,7 @@ void FineSearch<DeviceType>::search(
               shards::getCellTopologyData<shards::Hexahedron<27>>()->key )
     {
         Functor::FineSearch<CellType::Hexahedron_27, DeviceType> search_functor(
-            reference_points, point_in_cell, physical_points, cells,
+            threshold, reference_points, point_in_cell, physical_points, cells,
             coarse_search_output_cells );
         Kokkos::parallel_for(
             REGION_NAME( "compute_pos_in_ref_space_hex_27" ),
@@ -66,7 +66,7 @@ void FineSearch<DeviceType>::search(
               shards::getCellTopologyData<shards::Pyramid<5>>()->key )
     {
         Functor::FineSearch<CellType::Pyramid_5, DeviceType> search_functor(
-            reference_points, point_in_cell, physical_points, cells,
+            threshold, reference_points, point_in_cell, physical_points, cells,
             coarse_search_output_cells );
         Kokkos::parallel_for(
             REGION_NAME( "compute_pos_in_ref_space_pyr_5" ),
@@ -77,8 +77,9 @@ void FineSearch<DeviceType>::search(
               shards::getCellTopologyData<shards::Quadrilateral<4>>()->key )
     {
         Functor::FineSearch<CellType::Quadrilateral_4, DeviceType>
-            search_functor( reference_points, point_in_cell, physical_points,
-                            cells, coarse_search_output_cells );
+            search_functor( threshold, reference_points, point_in_cell,
+                            physical_points, cells,
+                            coarse_search_output_cells );
         Kokkos::parallel_for(
             REGION_NAME( "compute_pos_in_ref_space_quad_4" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_ref_pts ),
@@ -88,8 +89,9 @@ void FineSearch<DeviceType>::search(
               shards::getCellTopologyData<shards::Quadrilateral<9>>()->key )
     {
         Functor::FineSearch<CellType::Quadrilateral_9, DeviceType>
-            search_functor( reference_points, point_in_cell, physical_points,
-                            cells, coarse_search_output_cells );
+            search_functor( threshold, reference_points, point_in_cell,
+                            physical_points, cells,
+                            coarse_search_output_cells );
         Kokkos::parallel_for(
             REGION_NAME( "compute_pos_in_ref_space_quad_9" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_ref_pts ),
@@ -99,7 +101,7 @@ void FineSearch<DeviceType>::search(
               shards::getCellTopologyData<shards::Tetrahedron<4>>()->key )
     {
         Functor::FineSearch<CellType::Tetrahedron_4, DeviceType> search_functor(
-            reference_points, point_in_cell, physical_points, cells,
+            threshold, reference_points, point_in_cell, physical_points, cells,
             coarse_search_output_cells );
         Kokkos::parallel_for(
             REGION_NAME( "compute_pos_in_ref_space_tet_4" ),
@@ -110,8 +112,9 @@ void FineSearch<DeviceType>::search(
               shards::getCellTopologyData<shards::Tetrahedron<10>>()->key )
     {
         Functor::FineSearch<CellType::Tetrahedron_10, DeviceType>
-            search_functor( reference_points, point_in_cell, physical_points,
-                            cells, coarse_search_output_cells );
+            search_functor( threshold, reference_points, point_in_cell,
+                            physical_points, cells,
+                            coarse_search_output_cells );
         Kokkos::parallel_for(
             REGION_NAME( "compute_pos_in_ref_space_tet_10" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_ref_pts ),
@@ -121,7 +124,7 @@ void FineSearch<DeviceType>::search(
               shards::getCellTopologyData<shards::Triangle<3>>()->key )
     {
         Functor::FineSearch<CellType::Triangle_3, DeviceType> search_functor(
-            reference_points, point_in_cell, physical_points, cells,
+            threshold, reference_points, point_in_cell, physical_points, cells,
             coarse_search_output_cells );
         Kokkos::parallel_for(
             REGION_NAME( "compute_pos_in_ref_space_tri_3" ),
@@ -132,7 +135,7 @@ void FineSearch<DeviceType>::search(
               shards::getCellTopologyData<shards::Triangle<6>>()->key )
     {
         Functor::FineSearch<CellType::Triangle_6, DeviceType> search_functor(
-            reference_points, point_in_cell, physical_points, cells,
+            threshold, reference_points, point_in_cell, physical_points, cells,
             coarse_search_output_cells );
         Kokkos::parallel_for(
             REGION_NAME( "compute_pos_in_ref_space_tri_6" ),
@@ -143,7 +146,7 @@ void FineSearch<DeviceType>::search(
               shards::getCellTopologyData<shards::Wedge<6>>()->key )
     {
         Functor::FineSearch<CellType::Wedge_6, DeviceType> search_functor(
-            reference_points, point_in_cell, physical_points, cells,
+            threshold, reference_points, point_in_cell, physical_points, cells,
             coarse_search_output_cells );
         Kokkos::parallel_for(
             REGION_NAME( "compute_pos_in_ref_space_wedge_6" ),
@@ -154,7 +157,7 @@ void FineSearch<DeviceType>::search(
               shards::getCellTopologyData<shards::Wedge<18>>()->key )
     {
         Functor::FineSearch<CellType::Wedge_18, DeviceType> search_functor(
-            reference_points, point_in_cell, physical_points, cells,
+            threshold, reference_points, point_in_cell, physical_points, cells,
             coarse_search_output_cells );
         Kokkos::parallel_for(
             REGION_NAME( "compute_pos_in_ref_space_wedge_18" ),

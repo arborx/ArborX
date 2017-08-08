@@ -344,12 +344,13 @@ class FineSearch
 {
   public:
     FineSearch(
+        double threshold,
         Kokkos::View<Coordinate **, DeviceType> reference_points,
         Kokkos::View<bool *, DeviceType> point_in_cell,
         Kokkos::View<Coordinate **, DeviceType> physical_points,
         Kokkos::View<Coordinate ***, DeviceType> cells,
         Kokkos::View<unsigned int *, DeviceType> coarse_search_output_cells )
-        : _threshold( 0. )
+        : _threshold( threshold )
         , _reference_points( reference_points )
         , _point_in_cell( point_in_cell )
         , _physical_points( physical_points )
