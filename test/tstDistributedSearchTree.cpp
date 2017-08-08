@@ -7,9 +7,6 @@
  * the LICENSE file in the top-level directory.                             *
  ****************************************************************************/
 
-// TODO: get rid of this one
-#include <DTK_DetailsTreeTraversal.hpp>
-
 #include <DTK_DistributedSearchTree.hpp>
 
 #include <Teuchos_DefaultComm.hpp>

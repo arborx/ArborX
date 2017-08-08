@@ -13,7 +13,6 @@
 
 #include <DTK_ConfigDefs.hpp>
 
-#include <DTK_DetailsTreeTraversal.hpp>
 #include <DTK_LinearBVH.hpp>
 
 #include <cmath>
