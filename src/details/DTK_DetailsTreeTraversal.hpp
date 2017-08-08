@@ -17,10 +17,12 @@
 #include <DTK_DetailsPriorityQueue.hpp>
 #include <DTK_DetailsStack.hpp>
 
-#include <DTK_LinearBVH.hpp>
-
 namespace DataTransferKit
 {
+
+template <typename DeviceType>
+class BVH;
+
 namespace Details
 {
 template <typename DeviceType>

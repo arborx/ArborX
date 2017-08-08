@@ -18,17 +18,13 @@
 #include <DTK_DetailsBox.hpp>
 #include <DTK_DetailsNode.hpp>
 #include <DTK_DetailsPredicate.hpp>
+#include <DTK_DetailsTreeTraversal.hpp>
 #include <DTK_DetailsUtils.hpp>
 
 #include "DTK_ConfigDefs.hpp"
 
 namespace DataTransferKit
 {
-namespace Details
-{
-template <typename DeviceType>
-struct TreeTraversal;
-}
 
 /**
  * Bounding Volume Hierarchy.
