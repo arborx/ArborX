@@ -19,6 +19,58 @@
 #include <random>
 #include <tuple>
 
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl, recv_from,
+                                   DeviceType )
+{
+    // Checking that it is not necessary to send ranks because it can be
+    // inferred from getProcsFrom() and getLengthsFrom().
+    Teuchos::RCP<const Teuchos::Comm<int>> comm =
+        Teuchos::DefaultComm<int>::getComm();
+    int const comm_rank = comm->getRank();
+    int const comm_size = comm->getSize();
+
+    std::vector<int> tn( comm_size + 1 );
+    for ( int i = 0; i < comm_size + 1; ++i )
+        tn[i] = i * ( i - 1 ) / 2;
+
+    // First use send buffer to set up the communication plan.  Sending 0
+    // packet to rank 1, 1 packet to rank 1, 2 packets to rank 2, etc.
+    int const n_exports = tn[comm_size];
+    std::vector<int> exports( n_exports );
+    for ( int i = 0; i < comm_size; ++i )
+        for ( int j = tn[i]; j < tn[i + 1]; ++j )
+            exports[j] = i;
+
+    Tpetra::Distributor distributor( comm );
+    int const n_imports = distributor.createFromSends(
+        Teuchos::ArrayView<int>( exports.data(), exports.size() ) );
+    TEUCHOS_ASSERT_EQUALITY( n_imports, comm_rank * comm_size );
+
+    std::vector<int> imports( n_imports );
+    distributor.doPostsAndWaits(
+        Teuchos::ArrayView<int const>( exports.data(), exports.size() ), 1,
+        Teuchos::ArrayView<int>( imports.data(), imports.size() ) );
+
+    TEST_COMPARE_ARRAYS( imports, std::vector<int>( n_imports, comm_rank ) );
+
+    // Then fill buffer with rank of the process that is sending packets.
+    std::fill( exports.begin(), exports.end(), comm_rank );
+    distributor.doPostsAndWaits(
+        Teuchos::ArrayView<int const>( exports.data(), exports.size() ), 1,
+        Teuchos::ArrayView<int>( imports.data(), imports.size() ) );
+
+    auto procs_from = distributor.getProcsFrom();
+    auto lengths_form = distributor.getLengthsFrom();
+    TEST_EQUALITY( procs_from.size(), lengths_form.size() );
+    std::vector<int> recv_from( n_imports, -1 );
+    int count = 0;
+    for ( auto i = 0; i < procs_from.size(); ++i )
+        for ( auto j = 0; j < lengths_form[i]; ++j )
+            recv_from[count++] = procs_from[i];
+    TEST_EQUALITY( count, n_imports );
+    TEST_COMPARE_ARRAYS( imports, recv_from );
+}
+
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,
                                    sort_results, DeviceType )
 {
@@ -161,6 +213,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,
 // Create the test group
 #define UNIT_TEST_GROUP( NODE )                                                \
     using DeviceType##NODE = typename NODE::device_type;                       \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsDistributedSearchTreeImpl,    \
+                                          recv_from, DeviceType##NODE )        \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsDistributedSearchTreeImpl,    \
                                           sort_results, DeviceType##NODE )     \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsDistributedSearchTreeImpl,    \
