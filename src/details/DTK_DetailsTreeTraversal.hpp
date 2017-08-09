@@ -145,9 +145,11 @@ KOKKOS_FUNCTION int nearest_query( BVH<DeviceType> const bvh,
     PriorityQueue<PairNodePtrDistance, CompareDistance> queue;
     // priority does not matter for the root since the node will be
     // processed directly and removed from the priority queue we don't even
-    // bother computing the distance to it
+    // bother computing the distance to it.  however if there is only one leaf
+    // node in the tree it must be computed.
     Node const *node = TreeTraversal<DeviceType>::getRoot( bvh );
-    double node_distance = 0.0;
+    double node_distance =
+        bvh.size() > 1 ? 0. : distance( query_point, node->bounding_box );
     queue.push( node, node_distance );
     int count = 0;
 
