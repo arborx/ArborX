@@ -38,7 +38,7 @@ void fill( Kokkos::View<T *, DeviceType> out, T const &value )
  *  \pre \c in and \c out must have the same size.
  */
 template <typename T, typename DeviceType>
-void exclusive_prefix_sum(
+void exclusivePrefixSum(
     Kokkos::View<T *, DeviceType> in,
     Kokkos::View<T *, DeviceType> out = Kokkos::View<T *, DeviceType>() )
 {
@@ -67,7 +67,7 @@ void exclusive_prefix_sum(
  *  \pre \c in is not empty.
  */
 template <typename T, typename DeviceType>
-T last_element( Kokkos::View<T *, DeviceType> in )
+T lastElement( Kokkos::View<T *, DeviceType> in )
 {
     DTK_INSIST( in.extent( 0 ) > 0 );
     auto in_subview = Kokkos::subview( in, in.extent( 0 ) - 1 );

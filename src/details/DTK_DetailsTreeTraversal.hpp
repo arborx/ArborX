@@ -37,7 +37,7 @@ struct TreeTraversal
                                              Insert const &insert )
     {
         using Tag = typename Predicate::Tag;
-        return query_dispatch( bvh, pred, insert, Tag{} );
+        return queryDispatch( bvh, pred, insert, Tag{} );
     }
 
     /**
@@ -123,9 +123,9 @@ KOKKOS_FUNCTION int spatial_query( BVH<DeviceType> const bvh,
 
 // query k nearest neighbours
 template <typename DeviceType, typename Insert>
-KOKKOS_FUNCTION int nearest_query( BVH<DeviceType> const bvh,
-                                   Point const &query_point, int k,
-                                   Insert const &insert )
+KOKKOS_FUNCTION int nearestQuery( BVH<DeviceType> const bvh,
+                                  Point const &query_point, int k,
+                                  Insert const &insert )
 {
     if ( bvh.empty() )
         return 0;
@@ -183,18 +183,18 @@ KOKKOS_FUNCTION int nearest_query( BVH<DeviceType> const bvh,
 
 template <typename DeviceType, typename Predicate, typename Insert>
 KOKKOS_INLINE_FUNCTION int
-query_dispatch( BVH<DeviceType> const bvh, Predicate const &pred,
-                Insert const &insert, SpatialPredicateTag )
+queryDispatch( BVH<DeviceType> const bvh, Predicate const &pred,
+               Insert const &insert, SpatialPredicateTag )
 {
     return spatial_query( bvh, pred, insert );
 }
 
 template <typename DeviceType, typename Predicate, typename Insert>
 KOKKOS_INLINE_FUNCTION int
-query_dispatch( BVH<DeviceType> const bvh, Predicate const &pred,
-                Insert const &insert, NearestPredicateTag )
+queryDispatch( BVH<DeviceType> const bvh, Predicate const &pred,
+               Insert const &insert, NearestPredicateTag )
 {
-    return nearest_query( bvh, pred._query_point, pred._k, insert );
+    return nearestQuery( bvh, pred._query_point, pred._k, insert );
 }
 
 } // end namespace Details

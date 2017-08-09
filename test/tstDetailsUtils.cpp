@@ -36,7 +36,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, prefix_sum, DeviceType )
         x_host( i ) = x_ref[i];
     Kokkos::deep_copy( x, x_host );
     Kokkos::View<int *, DeviceType> y( "y", n );
-    DataTransferKit::exclusive_prefix_sum( x, y );
+    DataTransferKit::exclusivePrefixSum( x, y );
     std::vector<int> y_ref( n );
     std::iota( y_ref.begin(), y_ref.end(), 0 );
     auto y_host = Kokkos::create_mirror_view( y );
@@ -45,13 +45,13 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, prefix_sum, DeviceType )
     TEST_COMPARE_ARRAYS( y_host, y_ref );
     TEST_COMPARE_ARRAYS( x_host, x_ref );
     // in-place
-    DataTransferKit::exclusive_prefix_sum( x, x );
+    DataTransferKit::exclusivePrefixSum( x, x );
     Kokkos::deep_copy( x_host, x );
     TEST_COMPARE_ARRAYS( x_host, y_ref );
     int const m = 11;
     TEST_INEQUALITY( n, m );
     Kokkos::View<int *, DeviceType> z( "z", m );
-    TEST_THROW( DataTransferKit::exclusive_prefix_sum( x, z ),
+    TEST_THROW( DataTransferKit::exclusivePrefixSum( x, z ),
                 DataTransferKit::DataTransferKitException );
 }
 
@@ -62,9 +62,9 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, last_element, DeviceType )
     v_host( 0 ) = 33;
     v_host( 1 ) = 24;
     Kokkos::deep_copy( v, v_host );
-    TEST_EQUALITY( DataTransferKit::last_element( v ), 24 );
+    TEST_EQUALITY( DataTransferKit::lastElement( v ), 24 );
     Kokkos::View<int *, DeviceType> w( "w", 0 );
-    TEST_THROW( DataTransferKit::last_element( w ),
+    TEST_THROW( DataTransferKit::lastElement( w ),
                 DataTransferKit::DataTransferKitException );
 }
 

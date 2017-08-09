@@ -47,18 +47,18 @@ struct DistributedSearchTreeImpl
 
     // spatial queries
     template <typename Query>
-    static void query_dispatch( Teuchos::RCP<Teuchos::Comm<int> const> comm,
-                                BVH<DeviceType> const &distributed_tree,
-                                BVH<DeviceType> const &local_tree,
-                                Kokkos::View<Query *, DeviceType> queries,
-                                Kokkos::View<int *, DeviceType> &indices,
-                                Kokkos::View<int *, DeviceType> &offset,
-                                Kokkos::View<int *, DeviceType> &ranks,
-                                Details::SpatialPredicateTag );
+    static void queryDispatch( Teuchos::RCP<Teuchos::Comm<int> const> comm,
+                               BVH<DeviceType> const &distributed_tree,
+                               BVH<DeviceType> const &local_tree,
+                               Kokkos::View<Query *, DeviceType> queries,
+                               Kokkos::View<int *, DeviceType> &indices,
+                               Kokkos::View<int *, DeviceType> &offset,
+                               Kokkos::View<int *, DeviceType> &ranks,
+                               Details::SpatialPredicateTag );
 
     // nearest neighbors queries
     template <typename Query>
-    static void query_dispatch(
+    static void queryDispatch(
         Teuchos::RCP<Teuchos::Comm<int> const> comm,
         BVH<DeviceType> const &distributed_tree,
         BVH<DeviceType> const &local_tree,
@@ -69,22 +69,22 @@ struct DistributedSearchTreeImpl
         Kokkos::View<double *, DeviceType> *distances_ptr = nullptr );
 
     template <typename Query>
-    static void devise_strategy( Point epsilon,
-                                 Kokkos::View<Query *, DeviceType> queries,
-                                 BVH<DeviceType> const &bvh,
-                                 Kokkos::View<int *, DeviceType> &indices,
-                                 Kokkos::View<int *, DeviceType> &offset );
+    static void deviseStrategy( Point epsilon,
+                                Kokkos::View<Query *, DeviceType> queries,
+                                BVH<DeviceType> const &bvh,
+                                Kokkos::View<int *, DeviceType> &indices,
+                                Kokkos::View<int *, DeviceType> &offset );
 
     template <typename Query>
-    static void forward_queries( Teuchos::RCP<Teuchos::Comm<int> const> comm,
-                                 Kokkos::View<Query *, DeviceType> queries,
-                                 Kokkos::View<int *, DeviceType> indices,
-                                 Kokkos::View<int *, DeviceType> offset,
-                                 Kokkos::View<Query *, DeviceType> &fwd_queries,
-                                 Kokkos::View<int *, DeviceType> &fwd_ids,
-                                 Kokkos::View<int *, DeviceType> &fwd_ranks );
+    static void forwardQueries( Teuchos::RCP<Teuchos::Comm<int> const> comm,
+                                Kokkos::View<Query *, DeviceType> queries,
+                                Kokkos::View<int *, DeviceType> indices,
+                                Kokkos::View<int *, DeviceType> offset,
+                                Kokkos::View<Query *, DeviceType> &fwd_queries,
+                                Kokkos::View<int *, DeviceType> &fwd_ids,
+                                Kokkos::View<int *, DeviceType> &fwd_ranks );
 
-    static void communicate_results_back(
+    static void communicateResultsBack(
         Teuchos::RCP<Teuchos::Comm<int> const> comm,
         Kokkos::View<int *, DeviceType> &indices,
         Kokkos::View<int *, DeviceType> offset,
@@ -93,29 +93,29 @@ struct DistributedSearchTreeImpl
         Kokkos::View<double *, DeviceType> *distances_ptr = nullptr );
 
     template <typename Query>
-    static void filter_results( Kokkos::View<Query *, DeviceType> queries,
-                                Kokkos::View<double *, DeviceType> distances,
-                                Kokkos::View<int *, DeviceType> &indices,
-                                Kokkos::View<int *, DeviceType> &offset,
-                                Kokkos::View<int *, DeviceType> &ranks );
+    static void filterResults( Kokkos::View<Query *, DeviceType> queries,
+                               Kokkos::View<double *, DeviceType> distances,
+                               Kokkos::View<int *, DeviceType> &indices,
+                               Kokkos::View<int *, DeviceType> &offset,
+                               Kokkos::View<int *, DeviceType> &ranks );
     static void
-    sort_results( Kokkos::View<int *, DeviceType> query_ids,
-                  Kokkos::View<int *, DeviceType> results,
-                  Kokkos::View<int *, DeviceType> ranks,
-                  Kokkos::View<double *, DeviceType> *distances_ptr = nullptr );
+    sortResults( Kokkos::View<int *, DeviceType> query_ids,
+                 Kokkos::View<int *, DeviceType> results,
+                 Kokkos::View<int *, DeviceType> ranks,
+                 Kokkos::View<double *, DeviceType> *distances_ptr = nullptr );
 
-    static void count_results( int n_queries,
-                               Kokkos::View<int *, DeviceType> query_ids,
-                               Kokkos::View<int *, DeviceType> &offset );
+    static void countResults( int n_queries,
+                              Kokkos::View<int *, DeviceType> query_ids,
+                              Kokkos::View<int *, DeviceType> &offset );
 
     // NOTE: Would love to pass the distributor as a const reference but
     // unfortunately the methods for executing the communication plan (e.g.
     // doPostsAndWaits() in this case) are not declared with the const
     // qualifier in Tpetra.
     template <typename T>
-    static void send_across_network( Tpetra::Distributor &distributor,
-                                     Kokkos::View<T *, DeviceType> exports,
-                                     Kokkos::View<T *, DeviceType> imports );
+    static void sendAcrossNetwork( Tpetra::Distributor &distributor,
+                                   Kokkos::View<T *, DeviceType> exports,
+                                   Kokkos::View<T *, DeviceType> imports );
 
     static double epsilon;
 };
@@ -128,7 +128,7 @@ double DistributedSearchTreeImpl<DeviceType>::epsilon = 1.0e-6;
 
 template <typename DeviceType>
 template <typename T>
-void DistributedSearchTreeImpl<DeviceType>::send_across_network(
+void DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
     Tpetra::Distributor &distributor, Kokkos::View<T *, DeviceType> exports,
     Kokkos::View<T *, DeviceType> imports )
 {
@@ -150,7 +150,7 @@ void DistributedSearchTreeImpl<DeviceType>::send_across_network(
 
 template <typename DeviceType>
 template <typename Query>
-void DistributedSearchTreeImpl<DeviceType>::devise_strategy(
+void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
     Point epsilon, Kokkos::View<Query *, DeviceType> queries,
     BVH<DeviceType> const &bvh, Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset )
@@ -177,7 +177,7 @@ void DistributedSearchTreeImpl<DeviceType>::devise_strategy(
 
 template <typename DeviceType>
 template <typename Query>
-void DistributedSearchTreeImpl<DeviceType>::query_dispatch(
+void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     Teuchos::RCP<Teuchos::Comm<int> const> comm,
     BVH<DeviceType> const &distributed_tree, BVH<DeviceType> const &local_tree,
     Kokkos::View<Query *, DeviceType> queries,
@@ -190,15 +190,15 @@ void DistributedSearchTreeImpl<DeviceType>::query_dispatch(
     // the nearest neighbors queries oroverlap with when expanded in all
     // direction by epsilon.
     // NOTE: epsilon is a static member for now which is far from ideal.
-    devise_strategy( {{epsilon, epsilon, epsilon}}, queries, distributed_tree,
-                     indices, offset );
+    deviseStrategy( {{epsilon, epsilon, epsilon}}, queries, distributed_tree,
+                    indices, offset );
 
     ////////////////////////////////////////////////////////////////////////////
     // Forward queries
     ////////////////////////////////////////////////////////////////////////////
     Kokkos::View<int *, DeviceType> ids( "query_ids" );
     Kokkos::View<Query *, DeviceType> fwd_queries( "fwd_queries" );
-    forward_queries( comm, queries, indices, offset, fwd_queries, ids, ranks );
+    forwardQueries( comm, queries, indices, offset, fwd_queries, ids, ranks );
     ////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////////////////////////////////////////////
@@ -213,22 +213,22 @@ void DistributedSearchTreeImpl<DeviceType>::query_dispatch(
     ////////////////////////////////////////////////////////////////////////////
     // Communicate results back
     ////////////////////////////////////////////////////////////////////////////
-    communicate_results_back( comm, indices, offset, ranks, ids, &distances );
+    communicateResultsBack( comm, indices, offset, ranks, ids, &distances );
     ////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////////////////////////////////////////////
     // Merge results
     ////////////////////////////////////////////////////////////////////////////
     int const n_queries = queries.extent_int( 0 );
-    count_results( n_queries, ids, offset );
-    sort_results( ids, indices, ranks, &distances );
-    filter_results( queries, distances, indices, offset, ranks );
+    countResults( n_queries, ids, offset );
+    sortResults( ids, indices, ranks, &distances );
+    filterResults( queries, distances, indices, offset, ranks );
     ////////////////////////////////////////////////////////////////////////////
 }
 
 template <typename DeviceType>
 template <typename Query>
-void DistributedSearchTreeImpl<DeviceType>::query_dispatch(
+void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     Teuchos::RCP<Teuchos::Comm<int> const> comm,
     BVH<DeviceType> const &distributed_tree, BVH<DeviceType> const &local_tree,
     Kokkos::View<Query *, DeviceType> queries,
@@ -246,7 +246,7 @@ void DistributedSearchTreeImpl<DeviceType>::query_dispatch(
     ////////////////////////////////////////////////////////////////////////////
     Kokkos::View<int *, DeviceType> ids( "query_ids" );
     Kokkos::View<Query *, DeviceType> fwd_queries( "fwd_queries" );
-    forward_queries( comm, queries, indices, offset, fwd_queries, ids, ranks );
+    forwardQueries( comm, queries, indices, offset, fwd_queries, ids, ranks );
     ////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////////////////////////////////////////////
@@ -258,20 +258,20 @@ void DistributedSearchTreeImpl<DeviceType>::query_dispatch(
     ////////////////////////////////////////////////////////////////////////////
     // Communicate results back
     ////////////////////////////////////////////////////////////////////////////
-    communicate_results_back( comm, indices, offset, ranks, ids );
+    communicateResultsBack( comm, indices, offset, ranks, ids );
     ////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////////////////////////////////////////////
     // Merge results
     ////////////////////////////////////////////////////////////////////////////
     int const n_queries = queries.extent_int( 0 );
-    count_results( n_queries, ids, offset );
-    sort_results( ids, indices, ranks );
+    countResults( n_queries, ids, offset );
+    sortResults( ids, indices, ranks );
     ////////////////////////////////////////////////////////////////////////////
 }
 
 template <typename DeviceType>
-void DistributedSearchTreeImpl<DeviceType>::sort_results(
+void DistributedSearchTreeImpl<DeviceType>::sortResults(
     Kokkos::View<int *, DeviceType> query_ids,
     Kokkos::View<int *, DeviceType> results,
     Kokkos::View<int *, DeviceType> ranks,
@@ -306,7 +306,7 @@ void DistributedSearchTreeImpl<DeviceType>::sort_results(
 }
 
 template <typename DeviceType>
-void DistributedSearchTreeImpl<DeviceType>::count_results(
+void DistributedSearchTreeImpl<DeviceType>::countResults(
     int n_queries, Kokkos::View<int *, DeviceType> query_ids,
     Kokkos::View<int *, DeviceType> &offset )
 {
@@ -322,12 +322,12 @@ void DistributedSearchTreeImpl<DeviceType>::count_results(
         } );
     Kokkos::fence();
 
-    exclusive_prefix_sum( offset );
+    exclusivePrefixSum( offset );
 }
 
 template <typename DeviceType>
 template <typename Query>
-void DistributedSearchTreeImpl<DeviceType>::forward_queries(
+void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
     Teuchos::RCP<Teuchos::Comm<int> const> comm,
     Kokkos::View<Query *, DeviceType> queries,
     Kokkos::View<int *, DeviceType> indices,
@@ -361,7 +361,7 @@ void DistributedSearchTreeImpl<DeviceType>::forward_queries(
     fill( export_ranks, comm_rank );
 
     Kokkos::View<int *, DeviceType> import_ranks( "import_ranks", n_imports );
-    send_across_network( distributor, export_ranks, import_ranks );
+    sendAcrossNetwork( distributor, export_ranks, import_ranks );
 
     Kokkos::View<int *, DeviceType> export_ids( "export_ids", n_exports );
     Kokkos::parallel_for( REGION_NAME( "forward_queries_fill_ids" ),
@@ -375,11 +375,11 @@ void DistributedSearchTreeImpl<DeviceType>::forward_queries(
                           } );
     Kokkos::fence();
     Kokkos::View<int *, DeviceType> import_ids( "import_ids", n_imports );
-    send_across_network( distributor, export_ids, import_ids );
+    sendAcrossNetwork( distributor, export_ids, import_ids );
 
     // Send queries across the network
     Kokkos::View<Query *, DeviceType> imports( queries.label(), n_imports );
-    send_across_network( distributor, exports, imports );
+    sendAcrossNetwork( distributor, exports, imports );
 
     fwd_queries = imports;
     fwd_ids = import_ids;
@@ -387,7 +387,7 @@ void DistributedSearchTreeImpl<DeviceType>::forward_queries(
 }
 
 template <typename DeviceType>
-void DistributedSearchTreeImpl<DeviceType>::communicate_results_back(
+void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
     Teuchos::RCP<Teuchos::Comm<int> const> comm,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> offset,
@@ -436,9 +436,9 @@ void DistributedSearchTreeImpl<DeviceType>::communicate_results_back(
                                                     n_imports );
     Kokkos::View<int *, DeviceType> import_ranks( ranks.label(), n_imports );
     Kokkos::View<int *, DeviceType> import_ids( ids.label(), n_imports );
-    send_across_network( distributor, export_indices, import_indices );
-    send_across_network( distributor, export_ranks, import_ranks );
-    send_across_network( distributor, export_ids, import_ids );
+    sendAcrossNetwork( distributor, export_indices, import_indices );
+    sendAcrossNetwork( distributor, export_ranks, import_ranks );
+    sendAcrossNetwork( distributor, export_ids, import_ids );
 
     ids = import_ids;
     ranks = import_ranks;
@@ -450,14 +450,14 @@ void DistributedSearchTreeImpl<DeviceType>::communicate_results_back(
         Kokkos::View<double *, DeviceType> export_distances = distances;
         Kokkos::View<double *, DeviceType> import_distances( distances.label(),
                                                              n_imports );
-        send_across_network( distributor, export_distances, import_distances );
+        sendAcrossNetwork( distributor, export_distances, import_distances );
         distances = import_distances;
     }
 }
 
 template <typename DeviceType>
 template <typename Query>
-void DistributedSearchTreeImpl<DeviceType>::filter_results(
+void DistributedSearchTreeImpl<DeviceType>::filterResults(
     Kokkos::View<Query *, DeviceType> queries,
     Kokkos::View<double *, DeviceType> distances,
     Kokkos::View<int *, DeviceType> &indices,
@@ -478,7 +478,7 @@ void DistributedSearchTreeImpl<DeviceType>::filter_results(
                           } );
     Kokkos::fence();
 
-    exclusive_prefix_sum( _offset );
+    exclusivePrefixSum( _offset );
 
     int const n_truncated_results = _offset( n_queries );
     Kokkos::View<int *, DeviceType> _indices( indices.label(),

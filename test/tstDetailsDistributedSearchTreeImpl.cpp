@@ -111,7 +111,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,
         ranks_host( i ) = ranks_[i];
     Kokkos::deep_copy( ranks, ranks_host );
 
-    DataTransferKit::DistributedSearchTreeImpl<DeviceType>::sort_results(
+    DataTransferKit::DistributedSearchTreeImpl<DeviceType>::sortResults(
         ids, results, ranks );
 
     // COMMENT: ids are untouched
@@ -148,7 +148,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,
 
     Kokkos::View<int *, DeviceType> offset( "offset" );
 
-    DataTransferKit::DistributedSearchTreeImpl<DeviceType>::count_results(
+    DataTransferKit::DistributedSearchTreeImpl<DeviceType>::countResults(
         m, ids, offset );
 
     auto offset_host = Kokkos::create_mirror_view( offset );

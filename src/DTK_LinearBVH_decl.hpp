@@ -79,7 +79,7 @@ class BVH
 };
 
 template <typename DeviceType, typename Query>
-void query_dispatch(
+void queryDispatch(
     BVH<DeviceType> const bvh, Kokkos::View<Query *, DeviceType> queries,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset, Details::NearestPredicateTag,
@@ -98,8 +98,8 @@ void query_dispatch(
         KOKKOS_LAMBDA( int i ) { offset( i ) = queries( i )._k; } );
     Kokkos::fence();
 
-    exclusive_prefix_sum( offset );
-    int const n_results = last_element( offset );
+    exclusivePrefixSum( offset );
+    int const n_results = lastElement( offset );
 
     Kokkos::realloc( indices, n_results );
     fill( indices, -1 );
@@ -144,11 +144,11 @@ void query_dispatch(
 }
 
 template <typename DeviceType, typename Query>
-void query_dispatch( BVH<DeviceType> const bvh,
-                     Kokkos::View<Query *, DeviceType> queries,
-                     Kokkos::View<int *, DeviceType> &indices,
-                     Kokkos::View<int *, DeviceType> &offset,
-                     Details::SpatialPredicateTag )
+void queryDispatch( BVH<DeviceType> const bvh,
+                    Kokkos::View<Query *, DeviceType> queries,
+                    Kokkos::View<int *, DeviceType> &indices,
+                    Kokkos::View<int *, DeviceType> &offset,
+                    Details::SpatialPredicateTag )
 {
     using ExecutionSpace = typename DeviceType::execution_space;
 
@@ -178,13 +178,13 @@ void query_dispatch( BVH<DeviceType> const bvh,
     // [ 0 2 4 .... 2N-2 2N ]
     //                    ^
     //                    N
-    exclusive_prefix_sum( offset );
+    exclusivePrefixSum( offset );
 
     // Let us extract the last element in the view which is the total count of
     // objects which where found to meet the query predicates:
     //
     // [ 2N ]
-    int const n_results = last_element( offset );
+    int const n_results = lastElement( offset );
     // We allocate the memory and fill
     //
     // [ A0 A1 B0 B1 C0 C1 ... X0 X1 ]
@@ -211,7 +211,7 @@ void BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
                              Kokkos::View<int *, DeviceType> &offset ) const
 {
     using Tag = typename Query::Tag;
-    query_dispatch( *this, queries, indices, offset, Tag{} );
+    queryDispatch( *this, queries, indices, offset, Tag{} );
 }
 
 template <typename DeviceType>
@@ -225,7 +225,7 @@ BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
                         Kokkos::View<double *, DeviceType> &distances ) const
 {
     using Tag = typename Query::Tag;
-    query_dispatch( *this, queries, indices, offset, Tag{}, &distances );
+    queryDispatch( *this, queries, indices, offset, Tag{}, &distances );
 }
 
 } // end namespace DataTransferKit
