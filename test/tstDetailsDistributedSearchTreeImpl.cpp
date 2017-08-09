@@ -65,7 +65,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl, recv_from,
     std::vector<int> recv_from( n_imports, -1 );
     int count = 0;
     for ( auto i = 0; i < procs_from.size(); ++i )
-        for ( auto j = 0; j < lengths_form[i]; ++j )
+        for ( size_t j = 0; j < lengths_form[i]; ++j )
             recv_from[count++] = procs_from[i];
     TEST_EQUALITY( count, n_imports );
     TEST_COMPARE_ARRAYS( imports, recv_from );
