@@ -86,19 +86,29 @@ KOKKOS_FUNCTION int spatial_query( BVH<DeviceType> const bvh,
     if ( bvh.empty() )
         return 0;
 
+    if ( bvh.size() == 1 )
+    {
+        Node const *leaf = TreeTraversal<DeviceType>::getRoot( bvh );
+        if ( predicate( leaf ) )
+        {
+            int const leaf_index =
+                TreeTraversal<DeviceType>::getIndex( bvh, leaf );
+            insert( leaf_index );
+            return 1;
+        }
+        else
+            return 0;
+    }
+
     Stack<Node const *> stack;
 
-    Node const *node = TreeTraversal<DeviceType>::getRoot( bvh );
-    // need to actually check that the node verifies the predicate because
-    // getRoot directly returns the leaf node in the case there is only one in
-    // the tree.
-    if ( predicate( node ) )
-        stack.push( node );
+    Node const *root = TreeTraversal<DeviceType>::getRoot( bvh );
+    stack.push( root );
     int count = 0;
 
     while ( !stack.empty() )
     {
-        node = stack.top();
+        Node const *node = stack.top();
         stack.pop();
 
         if ( TreeTraversal<DeviceType>::isLeaf( bvh, node ) )
@@ -127,8 +137,18 @@ KOKKOS_FUNCTION int nearest_query( BVH<DeviceType> const bvh,
                                    Point const &query_point, int k,
                                    Insert const &insert )
 {
-    if ( bvh.empty() )
+    if ( bvh.empty() || k < 1 )
         return 0;
+
+    if ( bvh.size() == 1 )
+    {
+        Node const *leaf = TreeTraversal<DeviceType>::getRoot( bvh );
+        int const leaf_index = TreeTraversal<DeviceType>::getIndex( bvh, leaf );
+        double const leaf_distance =
+            distance( query_point, leaf->bounding_box );
+        insert( leaf_index, leaf_distance );
+        return 1;
+    }
 
     using PairNodePtrDistance = Kokkos::pair<Node const *, double>;
 
@@ -145,20 +165,17 @@ KOKKOS_FUNCTION int nearest_query( BVH<DeviceType> const bvh,
     PriorityQueue<PairNodePtrDistance, CompareDistance> queue;
     // priority does not matter for the root since the node will be
     // processed directly and removed from the priority queue we don't even
-    // bother computing the distance to it.  however if there is only one leaf
-    // node in the tree it must be computed.
-    Node const *node = TreeTraversal<DeviceType>::getRoot( bvh );
-    double node_distance =
-        bvh.size() > 1 ? 0. : distance( query_point, node->bounding_box );
-    queue.push( node, node_distance );
+    // bother computing the distance to it.
+    Node const *root = TreeTraversal<DeviceType>::getRoot( bvh );
+    queue.push( root, 0. );
     int count = 0;
 
     while ( !queue.empty() && count < k )
     {
         // get the node that is on top of the priority list (i.e. is the
         // closest to the query point)
-        node = queue.top().first;
-        node_distance = queue.top().second;
+        Node const *node = queue.top().first;
+        double const node_distance = queue.top().second;
         // NOTE: it would be nice to be able to do something like
         // tie( node, node_distance = queue.top();
         queue.pop();
