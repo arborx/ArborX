@@ -60,12 +60,12 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl, recv_from,
         Teuchos::ArrayView<int>( imports.data(), imports.size() ) );
 
     auto procs_from = distributor.getProcsFrom();
-    auto lengths_form = distributor.getLengthsFrom();
-    TEST_EQUALITY( procs_from.size(), lengths_form.size() );
+    auto lengths_from = distributor.getLengthsFrom();
+    TEST_EQUALITY( procs_from.size(), lengths_from.size() );
     std::vector<int> recv_from( n_imports, -1 );
     int count = 0;
     for ( auto i = 0; i < procs_from.size(); ++i )
-        for ( size_t j = 0; j < lengths_form[i]; ++j )
+        for ( size_t j = 0; j < lengths_from[i]; ++j )
             recv_from[count++] = procs_from[i];
     TEST_EQUALITY( count, n_imports );
     TEST_COMPARE_ARRAYS( imports, recv_from );
