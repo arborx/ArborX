@@ -185,6 +185,23 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, nearest_queries, DeviceType )
     TEST_COMPARE_ARRAYS( indices_host, indices_ref );
     TEST_COMPARE_ARRAYS( offset_host, offset_ref );
     TEST_COMPARE_ARRAYS( distances_host, distances_ref );
+
+    // Bugfix: now make a bvh with only the origin and check the distance that
+    // is being returned is computed correctly.
+    Kokkos::resize( boxes, 1 );
+    DataTransferKit::BVH<DeviceType> trivial_bvh( boxes );
+    Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType> trivial_query(
+        "trivial", 1 );
+    auto trivial_query_host = Kokkos::create_mirror_view( trivial_query );
+    trivial_query_host( 0 ) =
+        DataTransferKit::Details::nearest( {{1., 0., 0.}} );
+    Kokkos::deep_copy( trivial_query, trivial_query_host );
+    trivial_bvh.query( trivial_query, indices, offset, distances );
+    auto trivial_distances_host = Kokkos::create_mirror_view( distances );
+    TEST_EQUALITY( trivial_distances_host( 0 ), 1. );
+    TEST_EQUALITY( distances.extent( 0 ), 1 );
+    TEST_EQUALITY( indices.extent( 0 ), 1 );
+    TEST_EQUALITY( offset.extent( 0 ), 2 );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty, DeviceType )
