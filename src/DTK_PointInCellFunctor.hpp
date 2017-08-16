@@ -7,8 +7,8 @@
  * the LICENSE file in the top-level directory.                             *
  ****************************************************************************/
 
-#ifndef DTK_FINE_SEARCH_FUNCTOR_HPP
-#define DTK_FINE_SEARCH_FUNCTOR_HPP
+#ifndef DTK_POINT_IN_CELL_FUNCTOR_HPP
+#define DTK_POINT_IN_CELL_FUNCTOR_HPP
 
 #include <Intrepid2_CellTools_Serial.hpp>
 #include <Intrepid2_HGRAD_HEX_C1_FEM.hpp>
@@ -340,10 +340,10 @@ class Wedge_18
 namespace Functor
 {
 template <typename CellType, typename DeviceType>
-class FineSearch
+class PointInCell
 {
   public:
-    FineSearch(
+    PointInCell(
         double threshold,
         Kokkos::View<Coordinate **, DeviceType> reference_points,
         Kokkos::View<bool *, DeviceType> point_in_cell,

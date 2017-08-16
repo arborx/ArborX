@@ -7,7 +7,7 @@
  * the LICENSE file in the top-level directory.                             *
  ****************************************************************************/
 
-#include <DTK_FineSearch.hpp>
+#include <DTK_PointInCell.hpp>
 
 #include <Shards_CellTopologyManagedData.hpp>
 #include <Teuchos_UnitTestHarness.hpp>
@@ -17,7 +17,7 @@
 // and the only difference in the search is the template parameters in the
 // Functor.
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( FineSearch, hex_8, DeviceType )
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( PointInCell, hex_8, DeviceType )
 {
     unsigned int constexpr dim = 3;
     shards::CellTopology cell_topology(
@@ -131,7 +131,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( FineSearch, hex_8, DeviceType )
     coarse_srch_cells( 3 ) = 1;
     coarse_srch_cells( 4 ) = 2;
 
-    DataTransferKit::FineSearch<DeviceType>::search(
+    DataTransferKit::PointInCell<DeviceType>::search(
         reference_points, point_in_cell, physical_points, cells,
         coarse_srch_cells, cell_topology );
 
@@ -158,7 +158,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( FineSearch, hex_8, DeviceType )
     }
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( FineSearch, quad_4, DeviceType )
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( PointInCell, quad_4, DeviceType )
 {
     unsigned int constexpr dim = 2;
     shards::CellTopology cell_topology(
@@ -219,7 +219,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( FineSearch, quad_4, DeviceType )
     coarse_srch_cells( 3 ) = 1;
     coarse_srch_cells( 4 ) = 2;
 
-    DataTransferKit::FineSearch<DeviceType>::search(
+    DataTransferKit::PointInCell<DeviceType>::search(
         reference_points, point_in_cell, physical_points, cells,
         coarse_srch_cells, cell_topology );
 
@@ -248,10 +248,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( FineSearch, quad_4, DeviceType )
 // Create the test group
 #define UNIT_TEST_GROUP( NODE )                                                \
     using DeviceType##NODE = typename NODE::device_type;                       \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( FineSearch, hex_8,                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( PointInCell, hex_8,                  \
                                           DeviceType##NODE )                   \
     using DeviceType##NODE = typename NODE::device_type;                       \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( FineSearch, quad_4, DeviceType##NODE )
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( PointInCell, quad_4,                 \
+                                          DeviceType##NODE )
 
 // Demangle the types
 DTK_ETI_MANGLING_TYPEDEFS()

@@ -7,8 +7,8 @@
  * the LICENSE file in the top-level directory.                             *
  ****************************************************************************/
 
-#ifndef DTK_FINE_SEARCH_DECL_HPP
-#define DTK_FINE_SEARCH_DECL_HPP
+#ifndef DTK_POINT_IN_CELL_DECL_HPP
+#define DTK_POINT_IN_CELL_DECL_HPP
 
 #include "DTK_ConfigDefs.hpp"
 #include <Kokkos_Core.hpp>
@@ -17,7 +17,7 @@
 namespace DataTransferKit
 {
 template <typename DeviceType>
-class FineSearch
+class PointInCell
 {
   public:
     /**
@@ -74,7 +74,7 @@ class FineSearch
 // is arbitrary and might need adjustement in client code. See
 // https://github.com/ORNL-CEES/DataTransferKit/blob/dtk-2.0/packages/Adapters/Libmesh/src/DTK_LibmeshEntityLocalMap.cpp#L58
 template <typename DeviceType>
-double FineSearch<DeviceType>::threshold = 1e-6;
+double PointInCell<DeviceType>::threshold = 1e-6;
 }
 
 #endif

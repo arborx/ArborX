@@ -7,17 +7,17 @@
  * the LICENSE file in the top-level directory.                             *
  ****************************************************************************/
 
-#ifndef DTK_FINE_SEARCH_DEF_HPP
-#define DTK_FINE_SEARCH_DEF_HPP
+#ifndef DTK_POINT_IN_CELL_DEF_HPP
+#define DTK_POINT_IN_CELL_DEF_HPP
 
 #include <DTK_DBC.hpp>
-#include <DTK_FineSearchFunctor.hpp>
+#include <DTK_PointInCellFunctor.hpp>
 #include <Kokkos_Core.hpp>
 
 namespace DataTransferKit
 {
 template <typename DeviceType>
-void FineSearch<DeviceType>::search(
+void PointInCell<DeviceType>::search(
     Kokkos::View<Coordinate **, DeviceType> reference_points,
     Kokkos::View<bool *, DeviceType> point_in_cell,
     Kokkos::View<Coordinate **, DeviceType> physical_points,
@@ -34,7 +34,7 @@ void FineSearch<DeviceType>::search(
     using ExecutionSpace = typename DeviceType::execution_space;
     int const n_ref_pts = reference_points.extent( 0 );
 
-    // Perform the fine search. We hide the template parameters used by
+    // Perform the point in cell search. We hide the template parameters used by
     // Intrepid2, using the CellType template.
     // Note that if the Newton solver does not converge, Intrepid2 will just
     // return the last results and there is no way to know that the coordinates
@@ -43,7 +43,7 @@ void FineSearch<DeviceType>::search(
     if ( cell_topo_key ==
          shards::getCellTopologyData<shards::Hexahedron<8>>()->key )
     {
-        Functor::FineSearch<CellType::Hexahedron_8, DeviceType> search_functor(
+        Functor::PointInCell<CellType::Hexahedron_8, DeviceType> search_functor(
             threshold, reference_points, point_in_cell, physical_points, cells,
             coarse_search_output_cells );
         Kokkos::parallel_for(
@@ -54,9 +54,10 @@ void FineSearch<DeviceType>::search(
     else if ( cell_topo_key ==
               shards::getCellTopologyData<shards::Hexahedron<27>>()->key )
     {
-        Functor::FineSearch<CellType::Hexahedron_27, DeviceType> search_functor(
-            threshold, reference_points, point_in_cell, physical_points, cells,
-            coarse_search_output_cells );
+        Functor::PointInCell<CellType::Hexahedron_27, DeviceType>
+            search_functor( threshold, reference_points, point_in_cell,
+                            physical_points, cells,
+                            coarse_search_output_cells );
         Kokkos::parallel_for(
             REGION_NAME( "compute_pos_in_ref_space_hex_27" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_ref_pts ),
@@ -65,7 +66,7 @@ void FineSearch<DeviceType>::search(
     else if ( cell_topo_key ==
               shards::getCellTopologyData<shards::Pyramid<5>>()->key )
     {
-        Functor::FineSearch<CellType::Pyramid_5, DeviceType> search_functor(
+        Functor::PointInCell<CellType::Pyramid_5, DeviceType> search_functor(
             threshold, reference_points, point_in_cell, physical_points, cells,
             coarse_search_output_cells );
         Kokkos::parallel_for(
@@ -76,7 +77,7 @@ void FineSearch<DeviceType>::search(
     else if ( cell_topo_key ==
               shards::getCellTopologyData<shards::Quadrilateral<4>>()->key )
     {
-        Functor::FineSearch<CellType::Quadrilateral_4, DeviceType>
+        Functor::PointInCell<CellType::Quadrilateral_4, DeviceType>
             search_functor( threshold, reference_points, point_in_cell,
                             physical_points, cells,
                             coarse_search_output_cells );
@@ -88,7 +89,7 @@ void FineSearch<DeviceType>::search(
     else if ( cell_topo_key ==
               shards::getCellTopologyData<shards::Quadrilateral<9>>()->key )
     {
-        Functor::FineSearch<CellType::Quadrilateral_9, DeviceType>
+        Functor::PointInCell<CellType::Quadrilateral_9, DeviceType>
             search_functor( threshold, reference_points, point_in_cell,
                             physical_points, cells,
                             coarse_search_output_cells );
@@ -100,9 +101,10 @@ void FineSearch<DeviceType>::search(
     else if ( cell_topo_key ==
               shards::getCellTopologyData<shards::Tetrahedron<4>>()->key )
     {
-        Functor::FineSearch<CellType::Tetrahedron_4, DeviceType> search_functor(
-            threshold, reference_points, point_in_cell, physical_points, cells,
-            coarse_search_output_cells );
+        Functor::PointInCell<CellType::Tetrahedron_4, DeviceType>
+            search_functor( threshold, reference_points, point_in_cell,
+                            physical_points, cells,
+                            coarse_search_output_cells );
         Kokkos::parallel_for(
             REGION_NAME( "compute_pos_in_ref_space_tet_4" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_ref_pts ),
@@ -111,7 +113,7 @@ void FineSearch<DeviceType>::search(
     else if ( cell_topo_key ==
               shards::getCellTopologyData<shards::Tetrahedron<10>>()->key )
     {
-        Functor::FineSearch<CellType::Tetrahedron_10, DeviceType>
+        Functor::PointInCell<CellType::Tetrahedron_10, DeviceType>
             search_functor( threshold, reference_points, point_in_cell,
                             physical_points, cells,
                             coarse_search_output_cells );
@@ -123,7 +125,7 @@ void FineSearch<DeviceType>::search(
     else if ( cell_topo_key ==
               shards::getCellTopologyData<shards::Triangle<3>>()->key )
     {
-        Functor::FineSearch<CellType::Triangle_3, DeviceType> search_functor(
+        Functor::PointInCell<CellType::Triangle_3, DeviceType> search_functor(
             threshold, reference_points, point_in_cell, physical_points, cells,
             coarse_search_output_cells );
         Kokkos::parallel_for(
@@ -134,7 +136,7 @@ void FineSearch<DeviceType>::search(
     else if ( cell_topo_key ==
               shards::getCellTopologyData<shards::Triangle<6>>()->key )
     {
-        Functor::FineSearch<CellType::Triangle_6, DeviceType> search_functor(
+        Functor::PointInCell<CellType::Triangle_6, DeviceType> search_functor(
             threshold, reference_points, point_in_cell, physical_points, cells,
             coarse_search_output_cells );
         Kokkos::parallel_for(
@@ -145,7 +147,7 @@ void FineSearch<DeviceType>::search(
     else if ( cell_topo_key ==
               shards::getCellTopologyData<shards::Wedge<6>>()->key )
     {
-        Functor::FineSearch<CellType::Wedge_6, DeviceType> search_functor(
+        Functor::PointInCell<CellType::Wedge_6, DeviceType> search_functor(
             threshold, reference_points, point_in_cell, physical_points, cells,
             coarse_search_output_cells );
         Kokkos::parallel_for(
@@ -156,7 +158,7 @@ void FineSearch<DeviceType>::search(
     else if ( cell_topo_key ==
               shards::getCellTopologyData<shards::Wedge<18>>()->key )
     {
-        Functor::FineSearch<CellType::Wedge_18, DeviceType> search_functor(
+        Functor::PointInCell<CellType::Wedge_18, DeviceType> search_functor(
             threshold, reference_points, point_in_cell, physical_points, cells,
             coarse_search_output_cells );
         Kokkos::parallel_for(
@@ -173,7 +175,7 @@ void FineSearch<DeviceType>::search(
 }
 
 // Explicit instantiation macro
-#define DTK_FINESEARCH_INSTANT( NODE )                                         \
-    template class FineSearch<typename NODE::device_type>;
+#define DTK_POINTINCELL_INSTANT( NODE )                                        \
+    template class PointInCell<typename NODE::device_type>;
 
 #endif
