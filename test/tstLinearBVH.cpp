@@ -204,6 +204,26 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, nearest_queries, DeviceType )
     TEST_EQUALITY( offset.extent( 0 ), 2 );
 }
 
+template <typename Query, typename DeviceType>
+void check_results( DataTransferKit::BVH<DeviceType> &bvh,
+                    Kokkos::View<Query *, DeviceType> queries,
+                    std::vector<int> const &indices_ref,
+                    std::vector<int> const &offset_ref, bool &success,
+                    Teuchos::FancyOStream &out )
+{
+    Kokkos::View<int *, DeviceType> indices( "indices" );
+    Kokkos::View<int *, DeviceType> offset( "offset" );
+    bvh.query( queries, indices, offset );
+
+    auto indices_host = Kokkos::create_mirror_view( indices );
+    deep_copy( indices_host, indices );
+    auto offset_host = Kokkos::create_mirror_view( offset );
+    deep_copy( offset_host, offset );
+
+    TEST_COMPARE_ARRAYS( indices_host, indices_ref );
+    TEST_COMPARE_ARRAYS( offset_host, offset_ref );
+}
+
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty, DeviceType )
 {
     Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", 1 );
@@ -242,37 +262,16 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty, DeviceType )
     queries_host( 1 ) = DataTransferKit::Details::Overlap(
         DataTransferKit::Box( {0.0, 10.0, 0.0, 10.0, 0.0, 10.0} ) );
     Kokkos::deep_copy( queries, queries_host );
-    Kokkos::View<int *, DeviceType> indices( "indices" );
-    Kokkos::View<int *, DeviceType> offset( "offset" );
-    bvh.query( queries, indices, offset );
 
     // This helped catching a bug where we assumed that any leaf node in the
     // stack (for spatial queries) does satisfy the predicate which is not
     // true when the tree was built from only one object.  In that case
     // TreeTraversal::getRoot returns directly the leaf and we still need to
     // check the predicate before insertion in the stack.
-    auto indices_host = Kokkos::create_mirror_view( indices );
-    auto offset_host = Kokkos::create_mirror_view( offset );
-    Kokkos::deep_copy( indices_host, indices );
-    Kokkos::deep_copy( offset_host, offset );
-    TEST_EQUALITY( indices_host.extent( 0 ), 1 );
-    TEST_EQUALITY( indices_host( 0 ), 0 );
-    TEST_EQUALITY( offset_host.extent( 0 ), 3 );
-    TEST_EQUALITY( offset_host( 0 ), 0 );
-    TEST_EQUALITY( offset_host( 1 ), 0 );
-    TEST_EQUALITY( offset_host( 2 ), 1 );
+    check_results( bvh, queries, {0}, {0, 0, 1}, success, out );
 
     // empty tree won't find anything
-    empty_bvh.query( queries, indices, offset );
-    indices_host = Kokkos::create_mirror_view( indices );
-    offset_host = Kokkos::create_mirror_view( offset );
-    Kokkos::deep_copy( indices_host, indices );
-    Kokkos::deep_copy( offset_host, offset );
-    TEST_EQUALITY( indices_host.extent( 0 ), 0 );
-    TEST_EQUALITY( offset_host.extent( 0 ), 3 );
-    TEST_EQUALITY( offset_host( 0 ), 0 );
-    TEST_EQUALITY( offset_host( 1 ), 0 );
-    TEST_EQUALITY( offset_host( 2 ), 0 );
+    check_results( empty_bvh, queries, {}, {0, 0, 0}, success, out );
 
     TEST_ASSERT( details::TreeTraversal<DeviceType>::getRoot( bvh ) );
     TEST_ASSERT( !details::TreeTraversal<DeviceType>::getRoot( empty_bvh ) );
