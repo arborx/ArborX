@@ -275,6 +275,28 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty, DeviceType )
 
     TEST_ASSERT( details::TreeTraversal<DeviceType>::getRoot( bvh ) );
     TEST_ASSERT( !details::TreeTraversal<DeviceType>::getRoot( empty_bvh ) );
+
+    // query for nothing is also valid
+    // We test it for both kind of predicates, spatial and nearest, on an empty
+    // and on an non-empty tree.
+    check_results(
+        bvh, Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>(
+                 "nothing", 0 ),
+        {}, {0}, success, out );
+    check_results(
+        bvh, Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>(
+                 "nothing", 0 ),
+        {}, {0}, success, out );
+    check_results(
+        empty_bvh,
+        Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>(
+            "nothing", 0 ),
+        {}, {0}, success, out );
+    check_results(
+        empty_bvh,
+        Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>(
+            "nothing", 0 ),
+        {}, {0}, success, out );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
