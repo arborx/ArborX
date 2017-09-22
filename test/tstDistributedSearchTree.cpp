@@ -146,6 +146,88 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
     }
 }
 
+// The `out` and `success` parameters come from the Teuchos unit testing macros
+// expansion.
+template <typename Query, typename DeviceType>
+void check_results( DataTransferKit::DistributedSearchTree<DeviceType> &tree,
+                    Kokkos::View<Query *, DeviceType> const &queries,
+                    std::vector<int> const &indices_ref,
+                    std::vector<int> const &offset_ref,
+                    std::vector<int> const &ranks_ref, bool &success,
+                    Teuchos::FancyOStream &out )
+{
+    Kokkos::View<int *, DeviceType> indices( "indices" );
+    Kokkos::View<int *, DeviceType> offset( "offset" );
+    Kokkos::View<int *, DeviceType> ranks( "ranks" );
+    tree.query( queries, indices, offset, ranks );
+
+    auto indices_host = Kokkos::create_mirror_view( indices );
+    deep_copy( indices_host, indices );
+    auto offset_host = Kokkos::create_mirror_view( offset );
+    deep_copy( offset_host, offset );
+    auto ranks_host = Kokkos::create_mirror_view( ranks );
+    deep_copy( ranks_host, ranks );
+
+    TEST_COMPARE_ARRAYS( indices_host, indices_ref );
+    TEST_COMPARE_ARRAYS( offset_host, offset_ref );
+    TEST_COMPARE_ARRAYS( ranks_host, ranks_ref );
+}
+
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree_no_queries,
+                                   DeviceType )
+{
+    Teuchos::RCP<const Teuchos::Comm<int>> comm =
+        Teuchos::DefaultComm<int>::getComm();
+    int const comm_rank = Teuchos::rank( *comm );
+    int const comm_size = Teuchos::size( *comm );
+
+    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", 1 );
+    auto boxes_host = Kokkos::create_mirror_view( boxes );
+    boxes_host( 0 ) = {
+        (double)comm_rank, (double)comm_rank + 1., 0., 1., 0., 1.};
+    Kokkos::deep_copy( boxes, boxes_host );
+    DataTransferKit::DistributedSearchTree<DeviceType> tree( comm, boxes );
+
+    Kokkos::View<DataTransferKit::Box *, DeviceType> no_boxes( "no_boxes", 0 );
+    DataTransferKit::DistributedSearchTree<DeviceType> empty_tree( comm,
+                                                                   no_boxes );
+
+    Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType> queries(
+        "queries", 2 );
+    auto queries_host = Kokkos::create_mirror_view( queries );
+    queries_host( 0 ) = DataTransferKit::Details::overlap( DataTransferKit::Box(
+        {(double)comm_size - (double)comm_rank - 0.5,
+         (double)comm_size - (double)comm_rank - 0.5, 0.5, 0.5, 0.5, 0.5} ) );
+    queries_host( 1 ) = DataTransferKit::Details::overlap(
+        DataTransferKit::Box( {(double)comm_rank + 0.5, (double)comm_rank + 0.5,
+                               0.5, 0.5, 0.5, 0.5} ) );
+    Kokkos::deep_copy( queries, queries_host );
+
+    check_results( empty_tree, queries, {}, {0, 0, 0}, {}, success, out );
+    check_results( tree, queries, {0, 0}, {0, 1, 2},
+                   {comm_size - 1 - comm_rank, comm_rank}, success, out );
+
+    check_results(
+        empty_tree,
+        Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>(
+            "nothing", 0 ),
+        {}, {0}, {}, success, out );
+    check_results(
+        empty_tree,
+        Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>(
+            "nothing", 0 ),
+        {}, {0}, {}, success, out );
+
+    check_results(
+        tree, Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>(
+                  "nothing", 0 ),
+        {}, {0}, {}, success, out );
+    check_results(
+        tree, Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>(
+                  "nothing", 0 ),
+        {}, {0}, {}, success, out );
+}
+
 std::vector<std::array<double, 3>>
 make_random_cloud( double const Lx, double const Ly, double const Lz,
                    int const n, double const seed )
@@ -320,6 +402,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
     using DeviceType##NODE = typename NODE::device_type;                       \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DistributedSearchTree, hello_world,  \
                                           DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT(                                      \
+        DistributedSearchTree, empty_tree_no_queries, DeviceType##NODE )       \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DistributedSearchTree,               \
                                           boost_comparison, DeviceType##NODE )
 
