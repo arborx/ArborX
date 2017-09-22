@@ -34,6 +34,12 @@ class SerializationTraits<Ordinal, DataTransferKit::Details::Nearest>
                                        DataTransferKit::Details::Nearest>
 {
 };
+template <typename Ordinal>
+class SerializationTraits<Ordinal, DataTransferKit::Details::Overlap>
+    : public DirectSerializationTraits<Ordinal,
+                                       DataTransferKit::Details::Overlap>
+{
+};
 
 } // end namespace Teuchos
 
