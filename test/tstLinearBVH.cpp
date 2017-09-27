@@ -114,35 +114,38 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, queries, DeviceType )
     Kokkos::deep_copy( boxes, boxes_host );
     DataTransferKit::BVH<DeviceType> bvh( boxes );
 
-    auto make_overlap_queries = [](
-        std::vector<DataTransferKit::Box> const &overlap_boxes ) {
-        Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType> queries(
-            "queries", overlap_boxes.size() );
-        auto queries_host = Kokkos::create_mirror_view( queries );
-        for ( int i = 0; i < queries.extent_int( 0 ); ++i )
-            queries_host( i ) =
-                DataTransferKit::Details::Overlap( overlap_boxes[i] );
-        Kokkos::deep_copy( queries, queries_host );
-        return queries;
-    };
+    auto make_overlap_queries =
+        []( std::vector<DataTransferKit::Box> const &overlap_boxes ) {
+            Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>
+                queries( "queries", overlap_boxes.size() );
+            auto queries_host = Kokkos::create_mirror_view( queries );
+            for ( int i = 0; i < queries.extent_int( 0 ); ++i )
+                queries_host( i ) =
+                    DataTransferKit::Details::Overlap( overlap_boxes[i] );
+            Kokkos::deep_copy( queries, queries_host );
+            return queries;
+        };
 
     // single query overlap with nothing
     check_results( bvh, make_overlap_queries( {DataTransferKit::Box()} ), {},
                    {0, 0}, success, out );
 
     // single query overlap with both
-    check_results( bvh, make_overlap_queries( {DataTransferKit::Box(
-                            {0., 1., 0., 1., 0., 1.} )} ),
+    check_results( bvh,
+                   make_overlap_queries(
+                       {DataTransferKit::Box( {0., 1., 0., 1., 0., 1.} )} ),
                    {1, 0}, {0, 2}, success, out );
 
     // single query overlap with only one
-    check_results( bvh, make_overlap_queries( {DataTransferKit::Box(
-                            {0.5, 1.5, 0.5, 1.5, 0.5, 1.5} )} ),
+    check_results( bvh,
+                   make_overlap_queries( {DataTransferKit::Box(
+                       {0.5, 1.5, 0.5, 1.5, 0.5, 1.5} )} ),
                    {1}, {0, 1}, success, out );
 
     // a couple queries both overlap with nothing
-    check_results( bvh, make_overlap_queries(
-                            {DataTransferKit::Box(), DataTransferKit::Box()} ),
+    check_results( bvh,
+                   make_overlap_queries(
+                       {DataTransferKit::Box(), DataTransferKit::Box()} ),
                    {}, {0, 0, 0}, success, out );
 
     // a couple queries first overlap with nothing second with only one
@@ -167,7 +170,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, nearest_queries, DeviceType )
     DataTransferKit::BVH<DeviceType> bvh( boxes );
 
     std::vector<std::pair<DataTransferKit::Point, int>> points = {
-        {{{0., 0., 0.}}, 2}, {{{1., 0., 0.}}, 4},
+        {{{0., 0., 0.}}, 2},
+        {{{1., 0., 0.}}, 4},
     };
     std::vector<int> indices_ref = {0, 1, 0, 1, -1, -1};
     std::vector<int> offset_ref = {0, 2, 6};
@@ -273,12 +277,14 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty, DeviceType )
     // We test it for both kind of predicates, spatial and nearest, on an empty
     // and on an non-empty tree.
     check_results(
-        bvh, Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>(
-                 "nothing", 0 ),
+        bvh,
+        Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>(
+            "nothing", 0 ),
         {}, {0}, success, out );
     check_results(
-        bvh, Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>(
-                 "nothing", 0 ),
+        bvh,
+        Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>(
+            "nothing", 0 ),
         {}, {0}, success, out );
     check_results(
         empty_bvh,
@@ -377,8 +383,10 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
     //
 
     auto bounding_boxes_host = Kokkos::create_mirror_view( bounding_boxes );
-    std::function<int( int, int, int )> ind = [nx, ny, nz](
-        int i, int j, int k ) { return i + j * nx + k * ( nx * ny ); };
+    std::function<int( int, int, int )> ind = [nx, ny, nz]( int i, int j,
+                                                            int k ) {
+        return i + j * nx + k * ( nx * ny );
+    };
     std::vector<std::set<int>> ref( n );
     for ( int i = 0; i < nx; ++i )
         for ( int j = 0; j < ny; ++j )
@@ -532,8 +540,10 @@ std::vector<std::array<double, 3>>
 make_stuctured_cloud( double Lx, double Ly, double Lz, int nx, int ny, int nz )
 {
     std::vector<std::array<double, 3>> cloud( nx * ny * nz );
-    std::function<int( int, int, int )> ind = [nx, ny, nz](
-        int i, int j, int k ) { return i + j * nx + k * ( nx * ny ); };
+    std::function<int( int, int, int )> ind = [nx, ny, nz]( int i, int j,
+                                                            int k ) {
+        return i + j * nx + k * ( nx * ny );
+    };
     double x, y, z;
     for ( int i = 0; i < nx; ++i )
         for ( int j = 0; j < ny; ++j )
@@ -660,7 +670,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
 
         // use the R-tree to obtain a reference solution
         rtree.query( bgi::satisfies( [centroid, radius](
-                         std::pair<BPoint, int> const &val ) {
+                                         std::pair<BPoint, int> const &val ) {
                          return bg::distance( centroid, val.first ) <= radius;
                      } ),
                      std::back_inserter( returned_values_within[i] ) );

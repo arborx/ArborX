@@ -84,11 +84,17 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,
     TEST_EQUALITY( offset.size(), m + 1 );
     std::vector<int> results_ = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     std::vector<std::set<int>> sorted_results = {
-        {3}, {6, 2}, {8, 5, 1}, {9, 7, 4, 0},
+        {3},
+        {6, 2},
+        {8, 5, 1},
+        {9, 7, 4, 0},
     };
     std::vector<int> ranks_ = {10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
     std::vector<std::set<int>> sorted_ranks = {
-        {13}, {16, 12}, {18, 15, 11}, {19, 17, 14, 10},
+        {13},
+        {16, 12},
+        {18, 15, 11},
+        {19, 17, 14, 10},
     };
     TEST_EQUALITY( results_.size(), n );
     TEST_EQUALITY( ranks_.size(), n );

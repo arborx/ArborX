@@ -25,8 +25,10 @@ std::vector<std::array<double, 3>>
 make_stuctured_cloud( double Lx, double Ly, double Lz, int nx, int ny, int nz )
 {
     std::vector<std::array<double, 3>> cloud( nx * ny * nz );
-    std::function<int( int, int, int )> ind = [nx, ny, nz](
-        int i, int j, int k ) { return i + j * nx + k * ( nx * ny ); };
+    std::function<int( int, int, int )> ind = [nx, ny, nz]( int i, int j,
+                                                            int k ) {
+        return i + j * nx + k * ( nx * ny );
+    };
     double x, y, z;
     for ( int i = 0; i < nx; ++i )
         for ( int j = 0; j < ny; ++j )

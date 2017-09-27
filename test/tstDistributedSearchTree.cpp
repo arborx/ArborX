@@ -219,12 +219,14 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree_no_queries,
         {}, {0}, {}, success, out );
 
     check_results(
-        tree, Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>(
-                  "nothing", 0 ),
+        tree,
+        Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>(
+            "nothing", 0 ),
         {}, {0}, {}, success, out );
     check_results(
-        tree, Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>(
-                  "nothing", 0 ),
+        tree,
+        Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>(
+            "nothing", 0 ),
         {}, {0}, {}, success, out );
 }
 
@@ -342,12 +344,12 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
             point_coords_host( j, 2 ) = z;
 
             // use the R-tree to obtain a reference solution
-            rtree.query( bgi::satisfies( [centroid, radius](
-                             std::pair<BPoint, int> const &val ) {
-                             return bg::distance( centroid, val.first ) <=
-                                    radius;
-                         } ),
-                         std::back_inserter( returned_values_within[j] ) );
+            rtree.query(
+                bgi::satisfies(
+                    [centroid, radius]( std::pair<BPoint, int> const &val ) {
+                        return bg::distance( centroid, val.first ) <= radius;
+                    } ),
+                std::back_inserter( returned_values_within[j] ) );
         }
     }
 

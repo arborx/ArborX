@@ -149,8 +149,9 @@ void DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
     distributor.doPostsAndWaits(
         Teuchos::ArrayView<T const>( exports_host.data(),
                                      exports_host.extent( 0 ) ),
-        1, Teuchos::ArrayView<T>( imports_host.data(),
-                                  imports_host.extent( 0 ) ) );
+        1,
+        Teuchos::ArrayView<T>( imports_host.data(),
+                               imports_host.extent( 0 ) ) );
     Kokkos::deep_copy( imports, imports_host );
 }
 
@@ -170,9 +171,12 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
                           KOKKOS_LAMBDA( int q ) {
                               Point point = queries( q )._query_point;
                               Box box( {
-                                  point[0] - epsilon[0], point[0] + epsilon[0],
-                                  point[1] - epsilon[1], point[1] + epsilon[1],
-                                  point[2] - epsilon[2], point[2] + epsilon[2],
+                                  point[0] - epsilon[0],
+                                  point[0] + epsilon[0],
+                                  point[1] - epsilon[1],
+                                  point[1] + epsilon[1],
+                                  point[2] - epsilon[2],
+                                  point[2] + epsilon[2],
                               } );
                               overlap_queries( q ) = Details::Overlap( box );
                           } );

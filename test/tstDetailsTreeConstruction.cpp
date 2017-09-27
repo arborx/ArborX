@@ -296,7 +296,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, example_tree_construction,
     std::function<void( DataTransferKit::Node *, std::ostream & )>
         traverseRecursive;
     traverseRecursive = [&leaf_nodes, &internal_nodes, &traverseRecursive](
-        DataTransferKit::Node *node, std::ostream &os ) {
+                            DataTransferKit::Node *node, std::ostream &os ) {
         if ( std::any_of( leaf_nodes.data(), leaf_nodes.data() + n,
                           [node]( DataTransferKit::Node const &leaf_node ) {
                               return std::addressof( leaf_node ) == node;

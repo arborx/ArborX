@@ -115,8 +115,9 @@ void queryDispatch(
             KOKKOS_LAMBDA( int i ) {
                 int count = 0;
                 Details::TreeTraversal<DeviceType>::query(
-                    bvh, queries( i ), [indices, offset, distances, i,
-                                        &count]( int index, double distance ) {
+                    bvh, queries( i ),
+                    [indices, offset, distances, i, &count]( int index,
+                                                             double distance ) {
                         indices( offset( i ) + count ) = index;
                         distances( offset( i ) + count ) = distance;
                         count++;

@@ -51,9 +51,9 @@ class SetBoundingBoxesFunctor
 template <typename DeviceType>
 BVH<DeviceType>::BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes )
     : _leaf_nodes( "leaf_nodes", bounding_boxes.extent( 0 ) )
-    , _internal_nodes(
-          "internal_nodes",
-          bounding_boxes.extent( 0 ) > 0 ? bounding_boxes.extent( 0 ) - 1 : 0 )
+    , _internal_nodes( "internal_nodes", bounding_boxes.extent( 0 ) > 0
+                                             ? bounding_boxes.extent( 0 ) - 1
+                                             : 0 )
     , _indices( "sorted_indices", bounding_boxes.extent( 0 ) )
 {
     using ExecutionSpace = typename DeviceType::execution_space;
