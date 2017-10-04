@@ -12,7 +12,7 @@
 #include <Teuchos_DefaultComm.hpp>
 #include <Teuchos_UnitTestHarness.hpp>
 
-#include <boost/geometry/index/rtree.hpp>
+#include <boost/geometry.hpp>
 
 #include <algorithm>
 #include <bitset>
