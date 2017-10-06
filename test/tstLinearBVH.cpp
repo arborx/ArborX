@@ -303,10 +303,10 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
     double Lx = 100.0;
     double Ly = 100.0;
     double Lz = 100.0;
-    int constexpr nx = 11;
-    int constexpr ny = 11;
-    int constexpr nz = 11;
-    int constexpr n = nx * ny * nz;
+    int nx = 11;
+    int ny = 11;
+    int nz = 11;
+    int n = nx * ny * nz;
 
     using ExecutionSpace = typename DeviceType::execution_space;
 
