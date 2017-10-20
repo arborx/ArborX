@@ -296,6 +296,40 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty, DeviceType )
         Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>(
             "nothing", 0 ),
         {}, {0}, success, out );
+
+    // Batched queries BVH::query( Kokkos::View<Query *, ...>, ... ) returns
+    // early if the tree is empty.  Below we ensure that a direct call to the
+    // single query TreeTraversal::query() actually handles empty trees
+    // properly.
+    using ExecutionSpace = typename DeviceType::execution_space;
+    Kokkos::View<int *, DeviceType> zeros( "zeros", 3 );
+    Kokkos::deep_copy( zeros, 255 );
+    Kokkos::parallel_for(
+        REGION_NAME( "dummy" ), Kokkos::RangePolicy<ExecutionSpace>( 0, 1 ),
+        KOKKOS_LAMBDA( int i ) {
+            DataTransferKit::Point p = {{0., 0., 0.}};
+            double r = 1.0;
+            // spatial query on empty tree
+            zeros( 0 ) =
+                DataTransferKit::Details::TreeTraversal<DeviceType>::query(
+                    empty_bvh, DataTransferKit::Details::within( p, r ),
+                    []( int ) {} );
+            // nearest query on empty tree
+            zeros( 1 ) =
+                DataTransferKit::Details::TreeTraversal<DeviceType>::query(
+                    empty_bvh, DataTransferKit::Details::nearest( p ),
+                    []( int, double ) {} );
+            // nearest query for k < 1
+            zeros( 2 ) =
+                DataTransferKit::Details::TreeTraversal<DeviceType>::query(
+                    bvh, DataTransferKit::Details::nearest( p, 0 ),
+                    []( int, double ) {} );
+        } );
+    Kokkos::fence();
+    auto zeros_host = Kokkos::create_mirror_view( zeros );
+    Kokkos::deep_copy( zeros_host, zeros );
+    std::vector<int> zeros_ref = {0, 0, 0};
+    TEST_COMPARE_ARRAYS( zeros_host, zeros_ref );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
