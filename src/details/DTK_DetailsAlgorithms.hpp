@@ -50,7 +50,17 @@ double distance( Point const &point, Box const &box )
 }
 
 // expand an axis-aligned bounding box to include a point
-void expand( Box &box, Point const &point );
+KOKKOS_INLINE_FUNCTION
+void expand( Box &box, Point const &point )
+{
+    for ( int d = 0; d < 3; ++d )
+    {
+        if ( point[d] < box[2 * d + 0] )
+            box[2 * d + 0] = point[d];
+        if ( point[d] > box[2 * d + 1] )
+            box[2 * d + 1] = point[d];
+    }
+}
 
 // expand an axis-aligned bounding box to include another box
 KOKKOS_INLINE_FUNCTION
