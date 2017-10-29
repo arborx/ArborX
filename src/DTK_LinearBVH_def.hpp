@@ -65,13 +65,15 @@ BVH<DeviceType>::BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes )
 
     if ( size() == 1 )
     {
-        auto indices_host = Kokkos::create_mirror_view( _indices );
-        indices_host( 0 ) = 0;
-        Kokkos::deep_copy( _indices, indices_host );
-        auto leaf_nodes_host = Kokkos::create_mirror_view( _leaf_nodes );
-        leaf_nodes_host( 0 ) = Node();
-        leaf_nodes_host( 0 ).bounding_box = bounding_boxes( 0 );
-        Kokkos::deep_copy( _leaf_nodes, leaf_nodes_host );
+        Kokkos::parallel_for( REGION_NAME( "set_indices" ),
+                              Kokkos::RangePolicy<ExecutionSpace>( 0, 1 ),
+                              Iota<DeviceType>( _indices ) );
+        Kokkos::fence();
+        Kokkos::parallel_for( REGION_NAME( "set_bounding_boxes" ),
+                              Kokkos::RangePolicy<ExecutionSpace>( 0, 1 ),
+                              SetBoundingBoxesFunctor<DeviceType>(
+                                  _leaf_nodes, _indices, bounding_boxes ) );
+        Kokkos::fence();
         return;
     }
 
@@ -86,20 +88,18 @@ BVH<DeviceType>::BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes )
         bounding_boxes, morton_indices, _internal_nodes[0].bounding_box );
 
     // sort them along the Z-order space-filling curve
-    Iota<DeviceType> iota_functor( _indices );
     Kokkos::parallel_for( REGION_NAME( "set_indices" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-                          iota_functor );
+                          Iota<DeviceType>( _indices ) );
     Kokkos::fence();
     Details::TreeConstruction<DeviceType>::sortObjects( morton_indices,
                                                         _indices );
 
     // generate bounding volume hierarchy
-    SetBoundingBoxesFunctor<DeviceType> set_bounding_boxes_functor(
-        _leaf_nodes, _indices, bounding_boxes );
     Kokkos::parallel_for( REGION_NAME( "set_bounding_boxes" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-                          set_bounding_boxes_functor );
+                          SetBoundingBoxesFunctor<DeviceType>(
+                              _leaf_nodes, _indices, bounding_boxes ) );
     Kokkos::fence();
     Details::TreeConstruction<DeviceType>::generateHierarchy(
         morton_indices, _leaf_nodes, _internal_nodes );
