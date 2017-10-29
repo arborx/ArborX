@@ -228,6 +228,27 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree_no_queries,
         Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>(
             "nothing", 0 ),
         {}, {0}, {}, success, out );
+
+    TEST_ASSERT( empty_tree.empty() );
+    TEST_ASSERT( !tree.empty() );
+    TEST_EQUALITY( (int)empty_tree.size(), 0 );
+    TEST_EQUALITY( (int)tree.size(), comm_size );
+    // NOTE: we need that box comparison function or operator== so badly...
+    auto checkBoxesAreEqual = [&out,
+                               &success]( DataTransferKit::Box const &l,
+                                          DataTransferKit::Box const &r ) {
+        for ( int i = 0; i < 6; ++i )
+            TEST_EQUALITY( l[i], r[i] );
+    };
+    checkBoxesAreEqual( empty_tree.bounds(), DataTransferKit::Box() );
+    checkBoxesAreEqual( tree.bounds(), DataTransferKit::Box( {
+                                           0.,
+                                           (double)comm_size,
+                                           0.,
+                                           1.,
+                                           0.,
+                                           1.,
+                                       } ) );
 }
 
 std::vector<std::array<double, 3>>

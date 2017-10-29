@@ -21,9 +21,16 @@
 
 #include "DTK_ConfigDefs.hpp"
 
+#include <mutex>
+
 namespace DataTransferKit
 {
 
+/** \brief Distributed search tree
+ *
+ *  \note size() and empty() must be called as collectives over all processes
+ *  in the communicator passed to the constructor.
+ */
 template <typename DeviceType>
 class DistributedSearchTree
 {
@@ -31,6 +38,20 @@ class DistributedSearchTree
     DistributedSearchTree(
         Teuchos::RCP<Teuchos::Comm<int> const> comm,
         Kokkos::View<Box const *, DeviceType> bounding_boxes );
+
+    /** Returns the smallest axis-aligned box able to contain all the objects
+     *  stored in the tree or an invalid box if the tree is empty.
+     */
+    inline Box bounds() const { return _distributed_tree->bounds(); }
+
+    using SizeType = typename BVH<DeviceType>::SizeType;
+    /** Returns the global number of objects stored in the tree.
+     */
+    SizeType size() const;
+
+    /** Indicates whether the tree is empty on all processes.
+     */
+    inline bool empty() const { return size() == 0; }
 
     /** \brief Finds object satisfying the passed predicates (e.g. nearest to
      *  some point or overlaping with some box)
@@ -78,6 +99,11 @@ class DistributedSearchTree
     Teuchos::RCP<Teuchos::Comm<int> const> _comm;
     BVH<DeviceType> _local_tree;
     std::shared_ptr<BVH<DeviceType>> _distributed_tree;
+    // Global number of object passed to the constructor.  It is initialized to
+    // an invalid value and gets sum-reduced and cached when size() is called.
+    mutable SizeType _size = std::numeric_limits<SizeType>::max();
+    mutable std::mutex _mutex;
+    mutable std::once_flag _once_flag;
 };
 
 template <typename DeviceType>
