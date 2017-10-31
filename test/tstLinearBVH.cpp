@@ -41,6 +41,20 @@ void check_results( DataTransferKit::BVH<DeviceType> &bvh,
     TEST_COMPARE_ARRAYS( offset_host, offset_ref );
 }
 
+// Hopefully we can git rid of this once the operator== has been implemented
+// for boxes.
+void test_box_equality( DataTransferKit::Box const &l,
+                        DataTransferKit::Box const &r, bool &success,
+                        Teuchos::FancyOStream &out )
+{
+    TEST_EQUALITY( l[0], r[0] );
+    TEST_EQUALITY( l[1], r[1] );
+    TEST_EQUALITY( l[2], r[2] );
+    TEST_EQUALITY( l[3], r[3] );
+    TEST_EQUALITY( l[4], r[4] );
+    TEST_EQUALITY( l[5], r[5] );
+}
+
 namespace details = DataTransferKit::Details;
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, bounds, DeviceType )
@@ -51,13 +65,9 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, bounds, DeviceType )
     boxes_host( 1 ) = DataTransferKit::Box( {1., 1., 3., 3., 5., 5.} );
     Kokkos::deep_copy( boxes, boxes_host );
     DataTransferKit::BVH<DeviceType> bvh( boxes );
-    auto bounds = bvh.bounds();
-    TEST_EQUALITY( bounds[0], 1.0 );
-    TEST_EQUALITY( bounds[1], 2.0 );
-    TEST_EQUALITY( bounds[2], 3.0 );
-    TEST_EQUALITY( bounds[3], 4.0 );
-    TEST_EQUALITY( bounds[4], 5.0 );
-    TEST_EQUALITY( bounds[5], 6.0 );
+    test_box_equality( bvh.bounds(),
+                       DataTransferKit::Box( {1., 2., 3., 4., 5., 6.} ),
+                       success, out );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, queries, DeviceType )
@@ -185,26 +195,16 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty, DeviceType )
     DataTransferKit::BVH<DeviceType> bvh( boxes );
     TEST_ASSERT( !bvh.empty() );
     TEST_EQUALITY( bvh.size(), 1 );
-    auto bounds = bvh.bounds();
-    TEST_EQUALITY( bounds[0], 1.0 );
-    TEST_EQUALITY( bounds[1], 2.0 );
-    TEST_EQUALITY( bounds[2], 3.0 );
-    TEST_EQUALITY( bounds[3], 4.0 );
-    TEST_EQUALITY( bounds[4], 5.0 );
-    TEST_EQUALITY( bounds[5], 6.0 );
+    test_box_equality( bvh.bounds(),
+                       DataTransferKit::Box( {1., 2., 3., 4., 5., 6.} ),
+                       success, out );
 
     Kokkos::resize( boxes, 0 );
     DataTransferKit::BVH<DeviceType> empty_bvh( boxes );
     TEST_ASSERT( empty_bvh.empty() );
     TEST_EQUALITY( empty_bvh.size(), 0 );
-    bounds = empty_bvh.bounds();
     DataTransferKit::Box empty_box;
-    TEST_EQUALITY( bounds[0], empty_box[0] );
-    TEST_EQUALITY( bounds[1], empty_box[1] );
-    TEST_EQUALITY( bounds[2], empty_box[2] );
-    TEST_EQUALITY( bounds[3], empty_box[3] );
-    TEST_EQUALITY( bounds[4], empty_box[4] );
-    TEST_EQUALITY( bounds[5], empty_box[5] );
+    test_box_equality( empty_bvh.bounds(), empty_box, success, out );
 
     Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType> queries(
         "queries", 2 );
