@@ -55,7 +55,6 @@ void test_box_equality( DataTransferKit::Box const &l,
     TEST_EQUALITY( l[5], r[5] );
 }
 
-namespace details = DataTransferKit::Details;
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, bounds, DeviceType )
 {
@@ -225,8 +224,10 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty, DeviceType )
     // empty tree won't find anything
     check_results( empty_bvh, queries, {}, {0, 0, 0}, success, out );
 
-    TEST_ASSERT( details::TreeTraversal<DeviceType>::getRoot( bvh ) );
-    TEST_ASSERT( !details::TreeTraversal<DeviceType>::getRoot( empty_bvh ) );
+    TEST_ASSERT(
+        DataTransferKit::Details::TreeTraversal<DeviceType>::getRoot( bvh ) );
+    TEST_ASSERT( !DataTransferKit::Details::TreeTraversal<DeviceType>::getRoot(
+        empty_bvh ) );
 
     // query for nothing is also valid
     // We test it for both kind of predicates, spatial and nearest, on an empty
@@ -564,6 +565,7 @@ std::vector<std::array<double, 3>> make_random_cloud( double Lx, double Ly,
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
 {
+    namespace details = DataTransferKit::Details;
     namespace bg = boost::geometry;
     namespace bgi = boost::geometry::index;
     using BPoint = bg::model::point<double, 3, bg::cs::cartesian>;
