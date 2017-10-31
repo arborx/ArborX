@@ -43,51 +43,6 @@ void check_results( DataTransferKit::BVH<DeviceType> &bvh,
 
 namespace details = DataTransferKit::Details;
 
-template <typename DeviceType>
-class FillBoxes
-{
-  public:
-    KOKKOS_INLINE_FUNCTION
-    FillBoxes( Kokkos::View<DataTransferKit::Box *, DeviceType> boxes )
-        : _boxes( boxes )
-    {
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    void operator()( int const i ) const
-    {
-        if ( i == 0 )
-            _boxes[0] = {{0, 0, 0, 0, 0, 0}};
-        else
-            _boxes[1] = {{1, 1, 1, 1, 1, 1}};
-    }
-
-  private:
-    Kokkos::View<DataTransferKit::Box *, DeviceType> _boxes;
-};
-
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, tag_dispatching, DeviceType )
-{
-    using ExecutionSpace = typename DeviceType::execution_space;
-    int const n = 2;
-    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", n );
-    FillBoxes<DeviceType> fill_boxes_functor( boxes );
-    Kokkos::parallel_for( "file_boxes_functor",
-                          Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-                          fill_boxes_functor );
-    Kokkos::fence();
-
-    DataTransferKit::BVH<DeviceType> bvh( boxes );
-    auto do_nothing_1 = KOKKOS_LAMBDA( int ){};
-    auto do_nothing_2 = KOKKOS_LAMBDA( int, double ){};
-    DataTransferKit::Point p1 = {{0., 0., 0.}};
-    details::TreeTraversal<DeviceType>::query( bvh, details::nearest( p1, 1 ),
-                                               do_nothing_2 );
-
-    details::TreeTraversal<DeviceType>::query( bvh, details::within( p1, 0.5 ),
-                                               do_nothing_1 );
-}
-
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, bounds, DeviceType )
 {
     Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", 2 );
@@ -782,8 +737,6 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
 // Create the test group
 #define UNIT_TEST_GROUP( NODE )                                                \
     using DeviceType##NODE = typename NODE::device_type;                       \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, tag_dispatching,          \
-                                          DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, bounds,                   \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, queries,                  \
