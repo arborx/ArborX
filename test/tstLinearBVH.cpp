@@ -41,6 +41,34 @@ void check_results( DataTransferKit::BVH<DeviceType> &bvh,
     TEST_COMPARE_ARRAYS( offset_host, offset_ref );
 }
 
+// Same as above except that we get the distances out of the queries and
+// compare them to the reference solution passed as argument.  Templated type
+// `Query` is pretty much a nearest predicate in this case.
+template <typename Query, typename DeviceType>
+void check_results( DataTransferKit::BVH<DeviceType> &bvh,
+                    Kokkos::View<Query *, DeviceType> const &queries,
+                    std::vector<int> const &indices_ref,
+                    std::vector<int> const &offset_ref,
+                    std::vector<double> const &distances_ref, bool &success,
+                    Teuchos::FancyOStream &out )
+{
+    Kokkos::View<int *, DeviceType> indices( "indices" );
+    Kokkos::View<int *, DeviceType> offset( "offset" );
+    Kokkos::View<double *, DeviceType> distances( "distances" );
+    bvh.query( queries, indices, offset, distances );
+
+    auto indices_host = Kokkos::create_mirror_view( indices );
+    deep_copy( indices_host, indices );
+    auto offset_host = Kokkos::create_mirror_view( offset );
+    deep_copy( offset_host, offset );
+    auto distances_host = Kokkos::create_mirror_view( distances );
+    deep_copy( distances_host, distances );
+
+    TEST_COMPARE_ARRAYS( indices_host, indices_ref );
+    TEST_COMPARE_ARRAYS( offset_host, offset_ref );
+    TEST_COMPARE_FLOATING_ARRAYS( distances_host, distances_ref, 1e-14 );
+}
+
 // Hopefully we can git rid of this once the operator== has been implemented
 // for boxes.
 void test_box_equality( DataTransferKit::Box const &l,
@@ -55,203 +83,268 @@ void test_box_equality( DataTransferKit::Box const &l,
     TEST_EQUALITY( l[5], r[5] );
 }
 
-
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, bounds, DeviceType )
+template <typename DeviceType>
+DataTransferKit::BVH<DeviceType>
+make_bvh( std::vector<DataTransferKit::Box> const &b )
 {
-    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", 2 );
+    int const n = b.size();
+    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", n );
     auto boxes_host = Kokkos::create_mirror_view( boxes );
-    boxes_host( 0 ) = DataTransferKit::Box( {2., 2., 4., 4., 6., 6.} );
-    boxes_host( 1 ) = DataTransferKit::Box( {1., 1., 3., 3., 5., 5.} );
+    for ( int i = 0; i < n; ++i )
+        boxes_host( i ) = b[i];
     Kokkos::deep_copy( boxes, boxes_host );
-    DataTransferKit::BVH<DeviceType> bvh( boxes );
-    test_box_equality( bvh.bounds(),
-                       DataTransferKit::Box( {1., 2., 3., 4., 5., 6.} ),
-                       success, out );
+    return DataTransferKit::BVH<DeviceType>( boxes );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, queries, DeviceType )
+template <typename DeviceType>
+Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>
+make_overlap_queries( std::vector<DataTransferKit::Box> const &boxes )
 {
-    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", 2 );
-    auto boxes_host = Kokkos::create_mirror_view( boxes );
-    boxes_host( 0 ) = DataTransferKit::Box( {0., 0., 0., 0., 0., 0.} );
-    boxes_host( 1 ) = DataTransferKit::Box( {1., 1., 1., 1., 1., 1.} );
-    Kokkos::deep_copy( boxes, boxes_host );
-    DataTransferKit::BVH<DeviceType> bvh( boxes );
+    int const n = boxes.size();
+    Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType> queries(
+        "overlap_queries", n );
+    auto queries_host = Kokkos::create_mirror_view( queries );
+    for ( int i = 0; i < n; ++i )
+        queries_host( i ) = DataTransferKit::Details::overlap( boxes[i] );
+    Kokkos::deep_copy( queries, queries_host );
+    return queries;
+};
 
-    auto make_overlap_queries =
-        []( std::vector<DataTransferKit::Box> const &overlap_boxes ) {
-            Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>
-                queries( "queries", overlap_boxes.size() );
-            auto queries_host = Kokkos::create_mirror_view( queries );
-            for ( int i = 0; i < queries.extent_int( 0 ); ++i )
-                queries_host( i ) =
-                    DataTransferKit::Details::Overlap( overlap_boxes[i] );
-            Kokkos::deep_copy( queries, queries_host );
-            return queries;
-        };
+template <typename DeviceType>
+Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>
+make_nearest_queries(
+    std::vector<std::pair<DataTransferKit::Point, int>> const &points )
+{
+    // NOTE: `points` is not a very descriptive name here. It stores both the
+    // actual point and the number k of neighbors to query for.
+    int const n = points.size();
+    Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType> queries(
+        "nearest_queries", n );
+    auto queries_host = Kokkos::create_mirror_view( queries );
+    for ( int i = 0; i < n; ++i )
+        queries_host( i ) = DataTransferKit::Details::nearest(
+            points[i].first, points[i].second );
+    Kokkos::deep_copy( queries, queries_host );
+    return queries;
+}
+
+template <typename DeviceType>
+Kokkos::View<DataTransferKit::Details::Within *, DeviceType>
+make_within_queries(
+    std::vector<std::pair<DataTransferKit::Point, double>> const &points )
+{
+    // NOTE: `points` is not a very descriptive name here. It stores both the
+    // actual point and the radius for the search around that point.
+    int const n = points.size();
+    Kokkos::View<DataTransferKit::Details::Within *, DeviceType> queries(
+        "within_queries", n );
+    auto queries_host = Kokkos::create_mirror_view( queries );
+    for ( int i = 0; i < n; ++i )
+        queries_host( i ) = DataTransferKit::Details::within(
+            points[i].first, points[i].second );
+    Kokkos::deep_copy( queries, queries_host );
+    return queries;
+}
+
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty_tree, DeviceType )
+{
+    // tree is empty, it has no leaves.
+    auto empty_bvh = make_bvh<DeviceType>( {} );
+
+    TEST_ASSERT( empty_bvh.empty() );
+    TEST_EQUALITY( empty_bvh.size(), 0 );
+    // BVH::bounds() returns an invalid box when the tree is empty.
+    test_box_equality( empty_bvh.bounds(), {}, success, out );
+
+    // Passing a view with no query does seem a bit silly but we still need to
+    // support it. And since the tag dispatching yields different tree
+    // traversals for nearest and spatial predicates, we do have to check the
+    // results for various type of queries.
+    check_results( empty_bvh, make_overlap_queries<DeviceType>( {} ), {}, {0},
+                   success, out );
+
+    // NOTE: Admittedly testing for both overlap and within queries might be a
+    // bit overkill but I'd rather test for all the queries we plan on using.
+    check_results( empty_bvh, make_within_queries<DeviceType>( {} ), {}, {0},
+                   success, out );
+
+    check_results( empty_bvh, make_nearest_queries<DeviceType>( {} ), {}, {0},
+                   success, out );
+
+    // Passing an empty distance vector.
+    check_results( empty_bvh, make_nearest_queries<DeviceType>( {} ), {}, {0},
+                   {}, success, out );
+
+    // Now passing a couple queries of various type and checking the results.
+    check_results(
+        empty_bvh,
+        make_overlap_queries<DeviceType>( {
+            {}, // Did not bother giving a valid box here but that's fine.
+            {},
+        } ),
+        {}, {0, 0, 0}, success, out );
+
+    check_results( empty_bvh,
+                   make_within_queries<DeviceType>( {
+                       {{{0., 0., 0.}}, 1.},
+                       {{{1., 1., 1.}}, 2.},
+                   } ),
+                   {}, {0, 0, 0}, success, out );
+
+    // NOTE: Expected output for nearest queries when asking for more neighbors
+    // than there are leaves in the tree is not ideal but that is what the
+    // current implementation does to avoid two passes in the search (count
+    // first, then allocate and save results in 2nd pass) `-1` denotes invalid
+    // index and `infty` invalid distance.
+    check_results( empty_bvh,
+                   make_nearest_queries<DeviceType>( {
+                       {{{0., 0., 0.}}, 1},
+                       {{{1., 1., 1.}}, 2},
+                   } ),
+                   {-1, -1, -1}, {0, 1, 3}, success, out );
+
+    double const infty = std::numeric_limits<double>::max();
+    check_results( empty_bvh,
+                   make_nearest_queries<DeviceType>( {
+                       {{{0., 0., 0.}}, 1},
+                       {{{1., 1., 1.}}, 2},
+                   } ),
+                   {-1, -1, -1}, {0, 1, 3}, {infty, infty, infty}, success,
+                   out );
+}
+
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, single_leaf_tree, DeviceType )
+{
+    // tree has a single leaf (unit box)
+    auto bvh = make_bvh<DeviceType>( {
+        {{0., 1., 0., 1., 0., 1.}},
+    } );
+
+    TEST_ASSERT( !bvh.empty() );
+    TEST_EQUALITY( bvh.size(), 1 );
+    test_box_equality( bvh.bounds(), {{0., 1., 0., 1., 0., 1.}}, success, out );
+
+    check_results( bvh, make_overlap_queries<DeviceType>( {} ), {}, {0},
+                   success, out );
+
+    check_results( bvh, make_within_queries<DeviceType>( {} ), {}, {0}, success,
+                   out );
+
+    check_results( bvh, make_nearest_queries<DeviceType>( {} ), {}, {0},
+                   success, out );
+
+    check_results( bvh, make_nearest_queries<DeviceType>( {} ), {}, {0}, {},
+                   success, out );
+
+    check_results( bvh,
+                   make_overlap_queries<DeviceType>( {
+                       {{5., 5., 5., 5., 5., 5.}},
+                       {{.5, .5, .5, .5, .5, .5}},
+                   } ),
+                   {0}, {0, 0, 1}, success, out );
+
+    check_results( bvh,
+                   make_within_queries<DeviceType>( {
+                       {{{0., 0., 0.}}, 1.},
+                       {{{1., 1., 1.}}, 3.},
+                       {{{5., 5., 5.}}, 2.},
+                   } ),
+                   {0, 0}, {0, 1, 2, 2}, success, out );
+
+    check_results( bvh,
+                   make_nearest_queries<DeviceType>( {
+                       {{{0., 0., 0.}}, 1},
+                       {{{1., 1., 1.}}, 2},
+                       {{{2., 2., 2.}}, 3},
+                   } ),
+                   {0, 0, -1, 0, -1, -1}, {0, 1, 3, 6}, success, out );
+
+    double const infty = std::numeric_limits<double>::max();
+    check_results( bvh,
+                   make_nearest_queries<DeviceType>( {
+                       {{{1., 0., 0.}}, 1},
+                       {{{0., 2., 0.}}, 2},
+                       {{{0., 0., 3.}}, 3},
+                   } ),
+                   {0, 0, -1, 0, -1, -1}, {0, 1, 3, 6},
+                   {0., 1., infty, 2., infty, infty}, success, out );
+}
+
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, couple_leaves_tree, DeviceType )
+{
+    auto bvh = make_bvh<DeviceType>( {
+        {{0., 0., 0., 0., 0., 0.}},
+        {{1., 1., 1., 1., 1., 1.}},
+    } );
+
+    TEST_ASSERT( !bvh.empty() );
+    TEST_EQUALITY( bvh.size(), 2 );
+    test_box_equality( bvh.bounds(), {{0., 1., 0., 1., 0., 1.}}, success, out );
 
     // single query overlap with nothing
-    check_results( bvh, make_overlap_queries( {DataTransferKit::Box()} ), {},
-                   {0, 0}, success, out );
+    check_results( bvh,
+                   make_overlap_queries<DeviceType>( {
+                       {},
+                   } ),
+                   {}, {0, 0}, success, out );
 
     // single query overlap with both
     check_results( bvh,
-                   make_overlap_queries(
-                       {DataTransferKit::Box( {0., 1., 0., 1., 0., 1.} )} ),
+                   make_overlap_queries<DeviceType>( {
+                       {{0., 1., 0., 1., 0., 1.}},
+                   } ),
                    {1, 0}, {0, 2}, success, out );
 
     // single query overlap with only one
     check_results( bvh,
-                   make_overlap_queries( {DataTransferKit::Box(
-                       {0.5, 1.5, 0.5, 1.5, 0.5, 1.5} )} ),
+                   make_overlap_queries<DeviceType>( {
+                       {{0.5, 1.5, 0.5, 1.5, 0.5, 1.5}},
+                   } ),
                    {1}, {0, 1}, success, out );
 
     // a couple queries both overlap with nothing
     check_results( bvh,
-                   make_overlap_queries(
-                       {DataTransferKit::Box(), DataTransferKit::Box()} ),
+                   make_overlap_queries<DeviceType>( {
+                       {},
+                       {},
+                   } ),
                    {}, {0, 0, 0}, success, out );
 
     // a couple queries first overlap with nothing second with only one
     check_results( bvh,
-                   make_overlap_queries(
-                       {DataTransferKit::Box(),
-                        DataTransferKit::Box( {0., 0., 0., 0., 0., 0.} )} ),
+                   make_overlap_queries<DeviceType>( {
+                       {},
+                       {{0., 0., 0., 0., 0., 0.}},
+                   } ),
                    {0}, {0, 0, 1}, success, out );
 
     // no query
-    check_results( bvh, make_overlap_queries( {} ), {}, {0}, success, out );
-    // QUESTION: does it make sense to have len( offset ) = 1 ???
-}
+    check_results( bvh, make_overlap_queries<DeviceType>( {} ), {}, {0},
+                   success, out );
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, nearest_queries, DeviceType )
-{
-    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", 2 );
-    auto boxes_host = Kokkos::create_mirror_view( boxes );
-    boxes_host( 0 ) = DataTransferKit::Box( {0., 0., 0., 0., 0., 0.} );
-    boxes_host( 1 ) = DataTransferKit::Box( {1., 1., 1., 1., 1., 1.} );
-    Kokkos::deep_copy( boxes, boxes_host );
-    DataTransferKit::BVH<DeviceType> bvh( boxes );
-
-    std::vector<std::pair<DataTransferKit::Point, int>> points = {
-        {{{0., 0., 0.}}, 2},
-        {{{1., 0., 0.}}, 4},
-    };
-    std::vector<int> indices_ref = {0, 1, 0, 1, -1, -1};
-    std::vector<int> offset_ref = {0, 2, 6};
     double const infty = std::numeric_limits<double>::max();
-    std::vector<double> distances_ref = {0.,         sqrt( 3. ), 1.,
-                                         sqrt( 2. ), infty,      infty};
-
-    Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType> queries(
-        "nearest_queries", points.size() );
-    auto queries_host = Kokkos::create_mirror_view( queries );
-    for ( int i = 0; i < queries.extent_int( 0 ); ++i )
-        queries_host( i ) = DataTransferKit::Details::Nearest(
-            points[i].first, points[i].second );
-    Kokkos::deep_copy( queries, queries_host );
-
-    Kokkos::View<int *, DeviceType> indices( "indices" );
-    Kokkos::View<int *, DeviceType> offset( "offset" );
-    Kokkos::View<double *, DeviceType> distances( "distances" );
-    bvh.query( queries, indices, offset, distances );
-
-    auto indices_host = Kokkos::create_mirror_view( indices );
-    auto offset_host = Kokkos::create_mirror_view( offset );
-    auto distances_host = Kokkos::create_mirror_view( distances );
-    Kokkos::deep_copy( indices_host, indices );
-    Kokkos::deep_copy( offset_host, offset );
-    Kokkos::deep_copy( distances_host, distances );
-
-    TEST_COMPARE_ARRAYS( indices_host, indices_ref );
-    TEST_COMPARE_ARRAYS( offset_host, offset_ref );
-    TEST_COMPARE_ARRAYS( distances_host, distances_ref );
-
-    // Bugfix: now make a bvh with only the origin and check the distance that
-    // is being returned is computed correctly.
-    Kokkos::resize( boxes, 1 );
-    DataTransferKit::BVH<DeviceType> trivial_bvh( boxes );
-    Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType> trivial_query(
-        "trivial", 1 );
-    auto trivial_query_host = Kokkos::create_mirror_view( trivial_query );
-    trivial_query_host( 0 ) =
-        DataTransferKit::Details::nearest( {{1., 0., 0.}} );
-    Kokkos::deep_copy( trivial_query, trivial_query_host );
-    trivial_bvh.query( trivial_query, indices, offset, distances );
-    auto trivial_distances_host = Kokkos::create_mirror_view( distances );
-    TEST_EQUALITY( trivial_distances_host( 0 ), 1. );
-    TEST_EQUALITY( distances.extent( 0 ), 1 );
-    TEST_EQUALITY( indices.extent( 0 ), 1 );
-    TEST_EQUALITY( offset.extent( 0 ), 2 );
+    check_results( bvh,
+                   make_nearest_queries<DeviceType>( {
+                       {{{0., 0., 0.}}, 2},
+                       {{{1., 0., 0.}}, 4},
+                   } ),
+                   {0, 1, 0, 1, -1, -1}, {0, 2, 6},
+                   {0., sqrt( 3. ), 1., sqrt( 2. ), infty, infty}, success,
+                   out );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty, DeviceType )
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, miscellaneous, DeviceType )
 {
-    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", 1 );
-    auto boxes_host = Kokkos::create_mirror_view( boxes );
-    boxes_host( 0 ) = DataTransferKit::Box( {1., 2., 3., 4., 5., 6.} );
-    Kokkos::deep_copy( boxes, boxes_host );
-    DataTransferKit::BVH<DeviceType> bvh( boxes );
-    TEST_ASSERT( !bvh.empty() );
-    TEST_EQUALITY( bvh.size(), 1 );
-    test_box_equality( bvh.bounds(),
-                       DataTransferKit::Box( {1., 2., 3., 4., 5., 6.} ),
-                       success, out );
-
-    Kokkos::resize( boxes, 0 );
-    DataTransferKit::BVH<DeviceType> empty_bvh( boxes );
-    TEST_ASSERT( empty_bvh.empty() );
-    TEST_EQUALITY( empty_bvh.size(), 0 );
-    DataTransferKit::Box empty_box;
-    test_box_equality( empty_bvh.bounds(), empty_box, success, out );
-
-    Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType> queries(
-        "queries", 2 );
-    auto queries_host = Kokkos::create_mirror_view( queries );
-    queries_host( 0 ) = DataTransferKit::Details::Overlap(
-        DataTransferKit::Box( {0.0, 0.5, 0.0, 0.5, 0.0, 0.5} ) );
-    queries_host( 1 ) = DataTransferKit::Details::Overlap(
-        DataTransferKit::Box( {0.0, 10.0, 0.0, 10.0, 0.0, 10.0} ) );
-    Kokkos::deep_copy( queries, queries_host );
-
-    // This helped catching a bug where we assumed that any leaf node in the
-    // stack (for spatial queries) does satisfy the predicate which is not
-    // true when the tree was built from only one object.  In that case
-    // TreeTraversal::getRoot returns directly the leaf and we still need to
-    // check the predicate before insertion in the stack.
-    check_results( bvh, queries, {0}, {0, 0, 1}, success, out );
-
-    // empty tree won't find anything
-    check_results( empty_bvh, queries, {}, {0, 0, 0}, success, out );
+    auto bvh = make_bvh<DeviceType>( {
+        {{1., 2., 3., 4., 5., 6.}},
+    } );
+    auto empty_bvh = make_bvh<DeviceType>( {} );
 
     TEST_ASSERT(
         DataTransferKit::Details::TreeTraversal<DeviceType>::getRoot( bvh ) );
+    // getRoot() returns nullptr when the tree is empty
     TEST_ASSERT( !DataTransferKit::Details::TreeTraversal<DeviceType>::getRoot(
         empty_bvh ) );
-
-    // query for nothing is also valid
-    // We test it for both kind of predicates, spatial and nearest, on an empty
-    // and on an non-empty tree.
-    check_results(
-        bvh,
-        Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>(
-            "nothing", 0 ),
-        {}, {0}, success, out );
-    check_results(
-        bvh,
-        Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>(
-            "nothing", 0 ),
-        {}, {0}, success, out );
-    check_results(
-        empty_bvh,
-        Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>(
-            "nothing", 0 ),
-        {}, {0}, success, out );
-    check_results(
-        empty_bvh,
-        Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>(
-            "nothing", 0 ),
-        {}, {0}, success, out );
 
     // Batched queries BVH::query( Kokkos::View<Query *, ...>, ... ) returns
     // early if the tree is empty.  Below we ensure that a direct call to the
@@ -739,13 +832,14 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
 // Create the test group
 #define UNIT_TEST_GROUP( NODE )                                                \
     using DeviceType##NODE = typename NODE::device_type;                       \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, bounds,                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, empty_tree,               \
                                           DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, queries,                  \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, single_leaf_tree,         \
                                           DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, nearest_queries,          \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, couple_leaves_tree,       \
                                           DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, empty, DeviceType##NODE ) \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, miscellaneous,            \
+                                          DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, structured_grid,          \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, rtree, DeviceType##NODE )
