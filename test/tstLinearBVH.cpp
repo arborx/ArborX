@@ -22,11 +22,11 @@
 // The `out` and `success` parameters come from the Teuchos unit testing macros
 // expansion.
 template <typename Query, typename DeviceType>
-void check_results( DataTransferKit::BVH<DeviceType> &bvh,
-                    Kokkos::View<Query *, DeviceType> const &queries,
-                    std::vector<int> const &indices_ref,
-                    std::vector<int> const &offset_ref, bool &success,
-                    Teuchos::FancyOStream &out )
+void checkResults( DataTransferKit::BVH<DeviceType> &bvh,
+                   Kokkos::View<Query *, DeviceType> const &queries,
+                   std::vector<int> const &indices_ref,
+                   std::vector<int> const &offset_ref, bool &success,
+                   Teuchos::FancyOStream &out )
 {
     Kokkos::View<int *, DeviceType> indices( "indices" );
     Kokkos::View<int *, DeviceType> offset( "offset" );
@@ -45,12 +45,12 @@ void check_results( DataTransferKit::BVH<DeviceType> &bvh,
 // compare them to the reference solution passed as argument.  Templated type
 // `Query` is pretty much a nearest predicate in this case.
 template <typename Query, typename DeviceType>
-void check_results( DataTransferKit::BVH<DeviceType> &bvh,
-                    Kokkos::View<Query *, DeviceType> const &queries,
-                    std::vector<int> const &indices_ref,
-                    std::vector<int> const &offset_ref,
-                    std::vector<double> const &distances_ref, bool &success,
-                    Teuchos::FancyOStream &out )
+void checkResults( DataTransferKit::BVH<DeviceType> &bvh,
+                   Kokkos::View<Query *, DeviceType> const &queries,
+                   std::vector<int> const &indices_ref,
+                   std::vector<int> const &offset_ref,
+                   std::vector<double> const &distances_ref, bool &success,
+                   Teuchos::FancyOStream &out )
 {
     Kokkos::View<int *, DeviceType> indices( "indices" );
     Kokkos::View<int *, DeviceType> offset( "offset" );
@@ -71,9 +71,9 @@ void check_results( DataTransferKit::BVH<DeviceType> &bvh,
 
 // Hopefully we can git rid of this once the operator== has been implemented
 // for boxes.
-void test_box_equality( DataTransferKit::Box const &l,
-                        DataTransferKit::Box const &r, bool &success,
-                        Teuchos::FancyOStream &out )
+void testBoxEquality( DataTransferKit::Box const &l,
+                      DataTransferKit::Box const &r, bool &success,
+                      Teuchos::FancyOStream &out )
 {
     TEST_EQUALITY( l[0], r[0] );
     TEST_EQUALITY( l[1], r[1] );
@@ -85,7 +85,7 @@ void test_box_equality( DataTransferKit::Box const &l,
 
 template <typename DeviceType>
 DataTransferKit::BVH<DeviceType>
-make_bvh( std::vector<DataTransferKit::Box> const &b )
+makeBvh( std::vector<DataTransferKit::Box> const &b )
 {
     int const n = b.size();
     Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", n );
@@ -98,7 +98,7 @@ make_bvh( std::vector<DataTransferKit::Box> const &b )
 
 template <typename DeviceType>
 Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>
-make_overlap_queries( std::vector<DataTransferKit::Box> const &boxes )
+makeOverlapQueries( std::vector<DataTransferKit::Box> const &boxes )
 {
     int const n = boxes.size();
     Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType> queries(
@@ -108,11 +108,11 @@ make_overlap_queries( std::vector<DataTransferKit::Box> const &boxes )
         queries_host( i ) = DataTransferKit::Details::overlap( boxes[i] );
     Kokkos::deep_copy( queries, queries_host );
     return queries;
-};
+}
 
 template <typename DeviceType>
 Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>
-make_nearest_queries(
+makeNearestQueries(
     std::vector<std::pair<DataTransferKit::Point, int>> const &points )
 {
     // NOTE: `points` is not a very descriptive name here. It stores both the
@@ -129,8 +129,7 @@ make_nearest_queries(
 }
 
 template <typename DeviceType>
-Kokkos::View<DataTransferKit::Details::Within *, DeviceType>
-make_within_queries(
+Kokkos::View<DataTransferKit::Details::Within *, DeviceType> makeWithinQueries(
     std::vector<std::pair<DataTransferKit::Point, double>> const &points )
 {
     // NOTE: `points` is not a very descriptive name here. It stores both the
@@ -149,196 +148,196 @@ make_within_queries(
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty_tree, DeviceType )
 {
     // tree is empty, it has no leaves.
-    auto empty_bvh = make_bvh<DeviceType>( {} );
+    auto empty_bvh = makeBvh<DeviceType>( {} );
 
     TEST_ASSERT( empty_bvh.empty() );
     TEST_EQUALITY( empty_bvh.size(), 0 );
     // BVH::bounds() returns an invalid box when the tree is empty.
-    test_box_equality( empty_bvh.bounds(), {}, success, out );
+    testBoxEquality( empty_bvh.bounds(), {}, success, out );
 
     // Passing a view with no query does seem a bit silly but we still need to
     // support it. And since the tag dispatching yields different tree
     // traversals for nearest and spatial predicates, we do have to check the
     // results for various type of queries.
-    check_results( empty_bvh, make_overlap_queries<DeviceType>( {} ), {}, {0},
-                   success, out );
+    checkResults( empty_bvh, makeOverlapQueries<DeviceType>( {} ), {}, {0},
+                  success, out );
 
     // NOTE: Admittedly testing for both overlap and within queries might be a
     // bit overkill but I'd rather test for all the queries we plan on using.
-    check_results( empty_bvh, make_within_queries<DeviceType>( {} ), {}, {0},
-                   success, out );
+    checkResults( empty_bvh, makeWithinQueries<DeviceType>( {} ), {}, {0},
+                  success, out );
 
-    check_results( empty_bvh, make_nearest_queries<DeviceType>( {} ), {}, {0},
-                   success, out );
+    checkResults( empty_bvh, makeNearestQueries<DeviceType>( {} ), {}, {0},
+                  success, out );
 
     // Passing an empty distance vector.
-    check_results( empty_bvh, make_nearest_queries<DeviceType>( {} ), {}, {0},
-                   {}, success, out );
+    checkResults( empty_bvh, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
+                  success, out );
 
     // Now passing a couple queries of various type and checking the results.
-    check_results(
+    checkResults(
         empty_bvh,
-        make_overlap_queries<DeviceType>( {
+        makeOverlapQueries<DeviceType>( {
             {}, // Did not bother giving a valid box here but that's fine.
             {},
         } ),
         {}, {0, 0, 0}, success, out );
 
-    check_results( empty_bvh,
-                   make_within_queries<DeviceType>( {
-                       {{{0., 0., 0.}}, 1.},
-                       {{{1., 1., 1.}}, 2.},
-                   } ),
-                   {}, {0, 0, 0}, success, out );
+    checkResults( empty_bvh,
+                  makeWithinQueries<DeviceType>( {
+                      {{{0., 0., 0.}}, 1.},
+                      {{{1., 1., 1.}}, 2.},
+                  } ),
+                  {}, {0, 0, 0}, success, out );
 
     // NOTE: Expected output for nearest queries when asking for more neighbors
     // than there are leaves in the tree is not ideal but that is what the
     // current implementation does to avoid two passes in the search (count
     // first, then allocate and save results in 2nd pass) `-1` denotes invalid
     // index and `infty` invalid distance.
-    check_results( empty_bvh,
-                   make_nearest_queries<DeviceType>( {
-                       {{{0., 0., 0.}}, 1},
-                       {{{1., 1., 1.}}, 2},
-                   } ),
-                   {-1, -1, -1}, {0, 1, 3}, success, out );
+    checkResults( empty_bvh,
+                  makeNearestQueries<DeviceType>( {
+                      {{{0., 0., 0.}}, 1},
+                      {{{1., 1., 1.}}, 2},
+                  } ),
+                  {-1, -1, -1}, {0, 1, 3}, success, out );
 
     double const infty = std::numeric_limits<double>::max();
-    check_results( empty_bvh,
-                   make_nearest_queries<DeviceType>( {
-                       {{{0., 0., 0.}}, 1},
-                       {{{1., 1., 1.}}, 2},
-                   } ),
-                   {-1, -1, -1}, {0, 1, 3}, {infty, infty, infty}, success,
-                   out );
+    checkResults( empty_bvh,
+                  makeNearestQueries<DeviceType>( {
+                      {{{0., 0., 0.}}, 1},
+                      {{{1., 1., 1.}}, 2},
+                  } ),
+                  {-1, -1, -1}, {0, 1, 3}, {infty, infty, infty}, success,
+                  out );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, single_leaf_tree, DeviceType )
 {
     // tree has a single leaf (unit box)
-    auto bvh = make_bvh<DeviceType>( {
+    auto bvh = makeBvh<DeviceType>( {
         {{0., 1., 0., 1., 0., 1.}},
     } );
 
     TEST_ASSERT( !bvh.empty() );
     TEST_EQUALITY( bvh.size(), 1 );
-    test_box_equality( bvh.bounds(), {{0., 1., 0., 1., 0., 1.}}, success, out );
+    testBoxEquality( bvh.bounds(), {{0., 1., 0., 1., 0., 1.}}, success, out );
 
-    check_results( bvh, make_overlap_queries<DeviceType>( {} ), {}, {0},
-                   success, out );
+    checkResults( bvh, makeOverlapQueries<DeviceType>( {} ), {}, {0}, success,
+                  out );
 
-    check_results( bvh, make_within_queries<DeviceType>( {} ), {}, {0}, success,
-                   out );
+    checkResults( bvh, makeWithinQueries<DeviceType>( {} ), {}, {0}, success,
+                  out );
 
-    check_results( bvh, make_nearest_queries<DeviceType>( {} ), {}, {0},
-                   success, out );
+    checkResults( bvh, makeNearestQueries<DeviceType>( {} ), {}, {0}, success,
+                  out );
 
-    check_results( bvh, make_nearest_queries<DeviceType>( {} ), {}, {0}, {},
-                   success, out );
+    checkResults( bvh, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
+                  success, out );
 
-    check_results( bvh,
-                   make_overlap_queries<DeviceType>( {
-                       {{5., 5., 5., 5., 5., 5.}},
-                       {{.5, .5, .5, .5, .5, .5}},
-                   } ),
-                   {0}, {0, 0, 1}, success, out );
+    checkResults( bvh,
+                  makeOverlapQueries<DeviceType>( {
+                      {{5., 5., 5., 5., 5., 5.}},
+                      {{.5, .5, .5, .5, .5, .5}},
+                  } ),
+                  {0}, {0, 0, 1}, success, out );
 
-    check_results( bvh,
-                   make_within_queries<DeviceType>( {
-                       {{{0., 0., 0.}}, 1.},
-                       {{{1., 1., 1.}}, 3.},
-                       {{{5., 5., 5.}}, 2.},
-                   } ),
-                   {0, 0}, {0, 1, 2, 2}, success, out );
+    checkResults( bvh,
+                  makeWithinQueries<DeviceType>( {
+                      {{{0., 0., 0.}}, 1.},
+                      {{{1., 1., 1.}}, 3.},
+                      {{{5., 5., 5.}}, 2.},
+                  } ),
+                  {0, 0}, {0, 1, 2, 2}, success, out );
 
-    check_results( bvh,
-                   make_nearest_queries<DeviceType>( {
-                       {{{0., 0., 0.}}, 1},
-                       {{{1., 1., 1.}}, 2},
-                       {{{2., 2., 2.}}, 3},
-                   } ),
-                   {0, 0, -1, 0, -1, -1}, {0, 1, 3, 6}, success, out );
+    checkResults( bvh,
+                  makeNearestQueries<DeviceType>( {
+                      {{{0., 0., 0.}}, 1},
+                      {{{1., 1., 1.}}, 2},
+                      {{{2., 2., 2.}}, 3},
+                  } ),
+                  {0, 0, -1, 0, -1, -1}, {0, 1, 3, 6}, success, out );
 
     double const infty = std::numeric_limits<double>::max();
-    check_results( bvh,
-                   make_nearest_queries<DeviceType>( {
-                       {{{1., 0., 0.}}, 1},
-                       {{{0., 2., 0.}}, 2},
-                       {{{0., 0., 3.}}, 3},
-                   } ),
-                   {0, 0, -1, 0, -1, -1}, {0, 1, 3, 6},
-                   {0., 1., infty, 2., infty, infty}, success, out );
+    checkResults( bvh,
+                  makeNearestQueries<DeviceType>( {
+                      {{{1., 0., 0.}}, 1},
+                      {{{0., 2., 0.}}, 2},
+                      {{{0., 0., 3.}}, 3},
+                  } ),
+                  {0, 0, -1, 0, -1, -1}, {0, 1, 3, 6},
+                  {0., 1., infty, 2., infty, infty}, success, out );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, couple_leaves_tree, DeviceType )
 {
-    auto bvh = make_bvh<DeviceType>( {
+    auto bvh = makeBvh<DeviceType>( {
         {{0., 0., 0., 0., 0., 0.}},
         {{1., 1., 1., 1., 1., 1.}},
     } );
 
     TEST_ASSERT( !bvh.empty() );
     TEST_EQUALITY( bvh.size(), 2 );
-    test_box_equality( bvh.bounds(), {{0., 1., 0., 1., 0., 1.}}, success, out );
+    testBoxEquality( bvh.bounds(), {{0., 1., 0., 1., 0., 1.}}, success, out );
 
     // single query overlap with nothing
-    check_results( bvh,
-                   make_overlap_queries<DeviceType>( {
-                       {},
-                   } ),
-                   {}, {0, 0}, success, out );
+    checkResults( bvh,
+                  makeOverlapQueries<DeviceType>( {
+                      {},
+                  } ),
+                  {}, {0, 0}, success, out );
 
     // single query overlap with both
-    check_results( bvh,
-                   make_overlap_queries<DeviceType>( {
-                       {{0., 1., 0., 1., 0., 1.}},
-                   } ),
-                   {1, 0}, {0, 2}, success, out );
+    checkResults( bvh,
+                  makeOverlapQueries<DeviceType>( {
+                      {{0., 1., 0., 1., 0., 1.}},
+                  } ),
+                  {1, 0}, {0, 2}, success, out );
 
     // single query overlap with only one
-    check_results( bvh,
-                   make_overlap_queries<DeviceType>( {
-                       {{0.5, 1.5, 0.5, 1.5, 0.5, 1.5}},
-                   } ),
-                   {1}, {0, 1}, success, out );
+    checkResults( bvh,
+                  makeOverlapQueries<DeviceType>( {
+                      {{0.5, 1.5, 0.5, 1.5, 0.5, 1.5}},
+                  } ),
+                  {1}, {0, 1}, success, out );
 
     // a couple queries both overlap with nothing
-    check_results( bvh,
-                   make_overlap_queries<DeviceType>( {
-                       {},
-                       {},
-                   } ),
-                   {}, {0, 0, 0}, success, out );
+    checkResults( bvh,
+                  makeOverlapQueries<DeviceType>( {
+                      {},
+                      {},
+                  } ),
+                  {}, {0, 0, 0}, success, out );
 
     // a couple queries first overlap with nothing second with only one
-    check_results( bvh,
-                   make_overlap_queries<DeviceType>( {
-                       {},
-                       {{0., 0., 0., 0., 0., 0.}},
-                   } ),
-                   {0}, {0, 0, 1}, success, out );
+    checkResults( bvh,
+                  makeOverlapQueries<DeviceType>( {
+                      {},
+                      {{0., 0., 0., 0., 0., 0.}},
+                  } ),
+                  {0}, {0, 0, 1}, success, out );
 
     // no query
-    check_results( bvh, make_overlap_queries<DeviceType>( {} ), {}, {0},
-                   success, out );
+    checkResults( bvh, makeOverlapQueries<DeviceType>( {} ), {}, {0}, success,
+                  out );
 
     double const infty = std::numeric_limits<double>::max();
-    check_results( bvh,
-                   make_nearest_queries<DeviceType>( {
-                       {{{0., 0., 0.}}, 2},
-                       {{{1., 0., 0.}}, 4},
-                   } ),
-                   {0, 1, 0, 1, -1, -1}, {0, 2, 6},
-                   {0., sqrt( 3. ), 1., sqrt( 2. ), infty, infty}, success,
-                   out );
+    checkResults( bvh,
+                  makeNearestQueries<DeviceType>( {
+                      {{{0., 0., 0.}}, 2},
+                      {{{1., 0., 0.}}, 4},
+                  } ),
+                  {0, 1, 0, 1, -1, -1}, {0, 2, 6},
+                  {0., sqrt( 3. ), 1., sqrt( 2. ), infty, infty}, success,
+                  out );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, miscellaneous, DeviceType )
 {
-    auto bvh = make_bvh<DeviceType>( {
+    auto bvh = makeBvh<DeviceType>( {
         {{1., 2., 3., 4., 5., 6.}},
     } );
-    auto empty_bvh = make_bvh<DeviceType>( {} );
+    auto empty_bvh = makeBvh<DeviceType>( {} );
 
     TEST_ASSERT(
         DataTransferKit::Details::TreeTraversal<DeviceType>::getRoot( bvh ) );
