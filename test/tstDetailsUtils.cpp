@@ -42,6 +42,29 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, prefix_sum, DeviceType )
     Kokkos::View<int *, DeviceType> z( "z", m );
     TEST_THROW( DataTransferKit::exclusivePrefixSum( x, z ),
                 DataTransferKit::DataTransferKitException );
+    Kokkos::View<double[3], DeviceType> v( "v" );
+    auto v_host = Kokkos::create_mirror_view( v );
+    v_host( 0 ) = 1.;
+    v_host( 1 ) = 1.;
+    v_host( 2 ) = 0.;
+    Kokkos::deep_copy( v, v_host );
+    DataTransferKit::exclusivePrefixSum( v );
+    Kokkos::deep_copy( v_host, v );
+    std::vector<double> v_ref = {0., 1., 2.};
+    TEST_COMPARE_FLOATING_ARRAYS( v_host, v_ref, 1e-14 );
+    Kokkos::View<double *, DeviceType> w( "w", 4 );
+    TEST_THROW( DataTransferKit::exclusivePrefixSum( v, w ),
+                DataTransferKit::DataTransferKitException );
+    v_host( 0 ) = 1.;
+    v_host( 1 ) = 0.;
+    v_host( 2 ) = 0.;
+    Kokkos::deep_copy( v, v_host );
+    Kokkos::resize( w, 3 );
+    DataTransferKit::exclusivePrefixSum( v, w );
+    auto w_host = Kokkos::create_mirror_view( w );
+    Kokkos::deep_copy( w_host, w );
+    std::vector<double> w_ref = {0., 1., 1.};
+    TEST_COMPARE_FLOATING_ARRAYS( w_host, w_ref, 1e-14 );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, last_element, DeviceType )
@@ -55,6 +78,9 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, last_element, DeviceType )
     Kokkos::View<int *, DeviceType> w( "w", 0 );
     TEST_THROW( DataTransferKit::lastElement( w ),
                 DataTransferKit::DataTransferKitException );
+    Kokkos::View<double[1], DeviceType> u( "u", 1 );
+    Kokkos::deep_copy( u, 3.14 );
+    TEST_FLOATING_EQUALITY( DataTransferKit::lastElement( u ), 3.14, 1e-14 );
 }
 
 // Include the test macros.

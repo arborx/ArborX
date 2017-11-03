@@ -18,62 +18,92 @@
 namespace DataTransferKit
 {
 
-/** \brief Assigns the given value to all elements in the view.
- */
 template <typename T, typename DeviceType>
-void fill( Kokkos::View<T *, DeviceType> out, T const &value )
+class ExclusiveScanFunctor
 {
-    using ExecutionSpace = typename DeviceType::execution_space;
-    Kokkos::parallel_for(
-        "fill", Kokkos::RangePolicy<ExecutionSpace>( 0, out.extent( 0 ) ),
-        KOKKOS_LAMBDA( int i ) { out( i ) = value; } );
-    Kokkos::fence();
-}
+  public:
+    ExclusiveScanFunctor( Kokkos::View<T *, DeviceType> const &in,
+                          Kokkos::View<T *, DeviceType> const &out )
+        : _in( in )
+        , _out( out )
+    {
+    }
+    KOKKOS_INLINE_FUNCTION void operator()( int i, T &update,
+                                            bool final_pass ) const
+    {
+        T const in_i = _in( i );
+        if ( final_pass )
+            _out( i ) = update;
+        update += in_i;
+    }
+
+  private:
+    Kokkos::View<T *, DeviceType> _in;
+    Kokkos::View<T *, DeviceType> _out;
+};
 
 /** \brief Computes an exclusive scan.
  *
- *  When \c out is not provided or if \c in and \c out are the same view, the
+ *  When \c dst is not provided or if \c src and \c dst are the same view, the
  *  scan is performed in-place.
  *
- *  \pre \c in and \c out must have the same size.
+ *  \pre \c src and \c dst must be of rank 1 and have the same size.
  */
-template <typename T, typename DeviceType>
-void exclusivePrefixSum(
-    Kokkos::View<T *, DeviceType> in,
-    Kokkos::View<T *, DeviceType> out = Kokkos::View<T *, DeviceType>() )
+template <typename ST, typename... SP, typename DT, typename... DP>
+void exclusivePrefixSum( Kokkos::View<ST, SP...> const &src,
+                         Kokkos::View<DT, DP...> const &dst )
 {
-    using ExecutionSpace = typename DeviceType::execution_space;
-    if ( out.size() == 0 )
-        out = in;
-    DTK_INSIST( in.extent( 0 ) == out.extent( 0 ) );
+    static_assert(
+        std::is_same<typename Kokkos::ViewTraits<DT, DP...>::value_type,
+                     typename Kokkos::ViewTraits<
+                         DT, DP...>::non_const_value_type>::value,
+        "exclusivePrefixSum requires non-const destination type" );
+
+    static_assert( ( unsigned( Kokkos::ViewTraits<DT, DP...>::rank ) ==
+                     unsigned( Kokkos::ViewTraits<ST, SP...>::rank ) ) &&
+                       ( unsigned( Kokkos::ViewTraits<DT, DP...>::rank ) ==
+                         unsigned( 1 ) ),
+                   "exclusivePrefixSum requires Views of rank 1" );
+
+    using ExecutionSpace =
+        typename Kokkos::ViewTraits<DT, DP...>::execution_space;
+    using ValueType = typename Kokkos::ViewTraits<DT, DP...>::value_type;
+
+    auto const n = src.span();
+    DTK_REQUIRE( n == dst.span() );
     Kokkos::parallel_scan(
-        "exclusive_scan",
-        Kokkos::RangePolicy<ExecutionSpace>( 0, in.extent( 0 ) ),
-        KOKKOS_LAMBDA( int i, int &update, bool final_pass ) {
-            int const in_i = in( i );
-            if ( final_pass )
-                out( i ) = update;
-            update += in_i;
-        } );
+        "exclusive_scan", Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
+        ExclusiveScanFunctor<ValueType, ExecutionSpace>( src, dst ) );
     Kokkos::fence();
 }
 
-/** \brief Get a copy of the last element on the host.
+template <typename T, typename... P>
+void exclusivePrefixSum( Kokkos::View<T, P...> const &v )
+{
+    exclusivePrefixSum( v, v );
+}
+
+/** \brief Get a copy of the last element.
  *
  *  Returns a copy of the last element in the view on the host.  Note that it
  *  may require communication between host and device (e.g. if the view passed
  *  as an argument lives on the device).
  *
- *  \pre \c in is not empty.
+ *  \pre \c v is of rank 1 and not empty.
  */
-template <typename T, typename DeviceType>
-T lastElement( Kokkos::View<T *, DeviceType> in )
+template <typename T, typename... P>
+typename Kokkos::ViewTraits<T, P...>::value_type
+lastElement( Kokkos::View<T, P...> const &v )
 {
-    DTK_INSIST( in.extent( 0 ) > 0 );
-    auto in_subview = Kokkos::subview( in, in.extent( 0 ) - 1 );
-    auto in_host = Kokkos::create_mirror_view( in_subview );
-    Kokkos::deep_copy( in_host, in_subview );
-    return in_host( 0 );
+    static_assert(
+        ( unsigned( Kokkos::ViewTraits<T, P...>::rank ) == unsigned( 1 ) ),
+        "lastElement requires Views of rank 1" );
+    auto const n = v.span();
+    DTK_REQUIRE( n > 0 );
+    auto v_subview = Kokkos::subview( v, n - 1 );
+    auto v_host = Kokkos::create_mirror_view( v_subview );
+    Kokkos::deep_copy( v_host, v_subview );
+    return v_host( 0 );
 }
 
 } // end namespace DataTransferKit
