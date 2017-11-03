@@ -14,17 +14,6 @@
 #include <algorithm>
 #include <vector>
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, fill, DeviceType )
-{
-    int const n = 10;
-    Kokkos::View<float *, DeviceType> v( "v", n );
-    float const pi = 3.14;
-    DataTransferKit::fill( v, pi );
-    auto v_host = Kokkos::create_mirror_view( v );
-    Kokkos::deep_copy( v_host, v );
-    TEST_COMPARE_ARRAYS( std::vector<float>( n, pi ), v_host );
-}
-
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, prefix_sum, DeviceType )
 {
     int const n = 10;
@@ -74,8 +63,6 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, last_element, DeviceType )
 // Create the test group
 #define UNIT_TEST_GROUP( NODE )                                                \
     using DeviceType##NODE = typename NODE::device_type;                       \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, fill,                  \
-                                          DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, prefix_sum,            \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, last_element,          \

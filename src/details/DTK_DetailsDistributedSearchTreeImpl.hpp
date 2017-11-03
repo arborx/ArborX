@@ -323,7 +323,7 @@ void DistributedSearchTreeImpl<DeviceType>::countResults(
     int const nnz = query_ids.extent( 0 );
 
     Kokkos::realloc( offset, n_queries + 1 );
-    fill( offset, 0 );
+    Kokkos::deep_copy( offset, 0 );
 
     Kokkos::parallel_for(
         REGION_NAME( "count_results_per_query" ),
@@ -368,7 +368,7 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
     Kokkos::fence();
 
     Kokkos::View<int *, DeviceType> export_ranks( "export_ranks", n_exports );
-    fill( export_ranks, comm_rank );
+    Kokkos::deep_copy( export_ranks, comm_rank );
 
     Kokkos::View<int *, DeviceType> import_ranks( "import_ranks", n_imports );
     sendAcrossNetwork( distributor, export_ranks, import_ranks );
@@ -427,7 +427,7 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
 
     // export_ranks already has adequate size since it was used as a buffer to
     // make the new communication plan.
-    fill( export_ranks, comm_rank );
+    Kokkos::deep_copy( export_ranks, comm_rank );
 
     Kokkos::View<int *, DeviceType> export_ids( ids.label(), n_exports );
     Kokkos::parallel_for(
@@ -477,7 +477,7 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
     int const n_queries = queries.extent_int( 0 );
     // truncated views are prefixed with an underscore
     Kokkos::View<int *, DeviceType> _offset( offset.label(), n_queries + 1 );
-    fill( _offset, 0 );
+    Kokkos::deep_copy( _offset, 0 );
 
     Kokkos::parallel_for( REGION_NAME( "discard_results" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),

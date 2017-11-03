@@ -90,7 +90,7 @@ void queryDispatch(
     int const n_queries = queries.extent( 0 );
 
     Kokkos::realloc( offset, n_queries + 1 );
-    fill( offset, 0 );
+    Kokkos::deep_copy( offset, 0 );
 
     Kokkos::parallel_for(
         REGION_NAME( "scan_queries_for_numbers_of_nearest_neighbors" ),
@@ -102,12 +102,12 @@ void queryDispatch(
     int const n_results = lastElement( offset );
 
     Kokkos::realloc( indices, n_results );
-    fill( indices, -1 );
+    Kokkos::deep_copy( indices, -1 );
     if ( distances_ptr )
     {
         Kokkos::View<double *, DeviceType> &distances = *distances_ptr;
         Kokkos::realloc( distances, n_results );
-        fill( distances, Kokkos::ArithTraits<double>::max() );
+        Kokkos::deep_copy( distances, Kokkos::ArithTraits<double>::max() );
 
         Kokkos::parallel_for(
             REGION_NAME( "perform_nearest_queries_and_return_distances" ),
@@ -160,7 +160,7 @@ void queryDispatch( BVH<DeviceType> const bvh,
     //                ^
     //                N
     Kokkos::realloc( offset, n_queries + 1 );
-    fill( offset, 0 );
+    Kokkos::deep_copy( offset, 0 );
 
     // Say we found exactly two object for each query:
     // [ 2 2 2 .... 2 0 ]
