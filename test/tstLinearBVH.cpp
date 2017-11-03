@@ -190,26 +190,19 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty_tree, DeviceType )
                   } ),
                   {}, {0, 0, 0}, success, out );
 
-    // NOTE: Expected output for nearest queries when asking for more neighbors
-    // than there are leaves in the tree is not ideal but that is what the
-    // current implementation does to avoid two passes in the search (count
-    // first, then allocate and save results in 2nd pass) `-1` denotes invalid
-    // index and `infty` invalid distance.
     checkResults( empty_bvh,
                   makeNearestQueries<DeviceType>( {
                       {{{0., 0., 0.}}, 1},
                       {{{1., 1., 1.}}, 2},
                   } ),
-                  {-1, -1, -1}, {0, 1, 3}, success, out );
+                  {}, {0, 0, 0}, success, out );
 
-    double const infty = std::numeric_limits<double>::max();
     checkResults( empty_bvh,
                   makeNearestQueries<DeviceType>( {
                       {{{0., 0., 0.}}, 1},
                       {{{1., 1., 1.}}, 2},
                   } ),
-                  {-1, -1, -1}, {0, 1, 3}, {infty, infty, infty}, success,
-                  out );
+                  {}, {0, 0, 0}, {}, success, out );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, single_leaf_tree, DeviceType )
@@ -256,17 +249,15 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, single_leaf_tree, DeviceType )
                       {{{1., 1., 1.}}, 2},
                       {{{2., 2., 2.}}, 3},
                   } ),
-                  {0, 0, -1, 0, -1, -1}, {0, 1, 3, 6}, success, out );
+                  {0, 0, 0}, {0, 1, 2, 3}, success, out );
 
-    double const infty = std::numeric_limits<double>::max();
     checkResults( bvh,
                   makeNearestQueries<DeviceType>( {
                       {{{1., 0., 0.}}, 1},
                       {{{0., 2., 0.}}, 2},
                       {{{0., 0., 3.}}, 3},
                   } ),
-                  {0, 0, -1, 0, -1, -1}, {0, 1, 3, 6},
-                  {0., 1., infty, 2., infty, infty}, success, out );
+                  {0, 0, 0}, {0, 1, 2, 3}, {0., 1., 2.}, success, out );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, couple_leaves_tree, DeviceType )
@@ -321,15 +312,13 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, couple_leaves_tree, DeviceType )
     checkResults( bvh, makeOverlapQueries<DeviceType>( {} ), {}, {0}, success,
                   out );
 
-    double const infty = std::numeric_limits<double>::max();
     checkResults( bvh,
                   makeNearestQueries<DeviceType>( {
                       {{{0., 0., 0.}}, 2},
                       {{{1., 0., 0.}}, 4},
                   } ),
-                  {0, 1, 0, 1, -1, -1}, {0, 2, 6},
-                  {0., sqrt( 3. ), 1., sqrt( 2. ), infty, infty}, success,
-                  out );
+                  {0, 1, 0, 1}, {0, 2, 4}, {0., sqrt( 3. ), 1., sqrt( 2. )},
+                  success, out );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, miscellaneous, DeviceType )

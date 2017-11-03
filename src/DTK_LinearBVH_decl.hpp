@@ -102,12 +102,14 @@ void queryDispatch(
     int const n_results = lastElement( offset );
 
     Kokkos::realloc( indices, n_results );
-    Kokkos::deep_copy( indices, -1 );
+    int const invalid_index = -1;
+    Kokkos::deep_copy( indices, invalid_index );
     if ( distances_ptr )
     {
         Kokkos::View<double *, DeviceType> &distances = *distances_ptr;
         Kokkos::realloc( distances, n_results );
-        Kokkos::deep_copy( distances, Kokkos::ArithTraits<double>::max() );
+        double const invalid_distance = -Kokkos::ArithTraits<double>::max();
+        Kokkos::deep_copy( distances, invalid_distance );
 
         Kokkos::parallel_for(
             REGION_NAME( "perform_nearest_queries_and_return_distances" ),
@@ -140,8 +142,73 @@ void queryDispatch(
             } );
         Kokkos::fence();
     }
-    // NOTE: possible improvement is to find out if they are any -1 in indices
-    // (resp. +infty in distances) and truncate if necessary
+    // Find out if they are any invalid entries in the indices (i.e. at least
+    // one query asked for more neighbors that they are leaves in the tree) and
+    // eliminate them if necessary.
+    auto tmp_offset = Kokkos::create_mirror( DeviceType(), offset );
+    Kokkos::deep_copy( tmp_offset, 0 );
+    Kokkos::parallel_for( REGION_NAME( "count_invalid_indices" ),
+                          Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
+                          KOKKOS_LAMBDA( int q ) {
+                              for ( int i = offset( q ); i < offset( q + 1 );
+                                    ++i )
+                                  if ( indices( i ) == invalid_index )
+                                  {
+                                      tmp_offset( q ) = offset( q + 1 ) - i;
+                                      break;
+                                  }
+                          } );
+    Kokkos::fence();
+    exclusivePrefixSum( tmp_offset );
+    int const n_invalid_indices = lastElement( tmp_offset );
+    if ( n_invalid_indices > 0 )
+    {
+        Kokkos::parallel_for(
+            REGION_NAME( "subtract_invalid_entries_from_offset" ),
+            Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries + 1 ),
+            KOKKOS_LAMBDA( int q ) {
+                tmp_offset( q ) = offset( q ) - tmp_offset( q );
+            } );
+        Kokkos::fence();
+
+        int const n_valid_indices = n_results - n_invalid_indices;
+        Kokkos::View<int *, DeviceType> tmp_indices( indices.label(),
+                                                     n_valid_indices );
+
+        Kokkos::parallel_for(
+            REGION_NAME( "copy_valid_indices" ),
+            Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
+            KOKKOS_LAMBDA( int q ) {
+                for ( int i = 0; i < tmp_offset( q + 1 ) - tmp_offset( q );
+                      ++i )
+                {
+                    tmp_indices( tmp_offset( q ) + i ) =
+                        indices( offset( q ) + i );
+                }
+            } );
+        Kokkos::fence();
+        indices = tmp_indices;
+        if ( distances_ptr )
+        {
+            Kokkos::View<double *, DeviceType> &distances = *distances_ptr;
+            Kokkos::View<double *, DeviceType> tmp_distances( distances.label(),
+                                                              n_valid_indices );
+            Kokkos::parallel_for(
+                REGION_NAME( "copy_valid_distances" ),
+                Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
+                KOKKOS_LAMBDA( int q ) {
+                    for ( int i = 0; i < tmp_offset( q + 1 ) - tmp_offset( q );
+                          ++i )
+                    {
+                        tmp_distances( tmp_offset( q ) + i ) =
+                            distances( offset( q ) + i );
+                    }
+                } );
+            Kokkos::fence();
+            distances = tmp_distances;
+        }
+        offset = tmp_offset;
+    }
 }
 
 template <typename DeviceType, typename Query>
