@@ -18,6 +18,8 @@
 namespace DataTransferKit
 {
 
+// NOTE: This functor is used in exclusivePrefixSum( src, dst ).  We were
+// getting a compile error on CUDA when using a KOKKOS_LAMBDA.
 template <typename T, typename DeviceType>
 class ExclusiveScanFunctor
 {
@@ -44,10 +46,14 @@ class ExclusiveScanFunctor
 
 /** \brief Computes an exclusive scan.
  *
- *  When \c dst is not provided or if \c src and \c dst are the same view, the
- *  scan is performed in-place.
+ *  \param[in] src Input view with range of elements to sum
+ *  \param[out] dst Output view; may be equal to \p src
  *
- *  \pre \c src and \c dst must be of rank 1 and have the same size.
+ *  When \p dst is not provided or if \p src and \p dst are the same view, the
+ *  scan is performed in-place.  "Exclusive" means that the i-th input element
+ *  is not included in the i-th sum.
+ *
+ *  \pre \p src and \p dst must be of rank 1 and have the same size.
  */
 template <typename ST, typename... SP, typename DT, typename... DP>
 void exclusivePrefixSum( Kokkos::View<ST, SP...> const &src,
@@ -77,8 +83,14 @@ void exclusivePrefixSum( Kokkos::View<ST, SP...> const &src,
     Kokkos::fence();
 }
 
+/** \brief In-place exclusive scan.
+ *
+ *  \param[in,out] v View with range of elements to sum
+ *
+ *  Calls \c exclusivePrefixSum(v, v)
+ */
 template <typename T, typename... P>
-void exclusivePrefixSum( Kokkos::View<T, P...> const &v )
+inline void exclusivePrefixSum( Kokkos::View<T, P...> const &v )
 {
     exclusivePrefixSum( v, v );
 }
