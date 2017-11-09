@@ -42,7 +42,7 @@ class DistributedSearchTree
     /** Returns the smallest axis-aligned box able to contain all the objects
      *  stored in the tree or an invalid box if the tree is empty.
      */
-    inline Box bounds() const { return _distributed_tree->bounds(); }
+    inline Box bounds() const { return _distributed_tree.bounds(); }
 
     using SizeType = typename BVH<DeviceType>::SizeType;
     /** Returns the global number of objects stored in the tree.
@@ -98,7 +98,7 @@ class DistributedSearchTree
   private:
     Teuchos::RCP<Teuchos::Comm<int> const> _comm;
     BVH<DeviceType> _local_tree;
-    std::shared_ptr<BVH<DeviceType>> _distributed_tree;
+    BVH<DeviceType> _distributed_tree;
     // Global number of object passed to the constructor.  It is initialized to
     // an invalid value and gets sum-reduced and cached when size() is called.
     mutable SizeType _size = std::numeric_limits<SizeType>::max();
@@ -116,7 +116,7 @@ void DistributedSearchTree<DeviceType>::query(
 {
     using Tag = typename Query::Tag;
     DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-        _comm, *_distributed_tree, _local_tree, queries, indices, offset, ranks,
+        _comm, _distributed_tree, _local_tree, queries, indices, offset, ranks,
         Tag{} );
 }
 
@@ -134,7 +134,7 @@ DistributedSearchTree<DeviceType>::query(
 {
     using Tag = typename Query::Tag;
     DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-        _comm, *_distributed_tree, _local_tree, queries, indices, offset, ranks,
+        _comm, _distributed_tree, _local_tree, queries, indices, offset, ranks,
         Tag{}, &distances );
 }
 

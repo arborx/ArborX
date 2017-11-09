@@ -42,7 +42,7 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
         boxes_host( i ) = Box( &( bounds[6 * i] ) );
     Kokkos::deep_copy( boxes, boxes_host );
 
-    _distributed_tree = std::make_shared<BVH<DeviceType>>( boxes );
+    _distributed_tree = BVH<DeviceType>( boxes );
 }
 
 template <typename DeviceType>
