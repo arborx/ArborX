@@ -65,10 +65,7 @@ BVH<DeviceType>::BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes )
 
     if ( size() == 1 )
     {
-        Kokkos::parallel_for( REGION_NAME( "set_indices" ),
-                              Kokkos::RangePolicy<ExecutionSpace>( 0, 1 ),
-                              Iota<DeviceType>( _indices ) );
-        Kokkos::fence();
+        iota( _indices );
         Kokkos::parallel_for( REGION_NAME( "set_bounding_boxes" ),
                               Kokkos::RangePolicy<ExecutionSpace>( 0, 1 ),
                               SetBoundingBoxesFunctor<DeviceType>(
@@ -88,10 +85,7 @@ BVH<DeviceType>::BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes )
         bounding_boxes, morton_indices, _internal_nodes[0].bounding_box );
 
     // sort them along the Z-order space-filling curve
-    Kokkos::parallel_for( REGION_NAME( "set_indices" ),
-                          Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-                          Iota<DeviceType>( _indices ) );
-    Kokkos::fence();
+    iota( _indices );
     Details::TreeConstruction<DeviceType>::sortObjects( morton_indices,
                                                         _indices );
 

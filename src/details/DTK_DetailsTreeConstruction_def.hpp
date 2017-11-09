@@ -13,7 +13,8 @@
 #include "DTK_ConfigDefs.hpp"
 
 #include <DTK_DetailsAlgorithms.hpp>
-#include <DTK_KokkosHelpers.hpp>
+#include <DTK_DetailsUtils.hpp>  // iota
+#include <DTK_KokkosHelpers.hpp> // clz, sgn, min, max
 
 #include <Kokkos_Atomic.hpp>
 #include <Kokkos_Sort.hpp>
@@ -214,7 +215,7 @@ void TreeConstruction<DeviceType>::sortObjects(
     bin_sort.create_permute_vector();
     bin_sort.sort( morton_codes );
     // TODO: We might be able to just use `bin_sort.get_permute_vector()`
-    // instead of initializing the indices with Iota and sorting the vector
+    // instead of initializing the indices with iota() and sorting the vector
     bin_sort.sort( object_ids );
     Kokkos::fence();
 }
