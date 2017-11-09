@@ -118,6 +118,39 @@ lastElement( Kokkos::View<T, P...> const &v )
     return v_host( 0 );
 }
 
+/** \brief Fills the view with a sequence of numbers
+ *
+ *  \param[out] v Output view
+ *  \param[in] value (optional) Initial value
+ *
+ *  \note Similar to \c std::iota() but differs in that it directly assigns
+ *  <code>v(i) = value + i</code> instead of repetitively evaluating
+ *  <code>++value</code> which would be difficult to achieve in a performant
+ *  manner while still guaranteeing the order of execution.
+ */
+template <typename T, typename... P>
+void iota( Kokkos::View<T, P...> const &v,
+           typename Kokkos::ViewTraits<T, P...>::value_type value = 0 )
+{
+    using ExecutionSpace =
+        typename Kokkos::ViewTraits<T, P...>::execution_space;
+    using ValueType = typename Kokkos::ViewTraits<T, P...>::value_type;
+    static_assert(
+        ( unsigned( Kokkos::ViewTraits<T, P...>::rank ) == unsigned( 1 ) ),
+        "iota requires a View of rank 1" );
+    static_assert( std::is_arithmetic<ValueType>::value,
+                   "iota requires a View with an arithmetic value type" );
+    static_assert(
+        std::is_same<ValueType, typename Kokkos::ViewTraits<
+                                    T, P...>::non_const_value_type>::value,
+        "iota requires a View with non-const value type" );
+    auto const n = v.span();
+    Kokkos::parallel_for(
+        "iota", Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
+        KOKKOS_LAMBDA( int i ) { v( i ) = value + (ValueType)i; } );
+    Kokkos::fence();
+}
+
 } // end namespace DataTransferKit
 
 #endif
