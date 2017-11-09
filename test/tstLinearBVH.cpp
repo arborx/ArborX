@@ -148,61 +148,67 @@ Kokkos::View<DataTransferKit::Details::Within *, DeviceType> makeWithinQueries(
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty_tree, DeviceType )
 {
     // tree is empty, it has no leaves.
-    auto empty_bvh = makeBvh<DeviceType>( {} );
+    for ( auto const &empty_bvh : {
+              DataTransferKit::BVH<DeviceType>{}, // default constructed
+              makeBvh<DeviceType>( {} ), // constructed with empty view of boxes
+          } )
+    {
+        TEST_ASSERT( empty_bvh.empty() );
+        TEST_EQUALITY( empty_bvh.size(), 0 );
+        // BVH::bounds() returns an invalid box when the tree is empty.
+        testBoxEquality( empty_bvh.bounds(), {}, success, out );
 
-    TEST_ASSERT( empty_bvh.empty() );
-    TEST_EQUALITY( empty_bvh.size(), 0 );
-    // BVH::bounds() returns an invalid box when the tree is empty.
-    testBoxEquality( empty_bvh.bounds(), {}, success, out );
+        // Passing a view with no query does seem a bit silly but we still need
+        // to support it. And since the tag dispatching yields different tree
+        // traversals for nearest and spatial predicates, we do have to check
+        // the results for various type of queries.
+        checkResults( empty_bvh, makeOverlapQueries<DeviceType>( {} ), {}, {0},
+                      success, out );
 
-    // Passing a view with no query does seem a bit silly but we still need to
-    // support it. And since the tag dispatching yields different tree
-    // traversals for nearest and spatial predicates, we do have to check the
-    // results for various type of queries.
-    checkResults( empty_bvh, makeOverlapQueries<DeviceType>( {} ), {}, {0},
-                  success, out );
+        // NOTE: Admittedly testing for both overlap and within queries might be
+        // a bit overkill but I'd rather test for all the queries we plan on
+        // using.
+        checkResults( empty_bvh, makeWithinQueries<DeviceType>( {} ), {}, {0},
+                      success, out );
 
-    // NOTE: Admittedly testing for both overlap and within queries might be a
-    // bit overkill but I'd rather test for all the queries we plan on using.
-    checkResults( empty_bvh, makeWithinQueries<DeviceType>( {} ), {}, {0},
-                  success, out );
+        checkResults( empty_bvh, makeNearestQueries<DeviceType>( {} ), {}, {0},
+                      success, out );
 
-    checkResults( empty_bvh, makeNearestQueries<DeviceType>( {} ), {}, {0},
-                  success, out );
+        // Passing an empty distance vector.
+        checkResults( empty_bvh, makeNearestQueries<DeviceType>( {} ), {}, {0},
+                      {}, success, out );
 
-    // Passing an empty distance vector.
-    checkResults( empty_bvh, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
-                  success, out );
+        // Now passing a couple queries of various type and checking the
+        // results.
+        checkResults(
+            empty_bvh,
+            makeOverlapQueries<DeviceType>( {
+                {}, // Did not bother giving a valid box here but that's fine.
+                {},
+            } ),
+            {}, {0, 0, 0}, success, out );
 
-    // Now passing a couple queries of various type and checking the results.
-    checkResults(
-        empty_bvh,
-        makeOverlapQueries<DeviceType>( {
-            {}, // Did not bother giving a valid box here but that's fine.
-            {},
-        } ),
-        {}, {0, 0, 0}, success, out );
+        checkResults( empty_bvh,
+                      makeWithinQueries<DeviceType>( {
+                          {{{0., 0., 0.}}, 1.},
+                          {{{1., 1., 1.}}, 2.},
+                      } ),
+                      {}, {0, 0, 0}, success, out );
 
-    checkResults( empty_bvh,
-                  makeWithinQueries<DeviceType>( {
-                      {{{0., 0., 0.}}, 1.},
-                      {{{1., 1., 1.}}, 2.},
-                  } ),
-                  {}, {0, 0, 0}, success, out );
+        checkResults( empty_bvh,
+                      makeNearestQueries<DeviceType>( {
+                          {{{0., 0., 0.}}, 1},
+                          {{{1., 1., 1.}}, 2},
+                      } ),
+                      {}, {0, 0, 0}, success, out );
 
-    checkResults( empty_bvh,
-                  makeNearestQueries<DeviceType>( {
-                      {{{0., 0., 0.}}, 1},
-                      {{{1., 1., 1.}}, 2},
-                  } ),
-                  {}, {0, 0, 0}, success, out );
-
-    checkResults( empty_bvh,
-                  makeNearestQueries<DeviceType>( {
-                      {{{0., 0., 0.}}, 1},
-                      {{{1., 1., 1.}}, 2},
-                  } ),
-                  {}, {0, 0, 0}, {}, success, out );
+        checkResults( empty_bvh,
+                      makeNearestQueries<DeviceType>( {
+                          {{{0., 0., 0.}}, 1},
+                          {{{1., 1., 1.}}, 2},
+                      } ),
+                      {}, {0, 0, 0}, {}, success, out );
+    }
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, single_leaf_tree, DeviceType )
