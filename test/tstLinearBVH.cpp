@@ -22,7 +22,7 @@
 // The `out` and `success` parameters come from the Teuchos unit testing macros
 // expansion.
 template <typename Query, typename DeviceType>
-void checkResults( DataTransferKit::BVH<DeviceType> &bvh,
+void checkResults( DataTransferKit::BVH<DeviceType> const &bvh,
                    Kokkos::View<Query *, DeviceType> const &queries,
                    std::vector<int> const &indices_ref,
                    std::vector<int> const &offset_ref, bool &success,
@@ -45,7 +45,7 @@ void checkResults( DataTransferKit::BVH<DeviceType> &bvh,
 // compare them to the reference solution passed as argument.  Templated type
 // `Query` is pretty much a nearest predicate in this case.
 template <typename Query, typename DeviceType>
-void checkResults( DataTransferKit::BVH<DeviceType> &bvh,
+void checkResults( DataTransferKit::BVH<DeviceType> const &bvh,
                    Kokkos::View<Query *, DeviceType> const &queries,
                    std::vector<int> const &indices_ref,
                    std::vector<int> const &offset_ref,
