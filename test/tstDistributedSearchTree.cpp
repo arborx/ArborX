@@ -47,6 +47,20 @@ void checkResults(
     TEST_COMPARE_ARRAYS( ranks_host, ranks_ref );
 }
 
+template <typename DeviceType>
+DataTransferKit::DistributedSearchTree<DeviceType>
+makeDistributedSearchTree( Teuchos::RCP<const Teuchos::Comm<int>> const &comm,
+                           std::vector<DataTransferKit::Box> const &b )
+{
+    int const n = b.size();
+    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", n );
+    auto boxes_host = Kokkos::create_mirror_view( boxes );
+    for ( int i = 0; i < n; ++i )
+        boxes_host( i ) = b[i];
+    Kokkos::deep_copy( boxes, boxes_host );
+    return DataTransferKit::DistributedSearchTree<DeviceType>( comm, boxes );
+}
+
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
                                    DeviceType )
 {
@@ -179,16 +193,12 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree_no_queries,
     int const comm_rank = Teuchos::rank( *comm );
     int const comm_size = Teuchos::size( *comm );
 
-    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", 1 );
-    auto boxes_host = Kokkos::create_mirror_view( boxes );
-    boxes_host( 0 ) = {
-        (double)comm_rank, (double)comm_rank + 1., 0., 1., 0., 1.};
-    Kokkos::deep_copy( boxes, boxes_host );
-    DataTransferKit::DistributedSearchTree<DeviceType> tree( comm, boxes );
+    auto tree = makeDistributedSearchTree<DeviceType>(
+        comm, {
+                  {{(double)comm_rank, (double)comm_rank + 1., 0., 1., 0., 1.}},
+              } );
 
-    Kokkos::View<DataTransferKit::Box *, DeviceType> no_boxes( "no_boxes", 0 );
-    DataTransferKit::DistributedSearchTree<DeviceType> empty_tree( comm,
-                                                                   no_boxes );
+    auto empty_tree = makeDistributedSearchTree<DeviceType>( comm, {} );
 
     Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType> queries(
         "queries", 2 );
