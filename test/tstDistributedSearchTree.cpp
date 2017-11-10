@@ -347,7 +347,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree,
                   {}, {0, 0}, {}, {}, success, out );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree_no_queries,
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, unique_leaf_on_rank_0,
                                    DeviceType )
 {
     Teuchos::RCP<const Teuchos::Comm<int>> comm =
@@ -355,42 +355,67 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree_no_queries,
     int const comm_rank = Teuchos::rank( *comm );
     int const comm_size = Teuchos::size( *comm );
 
+    // tree has one unique leaf that lives on rank 0
+    auto tree =
+        ( comm_rank == 0 ? makeDistributedSearchTree<DeviceType>(
+                               comm,
+                               {
+                                   {{0., 1., 0., 1., 0., 1.}},
+                               } )
+                         : makeDistributedSearchTree<DeviceType>( comm, {} ) );
+
+    TEST_ASSERT( !tree.empty() );
+    TEST_EQUALITY( tree.size(), 1 );
+
+    testBoxEquality( tree.bounds(), {{0., 1., 0., 1., 0., 1.}}, success, out );
+
+    checkResults( tree, makeOverlapQueries<DeviceType>( {} ), {}, {0}, {},
+                  success, out );
+
+    checkResults( tree, makeWithinQueries<DeviceType>( {} ), {}, {0}, {},
+                  success, out );
+
+    checkResults( tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
+                  success, out );
+
+    checkResults( tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {}, {},
+                  success, out );
+}
+
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, one_leaf_per_rank,
+                                   DeviceType )
+{
+    Teuchos::RCP<const Teuchos::Comm<int>> comm =
+        Teuchos::DefaultComm<int>::getComm();
+    int const comm_rank = Teuchos::rank( *comm );
+    int const comm_size = Teuchos::size( *comm );
+
+    // tree has one leaf per rank
     auto tree = makeDistributedSearchTree<DeviceType>(
         comm, {
                   {{(double)comm_rank, (double)comm_rank + 1., 0., 1., 0., 1.}},
               } );
 
-    auto empty_tree = makeDistributedSearchTree<DeviceType>( comm, {} );
+    TEST_ASSERT( !tree.empty() );
+    TEST_EQUALITY( (int)tree.size(), comm_size );
 
-    auto queries = makeOverlapQueries<DeviceType>( {
-        {{(double)comm_size - (double)comm_rank - 0.5,
-          (double)comm_size - (double)comm_rank - 0.5, 0.5, 0.5, 0.5, 0.5}},
-        {{(double)comm_rank + 0.5, (double)comm_rank + 0.5, 0.5, 0.5, 0.5,
-          0.5}},
-    } );
+    testBoxEquality( tree.bounds(), {{0., (double)comm_size, 0., 1., 0., 1.}},
+                     success, out );
 
-    checkResults( empty_tree, queries, {}, {0, 0, 0}, {}, success, out );
-    checkResults( tree, queries, {0, 0}, {0, 1, 2},
-                  {comm_size - 1 - comm_rank, comm_rank}, success, out );
-
-    checkResults( empty_tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
-                  success, out );
-    checkResults( empty_tree, makeOverlapQueries<DeviceType>( {} ), {}, {0}, {},
-                  success, out );
+    checkResults(
+        tree,
+        makeOverlapQueries<DeviceType>( {
+            {{(double)comm_size - (double)comm_rank - .5,
+              (double)comm_size - (double)comm_rank - .5, .5, .5, .5, .5}},
+            {{(double)comm_rank + .5, (double)comm_rank + .5, .5, .5, .5, .5}},
+        } ),
+        {0, 0}, {0, 1, 2}, {comm_size - 1 - comm_rank, comm_rank}, success,
+        out );
 
     checkResults( tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
                   success, out );
     checkResults( tree, makeOverlapQueries<DeviceType>( {} ), {}, {0}, {},
                   success, out );
-
-    TEST_ASSERT( empty_tree.empty() );
-    TEST_ASSERT( !tree.empty() );
-    TEST_EQUALITY( (int)empty_tree.size(), 0 );
-    TEST_EQUALITY( (int)tree.size(), comm_size );
-
-    testBoxEquality( empty_tree.bounds(), {}, success, out );
-    testBoxEquality( tree.bounds(), {{0., (double)comm_size, 0., 1., 0., 1.}},
-                     success, out );
 }
 
 std::vector<std::array<double, 3>>
@@ -571,7 +596,9 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DistributedSearchTree, empty_tree,   \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT(                                      \
-        DistributedSearchTree, empty_tree_no_queries, DeviceType##NODE )       \
+        DistributedSearchTree, unique_leaf_on_rank_0, DeviceType##NODE )       \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT(                                      \
+        DistributedSearchTree, one_leaf_per_rank, DeviceType##NODE )           \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DistributedSearchTree,               \
                                           boost_comparison, DeviceType##NODE )
 
