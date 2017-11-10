@@ -288,22 +288,10 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree_no_queries,
     TEST_ASSERT( !tree.empty() );
     TEST_EQUALITY( (int)empty_tree.size(), 0 );
     TEST_EQUALITY( (int)tree.size(), comm_size );
-    // NOTE: we need that box comparison function or operator== so badly...
-    auto checkBoxesAreEqual = [&out,
-                               &success]( DataTransferKit::Box const &l,
-                                          DataTransferKit::Box const &r ) {
-        for ( int i = 0; i < 6; ++i )
-            TEST_EQUALITY( l[i], r[i] );
-    };
-    checkBoxesAreEqual( empty_tree.bounds(), DataTransferKit::Box() );
-    checkBoxesAreEqual( tree.bounds(), DataTransferKit::Box( {
-                                           0.,
-                                           (double)comm_size,
-                                           0.,
-                                           1.,
-                                           0.,
-                                           1.,
-                                       } ) );
+
+    testBoxEquality( empty_tree.bounds(), {}, success, out );
+    testBoxEquality( tree.bounds(), {{0., (double)comm_size, 0., 1., 0., 1.}},
+                     success, out );
 }
 
 std::vector<std::array<double, 3>>
