@@ -20,8 +20,6 @@
 #include <random>
 #include <tuple>
 
-namespace details = DataTransferKit::Details;
-
 // The `out` and `success` parameters come from the Teuchos unit testing macros
 // expansion.
 template <typename Query, typename DeviceType>
@@ -269,6 +267,7 @@ make_random_cloud( double const Lx, double const Ly, double const Lz,
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
                                    DeviceType )
 {
+    namespace details = DataTransferKit::Details;
     namespace bg = boost::geometry;
     namespace bgi = boost::geometry::index;
     using BPoint = bg::model::point<double, 3, bg::cs::cartesian>;
