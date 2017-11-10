@@ -303,6 +303,48 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree,
 
     checkResults( empty_tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
                   {}, success, out );
+
+    // Only rank 0 has a couple spatial queries with a spatial predicate
+    if ( comm_rank == 0 )
+        checkResults( empty_tree,
+                      makeOverlapQueries<DeviceType>( {
+                          {},
+                          {},
+                      } ),
+                      {}, {0, 0, 0}, {}, success, out );
+    else
+        checkResults( empty_tree, makeOverlapQueries<DeviceType>( {} ), {}, {0},
+                      {}, success, out );
+
+    // All ranks but rank 0 have a single query with a spatial predicate
+    if ( comm_rank == 0 )
+        checkResults( empty_tree, makeWithinQueries<DeviceType>( {} ), {}, {0},
+                      {}, success, out );
+    else
+        checkResults( empty_tree,
+                      makeWithinQueries<DeviceType>( {
+                          {{{(double)comm_rank, 0., 0.}}, (double)comm_size},
+                      } ),
+                      {}, {0, 0}, {}, success, out );
+
+    // All ranks but rank 0 have a single query with a nearest predicate
+    if ( comm_rank == 0 )
+        checkResults( empty_tree, makeNearestQueries<DeviceType>( {} ), {}, {0},
+                      {}, success, out );
+    else
+        checkResults( empty_tree,
+                      makeNearestQueries<DeviceType>( {
+                          {{{0., 0., 0.}}, comm_rank},
+                      } ),
+                      {}, {0, 0}, {}, success, out );
+
+    // All ranks have a single query with a nearest predicate (this version
+    // returns distances as well)
+    checkResults( empty_tree,
+                  makeNearestQueries<DeviceType>( {
+                      {{{0., 0., 0.}}, comm_size},
+                  } ),
+                  {}, {0, 0}, {}, {}, success, out );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree_no_queries,
