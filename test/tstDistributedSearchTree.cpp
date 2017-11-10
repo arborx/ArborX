@@ -61,6 +61,57 @@ makeDistributedSearchTree( Teuchos::RCP<const Teuchos::Comm<int>> const &comm,
     return DataTransferKit::DistributedSearchTree<DeviceType>( comm, boxes );
 }
 
+// FIXME: Move into separate header file. This is copy/paste from
+// tstLinearBVH.cpp
+template <typename DeviceType>
+Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>
+makeOverlapQueries( std::vector<DataTransferKit::Box> const &boxes )
+{
+    int const n = boxes.size();
+    Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType> queries(
+        "overlap_queries", n );
+    auto queries_host = Kokkos::create_mirror_view( queries );
+    for ( int i = 0; i < n; ++i )
+        queries_host( i ) = DataTransferKit::Details::overlap( boxes[i] );
+    Kokkos::deep_copy( queries, queries_host );
+    return queries;
+}
+
+template <typename DeviceType>
+Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>
+makeNearestQueries(
+    std::vector<std::pair<DataTransferKit::Point, int>> const &points )
+{
+    // NOTE: `points` is not a very descriptive name here. It stores both the
+    // actual point and the number k of neighbors to query for.
+    int const n = points.size();
+    Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType> queries(
+        "nearest_queries", n );
+    auto queries_host = Kokkos::create_mirror_view( queries );
+    for ( int i = 0; i < n; ++i )
+        queries_host( i ) = DataTransferKit::Details::nearest(
+            points[i].first, points[i].second );
+    Kokkos::deep_copy( queries, queries_host );
+    return queries;
+}
+
+template <typename DeviceType>
+Kokkos::View<DataTransferKit::Details::Within *, DeviceType> makeWithinQueries(
+    std::vector<std::pair<DataTransferKit::Point, double>> const &points )
+{
+    // NOTE: `points` is not a very descriptive name here. It stores both the
+    // actual point and the radius for the search around that point.
+    int const n = points.size();
+    Kokkos::View<DataTransferKit::Details::Within *, DeviceType> queries(
+        "within_queries", n );
+    auto queries_host = Kokkos::create_mirror_view( queries );
+    for ( int i = 0; i < n; ++i )
+        queries_host( i ) = DataTransferKit::Details::within(
+            points[i].first, points[i].second );
+    Kokkos::deep_copy( queries, queries_host );
+    return queries;
+}
+
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
                                    DeviceType )
 {
