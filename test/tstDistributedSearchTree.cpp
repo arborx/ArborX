@@ -22,6 +22,33 @@
 
 namespace details = DataTransferKit::Details;
 
+// The `out` and `success` parameters come from the Teuchos unit testing macros
+// expansion.
+template <typename Query, typename DeviceType>
+void checkResults(
+    DataTransferKit::DistributedSearchTree<DeviceType> const &tree,
+    Kokkos::View<Query *, DeviceType> const &queries,
+    std::vector<int> const &indices_ref, std::vector<int> const &offset_ref,
+    std::vector<int> const &ranks_ref, bool &success,
+    Teuchos::FancyOStream &out )
+{
+    Kokkos::View<int *, DeviceType> indices( "indices" );
+    Kokkos::View<int *, DeviceType> offset( "offset" );
+    Kokkos::View<int *, DeviceType> ranks( "ranks" );
+    tree.query( queries, indices, offset, ranks );
+
+    auto indices_host = Kokkos::create_mirror_view( indices );
+    deep_copy( indices_host, indices );
+    auto offset_host = Kokkos::create_mirror_view( offset );
+    deep_copy( offset_host, offset );
+    auto ranks_host = Kokkos::create_mirror_view( ranks );
+    deep_copy( ranks_host, ranks );
+
+    TEST_COMPARE_ARRAYS( indices_host, indices_ref );
+    TEST_COMPARE_ARRAYS( offset_host, offset_ref );
+    TEST_COMPARE_ARRAYS( ranks_host, ranks_ref );
+}
+
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
                                    DeviceType )
 {
@@ -144,33 +171,6 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
         TEST_EQUALITY( indices_host( 1 ), 1 );
         TEST_EQUALITY( ranks_host( 1 ), comm_size - 1 - comm_rank );
     }
-}
-
-// The `out` and `success` parameters come from the Teuchos unit testing macros
-// expansion.
-template <typename Query, typename DeviceType>
-void checkResults(
-    DataTransferKit::DistributedSearchTree<DeviceType> const &tree,
-    Kokkos::View<Query *, DeviceType> const &queries,
-    std::vector<int> const &indices_ref, std::vector<int> const &offset_ref,
-    std::vector<int> const &ranks_ref, bool &success,
-    Teuchos::FancyOStream &out )
-{
-    Kokkos::View<int *, DeviceType> indices( "indices" );
-    Kokkos::View<int *, DeviceType> offset( "offset" );
-    Kokkos::View<int *, DeviceType> ranks( "ranks" );
-    tree.query( queries, indices, offset, ranks );
-
-    auto indices_host = Kokkos::create_mirror_view( indices );
-    deep_copy( indices_host, indices );
-    auto offset_host = Kokkos::create_mirror_view( offset );
-    deep_copy( offset_host, offset );
-    auto ranks_host = Kokkos::create_mirror_view( ranks );
-    deep_copy( ranks_host, ranks );
-
-    TEST_COMPARE_ARRAYS( indices_host, indices_ref );
-    TEST_COMPARE_ARRAYS( offset_host, offset_ref );
-    TEST_COMPARE_ARRAYS( ranks_host, ranks_ref );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree_no_queries,
