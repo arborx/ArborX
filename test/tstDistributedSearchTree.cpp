@@ -47,6 +47,35 @@ void checkResults(
     TEST_COMPARE_ARRAYS( ranks_host, ranks_ref );
 }
 
+template <typename Query, typename DeviceType>
+void checkResults(
+    DataTransferKit::DistributedSearchTree<DeviceType> const &tree,
+    Kokkos::View<Query *, DeviceType> const &queries,
+    std::vector<int> const &indices_ref, std::vector<int> const &offset_ref,
+    std::vector<int> const &ranks_ref, std::vector<double> const &distances_ref,
+    bool &success, Teuchos::FancyOStream &out )
+{
+    Kokkos::View<int *, DeviceType> indices( "indices" );
+    Kokkos::View<int *, DeviceType> offset( "offset" );
+    Kokkos::View<int *, DeviceType> ranks( "ranks" );
+    Kokkos::View<double *, DeviceType> distances( "distances" );
+    tree.query( queries, indices, offset, ranks, distances );
+
+    auto indices_host = Kokkos::create_mirror_view( indices );
+    deep_copy( indices_host, indices );
+    auto offset_host = Kokkos::create_mirror_view( offset );
+    deep_copy( offset_host, offset );
+    auto ranks_host = Kokkos::create_mirror_view( ranks );
+    deep_copy( ranks_host, ranks );
+    auto distances_host = Kokkos::create_mirror_view( distances );
+    deep_copy( distances_host, distances );
+
+    TEST_COMPARE_ARRAYS( indices_host, indices_ref );
+    TEST_COMPARE_ARRAYS( offset_host, offset_ref );
+    TEST_COMPARE_ARRAYS( ranks_host, ranks_ref );
+    TEST_COMPARE_FLOATING_ARRAYS( distances_host, distances_ref, 1e-14 );
+}
+
 template <typename DeviceType>
 DataTransferKit::DistributedSearchTree<DeviceType>
 makeDistributedSearchTree( Teuchos::RCP<const Teuchos::Comm<int>> const &comm,
