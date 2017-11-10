@@ -251,38 +251,26 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree_no_queries,
 
     auto empty_tree = makeDistributedSearchTree<DeviceType>( comm, {} );
 
-    Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType> queries(
-        "queries", 2 );
-    auto queries_host = Kokkos::create_mirror_view( queries );
-    queries_host( 0 ) = DataTransferKit::Details::overlap( DataTransferKit::Box(
-        {(double)comm_size - (double)comm_rank - 0.5,
-         (double)comm_size - (double)comm_rank - 0.5, 0.5, 0.5, 0.5, 0.5} ) );
-    queries_host( 1 ) = DataTransferKit::Details::overlap(
-        DataTransferKit::Box( {(double)comm_rank + 0.5, (double)comm_rank + 0.5,
-                               0.5, 0.5, 0.5, 0.5} ) );
-    Kokkos::deep_copy( queries, queries_host );
+    auto queries = makeOverlapQueries<DeviceType>( {
+        {{(double)comm_size - (double)comm_rank - 0.5,
+          (double)comm_size - (double)comm_rank - 0.5, 0.5, 0.5, 0.5, 0.5}},
+        {{(double)comm_rank + 0.5, (double)comm_rank + 0.5, 0.5, 0.5, 0.5,
+          0.5}},
+    } );
 
     checkResults( empty_tree, queries, {}, {0, 0, 0}, {}, success, out );
     checkResults( tree, queries, {0, 0}, {0, 1, 2},
                   {comm_size - 1 - comm_rank, comm_rank}, success, out );
 
-    checkResults( empty_tree,
-                  Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>(
-                      "nothing", 0 ),
-                  {}, {0}, {}, success, out );
-    checkResults( empty_tree,
-                  Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>(
-                      "nothing", 0 ),
-                  {}, {0}, {}, success, out );
+    checkResults( empty_tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
+                  success, out );
+    checkResults( empty_tree, makeOverlapQueries<DeviceType>( {} ), {}, {0}, {},
+                  success, out );
 
-    checkResults( tree,
-                  Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>(
-                      "nothing", 0 ),
-                  {}, {0}, {}, success, out );
-    checkResults( tree,
-                  Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>(
-                      "nothing", 0 ),
-                  {}, {0}, {}, success, out );
+    checkResults( tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
+                  success, out );
+    checkResults( tree, makeOverlapQueries<DeviceType>( {} ), {}, {0}, {},
+                  success, out );
 
     TEST_ASSERT( empty_tree.empty() );
     TEST_ASSERT( !tree.empty() );
