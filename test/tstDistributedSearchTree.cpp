@@ -149,12 +149,12 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
 // The `out` and `success` parameters come from the Teuchos unit testing macros
 // expansion.
 template <typename Query, typename DeviceType>
-void checkResults( DataTransferKit::DistributedSearchTree<DeviceType> &tree,
-                   Kokkos::View<Query *, DeviceType> const &queries,
-                   std::vector<int> const &indices_ref,
-                   std::vector<int> const &offset_ref,
-                   std::vector<int> const &ranks_ref, bool &success,
-                   Teuchos::FancyOStream &out )
+void checkResults(
+    DataTransferKit::DistributedSearchTree<DeviceType> const &tree,
+    Kokkos::View<Query *, DeviceType> const &queries,
+    std::vector<int> const &indices_ref, std::vector<int> const &offset_ref,
+    std::vector<int> const &ranks_ref, bool &success,
+    Teuchos::FancyOStream &out )
 {
     Kokkos::View<int *, DeviceType> indices( "indices" );
     Kokkos::View<int *, DeviceType> offset( "offset" );
