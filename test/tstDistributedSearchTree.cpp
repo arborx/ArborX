@@ -300,6 +300,9 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree,
 
     checkResults( empty_tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
                   success, out );
+
+    checkResults( empty_tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
+                  {}, success, out );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree_no_queries,
