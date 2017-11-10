@@ -63,6 +63,18 @@ makeDistributedSearchTree( Teuchos::RCP<const Teuchos::Comm<int>> const &comm,
 
 // FIXME: Move into separate header file. This is copy/paste from
 // tstLinearBVH.cpp
+void testBoxEquality( DataTransferKit::Box const &l,
+                      DataTransferKit::Box const &r, bool &success,
+                      Teuchos::FancyOStream &out )
+{
+    TEST_EQUALITY( l[0], r[0] );
+    TEST_EQUALITY( l[1], r[1] );
+    TEST_EQUALITY( l[2], r[2] );
+    TEST_EQUALITY( l[3], r[3] );
+    TEST_EQUALITY( l[4], r[4] );
+    TEST_EQUALITY( l[5], r[5] );
+}
+
 template <typename DeviceType>
 Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>
 makeOverlapQueries( std::vector<DataTransferKit::Box> const &boxes )
