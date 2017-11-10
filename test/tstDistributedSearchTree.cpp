@@ -149,12 +149,12 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
 // The `out` and `success` parameters come from the Teuchos unit testing macros
 // expansion.
 template <typename Query, typename DeviceType>
-void check_results( DataTransferKit::DistributedSearchTree<DeviceType> &tree,
-                    Kokkos::View<Query *, DeviceType> const &queries,
-                    std::vector<int> const &indices_ref,
-                    std::vector<int> const &offset_ref,
-                    std::vector<int> const &ranks_ref, bool &success,
-                    Teuchos::FancyOStream &out )
+void checkResults( DataTransferKit::DistributedSearchTree<DeviceType> &tree,
+                   Kokkos::View<Query *, DeviceType> const &queries,
+                   std::vector<int> const &indices_ref,
+                   std::vector<int> const &offset_ref,
+                   std::vector<int> const &ranks_ref, bool &success,
+                   Teuchos::FancyOStream &out )
 {
     Kokkos::View<int *, DeviceType> indices( "indices" );
     Kokkos::View<int *, DeviceType> offset( "offset" );
@@ -203,31 +203,27 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree_no_queries,
                                0.5, 0.5, 0.5, 0.5} ) );
     Kokkos::deep_copy( queries, queries_host );
 
-    check_results( empty_tree, queries, {}, {0, 0, 0}, {}, success, out );
-    check_results( tree, queries, {0, 0}, {0, 1, 2},
-                   {comm_size - 1 - comm_rank, comm_rank}, success, out );
+    checkResults( empty_tree, queries, {}, {0, 0, 0}, {}, success, out );
+    checkResults( tree, queries, {0, 0}, {0, 1, 2},
+                  {comm_size - 1 - comm_rank, comm_rank}, success, out );
 
-    check_results(
-        empty_tree,
-        Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>(
-            "nothing", 0 ),
-        {}, {0}, {}, success, out );
-    check_results(
-        empty_tree,
-        Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>(
-            "nothing", 0 ),
-        {}, {0}, {}, success, out );
+    checkResults( empty_tree,
+                  Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>(
+                      "nothing", 0 ),
+                  {}, {0}, {}, success, out );
+    checkResults( empty_tree,
+                  Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>(
+                      "nothing", 0 ),
+                  {}, {0}, {}, success, out );
 
-    check_results(
-        tree,
-        Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>(
-            "nothing", 0 ),
-        {}, {0}, {}, success, out );
-    check_results(
-        tree,
-        Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>(
-            "nothing", 0 ),
-        {}, {0}, {}, success, out );
+    checkResults( tree,
+                  Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>(
+                      "nothing", 0 ),
+                  {}, {0}, {}, success, out );
+    checkResults( tree,
+                  Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>(
+                      "nothing", 0 ),
+                  {}, {0}, {}, success, out );
 
     TEST_ASSERT( empty_tree.empty() );
     TEST_ASSERT( !tree.empty() );
