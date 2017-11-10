@@ -248,6 +248,31 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
     }
 }
 
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree,
+                                   DeviceType )
+{
+    Teuchos::RCP<const Teuchos::Comm<int>> comm =
+        Teuchos::DefaultComm<int>::getComm();
+    int const comm_rank = Teuchos::rank( *comm );
+    int const comm_size = Teuchos::size( *comm );
+
+    auto empty_tree = makeDistributedSearchTree<DeviceType>( comm, {} );
+
+    TEST_ASSERT( empty_tree.empty() );
+    TEST_EQUALITY( empty_tree.size(), 0 );
+
+    testBoxEquality( empty_tree.bounds(), {}, success, out );
+
+    checkResults( empty_tree, makeOverlapQueries<DeviceType>( {} ), {}, {0}, {},
+                  success, out );
+
+    checkResults( empty_tree, makeWithinQueries<DeviceType>( {} ), {}, {0}, {},
+                  success, out );
+
+    checkResults( empty_tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
+                  success, out );
+}
+
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree_no_queries,
                                    DeviceType )
 {
@@ -468,6 +493,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
 #define UNIT_TEST_GROUP( NODE )                                                \
     using DeviceType##NODE = typename NODE::device_type;                       \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DistributedSearchTree, hello_world,  \
+                                          DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DistributedSearchTree, empty_tree,   \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT(                                      \
         DistributedSearchTree, empty_tree_no_queries, DeviceType##NODE )       \
