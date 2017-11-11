@@ -21,8 +21,6 @@
 
 #include "DTK_ConfigDefs.hpp"
 
-#include <mutex>
-
 namespace DataTransferKit
 {
 
@@ -47,7 +45,7 @@ class DistributedSearchTree
     using SizeType = typename BVH<DeviceType>::SizeType;
     /** Returns the global number of objects stored in the tree.
      */
-    SizeType size() const;
+    inline SizeType size() const { return _size; }
 
     /** Indicates whether the tree is empty on all processes.
      */
@@ -99,11 +97,7 @@ class DistributedSearchTree
     Teuchos::RCP<Teuchos::Comm<int> const> _comm;
     BVH<DeviceType> _local_tree;
     BVH<DeviceType> _distributed_tree;
-    // Global number of object passed to the constructor.  It is initialized to
-    // an invalid value and gets sum-reduced and cached when size() is called.
-    mutable SizeType _size = std::numeric_limits<SizeType>::max();
-    mutable std::mutex _mutex;
-    mutable std::once_flag _once_flag;
+    SizeType _size;
 };
 
 template <typename DeviceType>
