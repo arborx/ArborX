@@ -12,7 +12,28 @@
 #include <Teuchos_UnitTestHarness.hpp>
 
 #include <algorithm>
+#include <numeric>
 #include <vector>
+
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, iota, DeviceType )
+{
+    int const n = 10;
+    double const val = 3.;
+    Kokkos::View<double *, DeviceType> v( "v", n );
+    DataTransferKit::iota( v, val );
+    std::vector<double> v_ref( n );
+    std::iota( v_ref.begin(), v_ref.end(), val );
+    auto v_host = Kokkos::create_mirror_view( v );
+    Kokkos::deep_copy( v_host, v );
+    TEST_COMPARE_ARRAYS( v_ref, v_host );
+
+    Kokkos::View<int[3], DeviceType> w( "w" );
+    DataTransferKit::iota( w );
+    std::vector<int> w_ref = {0, 1, 2};
+    auto w_host = Kokkos::create_mirror_view( w );
+    Kokkos::deep_copy( w_host, w );
+    TEST_COMPARE_ARRAYS( w_ref, w_host );
+}
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, prefix_sum, DeviceType )
 {
@@ -89,6 +110,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, last_element, DeviceType )
 // Create the test group
 #define UNIT_TEST_GROUP( NODE )                                                \
     using DeviceType##NODE = typename NODE::device_type;                       \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, iota,                  \
+                                          DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, prefix_sum,            \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, last_element,          \
