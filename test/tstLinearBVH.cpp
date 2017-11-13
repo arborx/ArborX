@@ -213,7 +213,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty_tree, DeviceType )
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, single_leaf_tree, DeviceType )
 {
     // tree has a single leaf (unit box)
-    auto bvh = makeBvh<DeviceType>( {
+    auto const bvh = makeBvh<DeviceType>( {
         {{0., 1., 0., 1., 0., 1.}},
     } );
 
@@ -267,7 +267,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, single_leaf_tree, DeviceType )
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, couple_leaves_tree, DeviceType )
 {
-    auto bvh = makeBvh<DeviceType>( {
+    auto const bvh = makeBvh<DeviceType>( {
         {{0., 0., 0., 0., 0., 0.}},
         {{1., 1., 1., 1., 1., 1.}},
     } );
@@ -328,10 +328,10 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, couple_leaves_tree, DeviceType )
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, miscellaneous, DeviceType )
 {
-    auto bvh = makeBvh<DeviceType>( {
+    auto const bvh = makeBvh<DeviceType>( {
         {{1., 2., 3., 4., 5., 6.}},
     } );
-    auto empty_bvh = makeBvh<DeviceType>( {} );
+    auto const empty_bvh = makeBvh<DeviceType>( {} );
 
     TEST_ASSERT(
         DataTransferKit::Details::TreeTraversal<DeviceType>::getRoot( bvh ) );

@@ -284,7 +284,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree,
     int const comm_rank = Teuchos::rank( *comm );
     int const comm_size = Teuchos::size( *comm );
 
-    auto empty_tree = makeDistributedSearchTree<DeviceType>( comm, {} );
+    auto const empty_tree = makeDistributedSearchTree<DeviceType>( comm, {} );
 
     TEST_ASSERT( empty_tree.empty() );
     TEST_EQUALITY( empty_tree.size(), 0 );
@@ -355,7 +355,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, unique_leaf_on_rank_0,
     int const comm_size = Teuchos::size( *comm );
 
     // tree has one unique leaf that lives on rank 0
-    auto tree =
+    auto const tree =
         ( comm_rank == 0 ? makeDistributedSearchTree<DeviceType>(
                                comm,
                                {
@@ -390,7 +390,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, one_leaf_per_rank,
     int const comm_size = Teuchos::size( *comm );
 
     // tree has one leaf per rank
-    auto tree = makeDistributedSearchTree<DeviceType>(
+    auto const tree = makeDistributedSearchTree<DeviceType>(
         comm, {
                   {{(double)comm_rank, (double)comm_rank + 1., 0., 1., 0., 1.}},
               } );
