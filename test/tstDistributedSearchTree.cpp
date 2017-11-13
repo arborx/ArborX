@@ -15,7 +15,6 @@
 #include <boost/geometry.hpp>
 
 #include <algorithm>
-#include <bitset>
 #include <iostream>
 #include <random>
 #include <tuple>
