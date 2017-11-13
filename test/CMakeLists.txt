@@ -4,7 +4,7 @@
 
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   LinearBVH
-  SOURCES tstLinearBVH.cpp unit_test_main.cpp
+  SOURCES tstLinearBVH.cpp Search_UnitTestHelpers.hpp unit_test_main.cpp
   COMM serial mpi
   NUM_MPI_PROCS 1
   STANDARD_PASS_OUTPUT
@@ -45,7 +45,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   DistributedSearchTree
-  SOURCES tstDistributedSearchTree.cpp unit_test_main.cpp
+  SOURCES tstDistributedSearchTree.cpp Search_UnitTestHelpers.hpp unit_test_main.cpp
   COMM serial mpi
   NUM_MPI_PROCS 4
   STANDARD_PASS_OUTPUT
