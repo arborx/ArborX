@@ -33,6 +33,7 @@ template <typename DeviceType>
 class BVH
 {
   public:
+    BVH() = default; // build an empty tree
     BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes );
 
     // Views are passed by reference here because internally Kokkos::realloc()

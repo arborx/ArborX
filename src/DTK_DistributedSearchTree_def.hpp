@@ -42,31 +42,10 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
         boxes_host( i ) = Box( &( bounds[6 * i] ) );
     Kokkos::deep_copy( boxes, boxes_host );
 
-    _distributed_tree = std::make_shared<BVH<DeviceType>>( boxes );
-}
+    _distributed_tree = BVH<DeviceType>( boxes );
 
-template <typename DeviceType>
-typename DistributedSearchTree<DeviceType>::SizeType
-DistributedSearchTree<DeviceType>::size() const
-{
-    // Below is an attempt to achieve lazy evaluation while preserving thread
-    // safety.  `_size` is initialized to an invalid state upon construction
-    // and is computed only once as the sum reduce of the local tree size over
-    // all processes.
-    if ( _size == std::numeric_limits<SizeType>::max() )
-    {
-        std::lock_guard<std::mutex> guard( _mutex );
-        std::call_once(
-            _once_flag,
-            []( Teuchos::RCP<Teuchos::Comm<int> const> const &comm,
-                SizeType const &local_size,
-                Teuchos::Ptr<SizeType> const &global_size ) -> void {
-                Teuchos::reduceAll( *comm, Teuchos::REDUCE_SUM, local_size,
-                                    global_size );
-            },
-            _comm, _local_tree.size(), Teuchos::ptrFromRef( _size ) );
-    }
-    return _size;
+    Teuchos::reduceAll( *_comm, Teuchos::REDUCE_SUM, _local_tree.size(),
+                        Teuchos::ptrFromRef( _size ) );
 }
 
 } // end namespace DataTransferKit
