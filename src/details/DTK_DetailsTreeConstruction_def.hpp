@@ -49,8 +49,8 @@ class AssignMortonCodesFunctor
         // scale coordinates with respect to bounding box of the scene
         for ( int d = 0; d < 3; ++d )
         {
-            a = _scene_bounding_box[2 * d];
-            b = _scene_bounding_box[2 * d + 1];
+            a = _scene_bounding_box.minCorner()[d];
+            b = _scene_bounding_box.maxCorner()[d];
             xyz[d] = ( a != b ? ( xyz[d] - a ) / ( b - a ) : 0 );
         }
         _morton_codes[i] =

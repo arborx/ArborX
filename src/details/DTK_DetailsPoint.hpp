@@ -18,10 +18,22 @@ class Point
 {
   public:
     KOKKOS_INLINE_FUNCTION
-    const double &operator[]( unsigned int i ) const { return _coords[i]; }
+    double &operator[]( unsigned int i ) { return _coords[i]; }
 
     KOKKOS_INLINE_FUNCTION
-    double &operator[]( unsigned int i ) { return _coords[i]; }
+    double const &operator[]( unsigned int i ) const { return _coords[i]; }
+
+    KOKKOS_INLINE_FUNCTION
+    double volatile &operator[]( unsigned int i ) volatile
+    {
+        return _coords[i];
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    double const volatile &operator[]( unsigned int i ) const volatile
+    {
+        return _coords[i];
+    }
 
     // This should be private but if we make public we can use the list
     // initializer constructor.

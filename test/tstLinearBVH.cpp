@@ -90,12 +90,13 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, single_leaf_tree, DeviceType )
 {
     // tree has a single leaf (unit box)
     auto const bvh = makeBvh<DeviceType>( {
-        {{0., 1., 0., 1., 0., 1.}},
+        {{{0., 0., 0.}}, {{1., 1., 1.}}},
     } );
 
     TEST_ASSERT( !bvh.empty() );
     TEST_EQUALITY( bvh.size(), 1 );
-    testBoxEquality( bvh.bounds(), {{0., 1., 0., 1., 0., 1.}}, success, out );
+    testBoxEquality( bvh.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}, success,
+                     out );
 
     checkResults( bvh, makeOverlapQueries<DeviceType>( {} ), {}, {0}, success,
                   out );
@@ -111,8 +112,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, single_leaf_tree, DeviceType )
 
     checkResults( bvh,
                   makeOverlapQueries<DeviceType>( {
-                      {{5., 5., 5., 5., 5., 5.}},
-                      {{.5, .5, .5, .5, .5, .5}},
+                      {{{5., 5., 5.}}, {{5., 5., 5.}}},
+                      {{{.5, .5, .5}}, {{.5, .5, .5}}},
                   } ),
                   {0}, {0, 0, 1}, success, out );
 
@@ -144,13 +145,14 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, single_leaf_tree, DeviceType )
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, couple_leaves_tree, DeviceType )
 {
     auto const bvh = makeBvh<DeviceType>( {
-        {{0., 0., 0., 0., 0., 0.}},
-        {{1., 1., 1., 1., 1., 1.}},
+        {{{0., 0., 0.}}, {{0., 0., 0.}}},
+        {{{1., 1., 1.}}, {{1., 1., 1.}}},
     } );
 
     TEST_ASSERT( !bvh.empty() );
     TEST_EQUALITY( bvh.size(), 2 );
-    testBoxEquality( bvh.bounds(), {{0., 1., 0., 1., 0., 1.}}, success, out );
+    testBoxEquality( bvh.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}, success,
+                     out );
 
     // single query overlap with nothing
     checkResults( bvh,
@@ -162,14 +164,14 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, couple_leaves_tree, DeviceType )
     // single query overlap with both
     checkResults( bvh,
                   makeOverlapQueries<DeviceType>( {
-                      {{0., 1., 0., 1., 0., 1.}},
+                      {{{0., 0., 0.}}, {{1., 1., 1.}}},
                   } ),
                   {1, 0}, {0, 2}, success, out );
 
     // single query overlap with only one
     checkResults( bvh,
                   makeOverlapQueries<DeviceType>( {
-                      {{0.5, 1.5, 0.5, 1.5, 0.5, 1.5}},
+                      {{{0.5, 0.5, 0.5}}, {{1.5, 1.5, 1.5}}},
                   } ),
                   {1}, {0, 1}, success, out );
 
@@ -185,7 +187,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, couple_leaves_tree, DeviceType )
     checkResults( bvh,
                   makeOverlapQueries<DeviceType>( {
                       {},
-                      {{0., 0., 0., 0., 0., 0.}},
+                      {{{0., 0., 0.}}, {{0., 0., 0.}}},
                   } ),
                   {0}, {0, 0, 1}, success, out );
 
@@ -205,7 +207,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, couple_leaves_tree, DeviceType )
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, miscellaneous, DeviceType )
 {
     auto const bvh = makeBvh<DeviceType>( {
-        {{1., 2., 3., 4., 5., 6.}},
+        {{{1., 3., 5.}}, {{2., 4., 6.}}},
     } );
     auto const empty_bvh = makeBvh<DeviceType>( {} );
 
@@ -274,8 +276,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
                     x = i * Lx / ( nx - 1 );
                     y = j * Ly / ( ny - 1 );
                     z = k * Lz / ( nz - 1 );
-                    bounding_boxes[i + j * nx + k * ( nx * ny )] = {x, x, y,
-                                                                    y, z, z};
+                    bounding_boxes[i + j * nx + k * ( nx * ny )] = {
+                        {{x, y, z}}, {{x, y, z}}};
                 }
         } );
     Kokkos::fence();
@@ -344,15 +346,15 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
             for ( int k = 0; k < nz; ++k )
             {
                 int const index = ind( i, j, k );
-                // bounding box around nodes of the structured grid will overlap
-                // with neighboring nodes
+                // bounding box around nodes of the structured grid will
+                // overlap with neighboring nodes
                 bounding_boxes_host[index] = {
-                    ( i - 1 ) * Lx / ( nx - 1 ), ( i + 1 ) * Lx / ( nx - 1 ),
-                    ( j - 1 ) * Ly / ( ny - 1 ), ( j + 1 ) * Ly / ( ny - 1 ),
-                    ( k - 1 ) * Lz / ( nz - 1 ), ( k + 1 ) * Lz / ( nz - 1 ),
-                };
-                // fill in reference solution to check againt the collision list
-                // computed during the tree traversal
+                    {{( i - 1 ) * Lx / ( nx - 1 ), ( j - 1 ) * Ly / ( ny - 1 ),
+                      ( k - 1 ) * Lz / ( nz - 1 )}},
+                    {{( i + 1 ) * Lx / ( nx - 1 ), ( j + 1 ) * Ly / ( ny - 1 ),
+                      ( k + 1 ) * Lz / ( nz - 1 )}}};
+                // fill in reference solution to check againt the collision
+                // list computed during the tree traversal
                 if ( ( i > 0 ) && ( j > 0 ) && ( k > 0 ) )
                     ref[index].emplace( ind( i - 1, j - 1, k - 1 ) );
                 if ( ( i > 0 ) && ( k > 0 ) )
@@ -457,10 +459,10 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
         double y = distribution_y( generator );
         double z = distribution_z( generator );
         bounding_boxes_host( l ) = {
-            x - 0.5 * Lx / ( nx - 1 ), x + 0.5 * Lx / ( nx - 1 ),
-            y - 0.5 * Ly / ( ny - 1 ), y + 0.5 * Ly / ( ny - 1 ),
-            z - 0.5 * Lz / ( nz - 1 ), z + 0.5 * Lz / ( nz - 1 ),
-        };
+            {{x - 0.5 * Lx / ( nx - 1 ), y - 0.5 * Ly / ( ny - 1 ),
+              z - 0.5 * Lz / ( nz - 1 )}},
+            {{x + 0.5 * Lx / ( nx - 1 ), y + 0.5 * Ly / ( ny - 1 ),
+              z + 0.5 * Lz / ( nz - 1 )}}};
 
         int i = std::round( x / Lx * ( nx - 1 ) );
         int j = std::round( y / Ly * ( ny - 1 ) );
@@ -563,9 +565,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
         double x = std::get<0>( point );
         double y = std::get<1>( point );
         double z = std::get<2>( point );
-        bounding_boxes_host[i] = {
-            x, x, y, y, z, z,
-        };
+        bounding_boxes_host[i] = {{{x, y, z}}, {{x, y, z}}};
     }
 
     Kokkos::deep_copy( bounding_boxes, bounding_boxes_host );

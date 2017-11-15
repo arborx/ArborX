@@ -9,8 +9,9 @@
 #ifndef DTK_Box_HPP
 #define DTK_Box_HPP
 
+#include <DTK_DetailsPoint.hpp>
 #include <Kokkos_ArithTraits.hpp>
-#include <Kokkos_Core.hpp>
+#include <Kokkos_Macros.hpp>
 
 namespace DataTransferKit
 {
@@ -21,68 +22,46 @@ namespace DataTransferKit
  */
 struct Box
 {
-    using ArrayType = double[6]; // Kokkos::Array<double, 6>;
-    using SizeType = size_t;     // ArrayType::size_type;
+    KOKKOS_INLINE_FUNCTION
+    Box() = default;
 
     KOKKOS_INLINE_FUNCTION
-    Box()
+    Box( Point const &min_corner, Point const &max_corner )
+        : _min_corner( min_corner )
+        , _max_corner( max_corner )
     {
-        _minmax[0] = Kokkos::ArithTraits<double>::max();
-        _minmax[1] = -Kokkos::ArithTraits<double>::max();
-        _minmax[2] = Kokkos::ArithTraits<double>::max();
-        _minmax[3] = -Kokkos::ArithTraits<double>::max();
-        _minmax[4] = Kokkos::ArithTraits<double>::max();
-        _minmax[5] = -Kokkos::ArithTraits<double>::max();
     }
 
     KOKKOS_INLINE_FUNCTION
-    Box( ArrayType const &minmax )
-    {
-        for ( unsigned int i = 0; i < 6; ++i )
-            _minmax[i] = minmax[i];
-    }
+    Point &minCorner() { return _min_corner; }
 
     KOKKOS_INLINE_FUNCTION
-    Box( double const *minmax )
-    {
-        for ( unsigned int i = 0; i < 6; ++i )
-            _minmax[i] = minmax[i];
-    }
+    Point const &minCorner() const { return _min_corner; }
 
     KOKKOS_INLINE_FUNCTION
-    Box &operator=( ArrayType const &minmax )
-    {
-        for ( unsigned int i = 0; i < 6; ++i )
-            _minmax[i] = minmax[i];
-
-        return *this;
-    }
+    Point volatile &minCorner() volatile { return _min_corner; }
 
     KOKKOS_INLINE_FUNCTION
-    double &operator[]( SizeType i ) { return _minmax[i]; }
+    Point volatile const &minCorner() volatile const { return _min_corner; }
 
     KOKKOS_INLINE_FUNCTION
-    double const &operator[]( SizeType i ) const { return _minmax[i]; }
+    Point &maxCorner() { return _max_corner; }
 
     KOKKOS_INLINE_FUNCTION
-    volatile double &operator[]( SizeType i ) volatile { return _minmax[i]; }
+    Point const &maxCorner() const { return _max_corner; }
 
     KOKKOS_INLINE_FUNCTION
-    volatile double const &operator[]( SizeType i ) volatile const
-    {
-        return _minmax[i];
-    }
+    Point volatile &maxCorner() volatile { return _max_corner; }
 
-    ArrayType _minmax;
+    KOKKOS_INLINE_FUNCTION
+    Point volatile const &maxCorner() volatile const { return _max_corner; }
 
-    friend std::ostream &operator<<( std::ostream &os, Box const &aabb )
-    {
-        os << "{";
-        for ( int d = 0; d < 3; ++d )
-            os << " [" << aabb[2 * d + 0] << ", " << aabb[2 * d + 1] << "],";
-        os << "}";
-        return os;
-    }
+    Point _min_corner = {{Kokkos::ArithTraits<double>::max(),
+                          Kokkos::ArithTraits<double>::max(),
+                          Kokkos::ArithTraits<double>::max()}};
+    Point _max_corner = {{-Kokkos::ArithTraits<double>::max(),
+                          -Kokkos::ArithTraits<double>::max(),
+                          -Kokkos::ArithTraits<double>::max()}};
 };
 }
 

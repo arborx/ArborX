@@ -39,10 +39,10 @@ double distance( Point const &point, Box const &box )
     Point projected_point;
     for ( int d = 0; d < 3; ++d )
     {
-        if ( point[d] < box[2 * d + 0] )
-            projected_point[d] = box[2 * d + 0];
-        else if ( point[d] > box[2 * d + 1] )
-            projected_point[d] = box[2 * d + 1];
+        if ( point[d] < box.minCorner()[d] )
+            projected_point[d] = box.minCorner()[d];
+        else if ( point[d] > box.maxCorner()[d] )
+            projected_point[d] = box.maxCorner()[d];
         else
             projected_point[d] = point[d];
     }
@@ -55,10 +55,10 @@ void expand( Box &box, Point const &point )
 {
     for ( int d = 0; d < 3; ++d )
     {
-        if ( point[d] < box[2 * d + 0] )
-            box[2 * d + 0] = point[d];
-        if ( point[d] > box[2 * d + 1] )
-            box[2 * d + 1] = point[d];
+        if ( point[d] < box.minCorner()[d] )
+            box.minCorner()[d] = point[d];
+        if ( point[d] > box.maxCorner()[d] )
+            box.maxCorner()[d] = point[d];
     }
 }
 
@@ -68,10 +68,10 @@ void expand( Box &box, Box const &other )
 {
     for ( int d = 0; d < 3; ++d )
     {
-        if ( box[2 * d + 0] > other[2 * d + 0] )
-            box[2 * d + 0] = other[2 * d + 0];
-        if ( box[2 * d + 1] < other[2 * d + 1] )
-            box[2 * d + 1] = other[2 * d + 1];
+        if ( box.minCorner()[d] > other.minCorner()[d] )
+            box.minCorner()[d] = other.minCorner()[d];
+        if ( box.maxCorner()[d] < other.maxCorner()[d] )
+            box.maxCorner()[d] = other.maxCorner()[d];
     }
 }
 
@@ -80,8 +80,8 @@ KOKKOS_INLINE_FUNCTION
 bool overlaps( Box const &box, Box const &other )
 {
     for ( int d = 0; d < 3; ++d )
-        if ( box[2 * d + 0] > other[2 * d + 1] ||
-             box[2 * d + 1] < other[2 * d + 0] )
+        if ( box.minCorner()[d] > other.maxCorner()[d] ||
+             box.maxCorner()[d] < other.minCorner()[d] )
             return false;
     return true;
 }
@@ -91,9 +91,10 @@ KOKKOS_INLINE_FUNCTION
 void centroid( Box const &box, Point &c )
 {
     for ( int d = 0; d < 3; ++d )
-        c[d] = 0.5 * ( box[2 * d + 0] + box[2 * d + 1] );
+        c[d] = 0.5 * ( box.minCorner()[d] + box.maxCorner()[d] );
 }
 
+// FIXME: use expand()
 template <typename DeviceType>
 class ExpandBoxWithBoxFunctor
 {
@@ -111,8 +112,8 @@ class ExpandBoxWithBoxFunctor
     {
         for ( int d = 0; d < 3; ++d )
         {
-            box[2 * d] = _greatest;
-            box[2 * d + 1] = _lowest;
+            box.minCorner()[d] = _greatest;
+            box.maxCorner()[d] = _lowest;
         }
     }
 
@@ -121,10 +122,10 @@ class ExpandBoxWithBoxFunctor
     {
         for ( int d = 0; d < 3; ++d )
         {
-            box[2 * d] =
-                KokkosHelpers::min( _bounding_boxes[i][2 * d], box[2 * d] );
-            box[2 * d + 1] = KokkosHelpers::max( _bounding_boxes[i][2 * d + 1],
-                                                 box[2 * d + 1] );
+            box.minCorner()[d] = KokkosHelpers::min(
+                _bounding_boxes[i].minCorner()[d], box.minCorner()[d] );
+            box.maxCorner()[d] = KokkosHelpers::max(
+                _bounding_boxes[i].maxCorner()[d], box.maxCorner()[d] );
         }
     }
 
@@ -133,9 +134,10 @@ class ExpandBoxWithBoxFunctor
     {
         for ( int d = 0; d < 3; ++d )
         {
-            dst[2 * d] = KokkosHelpers::min( src[2 * d], dst[2 * d] );
-            dst[2 * d + 1] =
-                KokkosHelpers::max( src[2 * d + 1], dst[2 * d + 1] );
+            dst.minCorner()[d] =
+                KokkosHelpers::min( src.minCorner()[d], dst.minCorner()[d] );
+            dst.maxCorner()[d] =
+                KokkosHelpers::max( src.maxCorner()[d], dst.maxCorner()[d] );
         }
     }
 

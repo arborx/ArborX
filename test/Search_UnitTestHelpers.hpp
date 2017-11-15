@@ -160,12 +160,12 @@ void testBoxEquality( DataTransferKit::Box const &l,
                       DataTransferKit::Box const &r, bool &success,
                       Teuchos::FancyOStream &out )
 {
-    TEST_EQUALITY( l[0], r[0] );
-    TEST_EQUALITY( l[1], r[1] );
-    TEST_EQUALITY( l[2], r[2] );
-    TEST_EQUALITY( l[3], r[3] );
-    TEST_EQUALITY( l[4], r[4] );
-    TEST_EQUALITY( l[5], r[5] );
+    TEST_EQUALITY( l.minCorner()[0], r.minCorner()[0] );
+    TEST_EQUALITY( l.minCorner()[1], r.minCorner()[1] );
+    TEST_EQUALITY( l.minCorner()[2], r.minCorner()[2] );
+    TEST_EQUALITY( l.maxCorner()[0], r.maxCorner()[0] );
+    TEST_EQUALITY( l.maxCorner()[1], r.maxCorner()[1] );
+    TEST_EQUALITY( l.maxCorner()[2], r.maxCorner()[2] );
 }
 
 template <typename DeviceType>

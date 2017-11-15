@@ -107,9 +107,7 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         double x = std::get<0>( point );
         double y = std::get<1>( point );
         double z = std::get<2>( point );
-        bounding_boxes_host[i] = {
-            x, x, y, y, z, z,
-        };
+        bounding_boxes_host[i] = {{{x, y, z}}, {{x, y, z}}};
     }
     Kokkos::deep_copy( bounding_boxes, bounding_boxes_host );
 

@@ -39,7 +39,7 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
                         reinterpret_cast<double *>( &boxes_host( comm_rank ) ),
                         6 * comm_size, bounds.getRawPtr() );
     for ( int i = 0; i < comm_size; ++i )
-        boxes_host( i ) = Box( &( bounds[6 * i] ) );
+        boxes_host( i ) = reinterpret_cast<Box const &>( bounds[6 * i] );
     Kokkos::deep_copy( boxes, boxes_host );
 
     _distributed_tree = BVH<DeviceType>( boxes );

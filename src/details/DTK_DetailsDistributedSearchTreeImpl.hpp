@@ -170,14 +170,16 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                           KOKKOS_LAMBDA( int q ) {
                               Point point = queries( q )._query_point;
-                              Box box( {
-                                  point[0] - epsilon[0],
-                                  point[0] + epsilon[0],
-                                  point[1] - epsilon[1],
-                                  point[1] + epsilon[1],
-                                  point[2] - epsilon[2],
-                                  point[2] + epsilon[2],
-                              } );
+                              Box box = {{{
+                                             point[0] - epsilon[0],
+                                             point[1] - epsilon[1],
+                                             point[2] - epsilon[2],
+                                         }},
+                                         {{
+                                             point[0] + epsilon[0],
+                                             point[1] + epsilon[1],
+                                             point[2] + epsilon[2],
+                                         }}};
                               overlap_queries( q ) = Details::Overlap( box );
                           } );
     Kokkos::fence();

@@ -228,14 +228,15 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, unique_leaf_on_rank_0,
         ( comm_rank == 0 ? makeDistributedSearchTree<DeviceType>(
                                comm,
                                {
-                                   {{0., 1., 0., 1., 0., 1.}},
+                                   {{{0., 0., 0.}}, {{1., 1., 1.}}},
                                } )
                          : makeDistributedSearchTree<DeviceType>( comm, {} ) );
 
     TEST_ASSERT( !tree.empty() );
     TEST_EQUALITY( tree.size(), 1 );
 
-    testBoxEquality( tree.bounds(), {{0., 1., 0., 1., 0., 1.}}, success, out );
+    testBoxEquality( tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}, success,
+                     out );
 
     checkResults( tree, makeOverlapQueries<DeviceType>( {} ), {}, {0}, {},
                   success, out );
@@ -260,25 +261,27 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, one_leaf_per_rank,
 
     // tree has one leaf per rank
     auto const tree = makeDistributedSearchTree<DeviceType>(
-        comm, {
-                  {{(double)comm_rank, (double)comm_rank + 1., 0., 1., 0., 1.}},
-              } );
+        comm,
+        {
+            {{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank + 1., 1., 1.}}},
+        } );
 
     TEST_ASSERT( !tree.empty() );
     TEST_EQUALITY( (int)tree.size(), comm_size );
 
-    testBoxEquality( tree.bounds(), {{0., (double)comm_size, 0., 1., 0., 1.}},
-                     success, out );
+    testBoxEquality( tree.bounds(),
+                     {{{0., 0., 0.}}, {{(double)comm_size, 1., 1.}}}, success,
+                     out );
 
-    checkResults(
-        tree,
-        makeOverlapQueries<DeviceType>( {
-            {{(double)comm_size - (double)comm_rank - .5,
-              (double)comm_size - (double)comm_rank - .5, .5, .5, .5, .5}},
-            {{(double)comm_rank + .5, (double)comm_rank + .5, .5, .5, .5, .5}},
-        } ),
-        {0, 0}, {0, 1, 2}, {comm_size - 1 - comm_rank, comm_rank}, success,
-        out );
+    checkResults( tree,
+                  makeOverlapQueries<DeviceType>( {
+                      {{{(double)comm_size - (double)comm_rank - .5, .5, .5}},
+                       {{(double)comm_size - (double)comm_rank - .5, .5, .5}}},
+                      {{{(double)comm_rank + .5, .5, .5}},
+                       {{(double)comm_rank + .5, .5, .5}}},
+                  } ),
+                  {0, 0}, {0, 1, 2}, {comm_size - 1 - comm_rank, comm_rank},
+                  success, out );
 
     checkResults( tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
                   success, out );
@@ -351,7 +354,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
             double const x = std::get<0>( point );
             double const y = std::get<1>( point );
             double const z = std::get<2>( point );
-            bounding_boxes_host[i / comm_size] = {x, x, y, y, z, z};
+            bounding_boxes_host[i / comm_size] = {{{x, y, z}}, {{x, y, z}}};
         }
     }
 

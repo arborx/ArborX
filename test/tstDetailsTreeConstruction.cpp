@@ -62,8 +62,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, morton_codes, DeviceType )
 
     for ( int d = 0; d < 3; ++d )
     {
-        TEST_EQUALITY( scene_host[0][2 * d + 0], 0.0 );
-        TEST_EQUALITY( scene_host[0][2 * d + 1], 1024.0 );
+        TEST_EQUALITY( scene_host[0].minCorner()[d], 0.0 );
+        TEST_EQUALITY( scene_host[0].maxCorner()[d], 1024.0 );
     }
 
     Kokkos::View<unsigned int *, DeviceType> morton_codes( "morton_codes", n );
