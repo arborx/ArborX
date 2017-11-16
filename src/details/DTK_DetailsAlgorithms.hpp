@@ -19,6 +19,23 @@ namespace DataTransferKit
 {
 namespace Details
 {
+
+KOKKOS_INLINE_FUNCTION
+bool equals( Point const &l, Point const &r )
+{
+    for ( int d = 0; d < 3; ++d )
+        if ( l[d] != r[d] )
+            return false;
+    return true;
+}
+
+KOKKOS_INLINE_FUNCTION
+bool equals( Box const &l, Box const &r )
+{
+    return equals( l.minCorner(), r.minCorner() ) &&
+           equals( l.maxCorner(), r.maxCorner() );
+}
+
 // distance point-point
 KOKKOS_INLINE_FUNCTION
 double distance( Point const &a, Point const &b )
