@@ -31,7 +31,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty_tree, DeviceType )
         TEST_ASSERT( empty_bvh.empty() );
         TEST_EQUALITY( empty_bvh.size(), 0 );
         // BVH::bounds() returns an invalid box when the tree is empty.
-        testBoxEquality( empty_bvh.bounds(), {}, success, out );
+        TEST_ASSERT(
+            DataTransferKit::Details::equals( empty_bvh.bounds(), {} ) );
 
         // Passing a view with no query does seem a bit silly but we still need
         // to support it. And since the tag dispatching yields different tree
@@ -95,8 +96,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, single_leaf_tree, DeviceType )
 
     TEST_ASSERT( !bvh.empty() );
     TEST_EQUALITY( bvh.size(), 1 );
-    testBoxEquality( bvh.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}, success,
-                     out );
+    TEST_ASSERT( DataTransferKit::Details::equals(
+        bvh.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}} ) );
 
     checkResults( bvh, makeOverlapQueries<DeviceType>( {} ), {}, {0}, success,
                   out );
@@ -151,8 +152,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, couple_leaves_tree, DeviceType )
 
     TEST_ASSERT( !bvh.empty() );
     TEST_EQUALITY( bvh.size(), 2 );
-    testBoxEquality( bvh.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}, success,
-                     out );
+    TEST_ASSERT( DataTransferKit::Details::equals(
+        bvh.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}} ) );
 
     // single query overlap with nothing
     checkResults( bvh,

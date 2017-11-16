@@ -158,7 +158,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree,
     TEST_ASSERT( empty_tree.empty() );
     TEST_EQUALITY( empty_tree.size(), 0 );
 
-    testBoxEquality( empty_tree.bounds(), {}, success, out );
+    TEST_ASSERT( DataTransferKit::Details::equals( empty_tree.bounds(), {} ) );
 
     checkResults( empty_tree, makeOverlapQueries<DeviceType>( {} ), {}, {0}, {},
                   success, out );
@@ -235,8 +235,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, unique_leaf_on_rank_0,
     TEST_ASSERT( !tree.empty() );
     TEST_EQUALITY( tree.size(), 1 );
 
-    testBoxEquality( tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}, success,
-                     out );
+    TEST_ASSERT( DataTransferKit::Details::equals(
+        tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}} ) );
 
     checkResults( tree, makeOverlapQueries<DeviceType>( {} ), {}, {0}, {},
                   success, out );
@@ -269,9 +269,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, one_leaf_per_rank,
     TEST_ASSERT( !tree.empty() );
     TEST_EQUALITY( (int)tree.size(), comm_size );
 
-    testBoxEquality( tree.bounds(),
-                     {{{0., 0., 0.}}, {{(double)comm_size, 1., 1.}}}, success,
-                     out );
+    TEST_ASSERT( DataTransferKit::Details::equals(
+        tree.bounds(), {{{0., 0., 0.}}, {{(double)comm_size, 1., 1.}}} ) );
 
     checkResults( tree,
                   makeOverlapQueries<DeviceType>( {

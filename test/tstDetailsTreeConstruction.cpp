@@ -60,11 +60,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, morton_codes, DeviceType )
     auto scene_host = Kokkos::create_mirror_view( scene );
     Kokkos::deep_copy( scene_host, scene );
 
-    for ( int d = 0; d < 3; ++d )
-    {
-        TEST_EQUALITY( scene_host[0].minCorner()[d], 0.0 );
-        TEST_EQUALITY( scene_host[0].maxCorner()[d], 1024.0 );
-    }
+    TEST_ASSERT( dtk::equals( scene_host[0],
+                              {{{0., 0., 0.}}, {{1024., 1024., 1024.}}} ) );
 
     Kokkos::View<unsigned int *, DeviceType> morton_codes( "morton_codes", n );
     dtk::TreeConstruction<DeviceType>::assignMortonCodes( boxes, morton_codes,

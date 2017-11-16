@@ -154,20 +154,6 @@ makeDistributedSearchTree( Teuchos::RCP<const Teuchos::Comm<int>> const &comm,
     return DataTransferKit::DistributedSearchTree<DeviceType>( comm, boxes );
 }
 
-// Hopefully we can git rid of this once the operator== has been implemented
-// for boxes.
-void testBoxEquality( DataTransferKit::Box const &l,
-                      DataTransferKit::Box const &r, bool &success,
-                      Teuchos::FancyOStream &out )
-{
-    TEST_EQUALITY( l.minCorner()[0], r.minCorner()[0] );
-    TEST_EQUALITY( l.minCorner()[1], r.minCorner()[1] );
-    TEST_EQUALITY( l.minCorner()[2], r.minCorner()[2] );
-    TEST_EQUALITY( l.maxCorner()[0], r.maxCorner()[0] );
-    TEST_EQUALITY( l.maxCorner()[1], r.maxCorner()[1] );
-    TEST_EQUALITY( l.maxCorner()[2], r.maxCorner()[2] );
-}
-
 template <typename DeviceType>
 Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>
 makeOverlapQueries( std::vector<DataTransferKit::Box> const &boxes )

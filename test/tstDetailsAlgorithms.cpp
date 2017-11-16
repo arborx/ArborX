@@ -75,47 +75,38 @@ TEUCHOS_UNIT_TEST( DetailsAlgorithms, overlaps )
         dtk::overlaps( box, {{{-0.5, -0.5, -0.5}}, {{0.5, 0.0, 0.5}}} ) );
 }
 
+TEUCHOS_UNIT_TEST( DetailsAlgorithms, equals )
+{
+    TEST_ASSERT( dtk::equals( {{0., 0., 0.}}, {{0., 0., 0.}} ) );
+    TEST_ASSERT( !dtk::equals( {{0., 0., 0.}}, {{1., 1., 1.}} ) );
+    TEST_ASSERT( dtk::equals( {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}},
+                              {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}} ) );
+    TEST_ASSERT( !dtk::equals( {{{0.0, 0.0, 0.0}}, {{1.0, 0.0, 1.0}}},
+                               {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}} ) );
+}
+
 TEUCHOS_UNIT_TEST( DetailsAlgorithms, expand )
 {
-    // convenience utility to compare boxes
-    auto checkBoxesEquality = []( DataTransferKit::Box const &a,
-                                  DataTransferKit::Box const &b ) {
-        for ( int d = 0; d < 3; ++d )
-            if ( ( a.minCorner()[d] != b.minCorner()[d] ) ||
-                 ( a.maxCorner()[d] != b.maxCorner()[d] ) )
-                return false;
-        return true;
-    };
-    // check that the utility does its job properly
-    TEST_ASSERT( checkBoxesEquality( {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}},
-                                     {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}} ) );
-    TEST_ASSERT(
-        !checkBoxesEquality( {{{0.0, 0.0, 0.0}}, {{1.0, 0.0, 1.0}}},
-                             {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}} ) );
-
     DataTransferKit::Box box;
 
     // expand box with points
     dtk::expand( box, {{0.0, 0.0, 0.0}} );
-    TEST_ASSERT(
-        checkBoxesEquality( box, {{{0.0, 0.0, 0.0}}, {{0.0, 0.0, 0.0}}} ) );
+    TEST_ASSERT( dtk::equals( box, {{{0.0, 0.0, 0.0}}, {{0.0, 0.0, 0.0}}} ) );
     dtk::expand( box, {{1.0, 1.0, 1.0}} );
-    TEST_ASSERT(
-        checkBoxesEquality( box, {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}} ) );
+    TEST_ASSERT( dtk::equals( box, {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}} ) );
     dtk::expand( box, {{0.25, 0.75, 0.25}} );
-    TEST_ASSERT(
-        checkBoxesEquality( box, {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}} ) );
+    TEST_ASSERT( dtk::equals( box, {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}} ) );
     dtk::expand( box, {{-1.0, -1.0, -1.0}} );
     TEST_ASSERT(
-        checkBoxesEquality( box, {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}} ) );
+        dtk::equals( box, {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}} ) );
 
     // expand box with boxes
     dtk::expand( box, {{{0.25, 0.25, 0.25}}, {{0.75, 0.75, 0.75}}} );
     TEST_ASSERT(
-        checkBoxesEquality( box, {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}} ) );
+        dtk::equals( box, {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}} ) );
     dtk::expand( box, {{{10.0, 10.0, 10.0}}, {{11.0, 11.0, 11.0}}} );
-    TEST_ASSERT( checkBoxesEquality(
-        box, {{{-1.0, -1.0, -1.0}}, {{11.0, 11.0, 11.0}}} ) );
+    TEST_ASSERT(
+        dtk::equals( box, {{{-1.0, -1.0, -1.0}}, {{11.0, 11.0, 11.0}}} ) );
 }
 
 TEUCHOS_UNIT_TEST( DetailsAlgorithms, centroid )
