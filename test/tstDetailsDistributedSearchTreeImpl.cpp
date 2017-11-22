@@ -13,11 +13,9 @@
 #include <Teuchos_UnitTestHarness.hpp>
 #include <Tpetra_Distributor.hpp>
 
-#include <algorithm>
-#include <bitset>
-#include <iostream>
-#include <random>
-#include <tuple>
+#include <algorithm> // fill
+#include <set>
+#include <vector>
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl, recv_from,
                                    DeviceType )
