@@ -87,15 +87,17 @@ void expand( Box &box, Point const &point )
 }
 
 // expand an axis-aligned bounding box to include another box
-KOKKOS_INLINE_FUNCTION
-void expand( Box &box, Box const &other )
+template <typename BOX,
+          typename = std::enable_if<std::is_same<
+              typename std::remove_volatile<BOX>::type, Box>::value>>
+KOKKOS_INLINE_FUNCTION void expand( BOX &box, BOX const &other )
 {
     for ( int d = 0; d < 3; ++d )
     {
-        if ( box.minCorner()[d] > other.minCorner()[d] )
-            box.minCorner()[d] = other.minCorner()[d];
-        if ( box.maxCorner()[d] < other.maxCorner()[d] )
-            box.maxCorner()[d] = other.maxCorner()[d];
+        box.minCorner()[d] =
+            KokkosHelpers::min( box.minCorner()[d], other.minCorner()[d] );
+        box.maxCorner()[d] =
+            KokkosHelpers::max( box.maxCorner()[d], other.maxCorner()[d] );
     }
 }
 
@@ -131,7 +133,7 @@ void centroid( Box const &box, Point &c )
         c[d] = 0.5 * ( box.minCorner()[d] + box.maxCorner()[d] );
 }
 
-// FIXME: use expand()
+// TODO: move this to Details::TreeConstruction<DeviceType>
 template <typename DeviceType>
 class ExpandBoxWithBoxFunctor
 {
@@ -157,25 +159,13 @@ class ExpandBoxWithBoxFunctor
     KOKKOS_INLINE_FUNCTION
     void operator()( int const i, Box &box ) const
     {
-        for ( int d = 0; d < 3; ++d )
-        {
-            box.minCorner()[d] = KokkosHelpers::min(
-                _bounding_boxes[i].minCorner()[d], box.minCorner()[d] );
-            box.maxCorner()[d] = KokkosHelpers::max(
-                _bounding_boxes[i].maxCorner()[d], box.maxCorner()[d] );
-        }
+        expand( box, _bounding_boxes( i ) );
     }
 
     KOKKOS_INLINE_FUNCTION
     void join( volatile Box &dst, volatile Box const &src ) const
     {
-        for ( int d = 0; d < 3; ++d )
-        {
-            dst.minCorner()[d] =
-                KokkosHelpers::min( src.minCorner()[d], dst.minCorner()[d] );
-            dst.maxCorner()[d] =
-                KokkosHelpers::max( src.maxCorner()[d], dst.maxCorner()[d] );
-        }
+        expand( dst, src );
     }
 
   private:
