@@ -221,7 +221,6 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, unique_leaf_on_rank_0,
     Teuchos::RCP<const Teuchos::Comm<int>> comm =
         Teuchos::DefaultComm<int>::getComm();
     int const comm_rank = Teuchos::rank( *comm );
-    int const comm_size = Teuchos::size( *comm );
 
     // tree has one unique leaf that lives on rank 0
     auto const tree =
