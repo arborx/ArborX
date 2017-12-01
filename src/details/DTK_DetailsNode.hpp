@@ -18,14 +18,10 @@ namespace DataTransferKit
 struct Node
 {
     KOKKOS_INLINE_FUNCTION
-    Node()
-        : parent( nullptr )
-        , children( {nullptr, nullptr} )
-    {
-    }
+    Node() = default;
 
     Node *parent = nullptr;
-    Kokkos::pair<Node *, Node *> children;
+    Kokkos::pair<Node *, Node *> children = {nullptr, nullptr};
     Box bounding_box;
 };
 }
