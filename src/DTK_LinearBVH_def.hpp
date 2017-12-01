@@ -7,8 +7,8 @@
  * the LICENSE file in the top-level directory.                             *
  ****************************************************************************/
 
-#ifndef DTK_LINEARBVH_DEF_HPP
-#define DTK_LINEARBVH_DEF_HPP
+#ifndef DTK_LINEAR_BVH_DEF_HPP
+#define DTK_LINEAR_BVH_DEF_HPP
 
 #include "DTK_ConfigDefs.hpp"
 
@@ -107,7 +107,7 @@ BVH<DeviceType>::BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes )
 } // end namespace DataTransferKit
 
 // Explicit instantiation macro
-#define DTK_LINEARBVH_INSTANT( NODE )                                          \
+#define DTK_LINEAR_BVH_INSTANT( NODE )                                         \
     template class BVH<typename NODE::device_type>;
 
 #endif
