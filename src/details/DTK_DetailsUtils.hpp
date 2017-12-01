@@ -18,6 +18,8 @@
 namespace DataTransferKit
 {
 
+namespace Details
+{
 // NOTE: This functor is used in exclusivePrefixSum( src, dst ).  We were
 // getting a compile error on CUDA when using a KOKKOS_LAMBDA.
 template <typename T, typename DeviceType>
@@ -43,6 +45,7 @@ class ExclusiveScanFunctor
     Kokkos::View<T *, DeviceType> _in;
     Kokkos::View<T *, DeviceType> _out;
 };
+} // end namespace Details
 
 /** \brief Computes an exclusive scan.
  *
@@ -79,7 +82,7 @@ void exclusivePrefixSum( Kokkos::View<ST, SP...> const &src,
     DTK_REQUIRE( n == dst.span() );
     Kokkos::parallel_scan(
         "exclusive_scan", Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-        ExclusiveScanFunctor<ValueType, ExecutionSpace>( src, dst ) );
+        Details::ExclusiveScanFunctor<ValueType, ExecutionSpace>( src, dst ) );
     Kokkos::fence();
 }
 
