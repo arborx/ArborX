@@ -31,6 +31,13 @@ TEUCHOS_UNIT_TEST( DetailsAlgorithms, distance )
                    std::sqrt( 2.0 ) );
     // projection onto corner node
     TEST_EQUALITY( dtk::distance( {{-1.0, 2.0, 2.0}}, box ), std::sqrt( 3.0 ) );
+
+    // unit sphere
+    DataTransferKit::Sphere sphere = {{{0., 0., 0.}}, 1.};
+    TEST_EQUALITY( dtk::distance( {{.5, .5, .5}}, sphere ), 0. );
+    TEST_EQUALITY( dtk::distance( {{2., 0., 0.}}, sphere ), 1. );
+    TEST_EQUALITY( dtk::distance( {{1., 1., 1.}}, sphere ),
+                   std::sqrt( 3. ) - 1. );
 }
 
 TEUCHOS_UNIT_TEST( DetailsAlgorithms, overlaps )

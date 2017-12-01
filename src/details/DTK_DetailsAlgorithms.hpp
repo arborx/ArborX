@@ -73,6 +73,14 @@ double distance( Point const &point, Box const &box )
     return distance( point, projected_point );
 }
 
+// distance point-sphere
+KOKKOS_INLINE_FUNCTION
+double distance( Point const &point, Sphere const &sphere )
+{
+    return KokkosHelpers::max(
+        distance( point, sphere.centroid() ) - sphere.radius(), 0. );
+}
+
 // expand an axis-aligned bounding box to include a point
 KOKKOS_INLINE_FUNCTION
 void expand( Box &box, Point const &point )
