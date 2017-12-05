@@ -28,33 +28,23 @@ struct SpatialPredicateTag
 // to declare a Kokkos::View of a predicate type and fill it with a
 // Kokkos::for_parallel.
 
+template <typename Geometry>
 struct Nearest
 {
     using Tag = NearestPredicateTag;
 
     KOKKOS_INLINE_FUNCTION
-    Nearest()
-        : _query_point( {{0., 0., 0.}} )
-        , _k( 0 )
-    {
-    }
-
-    KOKKOS_INLINE_FUNCTION Nearest &operator=( Nearest const &other )
-    {
-        _query_point = other._query_point;
-        _k = other._k;
-        return *this;
-    }
+    Nearest() = default;
 
     KOKKOS_INLINE_FUNCTION
-    Nearest( Point const &query_point, int k )
-        : _query_point( query_point )
+    Nearest( Geometry const &geometry, int k )
+        : _geometry( geometry )
         , _k( k )
     {
     }
 
-    Point _query_point;
-    int _k;
+    Geometry _geometry;
+    int _k = 0;
 };
 
 template <typename Geometry>
@@ -81,8 +71,12 @@ struct Intersects
 using Within = Intersects<Sphere>;
 using Overlap = Intersects<Box>;
 
-KOKKOS_INLINE_FUNCTION
-Nearest nearest( Point const &p, int k = 1 ) { return Nearest( p, k ); }
+template <typename Geometry>
+KOKKOS_INLINE_FUNCTION Nearest<Geometry> nearest( Geometry const &geometry,
+                                                  int k = 1 )
+{
+    return Nearest<Geometry>( geometry, k );
+}
 
 KOKKOS_INLINE_FUNCTION
 Within within( Point const &p, double r ) { return Within( {p, r} ); }
