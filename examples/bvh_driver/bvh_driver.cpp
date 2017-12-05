@@ -144,13 +144,13 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         }
         Kokkos::deep_copy( k, k_host );
 
-        Kokkos::View<details::Nearest *, DeviceType> nearest_queries(
-            "nearest_queries", n_points );
+        Kokkos::View<details::Nearest<DataTransferKit::Point> *, DeviceType>
+            nearest_queries( "nearest_queries", n_points );
         Kokkos::parallel_for(
             REGION_NAME( "register_nearest_queries" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
             KOKKOS_LAMBDA( int i ) {
-                nearest_queries( i ) = details::nearest(
+                nearest_queries( i ) = details::nearest<DataTransferKit::Point>(
                     {{point_coords( i, 0 ), point_coords( i, 1 ),
                       point_coords( i, 2 )}},
                     k( i ) );

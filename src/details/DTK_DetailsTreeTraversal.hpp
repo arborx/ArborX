@@ -213,7 +213,7 @@ KOKKOS_INLINE_FUNCTION int
 queryDispatch( BVH<DeviceType> const bvh, Predicate const &pred,
                Insert const &insert, NearestPredicateTag )
 {
-    return nearestQuery( bvh, pred._query_point, pred._k, insert );
+    return nearestQuery( bvh, pred._geometry, pred._k, insert );
 }
 
 } // end namespace Details

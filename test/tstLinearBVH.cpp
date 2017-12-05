@@ -636,16 +636,17 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
     Kokkos::deep_copy( radii, radii_host );
     Kokkos::deep_copy( k, k_host );
 
-    Kokkos::View<details::Nearest *, DeviceType> nearest_queries(
-        "neatest_queries", n_points );
-    Kokkos::parallel_for( "register_nearest_queries",
-                          Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
-                          KOKKOS_LAMBDA( int i ) {
-                              nearest_queries( i ) = details::nearest(
-                                  {{point_coords( i, 0 ), point_coords( i, 1 ),
-                                    point_coords( i, 2 )}},
-                                  k( i ) );
-                          } );
+    Kokkos::View<details::Nearest<DataTransferKit::Point> *, DeviceType>
+        nearest_queries( "neatest_queries", n_points );
+    Kokkos::parallel_for(
+        "register_nearest_queries",
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
+        KOKKOS_LAMBDA( int i ) {
+            nearest_queries( i ) = details::nearest<DataTransferKit::Point>(
+                {{point_coords( i, 0 ), point_coords( i, 1 ),
+                  point_coords( i, 2 )}},
+                k( i ) );
+        } );
     Kokkos::fence();
 
     Kokkos::View<details::Within *, DeviceType> within_queries(

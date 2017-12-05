@@ -29,9 +29,10 @@ class SerializationTraits<Ordinal, DataTransferKit::Details::Within>
 {
 };
 template <typename Ordinal>
-class SerializationTraits<Ordinal, DataTransferKit::Details::Nearest>
-    : public DirectSerializationTraits<Ordinal,
-                                       DataTransferKit::Details::Nearest>
+class SerializationTraits<
+    Ordinal, DataTransferKit::Details::Nearest<DataTransferKit::Point>>
+    : public DirectSerializationTraits<
+          Ordinal, DataTransferKit::Details::Nearest<DataTransferKit::Point>>
 {
 };
 template <typename Ordinal>
@@ -169,7 +170,7 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
     Kokkos::parallel_for( REGION_NAME( "fill_overlap_queries" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                           KOKKOS_LAMBDA( int q ) {
-                              Point point = queries( q )._query_point;
+                              Point point = queries( q )._geometry;
                               Box box = {{{
                                              point[0] - epsilon[0],
                                              point[1] - epsilon[1],

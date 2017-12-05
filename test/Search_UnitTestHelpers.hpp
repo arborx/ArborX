@@ -169,15 +169,17 @@ makeOverlapQueries( std::vector<DataTransferKit::Box> const &boxes )
 }
 
 template <typename DeviceType>
-Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>
+Kokkos::View<DataTransferKit::Details::Nearest<DataTransferKit::Point> *,
+             DeviceType>
 makeNearestQueries(
     std::vector<std::pair<DataTransferKit::Point, int>> const &points )
 {
     // NOTE: `points` is not a very descriptive name here. It stores both the
     // actual point and the number k of neighbors to query for.
     int const n = points.size();
-    Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType> queries(
-        "nearest_queries", n );
+    Kokkos::View<DataTransferKit::Details::Nearest<DataTransferKit::Point> *,
+                 DeviceType>
+        queries( "nearest_queries", n );
     auto queries_host = Kokkos::create_mirror_view( queries );
     for ( int i = 0; i < n; ++i )
         queries_host( i ) = DataTransferKit::Details::nearest(

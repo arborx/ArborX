@@ -77,12 +77,14 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
     // x   x        <--2-->            |               |               |
     // 3-->            |               |               |               |
     // |               |               |               |               |
-    Kokkos::View<DataTransferKit::Details::Nearest *, DeviceType>
+    Kokkos::View<DataTransferKit::Details::Nearest<DataTransferKit::Point> *,
+                 DeviceType>
         nearest_queries( "nearest_queries", 1 );
     auto nearest_queries_host = Kokkos::create_mirror_view( nearest_queries );
-    nearest_queries_host( 0 ) = DataTransferKit::Details::nearest(
-        {{0.0 + comm_size - 1 - comm_rank, 0., 0.}},
-        comm_rank < comm_size - 1 ? 3 : 2 );
+    nearest_queries_host( 0 ) =
+        DataTransferKit::Details::nearest<DataTransferKit::Point>(
+            {{0.0 + comm_size - 1 - comm_rank, 0., 0.}},
+            comm_rank < comm_size - 1 ? 3 : 2 );
     deep_copy( nearest_queries, nearest_queries_host );
 
     Kokkos::View<int *, DeviceType> offset( "offset" );
