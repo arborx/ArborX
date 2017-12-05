@@ -24,10 +24,6 @@ struct SpatialPredicateTag
 {
 };
 
-// COMMENT: Default constructor and assignment operator are required to be able
-// to declare a Kokkos::View of a predicate type and fill it with a
-// Kokkos::for_parallel.
-
 template <typename Geometry>
 struct Nearest
 {
