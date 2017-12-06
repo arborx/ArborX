@@ -11,6 +11,7 @@
 
 #include <DTK_DetailsBox.hpp>
 #include <DTK_DetailsPoint.hpp>
+#include <DTK_DetailsSphere.hpp>
 #include <DTK_KokkosHelpers.hpp>
 
 #include <Kokkos_Macros.hpp>
@@ -34,6 +35,12 @@ bool equals( Box const &l, Box const &r )
 {
     return equals( l.minCorner(), r.minCorner() ) &&
            equals( l.maxCorner(), r.maxCorner() );
+}
+
+KOKKOS_INLINE_FUNCTION
+bool equals( Sphere const &l, Sphere const &r )
+{
+    return equals( l.centroid(), r.centroid() ) && l.radius() == r.radius();
 }
 
 // distance point-point

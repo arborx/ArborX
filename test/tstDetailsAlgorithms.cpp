@@ -77,12 +77,18 @@ TEUCHOS_UNIT_TEST( DetailsAlgorithms, overlaps )
 
 TEUCHOS_UNIT_TEST( DetailsAlgorithms, equals )
 {
+    // points
     TEST_ASSERT( dtk::equals( {{0., 0., 0.}}, {{0., 0., 0.}} ) );
     TEST_ASSERT( !dtk::equals( {{0., 0., 0.}}, {{1., 1., 1.}} ) );
+    // boxes
     TEST_ASSERT( dtk::equals( {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}},
                               {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}} ) );
     TEST_ASSERT( !dtk::equals( {{{0.0, 0.0, 0.0}}, {{1.0, 0.0, 1.0}}},
                                {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}} ) );
+    // spheres
+    TEST_ASSERT( dtk::equals( {{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 1.} ) );
+    TEST_ASSERT( !dtk::equals( {{{0., 0., 0.}}, 1.}, {{{0., 1., 2.}}, 1.} ) );
+    TEST_ASSERT( !dtk::equals( {{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 2.} ) );
 }
 
 TEUCHOS_UNIT_TEST( DetailsAlgorithms, expand )
