@@ -13,6 +13,7 @@
 #include <DTK_DBC.hpp>
 
 #include <Kokkos_Parallel.hpp>
+#include <Kokkos_Sort.hpp> // min_max_functor
 #include <Kokkos_View.hpp>
 
 namespace DataTransferKit
@@ -152,6 +153,32 @@ void iota( Kokkos::View<T, P...> const &v,
         "iota", Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
         KOKKOS_LAMBDA( int i ) { v( i ) = value + (ValueType)i; } );
     Kokkos::fence();
+}
+
+/** \brief Returns the smallest and the greatest element in the view
+ *
+ *  \param[in] v Input view
+ *
+ *  Returns a pair on the host with the smallest value in the view as the first
+ *  element and the greatest as the second.
+ */
+template <typename ViewType>
+std::pair<typename ViewType::non_const_value_type,
+          typename ViewType::non_const_value_type>
+minMax( ViewType const &v )
+{
+    static_assert( ViewType::rank == 1, "minMax requires a View of rank 1" );
+    using ExecutionSpace = typename ViewType::execution_space;
+    auto const n = v.extent( 0 );
+    DTK_REQUIRE( n > 0 );
+    Kokkos::Experimental::MinMaxScalar<typename ViewType::non_const_value_type>
+        result;
+    Kokkos::Experimental::MinMax<typename ViewType::non_const_value_type>
+        reducer( result );
+    Kokkos::parallel_reduce(
+        "minMax", Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
+        Kokkos::Impl::min_max_functor<ViewType>( v ), reducer );
+    return std::make_pair( result.min_val, result.max_val );
 }
 
 } // end namespace DataTransferKit

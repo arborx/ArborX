@@ -104,6 +104,28 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, last_element, DeviceType )
     TEST_FLOATING_EQUALITY( DataTransferKit::lastElement( u ), 3.14, 1e-14 );
 }
 
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, minmax, DeviceType )
+{
+    Kokkos::View<double[4], DeviceType> v( "v" );
+    auto v_host = Kokkos::create_mirror_view( v );
+    v_host( 0 ) = 3.14;
+    v_host( 1 ) = 1.41;
+    v_host( 2 ) = 2.71;
+    v_host( 3 ) = 1.62;
+    Kokkos::deep_copy( v, v_host );
+    auto const result_float = DataTransferKit::minMax( v );
+    TEST_FLOATING_EQUALITY( std::get<0>( result_float ), 1.41, 1e-14 );
+    TEST_FLOATING_EQUALITY( std::get<1>( result_float ), 3.14, 1e-14 );
+    Kokkos::View<int *, DeviceType> w( "w" );
+    TEST_THROW( DataTransferKit::minMax( w ),
+                DataTransferKit::DataTransferKitException );
+    Kokkos::resize( w, 1 );
+    Kokkos::deep_copy( w, 255 );
+    auto const result_int = DataTransferKit::minMax( w );
+    TEST_EQUALITY( std::get<0>( result_int ), 255 );
+    TEST_EQUALITY( std::get<1>( result_int ), 255 );
+}
+
 // Include the test macros.
 #include "DataTransferKitSearch_ETIHelperMacros.h"
 
@@ -115,6 +137,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, last_element, DeviceType )
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, prefix_sum,            \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, last_element,          \
+                                          DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, minmax,                \
                                           DeviceType##NODE )
 
 // Demangle the types
