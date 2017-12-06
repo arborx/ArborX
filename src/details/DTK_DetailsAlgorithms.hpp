@@ -125,6 +125,13 @@ bool intersects( Box const &box, Box const &other )
     return true;
 }
 
+// check if a sphere intersects with an  axis-aligned bounding box
+KOKKOS_INLINE_FUNCTION
+bool intersects( Sphere const &sphere, Box const &box )
+{
+    return distance( sphere.centroid(), box ) <= sphere.radius();
+}
+
 // calculate the centroid of a box
 KOKKOS_INLINE_FUNCTION
 void centroid( Box const &box, Point &c )

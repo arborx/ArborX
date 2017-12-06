@@ -78,6 +78,13 @@ TEUCHOS_UNIT_TEST( DetailsAlgorithms, overlaps )
         dtk::intersects( box, {{{-0.5, -0.5, -0.5}}, {{0.5, 0.0, 0.5}}} ) );
 }
 
+TEUCHOS_UNIT_TEST( DetailsAlgorithms, intersects )
+{
+    DataTransferKit::Sphere sphere = {{{0., 0., 0.}}, 1.};
+    TEST_ASSERT( dtk::intersects( sphere, {{{0., 0., 0.}}, {{1., 1., 1.}}} ) );
+    TEST_ASSERT( !dtk::intersects( sphere, {{{1., 2., 3.}}, {{4., 5., 6.}}} ) );
+}
+
 TEUCHOS_UNIT_TEST( DetailsAlgorithms, equals )
 {
     // points
