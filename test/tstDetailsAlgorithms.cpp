@@ -37,42 +37,45 @@ TEUCHOS_UNIT_TEST( DetailsAlgorithms, overlaps )
 {
     DataTransferKit::Box box;
     // uninitialized box does not even overlap with itself
-    TEST_ASSERT( !dtk::overlaps( box, box ) );
+    TEST_ASSERT( !dtk::intersects( box, box ) );
     // box with zero extent does
     box = {{{0.0, 0.0, 0.0}}, {{0.0, 0.0, 0.0}}};
-    TEST_ASSERT( dtk::overlaps( box, box ) );
-    TEST_ASSERT( !dtk::overlaps( box, DataTransferKit::Box() ) );
+    TEST_ASSERT( dtk::intersects( box, box ) );
+    TEST_ASSERT( !dtk::intersects( box, DataTransferKit::Box() ) );
     // overlap with box that contains it
     TEST_ASSERT(
-        dtk::overlaps( box, {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}} ) );
+        dtk::intersects( box, {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}} ) );
     // does not overlap with some other box
     TEST_ASSERT(
-        !dtk::overlaps( box, {{{1.0, 1.0, 1.0}}, {{2.0, 2.0, 2.0}}} ) );
+        !dtk::intersects( box, {{{1.0, 1.0, 1.0}}, {{2.0, 2.0, 2.0}}} ) );
     // overlap when only touches another
-    TEST_ASSERT( dtk::overlaps( box, {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}} ) );
+    TEST_ASSERT(
+        dtk::intersects( box, {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}} ) );
     // unit cube
     box = {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
-    TEST_ASSERT( dtk::overlaps( box, box ) );
-    TEST_ASSERT( !dtk::overlaps( box, DataTransferKit::Box() ) );
+    TEST_ASSERT( dtk::intersects( box, box ) );
+    TEST_ASSERT( !dtk::intersects( box, DataTransferKit::Box() ) );
     // smaller box inside
     TEST_ASSERT(
-        dtk::overlaps( box, {{{0.25, 0.25, 0.25}}, {{0.75, 0.75, 0.75}}} ) );
+        dtk::intersects( box, {{{0.25, 0.25, 0.25}}, {{0.75, 0.75, 0.75}}} ) );
     // bigger box that contains it
     TEST_ASSERT(
-        dtk::overlaps( box, {{{-1.0, -1.0, -1.0}}, {{2.0, 2.0, 2.0}}} ) );
+        dtk::intersects( box, {{{-1.0, -1.0, -1.0}}, {{2.0, 2.0, 2.0}}} ) );
     // couple boxes that do overlap
-    TEST_ASSERT( dtk::overlaps( box, {{{0.5, 0.5, 0.5}}, {{1.5, 1.5, 1.5}}} ) );
     TEST_ASSERT(
-        dtk::overlaps( box, {{{-0.5, -0.5, -0.5}}, {{0.5, 0.5, 0.5}}} ) );
+        dtk::intersects( box, {{{0.5, 0.5, 0.5}}, {{1.5, 1.5, 1.5}}} ) );
+    TEST_ASSERT(
+        dtk::intersects( box, {{{-0.5, -0.5, -0.5}}, {{0.5, 0.5, 0.5}}} ) );
     // couple boxes that do not
     TEST_ASSERT(
-        !dtk::overlaps( box, {{{-2.0, -2.0, -2.0}}, {{-1.0, -1.0, -1.0}}} ) );
+        !dtk::intersects( box, {{{-2.0, -2.0, -2.0}}, {{-1.0, -1.0, -1.0}}} ) );
     TEST_ASSERT(
-        !dtk::overlaps( box, {{{0.0, 0.0, 2.0}}, {{1.0, 1.0, 3.0}}} ) );
+        !dtk::intersects( box, {{{0.0, 0.0, 2.0}}, {{1.0, 1.0, 3.0}}} ) );
     // boxes overlap if faces touch
-    TEST_ASSERT( dtk::overlaps( box, {{{1.0, 0.0, 0.0}}, {{2.0, 1.0, 1.0}}} ) );
     TEST_ASSERT(
-        dtk::overlaps( box, {{{-0.5, -0.5, -0.5}}, {{0.5, 0.0, 0.5}}} ) );
+        dtk::intersects( box, {{{1.0, 0.0, 0.0}}, {{2.0, 1.0, 1.0}}} ) );
+    TEST_ASSERT(
+        dtk::intersects( box, {{{-0.5, -0.5, -0.5}}, {{0.5, 0.0, 0.5}}} ) );
 }
 
 TEUCHOS_UNIT_TEST( DetailsAlgorithms, equals )

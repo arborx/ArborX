@@ -114,9 +114,9 @@ void expand( Box &box, Sphere const &sphere )
     }
 }
 
-// check if two axis-aligned bounding boxes overlap
+// check if two axis-aligned bounding boxes intersect
 KOKKOS_INLINE_FUNCTION
-bool overlaps( Box const &box, Box const &other )
+bool intersects( Box const &box, Box const &other )
 {
     for ( int d = 0; d < 3; ++d )
         if ( box.minCorner()[d] > other.maxCorner()[d] ||
