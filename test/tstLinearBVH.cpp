@@ -637,7 +637,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
     Kokkos::deep_copy( k, k_host );
 
     Kokkos::View<details::Nearest<DataTransferKit::Point> *, DeviceType>
-        nearest_queries( "neatest_queries", n_points );
+        nearest_queries( "nearest_queries", n_points );
     Kokkos::parallel_for(
         "register_nearest_queries",
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
