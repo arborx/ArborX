@@ -113,6 +113,15 @@ TEUCHOS_UNIT_TEST( DetailsAlgorithms, expand )
     dtk::expand( box, {{{10.0, 10.0, 10.0}}, {{11.0, 11.0, 11.0}}} );
     TEST_ASSERT(
         dtk::equals( box, {{{-1.0, -1.0, -1.0}}, {{11.0, 11.0, 11.0}}} ) );
+
+    // expand box with spheres
+    dtk::expand( box, {{{0., 1., 2.}}, 3.} );
+    TEST_ASSERT( dtk::equals( box, {{{-3., -2., -1.}}, {{11., 11., 11.}}} ) );
+    dtk::expand( box, {{{0., 0., 0.}}, 1.} );
+    TEST_ASSERT( dtk::equals( box, {{{-3., -2., -1.}}, {{11., 11., 11.}}} ) );
+    dtk::expand( box, {{{0., 0., 0.}}, 24.} );
+    TEST_ASSERT(
+        dtk::equals( box, {{{-24., -24., -24.}}, {{24., 24., 24.}}} ) );
 }
 
 TEUCHOS_UNIT_TEST( DetailsAlgorithms, centroid )

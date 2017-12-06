@@ -99,6 +99,19 @@ void expand( Box &box, Box const &other )
     }
 }
 
+// expand an axis-aligned bounding box to include a sphere
+KOKKOS_INLINE_FUNCTION
+void expand( Box &box, Sphere const &sphere )
+{
+    for ( int d = 0; d < 3; ++d )
+    {
+        box.minCorner()[d] = KokkosHelpers::min(
+            box.minCorner()[d], sphere.centroid()[d] - sphere.radius() );
+        box.maxCorner()[d] = KokkosHelpers::max(
+            box.maxCorner()[d], sphere.centroid()[d] + sphere.radius() );
+    }
+}
+
 // check if two axis-aligned bounding boxes overlap
 KOKKOS_INLINE_FUNCTION
 bool overlaps( Box const &box, Box const &other )
