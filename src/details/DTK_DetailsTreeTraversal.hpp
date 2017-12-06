@@ -79,9 +79,9 @@ struct TreeTraversal
 // one using nearest neighbours query (see boost::geometry::queries
 // documentation).
 template <typename DeviceType, typename Predicate, typename Insert>
-KOKKOS_FUNCTION int spatial_query( BVH<DeviceType> const bvh,
-                                   Predicate const &predicate,
-                                   Insert const &insert )
+KOKKOS_FUNCTION int spatialQuery( BVH<DeviceType> const bvh,
+                                  Predicate const &predicate,
+                                  Insert const &insert )
 {
     if ( bvh.empty() )
         return 0;
@@ -205,7 +205,7 @@ KOKKOS_INLINE_FUNCTION int
 queryDispatch( BVH<DeviceType> const bvh, Predicate const &pred,
                Insert const &insert, SpatialPredicateTag )
 {
-    return spatial_query( bvh, pred, insert );
+    return spatialQuery( bvh, pred, insert );
 }
 
 template <typename DeviceType, typename Predicate, typename Insert>
