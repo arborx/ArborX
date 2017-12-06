@@ -95,6 +95,9 @@ void expand( Box &box, Point const &point )
 }
 
 // expand an axis-aligned bounding box to include another box
+// NOTE: Box type is templated here to be able to use expand(box, box) in a
+// Kokkos::parallel_reduce() in which case the arguments must be declared
+// volatile.
 template <typename BOX,
           typename = std::enable_if<std::is_same<
               typename std::remove_volatile<BOX>::type, Box>::value>>
