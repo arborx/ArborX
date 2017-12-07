@@ -79,8 +79,8 @@ void exclusivePrefixSum( Kokkos::View<ST, SP...> const &src,
         typename Kokkos::ViewTraits<DT, DP...>::execution_space;
     using ValueType = typename Kokkos::ViewTraits<DT, DP...>::value_type;
 
-    auto const n = src.span();
-    DTK_REQUIRE( n == dst.span() );
+    auto const n = src.extent( 0 );
+    DTK_REQUIRE( n == dst.extent( 0 ) );
     Kokkos::parallel_scan(
         "exclusive_scan", Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
         Details::ExclusiveScanFunctor<ValueType, ExecutionSpace>( src, dst ) );
@@ -114,7 +114,7 @@ lastElement( Kokkos::View<T, P...> const &v )
     static_assert(
         ( unsigned( Kokkos::ViewTraits<T, P...>::rank ) == unsigned( 1 ) ),
         "lastElement requires Views of rank 1" );
-    auto const n = v.span();
+    auto const n = v.extent( 0 );
     DTK_REQUIRE( n > 0 );
     auto v_subview = Kokkos::subview( v, n - 1 );
     auto v_host = Kokkos::create_mirror_view( v_subview );
@@ -148,7 +148,7 @@ void iota( Kokkos::View<T, P...> const &v,
         std::is_same<ValueType, typename Kokkos::ViewTraits<
                                     T, P...>::non_const_value_type>::value,
         "iota requires a View with non-const value type" );
-    auto const n = v.span();
+    auto const n = v.extent( 0 );
     Kokkos::parallel_for(
         "iota", Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
         KOKKOS_LAMBDA( int i ) { v( i ) = value + (ValueType)i; } );
