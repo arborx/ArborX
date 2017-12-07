@@ -124,6 +124,25 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, minmax, DeviceType )
     auto const result_int = DataTransferKit::minMax( w );
     TEST_EQUALITY( std::get<0>( result_int ), 255 );
     TEST_EQUALITY( std::get<1>( result_int ), 255 );
+
+    // testing use case in #336
+    Kokkos::View<int[2][3], DeviceType> u( "u" );
+    auto u_host = Kokkos::create_mirror_view( u );
+    u_host( 0, 0 ) = 1; // x
+    u_host( 0, 1 ) = 2; // y
+    u_host( 0, 2 ) = 3; // z
+    u_host( 1, 0 ) = 4; // x
+    u_host( 1, 1 ) = 5; // y
+    u_host( 1, 2 ) = 6; // Z
+    Kokkos::deep_copy( u, u_host );
+    auto const minmax_x =
+        DataTransferKit::minMax( Kokkos::subview( u, Kokkos::ALL, 0 ) );
+    TEST_EQUALITY( std::get<0>( minmax_x ), 1 );
+    TEST_EQUALITY( std::get<1>( minmax_x ), 4 );
+    auto const minmax_y =
+        DataTransferKit::minMax( Kokkos::subview( u, Kokkos::ALL, 1 ) );
+    TEST_EQUALITY( std::get<0>( minmax_y ), 2 );
+    TEST_EQUALITY( std::get<1>( minmax_y ), 5 );
 }
 
 // Include the test macros.
