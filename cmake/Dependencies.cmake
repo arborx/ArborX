@@ -4,6 +4,6 @@ TRIBITS_PACKAGE_DEFINE_DEPENDENCIES(
   Kokkos
   Teuchos
   Tpetra
-  TEST_REQUIRED_TPLS
-  Boost
+  TEST_OPTIONAL_TPLS
+  BoostOrg
   )
