@@ -295,7 +295,7 @@ make_random_cloud( double const Lx, double const Ly, double const Lz,
 {
     std::vector<std::array<double, 3>> cloud( n );
     std::default_random_engine generator( seed );
-    std::uniform_real_distribution<double> distribution_x( 0.0, Lz );
+    std::uniform_real_distribution<double> distribution_x( 0.0, Lx );
     std::uniform_real_distribution<double> distribution_y( 0.0, Ly );
     std::uniform_real_distribution<double> distribution_z( 0.0, Lz );
     for ( int i = 0; i < n; ++i )
