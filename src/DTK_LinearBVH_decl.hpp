@@ -137,7 +137,7 @@ void queryDispatch(
                 int count = 0;
                 Details::TreeTraversal<DeviceType>::query(
                     bvh, queries( i ),
-                    [indices, offset, i, &count]( int index, double distance ) {
+                    [indices, offset, i, &count]( int index, double ) {
                         indices( offset( i ) + count++ ) = index;
                     } );
             } );
@@ -239,7 +239,7 @@ void queryDispatch( BVH<DeviceType> const bvh,
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
         KOKKOS_LAMBDA( int i ) {
             offset( i ) = Details::TreeTraversal<DeviceType>::query(
-                bvh, queries( i ), []( int index ) {} );
+                bvh, queries( i ), []( int ) {} );
         } );
     Kokkos::fence();
 

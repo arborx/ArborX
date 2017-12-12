@@ -227,7 +227,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, miscellaneous, DeviceType )
     Kokkos::deep_copy( zeros, 255 );
     Kokkos::parallel_for(
         REGION_NAME( "dummy" ), Kokkos::RangePolicy<ExecutionSpace>( 0, 1 ),
-        KOKKOS_LAMBDA( int i ) {
+        KOKKOS_LAMBDA( int ) {
             DataTransferKit::Point p = {{0., 0., 0.}};
             double r = 1.0;
             // spatial query on empty tree
@@ -515,7 +515,7 @@ std::vector<std::array<double, 3>> make_random_cloud( double Lx, double Ly,
 {
     std::vector<std::array<double, 3>> cloud( n );
     std::default_random_engine generator;
-    std::uniform_real_distribution<double> distribution_x( 0.0, Lz );
+    std::uniform_real_distribution<double> distribution_x( 0.0, Lx );
     std::uniform_real_distribution<double> distribution_y( 0.0, Ly );
     std::uniform_real_distribution<double> distribution_z( 0.0, Lz );
     for ( int i = 0; i < n; ++i )

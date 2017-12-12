@@ -42,7 +42,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl, recv_from,
     Tpetra::Distributor distributor( comm );
     int const n_imports = distributor.createFromSends(
         Teuchos::ArrayView<int>( exports.data(), exports.size() ) );
-    TEUCHOS_ASSERT_EQUALITY( n_imports, comm_rank * comm_size );
+    TEST_EQUALITY( n_imports, comm_rank * comm_size );
 
     std::vector<int> imports( n_imports );
     distributor.doPostsAndWaits(
@@ -208,7 +208,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,
 #endif
 
     for ( int i = 0; i < n_imports; ++i )
-        TEUCHOS_ASSERT_EQUALITY( imports_host( i ), i / 3 );
+        TEST_EQUALITY( imports_host( i ), i / 3 );
 }
 
 // Include the test macros.

@@ -180,7 +180,7 @@ class ComputeResults
   public:
     KOKKOS_INLINE_FUNCTION
     ComputeResults( Kokkos::View<unsigned int *, DeviceType> fi,
-                    Kokkos::View<int *, DeviceType> results, int n )
+                    Kokkos::View<int *, DeviceType> results )
         : _fi( fi )
         , _results( results )
     {
@@ -215,7 +215,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, common_prefix, DeviceType )
     int const n_tests = 10;
     Kokkos::View<int *, DeviceType> results( "results", n_tests );
 
-    ComputeResults<DeviceType> compute_results_functor( fi, results, n );
+    ComputeResults<DeviceType> compute_results_functor( fi, results );
     Kokkos::parallel_for( "compute_results",
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_tests ),
                           compute_results_functor );
