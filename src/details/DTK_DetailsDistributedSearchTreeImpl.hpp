@@ -159,7 +159,7 @@ void DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
 template <typename DeviceType>
 template <typename Query>
 void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
-    Point epsilon, Kokkos::View<Query *, DeviceType> queries,
+    Point eps, Kokkos::View<Query *, DeviceType> queries,
     BVH<DeviceType> const &bvh, Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset )
 {
@@ -172,14 +172,14 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
                           KOKKOS_LAMBDA( int q ) {
                               Point point = queries( q )._geometry;
                               Box box = {{{
-                                             point[0] - epsilon[0],
-                                             point[1] - epsilon[1],
-                                             point[2] - epsilon[2],
+                                             point[0] - eps[0],
+                                             point[1] - eps[1],
+                                             point[2] - eps[2],
                                          }},
                                          {{
-                                             point[0] + epsilon[0],
-                                             point[1] + epsilon[1],
-                                             point[2] + epsilon[2],
+                                             point[0] + eps[0],
+                                             point[1] + eps[1],
+                                             point[2] + eps[2],
                                          }}};
                               overlap_queries( q ) = Details::Overlap( box );
                           } );

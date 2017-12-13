@@ -377,8 +377,6 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
     auto radii_host = Kokkos::create_mirror_view( radii );
     Kokkos::View<int * [2], ExecutionSpace> within_n_pts( "within_n_pts",
                                                           local_n );
-    Kokkos::View<int *, ExecutionSpace> k( "distribution_k", local_n );
-    auto k_host = Kokkos::create_mirror_view( k );
     std::vector<std::vector<std::pair<BPoint, int>>> returned_values_within(
         local_n );
     std::default_random_engine generator( 0 );
