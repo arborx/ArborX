@@ -158,6 +158,44 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, accumulate, DeviceType )
     TEST_EQUALITY( DataTransferKit::accumulate( w, 4 ), 24 );
 }
 
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, adjacent_difference,
+                                   DeviceType )
+{
+    Kokkos::View<int[5], DeviceType> v( "v" );
+    auto v_host = Kokkos::create_mirror_view( v );
+    v_host( 0 ) = 2;
+    v_host( 1 ) = 4;
+    v_host( 2 ) = 6;
+    v_host( 3 ) = 8;
+    v_host( 4 ) = 10;
+    Kokkos::deep_copy( v, v_host );
+    // In-place operation is not allowed
+    TEST_THROW( DataTransferKit::adjacentDifference( v, v ),
+                DataTransferKit::DataTransferKitException );
+    auto w = Kokkos::create_mirror( DeviceType(), v );
+    TEST_NOTHROW( DataTransferKit::adjacentDifference( v, w ) );
+    auto w_host = Kokkos::create_mirror_view( w );
+    Kokkos::deep_copy( w_host, w );
+    std::vector<int> w_ref( 5, 2 );
+    TEST_COMPARE_ARRAYS( w_host, w_ref );
+
+    Kokkos::View<float *, DeviceType> x( "x", 10 );
+    Kokkos::deep_copy( x, 3.14 );
+    TEST_THROW( DataTransferKit::adjacentDifference( x, x ),
+                DataTransferKit::DataTransferKitException );
+    Kokkos::View<float[10], DeviceType> y( "y" );
+    TEST_NOTHROW( DataTransferKit::adjacentDifference( x, y ) );
+    std::vector<float> y_ref( 10 );
+    y_ref[0] = 3.14;
+    auto y_host = Kokkos::create_mirror_view( y );
+    Kokkos::deep_copy( y_host, y );
+    TEST_COMPARE_ARRAYS( y_host, y_ref );
+
+    Kokkos::resize( x, 5 );
+    TEST_THROW( DataTransferKit::adjacentDifference( y, x ),
+                DataTransferKit::DataTransferKitException );
+}
+
 // Include the test macros.
 #include "DataTransferKitSearch_ETIHelperMacros.h"
 
@@ -173,6 +211,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, accumulate, DeviceType )
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, minmax,                \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, accumulate,            \
+                                          DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, adjacent_difference,   \
                                           DeviceType##NODE )
 
 // Demangle the types

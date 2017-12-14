@@ -217,6 +217,50 @@ accumulate( ViewType const &v, typename ViewType::non_const_value_type init )
     return init;
 }
 
+// FIXME shameless forward declaration
+template <typename View>
+typename View::non_const_type clone( View &v );
+
+/** \brief Computes the adjacent difference.
+ *
+ *  \param[in] src Input view
+ *  \param[out] dst Output view; may not be equal to \p dst
+ *
+ *  Assigns to every element in the \p dst view the difference between its
+ *  corresponding element and the one preceding it in the \p src view, except
+ *  for the first element \c dst[0] which is assigned \c src[0]
+ *
+ *  \warning Undefined behavior if \p src and \p dst arrays overlap in any way.
+ */
+template <typename SrcViewType, typename DstViewType>
+void adjacentDifference( SrcViewType const &src, DstViewType const &dst )
+{
+    static_assert( SrcViewType::rank == 1 && DstViewType::rank == 1,
+                   "adjacentDifference operates on rank-1 views" );
+    static_assert(
+        std::is_same<typename DstViewType::value_type,
+                     typename DstViewType::non_const_value_type>::value,
+        "adjacentDifference requires non-const destination value type" );
+    static_assert( std::is_same<typename SrcViewType::non_const_value_type,
+                                typename DstViewType::value_type>::value,
+                   "adjacentDifference requires same value type for source and "
+                   "destination" );
+    using ExecutionSpace = typename DstViewType::execution_space;
+    // QUESTION Should we assert anything about the memory spaces?
+    auto const n = src.extent( 0 );
+    DTK_REQUIRE( n == dst.extent( 0 ) );
+    DTK_REQUIRE( src != dst );
+    Kokkos::parallel_for( "adjacentDifference",
+                          Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
+                          KOKKOS_LAMBDA( int i ) {
+                              if ( i > 0 )
+                                  dst( i ) = src( i ) - src( i - 1 );
+                              else
+                                  dst( i ) = src( i );
+                          } );
+    Kokkos::fence();
+}
+
 // FIXME split this into one for STL-like algorithms and another one for view
 // utility helpers
 
