@@ -13,7 +13,7 @@
 
 #include <Teuchos_UnitTestHarness.hpp>
 
-#include <boost/geometry.hpp>
+#include "DTK_BoostRTreeHelpers.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -560,12 +560,6 @@ std::vector<std::array<double, 3>> make_random_cloud( double Lx, double Ly,
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
 {
-    namespace details = DataTransferKit::Details;
-    namespace bg = boost::geometry;
-    namespace bgi = boost::geometry::index;
-    using BPoint = bg::model::point<double, 3, bg::cs::cartesian>;
-    using RTree = bgi::rtree<std::pair<BPoint, int>, bgi::linear<16>>;
-
     // contruct a cloud of points (nodes of a structured grid)
     double Lx = 10.0;
     double Ly = 10.0;
@@ -576,16 +570,6 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
     auto cloud = make_stuctured_cloud( Lx, Ly, Lz, nx, ny, nz );
     int n = cloud.size();
 
-    // create a R-tree to compare radius search results against
-    RTree rtree;
-    for ( int i = 0; i < n; ++i )
-    {
-        auto const &point = cloud[i];
-        double x = std::get<0>( point );
-        double y = std::get<1>( point );
-        double z = std::get<2>( point );
-        rtree.insert( std::make_pair( BPoint( x, y, z ), i ) );
-    }
     Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes(
         "bounding_boxes", n );
     auto bounding_boxes_host = Kokkos::create_mirror_view( bounding_boxes );
@@ -603,6 +587,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
 
     DataTransferKit::BVH<DeviceType> bvh( bounding_boxes );
 
+    auto rtree = BoostRTreeHelpers::makeRTree( bounding_boxes );
+
     // random points for radius search and kNN queries
     // compare our solution against Boost R-tree
     int const n_points = 100;
@@ -619,10 +605,6 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
                                                            n_points );
     Kokkos::View<int *, ExecutionSpace> k( "distribution_k", n_points );
     auto k_host = Kokkos::create_mirror_view( k );
-    std::vector<std::vector<std::pair<BPoint, int>>> returned_values_within(
-        n_points );
-    std::vector<std::vector<std::pair<BPoint, int>>> returned_values_nearest(
-        n_points );
     // use random radius for the search and random number k of for the kNN
     // search
     std::default_random_engine generator;
@@ -636,95 +618,63 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
         double x = std::get<0>( point );
         double y = std::get<1>( point );
         double z = std::get<2>( point );
-        BPoint centroid( x, y, z );
         radii_host[i] = distribution_radius( generator );
         k_host[i] = distribution_k( generator );
-        double radius = radii_host[i];
-
-        // COMMENT: Did not implement proper radius search yet
-        // This use available tree traversal for axis-aligned bounding box and
-        // filters out candidates afterwards.
-        // The coordinates of the points in the structured cloud (source) are
-        // accessed directly and we use Boost to compute the distance.
         point_coords_host( i, 0 ) = x;
         point_coords_host( i, 1 ) = y;
         point_coords_host( i, 2 ) = z;
-
-        // use the R-tree to obtain a reference solution
-        rtree.query( bgi::satisfies( [centroid, radius](
-                                         std::pair<BPoint, int> const &val ) {
-                         return bg::distance( centroid, val.first ) <= radius;
-                     } ),
-                     std::back_inserter( returned_values_within[i] ) );
-
-        // k nearest neighbors
-        rtree.query( bgi::nearest( BPoint( x, y, z ), k_host[i] ),
-                     std::back_inserter( returned_values_nearest[i] ) );
     }
 
     Kokkos::deep_copy( point_coords, point_coords_host );
     Kokkos::deep_copy( radii, radii_host );
     Kokkos::deep_copy( k, k_host );
 
-    Kokkos::View<details::Nearest<DataTransferKit::Point> *, DeviceType>
+    Kokkos::View<DataTransferKit::Details::Nearest<DataTransferKit::Point> *,
+                 DeviceType>
         nearest_queries( "nearest_queries", n_points );
     Kokkos::parallel_for(
         "register_nearest_queries",
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
         KOKKOS_LAMBDA( int i ) {
-            nearest_queries( i ) = details::nearest<DataTransferKit::Point>(
-                {{point_coords( i, 0 ), point_coords( i, 1 ),
-                  point_coords( i, 2 )}},
-                k( i ) );
+            nearest_queries( i ) =
+                DataTransferKit::Details::nearest<DataTransferKit::Point>(
+                    {{point_coords( i, 0 ), point_coords( i, 1 ),
+                      point_coords( i, 2 )}},
+                    k( i ) );
         } );
     Kokkos::fence();
 
-    Kokkos::View<details::Within *, DeviceType> within_queries(
+    Kokkos::View<DataTransferKit::Details::Within *, DeviceType> within_queries(
         "within_queries", n_points );
-    Kokkos::parallel_for( "register_within_queries",
-                          Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
-                          KOKKOS_LAMBDA( int i ) {
-                              within_queries( i ) = details::within(
-                                  {{point_coords( i, 0 ), point_coords( i, 1 ),
-                                    point_coords( i, 2 )}},
-                                  radii( i ) );
-                          } );
+    Kokkos::parallel_for(
+        "register_within_queries",
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
+        KOKKOS_LAMBDA( int i ) {
+            within_queries( i ) = DataTransferKit::Details::within(
+                {{point_coords( i, 0 ), point_coords( i, 1 ),
+                  point_coords( i, 2 )}},
+                radii( i ) );
+        } );
     Kokkos::fence();
+
+    auto rtree_results =
+        BoostRTreeHelpers::performQueries( rtree, nearest_queries );
 
     Kokkos::View<int *, DeviceType> offset_nearest( "offset_nearest" );
     Kokkos::View<int *, DeviceType> indices_nearest( "indices_nearest" );
     bvh.query( nearest_queries, indices_nearest, offset_nearest );
+    auto bvh_results = std::make_tuple( offset_nearest, indices_nearest );
+
+    validateResults( rtree_results, bvh_results, success, out );
 
     Kokkos::View<int *, DeviceType> offset_within( "offset_within" );
     Kokkos::View<int *, DeviceType> indices_within( "indices_within" );
     bvh.query( within_queries, indices_within, offset_within );
+    bvh_results = std::make_tuple( offset_within, indices_within );
 
-    for ( auto data : {std::make_tuple( returned_values_nearest,
-                                        indices_nearest, offset_nearest ),
-                       std::make_tuple( returned_values_within, indices_within,
-                                        offset_within )} )
-    {
-        auto returned_values = std::get<0>( data );
-        auto indices = std::get<1>( data );
-        auto offset = std::get<2>( data );
+    rtree_results = BoostRTreeHelpers::performQueries( rtree, within_queries );
 
-        auto indices_host = Kokkos::create_mirror_view( indices );
-        auto offset_host = Kokkos::create_mirror_view( offset );
-        Kokkos::deep_copy( indices_host, indices );
-        Kokkos::deep_copy( offset_host, offset );
-
-        for ( int i = 0; i < n_points; ++i )
-        {
-            auto const &ref = returned_values[i];
-            std::set<int> ref_ids;
-            for ( auto const &id : ref )
-                ref_ids.emplace( id.second );
-            for ( int j = offset_host( i ); j < offset_host( i + 1 ); ++j )
-            {
-                TEST_ASSERT( ref_ids.count( indices_host( j ) ) != 0 );
-            }
-        }
-    }
+    validateResults( rtree_results, bvh_results, success, out );
 }
 
 // Include the test macros.
