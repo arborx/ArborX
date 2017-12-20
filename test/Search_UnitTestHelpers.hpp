@@ -20,6 +20,11 @@
 #include <Teuchos_FancyOStream.hpp>
 #include <Teuchos_LocalTestingHelpers.hpp>
 
+#include <boost/range/algorithm/copy.hpp>
+#include <boost/range/algorithm/sort.hpp>
+#include <boost/range/combine.hpp>
+#include <boost/tuple/tuple_comparison.hpp>
+
 #include <vector>
 
 // The `out` and `success` parameters come from the Teuchos unit testing macros
@@ -237,10 +242,55 @@ void validateResults( std::tuple<InputView1, InputView1> const &reference,
     auto const offset = std::get<0>( reference );
     auto const n_queries = offset.extent_int( 0 ) - 1;
     for ( int i = 0; i < n_queries; ++i )
+    {
+        std::vector<int> l;
+        std::vector<int> r;
+        boost::copy(
+            Kokkos::subview( std::get<1>( reference ),
+                             std::make_pair( offset( i ), offset( i + 1 ) ) ),
+            std::back_inserter( l ) );
+        boost::copy(
+            Kokkos::subview( std::get<1>( other ),
+                             std::make_pair( offset( i ), offset( i + 1 ) ) ),
+            std::back_inserter( r ) );
+        boost::range::sort( l );
+        boost::range::sort( r );
+        TEST_COMPARE_ARRAYS( l, r );
         TEST_COMPARE_ARRAYS( extractAndSort( std::get<1>( reference ),
                                              offset( i ), offset( i + 1 ) ),
                              extractAndSort( std::get<1>( other ), offset( i ),
                                              offset( i + 1 ) ) );
+    }
+}
+
+template <typename InputView1, typename InputView2>
+void validateResults(
+    std::tuple<InputView1, InputView1, InputView1> const &reference,
+    std::tuple<InputView2, InputView2, InputView2> const &other, bool &success,
+    Teuchos::FancyOStream &out )
+{
+    TEST_COMPARE_ARRAYS( std::get<0>( reference ), std::get<0>( other ) );
+    auto const offset = std::get<0>( reference );
+    auto const m = offset.extent_int( 0 ) - 1;
+    for ( int i = 0; i < m; ++i )
+    {
+        std::vector<std::tuple<int, int>> l;
+        std::vector<std::tuple<int, int>> r;
+        for ( int j = offset[i]; j < offset[i + 1]; ++j )
+        {
+            l.emplace_back( std::get<1>( other )[j], std::get<2>( other )[j] );
+            r.emplace_back( std::get<1>( reference )[j],
+                            std::get<2>( reference )[j] );
+        }
+        std::sort( l.begin(), l.end() );
+        std::sort( r.begin(), r.end() );
+        // somehow can't use TEST_COMPARE_ARRAY() so doing it myself
+        TEST_EQUALITY( l.size(), r.size() );
+        int const n = l.size();
+        TEST_EQUALITY( n, offset( i + 1 ) - offset( i ) );
+        for ( int j = 0; j < n; ++j )
+            TEST_ASSERT( l[j] == r[j] );
+    }
 }
 
 #endif
