@@ -429,6 +429,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
     // Initialize the distributed search tree
     DataTransferKit::DistributedSearchTree<DeviceType> distributed_tree(
         comm, bounding_boxes );
+
+    // make queries
     using ExecutionSpace = typename DeviceType::execution_space;
     Kokkos::View<double * [3], ExecutionSpace> point_coords( "point_coords",
                                                              local_n );
