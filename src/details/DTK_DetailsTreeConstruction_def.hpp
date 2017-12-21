@@ -185,7 +185,7 @@ void TreeConstruction<DeviceType>::assignMortonCodes(
     int const n = morton_codes.extent( 0 );
     AssignMortonCodesFunctor<DeviceType> functor( bounding_boxes, morton_codes,
                                                   scene_bounding_box );
-    Kokkos::parallel_for( REGION_NAME( "assign_morton_codes" ),
+    Kokkos::parallel_for( DTK_MARK_REGION( "assign_morton_codes" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
                           functor );
     Kokkos::fence();
@@ -230,7 +230,7 @@ Node *TreeConstruction<DeviceType>::generateHierarchy(
                                                   leaf_nodes, internal_nodes );
 
     int const n = sorted_morton_codes.extent( 0 );
-    Kokkos::parallel_for( REGION_NAME( "generate_hierarchy" ),
+    Kokkos::parallel_for( DTK_MARK_REGION( "generate_hierarchy" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n - 1 ),
                           functor );
     Kokkos::fence();
@@ -248,7 +248,7 @@ void TreeConstruction<DeviceType>::calculateBoundingBoxes(
 
     // Use int instead of bool because CAS on CUDA does not support boolean
     Kokkos::View<int *, DeviceType> ready_flags( "ready_flags", n - 1 );
-    Kokkos::parallel_for( REGION_NAME( "fill_ready_flags" ),
+    Kokkos::parallel_for( DTK_MARK_REGION( "fill_ready_flags" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n - 1 ),
                           KOKKOS_LAMBDA( int i ) { ready_flags[i] = 0; } );
     Kokkos::fence();
@@ -257,7 +257,7 @@ void TreeConstruction<DeviceType>::calculateBoundingBoxes(
 
     CalculateBoundingBoxesFunctor<DeviceType> calc_functor( leaf_nodes, root,
                                                             ready_flags );
-    Kokkos::parallel_for( REGION_NAME( "calculate_bounding_boxes" ),
+    Kokkos::parallel_for( DTK_MARK_REGION( "calculate_bounding_boxes" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
                           calc_functor );
     Kokkos::fence();

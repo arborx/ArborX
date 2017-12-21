@@ -66,7 +66,7 @@ BVH<DeviceType>::BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes )
     if ( size() == 1 )
     {
         iota( _indices );
-        Kokkos::parallel_for( REGION_NAME( "set_bounding_boxes" ),
+        Kokkos::parallel_for( DTK_MARK_REGION( "set_bounding_boxes" ),
                               Kokkos::RangePolicy<ExecutionSpace>( 0, 1 ),
                               SetBoundingBoxesFunctor<DeviceType>(
                                   _leaf_nodes, _indices, bounding_boxes ) );
@@ -90,7 +90,7 @@ BVH<DeviceType>::BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes )
                                                         _indices );
 
     // generate bounding volume hierarchy
-    Kokkos::parallel_for( REGION_NAME( "set_bounding_boxes" ),
+    Kokkos::parallel_for( DTK_MARK_REGION( "set_bounding_boxes" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
                           SetBoundingBoxesFunctor<DeviceType>(
                               _leaf_nodes, _indices, bounding_boxes ) );

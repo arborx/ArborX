@@ -226,7 +226,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, miscellaneous, DeviceType )
     Kokkos::View<int *, DeviceType> zeros( "zeros", 3 );
     Kokkos::deep_copy( zeros, 255 );
     Kokkos::parallel_for(
-        REGION_NAME( "dummy" ), Kokkos::RangePolicy<ExecutionSpace>( 0, 1 ),
+        "dummy", Kokkos::RangePolicy<ExecutionSpace>( 0, 1 ),
         KOKKOS_LAMBDA( int ) {
             DataTransferKit::Point p = {{0., 0., 0.}};
             double r = 1.0;

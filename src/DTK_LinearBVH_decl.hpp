@@ -94,7 +94,7 @@ void queryDispatch(
     Kokkos::deep_copy( offset, 0 );
 
     Kokkos::parallel_for(
-        REGION_NAME( "scan_queries_for_numbers_of_nearest_neighbors" ),
+        DTK_MARK_REGION( "scan_queries_for_numbers_of_nearest_neighbors" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
         KOKKOS_LAMBDA( int i ) { offset( i ) = queries( i )._k; } );
     Kokkos::fence();
@@ -113,7 +113,7 @@ void queryDispatch(
         Kokkos::deep_copy( distances, invalid_distance );
 
         Kokkos::parallel_for(
-            REGION_NAME( "perform_nearest_queries_and_return_distances" ),
+            DTK_MARK_REGION( "perform_nearest_queries_and_return_distances" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int i ) {
                 int count = 0;
@@ -131,7 +131,7 @@ void queryDispatch(
     else
     {
         Kokkos::parallel_for(
-            REGION_NAME( "perform_nearest_queries" ),
+            DTK_MARK_REGION( "perform_nearest_queries" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int i ) {
                 int count = 0;
@@ -148,7 +148,7 @@ void queryDispatch(
     // eliminate them if necessary.
     auto tmp_offset = Kokkos::create_mirror( DeviceType(), offset );
     Kokkos::deep_copy( tmp_offset, 0 );
-    Kokkos::parallel_for( REGION_NAME( "count_invalid_indices" ),
+    Kokkos::parallel_for( DTK_MARK_REGION( "count_invalid_indices" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                           KOKKOS_LAMBDA( int q ) {
                               for ( int i = offset( q ); i < offset( q + 1 );
@@ -165,7 +165,7 @@ void queryDispatch(
     if ( n_invalid_indices > 0 )
     {
         Kokkos::parallel_for(
-            REGION_NAME( "subtract_invalid_entries_from_offset" ),
+            DTK_MARK_REGION( "subtract_invalid_entries_from_offset" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries + 1 ),
             KOKKOS_LAMBDA( int q ) {
                 tmp_offset( q ) = offset( q ) - tmp_offset( q );
@@ -177,7 +177,7 @@ void queryDispatch(
                                                      n_valid_indices );
 
         Kokkos::parallel_for(
-            REGION_NAME( "copy_valid_indices" ),
+            DTK_MARK_REGION( "copy_valid_indices" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int q ) {
                 for ( int i = 0; i < tmp_offset( q + 1 ) - tmp_offset( q );
@@ -195,7 +195,7 @@ void queryDispatch(
             Kokkos::View<double *, DeviceType> tmp_distances( distances.label(),
                                                               n_valid_indices );
             Kokkos::parallel_for(
-                REGION_NAME( "copy_valid_distances" ),
+                DTK_MARK_REGION( "copy_valid_distances" ),
                 Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                 KOKKOS_LAMBDA( int q ) {
                     for ( int i = 0; i < tmp_offset( q + 1 ) - tmp_offset( q );
@@ -235,7 +235,8 @@ void queryDispatch( BVH<DeviceType> const bvh,
     //   ^            ^
     //   0th          Nth element in the view
     Kokkos::parallel_for(
-        REGION_NAME( "first_pass_at_the_search_count_the_number_of_indices" ),
+        DTK_MARK_REGION(
+            "first_pass_at_the_search_count_the_number_of_indices" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
         KOKKOS_LAMBDA( int i ) {
             offset( i ) = Details::TreeTraversal<DeviceType>::query(
@@ -260,7 +261,7 @@ void queryDispatch( BVH<DeviceType> const bvh,
     //   ^     ^     ^         ^     ^
     //   0     2     4         2N-2  2N
     Kokkos::realloc( indices, n_results );
-    Kokkos::parallel_for( REGION_NAME( "second_pass" ),
+    Kokkos::parallel_for( DTK_MARK_REGION( "second_pass" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                           KOKKOS_LAMBDA( int i ) {
                               int count = 0;

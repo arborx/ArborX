@@ -167,7 +167,7 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
     Kokkos::View<Details::Overlap *, DeviceType> overlap_queries(
         "overlap_queries", n_queries );
 
-    Kokkos::parallel_for( REGION_NAME( "fill_overlap_queries" ),
+    Kokkos::parallel_for( DTK_MARK_REGION( "fill_overlap_queries" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                           KOKKOS_LAMBDA( int q ) {
                               Point point = queries( q )._geometry;
@@ -329,7 +329,7 @@ void DistributedSearchTreeImpl<DeviceType>::countResults(
     Kokkos::deep_copy( offset, 0 );
 
     Kokkos::parallel_for(
-        REGION_NAME( "count_results_per_query" ),
+        DTK_MARK_REGION( "count_results_per_query" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, nnz ), KOKKOS_LAMBDA( int i ) {
             Kokkos::atomic_increment( &offset( query_ids( i ) ) );
         } );
@@ -359,7 +359,7 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
         Teuchos::ArrayView<int>( indices.data(), n_exports ) );
 
     Kokkos::View<Query *, DeviceType> exports( queries.label(), n_exports );
-    Kokkos::parallel_for( REGION_NAME( "forward_queries_fill_buffer" ),
+    Kokkos::parallel_for( DTK_MARK_REGION( "forward_queries_fill_buffer" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                           KOKKOS_LAMBDA( int q ) {
                               for ( int i = offset( q ); i < offset( q + 1 );
@@ -377,7 +377,7 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
     sendAcrossNetwork( distributor, export_ranks, import_ranks );
 
     Kokkos::View<int *, DeviceType> export_ids( "export_ids", n_exports );
-    Kokkos::parallel_for( REGION_NAME( "forward_queries_fill_ids" ),
+    Kokkos::parallel_for( DTK_MARK_REGION( "forward_queries_fill_ids" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                           KOKKOS_LAMBDA( int q ) {
                               for ( int i = offset( q ); i < offset( q + 1 );
@@ -414,7 +414,7 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
     int const n_exports = offset( n_fwd_queries );
     Kokkos::View<int *, DeviceType> export_ranks( ranks.label(), n_exports );
     Kokkos::parallel_for(
-        REGION_NAME( "setup_communication_plan" ),
+        DTK_MARK_REGION( "setup_communication_plan" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_fwd_queries ),
         KOKKOS_LAMBDA( int q ) {
             for ( int i = offset( q ); i < offset( q + 1 ); ++i )
@@ -434,7 +434,7 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
 
     Kokkos::View<int *, DeviceType> export_ids( ids.label(), n_exports );
     Kokkos::parallel_for(
-        REGION_NAME( "fill_buffer" ),
+        DTK_MARK_REGION( "fill_buffer" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_fwd_queries ),
         KOKKOS_LAMBDA( int q ) {
             for ( int i = offset( q ); i < offset( q + 1 ); ++i )
@@ -482,7 +482,7 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
     Kokkos::View<int *, DeviceType> _offset( offset.label(), n_queries + 1 );
     Kokkos::deep_copy( _offset, 0 );
 
-    Kokkos::parallel_for( REGION_NAME( "discard_results" ),
+    Kokkos::parallel_for( DTK_MARK_REGION( "discard_results" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                           KOKKOS_LAMBDA( int q ) {
                               _offset( q ) = KokkosHelpers::min(
@@ -513,7 +513,7 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
         Details::PriorityQueue<PairIndexDistance, CompareDistance>;
 
     Kokkos::parallel_for(
-        REGION_NAME( "truncate_results" ),
+        DTK_MARK_REGION( "truncate_results" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
         KOKKOS_LAMBDA( int q ) {
             PriorityQueue queue;
