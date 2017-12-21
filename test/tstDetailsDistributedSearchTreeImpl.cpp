@@ -7,7 +7,7 @@
  * the LICENSE file in the top-level directory.                             *
  ****************************************************************************/
 
-#include <details/DTK_DetailsDistributedSearchTreeImpl.hpp>
+#include <DTK_DetailsDistributedSearchTreeImpl.hpp>
 
 #include <Teuchos_DefaultComm.hpp>
 #include <Teuchos_UnitTestHarness.hpp>
@@ -16,6 +16,75 @@
 #include <algorithm> // fill
 #include <set>
 #include <vector>
+
+TEUCHOS_UNIT_TEST( DetailsTeuchosSerializationTraits, geometries )
+{
+    using DataTransferKit::Box;
+    using DataTransferKit::Details::equals;
+    using DataTransferKit::Point;
+    using DataTransferKit::Sphere;
+
+    Teuchos::RCP<const Teuchos::Comm<int>> comm =
+        Teuchos::DefaultComm<int>::getComm();
+    int const comm_rank = comm->getRank();
+    int const comm_size = comm->getSize();
+
+    Point p = {{(double)comm_rank, (double)comm_rank, (double)comm_rank}};
+    std::vector<Point> all_p( comm_size );
+    Teuchos::gatherAll( *comm, 1, &p, comm_size, all_p.data() );
+
+    for ( int i = 0; i < comm_size; ++i )
+        TEST_ASSERT(
+            equals( all_p[i], {{(double)i, (double)i, double( i )}} ) );
+
+    Box b;
+    if ( comm_rank == 0 )
+        b = {{{0., 0., 0.}}, {{1., 1., 1.}}};
+    Teuchos::broadcast( *comm, 0, 1, &b );
+    TEST_ASSERT( equals( b, {{{0., 0., 0.}}, {{1., 1., 1.}}} ) );
+
+    Sphere s = {{{0., 0., 0.}}, (double)comm_size - (double)comm_rank};
+    std::vector<Sphere> all_s( comm_size );
+    Teuchos::gatherAll( *comm, 1, &s, comm_size, all_s.data() );
+    for ( int i = 0; i < comm_size; ++i )
+        TEST_ASSERT( equals(
+            all_s[i], {{{0., 0., 0.}}, (double)comm_size - (double)i} ) );
+}
+
+TEUCHOS_UNIT_TEST( DetailsTeuchosSerializationTraits, predicates )
+{
+    using DataTransferKit::Box;
+    using DataTransferKit::Details::Intersects;
+    using DataTransferKit::Details::equals;
+    using DataTransferKit::Details::nearest;
+    using DataTransferKit::Point;
+
+    Teuchos::RCP<const Teuchos::Comm<int>> comm =
+        Teuchos::DefaultComm<int>::getComm();
+    int const comm_rank = comm->getRank();
+    int const comm_size = comm->getSize();
+
+    Point p = {{(double)comm_rank, (double)comm_rank, (double)comm_rank}};
+    auto nearest_query = nearest( p, comm_size );
+    std::vector<decltype( nearest_query )> all_nearest_queries( comm_size );
+    Teuchos::gatherAll( *comm, 1, &nearest_query, comm_size,
+                        all_nearest_queries.data() );
+    for ( int i = 0; i < comm_size; ++i )
+    {
+        TEST_ASSERT( equals( all_nearest_queries[i]._geometry,
+                             {{(double)i, (double)i, (double)i}} ) );
+        TEST_EQUALITY( all_nearest_queries[i]._k, comm_size );
+    }
+
+    Box b = {{{0., 0., 0.}}, p};
+    Intersects<Box> intersects_query( b );
+    Teuchos::broadcast( *comm, comm_size - 1, 1, &intersects_query );
+    TEST_ASSERT(
+        equals( intersects_query._geometry.minCorner(), {{0., 0., 0.}} ) );
+    TEST_ASSERT( equals( intersects_query._geometry.maxCorner(),
+                         {{(double)comm_size - 1, (double)comm_size - 1,
+                           (double)comm_size - 1}} ) );
+}
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl, recv_from,
                                    DeviceType )
