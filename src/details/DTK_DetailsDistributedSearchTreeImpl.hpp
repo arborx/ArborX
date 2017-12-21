@@ -9,40 +9,15 @@
 #ifndef DTK_DETAILS_DISTRIBUTED_SEARCH_TREE_IMPL_HPP
 #define DTK_DETAILS_DISTRIBUTED_SEARCH_TREE_IMPL_HPP
 
+#include <DTK_DetailsPredicate.hpp>
+#include <DTK_DetailsPriorityQueue.hpp>
+#include <DTK_DetailsTeuchosSerializationTraits.hpp>
+#include <DTK_DetailsUtils.hpp>
 #include <DTK_LinearBVH.hpp>
-#include <details/DTK_DetailsPredicate.hpp>
-#include <details/DTK_DetailsPriorityQueue.hpp>
-#include <details/DTK_DetailsUtils.hpp>
 
 #include <Kokkos_Atomic.hpp>
 #include <Kokkos_Sort.hpp>
-#include <Teuchos_SerializationTraits.hpp>
 #include <Tpetra_Distributor.hpp>
-
-namespace Teuchos
-{
-
-template <typename Ordinal>
-class SerializationTraits<Ordinal, DataTransferKit::Details::Within>
-    : public DirectSerializationTraits<Ordinal,
-                                       DataTransferKit::Details::Within>
-{
-};
-template <typename Ordinal>
-class SerializationTraits<
-    Ordinal, DataTransferKit::Details::Nearest<DataTransferKit::Point>>
-    : public DirectSerializationTraits<
-          Ordinal, DataTransferKit::Details::Nearest<DataTransferKit::Point>>
-{
-};
-template <typename Ordinal>
-class SerializationTraits<Ordinal, DataTransferKit::Details::Overlap>
-    : public DirectSerializationTraits<Ordinal,
-                                       DataTransferKit::Details::Overlap>
-{
-};
-
-} // end namespace Teuchos
 
 namespace DataTransferKit
 {
