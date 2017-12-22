@@ -147,7 +147,7 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         Kokkos::View<details::Nearest<DataTransferKit::Point> *, DeviceType>
             nearest_queries( "nearest_queries", n_points );
         Kokkos::parallel_for(
-            REGION_NAME( "register_nearest_queries" ),
+            DTK_MARK_REGION( "register_nearest_queries" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
             KOKKOS_LAMBDA( int i ) {
                 nearest_queries( i ) = details::nearest<DataTransferKit::Point>(
@@ -184,7 +184,7 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         Kokkos::View<details::Within *, DeviceType> within_queries(
             "within_queries", n_points );
         Kokkos::parallel_for(
-            REGION_NAME( "register_within_queries" ),
+            DTK_MARK_REGION( "register_within_queries" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
             KOKKOS_LAMBDA( int i ) {
                 within_queries( i ) = details::within(
