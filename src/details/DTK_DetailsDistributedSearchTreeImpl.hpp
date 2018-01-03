@@ -269,6 +269,8 @@ template <typename BinSort, typename View, typename... OtherViews>
 void applyPermutations( BinSort &bin_sort, View view,
                         OtherViews... other_views )
 {
+    DTK_REQUIRE( bin_sort.get_permute_vector().extent( 0 ) ==
+                 view.extent( 0 ) );
     bin_sort.sort( view );
     applyPermutations( bin_sort, other_views... );
 }

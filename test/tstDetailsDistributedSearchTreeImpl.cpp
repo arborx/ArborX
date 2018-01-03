@@ -199,6 +199,12 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,
             TEST_EQUALITY( sorted_results[q].count( results_host[i] ), 1 );
             TEST_EQUALITY( sorted_ranks[q].count( ranks_host[i] ), 1 );
         }
+
+    Kokkos::View<int *, DeviceType> not_sized_properly( "", m );
+    TEST_THROW(
+        DataTransferKit::DistributedSearchTreeImpl<DeviceType>::sortResults(
+            ids, not_sized_properly ),
+        DataTransferKit::DataTransferKitException );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,
