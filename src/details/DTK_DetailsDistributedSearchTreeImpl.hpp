@@ -80,11 +80,9 @@ struct DistributedSearchTreeImpl
                                Kokkos::View<int *, DeviceType> &indices,
                                Kokkos::View<int *, DeviceType> &offset,
                                Kokkos::View<int *, DeviceType> &ranks );
-    static void
-    sortResults( Kokkos::View<int *, DeviceType> query_ids,
-                 Kokkos::View<int *, DeviceType> results,
-                 Kokkos::View<int *, DeviceType> ranks,
-                 Kokkos::View<double *, DeviceType> *distances_ptr = nullptr );
+
+    template <typename View, typename... OtherViews>
+    static void sortResults( View keys, OtherViews... other_views );
 
     static void countResults( int n_queries,
                               Kokkos::View<int *, DeviceType> query_ids,
@@ -209,7 +207,7 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     ////////////////////////////////////////////////////////////////////////////
     int const n_queries = queries.extent_int( 0 );
     countResults( n_queries, ids, offset );
-    sortResults( ids, indices, ranks, &distances );
+    sortResults( ids, indices, ranks, distances );
     filterResults( queries, distances, indices, offset, ranks );
     ////////////////////////////////////////////////////////////////////////////
 }
@@ -258,38 +256,48 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     ////////////////////////////////////////////////////////////////////////////
 }
 
-template <typename DeviceType>
-void DistributedSearchTreeImpl<DeviceType>::sortResults(
-    Kokkos::View<int *, DeviceType> query_ids,
-    Kokkos::View<int *, DeviceType> results,
-    Kokkos::View<int *, DeviceType> ranks,
-    Kokkos::View<double *, DeviceType> *distances_ptr )
+// FIXME: for some reason Kokkos::BinSort::sort() was not const.
+// If https://github.com/kokkos/kokkos/pull/1310 makes it into master in
+// Trilinos, we might want to pass bin_sort by const reference.
+template <typename BinSort>
+void applyPermutations( BinSort & )
 {
-    int const n = query_ids.extent( 0 );
+    // do nothing
+}
+
+template <typename BinSort, typename View, typename... OtherViews>
+void applyPermutations( BinSort &bin_sort, View view,
+                        OtherViews... other_views )
+{
+    bin_sort.sort( view );
+    applyPermutations( bin_sort, other_views... );
+}
+
+template <typename DeviceType>
+template <typename View, typename... OtherViews>
+void DistributedSearchTreeImpl<DeviceType>::sortResults(
+    View keys, OtherViews... other_views )
+{
+    auto const n = keys.extent( 0 );
     // If they were no queries, min_val and max_val values won't change after
     // the parallel reduce (they are initialized to +infty and -infty
     // respectively) and the sort will hang.
     if ( n == 0 )
         return;
 
-    typedef Kokkos::BinOp1D<Kokkos::View<int *, DeviceType>> CompType;
+    using Comp = Kokkos::BinOp1D<View>;
+    using Value = typename View::non_const_value_type;
 
-    Kokkos::Experimental::MinMaxScalar<int> result;
-    Kokkos::Experimental::MinMax<int> reducer( result );
-    parallel_reduce(
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-        Kokkos::Impl::min_max_functor<Kokkos::View<int *, DeviceType>>(
-            query_ids ),
-        reducer );
+    Kokkos::Experimental::MinMaxScalar<Value> result;
+    Kokkos::Experimental::MinMax<Value> reducer( result );
+    parallel_reduce( Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
+                     Kokkos::Impl::min_max_functor<View>( keys ), reducer );
     if ( result.min_val == result.max_val )
         return;
-    Kokkos::BinSort<Kokkos::View<int *, DeviceType>, CompType> bin_sort(
-        query_ids, CompType( n / 2, result.min_val, result.max_val ), true );
+    Kokkos::BinSort<View, Comp> bin_sort(
+        keys, Comp( n / 2, result.min_val, result.max_val ), true );
     bin_sort.create_permute_vector();
-    bin_sort.sort( results );
-    bin_sort.sort( ranks );
-    if ( distances_ptr )
-        bin_sort.sort( *distances_ptr );
+    applyPermutations( bin_sort, other_views... );
     Kokkos::fence();
 }
 
