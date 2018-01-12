@@ -235,57 +235,6 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,
     TEST_COMPARE_ARRAYS( offset_host, offset_ref );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,
-                                   tpetra_fixme, DeviceType )
-{
-    Teuchos::RCP<const Teuchos::Comm<int>> comm =
-        Teuchos::DefaultComm<int>::getComm();
-    int const comm_rank = comm->getRank();
-    int const comm_size = comm->getSize();
-
-    Tpetra::Distributor distributor( comm );
-    int const n = 3 * comm_size;
-    Kokkos::View<int *, DeviceType> proc_ids( "proc_ids", n );
-    int const n_exports = proc_ids.extent( 0 );
-    using ExecutionSpace = typename DeviceType::execution_space;
-    Kokkos::parallel_for(
-        "fill_proc_ids", Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-        KOKKOS_LAMBDA( int i ) { proc_ids( i ) = i % comm_size; } );
-    Kokkos::fence();
-    auto proc_ids_host = Kokkos::create_mirror_view( proc_ids );
-    Kokkos::deep_copy( proc_ids_host, proc_ids );
-    int const n_imports = distributor.createFromSends(
-        Teuchos::ArrayView<int const>( proc_ids_host.data(), n_exports ) );
-    Kokkos::View<int *, DeviceType> exports( "exports", n_exports );
-    Kokkos::parallel_for(
-        "fill_exports", Kokkos::RangePolicy<ExecutionSpace>( 0, n_exports ),
-        KOKKOS_LAMBDA( int i ) { exports( i ) = comm_rank; } );
-    Kokkos::fence();
-
-    Kokkos::View<int *, DeviceType> imports( "imports", n_imports );
-// See https://github.com/trilinos/Trilinos/issues/1454
-// The code compiles with the patch that was submitted.  Sticking with the
-// workaround for now until we figure out what version of Trilinos goes into out
-// Docker image.
-#define WORKAROUND 1
-#ifndef WORKAROUND
-    distributor.doPostsAndWaits( exports, 1, imports );
-    auto imports_host = Kokkos::create_mirror_view( imports );
-    Kokkos::deep_copy( imports_host, imports );
-#else
-    auto exports_host = Kokkos::create_mirror_view( exports );
-    Kokkos::deep_copy( exports_host, exports );
-    auto imports_host = Kokkos::create_mirror_view( imports );
-    distributor.doPostsAndWaits(
-        Teuchos::ArrayView<int const>( exports_host.data(), n_exports ), 1,
-        Teuchos::ArrayView<int>( imports_host.data(), n_imports ) );
-    Kokkos::deep_copy( imports, imports_host );
-#endif
-
-    for ( int i = 0; i < n_imports; ++i )
-        TEST_EQUALITY( imports_host( i ), i / 3 );
-}
-
 // Include the test macros.
 #include "DataTransferKitSearch_ETIHelperMacros.h"
 
@@ -297,9 +246,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsDistributedSearchTreeImpl,    \
                                           sort_results, DeviceType##NODE )     \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsDistributedSearchTreeImpl,    \
-                                          count_results, DeviceType##NODE )    \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsDistributedSearchTreeImpl,    \
-                                          tpetra_fixme, DeviceType##NODE )
+                                          count_results, DeviceType##NODE )
 
 // Demangle the types
 DTK_ETI_MANGLING_TYPEDEFS()
