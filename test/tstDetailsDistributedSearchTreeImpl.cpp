@@ -235,6 +235,90 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,
     TEST_COMPARE_ARRAYS( offset_host, offset_ref );
 }
 
+template <typename View1, typename View2>
+inline void checkViewWasNotAllocated( View1 const &v1, View2 const &v2,
+                                      bool &success,
+                                      Teuchos::FancyOStream &out )
+{
+    // NOTE: cannot use operator== here because array layout may "change" for
+    // rank-1 views
+    TEST_EQUALITY( v1.data(), v2.data() );
+    TEST_EQUALITY( v1.span(), v2.span() );
+
+    TEST_EQUALITY( (int)View1::rank, (int)View2::rank );
+    TEST_ASSERT( ( std::is_same<typename View1::const_value_type,
+                                typename View2::const_value_type>::value ) );
+    TEST_ASSERT( ( std::is_same<typename View1::memory_space,
+                                typename View2::memory_space>::value ) );
+
+    TEST_EQUALITY( v1.dimension_0(), v2.dimension_0() );
+    TEST_EQUALITY( v1.dimension_1(), v2.dimension_1() );
+    TEST_EQUALITY( v1.dimension_2(), v2.dimension_2() );
+    TEST_EQUALITY( v1.dimension_3(), v2.dimension_3() );
+    TEST_EQUALITY( v1.dimension_4(), v2.dimension_4() );
+    TEST_EQUALITY( v1.dimension_5(), v2.dimension_5() );
+    TEST_EQUALITY( v1.dimension_6(), v2.dimension_6() );
+    TEST_EQUALITY( v1.dimension_7(), v2.dimension_7() );
+}
+
+template <typename View1, typename View2>
+inline void checkNewViewWasAllocated( View1 const &v1, View2 const &v2,
+                                      bool &success,
+                                      Teuchos::FancyOStream &out )
+{
+    TEST_INEQUALITY( v1.data(), v2.data() );
+
+    TEST_EQUALITY( (int)View1::rank, (int)View2::rank );
+    TEST_ASSERT( ( std::is_same<typename View1::const_value_type,
+                                typename View2::const_value_type>::value ) );
+
+    TEST_EQUALITY( v1.dimension_0(), v2.dimension_0() );
+    TEST_EQUALITY( v1.dimension_1(), v2.dimension_1() );
+    TEST_EQUALITY( v1.dimension_2(), v2.dimension_2() );
+    TEST_EQUALITY( v1.dimension_3(), v2.dimension_3() );
+    TEST_EQUALITY( v1.dimension_4(), v2.dimension_4() );
+    TEST_EQUALITY( v1.dimension_5(), v2.dimension_5() );
+    TEST_EQUALITY( v1.dimension_6(), v2.dimension_6() );
+    TEST_EQUALITY( v1.dimension_7(), v2.dimension_7() );
+}
+
+TEUCHOS_UNIT_TEST( DetailsDistributedSearchTreeImpl,
+                   create_layout_right_mirror_view )
+{
+    using DataTransferKit::create_layout_right_mirror_view;
+    using Kokkos::ALL;
+    using Kokkos::LayoutLeft;
+    using Kokkos::LayoutRight;
+    using Kokkos::View;
+    using Kokkos::make_pair;
+    using Kokkos::subview;
+
+    // rank-1 and not strided -> do not allocate
+    View<int *, LayoutLeft> u( "u", 255 );
+    auto u_h = create_layout_right_mirror_view( u );
+    checkViewWasNotAllocated( u, u_h, success, out );
+
+    // right layout -> do not allocate
+    View<int **, LayoutRight> v( "v", 2, 3 );
+    auto v_h = create_layout_right_mirror_view( v );
+    checkViewWasNotAllocated( v, v_h, success, out );
+
+    // left layout and rank > 1 -> allocate
+    View<int **, LayoutLeft> w( "w", 4, 5 );
+    auto w_h = create_layout_right_mirror_view( w );
+    checkNewViewWasAllocated( w, w_h, success, out );
+
+    // strided layout -> allocate
+    auto x = subview( v, ALL, 0 );
+    auto x_h = create_layout_right_mirror_view( x );
+    checkNewViewWasAllocated( x, x_h, success, out );
+
+    // subview is rank-1 and not strided -> do not allocate
+    auto y = subview( u, make_pair( 8, 16 ) );
+    auto y_h = create_layout_right_mirror_view( y );
+    checkViewWasNotAllocated( y, y_h, success, out );
+}
+
 // Include the test macros.
 #include "DataTransferKitSearch_ETIHelperMacros.h"
 

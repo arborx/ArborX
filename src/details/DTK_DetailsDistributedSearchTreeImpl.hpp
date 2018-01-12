@@ -106,6 +106,45 @@ struct DistributedSearchTreeImpl
 template <typename DeviceType>
 double DistributedSearchTreeImpl<DeviceType>::epsilon = 1.0e-6;
 
+template <typename View>
+inline Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
+                    typename View::traits::host_mirror_space>
+create_layout_right_mirror_view(
+    View const &src,
+    typename std::enable_if<!(
+        ( std::is_same<typename View::traits::array_layout,
+                       Kokkos::LayoutRight>::value ||
+          View::rank == 1 && !std::is_same<typename View::traits::array_layout,
+                                           Kokkos::LayoutStride>::value ) &&
+        std::is_same<typename View::traits::memory_space,
+                     typename View::traits::host_mirror_space::memory_space>::
+            value )>::type * = 0 )
+{
+    return Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
+                        typename View::traits::host_mirror_space>(
+        std::string( src.label() ).append( "_layout_right_mirror" ),
+        src.dimension_0(), src.dimension_1(), src.dimension_2(),
+        src.dimension_3(), src.dimension_4(), src.dimension_5(),
+        src.dimension_6(), src.dimension_7() );
+}
+
+template <typename View>
+inline Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
+                    typename View::traits::host_mirror_space>
+create_layout_right_mirror_view(
+    View const &src,
+    typename std::enable_if<(
+        ( std::is_same<typename View::traits::array_layout,
+                       Kokkos::LayoutRight>::value ||
+          View::rank == 1 && !std::is_same<typename View::traits::array_layout,
+                                           Kokkos::LayoutStride>::value ) &&
+        std::is_same<typename View::traits::memory_space,
+                     typename View::traits::host_mirror_space::memory_space>::
+            value )>::type * = 0 )
+{
+    return src;
+}
+
 template <typename DeviceType>
 template <typename T>
 void DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
