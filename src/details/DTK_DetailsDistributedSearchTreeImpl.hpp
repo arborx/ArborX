@@ -19,6 +19,8 @@
 #include <Kokkos_Sort.hpp>
 #include <Tpetra_Distributor.hpp>
 
+#include <numeric> // accumulate
+
 namespace DataTransferKit
 {
 
@@ -152,13 +154,22 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
     Tpetra::Distributor &distributor, View exports,
     typename View::non_const_type imports )
 {
-    DTK_REQUIRE( ( exports.dimension_1() == imports.dimension_1() ) &&
+    DTK_REQUIRE( ( exports.dimension_0() ==
+                   std::accumulate( std::begin( distributor.getLengthsTo() ),
+                                    std::end( distributor.getLengthsTo() ),
+                                    size_t( 0 ) ) ) &&
+                 ( imports.dimension_0() ==
+                   std::accumulate( std::begin( distributor.getLengthsFrom() ),
+                                    std::end( distributor.getLengthsFrom() ),
+                                    size_t( 0 ) ) ) &&
+                 ( exports.dimension_1() == imports.dimension_1() ) &&
                  ( exports.dimension_2() == imports.dimension_2() ) &&
                  ( exports.dimension_3() == imports.dimension_3() ) &&
                  ( exports.dimension_4() == imports.dimension_4() ) &&
                  ( exports.dimension_5() == imports.dimension_5() ) &&
                  ( exports.dimension_6() == imports.dimension_6() ) &&
                  ( exports.dimension_7() == imports.dimension_7() ) );
+
     auto const num_packets = exports.dimension_1() * exports.dimension_2() *
                              exports.dimension_3() * exports.dimension_4() *
                              exports.dimension_5() * exports.dimension_6() *
