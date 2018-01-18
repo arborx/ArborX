@@ -116,8 +116,9 @@ create_layout_right_mirror_view(
     typename std::enable_if<!(
         ( std::is_same<typename View::traits::array_layout,
                        Kokkos::LayoutRight>::value ||
-          View::rank == 1 && !std::is_same<typename View::traits::array_layout,
-                                           Kokkos::LayoutStride>::value ) &&
+          ( View::rank == 1 &&
+            !std::is_same<typename View::traits::array_layout,
+                          Kokkos::LayoutStride>::value ) ) &&
         std::is_same<typename View::traits::memory_space,
                      typename View::traits::host_mirror_space::memory_space>::
             value )>::type * = 0 )
@@ -135,14 +136,15 @@ inline Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
                     typename View::traits::host_mirror_space>
 create_layout_right_mirror_view(
     View const &src,
-    typename std::enable_if<(
-        ( std::is_same<typename View::traits::array_layout,
-                       Kokkos::LayoutRight>::value ||
-          View::rank == 1 && !std::is_same<typename View::traits::array_layout,
-                                           Kokkos::LayoutStride>::value ) &&
-        std::is_same<typename View::traits::memory_space,
-                     typename View::traits::host_mirror_space::memory_space>::
-            value )>::type * = 0 )
+    typename std::enable_if<
+        ( ( std::is_same<typename View::traits::array_layout,
+                         Kokkos::LayoutRight>::value ||
+            ( View::rank == 1 &&
+              !std::is_same<typename View::traits::array_layout,
+                            Kokkos::LayoutStride>::value ) ) &&
+          std::is_same<typename View::traits::memory_space,
+                       typename View::traits::host_mirror_space::memory_space>::
+              value )>::type * = 0 )
 {
     return src;
 }
