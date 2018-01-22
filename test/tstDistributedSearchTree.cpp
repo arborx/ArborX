@@ -297,6 +297,62 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, one_leaf_per_rank,
                   success, out );
 }
 
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree,
+                                   non_approximate_nearest_neighbors,
+                                   DeviceType )
+{
+    Teuchos::RCP<const Teuchos::Comm<int>> comm =
+        Teuchos::DefaultComm<int>::getComm();
+    int const comm_rank = Teuchos::rank( *comm );
+    int const comm_size = Teuchos::size( *comm );
+
+    //  +----------0----------1----------2----------3
+    //  |          |          |          |          |
+    //  |          |          |          |          |
+    //  |          |          |          |          |
+    //  |          |          |          |          |
+    //  0----------1----------2----------3----------+
+    //  [  rank 0  ]
+    //             [  rank 1  ]
+    //                        [  rank 2  ]
+    //                                   [  rank 3  ]
+    auto const tree = makeDistributedSearchTree<DeviceType>(
+        comm,
+        {
+            {{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank, 0., 0.}}},
+            {{{(double)comm_rank + 1., 1., 1.}},
+             {{(double)comm_rank + 1., 1., 1.}}},
+        } );
+
+    TEST_ASSERT( !tree.empty() );
+    TEST_EQUALITY( (int)tree.size(), 2 * comm_size );
+
+    DataTransferKit::DistributedSearchTreeImpl<DeviceType>::epsilon = .5;
+
+    //  +----------0----------1----------2----------3
+    //  |          |          |          |          |
+    //  |          |          |          |          |
+    //  |          |          |          |          |
+    //  |          |          |          |          |
+    //  0-------x--1-------X--2-------X--3-------X--+
+    //          ^          ^          ^          ^
+    //          3          2          1          0
+    if ( comm_rank > 0 )
+        checkResults(
+            tree,
+            makeNearestQueries<DeviceType>( {
+                {{{(double)( comm_size - 1 - comm_rank ) + .75, 0., 0.}}, 1},
+            } ),
+            {0}, {0, 1}, {comm_size - comm_rank}, success, out );
+    else
+        checkResults(
+            tree,
+            makeNearestQueries<DeviceType>( {
+                {{{(double)( comm_size - 1 - comm_rank ) + .75, 0., 0.}}, 1},
+            } ),
+            {0}, {0, 1}, {comm_size - 1}, success, out );
+}
+
 std::vector<std::array<double, 3>>
 make_random_cloud( double const Lx, double const Ly, double const Lz,
                    int const n, double const seed )
@@ -476,6 +532,9 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
         DistributedSearchTree, unique_leaf_on_rank_0, DeviceType##NODE )       \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT(                                      \
         DistributedSearchTree, one_leaf_per_rank, DeviceType##NODE )           \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DistributedSearchTree,               \
+                                          non_approximate_nearest_neighbors,   \
+                                          DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DistributedSearchTree,               \
                                           boost_comparison, DeviceType##NODE )
 
