@@ -25,7 +25,7 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
     Teuchos::RCP<Teuchos::Comm<int> const> comm,
     Kokkos::View<Box const *, DeviceType> bounding_boxes )
     : _comm( comm )
-    , _local_tree( bounding_boxes )
+    , _bottom_tree( bounding_boxes )
 {
     int const comm_rank = _comm->getRank();
     int const comm_size = _comm->getSize();
@@ -34,7 +34,7 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
     // FIXME: I am not sure how to do the MPI allgather with Teuchos for data
     // living on the device so I copied to the host.
     auto boxes_host = Kokkos::create_mirror_view( boxes );
-    boxes_host( comm_rank ) = _local_tree.bounds();
+    boxes_host( comm_rank ) = _bottom_tree.bounds();
 
     Teuchos::Array<double> bounds( 6 * comm_size );
     Teuchos::gatherAll( *_comm, 6,
@@ -44,9 +44,9 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
         boxes_host( i ) = reinterpret_cast<Box const &>( bounds[6 * i] );
     Kokkos::deep_copy( boxes, boxes_host );
 
-    _distributed_tree = BVH<DeviceType>( boxes );
+    _top_tree = BVH<DeviceType>( boxes );
 
-    Teuchos::reduceAll( *_comm, Teuchos::REDUCE_SUM, _local_tree.size(),
+    Teuchos::reduceAll( *_comm, Teuchos::REDUCE_SUM, _bottom_tree.size(),
                         Teuchos::ptrFromRef( _size ) );
 }
 

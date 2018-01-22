@@ -34,8 +34,8 @@ struct DistributedSearchTreeImpl
     // spatial queries
     template <typename Query>
     static void queryDispatch( Teuchos::RCP<Teuchos::Comm<int> const> comm,
-                               BVH<DeviceType> const &distributed_tree,
-                               BVH<DeviceType> const &local_tree,
+                               BVH<DeviceType> const &top_tree,
+                               BVH<DeviceType> const &bottom_tree,
                                Kokkos::View<Query *, DeviceType> queries,
                                Kokkos::View<int *, DeviceType> &indices,
                                Kokkos::View<int *, DeviceType> &offset,
@@ -46,8 +46,7 @@ struct DistributedSearchTreeImpl
     template <typename Query>
     static void queryDispatch(
         Teuchos::RCP<Teuchos::Comm<int> const> comm,
-        BVH<DeviceType> const &distributed_tree,
-        BVH<DeviceType> const &local_tree,
+        BVH<DeviceType> const &top_tree, BVH<DeviceType> const &bottom_tree,
         Kokkos::View<Query *, DeviceType> queries,
         Kokkos::View<int *, DeviceType> &indices,
         Kokkos::View<int *, DeviceType> &offset,
@@ -230,7 +229,7 @@ template <typename DeviceType>
 template <typename Query>
 void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     Teuchos::RCP<Teuchos::Comm<int> const> comm,
-    BVH<DeviceType> const &distributed_tree, BVH<DeviceType> const &local_tree,
+    BVH<DeviceType> const &top_tree, BVH<DeviceType> const &bottom_tree,
     Kokkos::View<Query *, DeviceType> queries,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset,
@@ -241,8 +240,8 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     // the nearest neighbors queries oroverlap with when expanded in all
     // direction by epsilon.
     // NOTE: epsilon is a static member for now which is far from ideal.
-    deviseStrategy( {{epsilon, epsilon, epsilon}}, queries, distributed_tree,
-                    indices, offset );
+    deviseStrategy( {{epsilon, epsilon, epsilon}}, queries, top_tree, indices,
+                    offset );
 
     ////////////////////////////////////////////////////////////////////////////
     // Forward queries
@@ -258,7 +257,7 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     Kokkos::View<double *, DeviceType> distances( "distances" );
     if ( distances_ptr )
         distances = *distances_ptr;
-    local_tree.query( fwd_queries, indices, offset, distances );
+    bottom_tree.query( fwd_queries, indices, offset, distances );
     ////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////////////////////////////////////////////
@@ -281,7 +280,7 @@ template <typename DeviceType>
 template <typename Query>
 void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     Teuchos::RCP<Teuchos::Comm<int> const> comm,
-    BVH<DeviceType> const &distributed_tree, BVH<DeviceType> const &local_tree,
+    BVH<DeviceType> const &top_tree, BVH<DeviceType> const &bottom_tree,
     Kokkos::View<Query *, DeviceType> queries,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset,
@@ -289,7 +288,7 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
 {
     ////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
-    distributed_tree.query( queries, indices, offset );
+    top_tree.query( queries, indices, offset );
     ////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////////////////////////////////////////////
@@ -303,7 +302,7 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     ////////////////////////////////////////////////////////////////////////////
     // Perform queries that have been received
     ////////////////////////////////////////////////////////////////////////////
-    local_tree.query( fwd_queries, indices, offset );
+    bottom_tree.query( fwd_queries, indices, offset );
     ////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////////////////////////////////////////////

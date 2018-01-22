@@ -42,7 +42,7 @@ class DistributedSearchTree
     /** Returns the smallest axis-aligned box able to contain all the objects
      *  stored in the tree or an invalid box if the tree is empty.
      */
-    inline Box bounds() const { return _distributed_tree.bounds(); }
+    inline Box bounds() const { return _top_tree.bounds(); }
 
     using SizeType = typename BVH<DeviceType>::SizeType;
     /** Returns the global number of objects stored in the tree.
@@ -97,8 +97,8 @@ class DistributedSearchTree
 
   private:
     Teuchos::RCP<Teuchos::Comm<int> const> _comm;
-    BVH<DeviceType> _local_tree;
-    BVH<DeviceType> _distributed_tree;
+    BVH<DeviceType> _top_tree;    // replicated
+    BVH<DeviceType> _bottom_tree; // local
     SizeType _size;
 };
 
@@ -112,7 +112,7 @@ void DistributedSearchTree<DeviceType>::query(
 {
     using Tag = typename Query::Tag;
     DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-        _comm, _distributed_tree, _local_tree, queries, indices, offset, ranks,
+        _comm, _top_tree, _bottom_tree, queries, indices, offset, ranks,
         Tag{} );
 }
 
@@ -130,8 +130,8 @@ DistributedSearchTree<DeviceType>::query(
 {
     using Tag = typename Query::Tag;
     DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-        _comm, _distributed_tree, _local_tree, queries, indices, offset, ranks,
-        Tag{}, &distances );
+        _comm, _top_tree, _bottom_tree, queries, indices, offset, ranks, Tag{},
+        &distances );
 }
 
 } // end namespace DataTransferKit
