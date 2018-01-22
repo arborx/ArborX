@@ -18,8 +18,8 @@
 #include <Teuchos_RCP.hpp>
 
 #include <DTK_DBC.hpp>
+#include <DTK_DetailsDistributedSearchTreeImpl.hpp>
 #include <DTK_LinearBVH.hpp>
-#include <details/DTK_DetailsDistributedSearchTreeImpl.hpp>
 
 #include "DTK_ConfigDefs.hpp"
 
@@ -47,7 +47,7 @@ class DistributedSearchTree
     using SizeType = typename BVH<DeviceType>::SizeType;
     /** Returns the global number of objects stored in the tree.
      */
-    inline SizeType size() const { return _size; }
+    inline SizeType size() const { return _top_tree_size; }
 
     /** Indicates whether the tree is empty on all processes.
      */
@@ -99,7 +99,8 @@ class DistributedSearchTree
     Teuchos::RCP<Teuchos::Comm<int> const> _comm;
     BVH<DeviceType> _top_tree;    // replicated
     BVH<DeviceType> _bottom_tree; // local
-    SizeType _size;
+    SizeType _top_tree_size;
+    Kokkos::View<SizeType *, DeviceType> _bottom_tree_sizes;
 };
 
 template <typename DeviceType>

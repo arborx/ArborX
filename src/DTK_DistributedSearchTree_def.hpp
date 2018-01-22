@@ -12,7 +12,8 @@
 #ifndef DTK_DISTRIBUTED_SEARCH_TREE_DEF_HPP
 #define DTK_DISTRIBUTED_SEARCH_TREE_DEF_HPP
 
-#include <details/DTK_DetailsBox.hpp>
+#include <DTK_DetailsBox.hpp>
+#include <DTK_DetailsUtils.hpp> // accumulate
 
 #include <Teuchos_Array.hpp>
 #include <Teuchos_CommHelpers.hpp>
@@ -46,8 +47,16 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
 
     _top_tree = BVH<DeviceType>( boxes );
 
-    Teuchos::reduceAll( *_comm, Teuchos::REDUCE_SUM, _bottom_tree.size(),
-                        Teuchos::ptrFromRef( _size ) );
+    _bottom_tree_sizes = Kokkos::View<SizeType *, DeviceType>(
+        "leave_count_in_local_trees", comm_size );
+    auto bottom_tree_sizes_host =
+        Kokkos::create_mirror_view( _bottom_tree_sizes );
+    auto const bottom_tree_size = _bottom_tree.size();
+    Teuchos::gatherAll( *comm, 1, &bottom_tree_size, comm_size,
+                        bottom_tree_sizes_host.data() );
+    Kokkos::deep_copy( _bottom_tree_sizes, bottom_tree_sizes_host );
+
+    _top_tree_size = accumulate( _bottom_tree_sizes, 0 );
 }
 
 } // end namespace DataTransferKit
