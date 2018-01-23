@@ -96,6 +96,7 @@ class DistributedSearchTree
            Kokkos::View<double *, DeviceType> &distances ) const;
 
   private:
+    friend struct Details::DistributedSearchTreeImpl<DeviceType>;
     Teuchos::RCP<Teuchos::Comm<int> const> _comm;
     BVH<DeviceType> _top_tree;    // replicated
     BVH<DeviceType> _bottom_tree; // local
@@ -113,8 +114,7 @@ void DistributedSearchTree<DeviceType>::query(
 {
     using Tag = typename Query::Tag;
     Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-        _comm, _top_tree, _bottom_tree, queries, indices, offset, ranks,
-        Tag{} );
+        *this, queries, indices, offset, ranks, Tag{} );
 }
 
 template <typename DeviceType>
@@ -131,8 +131,7 @@ DistributedSearchTree<DeviceType>::query(
 {
     using Tag = typename Query::Tag;
     Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-        _comm, _top_tree, _bottom_tree, queries, indices, offset, ranks, Tag{},
-        &distances );
+        *this, queries, indices, offset, ranks, Tag{}, &distances );
 }
 
 } // end namespace DataTransferKit

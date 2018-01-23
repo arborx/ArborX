@@ -26,6 +26,9 @@
 namespace DataTransferKit
 {
 
+template <typename DeviceType>
+class DistributedSearchTree;
+
 namespace Details
 {
 
@@ -36,9 +39,7 @@ struct DistributedSearchTreeImpl
 
     // spatial queries
     template <typename Query>
-    static void queryDispatch( Teuchos::RCP<Teuchos::Comm<int> const> comm,
-                               BVH<DeviceType> const &top_tree,
-                               BVH<DeviceType> const &bottom_tree,
+    static void queryDispatch( DistributedSearchTree<DeviceType> const &tree,
                                Kokkos::View<Query *, DeviceType> queries,
                                Kokkos::View<int *, DeviceType> &indices,
                                Kokkos::View<int *, DeviceType> &offset,
@@ -48,8 +49,7 @@ struct DistributedSearchTreeImpl
     // nearest neighbors queries
     template <typename Query>
     static void queryDispatch(
-        Teuchos::RCP<Teuchos::Comm<int> const> comm,
-        BVH<DeviceType> const &top_tree, BVH<DeviceType> const &bottom_tree,
+        DistributedSearchTree<DeviceType> const &tree,
         Kokkos::View<Query *, DeviceType> queries,
         Kokkos::View<int *, DeviceType> &indices,
         Kokkos::View<int *, DeviceType> &offset,
@@ -59,7 +59,7 @@ struct DistributedSearchTreeImpl
     template <typename Query>
     static void deviseStrategy( Point epsilon,
                                 Kokkos::View<Query *, DeviceType> queries,
-                                BVH<DeviceType> const &bvh,
+                                DistributedSearchTree<DeviceType> const &tree,
                                 Kokkos::View<int *, DeviceType> &indices,
                                 Kokkos::View<int *, DeviceType> &offset );
 
@@ -200,9 +200,11 @@ template <typename DeviceType>
 template <typename Query>
 void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
     Point eps, Kokkos::View<Query *, DeviceType> queries,
-    BVH<DeviceType> const &bvh, Kokkos::View<int *, DeviceType> &indices,
+    DistributedSearchTree<DeviceType> const &tree,
+    Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset )
 {
+    auto const &top_tree = tree._top_tree;
     int const n_queries = queries.extent( 0 );
     Kokkos::View<Details::Overlap *, DeviceType> overlap_queries(
         "overlap_queries", n_queries );
@@ -225,25 +227,28 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
                           } );
     Kokkos::fence();
 
-    bvh.query( overlap_queries, indices, offset );
+    top_tree.query( overlap_queries, indices, offset );
 }
 
 template <typename DeviceType>
 template <typename Query>
 void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-    Teuchos::RCP<Teuchos::Comm<int> const> comm,
-    BVH<DeviceType> const &top_tree, BVH<DeviceType> const &bottom_tree,
+    DistributedSearchTree<DeviceType> const &tree,
     Kokkos::View<Query *, DeviceType> queries,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset,
     Kokkos::View<int *, DeviceType> &ranks, Details::NearestPredicateTag,
     Kokkos::View<double *, DeviceType> *distances_ptr )
 {
+    auto const &top_tree = tree._top_tree;
+    auto const &bottom_tree = tree._bottom_tree;
+    auto comm = tree._comm;
+
     // Determine what ranks have local trees that the objects associated with
     // the nearest neighbors queries oroverlap with when expanded in all
     // direction by epsilon.
     // NOTE: epsilon is a static member for now which is far from ideal.
-    deviseStrategy( {{epsilon, epsilon, epsilon}}, queries, top_tree, indices,
+    deviseStrategy( {{epsilon, epsilon, epsilon}}, queries, tree, indices,
                     offset );
 
     ////////////////////////////////////////////////////////////////////////////
@@ -282,13 +287,16 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
 template <typename DeviceType>
 template <typename Query>
 void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-    Teuchos::RCP<Teuchos::Comm<int> const> comm,
-    BVH<DeviceType> const &top_tree, BVH<DeviceType> const &bottom_tree,
+    DistributedSearchTree<DeviceType> const &tree,
     Kokkos::View<Query *, DeviceType> queries,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset,
     Kokkos::View<int *, DeviceType> &ranks, Details::SpatialPredicateTag )
 {
+    auto const &top_tree = tree._top_tree;
+    auto const &bottom_tree = tree._bottom_tree;
+    auto comm = tree._comm;
+
     ////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
     top_tree.query( queries, indices, offset );
