@@ -5,6 +5,8 @@
  * This file is part of the DataTransferKit library. DataTransferKit is     *
  * distributed under a BSD 3-clause license. For the licensing terms see    *
  * the LICENSE file in the top-level directory.                             *
+ *                                                                          *
+ * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 #ifndef DTK_DETAILS_PRIORITY_QUEUE_HPP
 #define DTK_DETAILS_PRIORITY_QUEUE_HPP
