@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2012-2017 by the DataTransferKit authors                   *
+ * Copyright (c) 2012-2018 by the DataTransferKit authors                   *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the DataTransferKit library. DataTransferKit is     *
