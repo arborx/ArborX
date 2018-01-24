@@ -110,15 +110,7 @@ struct DistributedSearchTreeImpl
     static typename std::enable_if<Kokkos::is_view<View>::value>::type
     sendAcrossNetwork( Tpetra::Distributor &distributor, View exports,
                        typename View::non_const_type imports );
-
-    static double epsilon;
 };
-
-// Default value for epsilon matches the inclusion tolerance in DTK-2.0 which
-// is arbitrary and might need adjustement in client code.  See
-// https://github.com/ORNL-CEES/DataTransferKit/blob/dtk-2.0/packages/Operators/src/Search/DTK_CoarseGlobalSearch.cpp#L61
-template <typename DeviceType>
-double DistributedSearchTreeImpl<DeviceType>::epsilon = 1.0e-6;
 
 template <typename View>
 inline Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
