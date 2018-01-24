@@ -112,7 +112,7 @@ void DistributedSearchTree<DeviceType>::query(
     Kokkos::View<int *, DeviceType> &ranks ) const
 {
     using Tag = typename Query::Tag;
-    DistributedSearchTreeImpl<DeviceType>::queryDispatch(
+    Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
         _comm, _top_tree, _bottom_tree, queries, indices, offset, ranks,
         Tag{} );
 }
@@ -130,7 +130,7 @@ DistributedSearchTree<DeviceType>::query(
     Kokkos::View<double *, DeviceType> &distances ) const
 {
     using Tag = typename Query::Tag;
-    DistributedSearchTreeImpl<DeviceType>::queryDispatch(
+    Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
         _comm, _top_tree, _bottom_tree, queries, indices, offset, ranks, Tag{},
         &distances );
 }

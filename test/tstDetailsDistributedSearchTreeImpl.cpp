@@ -186,8 +186,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,
         ranks_host( i ) = ranks_[i];
     Kokkos::deep_copy( ranks, ranks_host );
 
-    DataTransferKit::DistributedSearchTreeImpl<DeviceType>::sortResults(
-        ids, results, ranks );
+    DataTransferKit::Details::DistributedSearchTreeImpl<
+        DeviceType>::sortResults( ids, results, ranks );
 
     // COMMENT: ids are untouched
     Kokkos::deep_copy( ids_host, ids );
@@ -203,10 +203,9 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,
         }
 
     Kokkos::View<int *, DeviceType> not_sized_properly( "", m );
-    TEST_THROW(
-        DataTransferKit::DistributedSearchTreeImpl<DeviceType>::sortResults(
-            ids, not_sized_properly ),
-        DataTransferKit::DataTransferKitException );
+    TEST_THROW( DataTransferKit::Details::DistributedSearchTreeImpl<
+                    DeviceType>::sortResults( ids, not_sized_properly ),
+                DataTransferKit::DataTransferKitException );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,
@@ -229,8 +228,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,
 
     Kokkos::View<int *, DeviceType> offset( "offset" );
 
-    DataTransferKit::DistributedSearchTreeImpl<DeviceType>::countResults(
-        m, ids, offset );
+    DataTransferKit::Details::DistributedSearchTreeImpl<
+        DeviceType>::countResults( m, ids, offset );
 
     auto offset_host = Kokkos::create_mirror_view( offset );
     Kokkos::deep_copy( offset_host, offset );
@@ -287,7 +286,7 @@ inline void checkNewViewWasAllocated( View1 const &v1, View2 const &v2,
 TEUCHOS_UNIT_TEST( DetailsDistributedSearchTreeImpl,
                    create_layout_right_mirror_view )
 {
-    using DataTransferKit::create_layout_right_mirror_view;
+    using DataTransferKit::Details::create_layout_right_mirror_view;
     using Kokkos::ALL;
     using Kokkos::LayoutLeft;
     using Kokkos::LayoutRight;

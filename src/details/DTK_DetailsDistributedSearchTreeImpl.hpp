@@ -26,6 +26,9 @@
 namespace DataTransferKit
 {
 
+namespace Details
+{
+
 template <typename DeviceType>
 struct DistributedSearchTreeImpl
 {
@@ -586,6 +589,7 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
     offset = _offset;
 }
 
+} // end namespace Details
 } // end namespace DataTransferKit
 
 #endif

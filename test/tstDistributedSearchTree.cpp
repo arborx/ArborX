@@ -31,9 +31,10 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
     int const comm_rank = Teuchos::rank( *comm );
     int const comm_size = Teuchos::size( *comm );
 
-    auto default_epsilon =
-        DataTransferKit::DistributedSearchTreeImpl<DeviceType>::epsilon;
-    DataTransferKit::DistributedSearchTreeImpl<DeviceType>::epsilon = 0.5;
+    auto default_epsilon = DataTransferKit::Details::DistributedSearchTreeImpl<
+        DeviceType>::epsilon;
+    DataTransferKit::Details::DistributedSearchTreeImpl<DeviceType>::epsilon =
+        0.5;
 
     int const n = 4;
     Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", n );
@@ -151,7 +152,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
         TEST_EQUALITY( ranks_host( 1 ), comm_size - 1 - comm_rank );
     }
 
-    DataTransferKit::DistributedSearchTreeImpl<DeviceType>::epsilon =
+    DataTransferKit::Details::DistributedSearchTreeImpl<DeviceType>::epsilon =
         default_epsilon;
 }
 
@@ -327,7 +328,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree,
     TEST_ASSERT( !tree.empty() );
     TEST_EQUALITY( (int)tree.size(), 2 * comm_size );
 
-    DataTransferKit::DistributedSearchTreeImpl<DeviceType>::epsilon = .5;
+    auto const default_epsilon =
+        DataTransferKit::Details::DistributedSearchTreeImpl<
+            DeviceType>::epsilon;
+    DataTransferKit::Details::DistributedSearchTreeImpl<DeviceType>::epsilon =
+        .5;
 
     //  +----------0----------1----------2----------3
     //  |          |          |          |          |
@@ -351,6 +356,9 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree,
                 {{{(double)( comm_size - 1 - comm_rank ) + .75, 0., 0.}}, 1},
             } ),
             {0}, {0, 1}, {comm_size - 1}, success, out );
+
+    DataTransferKit::Details::DistributedSearchTreeImpl<DeviceType>::epsilon =
+        default_epsilon;
 }
 
 std::vector<std::array<double, 3>>
