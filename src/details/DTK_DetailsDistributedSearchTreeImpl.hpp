@@ -543,7 +543,7 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
 
     exclusivePrefixSum( _offset );
 
-    int const n_truncated_results = _offset( n_queries );
+    int const n_truncated_results = lastElement( _offset );
     Kokkos::View<int *, DeviceType> _indices( indices.label(),
                                               n_truncated_results );
     Kokkos::View<int *, DeviceType> _ranks( ranks.label(),
