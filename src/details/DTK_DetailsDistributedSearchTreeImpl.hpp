@@ -212,7 +212,9 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
     top_tree.query( queries, indices, offset );
 
     // Accumulate total leave count in the local trees until it reaches k which
-    // is the number of neighbors queried for.
+    // is the number of neighbors queried for.  Stop if local trees get
+    // empty because it means that they are no more leaves and there is no point
+    // on forwarding queries to leafless trees.
     auto const n_queries = queries.extent( 0 );
     Kokkos::View<int *, DeviceType> _offset( offset.label(), n_queries + 1 );
     Kokkos::deep_copy( _offset, 0 );
@@ -221,12 +223,15 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
         KOKKOS_LAMBDA( int i ) {
             int leaves_count = 0;
+            int const n_nearest_neighbors = queries( i )._k;
             for ( int j = offset( i ); j < offset( i + 1 ); ++j )
             {
-                leaves_count += bottom_tree_sizes( indices( j ) );
-                ++_offset( i );
-                if ( leaves_count >= queries( i )._k )
+                int const bottom_tree_size = bottom_tree_sizes( indices( j ) );
+                if ( ( bottom_tree_size == 0 ) ||
+                     ( leaves_count >= n_nearest_neighbors ) )
                     break;
+                leaves_count += bottom_tree_size;
+                ++_offset( i );
             }
         } );
     Kokkos::fence();
