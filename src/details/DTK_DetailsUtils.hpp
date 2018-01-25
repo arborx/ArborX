@@ -183,6 +183,40 @@ minMax( ViewType const &v )
     return std::make_pair( result.min_val, result.max_val );
 }
 
+/** \brief Accumulate values in a view
+ *
+ *  \param[in] v Input view
+ *  \param[in] init Initial value of the sum
+ *
+ *  Returns the sum of the given \p init value and elements in the given view \p
+ *  v.  Uses operator+ to sum up the elements.
+ */
+template <typename ViewType>
+typename ViewType::non_const_value_type
+accumulate( ViewType const &v, typename ViewType::non_const_value_type init )
+{
+    static_assert( ViewType::rank == 1,
+                   "accumulate requires a View of rank 1" );
+    using ExecutionSpace = typename ViewType::execution_space;
+    auto const n = v.extent( 0 );
+    // NOTE: Passing the argument init directly to the parallel_reduce() while
+    // using a lambda does not yield the expected result because Kokkos will
+    // supply a default init method that sets the reduction result to zero.
+    // Rather than going through the hassle of defining a custom functor for
+    // the reduction, introduce here a temporary variable and add it to init
+    // before returning.
+    typename ViewType::non_const_value_type tmp = 0;
+    Kokkos::parallel_reduce(
+        "accumulate", Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
+        KOKKOS_LAMBDA( int i,
+                       typename ViewType::non_const_value_type &update ) {
+            update += v( i );
+        },
+        tmp );
+    init += tmp;
+    return init;
+}
+
 } // end namespace DataTransferKit
 
 #endif

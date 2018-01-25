@@ -147,6 +147,17 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, minmax, DeviceType )
     TEST_EQUALITY( std::get<1>( minmax_y ), 5 );
 }
 
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, accumulate, DeviceType )
+{
+    Kokkos::View<int[6], DeviceType> v( "v" );
+    Kokkos::deep_copy( v, 5 );
+    TEST_EQUALITY( DataTransferKit::accumulate( v, 3 ), 33 );
+
+    Kokkos::View<int *, DeviceType> w( "w", 5 );
+    DataTransferKit::iota( w, 2 );
+    TEST_EQUALITY( DataTransferKit::accumulate( w, 4 ), 24 );
+}
+
 // Include the test macros.
 #include "DataTransferKitSearch_ETIHelperMacros.h"
 
@@ -160,6 +171,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, minmax, DeviceType )
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, last_element,          \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, minmax,                \
+                                          DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, accumulate,            \
                                           DeviceType##NODE )
 
 // Demangle the types
