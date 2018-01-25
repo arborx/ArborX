@@ -224,6 +224,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, unique_leaf_on_rank_0,
     Teuchos::RCP<const Teuchos::Comm<int>> comm =
         Teuchos::DefaultComm<int>::getComm();
     int const comm_rank = Teuchos::rank( *comm );
+    int const comm_size = Teuchos::size( *comm );
 
     // tree has one unique leaf that lives on rank 0
     auto const tree =
@@ -251,6 +252,15 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, unique_leaf_on_rank_0,
 
     checkResults( tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {}, {},
                   success, out );
+
+    // Querying for more neighbors than there are leaves in the tree
+    checkResults(
+        tree,
+        makeNearestQueries<DeviceType>( {
+            {{{(double)comm_rank, (double)comm_rank, (double)comm_rank}},
+             comm_size},
+        } ),
+        {0}, {0, 1}, {0}, success, out );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, one_leaf_per_rank,
@@ -288,6 +298,25 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, one_leaf_per_rank,
                   success, out );
     checkResults( tree, makeOverlapQueries<DeviceType>( {} ), {}, {0}, {},
                   success, out );
+
+    if ( comm_rank > 0 )
+        checkResults( tree,
+                      makeNearestQueries<DeviceType>( {
+                          {{{0., 0., 0.}}, comm_rank * comm_size},
+                      } ),
+                      std::vector<int>( comm_size, 0 ), {0, comm_size},
+                      [comm_size]() {
+                          std::vector<int> r( comm_size );
+                          std::iota( begin( r ), end( r ), 0 );
+                          return r;
+                      }(),
+                      success, out );
+    else
+        checkResults( tree,
+                      makeNearestQueries<DeviceType>( {
+                          {{{0., 0., 0.}}, comm_rank * comm_size},
+                      } ),
+                      {}, {0, 0}, {}, success, out );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree,
