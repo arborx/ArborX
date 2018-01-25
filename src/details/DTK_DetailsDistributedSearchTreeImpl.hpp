@@ -216,8 +216,8 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
     // empty because it means that they are no more leaves and there is no point
     // on forwarding queries to leafless trees.
     auto const n_queries = queries.extent( 0 );
-    Kokkos::View<int *, DeviceType> _offset( offset.label(), n_queries + 1 );
-    Kokkos::deep_copy( _offset, 0 );
+    Kokkos::View<int *, DeviceType> new_offset( offset.label(), n_queries + 1 );
+    Kokkos::deep_copy( new_offset, 0 );
     Kokkos::parallel_for(
         DTK_MARK_REGION( "bottom_trees_with_required_cumulated_leaves_count" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
@@ -231,28 +231,28 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
                      ( leaves_count >= n_nearest_neighbors ) )
                     break;
                 leaves_count += bottom_tree_size;
-                ++_offset( i );
+                ++new_offset( i );
             }
         } );
     Kokkos::fence();
 
-    exclusivePrefixSum( _offset );
+    exclusivePrefixSum( new_offset );
 
     // Truncate results so that queries will only be forwarded to as many local
     // trees as necessary to find k neighbors.
-    Kokkos::View<int *, DeviceType> _indices( indices.label(),
-                                              lastElement( _offset ) );
+    Kokkos::View<int *, DeviceType> new_indices( indices.label(),
+                                                 lastElement( new_offset ) );
     Kokkos::parallel_for(
         DTK_MARK_REGION( "truncate_before_forwarding" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
         KOKKOS_LAMBDA( int i ) {
-            for ( int j = 0; j < _offset( i + 1 ) - _offset( i ); ++j )
-                _indices( _offset( i ) + j ) = indices( offset( i ) + j );
+            for ( int j = 0; j < new_offset( i + 1 ) - new_offset( i ); ++j )
+                new_indices( new_offset( i ) + j ) = indices( offset( i ) + j );
         } );
     Kokkos::fence();
 
-    offset = _offset;
-    indices = _indices;
+    offset = new_offset;
+    indices = new_indices;
 }
 
 template <typename DeviceType>
@@ -629,25 +629,25 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
 {
     int const n_queries = queries.extent_int( 0 );
     // truncated views are prefixed with an underscore
-    Kokkos::View<int *, DeviceType> _offset( offset.label(), n_queries + 1 );
-    Kokkos::deep_copy( _offset, 0 );
+    Kokkos::View<int *, DeviceType> new_offset( offset.label(), n_queries + 1 );
+    Kokkos::deep_copy( new_offset, 0 );
 
     Kokkos::parallel_for( DTK_MARK_REGION( "discard_results" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                           KOKKOS_LAMBDA( int q ) {
-                              _offset( q ) = KokkosHelpers::min(
+                              new_offset( q ) = KokkosHelpers::min(
                                   offset( q + 1 ) - offset( q ),
                                   queries( q )._k );
                           } );
     Kokkos::fence();
 
-    exclusivePrefixSum( _offset );
+    exclusivePrefixSum( new_offset );
 
-    int const n_truncated_results = lastElement( _offset );
-    Kokkos::View<int *, DeviceType> _indices( indices.label(),
-                                              n_truncated_results );
-    Kokkos::View<int *, DeviceType> _ranks( ranks.label(),
-                                            n_truncated_results );
+    int const n_truncated_results = lastElement( new_offset );
+    Kokkos::View<int *, DeviceType> new_indices( indices.label(),
+                                                 n_truncated_results );
+    Kokkos::View<int *, DeviceType> new_ranks( ranks.label(),
+                                               n_truncated_results );
 
     using PairIndexDistance = Kokkos::pair<Kokkos::Array<int, 2>, double>;
     struct CompareDistance
@@ -674,17 +674,17 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
             int count = 0;
             while ( !queue.empty() && count < queries( q )._k )
             {
-                _indices( _offset( q ) + count ) = queue.top().first[0];
-                _ranks( _offset( q ) + count ) = queue.top().first[1];
+                new_indices( new_offset( q ) + count ) = queue.top().first[0];
+                new_ranks( new_offset( q ) + count ) = queue.top().first[1];
                 queue.pop();
                 ++count;
             }
 
         } );
     Kokkos::fence();
-    indices = _indices;
-    ranks = _ranks;
-    offset = _offset;
+    indices = new_indices;
+    ranks = new_ranks;
+    offset = new_offset;
 }
 
 } // end namespace Details
