@@ -45,6 +45,30 @@ bool equals( Sphere const &l, Sphere const &r )
     return equals( l.centroid(), r.centroid() ) && l.radius() == r.radius();
 }
 
+KOKKOS_INLINE_FUNCTION
+bool isValid( Point const &p )
+{
+    using KokkosHelpers::isFinite;
+    for ( int d = 0; d < 3; ++d )
+        if ( !isFinite( p[d] ) )
+            return false;
+    return true;
+}
+
+KOKKOS_INLINE_FUNCTION
+bool isValid( Box const &b )
+{
+    return isValid( b.minCorner() ) && isValid( b.maxCorner() );
+}
+
+KOKKOS_INLINE_FUNCTION
+bool isValid( Sphere const &s )
+{
+    using KokkosHelpers::isFinite;
+    return isValid( s.centroid() ) && isFinite( s.radius() ) &&
+           ( s.radius() >= 0. );
+}
+
 // distance point-point
 KOKKOS_INLINE_FUNCTION
 double distance( Point const &a, Point const &b )

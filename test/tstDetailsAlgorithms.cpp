@@ -152,3 +152,29 @@ TEUCHOS_UNIT_TEST( DetailsAlgorithms, centroid )
     TEST_EQUALITY( centroid[1], 5.0 );
     TEST_EQUALITY( centroid[2], 15.0 );
 }
+
+TEUCHOS_UNIT_TEST( DetailsAlgorithms, is_valid )
+{
+    using DataTransferKit::Box;
+    using DataTransferKit::Details::isValid;
+    using DataTransferKit::Point;
+    using DataTransferKit::Sphere;
+
+    auto const infty = std::numeric_limits<double>::infinity();
+
+    TEST_ASSERT( isValid( Point{{1., 2., 3.}} ) );
+    TEST_ASSERT( !isValid( Point{{0., infty, 0.}} ) );
+
+    TEST_ASSERT( isValid( Box{{{1., 2., 3.}}, {{4., 5., 6.}}} ) );
+    TEST_ASSERT( isValid( Box{{{0., 0., 0.}}, {{0., 0., 0.}}} ) );
+    TEST_ASSERT( !isValid( Box{{{0., 0., -infty}}, {{0., 0., 0.}}} ) );
+    TEST_ASSERT( !isValid( Box{{{0., 0., 0.}}, {{+infty, 0., 0.}}} ) );
+    TEST_ASSERT( isValid( Box{} ) );
+
+    TEST_ASSERT( isValid( Sphere{{{1., 2., 3.}}, 4.} ) );
+    TEST_ASSERT( isValid( Sphere{{{0., 0., 0.}}, 0.} ) );
+    TEST_ASSERT( !isValid( Sphere{{{1., 2., 3.}}, -1.} ) );
+    TEST_ASSERT( !isValid( Sphere{{{0., 0., 0.}}, +infty} ) );
+    TEST_ASSERT( !isValid( Sphere{{{0., -infty, 0.}}, +1.} ) );
+    TEST_ASSERT( isValid( Sphere{} ) );
+}
