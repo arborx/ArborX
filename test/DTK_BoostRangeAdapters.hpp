@@ -14,20 +14,25 @@
 
 #include <DTK_DBC.hpp>
 
+#include <Kokkos_Concepts.hpp>
 #include <Kokkos_View.hpp>
 
 #include <type_traits> // is_same
 
 namespace boost
 {
+// TODO SpaceAccessibility has been promoted to Kokkos:: namespace in later
+// versions of Kokkos so eventually get rid of Impl::
 #define DTK_ASSERT_VIEW_COMPATIBLE( View )                                     \
     using Traits = typename View::traits;                                      \
     static_assert(                                                             \
         Traits::rank == 1,                                                     \
         "Adaptor to Boost.Range only available for Views of rank 1" );         \
     static_assert(                                                             \
-        std::is_same<typename Traits::memory_space, Kokkos::HostSpace>::value, \
-        "Adaptor to Boost.Range only available for Views in host memory" );
+        Kokkos::Impl::SpaceAccessibility<                                      \
+            Kokkos::HostSpace, typename Traits::memory_space>::accessible,     \
+        "Adaptor to Boost.Range only available when View memory space is "     \
+        "accessible from host" );
 
 // Adapt Kokkos::View<T, P...> to Boost.Range
 template <typename T, typename... P>
