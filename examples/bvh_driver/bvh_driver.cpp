@@ -208,10 +208,9 @@ int main( int argc, char *argv[] )
 {
     Kokkos::initialize( argc, argv );
 
-    bool success = false;
+    bool success = true;
     bool verbose = true;
 
-    int rv = 0;
     try
     {
         const bool throwExceptions = false;
@@ -225,27 +224,27 @@ int main( int argc, char *argv[] )
         switch ( clp.parse( argc, argv, NULL ) )
         {
         case Teuchos::CommandLineProcessor::PARSE_ERROR:
-            rv = 1;
+            success = false;
         case Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED:
         case Teuchos::CommandLineProcessor::PARSE_UNRECOGNIZED_OPTION:
         case Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL:
             break;
         }
 
-        if ( rv )
+        if ( !success )
         {
             // do nothing, just skip other if clauses
         }
         else if ( node == "" )
         {
             typedef KokkosClassic::DefaultNode::DefaultNodeType Node;
-            rv = main_<Node>( clp, argc, argv );
+            main_<Node>( clp, argc, argv );
         }
         else if ( node == "serial" )
         {
 #ifdef KOKKOS_HAVE_SERIAL
             typedef Kokkos::Compat::KokkosSerialWrapperNode Node;
-            rv = main_<Node>( clp, argc, argv );
+            main_<Node>( clp, argc, argv );
 #else
             throw std::runtime_error( "Serial node type is disabled" );
 #endif
@@ -254,7 +253,7 @@ int main( int argc, char *argv[] )
         {
 #ifdef KOKKOS_HAVE_OPENMP
             typedef Kokkos::Compat::KokkosOpenMPWrapperNode Node;
-            rv = main_<Node>( clp, argc, argv );
+            main_<Node>( clp, argc, argv );
 #else
             throw std::runtime_error( "OpenMP node type is disabled" );
 #endif
@@ -263,7 +262,7 @@ int main( int argc, char *argv[] )
         {
 #ifdef KOKKOS_HAVE_CUDA
             typedef Kokkos::Compat::KokkosCudaWrapperNode Node;
-            rv = main_<Node>( clp, argc, argv );
+            main_<Node>( clp, argc, argv );
 #else
             throw std::runtime_error( "CUDA node type is disabled" );
 #endif
@@ -272,9 +271,6 @@ int main( int argc, char *argv[] )
         {
             throw std::runtime_error( "Unrecognized node type" );
         }
-
-        if ( rv )
-            success = false;
     }
     TEUCHOS_STANDARD_CATCH_STATEMENTS( verbose, std::cerr, success );
 
