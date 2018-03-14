@@ -16,7 +16,7 @@
 
 #include <DTK_DetailsAlgorithms.hpp>
 #include <DTK_DetailsUtils.hpp>  // iota
-#include <DTK_KokkosHelpers.hpp> // clz, sgn, min, max
+#include <DTK_KokkosHelpers.hpp> // sgn, min, max
 
 #include <Kokkos_Atomic.hpp>
 #include <Kokkos_Sort.hpp>
@@ -270,18 +270,10 @@ int TreeConstruction<DeviceType>::findSplit(
     Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes, int first,
     int last )
 {
-    // Identical Morton codes => split the range in the middle.
-
-    unsigned int first_code = sorted_morton_codes[first];
-    unsigned int last_code = sorted_morton_codes[last];
-
-    if ( first_code == last_code )
-        return ( first + last ) >> 1;
-
     // Calculate the number of highest bits that are the same
     // for all objects, using the count-leading-zeros intrinsic.
 
-    int common_prefix = KokkosHelpers::clz( first_code ^ last_code );
+    int common_prefix = commonPrefix( sorted_morton_codes, first, last );
 
     // Use binary search to find where the next bit differs.
     // Specifically, we are looking for the highest object that
@@ -297,9 +289,8 @@ int TreeConstruction<DeviceType>::findSplit(
 
         if ( new_split < last )
         {
-            unsigned int split_code = sorted_morton_codes[new_split];
-            int split_prefix = KokkosHelpers::clz( first_code ^ split_code );
-            if ( split_prefix > common_prefix )
+            if ( commonPrefix( sorted_morton_codes, first, new_split ) >
+                 common_prefix )
                 split = new_split; // accept proposal
         }
     } while ( step > 1 );
