@@ -207,6 +207,34 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, couple_leaves_tree, DeviceType )
                   success, out );
 }
 
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, duplicated_leaves, DeviceType )
+{
+    // The tree contains multiple (more than two) leaves that will be assigned
+    // the same Morton code.  This was able to trigger a bug that we discovered
+    // when building trees over ~10M indexable values.  The hierarchy generated
+    // at construction had leaves with no parent which yielded a segfault later
+    // when computing bounding boxes and walking the hierarchy toward the root.
+    auto const bvh = makeBvh<DeviceType>( {
+        {{{0., 0., 0.}}, {{0., 0., 0.}}},
+        {{{1., 1., 1.}}, {{1., 1., 1.}}},
+        {{{1., 1., 1.}}, {{1., 1., 1.}}},
+        {{{1., 1., 1.}}, {{1., 1., 1.}}},
+    } );
+
+    // I commented out the test below because it will fail unless we modify
+    // checkResults() such that it sorts the results for each query before
+    // comparing arrays because there is no way to predict the ordering of the
+    // indices for the duplicate leaves.  This is fine, the point of this test
+    // was to fix the segfault we would get when calling the constructor of BVH.
+    // checkResults( bvh,
+    //              makeWithinQueries<DeviceType>( {
+    //                  {{{0., 0., 0.}}, 1.},
+    //                  {{{1., 1., 1.}}, 1.},
+    //                  {{{.5, .5, .5}}, 1.},
+    //              } ),
+    //              {0, 1, 2, 3, 0, 1, 2, 3}, {0, 1, 4, 8}, success, out );
+}
+
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, miscellaneous, DeviceType )
 {
     auto const bvh = makeBvh<DeviceType>( {
@@ -710,6 +738,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, single_leaf_tree,         \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, couple_leaves_tree,       \
+                                          DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, duplicated_leaves,        \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, miscellaneous,            \
                                           DeviceType##NODE )                   \
