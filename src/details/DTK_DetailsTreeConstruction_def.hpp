@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef DTK_DETAILSTREECONSTRUCTION_DEF_HPP
-#define DTK_DETAILSTREECONSTRUCTION_DEF_HPP
+#ifndef DTK_DETAILS_TREE_CONSTRUCTION_DEF_HPP
+#define DTK_DETAILS_TREE_CONSTRUCTION_DEF_HPP
 
 #include "DTK_ConfigDefs.hpp"
 
