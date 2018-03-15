@@ -280,10 +280,8 @@ void TreeConstruction<DeviceType>::calculateBoundingBoxes(
 
     // Use int instead of bool because CAS on CUDA does not support boolean
     Kokkos::View<int *, DeviceType> ready_flags( "ready_flags", n - 1 );
-    Kokkos::parallel_for( DTK_MARK_REGION( "fill_ready_flags" ),
-                          Kokkos::RangePolicy<ExecutionSpace>( 0, n - 1 ),
-                          KOKKOS_LAMBDA( int i ) { ready_flags[i] = 0; } );
-    Kokkos::fence();
+    // Initialize flags to zero
+    Kokkos::deep_copy( ready_flags, 0 );
 
     Node *root = &internal_nodes[0];
 
