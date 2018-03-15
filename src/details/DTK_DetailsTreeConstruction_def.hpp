@@ -162,36 +162,44 @@ class CalculateBoundingBoxesFunctor
 {
   public:
     CalculateBoundingBoxesFunctor( Kokkos::View<Node *, DeviceType> leaf_nodes,
-                                   Node *root,
-                                   Kokkos::View<int *, DeviceType> ready_flags )
+                                   Node *root )
         : _leaf_nodes( leaf_nodes )
         , _root( root )
-        , _ready_flags( ready_flags )
+        , _flags( "flags", leaf_nodes.extent( 0 ) - 1 )
     {
+        // Initialize flags to zero
+        Kokkos::deep_copy( _flags, 0 );
     }
 
     KOKKOS_INLINE_FUNCTION
     void operator()( int const i ) const
     {
-        Node *node = _leaf_nodes[i].parent;
+        Node *node = _leaf_nodes( i ).parent;
+        // Walk toward the root but do not actually process it because its
+        // bounding box has already been computed (bounding box of the scene)
         while ( node != _root )
         {
+            // Use an atomic flag per internal node to terminate the first
+            // thread that enters it, while letting the second one through.
+            // This ensures that every node gets processed only once, and not
+            // before both of its children are processed.
             if ( Kokkos::atomic_compare_exchange_strong(
-                     &_ready_flags[node - _root], 0, 1 ) )
+                     &_flags( node - _root ), 0, 1 ) )
                 break;
             for ( Node *child : {node->children.first, node->children.second} )
                 expand( node->bounding_box, child->bounding_box );
             node = node->parent;
         }
-        // NOTE: could stop at node != root and then just check that what we
-        // computed earlier (bounding box of the scene) is indeed the union of
-        // the two children.
+        // NOTE: could check that bounding box of the root node is indeed the
+        // union of the two children.
     }
 
   private:
     Kokkos::View<Node *, DeviceType> _leaf_nodes;
     Node *_root;
-    Kokkos::View<int *, DeviceType> _ready_flags;
+    // Use int instead of bool because CAS (Compare And Swap) on CUDA does not
+    // support boolean
+    Kokkos::View<int *, DeviceType> _flags;
 };
 
 template <typename DeviceType>
@@ -276,21 +284,12 @@ void TreeConstruction<DeviceType>::calculateBoundingBoxes(
     Kokkos::View<Node *, DeviceType> leaf_nodes,
     Kokkos::View<Node *, DeviceType> internal_nodes )
 {
-    int const n = leaf_nodes.extent( 0 );
-
-    // Use int instead of bool because CAS (Compare And Swap) on CUDA does not
-    // support boolean
-    Kokkos::View<int *, DeviceType> ready_flags( "ready_flags", n - 1 );
-    // Initialize flags to zero
-    Kokkos::deep_copy( ready_flags, 0 );
-
-    Node *root = &internal_nodes[0];
-
-    CalculateBoundingBoxesFunctor<DeviceType> calc_functor( leaf_nodes, root,
-                                                            ready_flags );
-    Kokkos::parallel_for( DTK_MARK_REGION( "calculate_bounding_boxes" ),
-                          Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-                          calc_functor );
+    auto const n = leaf_nodes.extent( 0 );
+    Node *root = internal_nodes.data();
+    Kokkos::parallel_for(
+        DTK_MARK_REGION( "calculate_bounding_boxes" ),
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
+        CalculateBoundingBoxesFunctor<DeviceType>( leaf_nodes, root ) );
     Kokkos::fence();
 }
 
