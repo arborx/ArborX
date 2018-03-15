@@ -16,7 +16,7 @@
 
 #include <DTK_DetailsBox.hpp>
 #include <DTK_DetailsNode.hpp>
-#include <DTK_KokkosHelpers.hpp>
+#include <DTK_KokkosHelpers.hpp> // clz, min. max
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Pair.hpp>
@@ -65,6 +65,8 @@ struct TreeConstruction
     commonPrefix( Kokkos::View<unsigned int *, DeviceType> morton_codes, int i,
                   int j )
     {
+        using KokkosHelpers::clz;
+
         int const n = morton_codes.extent( 0 );
         if ( j < 0 || j > n - 1 )
             return -1;
@@ -75,9 +77,9 @@ struct TreeConstruction
         if ( morton_codes[i] == morton_codes[j] )
         {
             // clz( k[i] ^ k[j] ) == 32
-            return 32 + KokkosHelpers::clz( i ^ j );
+            return 32 + clz( i ^ j );
         }
-        return KokkosHelpers::clz( morton_codes[i] ^ morton_codes[j] );
+        return clz( morton_codes[i] ^ morton_codes[j] );
     }
 
     // Expands a 10-bit integer into 30 bits
@@ -97,15 +99,18 @@ struct TreeConstruction
     KOKKOS_INLINE_FUNCTION
     static unsigned int morton3D( double x, double y, double z )
     {
+        using KokkosHelpers::max;
+        using KokkosHelpers::min;
+
         // The interval [0,1] is subdivided into 1024 bins (in each direction).
         // If we were to use more bits to encode the Morton code, we would need
         // to reflect these changes in expandBits() as well as in the clz()
         // function that returns the number of leading zero bits since it
         // currently assumes that the code can be represented by a 32 bit
         // integer.
-        x = KokkosHelpers::min( KokkosHelpers::max( x * 1024.0, 0.0 ), 1023.0 );
-        y = KokkosHelpers::min( KokkosHelpers::max( y * 1024.0, 0.0 ), 1023.0 );
-        z = KokkosHelpers::min( KokkosHelpers::max( z * 1024.0, 0.0 ), 1023.0 );
+        x = min( max( x * 1024.0, 0.0 ), 1023.0 );
+        y = min( max( y * 1024.0, 0.0 ), 1023.0 );
+        z = min( max( z * 1024.0, 0.0 ), 1023.0 );
         unsigned int xx = expandBits( (unsigned int)x );
         unsigned int yy = expandBits( (unsigned int)y );
         unsigned int zz = expandBits( (unsigned int)z );
