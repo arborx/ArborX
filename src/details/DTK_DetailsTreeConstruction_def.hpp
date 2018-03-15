@@ -29,6 +29,46 @@ namespace Details
 {
 
 template <typename DeviceType>
+class ExpandBoxWithBoxFunctor
+{
+  public:
+    ExpandBoxWithBoxFunctor(
+        Kokkos::View<Box const *, DeviceType> bounding_boxes )
+        : _greatest( Kokkos::ArithTraits<double>::max() )
+        , _lowest( -_greatest )
+        , _bounding_boxes( bounding_boxes )
+    {
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    void init( Box &box ) const
+    {
+        for ( int d = 0; d < 3; ++d )
+        {
+            box.minCorner()[d] = _greatest;
+            box.maxCorner()[d] = _lowest;
+        }
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    void operator()( int const i, Box &box ) const
+    {
+        expand( box, _bounding_boxes( i ) );
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    void join( volatile Box &dst, volatile Box const &src ) const
+    {
+        expand( dst, src );
+    }
+
+  private:
+    double const _greatest;
+    double const _lowest;
+    Kokkos::View<Box const *, DeviceType> _bounding_boxes;
+};
+
+template <typename DeviceType>
 class AssignMortonCodesFunctor
 {
   public:
