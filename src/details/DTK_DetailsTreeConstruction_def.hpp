@@ -328,10 +328,13 @@ template <typename DeviceType>
 Kokkos::pair<int, int> TreeConstruction<DeviceType>::determineRange(
     Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes, int i )
 {
+    using KokkosHelpers::max;
+    using KokkosHelpers::min;
+    using KokkosHelpers::sgn;
+
     // determine direction of the range (+1 or -1)
-    int direction =
-        KokkosHelpers::sgn( commonPrefix( sorted_morton_codes, i, i + 1 ) -
-                            commonPrefix( sorted_morton_codes, i, i - 1 ) );
+    int direction = sgn( commonPrefix( sorted_morton_codes, i, i + 1 ) -
+                         commonPrefix( sorted_morton_codes, i, i - 1 ) );
     assert( direction == +1 || direction == -1 );
 
     // compute upper bound for the length of the range
@@ -355,7 +358,7 @@ Kokkos::pair<int, int> TreeConstruction<DeviceType>::determineRange(
     } while ( step > 1 );
     int j = i + split * direction;
 
-    return {KokkosHelpers::min( i, j ), KokkosHelpers::max( i, j )};
+    return {min( i, j ), max( i, j )};
 }
 }
 }
