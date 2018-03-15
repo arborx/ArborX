@@ -222,12 +222,12 @@ void TreeConstruction<DeviceType>::assignMortonCodes(
     Kokkos::View<unsigned int *, DeviceType> morton_codes,
     Box const &scene_bounding_box )
 {
-    int const n = morton_codes.extent( 0 );
-    AssignMortonCodesFunctor<DeviceType> functor( bounding_boxes, morton_codes,
-                                                  scene_bounding_box );
-    Kokkos::parallel_for( DTK_MARK_REGION( "assign_morton_codes" ),
-                          Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-                          functor );
+    auto const n = morton_codes.extent( 0 );
+    Kokkos::parallel_for(
+        DTK_MARK_REGION( "assign_morton_codes" ),
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
+        AssignMortonCodesFunctor<DeviceType>( bounding_boxes, morton_codes,
+                                              scene_bounding_box ) );
     Kokkos::fence();
 }
 
@@ -266,17 +266,15 @@ Node *TreeConstruction<DeviceType>::generateHierarchy(
     Kokkos::View<Node *, DeviceType> leaf_nodes,
     Kokkos::View<Node *, DeviceType> internal_nodes )
 {
-    GenerateHierarchyFunctor<DeviceType> functor( sorted_morton_codes,
-                                                  leaf_nodes, internal_nodes );
-
-    int const n = sorted_morton_codes.extent( 0 );
-    Kokkos::parallel_for( DTK_MARK_REGION( "generate_hierarchy" ),
-                          Kokkos::RangePolicy<ExecutionSpace>( 0, n - 1 ),
-                          functor );
+    auto const n = sorted_morton_codes.extent( 0 );
+    Kokkos::parallel_for(
+        DTK_MARK_REGION( "generate_hierarchy" ),
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n - 1 ),
+        GenerateHierarchyFunctor<DeviceType>( sorted_morton_codes, leaf_nodes,
+                                              internal_nodes ) );
     Kokkos::fence();
-
-    // Node 0 is the root.
-    return &( internal_nodes.data()[0] );
+    // returns a pointer to the root node of the tree
+    return internal_nodes.data();
 }
 
 template <typename DeviceType>
