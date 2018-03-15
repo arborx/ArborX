@@ -34,21 +34,12 @@ class ExpandBoxWithBoxFunctor
   public:
     ExpandBoxWithBoxFunctor(
         Kokkos::View<Box const *, DeviceType> bounding_boxes )
-        : _greatest( Kokkos::ArithTraits<double>::max() )
-        , _lowest( -_greatest )
-        , _bounding_boxes( bounding_boxes )
+        : _bounding_boxes( bounding_boxes )
     {
     }
 
     KOKKOS_INLINE_FUNCTION
-    void init( Box &box ) const
-    {
-        for ( int d = 0; d < 3; ++d )
-        {
-            box.minCorner()[d] = _greatest;
-            box.maxCorner()[d] = _lowest;
-        }
-    }
+    void init( Box &box ) const { box = Box(); }
 
     KOKKOS_INLINE_FUNCTION
     void operator()( int const i, Box &box ) const
@@ -63,8 +54,6 @@ class ExpandBoxWithBoxFunctor
     }
 
   private:
-    double const _greatest;
-    double const _lowest;
     Kokkos::View<Box const *, DeviceType> _bounding_boxes;
 };
 
