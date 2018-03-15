@@ -29,10 +29,10 @@ namespace Details
 {
 
 template <typename DeviceType>
-class ExpandBoxWithBoxFunctor
+class CalculateBoundingBoxOfTheSceneFunctor
 {
   public:
-    ExpandBoxWithBoxFunctor(
+    CalculateBoundingBoxOfTheSceneFunctor(
         Kokkos::View<Box const *, DeviceType> bounding_boxes )
         : _bounding_boxes( bounding_boxes )
     {
@@ -199,11 +199,12 @@ void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
     Kokkos::View<Box const *, DeviceType> bounding_boxes,
     Box &scene_bounding_box )
 {
-    int const n = bounding_boxes.extent( 0 );
-    ExpandBoxWithBoxFunctor<DeviceType> functor( bounding_boxes );
-    Kokkos::parallel_reduce( "calculate_bouding_of_the_scene",
-                             Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-                             functor, scene_bounding_box );
+    auto const n = bounding_boxes.extent( 0 );
+    Kokkos::parallel_reduce(
+        DTK_MARK_REGION( "calculate_bouding_of_the_scene" ),
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
+        CalculateBoundingBoxOfTheSceneFunctor<DeviceType>( bounding_boxes ),
+        scene_bounding_box );
     Kokkos::fence();
 }
 
