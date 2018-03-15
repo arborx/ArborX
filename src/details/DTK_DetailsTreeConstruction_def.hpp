@@ -15,7 +15,6 @@
 #include "DTK_ConfigDefs.hpp"
 
 #include <DTK_DetailsAlgorithms.hpp>
-#include <DTK_DetailsUtils.hpp>  // iota
 #include <DTK_KokkosHelpers.hpp> // sgn, min, max
 
 #include <Kokkos_Atomic.hpp>
