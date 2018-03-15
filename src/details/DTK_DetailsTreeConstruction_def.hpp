@@ -278,7 +278,8 @@ void TreeConstruction<DeviceType>::calculateBoundingBoxes(
 {
     int const n = leaf_nodes.extent( 0 );
 
-    // Use int instead of bool because CAS on CUDA does not support boolean
+    // Use int instead of bool because CAS (Compare And Swap) on CUDA does not
+    // support boolean
     Kokkos::View<int *, DeviceType> ready_flags( "ready_flags", n - 1 );
     // Initialize flags to zero
     Kokkos::deep_copy( ready_flags, 0 );
