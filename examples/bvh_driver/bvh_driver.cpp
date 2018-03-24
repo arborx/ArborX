@@ -16,6 +16,7 @@
 #include <Teuchos_StandardCatchMacros.hpp>
 
 #include <chrono>
+#include <cmath> // cbrt
 #include <random>
 
 template <class NO>
@@ -50,7 +51,10 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
 
         auto random_points_host = Kokkos::create_mirror_view( random_points );
 
-        std::uniform_real_distribution<double> distribution( 0., n );
+        // edge length chosen such that object density will remain constant as
+        // problem size is changed
+        auto const a = std::cbrt( n_values );
+        std::uniform_real_distribution<double> distribution( -a, +a );
         std::default_random_engine generator;
         auto random = [&distribution, &generator]() {
             return distribution( generator );
@@ -68,8 +72,8 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
                               double const y = random_points( i )[1];
                               double const z = random_points( i )[2];
                               bounding_boxes( i ) = {
-                                  {{x - .5, y - .5, z - .5}},
-                                  {{x + .5, y + .5, z + .5}}};
+                                  {{x - 1., y - 1., z - 1.}},
+                                  {{x + 1., y + 1., z + 1.}}};
                           } );
     Kokkos::fence();
 
@@ -107,11 +111,15 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
     {
         Kokkos::View<DataTransferKit::Details::Within *, DeviceType> queries(
             "queries", n_queries );
+        // radius chosen such that there will be approximately 10 results per
+        // query
+        double const pi = 3.14159265359;
+        double const r = std::cbrt( 10. * 3. / ( 4. * pi ) );
         Kokkos::parallel_for(
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int i ) {
                 queries( i ) =
-                    DataTransferKit::Details::within( random_points( i ), 5 );
+                    DataTransferKit::Details::within( random_points( i ), r );
             } );
         Kokkos::fence();
 
