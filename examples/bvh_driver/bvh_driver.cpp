@@ -27,9 +27,12 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
 
     int n_values = 50000;
     int n_queries = 20000;
+    int n_neighbors = 10;
 
     clp.setOption( "values", &n_values, "number of indexable values (source)" );
     clp.setOption( "queries", &n_queries, "number of queries (target)" );
+    clp.setOption( "neighbors", &n_neighbors,
+                   "desired number of results per query" );
 
     clp.recogniseAllOptions( true );
     switch ( clp.parse( argc, argv ) )
@@ -95,7 +98,7 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
             KOKKOS_LAMBDA( int i ) {
                 queries( i ) =
                     DataTransferKit::Details::nearest<DataTransferKit::Point>(
-                        random_points( i ), 10 );
+                        random_points( i ), n_neighbors );
             } );
         Kokkos::fence();
 
@@ -111,10 +114,10 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
     {
         Kokkos::View<DataTransferKit::Details::Within *, DeviceType> queries(
             "queries", n_queries );
-        // radius chosen such that there will be approximately 10 results per
-        // query
+        // radius chosen in order to control the number of results per query
         double const pi = 3.14159265359;
-        double const r = std::cbrt( 10. * 3. / ( 4. * pi ) );
+        double const r =
+            std::cbrt( static_cast<double>( n_neighbors ) * 3. / ( 4. * pi ) );
         Kokkos::parallel_for(
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int i ) {
