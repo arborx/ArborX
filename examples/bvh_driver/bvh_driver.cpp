@@ -115,9 +115,13 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         Kokkos::View<DataTransferKit::Details::Within *, DeviceType> queries(
             "queries", n_queries );
         // radius chosen in order to control the number of results per query
+        // NOTE: minus "1+sqrt(3)/2 \approx 1.37" matches the size of the boxes
+        // inserted into the tree (mid-point between half-edge and
+        // half-diagonal)
         double const pi = 3.14159265359;
-        double const r =
-            std::cbrt( static_cast<double>( n_neighbors ) * 3. / ( 4. * pi ) );
+        double const r = 2. * std::cbrt( static_cast<double>( n_neighbors ) *
+                                         3. / ( 4. * pi ) ) -
+                         ( 1. + std::sqrt( 3. ) ) / 2.;
         Kokkos::parallel_for(
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int i ) {
