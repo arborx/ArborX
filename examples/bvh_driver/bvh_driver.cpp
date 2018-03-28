@@ -112,9 +112,11 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
 
         Kokkos::View<int *, DeviceType> offset( "offset" );
         Kokkos::View<int *, DeviceType> indices( "indices" );
+
         start = std::chrono::high_resolution_clock::now();
         bvh.query( queries, indices, offset );
         end = std::chrono::high_resolution_clock::now();
+
         elapsed_seconds = end - start;
         os << "knn " << elapsed_seconds.count() << "\n";
     }
@@ -139,9 +141,11 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
 
         Kokkos::View<int *, DeviceType> offset( "offset" );
         Kokkos::View<int *, DeviceType> indices( "indices" );
+
         start = std::chrono::high_resolution_clock::now();
         bvh.query( queries, indices, offset );
         end = std::chrono::high_resolution_clock::now();
+
         elapsed_seconds = end - start;
         os << "radius " << elapsed_seconds.count() << "\n";
     }
