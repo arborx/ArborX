@@ -126,9 +126,8 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         // NOTE: minus "1+sqrt(3)/2 \approx 1.37" matches the size of the boxes
         // inserted into the tree (mid-point between half-edge and
         // half-diagonal)
-        double const pi = 3.14159265359;
         double const r = 2. * std::cbrt( static_cast<double>( n_neighbors ) *
-                                         3. / ( 4. * pi ) ) -
+                                         3. / ( 4. * M_PI ) ) -
                          ( 1. + std::sqrt( 3. ) ) / 2.;
         Kokkos::parallel_for(
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
