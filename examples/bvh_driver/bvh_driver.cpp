@@ -49,13 +49,21 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
     Kokkos::View<DataTransferKit::Point *, DeviceType> random_points(
         "random_points" );
     {
+        // Random points are "reused" between building the tree and performing
+        // queries.  You may change it if you have a problem with it.  These
+        // don't really need to be stored in the 1st place.  What is needed is
+        // indexable objects/values (here boxes) to build a tree and queries
+        // (here kNN and radius searches) with mean to control the amount of
+        // work per query as the problem size varies.
         auto n = std::max( n_values, n_queries );
         Kokkos::resize( random_points, n );
 
         auto random_points_host = Kokkos::create_mirror_view( random_points );
 
-        // edge length chosen such that object density will remain constant as
-        // problem size is changed
+        // Generate random points uniformely distributed within a box.  The
+        // edge length of the box chosen such that object density (here objects
+        // will be boxes 2x2x2 centered around a random point) will remain
+        // constant as problem size is changed.
         auto const a = std::cbrt( n_values );
         std::uniform_real_distribution<double> distribution( -a, +a );
         std::default_random_engine generator;
