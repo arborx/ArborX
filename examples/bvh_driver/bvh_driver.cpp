@@ -28,11 +28,19 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
     int n_values = 50000;
     int n_queries = 20000;
     int n_neighbors = 10;
+    bool perform_knn_search = true;
+    bool perform_radius_search = true;
 
     clp.setOption( "values", &n_values, "number of indexable values (source)" );
     clp.setOption( "queries", &n_queries, "number of queries (target)" );
     clp.setOption( "neighbors", &n_neighbors,
                    "desired number of results per query" );
+    clp.setOption( "perform-knn-search", "do-not-perform-knn-search",
+                   &perform_knn_search,
+                   "whether or not to perform kNN search" );
+    clp.setOption( "perform-radius-search", "do-not-perform-radius-search",
+                   &perform_radius_search,
+                   "whether or not to perform radius search" );
 
     clp.recogniseAllOptions( true );
     switch ( clp.parse( argc, argv ) )
@@ -96,6 +104,7 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
     std::chrono::duration<double> elapsed_seconds = end - start;
     os << "construction " << elapsed_seconds.count() << "\n";
 
+    if ( perform_knn_search )
     {
         Kokkos::View<
             DataTransferKit::Details::Nearest<DataTransferKit::Point> *,
@@ -121,6 +130,7 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         os << "knn " << elapsed_seconds.count() << "\n";
     }
 
+    if ( perform_radius_search )
     {
         Kokkos::View<DataTransferKit::Details::Within *, DeviceType> queries(
             "queries", n_queries );
