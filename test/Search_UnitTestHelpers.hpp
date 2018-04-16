@@ -207,4 +207,27 @@ Kokkos::View<DataTransferKit::Details::Within *, DeviceType> makeWithinQueries(
     return queries;
 }
 
+template <typename View, typename Value = typename View::value_type>
+std::vector<Value> extractAndSort( View const &v, int begin, int end )
+{
+    std::vector<Value> r( v.data() + begin, v.data() + end );
+    std::sort( r.begin(), r.end() );
+    return r;
+};
+
+template <typename InputView1, typename InputView2>
+void validateResults( std::tuple<InputView1, InputView1> const &reference,
+                      std::tuple<InputView2, InputView2> const &other,
+                      bool &success, Teuchos::FancyOStream &out )
+{
+    TEST_COMPARE_ARRAYS( std::get<0>( reference ), std::get<0>( other ) );
+    auto const offset = std::get<0>( reference );
+    auto const n_queries = offset.extent_int( 0 ) - 1;
+    for ( int i = 0; i < n_queries; ++i )
+        TEST_COMPARE_ARRAYS( extractAndSort( std::get<1>( reference ),
+                                             offset( i ), offset( i + 1 ) ),
+                             extractAndSort( std::get<1>( other ), offset( i ),
+                                             offset( i + 1 ) ) );
+}
+
 #endif
