@@ -57,7 +57,7 @@ class Stack
     SizeType _size = 0;
 };
 
-} // end namespace Details
-} // end namespace DataTransferKit
+} // namespace Details
+} // namespace DataTransferKit
 
 #endif

@@ -48,7 +48,7 @@ class ExclusiveScanFunctor
     Kokkos::View<T *, DeviceType> _in;
     Kokkos::View<T *, DeviceType> _out;
 };
-} // end namespace Details
+} // namespace Details
 
 /** \brief Computes an exclusive scan.
  *
@@ -217,6 +217,6 @@ accumulate( ViewType const &v, typename ViewType::non_const_value_type init )
     return init;
 }
 
-} // end namespace DataTransferKit
+} // namespace DataTransferKit
 
 #endif

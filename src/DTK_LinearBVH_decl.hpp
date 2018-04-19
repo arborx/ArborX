@@ -300,6 +300,6 @@ BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
     queryDispatch( *this, queries, indices, offset, Tag{}, &distances );
 }
 
-} // end namespace DataTransferKit
+} // namespace DataTransferKit
 
 #endif

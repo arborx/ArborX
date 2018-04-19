@@ -59,7 +59,7 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
     _top_tree_size = accumulate( _bottom_tree_sizes, 0 );
 }
 
-} // end namespace DataTransferKit
+} // namespace DataTransferKit
 
 // Explicit instantiation macro
 #define DTK_DISTRIBUTED_SEARCH_TREE_INSTANT( NODE )                            \

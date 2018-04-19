@@ -686,7 +686,7 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
     offset = new_offset;
 }
 
-} // end namespace Details
-} // end namespace DataTransferKit
+} // namespace Details
+} // namespace DataTransferKit
 
 #endif

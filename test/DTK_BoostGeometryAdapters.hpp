@@ -99,8 +99,8 @@ struct indexed_access<DataTransferKit::Box, max_corner, D>
     }
 };
 
-} // end namespace traits
-} // end namespace geometry
-} // end namespace boost
+} // namespace traits
+} // namespace geometry
+} // namespace boost
 
 #endif

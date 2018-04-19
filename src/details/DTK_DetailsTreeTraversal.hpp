@@ -222,7 +222,7 @@ queryDispatch( BVH<DeviceType> const bvh, Predicate const &pred,
                          k, insert );
 }
 
-} // end namespace Details
-} // end namespace DataTransferKit
+} // namespace Details
+} // namespace DataTransferKit
 
 #endif

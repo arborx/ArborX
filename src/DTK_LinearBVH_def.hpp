@@ -106,7 +106,7 @@ BVH<DeviceType>::BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes )
         _leaf_nodes, _internal_nodes );
 }
 
-} // end namespace DataTransferKit
+} // namespace DataTransferKit
 
 // Explicit instantiation macro
 #define DTK_LINEAR_BVH_INSTANT( NODE )                                         \

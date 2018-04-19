@@ -88,7 +88,7 @@ class PriorityQueue
     Compare _compare;
 };
 
-} // end namespace Details
-} // end namespace DataTransferKit
+} // namespace Details
+} // namespace DataTransferKit
 
 #endif

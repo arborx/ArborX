@@ -54,6 +54,6 @@ class SerializationTraits<Ordinal,
 {
 };
 
-} // end namespace Teuchos
+} // namespace Teuchos
 
 #endif

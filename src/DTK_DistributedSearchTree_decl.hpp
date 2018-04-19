@@ -134,6 +134,6 @@ DistributedSearchTree<DeviceType>::query(
         *this, queries, indices, offset, ranks, Tag{}, &distances );
 }
 
-} // end namespace DataTransferKit
+} // namespace DataTransferKit
 
 #endif

@@ -77,7 +77,7 @@ struct range_size<Kokkos::View<T, P...>>
     typedef typename Kokkos::ViewTraits<T, P...>::size_type type;
 };
 
-} // end namespace boost
+} // namespace boost
 
 namespace Kokkos
 {
@@ -132,6 +132,6 @@ range_calculate_size( Kokkos::View<T, P...> const &v )
 
 #undef DTK_ASSERT_VIEW_COMPATIBLE
 
-} // end namespace Kokkos
+} // namespace Kokkos
 
 #endif

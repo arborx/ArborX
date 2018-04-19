@@ -177,7 +177,7 @@ void centroid( Box const &box, Point &c )
         c[d] = 0.5 * ( box.minCorner()[d] + box.maxCorner()[d] );
 }
 
-} // end namespace Details
-} // end namespace DataTransferKit
+} // namespace Details
+} // namespace DataTransferKit
 
 #endif
