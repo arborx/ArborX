@@ -19,6 +19,7 @@
 
 #include <Teuchos_Comm.hpp>
 #include <Teuchos_FancyOStream.hpp>
+#include <Teuchos_LocalTestingHelpers.hpp>
 #include <Teuchos_RCP.hpp>
 
 #include <vector>

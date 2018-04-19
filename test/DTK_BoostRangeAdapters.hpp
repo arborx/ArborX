@@ -17,6 +17,8 @@
 #include <Kokkos_Concepts.hpp>
 #include <Kokkos_View.hpp>
 
+#include <boost/range.hpp>
+
 #include <type_traits> // is_same
 
 namespace boost
