@@ -8,8 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef DTK_Box_HPP
-#define DTK_Box_HPP
+#ifndef DTK_BOX_HPP
+#define DTK_BOX_HPP
 
 #include <DTK_DetailsPoint.hpp>
 #include <Kokkos_ArithTraits.hpp>
