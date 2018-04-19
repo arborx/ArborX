@@ -359,8 +359,8 @@ Kokkos::pair<int, int> TreeConstruction<DeviceType>::determineRange(
 
     return {min( i, j ), max( i, j )};
 }
-}
-}
+} // namespace Details
+} // namespace DataTransferKit
 
 // Explicit instantiation macro
 #define DTK_TREECONSTRUCTION_INSTANT( NODE )                                   \

@@ -126,7 +126,7 @@ struct TreeConstruction
     static Kokkos::pair<int, int> determineRange(
         Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes, int i );
 };
-}
-}
+} // namespace Details
+} // namespace DataTransferKit
 
 #endif

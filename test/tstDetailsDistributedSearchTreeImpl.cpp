@@ -22,9 +22,9 @@
 TEUCHOS_UNIT_TEST( DetailsTeuchosSerializationTraits, geometries )
 {
     using DataTransferKit::Box;
-    using DataTransferKit::Details::equals;
     using DataTransferKit::Point;
     using DataTransferKit::Sphere;
+    using DataTransferKit::Details::equals;
 
     Teuchos::RCP<const Teuchos::Comm<int>> comm =
         Teuchos::DefaultComm<int>::getComm();
@@ -56,10 +56,10 @@ TEUCHOS_UNIT_TEST( DetailsTeuchosSerializationTraits, geometries )
 TEUCHOS_UNIT_TEST( DetailsTeuchosSerializationTraits, predicates )
 {
     using DataTransferKit::Box;
-    using DataTransferKit::Details::Intersects;
-    using DataTransferKit::Details::equals;
-    using DataTransferKit::Details::nearest;
     using DataTransferKit::Point;
+    using DataTransferKit::Details::equals;
+    using DataTransferKit::Details::Intersects;
+    using DataTransferKit::Details::nearest;
 
     Teuchos::RCP<const Teuchos::Comm<int>> comm =
         Teuchos::DefaultComm<int>::getComm();
@@ -290,9 +290,9 @@ TEUCHOS_UNIT_TEST( DetailsDistributedSearchTreeImpl,
     using Kokkos::ALL;
     using Kokkos::LayoutLeft;
     using Kokkos::LayoutRight;
-    using Kokkos::View;
     using Kokkos::make_pair;
     using Kokkos::subview;
+    using Kokkos::View;
 
     // rank-1 and not strided -> do not allocate
     View<int *, LayoutLeft> u( "u", 255 );

@@ -42,8 +42,8 @@ TEUCHOS_UNIT_TEST( BoostGeometryAdapters, Range )
 
 TEUCHOS_UNIT_TEST( BoostGeometryAdapters, PointCloud )
 {
-    using DataTransferKit::Details::distance;
     using DataTransferKit::Point;
+    using DataTransferKit::Details::distance;
     double const seed = 3.14;
     std::default_random_engine generator( seed );
     std::uniform_real_distribution<double> distribution( -1., 1. );

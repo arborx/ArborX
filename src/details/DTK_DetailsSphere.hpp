@@ -41,6 +41,6 @@ struct Sphere
     Point _centroid;
     double _radius = 0.;
 };
-}
+} // namespace DataTransferKit
 
 #endif

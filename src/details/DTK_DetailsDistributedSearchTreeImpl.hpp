@@ -679,7 +679,6 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
                 queue.pop();
                 ++count;
             }
-
         } );
     Kokkos::fence();
     indices = new_indices;

@@ -41,6 +41,6 @@ class Point
     // initializer constructor.
     double _coords[3];
 };
-}
+} // namespace DataTransferKit
 
 #endif

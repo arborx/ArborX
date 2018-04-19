@@ -156,9 +156,9 @@ TEUCHOS_UNIT_TEST( DetailsAlgorithms, centroid )
 TEUCHOS_UNIT_TEST( DetailsAlgorithms, is_valid )
 {
     using DataTransferKit::Box;
-    using DataTransferKit::Details::isValid;
     using DataTransferKit::Point;
     using DataTransferKit::Sphere;
+    using DataTransferKit::Details::isValid;
 
     auto const infty = std::numeric_limits<double>::infinity();
 

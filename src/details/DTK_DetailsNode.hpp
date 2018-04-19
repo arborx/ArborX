@@ -26,6 +26,6 @@ struct Node
     Kokkos::pair<Node *, Node *> children = {nullptr, nullptr};
     Box bounding_box;
 };
-}
+} // namespace DataTransferKit
 
 #endif

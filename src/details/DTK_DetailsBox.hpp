@@ -65,6 +65,6 @@ struct Box
                           -Kokkos::ArithTraits<double>::max(),
                           -Kokkos::ArithTraits<double>::max()}};
 };
-}
+} // namespace DataTransferKit
 
 #endif

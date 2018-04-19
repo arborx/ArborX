@@ -26,16 +26,16 @@ namespace Details
 {
 using DataTransferKit::Box;
 using DataTransferKit::Point;
-}
-}
+} // namespace Details
+} // namespace DataTransferKit
 namespace boost
 {
 namespace geometry
 {
 using Point = model::point<double, 3, cs::cartesian>;
 using Box = model::box<Point>;
-}
-}
+} // namespace geometry
+} // namespace boost
 
 TEUCHOS_UNIT_TEST( BoostGeometryAdapters, equals )
 {
