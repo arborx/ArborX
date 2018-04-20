@@ -14,7 +14,7 @@
 
 #include "DTK_ConfigDefs.hpp"
 
-#include <DTK_DetailsBox.hpp>
+#include <DTK_Box.hpp>
 #include <DTK_DetailsNode.hpp>
 #include <DTK_KokkosHelpers.hpp> // clz, min. max
 

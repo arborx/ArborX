@@ -11,7 +11,7 @@
 #ifndef DTK_Sphere_HPP
 #define DTK_Sphere_HPP
 
-#include <DTK_DetailsPoint.hpp>
+#include <DTK_Point.hpp>
 #include <Kokkos_Macros.hpp>
 
 namespace DataTransferKit

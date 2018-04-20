@@ -16,8 +16,8 @@
 #include <Kokkos_Array.hpp>
 #include <Kokkos_View.hpp>
 
+#include <DTK_Box.hpp>
 #include <DTK_DetailsAlgorithms.hpp>
-#include <DTK_DetailsBox.hpp>
 #include <DTK_DetailsNode.hpp>
 #include <DTK_DetailsPredicate.hpp>
 #include <DTK_DetailsTreeTraversal.hpp>

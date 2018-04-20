@@ -12,8 +12,8 @@
 #ifndef DTK_BOOST_GEOMETRY_ADAPTERS_HPP
 #define DTK_BOOST_GEOMETRY_ADAPTERS_HPP
 
-#include <DTK_DetailsBox.hpp>
-#include <DTK_DetailsPoint.hpp>
+#include <DTK_Box.hpp>
+#include <DTK_Point.hpp>
 
 #include <boost/geometry.hpp>
 

@@ -11,7 +11,7 @@
 #ifndef DTK_BOX_HPP
 #define DTK_BOX_HPP
 
-#include <DTK_DetailsPoint.hpp>
+#include <DTK_Point.hpp>
 #include <Kokkos_ArithTraits.hpp>
 #include <Kokkos_Macros.hpp>
 

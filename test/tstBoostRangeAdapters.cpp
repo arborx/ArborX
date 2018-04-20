@@ -9,9 +9,9 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <DTK_Box.hpp>
 #include <DTK_DetailsAlgorithms.hpp>
-#include <DTK_DetailsBox.hpp>
-#include <DTK_DetailsPoint.hpp>
+#include <DTK_Point.hpp>
 
 #include <Teuchos_UnitTestHarness.hpp>
 

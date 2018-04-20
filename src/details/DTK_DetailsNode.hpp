@@ -12,7 +12,7 @@
 #ifndef DTK_NODE_HPP
 #define DTK_NODE_HPP
 
-#include <DTK_DetailsBox.hpp>
+#include <DTK_Box.hpp>
 #include <Kokkos_Pair.hpp>
 
 namespace DataTransferKit

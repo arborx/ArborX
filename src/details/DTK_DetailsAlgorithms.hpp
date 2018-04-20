@@ -11,10 +11,10 @@
 #ifndef DTK_DETAILS_ALGORITHMS_HPP
 #define DTK_DETAILS_ALGORITHMS_HPP
 
-#include <DTK_DetailsBox.hpp>
-#include <DTK_DetailsPoint.hpp>
-#include <DTK_DetailsSphere.hpp>
+#include <DTK_Box.hpp>
 #include <DTK_KokkosHelpers.hpp>
+#include <DTK_Point.hpp>
+#include <DTK_Sphere.hpp>
 
 #include <Kokkos_Macros.hpp>
 

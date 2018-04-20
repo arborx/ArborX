@@ -12,7 +12,7 @@
 #ifndef DTK_DISTRIBUTED_SEARCH_TREE_DEF_HPP
 #define DTK_DISTRIBUTED_SEARCH_TREE_DEF_HPP
 
-#include <DTK_DetailsBox.hpp>
+#include <DTK_Box.hpp>
 #include <DTK_DetailsUtils.hpp> // accumulate
 
 #include <Teuchos_Array.hpp>
