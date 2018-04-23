@@ -11,11 +11,11 @@
 #ifndef DTK_DETAILS_DISTRIBUTED_SEARCH_TREE_IMPL_HPP
 #define DTK_DETAILS_DISTRIBUTED_SEARCH_TREE_IMPL_HPP
 
-#include <DTK_DetailsPredicate.hpp>
 #include <DTK_DetailsPriorityQueue.hpp>
 #include <DTK_DetailsTeuchosSerializationTraits.hpp>
 #include <DTK_DetailsUtils.hpp>
 #include <DTK_LinearBVH.hpp>
+#include <DTK_Predicates.hpp>
 
 #include <Kokkos_Atomic.hpp>
 #include <Kokkos_Sort.hpp>

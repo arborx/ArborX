@@ -13,8 +13,8 @@
 #define DTK_BOOST_RTREE_HELPERS_HPP
 
 #include <DTK_Box.hpp>
-#include <DTK_DetailsPredicate.hpp>
 #include <DTK_Point.hpp>
+#include <DTK_Predicates.hpp>
 
 #include "DTK_BoostGeometryAdapters.hpp"
 #include "DTK_BoostRangeAdapters.hpp"

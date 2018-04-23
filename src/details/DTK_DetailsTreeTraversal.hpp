@@ -15,9 +15,9 @@
 
 #include <DTK_DetailsAlgorithms.hpp>
 #include <DTK_DetailsNode.hpp>
-#include <DTK_DetailsPredicate.hpp>
 #include <DTK_DetailsPriorityQueue.hpp>
 #include <DTK_DetailsStack.hpp>
+#include <DTK_Predicates.hpp>
 
 namespace DataTransferKit
 {

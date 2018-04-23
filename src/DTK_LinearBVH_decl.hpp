@@ -19,9 +19,9 @@
 #include <DTK_Box.hpp>
 #include <DTK_DetailsAlgorithms.hpp>
 #include <DTK_DetailsNode.hpp>
-#include <DTK_DetailsPredicate.hpp>
 #include <DTK_DetailsTreeTraversal.hpp>
 #include <DTK_DetailsUtils.hpp>
+#include <DTK_Predicates.hpp>
 
 #include "DTK_ConfigDefs.hpp"
 

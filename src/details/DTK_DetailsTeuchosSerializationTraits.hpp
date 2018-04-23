@@ -12,8 +12,8 @@
 #define DTK_DETAILS_TEUCHOS_SERIALIZATION_TRAITS_HPP
 
 #include <DTK_Box.hpp>
-#include <DTK_DetailsPredicate.hpp>
 #include <DTK_Point.hpp>
+#include <DTK_Predicates.hpp>
 #include <DTK_Sphere.hpp>
 
 #include <Teuchos_SerializationTraits.hpp>
