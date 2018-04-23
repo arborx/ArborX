@@ -284,14 +284,13 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
     Kokkos::fence();
 
     // Identify what ranks may have leaves that are within that distance.
-    Kokkos::View<Details::Within *, DeviceType> within_queries( "queries",
-                                                                n_queries );
+    Kokkos::View<Within *, DeviceType> within_queries( "queries", n_queries );
     Kokkos::parallel_for(
         DTK_MARK_REGION( "bottom_trees_within_that_distance" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
         KOKKOS_LAMBDA( int i ) {
-            within_queries( i ) = Details::within( queries( i )._geometry,
-                                                   farthest_distances( i ) );
+            within_queries( i ) =
+                within( queries( i )._geometry, farthest_distances( i ) );
         } );
     Kokkos::fence();
 

@@ -18,18 +18,18 @@ namespace DataTransferKit
 {
 namespace Details
 {
-
 struct NearestPredicateTag
 {
 };
 struct SpatialPredicateTag
 {
 };
+} // namespace Details
 
 template <typename Geometry>
 struct Nearest
 {
-    using Tag = NearestPredicateTag;
+    using Tag = Details::NearestPredicateTag;
 
     KOKKOS_INLINE_FUNCTION
     Nearest() = default;
@@ -48,7 +48,7 @@ struct Nearest
 template <typename Geometry>
 struct Intersects
 {
-    using Tag = SpatialPredicateTag;
+    using Tag = Details::SpatialPredicateTag;
 
     KOKKOS_INLINE_FUNCTION Intersects() = default;
 
@@ -60,7 +60,7 @@ struct Intersects
     KOKKOS_INLINE_FUNCTION
     bool operator()( Node const *node ) const
     {
-        return intersects( _geometry, node->bounding_box );
+        return Details::intersects( _geometry, node->bounding_box );
     }
 
     Geometry _geometry;
@@ -82,7 +82,6 @@ Within within( Point const &p, double r ) { return Within( {p, r} ); }
 KOKKOS_INLINE_FUNCTION
 Overlap overlap( Box const &b ) { return Overlap( b ); }
 
-} // namespace Details
 } // namespace DataTransferKit
 
 #endif

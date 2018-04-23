@@ -263,17 +263,16 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, miscellaneous, DeviceType )
             // spatial query on empty tree
             zeros( 0 ) =
                 DataTransferKit::Details::TreeTraversal<DeviceType>::query(
-                    empty_bvh, DataTransferKit::Details::within( p, r ),
-                    []( int ) {} );
+                    empty_bvh, DataTransferKit::within( p, r ), []( int ) {} );
             // nearest query on empty tree
             zeros( 1 ) =
                 DataTransferKit::Details::TreeTraversal<DeviceType>::query(
-                    empty_bvh, DataTransferKit::Details::nearest( p ),
+                    empty_bvh, DataTransferKit::nearest( p ),
                     []( int, double ) {} );
             // nearest query for k < 1
             zeros( 2 ) =
                 DataTransferKit::Details::TreeTraversal<DeviceType>::query(
-                    bvh, DataTransferKit::Details::nearest( p, 0 ),
+                    bvh, DataTransferKit::nearest( p, 0 ),
                     []( int, double ) {} );
         } );
     Kokkos::fence();
@@ -327,13 +326,12 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
     //
     //  o    o   o   o   j-2
     //
-    Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType> queries(
-        "queries", n );
+    Kokkos::View<DataTransferKit::Overlap *, DeviceType> queries( "queries",
+                                                                  n );
     Kokkos::parallel_for(
         "fill_queries", Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
         KOKKOS_LAMBDA( int i ) {
-            queries( i ) =
-                DataTransferKit::Details::Overlap( bounding_boxes( i ) );
+            queries( i ) = DataTransferKit::Overlap( bounding_boxes( i ) );
         } );
     Kokkos::fence();
 
@@ -448,7 +446,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
     Kokkos::parallel_for(
         "fill_first_neighbors_queries",
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
-            queries[i] = DataTransferKit::Details::Overlap( bounding_boxes[i] );
+            queries[i] = DataTransferKit::Overlap( bounding_boxes[i] );
         } );
     Kokkos::fence();
     bvh.query( queries, indices, offset );
@@ -506,7 +504,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
     Kokkos::parallel_for(
         "fill_first_neighbors_queries",
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
-            queries[i] = DataTransferKit::Details::Overlap( bounding_boxes[i] );
+            queries[i] = DataTransferKit::Overlap( bounding_boxes[i] );
         } );
     Kokkos::fence();
     bvh.query( queries, indices, offset );
@@ -629,32 +627,30 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
     Kokkos::deep_copy( radii, radii_host );
     Kokkos::deep_copy( k, k_host );
 
-    Kokkos::View<DataTransferKit::Details::Nearest<DataTransferKit::Point> *,
-                 DeviceType>
+    Kokkos::View<DataTransferKit::Nearest<DataTransferKit::Point> *, DeviceType>
         nearest_queries( "nearest_queries", n_points );
     Kokkos::parallel_for(
         "register_nearest_queries",
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
         KOKKOS_LAMBDA( int i ) {
             nearest_queries( i ) =
-                DataTransferKit::Details::nearest<DataTransferKit::Point>(
+                DataTransferKit::nearest<DataTransferKit::Point>(
                     {{point_coords( i, 0 ), point_coords( i, 1 ),
                       point_coords( i, 2 )}},
                     k( i ) );
         } );
     Kokkos::fence();
 
-    Kokkos::View<DataTransferKit::Details::Within *, DeviceType> within_queries(
+    Kokkos::View<DataTransferKit::Within *, DeviceType> within_queries(
         "within_queries", n_points );
-    Kokkos::parallel_for(
-        "register_within_queries",
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
-        KOKKOS_LAMBDA( int i ) {
-            within_queries( i ) = DataTransferKit::Details::within(
-                {{point_coords( i, 0 ), point_coords( i, 1 ),
-                  point_coords( i, 2 )}},
-                radii( i ) );
-        } );
+    Kokkos::parallel_for( "register_within_queries",
+                          Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
+                          KOKKOS_LAMBDA( int i ) {
+                              within_queries( i ) = DataTransferKit::within(
+                                  {{point_coords( i, 0 ), point_coords( i, 1 ),
+                                    point_coords( i, 2 )}},
+                                  radii( i ) );
+                          } );
     Kokkos::fence();
 
     auto rtree_results =

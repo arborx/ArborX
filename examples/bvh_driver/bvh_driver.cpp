@@ -106,16 +106,14 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
 
     if ( perform_knn_search )
     {
-        Kokkos::View<
-            DataTransferKit::Details::Nearest<DataTransferKit::Point> *,
-            DeviceType>
+        Kokkos::View<DataTransferKit::Nearest<DataTransferKit::Point> *,
+                     DeviceType>
             queries( "queries", n_queries );
         Kokkos::parallel_for(
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int i ) {
-                queries( i ) =
-                    DataTransferKit::Details::nearest<DataTransferKit::Point>(
-                        random_points( i ), n_neighbors );
+                queries( i ) = DataTransferKit::nearest<DataTransferKit::Point>(
+                    random_points( i ), n_neighbors );
             } );
         Kokkos::fence();
 
@@ -132,7 +130,7 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
 
     if ( perform_radius_search )
     {
-        Kokkos::View<DataTransferKit::Details::Within *, DeviceType> queries(
+        Kokkos::View<DataTransferKit::Within *, DeviceType> queries(
             "queries", n_queries );
         // radius chosen in order to control the number of results per query
         // NOTE: minus "1+sqrt(3)/2 \approx 1.37" matches the size of the boxes
@@ -144,8 +142,7 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         Kokkos::parallel_for(
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int i ) {
-                queries( i ) =
-                    DataTransferKit::Details::within( random_points( i ), r );
+                queries( i ) = DataTransferKit::within( random_points( i ), r );
             } );
         Kokkos::fence();
 

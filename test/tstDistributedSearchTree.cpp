@@ -63,10 +63,9 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
     // x   x   x   x   x               |               |               |
     // |<------3------>|               |               |               |
     // |               |               |               |               |
-    Kokkos::View<DataTransferKit::Details::Within *, DeviceType> queries(
-        "queries", 1 );
+    Kokkos::View<DataTransferKit::Within *, DeviceType> queries( "queries", 1 );
     auto queries_host = Kokkos::create_mirror_view( queries );
-    queries_host( 0 ) = DataTransferKit::Details::within(
+    queries_host( 0 ) = DataTransferKit::within(
         {{0.5 + comm_size - 1 - comm_rank, 0., 0.}}, 0.5 );
     deep_copy( queries, queries_host );
 
@@ -78,12 +77,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
     // x   x        <--2-->            |               |               |
     // 3-->            |               |               |               |
     // |               |               |               |               |
-    Kokkos::View<DataTransferKit::Details::Nearest<DataTransferKit::Point> *,
-                 DeviceType>
+    Kokkos::View<DataTransferKit::Nearest<DataTransferKit::Point> *, DeviceType>
         nearest_queries( "nearest_queries", 1 );
     auto nearest_queries_host = Kokkos::create_mirror_view( nearest_queries );
     nearest_queries_host( 0 ) =
-        DataTransferKit::Details::nearest<DataTransferKit::Point>(
+        DataTransferKit::nearest<DataTransferKit::Point>(
             {{0.0 + comm_size - 1 - comm_rank, 0., 0.}},
             comm_rank < comm_size - 1 ? 3 : 2 );
     deep_copy( nearest_queries, nearest_queries_host );
@@ -395,7 +393,6 @@ make_random_cloud( double const Lx, double const Ly, double const Lz,
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
                                    DeviceType )
 {
-    namespace details = DataTransferKit::Details;
     namespace bg = boost::geometry;
     namespace bgi = boost::geometry::index;
     using BPoint = bg::model::point<double, 3, bg::cs::cartesian>;
@@ -498,12 +495,12 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
     Kokkos::deep_copy( point_coords, point_coords_host );
     Kokkos::deep_copy( radii, radii_host );
 
-    Kokkos::View<details::Within *, DeviceType> within_queries(
+    Kokkos::View<DataTransferKit::Within *, DeviceType> within_queries(
         "within_queries", local_n );
     Kokkos::parallel_for( "register_within_queries",
                           Kokkos::RangePolicy<ExecutionSpace>( 0, local_n ),
                           KOKKOS_LAMBDA( int i ) {
-                              within_queries( i ) = details::within(
+                              within_queries( i ) = DataTransferKit::within(
                                   {{point_coords( i, 0 ), point_coords( i, 1 ),
                                     point_coords( i, 2 )}},
                                   radii( i ) );

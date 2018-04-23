@@ -70,8 +70,8 @@ struct UnaryPredicate
 };
 
 template <typename Value>
-static auto translate(
-    DataTransferKit::Details::Intersects<DataTransferKit::Sphere> const &query )
+static auto
+translate( DataTransferKit::Intersects<DataTransferKit::Sphere> const &query )
     -> decltype( boost::geometry::index::intersects( DataTransferKit::Box() ) &&
                  boost::geometry::index::satisfies(
                      UnaryPredicate<Value>::makeAlwaysFalse() ) )
@@ -92,8 +92,7 @@ static auto translate(
 }
 
 template <typename Value, typename Geometry>
-static auto
-translate( DataTransferKit::Details::Nearest<Geometry> const &query )
+static auto translate( DataTransferKit::Nearest<Geometry> const &query )
     -> decltype( boost::geometry::index::nearest( Geometry(), 0 ) )
 {
     auto const geometry = query._geometry;

@@ -56,10 +56,10 @@ TEUCHOS_UNIT_TEST( DetailsTeuchosSerializationTraits, geometries )
 TEUCHOS_UNIT_TEST( DetailsTeuchosSerializationTraits, predicates )
 {
     using DataTransferKit::Box;
+    using DataTransferKit::Intersects;
+    using DataTransferKit::nearest;
     using DataTransferKit::Point;
     using DataTransferKit::Details::equals;
-    using DataTransferKit::Details::Intersects;
-    using DataTransferKit::Details::nearest;
 
     Teuchos::RCP<const Teuchos::Comm<int>> comm =
         Teuchos::DefaultComm<int>::getComm();

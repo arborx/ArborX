@@ -158,52 +158,50 @@ makeDistributedSearchTree( Teuchos::RCP<const Teuchos::Comm<int>> const &comm,
 }
 
 template <typename DeviceType>
-Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType>
+Kokkos::View<DataTransferKit::Overlap *, DeviceType>
 makeOverlapQueries( std::vector<DataTransferKit::Box> const &boxes )
 {
     int const n = boxes.size();
-    Kokkos::View<DataTransferKit::Details::Overlap *, DeviceType> queries(
+    Kokkos::View<DataTransferKit::Overlap *, DeviceType> queries(
         "overlap_queries", n );
     auto queries_host = Kokkos::create_mirror_view( queries );
     for ( int i = 0; i < n; ++i )
-        queries_host( i ) = DataTransferKit::Details::overlap( boxes[i] );
+        queries_host( i ) = DataTransferKit::overlap( boxes[i] );
     Kokkos::deep_copy( queries, queries_host );
     return queries;
 }
 
 template <typename DeviceType>
-Kokkos::View<DataTransferKit::Details::Nearest<DataTransferKit::Point> *,
-             DeviceType>
+Kokkos::View<DataTransferKit::Nearest<DataTransferKit::Point> *, DeviceType>
 makeNearestQueries(
     std::vector<std::pair<DataTransferKit::Point, int>> const &points )
 {
     // NOTE: `points` is not a very descriptive name here. It stores both the
     // actual point and the number k of neighbors to query for.
     int const n = points.size();
-    Kokkos::View<DataTransferKit::Details::Nearest<DataTransferKit::Point> *,
-                 DeviceType>
+    Kokkos::View<DataTransferKit::Nearest<DataTransferKit::Point> *, DeviceType>
         queries( "nearest_queries", n );
     auto queries_host = Kokkos::create_mirror_view( queries );
     for ( int i = 0; i < n; ++i )
-        queries_host( i ) = DataTransferKit::Details::nearest(
-            points[i].first, points[i].second );
+        queries_host( i ) =
+            DataTransferKit::nearest( points[i].first, points[i].second );
     Kokkos::deep_copy( queries, queries_host );
     return queries;
 }
 
 template <typename DeviceType>
-Kokkos::View<DataTransferKit::Details::Within *, DeviceType> makeWithinQueries(
+Kokkos::View<DataTransferKit::Within *, DeviceType> makeWithinQueries(
     std::vector<std::pair<DataTransferKit::Point, double>> const &points )
 {
     // NOTE: `points` is not a very descriptive name here. It stores both the
     // actual point and the radius for the search around that point.
     int const n = points.size();
-    Kokkos::View<DataTransferKit::Details::Within *, DeviceType> queries(
+    Kokkos::View<DataTransferKit::Within *, DeviceType> queries(
         "within_queries", n );
     auto queries_host = Kokkos::create_mirror_view( queries );
     for ( int i = 0; i < n; ++i )
-        queries_host( i ) = DataTransferKit::Details::within(
-            points[i].first, points[i].second );
+        queries_host( i ) =
+            DataTransferKit::within( points[i].first, points[i].second );
     Kokkos::deep_copy( queries, queries_host );
     return queries;
 }

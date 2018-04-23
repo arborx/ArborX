@@ -40,17 +40,16 @@ class SerializationTraits<Ordinal, DataTransferKit::Sphere>
 };
 
 template <typename Ordinal, typename Geometry>
-class SerializationTraits<Ordinal, DataTransferKit::Details::Nearest<Geometry>>
-    : public DirectSerializationTraits<
-          Ordinal, DataTransferKit::Details::Nearest<Geometry>>
+class SerializationTraits<Ordinal, DataTransferKit::Nearest<Geometry>>
+    : public DirectSerializationTraits<Ordinal,
+                                       DataTransferKit::Nearest<Geometry>>
 {
 };
 
 template <typename Ordinal, typename Geometry>
-class SerializationTraits<Ordinal,
-                          DataTransferKit::Details::Intersects<Geometry>>
-    : public DirectSerializationTraits<
-          Ordinal, DataTransferKit::Details::Intersects<Geometry>>
+class SerializationTraits<Ordinal, DataTransferKit::Intersects<Geometry>>
+    : public DirectSerializationTraits<Ordinal,
+                                       DataTransferKit::Intersects<Geometry>>
 {
 };
 
