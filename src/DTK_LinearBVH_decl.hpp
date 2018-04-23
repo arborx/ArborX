@@ -28,15 +28,15 @@
 namespace DataTransferKit
 {
 
-/**
- * Bounding Volume Hierarchy.
- */
 template <typename DeviceType>
-class BVH
+class BoundingVolumeHierarchy
 {
   public:
-    BVH() = default; // build an empty tree
-    BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes );
+    using TreeType = BoundingVolumeHierarchy;
+
+    BoundingVolumeHierarchy() = default; // build an empty tree
+    BoundingVolumeHierarchy(
+        Kokkos::View<Box const *, DeviceType> bounding_boxes );
 
     // Views are passed by reference here because internally Kokkos::realloc()
     // is called.
@@ -81,9 +81,13 @@ class BVH
     Kokkos::View<int *, DeviceType> _indices;
 };
 
+template <typename DeviceType>
+using BVH = typename BoundingVolumeHierarchy<DeviceType>::TreeType;
+
 template <typename DeviceType, typename Query>
 void queryDispatch(
-    BVH<DeviceType> const bvh, Kokkos::View<Query *, DeviceType> queries,
+    BoundingVolumeHierarchy<DeviceType> const bvh,
+    Kokkos::View<Query *, DeviceType> queries,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset, Details::NearestPredicateTag,
     Kokkos::View<double *, DeviceType> *distances_ptr = nullptr )
@@ -215,7 +219,7 @@ void queryDispatch(
 }
 
 template <typename DeviceType, typename Query>
-void queryDispatch( BVH<DeviceType> const bvh,
+void queryDispatch( BoundingVolumeHierarchy<DeviceType> const bvh,
                     Kokkos::View<Query *, DeviceType> queries,
                     Kokkos::View<int *, DeviceType> &indices,
                     Kokkos::View<int *, DeviceType> &offset,
@@ -278,9 +282,10 @@ void queryDispatch( BVH<DeviceType> const bvh,
 
 template <typename DeviceType>
 template <typename Query>
-void BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
-                             Kokkos::View<int *, DeviceType> &indices,
-                             Kokkos::View<int *, DeviceType> &offset ) const
+void BoundingVolumeHierarchy<DeviceType>::query(
+    Kokkos::View<Query *, DeviceType> queries,
+    Kokkos::View<int *, DeviceType> &indices,
+    Kokkos::View<int *, DeviceType> &offset ) const
 {
     using Tag = typename Query::Tag;
     queryDispatch( *this, queries, indices, offset, Tag{} );
@@ -291,10 +296,11 @@ template <typename Query>
 typename std::enable_if<
     std::is_same<typename Query::Tag, Details::NearestPredicateTag>::value,
     void>::type
-BVH<DeviceType>::query( Kokkos::View<Query *, DeviceType> queries,
-                        Kokkos::View<int *, DeviceType> &indices,
-                        Kokkos::View<int *, DeviceType> &offset,
-                        Kokkos::View<double *, DeviceType> &distances ) const
+BoundingVolumeHierarchy<DeviceType>::query(
+    Kokkos::View<Query *, DeviceType> queries,
+    Kokkos::View<int *, DeviceType> &indices,
+    Kokkos::View<int *, DeviceType> &offset,
+    Kokkos::View<double *, DeviceType> &distances ) const
 {
     using Tag = typename Query::Tag;
     queryDispatch( *this, queries, indices, offset, Tag{}, &distances );

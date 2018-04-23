@@ -51,7 +51,8 @@ class SetBoundingBoxesFunctor
 };
 
 template <typename DeviceType>
-BVH<DeviceType>::BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes )
+BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
+    Kokkos::View<Box const *, DeviceType> bounding_boxes )
     : _leaf_nodes( "leaf_nodes", bounding_boxes.extent( 0 ) )
     , _internal_nodes( "internal_nodes", bounding_boxes.extent( 0 ) > 0
                                              ? bounding_boxes.extent( 0 ) - 1
@@ -110,6 +111,6 @@ BVH<DeviceType>::BVH( Kokkos::View<Box const *, DeviceType> bounding_boxes )
 
 // Explicit instantiation macro
 #define DTK_LINEAR_BVH_INSTANT( NODE )                                         \
-    template class BVH<typename NODE::device_type>;
+    template class BoundingVolumeHierarchy<typename NODE::device_type>;
 
 #endif
