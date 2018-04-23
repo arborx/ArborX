@@ -12,9 +12,7 @@
 #ifndef DTK_LINEAR_BVH_DECL_HPP
 #define DTK_LINEAR_BVH_DECL_HPP
 
-#include <Kokkos_ArithTraits.hpp>
-#include <Kokkos_Array.hpp>
-#include <Kokkos_View.hpp>
+#include "DTK_ConfigDefs.hpp"
 
 #include <DTK_Box.hpp>
 #include <DTK_DetailsAlgorithms.hpp>
@@ -23,7 +21,9 @@
 #include <DTK_DetailsUtils.hpp>
 #include <DTK_Predicates.hpp>
 
-#include "DTK_ConfigDefs.hpp"
+#include <Kokkos_ArithTraits.hpp>
+#include <Kokkos_Array.hpp>
+#include <Kokkos_View.hpp>
 
 namespace DataTransferKit
 {
