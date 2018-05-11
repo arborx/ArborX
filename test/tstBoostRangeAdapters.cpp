@@ -9,17 +9,18 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include "DTK_BoostRangeAdapters.hpp"
+
 #include <DTK_Box.hpp>
 #include <DTK_DetailsAlgorithms.hpp>
 #include <DTK_Point.hpp>
 
+#include <Kokkos_Core.hpp>
 #include <Teuchos_UnitTestHarness.hpp>
 
 #include <boost/range/algorithm.hpp> // reverse_copy, replace_if, count, generate, count_if
 #include <boost/range/algorithm_ext.hpp> // iota
 #include <boost/range/numeric.hpp>       // accumulate
-
-#include "DTK_BoostRangeAdapters.hpp"
 
 #include <random>
 #include <sstream>

@@ -18,8 +18,9 @@
 #include <DTK_DetailsNode.hpp>
 #include <DTK_KokkosHelpers.hpp> // clz, min. max
 
-#include <Kokkos_Core.hpp>
+#include <Kokkos_Macros.hpp>
 #include <Kokkos_Pair.hpp>
+#include <Kokkos_View.hpp>
 
 namespace DataTransferKit
 {
