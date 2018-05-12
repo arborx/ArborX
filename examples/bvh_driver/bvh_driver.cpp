@@ -198,7 +198,7 @@ int main( int argc, char *argv[] )
         }
         else if ( node == "serial" )
         {
-#ifdef KOKKOS_HAVE_SERIAL
+#ifdef KOKKOS_ENABLE_SERIAL
             typedef Kokkos::Compat::KokkosSerialWrapperNode Node;
             main_<Node>( clp, argc, argv );
 #else
@@ -207,7 +207,7 @@ int main( int argc, char *argv[] )
         }
         else if ( node == "openmp" )
         {
-#ifdef KOKKOS_HAVE_OPENMP
+#ifdef KOKKOS_ENABLE_OPENMP
             typedef Kokkos::Compat::KokkosOpenMPWrapperNode Node;
             main_<Node>( clp, argc, argv );
 #else
@@ -216,7 +216,7 @@ int main( int argc, char *argv[] )
         }
         else if ( node == "cuda" )
         {
-#ifdef KOKKOS_HAVE_CUDA
+#ifdef KOKKOS_ENABLE_CUDA
             typedef Kokkos::Compat::KokkosCudaWrapperNode Node;
             main_<Node>( clp, argc, argv );
 #else
