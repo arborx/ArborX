@@ -22,6 +22,16 @@ namespace DataTransferKit
 namespace Details
 {
 
+// FIXME probably doesnt belong here
+// also not sure if I actually cannot use std::move() with CUDA
+template <typename T>
+KOKKOS_INLINE_FUNCTION void swap( T &a, T &b )
+{
+    T c{std::move( a )};
+    a = std::move( b );
+    b = std::move( c );
+}
+
 template <typename T>
 struct Less
 {
@@ -43,47 +53,73 @@ class PriorityQueue
     KOKKOS_INLINE_FUNCTION bool empty() const { return _size == 0; }
 
     template <typename... Args>
-    KOKKOS_FUNCTION void push( Args &&... args )
+    KOKKOS_INLINE_FUNCTION void push( Args &&... args )
     {
-        // ensure the queue is not already full
+        // ensure the heap is not already full
         assert( _size < _max_size );
 
-        // construct the element to compare to those in the queue
-        T elem( std::forward<Args>( args )... );
+        // add the element to the bottom level of the heap
+        SizeType pos = _size;
+        _heap[pos] = T{std::forward<Args>( args )...};
 
-        // find position of the new element in the sorted array
-        // COMMENT: could consider implementing a binary search here
-        SizeType pos;
-        for ( pos = 0; pos < _size; ++pos )
-            if ( !_compare( _queue[pos], elem ) )
+        // perform up-heap operation
+        while ( pos > 0 )
+        {
+            // compare the added element with its parent
+            // if they are in correct order, stop
+            // if not, swap them and continue
+            SizeType const parent = ( pos - 1 ) / 2;
+            if ( !_compare( _heap[parent], _heap[pos] ) )
                 break;
+            swap( _heap[pos], _heap[parent] );
+            pos = parent;
+        }
 
-        // move memory to make room for it
-        for ( SizeType tmp = _size; tmp > pos; --tmp )
-            _queue[tmp] = _queue[tmp - 1];
-
-        // insert the new element
-        _queue[pos] = elem;
-
-        // update the size of the queue
+        // update the size of the heap
         ++_size;
     }
 
     KOKKOS_INLINE_FUNCTION void pop()
     {
+        // ensure that the heap is not empty
         assert( _size > 0 );
+
+        // replace the root with the last element on the last level
+        _heap[0] = _heap[_size - 1];
+        SizeType pos = 0;
+
+        // perform down-heap operation
+        while ( true )
+        {
+            // compare the new root with its children
+            // if they are in the correct order, stop
+            // if not, swap the element with one of its children and continue
+            SizeType const left_child = 2 * pos + 1;
+            SizeType const right_child = 2 * pos + 2;
+            SizeType next_pos = pos;
+            for ( SizeType child : {left_child, right_child} )
+                if ( child < _size - 1 &&
+                     _compare( _heap[next_pos], _heap[child] ) )
+                    next_pos = child;
+            if ( pos == next_pos )
+                break;
+            swap( _heap[pos], _heap[next_pos] );
+            pos = next_pos;
+        }
+
+        // update the size of the heap
         _size--;
     }
 
     KOKKOS_INLINE_FUNCTION T const &top() const
     {
         assert( _size > 0 );
-        return *( _queue + _size - 1 );
+        return _heap[0];
     }
 
   private:
     static SizeType constexpr _max_size = 256;
-    T _queue[_max_size];
+    T _heap[_max_size];
     SizeType _size = 0;
     Compare _compare;
 };
