@@ -189,3 +189,135 @@ TEUCHOS_UNIT_TEST( LinearBVH, heap )
     TEST_EQUALITY( heap[5], 3 );
     TEST_EQUALITY( heap[6], 5 );
 }
+
+TEUCHOS_UNIT_TEST( LinearBVH, min_heap )
+{
+    // Here reproducing the example of a binary min heap from Wikipedia and then
+    // popping all elements one by one.
+    // This helped resolving an issue with ProprityQueue::pop() that was not
+    // exposed by other unit tests in this file, partly because they were too
+    // trivial.  The bug was only showing with real kNN search problems when
+    // comparing results from BoundaryVolumeHierarchy with boost::rtree.
+    struct Greater
+    {
+      public:
+        KOKKOS_FUNCTION bool operator()( int x, int y ) const { return x > y; }
+    };
+    DataTransferKit::Details::PriorityQueue<int, Greater> queue;
+    auto heap = reinterpret_cast<int const *>( &queue );
+
+    queue.push( 1 );
+    TEST_EQUALITY( heap[0], 1 );
+
+    queue.push( 2 );
+    TEST_EQUALITY( heap[0], 1 );
+    TEST_EQUALITY( heap[1], 2 );
+
+    queue.push( 3 );
+    TEST_EQUALITY( heap[0], 1 );
+    TEST_EQUALITY( heap[1], 2 );
+    TEST_EQUALITY( heap[2], 3 );
+
+    queue.push( 17 );
+    TEST_EQUALITY( heap[0], 1 );
+    TEST_EQUALITY( heap[1], 2 );
+    TEST_EQUALITY( heap[2], 3 );
+    TEST_EQUALITY( heap[3], 17 );
+
+    queue.push( 19 );
+    TEST_EQUALITY( heap[0], 1 );
+    TEST_EQUALITY( heap[1], 2 );
+    TEST_EQUALITY( heap[2], 3 );
+    TEST_EQUALITY( heap[3], 17 );
+    TEST_EQUALITY( heap[4], 19 );
+
+    queue.push( 36 );
+    TEST_EQUALITY( heap[0], 1 );
+    TEST_EQUALITY( heap[1], 2 );
+    TEST_EQUALITY( heap[2], 3 );
+    TEST_EQUALITY( heap[3], 17 );
+    TEST_EQUALITY( heap[4], 19 );
+    TEST_EQUALITY( heap[5], 36 );
+
+    queue.push( 7 );
+    TEST_EQUALITY( heap[0], 1 );
+    TEST_EQUALITY( heap[1], 2 );
+    TEST_EQUALITY( heap[2], 3 );
+    TEST_EQUALITY( heap[3], 17 );
+    TEST_EQUALITY( heap[4], 19 );
+    TEST_EQUALITY( heap[5], 36 );
+    TEST_EQUALITY( heap[6], 7 );
+
+    queue.push( 25 );
+    TEST_EQUALITY( heap[0], 1 );
+    TEST_EQUALITY( heap[1], 2 );
+    TEST_EQUALITY( heap[2], 3 );
+    TEST_EQUALITY( heap[3], 17 );
+    TEST_EQUALITY( heap[4], 19 );
+    TEST_EQUALITY( heap[5], 36 );
+    TEST_EQUALITY( heap[6], 7 );
+    TEST_EQUALITY( heap[7], 25 );
+
+    queue.push( 100 );
+    TEST_EQUALITY( heap[0], 1 );
+    TEST_EQUALITY( heap[1], 2 );
+    TEST_EQUALITY( heap[2], 3 );
+    TEST_EQUALITY( heap[3], 17 );
+    TEST_EQUALITY( heap[4], 19 );
+    TEST_EQUALITY( heap[5], 36 );
+    TEST_EQUALITY( heap[6], 7 );
+    TEST_EQUALITY( heap[7], 25 );
+    TEST_EQUALITY( heap[8], 100 );
+
+    queue.pop();
+    TEST_EQUALITY( heap[0], 2 );
+    TEST_EQUALITY( heap[1], 17 );
+    TEST_EQUALITY( heap[2], 3 );
+    TEST_EQUALITY( heap[3], 25 );
+    TEST_EQUALITY( heap[4], 19 );
+    TEST_EQUALITY( heap[5], 36 );
+    TEST_EQUALITY( heap[6], 7 );
+    TEST_EQUALITY( heap[7], 100 );
+
+    queue.pop();
+    TEST_EQUALITY( heap[0], 3 );
+    TEST_EQUALITY( heap[1], 17 );
+    TEST_EQUALITY( heap[2], 7 );
+    TEST_EQUALITY( heap[3], 25 );
+    TEST_EQUALITY( heap[4], 19 );
+    TEST_EQUALITY( heap[5], 36 );
+    TEST_EQUALITY( heap[6], 100 );
+
+    queue.pop();
+    TEST_EQUALITY( heap[0], 7 );
+    TEST_EQUALITY( heap[1], 17 );
+    TEST_EQUALITY( heap[2], 36 );
+    TEST_EQUALITY( heap[3], 25 );
+    TEST_EQUALITY( heap[4], 19 );
+    TEST_EQUALITY( heap[5], 100 );
+
+    queue.pop();
+    TEST_EQUALITY( heap[0], 17 );
+    TEST_EQUALITY( heap[1], 19 );
+    TEST_EQUALITY( heap[2], 36 );
+    TEST_EQUALITY( heap[3], 25 );
+    TEST_EQUALITY( heap[4], 100 );
+
+    queue.pop();
+    TEST_EQUALITY( heap[0], 19 );
+    TEST_EQUALITY( heap[1], 25 );
+    TEST_EQUALITY( heap[2], 36 );
+    TEST_EQUALITY( heap[3], 100 );
+
+    queue.pop();
+    TEST_EQUALITY( heap[0], 25 );
+    TEST_EQUALITY( heap[1], 100 );
+    TEST_EQUALITY( heap[2], 36 );
+
+    queue.pop();
+    TEST_EQUALITY( heap[0], 36 );
+    TEST_EQUALITY( heap[1], 100 );
+
+    queue.pop();
+    TEST_EQUALITY( heap[0], 100 );
+}
