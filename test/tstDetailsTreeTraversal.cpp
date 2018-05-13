@@ -64,7 +64,9 @@ TEUCHOS_UNIT_TEST( LinearBVH, push_heap )
     // Here checking against the example of binary heap insertion from
     // https://en.wikipedia.org/wiki/Binary_heap#Insert
     DataTransferKit::Details::PriorityQueue<int> queue;
-    auto heap = reinterpret_cast<int *>( &queue );
+    // NOTE Shameless hack to inspect the private data of the priority queue.
+    // Will break if data is reordered in the class.
+    auto heap = reinterpret_cast<int const *>( &queue );
 
     queue.push( 11 );
     queue.push( 5 );
@@ -93,7 +95,7 @@ TEUCHOS_UNIT_TEST( LinearBVH, pop_heap )
 {
     // See https://en.wikipedia.org/wiki/Binary_heap#Extract
     DataTransferKit::Details::PriorityQueue<int> queue;
-    auto heap = reinterpret_cast<int *>( &queue );
+    auto heap = reinterpret_cast<int const *>( &queue );
 
     queue.push( 11 );
     queue.push( 5 );
@@ -114,4 +116,76 @@ TEUCHOS_UNIT_TEST( LinearBVH, pop_heap )
     TEST_EQUALITY( heap[1], 5 );
     TEST_EQUALITY( heap[2], 4 );
     TEST_EQUALITY( heap[3], 3 );
+}
+
+TEUCHOS_UNIT_TEST( LinearBVH, heap )
+{
+    // Here attempting to reproduce examples code from cppreference.com for
+    // std::push_heap() and std::pop_heap().  It turns out that calling
+    // std::make_heap() on { 3, 1, 4, 1, 5, 9 } is not equivalent to inserting
+    // one element at a time (I also tried to insert them in reverse order out
+    // of curiousity) and yields 9 5 4 1 1 3 :/
+    // cpluplus.com does make a note that the order of the elements will depend
+    // on implementation.
+    // Nevertheless, I thought it helps understanding how the algorithm works so
+    // I decided to keep it as a unit test.
+    DataTransferKit::Details::PriorityQueue<int> queue;
+    auto heap = reinterpret_cast<int const *>( &queue );
+
+    queue.push( 3 );
+    TEST_EQUALITY( heap[0], 3 );
+
+    queue.push( 1 );
+    TEST_EQUALITY( heap[0], 3 );
+    TEST_EQUALITY( heap[1], 1 );
+
+    queue.push( 4 );
+    TEST_EQUALITY( heap[0], 4 );
+    TEST_EQUALITY( heap[1], 1 );
+    TEST_EQUALITY( heap[2], 3 );
+
+    queue.push( 1 );
+    TEST_EQUALITY( heap[0], 4 );
+    TEST_EQUALITY( heap[1], 1 );
+    TEST_EQUALITY( heap[2], 3 );
+    TEST_EQUALITY( heap[3], 1 );
+
+    queue.push( 5 );
+    TEST_EQUALITY( heap[0], 5 );
+    TEST_EQUALITY( heap[1], 4 );
+    TEST_EQUALITY( heap[2], 3 );
+    TEST_EQUALITY( heap[3], 1 );
+    TEST_EQUALITY( heap[4], 1 );
+
+    queue.push( 9 );
+    TEST_EQUALITY( heap[0], 9 );
+    TEST_EQUALITY( heap[1], 4 );
+    TEST_EQUALITY( heap[2], 5 );
+    TEST_EQUALITY( heap[3], 1 );
+    TEST_EQUALITY( heap[4], 1 );
+    TEST_EQUALITY( heap[5], 3 );
+
+    queue.pop();
+    TEST_EQUALITY( heap[0], 5 );
+    TEST_EQUALITY( heap[1], 4 );
+    TEST_EQUALITY( heap[2], 3 );
+    TEST_EQUALITY( heap[3], 1 );
+    TEST_EQUALITY( heap[4], 1 );
+
+    queue.push( 9 );
+    TEST_EQUALITY( heap[0], 9 );
+    TEST_EQUALITY( heap[1], 4 );
+    TEST_EQUALITY( heap[2], 5 );
+    TEST_EQUALITY( heap[3], 1 );
+    TEST_EQUALITY( heap[4], 1 );
+    TEST_EQUALITY( heap[5], 3 );
+
+    queue.push( 6 );
+    TEST_EQUALITY( heap[0], 9 );
+    TEST_EQUALITY( heap[1], 4 );
+    TEST_EQUALITY( heap[2], 6 );
+    TEST_EQUALITY( heap[3], 1 );
+    TEST_EQUALITY( heap[4], 1 );
+    TEST_EQUALITY( heap[5], 3 );
+    TEST_EQUALITY( heap[6], 5 );
 }
