@@ -60,7 +60,7 @@ class PriorityQueue
 
         // add the element to the bottom level of the heap
         SizeType pos = _size;
-        _heap[pos] = T{std::forward<Args>( args )...};
+        T elem{std::forward<Args>( args )...};
 
         // perform up-heap operation
         while ( pos > 0 )
@@ -69,11 +69,13 @@ class PriorityQueue
             // if they are in correct order, stop
             // if not, swap them and continue
             SizeType const parent = ( pos - 1 ) / 2;
-            if ( !_compare( _heap[parent], _heap[pos] ) )
+            if ( !_compare( _heap[parent], elem ) )
                 break;
-            swap( _heap[pos], _heap[parent] );
+            _heap[pos] = _heap[parent];
             pos = parent;
         }
+
+        _heap[pos] = elem;
 
         // update the size of the heap
         ++_size;
@@ -85,7 +87,6 @@ class PriorityQueue
         assert( _size > 0 );
 
         // replace the root with the last element on the last level
-        _heap[0] = _heap[_size - 1];
         SizeType pos = 0;
 
         // perform down-heap operation
@@ -96,16 +97,18 @@ class PriorityQueue
             // if not, swap the element with one of its children and continue
             SizeType const left_child = 2 * pos + 1;
             SizeType const right_child = 2 * pos + 2;
-            SizeType next_pos = pos;
+            SizeType next_pos = _size - 1;
             for ( SizeType child : {left_child, right_child} )
                 if ( child < _size - 1 &&
                      _compare( _heap[next_pos], _heap[child] ) )
                     next_pos = child;
-            if ( pos == next_pos )
+            if ( next_pos == _size - 1 )
                 break;
-            swap( _heap[pos], _heap[next_pos] );
+            _heap[pos] = _heap[next_pos];
             pos = next_pos;
         }
+
+        _heap[pos] = _heap[_size - 1];
 
         // update the size of the heap
         _size--;
