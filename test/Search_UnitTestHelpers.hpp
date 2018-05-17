@@ -212,7 +212,7 @@ std::vector<Value> extractAndSort( View const &v, int begin, int end )
     std::vector<Value> r( v.data() + begin, v.data() + end );
     std::sort( r.begin(), r.end() );
     return r;
-};
+}
 
 template <typename InputView1, typename InputView2>
 void validateResults( std::tuple<InputView1, InputView1> const &reference,
