@@ -177,9 +177,9 @@ nearestQuery( BoundingVolumeHierarchy<DeviceType> const &bvh,
         double const node_distance = queue.top().second;
         // NOTE: it would be nice to be able to do something like
         // tie( node, node_distance = queue.top();
-        queue.pop();
         if ( TreeTraversal<DeviceType>::isLeaf( node ) )
         {
+            queue.pop();
             insert( TreeTraversal<DeviceType>::getIndex( bvh, node ),
                     node_distance );
             count++;
@@ -187,12 +187,14 @@ nearestQuery( BoundingVolumeHierarchy<DeviceType> const &bvh,
         else
         {
             // insert children of the node in the priority list
-            for ( Node const *child :
-                  {node->children.first, node->children.second} )
-            {
-                double const child_distance = distance( child );
-                queue.push( child, child_distance );
-            }
+
+            auto const c1 = node->children.first;
+            auto const c2 = node->children.second;
+
+            queue.pop_push( c1,
+                            distance( c1 ) ); // combine popping with the first
+                                              // push to save one bubble-up
+            queue.push( c2, distance( c2 ) );
         }
     }
     return count;
