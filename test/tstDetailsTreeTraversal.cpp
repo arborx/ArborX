@@ -59,63 +59,61 @@ TEUCHOS_UNIT_TEST( LinearBVH, priority_queue )
     TEST_ASSERT( queue.empty() );
 }
 
+template <typename PriorityQueue>
+void check_heap( PriorityQueue const &queue,
+                 std::vector<typename PriorityQueue::ValueType> const &heap_ref,
+                 bool &success, Teuchos::FancyOStream &out )
+{
+    auto const size = queue.size();
+    TEST_EQUALITY( size, heap_ref.size() );
+
+    // NOTE Shameless hack to inspect the private data of the priority queue.
+    // Will break if data is reordered in the PriorityQueue class declaration.
+    auto heap =
+        reinterpret_cast<typename PriorityQueue::ValueType const *>( &queue );
+    for ( typename PriorityQueue::SizeType i = 0; i < size; ++i )
+        TEST_EQUALITY( heap[i], heap_ref[i] );
+}
+
 TEUCHOS_UNIT_TEST( LinearBVH, push_heap )
 {
     // Here checking against the example of binary heap insertion from
     // https://en.wikipedia.org/wiki/Binary_heap#Insert
     DataTransferKit::Details::PriorityQueue<int> queue;
-    // NOTE Shameless hack to inspect the private data of the priority queue.
-    // Will break if data is reordered in the class.
-    auto heap = reinterpret_cast<int const *>( &queue );
 
     queue.push( 11 );
     queue.push( 5 );
     queue.push( 8 );
     queue.push( 3 );
     queue.push( 4 );
+
     TEST_EQUALITY( queue.top(), 11 );
-    TEST_EQUALITY( heap[0], 11 );
-    TEST_EQUALITY( heap[1], 5 );
-    TEST_EQUALITY( heap[2], 8 );
-    TEST_EQUALITY( heap[3], 3 );
-    TEST_EQUALITY( heap[4], 4 );
+    check_heap( queue, {11, 5, 8, 3, 4}, success, out );
 
     queue.push( 15 );
 
     TEST_EQUALITY( queue.top(), 15 );
-    TEST_EQUALITY( heap[0], 15 );
-    TEST_EQUALITY( heap[1], 5 );
-    TEST_EQUALITY( heap[2], 11 );
-    TEST_EQUALITY( heap[3], 3 );
-    TEST_EQUALITY( heap[4], 4 );
-    TEST_EQUALITY( heap[5], 8 );
+    check_heap( queue, {15, 5, 11, 3, 4, 8}, success, out );
 }
 
 TEUCHOS_UNIT_TEST( LinearBVH, pop_heap )
 {
     // See https://en.wikipedia.org/wiki/Binary_heap#Extract
     DataTransferKit::Details::PriorityQueue<int> queue;
-    auto heap = reinterpret_cast<int const *>( &queue );
 
     queue.push( 11 );
     queue.push( 5 );
     queue.push( 8 );
     queue.push( 3 );
     queue.push( 4 );
+
     TEST_EQUALITY( queue.top(), 11 );
-    TEST_EQUALITY( heap[0], 11 );
-    TEST_EQUALITY( heap[1], 5 );
-    TEST_EQUALITY( heap[2], 8 );
-    TEST_EQUALITY( heap[3], 3 );
-    TEST_EQUALITY( heap[4], 4 );
+    check_heap( queue, {11, 5, 8, 3, 4}, success, out );
 
     queue.pop();
 
     TEST_EQUALITY( queue.top(), 8 );
-    TEST_EQUALITY( heap[0], 8 );
-    TEST_EQUALITY( heap[1], 5 );
-    TEST_EQUALITY( heap[2], 4 );
-    TEST_EQUALITY( heap[3], 3 );
+    check_heap( queue, {8, 5, 4, 3}, success, out );
 }
 
 TEUCHOS_UNIT_TEST( LinearBVH, heap )
@@ -130,64 +128,33 @@ TEUCHOS_UNIT_TEST( LinearBVH, heap )
     // Nevertheless, I thought it helps understanding how the algorithm works so
     // I decided to keep it as a unit test.
     DataTransferKit::Details::PriorityQueue<int> queue;
-    auto heap = reinterpret_cast<int const *>( &queue );
 
     queue.push( 3 );
-    TEST_EQUALITY( heap[0], 3 );
+    check_heap( queue, {3}, success, out );
 
     queue.push( 1 );
-    TEST_EQUALITY( heap[0], 3 );
-    TEST_EQUALITY( heap[1], 1 );
+    check_heap( queue, {3, 1}, success, out );
 
     queue.push( 4 );
-    TEST_EQUALITY( heap[0], 4 );
-    TEST_EQUALITY( heap[1], 1 );
-    TEST_EQUALITY( heap[2], 3 );
+    check_heap( queue, {4, 1, 3}, success, out );
 
     queue.push( 1 );
-    TEST_EQUALITY( heap[0], 4 );
-    TEST_EQUALITY( heap[1], 1 );
-    TEST_EQUALITY( heap[2], 3 );
-    TEST_EQUALITY( heap[3], 1 );
+    check_heap( queue, {4, 1, 3, 1}, success, out );
 
     queue.push( 5 );
-    TEST_EQUALITY( heap[0], 5 );
-    TEST_EQUALITY( heap[1], 4 );
-    TEST_EQUALITY( heap[2], 3 );
-    TEST_EQUALITY( heap[3], 1 );
-    TEST_EQUALITY( heap[4], 1 );
+    check_heap( queue, {5, 4, 3, 1, 1}, success, out );
 
     queue.push( 9 );
-    TEST_EQUALITY( heap[0], 9 );
-    TEST_EQUALITY( heap[1], 4 );
-    TEST_EQUALITY( heap[2], 5 );
-    TEST_EQUALITY( heap[3], 1 );
-    TEST_EQUALITY( heap[4], 1 );
-    TEST_EQUALITY( heap[5], 3 );
+    check_heap( queue, {9, 4, 5, 1, 1, 3}, success, out );
 
     queue.pop();
-    TEST_EQUALITY( heap[0], 5 );
-    TEST_EQUALITY( heap[1], 4 );
-    TEST_EQUALITY( heap[2], 3 );
-    TEST_EQUALITY( heap[3], 1 );
-    TEST_EQUALITY( heap[4], 1 );
+    check_heap( queue, {5, 4, 3, 1, 1}, success, out );
 
     queue.push( 9 );
-    TEST_EQUALITY( heap[0], 9 );
-    TEST_EQUALITY( heap[1], 4 );
-    TEST_EQUALITY( heap[2], 5 );
-    TEST_EQUALITY( heap[3], 1 );
-    TEST_EQUALITY( heap[4], 1 );
-    TEST_EQUALITY( heap[5], 3 );
+    check_heap( queue, {9, 4, 5, 1, 1, 3}, success, out );
 
     queue.push( 6 );
-    TEST_EQUALITY( heap[0], 9 );
-    TEST_EQUALITY( heap[1], 4 );
-    TEST_EQUALITY( heap[2], 6 );
-    TEST_EQUALITY( heap[3], 1 );
-    TEST_EQUALITY( heap[4], 1 );
-    TEST_EQUALITY( heap[5], 3 );
-    TEST_EQUALITY( heap[6], 5 );
+    check_heap( queue, {9, 4, 6, 1, 1, 3, 5}, success, out );
 }
 
 TEUCHOS_UNIT_TEST( LinearBVH, min_heap )
@@ -204,120 +171,55 @@ TEUCHOS_UNIT_TEST( LinearBVH, min_heap )
         KOKKOS_FUNCTION bool operator()( int x, int y ) const { return x > y; }
     };
     DataTransferKit::Details::PriorityQueue<int, Greater> queue;
-    auto heap = reinterpret_cast<int const *>( &queue );
 
     queue.push( 1 );
-    TEST_EQUALITY( heap[0], 1 );
+    check_heap( queue, {1}, success, out );
 
     queue.push( 2 );
-    TEST_EQUALITY( heap[0], 1 );
-    TEST_EQUALITY( heap[1], 2 );
+    check_heap( queue, {1, 2}, success, out );
 
     queue.push( 3 );
-    TEST_EQUALITY( heap[0], 1 );
-    TEST_EQUALITY( heap[1], 2 );
-    TEST_EQUALITY( heap[2], 3 );
+    check_heap( queue, {1, 2, 3}, success, out );
 
     queue.push( 17 );
-    TEST_EQUALITY( heap[0], 1 );
-    TEST_EQUALITY( heap[1], 2 );
-    TEST_EQUALITY( heap[2], 3 );
-    TEST_EQUALITY( heap[3], 17 );
+    check_heap( queue, {1, 2, 3, 17}, success, out );
 
     queue.push( 19 );
-    TEST_EQUALITY( heap[0], 1 );
-    TEST_EQUALITY( heap[1], 2 );
-    TEST_EQUALITY( heap[2], 3 );
-    TEST_EQUALITY( heap[3], 17 );
-    TEST_EQUALITY( heap[4], 19 );
+    check_heap( queue, {1, 2, 3, 17, 19}, success, out );
 
     queue.push( 36 );
-    TEST_EQUALITY( heap[0], 1 );
-    TEST_EQUALITY( heap[1], 2 );
-    TEST_EQUALITY( heap[2], 3 );
-    TEST_EQUALITY( heap[3], 17 );
-    TEST_EQUALITY( heap[4], 19 );
-    TEST_EQUALITY( heap[5], 36 );
+    check_heap( queue, {1, 2, 3, 17, 19, 36}, success, out );
 
     queue.push( 7 );
-    TEST_EQUALITY( heap[0], 1 );
-    TEST_EQUALITY( heap[1], 2 );
-    TEST_EQUALITY( heap[2], 3 );
-    TEST_EQUALITY( heap[3], 17 );
-    TEST_EQUALITY( heap[4], 19 );
-    TEST_EQUALITY( heap[5], 36 );
-    TEST_EQUALITY( heap[6], 7 );
+    check_heap( queue, {1, 2, 3, 17, 19, 36, 7}, success, out );
 
     queue.push( 25 );
-    TEST_EQUALITY( heap[0], 1 );
-    TEST_EQUALITY( heap[1], 2 );
-    TEST_EQUALITY( heap[2], 3 );
-    TEST_EQUALITY( heap[3], 17 );
-    TEST_EQUALITY( heap[4], 19 );
-    TEST_EQUALITY( heap[5], 36 );
-    TEST_EQUALITY( heap[6], 7 );
-    TEST_EQUALITY( heap[7], 25 );
+    check_heap( queue, {1, 2, 3, 17, 19, 36, 7, 25}, success, out );
 
     queue.push( 100 );
-    TEST_EQUALITY( heap[0], 1 );
-    TEST_EQUALITY( heap[1], 2 );
-    TEST_EQUALITY( heap[2], 3 );
-    TEST_EQUALITY( heap[3], 17 );
-    TEST_EQUALITY( heap[4], 19 );
-    TEST_EQUALITY( heap[5], 36 );
-    TEST_EQUALITY( heap[6], 7 );
-    TEST_EQUALITY( heap[7], 25 );
-    TEST_EQUALITY( heap[8], 100 );
+    check_heap( queue, {1, 2, 3, 17, 19, 36, 7, 25, 100}, success, out );
 
     queue.pop();
-    TEST_EQUALITY( heap[0], 2 );
-    TEST_EQUALITY( heap[1], 17 );
-    TEST_EQUALITY( heap[2], 3 );
-    TEST_EQUALITY( heap[3], 25 );
-    TEST_EQUALITY( heap[4], 19 );
-    TEST_EQUALITY( heap[5], 36 );
-    TEST_EQUALITY( heap[6], 7 );
-    TEST_EQUALITY( heap[7], 100 );
+    check_heap( queue, {2, 17, 3, 25, 19, 36, 7, 100}, success, out );
 
     queue.pop();
-    TEST_EQUALITY( heap[0], 3 );
-    TEST_EQUALITY( heap[1], 17 );
-    TEST_EQUALITY( heap[2], 7 );
-    TEST_EQUALITY( heap[3], 25 );
-    TEST_EQUALITY( heap[4], 19 );
-    TEST_EQUALITY( heap[5], 36 );
-    TEST_EQUALITY( heap[6], 100 );
+    check_heap( queue, {3, 17, 7, 25, 19, 36, 100}, success, out );
 
     queue.pop();
-    TEST_EQUALITY( heap[0], 7 );
-    TEST_EQUALITY( heap[1], 17 );
-    TEST_EQUALITY( heap[2], 36 );
-    TEST_EQUALITY( heap[3], 25 );
-    TEST_EQUALITY( heap[4], 19 );
-    TEST_EQUALITY( heap[5], 100 );
+    check_heap( queue, {7, 17, 36, 25, 19, 100}, success, out );
 
     queue.pop();
-    TEST_EQUALITY( heap[0], 17 );
-    TEST_EQUALITY( heap[1], 19 );
-    TEST_EQUALITY( heap[2], 36 );
-    TEST_EQUALITY( heap[3], 25 );
-    TEST_EQUALITY( heap[4], 100 );
+    check_heap( queue, {17, 19, 36, 25, 100}, success, out );
 
     queue.pop();
-    TEST_EQUALITY( heap[0], 19 );
-    TEST_EQUALITY( heap[1], 25 );
-    TEST_EQUALITY( heap[2], 36 );
-    TEST_EQUALITY( heap[3], 100 );
+    check_heap( queue, {19, 25, 36, 100}, success, out );
 
     queue.pop();
-    TEST_EQUALITY( heap[0], 25 );
-    TEST_EQUALITY( heap[1], 100 );
-    TEST_EQUALITY( heap[2], 36 );
+    check_heap( queue, {25, 100, 36}, success, out );
 
     queue.pop();
-    TEST_EQUALITY( heap[0], 36 );
-    TEST_EQUALITY( heap[1], 100 );
+    check_heap( queue, {36, 100}, success, out );
 
     queue.pop();
-    TEST_EQUALITY( heap[0], 100 );
+    check_heap( queue, {100}, success, out );
 }
