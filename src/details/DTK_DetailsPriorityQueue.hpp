@@ -22,16 +22,6 @@ namespace DataTransferKit
 namespace Details
 {
 
-// FIXME probably doesnt belong here
-// also not sure if I actually cannot use std::move() with CUDA
-template <typename T>
-KOKKOS_INLINE_FUNCTION void swap( T &a, T &b )
-{
-    T c{std::move( a )};
-    a = std::move( b );
-    b = std::move( c );
-}
-
 template <typename T>
 struct Less
 {
