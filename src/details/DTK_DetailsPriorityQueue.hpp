@@ -37,10 +37,13 @@ class PriorityQueue
 {
   public:
     using SizeType = size_t;
+    using ValueType = T;
 
     KOKKOS_FUNCTION PriorityQueue() = default;
 
     KOKKOS_INLINE_FUNCTION bool empty() const { return _size == 0; }
+
+    KOKKOS_INLINE_FUNCTION IndexType size() const { return _size; }
 
     template <typename... Args>
     KOKKOS_INLINE_FUNCTION void push( Args &&... args )
