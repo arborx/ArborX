@@ -107,17 +107,21 @@ class PriorityQueue
         _size--;
     }
 
+    // in TreeTraversal::nearestQuery, pop() is often followed by push which is
+    // an opportunity for doing a single bubble-down operation instead of paying
+    // for both one bubble-down and one bubble-up
     template <typename... Args>
     KOKKOS_INLINE_FUNCTION void pop_push( Args &&... args )
     {
         assert( _size < _max_size );
 
+        // size will be decremented by pop()
         _size++;
+
+        // put the new element at the bottom level
         _heap[_size - 1] = T{std::forward<Args>( args )...};
 
-        // This works, because pop will remove the 0th element,
-        // insert the last one on top (added in the previous line), and bubble
-        // it down
+        // replace the root with that new element and bubble it down
         pop();
     }
 
