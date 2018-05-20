@@ -153,8 +153,9 @@ nearestQuery( BoundingVolumeHierarchy<DeviceType> const &bvh,
 
     struct CompareDistance
     {
-        KOKKOS_INLINE_FUNCTION bool operator()( PairNodePtrDistance const &lhs,
-                                                PairNodePtrDistance const &rhs )
+        KOKKOS_INLINE_FUNCTION bool
+        operator()( PairNodePtrDistance const &lhs,
+                    PairNodePtrDistance const &rhs ) const
         {
             // reverse order (larger distance means lower priority)
             return lhs.second > rhs.second;

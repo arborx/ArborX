@@ -26,7 +26,7 @@ template <typename T>
 struct Less
 {
   public:
-    KOKKOS_INLINE_FUNCTION bool operator()( T const &x, T const &y )
+    KOKKOS_INLINE_FUNCTION bool operator()( T const &x, T const &y ) const
     {
         return x < y;
     }
