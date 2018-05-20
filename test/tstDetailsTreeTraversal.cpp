@@ -223,3 +223,30 @@ TEUCHOS_UNIT_TEST( LinearBVH, min_heap )
     queue.pop();
     check_heap( queue, {100}, success, out );
 }
+
+TEUCHOS_UNIT_TEST( LinearBVH, pop_push )
+{
+    // note that calling pop_push(x) does not necessarily yield the same heap
+    // than calling consecutively pop() and push(x)
+    // below is a max heap example to illustate this interesting property
+    DataTransferKit::Details::PriorityQueue<int> queue;
+
+    std::vector<int> ref = {100, 19, 36, 17, 3, 25, 1, 2, 7};
+    for ( auto x : ref )
+        queue.push( x );
+    check_heap( queue, ref, success, out );
+
+    queue.pop();
+    check_heap( queue, {36, 19, 25, 17, 3, 7, 1, 2}, success, out );
+
+    queue.push( 9 );
+    check_heap( queue, {36, 19, 25, 17, 3, 7, 1, 2, 9}, success, out );
+
+    queue.clear();
+    for ( auto x : ref )
+        queue.push( x );
+    check_heap( queue, ref, success, out );
+
+    queue.pop_push( 9 );
+    check_heap( queue, {36, 19, 25, 17, 3, 9, 1, 2, 7}, success, out );
+}
