@@ -38,12 +38,17 @@ class PriorityQueue
   public:
     using SizeType = size_t;
     using ValueType = T;
+    using ValueCompare = Compare;
 
     KOKKOS_FUNCTION PriorityQueue() = default;
 
     KOKKOS_INLINE_FUNCTION bool empty() const { return _size == 0; }
 
     KOKKOS_INLINE_FUNCTION IndexType size() const { return _size; }
+
+    KOKKOS_INLINE_FUNCTION void clear() { _size = 0; }
+
+    KOKKOS_INLINE_FUNCTION ValueCompare value_comp() const { return _compare; }
 
     template <typename... Args>
     KOKKOS_INLINE_FUNCTION void push( Args &&... args )
