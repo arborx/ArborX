@@ -13,6 +13,8 @@
 
 #include <Teuchos_UnitTestHarness.hpp>
 
+#include <random>
+
 TEUCHOS_UNIT_TEST( LinearBVH, stack )
 {
     // stack is empty at construction
@@ -241,6 +243,7 @@ TEUCHOS_UNIT_TEST( LinearBVH, pop_push )
 
     queue.push( 9 );
     check_heap( queue, {36, 19, 25, 17, 3, 7, 1, 2, 9}, success, out );
+    //                                    ^^       ^^
 
     queue.clear();
     for ( auto x : ref )
@@ -249,4 +252,74 @@ TEUCHOS_UNIT_TEST( LinearBVH, pop_push )
 
     queue.pop_push( 9 );
     check_heap( queue, {36, 19, 25, 17, 3, 9, 1, 2, 7}, success, out );
+    //                                    ^^       ^^
+}
+
+template <typename PriorityQueue>
+void check_heap( PriorityQueue const &queue, bool &success,
+                 Teuchos::FancyOStream &out )
+{
+    using ValueType = typename PriorityQueue::ValueType;
+    int const size = queue.size();
+    auto const compare = queue.value_comp();
+    auto heap = reinterpret_cast<ValueType const *>( &queue );
+    for ( int i = 0; i < size; ++i )
+    {
+        int parent = ( i - 1 ) / 2;
+        if ( i > 0 )
+            TEST_ASSERT( !compare( heap[parent], heap[i] ) )
+        for ( int child : {2 * i + 1, 2 * i + 2} )
+            if ( child < size )
+                TEST_ASSERT( !compare( heap[i], heap[child] ) )
+    }
+}
+
+TEUCHOS_UNIT_TEST( PriorityQueue, maintain_heap_properties )
+{
+    DataTransferKit::Details::PriorityQueue<int> queue;
+
+    std::default_random_engine generator;
+    std::uniform_int_distribution<int> uniform_distribution( 0, 100 );
+
+    enum OperationType : int { POP, PUSH, POP_PUSH };
+    std::discrete_distribution<int> discrete_distribution(
+        {POP, PUSH, POP_PUSH} );
+
+    // initially insert a number of elements in the queue so that it is
+    // unlikely that an error will be raised (this would happen if pop() is
+    // called on an empty queue or push(x) on a queue that is already at maximum
+    // capacity)
+    for ( int i = 0; i < 64; ++i )
+    {
+        queue.push( uniform_distribution( generator ) );
+        check_heap( queue, success, out );
+    }
+
+    // choose randomly whether to call pop(), push(x), or pop_push(x) and check
+    // that the heap properties are maintained
+    for ( int i = 0; i < 512; ++i )
+    {
+        switch ( discrete_distribution( generator ) )
+        {
+        case POP:
+            queue.pop();
+            break;
+        case PUSH:
+            queue.push( uniform_distribution( generator ) );
+            break;
+        case POP_PUSH:
+            queue.pop_push( uniform_distribution( generator ) );
+            break;
+        default:
+            throw std::runtime_error( "something went wrong" );
+        }
+        check_heap( queue, success, out );
+    }
+
+    // remove all elements from the queue one by one
+    while ( !queue.empty() )
+    {
+        queue.pop();
+        check_heap( queue, success, out );
+    }
 }
