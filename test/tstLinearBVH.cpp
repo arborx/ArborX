@@ -233,6 +233,9 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, duplicated_leaves, DeviceType )
     //                  {{{.5, .5, .5}}, 1.},
     //              } ),
     //              {0, 1, 2, 3, 0, 1, 2, 3}, {0, 1, 4, 8}, success, out );
+
+    // Suppress a warning about success and out not being used
+    TEST_EQUALITY( true, true );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, miscellaneous, DeviceType )
