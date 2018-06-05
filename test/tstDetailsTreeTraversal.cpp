@@ -67,13 +67,13 @@ void check_heap( PriorityQueue const &queue,
                  bool &success, Teuchos::FancyOStream &out )
 {
     auto const size = queue.size();
-    TEST_EQUALITY( size, heap_ref.size() );
+    TEST_EQUALITY( size, static_cast<decltype( size )>( heap_ref.size() ) );
 
     // NOTE Shameless hack to inspect the private data of the priority queue.
     // Will break if data is reordered in the PriorityQueue class declaration.
     auto heap =
         reinterpret_cast<typename PriorityQueue::ValueType const *>( &queue );
-    for ( typename PriorityQueue::SizeType i = 0; i < size; ++i )
+    for ( typename PriorityQueue::IndexType i = 0; i < size; ++i )
         TEST_EQUALITY( heap[i], heap_ref[i] );
 }
 

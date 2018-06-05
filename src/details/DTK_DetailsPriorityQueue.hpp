@@ -36,7 +36,7 @@ template <typename T, typename Compare = Less<T>>
 class PriorityQueue
 {
   public:
-    using SizeType = size_t;
+    using IndexType = std::ptrdiff_t;
     using ValueType = T;
     using ValueCompare = Compare;
 
@@ -57,7 +57,7 @@ class PriorityQueue
         assert( _size < _max_size );
 
         // add the element to the bottom level of the heap
-        SizeType pos = _size;
+        IndexType pos = _size;
         T elem{std::forward<Args>( args )...};
 
         // perform up-heap operation
@@ -66,7 +66,7 @@ class PriorityQueue
             // compare the added element with its parent
             // if they are in correct order, stop
             // if not, swap them and continue
-            SizeType const parent = ( pos - 1 ) / 2;
+            IndexType const parent = ( pos - 1 ) / 2;
             if ( !_compare( _heap[parent], elem ) )
                 break;
             _heap[pos] = _heap[parent];
@@ -85,7 +85,7 @@ class PriorityQueue
         assert( _size > 0 );
 
         // replace the root with the last element on the last level
-        SizeType pos = 0;
+        IndexType pos = 0;
 
         // perform down-heap operation
         while ( true )
@@ -93,10 +93,10 @@ class PriorityQueue
             // compare the new root with its children
             // if they are in the correct order, stop
             // if not, swap the element with one of its children and continue
-            SizeType const left_child = 2 * pos + 1;
-            SizeType const right_child = 2 * pos + 2;
-            SizeType next_pos = _size - 1;
-            for ( SizeType child : {left_child, right_child} )
+            IndexType const left_child = 2 * pos + 1;
+            IndexType const right_child = 2 * pos + 2;
+            IndexType next_pos = _size - 1;
+            for ( IndexType child : {left_child, right_child} )
                 if ( child < _size - 1 &&
                      _compare( _heap[next_pos], _heap[child] ) )
                     next_pos = child;
@@ -137,9 +137,9 @@ class PriorityQueue
     }
 
   private:
-    static SizeType constexpr _max_size = 256;
+    static IndexType constexpr _max_size = 256;
     T _heap[_max_size];
-    SizeType _size = 0;
+    IndexType _size = 0;
     Compare _compare;
 };
 
