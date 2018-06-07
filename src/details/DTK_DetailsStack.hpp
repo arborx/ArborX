@@ -26,11 +26,16 @@ template <typename T>
 class Stack
 {
   public:
-    using SizeType = size_t;
+    using IndexType = std::ptrdiff_t;
+    using ValueType = T;
 
     KOKKOS_FUNCTION Stack() = default;
 
     KOKKOS_INLINE_FUNCTION bool empty() const { return _size == 0; }
+
+    KOKKOS_INLINE_FUNCTION IndexType size() const { return _size; }
+
+    KOKKOS_INLINE_FUNCTION void clear() { _size = 0; }
 
     template <typename... Args>
     KOKKOS_INLINE_FUNCTION void push( Args &&... args )
@@ -52,9 +57,9 @@ class Stack
     }
 
   private:
-    static SizeType constexpr _max_size = 64;
+    static IndexType constexpr _max_size = 64;
     T _stack[_max_size];
-    SizeType _size = 0;
+    IndexType _size = 0;
 };
 
 } // namespace Details
