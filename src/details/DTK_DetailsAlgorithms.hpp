@@ -177,6 +177,21 @@ void centroid( Box const &box, Point &c )
         c[d] = 0.5 * ( box.minCorner()[d] + box.maxCorner()[d] );
 }
 
+KOKKOS_INLINE_FUNCTION
+Point return_centroid( Point const &point ) { return point; }
+
+KOKKOS_INLINE_FUNCTION
+Point return_centroid( Box const &box )
+{
+    Point c;
+    for ( int d = 0; d < 3; ++d )
+        c[d] = 0.5 * ( box.minCorner()[d] + box.maxCorner()[d] );
+    return c;
+}
+
+KOKKOS_INLINE_FUNCTION
+Point return_centroid( Sphere const &sphere ) { return sphere.centroid(); }
+
 } // namespace Details
 } // namespace DataTransferKit
 
