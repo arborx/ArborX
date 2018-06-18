@@ -94,7 +94,7 @@ void queryDispatch(
 {
     using ExecutionSpace = typename DeviceType::execution_space;
 
-    int const n_queries = queries.extent( 0 );
+    auto const n_queries = queries.extent( 0 );
 
     Kokkos::realloc( offset, n_queries + 1 );
     Kokkos::deep_copy( offset, 0 );
@@ -227,7 +227,7 @@ void queryDispatch( BoundingVolumeHierarchy<DeviceType> const bvh,
 {
     using ExecutionSpace = typename DeviceType::execution_space;
 
-    int const n_queries = queries.extent( 0 );
+    auto const n_queries = queries.extent( 0 );
 
     // Initialize view
     // [ 0 0 0 .... 0 0 ]
