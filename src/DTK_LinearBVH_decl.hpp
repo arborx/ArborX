@@ -16,6 +16,7 @@
 
 #include <DTK_Box.hpp>
 #include <DTK_DetailsAlgorithms.hpp>
+#include <DTK_DetailsBatchedQueries.hpp>
 #include <DTK_DetailsNode.hpp>
 #include <DTK_DetailsTreeTraversal.hpp>
 #include <DTK_DetailsUtils.hpp>
@@ -95,6 +96,13 @@ void queryDispatch(
     using ExecutionSpace = typename DeviceType::execution_space;
 
     auto const n_queries = queries.extent( 0 );
+
+    auto const permute =
+        Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
+            bvh.bounds(), queries );
+
+    queries = Details::BatchedQueries<DeviceType>::applyPermutation( permute,
+                                                                     queries );
 
     Kokkos::realloc( offset, n_queries + 1 );
     Kokkos::deep_copy( offset, 0 );
@@ -216,6 +224,21 @@ void queryDispatch(
         }
         offset = tmp_offset;
     }
+
+    if ( distances_ptr )
+    {
+        Kokkos::View<double *, DeviceType> &distances = *distances_ptr;
+
+        std::tie( offset, indices, distances ) =
+            Details::BatchedQueries<DeviceType>::reversePermutation(
+                permute, offset, indices, distances );
+    }
+    else
+    {
+        std::tie( offset, indices ) =
+            Details::BatchedQueries<DeviceType>::reversePermutation(
+                permute, offset, indices );
+    }
 }
 
 template <typename DeviceType, typename Query>
@@ -228,6 +251,13 @@ void queryDispatch( BoundingVolumeHierarchy<DeviceType> const bvh,
     using ExecutionSpace = typename DeviceType::execution_space;
 
     auto const n_queries = queries.extent( 0 );
+
+    auto const permute =
+        Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
+            bvh.bounds(), queries );
+
+    queries = Details::BatchedQueries<DeviceType>::applyPermutation( permute,
+                                                                     queries );
 
     // Initialize view
     // [ 0 0 0 .... 0 0 ]
@@ -278,6 +308,10 @@ void queryDispatch( BoundingVolumeHierarchy<DeviceType> const bvh,
                                   } );
                           } );
     Kokkos::fence();
+
+    std::tie( offset, indices ) =
+        Details::BatchedQueries<DeviceType>::reversePermutation(
+            permute, offset, indices );
 }
 
 template <typename DeviceType>
