@@ -247,6 +247,10 @@ void queryDispatch( BoundingVolumeHierarchy<DeviceType> const bvh,
     reallocWithoutInitializing( offset, n_queries + 1 );
     Kokkos::deep_copy( offset, 0 );
 
+    int const buffer_size = 30;
+    reallocWithoutInitializing( indices, n_queries * buffer_size );
+    // NOTE I considered filling with invalid indices but it is unecessary work
+
     // Say we found exactly two object for each query:
     // [ 2 2 2 .... 2 0 ]
     //   ^            ^
@@ -256,10 +260,17 @@ void queryDispatch( BoundingVolumeHierarchy<DeviceType> const bvh,
             "first_pass_at_the_search_count_the_number_of_indices" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
         KOKKOS_LAMBDA( int i ) {
+            int count = 0;
             offset( permute( i ) ) = Details::TreeTraversal<DeviceType>::query(
-                bvh, queries( i ), []( int ) {} );
+                bvh, queries( i ),
+                [indices, offset, permute, i, &count]( int index ) {
+                    if ( count < buffer_size )
+                        indices( permute( i ) * buffer_size + count++ ) = index;
+                } );
         } );
     Kokkos::fence();
+
+    auto const max_results_per_query = max( offset );
 
     // Then we would get:
     // [ 0 2 4 .... 2N-2 2N ]
@@ -272,24 +283,46 @@ void queryDispatch( BoundingVolumeHierarchy<DeviceType> const bvh,
     //
     // [ 2N ]
     int const n_results = lastElement( offset );
-    // We allocate the memory and fill
-    //
-    // [ A0 A1 B0 B1 C0 C1 ... X0 X1 ]
-    //   ^     ^     ^         ^     ^
-    //   0     2     4         2N-2  2N
-    reallocWithoutInitializing( indices, n_results );
-    Kokkos::parallel_for(
-        DTK_MARK_REGION( "second_pass" ),
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
-        KOKKOS_LAMBDA( int i ) {
-            int count = 0;
-            Details::TreeTraversal<DeviceType>::query(
-                bvh, queries( i ),
-                [indices, offset, permute, i, &count]( int index ) {
-                    indices( offset( permute( i ) ) + count++ ) = index;
-                } );
-        } );
-    Kokkos::fence();
+
+    if ( max_results_per_query > buffer_size )
+    {
+        // We allocate the memory and fill
+        //
+        // [ A0 A1 B0 B1 C0 C1 ... X0 X1 ]
+        //   ^     ^     ^         ^     ^
+        //   0     2     4         2N-2  2N
+        reallocWithoutInitializing( indices, n_results );
+        Kokkos::parallel_for(
+            DTK_MARK_REGION( "second_pass" ),
+            Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
+            KOKKOS_LAMBDA( int i ) {
+                int count = 0;
+                Details::TreeTraversal<DeviceType>::query(
+                    bvh, queries( i ),
+                    [indices, offset, permute, i, &count]( int index ) {
+                        indices( offset( permute( i ) ) + count++ ) = index;
+                    } );
+            } );
+        Kokkos::fence();
+    }
+    else
+    {
+        Kokkos::View<int *, DeviceType> tmp_indices(
+            Kokkos::ViewAllocateWithoutInitializing( indices.label() ),
+            n_results );
+        Kokkos::parallel_for(
+            DTK_MARK_REGION( "copy_valid_indices" ),
+            Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
+            KOKKOS_LAMBDA( int q ) {
+                for ( int i = 0; i < offset( q + 1 ) - offset( q ); ++i )
+                {
+                    tmp_indices( offset( q ) + i ) =
+                        indices( q * buffer_size + i );
+                }
+            } );
+        Kokkos::fence();
+        indices = tmp_indices;
+    }
 }
 
 template <typename DeviceType>
