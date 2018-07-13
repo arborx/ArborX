@@ -196,6 +196,19 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, adjacent_difference,
                 DataTransferKit::DataTransferKitException );
 }
 
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, min_and_max, DeviceType )
+{
+    Kokkos::View<int[4], DeviceType> v( "v" );
+    DataTransferKit::iota( v );
+    TEST_EQUALITY( 0, DataTransferKit::min( v ) );
+    TEST_EQUALITY( 3, DataTransferKit::max( v ) );
+
+    Kokkos::View<int *, DeviceType> w( "w", 7 );
+    DataTransferKit::iota( w, 2 );
+    TEST_EQUALITY( 2, DataTransferKit::min( w ) );
+    TEST_EQUALITY( 8, DataTransferKit::max( w ) );
+}
+
 // Include the test macros.
 #include "DataTransferKitSearch_ETIHelperMacros.h"
 
@@ -213,6 +226,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, adjacent_difference,
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, accumulate,            \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, adjacent_difference,   \
+                                          DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, min_and_max,           \
                                           DeviceType##NODE )
 
 // Demangle the types

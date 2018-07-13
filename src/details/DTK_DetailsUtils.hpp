@@ -183,6 +183,52 @@ minMax( ViewType const &v )
     return std::make_pair( result.min_val, result.max_val );
 }
 
+/** \brief Returns the smallest element in the view
+ *
+ *  \param[in] v Input view
+ */
+template <typename ViewType>
+typename ViewType::non_const_value_type min( ViewType const &v )
+{
+    static_assert( ViewType::rank == 1, "min requires a View of rank 1" );
+    using ExecutionSpace = typename ViewType::execution_space;
+    auto const n = v.extent( 0 );
+    DTK_REQUIRE( n > 0 );
+    typename ViewType::non_const_value_type result;
+    Kokkos::Experimental::Min<typename ViewType::non_const_value_type> reducer(
+        result );
+    Kokkos::parallel_reduce( Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
+                             KOKKOS_LAMBDA( int i, int &update ) {
+                                 if ( v( i ) < update )
+                                     update = v( i );
+                             },
+                             reducer );
+    return result;
+}
+
+/** \brief Returns the greatest element in the view
+ *
+ *  \param[in] v Input view
+ */
+template <typename ViewType>
+typename ViewType::non_const_value_type max( ViewType const &v )
+{
+    static_assert( ViewType::rank == 1, "max requires a View of rank 1" );
+    using ExecutionSpace = typename ViewType::execution_space;
+    auto const n = v.extent( 0 );
+    DTK_REQUIRE( n > 0 );
+    typename ViewType::non_const_value_type result;
+    Kokkos::Experimental::Max<typename ViewType::non_const_value_type> reducer(
+        result );
+    Kokkos::parallel_reduce( Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
+                             KOKKOS_LAMBDA( int i, int &update ) {
+                                 if ( v( i ) > update )
+                                     update = v( i );
+                             },
+                             reducer );
+    return result;
+}
+
 /** \brief Accumulate values in a view
  *
  *  \param[in] v Input view
