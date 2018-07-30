@@ -242,6 +242,7 @@ void TreeConstruction<DeviceType>::sortObjects(
     Kokkos::Experimental::MinMaxScalar<unsigned int> result;
     Kokkos::Experimental::MinMax<unsigned int> reducer( result );
     parallel_reduce(
+        DTK_MARK_REGION( "find_min_max_morton_codes" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
         Kokkos::Impl::min_max_functor<Kokkos::View<unsigned int *, DeviceType>>(
             morton_codes ),
