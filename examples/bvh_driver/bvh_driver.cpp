@@ -84,8 +84,9 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
     }
 
     Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes(
-        "bounding_boxes", n_values );
-    Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, n_values ),
+        Kokkos::ViewAllocateWithoutInitializing( "bounding_boxes" ), n_values );
+    Kokkos::parallel_for( "bvh_driver:construct_bounding_boxes",
+                          Kokkos::RangePolicy<ExecutionSpace>( 0, n_values ),
                           KOKKOS_LAMBDA( int i ) {
                               double const x = random_points( i )[0];
                               double const y = random_points( i )[1];
@@ -108,8 +109,10 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
     {
         Kokkos::View<DataTransferKit::Nearest<DataTransferKit::Point> *,
                      DeviceType>
-            queries( "queries", n_queries );
+            queries( Kokkos::ViewAllocateWithoutInitializing( "queries" ),
+                     n_queries );
         Kokkos::parallel_for(
+            "bvh_driver:setup_knn_search_queries",
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int i ) {
                 queries( i ) = DataTransferKit::nearest<DataTransferKit::Point>(
@@ -131,7 +134,7 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
     if ( perform_radius_search )
     {
         Kokkos::View<DataTransferKit::Within *, DeviceType> queries(
-            "queries", n_queries );
+            Kokkos::ViewAllocateWithoutInitializing( "queries" ), n_queries );
         // radius chosen in order to control the number of results per query
         // NOTE: minus "1+sqrt(3)/2 \approx 1.37" matches the size of the boxes
         // inserted into the tree (mid-point between half-edge and
@@ -140,6 +143,7 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
                                          3. / ( 4. * M_PI ) ) -
                          ( 1. + std::sqrt( 3. ) ) / 2.;
         Kokkos::parallel_for(
+            "bvh_driver:setup_radius_search_queries",
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int i ) {
                 queries( i ) = DataTransferKit::within( random_points( i ), r );
