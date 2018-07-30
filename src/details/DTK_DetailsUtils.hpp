@@ -245,6 +245,13 @@ void reallocWithoutInitializing( View &v,
               n3, n4, n5, n6, n7 );
 }
 
+template <typename View>
+typename View::non_const_type cloneWithoutInitializingNorCopying( View &v )
+{
+    return typename View::non_const_type(
+        Kokkos::ViewAllocateWithoutInitializing( v.label() ), v.layout() );
+}
+
 } // namespace DataTransferKit
 
 #endif

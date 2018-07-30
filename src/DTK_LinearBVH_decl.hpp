@@ -160,7 +160,7 @@ void queryDispatch(
     // Find out if they are any invalid entries in the indices (i.e. at least
     // one query asked for more neighbors that they are leaves in the tree) and
     // eliminate them if necessary.
-    auto tmp_offset = Kokkos::create_mirror( DeviceType(), offset );
+    auto tmp_offset = cloneWithoutInitializingNorCopying( offset );
     Kokkos::deep_copy( tmp_offset, 0 );
     Kokkos::parallel_for( DTK_MARK_REGION( "count_invalid_indices" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
