@@ -188,6 +188,8 @@ class CalculateBoundingBoxesFunctor
                      &_flags( node - _root ), 0, 1 ) )
                 break;
 
+            // Internal node bounding boxes are unitialized hence the
+            // assignment operator below.
             node->bounding_box = node->children.first->bounding_box;
             expand( node->bounding_box, node->children.second->bounding_box );
 
