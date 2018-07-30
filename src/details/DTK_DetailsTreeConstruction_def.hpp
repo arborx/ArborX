@@ -208,7 +208,7 @@ void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
 {
     auto const n = bounding_boxes.extent( 0 );
     Kokkos::parallel_reduce(
-        DTK_MARK_REGION( "calculate_bouding_of_the_scene" ),
+        DTK_MARK_REGION( "calculate_bounding_box_of_the_scene" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
         CalculateBoundingBoxOfTheSceneFunctor<DeviceType>( bounding_boxes ),
         scene_bounding_box );
