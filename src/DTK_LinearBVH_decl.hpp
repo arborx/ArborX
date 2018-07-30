@@ -104,7 +104,7 @@ void queryDispatch(
     queries = Details::BatchedQueries<DeviceType>::applyPermutation( permute,
                                                                      queries );
 
-    Kokkos::realloc( offset, n_queries + 1 );
+    reallocWithoutInitializing( offset, n_queries + 1 );
     Kokkos::deep_copy( offset, 0 );
 
     Kokkos::parallel_for(
@@ -116,13 +116,13 @@ void queryDispatch(
     exclusivePrefixSum( offset );
     int const n_results = lastElement( offset );
 
-    Kokkos::realloc( indices, n_results );
+    reallocWithoutInitializing( indices, n_results );
     int const invalid_index = -1;
     Kokkos::deep_copy( indices, invalid_index );
     if ( distances_ptr )
     {
         Kokkos::View<double *, DeviceType> &distances = *distances_ptr;
-        Kokkos::realloc( distances, n_results );
+        reallocWithoutInitializing( distances, n_results );
         double const invalid_distance = -Kokkos::ArithTraits<double>::max();
         Kokkos::deep_copy( distances, invalid_distance );
 
@@ -248,7 +248,7 @@ void queryDispatch( BoundingVolumeHierarchy<DeviceType> const bvh,
     // [ 0 0 0 .... 0 0 ]
     //                ^
     //                N
-    Kokkos::realloc( offset, n_queries + 1 );
+    reallocWithoutInitializing( offset, n_queries + 1 );
     Kokkos::deep_copy( offset, 0 );
 
     // Say we found exactly two object for each query:
@@ -281,7 +281,7 @@ void queryDispatch( BoundingVolumeHierarchy<DeviceType> const bvh,
     // [ A0 A1 B0 B1 C0 C1 ... X0 X1 ]
     //   ^     ^     ^         ^     ^
     //   0     2     4         2N-2  2N
-    Kokkos::realloc( indices, n_results );
+    reallocWithoutInitializing( indices, n_results );
     Kokkos::parallel_for(
         DTK_MARK_REGION( "second_pass" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),

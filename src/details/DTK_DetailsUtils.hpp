@@ -217,6 +217,34 @@ accumulate( ViewType const &v, typename ViewType::non_const_value_type init )
     return init;
 }
 
+// FIXME split this into one for STL-like algorithms and another one for view
+// utility helpers
+
+// FIXME get rid of this when Trilinos/Kokkos version is updated
+#ifndef KOKKOS_IMPL_CTOR_DEFAULT_ARG
+#ifdef KOKKOS_ENABLE_DEPRECATED_CODE
+#define KOKKOS_IMPL_CTOR_DEFAULT_ARG 0
+#else
+#define KOKKOS_IMPL_CTOR_DEFAULT_ARG ( ~std::size_t( 0 ) )
+#endif
+#endif
+
+// NOTE: not possible to avoid initialization with Kokkos::realloc()
+template <typename View>
+void reallocWithoutInitializing( View &v,
+                                 size_t n0 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                                 size_t n1 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                                 size_t n2 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                                 size_t n3 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                                 size_t n4 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                                 size_t n5 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                                 size_t n6 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                                 size_t n7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG )
+{
+    v = View( Kokkos::ViewAllocateWithoutInitializing( v.label() ), n0, n1, n2,
+              n3, n4, n5, n6, n7 );
+}
+
 } // namespace DataTransferKit
 
 #endif
