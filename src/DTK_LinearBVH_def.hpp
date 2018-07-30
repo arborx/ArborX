@@ -23,34 +23,6 @@
 namespace DataTransferKit
 {
 template <typename DeviceType>
-class SetBoundingBoxesFunctor
-{
-  public:
-    using ExecutionSpace = typename DeviceType::execution_space;
-
-    SetBoundingBoxesFunctor(
-        Kokkos::View<Node *, DeviceType> leaf_nodes,
-        Kokkos::View<int *, DeviceType> indices,
-        Kokkos::View<Box const *, DeviceType> bounding_boxes )
-        : _leaf_nodes( leaf_nodes )
-        , _indices( indices )
-        , _bounding_boxes( bounding_boxes )
-    {
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    void operator()( int const i ) const
-    {
-        _leaf_nodes[i].bounding_box = _bounding_boxes[_indices[i]];
-    }
-
-  private:
-    Kokkos::View<Node *, DeviceType> _leaf_nodes;
-    Kokkos::View<int *, DeviceType> _indices;
-    Kokkos::View<Box const *, DeviceType> _bounding_boxes;
-};
-
-template <typename DeviceType>
 BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
     Kokkos::View<Box const *, DeviceType> bounding_boxes )
     : _leaf_nodes( "leaf_nodes", bounding_boxes.extent( 0 ) )
@@ -69,11 +41,8 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
     if ( size() == 1 )
     {
         iota( _indices );
-        Kokkos::parallel_for( DTK_MARK_REGION( "set_bounding_boxes" ),
-                              Kokkos::RangePolicy<ExecutionSpace>( 0, 1 ),
-                              SetBoundingBoxesFunctor<DeviceType>(
-                                  _leaf_nodes, _indices, bounding_boxes ) );
-        Kokkos::fence();
+        Details::TreeConstruction<DeviceType>::initializeLeafNodes(
+            _indices, bounding_boxes, _leaf_nodes );
         return;
     }
 
@@ -92,12 +61,10 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
     Details::TreeConstruction<DeviceType>::sortObjects( morton_indices,
                                                         _indices );
 
+    Details::TreeConstruction<DeviceType>::initializeLeafNodes(
+        _indices, bounding_boxes, _leaf_nodes );
+
     // generate bounding volume hierarchy
-    Kokkos::parallel_for( DTK_MARK_REGION( "set_bounding_boxes" ),
-                          Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-                          SetBoundingBoxesFunctor<DeviceType>(
-                              _leaf_nodes, _indices, bounding_boxes ) );
-    Kokkos::fence();
     Details::TreeConstruction<DeviceType>::generateHierarchy(
         morton_indices, _leaf_nodes, _internal_nodes );
 

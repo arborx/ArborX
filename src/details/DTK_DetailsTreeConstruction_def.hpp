@@ -14,6 +14,7 @@
 
 #include "DTK_ConfigDefs.hpp"
 
+#include <DTK_DBC.hpp>
 #include <DTK_DetailsAlgorithms.hpp>
 #include <DTK_KokkosHelpers.hpp> // sgn, min, max
 
@@ -257,6 +258,24 @@ void TreeConstruction<DeviceType>::sortObjects(
     // TODO: We might be able to just use `bin_sort.get_permute_vector()`
     // instead of initializing the indices with iota() and sorting the vector
     bin_sort.sort( object_ids );
+    Kokkos::fence();
+}
+
+template <typename DeviceType>
+void TreeConstruction<DeviceType>::initializeLeafNodes(
+    Kokkos::View<int const *, DeviceType> indices,
+    Kokkos::View<Box const *, DeviceType> bounding_boxes,
+    Kokkos::View<Node *, DeviceType> leaf_nodes )
+{
+    auto const n = leaf_nodes.extent( 0 );
+    DTK_REQUIRE( indices.extent( 0 ) == n );
+    DTK_REQUIRE( bounding_boxes.extent( 0 ) == n );
+    Kokkos::parallel_for(
+        DTK_MARK_REGION( "initialize_leaf_nodes" ),
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
+            leaf_nodes( i ).bounding_box = bounding_boxes( indices( i ) );
+            leaf_nodes( i ).children = {nullptr, nullptr};
+        } );
     Kokkos::fence();
 }
 

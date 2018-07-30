@@ -52,6 +52,11 @@ struct TreeConstruction
     sortObjects( Kokkos::View<unsigned int *, DeviceType> morton_codes,
                  Kokkos::View<int *, DeviceType> object_ids );
 
+    static void
+    initializeLeafNodes( Kokkos::View<int const *, DeviceType> indices,
+                         Kokkos::View<Box const *, DeviceType> bounding_boxes,
+                         Kokkos::View<Node *, DeviceType> leaf_nodes );
+
     static Node *generateHierarchy(
         Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes,
         Kokkos::View<Node *, DeviceType> leaf_nodes,
