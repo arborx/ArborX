@@ -187,8 +187,9 @@ void queryDispatch(
         Kokkos::fence();
 
         int const n_valid_indices = n_results - n_invalid_indices;
-        Kokkos::View<int *, DeviceType> tmp_indices( indices.label(),
-                                                     n_valid_indices );
+        Kokkos::View<int *, DeviceType> tmp_indices(
+            Kokkos::ViewAllocateWithoutInitializing( indices.label() ),
+            n_valid_indices );
 
         Kokkos::parallel_for(
             DTK_MARK_REGION( "copy_valid_indices" ),
@@ -206,8 +207,9 @@ void queryDispatch(
         if ( distances_ptr )
         {
             Kokkos::View<double *, DeviceType> &distances = *distances_ptr;
-            Kokkos::View<double *, DeviceType> tmp_distances( distances.label(),
-                                                              n_valid_indices );
+            Kokkos::View<double *, DeviceType> tmp_distances(
+                Kokkos::ViewAllocateWithoutInitializing( distances.label() ),
+                n_valid_indices );
             Kokkos::parallel_for(
                 DTK_MARK_REGION( "copy_valid_distances" ),
                 Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),

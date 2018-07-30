@@ -165,7 +165,8 @@ class CalculateBoundingBoxesFunctor
                                    Node *root )
         : _leaf_nodes( leaf_nodes )
         , _root( root )
-        , _flags( "flags", leaf_nodes.extent( 0 ) - 1 )
+        , _flags( Kokkos::ViewAllocateWithoutInitializing( "flags" ),
+                  leaf_nodes.extent( 0 ) - 1 )
     {
         // Initialize flags to zero
         Kokkos::deep_copy( _flags, 0 );
@@ -186,8 +187,10 @@ class CalculateBoundingBoxesFunctor
             if ( Kokkos::atomic_compare_exchange_strong(
                      &_flags( node - _root ), 0, 1 ) )
                 break;
-            for ( Node *child : {node->children.first, node->children.second} )
-                expand( node->bounding_box, child->bounding_box );
+
+            node->bounding_box = node->children.first->bounding_box;
+            expand( node->bounding_box, node->children.second->bounding_box );
+
             node = node->parent;
         }
         // NOTE: could check that bounding box of the root node is indeed the

@@ -55,8 +55,8 @@ struct BatchedQueries
     {
         auto const n_queries = queries.extent( 0 );
 
-        Kokkos::View<unsigned int *, DeviceType> morton_codes( "morton",
-                                                               n_queries );
+        Kokkos::View<unsigned int *, DeviceType> morton_codes(
+            Kokkos::ViewAllocateWithoutInitializing( "morton" ), n_queries );
         Kokkos::parallel_for(
             DTK_MARK_REGION( "assign_morton_codes_to_queries" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
@@ -73,7 +73,8 @@ struct BatchedQueries
             } );
         Kokkos::fence();
 
-        Kokkos::View<int *, DeviceType> permute( "permute", n_queries );
+        Kokkos::View<int *, DeviceType> permute(
+            Kokkos::ViewAllocateWithoutInitializing( "permute" ), n_queries );
         iota( permute );
         TreeConstruction<DeviceType>::sortObjects( morton_codes, permute );
 

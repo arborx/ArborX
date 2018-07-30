@@ -25,11 +25,13 @@ namespace DataTransferKit
 template <typename DeviceType>
 BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
     Kokkos::View<Box const *, DeviceType> bounding_boxes )
-    : _leaf_nodes( "leaf_nodes", bounding_boxes.extent( 0 ) )
-    , _internal_nodes( "internal_nodes", bounding_boxes.extent( 0 ) > 0
-                                             ? bounding_boxes.extent( 0 ) - 1
-                                             : 0 )
-    , _indices( "sorted_indices", bounding_boxes.extent( 0 ) )
+    : _leaf_nodes( Kokkos::ViewAllocateWithoutInitializing( "leaf_nodes" ),
+                   bounding_boxes.extent( 0 ) )
+    , _internal_nodes(
+          Kokkos::ViewAllocateWithoutInitializing( "internal_nodes" ),
+          bounding_boxes.extent( 0 ) > 0 ? bounding_boxes.extent( 0 ) - 1 : 0 )
+    , _indices( Kokkos::ViewAllocateWithoutInitializing( "sorted_indices" ),
+                bounding_boxes.extent( 0 ) )
 {
     using ExecutionSpace = typename DeviceType::execution_space;
 
@@ -52,7 +54,8 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
 
     // calculate morton code of all objects
     int const n = bounding_boxes.extent( 0 );
-    Kokkos::View<unsigned int *, DeviceType> morton_indices( "morton", n );
+    Kokkos::View<unsigned int *, DeviceType> morton_indices(
+        Kokkos::ViewAllocateWithoutInitializing( "morton" ), n );
     Details::TreeConstruction<DeviceType>::assignMortonCodes(
         bounding_boxes, morton_indices, _internal_nodes[0].bounding_box );
 
