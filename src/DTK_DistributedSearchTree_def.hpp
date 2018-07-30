@@ -31,7 +31,9 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
     int const comm_rank = _comm->getRank();
     int const comm_size = _comm->getSize();
 
-    Kokkos::View<Box *, DeviceType> boxes( "rank_bounding_boxes", comm_size );
+    Kokkos::View<Box *, DeviceType> boxes(
+        Kokkos::ViewAllocateWithoutInitializing( "rank_bounding_boxes" ),
+        comm_size );
     // FIXME: I am not sure how to do the MPI allgather with Teuchos for data
     // living on the device so I copied to the host.
     auto boxes_host = Kokkos::create_mirror_view( boxes );
@@ -48,7 +50,8 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
     _top_tree = BVH<DeviceType>( boxes );
 
     _bottom_tree_sizes = Kokkos::View<SizeType *, DeviceType>(
-        "leave_count_in_local_trees", comm_size );
+        Kokkos::ViewAllocateWithoutInitializing( "leave_count_in_local_trees" ),
+        comm_size );
     auto bottom_tree_sizes_host =
         Kokkos::create_mirror_view( _bottom_tree_sizes );
     auto const bottom_tree_size = _bottom_tree.size();
