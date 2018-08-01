@@ -287,6 +287,10 @@ void TreeConstruction<DeviceType>::initializeLeafNodes(
     auto const n = leaf_nodes.extent( 0 );
     DTK_REQUIRE( indices.extent( 0 ) == n );
     DTK_REQUIRE( bounding_boxes.extent( 0 ) == n );
+    static_assert( sizeof( typename decltype( indices )::value_type ) ==
+                       sizeof( Node * ),
+                   "Encoding leaf index in pointer to child is not safe if the "
+                   "index and pointer types do not have the same size" );
     Kokkos::parallel_for(
         DTK_MARK_REGION( "initialize_leaf_nodes" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
