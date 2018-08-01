@@ -30,8 +30,6 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
     , _internal_nodes(
           Kokkos::ViewAllocateWithoutInitializing( "internal_nodes" ),
           bounding_boxes.extent( 0 ) > 0 ? bounding_boxes.extent( 0 ) - 1 : 0 )
-    , _indices( Kokkos::ViewAllocateWithoutInitializing( "sorted_indices" ),
-                bounding_boxes.extent( 0 ) )
 {
     using ExecutionSpace = typename DeviceType::execution_space;
 
@@ -42,9 +40,9 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
 
     if ( size() == 1 )
     {
-        iota( _indices );
+        Kokkos::View<size_t *, DeviceType> permutation_indices( "permute", 1 );
         Details::TreeConstruction<DeviceType>::initializeLeafNodes(
-            _indices, bounding_boxes, _leaf_nodes );
+            permutation_indices, bounding_boxes, _leaf_nodes );
         return;
     }
 

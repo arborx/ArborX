@@ -74,12 +74,6 @@ class BoundingVolumeHierarchy
 
     Kokkos::View<Node *, DeviceType> _leaf_nodes;
     Kokkos::View<Node *, DeviceType> _internal_nodes;
-    /**
-     * Array of indices that sort the boxes used to construct the hierarchy.
-     * The leaf nodes are ordered so we need these to identify objects that
-     * meet a predicate.
-     */
-    Kokkos::View<int *, DeviceType> _indices;
 };
 
 template <typename DeviceType>
