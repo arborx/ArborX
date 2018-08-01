@@ -48,8 +48,7 @@ struct TreeTraversal
     KOKKOS_INLINE_FUNCTION
     static bool isLeaf( Node const *node )
     {
-        return ( node->children.first == nullptr ) &&
-               ( node->children.second == nullptr );
+        return ( node->children.first == nullptr );
     }
 
     /**
@@ -59,7 +58,7 @@ struct TreeTraversal
     static int getIndex( BoundingVolumeHierarchy<DeviceType> const &bvh,
                          Node const *leaf )
     {
-        return bvh._indices[leaf - bvh._leaf_nodes.data()];
+        return reinterpret_cast<size_t>( leaf->children.second );
     }
 
     /**
