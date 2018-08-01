@@ -16,6 +16,8 @@
 
 #include <DTK_DBC.hpp>
 #include <DTK_DetailsAlgorithms.hpp>
+#include <DTK_DetailsUtils.hpp> // iota
+
 #include <DTK_KokkosHelpers.hpp> // sgn, min, max
 
 #include <Kokkos_Atomic.hpp>
@@ -237,33 +239,43 @@ void TreeConstruction<DeviceType>::assignMortonCodes(
 }
 
 template <typename DeviceType>
-void TreeConstruction<DeviceType>::sortObjects(
-    Kokkos::View<unsigned int *, DeviceType> morton_codes,
-    Kokkos::View<int *, DeviceType> object_ids )
+Kokkos::View<size_t *, DeviceType> TreeConstruction<DeviceType>::sortObjects(
+    Kokkos::View<unsigned int *, DeviceType> morton_codes )
 {
     int const n = morton_codes.extent( 0 );
 
-    typedef Kokkos::BinOp1D<Kokkos::View<unsigned int *, DeviceType>> CompType;
+    using MortonCodeViewType = decltype( morton_codes );
+    using MortonCodeValueType = typename MortonCodeViewType::value_type;
+    using CompType = Kokkos::BinOp1D<MortonCodeViewType>;
 
-    Kokkos::Experimental::MinMaxScalar<unsigned int> result;
-    Kokkos::Experimental::MinMax<unsigned int> reducer( result );
+    Kokkos::Experimental::MinMaxScalar<MortonCodeValueType> result;
+    Kokkos::Experimental::MinMax<MortonCodeValueType> reducer( result );
     parallel_reduce(
         DTK_MARK_REGION( "find_min_max_morton_codes" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-        Kokkos::Impl::min_max_functor<Kokkos::View<unsigned int *, DeviceType>>(
-            morton_codes ),
+        Kokkos::Impl::min_max_functor<MortonCodeViewType>( morton_codes ),
         reducer );
     if ( result.min_val == result.max_val )
-        return;
-    Kokkos::BinSort<Kokkos::View<unsigned int *, DeviceType>, CompType>
-        bin_sort( morton_codes,
-                  CompType( n / 2, result.min_val, result.max_val ), true );
+    {
+        Kokkos::View<size_t *, DeviceType> permute(
+            Kokkos::ViewAllocateWithoutInitializing( "permute" ), n );
+        iota( permute );
+        return permute;
+    }
+
+    // Passing the SizeType template argument to Kokkos::BinSort because it
+    // defaults to the memory space size type which is different on the host and
+    // on cuda (size_t versus unsigned int respectively).  size_t feels like a
+    // better choice here because its size is guaranteed to coincide with the
+    // pointer size which is a good thing for converting with reinterpret_cast
+    // (when leaf indices are encoded into the pointer to one of their children)
+    Kokkos::BinSort<MortonCodeViewType, CompType, DeviceType, size_t> bin_sort(
+        morton_codes, CompType( n / 2, result.min_val, result.max_val ), true );
     bin_sort.create_permute_vector();
     bin_sort.sort( morton_codes );
-    // TODO: We might be able to just use `bin_sort.get_permute_vector()`
-    // instead of initializing the indices with iota() and sorting the vector
-    bin_sort.sort( object_ids );
     Kokkos::fence();
+
+    return bin_sort.get_permute_vector();
 }
 
 template <typename DeviceType>

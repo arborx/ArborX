@@ -58,9 +58,8 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
         bounding_boxes, morton_indices, _internal_nodes[0].bounding_box );
 
     // sort them along the Z-order space-filling curve
-    iota( _indices );
-    Details::TreeConstruction<DeviceType>::sortObjects( morton_indices,
-                                                        _indices );
+    auto permutation_indices =
+        Details::TreeConstruction<DeviceType>::sortObjects( morton_indices );
 
     Details::TreeConstruction<DeviceType>::initializeLeafNodes(
         _indices, bounding_boxes, _leaf_nodes );
