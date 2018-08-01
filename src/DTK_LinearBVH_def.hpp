@@ -62,7 +62,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
         Details::TreeConstruction<DeviceType>::sortObjects( morton_indices );
 
     Details::TreeConstruction<DeviceType>::initializeLeafNodes(
-        _indices, bounding_boxes, _leaf_nodes );
+        permutation_indices, bounding_boxes, _leaf_nodes );
 
     // generate bounding volume hierarchy
     Details::TreeConstruction<DeviceType>::generateHierarchy(

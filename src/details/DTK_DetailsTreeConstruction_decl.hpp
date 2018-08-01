@@ -53,7 +53,7 @@ struct TreeConstruction
     sortObjects( Kokkos::View<unsigned int *, DeviceType> morton_codes );
 
     static void
-    initializeLeafNodes( Kokkos::View<int const *, DeviceType> indices,
+    initializeLeafNodes( Kokkos::View<size_t const *, DeviceType> indices,
                          Kokkos::View<Box const *, DeviceType> bounding_boxes,
                          Kokkos::View<Node *, DeviceType> leaf_nodes );
 

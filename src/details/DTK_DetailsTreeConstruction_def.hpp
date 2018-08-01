@@ -280,7 +280,7 @@ Kokkos::View<size_t *, DeviceType> TreeConstruction<DeviceType>::sortObjects(
 
 template <typename DeviceType>
 void TreeConstruction<DeviceType>::initializeLeafNodes(
-    Kokkos::View<int const *, DeviceType> indices,
+    Kokkos::View<size_t const *, DeviceType> indices,
     Kokkos::View<Box const *, DeviceType> bounding_boxes,
     Kokkos::View<Node *, DeviceType> leaf_nodes )
 {
@@ -291,7 +291,8 @@ void TreeConstruction<DeviceType>::initializeLeafNodes(
         DTK_MARK_REGION( "initialize_leaf_nodes" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
             leaf_nodes( i ).bounding_box = bounding_boxes( indices( i ) );
-            leaf_nodes( i ).children = {nullptr, nullptr};
+            leaf_nodes( i ).children = {
+                nullptr, reinterpret_cast<Node *>( indices( i ) )};
         } );
     Kokkos::fence();
 }
