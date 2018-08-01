@@ -107,12 +107,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, indirect_sort, DeviceType )
     Kokkos::fence();
 
     std::vector<int> ref = {3, 2, 1, 0};
-    // distribute ids to unsorted objects
-    Kokkos::View<int *, DeviceType> ids( "ids", n );
-    DataTransferKit::iota( ids );
-
     // sort morton codes and object ids
-    dtk::TreeConstruction<DeviceType>::sortObjects( k, ids );
+    auto ids = dtk::TreeConstruction<DeviceType>::sortObjects( k );
 
     auto k_host = Kokkos::create_mirror_view( k );
     Kokkos::deep_copy( k_host, k );

@@ -30,7 +30,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( BatchedQueries, permute_offset_and_indices,
     Kokkos::View<int *, DeviceType> offset( "offset" );
     Kokkos::View<int *, DeviceType> indices( "indices" );
 
-    Kokkos::View<int *, DeviceType> permute( "permute" );
+    Kokkos::View<size_t *, DeviceType> permute( "permute" );
 
     TEST_THROW( DataTransferKit::Details::BatchedQueries<
                     DeviceType>::reversePermutation( permute, offset, indices ),
@@ -42,7 +42,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( BatchedQueries, permute_offset_and_indices,
 
     std::vector<int> offset_ = {0, 0, 1, 3, 6, 10};
     std::vector<int> indices_ = {1, 2, 2, 3, 3, 3, 4, 4, 4, 4};
-    std::vector<int> permute_ = {4, 3, 2, 1, 0};
+    std::vector<size_t> permute_ = {4, 3, 2, 1, 0};
     std::vector<int> offset_ref = {0, 4, 7, 9, 10, 10};
     std::vector<int> indices_ref = {4, 4, 4, 4, 3, 3, 3, 2, 2, 1};
 
