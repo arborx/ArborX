@@ -49,7 +49,7 @@ struct BatchedQueries
     // the end.  We decided to keep reversePermutation around for now.
 
     template <typename Query>
-    static Kokkos::View<int *, DeviceType>
+    static Kokkos::View<size_t *, DeviceType>
     sortQueriesAlongZOrderCurve( Box const &scene_bounding_box,
                                  Kokkos::View<Query *, DeviceType> queries )
     {
@@ -73,17 +73,12 @@ struct BatchedQueries
             } );
         Kokkos::fence();
 
-        Kokkos::View<int *, DeviceType> permute(
-            Kokkos::ViewAllocateWithoutInitializing( "permute" ), n_queries );
-        iota( permute );
-        TreeConstruction<DeviceType>::sortObjects( morton_codes, permute );
-
-        return permute;
+        return TreeConstruction<DeviceType>::sortObjects( morton_codes );
     }
 
     template <typename T>
     static Kokkos::View<T *, DeviceType>
-    applyPermutation( Kokkos::View<int const *, DeviceType> permute,
+    applyPermutation( Kokkos::View<size_t const *, DeviceType> permute,
                       Kokkos::View<T *, DeviceType> v )
     {
         auto const n = permute.extent( 0 );
@@ -100,7 +95,7 @@ struct BatchedQueries
     }
 
     static Kokkos::View<int *, DeviceType>
-    permuteOffset( Kokkos::View<int const *, DeviceType> permute,
+    permuteOffset( Kokkos::View<size_t const *, DeviceType> permute,
                    Kokkos::View<int const *, DeviceType> offset )
     {
         auto const n = permute.extent( 0 );
@@ -122,7 +117,7 @@ struct BatchedQueries
 
     template <typename T>
     static Kokkos::View<T *, DeviceType>
-    permuteIndices( Kokkos::View<int const *, DeviceType> permute,
+    permuteIndices( Kokkos::View<size_t const *, DeviceType> permute,
                     Kokkos::View<T const *, DeviceType> indices,
                     Kokkos::View<int const *, DeviceType> offset,
                     Kokkos::View<int const *, DeviceType> tmp_offset )
@@ -151,7 +146,7 @@ struct BatchedQueries
 
     static std::tuple<Kokkos::View<int *, DeviceType>,
                       Kokkos::View<int *, DeviceType>>
-    reversePermutation( Kokkos::View<int const *, DeviceType> permute,
+    reversePermutation( Kokkos::View<size_t const *, DeviceType> permute,
                         Kokkos::View<int const *, DeviceType> offset,
                         Kokkos::View<int const *, DeviceType> indices )
     {
@@ -165,7 +160,7 @@ struct BatchedQueries
     static std::tuple<Kokkos::View<int *, DeviceType>,
                       Kokkos::View<int *, DeviceType>,
                       Kokkos::View<double *, DeviceType>>
-    reversePermutation( Kokkos::View<int const *, DeviceType> permute,
+    reversePermutation( Kokkos::View<size_t const *, DeviceType> permute,
                         Kokkos::View<int const *, DeviceType> offset,
                         Kokkos::View<int const *, DeviceType> indices,
                         Kokkos::View<double const *, DeviceType> distances )
