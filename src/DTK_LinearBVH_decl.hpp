@@ -239,6 +239,17 @@ void queryDispatch( Details::SpatialPredicateTag,
     reallocWithoutInitializing( offset, n_queries + 1 );
     Kokkos::deep_copy( offset, 0 );
 
+    // Not proud of that one but that will do for now :/
+    auto const throw_if_buffer_optimization_fails = [&buffer_size]() {
+        if ( buffer_size < 0 )
+        {
+            buffer_size = -buffer_size;
+            return true;
+        }
+        else
+            return false;
+    }();
+
     reallocWithoutInitializing( indices, n_queries * buffer_size );
     // NOTE I considered filling with invalid indices but it is unecessary work
 
@@ -278,6 +289,9 @@ void queryDispatch( Details::SpatialPredicateTag,
 
     if ( max_results_per_query > buffer_size )
     {
+        // FIXME can definitely do better about error message
+        DTK_INSIST( !throw_if_buffer_optimization_fails );
+
         // We allocate the memory and fill
         //
         // [ A0 A1 B0 B1 C0 C1 ... X0 X1 ]
