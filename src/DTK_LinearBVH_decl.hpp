@@ -218,7 +218,8 @@ void queryDispatch( Details::SpatialPredicateTag,
                     BoundingVolumeHierarchy<DeviceType> const bvh,
                     Kokkos::View<Query *, DeviceType> queries,
                     Kokkos::View<int *, DeviceType> &indices,
-                    Kokkos::View<int *, DeviceType> &offset )
+                    Kokkos::View<int *, DeviceType> &offset,
+                    int buffer_size = 30 )
 {
     using ExecutionSpace = typename DeviceType::execution_space;
 
@@ -238,7 +239,6 @@ void queryDispatch( Details::SpatialPredicateTag,
     reallocWithoutInitializing( offset, n_queries + 1 );
     Kokkos::deep_copy( offset, 0 );
 
-    int const buffer_size = 30;
     reallocWithoutInitializing( indices, n_queries * buffer_size );
     // NOTE I considered filling with invalid indices but it is unecessary work
 
