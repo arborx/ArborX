@@ -254,7 +254,8 @@ void queryDispatch( Details::SpatialPredicateTag,
             int count = 0;
             offset( permute( i ) ) = Details::TreeTraversal<DeviceType>::query(
                 bvh, queries( i ),
-                [indices, offset, permute, i, &count]( int index ) {
+                [indices, offset, permute, buffer_size, i,
+                 &count]( int index ) {
                     if ( count < buffer_size )
                         indices( permute( i ) * buffer_size + count++ ) = index;
                 } );
