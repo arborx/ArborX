@@ -28,6 +28,7 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
     int n_values = 50000;
     int n_queries = 20000;
     int n_neighbors = 10;
+    int buffer_size = 0;
     bool perform_knn_search = true;
     bool perform_radius_search = true;
 
@@ -35,6 +36,8 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
     clp.setOption( "queries", &n_queries, "number of queries (target)" );
     clp.setOption( "neighbors", &n_neighbors,
                    "desired number of results per query" );
+    clp.setOption( "buffer", &buffer_size,
+                   "size for buffer optimization in radius search" );
     clp.setOption( "perform-knn-search", "do-not-perform-knn-search",
                    &perform_knn_search,
                    "whether or not to perform kNN search" );
@@ -154,7 +157,7 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         Kokkos::View<int *, DeviceType> indices( "indices" );
 
         start = std::chrono::high_resolution_clock::now();
-        bvh.query( queries, indices, offset );
+        bvh.query( queries, indices, offset, buffer_size );
         end = std::chrono::high_resolution_clock::now();
 
         elapsed_seconds = end - start;
