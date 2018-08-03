@@ -336,7 +336,7 @@ void queryDispatch( Details::SpatialPredicateTag,
     }
     // do not copy if by some miracle each query exactly yielded as many results
     // as the buffer size
-    else if ( n_results != n_queries * buffer_size )
+    else if ( n_results != static_cast<int>( n_queries ) * buffer_size )
     {
         Kokkos::View<int *, DeviceType> tmp_indices(
             Kokkos::ViewAllocateWithoutInitializing( indices.label() ),
