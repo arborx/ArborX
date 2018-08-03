@@ -31,8 +31,6 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
           Kokkos::ViewAllocateWithoutInitializing( "internal_nodes" ),
           bounding_boxes.extent( 0 ) > 0 ? bounding_boxes.extent( 0 ) - 1 : 0 )
 {
-    using ExecutionSpace = typename DeviceType::execution_space;
-
     if ( empty() )
     {
         return;
