@@ -289,7 +289,14 @@ void queryDispatch( Details::SpatialPredicateTag,
             } );
     Kokkos::fence();
 
-    auto const max_results_per_query = max( offset );
+    // NOTE max() internally calls Kokkos::parallel_reduce.  Only pay for it if
+    // actually trying buffer optimization.  In principle, any strictly
+    // positive value can be assigned otherwise.
+    auto const max_results_per_query =
+        ( buffer_size > 0 )
+            ? max( offset )
+            : std::numeric_limits<typename std::remove_reference<decltype(
+                  offset )>::type::value_type>::max();
 
     // Then we would get:
     // [ 0 2 4 .... 2N-2 2N ]
