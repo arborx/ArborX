@@ -342,6 +342,15 @@ typename View::non_const_type cloneWithoutInitializingNorCopying( View &v )
         Kokkos::ViewAllocateWithoutInitializing( v.label() ), v.layout() );
 }
 
+template <typename View>
+typename View::non_const_type clone( View &v )
+{
+    typename View::non_const_type w(
+        Kokkos::ViewAllocateWithoutInitializing( v.label() ), v.layout() );
+    Kokkos::deep_copy( w, v );
+    return w;
+}
+
 } // namespace DataTransferKit
 
 #endif
