@@ -106,7 +106,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, indirect_sort, DeviceType )
                           fill_k_functor );
     Kokkos::fence();
 
-    std::vector<int> ref = {3, 2, 1, 0};
+    std::vector<size_t> ref = {3, 2, 1, 0};
     // sort morton codes and object ids
     auto ids = dtk::TreeConstruction<DeviceType>::sortObjects( k );
 
