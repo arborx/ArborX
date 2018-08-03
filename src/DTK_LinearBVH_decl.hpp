@@ -213,6 +213,15 @@ void queryDispatch(
     }
 }
 
+// The buffer_size argument let the user provide an upper bound for the number
+// of results per query.  If the guess is accurate, it avoid performing the tree
+// traversals twice (the 1st one to count the number of results per query, the
+// 2nd to actually write down the results at the right location in the flattened
+// array)
+// The default value zero disable the buffer optimization.  The sign of the
+// integer is used to specify the policy in the case the size insufficient.  If
+// it is positive, the code falls back to the default behavior and performs a
+// second pass.  If it is negative, it throws an exception.
 template <typename DeviceType, typename Query>
 void queryDispatch( Details::SpatialPredicateTag,
                     BoundingVolumeHierarchy<DeviceType> const bvh,
