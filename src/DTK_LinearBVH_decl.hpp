@@ -219,7 +219,7 @@ void queryDispatch( Details::SpatialPredicateTag,
                     Kokkos::View<Query *, DeviceType> queries,
                     Kokkos::View<int *, DeviceType> &indices,
                     Kokkos::View<int *, DeviceType> &offset,
-                    int buffer_size = 30 )
+                    int buffer_size = 0 )
 {
     using ExecutionSpace = typename DeviceType::execution_space;
 
