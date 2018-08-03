@@ -238,6 +238,67 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, duplicated_leaves, DeviceType )
     TEST_EQUALITY( true, true );
 }
 
+TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, buffer_optimization, DeviceType )
+{
+    auto const bvh = makeBvh<DeviceType>( {
+        {{{0., 0., 0.}}, {{0., 0., 0.}}},
+        {{{1., 0., 0.}}, {{1., 0., 0.}}},
+        {{{2., 0., 0.}}, {{2., 0., 0.}}},
+        {{{3., 0., 0.}}, {{3., 0., 0.}}},
+    } );
+
+    auto const queries = makeOverlapQueries<DeviceType>( {
+        {},
+        {{{0., 0., 0.}}, {{3., 3., 3.}}},
+        {},
+    } );
+
+    using ViewType = Kokkos::View<int *, DeviceType>;
+    ViewType indices( "indices" );
+    ViewType offset( "offset" );
+
+    std::vector<int> indices_ref = {3, 2, 1, 0};
+    std::vector<int> offset_ref = {0, 0, 4, 4};
+    auto checkResultsAreFine = [&indices, &offset, &indices_ref, &offset_ref,
+                                &success, &out]() -> void {
+        TEST_COMPARE_ARRAYS( indices, indices_ref );
+        TEST_COMPARE_ARRAYS( offset, offset_ref );
+    };
+
+    TEST_NOTHROW( bvh.query( queries, indices, offset ) );
+    checkResultsAreFine();
+
+    // compute number of results per query
+    auto counts = DataTransferKit::cloneWithoutInitializingNorCopying( offset );
+    DataTransferKit::adjacentDifference( offset, counts );
+    // extract optimal buffer size
+    auto const max_results_per_query = DataTransferKit::max( counts );
+    TEST_EQUALITY( max_results_per_query, 4 );
+
+    // optimal size
+    TEST_NOTHROW(
+        bvh.query( queries, indices, offset, -max_results_per_query ) );
+    checkResultsAreFine();
+
+    // buffer size insufficient
+    TEST_COMPARE( max_results_per_query, >, 1 );
+    TEST_NOTHROW( bvh.query( queries, indices, offset, +1 ) );
+    checkResultsAreFine();
+    TEST_THROW( bvh.query( queries, indices, offset, -1 ),
+                DataTransferKit::DataTransferKitException );
+
+    // adequate buffer size
+    TEST_COMPARE( max_results_per_query, <, 5 );
+    TEST_NOTHROW( bvh.query( queries, indices, offset, +5 ) );
+    checkResultsAreFine();
+    TEST_NOTHROW( bvh.query( queries, indices, offset, -5 ) );
+    checkResultsAreFine();
+
+    // passing null size skips the buffer optimization and never throws
+    TEST_NOTHROW( bvh.query( queries, indices, offset, 0 ) );
+    checkResultsAreFine();
+}
+
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, miscellaneous, DeviceType )
 {
     auto const bvh = makeBvh<DeviceType>( {
@@ -689,6 +750,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, couple_leaves_tree,       \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, duplicated_leaves,        \
+                                          DeviceType##NODE )                   \
+    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, buffer_optimization,      \
                                           DeviceType##NODE )                   \
     TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, miscellaneous,            \
                                           DeviceType##NODE )                   \
