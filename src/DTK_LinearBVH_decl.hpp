@@ -250,27 +250,43 @@ void queryDispatch( Details::SpatialPredicateTag,
             return false;
     }();
 
-    reallocWithoutInitializing( indices, n_queries * buffer_size );
-    // NOTE I considered filling with invalid indices but it is unecessary work
-
     // Say we found exactly two object for each query:
     // [ 2 2 2 .... 2 0 ]
     //   ^            ^
     //   0th          Nth element in the view
-    Kokkos::parallel_for(
-        DTK_MARK_REGION(
-            "first_pass_at_the_search_count_the_number_of_indices" ),
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
-        KOKKOS_LAMBDA( int i ) {
-            int count = 0;
-            offset( permute( i ) ) = Details::TreeTraversal<DeviceType>::query(
-                bvh, queries( i ),
-                [indices, offset, permute, buffer_size, i,
-                 &count]( int index ) {
-                    if ( count < buffer_size )
-                        indices( permute( i ) * buffer_size + count++ ) = index;
-                } );
-        } );
+    if ( buffer_size > 0 )
+    {
+        reallocWithoutInitializing( indices, n_queries * buffer_size );
+        // NOTE I considered filling with invalid indices but it is unecessary
+        // work
+
+        Kokkos::parallel_for(
+            DTK_MARK_REGION(
+                "first_pass_at_the_search_with_buffer_optimization" ),
+            Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
+            KOKKOS_LAMBDA( int i ) {
+                int count = 0;
+                offset( permute( i ) ) =
+                    Details::TreeTraversal<DeviceType>::query(
+                        bvh, queries( i ),
+                        [indices, offset, permute, buffer_size, i,
+                         &count]( int index ) {
+                            if ( count < buffer_size )
+                                indices( permute( i ) * buffer_size +
+                                         count++ ) = index;
+                        } );
+            } );
+    }
+    else
+        Kokkos::parallel_for(
+            DTK_MARK_REGION(
+                "first_pass_at_the_search_count_the_number_of_indices" ),
+            Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
+            KOKKOS_LAMBDA( int i ) {
+                offset( permute( i ) ) =
+                    Details::TreeTraversal<DeviceType>::query(
+                        bvh, queries( i ), []( int index ) {} );
+            } );
     Kokkos::fence();
 
     auto const max_results_per_query = max( offset );
