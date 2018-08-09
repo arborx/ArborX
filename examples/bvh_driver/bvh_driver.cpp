@@ -16,30 +16,25 @@
 
 #include <benchmark/benchmark.h>
 
+#include <point_clouds.hpp>
+
 #include <chrono>
 #include <cmath> // cbrt
 #include <cstdlib>
 #include <random>
 
 template <typename DeviceType>
-Kokkos::View<DataTransferKit::Box *, DeviceType> constructBoxes( int n_values )
+Kokkos::View<DataTransferKit::Box *, DeviceType>
+constructBoxes( int n_values, PointCloudType point_cloud_type )
 {
     Kokkos::View<DataTransferKit::Point *, DeviceType> random_points(
         Kokkos::ViewAllocateWithoutInitializing( "random_points" ), n_values );
-    auto random_points_host = Kokkos::create_mirror_view( random_points );
     // Generate random points uniformely distributed within a box.  The edge
     // length of the box chosen such that object density (here objects will be
     // boxes 2x2x2 centered around a random point) will remain constant as
     // problem size is changed.
     auto const a = std::cbrt( n_values );
-    std::uniform_real_distribution<double> distribution( -a, +a );
-    std::default_random_engine generator;
-    auto random = [&distribution, &generator]() {
-        return distribution( generator );
-    };
-    for ( int i = 0; i < n_values; ++i )
-        random_points_host( i ) = {{random(), random(), random()}};
-    Kokkos::deep_copy( random_points, random_points_host );
+    generatePointCloud( point_cloud_type, a, random_points );
 
     using ExecutionSpace = typename DeviceType::execution_space;
     Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes(
@@ -50,9 +45,7 @@ Kokkos::View<DataTransferKit::Box *, DeviceType> constructBoxes( int n_values )
                               double const x = random_points( i )[0];
                               double const y = random_points( i )[1];
                               double const z = random_points( i )[2];
-                              bounding_boxes( i ) = {
-                                  {{x - 1., y - 1., z - 1.}},
-                                  {{x + 1., y + 1., z + 1.}}};
+                              bounding_boxes( i ) = {{{x, y, z}}, {{x, y, z}}};
                           } );
     Kokkos::fence();
     return bounding_boxes;
@@ -60,20 +53,13 @@ Kokkos::View<DataTransferKit::Box *, DeviceType> constructBoxes( int n_values )
 
 template <typename DeviceType>
 Kokkos::View<DataTransferKit::Nearest<DataTransferKit::Point> *, DeviceType>
-makeNearestQueries( int n_values, int n_queries, int n_neighbors )
+makeNearestQueries( int n_values, int n_queries, int n_neighbors,
+                    PointCloudType target_point_cloud_type )
 {
     Kokkos::View<DataTransferKit::Point *, DeviceType> random_points(
         Kokkos::ViewAllocateWithoutInitializing( "random_points" ), n_queries );
-    auto random_points_host = Kokkos::create_mirror_view( random_points );
     auto const a = std::cbrt( n_values );
-    std::uniform_real_distribution<double> distribution( -a, +a );
-    std::default_random_engine generator;
-    auto random = [&distribution, &generator]() {
-        return distribution( generator );
-    };
-    for ( int i = 0; i < n_queries; ++i )
-        random_points_host( i ) = {{random(), random(), random()}};
-    Kokkos::deep_copy( random_points, random_points_host );
+    generatePointCloud( target_point_cloud_type, a, random_points );
 
     Kokkos::View<DataTransferKit::Nearest<DataTransferKit::Point> *, DeviceType>
         queries( Kokkos::ViewAllocateWithoutInitializing( "queries" ),
@@ -92,20 +78,13 @@ makeNearestQueries( int n_values, int n_queries, int n_neighbors )
 
 template <typename DeviceType>
 Kokkos::View<DataTransferKit::Within *, DeviceType>
-makeSpatialQueries( int n_values, int n_queries, int n_neighbors )
+makeSpatialQueries( int n_values, int n_queries, int n_neighbors,
+                    PointCloudType target_point_cloud_type )
 {
     Kokkos::View<DataTransferKit::Point *, DeviceType> random_points(
         Kokkos::ViewAllocateWithoutInitializing( "random_points" ), n_queries );
-    auto random_points_host = Kokkos::create_mirror_view( random_points );
     auto const a = std::cbrt( n_values );
-    std::uniform_real_distribution<double> distribution( -a, +a );
-    std::default_random_engine generator;
-    auto random = [&distribution, &generator]() {
-        return distribution( generator );
-    };
-    for ( int i = 0; i < n_queries; ++i )
-        random_points_host( i ) = {{random(), random(), random()}};
-    Kokkos::deep_copy( random_points, random_points_host );
+    generatePointCloud( target_point_cloud_type, a, random_points );
 
     Kokkos::View<DataTransferKit::Within *, DeviceType> queries(
         Kokkos::ViewAllocateWithoutInitializing( "queries" ), n_queries );
@@ -130,7 +109,10 @@ template <class DeviceType>
 void BM_construction( benchmark::State &state )
 {
     int const n_values = state.range( 0 );
-    auto bounding_boxes = constructBoxes<DeviceType>( n_values );
+    PointCloudType point_cloud_type =
+        static_cast<PointCloudType>( state.range( 1 ) );
+    auto bounding_boxes =
+        constructBoxes<DeviceType>( n_values, point_cloud_type );
 
     for ( auto _ : state )
     {
@@ -148,11 +130,15 @@ void BM_knn_search( benchmark::State &state )
     int const n_values = state.range( 0 );
     int const n_queries = state.range( 1 );
     int const n_neighbors = state.range( 2 );
+    PointCloudType const source_point_cloud_type =
+        static_cast<PointCloudType>( state.range( 3 ) );
+    PointCloudType const target_point_cloud_type =
+        static_cast<PointCloudType>( state.range( 4 ) );
 
     DataTransferKit::BVH<DeviceType> bvh(
-        constructBoxes<DeviceType>( n_values ) );
-    auto const queries =
-        makeNearestQueries<DeviceType>( n_values, n_queries, n_neighbors );
+        constructBoxes<DeviceType>( n_values, source_point_cloud_type ) );
+    auto const queries = makeNearestQueries<DeviceType>(
+        n_values, n_queries, n_neighbors, target_point_cloud_type );
 
     for ( auto _ : state )
     {
@@ -173,12 +159,17 @@ void BM_radius_search( benchmark::State &state )
     int const n_queries = state.range( 1 );
     int const n_neighbors = state.range( 2 );
     int const buffer_size = state.range( 3 );
+    PointCloudType const source_point_cloud_type =
+        static_cast<PointCloudType>( state.range( 4 ) );
+    PointCloudType const target_point_cloud_type =
+        static_cast<PointCloudType>( state.range( 5 ) );
 
     DataTransferKit::BVH<DeviceType> bvh(
-        constructBoxes<DeviceType>( n_values ) );
-    auto const queries =
-        makeSpatialQueries<DeviceType>( n_values, n_queries, n_neighbors );
+        constructBoxes<DeviceType>( n_values, source_point_cloud_type ) );
+    auto const queries = makeSpatialQueries<DeviceType>(
+        n_values, n_queries, n_neighbors, target_point_cloud_type );
 
+    bool first_pass = true;
     for ( auto _ : state )
     {
         Kokkos::View<int *, DeviceType> offset( "offset" );
@@ -188,6 +179,26 @@ void BM_radius_search( benchmark::State &state )
         auto const end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed_seconds = end - start;
         state.SetIterationTime( elapsed_seconds.count() );
+
+        if ( first_pass )
+        {
+            auto offset_clone = DataTransferKit::clone( offset );
+            DataTransferKit::adjacentDifference( offset, offset_clone );
+            double const max = DataTransferKit::max( offset_clone );
+            double const avg =
+                DataTransferKit::lastElement( offset ) / n_queries;
+            auto offset_clone_subview = Kokkos::subview(
+                offset_clone,
+                std::make_pair( 1, offset_clone.extent_int( 0 ) ) );
+            double const min = DataTransferKit::min( offset_clone_subview );
+
+            std::ostream &os = std::cout;
+            os << "min number of neighbors " << min << "\n";
+            os << "max number of neighbors " << max << "\n";
+            os << "avg number of neighbors " << avg << "\n";
+
+            first_pass = false;
+        }
     }
 }
 
@@ -203,15 +214,17 @@ class KokkosScopeGuard
 
 #define REGISTER_BENCHMARK( DeviceType )                                       \
     BENCHMARK_TEMPLATE( BM_construction, DeviceType )                          \
-        ->Arg( n_values )                                                      \
+        ->Args( {n_values, source_point_cloud_type} )                          \
         ->UseManualTime()                                                      \
         ->Unit( benchmark::kMicrosecond );                                     \
     BENCHMARK_TEMPLATE( BM_knn_search, DeviceType )                            \
-        ->Args( {n_values, n_queries, n_neighbors} )                           \
+        ->Args( {n_values, n_queries, n_neighbors, source_point_cloud_type,    \
+                 target_point_cloud_type} )                                    \
         ->UseManualTime()                                                      \
         ->Unit( benchmark::kMicrosecond );                                     \
     BENCHMARK_TEMPLATE( BM_radius_search, DeviceType )                         \
-        ->Args( {n_values, n_queries, n_neighbors, buffer_size} )              \
+        ->Args( {n_values, n_queries, n_neighbors, buffer_size,                \
+                 source_point_cloud_type, target_point_cloud_type} )           \
         ->UseManualTime()                                                      \
         ->Unit( benchmark::kMicrosecond );
 
@@ -227,12 +240,29 @@ int main( int argc, char *argv[] )
     int n_queries = 20000;
     int n_neighbors = 10;
     int buffer_size = 0;
+    std::string source_pt_cloud = "filled_box";
+    std::string target_pt_cloud = "filled_box";
     clp.setOption( "values", &n_values, "number of indexable values (source)" );
     clp.setOption( "queries", &n_queries, "number of queries (target)" );
     clp.setOption( "neighbors", &n_neighbors,
                    "desired number of results per query" );
     clp.setOption( "buffer", &buffer_size,
                    "size for buffer optimization in radius search" );
+    clp.setOption( "source-point-cloud-type", &source_pt_cloud,
+                   "shape of the source point cloud" );
+    clp.setOption( "target-point-cloud-type", &target_pt_cloud,
+                   "shape of the target point cloud" );
+
+    // Google benchmark only supports integer arguments (see
+    // https://github.com/google/benchmark/issues/387), so we map the string to
+    // an enum.
+    std::map<std::string, PointCloudType> to_point_cloud_enum;
+    to_point_cloud_enum["filled_box"] = PointCloudType::filled_box;
+    to_point_cloud_enum["hollow_box"] = PointCloudType::hollow_box;
+    to_point_cloud_enum["filled_sphere"] = PointCloudType::filled_sphere;
+    to_point_cloud_enum["hollow_sphere"] = PointCloudType::hollow_sphere;
+    int source_point_cloud_type = to_point_cloud_enum.at( source_pt_cloud );
+    int target_point_cloud_type = to_point_cloud_enum.at( target_pt_cloud );
 
     switch ( clp.parse( argc, argv, NULL ) )
     {
