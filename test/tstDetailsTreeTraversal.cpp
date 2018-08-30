@@ -453,6 +453,20 @@ TEUCHOS_UNIT_TEST( PriorityQueue, maintain_heap_properties )
     }
 }
 
+TEUCHOS_UNIT_TEST( HeapOperations, sort_heap )
+{
+    for ( auto heap : {std::vector<int>{36, 19, 25, 17, 3, 7, 1, 2, 9},
+                       std::vector<int>{36, 19, 25, 17, 3, 9, 1, 2, 7},
+                       std::vector<int>{100, 19, 36, 17, 3, 25, 1, 2, 7},
+                       std::vector<int>{15, 5, 11, 3, 4, 8}} )
+    {
+        dtk::sortHeap( heap.data(), heap.data() + heap.size(),
+                       dtk::Less<int>() );
+        // std::sort_heap( heap.begin(), heap.end() );
+        TEST_ASSERT( std::is_sorted( heap.begin(), heap.end() ) );
+    }
+}
+
 TEUCHOS_UNIT_TEST( HeapOperations, is_heap )
 {
     for ( auto heap : {std::vector<int>{36, 19, 25, 17, 3, 7, 1, 2, 9},

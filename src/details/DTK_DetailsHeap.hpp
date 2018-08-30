@@ -108,6 +108,14 @@ KOKKOS_INLINE_FUNCTION void popHeap( RandomIterator first, RandomIterator last,
     }
 }
 
+template <typename RandomIterator, typename Compare>
+KOKKOS_INLINE_FUNCTION void sortHeap( RandomIterator first, RandomIterator last,
+                                      Compare comp )
+{
+    while ( first != last )
+        popHeap( first, last--, comp );
+}
+
 } // namespace Details
 } // namespace DataTransferKit
 
