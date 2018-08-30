@@ -81,6 +81,68 @@ TEUCHOS_UNIT_TEST( Containers, dynamic_array_with_fixed_maximum_size )
     TEST_EQUALITY( a.capacity(), 4 );
 }
 
+TEUCHOS_UNIT_TEST( Containers, non_owning_view_over_dynamic_array )
+{
+    float data[6] = {255, 255, 255, 255, 255, 255};
+    //                        ^^^^ ^^^^ ^^^^
+    dtk::UnmanagedVector<float> a( data + 2, 3 );
+
+    TEST_ASSERT( !std::is_default_constructible<decltype( a )>::value );
+    TEST_EQUALITY( a.data(), data + 2 );
+
+    TEST_ASSERT( a.empty() );
+    TEST_EQUALITY( a.size(), 0 );
+    TEST_EQUALITY( a.maxSize(), 3 );
+    TEST_EQUALITY( a.capacity(), 3 );
+
+    a.pushBack( 0 );
+    TEST_ASSERT( !a.empty() );
+    TEST_EQUALITY( a.size(), 1 );
+    TEST_EQUALITY( a.maxSize(), 3 );
+    TEST_EQUALITY( a.capacity(), 3 );
+    TEST_EQUALITY( a.front(), 0 );
+    TEST_EQUALITY( a.back(), 0 );
+    TEST_EQUALITY( a[0], 0 );
+
+    a.pushBack( 1 );
+    TEST_ASSERT( !a.empty() );
+    TEST_EQUALITY( a.size(), 2 );
+    TEST_EQUALITY( a.maxSize(), 3 );
+    TEST_EQUALITY( a.capacity(), 3 );
+    TEST_EQUALITY( a.front(), 0 );
+    TEST_EQUALITY( a[0], 0 );
+    TEST_EQUALITY( a.back(), 1 );
+    TEST_EQUALITY( a[1], 1 );
+
+    a.pushBack( 2 );
+    TEST_ASSERT( !a.empty() );
+    TEST_EQUALITY( a.size(), 3 );
+    TEST_EQUALITY( a.maxSize(), 3 );
+    TEST_EQUALITY( a.capacity(), 3 );
+    TEST_EQUALITY( a.front(), 0 );
+    TEST_EQUALITY( a[0], 0 );
+    TEST_EQUALITY( a[1], 1 );
+    TEST_EQUALITY( a.back(), 2 );
+    TEST_EQUALITY( a[2], 2 );
+
+    a.popBack();
+    TEST_ASSERT( !a.empty() );
+    TEST_EQUALITY( a.size(), 2 );
+    TEST_EQUALITY( a.maxSize(), 3 );
+    TEST_EQUALITY( a.capacity(), 3 );
+    TEST_EQUALITY( a.front(), 0 );
+    TEST_EQUALITY( a[0], 0 );
+    TEST_EQUALITY( a.back(), 1 );
+    TEST_EQUALITY( a[1], 1 );
+
+    TEST_EQUALITY( data[0], 255 );
+    TEST_EQUALITY( data[1], 255 );
+    TEST_EQUALITY( data[2], 0 );
+    TEST_EQUALITY( data[3], 1 );
+    TEST_EQUALITY( data[4], 2 );
+    TEST_EQUALITY( data[5], 255 );
+}
+
 TEUCHOS_UNIT_TEST( LinearBVH, stack )
 {
     // stack is empty at construction
