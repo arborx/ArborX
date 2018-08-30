@@ -452,3 +452,22 @@ TEUCHOS_UNIT_TEST( PriorityQueue, maintain_heap_properties )
         check_heap( queue, success, out );
     }
 }
+
+TEUCHOS_UNIT_TEST( HeapOperations, is_heap )
+{
+    for ( auto heap : {std::vector<int>{36, 19, 25, 17, 3, 7, 1, 2, 9},
+                       std::vector<int>{36, 19, 25, 17, 3, 9, 1, 2, 7},
+                       std::vector<int>{100, 19, 36, 17, 3, 25, 1, 2, 7},
+                       std::vector<int>{15, 5, 11, 3, 4, 8}} )
+    {
+        TEST_ASSERT( dtk::isHeap( heap.data(), heap.data() + heap.size(),
+                                  dtk::Less<int>() ) );
+    }
+    for ( auto not_heap : {std::vector<int>{0, 1, 2, 3, 4, 3, 2, 1, 0},
+                           std::vector<int>{2, 1, 0, 1, 2}} )
+    {
+        TEST_ASSERT( !dtk::isHeap( not_heap.data(),
+                                   not_heap.data() + not_heap.size(),
+                                   dtk::Less<int>() ) );
+    }
+}

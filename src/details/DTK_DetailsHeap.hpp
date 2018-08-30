@@ -21,6 +21,22 @@ namespace DataTransferKit
 namespace Details
 {
 
+template <typename RandomIterator, typename Compare>
+KOKKOS_INLINE_FUNCTION bool isHeap( RandomIterator first, RandomIterator last,
+                                    Compare comp )
+{
+    using DistanceType =
+        typename std::iterator_traits<RandomIterator>::difference_type;
+    DistanceType len = last - first;
+    for ( DistanceType pos = 0; pos < len; ++pos )
+    {
+        for ( DistanceType child : {2 * pos + 1, 2 * pos + 2} )
+            if ( child < len && comp( *( first + pos ), *( first + child ) ) )
+                return false;
+    }
+    return true;
+}
+
 template <typename RandomIterator, typename DistanceType, typename ValueType,
           typename Compare>
 KOKKOS_INLINE_FUNCTION void __bubbleUp( RandomIterator first, DistanceType pos,
