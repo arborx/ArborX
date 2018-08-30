@@ -8,12 +8,78 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
+
+#include <DTK_DetailsContainers.hpp>
 #include <DTK_DetailsPriorityQueue.hpp>
 #include <DTK_DetailsStack.hpp>
 
 #include <Teuchos_UnitTestHarness.hpp>
 
 #include <random>
+
+namespace dtk = DataTransferKit::Details;
+
+TEUCHOS_UNIT_TEST( Containers, dynamic_array_with_fixed_maximum_size )
+{
+    dtk::Vector<int, 4> a;
+
+    TEST_ASSERT( a.empty() );
+    TEST_EQUALITY( a.size(), 0 );
+    TEST_EQUALITY( a.maxSize(), 4 );
+    TEST_EQUALITY( a.capacity(), 4 );
+
+    a.pushBack( 255 );
+    TEST_ASSERT( !a.empty() );
+    TEST_EQUALITY( a.size(), 1 );
+    TEST_EQUALITY( a.maxSize(), 4 );
+    TEST_EQUALITY( a.capacity(), 4 );
+    TEST_EQUALITY( a.front(), 255 );
+    TEST_EQUALITY( a[0], 255 );
+    TEST_EQUALITY( a.back(), 255 );
+
+    a.pushBack( -1 );
+    TEST_ASSERT( !a.empty() );
+    TEST_EQUALITY( a.size(), 2 );
+    TEST_EQUALITY( a.maxSize(), 4 );
+    TEST_EQUALITY( a.capacity(), 4 );
+    TEST_EQUALITY( a.front(), 255 );
+    TEST_EQUALITY( a[0], 255 );
+    TEST_EQUALITY( a.back(), -1 );
+    TEST_EQUALITY( a[1], -1 );
+
+    a.pushBack( 33 );
+    TEST_ASSERT( !a.empty() );
+    TEST_EQUALITY( a.size(), 3 );
+    TEST_EQUALITY( a.maxSize(), 4 );
+    TEST_EQUALITY( a.capacity(), 4 );
+    TEST_EQUALITY( a.front(), 255 );
+    TEST_EQUALITY( a[0], 255 );
+    TEST_EQUALITY( a[1], -1 );
+    TEST_EQUALITY( a.back(), 33 );
+    TEST_EQUALITY( a[2], 33 );
+
+    a.popBack();
+    TEST_ASSERT( !a.empty() );
+    TEST_EQUALITY( a.size(), 2 );
+    TEST_EQUALITY( a.maxSize(), 4 );
+    TEST_EQUALITY( a.capacity(), 4 );
+    TEST_EQUALITY( a.front(), 255 );
+    TEST_EQUALITY( a.back(), -1 );
+
+    a.popBack();
+    TEST_ASSERT( !a.empty() );
+    TEST_EQUALITY( a.size(), 1 );
+    TEST_EQUALITY( a.maxSize(), 4 );
+    TEST_EQUALITY( a.capacity(), 4 );
+    TEST_EQUALITY( a.front(), 255 );
+    TEST_EQUALITY( a.back(), 255 );
+
+    a.popBack();
+    TEST_ASSERT( a.empty() );
+    TEST_EQUALITY( a.size(), 0 );
+    TEST_EQUALITY( a.maxSize(), 4 );
+    TEST_EQUALITY( a.capacity(), 4 );
+}
 
 TEUCHOS_UNIT_TEST( LinearBVH, stack )
 {
