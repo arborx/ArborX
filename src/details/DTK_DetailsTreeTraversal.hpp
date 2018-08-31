@@ -130,10 +130,12 @@ spatialQuery( BoundingVolumeHierarchy<DeviceType> const &bvh,
 }
 
 // query k nearest neighbours
-template <typename DeviceType, typename Distance, typename Insert>
+template <typename DeviceType, typename Distance, typename Insert,
+          typename Buffer>
 KOKKOS_FUNCTION int
 nearestQuery( BoundingVolumeHierarchy<DeviceType> const &bvh,
-              Distance const &distance, int k, Insert const &insert )
+              Distance const &distance, std::size_t k, Insert const &insert,
+              Buffer const &buffer )
 {
     if ( bvh.empty() || k < 1 )
         return 0;
@@ -147,57 +149,106 @@ nearestQuery( BoundingVolumeHierarchy<DeviceType> const &bvh,
         return 1;
     }
 
-    using PairNodePtrDistance = Kokkos::pair<Node const *, double>;
+    // Nodes with a distance that exceed that radius can safely be discarded.
+    // Initialize the radius to infinity and tighten it once k neighbors have
+    // been found.
+    double radius = KokkosHelpers::ArithTraits<double>::infinity();
 
+    using PairIndexDistance = Kokkos::pair<int, double>;
+    static_assert(
+        std::is_same<typename Buffer::value_type, PairIndexDistance>::value,
+        "Type of the elements stored in the buffer passed as argument to "
+        "TreeTraversal::nearestQuery is not right" );
     struct CompareDistance
     {
         KOKKOS_INLINE_FUNCTION bool
-        operator()( PairNodePtrDistance const &lhs,
-                    PairNodePtrDistance const &rhs ) const
+        operator()( PairIndexDistance const &lhs,
+                    PairIndexDistance const &rhs ) const
         {
-            // reverse order (larger distance means lower priority)
-            return lhs.second > rhs.second;
+            return lhs.second < rhs.second;
         }
     };
+    // Use a priority queue for convenience to store the results and preserve
+    // the heap structure internally at all time.  There is no memory
+    // allocation, elements are stored in the buffer passed as an argument.
+    // The farthest leaf node is on top.
+    assert( k == buffer.size() );
+    PriorityQueue<PairIndexDistance, CompareDistance,
+                  UnmanagedVector<PairIndexDistance>>
+        heap( UnmanagedVector<PairIndexDistance>( buffer.data(),
+                                                  buffer.size() ) );
 
-    PriorityQueue<PairNodePtrDistance, CompareDistance> queue;
-    // priority does not matter for the root since the node will be
-    // processed directly and removed from the priority queue we don't even
-    // bother computing the distance to it.
-    Node const *root = TreeTraversal<DeviceType>::getRoot( bvh );
-    queue.push( root, 0. );
-    int count = 0;
+    using PairNodePtrDistance = Kokkos::pair<Node const *, double>;
+    Stack<PairNodePtrDistance> stack;
+    // Do not bother computing the distance to the root node since it is
+    // immediately popped out of the stack and processed.
+    stack.emplace( TreeTraversal<DeviceType>::getRoot( bvh ), 0. );
 
-    while ( !queue.empty() && count < k )
+    while ( !stack.empty() )
     {
-        // get the node that is on top of the priority list (i.e. is the
-        // closest to the query point)
-        Node const *node = queue.top().first;
-        double const node_distance = queue.top().second;
-        // NOTE: it would be nice to be able to do something like
-        // tie( node, node_distance = queue.top();
+        Node const *node = stack.top().first;
+        double const node_distance = stack.top().second;
+        stack.pop();
 
-        // NOTE: not calling queue.pop() here so that it can be combined with
-        // the next push in case the node is internal (thus sparing a bubble-up
-        // operation)
-        if ( TreeTraversal<DeviceType>::isLeaf( node ) )
+        if ( node_distance < radius )
         {
-            queue.pop();
-            insert( TreeTraversal<DeviceType>::getIndex( node ),
-                    node_distance );
-            count++;
-        }
-        else
-        {
-            // insert children of the node in the priority list
-
-            auto const left_child = node->children.first;
-            auto const right_child = node->children.second;
-            queue.pop_push( left_child, distance( left_child ) );
-            queue.push( right_child, distance( right_child ) );
+            if ( TreeTraversal<DeviceType>::isLeaf( node ) )
+            {
+                int const leaf_index =
+                    TreeTraversal<DeviceType>::getIndex( node );
+                double const leaf_distance = node_distance;
+                if ( heap.size() < k )
+                {
+                    // Insert leaf node and update radius if it was the kth one.
+                    heap.push( Kokkos::make_pair( leaf_index, leaf_distance ) );
+                    if ( heap.size() == k )
+                        radius = heap.top().second;
+                }
+                else
+                {
+                    // Replace top element in the heap and update radius.
+                    heap.popPush(
+                        Kokkos::make_pair( leaf_index, leaf_distance ) );
+                    radius = heap.top().second;
+                }
+            }
+            else
+            {
+                // Insert children into the stack and make sure that the
+                // closest one ends on top.
+                Node const *left_child = node->children.first;
+                double const left_child_distance = distance( left_child );
+                Node const *right_child = node->children.second;
+                double const right_child_distance = distance( right_child );
+                if ( left_child_distance < right_child_distance )
+                {
+                    // NOTE not really sure why but it performed better with
+                    // the conditional insertion on the device and without it
+                    // on the host (~5% improvement for both)
+                    if ( right_child_distance < radius )
+                        stack.emplace( right_child, right_child_distance );
+                    stack.emplace( left_child, left_child_distance );
+                }
+                else
+                {
+                    if ( left_child_distance < radius )
+                        stack.emplace( left_child, left_child_distance );
+                    stack.emplace( right_child, right_child_distance );
+                }
+            }
         }
     }
-    return count;
+    // Sort the leaf nodes and output the results.
+    // NOTE: Do not try this at home.  Messing with the underlying container
+    // invalidates the state of the PriorityQueue.
+    sortHeap( heap.data(), heap.data() + heap.size(), heap.valueComp() );
+    for ( decltype( heap.size() ) i = 0; i < heap.size(); ++i )
+    {
+        int const leaf_index = ( heap.data() + i )->first;
+        double const leaf_distance = ( heap.data() + i )->second;
+        insert( leaf_index, leaf_distance );
+    }
+    return heap.size();
 }
 
 template <typename DeviceType, typename Predicate, typename Insert>
@@ -209,10 +260,11 @@ queryDispatch( SpatialPredicateTag,
     return spatialQuery( bvh, pred, insert );
 }
 
-template <typename DeviceType, typename Predicate, typename Insert>
+template <typename DeviceType, typename Predicate, typename Insert,
+          typename Buffer>
 KOKKOS_INLINE_FUNCTION int queryDispatch(
     NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
-    Predicate const &pred, Insert const &insert)
+    Predicate const &pred, Insert const &insert, Buffer const &buffer )
 {
     auto const geometry = pred._geometry;
     auto const k = pred._k;
@@ -220,7 +272,7 @@ KOKKOS_INLINE_FUNCTION int queryDispatch(
                          [geometry]( Node const *node ) {
                              return distance( geometry, node->bounding_box );
                          },
-                         k, insert );
+                         k, insert, buffer );
 }
 
 } // namespace Details
