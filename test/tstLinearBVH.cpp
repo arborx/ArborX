@@ -319,6 +319,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, miscellaneous, DeviceType )
     using ExecutionSpace = typename DeviceType::execution_space;
     Kokkos::View<int *, DeviceType> zeros( "zeros", 3 );
     Kokkos::deep_copy( zeros, 255 );
+    Kokkos::View<Kokkos::pair<int, double> *, DeviceType> empty_buffer(
+        "empty_buffer" );
     Kokkos::parallel_for(
         "dummy", Kokkos::RangePolicy<ExecutionSpace>( 0, 1 ),
         KOKKOS_LAMBDA( int ) {
@@ -332,12 +334,12 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, miscellaneous, DeviceType )
             zeros( 1 ) =
                 DataTransferKit::Details::TreeTraversal<DeviceType>::query(
                     empty_bvh, DataTransferKit::nearest( p ),
-                    []( int, double ) {} );
+                    []( int, double ) {}, empty_buffer );
             // nearest query for k < 1
             zeros( 2 ) =
                 DataTransferKit::Details::TreeTraversal<DeviceType>::query(
-                    bvh, DataTransferKit::nearest( p, 0 ),
-                    []( int, double ) {} );
+                    bvh, DataTransferKit::nearest( p, 0 ), []( int, double ) {},
+                    empty_buffer );
         } );
     Kokkos::fence();
     auto zeros_host = Kokkos::create_mirror_view( zeros );
