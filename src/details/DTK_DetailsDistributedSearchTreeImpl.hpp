@@ -667,8 +667,9 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
         KOKKOS_LAMBDA( int q ) {
             PriorityQueue queue;
             for ( int i = offset( q ); i < offset( q + 1 ); ++i )
-                queue.push( Kokkos::Array<int, 2>{{indices( i ), ranks( i )}},
-                            distances( i ) );
+                queue.emplace(
+                    Kokkos::Array<int, 2>{{indices( i ), ranks( i )}},
+                    distances( i ) );
 
             int count = 0;
             while ( !queue.empty() && count < queries( q )._k )
