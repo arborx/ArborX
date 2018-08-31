@@ -225,13 +225,17 @@ nearestQuery( BoundingVolumeHierarchy<DeviceType> const &bvh,
                     // NOTE not really sure why but it performed better with
                     // the conditional insertion on the device and without it
                     // on the host (~5% improvement for both)
+#if defined( __CUDA_ARCH__ )
                     if ( right_child_distance < radius )
+#endif
                         stack.emplace( right_child, right_child_distance );
                     stack.emplace( left_child, left_child_distance );
                 }
                 else
                 {
+#if defined( __CUDA_ARCH__ )
                     if ( left_child_distance < radius )
+#endif
                         stack.emplace( left_child, left_child_distance );
                     stack.emplace( right_child, right_child_distance );
                 }
