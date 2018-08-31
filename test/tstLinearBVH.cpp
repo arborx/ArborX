@@ -322,8 +322,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, miscellaneous, DeviceType )
     Kokkos::View<Kokkos::pair<int, double> *, DeviceType> empty_buffer(
         "empty_buffer" );
     Kokkos::parallel_for(
-        "dummy", Kokkos::RangePolicy<ExecutionSpace>( 0, 1 ),
-        KOKKOS_LAMBDA( int ) {
+        Kokkos::RangePolicy<ExecutionSpace>( 0, 1 ), KOKKOS_LAMBDA( int ) {
             DataTransferKit::Point p = {{0., 0., 0.}};
             double r = 1.0;
             // spatial query on empty tree
