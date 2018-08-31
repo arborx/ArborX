@@ -13,6 +13,10 @@
 #include <DTK_DetailsPriorityQueue.hpp>
 #include <DTK_DetailsStack.hpp>
 
+// FIXME Some versions of kokkos have this header missing before the definition
+// of Kokkos::Array.  In that case the error came from Teuchos.
+#include <impl/Kokkos_Error.hpp>
+
 #include <Teuchos_UnitTestHarness.hpp>
 
 #include <Kokkos_Array.hpp>
