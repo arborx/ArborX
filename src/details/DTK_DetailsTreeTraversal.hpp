@@ -33,13 +33,13 @@ struct TreeTraversal
   public:
     using ExecutionSpace = typename DeviceType::execution_space;
 
-    template <typename Predicate, typename Insert>
+    template <typename Predicate, typename... Args>
     KOKKOS_INLINE_FUNCTION static int
     query( BoundingVolumeHierarchy<DeviceType> const &bvh,
-           Predicate const &pred, Insert const &insert )
+           Predicate const &pred, Args &&... args )
     {
         using Tag = typename Predicate::Tag;
-        return queryDispatch( bvh, pred, insert, Tag{} );
+        return queryDispatch( Tag{}, bvh, pred, std::forward<Args>( args )... );
     }
 
     /**
@@ -203,18 +203,17 @@ nearestQuery( BoundingVolumeHierarchy<DeviceType> const &bvh,
 
 template <typename DeviceType, typename Predicate, typename Insert>
 KOKKOS_INLINE_FUNCTION int
-queryDispatch( BoundingVolumeHierarchy<DeviceType> const &bvh,
-               Predicate const &pred, Insert const &insert,
-               SpatialPredicateTag )
+queryDispatch( SpatialPredicateTag,
+               BoundingVolumeHierarchy<DeviceType> const &bvh,
+               Predicate const &pred, Insert const &insert )
 {
     return spatialQuery( bvh, pred, insert );
 }
 
 template <typename DeviceType, typename Predicate, typename Insert>
-KOKKOS_INLINE_FUNCTION int
-queryDispatch( BoundingVolumeHierarchy<DeviceType> const &bvh,
-               Predicate const &pred, Insert const &insert,
-               NearestPredicateTag )
+KOKKOS_INLINE_FUNCTION int queryDispatch(
+    NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
+    Predicate const &pred, Insert const &insert)
 {
     auto const geometry = pred._geometry;
     auto const k = pred._k;
