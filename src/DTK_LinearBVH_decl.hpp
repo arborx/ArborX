@@ -111,6 +111,13 @@ void queryDispatch(
         double const invalid_distance = -Kokkos::ArithTraits<double>::max();
         Kokkos::deep_copy( distances, invalid_distance );
 
+        // Allocate buffer over which to perform heap operations in
+        // TreeTraversal::nearestQuery() to store nearest leaf nodes found so
+        // far.  It is not possible to anticipate how much memory to allocate
+        // since the number of nearest neighbors k is only known at runtime.
+        Kokkos::View<Kokkos::pair<int, double> *, DeviceType> buffer(
+            Kokkos::ViewAllocateWithoutInitializing( "buffer" ), n_results );
+
         Kokkos::parallel_for(
             DTK_MARK_REGION( "perform_nearest_queries_and_return_distances" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
@@ -123,12 +130,19 @@ void queryDispatch(
                         indices( offset( permute( i ) ) + count ) = index;
                         distances( offset( permute( i ) ) + count ) = distance;
                         count++;
-                    } );
+                    },
+                    Kokkos::subview(
+                        buffer,
+                        Kokkos::make_pair( offset( permute( i ) ),
+                                           offset( permute( i ) + 1 ) ) ) );
             } );
         Kokkos::fence();
     }
     else
     {
+        Kokkos::View<Kokkos::pair<int, double> *, DeviceType> buffer(
+            Kokkos::ViewAllocateWithoutInitializing( "buffer" ), n_results );
+
         Kokkos::parallel_for(
             DTK_MARK_REGION( "perform_nearest_queries" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
@@ -138,7 +152,11 @@ void queryDispatch(
                     bvh, queries( i ),
                     [indices, offset, permute, i, &count]( int index, double ) {
                         indices( offset( permute( i ) ) + count++ ) = index;
-                    } );
+                    },
+                    Kokkos::subview(
+                        buffer,
+                        Kokkos::make_pair( offset( permute( i ) ),
+                                           offset( permute( i ) + 1 ) ) ) );
             } );
         Kokkos::fence();
     }
