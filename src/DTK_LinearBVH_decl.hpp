@@ -312,7 +312,7 @@ void queryDispatch( Details::SpatialPredicateTag,
             KOKKOS_LAMBDA( int i ) {
                 offset( permute( i ) ) =
                     Details::TreeTraversal<DeviceType>::query(
-                        bvh, queries( i ), []( int index ) {} );
+                        bvh, queries( i ), []( int ) {} );
             } );
     Kokkos::fence();
 
