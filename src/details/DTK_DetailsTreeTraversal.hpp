@@ -101,8 +101,7 @@ spatialQuery( BoundingVolumeHierarchy<DeviceType> const &bvh,
 
     Stack<Node const *> stack;
 
-    Node const *root = TreeTraversal<DeviceType>::getRoot( bvh );
-    stack.push( root );
+    stack.emplace( TreeTraversal<DeviceType>::getRoot( bvh ) );
     int count = 0;
 
     while ( !stack.empty() )
