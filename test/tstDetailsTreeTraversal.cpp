@@ -172,9 +172,9 @@ TEUCHOS_UNIT_TEST( ContainerAdaptors, stack )
     TEST_EQUALITY( stack.size(), 0 );
 }
 
-TEUCHOS_UNIT_TEST( LinearBVH, priority_queue )
+TEUCHOS_UNIT_TEST( ContainerAdaptors, priority_queue )
 {
-    DataTransferKit::Details::PriorityQueue<int> queue;
+    dtk::PriorityQueue<int> queue;
     // queue is empty at construction
     TEST_ASSERT( queue.empty() );
     // insert element
@@ -197,9 +197,10 @@ TEUCHOS_UNIT_TEST( LinearBVH, priority_queue )
 }
 
 template <typename PriorityQueue>
-void check_heap( PriorityQueue const &queue,
-                 std::vector<typename PriorityQueue::ValueType> const &heap_ref,
-                 bool &success, Teuchos::FancyOStream &out )
+void check_heap(
+    PriorityQueue const &queue,
+    std::vector<typename PriorityQueue::value_type> const &heap_ref,
+    bool &success, Teuchos::FancyOStream &out )
 {
     auto const size = queue.size();
     TEST_EQUALITY( size, static_cast<decltype( size )>( heap_ref.size() ) );
@@ -207,8 +208,8 @@ void check_heap( PriorityQueue const &queue,
     // NOTE Shameless hack to inspect the private data of the priority queue.
     // Will break if data is reordered in the PriorityQueue class declaration.
     auto heap =
-        reinterpret_cast<typename PriorityQueue::ValueType const *>( &queue );
-    for ( typename PriorityQueue::IndexType i = 0; i < size; ++i )
+        reinterpret_cast<typename PriorityQueue::value_type const *>( &queue );
+    for ( typename PriorityQueue::size_type i = 0; i < size; ++i )
         TEST_EQUALITY( heap[i], heap_ref[i] );
 }
 
@@ -350,12 +351,12 @@ TEUCHOS_UNIT_TEST( HeapOperations, min_heap )
     TEST_COMPARE_ARRAYS( a, ref );
 }
 
-TEUCHOS_UNIT_TEST( LinearBVH, pop_push )
+TEUCHOS_UNIT_TEST( PriorityQueue, pop_push )
 {
     // note that calling pop_push(x) does not necessarily yield the same heap
     // than calling consecutively pop() and push(x)
     // below is a max heap example to illustate this interesting property
-    DataTransferKit::Details::PriorityQueue<int> queue;
+    dtk::PriorityQueue<int> queue;
 
     std::vector<int> ref = {100, 19, 36, 17, 3, 25, 1, 2, 7};
     for ( auto x : ref )
@@ -369,12 +370,13 @@ TEUCHOS_UNIT_TEST( LinearBVH, pop_push )
     check_heap( queue, {36, 19, 25, 17, 3, 7, 1, 2, 9}, success, out );
     //                                    ^^       ^^
 
-    queue.clear();
+    // Clear the content of the queue
+    queue = dtk::PriorityQueue<int>();
     for ( auto x : ref )
         queue.push( x );
     check_heap( queue, ref, success, out );
 
-    queue.pop_push( 9 );
+    queue.popPush( 9 );
     check_heap( queue, {36, 19, 25, 17, 3, 9, 1, 2, 7}, success, out );
     //                                    ^^       ^^
 }
@@ -383,9 +385,9 @@ template <typename PriorityQueue>
 void check_heap( PriorityQueue const &queue, bool &success,
                  Teuchos::FancyOStream &out )
 {
-    using ValueType = typename PriorityQueue::ValueType;
+    using ValueType = typename PriorityQueue::value_type;
     int const size = queue.size();
-    auto const compare = queue.value_comp();
+    auto const compare = queue.valueComp();
     auto heap = reinterpret_cast<ValueType const *>( &queue );
     for ( int i = 0; i < size; ++i )
     {
@@ -432,7 +434,7 @@ TEUCHOS_UNIT_TEST( PriorityQueue, maintain_heap_properties )
             queue.push( uniform_distribution( generator ) );
             break;
         case POP_PUSH:
-            queue.pop_push( uniform_distribution( generator ) );
+            queue.popPush( uniform_distribution( generator ) );
             break;
         default:
             throw std::runtime_error( "something went wrong" );
