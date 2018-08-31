@@ -11,55 +11,60 @@
 #ifndef DTK_DETAILS_STACK_HPP
 #define DTK_DETAILS_STACK_HPP
 
+#include <DTK_DetailsContainers.hpp>
+
 #include <Kokkos_Macros.hpp>
 
-#include <cassert>
-#include <cstdlib>
-#include <utility>
+#include <type_traits> // is_same
+#include <utility>     // move, forward
 
 namespace DataTransferKit
 {
 namespace Details
 {
 
-template <typename T>
+template <typename T, typename Container = Vector<T, 64>>
 class Stack
 {
   public:
-    using IndexType = std::ptrdiff_t;
-    using ValueType = T;
+    using container_type = Container;
+    using value_type = typename Container::value_type;
+    using size_type = typename Container::size_type;
+    using reference = typename Container::reference;
+    using const_reference = typename Container::const_reference;
+    static_assert( std::is_same<value_type, T>::value,
+                   "Template parameter T in Stack is not the same as "
+                   "the type of the elements stored by the underlying "
+                   "container Container::value_type" );
 
     KOKKOS_FUNCTION Stack() = default;
 
-    KOKKOS_INLINE_FUNCTION bool empty() const { return _size == 0; }
+    // Capacity
+    KOKKOS_INLINE_FUNCTION bool empty() const { return _c.empty(); }
+    KOKKOS_INLINE_FUNCTION size_type size() const { return _c.size(); }
 
-    KOKKOS_INLINE_FUNCTION IndexType size() const { return _size; }
+    // Element access
+    KOKKOS_INLINE_FUNCTION reference &top() { return _c.back(); }
+    KOKKOS_INLINE_FUNCTION const_reference &top() const { return _c.back(); }
 
-    KOKKOS_INLINE_FUNCTION void clear() { _size = 0; }
-
-    template <typename... Args>
-    KOKKOS_INLINE_FUNCTION void push( Args &&... args )
+    // Modifiers
+    KOKKOS_INLINE_FUNCTION void push( value_type const &value )
     {
-        assert( _size < _max_size );
-        _stack[_size++] = T( std::forward<Args>( args )... );
+        _c.pushBack( value );
     }
-
-    KOKKOS_INLINE_FUNCTION void pop()
+    KOKKOS_INLINE_FUNCTION void push( value_type &&value )
     {
-        assert( _size > 0 );
-        _size--;
+        _c.pushBack( std::move( value ) );
     }
-
-    KOKKOS_INLINE_FUNCTION T const &top() const
+    template <class... Args>
+    KOKKOS_INLINE_FUNCTION void emplace( Args &&... args )
     {
-        assert( _size > 0 );
-        return *( _stack + _size - 1 );
+        _c.emplaceBack( std::forward<Args>( args )... );
     }
+    KOKKOS_INLINE_FUNCTION void pop() { _c.popBack(); }
 
   private:
-    static IndexType constexpr _max_size = 64;
-    T _stack[_max_size];
-    IndexType _size = 0;
+    Container _c;
 };
 
 } // namespace Details
