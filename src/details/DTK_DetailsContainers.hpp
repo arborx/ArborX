@@ -24,7 +24,7 @@ namespace Details
 
 // dynamic vector with fixed maximum size
 template <typename T, std::size_t N>
-class Vector
+class StaticVector
 {
     // clang-format off
   public:
@@ -35,7 +35,7 @@ class Vector
     using const_reference = value_type const &;
     using pointer = value_type *;
     using const_pointer = value_type const *;
-    KOKKOS_FUNCTION Vector() = default;
+    KOKKOS_FUNCTION StaticVector() = default;
     KOKKOS_INLINE_FUNCTION bool empty() const { return _size == 0; }
     KOKKOS_INLINE_FUNCTION size_type size() const { return _size; }
     KOKKOS_INLINE_FUNCTION constexpr size_type maxSize() const { return N; }
@@ -62,7 +62,7 @@ class Vector
 };
 
 template <typename T>
-class UnmanagedVector
+class UnmanagedStaticVector
 {
     // clang-format off
   public:
@@ -73,7 +73,7 @@ class UnmanagedVector
     using const_reference = value_type const &;
     using pointer = value_type *;
     using const_pointer = value_type const *;
-    KOKKOS_FUNCTION UnmanagedVector( pointer ptr, size_type max_size ) : _ptr(ptr) , _max_size(max_size) { assert(ptr != nullptr); }
+    KOKKOS_FUNCTION UnmanagedStaticVector( pointer ptr, size_type max_size ) : _ptr(ptr) , _max_size(max_size) { assert(ptr != nullptr); }
     KOKKOS_INLINE_FUNCTION bool empty() const { return _size == 0; }
     KOKKOS_INLINE_FUNCTION size_type size() const { return _size; }
     KOKKOS_INLINE_FUNCTION constexpr size_type maxSize() const { return _max_size; }

@@ -23,7 +23,7 @@ namespace DataTransferKit
 namespace Details
 {
 
-template <typename T, typename Container = Vector<T, 64>>
+template <typename T, typename Container = StaticVector<T, 64>>
 class Stack
 {
   public:

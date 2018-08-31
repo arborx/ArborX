@@ -23,7 +23,7 @@ namespace dtk = DataTransferKit::Details;
 
 TEUCHOS_UNIT_TEST( Containers, dynamic_array_with_fixed_maximum_size )
 {
-    dtk::Vector<int, 4> a;
+    dtk::StaticVector<int, 4> a;
 
     TEST_ASSERT( a.empty() );
     TEST_EQUALITY( a.size(), 0 );
@@ -87,7 +87,7 @@ TEUCHOS_UNIT_TEST( Containers, non_owning_view_over_dynamic_array )
 {
     float data[6] = {255, 255, 255, 255, 255, 255};
     //                        ^^^^ ^^^^ ^^^^
-    dtk::UnmanagedVector<float> a( data + 2, 3 );
+    dtk::UnmanagedStaticVector<float> a( data + 2, 3 );
 
     TEST_ASSERT( !std::is_default_constructible<decltype( a )>::value );
     TEST_EQUALITY( a.data(), data + 2 );

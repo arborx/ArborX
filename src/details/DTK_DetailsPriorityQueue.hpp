@@ -46,7 +46,7 @@ struct Greater
 };
 
 template <typename T, typename Compare = Less<T>,
-          typename Container = Vector<T, 256>>
+          typename Container = StaticVector<T, 256>>
 class PriorityQueue
 {
   public:

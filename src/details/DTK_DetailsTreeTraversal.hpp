@@ -174,9 +174,9 @@ nearestQuery( BoundingVolumeHierarchy<DeviceType> const &bvh,
     // The farthest leaf node is on top.
     assert( k == buffer.size() );
     PriorityQueue<PairIndexDistance, CompareDistance,
-                  UnmanagedVector<PairIndexDistance>>
-        heap( UnmanagedVector<PairIndexDistance>( buffer.data(),
-                                                  buffer.size() ) );
+                  UnmanagedStaticVector<PairIndexDistance>>
+        heap( UnmanagedStaticVector<PairIndexDistance>( buffer.data(),
+                                                        buffer.size() ) );
 
     using PairNodePtrDistance = Kokkos::pair<Node const *, double>;
     Stack<PairNodePtrDistance> stack;
