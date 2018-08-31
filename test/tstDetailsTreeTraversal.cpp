@@ -145,36 +145,31 @@ TEUCHOS_UNIT_TEST( Containers, non_owning_view_over_dynamic_array )
     TEST_EQUALITY( data[5], 255 );
 }
 
-TEUCHOS_UNIT_TEST( LinearBVH, stack )
+TEUCHOS_UNIT_TEST( ContainerAdaptors, stack )
 {
     // stack is empty at construction
-    DataTransferKit::Details::Stack<int> stack;
+    dtk::Stack<int> stack;
     TEST_ASSERT( stack.empty() );
-    TEST_ASSERT( stack.size() == 0 );
+    TEST_EQUALITY( stack.size(), 0 );
     // insert element
     stack.push( 2 );
     TEST_ASSERT( !stack.empty() );
-    TEST_ASSERT( stack.size() == 1 );
-    TEST_ASSERT( stack.top() == 2 );
+    TEST_EQUALITY( stack.size(), 1 );
+    TEST_EQUALITY( stack.top(), 2 );
     // insert another element
     stack.push( 5 );
     TEST_ASSERT( !stack.empty() );
-    TEST_ASSERT( stack.size() == 2 );
-    TEST_ASSERT( stack.top() == 5 );
+    TEST_EQUALITY( stack.size(), 2 );
+    TEST_EQUALITY( stack.top(), 5 );
     // remove it
     stack.pop();
     TEST_ASSERT( !stack.empty() );
-    TEST_ASSERT( stack.size() == 1 );
-    TEST_ASSERT( stack.top() == 2 );
+    TEST_EQUALITY( stack.size(), 1 );
+    TEST_EQUALITY( stack.top(), 2 );
     // empty the stack
     stack.pop();
     TEST_ASSERT( stack.empty() );
-    TEST_ASSERT( stack.size() == 0 );
-    // add a few elements again and clear the stack
-    for ( int x : {0, 1, 1, 2, 3, 5, 8, 13, 21, 34} )
-        stack.push( x );
-    stack.clear();
-    TEST_ASSERT( stack.empty() );
+    TEST_EQUALITY( stack.size(), 0 );
 }
 
 TEUCHOS_UNIT_TEST( LinearBVH, priority_queue )
