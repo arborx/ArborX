@@ -2,10 +2,15 @@
 # ## EXAMPLES
 # ##---------------------------------------------------------------------------##
 
+FIND_PACKAGE(benchmark REQUIRED)
+
 TRIBITS_ADD_EXECUTABLE(
   bvh
   SOURCES bvh_driver.cpp
+  ADDED_EXE_TARGET_NAME_OUT bvh_exe_target_name
   )
+TARGET_LINK_LIBRARIES(${bvh_exe_target_name} benchmark::benchmark)
+
 IF(Kokkos_ENABLE_Serial)
   TRIBITS_ADD_TEST(
     bvh
