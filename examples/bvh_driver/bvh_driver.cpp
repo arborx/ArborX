@@ -18,6 +18,7 @@
 
 #include <chrono>
 #include <cmath> // cbrt
+#include <cstdlib>
 #include <random>
 
 template <typename DeviceType>
@@ -244,8 +245,9 @@ int main( int argc, char *argv[] )
         break;
     }
 
-    // FIXME benchmark::Initialize() calls exit(0) when `--help` and
-    // Kokkos::finalize() is never called
+    // benchmark::Initialize() calls exit(0) when `--help` so register
+    // Kokkos::finalize() to be called on normal program termination.
+    std::atexit( Kokkos::finalize );
     benchmark::Initialize( &argc, argv );
 
     // Throw if an option is not recognised
