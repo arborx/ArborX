@@ -14,7 +14,7 @@ TARGET_LINK_LIBRARIES(${bvh_exe_target_name} benchmark::benchmark)
 IF(Kokkos_ENABLE_Serial)
   TRIBITS_ADD_TEST(
     bvh
-    POSTFIX_AND_ARGS_0 serial --benchmark_filter=Serial
+    POSTFIX_AND_ARGS_0 serial --benchmark_filter=Serial --benchmark_color=false
     COMM serial mpi
     NUM_MPI_PROCS 1
     FAIL_REGULAR_EXPRESSION "data race;leak;runtime error"
@@ -23,7 +23,7 @@ ENDIF()
 IF(Kokkos_ENABLE_Cuda)
   TRIBITS_ADD_TEST(
     bvh
-    POSTFIX_AND_ARGS_0 cuda --benchmark_filter=Cuda
+    POSTFIX_AND_ARGS_0 cuda --benchmark_filter=Cuda --benchmark_color=false
     COMM serial mpi
     NUM_MPI_PROCS 1
     FAIL_REGULAR_EXPRESSION "data race;leak;runtime error"
@@ -32,7 +32,7 @@ ENDIF()
 IF(Kokkos_ENABLE_OpenMP)
   TRIBITS_ADD_TEST(
     bvh
-    POSTFIX_AND_ARGS_0 openmp --benchmark_filter=OpenMP
+    POSTFIX_AND_ARGS_0 openmp --benchmark_filter=OpenMP --benchmark_color=false
     COMM serial mpi
     NUM_MPI_PROCS 1
     NUM_TOTAL_CORES_USED 4
