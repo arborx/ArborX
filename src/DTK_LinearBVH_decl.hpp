@@ -34,6 +34,7 @@ class BoundingVolumeHierarchy
 {
   public:
     using TreeType = BoundingVolumeHierarchy;
+    using bounding_volume_type = Box;
     using size_type = typename Kokkos::View<int *, DeviceType>::size_type;
 
     BoundingVolumeHierarchy() = default; // build an empty tree
@@ -47,10 +48,11 @@ class BoundingVolumeHierarchy
                 Args &&... args ) const;
 
     KOKKOS_INLINE_FUNCTION
-    Box bounds() const
+    bounding_volume_type bounds() const
     {
+        // NOTE should default constructor initialize to an invalid geometry?
         if ( empty() )
-            return Box();
+            return bounding_volume_type();
         return ( size() > 1 ? _internal_nodes : _leaf_nodes )[0].bounding_box;
     }
 

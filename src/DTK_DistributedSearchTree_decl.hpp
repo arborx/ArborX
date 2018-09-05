@@ -35,6 +35,7 @@ template <typename DeviceType>
 class DistributedSearchTree
 {
   public:
+    using bounding_volume_type = typename BVH<DeviceType>::bounding_volume_type;
     using size_type = typename BVH<DeviceType>::size_type;
 
     DistributedSearchTree(
@@ -44,7 +45,7 @@ class DistributedSearchTree
     /** Returns the smallest axis-aligned box able to contain all the objects
      *  stored in the tree or an invalid box if the tree is empty.
      */
-    inline Box bounds() const { return _top_tree.bounds(); }
+    inline bounding_volume_type bounds() const { return _top_tree.bounds(); }
 
     /** Returns the global number of objects stored in the tree.
      */
