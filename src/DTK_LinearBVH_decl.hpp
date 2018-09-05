@@ -43,8 +43,12 @@ class BoundingVolumeHierarchy
     // Views are passed by reference here because internally Kokkos::realloc()
     // is called.
     template <typename Query, typename... Args>
-    void query( Kokkos::View<Query *, DeviceType> queries,
-                Args &&... args ) const;
+    inline void query( Kokkos::View<Query *, DeviceType> queries,
+                       Args &&... args ) const
+    {
+        using Tag = typename Query::Tag;
+        queryDispatch( Tag{}, *this, queries, std::forward<Args>( args )... );
+    }
 
     KOKKOS_INLINE_FUNCTION
     bounding_volume_type bounds() const
@@ -393,15 +397,6 @@ void queryDispatch( Details::NearestPredicateTag tag,
                     Kokkos::View<double *, DeviceType> &distances )
 {
     queryDispatch( tag, bvh, queries, indices, offset, &distances );
-}
-
-template <typename DeviceType>
-template <typename Query, typename... Args>
-void BoundingVolumeHierarchy<DeviceType>::query(
-    Kokkos::View<Query *, DeviceType> queries, Args &&... args ) const
-{
-    using Tag = typename Query::Tag;
-    queryDispatch( Tag{}, *this, queries, std::forward<Args>( args )... );
 }
 
 } // namespace DataTransferKit
