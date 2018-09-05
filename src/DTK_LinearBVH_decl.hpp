@@ -33,7 +33,6 @@ template <typename DeviceType>
 class BoundingVolumeHierarchy
 {
   public:
-    using tree_type = BoundingVolumeHierarchy;
     using bounding_volume_type = Box;
     using size_type = typename Kokkos::View<int *, DeviceType>::size_type;
 
@@ -70,7 +69,7 @@ class BoundingVolumeHierarchy
 };
 
 template <typename DeviceType>
-using BVH = typename BoundingVolumeHierarchy<DeviceType>::tree_type;
+using BVH = BoundingVolumeHierarchy<DeviceType>;
 
 template <typename DeviceType, typename Query>
 void queryDispatch(
