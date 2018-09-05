@@ -82,20 +82,30 @@ class DistributedSearchTree
      *  \param[out] ranks Process ranks that own objects.
      */
     template <typename Query>
-    void query( Kokkos::View<Query *, DeviceType> queries,
-                Kokkos::View<int *, DeviceType> &indices,
-                Kokkos::View<int *, DeviceType> &offset,
-                Kokkos::View<int *, DeviceType> &ranks ) const;
+    inline void query( Kokkos::View<Query *, DeviceType> queries,
+                       Kokkos::View<int *, DeviceType> &indices,
+                       Kokkos::View<int *, DeviceType> &offset,
+                       Kokkos::View<int *, DeviceType> &ranks ) const
+    {
+        using Tag = typename Query::Tag;
+        Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
+            *this, queries, indices, offset, ranks, Tag{} );
+    }
 
     template <typename Query>
-    typename std::enable_if<
+    inline typename std::enable_if<
         std::is_same<typename Query::Tag, Details::NearestPredicateTag>::value,
         void>::type
     query( Kokkos::View<Query *, DeviceType> queries,
            Kokkos::View<int *, DeviceType> &indices,
            Kokkos::View<int *, DeviceType> &offset,
            Kokkos::View<int *, DeviceType> &ranks,
-           Kokkos::View<double *, DeviceType> &distances ) const;
+           Kokkos::View<double *, DeviceType> &distances ) const
+    {
+        using Tag = typename Query::Tag;
+        Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
+            *this, queries, indices, offset, ranks, Tag{}, &distances );
+    }
 
   private:
     friend struct Details::DistributedSearchTreeImpl<DeviceType>;
@@ -105,36 +115,6 @@ class DistributedSearchTree
     size_type _top_tree_size;
     Kokkos::View<size_type *, DeviceType> _bottom_tree_sizes;
 };
-
-template <typename DeviceType>
-template <typename Query>
-void DistributedSearchTree<DeviceType>::query(
-    Kokkos::View<Query *, DeviceType> queries,
-    Kokkos::View<int *, DeviceType> &indices,
-    Kokkos::View<int *, DeviceType> &offset,
-    Kokkos::View<int *, DeviceType> &ranks ) const
-{
-    using Tag = typename Query::Tag;
-    Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-        *this, queries, indices, offset, ranks, Tag{} );
-}
-
-template <typename DeviceType>
-template <typename Query>
-typename std::enable_if<
-    std::is_same<typename Query::Tag, Details::NearestPredicateTag>::value,
-    void>::type
-DistributedSearchTree<DeviceType>::query(
-    Kokkos::View<Query *, DeviceType> queries,
-    Kokkos::View<int *, DeviceType> &indices,
-    Kokkos::View<int *, DeviceType> &offset,
-    Kokkos::View<int *, DeviceType> &ranks,
-    Kokkos::View<double *, DeviceType> &distances ) const
-{
-    using Tag = typename Query::Tag;
-    Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-        *this, queries, indices, offset, ranks, Tag{}, &distances );
-}
 
 } // namespace DataTransferKit
 
