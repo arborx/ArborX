@@ -35,6 +35,8 @@ template <typename DeviceType>
 class DistributedSearchTree
 {
   public:
+    using size_type = typename BVH<DeviceType>::size_type;
+
     DistributedSearchTree(
         Teuchos::RCP<Teuchos::Comm<int> const> comm,
         Kokkos::View<Box const *, DeviceType> bounding_boxes );
@@ -44,10 +46,9 @@ class DistributedSearchTree
      */
     inline Box bounds() const { return _top_tree.bounds(); }
 
-    using SizeType = typename BVH<DeviceType>::SizeType;
     /** Returns the global number of objects stored in the tree.
      */
-    inline SizeType size() const { return _top_tree_size; }
+    inline size_type size() const { return _top_tree_size; }
 
     /** Indicates whether the tree is empty on all processes.
      */
@@ -100,8 +101,8 @@ class DistributedSearchTree
     Teuchos::RCP<Teuchos::Comm<int> const> _comm;
     BVH<DeviceType> _top_tree;    // replicated
     BVH<DeviceType> _bottom_tree; // local
-    SizeType _top_tree_size;
-    Kokkos::View<SizeType *, DeviceType> _bottom_tree_sizes;
+    size_type _top_tree_size;
+    Kokkos::View<size_type *, DeviceType> _bottom_tree_sizes;
 };
 
 template <typename DeviceType>
