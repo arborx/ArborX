@@ -28,8 +28,8 @@ namespace DataTransferKit
 
 /** \brief Distributed search tree
  *
- *  \note size() and empty() must be called as collectives over all processes
- *  in the communicator passed to the constructor.
+ *  \note query() must be called as collective over all processes in the
+ *  communicator passed to the constructor.
  */
 template <typename DeviceType>
 class DistributedSearchTree
