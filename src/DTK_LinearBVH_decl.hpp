@@ -40,15 +40,11 @@ class BoundingVolumeHierarchy
     BoundingVolumeHierarchy(
         Kokkos::View<Box const *, DeviceType> bounding_boxes );
 
-    // Views are passed by reference here because internally Kokkos::realloc()
-    // is called.
-    template <typename Query, typename... Args>
-    inline void query( Kokkos::View<Query *, DeviceType> queries,
-                       Args &&... args ) const
-    {
-        using Tag = typename Query::Tag;
-        queryDispatch( Tag{}, *this, queries, std::forward<Args>( args )... );
-    }
+    KOKKOS_INLINE_FUNCTION
+    size_type size() const { return _leaf_nodes.extent( 0 ); }
+
+    KOKKOS_INLINE_FUNCTION
+    bool empty() const { return size() == 0; }
 
     KOKKOS_INLINE_FUNCTION
     bounding_volume_type bounds() const
@@ -59,11 +55,15 @@ class BoundingVolumeHierarchy
         return ( size() > 1 ? _internal_nodes : _leaf_nodes )[0].bounding_box;
     }
 
-    KOKKOS_INLINE_FUNCTION
-    size_type size() const { return _leaf_nodes.extent( 0 ); }
-
-    KOKKOS_INLINE_FUNCTION
-    bool empty() const { return size() == 0; }
+    // Views are passed by reference here because internally Kokkos::realloc()
+    // is called.
+    template <typename Query, typename... Args>
+    inline void query( Kokkos::View<Query *, DeviceType> queries,
+                       Args &&... args ) const
+    {
+        using Tag = typename Query::Tag;
+        queryDispatch( Tag{}, *this, queries, std::forward<Args>( args )... );
+    }
 
   private:
     friend struct Details::TreeTraversal<DeviceType>;
