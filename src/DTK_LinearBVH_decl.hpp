@@ -47,7 +47,7 @@ class BoundingVolumeHierarchy
         // NOTE should default constructor initialize to an invalid geometry?
         if ( empty() )
             return bounding_volume_type();
-        // FIXME bvh->getBoundingVolume( bvh->getRoot() )
+        // FIXME this->getBoundingVolume( this->getRoot() );
         return ( size() > 1 ? _internal_nodes : _leaf_nodes )[0].bounding_box;
     }
 
