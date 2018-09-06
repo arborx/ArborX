@@ -26,7 +26,7 @@ class BoundingVolumeHierarchy
 {
   public:
     using bounding_volume_type = Box;
-    using size_type = typename Kokkos::View<int *, DeviceType>::size_type;
+    using size_type = typename Kokkos::View<Node *, DeviceType>::size_type;
 
     BoundingVolumeHierarchy() = default; // build an empty tree
 
