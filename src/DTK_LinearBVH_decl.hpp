@@ -98,6 +98,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
 
     // determine the bounding box of the scene
     Details::TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
+        // FIXME this->getBoundingVolume( this->getRoot() );
         primitives, _internal_nodes[0].bounding_box );
 
     // calculate morton code of all objects
@@ -105,6 +106,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
     Kokkos::View<unsigned int *, DeviceType> morton_indices(
         Kokkos::ViewAllocateWithoutInitializing( "morton" ), n );
     Details::TreeConstruction<DeviceType>::assignMortonCodes(
+        // FIXME this->getBoundingVolume( this->getRoot() );
         primitives, morton_indices, _internal_nodes[0].bounding_box );
 
     // sort them along the Z-order space-filling curve
