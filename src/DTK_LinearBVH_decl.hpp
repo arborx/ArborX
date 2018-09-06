@@ -51,14 +51,14 @@ class BoundingVolumeHierarchy
         return ( size() > 1 ? _internal_nodes : _leaf_nodes )[0].bounding_box;
     }
 
-    template <typename Queries, typename... Args>
-    inline void query( Queries queries, Args &&... args ) const
+    template <typename Predicates, typename... Args>
+    inline void query( Predicates predicates, Args &&... args ) const
     {
         // FIXME lame placeholder for concept check
-        static_assert( Kokkos::is_view<Queries>::value, "must pass a view" );
-        using Tag = typename Queries::value_type::Tag;
+        static_assert( Kokkos::is_view<Predicates>::value, "must pass a view" );
+        using Tag = typename Predicates::value_type::Tag;
         Details::BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
-            Tag{}, *this, queries, std::forward<Args>( args )... );
+            Tag{}, *this, predicates, std::forward<Args>( args )... );
     }
 
   private:
