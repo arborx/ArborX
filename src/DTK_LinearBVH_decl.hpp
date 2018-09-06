@@ -16,6 +16,7 @@
 #include <DTK_DetailsBoundingVolumeHierarchyImpl.hpp>
 #include <DTK_DetailsNode.hpp>
 
+#include <Kokkos_Macros.hpp>
 #include <Kokkos_View.hpp>
 
 namespace DataTransferKit
@@ -45,6 +46,7 @@ class BoundingVolumeHierarchy
         // NOTE should default constructor initialize to an invalid geometry?
         if ( empty() )
             return bounding_volume_type();
+        // FIXME bvh->getBoundingVolume( bvh->getRoot() )
         return ( size() > 1 ? _internal_nodes : _leaf_nodes )[0].bounding_box;
     }
 
