@@ -2,6 +2,8 @@
 # ## EXAMPLES
 # ##---------------------------------------------------------------------------##
 
+# We require version 1.4.0 or higher but the format used by Google benchmark is
+# wrong and thus, we cannot check the version during the configuration step.
 FIND_PACKAGE(benchmark REQUIRED)
 
 TRIBITS_ADD_EXECUTABLE(
