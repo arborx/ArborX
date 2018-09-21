@@ -33,7 +33,7 @@ class BoundingVolumeHierarchy
     BoundingVolumeHierarchy() = default; // build an empty tree
 
     template <typename Primitives>
-    BoundingVolumeHierarchy( Primitives primitives );
+    BoundingVolumeHierarchy( Primitives const &primitives );
 
     KOKKOS_INLINE_FUNCTION
     size_type size() const { return _leaf_nodes.extent( 0 ); }
@@ -74,7 +74,7 @@ using BVH = BoundingVolumeHierarchy<DeviceType>;
 template <typename DeviceType>
 template <typename Primitives>
 BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
-    Primitives primitives )
+    Primitives const &primitives )
     : _leaf_nodes( Kokkos::ViewAllocateWithoutInitializing( "leaf_nodes" ),
                    primitives.extent( 0 ) )
     , _internal_nodes(
