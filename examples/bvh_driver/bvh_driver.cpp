@@ -105,9 +105,10 @@ makeSpatialQueries( int n_values, int n_queries, int n_neighbors,
     return queries;
 }
 
-template <class DeviceType>
+template <class TreeType>
 void BM_construction( benchmark::State &state )
 {
+    using DeviceType = typename TreeType::device_type;
     int const n_values = state.range( 0 );
     PointCloudType point_cloud_type =
         static_cast<PointCloudType>( state.range( 1 ) );
@@ -124,9 +125,10 @@ void BM_construction( benchmark::State &state )
     }
 }
 
-template <class DeviceType>
+template <class TreeType>
 void BM_knn_search( benchmark::State &state )
 {
+    using DeviceType = typename TreeType::device_type;
     int const n_values = state.range( 0 );
     int const n_queries = state.range( 1 );
     int const n_neighbors = state.range( 2 );
@@ -152,9 +154,10 @@ void BM_knn_search( benchmark::State &state )
     }
 }
 
-template <class DeviceType>
+template <class TreeType>
 void BM_radius_search( benchmark::State &state )
 {
+    using DeviceType = typename TreeType::device_type;
     int const n_values = state.range( 0 );
     int const n_queries = state.range( 1 );
     int const n_neighbors = state.range( 2 );
@@ -212,17 +215,17 @@ class KokkosScopeGuard
     ~KokkosScopeGuard() { Kokkos::finalize(); }
 };
 
-#define REGISTER_BENCHMARK( DeviceType )                                       \
-    BENCHMARK_TEMPLATE( BM_construction, DeviceType )                          \
+#define REGISTER_BENCHMARK( TreeType )                                         \
+    BENCHMARK_TEMPLATE( BM_construction, TreeType )                            \
         ->Args( {n_values, source_point_cloud_type} )                          \
         ->UseManualTime()                                                      \
         ->Unit( benchmark::kMicrosecond );                                     \
-    BENCHMARK_TEMPLATE( BM_knn_search, DeviceType )                            \
+    BENCHMARK_TEMPLATE( BM_knn_search, TreeType )                              \
         ->Args( {n_values, n_queries, n_neighbors, source_point_cloud_type,    \
                  target_point_cloud_type} )                                    \
         ->UseManualTime()                                                      \
         ->Unit( benchmark::kMicrosecond );                                     \
-    BENCHMARK_TEMPLATE( BM_radius_search, DeviceType )                         \
+    BENCHMARK_TEMPLATE( BM_radius_search, TreeType )                           \
         ->Args( {n_values, n_queries, n_neighbors, buffer_size,                \
                  source_point_cloud_type, target_point_cloud_type} )           \
         ->UseManualTime()                                                      \
@@ -295,17 +298,17 @@ int main( int argc, char *argv[] )
 
 #ifdef KOKKOS_ENABLE_SERIAL
     using Serial = Kokkos::Compat::KokkosSerialWrapperNode::device_type;
-    REGISTER_BENCHMARK( Serial );
+    REGISTER_BENCHMARK( DataTransferKit::BVH<Serial> );
 #endif
 
 #ifdef KOKKOS_ENABLE_OPENMP
     using OpenMP = Kokkos::Compat::KokkosOpenMPWrapperNode::device_type;
-    REGISTER_BENCHMARK( OpenMP );
+    REGISTER_BENCHMARK( DataTransferKit::BVH<OpenMP> );
 #endif
 
 #ifdef KOKKOS_ENABLE_CUDA
     using Cuda = Kokkos::Compat::KokkosCudaWrapperNode::device_type;
-    REGISTER_BENCHMARK( Cuda );
+    REGISTER_BENCHMARK( DataTransferKit::BVH<Cuda> );
 #endif
 
     benchmark::RunSpecifiedBenchmarks();
