@@ -27,6 +27,7 @@ template <typename DeviceType>
 class BoundingVolumeHierarchy
 {
   public:
+    using device_type = DeviceType;
     using bounding_volume_type = Box;
     using size_type = typename Kokkos::View<Node *, DeviceType>::size_type;
 
