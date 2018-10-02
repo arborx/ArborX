@@ -49,7 +49,7 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
 
     _top_tree = BVH<DeviceType>( boxes );
 
-    _bottom_tree_sizes = Kokkos::View<SizeType *, DeviceType>(
+    _bottom_tree_sizes = Kokkos::View<size_type *, DeviceType>(
         Kokkos::ViewAllocateWithoutInitializing( "leave_count_in_local_trees" ),
         comm_size );
     auto bottom_tree_sizes_host =
