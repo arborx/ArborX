@@ -118,7 +118,7 @@ void BM_construction( benchmark::State &state )
     for ( auto _ : state )
     {
         auto const start = std::chrono::high_resolution_clock::now();
-        DataTransferKit::BVH<DeviceType> bvh( bounding_boxes );
+        TreeType index( bounding_boxes );
         auto const end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed_seconds = end - start;
         state.SetIterationTime( elapsed_seconds.count() );
@@ -137,7 +137,7 @@ void BM_knn_search( benchmark::State &state )
     PointCloudType const target_point_cloud_type =
         static_cast<PointCloudType>( state.range( 4 ) );
 
-    DataTransferKit::BVH<DeviceType> bvh(
+    TreeType index(
         constructBoxes<DeviceType>( n_values, source_point_cloud_type ) );
     auto const queries = makeNearestQueries<DeviceType>(
         n_values, n_queries, n_neighbors, target_point_cloud_type );
@@ -147,7 +147,7 @@ void BM_knn_search( benchmark::State &state )
         Kokkos::View<int *, DeviceType> offset( "offset" );
         Kokkos::View<int *, DeviceType> indices( "indices" );
         auto const start = std::chrono::high_resolution_clock::now();
-        bvh.query( queries, indices, offset );
+        index.query( queries, indices, offset );
         auto const end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed_seconds = end - start;
         state.SetIterationTime( elapsed_seconds.count() );
@@ -167,7 +167,7 @@ void BM_radius_search( benchmark::State &state )
     PointCloudType const target_point_cloud_type =
         static_cast<PointCloudType>( state.range( 5 ) );
 
-    DataTransferKit::BVH<DeviceType> bvh(
+    TreeType index(
         constructBoxes<DeviceType>( n_values, source_point_cloud_type ) );
     auto const queries = makeSpatialQueries<DeviceType>(
         n_values, n_queries, n_neighbors, target_point_cloud_type );
@@ -178,7 +178,7 @@ void BM_radius_search( benchmark::State &state )
         Kokkos::View<int *, DeviceType> offset( "offset" );
         Kokkos::View<int *, DeviceType> indices( "indices" );
         auto const start = std::chrono::high_resolution_clock::now();
-        bvh.query( queries, indices, offset, buffer_size );
+        index.query( queries, indices, offset, buffer_size );
         auto const end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed_seconds = end - start;
         state.SetIterationTime( elapsed_seconds.count() );
