@@ -9,6 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include "../test/DTK_BoostRTreeHelpers.hpp"
+
 #include <DTK_LinearBVH.hpp>
 
 #include <Kokkos_DefaultNode.hpp>
@@ -22,6 +24,41 @@
 #include <cmath> // cbrt
 #include <cstdlib>
 #include <random>
+
+#ifdef HAVE_DTK_BOOST
+class BoostRTree
+{
+  public:
+    using DeviceType = Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>;
+    using device_type = DeviceType;
+
+    BoostRTree( Kokkos::View<DataTransferKit::Box *, DeviceType> boxes )
+    {
+        _tree = BoostRTreeHelpers::makeRTree( boxes );
+    }
+
+    template <typename Query>
+    void query( Kokkos::View<Query *, DeviceType> queries,
+                Kokkos::View<int *, DeviceType> &indices,
+                Kokkos::View<int *, DeviceType> &offset )
+    {
+        std::tie( offset, indices ) =
+            BoostRTreeHelpers::performQueries( _tree, queries );
+    }
+
+    template <typename Query>
+    void query( Kokkos::View<Query *, DeviceType> queries,
+                Kokkos::View<int *, DeviceType> &indices,
+                Kokkos::View<int *, DeviceType> &offset, int )
+    {
+        std::tie( offset, indices ) =
+            BoostRTreeHelpers::performQueries( _tree, queries );
+    }
+
+  private:
+    BoostRTreeHelpers::RTree<DataTransferKit::Box> _tree;
+};
+#endif
 
 template <typename DeviceType>
 Kokkos::View<DataTransferKit::Box *, DeviceType>
@@ -311,6 +348,10 @@ int main( int argc, char *argv[] )
 #ifdef KOKKOS_ENABLE_CUDA
     using Cuda = Kokkos::Compat::KokkosCudaWrapperNode::device_type;
     REGISTER_BENCHMARK( dtk::BVH<Cuda> );
+#endif
+
+#ifdef HAVE_DTK_BOOST
+    REGISTER_BENCHMARK( BoostRTree );
 #endif
 
     benchmark::RunSpecifiedBenchmarks();
