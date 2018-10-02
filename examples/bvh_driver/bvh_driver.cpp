@@ -296,19 +296,21 @@ int main( int argc, char *argv[] )
         break;
     }
 
+    namespace dtk = DataTransferKit;
+
 #ifdef KOKKOS_ENABLE_SERIAL
     using Serial = Kokkos::Compat::KokkosSerialWrapperNode::device_type;
-    REGISTER_BENCHMARK( DataTransferKit::BVH<Serial> );
+    REGISTER_BENCHMARK( dtk::BVH<Serial> );
 #endif
 
 #ifdef KOKKOS_ENABLE_OPENMP
     using OpenMP = Kokkos::Compat::KokkosOpenMPWrapperNode::device_type;
-    REGISTER_BENCHMARK( DataTransferKit::BVH<OpenMP> );
+    REGISTER_BENCHMARK( dtk::BVH<OpenMP> );
 #endif
 
 #ifdef KOKKOS_ENABLE_CUDA
     using Cuda = Kokkos::Compat::KokkosCudaWrapperNode::device_type;
-    REGISTER_BENCHMARK( DataTransferKit::BVH<Cuda> );
+    REGISTER_BENCHMARK( dtk::BVH<Cuda> );
 #endif
 
     benchmark::RunSpecifiedBenchmarks();
