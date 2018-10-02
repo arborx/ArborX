@@ -13,6 +13,7 @@
 #define DTK_BOOST_RTREE_HELPERS_HPP
 
 #include <DTK_Box.hpp>
+#include <DTK_DetailsUtils.hpp> // exclusivePrefixSum, lastElement
 #include <DTK_Point.hpp>
 #include <DTK_Predicates.hpp>
 
