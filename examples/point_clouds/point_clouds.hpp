@@ -217,3 +217,27 @@ void generatePointCloud(
     }
     Kokkos::deep_copy( random_points, random_points_host );
 }
+
+template <typename DeviceType>
+void loadPointCloud(
+    std::string const &filename,
+    Kokkos::View<DataTransferKit::Point *, DeviceType> &random_points )
+{
+    std::ifstream file( filename );
+    if ( file.is_open() )
+    {
+        int size = -1;
+        file >> size;
+        DTK_REQUIRE( size > 0 );
+        Kokkos::realloc( random_points, size );
+        auto random_points_host = Kokkos::create_mirror_view( random_points );
+        for ( int i = 0; i < size; ++i )
+            for ( int j = 0; j < 3; ++j )
+                file >> random_points( i )[j];
+        Kokkos::deep_copy( random_points, random_points_host );
+    }
+    else
+    {
+        throw std::runtime_error( "Cannot open file" );
+    }
+}
