@@ -321,7 +321,7 @@ TEUCHOS_UNIT_TEST( DetailsDistributedSearchTreeImpl,
 }
 
 // Include the test macros.
-#include "DataTransferKitSearch_ETIHelperMacros.h"
+#include "DataTransferKit_ETIHelperMacros.h"
 
 // Create the test group
 #define UNIT_TEST_GROUP( NODE )                                                \
