@@ -17,6 +17,7 @@
 #include <Teuchos_UnitTestHarness.hpp>
 
 #include <algorithm>
+#include <array>
 #include <bitset>
 #include <functional>
 #include <sstream>
