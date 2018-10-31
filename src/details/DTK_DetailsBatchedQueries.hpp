@@ -13,9 +13,10 @@
 #define DTK_DETAILS_BATCHED_QUERIES_HPP
 
 #include <DTK_Box.hpp>
-#include <DTK_DetailsAlgorithms.hpp>       // return_centroid
-#include <DTK_DetailsTreeConstruction.hpp> // morton3D
-#include <DTK_DetailsUtils.hpp> // iota, exclusivePrefixSum, lastElement
+#include <DTK_DetailsAlgorithms.hpp> // return_centroid
+#include <DTK_DetailsMortonCode.hpp> // morton3D
+#include <DTK_DetailsSortUtils.hpp>  // sortObjects
+#include <DTK_DetailsUtils.hpp>      // iota, exclusivePrefixSum, lastElement
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Parallel.hpp>
@@ -68,12 +69,11 @@ struct BatchedQueries
                     double const b = scene_bounding_box.maxCorner()[d];
                     xyz[d] = ( a != b ? ( xyz[d] - a ) / ( b - a ) : 0 );
                 }
-                morton_codes( i ) = TreeConstruction<DeviceType>::morton3D(
-                    xyz[0], xyz[1], xyz[2] );
+                morton_codes( i ) = morton3D( xyz[0], xyz[1], xyz[2] );
             } );
         Kokkos::fence();
 
-        return TreeConstruction<DeviceType>::sortObjects( morton_codes );
+        return sortObjects( morton_codes );
     }
 
     template <typename T>

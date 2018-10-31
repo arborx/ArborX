@@ -15,6 +15,7 @@
 #include <DTK_Box.hpp>
 #include <DTK_DetailsBoundingVolumeHierarchyImpl.hpp>
 #include <DTK_DetailsNode.hpp>
+#include <DTK_DetailsSortUtils.hpp>
 #include <DTK_DetailsTreeConstruction.hpp>
 
 #include <Kokkos_Macros.hpp>
@@ -112,8 +113,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
         primitives, morton_indices, _internal_nodes[0].bounding_box );
 
     // sort them along the Z-order space-filling curve
-    auto permutation_indices =
-        Details::TreeConstruction<DeviceType>::sortObjects( morton_indices );
+    auto permutation_indices = Details::sortObjects( morton_indices );
 
     Details::TreeConstruction<DeviceType>::initializeLeafNodes(
         permutation_indices, primitives, _leaf_nodes );

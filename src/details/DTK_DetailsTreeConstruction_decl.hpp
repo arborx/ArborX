@@ -16,7 +16,7 @@
 
 #include <DTK_Box.hpp>
 #include <DTK_DetailsNode.hpp>
-#include <DTK_KokkosHelpers.hpp> // clz, min. max
+#include <DTK_KokkosHelpers.hpp> // clz
 
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_Pair.hpp>
@@ -47,10 +47,6 @@ struct TreeConstruction
     assignMortonCodes( Kokkos::View<Box const *, DeviceType> bounding_boxes,
                        Kokkos::View<unsigned int *, DeviceType> morton_codes,
                        Box const &scene_bounding_box );
-
-    // NOTE returns the permutation indices **and** sorts the morton codes
-    static Kokkos::View<size_t *, DeviceType>
-    sortObjects( Kokkos::View<unsigned int *, DeviceType> morton_codes );
 
     static void
     initializeLeafNodes( Kokkos::View<size_t const *, DeviceType> indices,
@@ -86,41 +82,6 @@ struct TreeConstruction
             return 32 + clz( i ^ j );
         }
         return clz( morton_codes[i] ^ morton_codes[j] );
-    }
-
-    // Expands a 10-bit integer into 30 bits
-    // by inserting 2 zeros after each bit.
-    KOKKOS_INLINE_FUNCTION
-    static unsigned int expandBits( unsigned int v )
-    {
-        v = ( v * 0x00010001u ) & 0xFF0000FFu;
-        v = ( v * 0x00000101u ) & 0x0F00F00Fu;
-        v = ( v * 0x00000011u ) & 0xC30C30C3u;
-        v = ( v * 0x00000005u ) & 0x49249249u;
-        return v;
-    }
-
-    // Calculates a 30-bit Morton code for the
-    // given 3D point located within the unit cube [0,1].
-    KOKKOS_INLINE_FUNCTION
-    static unsigned int morton3D( double x, double y, double z )
-    {
-        using KokkosHelpers::max;
-        using KokkosHelpers::min;
-
-        // The interval [0,1] is subdivided into 1024 bins (in each direction).
-        // If we were to use more bits to encode the Morton code, we would need
-        // to reflect these changes in expandBits() as well as in the clz()
-        // function that returns the number of leading zero bits since it
-        // currently assumes that the code can be represented by a 32 bit
-        // integer.
-        x = min( max( x * 1024.0, 0.0 ), 1023.0 );
-        y = min( max( y * 1024.0, 0.0 ), 1023.0 );
-        z = min( max( z * 1024.0, 0.0 ), 1023.0 );
-        unsigned int xx = expandBits( (unsigned int)x );
-        unsigned int yy = expandBits( (unsigned int)y );
-        unsigned int zz = expandBits( (unsigned int)z );
-        return xx * 4 + yy * 2 + zz;
     }
 
     KOKKOS_FUNCTION

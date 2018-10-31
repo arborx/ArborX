@@ -9,6 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 #include <DTK_DetailsAlgorithms.hpp>
+#include <DTK_DetailsMortonCode.hpp> // expandBits, morton3D
+#include <DTK_DetailsSortUtils.hpp>  // sortObjects
 #include <DTK_DetailsTreeConstruction.hpp>
 #include <DTK_DetailsUtils.hpp>  // iota
 #include <DTK_KokkosHelpers.hpp> // clz
@@ -41,9 +43,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, morton_codes, DeviceType )
         unsigned int i = std::get<0>( anchor );
         unsigned int j = std::get<1>( anchor );
         unsigned int k = std::get<2>( anchor );
-        return 4 * dtk::TreeConstruction<DeviceType>::expandBits( i ) +
-               2 * dtk::TreeConstruction<DeviceType>::expandBits( j ) +
-               dtk::TreeConstruction<DeviceType>::expandBits( k );
+        return 4 * dtk::expandBits( i ) + 2 * dtk::expandBits( j ) +
+               dtk::expandBits( k );
     };
     std::vector<unsigned int> ref( n,
                                    Kokkos::ArithTraits<unsigned int>::max() );
@@ -109,7 +110,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, indirect_sort, DeviceType )
 
     std::vector<size_t> ref = {3, 2, 1, 0};
     // sort morton codes and object ids
-    auto ids = dtk::TreeConstruction<DeviceType>::sortObjects( k );
+    auto ids = dtk::sortObjects( k );
 
     auto k_host = Kokkos::create_mirror_view( k );
     Kokkos::deep_copy( k_host, k );
