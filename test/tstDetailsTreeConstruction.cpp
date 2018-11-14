@@ -307,11 +307,15 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, example_tree_construction,
         }
     };
 
+    Kokkos::View<int *, DeviceType> parents( "parents", 2 * n + 1 );
+    Kokkos::deep_copy( parents, -1 );
+
     dtk::TreeConstruction<DeviceType>::generateHierarchy(
-        sorted_morton_codes, leaf_nodes, internal_nodes );
+        sorted_morton_codes, leaf_nodes, internal_nodes, parents );
+
+    TEST_EQUALITY( parents( 0 ), -1 );
 
     DataTransferKit::Node *root = internal_nodes.data();
-    TEST_ASSERT( root->parent == nullptr );
 
     std::ostringstream sol;
     traverseRecursive( root, sol );

@@ -339,12 +339,6 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, miscellaneous, DeviceType )
     } );
     auto const empty_bvh = makeBvh<DeviceType>( {} );
 
-    TEST_ASSERT(
-        DataTransferKit::Details::TreeTraversal<DeviceType>::getRoot( bvh ) );
-    // getRoot() returns nullptr when the tree is empty
-    TEST_ASSERT( !DataTransferKit::Details::TreeTraversal<DeviceType>::getRoot(
-        empty_bvh ) );
-
     // Batched queries BVH::query( Kokkos::View<Query *, ...>, ... ) returns
     // early if the tree is empty.  Below we ensure that a direct call to the
     // single query TreeTraversal::query() actually handles empty trees

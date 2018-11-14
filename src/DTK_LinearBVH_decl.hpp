@@ -38,7 +38,7 @@ class BoundingVolumeHierarchy
     BoundingVolumeHierarchy( Primitives const &primitives );
 
     KOKKOS_INLINE_FUNCTION
-    size_type size() const { return _leaf_nodes.extent( 0 ); }
+    size_type size() const { return _size; }
 
     KOKKOS_INLINE_FUNCTION
     bool empty() const { return size() == 0; }
@@ -49,8 +49,7 @@ class BoundingVolumeHierarchy
         // NOTE should default constructor initialize to an invalid geometry?
         if ( empty() )
             return bounding_volume_type();
-        // FIXME this->getBoundingVolume( this->getRoot() );
-        return ( size() > 1 ? _internal_nodes : _leaf_nodes )[0].bounding_box;
+        return getBoundingVolume( getRoot() );
     }
 
     template <typename Predicates, typename... Args>
@@ -66,8 +65,54 @@ class BoundingVolumeHierarchy
   private:
     friend struct Details::TreeTraversal<DeviceType>;
 
-    Kokkos::View<Node *, DeviceType> _leaf_nodes;
-    Kokkos::View<Node *, DeviceType> _internal_nodes;
+    Kokkos::View<Node *, DeviceType> getInternalNodes()
+    {
+        assert( !empty() );
+        return Kokkos::subview( _internal_and_leaf_nodes,
+                                std::make_pair( size_type{0}, size() - 1 ) );
+    }
+
+    Kokkos::View<Node *, DeviceType> getLeafNodes()
+    {
+        assert( !empty() );
+        return Kokkos::subview( _internal_and_leaf_nodes,
+                                std::make_pair( size() - 1, 2 * size() - 1 ) );
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    Node const *getRoot() const { return _internal_and_leaf_nodes.data(); }
+
+    KOKKOS_INLINE_FUNCTION
+    Node *getRoot() { return _internal_and_leaf_nodes.data(); }
+
+    KOKKOS_INLINE_FUNCTION
+    bounding_volume_type const &getBoundingVolume( Node const *node ) const
+    {
+        return node->bounding_box;
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    bounding_volume_type &getBoundingVolume( Node *node )
+    {
+        return node->bounding_box;
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    size_t getLeafPermutationIndex( Node const *leaf ) const
+    {
+        static_assert( sizeof( size_t ) == sizeof( Node * ),
+                       "Conversion is a bad idea if these sizes do not match" );
+        return reinterpret_cast<size_t>( leaf->children.second );
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    bool isLeaf( Node const *node ) const
+    {
+        return ( node->children.first == nullptr );
+    }
+
+    size_t _size;
+    Kokkos::View<Node *, DeviceType> _internal_and_leaf_nodes;
 };
 
 template <typename DeviceType>
@@ -77,11 +122,10 @@ template <typename DeviceType>
 template <typename Primitives>
 BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
     Primitives const &primitives )
-    : _leaf_nodes( Kokkos::ViewAllocateWithoutInitializing( "leaf_nodes" ),
-                   primitives.extent( 0 ) )
-    , _internal_nodes(
-          Kokkos::ViewAllocateWithoutInitializing( "internal_nodes" ),
-          primitives.extent( 0 ) > 0 ? primitives.extent( 0 ) - 1 : 0 )
+    : _size( primitives.extent( 0 ) )
+    , _internal_and_leaf_nodes(
+          Kokkos::ViewAllocateWithoutInitializing( "internal_and_leaf_nodes" ),
+          _size > 0 ? 2 * _size - 1 : 0 )
 {
     // FIXME lame placeholder for concept check
     static_assert( Kokkos::is_view<Primitives>::value, "must pass a view" );
@@ -95,37 +139,37 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
     {
         Kokkos::View<size_t *, DeviceType> permutation_indices( "permute", 1 );
         Details::TreeConstruction<DeviceType>::initializeLeafNodes(
-            permutation_indices, primitives, _leaf_nodes );
+            permutation_indices, primitives, getLeafNodes() );
         return;
     }
 
     // determine the bounding box of the scene
     Details::TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
-        // FIXME this->getBoundingVolume( this->getRoot() );
-        primitives, _internal_nodes[0].bounding_box );
+        primitives, getBoundingVolume( getRoot() ) );
 
     // calculate morton code of all objects
-    auto const n = primitives.extent( 0 );
     Kokkos::View<unsigned int *, DeviceType> morton_indices(
-        Kokkos::ViewAllocateWithoutInitializing( "morton" ), n );
+        Kokkos::ViewAllocateWithoutInitializing( "morton" ), size() );
     Details::TreeConstruction<DeviceType>::assignMortonCodes(
-        // FIXME this->getBoundingVolume( this->getRoot() );
-        primitives, morton_indices, _internal_nodes[0].bounding_box );
+        primitives, morton_indices, getBoundingVolume( getRoot() ) );
 
     // sort them along the Z-order space-filling curve
     auto permutation_indices = Details::sortObjects( morton_indices );
-
     Details::TreeConstruction<DeviceType>::initializeLeafNodes(
-        permutation_indices, primitives, _leaf_nodes );
+        permutation_indices, primitives, getLeafNodes() );
 
     // generate bounding volume hierarchy
+    Kokkos::View<int *, DeviceType> parents(
+        Kokkos::ViewAllocateWithoutInitializing( "parents" ), 2 * size() - 1 );
     Details::TreeConstruction<DeviceType>::generateHierarchy(
-        morton_indices, _leaf_nodes, _internal_nodes );
+        morton_indices, getLeafNodes(), getInternalNodes(), parents );
 
-    // calculate bounding box for each internal node by walking the hierarchy
-    // toward the root
-    Details::TreeConstruction<DeviceType>::calculateBoundingBoxes(
-        _leaf_nodes, _internal_nodes );
+    // calculate bounding volume for each internal node by walking the
+    // hierarchy toward the root
+    Details::TreeConstruction<
+        DeviceType>::calculateInternalNodesBoundingVolumes( getLeafNodes(),
+                                                            getInternalNodes(),
+                                                            parents );
 }
 
 } // namespace DataTransferKit
