@@ -268,10 +268,9 @@ void TreeConstruction<DeviceType>::initializeLeafNodes(
     Kokkos::parallel_for(
         DTK_MARK_REGION( "initialize_leaf_nodes" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
-            // FIXME: Here also accessing node bounding box data member
-            leaf_nodes( i ).bounding_box = bounding_boxes( indices( i ) );
-            leaf_nodes( i ).children = {
-                nullptr, reinterpret_cast<Node *>( indices( i ) )};
+            leaf_nodes( i ) = {
+                {nullptr, reinterpret_cast<Node *>( indices( i ) )},
+                bounding_boxes( indices( i ) )};
         } );
     Kokkos::fence();
 }

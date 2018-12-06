@@ -22,6 +22,13 @@ struct Node
     KOKKOS_INLINE_FUNCTION
     Node() = default;
 
+    KOKKOS_INLINE_FUNCTION
+    Node( const Kokkos::pair<Node *, Node *> &c, const Box &bb )
+        : children( c )
+        , bounding_box( bb )
+    {
+    }
+
     Kokkos::pair<Node *, Node *> children = {nullptr, nullptr};
     Box bounding_box;
 };
