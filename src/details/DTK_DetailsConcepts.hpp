@@ -44,6 +44,22 @@ struct is_expandable<
 {
 };
 
+// Checks for existence of a free function that calculates the centroid of an
+// object of type Geometry
+template <typename Geometry, typename Point, typename = void>
+struct has_centroid : std::false_type
+{
+};
+
+template <typename Geometry, typename Point>
+struct has_centroid<
+    Geometry, Point,
+    std::void_t<decltype( centroid( std::declval<Geometry const &>(),
+                                    std::declval<Point &>() ) )>>
+    : std::true_type
+{
+};
+
 } // namespace Details
 } // namespace DataTransferKit
 
