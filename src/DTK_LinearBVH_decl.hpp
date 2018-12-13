@@ -14,6 +14,7 @@
 
 #include <DTK_Box.hpp>
 #include <DTK_DetailsBoundingVolumeHierarchyImpl.hpp>
+#include <DTK_DetailsConcepts.hpp>
 #include <DTK_DetailsNode.hpp>
 #include <DTK_DetailsSortUtils.hpp>
 #include <DTK_DetailsTreeConstruction.hpp>
@@ -127,8 +128,21 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
           Kokkos::ViewAllocateWithoutInitializing( "internal_and_leaf_nodes" ),
           _size > 0 ? 2 * _size - 1 : 0 )
 {
-    // FIXME lame placeholder for concept check
-    static_assert( Kokkos::is_view<Primitives>::value, "must pass a view" );
+    // FIXME can be relaxed
+    static_assert(
+        Kokkos::is_view<Primitives>::value,
+        "Must pass a view to the bounding volume hierarchy constructor" );
+
+    using IndexableValueType = typename Primitives::value_type;
+    static_assert(
+        Details::is_expandable<bounding_volume_type, IndexableValueType>::value,
+        "Bounding volumes must be expandable using indexable objects passed to "
+        "the hierarchy constructor" );
+    // TODO can be relaxed if wanting to use centroid of empty box expanded
+    // from the indexable object
+    static_assert( Details::has_centroid<IndexableValueType, Point>::value,
+                   "Must be able to calculate centroid from indexable objects "
+                   "passed to the hierarchy constructor" );
 
     if ( empty() )
     {
