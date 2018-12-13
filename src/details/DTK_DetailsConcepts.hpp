@@ -23,6 +23,7 @@ using void_t = void;
 }
 #endif
 
+#if !defined( DOXYGEN_SHOULD_SKIP_THIS )
 namespace DataTransferKit
 {
 namespace Details
@@ -62,5 +63,6 @@ struct has_centroid<
 
 } // namespace Details
 } // namespace DataTransferKit
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
 #endif
