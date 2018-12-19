@@ -16,6 +16,7 @@
 
 #include <DTK_Box.hpp>
 #include <DTK_DetailsAlgorithms.hpp> // expand
+#include <DTK_DetailsMortonCode.hpp> // morton3D
 #include <DTK_DetailsNode.hpp>
 #include <DTK_KokkosHelpers.hpp> // clz
 
@@ -45,8 +46,9 @@ struct TreeConstruction
     // to assign the Morton code for a given object, we use the centroid point
     // of its bounding box, and express it relative to the bounding box of the
     // scene.
+    template <typename ConstViewType>
     static void
-    assignMortonCodes( Kokkos::View<Box const *, DeviceType> bounding_boxes,
+    assignMortonCodes( ConstViewType primitives,
                        Kokkos::View<unsigned int *, DeviceType> morton_codes,
                        Box const &scene_bounding_box );
 
@@ -145,6 +147,32 @@ inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
         CalculateBoundingBoxOfTheSceneFunctor<decltype( primitives )>(
             primitives ),
         scene_bounding_box );
+    Kokkos::fence();
+}
+
+template <typename DeviceType>
+template <typename ConstViewType>
+inline void TreeConstruction<DeviceType>::assignMortonCodes(
+    ConstViewType geometries,
+    Kokkos::View<unsigned int *, DeviceType> morton_codes,
+    Box const &scene_bounding_box )
+{
+    auto const n = morton_codes.extent( 0 );
+    Kokkos::parallel_for(
+        DTK_MARK_REGION( "assign_morton_codes" ),
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
+            Point xyz;
+            double a, b;
+            centroid( geometries( i ), xyz );
+            // scale coordinates with respect to bounding box of the scene
+            for ( int d = 0; d < 3; ++d )
+            {
+                a = scene_bounding_box.minCorner()[d];
+                b = scene_bounding_box.maxCorner()[d];
+                xyz[d] = ( a != b ? ( xyz[d] - a ) / ( b - a ) : 0 );
+            }
+            morton_codes( i ) = morton3D( xyz[0], xyz[1], xyz[2] );
+        } );
     Kokkos::fence();
 }
 

@@ -16,8 +16,7 @@
 
 #include <DTK_DBC.hpp>
 #include <DTK_DetailsAlgorithms.hpp>
-#include <DTK_DetailsMortonCode.hpp> // morton3D
-#include <DTK_DetailsUtils.hpp>      // iota
+#include <DTK_DetailsUtils.hpp> // iota
 
 #include <DTK_KokkosHelpers.hpp> // sgn, min, max
 
@@ -30,42 +29,6 @@ namespace DataTransferKit
 {
 namespace Details
 {
-
-template <typename DeviceType>
-class AssignMortonCodesFunctor
-{
-  public:
-    AssignMortonCodesFunctor(
-        Kokkos::View<Box const *, DeviceType> bounding_boxes,
-        Kokkos::View<unsigned int *, DeviceType> morton_codes,
-        Box const &scene_bounding_box )
-        : _bounding_boxes( bounding_boxes )
-        , _morton_codes( morton_codes )
-        , _scene_bounding_box( scene_bounding_box )
-    {
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    void operator()( int const i ) const
-    {
-        Point xyz;
-        double a, b;
-        centroid( _bounding_boxes[i], xyz );
-        // scale coordinates with respect to bounding box of the scene
-        for ( int d = 0; d < 3; ++d )
-        {
-            a = _scene_bounding_box.minCorner()[d];
-            b = _scene_bounding_box.maxCorner()[d];
-            xyz[d] = ( a != b ? ( xyz[d] - a ) / ( b - a ) : 0 );
-        }
-        _morton_codes[i] = morton3D( xyz[0], xyz[1], xyz[2] );
-    }
-
-  private:
-    Kokkos::View<Box const *, DeviceType> _bounding_boxes;
-    Kokkos::View<unsigned int *, DeviceType> _morton_codes;
-    Box const &_scene_bounding_box;
-};
 
 template <typename DeviceType>
 class GenerateHierarchyFunctor
@@ -193,21 +156,6 @@ class CalculateInternalNodesBoundingVolumesFunctor
     Kokkos::View<int *, DeviceType> _flags;
     Kokkos::View<int const *, DeviceType> _parents;
 };
-
-template <typename DeviceType>
-void TreeConstruction<DeviceType>::assignMortonCodes(
-    Kokkos::View<Box const *, DeviceType> bounding_boxes,
-    Kokkos::View<unsigned int *, DeviceType> morton_codes,
-    Box const &scene_bounding_box )
-{
-    auto const n = morton_codes.extent( 0 );
-    Kokkos::parallel_for(
-        DTK_MARK_REGION( "assign_morton_codes" ),
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-        AssignMortonCodesFunctor<DeviceType>( bounding_boxes, morton_codes,
-                                              scene_bounding_box ) );
-    Kokkos::fence();
-}
 
 template <typename DeviceType>
 void TreeConstruction<DeviceType>::initializeLeafNodes(
