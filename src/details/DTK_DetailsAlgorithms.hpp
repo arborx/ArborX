@@ -195,6 +195,18 @@ Point return_centroid( Box const &box )
 KOKKOS_INLINE_FUNCTION
 Point return_centroid( Sphere const &sphere ) { return sphere.centroid(); }
 
+// transformation that maps the unit cube into a new axis-aligned box
+KOKKOS_INLINE_FUNCTION
+void translateAndScale( Point const &in, Point &out, Box const &ref )
+{
+    for ( int d = 0; d < 3; ++d )
+    {
+        double const a = ref.minCorner()[d];
+        double const b = ref.maxCorner()[d];
+        out[d] = ( a != b ? ( in[d] - a ) / ( b - a ) : 0 );
+    }
+}
+
 } // namespace Details
 } // namespace DataTransferKit
 
