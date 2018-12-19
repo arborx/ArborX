@@ -178,6 +178,31 @@ inline void assignMortonCodesDispatch( BoxTag, Primitives primitives,
     Kokkos::fence();
 }
 
+template <typename Primitives, typename MortonCodes>
+inline void assignMortonCodesDispatch( PointTag, Primitives primitives,
+                                       MortonCodes morton_codes,
+                                       Box const &scene_bounding_box )
+{
+    using ExecutionSpace =
+        typename decltype( primitives )::traits::execution_space;
+    auto const n = morton_codes.extent( 0 );
+    Kokkos::parallel_for(
+        DTK_MARK_REGION( "assign_morton_codes" ),
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
+            Point xyz = primitives( i );
+            double a, b;
+            // scale coordinates with respect to bounding box of the scene
+            for ( int d = 0; d < 3; ++d )
+            {
+                a = scene_bounding_box.minCorner()[d];
+                b = scene_bounding_box.maxCorner()[d];
+                xyz[d] = ( a != b ? ( xyz[d] - a ) / ( b - a ) : 0 );
+            }
+            morton_codes( i ) = morton3D( xyz[0], xyz[1], xyz[2] );
+        } );
+    Kokkos::fence();
+}
+
 template <typename DeviceType>
 template <typename ConstViewType>
 inline void TreeConstruction<DeviceType>::assignMortonCodes(
