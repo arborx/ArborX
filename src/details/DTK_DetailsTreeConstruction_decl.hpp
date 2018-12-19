@@ -164,15 +164,8 @@ inline void assignMortonCodesDispatch( BoxTag, Primitives primitives,
         DTK_MARK_REGION( "assign_morton_codes" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
             Point xyz;
-            double a, b;
             centroid( primitives( i ), xyz );
-            // scale coordinates with respect to bounding box of the scene
-            for ( int d = 0; d < 3; ++d )
-            {
-                a = scene_bounding_box.minCorner()[d];
-                b = scene_bounding_box.maxCorner()[d];
-                xyz[d] = ( a != b ? ( xyz[d] - a ) / ( b - a ) : 0 );
-            }
+            translateAndScale( xyz, xyz, scene_bounding_box );
             morton_codes( i ) = morton3D( xyz[0], xyz[1], xyz[2] );
         } );
     Kokkos::fence();
@@ -189,15 +182,8 @@ inline void assignMortonCodesDispatch( PointTag, Primitives primitives,
     Kokkos::parallel_for(
         DTK_MARK_REGION( "assign_morton_codes" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
-            Point xyz = primitives( i );
-            double a, b;
-            // scale coordinates with respect to bounding box of the scene
-            for ( int d = 0; d < 3; ++d )
-            {
-                a = scene_bounding_box.minCorner()[d];
-                b = scene_bounding_box.maxCorner()[d];
-                xyz[d] = ( a != b ? ( xyz[d] - a ) / ( b - a ) : 0 );
-            }
+            Point xyz;
+            translateAndScale( primitives( i ), xyz, scene_bounding_box );
             morton_codes( i ) = morton3D( xyz[0], xyz[1], xyz[2] );
         } );
     Kokkos::fence();
