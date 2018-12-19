@@ -52,10 +52,11 @@ struct TreeConstruction
                        Kokkos::View<unsigned int *, DeviceType> morton_codes,
                        Box const &scene_bounding_box );
 
-    static void
-    initializeLeafNodes( Kokkos::View<size_t const *, DeviceType> indices,
-                         Kokkos::View<Box const *, DeviceType> bounding_boxes,
-                         Kokkos::View<Node *, DeviceType> leaf_nodes );
+    template <typename ConstViewType>
+    static void initializeLeafNodes(
+        ConstViewType primitives,
+        Kokkos::View<size_t const *, DeviceType> permutation_indices,
+        Kokkos::View<Node *, DeviceType> leaf_nodes );
 
     static Node *generateHierarchy(
         Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes,
@@ -172,6 +173,30 @@ inline void TreeConstruction<DeviceType>::assignMortonCodes(
                 xyz[d] = ( a != b ? ( xyz[d] - a ) / ( b - a ) : 0 );
             }
             morton_codes( i ) = morton3D( xyz[0], xyz[1], xyz[2] );
+        } );
+    Kokkos::fence();
+}
+
+template <typename DeviceType>
+template <typename ConstViewType>
+inline void TreeConstruction<DeviceType>::initializeLeafNodes(
+    ConstViewType primitives,
+    Kokkos::View<size_t const *, DeviceType> permutation_indices,
+    Kokkos::View<Node *, DeviceType> leaf_nodes )
+{
+    auto const n = leaf_nodes.extent( 0 );
+    DTK_REQUIRE( permutation_indices.extent( 0 ) == n );
+    DTK_REQUIRE( primitives.extent( 0 ) == n );
+    static_assert( sizeof( typename decltype(
+                       permutation_indices )::value_type ) == sizeof( Node * ),
+                   "Encoding leaf index in pointer to child is not safe if the "
+                   "index and pointer types do not have the same size" );
+    Kokkos::parallel_for(
+        DTK_MARK_REGION( "initialize_leaf_nodes" ),
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
+            leaf_nodes( i ) = {
+                {nullptr, reinterpret_cast<Node *>( permutation_indices( i ) )},
+                primitives( permutation_indices( i ) )};
         } );
     Kokkos::fence();
 }
