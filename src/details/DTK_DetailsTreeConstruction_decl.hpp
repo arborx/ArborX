@@ -18,6 +18,7 @@
 #include <DTK_DetailsAlgorithms.hpp> // expand
 #include <DTK_DetailsMortonCode.hpp> // morton3D
 #include <DTK_DetailsNode.hpp>
+#include <DTK_DetailsTags.hpp>
 #include <DTK_KokkosHelpers.hpp> // clz
 
 #include <Kokkos_Macros.hpp>
@@ -177,6 +178,43 @@ inline void TreeConstruction<DeviceType>::assignMortonCodes(
     Kokkos::fence();
 }
 
+template <typename Primitives, typename Indices, typename Nodes>
+inline void initializeLeafNodesDispatch( BoxTag, Primitives primitives,
+                                         Indices permutation_indices,
+                                         Nodes leaf_nodes )
+{
+    using ExecutionSpace =
+        typename decltype( primitives )::traits::execution_space;
+    auto const n = leaf_nodes.extent( 0 );
+    Kokkos::parallel_for(
+        DTK_MARK_REGION( "initialize_leaf_nodes" ),
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
+            leaf_nodes( i ) = {
+                {nullptr, reinterpret_cast<Node *>( permutation_indices( i ) )},
+                primitives( permutation_indices( i ) )};
+        } );
+    Kokkos::fence();
+}
+
+template <typename Primitives, typename Indices, typename Nodes>
+inline void initializeLeafNodesDispatch( PointTag, Primitives primitives,
+                                         Indices permutation_indices,
+                                         Nodes leaf_nodes )
+{
+    using ExecutionSpace =
+        typename decltype( primitives )::traits::execution_space;
+    auto const n = leaf_nodes.extent( 0 );
+    Kokkos::parallel_for(
+        DTK_MARK_REGION( "initialize_leaf_nodes" ),
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
+            leaf_nodes( i ) = {
+                {nullptr, reinterpret_cast<Node *>( permutation_indices( i ) )},
+                {primitives( permutation_indices( i ) ),
+                 primitives( permutation_indices( i ) )}};
+        } );
+    Kokkos::fence();
+}
+
 template <typename DeviceType>
 template <typename ConstViewType>
 inline void TreeConstruction<DeviceType>::initializeLeafNodes(
@@ -187,18 +225,16 @@ inline void TreeConstruction<DeviceType>::initializeLeafNodes(
     auto const n = leaf_nodes.extent( 0 );
     DTK_REQUIRE( permutation_indices.extent( 0 ) == n );
     DTK_REQUIRE( primitives.extent( 0 ) == n );
+
     static_assert( sizeof( typename decltype(
                        permutation_indices )::value_type ) == sizeof( Node * ),
                    "Encoding leaf index in pointer to child is not safe if the "
                    "index and pointer types do not have the same size" );
-    Kokkos::parallel_for(
-        DTK_MARK_REGION( "initialize_leaf_nodes" ),
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
-            leaf_nodes( i ) = {
-                {nullptr, reinterpret_cast<Node *>( permutation_indices( i ) )},
-                primitives( permutation_indices( i ) )};
-        } );
-    Kokkos::fence();
+
+    using Tag = typename Tag<typename decltype(
+        primitives )::traits::non_const_value_type>::type;
+    initializeLeafNodesDispatch( Tag{}, primitives, permutation_indices,
+                                 leaf_nodes );
 }
 
 } // namespace Details
