@@ -210,6 +210,9 @@ inline void TreeConstruction<DeviceType>::assignMortonCodes(
     Kokkos::View<unsigned int *, DeviceType> morton_codes,
     Box const &scene_bounding_box )
 {
+    auto const n = primitives.extent( 0 );
+    DTK_REQUIRE( morton_codes.extent( 0 ) == n );
+
     using Tag = typename Tag<typename decltype(
         primitives )::traits::non_const_value_type>::type;
     assignMortonCodesDispatch( Tag{}, primitives, morton_codes,
