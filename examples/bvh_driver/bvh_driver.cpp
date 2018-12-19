@@ -32,9 +32,9 @@ class BoostRTree
     using DeviceType = Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>;
     using device_type = DeviceType;
 
-    BoostRTree( Kokkos::View<DataTransferKit::Box *, DeviceType> boxes )
+    BoostRTree( Kokkos::View<DataTransferKit::Point *, DeviceType> points )
     {
-        _tree = BoostRTreeHelpers::makeRTree( boxes );
+        _tree = BoostRTreeHelpers::makeRTree( points );
     }
 
     template <typename Query>
@@ -56,13 +56,13 @@ class BoostRTree
     }
 
   private:
-    BoostRTreeHelpers::RTree<DataTransferKit::Box> _tree;
+    BoostRTreeHelpers::RTree<DataTransferKit::Point> _tree;
 };
 #endif
 
 template <typename DeviceType>
-Kokkos::View<DataTransferKit::Box *, DeviceType>
-constructBoxes( int n_values, PointCloudType point_cloud_type )
+Kokkos::View<DataTransferKit::Point *, DeviceType>
+constructPoints( int n_values, PointCloudType point_cloud_type )
 {
     Kokkos::View<DataTransferKit::Point *, DeviceType> random_points(
         Kokkos::ViewAllocateWithoutInitializing( "random_points" ), n_values );
@@ -73,19 +73,7 @@ constructBoxes( int n_values, PointCloudType point_cloud_type )
     auto const a = std::cbrt( n_values );
     generatePointCloud( point_cloud_type, a, random_points );
 
-    using ExecutionSpace = typename DeviceType::execution_space;
-    Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes(
-        Kokkos::ViewAllocateWithoutInitializing( "bounding_boxes" ), n_values );
-    Kokkos::parallel_for( "bvh_driver:construct_bounding_boxes",
-                          Kokkos::RangePolicy<ExecutionSpace>( 0, n_values ),
-                          KOKKOS_LAMBDA( int i ) {
-                              double const x = random_points( i )[0];
-                              double const y = random_points( i )[1];
-                              double const z = random_points( i )[2];
-                              bounding_boxes( i ) = {{{x, y, z}}, {{x, y, z}}};
-                          } );
-    Kokkos::fence();
-    return bounding_boxes;
+    return random_points;
 }
 
 template <typename DeviceType>
@@ -149,13 +137,12 @@ void BM_construction( benchmark::State &state )
     int const n_values = state.range( 0 );
     PointCloudType point_cloud_type =
         static_cast<PointCloudType>( state.range( 1 ) );
-    auto bounding_boxes =
-        constructBoxes<DeviceType>( n_values, point_cloud_type );
+    auto points = constructPoints<DeviceType>( n_values, point_cloud_type );
 
     for ( auto _ : state )
     {
         auto const start = std::chrono::high_resolution_clock::now();
-        TreeType index( bounding_boxes );
+        TreeType index( points );
         auto const end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed_seconds = end - start;
         state.SetIterationTime( elapsed_seconds.count() );
@@ -175,7 +162,7 @@ void BM_knn_search( benchmark::State &state )
         static_cast<PointCloudType>( state.range( 4 ) );
 
     TreeType index(
-        constructBoxes<DeviceType>( n_values, source_point_cloud_type ) );
+        constructPoints<DeviceType>( n_values, source_point_cloud_type ) );
     auto const queries = makeNearestQueries<DeviceType>(
         n_values, n_queries, n_neighbors, target_point_cloud_type );
 
@@ -205,7 +192,7 @@ void BM_radius_search( benchmark::State &state )
         static_cast<PointCloudType>( state.range( 5 ) );
 
     TreeType index(
-        constructBoxes<DeviceType>( n_values, source_point_cloud_type ) );
+        constructPoints<DeviceType>( n_values, source_point_cloud_type ) );
     auto const queries = makeSpatialQueries<DeviceType>(
         n_values, n_queries, n_neighbors, target_point_cloud_type );
 
