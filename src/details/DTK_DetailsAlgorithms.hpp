@@ -178,6 +178,9 @@ void centroid( Box const &box, Point &c )
 }
 
 KOKKOS_INLINE_FUNCTION
+void centroid( Point const &point, Point &c ) { c = point; }
+
+KOKKOS_INLINE_FUNCTION
 Point return_centroid( Point const &point ) { return point; }
 
 KOKKOS_INLINE_FUNCTION
