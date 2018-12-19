@@ -152,13 +152,13 @@ inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
     Kokkos::fence();
 }
 
-template <typename DeviceType>
-template <typename ConstViewType>
-inline void TreeConstruction<DeviceType>::assignMortonCodes(
-    ConstViewType primitives,
-    Kokkos::View<unsigned int *, DeviceType> morton_codes,
-    Box const &scene_bounding_box )
+template <typename Primitives, typename MortonCodes>
+inline void assignMortonCodesDispatch( BoxTag, Primitives primitives,
+                                       MortonCodes morton_codes,
+                                       Box const &scene_bounding_box )
 {
+    using ExecutionSpace =
+        typename decltype( primitives )::traits::execution_space;
     auto const n = morton_codes.extent( 0 );
     Kokkos::parallel_for(
         DTK_MARK_REGION( "assign_morton_codes" ),
@@ -176,6 +176,19 @@ inline void TreeConstruction<DeviceType>::assignMortonCodes(
             morton_codes( i ) = morton3D( xyz[0], xyz[1], xyz[2] );
         } );
     Kokkos::fence();
+}
+
+template <typename DeviceType>
+template <typename ConstViewType>
+inline void TreeConstruction<DeviceType>::assignMortonCodes(
+    ConstViewType primitives,
+    Kokkos::View<unsigned int *, DeviceType> morton_codes,
+    Box const &scene_bounding_box )
+{
+    using Tag = typename Tag<typename decltype(
+        primitives )::traits::non_const_value_type>::type;
+    assignMortonCodesDispatch( Tag{}, primitives, morton_codes,
+                               scene_bounding_box );
 }
 
 template <typename Primitives, typename Indices, typename Nodes>
