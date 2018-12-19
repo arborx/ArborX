@@ -153,7 +153,7 @@ inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
 template <typename DeviceType>
 template <typename ConstViewType>
 inline void TreeConstruction<DeviceType>::assignMortonCodes(
-    ConstViewType geometries,
+    ConstViewType primitives,
     Kokkos::View<unsigned int *, DeviceType> morton_codes,
     Box const &scene_bounding_box )
 {
@@ -163,7 +163,7 @@ inline void TreeConstruction<DeviceType>::assignMortonCodes(
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
             Point xyz;
             double a, b;
-            centroid( geometries( i ), xyz );
+            centroid( primitives( i ), xyz );
             // scale coordinates with respect to bounding box of the scene
             for ( int d = 0; d < 3; ++d )
             {
