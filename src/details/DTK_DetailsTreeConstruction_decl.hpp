@@ -15,11 +15,13 @@
 #include "DTK_ConfigDefs.hpp"
 
 #include <DTK_Box.hpp>
+#include <DTK_DetailsAlgorithms.hpp> // expand
 #include <DTK_DetailsNode.hpp>
 #include <DTK_KokkosHelpers.hpp> // clz
 
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_Pair.hpp>
+#include <Kokkos_Parallel.hpp>
 #include <Kokkos_View.hpp>
 
 namespace DataTransferKit
@@ -36,9 +38,9 @@ struct TreeConstruction
   public:
     using ExecutionSpace = typename DeviceType::execution_space;
 
-    static void calculateBoundingBoxOfTheScene(
-        Kokkos::View<Box const *, DeviceType> bounding_boxes,
-        Box &scene_bounding_box );
+    template <typename ConstViewType>
+    static void calculateBoundingBoxOfTheScene( ConstViewType primitives,
+                                                Box &scene_bounding_box );
 
     // to assign the Morton code for a given object, we use the centroid point
     // of its bounding box, and express it relative to the bounding box of the
@@ -95,6 +97,57 @@ struct TreeConstruction
     static Kokkos::pair<int, int> determineRange(
         Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes, int i );
 };
+
+template <typename ViewType>
+class CalculateBoundingBoxOfTheSceneFunctor
+{
+  public:
+    CalculateBoundingBoxOfTheSceneFunctor(
+        typename ViewType::const_type primitives )
+        : _primitives( primitives )
+    {
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    void init( Box &box ) const { box = Box(); }
+
+    KOKKOS_INLINE_FUNCTION
+    void operator()( int const i, Box &box ) const
+    {
+        expand( box, _primitives( i ) );
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    void join( volatile Box &dst, volatile Box const &src ) const
+    {
+        expand( dst, src );
+    }
+
+  private:
+    typename ViewType::const_type _primitives;
+};
+
+template <typename DeviceType>
+template <typename ConstViewType>
+inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
+    ConstViewType primitives, Box &scene_bounding_box )
+{
+    static_assert( Kokkos::is_view<ConstViewType>::value, "Must pass a view" );
+    static_assert( std::is_same<typename ConstViewType::traits::device_type,
+                                DeviceType>::value,
+                   "Wrong device type" );
+    // TODO static_assert( is_expandable_v<Box, typename
+    // ConstViewType::value_type), "");
+    auto const n = primitives.extent( 0 );
+    Kokkos::parallel_reduce(
+        DTK_MARK_REGION( "calculate_bounding_box_of_the_scene" ),
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
+        CalculateBoundingBoxOfTheSceneFunctor<decltype( primitives )>(
+            primitives ),
+        scene_bounding_box );
+    Kokkos::fence();
+}
+
 } // namespace Details
 } // namespace DataTransferKit
 

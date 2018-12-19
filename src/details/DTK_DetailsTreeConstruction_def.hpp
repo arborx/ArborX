@@ -32,35 +32,6 @@ namespace Details
 {
 
 template <typename DeviceType>
-class CalculateBoundingBoxOfTheSceneFunctor
-{
-  public:
-    CalculateBoundingBoxOfTheSceneFunctor(
-        Kokkos::View<Box const *, DeviceType> bounding_boxes )
-        : _bounding_boxes( bounding_boxes )
-    {
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    void init( Box &box ) const { box = Box(); }
-
-    KOKKOS_INLINE_FUNCTION
-    void operator()( int const i, Box &box ) const
-    {
-        expand( box, _bounding_boxes( i ) );
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    void join( volatile Box &dst, volatile Box const &src ) const
-    {
-        expand( dst, src );
-    }
-
-  private:
-    Kokkos::View<Box const *, DeviceType> _bounding_boxes;
-};
-
-template <typename DeviceType>
 class AssignMortonCodesFunctor
 {
   public:
@@ -222,20 +193,6 @@ class CalculateInternalNodesBoundingVolumesFunctor
     Kokkos::View<int *, DeviceType> _flags;
     Kokkos::View<int const *, DeviceType> _parents;
 };
-
-template <typename DeviceType>
-void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
-    Kokkos::View<Box const *, DeviceType> bounding_boxes,
-    Box &scene_bounding_box )
-{
-    auto const n = bounding_boxes.extent( 0 );
-    Kokkos::parallel_reduce(
-        DTK_MARK_REGION( "calculate_bounding_box_of_the_scene" ),
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-        CalculateBoundingBoxOfTheSceneFunctor<DeviceType>( bounding_boxes ),
-        scene_bounding_box );
-    Kokkos::fence();
-}
 
 template <typename DeviceType>
 void TreeConstruction<DeviceType>::assignMortonCodes(
