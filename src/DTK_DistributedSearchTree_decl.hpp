@@ -21,8 +21,6 @@
 #include <DTK_DetailsDistributedSearchTreeImpl.hpp>
 #include <DTK_LinearBVH.hpp>
 
-#include "DTK_ConfigDefs.hpp"
-
 namespace DataTransferKit
 {
 
