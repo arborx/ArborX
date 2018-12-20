@@ -39,21 +39,22 @@ struct DistributedSearchTreeImpl
 
     // spatial queries
     template <typename Query>
-    static void queryDispatch( DistributedSearchTree<DeviceType> const &tree,
+    static void queryDispatch( Details::SpatialPredicateTag,
+                               DistributedSearchTree<DeviceType> const &tree,
                                Kokkos::View<Query *, DeviceType> queries,
                                Kokkos::View<int *, DeviceType> &indices,
                                Kokkos::View<int *, DeviceType> &offset,
-                               Kokkos::View<int *, DeviceType> &ranks,
-                               Details::SpatialPredicateTag );
+                               Kokkos::View<int *, DeviceType> &ranks );
 
     // nearest neighbors queries
     template <typename Query>
     static void queryDispatch(
+        Details::NearestPredicateTag,
         DistributedSearchTree<DeviceType> const &tree,
         Kokkos::View<Query *, DeviceType> queries,
         Kokkos::View<int *, DeviceType> &indices,
         Kokkos::View<int *, DeviceType> &offset,
-        Kokkos::View<int *, DeviceType> &ranks, Details::NearestPredicateTag,
+        Kokkos::View<int *, DeviceType> &ranks,
         Kokkos::View<double *, DeviceType> *distances_ptr = nullptr );
 
     template <typename Query>
@@ -302,11 +303,11 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
 template <typename DeviceType>
 template <typename Query>
 void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-    DistributedSearchTree<DeviceType> const &tree,
+    Details::NearestPredicateTag, DistributedSearchTree<DeviceType> const &tree,
     Kokkos::View<Query *, DeviceType> queries,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset,
-    Kokkos::View<int *, DeviceType> &ranks, Details::NearestPredicateTag,
+    Kokkos::View<int *, DeviceType> &ranks,
     Kokkos::View<double *, DeviceType> *distances_ptr )
 {
     auto const &bottom_tree = tree._bottom_tree;
@@ -376,11 +377,11 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
 template <typename DeviceType>
 template <typename Query>
 void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-    DistributedSearchTree<DeviceType> const &tree,
+    Details::SpatialPredicateTag, DistributedSearchTree<DeviceType> const &tree,
     Kokkos::View<Query *, DeviceType> queries,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset,
-    Kokkos::View<int *, DeviceType> &ranks, Details::SpatialPredicateTag )
+    Kokkos::View<int *, DeviceType> &ranks )
 {
     auto const &top_tree = tree._top_tree;
     auto const &bottom_tree = tree._bottom_tree;

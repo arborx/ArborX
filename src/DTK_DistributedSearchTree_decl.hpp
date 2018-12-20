@@ -90,7 +90,7 @@ class DistributedSearchTree
     {
         using Tag = typename Query::Tag;
         Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-            *this, queries, indices, offset, ranks, Tag{} );
+            Tag{}, *this, queries, indices, offset, ranks );
     }
 
     template <typename Query>
@@ -105,7 +105,7 @@ class DistributedSearchTree
     {
         using Tag = typename Query::Tag;
         Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-            *this, queries, indices, offset, ranks, Tag{}, &distances );
+            Tag{}, *this, queries, indices, offset, ranks, &distances );
     }
 
   private:
