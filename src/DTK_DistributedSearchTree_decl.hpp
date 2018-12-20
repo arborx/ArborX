@@ -12,14 +12,14 @@
 #ifndef DTK_DISTRIBUTED_SEARCH_TREE_DECL_HPP
 #define DTK_DISTRIBUTED_SEARCH_TREE_DECL_HPP
 
-#include <Kokkos_View.hpp>
+#include <DTK_DBC.hpp>
+#include <DTK_DetailsDistributedSearchTreeImpl.hpp>
+#include <DTK_LinearBVH.hpp>
 
 #include <Teuchos_Comm.hpp>
 #include <Teuchos_RCP.hpp>
 
-#include <DTK_DBC.hpp>
-#include <DTK_DetailsDistributedSearchTreeImpl.hpp>
-#include <DTK_LinearBVH.hpp>
+#include <Kokkos_View.hpp>
 
 namespace DataTransferKit
 {
