@@ -12,11 +12,14 @@
 #ifndef DTK_DISTRIBUTED_SEARCH_TREE_DECL_HPP
 #define DTK_DISTRIBUTED_SEARCH_TREE_DECL_HPP
 
-#include <DTK_DBC.hpp>
+#include <DTK_Box.hpp>
 #include <DTK_DetailsDistributedSearchTreeImpl.hpp>
+#include <DTK_DetailsUtils.hpp> // accumulate
 #include <DTK_LinearBVH.hpp>
 
+#include <Teuchos_Array.hpp>
 #include <Teuchos_Comm.hpp>
+#include <Teuchos_CommHelpers.hpp>
 #include <Teuchos_RCP.hpp>
 
 #include <Kokkos_View.hpp>
@@ -36,9 +39,9 @@ class DistributedSearchTree
     using bounding_volume_type = typename BVH<DeviceType>::bounding_volume_type;
     using size_type = typename BVH<DeviceType>::size_type;
 
-    DistributedSearchTree(
-        Teuchos::RCP<Teuchos::Comm<int> const> comm,
-        Kokkos::View<Box const *, DeviceType> bounding_boxes );
+    template <typename Primitives>
+    DistributedSearchTree( Teuchos::RCP<Teuchos::Comm<int> const> comm,
+                           Primitives const &primitives );
 
     /** Returns the smallest axis-aligned box able to contain all the objects
      *  stored in the tree or an invalid box if the tree is empty.
@@ -113,6 +116,47 @@ class DistributedSearchTree
     size_type _top_tree_size;
     Kokkos::View<size_type *, DeviceType> _bottom_tree_sizes;
 };
+
+template <typename DeviceType>
+template <typename Primitives>
+DistributedSearchTree<DeviceType>::DistributedSearchTree(
+    Teuchos::RCP<Teuchos::Comm<int> const> comm, Primitives const &primitives )
+    : _comm( comm )
+    , _bottom_tree( primitives )
+{
+    int const comm_rank = _comm->getRank();
+    int const comm_size = _comm->getSize();
+
+    Kokkos::View<Box *, DeviceType> boxes(
+        Kokkos::ViewAllocateWithoutInitializing( "rank_bounding_boxes" ),
+        comm_size );
+    // FIXME: I am not sure how to do the MPI allgather with Teuchos for data
+    // living on the device so I copied to the host.
+    auto boxes_host = Kokkos::create_mirror_view( boxes );
+    boxes_host( comm_rank ) = _bottom_tree.bounds();
+
+    Teuchos::Array<double> bounds( 6 * comm_size );
+    Teuchos::gatherAll( *_comm, 6,
+                        reinterpret_cast<double *>( &boxes_host( comm_rank ) ),
+                        6 * comm_size, bounds.getRawPtr() );
+    for ( int i = 0; i < comm_size; ++i )
+        boxes_host( i ) = reinterpret_cast<Box const &>( bounds[6 * i] );
+    Kokkos::deep_copy( boxes, boxes_host );
+
+    _top_tree = BVH<DeviceType>( boxes );
+
+    _bottom_tree_sizes = Kokkos::View<size_type *, DeviceType>(
+        Kokkos::ViewAllocateWithoutInitializing( "leave_count_in_local_trees" ),
+        comm_size );
+    auto bottom_tree_sizes_host =
+        Kokkos::create_mirror_view( _bottom_tree_sizes );
+    auto const bottom_tree_size = _bottom_tree.size();
+    Teuchos::gatherAll( *comm, 1, &bottom_tree_size, comm_size,
+                        bottom_tree_sizes_host.data() );
+    Kokkos::deep_copy( _bottom_tree_sizes, bottom_tree_sizes_host );
+
+    _top_tree_size = accumulate( _bottom_tree_sizes, 0 );
+}
 
 } // namespace DataTransferKit
 
