@@ -46,15 +46,15 @@ class DistributedSearchTree
     /** Returns the smallest axis-aligned box able to contain all the objects
      *  stored in the tree or an invalid box if the tree is empty.
      */
-    inline bounding_volume_type bounds() const { return _top_tree.bounds(); }
+    bounding_volume_type bounds() const { return _top_tree.bounds(); }
 
     /** Returns the global number of objects stored in the tree.
      */
-    inline size_type size() const { return _top_tree_size; }
+    size_type size() const { return _top_tree_size; }
 
     /** Indicates whether the tree is empty on all processes.
      */
-    inline bool empty() const { return size() == 0; }
+    bool empty() const { return size() == 0; }
 
     /** \brief Finds object satisfying the passed predicates (e.g. nearest to
      *  some point or overlaping with some box)
