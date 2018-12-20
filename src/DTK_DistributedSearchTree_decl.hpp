@@ -82,30 +82,14 @@ class DistributedSearchTree
      *  storage.
      *  \param[out] ranks Process ranks that own objects.
      */
-    template <typename Query>
-    inline void query( Kokkos::View<Query *, DeviceType> queries,
-                       Kokkos::View<int *, DeviceType> &indices,
-                       Kokkos::View<int *, DeviceType> &offset,
-                       Kokkos::View<int *, DeviceType> &ranks ) const
+    template <typename Predicates, typename... Args>
+    void query( Predicates const &predicates, Args &&... args ) const
     {
-        using Tag = typename Query::Tag;
+        // FIXME lame placeholder for concept check
+        static_assert( Kokkos::is_view<Predicates>::value, "must pass a view" );
+        using Tag = typename Predicates::value_type::Tag;
         Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-            Tag{}, *this, queries, indices, offset, ranks );
-    }
-
-    template <typename Query>
-    inline typename std::enable_if<
-        std::is_same<typename Query::Tag, Details::NearestPredicateTag>::value,
-        void>::type
-    query( Kokkos::View<Query *, DeviceType> queries,
-           Kokkos::View<int *, DeviceType> &indices,
-           Kokkos::View<int *, DeviceType> &offset,
-           Kokkos::View<int *, DeviceType> &ranks,
-           Kokkos::View<double *, DeviceType> &distances ) const
-    {
-        using Tag = typename Query::Tag;
-        Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-            Tag{}, *this, queries, indices, offset, ranks, &distances );
+            Tag{}, *this, predicates, std::forward<Args>( args )... );
     }
 
   private:
