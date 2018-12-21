@@ -196,6 +196,7 @@ KOKKOS_INLINE_FUNCTION
 Point returnCentroid( Sphere const &sphere ) { return sphere.centroid(); }
 
 // transformation that maps the unit cube into a new axis-aligned box
+// NOTE safe to perform in-place
 KOKKOS_INLINE_FUNCTION
 void translateAndScale( Point const &in, Point &out, Box const &ref )
 {
