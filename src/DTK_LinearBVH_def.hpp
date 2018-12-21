@@ -12,10 +12,25 @@
 #ifndef DTK_LINEAR_BVH_DEF_HPP
 #define DTK_LINEAR_BVH_DEF_HPP
 
+#include <DTK_Box.hpp>
+#include <DTK_DetailsConcepts.hpp>
+#include <DTK_Point.hpp>
+
 namespace DataTransferKit
 {
 
 // FIXME nothing here...
+
+// FIXME not sure where to put these
+static_assert( Details::is_expandable<Box, Box>::value, "" );
+static_assert( Details::is_expandable<Box, Box const>::value, "" );
+static_assert( Details::is_expandable<Box, Point>::value, "" );
+static_assert( Details::is_expandable<Box, Point const>::value, "" );
+static_assert( Details::has_centroid<Box, Point>::value, "" );
+static_assert( Details::has_centroid<Box const, Point>::value, "" );
+// NOTE assertion below only holds because Details::centroid(Point const & ,
+// Point & ) has not been implemented and may change in the future
+static_assert( !Details::has_centroid<Point, Point>::value, "" );
 
 } // namespace DataTransferKit
 
