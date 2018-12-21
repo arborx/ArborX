@@ -13,7 +13,7 @@
 #define DTK_DETAILS_BATCHED_QUERIES_HPP
 
 #include <DTK_Box.hpp>
-#include <DTK_DetailsAlgorithms.hpp> // return_centroid, translateAndScale
+#include <DTK_DetailsAlgorithms.hpp> // returnCentroid, translateAndScale
 #include <DTK_DetailsMortonCode.hpp> // morton3D
 #include <DTK_DetailsSortUtils.hpp>  // sortObjects
 #include <DTK_DetailsUtils.hpp>      // iota, exclusivePrefixSum, lastElement
@@ -62,7 +62,7 @@ struct BatchedQueries
             DTK_MARK_REGION( "assign_morton_codes_to_queries" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int i ) {
-                Point xyz = Details::return_centroid( queries( i )._geometry );
+                Point xyz = Details::returnCentroid( queries( i )._geometry );
                 translateAndScale( xyz, xyz, scene_bounding_box );
                 morton_codes( i ) = morton3D( xyz[0], xyz[1], xyz[2] );
             } );

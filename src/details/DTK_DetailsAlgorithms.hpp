@@ -181,10 +181,10 @@ KOKKOS_INLINE_FUNCTION
 void centroid( Point const &point, Point &c ) { c = point; }
 
 KOKKOS_INLINE_FUNCTION
-Point return_centroid( Point const &point ) { return point; }
+Point returnCentroid( Point const &point ) { return point; }
 
 KOKKOS_INLINE_FUNCTION
-Point return_centroid( Box const &box )
+Point returnCentroid( Box const &box )
 {
     Point c;
     for ( int d = 0; d < 3; ++d )
@@ -193,7 +193,7 @@ Point return_centroid( Box const &box )
 }
 
 KOKKOS_INLINE_FUNCTION
-Point return_centroid( Sphere const &sphere ) { return sphere.centroid(); }
+Point returnCentroid( Sphere const &sphere ) { return sphere.centroid(); }
 
 // transformation that maps the unit cube into a new axis-aligned box
 KOKKOS_INLINE_FUNCTION
