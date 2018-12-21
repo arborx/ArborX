@@ -54,7 +54,7 @@ class BoundingVolumeHierarchy
     }
 
     template <typename Predicates, typename... Args>
-    inline void query( Predicates const &predicates, Args &&... args ) const
+    void query( Predicates const &predicates, Args &&... args ) const
     {
         // FIXME lame placeholder for concept check
         static_assert( Kokkos::is_view<Predicates>::value, "must pass a view" );

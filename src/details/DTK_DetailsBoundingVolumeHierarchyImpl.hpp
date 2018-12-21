@@ -35,6 +35,14 @@ struct BoundingVolumeHierarchyImpl
     // Views are passed by reference here because internally Kokkos::realloc()
     // is called.
     template <typename Query>
+    static void queryDispatch( Details::SpatialPredicateTag,
+                               BoundingVolumeHierarchy<DeviceType> const bvh,
+                               Kokkos::View<Query *, DeviceType> queries,
+                               Kokkos::View<int *, DeviceType> &indices,
+                               Kokkos::View<int *, DeviceType> &offset,
+                               int buffer_size = 0 );
+
+    template <typename Query>
     static void queryDispatch(
         Details::NearestPredicateTag,
         BoundingVolumeHierarchy<DeviceType> const bvh,
@@ -44,20 +52,15 @@ struct BoundingVolumeHierarchyImpl
         Kokkos::View<double *, DeviceType> *distances_ptr = nullptr );
 
     template <typename Query>
-    static void queryDispatch( Details::SpatialPredicateTag,
-                               BoundingVolumeHierarchy<DeviceType> const bvh,
-                               Kokkos::View<Query *, DeviceType> queries,
-                               Kokkos::View<int *, DeviceType> &indices,
-                               Kokkos::View<int *, DeviceType> &offset,
-                               int buffer_size = 0 );
-
-    template <typename Query>
     static void queryDispatch( Details::NearestPredicateTag tag,
                                BoundingVolumeHierarchy<DeviceType> const bvh,
                                Kokkos::View<Query *, DeviceType> queries,
                                Kokkos::View<int *, DeviceType> &indices,
                                Kokkos::View<int *, DeviceType> &offset,
-                               Kokkos::View<double *, DeviceType> &distances );
+                               Kokkos::View<double *, DeviceType> &distances )
+    {
+        queryDispatch( tag, bvh, queries, indices, offset, &distances );
+    }
 };
 
 template <typename DeviceType>
@@ -372,19 +375,6 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
         Kokkos::fence();
         indices = tmp_indices;
     }
-}
-
-template <typename DeviceType>
-template <typename Query>
-void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
-    Details::NearestPredicateTag tag,
-    BoundingVolumeHierarchy<DeviceType> const bvh,
-    Kokkos::View<Query *, DeviceType> queries,
-    Kokkos::View<int *, DeviceType> &indices,
-    Kokkos::View<int *, DeviceType> &offset,
-    Kokkos::View<double *, DeviceType> &distances )
-{
-    queryDispatch( tag, bvh, queries, indices, offset, &distances );
 }
 
 } // namespace Details
