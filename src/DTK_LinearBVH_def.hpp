@@ -28,9 +28,8 @@ static_assert( Details::is_expandable<Box, Point>::value, "" );
 static_assert( Details::is_expandable<Box, Point const>::value, "" );
 static_assert( Details::has_centroid<Box, Point>::value, "" );
 static_assert( Details::has_centroid<Box const, Point>::value, "" );
-// NOTE assertion below only holds because Details::centroid(Point const & ,
-// Point & ) has not been implemented and may change in the future
-static_assert( !Details::has_centroid<Point, Point>::value, "" );
+static_assert( Details::has_centroid<Point, Point>::value, "" );
+static_assert( Details::has_centroid<Point const, Point>::value, "" );
 
 } // namespace DataTransferKit
 
