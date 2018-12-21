@@ -146,8 +146,7 @@ inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
     Kokkos::parallel_reduce(
         DTK_MARK_REGION( "calculate_bounding_box_of_the_scene" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-        CalculateBoundingBoxOfTheSceneFunctor<decltype( primitives )>(
-            primitives ),
+        CalculateBoundingBoxOfTheSceneFunctor<Primitives>( primitives ),
         scene_bounding_box );
     Kokkos::fence();
 }
@@ -157,8 +156,7 @@ inline void assignMortonCodesDispatch( BoxTag, Primitives const &primitives,
                                        MortonCodes morton_codes,
                                        Box const &scene_bounding_box )
 {
-    using ExecutionSpace =
-        typename decltype( primitives )::traits::execution_space;
+    using ExecutionSpace = typename Primitives::execution_space;
     auto const n = morton_codes.extent( 0 );
     Kokkos::parallel_for(
         DTK_MARK_REGION( "assign_morton_codes" ),
@@ -176,8 +174,7 @@ inline void assignMortonCodesDispatch( PointTag, Primitives const &primitives,
                                        MortonCodes morton_codes,
                                        Box const &scene_bounding_box )
 {
-    using ExecutionSpace =
-        typename decltype( primitives )::traits::execution_space;
+    using ExecutionSpace = typename Primitives::execution_space;
     auto const n = morton_codes.extent( 0 );
     Kokkos::parallel_for(
         DTK_MARK_REGION( "assign_morton_codes" ),
@@ -210,8 +207,7 @@ inline void initializeLeafNodesDispatch( BoxTag, Primitives const &primitives,
                                          Indices permutation_indices,
                                          Nodes leaf_nodes )
 {
-    using ExecutionSpace =
-        typename decltype( primitives )::traits::execution_space;
+    using ExecutionSpace = typename Primitives::execution_space;
     auto const n = leaf_nodes.extent( 0 );
     Kokkos::parallel_for(
         DTK_MARK_REGION( "initialize_leaf_nodes" ),
@@ -228,8 +224,7 @@ inline void initializeLeafNodesDispatch( PointTag, Primitives const &primitives,
                                          Indices permutation_indices,
                                          Nodes leaf_nodes )
 {
-    using ExecutionSpace =
-        typename decltype( primitives )::traits::execution_space;
+    using ExecutionSpace = typename Primitives::execution_space;
     auto const n = leaf_nodes.extent( 0 );
     Kokkos::parallel_for(
         DTK_MARK_REGION( "initialize_leaf_nodes" ),
