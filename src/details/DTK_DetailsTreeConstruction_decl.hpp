@@ -41,7 +41,7 @@ struct TreeConstruction
     using ExecutionSpace = typename DeviceType::execution_space;
 
     template <typename Primitives>
-    static void calculateBoundingBoxOfTheScene( Primitives primitives,
+    static void calculateBoundingBoxOfTheScene( Primitives const &primitives,
                                                 Box &scene_bounding_box );
 
     // to assign the Morton code for a given object, we use the centroid point
@@ -49,13 +49,13 @@ struct TreeConstruction
     // scene.
     template <typename Primitives>
     static void
-    assignMortonCodes( Primitives primitives,
+    assignMortonCodes( Primitives const &primitives,
                        Kokkos::View<unsigned int *, DeviceType> morton_codes,
                        Box const &scene_bounding_box );
 
     template <typename Primitives>
     static void initializeLeafNodes(
-        Primitives primitives,
+        Primitives const &primitives,
         Kokkos::View<size_t const *, DeviceType> permutation_indices,
         Kokkos::View<Node *, DeviceType> leaf_nodes );
 
@@ -134,7 +134,7 @@ class CalculateBoundingBoxOfTheSceneFunctor
 template <typename DeviceType>
 template <typename Primitives>
 inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
-    Primitives primitives, Box &scene_bounding_box )
+    Primitives const &primitives, Box &scene_bounding_box )
 {
     static_assert( Kokkos::is_view<Primitives>::value, "Must pass a view" );
     static_assert( std::is_same<typename Primitives::traits::device_type,
@@ -153,7 +153,7 @@ inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
 }
 
 template <typename Primitives, typename MortonCodes>
-inline void assignMortonCodesDispatch( BoxTag, Primitives primitives,
+inline void assignMortonCodesDispatch( BoxTag, Primitives const &primitives,
                                        MortonCodes morton_codes,
                                        Box const &scene_bounding_box )
 {
@@ -172,7 +172,7 @@ inline void assignMortonCodesDispatch( BoxTag, Primitives primitives,
 }
 
 template <typename Primitives, typename MortonCodes>
-inline void assignMortonCodesDispatch( PointTag, Primitives primitives,
+inline void assignMortonCodesDispatch( PointTag, Primitives const &primitives,
                                        MortonCodes morton_codes,
                                        Box const &scene_bounding_box )
 {
@@ -192,7 +192,7 @@ inline void assignMortonCodesDispatch( PointTag, Primitives primitives,
 template <typename DeviceType>
 template <typename Primitives>
 inline void TreeConstruction<DeviceType>::assignMortonCodes(
-    Primitives primitives,
+    Primitives const &primitives,
     Kokkos::View<unsigned int *, DeviceType> morton_codes,
     Box const &scene_bounding_box )
 {
@@ -206,7 +206,7 @@ inline void TreeConstruction<DeviceType>::assignMortonCodes(
 }
 
 template <typename Primitives, typename Indices, typename Nodes>
-inline void initializeLeafNodesDispatch( BoxTag, Primitives primitives,
+inline void initializeLeafNodesDispatch( BoxTag, Primitives const &primitives,
                                          Indices permutation_indices,
                                          Nodes leaf_nodes )
 {
@@ -224,7 +224,7 @@ inline void initializeLeafNodesDispatch( BoxTag, Primitives primitives,
 }
 
 template <typename Primitives, typename Indices, typename Nodes>
-inline void initializeLeafNodesDispatch( PointTag, Primitives primitives,
+inline void initializeLeafNodesDispatch( PointTag, Primitives const &primitives,
                                          Indices permutation_indices,
                                          Nodes leaf_nodes )
 {
@@ -245,7 +245,7 @@ inline void initializeLeafNodesDispatch( PointTag, Primitives primitives,
 template <typename DeviceType>
 template <typename Primitives>
 inline void TreeConstruction<DeviceType>::initializeLeafNodes(
-    Primitives primitives,
+    Primitives const &primitives,
     Kokkos::View<size_t const *, DeviceType> permutation_indices,
     Kokkos::View<Node *, DeviceType> leaf_nodes )
 {
