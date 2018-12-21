@@ -48,6 +48,23 @@ struct Access<View, typename std::enable_if<Kokkos::is_view<View>::value &&
     using Tag = typename Tag<typename View::value_type>::type;
 };
 
+template <typename View>
+struct Access<View, typename std::enable_if<Kokkos::is_view<View>::value &&
+                                            View::rank == 2>::type>
+{
+    KOKKOS_FUNCTION static Point get( View const &v, int i )
+    {
+        return {v( i, 0 ), v( i, 1 ), v( i, 2 )};
+    }
+
+    static typename View::size_type size( View const &v )
+    {
+        return v.extent( 0 );
+    }
+
+    using Tag = PointTag;
+};
+
 } // namespace Traits
 } // namespace Details
 } // namespace DataTransferKit
