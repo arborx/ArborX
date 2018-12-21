@@ -102,12 +102,11 @@ struct TreeConstruction
         Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes, int i );
 };
 
-template <typename ViewType>
+template <typename Primitives>
 class CalculateBoundingBoxOfTheSceneFunctor
 {
   public:
-    CalculateBoundingBoxOfTheSceneFunctor(
-        typename ViewType::const_type primitives )
+    CalculateBoundingBoxOfTheSceneFunctor( Primitives const &primitives )
         : _primitives( primitives )
     {
     }
@@ -128,7 +127,7 @@ class CalculateBoundingBoxOfTheSceneFunctor
     }
 
   private:
-    typename ViewType::const_type _primitives;
+    Primitives _primitives;
 };
 
 template <typename DeviceType>
