@@ -40,22 +40,22 @@ struct TreeConstruction
   public:
     using ExecutionSpace = typename DeviceType::execution_space;
 
-    template <typename ConstViewType>
-    static void calculateBoundingBoxOfTheScene( ConstViewType primitives,
+    template <typename Primitives>
+    static void calculateBoundingBoxOfTheScene( Primitives primitives,
                                                 Box &scene_bounding_box );
 
     // to assign the Morton code for a given object, we use the centroid point
     // of its bounding box, and express it relative to the bounding box of the
     // scene.
-    template <typename ConstViewType>
+    template <typename Primitives>
     static void
-    assignMortonCodes( ConstViewType primitives,
+    assignMortonCodes( Primitives primitives,
                        Kokkos::View<unsigned int *, DeviceType> morton_codes,
                        Box const &scene_bounding_box );
 
-    template <typename ConstViewType>
+    template <typename Primitives>
     static void initializeLeafNodes(
-        ConstViewType primitives,
+        Primitives primitives,
         Kokkos::View<size_t const *, DeviceType> permutation_indices,
         Kokkos::View<Node *, DeviceType> leaf_nodes );
 
@@ -132,16 +132,16 @@ class CalculateBoundingBoxOfTheSceneFunctor
 };
 
 template <typename DeviceType>
-template <typename ConstViewType>
+template <typename Primitives>
 inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
-    ConstViewType primitives, Box &scene_bounding_box )
+    Primitives primitives, Box &scene_bounding_box )
 {
-    static_assert( Kokkos::is_view<ConstViewType>::value, "Must pass a view" );
-    static_assert( std::is_same<typename ConstViewType::traits::device_type,
+    static_assert( Kokkos::is_view<Primitives>::value, "Must pass a view" );
+    static_assert( std::is_same<typename Primitives::traits::device_type,
                                 DeviceType>::value,
                    "Wrong device type" );
     // TODO static_assert( is_expandable_v<Box, typename
-    // ConstViewType::value_type), "");
+    // Primitives::value_type), "");
     auto const n = primitives.extent( 0 );
     Kokkos::parallel_reduce(
         DTK_MARK_REGION( "calculate_bounding_box_of_the_scene" ),
@@ -190,9 +190,9 @@ inline void assignMortonCodesDispatch( PointTag, Primitives primitives,
 }
 
 template <typename DeviceType>
-template <typename ConstViewType>
+template <typename Primitives>
 inline void TreeConstruction<DeviceType>::assignMortonCodes(
-    ConstViewType primitives,
+    Primitives primitives,
     Kokkos::View<unsigned int *, DeviceType> morton_codes,
     Box const &scene_bounding_box )
 {
@@ -243,9 +243,9 @@ inline void initializeLeafNodesDispatch( PointTag, Primitives primitives,
 }
 
 template <typename DeviceType>
-template <typename ConstViewType>
+template <typename Primitives>
 inline void TreeConstruction<DeviceType>::initializeLeafNodes(
-    ConstViewType primitives,
+    Primitives primitives,
     Kokkos::View<size_t const *, DeviceType> permutation_indices,
     Kokkos::View<Node *, DeviceType> leaf_nodes )
 {
