@@ -153,7 +153,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
     {
         Kokkos::View<size_t *, DeviceType> permutation_indices( "permute", 1 );
         Details::TreeConstruction<DeviceType>::initializeLeafNodes(
-            permutation_indices, primitives, getLeafNodes() );
+            primitives, permutation_indices, getLeafNodes() );
         return;
     }
 
@@ -170,7 +170,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
     // sort them along the Z-order space-filling curve
     auto permutation_indices = Details::sortObjects( morton_indices );
     Details::TreeConstruction<DeviceType>::initializeLeafNodes(
-        permutation_indices, primitives, getLeafNodes() );
+        primitives, permutation_indices, getLeafNodes() );
 
     // generate bounding volume hierarchy
     Kokkos::View<int *, DeviceType> parents(

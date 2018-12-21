@@ -16,8 +16,7 @@
 
 #include <DTK_DBC.hpp>
 #include <DTK_DetailsAlgorithms.hpp>
-#include <DTK_DetailsMortonCode.hpp> // morton3D
-#include <DTK_DetailsUtils.hpp>      // iota
+#include <DTK_DetailsUtils.hpp> // iota
 
 #include <DTK_KokkosHelpers.hpp> // sgn, min, max
 
@@ -30,71 +29,6 @@ namespace DataTransferKit
 {
 namespace Details
 {
-
-template <typename DeviceType>
-class CalculateBoundingBoxOfTheSceneFunctor
-{
-  public:
-    CalculateBoundingBoxOfTheSceneFunctor(
-        Kokkos::View<Box const *, DeviceType> bounding_boxes )
-        : _bounding_boxes( bounding_boxes )
-    {
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    void init( Box &box ) const { box = Box(); }
-
-    KOKKOS_INLINE_FUNCTION
-    void operator()( int const i, Box &box ) const
-    {
-        expand( box, _bounding_boxes( i ) );
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    void join( volatile Box &dst, volatile Box const &src ) const
-    {
-        expand( dst, src );
-    }
-
-  private:
-    Kokkos::View<Box const *, DeviceType> _bounding_boxes;
-};
-
-template <typename DeviceType>
-class AssignMortonCodesFunctor
-{
-  public:
-    AssignMortonCodesFunctor(
-        Kokkos::View<Box const *, DeviceType> bounding_boxes,
-        Kokkos::View<unsigned int *, DeviceType> morton_codes,
-        Box const &scene_bounding_box )
-        : _bounding_boxes( bounding_boxes )
-        , _morton_codes( morton_codes )
-        , _scene_bounding_box( scene_bounding_box )
-    {
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    void operator()( int const i ) const
-    {
-        Point xyz;
-        double a, b;
-        centroid( _bounding_boxes[i], xyz );
-        // scale coordinates with respect to bounding box of the scene
-        for ( int d = 0; d < 3; ++d )
-        {
-            a = _scene_bounding_box.minCorner()[d];
-            b = _scene_bounding_box.maxCorner()[d];
-            xyz[d] = ( a != b ? ( xyz[d] - a ) / ( b - a ) : 0 );
-        }
-        _morton_codes[i] = morton3D( xyz[0], xyz[1], xyz[2] );
-    }
-
-  private:
-    Kokkos::View<Box const *, DeviceType> _bounding_boxes;
-    Kokkos::View<unsigned int *, DeviceType> _morton_codes;
-    Box const &_scene_bounding_box;
-};
 
 template <typename DeviceType>
 class GenerateHierarchyFunctor
@@ -222,58 +156,6 @@ class CalculateInternalNodesBoundingVolumesFunctor
     Kokkos::View<int *, DeviceType> _flags;
     Kokkos::View<int const *, DeviceType> _parents;
 };
-
-template <typename DeviceType>
-void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
-    Kokkos::View<Box const *, DeviceType> bounding_boxes,
-    Box &scene_bounding_box )
-{
-    auto const n = bounding_boxes.extent( 0 );
-    Kokkos::parallel_reduce(
-        DTK_MARK_REGION( "calculate_bounding_box_of_the_scene" ),
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-        CalculateBoundingBoxOfTheSceneFunctor<DeviceType>( bounding_boxes ),
-        scene_bounding_box );
-    Kokkos::fence();
-}
-
-template <typename DeviceType>
-void TreeConstruction<DeviceType>::assignMortonCodes(
-    Kokkos::View<Box const *, DeviceType> bounding_boxes,
-    Kokkos::View<unsigned int *, DeviceType> morton_codes,
-    Box const &scene_bounding_box )
-{
-    auto const n = morton_codes.extent( 0 );
-    Kokkos::parallel_for(
-        DTK_MARK_REGION( "assign_morton_codes" ),
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-        AssignMortonCodesFunctor<DeviceType>( bounding_boxes, morton_codes,
-                                              scene_bounding_box ) );
-    Kokkos::fence();
-}
-
-template <typename DeviceType>
-void TreeConstruction<DeviceType>::initializeLeafNodes(
-    Kokkos::View<size_t const *, DeviceType> indices,
-    Kokkos::View<Box const *, DeviceType> bounding_boxes,
-    Kokkos::View<Node *, DeviceType> leaf_nodes )
-{
-    auto const n = leaf_nodes.extent( 0 );
-    DTK_REQUIRE( indices.extent( 0 ) == n );
-    DTK_REQUIRE( bounding_boxes.extent( 0 ) == n );
-    static_assert( sizeof( typename decltype( indices )::value_type ) ==
-                       sizeof( Node * ),
-                   "Encoding leaf index in pointer to child is not safe if the "
-                   "index and pointer types do not have the same size" );
-    Kokkos::parallel_for(
-        DTK_MARK_REGION( "initialize_leaf_nodes" ),
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
-            leaf_nodes( i ) = {
-                {nullptr, reinterpret_cast<Node *>( indices( i ) )},
-                bounding_boxes( indices( i ) )};
-        } );
-    Kokkos::fence();
-}
 
 template <typename DeviceType>
 Node *TreeConstruction<DeviceType>::generateHierarchy(
