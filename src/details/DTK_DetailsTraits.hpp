@@ -52,6 +52,7 @@ template <typename View>
 struct Access<View, typename std::enable_if<Kokkos::is_view<View>::value &&
                                             View::rank == 2>::type>
 {
+    // Returns by value
     KOKKOS_FUNCTION static Point get( View const &v, int i )
     {
         return {v( i, 0 ), v( i, 1 ), v( i, 2 )};
