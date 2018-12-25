@@ -17,7 +17,6 @@
 #include <DTK_DetailsUtils.hpp> // accumulate
 #include <DTK_LinearBVH.hpp>
 
-#include <Teuchos_Array.hpp>
 #include <Teuchos_Comm.hpp>
 #include <Teuchos_CommHelpers.hpp>
 #include <Teuchos_RCP.hpp>
@@ -98,6 +97,7 @@ class DistributedSearchTree
   private:
     friend struct Details::DistributedSearchTreeImpl<DeviceType>;
     Teuchos::RCP<Teuchos::Comm<int> const> _comm;
+    MPI_Comm _comm2;
     BVH<DeviceType> _top_tree;    // replicated
     BVH<DeviceType> _bottom_tree; // local
     size_type _top_tree_size;
@@ -109,10 +109,14 @@ template <typename Primitives>
 DistributedSearchTree<DeviceType>::DistributedSearchTree(
     Teuchos::RCP<Teuchos::Comm<int> const> comm, Primitives const &primitives )
     : _comm( comm )
+    , _comm2( *( Teuchos::rcp_dynamic_cast<Teuchos::MpiComm<int> const>( comm )
+                     ->getRawMpiComm() ) )
     , _bottom_tree( primitives )
 {
-    int const comm_rank = _comm->getRank();
-    int const comm_size = _comm->getSize();
+    int comm_rank;
+    MPI_Comm_rank( _comm2, &comm_rank );
+    int comm_size;
+    MPI_Comm_size( _comm2, &comm_size );
 
     Kokkos::View<Box *, DeviceType> boxes(
         Kokkos::ViewAllocateWithoutInitializing( "rank_bounding_boxes" ),
@@ -121,13 +125,9 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
     // living on the device so I copied to the host.
     auto boxes_host = Kokkos::create_mirror_view( boxes );
     boxes_host( comm_rank ) = _bottom_tree.bounds();
-
-    Teuchos::Array<double> bounds( 6 * comm_size );
-    Teuchos::gatherAll( *_comm, 6,
-                        reinterpret_cast<double *>( &boxes_host( comm_rank ) ),
-                        6 * comm_size, bounds.getRawPtr() );
-    for ( int i = 0; i < comm_size; ++i )
-        boxes_host( i ) = reinterpret_cast<Box const &>( bounds[6 * i] );
+    MPI_Allgather( MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
+                   static_cast<void *>( boxes_host.data() ), sizeof( Box ),
+                   MPI_BYTE, _comm2 );
     Kokkos::deep_copy( boxes, boxes_host );
 
     _top_tree = BVH<DeviceType>( boxes );
@@ -137,9 +137,10 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
         comm_size );
     auto bottom_tree_sizes_host =
         Kokkos::create_mirror_view( _bottom_tree_sizes );
-    auto const bottom_tree_size = _bottom_tree.size();
-    Teuchos::gatherAll( *comm, 1, &bottom_tree_size, comm_size,
-                        bottom_tree_sizes_host.data() );
+    bottom_tree_sizes_host( comm_rank ) = _bottom_tree.size();
+    MPI_Allgather( MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
+                   static_cast<void *>( bottom_tree_sizes_host.data() ),
+                   sizeof( size_type ), MPI_BYTE, _comm2 );
     Kokkos::deep_copy( _bottom_tree_sizes, bottom_tree_sizes_host );
 
     _top_tree_size = accumulate( _bottom_tree_sizes, 0 );
