@@ -11,6 +11,7 @@
 #ifndef DTK_DETAILS_DISTRIBUTED_SEARCH_TREE_IMPL_HPP
 #define DTK_DETAILS_DISTRIBUTED_SEARCH_TREE_IMPL_HPP
 
+#include <DTK_DetailsDistributor.hpp>
 #include <DTK_DetailsPriorityQueue.hpp>
 #include <DTK_DetailsTeuchosSerializationTraits.hpp>
 #include <DTK_DetailsUtils.hpp>
@@ -19,7 +20,6 @@
 
 #include <Kokkos_Atomic.hpp>
 #include <Kokkos_Sort.hpp>
-#include <Tpetra_Distributor.hpp>
 
 #include <numeric> // accumulate
 
@@ -121,7 +121,7 @@ struct DistributedSearchTreeImpl
     // qualifier in Tpetra.
     template <typename View>
     static typename std::enable_if<Kokkos::is_view<View>::value>::type
-    sendAcrossNetwork( Tpetra::Distributor &distributor, View exports,
+    sendAcrossNetwork( Distributor &distributor, View exports,
                        typename View::non_const_type imports );
 };
 
@@ -170,7 +170,7 @@ template <typename DeviceType>
 template <typename View>
 typename std::enable_if<Kokkos::is_view<View>::value>::type
 DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
-    Tpetra::Distributor &distributor, View exports,
+    Distributor &distributor, View exports,
     typename View::non_const_type imports )
 {
     DTK_REQUIRE( ( exports.dimension_0() ==
@@ -513,7 +513,7 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
 {
     int const comm_rank = comm->getRank();
 
-    Tpetra::Distributor distributor( comm );
+    Distributor distributor( comm );
 
     int const n_queries = queries.extent( 0 );
     int const n_exports = offset( n_queries );
@@ -586,7 +586,7 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
         } );
     Kokkos::fence();
 
-    Tpetra::Distributor distributor( comm );
+    Distributor distributor( comm );
     int const n_imports = distributor.createFromSends(
         Teuchos::ArrayView<int>( export_ranks.data(), n_exports ) );
 
