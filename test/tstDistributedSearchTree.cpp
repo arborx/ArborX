@@ -82,63 +82,39 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
             comm_rank < comm_size - 1 ? 3 : 2 );
     deep_copy( nearest_queries, nearest_queries_host );
 
-    Kokkos::View<int *, DeviceType> offset( "offset" );
-    Kokkos::View<int *, DeviceType> indices( "indices" );
-    Kokkos::View<int *, DeviceType> ranks( "ranks" );
-    tree.query( queries, indices, offset, ranks );
-
-    auto indices_host = Kokkos::create_mirror_view( indices );
-    Kokkos::deep_copy( indices_host, indices );
-    auto ranks_host = Kokkos::create_mirror_view( ranks );
-    Kokkos::deep_copy( ranks_host, ranks );
-    auto offset_host = Kokkos::create_mirror_view( offset );
-    Kokkos::deep_copy( offset_host, offset );
-
-    TEST_EQUALITY( offset_host.extent( 0 ), 2 );
-    TEST_EQUALITY( offset_host( 0 ), 0 );
-    TEST_EQUALITY( offset_host( 1 ), indices_host.extent_int( 0 ) );
-    TEST_EQUALITY( indices_host.extent( 0 ), ranks_host.extent( 0 ) );
-    TEST_EQUALITY( indices_host.extent( 0 ), comm_rank > 0 ? n + 1 : n );
+    std::vector<int> indices_ref;
+    std::vector<int> ranks_ref;
     for ( int i = 0; i < n; ++i )
     {
-        TEST_EQUALITY( n - 1 - i, indices_host( i ) );
-        TEST_EQUALITY( comm_size - 1 - comm_rank, ranks_host( i ) );
+        indices_ref.push_back( n - 1 - i );
+        ranks_ref.push_back( comm_size - 1 - comm_rank );
     }
     if ( comm_rank > 0 )
     {
-        TEST_EQUALITY( indices_host( n ), 0 );
-        TEST_EQUALITY( ranks_host( n ), comm_size - comm_rank );
-    }
-
-    tree.query( nearest_queries, indices, offset, ranks );
-
-    indices_host = Kokkos::create_mirror_view( indices );
-    ranks_host = Kokkos::create_mirror_view( ranks );
-    offset_host = Kokkos::create_mirror_view( offset );
-    Kokkos::deep_copy( indices_host, indices );
-    Kokkos::deep_copy( ranks_host, ranks );
-    Kokkos::deep_copy( offset_host, offset );
-
-    TEST_COMPARE( n, >, 2 );
-    TEST_EQUALITY( offset_host.extent( 0 ), 2 );
-    TEST_EQUALITY( offset_host( 0 ), 0 );
-    TEST_EQUALITY( offset_host( 1 ), indices_host.extent_int( 0 ) );
-    TEST_EQUALITY( indices_host.extent( 0 ),
-                   comm_rank < comm_size - 1 ? 3 : 2 );
-
-    TEST_EQUALITY( indices_host( 0 ), 0 );
-    TEST_EQUALITY( ranks_host( 0 ), comm_size - 1 - comm_rank );
-    if ( comm_rank < comm_size - 1 )
-    {
-        TEST_EQUALITY( indices_host( 1 ), n - 1 );
-        TEST_EQUALITY( ranks_host( 1 ), comm_size - 2 - comm_rank );
-        TEST_EQUALITY( indices_host( 2 ), 1 );
-        TEST_EQUALITY( ranks_host( 2 ), comm_size - 1 - comm_rank );
+        indices_ref.push_back( 0 );
+        ranks_ref.push_back( comm_size - comm_rank );
+        checkResults( tree, queries, indices_ref, {0, n + 1}, ranks_ref,
+                      success, out );
     }
     else
     {
-        TEST_EQUALITY( indices_host( 1 ), 1 );
-        TEST_EQUALITY( ranks_host( 1 ), comm_size - 1 - comm_rank );
+        checkResults( tree, queries, indices_ref, {0, n}, ranks_ref, success,
+                      out );
+    }
+
+    TEST_COMPARE( n, >, 2 );
+    if ( comm_rank < comm_size - 1 )
+    {
+        checkResults( tree, nearest_queries, {0, n - 1, 1}, {0, 3},
+                      {comm_size - 1 - comm_rank, comm_size - 2 - comm_rank,
+                       comm_size - 1 - comm_rank},
+                      success, out );
+    }
+    else
+    {
+        checkResults( tree, nearest_queries, {0, 1}, {0, 2},
+                      {comm_size - 1 - comm_rank, comm_size - 1 - comm_rank},
+                      success, out );
     }
 }
 
