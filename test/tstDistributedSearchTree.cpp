@@ -32,8 +32,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
     int const comm_size = Teuchos::size( *comm );
 
     int const n = 4;
-    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", n );
-    auto boxes_host = Kokkos::create_mirror_view( boxes );
+    Kokkos::View<DataTransferKit::Point *, DeviceType> points( "points", n );
     // [  rank 0       [  rank 1       [  rank 2       [  rank 3       [
     // x---x---x---x---x---x---x---x---x---x---x---x---x---x---x---x---
     // ^   ^   ^   ^
@@ -41,16 +40,13 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
     //                 0   1   2   3   ^   ^   ^   ^
     //                                 0   1   2   3   ^   ^   ^   ^
     //                                                 0   1   2   3
-    for ( int i = 0; i < n; ++i )
-    {
-        DataTransferKit::Box box;
-        DataTransferKit::Point point = {{(double)i / n + comm_rank, 0., 0.}};
-        DataTransferKit::Details::expand( box, point );
-        boxes_host( i ) = box;
-    }
-    Kokkos::deep_copy( boxes, boxes_host );
+    using ExecutionSpace = typename DeviceType::execution_space;
+    Kokkos::parallel_for(
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
+            points( i ) = {{(double)i / n + comm_rank, 0., 0.}};
+        } );
 
-    DataTransferKit::DistributedSearchTree<DeviceType> tree( comm, boxes );
+    DataTransferKit::DistributedSearchTree<DeviceType> tree( comm, points );
 
     // 0---0---0---0---1---1---1---1---2---2---2---2---3---3---3---3---
     // |               |               |               |               |
