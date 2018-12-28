@@ -41,13 +41,21 @@ class Distributor
     {
         return _distributor.getLengthsFrom();
     }
-    Teuchos::ArrayView<size_t const> getLengthsTo() const
-    {
-        return _distributor.getLengthsTo();
-    }
     size_t getTotalReceiveLength() const
     {
-        return _distributor.getTotalReceiveLength();
+        auto n = _distributor.getTotalReceiveLength();
+        assert( n ==
+                std::accumulate( std::begin( _distributor.getLengthsFrom() ),
+                                 std::end( _distributor.getLengthsFrom() ),
+                                 size_t{0} ) );
+        return n;
+    }
+    size_t getTotalSendLength() const
+    {
+        auto n = std::accumulate( std::begin( _distributor.getLengthsTo() ),
+                                  std::end( _distributor.getLengthsTo() ),
+                                  size_t{0} );
+        return n;
     }
 
   private:
