@@ -12,9 +12,9 @@
 #define DTK_DETAILS_DISTRIBUTOR_HPP
 
 #include <Teuchos_ArrayView.hpp>
-#include <Tpetra_Distributor.hpp>
+#include <Teuchos_DefaultMpiComm.hpp>
 
-#include <Kokkos_Parallel.hpp>
+#include <Kokkos_Core.hpp> // FIXME
 
 #include <mpi.h>
 
@@ -91,8 +91,7 @@ class Distributor
 {
   public:
     Distributor( Teuchos::RCP<Teuchos::Comm<int> const> comm )
-        : _distributor( comm )
-        , _comm(
+        : _comm(
               *( Teuchos::rcp_dynamic_cast<Teuchos::MpiComm<int> const>( comm )
                      ->getRawMpiComm() ) )
     {
@@ -166,31 +165,6 @@ class Distributor
         for ( int i = 0; i < indegrees; ++i )
             _src_offsets[i + 1] = _src_offsets[i] + _src_counts[i];
 
-        int const nn = _distributor.createFromSends( export_proc_ids );
-        assert( _src_offsets.back() == nn ); // check return value
-
-        for ( int i = 0; i < indegrees; ++i )
-        {
-            auto it = std::find( std::begin( _distributor.getProcsFrom() ),
-                                 std::end( _distributor.getProcsFrom() ),
-                                 sources[i] );
-            assert( it != std::end( _distributor.getProcsFrom() ) );
-            int j =
-                std::distance( std::begin( _distributor.getProcsFrom() ), it );
-            assert( _src_counts[i] == (int)_distributor.getLengthsFrom()[j] );
-        }
-
-        for ( int i = 0; i < outdegrees; ++i )
-        {
-            auto it = std::find( std::begin( _distributor.getProcsTo() ),
-                                 std::end( _distributor.getProcsTo() ),
-                                 destinations[i] );
-            assert( it != std::end( _distributor.getProcsTo() ) );
-            int j =
-                std::distance( std::begin( _distributor.getProcsTo() ), it );
-            assert( _dest_counts[i] == (int)_distributor.getLengthsTo()[j] );
-        }
-
 #if defined( REORDER_RECV )
         int comm_size = -1;
         MPI_Comm_size( _comm, &comm_size );
@@ -255,40 +229,11 @@ class Distributor
 #else
         std::copy( src_buffer.begin(), src_buffer.end(), imports.getRawPtr() );
 #endif
-
-        size_t num_receives = _distributor.getNumReceives();
-        size_t num_sends = _distributor.getNumSends();
-        if ( _distributor.hasSelfMessage() )
-        {
-            ++num_receives;
-            ++num_sends;
-        }
-        assert( num_receives == _src_counts.size() );
-        assert( num_sends == _dest_counts.size() );
-
-        //_distributor.doPostsAndWaits( exports, numPackets, imports );
     }
-    size_t getTotalReceiveLength() const
-    {
-        auto n = _distributor.getTotalReceiveLength();
-        assert( n ==
-                std::accumulate( std::begin( _distributor.getLengthsFrom() ),
-                                 std::end( _distributor.getLengthsFrom() ),
-                                 size_t{0} ) );
-        assert( n == static_cast<size_t>( _src_offsets.back() ) );
-        return n;
-    }
-    size_t getTotalSendLength() const
-    {
-        auto n = std::accumulate( std::begin( _distributor.getLengthsTo() ),
-                                  std::end( _distributor.getLengthsTo() ),
-                                  size_t{0} );
-        assert( n == static_cast<size_t>( _dest_offsets.back() ) );
-        return n;
-    }
+    size_t getTotalReceiveLength() const { return _src_offsets.back(); }
+    size_t getTotalSendLength() const { return _dest_offsets.back(); }
 
   private:
-    Tpetra::Distributor _distributor;
     MPI_Comm _comm;
     MPI_Comm _comm_dist_graph;
     Kokkos::View<int *, Kokkos::HostSpace> _permute;
