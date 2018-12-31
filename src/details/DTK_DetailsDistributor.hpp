@@ -190,7 +190,7 @@ class Distributor
     template <typename Packet>
     void doPostsAndWaits( Teuchos::ArrayView<Packet const> const &exports,
                           size_t numPackets,
-                          Teuchos::ArrayView<Packet> const &imports )
+                          Teuchos::ArrayView<Packet> const &imports ) const
     {
 
         std::vector<int> dest_counts = _dest_counts;
