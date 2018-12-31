@@ -115,13 +115,9 @@ struct DistributedSearchTreeImpl
                               Kokkos::View<int *, DeviceType> query_ids,
                               Kokkos::View<int *, DeviceType> &offset );
 
-    // NOTE: Would love to pass the distributor as a const reference but
-    // unfortunately the methods for executing the communication plan (e.g.
-    // doPostsAndWaits() in this case) are not declared with the const
-    // qualifier in Tpetra.
     template <typename View>
     static typename std::enable_if<Kokkos::is_view<View>::value>::type
-    sendAcrossNetwork( Distributor &distributor, View exports,
+    sendAcrossNetwork( Distributor const &distributor, View exports,
                        typename View::non_const_type imports );
 };
 
@@ -170,7 +166,7 @@ template <typename DeviceType>
 template <typename View>
 typename std::enable_if<Kokkos::is_view<View>::value>::type
 DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
-    Distributor &distributor, View exports,
+    Distributor const &distributor, View exports,
     typename View::non_const_type imports )
 {
     DTK_REQUIRE(
