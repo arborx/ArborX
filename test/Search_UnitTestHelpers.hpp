@@ -96,9 +96,25 @@ void checkResults(
     auto ranks_host = Kokkos::create_mirror_view( ranks );
     deep_copy( ranks_host, ranks );
 
-    TEST_COMPARE_ARRAYS( indices_host, indices_ref );
     TEST_COMPARE_ARRAYS( offset_host, offset_ref );
-    TEST_COMPARE_ARRAYS( ranks_host, ranks_ref );
+    auto const m = offset_host.extent_int( 0 ) - 1;
+    for ( int i = 0; i < m; ++i )
+    {
+        std::vector<std::tuple<int, int>> l;
+        std::vector<std::tuple<int, int>> r;
+        for ( int j = offset_ref[i]; j < offset_ref[i + 1]; ++j )
+        {
+            l.push_back( std::make_tuple( ranks_host[j], indices_host[j] ) );
+            r.push_back( std::make_tuple( ranks_ref[j], indices_ref[j] ) );
+        }
+        sort( l.begin(), l.end() );
+        sort( r.begin(), r.end() );
+        TEST_EQUALITY( l.size(), r.size() );
+        int const n = l.size();
+        TEST_EQUALITY( n, offset_ref[i + 1] - offset_ref[i] );
+        for ( int j = 0; j < n; ++j )
+            TEST_ASSERT( l[j] == r[j] );
+    }
 }
 
 template <typename Query, typename DeviceType>
