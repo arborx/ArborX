@@ -20,6 +20,8 @@
 
 #include <algorithm>
 
+#define REORDER_RECV YES
+
 namespace DataTransferKit
 {
 namespace Details
@@ -189,6 +191,26 @@ class Distributor
             assert( _dest_counts[i] == (int)_distributor.getLengthsTo()[j] );
         }
 
+#if defined( REORDER_RECV )
+        int comm_size = -1;
+        MPI_Comm_size( _comm, &comm_size );
+        _permute_recv.resize( _src_offsets.back() );
+        int offset = 0;
+        for ( int i = 0; i < comm_size; ++i )
+        {
+            auto const it = std::find( sources.begin(), sources.end(), i );
+            if ( it != sources.end() )
+            {
+                int const j = std::distance( sources.begin(), it );
+                std::iota( &_permute_recv[offset],
+                           &_permute_recv[offset] + _src_counts[j],
+                           _src_offsets[j] );
+                offset += _src_counts[j];
+            }
+        }
+        assert( offset == (int)_permute_recv.size() );
+#endif
+
         return _src_offsets.back();
     }
     template <typename Packet>
@@ -225,7 +247,14 @@ class Distributor
             notNullPtr( src_counts.data() ), src_offsets.data(), MPI_BYTE,
             _comm_dist_graph );
 
+#if defined( REORDER_RECV )
+        for ( int i = 0; i < _src_offsets.back(); ++i )
+            std::copy( &src_buffer[numPackets * _permute_recv[i]],
+                       &src_buffer[numPackets * _permute_recv[i]] + numPackets,
+                       &imports[numPackets * i] );
+#else
         std::copy( src_buffer.begin(), src_buffer.end(), imports.getRawPtr() );
+#endif
 
         size_t num_receives = _distributor.getNumReceives();
         size_t num_sends = _distributor.getNumSends();
@@ -267,6 +296,9 @@ class Distributor
     std::vector<int> _dest_counts;
     std::vector<int> _src_offsets;
     std::vector<int> _src_counts;
+#if defined( REORDER_RECV )
+    std::vector<int> _permute_recv;
+#endif
 };
 
 } // namespace Details
