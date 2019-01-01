@@ -187,11 +187,12 @@ class Distributor
 
         return _src_offsets.back();
     }
-    template <typename Packet>
-    void doPostsAndWaits( Teuchos::ArrayView<Packet const> const &exports,
-                          size_t numPackets,
-                          Teuchos::ArrayView<Packet> const &imports ) const
+    template <typename View>
+    void doPostsAndWaits( typename View::const_type const &exports,
+                          size_t numPackets, View const &imports ) const
     {
+        using ValueType = typename View::value_type;
+        static_assert( View::rank == 1, "" );
 
         std::vector<int> dest_counts = _dest_counts;
         std::vector<int> dest_offsets = _dest_offsets;
@@ -200,15 +201,15 @@ class Distributor
         for ( auto pv :
               {&dest_counts, &dest_offsets, &src_counts, &src_offsets} )
             for ( auto &x : *pv )
-                x *= numPackets * sizeof( Packet );
+                x *= numPackets * sizeof( ValueType );
 
-        std::vector<Packet> dest_buffer( exports.size() );
-        std::vector<Packet> src_buffer( imports.size() );
+        std::vector<ValueType> dest_buffer( exports.size() );
+        std::vector<ValueType> src_buffer( imports.size() );
 
         assert( (size_t)src_offsets.back() ==
-                imports.size() * sizeof( Packet ) );
+                imports.size() * sizeof( ValueType ) );
         assert( (size_t)dest_offsets.back() ==
-                exports.size() * sizeof( Packet ) );
+                exports.size() * sizeof( ValueType ) );
 
         for ( int i = 0; i < _dest_offsets.back(); ++i )
             std::copy( &exports[numPackets * i],
@@ -227,7 +228,7 @@ class Distributor
                        &src_buffer[numPackets * _permute_recv[i]] + numPackets,
                        &imports[numPackets * i] );
 #else
-        std::copy( src_buffer.begin(), src_buffer.end(), imports.getRawPtr() );
+        std::copy( src_buffer.begin(), src_buffer.end(), imports.data() );
 #endif
     }
     size_t getTotalReceiveLength() const { return _src_offsets.back(); }

@@ -18,7 +18,9 @@
 #include <DTK_Predicates.hpp>
 
 #include <Kokkos_Atomic.hpp>
+#include <Kokkos_HostSpace.hpp>
 #include <Kokkos_Sort.hpp>
+#include <Kokkos_View.hpp>
 
 #include <numeric> // accumulate
 
@@ -189,12 +191,18 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
 
     auto imports_host = create_layout_right_mirror_view( imports );
 
-    distributor.doPostsAndWaits(
-        Teuchos::ArrayView<typename View::const_value_type>(
-            exports_host.data(), exports_host.size() ),
-        num_packets,
-        Teuchos::ArrayView<typename View::non_const_value_type>(
-            imports_host.data(), imports_host.size() ) );
+    using NonConstValueType = typename View::non_const_value_type;
+    using ConstValueType = typename View::const_value_type;
+
+    Kokkos::View<ConstValueType *, Kokkos::HostSpace,
+                 Kokkos::MemoryTraits<Kokkos::Unmanaged>>
+        export_buffer( exports_host.data(), exports_host.size() );
+
+    Kokkos::View<NonConstValueType *, Kokkos::HostSpace,
+                 Kokkos::MemoryTraits<Kokkos::Unmanaged>>
+        import_buffer( imports_host.data(), imports_host.size() );
+
+    distributor.doPostsAndWaits( export_buffer, num_packets, import_buffer );
 
     Kokkos::deep_copy( imports, imports_host );
 }
