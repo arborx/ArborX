@@ -115,8 +115,8 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
     Kokkos::View<Box *, DeviceType> boxes(
         Kokkos::ViewAllocateWithoutInitializing( "rank_bounding_boxes" ),
         comm_size );
-    // FIXME: I am not sure how to do the MPI allgather with Teuchos for data
-    // living on the device so I copied to the host.
+    // FIXME when we move to MPI with CUDA-aware support, we will not need to
+    // copy from the device to the host
     auto boxes_host = Kokkos::create_mirror_view( boxes );
     boxes_host( comm_rank ) = _bottom_tree.bounds();
     MPI_Allgather( MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
