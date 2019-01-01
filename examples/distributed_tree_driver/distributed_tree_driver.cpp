@@ -12,6 +12,7 @@
 #include <DTK_DistributedSearchTree.hpp>
 
 #include <Kokkos_DefaultNode.hpp>
+#include <Teuchos_CommHelpers.hpp>
 #include <Teuchos_CommandLineProcessor.hpp>
 #include <Teuchos_DefaultComm.hpp>
 #include <Teuchos_StandardCatchMacros.hpp>
@@ -164,7 +165,9 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
     comm->barrier();
     construction->start();
     DataTransferKit::DistributedSearchTree<DeviceType> distributed_tree(
-        comm, bounding_boxes );
+        *( Teuchos::rcp_dynamic_cast<Teuchos::MpiComm<int> const>( comm )
+               ->getRawMpiComm() ),
+        bounding_boxes );
     construction->stop();
 
     std::ostream &os = std::cout;

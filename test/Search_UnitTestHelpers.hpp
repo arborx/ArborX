@@ -17,10 +17,8 @@
 
 #include <Kokkos_View.hpp>
 
-#include <Teuchos_Comm.hpp>
 #include <Teuchos_FancyOStream.hpp>
 #include <Teuchos_LocalTestingHelpers.hpp>
-#include <Teuchos_RCP.hpp>
 
 #include <vector>
 
@@ -161,7 +159,7 @@ makeBvh( std::vector<DataTransferKit::Box> const &b )
 
 template <typename DeviceType>
 DataTransferKit::DistributedSearchTree<DeviceType>
-makeDistributedSearchTree( Teuchos::RCP<const Teuchos::Comm<int>> const &comm,
+makeDistributedSearchTree( MPI_Comm comm,
                            std::vector<DataTransferKit::Box> const &b )
 {
     int const n = b.size();

@@ -22,6 +22,8 @@
 #include <Kokkos_Sort.hpp>
 #include <Kokkos_View.hpp>
 
+#include <mpi.h>
+
 #include <numeric> // accumulate
 
 namespace DataTransferKit
@@ -86,7 +88,7 @@ struct DistributedSearchTreeImpl
                       Kokkos::View<double *, DeviceType> &distances );
 
     template <typename Query>
-    static void forwardQueries( Teuchos::RCP<Teuchos::Comm<int> const> comm,
+    static void forwardQueries( MPI_Comm comm,
                                 Kokkos::View<Query *, DeviceType> queries,
                                 Kokkos::View<int *, DeviceType> indices,
                                 Kokkos::View<int *, DeviceType> offset,
@@ -95,8 +97,7 @@ struct DistributedSearchTreeImpl
                                 Kokkos::View<int *, DeviceType> &fwd_ranks );
 
     static void communicateResultsBack(
-        Teuchos::RCP<Teuchos::Comm<int> const> comm,
-        Kokkos::View<int *, DeviceType> &indices,
+        MPI_Comm comm, Kokkos::View<int *, DeviceType> &indices,
         Kokkos::View<int *, DeviceType> offset,
         Kokkos::View<int *, DeviceType> &ranks,
         Kokkos::View<int *, DeviceType> &ids,
@@ -501,15 +502,15 @@ void DistributedSearchTreeImpl<DeviceType>::countResults(
 template <typename DeviceType>
 template <typename Query>
 void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
-    Teuchos::RCP<Teuchos::Comm<int> const> comm,
-    Kokkos::View<Query *, DeviceType> queries,
+    MPI_Comm comm, Kokkos::View<Query *, DeviceType> queries,
     Kokkos::View<int *, DeviceType> indices,
     Kokkos::View<int *, DeviceType> offset,
     Kokkos::View<Query *, DeviceType> &fwd_queries,
     Kokkos::View<int *, DeviceType> &fwd_ids,
     Kokkos::View<int *, DeviceType> &fwd_ranks )
 {
-    int const comm_rank = comm->getRank();
+    int comm_rank;
+    MPI_Comm_rank( comm, &comm_rank );
 
     Distributor distributor( comm );
 
@@ -560,14 +561,14 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
 
 template <typename DeviceType>
 void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
-    Teuchos::RCP<Teuchos::Comm<int> const> comm,
-    Kokkos::View<int *, DeviceType> &indices,
+    MPI_Comm comm, Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> offset,
     Kokkos::View<int *, DeviceType> &ranks,
     Kokkos::View<int *, DeviceType> &ids,
     Kokkos::View<double *, DeviceType> *distances_ptr )
 {
-    int const comm_rank = comm->getRank();
+    int comm_rank;
+    MPI_Comm_rank( comm, &comm_rank );
 
     int const n_fwd_queries = offset.extent_int( 0 ) - 1;
     int const n_exports = offset( n_fwd_queries );

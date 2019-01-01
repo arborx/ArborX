@@ -11,7 +11,6 @@
 
 #include <DTK_DetailsDistributedSearchTreeImpl.hpp>
 
-#include <Teuchos_DefaultComm.hpp>
 #include <Teuchos_UnitTestHarness.hpp>
 
 #include <algorithm> // fill

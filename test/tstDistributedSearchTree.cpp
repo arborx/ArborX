@@ -11,10 +11,11 @@
 
 #include <DTK_DistributedSearchTree.hpp>
 
-#include <Teuchos_DefaultComm.hpp>
 #include <Teuchos_UnitTestHarness.hpp>
 
 #include <boost/geometry.hpp>
+
+#include <mpi.h>
 
 #include <algorithm>
 #include <iostream>
@@ -26,10 +27,11 @@
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
                                    DeviceType )
 {
-    Teuchos::RCP<const Teuchos::Comm<int>> comm =
-        Teuchos::DefaultComm<int>::getComm();
-    int const comm_rank = Teuchos::rank( *comm );
-    int const comm_size = Teuchos::size( *comm );
+    MPI_Comm comm = MPI_COMM_WORLD;
+    int comm_rank;
+    MPI_Comm_rank( comm, &comm_rank );
+    int comm_size;
+    MPI_Comm_size( comm, &comm_size );
 
     int const n = 4;
     Kokkos::View<DataTransferKit::Point *, DeviceType> points( "points", n );
@@ -121,10 +123,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree,
                                    DeviceType )
 {
-    Teuchos::RCP<const Teuchos::Comm<int>> comm =
-        Teuchos::DefaultComm<int>::getComm();
-    int const comm_rank = Teuchos::rank( *comm );
-    int const comm_size = Teuchos::size( *comm );
+    MPI_Comm comm = MPI_COMM_WORLD;
+    int comm_rank;
+    MPI_Comm_rank( comm, &comm_rank );
+    int comm_size;
+    MPI_Comm_size( comm, &comm_size );
 
     auto const empty_tree = makeDistributedSearchTree<DeviceType>( comm, {} );
 
@@ -191,10 +194,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree,
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, unique_leaf_on_rank_0,
                                    DeviceType )
 {
-    Teuchos::RCP<const Teuchos::Comm<int>> comm =
-        Teuchos::DefaultComm<int>::getComm();
-    int const comm_rank = Teuchos::rank( *comm );
-    int const comm_size = Teuchos::size( *comm );
+    MPI_Comm comm = MPI_COMM_WORLD;
+    int comm_rank;
+    MPI_Comm_rank( comm, &comm_rank );
+    int comm_size;
+    MPI_Comm_size( comm, &comm_size );
 
     // tree has one unique leaf that lives on rank 0
     auto const tree =
@@ -236,10 +240,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, unique_leaf_on_rank_0,
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, one_leaf_per_rank,
                                    DeviceType )
 {
-    Teuchos::RCP<const Teuchos::Comm<int>> comm =
-        Teuchos::DefaultComm<int>::getComm();
-    int const comm_rank = Teuchos::rank( *comm );
-    int const comm_size = Teuchos::size( *comm );
+    MPI_Comm comm = MPI_COMM_WORLD;
+    int comm_rank;
+    MPI_Comm_rank( comm, &comm_rank );
+    int comm_size;
+    MPI_Comm_size( comm, &comm_size );
 
     // tree has one leaf per rank
     auto const tree = makeDistributedSearchTree<DeviceType>(
@@ -293,10 +298,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree,
                                    non_approximate_nearest_neighbors,
                                    DeviceType )
 {
-    Teuchos::RCP<const Teuchos::Comm<int>> comm =
-        Teuchos::DefaultComm<int>::getComm();
-    int const comm_rank = Teuchos::rank( *comm );
-    int const comm_size = Teuchos::size( *comm );
+    MPI_Comm comm = MPI_COMM_WORLD;
+    int comm_rank;
+    MPI_Comm_rank( comm, &comm_rank );
+    int comm_size;
+    MPI_Comm_size( comm, &comm_size );
 
     //  +----------0----------1----------2----------3
     //  |          |          |          |          |
@@ -370,10 +376,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
     using BPoint = bg::model::point<double, 3, bg::cs::cartesian>;
     using RTree = bgi::rtree<std::pair<BPoint, int>, bgi::linear<16>>;
 
-    Teuchos::RCP<const Teuchos::Comm<int>> comm =
-        Teuchos::DefaultComm<int>::getComm();
-    unsigned int const comm_rank = Teuchos::rank( *comm );
-    unsigned int const comm_size = Teuchos::size( *comm );
+    MPI_Comm comm = MPI_COMM_WORLD;
+    int comm_rank;
+    MPI_Comm_rank( comm, &comm_rank );
+    int comm_size;
+    MPI_Comm_size( comm, &comm_size );
 
     // Construct a random cloud of point. We use the same seed on all the
     // processors.

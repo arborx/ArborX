@@ -11,14 +11,13 @@
 #ifndef DTK_DETAILS_DISTRIBUTOR_HPP
 #define DTK_DETAILS_DISTRIBUTOR_HPP
 
-#include <Teuchos_ArrayView.hpp>
-#include <Teuchos_DefaultMpiComm.hpp>
-
 #include <Kokkos_Core.hpp> // FIXME
 
 #include <mpi.h>
 
 #include <algorithm>
+#include <cassert>
+#include <vector>
 
 #define REORDER_RECV YES
 
@@ -90,10 +89,8 @@ if ( n == 0 ) return;
 class Distributor
 {
   public:
-    Distributor( Teuchos::RCP<Teuchos::Comm<int> const> comm )
-        : _comm(
-              *( Teuchos::rcp_dynamic_cast<Teuchos::MpiComm<int> const>( comm )
-                     ->getRawMpiComm() ) )
+    Distributor( MPI_Comm comm )
+        : _comm( comm )
     {
     }
 
