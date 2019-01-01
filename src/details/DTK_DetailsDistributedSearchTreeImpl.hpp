@@ -13,7 +13,6 @@
 
 #include <DTK_DetailsDistributor.hpp>
 #include <DTK_DetailsPriorityQueue.hpp>
-#include <DTK_DetailsTeuchosSerializationTraits.hpp>
 #include <DTK_DetailsUtils.hpp>
 #include <DTK_LinearBVH.hpp>
 #include <DTK_Predicates.hpp>
