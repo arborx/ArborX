@@ -103,22 +103,19 @@ class Distributor
         return p ? p : reinterpret_cast<T *>( -1 );
     }
 
-    size_t
-    createFromSends( Teuchos::ArrayView<int const> const &export_proc_ids )
+    template <typename View>
+    size_t createFromSends( View const &tmp )
     {
+        static_assert( View::rank == 1, "" );
         static_assert(
             std::is_same<typename View::non_const_value_type, int>::value, "" );
         int comm_rank;
         MPI_Comm_rank( _comm, &comm_rank );
 
-        auto const n = export_proc_ids.size();
-        Kokkos::View<int const *, Kokkos::HostSpace,
-                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-            tmp( export_proc_ids.getRawPtr(), n );
+        auto const n = tmp.size();
         Kokkos::View<int *, Kokkos::HostSpace> destination_ranks(
             "destination_ranks", n );
         Kokkos::deep_copy( destination_ranks, tmp );
-
         _permute = Kokkos::View<int *, Kokkos::HostSpace>( "permute", n );
         std::vector<int> destinations;
         extract_and_sort_ranks( destination_ranks, _permute, destinations,

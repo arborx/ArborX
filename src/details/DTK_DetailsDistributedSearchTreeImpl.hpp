@@ -515,8 +515,7 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
 
     int const n_queries = queries.extent( 0 );
     int const n_exports = offset( n_queries );
-    int const n_imports = distributor.createFromSends(
-        Teuchos::ArrayView<int>( indices.data(), n_exports ) );
+    int const n_imports = distributor.createFromSends( indices );
 
     Kokkos::View<Query *, DeviceType> exports( queries.label(), n_exports );
     Kokkos::parallel_for( DTK_MARK_REGION( "forward_queries_fill_buffer" ),
@@ -585,8 +584,7 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
     Kokkos::fence();
 
     Distributor distributor( comm );
-    int const n_imports = distributor.createFromSends(
-        Teuchos::ArrayView<int>( export_ranks.data(), n_exports ) );
+    int const n_imports = distributor.createFromSends( export_ranks );
 
     // export_ranks already has adequate size since it was used as a buffer to
     // make the new communication plan.
