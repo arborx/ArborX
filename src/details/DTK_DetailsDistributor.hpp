@@ -28,65 +28,63 @@ namespace DataTransferKit
 namespace Details
 {
 
-// clang-format off
-// copy/paste from https://github.com/kokkos/kokkos-tutorials/blob/ee619447cee9e57b831e34b151d0868958b6b1e5/Intro-Full/Exercises/mpi_exch/mpi_exch.cpp
-// * added Experimental nested namespace qualifier for Max
-// * declared function static to avoid multiple definition error at link time
-// * return early if input argument is empty
-// * replace parallel_reduce with std::max_element because I couldn't get it to compile
-// * append size to offsets in main driver but might want to handle it here
-static void extract_and_sort_ranks(
-    Kokkos::View<int*, Kokkos::HostSpace> destination_ranks,
-    Kokkos::View<int*, Kokkos::HostSpace> permutation,
-    std::vector<int>& unique_ranks,
-    std::vector<int>& offsets,
-    std::vector<int>& counts) {
-  int mpi_rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-  auto n = destination_ranks.extent(0);
-if ( n == 0 ) return;
-  using ST = decltype(n);
-  Kokkos::View<int*, Kokkos::HostSpace> tmp_ranks("tmp ranks", destination_ranks.extent(0));
-  Kokkos::deep_copy(tmp_ranks, destination_ranks);
-  int offset = 0;
-  // this implements a "sort" which is O(N * R) where (R) is
-  // the total number of unique destination ranks.
-  // it performs better than other algorithms in
-  // the case when (R) is small, but results may vary
-  while (true) {
-    int next_biggest_rank;
-    //Kokkos::parallel_reduce("find next biggest rank", n, KOKKOS_LAMBDA(ST i, int& local_max) {
-    //  auto r = tmp_ranks(i);
-    //  local_max = (r > local_max) ? r : local_max;
-    //}, Kokkos::Experimental::Max<int, Kokkos::HostSpace>(next_biggest_rank));
-    next_biggest_rank = *std::max_element(tmp_ranks.data(), tmp_ranks.data() + n);
-    if (next_biggest_rank == -1) break;
-    unique_ranks.push_back(next_biggest_rank);
-    offsets.push_back(offset);
-    Kokkos::View<int, Kokkos::HostSpace> total("total");
-    Kokkos::parallel_scan("process biggest rank items", Kokkos::RangePolicy<Kokkos::Serial>(0, n),
-    KOKKOS_LAMBDA(ST i, int& index, const bool last_pass) {
-      if (last_pass && (tmp_ranks(i) == next_biggest_rank)) {
-        permutation(i) = index + offset;
-      }
-      if (tmp_ranks(i) == next_biggest_rank) ++index;
-      if (last_pass) {
-        if (i + 1 == tmp_ranks.extent(0)) {
-          total() = index;
+// Computes the array of indices that sort the input array (in reverse order)
+// but also returns the sorted unique elements in that array with the
+// corresponding element counts and displacement (offsets)
+template <typename InputView, typename OutputView>
+static void sortAndDetermineBufferLayout( InputView ranks,
+                                          OutputView permutation_indices,
+                                          std::vector<int> &unique_ranks,
+                                          std::vector<int> &counts,
+                                          std::vector<int> &offsets )
+{
+    DTK_REQUIRE( unique_ranks.empty() );
+    DTK_REQUIRE( offsets.empty() );
+    DTK_REQUIRE( counts.empty() );
+    DTK_REQUIRE( permutation_indices.extent( 0 ) == ranks.extent( 0 ) );
+    static_assert(
+        std::is_same<typename InputView::non_const_value_type, int>::value,
+        "" );
+    static_assert( std::is_same<typename OutputView::value_type, int>::value,
+                   "" );
+    static_assert(
+        Kokkos::Impl::MemorySpaceAccess<typename OutputView::memory_space,
+                                        Kokkos::HostSpace>::accessible,
+        "" );
+
+    offsets.push_back( 0 );
+
+    auto const n = ranks.extent_int( 0 );
+    if ( n == 0 )
+        return;
+
+    Kokkos::View<int *, Kokkos::HostSpace> ranks_duplicate(
+        Kokkos::ViewAllocateWithoutInitializing( ranks.label() ),
+        ranks.size() );
+    Kokkos::deep_copy( ranks_duplicate, ranks );
+
+    while ( true )
+    {
+        // TODO consider replacing with parallel reduce
+        int const largest_rank = *std::max_element(
+            ranks_duplicate.data(), ranks_duplicate.data() + n );
+        if ( largest_rank == -1 )
+            break;
+        unique_ranks.push_back( largest_rank );
+        counts.push_back( 0 );
+        // TODO consider replacing with parallel scan
+        for ( int i = 0; i < n; ++i )
+        {
+            if ( ranks_duplicate( i ) == largest_rank )
+            {
+                ranks_duplicate( i ) = -1;
+                permutation_indices( i ) = offsets.back() + counts.back();
+                ++counts.back();
+            }
         }
-        if (tmp_ranks(i) == next_biggest_rank) {
-          tmp_ranks(i) = -1;
-        }
-      }
-    });
-    auto host_total = Kokkos::create_mirror_view_and_copy(
-        Kokkos::HostSpace(), total);
-    auto count = host_total();
-    counts.push_back(count);
-    offset += count;
-  }
+        offsets.push_back( offsets.back() + counts.back() );
+    }
 }
-// clang-format on
 
 class Distributor
 {
@@ -103,7 +101,7 @@ class Distributor
     }
 
     template <typename View>
-    size_t createFromSends( View const &tmp )
+    size_t createFromSends( View const &destination_ranks )
     {
         static_assert( View::rank == 1, "" );
         static_assert(
@@ -111,20 +109,12 @@ class Distributor
         int comm_rank;
         MPI_Comm_rank( _comm, &comm_rank );
 
-        auto const n = tmp.size();
-        Kokkos::View<int *, Kokkos::HostSpace> destination_ranks(
-            "destination_ranks", n );
-        Kokkos::deep_copy( destination_ranks, tmp );
-        _permute = Kokkos::View<int *, Kokkos::HostSpace>( "permute", n );
+        _permute = Kokkos::View<int *, Kokkos::HostSpace>(
+            Kokkos::ViewAllocateWithoutInitializing( "permute" ),
+            destination_ranks.size() );
         std::vector<int> destinations;
-        extract_and_sort_ranks( destination_ranks, _permute, destinations,
-                                _dest_offsets, _dest_counts );
-
-        if ( _dest_counts.empty() )
-            _dest_offsets.push_back( 0 );
-        else
-            _dest_offsets.push_back( _dest_offsets.back() +
-                                     _dest_counts.back() );
+        sortAndDetermineBufferLayout( destination_ranks, _permute, destinations,
+                                      _dest_counts, _dest_offsets );
 
         {
             int const reorder = 0; // Ranking may *not* be reordered
