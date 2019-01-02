@@ -206,6 +206,9 @@ class Distributor
         std::vector<ValueType> dest_buffer( exports.size() );
         std::vector<ValueType> src_buffer( imports.size() );
 
+        // TODO
+        // * apply permutation on the device in a parallel for
+        // * switch to MPI with CUDA support (do not copy to host)
         for ( int i = 0; i < _dest_offsets.back(); ++i )
             std::copy( &exports[num_packets * i],
                        &exports[num_packets * i] + num_packets,
