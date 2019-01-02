@@ -15,8 +15,9 @@
 
 #include <mpi.h>
 
-#include <algorithm>
+#include <algorithm> // max_element
 #include <cassert>
+#include <numeric> // iota
 #include <vector>
 
 #define REORDER_RECV YES
