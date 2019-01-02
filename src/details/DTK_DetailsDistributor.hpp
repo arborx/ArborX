@@ -11,13 +11,14 @@
 #ifndef DTK_DETAILS_DISTRIBUTOR_HPP
 #define DTK_DETAILS_DISTRIBUTOR_HPP
 
+#include <DTK_DBC.hpp>
+
 #include <Kokkos_Core.hpp> // FIXME
 
 #include <mpi.h>
 
 #include <algorithm> // max_element
-#include <cassert>
-#include <numeric> // iota
+#include <numeric>   // iota
 #include <vector>
 
 #define REORDER_RECV YES
@@ -140,8 +141,8 @@ class Distributor
         int weighted;
         MPI_Dist_graph_neighbors_count( _comm_dist_graph, &indegrees,
                                         &outdegrees, &weighted );
-        assert( weighted == 0 );
-        assert( outdegrees == (int)destinations.size() );
+        DTK_ENSURE( weighted == 0 );
+        DTK_ENSURE( outdegrees == (int)destinations.size() );
 
         std::vector<int> sources( indegrees );
         MPI_Dist_graph_neighbors( _comm_dist_graph, indegrees,
@@ -177,7 +178,7 @@ class Distributor
                 offset += _src_counts[j];
             }
         }
-        assert( offset == (int)_permute_recv.size() );
+        DTK_ENSURE( offset == (int)_permute_recv.size() );
 #endif
 
         return _src_offsets.back();
@@ -201,10 +202,10 @@ class Distributor
         std::vector<ValueType> dest_buffer( exports.size() );
         std::vector<ValueType> src_buffer( imports.size() );
 
-        assert( (size_t)src_offsets.back() ==
-                imports.size() * sizeof( ValueType ) );
-        assert( (size_t)dest_offsets.back() ==
-                exports.size() * sizeof( ValueType ) );
+        DTK_REQUIRE( (size_t)src_offsets.back() ==
+                     imports.size() * sizeof( ValueType ) );
+        DTK_REQUIRE( (size_t)dest_offsets.back() ==
+                     exports.size() * sizeof( ValueType ) );
 
         for ( int i = 0; i < _dest_offsets.back(); ++i )
             std::copy( &exports[numPackets * i],
