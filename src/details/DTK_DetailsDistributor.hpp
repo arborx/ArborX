@@ -189,6 +189,10 @@ class Distributor
     {
         using ValueType = typename View::value_type;
         static_assert( View::rank == 1, "" );
+        static_assert(
+            Kokkos::Impl::MemorySpaceAccess<typename View::memory_space,
+                                            Kokkos::HostSpace>::accessible,
+            "" );
 
         std::vector<int> dest_counts = _dest_counts;
         std::vector<int> dest_offsets = _dest_offsets;
