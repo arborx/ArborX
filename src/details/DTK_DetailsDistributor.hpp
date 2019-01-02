@@ -86,18 +86,25 @@ static void sortAndDetermineBufferLayout( InputView ranks,
     }
 }
 
+// A number of MPI routines (in the current OpenMPI implementation at least) are
+// checking at runtime that all pointers passed to them as argument are not null
+// and call program termination even when no data would actually be
+// communicated. This is problematic when using std::vector to store buffers and
+// other arrays because std::vector::data() may return a null pointer if the
+// vector is empty. This function "swaps" the pointer with some other pointer
+// that is not dereferenceable if it is the null pointer.
+template <typename T>
+static T *notNullPtr( T *p )
+{
+    return p ? p : reinterpret_cast<T *>( -1 );
+}
+
 class Distributor
 {
   public:
     Distributor( MPI_Comm comm )
         : _comm( comm )
     {
-    }
-
-    template <typename T>
-    static T *notNullPtr( T *p )
-    {
-        return p ? p : reinterpret_cast<T *>( -1 );
     }
 
     template <typename View>
