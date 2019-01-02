@@ -142,7 +142,7 @@ class Distributor
         MPI_Dist_graph_neighbors_count( _comm_dist_graph, &indegrees,
                                         &outdegrees, &weighted );
         DTK_ENSURE( weighted == 0 );
-        DTK_ENSURE( outdegrees == (int)destinations.size() );
+        DTK_ENSURE( outdegrees == static_cast<int>( destinations.size() ) );
 
         std::vector<int> sources( indegrees );
         MPI_Dist_graph_neighbors( _comm_dist_graph, indegrees,
@@ -178,7 +178,7 @@ class Distributor
                 offset += _src_counts[j];
             }
         }
-        DTK_ENSURE( offset == (int)_permute_recv.size() );
+        DTK_ENSURE( offset == static_cast<int>( _permute_recv.size() ) );
 #endif
 
         return _src_offsets.back();
@@ -202,9 +202,9 @@ class Distributor
         std::vector<ValueType> dest_buffer( exports.size() );
         std::vector<ValueType> src_buffer( imports.size() );
 
-        DTK_REQUIRE( (size_t)src_offsets.back() ==
+        DTK_REQUIRE( static_cast<size_t>( src_offsets.back() ) ==
                      imports.size() * sizeof( ValueType ) );
-        DTK_REQUIRE( (size_t)dest_offsets.back() ==
+        DTK_REQUIRE( static_cast<size_t>( dest_offsets.back() ) ==
                      exports.size() * sizeof( ValueType ) );
 
         for ( int i = 0; i < _dest_offsets.back(); ++i )
