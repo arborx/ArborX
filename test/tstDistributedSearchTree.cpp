@@ -402,11 +402,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
         rtree.insert( std::make_pair( BPoint( x, y, z ), i ) );
     }
 
-    unsigned int const local_n = n / comm_size;
+    int const local_n = n / comm_size;
     Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes(
         "bounding_boxes", local_n );
     auto bounding_boxes_host = Kokkos::create_mirror_view( bounding_boxes );
-    for ( unsigned int i = 0; i < n; ++i )
+    for ( int i = 0; i < n; ++i )
     {
         if ( i % comm_size == comm_rank )
         {
@@ -418,9 +418,9 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
         }
     }
 
-    std::map<std::pair<unsigned int, unsigned int>, unsigned int> indices_map;
-    for ( unsigned int i = 0; i < n; ++i )
-        for ( unsigned int j = 0; j < comm_size; ++j )
+    std::map<std::pair<int, int>, int> indices_map;
+    for ( int i = 0; i < n; ++i )
+        for ( int j = 0; j < comm_size; ++j )
             if ( i % comm_size == j )
                 indices_map[std::make_pair( i / comm_size, j )] = i;
 
@@ -444,12 +444,12 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
         0.0, std::sqrt( Lx * Lx + Ly * Ly + Lz * Lz ) );
     std::uniform_int_distribution<int> distribution_k(
         1, std::floor( sqrt( n * n ) ) );
-    for ( unsigned int i = 0; i < n; ++i )
+    for ( int i = 0; i < n; ++i )
     {
         if ( i % comm_size == comm_rank )
         {
             auto const &point = queries[i];
-            unsigned int const j = i / comm_size;
+            int const j = i / comm_size;
             double const x = std::get<0>( point );
             double const y = std::get<1>( point );
             double const z = std::get<2>( point );
@@ -496,11 +496,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
     auto offset_host = Kokkos::create_mirror_view( offset );
     auto ranks_host = Kokkos::create_mirror_view( ranks );
 
-    for ( unsigned int i = 0; i < n; ++i )
+    for ( int i = 0; i < n; ++i )
     {
         if ( i % comm_size == comm_rank )
         {
-            unsigned int k = i / comm_size;
+            int k = i / comm_size;
             auto const &ref = returned_values_within[k];
             std::set<int> ref_ids;
             for ( auto const &id : ref )
