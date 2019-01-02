@@ -185,8 +185,11 @@ class Distributor
     }
     template <typename View>
     void doPostsAndWaits( typename View::const_type const &exports,
-                          size_t numPackets, View const &imports ) const
+                          size_t num_packets, View const &imports ) const
     {
+        DTK_REQUIRE( num_packets * _src_offsets.back() == imports.size() );
+        DTK_REQUIRE( num_packets * _dest_offsets.back() == exports.size() );
+
         using ValueType = typename View::value_type;
         static_assert( View::rank == 1, "" );
         static_assert(
@@ -201,20 +204,15 @@ class Distributor
         for ( auto pv :
               {&dest_counts, &dest_offsets, &src_counts, &src_offsets} )
             for ( auto &x : *pv )
-                x *= numPackets * sizeof( ValueType );
+                x *= num_packets * sizeof( ValueType );
 
         std::vector<ValueType> dest_buffer( exports.size() );
         std::vector<ValueType> src_buffer( imports.size() );
 
-        DTK_REQUIRE( static_cast<size_t>( src_offsets.back() ) ==
-                     imports.size() * sizeof( ValueType ) );
-        DTK_REQUIRE( static_cast<size_t>( dest_offsets.back() ) ==
-                     exports.size() * sizeof( ValueType ) );
-
         for ( int i = 0; i < _dest_offsets.back(); ++i )
-            std::copy( &exports[numPackets * i],
-                       &exports[numPackets * i] + numPackets,
-                       &dest_buffer[numPackets * _permute[i]] );
+            std::copy( &exports[num_packets * i],
+                       &exports[num_packets * i] + num_packets,
+                       &dest_buffer[num_packets * _permute[i]] );
 
         MPI_Neighbor_alltoallv(
             notNullPtr( dest_buffer.data() ), notNullPtr( dest_counts.data() ),
@@ -224,9 +222,10 @@ class Distributor
 
 #if defined( REORDER_RECV )
         for ( int i = 0; i < _src_offsets.back(); ++i )
-            std::copy( &src_buffer[numPackets * _permute_recv[i]],
-                       &src_buffer[numPackets * _permute_recv[i]] + numPackets,
-                       &imports[numPackets * i] );
+            std::copy( &src_buffer[num_packets * _permute_recv[i]],
+                       &src_buffer[num_packets * _permute_recv[i]] +
+                           num_packets,
+                       &imports[num_packets * i] );
 #else
         std::copy( src_buffer.begin(), src_buffer.end(), imports.data() );
 #endif
