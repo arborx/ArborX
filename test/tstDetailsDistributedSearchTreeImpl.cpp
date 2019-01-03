@@ -197,6 +197,43 @@ TEUCHOS_UNIT_TEST( DetailsDistributedSearchTreeImpl,
     checkViewWasNotAllocated( y, y_h, success, out );
 }
 
+void checkBufferLayout( std::vector<int> const &ranks,
+                        std::vector<int> const &permute_ref,
+                        std::vector<int> const &unique_ref,
+                        std::vector<int> const &counts_ref,
+                        std::vector<int> const &offsets_ref, bool &success,
+                        Teuchos::FancyOStream &out )
+{
+    std::vector<int> permute( ranks.size() );
+    std::vector<int> unique;
+    std::vector<int> counts;
+    std::vector<int> offsets;
+    DataTransferKit::Details::sortAndDetermineBufferLayout(
+        Kokkos::View<int const *, Kokkos::HostSpace,
+                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>( ranks.data(),
+                                                               ranks.size() ),
+        Kokkos::View<int *, Kokkos::HostSpace,
+                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>( permute.data(),
+                                                               permute.size() ),
+        unique, counts, offsets );
+    TEST_COMPARE_ARRAYS( permute_ref, permute );
+    TEST_COMPARE_ARRAYS( unique_ref, unique );
+    TEST_COMPARE_ARRAYS( counts_ref, counts );
+    TEST_COMPARE_ARRAYS( offsets_ref, offsets );
+}
+
+TEUCHOS_UNIT_TEST( DetailsDistributor, sort_and_determine_buffer_layout )
+{
+    checkBufferLayout( {}, {}, {}, {}, {0}, success, out );
+    checkBufferLayout( {2, 2}, {0, 1}, {2}, {2}, {0, 2}, success, out );
+    checkBufferLayout( {3, 3, 2, 3, 2, 1}, {0, 1, 3, 2, 4, 5}, {3, 2, 1},
+                       {3, 2, 1}, {0, 3, 5, 6}, success, out );
+    checkBufferLayout( {1, 2, 3, 2, 3, 3}, {5, 3, 0, 4, 1, 2}, {3, 2, 1},
+                       {3, 2, 1}, {0, 3, 5, 6}, success, out );
+    checkBufferLayout( {0, 1, 2, 3}, {3, 2, 1, 0}, {3, 2, 1, 0}, {1, 1, 1, 1},
+                       {0, 1, 2, 3, 4}, success, out );
+}
+
 // Include the test macros.
 #include "DataTransferKit_ETIHelperMacros.h"
 
