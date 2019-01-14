@@ -19,9 +19,8 @@
 
 #include <algorithm> // max_element
 #include <numeric>   // iota
+#include <sstream>
 #include <vector>
-
-#define REORDER_RECV YES
 
 namespace DataTransferKit
 {
@@ -86,19 +85,6 @@ static void sortAndDetermineBufferLayout( InputView ranks,
     }
 }
 
-// A number of MPI routines (in the current OpenMPI implementation at least) are
-// checking at runtime that all pointers passed to them as argument are not null
-// and call program termination even when no data would actually be
-// communicated. This is problematic when using std::vector to store buffers and
-// other arrays because std::vector::data() may return a null pointer if the
-// vector is empty. This function "swaps" the pointer with some other pointer
-// that is not dereferenceable if it is the null pointer.
-template <typename T>
-static T *notNullPtr( T *p )
-{
-    return p ? p : reinterpret_cast<T *>( -1 );
-}
-
 class Distributor
 {
   public:
@@ -115,68 +101,53 @@ class Distributor
             std::is_same<typename View::non_const_value_type, int>::value, "" );
         int comm_rank;
         MPI_Comm_rank( _comm, &comm_rank );
+        int comm_size;
+        MPI_Comm_size( _comm, &comm_size );
 
         _permute = Kokkos::View<int *, Kokkos::HostSpace>(
             Kokkos::ViewAllocateWithoutInitializing( "permute" ),
             destination_ranks.size() );
-        std::vector<int> destinations;
-        sortAndDetermineBufferLayout( destination_ranks, _permute, destinations,
-                                      _dest_counts, _dest_offsets );
+        sortAndDetermineBufferLayout( destination_ranks, _permute,
+                                      _destinations, _dest_counts,
+                                      _dest_offsets );
 
         {
-            int const reorder = 0; // Ranking may *not* be reordered
-            int const sources[1] = {comm_rank};
-            int const degrees[1] = {static_cast<int>( destinations.size() )};
-
-            MPI_Dist_graph_create(
-                _comm, 1, sources, degrees, notNullPtr( destinations.data() ),
-                MPI_UNWEIGHTED, MPI_INFO_NULL, reorder, &_comm_dist_graph );
+            std::vector<int> mask( comm_size );
+            for ( auto i : _destinations )
+                mask[i] = 1;
+            MPI_Alltoall( MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, mask.data(), 1,
+                          MPI_INT, _comm );
+            for ( int i = 0; i < comm_size; ++i )
+                if ( mask[i] == 1 )
+                    _sources.push_back( i );
         }
 
-        int indegrees;
-        int outdegrees;
-        int weighted;
-        MPI_Dist_graph_neighbors_count( _comm_dist_graph, &indegrees,
-                                        &outdegrees, &weighted );
-        DTK_ENSURE( weighted == 0 );
-        DTK_ENSURE( outdegrees == static_cast<int>( destinations.size() ) );
-
-        std::vector<int> sources( indegrees );
-        MPI_Dist_graph_neighbors( _comm_dist_graph, indegrees,
-                                  notNullPtr( sources.data() ), MPI_UNWEIGHTED,
-                                  outdegrees, notNullPtr( destinations.data() ),
-                                  MPI_UNWEIGHTED );
-
+        int const indegrees = _sources.size();
+        int const outdegrees = _destinations.size();
         _src_counts.resize( indegrees );
-        MPI_Neighbor_alltoall( _dest_counts.data(), 1, MPI_INT,
-                               _src_counts.data(), 1, MPI_INT,
-                               _comm_dist_graph );
+        std::vector<MPI_Request> requests;
+        requests.reserve( outdegrees + indegrees );
+        for ( int i = 0; i < indegrees; ++i )
+        {
+            requests.emplace_back();
+            MPI_Irecv( &_src_counts[i], 1, MPI_INT, _sources[i], MPI_ANY_TAG,
+                       _comm, &requests.back() );
+        }
+        for ( int i = 0; i < outdegrees; ++i )
+        {
+            requests.emplace_back();
+            MPI_Isend( &_dest_counts[i], 1, MPI_INT, _destinations[i], 255,
+                       _comm, &requests.back() );
+        }
+        if ( !requests.empty() )
+            MPI_Waitall( requests.size(), requests.data(),
+                         MPI_STATUSES_IGNORE );
 
         _src_offsets.resize( indegrees + 1 );
         // exclusive scan
         _src_offsets[0] = 0;
         for ( int i = 0; i < indegrees; ++i )
             _src_offsets[i + 1] = _src_offsets[i] + _src_counts[i];
-
-#if defined( REORDER_RECV )
-        int comm_size = -1;
-        MPI_Comm_size( _comm, &comm_size );
-        _permute_recv.resize( _src_offsets.back() );
-        int offset = 0;
-        for ( int i = 0; i < comm_size; ++i )
-        {
-            auto const it = std::find( sources.begin(), sources.end(), i );
-            if ( it != sources.end() )
-            {
-                int const j = std::distance( sources.begin(), it );
-                std::iota( &_permute_recv[offset],
-                           &_permute_recv[offset] + _src_counts[j],
-                           _src_offsets[j] );
-                offset += _src_counts[j];
-            }
-        }
-        DTK_ENSURE( offset == static_cast<int>( _permute_recv.size() ) );
-#endif
 
         return _src_offsets.back();
     }
@@ -194,15 +165,6 @@ class Distributor
                                             Kokkos::HostSpace>::accessible,
             "" );
 
-        std::vector<int> dest_counts = _dest_counts;
-        std::vector<int> dest_offsets = _dest_offsets;
-        std::vector<int> src_counts = _src_counts;
-        std::vector<int> src_offsets = _src_offsets;
-        for ( auto pv :
-              {&dest_counts, &dest_offsets, &src_counts, &src_offsets} )
-            for ( auto &x : *pv )
-                x *= num_packets * sizeof( ValueType );
-
         std::vector<ValueType> dest_buffer( exports.size() );
         std::vector<ValueType> src_buffer( imports.size() );
 
@@ -214,36 +176,48 @@ class Distributor
                        &exports[num_packets * i] + num_packets,
                        &dest_buffer[num_packets * _permute[i]] );
 
-        MPI_Neighbor_alltoallv(
-            notNullPtr( dest_buffer.data() ), notNullPtr( dest_counts.data() ),
-            dest_offsets.data(), MPI_BYTE, notNullPtr( src_buffer.data() ),
-            notNullPtr( src_counts.data() ), src_offsets.data(), MPI_BYTE,
-            _comm_dist_graph );
+        int comm_rank;
+        MPI_Comm_rank( _comm, &comm_rank );
+        int comm_size;
+        MPI_Comm_size( _comm, &comm_size );
+        int const indegrees = _sources.size();
+        int const outdegrees = _destinations.size();
+        std::vector<MPI_Request> requests;
+        requests.reserve( outdegrees + indegrees );
+        for ( int i = 0; i < indegrees; ++i )
+        {
+            requests.emplace_back();
+            MPI_Irecv( src_buffer.data() + _src_offsets[i] * num_packets,
+                       _src_counts[i] * num_packets * sizeof( ValueType ),
+                       MPI_BYTE, _sources[i], MPI_ANY_TAG, _comm,
+                       &requests.back() );
+        }
+        for ( int i = 0; i < outdegrees; ++i )
+        {
+            requests.emplace_back();
+            MPI_Isend( dest_buffer.data() + _dest_offsets[i] * num_packets,
+                       _dest_counts[i] * num_packets * sizeof( ValueType ),
+                       MPI_BYTE, _destinations[i], 123, _comm,
+                       &requests.back() );
+        }
+        if ( !requests.empty() )
+            MPI_Waitall( requests.size(), requests.data(),
+                         MPI_STATUSES_IGNORE );
 
-#if defined( REORDER_RECV )
-        for ( int i = 0; i < _src_offsets.back(); ++i )
-            std::copy( &src_buffer[num_packets * _permute_recv[i]],
-                       &src_buffer[num_packets * _permute_recv[i]] +
-                           num_packets,
-                       &imports[num_packets * i] );
-#else
         std::copy( src_buffer.begin(), src_buffer.end(), imports.data() );
-#endif
     }
     size_t getTotalReceiveLength() const { return _src_offsets.back(); }
     size_t getTotalSendLength() const { return _dest_offsets.back(); }
 
   private:
     MPI_Comm _comm;
-    MPI_Comm _comm_dist_graph;
     Kokkos::View<int *, Kokkos::HostSpace> _permute;
     std::vector<int> _dest_offsets;
     std::vector<int> _dest_counts;
     std::vector<int> _src_offsets;
     std::vector<int> _src_counts;
-#if defined( REORDER_RECV )
-    std::vector<int> _permute_recv;
-#endif
+    std::vector<int> _sources;
+    std::vector<int> _destinations;
 };
 
 } // namespace Details
