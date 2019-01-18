@@ -12,6 +12,7 @@
 #ifndef DTK_SEARCH_TEST_HELPERS_HPP
 #define DTK_SEARCH_TEST_HELPERS_HPP
 
+#include <DTK_DetailsKokkosExt.hpp> // is_accessible_from
 #include <DTK_DistributedSearchTree.hpp>
 #include <DTK_LinearBVH.hpp>
 
@@ -226,6 +227,8 @@ void validateResults( std::tuple<InputView1, InputView1> const &reference,
                       std::tuple<InputView2, InputView2> const &other,
                       bool &success, Teuchos::FancyOStream &out )
 {
+    static_assert( KokkosExt::is_accessible_from_host<InputView1>::value, "" );
+    static_assert( KokkosExt::is_accessible_from_host<InputView2>::value, "" );
     TEST_COMPARE_ARRAYS( std::get<0>( reference ), std::get<0>( other ) );
     auto const offset = std::get<0>( reference );
     auto const m = offset.extent_int( 0 ) - 1;
@@ -254,6 +257,8 @@ void validateResults(
     std::tuple<InputView2, InputView2, InputView2> const &other, bool &success,
     Teuchos::FancyOStream &out )
 {
+    static_assert( KokkosExt::is_accessible_from_host<InputView1>::value, "" );
+    static_assert( KokkosExt::is_accessible_from_host<InputView2>::value, "" );
     TEST_COMPARE_ARRAYS( std::get<0>( reference ), std::get<0>( other ) );
     auto const offset = std::get<0>( reference );
     auto const m = offset.extent_int( 0 ) - 1;
