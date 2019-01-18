@@ -13,7 +13,8 @@
 #define DTK_BOOST_RTREE_HELPERS_HPP
 
 #include <DTK_Box.hpp>
-#include <DTK_DetailsUtils.hpp> // exclusivePrefixSum, lastElement
+#include <DTK_DetailsKokkosExt.hpp> // is_accessible_from_host
+#include <DTK_DetailsUtils.hpp>     // exclusivePrefixSum, lastElement
 #include <DTK_Point.hpp>
 #include <DTK_Predicates.hpp>
 
@@ -186,6 +187,7 @@ template <typename Indexable, typename InputView,
 static std::tuple<OutputView, OutputView>
 performQueries( RTree<Indexable> const &rtree, InputView const &queries )
 {
+    static_assert( KokkosExt::is_accessible_from_host<InputView>::value, "" );
     using Value = typename RTree<Indexable>::value_type;
     auto const n_queries = queries.extent_int( 0 );
     OutputView offset( "offset", n_queries + 1 );
@@ -208,6 +210,7 @@ static std::tuple<OutputView, OutputView, OutputView>
 performQueries( ParallelRTree<Indexable> const &rtree,
                 InputView const &queries )
 {
+    static_assert( KokkosExt::is_accessible_from_host<InputView>::value, "" );
     using Value = typename ParallelRTree<Indexable>::value_type;
     auto const n_queries = queries.extent_int( 0 );
     OutputView offset( "offset", n_queries + 1 );
