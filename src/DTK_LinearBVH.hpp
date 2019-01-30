@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef DTK_LINEAR_BVH_DECL_HPP
-#define DTK_LINEAR_BVH_DECL_HPP
+#ifndef DTK_LINEAR_BVH_HPP
+#define DTK_LINEAR_BVH_HPP
 
 #include <DTK_Box.hpp>
 #include <DTK_DetailsBoundingVolumeHierarchyImpl.hpp>
