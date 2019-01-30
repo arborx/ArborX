@@ -191,39 +191,6 @@ void TreeConstruction<DeviceType>::calculateInternalNodesBoundingVolumes(
                                                                   first ) );
     Kokkos::fence();
 }
-
-template <typename DeviceType>
-int TreeConstruction<DeviceType>::findSplit(
-    Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes, int first,
-    int last )
-{
-    // Calculate the number of highest bits that are the same
-    // for all objects, using the count-leading-zeros intrinsic.
-
-    int common_prefix = commonPrefix( sorted_morton_codes, first, last );
-
-    // Use binary search to find where the next bit differs.
-    // Specifically, we are looking for the highest object that
-    // shares more than commonPrefix bits with the first one.
-
-    int split = first; // initial guess
-    int step = last - first;
-
-    do
-    {
-        step = ( step + 1 ) >> 1;     // exponential decrease
-        int new_split = split + step; // proposed new position
-
-        if ( new_split < last )
-        {
-            if ( commonPrefix( sorted_morton_codes, first, new_split ) >
-                 common_prefix )
-                split = new_split; // accept proposal
-        }
-    } while ( step > 1 );
-
-    return split;
-}
 } // namespace Details
 } // namespace DataTransferKit
 
