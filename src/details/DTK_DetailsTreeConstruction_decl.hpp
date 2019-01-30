@@ -334,6 +334,96 @@ inline void TreeConstruction<DeviceType>::initializeLeafNodes(
                                  leaf_nodes );
 }
 
+template <typename DeviceType>
+class GenerateHierarchyFunctor
+{
+  public:
+    GenerateHierarchyFunctor(
+        Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes,
+        Kokkos::View<Node *, DeviceType> leaf_nodes,
+        Kokkos::View<Node *, DeviceType> internal_nodes,
+        Kokkos::View<int *, DeviceType> parents )
+        : _sorted_morton_codes( sorted_morton_codes )
+        , _leaf_nodes( leaf_nodes )
+        , _internal_nodes( internal_nodes )
+        , _parents( parents )
+        , _shift( internal_nodes.extent( 0 ) )
+    {
+    }
+
+    // from "Thinking Parallel, Part III: Tree Construction on the GPU" by
+    // Karras
+    KOKKOS_INLINE_FUNCTION
+    void operator()( int const i ) const
+    {
+        // Construct internal nodes.
+        // Find out which range of objects the node corresponds to.
+        // (This is where the magic happens!)
+
+        auto range = TreeConstruction<DeviceType>::determineRange(
+            _sorted_morton_codes, i );
+        int first = range.first;
+        int last = range.second;
+
+        // Determine where to split the range.
+
+        int split = TreeConstruction<DeviceType>::findSplit(
+            _sorted_morton_codes, first, last );
+
+        // Select first child and record parent-child relationship.
+
+        if ( split == first )
+        {
+            _internal_nodes( i ).children.first = &_leaf_nodes( split );
+            _parents( split + _shift ) = i;
+        }
+        else
+        {
+            _internal_nodes( i ).children.first = &_internal_nodes( split );
+            _parents( split ) = i;
+        }
+
+        // Select second child and record parent-child relationship.
+
+        if ( split + 1 == last )
+        {
+            _internal_nodes( i ).children.second = &_leaf_nodes( split + 1 );
+            _parents( split + 1 + _shift ) = i;
+        }
+        else
+        {
+            _internal_nodes( i ).children.second =
+                &_internal_nodes( split + 1 );
+            _parents( split + 1 ) = i;
+        }
+    }
+
+  private:
+    Kokkos::View<unsigned int *, DeviceType> _sorted_morton_codes;
+    Kokkos::View<Node *, DeviceType> _leaf_nodes;
+    Kokkos::View<Node *, DeviceType> _internal_nodes;
+    Kokkos::View<int *, DeviceType> _parents;
+    int _shift;
+};
+
+template <typename DeviceType>
+Node *TreeConstruction<DeviceType>::generateHierarchy(
+    Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes,
+    Kokkos::View<Node *, DeviceType> leaf_nodes,
+    Kokkos::View<Node *, DeviceType> internal_nodes,
+    Kokkos::View<int *, DeviceType> parents )
+{
+    auto const n = sorted_morton_codes.extent( 0 );
+    Kokkos::parallel_for(
+        DTK_MARK_REGION( "generate_hierarchy" ),
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n - 1 ),
+        GenerateHierarchyFunctor<DeviceType>( sorted_morton_codes, leaf_nodes,
+                                              internal_nodes, parents ) );
+    Kokkos::fence();
+    // returns a pointer to the root node of the tree
+    return internal_nodes.data();
+}
+
 } // namespace Details
 } // namespace DataTransferKit
 
