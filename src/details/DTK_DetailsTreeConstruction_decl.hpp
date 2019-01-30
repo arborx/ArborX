@@ -20,12 +20,14 @@
 #include <DTK_DetailsNode.hpp>
 #include <DTK_DetailsTags.hpp>
 #include <DTK_DetailsTraits.hpp>
-#include <DTK_KokkosHelpers.hpp> // clz
+#include <DTK_KokkosHelpers.hpp> // clz, min. max
 
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_Pair.hpp>
 #include <Kokkos_Parallel.hpp>
 #include <Kokkos_View.hpp>
+
+#include <cassert>
 
 namespace DataTransferKit
 {
@@ -100,7 +102,42 @@ struct TreeConstruction
 
     KOKKOS_FUNCTION
     static Kokkos::pair<int, int> determineRange(
-        Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes, int i );
+        Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes, int i )
+    {
+        using KokkosHelpers::max;
+        using KokkosHelpers::min;
+        using KokkosHelpers::sgn;
+
+        // determine direction of the range (+1 or -1)
+        int direction = sgn( commonPrefix( sorted_morton_codes, i, i + 1 ) -
+                             commonPrefix( sorted_morton_codes, i, i - 1 ) );
+        assert( direction == +1 || direction == -1 );
+
+        // compute upper bound for the length of the range
+        int max_step = 2;
+        int common_prefix =
+            commonPrefix( sorted_morton_codes, i, i - direction );
+        while ( commonPrefix( sorted_morton_codes, i,
+                              i + direction * max_step ) > common_prefix )
+        {
+            max_step = max_step << 1;
+        }
+
+        // find the other end using binary search
+        int split = 0;
+        int step = max_step;
+        do
+        {
+            step = step >> 1;
+            if ( commonPrefix( sorted_morton_codes, i,
+                               i + ( split + step ) * direction ) >
+                 common_prefix )
+                split += step;
+        } while ( step > 1 );
+        int j = i + split * direction;
+
+        return {min( i, j ), max( i, j )};
+    }
 };
 
 template <typename Primitives>
