@@ -125,8 +125,8 @@ void expand( Box &box, Point const &point )
 // Kokkos::parallel_reduce() in which case the arguments must be declared
 // volatile.
 template <typename BOX,
-          typename = std::enable_if<std::is_same<
-              typename std::remove_volatile<BOX>::type, Box>::value>>
+          typename = typename std::enable_if<std::is_same<
+              typename std::remove_volatile<BOX>::type, Box>::value>::type>
 KOKKOS_INLINE_FUNCTION void expand( BOX &box, BOX const &other )
 {
     for ( int d = 0; d < 3; ++d )
