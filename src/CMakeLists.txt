@@ -21,12 +21,6 @@ APPEND_SET(HEADERS ${PACKAGE_BINARY_DIR}/${PACKAGE_NAME}_ETIHelperMacros.h)
 # Explicitly instantiate classes.
 IF (${PACKAGE_NAME}_ENABLE_EXPLICIT_INSTANTIATION)
 
-  # Generate ETI .cpp files for DataTransferKit::LinearBVH.
-  DTK_PROCESS_ALL_N_TEMPLATES(LINEAR_BVH_OUTPUT_FILES
-    "DTK_ETI_NT.tmpl" "LinearBVH" "LINEAR_BVH"
-    "${${PACKAGE_NAME}_ETI_NODES}" TRUE)
-  LIST(APPEND SOURCES ${LINEAR_BVH_OUTPUT_FILES})
-
   # Generate ETI .cpp files for DataTransferKit::DistributedSearchTree
   DTK_PROCESS_ALL_N_TEMPLATES(DISTRIBUTED_SEARCH_TREE_OUTPUT_FILES
     "DTK_ETI_NT.tmpl" "DistributedSearchTree" "DISTRIBUTED_SEARCH_TREE"
