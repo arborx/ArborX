@@ -175,6 +175,16 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
                                                             parents );
 }
 
+// FIXME not sure where to put these
+static_assert( Details::is_expandable<Box, Box>::value, "" );
+static_assert( Details::is_expandable<Box, Box const>::value, "" );
+static_assert( Details::is_expandable<Box, Point>::value, "" );
+static_assert( Details::is_expandable<Box, Point const>::value, "" );
+static_assert( Details::has_centroid<Box, Point>::value, "" );
+static_assert( Details::has_centroid<Box const, Point>::value, "" );
+static_assert( Details::has_centroid<Point, Point>::value, "" );
+static_assert( Details::has_centroid<Point const, Point>::value, "" );
+
 } // namespace DataTransferKit
 
 #endif
