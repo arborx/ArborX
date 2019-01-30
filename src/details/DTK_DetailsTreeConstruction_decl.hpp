@@ -73,7 +73,7 @@ struct TreeConstruction
         Kokkos::View<Node *, DeviceType> internal_nodes,
         Kokkos::View<int const *, DeviceType> parents );
 
-    KOKKOS_INLINE_FUNCTION
+    KOKKOS_FUNCTION
     static int
     commonPrefix( Kokkos::View<unsigned int *, DeviceType> morton_codes, int i,
                   int j )
