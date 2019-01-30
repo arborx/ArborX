@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef DTK_DISTRIBUTED_SEARCH_TREE_DECL_HPP
-#define DTK_DISTRIBUTED_SEARCH_TREE_DECL_HPP
+#ifndef DTK_DISTRIBUTED_SEARCH_TREE_HPP
+#define DTK_DISTRIBUTED_SEARCH_TREE_HPP
 
 #include <DTK_Box.hpp>
 #include <DTK_DetailsDistributedSearchTreeImpl.hpp>
