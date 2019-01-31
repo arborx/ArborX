@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef DTK_LINEAR_BVH_DECL_HPP
-#define DTK_LINEAR_BVH_DECL_HPP
+#ifndef DTK_LINEAR_BVH_HPP
+#define DTK_LINEAR_BVH_HPP
 
 #include <DTK_Box.hpp>
 #include <DTK_DetailsBoundingVolumeHierarchyImpl.hpp>
@@ -174,6 +174,16 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
                                                             getInternalNodes(),
                                                             parents );
 }
+
+// FIXME not sure where to put these
+static_assert( Details::is_expandable<Box, Box>::value, "" );
+static_assert( Details::is_expandable<Box, Box const>::value, "" );
+static_assert( Details::is_expandable<Box, Point>::value, "" );
+static_assert( Details::is_expandable<Box, Point const>::value, "" );
+static_assert( Details::has_centroid<Box, Point>::value, "" );
+static_assert( Details::has_centroid<Box const, Point>::value, "" );
+static_assert( Details::has_centroid<Point, Point>::value, "" );
+static_assert( Details::has_centroid<Point const, Point>::value, "" );
 
 } // namespace DataTransferKit
 
