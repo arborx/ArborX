@@ -219,6 +219,77 @@ struct TreeTraversal
         return heap.size();
     }
 
+    struct Deprecated // using a struct to emulate a nested namespace
+    {
+        // This is the older version of the nearest traversal that uses a
+        // priority queue and that was deemed less performant than the newer
+        // version with a stack.
+        template <typename Distance, typename Insert>
+        KOKKOS_FUNCTION static int
+        nearestQuery( BoundingVolumeHierarchy<DeviceType> const &bvh,
+                      Distance const &distance, std::size_t k,
+                      Insert const &insert )
+        {
+            if ( bvh.empty() || k < 1 )
+                return 0;
+
+            if ( bvh.size() == 1 )
+            {
+                insert( 0, distance( bvh.getBoundingVolume( bvh.getRoot() ) ) );
+                return 1;
+            }
+
+            using PairNodePtrDistance = Kokkos::pair<Node const *, double>;
+            struct CompareDistance
+            {
+                KOKKOS_INLINE_FUNCTION bool
+                operator()( PairNodePtrDistance const &lhs,
+                            PairNodePtrDistance const &rhs ) const
+                {
+                    // Reverse order (larger distance means lower priority)
+                    return lhs.second > rhs.second;
+                }
+            };
+            PriorityQueue<PairNodePtrDistance, CompareDistance,
+                          StaticVector<PairNodePtrDistance, 256>>
+                queue;
+
+            // Do not bother computing the distance to the root node since it is
+            // immediately popped out of the stack and processed.
+            queue.emplace( bvh.getRoot(), 0. );
+            int count = 0;
+
+            while ( !queue.empty() && count < k )
+            {
+                // Get the node that is on top of the priority list (i.e. the
+                // one that is closest to the query point)
+                Node const *node = queue.top().first;
+                double const node_distance = queue.top().second;
+
+                if ( bvh.isLeaf( node ) )
+                {
+                    queue.pop();
+                    insert( bvh.getLeafPermutationIndex( node ),
+                            node_distance );
+                    ++count;
+                }
+                else
+                {
+                    // Insert children into the priority queue
+                    Node const *left_child = node->children.first;
+                    double const left_child_distance =
+                        distance( bvh.getBoundingVolume( left_child ) );
+                    Node const *right_child = node->children.second;
+                    double const right_child_distance =
+                        distance( bvh.getBoundingVolume( right_child ) );
+                    queue.popPush( left_child, left_child_distance );
+                    queue.emplace( right_child, right_child_distance );
+                }
+            }
+            return count;
+        }
+    }; // "namespace" Deprecated
+
     template <typename Predicate, typename Insert>
     KOKKOS_INLINE_FUNCTION static int
     queryDispatch( SpatialPredicateTag,
