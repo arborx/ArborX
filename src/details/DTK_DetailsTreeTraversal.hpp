@@ -308,55 +308,6 @@ struct TreeTraversal
         }
     }; // "namespace" Deprecated
 
-#if defined( ARBORX_ENABLE_VIZ )
-    struct DoNotUseUnlessYouKnowWhatYouAreDoing
-    {
-        // DO NOT USE IN PRODUCTION CODE THIS IS FOR VISUALIZATION PURPOSES ONLY
-
-        KOKKOS_INLINE_FUNCTION
-        static Node const *
-        getLeaf( BoundingVolumeHierarchy<DeviceType> const &bvh, size_t index )
-        {
-            auto leaf_nodes = bvh.getLeafNodes();
-            Node const *first = leaf_nodes.data();
-            Node const *last = first + (ptrdiff_t)leaf_nodes.size();
-            for ( ; first != last; ++first )
-                if ( index == bvh.getLeafPermutationIndex( first ) )
-                    return first;
-            return nullptr;
-        }
-
-        KOKKOS_INLINE_FUNCTION
-        static int getIndex( Node const *node,
-                             BoundingVolumeHierarchy<DeviceType> const &bvh )
-        {
-            return bvh.isLeaf( node ) ? bvh.getLeafPermutationIndex( node )
-                                      : node - bvh.getRoot();
-        }
-
-        KOKKOS_INLINE_FUNCTION
-        static bool isLeaf( Node const *node,
-                            BoundingVolumeHierarchy<DeviceType> const &bvh )
-        {
-            return bvh.isLeaf( node );
-        }
-
-        KOKKOS_INLINE_FUNCTION
-        static Node const *
-        getRoot( BoundingVolumeHierarchy<DeviceType> const &bvh )
-        {
-            return bvh.getRoot();
-        }
-
-        template <typename Tree>
-        KOKKOS_INLINE_FUNCTION static typename Tree::bounding_volume_type
-        getBoundingVolume( Node const *node, Tree const &tree )
-        {
-            return tree.getBoundingVolume( node );
-        }
-    };
-#endif
-
     template <typename Predicate, typename Insert>
     KOKKOS_INLINE_FUNCTION static int
     queryDispatch( SpatialPredicateTag,

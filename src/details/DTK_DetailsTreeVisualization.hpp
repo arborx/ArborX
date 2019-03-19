@@ -23,14 +23,59 @@ static_assert(
 
 namespace DataTransferKit
 {
+
+template <typename DeviceType>
+class BoundingVolumeHierarchy;
+
 namespace Details
 {
 template <typename DeviceType>
 struct TreeVisualization
 {
-    // You have been warned :)
-    using TreeAccess = typename TreeTraversal<
-        DeviceType>::DoNotUseUnlessYouKnowWhatYouAreDoing;
+    struct TreeAccess
+    {
+        KOKKOS_INLINE_FUNCTION
+        static Node const *
+        getLeaf( BoundingVolumeHierarchy<DeviceType> const &bvh, size_t index )
+        {
+            auto leaf_nodes = bvh.getLeafNodes();
+            Node const *first = leaf_nodes.data();
+            Node const *last = first + (ptrdiff_t)leaf_nodes.size();
+            for ( ; first != last; ++first )
+                if ( index == bvh.getLeafPermutationIndex( first ) )
+                    return first;
+            return nullptr;
+        }
+
+        KOKKOS_INLINE_FUNCTION
+        static int getIndex( Node const *node,
+                             BoundingVolumeHierarchy<DeviceType> const &bvh )
+        {
+            return bvh.isLeaf( node ) ? bvh.getLeafPermutationIndex( node )
+                                      : node - bvh.getRoot();
+        }
+
+        KOKKOS_INLINE_FUNCTION
+        static bool isLeaf( Node const *node,
+                            BoundingVolumeHierarchy<DeviceType> const &bvh )
+        {
+            return bvh.isLeaf( node );
+        }
+
+        KOKKOS_INLINE_FUNCTION
+        static Node const *
+        getRoot( BoundingVolumeHierarchy<DeviceType> const &bvh )
+        {
+            return bvh.getRoot();
+        }
+
+        template <typename Tree>
+        KOKKOS_INLINE_FUNCTION static typename Tree::bounding_volume_type
+        getBoundingVolume( Node const *node, Tree const &tree )
+        {
+            return tree.getBoundingVolume( node );
+        }
+    };
 
     template <typename Tree>
     static std::string getNodeLabel( Node const *node, Tree const &tree )
