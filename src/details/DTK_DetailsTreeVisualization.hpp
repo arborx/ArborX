@@ -40,7 +40,8 @@ struct TreeVisualization
         {
             auto leaf_nodes = bvh.getLeafNodes();
             Node const *first = leaf_nodes.data();
-            Node const *last = first + (ptrdiff_t)leaf_nodes.size();
+            Node const *last =
+                first + static_cast<ptrdiff_t>( leaf_nodes.size() );
             for ( ; first != last; ++first )
                 if ( index == bvh.getLeafPermutationIndex( first ) )
                     return first;
