@@ -119,6 +119,9 @@ struct TreeVisualization
     static int visit( Tree const &tree, Predicate const &pred,
                       Visitor const &visitor )
     {
+#if defined( __CUDA_ARCH__ )
+        throw std::runtime_error( "not meant to execute on the GPU" );
+#else
         auto const geometry = pred._geometry;
         auto const k = pred._k;
         Kokkos::View<Kokkos::pair<int, double> *, DeviceType> buffer( "buffer",
@@ -132,6 +135,7 @@ struct TreeVisualization
             },
             k, []( int, double ) {}, buffer );
         return count;
+#endif
     }
 };
 } // namespace Details
