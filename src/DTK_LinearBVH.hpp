@@ -24,7 +24,7 @@
 
 namespace DataTransferKit
 {
-#if defined( ARBORX_ENABLE_VIZ )
+#if defined( DTK_ENABLE_VIZ )
 namespace Details
 {
 template <typename DeviceType>
@@ -72,7 +72,7 @@ class BoundingVolumeHierarchy
 
   private:
     friend struct Details::TreeTraversal<DeviceType>;
-#if defined( ARBORX_ENABLE_VIZ )
+#if defined( DTK_ENABLE_VIZ )
     friend struct Details::TreeVisualization<DeviceType>;
 #endif
 

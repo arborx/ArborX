@@ -1,5 +1,5 @@
 ADD_SUBDIRECTORY(bvh_driver)
 ADD_SUBDIRECTORY(distributed_tree_driver)
-if (ARBORX_ENABLE_VIZ)
+if (DTK_ENABLE_VIZ)
   add_subdirectory(viz)
 endif()
