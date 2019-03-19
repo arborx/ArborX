@@ -13,6 +13,8 @@
 
 #include <DTK_DetailsTreeTraversal.hpp>
 
+#include <Kokkos_View.hpp>
+
 #if !defined( ARBORX_ENABLE_VIZ )
 static_assert(
     false,
@@ -111,6 +113,25 @@ struct TreeVisualization
                       {node->children.first, node->children.second} )
                     stack.push( child );
         }
+    }
+
+    template <typename Tree, typename Predicate, typename Visitor>
+    static int visit( Tree const &tree, Predicate const &pred,
+                      Visitor const &visitor )
+    {
+        auto const geometry = pred._geometry;
+        auto const k = pred._k;
+        Kokkos::View<Kokkos::pair<int, double> *, DeviceType> buffer( "buffer",
+                                                                      k );
+        int const count = TreeTraversal<DeviceType>::nearestQuery(
+            tree,
+            [geometry, &visitor, &tree]( Node const *node ) {
+                visitor.visit( node, tree );
+                return distance( geometry,
+                                 TreeAccess::getBoundingVolume( node, tree ) );
+            },
+            k, []( int, double ) {}, buffer );
+        return count;
     }
 };
 } // namespace Details
