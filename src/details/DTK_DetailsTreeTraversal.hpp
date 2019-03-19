@@ -106,11 +106,7 @@ struct TreeTraversal
 
         if ( bvh.size() == 1 )
         {
-#if defined( ARBORX_ENABLE_VIZ )
             insert( 0, distance( bvh.getRoot() ) );
-#else
-            insert( 0, distance( bvh.getBoundingVolume( bvh.getRoot() ) ) );
-#endif
             return 1;
         }
 
@@ -184,15 +180,8 @@ struct TreeTraversal
                     // closest one ends on top.
                     Node const *left_child = node->children.first;
                     Node const *right_child = node->children.second;
-#if defined( ARBORX_ENABLE_VIZ )
                     double const left_child_distance = distance( left_child );
                     double const right_child_distance = distance( right_child );
-#else
-                    double const left_child_distance =
-                        distance( bvh.getBoundingVolume( left_child ) );
-                    double const right_child_distance =
-                        distance( bvh.getBoundingVolume( right_child ) );
-#endif
                     if ( left_child_distance < right_child_distance )
                     {
                         // NOTE not really sure why but it performed better with
@@ -244,11 +233,7 @@ struct TreeTraversal
 
             if ( bvh.size() == 1 )
             {
-#if defined( ARBORX_ENABLE_VIZ )
                 insert( 0, distance( bvh.getRoot() ) );
-#else
-                insert( 0, distance( bvh.getBoundingVolume( bvh.getRoot() ) ) );
-#endif
                 return 1;
             }
 
@@ -291,15 +276,8 @@ struct TreeTraversal
                     // Insert children into the priority queue
                     Node const *left_child = node->children.first;
                     Node const *right_child = node->children.second;
-#if defined( ARBORX_ENABLE_VIZ )
                     double const left_child_distance = distance( left_child );
                     double const right_child_distance = distance( right_child );
-#else
-                    double const left_child_distance =
-                        distance( bvh.getBoundingVolume( left_child ) );
-                    double const right_child_distance =
-                        distance( bvh.getBoundingVolume( right_child ) );
-#endif
                     queue.popPush( left_child, left_child_distance );
                     queue.emplace( right_child, right_child_distance );
                 }
@@ -325,18 +303,10 @@ struct TreeTraversal
         auto const geometry = pred._geometry;
         auto const k = pred._k;
         return nearestQuery( bvh,
-#if defined( ARBORX_ENABLE_VIZ )
                              [geometry, &bvh]( Node const *node ) {
                                  return distance(
                                      geometry, bvh.getBoundingVolume( node ) );
                              },
-#else
-                             [geometry](
-                                 typename BoundingVolumeHierarchy<DeviceType>::
-                                     bounding_volume_type const &other ) {
-                                 return distance( geometry, other );
-                             },
-#endif
                              k, insert, buffer );
     }
 };
