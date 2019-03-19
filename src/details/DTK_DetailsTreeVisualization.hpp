@@ -87,6 +87,25 @@ struct TreeVisualization
                 }
         }
     };
+
+    template <typename Tree, typename Visitor>
+    static void visitAllIterative( Tree const &tree, Visitor const &visitor )
+    {
+        Stack<Node const *> stack;
+        stack.emplace( TreeAccess::getRoot( tree ) );
+        while ( !stack.empty() )
+        {
+            Node const *node = stack.top();
+            stack.pop();
+
+            visitor.visit( node, tree );
+
+            if ( !TreeAccess::isLeaf( node, tree ) )
+                for ( Node const *child :
+                      {node->children.first, node->children.second} )
+                    stack.push( child );
+        }
+    }
 };
 } // namespace Details
 } // namespace DataTransferKit
