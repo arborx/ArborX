@@ -21,6 +21,15 @@
 
 #include <point_clouds.hpp>
 
+template <typename View>
+void printPointCloud( View points, std::ostream &os )
+{
+    auto const n = points.extent_int( 0 );
+    for ( int i = 0; i < n; ++i )
+        os << "\\node[leaf] at (" << points( i )[0] << "," << points( i )[1]
+           << ") {\\textbullet};\n";
+}
+
 template <typename TreeType>
 void viz()
 {
@@ -34,9 +43,14 @@ void viz()
     TreeType bvh( points );
 
     std::fstream fout;
+    std::string const prefix = "trash_";
+
+    // Print the point cloud
+    fout.open( prefix + "points.tex", std::fstream::out );
+    printPointCloud( points, fout );
+    fout.close();
 
     // Print the entire tree
-    std::string const prefix = "trash_";
     fout.open( prefix + "tree_all_nodes_and_edges.dot.m4", std::fstream::out );
     using TreeVisualization =
         typename DataTransferKit::Details::TreeVisualization<DeviceType>;
