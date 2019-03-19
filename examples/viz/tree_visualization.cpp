@@ -76,6 +76,21 @@ void viz()
         TreeVisualization::visit( bvh, queries( i ), GraphvizVisitor{fout} );
         fout.close();
     }
+
+    // Sort them
+    auto permute = DataTransferKit::Details::BatchedQueries<
+        DeviceType>::sortQueriesAlongZOrderCurve( bvh.bounds(), queries );
+    queries =
+        DataTransferKit::Details::BatchedQueries<DeviceType>::applyPermutation(
+            permute, queries );
+    for ( int i = 0; i < n_queries; ++i )
+    {
+        fout.open( prefix + "sorted_" + std::to_string( i ) +
+                       "_nearest_traversal.dot.m4",
+                   std::fstream::out );
+        TreeVisualization::visit( bvh, queries( i ), GraphvizVisitor{fout} );
+        fout.close();
+    }
 }
 
 int main( int argc, char *argv[] )
