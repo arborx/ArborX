@@ -13,6 +13,12 @@
 
 #include <DTK_DetailsTreeTraversal.hpp>
 
+#if !defined( ARBORX_ENABLE_VIZ )
+static_assert(
+    false,
+    "do not include this header when tree visualization mode is not enabled" );
+#endif
+
 namespace DataTransferKit
 {
 namespace Details
