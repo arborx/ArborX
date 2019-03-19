@@ -15,7 +15,9 @@
 #include <Kokkos_Core.hpp>
 #include <Kokkos_DefaultNode.hpp>
 
+#include <algorithm>
 #include <fstream>
+#include <random>
 
 #include <point_clouds.hpp>
 
@@ -56,6 +58,19 @@ void viz()
     for ( int i = 0; i < n_queries; ++i )
     {
         fout.open( prefix + "untouched_" + std::to_string( i ) +
+                       "_nearest_traversal.dot.m4",
+                   std::fstream::out );
+        TreeVisualization::visit( bvh, queries( i ), GraphvizVisitor{fout} );
+        fout.close();
+    }
+
+    // Shuffle the queries
+    std::random_device rd;
+    std::mt19937 g( rd() );
+    std::shuffle( queries.data(), queries.data() + queries.size(), g );
+    for ( int i = 0; i < n_queries; ++i )
+    {
+        fout.open( prefix + "shuffled_" + std::to_string( i ) +
                        "_nearest_traversal.dot.m4",
                    std::fstream::out );
         TreeVisualization::visit( bvh, queries( i ), GraphvizVisitor{fout} );
