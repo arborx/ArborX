@@ -50,11 +50,18 @@ void viz()
     printPointCloud( points, fout );
     fout.close();
 
-    // Print the entire tree
-    fout.open( prefix + "tree_all_nodes_and_edges.dot.m4", std::fstream::out );
     using TreeVisualization =
         typename DataTransferKit::Details::TreeVisualization<DeviceType>;
+    using TikZVisitor = typename TreeVisualization::TikZVisitor;
     using GraphvizVisitor = typename TreeVisualization::GraphvizVisitor;
+
+    // Print the bounding volume hierarchy
+    fout.open( prefix + "bounding_volumes.tex", std::fstream::out );
+    TreeVisualization::visitAllIterative( bvh, TikZVisitor{fout} );
+    fout.close();
+
+    // Print the entire tree
+    fout.open( prefix + "tree_all_nodes_and_edges.dot.m4", std::fstream::out );
     TreeVisualization::visitAllIterative( bvh, GraphvizVisitor{fout} );
     fout.close();
 
