@@ -41,6 +41,26 @@ void viz()
     using GraphvizVisitor = typename TreeVisualization::GraphvizVisitor;
     TreeVisualization::visitAllIterative( bvh, GraphvizVisitor{fout} );
     fout.close();
+
+    int const n_neighbors = 10;
+    int const n_queries = bvh.size();
+    Kokkos::View<DataTransferKit::Nearest<DataTransferKit::Point> *, DeviceType>
+        queries( "queries", n_queries );
+    Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
+                          KOKKOS_LAMBDA( int i ) {
+                              queries( i ) = DataTransferKit::nearest(
+                                  points( i ), n_neighbors );
+                          } );
+    Kokkos::fence();
+
+    for ( int i = 0; i < n_queries; ++i )
+    {
+        fout.open( prefix + "untouched_" + std::to_string( i ) +
+                       "_nearest_traversal.dot.m4",
+                   std::fstream::out );
+        TreeVisualization::visit( bvh, queries( i ), GraphvizVisitor{fout} );
+        fout.close();
+    }
 }
 
 int main( int argc, char *argv[] )
