@@ -23,6 +23,12 @@ class BoundingVolumeHierarchy;
 
 namespace Details
 {
+std::ostream &operator<<( std::ostream &os, Point const &p )
+{
+    os << "(" << p[0] << "," << p[1] << ")";
+    return os;
+}
+
 template <typename DeviceType>
 struct TreeVisualization
 {
@@ -132,6 +138,25 @@ struct TreeVisualization
                     _os << "    " << node_label << " -> " << child_label << " "
                         << edge_attributes << ";\n";
                 }
+        }
+    };
+
+    struct TikZVisitor
+    {
+        std::ostream &_os;
+
+        template <typename Tree>
+        void visit( Node const *node, Tree const &tree ) const
+        {
+            auto const node_label = getNodeLabel( node, tree );
+            auto const node_attributes = getNodeAttributes( node, tree );
+            auto const bounding_volume =
+                TreeAccess::getBoundingVolume( node, tree );
+            auto const min_corner = bounding_volume.minCorner();
+            auto const max_corner = bounding_volume.maxCorner();
+            _os << R"(\draw)" << node_attributes << " " << min_corner
+                << " rectangle " << max_corner << " node {" << node_label
+                << "};\n";
         }
     };
 
