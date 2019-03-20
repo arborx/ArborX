@@ -4,3 +4,10 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
   NUM_MPI_PROCS 1
   FAIL_REGULAR_EXPRESSION "data race;leak;runtime error"
   )
+TRIBITS_COPY_FILES_TO_BINARY_DIR(
+  oak_leaf
+  SOURCE_FILES leaf_cloud.txt
+  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../point_clouds
+  DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
+  EXEDEPS example_viz
+  )

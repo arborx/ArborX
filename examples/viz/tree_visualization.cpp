@@ -36,9 +36,7 @@ void viz()
     using DeviceType = typename TreeType::device_type;
     using ExecutionSpace = typename DeviceType::execution_space;
     Kokkos::View<DataTransferKit::Point *, DeviceType> points( "points" );
-    loadPointCloud( "/scratch/source/trilinos/release/DataTransferKit/packages/"
-                    "Search/examples/point_clouds/leaf_cloud.txt",
-                    points );
+    loadPointCloud( "leaf_cloud.txt", points );
 
     TreeType bvh( points );
 
