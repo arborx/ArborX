@@ -310,6 +310,8 @@ struct TreeTraversal
                              k, insert, buffer );
     }
 
+    // WARNING Without the buffer argument, the dispatch function uses the
+    // deprecated version of the nearest query.
     template <typename Predicate, typename Insert>
     KOKKOS_INLINE_FUNCTION static int
     queryDispatch( NearestPredicateTag,
@@ -319,6 +321,7 @@ struct TreeTraversal
         auto const geometry = pred._geometry;
         auto const k = pred._k;
         return Deprecated::nearestQuery(
+            // ^^^^^^^^^^
             bvh,
             [geometry, &bvh]( Node const *node ) {
                 return distance( geometry, bvh.getBoundingVolume( node ) );
