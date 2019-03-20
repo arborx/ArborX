@@ -309,6 +309,22 @@ struct TreeTraversal
                              },
                              k, insert, buffer );
     }
+
+    template <typename Predicate, typename Insert>
+    KOKKOS_INLINE_FUNCTION static int
+    queryDispatch( NearestPredicateTag,
+                   BoundingVolumeHierarchy<DeviceType> const &bvh,
+                   Predicate const &pred, Insert const &insert )
+    {
+        auto const geometry = pred._geometry;
+        auto const k = pred._k;
+        return Deprecated::nearestQuery(
+            bvh,
+            [geometry, &bvh]( Node const *node ) {
+                return distance( geometry, bvh.getBoundingVolume( node ) );
+            },
+            k, insert );
+    }
 };
 
 } // namespace Details
