@@ -1,5 +1,3 @@
 ADD_SUBDIRECTORY(bvh_driver)
 ADD_SUBDIRECTORY(distributed_tree_driver)
-if (DTK_ENABLE_VIZ)
-  add_subdirectory(viz)
-endif()
+add_subdirectory(viz)
