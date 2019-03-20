@@ -1,3 +1,4 @@
+if(Kokkos_ENABLE_Serial)
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   example_viz
   SOURCES tree_visualization.cpp
@@ -11,3 +12,4 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(
   DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
   EXEDEPS example_viz
   )
+endif()
