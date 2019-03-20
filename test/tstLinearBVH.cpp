@@ -755,6 +755,14 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
 
     validateResults( rtree_results, bvh_results, success, out );
 
+    auto const alternate_tree_traversal_algorithm =
+        DataTransferKit::Details::WhichNearestQueryAlgorithm::
+            LessEfficientDoNotUseUnlessYouKnowWhatYouAreDoing;
+    bvh.query( nearest_queries, indices_nearest, offset_nearest,
+               alternate_tree_traversal_algorithm );
+    bvh_results = std::make_tuple( offset_nearest, indices_nearest );
+    validateResults( rtree_results, bvh_results, success, out );
+
     Kokkos::View<int *, DeviceType> offset_within( "offset_within" );
     Kokkos::View<int *, DeviceType> indices_within( "indices_within" );
     bvh.query( within_queries, indices_within, offset_within );
