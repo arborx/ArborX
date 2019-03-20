@@ -255,7 +255,7 @@ struct TreeTraversal
             // Do not bother computing the distance to the root node since it is
             // immediately popped out of the stack and processed.
             queue.emplace( bvh.getRoot(), 0. );
-            int count = 0;
+            decltype( k ) count = 0;
 
             while ( !queue.empty() && count < k )
             {
