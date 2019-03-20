@@ -184,6 +184,9 @@ struct TreeVisualization
     static int visit( Tree const &tree, Predicate const &pred,
                       Visitor const &visitor )
     {
+        // The preprocessor directives below are intended to silent the
+        // warnings about calling a __host__ function from a __host__
+        // __device__ function emitted by nvcc.
 #if defined( __CUDA_ARCH__ )
         throw std::runtime_error( "not meant to execute on the GPU" );
 #else
