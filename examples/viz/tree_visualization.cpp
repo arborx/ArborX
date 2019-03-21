@@ -106,15 +106,26 @@ void viz()
     performQueries( prefix + "sorted_", suffix );
 }
 
+// FIXME version of Kokkos in the CI/dev base image is too old and does not have
+// scope guards so we define our own...
+struct KokkosScopeGuard
+{
+    KokkosScopeGuard( Kokkos::InitArguments const &args )
+    {
+        Kokkos::initialize( args );
+    }
+    ~KokkosScopeGuard() { Kokkos::finalize(); }
+};
+
 int main( int argc, char *argv[] )
 {
-    Kokkos::initialize( argc, argv );
+    Kokkos::InitArguments args;
+    args.disable_warnings = true;
+    KokkosScopeGuard guard( args );
 
     using Serial = Kokkos::Compat::KokkosSerialWrapperNode::device_type;
     using Tree = DataTransferKit::BVH<Serial>;
     viz<Tree>();
-
-    Kokkos::finalize();
 
     return 0;
 }
