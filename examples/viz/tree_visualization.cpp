@@ -40,28 +40,12 @@ void viz()
 
     TreeType bvh( points );
 
-    std::fstream fout;
-    std::string const prefix = "trash_";
-
-    // Print the point cloud
-    fout.open( prefix + "points.tex", std::fstream::out );
-    printPointCloud( points, fout );
-    fout.close();
-
     using TreeVisualization =
         typename DataTransferKit::Details::TreeVisualization<DeviceType>;
     using TikZVisitor = typename TreeVisualization::TikZVisitor;
     using GraphvizVisitor = typename TreeVisualization::GraphvizVisitor;
 
-    // Print the bounding volume hierarchy
-    fout.open( prefix + "bounding_volumes.tex", std::fstream::out );
-    TreeVisualization::visitAllIterative( bvh, TikZVisitor{fout} );
-    fout.close();
-
-    // Print the entire tree
-    fout.open( prefix + "tree_all_nodes_and_edges.dot.m4", std::fstream::out );
-    TreeVisualization::visitAllIterative( bvh, GraphvizVisitor{fout} );
-    fout.close();
+    std::string const prefix = "trash_";
 
     int const n_neighbors = 10;
     int const n_queries = bvh.size();
@@ -74,27 +58,44 @@ void viz()
                           } );
     Kokkos::fence();
 
-    for ( int i = 0; i < n_queries; ++i )
-    {
-        fout.open( prefix + "untouched_" + std::to_string( i ) +
-                       "_nearest_traversal.dot.m4",
-                   std::fstream::out );
-        TreeVisualization::visit( bvh, queries( i ), GraphvizVisitor{fout} );
-        fout.close();
-    }
+    auto performQueries = [&bvh, &queries]( std::string const &p,
+                                            std::string const &s ) {
+        std::ofstream fout;
+        for ( int i = 0; i < queries.extent_int( 0 ); ++i )
+        {
+            std::string const fname = p + std::to_string( i ) + s;
+            fout.open( fname, std::fstream::out );
+            TreeVisualization::visit( bvh, queries( i ),
+                                      GraphvizVisitor{fout} );
+            fout.close();
+        }
+    };
+
+    std::fstream fout;
+
+    // Print the point cloud
+    fout.open( prefix + "points.tex", std::fstream::out );
+    printPointCloud( points, fout );
+    fout.close();
+
+    // Print the bounding volume hierarchy
+    fout.open( prefix + "bounding_volumes.tex", std::fstream::out );
+    TreeVisualization::visitAllIterative( bvh, TikZVisitor{fout} );
+    fout.close();
+
+    // Print the entire tree
+    fout.open( prefix + "tree_all_nodes_and_edges.dot.m4", std::fstream::out );
+    TreeVisualization::visitAllIterative( bvh, GraphvizVisitor{fout} );
+    fout.close();
+
+    std::string const suffix = "_nearest_traversal.dot.m4";
+    performQueries( prefix + "untouched_", suffix );
 
     // Shuffle the queries
     std::random_device rd;
     std::mt19937 g( rd() );
     std::shuffle( queries.data(), queries.data() + queries.size(), g );
-    for ( int i = 0; i < n_queries; ++i )
-    {
-        fout.open( prefix + "shuffled_" + std::to_string( i ) +
-                       "_nearest_traversal.dot.m4",
-                   std::fstream::out );
-        TreeVisualization::visit( bvh, queries( i ), GraphvizVisitor{fout} );
-        fout.close();
-    }
+    performQueries( prefix + "shuffled_", suffix );
 
     // Sort them
     auto permute = DataTransferKit::Details::BatchedQueries<
@@ -102,14 +103,7 @@ void viz()
     queries =
         DataTransferKit::Details::BatchedQueries<DeviceType>::applyPermutation(
             permute, queries );
-    for ( int i = 0; i < n_queries; ++i )
-    {
-        fout.open( prefix + "sorted_" + std::to_string( i ) +
-                       "_nearest_traversal.dot.m4",
-                   std::fstream::out );
-        TreeVisualization::visit( bvh, queries( i ), GraphvizVisitor{fout} );
-        fout.close();
-    }
+    performQueries( prefix + "sorted_", suffix );
 }
 
 int main( int argc, char *argv[] )
