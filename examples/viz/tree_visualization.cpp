@@ -15,6 +15,8 @@
 #include <Kokkos_Core.hpp>
 #include <Kokkos_DefaultNode.hpp>
 
+#include <boost/program_options.hpp>
+
 #include <algorithm>
 #include <fstream>
 #include <random>
@@ -31,12 +33,12 @@ void printPointCloud( View points, std::ostream &os )
 }
 
 template <typename TreeType>
-void viz()
+void viz( std::string const &prefix, std ::string const &infile )
 {
     using DeviceType = typename TreeType::device_type;
     using ExecutionSpace = typename DeviceType::execution_space;
     Kokkos::View<DataTransferKit::Point *, DeviceType> points( "points" );
-    loadPointCloud( "leaf_cloud.txt", points );
+    loadPointCloud( infile, points );
 
     TreeType bvh( points );
 
@@ -44,8 +46,6 @@ void viz()
         typename DataTransferKit::Details::TreeVisualization<DeviceType>;
     using TikZVisitor = typename TreeVisualization::TikZVisitor;
     using GraphvizVisitor = typename TreeVisualization::GraphvizVisitor;
-
-    std::string const prefix = "trash_";
 
     int const n_neighbors = 10;
     int const n_queries = bvh.size();
@@ -123,9 +123,31 @@ int main( int argc, char *argv[] )
     args.disable_warnings = true;
     KokkosScopeGuard guard( args );
 
+    std::string prefix;
+    std::string infile;
+    boost::program_options::options_description desc( "Allowed options" );
+    // clang-format off
+    desc.add_options()
+        ( "help", "produce help message" )
+        ( "prefix", boost::program_options::value<std::string> (&prefix)->default_value("viz_"), "set prefix for output files" )
+        ( "infile", boost::program_options::value<std::string> (&infile)->default_value("leaf_cloud.txt"), "set input point cloud file" )
+    ;
+    // clang-format on
+
+    boost::program_options::variables_map vm;
+    boost::program_options::store(
+        boost::program_options::parse_command_line( argc, argv, desc ), vm );
+    boost::program_options::notify( vm );
+
+    if ( vm.count( "help" ) )
+    {
+        std::cout << desc << "\n";
+        return 1;
+    }
+
     using Serial = Kokkos::Compat::KokkosSerialWrapperNode::device_type;
     using Tree = DataTransferKit::BVH<Serial>;
-    viz<Tree>();
+    viz<Tree>( prefix, infile );
 
     return 0;
 }
