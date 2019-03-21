@@ -33,7 +33,7 @@ void printPointCloud( View points, std::ostream &os )
 }
 
 template <typename TreeType>
-void viz( std::string const &prefix, std ::string const &infile,
+void viz( std::string const &prefix, std::string const &infile,
           int n_neighbors )
 {
     using DeviceType = typename TreeType::device_type;
