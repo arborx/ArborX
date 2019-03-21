@@ -1,4 +1,4 @@
-if(Kokkos_ENABLE_Serial)
+if(Kokkos_ENABLE_Serial AND HAVE_DTK_BOOST)
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   example_viz
   SOURCES tree_visualization.cpp
