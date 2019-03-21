@@ -755,9 +755,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
 
     validateResults( rtree_results, bvh_results, success, out );
 
-    auto const alternate_tree_traversal_algorithm =
-        DataTransferKit::Details::WhichNearestQueryAlgorithm::
-            LessEfficientDoNotUseUnlessYouKnowWhatYouAreDoing;
+    auto const alternate_tree_traversal_algorithm = DataTransferKit::Details::
+        NearestQueryAlgorithm::PriorityQueueBased_Deprecated;
     bvh.query( nearest_queries, indices_nearest, offset_nearest,
                alternate_tree_traversal_algorithm );
     bvh_results = std::make_tuple( offset_nearest, indices_nearest );

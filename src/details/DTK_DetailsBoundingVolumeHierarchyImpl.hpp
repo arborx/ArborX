@@ -30,9 +30,9 @@ namespace Details
 {
 
 // Silly name to discourage misuse...
-enum class WhichNearestQueryAlgorithm {
-    MoreEfficient,
-    LessEfficientDoNotUseUnlessYouKnowWhatYouAreDoing
+enum class NearestQueryAlgorithm {
+    StackBased_Default,
+    PriorityQueueBased_Deprecated
 };
 
 template <typename DeviceType>
@@ -55,8 +55,7 @@ struct BoundingVolumeHierarchyImpl
         Kokkos::View<Query *, DeviceType> queries,
         Kokkos::View<int *, DeviceType> &indices,
         Kokkos::View<int *, DeviceType> &offset,
-        WhichNearestQueryAlgorithm which =
-            WhichNearestQueryAlgorithm::MoreEfficient,
+        NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default,
         Kokkos::View<double *, DeviceType> *distances_ptr = nullptr );
 
     template <typename Query>
@@ -66,8 +65,8 @@ struct BoundingVolumeHierarchyImpl
                                Kokkos::View<int *, DeviceType> &indices,
                                Kokkos::View<int *, DeviceType> &offset,
                                Kokkos::View<double *, DeviceType> &distances,
-                               WhichNearestQueryAlgorithm which =
-                                   WhichNearestQueryAlgorithm::MoreEfficient )
+                               NearestQueryAlgorithm which =
+                                   NearestQueryAlgorithm::StackBased_Default )
     {
         queryDispatch( tag, bvh, queries, indices, offset, which, &distances );
     }
@@ -84,14 +83,13 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     Details::NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const bvh,
     Kokkos::View<Query *, DeviceType> queries,
     Kokkos::View<int *, DeviceType> &indices,
-    Kokkos::View<int *, DeviceType> &offset, WhichNearestQueryAlgorithm which,
+    Kokkos::View<int *, DeviceType> &offset, NearestQueryAlgorithm which,
     Kokkos::View<double *, DeviceType> *distances_ptr )
 {
     using ExecutionSpace = typename DeviceType::execution_space;
 
     bool const use_deprecated_nearest_query_algorithm =
-        which == WhichNearestQueryAlgorithm::
-                     LessEfficientDoNotUseUnlessYouKnowWhatYouAreDoing;
+        which == NearestQueryAlgorithm::PriorityQueueBased_Deprecated;
 
     auto const n_queries = queries.extent( 0 );
 
