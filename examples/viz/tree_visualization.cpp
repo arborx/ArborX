@@ -33,7 +33,8 @@ void printPointCloud( View points, std::ostream &os )
 }
 
 template <typename TreeType>
-void viz( std::string const &prefix, std ::string const &infile )
+void viz( std::string const &prefix, std ::string const &infile,
+          int n_neighbors )
 {
     using DeviceType = typename TreeType::device_type;
     using ExecutionSpace = typename DeviceType::execution_space;
@@ -47,8 +48,9 @@ void viz( std::string const &prefix, std ::string const &infile )
     using TikZVisitor = typename TreeVisualization::TikZVisitor;
     using GraphvizVisitor = typename TreeVisualization::GraphvizVisitor;
 
-    int const n_neighbors = 10;
     int const n_queries = bvh.size();
+    if ( n_neighbors < 0 )
+        n_neighbors = bvh.size();
     Kokkos::View<DataTransferKit::Nearest<DataTransferKit::Point> *, DeviceType>
         queries( "queries", n_queries );
     Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
@@ -125,12 +127,14 @@ int main( int argc, char *argv[] )
 
     std::string prefix;
     std::string infile;
+    int n_neignbors;
     boost::program_options::options_description desc( "Allowed options" );
     // clang-format off
     desc.add_options()
         ( "help", "produce help message" )
         ( "prefix", boost::program_options::value<std::string> (&prefix)->default_value("viz_"), "set prefix for output files" )
         ( "infile", boost::program_options::value<std::string> (&infile)->default_value("leaf_cloud.txt"), "set input point cloud file" )
+        ( "neighbors", boost::program_options::value<int> (&n_neighbors)->default_value("5"), "set the number of neighbors to search for (negative value means all)" )
     ;
     // clang-format on
 
@@ -147,7 +151,7 @@ int main( int argc, char *argv[] )
 
     using Serial = Kokkos::Compat::KokkosSerialWrapperNode::device_type;
     using Tree = DataTransferKit::BVH<Serial>;
-    viz<Tree>( prefix, infile );
+    viz<Tree>( prefix, infile, n_neighbors );
 
     return 0;
 }
