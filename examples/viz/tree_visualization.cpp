@@ -127,14 +127,14 @@ int main( int argc, char *argv[] )
 
     std::string prefix;
     std::string infile;
-    int n_neignbors;
+    int n_neighbors;
     boost::program_options::options_description desc( "Allowed options" );
     // clang-format off
     desc.add_options()
         ( "help", "produce help message" )
         ( "prefix", boost::program_options::value<std::string> (&prefix)->default_value("viz_"), "set prefix for output files" )
         ( "infile", boost::program_options::value<std::string> (&infile)->default_value("leaf_cloud.txt"), "set input point cloud file" )
-        ( "neighbors", boost::program_options::value<int> (&n_neighbors)->default_value("5"), "set the number of neighbors to search for (negative value means all)" )
+        ( "neighbors", boost::program_options::value<int> (&n_neighbors)->default_value(5), "set the number of neighbors to search for (negative value means all)" )
     ;
     // clang-format on
 
