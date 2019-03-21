@@ -110,6 +110,14 @@ struct TreeVisualization
         return TreeAccess::isLeaf( child, tree ) ? "[pendant]" : "[edge]";
     }
 
+    // Produces node and edges statements to be listed for a graph in DOT
+    // format:
+    // ```
+    // digraph g {
+    //   root = i0;
+    //   <paste node and edges statements here>
+    // }
+    // ```
     struct GraphvizVisitor
     {
         std::ostream &_os;
@@ -151,6 +159,13 @@ struct TreeVisualization
         }
     };
 
+    // Produces commands to enclose in a tikzpicture in a LateX document:
+    // ```
+    // \begin{tikzpicture}
+    //   <paste tikz commands here>
+    // \end{tikzpicture}
+    // ```
+    // NB ensure TikZ styles have been defined.
     struct TikZVisitor
     {
         std::ostream &_os;
