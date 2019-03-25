@@ -13,7 +13,7 @@
 
 #include <Kokkos_View.hpp>
 
-#include <cfloat>  // DBL_MAX
+#include <cfloat>  // DBL_MAX, DBL_EPSILON
 #include <cmath>   // isfinite, HUGE_VAL
 #include <cstdint> // uint32_t
 #include <type_traits>
@@ -142,6 +142,17 @@ template <>
 struct max<double>
 {
     static constexpr double value = DBL_MAX;
+};
+
+template <typename T>
+struct epsilon
+{
+};
+
+template <>
+struct epsilon<double>
+{
+    static constexpr double value = DBL_EPSILON;
 };
 
 } // namespace ArithmeticTraits
