@@ -79,14 +79,14 @@ int clz( uint32_t x )
 }
 
 //! Compute the maximum of two values.
-template <typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
+template <typename T>
 KOKKOS_INLINE_FUNCTION T max( T a, T b )
 {
     return ( a > b ) ? a : b;
 }
 
 //! Compute the minimum of two values.
-template <typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
+template <typename T>
 KOKKOS_INLINE_FUNCTION T min( T a, T b )
 {
     return ( a < b ) ? a : b;
