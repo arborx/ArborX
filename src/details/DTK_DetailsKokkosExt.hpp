@@ -90,6 +90,16 @@ KOKKOS_INLINE_FUNCTION T min( T a, T b )
     return ( a < b ) ? a : b;
 }
 
+/**
+ * Branchless sign function. Return 1 if @param x is greater than zero, 0 if
+ * @param x is zero, and -1 if @param x is less than zero.
+ */
+template <typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
+KOKKOS_INLINE_FUNCTION int sgn( T x )
+{
+    return ( x > 0 ) - ( x < 0 );
+}
+
 } // namespace KokkosExt
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
