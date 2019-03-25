@@ -113,7 +113,7 @@ struct TreeTraversal
         // Nodes with a distance that exceed that radius can safely be
         // discarded. Initialize the radius to infinity and tighten it once k
         // neighbors have been found.
-        double radius = KokkosHelpers::ArithTraits<double>::infinity();
+        double radius = KokkosExt::ArithmeticTraits::infinity<double>::value;
 
         using PairIndexDistance = Kokkos::pair<int, double>;
         static_assert(

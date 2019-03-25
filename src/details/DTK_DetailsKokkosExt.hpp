@@ -13,6 +13,7 @@
 
 #include <Kokkos_View.hpp>
 
+#include <cmath>   // HUGE_VAL
 #include <cstdint> // uint32_t
 #include <type_traits>
 
@@ -99,6 +100,21 @@ KOKKOS_INLINE_FUNCTION int sgn( T x )
 {
     return ( x > 0 ) - ( x < 0 );
 }
+
+namespace ArithmeticTraits
+{
+
+template <typename T>
+struct infinity
+{
+};
+
+template <>
+struct infinity<double>
+{
+    static constexpr double value = HUGE_VAL;
+};
+} // namespace ArithmeticTraits
 
 } // namespace KokkosExt
 #endif // DOXYGEN_SHOULD_SKIP_THIS
