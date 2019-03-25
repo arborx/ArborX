@@ -123,9 +123,7 @@ namespace ArithmeticTraits
 {
 
 template <typename T>
-struct infinity
-{
-};
+struct infinity;
 
 template <>
 struct infinity<double>
@@ -134,9 +132,7 @@ struct infinity<double>
 };
 
 template <typename T>
-struct max
-{
-};
+struct max;
 
 template <>
 struct max<double>
@@ -145,9 +141,7 @@ struct max<double>
 };
 
 template <typename T>
-struct epsilon
-{
-};
+struct epsilon;
 
 template <>
 struct epsilon<double>
