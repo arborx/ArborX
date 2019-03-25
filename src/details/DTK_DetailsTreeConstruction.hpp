@@ -16,12 +16,12 @@
 
 #include <DTK_Box.hpp>
 #include <DTK_DetailsAlgorithms.hpp> // expand
-#include <DTK_DetailsKokkosExt.hpp>  // clz
+#include <DTK_DetailsKokkosExt.hpp>  // clz, min, max
 #include <DTK_DetailsMortonCode.hpp> // morton3D
 #include <DTK_DetailsNode.hpp>
 #include <DTK_DetailsTags.hpp>
 #include <DTK_DetailsTraits.hpp>
-#include <DTK_KokkosHelpers.hpp> // min. max
+#include <DTK_KokkosHelpers.hpp> // sgn
 
 // FIXME provides definition of Kokkos::Iterate for Kokkos_CopyViews.hpp
 #include <KokkosExp_MDRangePolicy.hpp>
@@ -138,8 +138,8 @@ struct TreeConstruction
     static Kokkos::pair<int, int> determineRange(
         Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes, int i )
     {
-        using KokkosHelpers::max;
-        using KokkosHelpers::min;
+        using KokkosExt::max;
+        using KokkosExt::min;
         using KokkosHelpers::sgn;
 
         // determine direction of the range (+1 or -1)

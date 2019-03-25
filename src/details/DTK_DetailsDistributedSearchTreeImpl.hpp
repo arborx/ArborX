@@ -12,6 +12,7 @@
 #define DTK_DETAILS_DISTRIBUTED_SEARCH_TREE_IMPL_HPP
 
 #include <DTK_DetailsDistributor.hpp>
+#include <DTK_DetailsKokkosExt.hpp> // min, max
 #include <DTK_DetailsPriorityQueue.hpp>
 #include <DTK_DetailsUtils.hpp>
 #include <DTK_LinearBVH.hpp>
@@ -285,14 +286,15 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
     Kokkos::deep_copy( farthest_distances, 0. );
     // NOTE: in principle distances( j ) are arranged in ascending order for
     // offset( i ) <= j < offset( i + 1 ) so max() is not necessary.
-    Kokkos::parallel_for( DTK_MARK_REGION( "most_distant_neighbor_so_far" ),
-                          Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
-                          KOKKOS_LAMBDA( int i ) {
-                              for ( int j = offset( i ); j < offset( i + 1 );
-                                    ++j )
-                                  farthest_distances( i ) = KokkosHelpers::max(
-                                      farthest_distances( i ), distances( j ) );
-                          } );
+    Kokkos::parallel_for(
+        DTK_MARK_REGION( "most_distant_neighbor_so_far" ),
+        Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
+        KOKKOS_LAMBDA( int i ) {
+            using KokkosExt::max;
+            for ( int j = offset( i ); j < offset( i + 1 ); ++j )
+                farthest_distances( i ) =
+                    max( farthest_distances( i ), distances( j ) );
+        } );
     Kokkos::fence();
 
     // Identify what ranks may have leaves that are within that distance.
@@ -644,9 +646,10 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
     Kokkos::parallel_for( DTK_MARK_REGION( "discard_results" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                           KOKKOS_LAMBDA( int q ) {
-                              new_offset( q ) = KokkosHelpers::min(
-                                  offset( q + 1 ) - offset( q ),
-                                  queries( q )._k );
+                              using KokkosExt::min;
+                              new_offset( q ) =
+                                  min( offset( q + 1 ) - offset( q ),
+                                       queries( q )._k );
                           } );
     Kokkos::fence();
 

@@ -14,7 +14,7 @@
 
 #include <DTK_DBC.hpp>
 
-#include <DTK_KokkosHelpers.hpp> // min. max
+#include <DTK_DetailsKokkosExt.hpp> // min. max
 
 namespace DataTransferKit
 {
@@ -39,8 +39,8 @@ unsigned int expandBits( unsigned int v )
 KOKKOS_INLINE_FUNCTION
 unsigned int morton3D( double x, double y, double z )
 {
-    using KokkosHelpers::max;
-    using KokkosHelpers::min;
+    using KokkosExt::max;
+    using KokkosExt::min;
 
     // The interval [0,1] is subdivided into 1024 bins (in each direction).
     // If we were to use more bits to encode the Morton code, we would need

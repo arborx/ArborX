@@ -16,6 +16,14 @@
 #include <cstdint> // uint32_t
 #include <type_traits>
 
+#if __cplusplus < 201402L
+namespace std
+{
+template <bool B, class T = void>
+using enable_if_t = typename std::enable_if<B, T>::type;
+} // namespace std
+#endif
+
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 namespace KokkosExt
 {
@@ -67,6 +75,21 @@ int clz( uint32_t x )
     return debruijn32[x * 0x076be629 >> 27];
 #endif
 }
+
+//! Compute the maximum of two values.
+template <typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
+KOKKOS_INLINE_FUNCTION T max( T a, T b )
+{
+    return ( a > b ) ? a : b;
+}
+
+//! Compute the minimum of two values.
+template <typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
+KOKKOS_INLINE_FUNCTION T min( T a, T b )
+{
+    return ( a < b ) ? a : b;
+}
+
 } // namespace KokkosExt
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
