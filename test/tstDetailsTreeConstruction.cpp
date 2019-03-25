@@ -15,13 +15,13 @@
 #include <DTK_DetailsTreeConstruction.hpp>
 #include <DTK_DetailsUtils.hpp> // iota
 
-#include <Kokkos_ArithTraits.hpp>
 #include <Teuchos_UnitTestHarness.hpp>
 
 #include <algorithm>
 #include <array>
 #include <bitset>
 #include <functional>
+#include <limits>
 #include <sstream>
 #include <vector>
 
@@ -47,7 +47,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, morton_codes, DeviceType )
                dtk::expandBits( k );
     };
     std::vector<unsigned int> ref( n,
-                                   Kokkos::ArithTraits<unsigned int>::max() );
+                                   std::numeric_limits<unsigned int>::max() );
     for ( int i = 0; i < n; ++i )
         ref[i] = fun( anchors[i] );
     // using points rather than boxes for convenience here but still have to

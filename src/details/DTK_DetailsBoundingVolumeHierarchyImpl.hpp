@@ -13,11 +13,11 @@
 #define DTK_DETAILS_BOUNDING_VOLUME_HIERARCHY_IMPL_HPP
 
 #include <DTK_DetailsBatchedQueries.hpp>
+#include <DTK_DetailsKokkosExt.hpp> // ArithmeticTraits
 #include <DTK_DetailsTreeTraversal.hpp>
 #include <DTK_DetailsUtils.hpp>
 #include <DTK_Predicates.hpp>
 
-#include <Kokkos_ArithTraits.hpp>
 #include <Kokkos_View.hpp>
 
 namespace DataTransferKit
@@ -119,7 +119,8 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     {
         Kokkos::View<double *, DeviceType> &distances = *distances_ptr;
         reallocWithoutInitializing( distances, n_results );
-        double const invalid_distance = -Kokkos::ArithTraits<double>::max();
+        double const invalid_distance =
+            -KokkosExt::ArithmeticTraits::max<double>::value;
         Kokkos::deep_copy( distances, invalid_distance );
 
         if ( use_deprecated_nearest_query_algorithm )
