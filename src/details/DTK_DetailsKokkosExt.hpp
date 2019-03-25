@@ -80,14 +80,14 @@ int clz( uint32_t x )
 
 //! Compute the maximum of two values.
 template <typename T>
-KOKKOS_INLINE_FUNCTION T max( T a, T b )
+KOKKOS_INLINE_FUNCTION T const &max( T const &a, T const &b )
 {
     return ( a > b ) ? a : b;
 }
 
 //! Compute the minimum of two values.
 template <typename T>
-KOKKOS_INLINE_FUNCTION T min( T a, T b )
+KOKKOS_INLINE_FUNCTION T const &min( T const &a, T const &b )
 {
     return ( a < b ) ? a : b;
 }
