@@ -13,7 +13,7 @@
 
 #include <Kokkos_View.hpp>
 
-#include <cmath>   // HUGE_VAL
+#include <cmath>   // isfinite, HUGE_VAL
 #include <cstdint> // uint32_t
 #include <type_traits>
 
@@ -99,6 +99,23 @@ template <typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
 KOKKOS_INLINE_FUNCTION int sgn( T x )
 {
     return ( x > 0 ) - ( x < 0 );
+}
+
+/** Determine whether the given floating point argument @param x has finite
+ * value.
+ *
+ * NOTE: Clang issues a warning if the std:: namespace is missing and nvcc
+ * complains about calling a __host__ function from a __host__ __device__
+ * function when it is present.
+ */
+template <typename FloatingPoint>
+KOKKOS_INLINE_FUNCTION bool isFinite( FloatingPoint x )
+{
+#ifdef __CUDA_ARCH__
+    return isfinite( x );
+#else
+    return std::isfinite( x );
+#endif
 }
 
 namespace ArithmeticTraits

@@ -12,8 +12,7 @@
 #define DTK_DETAILS_ALGORITHMS_HPP
 
 #include <DTK_Box.hpp>
-#include <DTK_DetailsKokkosExt.hpp> // min, max
-#include <DTK_KokkosHelpers.hpp>    // isFinite
+#include <DTK_DetailsKokkosExt.hpp> // min, max, isFinite
 #include <DTK_Point.hpp>
 #include <DTK_Sphere.hpp>
 
@@ -49,7 +48,7 @@ bool equals( Sphere const &l, Sphere const &r )
 KOKKOS_INLINE_FUNCTION
 bool isValid( Point const &p )
 {
-    using KokkosHelpers::isFinite;
+    using KokkosExt::isFinite;
     for ( int d = 0; d < 3; ++d )
         if ( !isFinite( p[d] ) )
             return false;
@@ -65,7 +64,7 @@ bool isValid( Box const &b )
 KOKKOS_INLINE_FUNCTION
 bool isValid( Sphere const &s )
 {
-    using KokkosHelpers::isFinite;
+    using KokkosExt::isFinite;
     return isValid( s.centroid() ) && isFinite( s.radius() ) &&
            ( s.radius() >= 0. );
 }
