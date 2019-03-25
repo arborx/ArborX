@@ -109,8 +109,8 @@ KOKKOS_INLINE_FUNCTION int sgn( T x )
  * complains about calling a __host__ function from a __host__ __device__
  * function when it is present.
  */
-template <typename FloatingPoint>
-KOKKOS_INLINE_FUNCTION bool isFinite( FloatingPoint x )
+template <typename T>
+KOKKOS_INLINE_FUNCTION bool isFinite( T x )
 {
 #ifdef __CUDA_ARCH__
     return isfinite( x );
