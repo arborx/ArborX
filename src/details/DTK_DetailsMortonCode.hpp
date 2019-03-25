@@ -14,7 +14,7 @@
 
 #include <DTK_DBC.hpp>
 
-#include <DTK_KokkosHelpers.hpp> // clz, min. max
+#include <DTK_KokkosHelpers.hpp> // min. max
 
 namespace DataTransferKit
 {

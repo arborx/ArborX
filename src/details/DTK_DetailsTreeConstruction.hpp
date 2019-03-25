@@ -16,11 +16,12 @@
 
 #include <DTK_Box.hpp>
 #include <DTK_DetailsAlgorithms.hpp> // expand
+#include <DTK_DetailsKokkosExt.hpp>  // clz
 #include <DTK_DetailsMortonCode.hpp> // morton3D
 #include <DTK_DetailsNode.hpp>
 #include <DTK_DetailsTags.hpp>
 #include <DTK_DetailsTraits.hpp>
-#include <DTK_KokkosHelpers.hpp> // clz, min. max
+#include <DTK_KokkosHelpers.hpp> // min. max
 
 // FIXME provides definition of Kokkos::Iterate for Kokkos_CopyViews.hpp
 #include <KokkosExp_MDRangePolicy.hpp>
@@ -83,7 +84,7 @@ struct TreeConstruction
     commonPrefix( Kokkos::View<unsigned int *, DeviceType> morton_codes, int i,
                   int j )
     {
-        using KokkosHelpers::clz;
+        using KokkosExt::clz;
 
         int const n = morton_codes.extent( 0 );
         if ( j < 0 || j > n - 1 )

@@ -9,11 +9,11 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 #include <DTK_DetailsAlgorithms.hpp>
+#include <DTK_DetailsKokkosExt.hpp>  // clz
 #include <DTK_DetailsMortonCode.hpp> // expandBits, morton3D
 #include <DTK_DetailsSortUtils.hpp>  // sortObjects
 #include <DTK_DetailsTreeConstruction.hpp>
-#include <DTK_DetailsUtils.hpp>  // iota
-#include <DTK_KokkosHelpers.hpp> // clz
+#include <DTK_DetailsUtils.hpp> // iota
 
 #include <Kokkos_ArithTraits.hpp>
 #include <Teuchos_UnitTestHarness.hpp>
@@ -127,27 +127,28 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, indirect_sort, DeviceType )
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, number_of_leading_zero_bits,
                                    DeviceType )
 {
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 0 ), 32 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 1 ), 31 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 2 ), 30 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 3 ), 30 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 4 ), 29 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 5 ), 29 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 6 ), 29 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 7 ), 29 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 8 ), 28 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 9 ), 28 );
+    using KokkosExt::clz;
+    TEST_EQUALITY( clz( 0 ), 32 );
+    TEST_EQUALITY( clz( 1 ), 31 );
+    TEST_EQUALITY( clz( 2 ), 30 );
+    TEST_EQUALITY( clz( 3 ), 30 );
+    TEST_EQUALITY( clz( 4 ), 29 );
+    TEST_EQUALITY( clz( 5 ), 29 );
+    TEST_EQUALITY( clz( 6 ), 29 );
+    TEST_EQUALITY( clz( 7 ), 29 );
+    TEST_EQUALITY( clz( 8 ), 28 );
+    TEST_EQUALITY( clz( 9 ), 28 );
     // bitwise exclusive OR operator to compare bits
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 1 ^ 0 ), 31 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 2 ^ 0 ), 30 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 2 ^ 1 ), 30 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 3 ^ 0 ), 30 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 3 ^ 1 ), 30 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 3 ^ 2 ), 31 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 4 ^ 0 ), 29 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 4 ^ 1 ), 29 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 4 ^ 2 ), 29 );
-    TEST_EQUALITY( DataTransferKit::KokkosHelpers::clz( 4 ^ 3 ), 29 );
+    TEST_EQUALITY( clz( 1 ^ 0 ), 31 );
+    TEST_EQUALITY( clz( 2 ^ 0 ), 30 );
+    TEST_EQUALITY( clz( 2 ^ 1 ), 30 );
+    TEST_EQUALITY( clz( 3 ^ 0 ), 30 );
+    TEST_EQUALITY( clz( 3 ^ 1 ), 30 );
+    TEST_EQUALITY( clz( 3 ^ 2 ), 31 );
+    TEST_EQUALITY( clz( 4 ^ 0 ), 29 );
+    TEST_EQUALITY( clz( 4 ^ 1 ), 29 );
+    TEST_EQUALITY( clz( 4 ^ 2 ), 29 );
+    TEST_EQUALITY( clz( 4 ^ 3 ), 29 );
 }
 
 template <typename DeviceType>
