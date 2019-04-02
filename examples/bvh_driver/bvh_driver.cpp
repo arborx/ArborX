@@ -287,7 +287,7 @@ int main( int argc, char *argv[] )
     {
         std::cout << desc << "\n";
         int ac = 2;
-        char *av[] = {"ignored", "--help"};
+        char *av[] = {(char *)"ignored", (char *)"--help"};
         // benchmark::Initialize() calls exit(0) when `--help` so register
         // Kokkos::finalize() to be called on normal program termination.
         std::atexit( Kokkos::finalize );
