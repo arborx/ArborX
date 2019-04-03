@@ -14,6 +14,8 @@
 #include <Kokkos_DefaultNode.hpp>
 #include <Teuchos_CommandLineProcessor.hpp>
 
+#include <boost/program_options.hpp>
+
 #include <mpi.h>
 
 #include <algorithm>
@@ -23,6 +25,10 @@
 #include <random>
 #include <utility>
 #include <vector>
+
+struct HelpPrinted
+{
+};
 
 // Poor man's replacement for Teuchos::TimeMonitor
 class TimeMonitor
@@ -129,55 +135,56 @@ class TimeMonitor
     }
 };
 
+namespace bpo = boost::program_options;
+
 template <class NO>
-int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
+int main_( std::vector<std::string> const &args )
 {
     TimeMonitor time_monitor;
 
     using DeviceType = typename NO::device_type;
     using ExecutionSpace = typename DeviceType::execution_space;
 
-    int n_values = 50000;
-    int n_queries = 20000;
-    int n_neighbors = 10;
-    double overlap = 0.;
-    int partition_dim = 3;
+    int n_values;
+    int n_queries;
+    int n_neighbors;
+    double overlap;
+    int partition_dim;
     bool perform_knn_search = true;
     bool perform_radius_search = true;
 
-    clp.setOption( "values", &n_values,
-                   "number of indexable values (source) per MPI rank" );
-    clp.setOption( "queries", &n_queries,
-                   "number of queries (target) per MPI rank" );
-    clp.setOption( "neighbors", &n_neighbors,
-                   "desired number of results per query" );
-    clp.setOption( "overlap", &overlap,
-                   "overlap of the point clouds. 0 means the clouds are built "
-                   "next to each other. 1 means that there are built at the "
-                   "same place. Negative values and values larger than two "
-                   "means that the clouds are separated" );
-    clp.setOption( "partition_dim", &partition_dim,
-                   "number of dimension used by the partitioning of the global "
-                   "point cloud. 1 -> local clouds are aligned on a line, 2 -> "
-                   "local clouds form a board, 3 -> local clouds form a box" );
-    clp.setOption( "perform-knn-search", "do-not-perform-knn-search",
-                   &perform_knn_search,
-                   "whether or not to perform kNN search" );
-    clp.setOption( "perform-radius-search", "do-not-perform-radius-search",
-                   &perform_radius_search,
-                   "whether or not to perform radius search" );
+    bpo::options_description desc( "Allowed options" );
+    // clang-format off
+    desc.add_options()
+        ( "help", "produce help message" )
+        ( "values", bpo::value<int>(&n_values)->default_value(50000), "number of indexable values (source) per MPI rank" )
+        ( "queries", bpo::value<int>(&n_queries)->default_value(20000), "number of queries (target) per MPI rank" )
+        ( "neighbors", bpo::value<int>(&n_neighbors)->default_value(10), "desired number of results per query" )
+        ( "overlap", bpo::value<double>(&overlap)->default_value(0.), "overlap of the point clouds. 0 means the clouds are built "
+                                                                      "next to each other. 1 means that there are built at the "
+                                                                      "same place. Negative values and values larger than two "
+                                                                      "means that the clouds are separated" )
+        ( "partition_dim", bpo::value<int>(&partition_dim)->default_value(3), "number of dimension used by the partitioning of the global "
+                                                                              "point cloud. 1 -> local clouds are aligned on a line, 2 -> "
+                                                                              "local clouds form a board, 3 -> local clouds form a box" )
+        ( "do-not-perform-knn-search", "skip kNN search" )
+        ( "do-not-perform-radius-search", "skip radius search" )
+        ;
+    // clang-format on
+    bpo::variables_map vm;
+    bpo::store( bpo::command_line_parser( args ).options( desc ).run(), vm );
+    bpo::notify( vm );
 
-    clp.recogniseAllOptions( true );
-    switch ( clp.parse( argc, argv ) )
+    if ( vm.count( "help" ) )
     {
-    case Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED:
-        return EXIT_SUCCESS;
-    case Teuchos::CommandLineProcessor::PARSE_ERROR:
-    case Teuchos::CommandLineProcessor::PARSE_UNRECOGNIZED_OPTION:
-        return EXIT_FAILURE;
-    case Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL:
-        break;
+        std::cout << desc << "\n";
+        throw HelpPrinted();
     }
+
+    if ( vm.count( "do-not-perform-knn-search" ) )
+        perform_knn_search = false;
+    if ( vm.count( "do-not-perform-radius-search" ) )
+        perform_radius_search = false;
 
     MPI_Comm comm = MPI_COMM_WORLD;
     int comm_rank;
@@ -353,38 +360,40 @@ int main( int argc, char *argv[] )
 
     try
     {
-        const bool throwExceptions = false;
+        std::string node;
+        bpo::options_description desc( "Not a very helpful name" );
+        // clang-format off
+        desc.add_options()
+            ( "node", bpo::value<std::string>(&node), "node type (serial | openmp | cuda)" )
+        ;
+        // clang-format on
+        bpo::variables_map vm;
+        bpo::parsed_options parsed = bpo::command_line_parser( argc, argv )
+                                         .options( desc )
+                                         .allow_unregistered()
+                                         .run();
+        bpo::store( parsed, vm );
+        std::vector<std::string> pass_further = bpo::collect_unrecognized(
+            parsed.options, bpo::include_positional );
 
-        Teuchos::CommandLineProcessor clp( throwExceptions );
-
-        std::string node = "";
-        clp.setOption( "node", &node, "node type (serial | openmp | cuda)" );
-
-        clp.recogniseAllOptions( false );
-        switch ( clp.parse( argc, argv, NULL ) )
+        if ( std::find_if( pass_further.begin(), pass_further.end(),
+                           []( std::string const &x ) {
+                               return x == "--help";
+                           } ) != pass_further.end() )
         {
-        case Teuchos::CommandLineProcessor::PARSE_ERROR:
-            success = false;
-        case Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED:
-        case Teuchos::CommandLineProcessor::PARSE_UNRECOGNIZED_OPTION:
-        case Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL:
-            break;
+            std::cout << desc << "\n";
         }
 
-        if ( !success )
-        {
-            // do nothing, just skip other if clauses
-        }
-        else if ( node == "" )
+        if ( node == "" )
         {
             typedef KokkosClassic::DefaultNode::DefaultNodeType Node;
-            main_<Node>( clp, argc, argv );
+            main_<Node>( pass_further );
         }
         else if ( node == "serial" )
         {
 #ifdef KOKKOS_ENABLE_SERIAL
             typedef Kokkos::Compat::KokkosSerialWrapperNode Node;
-            main_<Node>( clp, argc, argv );
+            main_<Node>( pass_further );
 #else
             throw std::runtime_error( "Serial node type is disabled" );
 #endif
@@ -393,7 +402,7 @@ int main( int argc, char *argv[] )
         {
 #ifdef KOKKOS_ENABLE_OPENMP
             typedef Kokkos::Compat::KokkosOpenMPWrapperNode Node;
-            main_<Node>( clp, argc, argv );
+            main_<Node>( pass_further );
 #else
             throw std::runtime_error( "OpenMP node type is disabled" );
 #endif
@@ -402,7 +411,7 @@ int main( int argc, char *argv[] )
         {
 #ifdef KOKKOS_ENABLE_CUDA
             typedef Kokkos::Compat::KokkosCudaWrapperNode Node;
-            main_<Node>( clp, argc, argv );
+            main_<Node>( pass_further );
 #else
             throw std::runtime_error( "CUDA node type is disabled" );
 #endif
@@ -411,6 +420,11 @@ int main( int argc, char *argv[] )
         {
             throw std::runtime_error( "Unrecognized node type" );
         }
+    }
+    catch ( HelpPrinted const & )
+    {
+        Kokkos::finalize(); // FIXME use scope guards
+        return 1;
     }
     catch ( ... )
     {
