@@ -69,8 +69,14 @@ class TimeMonitor
             _started = false;
         }
     };
+    // NOTE Original code had the pointer semantics.  Can change in the future.
+    // The smart pointer is a distraction.  The main problem here is that the
+    // reference stored by the timer is invalidated if the time monitor gets
+    // out of scope.
     std::unique_ptr<Timer> getNewTimer( std::string name )
     {
+        // FIXME Consider searching whether there already is an entry with the
+        // same name.
         _data.emplace_back( std::move( name ), 0. );
         return std::unique_ptr<Timer>( new Timer( _data.back() ) );
     }
