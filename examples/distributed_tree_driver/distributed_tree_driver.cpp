@@ -13,7 +13,6 @@
 
 #include <Kokkos_DefaultNode.hpp>
 #include <Teuchos_CommandLineProcessor.hpp>
-#include <Teuchos_StandardCatchMacros.hpp>
 
 #include <mpi.h>
 
@@ -350,7 +349,6 @@ int main( int argc, char *argv[] )
     Kokkos::initialize( argc, argv );
 
     bool success = true;
-    bool verbose = true;
 
     try
     {
@@ -413,7 +411,12 @@ int main( int argc, char *argv[] )
             throw std::runtime_error( "Unrecognized node type" );
         }
     }
-    TEUCHOS_STANDARD_CATCH_STATEMENTS( verbose, std::cerr, success );
+    catch ( ... )
+    {
+        int rank;
+        MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+        std::cerr << "processor " << rank << " caught some kind of exception.";
+    }
 
     Kokkos::finalize();
 
