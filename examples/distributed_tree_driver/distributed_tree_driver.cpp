@@ -95,6 +95,7 @@ class TimeMonitor
                         []( std::pair<std::string, double> const &x ) {
                             return x.second;
                         } );
+        // FIXME No guarantee that all processors have the same timers!
         MPI_Allgather( MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, all_entries.data(),
                        n_timers, MPI_DOUBLE, comm );
         if ( comm_rank == 0 )
