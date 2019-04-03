@@ -12,21 +12,127 @@
 #include <DTK_DistributedSearchTree.hpp>
 
 #include <Kokkos_DefaultNode.hpp>
-#include <Teuchos_CommHelpers.hpp>
 #include <Teuchos_CommandLineProcessor.hpp>
-#include <Teuchos_DefaultComm.hpp>
 #include <Teuchos_StandardCatchMacros.hpp>
-#include <Teuchos_Time.hpp>
-#include <Teuchos_TimeMonitor.hpp>
 
+#include <mpi.h>
+
+#include <algorithm>
+#include <chrono>
 #include <cmath> // cbrt
+#include <numeric>
 #include <random>
+#include <utility>
+#include <vector>
+
+// Poor man's replacement for Teuchos::TimeMonitor
+class TimeMonitor
+{
+    using container_type = std::vector<std::pair<std::string, double>>;
+    using entry_reference_type = container_type::reference;
+    container_type _data;
+
+  public:
+    class Timer
+    {
+        entry_reference_type _entry;
+        bool _started;
+        std::chrono::high_resolution_clock::time_point _tick;
+
+      public:
+        Timer( entry_reference_type ref )
+            : _entry{ref}
+            , _started{false}
+        {
+        }
+        void start()
+        {
+            assert( !_started );
+            _tick = std::chrono::high_resolution_clock::now();
+            _started = true;
+        }
+        void stop()
+        {
+            assert( _started );
+            std::chrono::duration<double> duration =
+                std::chrono::high_resolution_clock::now() - _tick;
+            // NOTE I have put much thought into whether we should use the
+            // operator+= and keep track of how many times the timer was
+            // restarted.  To be honest I have not even looked was the original
+            // TimeMonitor behavior is :)
+            _entry.second = duration.count();
+            _started = false;
+        }
+    };
+    std::unique_ptr<Timer> getNewTimer( std::string name )
+    {
+        _data.emplace_back( std::move( name ), 0. );
+        return std::unique_ptr<Timer>( new Timer( _data.back() ) );
+    }
+    void summarize( MPI_Comm comm, std::ostream &os = std::cout )
+    {
+        // FIXME Haven't tried very hard to format the output.
+        int comm_size;
+        MPI_Comm_size( comm, &comm_size );
+        int comm_rank;
+        MPI_Comm_rank( comm, &comm_rank );
+        int n_timers = _data.size();
+        if ( comm_size == 1 )
+        {
+            os << "========================================\n\n";
+            os << "TimeMonitor results over 1 processor\n\n";
+            os << "Timer Name\tGlobal Time\n";
+            os << "----------------------------------------\n";
+            for ( int i = 0; i < n_timers; ++i )
+            {
+                os << _data[i].first << "\t" << _data[i].second << "\n";
+            }
+            os << "========================================\n";
+            return;
+        }
+        std::vector<double> all_entries( comm_size * n_timers );
+        std::transform( _data.begin(), _data.end(),
+                        all_entries.begin() + comm_rank * n_timers,
+                        []( std::pair<std::string, double> const &x ) {
+                            return x.second;
+                        } );
+        MPI_Allgather( MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, all_entries.data(),
+                       n_timers, MPI_DOUBLE, comm );
+        if ( comm_rank == 0 )
+        {
+            os << "========================================\n\n";
+            os << "TimeMonitor results over " << comm_size << " processors\n";
+            os << "Timer Name\tMinOverProcs\tMeanOverProcs\tMaxOverProcs\n";
+            os << "----------------------------------------\n";
+        }
+        std::vector<double> tmp( comm_size );
+        for ( int i = 0; i < n_timers; ++i )
+        {
+            for ( int j = 0; j < comm_size; ++j )
+            {
+                tmp[j] = all_entries[j * n_timers + i];
+            }
+            auto min = *std::min_element( tmp.begin(), tmp.end() );
+            auto max = *std::max_element( tmp.begin(), tmp.end() );
+            auto mean =
+                std::accumulate( tmp.begin(), tmp.end(), 0. ) / comm_size;
+            if ( comm_rank == 0 )
+            {
+                os << _data[i].first << "\t" << min << "\t" << mean << "\t"
+                   << max << "\n";
+            }
+        }
+        if ( comm_rank == 0 )
+        {
+            os << "========================================\n";
+        }
+    }
+};
 
 template <class NO>
 int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
 {
-    Teuchos::Time timer( "timer" );
-    Teuchos::TimeMonitor time_monitor( timer );
+    TimeMonitor time_monitor;
 
     using DeviceType = typename NO::device_type;
     using ExecutionSpace = typename DeviceType::execution_space;
@@ -73,9 +179,11 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         break;
     }
 
-    Teuchos::RCP<const Teuchos::Comm<int>> comm =
-        Teuchos::DefaultComm<int>::getComm();
-    int rank = Teuchos::rank( *comm );
+    MPI_Comm comm = MPI_COMM_WORLD;
+    int comm_rank;
+    MPI_Comm_rank( comm, &comm_rank );
+    int comm_size;
+    MPI_Comm_size( comm, &comm_size );
     Kokkos::View<DataTransferKit::Point *, DeviceType> random_points(
         "random_points" );
     {
@@ -105,16 +213,15 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         {
         case 1:
         {
-            offset_x = 2. * ( 1. - overlap ) * a * rank;
+            offset_x = 2. * ( 1. - overlap ) * a * comm_rank;
 
             break;
         }
         case 2:
         {
-            int n_procs = Teuchos::size( *comm );
-            int i_max = std::ceil( std::sqrt( n_procs ) );
-            int i = rank % i_max;
-            int j = rank / i_max;
+            int i_max = std::ceil( std::sqrt( comm_size ) );
+            int i = comm_rank % i_max;
+            int j = comm_rank / i_max;
             offset_x = 2. * ( 1. - overlap ) * a * i;
             offset_y = 2. * ( 1. - overlap ) * a * j;
 
@@ -122,12 +229,11 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         }
         case 3:
         {
-            int n_procs = Teuchos::size( *comm );
-            int i_max = std::ceil( std::cbrt( n_procs ) );
+            int i_max = std::ceil( std::cbrt( comm_size ) );
             int j_max = i_max;
-            int i = rank % i_max;
-            int j = ( rank / i_max ) % j_max;
-            int k = rank / ( i_max * j_max );
+            int i = comm_rank % i_max;
+            int j = ( comm_rank / i_max ) % j_max;
+            int k = comm_rank / ( i_max * j_max );
             offset_x = 2. * ( 1. - overlap ) * a * i;
             offset_y = 2. * ( 1. - overlap ) * a * j;
             offset_z = 2. * ( 1. - overlap ) * a * k;
@@ -162,16 +268,14 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
     Kokkos::fence();
 
     auto construction = time_monitor.getNewTimer( "construction" );
-    comm->barrier();
+    MPI_Barrier( comm );
     construction->start();
     DataTransferKit::DistributedSearchTree<DeviceType> distributed_tree(
-        *( Teuchos::rcp_dynamic_cast<Teuchos::MpiComm<int> const>( comm )
-               ->getRawMpiComm() ),
-        bounding_boxes );
+        comm, bounding_boxes );
     construction->stop();
 
     std::ostream &os = std::cout;
-    if ( rank == 0 )
+    if ( comm_rank == 0 )
         os << "contruction done\n";
 
     if ( perform_knn_search )
@@ -194,12 +298,12 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         Kokkos::View<int *, DeviceType> ranks( "ranks" );
 
         auto knn = time_monitor.getNewTimer( "knn" );
-        comm->barrier();
+        MPI_Barrier( comm );
         knn->start();
         distributed_tree.query( queries, indices, offset, ranks );
         knn->stop();
 
-        if ( rank == 0 )
+        if ( comm_rank == 0 )
             os << "knn done\n";
     }
 
@@ -227,15 +331,15 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         Kokkos::View<int *, DeviceType> ranks( "ranks" );
 
         auto radius = time_monitor.getNewTimer( "radius" );
-        comm->barrier();
+        MPI_Barrier( comm );
         radius->start();
         distributed_tree.query( queries, indices, offset, ranks );
         radius->stop();
 
-        if ( rank == 0 )
+        if ( comm_rank == 0 )
             os << "radius done\n";
     }
-    time_monitor.summarize( comm.ptr() );
+    time_monitor.summarize( comm );
 
     return 0;
 }
