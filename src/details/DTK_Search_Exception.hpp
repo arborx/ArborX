@@ -14,11 +14,6 @@
 #include <stdexcept>
 #include <string>
 
-// FIXME
-// This dependency on DTK will have to be resolved later.
-// Particularly, HAVE_DTK_DBC macros and DTK_MARK_REGION
-#include <DTK_ConfigDefs.hpp>
-
 namespace DataTransferKit
 {
 class SearchException : public std::logic_error
@@ -37,13 +32,11 @@ class SearchException : public std::logic_error
 #define DTK_SEARCH_STRINGIZE_DETAIL( x ) #x
 #define DTK_SEARCH_STRINGIZE( x ) DTK_SEARCH_STRINGIZE_DETAIL( x )
 
-#if HAVE_DTK_DBC
+// FIXME: Unconditionally assert for now
+// Once moved out, possibly make it conditional
 #define DTK_SEARCH_ASSERT( c )                                                 \
     if ( !( c ) )                                                              \
     throw DataTransferKit::SearchException(                                    \
         #c ", failed at " __FILE__ ":" DTK_SEARCH_STRINGIZE( __LINE__ ) "." )
-#else
-#define DTK_SEARCH_ASSERT( c )
-#endif
 
 #endif

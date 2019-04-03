@@ -17,6 +17,7 @@
 #include <DTK_DetailsMortonCode.hpp> // morton3D
 #include <DTK_DetailsSortUtils.hpp>  // sortObjects
 #include <DTK_DetailsUtils.hpp>      // iota, exclusivePrefixSum, lastElement
+#include <DTK_SearchMacros.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Parallel.hpp>

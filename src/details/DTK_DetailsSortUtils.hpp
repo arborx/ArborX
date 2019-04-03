@@ -12,10 +12,11 @@
 #ifndef DTK_DETAILS_SORT_UTILS_HPP
 #define DTK_DETAILS_SORT_UTILS_HPP
 
+#include <DTK_DetailsUtils.hpp> // iota
+#include <DTK_SearchMacros.hpp>
 #include <DTK_Search_Exception.hpp>
 
-#include <DTK_DetailsUtils.hpp> // iota
-#include <Kokkos_Sort.hpp>      // min_max_functor
+#include <Kokkos_Sort.hpp> // min_max_functor
 #include <Kokkos_View.hpp>
 
 namespace DataTransferKit
