@@ -426,11 +426,18 @@ int main( int argc, char *argv[] )
         Kokkos::finalize(); // FIXME use scope guards
         return 1;
     }
+    catch ( std::exception const &e )
+    {
+        int rank;
+        MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+        std::cerr << "processor " << rank
+                  << " caught a std::exception: " << e.what() << "\n";
+    }
     catch ( ... )
     {
         int rank;
         MPI_Comm_rank( MPI_COMM_WORLD, &rank );
-        std::cerr << "processor " << rank << " caught some kind of exception.";
+        std::cerr << "processor " << rank << " caught some kind of exception\n";
     }
 
     Kokkos::finalize();
