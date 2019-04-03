@@ -13,6 +13,7 @@
 
 #include <Kokkos_View.hpp>
 
+#include <cfloat>  // DBL_MAX, DBL_EPSILON
 #include <cmath>   // isfinite, HUGE_VAL
 #include <cstdint> // uint32_t
 #include <type_traits>
@@ -78,15 +79,15 @@ int clz( uint32_t x )
 }
 
 //! Compute the maximum of two values.
-template <typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
-KOKKOS_INLINE_FUNCTION T max( T a, T b )
+template <typename T>
+KOKKOS_INLINE_FUNCTION T const &max( T const &a, T const &b )
 {
     return ( a > b ) ? a : b;
 }
 
 //! Compute the minimum of two values.
-template <typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
-KOKKOS_INLINE_FUNCTION T min( T a, T b )
+template <typename T>
+KOKKOS_INLINE_FUNCTION T const &min( T const &a, T const &b )
 {
     return ( a < b ) ? a : b;
 }
@@ -108,8 +109,8 @@ KOKKOS_INLINE_FUNCTION int sgn( T x )
  * complains about calling a __host__ function from a __host__ __device__
  * function when it is present.
  */
-template <typename FloatingPoint>
-KOKKOS_INLINE_FUNCTION bool isFinite( FloatingPoint x )
+template <typename T>
+KOKKOS_INLINE_FUNCTION bool isFinite( T x )
 {
 #ifdef __CUDA_ARCH__
     return isfinite( x );
@@ -122,15 +123,32 @@ namespace ArithmeticTraits
 {
 
 template <typename T>
-struct infinity
-{
-};
+struct infinity;
 
 template <>
 struct infinity<double>
 {
     static constexpr double value = HUGE_VAL;
 };
+
+template <typename T>
+struct max;
+
+template <>
+struct max<double>
+{
+    static constexpr double value = DBL_MAX;
+};
+
+template <typename T>
+struct epsilon;
+
+template <>
+struct epsilon<double>
+{
+    static constexpr double value = DBL_EPSILON;
+};
+
 } // namespace ArithmeticTraits
 
 } // namespace KokkosExt

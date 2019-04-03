@@ -11,8 +11,8 @@
 #ifndef DTK_BOX_HPP
 #define DTK_BOX_HPP
 
+#include <DTK_DetailsKokkosExt.hpp> // ArithmeticTraits
 #include <DTK_Point.hpp>
-#include <Kokkos_ArithTraits.hpp>
 #include <Kokkos_Macros.hpp>
 
 namespace DataTransferKit
@@ -58,12 +58,12 @@ struct Box
     KOKKOS_INLINE_FUNCTION
     Point volatile const &maxCorner() volatile const { return _max_corner; }
 
-    Point _min_corner = {{Kokkos::ArithTraits<double>::max(),
-                          Kokkos::ArithTraits<double>::max(),
-                          Kokkos::ArithTraits<double>::max()}};
-    Point _max_corner = {{-Kokkos::ArithTraits<double>::max(),
-                          -Kokkos::ArithTraits<double>::max(),
-                          -Kokkos::ArithTraits<double>::max()}};
+    Point _min_corner = {{KokkosExt::ArithmeticTraits::max<double>::value,
+                          KokkosExt::ArithmeticTraits::max<double>::value,
+                          KokkosExt::ArithmeticTraits::max<double>::value}};
+    Point _max_corner = {{-KokkosExt::ArithmeticTraits::max<double>::value,
+                          -KokkosExt::ArithmeticTraits::max<double>::value,
+                          -KokkosExt::ArithmeticTraits::max<double>::value}};
 };
 } // namespace DataTransferKit
 
