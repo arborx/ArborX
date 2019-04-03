@@ -12,10 +12,11 @@
 #ifndef DTK_DETAILS_SORT_UTILS_HPP
 #define DTK_DETAILS_SORT_UTILS_HPP
 
+#include <DTK_DetailsUtils.hpp> // iota
+#include <DTK_SearchMacros.hpp>
 #include <DTK_Search_Exception.hpp>
 
-#include <DTK_DetailsUtils.hpp> // iota
-#include <Kokkos_Sort.hpp>      // min_max_functor
+#include <Kokkos_Sort.hpp> // min_max_functor
 #include <Kokkos_View.hpp>
 
 namespace DataTransferKit
@@ -38,7 +39,7 @@ sortObjects( Kokkos::View<unsigned int *, DeviceType> view )
 
     Kokkos::Experimental::MinMaxScalar<ValueType> result;
     Kokkos::Experimental::MinMax<ValueType> reducer( result );
-    parallel_reduce( DTK_MARK_REGION( "find_min_max_view" ),
+    parallel_reduce( DTK_SEARCH_MARK_REGION( "find_min_max_view" ),
                      Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
                      Kokkos::Impl::min_max_functor<ViewType>( view ), reducer );
     if ( result.min_val == result.max_val )

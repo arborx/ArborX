@@ -17,6 +17,7 @@
 #include <DTK_DetailsMortonCode.hpp> // morton3D
 #include <DTK_DetailsSortUtils.hpp>  // sortObjects
 #include <DTK_DetailsUtils.hpp>      // iota, exclusivePrefixSum, lastElement
+#include <DTK_SearchMacros.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Parallel.hpp>
@@ -59,7 +60,7 @@ struct BatchedQueries
         Kokkos::View<unsigned int *, DeviceType> morton_codes(
             Kokkos::ViewAllocateWithoutInitializing( "morton" ), n_queries );
         Kokkos::parallel_for(
-            DTK_MARK_REGION( "assign_morton_codes_to_queries" ),
+            DTK_SEARCH_MARK_REGION( "assign_morton_codes_to_queries" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int i ) {
                 Point xyz = Details::returnCentroid( queries( i )._geometry );
@@ -81,7 +82,7 @@ struct BatchedQueries
 
         auto w = cloneWithoutInitializingNorCopying( v );
         Kokkos::parallel_for(
-            DTK_MARK_REGION( "permute_entries" ),
+            DTK_SEARCH_MARK_REGION( "permute_entries" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
             KOKKOS_LAMBDA( int i ) { w( i ) = v( permute( i ) ); } );
         Kokkos::fence();
@@ -98,7 +99,7 @@ struct BatchedQueries
 
         auto tmp_offset = cloneWithoutInitializingNorCopying( offset );
         Kokkos::parallel_for(
-            DTK_MARK_REGION( "adjacent_difference_and_permutation" ),
+            DTK_SEARCH_MARK_REGION( "adjacent_difference_and_permutation" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
             KOKKOS_LAMBDA( int i ) {
                 tmp_offset( permute( i ) ) = offset( i + 1 ) - offset( i );
@@ -127,7 +128,7 @@ struct BatchedQueries
 
         auto tmp_indices = cloneWithoutInitializingNorCopying( indices );
         Kokkos::parallel_for(
-            DTK_MARK_REGION( "permute_indices" ),
+            DTK_SEARCH_MARK_REGION( "permute_indices" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
             KOKKOS_LAMBDA( int q ) {
                 for ( int i = 0; i < offset( q + 1 ) - offset( q ); ++i )
