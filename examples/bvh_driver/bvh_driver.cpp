@@ -285,6 +285,9 @@ int main( int argc, char *argv[] )
 
     if ( vm.count( "help" ) )
     {
+        // Full list of options consists of Kokkos + Boost.Program_options +
+        // Google Benchmark and we still need to call benchmark::Initialize() to
+        // get those printed to the standard output.
         std::cout << desc << "\n";
         int ac = 2;
         char *av[] = {(char *)"ignored", (char *)"--help"};
