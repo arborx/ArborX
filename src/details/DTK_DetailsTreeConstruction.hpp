@@ -217,7 +217,7 @@ inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
     using Access = typename Traits::Access<Primitives>;
     auto const n = Access::size( primitives );
     Kokkos::parallel_reduce(
-        DTK_MARK_REGION( "calculate_bounding_box_of_the_scene" ),
+        DTK_SEARCH_MARK_REGION( "calculate_bounding_box_of_the_scene" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
         CalculateBoundingBoxOfTheSceneFunctor<Primitives>( primitives ),
         scene_bounding_box );
@@ -233,7 +233,7 @@ inline void assignMortonCodesDispatch( BoxTag, Primitives const &primitives,
     using Access = typename Traits::Access<Primitives>;
     auto const n = Access::size( primitives );
     Kokkos::parallel_for(
-        DTK_MARK_REGION( "assign_morton_codes" ),
+        DTK_SEARCH_MARK_REGION( "assign_morton_codes" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
             Point xyz;
             centroid( Access::get( primitives, i ), xyz );
@@ -252,7 +252,7 @@ inline void assignMortonCodesDispatch( PointTag, Primitives const &primitives,
     using Access = typename Traits::Access<Primitives>;
     auto const n = Access::size( primitives );
     Kokkos::parallel_for(
-        DTK_MARK_REGION( "assign_morton_codes" ),
+        DTK_SEARCH_MARK_REGION( "assign_morton_codes" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
             Point xyz;
             translateAndScale( Access::get( primitives, i ), xyz,
@@ -288,7 +288,7 @@ inline void initializeLeafNodesDispatch( BoxTag, Primitives const &primitives,
     using Access = typename Traits::Access<Primitives>;
     auto const n = Access::size( primitives );
     Kokkos::parallel_for(
-        DTK_MARK_REGION( "initialize_leaf_nodes" ),
+        DTK_SEARCH_MARK_REGION( "initialize_leaf_nodes" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
             leaf_nodes( i ) = {
                 {nullptr, reinterpret_cast<Node *>( permutation_indices( i ) )},
@@ -306,7 +306,7 @@ inline void initializeLeafNodesDispatch( PointTag, Primitives const &primitives,
     using Access = typename Traits::Access<Primitives>;
     auto const n = Access::size( primitives );
     Kokkos::parallel_for(
-        DTK_MARK_REGION( "initialize_leaf_nodes" ),
+        DTK_SEARCH_MARK_REGION( "initialize_leaf_nodes" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
             leaf_nodes( i ) = {
                 {nullptr, reinterpret_cast<Node *>( permutation_indices( i ) )},
@@ -420,7 +420,7 @@ Node *TreeConstruction<DeviceType>::generateHierarchy(
 {
     auto const n = sorted_morton_codes.extent( 0 );
     Kokkos::parallel_for(
-        DTK_MARK_REGION( "generate_hierarchy" ),
+        DTK_SEARCH_MARK_REGION( "generate_hierarchy" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n - 1 ),
         GenerateHierarchyFunctor<DeviceType>( sorted_morton_codes, leaf_nodes,
                                               internal_nodes, parents ) );
@@ -494,7 +494,7 @@ void TreeConstruction<DeviceType>::calculateInternalNodesBoundingVolumes(
     auto const last = first + leaf_nodes.extent( 0 );
     Node *root = internal_nodes.data();
     Kokkos::parallel_for(
-        DTK_MARK_REGION( "calculate_bounding_boxes" ),
+        DTK_SEARCH_MARK_REGION( "calculate_bounding_boxes" ),
         Kokkos::RangePolicy<ExecutionSpace>( first, last ),
         CalculateInternalNodesBoundingVolumesFunctor<DeviceType>( root, parents,
                                                                   first ) );
