@@ -280,7 +280,11 @@ int main( int argc, char *argv[] )
     ;
     // clang-format on
     bpo::variables_map vm;
-    bpo::store( bpo::parse_command_line( argc, argv, desc ), vm );
+    bpo::parsed_options opts = bpo::command_line_parser( argc, argv )
+                                   .options( desc )
+                                   .allow_unregistered()
+                                   .run();
+    bpo::store( opts, vm );
     bpo::notify( vm );
 
     if ( vm.count( "help" ) )
@@ -300,6 +304,10 @@ int main( int argc, char *argv[] )
     else
     {
         benchmark::Initialize( &argc, argv );
+        // Throw if some of the arguments have not been recognized.
+        std::ignore = bpo::command_line_parser( argc, argv )
+                          .options( bpo::options_description( "" ) )
+                          .run();
     }
 
     // Google benchmark only supports integer arguments (see
