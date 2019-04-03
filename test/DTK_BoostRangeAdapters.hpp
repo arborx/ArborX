@@ -12,7 +12,7 @@
 #ifndef DTK_BOOST_RANGE_ADAPTERS_HPP
 #define DTK_BOOST_RANGE_ADAPTERS_HPP
 
-#include <DTK_DBC.hpp>
+#include <DTK_Search_Exception.hpp>
 
 #include <Kokkos_Concepts.hpp>
 #include <Kokkos_View.hpp>
@@ -108,7 +108,7 @@ range_end( Kokkos::View<T, P...> &v )
 {
     using View = Kokkos::View<T, P...>;
     DTK_ASSERT_VIEW_COMPATIBLE( View )
-    DTK_REQUIRE( v.span_is_contiguous() );
+    DTK_SEARCH_ASSERT( v.span_is_contiguous() );
     return v.data() + v.span();
 }
 
@@ -118,7 +118,7 @@ range_end( Kokkos::View<T, P...> const &v )
 {
     using View = Kokkos::View<T, P...>;
     DTK_ASSERT_VIEW_COMPATIBLE( View )
-    DTK_REQUIRE( v.span_is_contiguous() );
+    DTK_SEARCH_ASSERT( v.span_is_contiguous() );
     return v.data() + v.span();
 }
 

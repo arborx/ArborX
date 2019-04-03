@@ -399,7 +399,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     if ( max_results_per_query > buffer_size )
     {
         // FIXME can definitely do better about error message
-        DTK_INSIST( !throw_if_buffer_optimization_fails );
+        DTK_SEARCH_ASSERT( !throw_if_buffer_optimization_fails );
 
         // We allocate the memory and fill
         //

@@ -11,7 +11,7 @@
 #ifndef DTK_DETAILS_DISTRIBUTOR_HPP
 #define DTK_DETAILS_DISTRIBUTOR_HPP
 
-#include <DTK_DBC.hpp>
+#include <DTK_Search_Exception.hpp>
 
 #include <Kokkos_Core.hpp> // FIXME
 
@@ -37,10 +37,10 @@ static void sortAndDetermineBufferLayout( InputView ranks,
                                           std::vector<int> &counts,
                                           std::vector<int> &offsets )
 {
-    DTK_REQUIRE( unique_ranks.empty() );
-    DTK_REQUIRE( offsets.empty() );
-    DTK_REQUIRE( counts.empty() );
-    DTK_REQUIRE( permutation_indices.extent( 0 ) == ranks.extent( 0 ) );
+    DTK_SEARCH_ASSERT( unique_ranks.empty() );
+    DTK_SEARCH_ASSERT( offsets.empty() );
+    DTK_SEARCH_ASSERT( counts.empty() );
+    DTK_SEARCH_ASSERT( permutation_indices.extent( 0 ) == ranks.extent( 0 ) );
     static_assert(
         std::is_same<typename InputView::non_const_value_type, int>::value,
         "" );
@@ -155,8 +155,10 @@ class Distributor
     void doPostsAndWaits( typename View::const_type const &exports,
                           size_t num_packets, View const &imports ) const
     {
-        DTK_REQUIRE( num_packets * _src_offsets.back() == imports.size() );
-        DTK_REQUIRE( num_packets * _dest_offsets.back() == exports.size() );
+        DTK_SEARCH_ASSERT( num_packets * _src_offsets.back() ==
+                           imports.size() );
+        DTK_SEARCH_ASSERT( num_packets * _dest_offsets.back() ==
+                           exports.size() );
 
         using ValueType = typename View::value_type;
         static_assert( View::rank == 1, "" );

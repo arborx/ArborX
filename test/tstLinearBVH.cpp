@@ -285,7 +285,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, buffer_optimization, DeviceType )
     TEST_NOTHROW( bvh.query( queries, indices, offset, +1 ) );
     checkResultsAreFine();
     TEST_THROW( bvh.query( queries, indices, offset, -1 ),
-                DataTransferKit::DataTransferKitException );
+                DataTransferKit::SearchException );
 
     // adequate buffer size
     TEST_COMPARE( max_results_per_query, <, 5 );

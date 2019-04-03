@@ -12,7 +12,7 @@
 #ifndef DTK_DETAILS_SORT_UTILS_HPP
 #define DTK_DETAILS_SORT_UTILS_HPP
 
-#include <DTK_DBC.hpp>
+#include <DTK_Search_Exception.hpp>
 
 #include <DTK_DetailsUtils.hpp> // iota
 #include <Kokkos_Sort.hpp>      // min_max_functor

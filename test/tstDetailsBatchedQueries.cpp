@@ -34,7 +34,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( BatchedQueries, permute_offset_and_indices,
 
     TEST_THROW( DataTransferKit::Details::BatchedQueries<
                     DeviceType>::reversePermutation( permute, offset, indices ),
-                DataTransferKit::DataTransferKitException );
+                DataTransferKit::SearchException );
 
     Kokkos::resize( offset, 1 );
     TEST_NOTHROW( DataTransferKit::Details::BatchedQueries<

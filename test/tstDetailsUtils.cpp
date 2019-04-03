@@ -64,7 +64,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, prefix_sum, DeviceType )
     TEST_INEQUALITY( n, m );
     Kokkos::View<int *, DeviceType> z( "z", m );
     TEST_THROW( DataTransferKit::exclusivePrefixSum( x, z ),
-                DataTransferKit::DataTransferKitException );
+                DataTransferKit::SearchException );
     Kokkos::View<double[3], DeviceType> v( "v" );
     auto v_host = Kokkos::create_mirror_view( v );
     v_host( 0 ) = 1.;
@@ -77,7 +77,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, prefix_sum, DeviceType )
     TEST_COMPARE_FLOATING_ARRAYS( v_host, v_ref, 1e-14 );
     Kokkos::View<double *, DeviceType> w( "w", 4 );
     TEST_THROW( DataTransferKit::exclusivePrefixSum( v, w ),
-                DataTransferKit::DataTransferKitException );
+                DataTransferKit::SearchException );
     v_host( 0 ) = 1.;
     v_host( 1 ) = 0.;
     v_host( 2 ) = 0.;
@@ -100,7 +100,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, last_element, DeviceType )
     TEST_EQUALITY( DataTransferKit::lastElement( v ), 24 );
     Kokkos::View<int *, DeviceType> w( "w", 0 );
     TEST_THROW( DataTransferKit::lastElement( w ),
-                DataTransferKit::DataTransferKitException );
+                DataTransferKit::SearchException );
     Kokkos::View<double[1], DeviceType> u( "u", 1 );
     Kokkos::deep_copy( u, 3.14 );
     TEST_FLOATING_EQUALITY( DataTransferKit::lastElement( u ), 3.14, 1e-14 );
@@ -120,7 +120,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, minmax, DeviceType )
     TEST_FLOATING_EQUALITY( std::get<1>( result_float ), 3.14, 1e-14 );
     Kokkos::View<int *, DeviceType> w( "w" );
     TEST_THROW( DataTransferKit::minMax( w ),
-                DataTransferKit::DataTransferKitException );
+                DataTransferKit::SearchException );
     Kokkos::resize( w, 1 );
     Kokkos::deep_copy( w, 255 );
     auto const result_int = DataTransferKit::minMax( w );
@@ -171,7 +171,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, adjacent_difference,
     Kokkos::deep_copy( v, v_host );
     // In-place operation is not allowed
     TEST_THROW( DataTransferKit::adjacentDifference( v, v ),
-                DataTransferKit::DataTransferKitException );
+                DataTransferKit::SearchException );
     auto w = Kokkos::create_mirror( DeviceType(), v );
     TEST_NOTHROW( DataTransferKit::adjacentDifference( v, w ) );
     auto w_host = Kokkos::create_mirror_view( w );
@@ -182,7 +182,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, adjacent_difference,
     Kokkos::View<float *, DeviceType> x( "x", 10 );
     Kokkos::deep_copy( x, 3.14 );
     TEST_THROW( DataTransferKit::adjacentDifference( x, x ),
-                DataTransferKit::DataTransferKitException );
+                DataTransferKit::SearchException );
     Kokkos::View<float[10], DeviceType> y( "y" );
     TEST_NOTHROW( DataTransferKit::adjacentDifference( x, y ) );
     std::vector<float> y_ref( 10 );
@@ -193,7 +193,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, adjacent_difference,
 
     Kokkos::resize( x, 5 );
     TEST_THROW( DataTransferKit::adjacentDifference( y, x ),
-                DataTransferKit::DataTransferKitException );
+                DataTransferKit::SearchException );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, min_and_max, DeviceType )

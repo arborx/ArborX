@@ -172,7 +172,7 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
     Distributor const &distributor, View exports,
     typename View::non_const_type imports )
 {
-    DTK_REQUIRE(
+    DTK_SEARCH_ASSERT(
         ( exports.dimension_0() == distributor.getTotalSendLength() ) &&
         ( imports.dimension_0() == distributor.getTotalReceiveLength() ) &&
         ( exports.dimension_1() == imports.dimension_1() ) &&
@@ -447,8 +447,8 @@ template <typename BinSort, typename View, typename... OtherViews>
 void applyPermutations( BinSort &bin_sort, View view,
                         OtherViews... other_views )
 {
-    DTK_REQUIRE( bin_sort.get_permute_vector().extent( 0 ) ==
-                 view.extent( 0 ) );
+    DTK_SEARCH_ASSERT( bin_sort.get_permute_vector().extent( 0 ) ==
+                       view.extent( 0 ) );
     bin_sort.sort( view );
     applyPermutations( bin_sort, other_views... );
 }

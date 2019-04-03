@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <DTK_DBC.hpp>
+#include <DTK_Search_Exception.hpp>
 
 #include <Kokkos_View.hpp>
 
@@ -213,7 +213,7 @@ void generatePointCloud(
     }
     else
     {
-        throw DataTransferKit::DataTransferKitNotImplementedException();
+        throw DataTransferKit::SearchException( "not implemented" );
     }
     Kokkos::deep_copy( random_points, random_points_host );
 }
@@ -228,7 +228,7 @@ void loadPointCloud(
     {
         int size = -1;
         file >> size;
-        DTK_REQUIRE( size > 0 );
+        DTK_SEARCH_ASSERT( size > 0 );
         Kokkos::realloc( random_points, size );
         auto random_points_host = Kokkos::create_mirror_view( random_points );
         for ( int i = 0; i < size; ++i )

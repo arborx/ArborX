@@ -77,7 +77,7 @@ struct BatchedQueries
                       Kokkos::View<T *, DeviceType> v )
     {
         auto const n = permute.extent( 0 );
-        DTK_REQUIRE( v.extent( 0 ) == n );
+        DTK_SEARCH_ASSERT( v.extent( 0 ) == n );
 
         auto w = cloneWithoutInitializingNorCopying( v );
         Kokkos::parallel_for(
@@ -94,7 +94,7 @@ struct BatchedQueries
                    Kokkos::View<int const *, DeviceType> offset )
     {
         auto const n = permute.extent( 0 );
-        DTK_REQUIRE( offset.extent( 0 ) == n + 1 );
+        DTK_SEARCH_ASSERT( offset.extent( 0 ) == n + 1 );
 
         auto tmp_offset = cloneWithoutInitializingNorCopying( offset );
         Kokkos::parallel_for(
@@ -119,10 +119,11 @@ struct BatchedQueries
     {
         auto const n = permute.extent( 0 );
 
-        DTK_REQUIRE( offset.extent( 0 ) == n + 1 );
-        DTK_REQUIRE( tmp_offset.extent( 0 ) == n + 1 );
-        DTK_REQUIRE( lastElement( offset ) == indices.extent_int( 0 ) );
-        DTK_REQUIRE( lastElement( tmp_offset ) == indices.extent_int( 0 ) );
+        DTK_SEARCH_ASSERT( offset.extent( 0 ) == n + 1 );
+        DTK_SEARCH_ASSERT( tmp_offset.extent( 0 ) == n + 1 );
+        DTK_SEARCH_ASSERT( lastElement( offset ) == indices.extent_int( 0 ) );
+        DTK_SEARCH_ASSERT( lastElement( tmp_offset ) ==
+                           indices.extent_int( 0 ) );
 
         auto tmp_indices = cloneWithoutInitializingNorCopying( indices );
         Kokkos::parallel_for(

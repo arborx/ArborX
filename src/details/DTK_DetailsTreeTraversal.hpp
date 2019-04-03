@@ -11,7 +11,7 @@
 #ifndef DTK_DETAILS_TREE_TRAVERSAL_HPP
 #define DTK_DETAILS_TREE_TRAVERSAL_HPP
 
-#include <DTK_DBC.hpp>
+#include <DTK_Search_Exception.hpp>
 
 #include <DTK_DetailsAlgorithms.hpp>
 #include <DTK_DetailsNode.hpp>

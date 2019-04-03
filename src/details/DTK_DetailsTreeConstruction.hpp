@@ -272,7 +272,7 @@ inline void TreeConstruction<DeviceType>::assignMortonCodes(
     using Access = typename Traits::Access<Primitives>;
 
     auto const n = Access::size( primitives );
-    DTK_REQUIRE( morton_codes.extent( 0 ) == n );
+    DTK_SEARCH_ASSERT( morton_codes.extent( 0 ) == n );
 
     using Tag = typename Access::Tag;
     assignMortonCodesDispatch( Tag{}, primitives, morton_codes,
@@ -326,8 +326,8 @@ inline void TreeConstruction<DeviceType>::initializeLeafNodes(
     using Access = typename Traits::Access<Primitives>;
 
     auto const n = Access::size( primitives );
-    DTK_REQUIRE( permutation_indices.extent( 0 ) == n );
-    DTK_REQUIRE( leaf_nodes.extent( 0 ) == n );
+    DTK_SEARCH_ASSERT( permutation_indices.extent( 0 ) == n );
+    DTK_SEARCH_ASSERT( leaf_nodes.extent( 0 ) == n );
 
     static_assert( sizeof( typename decltype(
                        permutation_indices )::value_type ) == sizeof( Node * ),

@@ -82,7 +82,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,
     Kokkos::View<int *, DeviceType> not_sized_properly( "", m );
     TEST_THROW( DataTransferKit::Details::DistributedSearchTreeImpl<
                     DeviceType>::sortResults( ids, not_sized_properly ),
-                DataTransferKit::DataTransferKitException );
+                DataTransferKit::SearchException );
 }
 
 TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsDistributedSearchTreeImpl,

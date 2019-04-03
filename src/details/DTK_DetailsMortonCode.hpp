@@ -12,7 +12,7 @@
 #ifndef DTK_DETAILS_MORTON_CODE_UTILS_HPP
 #define DTK_DETAILS_MORTON_CODE_UTILS_HPP
 
-#include <DTK_DBC.hpp>
+#include <DTK_Search_Exception.hpp>
 
 #include <DTK_DetailsKokkosExt.hpp> // min. max
 
