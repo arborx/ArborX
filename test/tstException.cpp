@@ -8,77 +8,21 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#include <cmath>
-#include <iostream>
-#include <sstream>
-#include <stdexcept>
-#include <vector>
 
 #include <DTK_Search_Exception.hpp>
 
-#include "Teuchos_UnitTestHarness.hpp"
+#include <boost/test/unit_test.hpp>
 
-// Check that a DataTransferKit::SearchException looks different than a
-// std::runtime_error as it inherits from std::logic_error.
-TEUCHOS_UNIT_TEST( SearchException, differentiation_test )
+#define BOOST_TEST_MODULE DesignByContract
+
+BOOST_AUTO_TEST_CASE( dumb )
 {
-    try
-    {
-        throw std::runtime_error( "runtime error" );
-    }
-    catch ( const DataTransferKit::SearchException &assertion )
-    {
-        TEST_ASSERT( 0 );
-    }
-    catch ( ... )
-    {
-        TEST_ASSERT( 1 );
-    }
-}
-
-// Check that a DataTransferKit::SearchException can be caught and the
-// appropriate error message is written.
-TEUCHOS_UNIT_TEST( SearchException, message_test )
-{
-    std::string message;
-
-    try
-    {
-        throw DataTransferKit::SearchException( "cond" );
-    }
-    catch ( const DataTransferKit::SearchException &assertion )
-    {
-        message = std::string( assertion.what() );
-    }
-    catch ( ... )
-    {
-        TEST_ASSERT( 0 );
-    }
-
-    const std::string true_message( "DTK Search exception: cond" );
-    TEST_ASSERT( 0 == message.compare( true_message ) );
-}
-
-// Test the assertion check
-TEUCHOS_UNIT_TEST( SearchException, assertion_test )
-{
-    try
-    {
-        DTK_SEARCH_ASSERT( 0 );
-        throw std::runtime_error( "this shouldn't be thrown" );
-    }
-    catch ( const DataTransferKit::SearchException &assertion )
-    {
-        std::string message( assertion.what() );
-        std::string true_message( "DTK Search exception: 0, failed at" );
-        std::string::size_type idx = message.find( true_message );
-        if ( idx == std::string::npos )
-        {
-            TEST_ASSERT( 0 );
-        }
-    }
-    catch ( ... )
-    {
-        TEST_ASSERT( 0 );
-    }
+    using namespace DataTransferKit;
+    BOOST_CHECK_THROW( DTK_SEARCH_ASSERT( false ), SearchException );
+    std::string const prefix = "DTK Search exception: ";
+    std::string const message = "Keep calm and chive on!";
+    BOOST_CHECK_EXCEPTION( throw SearchException( message ), SearchException,
+                           [&]( SearchException const &e ) {
+                               return prefix + message == e.what();
+                           } );
 }
