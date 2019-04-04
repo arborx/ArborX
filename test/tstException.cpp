@@ -30,8 +30,8 @@ BOOST_AUTO_TEST_CASE( dumb )
             return message_starts_with_prefix && message_contains_filename;
         } );
     std::string const message = "Keep calm and chive on!";
-    BOOST_CHECK_EXCEPTION( throw SearchException( message ), SearchException,
-                           [&]( SearchException const &e ) {
+    BOOST_CHECK_EXCEPTION( throw SearchException( message ), std::exception,
+                           [&]( std::exception const &e ) {
                                return prefix + message == e.what();
                            } );
 }
