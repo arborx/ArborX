@@ -18,6 +18,7 @@
 BOOST_AUTO_TEST_CASE( dumb )
 {
     using namespace DataTransferKit;
+    BOOST_CHECK_NO_THROW( DTK_SEARCH_ASSERT( true ) );
     BOOST_CHECK_THROW( DTK_SEARCH_ASSERT( false ), SearchException );
     std::string const prefix = "DTK Search exception: ";
     std::string const message = "Keep calm and chive on!";
