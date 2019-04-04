@@ -12,70 +12,191 @@
 #include <DTK_DistributedSearchTree.hpp>
 
 #include <Kokkos_DefaultNode.hpp>
-#include <Teuchos_CommHelpers.hpp>
 #include <Teuchos_CommandLineProcessor.hpp>
-#include <Teuchos_DefaultComm.hpp>
-#include <Teuchos_StandardCatchMacros.hpp>
-#include <Teuchos_Time.hpp>
-#include <Teuchos_TimeMonitor.hpp>
 
+#include <boost/program_options.hpp>
+
+#include <mpi.h>
+
+#include <algorithm>
+#include <chrono>
 #include <cmath> // cbrt
+#include <numeric>
 #include <random>
+#include <utility>
+#include <vector>
+
+struct HelpPrinted
+{
+};
+
+// Poor man's replacement for Teuchos::TimeMonitor
+class TimeMonitor
+{
+    using container_type = std::vector<std::pair<std::string, double>>;
+    using entry_reference_type = container_type::reference;
+    container_type _data;
+
+  public:
+    class Timer
+    {
+        entry_reference_type _entry;
+        bool _started;
+        std::chrono::high_resolution_clock::time_point _tick;
+
+      public:
+        Timer( entry_reference_type ref )
+            : _entry{ref}
+            , _started{false}
+        {
+        }
+        void start()
+        {
+            assert( !_started );
+            _tick = std::chrono::high_resolution_clock::now();
+            _started = true;
+        }
+        void stop()
+        {
+            assert( _started );
+            std::chrono::duration<double> duration =
+                std::chrono::high_resolution_clock::now() - _tick;
+            // NOTE I have put much thought into whether we should use the
+            // operator+= and keep track of how many times the timer was
+            // restarted.  To be honest I have not even looked was the original
+            // TimeMonitor behavior is :)
+            _entry.second = duration.count();
+            _started = false;
+        }
+    };
+    // NOTE Original code had the pointer semantics.  Can change in the future.
+    // The smart pointer is a distraction.  The main problem here is that the
+    // reference stored by the timer is invalidated if the time monitor gets
+    // out of scope.
+    std::unique_ptr<Timer> getNewTimer( std::string name )
+    {
+        // FIXME Consider searching whether there already is an entry with the
+        // same name.
+        _data.emplace_back( std::move( name ), 0. );
+        return std::unique_ptr<Timer>( new Timer( _data.back() ) );
+    }
+    void summarize( MPI_Comm comm, std::ostream &os = std::cout )
+    {
+        // FIXME Haven't tried very hard to format the output.
+        int comm_size;
+        MPI_Comm_size( comm, &comm_size );
+        int comm_rank;
+        MPI_Comm_rank( comm, &comm_rank );
+        int n_timers = _data.size();
+        if ( comm_size == 1 )
+        {
+            os << "========================================\n\n";
+            os << "TimeMonitor results over 1 processor\n\n";
+            os << "Timer Name\tGlobal Time\n";
+            os << "----------------------------------------\n";
+            for ( int i = 0; i < n_timers; ++i )
+            {
+                os << _data[i].first << "\t" << _data[i].second << "\n";
+            }
+            os << "========================================\n";
+            return;
+        }
+        std::vector<double> all_entries( comm_size * n_timers );
+        std::transform( _data.begin(), _data.end(),
+                        all_entries.begin() + comm_rank * n_timers,
+                        []( std::pair<std::string, double> const &x ) {
+                            return x.second;
+                        } );
+        // FIXME No guarantee that all processors have the same timers!
+        MPI_Allgather( MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, all_entries.data(),
+                       n_timers, MPI_DOUBLE, comm );
+        if ( comm_rank == 0 )
+        {
+            os << "========================================\n\n";
+            os << "TimeMonitor results over " << comm_size << " processors\n";
+            os << "Timer Name\tMinOverProcs\tMeanOverProcs\tMaxOverProcs\n";
+            os << "----------------------------------------\n";
+        }
+        std::vector<double> tmp( comm_size );
+        for ( int i = 0; i < n_timers; ++i )
+        {
+            for ( int j = 0; j < comm_size; ++j )
+            {
+                tmp[j] = all_entries[j * n_timers + i];
+            }
+            auto min = *std::min_element( tmp.begin(), tmp.end() );
+            auto max = *std::max_element( tmp.begin(), tmp.end() );
+            auto mean =
+                std::accumulate( tmp.begin(), tmp.end(), 0. ) / comm_size;
+            if ( comm_rank == 0 )
+            {
+                os << _data[i].first << "\t" << min << "\t" << mean << "\t"
+                   << max << "\n";
+            }
+        }
+        if ( comm_rank == 0 )
+        {
+            os << "========================================\n";
+        }
+    }
+};
+
+namespace bpo = boost::program_options;
 
 template <class NO>
-int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
+int main_( std::vector<std::string> const &args )
 {
-    Teuchos::Time timer( "timer" );
-    Teuchos::TimeMonitor time_monitor( timer );
+    TimeMonitor time_monitor;
 
     using DeviceType = typename NO::device_type;
     using ExecutionSpace = typename DeviceType::execution_space;
 
-    int n_values = 50000;
-    int n_queries = 20000;
-    int n_neighbors = 10;
-    double overlap = 0.;
-    int partition_dim = 3;
+    int n_values;
+    int n_queries;
+    int n_neighbors;
+    double overlap;
+    int partition_dim;
     bool perform_knn_search = true;
     bool perform_radius_search = true;
 
-    clp.setOption( "values", &n_values,
-                   "number of indexable values (source) per MPI rank" );
-    clp.setOption( "queries", &n_queries,
-                   "number of queries (target) per MPI rank" );
-    clp.setOption( "neighbors", &n_neighbors,
-                   "desired number of results per query" );
-    clp.setOption( "overlap", &overlap,
-                   "overlap of the point clouds. 0 means the clouds are built "
-                   "next to each other. 1 means that there are built at the "
-                   "same place. Negative values and values larger than two "
-                   "means that the clouds are separated" );
-    clp.setOption( "partition_dim", &partition_dim,
-                   "number of dimension used by the partitioning of the global "
-                   "point cloud. 1 -> local clouds are aligned on a line, 2 -> "
-                   "local clouds form a board, 3 -> local clouds form a box" );
-    clp.setOption( "perform-knn-search", "do-not-perform-knn-search",
-                   &perform_knn_search,
-                   "whether or not to perform kNN search" );
-    clp.setOption( "perform-radius-search", "do-not-perform-radius-search",
-                   &perform_radius_search,
-                   "whether or not to perform radius search" );
+    bpo::options_description desc( "Allowed options" );
+    // clang-format off
+    desc.add_options()
+        ( "help", "produce help message" )
+        ( "values", bpo::value<int>(&n_values)->default_value(50000), "number of indexable values (source) per MPI rank" )
+        ( "queries", bpo::value<int>(&n_queries)->default_value(20000), "number of queries (target) per MPI rank" )
+        ( "neighbors", bpo::value<int>(&n_neighbors)->default_value(10), "desired number of results per query" )
+        ( "overlap", bpo::value<double>(&overlap)->default_value(0.), "overlap of the point clouds. 0 means the clouds are built "
+                                                                      "next to each other. 1 means that there are built at the "
+                                                                      "same place. Negative values and values larger than two "
+                                                                      "means that the clouds are separated" )
+        ( "partition_dim", bpo::value<int>(&partition_dim)->default_value(3), "number of dimension used by the partitioning of the global "
+                                                                              "point cloud. 1 -> local clouds are aligned on a line, 2 -> "
+                                                                              "local clouds form a board, 3 -> local clouds form a box" )
+        ( "do-not-perform-knn-search", "skip kNN search" )
+        ( "do-not-perform-radius-search", "skip radius search" )
+        ;
+    // clang-format on
+    bpo::variables_map vm;
+    bpo::store( bpo::command_line_parser( args ).options( desc ).run(), vm );
+    bpo::notify( vm );
 
-    clp.recogniseAllOptions( true );
-    switch ( clp.parse( argc, argv ) )
+    if ( vm.count( "help" ) )
     {
-    case Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED:
-        return EXIT_SUCCESS;
-    case Teuchos::CommandLineProcessor::PARSE_ERROR:
-    case Teuchos::CommandLineProcessor::PARSE_UNRECOGNIZED_OPTION:
-        return EXIT_FAILURE;
-    case Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL:
-        break;
+        std::cout << desc << "\n";
+        throw HelpPrinted();
     }
 
-    Teuchos::RCP<const Teuchos::Comm<int>> comm =
-        Teuchos::DefaultComm<int>::getComm();
-    int rank = Teuchos::rank( *comm );
+    if ( vm.count( "do-not-perform-knn-search" ) )
+        perform_knn_search = false;
+    if ( vm.count( "do-not-perform-radius-search" ) )
+        perform_radius_search = false;
+
+    MPI_Comm comm = MPI_COMM_WORLD;
+    int comm_rank;
+    MPI_Comm_rank( comm, &comm_rank );
+    int comm_size;
+    MPI_Comm_size( comm, &comm_size );
     Kokkos::View<DataTransferKit::Point *, DeviceType> random_points(
         "random_points" );
     {
@@ -105,16 +226,15 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         {
         case 1:
         {
-            offset_x = 2. * ( 1. - overlap ) * a * rank;
+            offset_x = 2. * ( 1. - overlap ) * a * comm_rank;
 
             break;
         }
         case 2:
         {
-            int n_procs = Teuchos::size( *comm );
-            int i_max = std::ceil( std::sqrt( n_procs ) );
-            int i = rank % i_max;
-            int j = rank / i_max;
+            int i_max = std::ceil( std::sqrt( comm_size ) );
+            int i = comm_rank % i_max;
+            int j = comm_rank / i_max;
             offset_x = 2. * ( 1. - overlap ) * a * i;
             offset_y = 2. * ( 1. - overlap ) * a * j;
 
@@ -122,12 +242,11 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         }
         case 3:
         {
-            int n_procs = Teuchos::size( *comm );
-            int i_max = std::ceil( std::cbrt( n_procs ) );
+            int i_max = std::ceil( std::cbrt( comm_size ) );
             int j_max = i_max;
-            int i = rank % i_max;
-            int j = ( rank / i_max ) % j_max;
-            int k = rank / ( i_max * j_max );
+            int i = comm_rank % i_max;
+            int j = ( comm_rank / i_max ) % j_max;
+            int k = comm_rank / ( i_max * j_max );
             offset_x = 2. * ( 1. - overlap ) * a * i;
             offset_y = 2. * ( 1. - overlap ) * a * j;
             offset_z = 2. * ( 1. - overlap ) * a * k;
@@ -162,16 +281,14 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
     Kokkos::fence();
 
     auto construction = time_monitor.getNewTimer( "construction" );
-    comm->barrier();
+    MPI_Barrier( comm );
     construction->start();
     DataTransferKit::DistributedSearchTree<DeviceType> distributed_tree(
-        *( Teuchos::rcp_dynamic_cast<Teuchos::MpiComm<int> const>( comm )
-               ->getRawMpiComm() ),
-        bounding_boxes );
+        comm, bounding_boxes );
     construction->stop();
 
     std::ostream &os = std::cout;
-    if ( rank == 0 )
+    if ( comm_rank == 0 )
         os << "contruction done\n";
 
     if ( perform_knn_search )
@@ -194,12 +311,12 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         Kokkos::View<int *, DeviceType> ranks( "ranks" );
 
         auto knn = time_monitor.getNewTimer( "knn" );
-        comm->barrier();
+        MPI_Barrier( comm );
         knn->start();
         distributed_tree.query( queries, indices, offset, ranks );
         knn->stop();
 
-        if ( rank == 0 )
+        if ( comm_rank == 0 )
             os << "knn done\n";
     }
 
@@ -227,15 +344,15 @@ int main_( Teuchos::CommandLineProcessor &clp, int argc, char *argv[] )
         Kokkos::View<int *, DeviceType> ranks( "ranks" );
 
         auto radius = time_monitor.getNewTimer( "radius" );
-        comm->barrier();
+        MPI_Barrier( comm );
         radius->start();
         distributed_tree.query( queries, indices, offset, ranks );
         radius->stop();
 
-        if ( rank == 0 )
+        if ( comm_rank == 0 )
             os << "radius done\n";
     }
-    time_monitor.summarize( comm.ptr() );
+    time_monitor.summarize( comm );
 
     return 0;
 }
@@ -246,42 +363,43 @@ int main( int argc, char *argv[] )
     Kokkos::initialize( argc, argv );
 
     bool success = true;
-    bool verbose = true;
 
     try
     {
-        const bool throwExceptions = false;
+        std::string node;
+        bpo::options_description desc( "Not a very helpful name" );
+        // clang-format off
+        desc.add_options()
+            ( "node", bpo::value<std::string>(&node), "node type (serial | openmp | cuda)" )
+        ;
+        // clang-format on
+        bpo::variables_map vm;
+        bpo::parsed_options parsed = bpo::command_line_parser( argc, argv )
+                                         .options( desc )
+                                         .allow_unregistered()
+                                         .run();
+        bpo::store( parsed, vm );
+        std::vector<std::string> pass_further = bpo::collect_unrecognized(
+            parsed.options, bpo::include_positional );
 
-        Teuchos::CommandLineProcessor clp( throwExceptions );
-
-        std::string node = "";
-        clp.setOption( "node", &node, "node type (serial | openmp | cuda)" );
-
-        clp.recogniseAllOptions( false );
-        switch ( clp.parse( argc, argv, NULL ) )
+        if ( std::find_if( pass_further.begin(), pass_further.end(),
+                           []( std::string const &x ) {
+                               return x == "--help";
+                           } ) != pass_further.end() )
         {
-        case Teuchos::CommandLineProcessor::PARSE_ERROR:
-            success = false;
-        case Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED:
-        case Teuchos::CommandLineProcessor::PARSE_UNRECOGNIZED_OPTION:
-        case Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL:
-            break;
+            std::cout << desc << "\n";
         }
 
-        if ( !success )
-        {
-            // do nothing, just skip other if clauses
-        }
-        else if ( node == "" )
+        if ( node == "" )
         {
             typedef KokkosClassic::DefaultNode::DefaultNodeType Node;
-            main_<Node>( clp, argc, argv );
+            main_<Node>( pass_further );
         }
         else if ( node == "serial" )
         {
 #ifdef KOKKOS_ENABLE_SERIAL
             typedef Kokkos::Compat::KokkosSerialWrapperNode Node;
-            main_<Node>( clp, argc, argv );
+            main_<Node>( pass_further );
 #else
             throw std::runtime_error( "Serial node type is disabled" );
 #endif
@@ -290,7 +408,7 @@ int main( int argc, char *argv[] )
         {
 #ifdef KOKKOS_ENABLE_OPENMP
             typedef Kokkos::Compat::KokkosOpenMPWrapperNode Node;
-            main_<Node>( clp, argc, argv );
+            main_<Node>( pass_further );
 #else
             throw std::runtime_error( "OpenMP node type is disabled" );
 #endif
@@ -299,7 +417,7 @@ int main( int argc, char *argv[] )
         {
 #ifdef KOKKOS_ENABLE_CUDA
             typedef Kokkos::Compat::KokkosCudaWrapperNode Node;
-            main_<Node>( clp, argc, argv );
+            main_<Node>( pass_further );
 #else
             throw std::runtime_error( "CUDA node type is disabled" );
 #endif
@@ -309,7 +427,24 @@ int main( int argc, char *argv[] )
             throw std::runtime_error( "Unrecognized node type" );
         }
     }
-    TEUCHOS_STANDARD_CATCH_STATEMENTS( verbose, std::cerr, success );
+    catch ( HelpPrinted const & )
+    {
+        Kokkos::finalize(); // FIXME use scope guards
+        return 1;
+    }
+    catch ( std::exception const &e )
+    {
+        int rank;
+        MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+        std::cerr << "processor " << rank
+                  << " caught a std::exception: " << e.what() << "\n";
+    }
+    catch ( ... )
+    {
+        int rank;
+        MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+        std::cerr << "processor " << rank << " caught some kind of exception\n";
+    }
 
     Kokkos::finalize();
 

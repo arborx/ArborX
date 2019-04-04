@@ -11,14 +11,15 @@
 
 #include "../test/DTK_BoostRTreeHelpers.hpp"
 
+#include <point_clouds.hpp>
+
 #include <DTK_LinearBVH.hpp>
 
 #include <Kokkos_DefaultNode.hpp>
-#include <Teuchos_CommandLineProcessor.hpp>
 
 #include <benchmark/benchmark.h>
 
-#include <point_clouds.hpp>
+#include <boost/program_options.hpp>
 
 #include <chrono>
 #include <cmath> // cbrt
@@ -259,26 +260,55 @@ int main( int argc, char *argv[] )
 {
     KokkosScopeGuard guard( argc, argv );
 
-    bool const throw_exceptions = false;
-    bool const recognise_all_options = false;
-    Teuchos::CommandLineProcessor clp( throw_exceptions,
-                                       recognise_all_options );
+    namespace bpo = boost::program_options;
+    bpo::options_description desc( "Allowed options" );
     int n_values = 50000;
     int n_queries = 20000;
     int n_neighbors = 10;
     int buffer_size = 0;
     std::string source_pt_cloud = "filled_box";
     std::string target_pt_cloud = "filled_box";
-    clp.setOption( "values", &n_values, "number of indexable values (source)" );
-    clp.setOption( "queries", &n_queries, "number of queries (target)" );
-    clp.setOption( "neighbors", &n_neighbors,
-                   "desired number of results per query" );
-    clp.setOption( "buffer", &buffer_size,
-                   "size for buffer optimization in radius search" );
-    clp.setOption( "source-point-cloud-type", &source_pt_cloud,
-                   "shape of the source point cloud" );
-    clp.setOption( "target-point-cloud-type", &target_pt_cloud,
-                   "shape of the target point cloud" );
+    // clang-format off
+    desc.add_options()
+        ( "help", "produce help message" )
+        ( "values", bpo::value<int>(&n_values)->default_value(50000), "number of indexable values (source)" )
+        ( "queries", bpo::value<int>(&n_queries)->default_value(20000), "number of queries (target)" )
+        ( "neighbors", bpo::value<int>(&n_neighbors)->default_value(10), "desired number of results per query" )
+        ( "buffer", bpo::value<int>(&buffer_size)->default_value(0), "size for buffer optimization in radius search" )
+        ( "source-point-cloud-type", bpo::value<std::string>(&source_pt_cloud)->default_value("filled_box"), "shape of the source point cloud"  )
+        ( "target-point-cloud-type", bpo::value<std::string>(&target_pt_cloud)->default_value("filled_box"), "shape of the target point cloud"  )
+    ;
+    // clang-format on
+    bpo::variables_map vm;
+    bpo::parsed_options opts = bpo::command_line_parser( argc, argv )
+                                   .options( desc )
+                                   .allow_unregistered()
+                                   .run();
+    bpo::store( opts, vm );
+    bpo::notify( vm );
+
+    if ( vm.count( "help" ) )
+    {
+        // Full list of options consists of Kokkos + Boost.Program_options +
+        // Google Benchmark and we still need to call benchmark::Initialize() to
+        // get those printed to the standard output.
+        std::cout << desc << "\n";
+        int ac = 2;
+        char *av[] = {(char *)"ignored", (char *)"--help"};
+        // benchmark::Initialize() calls exit(0) when `--help` so register
+        // Kokkos::finalize() to be called on normal program termination.
+        std::atexit( Kokkos::finalize );
+        benchmark::Initialize( &ac, av );
+        return 1;
+    }
+    else
+    {
+        benchmark::Initialize( &argc, argv );
+        // Throw if some of the arguments have not been recognized.
+        std::ignore = bpo::command_line_parser( argc, argv )
+                          .options( bpo::options_description( "" ) )
+                          .run();
+    }
 
     // Google benchmark only supports integer arguments (see
     // https://github.com/google/benchmark/issues/387), so we map the string to
@@ -290,35 +320,6 @@ int main( int argc, char *argv[] )
     to_point_cloud_enum["hollow_sphere"] = PointCloudType::hollow_sphere;
     int source_point_cloud_type = to_point_cloud_enum.at( source_pt_cloud );
     int target_point_cloud_type = to_point_cloud_enum.at( target_pt_cloud );
-
-    switch ( clp.parse( argc, argv, NULL ) )
-    {
-    case Teuchos::CommandLineProcessor::PARSE_ERROR:
-        return EXIT_FAILURE;
-    case Teuchos::CommandLineProcessor::PARSE_UNRECOGNIZED_OPTION:
-    case Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED:
-        clp.printHelpMessage( "benchmark", std::cout );
-    case Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL:
-        break;
-    }
-
-    // benchmark::Initialize() calls exit(0) when `--help` so register
-    // Kokkos::finalize() to be called on normal program termination.
-    std::atexit( Kokkos::finalize );
-    benchmark::Initialize( &argc, argv );
-
-    // Throw if an option is not recognised
-    clp.throwExceptions( true );
-    clp.recogniseAllOptions( true );
-    switch ( clp.parse( argc, argv, NULL ) )
-    {
-    case Teuchos::CommandLineProcessor::PARSE_UNRECOGNIZED_OPTION:
-    case Teuchos::CommandLineProcessor::PARSE_ERROR:
-        return EXIT_FAILURE;
-    case Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED:
-    case Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL:
-        break;
-    }
 
     namespace dtk = DataTransferKit;
 
