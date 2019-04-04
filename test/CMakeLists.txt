@@ -13,6 +13,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
   Exception
   SOURCES tstException.cpp
   COMM serial mpi
+  NUM_MPI_PROCS 1
   ADDED_EXE_TARGET_NAME_OUT dbc_exe
   )
 # TODO link Boost::dynamic_linking interface target to enable dynamic linking
