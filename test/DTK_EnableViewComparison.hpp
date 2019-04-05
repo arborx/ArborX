@@ -15,7 +15,7 @@ template <typename T, typename... P>
 struct is_forward_iterable<Kokkos::View<T, P...>> : public boost::mpl::true_
 {
     // NOTE Prefer static assertion to SFINAE because error message about no
-    // operator== for the operands is not is not as clear.
+    // operator== for the operands is not as clear.
     static_assert(
         Kokkos::View<T, P...>::rank == 1 &&
             KokkosExt::is_accessible_from_host<Kokkos::View<T, P...>>::value,
