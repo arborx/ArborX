@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include "DTK_BoostRangeAdapters.hpp"
+#include "DTK_EnableViewComparison.hpp"
 
 #include <DTK_Box.hpp>
 #include <DTK_DetailsAlgorithms.hpp>
@@ -21,27 +22,32 @@
 #include <boost/range/algorithm.hpp> // reverse_copy, replace_if, count, generate, count_if
 #include <boost/range/algorithm_ext.hpp> // iota
 #include <boost/range/numeric.hpp>       // accumulate
+#include <boost/test/unit_test.hpp>
 
 #include <random>
 #include <sstream>
 
-TEUCHOS_UNIT_TEST( BoostGeometryAdapters, Range )
+#define BOOST_TEST_MODULE BoostRangeAdapters
+
+namespace tt = boost::test_tools;
+
+BOOST_AUTO_TEST_CASE( range_algorithms )
 {
     Kokkos::View<int[4], Kokkos::HostSpace> w( "w" );
 
     boost::iota( w, 0 );
     std::stringstream ss;
     boost::reverse_copy( w, std::ostream_iterator<int>( ss, " " ) );
-    TEST_EQUALITY( ss.str(), "3 2 1 0 " );
+    BOOST_TEST( ss.str() == "3 2 1 0 " );
 
     boost::replace_if( w, []( int i ) { return ( i > 1 ); }, -1 );
-    TEST_COMPARE_ARRAYS( w, std::vector<int>( {0, 1, -1, -1} ) );
+    BOOST_TEST( w == std::vector<int>( {0, 1, -1, -1} ), tt::per_element() );
 
-    TEST_EQUALITY( boost::count( w, -1 ), 2 );
-    TEST_EQUALITY( boost::accumulate( w, 5 ), 4 );
+    BOOST_TEST( boost::count( w, -1 ), 2 );
+    BOOST_TEST( boost::accumulate( w, 5 ), 4 );
 }
 
-TEUCHOS_UNIT_TEST( BoostGeometryAdapters, PointCloud )
+BOOST_AUTO_TEST_CASE( point_cloud )
 {
     using DataTransferKit::Point;
     using DataTransferKit::Details::distance;
@@ -70,5 +76,5 @@ TEUCHOS_UNIT_TEST( BoostGeometryAdapters, PointCloud )
                       static_cast<double>( n );
 
     double const relative_tolerance = .05;
-    TEST_FLOATING_EQUALITY( pi, 3.14, relative_tolerance );
+    BOOST_TEST( pi == 3.14, tt::tolerance( relative_tolerance ) );
 }
