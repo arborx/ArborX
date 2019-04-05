@@ -123,14 +123,6 @@ BOOST_AUTO_TEST_CASE( expand )
 BOOST_AUTO_TEST_CASE( centroid )
 {
     using dtk::equals;
-    // For convenience define a function that returns the centroid.
-    // Boost.Geometry defines both `void centroid(Geometry const & geometry,
-    // Point &c )` and `Point return_centroid(Geometry const& geometry)`
-    auto const dtkReturnCentroid = []( dtk::Box b ) {
-        dtk::Point c;
-        dtk::centroid( b, c );
-        return c;
-    };
 
     // Interestingly enough, even though for Boost.Geometry, the DTK default
     // constructed "empty" box is not valid, it will still calculate its
@@ -139,24 +131,16 @@ BOOST_AUTO_TEST_CASE( centroid )
     BOOST_TEST( !bg::is_valid( empty_box ) );
     BOOST_TEST( equals( bg::return_centroid<dtk::Point>( empty_box ),
                         {{0., 0., 0.}} ) );
-    BOOST_TEST( equals( dtkReturnCentroid( empty_box ), {{0., 0., 0.}} ) );
+    BOOST_TEST( equals( dtk::returnCentroid( empty_box ), {{0., 0., 0.}} ) );
 
     dtk::Box unit_box = {{{0., 0., 0.}}, {{1., 1., 1.}}};
     BOOST_TEST(
         equals( bg::return_centroid<dtk::Point>( unit_box ), {{.5, .5, .5}} ) );
-    BOOST_TEST( equals( dtkReturnCentroid( unit_box ), {{.5, .5, .5}} ) );
+    BOOST_TEST( equals( dtk::returnCentroid( unit_box ), {{.5, .5, .5}} ) );
 
-    // NOTE DTK does not have an overload of centroid() for Point at the
-    // moment.
     dtk::Point a_point = {{1., 2., 3.}};
     BOOST_TEST( equals( bg::return_centroid<dtk::Point>( a_point ), a_point ) );
-    // BOOST_TEST( equals( dtk::centroid(
-    //     []( dtk::Point p ) {
-    //         dtk::Point c;
-    //         dtk::centroid( p, c );
-    //         return c;
-    //     }( a_point ),
-    //     a_point ) ) );
+    BOOST_TEST( equals( dtk::returnCentroid( a_point ), a_point ) );
 }
 
 BOOST_AUTO_TEST_CASE( is_valid )
