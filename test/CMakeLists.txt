@@ -28,6 +28,20 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
   )
 target_compile_definitions(${hello_world_exe} PRIVATE BOOST_TEST_DYN_LINK DTK_SEARCH_MPI_UNIT_TEST)
 
+set(DTK_SEARCH_DEVICE_TYPES)
+if(Kokkos_ENABLE_Serial)
+  list(APPEND DTK_SEARCH_DEVICE_TYPES Kokkos::Serial::device_type)
+endif()
+if(Kokkos_ENABLE_OpenMP)
+  list(APPEND DTK_SEARCH_DEVICE_TYPES Kokkos::OpenMP::device_type)
+endif()
+if(Kokkos_ENABLE_Cuda)
+  list(APPEND DTK_SEARCH_DEVICE_TYPES Kokkos::Cuda::device_type)
+endif()
+string(REPLACE ";" "," DTK_SEARCH_DEVICE_TYPES "${DTK_SEARCH_DEVICE_TYPES}")
+set(DTK_SEARCH_DEVICE_TYPES "std::tuple<${DTK_SEARCH_DEVICE_TYPES}>")
+configure_file(DTK_EnableDeviceTypes.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/DTK_EnableDeviceTypes.hpp @ONLY)
+
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   DetailsTreeConstruction
   SOURCES tstDetailsTreeConstruction.cpp unit_test_main.cpp
