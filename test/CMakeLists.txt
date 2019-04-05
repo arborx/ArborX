@@ -41,6 +41,15 @@ endif()
 string(REPLACE ";" "," DTK_SEARCH_DEVICE_TYPES "${DTK_SEARCH_DEVICE_TYPES}")
 set(DTK_SEARCH_DEVICE_TYPES "std::tuple<${DTK_SEARCH_DEVICE_TYPES}>")
 configure_file(DTK_EnableDeviceTypes.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/DTK_EnableDeviceTypes.hpp @ONLY)
+TRIBITS_ADD_EXECUTABLE_AND_TEST(
+  DetailsUtils
+  SOURCES tstDetailsUtils.cpp utf_main.cpp
+  COMM serial mpi
+  NUM_MPI_PROCS 1
+  ADDED_EXE_TARGET_NAME_OUT std_algo_exe
+  )
+target_compile_definitions(${std_algo_exe} PRIVATE BOOST_TEST_DYN_LINK)
+target_include_directories(${std_algo_exe} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   DetailsTreeConstruction
@@ -61,14 +70,6 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   DetailsAlgorithms
   SOURCES tstDetailsAlgorithms.cpp unit_test_main.cpp
-  COMM serial mpi
-  NUM_MPI_PROCS 1
-  STANDARD_PASS_OUTPUT
-  FAIL_REGULAR_EXPRESSION "data race;leak;runtime error"
-  )
-TRIBITS_ADD_EXECUTABLE_AND_TEST(
-  DetailsUtils
-  SOURCES tstDetailsUtils.cpp unit_test_main.cpp
   COMM serial mpi
   NUM_MPI_PROCS 1
   STANDARD_PASS_OUTPUT

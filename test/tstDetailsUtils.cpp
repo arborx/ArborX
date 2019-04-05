@@ -9,15 +9,24 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include "DTK_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "DTK_EnableViewComparison.hpp"
+
 #include <DTK_DetailsUtils.hpp>
 
-#include <Teuchos_UnitTestHarness.hpp>
+#include <Kokkos_Core.hpp>
+
+#include <boost/test/unit_test.hpp>
 
 #include <algorithm>
 #include <numeric>
 #include <vector>
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, iota, DeviceType )
+#define BOOST_TEST_MODULE StandardAlgorithms
+
+namespace tt = boost::test_tools;
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( iota, DeviceType, DTK_SEARCH_DEVICE_TYPES )
 {
     int const n = 10;
     double const val = 3.;
@@ -27,17 +36,17 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, iota, DeviceType )
     std::iota( v_ref.begin(), v_ref.end(), val );
     auto v_host = Kokkos::create_mirror_view( v );
     Kokkos::deep_copy( v_host, v );
-    TEST_COMPARE_ARRAYS( v_ref, v_host );
+    BOOST_TEST( v_ref == v_host, tt::per_element() );
 
     Kokkos::View<int[3], DeviceType> w( "w" );
     DataTransferKit::iota( w );
     std::vector<int> w_ref = {0, 1, 2};
     auto w_host = Kokkos::create_mirror_view( w );
     Kokkos::deep_copy( w_host, w );
-    TEST_COMPARE_ARRAYS( w_ref, w_host );
+    BOOST_TEST( w_ref == w_host, tt::per_element() );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, prefix_sum, DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( prefix_sum, DeviceType, DTK_SEARCH_DEVICE_TYPES )
 {
     int const n = 10;
     Kokkos::View<int *, DeviceType> x( "x", n );
@@ -54,17 +63,17 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, prefix_sum, DeviceType )
     auto y_host = Kokkos::create_mirror_view( y );
     Kokkos::deep_copy( y_host, y );
     Kokkos::deep_copy( x_host, x );
-    TEST_COMPARE_ARRAYS( y_host, y_ref );
-    TEST_COMPARE_ARRAYS( x_host, x_ref );
+    BOOST_TEST( y_host == y_ref, tt::per_element() );
+    BOOST_TEST( x_host == x_ref, tt::per_element() );
     // in-place
     DataTransferKit::exclusivePrefixSum( x, x );
     Kokkos::deep_copy( x_host, x );
-    TEST_COMPARE_ARRAYS( x_host, y_ref );
+    BOOST_TEST( x_host == y_ref, tt::per_element() );
     int const m = 11;
-    TEST_INEQUALITY( n, m );
+    BOOST_TEST( n != m );
     Kokkos::View<int *, DeviceType> z( "z", m );
-    TEST_THROW( DataTransferKit::exclusivePrefixSum( x, z ),
-                DataTransferKit::SearchException );
+    BOOST_CHECK_THROW( DataTransferKit::exclusivePrefixSum( x, z ),
+                       DataTransferKit::SearchException );
     Kokkos::View<double[3], DeviceType> v( "v" );
     auto v_host = Kokkos::create_mirror_view( v );
     v_host( 0 ) = 1.;
@@ -74,10 +83,10 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, prefix_sum, DeviceType )
     DataTransferKit::exclusivePrefixSum( v );
     Kokkos::deep_copy( v_host, v );
     std::vector<double> v_ref = {0., 1., 2.};
-    TEST_COMPARE_FLOATING_ARRAYS( v_host, v_ref, 1e-14 );
+    BOOST_TEST( v_host == v_ref, tt::per_element() );
     Kokkos::View<double *, DeviceType> w( "w", 4 );
-    TEST_THROW( DataTransferKit::exclusivePrefixSum( v, w ),
-                DataTransferKit::SearchException );
+    BOOST_CHECK_THROW( DataTransferKit::exclusivePrefixSum( v, w ),
+                       DataTransferKit::SearchException );
     v_host( 0 ) = 1.;
     v_host( 1 ) = 0.;
     v_host( 2 ) = 0.;
@@ -87,26 +96,27 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, prefix_sum, DeviceType )
     auto w_host = Kokkos::create_mirror_view( w );
     Kokkos::deep_copy( w_host, w );
     std::vector<double> w_ref = {0., 1., 1.};
-    TEST_COMPARE_FLOATING_ARRAYS( w_host, w_ref, 1e-14 );
+    BOOST_TEST( w_host == w_ref, tt::per_element() );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, last_element, DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( last_element, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     Kokkos::View<int *, DeviceType> v( "v", 2 );
     auto v_host = Kokkos::create_mirror_view( v );
     v_host( 0 ) = 33;
     v_host( 1 ) = 24;
     Kokkos::deep_copy( v, v_host );
-    TEST_EQUALITY( DataTransferKit::lastElement( v ), 24 );
+    BOOST_TEST( DataTransferKit::lastElement( v ) == 24 );
     Kokkos::View<int *, DeviceType> w( "w", 0 );
-    TEST_THROW( DataTransferKit::lastElement( w ),
-                DataTransferKit::SearchException );
+    BOOST_CHECK_THROW( DataTransferKit::lastElement( w ),
+                       DataTransferKit::SearchException );
     Kokkos::View<double[1], DeviceType> u( "u", 1 );
     Kokkos::deep_copy( u, 3.14 );
-    TEST_FLOATING_EQUALITY( DataTransferKit::lastElement( u ), 3.14, 1e-14 );
+    BOOST_TEST( DataTransferKit::lastElement( u ) == 3.14 );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, minmax, DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( minmax, DeviceType, DTK_SEARCH_DEVICE_TYPES )
 {
     Kokkos::View<double[4], DeviceType> v( "v" );
     auto v_host = Kokkos::create_mirror_view( v );
@@ -116,18 +126,18 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, minmax, DeviceType )
     v_host( 3 ) = 1.62;
     Kokkos::deep_copy( v, v_host );
     auto const result_float = DataTransferKit::minMax( v );
-    TEST_FLOATING_EQUALITY( std::get<0>( result_float ), 1.41, 1e-14 );
-    TEST_FLOATING_EQUALITY( std::get<1>( result_float ), 3.14, 1e-14 );
+    BOOST_TEST( std::get<0>( result_float ) == 1.41 );
+    BOOST_TEST( std::get<1>( result_float ) == 3.14 );
     Kokkos::View<int *, DeviceType> w( "w" );
-    TEST_THROW( DataTransferKit::minMax( w ),
-                DataTransferKit::SearchException );
+    BOOST_CHECK_THROW( DataTransferKit::minMax( w ),
+                       DataTransferKit::SearchException );
     Kokkos::resize( w, 1 );
     Kokkos::deep_copy( w, 255 );
     auto const result_int = DataTransferKit::minMax( w );
-    TEST_EQUALITY( std::get<0>( result_int ), 255 );
-    TEST_EQUALITY( std::get<1>( result_int ), 255 );
+    BOOST_TEST( std::get<0>( result_int ) == 255 );
+    BOOST_TEST( std::get<1>( result_int ) == 255 );
 
-    // testing use case in #336
+    // testing use case in ORNL-CEES/DataTransferKit#336
     Kokkos::View<int[2][3], DeviceType> u( "u" );
     auto u_host = Kokkos::create_mirror_view( u );
     u_host( 0, 0 ) = 1; // x
@@ -139,27 +149,27 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, minmax, DeviceType )
     Kokkos::deep_copy( u, u_host );
     auto const minmax_x =
         DataTransferKit::minMax( Kokkos::subview( u, Kokkos::ALL, 0 ) );
-    TEST_EQUALITY( std::get<0>( minmax_x ), 1 );
-    TEST_EQUALITY( std::get<1>( minmax_x ), 4 );
+    BOOST_TEST( std::get<0>( minmax_x ) == 1 );
+    BOOST_TEST( std::get<1>( minmax_x ) == 4 );
     auto const minmax_y =
         DataTransferKit::minMax( Kokkos::subview( u, Kokkos::ALL, 1 ) );
-    TEST_EQUALITY( std::get<0>( minmax_y ), 2 );
-    TEST_EQUALITY( std::get<1>( minmax_y ), 5 );
+    BOOST_TEST( std::get<0>( minmax_y ) == 2 );
+    BOOST_TEST( std::get<1>( minmax_y ) == 5 );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, accumulate, DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( accumulate, DeviceType, DTK_SEARCH_DEVICE_TYPES )
 {
     Kokkos::View<int[6], DeviceType> v( "v" );
     Kokkos::deep_copy( v, 5 );
-    TEST_EQUALITY( DataTransferKit::accumulate( v, 3 ), 33 );
+    BOOST_TEST( DataTransferKit::accumulate( v, 3 ) == 33 );
 
     Kokkos::View<int *, DeviceType> w( "w", 5 );
     DataTransferKit::iota( w, 2 );
-    TEST_EQUALITY( DataTransferKit::accumulate( w, 4 ), 24 );
+    BOOST_TEST( DataTransferKit::accumulate( w, 4 ) == 24 );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, adjacent_difference,
-                                   DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( adjacent_difference, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     Kokkos::View<int[5], DeviceType> v( "v" );
     auto v_host = Kokkos::create_mirror_view( v );
@@ -170,68 +180,42 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, adjacent_difference,
     v_host( 4 ) = 10;
     Kokkos::deep_copy( v, v_host );
     // In-place operation is not allowed
-    TEST_THROW( DataTransferKit::adjacentDifference( v, v ),
-                DataTransferKit::SearchException );
+    BOOST_CHECK_THROW( DataTransferKit::adjacentDifference( v, v ),
+                       DataTransferKit::SearchException );
     auto w = Kokkos::create_mirror( DeviceType(), v );
-    TEST_NOTHROW( DataTransferKit::adjacentDifference( v, w ) );
+    BOOST_CHECK_NO_THROW( DataTransferKit::adjacentDifference( v, w ) );
     auto w_host = Kokkos::create_mirror_view( w );
     Kokkos::deep_copy( w_host, w );
     std::vector<int> w_ref( 5, 2 );
-    TEST_COMPARE_ARRAYS( w_host, w_ref );
+    BOOST_TEST( w_host == w_ref, tt::per_element() );
 
     Kokkos::View<float *, DeviceType> x( "x", 10 );
     Kokkos::deep_copy( x, 3.14 );
-    TEST_THROW( DataTransferKit::adjacentDifference( x, x ),
-                DataTransferKit::SearchException );
+    BOOST_CHECK_THROW( DataTransferKit::adjacentDifference( x, x ),
+                       DataTransferKit::SearchException );
     Kokkos::View<float[10], DeviceType> y( "y" );
-    TEST_NOTHROW( DataTransferKit::adjacentDifference( x, y ) );
+    BOOST_CHECK_NO_THROW( DataTransferKit::adjacentDifference( x, y ) );
     std::vector<float> y_ref( 10 );
     y_ref[0] = 3.14;
     auto y_host = Kokkos::create_mirror_view( y );
     Kokkos::deep_copy( y_host, y );
-    TEST_COMPARE_ARRAYS( y_host, y_ref );
+    BOOST_TEST( y_host == y_ref, tt::per_element() );
 
     Kokkos::resize( x, 5 );
-    TEST_THROW( DataTransferKit::adjacentDifference( y, x ),
-                DataTransferKit::SearchException );
+    BOOST_CHECK_THROW( DataTransferKit::adjacentDifference( y, x ),
+                       DataTransferKit::SearchException );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsUtils, min_and_max, DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( min_and_max, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     Kokkos::View<int[4], DeviceType> v( "v" );
     DataTransferKit::iota( v );
-    TEST_EQUALITY( 0, DataTransferKit::min( v ) );
-    TEST_EQUALITY( 3, DataTransferKit::max( v ) );
+    BOOST_TEST( DataTransferKit::min( v ) == 0 );
+    BOOST_TEST( DataTransferKit::max( v ) == 3 );
 
     Kokkos::View<int *, DeviceType> w( "w", 7 );
     DataTransferKit::iota( w, 2 );
-    TEST_EQUALITY( 2, DataTransferKit::min( w ) );
-    TEST_EQUALITY( 8, DataTransferKit::max( w ) );
+    BOOST_TEST( DataTransferKit::min( w ) == 2 );
+    BOOST_TEST( DataTransferKit::max( w ) == 8 );
 }
-
-// Include the test macros.
-#include "DataTransferKit_ETIHelperMacros.h"
-
-// Create the test group
-#define UNIT_TEST_GROUP( NODE )                                                \
-    using DeviceType##NODE = typename NODE::device_type;                       \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, iota,                  \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, prefix_sum,            \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, last_element,          \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, minmax,                \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, accumulate,            \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, adjacent_difference,   \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsUtils, min_and_max,           \
-                                          DeviceType##NODE )
-
-// Demangle the types
-DTK_ETI_MANGLING_TYPEDEFS()
-
-// Instantiate the tests
-DTK_INSTANTIATE_N( UNIT_TEST_GROUP )
