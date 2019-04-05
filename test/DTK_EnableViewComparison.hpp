@@ -3,6 +3,8 @@
 
 #include <DTK_DetailsKokkosExt.hpp> // is_accessible_from_host
 
+#include <Kokkos_Core.hpp>
+
 #include <boost/test/utils/is_forward_iterable.hpp>
 
 // Enable element-wise comparison for views that are accessible from the host
