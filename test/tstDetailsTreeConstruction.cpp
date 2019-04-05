@@ -15,7 +15,8 @@
 #include <DTK_DetailsTreeConstruction.hpp>
 #include <DTK_DetailsUtils.hpp> // iota
 
-#include <Teuchos_UnitTestHarness.hpp>
+#include "DTK_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "DTK_EnableViewComparison.hpp"
 
 #include <algorithm>
 #include <array>
@@ -25,9 +26,16 @@
 #include <sstream>
 #include <vector>
 
+#include <boost/test/unit_test.hpp>
+
+#define BOOST_TEST_MODULE DetailsTreeConstruction
+
 namespace dtk = DataTransferKit::Details;
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, morton_codes, DeviceType )
+namespace tt = boost::test_tools;
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( morton_code, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     std::vector<DataTransferKit::Point> points = {
         {{0.0, 0.0, 0.0}},          {{0.25, 0.75, 0.25}}, {{0.75, 0.25, 0.25}},
@@ -64,15 +72,15 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, morton_codes, DeviceType )
     auto scene_host = Kokkos::create_mirror_view( scene );
     Kokkos::deep_copy( scene_host, scene );
 
-    TEST_ASSERT( dtk::equals( scene_host[0],
-                              {{{0., 0., 0.}}, {{1024., 1024., 1024.}}} ) );
+    BOOST_TEST( dtk::equals( scene_host[0],
+                             {{{0., 0., 0.}}, {{1024., 1024., 1024.}}} ) );
 
     Kokkos::View<unsigned int *, DeviceType> morton_codes( "morton_codes", n );
     dtk::TreeConstruction<DeviceType>::assignMortonCodes( boxes, morton_codes,
                                                           scene[0] );
     auto morton_codes_host = Kokkos::create_mirror_view( morton_codes );
     Kokkos::deep_copy( morton_codes_host, morton_codes );
-    TEST_COMPARE_ARRAYS( morton_codes_host, ref );
+    BOOST_TEST( morton_codes_host == ref, tt::per_element() );
 }
 
 template <typename DeviceType>
@@ -91,7 +99,8 @@ class FillK
     Kokkos::View<unsigned int *, DeviceType> _k;
 };
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, indirect_sort, DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( indirect_sort, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     // need a functionality that sort objects based on their Morton code and
     // also returns the indices in the original configuration
@@ -119,36 +128,36 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, indirect_sort, DeviceType )
 
     // check that they are sorted
     for ( unsigned int i = 0; i < n; ++i )
-        TEST_EQUALITY( k_host[i], i + 1 );
+        BOOST_TEST( k_host[i] == i + 1 );
     // check that ids are properly ordered
-    TEST_COMPARE_ARRAYS( ids_host, ref );
+    BOOST_TEST( ids_host == ref, tt::per_element() );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, number_of_leading_zero_bits,
-                                   DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( number_of_leading_zero_bits, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     using KokkosExt::clz;
-    TEST_EQUALITY( clz( 0 ), 32 );
-    TEST_EQUALITY( clz( 1 ), 31 );
-    TEST_EQUALITY( clz( 2 ), 30 );
-    TEST_EQUALITY( clz( 3 ), 30 );
-    TEST_EQUALITY( clz( 4 ), 29 );
-    TEST_EQUALITY( clz( 5 ), 29 );
-    TEST_EQUALITY( clz( 6 ), 29 );
-    TEST_EQUALITY( clz( 7 ), 29 );
-    TEST_EQUALITY( clz( 8 ), 28 );
-    TEST_EQUALITY( clz( 9 ), 28 );
+    BOOST_TEST( clz( 0 ) == 32 );
+    BOOST_TEST( clz( 1 ) == 31 );
+    BOOST_TEST( clz( 2 ) == 30 );
+    BOOST_TEST( clz( 3 ) == 30 );
+    BOOST_TEST( clz( 4 ) == 29 );
+    BOOST_TEST( clz( 5 ) == 29 );
+    BOOST_TEST( clz( 6 ) == 29 );
+    BOOST_TEST( clz( 7 ) == 29 );
+    BOOST_TEST( clz( 8 ) == 28 );
+    BOOST_TEST( clz( 9 ) == 28 );
     // bitwise exclusive OR operator to compare bits
-    TEST_EQUALITY( clz( 1 ^ 0 ), 31 );
-    TEST_EQUALITY( clz( 2 ^ 0 ), 30 );
-    TEST_EQUALITY( clz( 2 ^ 1 ), 30 );
-    TEST_EQUALITY( clz( 3 ^ 0 ), 30 );
-    TEST_EQUALITY( clz( 3 ^ 1 ), 30 );
-    TEST_EQUALITY( clz( 3 ^ 2 ), 31 );
-    TEST_EQUALITY( clz( 4 ^ 0 ), 29 );
-    TEST_EQUALITY( clz( 4 ^ 1 ), 29 );
-    TEST_EQUALITY( clz( 4 ^ 2 ), 29 );
-    TEST_EQUALITY( clz( 4 ^ 3 ), 29 );
+    BOOST_TEST( clz( 1 ^ 0 ) == 31 );
+    BOOST_TEST( clz( 2 ^ 0 ) == 30 );
+    BOOST_TEST( clz( 2 ^ 1 ) == 30 );
+    BOOST_TEST( clz( 3 ^ 0 ) == 30 );
+    BOOST_TEST( clz( 3 ^ 1 ) == 30 );
+    BOOST_TEST( clz( 3 ^ 2 ) == 31 );
+    BOOST_TEST( clz( 4 ^ 0 ) == 29 );
+    BOOST_TEST( clz( 4 ^ 1 ) == 29 );
+    BOOST_TEST( clz( 4 ^ 2 ) == 29 );
+    BOOST_TEST( clz( 4 ^ 3 ) == 29 );
 }
 
 template <typename DeviceType>
@@ -202,7 +211,8 @@ class ComputeResults
     Kokkos::View<int *, DeviceType> _results;
 };
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, common_prefix, DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( common_prefix, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     using ExecutionSpace = typename DeviceType::execution_space;
     int const n = 13;
@@ -228,24 +238,24 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, common_prefix, DeviceType )
     auto fi_host = Kokkos::create_mirror_view( fi );
     Kokkos::deep_copy( fi_host, fi );
 
-    TEST_EQUALITY( results_host[0], 32 + 32 );
-    TEST_EQUALITY( results_host[1], 31 );
-    TEST_EQUALITY( results_host[2], 31 );
+    BOOST_TEST( results_host[0] == 32 + 32 );
+    BOOST_TEST( results_host[1] == 31 );
+    BOOST_TEST( results_host[2] == 31 );
     // duplicate Morton codes
-    TEST_EQUALITY( fi_host[1], 1 );
-    TEST_EQUALITY( fi_host[1], fi_host[2] );
-    TEST_EQUALITY( results_host[3], 64 );
-    TEST_EQUALITY( results_host[4], 32 + 30 );
-    TEST_EQUALITY( results_host[5], 62 );
-    TEST_EQUALITY( results_host[6], 64 );
+    BOOST_TEST( fi_host[1] == 1 );
+    BOOST_TEST( fi_host[1] == fi_host[2] );
+    BOOST_TEST( results_host[3] == 64 );
+    BOOST_TEST( results_host[4] == 32 + 30 );
+    BOOST_TEST( results_host[5] == 62 );
+    BOOST_TEST( results_host[6] == 64 );
     // by definition \delta(i, j) = -1 when j \notin [0, n-1]
-    TEST_EQUALITY( results_host[7], -1 );
-    TEST_EQUALITY( results_host[8], 64 );
-    TEST_EQUALITY( results_host[9], -1 );
+    BOOST_TEST( results_host[7] == -1 );
+    BOOST_TEST( results_host[8] == 64 );
+    BOOST_TEST( results_host[9] == -1 );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, example_tree_construction,
-                                   DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( example_tree_construction, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     // This is the example from the articles by Karras.
     // See
@@ -314,7 +324,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, example_tree_construction,
     dtk::TreeConstruction<DeviceType>::generateHierarchy(
         sorted_morton_codes, leaf_nodes, internal_nodes, parents );
 
-    TEST_EQUALITY( parents( 0 ), -1 );
+    BOOST_TEST( parents( 0 ) == -1 );
 
     DataTransferKit::Node *root = internal_nodes.data();
 
@@ -322,27 +332,5 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DetailsBVH, example_tree_construction,
     traverseRecursive( root, sol );
     std::cout << "sol=" << sol.str() << "\n";
 
-    TEST_EQUALITY( sol.str().compare( ref.str() ), 0 );
+    BOOST_TEST( sol.str().compare( ref.str() ) == 0 );
 }
-
-// Include the test macros.
-#include "DataTransferKit_ETIHelperMacros.h"
-
-// Create the test group
-#define UNIT_TEST_GROUP( NODE )                                                \
-    using DeviceType##NODE = typename NODE::device_type;                       \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsBVH, morton_codes,            \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT(                                      \
-        DetailsBVH, number_of_leading_zero_bits, DeviceType##NODE )            \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsBVH, indirect_sort,           \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DetailsBVH, common_prefix,           \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT(                                      \
-        DetailsBVH, example_tree_construction, DeviceType##NODE )
-// Demangle the types
-DTK_ETI_MANGLING_TYPEDEFS()
-
-// Instantiate the tests
-DTK_INSTANTIATE_N( UNIT_TEST_GROUP )

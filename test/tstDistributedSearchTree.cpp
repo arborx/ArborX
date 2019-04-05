@@ -11,9 +11,8 @@
 
 #include <DTK_DistributedSearchTree.hpp>
 
-#include <Teuchos_UnitTestHarness.hpp>
-
 #include "DTK_BoostRTreeHelpers.hpp"
+#include "DTK_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
 
 #include <mpi.h>
 
@@ -24,8 +23,12 @@
 
 #include "Search_UnitTestHelpers.hpp"
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
-                                   DeviceType )
+#include <boost/test/unit_test.hpp>
+
+#define BOOST_TEST_MODULE DistributedSearchTree
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( hello_world, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     MPI_Comm comm = MPI_COMM_WORLD;
     int comm_rank;
@@ -95,33 +98,28 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, hello_world,
     {
         indices_ref.push_back( 0 );
         ranks_ref.push_back( comm_size - comm_rank );
-        checkResults( tree, queries, indices_ref, {0, n + 1}, ranks_ref,
-                      success, out );
+        checkResults( tree, queries, indices_ref, {0, n + 1}, ranks_ref );
     }
     else
     {
-        checkResults( tree, queries, indices_ref, {0, n}, ranks_ref, success,
-                      out );
+        checkResults( tree, queries, indices_ref, {0, n}, ranks_ref );
     }
 
-    TEST_COMPARE( n, >, 2 );
+    BOOST_TEST( n > 2 );
     if ( comm_rank < comm_size - 1 )
     {
         checkResults( tree, nearest_queries, {0, n - 1, 1}, {0, 3},
                       {comm_size - 1 - comm_rank, comm_size - 2 - comm_rank,
-                       comm_size - 1 - comm_rank},
-                      success, out );
+                       comm_size - 1 - comm_rank} );
     }
     else
     {
         checkResults( tree, nearest_queries, {0, 1}, {0, 2},
-                      {comm_size - 1 - comm_rank, comm_size - 1 - comm_rank},
-                      success, out );
+                      {comm_size - 1 - comm_rank, comm_size - 1 - comm_rank} );
     }
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree,
-                                   DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( empty_tree, DeviceType, DTK_SEARCH_DEVICE_TYPES )
 {
     MPI_Comm comm = MPI_COMM_WORLD;
     int comm_rank;
@@ -129,70 +127,72 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, empty_tree,
     int comm_size;
     MPI_Comm_size( comm, &comm_size );
 
-    auto const empty_tree = makeDistributedSearchTree<DeviceType>( comm, {} );
+    auto const emptry_dist_tree =
+        makeDistributedSearchTree<DeviceType>( comm, {} );
 
-    TEST_ASSERT( empty_tree.empty() );
-    TEST_EQUALITY( empty_tree.size(), 0 );
+    BOOST_TEST( emptry_dist_tree.empty() );
+    BOOST_TEST( emptry_dist_tree.size() == 0 );
 
-    TEST_ASSERT( DataTransferKit::Details::equals( empty_tree.bounds(), {} ) );
+    BOOST_TEST(
+        DataTransferKit::Details::equals( emptry_dist_tree.bounds(), {} ) );
 
-    checkResults( empty_tree, makeOverlapQueries<DeviceType>( {} ), {}, {0}, {},
-                  success, out );
+    checkResults( emptry_dist_tree, makeOverlapQueries<DeviceType>( {} ), {},
+                  {0}, {} );
 
-    checkResults( empty_tree, makeWithinQueries<DeviceType>( {} ), {}, {0}, {},
-                  success, out );
+    checkResults( emptry_dist_tree, makeWithinQueries<DeviceType>( {} ), {},
+                  {0}, {} );
 
-    checkResults( empty_tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
-                  success, out );
+    checkResults( emptry_dist_tree, makeNearestQueries<DeviceType>( {} ), {},
+                  {0}, {} );
 
-    checkResults( empty_tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
-                  {}, success, out );
+    checkResults( emptry_dist_tree, makeNearestQueries<DeviceType>( {} ), {},
+                  {0}, {}, {} );
 
     // Only rank 0 has a couple spatial queries with a spatial predicate
     if ( comm_rank == 0 )
-        checkResults( empty_tree,
+        checkResults( emptry_dist_tree,
                       makeOverlapQueries<DeviceType>( {
                           {},
                           {},
                       } ),
-                      {}, {0, 0, 0}, {}, success, out );
+                      {}, {0, 0, 0}, {} );
     else
-        checkResults( empty_tree, makeOverlapQueries<DeviceType>( {} ), {}, {0},
-                      {}, success, out );
+        checkResults( emptry_dist_tree, makeOverlapQueries<DeviceType>( {} ),
+                      {}, {0}, {} );
 
     // All ranks but rank 0 have a single query with a spatial predicate
     if ( comm_rank == 0 )
-        checkResults( empty_tree, makeWithinQueries<DeviceType>( {} ), {}, {0},
-                      {}, success, out );
+        checkResults( emptry_dist_tree, makeWithinQueries<DeviceType>( {} ), {},
+                      {0}, {} );
     else
-        checkResults( empty_tree,
+        checkResults( emptry_dist_tree,
                       makeWithinQueries<DeviceType>( {
                           {{{(double)comm_rank, 0., 0.}}, (double)comm_size},
                       } ),
-                      {}, {0, 0}, {}, success, out );
+                      {}, {0, 0}, {} );
 
     // All ranks but rank 0 have a single query with a nearest predicate
     if ( comm_rank == 0 )
-        checkResults( empty_tree, makeNearestQueries<DeviceType>( {} ), {}, {0},
-                      {}, success, out );
+        checkResults( emptry_dist_tree, makeNearestQueries<DeviceType>( {} ),
+                      {}, {0}, {} );
     else
-        checkResults( empty_tree,
+        checkResults( emptry_dist_tree,
                       makeNearestQueries<DeviceType>( {
                           {{{0., 0., 0.}}, comm_rank},
                       } ),
-                      {}, {0, 0}, {}, success, out );
+                      {}, {0, 0}, {} );
 
     // All ranks have a single query with a nearest predicate (this version
     // returns distances as well)
-    checkResults( empty_tree,
+    checkResults( emptry_dist_tree,
                   makeNearestQueries<DeviceType>( {
                       {{{0., 0., 0.}}, comm_size},
                   } ),
-                  {}, {0, 0}, {}, {}, success, out );
+                  {}, {0, 0}, {}, {} );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, unique_leaf_on_rank_0,
-                                   DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( unique_leaf_on_rank_0, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     MPI_Comm comm = MPI_COMM_WORLD;
     int comm_rank;
@@ -209,23 +209,19 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, unique_leaf_on_rank_0,
                                } )
                          : makeDistributedSearchTree<DeviceType>( comm, {} ) );
 
-    TEST_ASSERT( !tree.empty() );
-    TEST_EQUALITY( tree.size(), 1 );
+    BOOST_TEST( !tree.empty() );
+    BOOST_TEST( tree.size() == 1 );
 
-    TEST_ASSERT( DataTransferKit::Details::equals(
+    BOOST_TEST( DataTransferKit::Details::equals(
         tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}} ) );
 
-    checkResults( tree, makeOverlapQueries<DeviceType>( {} ), {}, {0}, {},
-                  success, out );
+    checkResults( tree, makeOverlapQueries<DeviceType>( {} ), {}, {0}, {} );
 
-    checkResults( tree, makeWithinQueries<DeviceType>( {} ), {}, {0}, {},
-                  success, out );
+    checkResults( tree, makeWithinQueries<DeviceType>( {} ), {}, {0}, {} );
 
-    checkResults( tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
-                  success, out );
+    checkResults( tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {} );
 
-    checkResults( tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {}, {},
-                  success, out );
+    checkResults( tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {}, {} );
 
     // Querying for more neighbors than there are leaves in the tree
     checkResults(
@@ -234,11 +230,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, unique_leaf_on_rank_0,
             {{{(double)comm_rank, (double)comm_rank, (double)comm_rank}},
              comm_size},
         } ),
-        {0}, {0, 1}, {0}, success, out );
+        {0}, {0, 1}, {0} );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, one_leaf_per_rank,
-                                   DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( one_leaf_per_rank, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     MPI_Comm comm = MPI_COMM_WORLD;
     int comm_rank;
@@ -253,10 +249,10 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, one_leaf_per_rank,
             {{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank + 1., 1., 1.}}},
         } );
 
-    TEST_ASSERT( !tree.empty() );
-    TEST_EQUALITY( (int)tree.size(), comm_size );
+    BOOST_TEST( !tree.empty() );
+    BOOST_TEST( (int)tree.size() == comm_size );
 
-    TEST_ASSERT( DataTransferKit::Details::equals(
+    BOOST_TEST( DataTransferKit::Details::equals(
         tree.bounds(), {{{0., 0., 0.}}, {{(double)comm_size, 1., 1.}}} ) );
 
     checkResults( tree,
@@ -266,13 +262,10 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, one_leaf_per_rank,
                       {{{(double)comm_rank + .5, .5, .5}},
                        {{(double)comm_rank + .5, .5, .5}}},
                   } ),
-                  {0, 0}, {0, 1, 2}, {comm_size - 1 - comm_rank, comm_rank},
-                  success, out );
+                  {0, 0}, {0, 1, 2}, {comm_size - 1 - comm_rank, comm_rank} );
 
-    checkResults( tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
-                  success, out );
-    checkResults( tree, makeOverlapQueries<DeviceType>( {} ), {}, {0}, {},
-                  success, out );
+    checkResults( tree, makeNearestQueries<DeviceType>( {} ), {}, {0}, {} );
+    checkResults( tree, makeOverlapQueries<DeviceType>( {} ), {}, {0}, {} );
 
     if ( comm_rank > 0 )
         checkResults( tree,
@@ -284,19 +277,17 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, one_leaf_per_rank,
                           std::vector<int> r( comm_size );
                           std::iota( begin( r ), end( r ), 0 );
                           return r;
-                      }(),
-                      success, out );
+                      }() );
     else
         checkResults( tree,
                       makeNearestQueries<DeviceType>( {
                           {{{0., 0., 0.}}, comm_rank * comm_size},
                       } ),
-                      {}, {0, 0}, {}, success, out );
+                      {}, {0, 0}, {} );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree,
-                                   non_approximate_nearest_neighbors,
-                                   DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( non_approximate_nearest_neighbors, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     MPI_Comm comm = MPI_COMM_WORLD;
     int comm_rank;
@@ -322,8 +313,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree,
              {{(double)comm_rank + 1., 1., 1.}}},
         } );
 
-    TEST_ASSERT( !tree.empty() );
-    TEST_EQUALITY( (int)tree.size(), 2 * comm_size );
+    BOOST_TEST( !tree.empty() );
+    BOOST_TEST( (int)tree.size() == 2 * comm_size );
 
     //  +----------0----------1----------2----------3
     //  |          |          |          |          |
@@ -339,14 +330,14 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree,
             makeNearestQueries<DeviceType>( {
                 {{{(double)( comm_size - 1 - comm_rank ) + .75, 0., 0.}}, 1},
             } ),
-            {0}, {0, 1}, {comm_size - comm_rank}, success, out );
+            {0}, {0, 1}, {comm_size - comm_rank} );
     else
         checkResults(
             tree,
             makeNearestQueries<DeviceType>( {
                 {{{(double)( comm_size - 1 - comm_rank ) + .75, 0., 0.}}, 1},
             } ),
-            {0}, {0, 1}, {comm_size - 1}, success, out );
+            {0}, {0, 1}, {comm_size - 1} );
 }
 
 std::vector<std::array<double, 3>>
@@ -368,8 +359,8 @@ make_random_cloud( double const Lx, double const Ly, double const Lz,
     return cloud;
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
-                                   DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( boost_comparison, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     MPI_Comm comm = MPI_COMM_WORLD;
     int comm_rank;
@@ -464,31 +455,5 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( DistributedSearchTree, boost_comparison,
     auto rtree_results =
         BoostRTreeHelpers::performQueries( rtree, within_queries );
 
-    validateResults( bvh_results, rtree_results, success, out );
+    validateResults( bvh_results, rtree_results );
 }
-
-// Include the test macros.
-#include "DataTransferKit_ETIHelperMacros.h"
-
-// Create the test group
-#define UNIT_TEST_GROUP( NODE )                                                \
-    using DeviceType##NODE = typename NODE::device_type;                       \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DistributedSearchTree, hello_world,  \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DistributedSearchTree, empty_tree,   \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT(                                      \
-        DistributedSearchTree, unique_leaf_on_rank_0, DeviceType##NODE )       \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT(                                      \
-        DistributedSearchTree, one_leaf_per_rank, DeviceType##NODE )           \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DistributedSearchTree,               \
-                                          non_approximate_nearest_neighbors,   \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( DistributedSearchTree,               \
-                                          boost_comparison, DeviceType##NODE )
-
-// Demangle the types
-DTK_ETI_MANGLING_TYPEDEFS()
-
-// Instantiate the tests
-DTK_INSTANTIATE_N( UNIT_TEST_GROUP )

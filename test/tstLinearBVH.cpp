@@ -11,9 +11,9 @@
 
 #include <DTK_LinearBVH.hpp>
 
-#include <Teuchos_UnitTestHarness.hpp>
-
 #include "DTK_BoostRTreeHelpers.hpp"
+#include "DTK_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "DTK_EnableViewComparison.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -22,7 +22,13 @@
 
 #include "Search_UnitTestHelpers.hpp"
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty_tree, DeviceType )
+#include <boost/test/unit_test.hpp>
+
+#define BOOST_TEST_MODULE LinearBVH
+
+namespace tt = boost::test_tools;
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( empty_tree, DeviceType, DTK_SEARCH_DEVICE_TYPES )
 {
     // tree is empty, it has no leaves.
     for ( auto const &empty_bvh : {
@@ -30,31 +36,30 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty_tree, DeviceType )
               makeBvh<DeviceType>( {} ), // constructed with empty view of boxes
           } )
     {
-        TEST_ASSERT( empty_bvh.empty() );
-        TEST_EQUALITY( empty_bvh.size(), 0 );
+        BOOST_TEST( empty_bvh.empty() );
+        BOOST_TEST( empty_bvh.size() == 0 );
         // BVH::bounds() returns an invalid box when the tree is empty.
-        TEST_ASSERT(
+        BOOST_TEST(
             DataTransferKit::Details::equals( empty_bvh.bounds(), {} ) );
 
         // Passing a view with no query does seem a bit silly but we still need
         // to support it. And since the tag dispatching yields different tree
         // traversals for nearest and spatial predicates, we do have to check
         // the results for various type of queries.
-        checkResults( empty_bvh, makeOverlapQueries<DeviceType>( {} ), {}, {0},
-                      success, out );
+        checkResults( empty_bvh, makeOverlapQueries<DeviceType>( {} ), {},
+                      {0} );
 
         // NOTE: Admittedly testing for both overlap and within queries might be
         // a bit overkill but I'd rather test for all the queries we plan on
         // using.
-        checkResults( empty_bvh, makeWithinQueries<DeviceType>( {} ), {}, {0},
-                      success, out );
+        checkResults( empty_bvh, makeWithinQueries<DeviceType>( {} ), {}, {0} );
 
-        checkResults( empty_bvh, makeNearestQueries<DeviceType>( {} ), {}, {0},
-                      success, out );
+        checkResults( empty_bvh, makeNearestQueries<DeviceType>( {} ), {},
+                      {0} );
 
         // Passing an empty distance vector.
-        checkResults( empty_bvh, makeNearestQueries<DeviceType>( {} ), {}, {0},
-                      {}, success, out );
+        checkResults( empty_bvh, makeNearestQueries<DeviceType>( {} ), {},
+                      {0} );
 
         // Now passing a couple queries of various type and checking the
         // results.
@@ -64,61 +69,58 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, empty_tree, DeviceType )
                 {}, // Did not bother giving a valid box here but that's fine.
                 {},
             } ),
-            {}, {0, 0, 0}, success, out );
+            {}, {0, 0, 0} );
 
         checkResults( empty_bvh,
                       makeWithinQueries<DeviceType>( {
                           {{{0., 0., 0.}}, 1.},
                           {{{1., 1., 1.}}, 2.},
                       } ),
-                      {}, {0, 0, 0}, success, out );
+                      {}, {0, 0, 0} );
 
         checkResults( empty_bvh,
                       makeNearestQueries<DeviceType>( {
                           {{{0., 0., 0.}}, 1},
                           {{{1., 1., 1.}}, 2},
                       } ),
-                      {}, {0, 0, 0}, success, out );
+                      {}, {0, 0, 0} );
 
         checkResults( empty_bvh,
                       makeNearestQueries<DeviceType>( {
                           {{{0., 0., 0.}}, 1},
                           {{{1., 1., 1.}}, 2},
                       } ),
-                      {}, {0, 0, 0}, {}, success, out );
+                      {}, {0, 0, 0}, {} );
     }
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, single_leaf_tree, DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( single_leaf_tree, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     // tree has a single leaf (unit box)
     auto const bvh = makeBvh<DeviceType>( {
         {{{0., 0., 0.}}, {{1., 1., 1.}}},
     } );
 
-    TEST_ASSERT( !bvh.empty() );
-    TEST_EQUALITY( bvh.size(), 1 );
-    TEST_ASSERT( DataTransferKit::Details::equals(
+    BOOST_TEST( !bvh.empty() );
+    BOOST_TEST( bvh.size() == 1 );
+    BOOST_TEST( DataTransferKit::Details::equals(
         bvh.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}} ) );
 
-    checkResults( bvh, makeOverlapQueries<DeviceType>( {} ), {}, {0}, success,
-                  out );
+    checkResults( bvh, makeOverlapQueries<DeviceType>( {} ), {}, {0} );
 
-    checkResults( bvh, makeWithinQueries<DeviceType>( {} ), {}, {0}, success,
-                  out );
+    checkResults( bvh, makeWithinQueries<DeviceType>( {} ), {}, {0} );
 
-    checkResults( bvh, makeNearestQueries<DeviceType>( {} ), {}, {0}, success,
-                  out );
+    checkResults( bvh, makeNearestQueries<DeviceType>( {} ), {}, {0} );
 
-    checkResults( bvh, makeNearestQueries<DeviceType>( {} ), {}, {0}, {},
-                  success, out );
+    checkResults( bvh, makeNearestQueries<DeviceType>( {} ), {}, {0}, {} );
 
     checkResults( bvh,
                   makeOverlapQueries<DeviceType>( {
                       {{{5., 5., 5.}}, {{5., 5., 5.}}},
                       {{{.5, .5, .5}}, {{.5, .5, .5}}},
                   } ),
-                  {0}, {0, 0, 1}, success, out );
+                  {0}, {0, 0, 1} );
 
     checkResults( bvh,
                   makeWithinQueries<DeviceType>( {
@@ -126,7 +128,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, single_leaf_tree, DeviceType )
                       {{{1., 1., 1.}}, 3.},
                       {{{5., 5., 5.}}, 2.},
                   } ),
-                  {0, 0}, {0, 1, 2, 2}, success, out );
+                  {0, 0}, {0, 1, 2, 2} );
 
     checkResults( bvh,
                   makeNearestQueries<DeviceType>( {
@@ -134,7 +136,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, single_leaf_tree, DeviceType )
                       {{{1., 1., 1.}}, 2},
                       {{{2., 2., 2.}}, 3},
                   } ),
-                  {0, 0, 0}, {0, 1, 2, 3}, success, out );
+                  {0, 0, 0}, {0, 1, 2, 3} );
 
     checkResults( bvh,
                   makeNearestQueries<DeviceType>( {
@@ -142,19 +144,20 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, single_leaf_tree, DeviceType )
                       {{{0., 2., 0.}}, 2},
                       {{{0., 0., 3.}}, 3},
                   } ),
-                  {0, 0, 0}, {0, 1, 2, 3}, {0., 1., 2.}, success, out );
+                  {0, 0, 0}, {0, 1, 2, 3}, {0., 1., 2.} );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, couple_leaves_tree, DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( couple_leaves_tree, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     auto const bvh = makeBvh<DeviceType>( {
         {{{0., 0., 0.}}, {{0., 0., 0.}}},
         {{{1., 1., 1.}}, {{1., 1., 1.}}},
     } );
 
-    TEST_ASSERT( !bvh.empty() );
-    TEST_EQUALITY( bvh.size(), 2 );
-    TEST_ASSERT( DataTransferKit::Details::equals(
+    BOOST_TEST( !bvh.empty() );
+    BOOST_TEST( bvh.size() == 2 );
+    BOOST_TEST( DataTransferKit::Details::equals(
         bvh.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}} ) );
 
     // single query overlap with nothing
@@ -162,21 +165,21 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, couple_leaves_tree, DeviceType )
                   makeOverlapQueries<DeviceType>( {
                       {},
                   } ),
-                  {}, {0, 0}, success, out );
+                  {}, {0, 0} );
 
     // single query overlap with both
     checkResults( bvh,
                   makeOverlapQueries<DeviceType>( {
                       {{{0., 0., 0.}}, {{1., 1., 1.}}},
                   } ),
-                  {1, 0}, {0, 2}, success, out );
+                  {1, 0}, {0, 2} );
 
     // single query overlap with only one
     checkResults( bvh,
                   makeOverlapQueries<DeviceType>( {
                       {{{0.5, 0.5, 0.5}}, {{1.5, 1.5, 1.5}}},
                   } ),
-                  {1}, {0, 1}, success, out );
+                  {1}, {0, 1} );
 
     // a couple queries both overlap with nothing
     checkResults( bvh,
@@ -184,7 +187,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, couple_leaves_tree, DeviceType )
                       {},
                       {},
                   } ),
-                  {}, {0, 0, 0}, success, out );
+                  {}, {0, 0, 0} );
 
     // a couple queries first overlap with nothing second with only one
     checkResults( bvh,
@@ -192,22 +195,21 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, couple_leaves_tree, DeviceType )
                       {},
                       {{{0., 0., 0.}}, {{0., 0., 0.}}},
                   } ),
-                  {0}, {0, 0, 1}, success, out );
+                  {0}, {0, 0, 1} );
 
     // no query
-    checkResults( bvh, makeOverlapQueries<DeviceType>( {} ), {}, {0}, success,
-                  out );
+    checkResults( bvh, makeOverlapQueries<DeviceType>( {} ), {}, {0} );
 
     checkResults( bvh,
                   makeNearestQueries<DeviceType>( {
                       {{{0., 0., 0.}}, 2},
                       {{{1., 0., 0.}}, 4},
                   } ),
-                  {0, 1, 0, 1}, {0, 2, 4}, {0., sqrt( 3. ), 1., sqrt( 2. )},
-                  success, out );
+                  {0, 1, 0, 1}, {0, 2, 4}, {0., sqrt( 3. ), 1., sqrt( 2. )} );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, duplicated_leaves, DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( duplicated_leaves, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     // The tree contains multiple (more than two) leaves that will be assigned
     // the same Morton code.  This was able to trigger a bug that we discovered
@@ -232,13 +234,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, duplicated_leaves, DeviceType )
     //                  {{{1., 1., 1.}}, 1.},
     //                  {{{.5, .5, .5}}, 1.},
     //              } ),
-    //              {0, 1, 2, 3, 0, 1, 2, 3}, {0, 1, 4, 8}, success, out );
-
-    // Suppress a warning about success and out not being used
-    TEST_EQUALITY( true, true );
+    //              {0, 1, 2, 3, 0, 1, 2, 3}, {0, 1, 4, 8} );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, buffer_optimization, DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( buffer_optimization, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     auto const bvh = makeBvh<DeviceType>( {
         {{{0., 0., 0.}}, {{0., 0., 0.}}},
@@ -259,13 +259,13 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, buffer_optimization, DeviceType )
 
     std::vector<int> indices_ref = {3, 2, 1, 0};
     std::vector<int> offset_ref = {0, 0, 4, 4};
-    auto checkResultsAreFine = [&indices, &offset, &indices_ref, &offset_ref,
-                                &success, &out]() -> void {
-        TEST_COMPARE_ARRAYS( indices, indices_ref );
-        TEST_COMPARE_ARRAYS( offset, offset_ref );
+    auto checkResultsAreFine = [&indices, &offset, &indices_ref,
+                                &offset_ref]() -> void {
+        BOOST_TEST( indices == indices_ref, tt::per_element() );
+        BOOST_TEST( offset == offset_ref, tt::per_element() );
     };
 
-    TEST_NOTHROW( bvh.query( queries, indices, offset ) );
+    BOOST_CHECK_NO_THROW( bvh.query( queries, indices, offset ) );
     checkResultsAreFine();
 
     // compute number of results per query
@@ -273,34 +273,34 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, buffer_optimization, DeviceType )
     DataTransferKit::adjacentDifference( offset, counts );
     // extract optimal buffer size
     auto const max_results_per_query = DataTransferKit::max( counts );
-    TEST_EQUALITY( max_results_per_query, 4 );
+    BOOST_TEST( max_results_per_query == 4 );
 
     // optimal size
-    TEST_NOTHROW(
+    BOOST_CHECK_NO_THROW(
         bvh.query( queries, indices, offset, -max_results_per_query ) );
     checkResultsAreFine();
 
     // buffer size insufficient
-    TEST_COMPARE( max_results_per_query, >, 1 );
-    TEST_NOTHROW( bvh.query( queries, indices, offset, +1 ) );
+    BOOST_TEST( max_results_per_query > 1 );
+    BOOST_CHECK_NO_THROW( bvh.query( queries, indices, offset, +1 ) );
     checkResultsAreFine();
-    TEST_THROW( bvh.query( queries, indices, offset, -1 ),
-                DataTransferKit::SearchException );
+    BOOST_CHECK_THROW( bvh.query( queries, indices, offset, -1 ),
+                       DataTransferKit::SearchException );
 
     // adequate buffer size
-    TEST_COMPARE( max_results_per_query, <, 5 );
-    TEST_NOTHROW( bvh.query( queries, indices, offset, +5 ) );
+    BOOST_TEST( max_results_per_query < 5 );
+    BOOST_CHECK_NO_THROW( bvh.query( queries, indices, offset, +5 ) );
     checkResultsAreFine();
-    TEST_NOTHROW( bvh.query( queries, indices, offset, -5 ) );
+    BOOST_CHECK_NO_THROW( bvh.query( queries, indices, offset, -5 ) );
     checkResultsAreFine();
 
     // passing null size skips the buffer optimization and never throws
-    TEST_NOTHROW( bvh.query( queries, indices, offset, 0 ) );
+    BOOST_CHECK_NO_THROW( bvh.query( queries, indices, offset, 0 ) );
     checkResultsAreFine();
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, not_exceeding_stack_capacity,
-                                   DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( not_exceeding_stack_capacity, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     std::vector<DataTransferKit::Box> boxes;
     int const n = 4096; // exceed stack capacity which is 64
@@ -317,22 +317,23 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, not_exceeding_stack_capacity,
     Kokkos::View<int *, DeviceType> offset( "offset" );
     // query number of nearest neighbors that exceed capacity of the stack is
     // not a problem
-    TEST_NOTHROW( bvh.query( makeNearestQueries<DeviceType>( {
-                                 {{{0., 0., 0.}}, n},
-                             } ),
-                             indices, offset ) );
-    TEST_EQUALITY( DataTransferKit::lastElement( offset ), n );
+    BOOST_CHECK_NO_THROW( bvh.query( makeNearestQueries<DeviceType>( {
+                                         {{{0., 0., 0.}}, n},
+                                     } ),
+                                     indices, offset ) );
+    BOOST_TEST( DataTransferKit::lastElement( offset ) == n );
 
     // spatial query that find all indexable in the tree is also fine
-    TEST_NOTHROW( bvh.query( makeOverlapQueries<DeviceType>( {
-                                 {},
-                                 {{{0., 0., 0.}}, {{n, n, n}}},
-                             } ),
-                             indices, offset ) );
-    TEST_EQUALITY( DataTransferKit::lastElement( offset ), n );
+    BOOST_CHECK_NO_THROW( bvh.query( makeOverlapQueries<DeviceType>( {
+                                         {},
+                                         {{{0., 0., 0.}}, {{n, n, n}}},
+                                     } ),
+                                     indices, offset ) );
+    BOOST_TEST( DataTransferKit::lastElement( offset ) == n );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, miscellaneous, DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( miscellaneous, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     auto const bvh = makeBvh<DeviceType>( {
         {{{1., 3., 5.}}, {{2., 4., 6.}}},
@@ -371,10 +372,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, miscellaneous, DeviceType )
     auto zeros_host = Kokkos::create_mirror_view( zeros );
     Kokkos::deep_copy( zeros_host, zeros );
     std::vector<int> zeros_ref = {0, 0, 0};
-    TEST_COMPARE_ARRAYS( zeros_host, zeros_ref );
+    BOOST_TEST( zeros_host == zeros_ref, tt::per_element() );
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( structured_grid, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     double Lx = 100.0;
     double Ly = 100.0;
@@ -440,8 +442,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
     // we expect the collision list to be diag(0, 1, ..., nx*ny*nz-1)
     for ( int i = 0; i < n; ++i )
     {
-        TEST_EQUALITY( indices_host( i ), i );
-        TEST_EQUALITY( offset_host( i ), i );
+        BOOST_TEST( indices_host( i ) == i );
+        BOOST_TEST( offset_host( i ) == i );
     }
 
     // (ii) use bounding boxes that overlap with first neighbors
@@ -552,7 +554,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
                 int index = ind( i, j, k );
                 for ( int l = offset( index ); l < offset( index + 1 ); ++l )
                 {
-                    TEST_ASSERT( ref[index].count( indices( l ) ) != 0 );
+                    BOOST_TEST( ref[index].count( indices( l ) ) != 0 );
                 }
             }
 
@@ -605,8 +607,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, structured_grid, DeviceType )
 
     for ( int i = 0; i < n; ++i )
     {
-        TEST_EQUALITY( offset( i ), i );
-        TEST_ASSERT( ref[i].count( indices[i] ) != 0 );
+        BOOST_TEST( offset( i ) == i );
+        BOOST_TEST( ref[i].count( indices[i] ) != 0 );
     }
 }
 
@@ -648,7 +650,8 @@ std::vector<std::array<double, 3>> make_random_cloud( double Lx, double Ly,
     return cloud;
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( boost_rtree, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     // contruct a cloud of points (nodes of a structured grid)
     double Lx = 10.0;
@@ -753,14 +756,14 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
     bvh.query( nearest_queries, indices_nearest, offset_nearest );
     auto bvh_results = std::make_tuple( offset_nearest, indices_nearest );
 
-    validateResults( rtree_results, bvh_results, success, out );
+    validateResults( rtree_results, bvh_results );
 
     auto const alternate_tree_traversal_algorithm = DataTransferKit::Details::
         NearestQueryAlgorithm::PriorityQueueBased_Deprecated;
     bvh.query( nearest_queries, indices_nearest, offset_nearest,
                alternate_tree_traversal_algorithm );
     bvh_results = std::make_tuple( offset_nearest, indices_nearest );
-    validateResults( rtree_results, bvh_results, success, out );
+    validateResults( rtree_results, bvh_results );
 
     Kokkos::View<int *, DeviceType> offset_within( "offset_within" );
     Kokkos::View<int *, DeviceType> indices_within( "indices_within" );
@@ -769,35 +772,5 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( LinearBVH, rtree, DeviceType )
 
     rtree_results = BoostRTreeHelpers::performQueries( rtree, within_queries );
 
-    validateResults( rtree_results, bvh_results, success, out );
+    validateResults( rtree_results, bvh_results );
 }
-
-// Include the test macros.
-#include "DataTransferKit_ETIHelperMacros.h"
-
-// Create the test group
-#define UNIT_TEST_GROUP( NODE )                                                \
-    using DeviceType##NODE = typename NODE::device_type;                       \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, empty_tree,               \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, single_leaf_tree,         \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, couple_leaves_tree,       \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, duplicated_leaves,        \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, buffer_optimization,      \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT(                                      \
-        LinearBVH, not_exceeding_stack_capacity, DeviceType##NODE )            \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, miscellaneous,            \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, structured_grid,          \
-                                          DeviceType##NODE )                   \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT( LinearBVH, rtree, DeviceType##NODE )
-
-// Demangle the types
-DTK_ETI_MANGLING_TYPEDEFS()
-
-// Instantiate the tests
-DTK_INSTANTIATE_N( UNIT_TEST_GROUP )
