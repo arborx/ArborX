@@ -12,7 +12,6 @@
 #include <DTK_DistributedSearchTree.hpp>
 
 #include <Kokkos_DefaultNode.hpp>
-#include <Teuchos_CommandLineProcessor.hpp>
 
 #include <boost/program_options.hpp>
 
