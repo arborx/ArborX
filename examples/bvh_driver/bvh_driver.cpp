@@ -15,7 +15,7 @@
 
 #include <DTK_LinearBVH.hpp>
 
-#include <Kokkos_DefaultNode.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <benchmark/benchmark.h>
 
@@ -324,17 +324,18 @@ int main( int argc, char *argv[] )
     namespace dtk = DataTransferKit;
 
 #ifdef KOKKOS_ENABLE_SERIAL
-    using Serial = Kokkos::Compat::KokkosSerialWrapperNode::device_type;
+    using Serial = Kokkos::Serial::device_type;
     REGISTER_BENCHMARK( dtk::BVH<Serial> );
 #endif
 
 #ifdef KOKKOS_ENABLE_OPENMP
-    using OpenMP = Kokkos::Compat::KokkosOpenMPWrapperNode::device_type;
+    using OpenMP = Kokkos::OpenMP::device_type;
     REGISTER_BENCHMARK( dtk::BVH<OpenMP> );
 #endif
 
 #ifdef KOKKOS_ENABLE_CUDA
-    using Cuda = Kokkos::Compat::KokkosCudaWrapperNode::device_type;
+    // using Cuda = Kokkos::Cuda::device_type; // <- FIXME segfault
+    using Cuda = Kokkos::Device<Kokkos::Cuda, Kokkos::CudaUVMSpace>;
     REGISTER_BENCHMARK( dtk::BVH<Cuda> );
 #endif
 

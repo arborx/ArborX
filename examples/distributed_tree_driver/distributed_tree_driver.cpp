@@ -11,7 +11,7 @@
 
 #include <DTK_DistributedSearchTree.hpp>
 
-#include <Kokkos_DefaultNode.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <boost/program_options.hpp>
 
@@ -391,13 +391,13 @@ int main( int argc, char *argv[] )
 
         if ( node == "" )
         {
-            typedef KokkosClassic::DefaultNode::DefaultNodeType Node;
+            typedef Kokkos::Serial Node;
             main_<Node>( pass_further );
         }
         else if ( node == "serial" )
         {
 #ifdef KOKKOS_ENABLE_SERIAL
-            typedef Kokkos::Compat::KokkosSerialWrapperNode Node;
+            typedef Kokkos::Serial Node;
             main_<Node>( pass_further );
 #else
             throw std::runtime_error( "Serial node type is disabled" );
@@ -406,7 +406,7 @@ int main( int argc, char *argv[] )
         else if ( node == "openmp" )
         {
 #ifdef KOKKOS_ENABLE_OPENMP
-            typedef Kokkos::Compat::KokkosOpenMPWrapperNode Node;
+            typedef Kokkos::OpenMP Node;
             main_<Node>( pass_further );
 #else
             throw std::runtime_error( "OpenMP node type is disabled" );
@@ -415,7 +415,7 @@ int main( int argc, char *argv[] )
         else if ( node == "cuda" )
         {
 #ifdef KOKKOS_ENABLE_CUDA
-            typedef Kokkos::Compat::KokkosCudaWrapperNode Node;
+            typedef Kokkos::Cuda Node;
             main_<Node>( pass_further );
 #else
             throw std::runtime_error( "CUDA node type is disabled" );
