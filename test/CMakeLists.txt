@@ -1,124 +1,78 @@
-##---------------------------------------------------------------------------##
-## TESTS
-##---------------------------------------------------------------------------##
 set(DTK_SEARCH_DEVICE_TYPES)
-if(Kokkos_ENABLE_Serial)
+if(KOKKOS_DEVICES MATCHES "Serial")
   list(APPEND DTK_SEARCH_DEVICE_TYPES Kokkos::Serial::device_type)
 endif()
-if(Kokkos_ENABLE_OpenMP)
+if(KOKKOS_DEVICES MATCHES "OpenMP")
   list(APPEND DTK_SEARCH_DEVICE_TYPES Kokkos::OpenMP::device_type)
 endif()
-if(Kokkos_ENABLE_Cuda)
+if(KOKKOS_DEVICES MATCHES "Cuda")
   list(APPEND DTK_SEARCH_DEVICE_TYPES Kokkos::Cuda::device_type)
 endif()
 string(REPLACE ";" "," DTK_SEARCH_DEVICE_TYPES "${DTK_SEARCH_DEVICE_TYPES}")
 set(DTK_SEARCH_DEVICE_TYPES "std::tuple<${DTK_SEARCH_DEVICE_TYPES}>")
 configure_file(ArborX_EnableDeviceTypes.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/ArborX_EnableDeviceTypes.hpp @ONLY)
 
-TRIBITS_ADD_EXECUTABLE_AND_TEST(
-  HelloWorld
-  SOURCES tstHelloWorld.cpp utf_main.cpp
-  COMM serial mpi
-  ADDED_EXE_TARGET_NAME_OUT hello_world_exe
-  )
-target_compile_definitions(${hello_world_exe} PRIVATE BOOST_TEST_DYN_LINK DTK_SEARCH_MPI_UNIT_TEST)
 
-TRIBITS_ADD_EXECUTABLE_AND_TEST(
-  Exception
-  SOURCES tstException.cpp
-  COMM serial mpi
-  NUM_MPI_PROCS 1
-  ADDED_EXE_TARGET_NAME_OUT exception_exe
-  )
+add_executable(ArborX_HelloWorld.exe tstHelloWorld.cpp utf_main.cpp)
+target_link_libraries(ArborX_HelloWorld.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_HelloWorld.exe PRIVATE BOOST_TEST_DYN_LINK DTK_SEARCH_MPI_UNIT_TEST)
+add_test(NAME ArborX_HelloWorld COMMAND ./ArborX_HelloWorld.exe)
+
+add_executable(ArborX_Exception.exe tstException.cpp)
 # TODO link Boost::dynamic_linking interface target to enable dynamic linking
 # (adds BOOST_ALL_DYN_LINK)
-target_compile_definitions(${exception_exe} PRIVATE BOOST_TEST_MAIN BOOST_TEST_DYN_LINK)
+target_link_libraries(ArborX_Exception.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_Exception.exe PRIVATE BOOST_TEST_MAIN BOOST_TEST_DYN_LINK)
+add_test(NAME ArborX_Exception COMMAND ./ArborX_Exception.exe)
 
-TRIBITS_ADD_EXECUTABLE_AND_TEST(
-  DetailsUtils
-  SOURCES tstDetailsUtils.cpp utf_main.cpp
-  COMM serial mpi
-  NUM_MPI_PROCS 1
-  ADDED_EXE_TARGET_NAME_OUT details_utils_exe
-  )
-target_compile_definitions(${details_utils_exe} PRIVATE BOOST_TEST_DYN_LINK)
-target_include_directories(${details_utils_exe} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_executable(ArborX_DetailsUtils.exe tstDetailsUtils.cpp utf_main.cpp)
+target_link_libraries(ArborX_DetailsUtils.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_DetailsUtils.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_include_directories(ArborX_DetailsUtils.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_DetailsUtils COMMAND ./ArborX_DetailsUtils.exe)
 
-TRIBITS_ADD_EXECUTABLE_AND_TEST(
-  DetailsAlgorithms
-  SOURCES tstDetailsAlgorithms.cpp
-  COMM serial mpi
-  NUM_MPI_PROCS 1
-  ADDED_EXE_TARGET_NAME_OUT details_algorithms_exe
-  )
-target_compile_definitions(${details_algorithms_exe} PRIVATE BOOST_TEST_MAIN BOOST_TEST_DYN_LINK)
+add_executable(ArborX_DetailsAlgorithms.exe tstDetailsAlgorithms.cpp)
+target_link_libraries(ArborX_DetailsAlgorithms.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_DetailsAlgorithms.exe PRIVATE BOOST_TEST_MAIN BOOST_TEST_DYN_LINK)
+target_include_directories(ArborX_DetailsAlgorithms.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_DetailsAlgorithms COMMAND ./ArborX_DetailsAlgorithms.exe)
 
-TRIBITS_ADD_EXECUTABLE_AND_TEST(
-  LinearBVH
-  SOURCES tstLinearBVH.cpp Search_UnitTestHelpers.hpp utf_main.cpp
-  COMM serial mpi
-  NUM_MPI_PROCS 1
-  ADDED_EXE_TARGET_NAME_OUT linear_bvh_exe
-  )
-target_compile_definitions(${linear_bvh_exe} PRIVATE BOOST_TEST_DYN_LINK)
-target_include_directories(${linear_bvh_exe} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_executable(ArborX_LinearBVH.exe tstLinearBVH.cpp)
+target_link_libraries(ArborX_LinearBVH.exe PRIVATE ArborX Boost::unit_test_framework utf_main.cpp)
+target_compile_definitions(ArborX_LinearBVH.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_include_directories(ArborX_LinearBVH.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_LinearBVH COMMAND ./ArborX_LinearBVH.exe)
 
-TRIBITS_ADD_EXECUTABLE_AND_TEST(
-  DetailsTreeConstruction
-  SOURCES tstDetailsTreeConstruction.cpp utf_main.cpp
-  COMM serial mpi
-  NUM_MPI_PROCS 1
-  ADDED_EXE_TARGET_NAME_OUT details_tree_construction_exe
-  )
-target_compile_definitions(${details_tree_construction_exe} PRIVATE BOOST_TEST_DYN_LINK)
-target_include_directories(${details_tree_construction_exe} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_executable(ArborX_DetailsTreeConstruction.exe tstDetailsTreeConstruction.cpp)
+target_link_libraries(ArborX_DetailsTreeConstruction.exe PRIVATE ArborX Boost::unit_test_framework utf_main.cpp)
+target_compile_definitions(ArborX_DetailsTreeConstruction.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_include_directories(ArborX_DetailsTreeConstruction.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_DetailsTreeConstruction COMMAND ./ArborX_DetailsTreeConstruction.exe)
 
-TRIBITS_ADD_EXECUTABLE_AND_TEST(
-  DetailsTreeTraversal
-  SOURCES tstDetailsTreeTraversal.cpp
-  COMM serial mpi
-  NUM_MPI_PROCS 1
-  ADDED_EXE_TARGET_NAME_OUT details_tree_traversal_exe
-  )
-target_compile_definitions(${details_tree_traversal_exe} PRIVATE BOOST_TEST_MAIN BOOST_TEST_DYN_LINK)
+add_executable(ArborX_DetailsTreeTraversal.exe tstDetailsTreeTraversal.cpp)
+target_link_libraries(ArborX_DetailsTreeTraversal.exe PRIVATE ArborX Boost::unit_test_framework utf_main.cpp)
+target_compile_definitions(ArborX_DetailsTreeTraversal.exe PRIVATE BOOST_TEST_DYN_LINK)
+add_test(NAME ArborX_DetailsTreeTraversal COMMAND ./ArborX_DetailsTreeTraversal.exe)
 
-TRIBITS_ADD_EXECUTABLE_AND_TEST(
-  DetailsBatchedQueries
-  SOURCES tstDetailsBatchedQueries.cpp utf_main.cpp
-  COMM serial mpi
-  NUM_MPI_PROCS 1
-  ADDED_EXE_TARGET_NAME_OUT details_batched_queries_exe
-  )
-target_compile_definitions(${details_batched_queries_exe} PRIVATE BOOST_TEST_DYN_LINK)
-target_include_directories(${details_batched_queries_exe} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_executable(ArborX_DetailsBatchedQueries.exe tstDetailsBatchedQueries.cpp)
+target_link_libraries(ArborX_DetailsBatchedQueries.exe PRIVATE ArborX Boost::unit_test_framework utf_main.cpp)
+target_compile_definitions(ArborX_DetailsBatchedQueries.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_include_directories(ArborX_DetailsBatchedQueries.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_DetailsBatchedQueries COMMAND ./ArborX_DetailsBatchedQueries.exe)
 
-TRIBITS_ADD_EXECUTABLE_AND_TEST(
-  DistributedSearchTree
-  SOURCES tstDistributedSearchTree.cpp Search_UnitTestHelpers.hpp utf_main.cpp
-  COMM serial mpi
-  NUM_MPI_PROCS 4
-  ADDED_EXE_TARGET_NAME_OUT distributed_search_tree_exe
-  )
-target_compile_definitions(${distributed_search_tree_exe} PRIVATE BOOST_TEST_DYN_LINK DTK_SEARCH_MPI_UNIT_TEST)
-target_include_directories(${distributed_search_tree_exe} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_executable(ArborX_DistributedSearchTree.exe tstDistributedSearchTree.cpp)
+target_link_libraries(ArborX_DistributedSearchTree.exe PRIVATE ArborX Boost::unit_test_framework utf_main.cpp)
+target_compile_definitions(ArborX_DistributedSearchTree.exe PRIVATE BOOST_TEST_DYN_LINK DTK_SEARCH_MPI_UNIT_TEST)
+target_include_directories(ArborX_DistributedSearchTree.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_DistributedSearchTree COMMAND ./ArborX_DistributedSearchTree.exe)
 
-TRIBITS_ADD_EXECUTABLE_AND_TEST(
-  DetailsDistributedSearchTreeImpl
-  SOURCES tstDetailsDistributedSearchTreeImpl.cpp utf_main.cpp
-  COMM serial mpi
-  NUM_MPI_PROCS 4
-  ADDED_EXE_TARGET_NAME_OUT details_distributed_search_tree_exe
-  )
-target_compile_definitions(${details_distributed_search_tree_exe} PRIVATE BOOST_TEST_DYN_LINK)
-target_include_directories(${details_distributed_search_tree_exe} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_executable(ArborX_DetailsDistributedSearchTreeImpl.exe tstDetailsDistributedSearchTreeImpl.cpp)
+target_link_libraries(ArborX_DetailsDistributedSearchTreeImpl.exe PRIVATE ArborX Boost::unit_test_framework utf_main.cpp)
+target_compile_definitions(ArborX_DetailsDistributedSearchTreeImpl.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_include_directories(ArborX_DetailsDistributedSearchTreeImpl.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_DetailsDistributedSearchTreeImpl COMMAND ./ArborX_DetailsDistributedSearchTreeImpl.exe)
 
-IF (HAVE_DTK_BOOST)
-  TRIBITS_ADD_EXECUTABLE_AND_TEST(
-    BoostAdapters
-    SOURCES tstBoostGeometryAdapters.cpp tstBoostRangeAdapters.cpp utf_main.cpp
-    COMM serial mpi
-    NUM_MPI_PROCS 1
-    ADDED_EXE_TARGET_NAME_OUT boost_adapters_exe
-    )
-    target_compile_definitions(${boost_adapters_exe} PRIVATE BOOST_TEST_DYN_LINK)
-ENDIF()
+add_executable(ArborX_BoostAdapters.exe tstBoostGeometryAdapters.cpp tstBoostRangeAdapters.cpp utf_main.cpp)
+target_link_libraries(ArborX_BoostAdapters.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_BoostAdapters.exe PRIVATE BOOST_TEST_DYN_LINK)
+add_test(NAME ArborX_BoostAdapters COMMAND ./ArborX_BoostAdapters.exe)

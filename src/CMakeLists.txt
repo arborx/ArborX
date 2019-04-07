@@ -1,22 +1,34 @@
-SET(HEADERS "")
-SET(SOURCES "")
-
-FOREACH(dir ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/details)
-  APPEND_GLOB(HEADERS ${dir}/*.hpp)
-  APPEND_GLOB(SOURCES ${dir}/*.cpp)
-  TRIBITS_INCLUDE_DIRECTORIES(${dir})
-ENDFOREACH()
-
-TRIBITS_ADD_LIBRARY(
-  dtk_search
-  HEADERS ${HEADERS}
-  SOURCES ${SOURCES}
-  DEPLIBS dtk_utils
-  ADDED_LIB_TARGET_NAME_OUT DTK_SEARCH_LIBNAME
-  )
-
-# We need to set the linker language explicitly here for CUDA builds.
-SET_PROPERTY(
-  TARGET ${DTK_SEARCH_LIBNAME}
-  APPEND PROPERTY LINKER_LANGUAGE CXX
-  )
+target_sources(ArborX INTERFACE
+  DTK_DistributedSearchTree.hpp
+  DTK_LinearBVH.hpp
+  details/DTK_Box.hpp
+  details/DTK_DetailsAlgorithms.hpp
+  details/DTK_DetailsBatchedQueries.hpp
+  details/DTK_DetailsBoundingVolumeHierarchyImpl.hpp
+  details/DTK_DetailsConcepts.hpp
+  details/DTK_DetailsContainers.hpp
+  details/DTK_DetailsDistributedSearchTreeImpl.hpp
+  details/DTK_DetailsDistributor.hpp
+  details/DTK_DetailsHeap.hpp
+  details/DTK_DetailsKokkosExt.hpp
+  details/DTK_DetailsMortonCode.hpp
+  details/DTK_DetailsNode.hpp
+  details/DTK_DetailsPriorityQueue.hpp
+  details/DTK_DetailsSortUtils.hpp
+  details/DTK_DetailsStack.hpp
+  details/DTK_DetailsTags.hpp
+  details/DTK_DetailsTraits.hpp
+  details/DTK_DetailsTreeConstruction.hpp
+  details/DTK_DetailsTreeTraversal.hpp
+  details/DTK_DetailsTreeVisualization.hpp
+  details/DTK_DetailsUtils.hpp
+  details/DTK_Point.hpp
+  details/DTK_Predicates.hpp
+  details/DTK_Search_Exception.hpp
+  details/DTK_SearchMacros.hpp
+  details/DTK_Sphere.hpp
+)
+target_include_directories(ArborX INTERFACE
+  ${CMAKE_CURRENT_LIST_DIR}
+  ${CMAKE_CURRENT_LIST_DIR}/details
+)
