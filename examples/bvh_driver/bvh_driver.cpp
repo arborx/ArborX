@@ -26,7 +26,7 @@
 #include <cstdlib>
 #include <random>
 
-#if defined( HAVE_DTK_BOOST ) && defined( KOKKOS_ENABLE_SERIAL )
+#if defined( KOKKOS_ENABLE_SERIAL )
 class BoostRTree
 {
   public:
@@ -339,7 +339,7 @@ int main( int argc, char *argv[] )
     REGISTER_BENCHMARK( dtk::BVH<Cuda> );
 #endif
 
-#if defined( HAVE_DTK_BOOST ) && defined( KOKKOS_ENABLE_SERIAL )
+#if defined( KOKKOS_ENABLE_SERIAL )
     REGISTER_BENCHMARK( BoostRTree );
 #endif
 

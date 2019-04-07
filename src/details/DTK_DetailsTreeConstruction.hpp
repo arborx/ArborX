@@ -12,8 +12,6 @@
 #ifndef DTK_DETAILS_TREE_CONSTRUCTION_HPP
 #define DTK_DETAILS_TREE_CONSTRUCTION_HPP
 
-#include "DTK_ConfigDefs.hpp"
-
 #include <DTK_Box.hpp>
 #include <DTK_DetailsAlgorithms.hpp> // expand
 #include <DTK_DetailsKokkosExt.hpp>  // clz, min, max, sgn
