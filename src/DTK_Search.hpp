@@ -12,7 +12,12 @@
 #ifndef DTK_SEARCH_HPP
 #define DTK_SEARCH_HPP
 
+#include <DTK_Box.hpp>
 #include <DTK_DistributedSearchTree.hpp>
 #include <DTK_LinearBVH.hpp>
+#include <DTK_Point.hpp>
+#include <DTK_Predicates.hpp>
+#include <DTK_Search_Exception.hpp>
+#include <DTK_Sphere.hpp>
 
 #endif
