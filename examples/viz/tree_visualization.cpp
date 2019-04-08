@@ -15,7 +15,6 @@
 #include <ArborX_LinearBVH.hpp>
 
 #include <Kokkos_Core.hpp>
-#include <Kokkos_DefaultNode.hpp>
 
 #include <boost/program_options.hpp>
 
