@@ -70,8 +70,7 @@ void checkResults( DataTransferKit::BVH<DeviceType> const &bvh,
 
     BOOST_TEST( indices_host == indices_ref, tt::per_element() );
     BOOST_TEST( offset_host == offset_ref, tt::per_element() );
-    // BOOST_TEST( distances_host == distances_ref, tt::per_element(),
-    // tt::tolerance( 1e-14 ) ); FIXME_BOOST
+    BOOST_TEST( distances_host == distances_ref, tt::per_element() );
 }
 
 template <typename Query, typename DeviceType>
@@ -144,8 +143,7 @@ void checkResults(
     BOOST_TEST( indices_host == indices_ref, tt::per_element() );
     BOOST_TEST( offset_host == offset_ref, tt::per_element() );
     BOOST_TEST( ranks_host == ranks_ref, tt::per_element() );
-    // BOOST_TEST( distances_host == distances_ref, tt::per_element(),
-    // tt::tolerance( 1e-14 ) ); FIXME_BOOST
+    BOOST_TEST( distances_host != distances_ref, tt::per_element() );
 }
 
 template <typename DeviceType>
