@@ -60,7 +60,7 @@ struct BatchedQueries
         Kokkos::View<unsigned int *, DeviceType> morton_codes(
             Kokkos::ViewAllocateWithoutInitializing( "morton" ), n_queries );
         Kokkos::parallel_for(
-            DTK_SEARCH_MARK_REGION( "assign_morton_codes_to_queries" ),
+            ARBORX_MARK_REGION( "assign_morton_codes_to_queries" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int i ) {
                 Point xyz = Details::returnCentroid( queries( i )._geometry );
@@ -78,11 +78,11 @@ struct BatchedQueries
                       Kokkos::View<T *, DeviceType> v )
     {
         auto const n = permute.extent( 0 );
-        DTK_SEARCH_ASSERT( v.extent( 0 ) == n );
+        ARBORX_ASSERT( v.extent( 0 ) == n );
 
         auto w = cloneWithoutInitializingNorCopying( v );
         Kokkos::parallel_for(
-            DTK_SEARCH_MARK_REGION( "permute_entries" ),
+            ARBORX_MARK_REGION( "permute_entries" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
             KOKKOS_LAMBDA( int i ) { w( i ) = v( permute( i ) ); } );
         Kokkos::fence();
@@ -95,11 +95,11 @@ struct BatchedQueries
                    Kokkos::View<int const *, DeviceType> offset )
     {
         auto const n = permute.extent( 0 );
-        DTK_SEARCH_ASSERT( offset.extent( 0 ) == n + 1 );
+        ARBORX_ASSERT( offset.extent( 0 ) == n + 1 );
 
         auto tmp_offset = cloneWithoutInitializingNorCopying( offset );
         Kokkos::parallel_for(
-            DTK_SEARCH_MARK_REGION( "adjacent_difference_and_permutation" ),
+            ARBORX_MARK_REGION( "adjacent_difference_and_permutation" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
             KOKKOS_LAMBDA( int i ) {
                 tmp_offset( permute( i ) ) = offset( i + 1 ) - offset( i );
@@ -120,15 +120,14 @@ struct BatchedQueries
     {
         auto const n = permute.extent( 0 );
 
-        DTK_SEARCH_ASSERT( offset.extent( 0 ) == n + 1 );
-        DTK_SEARCH_ASSERT( tmp_offset.extent( 0 ) == n + 1 );
-        DTK_SEARCH_ASSERT( lastElement( offset ) == indices.extent_int( 0 ) );
-        DTK_SEARCH_ASSERT( lastElement( tmp_offset ) ==
-                           indices.extent_int( 0 ) );
+        ARBORX_ASSERT( offset.extent( 0 ) == n + 1 );
+        ARBORX_ASSERT( tmp_offset.extent( 0 ) == n + 1 );
+        ARBORX_ASSERT( lastElement( offset ) == indices.extent_int( 0 ) );
+        ARBORX_ASSERT( lastElement( tmp_offset ) == indices.extent_int( 0 ) );
 
         auto tmp_indices = cloneWithoutInitializingNorCopying( indices );
         Kokkos::parallel_for(
-            DTK_SEARCH_MARK_REGION( "permute_indices" ),
+            ARBORX_MARK_REGION( "permute_indices" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
             KOKKOS_LAMBDA( int q ) {
                 for ( int i = 0; i < offset( q + 1 ) - offset( q ); ++i )

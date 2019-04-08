@@ -82,7 +82,7 @@ void exclusivePrefixSum( Kokkos::View<ST, SP...> const &src,
     using ValueType = typename Kokkos::ViewTraits<DT, DP...>::value_type;
 
     auto const n = src.extent( 0 );
-    DTK_SEARCH_ASSERT( n == dst.extent( 0 ) );
+    ARBORX_ASSERT( n == dst.extent( 0 ) );
     Kokkos::parallel_scan(
         "exclusive_scan", Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
         Details::ExclusiveScanFunctor<ValueType, ExecutionSpace>( src, dst ) );
@@ -117,7 +117,7 @@ lastElement( Kokkos::View<T, P...> const &v )
         ( unsigned( Kokkos::ViewTraits<T, P...>::rank ) == unsigned( 1 ) ),
         "lastElement requires Views of rank 1" );
     auto const n = v.extent( 0 );
-    DTK_SEARCH_ASSERT( n > 0 );
+    ARBORX_ASSERT( n > 0 );
     auto v_subview = Kokkos::subview( v, n - 1 );
     auto v_host = Kokkos::create_mirror_view( v_subview );
     Kokkos::deep_copy( v_host, v_subview );
@@ -172,7 +172,7 @@ minMax( ViewType const &v )
     static_assert( ViewType::rank == 1, "minMax requires a View of rank 1" );
     using ExecutionSpace = typename ViewType::execution_space;
     auto const n = v.extent( 0 );
-    DTK_SEARCH_ASSERT( n > 0 );
+    ARBORX_ASSERT( n > 0 );
     Kokkos::Experimental::MinMaxScalar<typename ViewType::non_const_value_type>
         result;
     Kokkos::Experimental::MinMax<typename ViewType::non_const_value_type>
@@ -193,7 +193,7 @@ typename ViewType::non_const_value_type min( ViewType const &v )
     static_assert( ViewType::rank == 1, "min requires a View of rank 1" );
     using ExecutionSpace = typename ViewType::execution_space;
     auto const n = v.extent( 0 );
-    DTK_SEARCH_ASSERT( n > 0 );
+    ARBORX_ASSERT( n > 0 );
     typename ViewType::non_const_value_type result;
     Kokkos::Experimental::Min<typename ViewType::non_const_value_type> reducer(
         result );
@@ -216,7 +216,7 @@ typename ViewType::non_const_value_type max( ViewType const &v )
     static_assert( ViewType::rank == 1, "max requires a View of rank 1" );
     using ExecutionSpace = typename ViewType::execution_space;
     auto const n = v.extent( 0 );
-    DTK_SEARCH_ASSERT( n > 0 );
+    ARBORX_ASSERT( n > 0 );
     typename ViewType::non_const_value_type result;
     Kokkos::Experimental::Max<typename ViewType::non_const_value_type> reducer(
         result );
@@ -294,8 +294,8 @@ void adjacentDifference( SrcViewType const &src, DstViewType const &dst )
     using ExecutionSpace = typename DstViewType::execution_space;
     // QUESTION Should we assert anything about the memory spaces?
     auto const n = src.extent( 0 );
-    DTK_SEARCH_ASSERT( n == dst.extent( 0 ) );
-    DTK_SEARCH_ASSERT( src != dst );
+    ARBORX_ASSERT( n == dst.extent( 0 ) );
+    ARBORX_ASSERT( src != dst );
     Kokkos::parallel_for( "adjacentDifference",
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
                           KOKKOS_LAMBDA( int i ) {

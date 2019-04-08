@@ -25,7 +25,7 @@ namespace boost
 {
 // TODO SpaceAccessibility has been promoted to Kokkos:: namespace in later
 // versions of Kokkos so eventually get rid of Impl::
-#define DTK_ASSERT_VIEW_COMPATIBLE( View )                                     \
+#define ARBORX_ASSERT_VIEW_COMPATIBLE( View )                                  \
     using Traits = typename View::traits;                                      \
     static_assert(                                                             \
         Traits::rank == 1,                                                     \
@@ -41,7 +41,7 @@ template <typename T, typename... P>
 struct range_iterator<Kokkos::View<T, P...>>
 {
     using View = Kokkos::View<T, P...>;
-    DTK_ASSERT_VIEW_COMPATIBLE( View )
+    ARBORX_ASSERT_VIEW_COMPATIBLE( View )
     typedef typename std::add_pointer<
         typename Kokkos::ViewTraits<T, P...>::value_type>::type type;
 };
@@ -50,7 +50,7 @@ template <typename T, typename... P>
 struct range_const_iterator<Kokkos::View<T, P...>>
 {
     using View = Kokkos::View<T, P...>;
-    DTK_ASSERT_VIEW_COMPATIBLE( View )
+    ARBORX_ASSERT_VIEW_COMPATIBLE( View )
     typedef typename std::add_pointer<
         typename Kokkos::ViewTraits<T, P...>::const_value_type>::type type;
 };
@@ -59,7 +59,7 @@ template <typename T, typename... P>
 struct range_value<Kokkos::View<T, P...>>
 {
     using View = Kokkos::View<T, P...>;
-    DTK_ASSERT_VIEW_COMPATIBLE( View )
+    ARBORX_ASSERT_VIEW_COMPATIBLE( View )
     typedef typename Kokkos::ViewTraits<T, P...>::value_type type;
 };
 
@@ -67,7 +67,7 @@ template <typename T, typename... P>
 struct range_reference<Kokkos::View<T, P...>>
 {
     using View = Kokkos::View<T, P...>;
-    DTK_ASSERT_VIEW_COMPATIBLE( View )
+    ARBORX_ASSERT_VIEW_COMPATIBLE( View )
     typedef typename Kokkos::ViewTraits<T, P...>::reference_type type;
 };
 
@@ -75,7 +75,7 @@ template <typename T, typename... P>
 struct range_size<Kokkos::View<T, P...>>
 {
     using View = Kokkos::View<T, P...>;
-    DTK_ASSERT_VIEW_COMPATIBLE( View )
+    ARBORX_ASSERT_VIEW_COMPATIBLE( View )
     typedef typename Kokkos::ViewTraits<T, P...>::size_type type;
 };
 
@@ -89,7 +89,7 @@ inline typename boost::range_iterator<Kokkos::View<T, P...>>::type
 range_begin( Kokkos::View<T, P...> &v )
 {
     using View = Kokkos::View<T, P...>;
-    DTK_ASSERT_VIEW_COMPATIBLE( View )
+    ARBORX_ASSERT_VIEW_COMPATIBLE( View )
     return v.data();
 }
 
@@ -98,7 +98,7 @@ inline typename boost::range_const_iterator<Kokkos::View<T, P...>>::type
 range_begin( Kokkos::View<T, P...> const &v )
 {
     using View = Kokkos::View<T, P...>;
-    DTK_ASSERT_VIEW_COMPATIBLE( View )
+    ARBORX_ASSERT_VIEW_COMPATIBLE( View )
     return v.data();
 }
 
@@ -107,8 +107,8 @@ inline typename boost::range_iterator<Kokkos::View<T, P...>>::type
 range_end( Kokkos::View<T, P...> &v )
 {
     using View = Kokkos::View<T, P...>;
-    DTK_ASSERT_VIEW_COMPATIBLE( View )
-    DTK_SEARCH_ASSERT( v.span_is_contiguous() );
+    ARBORX_ASSERT_VIEW_COMPATIBLE( View )
+    ARBORX_ASSERT( v.span_is_contiguous() );
     return v.data() + v.span();
 }
 
@@ -117,8 +117,8 @@ inline typename boost::range_const_iterator<Kokkos::View<T, P...>>::type
 range_end( Kokkos::View<T, P...> const &v )
 {
     using View = Kokkos::View<T, P...>;
-    DTK_ASSERT_VIEW_COMPATIBLE( View )
-    DTK_SEARCH_ASSERT( v.span_is_contiguous() );
+    ARBORX_ASSERT_VIEW_COMPATIBLE( View )
+    ARBORX_ASSERT( v.span_is_contiguous() );
     return v.data() + v.span();
 }
 
@@ -128,11 +128,11 @@ inline typename boost::range_size<Kokkos::View<T, P...>>::type
 range_calculate_size( Kokkos::View<T, P...> const &v )
 {
     using View = Kokkos::View<T, P...>;
-    DTK_ASSERT_VIEW_COMPATIBLE( View )
+    ARBORX_ASSERT_VIEW_COMPATIBLE( View )
     return v.extent( 0 );
 }
 
-#undef DTK_ASSERT_VIEW_COMPATIBLE
+#undef ARBORX_ASSERT_VIEW_COMPATIBLE
 
 } // namespace Kokkos
 

@@ -18,10 +18,10 @@
 BOOST_AUTO_TEST_CASE( dumb )
 {
     using namespace DataTransferKit;
-    BOOST_CHECK_NO_THROW( DTK_SEARCH_ASSERT( true ) );
+    BOOST_CHECK_NO_THROW( ARBORX_ASSERT( true ) );
     std::string const prefix = "DTK Search exception: ";
     BOOST_CHECK_EXCEPTION(
-        DTK_SEARCH_ASSERT( false ), SearchException,
+        ARBORX_ASSERT( false ), SearchException,
         [&]( std::exception const &e ) {
             std::string const message = e.what();
             bool const message_starts_with_prefix = message.find( prefix ) == 0;

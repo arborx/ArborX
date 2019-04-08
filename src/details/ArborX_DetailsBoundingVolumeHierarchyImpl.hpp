@@ -104,8 +104,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     Kokkos::deep_copy( offset, 0 );
 
     Kokkos::parallel_for(
-        DTK_SEARCH_MARK_REGION(
-            "scan_queries_for_numbers_of_nearest_neighbors" ),
+        ARBORX_MARK_REGION( "scan_queries_for_numbers_of_nearest_neighbors" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
         KOKKOS_LAMBDA( int i ) { offset( permute( i ) ) = queries( i )._k; } );
     Kokkos::fence();
@@ -127,7 +126,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
         if ( use_deprecated_nearest_query_algorithm )
         {
             Kokkos::parallel_for(
-                DTK_SEARCH_MARK_REGION(
+                ARBORX_MARK_REGION(
                     "perform_deprecated_nearest_queries_and_return_distances" ),
                 Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                 KOKKOS_LAMBDA( int i ) {
@@ -156,7 +155,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
                 n_results );
 
             Kokkos::parallel_for(
-                DTK_SEARCH_MARK_REGION(
+                ARBORX_MARK_REGION(
                     "perform_nearest_queries_and_return_distances" ),
                 Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                 KOKKOS_LAMBDA( int i ) {
@@ -183,7 +182,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
         if ( use_deprecated_nearest_query_algorithm )
         {
             Kokkos::parallel_for(
-                DTK_SEARCH_MARK_REGION( "perform_deprecated_nearest_queries" ),
+                ARBORX_MARK_REGION( "perform_deprecated_nearest_queries" ),
                 Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                 KOKKOS_LAMBDA( int i ) {
                     int count = 0;
@@ -203,7 +202,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
                 n_results );
 
             Kokkos::parallel_for(
-                DTK_SEARCH_MARK_REGION( "perform_nearest_queries" ),
+                ARBORX_MARK_REGION( "perform_nearest_queries" ),
                 Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                 KOKKOS_LAMBDA( int i ) {
                     int count = 0;
@@ -226,7 +225,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     // eliminate them if necessary.
     auto tmp_offset = cloneWithoutInitializingNorCopying( offset );
     Kokkos::deep_copy( tmp_offset, 0 );
-    Kokkos::parallel_for( DTK_SEARCH_MARK_REGION( "count_invalid_indices" ),
+    Kokkos::parallel_for( ARBORX_MARK_REGION( "count_invalid_indices" ),
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                           KOKKOS_LAMBDA( int q ) {
                               for ( int i = offset( q ); i < offset( q + 1 );
@@ -243,7 +242,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     if ( n_invalid_indices > 0 )
     {
         Kokkos::parallel_for(
-            DTK_SEARCH_MARK_REGION( "subtract_invalid_entries_from_offset" ),
+            ARBORX_MARK_REGION( "subtract_invalid_entries_from_offset" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries + 1 ),
             KOKKOS_LAMBDA( int q ) {
                 tmp_offset( q ) = offset( q ) - tmp_offset( q );
@@ -256,7 +255,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
             n_valid_indices );
 
         Kokkos::parallel_for(
-            DTK_SEARCH_MARK_REGION( "copy_valid_indices" ),
+            ARBORX_MARK_REGION( "copy_valid_indices" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int q ) {
                 for ( int i = 0; i < tmp_offset( q + 1 ) - tmp_offset( q );
@@ -275,7 +274,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
                 Kokkos::ViewAllocateWithoutInitializing( distances.label() ),
                 n_valid_indices );
             Kokkos::parallel_for(
-                DTK_SEARCH_MARK_REGION( "copy_valid_distances" ),
+                ARBORX_MARK_REGION( "copy_valid_distances" ),
                 Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                 KOKKOS_LAMBDA( int q ) {
                     for ( int i = 0; i < tmp_offset( q + 1 ) - tmp_offset( q );
@@ -349,7 +348,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
         // work
 
         Kokkos::parallel_for(
-            DTK_SEARCH_MARK_REGION(
+            ARBORX_MARK_REGION(
                 "first_pass_at_the_search_with_buffer_optimization" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int i ) {
@@ -367,7 +366,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     }
     else
         Kokkos::parallel_for(
-            DTK_SEARCH_MARK_REGION(
+            ARBORX_MARK_REGION(
                 "first_pass_at_the_search_count_the_number_of_indices" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int i ) {
@@ -401,7 +400,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     if ( max_results_per_query > buffer_size )
     {
         // FIXME can definitely do better about error message
-        DTK_SEARCH_ASSERT( !throw_if_buffer_optimization_fails );
+        ARBORX_ASSERT( !throw_if_buffer_optimization_fails );
 
         // We allocate the memory and fill
         //
@@ -410,7 +409,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
         //   0     2     4         2N-2  2N
         reallocWithoutInitializing( indices, n_results );
         Kokkos::parallel_for(
-            DTK_SEARCH_MARK_REGION( "second_pass" ),
+            ARBORX_MARK_REGION( "second_pass" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int i ) {
                 int count = 0;
@@ -430,7 +429,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
             Kokkos::ViewAllocateWithoutInitializing( indices.label() ),
             n_results );
         Kokkos::parallel_for(
-            DTK_SEARCH_MARK_REGION( "copy_valid_indices" ),
+            ARBORX_MARK_REGION( "copy_valid_indices" ),
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int q ) {
                 for ( int i = 0; i < offset( q + 1 ) - offset( q ); ++i )

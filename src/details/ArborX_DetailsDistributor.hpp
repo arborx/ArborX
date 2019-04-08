@@ -37,10 +37,10 @@ static void sortAndDetermineBufferLayout( InputView ranks,
                                           std::vector<int> &counts,
                                           std::vector<int> &offsets )
 {
-    DTK_SEARCH_ASSERT( unique_ranks.empty() );
-    DTK_SEARCH_ASSERT( offsets.empty() );
-    DTK_SEARCH_ASSERT( counts.empty() );
-    DTK_SEARCH_ASSERT( permutation_indices.extent( 0 ) == ranks.extent( 0 ) );
+    ARBORX_ASSERT( unique_ranks.empty() );
+    ARBORX_ASSERT( offsets.empty() );
+    ARBORX_ASSERT( counts.empty() );
+    ARBORX_ASSERT( permutation_indices.extent( 0 ) == ranks.extent( 0 ) );
     static_assert(
         std::is_same<typename InputView::non_const_value_type, int>::value,
         "" );
@@ -155,10 +155,8 @@ class Distributor
     void doPostsAndWaits( typename View::const_type const &exports,
                           size_t num_packets, View const &imports ) const
     {
-        DTK_SEARCH_ASSERT( num_packets * _src_offsets.back() ==
-                           imports.size() );
-        DTK_SEARCH_ASSERT( num_packets * _dest_offsets.back() ==
-                           exports.size() );
+        ARBORX_ASSERT( num_packets * _src_offsets.back() == imports.size() );
+        ARBORX_ASSERT( num_packets * _dest_offsets.back() == exports.size() );
 
         using ValueType = typename View::value_type;
         static_assert( View::rank == 1, "" );

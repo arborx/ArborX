@@ -39,7 +39,7 @@ sortObjects( Kokkos::View<unsigned int *, DeviceType> view )
 
     Kokkos::Experimental::MinMaxScalar<ValueType> result;
     Kokkos::Experimental::MinMax<ValueType> reducer( result );
-    parallel_reduce( DTK_SEARCH_MARK_REGION( "find_min_max_view" ),
+    parallel_reduce( ARBORX_MARK_REGION( "find_min_max_view" ),
                      Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
                      Kokkos::Impl::min_max_functor<ViewType>( view ), reducer );
     if ( result.min_val == result.max_val )

@@ -29,14 +29,14 @@ class SearchException : public std::logic_error
 
 } // namespace DataTransferKit
 
-#define DTK_SEARCH_STRINGIZE_DETAIL( x ) #x
-#define DTK_SEARCH_STRINGIZE( x ) DTK_SEARCH_STRINGIZE_DETAIL( x )
+#define ARBORX_STRINGIZE_DETAIL( x ) #x
+#define ARBORX_STRINGIZE( x ) ARBORX_STRINGIZE_DETAIL( x )
 
 // FIXME: Unconditionally assert for now
 // Once moved out, possibly make it conditional
-#define DTK_SEARCH_ASSERT( c )                                                 \
+#define ARBORX_ASSERT( c )                                                     \
     if ( !( c ) )                                                              \
     throw DataTransferKit::SearchException(                                    \
-        #c ", failed at " __FILE__ ":" DTK_SEARCH_STRINGIZE( __LINE__ ) "." )
+        #c ", failed at " __FILE__ ":" ARBORX_STRINGIZE( __LINE__ ) "." )
 
 #endif

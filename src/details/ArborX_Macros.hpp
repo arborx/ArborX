@@ -12,6 +12,6 @@
 #ifndef ARBORX_SEARCH_MACROS_HPP
 #define ARBORX_SEARCH_MACROS_HPP
 
-#define DTK_SEARCH_MARK_REGION( x ) std::string( "DTK_Search_" ) + x
+#define ARBORX_MARK_REGION( x ) std::string( "DTK_Search_" ) + x
 
 #endif

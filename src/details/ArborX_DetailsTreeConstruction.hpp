@@ -215,7 +215,7 @@ inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
     using Access = typename Traits::Access<Primitives>;
     auto const n = Access::size( primitives );
     Kokkos::parallel_reduce(
-        DTK_SEARCH_MARK_REGION( "calculate_bounding_box_of_the_scene" ),
+        ARBORX_MARK_REGION( "calculate_bounding_box_of_the_scene" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
         CalculateBoundingBoxOfTheSceneFunctor<Primitives>( primitives ),
         scene_bounding_box );
@@ -231,7 +231,7 @@ inline void assignMortonCodesDispatch( BoxTag, Primitives const &primitives,
     using Access = typename Traits::Access<Primitives>;
     auto const n = Access::size( primitives );
     Kokkos::parallel_for(
-        DTK_SEARCH_MARK_REGION( "assign_morton_codes" ),
+        ARBORX_MARK_REGION( "assign_morton_codes" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
             Point xyz;
             centroid( Access::get( primitives, i ), xyz );
@@ -250,7 +250,7 @@ inline void assignMortonCodesDispatch( PointTag, Primitives const &primitives,
     using Access = typename Traits::Access<Primitives>;
     auto const n = Access::size( primitives );
     Kokkos::parallel_for(
-        DTK_SEARCH_MARK_REGION( "assign_morton_codes" ),
+        ARBORX_MARK_REGION( "assign_morton_codes" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
             Point xyz;
             translateAndScale( Access::get( primitives, i ), xyz,
@@ -270,7 +270,7 @@ inline void TreeConstruction<DeviceType>::assignMortonCodes(
     using Access = typename Traits::Access<Primitives>;
 
     auto const n = Access::size( primitives );
-    DTK_SEARCH_ASSERT( morton_codes.extent( 0 ) == n );
+    ARBORX_ASSERT( morton_codes.extent( 0 ) == n );
 
     using Tag = typename Access::Tag;
     assignMortonCodesDispatch( Tag{}, primitives, morton_codes,
@@ -286,7 +286,7 @@ inline void initializeLeafNodesDispatch( BoxTag, Primitives const &primitives,
     using Access = typename Traits::Access<Primitives>;
     auto const n = Access::size( primitives );
     Kokkos::parallel_for(
-        DTK_SEARCH_MARK_REGION( "initialize_leaf_nodes" ),
+        ARBORX_MARK_REGION( "initialize_leaf_nodes" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
             leaf_nodes( i ) = {
                 {nullptr, reinterpret_cast<Node *>( permutation_indices( i ) )},
@@ -304,7 +304,7 @@ inline void initializeLeafNodesDispatch( PointTag, Primitives const &primitives,
     using Access = typename Traits::Access<Primitives>;
     auto const n = Access::size( primitives );
     Kokkos::parallel_for(
-        DTK_SEARCH_MARK_REGION( "initialize_leaf_nodes" ),
+        ARBORX_MARK_REGION( "initialize_leaf_nodes" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
             leaf_nodes( i ) = {
                 {nullptr, reinterpret_cast<Node *>( permutation_indices( i ) )},
@@ -324,8 +324,8 @@ inline void TreeConstruction<DeviceType>::initializeLeafNodes(
     using Access = typename Traits::Access<Primitives>;
 
     auto const n = Access::size( primitives );
-    DTK_SEARCH_ASSERT( permutation_indices.extent( 0 ) == n );
-    DTK_SEARCH_ASSERT( leaf_nodes.extent( 0 ) == n );
+    ARBORX_ASSERT( permutation_indices.extent( 0 ) == n );
+    ARBORX_ASSERT( leaf_nodes.extent( 0 ) == n );
 
     static_assert( sizeof( typename decltype(
                        permutation_indices )::value_type ) == sizeof( Node * ),
@@ -418,7 +418,7 @@ Node *TreeConstruction<DeviceType>::generateHierarchy(
 {
     auto const n = sorted_morton_codes.extent( 0 );
     Kokkos::parallel_for(
-        DTK_SEARCH_MARK_REGION( "generate_hierarchy" ),
+        ARBORX_MARK_REGION( "generate_hierarchy" ),
         Kokkos::RangePolicy<ExecutionSpace>( 0, n - 1 ),
         GenerateHierarchyFunctor<DeviceType>( sorted_morton_codes, leaf_nodes,
                                               internal_nodes, parents ) );
@@ -492,7 +492,7 @@ void TreeConstruction<DeviceType>::calculateInternalNodesBoundingVolumes(
     auto const last = first + leaf_nodes.extent( 0 );
     Node *root = internal_nodes.data();
     Kokkos::parallel_for(
-        DTK_SEARCH_MARK_REGION( "calculate_bounding_boxes" ),
+        ARBORX_MARK_REGION( "calculate_bounding_boxes" ),
         Kokkos::RangePolicy<ExecutionSpace>( first, last ),
         CalculateInternalNodesBoundingVolumesFunctor<DeviceType>( root, parents,
                                                                   first ) );
