@@ -9,8 +9,10 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <DTK_DetailsTreeVisualization.hpp>
-#include <DTK_LinearBVH.hpp>
+#include <point_clouds.hpp>
+
+#include <ArborX_DetailsTreeVisualization.hpp>
+#include <ArborX_LinearBVH.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_DefaultNode.hpp>

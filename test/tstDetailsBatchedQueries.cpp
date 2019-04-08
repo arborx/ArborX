@@ -9,10 +9,10 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <DTK_DetailsBatchedQueries.hpp>
+#include <ArborX_DetailsBatchedQueries.hpp>
 
-#include "DTK_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
-#include "DTK_EnableViewComparison.hpp"
+#include "ArborX_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "ArborX_EnableViewComparison.hpp"
 
 #include <boost/test/unit_test.hpp>
 

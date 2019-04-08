@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <DTK_DistributedSearchTree.hpp>
+#include <ArborX_DistributedSearchTree.hpp>
 
 #include <Kokkos_Core.hpp>
 

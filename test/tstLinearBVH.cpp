@@ -9,11 +9,11 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <DTK_LinearBVH.hpp>
+#include <ArborX_LinearBVH.hpp>
 
-#include "DTK_BoostRTreeHelpers.hpp"
-#include "DTK_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
-#include "DTK_EnableViewComparison.hpp"
+#include "ArborX_BoostRTreeHelpers.hpp"
+#include "ArborX_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "ArborX_EnableViewComparison.hpp"
 
 #include <algorithm>
 #include <iostream>

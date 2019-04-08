@@ -9,16 +9,16 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef DTK_SEARCH_TEST_HELPERS_HPP
-#define DTK_SEARCH_TEST_HELPERS_HPP
+#ifndef ARBORX_SEARCH_TEST_HELPERS_HPP
+#define ARBORX_SEARCH_TEST_HELPERS_HPP
 
-#include <DTK_DetailsKokkosExt.hpp> // is_accessible_from
-#include <DTK_DistributedSearchTree.hpp>
-#include <DTK_LinearBVH.hpp>
+#include <ArborX_DetailsKokkosExt.hpp> // is_accessible_from
+#include <ArborX_DistributedSearchTree.hpp>
+#include <ArborX_LinearBVH.hpp>
 
 #include <Kokkos_View.hpp>
 
-#include "DTK_EnableViewComparison.hpp"
+#include "ArborX_EnableViewComparison.hpp"
 
 #include <boost/test/unit_test.hpp>
 

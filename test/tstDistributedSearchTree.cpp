@@ -9,10 +9,10 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <DTK_DistributedSearchTree.hpp>
+#include <ArborX_DistributedSearchTree.hpp>
 
-#include "DTK_BoostRTreeHelpers.hpp"
-#include "DTK_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "ArborX_BoostRTreeHelpers.hpp"
+#include "ArborX_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
 
 #include <mpi.h>
 

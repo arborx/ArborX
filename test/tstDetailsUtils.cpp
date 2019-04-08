@@ -9,10 +9,10 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include "DTK_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
-#include "DTK_EnableViewComparison.hpp"
+#include "ArborX_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "ArborX_EnableViewComparison.hpp"
 
-#include <DTK_DetailsUtils.hpp>
+#include <ArborX_DetailsUtils.hpp>
 
 #include <Kokkos_Core.hpp>
 

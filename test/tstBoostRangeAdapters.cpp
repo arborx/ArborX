@@ -9,12 +9,12 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include "DTK_BoostRangeAdapters.hpp"
-#include "DTK_EnableViewComparison.hpp"
+#include "ArborX_BoostRangeAdapters.hpp"
+#include "ArborX_EnableViewComparison.hpp"
 
-#include <DTK_Box.hpp>
-#include <DTK_DetailsAlgorithms.hpp>
-#include <DTK_Point.hpp>
+#include <ArborX_Box.hpp>
+#include <ArborX_DetailsAlgorithms.hpp>
+#include <ArborX_Point.hpp>
 
 #include <Kokkos_Core.hpp>
 

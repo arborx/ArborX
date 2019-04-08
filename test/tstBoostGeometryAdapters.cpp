@@ -9,9 +9,9 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include "DTK_BoostGeometryAdapters.hpp"
+#include "ArborX_BoostGeometryAdapters.hpp"
 
-#include <DTK_DetailsAlgorithms.hpp>
+#include <ArborX_DetailsAlgorithms.hpp>
 
 #include <boost/test/unit_test.hpp>
 

@@ -8,15 +8,15 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#include <DTK_DetailsAlgorithms.hpp>
-#include <DTK_DetailsKokkosExt.hpp>  // clz
-#include <DTK_DetailsMortonCode.hpp> // expandBits, morton3D
-#include <DTK_DetailsSortUtils.hpp>  // sortObjects
-#include <DTK_DetailsTreeConstruction.hpp>
-#include <DTK_DetailsUtils.hpp> // iota
+#include <ArborX_DetailsAlgorithms.hpp>
+#include <ArborX_DetailsKokkosExt.hpp>  // clz
+#include <ArborX_DetailsMortonCode.hpp> // expandBits, morton3D
+#include <ArborX_DetailsSortUtils.hpp>  // sortObjects
+#include <ArborX_DetailsTreeConstruction.hpp>
+#include <ArborX_DetailsUtils.hpp> // iota
 
-#include "DTK_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
-#include "DTK_EnableViewComparison.hpp"
+#include "ArborX_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "ArborX_EnableViewComparison.hpp"
 
 #include <algorithm>
 #include <array>

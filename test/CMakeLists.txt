@@ -13,7 +13,7 @@ if(Kokkos_ENABLE_Cuda)
 endif()
 string(REPLACE ";" "," DTK_SEARCH_DEVICE_TYPES "${DTK_SEARCH_DEVICE_TYPES}")
 set(DTK_SEARCH_DEVICE_TYPES "std::tuple<${DTK_SEARCH_DEVICE_TYPES}>")
-configure_file(DTK_EnableDeviceTypes.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/DTK_EnableDeviceTypes.hpp @ONLY)
+configure_file(ArborX_EnableDeviceTypes.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/ArborX_EnableDeviceTypes.hpp @ONLY)
 
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   HelloWorld
