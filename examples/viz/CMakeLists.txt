@@ -1,22 +1,6 @@
-if(Kokkos_ENABLE_Serial)
-  TRIBITS_ADD_EXECUTABLE_AND_TEST(
-    example_viz
-    SOURCES tree_visualization.cpp
-    NUM_MPI_PROCS 1
-    FAIL_REGULAR_EXPRESSION "data race;leak;runtime error"
-    )
-  TRIBITS_COPY_FILES_TO_BINARY_DIR(
-    oak_leaf
-    SOURCE_FILES leaf_cloud.txt
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../point_clouds
-    DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
-    EXEDEPS example_viz
-    )
-  TRIBITS_COPY_FILES_TO_BINARY_DIR(
-    viz_scripts
-    SOURCE_FILES arborx_query_sort.py
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
-    DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
-    EXEDEPS example_viz
-    )
-endif()
+add_executable(ArborX_TreeViz.exe tree_visualization.cpp)
+target_link_libraries(ArborX_TreeViz.exe ArborX Boost::program_options)
+target_include_directories(ArborX_TreeViz.exe PRIVATE ${CMAKE_SOURCE_DIR}/examples/point_clouds)
+add_test(NAME ArborX_TreeViz_Example COMMAND ./ArborX_TreeViz.exe)
+configure_file(${CMAKE_SOURCE_DIR}/examples/point_clouds/leaf_cloud.txt ${CMAKE_CURRENT_BINARY_DIR}/leaf_cloud.txt COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/arborx_query_sort.py ${CMAKE_CURRENT_BINARY_DIR}/arborx_query_sort.py COPYONLY)
