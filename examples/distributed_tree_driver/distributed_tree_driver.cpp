@@ -389,12 +389,7 @@ int main( int argc, char *argv[] )
             std::cout << desc << "\n";
         }
 
-        if ( node == "" )
-        {
-            typedef Kokkos::Serial Node;
-            main_<Node>( pass_further );
-        }
-        else if ( node == "serial" )
+        if ( node == "serial" )
         {
 #ifdef KOKKOS_ENABLE_SERIAL
             typedef Kokkos::Serial Node;
