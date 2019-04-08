@@ -366,6 +366,14 @@ int main( int argc, char *argv[] )
     try
     {
         std::string node;
+        // NOTE Lame trick to get a valid default value
+#if defined( KOKKOS_ENABLE_SERIAL )
+        node = "serial";
+#elif defined( KOKKOS_ENABLE_OPENMP )
+        node = "openmp";
+#elif defined( KOKKOS_ENABLE_CUDA )
+        node = "cuda";
+#endif
         bpo::options_description desc( "Not a very helpful name" );
         // clang-format off
         desc.add_options()
