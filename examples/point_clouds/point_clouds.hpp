@@ -12,11 +12,9 @@
 #ifndef ARBORX_POINT_CLOUDS_HPP
 #define ARBORX_POINT_CLOUDS_HPP
 
-#include <ArborX_Exception.hpp>
-#include <ArborX_Point.hpp>
+#include <ArborX_Search.hpp>
 
 #include <Kokkos_Core.hpp>
-#include <Kokkos_View.hpp>
 
 #include <fstream>
 #include <random>
