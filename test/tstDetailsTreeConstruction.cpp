@@ -133,8 +133,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( indirect_sort, DeviceType,
     BOOST_TEST( ids_host == ref, tt::per_element() );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( number_of_leading_zero_bits, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE( number_of_leading_zero_bits )
 {
     using KokkosExt::clz;
     BOOST_TEST( clz( 0 ) == 32 );

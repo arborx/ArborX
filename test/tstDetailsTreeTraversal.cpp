@@ -25,13 +25,13 @@
 
 #include <boost/test/unit_test.hpp>
 
-#define BOOST_TEST_MODULE DetailsTreeTraversal
-
 namespace dtk = DataTransferKit::Details;
 
 namespace tt = boost::test_tools;
 
-BOOST_AUTO_TEST_CASE( containers_dynamic_array_with_fixed_maximum_size )
+#define BOOST_TEST_MODULE Containers
+
+BOOST_AUTO_TEST_CASE( dynamic_array_with_fixed_maximum_size )
 {
     dtk::StaticVector<int, 4> a;
 
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE( containers_dynamic_array_with_fixed_maximum_size )
     BOOST_TEST( a.capacity() == 4 );
 }
 
-BOOST_AUTO_TEST_CASE( containers_non_owning_view_over_dynamic_array )
+BOOST_AUTO_TEST_CASE( non_owning_view_over_dynamic_array )
 {
     float data[6] = {255, 255, 255, 255, 255, 255};
     //                        ^^^^ ^^^^ ^^^^
@@ -155,7 +155,9 @@ BOOST_AUTO_TEST_CASE( containers_non_owning_view_over_dynamic_array )
     BOOST_TEST( data[5] == 255 );
 }
 
-BOOST_AUTO_TEST_CASE( container_adaptors_stack )
+#define BOOST_TEST_MODULE ContainerAdaptors
+
+BOOST_AUTO_TEST_CASE( stack )
 {
     // stack is empty at construction
     dtk::Stack<int> stack;
@@ -182,7 +184,7 @@ BOOST_AUTO_TEST_CASE( container_adaptors_stack )
     BOOST_TEST( stack.size() == 0 );
 }
 
-BOOST_AUTO_TEST_CASE( container_adaptors_priority_queue )
+BOOST_AUTO_TEST_CASE( priority_queue )
 {
     dtk::PriorityQueue<int> queue;
     // queue is empty at construction
@@ -222,7 +224,9 @@ void check_heap(
         BOOST_TEST( heap[i] == heap_ref[i] );
 }
 
-BOOST_AUTO_TEST_CASE( heap_operations_push_heap )
+#define BOOST_TEST_MODULE HeapOperations
+
+BOOST_AUTO_TEST_CASE( push_heap )
 {
     // Here checking against the example of binary heap insertion from
     // https://en.wikipedia.org/wiki/Binary_heap#Insert
@@ -235,7 +239,7 @@ BOOST_AUTO_TEST_CASE( heap_operations_push_heap )
     BOOST_TEST( a == ref, tt::per_element() );
 }
 
-BOOST_AUTO_TEST_CASE( heap_operations_pop_heap )
+BOOST_AUTO_TEST_CASE( pop_heap )
 {
     // See https://en.wikipedia.org/wiki/Binary_heap#Extract
     Kokkos::Array<int, 5> a = {11, 5, 8, 3, 4};
@@ -247,7 +251,7 @@ BOOST_AUTO_TEST_CASE( heap_operations_pop_heap )
     BOOST_TEST( a == ref, tt::per_element() );
 }
 
-BOOST_AUTO_TEST_CASE( heap_operations_max_heap )
+BOOST_AUTO_TEST_CASE( max_heap )
 {
     // Here attempting to reproduce examples code from cppreference.com for
     // std::push_heap() and std::pop_heap().  It turns out that calling
@@ -302,7 +306,7 @@ BOOST_AUTO_TEST_CASE( heap_operations_max_heap )
     BOOST_TEST( a == ref, tt::per_element() );
 }
 
-BOOST_AUTO_TEST_CASE( heap_operations_min_heap )
+BOOST_AUTO_TEST_CASE( min_heap )
 {
     // Here reproducing the example of a binary min heap from Wikipedia and then
     // popping all elements one by one.
@@ -360,7 +364,42 @@ BOOST_AUTO_TEST_CASE( heap_operations_min_heap )
     BOOST_TEST( a == ref, tt::per_element() );
 }
 
-BOOST_AUTO_TEST_CASE( priority_queue_pop_push )
+BOOST_AUTO_TEST_CASE( sort_heap )
+{
+    for ( auto heap : {std::vector<int>{36, 19, 25, 17, 3, 7, 1, 2, 9},
+                       std::vector<int>{36, 19, 25, 17, 3, 9, 1, 2, 7},
+                       std::vector<int>{100, 19, 36, 17, 3, 25, 1, 2, 7},
+                       std::vector<int>{15, 5, 11, 3, 4, 8}} )
+    {
+        dtk::sortHeap( heap.data(), heap.data() + heap.size(),
+                       dtk::Less<int>() );
+        // std::sort_heap( heap.begin(), heap.end() );
+        BOOST_TEST( std::is_sorted( heap.begin(), heap.end() ) );
+    }
+}
+
+BOOST_AUTO_TEST_CASE( is_heap )
+{
+    for ( auto heap : {std::vector<int>{36, 19, 25, 17, 3, 7, 1, 2, 9},
+                       std::vector<int>{36, 19, 25, 17, 3, 9, 1, 2, 7},
+                       std::vector<int>{100, 19, 36, 17, 3, 25, 1, 2, 7},
+                       std::vector<int>{15, 5, 11, 3, 4, 8}} )
+    {
+        BOOST_TEST( dtk::isHeap( heap.data(), heap.data() + heap.size(),
+                                 dtk::Less<int>() ) );
+    }
+    for ( auto not_heap : {std::vector<int>{0, 1, 2, 3, 4, 3, 2, 1, 0},
+                           std::vector<int>{2, 1, 0, 1, 2}} )
+    {
+        BOOST_TEST( !dtk::isHeap( not_heap.data(),
+                                  not_heap.data() + not_heap.size(),
+                                  dtk::Less<int>() ) );
+    }
+}
+
+#define BOOST_TEST_MODULE PriorityQueue
+
+BOOST_AUTO_TEST_CASE( pop_push )
 {
     // note that calling pop_push(x) does not necessarily yield the same heap
     // than calling consecutively pop() and push(x)
@@ -408,7 +447,7 @@ void check_heap( PriorityQueue const &queue )
     }
 }
 
-BOOST_AUTO_TEST_CASE( priority_queue_maintain_heap_properties )
+BOOST_AUTO_TEST_CASE( maintain_heap_properties )
 {
     DataTransferKit::Details::PriorityQueue<int> queue;
 
@@ -455,38 +494,5 @@ BOOST_AUTO_TEST_CASE( priority_queue_maintain_heap_properties )
     {
         queue.pop();
         check_heap( queue );
-    }
-}
-
-BOOST_AUTO_TEST_CASE( heap_operations_sort_heap )
-{
-    for ( auto heap : {std::vector<int>{36, 19, 25, 17, 3, 7, 1, 2, 9},
-                       std::vector<int>{36, 19, 25, 17, 3, 9, 1, 2, 7},
-                       std::vector<int>{100, 19, 36, 17, 3, 25, 1, 2, 7},
-                       std::vector<int>{15, 5, 11, 3, 4, 8}} )
-    {
-        dtk::sortHeap( heap.data(), heap.data() + heap.size(),
-                       dtk::Less<int>() );
-        // std::sort_heap( heap.begin(), heap.end() );
-        BOOST_TEST( std::is_sorted( heap.begin(), heap.end() ) );
-    }
-}
-
-BOOST_AUTO_TEST_CASE( heap_operations_is_heap )
-{
-    for ( auto heap : {std::vector<int>{36, 19, 25, 17, 3, 7, 1, 2, 9},
-                       std::vector<int>{36, 19, 25, 17, 3, 9, 1, 2, 7},
-                       std::vector<int>{100, 19, 36, 17, 3, 25, 1, 2, 7},
-                       std::vector<int>{15, 5, 11, 3, 4, 8}} )
-    {
-        BOOST_TEST( dtk::isHeap( heap.data(), heap.data() + heap.size(),
-                                 dtk::Less<int>() ) );
-    }
-    for ( auto not_heap : {std::vector<int>{0, 1, 2, 3, 4, 3, 2, 1, 0},
-                           std::vector<int>{2, 1, 0, 1, 2}} )
-    {
-        BOOST_TEST( !dtk::isHeap( not_heap.data(),
-                                  not_heap.data() + not_heap.size(),
-                                  dtk::Less<int>() ) );
     }
 }
