@@ -25,7 +25,7 @@
 
 #include <tuple>
 
-namespace DataTransferKit
+namespace ArborX
 {
 
 namespace Details
@@ -174,6 +174,6 @@ struct BatchedQueries
 };
 
 } // namespace Details
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

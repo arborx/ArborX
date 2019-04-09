@@ -30,14 +30,14 @@
 
 #define BOOST_TEST_MODULE DetailsTreeConstruction
 
-namespace dtk = DataTransferKit::Details;
+namespace details = ArborX::Details;
 
 namespace tt = boost::test_tools;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( morton_code, DeviceType,
                                DTK_SEARCH_DEVICE_TYPES )
 {
-    std::vector<DataTransferKit::Point> points = {
+    std::vector<ArborX::Point> points = {
         {{0.0, 0.0, 0.0}},          {{0.25, 0.75, 0.25}}, {{0.75, 0.25, 0.25}},
         {{0.75, 0.75, 0.25}},       {{1.33, 2.33, 3.33}}, {{1.66, 2.66, 3.66}},
         {{1024.0, 1024.0, 1024.0}},
@@ -51,8 +51,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( morton_code, DeviceType,
         unsigned int i = std::get<0>( anchor );
         unsigned int j = std::get<1>( anchor );
         unsigned int k = std::get<2>( anchor );
-        return 4 * dtk::expandBits( i ) + 2 * dtk::expandBits( j ) +
-               dtk::expandBits( k );
+        return 4 * details::expandBits( i ) + 2 * details::expandBits( j ) +
+               details::expandBits( k );
     };
     std::vector<unsigned int> ref( n,
                                    std::numeric_limits<unsigned int>::max() );
@@ -60,24 +60,24 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( morton_code, DeviceType,
         ref[i] = fun( anchors[i] );
     // using points rather than boxes for convenience here but still have to
     // build the axis-aligned bounding boxes around them
-    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", n );
+    Kokkos::View<ArborX::Box *, DeviceType> boxes( "boxes", n );
     for ( int i = 0; i < n; ++i )
-        dtk::expand( boxes[i], points[i] );
+        details::expand( boxes[i], points[i] );
 
-    Kokkos::View<DataTransferKit::Box *, DeviceType> scene( "scene", 1 );
-    dtk::TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
+    Kokkos::View<ArborX::Box *, DeviceType> scene( "scene", 1 );
+    details::TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
         boxes, scene[0] );
 
     // Copy the result on the host
     auto scene_host = Kokkos::create_mirror_view( scene );
     Kokkos::deep_copy( scene_host, scene );
 
-    BOOST_TEST( dtk::equals( scene_host[0],
-                             {{{0., 0., 0.}}, {{1024., 1024., 1024.}}} ) );
+    BOOST_TEST( details::equals( scene_host[0],
+                                 {{{0., 0., 0.}}, {{1024., 1024., 1024.}}} ) );
 
     Kokkos::View<unsigned int *, DeviceType> morton_codes( "morton_codes", n );
-    dtk::TreeConstruction<DeviceType>::assignMortonCodes( boxes, morton_codes,
-                                                          scene[0] );
+    details::TreeConstruction<DeviceType>::assignMortonCodes(
+        boxes, morton_codes, scene[0] );
     auto morton_codes_host = Kokkos::create_mirror_view( morton_codes );
     Kokkos::deep_copy( morton_codes_host, morton_codes );
     BOOST_TEST( morton_codes_host == ref, tt::per_element() );
@@ -119,7 +119,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( indirect_sort, DeviceType,
 
     std::vector<size_t> ref = {3, 2, 1, 0};
     // sort morton codes and object ids
-    auto ids = dtk::sortObjects( k );
+    auto ids = details::sortObjects( k );
 
     auto k_host = Kokkos::create_mirror_view( k );
     Kokkos::deep_copy( k_host, k );
@@ -201,8 +201,9 @@ class ComputeResults
         int index_1[] = {0, 0, 1, 1, 1, 2, 2, 0, 12, 12};
         int index_2[] = {0, 1, 0, 1, 2, 1, 2, -1, 12, 13};
 
-        _results[i] = DataTransferKit::Details::TreeConstruction<
-            DeviceType>::commonPrefix( _fi, index_1[i], index_2[i] );
+        _results[i] =
+            ArborX::Details::TreeConstruction<DeviceType>::commonPrefix(
+                _fi, index_1[i], index_2[i] );
     }
 
   private:
@@ -293,16 +294,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( example_tree_construction, DeviceType,
     std::cout << "ref=" << ref.str() << "\n";
 
     // hierarchy generation
-    Kokkos::View<DataTransferKit::Node *, DeviceType> leaf_nodes( "leaf_nodes",
-                                                                  n );
-    Kokkos::View<DataTransferKit::Node *, DeviceType> internal_nodes(
-        "internal_nodes", n - 1 );
-    std::function<void( DataTransferKit::Node *, std::ostream & )>
-        traverseRecursive;
+    Kokkos::View<ArborX::Node *, DeviceType> leaf_nodes( "leaf_nodes", n );
+    Kokkos::View<ArborX::Node *, DeviceType> internal_nodes( "internal_nodes",
+                                                             n - 1 );
+    std::function<void( ArborX::Node *, std::ostream & )> traverseRecursive;
     traverseRecursive = [&leaf_nodes, &internal_nodes, &traverseRecursive](
-                            DataTransferKit::Node *node, std::ostream &os ) {
+                            ArborX::Node *node, std::ostream &os ) {
         if ( std::any_of( leaf_nodes.data(), leaf_nodes.data() + n,
-                          [node]( DataTransferKit::Node const &leaf_node ) {
+                          [node]( ArborX::Node const &leaf_node ) {
                               return std::addressof( leaf_node ) == node;
                           } ) )
         {
@@ -311,7 +310,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( example_tree_construction, DeviceType,
         else
         {
             os << "I" << node - internal_nodes.data();
-            for ( DataTransferKit::Node *child :
+            for ( ArborX::Node *child :
                   {node->children.first, node->children.second} )
                 traverseRecursive( child, os );
         }
@@ -320,12 +319,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( example_tree_construction, DeviceType,
     Kokkos::View<int *, DeviceType> parents( "parents", 2 * n + 1 );
     Kokkos::deep_copy( parents, -1 );
 
-    dtk::TreeConstruction<DeviceType>::generateHierarchy(
+    details::TreeConstruction<DeviceType>::generateHierarchy(
         sorted_morton_codes, leaf_nodes, internal_nodes, parents );
 
     BOOST_TEST( parents( 0 ) == -1 );
 
-    DataTransferKit::Node *root = internal_nodes.data();
+    ArborX::Node *root = internal_nodes.data();
 
     std::ostringstream sol;
     traverseRecursive( root, sol );

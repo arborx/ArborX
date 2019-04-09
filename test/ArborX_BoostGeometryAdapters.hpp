@@ -23,77 +23,74 @@ namespace geometry
 {
 namespace traits
 {
-// Adapt DataTransferKit::Point to Boost.Geometry
+// Adapt ArborX::Point to Boost.Geometry
 template <>
-struct tag<DataTransferKit::Point>
+struct tag<ArborX::Point>
 {
     typedef point_tag type;
 };
 
 template <>
-struct coordinate_type<DataTransferKit::Point>
+struct coordinate_type<ArborX::Point>
 {
     typedef double type;
 };
 
 template <>
-struct coordinate_system<DataTransferKit::Point>
+struct coordinate_system<ArborX::Point>
 {
     typedef cs::cartesian type;
 };
 
 template <>
-struct dimension<DataTransferKit::Point> : boost::mpl::int_<3>
+struct dimension<ArborX::Point> : boost::mpl::int_<3>
 {
 };
 
 template <size_t D>
-struct access<DataTransferKit::Point, D>
+struct access<ArborX::Point, D>
 {
-    static inline double get( DataTransferKit::Point const &p ) { return p[D]; }
+    static inline double get( ArborX::Point const &p ) { return p[D]; }
 
-    static inline void set( DataTransferKit::Point &p, double value )
-    {
-        p[D] = value;
-    }
+    static inline void set( ArborX::Point &p, double value ) { p[D] = value; }
 };
 
-// Adapt DataTransferKit::Box to Boost.Geometry
+// Adapt ArborX::Box to Boost.Geometry
 template <>
-struct tag<DataTransferKit::Box>
+struct tag<ArborX::Box>
 {
     typedef box_tag type;
 };
 
 template <>
-struct point_type<DataTransferKit::Box>
+struct point_type<ArborX::Box>
 {
-    typedef DataTransferKit::Point type;
+    typedef ArborX::Point type;
 };
 
 template <size_t D>
-struct indexed_access<DataTransferKit::Box, min_corner, D>
+struct indexed_access<ArborX::Box, min_corner, D>
 {
-    static inline double get( DataTransferKit::Box const &b )
+    static inline double get( ArborX::Box const &b )
     {
         return b.minCorner()[D];
     }
 
-    static inline void set( DataTransferKit::Box &b, double value )
+    static inline void set( ArborX::Box &b, double value )
     {
         b.minCorner()[D] = value;
     }
 };
 
 template <size_t D>
-struct indexed_access<DataTransferKit::Box, max_corner, D>
+struct indexed_access<ArborX::Box, max_corner, D>
 {
-    static inline double get( DataTransferKit::Box const &b )
+    static inline double get( ArborX::Box const &b )
     {
         return b.maxCorner()[D];
     }
 
-    static inline void set( DataTransferKit::Box &b, double value )
+    static inline void set( ArborX::Box &b, double value )
     {
         b.maxCorner()[D] = value;
     }

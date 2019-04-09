@@ -19,7 +19,7 @@
 #include <Kokkos_Sort.hpp> // min_max_functor
 #include <Kokkos_View.hpp>
 
-namespace DataTransferKit
+namespace ArborX
 {
 
 namespace Details
@@ -67,6 +67,6 @@ sortObjects( Kokkos::View<unsigned int *, DeviceType> view )
 
 } // namespace Details
 
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

@@ -16,7 +16,7 @@
 
 #include <ArborX_DetailsKokkosExt.hpp> // min. max
 
-namespace DataTransferKit
+namespace ArborX
 {
 
 namespace Details
@@ -59,6 +59,6 @@ unsigned int morton3D( double x, double y, double z )
 
 } // namespace Details
 
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

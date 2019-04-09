@@ -196,8 +196,7 @@ int main_( std::vector<std::string> const &args )
     MPI_Comm_rank( comm, &comm_rank );
     int comm_size;
     MPI_Comm_size( comm, &comm_size );
-    Kokkos::View<DataTransferKit::Point *, DeviceType> random_points(
-        "random_points" );
+    Kokkos::View<ArborX::Point *, DeviceType> random_points( "random_points" );
     {
         // Random points are "reused" between building the tree and performing
         // queries. Note that this means that for the points in the middle of
@@ -265,7 +264,7 @@ int main_( std::vector<std::string> const &args )
         Kokkos::deep_copy( random_points, random_points_host );
     }
 
-    Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes(
+    Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes(
         Kokkos::ViewAllocateWithoutInitializing( "bounding_boxes" ), n_values );
     Kokkos::parallel_for( "bvh_driver:construct_bounding_boxes",
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_values ),
@@ -282,7 +281,7 @@ int main_( std::vector<std::string> const &args )
     auto construction = time_monitor.getNewTimer( "construction" );
     MPI_Barrier( comm );
     construction->start();
-    DataTransferKit::DistributedSearchTree<DeviceType> distributed_tree(
+    ArborX::DistributedSearchTree<DeviceType> distributed_tree(
         comm, bounding_boxes );
     construction->stop();
 
@@ -292,15 +291,13 @@ int main_( std::vector<std::string> const &args )
 
     if ( perform_knn_search )
     {
-        Kokkos::View<DataTransferKit::Nearest<DataTransferKit::Point> *,
-                     DeviceType>
-            queries( Kokkos::ViewAllocateWithoutInitializing( "queries" ),
-                     n_queries );
+        Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> queries(
+            Kokkos::ViewAllocateWithoutInitializing( "queries" ), n_queries );
         Kokkos::parallel_for(
             "bvh_driver:setup_knn_search_queries",
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int i ) {
-                queries( i ) = DataTransferKit::nearest<DataTransferKit::Point>(
+                queries( i ) = ArborX::nearest<ArborX::Point>(
                     random_points( i ), n_neighbors );
             } );
         Kokkos::fence();
@@ -321,7 +318,7 @@ int main_( std::vector<std::string> const &args )
 
     if ( perform_radius_search )
     {
-        Kokkos::View<DataTransferKit::Within *, DeviceType> queries(
+        Kokkos::View<ArborX::Within *, DeviceType> queries(
             Kokkos::ViewAllocateWithoutInitializing( "queries" ), n_queries );
         // radius chosen in order to control the number of results per query
         // NOTE: minus "1+sqrt(3)/2 \approx 1.37" matches the size of the boxes
@@ -334,7 +331,7 @@ int main_( std::vector<std::string> const &args )
             "bvh_driver:setup_radius_search_queries",
             Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
             KOKKOS_LAMBDA( int i ) {
-                queries( i ) = DataTransferKit::within( random_points( i ), r );
+                queries( i ) = ArborX::within( random_points( i ), r );
             } );
         Kokkos::fence();
 

@@ -14,20 +14,20 @@
 #include <stdexcept>
 #include <string>
 
-namespace DataTransferKit
+namespace ArborX
 {
 class SearchException : public std::logic_error
 {
   public:
     SearchException( std::string const &msg )
-        : std::logic_error( std::string( "DTK Search exception: " ) + msg )
+        : std::logic_error( std::string( "ArborX exception: " ) + msg )
     {
     }
 
     virtual ~SearchException() throw() {}
 };
 
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #define ARBORX_STRINGIZE_DETAIL( x ) #x
 #define ARBORX_STRINGIZE( x ) ARBORX_STRINGIZE_DETAIL( x )
@@ -36,7 +36,7 @@ class SearchException : public std::logic_error
 // Once moved out, possibly make it conditional
 #define ARBORX_ASSERT( c )                                                     \
     if ( !( c ) )                                                              \
-    throw DataTransferKit::SearchException(                                    \
-        #c ", failed at " __FILE__ ":" ARBORX_STRINGIZE( __LINE__ ) "." )
+    throw ArborX::SearchException( #c ", failed at " __FILE__                  \
+                                      ":" ARBORX_STRINGIZE( __LINE__ ) "." )
 
 #endif

@@ -17,7 +17,7 @@
 
 #include <Kokkos_View.hpp>
 
-namespace DataTransferKit
+namespace ArborX
 {
 namespace Details
 {
@@ -68,6 +68,6 @@ struct Access<View, typename std::enable_if<Kokkos::is_view<View>::value &&
 
 } // namespace Traits
 } // namespace Details
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

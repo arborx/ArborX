@@ -32,15 +32,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( empty_tree, DeviceType, DTK_SEARCH_DEVICE_TYPES )
 {
     // tree is empty, it has no leaves.
     for ( auto const &empty_bvh : {
-              DataTransferKit::BVH<DeviceType>{}, // default constructed
+              ArborX::BVH<DeviceType>{}, // default constructed
               makeBvh<DeviceType>( {} ), // constructed with empty view of boxes
           } )
     {
         BOOST_TEST( empty_bvh.empty() );
         BOOST_TEST( empty_bvh.size() == 0 );
         // BVH::bounds() returns an invalid box when the tree is empty.
-        BOOST_TEST(
-            DataTransferKit::Details::equals( empty_bvh.bounds(), {} ) );
+        BOOST_TEST( ArborX::Details::equals( empty_bvh.bounds(), {} ) );
 
         // Passing a view with no query does seem a bit silly but we still need
         // to support it. And since the tag dispatching yields different tree
@@ -104,8 +103,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( single_leaf_tree, DeviceType,
 
     BOOST_TEST( !bvh.empty() );
     BOOST_TEST( bvh.size() == 1 );
-    BOOST_TEST( DataTransferKit::Details::equals(
-        bvh.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}} ) );
+    BOOST_TEST( ArborX::Details::equals( bvh.bounds(),
+                                         {{{0., 0., 0.}}, {{1., 1., 1.}}} ) );
 
     checkResults( bvh, makeOverlapQueries<DeviceType>( {} ), {}, {0} );
 
@@ -157,8 +156,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( couple_leaves_tree, DeviceType,
 
     BOOST_TEST( !bvh.empty() );
     BOOST_TEST( bvh.size() == 2 );
-    BOOST_TEST( DataTransferKit::Details::equals(
-        bvh.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}} ) );
+    BOOST_TEST( ArborX::Details::equals( bvh.bounds(),
+                                         {{{0., 0., 0.}}, {{1., 1., 1.}}} ) );
 
     // single query overlap with nothing
     checkResults( bvh,
@@ -269,10 +268,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( buffer_optimization, DeviceType,
     checkResultsAreFine();
 
     // compute number of results per query
-    auto counts = DataTransferKit::cloneWithoutInitializingNorCopying( offset );
-    DataTransferKit::adjacentDifference( offset, counts );
+    auto counts = ArborX::cloneWithoutInitializingNorCopying( offset );
+    ArborX::adjacentDifference( offset, counts );
     // extract optimal buffer size
-    auto const max_results_per_query = DataTransferKit::max( counts );
+    auto const max_results_per_query = ArborX::max( counts );
     BOOST_TEST( max_results_per_query == 4 );
 
     // optimal size
@@ -285,7 +284,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( buffer_optimization, DeviceType,
     BOOST_CHECK_NO_THROW( bvh.query( queries, indices, offset, +1 ) );
     checkResultsAreFine();
     BOOST_CHECK_THROW( bvh.query( queries, indices, offset, -1 ),
-                       DataTransferKit::SearchException );
+                       ArborX::SearchException );
 
     // adequate buffer size
     BOOST_TEST( max_results_per_query < 5 );
@@ -302,7 +301,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( buffer_optimization, DeviceType,
 BOOST_AUTO_TEST_CASE_TEMPLATE( not_exceeding_stack_capacity, DeviceType,
                                DTK_SEARCH_DEVICE_TYPES )
 {
-    std::vector<DataTransferKit::Box> boxes;
+    std::vector<ArborX::Box> boxes;
     int const n = 4096; // exceed stack capacity which is 64
     boxes.reserve( n );
     for ( int i = 0; i < n; ++i )
@@ -321,7 +320,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( not_exceeding_stack_capacity, DeviceType,
                                          {{{0., 0., 0.}}, n},
                                      } ),
                                      indices, offset ) );
-    BOOST_TEST( DataTransferKit::lastElement( offset ) == n );
+    BOOST_TEST( ArborX::lastElement( offset ) == n );
 
     // spatial query that find all indexable in the tree is also fine
     BOOST_CHECK_NO_THROW( bvh.query( makeOverlapQueries<DeviceType>( {
@@ -329,7 +328,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( not_exceeding_stack_capacity, DeviceType,
                                          {{{0., 0., 0.}}, {{n, n, n}}},
                                      } ),
                                      indices, offset ) );
-    BOOST_TEST( DataTransferKit::lastElement( offset ) == n );
+    BOOST_TEST( ArborX::lastElement( offset ) == n );
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( miscellaneous, DeviceType,
@@ -351,22 +350,19 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( miscellaneous, DeviceType,
         "empty_buffer" );
     Kokkos::parallel_for(
         Kokkos::RangePolicy<ExecutionSpace>( 0, 1 ), KOKKOS_LAMBDA( int ) {
-            DataTransferKit::Point p = {{0., 0., 0.}};
+            ArborX::Point p = {{0., 0., 0.}};
             double r = 1.0;
             // spatial query on empty tree
-            zeros( 0 ) =
-                DataTransferKit::Details::TreeTraversal<DeviceType>::query(
-                    empty_bvh, DataTransferKit::within( p, r ), []( int ) {} );
+            zeros( 0 ) = ArborX::Details::TreeTraversal<DeviceType>::query(
+                empty_bvh, ArborX::within( p, r ), []( int ) {} );
             // nearest query on empty tree
-            zeros( 1 ) =
-                DataTransferKit::Details::TreeTraversal<DeviceType>::query(
-                    empty_bvh, DataTransferKit::nearest( p ),
-                    []( int, double ) {}, empty_buffer );
+            zeros( 1 ) = ArborX::Details::TreeTraversal<DeviceType>::query(
+                empty_bvh, ArborX::nearest( p ), []( int, double ) {},
+                empty_buffer );
             // nearest query for k < 1
-            zeros( 2 ) =
-                DataTransferKit::Details::TreeTraversal<DeviceType>::query(
-                    bvh, DataTransferKit::nearest( p, 0 ), []( int, double ) {},
-                    empty_buffer );
+            zeros( 2 ) = ArborX::Details::TreeTraversal<DeviceType>::query(
+                bvh, ArborX::nearest( p, 0 ), []( int, double ) {},
+                empty_buffer );
         } );
     Kokkos::fence();
     auto zeros_host = Kokkos::create_mirror_view( zeros );
@@ -388,8 +384,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( structured_grid, DeviceType,
 
     using ExecutionSpace = typename DeviceType::execution_space;
 
-    Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes(
-        "bounding_boxes", n );
+    Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes( "bounding_boxes",
+                                                            n );
     Kokkos::parallel_for(
         "fill_bounding_boxes", Kokkos::RangePolicy<ExecutionSpace>( 0, nx ),
         KOKKOS_LAMBDA( int i ) {
@@ -406,7 +402,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( structured_grid, DeviceType,
         } );
     Kokkos::fence();
 
-    DataTransferKit::BVH<DeviceType> bvh( bounding_boxes );
+    ArborX::BVH<DeviceType> bvh( bounding_boxes );
 
     // (i) use same objects for the queries than the objects we constructed the
     // BVH
@@ -420,12 +416,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( structured_grid, DeviceType,
     //
     //  o    o   o   o   j-2
     //
-    Kokkos::View<DataTransferKit::Overlap *, DeviceType> queries( "queries",
-                                                                  n );
+    Kokkos::View<ArborX::Overlap *, DeviceType> queries( "queries", n );
     Kokkos::parallel_for(
         "fill_queries", Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
         KOKKOS_LAMBDA( int i ) {
-            queries( i ) = DataTransferKit::Overlap( bounding_boxes( i ) );
+            queries( i ) = ArborX::Overlap( bounding_boxes( i ) );
         } );
     Kokkos::fence();
 
@@ -537,11 +532,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( structured_grid, DeviceType,
             }
 
     Kokkos::deep_copy( bounding_boxes, bounding_boxes_host );
-    Kokkos::parallel_for(
-        "fill_first_neighbors_queries",
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
-            queries[i] = DataTransferKit::Overlap( bounding_boxes[i] );
-        } );
+    Kokkos::parallel_for( "fill_first_neighbors_queries",
+                          Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
+                          KOKKOS_LAMBDA( int i ) {
+                              queries[i] = ArborX::Overlap( bounding_boxes[i] );
+                          } );
     Kokkos::fence();
     bvh.query( queries, indices, offset );
     Kokkos::deep_copy( indices_host, indices );
@@ -595,11 +590,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( structured_grid, DeviceType,
     }
 
     Kokkos::deep_copy( bounding_boxes, bounding_boxes_host );
-    Kokkos::parallel_for(
-        "fill_first_neighbors_queries",
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n ), KOKKOS_LAMBDA( int i ) {
-            queries[i] = DataTransferKit::Overlap( bounding_boxes[i] );
-        } );
+    Kokkos::parallel_for( "fill_first_neighbors_queries",
+                          Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
+                          KOKKOS_LAMBDA( int i ) {
+                              queries[i] = ArborX::Overlap( bounding_boxes[i] );
+                          } );
     Kokkos::fence();
     bvh.query( queries, indices, offset );
     Kokkos::deep_copy( indices_host, indices );
@@ -663,8 +658,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( boost_rtree, DeviceType,
     auto cloud = make_stuctured_cloud( Lx, Ly, Lz, nx, ny, nz );
     int n = cloud.size();
 
-    Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes(
-        "bounding_boxes", n );
+    Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes( "bounding_boxes",
+                                                            n );
     auto bounding_boxes_host = Kokkos::create_mirror_view( bounding_boxes );
     // build bounding volume hierarchy
     for ( int i = 0; i < n; ++i )
@@ -678,7 +673,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( boost_rtree, DeviceType,
 
     Kokkos::deep_copy( bounding_boxes, bounding_boxes_host );
 
-    DataTransferKit::BVH<DeviceType> bvh( bounding_boxes );
+    ArborX::BVH<DeviceType> bvh( bounding_boxes );
 
     auto rtree = BoostRTreeHelpers::makeRTree( bounding_boxes );
 
@@ -722,26 +717,25 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( boost_rtree, DeviceType,
     Kokkos::deep_copy( radii, radii_host );
     Kokkos::deep_copy( k, k_host );
 
-    Kokkos::View<DataTransferKit::Nearest<DataTransferKit::Point> *, DeviceType>
-        nearest_queries( "nearest_queries", n_points );
+    Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> nearest_queries(
+        "nearest_queries", n_points );
     Kokkos::parallel_for(
         "register_nearest_queries",
         Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
         KOKKOS_LAMBDA( int i ) {
-            nearest_queries( i ) =
-                DataTransferKit::nearest<DataTransferKit::Point>(
-                    {{point_coords( i, 0 ), point_coords( i, 1 ),
-                      point_coords( i, 2 )}},
-                    k( i ) );
+            nearest_queries( i ) = ArborX::nearest<ArborX::Point>(
+                {{point_coords( i, 0 ), point_coords( i, 1 ),
+                  point_coords( i, 2 )}},
+                k( i ) );
         } );
     Kokkos::fence();
 
-    Kokkos::View<DataTransferKit::Within *, DeviceType> within_queries(
-        "within_queries", n_points );
+    Kokkos::View<ArborX::Within *, DeviceType> within_queries( "within_queries",
+                                                               n_points );
     Kokkos::parallel_for( "register_within_queries",
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_points ),
                           KOKKOS_LAMBDA( int i ) {
-                              within_queries( i ) = DataTransferKit::within(
+                              within_queries( i ) = ArborX::within(
                                   {{point_coords( i, 0 ), point_coords( i, 1 ),
                                     point_coords( i, 2 )}},
                                   radii( i ) );
@@ -758,8 +752,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( boost_rtree, DeviceType,
 
     validateResults( rtree_results, bvh_results );
 
-    auto const alternate_tree_traversal_algorithm = DataTransferKit::Details::
-        NearestQueryAlgorithm::PriorityQueueBased_Deprecated;
+    auto const alternate_tree_traversal_algorithm =
+        ArborX::Details::NearestQueryAlgorithm::PriorityQueueBased_Deprecated;
     bvh.query( nearest_queries, indices_nearest, offset_nearest,
                alternate_tree_traversal_algorithm );
     bvh_results = std::make_tuple( offset_nearest, indices_nearest );

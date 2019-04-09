@@ -21,7 +21,7 @@
 
 #include <mpi.h>
 
-namespace DataTransferKit
+namespace ArborX
 {
 
 /** \brief Distributed search tree
@@ -140,6 +140,6 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
     _top_tree_size = accumulate( _bottom_tree_sizes, 0 );
 }
 
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

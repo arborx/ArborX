@@ -15,7 +15,7 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_Point.hpp>
 
-namespace DataTransferKit
+namespace ArborX
 {
 namespace Details
 {
@@ -46,6 +46,6 @@ struct Tag<Box>
 };
 
 } // namespace Details
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

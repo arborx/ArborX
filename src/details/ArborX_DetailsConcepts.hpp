@@ -24,7 +24,7 @@ using void_t = void;
 #endif
 
 #if !defined( DOXYGEN_SHOULD_SKIP_THIS )
-namespace DataTransferKit
+namespace ArborX
 {
 namespace Details
 {
@@ -62,7 +62,7 @@ struct has_centroid<
 };
 
 } // namespace Details
-} // namespace DataTransferKit
+} // namespace ArborX
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
 #endif

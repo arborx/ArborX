@@ -152,17 +152,16 @@ struct UnaryPredicate
 };
 
 template <typename Value>
-static auto
-translate( DataTransferKit::Intersects<DataTransferKit::Sphere> const &query )
-    -> decltype( boost::geometry::index::intersects( DataTransferKit::Box() ) &&
+static auto translate( ArborX::Intersects<ArborX::Sphere> const &query )
+    -> decltype( boost::geometry::index::intersects( ArborX::Box() ) &&
                  boost::geometry::index::satisfies(
                      UnaryPredicate<Value>::makeAlwaysFalse() ) )
 {
     auto const sphere = query._geometry;
     auto const radius = sphere.radius();
     auto const centroid = sphere.centroid();
-    DataTransferKit::Box box;
-    DataTransferKit::Details::expand( box, sphere );
+    ArborX::Box box;
+    ArborX::Details::expand( box, sphere );
     return boost::geometry::index::intersects( box ) &&
            boost::geometry::index::satisfies(
                UnaryPredicate<Value>( [centroid, radius]( Value const &val ) {
@@ -174,7 +173,7 @@ translate( DataTransferKit::Intersects<DataTransferKit::Sphere> const &query )
 }
 
 template <typename Value, typename Geometry>
-static auto translate( DataTransferKit::Nearest<Geometry> const &query )
+static auto translate( ArborX::Nearest<Geometry> const &query )
     -> decltype( boost::geometry::index::nearest( Geometry(), 0 ) )
 {
     auto const geometry = query._geometry;
@@ -195,8 +194,8 @@ performQueries( RTree<Indexable> const &rtree, InputView const &queries )
     for ( int i = 0; i < n_queries; ++i )
         offset( i ) = rtree.query( translate<Value>( queries( i ) ),
                                    std::back_inserter( returned_values ) );
-    DataTransferKit::exclusivePrefixSum( offset );
-    auto const n_results = DataTransferKit::lastElement( offset );
+    ArborX::exclusivePrefixSum( offset );
+    auto const n_results = ArborX::lastElement( offset );
     OutputView indices( "indices", n_results );
     for ( int i = 0; i < n_queries; ++i )
         for ( int j = offset( i ); j < offset( i + 1 ); ++j )
@@ -218,8 +217,8 @@ performQueries( ParallelRTree<Indexable> const &rtree,
     for ( int i = 0; i < n_queries; ++i )
         offset( i ) = rtree.query( translate<Value>( queries( i ) ),
                                    std::back_inserter( returned_values ) );
-    DataTransferKit::exclusivePrefixSum( offset );
-    auto const n_results = DataTransferKit::lastElement( offset );
+    ArborX::exclusivePrefixSum( offset );
+    auto const n_results = ArborX::lastElement( offset );
     OutputView indices( "indices", n_results );
     OutputView ranks( "ranks", n_results );
     for ( int i = 0; i < n_queries; ++i )

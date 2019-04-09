@@ -28,7 +28,7 @@
 namespace tt = boost::test_tools;
 
 template <typename Query, typename DeviceType>
-void checkResults( DataTransferKit::BVH<DeviceType> const &bvh,
+void checkResults( ArborX::BVH<DeviceType> const &bvh,
                    Kokkos::View<Query *, DeviceType> const &queries,
                    std::vector<int> const &indices_ref,
                    std::vector<int> const &offset_ref )
@@ -50,7 +50,7 @@ void checkResults( DataTransferKit::BVH<DeviceType> const &bvh,
 // compare them to the reference solution passed as argument.  Templated type
 // `Query` is pretty much a nearest predicate in this case.
 template <typename Query, typename DeviceType>
-void checkResults( DataTransferKit::BVH<DeviceType> const &bvh,
+void checkResults( ArborX::BVH<DeviceType> const &bvh,
                    Kokkos::View<Query *, DeviceType> const &queries,
                    std::vector<int> const &indices_ref,
                    std::vector<int> const &offset_ref,
@@ -74,11 +74,11 @@ void checkResults( DataTransferKit::BVH<DeviceType> const &bvh,
 }
 
 template <typename Query, typename DeviceType>
-void checkResults(
-    DataTransferKit::DistributedSearchTree<DeviceType> const &tree,
-    Kokkos::View<Query *, DeviceType> const &queries,
-    std::vector<int> const &indices_ref, std::vector<int> const &offset_ref,
-    std::vector<int> const &ranks_ref )
+void checkResults( ArborX::DistributedSearchTree<DeviceType> const &tree,
+                   Kokkos::View<Query *, DeviceType> const &queries,
+                   std::vector<int> const &indices_ref,
+                   std::vector<int> const &offset_ref,
+                   std::vector<int> const &ranks_ref )
 {
     Kokkos::View<int *, DeviceType> indices( "indices" );
     Kokkos::View<int *, DeviceType> offset( "offset" );
@@ -118,12 +118,12 @@ void checkResults(
 }
 
 template <typename Query, typename DeviceType>
-void checkResults(
-    DataTransferKit::DistributedSearchTree<DeviceType> const &tree,
-    Kokkos::View<Query *, DeviceType> const &queries,
-    std::vector<int> const &indices_ref, std::vector<int> const &offset_ref,
-    std::vector<int> const &ranks_ref,
-    std::vector<double> const &distances_ref )
+void checkResults( ArborX::DistributedSearchTree<DeviceType> const &tree,
+                   Kokkos::View<Query *, DeviceType> const &queries,
+                   std::vector<int> const &indices_ref,
+                   std::vector<int> const &offset_ref,
+                   std::vector<int> const &ranks_ref,
+                   std::vector<double> const &distances_ref )
 {
     Kokkos::View<int *, DeviceType> indices( "indices" );
     Kokkos::View<int *, DeviceType> offset( "offset" );
@@ -147,77 +147,71 @@ void checkResults(
 }
 
 template <typename DeviceType>
-DataTransferKit::BVH<DeviceType>
-makeBvh( std::vector<DataTransferKit::Box> const &b )
+ArborX::BVH<DeviceType> makeBvh( std::vector<ArborX::Box> const &b )
 {
     int const n = b.size();
-    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", n );
+    Kokkos::View<ArborX::Box *, DeviceType> boxes( "boxes", n );
     auto boxes_host = Kokkos::create_mirror_view( boxes );
     for ( int i = 0; i < n; ++i )
         boxes_host( i ) = b[i];
     Kokkos::deep_copy( boxes, boxes_host );
-    return DataTransferKit::BVH<DeviceType>( boxes );
+    return ArborX::BVH<DeviceType>( boxes );
 }
 
 template <typename DeviceType>
-DataTransferKit::DistributedSearchTree<DeviceType>
-makeDistributedSearchTree( MPI_Comm comm,
-                           std::vector<DataTransferKit::Box> const &b )
+ArborX::DistributedSearchTree<DeviceType>
+makeDistributedSearchTree( MPI_Comm comm, std::vector<ArborX::Box> const &b )
 {
     int const n = b.size();
-    Kokkos::View<DataTransferKit::Box *, DeviceType> boxes( "boxes", n );
+    Kokkos::View<ArborX::Box *, DeviceType> boxes( "boxes", n );
     auto boxes_host = Kokkos::create_mirror_view( boxes );
     for ( int i = 0; i < n; ++i )
         boxes_host( i ) = b[i];
     Kokkos::deep_copy( boxes, boxes_host );
-    return DataTransferKit::DistributedSearchTree<DeviceType>( comm, boxes );
+    return ArborX::DistributedSearchTree<DeviceType>( comm, boxes );
 }
 
 template <typename DeviceType>
-Kokkos::View<DataTransferKit::Overlap *, DeviceType>
-makeOverlapQueries( std::vector<DataTransferKit::Box> const &boxes )
+Kokkos::View<ArborX::Overlap *, DeviceType>
+makeOverlapQueries( std::vector<ArborX::Box> const &boxes )
 {
     int const n = boxes.size();
-    Kokkos::View<DataTransferKit::Overlap *, DeviceType> queries(
-        "overlap_queries", n );
+    Kokkos::View<ArborX::Overlap *, DeviceType> queries( "overlap_queries", n );
     auto queries_host = Kokkos::create_mirror_view( queries );
     for ( int i = 0; i < n; ++i )
-        queries_host( i ) = DataTransferKit::overlap( boxes[i] );
+        queries_host( i ) = ArborX::overlap( boxes[i] );
     Kokkos::deep_copy( queries, queries_host );
     return queries;
 }
 
 template <typename DeviceType>
-Kokkos::View<DataTransferKit::Nearest<DataTransferKit::Point> *, DeviceType>
-makeNearestQueries(
-    std::vector<std::pair<DataTransferKit::Point, int>> const &points )
+Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType>
+makeNearestQueries( std::vector<std::pair<ArborX::Point, int>> const &points )
 {
     // NOTE: `points` is not a very descriptive name here. It stores both the
     // actual point and the number k of neighbors to query for.
     int const n = points.size();
-    Kokkos::View<DataTransferKit::Nearest<DataTransferKit::Point> *, DeviceType>
-        queries( "nearest_queries", n );
+    Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> queries(
+        "nearest_queries", n );
     auto queries_host = Kokkos::create_mirror_view( queries );
     for ( int i = 0; i < n; ++i )
         queries_host( i ) =
-            DataTransferKit::nearest( points[i].first, points[i].second );
+            ArborX::nearest( points[i].first, points[i].second );
     Kokkos::deep_copy( queries, queries_host );
     return queries;
 }
 
 template <typename DeviceType>
-Kokkos::View<DataTransferKit::Within *, DeviceType> makeWithinQueries(
-    std::vector<std::pair<DataTransferKit::Point, double>> const &points )
+Kokkos::View<ArborX::Within *, DeviceType>
+makeWithinQueries( std::vector<std::pair<ArborX::Point, double>> const &points )
 {
     // NOTE: `points` is not a very descriptive name here. It stores both the
     // actual point and the radius for the search around that point.
     int const n = points.size();
-    Kokkos::View<DataTransferKit::Within *, DeviceType> queries(
-        "within_queries", n );
+    Kokkos::View<ArborX::Within *, DeviceType> queries( "within_queries", n );
     auto queries_host = Kokkos::create_mirror_view( queries );
     for ( int i = 0; i < n; ++i )
-        queries_host( i ) =
-            DataTransferKit::within( points[i].first, points[i].second );
+        queries_host( i ) = ArborX::within( points[i].first, points[i].second );
     Kokkos::deep_copy( queries, queries_host );
     return queries;
 }

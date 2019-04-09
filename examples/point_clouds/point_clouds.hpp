@@ -21,7 +21,7 @@ enum PointCloudType { filled_box, hollow_box, filled_sphere, hollow_sphere };
 
 template <typename Layout, typename DeviceType>
 void writePointCloud(
-    Kokkos::View<DataTransferKit::Point *, Layout, DeviceType> random_points,
+    Kokkos::View<ArborX::Point *, Layout, DeviceType> random_points,
     std::string const &filename )
 
 {
@@ -43,7 +43,7 @@ void writePointCloud(
 template <typename Layout, typename DeviceType>
 void filledBoxCloud(
     double const half_edge,
-    Kokkos::View<DataTransferKit::Point *, Layout, DeviceType> random_points )
+    Kokkos::View<ArborX::Point *, Layout, DeviceType> random_points )
 {
     static_assert(
         Kokkos::Impl::MemorySpaceAccess<
@@ -63,7 +63,7 @@ void filledBoxCloud(
 template <typename Layout, typename DeviceType>
 void hollowBoxCloud(
     double const half_edge,
-    Kokkos::View<DataTransferKit::Point *, Layout, DeviceType> random_points )
+    Kokkos::View<ArborX::Point *, Layout, DeviceType> random_points )
 {
     static_assert(
         Kokkos::Impl::MemorySpaceAccess<
@@ -128,7 +128,7 @@ void hollowBoxCloud(
 template <typename Layout, typename DeviceType>
 void filledSphereCloud(
     double const radius,
-    Kokkos::View<DataTransferKit::Point *, Layout, DeviceType> random_points )
+    Kokkos::View<ArborX::Point *, Layout, DeviceType> random_points )
 {
     static_assert(
         Kokkos::Impl::MemorySpaceAccess<
@@ -164,7 +164,7 @@ void filledSphereCloud(
 template <typename Layout, typename DeviceType>
 void hollowSphereCloud(
     double const radius,
-    Kokkos::View<DataTransferKit::Point *, Layout, DeviceType> random_points )
+    Kokkos::View<ArborX::Point *, Layout, DeviceType> random_points )
 {
     static_assert(
         Kokkos::Impl::MemorySpaceAccess<
@@ -193,7 +193,7 @@ void hollowSphereCloud(
 template <typename DeviceType>
 void generatePointCloud(
     PointCloudType const point_cloud_type, double const length,
-    Kokkos::View<DataTransferKit::Point *, DeviceType> random_points )
+    Kokkos::View<ArborX::Point *, DeviceType> random_points )
 {
     auto random_points_host = Kokkos::create_mirror_view( random_points );
     if ( point_cloud_type == PointCloudType::filled_box )
@@ -214,15 +214,14 @@ void generatePointCloud(
     }
     else
     {
-        throw DataTransferKit::SearchException( "not implemented" );
+        throw ArborX::SearchException( "not implemented" );
     }
     Kokkos::deep_copy( random_points, random_points_host );
 }
 
 template <typename DeviceType>
-void loadPointCloud(
-    std::string const &filename,
-    Kokkos::View<DataTransferKit::Point *, DeviceType> &random_points )
+void loadPointCloud( std::string const &filename,
+                     Kokkos::View<ArborX::Point *, DeviceType> &random_points )
 {
     std::ifstream file( filename );
     if ( file.is_open() )

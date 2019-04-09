@@ -70,8 +70,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( sort_results, DeviceType,
         ranks_host( i ) = ranks_[i];
     Kokkos::deep_copy( ranks, ranks_host );
 
-    DataTransferKit::Details::DistributedSearchTreeImpl<
-        DeviceType>::sortResults( ids, results, ranks );
+    ArborX::Details::DistributedSearchTreeImpl<DeviceType>::sortResults(
+        ids, results, ranks );
 
     // COMMENT: ids are untouched
     Kokkos::deep_copy( ids_host, ids );
@@ -87,9 +87,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( sort_results, DeviceType,
         }
 
     Kokkos::View<int *, DeviceType> not_sized_properly( "", m );
-    BOOST_CHECK_THROW( DataTransferKit::Details::DistributedSearchTreeImpl<
-                           DeviceType>::sortResults( ids, not_sized_properly ),
-                       DataTransferKit::SearchException );
+    BOOST_CHECK_THROW(
+        ArborX::Details::DistributedSearchTreeImpl<DeviceType>::sortResults(
+            ids, not_sized_properly ),
+        ArborX::SearchException );
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( count_results, DeviceType,
@@ -112,8 +113,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( count_results, DeviceType,
 
     Kokkos::View<int *, DeviceType> offset( "offset" );
 
-    DataTransferKit::Details::DistributedSearchTreeImpl<
-        DeviceType>::countResults( m, ids, offset );
+    ArborX::Details::DistributedSearchTreeImpl<DeviceType>::countResults(
+        m, ids, offset );
 
     auto offset_host = Kokkos::create_mirror_view( offset );
     Kokkos::deep_copy( offset_host, offset );
@@ -165,7 +166,7 @@ inline void checkNewViewWasAllocated( View1 const &v1, View2 const &v2 )
 
 BOOST_AUTO_TEST_CASE( create_layout_right_mirror_view )
 {
-    using DataTransferKit::Details::create_layout_right_mirror_view;
+    using ArborX::Details::create_layout_right_mirror_view;
     using Kokkos::ALL;
     using Kokkos::LayoutLeft;
     using Kokkos::LayoutRight;
@@ -209,7 +210,7 @@ void checkBufferLayout( std::vector<int> const &ranks,
     std::vector<int> unique;
     std::vector<int> counts;
     std::vector<int> offsets;
-    DataTransferKit::Details::sortAndDetermineBufferLayout(
+    ArborX::Details::sortAndDetermineBufferLayout(
         Kokkos::View<int const *, Kokkos::HostSpace,
                      Kokkos::MemoryTraits<Kokkos::Unmanaged>>( ranks.data(),
                                                                ranks.size() ),

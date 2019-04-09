@@ -40,14 +40,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( permute_offset_and_indices, DeviceType,
     Kokkos::View<size_t *, DeviceType> permute( "permute" );
 
     BOOST_CHECK_THROW(
-        DataTransferKit::Details::BatchedQueries<
-            DeviceType>::reversePermutation( permute, offset, indices ),
-        DataTransferKit::SearchException );
+        ArborX::Details::BatchedQueries<DeviceType>::reversePermutation(
+            permute, offset, indices ),
+        ArborX::SearchException );
 
     Kokkos::resize( offset, 1 );
     BOOST_CHECK_NO_THROW(
-        DataTransferKit::Details::BatchedQueries<
-            DeviceType>::reversePermutation( permute, offset, indices ) );
+        ArborX::Details::BatchedQueries<DeviceType>::reversePermutation(
+            permute, offset, indices ) );
 
     std::vector<int> offset_ = {0, 0, 1, 3, 6, 10};
     std::vector<int> indices_ = {1, 2, 2, 3, 3, 3, 4, 4, 4, 4};
@@ -55,10 +55,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( permute_offset_and_indices, DeviceType,
     std::vector<int> offset_ref = {0, 4, 7, 9, 10, 10};
     std::vector<int> indices_ref = {4, 4, 4, 4, 3, 3, 3, 2, 2, 1};
 
-    std::tie( offset, indices ) = DataTransferKit::Details::BatchedQueries<
-        DeviceType>::reversePermutation( toView<DeviceType>( permute_ ),
-                                         toView<DeviceType>( offset_ ),
-                                         toView<DeviceType>( indices_ ) );
+    std::tie( offset, indices ) =
+        ArborX::Details::BatchedQueries<DeviceType>::reversePermutation(
+            toView<DeviceType>( permute_ ), toView<DeviceType>( offset_ ),
+            toView<DeviceType>( indices_ ) );
     BOOST_TEST( offset == offset_ref, tt::per_element() );
     BOOST_TEST( indices == indices_ref, tt::per_element() );
 }

@@ -20,7 +20,7 @@
 #include <type_traits> // is_same
 #include <utility>     // move, forward
 
-namespace DataTransferKit
+namespace ArborX
 {
 namespace Details
 {
@@ -129,6 +129,6 @@ class PriorityQueue
 };
 
 } // namespace Details
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

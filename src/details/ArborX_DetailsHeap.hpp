@@ -16,7 +16,7 @@
 #include <iterator> // iterator_traits
 #include <utility>  // move
 
-namespace DataTransferKit
+namespace ArborX
 {
 namespace Details
 {
@@ -117,6 +117,6 @@ KOKKOS_INLINE_FUNCTION void sortHeap( RandomIterator first, RandomIterator last,
 }
 
 } // namespace Details
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

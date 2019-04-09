@@ -18,7 +18,7 @@
 
 #include <Kokkos_Macros.hpp>
 
-namespace DataTransferKit
+namespace ArborX
 {
 namespace Details
 {
@@ -211,6 +211,6 @@ void translateAndScale( Point const &in, Point &out, Box const &ref )
 }
 
 } // namespace Details
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

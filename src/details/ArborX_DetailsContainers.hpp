@@ -17,7 +17,7 @@
 #include <cstddef> // size_t, ptrdiff_t
 #include <utility> // move, forward
 
-namespace DataTransferKit
+namespace ArborX
 {
 namespace Details
 {
@@ -101,6 +101,6 @@ class UnmanagedStaticVector
 };
 
 } // namespace Details
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

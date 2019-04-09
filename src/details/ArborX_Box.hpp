@@ -15,7 +15,7 @@
 #include <ArborX_Point.hpp>
 #include <Kokkos_Macros.hpp>
 
-namespace DataTransferKit
+namespace ArborX
 {
 /**
  * Axis-Aligned Bounding Box. This is just a thin wrapper around an array of
@@ -65,6 +65,6 @@ struct Box
                           -KokkosExt::ArithmeticTraits::max<double>::value,
                           -KokkosExt::ArithmeticTraits::max<double>::value}};
 };
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

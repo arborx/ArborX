@@ -19,7 +19,7 @@
 #include <ArborX_DetailsStack.hpp>
 #include <ArborX_Predicates.hpp>
 
-namespace DataTransferKit
+namespace ArborX
 {
 
 template <typename DeviceType>
@@ -331,6 +331,6 @@ struct TreeTraversal
 };
 
 } // namespace Details
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

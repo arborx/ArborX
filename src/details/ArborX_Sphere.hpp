@@ -14,7 +14,7 @@
 #include <ArborX_Point.hpp>
 #include <Kokkos_Macros.hpp>
 
-namespace DataTransferKit
+namespace ArborX
 {
 
 struct Sphere
@@ -41,6 +41,6 @@ struct Sphere
     Point _centroid;
     double _radius = 0.;
 };
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

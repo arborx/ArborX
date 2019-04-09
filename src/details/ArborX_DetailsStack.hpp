@@ -18,7 +18,7 @@
 #include <type_traits> // is_same
 #include <utility>     // move, forward
 
-namespace DataTransferKit
+namespace ArborX
 {
 namespace Details
 {
@@ -68,6 +68,6 @@ class Stack
 };
 
 } // namespace Details
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

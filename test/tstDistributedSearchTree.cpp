@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( hello_world, DeviceType,
     MPI_Comm_size( comm, &comm_size );
 
     int const n = 4;
-    Kokkos::View<DataTransferKit::Point *, DeviceType> points( "points", n );
+    Kokkos::View<ArborX::Point *, DeviceType> points( "points", n );
     // [  rank 0       [  rank 1       [  rank 2       [  rank 3       [
     // x---x---x---x---x---x---x---x---x---x---x---x---x---x---x---x---
     // ^   ^   ^   ^
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( hello_world, DeviceType,
             points( i ) = {{(double)i / n + comm_rank, 0., 0.}};
         } );
 
-    DataTransferKit::DistributedSearchTree<DeviceType> tree( comm, points );
+    ArborX::DistributedSearchTree<DeviceType> tree( comm, points );
 
     // 0---0---0---0---1---1---1---1---2---2---2---2---3---3---3---3---
     // |               |               |               |               |
@@ -64,10 +64,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( hello_world, DeviceType,
     // x   x   x   x   x               |               |               |
     // |<------3------>|               |               |               |
     // |               |               |               |               |
-    Kokkos::View<DataTransferKit::Within *, DeviceType> queries( "queries", 1 );
+    Kokkos::View<ArborX::Within *, DeviceType> queries( "queries", 1 );
     auto queries_host = Kokkos::create_mirror_view( queries );
-    queries_host( 0 ) = DataTransferKit::within(
-        {{0.5 + comm_size - 1 - comm_rank, 0., 0.}}, 0.5 );
+    queries_host( 0 ) =
+        ArborX::within( {{0.5 + comm_size - 1 - comm_rank, 0., 0.}}, 0.5 );
     deep_copy( queries, queries_host );
 
     // 0---0---0---0---1---1---1---1---2---2---2---2---3---3---3---3---
@@ -78,13 +78,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( hello_world, DeviceType,
     // x   x        <--2-->            |               |               |
     // 3-->            |               |               |               |
     // |               |               |               |               |
-    Kokkos::View<DataTransferKit::Nearest<DataTransferKit::Point> *, DeviceType>
-        nearest_queries( "nearest_queries", 1 );
+    Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> nearest_queries(
+        "nearest_queries", 1 );
     auto nearest_queries_host = Kokkos::create_mirror_view( nearest_queries );
-    nearest_queries_host( 0 ) =
-        DataTransferKit::nearest<DataTransferKit::Point>(
-            {{0.0 + comm_size - 1 - comm_rank, 0., 0.}},
-            comm_rank < comm_size - 1 ? 3 : 2 );
+    nearest_queries_host( 0 ) = ArborX::nearest<ArborX::Point>(
+        {{0.0 + comm_size - 1 - comm_rank, 0., 0.}},
+        comm_rank < comm_size - 1 ? 3 : 2 );
     deep_copy( nearest_queries, nearest_queries_host );
 
     std::vector<int> indices_ref;
@@ -133,8 +132,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( empty_tree, DeviceType, DTK_SEARCH_DEVICE_TYPES )
     BOOST_TEST( emptry_dist_tree.empty() );
     BOOST_TEST( emptry_dist_tree.size() == 0 );
 
-    BOOST_TEST(
-        DataTransferKit::Details::equals( emptry_dist_tree.bounds(), {} ) );
+    BOOST_TEST( ArborX::Details::equals( emptry_dist_tree.bounds(), {} ) );
 
     checkResults( emptry_dist_tree, makeOverlapQueries<DeviceType>( {} ), {},
                   {0}, {} );
@@ -212,8 +210,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( unique_leaf_on_rank_0, DeviceType,
     BOOST_TEST( !tree.empty() );
     BOOST_TEST( tree.size() == 1 );
 
-    BOOST_TEST( DataTransferKit::Details::equals(
-        tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}} ) );
+    BOOST_TEST( ArborX::Details::equals( tree.bounds(),
+                                         {{{0., 0., 0.}}, {{1., 1., 1.}}} ) );
 
     checkResults( tree, makeOverlapQueries<DeviceType>( {} ), {}, {0}, {} );
 
@@ -252,7 +250,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( one_leaf_per_rank, DeviceType,
     BOOST_TEST( !tree.empty() );
     BOOST_TEST( (int)tree.size() == comm_size );
 
-    BOOST_TEST( DataTransferKit::Details::equals(
+    BOOST_TEST( ArborX::Details::equals(
         tree.bounds(), {{{0., 0., 0.}}, {{(double)comm_size, 1., 1.}}} ) );
 
     checkResults( tree,
@@ -378,8 +376,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( boost_comparison, DeviceType,
     auto queries = make_random_cloud( Lx, Ly, Lz, n, 1234 );
 
     int const local_n = n / comm_size;
-    Kokkos::View<DataTransferKit::Box *, DeviceType> bounding_boxes(
-        "bounding_boxes", local_n );
+    Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes( "bounding_boxes",
+                                                            local_n );
     auto bounding_boxes_host = Kokkos::create_mirror_view( bounding_boxes );
     for ( int i = 0; i < n; ++i )
     {
@@ -395,7 +393,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( boost_comparison, DeviceType,
     Kokkos::deep_copy( bounding_boxes, bounding_boxes_host );
 
     // Initialize the distributed search tree
-    DataTransferKit::DistributedSearchTree<DeviceType> distributed_tree(
+    ArborX::DistributedSearchTree<DeviceType> distributed_tree(
         comm, bounding_boxes );
 
     auto rtree = BoostRTreeHelpers::makeRTree( comm, bounding_boxes );
@@ -433,12 +431,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( boost_comparison, DeviceType,
     Kokkos::deep_copy( point_coords, point_coords_host );
     Kokkos::deep_copy( radii, radii_host );
 
-    Kokkos::View<DataTransferKit::Within *, DeviceType> within_queries(
-        "within_queries", local_n );
+    Kokkos::View<ArborX::Within *, DeviceType> within_queries( "within_queries",
+                                                               local_n );
     Kokkos::parallel_for( "register_within_queries",
                           Kokkos::RangePolicy<ExecutionSpace>( 0, local_n ),
                           KOKKOS_LAMBDA( int i ) {
-                              within_queries( i ) = DataTransferKit::within(
+                              within_queries( i ) = ArborX::within(
                                   {{point_coords( i, 0 ), point_coords( i, 1 ),
                                     point_coords( i, 2 )}},
                                   radii( i ) );

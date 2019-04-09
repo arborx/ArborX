@@ -32,7 +32,7 @@
 
 #include <cassert>
 
-namespace DataTransferKit
+namespace ArborX
 {
 namespace Details
 {
@@ -500,6 +500,6 @@ void TreeConstruction<DeviceType>::calculateInternalNodesBoundingVolumes(
 }
 
 } // namespace Details
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

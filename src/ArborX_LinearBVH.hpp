@@ -22,7 +22,7 @@
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_View.hpp>
 
-namespace DataTransferKit
+namespace ArborX
 {
 namespace Details
 {
@@ -191,6 +191,6 @@ static_assert( Details::has_centroid<Box const, Point>::value, "" );
 static_assert( Details::has_centroid<Point, Point>::value, "" );
 static_assert( Details::has_centroid<Point const, Point>::value, "" );
 
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

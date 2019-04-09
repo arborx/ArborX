@@ -48,8 +48,8 @@ BOOST_AUTO_TEST_CASE( range_algorithms )
 
 BOOST_AUTO_TEST_CASE( point_cloud )
 {
-    using DataTransferKit::Point;
-    using DataTransferKit::Details::distance;
+    using ArborX::Point;
+    using ArborX::Details::distance;
     double const seed = 3.14;
     std::default_random_engine generator( seed );
     std::uniform_real_distribution<double> distribution( -1., 1. );

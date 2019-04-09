@@ -14,7 +14,7 @@
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsNode.hpp>
 
-namespace DataTransferKit
+namespace ArborX
 {
 namespace Details
 {
@@ -82,6 +82,6 @@ Within within( Point const &p, double r ) { return Within( {p, r} ); }
 KOKKOS_INLINE_FUNCTION
 Overlap overlap( Box const &b ) { return Overlap( b ); }
 
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

@@ -15,7 +15,7 @@
 #include <ArborX_Box.hpp>
 #include <Kokkos_Pair.hpp>
 
-namespace DataTransferKit
+namespace ArborX
 {
 struct Node
 {
@@ -32,6 +32,6 @@ struct Node
     Kokkos::pair<Node *, Node *> children = {nullptr, nullptr};
     Box bounding_box;
 };
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

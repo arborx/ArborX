@@ -18,7 +18,7 @@
 #include <Kokkos_Sort.hpp> // min_max_functor
 #include <Kokkos_View.hpp>
 
-namespace DataTransferKit
+namespace ArborX
 {
 
 namespace Details
@@ -351,6 +351,6 @@ typename View::non_const_type clone( View &v )
     return w;
 }
 
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

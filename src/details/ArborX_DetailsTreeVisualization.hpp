@@ -15,7 +15,7 @@
 
 #include <Kokkos_View.hpp>
 
-namespace DataTransferKit
+namespace ArborX
 {
 
 template <typename DeviceType>
@@ -231,6 +231,6 @@ struct TreeVisualization
     }
 };
 } // namespace Details
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

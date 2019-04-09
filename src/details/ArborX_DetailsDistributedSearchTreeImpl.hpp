@@ -27,7 +27,7 @@
 
 #include <numeric> // accumulate
 
-namespace DataTransferKit
+namespace ArborX
 {
 
 template <typename DeviceType>
@@ -701,6 +701,6 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
 }
 
 } // namespace Details
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

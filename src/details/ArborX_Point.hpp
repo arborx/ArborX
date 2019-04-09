@@ -14,7 +14,7 @@
 
 #include <Kokkos_Macros.hpp>
 
-namespace DataTransferKit
+namespace ArborX
 {
 class Point
 {
@@ -41,6 +41,6 @@ class Point
     // initializer constructor.
     double _coords[3];
 };
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

@@ -14,138 +14,152 @@
 
 #define BOOST_TEST_MODULE DetailsAlgorithms
 
-namespace dtk = DataTransferKit::Details;
+namespace details = ArborX::Details;
 
 BOOST_AUTO_TEST_CASE( distance )
 {
-    BOOST_TEST( dtk::distance( {{1.0, 2.0, 3.0}}, {{1.0, 1.0, 1.0}} ) ==
+    BOOST_TEST( details::distance( {{1.0, 2.0, 3.0}}, {{1.0, 1.0, 1.0}} ) ==
                 std::sqrt( 5.0 ) );
 
     // box is unit cube
-    DataTransferKit::Box box = {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
+    ArborX::Box box = {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
 
     // distance is zero if the point is inside the box
-    BOOST_TEST( dtk::distance( {{0.5, 0.5, 0.5}}, box ) == 0.0 );
+    BOOST_TEST( details::distance( {{0.5, 0.5, 0.5}}, box ) == 0.0 );
     // or anywhere on the boundary
-    BOOST_TEST( dtk::distance( {{0.0, 0.0, 0.5}}, box ) == 0.0 );
+    BOOST_TEST( details::distance( {{0.0, 0.0, 0.5}}, box ) == 0.0 );
     // normal projection onto center of one face
-    BOOST_TEST( dtk::distance( {{2.0, 0.5, 0.5}}, box ) == 1.0 );
+    BOOST_TEST( details::distance( {{2.0, 0.5, 0.5}}, box ) == 1.0 );
     // projection onto edge
-    BOOST_TEST( dtk::distance( {{2.0, 0.75, -1.0}}, box ) == std::sqrt( 2.0 ) );
+    BOOST_TEST( details::distance( {{2.0, 0.75, -1.0}}, box ) ==
+                std::sqrt( 2.0 ) );
     // projection onto corner node
-    BOOST_TEST( dtk::distance( {{-1.0, 2.0, 2.0}}, box ) == std::sqrt( 3.0 ) );
+    BOOST_TEST( details::distance( {{-1.0, 2.0, 2.0}}, box ) ==
+                std::sqrt( 3.0 ) );
 
     // unit sphere
-    DataTransferKit::Sphere sphere = {{{0., 0., 0.}}, 1.};
-    BOOST_TEST( dtk::distance( {{.5, .5, .5}}, sphere ) == 0. );
-    BOOST_TEST( dtk::distance( {{2., 0., 0.}}, sphere ) == 1. );
-    BOOST_TEST( dtk::distance( {{1., 1., 1.}}, sphere ) ==
+    ArborX::Sphere sphere = {{{0., 0., 0.}}, 1.};
+    BOOST_TEST( details::distance( {{.5, .5, .5}}, sphere ) == 0. );
+    BOOST_TEST( details::distance( {{2., 0., 0.}}, sphere ) == 1. );
+    BOOST_TEST( details::distance( {{1., 1., 1.}}, sphere ) ==
                 std::sqrt( 3. ) - 1. );
 }
 
 BOOST_AUTO_TEST_CASE( overlaps )
 {
-    DataTransferKit::Box box;
+    ArborX::Box box;
     // uninitialized box does not even overlap with itself
-    BOOST_TEST( !dtk::intersects( box, box ) );
+    BOOST_TEST( !details::intersects( box, box ) );
     // box with zero extent does
     box = {{{0.0, 0.0, 0.0}}, {{0.0, 0.0, 0.0}}};
-    BOOST_TEST( dtk::intersects( box, box ) );
-    BOOST_TEST( !dtk::intersects( box, DataTransferKit::Box() ) );
+    BOOST_TEST( details::intersects( box, box ) );
+    BOOST_TEST( !details::intersects( box, ArborX::Box() ) );
     // overlap with box that contains it
     BOOST_TEST(
-        dtk::intersects( box, {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}} ) );
+        details::intersects( box, {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}} ) );
     // does not overlap with some other box
     BOOST_TEST(
-        !dtk::intersects( box, {{{1.0, 1.0, 1.0}}, {{2.0, 2.0, 2.0}}} ) );
+        !details::intersects( box, {{{1.0, 1.0, 1.0}}, {{2.0, 2.0, 2.0}}} ) );
     // overlap when only touches another
     BOOST_TEST(
-        dtk::intersects( box, {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}} ) );
+        details::intersects( box, {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}} ) );
     // unit cube
     box = {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
-    BOOST_TEST( dtk::intersects( box, box ) );
-    BOOST_TEST( !dtk::intersects( box, DataTransferKit::Box() ) );
+    BOOST_TEST( details::intersects( box, box ) );
+    BOOST_TEST( !details::intersects( box, ArborX::Box() ) );
     // smaller box inside
-    BOOST_TEST(
-        dtk::intersects( box, {{{0.25, 0.25, 0.25}}, {{0.75, 0.75, 0.75}}} ) );
+    BOOST_TEST( details::intersects(
+        box, {{{0.25, 0.25, 0.25}}, {{0.75, 0.75, 0.75}}} ) );
     // bigger box that contains it
     BOOST_TEST(
-        dtk::intersects( box, {{{-1.0, -1.0, -1.0}}, {{2.0, 2.0, 2.0}}} ) );
+        details::intersects( box, {{{-1.0, -1.0, -1.0}}, {{2.0, 2.0, 2.0}}} ) );
     // couple boxes that do overlap
     BOOST_TEST(
-        dtk::intersects( box, {{{0.5, 0.5, 0.5}}, {{1.5, 1.5, 1.5}}} ) );
+        details::intersects( box, {{{0.5, 0.5, 0.5}}, {{1.5, 1.5, 1.5}}} ) );
     BOOST_TEST(
-        dtk::intersects( box, {{{-0.5, -0.5, -0.5}}, {{0.5, 0.5, 0.5}}} ) );
+        details::intersects( box, {{{-0.5, -0.5, -0.5}}, {{0.5, 0.5, 0.5}}} ) );
     // couple boxes that do not
+    BOOST_TEST( !details::intersects(
+        box, {{{-2.0, -2.0, -2.0}}, {{-1.0, -1.0, -1.0}}} ) );
     BOOST_TEST(
-        !dtk::intersects( box, {{{-2.0, -2.0, -2.0}}, {{-1.0, -1.0, -1.0}}} ) );
-    BOOST_TEST(
-        !dtk::intersects( box, {{{0.0, 0.0, 2.0}}, {{1.0, 1.0, 3.0}}} ) );
+        !details::intersects( box, {{{0.0, 0.0, 2.0}}, {{1.0, 1.0, 3.0}}} ) );
     // boxes overlap if faces touch
     BOOST_TEST(
-        dtk::intersects( box, {{{1.0, 0.0, 0.0}}, {{2.0, 1.0, 1.0}}} ) );
+        details::intersects( box, {{{1.0, 0.0, 0.0}}, {{2.0, 1.0, 1.0}}} ) );
     BOOST_TEST(
-        dtk::intersects( box, {{{-0.5, -0.5, -0.5}}, {{0.5, 0.0, 0.5}}} ) );
+        details::intersects( box, {{{-0.5, -0.5, -0.5}}, {{0.5, 0.0, 0.5}}} ) );
 }
 
 BOOST_AUTO_TEST_CASE( intersects )
 {
-    DataTransferKit::Sphere sphere = {{{0., 0., 0.}}, 1.};
-    BOOST_TEST( dtk::intersects( sphere, {{{0., 0., 0.}}, {{1., 1., 1.}}} ) );
-    BOOST_TEST( !dtk::intersects( sphere, {{{1., 2., 3.}}, {{4., 5., 6.}}} ) );
+    ArborX::Sphere sphere = {{{0., 0., 0.}}, 1.};
+    BOOST_TEST(
+        details::intersects( sphere, {{{0., 0., 0.}}, {{1., 1., 1.}}} ) );
+    BOOST_TEST(
+        !details::intersects( sphere, {{{1., 2., 3.}}, {{4., 5., 6.}}} ) );
 }
 
 BOOST_AUTO_TEST_CASE( equals )
 {
     // points
-    BOOST_TEST( dtk::equals( {{0., 0., 0.}}, {{0., 0., 0.}} ) );
-    BOOST_TEST( !dtk::equals( {{0., 0., 0.}}, {{1., 1., 1.}} ) );
+    BOOST_TEST( details::equals( {{0., 0., 0.}}, {{0., 0., 0.}} ) );
+    BOOST_TEST( !details::equals( {{0., 0., 0.}}, {{1., 1., 1.}} ) );
     // boxes
-    BOOST_TEST( dtk::equals( {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}},
-                             {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}} ) );
-    BOOST_TEST( !dtk::equals( {{{0.0, 0.0, 0.0}}, {{1.0, 0.0, 1.0}}},
-                              {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}} ) );
+    BOOST_TEST( details::equals( {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}},
+                                 {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}} ) );
+    BOOST_TEST( !details::equals( {{{0.0, 0.0, 0.0}}, {{1.0, 0.0, 1.0}}},
+                                  {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}} ) );
     // spheres
-    BOOST_TEST( dtk::equals( {{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 1.} ) );
-    BOOST_TEST( !dtk::equals( {{{0., 0., 0.}}, 1.}, {{{0., 1., 2.}}, 1.} ) );
-    BOOST_TEST( !dtk::equals( {{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 2.} ) );
+    BOOST_TEST( details::equals( {{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 1.} ) );
+    BOOST_TEST(
+        !details::equals( {{{0., 0., 0.}}, 1.}, {{{0., 1., 2.}}, 1.} ) );
+    BOOST_TEST(
+        !details::equals( {{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 2.} ) );
 }
 
 BOOST_AUTO_TEST_CASE( expand )
 {
-    DataTransferKit::Box box;
+    ArborX::Box box;
 
     // expand box with points
-    dtk::expand( box, {{0.0, 0.0, 0.0}} );
-    BOOST_TEST( dtk::equals( box, {{{0.0, 0.0, 0.0}}, {{0.0, 0.0, 0.0}}} ) );
-    dtk::expand( box, {{1.0, 1.0, 1.0}} );
-    BOOST_TEST( dtk::equals( box, {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}} ) );
-    dtk::expand( box, {{0.25, 0.75, 0.25}} );
-    BOOST_TEST( dtk::equals( box, {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}} ) );
-    dtk::expand( box, {{-1.0, -1.0, -1.0}} );
-    BOOST_TEST( dtk::equals( box, {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}} ) );
+    details::expand( box, {{0.0, 0.0, 0.0}} );
+    BOOST_TEST(
+        details::equals( box, {{{0.0, 0.0, 0.0}}, {{0.0, 0.0, 0.0}}} ) );
+    details::expand( box, {{1.0, 1.0, 1.0}} );
+    BOOST_TEST(
+        details::equals( box, {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}} ) );
+    details::expand( box, {{0.25, 0.75, 0.25}} );
+    BOOST_TEST(
+        details::equals( box, {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}} ) );
+    details::expand( box, {{-1.0, -1.0, -1.0}} );
+    BOOST_TEST(
+        details::equals( box, {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}} ) );
 
     // expand box with boxes
-    dtk::expand( box, {{{0.25, 0.25, 0.25}}, {{0.75, 0.75, 0.75}}} );
-    BOOST_TEST( dtk::equals( box, {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}} ) );
-    dtk::expand( box, {{{10.0, 10.0, 10.0}}, {{11.0, 11.0, 11.0}}} );
+    details::expand( box, {{{0.25, 0.25, 0.25}}, {{0.75, 0.75, 0.75}}} );
     BOOST_TEST(
-        dtk::equals( box, {{{-1.0, -1.0, -1.0}}, {{11.0, 11.0, 11.0}}} ) );
+        details::equals( box, {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}} ) );
+    details::expand( box, {{{10.0, 10.0, 10.0}}, {{11.0, 11.0, 11.0}}} );
+    BOOST_TEST(
+        details::equals( box, {{{-1.0, -1.0, -1.0}}, {{11.0, 11.0, 11.0}}} ) );
 
     // expand box with spheres
-    dtk::expand( box, {{{0., 1., 2.}}, 3.} );
-    BOOST_TEST( dtk::equals( box, {{{-3., -2., -1.}}, {{11., 11., 11.}}} ) );
-    dtk::expand( box, {{{0., 0., 0.}}, 1.} );
-    BOOST_TEST( dtk::equals( box, {{{-3., -2., -1.}}, {{11., 11., 11.}}} ) );
-    dtk::expand( box, {{{0., 0., 0.}}, 24.} );
-    BOOST_TEST( dtk::equals( box, {{{-24., -24., -24.}}, {{24., 24., 24.}}} ) );
+    details::expand( box, {{{0., 1., 2.}}, 3.} );
+    BOOST_TEST(
+        details::equals( box, {{{-3., -2., -1.}}, {{11., 11., 11.}}} ) );
+    details::expand( box, {{{0., 0., 0.}}, 1.} );
+    BOOST_TEST(
+        details::equals( box, {{{-3., -2., -1.}}, {{11., 11., 11.}}} ) );
+    details::expand( box, {{{0., 0., 0.}}, 24.} );
+    BOOST_TEST(
+        details::equals( box, {{{-24., -24., -24.}}, {{24., 24., 24.}}} ) );
 }
 
 BOOST_AUTO_TEST_CASE( centroid )
 {
-    DataTransferKit::Box box = {{{-10.0, 0.0, 10.0}}, {{0.0, 10.0, 20.0}}};
-    DataTransferKit::Point center;
-    dtk::centroid( box, center );
+    ArborX::Box box = {{{-10.0, 0.0, 10.0}}, {{0.0, 10.0, 20.0}}};
+    ArborX::Point center;
+    details::centroid( box, center );
     BOOST_TEST( center[0] == -5.0 );
     BOOST_TEST( center[1] == 5.0 );
     BOOST_TEST( center[2] == 15.0 );
@@ -153,10 +167,10 @@ BOOST_AUTO_TEST_CASE( centroid )
 
 BOOST_AUTO_TEST_CASE( is_valid )
 {
-    using DataTransferKit::Box;
-    using DataTransferKit::Point;
-    using DataTransferKit::Sphere;
-    using DataTransferKit::Details::isValid;
+    using ArborX::Box;
+    using ArborX::Point;
+    using ArborX::Sphere;
+    using ArborX::Details::isValid;
 
     auto const infty = std::numeric_limits<double>::infinity();
 

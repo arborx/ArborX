@@ -33,7 +33,7 @@ class BoostRTree
     using DeviceType = Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>;
     using device_type = DeviceType;
 
-    BoostRTree( Kokkos::View<DataTransferKit::Point *, DeviceType> points )
+    BoostRTree( Kokkos::View<ArborX::Point *, DeviceType> points )
     {
         _tree = BoostRTreeHelpers::makeRTree( points );
     }
@@ -57,15 +57,15 @@ class BoostRTree
     }
 
   private:
-    BoostRTreeHelpers::RTree<DataTransferKit::Point> _tree;
+    BoostRTreeHelpers::RTree<ArborX::Point> _tree;
 };
 #endif
 
 template <typename DeviceType>
-Kokkos::View<DataTransferKit::Point *, DeviceType>
+Kokkos::View<ArborX::Point *, DeviceType>
 constructPoints( int n_values, PointCloudType point_cloud_type )
 {
-    Kokkos::View<DataTransferKit::Point *, DeviceType> random_points(
+    Kokkos::View<ArborX::Point *, DeviceType> random_points(
         Kokkos::ViewAllocateWithoutInitializing( "random_points" ), n_values );
     // Generate random points uniformely distributed within a box.  The edge
     // length of the box chosen such that object density (here objects will be
@@ -78,41 +78,39 @@ constructPoints( int n_values, PointCloudType point_cloud_type )
 }
 
 template <typename DeviceType>
-Kokkos::View<DataTransferKit::Nearest<DataTransferKit::Point> *, DeviceType>
+Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType>
 makeNearestQueries( int n_values, int n_queries, int n_neighbors,
                     PointCloudType target_point_cloud_type )
 {
-    Kokkos::View<DataTransferKit::Point *, DeviceType> random_points(
+    Kokkos::View<ArborX::Point *, DeviceType> random_points(
         Kokkos::ViewAllocateWithoutInitializing( "random_points" ), n_queries );
     auto const a = std::cbrt( n_values );
     generatePointCloud( target_point_cloud_type, a, random_points );
 
-    Kokkos::View<DataTransferKit::Nearest<DataTransferKit::Point> *, DeviceType>
-        queries( Kokkos::ViewAllocateWithoutInitializing( "queries" ),
-                 n_queries );
+    Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> queries(
+        Kokkos::ViewAllocateWithoutInitializing( "queries" ), n_queries );
     using ExecutionSpace = typename DeviceType::execution_space;
-    Kokkos::parallel_for(
-        "bvh_driver:setup_knn_search_queries",
-        Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
-        KOKKOS_LAMBDA( int i ) {
-            queries( i ) = DataTransferKit::nearest<DataTransferKit::Point>(
-                random_points( i ), n_neighbors );
-        } );
+    Kokkos::parallel_for( "bvh_driver:setup_knn_search_queries",
+                          Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
+                          KOKKOS_LAMBDA( int i ) {
+                              queries( i ) = ArborX::nearest<ArborX::Point>(
+                                  random_points( i ), n_neighbors );
+                          } );
     Kokkos::fence();
     return queries;
 }
 
 template <typename DeviceType>
-Kokkos::View<DataTransferKit::Within *, DeviceType>
+Kokkos::View<ArborX::Within *, DeviceType>
 makeSpatialQueries( int n_values, int n_queries, int n_neighbors,
                     PointCloudType target_point_cloud_type )
 {
-    Kokkos::View<DataTransferKit::Point *, DeviceType> random_points(
+    Kokkos::View<ArborX::Point *, DeviceType> random_points(
         Kokkos::ViewAllocateWithoutInitializing( "random_points" ), n_queries );
     auto const a = std::cbrt( n_values );
     generatePointCloud( target_point_cloud_type, a, random_points );
 
-    Kokkos::View<DataTransferKit::Within *, DeviceType> queries(
+    Kokkos::View<ArborX::Within *, DeviceType> queries(
         Kokkos::ViewAllocateWithoutInitializing( "queries" ), n_queries );
     // radius chosen in order to control the number of results per query
     // NOTE: minus "1+sqrt(3)/2 \approx 1.37" matches the size of the boxes
@@ -124,8 +122,8 @@ makeSpatialQueries( int n_values, int n_queries, int n_neighbors,
     Kokkos::parallel_for( "bvh_driver:setup_radius_search_queries",
                           Kokkos::RangePolicy<ExecutionSpace>( 0, n_queries ),
                           KOKKOS_LAMBDA( int i ) {
-                              queries( i ) = DataTransferKit::within(
-                                  random_points( i ), r );
+                              queries( i ) =
+                                  ArborX::within( random_points( i ), r );
                           } );
     Kokkos::fence();
     return queries;
@@ -210,15 +208,14 @@ void BM_radius_search( benchmark::State &state )
 
         if ( first_pass )
         {
-            auto offset_clone = DataTransferKit::clone( offset );
-            DataTransferKit::adjacentDifference( offset, offset_clone );
-            double const max = DataTransferKit::max( offset_clone );
-            double const avg =
-                DataTransferKit::lastElement( offset ) / n_queries;
+            auto offset_clone = ArborX::clone( offset );
+            ArborX::adjacentDifference( offset, offset_clone );
+            double const max = ArborX::max( offset_clone );
+            double const avg = ArborX::lastElement( offset ) / n_queries;
             auto offset_clone_subview = Kokkos::subview(
                 offset_clone,
                 std::make_pair( 1, offset_clone.extent_int( 0 ) ) );
-            double const min = DataTransferKit::min( offset_clone_subview );
+            double const min = ArborX::min( offset_clone_subview );
 
             std::ostream &os = std::cout;
             os << "min number of neighbors " << min << "\n";
@@ -321,22 +318,20 @@ int main( int argc, char *argv[] )
     int source_point_cloud_type = to_point_cloud_enum.at( source_pt_cloud );
     int target_point_cloud_type = to_point_cloud_enum.at( target_pt_cloud );
 
-    namespace dtk = DataTransferKit;
-
 #ifdef KOKKOS_ENABLE_SERIAL
     using Serial = Kokkos::Serial::device_type;
-    REGISTER_BENCHMARK( dtk::BVH<Serial> );
+    REGISTER_BENCHMARK( ArborX::BVH<Serial> );
 #endif
 
 #ifdef KOKKOS_ENABLE_OPENMP
     using OpenMP = Kokkos::OpenMP::device_type;
-    REGISTER_BENCHMARK( dtk::BVH<OpenMP> );
+    REGISTER_BENCHMARK( ArborX::BVH<OpenMP> );
 #endif
 
 #ifdef KOKKOS_ENABLE_CUDA
     // using Cuda = Kokkos::Cuda::device_type; // <- FIXME segfault
     using Cuda = Kokkos::Device<Kokkos::Cuda, Kokkos::CudaUVMSpace>;
-    REGISTER_BENCHMARK( dtk::BVH<Cuda> );
+    REGISTER_BENCHMARK( ArborX::BVH<Cuda> );
 #endif
 
 #if defined( KOKKOS_ENABLE_SERIAL )

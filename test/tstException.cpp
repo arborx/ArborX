@@ -17,9 +17,9 @@
 
 BOOST_AUTO_TEST_CASE( dumb )
 {
-    using namespace DataTransferKit;
+    using namespace ArborX;
     BOOST_CHECK_NO_THROW( ARBORX_ASSERT( true ) );
-    std::string const prefix = "DTK Search exception: ";
+    std::string const prefix = "ArborX exception: ";
     BOOST_CHECK_EXCEPTION(
         ARBORX_ASSERT( false ), SearchException,
         [&]( std::exception const &e ) {

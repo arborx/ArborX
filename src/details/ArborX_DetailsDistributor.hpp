@@ -22,7 +22,7 @@
 #include <sstream>
 #include <vector>
 
-namespace DataTransferKit
+namespace ArborX
 {
 namespace Details
 {
@@ -221,6 +221,6 @@ class Distributor
 };
 
 } // namespace Details
-} // namespace DataTransferKit
+} // namespace ArborX
 
 #endif

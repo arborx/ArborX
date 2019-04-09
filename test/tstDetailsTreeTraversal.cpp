@@ -25,7 +25,9 @@
 
 #include <boost/test/unit_test.hpp>
 
-namespace dtk = DataTransferKit::Details;
+#define BOOST_TEST_MODULE DetailsTreeTraversal
+
+namespace details = ArborX::Details;
 
 namespace tt = boost::test_tools;
 
@@ -33,7 +35,7 @@ namespace tt = boost::test_tools;
 
 BOOST_AUTO_TEST_CASE( dynamic_array_with_fixed_maximum_size )
 {
-    dtk::StaticVector<int, 4> a;
+    details::StaticVector<int, 4> a;
 
     BOOST_TEST( a.empty() );
     BOOST_TEST( a.size() == 0 );
@@ -97,7 +99,7 @@ BOOST_AUTO_TEST_CASE( non_owning_view_over_dynamic_array )
 {
     float data[6] = {255, 255, 255, 255, 255, 255};
     //                        ^^^^ ^^^^ ^^^^
-    dtk::UnmanagedStaticVector<float> a( data + 2, 3 );
+    details::UnmanagedStaticVector<float> a( data + 2, 3 );
 
     BOOST_TEST( !std::is_default_constructible<decltype( a )>::value );
     BOOST_TEST( a.data() == data + 2 );
@@ -160,7 +162,7 @@ BOOST_AUTO_TEST_CASE( non_owning_view_over_dynamic_array )
 BOOST_AUTO_TEST_CASE( stack )
 {
     // stack is empty at construction
-    dtk::Stack<int> stack;
+    details::Stack<int> stack;
     BOOST_TEST( stack.empty() );
     BOOST_TEST( stack.size() == 0 );
     // insert element
@@ -186,7 +188,7 @@ BOOST_AUTO_TEST_CASE( stack )
 
 BOOST_AUTO_TEST_CASE( priority_queue )
 {
-    dtk::PriorityQueue<int> queue;
+    details::PriorityQueue<int> queue;
     // queue is empty at construction
     BOOST_TEST( queue.empty() );
     // insert element
@@ -231,10 +233,13 @@ BOOST_AUTO_TEST_CASE( push_heap )
     // Here checking against the example of binary heap insertion from
     // https://en.wikipedia.org/wiki/Binary_heap#Insert
     Kokkos::Array<int, 6> a = {11, 5, 8, 3, 4, 15};
-    BOOST_TEST( dtk::isHeap( a.data(), a.data() + 5, dtk::Less<int>() ) );
-    BOOST_TEST( !dtk::isHeap( a.data(), a.data() + 6, dtk::Less<int>() ) );
-    dtk::pushHeap( a.data(), a.data() + 6, dtk::Less<int>() );
-    BOOST_TEST( dtk::isHeap( a.data(), a.data() + 6, dtk::Less<int>() ) );
+    BOOST_TEST(
+        details::isHeap( a.data(), a.data() + 5, details::Less<int>() ) );
+    BOOST_TEST(
+        !details::isHeap( a.data(), a.data() + 6, details::Less<int>() ) );
+    details::pushHeap( a.data(), a.data() + 6, details::Less<int>() );
+    BOOST_TEST(
+        details::isHeap( a.data(), a.data() + 6, details::Less<int>() ) );
     Kokkos::Array<int, 6> ref = {15, 5, 11, 3, 4, 8};
     BOOST_TEST( a == ref, tt::per_element() );
 }
@@ -243,10 +248,13 @@ BOOST_AUTO_TEST_CASE( pop_heap )
 {
     // See https://en.wikipedia.org/wiki/Binary_heap#Extract
     Kokkos::Array<int, 5> a = {11, 5, 8, 3, 4};
-    BOOST_TEST( dtk::isHeap( a.data(), a.data() + 5, dtk::Less<int>() ) );
-    dtk::popHeap( a.data(), a.data() + 5, dtk::Less<int>() );
-    BOOST_TEST( dtk::isHeap( a.data(), a.data() + 4, dtk::Less<int>() ) );
-    BOOST_TEST( !dtk::isHeap( a.data(), a.data() + 5, dtk::Less<int>() ) );
+    BOOST_TEST(
+        details::isHeap( a.data(), a.data() + 5, details::Less<int>() ) );
+    details::popHeap( a.data(), a.data() + 5, details::Less<int>() );
+    BOOST_TEST(
+        details::isHeap( a.data(), a.data() + 4, details::Less<int>() ) );
+    BOOST_TEST(
+        !details::isHeap( a.data(), a.data() + 5, details::Less<int>() ) );
     Kokkos::Array<int, 5> ref = {8, 5, 4, 3, 11};
     BOOST_TEST( a == ref, tt::per_element() );
 }
@@ -265,43 +273,43 @@ BOOST_AUTO_TEST_CASE( max_heap )
     Kokkos::Array<int, 7> a = {3, 1, 4, 1, 5, 9, 6};
     Kokkos::Array<int, 7> ref;
 
-    dtk::pushHeap( a.data(), a.data() + 0, dtk::Less<int>() );
+    details::pushHeap( a.data(), a.data() + 0, details::Less<int>() );
     ref = {3, 1, 4, 1, 5, 9, 6};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::pushHeap( a.data(), a.data() + 1, dtk::Less<int>() );
+    details::pushHeap( a.data(), a.data() + 1, details::Less<int>() );
     ref = {3, 1, 4, 1, 5, 9, 6};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::pushHeap( a.data(), a.data() + 2, dtk::Less<int>() );
+    details::pushHeap( a.data(), a.data() + 2, details::Less<int>() );
     ref = {3, 1, 4, 1, 5, 9, 6};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::pushHeap( a.data(), a.data() + 3, dtk::Less<int>() );
+    details::pushHeap( a.data(), a.data() + 3, details::Less<int>() );
     ref = {4, 1, 3, 1, 5, 9, 6};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::pushHeap( a.data(), a.data() + 4, dtk::Less<int>() );
+    details::pushHeap( a.data(), a.data() + 4, details::Less<int>() );
     ref = {4, 1, 3, 1, 5, 9, 6};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::pushHeap( a.data(), a.data() + 5, dtk::Less<int>() );
+    details::pushHeap( a.data(), a.data() + 5, details::Less<int>() );
     ref = {5, 4, 3, 1, 1, 9, 6};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::pushHeap( a.data(), a.data() + 6, dtk::Less<int>() );
+    details::pushHeap( a.data(), a.data() + 6, details::Less<int>() );
     ref = {9, 4, 5, 1, 1, 3, 6};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::popHeap( a.data(), a.data() + 6, dtk::Less<int>() );
+    details::popHeap( a.data(), a.data() + 6, details::Less<int>() );
     ref = {5, 4, 3, 1, 1, 9, 6};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::pushHeap( a.data(), a.data() + 6, dtk::Less<int>() );
+    details::pushHeap( a.data(), a.data() + 6, details::Less<int>() );
     ref = {9, 4, 5, 1, 1, 3, 6};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::pushHeap( a.data(), a.data() + 7, dtk::Less<int>() );
+    details::pushHeap( a.data(), a.data() + 7, details::Less<int>() );
     ref = {9, 4, 6, 1, 1, 3, 5};
     BOOST_TEST( a == ref, tt::per_element() );
 }
@@ -318,48 +326,48 @@ BOOST_AUTO_TEST_CASE( min_heap )
     Kokkos::Array<int, 9> ref;
     for ( int i = 0; i < 9; ++i )
     {
-        dtk::pushHeap( a.data(), a.data() + i, dtk::Greater<int>() );
+        details::pushHeap( a.data(), a.data() + i, details::Greater<int>() );
         ref = {1, 2, 3, 17, 19, 36, 7, 25, 100};
         BOOST_TEST( a == ref, tt::per_element() );
     }
 
-    dtk::popHeap( a.data(), a.data() + 9, dtk::Greater<int>() );
+    details::popHeap( a.data(), a.data() + 9, details::Greater<int>() );
     ref = {2, 17, 3, 25, 19, 36, 7, 100, 1};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::popHeap( a.data(), a.data() + 8, dtk::Greater<int>() );
+    details::popHeap( a.data(), a.data() + 8, details::Greater<int>() );
     ref = {3, 17, 7, 25, 19, 36, 100, 2, 1};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::popHeap( a.data(), a.data() + 7, dtk::Greater<int>() );
+    details::popHeap( a.data(), a.data() + 7, details::Greater<int>() );
     ref = {7, 17, 36, 25, 19, 100, 3, 2, 1};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::popHeap( a.data(), a.data() + 6, dtk::Greater<int>() );
+    details::popHeap( a.data(), a.data() + 6, details::Greater<int>() );
     ref = {17, 19, 36, 25, 100, 7, 3, 2, 1};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::popHeap( a.data(), a.data() + 5, dtk::Greater<int>() );
+    details::popHeap( a.data(), a.data() + 5, details::Greater<int>() );
     ref = {19, 25, 36, 100, 17, 7, 3, 2, 1};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::popHeap( a.data(), a.data() + 4, dtk::Greater<int>() );
+    details::popHeap( a.data(), a.data() + 4, details::Greater<int>() );
     ref = {25, 100, 36, 19, 17, 7, 3, 2, 1};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::popHeap( a.data(), a.data() + 3, dtk::Greater<int>() );
+    details::popHeap( a.data(), a.data() + 3, details::Greater<int>() );
     ref = {36, 100, 25, 19, 17, 7, 3, 2, 1};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::popHeap( a.data(), a.data() + 2, dtk::Greater<int>() );
+    details::popHeap( a.data(), a.data() + 2, details::Greater<int>() );
     ref = {100, 36, 25, 19, 17, 7, 3, 2, 1};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::popHeap( a.data(), a.data() + 1, dtk::Greater<int>() );
+    details::popHeap( a.data(), a.data() + 1, details::Greater<int>() );
     ref = {100, 36, 25, 19, 17, 7, 3, 2, 1};
     BOOST_TEST( a == ref, tt::per_element() );
 
-    dtk::popHeap( a.data(), a.data() + 0, dtk::Greater<int>() );
+    details::popHeap( a.data(), a.data() + 0, details::Greater<int>() );
     ref = {100, 36, 25, 19, 17, 7, 3, 2, 1};
     BOOST_TEST( a == ref, tt::per_element() );
 }
@@ -371,8 +379,8 @@ BOOST_AUTO_TEST_CASE( sort_heap )
                        std::vector<int>{100, 19, 36, 17, 3, 25, 1, 2, 7},
                        std::vector<int>{15, 5, 11, 3, 4, 8}} )
     {
-        dtk::sortHeap( heap.data(), heap.data() + heap.size(),
-                       dtk::Less<int>() );
+        details::sortHeap( heap.data(), heap.data() + heap.size(),
+                           details::Less<int>() );
         // std::sort_heap( heap.begin(), heap.end() );
         BOOST_TEST( std::is_sorted( heap.begin(), heap.end() ) );
     }
@@ -385,15 +393,15 @@ BOOST_AUTO_TEST_CASE( is_heap )
                        std::vector<int>{100, 19, 36, 17, 3, 25, 1, 2, 7},
                        std::vector<int>{15, 5, 11, 3, 4, 8}} )
     {
-        BOOST_TEST( dtk::isHeap( heap.data(), heap.data() + heap.size(),
-                                 dtk::Less<int>() ) );
+        BOOST_TEST( details::isHeap( heap.data(), heap.data() + heap.size(),
+                                     details::Less<int>() ) );
     }
     for ( auto not_heap : {std::vector<int>{0, 1, 2, 3, 4, 3, 2, 1, 0},
                            std::vector<int>{2, 1, 0, 1, 2}} )
     {
-        BOOST_TEST( !dtk::isHeap( not_heap.data(),
-                                  not_heap.data() + not_heap.size(),
-                                  dtk::Less<int>() ) );
+        BOOST_TEST( !details::isHeap( not_heap.data(),
+                                      not_heap.data() + not_heap.size(),
+                                      details::Less<int>() ) );
     }
 }
 
@@ -404,7 +412,7 @@ BOOST_AUTO_TEST_CASE( pop_push )
     // note that calling pop_push(x) does not necessarily yield the same heap
     // than calling consecutively pop() and push(x)
     // below is a max heap example to illustate this interesting property
-    dtk::PriorityQueue<int> queue;
+    details::PriorityQueue<int> queue;
 
     std::vector<int> ref = {100, 19, 36, 17, 3, 25, 1, 2, 7};
     for ( auto x : ref )
@@ -419,7 +427,7 @@ BOOST_AUTO_TEST_CASE( pop_push )
     //                                    ^^       ^^
 
     // Clear the content of the queue
-    queue = dtk::PriorityQueue<int>();
+    queue = details::PriorityQueue<int>();
     for ( auto x : ref )
         queue.push( x );
     check_heap( queue, ref );
@@ -449,7 +457,7 @@ void check_heap( PriorityQueue const &queue )
 
 BOOST_AUTO_TEST_CASE( maintain_heap_properties )
 {
-    DataTransferKit::Details::PriorityQueue<int> queue;
+    ArborX::Details::PriorityQueue<int> queue;
 
     std::default_random_engine generator;
     std::uniform_int_distribution<int> uniform_distribution( 0, 100 );
