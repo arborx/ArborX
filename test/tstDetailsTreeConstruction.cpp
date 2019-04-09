@@ -252,6 +252,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( common_prefix, DeviceType, ARBORX_DEVICE_TYPES )
 BOOST_AUTO_TEST_CASE_TEMPLATE( example_tree_construction, DeviceType,
                                ARBORX_DEVICE_TYPES )
 {
+    if ( !Kokkos::Impl::SpaceAccessibility<
+             Kokkos::HostSpace, typename DeviceType::memory_space>::accessible )
+        return;
+
     // This is the example from the articles by Karras.
     // See
     // https://devblogs.nvidia.com/parallelforall/thinking-parallel-part-iii-tree-construction-gpu/
@@ -265,7 +269,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( example_tree_construction, DeviceType,
     {
         std::bitset<6> b( s[i] );
         std::cout << b << "  " << b.to_ulong() << "\n";
-        sorted_morton_codes[i] = b.to_ulong();
+        sorted_morton_codes( i ) = b.to_ulong();
     }
 
     // reference solution for a recursive traversal from top to bottom
