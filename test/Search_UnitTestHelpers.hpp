@@ -18,20 +18,20 @@
 
 #include <Kokkos_View.hpp>
 
-#include <Teuchos_FancyOStream.hpp>
-#include <Teuchos_LocalTestingHelpers.hpp>
+#include "DTK_EnableViewComparison.hpp"
+
+#include <boost/test/unit_test.hpp>
 
 #include <tuple>
 #include <vector>
 
-// The `out` and `success` parameters come from the Teuchos unit testing macros
-// expansion.
+namespace tt = boost::test_tools;
+
 template <typename Query, typename DeviceType>
 void checkResults( DataTransferKit::BVH<DeviceType> const &bvh,
                    Kokkos::View<Query *, DeviceType> const &queries,
                    std::vector<int> const &indices_ref,
-                   std::vector<int> const &offset_ref, bool &success,
-                   Teuchos::FancyOStream &out )
+                   std::vector<int> const &offset_ref )
 {
     Kokkos::View<int *, DeviceType> indices( "indices" );
     Kokkos::View<int *, DeviceType> offset( "offset" );
@@ -42,8 +42,8 @@ void checkResults( DataTransferKit::BVH<DeviceType> const &bvh,
     auto offset_host = Kokkos::create_mirror_view( offset );
     deep_copy( offset_host, offset );
 
-    TEST_COMPARE_ARRAYS( indices_host, indices_ref );
-    TEST_COMPARE_ARRAYS( offset_host, offset_ref );
+    BOOST_TEST( indices_host == indices_ref, tt::per_element() );
+    BOOST_TEST( offset_host == offset_ref, tt::per_element() );
 }
 
 // Same as above except that we get the distances out of the queries and
@@ -54,8 +54,7 @@ void checkResults( DataTransferKit::BVH<DeviceType> const &bvh,
                    Kokkos::View<Query *, DeviceType> const &queries,
                    std::vector<int> const &indices_ref,
                    std::vector<int> const &offset_ref,
-                   std::vector<double> const &distances_ref, bool &success,
-                   Teuchos::FancyOStream &out )
+                   std::vector<double> const &distances_ref )
 {
     Kokkos::View<int *, DeviceType> indices( "indices" );
     Kokkos::View<int *, DeviceType> offset( "offset" );
@@ -69,20 +68,17 @@ void checkResults( DataTransferKit::BVH<DeviceType> const &bvh,
     auto distances_host = Kokkos::create_mirror_view( distances );
     deep_copy( distances_host, distances );
 
-    TEST_COMPARE_ARRAYS( indices_host, indices_ref );
-    TEST_COMPARE_ARRAYS( offset_host, offset_ref );
-    TEST_COMPARE_FLOATING_ARRAYS( distances_host, distances_ref, 1e-14 );
+    BOOST_TEST( indices_host == indices_ref, tt::per_element() );
+    BOOST_TEST( offset_host == offset_ref, tt::per_element() );
+    BOOST_TEST( distances_host == distances_ref, tt::per_element() );
 }
 
-// The `out` and `success` parameters come from the Teuchos unit testing macros
-// expansion.
 template <typename Query, typename DeviceType>
 void checkResults(
     DataTransferKit::DistributedSearchTree<DeviceType> const &tree,
     Kokkos::View<Query *, DeviceType> const &queries,
     std::vector<int> const &indices_ref, std::vector<int> const &offset_ref,
-    std::vector<int> const &ranks_ref, bool &success,
-    Teuchos::FancyOStream &out )
+    std::vector<int> const &ranks_ref )
 {
     Kokkos::View<int *, DeviceType> indices( "indices" );
     Kokkos::View<int *, DeviceType> offset( "offset" );
@@ -96,7 +92,7 @@ void checkResults(
     auto ranks_host = Kokkos::create_mirror_view( ranks );
     deep_copy( ranks_host, ranks );
 
-    TEST_COMPARE_ARRAYS( offset_host, offset_ref );
+    BOOST_TEST( offset_host == offset_ref, tt::per_element() );
     auto const m = offset_host.extent_int( 0 ) - 1;
     for ( int i = 0; i < m; ++i )
     {
@@ -109,11 +105,15 @@ void checkResults(
         }
         sort( l.begin(), l.end() );
         sort( r.begin(), r.end() );
-        TEST_EQUALITY( l.size(), r.size() );
+        BOOST_TEST( l.size() == r.size() );
         int const n = l.size();
-        TEST_EQUALITY( n, offset_ref[i + 1] - offset_ref[i] );
+        BOOST_TEST( n == offset_ref[i + 1] - offset_ref[i] );
         for ( int j = 0; j < n; ++j )
-            TEST_ASSERT( l[j] == r[j] );
+        {
+            // FIXME_BOOST would be nice if we could compare tuples
+            BOOST_TEST( std::get<0>( l[j] ) == std::get<0>( r[j] ) );
+            BOOST_TEST( std::get<1>( l[j] ) == std::get<1>( r[j] ) );
+        }
     }
 }
 
@@ -122,8 +122,8 @@ void checkResults(
     DataTransferKit::DistributedSearchTree<DeviceType> const &tree,
     Kokkos::View<Query *, DeviceType> const &queries,
     std::vector<int> const &indices_ref, std::vector<int> const &offset_ref,
-    std::vector<int> const &ranks_ref, std::vector<double> const &distances_ref,
-    bool &success, Teuchos::FancyOStream &out )
+    std::vector<int> const &ranks_ref,
+    std::vector<double> const &distances_ref )
 {
     Kokkos::View<int *, DeviceType> indices( "indices" );
     Kokkos::View<int *, DeviceType> offset( "offset" );
@@ -140,10 +140,10 @@ void checkResults(
     auto distances_host = Kokkos::create_mirror_view( distances );
     deep_copy( distances_host, distances );
 
-    TEST_COMPARE_ARRAYS( indices_host, indices_ref );
-    TEST_COMPARE_ARRAYS( offset_host, offset_ref );
-    TEST_COMPARE_ARRAYS( ranks_host, ranks_ref );
-    TEST_COMPARE_FLOATING_ARRAYS( distances_host, distances_ref, 1e-14 );
+    BOOST_TEST( indices_host == indices_ref, tt::per_element() );
+    BOOST_TEST( offset_host == offset_ref, tt::per_element() );
+    BOOST_TEST( ranks_host == ranks_ref, tt::per_element() );
+    BOOST_TEST( distances_host != distances_ref, tt::per_element() );
 }
 
 template <typename DeviceType>
@@ -224,12 +224,12 @@ Kokkos::View<DataTransferKit::Within *, DeviceType> makeWithinQueries(
 
 template <typename InputView1, typename InputView2>
 void validateResults( std::tuple<InputView1, InputView1> const &reference,
-                      std::tuple<InputView2, InputView2> const &other,
-                      bool &success, Teuchos::FancyOStream &out )
+                      std::tuple<InputView2, InputView2> const &other )
 {
     static_assert( KokkosExt::is_accessible_from_host<InputView1>::value, "" );
     static_assert( KokkosExt::is_accessible_from_host<InputView2>::value, "" );
-    TEST_COMPARE_ARRAYS( std::get<0>( reference ), std::get<0>( other ) );
+    BOOST_TEST( std::get<0>( reference ) == std::get<0>( other ),
+                tt::per_element() );
     auto const offset = std::get<0>( reference );
     auto const m = offset.extent_int( 0 ) - 1;
     for ( int i = 0; i < m; ++i )
@@ -243,23 +243,22 @@ void validateResults( std::tuple<InputView1, InputView1> const &reference,
         }
         std::sort( l.begin(), l.end() );
         std::sort( r.begin(), r.end() );
-        TEST_EQUALITY( l.size(), r.size() );
+        BOOST_TEST( l.size() == r.size() );
         int const n = l.size();
-        TEST_EQUALITY( n, offset[i + 1] - offset[i] );
-        for ( int j = 0; j < n; ++j )
-            TEST_ASSERT( l[j] == r[j] );
+        BOOST_TEST( n == offset[i + 1] - offset[i] );
+        BOOST_TEST( l == r, tt::per_element() );
     }
 }
 
 template <typename InputView1, typename InputView2>
 void validateResults(
     std::tuple<InputView1, InputView1, InputView1> const &reference,
-    std::tuple<InputView2, InputView2, InputView2> const &other, bool &success,
-    Teuchos::FancyOStream &out )
+    std::tuple<InputView2, InputView2, InputView2> const &other )
 {
     static_assert( KokkosExt::is_accessible_from_host<InputView1>::value, "" );
     static_assert( KokkosExt::is_accessible_from_host<InputView2>::value, "" );
-    TEST_COMPARE_ARRAYS( std::get<0>( reference ), std::get<0>( other ) );
+    BOOST_TEST( std::get<0>( reference ) == std::get<0>( other ),
+                tt::per_element() );
     auto const offset = std::get<0>( reference );
     auto const m = offset.extent_int( 0 ) - 1;
     for ( int i = 0; i < m; ++i )
@@ -275,11 +274,15 @@ void validateResults(
         std::sort( l.begin(), l.end() );
         std::sort( r.begin(), r.end() );
         // somehow can't use TEST_COMPARE_ARRAY() so doing it myself
-        TEST_EQUALITY( l.size(), r.size() );
+        BOOST_TEST( l.size() == r.size() );
         int const n = l.size();
-        TEST_EQUALITY( n, offset( i + 1 ) - offset( i ) );
+        BOOST_TEST( n == offset( i + 1 ) - offset( i ) );
         for ( int j = 0; j < n; ++j )
-            TEST_ASSERT( l[j] == r[j] );
+        {
+            // FIXME_BOOST would be nice if we could compare tuples
+            BOOST_TEST( std::get<0>( l[j] ) == std::get<0>( r[j] ) );
+            BOOST_TEST( std::get<1>( l[j] ) == std::get<1>( r[j] ) );
+        }
     }
 }
 

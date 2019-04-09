@@ -11,7 +11,14 @@
 
 #include <DTK_DetailsBatchedQueries.hpp>
 
-#include <Teuchos_UnitTestHarness.hpp>
+#include "DTK_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "DTK_EnableViewComparison.hpp"
+
+#include <boost/test/unit_test.hpp>
+
+#define BOOST_TEST_MODULE DetailsBatchedQueries
+
+namespace tt = boost::test_tools;
 
 template <typename DeviceType, typename ValueType>
 Kokkos::View<ValueType *, DeviceType> toView( std::vector<ValueType> const &v )
@@ -24,21 +31,23 @@ Kokkos::View<ValueType *, DeviceType> toView( std::vector<ValueType> const &v )
     return w;
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( BatchedQueries, permute_offset_and_indices,
-                                   DeviceType )
+BOOST_AUTO_TEST_CASE_TEMPLATE( permute_offset_and_indices, DeviceType,
+                               DTK_SEARCH_DEVICE_TYPES )
 {
     Kokkos::View<int *, DeviceType> offset( "offset" );
     Kokkos::View<int *, DeviceType> indices( "indices" );
 
     Kokkos::View<size_t *, DeviceType> permute( "permute" );
 
-    TEST_THROW( DataTransferKit::Details::BatchedQueries<
-                    DeviceType>::reversePermutation( permute, offset, indices ),
-                DataTransferKit::SearchException );
+    BOOST_CHECK_THROW(
+        DataTransferKit::Details::BatchedQueries<
+            DeviceType>::reversePermutation( permute, offset, indices ),
+        DataTransferKit::SearchException );
 
     Kokkos::resize( offset, 1 );
-    TEST_NOTHROW( DataTransferKit::Details::BatchedQueries<
-                  DeviceType>::reversePermutation( permute, offset, indices ) );
+    BOOST_CHECK_NO_THROW(
+        DataTransferKit::Details::BatchedQueries<
+            DeviceType>::reversePermutation( permute, offset, indices ) );
 
     std::vector<int> offset_ = {0, 0, 1, 3, 6, 10};
     std::vector<int> indices_ = {1, 2, 2, 3, 3, 3, 4, 4, 4, 4};
@@ -50,21 +59,6 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL( BatchedQueries, permute_offset_and_indices,
         DeviceType>::reversePermutation( toView<DeviceType>( permute_ ),
                                          toView<DeviceType>( offset_ ),
                                          toView<DeviceType>( indices_ ) );
-    TEST_COMPARE_ARRAYS( offset, offset_ref );
-    TEST_COMPARE_ARRAYS( indices, indices_ref );
+    BOOST_TEST( offset == offset_ref, tt::per_element() );
+    BOOST_TEST( indices == indices_ref, tt::per_element() );
 }
-
-// Include the test macros.
-#include "DataTransferKit_ETIHelperMacros.h"
-
-// Create the test group
-#define UNIT_TEST_GROUP( NODE )                                                \
-    using DeviceType##NODE = typename NODE::device_type;                       \
-    TEUCHOS_UNIT_TEST_TEMPLATE_1_INSTANT(                                      \
-        BatchedQueries, permute_offset_and_indices, DeviceType##NODE )
-
-// Demangle the types
-DTK_ETI_MANGLING_TYPEDEFS()
-
-// Instantiate the tests
-DTK_INSTANTIATE_N( UNIT_TEST_GROUP )
