@@ -34,7 +34,7 @@ namespace details = ArborX::Details;
 
 namespace tt = boost::test_tools;
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( morton_code, DeviceType, ARBORX_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( morton_codes, DeviceType, ARBORX_DEVICE_TYPES )
 {
     std::vector<ArborX::Point> points = {
         {{0.0, 0.0, 0.0}},          {{0.25, 0.75, 0.25}}, {{0.75, 0.25, 0.25}},
@@ -60,23 +60,21 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( morton_code, DeviceType, ARBORX_DEVICE_TYPES )
     // using points rather than boxes for convenience here but still have to
     // build the axis-aligned bounding boxes around them
     Kokkos::View<ArborX::Box *, DeviceType> boxes( "boxes", n );
+    auto boxes_host = Kokkos::create_mirror_view( boxes );
     for ( int i = 0; i < n; ++i )
-        details::expand( boxes[i], points[i] );
+        details::expand( boxes_host( i ), points[i] );
+    Kokkos::deep_copy( boxes, boxes_host );
 
-    Kokkos::View<ArborX::Box *, DeviceType> scene( "scene", 1 );
+    ArborX::Box scene_host;
     details::TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
-        boxes, scene[0] );
+        boxes, scene_host );
 
-    // Copy the result on the host
-    auto scene_host = Kokkos::create_mirror_view( scene );
-    Kokkos::deep_copy( scene_host, scene );
-
-    BOOST_TEST( details::equals( scene_host[0],
+    BOOST_TEST( details::equals( scene_host,
                                  {{{0., 0., 0.}}, {{1024., 1024., 1024.}}} ) );
 
     Kokkos::View<unsigned int *, DeviceType> morton_codes( "morton_codes", n );
     details::TreeConstruction<DeviceType>::assignMortonCodes(
-        boxes, morton_codes, scene[0] );
+        boxes, morton_codes, scene_host );
     auto morton_codes_host = Kokkos::create_mirror_view( morton_codes );
     Kokkos::deep_copy( morton_codes_host, morton_codes );
     BOOST_TEST( morton_codes_host == ref, tt::per_element() );
