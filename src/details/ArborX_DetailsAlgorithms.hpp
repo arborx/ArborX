@@ -86,17 +86,14 @@ double distance( Point const &a, Point const &b )
 KOKKOS_INLINE_FUNCTION
 double distance( Point const &point, Box const &box )
 {
-    Point projected_point;
+    double s = 0;
     for ( int d = 0; d < 3; ++d )
     {
-        if ( point[d] < box.minCorner()[d] )
-            projected_point[d] = box.minCorner()[d];
-        else if ( point[d] > box.maxCorner()[d] )
-            projected_point[d] = box.maxCorner()[d];
-        else
-            projected_point[d] = point[d];
+        double e = KokkosHelpers::max( box.minCorner()[d] - point[d], 0. ) +
+                   KokkosHelpers::max( point[d] - box.maxCorner()[d], 0. );
+        s += e * e;
     }
-    return distance( point, projected_point );
+    return std::sqrt( s );
 }
 
 // distance point-sphere
@@ -157,18 +154,38 @@ void expand( Box &box, Sphere const &sphere )
 KOKKOS_INLINE_FUNCTION
 bool intersects( Box const &box, Box const &other )
 {
+    double s = 0;
     for ( int d = 0; d < 3; ++d )
-        if ( box.minCorner()[d] > other.maxCorner()[d] ||
-             box.maxCorner()[d] < other.minCorner()[d] )
-            return false;
-    return true;
+        s +=
+            KokkosHelpers::max( box.minCorner()[d] - other.maxCorner()[d],
+                                0. ) +
+            KokkosHelpers::max( other.minCorner()[d] - box.maxCorner()[d], 0. );
+    return ( s == 0 );
 }
 
 // check if a sphere intersects with an  axis-aligned bounding box
 KOKKOS_INLINE_FUNCTION
 bool intersects( Sphere const &sphere, Box const &box )
 {
-    return distance( sphere.centroid(), box ) <= sphere.radius();
+    Point const &c = sphere.centroid();
+    double r = sphere.radius();
+    double s = 0.;
+    for ( int d = 0; d < 3; ++d )
+    {
+        double e = KokkosHelpers::max( box.minCorner()[d] - c[d], 0. ) +
+                   KokkosHelpers::max( c[d] - box.maxCorner()[d], 0. );
+        s += e * e;
+    }
+#if defined( __CUDA_ARCH__ )
+    // WTF for CUDA sqrt is faster this way????
+    // return ( s <= r * r );               // slow
+    // return ( std::sqrt( s ) <= r );      // faster
+    return ( s / r <= r ); // the fastest
+#else
+    // FIXME: this breaks DistributedSearchTree tests due to inconsistency with
+    // distance() which does take the sqrt. But this is much faster
+    return ( s <= r * r );
+#endif
 }
 
 // calculate the centroid of a box
