@@ -9,6 +9,9 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#ifndef ARBORX_POINT_CLOUDS_HPP
+#define ARBORX_POINT_CLOUDS_HPP
+
 #include <ArborX_Exception.hpp>
 #include <ArborX_Point.hpp>
 
@@ -241,3 +244,5 @@ void loadPointCloud( std::string const &filename,
         throw std::runtime_error( "Cannot open file" );
     }
 }
+
+#endif
