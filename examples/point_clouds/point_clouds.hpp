@@ -15,6 +15,7 @@
 #include <ArborX_Exception.hpp>
 #include <ArborX_Point.hpp>
 
+#include <Kokkos_Core.hpp>
 #include <Kokkos_View.hpp>
 
 #include <fstream>
