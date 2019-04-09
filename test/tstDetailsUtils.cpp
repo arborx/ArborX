@@ -124,13 +124,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( minmax, DeviceType, DTK_SEARCH_DEVICE_TYPES )
     v_host( 2 ) = 2.71;
     v_host( 3 ) = 1.62;
     Kokkos::deep_copy( v, v_host );
-#if 0
+
     auto const result_float = ArborX::minMax( v );
     BOOST_TEST( std::get<0>( result_float ) == 1.41 );
     BOOST_TEST( std::get<1>( result_float ) == 3.14 );
     Kokkos::View<int *, DeviceType> w( "w" );
-    BOOST_CHECK_THROW( ArborX::minMax( w ),
-                       ArborX::SearchException );
+    BOOST_CHECK_THROW( ArborX::minMax( w ), ArborX::Exception );
     Kokkos::resize( w, 1 );
     Kokkos::deep_copy( w, 255 );
     auto const result_int = ArborX::minMax( w );
@@ -147,6 +146,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( minmax, DeviceType, DTK_SEARCH_DEVICE_TYPES )
     u_host( 1, 1 ) = 5; // y
     u_host( 1, 2 ) = 6; // Z
     Kokkos::deep_copy( u, u_host );
+#if 0
+    // FIXME might be an issue with CUDA
     auto const minmax_x =
         ArborX::minMax( Kokkos::subview( u, Kokkos::ALL, 0 ) );
     BOOST_TEST( std::get<0>( minmax_x ) == 1 );
