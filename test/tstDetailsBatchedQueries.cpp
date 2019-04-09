@@ -59,6 +59,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( permute_offset_and_indices, DeviceType,
         ArborX::Details::BatchedQueries<DeviceType>::reversePermutation(
             toView<DeviceType>( permute_ ), toView<DeviceType>( offset_ ),
             toView<DeviceType>( indices_ ) );
-    BOOST_TEST( offset == offset_ref, tt::per_element() );
-    BOOST_TEST( indices == indices_ref, tt::per_element() );
+    auto offset_host = Kokkos::create_mirror_view( offset );
+    Kokkos::deep_copy( offset_host, offset );
+    auto indices_host = Kokkos::create_mirror_view( indices );
+    Kokkos::deep_copy( indices_host, indices );
+    BOOST_TEST( offset_host == offset_ref, tt::per_element() );
+    BOOST_TEST( indices_host == indices_ref, tt::per_element() );
 }
