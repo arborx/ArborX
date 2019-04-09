@@ -8,8 +8,13 @@ find_package(MPI REQUIRED)
 add_library(ArborX INTERFACE)
 target_link_libraries(ArborX INTERFACE Kokkos::kokkos MPI::MPI_CXX)
 #target_compile_features(ArborX INTERFACE cxx_std_14)
-target_link_directories(ArborX INTERFACE /usr/local/cuda/lib64)
-#set_target_properties(ArborX PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF CXX_STANDARD_REQUIRED ON)
+
+# FIXME
+if(KOKKOS_DEVICES MATCHES "Cuda")
+  find_package(CUDA REQUIRED)
+  get_filename_component(CUDA_LIBRARY_DIR ${CUDA_cudadevrt_LIBRARY} DIRECTORY)
+  target_link_directories(ArborX INTERFACE ${CUDA_LIBRARY_DIR})
+endif()
 
 enable_testing()
 
