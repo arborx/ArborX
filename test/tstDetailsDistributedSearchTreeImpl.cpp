@@ -11,7 +11,7 @@
 
 #include <ArborX_DetailsDistributedSearchTreeImpl.hpp>
 
-#include "ArborX_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 
 #include <boost/test/unit_test.hpp>
@@ -24,8 +24,7 @@
 
 namespace tt = boost::test_tools;
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( sort_results, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( sort_results, DeviceType, ARBORX_DEVICE_TYPES )
 {
     std::vector<int> ids_ = {4, 3, 2, 1, 4, 3, 2, 4, 3, 4};
     std::vector<int> sorted_ids = {1, 2, 2, 3, 3, 3, 4, 4, 4, 4};
@@ -93,8 +92,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( sort_results, DeviceType,
         ArborX::SearchException );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( count_results, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( count_results, DeviceType, ARBORX_DEVICE_TYPES )
 {
     std::vector<int> ids_ref = {4, 3, 2, 1, 4, 3, 2, 4, 3, 4};
     std::vector<int> offset_ref = {

@@ -149,7 +149,7 @@ BOOST_AUTO_TEST_CASE( centroid )
 
 BOOST_AUTO_TEST_CASE( is_valid )
 {
-    // NOTE "empty" box is considered as valid in DataTransferKit but it is
+    // NOTE "empty" box is considered as valid in ArborX but it is
     // not according to Boost.Geometry
     details::Box empty_box = {};
     BOOST_TEST( details::isValid( empty_box ) );

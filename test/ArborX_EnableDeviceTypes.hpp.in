@@ -4,6 +4,6 @@
 #include <boost/utility/identity_type.hpp>
 
 // clang-format off
-#cmakedefine DTK_SEARCH_DEVICE_TYPES BOOST_IDENTITY_TYPE((@DTK_SEARCH_DEVICE_TYPES@))
+#cmakedefine ARBORX_DEVICE_TYPES BOOST_IDENTITY_TYPE((@ARBORX_DEVICE_TYPES@))
 
 #endif

@@ -15,7 +15,7 @@
 #include <ArborX_DetailsTreeConstruction.hpp>
 #include <ArborX_DetailsUtils.hpp> // iota
 
-#include "ArborX_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 
 #include <algorithm>
@@ -34,8 +34,7 @@ namespace details = ArborX::Details;
 
 namespace tt = boost::test_tools;
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( morton_code, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( morton_code, DeviceType, ARBORX_DEVICE_TYPES )
 {
     std::vector<ArborX::Point> points = {
         {{0.0, 0.0, 0.0}},          {{0.25, 0.75, 0.25}}, {{0.75, 0.25, 0.25}},
@@ -99,8 +98,7 @@ class FillK
     Kokkos::View<unsigned int *, DeviceType> _k;
 };
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( indirect_sort, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( indirect_sort, DeviceType, ARBORX_DEVICE_TYPES )
 {
     // need a functionality that sort objects based on their Morton code and
     // also returns the indices in the original configuration
@@ -211,8 +209,7 @@ class ComputeResults
     Kokkos::View<int *, DeviceType> _results;
 };
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( common_prefix, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( common_prefix, DeviceType, ARBORX_DEVICE_TYPES )
 {
     using ExecutionSpace = typename DeviceType::execution_space;
     int const n = 13;
@@ -255,7 +252,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( common_prefix, DeviceType,
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( example_tree_construction, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     // This is the example from the articles by Karras.
     // See

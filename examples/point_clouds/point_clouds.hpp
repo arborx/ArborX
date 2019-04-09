@@ -12,7 +12,7 @@
 #ifndef ARBORX_POINT_CLOUDS_HPP
 #define ARBORX_POINT_CLOUDS_HPP
 
-#include <ArborX_Search.hpp>
+#include <ArborX.hpp>
 
 #include <Kokkos_Core.hpp>
 

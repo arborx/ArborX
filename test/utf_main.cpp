@@ -3,7 +3,7 @@
 #define BOOST_TEST_NO_MAIN
 #include <boost/test/unit_test.hpp>
 
-#if defined( DTK_SEARCH_MPI_UNIT_TEST )
+#if defined( ARBORX_MPI_UNIT_TEST )
 #include <mpi.h>
 #endif
 
@@ -11,7 +11,7 @@ struct ExecutionEnvironmentScopeGuard
 {
     ExecutionEnvironmentScopeGuard( int argc, char *argv[] )
     {
-#if defined( DTK_SEARCH_MPI_UNIT_TEST )
+#if defined( ARBORX_MPI_UNIT_TEST )
         MPI_Init( &argc, &argv );
 #endif
         Kokkos::initialize( argc, argv );
@@ -19,7 +19,7 @@ struct ExecutionEnvironmentScopeGuard
     ~ExecutionEnvironmentScopeGuard()
     {
         Kokkos::finalize();
-#if defined( DTK_SEARCH_MPI_UNIT_TEST )
+#if defined( ARBORX_MPI_UNIT_TEST )
         MPI_Finalize();
 #endif
     }

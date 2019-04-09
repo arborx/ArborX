@@ -12,7 +12,7 @@
 #include <ArborX_DistributedSearchTree.hpp>
 
 #include "ArborX_BoostRTreeHelpers.hpp"
-#include "ArborX_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 
 #include <mpi.h>
 
@@ -27,8 +27,7 @@
 
 #define BOOST_TEST_MODULE DistributedSearchTree
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( hello_world, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( hello_world, DeviceType, ARBORX_DEVICE_TYPES )
 {
     MPI_Comm comm = MPI_COMM_WORLD;
     int comm_rank;
@@ -118,7 +117,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( hello_world, DeviceType,
     }
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( empty_tree, DeviceType, DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( empty_tree, DeviceType, ARBORX_DEVICE_TYPES )
 {
     MPI_Comm comm = MPI_COMM_WORLD;
     int comm_rank;
@@ -190,7 +189,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( empty_tree, DeviceType, DTK_SEARCH_DEVICE_TYPES )
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( unique_leaf_on_rank_0, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     MPI_Comm comm = MPI_COMM_WORLD;
     int comm_rank;
@@ -232,7 +231,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( unique_leaf_on_rank_0, DeviceType,
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( one_leaf_per_rank, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     MPI_Comm comm = MPI_COMM_WORLD;
     int comm_rank;
@@ -285,7 +284,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( one_leaf_per_rank, DeviceType,
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( non_approximate_nearest_neighbors, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     MPI_Comm comm = MPI_COMM_WORLD;
     int comm_rank;
@@ -358,7 +357,7 @@ make_random_cloud( double const Lx, double const Ly, double const Lz,
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( boost_comparison, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     MPI_Comm comm = MPI_COMM_WORLD;
     int comm_rank;

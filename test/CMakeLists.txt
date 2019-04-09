@@ -1,22 +1,22 @@
 
-set(DTK_SEARCH_DEVICE_TYPES)
+set(ARBORX_DEVICE_TYPES)
 if(KOKKOS_DEVICES MATCHES "Serial")
-  list(APPEND DTK_SEARCH_DEVICE_TYPES Kokkos::Serial::device_type)
+  list(APPEND ARBORX_DEVICE_TYPES Kokkos::Serial::device_type)
 endif()
 if(KOKKOS_DEVICES MATCHES "OpenMP")
-  list(APPEND DTK_SEARCH_DEVICE_TYPES Kokkos::OpenMP::device_type)
+  list(APPEND ARBORX_DEVICE_TYPES Kokkos::OpenMP::device_type)
 endif()
 if(KOKKOS_DEVICES MATCHES "Cuda")
-  list(APPEND DTK_SEARCH_DEVICE_TYPES Kokkos::Cuda::device_type)
+  list(APPEND ARBORX_DEVICE_TYPES Kokkos::Cuda::device_type)
 endif()
-string(REPLACE ";" "," DTK_SEARCH_DEVICE_TYPES "${DTK_SEARCH_DEVICE_TYPES}")
-set(DTK_SEARCH_DEVICE_TYPES "std::tuple<${DTK_SEARCH_DEVICE_TYPES}>")
+string(REPLACE ";" "," ARBORX_DEVICE_TYPES "${ARBORX_DEVICE_TYPES}")
+set(ARBORX_DEVICE_TYPES "std::tuple<${ARBORX_DEVICE_TYPES}>")
 configure_file(ArborX_EnableDeviceTypes.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/ArborX_EnableDeviceTypes.hpp @ONLY)
 
 
 add_executable(ArborX_HelloWorld.exe tstHelloWorld.cpp utf_main.cpp)
 target_link_libraries(ArborX_HelloWorld.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_HelloWorld.exe PRIVATE BOOST_TEST_DYN_LINK DTK_SEARCH_MPI_UNIT_TEST)
+target_compile_definitions(ArborX_HelloWorld.exe PRIVATE BOOST_TEST_DYN_LINK ARBORX_MPI_UNIT_TEST)
 add_test(NAME ArborX_HelloWorld COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS}./ArborX_HelloWorld.exe ${MPIEXEC_POSTFLAGS})
 
 add_executable(ArborX_Exception.exe tstException.cpp)
@@ -63,7 +63,7 @@ add_test(NAME ArborX_DetailsBatchedQueries COMMAND ./ArborX_DetailsBatchedQuerie
 
 add_executable(ArborX_DistributedSearchTree.exe tstDistributedSearchTree.cpp)
 target_link_libraries(ArborX_DistributedSearchTree.exe PRIVATE ArborX Boost::unit_test_framework utf_main.cpp)
-target_compile_definitions(ArborX_DistributedSearchTree.exe PRIVATE BOOST_TEST_DYN_LINK DTK_SEARCH_MPI_UNIT_TEST)
+target_compile_definitions(ArborX_DistributedSearchTree.exe PRIVATE BOOST_TEST_DYN_LINK ARBORX_MPI_UNIT_TEST)
 target_include_directories(ArborX_DistributedSearchTree.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_DistributedSearchTree COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS}./ArborX_DistributedSearchTree.exe ${MPIEXEC_POSTFLAGS})
 

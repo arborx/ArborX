@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include "ArborX_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 
 #include <ArborX_DetailsUtils.hpp>
@@ -26,7 +26,7 @@
 
 namespace tt = boost::test_tools;
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( iota, DeviceType, DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( iota, DeviceType, ARBORX_DEVICE_TYPES )
 {
     int const n = 10;
     double const val = 3.;
@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( iota, DeviceType, DTK_SEARCH_DEVICE_TYPES )
     BOOST_TEST( w_ref == w_host, tt::per_element() );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( prefix_sum, DeviceType, DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( prefix_sum, DeviceType, ARBORX_DEVICE_TYPES )
 {
     int const n = 10;
     Kokkos::View<int *, DeviceType> x( "x", n );
@@ -99,8 +99,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( prefix_sum, DeviceType, DTK_SEARCH_DEVICE_TYPES )
     BOOST_TEST( w_host == w_ref, tt::per_element() );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( last_element, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( last_element, DeviceType, ARBORX_DEVICE_TYPES )
 {
     Kokkos::View<int *, DeviceType> v( "v", 2 );
     auto v_host = Kokkos::create_mirror_view( v );
@@ -115,7 +114,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( last_element, DeviceType,
     BOOST_TEST( ArborX::lastElement( u ) == 3.14 );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( minmax, DeviceType, DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( minmax, DeviceType, ARBORX_DEVICE_TYPES )
 {
     Kokkos::View<double[4], DeviceType> v( "v" );
     auto v_host = Kokkos::create_mirror_view( v );
@@ -159,7 +158,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( minmax, DeviceType, DTK_SEARCH_DEVICE_TYPES )
 #endif
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( accumulate, DeviceType, DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( accumulate, DeviceType, ARBORX_DEVICE_TYPES )
 {
     Kokkos::View<int[6], DeviceType> v( "v" );
     Kokkos::deep_copy( v, 5 );
@@ -171,7 +170,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( accumulate, DeviceType, DTK_SEARCH_DEVICE_TYPES )
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( adjacent_difference, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     Kokkos::View<int[5], DeviceType> v( "v" );
     auto v_host = Kokkos::create_mirror_view( v );
@@ -208,8 +207,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( adjacent_difference, DeviceType,
                        ArborX::SearchException );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( min_and_max, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( min_and_max, DeviceType, ARBORX_DEVICE_TYPES )
 {
     Kokkos::View<int[4], DeviceType> v( "v" );
     ArborX::iota( v );

@@ -12,7 +12,7 @@
 #include <ArborX_LinearBVH.hpp>
 
 #include "ArborX_BoostRTreeHelpers.hpp"
-#include "ArborX_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 
 #include <algorithm>
@@ -28,7 +28,7 @@
 
 namespace tt = boost::test_tools;
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( empty_tree, DeviceType, DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( empty_tree, DeviceType, ARBORX_DEVICE_TYPES )
 {
     // tree is empty, it has no leaves.
     for ( auto const &empty_bvh : {
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( empty_tree, DeviceType, DTK_SEARCH_DEVICE_TYPES )
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( single_leaf_tree, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     // tree has a single leaf (unit box)
     auto const bvh = makeBvh<DeviceType>( {
@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( single_leaf_tree, DeviceType,
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( couple_leaves_tree, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     auto const bvh = makeBvh<DeviceType>( {
         {{{0., 0., 0.}}, {{0., 0., 0.}}},
@@ -208,7 +208,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( couple_leaves_tree, DeviceType,
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( duplicated_leaves, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     // The tree contains multiple (more than two) leaves that will be assigned
     // the same Morton code.  This was able to trigger a bug that we discovered
@@ -237,7 +237,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( duplicated_leaves, DeviceType,
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( buffer_optimization, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     auto const bvh = makeBvh<DeviceType>( {
         {{{0., 0., 0.}}, {{0., 0., 0.}}},
@@ -299,7 +299,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( buffer_optimization, DeviceType,
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( not_exceeding_stack_capacity, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     std::vector<ArborX::Box> boxes;
     int const n = 4096; // exceed stack capacity which is 64
@@ -331,8 +331,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( not_exceeding_stack_capacity, DeviceType,
     BOOST_TEST( ArborX::lastElement( offset ) == n );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( miscellaneous, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( miscellaneous, DeviceType, ARBORX_DEVICE_TYPES )
 {
     auto const bvh = makeBvh<DeviceType>( {
         {{{1., 3., 5.}}, {{2., 4., 6.}}},
@@ -372,7 +371,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( miscellaneous, DeviceType,
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( structured_grid, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     double Lx = 100.0;
     double Ly = 100.0;
@@ -645,8 +644,7 @@ std::vector<std::array<double, 3>> make_random_cloud( double Lx, double Ly,
     return cloud;
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( boost_rtree, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( boost_rtree, DeviceType, ARBORX_DEVICE_TYPES )
 {
     // contruct a cloud of points (nodes of a structured grid)
     double Lx = 10.0;
