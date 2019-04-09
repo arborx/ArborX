@@ -13,6 +13,7 @@
 #include "ArborX_EnableViewComparison.hpp"
 
 #include <ArborX_DetailsUtils.hpp>
+#include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -128,7 +129,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( minmax, DeviceType, ARBORX_DEVICE_TYPES )
     BOOST_TEST( std::get<0>( result_float ) == 1.41 );
     BOOST_TEST( std::get<1>( result_float ) == 3.14 );
     Kokkos::View<int *, DeviceType> w( "w" );
-    BOOST_CHECK_THROW( ArborX::minMax( w ), ArborX::Exception );
+    BOOST_CHECK_THROW( ArborX::minMax( w ), ArborX::SearchException );
     Kokkos::resize( w, 1 );
     Kokkos::deep_copy( w, 255 );
     auto const result_int = ArborX::minMax( w );
