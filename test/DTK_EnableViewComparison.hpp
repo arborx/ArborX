@@ -50,7 +50,7 @@ struct bt_iterator_traits<Kokkos::Array<T, N, Proxy>, true>
 {
     using array_type = Kokkos::Array<T, N, Proxy>;
     using value_type = typename array_type::value_type;
-    using const_iterator = typename std::add_pointer<const value_type>::type;
+    using const_iterator = typename array_type::const_pointer;
     static const_iterator begin( array_type const &v ) { return v.data(); }
     static const_iterator end( array_type const &v )
     {
