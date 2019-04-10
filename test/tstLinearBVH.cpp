@@ -677,7 +677,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( boost_rtree, DeviceType, ARBORX_DEVICE_TYPES )
 
     ArborX::BVH<DeviceType> bvh( bounding_boxes );
 
-    auto rtree = BoostRTreeHelpers::makeRTree( bounding_boxes );
+    auto rtree = BoostRTreeHelpers::makeRTree( bounding_boxes_host );
 
     // random points for radius search and kNN queries
     // compare our solution against Boost R-tree
@@ -731,6 +731,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( boost_rtree, DeviceType, ARBORX_DEVICE_TYPES )
                 k( i ) );
         } );
     Kokkos::fence();
+    auto nearest_queries_host = Kokkos::create_mirror_view( nearest_queries );
+    Kokkos::deep_copy( nearest_queries_host, nearest_queries );
 
     Kokkos::View<ArborX::Within *, DeviceType> within_queries( "within_queries",
                                                                n_points );
@@ -743,14 +745,21 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( boost_rtree, DeviceType, ARBORX_DEVICE_TYPES )
                                   radii( i ) );
                           } );
     Kokkos::fence();
+    auto within_queries_host = Kokkos::create_mirror_view( within_queries );
+    Kokkos::deep_copy( within_queries_host, within_queries );
 
     auto rtree_results =
-        BoostRTreeHelpers::performQueries( rtree, nearest_queries );
+        BoostRTreeHelpers::performQueries( rtree, nearest_queries_host );
 
     Kokkos::View<int *, DeviceType> offset_nearest( "offset_nearest" );
     Kokkos::View<int *, DeviceType> indices_nearest( "indices_nearest" );
     bvh.query( nearest_queries, indices_nearest, offset_nearest );
-    auto bvh_results = std::make_tuple( offset_nearest, indices_nearest );
+    auto offset_nearest_host = Kokkos::create_mirror_view( offset_nearest );
+    Kokkos::deep_copy( offset_nearest_host, offset_nearest );
+    auto indices_nearest_host = Kokkos::create_mirror_view( indices_nearest );
+    Kokkos::deep_copy( indices_nearest_host, indices_nearest );
+    auto bvh_results =
+        std::make_tuple( offset_nearest_host, indices_nearest_host );
 
     validateResults( rtree_results, bvh_results );
 
@@ -758,15 +767,22 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( boost_rtree, DeviceType, ARBORX_DEVICE_TYPES )
         ArborX::Details::NearestQueryAlgorithm::PriorityQueueBased_Deprecated;
     bvh.query( nearest_queries, indices_nearest, offset_nearest,
                alternate_tree_traversal_algorithm );
-    bvh_results = std::make_tuple( offset_nearest, indices_nearest );
+    Kokkos::deep_copy( offset_nearest_host, offset_nearest );
+    Kokkos::deep_copy( indices_nearest_host, indices_nearest );
+    bvh_results = std::make_tuple( offset_nearest_host, indices_nearest_host );
     validateResults( rtree_results, bvh_results );
 
     Kokkos::View<int *, DeviceType> offset_within( "offset_within" );
     Kokkos::View<int *, DeviceType> indices_within( "indices_within" );
     bvh.query( within_queries, indices_within, offset_within );
-    bvh_results = std::make_tuple( offset_within, indices_within );
+    auto offset_within_host = Kokkos::create_mirror_view( offset_within );
+    Kokkos::deep_copy( offset_within_host, offset_within );
+    auto indices_within_host = Kokkos::create_mirror_view( indices_within );
+    Kokkos::deep_copy( indices_within_host, indices_within );
+    bvh_results = std::make_tuple( offset_within_host, indices_within_host );
 
-    rtree_results = BoostRTreeHelpers::performQueries( rtree, within_queries );
+    rtree_results =
+        BoostRTreeHelpers::performQueries( rtree, within_queries_host );
 
     validateResults( rtree_results, bvh_results );
 }
