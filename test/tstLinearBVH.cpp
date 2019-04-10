@@ -260,8 +260,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( buffer_optimization, DeviceType,
     std::vector<int> offset_ref = {0, 0, 4, 4};
     auto checkResultsAreFine = [&indices, &offset, &indices_ref,
                                 &offset_ref]() -> void {
-        BOOST_TEST( indices == indices_ref, tt::per_element() );
-        BOOST_TEST( offset == offset_ref, tt::per_element() );
+        auto indices_host = Kokkos::create_mirror_view( indices );
+        Kokkos::deep_copy( indices_host, indices );
+        auto offset_host = Kokkos::create_mirror_view( offset );
+        Kokkos::deep_copy( offset_host, offset );
+        BOOST_TEST( indices_host == indices_ref, tt::per_element() );
+        BOOST_TEST( offset_host == offset_ref, tt::per_element() );
     };
 
     BOOST_CHECK_NO_THROW( bvh.query( queries, indices, offset ) );
