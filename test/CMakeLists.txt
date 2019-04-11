@@ -10,7 +10,6 @@ if(KOKKOS_DEVICES MATCHES "Cuda")
   list(APPEND ARBORX_DEVICE_TYPES Kokkos::Cuda::device_type)
 endif()
 string(REPLACE ";" "," ARBORX_DEVICE_TYPES "${ARBORX_DEVICE_TYPES}")
-set(ARBORX_DEVICE_TYPES "std::tuple<${ARBORX_DEVICE_TYPES}>")
 configure_file(ArborX_EnableDeviceTypes.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/ArborX_EnableDeviceTypes.hpp @ONLY)
 
 
