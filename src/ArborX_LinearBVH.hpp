@@ -55,7 +55,19 @@ class BoundingVolumeHierarchy
         // NOTE should default constructor initialize to an invalid geometry?
         if ( empty() )
             return bounding_volume_type();
-        return getBoundingVolume( getRoot() );
+        // TODO consider caching the bounds on the host or changing the
+        // interface and return a view on the device memory space
+        Kokkos::View<bounding_volume_type, DeviceType> bounds(
+            Kokkos::ViewAllocateWithoutInitializing( "bounds" ) );
+        using RangePolicy =
+            Kokkos::RangePolicy<typename decltype( bounds )::execution_space>;
+        Kokkos::parallel_for( ARBORX_MARK_REGION( "copy_bounds" ),
+                              RangePolicy( 0, 1 ), KOKKOS_LAMBDA( int i ) {
+                                  bounds() = getBoundingVolume( getRoot() );
+                              } );
+        auto bounds_host = Kokkos::create_mirror_view( bounds );
+        Kokkos::deep_copy( bounds_host, bounds );
+        return bounds_host();
     }
 
     template <typename Predicates, typename... Args>
