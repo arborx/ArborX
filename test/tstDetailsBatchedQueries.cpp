@@ -11,7 +11,7 @@
 
 #include <ArborX_DetailsBatchedQueries.hpp>
 
-#include "ArborX_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 
 #include <boost/test/unit_test.hpp>
@@ -32,7 +32,7 @@ Kokkos::View<ValueType *, DeviceType> toView( std::vector<ValueType> const &v )
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( permute_offset_and_indices, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     Kokkos::View<int *, DeviceType> offset( "offset" );
     Kokkos::View<int *, DeviceType> indices( "indices" );
@@ -59,6 +59,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( permute_offset_and_indices, DeviceType,
         ArborX::Details::BatchedQueries<DeviceType>::reversePermutation(
             toView<DeviceType>( permute_ ), toView<DeviceType>( offset_ ),
             toView<DeviceType>( indices_ ) );
-    BOOST_TEST( offset == offset_ref, tt::per_element() );
-    BOOST_TEST( indices == indices_ref, tt::per_element() );
+    auto offset_host = Kokkos::create_mirror_view( offset );
+    Kokkos::deep_copy( offset_host, offset );
+    auto indices_host = Kokkos::create_mirror_view( indices );
+    Kokkos::deep_copy( indices_host, indices );
+    BOOST_TEST( offset_host == offset_ref, tt::per_element() );
+    BOOST_TEST( indices_host == indices_ref, tt::per_element() );
 }

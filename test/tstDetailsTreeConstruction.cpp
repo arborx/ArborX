@@ -15,7 +15,7 @@
 #include <ArborX_DetailsTreeConstruction.hpp>
 #include <ArborX_DetailsUtils.hpp> // iota
 
-#include "ArborX_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 
 #include <algorithm>
@@ -34,8 +34,7 @@ namespace details = ArborX::Details;
 
 namespace tt = boost::test_tools;
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( morton_code, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( morton_codes, DeviceType, ARBORX_DEVICE_TYPES )
 {
     std::vector<ArborX::Point> points = {
         {{0.0, 0.0, 0.0}},          {{0.25, 0.75, 0.25}}, {{0.75, 0.25, 0.25}},
@@ -61,23 +60,21 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( morton_code, DeviceType,
     // using points rather than boxes for convenience here but still have to
     // build the axis-aligned bounding boxes around them
     Kokkos::View<ArborX::Box *, DeviceType> boxes( "boxes", n );
+    auto boxes_host = Kokkos::create_mirror_view( boxes );
     for ( int i = 0; i < n; ++i )
-        details::expand( boxes[i], points[i] );
+        details::expand( boxes_host( i ), points[i] );
+    Kokkos::deep_copy( boxes, boxes_host );
 
-    Kokkos::View<ArborX::Box *, DeviceType> scene( "scene", 1 );
+    ArborX::Box scene_host;
     details::TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
-        boxes, scene[0] );
+        boxes, scene_host );
 
-    // Copy the result on the host
-    auto scene_host = Kokkos::create_mirror_view( scene );
-    Kokkos::deep_copy( scene_host, scene );
-
-    BOOST_TEST( details::equals( scene_host[0],
+    BOOST_TEST( details::equals( scene_host,
                                  {{{0., 0., 0.}}, {{1024., 1024., 1024.}}} ) );
 
     Kokkos::View<unsigned int *, DeviceType> morton_codes( "morton_codes", n );
     details::TreeConstruction<DeviceType>::assignMortonCodes(
-        boxes, morton_codes, scene[0] );
+        boxes, morton_codes, scene_host );
     auto morton_codes_host = Kokkos::create_mirror_view( morton_codes );
     Kokkos::deep_copy( morton_codes_host, morton_codes );
     BOOST_TEST( morton_codes_host == ref, tt::per_element() );
@@ -99,8 +96,7 @@ class FillK
     Kokkos::View<unsigned int *, DeviceType> _k;
 };
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( indirect_sort, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( indirect_sort, DeviceType, ARBORX_DEVICE_TYPES )
 {
     // need a functionality that sort objects based on their Morton code and
     // also returns the indices in the original configuration
@@ -211,8 +207,7 @@ class ComputeResults
     Kokkos::View<int *, DeviceType> _results;
 };
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( common_prefix, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( common_prefix, DeviceType, ARBORX_DEVICE_TYPES )
 {
     using ExecutionSpace = typename DeviceType::execution_space;
     int const n = 13;
@@ -255,8 +250,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( common_prefix, DeviceType,
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( example_tree_construction, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
+    if ( !Kokkos::Impl::SpaceAccessibility<
+             Kokkos::HostSpace, typename DeviceType::memory_space>::accessible )
+        return;
+
     // This is the example from the articles by Karras.
     // See
     // https://devblogs.nvidia.com/parallelforall/thinking-parallel-part-iii-tree-construction-gpu/
@@ -270,7 +269,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( example_tree_construction, DeviceType,
     {
         std::bitset<6> b( s[i] );
         std::cout << b << "  " << b.to_ulong() << "\n";
-        sorted_morton_codes[i] = b.to_ulong();
+        sorted_morton_codes( i ) = b.to_ulong();
     }
 
     // reference solution for a recursive traversal from top to bottom

@@ -11,7 +11,7 @@
 
 #include <ArborX_DetailsDistributedSearchTreeImpl.hpp>
 
-#include "ArborX_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 
 #include <boost/test/unit_test.hpp>
@@ -24,8 +24,7 @@
 
 namespace tt = boost::test_tools;
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( sort_results, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( sort_results, DeviceType, ARBORX_DEVICE_TYPES )
 {
     std::vector<int> ids_ = {4, 3, 2, 1, 4, 3, 2, 4, 3, 4};
     std::vector<int> sorted_ids = {1, 2, 2, 3, 3, 3, 4, 4, 4, 4};
@@ -93,8 +92,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( sort_results, DeviceType,
         ArborX::SearchException );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( count_results, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( count_results, DeviceType, ARBORX_DEVICE_TYPES )
 {
     std::vector<int> ids_ref = {4, 3, 2, 1, 4, 3, 2, 4, 3, 4};
     std::vector<int> offset_ref = {
@@ -164,7 +162,8 @@ inline void checkNewViewWasAllocated( View1 const &v1, View2 const &v2 )
     BOOST_TEST( v1.dimension_7() == v2.dimension_7() );
 }
 
-BOOST_AUTO_TEST_CASE( create_layout_right_mirror_view )
+BOOST_AUTO_TEST_CASE_TEMPLATE( create_layout_right_mirror_view, DeviceType,
+                               ARBORX_DEVICE_TYPES )
 {
     using ArborX::Details::create_layout_right_mirror_view;
     using Kokkos::ALL;
@@ -174,18 +173,22 @@ BOOST_AUTO_TEST_CASE( create_layout_right_mirror_view )
     using Kokkos::subview;
     using Kokkos::View;
 
+    if ( !Kokkos::Impl::SpaceAccessibility<
+             Kokkos::HostSpace, typename DeviceType::memory_space>::accessible )
+        return;
+
     // rank-1 and not strided -> do not allocate
-    View<int *, LayoutLeft> u( "u", 255 );
+    View<int *, LayoutLeft, DeviceType> u( "u", 255 );
     auto u_h = create_layout_right_mirror_view( u );
     checkViewWasNotAllocated( u, u_h );
 
     // right layout -> do not allocate
-    View<int **, LayoutRight> v( "v", 2, 3 );
+    View<int **, LayoutRight, DeviceType> v( "v", 2, 3 );
     auto v_h = create_layout_right_mirror_view( v );
     checkViewWasNotAllocated( v, v_h );
 
     // left layout and rank > 1 -> allocate
-    View<int **, LayoutLeft> w( "w", 4, 5 );
+    View<int **, LayoutLeft, DeviceType> w( "w", 4, 5 );
     auto w_h = create_layout_right_mirror_view( w );
     checkNewViewWasAllocated( w, w_h );
 

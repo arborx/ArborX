@@ -39,10 +39,11 @@ using Parameter = boost::geometry::index::linear<16>;
 template <typename Value, typename Index>
 struct PairMaker
 {
+    using result_type = std::pair<Value, Index>;
     template <typename T>
-    inline std::pair<Value, Index> operator()( T const &v ) const
+    inline result_type operator()( T const &v ) const
     {
-        return std::make_pair( v.value(), v.index() );
+        return result_type( v.value(), v.index() );
     }
 };
 

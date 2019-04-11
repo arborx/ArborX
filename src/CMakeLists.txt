@@ -1,22 +1,34 @@
-SET(HEADERS "")
-SET(SOURCES "")
-
-FOREACH(dir ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/details)
-  APPEND_GLOB(HEADERS ${dir}/*.hpp)
-  APPEND_GLOB(SOURCES ${dir}/*.cpp)
-  TRIBITS_INCLUDE_DIRECTORIES(${dir})
-ENDFOREACH()
-
-TRIBITS_ADD_LIBRARY(
-  dtk_search
-  HEADERS ${HEADERS}
-  SOURCES ${SOURCES}
-  DEPLIBS dtk_utils
-  ADDED_LIB_TARGET_NAME_OUT DTK_SEARCH_LIBNAME
-  )
-
-# We need to set the linker language explicitly here for CUDA builds.
-SET_PROPERTY(
-  TARGET ${DTK_SEARCH_LIBNAME}
-  APPEND PROPERTY LINKER_LANGUAGE CXX
-  )
+target_sources(ArborX INTERFACE
+  ArborX_DistributedSearchTree.hpp
+  ArborX_LinearBVH.hpp
+  details/ArborX_Box.hpp
+  details/ArborX_DetailsAlgorithms.hpp
+  details/ArborX_DetailsBatchedQueries.hpp
+  details/ArborX_DetailsBoundingVolumeHierarchyImpl.hpp
+  details/ArborX_DetailsConcepts.hpp
+  details/ArborX_DetailsContainers.hpp
+  details/ArborX_DetailsDistributedSearchTreeImpl.hpp
+  details/ArborX_DetailsDistributor.hpp
+  details/ArborX_DetailsHeap.hpp
+  details/ArborX_DetailsKokkosExt.hpp
+  details/ArborX_DetailsMortonCode.hpp
+  details/ArborX_DetailsNode.hpp
+  details/ArborX_DetailsPriorityQueue.hpp
+  details/ArborX_DetailsSortUtils.hpp
+  details/ArborX_DetailsStack.hpp
+  details/ArborX_DetailsTags.hpp
+  details/ArborX_DetailsTraits.hpp
+  details/ArborX_DetailsTreeConstruction.hpp
+  details/ArborX_DetailsTreeTraversal.hpp
+  details/ArborX_DetailsTreeVisualization.hpp
+  details/ArborX_DetailsUtils.hpp
+  details/ArborX_Point.hpp
+  details/ArborX_Predicates.hpp
+  details/ArborX_Exception.hpp
+  details/ArborX_Macros.hpp
+  details/ArborX_Sphere.hpp
+)
+target_include_directories(ArborX INTERFACE
+  ${CMAKE_CURRENT_LIST_DIR}
+  ${CMAKE_CURRENT_LIST_DIR}/details
+)

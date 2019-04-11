@@ -12,7 +12,7 @@
 #include <ArborX_LinearBVH.hpp>
 
 #include "ArborX_BoostRTreeHelpers.hpp"
-#include "ArborX_EnableDeviceTypes.hpp" // DTK_SEARCH_DEVICE_TYPES
+#include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 
 #include <algorithm>
@@ -28,7 +28,7 @@
 
 namespace tt = boost::test_tools;
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( empty_tree, DeviceType, DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( empty_tree, DeviceType, ARBORX_DEVICE_TYPES )
 {
     // tree is empty, it has no leaves.
     for ( auto const &empty_bvh : {
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( empty_tree, DeviceType, DTK_SEARCH_DEVICE_TYPES )
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( single_leaf_tree, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     // tree has a single leaf (unit box)
     auto const bvh = makeBvh<DeviceType>( {
@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( single_leaf_tree, DeviceType,
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( couple_leaves_tree, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     auto const bvh = makeBvh<DeviceType>( {
         {{{0., 0., 0.}}, {{0., 0., 0.}}},
@@ -208,7 +208,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( couple_leaves_tree, DeviceType,
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( duplicated_leaves, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     // The tree contains multiple (more than two) leaves that will be assigned
     // the same Morton code.  This was able to trigger a bug that we discovered
@@ -237,7 +237,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( duplicated_leaves, DeviceType,
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( buffer_optimization, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     auto const bvh = makeBvh<DeviceType>( {
         {{{0., 0., 0.}}, {{0., 0., 0.}}},
@@ -260,8 +260,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( buffer_optimization, DeviceType,
     std::vector<int> offset_ref = {0, 0, 4, 4};
     auto checkResultsAreFine = [&indices, &offset, &indices_ref,
                                 &offset_ref]() -> void {
-        BOOST_TEST( indices == indices_ref, tt::per_element() );
-        BOOST_TEST( offset == offset_ref, tt::per_element() );
+        auto indices_host = Kokkos::create_mirror_view( indices );
+        Kokkos::deep_copy( indices_host, indices );
+        auto offset_host = Kokkos::create_mirror_view( offset );
+        Kokkos::deep_copy( offset_host, offset );
+        BOOST_TEST( indices_host == indices_ref, tt::per_element() );
+        BOOST_TEST( offset_host == offset_ref, tt::per_element() );
     };
 
     BOOST_CHECK_NO_THROW( bvh.query( queries, indices, offset ) );
@@ -299,7 +303,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( buffer_optimization, DeviceType,
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( not_exceeding_stack_capacity, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     std::vector<ArborX::Box> boxes;
     int const n = 4096; // exceed stack capacity which is 64
@@ -331,8 +335,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( not_exceeding_stack_capacity, DeviceType,
     BOOST_TEST( ArborX::lastElement( offset ) == n );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( miscellaneous, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( miscellaneous, DeviceType, ARBORX_DEVICE_TYPES )
 {
     auto const bvh = makeBvh<DeviceType>( {
         {{{1., 3., 5.}}, {{2., 4., 6.}}},
@@ -372,7 +375,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( miscellaneous, DeviceType,
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( structured_grid, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+                               ARBORX_DEVICE_TYPES )
 {
     double Lx = 100.0;
     double Ly = 100.0;
@@ -645,8 +648,7 @@ std::vector<std::array<double, 3>> make_random_cloud( double Lx, double Ly,
     return cloud;
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( boost_rtree, DeviceType,
-                               DTK_SEARCH_DEVICE_TYPES )
+BOOST_AUTO_TEST_CASE_TEMPLATE( boost_rtree, DeviceType, ARBORX_DEVICE_TYPES )
 {
     // contruct a cloud of points (nodes of a structured grid)
     double Lx = 10.0;
@@ -675,7 +677,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( boost_rtree, DeviceType,
 
     ArborX::BVH<DeviceType> bvh( bounding_boxes );
 
-    auto rtree = BoostRTreeHelpers::makeRTree( bounding_boxes );
+    auto rtree = BoostRTreeHelpers::makeRTree( bounding_boxes_host );
 
     // random points for radius search and kNN queries
     // compare our solution against Boost R-tree
@@ -729,6 +731,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( boost_rtree, DeviceType,
                 k( i ) );
         } );
     Kokkos::fence();
+    auto nearest_queries_host = Kokkos::create_mirror_view( nearest_queries );
+    Kokkos::deep_copy( nearest_queries_host, nearest_queries );
 
     Kokkos::View<ArborX::Within *, DeviceType> within_queries( "within_queries",
                                                                n_points );
@@ -741,14 +745,21 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( boost_rtree, DeviceType,
                                   radii( i ) );
                           } );
     Kokkos::fence();
+    auto within_queries_host = Kokkos::create_mirror_view( within_queries );
+    Kokkos::deep_copy( within_queries_host, within_queries );
 
     auto rtree_results =
-        BoostRTreeHelpers::performQueries( rtree, nearest_queries );
+        BoostRTreeHelpers::performQueries( rtree, nearest_queries_host );
 
     Kokkos::View<int *, DeviceType> offset_nearest( "offset_nearest" );
     Kokkos::View<int *, DeviceType> indices_nearest( "indices_nearest" );
     bvh.query( nearest_queries, indices_nearest, offset_nearest );
-    auto bvh_results = std::make_tuple( offset_nearest, indices_nearest );
+    auto offset_nearest_host = Kokkos::create_mirror_view( offset_nearest );
+    Kokkos::deep_copy( offset_nearest_host, offset_nearest );
+    auto indices_nearest_host = Kokkos::create_mirror_view( indices_nearest );
+    Kokkos::deep_copy( indices_nearest_host, indices_nearest );
+    auto bvh_results =
+        std::make_tuple( offset_nearest_host, indices_nearest_host );
 
     validateResults( rtree_results, bvh_results );
 
@@ -756,15 +767,22 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( boost_rtree, DeviceType,
         ArborX::Details::NearestQueryAlgorithm::PriorityQueueBased_Deprecated;
     bvh.query( nearest_queries, indices_nearest, offset_nearest,
                alternate_tree_traversal_algorithm );
-    bvh_results = std::make_tuple( offset_nearest, indices_nearest );
+    Kokkos::deep_copy( offset_nearest_host, offset_nearest );
+    Kokkos::deep_copy( indices_nearest_host, indices_nearest );
+    bvh_results = std::make_tuple( offset_nearest_host, indices_nearest_host );
     validateResults( rtree_results, bvh_results );
 
     Kokkos::View<int *, DeviceType> offset_within( "offset_within" );
     Kokkos::View<int *, DeviceType> indices_within( "indices_within" );
     bvh.query( within_queries, indices_within, offset_within );
-    bvh_results = std::make_tuple( offset_within, indices_within );
+    auto offset_within_host = Kokkos::create_mirror_view( offset_within );
+    Kokkos::deep_copy( offset_within_host, offset_within );
+    auto indices_within_host = Kokkos::create_mirror_view( indices_within );
+    Kokkos::deep_copy( indices_within_host, indices_within );
+    bvh_results = std::make_tuple( offset_within_host, indices_within_host );
 
-    rtree_results = BoostRTreeHelpers::performQueries( rtree, within_queries );
+    rtree_results =
+        BoostRTreeHelpers::performQueries( rtree, within_queries_host );
 
     validateResults( rtree_results, bvh_results );
 }

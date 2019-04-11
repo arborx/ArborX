@@ -1,44 +1,9 @@
-##---------------------------------------------------------------------------##
-## EXAMPLES
-##---------------------------------------------------------------------------##
-
 # We require version 1.4.0 or higher but the format used by Google benchmark is
 # wrong and thus, we cannot check the version during the configuration step.
-FIND_PACKAGE(benchmark REQUIRED)
+find_package(benchmark REQUIRED)
 
-TRIBITS_ADD_EXECUTABLE(
-  bvh
-  SOURCES bvh_driver.cpp
-  ADDED_EXE_TARGET_NAME_OUT bvh_exe_target_name
-  )
-TARGET_LINK_LIBRARIES(${bvh_exe_target_name} benchmark::benchmark)
-
-IF(Kokkos_ENABLE_Serial)
-  TRIBITS_ADD_TEST(
-    bvh
-    POSTFIX_AND_ARGS_0 serial --benchmark_filter=Serial --benchmark_color=false
-    COMM serial mpi
-    NUM_MPI_PROCS 1
-    FAIL_REGULAR_EXPRESSION "data race;leak;runtime error"
-    )
-ENDIF()
-IF(Kokkos_ENABLE_Cuda)
-  TRIBITS_ADD_TEST(
-    bvh
-    POSTFIX_AND_ARGS_0 cuda --benchmark_filter=Cuda --benchmark_color=false
-    COMM serial mpi
-    NUM_MPI_PROCS 1
-    FAIL_REGULAR_EXPRESSION "data race;leak;runtime error"
-    )
-ENDIF()
-IF(Kokkos_ENABLE_OpenMP)
-  TRIBITS_ADD_TEST(
-    bvh
-    POSTFIX_AND_ARGS_0 openmp --benchmark_filter=OpenMP --benchmark_color=false
-    COMM serial mpi
-    NUM_MPI_PROCS 1
-    NUM_TOTAL_CORES_USED 4
-    ENVIRONMENT OMP_NUM_THREADS=4
-    FAIL_REGULAR_EXPRESSION "data race;leak;runtime error"
-    )
-ENDIF()
+add_executable(ArborX_BoundingVolumeHierarchy.exe bvh_driver.cpp)
+target_link_libraries(ArborX_BoundingVolumeHierarchy.exe ArborX benchmark::benchmark Boost::program_options)
+target_include_directories(ArborX_BoundingVolumeHierarchy.exe PRIVATE ${CMAKE_SOURCE_DIR}/examples/point_clouds)
+#set_target_properties(bvh_exe PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON CXX_EXTENSION OFF)
+add_test(NAME ArborX_BoundingVolumeHierarchy_Example COMMAND ./ArborX_BoundingVolumeHierarchy.exe)
