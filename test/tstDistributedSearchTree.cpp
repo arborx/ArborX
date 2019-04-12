@@ -374,7 +374,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( boost_comparison, DeviceType,
     auto cloud = make_random_cloud( Lx, Ly, Lz, n, 0 );
     auto queries = make_random_cloud( Lx, Ly, Lz, n, 1234 );
 
-    int const local_n = n / comm_size;
+    // The formula is a bit complicated but it does not require n be divisible
+    // by comm_size
+    int const local_n = ( n + comm_size - 1 - comm_rank ) / comm_size;
     Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes( "bounding_boxes",
                                                             local_n );
     auto bounding_boxes_host = Kokkos::create_mirror_view( bounding_boxes );
