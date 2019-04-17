@@ -31,3 +31,5 @@ cmake "${ARGS[@]}" "${EXTRA_ARGS[@]}" "${ARBORX_DIR}"
 make -j${NPROCS}
 
 ctest --no-compress-output -T Test
+
+ccache --show-stats
