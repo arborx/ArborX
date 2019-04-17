@@ -1,10 +1,19 @@
 #ifndef ARBORX_ENABLE_DEVICE_TYPES_HPP
 #define ARBORX_ENABLE_DEVICE_TYPES_HPP
 
-#include <boost/mpl/list.hpp>
+#include <Kokkos_Macros.hpp>
+
 #include <boost/utility/identity_type.hpp>
 
+#if defined( KOKKOS_COMPILER_CLANG )
+#include <boost/mpl/list.hpp>
+#define WORKAROUND_SEQUENCE_OF_TYPES boost::mpl::list
+#else
+#include <tuple>
+#define WORKAROUND_SEQUENCE_OF_TYPES std::tuple
+#endif
+
 // clang-format off
-#cmakedefine ARBORX_DEVICE_TYPES BOOST_IDENTITY_TYPE((boost::mpl::list<@ARBORX_DEVICE_TYPES@>))
+#cmakedefine ARBORX_DEVICE_TYPES BOOST_IDENTITY_TYPE((WORKAROUND_SEQUENCE_OF_TYPES<@ARBORX_DEVICE_TYPES@>))
 
 #endif
