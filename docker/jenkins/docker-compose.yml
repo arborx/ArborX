@@ -13,6 +13,7 @@ services:
       - NPROCS=8
       - ARBORX_DIR=$WORKSPACE
       - CCACHE_DIR=$WORKSPACE/.ccache
+      - CCACHE_MAXSIZE=10G
     command: $WORKSPACE/docker/jenkins/build.sh
     cap_add:
       # required to mount DTK into Trilinos source directory
