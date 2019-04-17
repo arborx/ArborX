@@ -13,6 +13,7 @@ ARGS=(
     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BENCHMARK_DIR;$BOOST_DIR"
 
     ### COMPILERS AND FLAGS ###
+    -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
     -D CMAKE_CXX_COMPILER="$KOKKOS_DIR/bin/nvcc_wrapper"
     -D CMAKE_CXX_FLAGS="-Wall -Wextra -Wpedantic"
 

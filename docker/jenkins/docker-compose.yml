@@ -12,6 +12,7 @@ services:
     environment:
       - NPROCS=8
       - ARBORX_DIR=$WORKSPACE
+      - CCACHE_DIR=$WORKSPACE/.ccache
     command: $WORKSPACE/docker/jenkins/build.sh
     cap_add:
       # required to mount DTK into Trilinos source directory
