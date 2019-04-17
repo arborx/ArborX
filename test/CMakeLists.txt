@@ -13,11 +13,6 @@ string(REPLACE ";" "," ARBORX_DEVICE_TYPES "${ARBORX_DEVICE_TYPES}")
 configure_file(ArborX_EnableDeviceTypes.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/ArborX_EnableDeviceTypes.hpp @ONLY)
 
 
-add_executable(ArborX_HelloWorld.exe tstHelloWorld.cpp utf_main.cpp)
-target_link_libraries(ArborX_HelloWorld.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_HelloWorld.exe PRIVATE BOOST_TEST_DYN_LINK ARBORX_MPI_UNIT_TEST)
-add_test(NAME ArborX_HelloWorld COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} ./ArborX_HelloWorld.exe ${MPIEXEC_POSTFLAGS})
-
 add_executable(ArborX_Exception.exe tstException.cpp)
 # TODO link Boost::dynamic_linking interface target to enable dynamic linking
 # (adds BOOST_ALL_DYN_LINK)
