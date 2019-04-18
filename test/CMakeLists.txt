@@ -44,6 +44,11 @@ target_compile_definitions(ArborX_DetailsTreeConstruction.exe PRIVATE BOOST_TEST
 target_include_directories(ArborX_DetailsTreeConstruction.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_DetailsTreeConstruction COMMAND ./ArborX_DetailsTreeConstruction.exe)
 
+add_executable(ArborX_DetailsContainers.exe tstSequenceContainers.cpp tstContainerAdaptors.cpp tstHeapOperations.cpp)
+target_link_libraries(ArborX_DetailsContainers.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_DetailsContainers.exe PRIVATE BOOST_TEST_DYN_LINK)
+add_test(NAME ArborX_DetailsContainers COMMAND ./ArborX_DetailsContainers.exe)
+
 add_executable(ArborX_DetailsTreeTraversal.exe tstDetailsTreeTraversal.cpp utf_main.cpp)
 target_link_libraries(ArborX_DetailsTreeTraversal.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_DetailsTreeTraversal.exe PRIVATE BOOST_TEST_DYN_LINK)
