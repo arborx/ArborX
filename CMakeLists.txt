@@ -18,6 +18,32 @@ endif()
 
 enable_testing()
 
-add_subdirectory(src)
+target_include_directories(ArborX INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/details>
+  $<INSTALL_INTERFACE:include>
+  $<INSTALL_INTERFACE:include/details>
+)
+
 add_subdirectory(test)
 add_subdirectory(examples)
+
+install(TARGETS ArborX
+  EXPORT ArborXTargets
+  ARCHIVE LIBRARY PUBLIC_HEADER
+)
+
+install(EXPORT ArborXTargets
+  NAMESPACE ArborX::
+  DESTINATION lib/cmake/ArborX
+)
+
+include(CMakePackageConfigHelpers)
+configure_package_config_file(cmake/ArborXConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
+  INSTALL_DESTINATION lib/cmake/ArborX
+)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
+        DESTINATION lib/cmake/ArborX )
+
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include)
