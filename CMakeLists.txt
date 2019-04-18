@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.13)
 project(ArborX CXX)
 
 find_package(kokkos REQUIRED)
-find_package(Boost REQUIRED COMPONENTS program_options unit_test_framework)
 find_package(MPI REQUIRED)
 
 add_library(ArborX INTERFACE)
