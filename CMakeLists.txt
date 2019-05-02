@@ -16,13 +16,8 @@ if(KOKKOS_DEVICES MATCHES "Cuda")
 endif()
 
 enable_testing()
-
-# Globe all the header files
-file(GLOB_RECURSE headers RELATIVE ${CMAKE_SOURCE_DIR}/src *.hpp
-    )
-# Only keeps the headers in src
-list(FILTER headers EXCLUDE REGEX "\.\./test[^ ]")
-list(FILTER headers EXCLUDE REGEX "\.\./examples[^ ]")
+# Globbing all the header filenames to test for self-containment and presence of header guards
+file(GLOB_RECURSE ArborX_HEADERS RELATIVE ${CMAKE_SOURCE_DIR}/src src/*.hpp)
 
 add_subdirectory(src)
 add_subdirectory(test)
