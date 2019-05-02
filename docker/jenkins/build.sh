@@ -32,4 +32,7 @@ make -j${NPROCS}
 
 ctest --no-compress-output -T Test
 
+cd ${ARBORX_DIR}
+CLANG_FORMAT_EXE="clang-format" ./scripts/check_format_cpp.sh
+
 ccache --show-stats

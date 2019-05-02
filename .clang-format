@@ -1,0 +1,37 @@
+BasedOnStyle:  LLVM
+---
+AlwaysBreakTemplateDeclarations: true
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass            : true
+  AfterControlStatement : true
+  AfterEnum             : false
+  AfterFunction         : true
+  AfterNamespace        : true
+  AfterObjCDeclaration  : true
+  AfterStruct           : true
+  AfterUnion            : true
+  AfterExternBlock      : false
+  BeforeCatch           : true
+  BeforeElse            : true
+  IndentBraces          : false
+  SplitEmptyFunction    : true
+  SplitEmptyRecord      : true
+  SplitEmptyNamespace   : true
+BreakConstructorInitializersBeforeComma: true
+IncludeBlocks: Regroup
+IndentWidth: 4
+Language: Cpp
+IncludeCategories:
+# arborx first
+  - Regex: "ArborX*"
+    Priority: 1
+# Then boost
+  - Regex: "boost*"
+    Priority: 2
+# Then Kokkos
+  - Regex: "Kokkos*"
+    Priority: 3
+# Finally the standard library
+  - Regex: "<[a-z_]+>"
+    Priority: 10
