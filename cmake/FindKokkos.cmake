@@ -27,7 +27,7 @@ This will define the following variables:
   Libraries needed to link to Kokkos.
 ``Kokkos_DEVICES``
   Set of backends enabled.
-``kokkos_ARCH``
+``Kokkos_ARCH``
   Target architectures.
 
 Cache Variables
