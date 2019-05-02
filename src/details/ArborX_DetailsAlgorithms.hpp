@@ -24,100 +24,99 @@ namespace Details
 {
 
 KOKKOS_INLINE_FUNCTION
-bool equals( Point const &l, Point const &r )
+bool equals(Point const &l, Point const &r)
 {
-    for ( int d = 0; d < 3; ++d )
-        if ( l[d] != r[d] )
-            return false;
-    return true;
+  for (int d = 0; d < 3; ++d)
+    if (l[d] != r[d])
+      return false;
+  return true;
 }
 
 KOKKOS_INLINE_FUNCTION
-bool equals( Box const &l, Box const &r )
+bool equals(Box const &l, Box const &r)
 {
-    return equals( l.minCorner(), r.minCorner() ) &&
-           equals( l.maxCorner(), r.maxCorner() );
+  return equals(l.minCorner(), r.minCorner()) &&
+         equals(l.maxCorner(), r.maxCorner());
 }
 
 KOKKOS_INLINE_FUNCTION
-bool equals( Sphere const &l, Sphere const &r )
+bool equals(Sphere const &l, Sphere const &r)
 {
-    return equals( l.centroid(), r.centroid() ) && l.radius() == r.radius();
+  return equals(l.centroid(), r.centroid()) && l.radius() == r.radius();
 }
 
 KOKKOS_INLINE_FUNCTION
-bool isValid( Point const &p )
+bool isValid(Point const &p)
 {
-    using KokkosExt::isFinite;
-    for ( int d = 0; d < 3; ++d )
-        if ( !isFinite( p[d] ) )
-            return false;
-    return true;
+  using KokkosExt::isFinite;
+  for (int d = 0; d < 3; ++d)
+    if (!isFinite(p[d]))
+      return false;
+  return true;
 }
 
 KOKKOS_INLINE_FUNCTION
-bool isValid( Box const &b )
+bool isValid(Box const &b)
 {
-    return isValid( b.minCorner() ) && isValid( b.maxCorner() );
+  return isValid(b.minCorner()) && isValid(b.maxCorner());
 }
 
 KOKKOS_INLINE_FUNCTION
-bool isValid( Sphere const &s )
+bool isValid(Sphere const &s)
 {
-    using KokkosExt::isFinite;
-    return isValid( s.centroid() ) && isFinite( s.radius() ) &&
-           ( s.radius() >= 0. );
+  using KokkosExt::isFinite;
+  return isValid(s.centroid()) && isFinite(s.radius()) && (s.radius() >= 0.);
 }
 
 // distance point-point
 KOKKOS_INLINE_FUNCTION
-double distance( Point const &a, Point const &b )
+double distance(Point const &a, Point const &b)
 {
-    double distance_squared = 0.0;
-    for ( int d = 0; d < 3; ++d )
-    {
-        double tmp = b[d] - a[d];
-        distance_squared += tmp * tmp;
-    }
-    return std::sqrt( distance_squared );
+  double distance_squared = 0.0;
+  for (int d = 0; d < 3; ++d)
+  {
+    double tmp = b[d] - a[d];
+    distance_squared += tmp * tmp;
+  }
+  return std::sqrt(distance_squared);
 }
 
 // distance point-box
 KOKKOS_INLINE_FUNCTION
-double distance( Point const &point, Box const &box )
+double distance(Point const &point, Box const &box)
 {
-    Point projected_point;
-    for ( int d = 0; d < 3; ++d )
-    {
-        if ( point[d] < box.minCorner()[d] )
-            projected_point[d] = box.minCorner()[d];
-        else if ( point[d] > box.maxCorner()[d] )
-            projected_point[d] = box.maxCorner()[d];
-        else
-            projected_point[d] = point[d];
-    }
-    return distance( point, projected_point );
+  Point projected_point;
+  for (int d = 0; d < 3; ++d)
+  {
+    if (point[d] < box.minCorner()[d])
+      projected_point[d] = box.minCorner()[d];
+    else if (point[d] > box.maxCorner()[d])
+      projected_point[d] = box.maxCorner()[d];
+    else
+      projected_point[d] = point[d];
+  }
+  return distance(point, projected_point);
 }
 
 // distance point-sphere
 KOKKOS_INLINE_FUNCTION
-double distance( Point const &point, Sphere const &sphere )
+double distance(Point const &point, Sphere const &sphere)
 {
-    using KokkosExt::max;
-    return max( distance( point, sphere.centroid() ) - sphere.radius(), 0. );
+  using KokkosExt::max;
+  return max(distance(point, sphere.centroid()) - sphere.radius(), 0.);
 }
 
 // expand an axis-aligned bounding box to include a point
 KOKKOS_INLINE_FUNCTION
-void expand( Box &box, Point const &point )
+void expand(Box &box, Point const &point)
 {
-    using KokkosExt::max;
-    using KokkosExt::min;
-    for ( int d = 0; d < 3; ++d )
-    {
-        box.minCorner()[d] = min( box.minCorner()[d], point[d] );
-        box.maxCorner()[d] = max( box.maxCorner()[d], point[d] );
-    }
+  using KokkosExt::max;
+  using KokkosExt::min;
+  for (int d = 0; d < 3; ++d)
+  {
+    box.minCorner()[d] = min(box.minCorner()[d], point[d]);
+    box.maxCorner()[d] = max(box.maxCorner()[d], point[d]);
+  }
 }
 
 // expand an axis-aligned bounding box to include another box
@@ -127,87 +126,87 @@ void expand( Box &box, Point const &point )
 template <typename BOX,
           typename = typename std::enable_if<std::is_same<
               typename std::remove_volatile<BOX>::type, Box>::value>::type>
-KOKKOS_INLINE_FUNCTION void expand( BOX &box, BOX const &other )
+KOKKOS_INLINE_FUNCTION void expand(BOX &box, BOX const &other)
 {
-    using KokkosExt::max;
-    using KokkosExt::min;
-    for ( int d = 0; d < 3; ++d )
-    {
-        box.minCorner()[d] = min( box.minCorner()[d], other.minCorner()[d] );
-        box.maxCorner()[d] = max( box.maxCorner()[d], other.maxCorner()[d] );
-    }
+  using KokkosExt::max;
+  using KokkosExt::min;
+  for (int d = 0; d < 3; ++d)
+  {
+    box.minCorner()[d] = min(box.minCorner()[d], other.minCorner()[d]);
+    box.maxCorner()[d] = max(box.maxCorner()[d], other.maxCorner()[d]);
+  }
 }
 
 // expand an axis-aligned bounding box to include a sphere
 KOKKOS_INLINE_FUNCTION
-void expand( Box &box, Sphere const &sphere )
+void expand(Box &box, Sphere const &sphere)
 {
-    using KokkosExt::max;
-    using KokkosExt::min;
-    for ( int d = 0; d < 3; ++d )
-    {
-        box.minCorner()[d] =
-            min( box.minCorner()[d], sphere.centroid()[d] - sphere.radius() );
-        box.maxCorner()[d] =
-            max( box.maxCorner()[d], sphere.centroid()[d] + sphere.radius() );
-    }
+  using KokkosExt::max;
+  using KokkosExt::min;
+  for (int d = 0; d < 3; ++d)
+  {
+    box.minCorner()[d] =
+        min(box.minCorner()[d], sphere.centroid()[d] - sphere.radius());
+    box.maxCorner()[d] =
+        max(box.maxCorner()[d], sphere.centroid()[d] + sphere.radius());
+  }
 }
 
 // check if two axis-aligned bounding boxes intersect
 KOKKOS_INLINE_FUNCTION
-bool intersects( Box const &box, Box const &other )
+bool intersects(Box const &box, Box const &other)
 {
-    for ( int d = 0; d < 3; ++d )
-        if ( box.minCorner()[d] > other.maxCorner()[d] ||
-             box.maxCorner()[d] < other.minCorner()[d] )
-            return false;
-    return true;
+  for (int d = 0; d < 3; ++d)
+    if (box.minCorner()[d] > other.maxCorner()[d] ||
+        box.maxCorner()[d] < other.minCorner()[d])
+      return false;
+  return true;
 }
 
 // check if a sphere intersects with an  axis-aligned bounding box
 KOKKOS_INLINE_FUNCTION
-bool intersects( Sphere const &sphere, Box const &box )
+bool intersects(Sphere const &sphere, Box const &box)
 {
-    return distance( sphere.centroid(), box ) <= sphere.radius();
+  return distance(sphere.centroid(), box) <= sphere.radius();
 }
 
 // calculate the centroid of a box
 KOKKOS_INLINE_FUNCTION
-void centroid( Box const &box, Point &c )
+void centroid(Box const &box, Point &c)
 {
-    for ( int d = 0; d < 3; ++d )
-        c[d] = 0.5 * ( box.minCorner()[d] + box.maxCorner()[d] );
+  for (int d = 0; d < 3; ++d)
+    c[d] = 0.5 * (box.minCorner()[d] + box.maxCorner()[d]);
 }
 
 KOKKOS_INLINE_FUNCTION
-void centroid( Point const &point, Point &c ) { c = point; }
+void centroid(Point const &point, Point &c) { c = point; }
 
 KOKKOS_INLINE_FUNCTION
-Point returnCentroid( Point const &point ) { return point; }
+Point returnCentroid(Point const &point) { return point; }
 
 KOKKOS_INLINE_FUNCTION
-Point returnCentroid( Box const &box )
+Point returnCentroid(Box const &box)
 {
-    Point c;
-    for ( int d = 0; d < 3; ++d )
-        c[d] = 0.5 * ( box.minCorner()[d] + box.maxCorner()[d] );
-    return c;
+  Point c;
+  for (int d = 0; d < 3; ++d)
+    c[d] = 0.5 * (box.minCorner()[d] + box.maxCorner()[d]);
+  return c;
 }
 
 KOKKOS_INLINE_FUNCTION
-Point returnCentroid( Sphere const &sphere ) { return sphere.centroid(); }
+Point returnCentroid(Sphere const &sphere) { return sphere.centroid(); }
 
 // transformation that maps the unit cube into a new axis-aligned box
 // NOTE safe to perform in-place
 KOKKOS_INLINE_FUNCTION
-void translateAndScale( Point const &in, Point &out, Box const &ref )
+void translateAndScale(Point const &in, Point &out, Box const &ref)
 {
-    for ( int d = 0; d < 3; ++d )
-    {
-        double const a = ref.minCorner()[d];
-        double const b = ref.maxCorner()[d];
-        out[d] = ( a != b ? ( in[d] - a ) / ( b - a ) : 0 );
-    }
+  for (int d = 0; d < 3; ++d)
+  {
+    double const a = ref.minCorner()[d];
+    double const b = ref.maxCorner()[d];
+    out[d] = (a != b ? (in[d] - a) / (b - a) : 0);
+  }
 }
 
 } // namespace Details

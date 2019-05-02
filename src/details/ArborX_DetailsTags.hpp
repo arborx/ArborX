@@ -36,13 +36,13 @@ struct Tag
 template <>
 struct Tag<Point>
 {
-    using type = PointTag;
+  using type = PointTag;
 };
 
 template <>
 struct Tag<Box>
 {
-    using type = BoxTag;
+  using type = BoxTag;
 };
 
 } // namespace Details

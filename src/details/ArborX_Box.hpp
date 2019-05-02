@@ -13,6 +13,7 @@
 
 #include <ArborX_DetailsKokkosExt.hpp> // ArithmeticTraits
 #include <ArborX_Point.hpp>
+
 #include <Kokkos_Macros.hpp>
 
 namespace ArborX
@@ -24,46 +25,46 @@ namespace ArborX
  */
 struct Box
 {
-    KOKKOS_INLINE_FUNCTION
-    Box() = default;
+  KOKKOS_INLINE_FUNCTION
+  Box() = default;
 
-    KOKKOS_INLINE_FUNCTION
-    Box( Point const &min_corner, Point const &max_corner )
-        : _min_corner( min_corner )
-        , _max_corner( max_corner )
-    {
-    }
+  KOKKOS_INLINE_FUNCTION
+  Box(Point const &min_corner, Point const &max_corner)
+      : _min_corner(min_corner)
+      , _max_corner(max_corner)
+  {
+  }
 
-    KOKKOS_INLINE_FUNCTION
-    Point &minCorner() { return _min_corner; }
+  KOKKOS_INLINE_FUNCTION
+  Point &minCorner() { return _min_corner; }
 
-    KOKKOS_INLINE_FUNCTION
-    Point const &minCorner() const { return _min_corner; }
+  KOKKOS_INLINE_FUNCTION
+  Point const &minCorner() const { return _min_corner; }
 
-    KOKKOS_INLINE_FUNCTION
-    Point volatile &minCorner() volatile { return _min_corner; }
+  KOKKOS_INLINE_FUNCTION
+  Point volatile &minCorner() volatile { return _min_corner; }
 
-    KOKKOS_INLINE_FUNCTION
-    Point volatile const &minCorner() volatile const { return _min_corner; }
+  KOKKOS_INLINE_FUNCTION
+  Point volatile const &minCorner() volatile const { return _min_corner; }
 
-    KOKKOS_INLINE_FUNCTION
-    Point &maxCorner() { return _max_corner; }
+  KOKKOS_INLINE_FUNCTION
+  Point &maxCorner() { return _max_corner; }
 
-    KOKKOS_INLINE_FUNCTION
-    Point const &maxCorner() const { return _max_corner; }
+  KOKKOS_INLINE_FUNCTION
+  Point const &maxCorner() const { return _max_corner; }
 
-    KOKKOS_INLINE_FUNCTION
-    Point volatile &maxCorner() volatile { return _max_corner; }
+  KOKKOS_INLINE_FUNCTION
+  Point volatile &maxCorner() volatile { return _max_corner; }
 
-    KOKKOS_INLINE_FUNCTION
-    Point volatile const &maxCorner() volatile const { return _max_corner; }
+  KOKKOS_INLINE_FUNCTION
+  Point volatile const &maxCorner() volatile const { return _max_corner; }
 
-    Point _min_corner = {{KokkosExt::ArithmeticTraits::max<double>::value,
-                          KokkosExt::ArithmeticTraits::max<double>::value,
-                          KokkosExt::ArithmeticTraits::max<double>::value}};
-    Point _max_corner = {{-KokkosExt::ArithmeticTraits::max<double>::value,
-                          -KokkosExt::ArithmeticTraits::max<double>::value,
-                          -KokkosExt::ArithmeticTraits::max<double>::value}};
+  Point _min_corner = {{KokkosExt::ArithmeticTraits::max<double>::value,
+                        KokkosExt::ArithmeticTraits::max<double>::value,
+                        KokkosExt::ArithmeticTraits::max<double>::value}};
+  Point _max_corner = {{-KokkosExt::ArithmeticTraits::max<double>::value,
+                        -KokkosExt::ArithmeticTraits::max<double>::value,
+                        -KokkosExt::ArithmeticTraits::max<double>::value}};
 };
 } // namespace ArborX
 

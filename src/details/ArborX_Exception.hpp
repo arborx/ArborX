@@ -18,25 +18,25 @@ namespace ArborX
 {
 class SearchException : public std::logic_error
 {
-  public:
-    SearchException( std::string const &msg )
-        : std::logic_error( std::string( "ArborX exception: " ) + msg )
-    {
-    }
+public:
+  SearchException(std::string const &msg)
+      : std::logic_error(std::string("ArborX exception: ") + msg)
+  {
+  }
 
-    virtual ~SearchException() throw() {}
+  virtual ~SearchException() throw() {}
 };
 
 } // namespace ArborX
 
-#define ARBORX_STRINGIZE_DETAIL( x ) #x
-#define ARBORX_STRINGIZE( x ) ARBORX_STRINGIZE_DETAIL( x )
+#define ARBORX_STRINGIZE_DETAIL(x) #x
+#define ARBORX_STRINGIZE(x) ARBORX_STRINGIZE_DETAIL(x)
 
 // FIXME: Unconditionally assert for now
 // Once moved out, possibly make it conditional
-#define ARBORX_ASSERT( c )                                                     \
-    if ( !( c ) )                                                              \
-    throw ArborX::SearchException( #c ", failed at " __FILE__                  \
-                                      ":" ARBORX_STRINGIZE( __LINE__ ) "." )
+#define ARBORX_ASSERT(c)                                                       \
+  if (!(c))                                                                    \
+  throw ArborX::SearchException(#c ", failed at " __FILE__                     \
+                                   ":" ARBORX_STRINGIZE(__LINE__) ".")
 
 #endif

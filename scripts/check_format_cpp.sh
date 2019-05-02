@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-clang_format_executable=${CLANG_FORMAT_EXE:-clang-format}
+clang_format_executable=${CLANG_FORMAT_EXE:-clang-format-7}
 
 this_program=$(basename "$0")
 usage="Usage:
