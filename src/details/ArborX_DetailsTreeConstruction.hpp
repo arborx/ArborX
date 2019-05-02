@@ -19,6 +19,7 @@
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsTags.hpp>
 #include <ArborX_DetailsTraits.hpp>
+#include <ArborX_Macros.hpp>
 
 // FIXME provides definition of Kokkos::Iterate for Kokkos_CopyViews.hpp
 #include <KokkosExp_MDRangePolicy.hpp>
