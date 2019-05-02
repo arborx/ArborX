@@ -17,6 +17,13 @@ endif()
 
 enable_testing()
 
+# Globe all the header files
+file(GLOB_RECURSE headers RELATIVE ${CMAKE_SOURCE_DIR}/src *.hpp
+    )
+# Only keeps the headers in src
+list(FILTER headers EXCLUDE REGEX "\.\./test[^ ]")
+list(FILTER headers EXCLUDE REGEX "\.\./examples[^ ]")
+
 add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(examples)
