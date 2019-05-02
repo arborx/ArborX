@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.13)
 project(ArborX CXX)
 
-find_package(kokkos REQUIRED)
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
+find_package(Kokkos REQUIRED)
 find_package(MPI REQUIRED)
 
 add_library(ArborX INTERFACE)
-target_link_libraries(ArborX INTERFACE Kokkos::kokkos MPI::MPI_CXX)
+target_link_libraries(ArborX INTERFACE Kokkos::Kokkos MPI::MPI_CXX)
 #target_compile_features(ArborX INTERFACE cxx_std_14)
 
 # FIXME
