@@ -78,12 +78,4 @@ target_link_libraries(ArborX_BoostAdapters.exe PRIVATE ArborX Boost::unit_test_f
 target_compile_definitions(ArborX_BoostAdapters.exe PRIVATE BOOST_TEST_DYN_LINK)
 add_test(NAME ArborX_BoostAdapters COMMAND ./ArborX_BoostAdapters.exe)
 
-# Create tests that contain each header seperately. We do not not run these test
-# but we just try to compile them.
-foreach (header ${headers})
-  set(HEADER "<${header}>")
-  string(REGEX REPLACE "[\./]" "_" test ${header})
-  configure_file(tstHeader.cpp.in "tstHeader_${test}.cpp")
-  add_executable("${test}.exe" "tstHeader_${test}.cpp")
-  target_link_libraries("${test}.exe" PRIVATE ArborX)
-endforeach()
+add_subdirectory(headers_self_contained)
