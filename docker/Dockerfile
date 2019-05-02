@@ -120,7 +120,8 @@ RUN KOKKOS_VERSION=5d6e7fb38e96aec88d2c514e1f9be1cf2b549b57 && \
     mkdir -p build && cd build && \
     [ ! -z "${CUDA_VERSION}" ] && CUDA_OPTIONS="--with-cuda --with-cuda-options=enable_lambda" || true && \
     ../generate_makefile.bash --prefix=${KOKKOS_DIR} \
-       --with-serial --with-openmp ${CUDA_OPTIONS} \
+       --with-serial --with-openmp \
+       --with-options=disable_deprecated_code ${CUDA_OPTIONS} \
        --arch=SNB,Volta70 \
        --cxxstandard=c++14 && \
     make -j${NPROCS} install && \
