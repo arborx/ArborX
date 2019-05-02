@@ -46,4 +46,5 @@ configure_package_config_file(cmake/ArborXConfig.cmake.in
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
         DESTINATION lib/cmake/ArborX )
 
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include
+        FILES_MATCHING PATTERN "*.hpp")
