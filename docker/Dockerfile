@@ -124,5 +124,4 @@ RUN KOKKOS_VERSION=5d6e7fb38e96aec88d2c514e1f9be1cf2b549b57 && \
        --arch=SNB,Volta70 \
        --cxxstandard=c++14 && \
     make -j${NPROCS} install && \
-    rm -rf ${SCRATCH_DIR} && \
-    rm /root/kokkos.patch
+    rm -rf ${SCRATCH_DIR}
