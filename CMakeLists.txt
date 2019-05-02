@@ -16,8 +16,12 @@ if(KOKKOS_DEVICES MATCHES "Cuda")
   target_link_directories(ArborX INTERFACE ${CUDA_LIBRARY_DIR})
 endif()
 
-enable_testing()
-
 add_subdirectory(src)
-add_subdirectory(test)
-add_subdirectory(examples)
+
+option(ArborX_ENABLE_TESTS "Enable tests and examples" ON)
+if(${ArborX_ENABLE_TESTS})
+  enable_testing()
+
+  add_subdirectory(test)
+  add_subdirectory(examples)
+endif()
