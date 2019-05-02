@@ -118,7 +118,7 @@ RUN KOKKOS_VERSION=5d6e7fb38e96aec88d2c514e1f9be1cf2b549b57 && \
     tar -xf ${KOKKOS_ARCHIVE} -C kokkos --strip-components=1 && \
     cd kokkos && \
     mkdir -p build && cd build && \
-    [ ! -z "${CUDA_VERSION}" ] && CUDA_OPTIONS="--with-cuda --with-cuda-options=enable_lambda,enable_uvm" || true && \
+    [ ! -z "${CUDA_VERSION}" ] && CUDA_OPTIONS="--with-cuda --with-cuda-options=enable_lambda" || true && \
     ../generate_makefile.bash --prefix=${KOKKOS_DIR} \
        --with-serial --with-openmp ${CUDA_OPTIONS} \
        --arch=SNB,Volta70 \
