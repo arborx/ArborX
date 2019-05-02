@@ -25,6 +25,10 @@ This will define the following variables:
   Include directories needed to use Kokkos.
 ``Kokkos_LIBRARIES``
   Libraries needed to link to Kokkos.
+``Kokkos_DEVICES``
+  Set of backends enabled.
+``kokkos_ARCH``
+  Target architectures.
 
 Cache Variables
 ^^^^^^^^^^^^^^^
@@ -49,6 +53,11 @@ find_library(Kokkos_LIBRARY
   NAMES kokkos
   PATHS ${PC_Kokkos_LIBRARY_DIRS}
 )
+find_path(_Kokkos_SETTINGS
+  NAMES kokkos_generated_settings.cmake
+  PATHS ${PC_Kokkos_PREFIX}
+        ${PC_Kokkos_LIBRARY_DIRS}/lib/cmake/Kokkos
+)
 
 set(Kokkos_VERSION ${PC_Kokkos_VERSION})
 
@@ -58,13 +67,19 @@ find_package_handle_standard_args(Kokkos
   REQUIRED_VARS
     Kokkos_LIBRARY
     Kokkos_INCLUDE_DIR
+    _Kokkos_SETTINGS
   VERSION_VAR Kokkos_VERSION
 )
+
+include(${_Kokkos_SETTINGS}/kokkos_generated_settings.cmake)
+unset(_Kokkos_SETTINGS CACHE)
 
 if(Kokkos_FOUND)
   set(Kokkos_LIBRARIES ${Kokkos_LIBRARY})
   set(Kokkos_INCLUDE_DIRS ${Kokkos_INCLUDE_DIR})
   set(Kokkos_DEFINITIONS ${PC_Kokkos_CFLAGS_OTHER})
+  set(Kokkos_DEVICES ${KOKKOS_GMAKE_DEVICES})
+  set(Kokkos_ARCH ${KOKKOS_GMAKE_ARCH})
 endif()
 
 if(Kokkos_FOUND AND NOT TARGET Kokkos::Kokkos)
