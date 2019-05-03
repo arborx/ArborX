@@ -51,7 +51,6 @@ if(${ArborX_ENABLE_TESTS} OR ${ArborX_ENABLE_EXAMPLES})
   enable_testing()
 endif()
 
-add_subdirectory(src)
 if(${ArborX_ENABLE_TESTS})
   add_subdirectory(test)
 endif()
