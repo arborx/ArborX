@@ -15,7 +15,7 @@
 
 #include <type_traits>
 
-#if !defined( __cpp_lib_void_t )
+#if !defined(__cpp_lib_void_t)
 namespace std
 {
 template <typename...>
@@ -23,7 +23,7 @@ using void_t = void;
 }
 #endif
 
-#if !defined( DOXYGEN_SHOULD_SKIP_THIS )
+#if !defined(DOXYGEN_SHOULD_SKIP_THIS)
 namespace ArborX
 {
 namespace Details
@@ -40,7 +40,7 @@ template <typename Geometry, typename Other>
 struct is_expandable<
     Geometry, Other,
     std::void_t<decltype(
-        expand( std::declval<Geometry &>(), std::declval<Other const &>() ) )>>
+        expand(std::declval<Geometry &>(), std::declval<Other const &>()))>>
     : std::true_type
 {
 };
@@ -55,9 +55,8 @@ struct has_centroid : std::false_type
 template <typename Geometry, typename Point>
 struct has_centroid<
     Geometry, Point,
-    std::void_t<decltype( centroid( std::declval<Geometry const &>(),
-                                    std::declval<Point &>() ) )>>
-    : std::true_type
+    std::void_t<decltype(centroid(std::declval<Geometry const &>(),
+                                  std::declval<Point &>()))>> : std::true_type
 {
 };
 

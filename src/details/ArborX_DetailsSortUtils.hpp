@@ -28,41 +28,41 @@ namespace Details
 // NOTE returns the permutation indices **and** sorts the morton codes
 template <typename DeviceType>
 Kokkos::View<size_t *, DeviceType>
-sortObjects( Kokkos::View<unsigned int *, DeviceType> view )
+sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
 {
-    int const n = view.extent( 0 );
+  int const n = view.extent(0);
 
-    using ViewType = decltype( view );
-    using ValueType = typename ViewType::value_type;
-    using CompType = Kokkos::BinOp1D<ViewType>;
-    using ExecutionSpace = typename DeviceType::execution_space;
+  using ViewType = decltype(view);
+  using ValueType = typename ViewType::value_type;
+  using CompType = Kokkos::BinOp1D<ViewType>;
+  using ExecutionSpace = typename DeviceType::execution_space;
 
-    Kokkos::Experimental::MinMaxScalar<ValueType> result;
-    Kokkos::Experimental::MinMax<ValueType> reducer( result );
-    parallel_reduce( ARBORX_MARK_REGION( "find_min_max_view" ),
-                     Kokkos::RangePolicy<ExecutionSpace>( 0, n ),
-                     Kokkos::Impl::min_max_functor<ViewType>( view ), reducer );
-    if ( result.min_val == result.max_val )
-    {
-        Kokkos::View<size_t *, DeviceType> permute(
-            Kokkos::ViewAllocateWithoutInitializing( "permute" ), n );
-        iota( permute );
-        return permute;
-    }
+  Kokkos::Experimental::MinMaxScalar<ValueType> result;
+  Kokkos::Experimental::MinMax<ValueType> reducer(result);
+  parallel_reduce(ARBORX_MARK_REGION("find_min_max_view"),
+                  Kokkos::RangePolicy<ExecutionSpace>(0, n),
+                  Kokkos::Impl::min_max_functor<ViewType>(view), reducer);
+  if (result.min_val == result.max_val)
+  {
+    Kokkos::View<size_t *, DeviceType> permute(
+        Kokkos::ViewAllocateWithoutInitializing("permute"), n);
+    iota(permute);
+    return permute;
+  }
 
-    // Passing the SizeType template argument to Kokkos::BinSort because it
-    // defaults to the memory space size type which is different on the host and
-    // on cuda (size_t versus unsigned int respectively).  size_t feels like a
-    // better choice here because its size is guaranteed to coincide with the
-    // pointer size which is a good thing for converting with reinterpret_cast
-    // (when leaf indices are encoded into the pointer to one of their children)
-    Kokkos::BinSort<ViewType, CompType, DeviceType, size_t> bin_sort(
-        view, CompType( n / 2, result.min_val, result.max_val ), true );
-    bin_sort.create_permute_vector();
-    bin_sort.sort( view );
-    Kokkos::fence();
+  // Passing the SizeType template argument to Kokkos::BinSort because it
+  // defaults to the memory space size type which is different on the host and
+  // on cuda (size_t versus unsigned int respectively).  size_t feels like a
+  // better choice here because its size is guaranteed to coincide with the
+  // pointer size which is a good thing for converting with reinterpret_cast
+  // (when leaf indices are encoded into the pointer to one of their children)
+  Kokkos::BinSort<ViewType, CompType, DeviceType, size_t> bin_sort(
+      view, CompType(n / 2, result.min_val, result.max_val), true);
+  bin_sort.create_permute_vector();
+  bin_sort.sort(view);
+  Kokkos::fence();
 
-    return bin_sort.get_permute_vector();
+  return bin_sort.get_permute_vector();
 }
 
 } // namespace Details

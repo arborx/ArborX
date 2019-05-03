@@ -1,0 +1,20 @@
+BasedOnStyle:  LLVM
+---
+AlwaysBreakTemplateDeclarations: true
+BreakBeforeBraces: Allman
+BreakConstructorInitializersBeforeComma: true
+IncludeBlocks: Regroup
+Language: Cpp
+IncludeCategories:
+# arborx first
+  - Regex: "ArborX*"
+    Priority: 1
+# Then Kokkos
+  - Regex: "Kokkos*"
+    Priority: 2
+# Then boost
+  - Regex: "boost*"
+    Priority: 3
+# Finally the standard library
+  - Regex: "<[a-z_]+>"
+    Priority: 10

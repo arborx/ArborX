@@ -16,57 +16,57 @@
 
 using namespace ArborX::Details;
 
-BOOST_AUTO_TEST_SUITE( ContainerAdaptors )
+BOOST_AUTO_TEST_SUITE(ContainerAdaptors)
 
-BOOST_AUTO_TEST_CASE( stack )
+BOOST_AUTO_TEST_CASE(stack)
 {
-    // stack is empty at construction
-    Stack<int> stack;
-    BOOST_TEST( stack.empty() );
-    BOOST_TEST( stack.size() == 0 );
-    // insert element
-    stack.push( 2 );
-    BOOST_TEST( !stack.empty() );
-    BOOST_TEST( stack.size() == 1 );
-    BOOST_TEST( stack.top() == 2 );
-    // insert another element
-    stack.push( 5 );
-    BOOST_TEST( !stack.empty() );
-    BOOST_TEST( stack.size() == 2 );
-    BOOST_TEST( stack.top() == 5 );
-    // remove it
-    stack.pop();
-    BOOST_TEST( !stack.empty() );
-    BOOST_TEST( stack.size() == 1 );
-    BOOST_TEST( stack.top() == 2 );
-    // empty the stack
-    stack.pop();
-    BOOST_TEST( stack.empty() );
-    BOOST_TEST( stack.size() == 0 );
+  // stack is empty at construction
+  Stack<int> stack;
+  BOOST_TEST(stack.empty());
+  BOOST_TEST(stack.size() == 0);
+  // insert element
+  stack.push(2);
+  BOOST_TEST(!stack.empty());
+  BOOST_TEST(stack.size() == 1);
+  BOOST_TEST(stack.top() == 2);
+  // insert another element
+  stack.push(5);
+  BOOST_TEST(!stack.empty());
+  BOOST_TEST(stack.size() == 2);
+  BOOST_TEST(stack.top() == 5);
+  // remove it
+  stack.pop();
+  BOOST_TEST(!stack.empty());
+  BOOST_TEST(stack.size() == 1);
+  BOOST_TEST(stack.top() == 2);
+  // empty the stack
+  stack.pop();
+  BOOST_TEST(stack.empty());
+  BOOST_TEST(stack.size() == 0);
 }
 
-BOOST_AUTO_TEST_CASE( priority_queue )
+BOOST_AUTO_TEST_CASE(priority_queue)
 {
-    PriorityQueue<int> queue;
-    // queue is empty at construction
-    BOOST_TEST( queue.empty() );
-    // insert element
-    queue.push( 33 );
-    BOOST_TEST( !queue.empty() );
-    BOOST_TEST( queue.top() == 33 );
-    // smaller distance stays on top of the priority queue
-    queue.push( 24 );
-    BOOST_TEST( queue.top() == 33 );
-    // remove highest priority element
-    queue.pop();
-    BOOST_TEST( queue.top() == 24 );
-    // insert element with higher priority and check it shows up on top
-    queue.push( 33 );
-    BOOST_TEST( queue.top() == 33 );
-    // empty the queue
-    queue.pop();
-    queue.pop();
-    BOOST_TEST( queue.empty() );
+  PriorityQueue<int> queue;
+  // queue is empty at construction
+  BOOST_TEST(queue.empty());
+  // insert element
+  queue.push(33);
+  BOOST_TEST(!queue.empty());
+  BOOST_TEST(queue.top() == 33);
+  // smaller distance stays on top of the priority queue
+  queue.push(24);
+  BOOST_TEST(queue.top() == 33);
+  // remove highest priority element
+  queue.pop();
+  BOOST_TEST(queue.top() == 24);
+  // insert element with higher priority and check it shows up on top
+  queue.push(33);
+  BOOST_TEST(queue.top() == 33);
+  // empty the queue
+  queue.pop();
+  queue.pop();
+  BOOST_TEST(queue.empty());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

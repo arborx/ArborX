@@ -26,7 +26,7 @@ namespace Details
 template <typename T, std::size_t N>
 class StaticVector
 {
-    // clang-format off
+  // clang-format off
   public:
     using value_type = T;
     using size_type = std::size_t;
@@ -58,13 +58,13 @@ class StaticVector
   private:
     value_type _data[N];
     size_type _size = 0;
-    // clang-format on
+  // clang-format on
 };
 
 template <typename T>
 class UnmanagedStaticVector
 {
-    // clang-format off
+  // clang-format off
   public:
     using value_type = T;
     using size_type = std::size_t;
@@ -97,7 +97,7 @@ class UnmanagedStaticVector
     pointer _ptr = nullptr;
     size_type const _max_size = 0;
     size_type _size = 0;
-    // clang-format on
+  // clang-format on
 };
 
 } // namespace Details

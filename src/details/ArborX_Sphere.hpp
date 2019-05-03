@@ -12,6 +12,7 @@
 #define ARBORX_Sphere_HPP
 
 #include <ArborX_Point.hpp>
+
 #include <Kokkos_Macros.hpp>
 
 namespace ArborX
@@ -19,27 +20,27 @@ namespace ArborX
 
 struct Sphere
 {
-    KOKKOS_INLINE_FUNCTION
-    Sphere() = default;
+  KOKKOS_INLINE_FUNCTION
+  Sphere() = default;
 
-    KOKKOS_INLINE_FUNCTION
-    Sphere( Point const &centroid, double radius )
-        : _centroid( centroid )
-        , _radius( radius )
-    {
-    }
+  KOKKOS_INLINE_FUNCTION
+  Sphere(Point const &centroid, double radius)
+      : _centroid(centroid)
+      , _radius(radius)
+  {
+  }
 
-    KOKKOS_INLINE_FUNCTION
-    Point &centroid() { return _centroid; }
+  KOKKOS_INLINE_FUNCTION
+  Point &centroid() { return _centroid; }
 
-    KOKKOS_INLINE_FUNCTION
-    Point const &centroid() const { return _centroid; }
+  KOKKOS_INLINE_FUNCTION
+  Point const &centroid() const { return _centroid; }
 
-    KOKKOS_INLINE_FUNCTION
-    double radius() const { return _radius; }
+  KOKKOS_INLINE_FUNCTION
+  double radius() const { return _radius; }
 
-    Point _centroid;
-    double _radius = 0.;
+  Point _centroid;
+  double _radius = 0.;
 };
 } // namespace ArborX
 

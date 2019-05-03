@@ -13,24 +13,25 @@
 #define ARBORX_NODE_HPP
 
 #include <ArborX_Box.hpp>
+
 #include <Kokkos_Pair.hpp>
 
 namespace ArborX
 {
 struct Node
 {
-    KOKKOS_INLINE_FUNCTION
-    Node() = default;
+  KOKKOS_INLINE_FUNCTION
+  Node() = default;
 
-    KOKKOS_INLINE_FUNCTION
-    Node( const Kokkos::pair<Node *, Node *> &c, const Box &bb )
-        : children( c )
-        , bounding_box( bb )
-    {
-    }
+  KOKKOS_INLINE_FUNCTION
+  Node(const Kokkos::pair<Node *, Node *> &c, const Box &bb)
+      : children(c)
+      , bounding_box(bb)
+  {
+  }
 
-    Kokkos::pair<Node *, Node *> children = {nullptr, nullptr};
-    Box bounding_box;
+  Kokkos::pair<Node *, Node *> children = {nullptr, nullptr};
+  Box bounding_box;
 };
 } // namespace ArborX
 
