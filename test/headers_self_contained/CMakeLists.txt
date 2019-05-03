@@ -1,4 +1,4 @@
-# Create tests that contain each header seperately. We do not not run these test
+# Create tests that contain each header separately. We do not  run these tests
 # but we just try to compile them.
 foreach (_header ${ArborX_HEADERS})
   string(REGEX REPLACE "[\./]" "_" header_test_name ${_header})
