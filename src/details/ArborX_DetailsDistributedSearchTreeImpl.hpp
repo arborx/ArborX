@@ -139,10 +139,9 @@ create_layout_right_mirror_view(
 {
   return Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
                       typename View::traits::host_mirror_space>(
-      std::string(src.label()).append("_layout_right_mirror"),
-      src.dimension_0(), src.dimension_1(), src.dimension_2(),
-      src.dimension_3(), src.dimension_4(), src.dimension_5(),
-      src.dimension_6(), src.dimension_7());
+      std::string(src.label()).append("_layout_right_mirror"), src.extent(0),
+      src.extent(1), src.extent(2), src.extent(3), src.extent(4), src.extent(5),
+      src.extent(6), src.extent(7));
 }
 
 template <typename View>
@@ -169,21 +168,20 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
     Distributor const &distributor, View exports,
     typename View::non_const_type imports)
 {
-  ARBORX_ASSERT(
-      (exports.dimension_0() == distributor.getTotalSendLength()) &&
-      (imports.dimension_0() == distributor.getTotalReceiveLength()) &&
-      (exports.dimension_1() == imports.dimension_1()) &&
-      (exports.dimension_2() == imports.dimension_2()) &&
-      (exports.dimension_3() == imports.dimension_3()) &&
-      (exports.dimension_4() == imports.dimension_4()) &&
-      (exports.dimension_5() == imports.dimension_5()) &&
-      (exports.dimension_6() == imports.dimension_6()) &&
-      (exports.dimension_7() == imports.dimension_7()));
+  ARBORX_ASSERT((exports.extent(0) == distributor.getTotalSendLength()) &&
+                (imports.extent(0) == distributor.getTotalReceiveLength()) &&
+                (exports.extent(1) == imports.extent(1)) &&
+                (exports.extent(2) == imports.extent(2)) &&
+                (exports.extent(3) == imports.extent(3)) &&
+                (exports.extent(4) == imports.extent(4)) &&
+                (exports.extent(5) == imports.extent(5)) &&
+                (exports.extent(6) == imports.extent(6)) &&
+                (exports.extent(7) == imports.extent(7)));
 
-  auto const num_packets = exports.dimension_1() * exports.dimension_2() *
-                           exports.dimension_3() * exports.dimension_4() *
-                           exports.dimension_5() * exports.dimension_6() *
-                           exports.dimension_7();
+  auto const num_packets = exports.extent(1) * exports.extent(2) *
+                           exports.extent(3) * exports.extent(4) *
+                           exports.extent(5) * exports.extent(6) *
+                           exports.extent(7);
 
   auto exports_host = create_layout_right_mirror_view(exports);
   Kokkos::deep_copy(exports_host, exports);
