@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(last_element, DeviceType, ARBORX_DEVICE_TYPES)
   BOOST_TEST(ArborX::lastElement(v) == 24);
   Kokkos::View<int *, DeviceType> w("w", 0);
   BOOST_CHECK_THROW(ArborX::lastElement(w), ArborX::SearchException);
-  Kokkos::View<double[1], DeviceType> u("u", 1);
+  Kokkos::View<double[1], DeviceType> u("u");
   Kokkos::deep_copy(u, 3.14);
   BOOST_TEST(ArborX::lastElement(u) == 3.14);
 }
