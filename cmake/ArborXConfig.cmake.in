@@ -1,0 +1,8 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(Kokkos)
+find_dependency(MPI)
+
+include("${CMAKE_CURRENT_LIST_DIR}/ArborXTargets.cmake")
+check_required_components(ArborX)

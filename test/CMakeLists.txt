@@ -12,7 +12,7 @@ endif()
 string(REPLACE ";" "," ARBORX_DEVICE_TYPES "${ARBORX_DEVICE_TYPES}")
 configure_file(ArborX_EnableDeviceTypes.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/ArborX_EnableDeviceTypes.hpp @ONLY)
 
-find_package(Boost REQUIRED COMPONENTS unit_test_framework)
+find_package(Boost 1.67.0 REQUIRED COMPONENTS unit_test_framework)
 
 add_executable(ArborX_Exception.exe tstException.cpp)
 # TODO link Boost::dynamic_linking interface target to enable dynamic linking
