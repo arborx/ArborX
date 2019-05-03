@@ -1,17 +1,18 @@
 
 set(ARBORX_DEVICE_TYPES)
-if(KOKKOS_DEVICES MATCHES "Serial")
+if(Kokkos_DEVICES MATCHES "Serial")
   list(APPEND ARBORX_DEVICE_TYPES Kokkos::Serial::device_type)
 endif()
-if(KOKKOS_DEVICES MATCHES "OpenMP")
+if(Kokkos_DEVICES MATCHES "OpenMP")
   list(APPEND ARBORX_DEVICE_TYPES Kokkos::OpenMP::device_type)
 endif()
-if(KOKKOS_DEVICES MATCHES "Cuda")
+if(Kokkos_DEVICES MATCHES "Cuda")
   list(APPEND ARBORX_DEVICE_TYPES Kokkos::CudaUVMSpace::device_type)
 endif()
 string(REPLACE ";" "," ARBORX_DEVICE_TYPES "${ARBORX_DEVICE_TYPES}")
 configure_file(ArborX_EnableDeviceTypes.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/ArborX_EnableDeviceTypes.hpp @ONLY)
 
+find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 
 add_executable(ArborX_Exception.exe tstException.cpp)
 # TODO link Boost::dynamic_linking interface target to enable dynamic linking
@@ -43,6 +44,11 @@ target_link_libraries(ArborX_DetailsTreeConstruction.exe PRIVATE ArborX Boost::u
 target_compile_definitions(ArborX_DetailsTreeConstruction.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_DetailsTreeConstruction.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_DetailsTreeConstruction COMMAND ./ArborX_DetailsTreeConstruction.exe)
+
+add_executable(ArborX_DetailsContainers.exe tstSequenceContainers.cpp tstContainerAdaptors.cpp tstHeapOperations.cpp)
+target_link_libraries(ArborX_DetailsContainers.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_DetailsContainers.exe PRIVATE BOOST_TEST_DYN_LINK)
+add_test(NAME ArborX_DetailsContainers COMMAND ./ArborX_DetailsContainers.exe)
 
 add_executable(ArborX_DetailsTreeTraversal.exe tstDetailsTreeTraversal.cpp utf_main.cpp)
 target_link_libraries(ArborX_DetailsTreeTraversal.exe PRIVATE ArborX Boost::unit_test_framework)

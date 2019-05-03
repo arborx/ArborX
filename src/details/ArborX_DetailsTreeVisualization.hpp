@@ -104,7 +104,7 @@ struct TreeVisualization
     }
 
     template <typename Tree>
-    static std::string getEdgeAttributes( Node const *parent, Node const *child,
+    static std::string getEdgeAttributes( Node const * /*parent*/, Node const *child,
                                           Tree const &tree )
     {
         return TreeAccess::isLeaf( child, tree ) ? "[pendant]" : "[edge]";

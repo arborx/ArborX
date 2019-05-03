@@ -91,7 +91,6 @@ static ParallelRTree<typename View::value_type> makeRTree( MPI_Comm comm,
                                                            View const &objects )
 {
     using Indexable = typename View::value_type;
-    auto const n = objects.extent_int( 0 );
 
     // Fill buffer with pair (object, index)
     std::vector<std::pair<Indexable, int>> buffer;
