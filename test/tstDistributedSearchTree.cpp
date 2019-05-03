@@ -433,9 +433,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::fence();
 
   // Perform the search
-  Kokkos::View<int *, DeviceType> indices("indices");
-  Kokkos::View<int *, DeviceType> offset("offset");
-  Kokkos::View<int *, DeviceType> ranks("ranks");
+  Kokkos::View<int *, DeviceType> indices("indices", 0);
+  Kokkos::View<int *, DeviceType> offset("offset", 0);
+  Kokkos::View<int *, DeviceType> ranks("ranks", 0);
   distributed_tree.query(within_queries, indices, offset, ranks);
   auto indices_host = Kokkos::create_mirror_view(indices);
   Kokkos::deep_copy(indices_host, indices);

@@ -36,7 +36,7 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
 {
   using DeviceType = typename TreeType::device_type;
   using ExecutionSpace = typename DeviceType::execution_space;
-  Kokkos::View<ArborX::Point *, DeviceType> points("points");
+  Kokkos::View<ArborX::Point *, DeviceType> points("points", 0);
   loadPointCloud(infile, points);
 
   TreeType bvh(points);

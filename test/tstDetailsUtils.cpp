@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(minmax, DeviceType, ARBORX_DEVICE_TYPES)
   auto const result_float = ArborX::minMax(v);
   BOOST_TEST(std::get<0>(result_float) == 1.41);
   BOOST_TEST(std::get<1>(result_float) == 3.14);
-  Kokkos::View<int *, DeviceType> w("w");
+  Kokkos::View<int *, DeviceType> w("w", 0);
   BOOST_CHECK_THROW(ArborX::minMax(w), ArborX::SearchException);
   Kokkos::resize(w, 1);
   Kokkos::deep_copy(w, 255);

@@ -33,10 +33,10 @@ Kokkos::View<ValueType *, DeviceType> toView(std::vector<ValueType> const &v)
 BOOST_AUTO_TEST_CASE_TEMPLATE(permute_offset_and_indices, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
-  Kokkos::View<int *, DeviceType> offset("offset");
-  Kokkos::View<int *, DeviceType> indices("indices");
+  Kokkos::View<int *, DeviceType> offset("offset", 0);
+  Kokkos::View<int *, DeviceType> indices("indices", 0);
 
-  Kokkos::View<size_t *, DeviceType> permute("permute");
+  Kokkos::View<size_t *, DeviceType> permute("permute", 0);
 
   BOOST_CHECK_THROW(
       ArborX::Details::BatchedQueries<DeviceType>::reversePermutation(

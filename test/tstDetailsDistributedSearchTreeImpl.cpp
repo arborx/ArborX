@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(count_results, DeviceType, ARBORX_DEVICE_TYPES)
     ids_host(i) = ids_ref[i];
   Kokkos::deep_copy(ids, ids_host);
 
-  Kokkos::View<int *, DeviceType> offset("offset");
+  Kokkos::View<int *, DeviceType> offset("offset", m);
 
   ArborX::Details::DistributedSearchTreeImpl<DeviceType>::countResults(m, ids,
                                                                        offset);

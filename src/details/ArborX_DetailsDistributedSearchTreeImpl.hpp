@@ -313,7 +313,7 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   auto const &bottom_tree = tree._bottom_tree;
   auto comm = tree._comm;
 
-  Kokkos::View<double *, DeviceType> distances("distances");
+  Kokkos::View<double *, DeviceType> distances("distances", 0);
   if (distances_ptr)
     distances = *distances_ptr;
 
@@ -345,8 +345,8 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     ////////////////////////////////////////////////////////////////////////////
     // Forward queries
     ////////////////////////////////////////////////////////////////////////////
-    Kokkos::View<int *, DeviceType> ids("query_ids");
-    Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries");
+    Kokkos::View<int *, DeviceType> ids("query_ids", 0);
+    Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries", 0);
     forwardQueries(comm, queries, indices, offset, fwd_queries, ids, ranks);
     ////////////////////////////////////////////////////////////////////////////
 
@@ -394,8 +394,8 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   ////////////////////////////////////////////////////////////////////////////
   // Forward queries
   ////////////////////////////////////////////////////////////////////////////
-  Kokkos::View<int *, DeviceType> ids("query_ids");
-  Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries");
+  Kokkos::View<int *, DeviceType> ids("query_ids", 0);
+  Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries", 0);
   forwardQueries(comm, queries, indices, offset, fwd_queries, ids, ranks);
   ////////////////////////////////////////////////////////////////////////////
 
