@@ -13,6 +13,7 @@
 #define ARBORX_DETAILS_TRAITS_HPP
 
 #include <ArborX_Box.hpp>
+#include <ArborX_DetailsTags.hpp>
 #include <ArborX_Point.hpp>
 
 #include <Kokkos_View.hpp>

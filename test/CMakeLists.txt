@@ -77,3 +77,5 @@ add_executable(ArborX_BoostAdapters.exe tstBoostGeometryAdapters.cpp tstBoostRan
 target_link_libraries(ArborX_BoostAdapters.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_BoostAdapters.exe PRIVATE BOOST_TEST_DYN_LINK)
 add_test(NAME ArborX_BoostAdapters COMMAND ./ArborX_BoostAdapters.exe)
+
+add_subdirectory(headers_self_contained)
