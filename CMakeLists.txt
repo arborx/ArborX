@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.13)
 project(ArborX CXX)
 
-find_package(kokkos REQUIRED)
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
+find_package(Kokkos REQUIRED)
 find_package(MPI REQUIRED)
 
 add_library(ArborX INTERFACE)
-target_link_libraries(ArborX INTERFACE Kokkos::kokkos MPI::MPI_CXX)
+target_link_libraries(ArborX INTERFACE Kokkos::Kokkos MPI::MPI_CXX)
 #target_compile_features(ArborX INTERFACE cxx_std_14)
 
 # FIXME
@@ -15,10 +16,19 @@ if(KOKKOS_DEVICES MATCHES "Cuda")
   target_link_directories(ArborX INTERFACE ${CUDA_LIBRARY_DIR})
 endif()
 
-enable_testing()
-# Globbing all the header filenames to test for self-containment and presence of header guards
-file(GLOB_RECURSE ArborX_HEADERS RELATIVE ${CMAKE_SOURCE_DIR}/src src/*.hpp)
+option(ArborX_ENABLE_TESTS "Enable tests" ON)
+option(ArborX_ENABLE_EXAMPLES "Enable examples" ON)
+
+if(${ArborX_ENABLE_TESTS} OR ${ArborX_ENABLE_EXAMPLES})
+  enable_testing()
+endif()
 
 add_subdirectory(src)
-add_subdirectory(test)
-add_subdirectory(examples)
+if(${ArborX_ENABLE_TESTS})
+  add_subdirectory(test)
+  # Globbing all the header filenames to test for self-containment and presence of header guards
+  file(GLOB_RECURSE ArborX_HEADERS RELATIVE ${CMAKE_SOURCE_DIR}/src src/*.hpp)
+endif()
+if(${ArborX_ENABLE_EXAMPLES})
+  add_subdirectory(examples)
+endif()
