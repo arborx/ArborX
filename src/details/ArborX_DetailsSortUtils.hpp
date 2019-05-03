@@ -37,8 +37,8 @@ sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
   using CompType = Kokkos::BinOp1D<ViewType>;
   using ExecutionSpace = typename DeviceType::execution_space;
 
-  Kokkos::Experimental::MinMaxScalar<ValueType> result;
-  Kokkos::Experimental::MinMax<ValueType> reducer(result);
+  Kokkos::MinMaxScalar<ValueType> result;
+  Kokkos::MinMax<ValueType> reducer(result);
   parallel_reduce(ARBORX_MARK_REGION("find_min_max_view"),
                   Kokkos::RangePolicy<ExecutionSpace>(0, n),
                   Kokkos::Impl::min_max_functor<ViewType>(view), reducer);

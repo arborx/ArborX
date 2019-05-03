@@ -169,10 +169,8 @@ minMax(ViewType const &v)
   using ExecutionSpace = typename ViewType::execution_space;
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
-  Kokkos::Experimental::MinMaxScalar<typename ViewType::non_const_value_type>
-      result;
-  Kokkos::Experimental::MinMax<typename ViewType::non_const_value_type> reducer(
-      result);
+  Kokkos::MinMaxScalar<typename ViewType::non_const_value_type> result;
+  Kokkos::MinMax<typename ViewType::non_const_value_type> reducer(result);
   Kokkos::parallel_reduce("minMax", Kokkos::RangePolicy<ExecutionSpace>(0, n),
                           Kokkos::Impl::min_max_functor<ViewType>(v), reducer);
   return std::make_pair(result.min_val, result.max_val);
@@ -190,8 +188,7 @@ typename ViewType::non_const_value_type min(ViewType const &v)
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
   typename ViewType::non_const_value_type result;
-  Kokkos::Experimental::Min<typename ViewType::non_const_value_type> reducer(
-      result);
+  Kokkos::Min<typename ViewType::non_const_value_type> reducer(result);
   Kokkos::parallel_reduce(Kokkos::RangePolicy<ExecutionSpace>(0, n),
                           KOKKOS_LAMBDA(int i, int &update) {
                             if (v(i) < update)
@@ -213,8 +210,7 @@ typename ViewType::non_const_value_type max(ViewType const &v)
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
   typename ViewType::non_const_value_type result;
-  Kokkos::Experimental::Max<typename ViewType::non_const_value_type> reducer(
-      result);
+  Kokkos::Max<typename ViewType::non_const_value_type> reducer(result);
   Kokkos::parallel_reduce(Kokkos::RangePolicy<ExecutionSpace>(0, n),
                           KOKKOS_LAMBDA(int i, int &update) {
                             if (v(i) > update)

@@ -452,8 +452,8 @@ void DistributedSearchTreeImpl<DeviceType>::sortResults(
   using Comp = Kokkos::BinOp1D<View>;
   using Value = typename View::non_const_value_type;
 
-  Kokkos::Experimental::MinMaxScalar<Value> result;
-  Kokkos::Experimental::MinMax<Value> reducer(result);
+  Kokkos::MinMaxScalar<Value> result;
+  Kokkos::MinMax<Value> reducer(result);
   parallel_reduce(Kokkos::RangePolicy<ExecutionSpace>(0, n),
                   Kokkos::Impl::min_max_functor<View>(keys), reducer);
   if (result.min_val == result.max_val)
