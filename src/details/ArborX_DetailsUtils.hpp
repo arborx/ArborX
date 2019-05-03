@@ -120,7 +120,7 @@ lastElement(Kokkos::View<T, P...> const &v)
   auto v_subview = Kokkos::subview(v, n - 1);
   auto v_host = Kokkos::create_mirror_view(v_subview);
   Kokkos::deep_copy(v_host, v_subview);
-  return v_host(0);
+  return v_host();
 }
 
 /** \brief Fills the view with a sequence of numbers
