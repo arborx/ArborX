@@ -7,6 +7,8 @@ IncludeBlocks: Regroup
 Language: Cpp
 IncludeCategories:
 # arborx first
+  - Regex: "ArborX_Config.hpp"
+    Priority: -1
   - Regex: "ArborX*"
     Priority: 1
 # Then Kokkos

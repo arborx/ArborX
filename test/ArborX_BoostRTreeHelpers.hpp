@@ -12,6 +12,8 @@
 #ifndef ARBORX_BOOST_RTREE_HELPERS_HPP
 #define ARBORX_BOOST_RTREE_HELPERS_HPP
 
+#include <ArborX_Config.hpp>
+
 #include "ArborX_BoostGeometryAdapters.hpp"
 #include "ArborX_BoostRangeAdapters.hpp"
 #include <ArborX_Box.hpp>
@@ -25,7 +27,9 @@
 #include <boost/range/algorithm/transform.hpp>
 #include <boost/range/combine.hpp>
 
+#ifdef ArborX_ENABLE_MPI
 #include <mpi.h>
+#endif
 
 namespace BoostRTreeHelpers
 {
@@ -81,6 +85,7 @@ private:
   int _rank = -1;
 };
 
+#ifdef ArborX_ENABLE_MPI
 template <typename Indexable>
 using ParallelRTree =
     boost::geometry::index::rtree<boost::tuple<Indexable, int, int>, Parameter>;
@@ -129,6 +134,7 @@ static ParallelRTree<typename View::value_type> makeRTree(MPI_Comm comm,
 
   return ParallelRTree<Indexable>(all_objects);
 }
+#endif
 
 // NOTE: The trailing return type is required with C++11 :(
 template <typename Value>
@@ -198,6 +204,7 @@ performQueries(RTree<Indexable> const &rtree, InputView const &queries)
   return std::make_tuple(offset, indices);
 }
 
+#ifdef ArborX_ENABLE_MPI
 template <typename Indexable, typename InputView,
           typename OutputView = Kokkos::View<int *, Kokkos::HostSpace>>
 static std::tuple<OutputView, OutputView, OutputView>
@@ -221,6 +228,7 @@ performQueries(ParallelRTree<Indexable> const &rtree, InputView const &queries)
           returned_values[j];
   return std::make_tuple(offset, indices, ranks);
 }
+#endif
 } // end namespace BoostRTreeHelpers
 
 #endif

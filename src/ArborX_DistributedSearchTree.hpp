@@ -12,6 +12,10 @@
 #ifndef ARBORX_DISTRIBUTED_SEARCH_TREE_HPP
 #define ARBORX_DISTRIBUTED_SEARCH_TREE_HPP
 
+#include <ArborX_Config.hpp>
+
+#ifdef ArborX_ENABLE_MPI
+
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsDistributedSearchTreeImpl.hpp>
 #include <ArborX_DetailsUtils.hpp> // accumulate
@@ -141,4 +145,5 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
 
 } // namespace ArborX
 
+#endif // ArborX_ENABLE_MPI
 #endif

@@ -2,7 +2,10 @@
 
 include(CMakeFindDependencyMacro)
 find_dependency(Kokkos)
-find_dependency(MPI)
+
+if(ArborX_ENABLE_MPI)
+  find_dependency(MPI)
+endif
 
 include("${CMAKE_CURRENT_LIST_DIR}/ArborXTargets.cmake")
 check_required_components(ArborX)

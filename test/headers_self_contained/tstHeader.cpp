@@ -12,7 +12,8 @@
 #define ARBORX_HEADER_TEST_STRINGIZE_IMPL(x) #x
 #define ARBORX_HEADER_TEST_STRINGIZE(x) ARBORX_HEADER_TEST_STRINGIZE_IMPL(x)
 
-#define ARBORX_HEADER_TO_TEST ARBORX_HEADER_TEST_STRINGIZE(ARBORX_HEADER_TEST_NAME)
+#define ARBORX_HEADER_TO_TEST                                                  \
+  ARBORX_HEADER_TEST_STRINGIZE(ARBORX_HEADER_TEST_NAME)
 
 // include header twice to see if the include guards are set correctly
 #include ARBORX_HEADER_TO_TEST
