@@ -444,7 +444,7 @@ public:
     Node *node = _root + _parents(i);
     // Walk toward the root but do not actually process it because its
     // bounding box has already been computed (bounding box of the scene)
-    while (node != _root)
+    while (true)
     {
       // Use an atomic flag per internal node to terminate the first
       // thread that enters it, while letting the second one through.
@@ -460,6 +460,8 @@ public:
       // generateHierarchy()
       node->bounding_box = (node->children.first)->bounding_box;
       expand(node->bounding_box, (node->children.second)->bounding_box);
+      if (node == _root)
+        break;
 
       node = _root + _parents(node - _root);
     }
