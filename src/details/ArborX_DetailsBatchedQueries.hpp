@@ -55,6 +55,16 @@ public:
   sortQueriesAlongZOrderCurve(Box const &scene_bounding_box,
                               Kokkos::View<Query *, DeviceType> queries)
   {
+    Kokkos::View<Box, DeviceType> bounds("bounds");
+    Kokkos::deep_copy(bounds, scene_bounding_box);
+    return sortQueriesAlongZOrderCurve(bounds, queries);
+  }
+
+  template <typename Query>
+  static Kokkos::View<size_t *, DeviceType>
+  sortQueriesAlongZOrderCurve(Kokkos::View<Box const, DeviceType> bounds,
+                              Kokkos::View<Query *, DeviceType> queries)
+  {
     auto const n_queries = queries.extent(0);
 
     Kokkos::View<unsigned int *, DeviceType> morton_codes(
@@ -64,7 +74,7 @@ public:
                          KOKKOS_LAMBDA(int i) {
                            Point xyz =
                                Details::returnCentroid(queries(i)._geometry);
-                           translateAndScale(xyz, xyz, scene_bounding_box);
+                           translateAndScale(xyz, xyz, bounds());
                            morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
                          });
     Kokkos::fence();
