@@ -123,6 +123,27 @@ struct DistributedSearchTreeImpl
                     typename View::non_const_type imports);
 };
 
+namespace internal
+{
+template <typename PointerType>
+struct PointerDepth
+{
+  static int constexpr value = 0;
+};
+
+template <typename PointerType>
+struct PointerDepth<PointerType *>
+{
+  static int constexpr value = PointerDepth<PointerType>::value + 1;
+};
+
+template <typename PointerType, std::size_t N>
+struct PointerDepth<PointerType[N]>
+{
+  static int constexpr value = PointerDepth<PointerType>::value;
+};
+} // namespace internal
+
 template <typename View>
 inline Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
                     typename View::traits::host_mirror_space>
@@ -137,11 +158,18 @@ create_layout_right_mirror_view(
                      typename View::traits::host_mirror_space::memory_space>::
             value)>::type * = 0)
 {
+  constexpr int pointer_depth =
+      internal::PointerDepth<typename View::traits::data_type>::value;
   return Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
                       typename View::traits::host_mirror_space>(
       std::string(src.label()).append("_layout_right_mirror"), src.extent(0),
-      src.extent(1), src.extent(2), src.extent(3), src.extent(4), src.extent(5),
-      src.extent(6), src.extent(7));
+      pointer_depth > 1 ? src.extent(1) : KOKKOS_INVALID_INDEX,
+      pointer_depth > 2 ? src.extent(2) : KOKKOS_INVALID_INDEX,
+      pointer_depth > 3 ? src.extent(3) : KOKKOS_INVALID_INDEX,
+      pointer_depth > 4 ? src.extent(4) : KOKKOS_INVALID_INDEX,
+      pointer_depth > 5 ? src.extent(5) : KOKKOS_INVALID_INDEX,
+      pointer_depth > 6 ? src.extent(6) : KOKKOS_INVALID_INDEX,
+      pointer_depth > 7 ? src.extent(7) : KOKKOS_INVALID_INDEX);
 }
 
 template <typename View>
