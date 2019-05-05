@@ -442,7 +442,7 @@ public:
   void operator()(int const i) const
   {
     Node *node = _root + _parents(i);
-    // Walk toward the root but do not actually process it because its
+    // Walk toward the root and do process it even though technically its
     // bounding box has already been computed (bounding box of the scene)
     while (true)
     {
