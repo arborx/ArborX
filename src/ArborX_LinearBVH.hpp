@@ -138,6 +138,10 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
     return;
   }
 
+  // determine the bounding box of the scene
+  Details::TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
+      primitives, _bounds);
+
   if (size() == 1)
   {
     Kokkos::View<size_t *, DeviceType> permutation_indices("permute", 1);
@@ -145,10 +149,6 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
         primitives, permutation_indices, getLeafNodes());
     return;
   }
-
-  // determine the bounding box of the scene
-  Details::TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
-      primitives, _bounds);
 
   // calculate morton code of all objects
   Kokkos::View<unsigned int *, DeviceType> morton_indices(
