@@ -119,7 +119,6 @@ RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz
     tar -xf ${KOKKOS_ARCHIVE} -C kokkos --strip-components=1 && \
     cd kokkos && \
     mkdir -p build && cd build && \
-    ../generate_makefile.bash --prefix=${KOKKOS_DIR} ${KOKKOS_OPTIONS} \
-       --arch=SNB,Volta70 && \
+    ../generate_makefile.bash --prefix=${KOKKOS_DIR} ${KOKKOS_OPTIONS} && \
     make -j${NPROCS} install && \
     rm -rf ${SCRATCH_DIR}
