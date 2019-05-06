@@ -52,7 +52,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include
         FILES_MATCHING PATTERN "*.hpp")
-install(DIRECTORY ${PROJECT_BINARY_DIR}/include DESTINATION include
+install(DIRECTORY ${PROJECT_BINARY_DIR}/include/ DESTINATION include
         FILES_MATCHING PATTERN "*.hpp")
 
 option(ArborX_ENABLE_TESTS "Enable tests" ON)
