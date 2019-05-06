@@ -533,7 +533,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
                        });
   Kokkos::fence();
   bvh.query(queries, indices, offset);
+  indices_host = Kokkos::create_mirror_view(indices);
   Kokkos::deep_copy(indices_host, indices);
+  offset_host = Kokkos::create_mirror_view(offset);
   Kokkos::deep_copy(offset_host, offset);
 
   for (int i = 0; i < nx; ++i)
@@ -591,7 +593,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
                        });
   Kokkos::fence();
   bvh.query(queries, indices, offset);
+  indices_host = Kokkos::create_mirror_view(indices);
   Kokkos::deep_copy(indices_host, indices);
+  offset_host = Kokkos::create_mirror_view(offset);
   Kokkos::deep_copy(offset_host, offset);
 
   for (int i = 0; i < n; ++i)
