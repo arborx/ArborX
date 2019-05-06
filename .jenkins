@@ -8,7 +8,7 @@ pipeline {
                 dockerfile {
                     filename "Dockerfile"
                     dir "docker"
-                    additionalBuildArgs "--build-arg BASE=nvidia/cuda:10.1-devel"
+                    additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.1-devel --build-arg KOKKOS_OPTIONS="--with-serial --with-openmp --with-cuda --with-cuda-options=enable_lambda --arch=SNB,Volta70"'
                     reuseNode true
                 }
             }
