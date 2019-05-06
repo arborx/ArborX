@@ -9,6 +9,7 @@ target_link_libraries(ArborX INTERFACE Kokkos::Kokkos)
 
 option(ArborX_ENABLE_MPI "Enable MPI support" OFF)
 if(ArborX_ENABLE_MPI)
+  set(ARBORX_ENABLE_MPI TRUE)
   find_package(MPI REQUIRED)
   target_link_libraries(ArborX	INTERFACE MPI::MPI_CXX)
 endif()

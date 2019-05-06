@@ -14,7 +14,7 @@
 
 #include <ArborX_Config.hpp>
 
-#ifdef ArborX_ENABLE_MPI
+#ifdef ARBORX_ENABLE_MPI
 
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsDistributedSearchTreeImpl.hpp>
@@ -145,5 +145,5 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
 
 } // namespace ArborX
 
-#endif // ArborX_ENABLE_MPI
+#endif // ARBORX_ENABLE_MPI
 #endif

@@ -27,7 +27,7 @@
 #include <boost/range/algorithm/transform.hpp>
 #include <boost/range/combine.hpp>
 
-#ifdef ArborX_ENABLE_MPI
+#ifdef ARBORX_ENABLE_MPI
 #include <mpi.h>
 #endif
 
@@ -85,7 +85,7 @@ private:
   int _rank = -1;
 };
 
-#ifdef ArborX_ENABLE_MPI
+#ifdef ARBORX_ENABLE_MPI
 template <typename Indexable>
 using ParallelRTree =
     boost::geometry::index::rtree<boost::tuple<Indexable, int, int>, Parameter>;
@@ -204,7 +204,7 @@ performQueries(RTree<Indexable> const &rtree, InputView const &queries)
   return std::make_tuple(offset, indices);
 }
 
-#ifdef ArborX_ENABLE_MPI
+#ifdef ARBORX_ENABLE_MPI
 template <typename Indexable, typename InputView,
           typename OutputView = Kokkos::View<int *, Kokkos::HostSpace>>
 static std::tuple<OutputView, OutputView, OutputView>

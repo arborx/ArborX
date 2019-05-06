@@ -72,7 +72,7 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
   BOOST_TEST(distances_host == distances_ref, tt::per_element());
 }
 
-#ifdef ArborX_ENABLE_MPI
+#ifdef ARBORX_ENABLE_MPI
 template <typename Query, typename DeviceType>
 void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
                   Kokkos::View<Query *, DeviceType> const &queries,
@@ -159,7 +159,7 @@ ArborX::BVH<DeviceType> makeBvh(std::vector<ArborX::Box> const &b)
   return ArborX::BVH<DeviceType>(boxes);
 }
 
-#ifdef ArborX_ENABLE_MPI
+#ifdef ARBORX_ENABLE_MPI
 template <typename DeviceType>
 ArborX::DistributedSearchTree<DeviceType>
 makeDistributedSearchTree(MPI_Comm comm, std::vector<ArborX::Box> const &b)
