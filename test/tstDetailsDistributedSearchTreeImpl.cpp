@@ -237,3 +237,32 @@ BOOST_AUTO_TEST_CASE(sort_and_determine_buffer_layout)
   checkBufferLayout({0, 1, 2, 3}, {3, 2, 1, 0}, {3, 2, 1, 0}, {1, 1, 1, 1},
                     {0, 1, 2, 3, 4});
 }
+
+BOOST_AUTO_TEST_CASE(pointer_depth)
+{
+  static_assert(ArborX::Details::internal::PointerDepth<double>::value == 0,
+                "Failing for double");
+  static_assert(ArborX::Details::internal::PointerDepth<double *>::value == 1,
+                "Failing for double*");
+  static_assert(ArborX::Details::internal::PointerDepth<double[2]>::value == 0,
+                "Failing for double[2]");
+  static_assert(ArborX::Details::internal::PointerDepth<double **>::value == 2,
+                "Failing for double**");
+  static_assert(ArborX::Details::internal::PointerDepth<double * [2]>::value ==
+                    1,
+                "Failing for double*[2]");
+  static_assert(ArborX::Details::internal::PointerDepth<double[2][3]>::value ==
+                    0,
+                "Failing for double[2][3]");
+  static_assert(ArborX::Details::internal::PointerDepth<double ***>::value == 3,
+                "Failing for double***");
+  static_assert(
+      ArborX::Details::internal::PointerDepth<double * * [2]>::value == 2,
+      "Failing for double[2]");
+  static_assert(
+      ArborX::Details::internal::PointerDepth<double * [2][3]>::value == 1,
+      "Failing for double*[2][3]");
+  static_assert(
+      ArborX::Details::internal::PointerDepth<double[2][3][4]>::value == 0,
+      "Failing for double[2][3][4]");
+}
