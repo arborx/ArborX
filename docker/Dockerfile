@@ -109,7 +109,7 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
 
 # Install Kokkos
 ARG KOKKOS_VERSION=2.8.00
-ARG KOKKOS_OPTIONS="--cxxstandard=c++14 --with-serial --with-openmp"
+ARG KOKKOS_OPTIONS="--cxxstandard=c++14 --with-serial --with-openmp --with-cuda --with-cuda-options=enable_lambda"
 ENV KOKKOS_DIR=/opt/kokkos
 RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
     KOKKOS_ARCHIVE=kokkos-${KOKKOS_HASH}.tar.gz && \
@@ -119,8 +119,7 @@ RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz
     tar -xf ${KOKKOS_ARCHIVE} -C kokkos --strip-components=1 && \
     cd kokkos && \
     mkdir -p build && cd build && \
-    [ ! -z "${CUDA_VERSION}" ] && CUDA_OPTIONS="--with-cuda --with-cuda-options=enable_lambda" || true && \
-    ../generate_makefile.bash --prefix=${KOKKOS_DIR} ${KOKKOS_OPTIONS} ${CUDA_OPTIONS} \
+    ../generate_makefile.bash --prefix=${KOKKOS_DIR} ${KOKKOS_OPTIONS} \
        --arch=SNB,Volta70 && \
     make -j${NPROCS} install && \
     rm -rf ${SCRATCH_DIR}
