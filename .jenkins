@@ -16,5 +16,19 @@ pipeline {
                 sh 'rm -rf build && mkdir -p build && cd build && cmake -D CMAKE_BUILD_TYPE=Debug -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" -D MPIEXEC_PREFLAGS="--allow-run-as-root" .. && make -j8 VERBOSE=1 && ctest --output-on-failure'
             }
         }
+        stage("Style") {
+            agent {
+                docker {
+                    image "dalg24/arborx_base:19.04.0-cuda-9.2"
+                    reuseNode true
+                }
+            }
+            environment {
+                CLANG_FORMAT_EXE = 'clang-format'
+            }
+            steps {
+                sh './scripts/check_format_cpp.sh'
+            }
+        }
     }
 }
