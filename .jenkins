@@ -1,6 +1,6 @@
 pipeline {
     agent {
-        label "NVIDIA_Tesla_V100-PCIE-32GB"
+        label 'DoNotRunAnythingOnMaster'
     }
     stages {
         stage('Build') {
@@ -9,7 +9,7 @@ pipeline {
                     filename "Dockerfile"
                     dir "docker"
                     additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.1-devel --build-arg KOKKOS_OPTIONS="--with-serial --with-openmp --with-cuda --with-cuda-options=enable_lambda --arch=SNB,Volta70"'
-                    reuseNode true
+                    label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                 }
             }
             steps {
@@ -20,7 +20,7 @@ pipeline {
             agent {
                 docker {
                     image "dalg24/arborx_base:19.04.0-cuda-9.2"
-                    reuseNode true
+                    label 'docker'
                 }
             }
             environment {
