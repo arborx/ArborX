@@ -186,10 +186,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(create_layout_right_mirror_view, DeviceType,
   auto v_h = create_layout_right_mirror_view(v);
   checkViewWasNotAllocated(v, v_h);
 
+  // the same with compile time size
+  View<int[2][3], LayoutRight, DeviceType> v_c("v");
+  auto v_c_h = create_layout_right_mirror_view(v_c);
+  checkViewWasNotAllocated(v_c, v_c_h);
+
   // left layout and rank > 1 -> allocate
   View<int **, LayoutLeft, DeviceType> w("w", 4, 5);
   auto w_h = create_layout_right_mirror_view(w);
   checkNewViewWasAllocated(w, w_h);
+
+  // the same with compile time size
+  View<int * [5], LayoutLeft, DeviceType> w_c("v", 4);
+  auto w_c_h = create_layout_right_mirror_view(w_c);
+  checkNewViewWasAllocated(w_c, w_c_h);
 
   // strided layout -> allocate
   auto x = subview(v, ALL, 0);
