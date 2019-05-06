@@ -163,8 +163,8 @@ void BM_knn_search(benchmark::State &state)
 
   for (auto _ : state)
   {
-    Kokkos::View<int *, DeviceType> offset("offset");
-    Kokkos::View<int *, DeviceType> indices("indices");
+    Kokkos::View<int *, DeviceType> offset("offset", 0);
+    Kokkos::View<int *, DeviceType> indices("indices", 0);
     auto const start = std::chrono::high_resolution_clock::now();
     index.query(queries, indices, offset);
     auto const end = std::chrono::high_resolution_clock::now();
@@ -194,8 +194,8 @@ void BM_radius_search(benchmark::State &state)
   bool first_pass = true;
   for (auto _ : state)
   {
-    Kokkos::View<int *, DeviceType> offset("offset");
-    Kokkos::View<int *, DeviceType> indices("indices");
+    Kokkos::View<int *, DeviceType> offset("offset", 0);
+    Kokkos::View<int *, DeviceType> indices("indices", 0);
     auto const start = std::chrono::high_resolution_clock::now();
     index.query(queries, indices, offset, buffer_size);
     auto const end = std::chrono::high_resolution_clock::now();

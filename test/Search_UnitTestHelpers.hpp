@@ -32,8 +32,8 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
                   std::vector<int> const &indices_ref,
                   std::vector<int> const &offset_ref)
 {
-  Kokkos::View<int *, DeviceType> indices("indices");
-  Kokkos::View<int *, DeviceType> offset("offset");
+  Kokkos::View<int *, DeviceType> indices("indices", 0);
+  Kokkos::View<int *, DeviceType> offset("offset", 0);
   bvh.query(queries, indices, offset);
 
   auto indices_host = Kokkos::create_mirror_view(indices);
@@ -55,9 +55,9 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
                   std::vector<int> const &offset_ref,
                   std::vector<double> const &distances_ref)
 {
-  Kokkos::View<int *, DeviceType> indices("indices");
-  Kokkos::View<int *, DeviceType> offset("offset");
-  Kokkos::View<double *, DeviceType> distances("distances");
+  Kokkos::View<int *, DeviceType> indices("indices", 0);
+  Kokkos::View<int *, DeviceType> offset("offset", 0);
+  Kokkos::View<double *, DeviceType> distances("distances", 0);
   bvh.query(queries, indices, offset, distances);
 
   auto indices_host = Kokkos::create_mirror_view(indices);
@@ -79,9 +79,9 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
                   std::vector<int> const &offset_ref,
                   std::vector<int> const &ranks_ref)
 {
-  Kokkos::View<int *, DeviceType> indices("indices");
-  Kokkos::View<int *, DeviceType> offset("offset");
-  Kokkos::View<int *, DeviceType> ranks("ranks");
+  Kokkos::View<int *, DeviceType> indices("indices", 0);
+  Kokkos::View<int *, DeviceType> offset("offset", 0);
+  Kokkos::View<int *, DeviceType> ranks("ranks", 0);
   tree.query(queries, indices, offset, ranks);
 
   auto indices_host = Kokkos::create_mirror_view(indices);
@@ -124,10 +124,10 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
                   std::vector<int> const &ranks_ref,
                   std::vector<double> const &distances_ref)
 {
-  Kokkos::View<int *, DeviceType> indices("indices");
-  Kokkos::View<int *, DeviceType> offset("offset");
-  Kokkos::View<int *, DeviceType> ranks("ranks");
-  Kokkos::View<double *, DeviceType> distances("distances");
+  Kokkos::View<int *, DeviceType> indices("indices", 0);
+  Kokkos::View<int *, DeviceType> offset("offset", 0);
+  Kokkos::View<int *, DeviceType> ranks("ranks", 0);
+  Kokkos::View<double *, DeviceType> distances("distances", 0);
   tree.query(queries, indices, offset, ranks, distances);
 
   auto indices_host = Kokkos::create_mirror_view(indices);

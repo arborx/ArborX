@@ -248,8 +248,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
   });
 
   using ViewType = Kokkos::View<int *, DeviceType>;
-  ViewType indices("indices");
-  ViewType offset("offset");
+  ViewType indices("indices", 0);
+  ViewType offset("offset", 0);
 
   std::vector<int> indices_ref = {3, 2, 1, 0};
   std::vector<int> offset_ref = {0, 0, 4, 4};
@@ -311,8 +311,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity, DeviceType,
   }
   auto const bvh = makeBvh<DeviceType>(boxes);
 
-  Kokkos::View<int *, DeviceType> indices("indices");
-  Kokkos::View<int *, DeviceType> offset("offset");
+  Kokkos::View<int *, DeviceType> indices("indices", 0);
+  Kokkos::View<int *, DeviceType> offset("offset", 0);
   // query number of nearest neighbors that exceed capacity of the stack is
   // not a problem
   BOOST_CHECK_NO_THROW(bvh.query(makeNearestQueries<DeviceType>({
@@ -345,7 +345,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(miscellaneous, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::View<int *, DeviceType> zeros("zeros", 3);
   Kokkos::deep_copy(zeros, 255);
   Kokkos::View<Kokkos::pair<int, double> *, DeviceType> empty_buffer(
-      "empty_buffer");
+      "empty_buffer", 0);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, 1), KOKKOS_LAMBDA(int) {
         ArborX::Point p = {{0., 0., 0.}};
@@ -742,8 +742,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
   auto rtree_results =
       BoostRTreeHelpers::performQueries(rtree, nearest_queries_host);
 
-  Kokkos::View<int *, DeviceType> offset_nearest("offset_nearest");
-  Kokkos::View<int *, DeviceType> indices_nearest("indices_nearest");
+  Kokkos::View<int *, DeviceType> offset_nearest("offset_nearest", 0);
+  Kokkos::View<int *, DeviceType> indices_nearest("indices_nearest", 0);
   bvh.query(nearest_queries, indices_nearest, offset_nearest);
   auto offset_nearest_host = Kokkos::create_mirror_view(offset_nearest);
   Kokkos::deep_copy(offset_nearest_host, offset_nearest);
@@ -762,8 +762,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
   bvh_results = std::make_tuple(offset_nearest_host, indices_nearest_host);
   validateResults(rtree_results, bvh_results);
 
-  Kokkos::View<int *, DeviceType> offset_within("offset_within");
-  Kokkos::View<int *, DeviceType> indices_within("indices_within");
+  Kokkos::View<int *, DeviceType> offset_within("offset_within", 0);
+  Kokkos::View<int *, DeviceType> indices_within("indices_within", 0);
   bvh.query(within_queries, indices_within, offset_within);
   auto offset_within_host = Kokkos::create_mirror_view(offset_within);
   Kokkos::deep_copy(offset_within_host, offset_within);

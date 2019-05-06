@@ -193,7 +193,7 @@ int main_(std::vector<std::string> const &args)
   MPI_Comm_rank(comm, &comm_rank);
   int comm_size;
   MPI_Comm_size(comm, &comm_size);
-  Kokkos::View<ArborX::Point *, DeviceType> random_points("random_points");
+  Kokkos::View<ArborX::Point *, DeviceType> random_points("random_points", 0);
   {
     // Random points are "reused" between building the tree and performing
     // queries. Note that this means that for the points in the middle of
@@ -296,9 +296,9 @@ int main_(std::vector<std::string> const &args)
                          });
     Kokkos::fence();
 
-    Kokkos::View<int *, DeviceType> offset("offset");
-    Kokkos::View<int *, DeviceType> indices("indices");
-    Kokkos::View<int *, DeviceType> ranks("ranks");
+    Kokkos::View<int *, DeviceType> offset("offset", 0);
+    Kokkos::View<int *, DeviceType> indices("indices", 0);
+    Kokkos::View<int *, DeviceType> ranks("ranks", 0);
 
     auto knn = time_monitor.getNewTimer("knn");
     MPI_Barrier(comm);
@@ -328,9 +328,9 @@ int main_(std::vector<std::string> const &args)
                          });
     Kokkos::fence();
 
-    Kokkos::View<int *, DeviceType> offset("offset");
-    Kokkos::View<int *, DeviceType> indices("indices");
-    Kokkos::View<int *, DeviceType> ranks("ranks");
+    Kokkos::View<int *, DeviceType> offset("offset", 0);
+    Kokkos::View<int *, DeviceType> indices("indices", 0);
+    Kokkos::View<int *, DeviceType> ranks("ranks", 0);
 
     auto radius = time_monitor.getNewTimer("radius");
     MPI_Barrier(comm);
