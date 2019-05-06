@@ -49,14 +49,7 @@ public:
   KOKKOS_INLINE_FUNCTION
   bool empty() const { return size() == 0; }
 
-  KOKKOS_INLINE_FUNCTION
-  bounding_volume_type bounds() const
-  {
-    // NOTE should default constructor initialize to an invalid geometry?
-    if (empty())
-      return bounding_volume_type();
-    return getBoundingVolume(getRoot());
-  }
+  bounding_volume_type bounds() const { return _bounds; }
 
   template <typename Predicates, typename... Args>
   void query(Predicates const &predicates, Args &&... args) const
@@ -119,6 +112,7 @@ private:
   }
 
   size_t _size;
+  bounding_volume_type _bounds;
   Kokkos::View<Node *, DeviceType> _internal_and_leaf_nodes;
 };
 
@@ -144,6 +138,10 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
     return;
   }
 
+  // determine the bounding box of the scene
+  Details::TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
+      primitives, _bounds);
+
   if (size() == 1)
   {
     Kokkos::View<size_t *, DeviceType> permutation_indices("permute", 1);
@@ -152,15 +150,11 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
     return;
   }
 
-  // determine the bounding box of the scene
-  Details::TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
-      primitives, getBoundingVolume(getRoot()));
-
   // calculate morton code of all objects
   Kokkos::View<unsigned int *, DeviceType> morton_indices(
       Kokkos::ViewAllocateWithoutInitializing("morton"), size());
   Details::TreeConstruction<DeviceType>::assignMortonCodes(
-      primitives, morton_indices, getBoundingVolume(getRoot()));
+      primitives, morton_indices, _bounds);
 
   // sort them along the Z-order space-filling curve
   auto permutation_indices = Details::sortObjects(morton_indices);

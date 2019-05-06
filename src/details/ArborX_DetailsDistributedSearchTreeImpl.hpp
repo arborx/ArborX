@@ -503,7 +503,7 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
   Distributor distributor(comm);
 
   int const n_queries = queries.extent(0);
-  int const n_exports = offset(n_queries);
+  int const n_exports = lastElement(offset);
   int const n_imports = distributor.createFromSends(indices);
 
   Kokkos::View<Query *, DeviceType> exports(queries.label(), n_exports);
@@ -557,7 +557,7 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
   MPI_Comm_rank(comm, &comm_rank);
 
   int const n_fwd_queries = offset.extent_int(0) - 1;
-  int const n_exports = offset(n_fwd_queries);
+  int const n_exports = lastElement(offset);
   Kokkos::View<int *, DeviceType> export_ranks(ranks.label(), n_exports);
   Kokkos::parallel_for(ARBORX_MARK_REGION("setup_communication_plan"),
                        Kokkos::RangePolicy<ExecutionSpace>(0, n_fwd_queries),
