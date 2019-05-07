@@ -1,4 +1,4 @@
-ARG BASE=ubuntu:18.04
+ARG BASE=nvidia/cuda:10.1-devel
 FROM $BASE
 
 ARG NPROCS=4
@@ -108,9 +108,10 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     rm -rf ${SCRATCH_DIR}
 
 # Install Kokkos
+ARG KOKKOS_VERSION=2.8.00
+ARG KOKKOS_OPTIONS="--cxxstandard=c++14 --with-serial --with-openmp --with-options=disable_deprecated_code --with-cuda --with-cuda-options=enable_lambda"
 ENV KOKKOS_DIR=/opt/kokkos
-RUN KOKKOS_VERSION=5d6e7fb38e96aec88d2c514e1f9be1cf2b549b57 && \
-    KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
+RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
     KOKKOS_ARCHIVE=kokkos-${KOKKOS_HASH}.tar.gz && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${KOKKOS_URL} --output-document=${KOKKOS_ARCHIVE} && \
@@ -118,11 +119,6 @@ RUN KOKKOS_VERSION=5d6e7fb38e96aec88d2c514e1f9be1cf2b549b57 && \
     tar -xf ${KOKKOS_ARCHIVE} -C kokkos --strip-components=1 && \
     cd kokkos && \
     mkdir -p build && cd build && \
-    [ ! -z "${CUDA_VERSION}" ] && CUDA_OPTIONS="--with-cuda --with-cuda-options=enable_lambda" || true && \
-    ../generate_makefile.bash --prefix=${KOKKOS_DIR} \
-       --with-serial --with-openmp \
-       --with-options=disable_deprecated_code ${CUDA_OPTIONS} \
-       --arch=SNB,Volta70 \
-       --cxxstandard=c++14 && \
+    ../generate_makefile.bash --prefix=${KOKKOS_DIR} ${KOKKOS_OPTIONS} && \
     make -j${NPROCS} install && \
     rm -rf ${SCRATCH_DIR}
