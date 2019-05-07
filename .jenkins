@@ -61,7 +61,7 @@ pipeline {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:9.2-devel --build-arg KOKKOS_OPTIONS="--with-options=disable_deprecated_code --with-cuda --with-cuda-options=enable_lambda --arch=Kepler36 --compiler=clang++"'
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:9.2-devel --build-arg KOKKOS_OPTIONS="--with-options=disable_deprecated_code --with-cuda --with-cuda-options=enable_lambda --arch=Kepler36 --compiler=clang++" --build-arg KOKKOS_VERSION=da7428aed23e802ae3ed788cb0094a478c5b78bc'
                             args '-v /tmp/ccache:/tmp/ccache'
                             label 'NVIDIA_Tesla_K40m && nvidia-docker'
                         }
