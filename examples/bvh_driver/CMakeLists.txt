@@ -1,4 +1,5 @@
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  cmake_minimum_required(VERSION 3.12)
   find_package(ArborX REQUIRED)
   set(ArborX_TARGET ArborX::ArborX)
   find_package(Boost REQUIRED COMPONENTS program_options)
