@@ -28,6 +28,10 @@ pipeline {
                             sh 'ccache --show-stats'
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
                         }
+                        success {
+                            sh 'cd build && make install'
+                            sh 'rm -rf tmp && mkdir -p tmp && cd tmp && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$BOOST_DIR;$BENCHMARK_DIR" ../examples/bvh_driver && make && make test'
+                        }
                     }
                 }
                 stage('Clang') {
