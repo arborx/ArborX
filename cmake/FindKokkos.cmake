@@ -89,7 +89,7 @@ endforeach()
 
 # For clang we need to add the cudart library explicitly
 # since Kokkos doesn't do that for us.
-if(Kokkos_DEVICES MATCHES "Cuda")
+if(Kokkos_DEVICES MATCHES "Cuda" AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   find_package(CUDA REQUIRED)
   get_filename_component(Kokkos_CUDA_LIBRARY_DIR ${CUDA_cudadevrt_LIBRARY} DIRECTORY)
   set(Kokkos_CUDA_LDFLAGS "-L${Kokkos_CUDA_LIBRARY_DIR}")
