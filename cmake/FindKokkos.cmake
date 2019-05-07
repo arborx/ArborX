@@ -87,6 +87,14 @@ foreach(_var NVCC_WRAPPER KOKKOS_PATH KOKKOS_GMAKE_DEVICES KOKKOS_GMAKE_ARCH KOK
   unset(${_var} CACHE)
 endforeach()
 
+# For clang we need to add the cudart library explicitly
+# since Kokkos doesn't do that for us.
+if(Kokkos_DEVICES MATCHES "Cuda" AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  find_package(CUDA REQUIRED)
+  get_filename_component(Kokkos_CUDA_LIBRARY_DIR ${CUDA_cudadevrt_LIBRARY} DIRECTORY)
+  set(PC_Kokkos_LDFLAGS "-L${Kokkos_CUDA_LIBRARY_DIR} ${PC_Kokkos_LDFLAGS}")
+endif()
+
 if(Kokkos_FOUND AND NOT TARGET Kokkos::Kokkos)
   add_library(Kokkos::Kokkos UNKNOWN IMPORTED)
   set_target_properties(Kokkos::Kokkos PROPERTIES

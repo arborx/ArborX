@@ -15,13 +15,6 @@ if(ArborX_ENABLE_MPI)
 endif()
 #target_compile_features(ArborX INTERFACE cxx_std_14)
 
-# FIXME
-if(Kokkos_DEVICES MATCHES "Cuda")
-  find_package(CUDA REQUIRED)
-  get_filename_component(CUDA_LIBRARY_DIR ${CUDA_cudadevrt_LIBRARY} DIRECTORY)
-  target_link_directories(ArborX INTERFACE ${CUDA_LIBRARY_DIR})
-endif()
-
 target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/details>
