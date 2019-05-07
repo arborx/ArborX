@@ -123,6 +123,27 @@ struct DistributedSearchTreeImpl
                     typename View::non_const_type imports);
 };
 
+namespace internal
+{
+template <typename PointerType>
+struct PointerDepth
+{
+  static int constexpr value = 0;
+};
+
+template <typename PointerType>
+struct PointerDepth<PointerType *>
+{
+  static int constexpr value = PointerDepth<PointerType>::value + 1;
+};
+
+template <typename PointerType, std::size_t N>
+struct PointerDepth<PointerType[N]>
+{
+  static int constexpr value = PointerDepth<PointerType>::value;
+};
+} // namespace internal
+
 template <typename View>
 inline Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
                     typename View::traits::host_mirror_space>
@@ -137,12 +158,18 @@ create_layout_right_mirror_view(
                      typename View::traits::host_mirror_space::memory_space>::
             value)>::type * = 0)
 {
+  constexpr int pointer_depth =
+      internal::PointerDepth<typename View::traits::data_type>::value;
   return Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
                       typename View::traits::host_mirror_space>(
-      std::string(src.label()).append("_layout_right_mirror"),
-      src.dimension_0(), src.dimension_1(), src.dimension_2(),
-      src.dimension_3(), src.dimension_4(), src.dimension_5(),
-      src.dimension_6(), src.dimension_7());
+      std::string(src.label()).append("_layout_right_mirror"), src.extent(0),
+      pointer_depth > 1 ? src.extent(1) : KOKKOS_INVALID_INDEX,
+      pointer_depth > 2 ? src.extent(2) : KOKKOS_INVALID_INDEX,
+      pointer_depth > 3 ? src.extent(3) : KOKKOS_INVALID_INDEX,
+      pointer_depth > 4 ? src.extent(4) : KOKKOS_INVALID_INDEX,
+      pointer_depth > 5 ? src.extent(5) : KOKKOS_INVALID_INDEX,
+      pointer_depth > 6 ? src.extent(6) : KOKKOS_INVALID_INDEX,
+      pointer_depth > 7 ? src.extent(7) : KOKKOS_INVALID_INDEX);
 }
 
 template <typename View>
@@ -169,21 +196,20 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
     Distributor const &distributor, View exports,
     typename View::non_const_type imports)
 {
-  ARBORX_ASSERT(
-      (exports.dimension_0() == distributor.getTotalSendLength()) &&
-      (imports.dimension_0() == distributor.getTotalReceiveLength()) &&
-      (exports.dimension_1() == imports.dimension_1()) &&
-      (exports.dimension_2() == imports.dimension_2()) &&
-      (exports.dimension_3() == imports.dimension_3()) &&
-      (exports.dimension_4() == imports.dimension_4()) &&
-      (exports.dimension_5() == imports.dimension_5()) &&
-      (exports.dimension_6() == imports.dimension_6()) &&
-      (exports.dimension_7() == imports.dimension_7()));
+  ARBORX_ASSERT((exports.extent(0) == distributor.getTotalSendLength()) &&
+                (imports.extent(0) == distributor.getTotalReceiveLength()) &&
+                (exports.extent(1) == imports.extent(1)) &&
+                (exports.extent(2) == imports.extent(2)) &&
+                (exports.extent(3) == imports.extent(3)) &&
+                (exports.extent(4) == imports.extent(4)) &&
+                (exports.extent(5) == imports.extent(5)) &&
+                (exports.extent(6) == imports.extent(6)) &&
+                (exports.extent(7) == imports.extent(7)));
 
-  auto const num_packets = exports.dimension_1() * exports.dimension_2() *
-                           exports.dimension_3() * exports.dimension_4() *
-                           exports.dimension_5() * exports.dimension_6() *
-                           exports.dimension_7();
+  auto const num_packets = exports.extent(1) * exports.extent(2) *
+                           exports.extent(3) * exports.extent(4) *
+                           exports.extent(5) * exports.extent(6) *
+                           exports.extent(7);
 
   auto exports_host = create_layout_right_mirror_view(exports);
   Kokkos::deep_copy(exports_host, exports);
@@ -315,7 +341,7 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   auto const &bottom_tree = tree._bottom_tree;
   auto comm = tree._comm;
 
-  Kokkos::View<double *, DeviceType> distances("distances");
+  Kokkos::View<double *, DeviceType> distances("distances", 0);
   if (distances_ptr)
     distances = *distances_ptr;
 
@@ -347,8 +373,8 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     ////////////////////////////////////////////////////////////////////////////
     // Forward queries
     ////////////////////////////////////////////////////////////////////////////
-    Kokkos::View<int *, DeviceType> ids("query_ids");
-    Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries");
+    Kokkos::View<int *, DeviceType> ids("query_ids", 0);
+    Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries", 0);
     forwardQueries(comm, queries, indices, offset, fwd_queries, ids, ranks);
     ////////////////////////////////////////////////////////////////////////////
 
@@ -396,8 +422,8 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   ////////////////////////////////////////////////////////////////////////////
   // Forward queries
   ////////////////////////////////////////////////////////////////////////////
-  Kokkos::View<int *, DeviceType> ids("query_ids");
-  Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries");
+  Kokkos::View<int *, DeviceType> ids("query_ids", 0);
+  Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries", 0);
   forwardQueries(comm, queries, indices, offset, fwd_queries, ids, ranks);
   ////////////////////////////////////////////////////////////////////////////
 
@@ -454,8 +480,8 @@ void DistributedSearchTreeImpl<DeviceType>::sortResults(
   using Comp = Kokkos::BinOp1D<View>;
   using Value = typename View::non_const_value_type;
 
-  Kokkos::Experimental::MinMaxScalar<Value> result;
-  Kokkos::Experimental::MinMax<Value> reducer(result);
+  Kokkos::MinMaxScalar<Value> result;
+  Kokkos::MinMax<Value> reducer(result);
   parallel_reduce(Kokkos::RangePolicy<ExecutionSpace>(0, n),
                   Kokkos::Impl::min_max_functor<View>(keys), reducer);
   if (result.min_val == result.max_val)
