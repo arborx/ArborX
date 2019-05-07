@@ -38,6 +38,9 @@ do
   shift
 done
 
+# stop right here if clang-format does not exist in $PATH
+command -v $clang_format_executable >/dev/null 2>&1 || { echo >&2 "clang-format executable '$clang_format_executable' not found.  Aborting."; exit 1; }
+
 # shamelessy redirecting everything to /dev/null in quiet mode
 if [ $verbose -eq 0 ]; then
     exec &>/dev/null
