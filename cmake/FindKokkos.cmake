@@ -92,7 +92,7 @@ endforeach()
 if(Kokkos_DEVICES MATCHES "Cuda" AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   find_package(CUDA REQUIRED)
   get_filename_component(Kokkos_CUDA_LIBRARY_DIR ${CUDA_cudadevrt_LIBRARY} DIRECTORY)
-  set(Kokkos_CUDA_LDFLAGS "-L${Kokkos_CUDA_LIBRARY_DIR}")
+  set(PC_Kokkos_LDFLAGS "-L${Kokkos_CUDA_LIBRARY_DIR} ${PC_Kokkos_LDFLAGS}")
 endif()
 
 if(Kokkos_FOUND AND NOT TARGET Kokkos::Kokkos)
@@ -100,7 +100,7 @@ if(Kokkos_FOUND AND NOT TARGET Kokkos::Kokkos)
   set_target_properties(Kokkos::Kokkos PROPERTIES
     IMPORTED_LOCATION "${Kokkos_LIBRARY}"
     INTERFACE_COMPILE_OPTIONS "${PC_Kokkos_CFLAGS_OTHER}"
-    INTERFACE_LINK_LIBRARIES "${Kokkos_CUDA_LDFLAGS} ${PC_Kokkos_LDFLAGS}"
+    INTERFACE_LINK_LIBRARIES "${PC_Kokkos_LDFLAGS}"
     INTERFACE_INCLUDE_DIRECTORIES "${Kokkos_INCLUDE_DIR}"
   )
 endif()
