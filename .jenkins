@@ -61,9 +61,6 @@ pipeline {
                     label 'docker'
                 }
             }
-            environment {
-                CLANG_FORMAT_EXE = 'clang-format'
-            }
             steps {
                 sh './scripts/check_format_cpp.sh'
             }
