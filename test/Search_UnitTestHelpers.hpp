@@ -14,7 +14,9 @@
 
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsKokkosExt.hpp> // is_accessible_from
+#ifdef ARBORX_ENABLE_MPI
 #include <ArborX_DistributedSearchTree.hpp>
+#endif
 #include <ArborX_LinearBVH.hpp>
 
 #include <Kokkos_View.hpp>
@@ -72,6 +74,7 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
   BOOST_TEST(distances_host == distances_ref, tt::per_element());
 }
 
+#ifdef ARBORX_ENABLE_MPI
 template <typename Query, typename DeviceType>
 void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
                   Kokkos::View<Query *, DeviceType> const &queries,
@@ -144,6 +147,7 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
   BOOST_TEST(ranks_host == ranks_ref, tt::per_element());
   BOOST_TEST(distances_host != distances_ref, tt::per_element());
 }
+#endif
 
 template <typename DeviceType>
 ArborX::BVH<DeviceType> makeBvh(std::vector<ArborX::Box> const &b)
@@ -157,6 +161,7 @@ ArborX::BVH<DeviceType> makeBvh(std::vector<ArborX::Box> const &b)
   return ArborX::BVH<DeviceType>(boxes);
 }
 
+#ifdef ARBORX_ENABLE_MPI
 template <typename DeviceType>
 ArborX::DistributedSearchTree<DeviceType>
 makeDistributedSearchTree(MPI_Comm comm, std::vector<ArborX::Box> const &b)
@@ -169,6 +174,7 @@ makeDistributedSearchTree(MPI_Comm comm, std::vector<ArborX::Box> const &b)
   Kokkos::deep_copy(boxes, boxes_host);
   return ArborX::DistributedSearchTree<DeviceType>(comm, boxes);
 }
+#endif
 
 template <typename DeviceType>
 Kokkos::View<ArborX::Overlap *, DeviceType>

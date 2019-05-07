@@ -3,10 +3,16 @@ project(ArborX CXX)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 find_package(Kokkos REQUIRED)
-find_package(MPI REQUIRED)
 
 add_library(ArborX INTERFACE)
-target_link_libraries(ArborX INTERFACE Kokkos::Kokkos MPI::MPI_CXX)
+target_link_libraries(ArborX INTERFACE Kokkos::Kokkos)
+
+option(ArborX_ENABLE_MPI "Enable MPI support" OFF)
+if(ArborX_ENABLE_MPI)
+  set(ARBORX_ENABLE_MPI TRUE)
+  find_package(MPI REQUIRED)
+  target_link_libraries(ArborX	INTERFACE MPI::MPI_CXX)
+endif()
 #target_compile_features(ArborX INTERFACE cxx_std_14)
 
 # FIXME
@@ -19,6 +25,7 @@ endif()
 target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/details>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   $<INSTALL_INTERFACE:include>
   $<INSTALL_INTERFACE:include/details>
 )
@@ -33,6 +40,9 @@ install(EXPORT ArborXTargets
   DESTINATION lib/cmake/ArborX
 )
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/ArborX_Config.hpp.in
+               ${CMAKE_CURRENT_BINARY_DIR}/include/ArborX_Config.hpp)
+
 include(CMakePackageConfigHelpers)
 configure_package_config_file(cmake/ArborXConfig.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
@@ -41,7 +51,15 @@ configure_package_config_file(cmake/ArborXConfig.cmake.in
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
         DESTINATION lib/cmake/ArborX )
 
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include
+if(ArborX_ENABLE_MPI)
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include
+          FILES_MATCHING PATTERN "*.hpp")
+else()
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include
+          FILES_MATCHING PATTERN "*.hpp"
+          PATTERN "*Distribut*" EXCLUDE)
+endif()
+install(DIRECTORY ${PROJECT_BINARY_DIR}/include/ DESTINATION include
         FILES_MATCHING PATTERN "*.hpp")
 
 option(ArborX_ENABLE_TESTS "Enable tests" ON)
