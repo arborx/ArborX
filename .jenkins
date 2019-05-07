@@ -2,6 +2,10 @@ pipeline {
     agent {
         label 'DoNotRunAnythingOnMaster'
     }
+    environment {
+        CCACHE_DIR = '/tmp/ccache'
+        CCACHE_MAXSIZE = '10G'
+    }
     stages {
         stage('Build') {
             parallel {
@@ -11,14 +15,17 @@ pipeline {
                             filename "Dockerfile"
                             dir "docker"
                             additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.1-devel --build-arg KOKKOS_OPTIONS="--with-serial --with-openmp --with-cuda --with-cuda-options=enable_lambda --arch=SNB,Volta70"'
+                            args '-v /tmp/ccache:/tmp/ccache'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
                     }
                     steps {
-                        sh 'rm -rf build && mkdir -p build && cd build && cmake -D CMAKE_BUILD_TYPE=Debug -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" -D MPIEXEC_PREFLAGS="--allow-run-as-root" .. && make -j8 VERBOSE=1 && ctest --no-compress-output -T Test'
+                        sh 'ccache --zero-stats'
+                        sh 'rm -rf build && mkdir -p build && cd build && cmake -D CMAKE_BUILD_TYPE=Debug -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" -D MPIEXEC_PREFLAGS="--allow-run-as-root" .. && make -j8 VERBOSE=1 && ctest --no-compress-output -T Test'
                     }
                     post {
                         always {
+                            sh 'ccache --show-stats'
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
                         }
                     }
@@ -29,14 +36,17 @@ pipeline {
                             filename "Dockerfile"
                             dir "docker"
                             additionalBuildArgs '--build-arg BASE=ubuntu:18.04 --build-arg KOKKOS_OPTIONS="--with-serial --with-openmp --arch=AMD --compiler=clang++"'
+                            args '-v /tmp/ccache:/tmp/ccache'
                             label 'cathode'
                         }
                     }
                     steps {
-                        sh 'rm -rf build && mkdir -p build && cd build && cmake -D CMAKE_BUILD_TYPE=Debug -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" -D MPIEXEC_PREFLAGS="--allow-run-as-root" .. && make -j8 VERBOSE=1 && ctest --no-compress-output -T Test'
+                        sh 'ccache --zero-stats'
+                        sh 'rm -rf build && mkdir -p build && cd build && cmake -D CMAKE_BUILD_TYPE=Debug -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" -D MPIEXEC_PREFLAGS="--allow-run-as-root" .. && make -j8 VERBOSE=1 && ctest --no-compress-output -T Test'
                     }
                     post {
                         always {
+                            sh 'ccache --show-stats'
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
                         }
                     }
