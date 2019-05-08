@@ -41,8 +41,10 @@ configure_package_config_file(cmake/ArborXConfig.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
   INSTALL_DESTINATION lib/cmake/ArborX
 )
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
-        DESTINATION lib/cmake/ArborX )
+install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindKokkos.cmake
+  DESTINATION lib/cmake/ArborX )
 
 if(ArborX_ENABLE_MPI)
   install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include
