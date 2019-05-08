@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include "../test/ArborX_BoostRTreeHelpers.hpp"
+#include <ArborX_BoostRTreeHelpers.hpp>
 #include <ArborX_LinearBVH.hpp>
 
 #include <Kokkos_Core.hpp>
