@@ -15,8 +15,10 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsBoundingVolumeHierarchyImpl.hpp>
 #include <ArborX_DetailsConcepts.hpp>
+#include <ArborX_DetailsKokkosExt.hpp>
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
+#include <ArborX_DetailsTraits.hpp>
 #include <ArborX_DetailsTreeConstruction.hpp>
 
 #include <Kokkos_Macros.hpp>
@@ -132,6 +134,11 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
   static_assert(
       Kokkos::is_view<Primitives>::value,
       "Must pass a view to the bounding volume hierarchy constructor");
+  static_assert(KokkosExt::is_accessible_from<
+                    typename Details::Traits::Access<Primitives>::MemorySpace,
+                    typename device_type::execution_space>::value,
+                "Primitives must be accessible from bounding volume hierarchy "
+                "execution space");
 
   if (empty())
   {
