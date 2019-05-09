@@ -245,6 +245,9 @@ public:
       ->UseManualTime()                                                        \
       ->Unit(benchmark::kMicrosecond);
 
+// NOTE Motivation for this class that stores the argument count and values is
+// I could not figure out how to make the parser consume arguments with
+// Boost.Program_options
 class CmdLineArgs
 {
   int argc_;
