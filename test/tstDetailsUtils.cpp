@@ -36,14 +36,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(iota, DeviceType, ARBORX_DEVICE_TYPES)
   std::iota(v_ref.begin(), v_ref.end(), val);
   auto v_host = Kokkos::create_mirror_view(v);
   Kokkos::deep_copy(v_host, v);
-  BOOST_TEST(v_ref == v_host, tt::per_element());
+  for (unsigned int i = 0; i < v_ref.size(); ++i)
+    assert(v_ref[i] == v_host[i]);
 
   Kokkos::View<int[3], DeviceType> w("w");
   ArborX::iota(w);
   std::vector<int> w_ref = {0, 1, 2};
   auto w_host = Kokkos::create_mirror_view(w);
   Kokkos::deep_copy(w_host, w);
-  BOOST_TEST(w_ref == w_host, tt::per_element());
+  for (unsigned int i = 0; i < w_ref.size(); ++i)
+    assert(w_ref[i] == w_host[i]);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(prefix_sum, DeviceType, ARBORX_DEVICE_TYPES)
@@ -63,14 +65,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(prefix_sum, DeviceType, ARBORX_DEVICE_TYPES)
   auto y_host = Kokkos::create_mirror_view(y);
   Kokkos::deep_copy(y_host, y);
   Kokkos::deep_copy(x_host, x);
-  BOOST_TEST(y_host == y_ref, tt::per_element());
-  BOOST_TEST(x_host == x_ref, tt::per_element());
+  for (unsigned int i = 0; i < y_ref.size(); ++i)
+    assert(y_host[i] == y_ref[i]);
+  for (unsigned int i = 0; i < x_ref.size(); ++i)
+    assert(x_host[i] == x_ref[i]);
   // in-place
   ArborX::exclusivePrefixSum(x, x);
   Kokkos::deep_copy(x_host, x);
-  BOOST_TEST(x_host == y_ref, tt::per_element());
+  for (unsigned int i = 0; i < y_ref.size(); ++i)
+    assert(x_host[i] == y_ref[i]);
   int const m = 11;
-  BOOST_TEST(n != m);
+  assert(n != m);
   Kokkos::View<int *, DeviceType> z("z", m);
   BOOST_CHECK_THROW(ArborX::exclusivePrefixSum(x, z), ArborX::SearchException);
   Kokkos::View<double[3], DeviceType> v("v");
@@ -82,7 +87,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(prefix_sum, DeviceType, ARBORX_DEVICE_TYPES)
   ArborX::exclusivePrefixSum(v);
   Kokkos::deep_copy(v_host, v);
   std::vector<double> v_ref = {0., 1., 2.};
-  BOOST_TEST(v_host == v_ref, tt::per_element());
+  for (unsigned int i = 0; i < v_ref.size(); ++i)
+    assert(v_host[i] == v_ref[i]);
   Kokkos::View<double *, DeviceType> w("w", 4);
   BOOST_CHECK_THROW(ArborX::exclusivePrefixSum(v, w), ArborX::SearchException);
   v_host(0) = 1.;
@@ -94,7 +100,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(prefix_sum, DeviceType, ARBORX_DEVICE_TYPES)
   auto w_host = Kokkos::create_mirror_view(w);
   Kokkos::deep_copy(w_host, w);
   std::vector<double> w_ref = {0., 1., 1.};
-  BOOST_TEST(w_host == w_ref, tt::per_element());
+  for (unsigned int i = 0; i < w_ref.size(); ++i)
+    assert(w_host[i] == w_ref[i]);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(last_element, DeviceType, ARBORX_DEVICE_TYPES)
@@ -104,12 +111,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(last_element, DeviceType, ARBORX_DEVICE_TYPES)
   v_host(0) = 33;
   v_host(1) = 24;
   Kokkos::deep_copy(v, v_host);
-  BOOST_TEST(ArborX::lastElement(v) == 24);
+  assert(ArborX::lastElement(v) == 24);
   Kokkos::View<int *, DeviceType> w("w", 0);
   BOOST_CHECK_THROW(ArborX::lastElement(w), ArborX::SearchException);
   Kokkos::View<double[1], DeviceType> u("u");
   Kokkos::deep_copy(u, 3.14);
-  BOOST_TEST(ArborX::lastElement(u) == 3.14);
+  assert(ArborX::lastElement(u) == 3.14);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(minmax, DeviceType, ARBORX_DEVICE_TYPES)
@@ -123,15 +130,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(minmax, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::deep_copy(v, v_host);
 
   auto const result_float = ArborX::minMax(v);
-  BOOST_TEST(std::get<0>(result_float) == 1.41);
-  BOOST_TEST(std::get<1>(result_float) == 3.14);
+  assert(std::get<0>(result_float) == 1.41);
+  assert(std::get<1>(result_float) == 3.14);
   Kokkos::View<int *, DeviceType> w("w", 0);
   BOOST_CHECK_THROW(ArborX::minMax(w), ArborX::SearchException);
   Kokkos::resize(w, 1);
   Kokkos::deep_copy(w, 255);
   auto const result_int = ArborX::minMax(w);
-  BOOST_TEST(std::get<0>(result_int) == 255);
-  BOOST_TEST(std::get<1>(result_int) == 255);
+  assert(std::get<0>(result_int) == 255);
+  assert(std::get<1>(result_int) == 255);
 
   // testing use case in ORNL-CEES/DataTransferKit#336
   Kokkos::View<int[2][3], DeviceType> u("u");
@@ -160,11 +167,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(accumulate, DeviceType, ARBORX_DEVICE_TYPES)
 {
   Kokkos::View<int[6], DeviceType> v("v");
   Kokkos::deep_copy(v, 5);
-  BOOST_TEST(ArborX::accumulate(v, 3) == 33);
+  assert(ArborX::accumulate(v, 3) == 33);
 
   Kokkos::View<int *, DeviceType> w("w", 5);
   ArborX::iota(w, 2);
-  BOOST_TEST(ArborX::accumulate(w, 4) == 24);
+  assert(ArborX::accumulate(w, 4) == 24);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(adjacent_difference, DeviceType,
@@ -185,7 +192,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(adjacent_difference, DeviceType,
   auto w_host = Kokkos::create_mirror_view(w);
   Kokkos::deep_copy(w_host, w);
   std::vector<int> w_ref(5, 2);
-  BOOST_TEST(w_host == w_ref, tt::per_element());
+  for (unsigned int i = 0; i < w_ref.size(); ++i)
+    assert(w_host[i] == w_ref[i]);
 
   Kokkos::View<float *, DeviceType> x("x", 10);
   Kokkos::deep_copy(x, 3.14);
@@ -196,7 +204,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(adjacent_difference, DeviceType,
   y_ref[0] = 3.14;
   auto y_host = Kokkos::create_mirror_view(y);
   Kokkos::deep_copy(y_host, y);
-  BOOST_TEST(y_host == y_ref, tt::per_element());
+  for (unsigned int i = 0; i < y_ref.size(); ++i)
+    assert(y_host[i] == y_ref[i]);
 
   Kokkos::resize(x, 5);
   BOOST_CHECK_THROW(ArborX::adjacentDifference(y, x), ArborX::SearchException);
@@ -206,11 +215,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(min_and_max, DeviceType, ARBORX_DEVICE_TYPES)
 {
   Kokkos::View<int[4], DeviceType> v("v");
   ArborX::iota(v);
-  BOOST_TEST(ArborX::min(v) == 0);
-  BOOST_TEST(ArborX::max(v) == 3);
+  assert(ArborX::min(v) == 0);
+  assert(ArborX::max(v) == 3);
 
   Kokkos::View<int *, DeviceType> w("w", 7);
   ArborX::iota(w, 2);
-  BOOST_TEST(ArborX::min(w) == 2);
-  BOOST_TEST(ArborX::max(w) == 8);
+  assert(ArborX::min(w) == 2);
+  assert(ArborX::max(w) == 8);
 }

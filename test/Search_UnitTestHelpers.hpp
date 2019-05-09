@@ -43,8 +43,10 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
   auto offset_host = Kokkos::create_mirror_view(offset);
   deep_copy(offset_host, offset);
 
-  BOOST_TEST(indices_host == indices_ref, tt::per_element());
-  BOOST_TEST(offset_host == offset_ref, tt::per_element());
+  for (unsigned int i = 0; i < indices_ref.size(); ++i)
+    assert(indices_host[i] == indices_ref[i]);
+  for (unsigned int i = 0; i < indices_ref.size(); ++i)
+    assert(offset_host[i] == offset_ref[i]);
 }
 
 // Same as above except that we get the distances out of the queries and
@@ -69,9 +71,12 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
   auto distances_host = Kokkos::create_mirror_view(distances);
   deep_copy(distances_host, distances);
 
-  BOOST_TEST(indices_host == indices_ref, tt::per_element());
-  BOOST_TEST(offset_host == offset_ref, tt::per_element());
-  BOOST_TEST(distances_host == distances_ref, tt::per_element());
+  for (unsigned int i = 0; i < indices_ref.size(); ++i)
+    assert(indices_host[i] == indices_ref[i]);
+  for (unsigned int i = 0; i < offset_ref.size(); ++i)
+    assert(offset_host[i] == offset_ref[i]);
+  for (unsigned int i = 0; i < distances_ref.size(); ++i)
+    assert(distances_host[i] == distances_ref[i]);
 }
 
 #ifdef ARBORX_ENABLE_MPI
@@ -226,7 +231,10 @@ void validateResults(std::tuple<InputView1, InputView1> const &reference,
 {
   static_assert(KokkosExt::is_accessible_from_host<InputView1>::value, "");
   static_assert(KokkosExt::is_accessible_from_host<InputView2>::value, "");
-  BOOST_TEST(std::get<0>(reference) == std::get<0>(other), tt::per_element());
+  const auto first_reference_view = std::get<0>(reference);
+  const auto first_other_view = std::get<0>(other);
+  for (unsigned int i = 0; i < first_reference_view.size(); ++i)
+    assert(first_reference_view[i] == first_other_view[i]);
   auto const offset = std::get<0>(reference);
   auto const m = offset.extent_int(0) - 1;
   for (int i = 0; i < m; ++i)
@@ -240,10 +248,11 @@ void validateResults(std::tuple<InputView1, InputView1> const &reference,
     }
     std::sort(l.begin(), l.end());
     std::sort(r.begin(), r.end());
-    BOOST_TEST(l.size() == r.size());
+    assert(l.size() == r.size());
     int const n = l.size();
-    BOOST_TEST(n == offset[i + 1] - offset[i]);
-    BOOST_TEST(l == r, tt::per_element());
+    assert(n == offset[i + 1] - offset[i]);
+    for (unsigned int i = 0; i < n; ++i)
+      assert(l[i] == r[i]);
   }
 }
 
@@ -254,7 +263,10 @@ void validateResults(
 {
   static_assert(KokkosExt::is_accessible_from_host<InputView1>::value, "");
   static_assert(KokkosExt::is_accessible_from_host<InputView2>::value, "");
-  BOOST_TEST(std::get<0>(reference) == std::get<0>(other), tt::per_element());
+  const auto first_reference_view = std::get<0>(reference);
+  const auto first_other_view = std::get<0>(other);
+  for (unsigned int i = 0; i < first_reference_view.size(); ++i)
+    assert(first_reference_view[i] == first_other_view[i]);
   auto const offset = std::get<0>(reference);
   auto const m = offset.extent_int(0) - 1;
   for (int i = 0; i < m; ++i)
@@ -269,14 +281,14 @@ void validateResults(
     std::sort(l.begin(), l.end());
     std::sort(r.begin(), r.end());
     // somehow can't use TEST_COMPARE_ARRAY() so doing it myself
-    BOOST_TEST(l.size() == r.size());
+    assert(l.size() == r.size());
     int const n = l.size();
-    BOOST_TEST(n == offset(i + 1) - offset(i));
+    assert(n == offset(i + 1) - offset(i));
     for (int j = 0; j < n; ++j)
     {
       // FIXME_BOOST would be nice if we could compare tuples
-      BOOST_TEST(std::get<0>(l[j]) == std::get<0>(r[j]));
-      BOOST_TEST(std::get<1>(l[j]) == std::get<1>(r[j]));
+      assert(std::get<0>(l[j]) == std::get<0>(r[j]));
+      assert(std::get<1>(l[j]) == std::get<1>(r[j]));
     }
   }
 }

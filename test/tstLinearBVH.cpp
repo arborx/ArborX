@@ -35,10 +35,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
            makeBvh<DeviceType>({}),   // constructed with empty view of boxes
        })
   {
-    BOOST_TEST(empty_bvh.empty());
-    BOOST_TEST(empty_bvh.size() == 0);
+    assert(empty_bvh.empty());
+    assert(empty_bvh.size() == 0);
     // BVH::bounds() returns an invalid box when the tree is empty.
-    BOOST_TEST(ArborX::Details::equals(empty_bvh.bounds(), {}));
+    assert(ArborX::Details::equals(empty_bvh.bounds(), {}));
 
     // Passing a view with no query does seem a bit silly but we still need
     // to support it. And since the tag dispatching yields different tree
@@ -96,9 +96,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, DeviceType, ARBORX_DEVICE_TYPES)
       {{{0., 0., 0.}}, {{1., 1., 1.}}},
   });
 
-  BOOST_TEST(!bvh.empty());
-  BOOST_TEST(bvh.size() == 1);
-  BOOST_TEST(
+  assert(!bvh.empty());
+  assert(bvh.size() == 1);
+  assert(
       ArborX::Details::equals(bvh.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   checkResults(bvh, makeOverlapQueries<DeviceType>({}), {}, {0});
@@ -149,9 +149,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, DeviceType,
       {{{1., 1., 1.}}, {{1., 1., 1.}}},
   });
 
-  BOOST_TEST(!bvh.empty());
-  BOOST_TEST(bvh.size() == 2);
-  BOOST_TEST(
+  assert(!bvh.empty());
+  assert(bvh.size() == 2);
+  assert(
       ArborX::Details::equals(bvh.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   // single query overlap with nothing
@@ -259,8 +259,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
     Kokkos::deep_copy(indices_host, indices);
     auto offset_host = Kokkos::create_mirror_view(offset);
     Kokkos::deep_copy(offset_host, offset);
-    BOOST_TEST(indices_host == indices_ref, tt::per_element());
-    BOOST_TEST(offset_host == offset_ref, tt::per_element());
+    for (unsigned int i = 0; i < indices_ref.size(); ++i)
+      assert(indices_host[i] == indices_ref[i]);
+    for (unsigned int i = 0; i < offset_ref.size(); ++i)
+      assert(offset_host[i] == offset_ref[i]);
   };
 
   BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset));
@@ -271,7 +273,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
   ArborX::adjacentDifference(offset, counts);
   // extract optimal buffer size
   auto const max_results_per_query = ArborX::max(counts);
-  BOOST_TEST(max_results_per_query == 4);
+  assert(max_results_per_query == 4);
 
   // optimal size
   BOOST_CHECK_NO_THROW(
@@ -279,14 +281,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
   checkResultsAreFine();
 
   // buffer size insufficient
-  BOOST_TEST(max_results_per_query > 1);
+  assert(max_results_per_query > 1);
   BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset, +1));
   checkResultsAreFine();
   BOOST_CHECK_THROW(bvh.query(queries, indices, offset, -1),
                     ArborX::SearchException);
 
   // adequate buffer size
-  BOOST_TEST(max_results_per_query < 5);
+  assert(max_results_per_query < 5);
   BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset, +5));
   checkResultsAreFine();
   BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset, -5));
@@ -319,7 +321,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity, DeviceType,
                                      {{{0., 0., 0.}}, n},
                                  }),
                                  indices, offset));
-  BOOST_TEST(ArborX::lastElement(offset) == n);
+  assert(ArborX::lastElement(offset) == n);
 
   // spatial query that find all indexable in the tree is also fine
   BOOST_CHECK_NO_THROW(bvh.query(makeOverlapQueries<DeviceType>({
@@ -327,7 +329,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity, DeviceType,
                                      {{{0., 0., 0.}}, {{n, n, n}}},
                                  }),
                                  indices, offset));
-  BOOST_TEST(ArborX::lastElement(offset) == n);
+  assert(ArborX::lastElement(offset) == n);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(miscellaneous, DeviceType, ARBORX_DEVICE_TYPES)
@@ -364,7 +366,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(miscellaneous, DeviceType, ARBORX_DEVICE_TYPES)
   auto zeros_host = Kokkos::create_mirror_view(zeros);
   Kokkos::deep_copy(zeros_host, zeros);
   std::vector<int> zeros_ref = {0, 0, 0};
-  BOOST_TEST(zeros_host == zeros_ref, tt::per_element());
+  for (unsigned int i = 0; i < zeros_ref.size(); ++i)
+    assert(zeros_host[i] == zeros_ref[i]);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
@@ -431,8 +434,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
   // we expect the collision list to be diag(0, 1, ..., nx*ny*nz-1)
   for (int i = 0; i < n; ++i)
   {
-    BOOST_TEST(indices_host(i) == i);
-    BOOST_TEST(offset_host(i) == i);
+    assert(indices_host(i) == i);
+    assert(offset_host(i) == i);
   }
 
   // (ii) use bounding boxes that overlap with first neighbors
@@ -545,7 +548,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
         int index = ind(i, j, k);
         for (int l = offset_host(index); l < offset_host(index + 1); ++l)
         {
-          BOOST_TEST(ref[index].count(indices_host(l)) != 0);
+          assert(ref[index].count(indices_host(l)) != 0);
         }
       }
 
@@ -600,8 +603,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
 
   for (int i = 0; i < n; ++i)
   {
-    BOOST_TEST(offset_host(i) == i);
-    BOOST_TEST(ref[i].count(indices_host(i)) != 0);
+    assert(offset_host(i) == i);
+    assert(ref[i].count(indices_host(i)) != 0);
   }
 }
 

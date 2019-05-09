@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(morton_codes, DeviceType, ARBORX_DEVICE_TYPES)
   details::TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
       boxes, scene_host);
 
-  BOOST_TEST(
+  assert(
       details::equals(scene_host, {{{0., 0., 0.}}, {{1024., 1024., 1024.}}}));
 
   Kokkos::View<unsigned int *, DeviceType> morton_codes("morton_codes", n);
@@ -75,7 +75,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(morton_codes, DeviceType, ARBORX_DEVICE_TYPES)
                                                            scene_host);
   auto morton_codes_host = Kokkos::create_mirror_view(morton_codes);
   Kokkos::deep_copy(morton_codes_host, morton_codes);
-  BOOST_TEST(morton_codes_host == ref, tt::per_element());
+  for (unsigned int i = 0; i < morton_codes_host.size(); ++i)
+    assert(morton_codes_host[i] == ref[i]);
 }
 
 template <typename DeviceType>
@@ -120,37 +121,39 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indirect_sort, DeviceType, ARBORX_DEVICE_TYPES)
   auto ids_host = Kokkos::create_mirror_view(ids);
   Kokkos::deep_copy(ids_host, ids);
 
-  // check that they are sorted
   for (unsigned int i = 0; i < n; ++i)
-    BOOST_TEST(k_host[i] == i + 1);
-  // check that ids are properly ordered
-  BOOST_TEST(ids_host == ref, tt::per_element());
+  {
+    // check that k_host is sorted
+    assert(k_host[i] == i + 1);
+    // check that ids are properly ordered
+    assert(ids_host[i] == ref[i]);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(number_of_leading_zero_bits)
 {
   using KokkosExt::clz;
-  BOOST_TEST(clz(0) == 32);
-  BOOST_TEST(clz(1) == 31);
-  BOOST_TEST(clz(2) == 30);
-  BOOST_TEST(clz(3) == 30);
-  BOOST_TEST(clz(4) == 29);
-  BOOST_TEST(clz(5) == 29);
-  BOOST_TEST(clz(6) == 29);
-  BOOST_TEST(clz(7) == 29);
-  BOOST_TEST(clz(8) == 28);
-  BOOST_TEST(clz(9) == 28);
+  assert(clz(0) == 32);
+  assert(clz(1) == 31);
+  assert(clz(2) == 30);
+  assert(clz(3) == 30);
+  assert(clz(4) == 29);
+  assert(clz(5) == 29);
+  assert(clz(6) == 29);
+  assert(clz(7) == 29);
+  assert(clz(8) == 28);
+  assert(clz(9) == 28);
   // bitwise exclusive OR operator to compare bits
-  BOOST_TEST(clz(1 ^ 0) == 31);
-  BOOST_TEST(clz(2 ^ 0) == 30);
-  BOOST_TEST(clz(2 ^ 1) == 30);
-  BOOST_TEST(clz(3 ^ 0) == 30);
-  BOOST_TEST(clz(3 ^ 1) == 30);
-  BOOST_TEST(clz(3 ^ 2) == 31);
-  BOOST_TEST(clz(4 ^ 0) == 29);
-  BOOST_TEST(clz(4 ^ 1) == 29);
-  BOOST_TEST(clz(4 ^ 2) == 29);
-  BOOST_TEST(clz(4 ^ 3) == 29);
+  assert(clz(1 ^ 0) == 31);
+  assert(clz(2 ^ 0) == 30);
+  assert(clz(2 ^ 1) == 30);
+  assert(clz(3 ^ 0) == 30);
+  assert(clz(3 ^ 1) == 30);
+  assert(clz(3 ^ 2) == 31);
+  assert(clz(4 ^ 0) == 29);
+  assert(clz(4 ^ 1) == 29);
+  assert(clz(4 ^ 2) == 29);
+  assert(clz(4 ^ 3) == 29);
 }
 
 template <typename DeviceType>
@@ -228,20 +231,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(common_prefix, DeviceType, ARBORX_DEVICE_TYPES)
   auto fi_host = Kokkos::create_mirror_view(fi);
   Kokkos::deep_copy(fi_host, fi);
 
-  BOOST_TEST(results_host[0] == 32 + 32);
-  BOOST_TEST(results_host[1] == 31);
-  BOOST_TEST(results_host[2] == 31);
+  assert(results_host[0] == 32 + 32);
+  assert(results_host[1] == 31);
+  assert(results_host[2] == 31);
   // duplicate Morton codes
-  BOOST_TEST(fi_host[1] == 1);
-  BOOST_TEST(fi_host[1] == fi_host[2]);
-  BOOST_TEST(results_host[3] == 64);
-  BOOST_TEST(results_host[4] == 32 + 30);
-  BOOST_TEST(results_host[5] == 62);
-  BOOST_TEST(results_host[6] == 64);
+  assert(fi_host[1] == 1);
+  assert(fi_host[1] == fi_host[2]);
+  assert(results_host[3] == 64);
+  assert(results_host[4] == 32 + 30);
+  assert(results_host[5] == 62);
+  assert(results_host[6] == 64);
   // by definition \delta(i, j) = -1 when j \notin [0, n-1]
-  BOOST_TEST(results_host[7] == -1);
-  BOOST_TEST(results_host[8] == 64);
-  BOOST_TEST(results_host[9] == -1);
+  assert(results_host[7] == -1);
+  assert(results_host[8] == 64);
+  assert(results_host[9] == -1);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
@@ -315,7 +318,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   details::TreeConstruction<DeviceType>::generateHierarchy(
       sorted_morton_codes, leaf_nodes, internal_nodes, parents);
 
-  BOOST_TEST(parents(0) == -1);
+  assert(parents(0) == -1);
 
   ArborX::Node *root = internal_nodes.data();
 
@@ -323,5 +326,5 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   traverseRecursive(root, sol);
   std::cout << "sol=" << sol.str() << "\n";
 
-  BOOST_TEST(sol.str().compare(ref.str()) == 0);
+  assert(sol.str().compare(ref.str()) == 0);
 }

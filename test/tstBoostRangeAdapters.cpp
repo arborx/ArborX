@@ -36,13 +36,15 @@ BOOST_AUTO_TEST_CASE(range_algorithms)
   boost::iota(w, 0);
   std::stringstream ss;
   boost::reverse_copy(w, std::ostream_iterator<int>(ss, " "));
-  BOOST_TEST(ss.str() == "3 2 1 0 ");
+  assert(ss.str() == "3 2 1 0 ");
 
   boost::replace_if(w, [](int i) { return (i > 1); }, -1);
-  BOOST_TEST(w == std::vector<int>({0, 1, -1, -1}), tt::per_element());
+  std::vector<int> w_ref({0, 1, -1, -1});
+  for (unsigned int i = 0; i < w.size(); ++i)
+    assert(w[i] == w_ref[i]);
 
-  BOOST_TEST(boost::count(w, -1), 2);
-  BOOST_TEST(boost::accumulate(w, 5), 4);
+  assert(boost::count(w, -1) == 2);
+  assert(boost::accumulate(w, 5) == 4);
 }
 
 BOOST_AUTO_TEST_CASE(point_cloud)
@@ -74,5 +76,5 @@ BOOST_AUTO_TEST_CASE(point_cloud)
                     static_cast<double>(n);
 
   double const relative_tolerance = .05;
-  BOOST_TEST(pi == 3.14, tt::tolerance(relative_tolerance));
+  assert(std::abs(pi - 3.14) < 3.14 * relative_tolerance);
 }

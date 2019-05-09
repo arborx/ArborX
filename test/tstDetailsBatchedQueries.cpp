@@ -62,6 +62,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(permute_offset_and_indices, DeviceType,
   Kokkos::deep_copy(offset_host, offset);
   auto indices_host = Kokkos::create_mirror_view(indices);
   Kokkos::deep_copy(indices_host, indices);
-  BOOST_TEST(offset_host == offset_ref, tt::per_element());
-  BOOST_TEST(indices_host == indices_ref, tt::per_element());
+  for (unsigned int i = 0; i < offset_host.size(); ++i)
+    assert(offset_host[i] == offset_ref[i]);
+  for (unsigned int i = 0; i < indices_host.size(); ++i)
+    assert(indices_host[i] == indices_ref[i]);
 }
