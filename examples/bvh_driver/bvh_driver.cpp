@@ -245,6 +245,40 @@ public:
       ->UseManualTime()                                                        \
       ->Unit(benchmark::kMicrosecond);
 
+// NOTE Motivation for this class that stores the argument count and values is
+// I could not figure out how to make the parser consume arguments with
+// Boost.Program_options
+class CmdLineArgs
+{
+private:
+  int _argc;
+  std::vector<char *> _argv;
+
+public:
+  CmdLineArgs(std::vector<std::string> const &args, char const *exe)
+      : _argc(args.size() + 1)
+      , _argv{{new char[std::strlen(exe)]}}
+  {
+    std::strcpy(_argv[0], exe);
+    _argv.reserve(_argc);
+    for (auto const &s : args)
+    {
+      _argv.push_back(new char[s.size() + 1]);
+      std::strcpy(_argv.back(), s.c_str());
+    }
+  }
+
+  ~CmdLineArgs()
+  {
+    for (auto &p : _argv)
+    {
+      delete[] p;
+    }
+  }
+  int &argc() { return _argc; }
+  char **argv() { return _argv.data(); }
+};
+
 int main(int argc, char *argv[])
 {
   KokkosScopeGuard guard(argc, argv);
@@ -269,11 +303,14 @@ int main(int argc, char *argv[])
     ;
   // clang-format on
   bpo::variables_map vm;
-  bpo::parsed_options opts = bpo::command_line_parser(argc, argv)
-                                 .options(desc)
-                                 .allow_unregistered()
-                                 .run();
-  bpo::store(opts, vm);
+  bpo::parsed_options parsed = bpo::command_line_parser(argc, argv)
+                                   .options(desc)
+                                   .allow_unregistered()
+                                   .run();
+  bpo::store(parsed, vm);
+  CmdLineArgs pass_further{
+      bpo::collect_unrecognized(parsed.options, bpo::include_positional),
+      argv[0]};
   bpo::notify(vm);
 
   if (vm.count("help"))
@@ -292,11 +329,12 @@ int main(int argc, char *argv[])
   }
   else
   {
-    benchmark::Initialize(&argc, argv);
+    benchmark::Initialize(&pass_further.argc(), pass_further.argv());
     // Throw if some of the arguments have not been recognized.
-    std::ignore = bpo::command_line_parser(argc, argv)
-                      .options(bpo::options_description(""))
-                      .run();
+    std::ignore =
+        bpo::command_line_parser(pass_further.argc(), pass_further.argv())
+            .options(bpo::options_description(""))
+            .run();
   }
 
   // Google benchmark only supports integer arguments (see
