@@ -250,31 +250,33 @@ public:
 // Boost.Program_options
 class CmdLineArgs
 {
-  int argc_;
-  std::vector<char *> argv_;
+private:
+  int _argc;
+  std::vector<char *> _argv;
 
 public:
   CmdLineArgs(std::vector<std::string> const &args, char const *exe)
-      : argc_(args.size() + 1)
-      , argv_{{new char[std::strlen(exe)]}}
+      : _argc(args.size() + 1)
+      , _argv{{new char[std::strlen(exe)]}}
   {
-    std::strcpy(argv_[0], exe);
-    argv_.reserve(argc_);
+    std::strcpy(_argv[0], exe);
+    _argv.reserve(_argc);
     for (auto const &s : args)
     {
-      argv_.push_back(new char[s.size() + 1]);
-      std::strcpy(argv_.back(), s.c_str());
+      _argv.push_back(new char[s.size() + 1]);
+      std::strcpy(_argv.back(), s.c_str());
     }
   }
+
   ~CmdLineArgs()
   {
-    for (auto &p : argv_)
+    for (auto &p : _argv)
     {
       delete[] p;
     }
   }
-  int &argc() { return argc_; }
-  char **argv() { return argv_.data(); }
+  int &argc() { return _argc; }
+  char **argv() { return _argv.data(); }
 };
 
 int main(int argc, char *argv[])
