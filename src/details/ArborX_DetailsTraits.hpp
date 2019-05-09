@@ -44,6 +44,7 @@ struct Access<View, typename std::enable_if<Kokkos::is_view<View>::value &&
   static typename View::size_type size(View const &v) { return v.extent(0); }
 
   using Tag = typename Tag<typename View::value_type>::type;
+  using MemorySpace = typename View::memory_space;
 };
 
 template <typename View>
@@ -59,6 +60,7 @@ struct Access<View, typename std::enable_if<Kokkos::is_view<View>::value &&
   static typename View::size_type size(View const &v) { return v.extent(0); }
 
   using Tag = PointTag;
+  using MemorySpace = typename View::memory_space;
 };
 
 } // namespace Traits
