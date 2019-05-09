@@ -30,9 +30,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sort_results, DeviceType, ARBORX_DEVICE_TYPES)
   std::vector<int> offset = {0, 1, 3, 6, 10};
   int const n = 10;
   int const m = 4;
-  BOOST_TEST(ids_.size() == n);
-  BOOST_TEST(sorted_ids.size() == n);
-  BOOST_TEST(offset.size() == m + 1);
+  assert(ids_.size() == n);
+  assert(sorted_ids.size() == n);
+  assert(offset.size() == m + 1);
   std::vector<int> results_ = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
   std::vector<std::set<int>> sorted_results = {
       {3},
@@ -47,8 +47,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sort_results, DeviceType, ARBORX_DEVICE_TYPES)
       {18, 15, 11},
       {19, 17, 14, 10},
   };
-  BOOST_TEST(results_.size() == n);
-  BOOST_TEST(ranks_.size() == n);
+  assert(results_.size() == n);
+  assert(ranks_.size() == n);
 
   Kokkos::View<int *, DeviceType> ids("query_ids", n);
   auto ids_host = Kokkos::create_mirror_view(ids);
@@ -73,15 +73,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sort_results, DeviceType, ARBORX_DEVICE_TYPES)
 
   // COMMENT: ids are untouched
   Kokkos::deep_copy(ids_host, ids);
-  BOOST_TEST(ids_host == ids_, tt::per_element());
+  for (unsigned int i = 0; i < ids_host.size(); ++i)
+    assert(ids_host[i] == ids_[i]);
 
   Kokkos::deep_copy(results_host, results);
   Kokkos::deep_copy(ranks_host, ranks);
   for (int q = 0; q < m; ++q)
     for (int i = offset[q]; i < offset[q + 1]; ++i)
     {
-      BOOST_TEST(sorted_results[q].count(results_host[i]) == 1);
-      BOOST_TEST(sorted_ranks[q].count(ranks_host[i]) == 1);
+      assert(sorted_results[q].count(results_host[i]) == 1);
+      assert(sorted_ranks[q].count(ranks_host[i]) == 1);
     }
 
   Kokkos::View<int *, DeviceType> not_sized_properly("", m);
@@ -99,8 +100,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(count_results, DeviceType, ARBORX_DEVICE_TYPES)
   };
   int const m = 5;
   int const nnz = 10;
-  BOOST_TEST(ids_ref.size() == nnz);
-  BOOST_TEST(offset_ref.size() == m + 1);
+  assert(ids_ref.size() == nnz);
+  assert(offset_ref.size() == m + 1);
 
   Kokkos::View<int *, DeviceType> ids("query_ids", nnz);
   auto ids_host = Kokkos::create_mirror_view(ids);
@@ -115,7 +116,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(count_results, DeviceType, ARBORX_DEVICE_TYPES)
 
   auto offset_host = Kokkos::create_mirror_view(offset);
   Kokkos::deep_copy(offset_host, offset);
-  BOOST_TEST(offset_host == offset_ref, tt::per_element());
+  for (unsigned int i = 0; i < offset_ref.size(); ++i)
+    assert(offset_host[i] == offset_ref[i]);
 }
 
 template <typename View1, typename View2>
@@ -123,42 +125,42 @@ inline void checkViewWasNotAllocated(View1 const &v1, View2 const &v2)
 {
   // NOTE: cannot use operator== here because array layout may "change" for
   // rank-1 views
-  BOOST_TEST(v1.data() == v2.data());
-  BOOST_TEST(v1.span() == v2.span());
+  assert(v1.data() == v2.data());
+  assert(v1.span() == v2.span());
 
-  BOOST_TEST((int)View1::rank == (int)View2::rank);
-  BOOST_TEST((std::is_same<typename View1::const_value_type,
-                           typename View2::const_value_type>::value));
-  BOOST_TEST((std::is_same<typename View1::memory_space,
-                           typename View2::memory_space>::value));
+  assert((int)View1::rank == (int)View2::rank);
+  assert((std::is_same<typename View1::const_value_type,
+                       typename View2::const_value_type>::value));
+  assert((std::is_same<typename View1::memory_space,
+                       typename View2::memory_space>::value));
 
-  BOOST_TEST(v1.extent(0) == v2.extent(0));
-  BOOST_TEST(v1.extent(1) == v2.extent(1));
-  BOOST_TEST(v1.extent(2) == v2.extent(2));
-  BOOST_TEST(v1.extent(3) == v2.extent(3));
-  BOOST_TEST(v1.extent(4) == v2.extent(4));
-  BOOST_TEST(v1.extent(5) == v2.extent(5));
-  BOOST_TEST(v1.extent(6) == v2.extent(6));
-  BOOST_TEST(v1.extent(7) == v2.extent(7));
+  assert(v1.extent(0) == v2.extent(0));
+  assert(v1.extent(1) == v2.extent(1));
+  assert(v1.extent(2) == v2.extent(2));
+  assert(v1.extent(3) == v2.extent(3));
+  assert(v1.extent(4) == v2.extent(4));
+  assert(v1.extent(5) == v2.extent(5));
+  assert(v1.extent(6) == v2.extent(6));
+  assert(v1.extent(7) == v2.extent(7));
 }
 
 template <typename View1, typename View2>
 inline void checkNewViewWasAllocated(View1 const &v1, View2 const &v2)
 {
-  BOOST_TEST(v1.data() != v2.data());
+  assert(v1.data() != v2.data());
 
-  BOOST_TEST((int)View1::rank == (int)View2::rank);
-  BOOST_TEST((std::is_same<typename View1::const_value_type,
-                           typename View2::const_value_type>::value));
+  assert((int)View1::rank == (int)View2::rank);
+  assert((std::is_same<typename View1::const_value_type,
+                       typename View2::const_value_type>::value));
 
-  BOOST_TEST(v1.extent(0) == v2.extent(0));
-  BOOST_TEST(v1.extent(1) == v2.extent(1));
-  BOOST_TEST(v1.extent(2) == v2.extent(2));
-  BOOST_TEST(v1.extent(3) == v2.extent(3));
-  BOOST_TEST(v1.extent(4) == v2.extent(4));
-  BOOST_TEST(v1.extent(5) == v2.extent(5));
-  BOOST_TEST(v1.extent(6) == v2.extent(6));
-  BOOST_TEST(v1.extent(7) == v2.extent(7));
+  assert(v1.extent(0) == v2.extent(0));
+  assert(v1.extent(1) == v2.extent(1));
+  assert(v1.extent(2) == v2.extent(2));
+  assert(v1.extent(3) == v2.extent(3));
+  assert(v1.extent(4) == v2.extent(4));
+  assert(v1.extent(5) == v2.extent(5));
+  assert(v1.extent(6) == v2.extent(6));
+  assert(v1.extent(7) == v2.extent(7));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(create_layout_right_mirror_view, DeviceType,
@@ -230,10 +232,14 @@ void checkBufferLayout(std::vector<int> const &ranks,
                    Kokkos::MemoryTraits<Kokkos::Unmanaged>>(permute.data(),
                                                             permute.size()),
       unique, counts, offsets);
-  BOOST_TEST(permute_ref == permute, tt::per_element());
-  BOOST_TEST(unique_ref == unique, tt::per_element());
-  BOOST_TEST(counts_ref == counts, tt::per_element());
-  BOOST_TEST(offsets_ref == offsets, tt::per_element());
+  for (unsigned int i = 0; i < permute_ref.size(); ++i)
+    assert(permute_ref[i] == permute[i]);
+  for (unsigned int i = 0; i < unique_ref.size(); ++i)
+    assert(unique_ref[i] == unique[i]);
+  for (unsigned int i = 0; i < counts_ref.size(); ++i)
+    assert(counts_ref[i] == counts[i]);
+  for (unsigned int i = 0; i < offsets_ref.size(); ++i)
+    assert(offsets_ref[i] == offsets[i]);
 }
 
 BOOST_AUTO_TEST_CASE(sort_and_determine_buffer_layout)

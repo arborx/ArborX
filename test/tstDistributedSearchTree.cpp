@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
     checkResults(tree, queries, indices_ref, {0, n}, ranks_ref);
   }
 
-  BOOST_TEST(n > 2);
+  assert(n > 2);
   if (comm_rank < comm_size - 1)
   {
     checkResults(tree, nearest_queries, {0, n - 1, 1}, {0, 3},
@@ -125,10 +125,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
 
   auto const emptry_dist_tree = makeDistributedSearchTree<DeviceType>(comm, {});
 
-  BOOST_TEST(emptry_dist_tree.empty());
-  BOOST_TEST(emptry_dist_tree.size() == 0);
+  assert(emptry_dist_tree.empty());
+  assert(emptry_dist_tree.size() == 0);
 
-  BOOST_TEST(ArborX::Details::equals(emptry_dist_tree.bounds(), {}));
+  assert(ArborX::Details::equals(emptry_dist_tree.bounds(), {}));
 
   checkResults(emptry_dist_tree, makeOverlapQueries<DeviceType>({}), {}, {0},
                {});
@@ -203,10 +203,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
                             })
                       : makeDistributedSearchTree<DeviceType>(comm, {}));
 
-  BOOST_TEST(!tree.empty());
-  BOOST_TEST(tree.size() == 1);
+  assert(!tree.empty());
+  assert(tree.size() == 1);
 
-  BOOST_TEST(
+  assert(
       ArborX::Details::equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   checkResults(tree, makeOverlapQueries<DeviceType>({}), {}, {0}, {});
@@ -242,10 +242,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
           {{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank + 1., 1., 1.}}},
       });
 
-  BOOST_TEST(!tree.empty());
-  BOOST_TEST((int)tree.size() == comm_size);
+  assert(!tree.empty());
+  assert((int)tree.size() == comm_size);
 
-  BOOST_TEST(ArborX::Details::equals(
+  assert(ArborX::Details::equals(
       tree.bounds(), {{{0., 0., 0.}}, {{(double)comm_size, 1., 1.}}}));
 
   checkResults(tree,
@@ -304,8 +304,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_nearest_neighbors, DeviceType,
                  {{(double)comm_rank + 1., 1., 1.}}},
             });
 
-  BOOST_TEST(!tree.empty());
-  BOOST_TEST((int)tree.size() == 2 * comm_size);
+  assert(!tree.empty());
+  assert((int)tree.size() == 2 * comm_size);
 
   //  +----------0----------1----------2----------3
   //  |          |          |          |          |

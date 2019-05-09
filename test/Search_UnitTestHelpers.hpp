@@ -99,7 +99,8 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
   auto ranks_host = Kokkos::create_mirror_view(ranks);
   deep_copy(ranks_host, ranks);
 
-  BOOST_TEST(offset_host == offset_ref, tt::per_element());
+  for (unsigned int i = 0; i < offset_ref.size(); ++i)
+    assert(offset_host[i] == offset_ref[i]);
   auto const m = offset_host.extent_int(0) - 1;
   for (int i = 0; i < m; ++i)
   {
@@ -112,14 +113,14 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
     }
     sort(l.begin(), l.end());
     sort(r.begin(), r.end());
-    BOOST_TEST(l.size() == r.size());
+    assert(l.size() == r.size());
     int const n = l.size();
-    BOOST_TEST(n == offset_ref[i + 1] - offset_ref[i]);
+    assert(n == offset_ref[i + 1] - offset_ref[i]);
     for (int j = 0; j < n; ++j)
     {
       // FIXME_BOOST would be nice if we could compare tuples
-      BOOST_TEST(std::get<0>(l[j]) == std::get<0>(r[j]));
-      BOOST_TEST(std::get<1>(l[j]) == std::get<1>(r[j]));
+      assert(std::get<0>(l[j]) == std::get<0>(r[j]));
+      assert(std::get<1>(l[j]) == std::get<1>(r[j]));
     }
   }
 }
@@ -147,10 +148,14 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
   auto distances_host = Kokkos::create_mirror_view(distances);
   deep_copy(distances_host, distances);
 
-  BOOST_TEST(indices_host == indices_ref, tt::per_element());
-  BOOST_TEST(offset_host == offset_ref, tt::per_element());
-  BOOST_TEST(ranks_host == ranks_ref, tt::per_element());
-  BOOST_TEST(distances_host != distances_ref, tt::per_element());
+  for (unsigned int i = 0; i < indices_ref.size(); ++i)
+    assert(indices_host[i] == indices_ref[i]);
+  for (unsigned int i = 0; i < offset_ref.size(); ++i)
+    assert(offset_host[i] == offset_ref[i]);
+  for (unsigned int i = 0; i < ranks_ref.size(); ++i)
+    assert(ranks_host[i] == ranks_ref[i]);
+  for (unsigned int i = 0; i < distances_ref.size(); ++i)
+    assert(distances_host[i] != distances_ref[i]);
 }
 #endif
 
@@ -251,7 +256,7 @@ void validateResults(std::tuple<InputView1, InputView1> const &reference,
     assert(l.size() == r.size());
     int const n = l.size();
     assert(n == offset[i + 1] - offset[i]);
-    for (unsigned int i = 0; i < n; ++i)
+    for (int i = 0; i < n; ++i)
       assert(l[i] == r[i]);
   }
 }
