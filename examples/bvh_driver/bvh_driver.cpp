@@ -245,6 +245,33 @@ public:
       ->UseManualTime()                                                        \
       ->Unit(benchmark::kMicrosecond);
 
+class CmdLineArgs
+{
+  int argc_;
+  std::vector<char *> argv_;
+
+public:
+  CmdLineArgs(std::vector<std::string> const &args, char *exe)
+          : argc_(args.size() + 1), argv_{{exe}}
+  {
+    argv_.reserve(argc_);
+    for (auto const &s : args)
+    {
+      argv_.push_back(new char[s.size() + 1]);
+      std::strcpy(argv_.back(), s.c_str());
+    }
+  }
+  ~CmdLineArgs()
+  {
+    for (auto &p : argv_)
+    {
+      delete[] p;
+    }
+  }
+  int &argc() { return argc_; }
+  char **argv() { return argv_.data(); }
+};
+
 int main(int argc, char *argv[])
 {
   KokkosScopeGuard guard(argc, argv);
@@ -269,11 +296,13 @@ int main(int argc, char *argv[])
     ;
   // clang-format on
   bpo::variables_map vm;
-  bpo::parsed_options opts = bpo::command_line_parser(argc, argv)
-                                 .options(desc)
-                                 .allow_unregistered()
-                                 .run();
-  bpo::store(opts, vm);
+  bpo::parsed_options parsed = bpo::command_line_parser(argc, argv)
+                                   .options(desc)
+                                   .allow_unregistered()
+                                   .run();
+  bpo::store(parsed, vm);
+  CmdLineArgs pass_further{
+      bpo::collect_unrecognized(parsed.options, bpo::include_positional), argv[0]};
   bpo::notify(vm);
 
   if (vm.count("help"))
@@ -292,9 +321,9 @@ int main(int argc, char *argv[])
   }
   else
   {
-    benchmark::Initialize(&argc, argv);
+    benchmark::Initialize(&pass_further.argc(), pass_further.argv());
     // Throw if some of the arguments have not been recognized.
-    std::ignore = bpo::command_line_parser(argc, argv)
+    std::ignore = bpo::command_line_parser(pass_further.argc(), pass_further.argv())
                       .options(bpo::options_description(""))
                       .run();
   }
