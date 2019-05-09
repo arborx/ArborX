@@ -251,9 +251,11 @@ class CmdLineArgs
   std::vector<char *> argv_;
 
 public:
-  CmdLineArgs(std::vector<std::string> const &args, char *exe)
-          : argc_(args.size() + 1), argv_{{exe}}
+  CmdLineArgs(std::vector<std::string> const &args, char const *exe)
+      : argc_(args.size() + 1)
+      , argv_{{new char[std::strlen(exe)]}}
   {
+    std::strcpy(argv_[0], exe);
     argv_.reserve(argc_);
     for (auto const &s : args)
     {
@@ -302,7 +304,8 @@ int main(int argc, char *argv[])
                                    .run();
   bpo::store(parsed, vm);
   CmdLineArgs pass_further{
-      bpo::collect_unrecognized(parsed.options, bpo::include_positional), argv[0]};
+      bpo::collect_unrecognized(parsed.options, bpo::include_positional),
+      argv[0]};
   bpo::notify(vm);
 
   if (vm.count("help"))
@@ -323,9 +326,10 @@ int main(int argc, char *argv[])
   {
     benchmark::Initialize(&pass_further.argc(), pass_further.argv());
     // Throw if some of the arguments have not been recognized.
-    std::ignore = bpo::command_line_parser(pass_further.argc(), pass_further.argv())
-                      .options(bpo::options_description(""))
-                      .run();
+    std::ignore =
+        bpo::command_line_parser(pass_further.argc(), pass_further.argv())
+            .options(bpo::options_description(""))
+            .run();
   }
 
   // Google benchmark only supports integer arguments (see
