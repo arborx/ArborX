@@ -11,6 +11,7 @@
 #ifndef ARBORX_DETAILS_KOKKOS_EXT_HPP
 #define ARBORX_DETAILS_KOKKOS_EXT_HPP
 
+#include <Kokkos_Concepts.hpp>
 #include <Kokkos_View.hpp>
 
 #include <cfloat>  // DBL_MAX, DBL_EPSILON
@@ -29,19 +30,26 @@ using enable_if_t = typename std::enable_if<B, T>::type;
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 namespace KokkosExt
 {
-template <typename View, typename = void>
-struct is_accessible_from_host : std::false_type
+template <typename MemorySpace, typename ExecutionSpace, typename = void>
+struct is_accessible_from : std::false_type
 {
-  static_assert(Kokkos::is_view<View>::value, "");
+  static_assert(Kokkos::is_memory_space<MemorySpace>::value, "");
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
+};
+
+template <typename MemorySpace, typename ExecutionSpace>
+struct is_accessible_from<
+    MemorySpace, ExecutionSpace,
+    typename std::enable_if<Kokkos::Impl::SpaceAccessibility<
+        ExecutionSpace, MemorySpace>::accessible>::type> : std::true_type
+{
 };
 
 template <typename View>
-struct is_accessible_from_host<
-    View,
-    typename std::enable_if<Kokkos::Impl::SpaceAccessibility<
-        Kokkos::HostSpace, typename View::memory_space>::accessible>::type>
-    : std::true_type
+struct is_accessible_from_host
+    : public is_accessible_from<typename View::memory_space, Kokkos::HostSpace>
 {
+  static_assert(Kokkos::is_view<View>::value, "");
 };
 
 /** Count the number of consecutive leading zero bits in 32 bit integer
