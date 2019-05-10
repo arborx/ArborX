@@ -109,12 +109,20 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
 
 # Install Kokkos
 ARG KOKKOS_VERSION=2.8.00
-ARG KOKKOS_OPTIONS="--cxxstandard=c++14 --with-serial --with-openmp --with-options=disable_deprecated_code --with-cuda --with-cuda-options=enable_lambda"
 ENV KOKKOS_DIR=/opt/kokkos
 RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     git clone https://github.com/kokkos/kokkos/ -b cmake-overhaul && \
     cd kokkos && \
     mkdir -p build && cd build && \
-    ../generate_makefile.bash --prefix=${KOKKOS_DIR} ${KOKKOS_OPTIONS} && \
+    cmake \
+    -D CMAKE_INSTALL_PREFIX=${KOKKOS_DIR} \
+    -D KOKKOS_ARCH="Kepler35" \
+    -D KOKKOS_ENABLE_SERIAL=ON \
+    -D KOKKOS_ENABLE_OPENMP=ON \
+    -D KOKKOS_ENABLE_CUDA=ON \
+    -D KOKKOS_ENABLE_CUDA_LAMBDA=ON \
+    -D CMAKE_CXX_COMPILER=/scratch/kokkos/bin/nvcc_wrapper \
+    -D CMAKE_BUILD_TYPE=Release  \
+    .. && \
     make -j${NPROCS} install && \
     rm -rf ${SCRATCH_DIR}
