@@ -73,6 +73,7 @@ ENV PATH=${OPENMPI_DIR}/bin:$PATH
 
 # Install Boost
 ENV BOOST_DIR=/opt/boost
+ENV BOOST_CLANG_DIR=/opt/boost-clang
 RUN BOOST_VERSION=1.67.0 && \
     BOOST_VERSION_UNDERSCORE=$(echo "$BOOST_VERSION" | sed -e "s/\./_/g") && \
     BOOST_URL=https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2 && \
@@ -90,6 +91,17 @@ RUN BOOST_VERSION=1.67.0 && \
     echo "using mpi ;" >> project-config.jam && \
     ./b2 -j${NPROCS} \
         hardcode-dll-paths=true dll-path=${BOOST_DIR}/lib \
+        link=shared \
+        variant=release \
+        install \
+        && \
+    ./bootstrap.sh \
+      --with-toolset=clang \
+      --prefix=${BOOST_CLANG_DIR} \
+      && \
+    echo "using mpi ;" >> project-config.jam && \
+    ./b2 -j${NPROCS} \
+        hardcode-dll-paths=true dll-path=${BOOST_CLANG_DIR}/lib \
         link=shared \
         variant=release \
         install \
