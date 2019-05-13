@@ -87,6 +87,8 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     Kokkos::View<int *, DeviceType> &offset, NearestQueryAlgorithm which,
     Kokkos::View<double *, DeviceType> *distances_ptr)
 {
+  Kokkos::Profiling::pushRegion("ArborX:BVH:nearest_queries");
+
   using ExecutionSpace = typename DeviceType::execution_space;
 
   bool const use_deprecated_nearest_query_algorithm =
@@ -94,12 +96,17 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 
   auto const n_queries = queries.extent(0);
 
+  Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
+
   auto const permute =
       Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
           bvh.bounds(), queries);
 
   queries =
       Details::BatchedQueries<DeviceType>::applyPermutation(permute, queries);
+
+  Kokkos::Profiling::popRegion();
+  Kokkos::Profiling::pushRegion("ArborX:BVH:init_offset");
 
   reallocWithoutInitializing(offset, n_queries + 1);
   Kokkos::deep_copy(offset, 0);
@@ -112,6 +119,9 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 
   exclusivePrefixSum(offset);
   int const n_results = lastElement(offset);
+
+  Kokkos::Profiling::popRegion();
+  Kokkos::Profiling::pushRegion("ArborX:BVH:traversal");
 
   reallocWithoutInitializing(indices, n_results);
   int const invalid_index = -1;
@@ -212,6 +222,10 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
       Kokkos::fence();
     }
   }
+
+  Kokkos::Profiling::popRegion();
+  Kokkos::Profiling::pushRegion("ArborX:BVH:filter_out_invalid_entries");
+
   // Find out if they are any invalid entries in the indices (i.e. at least
   // one query asked for more neighbors that they are leaves in the tree) and
   // eliminate them if necessary.
@@ -274,6 +288,9 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     }
     offset = tmp_offset;
   }
+
+  Kokkos::Profiling::popRegion();
+  Kokkos::Profiling::popRegion();
 }
 
 // The buffer_size argument let the user provide an upper bound for the number
@@ -293,9 +310,13 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset, int buffer_size)
 {
+  Kokkos::Profiling::pushRegion("ArborX:BVH:spatial_queries");
+
   using ExecutionSpace = typename DeviceType::execution_space;
 
   auto const n_queries = queries.extent(0);
+
+  Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
 
   auto const permute =
       Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
@@ -303,6 +324,9 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 
   queries =
       Details::BatchedQueries<DeviceType>::applyPermutation(permute, queries);
+
+  Kokkos::Profiling::popRegion();
+  Kokkos::Profiling::pushRegion("ArborX:BVH:first_pass");
 
   // Initialize view
   // [ 0 0 0 .... 0 0 ]
@@ -377,8 +401,12 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   // [ 2N ]
   int const n_results = lastElement(offset);
 
+  Kokkos::Profiling::popRegion();
+
   if (max_results_per_query > buffer_size)
   {
+    Kokkos::Profiling::pushRegion("ArborX:BVH:second_pass");
+
     // FIXME can definitely do better about error message
     ARBORX_ASSERT(!throw_if_buffer_optimization_fails);
 
@@ -400,11 +428,15 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
               });
         });
     Kokkos::fence();
+
+    Kokkos::Profiling::popRegion();
   }
   // do not copy if by some miracle each query exactly yielded as many results
   // as the buffer size
   else if (n_results != static_cast<int>(n_queries) * buffer_size)
   {
+    Kokkos::Profiling::pushRegion("ArborX:BVH:copy_indices");
+
     Kokkos::View<int *, DeviceType> tmp_indices(
         Kokkos::ViewAllocateWithoutInitializing(indices.label()), n_results);
     Kokkos::parallel_for(ARBORX_MARK_REGION("copy_valid_indices"),
@@ -418,7 +450,10 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
                          });
     Kokkos::fence();
     indices = tmp_indices;
+
+    Kokkos::Profiling::popRegion();
   }
+  Kokkos::Profiling::popRegion();
 }
 
 } // namespace Details
