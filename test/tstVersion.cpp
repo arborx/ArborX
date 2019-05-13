@@ -8,13 +8,21 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
+#include <ArborX_Version.hpp>
 
-#ifndef ARBORX_CONFIG_HPP
-#define ARBORX_CONFIG_HPP
+#include <boost/test/unit_test.hpp>
 
-#cmakedefine ArborX_VERSION_STRING "@ArborX_VERSION_STRING@"
-#cmakedefine ArborX_GIT_COMMIT_HASH "@ArborX_GIT_COMMIT_HASH@"
+#include <iostream>
 
-#cmakedefine ARBORX_ENABLE_MPI
+#define BOOST_TEST_MODULE Version
 
-#endif
+BOOST_AUTO_TEST_CASE(version)
+{
+  auto const arborx_version = ArborX::version();
+  BOOST_TEST(!arborx_version.empty());
+  std::cout << "ArborX version " << arborx_version << std::endl;
+
+  auto const arborx_commit_hash = ArborX::gitCommitHash();
+  BOOST_TEST(!arborx_commit_hash.empty());
+  std::cout << "ArborX commit hash " << arborx_commit_hash << std::endl;
+}

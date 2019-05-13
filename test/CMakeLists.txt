@@ -22,6 +22,11 @@ target_link_libraries(ArborX_Exception.exe PRIVATE ArborX Boost::unit_test_frame
 target_compile_definitions(ArborX_Exception.exe PRIVATE BOOST_TEST_MAIN BOOST_TEST_DYN_LINK)
 add_test(NAME ArborX_Exception COMMAND ./ArborX_Exception.exe)
 
+add_executable(ArborX_Version.exe tstVersion.cpp)
+target_link_libraries(ArborX_Version.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_Version.exe PRIVATE BOOST_TEST_MAIN BOOST_TEST_DYN_LINK)
+add_test(NAME ArborX_Version COMMAND ./ArborX_Version.exe)
+
 add_executable(ArborX_DetailsUtils.exe tstDetailsUtils.cpp utf_main.cpp)
 target_link_libraries(ArborX_DetailsUtils.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_DetailsUtils.exe PRIVATE BOOST_TEST_DYN_LINK)
