@@ -74,10 +74,10 @@ ENV PATH=${OPENMPI_DIR}/bin:$PATH
 # Install Boost
 ENV BOOST_DIR=/opt/boost
 ENV BOOST_CLANG_DIR=/opt/boost-clang
-RUN BOOST_VERSION=1.67.0 && \
+RUN BOOST_VERSION=1.70.0 && \
     BOOST_VERSION_UNDERSCORE=$(echo "$BOOST_VERSION" | sed -e "s/\./_/g") && \
     BOOST_URL=https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2 && \
-    BOOST_SHA256=2684c972994ee57fc5632e03bf044746f6eb45d4920c343937a465fd67a5adba && \
+    BOOST_SHA256=430ae8354789de4fd19ee52f3b1f739e1fba576f0aded0897c3c2bc00fb38778 && \
     BOOST_ARCHIVE=boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2 && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${BOOST_URL} --output-document=${BOOST_ARCHIVE} && \
