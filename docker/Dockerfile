@@ -116,13 +116,14 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     mkdir -p build && cd build && \
     cmake \
     -D CMAKE_INSTALL_PREFIX=${KOKKOS_DIR} \
-    -D KOKKOS_ARCH="Kepler35" \
+    -D KOKKOS_ARCH="Volta70" \
     -D KOKKOS_ENABLE_SERIAL=ON \
     -D KOKKOS_ENABLE_OPENMP=ON \
     -D KOKKOS_ENABLE_CUDA=ON \
     -D KOKKOS_ENABLE_CUDA_LAMBDA=ON \
-    -D CMAKE_CXX_COMPILER=/scratch/kokkos/bin/nvcc_wrapper \
+    -D CMAKE_CXX_COMPILER=${SCRATCH_DIR}/kokkos/bin/nvcc_wrapper \
     -D CMAKE_BUILD_TYPE=Release  \
     .. && \
     make -j${NPROCS} install && \
     rm -rf ${SCRATCH_DIR}
+ENV PATH=${KOKKOS_DIR}/bin:$PATH
