@@ -111,7 +111,7 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
 ARG KOKKOS_VERSION=2.8.00
 ENV KOKKOS_DIR=/opt/kokkos
 RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
-    git clone https://github.com/kokkos/kokkos/ -b cmake-overhaul && \
+    git clone https://github.com/masterleinad/kokkos/ -b cmake-overhaul && \
     cd kokkos && \
     mkdir -p build && cd build && \
     cmake \
