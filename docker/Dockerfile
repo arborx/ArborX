@@ -127,3 +127,22 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     make -j${NPROCS} install && \
     rm -rf ${SCRATCH_DIR}
 ENV PATH=${KOKKOS_DIR}/bin:$PATH
+
+# Install Kokkos with clang
+ENV KOKKOS_CLANG_DIR=/opt/kokkos-clang
+RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
+    git clone https://github.com/masterleinad/kokkos/ -b cmake-overhaul && \
+    cd kokkos && \
+    mkdir -p build && cd build && \
+    cmake \
+    -D CMAKE_INSTALL_PREFIX=${KOKKOS_CLANG_DIR} \
+    -D KOKKOS_ARCH="Volta70" \
+    -D KOKKOS_ENABLE_SERIAL=ON \
+    -D KOKKOS_ENABLE_OPENMP=ON \
+    -D KOKKOS_ENABLE_CUDA=ON \
+    -D KOKKOS_ENABLE_CUDA_LAMBDA=ON \
+    -D CMAKE_CXX_COMPILER=clang++ \
+    -D CMAKE_BUILD_TYPE=Release  \
+    .. && \
+    make -j${NPROCS} install && \
+    rm -rf ${SCRATCH_DIR}
