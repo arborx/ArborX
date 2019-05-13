@@ -1,4 +1,4 @@
-ARG BASE=nvidia/cuda:10.1-devel
+ARG BASE=nvidia/cuda:9.2-devel
 FROM $BASE
 
 ARG NPROCS=4
