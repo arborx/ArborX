@@ -38,7 +38,7 @@ pipeline {
                 stage('Clang') {
                     agent {
                         dockerfile {
-                            filename "Dockerfile"
+                            filename "Dockerfile-clang"
                             dir "docker"
                             additionalBuildArgs '--build-arg BASE=ubuntu:18.04 --build-arg KOKKOS_OPTIONS="--with-serial --with-openmp --arch=AMD --compiler=clang++"'
                             args '-v /tmp/ccache:/tmp/ccache'
