@@ -420,8 +420,7 @@ int main(int argc, char *argv[])
   }
   catch (HelpPrinted const &)
   {
-    Kokkos::finalize(); // FIXME use scope guards
-    return 1;
+    // Do nothing, it was a successful run. Just clean up things below.
   }
   catch (std::exception const &e)
   {
@@ -429,12 +428,14 @@ int main(int argc, char *argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     std::cerr << "processor " << rank
               << " caught a std::exception: " << e.what() << "\n";
+    success = false;
   }
   catch (...)
   {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     std::cerr << "processor " << rank << " caught some kind of exception\n";
+    success = false;
   }
 
   Kokkos::finalize();
