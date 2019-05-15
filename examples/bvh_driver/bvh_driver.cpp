@@ -11,6 +11,7 @@
 
 #include <ArborX_BoostRTreeHelpers.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -282,6 +283,9 @@ public:
 int main(int argc, char *argv[])
 {
   KokkosScopeGuard guard(argc, argv);
+
+  std::cout << "ArborX version: " << ArborX::version() << std::endl;
+  std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
 
   namespace bpo = boost::program_options;
   bpo::options_description desc("Allowed options");

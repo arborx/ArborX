@@ -9,12 +9,20 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_CONFIG_HPP
-#define ARBORX_CONFIG_HPP
+#ifndef ARBORX_VERSION_HPP
+#define ARBORX_VERSION_HPP
 
-#cmakedefine ARBORX_VERSION_STRING "@ARBORX_VERSION_STRING@"
-#cmakedefine ARBORX_GIT_COMMIT_HASH "@ARBORX_GIT_COMMIT_HASH@"
+#include <ArborX_Config.hpp>
 
-#cmakedefine ARBORX_ENABLE_MPI
+#include <string>
+
+namespace ArborX
+{
+
+inline std::string version() { return ARBORX_VERSION_STRING; }
+
+inline std::string gitCommitHash() { return ARBORX_GIT_COMMIT_HASH; }
+
+} // namespace ArborX
 
 #endif

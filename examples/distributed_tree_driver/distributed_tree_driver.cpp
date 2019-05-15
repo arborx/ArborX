@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include <ArborX_DistributedSearchTree.hpp>
+#include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -350,6 +351,9 @@ int main(int argc, char *argv[])
 {
   MPI_Init(&argc, &argv);
   Kokkos::initialize(argc, argv);
+
+  std::cout << "ArborX version: " << ArborX::version() << std::endl;
+  std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
 
   bool success = true;
 
