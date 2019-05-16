@@ -1,0 +1,6 @@
+docker/ export-ignore
+.clang* export-ignore
+.git* export-ignore
+.jenkins export-ignore
+.mailmap export-ignore
+.travis.yml export-ignore
