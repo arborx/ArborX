@@ -271,9 +271,9 @@ public:
 
   ~CmdLineArgs()
   {
-    for (auto &p : _argv)
+    for (int i = 0; i < _argc; ++i)
     {
-      delete[] p;
+      delete[] _argv[i];
     }
   }
   int &argc() { return _argc; }
