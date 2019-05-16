@@ -258,7 +258,7 @@ private:
 public:
   CmdLineArgs(std::vector<std::string> const &args, char const *exe)
       : _argc(args.size() + 1)
-      , _argv{{new char[std::strlen(exe)]}}
+      , _argv{{new char[std::strlen(exe) + 1]}}
   {
     std::strcpy(_argv[0], exe);
     _argv.reserve(_argc);
