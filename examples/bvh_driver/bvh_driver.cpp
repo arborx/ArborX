@@ -258,7 +258,7 @@ private:
 public:
   CmdLineArgs(std::vector<std::string> const &args, char const *exe)
       : _argc(args.size() + 1)
-      , _argv{{new char[std::strlen(exe)]}}
+      , _argv{{new char[std::strlen(exe) + 1]}}
   {
     std::strcpy(_argv[0], exe);
     _argv.reserve(_argc);
@@ -271,9 +271,15 @@ public:
 
   ~CmdLineArgs()
   {
-    for (auto &p : _argv)
+    // Benchmark removes its own arguments from the command line arguments.
+    // This means, that by virtue of returning references to internal data
+    // members in argc() and argv() function, it will necessarily modify the
+    // members. It will decrease _argc, and "reduce" _argv data. This, however,
+    // will result in _argv having the original size, but the data beyond first
+    // _argc values is garbage, and would have been already released.
+    for (int i = 0; i < _argc; ++i)
     {
-      delete[] p;
+      delete[] _argv[i];
     }
   }
   int &argc() { return _argc; }
