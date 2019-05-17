@@ -249,11 +249,18 @@ public:
 // NOTE Motivation for this class that stores the argument count and values is
 // I could not figure out how to make the parser consume arguments with
 // Boost.Program_options
+// Benchmark removes its own arguments from the command line arguments. This
+// means, that by virtue of returning references to internal data members in
+// argc() and argv() function, it will necessarily modify the members. It will
+// decrease _argc, and "reduce" _argv data. Hence, we must keep a copy of _argv
+// that is not modified from the outside to release memory in the destructor
+// correctly.
 class CmdLineArgs
 {
 private:
   int _argc;
   std::vector<char *> _argv;
+  std::vector<char *> _argv_copy;
 
 public:
   CmdLineArgs(std::vector<std::string> const &args, char const *exe)
@@ -267,21 +274,17 @@ public:
       _argv.push_back(new char[s.size() + 1]);
       std::strcpy(_argv.back(), s.c_str());
     }
+    _argv_copy = _argv;
   }
 
   ~CmdLineArgs()
   {
-    // Benchmark removes its own arguments from the command line arguments.
-    // This means, that by virtue of returning references to internal data
-    // members in argc() and argv() function, it will necessarily modify the
-    // members. It will decrease _argc, and "reduce" _argv data. This, however,
-    // will result in _argv having the original size, but the data beyond first
-    // _argc values is garbage, and would have been already released.
-    for (int i = 0; i < _argc; ++i)
+    for (auto const &p : _argv_copy)
     {
-      delete[] _argv[i];
+      delete[] p;
     }
   }
+
   int &argc() { return _argc; }
   char **argv() { return _argv.data(); }
 };
