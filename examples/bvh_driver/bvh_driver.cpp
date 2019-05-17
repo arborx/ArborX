@@ -286,6 +286,7 @@ public:
   }
 
   int &argc() { return _argc; }
+
   char **argv() { return _argv.data(); }
 };
 
