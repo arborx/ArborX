@@ -260,26 +260,26 @@ class CmdLineArgs
 private:
   int _argc;
   std::vector<char *> _argv;
-  std::vector<char *> _argv_copy;
+  std::vector<char *> _owner_ptrs;
 
 public:
   CmdLineArgs(std::vector<std::string> const &args, char const *exe)
       : _argc(args.size() + 1)
-      , _argv{{new char[std::strlen(exe) + 1]}}
+      , _owner_ptrs{{new char[std::strlen(exe) + 1]}}
   {
-    std::strcpy(_argv[0], exe);
-    _argv.reserve(_argc);
+    std::strcpy(_owner_ptrs[0], exe);
+    _owner_ptrs.reserve(_argc);
     for (auto const &s : args)
     {
-      _argv.push_back(new char[s.size() + 1]);
-      std::strcpy(_argv.back(), s.c_str());
+      _owner_ptrs.push_back(new char[s.size() + 1]);
+      std::strcpy(_owner_ptrs.back(), s.c_str());
     }
-    _argv_copy = _argv;
+    _argv = _owner_ptrs;
   }
 
   ~CmdLineArgs()
   {
-    for (auto const &p : _argv_copy)
+    for (auto p : _owner_ptrs)
     {
       delete[] p;
     }
