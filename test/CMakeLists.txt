@@ -1,3 +1,12 @@
+IF(ArborX_TEST_MEMORY)
+  FIND_PROGRAM(MEMORYCHECK_COMMAND NAMES valgrind)
+  IF(MEMORYCOMMAND MATCHES "-NOTFOUND")
+    MESSAGE(FATAL_ERROR
+	    "Memory checking in tests enabled but could not find the valgrind "
+	    "executable. Please install valgrind.")
+  ENDIF()
+  SET(CTEST_MEMORYCHECK_COMMAND "${MEMORYCHECK_COMMAND}")
+ENDIF()
 
 set(ARBORX_DEVICE_TYPES)
 if(Kokkos_DEVICES MATCHES "Serial")

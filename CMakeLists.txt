@@ -78,9 +78,10 @@ install(DIRECTORY ${PROJECT_BINARY_DIR}/include/ DESTINATION include
 
 option(ArborX_ENABLE_TESTS "Enable tests" ON)
 option(ArborX_ENABLE_EXAMPLES "Enable examples" ON)
+option(ArborX_TEST_MEMORY "Enable memory checks in tests" OFF)
 
 if(${ArborX_ENABLE_TESTS} OR ${ArborX_ENABLE_EXAMPLES})
-  enable_testing()
+  include(CTest)
 endif()
 
 if(${ArborX_ENABLE_TESTS})

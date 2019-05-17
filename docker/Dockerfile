@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
         libicu-dev \
         python-dev \
         autotools-dev \
+        valgrind \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
