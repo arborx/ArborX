@@ -204,9 +204,9 @@ struct TreeVisualization
     // warnings about calling a __host__ function from a __host__
     // __device__ function emitted by nvcc.
 #if defined(__CUDA_ARCH__)
-    (void)tree;
-    (void)pred;
-    (void)visitor;
+    std::ignore = tree;
+    std::ignore = pred;
+    std::ignore = visitor;
     throw std::runtime_error("not meant to execute on the GPU");
 #else
     auto const geometry = pred._geometry;
