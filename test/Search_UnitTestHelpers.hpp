@@ -132,9 +132,7 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
     BOOST_TEST(n == offset_ref[i + 1] - offset_ref[i]);
     for (int j = 0; j < n; ++j)
     {
-      // FIXME_BOOST would be nice if we could compare tuples
-      BOOST_TEST(std::get<0>(l[j]) == std::get<0>(r[j]));
-      BOOST_TEST(std::get<1>(l[j]) == std::get<1>(r[j]));
+      BOOST_TEST(l[j] == r[j]);
     }
   }
 }
@@ -294,9 +292,7 @@ void validateResults(
     BOOST_TEST(n == offset(i + 1) - offset(i));
     for (int j = 0; j < n; ++j)
     {
-      // FIXME_BOOST would be nice if we could compare tuples
-      BOOST_TEST(std::get<0>(l[j]) == std::get<0>(r[j]));
-      BOOST_TEST(std::get<1>(l[j]) == std::get<1>(r[j]));
+      BOOST_TEST(l[j] == r[j]);
     }
   }
 }
