@@ -269,14 +269,10 @@ void validateResults(
     }
     std::sort(l.begin(), l.end());
     std::sort(r.begin(), r.end());
-    // somehow can't use TEST_COMPARE_ARRAY() so doing it myself
     BOOST_TEST(l.size() == r.size());
     int const n = l.size();
     BOOST_TEST(n == offset(i + 1) - offset(i));
-    for (int j = 0; j < n; ++j)
-    {
-      BOOST_TEST(l[j] == r[j]);
-    }
+    BOOST_TEST(l == r, tt::per_element());
   }
 }
 
