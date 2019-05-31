@@ -23,6 +23,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <iostream>
 #include <tuple>
 #include <vector>
 
@@ -74,6 +75,48 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
   BOOST_TEST(distances_host == distances_ref, tt::per_element());
 }
 
+// Enable comparison of tuples
+namespace boost
+{
+namespace test_tools
+{
+namespace tt_detail
+{
+namespace cppreference
+{
+// helper function to print a tuple of any size
+// adapted from https://en.cppreference.com/w/cpp/utility/tuple/tuple_cat
+template <class Tuple, std::size_t N>
+struct TuplePrinter
+{
+  static void print(std::ostream &os, Tuple const &t)
+  {
+    TuplePrinter<Tuple, N - 1>::print(os, t);
+    os << ", " << std::get<N - 1>(t);
+  }
+};
+
+template <class Tuple>
+struct TuplePrinter<Tuple, 1>
+{
+  static void print(std::ostream &os, Tuple const &t) { os << std::get<0>(t); }
+};
+} // namespace cppreference
+
+template <typename... Args>
+struct print_log_value<std::tuple<Args...>>
+{
+  void operator()(std::ostream &os, std::tuple<Args...> const &t)
+  {
+    os << '(';
+    cppreference::TuplePrinter<decltype(t), sizeof...(Args)>::print(os, t);
+    os << ')';
+  }
+};
+} // namespace tt_detail
+} // namespace test_tools
+} // namespace boost
+
 #ifdef ARBORX_ENABLE_MPI
 template <typename Query, typename DeviceType>
 void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
@@ -112,9 +155,7 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
     BOOST_TEST(n == offset_ref[i + 1] - offset_ref[i]);
     for (int j = 0; j < n; ++j)
     {
-      // FIXME_BOOST would be nice if we could compare tuples
-      BOOST_TEST(std::get<0>(l[j]) == std::get<0>(r[j]));
-      BOOST_TEST(std::get<1>(l[j]) == std::get<1>(r[j]));
+      BOOST_TEST(l[j] == r[j]);
     }
   }
 }
@@ -274,9 +315,7 @@ void validateResults(
     BOOST_TEST(n == offset(i + 1) - offset(i));
     for (int j = 0; j < n; ++j)
     {
-      // FIXME_BOOST would be nice if we could compare tuples
-      BOOST_TEST(std::get<0>(l[j]) == std::get<0>(r[j]));
-      BOOST_TEST(std::get<1>(l[j]) == std::get<1>(r[j]));
+      BOOST_TEST(l[j] == r[j]);
     }
   }
 }
