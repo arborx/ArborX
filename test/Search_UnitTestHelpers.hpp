@@ -12,6 +12,8 @@
 #ifndef ARBORX_SEARCH_TEST_HELPERS_HPP
 #define ARBORX_SEARCH_TEST_HELPERS_HPP
 
+#include "boost_ext/TupleComparison.hpp"
+
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsKokkosExt.hpp> // is_accessible_from
 #ifdef ARBORX_ENABLE_MPI
@@ -74,48 +76,6 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
   BOOST_TEST(offset_host == offset_ref, tt::per_element());
   BOOST_TEST(distances_host == distances_ref, tt::per_element());
 }
-
-// Enable comparison of tuples
-namespace boost
-{
-namespace test_tools
-{
-namespace tt_detail
-{
-namespace cppreference
-{
-// helper function to print a tuple of any size
-// adapted from https://en.cppreference.com/w/cpp/utility/tuple/tuple_cat
-template <class Tuple, std::size_t N>
-struct TuplePrinter
-{
-  static void print(std::ostream &os, Tuple const &t)
-  {
-    TuplePrinter<Tuple, N - 1>::print(os, t);
-    os << ", " << std::get<N - 1>(t);
-  }
-};
-
-template <class Tuple>
-struct TuplePrinter<Tuple, 1>
-{
-  static void print(std::ostream &os, Tuple const &t) { os << std::get<0>(t); }
-};
-} // namespace cppreference
-
-template <typename... Args>
-struct print_log_value<std::tuple<Args...>>
-{
-  void operator()(std::ostream &os, std::tuple<Args...> const &t)
-  {
-    os << '(';
-    cppreference::TuplePrinter<decltype(t), sizeof...(Args)>::print(os, t);
-    os << ')';
-  }
-};
-} // namespace tt_detail
-} // namespace test_tools
-} // namespace boost
 
 #ifdef ARBORX_ENABLE_MPI
 template <typename Query, typename DeviceType>
