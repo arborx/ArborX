@@ -23,6 +23,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <iostream>
 #include <tuple>
 #include <vector>
 
@@ -73,6 +74,25 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
   BOOST_TEST(offset_host == offset_ref, tt::per_element());
   BOOST_TEST(distances_host == distances_ref, tt::per_element());
 }
+
+// Enable comparison of tuples
+namespace boost
+{
+namespace test_tools
+{
+namespace tt_detail
+{
+template <typename T1, typename T2>
+struct print_log_value<std::tuple<T1, T2>>
+{
+  void operator()(std::ostream &os, std::tuple<int, int> const &x)
+  {
+    os << '(' << std::get<0>(x) << ", " << std::get<1>(x) << ')';
+  }
+};
+} // namespace tt_detail
+} // namespace test_tools
+} // namespace boost
 
 #ifdef ARBORX_ENABLE_MPI
 template <typename Query, typename DeviceType>
