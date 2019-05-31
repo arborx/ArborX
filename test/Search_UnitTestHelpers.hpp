@@ -82,29 +82,35 @@ namespace test_tools
 {
 namespace tt_detail
 {
+namespace cppreference
+{
 // helper function to print a tuple of any size
+// adapted from https://en.cppreference.com/w/cpp/utility/tuple/tuple_cat
 template <class Tuple, std::size_t N>
 struct TuplePrinter
 {
-  static void print(const Tuple &t)
+  static void print(std::ostream &os, Tuple const &t)
   {
-    TuplePrinter<Tuple, N - 1>::print(t);
-    std::cout << ", " << std::get<N - 1>(t);
+    TuplePrinter<Tuple, N - 1>::print(os, t);
+    os << ", " << std::get<N - 1>(t);
   }
 };
 
 template <class Tuple>
 struct TuplePrinter<Tuple, 1>
 {
-  static void print(const Tuple &t) { std::cout << std::get<0>(t); }
+  static void print(std::ostream &os, Tuple const &t) { os << std::get<0>(t); }
 };
+} // namespace cppreference
 
-template <typename T1, typename T2>
-struct print_log_value<std::tuple<T1, T2>>
+template <typename... Args>
+struct print_log_value<std::tuple<Args...>>
 {
-  void operator()(std::ostream &os, std::tuple<T1, T2> const &x)
+  void operator()(std::ostream &os, std::tuple<Args...> const &t)
   {
-    os << '(' << std::get<0>(x) << ", " << std::get<1>(x) << ')';
+    os << '(';
+    cppreference::TuplePrinter<decltype(t), sizeof...(Args)>::print(os, t);
+    os << ')';
   }
 };
 } // namespace tt_detail
