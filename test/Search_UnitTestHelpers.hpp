@@ -85,7 +85,7 @@ namespace tt_detail
 template <typename T1, typename T2>
 struct print_log_value<std::tuple<T1, T2>>
 {
-  void operator()(std::ostream &os, std::tuple<int, int> const &x)
+  void operator()(std::ostream &os, std::tuple<T1, T2> const &x)
   {
     os << '(' << std::get<0>(x) << ", " << std::get<1>(x) << ')';
   }
