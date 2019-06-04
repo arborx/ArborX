@@ -68,9 +68,121 @@ bool isValid(Sphere const &s)
   return isValid(s.centroid()) && isFinite(s.radius()) && (s.radius() >= 0.);
 }
 
+class DistanceReturnType
+{
+private:
+  double sq = 0.;
+
+public:
+  // FIXME I do not like that I had to provide a default constructor to be
+  // able to use in the PriorityQueue which holds a C array of
+  // pair<DistanceReturnType, Node*>
+  KOKKOS_FUNCTION DistanceReturnType() = default;
+  // NOTE cannot be declared constexpr because abort() isn't
+  KOKKOS_FUNCTION explicit DistanceReturnType(double v)
+      : sq(v)
+  {
+    /*        if ( KokkosHelpers::isNan( sq ) || sq < 0 )
+                Kokkos::abort( "Invalid arguemnt: DistanceReturnType constructor
+       " "requires non-negative floating-point value" );*/
+  }
+  // TODO consider removing implicit conversion to double
+  KOKKOS_INLINE_FUNCTION operator double() const
+  { /*abort();*/
+    return std::sqrt(sq);
+  }
+  KOKKOS_INLINE_FUNCTION bool operator<(DistanceReturnType const &rhs) const
+  {
+    return sq < rhs.sq;
+  }
+  KOKKOS_INLINE_FUNCTION bool operator<(double const &rhs) const
+  {
+    return sq < rhs * rhs;
+  }
+  friend KOKKOS_INLINE_FUNCTION bool operator<(double const &lhs,
+                                               DistanceReturnType const &rhs)
+  {
+    return lhs * lhs < rhs.sq;
+  }
+  KOKKOS_INLINE_FUNCTION bool operator>(DistanceReturnType const &rhs) const
+  {
+    return sq > rhs.sq;
+  }
+  KOKKOS_INLINE_FUNCTION bool operator>(double const &rhs) const
+  {
+    return sq > rhs * rhs;
+  }
+  friend KOKKOS_INLINE_FUNCTION bool operator>(double const &lhs,
+                                               DistanceReturnType const &rhs)
+  {
+    return lhs * lhs > rhs.sq;
+  }
+  KOKKOS_INLINE_FUNCTION bool operator==(DistanceReturnType const &rhs) const
+  {
+    return sq == rhs.sq;
+  }
+  KOKKOS_INLINE_FUNCTION bool operator==(double const &rhs) const
+  {
+    return sq == rhs * rhs;
+  }
+  friend KOKKOS_INLINE_FUNCTION bool operator==(double const &lhs,
+                                                DistanceReturnType const &rhs)
+  {
+    return lhs * lhs == rhs.sq;
+  }
+  KOKKOS_INLINE_FUNCTION bool operator<=(DistanceReturnType const &rhs) const
+  {
+    return sq <= rhs.sq;
+  }
+  KOKKOS_INLINE_FUNCTION bool operator<=(double const &rhs) const
+  {
+    return sq <= rhs * rhs;
+  }
+  friend KOKKOS_INLINE_FUNCTION bool operator<=(double const &lhs,
+                                                DistanceReturnType const &rhs)
+  {
+    return lhs * lhs <= rhs.sq;
+  }
+  KOKKOS_INLINE_FUNCTION bool operator>=(DistanceReturnType const &rhs) const
+  {
+    return sq >= rhs.sq;
+  }
+  KOKKOS_INLINE_FUNCTION bool operator>=(double const &rhs) const
+  {
+    return sq >= rhs * rhs;
+  }
+  friend KOKKOS_INLINE_FUNCTION bool operator>=(double const &lhs,
+                                                DistanceReturnType const &rhs)
+  {
+    return lhs * lhs >= rhs.sq;
+  }
+  KOKKOS_INLINE_FUNCTION bool operator!=(DistanceReturnType const &rhs) const
+  {
+    return sq != rhs.sq;
+  }
+  KOKKOS_INLINE_FUNCTION bool operator!=(double const &rhs) const
+  {
+    return sq != rhs * rhs;
+  }
+  friend KOKKOS_INLINE_FUNCTION bool operator!=(double const &lhs,
+                                                DistanceReturnType const &rhs)
+  {
+    return lhs * lhs != rhs.sq;
+  }
+
+  friend DistanceReturnType operator-(DistanceReturnType const &left,
+                                      double const &right);
+};
+
+inline DistanceReturnType operator-(DistanceReturnType const &left,
+                                    double const &right)
+{
+  return DistanceReturnType(left.sq - right * right);
+}
+
 // distance point-point
 KOKKOS_INLINE_FUNCTION
-double distance(Point const &a, Point const &b)
+DistanceReturnType distance(Point const &a, Point const &b)
 {
   double distance_squared = 0.0;
   for (int d = 0; d < 3; ++d)
@@ -78,12 +190,12 @@ double distance(Point const &a, Point const &b)
     double tmp = b[d] - a[d];
     distance_squared += tmp * tmp;
   }
-  return std::sqrt(distance_squared);
+  return DistanceReturnType{distance_squared};
 }
 
 // distance point-box
 KOKKOS_INLINE_FUNCTION
-double distance(Point const &point, Box const &box)
+DistanceReturnType distance(Point const &point, Box const &box)
 {
   Point projected_point;
   for (int d = 0; d < 3; ++d)
@@ -100,10 +212,11 @@ double distance(Point const &point, Box const &box)
 
 // distance point-sphere
 KOKKOS_INLINE_FUNCTION
-double distance(Point const &point, Sphere const &sphere)
+DistanceReturnType distance(Point const &point, Sphere const &sphere)
 {
   using KokkosExt::max;
-  return max(distance(point, sphere.centroid()) - sphere.radius(), 0.);
+  return max(distance(point, sphere.centroid()) - sphere.radius(),
+             DistanceReturnType(0.));
 }
 
 // expand an axis-aligned bounding box to include a point

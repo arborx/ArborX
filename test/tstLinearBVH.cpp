@@ -13,6 +13,7 @@
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_LinearBVH.hpp>
+#include <details/ArborX_DetailsAlgorithms.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -344,8 +345,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(miscellaneous, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
   Kokkos::View<int *, DeviceType> zeros("zeros", 3);
   Kokkos::deep_copy(zeros, 255);
-  Kokkos::View<Kokkos::pair<int, double> *, DeviceType> empty_buffer(
-      "empty_buffer", 0);
+  Kokkos::View<Kokkos::pair<int, ArborX::Details::DistanceReturnType> *,
+               DeviceType>
+      empty_buffer("empty_buffer", 0);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, 1), KOKKOS_LAMBDA(int) {
         ArborX::Point p = {{0., 0., 0.}};

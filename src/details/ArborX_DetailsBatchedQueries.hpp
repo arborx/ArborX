@@ -159,13 +159,14 @@ public:
     return std::make_tuple(tmp_offset, tmp_indices);
   }
 
+  template <typename T>
   static std::tuple<Kokkos::View<int *, DeviceType>,
                     Kokkos::View<int *, DeviceType>,
-                    Kokkos::View<double *, DeviceType>>
+                    Kokkos::View<T *, DeviceType>>
   reversePermutation(Kokkos::View<size_t const *, DeviceType> permute,
                      Kokkos::View<int const *, DeviceType> offset,
                      Kokkos::View<int const *, DeviceType> indices,
-                     Kokkos::View<double const *, DeviceType> distances)
+                     Kokkos::View<T const *, DeviceType> distances)
   {
     auto const tmp_offset = permuteOffset(permute, offset);
 

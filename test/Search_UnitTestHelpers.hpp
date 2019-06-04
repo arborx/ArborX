@@ -139,13 +139,19 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
 
   BOOST_TEST(offset_host == offset_ref, tt::per_element());
   auto const m = offset_host.extent_int(0) - 1;
+  BOOST_TEST(ranks_host.extent_int(0) == offset_ref[m]);
+  std::cout << ranks_host.extent_int(0) << " should be " << offset_ref[m]
+            << std::endl;
   for (int i = 0; i < m; ++i)
   {
     std::vector<std::tuple<int, int>> l;
     std::vector<std::tuple<int, int>> r;
     for (int j = offset_ref[i]; j < offset_ref[i + 1]; ++j)
     {
-      l.push_back(std::make_tuple(ranks_host[j], indices_host[j]));
+      auto bla = ranks_host[j];
+      auto blabla = indices_host[j];
+      auto foo = std::make_tuple(bla, blabla);
+      l.push_back(foo);
       r.push_back(std::make_tuple(ranks_ref[j], indices_ref[j]));
     }
     sort(l.begin(), l.end());

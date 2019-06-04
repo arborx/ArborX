@@ -18,8 +18,11 @@ namespace details = ArborX::Details;
 
 BOOST_AUTO_TEST_CASE(distance)
 {
-  BOOST_TEST(details::distance({{1.0, 2.0, 3.0}}, {{1.0, 1.0, 1.0}}) ==
-             std::sqrt(5.0));
+  double error =
+      details::distance({{1.0, 2.0, 3.0}}, {{1.0, 1.0, 1.0}}) - std::sqrt(5.0);
+  if (std::abs(error) > 1.e-7)
+    BOOST_TEST(details::distance({{1.0, 2.0, 3.0}}, {{1.0, 1.0, 1.0}}) ==
+               std::sqrt(5.0));
 
   // box is unit cube
   ArborX::Box box = {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
@@ -31,15 +34,23 @@ BOOST_AUTO_TEST_CASE(distance)
   // normal projection onto center of one face
   BOOST_TEST(details::distance({{2.0, 0.5, 0.5}}, box) == 1.0);
   // projection onto edge
-  BOOST_TEST(details::distance({{2.0, 0.75, -1.0}}, box) == std::sqrt(2.0));
+  error = details::distance({{2.0, 0.75, -1.0}}, box) - std::sqrt(2.0);
+  if (std::abs(error) > 1.e-7)
+    BOOST_TEST(details::distance({{2.0, 0.75, -1.0}}, box) == std::sqrt(2.0));
   // projection onto corner node
-  BOOST_TEST(details::distance({{-1.0, 2.0, 2.0}}, box) == std::sqrt(3.0));
+  error = details::distance({{-1.0, 2.0, 2.0}}, box) - std::sqrt(3.0);
+  if (std::abs(error) > 1.e-7)
+    BOOST_TEST(details::distance({{-1.0, 2.0, 2.0}}, box) == std::sqrt(3.0));
 
   // unit sphere
   ArborX::Sphere sphere = {{{0., 0., 0.}}, 1.};
   BOOST_TEST(details::distance({{.5, .5, .5}}, sphere) == 0.);
-  BOOST_TEST(details::distance({{2., 0., 0.}}, sphere) == 1.);
-  BOOST_TEST(details::distance({{1., 1., 1.}}, sphere) == std::sqrt(3.) - 1.);
+  error = details::distance({{2.0, 0., 0.}}, box) - std::sqrt(3.0);
+  if (std::abs(error) > 1.e-7)
+    BOOST_TEST(details::distance({{2., 0., 0.}}, sphere) == 1.);
+  error = details::distance({{1., 1., 1.}}, box) - std::sqrt(3.0);
+  if (std::abs(error) > 1.e-7)
+    BOOST_TEST(details::distance({{1., 1., 1.}}, sphere) == std::sqrt(3.) - 1.);
 }
 
 BOOST_AUTO_TEST_CASE(overlaps)

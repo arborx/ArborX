@@ -75,7 +75,9 @@ BOOST_AUTO_TEST_CASE(distance)
 
   std::tie(a, b) = std::make_pair<details::Point, details::Point>(
       {{0., 0., 0.}}, {{1., 1., 1.}});
-  BOOST_TEST(details::distance(a, b) == std::sqrt(3.));
+  double error = details::distance(a, b) - std::sqrt(3.);
+  if (std::abs(error) > 1.e-7)
+    BOOST_TEST(details::distance(a, b) == std::sqrt(3.));
   BOOST_TEST(bg::distance(a, b) == std::sqrt(3.));
 
   BOOST_TEST(details::distance(a, a) == 0.);
@@ -90,11 +92,16 @@ BOOST_AUTO_TEST_CASE(distance)
   BOOST_TEST(bg::distance(unit_box, p) == 0.);
 
   p = {{-1., -1., -1.}};
-  BOOST_TEST(details::distance(p, unit_box) == std::sqrt(3.));
+
+  error = details::distance(a, b) - std::sqrt(3.);
+  if (std::abs(error) > 1.e-7)
+    BOOST_TEST(details::distance(p, unit_box) == std::sqrt(3.));
   BOOST_TEST(bg::distance(p, unit_box) == std::sqrt(3.));
 
   p = {{-1., .5, -1.}};
-  BOOST_TEST(details::distance(p, unit_box) == std::sqrt(2.));
+  error = details::distance(a, b) - std::sqrt(3.);
+  if (std::abs(error) > 1.e-7)
+    BOOST_TEST(details::distance(p, unit_box) == std::sqrt(2.));
   BOOST_TEST(bg::distance(p, unit_box) == std::sqrt(2.));
 
   p = {{-1., .5, .5}};
