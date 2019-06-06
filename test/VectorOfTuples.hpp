@@ -51,7 +51,7 @@ toVectorOfTuples(Arrays const &... in)
 {
   std::vector<std::tuple<typename Details::ArrayTraits<Arrays>::value_type...>>
       out;
-  std::size_t const n = Details::getSizeOfArrays(in...);
+  std::size_t const n = Details::getSize(in...);
   for (std::size_t i = 0; i < n; ++i)
   {
     out.emplace_back(Details::ArrayTraits<Arrays>::access(in, i)...);
