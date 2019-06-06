@@ -3,7 +3,7 @@ in the environment file.  Its value will be prepended along with the service
 name to the container on start up.
 
 
-You may use multiple Compose file to cusomize your container.  For instance, you
+You may use multiple compose files to customize your container.  For instance, you
 could reproduce the configuration from one of the automated builds by providing
 the following a `docker-compose.override.yml` file:
 ```
