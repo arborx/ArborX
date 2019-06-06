@@ -18,11 +18,11 @@ namespace Details
 template <typename... Ts>
 struct ArrayTraits;
 
-void checkSize(std::size_t, std::size_t) {}
+void checkProperlySized(std::size_t, std::size_t) {}
 
 template <typename Array, typename... Arrays>
-void checkSize(std::size_t pos, std::size_t s, Array const &v,
-               Arrays const &... o)
+void checkProperlySized(std::size_t pos, std::size_t s, Array const &v,
+                        Arrays const &... o)
 {
   if (s != v.size())
   {
@@ -32,14 +32,14 @@ void checkSize(std::size_t pos, std::size_t s, Array const &v,
         << v.size() << " != " << s << ")";
     throw std::invalid_argument(msg.str());
   }
-  checkSize(++pos, s, o...);
+  checkProperlySized(++pos, s, o...);
 }
 
 template <typename Array, typename... Arrays>
-std::size_t getSize(Array const &v, Arrays const &... o)
+std::size_t getSizeOfArrays(Array const &v, Arrays const &... o)
 {
   auto const s = ArrayTraits<Array>::size(v);
-  checkSize(1, s, o...);
+  checkProperlySized(1, s, o...);
   return s;
 }
 
@@ -51,7 +51,7 @@ toVectorOfTuples(Arrays const &... in)
 {
   std::vector<std::tuple<typename Details::ArrayTraits<Arrays>::value_type...>>
       out;
-  std::size_t const n = Details::getSize(in...);
+  std::size_t const n = Details::getSizeOfArrays(in...);
   for (std::size_t i = 0; i < n; ++i)
   {
     out.emplace_back(Details::ArrayTraits<Arrays>::access(in, i)...);
