@@ -13,12 +13,25 @@
 #include "boost_ext/TupleComparison.hpp"
 #include <boost/test/unit_test.hpp>
 
+#include <array>
 #include <string>
 
 #include "VectorOfTuples.hpp"
 
 namespace Details
 {
+
+template <typename T, std::size_t N>
+struct ArrayTraits<std::array<T, N>>
+{
+  using array_type = std::array<T, N>;
+  using value_type = typename array_type::value_type;
+  static std::size_t size(array_type const &) { return N; }
+  static value_type const &access(array_type const &a, std::size_t i)
+  {
+    return a[i];
+  }
+};
 
 template <typename T>
 struct ArrayTraits<std::vector<T>>
@@ -40,8 +53,8 @@ BOOST_AUTO_TEST_CASE(heterogeneous)
 {
   // NOTE assertion macro did not seem to like comas hence the variables
   auto const ret = toVectorOfTuples(
-      std::vector<std::string>{"dordogne", "gironde", "landes"},
-      std::vector<int>{24, 33, 40});
+      std::array<std::string, 3>{"dordogne", "gironde", "landes"},
+      std::array<int, 3>{24, 33, 40});
   std::vector<std::tuple<std::string, int>> const ref = {
       std::make_tuple("dordogne", 24), std::make_tuple("gironde", 33),
       std::make_tuple("landes", 40)};
