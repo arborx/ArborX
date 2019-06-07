@@ -186,7 +186,7 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
   BOOST_TEST(indices_host == indices_ref, tt::per_element());
   BOOST_TEST(offset_host == offset_ref, tt::per_element());
   BOOST_TEST(ranks_host == ranks_ref, tt::per_element());
-  BOOST_TEST(distances_host != distances_ref, tt::per_element());
+  BOOST_TEST(distances_host == distances_ref, tt::per_element());
 }
 #endif
 
