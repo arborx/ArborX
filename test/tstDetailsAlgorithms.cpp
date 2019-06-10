@@ -18,39 +18,34 @@ namespace details = ArborX::Details;
 
 BOOST_AUTO_TEST_CASE(distance)
 {
-  double error =
-      details::distance({{1.0, 2.0, 3.0}}, {{1.0, 1.0, 1.0}}) - std::sqrt(5.0);
-  if (std::abs(error) > 1.e-7)
-    BOOST_TEST(details::distance({{1.0, 2.0, 3.0}}, {{1.0, 1.0, 1.0}}) ==
-               std::sqrt(5.0));
+  BOOST_TEST(
+      details::distance({{1.0, 2.0, 3.0}}, {{1.0, 1.0, 1.0}}).to_double() ==
+      std::sqrt(5.0));
 
   // box is unit cube
   ArborX::Box box = {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
 
   // distance is zero if the point is inside the box
-  BOOST_TEST(details::distance({{0.5, 0.5, 0.5}}, box) == 0.0);
+  BOOST_TEST(details::distance({{0.5, 0.5, 0.5}}, box).to_double() == 0.0);
   // or anywhere on the boundary
-  BOOST_TEST(details::distance({{0.0, 0.0, 0.5}}, box) == 0.0);
+  BOOST_TEST(details::distance({{0.0, 0.0, 0.5}}, box).to_double() == 0.0);
   // normal projection onto center of one face
-  BOOST_TEST(details::distance({{2.0, 0.5, 0.5}}, box) == 1.0);
+  BOOST_TEST(details::distance({{2.0, 0.5, 0.5}}, box).to_double() == 1.0);
   // projection onto edge
-  error = details::distance({{2.0, 0.75, -1.0}}, box) - std::sqrt(2.0);
-  if (std::abs(error) > 1.e-7)
-    BOOST_TEST(details::distance({{2.0, 0.75, -1.0}}, box) == std::sqrt(2.0));
+  BOOST_TEST(details::distance({{2.0, 0.75, -1.0}}, box).to_double() ==
+             std::sqrt(2.0));
   // projection onto corner node
-  error = details::distance({{-1.0, 2.0, 2.0}}, box) - std::sqrt(3.0);
-  if (std::abs(error) > 1.e-7)
-    BOOST_TEST(details::distance({{-1.0, 2.0, 2.0}}, box) == std::sqrt(3.0));
+  BOOST_TEST(details::distance({{-1.0, 2.0, 2.0}}, box).to_double() ==
+             std::sqrt(3.0));
 
   // unit sphere
   ArborX::Sphere sphere = {{{0., 0., 0.}}, 1.};
-  BOOST_TEST(details::distance({{.5, .5, .5}}, sphere) == 0.);
-  error = details::distance({{2.0, 0., 0.}}, box) - std::sqrt(3.0);
-  if (std::abs(error) > 1.e-7)
-    BOOST_TEST(details::distance({{2., 0., 0.}}, sphere) == 1.);
-  error = details::distance({{1., 1., 1.}}, box) - std::sqrt(3.0);
-  if (std::abs(error) > 1.e-7)
-    BOOST_TEST(details::distance({{1., 1., 1.}}, sphere) == std::sqrt(3.) - 1.);
+  BOOST_TEST(details::distance({{.5, .5, .5}}, sphere).to_double() == 0.);
+
+  BOOST_TEST(details::distance({{2., 0., 0.}}, sphere).to_double() == 1.);
+
+  BOOST_TEST(details::distance({{1., 1., 1.}}, sphere).to_double() ==
+             std::sqrt(3.) - 1.);
 }
 
 BOOST_AUTO_TEST_CASE(overlaps)

@@ -216,7 +216,7 @@ struct TreeVisualization
           visitor.visit(node, tree);
           return distance(geometry, TreeAccess::getBoundingVolume(node, tree));
         },
-        k, [](int, double) {}, buffer);
+        k, [](int, DistanceReturnType) {}, buffer);
     return count;
 #endif
   }

@@ -52,15 +52,16 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
 // compare them to the reference solution passed as argument.  Templated type
 // `Query` is pretty much a nearest predicate in this case.
 template <typename Query, typename DeviceType>
-void checkResults(ArborX::BVH<DeviceType> const &bvh,
-                  Kokkos::View<Query *, DeviceType> const &queries,
-                  std::vector<int> const &indices_ref,
-                  std::vector<int> const &offset_ref,
-                  std::vector<double> const &distances_ref)
+void checkResults(
+    ArborX::BVH<DeviceType> const &bvh,
+    Kokkos::View<Query *, DeviceType> const &queries,
+    std::vector<int> const &indices_ref, std::vector<int> const &offset_ref,
+    std::vector<ArborX::Details::DistanceReturnType> const &distances_ref)
 {
   Kokkos::View<int *, DeviceType> indices("indices", 0);
   Kokkos::View<int *, DeviceType> offset("offset", 0);
-  Kokkos::View<double *, DeviceType> distances("distances", 0);
+  Kokkos::View<ArborX::Details::DistanceReturnType *, DeviceType> distances(
+      "distances", 0);
   bvh.query(queries, indices, offset, distances);
 
   auto indices_host = Kokkos::create_mirror_view(indices);
@@ -72,7 +73,8 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
 
   BOOST_TEST(indices_host == indices_ref, tt::per_element());
   BOOST_TEST(offset_host == offset_ref, tt::per_element());
-  BOOST_TEST(distances_host == distances_ref, tt::per_element());
+  for (unsigned int i = 0; i < distances_ref.size(); ++i)
+    BOOST_TEST(distances_host[i].to_double() == distances_ref[i].to_double());
 }
 
 // Enable comparison of tuples
@@ -140,8 +142,6 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
   BOOST_TEST(offset_host == offset_ref, tt::per_element());
   auto const m = offset_host.extent_int(0) - 1;
   BOOST_TEST(ranks_host.extent_int(0) == offset_ref[m]);
-  std::cout << ranks_host.extent_int(0) << " should be " << offset_ref[m]
-            << std::endl;
   for (int i = 0; i < m; ++i)
   {
     std::vector<std::tuple<int, int>> l;
@@ -167,17 +167,18 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
 }
 
 template <typename Query, typename DeviceType>
-void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
-                  Kokkos::View<Query *, DeviceType> const &queries,
-                  std::vector<int> const &indices_ref,
-                  std::vector<int> const &offset_ref,
-                  std::vector<int> const &ranks_ref,
-                  std::vector<double> const &distances_ref)
+void checkResults(
+    ArborX::DistributedSearchTree<DeviceType> const &tree,
+    Kokkos::View<Query *, DeviceType> const &queries,
+    std::vector<int> const &indices_ref, std::vector<int> const &offset_ref,
+    std::vector<int> const &ranks_ref,
+    std::vector<ArborX::Details::DistanceReturnType> const &distances_ref)
 {
   Kokkos::View<int *, DeviceType> indices("indices", 0);
   Kokkos::View<int *, DeviceType> offset("offset", 0);
   Kokkos::View<int *, DeviceType> ranks("ranks", 0);
-  Kokkos::View<double *, DeviceType> distances("distances", 0);
+  Kokkos::View<ArborX::Details::DistanceReturnType *, DeviceType> distances(
+      "distances", 0);
   tree.query(queries, indices, offset, ranks, distances);
 
   auto indices_host = Kokkos::create_mirror_view(indices);
@@ -192,7 +193,8 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
   BOOST_TEST(indices_host == indices_ref, tt::per_element());
   BOOST_TEST(offset_host == offset_ref, tt::per_element());
   BOOST_TEST(ranks_host == ranks_ref, tt::per_element());
-  BOOST_TEST(distances_host != distances_ref, tt::per_element());
+  for (unsigned int i = 0; i < distances_ref.size(); ++i)
+    BOOST_TEST(distances_host[i].to_double() == distances_ref[i].to_double());
 }
 #endif
 

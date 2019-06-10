@@ -70,42 +70,36 @@ BOOST_AUTO_TEST_CASE(distance)
   // NOTE unsure if should test for floating point equality here
   details::Point a = {{0., 0., 0.}};
   details::Point b = {{0., 1., 0.}};
-  BOOST_TEST(details::distance(a, b) == 1.);
+  BOOST_TEST(details::distance(a, b).to_double() == 1.);
   BOOST_TEST(bg::distance(a, b) == 1.);
 
   std::tie(a, b) = std::make_pair<details::Point, details::Point>(
       {{0., 0., 0.}}, {{1., 1., 1.}});
-  double error = details::distance(a, b) - std::sqrt(3.);
-  if (std::abs(error) > 1.e-7)
-    BOOST_TEST(details::distance(a, b) == std::sqrt(3.));
+  BOOST_TEST(details::distance(a, b).to_double() == std::sqrt(3.));
   BOOST_TEST(bg::distance(a, b) == std::sqrt(3.));
 
-  BOOST_TEST(details::distance(a, a) == 0.);
+  BOOST_TEST(details::distance(a, a).to_double() == 0.);
   BOOST_TEST(bg::distance(a, a) == 0.);
 
   details::Box unit_box = {{{0., 0., 0.}}, {{1., 1., 1.}}};
   details::Point p = {{.5, .5, .5}};
   // NOTE ArborX has no overload distance( Box, Point )
-  BOOST_TEST(details::distance(p, unit_box) == 0.);
+  BOOST_TEST(details::distance(p, unit_box).to_double() == 0.);
   // BOOST_TEST( details::distance( unit_box, p ) == 0. );
   BOOST_TEST(bg::distance(p, unit_box) == 0.);
   BOOST_TEST(bg::distance(unit_box, p) == 0.);
 
   p = {{-1., -1., -1.}};
 
-  error = details::distance(a, b) - std::sqrt(3.);
-  if (std::abs(error) > 1.e-7)
-    BOOST_TEST(details::distance(p, unit_box) == std::sqrt(3.));
+  BOOST_TEST(details::distance(p, unit_box).to_double() == std::sqrt(3.));
   BOOST_TEST(bg::distance(p, unit_box) == std::sqrt(3.));
 
   p = {{-1., .5, -1.}};
-  error = details::distance(a, b) - std::sqrt(3.);
-  if (std::abs(error) > 1.e-7)
-    BOOST_TEST(details::distance(p, unit_box) == std::sqrt(2.));
+  BOOST_TEST(details::distance(p, unit_box).to_double() == std::sqrt(2.));
   BOOST_TEST(bg::distance(p, unit_box) == std::sqrt(2.));
 
   p = {{-1., .5, .5}};
-  BOOST_TEST(details::distance(p, unit_box) == 1.);
+  BOOST_TEST(details::distance(p, unit_box).to_double() == 1.);
   BOOST_TEST(bg::distance(p, unit_box) == 1.);
 }
 

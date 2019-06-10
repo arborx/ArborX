@@ -86,11 +86,7 @@ public:
                 Kokkos::abort( "Invalid arguemnt: DistanceReturnType constructor
        " "requires non-negative floating-point value" );*/
   }
-  // TODO consider removing implicit conversion to double
-  KOKKOS_INLINE_FUNCTION operator double() const
-  { /*abort();*/
-    return std::sqrt(sq);
-  }
+  KOKKOS_INLINE_FUNCTION double to_double() const { return std::sqrt(sq); }
   KOKKOS_INLINE_FUNCTION bool operator<(DistanceReturnType const &rhs) const
   {
     return sq < rhs.sq;
@@ -169,16 +165,7 @@ public:
   {
     return lhs * lhs != rhs.sq;
   }
-
-  friend DistanceReturnType operator-(DistanceReturnType const &left,
-                                      double const &right);
 };
-
-inline DistanceReturnType operator-(DistanceReturnType const &left,
-                                    double const &right)
-{
-  return DistanceReturnType(left.sq - right * right);
-}
 
 // distance point-point
 KOKKOS_INLINE_FUNCTION
@@ -215,8 +202,9 @@ KOKKOS_INLINE_FUNCTION
 DistanceReturnType distance(Point const &point, Sphere const &sphere)
 {
   using KokkosExt::max;
-  return max(distance(point, sphere.centroid()) - sphere.radius(),
-             DistanceReturnType(0.));
+  double const real_distance =
+      max(distance(point, sphere.centroid()).to_double() - sphere.radius(), 0.);
+  return DistanceReturnType(real_distance * real_distance);
 }
 
 // expand an axis-aligned bounding box to include a point

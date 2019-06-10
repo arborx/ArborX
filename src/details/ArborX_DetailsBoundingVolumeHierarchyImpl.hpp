@@ -49,7 +49,7 @@ struct BoundingVolumeHierarchyImpl
                             Kokkos::View<int *, DeviceType> &offset,
                             int buffer_size = 0);
 
-  template <typename Query, typename T = double>
+  template <typename Query>
   static void queryDispatch(
       Details::NearestPredicateTag,
       BoundingVolumeHierarchy<DeviceType> const bvh,
@@ -57,16 +57,16 @@ struct BoundingVolumeHierarchyImpl
       Kokkos::View<int *, DeviceType> &indices,
       Kokkos::View<int *, DeviceType> &offset,
       NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default,
-      Kokkos::View<T *, DeviceType> *distances_ptr = nullptr);
+      Kokkos::View<DistanceReturnType *, DeviceType> *distances_ptr = nullptr);
 
-  template <typename Query, typename T = double>
+  template <typename Query>
   static void queryDispatch(
       Details::NearestPredicateTag tag,
       BoundingVolumeHierarchy<DeviceType> const bvh,
       Kokkos::View<Query *, DeviceType> queries,
       Kokkos::View<int *, DeviceType> &indices,
       Kokkos::View<int *, DeviceType> &offset,
-      Kokkos::View<T *, DeviceType> &distances,
+      Kokkos::View<DistanceReturnType *, DeviceType> &distances,
       NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default)
   {
     queryDispatch(tag, bvh, queries, indices, offset, which, &distances);
@@ -79,13 +79,13 @@ struct BoundingVolumeHierarchyImpl
 // the other alternative that uses a priority queue.  The existence of that
 // parameter shall not be advertised to the user.
 template <typename DeviceType>
-template <typename Query, typename T>
+template <typename Query>
 void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     Details::NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const bvh,
     Kokkos::View<Query *, DeviceType> queries,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset, NearestQueryAlgorithm which,
-    Kokkos::View<T *, DeviceType> *distances_ptr)
+    Kokkos::View<DistanceReturnType *, DeviceType> *distances_ptr)
 {
   Kokkos::Profiling::pushRegion("ArborX:BVH:nearest_queries");
 
@@ -130,8 +130,8 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   {
     auto &distances = *distances_ptr;
     reallocWithoutInitializing(distances, n_results);
-    double const invalid_distance =
-        -KokkosExt::ArithmeticTraits::max<double>::value;
+    DistanceReturnType const invalid_distance(
+        KokkosExt::ArithmeticTraits::max<double>::value);
     Kokkos::deep_copy(distances, invalid_distance);
 
     if (use_deprecated_nearest_query_algorithm)
@@ -194,7 +194,8 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
             int count = 0;
             Details::TreeTraversal<DeviceType>::query(
                 bvh, queries(i),
-                [indices, offset, permute, i, &count](int index, double) {
+                [indices, offset, permute, i, &count](int index,
+                                                      DistanceReturnType) {
                   indices(offset(permute(i)) + count++) = index;
                 });
           });
@@ -272,7 +273,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     if (distances_ptr)
     {
       auto &distances = *distances_ptr;
-      Kokkos::View<T *, DeviceType> tmp_distances(
+      Kokkos::View<DistanceReturnType *, DeviceType> tmp_distances(
           Kokkos::ViewAllocateWithoutInitializing(distances.label()),
           n_valid_indices);
       Kokkos::parallel_for(

@@ -13,7 +13,6 @@
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_LinearBVH.hpp>
-#include <details/ArborX_DetailsAlgorithms.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -133,13 +132,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, DeviceType, ARBORX_DEVICE_TYPES)
                }),
                {0, 0, 0}, {0, 1, 2, 3});
 
-  checkResults(bvh,
-               makeNearestQueries<DeviceType>({
-                   {{{1., 0., 0.}}, 1},
-                   {{{0., 2., 0.}}, 2},
-                   {{{0., 0., 3.}}, 3},
-               }),
-               {0, 0, 0}, {0, 1, 2, 3}, {0., 1., 2.});
+  auto const queries = makeNearestQueries<DeviceType>({
+      {{{1., 0., 0.}}, 1},
+      {{{0., 2., 0.}}, 2},
+      {{{0., 0., 3.}}, 3},
+  });
+  std::vector<int> const indices_ref = {0, 0, 0};
+  std::vector<int> const offset_ref = {0, 1, 2, 3};
+  std::vector<ArborX::Details::DistanceReturnType> distances_ref;
+  distances_ref.emplace_back(0.);
+  distances_ref.emplace_back(1.);
+  distances_ref.emplace_back(4.);
+  checkResults(bvh, queries, indices_ref, offset_ref, distances_ref);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, DeviceType,
@@ -195,12 +199,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, DeviceType,
   // no query
   checkResults(bvh, makeOverlapQueries<DeviceType>({}), {}, {0});
 
-  checkResults(bvh,
-               makeNearestQueries<DeviceType>({
-                   {{{0., 0., 0.}}, 2},
-                   {{{1., 0., 0.}}, 4},
-               }),
-               {0, 1, 0, 1}, {0, 2, 4}, {0., sqrt(3.), 1., sqrt(2.)});
+  auto const queries = makeNearestQueries<DeviceType>(
+      {{{{0., 0., 0.}}, 2}, {{{1., 0., 0.}}, 4}});
+  std::vector<int> const indices_ref = {0, 1, 0, 1};
+  std::vector<int> const offset_ref = {0, 2, 4};
+  std::vector<ArborX::Details::DistanceReturnType> distances_ref;
+  distances_ref.emplace_back(0.);
+  distances_ref.emplace_back(3);
+  distances_ref.emplace_back(1.);
+  distances_ref.emplace_back(2.);
+  checkResults(bvh, queries, indices_ref, offset_ref, distances_ref);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves, DeviceType,
@@ -357,10 +365,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(miscellaneous, DeviceType, ARBORX_DEVICE_TYPES)
             empty_bvh, ArborX::within(p, r), [](int) {});
         // nearest query on empty tree
         zeros(1) = ArborX::Details::TreeTraversal<DeviceType>::query(
-            empty_bvh, ArborX::nearest(p), [](int, double) {}, empty_buffer);
+            empty_bvh, ArborX::nearest(p),
+            [](int, ArborX::Details::DistanceReturnType) {}, empty_buffer);
         // nearest query for k < 1
         zeros(2) = ArborX::Details::TreeTraversal<DeviceType>::query(
-            bvh, ArborX::nearest(p, 0), [](int, double) {}, empty_buffer);
+            bvh, ArborX::nearest(p, 0),
+            [](int, ArborX::Details::DistanceReturnType) {}, empty_buffer);
       });
   Kokkos::fence();
   auto zeros_host = Kokkos::create_mirror_view(zeros);
