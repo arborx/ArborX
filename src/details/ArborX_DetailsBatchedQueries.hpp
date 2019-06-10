@@ -18,6 +18,7 @@
 #include <ArborX_DetailsSortUtils.hpp>  // sortObjects
 #include <ArborX_DetailsUtils.hpp>      // iota, exclusivePrefixSum, lastElement
 #include <ArborX_Macros.hpp>
+#include <ArborX_Predicates.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Parallel.hpp>

@@ -153,11 +153,10 @@ struct UnaryPredicate
   Function _pred;
 };
 
-template <typename Value>
-static auto translate(ArborX::Intersects<ArborX::Sphere> const &query)
-    -> decltype(boost::geometry::index::intersects(ArborX::Box()) &&
-                boost::geometry::index::satisfies(
-                    UnaryPredicate<Value>::makeAlwaysFalse()))
+template <typename Value, typename Sphere>
+static auto translate(ArborX::Intersects<Sphere> const &query) -> decltype(
+    boost::geometry::index::intersects(ArborX::Box()) &&
+    boost::geometry::index::satisfies(UnaryPredicate<Value>::makeAlwaysFalse()))
 {
   auto const sphere = query._geometry;
   auto const radius = sphere.radius();
