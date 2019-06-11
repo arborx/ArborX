@@ -13,7 +13,7 @@ if(ArborX_ENABLE_MPI)
   find_package(MPI REQUIRED)
   target_link_libraries(ArborX	INTERFACE MPI::MPI_CXX)
 endif()
-#target_compile_features(ArborX INTERFACE cxx_std_14)
+target_compile_features(ArborX INTERFACE cxx_std_14)
 
 target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
