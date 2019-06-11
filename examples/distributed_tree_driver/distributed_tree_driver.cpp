@@ -93,24 +93,30 @@ public:
     os << std::left << std::scientific;
 
     // Initialize with length of "Timer Name"
-    std::size_t max_section_length = 10;
-
-    for (unsigned int i = 0; i < n_timers; ++i)
-      max_section_length = std::max(max_section_length, _data[i].first.size());
+    std::size_t const max_section_length = std::accumulate(
+        _data.begin(), _data.end(), std::size_t(10),
+        [](std::size_t current_max, entry_reference_type section) {
+          return std::max(current_max, section.first.size());
+        });
 
     if (comm_size == 1)
     {
-      os << std::string(max_section_length + 15, '=') << "\n\n";
+      std::string const header_without_timer_name = " | GlobalTime";
+      int const header_width =
+          max_section_length + std::max<int>(header_without_timer_name.size(),
+                                             std::cout.precision() + 9);
+
+      os << std::string(header_width, '=') << "\n\n";
       os << "TimeMonitor results over 1 processor\n\n";
       os << std::setw(max_section_length) << "Timer Name"
-         << " | Global Time\n";
-      os << std::string(max_section_length + 15, '-') << '\n';
+         << header_without_timer_name << '\n';
+      os << std::string(header_width, '-') << '\n';
       for (int i = 0; i < n_timers; ++i)
       {
         os << std::setw(max_section_length) << _data[i].first << " | "
            << _data[i].second << '\n';
       }
-      os << std::string(max_section_length + 15, '=') << '\n';
+      os << std::string(header_width, '=') << '\n';
       return;
     }
     std::vector<double> all_entries(comm_size * n_timers);
@@ -120,13 +126,19 @@ public:
     // FIXME No guarantee that all processors have the same timers!
     MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, all_entries.data(),
                   n_timers, MPI_DOUBLE, comm);
+    std::string const header_without_timer_name =
+        " | MinOverProcs | MeanOverProcs | MaxOverProcs";
     if (comm_rank == 0)
     {
-      os << std::string(max_section_length + 46, '=') << "\n\n";
+      os << std::string(max_section_length + header_without_timer_name.size(),
+                        '=')
+         << "\n\n";
       os << "TimeMonitor results over " << comm_size << " processors\n";
       os << std::setw(max_section_length) << "Timer Name"
-         << " | MinOverProcs | MeanOverProcs | MaxOverProcs\n";
-      os << std::string(max_section_length + 46, '-') << '\n';
+         << header_without_timer_name << '\n';
+      os << std::string(max_section_length + header_without_timer_name.size(),
+                        '-')
+         << '\n';
     }
     std::vector<double> tmp(comm_size);
     for (int i = 0; i < n_timers; ++i)
@@ -146,7 +158,9 @@ public:
     }
     if (comm_rank == 0)
     {
-      os << std::string(max_section_length + 46, '=') << '\n';
+      os << std::string(max_section_length + header_without_timer_name.size(),
+                        '=')
+         << '\n';
     }
   }
 };
@@ -378,7 +392,7 @@ int main(int argc, char *argv[])
 {
   MPI_Init(&argc, &argv);
 
-  const MPI_Comm comm = MPI_COMM_WORLD;
+  MPI_Comm const comm = MPI_COMM_WORLD;
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
   if (comm_rank == 0)
