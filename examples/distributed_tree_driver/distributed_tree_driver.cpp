@@ -400,7 +400,7 @@ int main(int argc, char *argv[])
                                 });
     if (help_it != kokkos_argv + kokkos_argc)
     {
-      std::rotate(kokkos_argv, help_it + 1, kokkos_argv + kokkos_argc);
+      std::swap(*help_it, *(kokkos_argv + kokkos_argc - 1));
       --kokkos_argc;
     }
   }
