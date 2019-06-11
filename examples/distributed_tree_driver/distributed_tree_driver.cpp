@@ -20,7 +20,6 @@
 #include <chrono>
 #include <cmath> // cbrt
 #include <iomanip>
-#include <memory>
 #include <numeric>
 #include <random>
 #include <utility>
@@ -81,7 +80,7 @@ public:
     // FIXME Consider searching whether there already is an entry with the
     // same name.
     _data.emplace_back(std::move(name), 0.);
-    return std::make_unique<Timer>(_data.back());
+    return std::unique_ptr<Timer>(new Timer(_data.back()));
   }
   void summarize(MPI_Comm comm, std::ostream &os = std::cout)
   {
