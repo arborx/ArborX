@@ -10,7 +10,7 @@
 ## ****************************************************************************/
 
 # This CMake script makes sure to store the current git hash in
-# ArborX_Version.hpp each time we recomplile. It is important that this script
+# ArborX_Version.hpp each time we recompile. It is important that this script
 # is called by through a target created by add_custom_target so that it is
 # always considered to be out-of-date.
 
@@ -28,4 +28,3 @@ MESSAGE("ArborX hash = '${ARBORX_GIT_COMMIT_HASH}'")
 
 configure_file(${SOURCE_DIR}/src/ArborX_Version.hpp.in
                ${BINARY_DIR}/include/ArborX_Version.hpp)
-
