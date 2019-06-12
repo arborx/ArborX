@@ -32,7 +32,8 @@ struct HelpPrinted
 };
 
 // The TimeMonitor class can be used to measure for a series of events, i.e. it
-// represents a set of timers of type Timer.
+// represents a set of timers of type Timer. It is a poor man's drop-in
+// replacement for Teuchos::TimeMonitor
 class TimeMonitor
 {
   using container_type = std::vector<std::pair<std::string, double>>;
@@ -94,7 +95,7 @@ public:
 
     // Initialize with length of "Timer Name"
     std::size_t const max_section_length = std::accumulate(
-        _data.begin(), _data.end(), std::size_t(10),
+        _data.begin(), _data.end(), std::string("Timer Name").size(),
         [](std::size_t current_max, entry_reference_type section) {
           return std::max(current_max, section.first.size());
         });
@@ -102,9 +103,12 @@ public:
     if (comm_size == 1)
     {
       std::string const header_without_timer_name = " | GlobalTime";
+      std::stringstream dummy_string_stream;
+      dummy_string_stream << std::setprecision(os.precision())
+                          << std::scientific << " | " << 1.;
       int const header_width =
           max_section_length + std::max<int>(header_without_timer_name.size(),
-                                             std::cout.precision() + 9);
+                                             dummy_string_stream.str().size());
 
       os << std::string(header_width, '=') << "\n\n";
       os << "TimeMonitor results over 1 processor\n\n";
