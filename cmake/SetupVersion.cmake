@@ -14,6 +14,8 @@
 # is called by through a target created by add_custom_target so that it is
 # always considered to be out-of-date.
 
+SET(ARBORX_GIT_COMMIT_HASH "No hash available")
+
 IF(EXISTS ${SOURCE_DIR}/.git)
   FIND_PACKAGE(Git QUIET)
   IF(GIT_FOUND)
