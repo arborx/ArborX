@@ -13,7 +13,7 @@ if(ArborX_ENABLE_MPI)
   find_package(MPI REQUIRED)
   target_link_libraries(ArborX INTERFACE MPI::MPI_CXX)
 endif()
-target_compile_features(ArborX INTERFACE cxx_std_14)
+#target_compile_features(ArborX INTERFACE cxx_std_14)
 
 target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
@@ -33,23 +33,25 @@ install(EXPORT ArborXTargets
   DESTINATION lib/cmake/ArborX
 )
 
-SET(ARBORX_VERSION_STRING "0.9-dev)")
+SET(ARBORX_VERSION_STRING "0.9 (dev)")
 SET(ARBORX_GIT_COMMIT_HASH "No hash available")
-
 
 IF(EXISTS ${PROJECT_SOURCE_DIR}/.git)
   FIND_PACKAGE(Git)
   IF(GIT_FOUND)
-    ADD_CUSTOM_TARGET(record_hash ALL
-                      COMMAND ${CMAKE_COMMAND}
-                        -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
-                        -DBINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
-                        -DARBORX_ENABLE_MPI=${ARBORX_ENABLE_MPI}
-                        -DARBORX_VERSION_STRING="${ARBORX_VERSION_STRING}"
-                        -P cmake/SetupVersion.cmake
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    ADD_CUSTOM_TARGET(
+      record_hash ALL VERBATIM
+      COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+        -DBINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
+        -DARBORX_VERSION_STRING=${ARBORX_VERSION_STRING}
+        -P cmake/SetupVersion.cmake
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
   ENDIF()
 ENDIF()
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/ArborX_Config.hpp.in
+               ${CMAKE_CURRENT_BINARY_DIR}/include/ArborX_Config.hpp)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/ArborXSettings.cmake.in
                ${CMAKE_CURRENT_BINARY_DIR}/ArborXSettings.cmake

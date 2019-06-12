@@ -16,6 +16,9 @@
 
 #include <string>
 
+#cmakedefine ARBORX_VERSION_STRING "@ARBORX_VERSION_STRING@"
+#cmakedefine ARBORX_GIT_COMMIT_HASH "@ARBORX_GIT_COMMIT_HASH@"
+
 namespace ArborX
 {
 
