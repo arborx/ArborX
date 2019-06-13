@@ -33,12 +33,20 @@ install(EXPORT ArborXTargets
   DESTINATION lib/cmake/ArborX
 )
 
-SET(ARBORX_VERSION_STRING "0.9 (dev)")
+set(ARBORX_VERSION_STRING "0.9 (dev)")
 
-# Makes sure to store the current git hash ArborX_Version.hpp each time we 
-# recompile. 
-ADD_CUSTOM_TARGET(
+# Makes sure to store the current git hash ArborX_Version.hpp each time we
+# recompile.
+add_custom_target(
   record_hash ALL VERBATIM
+  COMMAND ${CMAKE_COMMAND}
+    -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+    -DBINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
+    -DARBORX_VERSION_STRING=${ARBORX_VERSION_STRING}
+    -P cmake/SetupVersion.cmake
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+# Also run the command when configuring
+execute_process(
   COMMAND ${CMAKE_COMMAND}
     -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
     -DBINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
