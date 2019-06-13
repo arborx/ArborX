@@ -11,7 +11,7 @@ option(ArborX_ENABLE_MPI "Enable MPI support" OFF)
 if(ArborX_ENABLE_MPI)
   set(ARBORX_ENABLE_MPI TRUE)
   find_package(MPI REQUIRED)
-  target_link_libraries(ArborX	INTERFACE MPI::MPI_CXX)
+  target_link_libraries(ArborX INTERFACE MPI::MPI_CXX)
 endif()
 #target_compile_features(ArborX INTERFACE cxx_std_14)
 
@@ -33,19 +33,26 @@ install(EXPORT ArborXTargets
   DESTINATION lib/cmake/ArborX
 )
 
-SET(ARBORX_VERSION_STRING "0.9 (dev)")
-SET(ARBORX_GIT_COMMIT_HASH "No hash available")
-IF(EXISTS ${PROJECT_SOURCE_DIR}/.git)
-    FIND_PACKAGE(Git)
-    IF(GIT_FOUND)
-        EXECUTE_PROCESS(
-            COMMAND           ${GIT_EXECUTABLE} log --pretty=format:%h -n 1
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            OUTPUT_VARIABLE   ARBORX_GIT_COMMIT_HASH
-            )
-    ENDIF()
-ENDIF()
-MESSAGE("ArborX hash = '${ARBORX_GIT_COMMIT_HASH}'")
+set(ARBORX_VERSION_STRING "0.9 (dev)")
+
+# Makes sure to store the current git hash ArborX_Version.hpp each time we
+# recompile.
+add_custom_target(
+  record_hash ALL VERBATIM
+  COMMAND ${CMAKE_COMMAND}
+    -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+    -DBINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
+    -DARBORX_VERSION_STRING=${ARBORX_VERSION_STRING}
+    -P cmake/SetupVersion.cmake
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+# Also run the command when configuring
+execute_process(
+  COMMAND ${CMAKE_COMMAND}
+    -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+    -DBINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
+    -DARBORX_VERSION_STRING=${ARBORX_VERSION_STRING}
+    -P cmake/SetupVersion.cmake
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/ArborX_Config.hpp.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/ArborX_Config.hpp)
