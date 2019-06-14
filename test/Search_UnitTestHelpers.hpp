@@ -66,7 +66,7 @@ template <typename T1, typename T2>
 void validateResults(T1 const &reference, T2 const &other)
 {
   auto const m = getNumberOfRows(reference);
-  BOOST_TEST(m == getNumberOfRows(reference));
+  BOOST_TEST(m == getNumberOfRows(other));
   for (std::size_t i = 0; i < m; ++i)
   {
     auto const l = extractRow(other, i);
