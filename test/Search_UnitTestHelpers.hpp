@@ -48,6 +48,18 @@ struct ArrayTraits<Kokkos::View<T *, Ps...>>
   }
 };
 
+template <typename T>
+struct ArrayTraits<std::vector<T>>
+{
+  using array_type = std::vector<T>;
+  using value_type = typename array_type::value_type;
+  static std::size_t size(array_type const &v) { return v.size(); }
+  static value_type const &access(array_type const &v, std::size_t i)
+  {
+    return v[i];
+  }
+};
+
 } // namespace Details
 
 namespace tt = boost::test_tools;
