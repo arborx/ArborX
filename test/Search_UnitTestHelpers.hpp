@@ -92,8 +92,8 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
   auto offset_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
 
-  BOOST_TEST(indices_host == indices_ref, tt::per_element());
-  BOOST_TEST(offset_host == offset_ref, tt::per_element());
+  validateResults(std::make_tuple(offset_host, indices_host),
+                  std::make_tuple(offset_ref, indices_ref));
 }
 
 // Same as above except that we get the distances out of the queries and
@@ -118,9 +118,8 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
   auto distances_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, distances);
 
-  BOOST_TEST(indices_host == indices_ref, tt::per_element());
-  BOOST_TEST(offset_host == offset_ref, tt::per_element());
-  BOOST_TEST(distances_host == distances_ref, tt::per_element());
+  validateResults(std::make_tuple(offset_host, indices_host, distances_host),
+                  std::make_tuple(offset_ref, indices_ref, distances_ref));
 }
 
 #ifdef ARBORX_ENABLE_MPI
@@ -143,27 +142,8 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
   auto ranks_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ranks);
 
-  BOOST_TEST(offset_host == offset_ref, tt::per_element());
-  auto const m = offset_host.extent_int(0) - 1;
-  for (int i = 0; i < m; ++i)
-  {
-    std::vector<std::tuple<int, int>> l;
-    std::vector<std::tuple<int, int>> r;
-    for (int j = offset_ref[i]; j < offset_ref[i + 1]; ++j)
-    {
-      l.push_back(std::make_tuple(ranks_host[j], indices_host[j]));
-      r.push_back(std::make_tuple(ranks_ref[j], indices_ref[j]));
-    }
-    sort(l.begin(), l.end());
-    sort(r.begin(), r.end());
-    BOOST_TEST(l.size() == r.size());
-    int const n = l.size();
-    BOOST_TEST(n == offset_ref[i + 1] - offset_ref[i]);
-    for (int j = 0; j < n; ++j)
-    {
-      BOOST_TEST(l[j] == r[j]);
-    }
-  }
+  validateResults(std::make_tuple(offset_host, ranks_host, indices_host),
+                  std::make_tuple(offset_ref, ranks_ref, indices_ref));
 }
 
 template <typename Query, typename DeviceType>
@@ -189,10 +169,9 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
   auto distances_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, distances);
 
-  BOOST_TEST(indices_host == indices_ref, tt::per_element());
-  BOOST_TEST(offset_host == offset_ref, tt::per_element());
-  BOOST_TEST(ranks_host == ranks_ref, tt::per_element());
-  BOOST_TEST(distances_host != distances_ref, tt::per_element());
+  validateResults(
+      std::make_tuple(offset_host, ranks_host, indices_host, distances_host),
+      std::make_tuple(offset_ref, ranks_ref, indices_ref, distances_ref));
 }
 #endif
 
