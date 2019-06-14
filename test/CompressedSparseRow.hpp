@@ -62,6 +62,14 @@ auto getNNZ(TupleOfArrays const &t)
   return nnz;
 }
 
+template <typename TupleOfArrays>
+auto getNumberOfRows(TupleOfArrays const &t)
+{
+  using ArrayType = typename std::tuple_element<0, TupleOfArrays>::type;
+  using Traits = Details::ArrayTraits<typename std::remove_cv<ArrayType>::type>;
+  return static_cast<std::size_t>(Traits::size(std::get<0>(t)) - 1);
+}
+
 template <typename Tuple, std::size_t... Is>
 auto subsetAndSort(Tuple const &t, std::size_t offset, std::size_t count,
                    std::index_sequence<Is...>)
