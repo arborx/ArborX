@@ -52,21 +52,21 @@ BOOST_AUTO_TEST_SUITE(VectorOfTuples)
 
 BOOST_AUTO_TEST_CASE(heterogeneous)
 {
-  // NOTE assertion macro did not seem to like comas hence the variables
-  auto const ret = toVectorOfTuples(
-      std::array<std::string, 3>{"dordogne", "gironde", "landes"},
-      std::array<int, 3>{24, 33, 40});
-  std::vector<std::tuple<std::string, int>> const ref = {
-      std::make_tuple("dordogne", 24), std::make_tuple("gironde", 33),
-      std::make_tuple("landes", 40)};
-  BOOST_TEST(ret == ref, boost::test_tools::per_element());
+  BOOST_TEST(
+      (toVectorOfTuples(
+          std::array<std::string, 3>{"dordogne", "gironde", "landes"},
+          std::array<int, 3>{24, 33, 40})) ==
+          (std::vector<std::tuple<std::string, int>>{
+              std::make_tuple("dordogne", 24), std::make_tuple("gironde", 33),
+              std::make_tuple("landes", 40)}),
+      boost::test_tools::per_element());
 }
 
 BOOST_AUTO_TEST_CASE(single_argument)
 {
-  auto const ret = toVectorOfTuples(std::vector<float>{3.14f});
-  std::vector<std::tuple<float>> const ref = {std::make_tuple(3.14f)};
-  BOOST_TEST(ret == ref, boost::test_tools::per_element());
+  BOOST_TEST((toVectorOfTuples(std::vector<float>{3.14f})) ==
+                 (std::vector<std::tuple<float>>{std::make_tuple(3.14f)}),
+             boost::test_tools::per_element());
 }
 
 BOOST_AUTO_TEST_CASE(not_properly_sized)
