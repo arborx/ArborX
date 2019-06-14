@@ -19,9 +19,9 @@
 namespace ArborX
 {
 
-inline std::string version() { return ARBORX_VERSION_STRING; }
+inline std::string version() { return "@ARBORX_VERSION_STRING@"; }
 
-inline std::string gitCommitHash() { return ARBORX_GIT_COMMIT_HASH; }
+inline std::string gitCommitHash() { return "@ARBORX_GIT_COMMIT_HASH@"; }
 
 } // namespace ArborX
 

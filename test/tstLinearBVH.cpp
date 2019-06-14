@@ -109,6 +109,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, DeviceType, ARBORX_DEVICE_TYPES)
 
   checkResults(bvh, makeNearestQueries<DeviceType>({}), {}, {0}, {});
 
+  checkResults(
+      bvh,
+      makeNearestQueries<DeviceType>({{{0., 0., 0.}, 3}, {{4., 5., 1.}, 1}}),
+      {0, 0}, {0, 1, 2}, {0., 5.});
+
   checkResults(bvh,
                makeOverlapQueries<DeviceType>({
                    {{{5., 5., 5.}}, {{5., 5., 5.}}},
