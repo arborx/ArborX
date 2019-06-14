@@ -12,7 +12,11 @@
 #ifndef ARBORX_SEARCH_TEST_HELPERS_HPP
 #define ARBORX_SEARCH_TEST_HELPERS_HPP
 
+// clang-format off
 #include "boost_ext/TupleComparison.hpp"
+#include "CompressedSparseRow.hpp"
+#include "VectorOfTuples.hpp"
+// clang-format on
 
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsKokkosExt.hpp> // is_accessible_from
@@ -28,6 +32,23 @@
 #include <iostream>
 #include <tuple>
 #include <vector>
+
+namespace Details
+{
+
+template <typename T, typename... Ps>
+struct ArrayTraits<Kokkos::View<T *, Ps...>>
+{
+  using array_type = Kokkos::View<T *, Ps...>;
+  using value_type = T;
+  static std::size_t size(array_type const &v) { return v.extent(0); }
+  static value_type const &access(array_type const &v, std::size_t i)
+  {
+    return v(i);
+  }
+};
+
+} // namespace Details
 
 namespace tt = boost::test_tools;
 
@@ -221,57 +242,15 @@ makeWithinQueries(std::vector<std::pair<ArborX::Point, double>> const &points)
   return queries;
 }
 
-template <typename InputView1, typename InputView2>
-void validateResults(std::tuple<InputView1, InputView1> const &reference,
-                     std::tuple<InputView2, InputView2> const &other)
+template <typename T1, typename T2>
+void validateResults(T1 const &reference, T2 const &other)
 {
-  static_assert(KokkosExt::is_accessible_from_host<InputView1>::value, "");
-  static_assert(KokkosExt::is_accessible_from_host<InputView2>::value, "");
-  BOOST_TEST(std::get<0>(reference) == std::get<0>(other), tt::per_element());
-  auto const offset = std::get<0>(reference);
-  auto const m = offset.extent_int(0) - 1;
-  for (int i = 0; i < m; ++i)
+  auto const m = getNumberOfRows(reference);
+  BOOST_TEST(m == getNumberOfRows(reference));
+  for (std::size_t i = 0; i < m; ++i)
   {
-    std::vector<int> l;
-    std::vector<int> r;
-    for (int j = offset[i]; j < offset[i + 1]; ++j)
-    {
-      l.push_back(std::get<1>(other)[j]);
-      r.push_back(std::get<1>(reference)[j]);
-    }
-    std::sort(l.begin(), l.end());
-    std::sort(r.begin(), r.end());
-    BOOST_TEST(l.size() == r.size());
-    int const n = l.size();
-    BOOST_TEST(n == offset[i + 1] - offset[i]);
-    BOOST_TEST(l == r, tt::per_element());
-  }
-}
-
-template <typename InputView1, typename InputView2>
-void validateResults(
-    std::tuple<InputView1, InputView1, InputView1> const &reference,
-    std::tuple<InputView2, InputView2, InputView2> const &other)
-{
-  static_assert(KokkosExt::is_accessible_from_host<InputView1>::value, "");
-  static_assert(KokkosExt::is_accessible_from_host<InputView2>::value, "");
-  BOOST_TEST(std::get<0>(reference) == std::get<0>(other), tt::per_element());
-  auto const offset = std::get<0>(reference);
-  auto const m = offset.extent_int(0) - 1;
-  for (int i = 0; i < m; ++i)
-  {
-    std::vector<std::tuple<int, int>> l;
-    std::vector<std::tuple<int, int>> r;
-    for (int j = offset[i]; j < offset[i + 1]; ++j)
-    {
-      l.emplace_back(std::get<1>(other)[j], std::get<2>(other)[j]);
-      r.emplace_back(std::get<1>(reference)[j], std::get<2>(reference)[j]);
-    }
-    std::sort(l.begin(), l.end());
-    std::sort(r.begin(), r.end());
-    BOOST_TEST(l.size() == r.size());
-    int const n = l.size();
-    BOOST_TEST(n == offset(i + 1) - offset(i));
+    auto const l = extractRow(other, i);
+    auto const r = extractRow(reference, i);
     BOOST_TEST(l == r, tt::per_element());
   }
 }
