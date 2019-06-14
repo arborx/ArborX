@@ -20,16 +20,16 @@ namespace ext
 // Extension for compile-time sequence of integers that defines a helper class
 // template make_index_sequence_with_offset to simplify the creation of
 // std::index_sequence type with O, O+1, O+2, O+N-1 as Ints.
-template <std::size_t O, std::size_t... Ints>
-constexpr std::index_sequence<(O + Ints)...>
+template <std::size_t Offset, std::size_t... Ints>
+constexpr std::index_sequence<(Offset + Ints)...>
 add_offset(std::index_sequence<Ints...>)
 {
   return {};
 }
 
-template <std::size_t O, std::size_t N>
+template <std::size_t Offset, std::size_t Count>
 struct make_index_sequence_with_offset
-    : public decltype(add_offset<O>(std::make_index_sequence<N>{}))
+    : public decltype(add_offset<Offset>(std::make_index_sequence<Count>{}))
 {
 };
 
