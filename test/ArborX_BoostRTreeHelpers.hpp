@@ -145,10 +145,6 @@ struct UnaryPredicate
   {
   }
   inline bool operator()(Value const &val) const { return _pred(val); }
-  static UnaryPredicate makeAlwaysFalse()
-  {
-    return UnaryPredicate([](Value const &) { return false; });
-  }
   Function _pred;
 };
 
