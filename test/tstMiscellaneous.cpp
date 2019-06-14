@@ -16,6 +16,7 @@
 #include <array>
 #include <string>
 
+#include "CompressedSparseRow.hpp"
 #include "VectorOfTuples.hpp"
 
 namespace Details
@@ -82,6 +83,52 @@ BOOST_AUTO_TEST_CASE(not_properly_sized)
         return message_contains_argument_position &&
                message_shows_size_mismatch;
       });
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE(CompressedSparseRow)
+
+BOOST_AUTO_TEST_CASE(number_of_nonzero_entries)
+{
+  auto nnz = [](auto &&... x) {
+    return getNNZ(std::make_tuple(std::forward<decltype(x)>(x)...));
+  };
+  using VI = std::vector<int>;
+  using VD = std::vector<double>;
+  using VS = std::vector<std::string>;
+  BOOST_TEST(nnz(VI{0}, VD{}) == 0);
+  BOOST_TEST(nnz(VI{0}, VD{}, VS{}) == 0);
+  BOOST_TEST(nnz(VI{0, 2}, VD{1.41, 3.14}, VS{"foo", "bar"}) == 2);
+  BOOST_TEST(nnz(VI{1}, VD{3.14}) == 1);
+  BOOST_TEST(nnz(VI{1}, VD{3.14}, VS{"foo"}) == 1);
+  BOOST_CHECK_THROW(nnz(VI{0}, VD{3.14}), std::invalid_argument);
+  BOOST_CHECK_THROW(nnz(VI{2}, VD{3.14}), std::invalid_argument);
+  BOOST_CHECK_THROW(nnz(VI{1}, VD{3.14}, VS{}), std::invalid_argument);
+}
+
+BOOST_AUTO_TEST_CASE(extract_row)
+{
+  auto row = [](std::size_t i, auto &&... x) {
+    return extractRow(std::make_tuple(std::forward<decltype(x)>(x)...), i);
+  };
+  using VI = std::vector<int>;
+  using VD = std::vector<double>;
+  using VS = std::vector<std::string>;
+  using T1 = std::vector<std::tuple<double>>;
+  using T2 = std::vector<std::tuple<double, std::string>>;
+  BOOST_TEST((row(0, VI{0, 2, 3}, VD{3.14, 1.41, 2.72})) ==
+                 (T1{{1.41}, {3.14}}),
+             boost::test_tools::per_element());
+  BOOST_TEST((row(1, VI{0, 2, 3}, VD{3.14, 1.41, 2.72})) == T1{{2.72}},
+             boost::test_tools::per_element());
+  BOOST_TEST(
+      (row(0, VI{0, 2, 3}, VD{3.14, 1.41, 2.72}, VS{"pi", "sqrt2", "e"})) ==
+          (T2{{1.41, "sqrt2"}, {3.14, "pi"}}),
+      boost::test_tools::per_element());
+  BOOST_TEST((row(1, VI{0, 2, 3}, VD{3.14, 1.41, 2.72},
+                  VS{"pi", "sqrt2", "e"})) == (T2{{2.72, "e"}}),
+             boost::test_tools::per_element());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
