@@ -87,10 +87,10 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
   Kokkos::View<int *, DeviceType> offset("offset", 0);
   bvh.query(queries, indices, offset);
 
-  auto indices_host = Kokkos::create_mirror_view(indices);
-  deep_copy(indices_host, indices);
-  auto offset_host = Kokkos::create_mirror_view(offset);
-  deep_copy(offset_host, offset);
+  auto indices_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
+  auto offset_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
 
   BOOST_TEST(indices_host == indices_ref, tt::per_element());
   BOOST_TEST(offset_host == offset_ref, tt::per_element());
@@ -111,12 +111,12 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
   Kokkos::View<double *, DeviceType> distances("distances", 0);
   bvh.query(queries, indices, offset, distances);
 
-  auto indices_host = Kokkos::create_mirror_view(indices);
-  deep_copy(indices_host, indices);
-  auto offset_host = Kokkos::create_mirror_view(offset);
-  deep_copy(offset_host, offset);
-  auto distances_host = Kokkos::create_mirror_view(distances);
-  deep_copy(distances_host, distances);
+  auto indices_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
+  auto offset_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
+  auto distances_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, distances);
 
   BOOST_TEST(indices_host == indices_ref, tt::per_element());
   BOOST_TEST(offset_host == offset_ref, tt::per_element());
@@ -136,12 +136,12 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
   Kokkos::View<int *, DeviceType> ranks("ranks", 0);
   tree.query(queries, indices, offset, ranks);
 
-  auto indices_host = Kokkos::create_mirror_view(indices);
-  deep_copy(indices_host, indices);
-  auto offset_host = Kokkos::create_mirror_view(offset);
-  deep_copy(offset_host, offset);
-  auto ranks_host = Kokkos::create_mirror_view(ranks);
-  deep_copy(ranks_host, ranks);
+  auto indices_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
+  auto offset_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
+  auto ranks_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ranks);
 
   BOOST_TEST(offset_host == offset_ref, tt::per_element());
   auto const m = offset_host.extent_int(0) - 1;
@@ -180,14 +180,14 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
   Kokkos::View<double *, DeviceType> distances("distances", 0);
   tree.query(queries, indices, offset, ranks, distances);
 
-  auto indices_host = Kokkos::create_mirror_view(indices);
-  deep_copy(indices_host, indices);
-  auto offset_host = Kokkos::create_mirror_view(offset);
-  deep_copy(offset_host, offset);
-  auto ranks_host = Kokkos::create_mirror_view(ranks);
-  deep_copy(ranks_host, ranks);
-  auto distances_host = Kokkos::create_mirror_view(distances);
-  deep_copy(distances_host, distances);
+  auto indices_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
+  auto offset_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
+  auto ranks_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ranks);
+  auto distances_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, distances);
 
   BOOST_TEST(indices_host == indices_ref, tt::per_element());
   BOOST_TEST(offset_host == offset_ref, tt::per_element());
