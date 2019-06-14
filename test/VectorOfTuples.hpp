@@ -59,4 +59,17 @@ toVectorOfTuples(Arrays const &... in)
   return out;
 }
 
+template <typename... Arrays>
+std::vector<std::tuple<typename Details::ArrayTraits<Arrays>::value_type...>>
+subsetToVectorOfTuples(std::size_t begin, std::size_t end, Arrays const &... in)
+{
+  std::vector<std::tuple<typename Details::ArrayTraits<Arrays>::value_type...>>
+      out;
+  for (std::size_t i = begin; i < end; ++i)
+  {
+    out.emplace_back(Details::ArrayTraits<Arrays>::access(in, i)...);
+  }
+  return out;
+}
+
 #endif
