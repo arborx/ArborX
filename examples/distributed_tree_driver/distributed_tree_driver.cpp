@@ -102,6 +102,19 @@ public:
 
   container_type const &getAllTimer() const { return _data; }
 
+  int estimate_required_sample_size(double confidence,
+                                    double relative_error_margin) const
+  {
+    return std::accumulate(
+        _data.begin(), _data.end(), 0,
+        [confidence, relative_error_margin](int current_max,
+                                            entry_const_reference_type entry) {
+          return std::max(current_max,
+                          entry.second.estimate_required_sample_size(
+                              confidence, relative_error_margin));
+        });
+  }
+
   void summarize(MPI_Comm comm, std::ostream &os = std::cout)
   {
     int comm_size;
@@ -438,9 +451,8 @@ int run(std::vector<std::string> const &args, TimeMonitor &time_monitor,
   auto const n =
       static_cast<int>(std::ceil(z * sample_stddev / (error_margin / 2.)));
 
-  auto const n_new =
-      time_monitor.getAllTimer().begin()->second.estimate_required_sample_size(
-          /*confidence = */ 0.95, /*relative_error_margin = */ 1. / 100.);
+  auto const n_new = time_monitor.estimate_required_sample_size(
+      /*confidence = */ 0.95, /*relative_error_margin = */ 1. / 100.);
 
   std::cout << "estimated " << n << " " << n_new << " iterations" << std::endl;
 
