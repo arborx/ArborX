@@ -62,6 +62,19 @@ struct ArrayTraits<std::vector<T>>
 
 } // namespace Details
 
+template <typename T1, typename T2>
+void validateResults(T1 const &reference, T2 const &other)
+{
+  auto const m = getNumberOfRows(reference);
+  BOOST_TEST(m == getNumberOfRows(reference));
+  for (std::size_t i = 0; i < m; ++i)
+  {
+    auto const l = extractRow(other, i);
+    auto const r = extractRow(reference, i);
+    BOOST_TEST(l == r, boost::test_tools::per_element());
+  }
+}
+
 namespace tt = boost::test_tools;
 
 template <typename Query, typename DeviceType>
@@ -252,19 +265,6 @@ makeWithinQueries(std::vector<std::pair<ArborX::Point, double>> const &points)
     queries_host(i) = ArborX::within(points[i].first, points[i].second);
   Kokkos::deep_copy(queries, queries_host);
   return queries;
-}
-
-template <typename T1, typename T2>
-void validateResults(T1 const &reference, T2 const &other)
-{
-  auto const m = getNumberOfRows(reference);
-  BOOST_TEST(m == getNumberOfRows(reference));
-  for (std::size_t i = 0; i < m; ++i)
-  {
-    auto const l = extractRow(other, i);
-    auto const r = extractRow(reference, i);
-    BOOST_TEST(l == r, tt::per_element());
-  }
 }
 
 #endif
