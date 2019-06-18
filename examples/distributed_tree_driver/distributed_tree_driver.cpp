@@ -83,6 +83,7 @@ class TimeMonitor
       _started = false;
     }
 
+    // Provide read access to the stored boost::accumulator_set object.
     data_type const &get_statistics() const { return _statistics; }
 
     // Following CppCon 2015: Bryce Adelstein-Lelbach “Benchmarking C++ Code"
@@ -92,6 +93,8 @@ class TimeMonitor
     // given confidence to be achieved, the (estimated) mean \nu and the
     // (estimated) standard deviation \sigma, the number of required samples n
     // can be computed as n = ((z \sigma)/(e_m/2 \mu))^2.
+    //
+    // Return this estimate.
     int estimate_required_sample_size(double confidence,
                                       double relative_error_margin) const
     {
@@ -142,8 +145,9 @@ public:
         });
   }
 
-  // Print statistics about all the timersi stored using os.
-  void summarize(std::ostream &os = std::cout)
+  // Print statistics about all the timersi stored using os. For providing a
+  // confidence interval the confidence level to be used has to provided.
+  void summarize(double confidence, std::ostream &os = std::cout)
   {
     int comm_size;
     MPI_Comm_size(_mpi_comm, &comm_size);
@@ -198,7 +202,7 @@ public:
         auto n = count(statistics);
         boost::math::students_t const final_dist(n - 1);
         double const z =
-            boost::math::quantile(complement(final_dist, (1 - 0.95) / 2));
+            boost::math::quantile(complement(final_dist, (1 - confidence) / 2));
 
         double const final_average_stddev =
             std::sqrt(variance(statistics) * n / (n - 1.));
@@ -460,8 +464,10 @@ int run(std::vector<std::string> const &args, TimeMonitor &time_monitor,
     main_<NO>(arguments, comm, time_monitor);
   }
 
+  double const confidence = 0.95;
+  double const relative_error_margin = 0.01;
   auto const n = time_monitor.estimate_required_sample_size(
-      /*confidence = */ 0.95, /*relative_error_margin = */ 0.01);
+      confidence, relative_error_margin);
 
   if (comm_rank == 0)
     std::cout << "\nestimated " << n << " iterations\n";
@@ -473,7 +479,7 @@ int run(std::vector<std::string> const &args, TimeMonitor &time_monitor,
     main_<NO>(arguments, comm, time_monitor);
   }
 
-  time_monitor.summarize();
+  time_monitor.summarize(confidence);
 }
 
 int main(int argc, char *argv[])
