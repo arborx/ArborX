@@ -16,7 +16,6 @@
 
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics/mean.hpp>
-#include <boost/accumulators/statistics/median.hpp>
 #include <boost/accumulators/statistics/stats.hpp>
 #include <boost/accumulators/statistics/variance.hpp>
 #include <boost/math/distributions/students_t.hpp>
@@ -33,7 +32,7 @@
 
 #include <mpi.h>
 
-using namespace boost::accumulators;
+namespace ba = boost::accumulators;
 
 struct HelpPrinted
 {
@@ -47,8 +46,8 @@ class TimeMonitor
   class Timer
   {
     using data_type =
-        accumulator_set<double, stats<tag::min, tag::max, tag::count, tag::mean,
-                                      tag::median, tag::lazy_variance>>;
+        ba::accumulator_set<double, ba::stats<ba::tag::count, ba::tag::mean,
+                                              ba::tag::lazy_variance>>;
     data_type _statistics;
     bool _started = false;
     const MPI_Comm _mpi_comm;
@@ -98,14 +97,14 @@ class TimeMonitor
     int estimate_required_sample_size(double confidence,
                                       double relative_error_margin) const
     {
-      int const n_measurements = count(_statistics);
+      int const n_measurements = ba::count(_statistics);
       boost::math::students_t const dist(n_measurements - 1);
       double const z =
           boost::math::quantile(complement(dist, (1 - confidence) / 2));
 
       double const current_stddev = std::sqrt(
-          variance(_statistics) * (n_measurements / (n_measurements - 1.)));
-      double const current_mean = mean(_statistics);
+          ba::variance(_statistics) * (n_measurements / (n_measurements - 1.)));
+      double const current_mean = ba::mean(_statistics);
       return static_cast<int>(std::ceil(
           z * current_stddev / (relative_error_margin * current_mean / 2.)));
     }
@@ -199,18 +198,18 @@ public:
       {
         auto const &statistics = timer.second.get_statistics();
 
-        auto n = count(statistics);
+        auto n = ba::count(statistics);
         boost::math::students_t const final_dist(n - 1);
         double const z =
             boost::math::quantile(complement(final_dist, (1 - confidence) / 2));
 
         double const final_average_stddev =
-            std::sqrt(variance(statistics) * n / (n - 1.));
-        double const final_sample_mean = mean(statistics);
+            std::sqrt(ba::variance(statistics) * n / (n - 1.));
+        double const final_sample_mean = ba::mean(statistics);
 
         os << std::setw(max_section_length) << timer.first << " | "
-           << std::setw(column_width[0]) << mean(statistics) << " | "
-           << std::setw(column_width[1]) << variance(statistics) << " | ["
+           << std::setw(column_width[0]) << ba::mean(statistics) << " | "
+           << std::setw(column_width[1]) << ba::variance(statistics) << " | ["
            << final_sample_mean - z * final_average_stddev * 1. / std::sqrt(n)
            << ", "
            << final_sample_mean + z * final_average_stddev * 1. / std::sqrt(n)
