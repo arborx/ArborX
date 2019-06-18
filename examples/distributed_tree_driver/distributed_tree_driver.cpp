@@ -396,8 +396,8 @@ void main_(Arguments const &args, const MPI_Comm comm,
 }
 
 template <class NO>
-int run(std::vector<std::string> const &args, TimeMonitor &time_monitor,
-        MPI_Comm comm)
+void run(std::vector<std::string> const &args, TimeMonitor &time_monitor,
+         MPI_Comm comm)
 {
   Arguments arguments;
 
@@ -561,7 +561,7 @@ int main(int argc, char *argv[])
     {
 #ifdef KOKKOS_ENABLE_OPENMP
       typedef Kokkos::OpenMP Node;
-      run<Node>(pass_further, time_monitor, comm
+      run<Node>(pass_further, time_monitor, comm);
 #else
       throw std::runtime_error("OpenMP node type is disabled");
 #endif
