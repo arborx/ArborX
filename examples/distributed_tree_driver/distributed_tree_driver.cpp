@@ -48,34 +48,50 @@ class TimeMonitor
   {
     using data_type =
         accumulator_set<double, stats<tag::min, tag::max, tag::count, tag::mean,
-                                      tag::median, tag::variance>>;
+                                      tag::median, tag::lazy_variance>>;
     data_type _statistics;
     bool _started = false;
+    const MPI_Comm _mpi_comm;
     std::chrono::high_resolution_clock::time_point _tick;
 
   public:
-    Timer() = default;
+    Timer(const MPI_Comm mpi_communicator = MPI_COMM_WORLD)
+        : _mpi_comm(mpi_communicator)
+    {
+    }
 
     // Prevent accidental copy construction
     Timer(Timer const &) = delete;
 
+    // Reset the lap timer to start measuring a new iteration.
     void start()
     {
       assert(!_started);
       _tick = std::chrono::high_resolution_clock::now();
       _started = true;
     }
+
+    // Take the maximum of the elapsed lap time across all the MPI processes and
+    // store it in the boost::accumulator object.
     void stop()
     {
       assert(_started);
       std::chrono::duration<double> duration =
           std::chrono::high_resolution_clock::now() - _tick;
+      MPI_Allreduce(MPI_IN_PLACE, &duration, 1, MPI_DOUBLE, MPI_MAX, _mpi_comm);
       _statistics(duration.count());
       _started = false;
     }
 
     data_type const &get_statistics() const { return _statistics; }
 
+    // Following CppCon 2015: Bryce Adelstein-Lelbach “Benchmarking C++ Code"
+    // (https://www.youtube.com/watch?v=zWxSZcpeS8Q,
+    // https://github.com/CppCon/CppCon2015/tree/master/Presentations/Benchmarking%20C%2B%2B%20Code)
+    // given a relative margin of error e_m, a quantile z corresponding to the
+    // given confidence to be achieved, the (estimated) mean \nu and the
+    // (estimated) standard deviation \sigma, the number of required samples n
+    // can be computed as n = ((z \sigma)/(e_m/2 \mu))^2.
     int estimate_required_sample_size(double confidence,
                                       double relative_error_margin) const
     {
@@ -95,13 +111,24 @@ class TimeMonitor
   using container_type = std::map<std::string, Timer>;
   using entry_reference_type = container_type::reference;
   using entry_const_reference_type = container_type::const_reference;
+  const MPI_Comm _mpi_comm;
   container_type _data;
 
 public:
+  TimeMonitor(const MPI_Comm mpi_communicator = MPI_COMM_WORLD)
+      : _mpi_comm(mpi_communicator)
+  {
+  }
+
+  // Provide access to timers by their names.
   Timer &getTimer(std::string name) { return _data[name]; }
 
+  // Return a non-modifyable reference to std::vector of all timers.
   container_type const &getAllTimer() const { return _data; }
 
+  // Estimate the number of samples required to achieve a given margin of error
+  // with a given confidence as the maximum of the estimates for all the timers
+  // stored.
   int estimate_required_sample_size(double confidence,
                                     double relative_error_margin) const
   {
@@ -115,12 +142,13 @@ public:
         });
   }
 
-  void summarize(MPI_Comm comm, std::ostream &os = std::cout)
+  // Print statistics about all the timersi stored using os.
+  void summarize(std::ostream &os = std::cout)
   {
     int comm_size;
-    MPI_Comm_size(comm, &comm_size);
+    MPI_Comm_size(_mpi_comm, &comm_size);
     int comm_rank;
-    MPI_Comm_rank(comm, &comm_rank);
+    MPI_Comm_rank(_mpi_comm, &comm_rank);
     int n_timers = _data.size();
 
     os << std::left << std::scientific;
@@ -133,164 +161,99 @@ public:
           return std::max(current_max, section.first.size());
         });
 
-    if (comm_size == 1)
+    if (comm_rank == 0)
     {
-      std::string const header_without_timer_name = " | GlobalTime";
+      std::vector<std::string> const statistic_headers = {
+          "mean", "variance", "confidence interval"};
       std::stringstream dummy_string_stream;
       dummy_string_stream << std::setprecision(os.precision())
-                          << std::scientific << " | " << 1.;
-      int const header_width =
-          max_section_length + std::max<int>(header_without_timer_name.size(),
-                                             dummy_string_stream.str().size());
+                          << std::scientific << 1.;
+      std::vector<double> column_width(statistic_headers.size());
+      for (unsigned int i = 0; i < statistic_headers.size() - 1; ++i)
+        column_width[i] = std::max(statistic_headers[i].size(),
+                                   dummy_string_stream.str().size());
+      // The last column is special since it contains an interval instead of
+      // just one number
+      column_width.back() = std::max(statistic_headers.back().size(),
+                                     2 * dummy_string_stream.str().size() + 4);
 
-      os << std::string(header_width, '=') << "\n\n";
-      os << "TimeMonitor results over 1 processor\n\n";
-      os << std::setw(max_section_length) << timer_name
-         << header_without_timer_name << '\n';
-      os << std::string(header_width, '-') << '\n';
+      unsigned int const total_header_width =
+          std::accumulate(column_width.begin(), column_width.end(),
+                          max_section_length) +
+          column_width.size() * 3;
+
+      os << std::string(total_header_width, '=') << "\n\n";
+      os << "TimeMonitor results over " << comm_size << " processors\n\n";
+      os << std::setw(max_section_length) << "Timer Name";
+      for (unsigned int i = 0; i < statistic_headers.size(); ++i)
+      {
+        os << " | " << std::setw(column_width[i]) << statistic_headers[i];
+      }
+      os << '\n';
+      os << std::string(total_header_width, '-') << '\n';
       for (auto const &timer : _data)
       {
         auto const &statistics = timer.second.get_statistics();
 
+        auto n = count(statistics);
+        boost::math::students_t const final_dist(n - 1);
+        double const z =
+            boost::math::quantile(complement(final_dist, (1 - 0.95) / 2));
+
+        double const final_average_stddev =
+            std::sqrt(variance(statistics) * n / (n - 1.));
+        double const final_sample_mean = mean(statistics);
+
         os << std::setw(max_section_length) << timer.first << " | "
-           << mean(statistics) << ", " << count(statistics) << ", "
-           << mean(statistics) << ", " << variance(statistics) << '\n';
+           << std::setw(column_width[0]) << mean(statistics) << " | "
+           << std::setw(column_width[1]) << variance(statistics) << " | ["
+           << final_sample_mean - z * final_average_stddev * 1. / std::sqrt(n)
+           << ", "
+           << final_sample_mean + z * final_average_stddev * 1. / std::sqrt(n)
+           << "]\n";
       }
-      os << std::string(header_width, '=') << '\n';
-      return;
-    }
-    std::vector<double> all_entries(comm_size * n_timers);
-    std::cout << "first: " << _data.begin()->first << ", "
-              << mean(_data.begin()->second.get_statistics()) << std::endl;
-    std::transform(_data.begin(), _data.end(),
-                   all_entries.begin() + comm_rank * n_timers,
-                   [](entry_const_reference_type x) {
-                     return mean(x.second.get_statistics());
-                   });
-    // FIXME No guarantee that all processors have the same timers!
-    MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, all_entries.data(),
-                  n_timers, MPI_DOUBLE, comm);
-    std::string const header_without_timer_name =
-        " | MinOverProcs | MeanOverProcs | MaxOverProcs";
-    if (comm_rank == 0)
-    {
-      os << std::string(max_section_length + header_without_timer_name.size(),
-                        '=')
-         << "\n\n";
-      os << "TimeMonitor results over " << comm_size << " processors\n";
-      os << std::setw(max_section_length) << timer_name
-         << header_without_timer_name << '\n';
-      os << std::string(max_section_length + header_without_timer_name.size(),
-                        '-')
-         << '\n';
-    }
-    std::vector<double> tmp(comm_size);
-    auto timer_it = _data.begin();
-    for (int i = 0; i < n_timers; ++i, ++timer_it)
-    {
-      for (int j = 0; j < comm_size; ++j)
-      {
-        tmp[j] = all_entries[j * n_timers + i];
-      }
-      auto min = *std::min_element(tmp.begin(), tmp.end());
-      auto max = *std::max_element(tmp.begin(), tmp.end());
-      auto mean = std::accumulate(tmp.begin(), tmp.end(), 0.) / comm_size;
-      if (comm_rank == 0)
-      {
-        os << std::setw(max_section_length) << timer_it->first << " | " << min
-           << " |  " << mean << " | " << max << '\n';
-      }
-    }
-    if (comm_rank == 0)
-    {
-      os << std::string(max_section_length + header_without_timer_name.size(),
-                        '=')
-         << '\n';
+      os << std::string(total_header_width, '=') << '\n';
     }
   }
 };
 
 namespace bpo = boost::program_options;
 
+struct Arguments
+{
+  int n_values = 0;
+  int n_queries = 0;
+  int n_neighbors = 0;
+  double shift = 0.;
+  int partition_dim = 0;
+  bool perform_knn_search = true;
+  bool perform_radius_search = true;
+};
+
 template <class NO>
-void main_(std::vector<std::string> const &args, const MPI_Comm comm,
+void main_(Arguments const &args, const MPI_Comm comm,
            TimeMonitor &time_monitor)
 {
   using DeviceType = typename NO::device_type;
   using ExecutionSpace = typename DeviceType::execution_space;
 
-  int n_values;
-  int n_queries;
-  int n_neighbors;
-  double shift;
-  int partition_dim;
-  bool perform_knn_search = true;
-  bool perform_radius_search = true;
-
-  bpo::options_description desc("Allowed options");
-  // clang-format off
-    desc.add_options()
-        ( "help", "produce help message" )
-        ( "values", bpo::value<int>(&n_values)->default_value(50000), "Number of indexable values (source) per MPI rank." )
-        ( "queries", bpo::value<int>(&n_queries)->default_value(20000), "Number of queries (target) per MPI rank." )
-        ( "neighbors", bpo::value<int>(&n_neighbors)->default_value(10), "Desired number of results per query." )
-        ( "shift", bpo::value<double>(&shift)->default_value(1.), "Shift of the point clouds. '0' means the clouds are built "
-	                                                          "at the same place, while '1' places the clouds next to each"
-								  "other. Negative values and values larger than one "
-                                                                  "mean that the clouds are separated." )
-        ( "partition_dim", bpo::value<int>(&partition_dim)->default_value(3), "Number of dimension used by the partitioning of the global "
-                                                                              "point cloud. 1 -> local clouds are aligned on a line, 2 -> "
-                                                                              "local clouds form a board, 3 -> local clouds form a box." )
-        ( "do-not-perform-knn-search", "skip kNN search" )
-        ( "do-not-perform-radius-search", "skip radius search" )
-        ;
-  // clang-format on
-  bpo::variables_map vm;
-  bpo::store(bpo::command_line_parser(args).options(desc).run(), vm);
-  bpo::notify(vm);
-
-  int comm_rank;
-  MPI_Comm_rank(comm, &comm_rank);
   int comm_size;
   MPI_Comm_size(comm, &comm_size);
-
-  if (vm.count("help"))
-  {
-    if (comm_rank == 0)
-      std::cout << desc << '\n';
-    throw HelpPrinted();
-  }
-
-  if (vm.count("do-not-perform-knn-search"))
-    perform_knn_search = false;
-  if (vm.count("do-not-perform-radius-search"))
-    perform_radius_search = false;
-
-  if (comm_rank == 0)
-  {
-    std::cout << std::boolalpha;
-    std::cout << "\nRunning with arguments:\n"
-              << "perform knn search      : " << perform_knn_search << '\n'
-              << "perform radius search   : " << perform_radius_search << '\n'
-              << "#points/MPI process     : " << n_values << '\n'
-              << "#queries/MPI process    : " << n_queries << '\n'
-              << "size of shift           : " << shift << '\n'
-              << "dimension               : " << partition_dim << '\n'
-              << '\n';
-  }
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
 
   Kokkos::View<ArborX::Point *, DeviceType> random_points("random_points", 0);
   {
     // Random points are "reused" between building the tree and performing
     // queries. Note that this means that for the points in the middle of
     // the local domains there won't be any communication.
-    auto n = std::max(n_values, n_queries);
+    auto n = std::max(args.n_values, args.n_queries);
     Kokkos::resize(random_points, n);
 
     auto random_points_host = Kokkos::create_mirror_view(random_points);
 
     // Generate random points uniformely distributed within a box.
-    auto const a = std::cbrt(n_values);
+    auto const a = std::cbrt(args.n_values);
     std::uniform_real_distribution<double> distribution(-a, +a);
     std::default_random_engine generator;
     auto random = [&distribution, &generator]() {
@@ -303,11 +266,11 @@ void main_(std::vector<std::string> const &args, const MPI_Comm comm,
     // Change the geometry of the problem. In 1D, all the point clouds are
     // aligned on a line. In 2D, the point clouds create a board and in 3D,
     // they create a box.
-    switch (partition_dim)
+    switch (args.partition_dim)
     {
     case 1:
     {
-      offset_x = 2 * a * shift * comm_rank;
+      offset_x = 2 * a * args.shift * comm_rank;
 
       break;
     }
@@ -316,8 +279,8 @@ void main_(std::vector<std::string> const &args, const MPI_Comm comm,
       int i_max = std::ceil(std::sqrt(comm_size));
       int i = comm_rank % i_max;
       int j = comm_rank / i_max;
-      offset_x = 2 * a * shift * i;
-      offset_y = 2 * a * shift * j;
+      offset_x = 2 * a * args.shift * i;
+      offset_y = 2 * a * args.shift * j;
 
       break;
     }
@@ -328,9 +291,9 @@ void main_(std::vector<std::string> const &args, const MPI_Comm comm,
       int i = comm_rank % i_max;
       int j = (comm_rank / i_max) % j_max;
       int k = comm_rank / (i_max * j_max);
-      offset_x = 2 * a * shift * i;
-      offset_y = 2 * a * shift * j;
-      offset_z = 2 * a * shift * k;
+      offset_x = 2 * a * args.shift * i;
+      offset_y = 2 * a * args.shift * j;
+      offset_z = 2 * a * args.shift * k;
 
       break;
     }
@@ -347,9 +310,9 @@ void main_(std::vector<std::string> const &args, const MPI_Comm comm,
   }
 
   Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes(
-      Kokkos::ViewAllocateWithoutInitializing("bounding_boxes"), n_values);
+      Kokkos::ViewAllocateWithoutInitializing("bounding_boxes"), args.n_values);
   Kokkos::parallel_for("bvh_driver:construct_bounding_boxes",
-                       Kokkos::RangePolicy<ExecutionSpace>(0, n_values),
+                       Kokkos::RangePolicy<ExecutionSpace>(0, args.n_values),
                        KOKKOS_LAMBDA(int i) {
                          double const x = random_points(i)[0];
                          double const y = random_points(i)[1];
@@ -370,15 +333,15 @@ void main_(std::vector<std::string> const &args, const MPI_Comm comm,
   if (comm_rank == 0)
     os << "contruction done\n";
 
-  if (perform_knn_search)
+  if (args.perform_knn_search)
   {
     Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> queries(
-        Kokkos::ViewAllocateWithoutInitializing("queries"), n_queries);
+        Kokkos::ViewAllocateWithoutInitializing("queries"), args.n_queries);
     Kokkos::parallel_for("bvh_driver:setup_knn_search_queries",
-                         Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+                         Kokkos::RangePolicy<ExecutionSpace>(0, args.n_queries),
                          KOKKOS_LAMBDA(int i) {
                            queries(i) = ArborX::nearest<ArborX::Point>(
-                               random_points(i), n_neighbors);
+                               random_points(i), args.n_neighbors);
                          });
     Kokkos::fence();
 
@@ -396,19 +359,19 @@ void main_(std::vector<std::string> const &args, const MPI_Comm comm,
       os << "knn done\n";
   }
 
-  if (perform_radius_search)
+  if (args.perform_radius_search)
   {
     Kokkos::View<ArborX::Within *, DeviceType> queries(
-        Kokkos::ViewAllocateWithoutInitializing("queries"), n_queries);
+        Kokkos::ViewAllocateWithoutInitializing("queries"), args.n_queries);
     // radius chosen in order to control the number of results per query
     // NOTE: minus "1+sqrt(3)/2 \approx 1.37" matches the size of the boxes
     // inserted into the tree (mid-point between half-edge and
     // half-diagonal)
-    double const r =
-        2. * std::cbrt(static_cast<double>(n_neighbors) * 3. / (4. * M_PI)) -
-        (1. + std::sqrt(3.)) / 2.;
+    double const r = 2. * std::cbrt(static_cast<double>(args.n_neighbors) * 3. /
+                                    (4. * M_PI)) -
+                     (1. + std::sqrt(3.)) / 2.;
     Kokkos::parallel_for("bvh_driver:setup_radius_search_queries",
-                         Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+                         Kokkos::RangePolicy<ExecutionSpace>(0, args.n_queries),
                          KOKKOS_LAMBDA(int i) {
                            queries(i) = ArborX::within(random_points(i), r);
                          });
@@ -433,52 +396,84 @@ template <class NO>
 int run(std::vector<std::string> const &args, TimeMonitor &time_monitor,
         MPI_Comm comm)
 {
+  Arguments arguments;
+
+  bpo::options_description desc("Allowed options");
+  // clang-format off
+    desc.add_options()
+        ( "help", "produce help message" )
+        ( "values", bpo::value<int>(&arguments.n_values)->default_value(50000), "Number of indexable values (source) per MPI rank." )
+        ( "queries", bpo::value<int>(&arguments.n_queries)->default_value(20000), "Number of queries (target) per MPI rank." )
+        ( "neighbors", bpo::value<int>(&arguments.n_neighbors)->default_value(10), "Desired number of results per query." )
+        ( "shift", bpo::value<double>(&arguments.shift)->default_value(1.), "Shift of the point clouds. '0' means the clouds are built "
+                                                                  "at the same place, while '1' places the clouds next to each"
+                                                                  "other. Negative values and values larger than one "
+                                                                  "mean that the clouds are separated." )
+        ( "partition_dim", bpo::value<int>(&arguments.partition_dim)->default_value(3), "Number of dimension used by the partitioning of the global "
+                                                                              "point cloud. 1 -> local clouds are aligned on a line, 2 -> "
+                                                                              "local clouds form a board, 3 -> local clouds form a box." )
+        ( "do-not-perform-knn-search", "skip kNN search" )
+        ( "do-not-perform-radius-search", "skip radius search" )
+        ;
+  // clang-format on
+  bpo::variables_map vm;
+  bpo::store(bpo::command_line_parser(args).options(desc).run(), vm);
+  bpo::notify(vm);
+
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+  int comm_size;
+  MPI_Comm_size(comm, &comm_size);
+
+  if (vm.count("help"))
+  {
+    if (comm_rank == 0)
+      std::cout << desc << '\n';
+    throw HelpPrinted();
+  }
+
+  if (vm.count("do-not-perform-knn-search"))
+    arguments.perform_knn_search = false;
+  if (vm.count("do-not-perform-radius-search"))
+    arguments.perform_radius_search = false;
+
+  if (comm_rank == 0)
+  {
+    std::cout << std::boolalpha;
+    std::cout << "\nRunning with arguments:\n"
+              << "perform knn search      : " << arguments.perform_knn_search
+              << '\n'
+              << "perform radius search   : " << arguments.perform_radius_search
+              << '\n'
+              << "#points/MPI process     : " << arguments.n_values << '\n'
+              << "#queries/MPI process    : " << arguments.n_queries << '\n'
+              << "size of shift           : " << arguments.shift << '\n'
+              << "dimension               : " << arguments.partition_dim << '\n'
+              << '\n';
+  }
+
   const unsigned int n_sample = 10;
   for (unsigned int i = 0; i < n_sample; ++i)
-    main_<NO>(args, comm, time_monitor);
+  {
+    if (comm_rank == 0)
+      std::cout << "\nSample lap " << i << ":\n";
+    main_<NO>(arguments, comm, time_monitor);
+  }
 
-  // 95% confidence
-  boost::math::students_t const dist(n_sample - 1);
-  double const z = boost::math::quantile(complement(dist, (1 - 0.95) / 2));
-  std::cout << "initial z: " << z << std::endl;
+  auto const n = time_monitor.estimate_required_sample_size(
+      /*confidence = */ 0.95, /*relative_error_margin = */ 0.01);
 
-  auto const &statistics =
-      time_monitor.getAllTimer().begin()->second.get_statistics();
-  double const sample_stddev =
-      std::sqrt(variance(statistics) * (n_sample / (n_sample - 1.)));
-  double const sample_mean = mean(statistics);
-  double const error_margin = sample_mean / 100.;
-  auto const n =
-      static_cast<int>(std::ceil(z * sample_stddev / (error_margin / 2.)));
-
-  auto const n_new = time_monitor.estimate_required_sample_size(
-      /*confidence = */ 0.95, /*relative_error_margin = */ 1. / 100.);
-
-  std::cout << "estimated " << n << " " << n_new << " iterations" << std::endl;
-
-  auto total_n = n_sample + n;
-  boost::math::students_t const final_dist(total_n - 1);
-  double const final_z =
-      boost::math::quantile(complement(final_dist, (1 - 0.95) / 2));
-
-  std::cout << "final z: " << final_z << std::endl;
+  if (comm_rank == 0)
+    std::cout << "\nestimated " << n << " iterations\n";
 
   for (unsigned int i = 0; i < n; ++i)
-    main_<NO>(args, comm, time_monitor);
+  {
+    if (comm_rank == 0)
+      std::cout << "\nTotal lap " << n_sample + i << ":\n";
+    main_<NO>(arguments, comm, time_monitor);
+  }
 
-  double const final_stddev =
-      std::sqrt(variance(statistics) * (total_n / (total_n - 1.)));
-  double const final_sample_mean = mean(statistics);
-
-  std::cout << "value is between "
-            << sample_mean - z * final_stddev / sqrt(total_n) << " and "
-            << sample_mean - z * final_stddev / sqrt(total_n) << std::endl;
-  std::cout << "min" << min(statistics) << std::endl;
-  std::cout << "max" << max(statistics) << std::endl;
-  std::cout << "variance" << final_stddev << std::endl;
-  std::cout << "sample_variance" << sample_stddev << std::endl;
-
-  time_monitor.summarize(MPI_COMM_WORLD);
+  time_monitor.summarize();
 }
 
 int main(int argc, char *argv[])
@@ -490,8 +485,8 @@ int main(int argc, char *argv[])
   MPI_Comm_rank(comm, &comm_rank);
   if (comm_rank == 0)
   {
-    std::cout << "ArborX version: " << ArborX::version() << std::endl;
-    std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
+    std::cout << "ArborX version: " << ArborX::version() << '\n';
+    std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << '\n';
   }
 
   // Strip "--help" and "--kokkos-help" from the flags passed to Kokkos if we
