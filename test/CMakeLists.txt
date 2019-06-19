@@ -15,12 +15,12 @@ configure_file(ArborX_EnableDeviceTypes.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/Arbor
 
 find_package(Boost 1.67.0 REQUIRED COMPONENTS unit_test_framework)
 
-add_executable(ArborX_Exception.exe tstException.cpp)
+add_executable(ArborX_Miscellaneous.exe tstMiscellaneous.cpp tstException.cpp)
 # TODO link Boost::dynamic_linking interface target to enable dynamic linking
 # (adds BOOST_ALL_DYN_LINK)
-target_link_libraries(ArborX_Exception.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_Exception.exe PRIVATE BOOST_TEST_MAIN BOOST_TEST_DYN_LINK)
-add_test(NAME ArborX_Exception COMMAND ./ArborX_Exception.exe)
+target_link_libraries(ArborX_Miscellaneous.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_Miscellaneous.exe PRIVATE BOOST_TEST_DYN_LINK)
+add_test(NAME ArborX_Miscellaneous COMMAND ./ArborX_Miscellaneous.exe)
 
 add_executable(ArborX_DetailsUtils.exe tstDetailsUtils.cpp utf_main.cpp)
 target_link_libraries(ArborX_DetailsUtils.exe PRIVATE ArborX Boost::unit_test_framework)

@@ -12,6 +12,12 @@
 #ifndef ARBORX_SEARCH_TEST_HELPERS_HPP
 #define ARBORX_SEARCH_TEST_HELPERS_HPP
 
+// clang-format off
+#include "boost_ext/TupleComparison.hpp"
+#include "CompressedSparseRow.hpp"
+#include "VectorOfTuples.hpp"
+// clang-format on
+
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsKokkosExt.hpp> // is_accessible_from
 #ifdef ARBORX_ENABLE_MPI
@@ -27,6 +33,50 @@
 #include <tuple>
 #include <vector>
 
+namespace Details
+{
+
+template <typename... Ps>
+struct ArrayTraits<Kokkos::View<Ps...>>
+{
+
+  using array_type = Kokkos::View<Ps...>;
+  static_assert(array_type::rank == 1, "requires rank-1 views");
+  using value_type = typename array_type::value_type;
+  static std::size_t size(array_type const &v) { return v.extent(0); }
+  static value_type const &access(array_type const &v, std::size_t i)
+  {
+    return v(i);
+  }
+};
+
+template <typename T>
+struct ArrayTraits<std::vector<T>>
+{
+  using array_type = std::vector<T>;
+  using value_type = typename array_type::value_type;
+  static std::size_t size(array_type const &v) { return v.size(); }
+  static value_type const &access(array_type const &v, std::size_t i)
+  {
+    return v[i];
+  }
+};
+
+} // namespace Details
+
+template <typename T1, typename T2>
+void validateResults(T1 const &reference, T2 const &other)
+{
+  auto const m = getNumberOfRows(reference);
+  BOOST_TEST(m == getNumberOfRows(other));
+  for (std::size_t i = 0; i < m; ++i)
+  {
+    auto const l = extractRow(other, i);
+    auto const r = extractRow(reference, i);
+    BOOST_TEST(l == r, boost::test_tools::per_element());
+  }
+}
+
 namespace tt = boost::test_tools;
 
 template <typename Query, typename DeviceType>
@@ -39,13 +89,13 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
   Kokkos::View<int *, DeviceType> offset("offset", 0);
   bvh.query(queries, indices, offset);
 
-  auto indices_host = Kokkos::create_mirror_view(indices);
-  deep_copy(indices_host, indices);
-  auto offset_host = Kokkos::create_mirror_view(offset);
-  deep_copy(offset_host, offset);
+  auto indices_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
+  auto offset_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
 
-  BOOST_TEST(indices_host == indices_ref, tt::per_element());
-  BOOST_TEST(offset_host == offset_ref, tt::per_element());
+  validateResults(std::make_tuple(offset_host, indices_host),
+                  std::make_tuple(offset_ref, indices_ref));
 }
 
 // Same as above except that we get the distances out of the queries and
@@ -63,59 +113,16 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
   Kokkos::View<double *, DeviceType> distances("distances", 0);
   bvh.query(queries, indices, offset, distances);
 
-  auto indices_host = Kokkos::create_mirror_view(indices);
-  deep_copy(indices_host, indices);
-  auto offset_host = Kokkos::create_mirror_view(offset);
-  deep_copy(offset_host, offset);
-  auto distances_host = Kokkos::create_mirror_view(distances);
-  deep_copy(distances_host, distances);
+  auto indices_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
+  auto offset_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
+  auto distances_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, distances);
 
-  BOOST_TEST(indices_host == indices_ref, tt::per_element());
-  BOOST_TEST(offset_host == offset_ref, tt::per_element());
-  BOOST_TEST(distances_host == distances_ref, tt::per_element());
+  validateResults(std::make_tuple(offset_host, indices_host, distances_host),
+                  std::make_tuple(offset_ref, indices_ref, distances_ref));
 }
-
-// Enable comparison of tuples
-namespace boost
-{
-namespace test_tools
-{
-namespace tt_detail
-{
-namespace cppreference
-{
-// helper function to print a tuple of any size
-// adapted from https://en.cppreference.com/w/cpp/utility/tuple/tuple_cat
-template <class Tuple, std::size_t N>
-struct TuplePrinter
-{
-  static void print(std::ostream &os, Tuple const &t)
-  {
-    TuplePrinter<Tuple, N - 1>::print(os, t);
-    os << ", " << std::get<N - 1>(t);
-  }
-};
-
-template <class Tuple>
-struct TuplePrinter<Tuple, 1>
-{
-  static void print(std::ostream &os, Tuple const &t) { os << std::get<0>(t); }
-};
-} // namespace cppreference
-
-template <typename... Args>
-struct print_log_value<std::tuple<Args...>>
-{
-  void operator()(std::ostream &os, std::tuple<Args...> const &t)
-  {
-    os << '(';
-    cppreference::TuplePrinter<decltype(t), sizeof...(Args)>::print(os, t);
-    os << ')';
-  }
-};
-} // namespace tt_detail
-} // namespace test_tools
-} // namespace boost
 
 #ifdef ARBORX_ENABLE_MPI
 template <typename Query, typename DeviceType>
@@ -130,34 +137,15 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
   Kokkos::View<int *, DeviceType> ranks("ranks", 0);
   tree.query(queries, indices, offset, ranks);
 
-  auto indices_host = Kokkos::create_mirror_view(indices);
-  deep_copy(indices_host, indices);
-  auto offset_host = Kokkos::create_mirror_view(offset);
-  deep_copy(offset_host, offset);
-  auto ranks_host = Kokkos::create_mirror_view(ranks);
-  deep_copy(ranks_host, ranks);
+  auto indices_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
+  auto offset_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
+  auto ranks_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ranks);
 
-  BOOST_TEST(offset_host == offset_ref, tt::per_element());
-  auto const m = offset_host.extent_int(0) - 1;
-  for (int i = 0; i < m; ++i)
-  {
-    std::vector<std::tuple<int, int>> l;
-    std::vector<std::tuple<int, int>> r;
-    for (int j = offset_ref[i]; j < offset_ref[i + 1]; ++j)
-    {
-      l.push_back(std::make_tuple(ranks_host[j], indices_host[j]));
-      r.push_back(std::make_tuple(ranks_ref[j], indices_ref[j]));
-    }
-    sort(l.begin(), l.end());
-    sort(r.begin(), r.end());
-    BOOST_TEST(l.size() == r.size());
-    int const n = l.size();
-    BOOST_TEST(n == offset_ref[i + 1] - offset_ref[i]);
-    for (int j = 0; j < n; ++j)
-    {
-      BOOST_TEST(l[j] == r[j]);
-    }
-  }
+  validateResults(std::make_tuple(offset_host, ranks_host, indices_host),
+                  std::make_tuple(offset_ref, ranks_ref, indices_ref));
 }
 
 template <typename Query, typename DeviceType>
@@ -174,19 +162,18 @@ void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
   Kokkos::View<double *, DeviceType> distances("distances", 0);
   tree.query(queries, indices, offset, ranks, distances);
 
-  auto indices_host = Kokkos::create_mirror_view(indices);
-  deep_copy(indices_host, indices);
-  auto offset_host = Kokkos::create_mirror_view(offset);
-  deep_copy(offset_host, offset);
-  auto ranks_host = Kokkos::create_mirror_view(ranks);
-  deep_copy(ranks_host, ranks);
-  auto distances_host = Kokkos::create_mirror_view(distances);
-  deep_copy(distances_host, distances);
+  auto indices_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
+  auto offset_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
+  auto ranks_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ranks);
+  auto distances_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, distances);
 
-  BOOST_TEST(indices_host == indices_ref, tt::per_element());
-  BOOST_TEST(offset_host == offset_ref, tt::per_element());
-  BOOST_TEST(ranks_host == ranks_ref, tt::per_element());
-  BOOST_TEST(distances_host == distances_ref, tt::per_element());
+  validateResults(
+      std::make_tuple(offset_host, ranks_host, indices_host, distances_host),
+      std::make_tuple(offset_ref, ranks_ref, indices_ref, distances_ref));
 }
 #endif
 
@@ -259,65 +246,6 @@ makeWithinQueries(std::vector<std::pair<ArborX::Point, double>> const &points)
     queries_host(i) = ArborX::within(points[i].first, points[i].second);
   Kokkos::deep_copy(queries, queries_host);
   return queries;
-}
-
-template <typename InputView1, typename InputView2>
-void validateResults(std::tuple<InputView1, InputView1> const &reference,
-                     std::tuple<InputView2, InputView2> const &other)
-{
-  static_assert(KokkosExt::is_accessible_from_host<InputView1>::value, "");
-  static_assert(KokkosExt::is_accessible_from_host<InputView2>::value, "");
-  BOOST_TEST(std::get<0>(reference) == std::get<0>(other), tt::per_element());
-  auto const offset = std::get<0>(reference);
-  auto const m = offset.extent_int(0) - 1;
-  for (int i = 0; i < m; ++i)
-  {
-    std::vector<int> l;
-    std::vector<int> r;
-    for (int j = offset[i]; j < offset[i + 1]; ++j)
-    {
-      l.push_back(std::get<1>(other)[j]);
-      r.push_back(std::get<1>(reference)[j]);
-    }
-    std::sort(l.begin(), l.end());
-    std::sort(r.begin(), r.end());
-    BOOST_TEST(l.size() == r.size());
-    int const n = l.size();
-    BOOST_TEST(n == offset[i + 1] - offset[i]);
-    BOOST_TEST(l == r, tt::per_element());
-  }
-}
-
-template <typename InputView1, typename InputView2>
-void validateResults(
-    std::tuple<InputView1, InputView1, InputView1> const &reference,
-    std::tuple<InputView2, InputView2, InputView2> const &other)
-{
-  static_assert(KokkosExt::is_accessible_from_host<InputView1>::value, "");
-  static_assert(KokkosExt::is_accessible_from_host<InputView2>::value, "");
-  BOOST_TEST(std::get<0>(reference) == std::get<0>(other), tt::per_element());
-  auto const offset = std::get<0>(reference);
-  auto const m = offset.extent_int(0) - 1;
-  for (int i = 0; i < m; ++i)
-  {
-    std::vector<std::tuple<int, int>> l;
-    std::vector<std::tuple<int, int>> r;
-    for (int j = offset[i]; j < offset[i + 1]; ++j)
-    {
-      l.emplace_back(std::get<1>(other)[j], std::get<2>(other)[j]);
-      r.emplace_back(std::get<1>(reference)[j], std::get<2>(reference)[j]);
-    }
-    std::sort(l.begin(), l.end());
-    std::sort(r.begin(), r.end());
-    // somehow can't use TEST_COMPARE_ARRAY() so doing it myself
-    BOOST_TEST(l.size() == r.size());
-    int const n = l.size();
-    BOOST_TEST(n == offset(i + 1) - offset(i));
-    for (int j = 0; j < n; ++j)
-    {
-      BOOST_TEST(l[j] == r[j]);
-    }
-  }
 }
 
 #endif
