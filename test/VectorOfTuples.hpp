@@ -33,6 +33,8 @@ struct ArrayTraits
 
 void checkProperlySized(std::size_t, std::size_t) {}
 
+// Checks that all the arrays have size s. The only sensible value for pos is 1
+// to get the appropriate error message when not calling it recursively.
 template <typename Array, typename... Arrays>
 void checkProperlySized(std::size_t pos, std::size_t s, Array const &v,
                         Arrays const &... o)
@@ -48,6 +50,8 @@ void checkProperlySized(std::size_t pos, std::size_t s, Array const &v,
   checkProperlySized(++pos, s, o...);
 }
 
+// This function assumes (and checks) that all arrays have the same size and
+// returns that.
 template <typename Array, typename... Arrays>
 std::size_t getSizeOfArrays(Array const &v, Arrays const &... o)
 {
@@ -58,6 +62,10 @@ std::size_t getSizeOfArrays(Array const &v, Arrays const &... o)
 
 } // namespace Details
 
+// Repacks the arrays in... into a std::vector of std::tuple. Each vector entry
+// contains all the arrays' entries [first, last) at the same position (in
+// order). This, of course, only makes sense if all the arrays have the same
+// size.
 template <typename... Arrays>
 auto subsetToVectorOfTuples(std::size_t first, std::size_t last,
                             Arrays const &... in)
