@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath> // cbrt
+#include <iomanip>
 #include <numeric>
 #include <random>
 #include <utility>
@@ -30,7 +31,9 @@ struct HelpPrinted
 {
 };
 
-// Poor man's replacement for Teuchos::TimeMonitor
+// The TimeMonitor class can be used to measure for a series of events, i.e. it
+// represents a set of timers of type Timer. It is a poor man's drop-in
+// replacement for Teuchos::TimeMonitor
 class TimeMonitor
 {
   using container_type = std::vector<std::pair<std::string, double>>;
@@ -82,23 +85,43 @@ public:
   }
   void summarize(MPI_Comm comm, std::ostream &os = std::cout)
   {
-    // FIXME Haven't tried very hard to format the output.
     int comm_size;
     MPI_Comm_size(comm, &comm_size);
     int comm_rank;
     MPI_Comm_rank(comm, &comm_rank);
     int n_timers = _data.size();
+
+    os << std::left << std::scientific;
+
+    // Initialize with length of "Timer Name"
+    std::string const timer_name = "Timer Name";
+    std::size_t const max_section_length = std::accumulate(
+        _data.begin(), _data.end(), timer_name.size(),
+        [](std::size_t current_max, entry_reference_type section) {
+          return std::max(current_max, section.first.size());
+        });
+
     if (comm_size == 1)
     {
-      os << "========================================\n\n";
+      std::string const header_without_timer_name = " | GlobalTime";
+      std::stringstream dummy_string_stream;
+      dummy_string_stream << std::setprecision(os.precision())
+                          << std::scientific << " | " << 1.;
+      int const header_width =
+          max_section_length + std::max<int>(header_without_timer_name.size(),
+                                             dummy_string_stream.str().size());
+
+      os << std::string(header_width, '=') << "\n\n";
       os << "TimeMonitor results over 1 processor\n\n";
-      os << "Timer Name\tGlobal Time\n";
-      os << "----------------------------------------\n";
+      os << std::setw(max_section_length) << timer_name
+         << header_without_timer_name << '\n';
+      os << std::string(header_width, '-') << '\n';
       for (int i = 0; i < n_timers; ++i)
       {
-        os << _data[i].first << "\t" << _data[i].second << "\n";
+        os << std::setw(max_section_length) << _data[i].first << " | "
+           << _data[i].second << '\n';
       }
-      os << "========================================\n";
+      os << std::string(header_width, '=') << '\n';
       return;
     }
     std::vector<double> all_entries(comm_size * n_timers);
@@ -108,12 +131,19 @@ public:
     // FIXME No guarantee that all processors have the same timers!
     MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, all_entries.data(),
                   n_timers, MPI_DOUBLE, comm);
+    std::string const header_without_timer_name =
+        " | MinOverProcs | MeanOverProcs | MaxOverProcs";
     if (comm_rank == 0)
     {
-      os << "========================================\n\n";
+      os << std::string(max_section_length + header_without_timer_name.size(),
+                        '=')
+         << "\n\n";
       os << "TimeMonitor results over " << comm_size << " processors\n";
-      os << "Timer Name\tMinOverProcs\tMeanOverProcs\tMaxOverProcs\n";
-      os << "----------------------------------------\n";
+      os << std::setw(max_section_length) << timer_name
+         << header_without_timer_name << '\n';
+      os << std::string(max_section_length + header_without_timer_name.size(),
+                        '-')
+         << '\n';
     }
     std::vector<double> tmp(comm_size);
     for (int i = 0; i < n_timers; ++i)
@@ -127,13 +157,15 @@ public:
       auto mean = std::accumulate(tmp.begin(), tmp.end(), 0.) / comm_size;
       if (comm_rank == 0)
       {
-        os << _data[i].first << "\t" << min << "\t" << mean << "\t" << max
-           << "\n";
+        os << std::setw(max_section_length) << _data[i].first << " | " << min
+           << " |  " << mean << " | " << max << '\n';
       }
     }
     if (comm_rank == 0)
     {
-      os << "========================================\n";
+      os << std::string(max_section_length + header_without_timer_name.size(),
+                        '=')
+         << '\n';
     }
   }
 };
@@ -141,7 +173,7 @@ public:
 namespace bpo = boost::program_options;
 
 template <class NO>
-int main_(std::vector<std::string> const &args)
+int main_(std::vector<std::string> const &args, const MPI_Comm comm)
 {
   TimeMonitor time_monitor;
 
@@ -151,7 +183,7 @@ int main_(std::vector<std::string> const &args)
   int n_values;
   int n_queries;
   int n_neighbors;
-  double overlap;
+  double shift;
   int partition_dim;
   bool perform_knn_search = true;
   bool perform_radius_search = true;
@@ -160,16 +192,16 @@ int main_(std::vector<std::string> const &args)
   // clang-format off
     desc.add_options()
         ( "help", "produce help message" )
-        ( "values", bpo::value<int>(&n_values)->default_value(50000), "number of indexable values (source) per MPI rank" )
-        ( "queries", bpo::value<int>(&n_queries)->default_value(20000), "number of queries (target) per MPI rank" )
-        ( "neighbors", bpo::value<int>(&n_neighbors)->default_value(10), "desired number of results per query" )
-        ( "overlap", bpo::value<double>(&overlap)->default_value(0.), "overlap of the point clouds. 0 means the clouds are built "
-                                                                      "next to each other. 1 means that there are built at the "
-                                                                      "same place. Negative values and values larger than two "
-                                                                      "means that the clouds are separated" )
-        ( "partition_dim", bpo::value<int>(&partition_dim)->default_value(3), "number of dimension used by the partitioning of the global "
+        ( "values", bpo::value<int>(&n_values)->default_value(50000), "Number of indexable values (source) per MPI rank." )
+        ( "queries", bpo::value<int>(&n_queries)->default_value(20000), "Number of queries (target) per MPI rank." )
+        ( "neighbors", bpo::value<int>(&n_neighbors)->default_value(10), "Desired number of results per query." )
+        ( "shift", bpo::value<double>(&shift)->default_value(1.), "Shift of the point clouds. '0' means the clouds are built "
+	                                                          "at the same place, while '1' places the clouds next to each"
+								  "other. Negative values and values larger than one "
+                                                                  "mean that the clouds are separated." )
+        ( "partition_dim", bpo::value<int>(&partition_dim)->default_value(3), "Number of dimension used by the partitioning of the global "
                                                                               "point cloud. 1 -> local clouds are aligned on a line, 2 -> "
-                                                                              "local clouds form a board, 3 -> local clouds form a box" )
+                                                                              "local clouds form a board, 3 -> local clouds form a box." )
         ( "do-not-perform-knn-search", "skip kNN search" )
         ( "do-not-perform-radius-search", "skip radius search" )
         ;
@@ -178,9 +210,15 @@ int main_(std::vector<std::string> const &args)
   bpo::store(bpo::command_line_parser(args).options(desc).run(), vm);
   bpo::notify(vm);
 
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+  int comm_size;
+  MPI_Comm_size(comm, &comm_size);
+
   if (vm.count("help"))
   {
-    std::cout << desc << "\n";
+    if (comm_rank == 0)
+      std::cout << desc << '\n';
     throw HelpPrinted();
   }
 
@@ -189,11 +227,19 @@ int main_(std::vector<std::string> const &args)
   if (vm.count("do-not-perform-radius-search"))
     perform_radius_search = false;
 
-  MPI_Comm comm = MPI_COMM_WORLD;
-  int comm_rank;
-  MPI_Comm_rank(comm, &comm_rank);
-  int comm_size;
-  MPI_Comm_size(comm, &comm_size);
+  if (comm_rank == 0)
+  {
+    std::cout << std::boolalpha;
+    std::cout << "\nRunning with arguments:\n"
+              << "perform knn search      : " << perform_knn_search << '\n'
+              << "perform radius search   : " << perform_radius_search << '\n'
+              << "#points/MPI process     : " << n_values << '\n'
+              << "#queries/MPI process    : " << n_queries << '\n'
+              << "size of shift           : " << shift << '\n'
+              << "dimension               : " << partition_dim << '\n'
+              << '\n';
+  }
+
   Kokkos::View<ArborX::Point *, DeviceType> random_points("random_points", 0);
   {
     // Random points are "reused" between building the tree and performing
@@ -204,7 +250,7 @@ int main_(std::vector<std::string> const &args)
 
     auto random_points_host = Kokkos::create_mirror_view(random_points);
 
-    // Generate random points uniformely distributed within a box.
+    // Generate random points uniformly distributed within a box.
     auto const a = std::cbrt(n_values);
     std::uniform_real_distribution<double> distribution(-a, +a);
     std::default_random_engine generator;
@@ -222,7 +268,7 @@ int main_(std::vector<std::string> const &args)
     {
     case 1:
     {
-      offset_x = 2. * (1. - overlap) * a * comm_rank;
+      offset_x = 2 * a * shift * comm_rank;
 
       break;
     }
@@ -231,8 +277,8 @@ int main_(std::vector<std::string> const &args)
       int i_max = std::ceil(std::sqrt(comm_size));
       int i = comm_rank % i_max;
       int j = comm_rank / i_max;
-      offset_x = 2. * (1. - overlap) * a * i;
-      offset_y = 2. * (1. - overlap) * a * j;
+      offset_x = 2 * a * shift * i;
+      offset_y = 2 * a * shift * j;
 
       break;
     }
@@ -243,9 +289,9 @@ int main_(std::vector<std::string> const &args)
       int i = comm_rank % i_max;
       int j = (comm_rank / i_max) % j_max;
       int k = comm_rank / (i_max * j_max);
-      offset_x = 2. * (1. - overlap) * a * i;
-      offset_y = 2. * (1. - overlap) * a * j;
-      offset_z = 2. * (1. - overlap) * a * k;
+      offset_x = 2 * a * shift * i;
+      offset_y = 2 * a * shift * j;
+      offset_z = 2 * a * shift * k;
 
       break;
     }
@@ -350,10 +396,34 @@ int main_(std::vector<std::string> const &args)
 int main(int argc, char *argv[])
 {
   MPI_Init(&argc, &argv);
-  Kokkos::initialize(argc, argv);
 
-  std::cout << "ArborX version: " << ArborX::version() << std::endl;
-  std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
+  MPI_Comm const comm = MPI_COMM_WORLD;
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+  if (comm_rank == 0)
+  {
+    std::cout << "ArborX version: " << ArborX::version() << std::endl;
+    std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
+  }
+
+  // Strip "--help" and "--kokkos-help" from the flags passed to Kokkos if we
+  // are not on MPI rank 0 to prevent Kokkos from printing the help message
+  // multiply.
+  auto kokkos_argv = argv;
+  auto kokkos_argc = argc;
+  if (comm_rank != 0)
+  {
+    auto help_it = std::find_if(kokkos_argv, kokkos_argv + kokkos_argc,
+                                [](std::string const &x) {
+                                  return x == "--help" || x == "--kokkos-help";
+                                });
+    if (help_it != kokkos_argv + kokkos_argc)
+    {
+      std::swap(*help_it, *(kokkos_argv + kokkos_argc - 1));
+      --kokkos_argc;
+    }
+  }
+  Kokkos::initialize(kokkos_argc, kokkos_argv);
 
   bool success = true;
 
@@ -368,12 +438,9 @@ int main(int argc, char *argv[])
 #elif defined(KOKKOS_ENABLE_SERIAL)
     node = "serial";
 #endif
-    bpo::options_description desc("Not a very helpful name");
-    // clang-format off
-        desc.add_options()
-            ( "node", bpo::value<std::string>(&node), "node type (serial | openmp | cuda)" )
-        ;
-    // clang-format on
+    bpo::options_description desc("Parallel setting:");
+    desc.add_options()("node", bpo::value<std::string>(&node),
+                       "node type (serial | openmp | cuda)");
     bpo::variables_map vm;
     bpo::parsed_options parsed = bpo::command_line_parser(argc, argv)
                                      .options(desc)
@@ -383,18 +450,19 @@ int main(int argc, char *argv[])
     std::vector<std::string> pass_further =
         bpo::collect_unrecognized(parsed.options, bpo::include_positional);
 
-    if (std::find_if(pass_further.begin(), pass_further.end(),
-                     [](std::string const &x) { return x == "--help"; }) !=
-        pass_further.end())
+    if (comm_rank == 0 && std::find_if(pass_further.begin(), pass_further.end(),
+                                       [](std::string const &x) {
+                                         return x == "--help";
+                                       }) != pass_further.end())
     {
-      std::cout << desc << "\n";
+      std::cout << desc << '\n';
     }
 
     if (node == "serial")
     {
 #ifdef KOKKOS_ENABLE_SERIAL
       typedef Kokkos::Serial Node;
-      main_<Node>(pass_further);
+      main_<Node>(pass_further, comm);
 #else
       throw std::runtime_error("Serial node type is disabled");
 #endif
@@ -403,7 +471,7 @@ int main(int argc, char *argv[])
     {
 #ifdef KOKKOS_ENABLE_OPENMP
       typedef Kokkos::OpenMP Node;
-      main_<Node>(pass_further);
+      main_<Node>(pass_further, comm);
 #else
       throw std::runtime_error("OpenMP node type is disabled");
 #endif
@@ -412,7 +480,7 @@ int main(int argc, char *argv[])
     {
 #ifdef KOKKOS_ENABLE_CUDA
       typedef Kokkos::CudaUVMSpace Node;
-      main_<Node>(pass_further);
+      main_<Node>(pass_further, comm);
 #else
       throw std::runtime_error("CUDA node type is disabled");
 #endif
@@ -428,17 +496,14 @@ int main(int argc, char *argv[])
   }
   catch (std::exception const &e)
   {
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    std::cerr << "processor " << rank
-              << " caught a std::exception: " << e.what() << "\n";
+    std::cerr << "processor " << comm_rank
+              << " caught a std::exception: " << e.what() << '\n';
     success = false;
   }
   catch (...)
   {
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    std::cerr << "processor " << rank << " caught some kind of exception\n";
+    std::cerr << "processor " << comm_rank
+              << " caught some kind of exception\n";
     success = false;
   }
 
