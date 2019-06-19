@@ -62,6 +62,10 @@ template <typename... Arrays>
 auto subsetToVectorOfTuples(std::size_t first, std::size_t last,
                             Arrays const &... in)
 {
+  if (first > last || last > Details::getSizeOfArrays(in...))
+  {
+    throw std::invalid_argument("precondition violated");
+  }
   std::vector<std::tuple<typename Details::ArrayTraits<Arrays>::value_type...>>
       out;
   for (std::size_t i = first; i < last; ++i)
