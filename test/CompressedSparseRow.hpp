@@ -99,7 +99,7 @@ auto extractRow(TupleOfArrays const &t, int i)
   using ArrayType = typename std::tuple_element<0, TupleOfArrays>::type;
   using Traits = Details::ArrayTraits<typename std::remove_cv<ArrayType>::type>;
   constexpr std::size_t N = std::tuple_size<TupleOfArrays>::value;
-  // NOTE not checking that i does not exceed the number of rows (minus one)
+  std::ignore = getNNZ(t); // Triggers sanity checks on the tuple
   return subsetAndSort(t, Traits::access(std::get<0>(t), i),
                        Traits::access(std::get<0>(t), i + 1),
                        ext::make_index_sequence_with_offset<1, N - 1>{});
