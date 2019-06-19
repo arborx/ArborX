@@ -50,6 +50,13 @@ struct ArrayTraits<std::vector<T>>
 
 BOOST_AUTO_TEST_SUITE(VectorOfTuples)
 
+template <typename... Arrays>
+auto toVectorOfTuples(Arrays &&... x)
+{
+  return subsetToVectorOfTuples(0, Details::getSizeOfArrays(x...),
+                                std::forward<Arrays>(x)...);
+}
+
 BOOST_AUTO_TEST_CASE(heterogeneous)
 {
   BOOST_TEST(
