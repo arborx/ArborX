@@ -38,10 +38,9 @@ struct HelpPrinted
 {
 };
 
-// The TimeMonitor class can be used to measure for a series of events, i.e. it
-// represents a set of timers of type Timer. Originally, it was a poor man's
-// drop-in replacement for Teuchos::TimeMonitor
-class TimeMonitor
+// The PerformanceMonitor class provides functionality to determine the run time
+// of given functions up to a certain margin of error.
+class PerformanceMonitor
 {
   class Timer
   {
@@ -117,7 +116,7 @@ class TimeMonitor
   container_type _data;
 
 public:
-  TimeMonitor(const MPI_Comm mpi_communicator = MPI_COMM_WORLD)
+  PerformanceMonitor(const MPI_Comm mpi_communicator = MPI_COMM_WORLD)
       : _mpi_comm(mpi_communicator)
   {
   }
@@ -186,7 +185,8 @@ public:
           column_width.size() * 3;
 
       os << std::string(total_header_width, '=') << "\n\n";
-      os << "TimeMonitor results over " << comm_size << " processors\n\n";
+      os << "PerformanceMonitor results over " << comm_size
+         << " processors\n\n";
       os << std::setw(max_section_length) << "Timer Name";
       for (unsigned int i = 0; i < statistic_headers.size(); ++i)
       {
@@ -235,7 +235,7 @@ struct Arguments
 
 template <class NO>
 void main_(Arguments const &args, const MPI_Comm comm,
-           TimeMonitor &time_monitor)
+           PerformanceMonitor &performance_monitor)
 {
   using DeviceType = typename NO::device_type;
   using ExecutionSpace = typename DeviceType::execution_space;
@@ -325,7 +325,7 @@ void main_(Arguments const &args, const MPI_Comm comm,
                        });
   Kokkos::fence();
 
-  auto &construction = time_monitor.getTimer("construction");
+  auto &construction = performance_monitor.getTimer("construction");
   MPI_Barrier(comm);
   construction.start();
   ArborX::DistributedSearchTree<DeviceType> distributed_tree(comm,
@@ -352,7 +352,7 @@ void main_(Arguments const &args, const MPI_Comm comm,
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     Kokkos::View<int *, DeviceType> ranks("ranks", 0);
 
-    auto &knn = time_monitor.getTimer("knn");
+    auto &knn = performance_monitor.getTimer("knn");
     MPI_Barrier(comm);
     knn.start();
     distributed_tree.query(queries, indices, offset, ranks);
@@ -384,7 +384,7 @@ void main_(Arguments const &args, const MPI_Comm comm,
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     Kokkos::View<int *, DeviceType> ranks("ranks", 0);
 
-    auto &radius = time_monitor.getTimer("radius");
+    auto &radius = performance_monitor.getTimer("radius");
     MPI_Barrier(comm);
     radius.start();
     distributed_tree.query(queries, indices, offset, ranks);
@@ -396,8 +396,8 @@ void main_(Arguments const &args, const MPI_Comm comm,
 }
 
 template <class NO>
-void run(std::vector<std::string> const &args, TimeMonitor &time_monitor,
-         MPI_Comm comm)
+void run(std::vector<std::string> const &args,
+         PerformanceMonitor &performance_monitor, MPI_Comm comm)
 {
   Arguments arguments;
 
@@ -460,12 +460,12 @@ void run(std::vector<std::string> const &args, TimeMonitor &time_monitor,
   {
     if (comm_rank == 0)
       std::cout << "\nSample lap " << i << ":\n";
-    main_<NO>(arguments, comm, time_monitor);
+    main_<NO>(arguments, comm, performance_monitor);
   }
 
   double const confidence = 0.95;
   double const relative_error_margin = 0.01;
-  auto const n = time_monitor.estimate_required_sample_size(
+  auto const n = performance_monitor.estimate_required_sample_size(
       confidence, relative_error_margin);
 
   if (comm_rank == 0)
@@ -475,10 +475,10 @@ void run(std::vector<std::string> const &args, TimeMonitor &time_monitor,
   {
     if (comm_rank == 0)
       std::cout << "\nTotal lap " << n_sample + i << ":\n";
-    main_<NO>(arguments, comm, time_monitor);
+    main_<NO>(arguments, comm, performance_monitor);
   }
 
-  time_monitor.summarize(confidence);
+  performance_monitor.summarize(confidence);
 }
 
 int main(int argc, char *argv[])
@@ -546,13 +546,13 @@ int main(int argc, char *argv[])
       std::cout << desc << '\n';
     }
 
-    TimeMonitor time_monitor;
+    PerformanceMonitor performance_monitor;
 
     if (node == "serial")
     {
 #ifdef KOKKOS_ENABLE_SERIAL
       typedef Kokkos::Serial Node;
-      run<Node>(pass_further, time_monitor, comm);
+      run<Node>(pass_further, performance_monitor, comm);
 #else
       throw std::runtime_error("Serial node type is disabled");
 #endif
@@ -561,7 +561,7 @@ int main(int argc, char *argv[])
     {
 #ifdef KOKKOS_ENABLE_OPENMP
       typedef Kokkos::OpenMP Node;
-      run<Node>(pass_further, time_monitor, comm);
+      run<Node>(pass_further, performance_monitor, comm);
 #else
       throw std::runtime_error("OpenMP node type is disabled");
 #endif
@@ -570,7 +570,7 @@ int main(int argc, char *argv[])
     {
 #ifdef KOKKOS_ENABLE_CUDA
       typedef Kokkos::CudaUVMSpace Node;
-      run<Node>(pass_further, time_monitor, comm);
+      run<Node>(pass_further, performance_monitor, comm);
 #else
       throw std::runtime_error("CUDA node type is disabled");
 #endif
