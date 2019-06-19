@@ -59,9 +59,8 @@ std::size_t getSizeOfArrays(Array const &v, Arrays const &... o)
 } // namespace Details
 
 template <typename... Arrays>
-std::vector<std::tuple<typename Details::ArrayTraits<Arrays>::value_type...>>
-subsetToVectorOfTuples(std::size_t first, std::size_t last,
-                       Arrays const &... in)
+auto subsetToVectorOfTuples(std::size_t first, std::size_t last,
+                            Arrays const &... in)
 {
   std::vector<std::tuple<typename Details::ArrayTraits<Arrays>::value_type...>>
       out;
