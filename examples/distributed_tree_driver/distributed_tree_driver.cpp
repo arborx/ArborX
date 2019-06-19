@@ -58,7 +58,9 @@ class PerformanceMonitor
     {
     }
 
-    // Prevent accidental copy construction
+    // Prevent accidental copy construction when calling
+    // TimeMonitor::getTimer(). The obtained timer would not be registered in
+    // PerformanceMonitor.
     Timer(Timer const &) = delete;
 
     // Reset the lap timer to start measuring a new iteration.
@@ -85,12 +87,12 @@ class PerformanceMonitor
     data_type const &get_statistics() const { return _statistics; }
 
     // Following CppCon 2015: Bryce Adelstein-Lelbach “Benchmarking C++ Code"
-    // (https://www.youtube.com/watch?v=zWxSZcpeS8Q,
-    // https://github.com/CppCon/CppCon2015/tree/master/Presentations/Benchmarking%20C%2B%2B%20Code)
-    // given a relative margin of error e_m, a quantile z corresponding to the
-    // given confidence to be achieved, the (estimated) mean \nu and the
-    // (estimated) standard deviation \sigma, the number of required samples n
-    // can be computed as n = ((z \sigma)/(e_m/2 \mu))^2.
+    // (https://www.youtube.com/watch?v=zWxSZcpeS8Q&t=1780
+    // https://github.com/CppCon/CppCon2015/tree/master/Presentations/Benchmarking%20C%2B%2B%20Code
+    // (slide 37)) given a relative margin of error e_m, a quantile z
+    // corresponding to the given confidence to be achieved, the (estimated)
+    // mean \nu and the (estimated) standard deviation \sigma, the number of
+    // required samples n can be computed as n = ((z \sigma)/(e_m/2 \mu))^2.
     //
     // Return this estimate.
     int estimate_required_sample_size(double confidence,
@@ -101,6 +103,8 @@ class PerformanceMonitor
       double const z =
           boost::math::quantile(complement(dist, (1 - confidence) / 2));
 
+      // We need to scale the sample standard deviation to get an unbiased
+      // estimator of the population standard deviation.
       double const current_stddev = std::sqrt(
           ba::variance(_statistics) * (n_measurements / (n_measurements - 1.)));
       double const current_mean = ba::mean(_statistics);
@@ -232,6 +236,22 @@ struct Arguments
   bool perform_knn_search = true;
   bool perform_radius_search = true;
   bool performance_regression_run = false;
+
+  void print (std::ostream &os = std::cout) const
+  {
+ os << std::boolalpha;
+    os << "\nRunning with arguments:\n"
+              << "perform knn search      : " << perform_knn_search
+              << '\n'
+              << "perform radius search   : " << perform_radius_search
+              << '\n'
+              << "#points/MPI process     : " << n_values << '\n'
+              << "#queries/MPI process    : " << n_queries << '\n'
+              << "size of shift           : " << shift << '\n'
+              << "dimension               : " << partition_dim << '\n'
+	      << "performance regression  : " << performance_regression_run << '\n'
+              << '\n'; 
+  }
 };
 
 template <class NO>
@@ -446,17 +466,7 @@ void run(std::vector<std::string> const &args,
 
   if (comm_rank == 0)
   {
-    std::cout << std::boolalpha;
-    std::cout << "\nRunning with arguments:\n"
-              << "perform knn search      : " << arguments.perform_knn_search
-              << '\n'
-              << "perform radius search   : " << arguments.perform_radius_search
-              << '\n'
-              << "#points/MPI process     : " << arguments.n_values << '\n'
-              << "#queries/MPI process    : " << arguments.n_queries << '\n'
-              << "size of shift           : " << arguments.shift << '\n'
-              << "dimension               : " << arguments.partition_dim << '\n'
-              << '\n';
+	   arguments.print();
   }
 
   const unsigned int n_sample = 10;
