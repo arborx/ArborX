@@ -36,11 +36,13 @@
 namespace Details
 {
 
-template <typename T, typename... Ps>
-struct ArrayTraits<Kokkos::View<T *, Ps...>>
+template <typename... Ps>
+struct ArrayTraits<Kokkos::View<Ps...>>
 {
-  using array_type = Kokkos::View<T *, Ps...>;
-  using value_type = T;
+
+  using array_type = Kokkos::View<Ps...>;
+  static_assert(array_type::rank == 1, "requires rank-1 views");
+  using value_type = typename array_type::value_type;
   static std::size_t size(array_type const &v) { return v.extent(0); }
   static value_type const &access(array_type const &v, std::size_t i)
   {
