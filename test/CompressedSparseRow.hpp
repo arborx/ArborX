@@ -71,11 +71,11 @@ auto getNumberOfRows(TupleOfArrays const &t)
   return static_cast<std::size_t>(Traits::size(std::get<0>(t)) - 1);
 }
 
-template <typename Tuple, std::size_t... Is>
-auto subsetAndSort(Tuple const &t, std::size_t offset, std::size_t count,
+template <typename TupleOfArrays, std::size_t... Is>
+auto subsetAndSort(TupleOfArrays const &t, std::size_t first, std::size_t last,
                    std::index_sequence<Is...>)
 {
-  auto out = subsetToVectorOfTuples(offset, count, std::get<Is>(t)...);
+  auto out = subsetToVectorOfTuples(first, last, std::get<Is>(t)...);
   std::sort(std::begin(out), std::end(out));
   return out;
 }

@@ -61,11 +61,12 @@ toVectorOfTuples(Arrays const &... in)
 
 template <typename... Arrays>
 std::vector<std::tuple<typename Details::ArrayTraits<Arrays>::value_type...>>
-subsetToVectorOfTuples(std::size_t begin, std::size_t end, Arrays const &... in)
+subsetToVectorOfTuples(std::size_t first, std::size_t last,
+                       Arrays const &... in)
 {
   std::vector<std::tuple<typename Details::ArrayTraits<Arrays>::value_type...>>
       out;
-  for (std::size_t i = begin; i < end; ++i)
+  for (std::size_t i = first; i < last; ++i)
   {
     out.emplace_back(Details::ArrayTraits<Arrays>::access(in, i)...);
   }
