@@ -231,6 +231,7 @@ struct Arguments
   int partition_dim = 0;
   bool perform_knn_search = true;
   bool perform_radius_search = true;
+  bool performance_regression_run = false;
 };
 
 template <class NO>
@@ -417,6 +418,7 @@ void run(std::vector<std::string> const &args,
                                                                               "local clouds form a board, 3 -> local clouds form a box." )
         ( "do-not-perform-knn-search", "skip kNN search" )
         ( "do-not-perform-radius-search", "skip radius search" )
+        ( "performance-regression-run", "Do a performance regression run. This might be expensive" )
         ;
   // clang-format on
   bpo::variables_map vm;
@@ -439,6 +441,8 @@ void run(std::vector<std::string> const &args,
     arguments.perform_knn_search = false;
   if (vm.count("do-not-perform-radius-search"))
     arguments.perform_radius_search = false;
+  if (vm.count("performance-regression-run"))
+    arguments.performance_regression_run = true;
 
   if (comm_rank == 0)
   {
@@ -464,18 +468,21 @@ void run(std::vector<std::string> const &args,
   }
 
   double const confidence = 0.95;
-  double const relative_error_margin = 0.01;
-  auto const n = performance_monitor.estimate_required_sample_size(
-      confidence, relative_error_margin);
-
-  if (comm_rank == 0)
-    std::cout << "\nestimated " << n << " iterations\n";
-
-  for (unsigned int i = 0; i < n; ++i)
+  if (arguments.performance_regression_run)
   {
+    double const relative_error_margin = 0.01;
+    auto const n = performance_monitor.estimate_required_sample_size(
+        confidence, relative_error_margin);
+
     if (comm_rank == 0)
-      std::cout << "\nTotal lap " << n_sample + i << ":\n";
-    main_<NO>(arguments, comm, performance_monitor);
+      std::cout << "\nestimated " << n << " iterations\n";
+
+    for (unsigned int i = 0; i < n; ++i)
+    {
+      if (comm_rank == 0)
+        std::cout << "\nTotal lap " << n_sample + i << ":\n";
+      main_<NO>(arguments, comm, performance_monitor);
+    }
   }
 
   performance_monitor.summarize(confidence);
