@@ -237,20 +237,18 @@ struct Arguments
   bool perform_radius_search = true;
   bool performance_regression_run = false;
 
-  void print (std::ostream &os = std::cout) const
+  void print(std::ostream &os = std::cout) const
   {
- os << std::boolalpha;
+    os << std::boolalpha;
     os << "\nRunning with arguments:\n"
-              << "perform knn search      : " << perform_knn_search
-              << '\n'
-              << "perform radius search   : " << perform_radius_search
-              << '\n'
-              << "#points/MPI process     : " << n_values << '\n'
-              << "#queries/MPI process    : " << n_queries << '\n'
-              << "size of shift           : " << shift << '\n'
-              << "dimension               : " << partition_dim << '\n'
-	      << "performance regression  : " << performance_regression_run << '\n'
-              << '\n'; 
+       << "perform knn search      : " << perform_knn_search << '\n'
+       << "perform radius search   : " << perform_radius_search << '\n'
+       << "#points/MPI process     : " << n_values << '\n'
+       << "#queries/MPI process    : " << n_queries << '\n'
+       << "size of shift           : " << shift << '\n'
+       << "dimension               : " << partition_dim << '\n'
+       << "performance regression  : " << performance_regression_run << '\n'
+       << '\n';
   }
 };
 
@@ -466,7 +464,7 @@ void run(std::vector<std::string> const &args,
 
   if (comm_rank == 0)
   {
-	   arguments.print();
+    arguments.print();
   }
 
   const unsigned int n_sample = 10;
