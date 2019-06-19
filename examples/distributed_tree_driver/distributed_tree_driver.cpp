@@ -94,8 +94,9 @@ public:
     os << std::left << std::scientific;
 
     // Initialize with length of "Timer Name"
+    std::string const timer_name = "Timer Name";
     std::size_t const max_section_length = std::accumulate(
-        _data.begin(), _data.end(), std::string("Timer Name").size(),
+        _data.begin(), _data.end(), timer_name.size(),
         [](std::size_t current_max, entry_reference_type section) {
           return std::max(current_max, section.first.size());
         });
@@ -112,7 +113,7 @@ public:
 
       os << std::string(header_width, '=') << "\n\n";
       os << "TimeMonitor results over 1 processor\n\n";
-      os << std::setw(max_section_length) << "Timer Name"
+      os << std::setw(max_section_length) << timer_name
          << header_without_timer_name << '\n';
       os << std::string(header_width, '-') << '\n';
       for (int i = 0; i < n_timers; ++i)
@@ -138,7 +139,7 @@ public:
                         '=')
          << "\n\n";
       os << "TimeMonitor results over " << comm_size << " processors\n";
-      os << std::setw(max_section_length) << "Timer Name"
+      os << std::setw(max_section_length) << timer_name
          << header_without_timer_name << '\n';
       os << std::string(max_section_length + header_without_timer_name.size(),
                         '-')
