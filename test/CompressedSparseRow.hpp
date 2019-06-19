@@ -36,12 +36,18 @@ struct make_index_sequence_with_offset
 
 } // namespace ext
 
+// Returns the number of elements in the arrays at the positions given by Is....
+// The size is assumed to be the same for all these arrays. The return type here
+// is std::size_t.
 template <typename Tuple, std::size_t... Is>
 auto getSizeOfArraysInTuple(Tuple const &t, std::index_sequence<Is...>)
 {
   return Details::getSizeOfArrays(std::get<Is>(t)...);
 }
 
+// Checks that the last entry of the first array stored in the tuple t is equal
+// to the number of entries in the arrays in the remaining tuple entries (they
+// are all to be the same).
 template <typename TupleOfArrays>
 auto getNNZ(TupleOfArrays const &t)
 {
@@ -63,6 +69,7 @@ auto getNNZ(TupleOfArrays const &t)
   return nnz;
 }
 
+// Returns the size of the 1st array minus one.
 template <typename TupleOfArrays>
 auto getNumberOfRows(TupleOfArrays const &t)
 {
@@ -71,6 +78,8 @@ auto getNumberOfRows(TupleOfArrays const &t)
   return static_cast<std::size_t>(Traits::size(std::get<0>(t)) - 1);
 }
 
+// Repacks the entries [first, last) in the tuple entries provided by Is... into
+// a std::vector of std::tuples and sorts this vector.
 template <typename TupleOfArrays, std::size_t... Is>
 auto subsetAndSort(TupleOfArrays const &t, std::size_t first, std::size_t last,
                    std::index_sequence<Is...>)
@@ -80,6 +89,10 @@ auto subsetAndSort(TupleOfArrays const &t, std::size_t first, std::size_t last,
   return out;
 }
 
+// Given a std::tuple of arrays return a vector of tuples for the entries in row
+// i and sorts them. The function assumes that the starting indices for each row
+// are given by the first array and that the actual data is stored in the
+// remaining arrays.
 template <typename TupleOfArrays>
 auto extractRow(TupleOfArrays const &t, int i)
 {
