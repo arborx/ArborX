@@ -15,8 +15,21 @@
 namespace Details
 {
 
-template <typename... Ts>
-struct ArrayTraits;
+// Type traits class that provides uniform interface to arrays.
+// The definition below is just a prototype.  The template can be specialized
+// for array-like types.
+template <typename Array>
+struct ArrayTraits
+{
+  // The type of the underlying array.
+  using array_type = Array;
+  // The type of the elements that can be accessed.
+  using value_type = typename array_type::value_type;
+  // Returns the number of elements in the array.
+  static std::size_t size(array_type const &);
+  // Access the element at specified location (read-only).
+  static value_type const &access(array_type const &, std::size_t);
+};
 
 void checkProperlySized(std::size_t, std::size_t) {}
 
