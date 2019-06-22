@@ -108,8 +108,9 @@ class PerformanceMonitor
       double const current_stddev = std::sqrt(
           ba::variance(_statistics) * (n_measurements / (n_measurements - 1.)));
       double const current_mean = ba::mean(_statistics);
-      return static_cast<int>(std::ceil(
-          z * current_stddev / (relative_error_margin * current_mean / 2.)));
+      auto const tmp =
+          z * current_stddev / (relative_error_margin * current_mean / 2.);
+      return static_cast<int>(std::ceil(tmp * tmp));
     }
   };
 
