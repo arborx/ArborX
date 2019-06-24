@@ -13,7 +13,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#define BOOST_TEST_MODULE DesignByContract
+BOOST_AUTO_TEST_SUITE(DesignByContract)
 
 BOOST_AUTO_TEST_CASE(dumb)
 {
@@ -33,3 +33,5 @@ BOOST_AUTO_TEST_CASE(dumb)
       throw SearchException(message), std::exception,
       [&](std::exception const &e) { return prefix + message == e.what(); });
 }
+
+BOOST_AUTO_TEST_SUITE_END()

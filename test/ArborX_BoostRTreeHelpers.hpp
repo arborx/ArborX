@@ -136,7 +136,6 @@ static ParallelRTree<typename View::value_type> makeRTree(MPI_Comm comm,
 }
 #endif
 
-// NOTE: The trailing return type is required with C++11 :(
 template <typename Value>
 struct UnaryPredicate
 {
@@ -146,18 +145,11 @@ struct UnaryPredicate
   {
   }
   inline bool operator()(Value const &val) const { return _pred(val); }
-  static UnaryPredicate makeAlwaysFalse()
-  {
-    return UnaryPredicate([](Value const &) { return false; });
-  }
   Function _pred;
 };
 
 template <typename Value>
 static auto translate(ArborX::Intersects<ArborX::Sphere> const &query)
-    -> decltype(boost::geometry::index::intersects(ArborX::Box()) &&
-                boost::geometry::index::satisfies(
-                    UnaryPredicate<Value>::makeAlwaysFalse()))
 {
   auto const sphere = query._geometry;
   auto const radius = sphere.radius();
@@ -175,7 +167,6 @@ static auto translate(ArborX::Intersects<ArborX::Sphere> const &query)
 
 template <typename Value, typename Geometry>
 static auto translate(ArborX::Nearest<Geometry> const &query)
-    -> decltype(boost::geometry::index::nearest(Geometry(), 0))
 {
   auto const geometry = query._geometry;
   auto const k = query._k;

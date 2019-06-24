@@ -1,0 +1,20 @@
+version: '3'
+services:
+  arborx_dev:
+    build:
+      context: .
+    volumes:
+      - ..:${CONTAINER_ARBORX_DIR}
+      - ccache_dir:${CONTAINER_CCACHE_DIR}
+    working_dir: ${CONTAINER_ARBORX_DIR}
+    environment:
+      - TERM=xterm
+      - ARBORX_DIR=${CONTAINER_ARBORX_DIR}
+      - CCACHE_DIR=${CONTAINER_CCACHE_DIR}
+      - CCACHE_MAXSIZE=10G
+    command: tail -f /dev/null
+    security_opt:
+      - seccomp:unconfined
+    network_mode: host
+volumes:
+  ccache_dir:
