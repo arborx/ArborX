@@ -15,7 +15,7 @@ pipeline {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=ubuntu:18.04 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_STANDARD=14 -DKOKKOS_ENABLE_SERIAL=ON -DKOKKOS_ENABLE_OPENMP=ON -DCMAKE_CXX_COMPILER=clang++ -DKOKKOS_ARCH=AMDAVX" --build-arg KOKKOS_VERSION=f8641d015f371afb6cb49a97545d4e87dda7c5af'
+                            additionalBuildArgs '--build-arg BASE=ubuntu:18.04 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_STANDARD=14 -DKOKKOS_ENABLE_SERIAL=ON -DKOKKOS_ENABLE_OPENMP=ON -DCMAKE_CXX_COMPILER=clang++ -DKOKKOS_ARCH=AMDAVX" --build-arg KOKKOS_VERSION=574cc9af80116bb889470858060dfe649213a2a2'
                             args '-v /tmp/ccache:/tmp/ccache'
                             label 'cathode'
                         }
