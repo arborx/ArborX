@@ -109,7 +109,7 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
 
 # Install Kokkos
 ARG KOKKOS_VERSION=f8641d015f371afb6cb49a97545d4e87dda7c5af
-ARG KOKKOS_OPTIONS="-DCMAKE_CXX_STANDARD=14 -DKOKKOS_ENABLE_SERIAL=ON -DKOKKOS_ENABLE_OPENMP=ON -DKOKKOS_ENABLE_DEPRECATED_CODE=OFF -DKOKKOS_ENABLE_CUDA=ON -DKOKKOS_ENABLE_CUDA_LAMBDA=ON -DCMAKE_CXX_COMPILER=/scratch/kokkos/bin/nvcc_wrapper"
+ARG KOKKOS_OPTIONS="-DCMAKE_CXX_STANDARD=14 -DKOKKOS_ENABLE_SERIAL=ON -DKOKKOS_ENABLE_OPENMP=ON -DKOKKOS_ENABLE_DEPRECATED_CODE=OFF -DKOKKOS_ENABLE_CUDA=ON -DKOKKOS_ENABLE_CUDA_LAMBDA=ON"
 ENV KOKKOS_DIR=/opt/kokkos
 RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
     KOKKOS_ARCHIVE=kokkos-${KOKKOS_HASH}.tar.gz && \
@@ -119,6 +119,6 @@ RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz
     tar -xf ${KOKKOS_ARCHIVE} -C kokkos --strip-components=1 && \
     cd kokkos && \
     mkdir -p build && cd build && \
-    cmake -D CMAKE_INSTALL_PREFIX=${KOKKOS_DIR} ${KOKKOS_OPTIONS} .. && \
+    cmake -D CMAKE_INSTALL_PREFIX=${KOKKOS_DIR} -D CMAKE_CXX_COMPILER=/scratch/kokkos/bin/nvcc_wrapper ${KOKKOS_OPTIONS} .. && \
     make -j${NPROCS} install && \
     rm -rf ${SCRATCH_DIR}
