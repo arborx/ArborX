@@ -575,6 +575,8 @@ int main(int argc, char *argv[])
                                      .allow_unregistered()
                                      .run();
     bpo::store(parsed, vm);
+    bpo::notify(vm);
+
     std::vector<std::string> pass_further =
         bpo::collect_unrecognized(parsed.options, bpo::include_positional);
 
@@ -588,6 +590,7 @@ int main(int argc, char *argv[])
 
     PerformanceMonitor performance_monitor;
 
+    std::cout << "node type               : " << node << std::endl;
     if (node == "serial")
     {
 #ifdef KOKKOS_ENABLE_SERIAL
