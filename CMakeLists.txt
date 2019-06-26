@@ -67,7 +67,6 @@ configure_package_config_file(cmake/ArborXConfig.cmake.in
 )
 install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
-  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindKokkos.cmake
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXSettings.cmake
   DESTINATION lib/cmake/ArborX )
 
