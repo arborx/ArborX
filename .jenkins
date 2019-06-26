@@ -22,7 +22,7 @@ pipeline {
                     }
                     steps {
                         sh 'ccache --zero-stats'
-                        sh 'rm -rf build && mkdir -p build && cd build && cmake -D KOKKOS_DEVICES="Serial OpenMP CUDA" -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR -D CMAKE_BUILD_TYPE=Debug -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$KOKKOS_DIR/lib;$BOOST_DIR;$BENCHMARK_DIR" -D ArborX_ENABLE_MPI=ON -D MPIEXEC_PREFLAGS="--allow-run-as-root" .. && make -j8 VERBOSE=1 && ctest --no-compress-output -T Test'
+                        sh 'rm -rf build && mkdir -p build && cd build && cmake -D Kokkos_DEVICES="Serial OpenMP CUDA" -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR -D CMAKE_BUILD_TYPE=Debug -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$KOKKOS_DIR/lib;$BOOST_DIR;$BENCHMARK_DIR" -D ArborX_ENABLE_MPI=ON -D MPIEXEC_PREFLAGS="--allow-run-as-root" .. && make -j8 VERBOSE=1 && ctest --no-compress-output -T Test'
                     }
                     post {
                         always {
