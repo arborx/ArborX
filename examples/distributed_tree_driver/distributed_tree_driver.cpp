@@ -14,10 +14,6 @@
 
 #include <Kokkos_Core.hpp>
 
-#include <boost/accumulators/accumulators.hpp>
-#include <boost/accumulators/statistics/mean.hpp>
-#include <boost/accumulators/statistics/stats.hpp>
-#include <boost/accumulators/statistics/variance.hpp>
 #include <boost/math/distributions/students_t.hpp>
 #include <boost/program_options.hpp>
 
@@ -32,8 +28,40 @@
 
 #include <mpi.h>
 
-namespace ba = boost::accumulators;
+// Compute estimates for the standard deviation and mean for some given samples.
+// Unfortunately, we can't use boost::accumulators due to some incompatibility
+// when compiling with nvcc. and have to implement a replacment ourselves.
+struct Statistics
+{
+  void operator()(double const x_n)
+  {
+    ++_count;
+    // Use Welford's online algorithm
+    // (https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm)
+    // for updating the mean and the sum of squares of differences from the
+    // curent mean.
+    double const delta = x_n - _mean;
+    _mean = _mean + delta / _count;
+    _squared_differences = _squared_differences + delta * (x_n - _mean);
+  }
 
+  double get_stddev() const
+  {
+    return std::sqrt(_squared_differences / (_count - 1));
+  }
+
+  double get_mean() const { return _mean; }
+
+  int get_count() const { return _count; }
+
+private:
+  int _count = 0;
+  double _mean = 0;
+  double _squared_differences = 0;
+};
+
+// Dummy class that is used for throwing an exception signaling that the
+// printing help is requested.
 struct HelpPrinted
 {
 };
@@ -44,9 +72,7 @@ class PerformanceMonitor
 {
   class Timer
   {
-    using data_type =
-        ba::accumulator_set<double, ba::stats<ba::tag::count, ba::tag::mean,
-                                              ba::tag::lazy_variance>>;
+    using data_type = Statistics;
     data_type _statistics;
     bool _started = false;
     const MPI_Comm _mpi_comm;
@@ -98,16 +124,15 @@ class PerformanceMonitor
     int estimate_required_sample_size(double confidence,
                                       double relative_error_margin) const
     {
-      int const n_measurements = ba::count(_statistics);
+      int const n_measurements = _statistics.get_count();
       boost::math::students_t const dist(n_measurements - 1);
       double const z =
           boost::math::quantile(complement(dist, (1 - confidence) / 2));
 
       // We need to scale the sample standard deviation to get an unbiased
       // estimator of the population standard deviation.
-      double const current_stddev = std::sqrt(
-          ba::variance(_statistics) * (n_measurements / (n_measurements - 1.)));
-      double const current_mean = ba::mean(_statistics);
+      double const current_stddev = _statistics.get_stddev();
+      double const current_mean = _statistics.get_mean();
       auto const tmp =
           z * current_stddev / (relative_error_margin * current_mean / 2.);
       return static_cast<int>(std::ceil(tmp * tmp));
@@ -171,7 +196,7 @@ public:
     if (comm_rank == 0)
     {
       std::vector<std::string> const statistic_headers = {
-          "mean", "variance", "confidence interval"};
+          "mean", "stddev", "confidence interval"};
       std::stringstream dummy_string_stream;
       dummy_string_stream << std::setprecision(os.precision())
                           << std::scientific << 1.;
@@ -203,18 +228,17 @@ public:
       {
         auto const &statistics = timer.second.get_statistics();
 
-        auto n = ba::count(statistics);
+        auto n = statistics.get_count();
         boost::math::students_t const final_dist(n - 1);
         double const z =
             boost::math::quantile(complement(final_dist, (1 - confidence) / 2));
 
-        double const final_average_stddev =
-            std::sqrt(ba::variance(statistics) * n / (n - 1.));
-        double const final_sample_mean = ba::mean(statistics);
+        double const final_average_stddev = statistics.get_stddev();
+        double const final_sample_mean = statistics.get_mean();
 
         os << std::setw(max_section_length) << timer.first << " | "
-           << std::setw(column_width[0]) << ba::mean(statistics) << " | "
-           << std::setw(column_width[1]) << ba::variance(statistics) << " | ["
+           << std::setw(column_width[0]) << statistics.get_mean() << " | "
+           << std::setw(column_width[1]) << statistics.get_stddev() << " | ["
            << final_sample_mean - z * final_average_stddev * 1. / std::sqrt(n)
            << ", "
            << final_sample_mean + z * final_average_stddev * 1. / std::sqrt(n)
