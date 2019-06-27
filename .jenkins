@@ -31,7 +31,7 @@ pipeline {
                         }
                         success {
                             sh 'cd build && make install'
-                            sh 'rm -rf tmp && mkdir -p tmp && cd tmp && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$ARBORX_DIR;$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" ../examples/bvh_driver && make VERBOSE=1 && make test'
+                            sh 'rm -rf tmp && mkdir -p tmp && cd tmp && cmake -D CMAKE_EXE_LINKER_FLAGS=-fopenmp -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$ARBORX_DIR;$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" ../examples/bvh_driver && make VERBOSE=1 && make test'
                         }
                     }
                 }
