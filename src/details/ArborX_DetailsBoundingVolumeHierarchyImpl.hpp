@@ -43,7 +43,7 @@ struct BoundingVolumeHierarchyImpl
   // is called.
   template <typename Query>
   static void queryDispatch(Details::SpatialPredicateTag,
-                            BoundingVolumeHierarchy<DeviceType> const bvh,
+                            BoundingVolumeHierarchy<DeviceType> const &bvh,
                             Kokkos::View<Query *, DeviceType> queries,
                             Kokkos::View<int *, DeviceType> &indices,
                             Kokkos::View<int *, DeviceType> &offset,
@@ -52,7 +52,7 @@ struct BoundingVolumeHierarchyImpl
   template <typename Query>
   static void queryDispatch(
       Details::NearestPredicateTag,
-      BoundingVolumeHierarchy<DeviceType> const bvh,
+      BoundingVolumeHierarchy<DeviceType> const &bvh,
       Kokkos::View<Query *, DeviceType> queries,
       Kokkos::View<int *, DeviceType> &indices,
       Kokkos::View<int *, DeviceType> &offset,
@@ -62,7 +62,7 @@ struct BoundingVolumeHierarchyImpl
   template <typename Query>
   static void queryDispatch(
       Details::NearestPredicateTag tag,
-      BoundingVolumeHierarchy<DeviceType> const bvh,
+      BoundingVolumeHierarchy<DeviceType> const &bvh,
       Kokkos::View<Query *, DeviceType> queries,
       Kokkos::View<int *, DeviceType> &indices,
       Kokkos::View<int *, DeviceType> &offset,
@@ -81,7 +81,8 @@ struct BoundingVolumeHierarchyImpl
 template <typename DeviceType>
 template <typename Query>
 void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
-    Details::NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const bvh,
+    Details::NearestPredicateTag,
+    BoundingVolumeHierarchy<DeviceType> const &bvh,
     Kokkos::View<Query *, DeviceType> queries,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset, NearestQueryAlgorithm which,
@@ -305,7 +306,8 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 template <typename DeviceType>
 template <typename Query>
 void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
-    Details::SpatialPredicateTag, BoundingVolumeHierarchy<DeviceType> const bvh,
+    Details::SpatialPredicateTag,
+    BoundingVolumeHierarchy<DeviceType> const &bvh,
     Kokkos::View<Query *, DeviceType> queries,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset, int buffer_size)
