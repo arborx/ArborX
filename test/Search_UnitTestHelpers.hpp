@@ -79,6 +79,11 @@ void validateResults(T1 const &reference, T2 const &other)
 
 namespace tt = boost::test_tools;
 
+template <typename T>
+struct is_distributed : std::false_type
+{
+};
+
 template <typename Query, typename DeviceType>
 void checkResults(ArborX::BVH<DeviceType> const &bvh,
                   Kokkos::View<Query *, DeviceType> const &queries,
@@ -125,6 +130,11 @@ void checkResults(ArborX::BVH<DeviceType> const &bvh,
 }
 
 #ifdef ARBORX_ENABLE_MPI
+template <typename D>
+struct is_distributed<ArborX::DistributedSearchTree<D>> : std::true_type
+{
+};
+
 template <typename Query, typename DeviceType>
 void checkResults(ArborX::DistributedSearchTree<DeviceType> const &tree,
                   Kokkos::View<Query *, DeviceType> const &queries,
