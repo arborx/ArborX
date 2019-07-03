@@ -30,10 +30,10 @@ namespace tt = boost::test_tools;
 template <typename T>
 struct TreeTypeTraits;
 
-template <typename... Ds>
-struct TreeTypeTraits<WORKAROUND_SEQUENCE_OF_TYPES<Ds...>>
+template <typename... DeviceTypes>
+struct TreeTypeTraits<WORKAROUND_SEQUENCE_OF_TYPES<DeviceTypes...>>
 {
-  using type = WORKAROUND_SEQUENCE_OF_TYPES<ArborX::BVH<Ds>...>;
+  using type = WORKAROUND_SEQUENCE_OF_TYPES<ArborX::BVH<DeviceTypes>...>;
 };
 
 using TreeTypes = typename TreeTypeTraits<ARBORX_DEVICE_TYPES>::type;
