@@ -31,9 +31,9 @@ template <typename T>
 struct TreeTypeTraits;
 
 template <typename... Ds>
-struct TreeTypeTraits<std::tuple<Ds...>>
+struct TreeTypeTraits<WORKAROUND_SEQUENCE_OF_TYPES<Ds...>>
 {
-  using type = std::tuple<ArborX::BVH<Ds>...>;
+  using type = WORKAROUND_SEQUENCE_OF_TYPES<ArborX::BVH<Ds>...>;
 };
 
 using TreeTypes = typename TreeTypeTraits<ARBORX_DEVICE_TYPES>::type;
