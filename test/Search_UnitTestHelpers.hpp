@@ -191,16 +191,16 @@ void checkResults(Tree const &tree, Queries const &queries,
 }
 #endif
 
-template <typename DeviceType>
-ArborX::BVH<DeviceType> makeBvh(std::vector<ArborX::Box> const &b)
+template <typename Tree>
+auto make(std::vector<ArborX::Box> const &b)
 {
   int const n = b.size();
-  Kokkos::View<ArborX::Box *, DeviceType> boxes("boxes", n);
+  Kokkos::View<ArborX::Box *, typename Tree::device_type> boxes("boxes", n);
   auto boxes_host = Kokkos::create_mirror_view(boxes);
   for (int i = 0; i < n; ++i)
     boxes_host(i) = b[i];
   Kokkos::deep_copy(boxes, boxes_host);
-  return ArborX::BVH<DeviceType>(boxes);
+  return Tree(boxes);
 }
 
 #ifdef ARBORX_ENABLE_MPI
