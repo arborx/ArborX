@@ -36,6 +36,14 @@ struct TreeTypeTraits<WORKAROUND_SEQUENCE_OF_TYPES<DeviceTypes...>>
   using type = WORKAROUND_SEQUENCE_OF_TYPES<ArborX::BVH<DeviceTypes>...>;
 };
 
+template <typename... DeviceTypes>
+struct TreeTypeTraits<
+    WORKAROUND_SEQUENCE_OF_TYPES<DeviceTypes..., boost::mpl::na>>
+{
+  using type = typename TreeTypeTraits<
+      WORKAROUND_SEQUENCE_OF_TYPES<DeviceTypes...>>::type;
+};
+
 using TreeTypes = typename TreeTypeTraits<ARBORX_DEVICE_TYPES>::type;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, Tree, TreeTypes)
