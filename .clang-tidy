@@ -1,0 +1,3 @@
+---
+Checks:          '-*,performance-*,-performance-inefficient-string-concatenation,mpi-*,modernize-*,-modernize-pass-by-value,readability-*,-readability-braces-around-statements,-readability-named-parameter'
+...
