@@ -27,61 +27,73 @@
 
 namespace tt = boost::test_tools;
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
+template <typename T>
+struct TreeTypeTraits;
+
+template <typename... DeviceTypes>
+struct TreeTypeTraits<std::tuple<DeviceTypes...>>
 {
+  using type = std::tuple<ArborX::BVH<DeviceTypes>...>;
+};
+
+using TreeTypes = typename TreeTypeTraits<ARBORX_DEVICE_TYPES>::type;
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, Tree, TreeTypes)
+{
+  using device_type = typename Tree::device_type;
   // tree is empty, it has no leaves.
-  for (auto const &empty_bvh : {
-           ArborX::BVH<DeviceType>{}, // default constructed
-           makeBvh<DeviceType>({}),   // constructed with empty view of boxes
+  for (auto const &empty_tree : {
+           Tree{},         // default constructed
+           make<Tree>({}), // constructed with empty view of boxes
        })
   {
-    BOOST_TEST(empty_bvh.empty());
-    BOOST_TEST(empty_bvh.size() == 0);
-    // BVH::bounds() returns an invalid box when the tree is empty.
-    BOOST_TEST(ArborX::Details::equals(empty_bvh.bounds(), {}));
+    BOOST_TEST(empty_tree.empty());
+    BOOST_TEST(empty_tree.size() == 0);
+    // Tree::bounds() returns an invalid box when the tree is empty.
+    BOOST_TEST(ArborX::Details::equals(empty_tree.bounds(), {}));
 
     // Passing a view with no query does seem a bit silly but we still need
     // to support it. And since the tag dispatching yields different tree
     // traversals for nearest and spatial predicates, we do have to check
     // the results for various type of queries.
-    checkResults(empty_bvh, makeOverlapQueries<DeviceType>({}), {}, {0});
+    checkResults(empty_tree, makeOverlapQueries<device_type>({}), {}, {0});
 
     // NOTE: Admittedly testing for both overlap and within queries might be
     // a bit overkill but I'd rather test for all the queries we plan on
     // using.
-    checkResults(empty_bvh, makeWithinQueries<DeviceType>({}), {}, {0});
+    checkResults(empty_tree, makeWithinQueries<device_type>({}), {}, {0});
 
-    checkResults(empty_bvh, makeNearestQueries<DeviceType>({}), {}, {0});
+    checkResults(empty_tree, makeNearestQueries<device_type>({}), {}, {0});
 
     // Passing an empty distance vector.
-    checkResults(empty_bvh, makeNearestQueries<DeviceType>({}), {}, {0});
+    checkResults(empty_tree, makeNearestQueries<device_type>({}), {}, {0});
 
     // Now passing a couple queries of various type and checking the
     // results.
     checkResults(
-        empty_bvh,
-        makeOverlapQueries<DeviceType>({
+        empty_tree,
+        makeOverlapQueries<device_type>({
             {}, // Did not bother giving a valid box here but that's fine.
             {},
         }),
         {}, {0, 0, 0});
 
-    checkResults(empty_bvh,
-                 makeWithinQueries<DeviceType>({
+    checkResults(empty_tree,
+                 makeWithinQueries<device_type>({
                      {{{0., 0., 0.}}, 1.},
                      {{{1., 1., 1.}}, 2.},
                  }),
                  {}, {0, 0, 0});
 
-    checkResults(empty_bvh,
-                 makeNearestQueries<DeviceType>({
+    checkResults(empty_tree,
+                 makeNearestQueries<device_type>({
                      {{{0., 0., 0.}}, 1},
                      {{{1., 1., 1.}}, 2},
                  }),
                  {}, {0, 0, 0});
 
-    checkResults(empty_bvh,
-                 makeNearestQueries<DeviceType>({
+    checkResults(empty_tree,
+                 makeNearestQueries<device_type>({
                      {{{0., 0., 0.}}, 1},
                      {{{1., 1., 1.}}, 2},
                  }),
@@ -89,56 +101,58 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
   }
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, DeviceType, ARBORX_DEVICE_TYPES)
+BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, Tree, TreeTypes)
 {
+  using device_type = typename Tree::device_type;
   // tree has a single leaf (unit box)
-  auto const bvh = makeBvh<DeviceType>({
+  auto const single_leaf_tree = make<Tree>({
       {{{0., 0., 0.}}, {{1., 1., 1.}}},
   });
 
-  BOOST_TEST(!bvh.empty());
-  BOOST_TEST(bvh.size() == 1);
-  BOOST_TEST(
-      ArborX::Details::equals(bvh.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
+  BOOST_TEST(!single_leaf_tree.empty());
+  BOOST_TEST(single_leaf_tree.size() == 1);
+  BOOST_TEST(ArborX::Details::equals(single_leaf_tree.bounds(),
+                                     {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
-  checkResults(bvh, makeOverlapQueries<DeviceType>({}), {}, {0});
+  checkResults(single_leaf_tree, makeOverlapQueries<device_type>({}), {}, {0});
 
-  checkResults(bvh, makeWithinQueries<DeviceType>({}), {}, {0});
+  checkResults(single_leaf_tree, makeWithinQueries<device_type>({}), {}, {0});
 
-  checkResults(bvh, makeNearestQueries<DeviceType>({}), {}, {0});
+  checkResults(single_leaf_tree, makeNearestQueries<device_type>({}), {}, {0});
 
-  checkResults(bvh, makeNearestQueries<DeviceType>({}), {}, {0}, {});
+  checkResults(single_leaf_tree, makeNearestQueries<device_type>({}), {}, {0},
+               {});
 
   checkResults(
-      bvh,
-      makeNearestQueries<DeviceType>({{{0., 0., 0.}, 3}, {{4., 5., 1.}, 1}}),
+      single_leaf_tree,
+      makeNearestQueries<device_type>({{{0., 0., 0.}, 3}, {{4., 5., 1.}, 1}}),
       {0, 0}, {0, 1, 2}, {0., 5.});
 
-  checkResults(bvh,
-               makeOverlapQueries<DeviceType>({
+  checkResults(single_leaf_tree,
+               makeOverlapQueries<device_type>({
                    {{{5., 5., 5.}}, {{5., 5., 5.}}},
                    {{{.5, .5, .5}}, {{.5, .5, .5}}},
                }),
                {0}, {0, 0, 1});
 
-  checkResults(bvh,
-               makeWithinQueries<DeviceType>({
+  checkResults(single_leaf_tree,
+               makeWithinQueries<device_type>({
                    {{{0., 0., 0.}}, 1.},
                    {{{1., 1., 1.}}, 3.},
                    {{{5., 5., 5.}}, 2.},
                }),
                {0, 0}, {0, 1, 2, 2});
 
-  checkResults(bvh,
-               makeNearestQueries<DeviceType>({
+  checkResults(single_leaf_tree,
+               makeNearestQueries<device_type>({
                    {{{0., 0., 0.}}, 1},
                    {{{1., 1., 1.}}, 2},
                    {{{2., 2., 2.}}, 3},
                }),
                {0, 0, 0}, {0, 1, 2, 3});
 
-  checkResults(bvh,
-               makeNearestQueries<DeviceType>({
+  checkResults(single_leaf_tree,
+               makeNearestQueries<device_type>({
                    {{{1., 0., 0.}}, 1},
                    {{{0., 2., 0.}}, 2},
                    {{{0., 0., 3.}}, 3},
@@ -146,61 +160,63 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, DeviceType, ARBORX_DEVICE_TYPES)
                {0, 0, 0}, {0, 1, 2, 3}, {0., 1., 2.});
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, DeviceType,
-                              ARBORX_DEVICE_TYPES)
+BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, Tree, TreeTypes)
 {
-  auto const bvh = makeBvh<DeviceType>({
+  using device_type = typename Tree::device_type;
+
+  auto const couple_leaves_tree = make<Tree>({
       {{{0., 0., 0.}}, {{0., 0., 0.}}},
       {{{1., 1., 1.}}, {{1., 1., 1.}}},
   });
 
-  BOOST_TEST(!bvh.empty());
-  BOOST_TEST(bvh.size() == 2);
-  BOOST_TEST(
-      ArborX::Details::equals(bvh.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
+  BOOST_TEST(!couple_leaves_tree.empty());
+  BOOST_TEST(couple_leaves_tree.size() == 2);
+  BOOST_TEST(ArborX::Details::equals(couple_leaves_tree.bounds(),
+                                     {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   // single query overlap with nothing
-  checkResults(bvh,
-               makeOverlapQueries<DeviceType>({
+  checkResults(couple_leaves_tree,
+               makeOverlapQueries<device_type>({
                    {},
                }),
                {}, {0, 0});
 
   // single query overlap with both
-  checkResults(bvh,
-               makeOverlapQueries<DeviceType>({
+  checkResults(couple_leaves_tree,
+               makeOverlapQueries<device_type>({
                    {{{0., 0., 0.}}, {{1., 1., 1.}}},
                }),
                {1, 0}, {0, 2});
 
   // single query overlap with only one
-  checkResults(bvh,
-               makeOverlapQueries<DeviceType>({
+  checkResults(couple_leaves_tree,
+               makeOverlapQueries<device_type>({
                    {{{0.5, 0.5, 0.5}}, {{1.5, 1.5, 1.5}}},
                }),
                {1}, {0, 1});
 
   // a couple queries both overlap with nothing
-  checkResults(bvh,
-               makeOverlapQueries<DeviceType>({
+  checkResults(couple_leaves_tree,
+               makeOverlapQueries<device_type>({
                    {},
                    {},
                }),
                {}, {0, 0, 0});
 
   // a couple queries first overlap with nothing second with only one
-  checkResults(bvh,
-               makeOverlapQueries<DeviceType>({
+  checkResults(couple_leaves_tree,
+               makeOverlapQueries<device_type>({
                    {},
                    {{{0., 0., 0.}}, {{0., 0., 0.}}},
                }),
                {0}, {0, 0, 1});
 
   // no query
-  checkResults(bvh, makeOverlapQueries<DeviceType>({}), {}, {0});
+  checkResults(couple_leaves_tree, makeOverlapQueries<device_type>({}), {},
+               {0});
 
-  checkResults(bvh,
-               makeNearestQueries<DeviceType>({
+  checkResults(couple_leaves_tree,
+               makeNearestQueries<device_type>({
                    {{{0., 0., 0.}}, 2},
                    {{{1., 0., 0.}}, 4},
                }),
@@ -215,7 +231,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves, DeviceType,
   // when building trees over ~10M indexable values.  The hierarchy generated
   // at construction had leaves with no parent which yielded a segfault later
   // when computing bounding boxes and walking the hierarchy toward the root.
-  auto const bvh = makeBvh<DeviceType>({
+  auto const bvh = make<ArborX::BVH<DeviceType>>({
       {{{0., 0., 0.}}, {{0., 0., 0.}}},
       {{{1., 1., 1.}}, {{1., 1., 1.}}},
       {{{1., 1., 1.}}, {{1., 1., 1.}}},
@@ -234,7 +250,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves, DeviceType,
 BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
-  auto const bvh = makeBvh<DeviceType>({
+  auto const bvh = make<ArborX::BVH<DeviceType>>({
       {{{0., 0., 0.}}, {{0., 0., 0.}}},
       {{{1., 0., 0.}}, {{1., 0., 0.}}},
       {{{2., 0., 0.}}, {{2., 0., 0.}}},
@@ -309,7 +325,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity, DeviceType,
     double const b = i + 1;
     boxes.push_back({{{a, a, a}}, {{b, b, b}}});
   }
-  auto const bvh = makeBvh<DeviceType>(boxes);
+  auto const bvh = make<ArborX::BVH<DeviceType>>(boxes);
 
   Kokkos::View<int *, DeviceType> indices("indices", 0);
   Kokkos::View<int *, DeviceType> offset("offset", 0);
@@ -332,10 +348,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity, DeviceType,
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(miscellaneous, DeviceType, ARBORX_DEVICE_TYPES)
 {
-  auto const bvh = makeBvh<DeviceType>({
+  auto const bvh = make<ArborX::BVH<DeviceType>>({
       {{{1., 3., 5.}}, {{2., 4., 6.}}},
   });
-  auto const empty_bvh = makeBvh<DeviceType>({});
+  auto const empty_bvh = make<ArborX::BVH<DeviceType>>({});
 
   // Batched queries BVH::query( Kokkos::View<Query *, ...>, ... ) returns
   // early if the tree is empty.  Below we ensure that a direct call to the

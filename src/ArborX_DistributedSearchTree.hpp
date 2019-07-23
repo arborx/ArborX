@@ -33,6 +33,7 @@ template <typename DeviceType>
 class DistributedSearchTree
 {
 public:
+  using device_type = DeviceType;
   using bounding_volume_type = typename BVH<DeviceType>::bounding_volume_type;
   using size_type = typename BVH<DeviceType>::size_type;
 
