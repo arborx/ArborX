@@ -132,8 +132,8 @@ void BM_construction(benchmark::State &state)
 {
   using DeviceType = typename TreeType::device_type;
   int const n_values = state.range(0);
-  PointCloudType point_cloud_type = static_cast<PointCloudType>(state.range(1));
-  auto points = constructPoints<DeviceType>(n_values, point_cloud_type);
+  auto const point_cloud_type = static_cast<PointCloudType>(state.range(1));
+  auto const points = constructPoints<DeviceType>(n_values, point_cloud_type);
 
   for (auto _ : state)
   {
@@ -152,9 +152,9 @@ void BM_knn_search(benchmark::State &state)
   int const n_values = state.range(0);
   int const n_queries = state.range(1);
   int const n_neighbors = state.range(2);
-  PointCloudType const source_point_cloud_type =
+  auto const source_point_cloud_type =
       static_cast<PointCloudType>(state.range(3));
-  PointCloudType const target_point_cloud_type =
+  auto const target_point_cloud_type =
       static_cast<PointCloudType>(state.range(4));
 
   TreeType index(
@@ -182,9 +182,9 @@ void BM_radius_search(benchmark::State &state)
   int const n_queries = state.range(1);
   int const n_neighbors = state.range(2);
   int const buffer_size = state.range(3);
-  PointCloudType const source_point_cloud_type =
+  auto const source_point_cloud_type =
       static_cast<PointCloudType>(state.range(4));
-  PointCloudType const target_point_cloud_type =
+  auto const target_point_cloud_type =
       static_cast<PointCloudType>(state.range(5));
 
   TreeType index(
