@@ -122,19 +122,23 @@ BOOST_AUTO_TEST_CASE(extract_row)
   using VI = std::vector<int>;
   using VD = std::vector<double>;
   using VS = std::vector<std::string>;
-  using T1 = std::vector<std::tuple<double>>;
-  using T2 = std::vector<std::tuple<double, std::string>>;
+  using TD = std::tuple<double>;
+  using TDS = std::tuple<double, std::string>;
+  using VT1 = std::vector<TD>;
+  using VT2 = std::vector<TDS>;
+
   BOOST_TEST((row(0, VI{0, 2, 3}, VD{3.14, 1.41, 2.72})) ==
-                 (T1{{1.41}, {3.14}}),
+                 (VT1{TD{1.41}, TD{3.14}}),
              boost::test_tools::per_element());
-  BOOST_TEST((row(1, VI{0, 2, 3}, VD{3.14, 1.41, 2.72})) == T1{{2.72}},
+  BOOST_TEST((row(1, VI{0, 2, 3}, VD{3.14, 1.41, 2.72})) ==
+                 VT1{std::tuple<double>{2.72}},
              boost::test_tools::per_element());
   BOOST_TEST(
       (row(0, VI{0, 2, 3}, VD{3.14, 1.41, 2.72}, VS{"pi", "sqrt2", "e"})) ==
-          (T2{{1.41, "sqrt2"}, {3.14, "pi"}}),
+          (VT2{TDS{1.41, "sqrt2"}, TDS{3.14, "pi"}}),
       boost::test_tools::per_element());
   BOOST_TEST((row(1, VI{0, 2, 3}, VD{3.14, 1.41, 2.72},
-                  VS{"pi", "sqrt2", "e"})) == (T2{{2.72, "e"}}),
+                  VS{"pi", "sqrt2", "e"})) == (VT2{TDS{2.72, "e"}}),
              boost::test_tools::per_element());
 }
 
