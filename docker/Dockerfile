@@ -108,10 +108,10 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     rm -rf ${SCRATCH_DIR}
 
 # Install Kokkos
-ARG KOKKOS_VERSION=6053d1623c20fc8a9ae9c0990016cd63ac76e9f2
+ARG KOKKOS_VERSION=4ee39cc0a30753c4d30e239c2885ee8d42b26ddd
 ARG KOKKOS_OPTIONS="-DCMAKE_CXX_STANDARD=14 -DKOKKOS_ENABLE_SERIAL=ON -DKOKKOS_ENABLE_OPENMP=ON -DKOKKOS_ENABLE_DEPRECATED_CODE=OFF -DKOKKOS_ENABLE_CUDA=ON -DKOKKOS_ENABLE_CUDA_LAMBDA=ON"
 ENV KOKKOS_DIR=/opt/kokkos
-RUN KOKKOS_URL=https://github.com/crtrott/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
+RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
     KOKKOS_ARCHIVE=kokkos-${KOKKOS_HASH}.tar.gz && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${KOKKOS_URL} --output-document=${KOKKOS_ARCHIVE} && \
