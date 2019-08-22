@@ -13,6 +13,7 @@
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <ArborX_DistributedSearchTree.hpp>
 
+#include <boost/serialization/vector.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include <algorithm>
@@ -451,4 +452,113 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
       BoostRTreeHelpers::performQueries(rtree, within_queries_host);
 
   validateResults(bvh_results, rtree_results);
+}
+
+class Dummy
+{
+public:
+  Dummy() = default;
+
+  friend class boost::serialization::access;
+
+  template <class Archive>
+  void serialize(Archive &ar, const unsigned int version)
+  {
+    ar &indices;
+    ar &offset;
+    ar &ranks;
+    ar &ids;
+  }
+
+  void print(MPI_Comm comm) const
+  {
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+
+    std::cout << rank << " ";
+    for (auto &r : ranks)
+      std::cout << r << " ";
+    std::cout << std::endl;
+  }
+
+  std::vector<int> indices;
+  std::vector<int> offset;
+  std::vector<int> ranks;
+  std::vector<int> ids;
+};
+
+template <typename DeviceType>
+class Functor
+{
+public:
+  void operator()(MPI_Comm comm, Kokkos::View<int *, DeviceType> indices,
+                  Kokkos::View<int *, DeviceType> offset,
+                  Kokkos::View<int *, DeviceType> ranks,
+                  Kokkos::View<int *, DeviceType> ids,
+                  std::vector<Dummy> &dummy) const
+  {
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+
+    for (unsigned int i = 0; i < indices.extent(0); ++i)
+      dummy[rank].indices.emplace_back(indices[i]);
+    for (unsigned int i = 0; i < offset.extent(0); ++i)
+      dummy[rank].offset.emplace_back(offset[i]);
+    for (unsigned int i = 0; i < ranks.extent(0); ++i)
+      dummy[rank].ranks.emplace_back(ranks[i]);
+    for (unsigned int i = 0; i < ids.extent(0); ++i)
+      dummy[rank].ids.emplace_back(ids[i]);
+  }
+};
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(delegate_work, DeviceType, ARBORX_DEVICE_TYPES)
+{
+  MPI_Comm comm = MPI_COMM_WORLD;
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+  int comm_size;
+  MPI_Comm_size(comm, &comm_size);
+
+  //  +----------0----------1----------2----------3
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  0----------1----------2----------3----------+
+  //  [  rank 0  ]
+  //             [  rank 1  ]
+  //                        [  rank 2  ]
+  //                                   [  rank 3  ]
+  auto const tree = makeDistributedSearchTree<DeviceType>(
+      comm, {
+                {{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank, 0., 0.}}},
+                {{{(double)comm_rank + 1., 1., 1.}},
+                 {{(double)comm_rank + 1., 1., 1.}}},
+            });
+
+  BOOST_TEST(!tree.empty());
+  BOOST_TEST((int)tree.size() == 2 * comm_size);
+
+  //  +----------0----------1----------2----------3
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  0-------x--1-------X--2-------X--3-------X--+
+  //          ^          ^          ^          ^
+  //          3          2          1          0
+  Kokkos::View<int *, DeviceType> indices("indices", 0);
+  Kokkos::View<int *, DeviceType> offset("offset", 0);
+  Kokkos::View<int *, DeviceType> ranks("ranks", 0);
+  auto queries = makeWithinQueries<DeviceType>({
+      {{{(double)comm_rank, 0., 0.}}, (double)comm_size},
+  });
+  std::vector<Dummy> data(comm_size);
+  Functor<DeviceType> functor;
+  ArborX::Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
+      ArborX::Details::SpatialPredicateTag(), tree, queries, indices, offset,
+      ranks, functor, data);
+
+  for (auto &d : data)
+    d.print(comm);
 }
