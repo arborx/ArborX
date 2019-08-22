@@ -15,6 +15,10 @@ if(ArborX_ENABLE_MPI)
 endif()
 #target_compile_features(ArborX INTERFACE cxx_std_14)
 
+find_package(Boost REQUIRED COMPONENTS mpi serialization)
+target_link_libraries(ArborX INTERFACE Boost::mpi)
+target_link_libraries(ArborX INTERFACE Boost::serialization)
+
 target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/details>
