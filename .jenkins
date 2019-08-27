@@ -36,6 +36,9 @@ pipeline {
                     }
                 }
                 stage('CUDA-9.2-Clang') {
+                    environment {
+                        LD_LIBRARY_PATH = '/usr/local/cuda-9.2/targets/x86_64-linux/lib/:$LD_LIBRARY_PATH'
+                    }
                     agent {
                         dockerfile {
                             filename "Dockerfile"
@@ -44,9 +47,6 @@ pipeline {
                             args '-v /tmp/ccache:/tmp/ccache'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
-                    }
-                    environment {
-                        LD_LIBRARY_PATH = /usr/local/cuda-9.2/targets/x86_64-linux/lib/:$LD_LIBRARY_PATH
                     }
                     steps {
                         sh 'ccache --zero-stats'
