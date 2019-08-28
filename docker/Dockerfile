@@ -1,6 +1,9 @@
 ARG BASE=nvidia/cuda:10.1-devel
 FROM $BASE
 
+# For the clang cuda-9.2 build
+ENV LD_LIBRARY_PATH=/usr/local/cuda-9.2/targets/x86_64-linux/lib/:$LD_LIBRARY_PATH
+
 ARG NPROCS=4
 
 RUN apt-get update && apt-get install -y \

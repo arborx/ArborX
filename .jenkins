@@ -36,9 +36,6 @@ pipeline {
                     }
                 }
                 stage('CUDA-9.2-Clang') {
-                    environment {
-                        LD_LIBRARY_PATH = '/usr/local/cuda-9.2/targets/x86_64-linux/lib/:$LD_LIBRARY_PATH'
-                    }
                     agent {
                         dockerfile {
                             filename "Dockerfile"
