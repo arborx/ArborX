@@ -35,6 +35,32 @@ pipeline {
                         }
                     }
                 }
+                stage('CUDA-9.2-Clang') {
+                    agent {
+                        dockerfile {
+                            filename "Dockerfile"
+                            dir "docker"
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:9.2-devel-ubuntu18.04 --build-arg KOKKOS_OPTIONS="--with-serial --with-openmp --with-cuda --with-cuda-options=enable_lambda --arch=SNB,Volta70 --compiler=clang++ --cxxstandard=c++14"'
+                            args '-v /tmp/ccache:/tmp/ccache'
+                            label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
+                        }
+                    }
+                    steps {
+                        sh 'ccache --zero-stats'
+                        sh 'rm -rf build && mkdir -p build && cd build && cmake -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR -D CMAKE_BUILD_TYPE=Debug -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_CXX_EXTENSIONS=OFF -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" -D ARBORX_ENABLE_MPI=ON -D MPIEXEC_PREFLAGS="--allow-run-as-root" .. && make -j8 VERBOSE=1 && ctest --no-compress-output -T Test'
+                    }
+                    post {
+                        always {
+                            sh 'ccache --show-stats'
+                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                        }
+                        success {
+                            sh 'cd build && make install'
+                            sh 'rm -rf tmp && mkdir -p tmp && cd tmp && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_CXX_EXTENSIONS=OFF -D CMAKE_PREFIX_PATH="$ARBORX_DIR;$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" ../examples/bvh_driver && make VERBOSE=1 && make test'
+                        }
+                    }
+                }
+
                 stage('Clang') {
                     agent {
                         dockerfile {
