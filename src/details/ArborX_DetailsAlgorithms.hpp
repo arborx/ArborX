@@ -24,7 +24,7 @@ namespace Details
 {
 
 KOKKOS_INLINE_FUNCTION
-bool equals(Point const &l, Point const &r)
+constexpr bool equals(Point const &l, Point const &r)
 {
   for (int d = 0; d < 3; ++d)
     if (l[d] != r[d])
@@ -33,20 +33,20 @@ bool equals(Point const &l, Point const &r)
 }
 
 KOKKOS_INLINE_FUNCTION
-bool equals(Box const &l, Box const &r)
+constexpr bool equals(Box const &l, Box const &r)
 {
   return equals(l.minCorner(), r.minCorner()) &&
          equals(l.maxCorner(), r.maxCorner());
 }
 
 KOKKOS_INLINE_FUNCTION
-bool equals(Sphere const &l, Sphere const &r)
+constexpr bool equals(Sphere const &l, Sphere const &r)
 {
   return equals(l.centroid(), r.centroid()) && l.radius() == r.radius();
 }
 
 KOKKOS_INLINE_FUNCTION
-bool isValid(Point const &p)
+constexpr bool isValid(Point const &p)
 {
   using KokkosExt::isFinite;
   for (int d = 0; d < 3; ++d)
@@ -56,13 +56,13 @@ bool isValid(Point const &p)
 }
 
 KOKKOS_INLINE_FUNCTION
-bool isValid(Box const &b)
+constexpr bool isValid(Box const &b)
 {
   return isValid(b.minCorner()) && isValid(b.maxCorner());
 }
 
 KOKKOS_INLINE_FUNCTION
-bool isValid(Sphere const &s)
+constexpr bool isValid(Sphere const &s)
 {
   using KokkosExt::isFinite;
   return isValid(s.centroid()) && isFinite(s.radius()) && (s.radius() >= 0.);
@@ -70,7 +70,7 @@ bool isValid(Sphere const &s)
 
 // distance point-point
 KOKKOS_INLINE_FUNCTION
-double distance(Point const &a, Point const &b)
+constexpr double distance(Point const &a, Point const &b)
 {
   double distance_squared = 0.0;
   for (int d = 0; d < 3; ++d)
@@ -83,9 +83,9 @@ double distance(Point const &a, Point const &b)
 
 // distance point-box
 KOKKOS_INLINE_FUNCTION
-double distance(Point const &point, Box const &box)
+constexpr double distance(Point const &point, Box const &box)
 {
-  Point projected_point;
+  Point projected_point{};
   for (int d = 0; d < 3; ++d)
   {
     if (point[d] < box.minCorner()[d])
@@ -100,7 +100,7 @@ double distance(Point const &point, Box const &box)
 
 // distance point-sphere
 KOKKOS_INLINE_FUNCTION
-double distance(Point const &point, Sphere const &sphere)
+constexpr double distance(Point const &point, Sphere const &sphere)
 {
   using KokkosExt::max;
   return max(distance(point, sphere.centroid()) - sphere.radius(), 0.);
@@ -154,7 +154,7 @@ void expand(Box &box, Sphere const &sphere)
 
 // check if two axis-aligned bounding boxes intersect
 KOKKOS_INLINE_FUNCTION
-bool intersects(Box const &box, Box const &other)
+constexpr bool intersects(Box const &box, Box const &other)
 {
   for (int d = 0; d < 3; ++d)
     if (box.minCorner()[d] > other.maxCorner()[d] ||
@@ -165,7 +165,7 @@ bool intersects(Box const &box, Box const &other)
 
 // check if a sphere intersects with an  axis-aligned bounding box
 KOKKOS_INLINE_FUNCTION
-bool intersects(Sphere const &sphere, Box const &box)
+constexpr bool intersects(Sphere const &sphere, Box const &box)
 {
   return distance(sphere.centroid(), box) <= sphere.radius();
 }
