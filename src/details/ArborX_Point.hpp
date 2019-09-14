@@ -20,10 +20,10 @@ class Point
 {
 public:
   KOKKOS_INLINE_FUNCTION
-  double &operator[](unsigned int i) { return _coords[i]; }
+  constexpr double &operator[](unsigned int i) { return _coords[i]; }
 
   KOKKOS_INLINE_FUNCTION
-  double const &operator[](unsigned int i) const { return _coords[i]; }
+  constexpr double const &operator[](unsigned int i) const { return _coords[i]; }
 
   KOKKOS_INLINE_FUNCTION
   double volatile &operator[](unsigned int i) volatile { return _coords[i]; }

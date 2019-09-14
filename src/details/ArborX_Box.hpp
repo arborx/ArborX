@@ -29,17 +29,17 @@ struct Box
   Box() = default;
 
   KOKKOS_INLINE_FUNCTION
-  Box(Point const &min_corner, Point const &max_corner)
+  constexpr Box(Point const &min_corner, Point const &max_corner)
       : _min_corner(min_corner)
       , _max_corner(max_corner)
   {
   }
 
   KOKKOS_INLINE_FUNCTION
-  Point &minCorner() { return _min_corner; }
+  constexpr Point &minCorner() { return _min_corner; }
 
   KOKKOS_INLINE_FUNCTION
-  Point const &minCorner() const { return _min_corner; }
+  constexpr Point const &minCorner() const { return _min_corner; }
 
   KOKKOS_INLINE_FUNCTION
   Point volatile &minCorner() volatile { return _min_corner; }
@@ -48,10 +48,10 @@ struct Box
   Point volatile const &minCorner() volatile const { return _min_corner; }
 
   KOKKOS_INLINE_FUNCTION
-  Point &maxCorner() { return _max_corner; }
+  constexpr Point &maxCorner() { return _max_corner; }
 
   KOKKOS_INLINE_FUNCTION
-  Point const &maxCorner() const { return _max_corner; }
+  constexpr Point const &maxCorner() const { return _max_corner; }
 
   KOKKOS_INLINE_FUNCTION
   Point volatile &maxCorner() volatile { return _max_corner; }
