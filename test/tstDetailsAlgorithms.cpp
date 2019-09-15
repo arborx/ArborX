@@ -24,28 +24,27 @@ using ArborX::Sphere;
 BOOST_AUTO_TEST_CASE(distance)
 {
   using ArborX::Details::distance;
-  STATIC_ASSERT(distance({{1.0, 2.0, 3.0}}, {{1.0, 1.0, 1.0}}) ==
-                std::sqrt(5.0));
+  BOOST_TEST(distance({{1.0, 2.0, 3.0}}, {{1.0, 1.0, 1.0}}) == std::sqrt(5.0));
 
   // box is unit cube
   constexpr Box box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
 
   // distance is zero if the point is inside the box
-  STATIC_ASSERT(distance({{0.5, 0.5, 0.5}}, box) == 0.0);
+  BOOST_TEST(distance({{0.5, 0.5, 0.5}}, box) == 0.0);
   // or anywhere on the boundary
-  STATIC_ASSERT(distance({{0.0, 0.0, 0.5}}, box) == 0.0);
+  BOOST_TEST(distance({{0.0, 0.0, 0.5}}, box) == 0.0);
   // normal projection onto center of one face
-  STATIC_ASSERT(distance({{2.0, 0.5, 0.5}}, box) == 1.0);
+  BOOST_TEST(distance({{2.0, 0.5, 0.5}}, box) == 1.0);
   // projection onto edge
-  STATIC_ASSERT(distance({{2.0, 0.75, -1.0}}, box) == std::sqrt(2.0));
+  BOOST_TEST(distance({{2.0, 0.75, -1.0}}, box) == std::sqrt(2.0));
   // projection onto corner node
-  STATIC_ASSERT(distance({{-1.0, 2.0, 2.0}}, box) == std::sqrt(3.0));
+  BOOST_TEST(distance({{-1.0, 2.0, 2.0}}, box) == std::sqrt(3.0));
 
   // unit sphere
   constexpr Sphere sphere{{{0., 0., 0.}}, 1.};
-  STATIC_ASSERT(distance({{.5, .5, .5}}, sphere) == 0.);
-  STATIC_ASSERT(distance({{2., 0., 0.}}, sphere) == 1.);
-  STATIC_ASSERT(distance({{1., 1., 1.}}, sphere) == std::sqrt(3.) - 1.);
+  BOOST_TEST(distance({{.5, .5, .5}}, sphere) == 0.);
+  BOOST_TEST(distance({{2., 0., 0.}}, sphere) == 1.);
+  BOOST_TEST(distance({{1., 1., 1.}}, sphere) == std::sqrt(3.) - 1.);
 }
 
 BOOST_AUTO_TEST_CASE(intersects)
@@ -80,8 +79,8 @@ BOOST_AUTO_TEST_CASE(intersects)
 
   // unit shpere
   constexpr Sphere sphere{{{0., 0., 0.}}, 1.};
-  STATIC_ASSERT(intersects(sphere, {{{0., 0., 0.}}, {{1., 1., 1.}}}));
-  STATIC_ASSERT(!intersects(sphere, {{{1., 2., 3.}}, {{4., 5., 6.}}}));
+  BOOST_TEST(intersects(sphere, {{{0., 0., 0.}}, {{1., 1., 1.}}}));
+  BOOST_TEST(!intersects(sphere, {{{1., 2., 3.}}, {{4., 5., 6.}}}));
 }
 
 BOOST_AUTO_TEST_CASE(equals)
