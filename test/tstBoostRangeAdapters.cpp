@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(point_cloud)
     return p;
   });
 
-  Point const origin = {0., 0., 0.};
+  Point const origin = {{0., 0., 0.}};
   double const radius = 1.;
   // 4/3 pi 1^3 / 2^3
   double const pi = 6. *

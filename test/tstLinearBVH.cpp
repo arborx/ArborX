@@ -123,10 +123,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, Tree, TreeTypes)
   checkResults(single_leaf_tree, makeNearestQueries<device_type>({}), {}, {0},
                {});
 
-  checkResults(
-      single_leaf_tree,
-      makeNearestQueries<device_type>({{{0., 0., 0.}, 3}, {{4., 5., 1.}, 1}}),
-      {0, 0}, {0, 1, 2}, {0., 5.});
+  checkResults(single_leaf_tree,
+               makeNearestQueries<device_type>(
+                   {{{{0., 0., 0.}}, 3}, {{{4., 5., 1.}}, 1}}),
+               {0, 0}, {0, 1, 2}, {0., 5.});
 
   checkResults(single_leaf_tree,
                makeOverlapQueries<device_type>({

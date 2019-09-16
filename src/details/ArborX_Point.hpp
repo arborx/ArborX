@@ -14,32 +14,51 @@
 
 #include <Kokkos_Macros.hpp>
 
+#include <array>
+
 namespace ArborX
 {
 class Point
 {
+private:
+  struct Data
+  {
+    double coords[3];
+  } _data;
+
 public:
   KOKKOS_INLINE_FUNCTION
-  constexpr double &operator[](unsigned int i) { return _coords[i]; }
-
-  KOKKOS_INLINE_FUNCTION
-  constexpr double const &operator[](unsigned int i) const
+  constexpr Point()
+      : _data{}
   {
-    return _coords[i];
   }
 
   KOKKOS_INLINE_FUNCTION
-  double volatile &operator[](unsigned int i) volatile { return _coords[i]; }
+  constexpr Point(Data data)
+      : _data{data}
+  {
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  constexpr double &operator[](unsigned int i) { return _data.coords[i]; }
+
+  KOKKOS_INLINE_FUNCTION
+  constexpr const double &operator[](unsigned int i) const
+  {
+    return _data.coords[i];
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  double volatile &operator[](unsigned int i) volatile
+  {
+    return _data.coords[i];
+  }
 
   KOKKOS_INLINE_FUNCTION
   double const volatile &operator[](unsigned int i) const volatile
   {
-    return _coords[i];
+    return _data.coords[i];
   }
-
-  // This should be private but if we make public we can use the list
-  // initializer constructor.
-  double _coords[3];
 };
 } // namespace ArborX
 
