@@ -62,7 +62,7 @@ target_compile_definitions(ArborX_DetailsBatchedQueries.exe PRIVATE BOOST_TEST_D
 target_include_directories(ArborX_DetailsBatchedQueries.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_DetailsBatchedQueries COMMAND ./ArborX_DetailsBatchedQueries.exe)
 
-if(ArborX_ENABLE_MPI)
+if(ARBORX_ENABLE_MPI)
   add_executable(ArborX_DistributedSearchTree.exe tstDistributedSearchTree.cpp utf_main.cpp)
   target_link_libraries(ArborX_DistributedSearchTree.exe PRIVATE ArborX Boost::unit_test_framework)
   target_compile_definitions(ArborX_DistributedSearchTree.exe PRIVATE BOOST_TEST_DYN_LINK ARBORX_MPI_UNIT_TEST)

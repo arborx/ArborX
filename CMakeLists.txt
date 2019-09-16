@@ -7,9 +7,8 @@ find_package(Kokkos REQUIRED)
 add_library(ArborX INTERFACE)
 target_link_libraries(ArborX INTERFACE Kokkos::Kokkos)
 
-option(ArborX_ENABLE_MPI "Enable MPI support" OFF)
-if(ArborX_ENABLE_MPI)
-  set(ARBORX_ENABLE_MPI TRUE)
+option(ARBORX_ENABLE_MPI "Enable MPI support" OFF)
+if(ARBORX_ENABLE_MPI)
   find_package(MPI REQUIRED)
   target_link_libraries(ArborX INTERFACE MPI::MPI_CXX)
 endif()
@@ -72,7 +71,7 @@ install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXSettings.cmake
   DESTINATION lib/cmake/ArborX )
 
-if(ArborX_ENABLE_MPI)
+if(ARBORX_ENABLE_MPI)
   install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include
           FILES_MATCHING PATTERN "*.hpp")
 else()
@@ -83,18 +82,18 @@ endif()
 install(DIRECTORY ${PROJECT_BINARY_DIR}/include/ DESTINATION include
         FILES_MATCHING PATTERN "*.hpp")
 
-option(ArborX_ENABLE_TESTS "Enable tests" ON)
-option(ArborX_ENABLE_EXAMPLES "Enable examples" ON)
+option(ARBORX_ENABLE_TESTS "Enable tests" ON)
+option(ARBORX_ENABLE_EXAMPLES "Enable examples" ON)
 
-if(${ArborX_ENABLE_TESTS} OR ${ArborX_ENABLE_EXAMPLES})
+if(${ARBORX_ENABLE_TESTS} OR ${ARBORX_ENABLE_EXAMPLES})
   enable_testing()
 endif()
 
-if(${ArborX_ENABLE_TESTS})
+if(${ARBORX_ENABLE_TESTS})
   add_subdirectory(test)
   # Globbing all the header filenames to test for self-containment and presence of header guards
   file(GLOB_RECURSE ArborX_HEADERS RELATIVE ${CMAKE_SOURCE_DIR}/src src/*.hpp)
 endif()
-if(${ArborX_ENABLE_EXAMPLES})
+if(${ARBORX_ENABLE_EXAMPLES})
   add_subdirectory(examples)
 endif()
