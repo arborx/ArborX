@@ -24,22 +24,22 @@ struct Sphere
   Sphere() = default;
 
   KOKKOS_INLINE_FUNCTION
-  Sphere(Point const &centroid, double radius)
+  constexpr Sphere(Point const &centroid, double radius)
       : _centroid(centroid)
       , _radius(radius)
   {
   }
 
   KOKKOS_INLINE_FUNCTION
-  Point &centroid() { return _centroid; }
+  constexpr Point &centroid() { return _centroid; }
 
   KOKKOS_INLINE_FUNCTION
-  Point const &centroid() const { return _centroid; }
+  constexpr Point const &centroid() const { return _centroid; }
 
   KOKKOS_INLINE_FUNCTION
-  double radius() const { return _radius; }
+  constexpr double radius() const { return _radius; }
 
-  Point _centroid;
+  Point _centroid = {};
   double _radius = 0.;
 };
 } // namespace ArborX
