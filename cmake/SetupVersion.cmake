@@ -24,7 +24,7 @@ IF(EXISTS ${SOURCE_DIR}/.git)
       OUTPUT_VARIABLE  ARBORX_GIT_COMMIT_HASH)
     ENDIF()
 ENDIF()
-MESSAGE("ArborX hash = '${ARBORX_GIT_COMMIT_HASH}'")
+MESSAGE(STATUS "ArborX hash = '${ARBORX_GIT_COMMIT_HASH}'")
 
 configure_file(${SOURCE_DIR}/src/ArborX_Version.hpp.in
                ${BINARY_DIR}/include/ArborX_Version.hpp)
