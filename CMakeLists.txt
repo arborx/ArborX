@@ -56,10 +56,6 @@ execute_process(
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/ArborX_Config.hpp.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/ArborX_Config.hpp)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/ArborXSettings.cmake.in
-               ${CMAKE_CURRENT_BINARY_DIR}/ArborXSettings.cmake
-               @ONLY)
-
 include(CMakePackageConfigHelpers)
 configure_package_config_file(cmake/ArborXConfig.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
@@ -68,7 +64,6 @@ configure_package_config_file(cmake/ArborXConfig.cmake.in
 install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindKokkos.cmake
-  ${CMAKE_CURRENT_BINARY_DIR}/ArborXSettings.cmake
   DESTINATION lib/cmake/ArborX )
 
 if(ARBORX_ENABLE_MPI)
