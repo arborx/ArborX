@@ -13,6 +13,6 @@ services:
     build:
       args:
         - BASE=nvidia/cuda:10.1-devel
-        - KOKKOS_VERSION=2.8.00
+        - KOKKOS_VERSION=2.9.00
         - KOKKOS_OPTIONS=--cxxstandard=c++14 --with-serial --with-openmp --with-options=disable_deprecated_code --with-cuda --with-cuda-options=enable_lambda --arch=SNB,Volta70
 ```

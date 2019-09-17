@@ -114,7 +114,7 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     rm -rf ${SCRATCH_DIR}
 
 # Install Kokkos
-ARG KOKKOS_VERSION=2.8.00
+ARG KOKKOS_VERSION=2.9.00
 ARG KOKKOS_OPTIONS="--cxxstandard=c++14 --with-serial --with-openmp --with-options=disable_deprecated_code --with-cuda --with-cuda-options=enable_lambda"
 ENV KOKKOS_DIR=/opt/kokkos
 RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
