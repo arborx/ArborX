@@ -146,21 +146,21 @@ BOOST_AUTO_TEST_CASE(is_valid)
 {
   using ArborX::Details::isValid;
 
-  constexpr auto infty = std::numeric_limits<double>::infinity();
+  auto infty = std::numeric_limits<double>::infinity();
 
-  STATIC_ASSERT(isValid(Point{{1., 2., 3.}}));
-  STATIC_ASSERT(!isValid(Point{{0., infty, 0.}}));
+  BOOST_TEST(isValid(Point{{1., 2., 3.}}));
+  BOOST_TEST(!isValid(Point{{0., infty, 0.}}));
 
-  STATIC_ASSERT(isValid(Box{{{1., 2., 3.}}, {{4., 5., 6.}}}));
-  STATIC_ASSERT(isValid(Box{{{0., 0., 0.}}, {{0., 0., 0.}}}));
-  STATIC_ASSERT(!isValid(Box{{{0., 0., -infty}}, {{0., 0., 0.}}}));
-  STATIC_ASSERT(!isValid(Box{{{0., 0., 0.}}, {{+infty, 0., 0.}}}));
-  STATIC_ASSERT(isValid(Box{}));
+  BOOST_TEST(isValid(Box{{{1., 2., 3.}}, {{4., 5., 6.}}}));
+  BOOST_TEST(isValid(Box{{{0., 0., 0.}}, {{0., 0., 0.}}}));
+  BOOST_TEST(!isValid(Box{{{0., 0., -infty}}, {{0., 0., 0.}}}));
+  BOOST_TEST(!isValid(Box{{{0., 0., 0.}}, {{+infty, 0., 0.}}}));
+  BOOST_TEST(isValid(Box{}));
 
-  STATIC_ASSERT(isValid(Sphere{{{1., 2., 3.}}, 4.}));
-  STATIC_ASSERT(isValid(Sphere{{{0., 0., 0.}}, 0.}));
-  STATIC_ASSERT(!isValid(Sphere{{{1., 2., 3.}}, -1.}));
-  STATIC_ASSERT(!isValid(Sphere{{{0., 0., 0.}}, +infty}));
-  STATIC_ASSERT(!isValid(Sphere{{{0., -infty, 0.}}, +1.}));
-  STATIC_ASSERT(isValid(Sphere{}));
+  BOOST_TEST(isValid(Sphere{{{1., 2., 3.}}, 4.}));
+  BOOST_TEST(isValid(Sphere{{{0., 0., 0.}}, 0.}));
+  BOOST_TEST(!isValid(Sphere{{{1., 2., 3.}}, -1.}));
+  BOOST_TEST(!isValid(Sphere{{{0., 0., 0.}}, +infty}));
+  BOOST_TEST(!isValid(Sphere{{{0., -infty, 0.}}, +1.}));
+  BOOST_TEST(isValid(Sphere{}));
 }
