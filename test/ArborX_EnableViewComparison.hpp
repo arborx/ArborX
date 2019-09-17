@@ -5,6 +5,7 @@
 
 #include <Kokkos_Core.hpp>
 
+#include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/utils/is_forward_iterable.hpp>
 
 // Enable element-wise comparison for views that are accessible from the host
