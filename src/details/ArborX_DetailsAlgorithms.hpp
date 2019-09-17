@@ -46,7 +46,7 @@ constexpr bool equals(Sphere const &l, Sphere const &r)
 }
 
 KOKKOS_INLINE_FUNCTION
-constexpr bool isValid(Point const &p)
+bool isValid(Point const &p)
 {
   using KokkosExt::isFinite;
   for (int d = 0; d < 3; ++d)
@@ -56,13 +56,13 @@ constexpr bool isValid(Point const &p)
 }
 
 KOKKOS_INLINE_FUNCTION
-constexpr bool isValid(Box const &b)
+bool isValid(Box const &b)
 {
   return isValid(b.minCorner()) && isValid(b.maxCorner());
 }
 
 KOKKOS_INLINE_FUNCTION
-constexpr bool isValid(Sphere const &s)
+bool isValid(Sphere const &s)
 {
   using KokkosExt::isFinite;
   return isValid(s.centroid()) && isFinite(s.radius()) && (s.radius() >= 0.);

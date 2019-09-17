@@ -118,7 +118,7 @@ KOKKOS_INLINE_FUNCTION int sgn(T x)
  * function when it is present.
  */
 template <typename T>
-KOKKOS_INLINE_FUNCTION constexpr bool isFinite(T x)
+KOKKOS_INLINE_FUNCTION bool isFinite(T x)
 {
 #ifdef __CUDA_ARCH__
   return isfinite(x);
