@@ -352,7 +352,9 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("first_pass_at_the_search_with_buffer_optimization"),
-        Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+        Kokkos::Experimental::require(
+            Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+            Kokkos::Experimental::WorkItemProperty::HintHeavyWeight),
         KOKKOS_LAMBDA(int i) {
           int count = 0;
           offset(permute(i)) = Details::TreeTraversal<DeviceType>::query(
@@ -367,7 +369,9 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     Kokkos::parallel_for(
         ARBORX_MARK_REGION(
             "first_pass_at_the_search_count_the_number_of_indices"),
-        Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+        Kokkos::Experimental::require(
+            Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+            Kokkos::Experimental::WorkItemProperty::HintHeavyWeight),
         KOKKOS_LAMBDA(int i) {
           offset(permute(i)) = Details::TreeTraversal<DeviceType>::query(
               bvh, queries(i), [](int) {});
@@ -411,7 +415,9 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     reallocWithoutInitializing(indices, n_results);
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("second_pass"),
-        Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+        Kokkos::Experimental::require(
+            Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+            Kokkos::Experimental::WorkItemProperty::HintHeavyWeight),
         KOKKOS_LAMBDA(int i) {
           int count = 0;
           Details::TreeTraversal<DeviceType>::query(
