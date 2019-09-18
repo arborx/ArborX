@@ -37,6 +37,12 @@ public:
   }
 
   KOKKOS_INLINE_FUNCTION
+  constexpr Point(double x, double y, double z)
+      : Point{{x, y, z}}
+  {
+  }
+
+  KOKKOS_INLINE_FUNCTION
   constexpr double &operator[](unsigned int i) { return _data.coords[i]; }
 
   KOKKOS_INLINE_FUNCTION
