@@ -34,7 +34,7 @@ public:
   }
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Point(Data data)
+  constexpr Point(Data const &data)
       : _data{data}
   {
   }
