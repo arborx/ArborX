@@ -14,7 +14,7 @@
 
 #include <Kokkos_Macros.hpp>
 
-#include <array>
+#include <utility>
 
 namespace ArborX
 {
@@ -34,8 +34,8 @@ public:
   }
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Point(Data const &data)
-      : _data{data}
+  constexpr Point(Data data)
+      : _data{std::move(data)}
   {
   }
 
