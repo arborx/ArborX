@@ -24,14 +24,11 @@ private:
   struct Data
   {
     double coords[3];
-  } _data;
+  } _data = {};
 
 public:
   KOKKOS_INLINE_FUNCTION
-  constexpr Point()
-      : _data{}
-  {
-  }
+  constexpr Point() = default;
 
   KOKKOS_INLINE_FUNCTION
   constexpr Point(Data data)
