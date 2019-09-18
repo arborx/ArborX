@@ -1,4 +1,4 @@
-if(Kokkos_DEVICES MATCHES "SERIAL")
+if(Kokkos_DEVICES MATCHES "Serial")
   add_executable(ArborX_TreeViz.exe tree_visualization.cpp)
   target_link_libraries(ArborX_TreeViz.exe ArborX Boost::program_options)
   target_include_directories(ArborX_TreeViz.exe PRIVATE ${CMAKE_SOURCE_DIR}/examples/point_clouds)
