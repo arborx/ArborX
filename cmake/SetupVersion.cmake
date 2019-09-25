@@ -14,17 +14,18 @@
 # is called by through a target created by add_custom_target so that it is
 # always considered to be out-of-date.
 
-SET(ARBORX_GIT_COMMIT_HASH "No hash available")
+find_package(Git QUIET)
+if(GIT_FOUND)
+  execute_process(
+    COMMAND          ${GIT_EXECUTABLE} log --pretty=format:%h -n 1
+    RESULT_VARIABLE  GIT_RETURN_CODE
+    OUTPUT_VARIABLE  ARBORX_GIT_COMMIT_HASH)
+endif()
+if(NOT GIT_RETURN_CODE EQUAL 0)
+  set(ARBORX_GIT_COMMIT_HASH "No hash available")
+endif()
 
-IF(EXISTS ${SOURCE_DIR}/.git)
-  FIND_PACKAGE(Git QUIET)
-  IF(GIT_FOUND)
-    EXECUTE_PROCESS(
-      COMMAND          ${GIT_EXECUTABLE} log --pretty=format:%h -n 1
-      OUTPUT_VARIABLE  ARBORX_GIT_COMMIT_HASH)
-    ENDIF()
-ENDIF()
-MESSAGE(STATUS "ArborX hash = '${ARBORX_GIT_COMMIT_HASH}'")
+message(STATUS "ArborX hash = '${ARBORX_GIT_COMMIT_HASH}'")
 
 configure_file(${SOURCE_DIR}/src/ArborX_Version.hpp.in
                ${BINARY_DIR}/include/ArborX_Version.hpp)
