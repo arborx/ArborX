@@ -203,12 +203,6 @@ template <typename Primitives>
 inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
     Primitives const &primitives, Box &scene_bounding_box)
 {
-  static_assert(Kokkos::is_view<Primitives>::value, "Must pass a view");
-  static_assert(
-      std::is_same<typename Primitives::traits::device_type, DeviceType>::value,
-      "Wrong device type");
-  // TODO static_assert( is_expandable_v<Box, typename
-  // Primitives::value_type), "");
   using Access = typename Traits::Access<Primitives>;
   auto const n = Access::size(primitives);
   Kokkos::parallel_reduce(
