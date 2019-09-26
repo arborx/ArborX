@@ -132,15 +132,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
 {
   Kokkos::Profiling::pushRegion("ArborX:BVH:construction");
 
-  // FIXME can be relaxed
-  static_assert(
-      Kokkos::is_view<Primitives>::value,
-      "Must pass a view to the bounding volume hierarchy constructor");
-  static_assert(KokkosExt::is_accessible_from<
-                    typename Details::Traits::Access<Primitives>::MemorySpace,
-                    typename device_type::execution_space>::value,
-                "Primitives must be accessible from bounding volume hierarchy "
-                "execution space");
+  // FIXME placeholder for concept check
 
   if (empty())
   {
