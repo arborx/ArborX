@@ -18,8 +18,8 @@
 #include <ArborX_DetailsKokkosExt.hpp>
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
-#include <ArborX_DetailsTraits.hpp>
 #include <ArborX_DetailsTreeConstruction.hpp>
+#include <ArborX_Traits.hpp>
 
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_View.hpp>
@@ -125,7 +125,7 @@ template <typename DeviceType>
 template <typename Primitives>
 BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
     Primitives const &primitives)
-    : _size(Details::Traits::Access<Primitives>::size(primitives))
+    : _size(Traits::Access<Primitives>::size(primitives))
     , _internal_and_leaf_nodes(
           Kokkos::ViewAllocateWithoutInitializing("internal_and_leaf_nodes"),
           _size > 0 ? 2 * _size - 1 : 0)
