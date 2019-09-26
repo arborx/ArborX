@@ -125,7 +125,7 @@ template <typename DeviceType>
 template <typename Primitives>
 BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
     Primitives const &primitives)
-    : _size(primitives.extent(0))
+    : _size(Details::Traits::Access<Primitives>::size(primitives))
     , _internal_and_leaf_nodes(
           Kokkos::ViewAllocateWithoutInitializing("internal_and_leaf_nodes"),
           _size > 0 ? 2 * _size - 1 : 0)
