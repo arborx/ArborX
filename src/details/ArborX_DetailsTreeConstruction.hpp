@@ -224,8 +224,8 @@ inline void assignMortonCodesDispatch(BoxTag, Primitives const &primitives,
                                       MortonCodes morton_codes,
                                       Box const &scene_bounding_box)
 {
-  using ExecutionSpace = typename Primitives::execution_space;
   using Access = typename Traits::Access<Primitives>;
+  using ExecutionSpace = typename Access::MemorySpace::execution_space;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(ARBORX_MARK_REGION("assign_morton_codes"),
                        Kokkos::RangePolicy<ExecutionSpace>(0, n),
@@ -243,8 +243,8 @@ inline void assignMortonCodesDispatch(PointTag, Primitives const &primitives,
                                       MortonCodes morton_codes,
                                       Box const &scene_bounding_box)
 {
-  using ExecutionSpace = typename Primitives::execution_space;
   using Access = typename Traits::Access<Primitives>;
+  using ExecutionSpace = typename Access::MemorySpace::execution_space;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("assign_morton_codes"),
@@ -278,8 +278,8 @@ inline void initializeLeafNodesDispatch(BoxTag, Primitives const &primitives,
                                         Indices permutation_indices,
                                         Nodes leaf_nodes)
 {
-  using ExecutionSpace = typename Primitives::execution_space;
   using Access = typename Traits::Access<Primitives>;
+  using ExecutionSpace = typename Access::MemorySpace::execution_space;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("initialize_leaf_nodes"),
@@ -296,8 +296,8 @@ inline void initializeLeafNodesDispatch(PointTag, Primitives const &primitives,
                                         Indices permutation_indices,
                                         Nodes leaf_nodes)
 {
-  using ExecutionSpace = typename Primitives::execution_space;
   using Access = typename Traits::Access<Primitives>;
+  using ExecutionSpace = typename Access::MemorySpace::execution_space;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("initialize_leaf_nodes"),
