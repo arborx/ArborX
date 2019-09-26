@@ -18,8 +18,8 @@
 #include <ArborX_DetailsKokkosExt.hpp>
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
-#include <ArborX_DetailsTraits.hpp>
 #include <ArborX_DetailsTreeConstruction.hpp>
+#include <ArborX_Traits.hpp>
 
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_View.hpp>
