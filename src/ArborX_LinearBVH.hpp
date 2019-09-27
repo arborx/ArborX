@@ -46,12 +46,12 @@ public:
   BoundingVolumeHierarchy(Primitives const &primitives);
 
   KOKKOS_INLINE_FUNCTION
-  size_type size() const { return _size; }
+  size_type size() const noexcept { return _size; }
 
   KOKKOS_INLINE_FUNCTION
-  bool empty() const { return size() == 0; }
+  bool empty() const noexcept { return size() == 0; }
 
-  bounding_volume_type bounds() const { return _bounds; }
+  bounding_volume_type bounds() const noexcept { return _bounds; }
 
   template <typename Predicates, typename... Args>
   void query(Predicates const &predicates, Args &&... args) const
