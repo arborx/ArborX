@@ -172,7 +172,7 @@ template <typename Primitives>
 class CalculateBoundingBoxOfTheSceneFunctor
 {
 public:
-  using Access = typename Traits::Access<Primitives>;
+  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
 
   CalculateBoundingBoxOfTheSceneFunctor(Primitives const &primitives)
       : _primitives(primitives)
@@ -203,7 +203,7 @@ template <typename Primitives>
 inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
     Primitives const &primitives, Box &scene_bounding_box)
 {
-  using Access = typename Traits::Access<Primitives>;
+  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
   auto const n = Access::size(primitives);
   Kokkos::parallel_reduce(
       ARBORX_MARK_REGION("calculate_bounding_box_of_the_scene"),
@@ -213,13 +213,32 @@ inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
   Kokkos::fence();
 }
 
+template <typename Primitives>
+struct GeometryTagHelper
+{
+private:
+  using accessor_return_type = std::decay_t<decltype(
+      Traits::Access<Primitives, Traits::PrimitivesTag>::get(
+          std::declval<Primitives const &>(), std::declval<int>()))>;
+
+  static_assert(std::is_same<accessor_return_type, Point>::value ||
+                    std::is_same<accessor_return_type, Box>::value,
+                "Invalid return type of "
+                "Traits::Access<Primitives,Traits::PrimitivesTag>::get()");
+
+public:
+  using tag =
+      std::conditional_t<std::is_same<accessor_return_type, Point>::value,
+                         PointTag, BoxTag>;
+};
+
 template <typename Primitives, typename MortonCodes>
 inline void assignMortonCodesDispatch(BoxTag, Primitives const &primitives,
                                       MortonCodes morton_codes,
                                       Box const &scene_bounding_box)
 {
-  using Access = typename Traits::Access<Primitives>;
-  using ExecutionSpace = typename Access::MemorySpace::execution_space;
+  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
+  using ExecutionSpace = typename Access::memory_space::execution_space;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(ARBORX_MARK_REGION("assign_morton_codes"),
                        Kokkos::RangePolicy<ExecutionSpace>(0, n),
@@ -237,8 +256,8 @@ inline void assignMortonCodesDispatch(PointTag, Primitives const &primitives,
                                       MortonCodes morton_codes,
                                       Box const &scene_bounding_box)
 {
-  using Access = typename Traits::Access<Primitives>;
-  using ExecutionSpace = typename Access::MemorySpace::execution_space;
+  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
+  using ExecutionSpace = typename Access::memory_space::execution_space;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("assign_morton_codes"),
@@ -257,12 +276,12 @@ inline void TreeConstruction<DeviceType>::assignMortonCodes(
     Kokkos::View<unsigned int *, DeviceType> morton_codes,
     Box const &scene_bounding_box)
 {
-  using Access = typename Traits::Access<Primitives>;
+  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
 
   auto const n = Access::size(primitives);
   ARBORX_ASSERT(morton_codes.extent(0) == n);
 
-  using Tag = typename Access::Tag;
+  using Tag = typename GeometryTagHelper<Primitives>::tag;
   assignMortonCodesDispatch(Tag{}, primitives, morton_codes,
                             scene_bounding_box);
 }
@@ -272,8 +291,8 @@ inline void initializeLeafNodesDispatch(BoxTag, Primitives const &primitives,
                                         Indices permutation_indices,
                                         Nodes leaf_nodes)
 {
-  using Access = typename Traits::Access<Primitives>;
-  using ExecutionSpace = typename Access::MemorySpace::execution_space;
+  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
+  using ExecutionSpace = typename Access::memory_space::execution_space;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("initialize_leaf_nodes"),
@@ -290,8 +309,8 @@ inline void initializeLeafNodesDispatch(PointTag, Primitives const &primitives,
                                         Indices permutation_indices,
                                         Nodes leaf_nodes)
 {
-  using Access = typename Traits::Access<Primitives>;
-  using ExecutionSpace = typename Access::MemorySpace::execution_space;
+  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
+  using ExecutionSpace = typename Access::memory_space::execution_space;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("initialize_leaf_nodes"),
@@ -311,7 +330,7 @@ inline void TreeConstruction<DeviceType>::initializeLeafNodes(
     Kokkos::View<size_t const *, DeviceType> permutation_indices,
     Kokkos::View<Node *, DeviceType> leaf_nodes)
 {
-  using Access = typename Traits::Access<Primitives>;
+  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
 
   auto const n = Access::size(primitives);
   ARBORX_ASSERT(permutation_indices.extent(0) == n);
@@ -322,7 +341,7 @@ inline void TreeConstruction<DeviceType>::initializeLeafNodes(
                 "Encoding leaf index in pointer to child is not safe if the "
                 "index and pointer types do not have the same size");
 
-  using Tag = typename Access::Tag;
+  using Tag = typename GeometryTagHelper<Primitives>::tag;
   initializeLeafNodesDispatch(Tag{}, primitives, permutation_indices,
                               leaf_nodes);
 }

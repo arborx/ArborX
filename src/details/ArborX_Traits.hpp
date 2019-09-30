@@ -23,14 +23,23 @@ namespace ArborX
 namespace Traits
 {
 
-template <typename T, typename Enable = void>
+struct PrimitivesTag
+{
+};
+
+struct PredicatesTag
+{
+};
+
+template <typename T, typename Tag, typename Enable = void>
 struct Access
 {
 };
 
-template <typename View>
-struct Access<View, typename std::enable_if<Kokkos::is_view<View>::value &&
-                                            View::rank == 1>::type>
+template <typename View, typename Tag>
+struct Access<View, Tag,
+              typename std::enable_if<Kokkos::is_view<View>::value &&
+                                      View::rank == 1>::type>
 {
   // Returns a const reference
   KOKKOS_FUNCTION static typename View::const_value_type &get(View const &v,
@@ -41,13 +50,13 @@ struct Access<View, typename std::enable_if<Kokkos::is_view<View>::value &&
 
   static typename View::size_type size(View const &v) { return v.extent(0); }
 
-  using Tag = typename Details::Tag<typename View::value_type>::type;
-  using MemorySpace = typename View::memory_space;
+  using memory_space = typename View::memory_space;
 };
 
-template <typename View>
-struct Access<View, typename std::enable_if<Kokkos::is_view<View>::value &&
-                                            View::rank == 2>::type>
+template <typename View, typename Tag>
+struct Access<View, Tag,
+              typename std::enable_if<Kokkos::is_view<View>::value &&
+                                      View::rank == 2>::type>
 {
   // Returns by value
   KOKKOS_FUNCTION static Point get(View const &v, int i)
@@ -57,8 +66,7 @@ struct Access<View, typename std::enable_if<Kokkos::is_view<View>::value &&
 
   static typename View::size_type size(View const &v) { return v.extent(0); }
 
-  using Tag = Details::PointTag;
-  using MemorySpace = typename View::memory_space;
+  using memory_space = typename View::memory_space;
 };
 
 } // namespace Traits
