@@ -219,7 +219,7 @@ inline void assignMortonCodesDispatch(BoxTag, Primitives const &primitives,
                                       Box const &scene_bounding_box)
 {
   using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
-  using ExecutionSpace = typename Access::MemorySpace::execution_space;
+  using ExecutionSpace = typename Access::memory_space::execution_space;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(ARBORX_MARK_REGION("assign_morton_codes"),
                        Kokkos::RangePolicy<ExecutionSpace>(0, n),
@@ -238,7 +238,7 @@ inline void assignMortonCodesDispatch(PointTag, Primitives const &primitives,
                                       Box const &scene_bounding_box)
 {
   using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
-  using ExecutionSpace = typename Access::MemorySpace::execution_space;
+  using ExecutionSpace = typename Access::memory_space::execution_space;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("assign_morton_codes"),
@@ -273,7 +273,7 @@ inline void initializeLeafNodesDispatch(BoxTag, Primitives const &primitives,
                                         Nodes leaf_nodes)
 {
   using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
-  using ExecutionSpace = typename Access::MemorySpace::execution_space;
+  using ExecutionSpace = typename Access::memory_space::execution_space;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("initialize_leaf_nodes"),
@@ -291,7 +291,7 @@ inline void initializeLeafNodesDispatch(PointTag, Primitives const &primitives,
                                         Nodes leaf_nodes)
 {
   using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
-  using ExecutionSpace = typename Access::MemorySpace::execution_space;
+  using ExecutionSpace = typename Access::memory_space::execution_space;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("initialize_leaf_nodes"),

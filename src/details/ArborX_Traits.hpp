@@ -51,7 +51,7 @@ struct Access<View, TTag,
   static typename View::size_type size(View const &v) { return v.extent(0); }
 
   using Tag = typename Details::Tag<typename View::value_type>::type;
-  using MemorySpace = typename View::memory_space;
+  using memory_space = typename View::memory_space;
 };
 
 template <typename View, typename TTag>
@@ -68,7 +68,7 @@ struct Access<View, TTag,
   static typename View::size_type size(View const &v) { return v.extent(0); }
 
   using Tag = Details::PointTag;
-  using MemorySpace = typename View::memory_space;
+  using memory_space = typename View::memory_space;
 };
 
 } // namespace Traits
