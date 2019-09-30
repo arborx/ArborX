@@ -36,8 +36,8 @@ struct Access
 {
 };
 
-template <typename View, typename TTag>
-struct Access<View, TTag,
+template <typename View, typename Tag>
+struct Access<View, Tag,
               typename std::enable_if<Kokkos::is_view<View>::value &&
                                       View::rank == 1>::type>
 {
@@ -50,12 +50,11 @@ struct Access<View, TTag,
 
   static typename View::size_type size(View const &v) { return v.extent(0); }
 
-  using Tag = typename Details::Tag<typename View::value_type>::type;
   using memory_space = typename View::memory_space;
 };
 
-template <typename View, typename TTag>
-struct Access<View, TTag,
+template <typename View, typename Tag>
+struct Access<View, Tag,
               typename std::enable_if<Kokkos::is_view<View>::value &&
                                       View::rank == 2>::type>
 {
@@ -67,7 +66,6 @@ struct Access<View, TTag,
 
   static typename View::size_type size(View const &v) { return v.extent(0); }
 
-  using Tag = Details::PointTag;
   using memory_space = typename View::memory_space;
 };
 
