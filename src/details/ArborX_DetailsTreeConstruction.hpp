@@ -220,12 +220,6 @@ private:
   using accessor_return_type = std::decay_t<decltype(
       Traits::Access<Primitives, Traits::PrimitivesTag>::get(
           std::declval<Primitives const &>(), std::declval<int>()))>;
-
-  static_assert(std::is_same<accessor_return_type, Point>::value ||
-                    std::is_same<accessor_return_type, Box>::value,
-                "Invalid return type of "
-                "Traits::Access<Primitives,Traits::PrimitivesTag>::get()");
-
 public:
   using tag =
       std::conditional_t<std::is_same<accessor_return_type, Point>::value,
