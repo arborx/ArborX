@@ -17,6 +17,7 @@
 #include <ArborX_DetailsTreeTraversal.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_Predicates.hpp>
+#include <ArborX_Traits.hpp>
 
 #include <Kokkos_View.hpp>
 
@@ -81,7 +82,7 @@ template <typename Predicates>
 void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     Details::NearestPredicateTag,
     BoundingVolumeHierarchy<DeviceType> const &bvh,
-    Predicates const &queries, Kokkos::View<int *, DeviceType> &indices,
+    Predicates const &predicates, Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset, NearestQueryAlgorithm which,
     Kokkos::View<double *, DeviceType> *distances_ptr)
 {
@@ -92,16 +93,17 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   bool const use_deprecated_nearest_query_algorithm =
       which == NearestQueryAlgorithm::PriorityQueueBased_Deprecated;
 
-  auto const n_queries = queries.extent(0);
+  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  auto const n_queries = Access::size(predicates);
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
 
   auto const permute =
       Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-          bvh.bounds(), queries);
+          bvh.bounds(), predicates);
 
-  queries =
-      Details::BatchedQueries<DeviceType>::applyPermutation(permute, queries);
+  auto queries = Details::BatchedQueries<DeviceType>::applyPermutation(
+      permute, predicates);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX:BVH:init_offset");
@@ -305,23 +307,24 @@ template <typename Predicates>
 void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     Details::SpatialPredicateTag,
     BoundingVolumeHierarchy<DeviceType> const &bvh,
-    Predicates const &queries, Kokkos::View<int *, DeviceType> &indices,
+    Predicates const &predicates, Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset, int buffer_size)
 {
   Kokkos::Profiling::pushRegion("ArborX:BVH:spatial_queries");
 
   using ExecutionSpace = typename DeviceType::execution_space;
 
-  auto const n_queries = queries.extent(0);
+  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  auto const n_queries = Access::size(predicates);
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
 
   auto const permute =
       Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-          bvh.bounds(), queries);
+          bvh.bounds(), predicates);
 
-  queries =
-      Details::BatchedQueries<DeviceType>::applyPermutation(permute, queries);
+  auto queries = Details::BatchedQueries<DeviceType>::applyPermutation(
+      permute, predicates);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX:BVH:first_pass");
