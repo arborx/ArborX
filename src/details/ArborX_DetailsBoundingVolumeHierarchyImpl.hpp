@@ -102,6 +102,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
       Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
           bvh.bounds(), predicates);
 
+  // FIXME  readability!  queries is a sorted copy of the predicates
   auto queries = Details::BatchedQueries<DeviceType>::applyPermutation(
       permute, predicates);
 
@@ -323,6 +324,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
       Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
           bvh.bounds(), predicates);
 
+  // FIXME  readability!  queries is a sorted copy of the predicates
   auto queries = Details::BatchedQueries<DeviceType>::applyPermutation(
       permute, predicates);
 
