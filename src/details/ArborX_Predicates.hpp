@@ -66,8 +66,8 @@ struct Intersects
   Geometry _geometry;
 };
 
-using Within = Intersects<Sphere>;
-using Overlap = Intersects<Box>;
+using Within [[deprecated]] = Intersects<Sphere>;
+using Overlap [[deprecated]] = Intersects<Box>;
 
 template <typename Geometry>
 KOKKOS_INLINE_FUNCTION auto nearest(Geometry const &geometry, int k = 1)
@@ -75,11 +75,15 @@ KOKKOS_INLINE_FUNCTION auto nearest(Geometry const &geometry, int k = 1)
   return Nearest<Geometry>(geometry, k);
 }
 
-KOKKOS_INLINE_FUNCTION
-Within within(Point const &p, double r) { return Within({p, r}); }
+[[deprecated]] KOKKOS_INLINE_FUNCTION Within within(Point const &p, double r)
+{
+  return Within({p, r});
+}
 
-KOKKOS_INLINE_FUNCTION
-Overlap overlap(Box const &b) { return Overlap(b); }
+[[deprecated]] KOKKOS_INLINE_FUNCTION Overlap overlap(Box const &b)
+{
+  return Overlap(b);
+}
 
 } // namespace ArborX
 
