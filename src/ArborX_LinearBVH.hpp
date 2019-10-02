@@ -60,6 +60,9 @@ public:
 
     using Tag =
         typename Details::TagHelper<Predicates, Traits::PredicatesTag>::type;
+    static_assert(std::is_same<Tag, Details::NearestPredicateTag>::value ||
+                      std::is_same<Tag, Details::SpatialPredicateTag>::value,
+                  "Invalid tag for the predicates");
     Details::BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
         Tag{}, *this, predicates, std::forward<Args>(args)...);
   }
