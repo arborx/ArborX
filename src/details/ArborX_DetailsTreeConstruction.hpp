@@ -37,6 +37,8 @@ namespace ArborX
 namespace Details
 {
 
+// Deduce the tag from the return type of the get() member function in the
+// access traits.
 template <typename T, typename TTag>
 struct TagHelper
 {
