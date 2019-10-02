@@ -70,8 +70,7 @@ using Within = Intersects<Sphere>;
 using Overlap = Intersects<Box>;
 
 template <typename Geometry>
-KOKKOS_INLINE_FUNCTION Nearest<Geometry> nearest(Geometry const &geometry,
-                                                 int k = 1)
+KOKKOS_INLINE_FUNCTION auto nearest(Geometry const &geometry, int k = 1)
 {
   return Nearest<Geometry>(geometry, k);
 }
