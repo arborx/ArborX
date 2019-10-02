@@ -36,6 +36,21 @@ namespace ArborX
 {
 namespace Details
 {
+
+// Deduce the tag from the return type of the get() member function in the
+// access traits.
+template <typename T, typename TTag>
+struct TagHelper
+{
+private:
+  using accessor_return_type =
+      std::decay_t<decltype(Traits::Access<T, TTag>::get(
+          std::declval<T const &>(), std::declval<int>()))>;
+
+public:
+  using type = typename Tag<accessor_return_type>::type;
+};
+
 /**
  * This structure contains all the functions used to build the BVH. All the
  * functions are static.
@@ -213,25 +228,6 @@ inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
   Kokkos::fence();
 }
 
-template <typename Primitives>
-struct GeometryTagHelper
-{
-private:
-  using accessor_return_type = std::decay_t<decltype(
-      Traits::Access<Primitives, Traits::PrimitivesTag>::get(
-          std::declval<Primitives const &>(), std::declval<int>()))>;
-
-  static_assert(std::is_same<accessor_return_type, Point>::value ||
-                    std::is_same<accessor_return_type, Box>::value,
-                "Invalid return type of "
-                "Traits::Access<Primitives,Traits::PrimitivesTag>::get()");
-
-public:
-  using tag =
-      std::conditional_t<std::is_same<accessor_return_type, Point>::value,
-                         PointTag, BoxTag>;
-};
-
 template <typename Primitives, typename MortonCodes>
 inline void assignMortonCodesDispatch(BoxTag, Primitives const &primitives,
                                       MortonCodes morton_codes,
@@ -281,7 +277,7 @@ inline void TreeConstruction<DeviceType>::assignMortonCodes(
   auto const n = Access::size(primitives);
   ARBORX_ASSERT(morton_codes.extent(0) == n);
 
-  using Tag = typename GeometryTagHelper<Primitives>::tag;
+  using Tag = typename TagHelper<Primitives, Traits::PrimitivesTag>::type;
   assignMortonCodesDispatch(Tag{}, primitives, morton_codes,
                             scene_bounding_box);
 }
@@ -341,7 +337,7 @@ inline void TreeConstruction<DeviceType>::initializeLeafNodes(
                 "Encoding leaf index in pointer to child is not safe if the "
                 "index and pointer types do not have the same size");
 
-  using Tag = typename GeometryTagHelper<Primitives>::tag;
+  using Tag = typename TagHelper<Primitives, Traits::PrimitivesTag>::type;
   initializeLeafNodesDispatch(Tag{}, primitives, permutation_indices,
                               leaf_nodes);
 }

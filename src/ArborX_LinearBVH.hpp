@@ -56,9 +56,13 @@ public:
   template <typename Predicates, typename... Args>
   void query(Predicates const &predicates, Args &&... args) const
   {
-    // FIXME lame placeholder for concept check
-    static_assert(Kokkos::is_view<Predicates>::value, "must pass a view");
-    using Tag = typename Predicates::value_type::Tag;
+    // FIXME placeholder for concept check
+
+    using Tag =
+        typename Details::TagHelper<Predicates, Traits::PredicatesTag>::type;
+    static_assert(std::is_same<Tag, Details::NearestPredicateTag>::value ||
+                      std::is_same<Tag, Details::SpatialPredicateTag>::value,
+                  "Invalid tag for the predicates");
     Details::BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
         Tag{}, *this, predicates, std::forward<Args>(args)...);
   }

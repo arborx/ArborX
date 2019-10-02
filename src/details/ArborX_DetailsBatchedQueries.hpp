@@ -18,6 +18,7 @@
 #include <ArborX_DetailsSortUtils.hpp>  // sortObjects
 #include <ArborX_DetailsUtils.hpp>      // iota, exclusivePrefixSum, lastElement
 #include <ArborX_Macros.hpp>
+#include <ArborX_Traits.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Parallel.hpp>
@@ -50,30 +51,31 @@ public:
   // indirection when recording results rather than using that function at
   // the end.  We decided to keep reversePermutation around for now.
 
-  template <typename Query>
+  template <typename Predicates>
   static Kokkos::View<size_t *, DeviceType>
   sortQueriesAlongZOrderCurve(Box const &scene_bounding_box,
-                              Kokkos::View<Query *, DeviceType> queries)
+                              Predicates const &predicates)
   {
     Kokkos::View<Box, DeviceType> bounds("bounds");
     Kokkos::deep_copy(bounds, scene_bounding_box);
-    return sortQueriesAlongZOrderCurve(bounds, queries);
+    return sortQueriesAlongZOrderCurve(bounds, predicates);
   }
 
-  template <typename Query>
+  template <typename Predicates>
   static Kokkos::View<size_t *, DeviceType>
   sortQueriesAlongZOrderCurve(Kokkos::View<Box const, DeviceType> bounds,
-                              Kokkos::View<Query *, DeviceType> queries)
+                              Predicates const &predicates)
   {
-    auto const n_queries = queries.extent(0);
+    using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+    auto const n_queries = Access::size(predicates);
 
     Kokkos::View<unsigned int *, DeviceType> morton_codes(
         Kokkos::ViewAllocateWithoutInitializing("morton"), n_queries);
     Kokkos::parallel_for(ARBORX_MARK_REGION("assign_morton_codes_to_queries"),
                          Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
                          KOKKOS_LAMBDA(int i) {
-                           Point xyz =
-                               Details::returnCentroid(queries(i)._geometry);
+                           Point xyz = Details::returnCentroid(
+                               Access::get(predicates, i)._geometry);
                            translateAndScale(xyz, xyz, bounds());
                            morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
                          });
@@ -82,18 +84,30 @@ public:
     return sortObjects(morton_codes);
   }
 
-  template <typename T>
-  static Kokkos::View<T *, DeviceType>
-  applyPermutation(Kokkos::View<size_t const *, DeviceType> permute,
-                   Kokkos::View<T *, DeviceType> v)
+  // NOTE  trailing return type seems required :(
+  // error: The enclosing parent function ("applyPermutation") for an extended
+  // __host__ __device__ lambda must not have deduced return type
+  template <typename Predicates>
+  static auto applyPermutation(Kokkos::View<size_t const *, DeviceType> permute,
+                               Predicates const &v)
+      -> Kokkos::View<
+          std::decay_t<
+              decltype(Traits::Access<Predicates, Traits::PredicatesTag>::get(
+                  std::declval<Predicates const &>(), std::declval<int>()))> *,
+          DeviceType>
   {
-    auto const n = permute.extent(0);
-    ARBORX_ASSERT(v.extent(0) == n);
+    using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+    auto const n = Access::size(v);
+    ARBORX_ASSERT(permute.extent(0) == n);
 
-    auto w = cloneWithoutInitializingNorCopying(v);
-    Kokkos::parallel_for(ARBORX_MARK_REGION("permute_entries"),
-                         Kokkos::RangePolicy<ExecutionSpace>(0, n),
-                         KOKKOS_LAMBDA(int i) { w(i) = v(permute(i)); });
+    using T = std::decay_t<decltype(
+        Access::get(std::declval<Predicates const &>(), std::declval<int>()))>;
+    Kokkos::View<T *, DeviceType> w(
+        Kokkos::ViewAllocateWithoutInitializing("predicates"), n);
+    Kokkos::parallel_for(
+        ARBORX_MARK_REGION("permute_entries"),
+        Kokkos::RangePolicy<ExecutionSpace>(0, n),
+        KOKKOS_LAMBDA(int i) { w(i) = Access::get(v, permute(i)); });
     Kokkos::fence();
 
     return w;
