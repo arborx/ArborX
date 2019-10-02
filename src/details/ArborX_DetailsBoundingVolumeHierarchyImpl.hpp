@@ -41,35 +41,33 @@ struct BoundingVolumeHierarchyImpl
 {
   // Views are passed by reference here because internally Kokkos::realloc()
   // is called.
-  template <typename Query>
+  template <typename Predicates>
   static void queryDispatch(Details::SpatialPredicateTag,
                             BoundingVolumeHierarchy<DeviceType> const &bvh,
-                            Kokkos::View<Query *, DeviceType> queries,
+                            Predicates const &predicates,
                             Kokkos::View<int *, DeviceType> &indices,
                             Kokkos::View<int *, DeviceType> &offset,
                             int buffer_size = 0);
 
-  template <typename Query>
+  template <typename Predicates>
   static void queryDispatch(
       Details::NearestPredicateTag,
       BoundingVolumeHierarchy<DeviceType> const &bvh,
-      Kokkos::View<Query *, DeviceType> queries,
-      Kokkos::View<int *, DeviceType> &indices,
+      Predicates const &predicates, Kokkos::View<int *, DeviceType> &indices,
       Kokkos::View<int *, DeviceType> &offset,
       NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default,
       Kokkos::View<double *, DeviceType> *distances_ptr = nullptr);
 
-  template <typename Query>
+  template <typename Predicates>
   static void queryDispatch(
       Details::NearestPredicateTag tag,
       BoundingVolumeHierarchy<DeviceType> const &bvh,
-      Kokkos::View<Query *, DeviceType> queries,
-      Kokkos::View<int *, DeviceType> &indices,
+      Predicates const &predicates, Kokkos::View<int *, DeviceType> &indices,
       Kokkos::View<int *, DeviceType> &offset,
       Kokkos::View<double *, DeviceType> &distances,
       NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default)
   {
-    queryDispatch(tag, bvh, queries, indices, offset, which, &distances);
+    queryDispatch(tag, bvh, predicates, indices, offset, which, &distances);
   }
 };
 
@@ -79,12 +77,11 @@ struct BoundingVolumeHierarchyImpl
 // the other alternative that uses a priority queue.  The existence of that
 // parameter shall not be advertised to the user.
 template <typename DeviceType>
-template <typename Query>
+template <typename Predicates>
 void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     Details::NearestPredicateTag,
     BoundingVolumeHierarchy<DeviceType> const &bvh,
-    Kokkos::View<Query *, DeviceType> queries,
-    Kokkos::View<int *, DeviceType> &indices,
+    Predicates const &queries, Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset, NearestQueryAlgorithm which,
     Kokkos::View<double *, DeviceType> *distances_ptr)
 {
@@ -304,12 +301,11 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 // it is positive, the code falls back to the default behavior and performs a
 // second pass.  If it is negative, it throws an exception.
 template <typename DeviceType>
-template <typename Query>
+template <typename Predicates>
 void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     Details::SpatialPredicateTag,
     BoundingVolumeHierarchy<DeviceType> const &bvh,
-    Kokkos::View<Query *, DeviceType> queries,
-    Kokkos::View<int *, DeviceType> &indices,
+    Predicates const &queries, Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset, int buffer_size)
 {
   Kokkos::Profiling::pushRegion("ArborX:BVH:spatial_queries");
