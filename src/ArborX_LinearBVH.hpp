@@ -58,7 +58,8 @@ public:
   {
     // FIXME placeholder for concept check
 
-    using Tag = typename Predicates::value_type::Tag;
+    using Tag =
+        typename Details::TagHelper<Predicates, Traits::PredicatesTag>::type;
     Details::BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
         Tag{}, *this, predicates, std::forward<Args>(args)...);
   }
