@@ -36,6 +36,19 @@ namespace ArborX
 {
 namespace Details
 {
+
+template <typename T, typename TTag>
+struct TagHelper
+{
+private:
+  using accessor_return_type =
+      std::decay_t<decltype(Traits::Access<T, TTag>::get(
+          std::declval<T const &>(), std::declval<int>()))>;
+
+public:
+  using type = typename Tag<accessor_return_type>::type;
+};
+
 /**
  * This structure contains all the functions used to build the BVH. All the
  * functions are static.
@@ -212,17 +225,6 @@ inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
       scene_bounding_box);
   Kokkos::fence();
 }
-
-template <typename T, typename TTag>
-struct TagHelper
-{
-private:
-  using accessor_return_type = std::decay_t<decltype(
-      std::decay_t<decltype(Traits::Access<T, TTag>::get(
-          std::declval<T const &>(), std::declval<int>()))>;
-public:
-  using type = typename Tag<accessor_return_type>::type;
-};
 
 template <typename Primitives, typename MortonCodes>
 inline void assignMortonCodesDispatch(BoxTag, Primitives const &primitives,
