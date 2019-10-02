@@ -28,7 +28,7 @@ struct BoxTag
 {
 };
 
-template <typename Geometry>
+template <typename T, typename Enable = void>
 struct Tag
 {
 };
@@ -43,6 +43,12 @@ template <>
 struct Tag<Box>
 {
   using type = BoxTag;
+};
+
+template <typename T>
+struct Tag<T>
+{
+  using type = typename T::Tag;
 };
 
 } // namespace Details

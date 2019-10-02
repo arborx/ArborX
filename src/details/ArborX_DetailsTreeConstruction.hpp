@@ -221,9 +221,7 @@ private:
       Traits::Access<Primitives, Traits::PrimitivesTag>::get(
           std::declval<Primitives const &>(), std::declval<int>()))>;
 public:
-  using tag =
-      std::conditional_t<std::is_same<accessor_return_type, Point>::value,
-                         PointTag, BoxTag>;
+  using tag = typename Tag<accessor_return_type>::type;
 };
 
 template <typename Primitives, typename MortonCodes>
