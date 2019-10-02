@@ -213,13 +213,13 @@ inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
   Kokkos::fence();
 }
 
-template <typename Primitives>
-struct GeometryTagHelper
+template <typename T, typename TTag>
+struct TagHelper
 {
 private:
   using accessor_return_type = std::decay_t<decltype(
-      Traits::Access<Primitives, Traits::PrimitivesTag>::get(
-          std::declval<Primitives const &>(), std::declval<int>()))>;
+      std::decay_t<decltype(Traits::Access<T, TTag>::get(
+          std::declval<T const &>(), std::declval<int>()))>;
 public:
   using type = typename Tag<accessor_return_type>::type;
 };
@@ -273,7 +273,7 @@ inline void TreeConstruction<DeviceType>::assignMortonCodes(
   auto const n = Access::size(primitives);
   ARBORX_ASSERT(morton_codes.extent(0) == n);
 
-  using Tag = typename GeometryTagHelper<Primitives>::type;
+  using Tag = typename TagHelper<Primitives, Traits::PrimitivesTag>::type;
   assignMortonCodesDispatch(Tag{}, primitives, morton_codes,
                             scene_bounding_box);
 }
@@ -333,7 +333,7 @@ inline void TreeConstruction<DeviceType>::initializeLeafNodes(
                 "Encoding leaf index in pointer to child is not safe if the "
                 "index and pointer types do not have the same size");
 
-  using Tag = typename GeometryTagHelper<Primitives>::type;
+  using Tag = typename TagHelper<Primitives, Traits::PrimitivesTag>::type;
   initializeLeafNodesDispatch(Tag{}, primitives, permutation_indices,
                               leaf_nodes);
 }
