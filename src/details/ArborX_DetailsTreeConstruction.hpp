@@ -221,7 +221,7 @@ private:
       Traits::Access<Primitives, Traits::PrimitivesTag>::get(
           std::declval<Primitives const &>(), std::declval<int>()))>;
 public:
-  using tag = typename Tag<accessor_return_type>::type;
+  using type = typename Tag<accessor_return_type>::type;
 };
 
 template <typename Primitives, typename MortonCodes>
@@ -273,7 +273,7 @@ inline void TreeConstruction<DeviceType>::assignMortonCodes(
   auto const n = Access::size(primitives);
   ARBORX_ASSERT(morton_codes.extent(0) == n);
 
-  using Tag = typename GeometryTagHelper<Primitives>::tag;
+  using Tag = typename GeometryTagHelper<Primitives>::type;
   assignMortonCodesDispatch(Tag{}, primitives, morton_codes,
                             scene_bounding_box);
 }
@@ -333,7 +333,7 @@ inline void TreeConstruction<DeviceType>::initializeLeafNodes(
                 "Encoding leaf index in pointer to child is not safe if the "
                 "index and pointer types do not have the same size");
 
-  using Tag = typename GeometryTagHelper<Primitives>::tag;
+  using Tag = typename GeometryTagHelper<Primitives>::type;
   initializeLeafNodesDispatch(Tag{}, primitives, permutation_indices,
                               leaf_nodes);
 }
