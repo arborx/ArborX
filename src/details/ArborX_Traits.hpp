@@ -31,10 +31,9 @@ struct PredicatesTag
 {
 };
 
+// Only a declaration so that existence of a specialization can be detected
 template <typename T, typename Tag, typename Enable = void>
-struct Access
-{
-};
+struct Access;
 
 template <typename View, typename Tag>
 struct Access<View, Tag,
