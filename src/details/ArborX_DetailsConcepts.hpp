@@ -107,6 +107,17 @@ struct first_template_parameter<E<Head, Tail...>>
 template <typename T>
 using first_template_parameter_t = typename first_template_parameter<T>::type;
 
+template <typename Traits>
+struct result_of_get
+{
+  using type = decltype(Traits::get(
+      std::declval<first_template_parameter_t<Traits> const &>(), 0));
+};
+
+template <typename Traits>
+using decay_result_of_get_t =
+    std::decay_t<typename result_of_get<Traits>::type>;
+
 } // namespace Details
 } // namespace ArborX
 #endif // DOXYGEN_SHOULD_SKIP_THIS
