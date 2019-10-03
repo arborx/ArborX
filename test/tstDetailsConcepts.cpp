@@ -26,4 +26,17 @@ static_assert(has_centroid<Box, Point>::value, "");
 static_assert(has_centroid<Point, Point>::value, "");
 static_assert(has_centroid<Sphere, Point>::value, "");
 
+using ArborX::Details::is_complete;
+
+template <typename T, typename Enable = void>
+struct NotSpecializedForIntegralTypes;
+template <typename T>
+struct NotSpecializedForIntegralTypes<
+    T, std::enable_if_t<!std::is_integral<T>::value>>
+{
+};
+
+static_assert(is_complete<NotSpecializedForIntegralTypes<float>>::value);
+static_assert(!is_complete<NotSpecializedForIntegralTypes<int>>::value);
+
 int main() {}
