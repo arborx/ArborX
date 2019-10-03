@@ -59,6 +59,16 @@ BOOST_AUTO_TEST_CASE(intersects)
   STATIC_ASSERT(intersects({{{0.0, 0.0, 0.0}}, {{0.0, 0.0, 0.0}}},
                            {{{0.0, 0.0, 0.0}}, {{0.0, 0.0, 0.0}}}));
 
+  // point
+  constexpr Point point{{1.0, 1.0, 1.0}};
+  // point is contained in a box
+  STATIC_ASSERT(intersects(point, {{{0.0, 0.0, 0.0}}, {{2.0, 2.0, 2.0}}}));
+  STATIC_ASSERT(!intersects(point, {{{-1.0, -1.0, -1.0}}, {{0.0, 0.0, 0.0}}}));
+  // point is on a side of a box
+  STATIC_ASSERT(intersects(point, {{{0.0, 0.0, 0.0}}, {{2.0, 2.0, 1.0}}}));
+  // point is a corner of a box
+  STATIC_ASSERT(intersects(point, {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}}));
+
   // unit cube
   constexpr Box box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
   STATIC_ASSERT(intersects(box, box));
