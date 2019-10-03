@@ -12,6 +12,7 @@
 #define ARBORX_DETAILS_CONCEPTS_HPP
 
 #include <ArborX_DetailsAlgorithms.hpp>
+#include <ArborX_Traits.hpp>
 
 #include <type_traits>
 
@@ -59,6 +60,15 @@ struct has_centroid<
                                   std::declval<Point &>()))>> : std::true_type
 {
 };
+
+// is_complete implementation taken from https://stackoverflow.com/a/44229779
+template <class T, std::size_t = sizeof(T)>
+std::true_type is_complete_impl(T *);
+
+std::false_type is_complete_impl(...);
+
+template <class T>
+using is_complete = decltype(is_complete_impl(std::declval<T *>()));
 
 } // namespace Details
 } // namespace ArborX
