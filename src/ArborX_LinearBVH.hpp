@@ -57,8 +57,28 @@ public:
   template <typename Predicates, typename... Args>
   void query(Predicates const &predicates, Args &&... args) const
   {
-    // FIXME placeholder for concept check
-
+    using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+    static_assert(
+        Details::is_complete<Access>::value,
+        "Must specialize 'Traits::Access<Predicates,Traits::PredicatesTag>'");
+    static_assert(
+        Details::has_memory_space<Access>::value,
+        "Traits::Access<Predicates,Traits::PredicatesTag> must define "
+        "'memory_space' member type that is a valid Kokkos memory space");
+    static_assert(
+        KokkosExt::is_accessible_from<
+            typename Access::memory_space,
+            typename device_type::execution_space>::value,
+        "Traits::Access<Predicates,Traits::PredicatesTag>::memory_space must "
+        "be accessible from the bounding volume hierarchy execution space");
+    static_assert(
+        Details::has_size<Access>::value,
+        "Traits::Access<Predicates,Traits::PredicatesTag> must define "
+        "'size()' member function");
+    static_assert(
+        Details::has_get<Access>::value,
+        "Traits::Access<Predicates,Traits::PredicatesTag> must define 'get()' "
+        "member function");
     using Tag =
         typename Details::Tag<Details::decay_result_of_get_t<Access>>::type;
     static_assert(std::is_same<Tag, Details::NearestPredicateTag>::value ||
@@ -137,7 +157,31 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
 {
   Kokkos::Profiling::pushRegion("ArborX:BVH:construction");
 
-  // FIXME placeholder for concept check
+  using Access = Traits::Access<Primitives, Traits::PrimitivesTag>;
+  static_assert(
+      Details::is_complete<Access>::value,
+      "Must specialize 'Traits::Access<Primitives,Traits::PrimitivesTag>'");
+  static_assert(
+      Details::has_memory_space<Access>::value,
+      "Traits::Access<Primitives,Traits::PrimitivesTag> must define "
+      "'memory_space' member type that is a valid Kokkos memory space");
+  static_assert(
+      KokkosExt::is_accessible_from<
+          typename Access::memory_space,
+          typename device_type::execution_space>::value,
+      "Traits::Access<Primitives,Traits::PrimitivesTag>::memory_space must be "
+      "accessible from the bounding volume hierarchy execution space");
+  static_assert(Details::has_size<Access>::value,
+                "Traits::Access<Primitives,Traits::PrimitivesTag> must define "
+                "'size()' member function");
+  static_assert(Details::has_get<Access>::value,
+                "Traits::Access<Primitives,Traits::PrimitivesTag> must define "
+                "'get()' member function");
+  static_assert(
+      std::is_same<Details::decay_result_of_get_t<Access>, Point>::value ||
+          std::is_same<Details::decay_result_of_get_t<Access>, Box>::value,
+      "Traits::Access<Primitives,Traits::PrimitivesTag>::get() return type "
+      "must decay to Point or to Box");
 
   if (empty())
   {
