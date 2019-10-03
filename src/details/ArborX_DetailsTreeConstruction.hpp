@@ -14,6 +14,7 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // expand
+#include <ArborX_DetailsConcepts.hpp>   // decay_result_of_get_t
 #include <ArborX_DetailsKokkosExt.hpp>  // clz, min, max, sgn
 #include <ArborX_DetailsMortonCode.hpp> // morton3D
 #include <ArborX_DetailsNode.hpp>
@@ -36,20 +37,6 @@ namespace ArborX
 {
 namespace Details
 {
-
-// Deduce the tag from the return type of the get() member function in the
-// access traits.
-template <typename T, typename TTag>
-struct TagHelper
-{
-private:
-  using accessor_return_type =
-      std::decay_t<decltype(Traits::Access<T, TTag>::get(
-          std::declval<T const &>(), std::declval<int>()))>;
-
-public:
-  using type = typename Tag<accessor_return_type>::type;
-};
 
 /**
  * This structure contains all the functions used to build the BVH. All the
@@ -277,7 +264,7 @@ inline void TreeConstruction<DeviceType>::assignMortonCodes(
   auto const n = Access::size(primitives);
   ARBORX_ASSERT(morton_codes.extent(0) == n);
 
-  using Tag = typename TagHelper<Primitives, Traits::PrimitivesTag>::type;
+  using Tag = typename Tag<decay_result_of_get_t<Access>>::type;
   assignMortonCodesDispatch(Tag{}, primitives, morton_codes,
                             scene_bounding_box);
 }
@@ -337,7 +324,7 @@ inline void TreeConstruction<DeviceType>::initializeLeafNodes(
                 "Encoding leaf index in pointer to child is not safe if the "
                 "index and pointer types do not have the same size");
 
-  using Tag = typename TagHelper<Primitives, Traits::PrimitivesTag>::type;
+  using Tag = typename Tag<decay_result_of_get_t<Access>>::type;
   initializeLeafNodesDispatch(Tag{}, primitives, permutation_indices,
                               leaf_nodes);
 }

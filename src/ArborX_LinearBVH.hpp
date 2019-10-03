@@ -18,6 +18,7 @@
 #include <ArborX_DetailsKokkosExt.hpp>
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
+#include <ArborX_DetailsTags.hpp>
 #include <ArborX_DetailsTreeConstruction.hpp>
 #include <ArborX_Traits.hpp>
 
@@ -59,7 +60,7 @@ public:
     // FIXME placeholder for concept check
 
     using Tag =
-        typename Details::TagHelper<Predicates, Traits::PredicatesTag>::type;
+        typename Details::Tag<Details::decay_result_of_get_t<Access>>::type;
     static_assert(std::is_same<Tag, Details::NearestPredicateTag>::value ||
                       std::is_same<Tag, Details::SpatialPredicateTag>::value,
                   "Invalid tag for the predicates");
