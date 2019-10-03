@@ -1,5 +1,7 @@
 #include <ArborX_DetailsConcepts.hpp>
 
+#include <Kokkos_Core.hpp>
+
 #include <tuple>
 
 using ArborX::Box;
@@ -44,6 +46,40 @@ static_assert(!is_complete<NotSpecializedForIntegralTypes<int>>::value);
 using ArborX::Details::first_template_parameter_t;
 static_assert(std::is_same<first_template_parameter_t<std::tuple<int, float>>,
                            int>::value,
+              "");
+
+using ArborX::Details::has_access_traits;
+using ArborX::Traits::PredicatesTag;
+using ArborX::Traits::PrimitivesTag;
+struct HasNoAccessTraitsSpecialization
+{
+};
+struct HasEmptySpecialization
+{
+};
+namespace ArborX
+{
+namespace Traits
+{
+template <typename Tag>
+struct Access<HasEmptySpecialization, Tag>
+{
+};
+} // namespace Traits
+} // namespace ArborX
+static_assert(has_access_traits<Kokkos::View<double *>, PrimitivesTag>::value,
+              "");
+static_assert(has_access_traits<Kokkos::View<double *>, PredicatesTag>::value,
+              "");
+static_assert(
+    !has_access_traits<HasNoAccessTraitsSpecialization, PrimitivesTag>::value,
+    "");
+static_assert(
+    !has_access_traits<HasNoAccessTraitsSpecialization, PredicatesTag>::value,
+    "");
+static_assert(has_access_traits<HasEmptySpecialization, PrimitivesTag>::value,
+              "");
+static_assert(has_access_traits<HasEmptySpecialization, PredicatesTag>::value,
               "");
 
 int main() {}
