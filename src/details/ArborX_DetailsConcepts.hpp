@@ -70,6 +70,18 @@ std::false_type is_complete_impl(...);
 template <class T>
 using is_complete = decltype(is_complete_impl(std::declval<T *>()));
 
+template <typename T, typename TTag, typename = void>
+struct has_access_traits : std::false_type
+{
+};
+
+template <typename T, typename TTag>
+struct has_access_traits<
+    T, TTag, std::enable_if_t<is_complete<Traits::Access<T, TTag>>::value>>
+    : std::true_type
+{
+};
+
 } // namespace Details
 } // namespace ArborX
 #endif // DOXYGEN_SHOULD_SKIP_THIS
