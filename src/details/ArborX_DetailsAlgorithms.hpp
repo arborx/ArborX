@@ -182,6 +182,9 @@ KOKKOS_INLINE_FUNCTION
 void centroid(Point const &point, Point &c) { c = point; }
 
 KOKKOS_INLINE_FUNCTION
+void centroid(Sphere const &sphere, Point &c) { c = sphere.centroid(); }
+
+KOKKOS_INLINE_FUNCTION
 Point returnCentroid(Point const &point) { return point; }
 
 KOKKOS_INLINE_FUNCTION
