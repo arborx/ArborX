@@ -163,6 +163,15 @@ constexpr bool intersects(Box const &box, Box const &other)
   return true;
 }
 
+KOKKOS_INLINE_FUNCTION
+constexpr bool intersects(Point const &point, Box const &other)
+{
+  for (int d = 0; d < 3; ++d)
+    if (point[d] > other.maxCorner()[d] || point[d] < other.minCorner()[d])
+      return false;
+  return true;
+}
+
 // check if a sphere intersects with an  axis-aligned bounding box
 KOKKOS_INLINE_FUNCTION
 bool intersects(Sphere const &sphere, Box const &box)
