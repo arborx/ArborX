@@ -82,6 +82,19 @@ struct has_access_traits<
 {
 };
 
+template <typename T, typename = void>
+struct has_memory_space : std::false_type
+{
+};
+
+template <typename T>
+struct has_memory_space<
+    T,
+    std::enable_if_t<Kokkos::is_memory_space<typename T::memory_space>::value>>
+    : std::true_type
+{
+};
+
 } // namespace Details
 } // namespace ArborX
 #endif // DOXYGEN_SHOULD_SKIP_THIS
