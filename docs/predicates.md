@@ -10,7 +10,7 @@ KOKKOS_FUNCTION unspecified intersects(Geometry const& geometry) noexcept; // (2
 ```
 
 ## See also
-[`ArborX::BVH<DeviceType>::query()`](https://github.com/dalg24/ArborX/blob/docs/docs/bounding_volume_hierarchy.md#arborxbvhdevicetypequery)
+[`ArborX::BVH<DeviceType>::query()`](https://github.com/arborx/ArborX/blob/docs/docs/bounding_volume_hierarchy.md#arborxbvhdevicetypequery)
 
 # `ArborX::nearest`
 
