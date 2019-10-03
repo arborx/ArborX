@@ -95,6 +95,18 @@ struct has_memory_space<
 {
 };
 
+template <typename T>
+struct first_template_parameter;
+
+template <template <typename...> class E, typename Head, typename... Tail>
+struct first_template_parameter<E<Head, Tail...>>
+{
+  using type = Head;
+};
+
+template <typename T>
+using first_template_parameter_t = typename first_template_parameter<T>::type;
+
 } // namespace Details
 } // namespace ArborX
 #endif // DOXYGEN_SHOULD_SKIP_THIS
