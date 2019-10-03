@@ -44,6 +44,10 @@ The following cache variables may also be set:
 
 find_package(PkgConfig)
 pkg_check_modules(PC_Kokkos QUIET kokkos)
+if(NOT PC_Kokkos_FOUND)
+  message(FATAL_ERROR "The PkgConfig module for Kokkos was not found. "
+    "Please make sure that PKG_CONFIG_PATH includes the directory containing kokkos.pc.")
+endif()
 
 find_path(Kokkos_INCLUDE_DIR
   NAMES Kokkos_Core.hpp
@@ -99,7 +103,7 @@ if(Kokkos_FOUND AND NOT TARGET Kokkos::Kokkos)
   add_library(Kokkos::Kokkos UNKNOWN IMPORTED)
   set_target_properties(Kokkos::Kokkos PROPERTIES
     IMPORTED_LOCATION "${Kokkos_LIBRARY}"
-    INTERFACE_COMPILE_OPTIONS "${PC_Kokkos_CFLAGS_OTHER}"
+    INTERFACE_COMPILE_OPTIONS "$<$<COMPILE_LANGUAGE:CXX>:${PC_Kokkos_CFLAGS_OTHER}>"
     INTERFACE_LINK_LIBRARIES "${PC_Kokkos_LDFLAGS}"
     INTERFACE_INCLUDE_DIRECTORIES "${Kokkos_INCLUDE_DIR}"
   )
