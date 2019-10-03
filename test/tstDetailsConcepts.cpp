@@ -1,5 +1,7 @@
 #include <ArborX_DetailsConcepts.hpp>
 
+#include <tuple>
+
 using ArborX::Box;
 using ArborX::Point;
 using ArborX::Sphere;
@@ -38,5 +40,10 @@ struct NotSpecializedForIntegralTypes<
 
 static_assert(is_complete<NotSpecializedForIntegralTypes<float>>::value);
 static_assert(!is_complete<NotSpecializedForIntegralTypes<int>>::value);
+
+using ArborX::Details::first_template_parameter_t;
+static_assert(std::is_same<first_template_parameter_t<std::tuple<int, float>>,
+                           int>::value,
+              "");
 
 int main() {}
