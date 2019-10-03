@@ -118,6 +118,34 @@ template <typename Traits>
 using decay_result_of_get_t =
     std::decay_t<typename result_of_get<Traits>::type>;
 
+template <typename Traits, typename = void>
+struct has_get : std::false_type
+{
+};
+
+template <typename Traits>
+struct has_get<
+    Traits,
+    std::void_t<decltype(Traits::get(
+        std::declval<first_template_parameter_t<Traits> const &>(), 0))>>
+    : std::true_type
+{
+};
+
+template <typename Traits, typename = void>
+struct has_size : std::false_type
+{
+};
+
+template <typename Traits>
+struct has_size<
+    Traits,
+    std::enable_if_t<std::is_integral<decltype(Traits::size(
+        std::declval<first_template_parameter_t<Traits> const &>()))>::value>>
+    : std::true_type
+{
+};
+
 } // namespace Details
 } // namespace ArborX
 #endif // DOXYGEN_SHOULD_SKIP_THIS
