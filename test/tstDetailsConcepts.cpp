@@ -1,0 +1,29 @@
+#include <ArborX_DetailsConcepts.hpp>
+
+using ArborX::Box;
+using ArborX::Point;
+using ArborX::Sphere;
+using ArborX::Details::has_centroid;
+using ArborX::Details::is_expandable;
+
+static_assert(is_expandable<Box, Box>::value, "");
+static_assert(is_expandable<Box, Box const>::value, "");
+static_assert(!is_expandable<Box const, Box>::value, "");
+
+static_assert(is_expandable<Box, Point>::value, "");
+static_assert(is_expandable<Box, Sphere>::value, "");
+
+static_assert(!is_expandable<Point, Point>::value, "");
+static_assert(!is_expandable<Point, Box>::value, "");
+static_assert(!is_expandable<Point, Sphere>::value, "");
+
+// NOTE Possible but not implemented
+static_assert(!is_expandable<Sphere, Point>::value, "");
+static_assert(!is_expandable<Sphere, Box>::value, "");
+static_assert(!is_expandable<Sphere, Sphere>::value, "");
+
+static_assert(has_centroid<Box, Point>::value, "");
+static_assert(has_centroid<Point, Point>::value, "");
+static_assert(has_centroid<Sphere, Point>::value, "");
+
+int main() {}
