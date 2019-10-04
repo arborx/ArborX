@@ -278,6 +278,34 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
                  {}, {0, 0}, {});
 }
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(do_not_exceed_capacity, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  // This unit tests exposes bug that essentially assumed the number of
+  // neighbors queried for would not exceed the maximum size of the default
+  // underlying container for a priority queue which was 256.
+  // https://github.com/arborx/ArborX/pull/126#issuecomment-538410096
+  // Each rank has the exact same cloud and perform a knn query that will push
+  // comm_size * 512 elements into the queue.
+  using ArborX::Box;
+  using ArborX::nearest;
+  using ArborX::Point;
+  using ExecutionSpace = typename DeviceType::execution_space;
+  MPI_Comm comm = MPI_COMM_WORLD;
+  Kokkos::View<Point *, DeviceType> points("points", 512);
+  Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, 512),
+                       KOKKOS_LAMBDA(int i) {
+                         points(i) = {{(float)i, (float)i, (float)i}};
+                       });
+  ArborX::DistributedSearchTree<DeviceType> tree{comm, points};
+  Kokkos::View<decltype(nearest(Point{})) *, DeviceType> queries("queries", 1);
+  Kokkos::deep_copy(queries, nearest(Point{0, 0, 0}, 512));
+  Kokkos::View<int *, DeviceType> indices("indices", 0);
+  Kokkos::View<int *, DeviceType> offset("offset", 0);
+  Kokkos::View<int *, DeviceType> ranks("ranks", 0);
+  BOOST_CHECK_NO_THROW(tree.query(queries, indices, offset, ranks));
+}
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_nearest_neighbors, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
