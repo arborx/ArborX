@@ -56,11 +56,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, Tree, TreeTypes)
     // to support it. And since the tag dispatching yields different tree
     // traversals for nearest and spatial predicates, we do have to check
     // the results for various type of queries.
-    checkResults(empty_tree, makeOverlapQueries<device_type>({}), {}, {0});
+    checkResults(empty_tree, makeIntersectsBoxQueries<device_type>({}), {},
+                 {0});
 
-    // NOTE: Admittedly testing for both overlap and within queries might be
-    // a bit overkill but I'd rather test for all the queries we plan on
-    // using.
+    // NOTE: Admittedly testing for both intersection with a box and with a
+    // sphere queries might be a bit overkill but I'd rather test for all the
+    // queries we plan on using.
     checkResults(empty_tree, makeWithinQueries<device_type>({}), {}, {0});
 
     checkResults(empty_tree, makeNearestQueries<device_type>({}), {}, {0});
@@ -72,7 +73,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, Tree, TreeTypes)
     // results.
     checkResults(
         empty_tree,
-        makeOverlapQueries<device_type>({
+        makeIntersectsBoxQueries<device_type>({
             {}, // Did not bother giving a valid box here but that's fine.
             {},
         }),
@@ -114,7 +115,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, Tree, TreeTypes)
   BOOST_TEST(ArborX::Details::equals(single_leaf_tree.bounds(),
                                      {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
-  checkResults(single_leaf_tree, makeOverlapQueries<device_type>({}), {}, {0});
+  checkResults(single_leaf_tree, makeIntersectsBoxQueries<device_type>({}), {},
+               {0});
 
   checkResults(single_leaf_tree, makeWithinQueries<device_type>({}), {}, {0});
 
@@ -129,7 +131,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, Tree, TreeTypes)
       {0, 0}, {0, 1, 2}, {0., 5.});
 
   checkResults(single_leaf_tree,
-               makeOverlapQueries<device_type>({
+               makeIntersectsBoxQueries<device_type>({
                    {{{5., 5., 5.}}, {{5., 5., 5.}}},
                    {{{.5, .5, .5}}, {{.5, .5, .5}}},
                }),
@@ -174,46 +176,46 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, Tree, TreeTypes)
   BOOST_TEST(ArborX::Details::equals(couple_leaves_tree.bounds(),
                                      {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
-  // single query overlap with nothing
+  // single query intersects with nothing
   checkResults(couple_leaves_tree,
-               makeOverlapQueries<device_type>({
+               makeIntersectsBoxQueries<device_type>({
                    {},
                }),
                {}, {0, 0});
 
-  // single query overlap with both
+  // single query intersects with both
   checkResults(couple_leaves_tree,
-               makeOverlapQueries<device_type>({
+               makeIntersectsBoxQueries<device_type>({
                    {{{0., 0., 0.}}, {{1., 1., 1.}}},
                }),
                {1, 0}, {0, 2});
 
-  // single query overlap with only one
+  // single query intersects with only one
   checkResults(couple_leaves_tree,
-               makeOverlapQueries<device_type>({
+               makeIntersectsBoxQueries<device_type>({
                    {{{0.5, 0.5, 0.5}}, {{1.5, 1.5, 1.5}}},
                }),
                {1}, {0, 1});
 
-  // a couple queries both overlap with nothing
+  // a couple queries both intersect with nothing
   checkResults(couple_leaves_tree,
-               makeOverlapQueries<device_type>({
+               makeIntersectsBoxQueries<device_type>({
                    {},
                    {},
                }),
                {}, {0, 0, 0});
 
-  // a couple queries first overlap with nothing second with only one
+  // a couple queries first intersects with nothing second with only one
   checkResults(couple_leaves_tree,
-               makeOverlapQueries<device_type>({
+               makeIntersectsBoxQueries<device_type>({
                    {},
                    {{{0., 0., 0.}}, {{0., 0., 0.}}},
                }),
                {0}, {0, 0, 1});
 
   // no query
-  checkResults(couple_leaves_tree, makeOverlapQueries<device_type>({}), {},
-               {0});
+  checkResults(couple_leaves_tree, makeIntersectsBoxQueries<device_type>({}),
+               {}, {0});
 
   checkResults(couple_leaves_tree,
                makeNearestQueries<device_type>({
@@ -257,7 +259,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
       {{{3., 0., 0.}}, {{3., 0., 0.}}},
   });
 
-  auto const queries = makeOverlapQueries<DeviceType>({
+  auto const queries = makeIntersectsBoxQueries<DeviceType>({
       {},
       {{{0., 0., 0.}}, {{3., 3., 3.}}},
       {},
@@ -338,7 +340,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity, DeviceType,
   BOOST_TEST(ArborX::lastElement(offset) == n);
 
   // spatial query that find all indexable in the tree is also fine
-  BOOST_CHECK_NO_THROW(bvh.query(makeOverlapQueries<DeviceType>({
+  BOOST_CHECK_NO_THROW(bvh.query(makeIntersectsBoxQueries<DeviceType>({
                                      {},
                                      {{{0., 0., 0.}}, {{n, n, n}}},
                                  }),
@@ -426,11 +428,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
   //
   //  o    o   o   o   j-2
   //
-  Kokkos::View<ArborX::Overlap *, DeviceType> queries("queries", n);
+  Kokkos::View<decltype(ArborX::intersects(ArborX::Box{})) *, DeviceType>
+      queries("queries", n);
   Kokkos::parallel_for("fill_queries",
                        Kokkos::RangePolicy<ExecutionSpace>(0, n),
                        KOKKOS_LAMBDA(int i) {
-                         queries(i) = ArborX::Overlap(bounding_boxes(i));
+                         queries(i) = ArborX::intersects(bounding_boxes(i));
                        });
   Kokkos::fence();
 
@@ -451,7 +454,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
     BOOST_TEST(offset_host(i) == i);
   }
 
-  // (ii) use bounding boxes that overlap with first neighbors
+  // (ii) use bounding boxes that intersects with first neighbors
   //
   // i-2  i-1  i  i+1
   //
@@ -475,7 +478,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
       {
         int const index = ind(i, j, k);
         // bounding box around nodes of the structured grid will
-        // overlap with neighboring nodes
+        // intersect with neighboring nodes
         bounding_boxes_host[index] = {
             {{(i - 1) * Lx / (nx - 1), (j - 1) * Ly / (ny - 1),
               (k - 1) * Lz / (nz - 1)}},
@@ -545,7 +548,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::parallel_for("fill_first_neighbors_queries",
                        Kokkos::RangePolicy<ExecutionSpace>(0, n),
                        KOKKOS_LAMBDA(int i) {
-                         queries[i] = ArborX::Overlap(bounding_boxes[i]);
+                         queries[i] = ArborX::intersects(bounding_boxes[i]);
                        });
   Kokkos::fence();
   bvh.query(queries, indices, offset);
@@ -605,7 +608,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::parallel_for("fill_first_neighbors_queries",
                        Kokkos::RangePolicy<ExecutionSpace>(0, n),
                        KOKKOS_LAMBDA(int i) {
-                         queries[i] = ArborX::Overlap(bounding_boxes[i]);
+                         queries[i] = ArborX::intersects(bounding_boxes[i]);
                        });
   Kokkos::fence();
   bvh.query(queries, indices, offset);

@@ -216,7 +216,7 @@ BOOST_AUTO_TEST_CASE(intersects)
   BOOST_TEST(details::intersects(unit_box, other_box));
   BOOST_TEST(bg::intersects(unit_box, other_box));
 
-  // overlapping
+  // intersecting
   other_box = {{{.5, .5, .5}}, {{2., 2., 2.}}};
   BOOST_TEST(details::intersects(unit_box, other_box));
   BOOST_TEST(bg::intersects(unit_box, other_box));

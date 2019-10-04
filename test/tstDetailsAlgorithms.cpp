@@ -77,13 +77,13 @@ BOOST_AUTO_TEST_CASE(intersects)
   STATIC_ASSERT(intersects(box, {{{0.25, 0.25, 0.25}}, {{0.75, 0.75, 0.75}}}));
   // bigger box that contains it
   STATIC_ASSERT(intersects(box, {{{-1.0, -1.0, -1.0}}, {{2.0, 2.0, 2.0}}}));
-  // couple boxes that do overlap
+  // couple boxes that do intersect
   STATIC_ASSERT(intersects(box, {{{0.5, 0.5, 0.5}}, {{1.5, 1.5, 1.5}}}));
   STATIC_ASSERT(intersects(box, {{{-0.5, -0.5, -0.5}}, {{0.5, 0.5, 0.5}}}));
   // couple boxes that do not
   STATIC_ASSERT(!intersects(box, {{{-2.0, -2.0, -2.0}}, {{-1.0, -1.0, -1.0}}}));
   STATIC_ASSERT(!intersects(box, {{{0.0, 0.0, 2.0}}, {{1.0, 1.0, 3.0}}}));
-  // boxes overlap if faces touch
+  // boxes intersect if faces touch
   STATIC_ASSERT(intersects(box, {{{1.0, 0.0, 0.0}}, {{2.0, 1.0, 1.0}}}));
   STATIC_ASSERT(intersects(box, {{{-0.5, -0.5, -0.5}}, {{0.5, 0.0, 0.5}}}));
 

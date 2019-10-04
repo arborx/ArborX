@@ -54,7 +54,7 @@ public:
   bool empty() const noexcept { return size() == 0; }
 
   /** \brief Finds object satisfying the passed predicates (e.g. nearest to
-   *  some point or overlaping with some box)
+   *  some point or intersecting with some box)
    *
    *  This query function performs a batch of spatial or k-nearest neighbors
    *  searches.  The results give indices of the objects that satisfy

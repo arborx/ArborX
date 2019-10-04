@@ -130,8 +130,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
 
   BOOST_TEST(ArborX::Details::equals(emptry_dist_tree.bounds(), {}));
 
-  checkResults(emptry_dist_tree, makeOverlapQueries<DeviceType>({}), {}, {0},
-               {});
+  checkResults(emptry_dist_tree, makeIntersectsBoxQueries<DeviceType>({}), {},
+               {0}, {});
 
   checkResults(emptry_dist_tree, makeWithinQueries<DeviceType>({}), {}, {0},
                {});
@@ -145,14 +145,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
   // Only rank 0 has a couple spatial queries with a spatial predicate
   if (comm_rank == 0)
     checkResults(emptry_dist_tree,
-                 makeOverlapQueries<DeviceType>({
+                 makeIntersectsBoxQueries<DeviceType>({
                      {},
                      {},
                  }),
                  {}, {0, 0, 0}, {});
   else
-    checkResults(emptry_dist_tree, makeOverlapQueries<DeviceType>({}), {}, {0},
-                 {});
+    checkResults(emptry_dist_tree, makeIntersectsBoxQueries<DeviceType>({}), {},
+                 {0}, {});
 
   // All ranks but rank 0 have a single query with a spatial predicate
   if (comm_rank == 0)
@@ -209,7 +209,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
   BOOST_TEST(
       ArborX::Details::equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
-  checkResults(tree, makeOverlapQueries<DeviceType>({}), {}, {0}, {});
+  checkResults(tree, makeIntersectsBoxQueries<DeviceType>({}), {}, {0}, {});
 
   checkResults(tree, makeWithinQueries<DeviceType>({}), {}, {0}, {});
 
@@ -249,7 +249,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
       tree.bounds(), {{{0., 0., 0.}}, {{(double)comm_size, 1., 1.}}}));
 
   checkResults(tree,
-               makeOverlapQueries<DeviceType>({
+               makeIntersectsBoxQueries<DeviceType>({
                    {{{(double)comm_size - (double)comm_rank - .5, .5, .5}},
                     {{(double)comm_size - (double)comm_rank - .5, .5, .5}}},
                    {{{(double)comm_rank + .5, .5, .5}},
@@ -258,7 +258,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
                {0, 0}, {0, 1, 2}, {comm_size - 1 - comm_rank, comm_rank});
 
   checkResults(tree, makeNearestQueries<DeviceType>({}), {}, {0}, {});
-  checkResults(tree, makeOverlapQueries<DeviceType>({}), {}, {0}, {});
+  checkResults(tree, makeIntersectsBoxQueries<DeviceType>({}), {}, {0}, {});
 
   if (comm_rank > 0)
     checkResults(tree,

@@ -219,14 +219,15 @@ makeDistributedSearchTree(MPI_Comm comm, std::vector<ArborX::Box> const &b)
 #endif
 
 template <typename DeviceType>
-Kokkos::View<ArborX::Overlap *, DeviceType>
-makeOverlapQueries(std::vector<ArborX::Box> const &boxes)
+Kokkos::View<decltype(ArborX::intersects(ArborX::Box{})) *, DeviceType>
+makeIntersectsBoxQueries(std::vector<ArborX::Box> const &boxes)
 {
   int const n = boxes.size();
-  Kokkos::View<ArborX::Overlap *, DeviceType> queries("overlap_queries", n);
+  Kokkos::View<decltype(ArborX::intersects(ArborX::Box{})) *, DeviceType>
+      queries("intersecting_with_box_predicates", n);
   auto queries_host = Kokkos::create_mirror_view(queries);
   for (int i = 0; i < n; ++i)
-    queries_host(i) = ArborX::overlap(boxes[i]);
+    queries_host(i) = ArborX::intersects(boxes[i]);
   Kokkos::deep_copy(queries, queries_host);
   return queries;
 }
