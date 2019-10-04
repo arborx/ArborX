@@ -1,7 +1,4 @@
-find_package(Boost REQUIRED COMPONENTS program_options)
-
-add_subdirectory(bvh_driver)
-if (ARBORX_ENABLE_MPI)
-  add_subdirectory(distributed_tree_driver)
+find_package(Boost COMPONENTS program_options)
+if(Boost_FOUND)
+  add_subdirectory(viz)
 endif()
-add_subdirectory(viz)
