@@ -85,7 +85,7 @@ double distance(Point const &a, Point const &b)
 KOKKOS_INLINE_FUNCTION
 double distance(Point const &point, Box const &box)
 {
-  Point projected_point{};
+  Point projected_point;
   for (int d = 0; d < 3; ++d)
   {
     if (point[d] < box.minCorner()[d])
