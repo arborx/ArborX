@@ -675,13 +675,21 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
       return lhs.second > rhs.second;
     }
   };
+
+  int const n_results = lastElement(offset);
+  Kokkos::View<PairIndexDistance *, DeviceType> buffer(
+      Kokkos::ViewAllocateWithoutInitializing("buffer"), n_results);
   using PriorityQueue =
-      Details::PriorityQueue<PairIndexDistance, CompareDistance>;
+      Details::PriorityQueue<PairIndexDistance, CompareDistance,
+                             UnmanagedStaticVector<PairIndexDistance>>;
 
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("truncate_results"),
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int q) {
-        PriorityQueue queue;
+        auto local_buffer = Kokkos::subview(
+            buffer, Kokkos::make_pair(offset(q), offset(q + 1)));
+        PriorityQueue queue(UnmanagedStaticVector<PairIndexDistance>(
+            local_buffer.data(), local_buffer.size()));
         for (int i = offset(q); i < offset(q + 1); ++i)
           queue.emplace(Kokkos::Array<int, 2>{{indices(i), ranks(i)}},
                         distances(i));
