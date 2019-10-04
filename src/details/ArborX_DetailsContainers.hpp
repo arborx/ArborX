@@ -44,11 +44,11 @@ class StaticVector
     KOKKOS_INLINE_FUNCTION const_reference operator[]( size_type pos ) const { assert(pos < size()); return _data[pos]; }
     KOKKOS_INLINE_FUNCTION reference back() { assert(size() > 0 ); return _data[_size - 1]; }
     KOKKOS_INLINE_FUNCTION const_reference back() const { assert(size() > 0); return _data[_size - 1]; }
-    KOKKOS_INLINE_FUNCTION void pushBack(T const &value) { assert(size() < maxSize()); _data[_size++] = value; }
-    KOKKOS_INLINE_FUNCTION void pushBack(T &&value) { assert(size() < maxSize()); _data[_size++] = std::move(value); }
+    KOKKOS_INLINE_FUNCTION void push_back(T const &value) { assert(size() < maxSize()); _data[_size++] = value; }
+    KOKKOS_INLINE_FUNCTION void push_back(T &&value) { assert(size() < maxSize()); _data[_size++] = std::move(value); }
     template<class... Args>
-    KOKKOS_INLINE_FUNCTION void emplaceBack(Args&&... args) { assert(size() < maxSize()); ::new (static_cast<void*>(_data + _size++)) T(std::forward<Args>(args)...); }
-    KOKKOS_INLINE_FUNCTION void popBack() { assert(size() > 0); _size--; }
+    KOKKOS_INLINE_FUNCTION void emplace_back(Args&&... args) { assert(size() < maxSize()); ::new (static_cast<void*>(_data + _size++)) T(std::forward<Args>(args)...); }
+    KOKKOS_INLINE_FUNCTION void pop_back() { assert(size() > 0); _size--; }
     KOKKOS_INLINE_FUNCTION reference front() { assert(size() > 0); return _data[0]; }
     KOKKOS_INLINE_FUNCTION const_reference front() const { assert(size() > 0); return _data[0]; }
     KOKKOS_INLINE_FUNCTION void clear() { _size = 0; }
@@ -82,11 +82,11 @@ class UnmanagedStaticVector
     KOKKOS_INLINE_FUNCTION const_reference operator[]( size_type pos ) const { assert(pos < size()); return *(_ptr + pos); }
     KOKKOS_INLINE_FUNCTION reference back() { assert(size() > 0); return *(_ptr + _size - 1); }
     KOKKOS_INLINE_FUNCTION const_reference back() const { assert(size() > 0); return *(_ptr + _size - 1); }
-    KOKKOS_INLINE_FUNCTION void pushBack(T const &value) { assert(size() < maxSize()); *(_ptr + _size++) = value; }
-    KOKKOS_INLINE_FUNCTION void pushBack(T &&value) { assert(size() < maxSize()); *(_ptr + _size++) = std::move(value); }
+    KOKKOS_INLINE_FUNCTION void push_back(T const &value) { assert(size() < maxSize()); *(_ptr + _size++) = value; }
+    KOKKOS_INLINE_FUNCTION void push_back(T &&value) { assert(size() < maxSize()); *(_ptr + _size++) = std::move(value); }
     template<class... Args>
-    KOKKOS_INLINE_FUNCTION void emplaceBack(Args&&... args) { assert(size() < maxSize()); ::new (static_cast<void*>(_ptr + _size++)) T(std::forward<Args>(args)...); }
-    KOKKOS_INLINE_FUNCTION void popBack() { assert(size() > 0); _size--; }
+    KOKKOS_INLINE_FUNCTION void emplace_back(Args&&... args) { assert(size() < maxSize()); ::new (static_cast<void*>(_ptr + _size++)) T(std::forward<Args>(args)...); }
+    KOKKOS_INLINE_FUNCTION void pop_back() { assert(size() > 0); _size--; }
     KOKKOS_INLINE_FUNCTION reference front() { assert(size() > 0); return *(_ptr + 0); }
     KOKKOS_INLINE_FUNCTION const_reference front() const { assert(size() > 0); return *(_ptr + 0); }
     KOKKOS_INLINE_FUNCTION void clear() { _size = 0; }

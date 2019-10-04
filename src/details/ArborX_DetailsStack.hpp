@@ -50,18 +50,18 @@ public:
   // Modifiers
   KOKKOS_INLINE_FUNCTION void push(value_type const &value)
   {
-    _c.pushBack(value);
+    _c.push_back(value);
   }
   KOKKOS_INLINE_FUNCTION void push(value_type &&value)
   {
-    _c.pushBack(std::move(value));
+    _c.push_back(std::move(value));
   }
   template <class... Args>
   KOKKOS_INLINE_FUNCTION void emplace(Args &&... args)
   {
-    _c.emplaceBack(std::forward<Args>(args)...);
+    _c.emplace_back(std::forward<Args>(args)...);
   }
-  KOKKOS_INLINE_FUNCTION void pop() { _c.popBack(); }
+  KOKKOS_INLINE_FUNCTION void pop() { _c.pop_back(); }
 
 private:
   Container _c;

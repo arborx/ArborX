@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(dynamic_array_with_fixed_maximum_size)
   BOOST_TEST(a.maxSize() == 4);
   BOOST_TEST(a.capacity() == 4);
 
-  a.pushBack(255);
+  a.push_back(255);
   BOOST_TEST(!a.empty());
   BOOST_TEST(a.size() == 1);
   BOOST_TEST(a.maxSize() == 4);
@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(dynamic_array_with_fixed_maximum_size)
   BOOST_TEST(a[0] == 255);
   BOOST_TEST(a.back() == 255);
 
-  a.pushBack(-1);
+  a.push_back(-1);
   BOOST_TEST(!a.empty());
   BOOST_TEST(a.size() == 2);
   BOOST_TEST(a.maxSize() == 4);
@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(dynamic_array_with_fixed_maximum_size)
   BOOST_TEST(a.back() == -1);
   BOOST_TEST(a[1] == -1);
 
-  a.pushBack(33);
+  a.push_back(33);
   BOOST_TEST(!a.empty());
   BOOST_TEST(a.size() == 3);
   BOOST_TEST(a.maxSize() == 4);
@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(dynamic_array_with_fixed_maximum_size)
   BOOST_TEST(a.back() == 33);
   BOOST_TEST(a[2] == 33);
 
-  a.popBack();
+  a.pop_back();
   BOOST_TEST(!a.empty());
   BOOST_TEST(a.size() == 2);
   BOOST_TEST(a.maxSize() == 4);
@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(dynamic_array_with_fixed_maximum_size)
   BOOST_TEST(a.front() == 255);
   BOOST_TEST(a.back() == -1);
 
-  a.popBack();
+  a.pop_back();
   BOOST_TEST(!a.empty());
   BOOST_TEST(a.size() == 1);
   BOOST_TEST(a.maxSize() == 4);
@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE(dynamic_array_with_fixed_maximum_size)
   BOOST_TEST(a.front() == 255);
   BOOST_TEST(a.back() == 255);
 
-  a.popBack();
+  a.pop_back();
   BOOST_TEST(a.empty());
   BOOST_TEST(a.size() == 0);
   BOOST_TEST(a.maxSize() == 4);
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(non_owning_view_over_dynamic_array)
   BOOST_TEST(a.maxSize() == 3);
   BOOST_TEST(a.capacity() == 3);
 
-  a.pushBack(0);
+  a.push_back(0);
   BOOST_TEST(!a.empty());
   BOOST_TEST(a.size() == 1);
   BOOST_TEST(a.maxSize() == 3);
@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(non_owning_view_over_dynamic_array)
   BOOST_TEST(a.back() == 0);
   BOOST_TEST(a[0] == 0);
 
-  a.pushBack(1);
+  a.push_back(1);
   BOOST_TEST(!a.empty());
   BOOST_TEST(a.size() == 2);
   BOOST_TEST(a.maxSize() == 3);
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(non_owning_view_over_dynamic_array)
   BOOST_TEST(a.back() == 1);
   BOOST_TEST(a[1] == 1);
 
-  a.pushBack(2);
+  a.push_back(2);
   BOOST_TEST(!a.empty());
   BOOST_TEST(a.size() == 3);
   BOOST_TEST(a.maxSize() == 3);
@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(non_owning_view_over_dynamic_array)
   BOOST_TEST(a.back() == 2);
   BOOST_TEST(a[2] == 2);
 
-  a.popBack();
+  a.pop_back();
   BOOST_TEST(!a.empty());
   BOOST_TEST(a.size() == 2);
   BOOST_TEST(a.maxSize() == 3);

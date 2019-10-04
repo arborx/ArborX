@@ -80,24 +80,24 @@ public:
   // Modifiers
   KOKKOS_INLINE_FUNCTION void push(value_type const &value)
   {
-    _c.pushBack(value);
+    _c.push_back(value);
     pushHeap(_c.data(), _c.data() + _c.size(), _compare);
   }
   KOKKOS_INLINE_FUNCTION void push(value_type &&value)
   {
-    _c.pushBack(std::move(value));
+    _c.push_back(std::move(value));
     pushHeap(_c.data(), _c.data() + _c.size(), _compare);
   }
   template <class... Args>
   KOKKOS_INLINE_FUNCTION void emplace(Args &&... args)
   {
-    _c.emplaceBack(std::forward<Args>(args)...);
+    _c.emplace_back(std::forward<Args>(args)...);
     pushHeap(_c.data(), _c.data() + _c.size(), _compare);
   }
   KOKKOS_INLINE_FUNCTION void pop()
   {
     popHeap(_c.data(), _c.data() + _c.size(), _compare);
-    _c.popBack();
+    _c.pop_back();
   }
   // in TreeTraversal::nearestQuery, pop() is often followed by push which is
   // an opportunity for doing a single bubble-down operation instead of paying
