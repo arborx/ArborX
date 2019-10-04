@@ -461,7 +461,7 @@ int main(int argc, char *argv[])
     if (node == "serial")
     {
 #ifdef KOKKOS_ENABLE_SERIAL
-      typedef Kokkos::Serial Node;
+      using Node = Kokkos::Serial;
       main_<Node>(pass_further, comm);
 #else
       throw std::runtime_error("Serial node type is disabled");
@@ -470,7 +470,7 @@ int main(int argc, char *argv[])
     else if (node == "openmp")
     {
 #ifdef KOKKOS_ENABLE_OPENMP
-      typedef Kokkos::OpenMP Node;
+      using Node = Kokkos::OpenMP;
       main_<Node>(pass_further, comm);
 #else
       throw std::runtime_error("OpenMP node type is disabled");
@@ -479,7 +479,7 @@ int main(int argc, char *argv[])
     else if (node == "cuda")
     {
 #ifdef KOKKOS_ENABLE_CUDA
-      typedef Kokkos::CudaUVMSpace Node;
+      using Node = Kokkos::CudaUVMSpace;
       main_<Node>(pass_further, comm);
 #else
       throw std::runtime_error("CUDA node type is disabled");
