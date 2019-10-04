@@ -66,8 +66,6 @@ struct Intersects
   Geometry _geometry;
 };
 
-using Within [[deprecated]] = Intersects<Sphere>;
-
 template <typename Geometry>
 KOKKOS_INLINE_FUNCTION auto nearest(Geometry const &geometry, int k = 1)
 {
@@ -78,11 +76,6 @@ template <typename Geometry>
 KOKKOS_INLINE_FUNCTION auto intersects(Geometry const &geometry)
 {
   return Intersects<Geometry>(geometry);
-}
-
-[[deprecated]] KOKKOS_INLINE_FUNCTION Within within(Point const &p, double r)
-{
-  return Within({p, r});
 }
 
 } // namespace ArborX

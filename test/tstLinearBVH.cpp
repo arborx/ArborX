@@ -62,7 +62,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, Tree, TreeTypes)
     // NOTE: Admittedly testing for both intersection with a box and with a
     // sphere queries might be a bit overkill but I'd rather test for all the
     // queries we plan on using.
-    checkResults(empty_tree, makeWithinQueries<device_type>({}), {}, {0});
+    checkResults(empty_tree, makeIntersectsSphereQueries<device_type>({}), {},
+                 {0});
 
     checkResults(empty_tree, makeNearestQueries<device_type>({}), {}, {0});
 
@@ -80,7 +81,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, Tree, TreeTypes)
         {}, {0, 0, 0});
 
     checkResults(empty_tree,
-                 makeWithinQueries<device_type>({
+                 makeIntersectsSphereQueries<device_type>({
                      {{{0., 0., 0.}}, 1.},
                      {{{1., 1., 1.}}, 2.},
                  }),
@@ -118,7 +119,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, Tree, TreeTypes)
   checkResults(single_leaf_tree, makeIntersectsBoxQueries<device_type>({}), {},
                {0});
 
-  checkResults(single_leaf_tree, makeWithinQueries<device_type>({}), {}, {0});
+  checkResults(single_leaf_tree, makeIntersectsSphereQueries<device_type>({}),
+               {}, {0});
 
   checkResults(single_leaf_tree, makeNearestQueries<device_type>({}), {}, {0});
 
@@ -138,7 +140,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, Tree, TreeTypes)
                {0}, {0, 0, 1});
 
   checkResults(single_leaf_tree,
-               makeWithinQueries<device_type>({
+               makeIntersectsSphereQueries<device_type>({
                    {{{0., 0., 0.}}, 1.},
                    {{{1., 1., 1.}}, 3.},
                    {{{5., 5., 5.}}, 2.},
@@ -241,7 +243,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves, DeviceType,
   });
 
   checkResults(bvh,
-               makeWithinQueries<DeviceType>({
+               makeIntersectsSphereQueries<DeviceType>({
                    {{{0., 0., 0.}}, 1.},
                    {{{1., 1., 1.}}, 1.},
                    {{{.5, .5, .5}}, 1.},
@@ -370,7 +372,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(miscellaneous, DeviceType, ARBORX_DEVICE_TYPES)
         double r = 1.0;
         // spatial query on empty tree
         zeros(0) = ArborX::Details::TreeTraversal<DeviceType>::query(
-            empty_bvh, ArborX::within(p, r), [](int) {});
+            empty_bvh, ArborX::intersects(ArborX::Sphere{p, r}), [](int) {});
         // nearest query on empty tree
         zeros(1) = ArborX::Details::TreeTraversal<DeviceType>::query(
             empty_bvh, ArborX::nearest(p), [](int, double) {}, empty_buffer);
@@ -745,14 +747,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
   auto nearest_queries_host = Kokkos::create_mirror_view(nearest_queries);
   Kokkos::deep_copy(nearest_queries_host, nearest_queries);
 
-  Kokkos::View<ArborX::Within *, DeviceType> within_queries("within_queries",
-                                                            n_points);
+  Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
+      within_queries("within_queries", n_points);
   Kokkos::parallel_for(
       "register_within_queries",
       Kokkos::RangePolicy<ExecutionSpace>(0, n_points), KOKKOS_LAMBDA(int i) {
-        within_queries(i) = ArborX::within(
+        within_queries(i) = ArborX::intersects(ArborX::Sphere{
             {{point_coords(i, 0), point_coords(i, 1), point_coords(i, 2)}},
-            radii(i));
+            radii(i)});
       });
   Kokkos::fence();
   auto within_queries_host = Kokkos::create_mirror_view(within_queries);
