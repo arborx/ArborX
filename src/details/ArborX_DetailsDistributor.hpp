@@ -179,19 +179,40 @@ public:
     int const outdegrees = _destinations.size();
     std::vector<MPI_Request> requests;
     requests.reserve(outdegrees + indegrees);
+    int const chunk_size = std::numeric_limits<int>::max();
     for (int i = 0; i < indegrees; ++i)
     {
-      requests.emplace_back();
-      MPI_Irecv(src_buffer.data() + _src_offsets[i] * num_packets,
-                _src_counts[i] * num_packets * sizeof(ValueType), MPI_BYTE,
-                _sources[i], MPI_ANY_TAG, _comm, &requests.back());
+      std::size_t const total_message_size =
+          _src_counts[i] * num_packets * sizeof(ValueType);
+      int const n_chunks = (total_message_size + chunk_size - 1) / chunk_size;
+      for (int chunk = 0; chunk < n_chunks; ++chunk)
+      {
+        requests.emplace_back();
+        int const this_chunk_size = std::min<std::size_t>(
+            chunk_size, total_message_size - chunk * chunk_size);
+        MPI_Irecv(reinterpret_cast<char *>(src_buffer.data() +
+                                           _src_offsets[i] * num_packets) +
+                      chunk * chunk_size,
+                  this_chunk_size, MPI_BYTE, _sources[i], 123 + chunk, _comm,
+                  &requests.back());
+      }
     }
     for (int i = 0; i < outdegrees; ++i)
     {
-      requests.emplace_back();
-      MPI_Isend(dest_buffer.data() + _dest_offsets[i] * num_packets,
-                _dest_counts[i] * num_packets * sizeof(ValueType), MPI_BYTE,
-                _destinations[i], 123, _comm, &requests.back());
+      std::size_t const total_message_size =
+          _dest_counts[i] * num_packets * sizeof(ValueType);
+      int const n_chunks = (total_message_size + chunk_size - 1) / chunk_size;
+      for (int chunk = 0; chunk < n_chunks; ++chunk)
+      {
+        requests.emplace_back();
+        int const this_chunk_size = std::min<std::size_t>(
+            chunk_size, total_message_size - chunk * chunk_size);
+        MPI_Isend(reinterpret_cast<char *>(dest_buffer.data() +
+                                           _dest_offsets[i] * num_packets) +
+                      chunk * chunk_size,
+                  this_chunk_size, MPI_BYTE, _destinations[i], 123 + chunk,
+                  _comm, &requests.back());
+      }
     }
     if (!requests.empty())
       MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
