@@ -117,7 +117,7 @@ public:
 
     _src_offsets.push_back(0);
     for (int i = 0; i < comm_size; ++i)
-      if (src_counts_dense[i])
+      if (src_counts_dense[i] > 0)
       {
         _sources.push_back(i);
         _src_counts.push_back(src_counts_dense[i]);
