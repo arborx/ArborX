@@ -116,7 +116,7 @@ struct result_of_get
 
 template <typename Traits>
 using decay_result_of_get_t =
-    std::decay_t<typename result_of_get<Traits>::type>;
+    typename std::decay<typename result_of_get<Traits>::type>::type;
 
 template <typename Traits, typename = void>
 struct has_get : std::false_type

@@ -91,17 +91,18 @@ public:
   static auto applyPermutation(Kokkos::View<size_t const *, DeviceType> permute,
                                Predicates const &v)
       -> Kokkos::View<
-          std::decay_t<
+          typename std::decay<
               decltype(Traits::Access<Predicates, Traits::PredicatesTag>::get(
-                  std::declval<Predicates const &>(), std::declval<int>()))> *,
+                  std::declval<Predicates const &>(),
+                  std::declval<int>()))>::type *,
           DeviceType>
   {
     using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
     auto const n = Access::size(v);
     ARBORX_ASSERT(permute.extent(0) == n);
 
-    using T = std::decay_t<decltype(
-        Access::get(std::declval<Predicates const &>(), std::declval<int>()))>;
+    using T = typename std::decay<decltype(Access::get(
+        std::declval<Predicates const &>(), std::declval<int>()))>::type;
     Kokkos::View<T *, DeviceType> w(
         Kokkos::ViewAllocateWithoutInitializing("predicates"), n);
     Kokkos::parallel_for(
