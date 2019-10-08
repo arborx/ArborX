@@ -185,33 +185,46 @@ public:
       std::size_t const total_message_size =
           _src_counts[i] * num_packets * sizeof(ValueType);
       int const n_chunks = (total_message_size + chunk_size - 1) / chunk_size;
-      for (int chunk = 0; chunk < n_chunks; ++chunk)
-      {
-        requests.emplace_back();
-        int const this_chunk_size = std::min<std::size_t>(
-            chunk_size, total_message_size - chunk * chunk_size);
-        MPI_Irecv(reinterpret_cast<char *>(src_buffer.data() +
-                                           _src_offsets[i] * num_packets) +
-                      chunk * chunk_size,
-                  this_chunk_size, MPI_BYTE, _sources[i], 123 + chunk, _comm,
-                  &requests.back());
-      }
+      if (_sources[i] != comm_rank)
+        for (int chunk = 0; chunk < n_chunks; ++chunk)
+        {
+          requests.emplace_back();
+          int const this_chunk_size = std::min<std::size_t>(
+              chunk_size, total_message_size - chunk * chunk_size);
+          MPI_Irecv(reinterpret_cast<char *>(src_buffer.data() +
+                                             _src_offsets[i] * num_packets) +
+                        chunk * chunk_size,
+                    this_chunk_size, MPI_BYTE, _sources[i], 123 + chunk, _comm,
+                    &requests.back());
+        }
     }
     for (int i = 0; i < outdegrees; ++i)
     {
       std::size_t const total_message_size =
           _dest_counts[i] * num_packets * sizeof(ValueType);
       int const n_chunks = (total_message_size + chunk_size - 1) / chunk_size;
-      for (int chunk = 0; chunk < n_chunks; ++chunk)
+      if (_destinations[i] == comm_rank)
       {
-        requests.emplace_back();
-        int const this_chunk_size = std::min<std::size_t>(
-            chunk_size, total_message_size - chunk * chunk_size);
-        MPI_Isend(reinterpret_cast<char *>(dest_buffer.data() +
-                                           _dest_offsets[i] * num_packets) +
-                      chunk * chunk_size,
-                  this_chunk_size, MPI_BYTE, _destinations[i], 123 + chunk,
-                  _comm, &requests.back());
+        auto const it = std::find(_sources.begin(), _sources.end(), comm_rank);
+        ARBORX_ASSERT(it != _sources.end());
+        auto const position = it - _sources.begin();
+        std::memcpy(src_buffer.data() + _src_offsets[position] * num_packets,
+                    dest_buffer.data() + _dest_offsets[i] * num_packets,
+                    total_message_size);
+      }
+      else
+      {
+        for (int chunk = 0; chunk < n_chunks; ++chunk)
+        {
+          requests.emplace_back();
+          int const this_chunk_size = std::min<std::size_t>(
+              chunk_size, total_message_size - chunk * chunk_size);
+          MPI_Isend(reinterpret_cast<char *>(dest_buffer.data() +
+                                             _dest_offsets[i] * num_packets) +
+                        chunk * chunk_size,
+                    this_chunk_size, MPI_BYTE, _destinations[i], 123 + chunk,
+                    _comm, &requests.back());
+        }
       }
     }
     if (!requests.empty())
