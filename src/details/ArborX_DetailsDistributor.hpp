@@ -107,45 +107,26 @@ public:
     sortAndDetermineBufferLayout(destination_ranks, _permute, _destinations,
                                  _dest_counts, _dest_offsets);
 
+    std::vector<int> src_counts_dense(comm_size);
+    for (int i = 0; i < _destinations.size(); ++i)
     {
-      std::vector<int> mask(comm_size);
-      for (auto i : _destinations)
-        mask[i] = 1;
-      MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, mask.data(), 1, MPI_INT,
-                   _comm);
-      for (int i = 0; i < comm_size; ++i)
-        if (mask[i] == 1)
-          _sources.push_back(i);
+      src_counts_dense[_destinations[i]] = _dest_counts[i];
     }
+    MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, src_counts_dense.data(), 1,
+                 MPI_INT, _comm);
 
-    int const indegrees = _sources.size();
-    int const outdegrees = _destinations.size();
-    _src_counts.resize(indegrees);
-    std::vector<MPI_Request> requests;
-    requests.reserve(outdegrees + indegrees);
-    for (int i = 0; i < indegrees; ++i)
-    {
-      requests.emplace_back();
-      MPI_Irecv(&_src_counts[i], 1, MPI_INT, _sources[i], MPI_ANY_TAG, _comm,
-                &requests.back());
-    }
-    for (int i = 0; i < outdegrees; ++i)
-    {
-      requests.emplace_back();
-      MPI_Isend(&_dest_counts[i], 1, MPI_INT, _destinations[i], 255, _comm,
-                &requests.back());
-    }
-    if (!requests.empty())
-      MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
-
-    _src_offsets.resize(indegrees + 1);
-    // exclusive scan
-    _src_offsets[0] = 0;
-    for (int i = 0; i < indegrees; ++i)
-      _src_offsets[i + 1] = _src_offsets[i] + _src_counts[i];
+    _src_offsets.push_back(0);
+    for (int i = 0; i < comm_size; ++i)
+      if (src_counts_dense[i])
+      {
+        _sources.push_back(i);
+        _src_counts.push_back(src_counts_dense[i]);
+        _src_offsets.push_back(_src_offsets.back() + _src_counts.back());
+      }
 
     return _src_offsets.back();
   }
+
   template <typename View>
   void doPostsAndWaits(typename View::const_type const &exports,
                        size_t num_packets, View const &imports) const
