@@ -40,6 +40,8 @@ public:
   template <typename Primitives>
   DistributedSearchTree(MPI_Comm comm, Primitives const &primitives);
 
+  ~DistributedSearchTree() { MPI_Comm_free(&_comm); }
+
   /** Returns the smallest axis-aligned box able to contain all the objects
    *  stored in the tree or an invalid box if the tree is empty.
    */
@@ -107,6 +109,8 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
     MPI_Comm comm, Primitives const &primitives)
     : _bottom_tree(primitives)
 {
+  // Create new context for the library to isolate library's communication from
+  // user's
   MPI_Comm_dup(comm, &_comm);
 
   int comm_rank;
