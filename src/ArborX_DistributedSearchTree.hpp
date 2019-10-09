@@ -105,9 +105,10 @@ template <typename DeviceType>
 template <typename Primitives>
 DistributedSearchTree<DeviceType>::DistributedSearchTree(
     MPI_Comm comm, Primitives const &primitives)
-    : _comm(comm)
-    , _bottom_tree(primitives)
+    : _bottom_tree(primitives)
 {
+  MPI_Comm_dup(comm, &_comm);
+
   int comm_rank;
   MPI_Comm_rank(_comm, &comm_rank);
   int comm_size;
