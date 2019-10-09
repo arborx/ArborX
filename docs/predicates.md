@@ -8,7 +8,7 @@ Defined in header [`<ArborX_Predicates.hpp>`](https://github.com/arborx/ArborX/b
 
 
 ## See also
-[`ArborX::BVH<DeviceType>::query()`](https://github.com/arborx/ArborX/blob/docs/docs/bounding_volume_hierarchy.md#arborxbvhdevicetypequery)
+[`ArborX::BVH<DeviceType>::query()`](https://github.com/arborx/ArborX/blob/master/docs/bounding_volume_hierarchy.md#arborxbvhdevicetypequery)
 
 # `ArborX::nearest`
 ```C++
