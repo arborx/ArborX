@@ -20,7 +20,51 @@
 #include <fstream>
 #include <random>
 
-#include <point_clouds.hpp>
+// FIXME: this is a temporary place for loadPointCloud and writePointCloud
+// Right now, only loadPointCloud is being used, and only in this example
+template <typename DeviceType>
+void loadPointCloud(std::string const &filename,
+                    Kokkos::View<ArborX::Point *, DeviceType> &random_points)
+{
+  std::ifstream file(filename);
+  if (file.is_open())
+  {
+    int size = -1;
+    file >> size;
+    ARBORX_ASSERT(size > 0);
+    Kokkos::realloc(random_points, size);
+    auto random_points_host = Kokkos::create_mirror_view(random_points);
+    for (int i = 0; i < size; ++i)
+      for (int j = 0; j < 3; ++j)
+        file >> random_points(i)[j];
+    Kokkos::deep_copy(random_points, random_points_host);
+  }
+  else
+  {
+    throw std::runtime_error("Cannot open file");
+  }
+}
+
+template <typename Layout, typename DeviceType>
+void writePointCloud(
+    Kokkos::View<ArborX::Point *, Layout, DeviceType> random_points,
+    std::string const &filename)
+
+{
+  static_assert(
+      Kokkos::Impl::MemorySpaceAccess<
+          Kokkos::HostSpace, typename DeviceType::memory_space>::accessible,
+      "The View should be accessible on the Host");
+  std::ofstream file(filename);
+  if (file.is_open())
+  {
+    unsigned int const n = random_points.extent(0);
+    for (unsigned int i = 0; i < n; ++i)
+      file << random_points(i)[0] << " " << random_points(i)[1] << " "
+           << random_points(i)[2] << "\n";
+    file.close();
+  }
+}
 
 template <typename View>
 void printPointCloud(View points, std::ostream &os)
