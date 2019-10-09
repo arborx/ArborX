@@ -510,7 +510,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
           ref[index].emplace(ind(i, j + 1, k - 1));
         if (j > 0)
           ref[index].emplace(ind(i, j - 1, k));
-        if (true)
+        if (true) // NOLINT
           ref[index].emplace(ind(i, j, k));
         if (j < ny - 1)
           ref[index].emplace(ind(i, j + 1, k));

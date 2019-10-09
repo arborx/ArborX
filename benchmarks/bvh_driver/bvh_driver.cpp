@@ -32,7 +32,7 @@ public:
   using DeviceType = Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>;
   using device_type = DeviceType;
 
-  BoostRTree(Kokkos::View<ArborX::Point *, DeviceType> points)
+  BoostRTree(Kokkos::View<ArborX::Point *, DeviceType> const &points)
   {
     _tree = BoostRTreeHelpers::makeRTree(points);
   }
@@ -327,7 +327,7 @@ int main(int argc, char *argv[])
       argv[0]};
   bpo::notify(vm);
 
-  if (vm.count("help"))
+  if (vm.count("help") > 0)
   {
     // Full list of options consists of Kokkos + Boost.Program_options +
     // Google Benchmark and we still need to call benchmark::Initialize() to
@@ -341,15 +341,13 @@ int main(int argc, char *argv[])
     benchmark::Initialize(&ac, av);
     return 1;
   }
-  else
-  {
-    benchmark::Initialize(&pass_further.argc(), pass_further.argv());
-    // Throw if some of the arguments have not been recognized.
-    std::ignore =
-        bpo::command_line_parser(pass_further.argc(), pass_further.argv())
-            .options(bpo::options_description(""))
-            .run();
-  }
+
+  benchmark::Initialize(&pass_further.argc(), pass_further.argv());
+  // Throw if some of the arguments have not been recognized.
+  std::ignore =
+      bpo::command_line_parser(pass_further.argc(), pass_further.argv())
+          .options(bpo::options_description(""))
+          .run();
 
   // Google benchmark only supports integer arguments (see
   // https://github.com/google/benchmark/issues/387), so we map the string to
