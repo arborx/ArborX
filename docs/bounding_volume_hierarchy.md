@@ -143,11 +143,11 @@ Constant.
 ```C++
 bounding_volume_type bounds() const noexcept;
 ```
-Returns the smallest axis-aligned box able to contain all leaves stored in the tree or an invalid box if the tree is empty.
+Returns the smallest axis-aligned box able to contain all leaves stored in the tree.
 ## Parameters
 (none)
 ## Return value
-The smallest bounding volume that contains all leaves stored in the tree.
+The smallest bounding volume that contains all leaves stored in the tree or an invalid bounding volume if the tree is empty.
 ## Complexity
 Constant.
 ## See also
