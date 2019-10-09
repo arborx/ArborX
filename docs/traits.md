@@ -164,6 +164,3 @@ If `std::is_same<Tag,PredicatesTag>::value` is `true`, the return value type mus
 ## Returns
 
 ## Notes
-Will be called exactly once for every `pos` in the half-open range `[0, N)` where `N = ArborX::Traits::Access<Primitives,PrimitivesTag>::size(primitives)`.
-
-Not sure it is true.  What about predicates?
