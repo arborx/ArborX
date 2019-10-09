@@ -359,8 +359,8 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
 
   if (perform_radius_search)
   {
-    Kokkos::View<ArborX::Within *, DeviceType> queries(
-        Kokkos::ViewAllocateWithoutInitializing("queries"), n_queries);
+    Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
+        queries(Kokkos::ViewAllocateWithoutInitializing("queries"), n_queries);
     // radius chosen in order to control the number of results per query
     // NOTE: minus "1+sqrt(3)/2 \approx 1.37" matches the size of the boxes
     // inserted into the tree (mid-point between half-edge and
@@ -368,11 +368,12 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     double const r =
         2. * std::cbrt(static_cast<double>(n_neighbors) * 3. / (4. * M_PI)) -
         (1. + std::sqrt(3.)) / 2.;
-    Kokkos::parallel_for("bvh_driver:setup_radius_search_queries",
-                         Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
-                         KOKKOS_LAMBDA(int i) {
-                           queries(i) = ArborX::within(random_points(i), r);
-                         });
+    Kokkos::parallel_for(
+        "bvh_driver:setup_radius_search_queries",
+        Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+        KOKKOS_LAMBDA(int i) {
+          queries(i) = ArborX::intersects(ArborX::Sphere{random_points(i), r});
+        });
     Kokkos::fence();
 
     Kokkos::View<int *, DeviceType> offset("offset", 0);

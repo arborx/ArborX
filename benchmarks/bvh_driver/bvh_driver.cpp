@@ -100,7 +100,7 @@ makeNearestQueries(int n_values, int n_queries, int n_neighbors,
 }
 
 template <typename DeviceType>
-Kokkos::View<ArborX::Within *, DeviceType>
+Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
 makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
                    PointCloudType target_point_cloud_type)
 {
@@ -109,8 +109,8 @@ makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
   auto const a = std::cbrt(n_values);
   generatePointCloud(target_point_cloud_type, a, random_points);
 
-  Kokkos::View<ArborX::Within *, DeviceType> queries(
-      Kokkos::ViewAllocateWithoutInitializing("queries"), n_queries);
+  Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
+      queries(Kokkos::ViewAllocateWithoutInitializing("queries"), n_queries);
   // radius chosen in order to control the number of results per query
   // NOTE: minus "1+sqrt(3)/2 \approx 1.37" matches the size of the boxes
   // inserted into the tree (mid-point between half-edge and half-diagonal)
@@ -118,11 +118,11 @@ makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
       2. * std::cbrt(static_cast<double>(n_neighbors) * 3. / (4. * M_PI)) -
       (1. + std::sqrt(3.)) / 2.;
   using ExecutionSpace = typename DeviceType::execution_space;
-  Kokkos::parallel_for("bvh_driver:setup_radius_search_queries",
-                       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
-                       KOKKOS_LAMBDA(int i) {
-                         queries(i) = ArborX::within(random_points(i), r);
-                       });
+  Kokkos::parallel_for(
+      "bvh_driver:setup_radius_search_queries",
+      Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
+        queries(i) = ArborX::intersects(ArborX::Sphere{random_points(i), r});
+      });
   Kokkos::fence();
   return queries;
 }

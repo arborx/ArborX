@@ -61,10 +61,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
   // x   x   x   x   x               |               |               |
   // |<------3------>|               |               |               |
   // |               |               |               |               |
-  Kokkos::View<ArborX::Within *, DeviceType> queries("queries", 1);
+  Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
+      queries("queries", 1);
   auto queries_host = Kokkos::create_mirror_view(queries);
-  queries_host(0) =
-      ArborX::within({{0.5 + comm_size - 1 - comm_rank, 0., 0.}}, 0.5);
+  queries_host(0) = ArborX::intersects(
+      ArborX::Sphere{{{0.5 + comm_size - 1 - comm_rank, 0., 0.}}, 0.5});
   deep_copy(queries, queries_host);
 
   // 0---0---0---0---1---1---1---1---2---2---2---2---3---3---3---3---
@@ -130,11 +131,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
 
   BOOST_TEST(ArborX::Details::equals(emptry_dist_tree.bounds(), {}));
 
-  checkResults(emptry_dist_tree, makeOverlapQueries<DeviceType>({}), {}, {0},
-               {});
+  checkResults(emptry_dist_tree, makeIntersectsBoxQueries<DeviceType>({}), {},
+               {0}, {});
 
-  checkResults(emptry_dist_tree, makeWithinQueries<DeviceType>({}), {}, {0},
-               {});
+  checkResults(emptry_dist_tree, makeIntersectsSphereQueries<DeviceType>({}),
+               {}, {0}, {});
 
   checkResults(emptry_dist_tree, makeNearestQueries<DeviceType>({}), {}, {0},
                {});
@@ -145,22 +146,22 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
   // Only rank 0 has a couple spatial queries with a spatial predicate
   if (comm_rank == 0)
     checkResults(emptry_dist_tree,
-                 makeOverlapQueries<DeviceType>({
+                 makeIntersectsBoxQueries<DeviceType>({
                      {},
                      {},
                  }),
                  {}, {0, 0, 0}, {});
   else
-    checkResults(emptry_dist_tree, makeOverlapQueries<DeviceType>({}), {}, {0},
-                 {});
+    checkResults(emptry_dist_tree, makeIntersectsBoxQueries<DeviceType>({}), {},
+                 {0}, {});
 
   // All ranks but rank 0 have a single query with a spatial predicate
   if (comm_rank == 0)
-    checkResults(emptry_dist_tree, makeWithinQueries<DeviceType>({}), {}, {0},
-                 {});
+    checkResults(emptry_dist_tree, makeIntersectsSphereQueries<DeviceType>({}),
+                 {}, {0}, {});
   else
     checkResults(emptry_dist_tree,
-                 makeWithinQueries<DeviceType>({
+                 makeIntersectsSphereQueries<DeviceType>({
                      {{{(double)comm_rank, 0., 0.}}, (double)comm_size},
                  }),
                  {}, {0, 0}, {});
@@ -209,9 +210,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
   BOOST_TEST(
       ArborX::Details::equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
-  checkResults(tree, makeOverlapQueries<DeviceType>({}), {}, {0}, {});
+  checkResults(tree, makeIntersectsBoxQueries<DeviceType>({}), {}, {0}, {});
 
-  checkResults(tree, makeWithinQueries<DeviceType>({}), {}, {0}, {});
+  checkResults(tree, makeIntersectsSphereQueries<DeviceType>({}), {}, {0}, {});
 
   checkResults(tree, makeNearestQueries<DeviceType>({}), {}, {0}, {});
 
@@ -249,7 +250,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
       tree.bounds(), {{{0., 0., 0.}}, {{(double)comm_size, 1., 1.}}}));
 
   checkResults(tree,
-               makeOverlapQueries<DeviceType>({
+               makeIntersectsBoxQueries<DeviceType>({
                    {{{(double)comm_size - (double)comm_rank - .5, .5, .5}},
                     {{(double)comm_size - (double)comm_rank - .5, .5, .5}}},
                    {{{(double)comm_rank + .5, .5, .5}},
@@ -258,7 +259,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
                {0, 0}, {0, 1, 2}, {comm_size - 1 - comm_rank, comm_rank});
 
   checkResults(tree, makeNearestQueries<DeviceType>({}), {}, {0}, {});
-  checkResults(tree, makeOverlapQueries<DeviceType>({}), {}, {0}, {});
+  checkResults(tree, makeIntersectsBoxQueries<DeviceType>({}), {}, {0}, {});
 
   if (comm_rank > 0)
     checkResults(tree,
@@ -421,14 +422,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::deep_copy(point_coords, point_coords_host);
   Kokkos::deep_copy(radii, radii_host);
 
-  Kokkos::View<ArborX::Within *, DeviceType> within_queries("within_queries",
-                                                            local_n);
+  Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
+      within_queries("within_queries", local_n);
   Kokkos::parallel_for(
       "register_within_queries",
       Kokkos::RangePolicy<ExecutionSpace>(0, local_n), KOKKOS_LAMBDA(int i) {
-        within_queries(i) = ArborX::within(
+        within_queries(i) = ArborX::intersects(ArborX::Sphere{
             {{point_coords(i, 0), point_coords(i, 1), point_coords(i, 2)}},
-            radii(i));
+            radii(i)});
       });
   Kokkos::fence();
 

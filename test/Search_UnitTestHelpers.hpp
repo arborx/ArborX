@@ -219,14 +219,15 @@ makeDistributedSearchTree(MPI_Comm comm, std::vector<ArborX::Box> const &b)
 #endif
 
 template <typename DeviceType>
-Kokkos::View<ArborX::Overlap *, DeviceType>
-makeOverlapQueries(std::vector<ArborX::Box> const &boxes)
+Kokkos::View<decltype(ArborX::intersects(ArborX::Box{})) *, DeviceType>
+makeIntersectsBoxQueries(std::vector<ArborX::Box> const &boxes)
 {
   int const n = boxes.size();
-  Kokkos::View<ArborX::Overlap *, DeviceType> queries("overlap_queries", n);
+  Kokkos::View<decltype(ArborX::intersects(ArborX::Box{})) *, DeviceType>
+      queries("intersecting_with_box_predicates", n);
   auto queries_host = Kokkos::create_mirror_view(queries);
   for (int i = 0; i < n; ++i)
-    queries_host(i) = ArborX::overlap(boxes[i]);
+    queries_host(i) = ArborX::intersects(boxes[i]);
   Kokkos::deep_copy(queries, queries_host);
   return queries;
 }
@@ -248,16 +249,19 @@ makeNearestQueries(std::vector<std::pair<ArborX::Point, int>> const &points)
 }
 
 template <typename DeviceType>
-Kokkos::View<ArborX::Within *, DeviceType>
-makeWithinQueries(std::vector<std::pair<ArborX::Point, double>> const &points)
+Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
+makeIntersectsSphereQueries(
+    std::vector<std::pair<ArborX::Point, double>> const &points)
 {
   // NOTE: `points` is not a very descriptive name here. It stores both the
   // actual point and the radius for the search around that point.
   int const n = points.size();
-  Kokkos::View<ArborX::Within *, DeviceType> queries("within_queries", n);
+  Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
+      queries("intersecting_with_sphere_predicates", n);
   auto queries_host = Kokkos::create_mirror_view(queries);
   for (int i = 0; i < n; ++i)
-    queries_host(i) = ArborX::within(points[i].first, points[i].second);
+    queries_host(i) =
+        ArborX::intersects(ArborX::Sphere{points[i].first, points[i].second});
   Kokkos::deep_copy(queries, queries_host);
   return queries;
 }
