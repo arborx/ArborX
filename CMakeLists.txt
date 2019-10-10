@@ -84,6 +84,7 @@ install(DIRECTORY ${PROJECT_BINARY_DIR}/include/ DESTINATION include
 
 option(ARBORX_ENABLE_TESTS "Enable tests" ON)
 option(ARBORX_ENABLE_EXAMPLES "Enable examples" ON)
+option(ARBORX_ENABLE_BENCHMARKS "Enable benchmarks" ON)
 
 if(${ARBORX_ENABLE_TESTS} OR ${ARBORX_ENABLE_EXAMPLES})
   enable_testing()
