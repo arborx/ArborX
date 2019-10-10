@@ -6,8 +6,6 @@ Kokkos     | 2.8.00  | :heavy_check_mark: | :heavy_check_mark:
 MPI        | 2       |                    | :heavy_check_mark:
 CMake      | 3.12    | :heavy_check_mark: |
 
-FIXME: Minimum CMake version without boost?
-
 # Installation
 
 ## Installation using Spack
@@ -29,7 +27,7 @@ package manager, or manually. Of note, the `cxxstandard` option in Kokkos must
 be set to `c++14` or later.
 
 Once the dependencies are installed, configure ArborX:
-- Add `-D CMAKE_PREFIX_PATH="$KOKKOS_DIR"`
+- Add `-DCMAKE_PREFIX_PATH="$KOKKOS_DIR"`
 - If Kokkos' CUDA backend is enabled, add `-DCMAKE_CXX_COMPILER="nvcc_wrapper"`
 - If MPI is desired, add `-DARBORX_ENABLE_MPI=ON`
 
