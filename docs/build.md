@@ -23,8 +23,10 @@ spack install arborx~mpi+cuda
 ## Manual installation
 
 The dependencies may be installed using [Spack](https://github.com/spack/spack)
-package manager, or manually. Of note, the `cxxstandard` option in Kokkos must
-be set to `c++14` or later.
+package manager, or manually. Of note:
+- the `cxxstandard` Kokkos option must be set to `c++14` or later
+- the list of backends supported by ArborX will be set to the ones provided by
+  the Kokkos
 
 Once the dependencies are installed, configure ArborX:
 - Add `-DCMAKE_PREFIX_PATH="$KOKKOS_DIR"`
