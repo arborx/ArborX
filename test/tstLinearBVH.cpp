@@ -380,7 +380,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(miscellaneous, DeviceType, ARBORX_DEVICE_TYPES)
         zeros(2) = ArborX::Details::TreeTraversal<DeviceType>::query(
             bvh, ArborX::nearest(p, 0), [](int, double) {}, empty_buffer);
       });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
   auto zeros_host = Kokkos::create_mirror_view(zeros);
   Kokkos::deep_copy(zeros_host, zeros);
   std::vector<int> zeros_ref = {0, 0, 0};
@@ -414,7 +414,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
                                  {{x, y, z}}, {{x, y, z}}};
                            }
                        });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 
   ArborX::BVH<DeviceType> bvh(bounding_boxes);
 
@@ -437,7 +437,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
                        KOKKOS_LAMBDA(int i) {
                          queries(i) = ArborX::intersects(bounding_boxes(i));
                        });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 
   Kokkos::View<int *, DeviceType> indices("indices", n);
   Kokkos::View<int *, DeviceType> offset("offset", n);
@@ -552,7 +552,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
                        KOKKOS_LAMBDA(int i) {
                          queries[i] = ArborX::intersects(bounding_boxes[i]);
                        });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
   bvh.query(queries, indices, offset);
   indices_host = Kokkos::create_mirror_view(indices);
   Kokkos::deep_copy(indices_host, indices);
@@ -612,7 +612,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
                        KOKKOS_LAMBDA(int i) {
                          queries[i] = ArborX::intersects(bounding_boxes[i]);
                        });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
   bvh.query(queries, indices, offset);
   indices_host = Kokkos::create_mirror_view(indices);
   Kokkos::deep_copy(indices_host, indices);
@@ -743,7 +743,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
             {{point_coords(i, 0), point_coords(i, 1), point_coords(i, 2)}},
             k(i));
       });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
   auto nearest_queries_host = Kokkos::create_mirror_view(nearest_queries);
   Kokkos::deep_copy(nearest_queries_host, nearest_queries);
 
@@ -756,7 +756,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
             {{point_coords(i, 0), point_coords(i, 1), point_coords(i, 2)}},
             radii(i)});
       });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
   auto within_queries_host = Kokkos::create_mirror_view(within_queries);
   Kokkos::deep_copy(within_queries_host, within_queries);
 

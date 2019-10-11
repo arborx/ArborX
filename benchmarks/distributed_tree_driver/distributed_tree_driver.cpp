@@ -318,7 +318,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
                          bounding_boxes(i) = {{{x - 1., y - 1., z - 1.}},
                                               {{x + 1., y + 1., z + 1.}}};
                        });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 
   auto construction = time_monitor.getNewTimer("construction");
   MPI_Barrier(comm);
@@ -341,7 +341,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
                            queries(i) = ArborX::nearest<ArborX::Point>(
                                random_points(i), n_neighbors);
                          });
-    ExecutionSpace::fence();
+    ExecutionSpace().fence();
 
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     Kokkos::View<int *, DeviceType> indices("indices", 0);
@@ -374,7 +374,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
         KOKKOS_LAMBDA(int i) {
           queries(i) = ArborX::intersects(ArborX::Sphere{random_points(i), r});
         });
-    ExecutionSpace::fence();
+    ExecutionSpace().fence();
 
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     Kokkos::View<int *, DeviceType> indices("indices", 0);

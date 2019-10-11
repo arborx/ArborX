@@ -116,7 +116,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
       ARBORX_MARK_REGION("scan_queries_for_numbers_of_nearest_neighbors"),
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
       KOKKOS_LAMBDA(int i) { offset(permute(i)) = queries(i)._k; });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 
   exclusivePrefixSum(offset);
   int const n_results = lastElement(offset);
@@ -152,7 +152,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
                   count++;
                 });
           });
-      ExecutionSpace::fence();
+      ExecutionSpace().fence();
     }
     else
     {
@@ -181,7 +181,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
                                 Kokkos::make_pair(offset(permute(i)),
                                                   offset(permute(i) + 1))));
           });
-      ExecutionSpace::fence();
+      ExecutionSpace().fence();
     }
   }
   else
@@ -199,7 +199,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
                   indices(offset(permute(i)) + count++) = index;
                 });
           });
-      ExecutionSpace::fence();
+      ExecutionSpace().fence();
     }
     else
     {
@@ -220,7 +220,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
                                 Kokkos::make_pair(offset(permute(i)),
                                                   offset(permute(i) + 1))));
           });
-      ExecutionSpace::fence();
+      ExecutionSpace().fence();
     }
   }
 
@@ -242,7 +242,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
                              break;
                            }
                        });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
   exclusivePrefixSum(tmp_offset);
   int const n_invalid_indices = lastElement(tmp_offset);
   if (n_invalid_indices > 0)
@@ -251,7 +251,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
         ARBORX_MARK_REGION("subtract_invalid_entries_from_offset"),
         Kokkos::RangePolicy<ExecutionSpace>(0, n_queries + 1),
         KOKKOS_LAMBDA(int q) { tmp_offset(q) = offset(q) - tmp_offset(q); });
-    ExecutionSpace::fence();
+    ExecutionSpace().fence();
 
     int const n_valid_indices = n_results - n_invalid_indices;
     Kokkos::View<int *, DeviceType> tmp_indices(
@@ -267,7 +267,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
             tmp_indices(tmp_offset(q) + i) = indices(offset(q) + i);
           }
         });
-    ExecutionSpace::fence();
+    ExecutionSpace().fence();
     indices = tmp_indices;
     if (distances_ptr)
     {
@@ -284,7 +284,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
               tmp_distances(tmp_offset(q) + i) = distances(offset(q) + i);
             }
           });
-      ExecutionSpace::fence();
+      ExecutionSpace().fence();
       distances = tmp_distances;
     }
     offset = tmp_offset;
@@ -381,7 +381,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
           offset(permute(i)) = Details::TreeTraversal<DeviceType>::query(
               bvh, queries(i), [](int) {});
         });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 
   // NOTE max() internally calls Kokkos::parallel_reduce.  Only pay for it if
   // actually trying buffer optimization.  In principle, any strictly
@@ -430,7 +430,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
                 indices(offset(permute(i)) + count++) = index;
               });
         });
-    ExecutionSpace::fence();
+    ExecutionSpace().fence();
 
     Kokkos::Profiling::popRegion();
   }
@@ -451,7 +451,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
                                  indices(q * buffer_size + i);
                            }
                          });
-    ExecutionSpace::fence();
+    ExecutionSpace().fence();
     indices = tmp_indices;
 
     Kokkos::Profiling::popRegion();

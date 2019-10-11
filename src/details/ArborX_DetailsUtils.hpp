@@ -86,7 +86,7 @@ void exclusivePrefixSum(Kokkos::View<ST, SP...> const &src,
   Kokkos::parallel_scan(
       "exclusive_scan", Kokkos::RangePolicy<ExecutionSpace>(0, n),
       Details::ExclusiveScanFunctor<ValueType, ExecutionSpace>(src, dst));
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 }
 
 /** \brief In-place exclusive scan.
@@ -150,7 +150,7 @@ void iota(Kokkos::View<T, P...> const &v,
   auto const n = v.extent(0);
   Kokkos::parallel_for("iota", Kokkos::RangePolicy<ExecutionSpace>(0, n),
                        KOKKOS_LAMBDA(int i) { v(i) = value + (ValueType)i; });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 }
 
 /** \brief Returns the smallest and the greatest element in the view
@@ -292,7 +292,7 @@ void adjacentDifference(SrcViewType const &src, DstViewType const &dst)
                          else
                            dst(i) = src(i);
                        });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 }
 
 // FIXME split this into one for STL-like algorithms and another one for view

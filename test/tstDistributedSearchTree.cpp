@@ -459,7 +459,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
             {{point_coords(i, 0), point_coords(i, 1), point_coords(i, 2)}},
             radii(i)});
       });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 
   // Perform the search
   Kokkos::View<int *, DeviceType> indices("indices", 0);
