@@ -140,9 +140,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
   checkResults(emptry_dist_tree, makeNearestQueries<DeviceType>({}), {}, {0},
                {});
 
-  checkResults(emptry_dist_tree, makeNearestQueries<DeviceType>({}), {}, {0},
-               {}, {});
-
   // Only rank 0 has a couple spatial queries with a spatial predicate
   if (comm_rank == 0)
     checkResults(emptry_dist_tree,
@@ -177,13 +174,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
                  }),
                  {}, {0, 0}, {});
 
-  // All ranks have a single query with a nearest predicate (this version
-  // returns distances as well)
+  // All ranks have a single query with a nearest predicate
   checkResults(emptry_dist_tree,
                makeNearestQueries<DeviceType>({
                    {{{0., 0., 0.}}, comm_size},
                }),
-               {}, {0, 0}, {}, {});
+               {}, {0, 0}, {});
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
@@ -215,8 +211,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
   checkResults(tree, makeIntersectsSphereQueries<DeviceType>({}), {}, {0}, {});
 
   checkResults(tree, makeNearestQueries<DeviceType>({}), {}, {0}, {});
-
-  checkResults(tree, makeNearestQueries<DeviceType>({}), {}, {0}, {}, {});
 
   // Querying for more neighbors than there are leaves in the tree
   checkResults(tree,

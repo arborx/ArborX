@@ -104,33 +104,6 @@ void checkResults(Tree const &tree, Queries const &queries,
                   std::make_tuple(offset_ref, indices_ref));
 }
 
-// Same as above except that we get the distances out of the queries and
-// compare them to the reference solution passed as argument.  Templated type
-// `Query` is pretty much a nearest predicate in this case.
-template <typename Tree, typename Queries,
-          std::enable_if_t<!is_distributed<Tree>::value, int> = 0>
-void checkResults(Tree const &tree, Queries const &queries,
-                  std::vector<int> const &indices_ref,
-                  std::vector<int> const &offset_ref,
-                  std::vector<double> const &distances_ref)
-{
-  using device_type = typename Tree::device_type;
-  Kokkos::View<int *, device_type> indices("indices", 0);
-  Kokkos::View<int *, device_type> offset("offset", 0);
-  Kokkos::View<double *, device_type> distances("distances", 0);
-  tree.query(queries, indices, offset, distances);
-
-  auto indices_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
-  auto offset_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
-  auto distances_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, distances);
-
-  validateResults(std::make_tuple(offset_host, indices_host, distances_host),
-                  std::make_tuple(offset_ref, indices_ref, distances_ref));
-}
-
 #ifdef ARBORX_ENABLE_MPI
 template <typename D>
 struct is_distributed<ArborX::DistributedSearchTree<D>> : std::true_type
@@ -159,35 +132,6 @@ void checkResults(Tree const &tree, Queries const &queries,
 
   validateResults(std::make_tuple(offset_host, ranks_host, indices_host),
                   std::make_tuple(offset_ref, ranks_ref, indices_ref));
-}
-
-template <typename Tree, typename Queries,
-          typename std::enable_if_t<is_distributed<Tree>::value, int> = 0>
-void checkResults(Tree const &tree, Queries const &queries,
-                  std::vector<int> const &indices_ref,
-                  std::vector<int> const &offset_ref,
-                  std::vector<int> const &ranks_ref,
-                  std::vector<double> const &distances_ref)
-{
-  using device_type = typename Tree::device_type;
-  Kokkos::View<int *, device_type> indices("indices", 0);
-  Kokkos::View<int *, device_type> offset("offset", 0);
-  Kokkos::View<int *, device_type> ranks("ranks", 0);
-  Kokkos::View<double *, device_type> distances("distances", 0);
-  tree.query(queries, indices, offset, ranks, distances);
-
-  auto indices_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
-  auto offset_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
-  auto ranks_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ranks);
-  auto distances_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, distances);
-
-  validateResults(
-      std::make_tuple(offset_host, ranks_host, indices_host, distances_host),
-      std::make_tuple(offset_ref, ranks_ref, indices_ref, distances_ref));
 }
 #endif
 

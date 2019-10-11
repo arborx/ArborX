@@ -81,8 +81,6 @@ public:
    *     - \c offset Array of predicate offsets for one-dimensional
    *       storage.
    *     - \c ranks Process ranks that own objects.
-   *     - \c distances Computed distances (optional and only for nearest
-   *       predicates).
    */
   template <typename Predicates, typename... Args>
   void query(Predicates const &predicates, Args &&... args) const

@@ -52,26 +52,12 @@ struct DistributedSearchTreeImpl
 
   // nearest neighbors queries
   template <typename Query>
-  static void
-  queryDispatch(Details::NearestPredicateTag,
-                DistributedSearchTree<DeviceType> const &tree,
-                Kokkos::View<Query *, DeviceType> queries,
-                Kokkos::View<int *, DeviceType> &indices,
-                Kokkos::View<int *, DeviceType> &offset,
-                Kokkos::View<int *, DeviceType> &ranks,
-                Kokkos::View<double *, DeviceType> *distances_ptr = nullptr);
-
-  template <typename Query>
-  static void queryDispatch(Details::NearestPredicateTag tag,
+  static void queryDispatch(Details::NearestPredicateTag,
                             DistributedSearchTree<DeviceType> const &tree,
                             Kokkos::View<Query *, DeviceType> queries,
                             Kokkos::View<int *, DeviceType> &indices,
                             Kokkos::View<int *, DeviceType> &offset,
-                            Kokkos::View<int *, DeviceType> &ranks,
-                            Kokkos::View<double *, DeviceType> &distances)
-  {
-    queryDispatch(tag, tree, queries, indices, offset, ranks, &distances);
-  }
+                            Kokkos::View<int *, DeviceType> &ranks);
 
   template <typename Query>
   static void deviseStrategy(Kokkos::View<Query *, DeviceType> queries,
@@ -337,15 +323,12 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     Kokkos::View<Query *, DeviceType> queries,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset,
-    Kokkos::View<int *, DeviceType> &ranks,
-    Kokkos::View<double *, DeviceType> *distances_ptr)
+    Kokkos::View<int *, DeviceType> &ranks)
 {
   auto const &bottom_tree = tree._bottom_tree;
   auto comm = tree._comm;
 
   Kokkos::View<double *, DeviceType> distances("distances", 0);
-  if (distances_ptr)
-    distances = *distances_ptr;
 
   // "Strategy" is used to determine what ranks to forward queries to.  In
   // the 1st pass, the queries are sent to as many ranks as necessary to
@@ -372,34 +355,38 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   {
     implementStrategy(queries, tree, indices, offset, distances);
 
-    ////////////////////////////////////////////////////////////////////////////
     // Forward queries
-    ////////////////////////////////////////////////////////////////////////////
     Kokkos::View<int *, DeviceType> ids("query_ids", 0);
     Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries", 0);
     forwardQueries(comm, queries, indices, offset, fwd_queries, ids, ranks);
-    ////////////////////////////////////////////////////////////////////////////
 
-    ////////////////////////////////////////////////////////////////////////////
     // Perform queries that have been received
-    ////////////////////////////////////////////////////////////////////////////
-    bottom_tree.query(fwd_queries, indices, offset, distances);
-    ////////////////////////////////////////////////////////////////////////////
+    bottom_tree.query(fwd_queries, indices, offset);
+    Kokkos::View<double *, DeviceType> distances(
+        Kokkos::ViewAllocateWithoutInitializing("distances"),
+        indices.extent(0));
+#if 0
+    // FIXME Need to figure out a way to compute distance from queries to leaf
+    // nodes from outside of a tree
+    Kokkos::parallel_for(
+        ARBORX_MARK_REGION("compute_distances"),
+        Kokkos::RangePolicy<ExecutionSpace>(0, fwd_queries.extent(0)),
+        KOKKOS_LAMBDA(int i) {
+          for (int j = offset(i); j < offset(i + 1); ++j)
+            distances(j) =
+                distance(fwd_queries(i)._geometry,
+                         bottom_tree.leaf(indices(j), maybe permuted));
+        });
+#endif
 
-    ////////////////////////////////////////////////////////////////////////////
     // Communicate results back
-    ////////////////////////////////////////////////////////////////////////////
     communicateResultsBack(comm, indices, offset, ranks, ids, &distances);
-    ////////////////////////////////////////////////////////////////////////////
 
-    ////////////////////////////////////////////////////////////////////////////
     // Merge results
-    ////////////////////////////////////////////////////////////////////////////
     int const n_queries = queries.extent_int(0);
     countResults(n_queries, ids, offset);
     sortResults(ids, indices, ranks, distances);
     filterResults(queries, distances, indices, offset, ranks);
-    ////////////////////////////////////////////////////////////////////////////
   }
 }
 
@@ -416,38 +403,23 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   auto const &bottom_tree = tree._bottom_tree;
   auto comm = tree._comm;
 
-  ////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////////
   top_tree.query(queries, indices, offset);
-  ////////////////////////////////////////////////////////////////////////////
 
-  ////////////////////////////////////////////////////////////////////////////
   // Forward queries
-  ////////////////////////////////////////////////////////////////////////////
   Kokkos::View<int *, DeviceType> ids("query_ids", 0);
   Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries", 0);
   forwardQueries(comm, queries, indices, offset, fwd_queries, ids, ranks);
-  ////////////////////////////////////////////////////////////////////////////
 
-  ////////////////////////////////////////////////////////////////////////////
   // Perform queries that have been received
-  ////////////////////////////////////////////////////////////////////////////
   bottom_tree.query(fwd_queries, indices, offset);
-  ////////////////////////////////////////////////////////////////////////////
 
-  ////////////////////////////////////////////////////////////////////////////
   // Communicate results back
-  ////////////////////////////////////////////////////////////////////////////
   communicateResultsBack(comm, indices, offset, ranks, ids);
-  ////////////////////////////////////////////////////////////////////////////
 
-  ////////////////////////////////////////////////////////////////////////////
   // Merge results
-  ////////////////////////////////////////////////////////////////////////////
   int const n_queries = queries.extent_int(0);
   countResults(n_queries, ids, offset);
   sortResults(ids, indices, ranks);
-  ////////////////////////////////////////////////////////////////////////////
 }
 
 // FIXME: for some reason Kokkos::BinSort::sort() was not const.

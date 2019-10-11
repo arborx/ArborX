@@ -56,20 +56,7 @@ struct BoundingVolumeHierarchyImpl
       BoundingVolumeHierarchy<DeviceType> const &bvh,
       Predicates const &predicates, Kokkos::View<int *, DeviceType> &indices,
       Kokkos::View<int *, DeviceType> &offset,
-      NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default,
-      Kokkos::View<double *, DeviceType> *distances_ptr = nullptr);
-
-  template <typename Predicates>
-  static void queryDispatch(
-      Details::NearestPredicateTag tag,
-      BoundingVolumeHierarchy<DeviceType> const &bvh,
-      Predicates const &predicates, Kokkos::View<int *, DeviceType> &indices,
-      Kokkos::View<int *, DeviceType> &offset,
-      Kokkos::View<double *, DeviceType> &distances,
-      NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default)
-  {
-    queryDispatch(tag, bvh, predicates, indices, offset, which, &distances);
-  }
+      NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default);
 };
 
 // The which parameter let the developer chose from two different tree
@@ -83,8 +70,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     Details::NearestPredicateTag,
     BoundingVolumeHierarchy<DeviceType> const &bvh,
     Predicates const &predicates, Kokkos::View<int *, DeviceType> &indices,
-    Kokkos::View<int *, DeviceType> &offset, NearestQueryAlgorithm which,
-    Kokkos::View<double *, DeviceType> *distances_ptr)
+    Kokkos::View<int *, DeviceType> &offset, NearestQueryAlgorithm which)
 {
   Kokkos::Profiling::pushRegion("ArborX:BVH:nearest_queries");
 
@@ -127,101 +113,41 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   reallocWithoutInitializing(indices, n_results);
   int const invalid_index = -1;
   Kokkos::deep_copy(indices, invalid_index);
-  if (distances_ptr)
+  if (use_deprecated_nearest_query_algorithm)
   {
-    Kokkos::View<double *, DeviceType> &distances = *distances_ptr;
-    reallocWithoutInitializing(distances, n_results);
-    double const invalid_distance =
-        -KokkosExt::ArithmeticTraits::max<double>::value;
-    Kokkos::deep_copy(distances, invalid_distance);
-
-    if (use_deprecated_nearest_query_algorithm)
-    {
-      Kokkos::parallel_for(
-          ARBORX_MARK_REGION(
-              "perform_deprecated_nearest_queries_and_return_distances"),
-          Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
-          KOKKOS_LAMBDA(int i) {
-            int count = 0;
-            Details::TreeTraversal<DeviceType>::query(
-                bvh, queries(i),
-                [indices, offset, distances, permute, i,
-                 &count](int index, double distance) {
-                  indices(offset(permute(i)) + count) = index;
-                  distances(offset(permute(i)) + count) = distance;
-                  count++;
-                });
-          });
-      ExecutionSpace::fence();
-    }
-    else
-    {
-      // Allocate buffer over which to perform heap operations in
-      // TreeTraversal::nearestQuery() to store nearest leaf nodes found
-      // so far.  It is not possible to anticipate how much memory to
-      // allocate since the number of nearest neighbors k is only known at
-      // runtime.
-      Kokkos::View<Kokkos::pair<int, double> *, DeviceType> buffer(
-          Kokkos::ViewAllocateWithoutInitializing("buffer"), n_results);
-
-      Kokkos::parallel_for(
-          ARBORX_MARK_REGION("perform_nearest_queries_and_return_distances"),
-          Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
-          KOKKOS_LAMBDA(int i) {
-            int count = 0;
-            Details::TreeTraversal<DeviceType>::query(
-                bvh, queries(i),
-                [indices, offset, distances, permute, i,
-                 &count](int index, double distance) {
-                  indices(offset(permute(i)) + count) = index;
-                  distances(offset(permute(i)) + count) = distance;
-                  count++;
-                },
-                Kokkos::subview(buffer,
-                                Kokkos::make_pair(offset(permute(i)),
-                                                  offset(permute(i) + 1))));
-          });
-      ExecutionSpace::fence();
-    }
+    Kokkos::parallel_for(
+        ARBORX_MARK_REGION("perform_deprecated_nearest_queries"),
+        Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+        KOKKOS_LAMBDA(int i) {
+          int count = 0;
+          Details::TreeTraversal<DeviceType>::query(
+              bvh, queries(i),
+              [indices, offset, permute, i, &count](int index, double) {
+                indices(offset(permute(i)) + count++) = index;
+              });
+        });
+    ExecutionSpace::fence();
   }
   else
   {
-    if (use_deprecated_nearest_query_algorithm)
-    {
-      Kokkos::parallel_for(
-          ARBORX_MARK_REGION("perform_deprecated_nearest_queries"),
-          Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
-          KOKKOS_LAMBDA(int i) {
-            int count = 0;
-            Details::TreeTraversal<DeviceType>::query(
-                bvh, queries(i),
-                [indices, offset, permute, i, &count](int index, double) {
-                  indices(offset(permute(i)) + count++) = index;
-                });
-          });
-      ExecutionSpace::fence();
-    }
-    else
-    {
-      Kokkos::View<Kokkos::pair<int, double> *, DeviceType> buffer(
-          Kokkos::ViewAllocateWithoutInitializing("buffer"), n_results);
+    Kokkos::View<Kokkos::pair<int, double> *, DeviceType> buffer(
+        Kokkos::ViewAllocateWithoutInitializing("buffer"), n_results);
 
-      Kokkos::parallel_for(
-          ARBORX_MARK_REGION("perform_nearest_queries"),
-          Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
-          KOKKOS_LAMBDA(int i) {
-            int count = 0;
-            Details::TreeTraversal<DeviceType>::query(
-                bvh, queries(i),
-                [indices, offset, permute, i, &count](int index, double) {
-                  indices(offset(permute(i)) + count++) = index;
-                },
-                Kokkos::subview(buffer,
-                                Kokkos::make_pair(offset(permute(i)),
-                                                  offset(permute(i) + 1))));
-          });
-      ExecutionSpace::fence();
-    }
+    Kokkos::parallel_for(
+        ARBORX_MARK_REGION("perform_nearest_queries"),
+        Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+        KOKKOS_LAMBDA(int i) {
+          int count = 0;
+          Details::TreeTraversal<DeviceType>::query(
+              bvh, queries(i),
+              [indices, offset, permute, i, &count](int index, double) {
+                indices(offset(permute(i)) + count++) = index;
+              },
+              Kokkos::subview(buffer,
+                              Kokkos::make_pair(offset(permute(i)),
+                                                offset(permute(i) + 1))));
+        });
+    ExecutionSpace::fence();
   }
 
   Kokkos::Profiling::popRegion();
@@ -269,24 +195,6 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
         });
     ExecutionSpace::fence();
     indices = tmp_indices;
-    if (distances_ptr)
-    {
-      Kokkos::View<double *, DeviceType> &distances = *distances_ptr;
-      Kokkos::View<double *, DeviceType> tmp_distances(
-          Kokkos::ViewAllocateWithoutInitializing(distances.label()),
-          n_valid_indices);
-      Kokkos::parallel_for(
-          ARBORX_MARK_REGION("copy_valid_distances"),
-          Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
-          KOKKOS_LAMBDA(int q) {
-            for (int i = 0; i < tmp_offset(q + 1) - tmp_offset(q); ++i)
-            {
-              tmp_distances(tmp_offset(q) + i) = distances(offset(q) + i);
-            }
-          });
-      ExecutionSpace::fence();
-      distances = tmp_distances;
-    }
     offset = tmp_offset;
   }
 

@@ -93,13 +93,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, Tree, TreeTypes)
                      {{{1., 1., 1.}}, 2},
                  }),
                  {}, {0, 0, 0});
-
-    checkResults(empty_tree,
-                 makeNearestQueries<device_type>({
-                     {{{0., 0., 0.}}, 1},
-                     {{{1., 1., 1.}}, 2},
-                 }),
-                 {}, {0, 0, 0}, {});
   }
 }
 
@@ -124,13 +117,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, Tree, TreeTypes)
 
   checkResults(single_leaf_tree, makeNearestQueries<device_type>({}), {}, {0});
 
-  checkResults(single_leaf_tree, makeNearestQueries<device_type>({}), {}, {0},
-               {});
-
   checkResults(
       single_leaf_tree,
       makeNearestQueries<device_type>({{{0., 0., 0.}, 3}, {{4., 5., 1.}, 1}}),
-      {0, 0}, {0, 1, 2}, {0., 5.});
+      {0, 0}, {0, 1, 2});
 
   checkResults(single_leaf_tree,
                makeIntersectsBoxQueries<device_type>({
@@ -161,7 +151,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, Tree, TreeTypes)
                    {{{0., 2., 0.}}, 2},
                    {{{0., 0., 3.}}, 3},
                }),
-               {0, 0, 0}, {0, 1, 2, 3}, {0., 1., 2.});
+               {0, 0, 0}, {0, 1, 2, 3});
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, Tree, TreeTypes)
@@ -224,7 +214,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, Tree, TreeTypes)
                    {{{0., 0., 0.}}, 2},
                    {{{1., 0., 0.}}, 4},
                }),
-               {0, 1, 0, 1}, {0, 2, 4}, {0., sqrt(3.), 1., sqrt(2.)});
+               {0, 1, 0, 1}, {0, 2, 4});
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves, DeviceType,
