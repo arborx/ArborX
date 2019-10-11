@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indirect_sort, DeviceType, ARBORX_DEVICE_TYPES)
   FillK<DeviceType> fill_k_functor(k);
   Kokkos::parallel_for("fill_k", Kokkos::RangePolicy<ExecutionSpace>(0, n),
                        fill_k_functor);
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 
   std::vector<size_t> ref = {3, 2, 1, 0};
   // sort morton codes and object ids
@@ -211,7 +211,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(common_prefix, DeviceType, ARBORX_DEVICE_TYPES)
   FillFi<DeviceType> fill_fi_functor(fi);
   Kokkos::parallel_for("fill_fi", Kokkos::RangePolicy<ExecutionSpace>(0, n),
                        fill_fi_functor);
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 
   int const n_tests = 10;
   Kokkos::View<int *, DeviceType> results("results", n_tests);
@@ -220,7 +220,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(common_prefix, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::parallel_for("compute_results",
                        Kokkos::RangePolicy<ExecutionSpace>(0, n_tests),
                        compute_results_functor);
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 
   auto results_host = Kokkos::create_mirror_view(results);
   Kokkos::deep_copy(results_host, results);

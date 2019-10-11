@@ -95,7 +95,7 @@ makeNearestQueries(int n_values, int n_queries, int n_neighbors,
         queries(i) =
             ArborX::nearest<ArborX::Point>(random_points(i), n_neighbors);
       });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
   return queries;
 }
 
@@ -123,7 +123,7 @@ makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
         queries(i) = ArborX::intersects(ArborX::Sphere{random_points(i), r});
       });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
   return queries;
 }
 

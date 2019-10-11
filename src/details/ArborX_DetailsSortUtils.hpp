@@ -60,7 +60,7 @@ sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
       view, CompType(n / 2, result.min_val, result.max_val), true);
   bin_sort.create_permute_vector();
   bin_sort.sort(view);
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 
   return bin_sort.get_permute_vector();
 }

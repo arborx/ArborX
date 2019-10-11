@@ -212,7 +212,7 @@ inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
       Kokkos::RangePolicy<ExecutionSpace>(0, n),
       CalculateBoundingBoxOfTheSceneFunctor<Primitives>(primitives),
       scene_bounding_box);
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 }
 
 template <typename Primitives, typename MortonCodes>
@@ -231,7 +231,7 @@ inline void assignMortonCodesDispatch(BoxTag, Primitives const &primitives,
                          translateAndScale(xyz, xyz, scene_bounding_box);
                          morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
                        });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 }
 
 template <typename Primitives, typename MortonCodes>
@@ -249,7 +249,7 @@ inline void assignMortonCodesDispatch(PointTag, Primitives const &primitives,
         translateAndScale(Access::get(primitives, i), xyz, scene_bounding_box);
         morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
       });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 }
 
 template <typename DeviceType>
@@ -284,7 +284,7 @@ inline void initializeLeafNodesDispatch(BoxTag, Primitives const &primitives,
             {nullptr, reinterpret_cast<Node *>(permutation_indices(i))},
             Access::get(primitives, permutation_indices(i))};
       });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 }
 
 template <typename Primitives, typename Indices, typename Nodes>
@@ -303,7 +303,7 @@ inline void initializeLeafNodesDispatch(PointTag, Primitives const &primitives,
             {Access::get(primitives, permutation_indices(i)),
              Access::get(primitives, permutation_indices(i))}};
       });
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 }
 
 template <typename DeviceType>
@@ -413,7 +413,7 @@ Node *TreeConstruction<DeviceType>::generateHierarchy(
       Kokkos::RangePolicy<ExecutionSpace>(0, n - 1),
       GenerateHierarchyFunctor<DeviceType>(sorted_morton_codes, leaf_nodes,
                                            internal_nodes, parents));
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
   // returns a pointer to the root node of the tree
   return internal_nodes.data();
 }
@@ -486,7 +486,7 @@ void TreeConstruction<DeviceType>::calculateInternalNodesBoundingVolumes(
                        Kokkos::RangePolicy<ExecutionSpace>(first, last),
                        CalculateInternalNodesBoundingVolumesFunctor<DeviceType>(
                            root, parents, first));
-  ExecutionSpace::fence();
+  ExecutionSpace().fence();
 }
 
 } // namespace Details

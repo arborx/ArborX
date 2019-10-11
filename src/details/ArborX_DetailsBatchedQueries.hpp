@@ -79,7 +79,7 @@ public:
                            translateAndScale(xyz, xyz, bounds());
                            morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
                          });
-    ExecutionSpace::fence();
+    ExecutionSpace().fence();
 
     return sortObjects(morton_codes);
   }
@@ -108,7 +108,7 @@ public:
         ARBORX_MARK_REGION("permute_entries"),
         Kokkos::RangePolicy<ExecutionSpace>(0, n),
         KOKKOS_LAMBDA(int i) { w(i) = Access::get(v, permute(i)); });
-    ExecutionSpace::fence();
+    ExecutionSpace().fence();
 
     return w;
   }
@@ -126,7 +126,7 @@ public:
         Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
           tmp_offset(permute(i)) = offset(i + 1) - offset(i);
         });
-    ExecutionSpace::fence();
+    ExecutionSpace().fence();
 
     exclusivePrefixSum(tmp_offset);
 
@@ -156,7 +156,7 @@ public:
             tmp_indices(tmp_offset(permute(q)) + i) = indices(offset(q) + i);
           }
         });
-    ExecutionSpace::fence();
+    ExecutionSpace().fence();
     return tmp_indices;
   }
 
