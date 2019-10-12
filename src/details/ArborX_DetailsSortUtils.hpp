@@ -42,10 +42,11 @@ sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
   parallel_reduce(ARBORX_MARK_REGION("find_min_max_view"),
                   Kokkos::RangePolicy<ExecutionSpace>(0, n),
                   Kokkos::Impl::min_max_functor<ViewType>(view), reducer);
+
+  Kokkos::View<size_t *, DeviceType> permute(
+      Kokkos::ViewAllocateWithoutInitializing("permute"), n);
   if (result.min_val == result.max_val)
   {
-    Kokkos::View<size_t *, DeviceType> permute(
-        Kokkos::ViewAllocateWithoutInitializing("permute"), n);
     iota(permute);
     return permute;
   }
@@ -56,13 +57,19 @@ sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
   // better choice here because its size is guaranteed to coincide with the
   // pointer size which is a good thing for converting with reinterpret_cast
   // (when leaf indices are encoded into the pointer to one of their children)
-  Kokkos::BinSort<ViewType, CompType, DeviceType, size_t> bin_sort(
+  Kokkos::BinSort<ViewType, CompType, DeviceType, unsigned int> bin_sort(
       view, CompType(n / 2, result.min_val, result.max_val), true);
   bin_sort.create_permute_vector();
   bin_sort.sort(view);
   ExecutionSpace().fence();
 
-  return bin_sort.get_permute_vector();
+  auto permute_vector = bin_sort.get_permute_vector();
+  Kokkos::parallel_for(
+      ARBORX_MARK_REGION("copy_permute_vector"),
+      Kokkos::RangePolicy<ExecutionSpace>(0, n),
+      KOKKOS_LAMBDA(int i) { permute(i) = permute_vector(i); });
+
+  return permute;
 }
 
 } // namespace Details
