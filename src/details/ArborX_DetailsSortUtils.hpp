@@ -19,6 +19,11 @@
 #include <Kokkos_Sort.hpp> // min_max_functor
 #include <Kokkos_View.hpp>
 
+#if defined(KOKKOS_ENABLE_CUDA)
+#include <thrust/device_ptr.h>
+#include <thrust/sort.h>
+#endif
+
 namespace ArborX
 {
 
@@ -30,12 +35,29 @@ template <typename DeviceType>
 Kokkos::View<size_t *, DeviceType>
 sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   int const n = view.extent(0);
+
+#if defined(KOKKOS_ENABLE_CUDA)
+  if (std::is_same<ExecutionSpace, Kokkos::Cuda>::value)
+  {
+    Kokkos::View<size_t *, DeviceType> permute(
+        Kokkos::ViewAllocateWithoutInitializing("permutation"), n);
+    iota(permute);
+
+    auto permute_ptr = thrust::device_ptr<size_t>(permute.data());
+    auto begin_ptr = thrust::device_ptr<unsigned int>(view.data());
+    auto end_ptr = thrust::device_ptr<unsigned int>(view.data() + n);
+    thrust::sort_by_key(begin_ptr, end_ptr, permute_ptr);
+
+    return permute;
+  }
+#endif
 
   using ViewType = decltype(view);
   using ValueType = typename ViewType::value_type;
   using CompType = Kokkos::BinOp1D<ViewType>;
-  using ExecutionSpace = typename DeviceType::execution_space;
 
   Kokkos::MinMaxScalar<ValueType> result;
   Kokkos::MinMax<ValueType> reducer(result);
