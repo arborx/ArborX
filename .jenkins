@@ -90,7 +90,7 @@ pipeline {
                         docker {
                             image "rombur/arborx-pgi:19.10.0d"
                             label 'cathode'
-                            additionalBuildArgs '--pull'
+                            alwaysPull true
                         }
                     }
                     steps {
