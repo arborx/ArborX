@@ -373,8 +373,6 @@ int main(int argc, char *argv[])
 #ifdef KOKKOS_ENABLE_CUDA
   using Cuda = Kokkos::Cuda::device_type;
   REGISTER_BENCHMARK(ArborX::BVH<Cuda>);
-  using CudaUVM = Kokkos::Device<Kokkos::Cuda, Kokkos::CudaUVMSpace>;
-  REGISTER_BENCHMARK(ArborX::BVH<CudaUVM>);
 #endif
 
 #if defined(KOKKOS_ENABLE_SERIAL)
