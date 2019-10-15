@@ -268,7 +268,6 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
           ++new_offset(i);
         }
       });
-  ExecutionSpace().fence();
 
   exclusivePrefixSum(new_offset);
 
@@ -282,7 +281,6 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
         for (int j = 0; j < new_offset(i + 1) - new_offset(i); ++j)
           new_indices(new_offset(i) + j) = indices(offset(i) + j);
       });
-  ExecutionSpace().fence();
 
   offset = new_offset;
   indices = new_indices;
@@ -312,7 +310,6 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
         for (int j = offset(i); j < offset(i + 1); ++j)
           farthest_distances(i) = max(farthest_distances(i), distances(j));
       });
-  ExecutionSpace().fence();
 
   // Identify what ranks may have leaves that are within that distance.
   Kokkos::View<decltype(intersects(Sphere{})) *, DeviceType> radius_searches(
@@ -323,7 +320,6 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
         radius_searches(i) =
             intersects(Sphere{queries(i)._geometry, farthest_distances(i)});
       });
-  ExecutionSpace().fence();
 
   top_tree.query(radius_searches, indices, offset);
   // NOTE: in principle, we could perform radius searches on the bottom_tree
@@ -492,7 +488,6 @@ void DistributedSearchTreeImpl<DeviceType>::sortResults(
       keys, Comp(n / 2, result.min_val, result.max_val), true);
   bin_sort.create_permute_vector();
   applyPermutations(bin_sort, other_views...);
-  ExecutionSpace().fence();
 }
 
 template <typename DeviceType>
@@ -510,7 +505,6 @@ void DistributedSearchTreeImpl<DeviceType>::countResults(
                        KOKKOS_LAMBDA(int i) {
                          Kokkos::atomic_increment(&offset(query_ids(i)));
                        });
-  ExecutionSpace().fence();
 
   exclusivePrefixSum(offset);
 }
@@ -543,7 +537,6 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
                            exports(i) = queries(q);
                          }
                        });
-  ExecutionSpace().fence();
 
   Kokkos::View<int *, DeviceType> export_ranks("export_ranks", n_exports);
   Kokkos::deep_copy(export_ranks, comm_rank);
@@ -560,7 +553,6 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
                            export_ids(i) = q;
                          }
                        });
-  ExecutionSpace().fence();
   Kokkos::View<int *, DeviceType> import_ids("import_ids", n_imports);
   sendAcrossNetwork(distributor, export_ids, import_ids);
 
@@ -595,7 +587,6 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
                            export_ranks(i) = ranks(q);
                          }
                        });
-  ExecutionSpace().fence();
 
   Distributor distributor(comm);
   int const n_imports = distributor.createFromSends(export_ranks);
@@ -613,7 +604,6 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
                            export_ids(i) = ids(q);
                          }
                        });
-  ExecutionSpace().fence();
   Kokkos::View<int *, DeviceType> export_indices = indices;
 
   Kokkos::View<int *, DeviceType> import_indices(indices.label(), n_imports);
@@ -658,7 +648,6 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
         using KokkosExt::min;
         new_offset(q) = min(offset(q + 1) - offset(q), queries(q)._k);
       });
-  ExecutionSpace().fence();
 
   exclusivePrefixSum(new_offset);
 
@@ -710,7 +699,6 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
           }
         }
       });
-  ExecutionSpace().fence();
   indices = new_indices;
   ranks = new_ranks;
   offset = new_offset;

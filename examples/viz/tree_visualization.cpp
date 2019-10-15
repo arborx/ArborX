@@ -99,7 +99,6 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
                        KOKKOS_LAMBDA(int i) {
                          queries(i) = ArborX::nearest(points(i), n_neighbors);
                        });
-  ExecutionSpace().fence();
 
   auto performQueries = [&bvh, &queries](std::string const &p,
                                          std::string const &s) {
