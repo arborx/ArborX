@@ -30,6 +30,11 @@ struct Node
     return children.first == nullptr;
   }
 
+  KOKKOS_FUNCTION constexpr std::size_t getLeafPermutationIndex() const noexcept
+  {
+    return reinterpret_cast<std::size_t>(children.second);
+  }
+
   Kokkos::pair<Node *, Node *> children = {nullptr, nullptr};
   Box bounding_box;
 };
