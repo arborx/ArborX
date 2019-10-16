@@ -51,7 +51,7 @@ struct TreeVisualization
       Node const *first = leaf_nodes.data();
       Node const *last = first + static_cast<ptrdiff_t>(leaf_nodes.size());
       for (; first != last; ++first)
-        if (index == bvh.getLeafPermutationIndex(first))
+        if (index == first->getLeafPermutationIndex())
           return first;
       return nullptr;
     }
@@ -60,15 +60,8 @@ struct TreeVisualization
     static int getIndex(Node const *node,
                         BoundingVolumeHierarchy<DeviceType> const &bvh)
     {
-      return bvh.isLeaf(node) ? bvh.getLeafPermutationIndex(node)
-                              : node - bvh.getRoot();
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    static bool isLeaf(Node const *node,
-                       BoundingVolumeHierarchy<DeviceType> const &bvh)
-    {
-      return bvh.isLeaf(node);
+      return node->isLeaf() ? node->getLeafPermutationIndex()
+                            : node - bvh.getRoot();
     }
 
     KOKKOS_INLINE_FUNCTION
@@ -88,7 +81,7 @@ struct TreeVisualization
   template <typename Tree>
   static std::string getNodeLabel(Node const *node, Tree const &tree)
   {
-    auto const node_is_leaf = TreeAccess::isLeaf(node, tree);
+    auto const node_is_leaf = node->isLeaf();
     auto const node_index = TreeAccess::getIndex(node, tree);
     std::string label = node_is_leaf ? "l" : "i";
     label.append(std::to_string(node_index));
@@ -98,14 +91,14 @@ struct TreeVisualization
   template <typename Tree>
   static std::string getNodeAttributes(Node const *node, Tree const &tree)
   {
-    return TreeAccess::isLeaf(node, tree) ? "[leaf]" : "[internal]";
+    return node->isLeaf() ? "[leaf]" : "[internal]";
   }
 
   template <typename Tree>
   static std::string getEdgeAttributes(Node const * /*parent*/,
                                        Node const *child, Tree const &tree)
   {
-    return TreeAccess::isLeaf(child, tree) ? "[pendant]" : "[edge]";
+    return child->isLeaf() ? "[pendant]" : "[edge]";
   }
 
   // Produces node and edges statements to be listed for a graph in DOT
@@ -140,7 +133,7 @@ struct TreeVisualization
     void visitEdgesStartingFromNode(Node const *node, Tree const &tree) const
     {
       auto const node_label = getNodeLabel(node, tree);
-      auto const node_is_internal = !TreeAccess::isLeaf(node, tree);
+      auto const node_is_internal = !node->isLeaf();
 
       if (node_is_internal)
         for (Node const *child : {node->children.first, node->children.second})
@@ -190,7 +183,7 @@ struct TreeVisualization
 
       visitor.visit(node, tree);
 
-      if (!TreeAccess::isLeaf(node, tree))
+      if (!node->isLeaf())
         for (Node const *child : {node->children.first, node->children.second})
           stack.push(child);
     }

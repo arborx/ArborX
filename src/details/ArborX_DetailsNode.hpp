@@ -23,18 +23,29 @@ namespace Details
 struct Node
 {
   KOKKOS_INLINE_FUNCTION
-  Node() = default;
+  constexpr Node() = default;
 
-  KOKKOS_INLINE_FUNCTION
-  Node(const Kokkos::pair<Node *, Node *> &c, const Box &bb)
-      : children(c)
-      , bounding_box(bb)
+  KOKKOS_INLINE_FUNCTION constexpr bool isLeaf() const noexcept
   {
+    return children.first == nullptr;
+  }
+
+  KOKKOS_INLINE_FUNCTION std::size_t getLeafPermutationIndex() const noexcept
+  {
+    assert(isLeaf());
+    return reinterpret_cast<std::size_t>(children.second);
   }
 
   Kokkos::pair<Node *, Node *> children = {nullptr, nullptr};
   Box bounding_box;
 };
+
+KOKKOS_INLINE_FUNCTION Node makeLeafNode(std::size_t permutation_index,
+                                         Box box) noexcept
+{
+  return {{nullptr, reinterpret_cast<Node *>(permutation_index)},
+          std::move(box)};
+}
 } // namespace Details
 } // namespace ArborX
 

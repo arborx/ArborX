@@ -73,9 +73,9 @@ public:
       Node const *node = stack.top();
       stack.pop();
 
-      if (bvh.isLeaf(node))
+      if (node->isLeaf())
       {
-        insert(bvh.getLeafPermutationIndex(node));
+        insert(node->getLeafPermutationIndex());
         count++;
       }
       else
@@ -150,9 +150,9 @@ public:
 
       if (node_distance < radius)
       {
-        if (bvh.isLeaf(node))
+        if (node->isLeaf())
         {
-          int const leaf_index = bvh.getLeafPermutationIndex(node);
+          int const leaf_index = node->getLeafPermutationIndex();
           double const leaf_distance = node_distance;
           if (heap.size() < k)
           {
@@ -258,10 +258,10 @@ public:
         Node const *node = queue.top().first;
         double const node_distance = queue.top().second;
 
-        if (bvh.isLeaf(node))
+        if (node->isLeaf())
         {
           queue.pop();
-          insert(bvh.getLeafPermutationIndex(node), node_distance);
+          insert(node->getLeafPermutationIndex(), node_distance);
           ++count;
         }
         else
