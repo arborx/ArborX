@@ -314,11 +314,6 @@ inline void TreeConstruction<DeviceType>::initializeLeafNodes(
   ARBORX_ASSERT(permutation_indices.extent(0) == n);
   ARBORX_ASSERT(leaf_nodes.extent(0) == n);
 
-  static_assert(sizeof(typename decltype(permutation_indices)::value_type) ==
-                    sizeof(Node *),
-                "Encoding leaf index in pointer to child is not safe if the "
-                "index and pointer types do not have the same size");
-
   using Tag = typename Tag<decay_result_of_get_t<Access>>::type;
   initializeLeafNodesDispatch(Tag{}, primitives, permutation_indices,
                               leaf_nodes);
