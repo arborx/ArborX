@@ -22,8 +22,8 @@ namespace Details
 {
 struct Node
 {
-  KOKKOS_INLINE_FUNCTION
-  Node() = default;
+  KOKKOS_FUNCTION
+  constexpr Node() noexcept = default;
 
   Kokkos::pair<Node *, Node *> children = {nullptr, nullptr};
   Box bounding_box;
