@@ -332,7 +332,7 @@ public:
       , _leaf_nodes(leaf_nodes)
       , _internal_nodes(internal_nodes)
       , _parents(parents)
-      , _shift(internal_nodes.extent(0))
+      , _leaf_nodes_shift(internal_nodes.extent(0))
   {
   }
 
@@ -359,8 +359,8 @@ public:
 
     if (split == first)
     {
-      _internal_nodes(i).children.first = split + _shift;
-      _parents(split + _shift) = i;
+      _internal_nodes(i).children.first = split + _leaf_nodes_shift;
+      _parents(split + _leaf_nodes_shift) = i;
     }
     else
     {
@@ -372,8 +372,8 @@ public:
 
     if (split + 1 == last)
     {
-      _internal_nodes(i).children.second = split + 1 + _shift;
-      _parents(split + 1 + _shift) = i;
+      _internal_nodes(i).children.second = split + 1 + _leaf_nodes_shift;
+      _parents(split + 1 + _leaf_nodes_shift) = i;
     }
     else
     {
@@ -387,7 +387,7 @@ private:
   Kokkos::View<Node *, DeviceType> _leaf_nodes;
   Kokkos::View<Node *, DeviceType> _internal_nodes;
   Kokkos::View<int *, DeviceType> _parents;
-  int _shift;
+  int _leaf_nodes_shift;
 };
 
 template <typename DeviceType>
