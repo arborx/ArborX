@@ -277,9 +277,9 @@ inline void initializeLeafNodesDispatch(BoxTag, Primitives const &primitives,
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("initialize_leaf_nodes"),
       Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
-        leaf_nodes(i) = {
-            {nullptr, reinterpret_cast<Node *>(permutation_indices(i))},
-            Access::get(primitives, permutation_indices(i))};
+        leaf_nodes(i) =
+            makeLeafNode(permutation_indices(i),
+                         Access::get(primitives, permutation_indices(i)));
       });
 }
 
@@ -294,10 +294,10 @@ inline void initializeLeafNodesDispatch(PointTag, Primitives const &primitives,
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("initialize_leaf_nodes"),
       Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
-        leaf_nodes(i) = {
-            {nullptr, reinterpret_cast<Node *>(permutation_indices(i))},
-            {Access::get(primitives, permutation_indices(i)),
-             Access::get(primitives, permutation_indices(i))}};
+        leaf_nodes(i) =
+            makeLeafNode(permutation_indices(i),
+                         {Access::get(primitives, permutation_indices(i)),
+                          Access::get(primitives, permutation_indices(i))});
       });
 }
 

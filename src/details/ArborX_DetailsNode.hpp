@@ -33,6 +33,12 @@ struct Node
   Kokkos::pair<Node *, Node *> children = {nullptr, nullptr};
   Box bounding_box;
 };
+
+KOKKOS_INLINE_FUNCTION constexpr Node makeLeafNode(std::size_t index,
+                                                   Box &&box) noexcept
+{
+  return {{nullptr, reinterpret_cast<Node *>(index)}, box};
+}
 } // namespace Details
 } // namespace ArborX
 
