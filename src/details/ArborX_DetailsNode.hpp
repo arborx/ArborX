@@ -22,15 +22,15 @@ namespace Details
 {
 struct Node
 {
-  KOKKOS_FUNCTION
+  KOKKOS_INLINE_FUNCTION
   constexpr Node() = default;
 
-  KOKKOS_FUNCTION constexpr bool isLeaf() const noexcept
+  KOKKOS_INLINE_FUNCTION constexpr bool isLeaf() const noexcept
   {
     return children.first == nullptr;
   }
 
-  KOKKOS_FUNCTION std::size_t getLeafPermutationIndex() const noexcept
+  KOKKOS_INLINE_FUNCTION std::size_t getLeafPermutationIndex() const noexcept
   {
     assert(isLeaf());
     return reinterpret_cast<std::size_t>(children.second);

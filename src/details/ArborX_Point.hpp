@@ -27,7 +27,7 @@ private:
   } _data = {};
 
 public:
-  KOKKOS_FUNCTION
+  KOKKOS_INLINE_FUNCTION
   constexpr Point() noexcept = default;
 
   KOKKOS_INLINE_FUNCTION
