@@ -35,9 +35,9 @@ struct Node
 };
 
 KOKKOS_INLINE_FUNCTION constexpr Node makeLeafNode(std::size_t index,
-                                                   Box &&box) noexcept
+                                                   Box box) noexcept
 {
-  return {{nullptr, reinterpret_cast<Node *>(index)}, box};
+  return {{nullptr, reinterpret_cast<Node *>(index)}, std::move(box)};
 }
 } // namespace Details
 } // namespace ArborX
