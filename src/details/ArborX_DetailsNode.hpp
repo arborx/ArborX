@@ -18,6 +18,8 @@
 
 namespace ArborX
 {
+namespace Details
+{
 struct Node
 {
   KOKKOS_INLINE_FUNCTION
@@ -33,6 +35,7 @@ struct Node
   Kokkos::pair<Node *, Node *> children = {nullptr, nullptr};
   Box bounding_box;
 };
+} // namespace Details
 } // namespace ArborX
 
 #endif

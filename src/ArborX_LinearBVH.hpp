@@ -91,6 +91,7 @@ public:
 private:
   friend struct Details::TreeTraversal<DeviceType>;
   friend struct Details::TreeVisualization<DeviceType>;
+  using Node = Details::Node;
 
   Kokkos::View<Node *, DeviceType> getInternalNodes()
   {
