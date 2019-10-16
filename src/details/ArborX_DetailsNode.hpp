@@ -32,6 +32,7 @@ struct Node
 
   KOKKOS_FUNCTION std::size_t getLeafPermutationIndex() const noexcept
   {
+    assert(isLeaf());
     return reinterpret_cast<std::size_t>(children.second);
   }
 
