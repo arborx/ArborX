@@ -285,16 +285,21 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   std::cout << "ref=" << ref.str() << "\n";
 
   // hierarchy generation
+  using ArborX::Box;
+  using ArborX::Details::makeLeafNode;
   using ArborX::Details::Node;
   Kokkos::View<Node *, DeviceType> leaf_nodes("leaf_nodes", n);
   Kokkos::View<Node *, DeviceType> internal_nodes("internal_nodes", n - 1);
+  for (int i = 0; i < n; ++i)
+    leaf_nodes(i) = makeLeafNode(i, Box{});
+  auto getNodePtr = [n, &leaf_nodes, &internal_nodes](int i) {
+    return i < n - 1 ? internal_nodes.data() + i
+                     : leaf_nodes.data() + i - n + 1;
+  };
   std::function<void(Node const *, std::ostream &)> traverseRecursive;
-  traverseRecursive = [&leaf_nodes, &internal_nodes,
-                       &traverseRecursive](Node const *node, std::ostream &os) {
-    if (std::any_of(leaf_nodes.data(), leaf_nodes.data() + n,
-                    [node](Node const &leaf_node) {
-                      return std::addressof(leaf_node) == node;
-                    }))
+  traverseRecursive = [&leaf_nodes, &internal_nodes, &traverseRecursive,
+                       &getNodePtr](Node const *node, std::ostream &os) {
+    if (node->isLeaf())
     {
       os << "L" << node - leaf_nodes.data();
     }
@@ -302,8 +307,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
     {
       Node const *root = internal_nodes.data();
       os << "I" << node - internal_nodes.data();
-      for (Node const *child :
-           {root + node->children.first, root + node->children.second})
+      for (Node const *child : {getNodePtr(node->children.first),
+                                getNodePtr(node->children.second)})
         traverseRecursive(child, os);
     }
   };
