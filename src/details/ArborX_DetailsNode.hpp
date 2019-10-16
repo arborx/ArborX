@@ -39,9 +39,11 @@ struct Node
   Box bounding_box;
 };
 
-KOKKOS_INLINE_FUNCTION Node makeLeafNode(std::size_t index, Box box) noexcept
+KOKKOS_INLINE_FUNCTION Node makeLeafNode(std::size_t permutation_index,
+                                         Box box) noexcept
 {
-  return {{nullptr, reinterpret_cast<Node *>(index)}, std::move(box)};
+  return {{nullptr, reinterpret_cast<Node *>(permutation_index)},
+          std::move(box)};
 }
 } // namespace Details
 } // namespace ArborX
