@@ -364,12 +364,12 @@ public:
 
     if (split == first)
     {
-      _internal_nodes(i).children.first = &_leaf_nodes(split);
+      _internal_nodes(i).children.first = split + _shift;
       _parents(split + _shift) = i;
     }
     else
     {
-      _internal_nodes(i).children.first = &_internal_nodes(split);
+      _internal_nodes(i).children.first = split;
       _parents(split) = i;
     }
 
@@ -377,12 +377,12 @@ public:
 
     if (split + 1 == last)
     {
-      _internal_nodes(i).children.second = &_leaf_nodes(split + 1);
+      _internal_nodes(i).children.second = split + 1 + _shift;
       _parents(split + 1 + _shift) = i;
     }
     else
     {
-      _internal_nodes(i).children.second = &_internal_nodes(split + 1);
+      _internal_nodes(i).children.second = split + 1;
       _parents(split + 1) = i;
     }
   }
@@ -448,8 +448,8 @@ public:
       // FIXME: accessing Node::bounding_box is not ideal but I was
       // reluctant to pass the bounding volume hierarchy to
       // generateHierarchy()
-      node->bounding_box = (node->children.first)->bounding_box;
-      expand(node->bounding_box, (node->children.second)->bounding_box);
+      node->bounding_box = (_root + node->children.first)->bounding_box;
+      expand(node->bounding_box, (_root + node->children.second)->bounding_box);
       if (node == _root)
         break;
 

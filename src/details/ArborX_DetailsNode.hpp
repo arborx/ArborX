@@ -17,6 +17,7 @@
 #include <Kokkos_Pair.hpp>
 
 #include <cassert>
+#include <cstddef>
 
 namespace ArborX
 {
@@ -29,24 +30,23 @@ struct Node
 
   KOKKOS_INLINE_FUNCTION constexpr bool isLeaf() const noexcept
   {
-    return children.first == nullptr;
+    return children.first == -1;
   }
 
   KOKKOS_INLINE_FUNCTION std::size_t getLeafPermutationIndex() const noexcept
   {
     assert(isLeaf());
-    return reinterpret_cast<std::size_t>(children.second);
+    return children.second;
   }
 
-  Kokkos::pair<Node *, Node *> children = {nullptr, nullptr};
+  Kokkos::pair<std::ptrdiff_t, std::ptrdiff_t> children = {-1, -1};
   Box bounding_box;
 };
 
 KOKKOS_INLINE_FUNCTION Node makeLeafNode(std::size_t permutation_index,
                                          Box box) noexcept
 {
-  return {{nullptr, reinterpret_cast<Node *>(permutation_index)},
-          std::move(box)};
+  return {{-1, static_cast<std::ptrdiff_t>(permutation_index)}, std::move(box)};
 }
 } // namespace Details
 } // namespace ArborX

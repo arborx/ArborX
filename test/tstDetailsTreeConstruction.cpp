@@ -300,8 +300,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
     }
     else
     {
+      Node const *root = internal_nodes.data();
       os << "I" << node - internal_nodes.data();
-      for (Node const *child : {node->children.first, node->children.second})
+      for (Node const *child :
+           {root + node->children.first, root + node->children.second})
         traverseRecursive(child, os);
     }
   };

@@ -136,9 +136,11 @@ struct TreeVisualization
     {
       auto const node_label = getNodeLabel(node, tree);
       auto const node_is_internal = !node->isLeaf();
+      auto const root = TreeAccess::getRoot(tree);
 
       if (node_is_internal)
-        for (Node const *child : {node->children.first, node->children.second})
+        for (Node const *child :
+             {root + node->children.first, root + node->children.second})
         {
           auto const child_label = getNodeLabel(child, tree);
           auto const edge_attributes = getEdgeAttributes(node, child, tree);
@@ -178,6 +180,7 @@ struct TreeVisualization
   {
     Stack<Node const *> stack;
     stack.emplace(TreeAccess::getRoot(tree));
+    auto const root = TreeAccess::getRoot(tree);
     while (!stack.empty())
     {
       Node const *node = stack.top();
@@ -186,7 +189,8 @@ struct TreeVisualization
       visitor.visit(node, tree);
 
       if (!node->isLeaf())
-        for (Node const *child : {node->children.first, node->children.second})
+        for (Node const *child :
+             {root + node->children.first, root + node->children.second})
           stack.push(child);
     }
   }
