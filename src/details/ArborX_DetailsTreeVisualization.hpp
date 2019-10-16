@@ -51,7 +51,7 @@ struct TreeVisualization
       Node const *first = leaf_nodes.data();
       Node const *last = first + static_cast<ptrdiff_t>(leaf_nodes.size());
       for (; first != last; ++first)
-        if (index == bvh.getLeafPermutationIndex(first))
+        if (index == first->getLeafPermutationIndex())
           return first;
       return nullptr;
     }
@@ -60,7 +60,7 @@ struct TreeVisualization
     static int getIndex(Node const *node,
                         BoundingVolumeHierarchy<DeviceType> const &bvh)
     {
-      return node->isLeaf() ? bvh.getLeafPermutationIndex(node)
+      return node->isLeaf() ? node->getLeafPermutationIndex()
                             : node - bvh.getRoot();
     }
 
