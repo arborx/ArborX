@@ -33,7 +33,8 @@ struct Node
     return children.first == -1;
   }
 
-  KOKKOS_INLINE_FUNCTION std::size_t getLeafPermutationIndex() const noexcept
+  KOKKOS_INLINE_FUNCTION constexpr std::size_t getLeafPermutationIndex() const
+      noexcept
   {
     assert(isLeaf());
     return children.second;
@@ -43,8 +44,8 @@ struct Node
   Box bounding_box;
 };
 
-KOKKOS_INLINE_FUNCTION Node makeLeafNode(std::size_t permutation_index,
-                                         Box box) noexcept
+KOKKOS_INLINE_FUNCTION constexpr Node
+makeLeafNode(std::size_t permutation_index, Box box) noexcept
 {
   return {{-1, static_cast<std::ptrdiff_t>(permutation_index)}, std::move(box)};
 }
