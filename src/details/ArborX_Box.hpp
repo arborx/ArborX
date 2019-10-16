@@ -26,7 +26,7 @@ namespace ArborX
 struct Box
 {
   KOKKOS_FUNCTION
-  constexpr Box() noexcept = default;
+  constexpr Box() = default;
 
   KOKKOS_INLINE_FUNCTION
   constexpr Box(Point const &min_corner, Point const &max_corner)
