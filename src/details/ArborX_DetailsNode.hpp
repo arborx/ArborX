@@ -25,6 +25,11 @@ struct Node
   KOKKOS_FUNCTION
   constexpr Node() noexcept = default;
 
+  KOKKOS_FUNCTION constexpr bool isLeaf() const noexcept
+  {
+    return children.first == nullptr;
+  }
+
   Kokkos::pair<Node *, Node *> children = {nullptr, nullptr};
   Box bounding_box;
 };
