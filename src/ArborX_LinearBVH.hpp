@@ -133,12 +133,6 @@ private:
     return reinterpret_cast<size_t>(leaf->children.second);
   }
 
-  KOKKOS_INLINE_FUNCTION
-  bool isLeaf(Node const *node) const
-  {
-    return (node->children.first == nullptr);
-  }
-
   size_t _size;
   bounding_volume_type _bounds;
   Kokkos::View<Node *, DeviceType> _internal_and_leaf_nodes;
