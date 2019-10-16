@@ -16,6 +16,8 @@
 
 #include <Kokkos_Pair.hpp>
 
+#include <cassert>
+
 namespace ArborX
 {
 namespace Details
