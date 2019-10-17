@@ -39,7 +39,7 @@ Member type | Description
 
 ## Example
 ```C++
-#include <ArborX_LinearBVH.hpp>
+#include <ArborX.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -89,40 +89,36 @@ struct Access<NearestToOrigin, PredicatesTag>
 } // namespace Traits
 } // namespace ArborX
 
-std::ostream &operator<<(std::ostream &os, ArborX::Point const &p)
-{
-  os << '(' << p[0] << ',' << p[1] << ',' << p[2] << ')';
-  return os;
-}
-
 int main(int argc, char *argv[])
 {
   Kokkos::initialize(argc, argv);
+  {
 
-  constexpr std::size_t N = 1000;
-  std::array<float, N> a;
+    constexpr std::size_t N = 1000;
+    std::array<float, N> a;
 
-  float *d_a;
-  cudaMalloc(&d_a, sizeof(float) * N);
+    float *d_a;
+    cudaMalloc(&d_a, sizeof(float) * N);
 
-  std::iota(std::begin(a), std::end(a), 1.0);
+    std::iota(std::begin(a), std::end(a), 1.0);
 
-  cudaMemcpy(d_a, a.data(), sizeof(float) * N, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_a, a.data(), sizeof(float) * N, cudaMemcpyHostToDevice);
 
-  using device_type = Kokkos::Cuda::device_type;
-  ArborX::BVH<device_type> bvh{PointCloud{d_a, d_a, d_a, N}};
+    using device_type = Kokkos::Cuda::device_type;
+    ArborX::BVH<device_type> bvh{PointCloud{d_a, d_a, d_a, N}};
 
-  Kokkos::View<int *, device_type> indices("indices", 0);
-  Kokkos::View<int *, device_type> offsets("offsets", 0);
-  bvh.query(NearestToOrigin{5}, indices, offsets);
+    Kokkos::View<int *, device_type> indices("indices", 0);
+    Kokkos::View<int *, device_type> offset("offset", 0);
+    bvh.query(NearestToOrigin{5}, indices, offset);
 
-  Kokkos::parallel_for(offsets.extent_int(0) - 1, KOKKOS_LAMBDA(int i) {
-    for (int j = offsets(i); j < offsets(i + 1); ++j)
-    {
-      printf("%i %i\n", i, indices(j);
-    }
-  });
+    Kokkos::parallel_for(1, KOKKOS_LAMBDA(int i) {
+      for (int j = offset(i); j < offset(i + 1); ++j)
+      {
+        printf("%i %i\n", i, indices(j));
+      }
+    });
 
+  }
   Kokkos::finalize();
 
   return 0;
