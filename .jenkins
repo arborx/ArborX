@@ -31,8 +31,7 @@ pipeline {
                         }
                         success {
                             sh 'cd build && make install'
-                            // This line is temporarily commented out until we put in proper installation examples
-                            // sh 'rm -rf tmp && mkdir -p tmp && cd tmp && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$ARBORX_DIR;$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" ../examples/bvh_driver && make VERBOSE=1 && make test'
+                            sh 'rm -rf test_install && mkdir -p test_install && cd test_install && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" ../examples/access_traits && make VERBOSE=1 && make test'
                         }
                     }
                 }
@@ -57,8 +56,7 @@ pipeline {
                         }
                         success {
                             sh 'cd build && make install'
-                            // This line is temporarily commented out until we put in proper installation examples
-                            // sh 'rm -rf tmp && mkdir -p tmp && cd tmp && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_CXX_EXTENSIONS=OFF -D CMAKE_PREFIX_PATH="$ARBORX_DIR;$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" ../examples/bvh_driver && make VERBOSE=1 && make test'
+                            sh 'rm -rf test_install && mkdir -p test_install && cd test_install && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" ../examples/access_traits && make VERBOSE=1 && make test'
                         }
                     }
                 }
