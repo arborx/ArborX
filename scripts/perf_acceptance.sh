@@ -12,8 +12,8 @@ BRANCHES=("master" "$1")
 shift
 
 BENCHMARK_CONFIGS=(
-  "--benchmark_filter=\"Cuda\" --benchmark_repetitions=10 --benchmark_display_aggregates_only=false"
-  "--benchmark_filter=\"Serial\" --benchmark_repetitions=10 --benchmark_display_aggregates_only=false"
+  "--benchmark_filter=\"Cuda\" --benchmark_repetitions=10"
+  "--benchmark_filter=\"Serial\" --benchmark_repetitions=10"
 )
 
 # Default settings
@@ -46,7 +46,7 @@ if [[ "$git_description" == *"dirty" ]]; then
   exit 1
 fi
 
-for build_number in $(seq 0 $((${#BRANCHES[@]}-1))); do
+for build_number in 0 1; do
   echo "build #${build_number}"
 
   git checkout "${BRANCHES[$build_number]}"
@@ -55,7 +55,7 @@ for build_number in $(seq 0 $((${#BRANCHES[@]}-1))); do
   BUILD_DIR="$PERF_DIR/build${build_number}"
   mkdir "$BUILD_DIR" && cd "$BUILD_DIR"
 
-  cmake_cmd="cmake ${CMAKE_DEFAULT_CONFIG[@]} ${CMAKE_EXTRA_CONFIG[@]} ${ARBORX_SOURCE_DIR}"
+  cmake_cmd="cmake ${CMAKE_DEFAULT_CONFIG[*]} ${CMAKE_EXTRA_CONFIG[*]} ${ARBORX_SOURCE_DIR}"
   output="configure.log"
   echo "$cmake_cmd" | tee    "$output"
   eval "$cmake_cmd" 2>&1 | tee -a "$output"
@@ -63,8 +63,8 @@ for build_number in $(seq 0 $((${#BRANCHES[@]}-1))); do
 
   cd benchmarks/bvh_driver
   for i in $(seq 0 $((${#BENCHMARK_CONFIGS[@]}-1))); do
-    test_cmd="./ArborX_BoundingVolumeHierarchy.exe ${BENCHMARK_CONFIGS[$i]}"
-    output="$PERF_DIR/build${build_number}_config${i}.log"
+    test_cmd="./ArborX_BoundingVolumeHierarchy.exe ${BENCHMARK_CONFIGS[$i]} --benchmark_format=json"
+    output="$PERF_DIR/build${build_number}_config${i}.json"
     echo "$test_cmd" | tee    "$output"
     eval "$test_cmd" 2>&1 | tee -a "$output"
   done
@@ -72,3 +72,11 @@ for build_number in $(seq 0 $((${#BRANCHES[@]}-1))); do
 done
 
 # Compare results
+for i in $(seq 0 $((${#BENCHMARK_CONFIGS[@]}-1))); do
+  echo "*** Config: ${BENCHMARK_CONFIGS[$i]} ***"
+
+  result1="$PERF_DIR/build0_config${i}.json"
+  result2="$PERF_DIR/build1_config${i}.json"
+
+  compare_bench -a "$result1" "$result2"
+done
