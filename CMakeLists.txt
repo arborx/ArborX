@@ -3,6 +3,7 @@ project(ArborX CXX)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 find_package(Kokkos REQUIRED)
+message(STATUS "Kokkos devices: ${Kokkos_DEVICES}")
 
 add_library(ArborX INTERFACE)
 target_link_libraries(ArborX INTERFACE Kokkos::Kokkos)
