@@ -80,12 +80,13 @@ void exclusivePrefixSum(Kokkos::View<ST, SP...> const &src,
   using ExecutionSpace =
       typename Kokkos::ViewTraits<DT, DP...>::execution_space;
   using ValueType = typename Kokkos::ViewTraits<DT, DP...>::value_type;
+  using DeviceType = typename Kokkos::ViewTraits<DT, DP...>::device_type;
 
   auto const n = src.extent(0);
   ARBORX_ASSERT(n == dst.extent(0));
   Kokkos::parallel_scan(
       "exclusive_scan", Kokkos::RangePolicy<ExecutionSpace>(0, n),
-      Details::ExclusiveScanFunctor<ValueType, ExecutionSpace>(src, dst));
+      Details::ExclusiveScanFunctor<ValueType, DeviceType>(src, dst));
 }
 
 /** \brief In-place exclusive scan.
