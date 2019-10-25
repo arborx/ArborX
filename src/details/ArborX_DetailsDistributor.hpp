@@ -142,7 +142,6 @@ public:
         "");
 
     std::vector<ValueType> dest_buffer(exports.size());
-    std::vector<ValueType> src_buffer(imports.size());
 
     // TODO
     // * apply permutation on the device in a parallel for
@@ -167,7 +166,7 @@ public:
         auto const message_size =
             _src_counts[i] * num_packets * sizeof(ValueType);
         auto const receive_buffer_ptr =
-            src_buffer.data() + _src_offsets[i] * num_packets;
+            imports.data() + _src_offsets[i] * num_packets;
         requests.emplace_back();
         MPI_Irecv(receive_buffer_ptr, message_size, MPI_BYTE, _sources[i], 123,
                   _comm, &requests.back());
@@ -185,7 +184,7 @@ public:
         ARBORX_ASSERT(it != _sources.end());
         auto const position = it - _sources.begin();
         auto const receive_buffer_ptr =
-            src_buffer.data() + _src_offsets[position] * num_packets;
+            imports.data() + _src_offsets[position] * num_packets;
         std::memcpy(receive_buffer_ptr, send_buffer_ptr, message_size);
       }
       else
@@ -197,8 +196,6 @@ public:
     }
     if (!requests.empty())
       MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
-
-    std::copy(src_buffer.begin(), src_buffer.end(), imports.data());
   }
   size_t getTotalReceiveLength() const { return _src_offsets.back(); }
   size_t getTotalSendLength() const { return _dest_offsets.back(); }
