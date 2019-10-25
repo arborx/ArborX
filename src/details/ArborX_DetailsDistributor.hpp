@@ -22,8 +22,6 @@
 
 #include <mpi.h>
 
-#define ARBORX_CUDA_AWARE_MPI
-
 namespace ArborX
 {
 namespace Details
@@ -141,7 +139,7 @@ public:
     using ExecutionSpace = typename View::execution_space;
     static_assert(View::rank == 1, "");
 
-#ifndef ARBORX_CUDA_AWARE_MPI
+#ifndef ARBORX_USE_CUDA_AWARE_MPI
     static_assert(
         Kokkos::Impl::MemorySpaceAccess<typename View::memory_space,
                                         Kokkos::HostSpace>::accessible,
@@ -189,7 +187,7 @@ public:
       }
     }
 
-#ifdef ARBORX_CUDA_AWARE_MPI
+#ifdef ARBORX_USE_CUDA_AWARE_MPI
     if (std::is_same<ExecutionSpace, Kokkos::Cuda>::value)
       cudaDeviceSynchronize();
 #endif
