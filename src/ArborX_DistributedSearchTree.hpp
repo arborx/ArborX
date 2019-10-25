@@ -121,8 +121,9 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
   Kokkos::View<Box *, DeviceType> boxes(
       Kokkos::ViewAllocateWithoutInitializing("rank_bounding_boxes"),
       comm_size);
-  // FIXME when we move to MPI with CUDA-aware support, we will not need to
-  // copy from the device to the host
+  // We could avoid copying between device host and device with CUDA-aware MPI,
+  // but this requires the object to be initialized on the device with host data
+  // (_bottom_tree.bounds()). Currently, it doesn't seem worthwhile trying this.
   auto boxes_host = Kokkos::create_mirror_view(boxes);
   boxes_host(comm_rank) = _bottom_tree.bounds();
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
