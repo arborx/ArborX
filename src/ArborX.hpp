@@ -16,7 +16,7 @@
 
 #include <ArborX_Box.hpp>
 #ifdef ARBORX_ENABLE_MPI
-#include <ArborX_DistributedSearchTree.hpp>
+#  include <ArborX_DistributedSearchTree.hpp>
 #endif
 #include <ArborX_Exception.hpp>
 #include <ArborX_LinearBVH.hpp>

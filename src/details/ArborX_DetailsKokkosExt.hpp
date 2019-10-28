@@ -58,17 +58,17 @@ struct is_accessible_from_host
 KOKKOS_INLINE_FUNCTION
 int clz(uint32_t x)
 {
-#if defined(__CUDA_ARCH__)
+#  if defined(__CUDA_ARCH__)
   // Note that the __clz() CUDA intrinsic function takes a signed integer
   // as input parameter.  This is fine but would need to be adjusted if
   // we were to change expandBits() and morton3D() to subdivide [0, 1]^3
   // into more 1024^3 bins.
   return __clz(x);
-#elif defined(KOKKOS_COMPILER_GNU) || (KOKKOS_COMPILER_CLANG >= 500)
+#  elif defined(KOKKOS_COMPILER_GNU) || (KOKKOS_COMPILER_CLANG >= 500)
   // According to https://en.wikipedia.org/wiki/Find_first_set
   // Clang 5.X supports the builtin function with the same syntax as GCC
   return (x == 0) ? 32 : __builtin_clz(x);
-#else
+#  else
   if (x == 0)
     return 32;
   // The following is taken from:
@@ -83,7 +83,7 @@ int clz(uint32_t x)
   x |= x >> 16;
   x++;
   return debruijn32[x * 0x076be629 >> 27];
-#endif
+#  endif
 }
 
 //! Compute the maximum of two values.
@@ -120,11 +120,11 @@ KOKKOS_INLINE_FUNCTION int sgn(T x)
 template <typename T>
 KOKKOS_INLINE_FUNCTION bool isFinite(T x)
 {
-#ifdef __CUDA_ARCH__
+#  ifdef __CUDA_ARCH__
   return isfinite(x);
-#else
+#  else
   return std::isfinite(x);
-#endif
+#  endif
 }
 
 namespace ArithmeticTraits

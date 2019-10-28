@@ -7,7 +7,7 @@
 #include <boost/type_traits/add_pointer.hpp>
 
 #ifndef BOOST_STATIC_ASSERT
-#define BOOST_STATIC_ASSERT(m) static_assert(m, "");
+#  define BOOST_STATIC_ASSERT(m) static_assert(m, "");
 #endif
 
 #endif

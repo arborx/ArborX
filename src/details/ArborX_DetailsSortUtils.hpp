@@ -20,7 +20,7 @@
 #include <Kokkos_View.hpp>
 
 #if defined(KOKKOS_ENABLE_CUDA)
-#if defined(KOKKOS_COMPILER_CLANG) && KOKKOS_COMPILER_CLANG < 900
+#  if defined(KOKKOS_COMPILER_CLANG) && KOKKOS_COMPILER_CLANG < 900
 // Clang of version less than 9.0 cannot compile Thrust, failing with errors
 // like this:
 //    <snip>/thrust/system/cuda/detail/core/agent_launcher.h:557:11:
@@ -30,22 +30,22 @@
 //
 // If _CubLog is already defined, we save it into ARBORX_CubLog_save, and
 // restore it at the end
-#ifdef _CubLog
-#define ARBORX_CubLog_save _CubLog
-#endif
-#define _CubLog(format, ...)
-#include <thrust/device_ptr.h>
-#include <thrust/sort.h>
-#undef _CubLog
-#ifdef ARBORX_CubLog_save
-#define _CubLog ARBORX_CubLog_save
-#undef ARBORX_CubLog_save
-#endif
-#else // #if (KOKKOS_COMPILER_CLANG < 900)
-#include <thrust/device_ptr.h>
-#include <thrust/sort.h>
-#endif // #if (KOKKOS_COMPILER_CLANG < 900)
-#endif // #if defined(KOKKOS_ENABLE_CUDA)
+#    ifdef _CubLog
+#      define ARBORX_CubLog_save _CubLog
+#    endif
+#    define _CubLog
+#    include <thrust/device_ptr.h>
+#    include <thrust/sort.h>
+#    undef _CubLog
+#    ifdef ARBORX_CubLog_save
+#      define _CubLog ARBORX_CubLog_save
+#      undef ARBORX_CubLog_save
+#    endif
+#  else // #if (KOKKOS_COMPILER_CLANG < 900)
+#    include <thrust/device_ptr.h>
+#    include <thrust/sort.h>
+#  endif // #if (KOKKOS_COMPILER_CLANG < 900)
+#endif   // #if defined(KOKKOS_ENABLE_CUDA)
 
 namespace ArborX
 {

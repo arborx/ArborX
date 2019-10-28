@@ -4,7 +4,7 @@
 #include <boost/test/unit_test.hpp>
 
 #if defined(ARBORX_MPI_UNIT_TEST)
-#include <mpi.h>
+#  include <mpi.h>
 #endif
 
 struct ExecutionEnvironmentScopeGuard

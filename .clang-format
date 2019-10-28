@@ -20,3 +20,4 @@ IncludeCategories:
 # Finally the standard library
   - Regex: "<[a-z_]+>"
     Priority: 10
+IndentPPDirectives: AfterHash

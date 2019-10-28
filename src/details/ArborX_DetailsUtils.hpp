@@ -298,11 +298,11 @@ void adjacentDifference(SrcViewType const &src, DstViewType const &dst)
 
 // FIXME get rid of this when Trilinos/Kokkos version is updated
 #ifndef KOKKOS_IMPL_CTOR_DEFAULT_ARG
-#ifdef KOKKOS_ENABLE_DEPRECATED_CODE
-#define KOKKOS_IMPL_CTOR_DEFAULT_ARG 0
-#else
-#define KOKKOS_IMPL_CTOR_DEFAULT_ARG (~std::size_t(0))
-#endif
+#  ifdef KOKKOS_ENABLE_DEPRECATED_CODE
+#    define KOKKOS_IMPL_CTOR_DEFAULT_ARG 0
+#  else
+#    define KOKKOS_IMPL_CTOR_DEFAULT_ARG (~std::size_t(0))
+#  endif
 #endif
 
 // NOTE: not possible to avoid initialization with Kokkos::realloc()
