@@ -13,6 +13,7 @@
 #define ARBORX_SEARCH_TEST_HELPERS_HPP
 
 // clang-format off
+#include "boost_ext/KokkosPairComparison.hpp"
 #include "boost_ext/TupleComparison.hpp"
 #include "CompressedSparseRow.hpp"
 #include "VectorOfTuples.hpp"
