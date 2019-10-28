@@ -350,6 +350,50 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity, DeviceType,
   BOOST_TEST(ArborX::lastElement(offset) == n);
 }
 
+template <typename DeviceType>
+struct CustomCallbackSpatialPredicate
+{
+  Kokkos::View<ArborX::Point *, DeviceType> points;
+  ArborX::Point const origin = {{0., 0., 0.}};
+  template <typename Insert>
+  KOKKOS_FUNCTION void operator()(int, int index, Insert const &insert) const
+  {
+    float const distance_to_origin =
+        ArborX::Details::distance(points(index), origin);
+    insert({index, distance_to_origin});
+  }
+};
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(callback, DeviceType, ARBORX_DEVICE_TYPES)
+{
+  int const n = 10;
+  Kokkos::View<ArborX::Point *, DeviceType> points("points", n);
+  Kokkos::View<Kokkos::pair<int, float> *, DeviceType> ref("ref", n);
+  ArborX::Point const origin = {{0., 0., 0.}};
+  using ExecutionSpace = typename DeviceType::execution_space;
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+        points(i) = {{(double)i, (double)i, (double)i}};
+        ref(i) = {i, (float)ArborX::Details::distance(points(i), origin)};
+      });
+  ArborX::BVH<DeviceType> const bvh{points};
+
+  Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
+  Kokkos::View<int *, DeviceType> offset("offset", 0);
+  bvh.query(makeIntersectsBoxQueries<DeviceType>({
+                bvh.bounds(),
+            }),
+            CustomCallbackSpatialPredicate<DeviceType>{points}, custom, offset);
+
+  auto custom_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
+  auto ref_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
+  auto offset_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
+  validateResults(std::make_tuple(offset_host, custom_host),
+                  std::make_tuple(offset_host, ref_host));
+}
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(miscellaneous, DeviceType, ARBORX_DEVICE_TYPES)
 {
   auto const bvh = make<ArborX::BVH<DeviceType>>({
