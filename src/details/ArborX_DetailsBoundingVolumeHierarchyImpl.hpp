@@ -73,7 +73,7 @@ struct BoundingVolumeHierarchyImpl
   // Views are passed by reference here because internally Kokkos::realloc()
   // is called.
   template <typename Predicates>
-  static void queryDispatch(Details::SpatialPredicateTag,
+  static void queryDispatch(SpatialPredicateTag,
                             BoundingVolumeHierarchy<DeviceType> const &bvh,
                             Predicates const &predicates,
                             Kokkos::View<int *, DeviceType> &indices,
@@ -102,8 +102,7 @@ struct BoundingVolumeHierarchyImpl
 
   template <typename Predicates>
   static void queryDispatch(
-      Details::NearestPredicateTag,
-      BoundingVolumeHierarchy<DeviceType> const &bvh,
+      NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
       Predicates const &predicates, Kokkos::View<int *, DeviceType> &indices,
       Kokkos::View<int *, DeviceType> &offset,
       NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default)
@@ -114,8 +113,7 @@ struct BoundingVolumeHierarchyImpl
 
   template <typename Predicates>
   static void queryDispatch(
-      Details::NearestPredicateTag tag,
-      BoundingVolumeHierarchy<DeviceType> const &bvh,
+      NearestPredicateTag tag, BoundingVolumeHierarchy<DeviceType> const &bvh,
       Predicates const &predicates, Kokkos::View<int *, DeviceType> &indices,
       Kokkos::View<int *, DeviceType> &offset,
       Kokkos::View<double *, DeviceType> &distances,
