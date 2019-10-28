@@ -8,7 +8,9 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            scmSkip(deleteBuild: true, skipPattern: '.*\\[(ci skip|skip ci)\\].*')
+            steps {
+                scmSkip(deleteBuild: true, skipPattern: '.*\\[(ci skip|skip ci)\\].*')
+            }
         }
         stage('Build') {
             parallel {
