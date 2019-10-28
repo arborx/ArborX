@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
   BOOST_TEST(emptry_dist_tree.empty());
   BOOST_TEST(emptry_dist_tree.size() == 0);
 
-  BOOST_TEST(ArborX::Details::equals(emptry_dist_tree.bounds(), {}));
+  BOOST_TEST(emptry_dist_tree.bounds().empty());
 
   checkResults(emptry_dist_tree, makeIntersectsBoxQueries<DeviceType>({}), {},
                {0}, {});

@@ -65,6 +65,15 @@ struct Box
   Point _max_corner = {{-KokkosExt::ArithmeticTraits::max<double>::value,
                         -KokkosExt::ArithmeticTraits::max<double>::value,
                         -KokkosExt::ArithmeticTraits::max<double>::value}};
+
+  KOKKOS_INLINE_FUNCTION
+  bool empty() const noexcept
+  {
+    for (unsigned int i = 0; i < 3; ++i)
+      if (_min_corner[i] >= _max_corner[i])
+        return true;
+    return false;
+  }
 };
 } // namespace ArborX
 
