@@ -67,7 +67,7 @@ sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
   {
     Kokkos::View<size_t *, DeviceType> permute(
         Kokkos::ViewAllocateWithoutInitializing("permutation"), n);
-    iota(permute);
+    ArborX::iota(permute);
 
     auto permute_ptr = thrust::device_ptr<size_t>(permute.data());
     auto begin_ptr = thrust::device_ptr<unsigned int>(view.data());
