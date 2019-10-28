@@ -19,6 +19,34 @@
 #include <Kokkos_Sort.hpp> // min_max_functor
 #include <Kokkos_View.hpp>
 
+#if defined(KOKKOS_ENABLE_CUDA)
+#if (KOKKOS_COMPILER_CLANG < 900)
+// Clang of version less than 9.0 cannot compile Thrust, failing with errors
+// like this:
+//    <snip>/thrust/system/cuda/detail/core/agent_launcher.h:557:11:
+//    error: use of undeclared identifier 'va_printf'
+// Defining _CubLog here allows us to avoid that code path, however disabling
+// some debugging diagnostics
+//
+// If _CubLog is already defined, we save it into ARBORX_CubLog_save, and
+// restore it at the end
+#ifdef _CubLog
+#define ARBORX_CubLog_save _CubLog
+#endif
+#define _CubLog
+#include <thrust/device_ptr.h>
+#include <thrust/sort.h>
+#undef _CubLog
+#ifdef ARBORX_CubLog_save
+#define _CubLog ARBORX_CubLog_save
+#undef ARBORX_CubLog_save
+#endif
+#else // #if (KOKKOS_COMPILER_CLANG < 900)
+#include <thrust/device_ptr.h>
+#include <thrust/sort.h>
+#endif // #if (KOKKOS_COMPILER_CLANG < 900)
+#endif // #if defined(KOKKOS_ENABLE_CUDA)
+
 namespace ArborX
 {
 
@@ -30,12 +58,29 @@ template <typename DeviceType>
 Kokkos::View<size_t *, DeviceType>
 sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   int const n = view.extent(0);
+
+#if defined(KOKKOS_ENABLE_CUDA)
+  if (std::is_same<ExecutionSpace, Kokkos::Cuda>::value)
+  {
+    Kokkos::View<size_t *, DeviceType> permute(
+        Kokkos::ViewAllocateWithoutInitializing("permutation"), n);
+    ArborX::iota(permute);
+
+    auto permute_ptr = thrust::device_ptr<size_t>(permute.data());
+    auto begin_ptr = thrust::device_ptr<unsigned int>(view.data());
+    auto end_ptr = thrust::device_ptr<unsigned int>(view.data() + n);
+    thrust::sort_by_key(begin_ptr, end_ptr, permute_ptr);
+
+    return permute;
+  }
+#endif
 
   using ViewType = decltype(view);
   using ValueType = typename ViewType::value_type;
   using CompType = Kokkos::BinOp1D<ViewType>;
-  using ExecutionSpace = typename DeviceType::execution_space;
 
   Kokkos::MinMaxScalar<ValueType> result;
   Kokkos::MinMax<ValueType> reducer(result);
