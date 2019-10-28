@@ -364,6 +364,17 @@ struct CustomCallbackSpatialPredicate
   }
 };
 
+template <typename DeviceType>
+struct CustomCallbackNearestPredicate
+{
+  template <typename Insert>
+  KOKKOS_FUNCTION void operator()(int, int index, double distance,
+                                  Insert const &insert) const
+  {
+    insert({index, (float)distance});
+  }
+};
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(callback, DeviceType, ARBORX_DEVICE_TYPES)
 {
   int const n = 10;
@@ -377,21 +388,38 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback, DeviceType, ARBORX_DEVICE_TYPES)
         ref(i) = {i, (float)ArborX::Details::distance(points(i), origin)};
       });
   ArborX::BVH<DeviceType> const bvh{points};
+  {
+    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
+    Kokkos::View<int *, DeviceType> offset("offset", 0);
+    bvh.query(makeIntersectsBoxQueries<DeviceType>({
+                  bvh.bounds(),
+              }),
+              CustomCallbackSpatialPredicate<DeviceType>{points}, custom,
+              offset);
 
-  Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
-  Kokkos::View<int *, DeviceType> offset("offset", 0);
-  bvh.query(makeIntersectsBoxQueries<DeviceType>({
-                bvh.bounds(),
-            }),
-            CustomCallbackSpatialPredicate<DeviceType>{points}, custom, offset);
+    auto custom_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
+    auto ref_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
+    auto offset_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
+    validateResults(std::make_tuple(offset_host, custom_host),
+                    std::make_tuple(offset_host, ref_host));
+  }
+  {
+    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
+    Kokkos::View<int *, DeviceType> offset("offset", 0);
+    bvh.query(makeNearestQueries<DeviceType>({
+                  {origin, n},
+              }),
+              CustomCallbackNearestPredicate<DeviceType>{}, custom, offset);
 
-  auto custom_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
-  auto ref_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
-  auto offset_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
-  validateResults(std::make_tuple(offset_host, custom_host),
-                  std::make_tuple(offset_host, ref_host));
+    auto custom_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
+    auto ref_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
+    BOOST_TEST(custom_host == ref_host, tt::per_element());
+  }
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(miscellaneous, DeviceType, ARBORX_DEVICE_TYPES)
