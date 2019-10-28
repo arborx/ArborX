@@ -14,6 +14,7 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsDistributedSearchTreeImpl.hpp>
+#include <ArborX_DetailsTreeVisualization.hpp>
 #include <ArborX_DetailsUtils.hpp> // accumulate
 #include <ArborX_LinearBVH.hpp>
 
@@ -104,6 +105,37 @@ private:
 };
 
 template <typename DeviceType>
+struct DummyFunctor
+{
+public:
+  DummyFunctor(const Kokkos::View<Box *, DeviceType> &boxes,
+               const BVH<DeviceType> &bottom_tree)
+      : _boxes(boxes)
+      , _bottom_tree(bottom_tree)
+  {
+  }
+  void KOKKOS_INLINE_FUNCTION operator()(const int i) const
+  {
+    using TreeAccess =
+        typename Details::TreeVisualization<DeviceType>::TreeAccess;
+    const auto root = TreeAccess::getRoot(_bottom_tree);
+    // printf("writing to address %p %p\n", (void*)(&_boxes(i)),
+    // (void*)(_boxes.data()+i));
+    _boxes(i) = TreeAccess::getBoundingVolume(root, _bottom_tree);
+    const auto min_corner_actual = _boxes(i)._min_corner;
+    // printf("Device min device is %f %f %f\n", min_corner_actual[0],
+    // min_corner_actual[1], min_corner_actual[2]);
+    const auto max_corner_actual = _boxes(i)._max_corner;
+    // printf("Device max device is %f %f %f\n", max_corner_actual[0],
+    // max_corner_actual[1], max_corner_actual[2]);
+  }
+
+private:
+  const Kokkos::View<Box *, DeviceType> _boxes;
+  const BVH<DeviceType> _bottom_tree;
+};
+
+template <typename DeviceType>
 template <typename Primitives>
 DistributedSearchTree<DeviceType>::DistributedSearchTree(
     MPI_Comm comm, Primitives const &primitives)
@@ -121,15 +153,87 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
   Kokkos::View<Box *, DeviceType> boxes(
       Kokkos::ViewAllocateWithoutInitializing("rank_bounding_boxes"),
       comm_size);
-  // We could avoid copying between device host and device with CUDA-aware MPI,
-  // but this requires the object to be initialized on the device with host data
-  // (_bottom_tree.bounds()). Currently, it doesn't seem worthwhile trying this.
-  auto boxes_host = Kokkos::create_mirror_view(boxes);
-  boxes_host(comm_rank) = _bottom_tree.bounds();
-  MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
-                static_cast<void *>(boxes_host.data()), sizeof(Box), MPI_BYTE,
-                _comm);
-  Kokkos::deep_copy(boxes, boxes_host);
+  using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
+
+#ifdef ARBORX_USE_CUDA_AWARE_MPI
+  if (std::is_same<ExecutionSpace, Kokkos::Cuda>::value)
+  {
+    Kokkos::parallel_for(ARBORX_MARK_REGION("initialize_rank_bounding_boxes"),
+                         Kokkos::RangePolicy<ExecutionSpace>(0, comm_size),
+                         DummyFunctor<DeviceType>(boxes, _bottom_tree));
+    cudaDeviceSynchronize();
+    {
+      //      printf("reading from address %p\n",
+      //      (void*)(boxes.data()+comm_rank));
+
+      auto boxes_host =
+          Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), boxes);
+      const auto min_corner_actual = boxes_host(comm_rank)._min_corner;
+      std::cout << "Device min before is " << min_corner_actual[0] << ' '
+                << min_corner_actual[1] << ' ' << min_corner_actual[2];
+
+      const auto min_corner_ref = _bottom_tree.bounds()._min_corner;
+      std::cout << " should be " << min_corner_ref[0] << ' '
+                << min_corner_ref[1] << ' ' << min_corner_ref[2] << std::endl;
+
+      const auto max_corner_actual = boxes_host(comm_rank)._max_corner;
+      std::cout << "Device max before is " << max_corner_actual[0] << ' '
+                << max_corner_actual[1] << ' ' << max_corner_actual[2];
+
+      const auto max_corner_ref = _bottom_tree.bounds()._max_corner;
+      std::cout << " should be " << max_corner_ref[0] << ' '
+                << max_corner_ref[1] << ' ' << max_corner_ref[2] << std::endl;
+    }
+    MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
+                  static_cast<void *>(boxes.data()), sizeof(Box), MPI_BYTE,
+                  _comm);
+    {
+      auto boxes_host =
+          Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), boxes);
+      const auto min_corner_actual = boxes_host(comm_rank)._min_corner;
+      std::cout << "Device min is " << min_corner_actual[0] << ' '
+                << min_corner_actual[1] << ' ' << min_corner_actual[2];
+
+      const auto min_corner_ref = _bottom_tree.bounds()._min_corner;
+      std::cout << " should be " << min_corner_ref[0] << ' '
+                << min_corner_ref[1] << ' ' << min_corner_ref[2] << std::endl;
+
+      const auto max_corner_actual = boxes_host(comm_rank)._max_corner;
+      std::cout << "Device max is " << max_corner_actual[0] << ' '
+                << max_corner_actual[1] << ' ' << max_corner_actual[2];
+
+      const auto max_corner_ref = _bottom_tree.bounds()._max_corner;
+      std::cout << " should be " << max_corner_ref[0] << ' '
+                << max_corner_ref[1] << ' ' << max_corner_ref[2] << std::endl;
+    }
+  }
+  else
+#endif
+  {
+    auto boxes_host = Kokkos::create_mirror_view(boxes);
+    boxes_host(comm_rank) = _bottom_tree.bounds();
+    MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
+                  static_cast<void *>(boxes_host.data()), sizeof(Box), MPI_BYTE,
+                  _comm);
+    Kokkos::deep_copy(boxes, boxes_host);
+
+    const auto min_corner_actual = boxes_host(comm_rank)._min_corner;
+    std::cout << "Host min is " << min_corner_actual[0] << ' '
+              << min_corner_actual[1] << ' ' << min_corner_actual[2];
+
+    const auto min_corner_ref = _bottom_tree.bounds()._min_corner;
+    std::cout << " should be " << min_corner_ref[0] << ' ' << min_corner_ref[1]
+              << ' ' << min_corner_ref[2] << std::endl;
+
+    const auto max_corner_actual = boxes_host(comm_rank)._max_corner;
+    std::cout << "Host max is " << max_corner_actual[0] << ' '
+              << max_corner_actual[1] << ' ' << max_corner_actual[2];
+
+    const auto max_corner_ref = _bottom_tree.bounds()._max_corner;
+    std::cout << " should be " << max_corner_ref[0] << ' ' << max_corner_ref[1]
+              << ' ' << max_corner_ref[2] << std::endl;
+  }
 
   _top_tree = BVH<DeviceType>(boxes);
 
