@@ -88,8 +88,8 @@ pipeline {
                 stage('PGI') {
                     agent {
                         docker {
-                            image "rombur/arborx-pgi:19.10.0d"
-                            label 'cathode'
+                            image "rombur/arborx-pgi:19.10.0"
+                            label 'docker'
                             alwaysPull true
                         }
                     }
