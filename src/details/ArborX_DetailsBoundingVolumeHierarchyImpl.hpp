@@ -173,7 +173,6 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   Kokkos::Profiling::pushRegion("ArborX:BVH:init_offset");
 
   reallocWithoutInitializing(offset, n_queries + 1);
-  Kokkos::deep_copy(offset, 0);
 
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("scan_queries_for_numbers_of_nearest_neighbors"),
@@ -311,7 +310,6 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   //                ^
   //                N
   reallocWithoutInitializing(offset, n_queries + 1);
-  Kokkos::deep_copy(offset, 0);
 
   // Not proud of that one but that will do for now :/
   auto const throw_if_buffer_optimization_fails = [&buffer_size]() {
@@ -378,11 +376,12 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   }
 
   // NOTE max() internally calls Kokkos::parallel_reduce.  Only pay for it if
-  // actually trying buffer optimization.  In principle, any strictly
+  // actually trying buffer optimization. In principle, any strictly
   // positive value can be assigned otherwise.
   auto const max_results_per_query =
       (buffer_size > 0)
-          ? max(offset)
+          ? max(Kokkos::subview(offset,
+                                Kokkos::pair<size_t, size_t>(0, n_queries)))
           : std::numeric_limits<typename std::remove_reference<decltype(
                 offset)>::type::value_type>::max();
 
