@@ -126,7 +126,7 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
   using TreeAccess =
       typename Details::TreeVisualization<DeviceType>::TreeAccess;
   const auto root = TreeAccess::getRoot(_bottom_tree);
-  Kokkos::View<Box, DeviceType, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
+  Kokkos::View<Box const, DeviceType, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
       root_bounding_volume(&TreeAccess::getBoundingVolume(root, _bottom_tree));
   Kokkos::deep_copy(Kokkos::subview(boxes, comm_rank), root_bounding_volume);
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
