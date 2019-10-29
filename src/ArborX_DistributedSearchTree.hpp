@@ -122,33 +122,24 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
   Kokkos::View<Box *, DeviceType> boxes(
       Kokkos::ViewAllocateWithoutInitializing("rank_bounding_boxes"),
       comm_size);
-  using ExecutionSpace = typename DeviceType::execution_space;
-  using MemorySpace = typename DeviceType::memory_space;
-
 #ifdef ARBORX_USE_CUDA_AWARE_MPI
-  if (std::is_same<ExecutionSpace, Kokkos::Cuda>::value)
-  {
-    using TreeAccess =
-        typename Details::TreeVisualization<DeviceType>::TreeAccess;
-    const auto root = TreeAccess::getRoot(_bottom_tree);
-    Kokkos::View<Box, DeviceType, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-        root_bounding_volume(
-            &TreeAccess::getBoundingVolume(root, _bottom_tree));
-    Kokkos::deep_copy(Kokkos::subview(boxes, comm_rank), root_bounding_volume);
-    MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
-                  static_cast<void *>(boxes.data()), sizeof(Box), MPI_BYTE,
-                  _comm);
-  }
-  else
+  using TreeAccess =
+      typename Details::TreeVisualization<DeviceType>::TreeAccess;
+  const auto root = TreeAccess::getRoot(_bottom_tree);
+  Kokkos::View<Box, DeviceType, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
+      root_bounding_volume(&TreeAccess::getBoundingVolume(root, _bottom_tree));
+  Kokkos::deep_copy(Kokkos::subview(boxes, comm_rank), root_bounding_volume);
+  MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
+                static_cast<void *>(boxes.data()), sizeof(Box), MPI_BYTE,
+                _comm);
+#else
+  auto boxes_host = Kokkos::create_mirror_view(boxes);
+  boxes_host(comm_rank) = _bottom_tree.bounds();
+  MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
+                static_cast<void *>(boxes_host.data()), sizeof(Box), MPI_BYTE,
+                _comm);
+  Kokkos::deep_copy(boxes, boxes_host);
 #endif
-  {
-    auto boxes_host = Kokkos::create_mirror_view(boxes);
-    boxes_host(comm_rank) = _bottom_tree.bounds();
-    MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
-                  static_cast<void *>(boxes_host.data()), sizeof(Box), MPI_BYTE,
-                  _comm);
-    Kokkos::deep_copy(boxes, boxes_host);
-  }
 
   _top_tree = BVH<DeviceType>(boxes);
 
