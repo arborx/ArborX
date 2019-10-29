@@ -105,37 +105,6 @@ private:
 };
 
 template <typename DeviceType>
-struct DummyFunctor
-{
-public:
-  DummyFunctor(const Kokkos::View<Box *, DeviceType> &boxes,
-               const BVH<DeviceType> &bottom_tree)
-      : _boxes(boxes)
-      , _bottom_tree(bottom_tree)
-  {
-  }
-  void KOKKOS_INLINE_FUNCTION operator()(const int i) const
-  {
-    using TreeAccess =
-        typename Details::TreeVisualization<DeviceType>::TreeAccess;
-    const auto root = TreeAccess::getRoot(_bottom_tree);
-    // printf("writing to address %p %p\n", (void*)(&_boxes(i)),
-    // (void*)(_boxes.data()+i));
-    _boxes(i) = TreeAccess::getBoundingVolume(root, _bottom_tree);
-    const auto min_corner_actual = _boxes(i)._min_corner;
-    // printf("Device min device is %f %f %f\n", min_corner_actual[0],
-    // min_corner_actual[1], min_corner_actual[2]);
-    const auto max_corner_actual = _boxes(i)._max_corner;
-    // printf("Device max device is %f %f %f\n", max_corner_actual[0],
-    // max_corner_actual[1], max_corner_actual[2]);
-  }
-
-private:
-  const Kokkos::View<Box *, DeviceType> _boxes;
-  const BVH<DeviceType> _bottom_tree;
-};
-
-template <typename DeviceType>
 template <typename Primitives>
 DistributedSearchTree<DeviceType>::DistributedSearchTree(
     MPI_Comm comm, Primitives const &primitives)
