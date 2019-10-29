@@ -27,7 +27,7 @@
 
 #include <mpi.h>
 
-#if defined(ARBORX_USE_CUDA_AWARE_MPI)
+#if defined(ARBORX_USE_CUDA_AWARE_MPI) && defined(OPEN_MPI)
 #include <mpi-ext.h>
 #if defined(MPIX_CUDA_AWARE_SUPPORT) && MPIX_CUDA_AWARE_SUPPORT
 // This MPI library has CUDA-aware support.
