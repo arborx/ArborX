@@ -70,7 +70,7 @@ struct TreeVisualization
     }
 
     template <typename Tree>
-    KOKKOS_INLINE_FUNCTION static typename Tree::bounding_volume_type
+    KOKKOS_INLINE_FUNCTION static typename Tree::bounding_volume_type const &
     getBoundingVolume(Node const *node, Tree const &tree)
     {
       return tree.getBoundingVolume(node);
