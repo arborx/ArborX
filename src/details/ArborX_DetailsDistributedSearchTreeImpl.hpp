@@ -34,7 +34,7 @@
 #elif defined(MPIX_CUDA_AWARE_SUPPORT) && !MPIX_CUDA_AWARE_SUPPORT
 #error This MPI library does not have CUDA-aware support.
 #else
-#error This MPI library cannot determine if there is CUDA-aware support.
+#warning This MPI library cannot determine if there is CUDA-aware support.
 #endif
 #endif
 
