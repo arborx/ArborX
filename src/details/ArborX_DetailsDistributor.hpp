@@ -187,10 +187,8 @@ public:
       }
     }
 
-#ifdef ARBORX_USE_CUDA_AWARE_MPI
-    if (std::is_same<ExecutionSpace, Kokkos::Cuda>::value)
-      cudaDeviceSynchronize();
-#endif
+    // make sure the data in dest_buffer has been copied before sending it.
+    ExecutionSpace().fence();
 
     for (int i = 0; i < outdegrees; ++i)
     {
