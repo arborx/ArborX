@@ -28,7 +28,7 @@
 #include <boost/range/combine.hpp>
 
 #ifdef ARBORX_ENABLE_MPI
-#  include <mpi.h>
+#include <mpi.h>
 #endif
 
 namespace BoostRTreeHelpers

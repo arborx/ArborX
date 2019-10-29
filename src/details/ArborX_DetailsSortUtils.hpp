@@ -19,6 +19,7 @@
 #include <Kokkos_Sort.hpp> // min_max_functor
 #include <Kokkos_View.hpp>
 
+// clang-format off
 #if defined(KOKKOS_ENABLE_CUDA)
 #  if defined(KOKKOS_COMPILER_CLANG) && KOKKOS_COMPILER_CLANG < 900
 // Clang of version less than 9.0 cannot compile Thrust, failing with errors
@@ -46,6 +47,7 @@
 #    include <thrust/sort.h>
 #  endif // #if (KOKKOS_COMPILER_CLANG < 900)
 #endif   // #if defined(KOKKOS_ENABLE_CUDA)
+// clang-format on
 
 namespace ArborX
 {

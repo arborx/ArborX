@@ -21,7 +21,7 @@
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsKokkosExt.hpp> // is_accessible_from
 #ifdef ARBORX_ENABLE_MPI
-#  include <ArborX_DistributedSearchTree.hpp>
+#include <ArborX_DistributedSearchTree.hpp>
 #endif
 #include <ArborX_LinearBVH.hpp>
 

@@ -21,7 +21,7 @@
 
 #if defined(ARBORX_HEADER_MUST_INCLUDE_CONFIG_HPP) &&                          \
     !defined(ARBORX_CONFIG_HPP)
-#  error "This header does not include ArborX_Config.hpp"
+#error "This header does not include ArborX_Config.hpp"
 #endif
 
 int main() { return 0; }

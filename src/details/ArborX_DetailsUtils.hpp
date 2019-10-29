@@ -297,6 +297,7 @@ void adjacentDifference(SrcViewType const &src, DstViewType const &dst)
 // utility helpers
 
 // FIXME get rid of this when Trilinos/Kokkos version is updated
+// clang-format off
 #ifndef KOKKOS_IMPL_CTOR_DEFAULT_ARG
 #  ifdef KOKKOS_ENABLE_DEPRECATED_CODE
 #    define KOKKOS_IMPL_CTOR_DEFAULT_ARG 0
@@ -304,6 +305,7 @@ void adjacentDifference(SrcViewType const &src, DstViewType const &dst)
 #    define KOKKOS_IMPL_CTOR_DEFAULT_ARG (~std::size_t(0))
 #  endif
 #endif
+// clang-format on
 
 // NOTE: not possible to avoid initialization with Kokkos::realloc()
 template <typename View>
