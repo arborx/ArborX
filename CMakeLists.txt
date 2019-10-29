@@ -12,6 +12,10 @@ if(ARBORX_ENABLE_MPI)
   find_package(MPI REQUIRED)
   target_link_libraries(ArborX INTERFACE MPI::MPI_CXX)
 endif()
+include(CMakeDependentOption)
+cmake_dependent_option(ARBORX_USE_CUDA_AWARE_MPI
+                       "Allow using device data in MPI communication"
+                       OFF "ARBORX_ENABLE_MPI" OFF)
 #target_compile_features(ArborX INTERFACE cxx_std_14)
 
 target_include_directories(ArborX INTERFACE

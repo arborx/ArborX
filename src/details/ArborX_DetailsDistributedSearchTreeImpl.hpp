@@ -211,6 +211,7 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
                            exports.extent(5) * exports.extent(6) *
                            exports.extent(7);
 
+#ifndef ARBORX_USE_CUDA_AWARE_MPI
   auto exports_host = create_layout_right_mirror_view(exports);
   Kokkos::deep_copy(exports_host, exports);
 
@@ -230,6 +231,9 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
   distributor.doPostsAndWaits(export_buffer, num_packets, import_buffer);
 
   Kokkos::deep_copy(imports, imports_host);
+#else
+  distributor.doPostsAndWaits(exports, num_packets, imports);
+#endif
 }
 
 template <typename DeviceType>
