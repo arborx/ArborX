@@ -27,6 +27,17 @@
 
 #include <mpi.h>
 
+#if defined(ARBORX_USE_CUDA_AWARE_MPI)
+#include <mpi-ext.h>
+#if defined(MPIX_CUDA_AWARE_SUPPORT) && MPIX_CUDA_AWARE_SUPPORT
+// This MPI library has CUDA-aware support.
+#elif defined(MPIX_CUDA_AWARE_SUPPORT) && !MPIX_CUDA_AWARE_SUPPORT
+#error This MPI library does not have CUDA-aware support.
+#else
+#error This MPI library cannot determine if there is CUDA-aware support.
+#endif
+#endif
+
 namespace ArborX
 {
 
