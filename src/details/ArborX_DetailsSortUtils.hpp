@@ -33,7 +33,7 @@
 #ifdef _CubLog
 #define ARBORX_CubLog_save _CubLog
 #endif
-#define _CubLog
+#define _CubLog(format, ...)
 #include <thrust/device_ptr.h>
 #include <thrust/sort.h>
 #undef _CubLog
