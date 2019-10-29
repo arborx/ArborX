@@ -9,6 +9,36 @@ pipeline {
     stages {
         stage('Build') {
             parallel {
+                stage('CUDA-10.1-NVCC-CUDA-AWARE-MPI') {
+                    agent {
+                        dockerfile {
+                            filename "Dockerfile"
+                            dir "docker"
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.1-devel --build-arg KOKKOS_OPTIONS="--with-serial --with-openmp --with-cuda --with-cuda-options=enable_lambda --arch=SNB,Volta70 --cxxstandard=c++14"'
+                            args '-v /tmp/ccache:/tmp/ccache'
+                            label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
+                        }
+                    }
+                    steps {
+                        sh 'ccache --zero-stats'
+                        sh 'rm -rf build && mkdir -p build'
+                        dir('build') {
+                            sh 'cmake -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR -D CMAKE_BUILD_TYPE=Debug -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" -D ARBORX_ENABLE_MPI=ON -D ARBORX_USE_CUDA_AWARE_MPI=ON -D MPIEXEC_PREFLAGS="--allow-run-as-root" ..'
+                            sh 'make -j8 VERBOSE=1'
+                            sh 'ctest --timeout 180 --no-compress-output -T Test'
+                        }
+                    }
+                    post {
+                        always {
+                            sh 'ccache --show-stats'
+                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                        }
+                        success {
+                            sh 'cd build && make install'
+                            sh 'rm -rf test_install && mkdir -p test_install && cd test_install && cp -r ../examples . && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" examples && make VERBOSE=1 && make test'
+                        }
+                    }
+                }
                 stage('CUDA-10.1-NVCC') {
                     agent {
                         dockerfile {
