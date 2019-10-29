@@ -27,16 +27,18 @@
 
 #include <mpi.h>
 
+// clang-format off
 #if defined(ARBORX_USE_CUDA_AWARE_MPI) && defined(OPEN_MPI)
 #include <mpi-ext.h>
 #if defined(MPIX_CUDA_AWARE_SUPPORT) && MPIX_CUDA_AWARE_SUPPORT
-// This MPI library has CUDA-aware support.
+  // This MPI library has CUDA-aware support.
 #elif defined(MPIX_CUDA_AWARE_SUPPORT) && !MPIX_CUDA_AWARE_SUPPORT
-#error This MPI library does not have CUDA-aware support.
+  #error This MPI library does not have CUDA-aware support.
 #else
-#warning This MPI library cannot determine if there is CUDA-aware support.
+  #warning This MPI library cannot determine if there is CUDA-aware support.
 #endif
 #endif
+// clang-format on
 
 namespace ArborX
 {
