@@ -108,7 +108,8 @@ public:
                                  _dest_counts, _dest_offsets);
 
     std::vector<int> src_counts_dense(comm_size);
-    for (int i = 0; i < _destinations.size(); ++i)
+    int const dest_size = _destinations.size();
+    for (int i = 0; i < dest_size; ++i)
     {
       src_counts_dense[_destinations[i]] = _dest_counts[i];
     }
