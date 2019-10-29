@@ -162,51 +162,10 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
     Kokkos::parallel_for(ARBORX_MARK_REGION("initialize_rank_bounding_boxes"),
                          Kokkos::RangePolicy<ExecutionSpace>(0, comm_size),
                          DummyFunctor<DeviceType>(boxes, _bottom_tree));
-    cudaDeviceSynchronize();
-    {
-      //      printf("reading from address %p\n",
-      //      (void*)(boxes.data()+comm_rank));
-
-      auto boxes_host =
-          Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), boxes);
-      const auto min_corner_actual = boxes_host(comm_rank)._min_corner;
-      std::cout << "Device min before is " << min_corner_actual[0] << ' '
-                << min_corner_actual[1] << ' ' << min_corner_actual[2];
-
-      const auto min_corner_ref = _bottom_tree.bounds()._min_corner;
-      std::cout << " should be " << min_corner_ref[0] << ' '
-                << min_corner_ref[1] << ' ' << min_corner_ref[2] << std::endl;
-
-      const auto max_corner_actual = boxes_host(comm_rank)._max_corner;
-      std::cout << "Device max before is " << max_corner_actual[0] << ' '
-                << max_corner_actual[1] << ' ' << max_corner_actual[2];
-
-      const auto max_corner_ref = _bottom_tree.bounds()._max_corner;
-      std::cout << " should be " << max_corner_ref[0] << ' '
-                << max_corner_ref[1] << ' ' << max_corner_ref[2] << std::endl;
-    }
+    ExecutionSpace{}.fence();
     MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                   static_cast<void *>(boxes.data()), sizeof(Box), MPI_BYTE,
                   _comm);
-    {
-      auto boxes_host =
-          Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), boxes);
-      const auto min_corner_actual = boxes_host(comm_rank)._min_corner;
-      std::cout << "Device min is " << min_corner_actual[0] << ' '
-                << min_corner_actual[1] << ' ' << min_corner_actual[2];
-
-      const auto min_corner_ref = _bottom_tree.bounds()._min_corner;
-      std::cout << " should be " << min_corner_ref[0] << ' '
-                << min_corner_ref[1] << ' ' << min_corner_ref[2] << std::endl;
-
-      const auto max_corner_actual = boxes_host(comm_rank)._max_corner;
-      std::cout << "Device max is " << max_corner_actual[0] << ' '
-                << max_corner_actual[1] << ' ' << max_corner_actual[2];
-
-      const auto max_corner_ref = _bottom_tree.bounds()._max_corner;
-      std::cout << " should be " << max_corner_ref[0] << ' '
-                << max_corner_ref[1] << ' ' << max_corner_ref[2] << std::endl;
-    }
   }
   else
 #endif
@@ -217,22 +176,6 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
                   static_cast<void *>(boxes_host.data()), sizeof(Box), MPI_BYTE,
                   _comm);
     Kokkos::deep_copy(boxes, boxes_host);
-
-    const auto min_corner_actual = boxes_host(comm_rank)._min_corner;
-    std::cout << "Host min is " << min_corner_actual[0] << ' '
-              << min_corner_actual[1] << ' ' << min_corner_actual[2];
-
-    const auto min_corner_ref = _bottom_tree.bounds()._min_corner;
-    std::cout << " should be " << min_corner_ref[0] << ' ' << min_corner_ref[1]
-              << ' ' << min_corner_ref[2] << std::endl;
-
-    const auto max_corner_actual = boxes_host(comm_rank)._max_corner;
-    std::cout << "Host max is " << max_corner_actual[0] << ' '
-              << max_corner_actual[1] << ' ' << max_corner_actual[2];
-
-    const auto max_corner_ref = _bottom_tree.bounds()._max_corner;
-    std::cout << " should be " << max_corner_ref[0] << ' ' << max_corner_ref[1]
-              << ' ' << max_corner_ref[2] << std::endl;
   }
 
   _top_tree = BVH<DeviceType>(boxes);
