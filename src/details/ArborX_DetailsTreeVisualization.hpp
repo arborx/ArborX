@@ -32,14 +32,15 @@ std::ostream &operator<<(std::ostream &os, Point const &p)
 template <typename DeviceType>
 struct TreeVisualization
 {
-  /*#if defined(KOKKOS_ENABLE_SERIAL)
-    static_assert(
-        std::is_same<typename DeviceType::execution_space,
-  Kokkos::Serial>::value, "tree visualization only available in serial"); #else
-    static_assert(
-        false,
-        "tree visualization not available when Kokkos serial is not enabled");
-  #endif*/
+#if defined(KOKKOS_ENABLE_SERIAL)
+  static_assert(
+      std::is_same<typename DeviceType::execution_space, Kokkos::Serial>::value,
+      "tree visualization only available in serial");
+#else
+  static_assert(
+      false,
+      "tree visualization not available when Kokkos serial is not enabled");
+#endif
   struct TreeAccess
   {
     KOKKOS_INLINE_FUNCTION
@@ -70,7 +71,7 @@ struct TreeVisualization
     }
 
     template <typename Tree>
-    KOKKOS_INLINE_FUNCTION static typename Tree::bounding_volume_type const &
+    KOKKOS_INLINE_FUNCTION static typename Tree::bounding_volume_type
     getBoundingVolume(Node const *node, Tree const &tree)
     {
       return tree.getBoundingVolume(node);
