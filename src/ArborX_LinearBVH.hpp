@@ -88,25 +88,8 @@ public:
         Tag{}, *this, predicates, std::forward<Args>(args)...);
   }
 
-private:
-  friend struct Details::TreeTraversal<DeviceType>;
-  friend struct Details::TreeVisualization<DeviceType>;
+protected:
   using Node = Details::Node;
-
-  Kokkos::View<Node *, DeviceType> getInternalNodes()
-  {
-    assert(!empty());
-    return Kokkos::subview(_internal_and_leaf_nodes,
-                           std::make_pair(size_type{0}, size() - 1));
-  }
-
-  Kokkos::View<Node *, DeviceType> getLeafNodes()
-  {
-    assert(!empty());
-    return Kokkos::subview(_internal_and_leaf_nodes,
-                           std::make_pair(size() - 1, 2 * size() - 1));
-  }
-
   KOKKOS_INLINE_FUNCTION
   Node const *getRoot() const { return _internal_and_leaf_nodes.data(); }
 
@@ -123,6 +106,24 @@ private:
   bounding_volume_type &getBoundingVolume(Node *node)
   {
     return node->bounding_box;
+  }
+
+private:
+  friend struct Details::TreeTraversal<DeviceType>;
+  friend struct Details::TreeVisualization<DeviceType>;
+
+  Kokkos::View<Node *, DeviceType> getInternalNodes()
+  {
+    assert(!empty());
+    return Kokkos::subview(_internal_and_leaf_nodes,
+                           std::make_pair(size_type{0}, size() - 1));
+  }
+
+  Kokkos::View<Node *, DeviceType> getLeafNodes()
+  {
+    assert(!empty());
+    return Kokkos::subview(_internal_and_leaf_nodes,
+                           std::make_pair(size() - 1, 2 * size() - 1));
   }
 
   size_t _size;

@@ -14,7 +14,6 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsDistributedSearchTreeImpl.hpp>
-#include <ArborX_DetailsTreeVisualization.hpp>
 #include <ArborX_DetailsUtils.hpp> // accumulate
 #include <ArborX_LinearBVH.hpp>
 
@@ -31,7 +30,7 @@ namespace ArborX
  *  communicator passed to the constructor.
  */
 template <typename DeviceType>
-class DistributedSearchTree
+class DistributedSearchTree : private BVH<DeviceType>
 {
 public:
   using device_type = DeviceType;
@@ -99,7 +98,7 @@ private:
   friend struct Details::DistributedSearchTreeImpl<DeviceType>;
   MPI_Comm _comm;
   BVH<DeviceType> _top_tree;    // replicated
-  BVH<DeviceType> _bottom_tree; // local
+  BVH<DeviceType> &_bottom_tree = *this; // local
   size_type _top_tree_size;
   Kokkos::View<size_type *, DeviceType> _bottom_tree_sizes;
 };
@@ -108,7 +107,7 @@ template <typename DeviceType>
 template <typename Primitives>
 DistributedSearchTree<DeviceType>::DistributedSearchTree(
     MPI_Comm comm, Primitives const &primitives)
-    : _bottom_tree(primitives)
+    : BVH<DeviceType>{primitives}
 {
   // Create new context for the library to isolate library's communication from
   // user's
@@ -123,14 +122,11 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
       Kokkos::ViewAllocateWithoutInitializing("rank_bounding_boxes"),
       comm_size);
 #ifdef ARBORX_USE_CUDA_AWARE_MPI
-  using TreeAccess =
-      typename Details::TreeVisualization<DeviceType>::TreeAccess;
   if (!_bottom_tree.empty())
   {
-    const auto root = TreeAccess::getRoot(_bottom_tree);
     Kokkos::View<Box const, DeviceType, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
         root_bounding_volume(
-            &TreeAccess::getBoundingVolume(root, _bottom_tree));
+            &this->getBoundingVolume(this->getRoot()));
     Kokkos::deep_copy(Kokkos::subview(boxes, comm_rank), root_bounding_volume);
   }
   else
