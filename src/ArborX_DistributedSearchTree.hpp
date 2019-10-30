@@ -125,10 +125,18 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
 #ifdef ARBORX_USE_CUDA_AWARE_MPI
   using TreeAccess =
       typename Details::TreeVisualization<DeviceType>::TreeAccess;
-  const auto root = TreeAccess::getRoot(_bottom_tree);
-  Kokkos::View<Box const, DeviceType, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-      root_bounding_volume(&TreeAccess::getBoundingVolume(root, _bottom_tree));
-  Kokkos::deep_copy(Kokkos::subview(boxes, comm_rank), root_bounding_volume);
+  if (!_bottom_tree.empty())
+  {
+    const auto root = TreeAccess::getRoot(_bottom_tree);
+    Kokkos::View<Box const, DeviceType, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
+        root_bounding_volume(
+            &TreeAccess::getBoundingVolume(root, _bottom_tree));
+    Kokkos::deep_copy(Kokkos::subview(boxes, comm_rank), root_bounding_volume);
+  }
+  else
+  {
+    Kokkos::deep_copy(Kokkos::subview(boxes, comm_rank), Box{});
+  }
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                 static_cast<void *>(boxes.data()), sizeof(Box), MPI_BYTE,
                 _comm);
