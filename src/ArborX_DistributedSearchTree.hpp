@@ -97,7 +97,7 @@ public:
 private:
   friend struct Details::DistributedSearchTreeImpl<DeviceType>;
   MPI_Comm _comm;
-  BVH<DeviceType> _top_tree;    // replicated
+  BVH<DeviceType> _top_tree;             // replicated
   BVH<DeviceType> &_bottom_tree = *this; // local
   size_type _top_tree_size;
   Kokkos::View<size_type *, DeviceType> _bottom_tree_sizes;
@@ -125,8 +125,7 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
   if (!_bottom_tree.empty())
   {
     Kokkos::View<Box const, DeviceType, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-        root_bounding_volume(
-            &this->getBoundingVolume(this->getRoot()));
+        root_bounding_volume(&this->getBoundingVolume(this->getRoot()));
     Kokkos::deep_copy(Kokkos::subview(boxes, comm_rank), root_bounding_volume);
   }
   else
