@@ -95,9 +95,9 @@ if(${ARBORX_ENABLE_TESTS} OR ${ARBORX_ENABLE_EXAMPLES})
 endif()
 
 if(${ARBORX_ENABLE_TESTS})
-  add_subdirectory(test)
   # Globbing all the header filenames to test for self-containment and presence of header guards
   file(GLOB_RECURSE ArborX_HEADERS RELATIVE ${CMAKE_SOURCE_DIR}/src src/*.hpp)
+  add_subdirectory(test)
 endif()
 if(${ARBORX_ENABLE_EXAMPLES})
   add_subdirectory(examples)

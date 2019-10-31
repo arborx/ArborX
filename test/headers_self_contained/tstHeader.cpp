@@ -19,4 +19,8 @@
 #include ARBORX_HEADER_TO_TEST
 #include ARBORX_HEADER_TO_TEST
 
+#if !defined(ARBORX_CONFIG_HPP)
+#error "This header does not include ArborX_Config.hpp"
+#endif
+
 int main() { return 0; }
