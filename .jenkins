@@ -193,7 +193,11 @@ pipeline {
     post {
         always {
             node('docker') {
-                recordIssues enabledForFailure: true, tools: [cmake(), gcc(), clang(), clangTidy()]
+                recordIssues(
+                    enabledForFailure: true,
+                    tools: [cmake(), gcc(), clang(), clangTidy()],
+                    qualityGates: [[threshold: 0, type: 'TOTAL', unstable: true]]
+                )
             }
         }
     }
