@@ -1,6 +1,9 @@
 # Create tests that contain each header separately. We do not  run these tests
 # but we just try to compile them.
 foreach (_header ${ArborX_HEADERS})
+  if(NOT ARBORX_ENABLE_MPI AND _header IN_LIST ArborX_HEADERS_MUST_ENABLE_MPI)
+    continue()
+  endif()
   string(REGEX REPLACE "[\./]" "_" header_test_name ${_header})
   set(header_test_name ArborX_HeaderSelfContained_${header_test_name})
   add_executable(${header_test_name} tstHeader.cpp)
