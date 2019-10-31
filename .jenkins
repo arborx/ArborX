@@ -23,7 +23,19 @@ pipeline {
                         sh 'ccache --zero-stats'
                         sh 'rm -rf build && mkdir -p build'
                         dir('build') {
-                            sh 'cmake -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR -D CMAKE_BUILD_TYPE=Debug -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" -D ARBORX_ENABLE_MPI=ON -D ARBORX_USE_CUDA_AWARE_MPI=ON -D MPIEXEC_PREFLAGS="--allow-run-as-root" ..'
+                            sh '''
+                                cmake \
+                                    -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
+                                    -D CMAKE_BUILD_TYPE=Debug \
+                                    -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                                    -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper \
+                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
+                                    -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
+                                    -D ARBORX_ENABLE_MPI=ON \
+                                    -D ARBORX_USE_CUDA_AWARE_MPI=ON \
+                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                ..
+                            '''
                             sh 'make -j8 VERBOSE=1'
                             sh 'ctest --timeout 180 --no-compress-output -T Test'
                         }
@@ -53,7 +65,18 @@ pipeline {
                         sh 'ccache --zero-stats'
                         sh 'rm -rf build && mkdir -p build'
                         dir('build') {
-                            sh 'cmake -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR -D CMAKE_BUILD_TYPE=Debug -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" -D ARBORX_ENABLE_MPI=ON -D MPIEXEC_PREFLAGS="--allow-run-as-root" ..'
+                            sh '''
+                                cmake \
+                                    -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
+                                    -D CMAKE_BUILD_TYPE=Debug \
+                                    -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                                    -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper \
+                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
+                                    -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
+                                    -D ARBORX_ENABLE_MPI=ON \
+                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                ..
+                            '''
                             sh 'make -j8 VERBOSE=1'
                             sh 'ctest --timeout 180 --no-compress-output -T Test'
                         }
@@ -83,7 +106,18 @@ pipeline {
                         sh 'ccache --zero-stats'
                         sh 'rm -rf build && mkdir -p build'
                         dir('build') {
-                            sh 'cmake -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR -D CMAKE_BUILD_TYPE=Debug -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_CXX_EXTENSIONS=OFF -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" -D ARBORX_ENABLE_MPI=ON -D MPIEXEC_PREFLAGS="--allow-run-as-root" ..'
+                            sh '''
+                                cmake \
+                                    -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
+                                    -D CMAKE_BUILD_TYPE=Debug \
+                                    -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                                    -D CMAKE_CXX_COMPILER=clang++ \
+                                    -D CMAKE_CXX_EXTENSIONS=OFF \
+                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
+                                    -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
+                                    -D ARBORX_ENABLE_MPI=ON -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                ..
+                            '''
                             sh 'make -j8 VERBOSE=1'
                             sh 'ctest --timeout 180 --no-compress-output -T Test'
                         }
@@ -114,7 +148,18 @@ pipeline {
                         sh 'ccache --zero-stats'
                         sh 'rm -rf build && mkdir -p build'
                         dir('build') {
-                            sh 'cmake -D CMAKE_BUILD_TYPE=Debug -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" -D ARBORX_ENABLE_MPI=ON -D MPIEXEC_PREFLAGS="--allow-run-as-root" ..'
+                            sh '''
+                                cmake \
+                                    -D CMAKE_BUILD_TYPE=Debug \
+                                    -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                                    -D CMAKE_CXX_COMPILER=clang++ \
+                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
+                                    -D CMAKE_CXX_CLANG_TIDY="$LLVM_DIR/bin/clang-tidy" \
+                                    -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
+                                    -D ARBORX_ENABLE_MPI=ON \
+                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                ..
+                            '''
                             sh 'make -j8 VERBOSE=1'
                             sh 'ctest --timeout 180 --no-compress-output -T Test'
                         }
@@ -162,6 +207,18 @@ pipeline {
             }
             steps {
                 sh './scripts/check_format_cpp.sh'
+            }
+        }
+    }
+    post {
+        always {
+            node('docker') {
+                recordIssues(
+                    enabledForFailure: true,
+                    tools: [cmake(), gcc(), clang(), clangTidy()],
+                    qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]],
+                    filters: [excludeFile('/usr/local/cuda.*')]
+                )
             }
         }
     }
