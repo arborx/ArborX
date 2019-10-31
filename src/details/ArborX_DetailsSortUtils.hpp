@@ -62,22 +62,6 @@ sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
 
   int const n = view.extent(0);
 
-#if defined(KOKKOS_ENABLE_CUDA)
-  if (std::is_same<ExecutionSpace, Kokkos::Cuda>::value)
-  {
-    Kokkos::View<size_t *, DeviceType> permute(
-        Kokkos::ViewAllocateWithoutInitializing("permutation"), n);
-    ArborX::iota(permute);
-
-    auto permute_ptr = thrust::device_ptr<size_t>(permute.data());
-    auto begin_ptr = thrust::device_ptr<unsigned int>(view.data());
-    auto end_ptr = thrust::device_ptr<unsigned int>(view.data() + n);
-    thrust::sort_by_key(begin_ptr, end_ptr, permute_ptr);
-
-    return permute;
-  }
-#endif
-
   using ViewType = decltype(view);
   using ValueType = typename ViewType::value_type;
   using CompType = Kokkos::BinOp1D<ViewType>;
@@ -109,6 +93,27 @@ sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
   return bin_sort.get_permute_vector();
 }
 
+#if defined(KOKKOS_ENABLE_CUDA)
+// NOTE returns the permutation indices **and** sorts the morton codes
+template <typename MemorySpace>
+Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> sortObjects(
+    Kokkos::View<unsigned int *, Kokkos::Device<Kokkos::Cuda, MemorySpace>>
+        view)
+{
+  int const n = view.extent(0);
+
+  Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> permute(
+      Kokkos::ViewAllocateWithoutInitializing("permutation"), n);
+  ArborX::iota(permute);
+
+  auto permute_ptr = thrust::device_ptr<size_t>(permute.data());
+  auto begin_ptr = thrust::device_ptr<unsigned int>(view.data());
+  auto end_ptr = thrust::device_ptr<unsigned int>(view.data() + n);
+  thrust::sort_by_key(begin_ptr, end_ptr, permute_ptr);
+
+  return permute;
+}
+#endif
 } // namespace Details
 
 } // namespace ArborX
