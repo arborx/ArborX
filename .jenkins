@@ -186,12 +186,30 @@ pipeline {
                     }
                     steps {
                         sh 'ccache --zero-stats'
-                        sh 'echo $PATH && rm -rf build && mkdir -p build && cd build && cmake -D CMAKE_BUILD_TYPE=Debug -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=pgc++ -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" -D ARBORX_ENABLE_MPI=ON -D MPIEXEC_PREFLAGS="--allow-run-as-root" .. && make -j8 VERBOSE=1 && ctest --no-compress-output -T Test'
+                        sh 'rm -rf build && mkdir -p build'
+                        dir('build') {
+                            sh '''
+                              cmake \
+                                  -D CMAKE_BUILD_TYPE=Debug \
+                                  -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                                  -D CMAKE_CXX_COMPILER=pgc++ \
+                                  -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
+                                  -D ARBORX_ENABLE_MPI=ON \
+                                  -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                              ..
+                            '''
+                            sh 'make -j8 VERBOSE=1'
+                            sh 'ctest ---timeout 180 --no-compress-output -T Test'
+                        }
                     }
                     post {
                         always {
                             sh 'ccache --show-stats'
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                        }
+                        success {
+                            sh 'cd build && make install'
+                            sh 'rm -rf test_install && mkdir -p test_install && cd test_install && cp -r ../examples . && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=pgc++ -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" examples && make VERBOSE=1 && make test'
                         }
                     }
                 }
