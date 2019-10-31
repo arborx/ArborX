@@ -196,7 +196,7 @@ pipeline {
                 recordIssues(
                     enabledForFailure: true,
                     tools: [cmake(), gcc(), clang(), clangTidy()],
-                    qualityGates: [[threshold: 0, type: 'TOTAL', unstable: true]],
+                    qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]],
                     filters: [excludeFile('/usr/local/cuda.*')]
                 )
             }
