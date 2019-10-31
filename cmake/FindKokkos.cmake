@@ -99,6 +99,16 @@ if("${Kokkos_LIBRARY}" MATCHES "kokkoscore")
   list(INSERT PC_Kokkos_LDFLAGS ${index} "-lkokkosalgorithms;-lkokkoscontainers;-lkokkoscore")
 endif()
 
+if("${PC_Kokkos_CFLAGS_OTHER}" MATCHES "c\\+\\+11")
+  # Kokkos was configured in C++11 mode. As ArborX requires C++14, but picks up
+  # flags from Kokkos, hack that flag.
+  # NOTE: This is really only useful for for building ArborX against Trilinos
+  # installation, as it is currently impossible to compile whole Trilinos in C++14.
+  list(FIND PC_Kokkos_CFLAGS_OTHER "--std=c++11" index)
+  list(REMOVE_AT PC_Kokkos_CFLAGS_OTHER ${index})
+  list(INSERT PC_Kokkos_CFLAGS_OTHER ${index} "--std=c++14")
+endif()
+
 # For clang we need to add the cudart library explicitly
 # since Kokkos doesn't do that for us.
 if(Kokkos_DEVICES MATCHES "Cuda")
