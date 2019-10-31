@@ -130,6 +130,26 @@ pipeline {
                         }
                     }
                 }
+
+                stage('PGI') {
+                    agent {
+                        docker {
+                            image "rombur/arborx-pgi:19.10.0"
+                            label 'docker'
+                            alwaysPull true
+                        }
+                    }
+                    steps {
+                        sh 'ccache --zero-stats'
+                        sh 'echo $PATH && rm -rf build && mkdir -p build && cd build && cmake -D CMAKE_BUILD_TYPE=Debug -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=pgc++ -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" -D ARBORX_ENABLE_MPI=ON -D MPIEXEC_PREFLAGS="--allow-run-as-root" .. && make -j8 VERBOSE=1 && ctest --no-compress-output -T Test'
+                    }
+                    post {
+                        always {
+                            sh 'ccache --show-stats'
+                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                        }
+                    }
+                }
             }
         }
         stage("Style") {
