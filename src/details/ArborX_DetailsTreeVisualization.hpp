@@ -89,14 +89,14 @@ struct TreeVisualization
   }
 
   template <typename Tree>
-  static std::string getNodeAttributes(Node const *node, Tree const &tree)
+  static std::string getNodeAttributes(Node const *node, Tree const &)
   {
     return node->isLeaf() ? "[leaf]" : "[internal]";
   }
 
   template <typename Tree>
   static std::string getEdgeAttributes(Node const * /*parent*/,
-                                       Node const *child, Tree const &tree)
+                                       Node const *child, Tree const &)
   {
     return child->isLeaf() ? "[pendant]" : "[edge]";
   }
@@ -197,6 +197,9 @@ struct TreeVisualization
     // warnings about calling a __host__ function from a __host__
     // __device__ function emitted by nvcc.
 #if defined(__CUDA_ARCH__)
+    (void)tree;
+    (void)pred;
+    (void)visitor;
     throw std::runtime_error("not meant to execute on the GPU");
 #else
     auto const geometry = pred._geometry;
