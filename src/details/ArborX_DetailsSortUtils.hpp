@@ -20,7 +20,7 @@
 #include <Kokkos_View.hpp>
 
 #if defined(KOKKOS_ENABLE_CUDA)
-#if (KOKKOS_COMPILER_CLANG < 900)
+#if defined(KOKKOS_COMPILER_CLANG) && KOKKOS_COMPILER_CLANG < 900
 // Clang of version less than 9.0 cannot compile Thrust, failing with errors
 // like this:
 //    <snip>/thrust/system/cuda/detail/core/agent_launcher.h:557:11:
