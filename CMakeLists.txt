@@ -86,6 +86,12 @@ endif()
 install(DIRECTORY ${PROJECT_BINARY_DIR}/include/ DESTINATION include
         FILES_MATCHING PATTERN "*.hpp")
 
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
+    "Choose the type of build, options are: Debug, Release, RelWithDebInfo and MinSizeRel."
+    FORCE)
+endif()
+
 option(ARBORX_ENABLE_TESTS "Enable tests" ON)
 option(ARBORX_ENABLE_EXAMPLES "Enable examples" ON)
 option(ARBORX_ENABLE_BENCHMARKS "Enable benchmarks" ON)
