@@ -9,6 +9,14 @@ endif()
 if(Kokkos_DEVICES MATCHES "Cuda")
   list(APPEND ARBORX_DEVICE_TYPES Kokkos::CudaSpace::device_type)
 endif()
+if(Kokkos_DEVICES MATCHES "Pthread")
+  list(APPEND ARBORX_DEVICE_TYPES Kokkos::Threads::device_type)
+endif()
+
+if(NOT ARBORX_DEVICE_TYPES)
+  message(SEND_ERROR "Kokkos_DEVICES must include at least one of 'Serial', 'OpenMP', 'Cuda' and 'Pthread'!")
+endif()
+
 string(REPLACE ";" "," ARBORX_DEVICE_TYPES "${ARBORX_DEVICE_TYPES}")
 configure_file(ArborX_EnableDeviceTypes.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/ArborX_EnableDeviceTypes.hpp @ONLY)
 

@@ -368,6 +368,11 @@ int main(int argc, char *argv[])
   REGISTER_BENCHMARK(ArborX::BVH<OpenMP>);
 #endif
 
+#ifdef KOKKOS_ENABLE_THREADS
+  using Threads = Kokkos::Threads::device_type;
+  REGISTER_BENCHMARK(ArborX::BVH<Threads>);
+#endif
+
 #ifdef KOKKOS_ENABLE_CUDA
   using Cuda = Kokkos::Cuda::device_type;
   REGISTER_BENCHMARK(ArborX::BVH<Cuda>);
