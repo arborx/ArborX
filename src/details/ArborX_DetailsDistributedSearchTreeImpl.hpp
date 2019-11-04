@@ -11,6 +11,8 @@
 #ifndef ARBORX_DETAILS_DISTRIBUTED_SEARCH_TREE_IMPL_HPP
 #define ARBORX_DETAILS_DISTRIBUTED_SEARCH_TREE_IMPL_HPP
 
+#include <ArborX_Config.hpp>
+
 #include <ArborX_DetailsDistributor.hpp>
 #include <ArborX_DetailsKokkosExt.hpp> // min, max
 #include <ArborX_DetailsPriorityQueue.hpp>

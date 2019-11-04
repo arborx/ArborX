@@ -11,6 +11,8 @@
 #ifndef ARBORX_DETAILS_DISTRIBUTOR_HPP
 #define ARBORX_DETAILS_DISTRIBUTOR_HPP
 
+#include <ArborX_Config.hpp>
+
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp> // FIXME
