@@ -505,12 +505,14 @@ int main(int argc, char *argv[])
     node = "cuda";
 #elif defined(KOKKOS_ENABLE_OPENMP)
     node = "openmp";
+#elif defined(KOKKOS_ENABLE_THREADS)
+    node = "threads";
 #elif defined(KOKKOS_ENABLE_SERIAL)
     node = "serial";
 #endif
     bpo::options_description desc("Parallel setting:");
     desc.add_options()("node", bpo::value<std::string>(&node),
-                       "node type (serial | openmp | cuda)");
+                       "node type (serial | openmp | threads | cuda)");
     bpo::variables_map vm;
     bpo::parsed_options parsed = bpo::command_line_parser(argc, argv)
                                      .options(desc)
@@ -548,6 +550,15 @@ int main(int argc, char *argv[])
       main_<Node>(pass_further, comm);
 #else
       throw std::runtime_error("OpenMP node type is disabled");
+#endif
+    }
+    if (node == "threads")
+    {
+#ifdef KOKKOS_ENABLE_THREADS
+      using Node = Kokkos::Threads;
+      main_<Node>(pass_further, comm);
+#else
+      throw std::runtime_error("Threads node type is disabled");
 #endif
     }
     if (node == "cuda")

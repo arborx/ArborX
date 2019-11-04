@@ -9,6 +9,14 @@ endif()
 if(Kokkos_ENABLE_CUDA)
   list(APPEND ARBORX_DEVICE_TYPES Kokkos::CudaSpace::device_type)
 endif()
+if(Kokkos_ENABLE_PTHREAD)
+  list(APPEND ARBORX_DEVICE_TYPES Kokkos::Threads::device_type)
+endif()
+
+if(NOT ARBORX_DEVICE_TYPES)
+  message(SEND_ERROR "Kokkos_DEVICES must include at least one of 'Serial', 'OpenMP', 'Cuda' and 'Pthread'!")
+endif()
+
 string(REPLACE ";" "," ARBORX_DEVICE_TYPES "${ARBORX_DEVICE_TYPES}")
 
 if(NOT ARBORX_DEVICE_TYPES)
