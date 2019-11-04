@@ -87,7 +87,7 @@ install(DIRECTORY ${PROJECT_BINARY_DIR}/include/ DESTINATION include
         FILES_MATCHING PATTERN "*.hpp")
 
 if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
+  set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING
     "Choose the type of build, options are: Debug, Release, RelWithDebInfo and MinSizeRel."
     FORCE)
 endif()
