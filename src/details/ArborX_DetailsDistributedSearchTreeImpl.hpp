@@ -452,21 +452,24 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   ////////////////////////////////////////////////////////////////////////////
 }
 
-// FIXME: for some reason Kokkos::BinSort::sort() was not const.
-// If https://github.com/kokkos/kokkos/pull/1310 makes it into master in
-// Trilinos, we might want to pass bin_sort by const reference.
-template <typename BinSort>
-void applyPermutations(BinSort &)
+template <typename PermutationView>
+void applyPermutations(PermutationView const &)
 {
   // do nothing
 }
 
-template <typename BinSort, typename View, typename... OtherViews>
-void applyPermutations(BinSort &bin_sort, View view, OtherViews... other_views)
+template <typename PermutationView, typename View, typename... OtherViews>
+void applyPermutations(PermutationView const &permutation, View view,
+                       OtherViews... other_views)
 {
-  ARBORX_ASSERT(bin_sort.get_permute_vector().extent(0) == view.extent(0));
-  bin_sort.sort(view);
-  applyPermutations(bin_sort, other_views...);
+  ARBORX_ASSERT(permutation.extent(0) == view.extent(0));
+  View scratch(Kokkos::ViewAllocateWithoutInitializing("scratch"), view.size());
+  Kokkos::parallel_for(
+      "permute",
+      Kokkos::RangePolicy<typename View::execution_space>(0, view.size()),
+      KOKKOS_LAMBDA(int i) { scratch(i) = view(permutation(i)); });
+  Kokkos::deep_copy(view, scratch);
+  applyPermutations(permutation, other_views...);
 }
 
 template <typename DeviceType>
@@ -481,7 +484,6 @@ void DistributedSearchTreeImpl<DeviceType>::sortResults(
   if (n == 0)
     return;
 
-  using Comp = Kokkos::BinOp1D<View>;
   using Value = typename View::non_const_value_type;
 
   Kokkos::MinMaxScalar<Value> result;
@@ -490,10 +492,12 @@ void DistributedSearchTreeImpl<DeviceType>::sortResults(
                   Kokkos::Impl::min_max_functor<View>(keys), reducer);
   if (result.min_val == result.max_val)
     return;
-  Kokkos::BinSort<View, Comp> bin_sort(
-      keys, Comp(n / 2, result.min_val, result.max_val), true);
-  bin_sort.create_permute_vector();
-  applyPermutations(bin_sort, other_views...);
+
+  View keys_clone(Kokkos::ViewAllocateWithoutInitializing("keys"), keys.size());
+  Kokkos::deep_copy(keys_clone, keys);
+  auto const permutation = ArborX::Details::sortObjects(keys_clone);
+
+  applyPermutations(permutation, other_views...);
 }
 
 template <typename DeviceType>

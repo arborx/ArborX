@@ -56,9 +56,9 @@ namespace Details
 {
 
 // NOTE returns the permutation indices **and** sorts the morton codes
-template <typename DeviceType>
+template <typename NumberType, typename DeviceType>
 Kokkos::View<size_t *, DeviceType>
-sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
+sortObjects(Kokkos::View<NumberType *, DeviceType> view)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
 
@@ -97,10 +97,9 @@ sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
 
 #if defined(KOKKOS_ENABLE_CUDA)
 // NOTE returns the permutation indices **and** sorts the morton codes
-template <typename MemorySpace>
+template <typename NumberType, typename MemorySpace>
 Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> sortObjects(
-    Kokkos::View<unsigned int *, Kokkos::Device<Kokkos::Cuda, MemorySpace>>
-        view)
+    Kokkos::View<NumberType *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> view)
 {
   int const n = view.extent(0);
 
@@ -109,8 +108,8 @@ Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> sortObjects(
   ArborX::iota(permute);
 
   auto permute_ptr = thrust::device_ptr<size_t>(permute.data());
-  auto begin_ptr = thrust::device_ptr<unsigned int>(view.data());
-  auto end_ptr = thrust::device_ptr<unsigned int>(view.data() + n);
+  auto begin_ptr = thrust::device_ptr<NumberType>(view.data());
+  auto end_ptr = thrust::device_ptr<NumberType>(view.data() + n);
   thrust::sort_by_key(begin_ptr, end_ptr, permute_ptr);
 
   return permute;
