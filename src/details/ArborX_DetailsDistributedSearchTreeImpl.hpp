@@ -459,16 +459,22 @@ void applyPermutations(PermutationView const &)
 }
 
 template <typename PermutationView, typename View, typename... OtherViews>
-void applyPermutations(PermutationView const &permutation, View view,
-                       OtherViews... other_views)
+void applyPermutations(PermutationView const &permutation, View &view,
+                       OtherViews &... other_views)
 {
+  static_assert(std::is_integral<typename PermutationView::value_type>::value,
+                "");
   ARBORX_ASSERT(permutation.extent(0) == view.extent(0));
-  View scratch(Kokkos::ViewAllocateWithoutInitializing("scratch"), view.size());
+  Kokkos::View<typename View::value_type *, typename View::device_type,
+               Kokkos::MemoryTraits<Kokkos::RandomAccess>>
+      scratch(Kokkos::ViewAllocateWithoutInitializing(view.label()),
+              view.size());
   Kokkos::parallel_for(
-      "permute",
+      ARBORX_MARK_REGION("permute"),
       Kokkos::RangePolicy<typename View::execution_space>(0, view.size()),
       KOKKOS_LAMBDA(int i) { scratch(i) = view(permutation(i)); });
   Kokkos::deep_copy(view, scratch);
+  // TODO consider working on multiple views simultaneously
   applyPermutations(permutation, other_views...);
 }
 
@@ -493,6 +499,9 @@ void DistributedSearchTreeImpl<DeviceType>::sortResults(
   if (result.min_val == result.max_val)
     return;
 
+  // We only want to get the permutation here, but sortObjects also sorts the
+  // elements given to it. Hence, we need to create a copy.
+  // TODO try to avoid the copy
   View keys_clone(Kokkos::ViewAllocateWithoutInitializing("keys"), keys.size());
   Kokkos::deep_copy(keys_clone, keys);
   auto const permutation = ArborX::Details::sortObjects(keys_clone);
