@@ -105,8 +105,8 @@ class Distributor
 {
 public:
   Distributor(MPI_Comm comm)
-      : _comm(comm),
-	_permute{Kokkos::ViewAllocateWithoutInitializing("permute"), 0}
+      : _comm(comm)
+      , _permute{Kokkos::ViewAllocateWithoutInitializing("permute"), 0}
   {
   }
 
@@ -157,6 +157,10 @@ public:
     using ExecutionSpace = typename View::execution_space;
     static_assert(View::rank == 1, "");
 
+    static_assert(
+        std::is_same<typename View::memory_space,
+                     typename decltype(_permute)::memory_space>::value,
+        "");
 #ifndef ARBORX_USE_CUDA_AWARE_MPI
     static_assert(
         Kokkos::Impl::MemorySpaceAccess<typename View::memory_space,
@@ -168,13 +172,16 @@ public:
         Kokkos::ViewAllocateWithoutInitializing("destination_buffer"),
         exports.size());
 
+    auto permute_mirror = Kokkos::create_mirror_view_and_copy(
+        typename View::traits::device_type(), _permute);
+
     Kokkos::parallel_for("copy_destinations_permuted",
                          Kokkos::RangePolicy<ExecutionSpace>(
                              0, _dest_offsets.back() * num_packets),
                          KOKKOS_LAMBDA(int const k) {
                            int const i = k / num_packets;
                            int const j = k % num_packets;
-                           dest_buffer(num_packets * _permute[i] + j) =
+                           dest_buffer(num_packets * permute_mirror[i] + j) =
                                exports[num_packets * i + j];
                          });
 
