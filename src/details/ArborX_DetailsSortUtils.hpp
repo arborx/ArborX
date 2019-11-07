@@ -56,15 +56,14 @@ namespace Details
 {
 
 // NOTE returns the permutation indices **and** sorts the morton codes
-template <typename DeviceType>
-Kokkos::View<size_t *, DeviceType>
-sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
+template <typename ViewType>
+Kokkos::View<size_t *, typename ViewType::device_type>
+sortObjects(ViewType &view)
 {
-  using ExecutionSpace = typename DeviceType::execution_space;
+  using ExecutionSpace = typename ViewType::execution_space;
 
   int const n = view.extent(0);
 
-  using ViewType = decltype(view);
   using ValueType = typename ViewType::value_type;
   using CompType = Kokkos::BinOp1D<ViewType>;
 
@@ -75,7 +74,7 @@ sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
                   Kokkos::Impl::min_max_functor<ViewType>(view), reducer);
   if (result.min_val == result.max_val)
   {
-    Kokkos::View<size_t *, DeviceType> permute(
+    Kokkos::View<size_t *, typename ViewType::device_type> permute(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n);
     iota(permute);
     return permute;
@@ -87,8 +86,8 @@ sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
   // better choice here because its size is guaranteed to coincide with the
   // pointer size which is a good thing for converting with reinterpret_cast
   // (when leaf indices are encoded into the pointer to one of their children)
-  Kokkos::BinSort<ViewType, CompType, DeviceType, size_t> bin_sort(
-      view, CompType(n / 2, result.min_val, result.max_val), true);
+  Kokkos::BinSort<ViewType, CompType, typename ViewType::device_type, size_t>
+      bin_sort(view, CompType(n / 2, result.min_val, result.max_val), true);
   bin_sort.create_permute_vector();
   bin_sort.sort(view);
 
@@ -97,10 +96,9 @@ sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
 
 #if defined(KOKKOS_ENABLE_CUDA)
 // NOTE returns the permutation indices **and** sorts the morton codes
-template <typename MemorySpace>
+template <typename ValueType, typename MemorySpace>
 Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> sortObjects(
-    Kokkos::View<unsigned int *, Kokkos::Device<Kokkos::Cuda, MemorySpace>>
-        view)
+    Kokkos::View<ValueType *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> view)
 {
   int const n = view.extent(0);
 
@@ -109,8 +107,8 @@ Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> sortObjects(
   ArborX::iota(permute);
 
   auto permute_ptr = thrust::device_ptr<size_t>(permute.data());
-  auto begin_ptr = thrust::device_ptr<unsigned int>(view.data());
-  auto end_ptr = thrust::device_ptr<unsigned int>(view.data() + n);
+  auto begin_ptr = thrust::device_ptr<ValueType>(view.data());
+  auto end_ptr = thrust::device_ptr<ValueType>(view.data() + n);
   thrust::sort_by_key(begin_ptr, end_ptr, permute_ptr);
 
   return permute;
