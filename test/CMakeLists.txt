@@ -10,6 +10,11 @@ if(Kokkos_DEVICES MATCHES "Cuda")
   list(APPEND ARBORX_DEVICE_TYPES Kokkos::CudaSpace::device_type)
 endif()
 string(REPLACE ";" "," ARBORX_DEVICE_TYPES "${ARBORX_DEVICE_TYPES}")
+
+if(NOT ARBORX_DEVICE_TYPES)
+  message(SEND_ERROR "Kokkos_DEVICES must include at least one of 'Serial', 'OpenMP' and 'Cuda'!")
+endif()
+
 configure_file(ArborX_EnableDeviceTypes.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/ArborX_EnableDeviceTypes.hpp @ONLY)
 
 find_package(Boost 1.67.0 REQUIRED COMPONENTS unit_test_framework)
