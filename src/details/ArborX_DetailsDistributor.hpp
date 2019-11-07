@@ -13,7 +13,9 @@
 
 #include <ArborX_Config.hpp>
 
+#include <ArborX_DetailsUtils.hpp> // max
 #include <ArborX_Exception.hpp>
+#include <ArborX_Macros.hpp>
 
 #include <Kokkos_Core.hpp> // FIXME
 
@@ -42,7 +44,7 @@ static void sortAndDetermineBufferLayout(InputView ranks,
   ARBORX_ASSERT(unique_ranks.empty());
   ARBORX_ASSERT(offsets.empty());
   ARBORX_ASSERT(counts.empty());
-  ARBORX_ASSERT(permutation_indices.extent(0) == ranks.extent(0));
+  ARBORX_ASSERT(permutation_indices.extent_int(0) == ranks.extent_int(0));
   static_assert(
       std::is_same<typename InputView::non_const_value_type, int>::value, "");
   static_assert(std::is_same<typename OutputView::value_type, int>::value, "");
@@ -57,31 +59,50 @@ static void sortAndDetermineBufferLayout(InputView ranks,
   if (n == 0)
     return;
 
-  Kokkos::View<int *, Kokkos::HostSpace> ranks_duplicate(
-      Kokkos::ViewAllocateWithoutInitializing(ranks.label()), ranks.size());
-  Kokkos::deep_copy(ranks_duplicate, ranks);
+  // this implements a "sort" which is O(N * R) where (R) is the total number of
+  // unique destination ranks. it performs better than other algorithms in the
+  // case when (R) is small, but results may vary
+  using DeviceType = typename InputView::traits::device_type;
+  using ExecutionSpace = typename InputView::traits::execution_space;
 
+  Kokkos::View<int *, DeviceType> device_ranks_duplicate(
+      Kokkos::ViewAllocateWithoutInitializing(ranks.label()), ranks.size());
+  Kokkos::deep_copy(device_ranks_duplicate, ranks);
+  Kokkos::View<int *, DeviceType> device_permutation_indices(
+      Kokkos::ViewAllocateWithoutInitializing(permutation_indices.label()),
+      permutation_indices.size());
+  int offset = 0;
   while (true)
   {
-    // TODO consider replacing with parallel reduce
-    int const largest_rank =
-        *std::max_element(ranks_duplicate.data(), ranks_duplicate.data() + n);
+    int const largest_rank = ArborX::max(device_ranks_duplicate);
     if (largest_rank == -1)
       break;
     unique_ranks.push_back(largest_rank);
-    counts.push_back(0);
-    // TODO consider replacing with parallel scan
-    for (int i = 0; i < n; ++i)
-    {
-      if (ranks_duplicate(i) == largest_rank)
-      {
-        ranks_duplicate(i) = -1;
-        permutation_indices(i) = offsets.back() + counts.back();
-        ++counts.back();
-      }
-    }
-    offsets.push_back(offsets.back() + counts.back());
+    int result = 0;
+    Kokkos::parallel_scan(ARBORX_MARK_REGION("process_biggest_rank_items"),
+                          Kokkos::RangePolicy<ExecutionSpace>(0, n),
+                          KOKKOS_LAMBDA(int i, int &update, bool last_pass) {
+                            bool const is_largest_rank =
+                                (device_ranks_duplicate(i) == largest_rank);
+                            if (is_largest_rank)
+                            {
+                              if (last_pass)
+                              {
+                                device_permutation_indices(i) = update + offset;
+                                device_ranks_duplicate(i) = -1;
+                              }
+                              ++update;
+                            }
+                          },
+                          result);
+    offset += result;
+    offsets.push_back(offset);
   }
+  counts.reserve(offsets.size() - 1);
+  for (unsigned int i = 1; i < offsets.size(); ++i)
+    counts.push_back(offsets[i] - offsets[i - 1]);
+  Kokkos::deep_copy(permutation_indices, device_permutation_indices);
+  ARBORX_ASSERT(offsets.back() == static_cast<int>(ranks.size()));
 }
 
 class Distributor
