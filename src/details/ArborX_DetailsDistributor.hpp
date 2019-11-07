@@ -105,7 +105,8 @@ class Distributor
 {
 public:
   Distributor(MPI_Comm comm)
-      : _comm(comm)
+      : _comm(comm),
+	_permute{Kokkos::ViewAllocateWithoutInitializing("permute"), 0}
   {
   }
 
