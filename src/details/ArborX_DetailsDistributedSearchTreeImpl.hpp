@@ -259,7 +259,6 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
   // on forwarding queries to leafless trees.
   auto const n_queries = queries.extent(0);
   Kokkos::View<int *, DeviceType> new_offset(offset.label(), n_queries + 1);
-  Kokkos::deep_copy(new_offset, 0);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("bottom_trees_with_required_cumulated_leaves_count"),
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
@@ -306,7 +305,6 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
 
   // Determine distance to the farthest neighbor found so far.
   Kokkos::View<double *, DeviceType> farthest_distances("distances", n_queries);
-  Kokkos::deep_copy(farthest_distances, 0.);
   // NOTE: in principle distances( j ) are arranged in ascending order for
   // offset( i ) <= j < offset( i + 1 ) so max() is not necessary.
   Kokkos::parallel_for(
@@ -517,7 +515,6 @@ void DistributedSearchTreeImpl<DeviceType>::countResults(
   int const nnz = query_ids.extent(0);
 
   Kokkos::realloc(offset, n_queries + 1);
-  Kokkos::deep_copy(offset, 0);
 
   Kokkos::parallel_for(ARBORX_MARK_REGION("count_results_per_query"),
                        Kokkos::RangePolicy<ExecutionSpace>(0, nnz),
@@ -557,13 +554,16 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
                          }
                        });
 
-  Kokkos::View<int *, DeviceType> export_ranks("export_ranks", n_exports);
+  Kokkos::View<int *, DeviceType> export_ranks(
+      Kokkos::ViewAllocateWithoutInitializing("export_ranks"), n_exports);
   Kokkos::deep_copy(export_ranks, comm_rank);
 
-  Kokkos::View<int *, DeviceType> import_ranks("import_ranks", n_imports);
+  Kokkos::View<int *, DeviceType> import_ranks(
+      Kokkos::ViewAllocateWithoutInitializing("import_ranks"), n_imports);
   sendAcrossNetwork(distributor, export_ranks, import_ranks);
 
-  Kokkos::View<int *, DeviceType> export_ids("export_ids", n_exports);
+  Kokkos::View<int *, DeviceType> export_ids(
+      Kokkos::ViewAllocateWithoutInitializing("export_ids"), n_exports);
   Kokkos::parallel_for(ARBORX_MARK_REGION("forward_queries_fill_ids"),
                        Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
                        KOKKOS_LAMBDA(int q) {
@@ -625,9 +625,12 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
                        });
   Kokkos::View<int *, DeviceType> export_indices = indices;
 
-  Kokkos::View<int *, DeviceType> import_indices(indices.label(), n_imports);
-  Kokkos::View<int *, DeviceType> import_ranks(ranks.label(), n_imports);
-  Kokkos::View<int *, DeviceType> import_ids(ids.label(), n_imports);
+  Kokkos::View<int *, DeviceType> import_indices(
+      Kokkos::ViewAllocateWithoutInitializing(indices.label()), n_imports);
+  Kokkos::View<int *, DeviceType> import_ranks(
+      Kokkos::ViewAllocateWithoutInitializing(ranks.label()), n_imports);
+  Kokkos::View<int *, DeviceType> import_ids(
+      Kokkos::ViewAllocateWithoutInitializing(ids.label()), n_imports);
   sendAcrossNetwork(distributor, export_indices, import_indices);
   sendAcrossNetwork(distributor, export_ranks, import_ranks);
   sendAcrossNetwork(distributor, export_ids, import_ids);
@@ -659,7 +662,6 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
   int const n_queries = queries.extent_int(0);
   // truncated views are prefixed with an underscore
   Kokkos::View<int *, DeviceType> new_offset(offset.label(), n_queries + 1);
-  Kokkos::deep_copy(new_offset, 0);
 
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("discard_results"),

@@ -173,10 +173,8 @@ public:
         Kokkos::ViewAllocateWithoutInitializing("destination_buffer"),
         exports.size());
 
-    Kokkos::View<int *, typename View::traits::device_type> permute_mirror(
-        Kokkos::ViewAllocateWithoutInitializing("permute_device_mirror"),
-        _permute.size());
-    Kokkos::deep_copy(permute_mirror, _permute);
+    auto permute_mirror = Kokkos::create_mirror_view_and_copy(
+        typename View::traits::device_type(), _permute);
 
     Kokkos::parallel_for("copy_destinations_permuted",
                          Kokkos::RangePolicy<ExecutionSpace>(
