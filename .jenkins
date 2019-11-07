@@ -193,7 +193,7 @@ pipeline {
                                   -D CMAKE_BUILD_TYPE=Debug \
                                   -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                                   -D CMAKE_CXX_COMPILER=pgc++ \
-                                  -D CMAKE_CXX_FLAGS="-Minform=warn" \
+                                  -D CMAKE_CXX_FLAGS="-Minform=inform" \
                                   -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                   -D ARBORX_ENABLE_MPI=ON \
                                   -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
