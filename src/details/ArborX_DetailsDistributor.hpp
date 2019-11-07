@@ -167,16 +167,13 @@ public:
         Kokkos::ViewAllocateWithoutInitializing("destination_buffer"),
         exports.size());
 
-    auto permute_mirror = Kokkos::create_mirror_view_and_copy(
-        typename View::traits::device_type(), _permute);
-
     Kokkos::parallel_for("copy_destinations_permuted",
                          Kokkos::RangePolicy<ExecutionSpace>(
                              0, _dest_offsets.back() * num_packets),
                          KOKKOS_LAMBDA(int const k) {
                            int const i = k / num_packets;
                            int const j = k % num_packets;
-                           dest_buffer(num_packets * permute_mirror[i] + j) =
+                           dest_buffer(num_packets * _permute[i] + j) =
                                exports[num_packets * i + j];
                          });
 
@@ -242,7 +239,11 @@ public:
 
 private:
   MPI_Comm _comm;
+#ifdef ARBORX_USE_CUDA_AWARE_MPI
   Kokkos::View<int *, DeviceType> _permute;
+#else
+  Kokkos::View<int *, Kokkos::HostSpace> _permute;
+#endif
   std::vector<int> _dest_offsets;
   std::vector<int> _dest_counts;
   std::vector<int> _src_offsets;
