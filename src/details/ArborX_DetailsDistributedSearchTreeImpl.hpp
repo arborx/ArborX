@@ -121,7 +121,7 @@ struct DistributedSearchTreeImpl
 
   template <typename View>
   static typename std::enable_if<Kokkos::is_view<View>::value>::type
-  sendAcrossNetwork(Distributor const &distributor, View exports,
+  sendAcrossNetwork(Distributor<DeviceType> const &distributor, View exports,
                     typename View::non_const_type imports);
 };
 
@@ -195,7 +195,7 @@ template <typename DeviceType>
 template <typename View>
 typename std::enable_if<Kokkos::is_view<View>::value>::type
 DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
-    Distributor const &distributor, View exports,
+    Distributor<DeviceType> const &distributor, View exports,
     typename View::non_const_type imports)
 {
   ARBORX_ASSERT((exports.extent(0) == distributor.getTotalSendLength()) &&
@@ -538,7 +538,7 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
 
-  Distributor distributor(comm);
+  Distributor<DeviceType> distributor(comm);
 
   int const n_queries = queries.extent(0);
   int const n_exports = lastElement(offset);
@@ -607,7 +607,7 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
                          }
                        });
 
-  Distributor distributor(comm);
+  Distributor<DeviceType> distributor(comm);
   int const n_imports = distributor.createFromSends(export_ranks);
 
   // export_ranks already has adequate size since it was used as a buffer to
