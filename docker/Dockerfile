@@ -49,7 +49,7 @@ RUN LLVM_VERSION=7.0.1 && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${LLVM_URL} --output-document=${LLVM_ARCHIVE} && \
     wget --quiet ${LLVM_URL}.sig --output-document=${LLVM_ARCHIVE}.sig && \
-    gpg --keyserver pool.sks-keyservers.net --recv-keys ${LLVM_KEY} && \
+    gpg --keyserver keys.gnupg.net --recv-keys ${LLVM_KEY} && \
     gpg --verify ${LLVM_ARCHIVE}.sig ${LLVM_ARCHIVE} && \
     mkdir -p ${LLVM_DIR} && \
     tar -xvf ${LLVM_ARCHIVE} -C ${LLVM_DIR} --strip-components=1 && \

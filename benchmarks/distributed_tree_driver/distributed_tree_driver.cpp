@@ -328,7 +328,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
 
   std::ostream &os = std::cout;
   if (comm_rank == 0)
-    os << "contruction done\n";
+    os << "construction done\n";
 
   if (perform_knn_search)
   {
