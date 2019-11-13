@@ -172,8 +172,10 @@ public:
         Kokkos::ViewAllocateWithoutInitializing("destination_buffer"),
         exports.size());
 
-    auto permute_mirror = Kokkos::create_mirror_view_and_copy(
-        typename View::traits::device_type(), _permute);
+    // We need to create a local copy to avoid capturing a member variable
+    // (via the 'this' pointer) which we can't do using a KOKKOS_LAMBDA.
+    // Use KOKKOS_CLASS_LAMBDA when we require C++17.
+    auto const permute_copy = _permute;
 
     Kokkos::parallel_for("copy_destinations_permuted",
                          Kokkos::RangePolicy<ExecutionSpace>(
@@ -181,7 +183,7 @@ public:
                          KOKKOS_LAMBDA(int const k) {
                            int const i = k / num_packets;
                            int const j = k % num_packets;
-                           dest_buffer(num_packets * permute_mirror[i] + j) =
+                           dest_buffer(num_packets * permute_copy[i] + j) =
                                exports[num_packets * i + j];
                          });
 
