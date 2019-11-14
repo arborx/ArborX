@@ -48,10 +48,6 @@ static void sortAndDetermineBufferLayout(InputView ranks,
   static_assert(
       std::is_same<typename InputView::non_const_value_type, int>::value, "");
   static_assert(std::is_same<typename OutputView::value_type, int>::value, "");
-  static_assert(
-      Kokkos::Impl::MemorySpaceAccess<typename OutputView::memory_space,
-                                      Kokkos::HostSpace>::accessible,
-      "");
 
   offsets.push_back(0);
 
@@ -68,9 +64,8 @@ static void sortAndDetermineBufferLayout(InputView ranks,
   Kokkos::View<int *, DeviceType> device_ranks_duplicate(
       Kokkos::ViewAllocateWithoutInitializing(ranks.label()), ranks.size());
   Kokkos::deep_copy(device_ranks_duplicate, ranks);
-  Kokkos::View<int *, DeviceType> device_permutation_indices(
-      Kokkos::ViewAllocateWithoutInitializing(permutation_indices.label()),
-      permutation_indices.size());
+  auto device_permutation_indices =
+      Kokkos::create_mirror_view(DeviceType(), permutation_indices);
   int offset = 0;
   while (true)
   {
@@ -105,11 +100,13 @@ static void sortAndDetermineBufferLayout(InputView ranks,
   ARBORX_ASSERT(offsets.back() == static_cast<int>(ranks.size()));
 }
 
+template <typename DeviceType>
 class Distributor
 {
 public:
   Distributor(MPI_Comm comm)
       : _comm(comm)
+      , _permute{Kokkos::ViewAllocateWithoutInitializing("permute"), 0}
   {
   }
 
@@ -124,9 +121,7 @@ public:
     int comm_size;
     MPI_Comm_size(_comm, &comm_size);
 
-    _permute = Kokkos::View<int *, Kokkos::HostSpace>(
-        Kokkos::ViewAllocateWithoutInitializing("permute"),
-        destination_ranks.size());
+    reallocWithoutInitializing(_permute, destination_ranks.size());
     sortAndDetermineBufferLayout(destination_ranks, _permute, _destinations,
                                  _dest_counts, _dest_offsets);
 
@@ -162,6 +157,10 @@ public:
     using ExecutionSpace = typename View::execution_space;
     static_assert(View::rank == 1, "");
 
+    static_assert(
+        std::is_same<typename View::memory_space,
+                     typename decltype(_permute)::memory_space>::value,
+        "");
 #ifndef ARBORX_USE_CUDA_AWARE_MPI
     static_assert(
         Kokkos::Impl::MemorySpaceAccess<typename View::memory_space,
@@ -173,8 +172,10 @@ public:
         Kokkos::ViewAllocateWithoutInitializing("destination_buffer"),
         exports.size());
 
-    auto permute_mirror = Kokkos::create_mirror_view_and_copy(
-        typename View::traits::device_type(), _permute);
+    // We need to create a local copy to avoid capturing a member variable
+    // (via the 'this' pointer) which we can't do using a KOKKOS_LAMBDA.
+    // Use KOKKOS_CLASS_LAMBDA when we require C++17.
+    auto const permute_copy = _permute;
 
     Kokkos::parallel_for("copy_destinations_permuted",
                          Kokkos::RangePolicy<ExecutionSpace>(
@@ -182,7 +183,7 @@ public:
                          KOKKOS_LAMBDA(int const k) {
                            int const i = k / num_packets;
                            int const j = k % num_packets;
-                           dest_buffer(num_packets * permute_mirror[i] + j) =
+                           dest_buffer(num_packets * permute_copy[i] + j) =
                                exports[num_packets * i + j];
                          });
 
@@ -248,7 +249,11 @@ public:
 
 private:
   MPI_Comm _comm;
+#ifdef ARBORX_USE_CUDA_AWARE_MPI
+  Kokkos::View<int *, DeviceType> _permute;
+#else
   Kokkos::View<int *, Kokkos::HostSpace> _permute;
+#endif
   std::vector<int> _dest_offsets;
   std::vector<int> _dest_counts;
   std::vector<int> _src_offsets;
