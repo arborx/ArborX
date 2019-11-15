@@ -44,10 +44,10 @@ struct DistributedSearchTreeImpl
   using ExecutionSpace = typename DeviceType::execution_space;
 
   // spatial queries
-  template <typename Query>
+  template <typename Predicates>
   static void queryDispatch(SpatialPredicateTag,
                             DistributedSearchTree<DeviceType> const &tree,
-                            Kokkos::View<Query *, DeviceType> queries,
+                            Predicates const &queries,
                             Kokkos::View<int *, DeviceType> &indices,
                             Kokkos::View<int *, DeviceType> &offset,
                             Kokkos::View<int *, DeviceType> &ranks);
@@ -89,9 +89,8 @@ struct DistributedSearchTreeImpl
                                Kokkos::View<int *, DeviceType> &offset,
                                Kokkos::View<double *, DeviceType> &distances);
 
-  template <typename Query>
-  static void forwardQueries(MPI_Comm comm,
-                             Kokkos::View<Query *, DeviceType> queries,
+  template <typename Predicates, typename Query>
+  static void forwardQueries(MPI_Comm comm, Predicates const &queries,
                              Kokkos::View<int *, DeviceType> indices,
                              Kokkos::View<int *, DeviceType> offset,
                              Kokkos::View<Query *, DeviceType> &fwd_queries,
@@ -404,11 +403,10 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
 }
 
 template <typename DeviceType>
-template <typename Query>
+template <typename Predicates>
 void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     SpatialPredicateTag, DistributedSearchTree<DeviceType> const &tree,
-    Kokkos::View<Query *, DeviceType> queries,
-    Kokkos::View<int *, DeviceType> &indices,
+    Predicates const &queries, Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset,
     Kokkos::View<int *, DeviceType> &ranks)
 {
@@ -424,6 +422,8 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   ////////////////////////////////////////////////////////////////////////////
   // Forward queries
   ////////////////////////////////////////////////////////////////////////////
+  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  using Query = decay_result_of_get_t<Access>;
   Kokkos::View<int *, DeviceType> ids("query_ids", 0);
   Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries", 0);
   forwardQueries(comm, queries, indices, offset, fwd_queries, ids, ranks);
@@ -444,7 +444,7 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   ////////////////////////////////////////////////////////////////////////////
   // Merge results
   ////////////////////////////////////////////////////////////////////////////
-  int const n_queries = queries.extent_int(0);
+  int const n_queries = Access::size(queries);
   countResults(n_queries, ids, offset);
   sortResults(ids, indices, ranks);
   ////////////////////////////////////////////////////////////////////////////
@@ -526,9 +526,9 @@ void DistributedSearchTreeImpl<DeviceType>::countResults(
 }
 
 template <typename DeviceType>
-template <typename Query>
+template <typename Predicates, typename Query>
 void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
-    MPI_Comm comm, Kokkos::View<Query *, DeviceType> queries,
+    MPI_Comm comm, Predicates const &queries,
     Kokkos::View<int *, DeviceType> indices,
     Kokkos::View<int *, DeviceType> offset,
     Kokkos::View<Query *, DeviceType> &fwd_queries,
@@ -540,17 +540,19 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
 
   Distributor<DeviceType> distributor(comm);
 
-  int const n_queries = queries.extent(0);
+  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  int const n_queries = Access::size(queries);
   int const n_exports = lastElement(offset);
   int const n_imports = distributor.createFromSends(indices);
 
-  Kokkos::View<Query *, DeviceType> exports(queries.label(), n_exports);
+  static_assert(std::is_same<Query, decay_result_of_get_t<Access>>::value, "");
+  Kokkos::View<Query *, DeviceType> exports("queries", n_exports);
   Kokkos::parallel_for(ARBORX_MARK_REGION("forward_queries_fill_buffer"),
                        Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
                        KOKKOS_LAMBDA(int q) {
                          for (int i = offset(q); i < offset(q + 1); ++i)
                          {
-                           exports(i) = queries(q);
+                           exports(i) = Access::get(queries, q);
                          }
                        });
 
@@ -576,7 +578,7 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
   sendAcrossNetwork(distributor, export_ids, import_ids);
 
   // Send queries across the network
-  Kokkos::View<Query *, DeviceType> imports(queries.label(), n_imports);
+  Kokkos::View<Query *, DeviceType> imports("queries", n_imports);
   sendAcrossNetwork(distributor, exports, imports);
 
   fwd_queries = imports;
