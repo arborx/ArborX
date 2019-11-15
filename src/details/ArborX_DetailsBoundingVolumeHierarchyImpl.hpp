@@ -158,7 +158,7 @@ struct BoundingVolumeHierarchyImpl
 
   template <typename Predicates>
   static void queryDispatch(
-      NearestPredicateTag tag, BoundingVolumeHierarchy<DeviceType> const &bvh,
+      NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
       Predicates const &predicates, Kokkos::View<int *, DeviceType> &indices,
       Kokkos::View<int *, DeviceType> &offset,
       Kokkos::View<double *, DeviceType> &distances,
