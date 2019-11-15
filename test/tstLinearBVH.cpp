@@ -353,6 +353,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity, DeviceType,
 template <typename DeviceType>
 struct CustomCallbackSpatialPredicate
 {
+  using tag = ArborX::Details::CallbackFirstKind;
   Kokkos::View<ArborX::Point *, DeviceType> points;
   ArborX::Point const origin = {{0., 0., 0.}};
   template <typename Insert>
@@ -367,6 +368,7 @@ struct CustomCallbackSpatialPredicate
 template <typename DeviceType>
 struct CustomCallbackNearestPredicate
 {
+  using tag = ArborX::Details::CallbackFirstKind;
   template <typename Insert>
   KOKKOS_FUNCTION void operator()(int, int index, double distance,
                                   Insert const &insert) const

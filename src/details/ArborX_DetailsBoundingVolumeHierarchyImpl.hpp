@@ -31,6 +31,10 @@ class BoundingVolumeHierarchy;
 namespace Details
 {
 
+struct CallbackFirstKind
+{
+};
+
 // Silly name to discourage misuse...
 enum class NearestQueryAlgorithm
 {
@@ -40,6 +44,7 @@ enum class NearestQueryAlgorithm
 
 struct CallbackDefaultSpatialPredicate
 {
+  using tag = CallbackFirstKind;
   template <typename Insert>
   KOKKOS_FUNCTION void operator()(int, int index, Insert const &insert) const
   {
@@ -49,6 +54,7 @@ struct CallbackDefaultSpatialPredicate
 
 struct CallbackDefaultNearestPredicate
 {
+  using tag = CallbackFirstKind;
   template <typename Insert>
   KOKKOS_FUNCTION void operator()(int, int index, double,
                                   Insert const &insert) const
@@ -59,6 +65,7 @@ struct CallbackDefaultNearestPredicate
 
 struct CallbackDefaultNearestPredicateWithDistance
 {
+  using tag = CallbackFirstKind;
   template <typename Insert>
   KOKKOS_FUNCTION void operator()(int, int index, double distance,
                                   Insert const &insert) const
@@ -86,15 +93,18 @@ struct BoundingVolumeHierarchyImpl
   }
 
   template <typename Predicates, typename OutputView, typename Callback>
-  static void queryDispatch(SpatialPredicateTag,
-                            BoundingVolumeHierarchy<DeviceType> const &bvh,
-                            Predicates const &predicates,
-                            Callback const &callback, OutputView &out,
-                            Kokkos::View<int *, DeviceType> &offset,
-                            int buffer_size = 0);
+  static std::enable_if_t<
+      std::is_same<typename Callback::tag, CallbackFirstKind>::value>
+  queryDispatch(SpatialPredicateTag,
+                BoundingVolumeHierarchy<DeviceType> const &bvh,
+                Predicates const &predicates, Callback const &callback,
+                OutputView &out, Kokkos::View<int *, DeviceType> &offset,
+                int buffer_size = 0);
 
   template <typename Predicates, typename OutputView, typename Callback>
-  static void queryDispatch(
+  static std::enable_if_t<
+      std::is_same<typename Callback::tag, CallbackFirstKind>::value>
+  queryDispatch(
       NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
       Predicates const &predicates, Callback const &callback, OutputView &out,
       Kokkos::View<int *, DeviceType> &offset,
@@ -144,7 +154,8 @@ struct BoundingVolumeHierarchyImpl
 // parameter shall not be advertised to the user.
 template <typename DeviceType>
 template <typename Predicates, typename OutputView, typename Callback>
-void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
+std::enable_if_t<std::is_same<typename Callback::tag, CallbackFirstKind>::value>
+BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
     Predicates const &predicates, Callback const &callback, OutputView &out,
     Kokkos::View<int *, DeviceType> &offset, NearestQueryAlgorithm which)
@@ -280,7 +291,8 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 // second pass.  If it is negative, it throws an exception.
 template <typename DeviceType>
 template <typename Predicates, typename OutputView, typename Callback>
-void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
+std::enable_if_t<std::is_same<typename Callback::tag, CallbackFirstKind>::value>
+BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     SpatialPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
     Predicates const &predicates, Callback const &callback, OutputView &out,
     Kokkos::View<int *, DeviceType> &offset, int buffer_size)
