@@ -138,11 +138,12 @@ struct BoundingVolumeHierarchyImpl
       Kokkos::View<int *, DeviceType> &offset,
       NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default)
   {
-    Kokkos::View<int *, DeviceType> indices("indices", 0);
-    Kokkos::View<double *, DeviceType> distances("distances", 0);
-    queryDispatch(NearestPredicateTag{}, bvh, predicates, indices, offset,
-                  distances, which);
-    callback(offset, indices, distances, out);
+    Kokkos::View<Kokkos::pair<int, double> *, DeviceType> pairs(
+        "pairs_index_distance", 0);
+    queryDispatch(NearestPredicateTag{}, bvh, predicates,
+                  CallbackDefaultNearestPredicateWithDistance{}, pairs, offset,
+                  which);
+    callback(offset, pairs, out);
   }
 
   template <typename Predicates>

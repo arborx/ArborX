@@ -406,9 +406,8 @@ template <typename DeviceType>
 struct CustomCallbackNearestPredicate2
 {
   using tag = ArborX::Details::CallbackSecondKind;
-  template <typename InOutView, typename InView, typename InView2,
-            typename OutView>
-  void operator()(InOutView &offset, InView in, InView2 in2, OutView &out) const
+  template <typename InOutView, typename InView, typename OutView>
+  void operator()(InOutView &offset, InView in, OutView &out) const
   {
     using ExecutionSpace = typename DeviceType::execution_space;
     auto const n = offset.extent(0) - 1;
@@ -417,7 +416,7 @@ struct CustomCallbackNearestPredicate2
                          KOKKOS_LAMBDA(int i) {
                            for (int j = offset(i); j < offset(i + 1); ++j)
                            {
-                             out(j) = {in(j), (float)in2(j)};
+                             out(j) = {in(j).first, (float)in(j).second};
                            }
                          });
   }
