@@ -366,6 +366,31 @@ struct CustomCallbackSpatialPredicate
 };
 
 template <typename DeviceType>
+struct CustomCallbackSpatialPredicate2
+{
+  using tag = ArborX::Details::CallbackSecondKind;
+  Kokkos::View<ArborX::Point *, DeviceType> points;
+  ArborX::Point const origin = {{0., 0., 0.}};
+  template <typename InOutView, typename InView, typename OutView>
+  void operator()(InOutView &offset, InView in, OutView &out) const
+  {
+    using ExecutionSpace = typename DeviceType::execution_space;
+    using ArborX::Details::distance;
+    auto const n = offset.extent(0) - 1;
+    ArborX::reallocWithoutInitializing(out, in.extent(0));
+    auto points_ = points;
+    auto origin_ = origin;
+    Kokkos::parallel_for(
+        Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+          for (int j = offset(i); j < offset(i + 1); ++j)
+          {
+            out(j) = {in(j), (float)distance(points_(in(j)), origin_)};
+          }
+        });
+  }
+};
+
+template <typename DeviceType>
 struct CustomCallbackNearestPredicate
 {
   using tag = ArborX::Details::CallbackFirstKind;
@@ -374,6 +399,27 @@ struct CustomCallbackNearestPredicate
                                   Insert const &insert) const
   {
     insert({index, (float)distance});
+  }
+};
+
+template <typename DeviceType>
+struct CustomCallbackNearestPredicate2
+{
+  using tag = ArborX::Details::CallbackSecondKind;
+  template <typename InOutView, typename InView, typename InView2,
+            typename OutView>
+  void operator()(InOutView &offset, InView in, InView2 in2, OutView &out) const
+  {
+    using ExecutionSpace = typename DeviceType::execution_space;
+    auto const n = offset.extent(0) - 1;
+    ArborX::reallocWithoutInitializing(out, in.extent(0));
+    Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n),
+                         KOKKOS_LAMBDA(int i) {
+                           for (int j = offset(i); j < offset(i + 1); ++j)
+                           {
+                             out(j) = {in(j), (float)in2(j)};
+                           }
+                         });
   }
 };
 
@@ -411,10 +457,42 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback, DeviceType, ARBORX_DEVICE_TYPES)
   {
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
     Kokkos::View<int *, DeviceType> offset("offset", 0);
+    bvh.query(makeIntersectsBoxQueries<DeviceType>({
+                  bvh.bounds(),
+              }),
+              CustomCallbackSpatialPredicate2<DeviceType>{points}, custom,
+              offset);
+
+    auto custom_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
+    auto ref_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
+    auto offset_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
+    validateResults(std::make_tuple(offset_host, custom_host),
+                    std::make_tuple(offset_host, ref_host));
+  }
+  {
+    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
+    Kokkos::View<int *, DeviceType> offset("offset", 0);
     bvh.query(makeNearestQueries<DeviceType>({
                   {origin, n},
               }),
               CustomCallbackNearestPredicate<DeviceType>{}, custom, offset);
+
+    auto custom_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
+    auto ref_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
+    BOOST_TEST(custom_host == ref_host, tt::per_element());
+  }
+  {
+    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
+    Kokkos::View<int *, DeviceType> offset("offset", 0);
+    bvh.query(makeNearestQueries<DeviceType>({
+                  {origin, n},
+              }),
+              CustomCallbackNearestPredicate2<DeviceType>{}, custom, offset);
 
     auto custom_host =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
