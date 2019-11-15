@@ -35,6 +35,10 @@ struct CallbackFirstKind
 {
 };
 
+struct CallbackSecondKind
+{
+};
+
 // Silly name to discourage misuse...
 enum class NearestQueryAlgorithm
 {
@@ -103,12 +107,43 @@ struct BoundingVolumeHierarchyImpl
 
   template <typename Predicates, typename OutputView, typename Callback>
   static std::enable_if_t<
+      std::is_same<typename Callback::tag, CallbackSecondKind>::value>
+  queryDispatch(SpatialPredicateTag,
+                BoundingVolumeHierarchy<DeviceType> const &bvh,
+                Predicates const &predicates, Callback const &callback,
+                OutputView &out, Kokkos::View<int *, DeviceType> &offset,
+                int buffer_size = 0)
+  {
+    Kokkos::View<int *, DeviceType> indices("indices", 0);
+    queryDispatch(SpatialPredicateTag{}, bvh, predicates, indices, offset,
+                  buffer_size);
+    callback(offset, indices, out);
+  }
+
+  template <typename Predicates, typename OutputView, typename Callback>
+  static std::enable_if_t<
       std::is_same<typename Callback::tag, CallbackFirstKind>::value>
   queryDispatch(
       NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
       Predicates const &predicates, Callback const &callback, OutputView &out,
       Kokkos::View<int *, DeviceType> &offset,
       NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default);
+
+  template <typename Predicates, typename OutputView, typename Callback>
+  static std::enable_if_t<
+      std::is_same<typename Callback::tag, CallbackSecondKind>::value>
+  queryDispatch(
+      NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
+      Predicates const &predicates, Callback const &callback, OutputView &out,
+      Kokkos::View<int *, DeviceType> &offset,
+      NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default)
+  {
+    Kokkos::View<int *, DeviceType> indices("indices", 0);
+    Kokkos::View<double *, DeviceType> distances("distances", 0);
+    queryDispatch(NearestPredicateTag{}, bvh, predicates, indices, offset,
+                  distances, which);
+    callback(offset, indices, distances, out);
+  }
 
   template <typename Predicates>
   static void queryDispatch(
