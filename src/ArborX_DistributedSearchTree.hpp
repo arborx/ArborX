@@ -87,9 +87,9 @@ public:
   template <typename Predicates, typename... Args>
   void query(Predicates const &predicates, Args &&... args) const
   {
-    // FIXME lame placeholder for concept check
-    static_assert(Kokkos::is_view<Predicates>::value, "must pass a view");
-    using Tag = typename Predicates::value_type::Tag;
+    using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+    using Tag =
+        typename Details::Tag<Details::decay_result_of_get_t<Access>>::type;
     Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
         Tag{}, *this, predicates, std::forward<Args>(args)...);
   }

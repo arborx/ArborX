@@ -170,6 +170,54 @@ public:
   }
 };
 
+template <typename DeviceType>
+struct NearestNeighborsSearches
+{
+  Kokkos::View<ArborX::Point *, DeviceType> points;
+  int k;
+};
+template <typename DeviceType>
+struct RadiusSearches
+{
+  Kokkos::View<ArborX::Point *, DeviceType> points;
+  double radius;
+};
+
+namespace ArborX
+{
+namespace Traits
+{
+template <typename DeviceType>
+struct Access<RadiusSearches<DeviceType>, PredicatesTag>
+{
+  using memory_space = typename DeviceType::memory_space;
+  static std::size_t size(RadiusSearches<DeviceType> const &pred)
+  {
+    return pred.points.extent(0);
+  }
+  static KOKKOS_FUNCTION auto get(RadiusSearches<DeviceType> const &pred,
+                                  std::size_t i)
+  {
+    return intersects(Sphere{pred.points(i), pred.radius});
+  }
+};
+template <typename DeviceType>
+struct Access<NearestNeighborsSearches<DeviceType>, PredicatesTag>
+{
+  using memory_space = typename DeviceType::memory_space;
+  static std::size_t size(NearestNeighborsSearches<DeviceType> const &pred)
+  {
+    return pred.points.extent(0);
+  }
+  static KOKKOS_FUNCTION auto
+  get(NearestNeighborsSearches<DeviceType> const &pred, std::size_t i)
+  {
+    return nearest(pred.points(i), pred.k);
+  }
+};
+} // namespace Traits
+} // namespace ArborX
+
 namespace bpo = boost::program_options;
 
 template <class NO>
@@ -332,15 +380,6 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
 
   if (perform_knn_search)
   {
-    Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> queries(
-        Kokkos::ViewAllocateWithoutInitializing("queries"), n_queries);
-    Kokkos::parallel_for("bvh_driver:setup_knn_search_queries",
-                         Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
-                         KOKKOS_LAMBDA(int i) {
-                           queries(i) = ArborX::nearest<ArborX::Point>(
-                               random_points(i), n_neighbors);
-                         });
-
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     Kokkos::View<int *, DeviceType> ranks("ranks", 0);
@@ -348,7 +387,9 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     auto knn = time_monitor.getNewTimer("knn");
     MPI_Barrier(comm);
     knn->start();
-    distributed_tree.query(queries, indices, offset, ranks);
+    distributed_tree.query(
+        NearestNeighborsSearches<DeviceType>{random_points, n_neighbors},
+        indices, offset, ranks);
     knn->stop();
 
     if (comm_rank == 0)
@@ -357,8 +398,6 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
 
   if (perform_radius_search)
   {
-    Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
-        queries(Kokkos::ViewAllocateWithoutInitializing("queries"), n_queries);
     // radius chosen in order to control the number of results per query
     // NOTE: minus "1+sqrt(3)/2 \approx 1.37" matches the size of the boxes
     // inserted into the tree (mid-point between half-edge and
@@ -366,12 +405,6 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     double const r =
         2. * std::cbrt(static_cast<double>(n_neighbors) * 3. / (4. * M_PI)) -
         (1. + std::sqrt(3.)) / 2.;
-    Kokkos::parallel_for(
-        "bvh_driver:setup_radius_search_queries",
-        Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
-        KOKKOS_LAMBDA(int i) {
-          queries(i) = ArborX::intersects(ArborX::Sphere{random_points(i), r});
-        });
 
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     Kokkos::View<int *, DeviceType> indices("indices", 0);
@@ -380,7 +413,8 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     auto radius = time_monitor.getNewTimer("radius");
     MPI_Barrier(comm);
     radius->start();
-    distributed_tree.query(queries, indices, offset, ranks);
+    distributed_tree.query(RadiusSearches<DeviceType>{random_points, r},
+                           indices, offset, ranks);
     radius->stop();
 
     if (comm_rank == 0)
