@@ -448,6 +448,45 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   ////////////////////////////////////////////////////////////////////////////
 }
 
+template <class DstViewType, class SrcViewType, int Rank = DstViewType::Rank>
+struct CopyOp;
+
+template <class DstViewType, class SrcViewType>
+struct CopyOp<DstViewType, SrcViewType, 1>
+{
+  KOKKOS_INLINE_FUNCTION
+  static void copy(DstViewType const &dst, size_t i_dst, SrcViewType const &src,
+                   size_t i_src)
+  {
+    dst(i_dst) = src(i_src);
+  }
+};
+
+template <class DstViewType, class SrcViewType>
+struct CopyOp<DstViewType, SrcViewType, 2>
+{
+  KOKKOS_INLINE_FUNCTION
+  static void copy(DstViewType const &dst, size_t i_dst, SrcViewType const &src,
+                   size_t i_src)
+  {
+    for (int j = 0; j < (int)dst.extent(1); j++)
+      dst(i_dst, j) = src(i_src, j);
+  }
+};
+
+template <class DstViewType, class SrcViewType>
+struct CopyOp<DstViewType, SrcViewType, 3>
+{
+  KOKKOS_INLINE_FUNCTION
+  static void copy(DstViewType const &dst, size_t i_dst, SrcViewType const &src,
+                   size_t i_src)
+  {
+    for (int j = 0; j < dst.extent(1); j++)
+      for (int k = 0; k < dst.extent(2); k++)
+        dst(i_dst, j, k) = src(i_src, j, k);
+  }
+};
+
 template <typename PermutationView>
 void applyPermutations(PermutationView const &)
 {
@@ -461,15 +500,14 @@ void applyPermutations(PermutationView const &permutation, View &view,
   static_assert(std::is_integral<typename PermutationView::value_type>::value,
                 "");
   ARBORX_ASSERT(permutation.extent(0) == view.extent(0));
-  Kokkos::View<typename View::value_type *, typename View::device_type,
-               Kokkos::MemoryTraits<Kokkos::RandomAccess>>
-      scratch(Kokkos::ViewAllocateWithoutInitializing(view.label()),
-              view.size());
+  auto scratch_view = clone(view);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("permute"),
-      Kokkos::RangePolicy<typename View::execution_space>(0, view.size()),
-      KOKKOS_LAMBDA(int i) { scratch(i) = view(permutation(i)); });
-  Kokkos::deep_copy(view, scratch);
+      Kokkos::RangePolicy<typename View::execution_space>(0, view.extent(0)),
+      KOKKOS_LAMBDA(int i) {
+        CopyOp<View, View>::copy(scratch_view, i, view, permutation(i));
+      });
+  Kokkos::deep_copy(view, scratch_view);
   // TODO consider working on multiple views simultaneously
   applyPermutations(permutation, other_views...);
 }
