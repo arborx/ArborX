@@ -55,7 +55,7 @@ namespace ArborX
 namespace Details
 {
 
-// NOTE returns the permutation indices **and** sorts the morton codes
+// NOTE returns the permutation indices **and** sorts the input view
 template <typename ViewType>
 Kokkos::View<size_t *, typename ViewType::device_type>
 sortObjects(ViewType &view)
@@ -95,7 +95,7 @@ sortObjects(ViewType &view)
 }
 
 #if defined(KOKKOS_ENABLE_CUDA)
-// NOTE returns the permutation indices **and** sorts the morton codes
+// NOTE returns the permutation indices **and** sorts the input view
 template <typename ValueType, typename MemorySpace>
 Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> sortObjects(
     Kokkos::View<ValueType *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> view)
@@ -114,6 +114,106 @@ Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> sortObjects(
   return permute;
 }
 #endif
+
+// Helper functions and structs for applyPermutations
+namespace PermuteHelper
+{
+template <class DstViewType, class SrcViewType, int Rank = DstViewType::Rank>
+struct CopyOp;
+
+template <class DstViewType, class SrcViewType>
+struct CopyOp<DstViewType, SrcViewType, 1>
+{
+  KOKKOS_INLINE_FUNCTION
+  static void copy(DstViewType const &dst, size_t i_dst, SrcViewType const &src,
+                   size_t i_src)
+  {
+    dst(i_dst) = src(i_src);
+  }
+};
+
+template <class DstViewType, class SrcViewType>
+struct CopyOp<DstViewType, SrcViewType, 2>
+{
+  KOKKOS_INLINE_FUNCTION
+  static void copy(DstViewType const &dst, size_t i_dst, SrcViewType const &src,
+                   size_t i_src)
+  {
+    for (int j = 0; j < (int)dst.extent(1); j++)
+      dst(i_dst, j) = src(i_src, j);
+  }
+};
+
+template <class DstViewType, class SrcViewType>
+struct CopyOp<DstViewType, SrcViewType, 3>
+{
+  KOKKOS_INLINE_FUNCTION
+  static void copy(DstViewType const &dst, size_t i_dst, SrcViewType const &src,
+                   size_t i_src)
+  {
+    for (int j = 0; j < dst.extent(1); j++)
+      for (int k = 0; k < dst.extent(2); k++)
+        dst(i_dst, j, k) = src(i_src, j, k);
+  }
+};
+} // namespace PermuteHelper
+
+template <typename PermutationView>
+void applyPermutations(PermutationView const &)
+{
+  // do nothing
+}
+
+template <typename PermutationView, typename View, typename... OtherViews>
+void applyPermutations(PermutationView const &permutation, View &view,
+                       OtherViews &... other_views)
+{
+  static_assert(std::is_integral<typename PermutationView::value_type>::value,
+                "");
+  ARBORX_ASSERT(permutation.extent(0) == view.extent(0));
+  auto scratch_view = clone(view);
+  Kokkos::parallel_for(
+      ARBORX_MARK_REGION("permute"),
+      Kokkos::RangePolicy<typename View::execution_space>(0, view.extent(0)),
+      KOKKOS_LAMBDA(int i) {
+        PermuteHelper::CopyOp<View, View>::copy(scratch_view, i, view,
+                                                permutation(i));
+      });
+  Kokkos::deep_copy(view, scratch_view);
+  // TODO consider working on multiple views simultaneously
+  applyPermutations(permutation, other_views...);
+}
+
+template <typename View, typename... OtherViews>
+void sortMultipleViews(View keys, OtherViews... other_views)
+{
+  auto const n = keys.extent(0);
+  // If they were no queries, min_val and max_val values won't change after
+  // the parallel reduce (they are initialized to +infty and -infty
+  // respectively) and the sort will hang.
+  if (n == 0)
+    return;
+
+  using Value = typename View::non_const_value_type;
+  using ExecutionSpace = typename View::execution_space;
+
+  Kokkos::MinMaxScalar<Value> result;
+  Kokkos::MinMax<Value> reducer(result);
+  parallel_reduce(Kokkos::RangePolicy<ExecutionSpace>(0, n),
+                  Kokkos::Impl::min_max_functor<View>(keys), reducer);
+  if (result.min_val == result.max_val)
+    return;
+
+  // We only want to get the permutation here, but sortObjects also sorts the
+  // elements given to it. Hence, we need to create a copy.
+  // TODO try to avoid the copy
+  View keys_clone(Kokkos::ViewAllocateWithoutInitializing("keys"), keys.size());
+  Kokkos::deep_copy(keys_clone, keys);
+  auto const permutation = ArborX::Details::sortObjects(keys_clone);
+
+  applyPermutations(permutation, other_views...);
+}
+
 } // namespace Details
 
 } // namespace ArborX
