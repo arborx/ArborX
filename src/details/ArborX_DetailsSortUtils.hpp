@@ -158,15 +158,8 @@ struct CopyOp<DstViewType, SrcViewType, 3>
 };
 } // namespace PermuteHelper
 
-template <typename PermutationView>
-void applyPermutations(PermutationView const &)
-{
-  // do nothing
-}
-
-template <typename PermutationView, typename View, typename... OtherViews>
-void applyPermutations(PermutationView const &permutation, View &view,
-                       OtherViews &... other_views)
+template <typename PermutationView, typename View>
+void applyPermutations(PermutationView const &permutation, View &view)
 {
   static_assert(std::is_integral<typename PermutationView::value_type>::value,
                 "");
@@ -180,38 +173,6 @@ void applyPermutations(PermutationView const &permutation, View &view,
                                                 permutation(i));
       });
   Kokkos::deep_copy(view, scratch_view);
-  // TODO consider working on multiple views simultaneously
-  applyPermutations(permutation, other_views...);
-}
-
-template <typename View, typename... OtherViews>
-void sortMultipleViews(View keys, OtherViews... other_views)
-{
-  auto const n = keys.extent(0);
-  // If they were no queries, min_val and max_val values won't change after
-  // the parallel reduce (they are initialized to +infty and -infty
-  // respectively) and the sort will hang.
-  if (n == 0)
-    return;
-
-  using Value = typename View::non_const_value_type;
-  using ExecutionSpace = typename View::execution_space;
-
-  Kokkos::MinMaxScalar<Value> result;
-  Kokkos::MinMax<Value> reducer(result);
-  parallel_reduce(Kokkos::RangePolicy<ExecutionSpace>(0, n),
-                  Kokkos::Impl::min_max_functor<View>(keys), reducer);
-  if (result.min_val == result.max_val)
-    return;
-
-  // We only want to get the permutation here, but sortObjects also sorts the
-  // elements given to it. Hence, we need to create a copy.
-  // TODO try to avoid the copy
-  View keys_clone(Kokkos::ViewAllocateWithoutInitializing("keys"), keys.size());
-  Kokkos::deep_copy(keys_clone, keys);
-  auto const permutation = ArborX::Details::sortObjects(keys_clone);
-
-  applyPermutations(permutation, other_views...);
 }
 
 } // namespace Details

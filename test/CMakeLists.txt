@@ -36,12 +36,6 @@ target_compile_definitions(ArborX_DetailsUtils.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_DetailsUtils.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_DetailsUtils_Test COMMAND ./ArborX_DetailsUtils.exe)
 
-add_executable(ArborX_DetailsSortUtils.exe tstDetailsSortUtils.cpp utf_main.cpp)
-target_link_libraries(ArborX_DetailsSortUtils.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_DetailsSortUtils.exe PRIVATE BOOST_TEST_DYN_LINK)
-target_include_directories(ArborX_DetailsSortUtils.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_DetailsSortUtils_Test COMMAND ./ArborX_DetailsSortUtils.exe)
-
 add_executable(ArborX_DetailsAlgorithms.exe tstDetailsAlgorithms.cpp)
 target_link_libraries(ArborX_DetailsAlgorithms.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_DetailsAlgorithms.exe PRIVATE BOOST_TEST_MAIN BOOST_TEST_DYN_LINK)

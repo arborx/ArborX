@@ -109,6 +109,9 @@ struct DistributedSearchTreeImpl
                             Kokkos::View<int *, DeviceType> &offset,
                             Kokkos::View<int *, DeviceType> &ranks);
 
+  template <typename View, typename... OtherViews>
+  static void sortResults(View keys, OtherViews... other_views);
+
   static void countResults(int n_queries,
                            Kokkos::View<int *, DeviceType> query_ids,
                            Kokkos::View<int *, DeviceType> &offset);
@@ -391,7 +394,7 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     ////////////////////////////////////////////////////////////////////////////
     int const n_queries = Access::size(queries);
     countResults(n_queries, ids, offset);
-    sortMultipleViews(ids, indices, ranks, distances);
+    sortResults(ids, indices, ranks, distances);
     filterResults(queries, distances, indices, offset, ranks);
     ////////////////////////////////////////////////////////////////////////////
   }
@@ -441,8 +444,40 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   ////////////////////////////////////////////////////////////////////////////
   int const n_queries = Access::size(queries);
   countResults(n_queries, ids, offset);
-  sortMultipleViews(ids, indices, ranks);
+  sortResults(ids, indices, ranks);
   ////////////////////////////////////////////////////////////////////////////
+}
+
+template <typename DeviceType>
+template <typename View, typename... OtherViews>
+void DistributedSearchTreeImpl<DeviceType>::sortResults(
+    View keys, OtherViews... other_views)
+{
+  auto const n = keys.extent(0);
+  // If they were no queries, min_val and max_val values won't change after
+  // the parallel reduce (they are initialized to +infty and -infty
+  // respectively) and the sort will hang.
+  if (n == 0)
+    return;
+
+  using Value = typename View::non_const_value_type;
+
+  Kokkos::MinMaxScalar<Value> result;
+  Kokkos::MinMax<Value> reducer(result);
+  parallel_reduce(Kokkos::RangePolicy<ExecutionSpace>(0, n),
+                  Kokkos::Impl::min_max_functor<View>(keys), reducer);
+  if (result.min_val == result.max_val)
+    return;
+
+  // We only want to get the permutation here, but sortObjects also sorts the
+  // elements given to it. Hence, we need to create a copy.
+  // TODO try to avoid the copy
+  View keys_clone(Kokkos::ViewAllocateWithoutInitializing("keys"), keys.size());
+  Kokkos::deep_copy(keys_clone, keys);
+  auto const permutation = ArborX::Details::sortObjects(keys_clone);
+
+  auto dummy = {
+      (ArborX::Details::applyPermutations(permutation, other_views), 0)...};
 }
 
 template <typename DeviceType>
