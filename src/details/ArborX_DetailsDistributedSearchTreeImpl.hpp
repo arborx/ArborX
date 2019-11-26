@@ -22,6 +22,7 @@
 
 #include <Kokkos_Atomic.hpp>
 #include <Kokkos_HostSpace.hpp>
+#include <Kokkos_Pair.hpp>
 #include <Kokkos_Sort.hpp>
 #include <Kokkos_View.hpp>
 
@@ -38,6 +39,17 @@ class DistributedSearchTree;
 namespace Details
 {
 
+struct CallbackDefaultSpatialPredicateWithRank
+{
+  using tag = CallbackFirstKind;
+  int _rank;
+  template <typename Insert>
+  KOKKOS_FUNCTION void operator()(int, int index, Insert const &insert) const
+  {
+    insert({index, _rank});
+  }
+};
+
 template <typename DeviceType>
 struct DistributedSearchTreeImpl
 {
@@ -50,7 +62,33 @@ struct DistributedSearchTreeImpl
                             Predicates const &queries,
                             Kokkos::View<int *, DeviceType> &indices,
                             Kokkos::View<int *, DeviceType> &offset,
-                            Kokkos::View<int *, DeviceType> &ranks);
+                            Kokkos::View<int *, DeviceType> &ranks)
+  {
+    Kokkos::View<Kokkos::pair<int, int> *, DeviceType> out("pairs_index_rank",
+                                                           0);
+    int comm_rank;
+    MPI_Comm_rank(tree._comm, &comm_rank);
+    queryDispatch(SpatialPredicateTag{}, tree, queries,
+                  CallbackDefaultSpatialPredicateWithRank{comm_rank}, out,
+                  offset);
+    auto const n = out.extent(0);
+    reallocWithoutInitializing(indices, n);
+    reallocWithoutInitializing(ranks, n);
+    using ExecutionSpace = typename DeviceType::execution_space;
+    Kokkos::parallel_for(ARBORX_MARK_REGION("split_pairs"),
+                         Kokkos::RangePolicy<ExecutionSpace>(0, n),
+                         KOKKOS_LAMBDA(int i) {
+                           indices(i) = out(i).first;
+                           ranks(i) = out(i).second;
+                         });
+  }
+
+  template <typename Predicates, typename OutputView, typename Callback>
+  static void queryDispatch(SpatialPredicateTag,
+                            DistributedSearchTree<DeviceType> const &tree,
+                            Predicates const &queries, Callback const &callback,
+                            OutputView &out,
+                            Kokkos::View<int *, DeviceType> &offset);
 
   // nearest neighbors queries
   template <typename Predicates>
@@ -95,9 +133,9 @@ struct DistributedSearchTreeImpl
                              Kokkos::View<int *, DeviceType> &fwd_ids,
                              Kokkos::View<int *, DeviceType> &fwd_ranks);
 
+  template <typename OutputView>
   static void communicateResultsBack(
-      MPI_Comm comm, Kokkos::View<int *, DeviceType> &indices,
-      Kokkos::View<int *, DeviceType> offset,
+      MPI_Comm comm, OutputView &view, Kokkos::View<int *, DeviceType> offset,
       Kokkos::View<int *, DeviceType> &ranks,
       Kokkos::View<int *, DeviceType> &ids,
       Kokkos::View<double *, DeviceType> *distances_ptr = nullptr);
@@ -401,17 +439,18 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
 }
 
 template <typename DeviceType>
-template <typename Predicates>
+template <typename Predicates, typename OutputView, typename Callback>
 void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     SpatialPredicateTag, DistributedSearchTree<DeviceType> const &tree,
-    Predicates const &queries, Kokkos::View<int *, DeviceType> &indices,
-    Kokkos::View<int *, DeviceType> &offset,
-    Kokkos::View<int *, DeviceType> &ranks)
+    Predicates const &queries, Callback const &callback, OutputView &out,
+    Kokkos::View<int *, DeviceType> &offset)
 {
   auto const &top_tree = tree._top_tree;
   auto const &bottom_tree = tree._bottom_tree;
   auto comm = tree._comm;
 
+  Kokkos::View<int *, DeviceType> indices("indices", 0);
+  Kokkos::View<int *, DeviceType> ranks("ranks", 0);
   ////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////
   top_tree.query(queries, indices, offset);
@@ -430,13 +469,13 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   ////////////////////////////////////////////////////////////////////////////
   // Perform queries that have been received
   ////////////////////////////////////////////////////////////////////////////
-  bottom_tree.query(fwd_queries, indices, offset);
+  bottom_tree.query(fwd_queries, callback, out, offset);
   ////////////////////////////////////////////////////////////////////////////
 
   ////////////////////////////////////////////////////////////////////////////
   // Communicate results back
   ////////////////////////////////////////////////////////////////////////////
-  communicateResultsBack(comm, indices, offset, ranks, ids);
+  communicateResultsBack(comm, out, offset, ranks, ids);
   ////////////////////////////////////////////////////////////////////////////
 
   ////////////////////////////////////////////////////////////////////////////
@@ -444,7 +483,7 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   ////////////////////////////////////////////////////////////////////////////
   int const n_queries = Access::size(queries);
   countResults(n_queries, ids, offset);
-  sortResults(ids, indices, ranks);
+  sortResults(ids, out);
   ////////////////////////////////////////////////////////////////////////////
 }
 
@@ -565,9 +604,9 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
 }
 
 template <typename DeviceType>
+template <typename OutputView>
 void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
-    MPI_Comm comm, Kokkos::View<int *, DeviceType> &indices,
-    Kokkos::View<int *, DeviceType> offset,
+    MPI_Comm comm, OutputView &out, Kokkos::View<int *, DeviceType> offset,
     Kokkos::View<int *, DeviceType> &ranks,
     Kokkos::View<int *, DeviceType> &ids,
     Kokkos::View<double *, DeviceType> *distances_ptr)
@@ -596,22 +635,22 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
                            export_ids(i) = ids(q);
                          }
                        });
-  Kokkos::View<int *, DeviceType> export_indices = indices;
+  OutputView export_out = out;
 
-  Kokkos::View<int *, DeviceType> import_indices(
-      Kokkos::ViewAllocateWithoutInitializing(indices.label()), n_imports);
+  OutputView import_out(Kokkos::ViewAllocateWithoutInitializing(out.label()),
+                        n_imports);
   Kokkos::View<int *, DeviceType> import_ranks(
       Kokkos::ViewAllocateWithoutInitializing(ranks.label()), n_imports);
   Kokkos::View<int *, DeviceType> import_ids(
       Kokkos::ViewAllocateWithoutInitializing(ids.label()), n_imports);
 
-  sendAcrossNetwork(distributor, export_indices, import_indices);
+  sendAcrossNetwork(distributor, export_out, import_out);
   sendAcrossNetwork(distributor, export_ranks, import_ranks);
   sendAcrossNetwork(distributor, export_ids, import_ids);
 
   ids = import_ids;
   ranks = import_ranks;
-  indices = import_indices;
+  out = import_out;
 
   if (distances_ptr)
   {
