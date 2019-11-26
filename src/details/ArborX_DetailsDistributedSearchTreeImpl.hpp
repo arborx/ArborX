@@ -448,32 +448,6 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   ////////////////////////////////////////////////////////////////////////////
 }
 
-template <typename PermutationView>
-void applyPermutations(PermutationView const &)
-{
-  // do nothing
-}
-
-template <typename PermutationView, typename View, typename... OtherViews>
-void applyPermutations(PermutationView const &permutation, View &view,
-                       OtherViews &... other_views)
-{
-  static_assert(std::is_integral<typename PermutationView::value_type>::value,
-                "");
-  ARBORX_ASSERT(permutation.extent(0) == view.extent(0));
-  Kokkos::View<typename View::value_type *, typename View::device_type,
-               Kokkos::MemoryTraits<Kokkos::RandomAccess>>
-      scratch(Kokkos::ViewAllocateWithoutInitializing(view.label()),
-              view.size());
-  Kokkos::parallel_for(
-      ARBORX_MARK_REGION("permute"),
-      Kokkos::RangePolicy<typename View::execution_space>(0, view.size()),
-      KOKKOS_LAMBDA(int i) { scratch(i) = view(permutation(i)); });
-  Kokkos::deep_copy(view, scratch);
-  // TODO consider working on multiple views simultaneously
-  applyPermutations(permutation, other_views...);
-}
-
 template <typename DeviceType>
 template <typename View, typename... OtherViews>
 void DistributedSearchTreeImpl<DeviceType>::sortResults(
@@ -502,7 +476,13 @@ void DistributedSearchTreeImpl<DeviceType>::sortResults(
   Kokkos::deep_copy(keys_clone, keys);
   auto const permutation = ArborX::Details::sortObjects(keys_clone);
 
-  applyPermutations(permutation, other_views...);
+  // Call applyPermutation for every entry in the parameter pack.
+  // We need to use the comma operator here since the function returns void.
+  // The variable we assign to is actually not needed. We just need something
+  // to store the initializer list (that contains only zeros).
+  auto dummy = {
+      (ArborX::Details::applyPermutation(permutation, other_views), 0)...};
+  std::ignore = dummy;
 }
 
 template <typename DeviceType>

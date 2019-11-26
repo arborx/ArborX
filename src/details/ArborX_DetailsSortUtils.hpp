@@ -55,7 +55,7 @@ namespace ArborX
 namespace Details
 {
 
-// NOTE returns the permutation indices **and** sorts the morton codes
+// NOTE returns the permutation indices **and** sorts the input view
 template <typename ViewType>
 Kokkos::View<size_t *, typename ViewType::device_type>
 sortObjects(ViewType &view)
@@ -95,7 +95,7 @@ sortObjects(ViewType &view)
 }
 
 #if defined(KOKKOS_ENABLE_CUDA)
-// NOTE returns the permutation indices **and** sorts the morton codes
+// NOTE returns the permutation indices **and** sorts the input view
 template <typename ValueType, typename MemorySpace>
 Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> sortObjects(
     Kokkos::View<ValueType *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> view)
@@ -114,6 +114,67 @@ Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> sortObjects(
   return permute;
 }
 #endif
+
+// Helper functions and structs for applyPermutations
+namespace PermuteHelper
+{
+template <class DstViewType, class SrcViewType, int Rank = DstViewType::Rank>
+struct CopyOp;
+
+template <class DstViewType, class SrcViewType>
+struct CopyOp<DstViewType, SrcViewType, 1>
+{
+  KOKKOS_INLINE_FUNCTION
+  static void copy(DstViewType const &dst, size_t i_dst, SrcViewType const &src,
+                   size_t i_src)
+  {
+    dst(i_dst) = src(i_src);
+  }
+};
+
+template <class DstViewType, class SrcViewType>
+struct CopyOp<DstViewType, SrcViewType, 2>
+{
+  KOKKOS_INLINE_FUNCTION
+  static void copy(DstViewType const &dst, size_t i_dst, SrcViewType const &src,
+                   size_t i_src)
+  {
+    for (unsigned int j = 0; j < dst.extent(1); j++)
+      dst(i_dst, j) = src(i_src, j);
+  }
+};
+
+template <class DstViewType, class SrcViewType>
+struct CopyOp<DstViewType, SrcViewType, 3>
+{
+  KOKKOS_INLINE_FUNCTION
+  static void copy(DstViewType const &dst, size_t i_dst, SrcViewType const &src,
+                   size_t i_src)
+  {
+    for (unsigned int j = 0; j < dst.extent(1); j++)
+      for (unsigned int k = 0; k < dst.extent(2); k++)
+        dst(i_dst, j, k) = src(i_src, j, k);
+  }
+};
+} // namespace PermuteHelper
+
+template <typename PermutationView, typename View>
+void applyPermutation(PermutationView const &permutation, View &view)
+{
+  static_assert(std::is_integral<typename PermutationView::value_type>::value,
+                "");
+  ARBORX_ASSERT(permutation.extent(0) == view.extent(0));
+  auto scratch_view = clone(view);
+  Kokkos::parallel_for(
+      ARBORX_MARK_REGION("permute"),
+      Kokkos::RangePolicy<typename View::execution_space>(0, view.extent(0)),
+      KOKKOS_LAMBDA(int i) {
+        PermuteHelper::CopyOp<View, View>::copy(scratch_view, i, view,
+                                                permutation(i));
+      });
+  Kokkos::deep_copy(view, scratch_view);
+}
+
 } // namespace Details
 
 } // namespace ArborX
