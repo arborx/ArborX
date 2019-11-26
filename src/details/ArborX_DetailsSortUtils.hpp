@@ -139,7 +139,7 @@ struct CopyOp<DstViewType, SrcViewType, 2>
   static void copy(DstViewType const &dst, size_t i_dst, SrcViewType const &src,
                    size_t i_src)
   {
-    for (int j = 0; j < (int)dst.extent(1); j++)
+    for (unsigned int j = 0; j < dst.extent(1); j++)
       dst(i_dst, j) = src(i_src, j);
   }
 };
@@ -151,15 +151,15 @@ struct CopyOp<DstViewType, SrcViewType, 3>
   static void copy(DstViewType const &dst, size_t i_dst, SrcViewType const &src,
                    size_t i_src)
   {
-    for (int j = 0; j < dst.extent(1); j++)
-      for (int k = 0; k < dst.extent(2); k++)
+    for (unsigned int j = 0; j < dst.extent(1); j++)
+      for (unsigned int k = 0; k < dst.extent(2); k++)
         dst(i_dst, j, k) = src(i_src, j, k);
   }
 };
 } // namespace PermuteHelper
 
 template <typename PermutationView, typename View>
-void applyPermutations(PermutationView const &permutation, View &view)
+void applyPermutation(PermutationView const &permutation, View &view)
 {
   static_assert(std::is_integral<typename PermutationView::value_type>::value,
                 "");

@@ -476,8 +476,13 @@ void DistributedSearchTreeImpl<DeviceType>::sortResults(
   Kokkos::deep_copy(keys_clone, keys);
   auto const permutation = ArborX::Details::sortObjects(keys_clone);
 
+  // Call applyPermutation for every entry in the parameter pack.
+  // We need to use the comma operator here since the function returns void.
+  // The variable we assign to is actually not needed. We just need something
+  // to store the initializer list (that contains only zeros).
   auto dummy = {
-      (ArborX::Details::applyPermutations(permutation, other_views), 0)...};
+      (ArborX::Details::applyPermutation(permutation, other_views), 0)...};
+  std::ignore = dummy;
 }
 
 template <typename DeviceType>
