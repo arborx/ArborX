@@ -100,7 +100,7 @@ struct DistributedSearchTreeImpl
       Kokkos::View<double *, DeviceType> *distances_ptr = nullptr);
 
   template <typename Predicates>
-  static void queryDispatch(Details::NearestPredicateTag tag,
+  static void queryDispatch(NearestPredicateTag tag,
                             DistributedSearchTree<DeviceType> const &tree,
                             Predicates const &queries,
                             Kokkos::View<int *, DeviceType> &indices,
