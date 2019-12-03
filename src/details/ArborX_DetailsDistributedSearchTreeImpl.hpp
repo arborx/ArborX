@@ -46,7 +46,7 @@ struct CallbackDefaultSpatialPredicateWithRank
   template <typename Insert>
   KOKKOS_FUNCTION void operator()(int, int index, Insert const &insert) const
   {
-    insert({index, _rank});
+    insert(Kokkos::pair<int, int>{index, _rank});
   }
 };
 
