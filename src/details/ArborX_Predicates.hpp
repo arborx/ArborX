@@ -99,6 +99,33 @@ getGeometry(Intersects<Geometry> const &pred)
   return pred._geometry;
 }
 
+template <typename Predicate, typename Data>
+struct PredicateWithAttachment : Predicate
+{
+  KOKKOS_INLINE_FUNCTION PredicateWithAttachment() = default;
+  KOKKOS_INLINE_FUNCTION PredicateWithAttachment(Predicate const &pred,
+                                                 Data const &data)
+      : Predicate{pred}
+      , _data{data}
+  {
+  }
+  Data _data;
+};
+
+template <typename Predicate, typename Data>
+KOKKOS_INLINE_FUNCTION Data const &
+getData(PredicateWithAttachment<Predicate, Data> const &pred)
+{
+  return pred._data;
+}
+
+template <typename Predicate, typename Data>
+KOKKOS_INLINE_FUNCTION PredicateWithAttachment<Predicate, Data>
+attach(Predicate &&pred, Data &&data)
+{
+  return {pred, data};
+}
+
 } // namespace ArborX
 
 #endif
