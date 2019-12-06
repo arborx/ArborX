@@ -298,7 +298,7 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
       ARBORX_MARK_REGION("bottom_trees_with_required_cumulated_leaves_count"),
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
         int leaves_count = 0;
-        int const n_nearest_neighbors = Access::get(queries, i)._k;
+        int const n_nearest_neighbors = getK(Access::get(queries, i));
         for (int j = offset(i); j < offset(i + 1); ++j)
         {
           int const bottom_tree_size = bottom_tree_sizes(indices(j));
@@ -356,8 +356,8 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("bottom_trees_within_that_distance"),
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
-        radius_searches(i) = intersects(
-            Sphere{Access::get(queries, i)._geometry, farthest_distances(i)});
+        radius_searches(i) = intersects(Sphere{
+            getGeometry(Access::get(queries, i)), farthest_distances(i)});
       });
 
   top_tree.query(radius_searches, indices, offset);
@@ -681,7 +681,7 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
                        KOKKOS_LAMBDA(int q) {
                          using KokkosExt::min;
                          new_offset(q) = min(offset(q + 1) - offset(q),
-                                             Access::get(queries, q)._k);
+                                             getK(Access::get(queries, q)));
                        });
 
   exclusivePrefixSum(new_offset);
@@ -725,7 +725,7 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
           }
 
           int count = 0;
-          while (!queue.empty() && count < Access::get(queries, q)._k)
+          while (!queue.empty() && count < getK(Access::get(queries, q)))
           {
             new_indices(new_offset(q) + count) = queue.top().first[0];
             new_ranks(new_offset(q) + count) = queue.top().first[1];

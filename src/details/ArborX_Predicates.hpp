@@ -79,6 +79,26 @@ KOKKOS_INLINE_FUNCTION Intersects<Geometry> intersects(Geometry const &geometry)
   return Intersects<Geometry>(geometry);
 }
 
+template <typename Geometry>
+KOKKOS_INLINE_FUNCTION int getK(Nearest<Geometry> const &pred)
+{
+  return pred._k;
+}
+
+template <typename Geometry>
+KOKKOS_INLINE_FUNCTION Geometry const &
+getGeometry(Nearest<Geometry> const &pred)
+{
+  return pred._geometry;
+}
+
+template <typename Geometry>
+KOKKOS_INLINE_FUNCTION Geometry const &
+getGeometry(Intersects<Geometry> const &pred)
+{
+  return pred._geometry;
+}
+
 } // namespace ArborX
 
 #endif

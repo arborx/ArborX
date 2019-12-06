@@ -224,7 +224,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("scan_queries_for_numbers_of_nearest_neighbors"),
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
-      KOKKOS_LAMBDA(int i) { offset(permute(i)) = queries(i)._k; });
+      KOKKOS_LAMBDA(int i) { offset(permute(i)) = getK(queries(i)); });
 
   exclusivePrefixSum(offset);
   int const n_results = lastElement(offset);

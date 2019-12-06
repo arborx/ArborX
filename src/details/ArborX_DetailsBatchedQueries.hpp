@@ -75,7 +75,7 @@ public:
                          Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
                          KOKKOS_LAMBDA(int i) {
                            Point xyz = Details::returnCentroid(
-                               Access::get(predicates, i)._geometry);
+                               getGeometry(Access::get(predicates, i)));
                            translateAndScale(xyz, xyz, bounds());
                            morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
                          });
