@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y \
         libbz2-dev \
         libicu-dev \
         python-dev \
+        pkg-config \
         autotools-dev \
         && \
     apt-get clean && \
