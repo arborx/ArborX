@@ -43,8 +43,9 @@ struct CallbackDefaultSpatialPredicateWithRank
 {
   using tag = CallbackFirstKind;
   int _rank;
-  template <typename Insert>
-  KOKKOS_FUNCTION void operator()(int, int index, Insert const &insert) const
+  template <typename Query, typename Insert>
+  KOKKOS_FUNCTION void operator()(Query const &, int index,
+                                  Insert const &insert) const
   {
     insert(Kokkos::pair<int, int>{index, _rank});
   }

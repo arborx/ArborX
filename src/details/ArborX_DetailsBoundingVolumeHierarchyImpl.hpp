@@ -49,8 +49,9 @@ enum class NearestQueryAlgorithm
 struct CallbackDefaultSpatialPredicate
 {
   using tag = CallbackFirstKind;
-  template <typename Insert>
-  KOKKOS_FUNCTION void operator()(int, int index, Insert const &insert) const
+  template <typename Query, typename Insert>
+  KOKKOS_FUNCTION void operator()(Query const &, int index,
+                                  Insert const &insert) const
   {
     insert(index);
   }
@@ -59,8 +60,8 @@ struct CallbackDefaultSpatialPredicate
 struct CallbackDefaultNearestPredicate
 {
   using tag = CallbackFirstKind;
-  template <typename Insert>
-  KOKKOS_FUNCTION void operator()(int, int index, double,
+  template <typename Query, typename Insert>
+  KOKKOS_FUNCTION void operator()(Query const &, int index, double,
                                   Insert const &insert) const
   {
     insert(index);
@@ -70,8 +71,8 @@ struct CallbackDefaultNearestPredicate
 struct CallbackDefaultNearestPredicateWithDistance
 {
   using tag = CallbackFirstKind;
-  template <typename Insert>
-  KOKKOS_FUNCTION void operator()(int, int index, double distance,
+  template <typename Query, typename Insert>
+  KOKKOS_FUNCTION void operator()(Query const &, int index, double distance,
                                   Insert const &insert) const
   {
     insert({index, distance});
@@ -243,10 +244,12 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
           auto &count = tmp_offset(permute(i));
           count = 0;
           auto const shift = offset(permute(i));
+          auto const &query = queries(i);
           Details::TreeTraversal<DeviceType>::query(
-              bvh, queries(i),
-              [i, &callback, &out, shift, &count](int index, double distance) {
-                callback(i, index, distance,
+              bvh, query,
+              [&query, &callback, &out, shift, &count](int index,
+                                                       double distance) {
+                callback(query, index, distance,
                          [&out, shift, &count](
                              typename OutputView::value_type const &value) {
                            out(shift + count++) = value;
@@ -271,10 +274,12 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
           auto &count = tmp_offset(permute(i));
           count = 0;
           auto const shift = offset(permute(i));
+          auto const &query = queries(i);
           Details::TreeTraversal<DeviceType>::query(
-              bvh, queries(i),
-              [i, &callback, &out, shift, &count](int index, double distance) {
-                callback(i, index, distance,
+              bvh, query,
+              [&query, &callback, &out, shift, &count](int index,
+                                                       double distance) {
+                callback(query, index, distance,
                          [&out, shift, &count](
                              typename OutputView::value_type const &value) {
                            out(shift + count++) = value;
@@ -387,17 +392,18 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
           auto &count = offset(permute(i));
           count = 0;
           auto const shift = permute(i) * buffer_size;
+          auto const &query = queries(i);
           Details::TreeTraversal<DeviceType>::query(
-              bvh, queries(i),
-              [i, &callback, buffer_size, &out, shift, &count](int index) {
+              bvh, query,
+              [&query, &callback, buffer_size, &out, shift, &count](int index) {
                 if (count < buffer_size)
-                  callback(i, index,
+                  callback(query, index,
                            [&count, &out, shift](
                                typename OutputView::value_type const &value) {
                              out(shift + count++) = value;
                            });
                 else
-                  callback(i, index,
+                  callback(query, index,
                            [&count](typename OutputView::value_type const &) {
                              ++count;
                            });
@@ -412,10 +418,11 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
         Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
         KOKKOS_LAMBDA(int i) {
           auto &count = offset(permute(i));
+          auto const &query = queries(i);
           count = 0;
           Details::TreeTraversal<DeviceType>::query(
-              bvh, queries(i), [i, &callback, &count](int index) {
-                callback(i, index,
+              bvh, query, [&query, &callback, &count](int index) {
+                callback(query, index,
                          [&count](typename OutputView::value_type const &) {
                            ++count;
                          });
@@ -466,9 +473,10 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
         KOKKOS_LAMBDA(int i) {
           int count = 0;
           auto const shift = offset(permute(i));
+          auto const &query = queries(i);
           Details::TreeTraversal<DeviceType>::query(
-              bvh, queries(i), [i, &callback, &out, shift, &count](int index) {
-                callback(i, index,
+              bvh, query, [&query, &callback, &out, shift, &count](int index) {
+                callback(query, index,
                          [&count, &out,
                           shift](typename OutputView::value_type const &value) {
                            out(shift + count++) = value;
