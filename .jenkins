@@ -205,7 +205,7 @@ pipeline {
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'
-                            sh 'ctest --timeout 180 --no-compress-output -T Test'
+                            sh 'ctest --timeout 360 --no-compress-output -T Test'
                         }
                     }
                     post {
