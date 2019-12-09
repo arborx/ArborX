@@ -253,9 +253,10 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
                                                                               "local clouds form a board, 3 -> local clouds form a box." )
         ( "do-not-perform-knn-search", "skip kNN search" )
         ( "do-not-perform-radius-search", "skip radius search" )
-        ( "shift-queries" , "Shift the queries away from the point cloud. By default, queries and points are generated in the same box "
-                            "on each processor. Enabling this option shrinks this box to a third of its size and moves it to the center "
-                            "of the global box.")
+        ( "shift-queries" , "Shift the the local box queries are created in from the point cloud. "
+                            "By default, points are reused for the queries. "
+                            "Enabling this option shrinks this box to a third of its size and moves it to the center of the global box. "
+                            "The result is a huge inbalance for the number of queries that need to be processed by each processor.")
         ;
   // clang-format on
   bpo::variables_map vm;
