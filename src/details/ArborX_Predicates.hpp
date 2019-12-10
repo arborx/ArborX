@@ -67,13 +67,14 @@ struct Intersects
 };
 
 template <typename Geometry>
-KOKKOS_INLINE_FUNCTION auto nearest(Geometry const &geometry, int k = 1)
+KOKKOS_INLINE_FUNCTION Nearest<Geometry> nearest(Geometry const &geometry,
+                                                 int k = 1)
 {
   return Nearest<Geometry>(geometry, k);
 }
 
 template <typename Geometry>
-KOKKOS_INLINE_FUNCTION auto intersects(Geometry const &geometry)
+KOKKOS_INLINE_FUNCTION Intersects<Geometry> intersects(Geometry const &geometry)
 {
   return Intersects<Geometry>(geometry);
 }
