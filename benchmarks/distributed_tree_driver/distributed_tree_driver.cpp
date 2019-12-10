@@ -253,10 +253,9 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
                                                                               "local clouds form a board, 3 -> local clouds form a box." )
         ( "do-not-perform-knn-search", "skip kNN search" )
         ( "do-not-perform-radius-search", "skip radius search" )
-        ( "shift-queries" , "Shift the the local box queries are created in from the point cloud. "
-                            "By default, points are reused for the queries. "
-                            "Enabling this option shrinks this box to a third of its size and moves it to the center of the global box. "
-                            "The result is a huge inbalance for the number of queries that need to be processed by each processor.")
+        ( "shift-queries" , "By default, points are reused for the queries. Enabling this option shrinks the local box queries are created "
+                            "in to a third of its size and moves it to the center of the global box. The result is a huge inbalance for the "
+                            "number of queries that need to be processed by each processor.")
         ;
   // clang-format on
   bpo::variables_map vm;
@@ -299,9 +298,9 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   Kokkos::View<ArborX::Point *, DeviceType> random_points("random_points", 0);
   Kokkos::View<ArborX::Point *, DeviceType> random_queries("random_queries", 0);
   {
-    // Random points are "reused" between building the tree and performing
-    // queries. Note that this means that for the points in the middle of
-    // the local domains there won't be any communication.
+    // By default, random points are "reused" between building the tree and
+    // performing queries. Note that this means that for the points in the
+    // middle of the local domains there won't be any communication.
     Kokkos::resize(random_points, n_values);
     Kokkos::resize(random_queries, n_queries);
 
