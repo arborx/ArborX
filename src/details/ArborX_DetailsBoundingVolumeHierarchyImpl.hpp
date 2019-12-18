@@ -13,6 +13,7 @@
 #define ARBORX_DETAILS_BOUNDING_VOLUME_HIERARCHY_IMPL_HPP
 
 #include <ArborX_DetailsBatchedQueries.hpp>
+#include <ArborX_DetailsConcepts.hpp>  // is_detected
 #include <ArborX_DetailsKokkosExt.hpp> // ArithmeticTraits
 #include <ArborX_DetailsTreeTraversal.hpp>
 #include <ArborX_DetailsUtils.hpp>
@@ -30,6 +31,31 @@ class BoundingVolumeHierarchy;
 
 namespace Details
 {
+
+// archetypal expression for user callbacks
+template <typename Callback, typename Predicate, typename Out>
+using NearestPredicateInlineCallbackArchetypeExpression =
+    decltype(std::declval<Callback const &>()(
+        std::declval<Predicate const &>(), 0, 0., std::declval<Out const &>()));
+
+template <typename Callback, typename Predicate, typename Out>
+using SpatialPredicateInlineCallbackArchetypeExpression =
+    decltype(std::declval<Callback const &>()(std::declval<Predicate const &>(),
+                                              0, std::declval<Out const &>()));
+
+// output functor to pass to the callback during detection
+template <typename T>
+struct Sink
+{
+  void operator()(T const &) const {}
+};
+
+template <typename Predicates>
+using PredicatesHelper =
+    decay_result_of_get_t<Traits::Access<Predicates, Traits::PredicatesTag>>;
+
+template <typename OutputView>
+using OutputFunctorHelper = Sink<typename OutputView::value_type>;
 
 struct CallbackFirstKind
 {
@@ -197,6 +223,11 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     Predicates const &predicates, Callback const &callback, OutputView &out,
     Kokkos::View<int *, DeviceType> &offset, NearestQueryAlgorithm which)
 {
+  static_assert(is_detected<NearestPredicateInlineCallbackArchetypeExpression,
+                            Callback, PredicatesHelper<Predicates>,
+                            OutputFunctorHelper<OutputView>>::value,
+                "Callback function does not have the correct signature");
+
   Kokkos::Profiling::pushRegion("ArborX:BVH:nearest_queries");
 
   using ExecutionSpace = typename DeviceType::execution_space;
@@ -338,6 +369,11 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     Predicates const &predicates, Callback const &callback, OutputView &out,
     Kokkos::View<int *, DeviceType> &offset, int buffer_size)
 {
+  static_assert(is_detected<SpatialPredicateInlineCallbackArchetypeExpression,
+                            Callback, PredicatesHelper<Predicates>,
+                            OutputFunctorHelper<OutputView>>::value,
+                "Callback function does not have the correct signature");
+
   Kokkos::Profiling::pushRegion("ArborX:BVH:spatial_queries");
 
   using ExecutionSpace = typename DeviceType::execution_space;
