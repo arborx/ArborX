@@ -53,7 +53,9 @@ struct is_detected_impl<std::void_t<Op<Args...>>, Op, Args...> : std::true_type
 };
 
 template <template <class...> class Op, class... Args>
-using is_detected = is_detected_impl<void, Op, Args...>;
+struct is_detected : is_detected_impl<void, Op, Args...>
+{
+};
 
 // Checks for existence of a free function that expands an object of type
 // Geometry using an object of type Other
