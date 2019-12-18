@@ -57,11 +57,11 @@ using PredicatesHelper =
 template <typename OutputView>
 using OutputFunctorHelper = Sink<typename OutputView::value_type>;
 
-struct CallbackFirstKind
+struct InlineCallbackTag
 {
 };
 
-struct CallbackSecondKind
+struct PostCallbackTag
 {
 };
 
@@ -74,7 +74,7 @@ enum class NearestQueryAlgorithm
 
 struct CallbackDefaultSpatialPredicate
 {
-  using tag = CallbackFirstKind;
+  using tag = InlineCallbackTag;
   template <typename Query, typename Insert>
   KOKKOS_FUNCTION void operator()(Query const &, int index,
                                   Insert const &insert) const
@@ -85,7 +85,7 @@ struct CallbackDefaultSpatialPredicate
 
 struct CallbackDefaultNearestPredicate
 {
-  using tag = CallbackFirstKind;
+  using tag = InlineCallbackTag;
   template <typename Query, typename Insert>
   KOKKOS_FUNCTION void operator()(Query const &, int index, double,
                                   Insert const &insert) const
@@ -96,7 +96,7 @@ struct CallbackDefaultNearestPredicate
 
 struct CallbackDefaultNearestPredicateWithDistance
 {
-  using tag = CallbackFirstKind;
+  using tag = InlineCallbackTag;
   template <typename Query, typename Insert>
   KOKKOS_FUNCTION void operator()(Query const &, int index, double distance,
                                   Insert const &insert) const
@@ -125,7 +125,7 @@ struct BoundingVolumeHierarchyImpl
 
   template <typename Predicates, typename OutputView, typename Callback>
   static std::enable_if_t<
-      std::is_same<typename Callback::tag, CallbackFirstKind>::value>
+      std::is_same<typename Callback::tag, InlineCallbackTag>::value>
   queryDispatch(SpatialPredicateTag,
                 BoundingVolumeHierarchy<DeviceType> const &bvh,
                 Predicates const &predicates, Callback const &callback,
@@ -134,7 +134,7 @@ struct BoundingVolumeHierarchyImpl
 
   template <typename Predicates, typename OutputView, typename Callback>
   static std::enable_if_t<
-      std::is_same<typename Callback::tag, CallbackSecondKind>::value>
+      std::is_same<typename Callback::tag, PostCallbackTag>::value>
   queryDispatch(SpatialPredicateTag,
                 BoundingVolumeHierarchy<DeviceType> const &bvh,
                 Predicates const &predicates, Callback const &callback,
@@ -149,7 +149,7 @@ struct BoundingVolumeHierarchyImpl
 
   template <typename Predicates, typename OutputView, typename Callback>
   static std::enable_if_t<
-      std::is_same<typename Callback::tag, CallbackFirstKind>::value>
+      std::is_same<typename Callback::tag, InlineCallbackTag>::value>
   queryDispatch(
       NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
       Predicates const &predicates, Callback const &callback, OutputView &out,
@@ -158,7 +158,7 @@ struct BoundingVolumeHierarchyImpl
 
   template <typename Predicates, typename OutputView, typename Callback>
   static std::enable_if_t<
-      std::is_same<typename Callback::tag, CallbackSecondKind>::value>
+      std::is_same<typename Callback::tag, PostCallbackTag>::value>
   queryDispatch(
       NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
       Predicates const &predicates, Callback const &callback, OutputView &out,
@@ -217,7 +217,7 @@ struct BoundingVolumeHierarchyImpl
 // parameter shall not be advertised to the user.
 template <typename DeviceType>
 template <typename Predicates, typename OutputView, typename Callback>
-std::enable_if_t<std::is_same<typename Callback::tag, CallbackFirstKind>::value>
+std::enable_if_t<std::is_same<typename Callback::tag, InlineCallbackTag>::value>
 BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
     Predicates const &predicates, Callback const &callback, OutputView &out,
@@ -363,7 +363,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 // second pass.  If it is negative, it throws an exception.
 template <typename DeviceType>
 template <typename Predicates, typename OutputView, typename Callback>
-std::enable_if_t<std::is_same<typename Callback::tag, CallbackFirstKind>::value>
+std::enable_if_t<std::is_same<typename Callback::tag, InlineCallbackTag>::value>
 BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     SpatialPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
     Predicates const &predicates, Callback const &callback, OutputView &out,

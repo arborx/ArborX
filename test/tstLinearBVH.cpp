@@ -353,7 +353,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity, DeviceType,
 template <typename DeviceType>
 struct CustomCallbackSpatialPredicate
 {
-  using tag = ArborX::Details::CallbackFirstKind;
+  using tag = ArborX::Details::InlineCallbackTag;
   Kokkos::View<ArborX::Point *, DeviceType> points;
   ArborX::Point const origin = {{0., 0., 0.}};
   template <typename Query, typename Insert>
@@ -369,7 +369,7 @@ struct CustomCallbackSpatialPredicate
 template <typename DeviceType>
 struct CustomCallbackSpatialPredicate2
 {
-  using tag = ArborX::Details::CallbackSecondKind;
+  using tag = ArborX::Details::PostCallbackTag;
   Kokkos::View<ArborX::Point *, DeviceType> points;
   ArborX::Point const origin = {{0., 0., 0.}};
   template <typename InOutView, typename InView, typename OutView>
@@ -394,7 +394,7 @@ struct CustomCallbackSpatialPredicate2
 template <typename DeviceType>
 struct CustomCallbackNearestPredicate
 {
-  using tag = ArborX::Details::CallbackFirstKind;
+  using tag = ArborX::Details::InlineCallbackTag;
   template <typename Query, typename Insert>
   KOKKOS_FUNCTION void operator()(Query const &, int index, double distance,
                                   Insert const &insert) const
@@ -406,7 +406,7 @@ struct CustomCallbackNearestPredicate
 template <typename DeviceType>
 struct CustomCallbackNearestPredicate2
 {
-  using tag = ArborX::Details::CallbackSecondKind;
+  using tag = ArborX::Details::PostCallbackTag;
   template <typename InOutView, typename InView, typename OutView>
   void operator()(InOutView &offset, InView in, OutView &out) const
   {
