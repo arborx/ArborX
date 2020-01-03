@@ -372,8 +372,10 @@ struct CustomCallbackSpatialPredicate2
   using tag = ArborX::Details::PostCallbackTag;
   Kokkos::View<ArborX::Point *, DeviceType> points;
   ArborX::Point const origin = {{0., 0., 0.}};
-  template <typename InOutView, typename InView, typename OutView>
-  void operator()(InOutView &offset, InView in, OutView &out) const
+  template <typename Predicates, typename InOutView, typename InView,
+            typename OutView>
+  void operator()(Predicates const &, InOutView &offset, InView in,
+                  OutView &out) const
   {
     using ExecutionSpace = typename DeviceType::execution_space;
     using ArborX::Details::distance;
@@ -408,8 +410,10 @@ template <typename DeviceType>
 struct CustomCallbackNearestPredicate2
 {
   using tag = ArborX::Details::PostCallbackTag;
-  template <typename InOutView, typename InView, typename OutView>
-  void operator()(InOutView &offset, InView in, OutView &out) const
+  template <typename Predicates, typename InOutView, typename InView,
+            typename OutView>
+  void operator()(Predicates const &, InOutView &offset, InView in,
+                  OutView &out) const
   {
     using ExecutionSpace = typename DeviceType::execution_space;
     auto const n = offset.extent(0) - 1;

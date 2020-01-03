@@ -144,7 +144,7 @@ struct BoundingVolumeHierarchyImpl
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     queryDispatch(SpatialPredicateTag{}, bvh, predicates, indices, offset,
                   buffer_size);
-    callback(offset, indices, out);
+    callback(predicates, offset, indices, out);
   }
 
   template <typename Predicates, typename OutputView, typename Callback>
@@ -170,7 +170,7 @@ struct BoundingVolumeHierarchyImpl
     queryDispatch(NearestPredicateTag{}, bvh, predicates,
                   CallbackDefaultNearestPredicateWithDistance{}, pairs, offset,
                   which);
-    callback(offset, pairs, out);
+    callback(predicates, offset, pairs, out);
   }
 
   template <typename Predicates>
