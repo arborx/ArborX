@@ -379,8 +379,9 @@ struct CustomCallbackSpatialPredicate2
     using ArborX::Details::distance;
     auto const n = offset.extent(0) - 1;
     ArborX::reallocWithoutInitializing(out, in.extent(0));
-    auto points_ = points;
-    auto origin_ = origin;
+    // NOTE woraround to avoid implicit capture of *this
+    auto const &points_ = points;
+    auto const &origin_ = origin;
     Kokkos::parallel_for(
         Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
           for (int j = offset(i); j < offset(i + 1); ++j)
