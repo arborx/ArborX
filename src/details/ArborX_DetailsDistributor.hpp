@@ -207,10 +207,6 @@ public:
     static_assert(View::rank == 1, "");
     static_assert(std::is_same<typename View::non_const_value_type, int>::value,
                   "");
-    int comm_rank;
-    MPI_Comm_rank(_comm, &comm_rank);
-    int comm_size;
-    MPI_Comm_size(_comm, &comm_size);
 
     // The next two function calls are the only difference to the other
     // overload.
@@ -219,25 +215,7 @@ public:
     determineBufferLayout(batched_destination_ranks, batch_offsets, _permute,
                           _destinations, _dest_counts, _dest_offsets);
 
-    std::vector<int> src_counts_dense(comm_size);
-    int const dest_size = _destinations.size();
-    for (int i = 0; i < dest_size; ++i)
-    {
-      src_counts_dense[_destinations[i]] = _dest_counts[i];
-    }
-    MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, src_counts_dense.data(), 1,
-                 MPI_INT, _comm);
-
-    _src_offsets.push_back(0);
-    for (int i = 0; i < comm_size; ++i)
-      if (src_counts_dense[i] > 0)
-      {
-        _sources.push_back(i);
-        _src_counts.push_back(src_counts_dense[i]);
-        _src_offsets.push_back(_src_offsets.back() + _src_counts.back());
-      }
-
-    return _src_offsets.back();
+    return preparePointToPointCommunication();
   }
 
   template <typename View>
@@ -246,10 +224,6 @@ public:
     static_assert(View::rank == 1, "");
     static_assert(std::is_same<typename View::non_const_value_type, int>::value,
                   "");
-    int comm_rank;
-    MPI_Comm_rank(_comm, &comm_rank);
-    int comm_size;
-    MPI_Comm_size(_comm, &comm_size);
 
     // The next two function calls are the only difference to the other
     // overload.
@@ -257,25 +231,7 @@ public:
     sortAndDetermineBufferLayout(destination_ranks, _permute, _destinations,
                                  _dest_counts, _dest_offsets);
 
-    std::vector<int> src_counts_dense(comm_size);
-    int const dest_size = _destinations.size();
-    for (int i = 0; i < dest_size; ++i)
-    {
-      src_counts_dense[_destinations[i]] = _dest_counts[i];
-    }
-    MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, src_counts_dense.data(), 1,
-                 MPI_INT, _comm);
-
-    _src_offsets.push_back(0);
-    for (int i = 0; i < comm_size; ++i)
-      if (src_counts_dense[i] > 0)
-      {
-        _sources.push_back(i);
-        _src_counts.push_back(src_counts_dense[i]);
-        _src_offsets.push_back(_src_offsets.back() + _src_counts.back());
-      }
-
-    return _src_offsets.back();
+    return preparePointToPointCommunication();
   }
 
   template <typename View>
@@ -389,6 +345,32 @@ public:
   size_t getTotalSendLength() const { return _dest_offsets.back(); }
 
 private:
+  size_t preparePointToPointCommunication()
+  {
+    int comm_size;
+    MPI_Comm_size(_comm, &comm_size);
+
+    std::vector<int> src_counts_dense(comm_size);
+    int const dest_size = _destinations.size();
+    for (int i = 0; i < dest_size; ++i)
+    {
+      src_counts_dense[_destinations[i]] = _dest_counts[i];
+    }
+    MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, src_counts_dense.data(), 1,
+                 MPI_INT, _comm);
+
+    _src_offsets.push_back(0);
+    for (int i = 0; i < comm_size; ++i)
+      if (src_counts_dense[i] > 0)
+      {
+        _sources.push_back(i);
+        _src_counts.push_back(src_counts_dense[i]);
+        _src_offsets.push_back(_src_offsets.back() + _src_counts.back());
+      }
+
+    return _src_offsets.back();
+  }
+
   MPI_Comm _comm;
 #ifdef ARBORX_USE_CUDA_AWARE_MPI
   Kokkos::View<int *, DeviceType> _permute;
