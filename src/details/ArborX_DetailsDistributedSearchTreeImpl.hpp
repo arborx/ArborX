@@ -577,24 +577,17 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
 
   int const n_fwd_queries = offset.extent_int(0) - 1;
   int const n_exports = lastElement(offset);
-  Kokkos::View<int *, DeviceType> export_ranks(ranks.label(), n_exports);
-  Kokkos::parallel_for(ARBORX_MARK_REGION("setup_communication_plan"),
-                       Kokkos::RangePolicy<ExecutionSpace>(0, n_fwd_queries),
-                       KOKKOS_LAMBDA(int q) {
-                         for (int i = offset(q); i < offset(q + 1); ++i)
-                         {
-                           export_ranks(i) = ranks(q);
-                         }
-                       });
 
+  // We are assuming here that if the same rank is related to multiple batches
+  // these batches appear consecutively. Hence, no reordering is necessary.
   Distributor<DeviceType> distributor(comm);
-  int const n_imports = distributor.createFromSends(export_ranks);
+  int const n_imports = distributor.createFromSends(ranks, offset);
 
-  // export_ranks already has adequate size since it was used as a buffer to
-  // make the new communication plan.
+  Kokkos::View<int *, DeviceType> export_ranks(
+      Kokkos::ViewAllocateWithoutInitializing(ranks.label()), n_exports);
   Kokkos::deep_copy(export_ranks, comm_rank);
-
-  Kokkos::View<int *, DeviceType> export_ids(ids.label(), n_exports);
+  Kokkos::View<int *, DeviceType> export_ids(
+      Kokkos::ViewAllocateWithoutInitializing(ids.label()), n_exports);
   Kokkos::parallel_for(ARBORX_MARK_REGION("fill_buffer"),
                        Kokkos::RangePolicy<ExecutionSpace>(0, n_fwd_queries),
                        KOKKOS_LAMBDA(int q) {
@@ -611,6 +604,7 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
       Kokkos::ViewAllocateWithoutInitializing(ranks.label()), n_imports);
   Kokkos::View<int *, DeviceType> import_ids(
       Kokkos::ViewAllocateWithoutInitializing(ids.label()), n_imports);
+
   sendAcrossNetwork(distributor, export_indices, import_indices);
   sendAcrossNetwork(distributor, export_ranks, import_ranks);
   sendAcrossNetwork(distributor, export_ids, import_ids);
