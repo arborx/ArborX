@@ -139,7 +139,8 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
       Kokkos::parallel_for(
           ARBORX_MARK_REGION(
               "perform_deprecated_nearest_queries_and_return_distances"),
-          Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+          Kokkos::Experimental::require(Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+            Kokkos::Experimental::WorkItemProperty::HintHeavyWeight),
           KOKKOS_LAMBDA(int i) {
             int count = 0;
             Details::TreeTraversal<DeviceType>::query(
@@ -164,7 +165,8 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 
       Kokkos::parallel_for(
           ARBORX_MARK_REGION("perform_nearest_queries_and_return_distances"),
-          Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+          Kokkos::Experimental::require(Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+            Kokkos::Experimental::WorkItemProperty::HintHeavyWeight),
           KOKKOS_LAMBDA(int i) {
             int count = 0;
             Details::TreeTraversal<DeviceType>::query(
@@ -187,7 +189,9 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     {
       Kokkos::parallel_for(
           ARBORX_MARK_REGION("perform_deprecated_nearest_queries"),
-          Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+          Kokkos::Experimental::require(
+              Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+              Kokkos::Experimental::WorkItemProperty::HintHeavyWeight),
           KOKKOS_LAMBDA(int i) {
             int count = 0;
             Details::TreeTraversal<DeviceType>::query(
@@ -204,7 +208,9 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 
       Kokkos::parallel_for(
           ARBORX_MARK_REGION("perform_nearest_queries"),
-          Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+          Kokkos::Experimental::require(
+              Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+              Kokkos::Experimental::WorkItemProperty::HintHeavyWeight),
           KOKKOS_LAMBDA(int i) {
             int count = 0;
             Details::TreeTraversal<DeviceType>::query(
