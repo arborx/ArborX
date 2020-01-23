@@ -190,7 +190,6 @@ void BM_radius_search(benchmark::State &state)
   auto const queries = makeSpatialQueries<DeviceType>(
       n_values, n_queries, n_neighbors, target_point_cloud_type);
 
-  bool first_pass = true;
   for (auto _ : state)
   {
     Kokkos::View<int *, DeviceType> offset("offset", 0);
@@ -200,24 +199,6 @@ void BM_radius_search(benchmark::State &state)
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
-
-    if (first_pass)
-    {
-      auto offset_clone = ArborX::clone(offset);
-      ArborX::adjacentDifference(offset, offset_clone);
-      double const max = ArborX::max(offset_clone);
-      double const avg = ArborX::lastElement(offset) / n_queries;
-      auto offset_clone_subview = Kokkos::subview(
-          offset_clone, std::make_pair(1, offset_clone.extent_int(0)));
-      double const min = ArborX::min(offset_clone_subview);
-
-      std::ostream &os = std::cout;
-      os << "min number of neighbors " << min << "\n";
-      os << "max number of neighbors " << max << "\n";
-      os << "avg number of neighbors " << avg << "\n";
-
-      first_pass = false;
-    }
   }
 }
 
