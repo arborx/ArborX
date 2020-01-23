@@ -273,9 +273,6 @@ int main(int argc, char *argv[])
 {
   KokkosScopeGuard guard(argc, argv);
 
-  std::cout << "ArborX version: " << ArborX::version() << std::endl;
-  std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
-
   namespace bpo = boost::program_options;
   bpo::options_description desc("Allowed options");
   int n_values;
@@ -293,6 +290,7 @@ int main(int argc, char *argv[])
         ( "buffer", bpo::value<int>(&buffer_size)->default_value(0), "size for buffer optimization in radius search" )
         ( "source-point-cloud-type", bpo::value<std::string>(&source_pt_cloud)->default_value("filled_box"), "shape of the source point cloud"  )
         ( "target-point-cloud-type", bpo::value<std::string>(&target_pt_cloud)->default_value("filled_box"), "shape of the target point cloud"  )
+        ( "no-header", bpo::bool_switch(), "do not print version and hash" )
     ;
   // clang-format on
   bpo::variables_map vm;
@@ -305,6 +303,12 @@ int main(int argc, char *argv[])
       bpo::collect_unrecognized(parsed.options, bpo::include_positional),
       argv[0]};
   bpo::notify(vm);
+
+  if (!vm["no-header"].as<bool>())
+  {
+    std::cout << "ArborX version: " << ArborX::version() << std::endl;
+    std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
+  }
 
   if (vm.count("help") > 0)
   {
