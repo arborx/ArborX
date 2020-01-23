@@ -278,12 +278,12 @@ int main(int argc, char *argv[])
 
   namespace bpo = boost::program_options;
   bpo::options_description desc("Allowed options");
-  int n_values = 50000;
-  int n_queries = 20000;
-  int n_neighbors = 10;
-  int buffer_size = 0;
-  std::string source_pt_cloud = "filled_box";
-  std::string target_pt_cloud = "filled_box";
+  int n_values;
+  int n_queries;
+  int n_neighbors;
+  int buffer_size;
+  std::string source_pt_cloud;
+  std::string target_pt_cloud;
   // clang-format off
     desc.add_options()
         ( "help", "produce help message" )
