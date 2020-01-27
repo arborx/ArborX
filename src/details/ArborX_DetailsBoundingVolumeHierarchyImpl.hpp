@@ -272,8 +272,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
         ARBORX_MARK_REGION("perform_deprecated_nearest_queries"),
         Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
         KOKKOS_LAMBDA(int i) {
-          auto &count = tmp_offset(permute(i));
-          count = 0;
+          int count = 0;
           auto const shift = offset(permute(i));
           auto const &query = queries(i);
           Details::TreeTraversal<DeviceType>::query(
@@ -286,6 +285,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
                            out(shift + count++) = value;
                          });
               });
+          tmp_offset(permute(i)) = count;
         });
   }
   else
@@ -302,8 +302,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
         ARBORX_MARK_REGION("perform_nearest_queries"),
         Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
         KOKKOS_LAMBDA(int i) {
-          auto &count = tmp_offset(permute(i));
-          count = 0;
+          int count = 0;
           auto const shift = offset(permute(i));
           auto const &query = queries(i);
           Details::TreeTraversal<DeviceType>::query(
@@ -319,6 +318,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
               Kokkos::subview(buffer,
                               Kokkos::make_pair(offset(permute(i)),
                                                 offset(permute(i) + 1))));
+          tmp_offset(permute(i)) = count;
         });
   }
 
@@ -425,8 +425,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
         ARBORX_MARK_REGION("first_pass_at_the_search_with_buffer_optimization"),
         Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
         KOKKOS_LAMBDA(int i) {
-          auto &count = offset(permute(i));
-          count = 0;
+          int count = 0;
           auto const shift = permute(i) * buffer_size;
           auto const &query = queries(i);
           Details::TreeTraversal<DeviceType>::query(
@@ -444,6 +443,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
                              ++count;
                            });
               });
+          offset(permute(i)) = count;
         });
   }
   else
@@ -453,9 +453,8 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
             "first_pass_at_the_search_count_the_number_of_values"),
         Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
         KOKKOS_LAMBDA(int i) {
-          auto &count = offset(permute(i));
+          int count = 0;
           auto const &query = queries(i);
-          count = 0;
           Details::TreeTraversal<DeviceType>::query(
               bvh, query, [&query, &callback, &count](int index) {
                 callback(query, index,
@@ -463,6 +462,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
                            ++count;
                          });
               });
+          offset(permute(i)) = count;
         });
   }
 
