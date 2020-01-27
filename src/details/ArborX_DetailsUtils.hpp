@@ -62,8 +62,9 @@ private:
  *  \pre \p src and \p dst must be of rank 1 and have the same size.
  */
 template <typename ST, typename... SP, typename DT, typename... DP>
-void exclusivePrefixSum(Kokkos::View<ST, SP...> const &src,
-                        Kokkos::View<DT, DP...> const &dst)
+typename Kokkos::ViewTraits<DT, DP...>::value_type
+exclusivePrefixSum(Kokkos::View<ST, SP...> const &src,
+                   Kokkos::View<DT, DP...> const &dst)
 {
   static_assert(
       std::is_same<
@@ -83,10 +84,12 @@ void exclusivePrefixSum(Kokkos::View<ST, SP...> const &src,
   using DeviceType = typename Kokkos::ViewTraits<DT, DP...>::device_type;
 
   auto const n = src.extent(0);
+  typename Kokkos::ViewTraits<DT, DP...>::value_type result = 0;
   ARBORX_ASSERT(n == dst.extent(0));
   Kokkos::parallel_scan(
       "exclusive_scan", Kokkos::RangePolicy<ExecutionSpace>(0, n),
-      Details::ExclusiveScanFunctor<ValueType, DeviceType>(src, dst));
+      Details::ExclusiveScanFunctor<ValueType, DeviceType>(src, dst), result);
+  return result;
 }
 
 /** \brief In-place exclusive scan.
@@ -96,9 +99,9 @@ void exclusivePrefixSum(Kokkos::View<ST, SP...> const &src,
  *  Calls \c exclusivePrefixSum(v, v)
  */
 template <typename T, typename... P>
-inline void exclusivePrefixSum(Kokkos::View<T, P...> const &v)
+inline auto exclusivePrefixSum(Kokkos::View<T, P...> const &v)
 {
-  exclusivePrefixSum(v, v);
+  return exclusivePrefixSum(v, v);
 }
 
 /** \brief Get a copy of the last element.

@@ -117,8 +117,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
       KOKKOS_LAMBDA(int i) { offset(permute(i)) = queries(i)._k; });
 
-  exclusivePrefixSum(offset);
-  int const n_results = lastElement(offset);
+  int const n_results = exclusivePrefixSum(offset);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX:BVH:traversal");
@@ -237,8 +236,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
                              break;
                            }
                        });
-  exclusivePrefixSum(tmp_offset);
-  int const n_invalid_indices = lastElement(tmp_offset);
+  int const n_invalid_indices = exclusivePrefixSum(tmp_offset);
   if (n_invalid_indices > 0)
   {
     Kokkos::parallel_for(
@@ -386,13 +384,12 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   // [ 0 2 4 .... 2N-2 2N ]
   //                    ^
   //                    N
-  exclusivePrefixSum(offset);
-
+  //
   // Let us extract the last element in the view which is the total count of
   // objects which where found to meet the query predicates:
   //
   // [ 2N ]
-  int const n_results = lastElement(offset);
+  int const n_results = exclusivePrefixSum(offset);
 
   Kokkos::Profiling::popRegion();
 
