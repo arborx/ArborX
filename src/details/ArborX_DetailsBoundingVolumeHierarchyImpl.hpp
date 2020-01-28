@@ -117,7 +117,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
       KOKKOS_LAMBDA(int i) { offset(permute(i)) = queries(i)._k; });
 
-  int const n_results = exclusivePrefixSum(offset);
+  int const n_results = exclusivePrefixSumWithTotal(offset);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX:BVH:traversal");
@@ -236,7 +236,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
                              break;
                            }
                        });
-  int const n_invalid_indices = exclusivePrefixSum(tmp_offset);
+  int const n_invalid_indices = exclusivePrefixSumWithTotal(tmp_offset);
   if (n_invalid_indices > 0)
   {
     Kokkos::parallel_for(
@@ -389,7 +389,7 @@ void BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   // objects which where found to meet the query predicates:
   //
   // [ 2N ]
-  int const n_results = exclusivePrefixSum(offset);
+  int const n_results = exclusivePrefixSumWithTotal(offset);
 
   Kokkos::Profiling::popRegion();
 

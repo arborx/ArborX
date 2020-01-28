@@ -62,9 +62,49 @@ private:
  *  \pre \p src and \p dst must be of rank 1 and have the same size.
  */
 template <typename ST, typename... SP, typename DT, typename... DP>
+void exclusivePrefixSum(Kokkos::View<ST, SP...> const &src,
+                        Kokkos::View<DT, DP...> const &dst)
+{
+  static_assert(
+      std::is_same<
+          typename Kokkos::ViewTraits<DT, DP...>::value_type,
+          typename Kokkos::ViewTraits<DT, DP...>::non_const_value_type>::value,
+      "exclusivePrefixSum requires non-const destination type");
+
+  static_assert(
+      (unsigned(Kokkos::ViewTraits<DT, DP...>::rank) ==
+       unsigned(Kokkos::ViewTraits<ST, SP...>::rank)) &&
+          (unsigned(Kokkos::ViewTraits<DT, DP...>::rank) == unsigned(1)),
+      "exclusivePrefixSum requires Views of rank 1");
+
+  using ExecutionSpace =
+      typename Kokkos::ViewTraits<DT, DP...>::execution_space;
+  using ValueType = typename Kokkos::ViewTraits<DT, DP...>::value_type;
+  using DeviceType = typename Kokkos::ViewTraits<DT, DP...>::device_type;
+
+  auto const n = src.extent(0);
+  ARBORX_ASSERT(n == dst.extent(0));
+  Kokkos::parallel_scan(
+      "exclusive_scan", Kokkos::RangePolicy<ExecutionSpace>(0, n),
+      Details::ExclusiveScanFunctor<ValueType, DeviceType>(src, dst));
+}
+
+/** \brief In-place exclusive scan.
+ *
+ *  \param[in,out] v View with range of elements to sum
+ *
+ *  Calls \c exclusivePrefixSum(v, v)
+ */
+template <typename T, typename... P>
+inline void exclusivePrefixSum(Kokkos::View<T, P...> const &v)
+{
+  exclusivePrefixSum(v, v);
+}
+
+template <typename ST, typename... SP, typename DT, typename... DP>
 typename Kokkos::ViewTraits<DT, DP...>::value_type
-exclusivePrefixSum(Kokkos::View<ST, SP...> const &src,
-                   Kokkos::View<DT, DP...> const &dst)
+exclusivePrefixSumWithTotal(Kokkos::View<ST, SP...> const &src,
+                            Kokkos::View<DT, DP...> const &dst)
 {
   static_assert(
       std::is_same<
@@ -92,16 +132,10 @@ exclusivePrefixSum(Kokkos::View<ST, SP...> const &src,
   return result;
 }
 
-/** \brief In-place exclusive scan.
- *
- *  \param[in,out] v View with range of elements to sum
- *
- *  Calls \c exclusivePrefixSum(v, v)
- */
 template <typename T, typename... P>
-inline auto exclusivePrefixSum(Kokkos::View<T, P...> const &v)
+inline auto exclusivePrefixSumWithTotal(Kokkos::View<T, P...> const &v)
 {
-  return exclusivePrefixSum(v, v);
+  return exclusivePrefixSumWithTotal(v, v);
 }
 
 /** \brief Get a copy of the last element.

@@ -186,7 +186,7 @@ performQueries(RTree<Indexable> const &rtree, InputView const &queries)
   for (int i = 0; i < n_queries; ++i)
     offset(i) = rtree.query(translate<Value>(queries(i)),
                             std::back_inserter(returned_values));
-  auto const n_results = ArborX::exclusivePrefixSum(offset);
+  auto const n_results = ArborX::exclusivePrefixSumWithTotal(offset);
   OutputView indices("indices", n_results);
   for (int i = 0; i < n_queries; ++i)
     for (int j = offset(i); j < offset(i + 1); ++j)
@@ -208,7 +208,7 @@ performQueries(ParallelRTree<Indexable> const &rtree, InputView const &queries)
   for (int i = 0; i < n_queries; ++i)
     offset(i) = rtree.query(translate<Value>(queries(i)),
                             std::back_inserter(returned_values));
-  auto const n_results = ArborX::exclusivePrefixSum(offset);
+  auto const n_results = ArborX::exclusivePrefixSumWithTotal(offset);
   OutputView indices("indices", n_results);
   OutputView ranks("ranks", n_results);
   for (int i = 0; i < n_queries; ++i)
