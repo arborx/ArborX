@@ -108,7 +108,7 @@ determineBufferLayout(InputView batched_ranks, InputView batched_offsets,
   offsets.reserve(n_unique_ranks + 1);
   counts.reserve(n_unique_ranks);
 
-  for (unsigned int i = 0; i < n_unique_ranks; ++i)
+  for (int i = 0; i < n_unique_ranks; ++i)
   {
     int const count =
         i == 0 ? offsets_host(0) : offsets_host(i) - offsets_host(i - 1);
