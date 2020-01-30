@@ -52,6 +52,14 @@ pipeline {
                             sh 'cd build && make install'
                             sh 'rm -rf test_install && mkdir -p test_install && cd test_install && cp -r ../examples . && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" examples && make VERBOSE=1 && make test'
                         }
+                        always {
+                            recordIssues(
+                              enabledForFailure: true,
+                              tools: [cmake(), gcc(), clang(), clangTidy()],
+                              qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]],
+                              filters: [excludeFile('/usr/local/cuda.*')]
+                            )
+                        }
                     }
                 }
                 stage('CUDA-10.1-NVCC') {
@@ -93,6 +101,14 @@ pipeline {
                             sh 'cd build && make install'
                             sh 'rm -rf test_install && mkdir -p test_install && cd test_install && cp -r ../examples . && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" examples && make VERBOSE=1 && make test'
                         }
+                        always {
+                            recordIssues(
+                              enabledForFailure: true,
+                              tools: [cmake(), gcc(), clang(), clangTidy()],
+                              qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]],
+                              filters: [excludeFile('/usr/local/cuda.*')]
+                            )
+                        }
                     }
                 }
                 stage('CUDA-9.2-Clang') {
@@ -133,6 +149,14 @@ pipeline {
                         success {
                             sh 'cd build && make install'
                             sh 'rm -rf test_install && mkdir -p test_install && cd test_install && cp -r ../examples . && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" examples && make VERBOSE=1 && make test'
+                        }
+                        always {
+                            recordIssues(
+                              enabledForFailure: true,
+                              tools: [cmake(), gcc(), clang(), clangTidy()],
+                              qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]],
+                              filters: [excludeFile('/usr/local/cuda.*')]
+                            )
                         }
                     }
                 }
@@ -176,6 +200,14 @@ pipeline {
                             sh 'cd build && make install'
                             sh 'rm -rf test_install && mkdir -p test_install && cd test_install && cp -r ../examples . && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" examples && make VERBOSE=1 && make test'
                         }
+                        always {
+                            recordIssues(
+                              enabledForFailure: true,
+                              tools: [cmake(), gcc(), clang(), clangTidy()],
+                              qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]],
+                              filters: [excludeFile('/usr/local/cuda.*')]
+                            )
+                        }
                     }
                 }
 
@@ -195,6 +227,12 @@ pipeline {
                         always {
                             sh 'ccache --show-stats'
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                            recordIssues(
+                              enabledForFailure: true,
+                              tools: [cmake(), gcc(), clang(), clangTidy()],
+                              qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]],
+                              filters: [excludeFile('/usr/local/cuda.*')]
+                            )
                         }
                     }
                 }
@@ -210,18 +248,6 @@ pipeline {
             }
             steps {
                 sh './scripts/check_format_cpp.sh'
-            }
-        }
-    }
-    post {
-        always {
-            node('docker') {
-                recordIssues(
-                    enabledForFailure: true,
-                    tools: [cmake(), gcc(), clang(), clangTidy()],
-                    qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]],
-                    filters: [excludeFile('/usr/local/cuda.*')]
-                )
             }
         }
     }
