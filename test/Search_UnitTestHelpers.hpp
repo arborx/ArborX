@@ -220,8 +220,7 @@ makeDistributedSearchTree(MPI_Comm comm, std::vector<ArborX::Box> const &b)
 #endif
 
 template <typename DeviceType>
-Kokkos::View<decltype(ArborX::intersects(ArborX::Box{})) *, DeviceType>
-makeIntersectsBoxQueries(std::vector<ArborX::Box> const &boxes)
+auto makeIntersectsBoxQueries(std::vector<ArborX::Box> const &boxes)
 {
   int const n = boxes.size();
   Kokkos::View<decltype(ArborX::intersects(ArborX::Box{})) *, DeviceType>
@@ -233,9 +232,25 @@ makeIntersectsBoxQueries(std::vector<ArborX::Box> const &boxes)
   return queries;
 }
 
+template <typename DeviceType, typename Data>
+auto makeIntersectsBoxWithAttachmentQueries(
+    std::vector<ArborX::Box> const &boxes, std::vector<Data> const &data)
+{
+  int const n = boxes.size();
+  Kokkos::View<decltype(
+                   ArborX::attach(ArborX::intersects(ArborX::Box{}), Data{})) *,
+               DeviceType>
+      queries("intersecting_with_box_with_attachment_predicates", n);
+  auto queries_host = Kokkos::create_mirror_view(queries);
+  for (int i = 0; i < n; ++i)
+    queries_host(i) = ArborX::attach(ArborX::intersects(boxes[i]), data[i]);
+  Kokkos::deep_copy(queries, queries_host);
+  return queries;
+}
+
 template <typename DeviceType>
-Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType>
-makeNearestQueries(std::vector<std::pair<ArborX::Point, int>> const &points)
+auto makeNearestQueries(
+    std::vector<std::pair<ArborX::Point, int>> const &points)
 {
   // NOTE: `points` is not a very descriptive name here. It stores both the
   // actual point and the number k of neighbors to query for.
@@ -245,6 +260,26 @@ makeNearestQueries(std::vector<std::pair<ArborX::Point, int>> const &points)
   auto queries_host = Kokkos::create_mirror_view(queries);
   for (int i = 0; i < n; ++i)
     queries_host(i) = ArborX::nearest(points[i].first, points[i].second);
+  Kokkos::deep_copy(queries, queries_host);
+  return queries;
+}
+
+template <typename DeviceType, typename Data>
+auto makeNearestWithAttachmentQueries(
+    std::vector<std::pair<ArborX::Point, int>> const &points,
+    std::vector<Data> const &data)
+{
+  // NOTE: `points` is not a very descriptive name here. It stores both the
+  // actual point and the number k of neighbors to query for.
+  int const n = points.size();
+  Kokkos::View<decltype(
+                   ArborX::attach(ArborX::Nearest<ArborX::Point>{}, Data{})) *,
+               DeviceType>
+      queries("nearest_queries", n);
+  auto queries_host = Kokkos::create_mirror_view(queries);
+  for (int i = 0; i < n; ++i)
+    queries_host(i) = ArborX::attach(
+        ArborX::nearest(points[i].first, points[i].second), data[i]);
   Kokkos::deep_copy(queries, queries_host);
   return queries;
 }
