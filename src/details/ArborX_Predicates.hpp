@@ -109,6 +109,11 @@ struct PredicateWithAttachment : Predicate
       , _data{data}
   {
   }
+  KOKKOS_INLINE_FUNCTION PredicateWithAttachment(Predicate &&pred, Data &&data)
+      : Predicate(std::forward<Predicate>(pred))
+      , _data(std::forward<Data>(data))
+  {
+  }
   Data _data;
 };
 
@@ -120,10 +125,10 @@ getData(PredicateWithAttachment<Predicate, Data> const &pred)
 }
 
 template <typename Predicate, typename Data>
-KOKKOS_INLINE_FUNCTION PredicateWithAttachment<Predicate, Data>
-attach(Predicate &&pred, Data &&data)
+KOKKOS_INLINE_FUNCTION constexpr auto attach(Predicate &&pred, Data &&data)
 {
-  return {pred, data};
+  return PredicateWithAttachment<std::decay_t<Predicate>, std::decay_t<Data>>{
+      std::forward<Predicate>(pred), std::forward<Data>(data)};
 }
 
 } // namespace ArborX
