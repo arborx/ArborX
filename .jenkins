@@ -53,7 +53,7 @@ pipeline {
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
                             recordIssues(
                               enabledForFailure: true,
-                              tools: [cmake(), gcc(), clang(), clangTidy()],
+                              tools: [cmake(id=cmake-nvcc-10-aware), gcc(id=gcc-nvcc-10-aware), clang(id=clang-nvcc-10-aware), clangTidy(id=clang-tidy-nvcc-10-aware)],
                               qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]],
                               filters: [excludeFile('/usr/local/cuda.*')]
                             )
@@ -100,7 +100,7 @@ pipeline {
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
                             recordIssues(
                               enabledForFailure: true,
-                              tools: [cmake(), gcc(), clang(), clangTidy()],
+                              tools: [cmake(id=cmake-nvcc-10), gcc(id=gcc-nvcc-10), clang(id=clang-nvcc-10), clangTidy(id=clang-tidy-nvcc-10)],
                               qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]],
                               filters: [excludeFile('/usr/local/cuda.*')]
                             )
@@ -147,7 +147,7 @@ pipeline {
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
                             recordIssues(
                               enabledForFailure: true,
-                              tools: [cmake(), gcc(), clang(), clangTidy()],
+                              tools: [cmake(id=cmake-clang-9), gcc(id=gcc-clang-9), clang(id=clang-clang-9), clangTidy(id=clang-tidy-clang-9)],
                               qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]],
                               filters: [excludeFile('/usr/local/cuda.*')]
                             )
@@ -195,7 +195,7 @@ pipeline {
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
                             recordIssues(
                               enabledForFailure: true,
-                              tools: [cmake(), gcc(), clang(), clangTidy()],
+                              tools: [cmake(id=cmake-clang), gcc(id=gcc-clang), clang(id=clang-clang), clangTidy(id=clang-tidy-clang)],
                               qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]],
                               filters: [excludeFile('/usr/local/cuda.*')]
                             )
@@ -221,7 +221,7 @@ pipeline {
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
                             recordIssues(
                               enabledForFailure: true,
-                              tools: [cmake(), gcc(), clang(), clangTidy()],
+                              tools: [cmake(id=cmake-pgi), gcc(id=gcc-pgi), clang(id=clang-pgi), clangTidy(id=clang-tidy-pgi)],
                               qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]],
                               filters: [excludeFile('/usr/local/cuda.*')]
                             )
