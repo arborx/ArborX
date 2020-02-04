@@ -23,8 +23,6 @@ public:
       : std::logic_error(std::string("ArborX exception: ") + msg)
   {
   }
-
-  virtual ~SearchException() throw() {}
 };
 
 } // namespace ArborX
