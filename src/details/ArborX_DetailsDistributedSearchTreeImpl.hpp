@@ -98,7 +98,7 @@ struct DistributedSearchTreeImpl
   static void communicateResultsBack(
       MPI_Comm comm, Kokkos::View<int *, DeviceType> &indices,
       Kokkos::View<int *, DeviceType> offset,
-      Kokkos::View<int *, DeviceType> &ranks,
+      Kokkos::View<int *, DeviceType> ranks,
       Kokkos::View<int *, DeviceType> &ids,
       Kokkos::View<double *, DeviceType> *distances_ptr = nullptr);
 
@@ -568,8 +568,7 @@ template <typename DeviceType>
 void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
     MPI_Comm comm, Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> offset,
-    Kokkos::View<int *, DeviceType> &ranks,
-    Kokkos::View<int *, DeviceType> &ids,
+    Kokkos::View<int *, DeviceType> ranks, Kokkos::View<int *, DeviceType> &ids,
     Kokkos::View<double *, DeviceType> *distances_ptr)
 {
   int comm_rank;
@@ -583,9 +582,6 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
   Distributor<DeviceType> distributor(comm);
   int const n_imports = distributor.createFromSends(ranks, offset);
 
-  Kokkos::View<int *, DeviceType> export_ranks(
-      Kokkos::ViewAllocateWithoutInitializing(ranks.label()), n_exports);
-  Kokkos::deep_copy(export_ranks, comm_rank);
   Kokkos::View<int *, DeviceType> export_ids(
       Kokkos::ViewAllocateWithoutInitializing(ids.label()), n_exports);
   Kokkos::parallel_for(ARBORX_MARK_REGION("fill_buffer"),
@@ -600,17 +596,13 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
 
   Kokkos::View<int *, DeviceType> import_indices(
       Kokkos::ViewAllocateWithoutInitializing(indices.label()), n_imports);
-  Kokkos::View<int *, DeviceType> import_ranks(
-      Kokkos::ViewAllocateWithoutInitializing(ranks.label()), n_imports);
   Kokkos::View<int *, DeviceType> import_ids(
       Kokkos::ViewAllocateWithoutInitializing(ids.label()), n_imports);
 
   sendAcrossNetwork(distributor, export_indices, import_indices);
-  sendAcrossNetwork(distributor, export_ranks, import_ranks);
   sendAcrossNetwork(distributor, export_ids, import_ids);
 
   ids = import_ids;
-  ranks = import_ranks;
   indices = import_indices;
 
   if (distances_ptr)
