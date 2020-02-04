@@ -483,7 +483,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
               (k - 1) * Lz / (nz - 1)}},
             {{(i + 1) * Lx / (nx - 1), (j + 1) * Ly / (ny - 1),
               (k + 1) * Lz / (nz - 1)}}};
-        // fill in reference solution to check againt the collision
+        // fill in reference solution to check against the collision
         // list computed during the tree traversal
         if ((i > 0) && (j > 0) && (k > 0))
           ref[index].emplace(ind(i - 1, j - 1, k - 1));
@@ -661,7 +661,7 @@ std::vector<std::array<double, 3>> make_random_cloud(double Lx, double Ly,
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
 {
-  // contruct a cloud of points (nodes of a structured grid)
+  // construct a cloud of points (nodes of a structured grid)
   double Lx = 10.0;
   double Ly = 10.0;
   double Lz = 10.0;
