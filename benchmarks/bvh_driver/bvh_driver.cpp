@@ -66,7 +66,7 @@ constructPoints(int n_values, PointCloudType point_cloud_type)
 {
   Kokkos::View<ArborX::Point *, DeviceType> random_points(
       Kokkos::ViewAllocateWithoutInitializing("random_points"), n_values);
-  // Generate random points uniformely distributed within a box.  The edge
+  // Generate random points uniformly distributed within a box.  The edge
   // length of the box chosen such that object density (here objects will be
   // boxes 2x2x2 centered around a random point) will remain constant as
   // problem size is changed.

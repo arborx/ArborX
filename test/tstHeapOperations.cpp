@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(max_heap)
   // std::push_heap() and std::pop_heap().  It turns out that calling
   // std::make_heap() on { 3, 1, 4, 1, 5, 9 } is not equivalent to inserting
   // one element at a time (I also tried to insert them in reverse order out
-  // of curiousity) and yields 9 5 4 1 1 3 :/
+  // of curiosity) and yields 9 5 4 1 1 3 :/
   // cpluplus.com does make a note that the order of the elements will depend
   // on implementation.
   // Nevertheless, I thought it helps understanding how the algorithm works so
