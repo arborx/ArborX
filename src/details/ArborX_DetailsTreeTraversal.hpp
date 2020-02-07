@@ -293,8 +293,8 @@ public:
       NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
       Predicate const &pred, Insert const &insert, Buffer const &buffer)
   {
-    auto const geometry = pred._geometry;
-    auto const k = pred._k;
+    auto const geometry = getGeometry(pred);
+    auto const k = getK(pred);
     return nearestQuery(bvh,
                         [geometry, &bvh](Node const *node) {
                           return distance(geometry,
@@ -311,8 +311,8 @@ public:
                 BoundingVolumeHierarchy<DeviceType> const &bvh,
                 Predicate const &pred, Insert const &insert)
   {
-    auto const geometry = pred._geometry;
-    auto const k = pred._k;
+    auto const geometry = getGeometry(pred);
+    auto const k = getK(pred);
     return Deprecated::nearestQuery(
         // ^^^^^^^^^^
         bvh,
