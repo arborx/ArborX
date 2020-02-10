@@ -481,6 +481,7 @@ int main(int argc, char *argv[])
     bpo::store(parsed, vm);
     std::vector<std::string> pass_further =
         bpo::collect_unrecognized(parsed.options, bpo::include_positional);
+    bpo::notify(vm);
 
     if (comm_rank == 0 && std::find_if(pass_further.begin(), pass_further.end(),
                                        [](std::string const &x) {
