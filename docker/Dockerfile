@@ -98,6 +98,7 @@ RUN BOOST_VERSION=1.67.0 && \
         hardcode-dll-paths=true dll-path=${BOOST_DIR}/lib \
         link=shared \
         variant=release \
+        cxxflags=-w \
         install \
         && \
     rm -rf ${SCRATCH_DIR}
