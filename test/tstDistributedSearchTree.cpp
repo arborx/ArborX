@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2012-2019 by the ArborX authors                            *
+ * Copyright (c) 2012-2020 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -124,43 +124,43 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
   int comm_size;
   MPI_Comm_size(comm, &comm_size);
 
-  auto const emptry_dist_tree = makeDistributedSearchTree<DeviceType>(comm, {});
+  auto const empty_dist_tree = makeDistributedSearchTree<DeviceType>(comm, {});
 
-  BOOST_TEST(emptry_dist_tree.empty());
-  BOOST_TEST(emptry_dist_tree.size() == 0);
+  BOOST_TEST(empty_dist_tree.empty());
+  BOOST_TEST(empty_dist_tree.size() == 0);
 
-  BOOST_TEST(ArborX::Details::equals(emptry_dist_tree.bounds(), {}));
+  BOOST_TEST(ArborX::Details::equals(empty_dist_tree.bounds(), {}));
 
-  checkResults(emptry_dist_tree, makeIntersectsBoxQueries<DeviceType>({}), {},
+  checkResults(empty_dist_tree, makeIntersectsBoxQueries<DeviceType>({}), {},
                {0}, {});
 
-  checkResults(emptry_dist_tree, makeIntersectsSphereQueries<DeviceType>({}),
-               {}, {0}, {});
+  checkResults(empty_dist_tree, makeIntersectsSphereQueries<DeviceType>({}), {},
+               {0}, {});
 
-  checkResults(emptry_dist_tree, makeNearestQueries<DeviceType>({}), {}, {0},
+  checkResults(empty_dist_tree, makeNearestQueries<DeviceType>({}), {}, {0},
                {});
 
-  checkResults(emptry_dist_tree, makeNearestQueries<DeviceType>({}), {}, {0},
-               {}, {});
+  checkResults(empty_dist_tree, makeNearestQueries<DeviceType>({}), {}, {0}, {},
+               {});
 
   // Only rank 0 has a couple spatial queries with a spatial predicate
   if (comm_rank == 0)
-    checkResults(emptry_dist_tree,
+    checkResults(empty_dist_tree,
                  makeIntersectsBoxQueries<DeviceType>({
                      {},
                      {},
                  }),
                  {}, {0, 0, 0}, {});
   else
-    checkResults(emptry_dist_tree, makeIntersectsBoxQueries<DeviceType>({}), {},
+    checkResults(empty_dist_tree, makeIntersectsBoxQueries<DeviceType>({}), {},
                  {0}, {});
 
   // All ranks but rank 0 have a single query with a spatial predicate
   if (comm_rank == 0)
-    checkResults(emptry_dist_tree, makeIntersectsSphereQueries<DeviceType>({}),
+    checkResults(empty_dist_tree, makeIntersectsSphereQueries<DeviceType>({}),
                  {}, {0}, {});
   else
-    checkResults(emptry_dist_tree,
+    checkResults(empty_dist_tree,
                  makeIntersectsSphereQueries<DeviceType>({
                      {{{(double)comm_rank, 0., 0.}}, (double)comm_size},
                  }),
@@ -168,10 +168,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
 
   // All ranks but rank 0 have a single query with a nearest predicate
   if (comm_rank == 0)
-    checkResults(emptry_dist_tree, makeNearestQueries<DeviceType>({}), {}, {0},
+    checkResults(empty_dist_tree, makeNearestQueries<DeviceType>({}), {}, {0},
                  {});
   else
-    checkResults(emptry_dist_tree,
+    checkResults(empty_dist_tree,
                  makeNearestQueries<DeviceType>({
                      {{{0., 0., 0.}}, comm_rank},
                  }),
@@ -179,7 +179,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
 
   // All ranks have a single query with a nearest predicate (this version
   // returns distances as well)
-  checkResults(emptry_dist_tree,
+  checkResults(empty_dist_tree,
                makeNearestQueries<DeviceType>({
                    {{{0., 0., 0.}}, comm_size},
                }),
@@ -356,6 +356,148 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_nearest_neighbors, DeviceType,
                      {{{(double)(comm_size - 1 - comm_rank) + .75, 0., 0.}}, 1},
                  }),
                  {0}, {0, 1}, {comm_size - 1});
+}
+
+template <typename DeviceType>
+struct CustomInlineCallbackAttachmentSpatialPredicate
+{
+  using tag = ArborX::Details::InlineCallbackTag;
+  Kokkos::View<ArborX::Point *, DeviceType> points;
+  ArborX::Point const origin = {{0., 0., 0.}};
+  template <typename Query, typename Insert>
+  KOKKOS_FUNCTION void operator()(Query const &query, int index,
+                                  Insert const &insert) const
+  {
+    auto data = ArborX::getData(query);
+    float const distance_to_origin =
+        ArborX::Details::distance(points(index), origin);
+
+    insert(distance_to_origin + data);
+  }
+};
+
+template <typename DeviceType>
+struct CustomPostCallbackAttachmentSpatialPredicate
+{
+  using tag = ArborX::Details::PostCallbackTag;
+  Kokkos::View<ArborX::Point *, DeviceType> points;
+  ArborX::Point const origin = {{0., 0., 0.}};
+  template <typename Predicates, typename InOutView, typename InView,
+            typename OutView>
+  void operator()(Predicates const &queries, InOutView &offset, InView in,
+                  OutView &out) const
+  {
+    using ExecutionSpace = typename DeviceType::execution_space;
+    using ArborX::Details::distance;
+    auto const n = offset.extent(0) - 1;
+    ArborX::reallocWithoutInitializing(out, in.extent(0));
+    // NOTE workaround to avoid implicit capture of *this
+    auto const &points_ = points;
+    auto const &origin_ = origin;
+    Kokkos::parallel_for(
+        Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+          auto data = ArborX::getData(queries(i));
+          for (int j = offset(i); j < offset(i + 1); ++j)
+          {
+            out(j) = (float)distance(points_(in(j)), origin_) + data;
+          }
+        });
+  }
+};
+BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  MPI_Comm comm = MPI_COMM_WORLD;
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+  int comm_size;
+  MPI_Comm_size(comm, &comm_size);
+
+  //  +----------0----------1----------2----------3
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  0----------1----------2----------3----------+
+  //  [  rank 0  ]
+  //             [  rank 1  ]
+  //                        [  rank 2  ]
+  //                                   [  rank 3  ]
+  auto const tree = makeDistributedSearchTree<DeviceType>(
+      comm,
+      {{{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank + 1, 1., 1.}}}});
+
+  //  +--------0---------1----------2---------3
+  //  |        |         |          |         |
+  //  |        |         |          |         |
+  //  |        |         |          |         |
+  //  |        |         |          |         |
+  //  0--------1----x----2-----x----3----x----+
+  //                ^          ^         ^
+  //                0          1         2
+
+  int const n_queries = 1;
+  using ExecutionSpace = typename DeviceType::execution_space;
+  Kokkos::View<ArborX::Point *, DeviceType> points("points", n_queries);
+  Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+                       KOKKOS_LAMBDA(int i) {
+                         points(i) = {(double)(comm_rank) + 1.5, 0., 0.};
+                       });
+  auto points_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, points);
+
+  // This is a bit tricky. One would assume that it should be
+  // distance(points(i), origin) + comm_rank, matching code inside the
+  // callback. However, the callbacks are initialized and called on the rank
+  // that produces results, not on the rank that sets up the queries. In this
+  // example, for point 0 the callback will be called on rank 1, which is
+  // initialized with point 1. So, within the callback, points(0) corresponds
+  // to point 1 physically, and not point 0, even though the query() call is
+  // called on rank 0.
+  int const n_results = (comm_rank < comm_size - 1) ? 1 : 0;
+  ArborX::Point const origin = {{0., 0., 0.}};
+  Kokkos::View<float *, DeviceType> ref("ref", n_results);
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<ExecutionSpace>(0, n_results), KOKKOS_LAMBDA(int i) {
+        ref(i) =
+            float(ArborX::Details::distance(points(i), origin) + 1) + comm_rank;
+      });
+
+  {
+    Kokkos::View<float *, DeviceType> custom("custom", 0);
+    Kokkos::View<int *, DeviceType> offset("offset", 0);
+    tree.query(
+        makeIntersectsBoxWithAttachmentQueries<DeviceType, int>(
+            {{points_host(0), points_host(0)}}, {comm_rank}),
+        CustomInlineCallbackAttachmentSpatialPredicate<DeviceType>{points},
+        custom, offset);
+
+    auto custom_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
+    auto ref_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
+    auto offset_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
+    validateResults(std::make_tuple(offset_host, custom_host),
+                    std::make_tuple(offset_host, ref_host));
+  }
+  {
+    Kokkos::View<float *, DeviceType> custom("custom", 0);
+    Kokkos::View<int *, DeviceType> offset("offset", 0);
+    tree.query(makeIntersectsBoxWithAttachmentQueries<DeviceType, int>(
+                   {{points_host(0), points_host(0)}}, {comm_rank}),
+               CustomPostCallbackAttachmentSpatialPredicate<DeviceType>{points},
+               custom, offset);
+
+    auto custom_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
+    auto ref_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
+    auto offset_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
+    validateResults(std::make_tuple(offset_host, custom_host),
+                    std::make_tuple(offset_host, ref_host));
+  }
 }
 
 std::vector<std::array<double, 3>>

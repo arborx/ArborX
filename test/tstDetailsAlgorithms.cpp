@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2012-2019 by the ArborX authors                            *
+ * Copyright (c) 2012-2020 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(intersects)
 {
   using ArborX::Details::intersects;
 
-  // uninitalized box does not intersect with other boxes
+  // uninitialized box does not intersect with other boxes
   STATIC_ASSERT(!intersects(Box{}, {{{1.0, 2.0, 3.0}}, {{4.0, 5.0, 6.0}}}));
   // uninitialized box does not even intersect with itself
   STATIC_ASSERT(!intersects(Box{}, Box{}));
@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(intersects)
   STATIC_ASSERT(intersects(box, {{{1.0, 0.0, 0.0}}, {{2.0, 1.0, 1.0}}}));
   STATIC_ASSERT(intersects(box, {{{-0.5, -0.5, -0.5}}, {{0.5, 0.0, 0.5}}}));
 
-  // unit shpere
+  // unit sphere
   constexpr Sphere sphere{{{0., 0., 0.}}, 1.};
   BOOST_TEST(intersects(sphere, {{{0., 0., 0.}}, {{1., 1., 1.}}}));
   BOOST_TEST(!intersects(sphere, {{{1., 2., 3.}}, {{4., 5., 6.}}}));

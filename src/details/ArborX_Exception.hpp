@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2012-2019 by the ArborX authors                            *
+ * Copyright (c) 2012-2020 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -23,8 +23,6 @@ public:
       : std::logic_error(std::string("ArborX exception: ") + msg)
   {
   }
-
-  virtual ~SearchException() throw() {}
 };
 
 } // namespace ArborX

@@ -135,7 +135,7 @@ Output
 
 # `ArborX::Traits::Access<T,Tag>::size`
 ```C++
-size_type size(T const& data);
+static size_type size(T const& data);
 ```
 ## Parameters
 `data`
@@ -145,7 +145,7 @@ The number of primitives if the second template argument is `PrimitivesTag` or t
 
 # `ArborX::Traits::Access<T,Tag>::get`
 ```C++
-KOKKOS_FUNCTION context_dependent get(T const& data, size_type pos);
+KOKKOS_FUNCTION static context_dependent get(T const& data, size_type pos);
 ```
 If `std::is_same<Tag,PrimitimesTag>::value` is `true`, the return value type must either decay to `ArborX::Point` or to `ArborX::Box`.
 

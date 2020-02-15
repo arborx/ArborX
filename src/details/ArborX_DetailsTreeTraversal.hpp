@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2012-2019 by the ArborX authors                            *
+ * Copyright (c) 2012-2020 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -293,8 +293,8 @@ public:
       NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
       Predicate const &pred, Insert const &insert, Buffer const &buffer)
   {
-    auto const geometry = pred._geometry;
-    auto const k = pred._k;
+    auto const geometry = getGeometry(pred);
+    auto const k = getK(pred);
     return nearestQuery(bvh,
                         [geometry, &bvh](Node const *node) {
                           return distance(geometry,
@@ -311,8 +311,8 @@ public:
                 BoundingVolumeHierarchy<DeviceType> const &bvh,
                 Predicate const &pred, Insert const &insert)
   {
-    auto const geometry = pred._geometry;
-    auto const k = pred._k;
+    auto const geometry = getGeometry(pred);
+    auto const k = getK(pred);
     return Deprecated::nearestQuery(
         // ^^^^^^^^^^
         bvh,

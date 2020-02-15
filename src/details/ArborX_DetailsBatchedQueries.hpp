@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2012-2019 by the ArborX authors                            *
+ * Copyright (c) 2012-2020 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -75,7 +75,7 @@ public:
                          Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
                          KOKKOS_LAMBDA(int i) {
                            Point xyz = Details::returnCentroid(
-                               Access::get(predicates, i)._geometry);
+                               getGeometry(Access::get(predicates, i)));
                            translateAndScale(xyz, xyz, bounds());
                            morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
                          });

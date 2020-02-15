@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2012-2019 by the ArborX authors                            *
+ * Copyright (c) 2012-2020 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -19,23 +19,53 @@
 #include <Kokkos_Sort.hpp> // min_max_functor
 #include <Kokkos_View.hpp>
 
+// clang-format off
+#if defined(KOKKOS_ENABLE_CUDA)
+#  if defined(KOKKOS_COMPILER_CLANG) && KOKKOS_COMPILER_CLANG < 900
+// Clang of version less than 9.0 cannot compile Thrust, failing with errors
+// like this:
+//    <snip>/thrust/system/cuda/detail/core/agent_launcher.h:557:11:
+//    error: use of undeclared identifier 'va_printf'
+// Defining _CubLog here allows us to avoid that code path, however disabling
+// some debugging diagnostics
+//
+// If _CubLog is already defined, we save it into ARBORX_CubLog_save, and
+// restore it at the end
+#    ifdef _CubLog
+#      define ARBORX_CubLog_save _CubLog
+#    endif
+#    define _CubLog
+#    include <thrust/device_ptr.h>
+#    include <thrust/sort.h>
+#    undef _CubLog
+#    ifdef ARBORX_CubLog_save
+#      define _CubLog ARBORX_CubLog_save
+#      undef ARBORX_CubLog_save
+#    endif
+#  else // #if (KOKKOS_COMPILER_CLANG < 900)
+#    include <thrust/device_ptr.h>
+#    include <thrust/sort.h>
+#  endif // #if (KOKKOS_COMPILER_CLANG < 900)
+#endif   // #if defined(KOKKOS_ENABLE_CUDA)
+// clang-format on
+
 namespace ArborX
 {
 
 namespace Details
 {
 
-// NOTE returns the permutation indices **and** sorts the morton codes
-template <typename DeviceType>
-Kokkos::View<size_t *, DeviceType>
-sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
+// NOTE returns the permutation indices **and** sorts the input view
+template <typename ViewType>
+Kokkos::View<size_t *, typename ViewType::device_type>
+sortObjects(ViewType &view)
 {
+  using ExecutionSpace = typename ViewType::execution_space;
+
   int const n = view.extent(0);
 
-  using ViewType = decltype(view);
   using ValueType = typename ViewType::value_type;
   using CompType = Kokkos::BinOp1D<ViewType>;
-  using ExecutionSpace = typename DeviceType::execution_space;
 
   Kokkos::MinMaxScalar<ValueType> result;
   Kokkos::MinMax<ValueType> reducer(result);
@@ -44,7 +74,7 @@ sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
                   Kokkos::Impl::min_max_functor<ViewType>(view), reducer);
   if (result.min_val == result.max_val)
   {
-    Kokkos::View<size_t *, DeviceType> permute(
+    Kokkos::View<size_t *, typename ViewType::device_type> permute(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n);
     iota(permute);
     return permute;
@@ -56,12 +86,93 @@ sortObjects(Kokkos::View<unsigned int *, DeviceType> view)
   // better choice here because its size is guaranteed to coincide with the
   // pointer size which is a good thing for converting with reinterpret_cast
   // (when leaf indices are encoded into the pointer to one of their children)
-  Kokkos::BinSort<ViewType, CompType, DeviceType, size_t> bin_sort(
-      view, CompType(n / 2, result.min_val, result.max_val), true);
+  Kokkos::BinSort<ViewType, CompType, typename ViewType::device_type, size_t>
+      bin_sort(view, CompType(n / 2, result.min_val, result.max_val), true);
   bin_sort.create_permute_vector();
   bin_sort.sort(view);
 
   return bin_sort.get_permute_vector();
+}
+
+#if defined(KOKKOS_ENABLE_CUDA)
+// NOTE returns the permutation indices **and** sorts the input view
+template <typename ValueType, typename MemorySpace>
+Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> sortObjects(
+    Kokkos::View<ValueType *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> view)
+{
+  int const n = view.extent(0);
+
+  Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> permute(
+      Kokkos::ViewAllocateWithoutInitializing("permutation"), n);
+  ArborX::iota(permute);
+
+  auto permute_ptr = thrust::device_ptr<size_t>(permute.data());
+  auto begin_ptr = thrust::device_ptr<ValueType>(view.data());
+  auto end_ptr = thrust::device_ptr<ValueType>(view.data() + n);
+  thrust::sort_by_key(begin_ptr, end_ptr, permute_ptr);
+
+  return permute;
+}
+#endif
+
+// Helper functions and structs for applyPermutations
+namespace PermuteHelper
+{
+template <class DstViewType, class SrcViewType, int Rank = DstViewType::Rank>
+struct CopyOp;
+
+template <class DstViewType, class SrcViewType>
+struct CopyOp<DstViewType, SrcViewType, 1>
+{
+  KOKKOS_INLINE_FUNCTION
+  static void copy(DstViewType const &dst, size_t i_dst, SrcViewType const &src,
+                   size_t i_src)
+  {
+    dst(i_dst) = src(i_src);
+  }
+};
+
+template <class DstViewType, class SrcViewType>
+struct CopyOp<DstViewType, SrcViewType, 2>
+{
+  KOKKOS_INLINE_FUNCTION
+  static void copy(DstViewType const &dst, size_t i_dst, SrcViewType const &src,
+                   size_t i_src)
+  {
+    for (unsigned int j = 0; j < dst.extent(1); j++)
+      dst(i_dst, j) = src(i_src, j);
+  }
+};
+
+template <class DstViewType, class SrcViewType>
+struct CopyOp<DstViewType, SrcViewType, 3>
+{
+  KOKKOS_INLINE_FUNCTION
+  static void copy(DstViewType const &dst, size_t i_dst, SrcViewType const &src,
+                   size_t i_src)
+  {
+    for (unsigned int j = 0; j < dst.extent(1); j++)
+      for (unsigned int k = 0; k < dst.extent(2); k++)
+        dst(i_dst, j, k) = src(i_src, j, k);
+  }
+};
+} // namespace PermuteHelper
+
+template <typename PermutationView, typename View>
+void applyPermutation(PermutationView const &permutation, View &view)
+{
+  static_assert(std::is_integral<typename PermutationView::value_type>::value,
+                "");
+  ARBORX_ASSERT(permutation.extent(0) == view.extent(0));
+  auto scratch_view = clone(view);
+  Kokkos::parallel_for(
+      ARBORX_MARK_REGION("permute"),
+      Kokkos::RangePolicy<typename View::execution_space>(0, view.extent(0)),
+      KOKKOS_LAMBDA(int i) {
+        PermuteHelper::CopyOp<View, View>::copy(scratch_view, i, view,
+                                                permutation(i));
+      });
+  Kokkos::deep_copy(view, scratch_view);
 }
 
 } // namespace Details

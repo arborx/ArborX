@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2012-2019 by the ArborX authors                            *
+ * Copyright (c) 2012-2020 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -87,9 +87,9 @@ public:
   template <typename Predicates, typename... Args>
   void query(Predicates const &predicates, Args &&... args) const
   {
-    // FIXME lame placeholder for concept check
-    static_assert(Kokkos::is_view<Predicates>::value, "must pass a view");
-    using Tag = typename Predicates::value_type::Tag;
+    using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+    using Tag =
+        typename Details::Tag<Details::decay_result_of_get_t<Access>>::type;
     Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
         Tag{}, *this, predicates, std::forward<Args>(args)...);
   }

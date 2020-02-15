@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2012-2019 by the ArborX authors                            *
+ * Copyright (c) 2012-2020 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(pop_push)
 {
   // note that calling pop_push(x) does not necessarily yield the same heap
   // than calling consecutively pop() and push(x)
-  // below is a max heap example to illustate this interesting property
+  // below is a max heap example to illustrate this interesting property
   details::PriorityQueue<int> queue;
 
   std::vector<int> ref = {100, 19, 36, 17, 3, 25, 1, 2, 7};

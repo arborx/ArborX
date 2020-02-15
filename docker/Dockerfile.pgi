@@ -1,7 +1,14 @@
-ARG BASE=nvidia/cuda:10.1-devel
-FROM $BASE
+# Installing PGI needs to be done interactively to accept the license. The
+# installation of the compiler and MPI is done using the default options.
+# During the installation the PGI compiler, multiple versions of the CUDA
+# toolkit are gettin installed. This unnecessarily increases the size of 
+# the image, so before the image is created all but the latest CUDA toolkit 
+# are removed from the container. The image is built using the ubuntu:18.04 image and
+# the compiler is downloaded from https://www.pgroup.com/products/community.html
+FROM rombur/pgi:19.04
 
-ARG NPROCS=4
+ARG NPROCS=8
+ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
         build-essential \
@@ -9,15 +16,13 @@ RUN apt-get update && apt-get install -y \
         curl \
         git \
         wget \
-        vim \
-        lcov \
         ccache \
-        gdb \
         ninja-build \
         libbz2-dev \
         libicu-dev \
-        python-dev \
         autotools-dev \
+        environment-modules \
+        tcl \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -40,43 +45,6 @@ RUN CMAKE_VERSION=3.13.4 && \
     rm ${CMAKE_SCRIPT}
 ENV PATH=${CMAKE_DIR}/bin:$PATH
 
-# Install Clang/LLVM
-ENV LLVM_DIR=/opt/llvm
-RUN LLVM_VERSION=7.0.1 && \
-    LLVM_KEY=86419D8A && \
-    LLVM_URL=http://releases.llvm.org/${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-18.04.tar.xz && \
-    LLVM_ARCHIVE=llvm-${LLVM_VERSION}.tar.xz && \
-    SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
-    wget --quiet ${LLVM_URL} --output-document=${LLVM_ARCHIVE} && \
-    wget --quiet ${LLVM_URL}.sig --output-document=${LLVM_ARCHIVE}.sig && \
-    gpg --keyserver keys.gnupg.net --recv-keys ${LLVM_KEY} && \
-    gpg --verify ${LLVM_ARCHIVE}.sig ${LLVM_ARCHIVE} && \
-    mkdir -p ${LLVM_DIR} && \
-    tar -xvf ${LLVM_ARCHIVE} -C ${LLVM_DIR} --strip-components=1 && \
-    echo "${LLVM_DIR}/lib" > /etc/ld.so.conf.d/llvm.conf && ldconfig && \
-    rm -rf /root/.gnupg && \
-    rm -rf ${SCRATCH_DIR}
-ENV PATH=${LLVM_DIR}/bin:$PATH
-
-# Install OpenMPI
-ENV OPENMPI_DIR=/opt/openmpi
-RUN OPENMPI_VERSION=3.1.3 && \
-    OPENMPI_VERSION_SHORT=3.1 && \
-    OPENMPI_SHA1=b3c60e2bdd5a8a8e758fd741f9a5bebb84da5e81 && \
-    OPENMPI_URL=https://download.open-mpi.org/release/open-mpi/v${OPENMPI_VERSION_SHORT}/openmpi-${OPENMPI_VERSION}.tar.bz2 && \
-    OPENMPI_ARCHIVE=openmpi-${OPENMPI_VERSION}.tar.bz2 && \
-    [ ! -z "${CUDA_VERSION}" ] && CUDA_OPTIONS=--with-cuda || true && \
-    SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
-    wget --quiet ${OPENMPI_URL} --output-document=${OPENMPI_ARCHIVE} && \
-    echo "${OPENMPI_SHA1} ${OPENMPI_ARCHIVE}" | sha1sum -c && \
-    mkdir -p openmpi && \
-    tar -xf ${OPENMPI_ARCHIVE} -C openmpi --strip-components=1 && \
-    mkdir -p build && cd build && \
-    ../openmpi/configure --prefix=${OPENMPI_DIR} ${CUDA_OPTIONS} && \
-    make -j${NPROCS} install && \
-    rm -rf ${SCRATCH_DIR}
-ENV PATH=${OPENMPI_DIR}/bin:$PATH
-
 # Install Boost
 ENV BOOST_DIR=/opt/boost
 RUN BOOST_VERSION=1.71.0 && \
@@ -98,7 +66,6 @@ RUN BOOST_VERSION=1.71.0 && \
         hardcode-dll-paths=true dll-path=${BOOST_DIR}/lib \
         link=shared \
         variant=release \
-        cxxflags=-w \
         install \
         && \
     rm -rf ${SCRATCH_DIR}
@@ -116,7 +83,7 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
 
 # Install Kokkos
 ARG KOKKOS_VERSION=2.8.00
-ARG KOKKOS_OPTIONS="--cxxstandard=c++14 --with-serial --with-openmp --with-options=disable_deprecated_code --with-cuda --with-cuda-options=enable_lambda"
+ARG KOKKOS_OPTIONS="--compiler=/opt/pgi/linux86-64-llvm/19.4/bin/pgc++ --cxxstandard=c++14 --with-serial --with-options=disable_deprecated_code"
 ENV KOKKOS_DIR=/opt/kokkos
 RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
     KOKKOS_ARCHIVE=kokkos-${KOKKOS_HASH}.tar.gz && \
@@ -129,3 +96,14 @@ RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz
     ../generate_makefile.bash --prefix=${KOKKOS_DIR} ${KOKKOS_OPTIONS} && \
     make -j${NPROCS} install && \
     rm -rf ${SCRATCH_DIR}
+
+# Set the different paths
+ENV PGI_VERSION=19.4
+ENV LD_LIBRARY_PATH=/opt/pgi/linux86-64-llvm/2019/mpi/openmpi-3.1.3/lib:/opt/pgi/linux86-64-llvm/${PGI_VERSION}/lib:$LD_LIBRARY_PATH
+ENV CXX=/opt/pgi/linux86-64-llvm/${PGI_VERSION}/bin/pgc++
+ENV F90=/opt/pgi/linux86-64-llvm/${PGI_VERSION}/bin/pgf90
+ENV PGI=/opt/pgi
+ENV FC=/opt/pgi/linux86-64-llvm/${PGI_VERSION}/bin/pgfortran
+ENV F77=/opt/pgi/linux86-64-llvm/${PGI_VERSION}/bin/pgf77
+ENV PATH=/opt/pgi/linux86-64-llvm/2019/mpi/openmpi-3.1.3/bin:/opt/pgi/linux86-64-llvm/${PGI_VERSION}/bin:/trash:/opt/cmake/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV CC=/opt/pgi/linux86-64-llvm/${PGI_VERSION}/bin/pgcc

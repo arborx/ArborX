@@ -9,46 +9,38 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_NODE_HPP
-#define ARBORX_NODE_HPP
-
-#include <ArborX_Box.hpp>
+#ifndef ARBORX_BOOST_TEST_KOKKOS_PAIR_COMPARISON_HPP
+#define ARBORX_BOOST_TEST_KOKKOS_PAIR_COMPARISON_HPP
 
 #include <Kokkos_Pair.hpp>
 
-#include <cassert>
+#include <boost/test/tools/detail/print_helper.hpp>
 
-namespace ArborX
+#include <iostream>
+
+// Enable comparison of Kokkos pairs
+namespace boost
 {
-namespace Details
+namespace test_tools
 {
-struct Node
+namespace tt_detail
 {
-  KOKKOS_INLINE_FUNCTION
-  constexpr Node() = default;
 
-  KOKKOS_INLINE_FUNCTION constexpr bool isLeaf() const noexcept
-  {
-    return children.first == nullptr;
-  }
-
-  KOKKOS_INLINE_FUNCTION std::size_t getLeafPermutationIndex() const noexcept
-  {
-    assert(isLeaf());
-    return reinterpret_cast<std::size_t>(children.second);
-  }
-
-  Kokkos::pair<Node *, Node *> children = {nullptr, nullptr};
-  Box bounding_box;
-};
-
-KOKKOS_INLINE_FUNCTION Node makeLeafNode(std::size_t permutation_index,
-                                         Box box) noexcept
+// FIXME needed for TuplePrinter
+template <typename T1, typename T2>
+std::ostream &operator<<(std::ostream &os, Kokkos::pair<T1, T2> const &p)
 {
-  return {{nullptr, reinterpret_cast<Node *>(permutation_index)},
-          std::move(box)};
+  os << '(' << p.first << ',' << p.second << ')';
+  return os;
 }
-} // namespace Details
-} // namespace ArborX
+
+template <typename T1, typename T2>
+struct print_log_value<Kokkos::pair<T1, T2>>
+{
+  void operator()(std::ostream &os, Kokkos::pair<T1, T2> const &p) { os << p; }
+};
+} // namespace tt_detail
+} // namespace test_tools
+} // namespace boost
 
 #endif

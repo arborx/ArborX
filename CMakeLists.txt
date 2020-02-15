@@ -12,6 +12,10 @@ if(ARBORX_ENABLE_MPI)
   find_package(MPI REQUIRED)
   target_link_libraries(ArborX INTERFACE MPI::MPI_CXX)
 endif()
+include(CMakeDependentOption)
+cmake_dependent_option(ARBORX_USE_CUDA_AWARE_MPI
+                       "Allow using device data in MPI communication"
+                       OFF "ARBORX_ENABLE_MPI" OFF)
 #target_compile_features(ArborX INTERFACE cxx_std_14)
 
 target_include_directories(ArborX INTERFACE
@@ -82,6 +86,14 @@ endif()
 install(DIRECTORY ${PROJECT_BINARY_DIR}/include/ DESTINATION include
         FILES_MATCHING PATTERN "*.hpp")
 
+if (NOT CMAKE_BUILD_TYPE)
+  set(default_build_type "RelWithDebInfo")
+  message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
+  set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING
+    "Choose the type of build, options are: Debug, Release, RelWithDebInfo and MinSizeRel."
+    FORCE)
+endif()
+
 option(ARBORX_ENABLE_TESTS "Enable tests" ON)
 option(ARBORX_ENABLE_EXAMPLES "Enable examples" ON)
 option(ARBORX_ENABLE_BENCHMARKS "Enable benchmarks" ON)
@@ -91,9 +103,28 @@ if(${ARBORX_ENABLE_TESTS} OR ${ARBORX_ENABLE_EXAMPLES})
 endif()
 
 if(${ARBORX_ENABLE_TESTS})
-  add_subdirectory(test)
   # Globbing all the header filenames to test for self-containment and presence of header guards
   file(GLOB_RECURSE ArborX_HEADERS RELATIVE ${CMAKE_SOURCE_DIR}/src src/*.hpp)
+  # Findout what headers are using macros defined in ArborX_Config.hpp
+  file(STRINGS src/ArborX_Config.hpp.in ArborX_DEFINITIONS REGEX "define ARBORX_")
+  foreach(_definition ${ArborX_DEFINITIONS})
+    string(REGEX REPLACE "(#define |#cmakedefine )" "" _macro ${_definition})
+    list(APPEND ArborX_MACROS ${_macro})
+  endforeach()
+  foreach(_file ${ArborX_HEADERS})
+    foreach(_macro ${ArborX_MACROS})
+      file(STRINGS src/${_file} _includes_mpi REGEX "mpi.h")
+      if(_includes_mpi)
+        list(APPEND ArborX_HEADERS_MUST_ENABLE_MPI ${_file})
+      endif()
+      file(STRINGS src/${_file} _has_macro REGEX "${_macro}")
+      if(_has_macro)
+        list(APPEND ArborX_HEADERS_MUST_INCLUDE_CONFIG_HPP ${_file})
+        continue()
+      endif()
+    endforeach()
+  endforeach()
+  add_subdirectory(test)
 endif()
 if(${ARBORX_ENABLE_EXAMPLES})
   add_subdirectory(examples)
