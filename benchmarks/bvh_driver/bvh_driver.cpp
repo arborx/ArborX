@@ -190,7 +190,6 @@ void BM_radius_search(benchmark::State &state)
   auto const queries = makeSpatialQueries<DeviceType>(
       n_values, n_queries, n_neighbors, target_point_cloud_type);
 
-  bool first_pass = true;
   for (auto _ : state)
   {
     Kokkos::View<int *, DeviceType> offset("offset", 0);
@@ -200,24 +199,6 @@ void BM_radius_search(benchmark::State &state)
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
-
-    if (first_pass)
-    {
-      auto offset_clone = ArborX::clone(offset);
-      ArborX::adjacentDifference(offset, offset_clone);
-      double const max = ArborX::max(offset_clone);
-      double const avg = ArborX::lastElement(offset) / n_queries;
-      auto offset_clone_subview = Kokkos::subview(
-          offset_clone, std::make_pair(1, offset_clone.extent_int(0)));
-      double const min = ArborX::min(offset_clone_subview);
-
-      std::ostream &os = std::cout;
-      os << "min number of neighbors " << min << "\n";
-      os << "max number of neighbors " << max << "\n";
-      os << "avg number of neighbors " << avg << "\n";
-
-      first_pass = false;
-    }
   }
 }
 
@@ -292,17 +273,14 @@ int main(int argc, char *argv[])
 {
   KokkosScopeGuard guard(argc, argv);
 
-  std::cout << "ArborX version: " << ArborX::version() << std::endl;
-  std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
-
   namespace bpo = boost::program_options;
   bpo::options_description desc("Allowed options");
-  int n_values = 50000;
-  int n_queries = 20000;
-  int n_neighbors = 10;
-  int buffer_size = 0;
-  std::string source_pt_cloud = "filled_box";
-  std::string target_pt_cloud = "filled_box";
+  int n_values;
+  int n_queries;
+  int n_neighbors;
+  int buffer_size;
+  std::string source_pt_cloud;
+  std::string target_pt_cloud;
   // clang-format off
     desc.add_options()
         ( "help", "produce help message" )
@@ -312,6 +290,7 @@ int main(int argc, char *argv[])
         ( "buffer", bpo::value<int>(&buffer_size)->default_value(0), "size for buffer optimization in radius search" )
         ( "source-point-cloud-type", bpo::value<std::string>(&source_pt_cloud)->default_value("filled_box"), "shape of the source point cloud"  )
         ( "target-point-cloud-type", bpo::value<std::string>(&target_pt_cloud)->default_value("filled_box"), "shape of the target point cloud"  )
+        ( "no-header", bpo::bool_switch(), "do not print version and hash" )
     ;
   // clang-format on
   bpo::variables_map vm;
@@ -324,6 +303,12 @@ int main(int argc, char *argv[])
       bpo::collect_unrecognized(parsed.options, bpo::include_positional),
       argv[0]};
   bpo::notify(vm);
+
+  if (!vm["no-header"].as<bool>())
+  {
+    std::cout << "ArborX version: " << ArborX::version() << std::endl;
+    std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
+  }
 
   if (vm.count("help") > 0)
   {
