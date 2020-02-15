@@ -79,10 +79,10 @@ ENV PATH=${OPENMPI_DIR}/bin:$PATH
 
 # Install Boost
 ENV BOOST_DIR=/opt/boost
-RUN BOOST_VERSION=1.71.0 && \
+RUN BOOST_VERSION=1.72.0 && \
     BOOST_VERSION_UNDERSCORE=$(echo "$BOOST_VERSION" | sed -e "s/\./_/g") && \
     BOOST_URL=https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2 && \
-    BOOST_SHA256=d73a8da01e8bf8c7eda40b4c84915071a8c8a0df4a6734537ddde4a8580524ee && \
+    BOOST_SHA256=59c9b274bc451cf91a9ba1dd2c7fdcaf5d60b1b3aa83f2c9fa143417cc660722 && \
     BOOST_ARCHIVE=boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2 && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${BOOST_URL} --output-document=${BOOST_ARCHIVE} && \
