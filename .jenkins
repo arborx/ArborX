@@ -239,10 +239,11 @@ pipeline {
 
                 stage('PGI') {
                     agent {
-                        docker {
-                            image "masterleinad/arborx-pgi:20.02.0"
+                        dockerfile {
+                            filename "Dockerfile.pgi"
+                            dir "docker"
+                            args '-v /tmp/ccache:/tmp/ccache'
                             label 'docker'
-                            alwaysPull true
                         }
                     }
                     steps {
