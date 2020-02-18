@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.12)
 project(ArborX CXX)
 
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
-find_package(Kokkos REQUIRED)
+find_package(Kokkos 3.0 QUIET)
+if(NOT Kokkos_FOUND)
+  set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
+  find_package(Kokkos 3.0 REQUIRED)
+endif()
 
 add_library(ArborX INTERFACE)
-target_link_libraries(ArborX INTERFACE Kokkos::Kokkos)
+target_link_libraries(ArborX INTERFACE Kokkos::kokkos)
 
 option(ARBORX_ENABLE_MPI "Enable MPI support" OFF)
 if(ARBORX_ENABLE_MPI)

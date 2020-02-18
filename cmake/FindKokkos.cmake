@@ -58,7 +58,7 @@ find_library(Kokkos_LIBRARY
   PATHS ${PC_Kokkos_LIBRARY_DIRS}
 )
 find_path(_Kokkos_SETTINGS
-  NAMES kokkos_generated_settings.cmake
+  NAMES KokkosConfig.cmake
   PATHS ${PC_Kokkos_PREFIX}
         ${PC_Kokkos_LIBRARY_DIRS}/cmake/Kokkos
 )
@@ -75,14 +75,13 @@ find_package_handle_standard_args(Kokkos
   VERSION_VAR Kokkos_VERSION
 )
 
-include(${_Kokkos_SETTINGS}/kokkos_generated_settings.cmake)
+include(${_Kokkos_SETTINGS}/KokkosConfig.cmake)
 unset(_Kokkos_SETTINGS CACHE)
 
 if(Kokkos_FOUND)
   set(Kokkos_LIBRARIES ${Kokkos_LIBRARY})
   set(Kokkos_INCLUDE_DIRS ${Kokkos_INCLUDE_DIR})
   set(Kokkos_DEFINITIONS ${PC_Kokkos_CFLAGS_OTHER})
-  set(Kokkos_DEVICES ${KOKKOS_GMAKE_DEVICES})
   set(Kokkos_ARCH ${KOKKOS_GMAKE_ARCH})
 endif()
 
@@ -97,19 +96,20 @@ if("${Kokkos_LIBRARY}" MATCHES "kokkoscore")
   list(FIND PC_Kokkos_LDFLAGS "-lkokkos" index)
   list(REMOVE_AT PC_Kokkos_LDFLAGS ${index})
   list(INSERT PC_Kokkos_LDFLAGS ${index} "-lkokkosalgorithms;-lkokkoscontainers;-lkokkoscore")
+  list(APPEND PC_Kokkos_LDFLAGS "${Kokkos_TPL_LIBRARIES}")
 endif()
 
 # For clang we need to add the cudart library explicitly
 # since Kokkos doesn't do that for us.
-if(Kokkos_DEVICES MATCHES "Cuda")
+if(Kokkos_DEVICES MATCHES "CUDA")
   find_package(CUDA REQUIRED)
   get_filename_component(Kokkos_CUDA_LIBRARY_DIR ${CUDA_cudadevrt_LIBRARY} DIRECTORY)
   set(PC_Kokkos_LDFLAGS "-L${Kokkos_CUDA_LIBRARY_DIR} ${PC_Kokkos_LDFLAGS}")
 endif()
 
-if(Kokkos_FOUND AND NOT TARGET Kokkos::Kokkos)
-  add_library(Kokkos::Kokkos UNKNOWN IMPORTED)
-  set_target_properties(Kokkos::Kokkos PROPERTIES
+if(Kokkos_FOUND AND NOT TARGET Kokkos::kokkos)
+  add_library(Kokkos::kokkos UNKNOWN IMPORTED)
+  set_target_properties(Kokkos::kokkos PROPERTIES
     IMPORTED_LOCATION "${Kokkos_LIBRARY}"
     INTERFACE_COMPILE_OPTIONS "$<$<COMPILE_LANGUAGE:CXX>:${PC_Kokkos_CFLAGS_OTHER}>"
     INTERFACE_LINK_LIBRARIES "${PC_Kokkos_LDFLAGS}"

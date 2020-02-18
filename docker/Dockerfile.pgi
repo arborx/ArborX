@@ -82,8 +82,8 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     rm -rf ${SCRATCH_DIR}
 
 # Install Kokkos
-ARG KOKKOS_VERSION=2.8.00
-ARG KOKKOS_OPTIONS="--compiler=/opt/pgi/linux86-64-llvm/19.4/bin/pgc++ --cxxstandard=c++14 --with-serial --with-options=disable_deprecated_code"
+ARG KOKKOS_VERSION=3.0.00
+ARG KOKKOS_OPTIONS="-DCMAKE_CXX_STANDARD=14 -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_DEPRECATED_CODE=OFF -DKokkos_ENABLE_PROFILING=OFF -DKokkos_ENABLE_LIBDL=OFF"
 ENV KOKKOS_DIR=/opt/kokkos
 RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
     KOKKOS_ARCHIVE=kokkos-${KOKKOS_HASH}.tar.gz && \
@@ -93,7 +93,7 @@ RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz
     tar -xf ${KOKKOS_ARCHIVE} -C kokkos --strip-components=1 && \
     cd kokkos && \
     mkdir -p build && cd build && \
-    ../generate_makefile.bash --prefix=${KOKKOS_DIR} ${KOKKOS_OPTIONS} && \
+    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${KOKKOS_DIR} -D CMAKE_CXX_COMPILER=/opt/pgi/linux86-64-llvm/19.4/bin/pgc++ ${KOKKOS_OPTIONS} .. && \
     make -j${NPROCS} install && \
     rm -rf ${SCRATCH_DIR}
 
