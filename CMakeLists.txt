@@ -12,6 +12,7 @@ endif()
 
 add_library(ArborX INTERFACE)
 target_link_libraries(ArborX INTERFACE Kokkos::kokkos)
+set_target_properties(ArborX PROPERTIES INTERFACE_COMPILE_FEATURES cxx_std_14)
 
 option(ARBORX_ENABLE_MPI "Enable MPI support" OFF)
 if(ARBORX_ENABLE_MPI)
