@@ -8,7 +8,7 @@ pipeline {
         CCACHE_DIR = '/tmp/ccache'
         CCACHE_MAXSIZE = '10G'
         ARBORX_DIR = '/opt/arborx'
-        CTEST_OPTIONS = '--timeout 180 --no-compress-output -T Test'
+        CTEST_OPTIONS = '--timeout 180 --no-compress-output -T Test --test-output-size-passed=65536 --test-output-size-failed=1048576'
     }
     stages {
         stage('Build') {
