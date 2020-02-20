@@ -8,6 +8,7 @@ pipeline {
         CCACHE_DIR = '/tmp/ccache'
         CCACHE_MAXSIZE = '10G'
         ARBORX_DIR = '/opt/arborx'
+        CTEST_OPTIONS = '--timeout 180 --no-compress-output -T Test'
     }
     stages {
         stage('Build') {
@@ -41,7 +42,7 @@ pipeline {
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'
-                            sh 'ctest --timeout 180 --no-compress-output -T Test'
+                            sh 'ctest $CTEST_OPTIONS'
                         }
                     }
                     post {
@@ -96,7 +97,7 @@ pipeline {
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'
-                            sh 'ctest --timeout 180 --no-compress-output -T Test'
+                            sh 'ctest $CTEST_OPTIONS'
                         }
                     }
                     post {
@@ -150,7 +151,7 @@ pipeline {
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'
-                            sh 'ctest --timeout 180 --no-compress-output -T Test'
+                            sh 'ctest $CTEST_OPTIONS'
                         }
                     }
                     post {
@@ -206,7 +207,7 @@ pipeline {
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'
-                            sh 'ctest --timeout 180 --no-compress-output -T Test'
+                            sh 'ctest $CTEST_OPTIONS'
                         }
                     }
                     post {
@@ -257,7 +258,7 @@ pipeline {
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'
-                            sh 'ctest --timeout 180 --no-compress-output -T Test'
+                            sh 'ctest $CTEST_OPTIONS'
                         }
                     }
                     post {
