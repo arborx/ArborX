@@ -247,7 +247,7 @@ pipeline {
                     }
                     steps {
                         sh 'ccache --zero-stats'
-                        sh 'echo $PATH && rm -rf build && mkdir -p build'
+                        sh 'rm -rf build && mkdir -p build'
                         dir('build') {
                             sh '''
                                 cmake \
