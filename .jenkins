@@ -8,6 +8,9 @@ pipeline {
         CCACHE_DIR = '/tmp/ccache'
         CCACHE_MAXSIZE = '10G'
         ARBORX_DIR = '/opt/arborx'
+        BENCHMARK_COLOR = 'no'
+        BOOST_TEST_COLOR_OUTPUT = 'no'
+        CTEST_OPTIONS = '--timeout 180 --no-compress-output -T Test --test-output-size-passed=65536 --test-output-size-failed=1048576'
     }
     stages {
         stage('Build') {
@@ -41,13 +44,13 @@ pipeline {
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'
-                            sh 'ctest --timeout 180 --no-compress-output -T Test'
+                            sh 'ctest $CTEST_OPTIONS'
                         }
                     }
                     post {
                         always {
                             sh 'ccache --show-stats'
-                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                            xunit reduceLog: false, tools:[CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)]
                         }
                         success {
                             sh 'cd build && make install'
@@ -96,13 +99,13 @@ pipeline {
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'
-                            sh 'ctest --timeout 180 --no-compress-output -T Test'
+                            sh 'ctest $CTEST_OPTIONS'
                         }
                     }
                     post {
                         always {
                             sh 'ccache --show-stats'
-                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                            xunit reduceLog: false, tools:[CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)]
                         }
                         success {
                             sh 'cd build && make install'
@@ -150,13 +153,13 @@ pipeline {
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'
-                            sh 'ctest --timeout 180 --no-compress-output -T Test'
+                            sh 'ctest $CTEST_OPTIONS'
                         }
                     }
                     post {
                         always {
                             sh 'ccache --show-stats'
-                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                            xunit reduceLog: false, tools:[CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)]
                         }
                         success {
                             sh 'cd build && make install'
@@ -206,13 +209,13 @@ pipeline {
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'
-                            sh 'ctest --timeout 180 --no-compress-output -T Test'
+                            sh 'ctest $CTEST_OPTIONS'
                         }
                     }
                     post {
                         always {
                             sh 'ccache --show-stats'
-                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                            xunit reduceLog: false, tools:[CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)]
                         }
                         success {
                             sh 'cd build && make install'
@@ -244,7 +247,7 @@ pipeline {
                     }
                     steps {
                         sh 'ccache --zero-stats'
-                        sh 'echo $PATH && rm -rf build && mkdir -p build'
+                        sh 'rm -rf build && mkdir -p build'
                         dir('build') {
                             sh '''
                                 cmake \
@@ -257,13 +260,13 @@ pipeline {
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'
-                            sh 'ctest --timeout 180 --no-compress-output -T Test'
+                            sh 'ctest $CTEST_OPTIONS'
                         }
                     }
                     post {
                         always {
                             sh 'ccache --show-stats'
-                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                            xunit reduceLog: false, tools:[CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)]
                         }
                     }
                 }
