@@ -13,6 +13,11 @@ pipeline {
         CTEST_OPTIONS = '--timeout 180 --no-compress-output -T Test --test-output-size-passed=65536 --test-output-size-failed=1048576'
     }
     stages {
+        stage('Run CI?') {
+            steps {
+                scmSkip(deleteBuild: true, skipPattern: '.*\\[(ci skip|skip ci)\\].*')
+            }
+        }
         stage('Build') {
             parallel {
                 stage('CUDA-10.1-NVCC-CUDA-AWARE-MPI') {
