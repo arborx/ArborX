@@ -275,7 +275,6 @@ pipeline {
                                     cmake \
                                         -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                                         -D CMAKE_CXX_COMPILER=pgc++ \
-                                        -D CMAKE_CXX_EXTENSIONS=OFF \
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
                                     examples \
                                 '''
