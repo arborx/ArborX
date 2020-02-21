@@ -268,7 +268,20 @@ pipeline {
                         }
                         success {
                             sh 'cd build && make install'
-                            sh 'rm -rf test_install && mkdir -p test_install && cd test_install && cp -r ../examples . && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=pgc++ -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" examples && make VERBOSE=1 && make test'
+                            sh 'rm -rf test_install && mkdir -p test_install'
+                            dir('test_install') {
+                                sh 'cp -r ../examples .'
+                                sh '''
+                                    cmake \
+                                        -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                                        -D CMAKE_CXX_COMPILER=pgc++ \
+                                        -D CMAKE_CXX_EXTENSIONS=OFF \
+                                        -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
+                                    examples \
+                                '''
+                                sh 'make VERBOSE=1'
+                                sh 'make test'
+                            }
                         }
                     }
                 }
