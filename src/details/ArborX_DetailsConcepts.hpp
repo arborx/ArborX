@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2012-2019 by the ArborX authors                            *
+ * Copyright (c) 2012-2020 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -29,6 +29,33 @@ namespace ArborX
 {
 namespace Details
 {
+
+struct not_a_type
+{
+  not_a_type() = delete;
+  ~not_a_type() = delete;
+  not_a_type(not_a_type const &) = delete;
+  void operator=(not_a_type const &) = delete;
+};
+
+// primary template handles all types not supporting the archetypal Op
+template <class, template <class...> class Op, class... Args>
+struct is_detected_impl : std::false_type
+{
+  using type = not_a_type;
+};
+
+// specialization recognizes and handles only types supporting Op
+template <template <class...> class Op, class... Args>
+struct is_detected_impl<std::void_t<Op<Args...>>, Op, Args...> : std::true_type
+{
+  using type = Op<Args...>;
+};
+
+template <template <class...> class Op, class... Args>
+struct is_detected : is_detected_impl<void, Op, Args...>
+{
+};
 
 // Checks for existence of a free function that expands an object of type
 // Geometry using an object of type Other

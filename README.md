@@ -9,7 +9,7 @@ The installation instructions can be found [here](https://github.com/arborx/Arbo
 
 Using ArborX
 ------------
-The interface is described [here](https://github.com/arborx/ArborX/blob/master/docs/bounding_volume_hierarchy.md).
+The interface is described [here](https://github.com/arborx/ArborX/blob/master/docs/bounding_volume_hierarchy.md#arborxbvh).
 
 Questions, Bug Reporting, and Issue Tracking
 --------------------------------------------

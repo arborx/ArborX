@@ -1,4 +1,7 @@
 pipeline {
+    triggers {
+        issueCommentTrigger('.*test this please.*')
+    }
     agent none
 
     environment {
@@ -14,7 +17,7 @@ pipeline {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.1-devel --build-arg KOKKOS_OPTIONS="--with-serial --with-openmp --with-cuda --with-cuda-options=enable_lambda --arch=SNB,Volta70 --cxxstandard=c++14"'
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.1-devel --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_SNB=ON -DKokkos_ARCH_VOLTA70=ON"'
                             args '-v /tmp/ccache:/tmp/ccache'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
@@ -29,6 +32,7 @@ pipeline {
                                     -D CMAKE_BUILD_TYPE=Debug \
                                     -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                                     -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper \
+                                    -D CMAKE_CXX_EXTENSIONS=OFF \
                                     -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
@@ -47,7 +51,20 @@ pipeline {
                         }
                         success {
                             sh 'cd build && make install'
-                            sh 'rm -rf test_install && mkdir -p test_install && cd test_install && cp -r ../examples . && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" examples && make VERBOSE=1 && make test'
+                            sh 'rm -rf test_install && mkdir -p test_install'
+                            dir('test_install') {
+                                sh 'cp -r ../examples .'
+                                sh '''
+                                    cmake \
+                                        -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                                        -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper \
+                                        -D CMAKE_CXX_EXTENSIONS=OFF \
+                                        -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
+                                    examples \
+                                '''
+                                sh 'make VERBOSE=1'
+                                sh 'make test'
+                            }
                         }
                     }
                 }
@@ -56,7 +73,7 @@ pipeline {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.1-devel --build-arg KOKKOS_OPTIONS="--with-serial --with-openmp --with-cuda --with-cuda-options=enable_lambda --arch=SNB,Volta70 --cxxstandard=c++14"'
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.1-devel --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_SNB=ON -DKokkos_ARCH_VOLTA70=ON"'
                             args '-v /tmp/ccache:/tmp/ccache'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
@@ -71,6 +88,7 @@ pipeline {
                                     -D CMAKE_BUILD_TYPE=Debug \
                                     -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                                     -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper \
+                                    -D CMAKE_CXX_EXTENSIONS=OFF \
                                     -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
@@ -88,7 +106,20 @@ pipeline {
                         }
                         success {
                             sh 'cd build && make install'
-                            sh 'rm -rf test_install && mkdir -p test_install && cd test_install && cp -r ../examples . && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" examples && make VERBOSE=1 && make test'
+                            sh 'rm -rf test_install && mkdir -p test_install'
+                            dir('test_install') {
+                                sh 'cp -r ../examples .'
+                                sh '''
+                                    cmake \
+                                        -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                                        -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper \
+                                        -D CMAKE_CXX_EXTENSIONS=OFF \
+                                        -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
+                                    examples \
+                                '''
+                                sh 'make VERBOSE=1'
+                                sh 'make test'
+                            }
                         }
                     }
                 }
@@ -97,7 +128,7 @@ pipeline {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:9.2-devel-ubuntu18.04 --build-arg KOKKOS_OPTIONS="--with-serial --with-openmp --with-cuda --with-cuda-options=enable_lambda --arch=SNB,Volta70 --compiler=clang++ --cxxstandard=c++14"'
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:9.2-devel-ubuntu18.04 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_COMPILER=clang++ -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_SNB=ON -DKokkos_ARCH_VOLTA70=ON"'
                             args '-v /tmp/ccache:/tmp/ccache'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
@@ -129,7 +160,20 @@ pipeline {
                         }
                         success {
                             sh 'cd build && make install'
-                            sh 'rm -rf test_install && mkdir -p test_install && cd test_install && cp -r ../examples . && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" examples && make VERBOSE=1 && make test'
+                            sh 'rm -rf test_install && mkdir -p test_install'
+                            dir('test_install') {
+                                sh 'cp -r ../examples .'
+                                sh '''
+                                    cmake \
+                                        -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                                        -D CMAKE_CXX_COMPILER=clang++ \
+                                        -D CMAKE_CXX_EXTENSIONS=OFF \
+                                        -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
+                                    examples \
+                                '''
+                                sh 'make VERBOSE=1'
+                                sh 'make test'
+                            }
                         }
                     }
                 }
@@ -139,9 +183,9 @@ pipeline {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=ubuntu:18.04 --build-arg KOKKOS_OPTIONS="--with-serial --with-openmp --arch=AMD --compiler=clang++ --cxxstandard=c++14"'
+                            additionalBuildArgs '--build-arg BASE=ubuntu:18.04 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DCMAKE_CXX_COMPILER=clang++"'
                             args '-v /tmp/ccache:/tmp/ccache'
-                            label 'cathode'
+                            label 'docker'
                         }
                     }
                     steps {
@@ -153,6 +197,7 @@ pipeline {
                                     -D CMAKE_BUILD_TYPE=Debug \
                                     -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                                     -D CMAKE_CXX_COMPILER=clang++ \
+                                    -D CMAKE_CXX_EXTENSIONS=OFF \
                                     -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
                                     -D CMAKE_CXX_CLANG_TIDY="$LLVM_DIR/bin/clang-tidy" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
@@ -171,7 +216,20 @@ pipeline {
                         }
                         success {
                             sh 'cd build && make install'
-                            sh 'rm -rf test_install && mkdir -p test_install && cd test_install && cp -r ../examples . && cmake -D CMAKE_CXX_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" examples && make VERBOSE=1 && make test'
+                            sh 'rm -rf test_install && mkdir -p test_install'
+                            dir('test_install') {
+                                sh 'cp -r ../examples .'
+                                sh '''
+                                    cmake \
+                                        -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                                        -D CMAKE_CXX_COMPILER=clang++ \
+                                        -D CMAKE_CXX_EXTENSIONS=OFF \
+                                        -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
+                                    examples \
+                                '''
+                                sh 'make VERBOSE=1'
+                                sh 'make test'
+                            }
                         }
                     }
                 }
@@ -179,28 +237,28 @@ pipeline {
                 stage('PGI') {
                     agent {
                         docker {
-                            image "rombur/arborx-pgi:19.10.0"
+                            image "masterleinad/arborx-pgi:20.02.0"
                             label 'docker'
                             alwaysPull true
                         }
                     }
                     steps {
                         sh 'ccache --zero-stats'
-                        sh 'rm -rf build && mkdir -p build'
+                        sh 'echo $PATH && rm -rf build && mkdir -p build'
                         dir('build') {
                             sh '''
-                              cmake \
-                                  -D CMAKE_BUILD_TYPE=Debug \
-                                  -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
-                                  -D CMAKE_CXX_COMPILER=pgc++ \
-                                  -D CMAKE_CXX_FLAGS="-Minform=inform" \
-                                  -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
-                                  -D ARBORX_ENABLE_MPI=ON \
-                                  -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
-                              ..
+                                cmake \
+                                    -D CMAKE_BUILD_TYPE=Debug \
+                                    -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                                    -D CMAKE_CXX_COMPILER=pgc++ \
+                                    -D CMAKE_CXX_FLAGS="-Minform=inform" \
+                                    -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
+                                    -D ARBORX_ENABLE_MPI=ON \
+                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                ..
                             '''
                             sh 'make -j8 VERBOSE=1'
-                            sh 'ctest ---timeout 180 --no-compress-output -T Test'
+                            sh 'ctest --timeout 180 --no-compress-output -T Test'
                         }
                     }
                     post {

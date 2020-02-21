@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2012-2019 by the ArborX authors                            *
+ * Copyright (c) 2012-2020 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -204,8 +204,8 @@ struct TreeVisualization
     std::ignore = visitor;
     throw std::runtime_error("not meant to execute on the GPU");
 #else
-    auto const geometry = pred._geometry;
-    auto const k = pred._k;
+    auto const geometry = getGeometry(pred);
+    auto const k = getK(pred);
     Kokkos::View<Kokkos::pair<int, double> *, DeviceType> buffer("buffer", k);
     int const count = TreeTraversal<DeviceType>::nearestQuery(
         tree,

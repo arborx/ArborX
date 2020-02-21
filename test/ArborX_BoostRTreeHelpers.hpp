@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2012-2019 by the ArborX authors                            *
+ * Copyright (c) 2012-2020 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -151,7 +151,7 @@ struct UnaryPredicate
 template <typename Value>
 static auto translate(ArborX::Intersects<ArborX::Sphere> const &query)
 {
-  auto const sphere = query._geometry;
+  auto const sphere = getGeometry(query);
   auto const radius = sphere.radius();
   auto const centroid = sphere.centroid();
   ArborX::Box box;
@@ -168,8 +168,8 @@ static auto translate(ArborX::Intersects<ArborX::Sphere> const &query)
 template <typename Value, typename Geometry>
 static auto translate(ArborX::Nearest<Geometry> const &query)
 {
-  auto const geometry = query._geometry;
-  auto const k = query._k;
+  auto const geometry = getGeometry(query);
+  auto const k = getK(query);
   return boost::geometry::index::nearest(geometry, k);
 }
 
