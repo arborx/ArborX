@@ -37,7 +37,7 @@ public:
                 "the type of the elements stored by the underlying "
                 "container Container::value_type");
 
-  KOKKOS_FUNCTION Stack() = default;
+  KOKKOS_DEFAULTED_FUNCTION Stack() = default;
 
   // Capacity
   KOKKOS_INLINE_FUNCTION bool empty() const { return _c.empty(); }
