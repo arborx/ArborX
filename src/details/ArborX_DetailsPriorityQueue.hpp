@@ -61,7 +61,7 @@ public:
                 "the type of the elements stored by the underlying "
                 "container Container::value_type");
 
-  KOKKOS_FUNCTION PriorityQueue() = default;
+  KOKKOS_DEFAULTED_FUNCTION PriorityQueue() = default;
 
   KOKKOS_FUNCTION PriorityQueue(Container const &c)
       : _c(c)

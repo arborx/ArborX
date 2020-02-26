@@ -50,7 +50,7 @@ struct Intersects
 {
   using Tag = Details::SpatialPredicateTag;
 
-  KOKKOS_INLINE_FUNCTION Intersects() = default;
+  KOKKOS_DEFAULTED_FUNCTION Intersects() = default;
 
   KOKKOS_INLINE_FUNCTION Intersects(Geometry const &geometry)
       : _geometry(geometry)
@@ -102,7 +102,7 @@ getGeometry(Intersects<Geometry> const &pred)
 template <typename Predicate, typename Data>
 struct PredicateWithAttachment : Predicate
 {
-  KOKKOS_INLINE_FUNCTION PredicateWithAttachment() = default;
+  KOKKOS_DEFAULTED_FUNCTION PredicateWithAttachment() = default;
   KOKKOS_INLINE_FUNCTION PredicateWithAttachment(Predicate const &pred,
                                                  Data const &data)
       : Predicate{pred}

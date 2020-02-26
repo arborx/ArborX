@@ -24,7 +24,7 @@ namespace Details
 {
 struct Node
 {
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   constexpr Node() = default;
 
   KOKKOS_INLINE_FUNCTION constexpr bool isLeaf() const noexcept

@@ -20,7 +20,7 @@ namespace ArborX
 
 struct Sphere
 {
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   Sphere() = default;
 
   KOKKOS_INLINE_FUNCTION
