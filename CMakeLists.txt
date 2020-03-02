@@ -23,7 +23,6 @@ include(CMakeDependentOption)
 cmake_dependent_option(ARBORX_USE_CUDA_AWARE_MPI
                        "Allow using device data in MPI communication"
                        OFF "ARBORX_ENABLE_MPI" OFF)
-#target_compile_features(ArborX INTERFACE cxx_std_14)
 
 target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
