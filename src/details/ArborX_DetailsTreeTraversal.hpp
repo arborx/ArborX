@@ -80,9 +80,9 @@ public:
       }
       else
       {
-        auto const root = bvh.getRoot();
+        auto const &nodes = bvh._internal_and_leaf_nodes;
         for (Node const *child :
-             {root + node->children.first, root + node->children.second})
+             {&nodes(node->children.first), &nodes(node->children.second)})
         {
           if (predicate(bvh.getBoundingVolume(child)))
           {
@@ -175,9 +175,9 @@ public:
         {
           // Insert children into the stack and make sure that the
           // closest one ends on top.
-          auto const root = bvh.getRoot();
-          Node const *left_child = root + node->children.first;
-          Node const *right_child = root + node->children.second;
+          auto const &nodes = bvh._internal_and_leaf_nodes;
+          Node const *left_child = &nodes(node->children.first);
+          Node const *right_child = &nodes(node->children.second);
           double const left_child_distance = distance(left_child);
           double const right_child_distance = distance(right_child);
           if (left_child_distance < right_child_distance)
@@ -270,9 +270,9 @@ public:
         else
         {
           // Insert children into the priority queue
-          auto const root = bvh.getRoot();
-          Node const *left_child = root + node->children.first;
-          Node const *right_child = root + node->children.second;
+          auto const &nodes = bvh._internal_and_leaf_nodes;
+          Node const *left_child = &nodes(node->children.first);
+          Node const *right_child = &nodes(node->children.second);
           double const left_child_distance = distance(left_child);
           double const right_child_distance = distance(right_child);
           queue.popPush(left_child, left_child_distance);
