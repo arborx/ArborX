@@ -134,6 +134,12 @@ template <typename T>
 struct infinity;
 
 template <>
+struct infinity<float>
+{
+  static constexpr float value = HUGE_VALF;
+};
+
+template <>
 struct infinity<double>
 {
   static constexpr double value = HUGE_VAL;
@@ -143,6 +149,12 @@ template <typename T>
 struct max;
 
 template <>
+struct max<float>
+{
+  static constexpr float value = FLT_MAX;
+};
+
+template <>
 struct max<double>
 {
   static constexpr double value = DBL_MAX;
@@ -150,6 +162,12 @@ struct max<double>
 
 template <typename T>
 struct epsilon;
+
+template <>
+struct epsilon<float>
+{
+  static constexpr float value = FLT_EPSILON;
+};
 
 template <>
 struct epsilon<double>
