@@ -24,13 +24,11 @@ spack install arborx~mpi+cuda
 
 The dependencies may be installed using [Spack](https://github.com/spack/spack)
 package manager, or manually. Of note:
-- Kokkos must be installed using `C++14` standard
-  - If Kokkos is being installed standalone, set `cxxstandard` option to `c++14`
-  - If Kokkos is being installed as part of [Trilinos](https://github.com/trilinos/Trilinos),
-    set `-DCMAKE_CXX_STANDARD=14`. Please note that this will only compile the
-    Kokkos package with `C++14` standard. If you want to compile the full
-    Trilinos with C++14, you would need a second option
-    `-DTrilinos_CXX11_FLAGS="-std=c++14"`
+- If Kokkos is being installed as part of [Trilinos](https://github.com/trilinos/Trilinos),
+  set `-DCMAKE_CXX_STANDARD=14`. Please note that this will only compile the
+  Kokkos package with `C++14` standard. If you want to compile the full
+  Trilinos with C++14, you would need a second option
+  `-DTrilinos_CXX11_FLAGS="-std=c++14"`
 - The list of backends supported by ArborX will be set to the ones provided by
   the Kokkos
 
