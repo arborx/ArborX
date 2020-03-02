@@ -68,7 +68,7 @@ template <>
 struct Access<PointCloud, PrimitivesTag>
 {
   inline static std::size_t size(PointCloud const &cloud) { return cloud.N; }
-  KOKKOS_INLINE_FUNCTION static Point get(PointCloud const &cloud,
+  KOKKOS_FUNCTION static Point get(PointCloud const &cloud,
                                           std::size_t i)
   {
     return {{cloud.d_x[i], cloud.d_y[i], cloud.d_z[i]}};
@@ -80,7 +80,7 @@ template <>
 struct Access<NearestToOrigin, PredicatesTag>
 {
   inline static std::size_t size(NearestToOrigin const &) { return 1; }
-  KOKKOS_INLINE_FUNCTION static auto get(NearestToOrigin const &d, std::size_t)
+  KOKKOS_FUNCTION static auto get(NearestToOrigin const &d, std::size_t)
   {
     return nearest(Point{{0, 0, 0}}, d.k);
   }
