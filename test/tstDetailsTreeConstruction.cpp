@@ -293,8 +293,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   for (int i = 0; i < n; ++i)
     leaf_nodes(i) = makeLeafNode(i, Box{});
   auto getNodePtr = [n, &leaf_nodes, &internal_nodes](int i) {
-    return i < n - 1 ? internal_nodes.data() + i
-                     : leaf_nodes.data() + i - n + 1;
+    return i < n - 1 ? &internal_nodes(i) : &leaf_nodes(i - n + 1);
   };
   std::function<void(Node const *, std::ostream &)> traverseRecursive;
   traverseRecursive = [&leaf_nodes, &internal_nodes, &traverseRecursive,
@@ -305,7 +304,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
     }
     else
     {
-      Node const *root = internal_nodes.data();
       os << "I" << node - internal_nodes.data();
       for (Node const *child : {getNodePtr(node->children.first),
                                 getNodePtr(node->children.second)})
