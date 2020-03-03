@@ -292,7 +292,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   Kokkos::View<Node *, DeviceType> internal_nodes("internal_nodes", n - 1);
   for (int i = 0; i < n; ++i)
     leaf_nodes(i) = makeLeafNode(i, Box{});
-  auto getNodePtr = [n, &leaf_nodes, &internal_nodes](int i) {
+  auto getNodePtr = [&leaf_nodes, &internal_nodes](int i) {
     return i < n - 1 ? &internal_nodes(i) : &leaf_nodes(i - n + 1);
   };
   std::function<void(Node const *, std::ostream &)> traverseRecursive;
