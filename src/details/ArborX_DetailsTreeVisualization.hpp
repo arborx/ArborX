@@ -72,6 +72,13 @@ struct TreeVisualization
       return bvh.getRoot();
     }
 
+    KOKKOS_INLINE_FUNCTION
+    static Node const *
+    getNodePtr(BoundingVolumeHierarchy<DeviceType> const &bvh, int index)
+    {
+      return bvh.getNodePtr(index);
+    }
+
     template <typename Tree>
     KOKKOS_INLINE_FUNCTION static typename Tree::bounding_volume_type
     getBoundingVolume(Node const *node, Tree const &tree)
@@ -136,11 +143,11 @@ struct TreeVisualization
     {
       auto const node_label = getNodeLabel(node, tree);
       auto const node_is_internal = !node->isLeaf();
-      auto const root = TreeAccess::getRoot(tree);
+      auto getNodePr = [&](int i) { return TreeAccess::getNodePtr(tree, i); };
 
       if (node_is_internal)
-        for (Node const *child :
-             {root + node->children.first, root + node->children.second})
+        for (Node const *child : {getNodePr(node->children.first),
+                                  getNodePr(node->children.second)})
         {
           auto const child_label = getNodeLabel(child, tree);
           auto const edge_attributes = getEdgeAttributes(node, child, tree);
@@ -180,7 +187,7 @@ struct TreeVisualization
   {
     Stack<Node const *> stack;
     stack.emplace(TreeAccess::getRoot(tree));
-    auto const root = TreeAccess::getRoot(tree);
+    auto getNodePtr = [&](int i) { return TreeAccess::getNodePtr(tree, i); };
     while (!stack.empty())
     {
       Node const *node = stack.top();
@@ -189,8 +196,8 @@ struct TreeVisualization
       visitor.visit(node, tree);
 
       if (!node->isLeaf())
-        for (Node const *child :
-             {root + node->children.first, root + node->children.second})
+        for (Node const *child : {getNodePtr(node->children.first),
+                                  getNodePtr(node->children.second)})
           stack.push(child);
     }
   }
