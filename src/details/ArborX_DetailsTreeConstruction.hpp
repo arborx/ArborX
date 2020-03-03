@@ -412,30 +412,31 @@ class CalculateInternalNodesBoundingVolumesFunctor
 {
 public:
   CalculateInternalNodesBoundingVolumesFunctor(
-      Node *root, Kokkos::View<int const *, DeviceType> parents,
-      size_t n_internal_nodes)
-      : _root(root)
-      , _flags(Kokkos::ViewAllocateWithoutInitializing("flags"),
+      Kokkos::View<Node *, DeviceType> internal_and_leaf_nodes,
+      Kokkos::View<int const *, DeviceType> parents, size_t n_internal_nodes)
+      : _flags(Kokkos::ViewAllocateWithoutInitializing("flags"),
                n_internal_nodes)
       , _parents(parents)
+      , _internal_and_leaf_nodes(internal_and_leaf_nodes)
   {
     // Initialize flags to zero
     Kokkos::deep_copy(_flags, 0);
   }
 
   KOKKOS_INLINE_FUNCTION
-  void operator()(int const i) const
+  void operator()(int i) const
   {
-    Node *node = _root + _parents(i);
     // Walk toward the root and do process it even though technically its
     // bounding box has already been computed (bounding box of the scene)
     while (true)
     {
+      i = _parents(i);
+
       // Use an atomic flag per internal node to terminate the first
       // thread that enters it, while letting the second one through.
       // This ensures that every node gets processed only once, and not
       // before both of its children are processed.
-      if (Kokkos::atomic_compare_exchange_strong(&_flags(node - _root), 0, 1))
+      if (Kokkos::atomic_compare_exchange_strong(&_flags(i), 0, 1))
         break;
 
       // Internal node bounding boxes are unitialized hence the
@@ -443,23 +444,25 @@ public:
       // FIXME: accessing Node::bounding_box is not ideal but I was
       // reluctant to pass the bounding volume hierarchy to
       // generateHierarchy()
-      node->bounding_box = (_root + node->children.first)->bounding_box;
-      expand(node->bounding_box, (_root + node->children.second)->bounding_box);
-      if (node == _root)
+      Node *node = &_internal_and_leaf_nodes(i);
+      Node const *first_child = &_internal_and_leaf_nodes(node->children.first);
+      Node const *second_child =
+          &_internal_and_leaf_nodes(node->children.second);
+      node->bounding_box = first_child->bounding_box;
+      expand(node->bounding_box, second_child->bounding_box);
+      if (i == 0) // root node
         break;
-
-      node = _root + _parents(node - _root);
     }
     // NOTE: could check that bounding box of the root node is indeed the
     // union of the two children.
   }
 
 private:
-  Node *_root;
   // Use int instead of bool because CAS (Compare And Swap) on CUDA does not
   // support boolean
   Kokkos::View<int *, DeviceType> _flags;
   Kokkos::View<int const *, DeviceType> _parents;
+  Kokkos::View<Node *, DeviceType> _internal_and_leaf_nodes;
 };
 
 template <typename DeviceType>
@@ -470,11 +473,12 @@ void TreeConstruction<DeviceType>::calculateInternalNodesBoundingVolumes(
 {
   auto const first = internal_nodes.extent(0);
   auto const last = first + leaf_nodes.extent(0);
-  Node *root = internal_nodes.data();
+  Kokkos::View<Node *, DeviceType, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
+      internal_and_leaf_nodes(internal_nodes.data(), last);
   Kokkos::parallel_for(ARBORX_MARK_REGION("calculate_bounding_boxes"),
                        Kokkos::RangePolicy<ExecutionSpace>(first, last),
                        CalculateInternalNodesBoundingVolumesFunctor<DeviceType>(
-                           root, parents, first));
+                           internal_and_leaf_nodes, parents, first));
 }
 
 } // namespace Details
