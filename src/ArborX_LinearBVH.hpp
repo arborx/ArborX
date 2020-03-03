@@ -114,6 +114,9 @@ private:
   Node *getRoot() { return _internal_and_leaf_nodes.data(); }
 
   KOKKOS_INLINE_FUNCTION
+  Node const *getNodePtr(int i) const { return &_internal_and_leaf_nodes(i); }
+
+  KOKKOS_INLINE_FUNCTION
   bounding_volume_type const &getBoundingVolume(Node const *node) const
   {
     return node->bounding_box;
