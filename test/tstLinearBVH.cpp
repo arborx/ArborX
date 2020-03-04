@@ -224,7 +224,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, Tree, TreeTypes)
                    {{{0., 0., 0.}}, 2},
                    {{{1., 0., 0.}}, 4},
                }),
-               {0, 1, 0, 1}, {0, 2, 4}, {0., sqrt(3.), 1., sqrt(2.)});
+               {0, 1, 0, 1}, {0, 2, 4}, {0., sqrt(3.f), 1., sqrt(2.f)});
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves, DeviceType,

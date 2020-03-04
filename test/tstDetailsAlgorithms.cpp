@@ -24,7 +24,7 @@ using ArborX::Sphere;
 BOOST_AUTO_TEST_CASE(distance)
 {
   using ArborX::Details::distance;
-  BOOST_TEST(distance({{1.0, 2.0, 3.0}}, {{1.0, 1.0, 1.0}}) == std::sqrt(5.0));
+  BOOST_TEST(distance({{1.0, 2.0, 3.0}}, {{1.0, 1.0, 1.0}}) == std::sqrt(5.f));
 
   // box is unit cube
   constexpr Box box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
@@ -36,15 +36,15 @@ BOOST_AUTO_TEST_CASE(distance)
   // normal projection onto center of one face
   BOOST_TEST(distance({{2.0, 0.5, 0.5}}, box) == 1.0);
   // projection onto edge
-  BOOST_TEST(distance({{2.0, 0.75, -1.0}}, box) == std::sqrt(2.0));
+  BOOST_TEST(distance({{2.0, 0.75, -1.0}}, box) == std::sqrt(2.f));
   // projection onto corner node
-  BOOST_TEST(distance({{-1.0, 2.0, 2.0}}, box) == std::sqrt(3.0));
+  BOOST_TEST(distance({{-1.0, 2.0, 2.0}}, box) == std::sqrt(3.f));
 
   // unit sphere
   constexpr Sphere sphere{{{0., 0., 0.}}, 1.};
   BOOST_TEST(distance({{.5, .5, .5}}, sphere) == 0.);
   BOOST_TEST(distance({{2., 0., 0.}}, sphere) == 1.);
-  BOOST_TEST(distance({{1., 1., 1.}}, sphere) == std::sqrt(3.) - 1.);
+  BOOST_TEST(distance({{1., 1., 1.}}, sphere) == std::sqrt(3.f) - 1.f);
 }
 
 BOOST_AUTO_TEST_CASE(intersects)
