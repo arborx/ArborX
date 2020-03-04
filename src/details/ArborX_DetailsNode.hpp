@@ -23,7 +23,7 @@ namespace ArborX
 {
 namespace Details
 {
-struct Node
+struct alignas(64) Node
 {
   KOKKOS_INLINE_FUNCTION
   constexpr Node() = default;
