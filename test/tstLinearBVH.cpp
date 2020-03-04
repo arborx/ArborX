@@ -399,7 +399,7 @@ struct CustomInlineCallbackNearestPredicate
 {
   using tag = ArborX::Details::InlineCallbackTag;
   template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &, int index, double distance,
+  KOKKOS_FUNCTION void operator()(Query const &, int index, float distance,
                                   Insert const &insert) const
   {
     insert({index, (float)distance});
@@ -560,8 +560,8 @@ struct CustomInlineCallbackAttachmentNearestPredicate
 {
   using tag = ArborX::Details::InlineCallbackTag;
   template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &query, int index,
-                                  double distance, Insert const &insert) const
+  KOKKOS_FUNCTION void operator()(Query const &query, int index, float distance,
+                                  Insert const &insert) const
   {
     auto data = ArborX::getData(query);
     insert({index, data + (float)distance});
@@ -688,7 +688,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(miscellaneous, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
   Kokkos::View<int *, DeviceType> zeros("zeros", 3);
   Kokkos::deep_copy(zeros, 255);
-  Kokkos::View<Kokkos::pair<int, double> *, DeviceType> empty_buffer(
+  Kokkos::View<Kokkos::pair<int, float> *, DeviceType> empty_buffer(
       "empty_buffer", 0);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, 1), KOKKOS_LAMBDA(int) {
@@ -699,10 +699,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(miscellaneous, DeviceType, ARBORX_DEVICE_TYPES)
             empty_bvh, ArborX::intersects(ArborX::Sphere{p, r}), [](int) {});
         // nearest query on empty tree
         zeros(1) = ArborX::Details::TreeTraversal<DeviceType>::query(
-            empty_bvh, ArborX::nearest(p), [](int, double) {}, empty_buffer);
+            empty_bvh, ArborX::nearest(p), [](int, float) {}, empty_buffer);
         // nearest query for k < 1
         zeros(2) = ArborX::Details::TreeTraversal<DeviceType>::query(
-            bvh, ArborX::nearest(p, 0), [](int, double) {}, empty_buffer);
+            bvh, ArborX::nearest(p, 0), [](int, float) {}, empty_buffer);
       });
   auto zeros_host = Kokkos::create_mirror_view(zeros);
   Kokkos::deep_copy(zeros_host, zeros);
