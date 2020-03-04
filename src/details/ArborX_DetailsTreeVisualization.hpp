@@ -217,14 +217,14 @@ struct TreeVisualization
 #else
     auto const geometry = getGeometry(pred);
     auto const k = getK(pred);
-    Kokkos::View<Kokkos::pair<int, double> *, DeviceType> buffer("buffer", k);
+    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> buffer("buffer", k);
     int const count = TreeTraversal<DeviceType>::nearestQuery(
         tree,
         [geometry, &visitor, &tree](Node const *node) {
           visitor.visit(node, tree);
           return distance(geometry, TreeAccess::getBoundingVolume(node, tree));
         },
-        k, [](int, double) {}, buffer);
+        k, [](int, float) {}, buffer);
     return count;
 #endif
   }
