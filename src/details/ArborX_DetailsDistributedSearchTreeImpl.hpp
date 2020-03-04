@@ -98,7 +98,7 @@ struct DistributedSearchTreeImpl
       Predicates const &queries, Kokkos::View<int *, DeviceType> &indices,
       Kokkos::View<int *, DeviceType> &offset,
       Kokkos::View<int *, DeviceType> &ranks,
-      Kokkos::View<double *, DeviceType> *distances_ptr = nullptr);
+      Kokkos::View<float *, DeviceType> *distances_ptr = nullptr);
 
   template <typename Predicates>
   static void queryDispatch(NearestPredicateTag tag,
@@ -107,7 +107,7 @@ struct DistributedSearchTreeImpl
                             Kokkos::View<int *, DeviceType> &indices,
                             Kokkos::View<int *, DeviceType> &offset,
                             Kokkos::View<int *, DeviceType> &ranks,
-                            Kokkos::View<double *, DeviceType> &distances)
+                            Kokkos::View<float *, DeviceType> &distances)
   {
     queryDispatch(tag, tree, queries, indices, offset, ranks, &distances);
   }
@@ -117,14 +117,14 @@ struct DistributedSearchTreeImpl
                              DistributedSearchTree<DeviceType> const &tree,
                              Kokkos::View<int *, DeviceType> &indices,
                              Kokkos::View<int *, DeviceType> &offset,
-                             Kokkos::View<double *, DeviceType> &);
+                             Kokkos::View<float *, DeviceType> &);
 
   template <typename Predicates>
   static void reassessStrategy(Predicates const &queries,
                                DistributedSearchTree<DeviceType> const &tree,
                                Kokkos::View<int *, DeviceType> &indices,
                                Kokkos::View<int *, DeviceType> &offset,
-                               Kokkos::View<double *, DeviceType> &distances);
+                               Kokkos::View<float *, DeviceType> &distances);
 
   template <typename Predicates, typename Query>
   static void forwardQueries(MPI_Comm comm, Predicates const &queries,
@@ -139,11 +139,11 @@ struct DistributedSearchTreeImpl
       MPI_Comm comm, OutputView &view, Kokkos::View<int *, DeviceType> offset,
       Kokkos::View<int *, DeviceType> &ranks,
       Kokkos::View<int *, DeviceType> &ids,
-      Kokkos::View<double *, DeviceType> *distances_ptr = nullptr);
+      Kokkos::View<float *, DeviceType> *distances_ptr = nullptr);
 
   template <typename Predicates>
   static void filterResults(Predicates const &queries,
-                            Kokkos::View<double *, DeviceType> distances,
+                            Kokkos::View<float *, DeviceType> distances,
                             Kokkos::View<int *, DeviceType> &indices,
                             Kokkos::View<int *, DeviceType> &offset,
                             Kokkos::View<int *, DeviceType> &ranks);
@@ -280,7 +280,7 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
     Predicates const &queries, DistributedSearchTree<DeviceType> const &tree,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset,
-    Kokkos::View<double *, DeviceType> &)
+    Kokkos::View<float *, DeviceType> &)
 {
   auto const &top_tree = tree._top_tree;
   auto const &bottom_tree_sizes = tree._bottom_tree_sizes;
@@ -333,14 +333,14 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
     Predicates const &queries, DistributedSearchTree<DeviceType> const &tree,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset,
-    Kokkos::View<double *, DeviceType> &distances)
+    Kokkos::View<float *, DeviceType> &distances)
 {
   auto const &top_tree = tree._top_tree;
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
   auto const n_queries = Access::size(queries);
 
   // Determine distance to the farthest neighbor found so far.
-  Kokkos::View<double *, DeviceType> farthest_distances("distances", n_queries);
+  Kokkos::View<float *, DeviceType> farthest_distances("distances", n_queries);
   // NOTE: in principle distances( j ) are arranged in ascending order for
   // offset( i ) <= j < offset( i + 1 ) so max() is not necessary.
   Kokkos::parallel_for(
@@ -373,12 +373,12 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     Predicates const &queries, Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset,
     Kokkos::View<int *, DeviceType> &ranks,
-    Kokkos::View<double *, DeviceType> *distances_ptr)
+    Kokkos::View<float *, DeviceType> *distances_ptr)
 {
   auto const &bottom_tree = tree._bottom_tree;
   auto comm = tree._comm;
 
-  Kokkos::View<double *, DeviceType> distances("distances", 0);
+  Kokkos::View<float *, DeviceType> distances("distances", 0);
   if (distances_ptr)
     distances = *distances_ptr;
 
@@ -397,7 +397,7 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   using Strategy = void (*)(
       Predicates const &, DistributedSearchTree<DeviceType> const &,
       Kokkos::View<int *, DeviceType> &, Kokkos::View<int *, DeviceType> &,
-      Kokkos::View<double *, DeviceType> &);
+      Kokkos::View<float *, DeviceType> &);
   for (auto implementStrategy :
        {static_cast<Strategy>(
             DistributedSearchTreeImpl<DeviceType>::deviseStrategy),
@@ -610,7 +610,7 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
     MPI_Comm comm, OutputView &out, Kokkos::View<int *, DeviceType> offset,
     Kokkos::View<int *, DeviceType> &ranks,
     Kokkos::View<int *, DeviceType> &ids,
-    Kokkos::View<double *, DeviceType> *distances_ptr)
+    Kokkos::View<float *, DeviceType> *distances_ptr)
 {
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
@@ -655,10 +655,10 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
 
   if (distances_ptr)
   {
-    Kokkos::View<double *, DeviceType> &distances = *distances_ptr;
-    Kokkos::View<double *, DeviceType> export_distances = distances;
-    Kokkos::View<double *, DeviceType> import_distances(distances.label(),
-                                                        n_imports);
+    Kokkos::View<float *, DeviceType> &distances = *distances_ptr;
+    Kokkos::View<float *, DeviceType> export_distances = distances;
+    Kokkos::View<float *, DeviceType> import_distances(distances.label(),
+                                                       n_imports);
     sendAcrossNetwork(distributor, export_distances, import_distances);
     distances = import_distances;
   }
@@ -667,7 +667,7 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
 template <typename DeviceType>
 template <typename Predicates>
 void DistributedSearchTreeImpl<DeviceType>::filterResults(
-    Predicates const &queries, Kokkos::View<double *, DeviceType> distances,
+    Predicates const &queries, Kokkos::View<float *, DeviceType> distances,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset,
     Kokkos::View<int *, DeviceType> &ranks)
@@ -692,7 +692,7 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
                                               n_truncated_results);
   Kokkos::View<int *, DeviceType> new_ranks(ranks.label(), n_truncated_results);
 
-  using PairIndexDistance = Kokkos::pair<Kokkos::Array<int, 2>, double>;
+  using PairIndexDistance = Kokkos::pair<Kokkos::Array<int, 2>, float>;
   struct CompareDistance
   {
     KOKKOS_INLINE_FUNCTION bool operator()(PairIndexDistance const &lhs,
