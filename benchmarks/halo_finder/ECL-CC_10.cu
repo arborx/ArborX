@@ -149,7 +149,7 @@ void compute2(const int nodes, const int* const __restrict__ nidx, const int* co
 
   int idx;
   if (lane == 0) idx = atomicAdd(&posL, 1);
-  idx = __shfl(idx, 0);
+  idx = __shfl_sync(0xFFFFFFFF, idx, 0);
   while (idx < topL) {
     const int v = wl[idx];
     int vstat = representative(v, nstat);
@@ -178,7 +178,7 @@ void compute2(const int nodes, const int* const __restrict__ nidx, const int* co
       }
     }
     if (lane == 0) idx = atomicAdd(&posL, 1);
-    idx = __shfl(idx, 0);
+    idx = __shfl_sync(0xFFFFFFFF, idx, 0);
   }
 }
 
