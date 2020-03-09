@@ -1,4 +1,4 @@
-if(Kokkos_DEVICES MATCHES "SERIAL")
+if(Kokkos_ENABLE_SERIAL)
   add_executable(ArborX_TreeViz.exe tree_visualization.cpp)
   target_link_libraries(ArborX_TreeViz.exe ${ArborX_TARGET} Boost::program_options)
   add_test(NAME ArborX_TreeViz_Example COMMAND ./ArborX_TreeViz.exe)

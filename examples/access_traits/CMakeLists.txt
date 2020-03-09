@@ -1,4 +1,4 @@
-if(Kokkos_DEVICES MATCHES "CUDA")
+if(Kokkos_ENABLE_CUDA)
   add_executable(ArborX_CudaAccessTraits.exe example_cuda_access_traits.cpp)
   target_link_libraries(ArborX_CudaAccessTraits.exe ${ArborX_TARGET})
   add_test(NAME ArborX_CudaAccessTraits_Example COMMAND ./ArborX_CudaAccessTraits.exe)
