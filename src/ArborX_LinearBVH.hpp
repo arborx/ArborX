@@ -196,17 +196,22 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:assign_morton_codes");
 
-  // calculate morton code of all objects
+  // calculate Morton codes of all objects
   Kokkos::View<unsigned int *, DeviceType> morton_indices(
       Kokkos::ViewAllocateWithoutInitializing("morton"), size());
   Details::TreeConstruction<DeviceType>::assignMortonCodes(
       primitives, morton_indices, _bounds);
 
   Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::pushRegion("ArborX:BVH:sort_morton_codes_and_init_leaves");
+  Kokkos::Profiling::pushRegion("ArborX:BVH:sort_morton_codes");
 
-  // sort them along the Z-order space-filling curve
+  // compute the ordering of primitives along Z-order space-filling curve
   auto permutation_indices = Details::sortObjects(morton_indices);
+
+  Kokkos::Profiling::popRegion();
+  Kokkos::Profiling::pushRegion("ArborX:BVH:init_leaves");
+
+  // initialize leaves using the computed ordering
   Details::TreeConstruction<DeviceType>::initializeLeafNodes(
       primitives, permutation_indices, getLeafNodes());
 
