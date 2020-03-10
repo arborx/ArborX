@@ -381,6 +381,9 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
   auto const n_queries = Access::size(predicates);
 
+  bool const throw_if_buffer_optimization_fails = (buffer_size < 0);
+  buffer_size = std::abs(buffer_size);
+
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
 
   auto const permute =
@@ -399,17 +402,6 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   //                ^
   //                N
   reallocWithoutInitializing(offset, n_queries + 1);
-
-  // Not proud of that one but that will do for now :/
-  auto const throw_if_buffer_optimization_fails = [&buffer_size]() {
-    if (buffer_size < 0)
-    {
-      buffer_size = -buffer_size;
-      return true;
-    }
-    else
-      return false;
-  }();
 
   // Say we found exactly two object for each query:
   // [ 2 2 2 .... 2 0 ]
