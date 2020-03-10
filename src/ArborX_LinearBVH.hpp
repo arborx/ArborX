@@ -229,7 +229,7 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
 
   if (size() == 1)
   {
-    Kokkos::View<size_t *, MemorySpace> permutation_indices(
+    Kokkos::View<unsigned int *, MemorySpace> permutation_indices(
         Kokkos::view_alloc("permute", space), 1);
     Details::TreeConstruction::initializeLeafNodes(
         space, primitives, permutation_indices, getLeafNodes());
