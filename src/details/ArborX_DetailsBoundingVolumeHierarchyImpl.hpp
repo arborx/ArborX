@@ -482,6 +482,16 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 
   Kokkos::Profiling::popRegion();
 
+  // Exit early if either no results were found for any of the queries, or
+  // nothing was inserted inside a callback for found results. This check
+  // guarantees that the second pass will not be executed independent of
+  // buffer_size.
+  if (n_results == 0)
+  {
+    Kokkos::Profiling::popRegion();
+    return;
+  }
+
   if (max_results_per_query > buffer_size)
   {
     Kokkos::Profiling::pushRegion("ArborX:BVH:second_pass");
