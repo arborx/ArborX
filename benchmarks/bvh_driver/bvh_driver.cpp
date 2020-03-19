@@ -40,7 +40,7 @@ public:
   template <typename Query>
   void query(Kokkos::View<Query *, DeviceType> queries,
              Kokkos::View<int *, DeviceType> &indices,
-             Kokkos::View<int *, DeviceType> &offset)
+             Kokkos::View<int *, DeviceType> &offset, bool)
   {
     std::tie(offset, indices) =
         BoostRTreeHelpers::performQueries(_tree, queries);
@@ -49,7 +49,7 @@ public:
   template <typename Query>
   void query(Kokkos::View<Query *, DeviceType> queries,
              Kokkos::View<int *, DeviceType> &indices,
-             Kokkos::View<int *, DeviceType> &offset, int)
+             Kokkos::View<int *, DeviceType> &offset, bool, int)
   {
     std::tie(offset, indices) =
         BoostRTreeHelpers::performQueries(_tree, queries);
@@ -150,10 +150,11 @@ void BM_knn_search(benchmark::State &state)
   int const n_values = state.range(0);
   int const n_queries = state.range(1);
   int const n_neighbors = state.range(2);
+  bool const do_predicate_sort_int = state.range(3);
   auto const source_point_cloud_type =
-      static_cast<PointCloudType>(state.range(3));
-  auto const target_point_cloud_type =
       static_cast<PointCloudType>(state.range(4));
+  auto const target_point_cloud_type =
+      static_cast<PointCloudType>(state.range(5));
 
   TreeType index(
       constructPoints<DeviceType>(n_values, source_point_cloud_type));
@@ -165,7 +166,7 @@ void BM_knn_search(benchmark::State &state)
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     auto const start = std::chrono::high_resolution_clock::now();
-    index.query(queries, indices, offset);
+    index.query(queries, indices, offset, do_predicate_sort_int);
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
@@ -179,11 +180,12 @@ void BM_radius_search(benchmark::State &state)
   int const n_values = state.range(0);
   int const n_queries = state.range(1);
   int const n_neighbors = state.range(2);
-  int const buffer_size = state.range(3);
+  int const do_predicate_sort_int = state.range(3);
+  int const buffer_size = state.range(4);
   auto const source_point_cloud_type =
-      static_cast<PointCloudType>(state.range(4));
-  auto const target_point_cloud_type =
       static_cast<PointCloudType>(state.range(5));
+  auto const target_point_cloud_type =
+      static_cast<PointCloudType>(state.range(6));
 
   TreeType index(
       constructPoints<DeviceType>(n_values, source_point_cloud_type));
@@ -195,7 +197,7 @@ void BM_radius_search(benchmark::State &state)
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     auto const start = std::chrono::high_resolution_clock::now();
-    index.query(queries, indices, offset, buffer_size);
+    index.query(queries, indices, offset, do_predicate_sort_int, buffer_size);
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
@@ -215,13 +217,13 @@ public:
       ->UseManualTime()                                                        \
       ->Unit(benchmark::kMicrosecond);                                         \
   BENCHMARK_TEMPLATE(BM_knn_search, TreeType)                                  \
-      ->Args({n_values, n_queries, n_neighbors, source_point_cloud_type,       \
-              target_point_cloud_type})                                        \
+      ->Args({n_values, n_queries, n_neighbors, do_predicate_sort_int,         \
+              source_point_cloud_type, target_point_cloud_type})               \
       ->UseManualTime()                                                        \
       ->Unit(benchmark::kMicrosecond);                                         \
   BENCHMARK_TEMPLATE(BM_radius_search, TreeType)                               \
-      ->Args({n_values, n_queries, n_neighbors, buffer_size,                   \
-              source_point_cloud_type, target_point_cloud_type})               \
+      ->Args({n_values, n_queries, n_neighbors, do_predicate_sort_int,         \
+              buffer_size, source_point_cloud_type, target_point_cloud_type})  \
       ->UseManualTime()                                                        \
       ->Unit(benchmark::kMicrosecond);
 
@@ -279,6 +281,7 @@ int main(int argc, char *argv[])
   int n_queries;
   int n_neighbors;
   int buffer_size;
+  bool do_predicate_sort;
   std::string source_pt_cloud;
   std::string target_pt_cloud;
   // clang-format off
@@ -286,6 +289,7 @@ int main(int argc, char *argv[])
         ( "help", "produce help message" )
         ( "values", bpo::value<int>(&n_values)->default_value(50000), "number of indexable values (source)" )
         ( "queries", bpo::value<int>(&n_queries)->default_value(20000), "number of queries (target)" )
+        ( "predicate-sort", bpo::value<bool>(&do_predicate_sort)->default_value(true), "sort predicates" )
         ( "neighbors", bpo::value<int>(&n_neighbors)->default_value(10), "desired number of results per query" )
         ( "buffer", bpo::value<int>(&buffer_size)->default_value(0), "size for buffer optimization in radius search" )
         ( "source-point-cloud-type", bpo::value<std::string>(&source_pt_cloud)->default_value("filled_box"), "shape of the source point cloud"  )
@@ -303,6 +307,8 @@ int main(int argc, char *argv[])
       bpo::collect_unrecognized(parsed.options, bpo::include_positional),
       argv[0]};
   bpo::notify(vm);
+
+  int do_predicate_sort_int = (do_predicate_sort ? 1 : 0);
 
   if (!vm["no-header"].as<bool>())
   {
