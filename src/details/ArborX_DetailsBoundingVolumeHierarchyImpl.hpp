@@ -87,7 +87,7 @@ struct CallbackDefaultNearestPredicate
 {
   using tag = InlineCallbackTag;
   template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &, int index, double,
+  KOKKOS_FUNCTION void operator()(Query const &, int index, float,
                                   Insert const &insert) const
   {
     insert(index);
@@ -98,7 +98,7 @@ struct CallbackDefaultNearestPredicateWithDistance
 {
   using tag = InlineCallbackTag;
   template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &, int index, double distance,
+  KOKKOS_FUNCTION void operator()(Query const &, int index, float distance,
                                   Insert const &insert) const
   {
     insert({index, distance});
@@ -165,7 +165,7 @@ struct BoundingVolumeHierarchyImpl
       Kokkos::View<int *, DeviceType> &offset,
       NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default)
   {
-    Kokkos::View<Kokkos::pair<int, double> *, DeviceType> pairs(
+    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> pairs(
         "pairs_index_distance", 0);
     queryDispatch(NearestPredicateTag{}, bvh, predicates,
                   CallbackDefaultNearestPredicateWithDistance{}, pairs, offset,
@@ -189,10 +189,10 @@ struct BoundingVolumeHierarchyImpl
       NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
       Predicates const &predicates, Kokkos::View<int *, DeviceType> &indices,
       Kokkos::View<int *, DeviceType> &offset,
-      Kokkos::View<double *, DeviceType> &distances,
+      Kokkos::View<float *, DeviceType> &distances,
       NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default)
   {
-    Kokkos::View<Kokkos::pair<int, double> *, DeviceType> out(
+    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> out(
         "pairs_index_distance", 0);
     queryDispatch(NearestPredicateTag{}, bvh, predicates,
                   CallbackDefaultNearestPredicateWithDistance{}, out, offset,
@@ -278,7 +278,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
           Details::TreeTraversal<DeviceType>::query(
               bvh, query,
               [&query, &callback, &out, shift, &count](int index,
-                                                       double distance) {
+                                                       float distance) {
                 callback(query, index, distance,
                          [&out, shift, &count](
                              typename OutputView::value_type const &value) {
@@ -295,7 +295,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     // so far.  It is not possible to anticipate how much memory to
     // allocate since the number of nearest neighbors k is only known at
     // runtime.
-    Kokkos::View<Kokkos::pair<int, double> *, DeviceType> buffer(
+    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> buffer(
         Kokkos::ViewAllocateWithoutInitializing("buffer"), n_results);
 
     Kokkos::parallel_for(
@@ -308,7 +308,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
           Details::TreeTraversal<DeviceType>::query(
               bvh, query,
               [&query, &callback, &out, shift, &count](int index,
-                                                       double distance) {
+                                                       float distance) {
                 callback(query, index, distance,
                          [&out, shift, &count](
                              typename OutputView::value_type const &value) {

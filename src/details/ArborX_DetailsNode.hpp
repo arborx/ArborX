@@ -17,7 +17,6 @@
 #include <Kokkos_Pair.hpp>
 
 #include <cassert>
-#include <cstddef>
 
 namespace ArborX
 {
@@ -40,14 +39,14 @@ struct Node
     return children.second;
   }
 
-  Kokkos::pair<std::ptrdiff_t, std::ptrdiff_t> children = {-1, -1};
+  Kokkos::pair<int, int> children = {-1, -1};
   Box bounding_box;
 };
 
 KOKKOS_INLINE_FUNCTION constexpr Node
 makeLeafNode(std::size_t permutation_index, Box box) noexcept
 {
-  return {{-1, static_cast<std::ptrdiff_t>(permutation_index)}, std::move(box)};
+  return {{-1, static_cast<int>(permutation_index)}, std::move(box)};
 }
 } // namespace Details
 } // namespace ArborX

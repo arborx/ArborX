@@ -441,7 +441,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
   Kokkos::View<ArborX::Point *, DeviceType> points("points", n_queries);
   Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
                        KOKKOS_LAMBDA(int i) {
-                         points(i) = {(double)(comm_rank) + 1.5, 0., 0.};
+                         points(i) = {(float)(comm_rank) + 1.5f, 0.f, 0.f};
                        });
   auto points_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, points);

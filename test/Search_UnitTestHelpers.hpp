@@ -113,12 +113,12 @@ template <typename Tree, typename Queries,
 void checkResults(Tree const &tree, Queries const &queries,
                   std::vector<int> const &indices_ref,
                   std::vector<int> const &offset_ref,
-                  std::vector<double> const &distances_ref)
+                  std::vector<float> const &distances_ref)
 {
   using device_type = typename Tree::device_type;
   Kokkos::View<int *, device_type> indices("indices", 0);
   Kokkos::View<int *, device_type> offset("offset", 0);
-  Kokkos::View<double *, device_type> distances("distances", 0);
+  Kokkos::View<float *, device_type> distances("distances", 0);
   tree.query(queries, indices, offset, distances);
 
   auto indices_host =
@@ -168,13 +168,13 @@ void checkResults(Tree const &tree, Queries const &queries,
                   std::vector<int> const &indices_ref,
                   std::vector<int> const &offset_ref,
                   std::vector<int> const &ranks_ref,
-                  std::vector<double> const &distances_ref)
+                  std::vector<float> const &distances_ref)
 {
   using device_type = typename Tree::device_type;
   Kokkos::View<int *, device_type> indices("indices", 0);
   Kokkos::View<int *, device_type> offset("offset", 0);
   Kokkos::View<int *, device_type> ranks("ranks", 0);
-  Kokkos::View<double *, device_type> distances("distances", 0);
+  Kokkos::View<float *, device_type> distances("distances", 0);
   tree.query(queries, indices, offset, ranks, distances);
 
   auto indices_host =
@@ -287,7 +287,7 @@ auto makeNearestWithAttachmentQueries(
 template <typename DeviceType>
 Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
 makeIntersectsSphereQueries(
-    std::vector<std::pair<ArborX::Point, double>> const &points)
+    std::vector<std::pair<ArborX::Point, float>> const &points)
 {
   // NOTE: `points` is not a very descriptive name here. It stores both the
   // actual point and the radius for the search around that point.

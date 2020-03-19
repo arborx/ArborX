@@ -33,7 +33,7 @@ namespace boost
 {
 namespace geometry
 {
-using Point = model::point<double, 3, cs::cartesian>;
+using Point = model::point<float, 3, cs::cartesian>;
 using Box = model::box<Point>;
 } // namespace geometry
 } // namespace boost
@@ -75,8 +75,8 @@ BOOST_AUTO_TEST_CASE(distance)
 
   std::tie(a, b) = std::make_pair<details::Point, details::Point>(
       {{0., 0., 0.}}, {{1., 1., 1.}});
-  BOOST_TEST(details::distance(a, b) == std::sqrt(3.));
-  BOOST_TEST(bg::distance(a, b) == std::sqrt(3.));
+  BOOST_TEST(details::distance(a, b) == std::sqrt(3.f));
+  BOOST_TEST(bg::distance(a, b) == std::sqrt(3.0));
 
   BOOST_TEST(details::distance(a, a) == 0.);
   BOOST_TEST(bg::distance(a, a) == 0.);
@@ -90,12 +90,12 @@ BOOST_AUTO_TEST_CASE(distance)
   BOOST_TEST(bg::distance(unit_box, p) == 0.);
 
   p = {{-1., -1., -1.}};
-  BOOST_TEST(details::distance(p, unit_box) == std::sqrt(3.));
-  BOOST_TEST(bg::distance(p, unit_box) == std::sqrt(3.));
+  BOOST_TEST(details::distance(p, unit_box) == std::sqrt(3.f));
+  BOOST_TEST(bg::distance(p, unit_box) == std::sqrt(3.0));
 
   p = {{-1., .5, -1.}};
-  BOOST_TEST(details::distance(p, unit_box) == std::sqrt(2.));
-  BOOST_TEST(bg::distance(p, unit_box) == std::sqrt(2.));
+  BOOST_TEST(details::distance(p, unit_box) == std::sqrt(2.f));
+  BOOST_TEST(bg::distance(p, unit_box) == std::sqrt(2.0));
 
   p = {{-1., .5, .5}};
   BOOST_TEST(details::distance(p, unit_box) == 1.);

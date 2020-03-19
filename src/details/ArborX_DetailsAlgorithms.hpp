@@ -70,12 +70,12 @@ bool isValid(Sphere const &s)
 
 // distance point-point
 KOKKOS_INLINE_FUNCTION
-double distance(Point const &a, Point const &b)
+float distance(Point const &a, Point const &b)
 {
-  double distance_squared = 0.0;
+  float distance_squared = 0.0;
   for (int d = 0; d < 3; ++d)
   {
-    double tmp = b[d] - a[d];
+    float tmp = b[d] - a[d];
     distance_squared += tmp * tmp;
   }
   return std::sqrt(distance_squared);
@@ -83,7 +83,7 @@ double distance(Point const &a, Point const &b)
 
 // distance point-box
 KOKKOS_INLINE_FUNCTION
-double distance(Point const &point, Box const &box)
+float distance(Point const &point, Box const &box)
 {
   Point projected_point;
   for (int d = 0; d < 3; ++d)
@@ -100,10 +100,10 @@ double distance(Point const &point, Box const &box)
 
 // distance point-sphere
 KOKKOS_INLINE_FUNCTION
-double distance(Point const &point, Sphere const &sphere)
+float distance(Point const &point, Sphere const &sphere)
 {
   using KokkosExt::max;
-  return max(distance(point, sphere.centroid()) - sphere.radius(), 0.);
+  return max(distance(point, sphere.centroid()) - sphere.radius(), 0.f);
 }
 
 // expand an axis-aligned bounding box to include a point
@@ -215,8 +215,8 @@ void translateAndScale(Point const &in, Point &out, Box const &ref)
 {
   for (int d = 0; d < 3; ++d)
   {
-    double const a = ref.minCorner()[d];
-    double const b = ref.maxCorner()[d];
+    auto const a = ref.minCorner()[d];
+    auto const b = ref.maxCorner()[d];
     out[d] = (a != b ? (in[d] - a) / (b - a) : 0);
   }
 }

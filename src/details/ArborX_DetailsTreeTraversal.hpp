@@ -112,9 +112,9 @@ public:
     // Nodes with a distance that exceed that radius can safely be
     // discarded. Initialize the radius to infinity and tighten it once k
     // neighbors have been found.
-    double radius = KokkosExt::ArithmeticTraits::infinity<double>::value;
+    auto radius = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
-    using PairIndexDistance = Kokkos::pair<int, double>;
+    using PairIndexDistance = Kokkos::pair<int, float>;
     static_assert(
         std::is_same<typename Buffer::value_type, PairIndexDistance>::value,
         "Type of the elements stored in the buffer passed as argument to "
@@ -137,7 +137,7 @@ public:
         heap(UnmanagedStaticVector<PairIndexDistance>(buffer.data(),
                                                       buffer.size()));
 
-    using PairNodePtrDistance = Kokkos::pair<Node const *, double>;
+    using PairNodePtrDistance = Kokkos::pair<Node const *, float>;
     Stack<PairNodePtrDistance> stack;
     // Do not bother computing the distance to the root node since it is
     // immediately popped out of the stack and processed.
@@ -146,7 +146,7 @@ public:
     while (!stack.empty())
     {
       Node const *node = stack.top().first;
-      double const node_distance = stack.top().second;
+      auto const node_distance = stack.top().second;
       stack.pop();
 
       if (node_distance < radius)
@@ -154,7 +154,7 @@ public:
         if (node->isLeaf())
         {
           int const leaf_index = node->getLeafPermutationIndex();
-          double const leaf_distance = node_distance;
+          auto const leaf_distance = node_distance;
           if (heap.size() < k)
           {
             // Insert leaf node and update radius if it was the kth
@@ -176,8 +176,8 @@ public:
           // closest one ends on top.
           Node const *left_child = bvh.getNodePtr(node->children.first);
           Node const *right_child = bvh.getNodePtr(node->children.second);
-          double const left_child_distance = distance(left_child);
-          double const right_child_distance = distance(right_child);
+          auto const left_child_distance = distance(left_child);
+          auto const right_child_distance = distance(right_child);
           if (left_child_distance < right_child_distance)
           {
             // NOTE not really sure why but it performed better with
@@ -207,7 +207,7 @@ public:
     for (decltype(heap.size()) i = 0; i < heap.size(); ++i)
     {
       int const leaf_index = (heap.data() + i)->first;
-      double const leaf_distance = (heap.data() + i)->second;
+      auto const leaf_distance = (heap.data() + i)->second;
       insert(leaf_index, leaf_distance);
     }
     return heap.size();
@@ -232,7 +232,7 @@ public:
         return 1;
       }
 
-      using PairNodePtrDistance = Kokkos::pair<Node const *, double>;
+      using PairNodePtrDistance = Kokkos::pair<Node const *, float>;
       struct CompareDistance
       {
         KOKKOS_INLINE_FUNCTION bool
@@ -257,7 +257,7 @@ public:
         // Get the node that is on top of the priority list (i.e. the
         // one that is closest to the query point)
         Node const *node = queue.top().first;
-        double const node_distance = queue.top().second;
+        auto const node_distance = queue.top().second;
 
         if (node->isLeaf())
         {
@@ -270,8 +270,8 @@ public:
           // Insert children into the priority queue
           Node const *left_child = bvh.getNodePtr(node->children.first);
           Node const *right_child = bvh.getNodePtr(node->children.second);
-          double const left_child_distance = distance(left_child);
-          double const right_child_distance = distance(right_child);
+          auto const left_child_distance = distance(left_child);
+          auto const right_child_distance = distance(right_child);
           queue.popPush(left_child, left_child_distance);
           queue.emplace(right_child, right_child_distance);
         }
