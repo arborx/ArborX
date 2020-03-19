@@ -293,28 +293,94 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
   auto const max_results_per_query = ArborX::max(counts);
   BOOST_TEST(max_results_per_query == 4);
 
+  bool const do_predicate_sort = true;
+
   // optimal size
-  BOOST_CHECK_NO_THROW(
-      bvh.query(queries, indices, offset, -max_results_per_query));
+  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset, do_predicate_sort,
+                                 -max_results_per_query));
   checkResultsAreFine();
 
   // buffer size insufficient
   BOOST_TEST(max_results_per_query > 1);
-  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset, +1));
+  BOOST_CHECK_NO_THROW(
+      bvh.query(queries, indices, offset, do_predicate_sort, +1));
   checkResultsAreFine();
-  BOOST_CHECK_THROW(bvh.query(queries, indices, offset, -1),
+  BOOST_CHECK_THROW(bvh.query(queries, indices, offset, do_predicate_sort, -1),
                     ArborX::SearchException);
 
   // adequate buffer size
   BOOST_TEST(max_results_per_query < 5);
-  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset, +5));
+  BOOST_CHECK_NO_THROW(
+      bvh.query(queries, indices, offset, do_predicate_sort, +5));
   checkResultsAreFine();
-  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset, -5));
+  BOOST_CHECK_NO_THROW(
+      bvh.query(queries, indices, offset, do_predicate_sort, -5));
   checkResultsAreFine();
 
   // passing null size skips the buffer optimization and never throws
-  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset, 0));
+  BOOST_CHECK_NO_THROW(
+      bvh.query(queries, indices, offset, do_predicate_sort, 0));
   checkResultsAreFine();
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  auto const bvh = make<ArborX::BVH<DeviceType>>({
+      {{{0., 0., 0.}}, {{0., 0., 0.}}},
+      {{{1., 1., 1.}}, {{1., 1., 1.}}},
+      {{{2., 2., 2.}}, {{2., 2., 2.}}},
+      {{{3., 3., 3.}}, {{3., 3., 3.}}},
+  });
+
+  using ViewType = Kokkos::View<int *, DeviceType>;
+  ViewType indices("indices", 0);
+  ViewType offset("offset", 0);
+
+  std::vector<int> indices_ref = {3, 2, 1, 0};
+  std::vector<int> offset_ref = {0, 2, 4};
+  auto checkResultsAreFine = [&indices, &offset, &indices_ref,
+                              &offset_ref]() -> void {
+    auto indices_host = Kokkos::create_mirror_view(indices);
+    Kokkos::deep_copy(indices_host, indices);
+    auto offset_host = Kokkos::create_mirror_view(offset);
+    Kokkos::deep_copy(offset_host, offset);
+    BOOST_TEST(indices_host == indices_ref, tt::per_element());
+    BOOST_TEST(offset_host == offset_ref, tt::per_element());
+  };
+
+  {
+    auto const queries = makeIntersectsBoxQueries<DeviceType>({
+        {{{2., 2., 2.}}, {{3., 3., 3.}}},
+        {{{0., 0., 0.}}, {{1., 1., 1.}}},
+    });
+
+    bool const do_predicate_sort = true;
+    BOOST_CHECK_NO_THROW(
+        bvh.query(queries, indices, offset, do_predicate_sort));
+    checkResultsAreFine();
+
+    BOOST_CHECK_NO_THROW(
+        bvh.query(queries, indices, offset, !do_predicate_sort));
+    checkResultsAreFine();
+  }
+
+  indices_ref = {2, 3, 0, 1};
+  {
+    auto queries = makeNearestQueries<DeviceType>({
+        {{{2.5, 2.5, 2.5}}, 2},
+        {{{0.5, 0.5, 0.5}}, 2},
+    });
+
+    bool const do_predicate_sort = true;
+    BOOST_CHECK_NO_THROW(
+        bvh.query(queries, indices, offset, do_predicate_sort));
+    checkResultsAreFine();
+
+    BOOST_CHECK_NO_THROW(
+        bvh.query(queries, indices, offset, !do_predicate_sort));
+    checkResultsAreFine();
+  }
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity, DeviceType,
