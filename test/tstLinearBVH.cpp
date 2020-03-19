@@ -1094,7 +1094,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
   auto const alternate_tree_traversal_algorithm =
       ArborX::Details::NearestQueryAlgorithm::PriorityQueueBased_Deprecated;
   bvh.query(nearest_queries, indices_nearest, offset_nearest,
-            alternate_tree_traversal_algorithm);
+            true /*do_predicate_sort*/, alternate_tree_traversal_algorithm);
   Kokkos::deep_copy(offset_nearest_host, offset_nearest);
   Kokkos::deep_copy(indices_nearest_host, indices_nearest);
   bvh_results = std::make_tuple(offset_nearest_host, indices_nearest_host);
