@@ -191,7 +191,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
   if (size() == 1)
   {
     Kokkos::View<size_t *, DeviceType> permutation_indices("permute", 1);
-    Details::DeprecatedTreeConstruction<DeviceType>::initializeLeafNodes(
+    Details::TreeConstruction::initializeLeafNodes(
         space, primitives, permutation_indices, getLeafNodes());
     return;
   }
@@ -214,7 +214,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
   Kokkos::Profiling::pushRegion("ArborX:BVH:init_leaves");
 
   // initialize leaves using the computed ordering
-  Details::DeprecatedTreeConstruction<DeviceType>::initializeLeafNodes(
+  Details::TreeConstruction::initializeLeafNodes(
       space, primitives, permutation_indices, getLeafNodes());
 
   Kokkos::Profiling::popRegion();

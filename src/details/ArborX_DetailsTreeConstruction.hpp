@@ -257,78 +257,6 @@ inline void assignMortonCodes(
   assignMortonCodesDispatch(Tag{}, space, primitives, morton_codes,
                             scene_bounding_box);
 }
-} // namespace TreeConstruction
-
-/**
- * This structure contains all the functions used to build the BVH. All the
- * functions are static.
- */
-template <typename DeviceType>
-struct DeprecatedTreeConstruction
-{
-public:
-  template <typename ExecutionSpace, typename Primitives,
-            typename... PermutationIndicesViewProperties,
-            typename... LeafNodesViewProperties>
-  static void initializeLeafNodes(
-      ExecutionSpace const &space, Primitives const &primitives,
-      Kokkos::View<size_t const *, PermutationIndicesViewProperties...>
-          permutation_indices,
-      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes);
-
-  template <typename ExecutionSpace, typename Primitives,
-            typename... PermutationIndicesViewProperties,
-            typename... LeafNodesViewProperties>
-  static void initializeLeafNodes(
-      ExecutionSpace const &space, Primitives const &primitives,
-      Kokkos::View<size_t *, PermutationIndicesViewProperties...>
-          permutation_indices,
-      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes)
-  {
-    initializeLeafNodes(
-        space, primitives,
-        Kokkos::View<size_t const *, PermutationIndicesViewProperties...>{
-            permutation_indices},
-        leaf_nodes);
-  }
-
-  template <typename ExecutionSpace, typename... MortonCodesViewProperties,
-            typename... LeafNodesViewProperties,
-            typename... InternalNodesViewProperties,
-            typename... ParentsViewProperties>
-  static Node *generateHierarchy(
-      ExecutionSpace const &space,
-      Kokkos::View<unsigned int *, MortonCodesViewProperties...>
-          sorted_morton_codes,
-      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
-      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
-      Kokkos::View<int *, ParentsViewProperties...> parents);
-
-  template <typename ExecutionSpace, typename... LeafNodesViewProperties,
-            typename... InternalNodesViewProperties,
-            typename... ParentsViewProperties>
-  static void calculateInternalNodesBoundingVolumes(
-      ExecutionSpace const &space,
-      Kokkos::View<Node const *, LeafNodesViewProperties...> leaf_nodes,
-      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
-      Kokkos::View<int const *, ParentsViewProperties...> parents);
-
-  template <typename ExecutionSpace, typename... LeafNodesViewProperties,
-            typename... InternalNodesViewProperties,
-            typename... ParentsViewProperties>
-  static void calculateInternalNodesBoundingVolumes(
-      ExecutionSpace const &space,
-      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
-      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
-      Kokkos::View<int *, ParentsViewProperties...> parents)
-  {
-    calculateInternalNodesBoundingVolumes(
-        space,
-        Kokkos::View<Node const *, LeafNodesViewProperties...>{leaf_nodes},
-        internal_nodes,
-        Kokkos::View<int const *, ParentsViewProperties...>{parents});
-  }
-};
 
 template <typename ExecutionSpace, typename Primitives, typename Indices,
           typename Nodes>
@@ -367,11 +295,10 @@ inline void initializeLeafNodesDispatch(PointTag, ExecutionSpace const &space,
       });
 }
 
-template <typename DeviceType>
 template <typename ExecutionSpace, typename Primitives,
           typename... PermutationIndicesViewProperties,
           typename... LeafNodesViewProperties>
-inline void DeprecatedTreeConstruction<DeviceType>::initializeLeafNodes(
+inline void initializeLeafNodes(
     ExecutionSpace const &space, Primitives const &primitives,
     Kokkos::View<size_t const *, PermutationIndicesViewProperties...>
         permutation_indices,
@@ -387,6 +314,69 @@ inline void DeprecatedTreeConstruction<DeviceType>::initializeLeafNodes(
   initializeLeafNodesDispatch(Tag{}, space, primitives, permutation_indices,
                               leaf_nodes);
 }
+
+template <typename ExecutionSpace, typename Primitives,
+          typename... PermutationIndicesViewProperties,
+          typename... LeafNodesViewProperties>
+inline void
+initializeLeafNodes(ExecutionSpace const &space, Primitives const &primitives,
+                    Kokkos::View<size_t *, PermutationIndicesViewProperties...>
+                        permutation_indices,
+                    Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes)
+{
+  initializeLeafNodes(
+      space, primitives,
+      Kokkos::View<size_t const *, PermutationIndicesViewProperties...>{
+          permutation_indices},
+      leaf_nodes);
+}
+} // namespace TreeConstruction
+
+/**
+ * This structure contains all the functions used to build the BVH. All the
+ * functions are static.
+ */
+template <typename DeviceType>
+struct DeprecatedTreeConstruction
+{
+public:
+  template <typename ExecutionSpace, typename... MortonCodesViewProperties,
+            typename... LeafNodesViewProperties,
+            typename... InternalNodesViewProperties,
+            typename... ParentsViewProperties>
+  static Node *generateHierarchy(
+      ExecutionSpace const &space,
+      Kokkos::View<unsigned int *, MortonCodesViewProperties...>
+          sorted_morton_codes,
+      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
+      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
+      Kokkos::View<int *, ParentsViewProperties...> parents);
+
+  template <typename ExecutionSpace, typename... LeafNodesViewProperties,
+            typename... InternalNodesViewProperties,
+            typename... ParentsViewProperties>
+  static void calculateInternalNodesBoundingVolumes(
+      ExecutionSpace const &space,
+      Kokkos::View<Node const *, LeafNodesViewProperties...> leaf_nodes,
+      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
+      Kokkos::View<int const *, ParentsViewProperties...> parents);
+
+  template <typename ExecutionSpace, typename... LeafNodesViewProperties,
+            typename... InternalNodesViewProperties,
+            typename... ParentsViewProperties>
+  static void calculateInternalNodesBoundingVolumes(
+      ExecutionSpace const &space,
+      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
+      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
+      Kokkos::View<int *, ParentsViewProperties...> parents)
+  {
+    calculateInternalNodesBoundingVolumes(
+        space,
+        Kokkos::View<Node const *, LeafNodesViewProperties...>{leaf_nodes},
+        internal_nodes,
+        Kokkos::View<int const *, ParentsViewProperties...>{parents});
+  }
+};
 
 template <typename DeviceType>
 class GenerateHierarchyFunctor
