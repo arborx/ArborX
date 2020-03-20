@@ -91,12 +91,30 @@ public:
       Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
       Kokkos::View<int *, ParentsViewProperties...> parents);
 
-  template <typename ExecutionSpace>
+  template <typename ExecutionSpace, typename... LeafNodesViewProperties,
+            typename... InternalNodesViewProperties,
+            typename... ParentsViewProperties>
   static void calculateInternalNodesBoundingVolumes(
       ExecutionSpace const &space,
-      Kokkos::View<Node const *, DeviceType> leaf_nodes,
-      Kokkos::View<Node *, DeviceType> internal_nodes,
-      Kokkos::View<int const *, DeviceType> parents);
+      Kokkos::View<Node const *, LeafNodesViewProperties...> leaf_nodes,
+      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
+      Kokkos::View<int const *, ParentsViewProperties...> parents);
+
+  template <typename ExecutionSpace, typename... LeafNodesViewProperties,
+            typename... InternalNodesViewProperties,
+            typename... ParentsViewProperties>
+  static void calculateInternalNodesBoundingVolumes(
+      ExecutionSpace const &space,
+      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
+      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
+      Kokkos::View<int *, ParentsViewProperties...> parents)
+  {
+    calculateInternalNodesBoundingVolumes(
+        space,
+        Kokkos::View<Node const *, LeafNodesViewProperties...>{leaf_nodes},
+        internal_nodes,
+        Kokkos::View<int const *, ParentsViewProperties...>{parents});
+  }
 
   template <typename... MortonCodesViewProperties>
   KOKKOS_FUNCTION static int commonPrefix(
@@ -502,16 +520,19 @@ private:
 };
 
 template <typename DeviceType>
-template <typename ExecutionSpace>
+template <typename ExecutionSpace, typename... LeafNodesViewProperties,
+          typename... InternalNodesViewProperties,
+          typename... ParentsViewProperties>
 void TreeConstruction<DeviceType>::calculateInternalNodesBoundingVolumes(
     ExecutionSpace const &space,
-    Kokkos::View<Node const *, DeviceType> leaf_nodes,
-    Kokkos::View<Node *, DeviceType> internal_nodes,
-    Kokkos::View<int const *, DeviceType> parents)
+    Kokkos::View<Node const *, LeafNodesViewProperties...> leaf_nodes,
+    Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
+    Kokkos::View<int const *, ParentsViewProperties...> parents)
 {
   auto const first = internal_nodes.extent(0);
   auto const last = first + leaf_nodes.extent(0);
-  Kokkos::View<Node *, DeviceType, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
+  Kokkos::View<Node *, InternalNodesViewProperties...,
+               Kokkos::MemoryTraits<Kokkos::Unmanaged>>
       internal_and_leaf_nodes(internal_nodes.data(), last);
   Kokkos::parallel_for(ARBORX_MARK_REGION("calculate_bounding_boxes"),
                        Kokkos::RangePolicy<ExecutionSpace>(space, first, last),
