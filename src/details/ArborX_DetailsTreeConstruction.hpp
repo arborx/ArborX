@@ -49,9 +49,9 @@ public:
   // to assign the Morton code for a given object, we use the centroid point
   // of its bounding box, and express it relative to the bounding box of the
   // scene.
-  template <typename Primitives>
+  template <typename ExecutionSpace, typename Primitives>
   static void
-  assignMortonCodes(Primitives const &primitives,
+  assignMortonCodes(ExecutionSpace const &space, Primitives const &primitives,
                     Kokkos::View<unsigned int *, DeviceType> morton_codes,
                     Box const &scene_bounding_box);
 
@@ -209,16 +209,16 @@ inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
       scene_bounding_box);
 }
 
-template <typename Primitives, typename MortonCodes>
-inline void assignMortonCodesDispatch(BoxTag, Primitives const &primitives,
+template <typename ExecutionSpace, typename Primitives, typename MortonCodes>
+inline void assignMortonCodesDispatch(BoxTag, ExecutionSpace const &space,
+                                      Primitives const &primitives,
                                       MortonCodes morton_codes,
                                       Box const &scene_bounding_box)
 {
   using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
-  using ExecutionSpace = typename Access::memory_space::execution_space;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(ARBORX_MARK_REGION("assign_morton_codes"),
-                       Kokkos::RangePolicy<ExecutionSpace>(0, n),
+                       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
                        KOKKOS_LAMBDA(int i) {
                          Point xyz;
                          centroid(Access::get(primitives, i), xyz);
@@ -227,17 +227,17 @@ inline void assignMortonCodesDispatch(BoxTag, Primitives const &primitives,
                        });
 }
 
-template <typename Primitives, typename MortonCodes>
-inline void assignMortonCodesDispatch(PointTag, Primitives const &primitives,
+template <typename ExecutionSpace, typename Primitives, typename MortonCodes>
+inline void assignMortonCodesDispatch(PointTag, ExecutionSpace const &space,
+                                      Primitives const &primitives,
                                       MortonCodes morton_codes,
                                       Box const &scene_bounding_box)
 {
   using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
-  using ExecutionSpace = typename Access::memory_space::execution_space;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("assign_morton_codes"),
-      Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
         Point xyz;
         translateAndScale(Access::get(primitives, i), xyz, scene_bounding_box);
         morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
@@ -245,9 +245,9 @@ inline void assignMortonCodesDispatch(PointTag, Primitives const &primitives,
 }
 
 template <typename DeviceType>
-template <typename Primitives>
+template <typename ExecutionSpace, typename Primitives>
 inline void TreeConstruction<DeviceType>::assignMortonCodes(
-    Primitives const &primitives,
+    ExecutionSpace const &space, Primitives const &primitives,
     Kokkos::View<unsigned int *, DeviceType> morton_codes,
     Box const &scene_bounding_box)
 {
@@ -257,7 +257,7 @@ inline void TreeConstruction<DeviceType>::assignMortonCodes(
   ARBORX_ASSERT(morton_codes.extent(0) == n);
 
   using Tag = typename Tag<decay_result_of_get_t<Access>>::type;
-  assignMortonCodesDispatch(Tag{}, primitives, morton_codes,
+  assignMortonCodesDispatch(Tag{}, space, primitives, morton_codes,
                             scene_bounding_box);
 }
 

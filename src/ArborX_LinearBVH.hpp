@@ -202,7 +202,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
   Kokkos::View<unsigned int *, DeviceType> morton_indices(
       Kokkos::ViewAllocateWithoutInitializing("morton"), size());
   Details::TreeConstruction<DeviceType>::assignMortonCodes(
-      primitives, morton_indices, _bounds);
+      space, primitives, morton_indices, _bounds);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_morton_codes");
