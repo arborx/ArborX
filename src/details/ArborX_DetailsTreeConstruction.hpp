@@ -75,9 +75,10 @@ public:
       Kokkos::View<Node *, DeviceType> internal_nodes,
       Kokkos::View<int const *, DeviceType> parents);
 
-  KOKKOS_FUNCTION
-  static int commonPrefix(Kokkos::View<unsigned int *, DeviceType> morton_codes,
-                          int i, int j)
+  template <typename... MortonCodesViewProperties>
+  KOKKOS_FUNCTION static int commonPrefix(
+      Kokkos::View<unsigned int *, MortonCodesViewProperties...> morton_codes,
+      int i, int j)
   {
     using KokkosExt::clz;
 
@@ -96,9 +97,10 @@ public:
     return clz(morton_codes[i] ^ morton_codes[j]);
   }
 
-  KOKKOS_FUNCTION
-  static int
-  findSplit(Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes,
+  template <typename... MortonCodesViewProperties>
+  KOKKOS_FUNCTION static int
+  findSplit(Kokkos::View<unsigned int *, MortonCodesViewProperties...>
+                sorted_morton_codes,
             int first, int last)
   {
     // Calculate the number of highest bits that are the same
@@ -128,9 +130,10 @@ public:
     return split;
   }
 
-  KOKKOS_FUNCTION
-  static Kokkos::pair<int, int>
-  determineRange(Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes,
+  template <typename... MortonCodesViewProperties>
+  KOKKOS_FUNCTION static Kokkos::pair<int, int>
+  determineRange(Kokkos::View<unsigned int *, MortonCodesViewProperties...>
+                     sorted_morton_codes,
                  int i)
   {
     using KokkosExt::max;
