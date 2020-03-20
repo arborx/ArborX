@@ -39,7 +39,7 @@ template <typename DeviceType>
 struct TreeConstruction
 {
 public:
-  using ExecutionSpace = typename DeviceType::execution_space;
+  using DeprecatedExecutionSpace = typename DeviceType::execution_space;
 
   template <typename Primitives>
   static void calculateBoundingBoxOfTheScene(Primitives const &primitives,
@@ -393,7 +393,7 @@ Node *TreeConstruction<DeviceType>::generateHierarchy(
   auto const n = sorted_morton_codes.extent(0);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("generate_hierarchy"),
-      Kokkos::RangePolicy<ExecutionSpace>(0, n - 1),
+      Kokkos::RangePolicy<DeprecatedExecutionSpace>(0, n - 1),
       GenerateHierarchyFunctor<DeviceType>(sorted_morton_codes, leaf_nodes,
                                            internal_nodes, parents));
   // returns a pointer to the root node of the tree
@@ -468,10 +468,11 @@ void TreeConstruction<DeviceType>::calculateInternalNodesBoundingVolumes(
   auto const last = first + leaf_nodes.extent(0);
   Kokkos::View<Node *, DeviceType, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
       internal_and_leaf_nodes(internal_nodes.data(), last);
-  Kokkos::parallel_for(ARBORX_MARK_REGION("calculate_bounding_boxes"),
-                       Kokkos::RangePolicy<ExecutionSpace>(first, last),
-                       CalculateInternalNodesBoundingVolumesFunctor<DeviceType>(
-                           internal_and_leaf_nodes, parents, first));
+  Kokkos::parallel_for(
+      ARBORX_MARK_REGION("calculate_bounding_boxes"),
+      Kokkos::RangePolicy<DeprecatedExecutionSpace>(first, last),
+      CalculateInternalNodesBoundingVolumesFunctor<DeviceType>(
+          internal_and_leaf_nodes, parents, first));
 }
 
 } // namespace Details
