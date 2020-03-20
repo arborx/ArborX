@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(morton_codes, DeviceType, ARBORX_DEVICE_TYPES)
       details::equals(scene_host, {{{0., 0., 0.}}, {{1024., 1024., 1024.}}}));
 
   Kokkos::View<unsigned int *, DeviceType> morton_codes("morton_codes", n);
-  details::DeprecatedTreeConstruction<DeviceType>::assignMortonCodes(
+  ArborX::Details::TreeConstruction::assignMortonCodes(
       space, boxes, morton_codes, scene_host);
   auto morton_codes_host = Kokkos::create_mirror_view(morton_codes);
   Kokkos::deep_copy(morton_codes_host, morton_codes);
