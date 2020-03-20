@@ -41,8 +41,9 @@ struct TreeConstruction
 public:
   using DeprecatedExecutionSpace = typename DeviceType::execution_space;
 
-  template <typename Primitives>
-  static void calculateBoundingBoxOfTheScene(Primitives const &primitives,
+  template <typename ExecutionSpace, typename Primitives>
+  static void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
+                                             Primitives const &primitives,
                                              Box &scene_bounding_box);
 
   // to assign the Morton code for a given object, we use the centroid point
@@ -194,15 +195,16 @@ private:
 };
 
 template <typename DeviceType>
-template <typename Primitives>
+template <typename ExecutionSpace, typename Primitives>
 inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
-    Primitives const &primitives, Box &scene_bounding_box)
+    ExecutionSpace const &space, Primitives const &primitives,
+    Box &scene_bounding_box)
 {
   using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
   auto const n = Access::size(primitives);
   Kokkos::parallel_reduce(
       ARBORX_MARK_REGION("calculate_bounding_box_of_the_scene"),
-      Kokkos::RangePolicy<ExecutionSpace>(0, n),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
       CalculateBoundingBoxOfTheSceneFunctor<Primitives>(primitives),
       scene_bounding_box);
 }

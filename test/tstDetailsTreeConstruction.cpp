@@ -63,9 +63,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(morton_codes, DeviceType, ARBORX_DEVICE_TYPES)
     details::expand(boxes_host(i), points[i]);
   Kokkos::deep_copy(boxes, boxes_host);
 
+  typename DeviceType::execution_space space{};
   ArborX::Box scene_host;
   details::TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
-      boxes, scene_host);
+      space, boxes, scene_host);
 
   BOOST_TEST(
       details::equals(scene_host, {{{0., 0., 0.}}, {{1024., 1024., 1024.}}}));

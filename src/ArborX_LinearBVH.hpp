@@ -145,6 +145,8 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
           Kokkos::ViewAllocateWithoutInitializing("internal_and_leaf_nodes"),
           _size > 0 ? 2 * _size - 1 : 0)
 {
+  typename DeviceType::execution_space space{};
+
   Kokkos::Profiling::pushRegion("ArborX:BVH:construction");
 
   using Access = Traits::Access<Primitives, Traits::PrimitivesTag>;
@@ -182,7 +184,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
 
   // determine the bounding box of the scene
   Details::TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
-      primitives, _bounds);
+      space, primitives, _bounds);
 
   Kokkos::Profiling::popRegion();
 
