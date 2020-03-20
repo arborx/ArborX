@@ -295,26 +295,100 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
 
   // optimal size
   BOOST_CHECK_NO_THROW(
-      bvh.query(queries, indices, offset, -max_results_per_query));
+      bvh.query(queries, indices, offset,
+                ArborX::Experimental::TraversalPolicy().setBufferSize(
+                    -max_results_per_query)));
   checkResultsAreFine();
 
   // buffer size insufficient
   BOOST_TEST(max_results_per_query > 1);
-  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset, +1));
+  BOOST_CHECK_NO_THROW(
+      bvh.query(queries, indices, offset,
+                ArborX::Experimental::TraversalPolicy().setBufferSize(+1)));
   checkResultsAreFine();
-  BOOST_CHECK_THROW(bvh.query(queries, indices, offset, -1),
-                    ArborX::SearchException);
+  BOOST_CHECK_THROW(
+      bvh.query(queries, indices, offset,
+                ArborX::Experimental::TraversalPolicy().setBufferSize(-1)),
+      ArborX::SearchException);
 
   // adequate buffer size
   BOOST_TEST(max_results_per_query < 5);
-  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset, +5));
+  BOOST_CHECK_NO_THROW(
+      bvh.query(queries, indices, offset,
+                ArborX::Experimental::TraversalPolicy().setBufferSize(+5)));
   checkResultsAreFine();
-  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset, -5));
+  BOOST_CHECK_NO_THROW(
+      bvh.query(queries, indices, offset,
+                ArborX::Experimental::TraversalPolicy().setBufferSize(-5)));
   checkResultsAreFine();
 
   // passing null size skips the buffer optimization and never throws
-  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset, 0));
+  BOOST_CHECK_NO_THROW(
+      bvh.query(queries, indices, offset,
+                ArborX::Experimental::TraversalPolicy().setBufferSize(0)));
   checkResultsAreFine();
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  auto const bvh = make<ArborX::BVH<DeviceType>>({
+      {{{0., 0., 0.}}, {{0., 0., 0.}}},
+      {{{1., 1., 1.}}, {{1., 1., 1.}}},
+      {{{2., 2., 2.}}, {{2., 2., 2.}}},
+      {{{3., 3., 3.}}, {{3., 3., 3.}}},
+  });
+
+  using ViewType = Kokkos::View<int *, DeviceType>;
+  ViewType indices("indices", 0);
+  ViewType offset("offset", 0);
+
+  std::vector<int> indices_ref = {3, 2, 1, 0};
+  std::vector<int> offset_ref = {0, 2, 4};
+  auto checkResultsAreFine = [&indices, &offset, &indices_ref,
+                              &offset_ref]() -> void {
+    auto indices_host = Kokkos::create_mirror_view(indices);
+    Kokkos::deep_copy(indices_host, indices);
+    auto offset_host = Kokkos::create_mirror_view(offset);
+    Kokkos::deep_copy(offset_host, offset);
+    BOOST_TEST(indices_host == indices_ref, tt::per_element());
+    BOOST_TEST(offset_host == offset_ref, tt::per_element());
+  };
+
+  {
+    auto const queries = makeIntersectsBoxQueries<DeviceType>({
+        {{{2., 2., 2.}}, {{3., 3., 3.}}},
+        {{{0., 0., 0.}}, {{1., 1., 1.}}},
+    });
+
+    BOOST_CHECK_NO_THROW(bvh.query(
+        queries, indices, offset,
+        ArborX::Experimental::TraversalPolicy().setPredicateSorting(true)));
+    checkResultsAreFine();
+
+    BOOST_CHECK_NO_THROW(bvh.query(
+        queries, indices, offset,
+        ArborX::Experimental::TraversalPolicy().setPredicateSorting(false)));
+    checkResultsAreFine();
+  }
+
+  indices_ref = {2, 3, 0, 1};
+  {
+    auto queries = makeNearestQueries<DeviceType>({
+        {{{2.5, 2.5, 2.5}}, 2},
+        {{{0.5, 0.5, 0.5}}, 2},
+    });
+
+    BOOST_CHECK_NO_THROW(bvh.query(
+        queries, indices, offset,
+        ArborX::Experimental::TraversalPolicy().setPredicateSorting(true)));
+    checkResultsAreFine();
+
+    BOOST_CHECK_NO_THROW(bvh.query(
+        queries, indices, offset,
+        ArborX::Experimental::TraversalPolicy().setPredicateSorting(false)));
+    checkResultsAreFine();
+  }
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity, DeviceType,
@@ -1091,10 +1165,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
 
   validateResults(rtree_results, bvh_results);
 
-  auto const alternate_tree_traversal_algorithm =
-      ArborX::Details::NearestQueryAlgorithm::PriorityQueueBased_Deprecated;
   bvh.query(nearest_queries, indices_nearest, offset_nearest,
-            alternate_tree_traversal_algorithm);
+            ArborX::Experimental::TraversalPolicy().setTraversalAlgorithm(
+                ArborX::Details::NearestQueryAlgorithm::
+                    PriorityQueueBased_Deprecated));
   Kokkos::deep_copy(offset_nearest_host, offset_nearest);
   Kokkos::deep_copy(indices_nearest_host, indices_nearest);
   bvh_results = std::make_tuple(offset_nearest_host, indices_nearest_host);
