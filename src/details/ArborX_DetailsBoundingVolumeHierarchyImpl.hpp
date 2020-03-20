@@ -74,11 +74,31 @@ enum class NearestQueryAlgorithm
 
 } // namespace Details
 
+namespace Experimental
+{
 struct TraversalPolicy
 {
+  // Buffer size lets a user provide an upper bound for the number of results
+  // per query. If the guess is accurate, it avoids performing the tree
+  // traversals twice (the first one to count the number of results per query,
+  // the second to actually write down the results at the right location in the
+  // flattened array)
+  //
+  // The default value zero disables the buffer optimization. The sign of the
+  // integer is used to specify the policy in the case the size insufficient.
+  // If it is positive, the code falls back to the default behavior and
+  // performs a second pass. If it is negative, it throws an exception.
   int _buffer_size = 0;
-  bool _do_predicate_sort = true;
-  Details::NearestQueryAlgorithm _which =
+
+  // Sort predicates allows disabling predicate sorting.
+  bool _sort_predicates = true;
+
+  // This parameter lets the developer choose from two different tree
+  // traversal algorithms. With the default argument, the nearest queries are
+  // performed using a stack. This was deemed to be slightly more efficient
+  // than the other alternative that uses a priority queue. The existence of
+  // the parameter shall not be advertised to the user.
+  Details::NearestQueryAlgorithm _traversal_algorithm =
       Details::NearestQueryAlgorithm::StackBased_Default;
 
   TraversalPolicy &setBufferSize(int buffer_size)
@@ -86,17 +106,20 @@ struct TraversalPolicy
     _buffer_size = buffer_size;
     return *this;
   }
-  TraversalPolicy &setTraversalAlgorithm(Details::NearestQueryAlgorithm which)
+  TraversalPolicy &
+  setTraversalAlgorithm(Details::NearestQueryAlgorithm traversal_algorithm)
   {
-    _which = which;
+    _traversal_algorithm = traversal_algorithm;
     return *this;
   }
-  TraversalPolicy &setPredicateSorting(bool do_predicate_sort)
+  TraversalPolicy &setPredicateSorting(bool sort_predicates)
   {
-    _do_predicate_sort = do_predicate_sort;
+    _sort_predicates = sort_predicates;
     return *this;
   }
 };
+
+} // namespace Experimental
 
 namespace Details
 {
@@ -145,7 +168,8 @@ struct BoundingVolumeHierarchyImpl
                             Predicates const &predicates,
                             Kokkos::View<int *, DeviceType> &indices,
                             Kokkos::View<int *, DeviceType> &offset,
-                            TraversalPolicy const &policy = TraversalPolicy())
+                            Experimental::TraversalPolicy const &policy =
+                                Experimental::TraversalPolicy())
   {
     queryDispatch(SpatialPredicateTag{}, bvh, predicates,
                   CallbackDefaultSpatialPredicate{}, indices, offset, policy);
@@ -158,7 +182,8 @@ struct BoundingVolumeHierarchyImpl
                 BoundingVolumeHierarchy<DeviceType> const &bvh,
                 Predicates const &predicates, Callback const &callback,
                 OutputView &out, Kokkos::View<int *, DeviceType> &offset,
-                TraversalPolicy const &policy = TraversalPolicy());
+                Experimental::TraversalPolicy const &policy =
+                    Experimental::TraversalPolicy());
 
   template <typename Predicates, typename OutputView, typename Callback>
   static std::enable_if_t<
@@ -167,7 +192,8 @@ struct BoundingVolumeHierarchyImpl
                 BoundingVolumeHierarchy<DeviceType> const &bvh,
                 Predicates const &predicates, Callback const &callback,
                 OutputView &out, Kokkos::View<int *, DeviceType> &offset,
-                TraversalPolicy const &policy = TraversalPolicy())
+                Experimental::TraversalPolicy const &policy =
+                    Experimental::TraversalPolicy())
   {
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     queryDispatch(SpatialPredicateTag{}, bvh, predicates, indices, offset,
@@ -182,7 +208,8 @@ struct BoundingVolumeHierarchyImpl
                 BoundingVolumeHierarchy<DeviceType> const &bvh,
                 Predicates const &predicates, Callback const &callback,
                 OutputView &out, Kokkos::View<int *, DeviceType> &offset,
-                TraversalPolicy const &policy = TraversalPolicy());
+                Experimental::TraversalPolicy const &policy =
+                    Experimental::TraversalPolicy());
 
   template <typename Predicates, typename OutputView, typename Callback>
   static std::enable_if_t<
@@ -191,7 +218,8 @@ struct BoundingVolumeHierarchyImpl
                 BoundingVolumeHierarchy<DeviceType> const &bvh,
                 Predicates const &predicates, Callback const &callback,
                 OutputView &out, Kokkos::View<int *, DeviceType> &offset,
-                TraversalPolicy const &policy = TraversalPolicy())
+                Experimental::TraversalPolicy const &policy =
+                    Experimental::TraversalPolicy())
   {
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> pairs(
         "pairs_index_distance", 0);
@@ -207,7 +235,8 @@ struct BoundingVolumeHierarchyImpl
                             Predicates const &predicates,
                             Kokkos::View<int *, DeviceType> &indices,
                             Kokkos::View<int *, DeviceType> &offset,
-                            TraversalPolicy const &policy = TraversalPolicy())
+                            Experimental::TraversalPolicy const &policy =
+                                Experimental::TraversalPolicy())
   {
     queryDispatch(NearestPredicateTag{}, bvh, predicates,
                   CallbackDefaultNearestPredicate{}, indices, offset, policy);
@@ -220,7 +249,8 @@ struct BoundingVolumeHierarchyImpl
                             Kokkos::View<int *, DeviceType> &indices,
                             Kokkos::View<int *, DeviceType> &offset,
                             Kokkos::View<float *, DeviceType> &distances,
-                            TraversalPolicy const &policy = TraversalPolicy())
+                            Experimental::TraversalPolicy const &policy =
+                                Experimental::TraversalPolicy())
   {
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> out(
         "pairs_index_distance", 0);
@@ -240,18 +270,14 @@ struct BoundingVolumeHierarchyImpl
   }
 };
 
-// The which parameter let the developer chose from two different tree
-// traversal algorithms.  With the default argument, the nearest queries are
-// performed using a stack.  This was deemed to be slightly more efficient than
-// the other alternative that uses a priority queue.  The existence of that
-// parameter shall not be advertised to the user.
 template <typename DeviceType>
 template <typename Predicates, typename OutputView, typename Callback>
 std::enable_if_t<std::is_same<typename Callback::tag, InlineCallbackTag>::value>
 BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
     Predicates const &predicates, Callback const &callback, OutputView &out,
-    Kokkos::View<int *, DeviceType> &offset, TraversalPolicy const &policy)
+    Kokkos::View<int *, DeviceType> &offset,
+    Experimental::TraversalPolicy const &policy)
 {
   static_assert(is_detected<NearestPredicateInlineCallbackArchetypeExpression,
                             Callback, PredicatesHelper<Predicates>,
@@ -263,7 +289,8 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   using ExecutionSpace = typename DeviceType::execution_space;
 
   bool const use_deprecated_nearest_query_algorithm =
-      (policy._which == NearestQueryAlgorithm::PriorityQueueBased_Deprecated);
+      (policy._traversal_algorithm ==
+       NearestQueryAlgorithm::PriorityQueueBased_Deprecated);
 
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
   auto const n_queries = Access::size(predicates);
@@ -271,7 +298,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
 
   Kokkos::View<size_t *, DeviceType> permute;
-  if (policy._do_predicate_sort)
+  if (policy._sort_predicates)
   {
     permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
         bvh.bounds(), predicates);
@@ -391,22 +418,14 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   Kokkos::Profiling::popRegion();
 }
 
-// The buffer_size argument let the user provide an upper bound for the number
-// of results per query.  If the guess is accurate, it avoid performing the tree
-// traversals twice (the 1st one to count the number of results per query, the
-// 2nd to actually write down the results at the right location in the flattened
-// array)
-// The default value zero disable the buffer optimization.  The sign of the
-// integer is used to specify the policy in the case the size insufficient.  If
-// it is positive, the code falls back to the default behavior and performs a
-// second pass.  If it is negative, it throws an exception.
 template <typename DeviceType>
 template <typename Predicates, typename OutputView, typename Callback>
 std::enable_if_t<std::is_same<typename Callback::tag, InlineCallbackTag>::value>
 BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     SpatialPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
     Predicates const &predicates, Callback const &callback, OutputView &out,
-    Kokkos::View<int *, DeviceType> &offset, TraversalPolicy const &policy)
+    Kokkos::View<int *, DeviceType> &offset,
+    Experimental::TraversalPolicy const &policy)
 {
   static_assert(is_detected<SpatialPredicateInlineCallbackArchetypeExpression,
                             Callback, PredicatesHelper<Predicates>,
@@ -427,7 +446,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
 
   Kokkos::View<size_t *, DeviceType> permute;
-  if (policy._do_predicate_sort)
+  if (policy._sort_predicates)
   {
     permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
         bvh.bounds(), predicates);

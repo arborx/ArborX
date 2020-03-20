@@ -294,32 +294,38 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
   BOOST_TEST(max_results_per_query == 4);
 
   // optimal size
-  BOOST_CHECK_NO_THROW(bvh.query(
-      queries, indices, offset,
-      ArborX::TraversalPolicy().setBufferSize(-max_results_per_query)));
+  BOOST_CHECK_NO_THROW(
+      bvh.query(queries, indices, offset,
+                ArborX::Experimental::TraversalPolicy().setBufferSize(
+                    -max_results_per_query)));
   checkResultsAreFine();
 
   // buffer size insufficient
   BOOST_TEST(max_results_per_query > 1);
-  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset,
-                                 ArborX::TraversalPolicy().setBufferSize(+1)));
+  BOOST_CHECK_NO_THROW(
+      bvh.query(queries, indices, offset,
+                ArborX::Experimental::TraversalPolicy().setBufferSize(+1)));
   checkResultsAreFine();
-  BOOST_CHECK_THROW(bvh.query(queries, indices, offset,
-                              ArborX::TraversalPolicy().setBufferSize(-1)),
-                    ArborX::SearchException);
+  BOOST_CHECK_THROW(
+      bvh.query(queries, indices, offset,
+                ArborX::Experimental::TraversalPolicy().setBufferSize(-1)),
+      ArborX::SearchException);
 
   // adequate buffer size
   BOOST_TEST(max_results_per_query < 5);
-  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset,
-                                 ArborX::TraversalPolicy().setBufferSize(+5)));
+  BOOST_CHECK_NO_THROW(
+      bvh.query(queries, indices, offset,
+                ArborX::Experimental::TraversalPolicy().setBufferSize(+5)));
   checkResultsAreFine();
-  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset,
-                                 ArborX::TraversalPolicy().setBufferSize(-5)));
+  BOOST_CHECK_NO_THROW(
+      bvh.query(queries, indices, offset,
+                ArborX::Experimental::TraversalPolicy().setBufferSize(-5)));
   checkResultsAreFine();
 
   // passing null size skips the buffer optimization and never throws
-  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset,
-                                 ArborX::TraversalPolicy().setBufferSize(0)));
+  BOOST_CHECK_NO_THROW(
+      bvh.query(queries, indices, offset,
+                ArborX::Experimental::TraversalPolicy().setBufferSize(0)));
   checkResultsAreFine();
 }
 
@@ -355,14 +361,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
         {{{0., 0., 0.}}, {{1., 1., 1.}}},
     });
 
-    BOOST_CHECK_NO_THROW(
-        bvh.query(queries, indices, offset,
-                  ArborX::TraversalPolicy().setPredicateSorting(true)));
+    BOOST_CHECK_NO_THROW(bvh.query(
+        queries, indices, offset,
+        ArborX::Experimental::TraversalPolicy().setPredicateSorting(true)));
     checkResultsAreFine();
 
-    BOOST_CHECK_NO_THROW(
-        bvh.query(queries, indices, offset,
-                  ArborX::TraversalPolicy().setPredicateSorting(false)));
+    BOOST_CHECK_NO_THROW(bvh.query(
+        queries, indices, offset,
+        ArborX::Experimental::TraversalPolicy().setPredicateSorting(false)));
     checkResultsAreFine();
   }
 
@@ -373,14 +379,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
         {{{0.5, 0.5, 0.5}}, 2},
     });
 
-    BOOST_CHECK_NO_THROW(
-        bvh.query(queries, indices, offset,
-                  ArborX::TraversalPolicy().setPredicateSorting(true)));
+    BOOST_CHECK_NO_THROW(bvh.query(
+        queries, indices, offset,
+        ArborX::Experimental::TraversalPolicy().setPredicateSorting(true)));
     checkResultsAreFine();
 
-    BOOST_CHECK_NO_THROW(
-        bvh.query(queries, indices, offset,
-                  ArborX::TraversalPolicy().setPredicateSorting(false)));
+    BOOST_CHECK_NO_THROW(bvh.query(
+        queries, indices, offset,
+        ArborX::Experimental::TraversalPolicy().setPredicateSorting(false)));
     checkResultsAreFine();
   }
 }
@@ -1160,7 +1166,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
   validateResults(rtree_results, bvh_results);
 
   bvh.query(nearest_queries, indices_nearest, offset_nearest,
-            ArborX::TraversalPolicy().setTraversalAlgorithm(
+            ArborX::Experimental::TraversalPolicy().setTraversalAlgorithm(
                 ArborX::Details::NearestQueryAlgorithm::
                     PriorityQueueBased_Deprecated));
   Kokkos::deep_copy(offset_nearest_host, offset_nearest);
