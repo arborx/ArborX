@@ -223,7 +223,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
   // generate bounding volume hierarchy
   Kokkos::View<int *, DeviceType> parents(
       Kokkos::ViewAllocateWithoutInitializing("parents"), 2 * size() - 1);
-  Details::DeprecatedTreeConstruction<DeviceType>::generateHierarchy(
+  Details::TreeConstruction::generateHierarchy(
       space, morton_indices, getLeafNodes(), getInternalNodes(), parents);
 
   Kokkos::Profiling::popRegion();

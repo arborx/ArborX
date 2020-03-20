@@ -316,7 +316,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   Kokkos::deep_copy(parents, -1);
 
   typename DeviceType::execution_space space{};
-  details::DeprecatedTreeConstruction<DeviceType>::generateHierarchy(
+  ArborX::Details::TreeConstruction::generateHierarchy(
       space, sorted_morton_codes, leaf_nodes, internal_nodes, parents);
 
   BOOST_TEST(parents(0) == -1);
