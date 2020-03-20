@@ -353,23 +353,6 @@ public:
   {
   }
 
-  template <typename... MortonCodesViewProperties,
-            typename... LeafNodesViewProperties,
-            typename... InternalNodesViewProperties,
-            typename... ParentsViewProperties>
-  GenerateHierarchyFunctor(
-      Kokkos::View<unsigned int *, MortonCodesViewProperties...>
-          sorted_morton_codes,
-      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
-      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
-      Kokkos::View<int *, ParentsViewProperties...> parents)
-      : GenerateHierarchyFunctor(
-            Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
-                sorted_morton_codes},
-            leaf_nodes, internal_nodes, parents)
-  {
-  }
-
   // from "Thinking Parallel, Part III: Tree Construction on the GPU" by Karras
   KOKKOS_FUNCTION void operator()(int i) const
   {
