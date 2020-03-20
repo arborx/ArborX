@@ -501,7 +501,7 @@ public:
     Kokkos::deep_copy(_flags, 0);
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
   void operator()(int i) const
   {
     // Walk toward the root and do process it even though technically its
