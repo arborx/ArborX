@@ -224,7 +224,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
   Kokkos::View<int *, DeviceType> parents(
       Kokkos::ViewAllocateWithoutInitializing("parents"), 2 * size() - 1);
   Details::TreeConstruction<DeviceType>::generateHierarchy(
-      morton_indices, getLeafNodes(), getInternalNodes(), parents);
+      space, morton_indices, getLeafNodes(), getInternalNodes(), parents);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX:BVH:calculate_bounding_volumes");

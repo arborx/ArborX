@@ -315,8 +315,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   Kokkos::View<int *, DeviceType> parents("parents", 2 * n + 1);
   Kokkos::deep_copy(parents, -1);
 
+  typename DeviceType::execution_space space{};
   details::TreeConstruction<DeviceType>::generateHierarchy(
-      sorted_morton_codes, leaf_nodes, internal_nodes, parents);
+      space, sorted_morton_codes, leaf_nodes, internal_nodes, parents);
 
   BOOST_TEST(parents(0) == -1);
 

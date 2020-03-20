@@ -61,7 +61,9 @@ public:
       Kokkos::View<size_t const *, DeviceType> permutation_indices,
       Kokkos::View<Node *, DeviceType> leaf_nodes);
 
+  template <typename ExecutionSpace>
   static Node *generateHierarchy(
+      ExecutionSpace const &space,
       Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes,
       Kokkos::View<Node *, DeviceType> leaf_nodes,
       Kokkos::View<Node *, DeviceType> internal_nodes,
@@ -388,7 +390,9 @@ private:
 };
 
 template <typename DeviceType>
+template <typename ExecutionSpace>
 Node *TreeConstruction<DeviceType>::generateHierarchy(
+    ExecutionSpace const &space,
     Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes,
     Kokkos::View<Node *, DeviceType> leaf_nodes,
     Kokkos::View<Node *, DeviceType> internal_nodes,
@@ -397,7 +401,7 @@ Node *TreeConstruction<DeviceType>::generateHierarchy(
   auto const n = sorted_morton_codes.extent(0);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("generate_hierarchy"),
-      Kokkos::RangePolicy<DeprecatedExecutionSpace>(0, n - 1),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n - 1),
       GenerateHierarchyFunctor<DeviceType>(sorted_morton_codes, leaf_nodes,
                                            internal_nodes, parents));
   // returns a pointer to the root node of the tree
