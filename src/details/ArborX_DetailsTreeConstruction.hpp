@@ -69,7 +69,9 @@ public:
       Kokkos::View<Node *, DeviceType> internal_nodes,
       Kokkos::View<int *, DeviceType> parents);
 
+  template <typename ExecutionSpace>
   static void calculateInternalNodesBoundingVolumes(
+      ExecutionSpace const &space,
       Kokkos::View<Node const *, DeviceType> leaf_nodes,
       Kokkos::View<Node *, DeviceType> internal_nodes,
       Kokkos::View<int const *, DeviceType> parents);
@@ -467,7 +469,9 @@ private:
 };
 
 template <typename DeviceType>
+template <typename ExecutionSpace>
 void TreeConstruction<DeviceType>::calculateInternalNodesBoundingVolumes(
+    ExecutionSpace const &space,
     Kokkos::View<Node const *, DeviceType> leaf_nodes,
     Kokkos::View<Node *, DeviceType> internal_nodes,
     Kokkos::View<int const *, DeviceType> parents)
@@ -476,11 +480,10 @@ void TreeConstruction<DeviceType>::calculateInternalNodesBoundingVolumes(
   auto const last = first + leaf_nodes.extent(0);
   Kokkos::View<Node *, DeviceType, Kokkos::MemoryTraits<Kokkos::Unmanaged>>
       internal_and_leaf_nodes(internal_nodes.data(), last);
-  Kokkos::parallel_for(
-      ARBORX_MARK_REGION("calculate_bounding_boxes"),
-      Kokkos::RangePolicy<DeprecatedExecutionSpace>(first, last),
-      CalculateInternalNodesBoundingVolumesFunctor<DeviceType>(
-          internal_and_leaf_nodes, parents, first));
+  Kokkos::parallel_for(ARBORX_MARK_REGION("calculate_bounding_boxes"),
+                       Kokkos::RangePolicy<ExecutionSpace>(space, first, last),
+                       CalculateInternalNodesBoundingVolumesFunctor<DeviceType>(
+                           internal_and_leaf_nodes, parents, first));
 }
 
 } // namespace Details
