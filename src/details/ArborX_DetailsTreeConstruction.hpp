@@ -418,7 +418,7 @@ public:
   }
 
   // from "Thinking Parallel, Part III: Tree Construction on the GPU" by Karras
-  KOKKOS_INLINE_FUNCTION void operator()(int const i) const
+  KOKKOS_FUNCTION void operator()(int i) const
   {
     using TreeConstruction::determineRange;
     using TreeConstruction::findSplit;
