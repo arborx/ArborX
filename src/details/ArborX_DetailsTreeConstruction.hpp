@@ -487,8 +487,10 @@ template <typename MemorySpace>
 class CalculateInternalNodesBoundingVolumesFunctor
 {
 public:
-  template <typename... NodesViewProperties, typename... ParentsViewProperties>
+  template <typename ExecutionSpace, typename... NodesViewProperties,
+            typename... ParentsViewProperties>
   CalculateInternalNodesBoundingVolumesFunctor(
+      ExecutionSpace const &space,
       Kokkos::View<Node *, NodesViewProperties...> internal_and_leaf_nodes,
       Kokkos::View<int const *, ParentsViewProperties...> parents,
       size_t n_internal_nodes)
@@ -498,7 +500,7 @@ public:
       , _internal_and_leaf_nodes(internal_and_leaf_nodes)
   {
     // Initialize flags to zero
-    Kokkos::deep_copy(_flags, 0);
+    Kokkos::deep_copy(space, _flags, 0);
   }
 
   KOKKOS_FUNCTION
@@ -564,7 +566,7 @@ void DeprecatedTreeConstruction<DeviceType>::
       ARBORX_MARK_REGION("calculate_bounding_boxes"),
       Kokkos::RangePolicy<ExecutionSpace>(space, first, last),
       CalculateInternalNodesBoundingVolumesFunctor<MemorySpace>(
-          internal_and_leaf_nodes, parents, first));
+          space, internal_and_leaf_nodes, parents, first));
 }
 
 } // namespace Details
