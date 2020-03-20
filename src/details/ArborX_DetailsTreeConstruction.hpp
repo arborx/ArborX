@@ -22,14 +22,7 @@
 #include <ArborX_Macros.hpp>
 #include <ArborX_Traits.hpp>
 
-// FIXME provides definition of Kokkos::Iterate for Kokkos_CopyViews.hpp
-#include <KokkosExp_MDRangePolicy.hpp>
-#include <Kokkos_Atomic.hpp>
-#include <Kokkos_CopyViews.hpp> // deep_copy
-#include <Kokkos_Macros.hpp>
-#include <Kokkos_Pair.hpp>
-#include <Kokkos_Parallel.hpp>
-#include <Kokkos_View.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <cassert>
 
