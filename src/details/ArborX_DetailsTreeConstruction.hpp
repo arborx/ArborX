@@ -483,13 +483,15 @@ public:
   }
 };
 
-template <typename DeviceType>
+template <typename MemorySpace>
 class CalculateInternalNodesBoundingVolumesFunctor
 {
 public:
+  template <typename... NodesViewProperties, typename... ParentsViewProperties>
   CalculateInternalNodesBoundingVolumesFunctor(
-      Kokkos::View<Node *, DeviceType> internal_and_leaf_nodes,
-      Kokkos::View<int const *, DeviceType> parents, size_t n_internal_nodes)
+      Kokkos::View<Node *, NodesViewProperties...> internal_and_leaf_nodes,
+      Kokkos::View<int const *, ParentsViewProperties...> parents,
+      size_t n_internal_nodes)
       : _flags(Kokkos::ViewAllocateWithoutInitializing("flags"),
                n_internal_nodes)
       , _parents(parents)
@@ -536,9 +538,9 @@ public:
 private:
   // Use int instead of bool because CAS (Compare And Swap) on CUDA does not
   // support boolean
-  Kokkos::View<int *, DeviceType> _flags;
-  Kokkos::View<int const *, DeviceType> _parents;
-  Kokkos::View<Node *, DeviceType> _internal_and_leaf_nodes;
+  Kokkos::View<int *, MemorySpace> _flags;
+  Kokkos::View<int const *, MemorySpace> _parents;
+  Kokkos::View<Node *, MemorySpace> _internal_and_leaf_nodes;
 };
 
 template <typename DeviceType>
@@ -557,10 +559,12 @@ void DeprecatedTreeConstruction<DeviceType>::
   Kokkos::View<Node *, InternalNodesViewProperties...,
                Kokkos::MemoryTraits<Kokkos::Unmanaged>>
       internal_and_leaf_nodes(internal_nodes.data(), last);
-  Kokkos::parallel_for(ARBORX_MARK_REGION("calculate_bounding_boxes"),
-                       Kokkos::RangePolicy<ExecutionSpace>(space, first, last),
-                       CalculateInternalNodesBoundingVolumesFunctor<DeviceType>(
-                           internal_and_leaf_nodes, parents, first));
+  using MemorySpace = typename decltype(leaf_nodes)::memory_space;
+  Kokkos::parallel_for(
+      ARBORX_MARK_REGION("calculate_bounding_boxes"),
+      Kokkos::RangePolicy<ExecutionSpace>(space, first, last),
+      CalculateInternalNodesBoundingVolumesFunctor<MemorySpace>(
+          internal_and_leaf_nodes, parents, first));
 }
 
 } // namespace Details
