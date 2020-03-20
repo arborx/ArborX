@@ -72,6 +72,35 @@ enum class NearestQueryAlgorithm
   PriorityQueueBased_Deprecated
 };
 
+} // namespace Details
+
+struct TraversalPolicy
+{
+  int _buffer_size = 0;
+  bool _do_predicate_sort = true;
+  Details::NearestQueryAlgorithm _which =
+      Details::NearestQueryAlgorithm::StackBased_Default;
+
+  TraversalPolicy &setBufferSize(int buffer_size)
+  {
+    _buffer_size = buffer_size;
+    return *this;
+  }
+  TraversalPolicy &setTraversalAlgorithm(Details::NearestQueryAlgorithm which)
+  {
+    _which = which;
+    return *this;
+  }
+  TraversalPolicy &setPredicateSorting(bool do_predicate_sort)
+  {
+    _do_predicate_sort = do_predicate_sort;
+    return *this;
+  }
+};
+
+namespace Details
+{
+
 struct CallbackDefaultSpatialPredicate
 {
   using tag = InlineCallbackTag;
@@ -116,11 +145,10 @@ struct BoundingVolumeHierarchyImpl
                             Predicates const &predicates,
                             Kokkos::View<int *, DeviceType> &indices,
                             Kokkos::View<int *, DeviceType> &offset,
-                            bool do_predicate_sort = true, int buffer_size = 0)
+                            TraversalPolicy const &policy = TraversalPolicy())
   {
     queryDispatch(SpatialPredicateTag{}, bvh, predicates,
-                  CallbackDefaultSpatialPredicate{}, indices, offset,
-                  do_predicate_sort, buffer_size);
+                  CallbackDefaultSpatialPredicate{}, indices, offset, policy);
   }
 
   template <typename Predicates, typename OutputView, typename Callback>
@@ -130,7 +158,7 @@ struct BoundingVolumeHierarchyImpl
                 BoundingVolumeHierarchy<DeviceType> const &bvh,
                 Predicates const &predicates, Callback const &callback,
                 OutputView &out, Kokkos::View<int *, DeviceType> &offset,
-                bool do_predicate_sort = true, int buffer_size = 0);
+                TraversalPolicy const &policy = TraversalPolicy());
 
   template <typename Predicates, typename OutputView, typename Callback>
   static std::enable_if_t<
@@ -139,66 +167,66 @@ struct BoundingVolumeHierarchyImpl
                 BoundingVolumeHierarchy<DeviceType> const &bvh,
                 Predicates const &predicates, Callback const &callback,
                 OutputView &out, Kokkos::View<int *, DeviceType> &offset,
-                bool do_predicate_sort = true, int buffer_size = 0)
+                TraversalPolicy const &policy = TraversalPolicy())
   {
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     queryDispatch(SpatialPredicateTag{}, bvh, predicates, indices, offset,
-                  do_predicate_sort, buffer_size);
+                  policy);
     callback(predicates, offset, indices, out);
   }
 
   template <typename Predicates, typename OutputView, typename Callback>
   static std::enable_if_t<
       std::is_same<typename Callback::tag, InlineCallbackTag>::value>
-  queryDispatch(
-      NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
-      Predicates const &predicates, Callback const &callback, OutputView &out,
-      Kokkos::View<int *, DeviceType> &offset, bool do_predicate_sort = true,
-      NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default);
+  queryDispatch(NearestPredicateTag,
+                BoundingVolumeHierarchy<DeviceType> const &bvh,
+                Predicates const &predicates, Callback const &callback,
+                OutputView &out, Kokkos::View<int *, DeviceType> &offset,
+                TraversalPolicy const &policy = TraversalPolicy());
 
   template <typename Predicates, typename OutputView, typename Callback>
   static std::enable_if_t<
       std::is_same<typename Callback::tag, PostCallbackTag>::value>
-  queryDispatch(
-      NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
-      Predicates const &predicates, Callback const &callback, OutputView &out,
-      Kokkos::View<int *, DeviceType> &offset, bool do_predicate_sort = true,
-      NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default)
+  queryDispatch(NearestPredicateTag,
+                BoundingVolumeHierarchy<DeviceType> const &bvh,
+                Predicates const &predicates, Callback const &callback,
+                OutputView &out, Kokkos::View<int *, DeviceType> &offset,
+                TraversalPolicy const &policy = TraversalPolicy())
   {
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> pairs(
         "pairs_index_distance", 0);
     queryDispatch(NearestPredicateTag{}, bvh, predicates,
                   CallbackDefaultNearestPredicateWithDistance{}, pairs, offset,
-                  do_predicate_sort, which);
+                  policy);
     callback(predicates, offset, pairs, out);
   }
 
   template <typename Predicates>
-  static void queryDispatch(
-      NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
-      Predicates const &predicates, Kokkos::View<int *, DeviceType> &indices,
-      Kokkos::View<int *, DeviceType> &offset, bool do_predicate_sort = true,
-      NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default)
+  static void queryDispatch(NearestPredicateTag,
+                            BoundingVolumeHierarchy<DeviceType> const &bvh,
+                            Predicates const &predicates,
+                            Kokkos::View<int *, DeviceType> &indices,
+                            Kokkos::View<int *, DeviceType> &offset,
+                            TraversalPolicy const &policy = TraversalPolicy())
   {
     queryDispatch(NearestPredicateTag{}, bvh, predicates,
-                  CallbackDefaultNearestPredicate{}, indices, offset,
-                  do_predicate_sort, which);
+                  CallbackDefaultNearestPredicate{}, indices, offset, policy);
   }
 
   template <typename Predicates>
-  static void queryDispatch(
-      NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
-      Predicates const &predicates, Kokkos::View<int *, DeviceType> &indices,
-      Kokkos::View<int *, DeviceType> &offset,
-      Kokkos::View<float *, DeviceType> &distances,
-      bool do_predicate_sort = true,
-      NearestQueryAlgorithm which = NearestQueryAlgorithm::StackBased_Default)
+  static void queryDispatch(NearestPredicateTag,
+                            BoundingVolumeHierarchy<DeviceType> const &bvh,
+                            Predicates const &predicates,
+                            Kokkos::View<int *, DeviceType> &indices,
+                            Kokkos::View<int *, DeviceType> &offset,
+                            Kokkos::View<float *, DeviceType> &distances,
+                            TraversalPolicy const &policy = TraversalPolicy())
   {
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> out(
         "pairs_index_distance", 0);
     queryDispatch(NearestPredicateTag{}, bvh, predicates,
                   CallbackDefaultNearestPredicateWithDistance{}, out, offset,
-                  do_predicate_sort, which);
+                  policy);
     auto const n = out.extent(0);
     reallocWithoutInitializing(indices, n);
     reallocWithoutInitializing(distances, n);
@@ -223,8 +251,7 @@ std::enable_if_t<std::is_same<typename Callback::tag, InlineCallbackTag>::value>
 BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
     Predicates const &predicates, Callback const &callback, OutputView &out,
-    Kokkos::View<int *, DeviceType> &offset, bool do_predicate_sort,
-    NearestQueryAlgorithm which)
+    Kokkos::View<int *, DeviceType> &offset, TraversalPolicy const &policy)
 {
   static_assert(is_detected<NearestPredicateInlineCallbackArchetypeExpression,
                             Callback, PredicatesHelper<Predicates>,
@@ -236,7 +263,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   using ExecutionSpace = typename DeviceType::execution_space;
 
   bool const use_deprecated_nearest_query_algorithm =
-      which == NearestQueryAlgorithm::PriorityQueueBased_Deprecated;
+      (policy._which == NearestQueryAlgorithm::PriorityQueueBased_Deprecated);
 
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
   auto const n_queries = Access::size(predicates);
@@ -244,7 +271,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
 
   Kokkos::View<size_t *, DeviceType> permute;
-  if (do_predicate_sort)
+  if (policy._do_predicate_sort)
   {
     permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
         bvh.bounds(), predicates);
@@ -379,8 +406,7 @@ std::enable_if_t<std::is_same<typename Callback::tag, InlineCallbackTag>::value>
 BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     SpatialPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
     Predicates const &predicates, Callback const &callback, OutputView &out,
-    Kokkos::View<int *, DeviceType> &offset, bool do_predicate_sort,
-    int buffer_size)
+    Kokkos::View<int *, DeviceType> &offset, TraversalPolicy const &policy)
 {
   static_assert(is_detected<SpatialPredicateInlineCallbackArchetypeExpression,
                             Callback, PredicatesHelper<Predicates>,
@@ -394,13 +420,14 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
   auto const n_queries = Access::size(predicates);
 
+  auto buffer_size = policy._buffer_size;
   bool const throw_if_buffer_optimization_fails = (buffer_size < 0);
   buffer_size = std::abs(buffer_size);
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
 
   Kokkos::View<size_t *, DeviceType> permute;
-  if (do_predicate_sort)
+  if (policy._do_predicate_sort)
   {
     permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
         bvh.bounds(), predicates);

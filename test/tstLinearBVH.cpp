@@ -293,33 +293,33 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
   auto const max_results_per_query = ArborX::max(counts);
   BOOST_TEST(max_results_per_query == 4);
 
-  bool const do_predicate_sort = true;
-
   // optimal size
-  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset, do_predicate_sort,
-                                 -max_results_per_query));
+  BOOST_CHECK_NO_THROW(bvh.query(
+      queries, indices, offset,
+      ArborX::TraversalPolicy().setBufferSize(-max_results_per_query)));
   checkResultsAreFine();
 
   // buffer size insufficient
   BOOST_TEST(max_results_per_query > 1);
-  BOOST_CHECK_NO_THROW(
-      bvh.query(queries, indices, offset, do_predicate_sort, +1));
+  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset,
+                                 ArborX::TraversalPolicy().setBufferSize(+1)));
   checkResultsAreFine();
-  BOOST_CHECK_THROW(bvh.query(queries, indices, offset, do_predicate_sort, -1),
+  BOOST_CHECK_THROW(bvh.query(queries, indices, offset,
+                              ArborX::TraversalPolicy().setBufferSize(-1)),
                     ArborX::SearchException);
 
   // adequate buffer size
   BOOST_TEST(max_results_per_query < 5);
-  BOOST_CHECK_NO_THROW(
-      bvh.query(queries, indices, offset, do_predicate_sort, +5));
+  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset,
+                                 ArborX::TraversalPolicy().setBufferSize(+5)));
   checkResultsAreFine();
-  BOOST_CHECK_NO_THROW(
-      bvh.query(queries, indices, offset, do_predicate_sort, -5));
+  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset,
+                                 ArborX::TraversalPolicy().setBufferSize(-5)));
   checkResultsAreFine();
 
   // passing null size skips the buffer optimization and never throws
-  BOOST_CHECK_NO_THROW(
-      bvh.query(queries, indices, offset, do_predicate_sort, 0));
+  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset,
+                                 ArborX::TraversalPolicy().setBufferSize(0)));
   checkResultsAreFine();
 }
 
@@ -355,13 +355,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
         {{{0., 0., 0.}}, {{1., 1., 1.}}},
     });
 
-    bool const do_predicate_sort = true;
     BOOST_CHECK_NO_THROW(
-        bvh.query(queries, indices, offset, do_predicate_sort));
+        bvh.query(queries, indices, offset,
+                  ArborX::TraversalPolicy().setPredicateSorting(true)));
     checkResultsAreFine();
 
     BOOST_CHECK_NO_THROW(
-        bvh.query(queries, indices, offset, !do_predicate_sort));
+        bvh.query(queries, indices, offset,
+                  ArborX::TraversalPolicy().setPredicateSorting(false)));
     checkResultsAreFine();
   }
 
@@ -372,13 +373,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
         {{{0.5, 0.5, 0.5}}, 2},
     });
 
-    bool const do_predicate_sort = true;
     BOOST_CHECK_NO_THROW(
-        bvh.query(queries, indices, offset, do_predicate_sort));
+        bvh.query(queries, indices, offset,
+                  ArborX::TraversalPolicy().setPredicateSorting(true)));
     checkResultsAreFine();
 
     BOOST_CHECK_NO_THROW(
-        bvh.query(queries, indices, offset, !do_predicate_sort));
+        bvh.query(queries, indices, offset,
+                  ArborX::TraversalPolicy().setPredicateSorting(false)));
     checkResultsAreFine();
   }
 }
@@ -1157,10 +1159,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
 
   validateResults(rtree_results, bvh_results);
 
-  auto const alternate_tree_traversal_algorithm =
-      ArborX::Details::NearestQueryAlgorithm::PriorityQueueBased_Deprecated;
   bvh.query(nearest_queries, indices_nearest, offset_nearest,
-            true /*do_predicate_sort*/, alternate_tree_traversal_algorithm);
+            ArborX::TraversalPolicy().setTraversalAlgorithm(
+                ArborX::Details::NearestQueryAlgorithm::
+                    PriorityQueueBased_Deprecated));
   Kokkos::deep_copy(offset_nearest_host, offset_nearest);
   Kokkos::deep_copy(indices_nearest_host, indices_nearest);
   bvh_results = std::make_tuple(offset_nearest_host, indices_nearest_host);

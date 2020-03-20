@@ -40,16 +40,8 @@ public:
   template <typename Query>
   void query(Kokkos::View<Query *, DeviceType> queries,
              Kokkos::View<int *, DeviceType> &indices,
-             Kokkos::View<int *, DeviceType> &offset, bool)
-  {
-    std::tie(offset, indices) =
-        BoostRTreeHelpers::performQueries(_tree, queries);
-  }
-
-  template <typename Query>
-  void query(Kokkos::View<Query *, DeviceType> queries,
-             Kokkos::View<int *, DeviceType> &indices,
-             Kokkos::View<int *, DeviceType> &offset, bool, int)
+             Kokkos::View<int *, DeviceType> &offset,
+             ArborX::TraversalPolicy const &)
   {
     std::tie(offset, indices) =
         BoostRTreeHelpers::performQueries(_tree, queries);
@@ -166,7 +158,9 @@ void BM_knn_search(benchmark::State &state)
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     auto const start = std::chrono::high_resolution_clock::now();
-    index.query(queries, indices, offset, do_predicate_sort_int);
+    index.query(
+        queries, indices, offset,
+        ArborX::TraversalPolicy().setPredicateSorting(do_predicate_sort_int));
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
@@ -197,7 +191,10 @@ void BM_radius_search(benchmark::State &state)
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     auto const start = std::chrono::high_resolution_clock::now();
-    index.query(queries, indices, offset, do_predicate_sort_int, buffer_size);
+    index.query(queries, indices, offset,
+                ArborX::TraversalPolicy()
+                    .setPredicateSorting(do_predicate_sort_int)
+                    .setBufferSize(buffer_size));
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
