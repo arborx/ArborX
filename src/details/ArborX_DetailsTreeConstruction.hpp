@@ -429,7 +429,7 @@ template <typename ExecutionSpace, typename... MortonCodesViewProperties,
           typename... ParentsViewProperties>
 Node *generateHierarchy(
     ExecutionSpace const &space,
-    Kokkos::View<unsigned int *, MortonCodesViewProperties...>
+    Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
         sorted_morton_codes,
     Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
     Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
@@ -444,6 +444,25 @@ Node *generateHierarchy(
                                             internal_nodes, parents));
   // returns a pointer to the root node of the tree
   return internal_nodes.data();
+}
+
+template <typename ExecutionSpace, typename... MortonCodesViewProperties,
+          typename... LeafNodesViewProperties,
+          typename... InternalNodesViewProperties,
+          typename... ParentsViewProperties>
+inline Node *generateHierarchy(
+    ExecutionSpace const &space,
+    Kokkos::View<unsigned int *, MortonCodesViewProperties...>
+        sorted_morton_codes,
+    Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
+    Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
+    Kokkos::View<int *, ParentsViewProperties...> parents)
+{
+  return generateHierarchy(
+      space,
+      Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
+          sorted_morton_codes},
+      leaf_nodes, internal_nodes, parents);
 }
 } // namespace TreeConstruction
 
