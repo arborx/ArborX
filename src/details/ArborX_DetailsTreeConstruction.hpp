@@ -378,15 +378,20 @@ public:
   }
 };
 
-template <typename DeviceType>
+template <typename MemorySpace>
 class GenerateHierarchyFunctor
 {
 public:
+  template <typename... MortonCodesViewProperties,
+            typename... LeafNodesViewProperties,
+            typename... InternalNodesViewProperties,
+            typename... ParentsViewProperties>
   GenerateHierarchyFunctor(
-      Kokkos::View<unsigned int const *, DeviceType> sorted_morton_codes,
-      Kokkos::View<Node *, DeviceType> leaf_nodes,
-      Kokkos::View<Node *, DeviceType> internal_nodes,
-      Kokkos::View<int *, DeviceType> parents)
+      Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
+          sorted_morton_codes,
+      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
+      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
+      Kokkos::View<int *, ParentsViewProperties...> parents)
       : _sorted_morton_codes(sorted_morton_codes)
       , _leaf_nodes(leaf_nodes)
       , _internal_nodes(internal_nodes)
@@ -395,10 +400,25 @@ public:
   {
   }
 
-  // from "Thinking Parallel, Part III: Tree Construction on the GPU" by
-  // Karras
-  KOKKOS_INLINE_FUNCTION
-  void operator()(int const i) const
+  template <typename... MortonCodesViewProperties,
+            typename... LeafNodesViewProperties,
+            typename... InternalNodesViewProperties,
+            typename... ParentsViewProperties>
+  GenerateHierarchyFunctor(
+      Kokkos::View<unsigned int *, MortonCodesViewProperties...>
+          sorted_morton_codes,
+      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
+      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
+      Kokkos::View<int *, ParentsViewProperties...> parents)
+      : GenerateHierarchyFunctor(
+            Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
+                sorted_morton_codes},
+            leaf_nodes, internal_nodes, parents)
+  {
+  }
+
+  // from "Thinking Parallel, Part III: Tree Construction on the GPU" by Karras
+  KOKKOS_INLINE_FUNCTION void operator()(int const i) const
   {
     using TreeConstruction::determineRange;
     using TreeConstruction::findSplit;
@@ -443,10 +463,10 @@ public:
   }
 
 private:
-  Kokkos::View<unsigned int const *, DeviceType> _sorted_morton_codes;
-  Kokkos::View<Node *, DeviceType> _leaf_nodes;
-  Kokkos::View<Node *, DeviceType> _internal_nodes;
-  Kokkos::View<int *, DeviceType> _parents;
+  Kokkos::View<unsigned int const *, MemorySpace> _sorted_morton_codes;
+  Kokkos::View<Node *, MemorySpace> _leaf_nodes;
+  Kokkos::View<Node *, MemorySpace> _internal_nodes;
+  Kokkos::View<int *, MemorySpace> _parents;
   int _leaf_nodes_shift;
 };
 
@@ -463,12 +483,13 @@ Node *DeprecatedTreeConstruction<DeviceType>::generateHierarchy(
     Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
     Kokkos::View<int *, ParentsViewProperties...> parents)
 {
+  using MemorySpace = typename decltype(leaf_nodes)::memory_space;
   auto const n = sorted_morton_codes.extent(0);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("generate_hierarchy"),
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n - 1),
-      GenerateHierarchyFunctor<DeviceType>(sorted_morton_codes, leaf_nodes,
-                                           internal_nodes, parents));
+      GenerateHierarchyFunctor<MemorySpace>(sorted_morton_codes, leaf_nodes,
+                                            internal_nodes, parents));
   // returns a pointer to the root node of the tree
   return internal_nodes.data();
 }
