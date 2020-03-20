@@ -39,8 +39,6 @@ template <typename DeviceType>
 struct TreeConstruction
 {
 public:
-  using DeprecatedExecutionSpace = typename DeviceType::execution_space;
-
   template <typename ExecutionSpace, typename Primitives>
   static void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
                                              Primitives const &primitives,
