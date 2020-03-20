@@ -117,9 +117,10 @@ public:
   }
 
   template <typename... MortonCodesViewProperties>
-  KOKKOS_FUNCTION static int commonPrefix(
-      Kokkos::View<unsigned int *, MortonCodesViewProperties...> morton_codes,
-      int i, int j)
+  KOKKOS_FUNCTION static int
+  commonPrefix(Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
+                   morton_codes,
+               int i, int j)
   {
     using KokkosExt::clz;
 
@@ -139,8 +140,19 @@ public:
   }
 
   template <typename... MortonCodesViewProperties>
+  KOKKOS_FUNCTION static int commonPrefix(
+      Kokkos::View<unsigned int *, MortonCodesViewProperties...> morton_codes,
+      int i, int j)
+  {
+    return commonPrefix(
+        Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
+            morton_codes},
+        i, j);
+  }
+
+  template <typename... MortonCodesViewProperties>
   KOKKOS_FUNCTION static int
-  findSplit(Kokkos::View<unsigned int *, MortonCodesViewProperties...>
+  findSplit(Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
                 sorted_morton_codes,
             int first, int last)
   {
@@ -172,10 +184,22 @@ public:
   }
 
   template <typename... MortonCodesViewProperties>
-  KOKKOS_FUNCTION static Kokkos::pair<int, int>
-  determineRange(Kokkos::View<unsigned int *, MortonCodesViewProperties...>
-                     sorted_morton_codes,
-                 int i)
+  KOKKOS_FUNCTION static int
+  findSplit(Kokkos::View<unsigned int *, MortonCodesViewProperties...>
+                sorted_morton_codes,
+            int first, int last)
+  {
+    return findSplit(
+        Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
+            sorted_morton_codes},
+        first, last);
+  }
+
+  template <typename... MortonCodesViewProperties>
+  KOKKOS_FUNCTION static Kokkos::pair<int, int> determineRange(
+      Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
+          sorted_morton_codes,
+      int i)
   {
     using KokkosExt::max;
     using KokkosExt::min;
@@ -208,6 +232,18 @@ public:
     int j = i + split * direction;
 
     return {min(i, j), max(i, j)};
+  }
+
+  template <typename... MortonCodesViewProperties>
+  KOKKOS_FUNCTION static Kokkos::pair<int, int>
+  determineRange(Kokkos::View<unsigned int *, MortonCodesViewProperties...>
+                     sorted_morton_codes,
+                 int i)
+  {
+    return determineRange(
+        Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
+            sorted_morton_codes},
+        i);
   }
 };
 
@@ -372,7 +408,7 @@ class GenerateHierarchyFunctor
 {
 public:
   GenerateHierarchyFunctor(
-      Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes,
+      Kokkos::View<unsigned int const *, DeviceType> sorted_morton_codes,
       Kokkos::View<Node *, DeviceType> leaf_nodes,
       Kokkos::View<Node *, DeviceType> internal_nodes,
       Kokkos::View<int *, DeviceType> parents)
@@ -431,7 +467,7 @@ public:
   }
 
 private:
-  Kokkos::View<unsigned int *, DeviceType> _sorted_morton_codes;
+  Kokkos::View<unsigned int const *, DeviceType> _sorted_morton_codes;
   Kokkos::View<Node *, DeviceType> _leaf_nodes;
   Kokkos::View<Node *, DeviceType> _internal_nodes;
   Kokkos::View<int *, DeviceType> _parents;
