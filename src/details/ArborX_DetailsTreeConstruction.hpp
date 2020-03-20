@@ -547,16 +547,6 @@ inline void calculateInternalNodesBoundingVolumes(
       Kokkos::View<int const *, ParentsViewProperties...>{parents});
 }
 } // namespace TreeConstruction
-
-/**
- * This structure contains all the functions used to build the BVH. All the
- * functions are static.
- */
-template <typename DeviceType>
-struct DeprecatedTreeConstruction
-{
-};
-
 } // namespace Details
 } // namespace ArborX
 
