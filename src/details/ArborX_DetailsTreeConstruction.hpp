@@ -447,41 +447,6 @@ inline Node *generateHierarchy(
           sorted_morton_codes},
       leaf_nodes, internal_nodes, parents);
 }
-} // namespace TreeConstruction
-
-/**
- * This structure contains all the functions used to build the BVH. All the
- * functions are static.
- */
-template <typename DeviceType>
-struct DeprecatedTreeConstruction
-{
-public:
-  template <typename ExecutionSpace, typename... LeafNodesViewProperties,
-            typename... InternalNodesViewProperties,
-            typename... ParentsViewProperties>
-  static void calculateInternalNodesBoundingVolumes(
-      ExecutionSpace const &space,
-      Kokkos::View<Node const *, LeafNodesViewProperties...> leaf_nodes,
-      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
-      Kokkos::View<int const *, ParentsViewProperties...> parents);
-
-  template <typename ExecutionSpace, typename... LeafNodesViewProperties,
-            typename... InternalNodesViewProperties,
-            typename... ParentsViewProperties>
-  static void calculateInternalNodesBoundingVolumes(
-      ExecutionSpace const &space,
-      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
-      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
-      Kokkos::View<int *, ParentsViewProperties...> parents)
-  {
-    calculateInternalNodesBoundingVolumes(
-        space,
-        Kokkos::View<Node const *, LeafNodesViewProperties...>{leaf_nodes},
-        internal_nodes,
-        Kokkos::View<int const *, ParentsViewProperties...>{parents});
-  }
-};
 
 template <typename MemorySpace>
 class CalculateInternalNodesBoundingVolumesFunctor
@@ -545,16 +510,14 @@ private:
   Kokkos::View<Node *, MemorySpace> _internal_and_leaf_nodes;
 };
 
-template <typename DeviceType>
 template <typename ExecutionSpace, typename... LeafNodesViewProperties,
           typename... InternalNodesViewProperties,
           typename... ParentsViewProperties>
-void DeprecatedTreeConstruction<DeviceType>::
-    calculateInternalNodesBoundingVolumes(
-        ExecutionSpace const &space,
-        Kokkos::View<Node const *, LeafNodesViewProperties...> leaf_nodes,
-        Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
-        Kokkos::View<int const *, ParentsViewProperties...> parents)
+void calculateInternalNodesBoundingVolumes(
+    ExecutionSpace const &space,
+    Kokkos::View<Node const *, LeafNodesViewProperties...> leaf_nodes,
+    Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
+    Kokkos::View<int const *, ParentsViewProperties...> parents)
 {
   auto const first = internal_nodes.extent(0);
   auto const last = first + leaf_nodes.extent(0);
@@ -568,6 +531,31 @@ void DeprecatedTreeConstruction<DeviceType>::
       CalculateInternalNodesBoundingVolumesFunctor<MemorySpace>(
           space, internal_and_leaf_nodes, parents, first));
 }
+
+template <typename ExecutionSpace, typename... LeafNodesViewProperties,
+          typename... InternalNodesViewProperties,
+          typename... ParentsViewProperties>
+inline void calculateInternalNodesBoundingVolumes(
+    ExecutionSpace const &space,
+    Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
+    Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
+    Kokkos::View<int *, ParentsViewProperties...> parents)
+{
+  calculateInternalNodesBoundingVolumes(
+      space, Kokkos::View<Node const *, LeafNodesViewProperties...>{leaf_nodes},
+      internal_nodes,
+      Kokkos::View<int const *, ParentsViewProperties...>{parents});
+}
+} // namespace TreeConstruction
+
+/**
+ * This structure contains all the functions used to build the BVH. All the
+ * functions are static.
+ */
+template <typename DeviceType>
+struct DeprecatedTreeConstruction
+{
+};
 
 } // namespace Details
 } // namespace ArborX

@@ -231,10 +231,8 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
 
   // calculate bounding volume for each internal node by walking the
   // hierarchy toward the root
-  Details::DeprecatedTreeConstruction<
-      DeviceType>::calculateInternalNodesBoundingVolumes(space, getLeafNodes(),
-                                                         getInternalNodes(),
-                                                         parents);
+  Details::TreeConstruction::calculateInternalNodesBoundingVolumes(
+      space, getLeafNodes(), getInternalNodes(), parents);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::popRegion();
