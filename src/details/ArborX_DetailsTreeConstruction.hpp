@@ -79,13 +79,17 @@ public:
         leaf_nodes);
   }
 
-  template <typename ExecutionSpace>
+  template <typename ExecutionSpace, typename... MortonCodesViewProperties,
+            typename... LeafNodesViewProperties,
+            typename... InternalNodesViewProperties,
+            typename... ParentsViewProperties>
   static Node *generateHierarchy(
       ExecutionSpace const &space,
-      Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes,
-      Kokkos::View<Node *, DeviceType> leaf_nodes,
-      Kokkos::View<Node *, DeviceType> internal_nodes,
-      Kokkos::View<int *, DeviceType> parents);
+      Kokkos::View<unsigned int *, MortonCodesViewProperties...>
+          sorted_morton_codes,
+      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
+      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
+      Kokkos::View<int *, ParentsViewProperties...> parents);
 
   template <typename ExecutionSpace>
   static void calculateInternalNodesBoundingVolumes(
@@ -417,13 +421,17 @@ private:
 };
 
 template <typename DeviceType>
-template <typename ExecutionSpace>
+template <typename ExecutionSpace, typename... MortonCodesViewProperties,
+          typename... LeafNodesViewProperties,
+          typename... InternalNodesViewProperties,
+          typename... ParentsViewProperties>
 Node *TreeConstruction<DeviceType>::generateHierarchy(
     ExecutionSpace const &space,
-    Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes,
-    Kokkos::View<Node *, DeviceType> leaf_nodes,
-    Kokkos::View<Node *, DeviceType> internal_nodes,
-    Kokkos::View<int *, DeviceType> parents)
+    Kokkos::View<unsigned int *, MortonCodesViewProperties...>
+        sorted_morton_codes,
+    Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
+    Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
+    Kokkos::View<int *, ParentsViewProperties...> parents)
 {
   auto const n = sorted_morton_codes.extent(0);
   Kokkos::parallel_for(
