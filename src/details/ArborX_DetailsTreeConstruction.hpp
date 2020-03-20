@@ -161,6 +161,50 @@ determineRange(Kokkos::View<unsigned int *, MortonCodesViewProperties...>
           sorted_morton_codes},
       i);
 }
+
+template <typename Primitives>
+class CalculateBoundingBoxOfTheSceneFunctor
+{
+public:
+  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
+
+  CalculateBoundingBoxOfTheSceneFunctor(Primitives const &primitives)
+      : _primitives(primitives)
+  {
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  void init(Box &box) const { box = Box(); }
+
+  KOKKOS_INLINE_FUNCTION
+  void operator()(int const i, Box &box) const
+  {
+    expand(box, Access::get(_primitives, i));
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  void join(volatile Box &dst, volatile Box const &src) const
+  {
+    expand(dst, src);
+  }
+
+private:
+  Primitives _primitives;
+};
+
+template <typename ExecutionSpace, typename Primitives>
+inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
+                                           Primitives const &primitives,
+                                           Box &scene_bounding_box)
+{
+  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
+  auto const n = Access::size(primitives);
+  Kokkos::parallel_reduce(
+      ARBORX_MARK_REGION("calculate_bounding_box_of_the_scene"),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+      CalculateBoundingBoxOfTheSceneFunctor<Primitives>(primitives),
+      scene_bounding_box);
+}
 } // namespace TreeConstruction
 
 /**
@@ -171,21 +215,6 @@ template <typename DeviceType>
 struct DeprecatedTreeConstruction
 {
 public:
-  template <typename ExecutionSpace, typename Primitives>
-  static void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
-                                             Primitives const &primitives,
-                                             Box &scene_bounding_box);
-
-  // to assign the Morton code for a given object, we use the centroid point
-  // of its bounding box, and express it relative to the bounding box of the
-  // scene.
-  template <typename ExecutionSpace, typename Primitives,
-            typename... MortonCodesViewProperties>
-  static void assignMortonCodes(
-      ExecutionSpace const &space, Primitives const &primitives,
-      Kokkos::View<unsigned int *, MortonCodesViewProperties...> morton_codes,
-      Box const &scene_bounding_box);
-
   template <typename ExecutionSpace, typename Primitives,
             typename... PermutationIndicesViewProperties,
             typename... LeafNodesViewProperties>
@@ -248,52 +277,6 @@ public:
         Kokkos::View<int const *, ParentsViewProperties...>{parents});
   }
 };
-
-template <typename Primitives>
-class CalculateBoundingBoxOfTheSceneFunctor
-{
-public:
-  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
-
-  CalculateBoundingBoxOfTheSceneFunctor(Primitives const &primitives)
-      : _primitives(primitives)
-  {
-  }
-
-  KOKKOS_INLINE_FUNCTION
-  void init(Box &box) const { box = Box(); }
-
-  KOKKOS_INLINE_FUNCTION
-  void operator()(int const i, Box &box) const
-  {
-    expand(box, Access::get(_primitives, i));
-  }
-
-  KOKKOS_INLINE_FUNCTION
-  void join(volatile Box &dst, volatile Box const &src) const
-  {
-    expand(dst, src);
-  }
-
-private:
-  Primitives _primitives;
-};
-
-template <typename DeviceType>
-template <typename ExecutionSpace, typename Primitives>
-inline void
-DeprecatedTreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
-    ExecutionSpace const &space, Primitives const &primitives,
-    Box &scene_bounding_box)
-{
-  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
-  auto const n = Access::size(primitives);
-  Kokkos::parallel_reduce(
-      ARBORX_MARK_REGION("calculate_bounding_box_of_the_scene"),
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-      CalculateBoundingBoxOfTheSceneFunctor<Primitives>(primitives),
-      scene_bounding_box);
-}
 
 template <typename ExecutionSpace, typename Primitives, typename MortonCodes>
 inline void assignMortonCodesDispatch(BoxTag, ExecutionSpace const &space,

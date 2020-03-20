@@ -183,8 +183,8 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
   Kokkos::Profiling::pushRegion("ArborX:BVH:calculate_scene_bounding_box");
 
   // determine the bounding box of the scene
-  Details::DeprecatedTreeConstruction<
-      DeviceType>::calculateBoundingBoxOfTheScene(space, primitives, _bounds);
+  Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, primitives,
+                                                            _bounds);
 
   Kokkos::Profiling::popRegion();
 

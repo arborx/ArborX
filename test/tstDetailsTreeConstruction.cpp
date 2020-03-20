@@ -65,8 +65,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(morton_codes, DeviceType, ARBORX_DEVICE_TYPES)
 
   typename DeviceType::execution_space space{};
   ArborX::Box scene_host;
-  details::DeprecatedTreeConstruction<
-      DeviceType>::calculateBoundingBoxOfTheScene(space, boxes, scene_host);
+  ArborX::Details::TreeConstruction::calculateBoundingBoxOfTheScene(
+      space, boxes, scene_host);
 
   BOOST_TEST(
       details::equals(scene_host, {{{0., 0., 0.}}, {{1024., 1024., 1024.}}}));
