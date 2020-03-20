@@ -30,6 +30,138 @@ namespace ArborX
 {
 namespace Details
 {
+namespace TreeConstruction
+{
+template <typename... MortonCodesViewProperties>
+KOKKOS_FUNCTION int
+commonPrefix(Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
+                 morton_codes,
+             int i, int j)
+{
+  using KokkosExt::clz;
+
+  int const n = morton_codes.extent(0);
+  if (j < 0 || j > n - 1)
+    return -1;
+
+  // our construction algorithm relies on keys being unique so we handle
+  // explicitly case of duplicate Morton codes by augmenting each key by
+  // a bit representation of its index.
+  if (morton_codes[i] == morton_codes[j])
+  {
+    // clz( k[i] ^ k[j] ) == 32
+    return 32 + clz(i ^ j);
+  }
+  return clz(morton_codes[i] ^ morton_codes[j]);
+}
+
+template <typename... MortonCodesViewProperties>
+KOKKOS_INLINE_FUNCTION auto commonPrefix(
+    Kokkos::View<unsigned int *, MortonCodesViewProperties...> morton_codes,
+    int i, int j)
+{
+  return commonPrefix(
+      Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
+          morton_codes},
+      i, j);
+}
+
+template <typename... MortonCodesViewProperties>
+KOKKOS_FUNCTION int
+findSplit(Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
+              sorted_morton_codes,
+          int first, int last)
+{
+  // Calculate the number of highest bits that are the same
+  // for all objects, using the count-leading-zeros intrinsic.
+
+  int common_prefix = commonPrefix(sorted_morton_codes, first, last);
+
+  // Use binary search to find where the next bit differs.
+  // Specifically, we are looking for the highest object that
+  // shares more than commonPrefix bits with the first one.
+
+  int split = first; // initial guess
+  int step = last - first;
+
+  do
+  {
+    step = (step + 1) >> 1;       // exponential decrease
+    int new_split = split + step; // proposed new position
+
+    if (new_split < last)
+    {
+      if (commonPrefix(sorted_morton_codes, first, new_split) > common_prefix)
+        split = new_split; // accept proposal
+    }
+  } while (step > 1);
+
+  return split;
+}
+
+template <typename... MortonCodesViewProperties>
+KOKKOS_INLINE_FUNCTION auto
+findSplit(Kokkos::View<unsigned int *, MortonCodesViewProperties...>
+              sorted_morton_codes,
+          int first, int last)
+{
+  return findSplit(
+      Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
+          sorted_morton_codes},
+      first, last);
+}
+
+template <typename... MortonCodesViewProperties>
+KOKKOS_FUNCTION Kokkos::pair<int, int>
+determineRange(Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
+                   sorted_morton_codes,
+               int i)
+{
+  using KokkosExt::max;
+  using KokkosExt::min;
+  using KokkosExt::sgn;
+
+  // determine direction of the range (+1 or -1)
+  int direction = sgn(commonPrefix(sorted_morton_codes, i, i + 1) -
+                      commonPrefix(sorted_morton_codes, i, i - 1));
+  assert(direction == +1 || direction == -1);
+
+  // compute upper bound for the length of the range
+  int max_step = 2;
+  int common_prefix = commonPrefix(sorted_morton_codes, i, i - direction);
+  while (commonPrefix(sorted_morton_codes, i, i + direction * max_step) >
+         common_prefix)
+  {
+    max_step = max_step << 1;
+  }
+
+  // find the other end using binary search
+  int split = 0;
+  int step = max_step;
+  do
+  {
+    step = step >> 1;
+    if (commonPrefix(sorted_morton_codes, i, i + (split + step) * direction) >
+        common_prefix)
+      split += step;
+  } while (step > 1);
+  int j = i + split * direction;
+
+  return {min(i, j), max(i, j)};
+}
+
+template <typename... MortonCodesViewProperties>
+KOKKOS_INLINE_FUNCTION auto
+determineRange(Kokkos::View<unsigned int *, MortonCodesViewProperties...>
+                   sorted_morton_codes,
+               int i)
+{
+  return determineRange(
+      Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
+          sorted_morton_codes},
+      i);
+}
+} // namespace TreeConstruction
 
 /**
  * This structure contains all the functions used to build the BVH. All the
@@ -114,136 +246,6 @@ public:
         Kokkos::View<Node const *, LeafNodesViewProperties...>{leaf_nodes},
         internal_nodes,
         Kokkos::View<int const *, ParentsViewProperties...>{parents});
-  }
-
-  template <typename... MortonCodesViewProperties>
-  KOKKOS_FUNCTION static int
-  commonPrefix(Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
-                   morton_codes,
-               int i, int j)
-  {
-    using KokkosExt::clz;
-
-    int const n = morton_codes.extent(0);
-    if (j < 0 || j > n - 1)
-      return -1;
-
-    // our construction algorithm relies on keys being unique so we handle
-    // explicitly case of duplicate Morton codes by augmenting each key by
-    // a bit representation of its index.
-    if (morton_codes[i] == morton_codes[j])
-    {
-      // clz( k[i] ^ k[j] ) == 32
-      return 32 + clz(i ^ j);
-    }
-    return clz(morton_codes[i] ^ morton_codes[j]);
-  }
-
-  template <typename... MortonCodesViewProperties>
-  KOKKOS_FUNCTION static int commonPrefix(
-      Kokkos::View<unsigned int *, MortonCodesViewProperties...> morton_codes,
-      int i, int j)
-  {
-    return commonPrefix(
-        Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
-            morton_codes},
-        i, j);
-  }
-
-  template <typename... MortonCodesViewProperties>
-  KOKKOS_FUNCTION static int
-  findSplit(Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
-                sorted_morton_codes,
-            int first, int last)
-  {
-    // Calculate the number of highest bits that are the same
-    // for all objects, using the count-leading-zeros intrinsic.
-
-    int common_prefix = commonPrefix(sorted_morton_codes, first, last);
-
-    // Use binary search to find where the next bit differs.
-    // Specifically, we are looking for the highest object that
-    // shares more than commonPrefix bits with the first one.
-
-    int split = first; // initial guess
-    int step = last - first;
-
-    do
-    {
-      step = (step + 1) >> 1;       // exponential decrease
-      int new_split = split + step; // proposed new position
-
-      if (new_split < last)
-      {
-        if (commonPrefix(sorted_morton_codes, first, new_split) > common_prefix)
-          split = new_split; // accept proposal
-      }
-    } while (step > 1);
-
-    return split;
-  }
-
-  template <typename... MortonCodesViewProperties>
-  KOKKOS_FUNCTION static int
-  findSplit(Kokkos::View<unsigned int *, MortonCodesViewProperties...>
-                sorted_morton_codes,
-            int first, int last)
-  {
-    return findSplit(
-        Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
-            sorted_morton_codes},
-        first, last);
-  }
-
-  template <typename... MortonCodesViewProperties>
-  KOKKOS_FUNCTION static Kokkos::pair<int, int> determineRange(
-      Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
-          sorted_morton_codes,
-      int i)
-  {
-    using KokkosExt::max;
-    using KokkosExt::min;
-    using KokkosExt::sgn;
-
-    // determine direction of the range (+1 or -1)
-    int direction = sgn(commonPrefix(sorted_morton_codes, i, i + 1) -
-                        commonPrefix(sorted_morton_codes, i, i - 1));
-    assert(direction == +1 || direction == -1);
-
-    // compute upper bound for the length of the range
-    int max_step = 2;
-    int common_prefix = commonPrefix(sorted_morton_codes, i, i - direction);
-    while (commonPrefix(sorted_morton_codes, i, i + direction * max_step) >
-           common_prefix)
-    {
-      max_step = max_step << 1;
-    }
-
-    // find the other end using binary search
-    int split = 0;
-    int step = max_step;
-    do
-    {
-      step = step >> 1;
-      if (commonPrefix(sorted_morton_codes, i, i + (split + step) * direction) >
-          common_prefix)
-        split += step;
-    } while (step > 1);
-    int j = i + split * direction;
-
-    return {min(i, j), max(i, j)};
-  }
-
-  template <typename... MortonCodesViewProperties>
-  KOKKOS_FUNCTION static Kokkos::pair<int, int>
-  determineRange(Kokkos::View<unsigned int *, MortonCodesViewProperties...>
-                     sorted_morton_codes,
-                 int i)
-  {
-    return determineRange(
-        Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
-            sorted_morton_codes},
-        i);
   }
 };
 
@@ -426,19 +428,20 @@ public:
   KOKKOS_INLINE_FUNCTION
   void operator()(int const i) const
   {
+    using TreeConstruction::determineRange;
+    using TreeConstruction::findSplit;
+
     // Construct internal nodes.
     // Find out which range of objects the node corresponds to.
     // (This is where the magic happens!)
 
-    auto range = DeprecatedTreeConstruction<DeviceType>::determineRange(
-        _sorted_morton_codes, i);
+    auto range = determineRange(_sorted_morton_codes, i);
     int first = range.first;
     int last = range.second;
 
     // Determine where to split the range.
 
-    int split = DeprecatedTreeConstruction<DeviceType>::findSplit(
-        _sorted_morton_codes, first, last);
+    int split = findSplit(_sorted_morton_codes, first, last);
 
     // Select first child and record parent-child relationship.
 

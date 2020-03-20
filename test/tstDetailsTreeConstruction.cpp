@@ -194,9 +194,8 @@ public:
     int index_1[] = {0, 0, 1, 1, 1, 2, 2, 0, 12, 12};
     int index_2[] = {0, 1, 0, 1, 2, 1, 2, -1, 12, 13};
 
-    _results[i] =
-        ArborX::Details::DeprecatedTreeConstruction<DeviceType>::commonPrefix(
-            _fi, index_1[i], index_2[i]);
+    _results[i] = ArborX::Details::TreeConstruction::commonPrefix(
+        _fi, index_1[i], index_2[i]);
   }
 
 private:
