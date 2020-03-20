@@ -55,9 +55,9 @@ public:
                     Kokkos::View<unsigned int *, DeviceType> morton_codes,
                     Box const &scene_bounding_box);
 
-  template <typename Primitives>
+  template <typename ExecutionSpace, typename Primitives>
   static void initializeLeafNodes(
-      Primitives const &primitives,
+      ExecutionSpace const &space, Primitives const &primitives,
       Kokkos::View<size_t const *, DeviceType> permutation_indices,
       Kokkos::View<Node *, DeviceType> leaf_nodes);
 
@@ -261,34 +261,36 @@ inline void TreeConstruction<DeviceType>::assignMortonCodes(
                             scene_bounding_box);
 }
 
-template <typename Primitives, typename Indices, typename Nodes>
-inline void initializeLeafNodesDispatch(BoxTag, Primitives const &primitives,
+template <typename ExecutionSpace, typename Primitives, typename Indices,
+          typename Nodes>
+inline void initializeLeafNodesDispatch(BoxTag, ExecutionSpace const &space,
+                                        Primitives const &primitives,
                                         Indices permutation_indices,
                                         Nodes leaf_nodes)
 {
   using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
-  using ExecutionSpace = typename Access::memory_space::execution_space;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("initialize_leaf_nodes"),
-      Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
         leaf_nodes(i) =
             makeLeafNode(permutation_indices(i),
                          Access::get(primitives, permutation_indices(i)));
       });
 }
 
-template <typename Primitives, typename Indices, typename Nodes>
-inline void initializeLeafNodesDispatch(PointTag, Primitives const &primitives,
+template <typename ExecutionSpace, typename Primitives, typename Indices,
+          typename Nodes>
+inline void initializeLeafNodesDispatch(PointTag, ExecutionSpace const &space,
+                                        Primitives const &primitives,
                                         Indices permutation_indices,
                                         Nodes leaf_nodes)
 {
   using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
-  using ExecutionSpace = typename Access::memory_space::execution_space;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("initialize_leaf_nodes"),
-      Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
         leaf_nodes(i) =
             makeLeafNode(permutation_indices(i),
                          {Access::get(primitives, permutation_indices(i)),
@@ -297,9 +299,9 @@ inline void initializeLeafNodesDispatch(PointTag, Primitives const &primitives,
 }
 
 template <typename DeviceType>
-template <typename Primitives>
+template <typename ExecutionSpace, typename Primitives>
 inline void TreeConstruction<DeviceType>::initializeLeafNodes(
-    Primitives const &primitives,
+    ExecutionSpace const &space, Primitives const &primitives,
     Kokkos::View<size_t const *, DeviceType> permutation_indices,
     Kokkos::View<Node *, DeviceType> leaf_nodes)
 {
@@ -310,7 +312,7 @@ inline void TreeConstruction<DeviceType>::initializeLeafNodes(
   ARBORX_ASSERT(leaf_nodes.extent(0) == n);
 
   using Tag = typename Tag<decay_result_of_get_t<Access>>::type;
-  initializeLeafNodesDispatch(Tag{}, primitives, permutation_indices,
+  initializeLeafNodesDispatch(Tag{}, space, primitives, permutation_indices,
                               leaf_nodes);
 }
 

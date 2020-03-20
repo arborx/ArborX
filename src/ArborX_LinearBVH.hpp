@@ -192,7 +192,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
   {
     Kokkos::View<size_t *, DeviceType> permutation_indices("permute", 1);
     Details::TreeConstruction<DeviceType>::initializeLeafNodes(
-        primitives, permutation_indices, getLeafNodes());
+        space, primitives, permutation_indices, getLeafNodes());
     return;
   }
 
@@ -215,7 +215,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
 
   // initialize leaves using the computed ordering
   Details::TreeConstruction<DeviceType>::initializeLeafNodes(
-      primitives, permutation_indices, getLeafNodes());
+      space, primitives, permutation_indices, getLeafNodes());
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX:BVH:generate_hierarchy");
