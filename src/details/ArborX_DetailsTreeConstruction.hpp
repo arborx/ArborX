@@ -54,11 +54,30 @@ public:
       Kokkos::View<unsigned int *, MortonCodesViewProperties...> morton_codes,
       Box const &scene_bounding_box);
 
-  template <typename ExecutionSpace, typename Primitives>
+  template <typename ExecutionSpace, typename Primitives,
+            typename... PermutationIndicesViewProperties,
+            typename... LeafNodesViewProperties>
   static void initializeLeafNodes(
       ExecutionSpace const &space, Primitives const &primitives,
-      Kokkos::View<size_t const *, DeviceType> permutation_indices,
-      Kokkos::View<Node *, DeviceType> leaf_nodes);
+      Kokkos::View<size_t const *, PermutationIndicesViewProperties...>
+          permutation_indices,
+      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes);
+
+  template <typename ExecutionSpace, typename Primitives,
+            typename... PermutationIndicesViewProperties,
+            typename... LeafNodesViewProperties>
+  static void initializeLeafNodes(
+      ExecutionSpace const &space, Primitives const &primitives,
+      Kokkos::View<size_t *, PermutationIndicesViewProperties...>
+          permutation_indices,
+      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes)
+  {
+    initializeLeafNodes(
+        space, primitives,
+        Kokkos::View<size_t const *, PermutationIndicesViewProperties...>{
+            permutation_indices},
+        leaf_nodes);
+  }
 
   template <typename ExecutionSpace>
   static Node *generateHierarchy(
@@ -306,11 +325,14 @@ inline void initializeLeafNodesDispatch(PointTag, ExecutionSpace const &space,
 }
 
 template <typename DeviceType>
-template <typename ExecutionSpace, typename Primitives>
+template <typename ExecutionSpace, typename Primitives,
+          typename... PermutationIndicesViewProperties,
+          typename... LeafNodesViewProperties>
 inline void TreeConstruction<DeviceType>::initializeLeafNodes(
     ExecutionSpace const &space, Primitives const &primitives,
-    Kokkos::View<size_t const *, DeviceType> permutation_indices,
-    Kokkos::View<Node *, DeviceType> leaf_nodes)
+    Kokkos::View<size_t const *, PermutationIndicesViewProperties...>
+        permutation_indices,
+    Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes)
 {
   using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
 
