@@ -36,7 +36,7 @@ namespace Details
  * functions are static.
  */
 template <typename DeviceType>
-struct TreeConstruction
+struct DeprecatedTreeConstruction
 {
 public:
   template <typename ExecutionSpace, typename Primitives>
@@ -279,7 +279,8 @@ private:
 
 template <typename DeviceType>
 template <typename ExecutionSpace, typename Primitives>
-inline void TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
+inline void
+DeprecatedTreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
     ExecutionSpace const &space, Primitives const &primitives,
     Box &scene_bounding_box)
 {
@@ -330,7 +331,7 @@ inline void assignMortonCodesDispatch(PointTag, ExecutionSpace const &space,
 template <typename DeviceType>
 template <typename ExecutionSpace, typename Primitives,
           typename... MortonCodesViewProperties>
-inline void TreeConstruction<DeviceType>::assignMortonCodes(
+inline void DeprecatedTreeConstruction<DeviceType>::assignMortonCodes(
     ExecutionSpace const &space, Primitives const &primitives,
     Kokkos::View<unsigned int *, MortonCodesViewProperties...> morton_codes,
     Box const &scene_bounding_box)
@@ -386,7 +387,7 @@ template <typename DeviceType>
 template <typename ExecutionSpace, typename Primitives,
           typename... PermutationIndicesViewProperties,
           typename... LeafNodesViewProperties>
-inline void TreeConstruction<DeviceType>::initializeLeafNodes(
+inline void DeprecatedTreeConstruction<DeviceType>::initializeLeafNodes(
     ExecutionSpace const &space, Primitives const &primitives,
     Kokkos::View<size_t const *, PermutationIndicesViewProperties...>
         permutation_indices,
@@ -429,15 +430,15 @@ public:
     // Find out which range of objects the node corresponds to.
     // (This is where the magic happens!)
 
-    auto range =
-        TreeConstruction<DeviceType>::determineRange(_sorted_morton_codes, i);
+    auto range = DeprecatedTreeConstruction<DeviceType>::determineRange(
+        _sorted_morton_codes, i);
     int first = range.first;
     int last = range.second;
 
     // Determine where to split the range.
 
-    int split = TreeConstruction<DeviceType>::findSplit(_sorted_morton_codes,
-                                                        first, last);
+    int split = DeprecatedTreeConstruction<DeviceType>::findSplit(
+        _sorted_morton_codes, first, last);
 
     // Select first child and record parent-child relationship.
 
@@ -479,7 +480,7 @@ template <typename ExecutionSpace, typename... MortonCodesViewProperties,
           typename... LeafNodesViewProperties,
           typename... InternalNodesViewProperties,
           typename... ParentsViewProperties>
-Node *TreeConstruction<DeviceType>::generateHierarchy(
+Node *DeprecatedTreeConstruction<DeviceType>::generateHierarchy(
     ExecutionSpace const &space,
     Kokkos::View<unsigned int *, MortonCodesViewProperties...>
         sorted_morton_codes,
@@ -559,11 +560,12 @@ template <typename DeviceType>
 template <typename ExecutionSpace, typename... LeafNodesViewProperties,
           typename... InternalNodesViewProperties,
           typename... ParentsViewProperties>
-void TreeConstruction<DeviceType>::calculateInternalNodesBoundingVolumes(
-    ExecutionSpace const &space,
-    Kokkos::View<Node const *, LeafNodesViewProperties...> leaf_nodes,
-    Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
-    Kokkos::View<int const *, ParentsViewProperties...> parents)
+void DeprecatedTreeConstruction<DeviceType>::
+    calculateInternalNodesBoundingVolumes(
+        ExecutionSpace const &space,
+        Kokkos::View<Node const *, LeafNodesViewProperties...> leaf_nodes,
+        Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
+        Kokkos::View<int const *, ParentsViewProperties...> parents)
 {
   auto const first = internal_nodes.extent(0);
   auto const last = first + leaf_nodes.extent(0);

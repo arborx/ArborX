@@ -65,14 +65,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(morton_codes, DeviceType, ARBORX_DEVICE_TYPES)
 
   typename DeviceType::execution_space space{};
   ArborX::Box scene_host;
-  details::TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
-      space, boxes, scene_host);
+  details::DeprecatedTreeConstruction<
+      DeviceType>::calculateBoundingBoxOfTheScene(space, boxes, scene_host);
 
   BOOST_TEST(
       details::equals(scene_host, {{{0., 0., 0.}}, {{1024., 1024., 1024.}}}));
 
   Kokkos::View<unsigned int *, DeviceType> morton_codes("morton_codes", n);
-  details::TreeConstruction<DeviceType>::assignMortonCodes(
+  details::DeprecatedTreeConstruction<DeviceType>::assignMortonCodes(
       space, boxes, morton_codes, scene_host);
   auto morton_codes_host = Kokkos::create_mirror_view(morton_codes);
   Kokkos::deep_copy(morton_codes_host, morton_codes);
@@ -194,8 +194,9 @@ public:
     int index_1[] = {0, 0, 1, 1, 1, 2, 2, 0, 12, 12};
     int index_2[] = {0, 1, 0, 1, 2, 1, 2, -1, 12, 13};
 
-    _results[i] = ArborX::Details::TreeConstruction<DeviceType>::commonPrefix(
-        _fi, index_1[i], index_2[i]);
+    _results[i] =
+        ArborX::Details::DeprecatedTreeConstruction<DeviceType>::commonPrefix(
+            _fi, index_1[i], index_2[i]);
   }
 
 private:
@@ -316,7 +317,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   Kokkos::deep_copy(parents, -1);
 
   typename DeviceType::execution_space space{};
-  details::TreeConstruction<DeviceType>::generateHierarchy(
+  details::DeprecatedTreeConstruction<DeviceType>::generateHierarchy(
       space, sorted_morton_codes, leaf_nodes, internal_nodes, parents);
 
   BOOST_TEST(parents(0) == -1);
