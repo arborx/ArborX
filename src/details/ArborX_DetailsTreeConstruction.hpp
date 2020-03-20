@@ -47,11 +47,12 @@ public:
   // to assign the Morton code for a given object, we use the centroid point
   // of its bounding box, and express it relative to the bounding box of the
   // scene.
-  template <typename ExecutionSpace, typename Primitives>
-  static void
-  assignMortonCodes(ExecutionSpace const &space, Primitives const &primitives,
-                    Kokkos::View<unsigned int *, DeviceType> morton_codes,
-                    Box const &scene_bounding_box);
+  template <typename ExecutionSpace, typename Primitives,
+            typename... MortonCodesViewProperties>
+  static void assignMortonCodes(
+      ExecutionSpace const &space, Primitives const &primitives,
+      Kokkos::View<unsigned int *, MortonCodesViewProperties...> morton_codes,
+      Box const &scene_bounding_box);
 
   template <typename ExecutionSpace, typename Primitives>
   static void initializeLeafNodes(
@@ -247,10 +248,11 @@ inline void assignMortonCodesDispatch(PointTag, ExecutionSpace const &space,
 }
 
 template <typename DeviceType>
-template <typename ExecutionSpace, typename Primitives>
+template <typename ExecutionSpace, typename Primitives,
+          typename... MortonCodesViewProperties>
 inline void TreeConstruction<DeviceType>::assignMortonCodes(
     ExecutionSpace const &space, Primitives const &primitives,
-    Kokkos::View<unsigned int *, DeviceType> morton_codes,
+    Kokkos::View<unsigned int *, MortonCodesViewProperties...> morton_codes,
     Box const &scene_bounding_box)
 {
   using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
