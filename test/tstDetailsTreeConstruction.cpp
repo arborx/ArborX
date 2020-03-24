@@ -29,8 +29,6 @@
 
 #define BOOST_TEST_MODULE DetailsTreeConstruction
 
-namespace details = ArborX::Details;
-
 namespace tt = boost::test_tools;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(morton_codes, DeviceType, ARBORX_DEVICE_TYPES)
@@ -46,11 +44,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(morton_codes, DeviceType, ARBORX_DEVICE_TYPES)
       {{0, 0, 0}}, {{0, 0, 0}}, {{0, 0, 0}},         {{0, 0, 0}},
       {{1, 2, 3}}, {{1, 2, 3}}, {{1023, 1023, 1023}}};
   auto fun = [](std::array<unsigned int, 3> const &anchor) {
+    using ArborX::Details::expandBits;
     unsigned int i = std::get<0>(anchor);
     unsigned int j = std::get<1>(anchor);
     unsigned int k = std::get<2>(anchor);
-    return 4 * details::expandBits(i) + 2 * details::expandBits(j) +
-           details::expandBits(k);
+    return 4 * expandBits(i) + 2 * expandBits(j) + expandBits(k);
   };
   std::vector<unsigned int> ref(n, std::numeric_limits<unsigned int>::max());
   for (int i = 0; i < n; ++i)
@@ -60,7 +58,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(morton_codes, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::View<ArborX::Box *, DeviceType> boxes("boxes", n);
   auto boxes_host = Kokkos::create_mirror_view(boxes);
   for (int i = 0; i < n; ++i)
-    details::expand(boxes_host(i), points[i]);
+    ArborX::Details::expand(boxes_host(i), points[i]);
   Kokkos::deep_copy(boxes, boxes_host);
 
   typename DeviceType::execution_space space{};
@@ -68,8 +66,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(morton_codes, DeviceType, ARBORX_DEVICE_TYPES)
   ArborX::Details::TreeConstruction::calculateBoundingBoxOfTheScene(
       space, boxes, scene_host);
 
-  BOOST_TEST(
-      details::equals(scene_host, {{{0., 0., 0.}}, {{1024., 1024., 1024.}}}));
+  BOOST_TEST(ArborX::Details::equals(
+      scene_host, {{{0., 0., 0.}}, {{1024., 1024., 1024.}}}));
 
   Kokkos::View<unsigned int *, DeviceType> morton_codes("morton_codes", n);
   ArborX::Details::TreeConstruction::assignMortonCodes(
@@ -113,7 +111,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indirect_sort, DeviceType, ARBORX_DEVICE_TYPES)
 
   std::vector<size_t> ref = {3, 2, 1, 0};
   // sort Morton codes and object ids
-  auto ids = details::sortObjects(k);
+  auto ids = ArborX::Details::sortObjects(k);
 
   auto k_host = Kokkos::create_mirror_view(k);
   Kokkos::deep_copy(k_host, k);
