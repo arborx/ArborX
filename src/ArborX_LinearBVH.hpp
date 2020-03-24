@@ -145,6 +145,8 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
           Kokkos::ViewAllocateWithoutInitializing("internal_and_leaf_nodes"),
           _size > 0 ? 2 * _size - 1 : 0)
 {
+  typename DeviceType::execution_space space{};
+
   Kokkos::Profiling::pushRegion("ArborX:BVH:construction");
 
   using Access = Traits::Access<Primitives, Traits::PrimitivesTag>;
@@ -181,16 +183,16 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
   Kokkos::Profiling::pushRegion("ArborX:BVH:calculate_scene_bounding_box");
 
   // determine the bounding box of the scene
-  Details::TreeConstruction<DeviceType>::calculateBoundingBoxOfTheScene(
-      primitives, _bounds);
+  Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, primitives,
+                                                            _bounds);
 
   Kokkos::Profiling::popRegion();
 
   if (size() == 1)
   {
     Kokkos::View<size_t *, DeviceType> permutation_indices("permute", 1);
-    Details::TreeConstruction<DeviceType>::initializeLeafNodes(
-        primitives, permutation_indices, getLeafNodes());
+    Details::TreeConstruction::initializeLeafNodes(
+        space, primitives, permutation_indices, getLeafNodes());
     return;
   }
 
@@ -199,8 +201,8 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
   // calculate Morton codes of all objects
   Kokkos::View<unsigned int *, DeviceType> morton_indices(
       Kokkos::ViewAllocateWithoutInitializing("morton"), size());
-  Details::TreeConstruction<DeviceType>::assignMortonCodes(
-      primitives, morton_indices, _bounds);
+  Details::TreeConstruction::assignMortonCodes(space, primitives,
+                                               morton_indices, _bounds);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_morton_codes");
@@ -212,8 +214,8 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
   Kokkos::Profiling::pushRegion("ArborX:BVH:init_leaves");
 
   // initialize leaves using the computed ordering
-  Details::TreeConstruction<DeviceType>::initializeLeafNodes(
-      primitives, permutation_indices, getLeafNodes());
+  Details::TreeConstruction::initializeLeafNodes(
+      space, primitives, permutation_indices, getLeafNodes());
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX:BVH:generate_hierarchy");
@@ -221,16 +223,16 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
   // generate bounding volume hierarchy
   Kokkos::View<int *, DeviceType> parents(
       Kokkos::ViewAllocateWithoutInitializing("parents"), 2 * size() - 1);
-  Details::TreeConstruction<DeviceType>::generateHierarchy(
-      morton_indices, getLeafNodes(), getInternalNodes(), parents);
+  Details::TreeConstruction::generateHierarchy(
+      space, morton_indices, getLeafNodes(), getInternalNodes(), parents);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX:BVH:calculate_bounding_volumes");
 
   // calculate bounding volume for each internal node by walking the
   // hierarchy toward the root
-  Details::TreeConstruction<DeviceType>::calculateInternalNodesBoundingVolumes(
-      getLeafNodes(), getInternalNodes(), parents);
+  Details::TreeConstruction::calculateInternalNodesBoundingVolumes(
+      space, getLeafNodes(), getInternalNodes(), parents);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::popRegion();
