@@ -16,7 +16,7 @@
 #include <ArborX_DetailsAlgorithms.hpp> // returnCentroid, translateAndScale
 #include <ArborX_DetailsMortonCode.hpp> // morton3D
 #include <ArborX_DetailsSortUtils.hpp>  // sortObjects
-#include <ArborX_DetailsUtils.hpp>      // iota, exclusivePrefixSum, lastElement
+#include <ArborX_DetailsUtils.hpp>      // exclusivePrefixSum, lastElement
 #include <ArborX_Macros.hpp>
 #include <ArborX_Traits.hpp>
 
