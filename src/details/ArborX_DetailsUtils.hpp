@@ -323,6 +323,7 @@ typename View::non_const_type clone(View &v);
 
 /** \brief Computes the adjacent difference.
  *
+ *  \param[in] space Execution space
  *  \param[in] src Input view
  *  \param[out] dst Output view; may not be equal to \p dst
  *
@@ -332,8 +333,9 @@ typename View::non_const_type clone(View &v);
  *
  *  \warning Undefined behavior if \p src and \p dst arrays overlap in any way.
  */
-template <typename SrcViewType, typename DstViewType>
-void adjacentDifference(SrcViewType const &src, DstViewType const &dst)
+template <typename ExecutionSpace, typename SrcViewType, typename DstViewType>
+void adjacentDifference(ExecutionSpace &&space, SrcViewType const &src,
+                        DstViewType const &dst)
 {
   static_assert(SrcViewType::rank == 1 && DstViewType::rank == 1,
                 "adjacentDifference operates on rank-1 views");
@@ -344,19 +346,26 @@ void adjacentDifference(SrcViewType const &src, DstViewType const &dst)
                              typename DstViewType::value_type>::value,
                 "adjacentDifference requires same value type for source and "
                 "destination");
-  using ExecutionSpace = typename DstViewType::execution_space;
   // QUESTION Should we assert anything about the memory spaces?
   auto const n = src.extent(0);
   ARBORX_ASSERT(n == dst.extent(0));
   ARBORX_ASSERT(src != dst);
-  Kokkos::parallel_for("adjacentDifference",
-                       Kokkos::RangePolicy<ExecutionSpace>(0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         if (i > 0)
-                           dst(i) = src(i) - src(i - 1);
-                         else
-                           dst(i) = src(i);
-                       });
+  Kokkos::RangePolicy<std::remove_reference_t<ExecutionSpace>> policy{
+      std::forward<ExecutionSpace>(space), 0, n};
+  Kokkos::parallel_for("adjacentDifference", policy, KOKKOS_LAMBDA(int i) {
+    if (i > 0)
+      dst(i) = src(i) - src(i - 1);
+    else
+      dst(i) = src(i);
+  });
+}
+
+template <typename SrcViewType, typename DstViewType>
+[[deprecated]] inline void adjacentDifference(SrcViewType const &src,
+                                              DstViewType const &dst)
+{
+  using ExecutionSpace = typename DstViewType::execution_space;
+  adjacentDifference(ExecutionSpace{}, src, dst);
 }
 
 // FIXME split this into one for STL-like algorithms and another one for view
