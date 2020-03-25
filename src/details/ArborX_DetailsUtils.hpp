@@ -147,6 +147,7 @@ lastElement(Kokkos::View<T, P...> const &v)
 
 /** \brief Fills the view with a sequence of numbers
  *
+ *  \param[in] space Execution space
  *  \param[out] v Output view
  *  \param[in] value (optional) Initial value
  *
@@ -155,11 +156,10 @@ lastElement(Kokkos::View<T, P...> const &v)
  *  <code>++value</code> which would be difficult to achieve in a performant
  *  manner while still guaranteeing the order of execution.
  */
-template <typename T, typename... P>
-void iota(Kokkos::View<T, P...> const &v,
+template <typename ExecutionSpace, typename T, typename... P>
+void iota(ExecutionSpace &&space, Kokkos::View<T, P...> const &v,
           typename Kokkos::ViewTraits<T, P...>::value_type value = 0)
 {
-  using ExecutionSpace = typename Kokkos::ViewTraits<T, P...>::execution_space;
   using ValueType = typename Kokkos::ViewTraits<T, P...>::value_type;
   static_assert((unsigned(Kokkos::ViewTraits<T, P...>::rank) == unsigned(1)),
                 "iota requires a View of rank 1");
@@ -170,8 +170,19 @@ void iota(Kokkos::View<T, P...> const &v,
                                   T, P...>::non_const_value_type>::value,
       "iota requires a View with non-const value type");
   auto const n = v.extent(0);
-  Kokkos::parallel_for("iota", Kokkos::RangePolicy<ExecutionSpace>(0, n),
+  Kokkos::RangePolicy<std::remove_reference_t<ExecutionSpace>> policy{
+      std::forward<ExecutionSpace>(space), 0, n};
+  Kokkos::parallel_for("iota", policy,
                        KOKKOS_LAMBDA(int i) { v(i) = value + (ValueType)i; });
+}
+
+template <typename T, typename... P>
+[[deprecated]] inline void
+iota(Kokkos::View<T, P...> const &v,
+     typename Kokkos::ViewTraits<T, P...>::value_type value = 0)
+{
+  using ExecutionSpace = typename Kokkos::ViewTraits<T, P...>::execution_space;
+  iota(ExecutionSpace{}, v, value);
 }
 
 /** \brief Returns the smallest and the greatest element in the view
