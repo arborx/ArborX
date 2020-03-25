@@ -531,7 +531,8 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   // positive value can be assigned otherwise.
   auto const max_results_per_query =
       (buffer_size > 0)
-          ? max(Kokkos::subview(offset,
+          ? max(ExecutionSpace{},
+                Kokkos::subview(offset,
                                 Kokkos::pair<size_t, size_t>(0, n_queries)))
           : std::numeric_limits<typename std::remove_reference<decltype(
                 offset)>::type::value_type>::max();

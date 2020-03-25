@@ -159,7 +159,8 @@ static void sortAndDetermineBufferLayout(InputView ranks,
   int offset = 0;
   while (true)
   {
-    int const largest_rank = ArborX::max(device_ranks_duplicate);
+    int const largest_rank =
+        ArborX::max(ExecutionSpace{}, device_ranks_duplicate);
     if (largest_rank == -1)
       break;
     unique_ranks.push_back(largest_rank);
