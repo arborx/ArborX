@@ -307,7 +307,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   {
     permute = Kokkos::View<size_t *, DeviceType>(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n_queries);
-    iota(permute);
+    iota(ExecutionSpace{}, permute);
   }
 
   // FIXME  readability!  queries is a sorted copy of the predicates
@@ -455,7 +455,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   {
     permute = Kokkos::View<size_t *, DeviceType>(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n_queries);
-    iota(permute);
+    iota(ExecutionSpace{}, permute);
   }
 
   // FIXME  readability!  queries is a sorted copy of the predicates
