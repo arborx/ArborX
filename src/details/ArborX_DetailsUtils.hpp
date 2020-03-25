@@ -224,7 +224,7 @@ typename ViewType::non_const_value_type min(ExecutionSpace &&space,
   Kokkos::Min<typename ViewType::non_const_value_type> reducer(result);
   Kokkos::RangePolicy<std::remove_reference_t<ExecutionSpace>> policy{
       std::forward<ExecutionSpace>(space), 0, n};
-  Kokkos::parallel_reduce(policy,
+  Kokkos::parallel_reduce("min", policy,
                           KOKKOS_LAMBDA(int i, int &update) {
                             if (v(i) < update)
                               update = v(i);
@@ -257,7 +257,7 @@ typename ViewType::non_const_value_type max(ExecutionSpace &&space,
   Kokkos::Max<typename ViewType::non_const_value_type> reducer(result);
   Kokkos::RangePolicy<std::remove_reference_t<ExecutionSpace>> policy{
       std::forward<ExecutionSpace>(space), 0, n};
-  Kokkos::parallel_reduce(policy,
+  Kokkos::parallel_reduce("max", policy,
                           KOKKOS_LAMBDA(int i, int &update) {
                             if (v(i) > update)
                               update = v(i);
