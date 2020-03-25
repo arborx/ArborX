@@ -276,18 +276,19 @@ max(ViewType const &v)
 
 /** \brief Accumulate values in a view
  *
+ *  \param[in] space Execution space
  *  \param[in] v Input view
  *  \param[in] init Initial value of the sum
  *
  *  Returns the sum of the given \p init value and elements in the given view \p
  *  v.  Uses operator+ to sum up the elements.
  */
-template <typename ViewType>
+template <typename ExecutionSpace, typename ViewType>
 typename ViewType::non_const_value_type
-accumulate(ViewType const &v, typename ViewType::non_const_value_type init)
+accumulate(ExecutionSpace &&space, ViewType const &v,
+           typename ViewType::non_const_value_type init)
 {
   static_assert(ViewType::rank == 1, "accumulate requires a View of rank 1");
-  using ExecutionSpace = typename ViewType::execution_space;
   auto const n = v.extent(0);
   // NOTE: Passing the argument init directly to the parallel_reduce() while
   // using a lambda does not yield the expected result because Kokkos will
@@ -296,14 +297,24 @@ accumulate(ViewType const &v, typename ViewType::non_const_value_type init)
   // the reduction, introduce here a temporary variable and add it to init
   // before returning.
   typename ViewType::non_const_value_type tmp = 0;
+  Kokkos::RangePolicy<std::remove_reference_t<ExecutionSpace>> policy{
+      std::forward<ExecutionSpace>(space), 0, n};
   Kokkos::parallel_reduce(
-      "accumulate", Kokkos::RangePolicy<ExecutionSpace>(0, n),
+      "accumulate", policy,
       KOKKOS_LAMBDA(int i, typename ViewType::non_const_value_type &update) {
         update += v(i);
       },
       tmp);
   init += tmp;
   return init;
+}
+
+template <typename ViewType>
+[[deprecated]] inline typename ViewType::non_const_value_type
+accumulate(ViewType const &v, typename ViewType::non_const_value_type init)
+{
+  using ExecutionSpace = typename ViewType::execution_space;
+  return accumulate(ExecutionSpace{}, v, init);
 }
 
 // FIXME shameless forward declaration
