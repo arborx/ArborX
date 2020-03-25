@@ -26,8 +26,6 @@
 #include <Kokkos_Sort.hpp>
 #include <Kokkos_View.hpp>
 
-#include <numeric> // accumulate
-
 #include <mpi.h>
 
 namespace ArborX
