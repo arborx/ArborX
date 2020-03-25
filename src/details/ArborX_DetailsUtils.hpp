@@ -176,41 +176,55 @@ void iota(Kokkos::View<T, P...> const &v,
 
 /** \brief Returns the smallest and the greatest element in the view
  *
+ *  \param[in] space Execution space
  *  \param[in] v Input view
  *
  *  Returns a pair on the host with the smallest value in the view as the first
  *  element and the greatest as the second.
  */
-template <typename ViewType>
+template <typename ExecutionSpace, typename ViewType>
 std::pair<typename ViewType::non_const_value_type,
           typename ViewType::non_const_value_type>
-minMax(ViewType const &v)
+minMax(ExecutionSpace &&space, ViewType const &v)
 {
   static_assert(ViewType::rank == 1, "minMax requires a View of rank 1");
-  using ExecutionSpace = typename ViewType::execution_space;
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
   Kokkos::MinMaxScalar<typename ViewType::non_const_value_type> result;
   Kokkos::MinMax<typename ViewType::non_const_value_type> reducer(result);
-  Kokkos::parallel_reduce("minMax", Kokkos::RangePolicy<ExecutionSpace>(0, n),
+  Kokkos::RangePolicy<std::remove_reference_t<ExecutionSpace>> policy{
+      std::forward<ExecutionSpace>(space), 0, n};
+  Kokkos::parallel_reduce("minMax", policy,
                           Kokkos::Impl::min_max_functor<ViewType>(v), reducer);
   return std::make_pair(result.min_val, result.max_val);
 }
 
+template <typename ViewType>
+[[deprecated]] inline std::pair<typename ViewType::non_const_value_type,
+                                typename ViewType::non_const_value_type>
+minMax(ViewType const &v)
+{
+  using ExecutionSpace = typename ViewType::execution_space;
+  return minMax(ExecutionSpace{}, v);
+}
+
 /** \brief Returns the smallest element in the view
  *
+ *  \param[in] space Execution space
  *  \param[in] v Input view
  */
-template <typename ViewType>
-typename ViewType::non_const_value_type min(ViewType const &v)
+template <typename ExecutionSpace, typename ViewType>
+typename ViewType::non_const_value_type min(ExecutionSpace &&space,
+                                            ViewType const &v)
 {
   static_assert(ViewType::rank == 1, "min requires a View of rank 1");
-  using ExecutionSpace = typename ViewType::execution_space;
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
   typename ViewType::non_const_value_type result;
   Kokkos::Min<typename ViewType::non_const_value_type> reducer(result);
-  Kokkos::parallel_reduce(Kokkos::RangePolicy<ExecutionSpace>(0, n),
+  Kokkos::RangePolicy<std::remove_reference_t<ExecutionSpace>> policy{
+      std::forward<ExecutionSpace>(space), 0, n};
+  Kokkos::parallel_reduce(policy,
                           KOKKOS_LAMBDA(int i, int &update) {
                             if (v(i) < update)
                               update = v(i);
@@ -219,26 +233,45 @@ typename ViewType::non_const_value_type min(ViewType const &v)
   return result;
 }
 
+template <typename ViewType>
+[[deprecated]] inline typename ViewType::non_const_value_type
+min(ViewType const &v)
+{
+  using ExecutionSpace = typename ViewType::execution_space;
+  return min(ExecutionSpace{}, v);
+}
+
 /** \brief Returns the greatest element in the view
  *
+ *  \param[in] space Execution space
  *  \param[in] v Input view
  */
-template <typename ViewType>
-typename ViewType::non_const_value_type max(ViewType const &v)
+template <typename ExecutionSpace, typename ViewType>
+typename ViewType::non_const_value_type max(ExecutionSpace &&space,
+                                            ViewType const &v)
 {
   static_assert(ViewType::rank == 1, "max requires a View of rank 1");
-  using ExecutionSpace = typename ViewType::execution_space;
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
   typename ViewType::non_const_value_type result;
   Kokkos::Max<typename ViewType::non_const_value_type> reducer(result);
-  Kokkos::parallel_reduce(Kokkos::RangePolicy<ExecutionSpace>(0, n),
+  Kokkos::RangePolicy<std::remove_reference_t<ExecutionSpace>> policy{
+      std::forward<ExecutionSpace>(space), 0, n};
+  Kokkos::parallel_reduce(policy,
                           KOKKOS_LAMBDA(int i, int &update) {
                             if (v(i) > update)
                               update = v(i);
                           },
                           reducer);
   return result;
+}
+
+template <typename ViewType>
+[[deprecated]] inline typename ViewType::non_const_value_type
+max(ViewType const &v)
+{
+  using ExecutionSpace = typename ViewType::execution_space;
+  return max(ExecutionSpace{}, v);
 }
 
 /** \brief Accumulate values in a view
