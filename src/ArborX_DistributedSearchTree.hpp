@@ -109,7 +109,7 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
     MPI_Comm comm, Primitives const &primitives)
     : _bottom_tree(primitives)
 {
-  using ExecutionSpace = typename DeviceType::device_type;
+  using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace space{};
 
   // Create new context for the library to isolate library's communication from
