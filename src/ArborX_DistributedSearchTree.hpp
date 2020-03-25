@@ -109,6 +109,9 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
     MPI_Comm comm, Primitives const &primitives)
     : _bottom_tree(primitives)
 {
+  using ExecutionSpace = typename DeviceType::device_type;
+  ExecutionSpace space{};
+
   // Create new context for the library to isolate library's communication from
   // user's
   MPI_Comm_dup(comm, &_comm);
@@ -142,7 +145,7 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
                 sizeof(size_type), MPI_BYTE, _comm);
   Kokkos::deep_copy(_bottom_tree_sizes, bottom_tree_sizes_host);
 
-  _top_tree_size = accumulate(_bottom_tree_sizes, 0);
+  _top_tree_size = accumulate(space, _bottom_tree_sizes, 0);
 }
 
 } // namespace ArborX
