@@ -310,7 +310,7 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
         }
       });
 
-  exclusivePrefixSum(new_offset);
+  exclusivePrefixSum(ExecutionSpace{}, new_offset);
 
   // Truncate results so that queries will only be forwarded to as many local
   // trees as necessary to find k neighbors.
@@ -540,7 +540,7 @@ void DistributedSearchTreeImpl<DeviceType>::countResults(
                          Kokkos::atomic_increment(&offset(query_ids(i)));
                        });
 
-  exclusivePrefixSum(offset);
+  exclusivePrefixSum(ExecutionSpace{}, offset);
 }
 
 template <typename DeviceType>
@@ -685,7 +685,7 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
                                              getK(Access::get(queries, q)));
                        });
 
-  exclusivePrefixSum(new_offset);
+  exclusivePrefixSum(ExecutionSpace{}, new_offset);
 
   int const n_truncated_results = lastElement(new_offset);
   Kokkos::View<int *, DeviceType> new_indices(indices.label(),

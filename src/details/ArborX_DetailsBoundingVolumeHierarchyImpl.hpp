@@ -324,7 +324,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
       KOKKOS_LAMBDA(int i) { offset(permute(i)) = getK(queries(i)); });
 
-  exclusivePrefixSum(offset);
+  exclusivePrefixSum(ExecutionSpace{}, offset);
   int const n_results = lastElement(offset);
 
   Kokkos::Profiling::popRegion();
@@ -394,7 +394,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   // Find out if they are any invalid entries in the indices (i.e. at least
   // one query asked for more neighbors than there are leaves in the tree) and
   // eliminate them if necessary.
-  exclusivePrefixSum(tmp_offset);
+  exclusivePrefixSum(ExecutionSpace{}, tmp_offset);
   int const n_tmp_results = lastElement(tmp_offset);
   if (n_tmp_results != n_results)
   {
@@ -540,7 +540,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   // [ 0 2 4 .... 2N-2 2N ]
   //                    ^
   //                    N
-  exclusivePrefixSum(offset);
+  exclusivePrefixSum(ExecutionSpace{}, offset);
 
   // Let us extract the last element in the view which is the total count of
   // objects which where found to meet the query predicates:
