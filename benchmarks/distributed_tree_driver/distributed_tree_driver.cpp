@@ -254,7 +254,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
         ( "do-not-perform-knn-search", "skip kNN search" )
         ( "do-not-perform-radius-search", "skip radius search" )
         ( "shift-queries" , "By default, points are reused for the queries. Enabling this option shrinks the local box queries are created "
-                            "in to a third of its size and moves it to the center of the global box. The result is a huge inbalance for the "
+                            "in to a third of its size and moves it to the center of the global box. The result is a huge imbalance for the "
                             "number of queries that need to be processed by each processor.")
         ;
   // clang-format on
