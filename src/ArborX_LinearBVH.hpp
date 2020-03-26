@@ -84,8 +84,10 @@ public:
     static_assert(std::is_same<Tag, Details::NearestPredicateTag>::value ||
                       std::is_same<Tag, Details::SpatialPredicateTag>::value,
                   "Invalid tag for the predicates");
+
+    typename DeviceType::execution_space space{};
     Details::BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
-        Tag{}, *this, predicates, std::forward<Args>(args)...);
+        Tag{}, *this, space, predicates, std::forward<Args>(args)...);
   }
 
 private:

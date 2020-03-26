@@ -162,89 +162,100 @@ struct BoundingVolumeHierarchyImpl
 {
   // Views are passed by reference here because internally Kokkos::realloc()
   // is called.
-  template <typename Predicates>
+  template <typename ExecutionSpace, typename Predicates>
   static void queryDispatch(SpatialPredicateTag,
                             BoundingVolumeHierarchy<DeviceType> const &bvh,
+                            ExecutionSpace const &space,
                             Predicates const &predicates,
                             Kokkos::View<int *, DeviceType> &indices,
                             Kokkos::View<int *, DeviceType> &offset,
                             Experimental::TraversalPolicy const &policy =
                                 Experimental::TraversalPolicy())
   {
-    queryDispatch(SpatialPredicateTag{}, bvh, predicates,
+    queryDispatch(SpatialPredicateTag{}, bvh, space, predicates,
                   CallbackDefaultSpatialPredicate{}, indices, offset, policy);
   }
 
-  template <typename Predicates, typename OutputView, typename Callback>
+  template <typename ExecutionSpace, typename Predicates, typename OutputView,
+            typename Callback>
   static std::enable_if_t<
       std::is_same<typename Callback::tag, InlineCallbackTag>::value>
   queryDispatch(SpatialPredicateTag,
                 BoundingVolumeHierarchy<DeviceType> const &bvh,
-                Predicates const &predicates, Callback const &callback,
-                OutputView &out, Kokkos::View<int *, DeviceType> &offset,
+                ExecutionSpace const &space, Predicates const &predicates,
+                Callback const &callback, OutputView &out,
+                Kokkos::View<int *, DeviceType> &offset,
                 Experimental::TraversalPolicy const &policy =
                     Experimental::TraversalPolicy());
 
-  template <typename Predicates, typename OutputView, typename Callback>
+  template <typename ExecutionSpace, typename Predicates, typename OutputView,
+            typename Callback>
   static std::enable_if_t<
       std::is_same<typename Callback::tag, PostCallbackTag>::value>
   queryDispatch(SpatialPredicateTag,
                 BoundingVolumeHierarchy<DeviceType> const &bvh,
-                Predicates const &predicates, Callback const &callback,
-                OutputView &out, Kokkos::View<int *, DeviceType> &offset,
+                ExecutionSpace const &space, Predicates const &predicates,
+                Callback const &callback, OutputView &out,
+                Kokkos::View<int *, DeviceType> &offset,
                 Experimental::TraversalPolicy const &policy =
                     Experimental::TraversalPolicy())
   {
     Kokkos::View<int *, DeviceType> indices("indices", 0);
-    queryDispatch(SpatialPredicateTag{}, bvh, predicates, indices, offset,
-                  policy);
+    queryDispatch(SpatialPredicateTag{}, bvh, space, predicates, indices,
+                  offset, policy);
     callback(predicates, offset, indices, out);
   }
 
-  template <typename Predicates, typename OutputView, typename Callback>
+  template <typename ExecutionSpace, typename Predicates, typename OutputView,
+            typename Callback>
   static std::enable_if_t<
       std::is_same<typename Callback::tag, InlineCallbackTag>::value>
   queryDispatch(NearestPredicateTag,
                 BoundingVolumeHierarchy<DeviceType> const &bvh,
-                Predicates const &predicates, Callback const &callback,
-                OutputView &out, Kokkos::View<int *, DeviceType> &offset,
+                ExecutionSpace const &space, Predicates const &predicates,
+                Callback const &callback, OutputView &out,
+                Kokkos::View<int *, DeviceType> &offset,
                 Experimental::TraversalPolicy const &policy =
                     Experimental::TraversalPolicy());
 
-  template <typename Predicates, typename OutputView, typename Callback>
+  template <typename ExecutionSpace, typename Predicates, typename OutputView,
+            typename Callback>
   static std::enable_if_t<
       std::is_same<typename Callback::tag, PostCallbackTag>::value>
   queryDispatch(NearestPredicateTag,
                 BoundingVolumeHierarchy<DeviceType> const &bvh,
-                Predicates const &predicates, Callback const &callback,
-                OutputView &out, Kokkos::View<int *, DeviceType> &offset,
+                ExecutionSpace const &space, Predicates const &predicates,
+                Callback const &callback, OutputView &out,
+                Kokkos::View<int *, DeviceType> &offset,
                 Experimental::TraversalPolicy const &policy =
                     Experimental::TraversalPolicy())
   {
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> pairs(
         "pairs_index_distance", 0);
-    queryDispatch(NearestPredicateTag{}, bvh, predicates,
+    queryDispatch(NearestPredicateTag{}, bvh, space, predicates,
                   CallbackDefaultNearestPredicateWithDistance{}, pairs, offset,
                   policy);
     callback(predicates, offset, pairs, out);
   }
 
-  template <typename Predicates>
+  template <typename ExecutionSpace, typename Predicates>
   static void queryDispatch(NearestPredicateTag,
                             BoundingVolumeHierarchy<DeviceType> const &bvh,
+                            ExecutionSpace const &space,
                             Predicates const &predicates,
                             Kokkos::View<int *, DeviceType> &indices,
                             Kokkos::View<int *, DeviceType> &offset,
                             Experimental::TraversalPolicy const &policy =
                                 Experimental::TraversalPolicy())
   {
-    queryDispatch(NearestPredicateTag{}, bvh, predicates,
+    queryDispatch(NearestPredicateTag{}, bvh, space, predicates,
                   CallbackDefaultNearestPredicate{}, indices, offset, policy);
   }
 
-  template <typename Predicates>
+  template <typename ExecutionSpace, typename Predicates>
   static void queryDispatch(NearestPredicateTag,
                             BoundingVolumeHierarchy<DeviceType> const &bvh,
+                            ExecutionSpace const &space,
                             Predicates const &predicates,
                             Kokkos::View<int *, DeviceType> &indices,
                             Kokkos::View<int *, DeviceType> &offset,
@@ -254,13 +265,12 @@ struct BoundingVolumeHierarchyImpl
   {
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> out(
         "pairs_index_distance", 0);
-    queryDispatch(NearestPredicateTag{}, bvh, predicates,
+    queryDispatch(NearestPredicateTag{}, bvh, space, predicates,
                   CallbackDefaultNearestPredicateWithDistance{}, out, offset,
                   policy);
     auto const n = out.extent(0);
     reallocWithoutInitializing(indices, n);
     reallocWithoutInitializing(distances, n);
-    using ExecutionSpace = typename DeviceType::execution_space;
     Kokkos::parallel_for(ARBORX_MARK_REGION("split_pairs"),
                          Kokkos::RangePolicy<ExecutionSpace>(0, n),
                          KOKKOS_LAMBDA(int i) {
@@ -271,22 +281,24 @@ struct BoundingVolumeHierarchyImpl
 };
 
 template <typename DeviceType>
-template <typename Predicates, typename OutputView, typename Callback>
+template <typename ExecutionSpace, typename Predicates, typename OutputView,
+          typename Callback>
 std::enable_if_t<std::is_same<typename Callback::tag, InlineCallbackTag>::value>
 BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
-    Predicates const &predicates, Callback const &callback, OutputView &out,
+    ExecutionSpace const &space, Predicates const &predicates,
+    Callback const &callback, OutputView &out,
     Kokkos::View<int *, DeviceType> &offset,
     Experimental::TraversalPolicy const &policy)
 {
+  (void)space;
+
   static_assert(is_detected<NearestPredicateInlineCallbackArchetypeExpression,
                             Callback, PredicatesHelper<Predicates>,
                             OutputFunctorHelper<OutputView>>::value,
                 "Callback function does not have the correct signature");
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:nearest_queries");
-
-  using ExecutionSpace = typename DeviceType::execution_space;
 
   bool const use_deprecated_nearest_query_algorithm =
       (policy._traversal_algorithm ==
@@ -419,22 +431,24 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 }
 
 template <typename DeviceType>
-template <typename Predicates, typename OutputView, typename Callback>
+template <typename ExecutionSpace, typename Predicates, typename OutputView,
+          typename Callback>
 std::enable_if_t<std::is_same<typename Callback::tag, InlineCallbackTag>::value>
 BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     SpatialPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
-    Predicates const &predicates, Callback const &callback, OutputView &out,
+    ExecutionSpace const &space, Predicates const &predicates,
+    Callback const &callback, OutputView &out,
     Kokkos::View<int *, DeviceType> &offset,
     Experimental::TraversalPolicy const &policy)
 {
+  (void)space;
+
   static_assert(is_detected<SpatialPredicateInlineCallbackArchetypeExpression,
                             Callback, PredicatesHelper<Predicates>,
                             OutputFunctorHelper<OutputView>>::value,
                 "Callback function does not have the correct signature");
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:spatial_queries");
-
-  using ExecutionSpace = typename DeviceType::execution_space;
 
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
   auto const n_queries = Access::size(predicates);
