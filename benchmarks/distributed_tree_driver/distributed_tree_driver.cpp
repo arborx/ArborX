@@ -298,18 +298,6 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   Kokkos::View<ArborX::Point *, DeviceType> random_points("random_points", 0);
   Kokkos::View<ArborX::Point *, DeviceType> random_queries("random_queries", 0);
   {
-    // By default, random points are "reused" between building the tree and
-    // performing queries. Note that this means that for the points in the
-    // middle of the local domains there won't be any communication.
-    Kokkos::resize(random_points, n_values);
-    Kokkos::resize(random_queries, n_queries);
-
-    auto random_points_host = Kokkos::create_mirror_view(random_points);
-    auto random_queries_host = Kokkos::create_mirror_view(random_queries);
-
-    // Generate random points uniformly distributed within a box.
-    auto const a_values = std::cbrt(n_values);
-    auto const a_queries = std::cbrt(n_queries);
     std::uniform_real_distribution<double> distribution(-1., 1.);
     std::default_random_engine generator;
     auto random = [&distribution, &generator]() {
@@ -361,22 +349,49 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     }
     }
 
+    // By default, random points are "reused" between building the tree and
+    // performing queries.
+    const int n_construction_values =
+        shift_queries ? n_values : std::max(n_values, n_queries);
+
+    // Generate random points uniformly distributed within a box.
+    auto const a_values = std::cbrt(n_construction_values);
+
+    Kokkos::resize(random_points, n_construction_values);
+    auto random_points_host = Kokkos::create_mirror_view(random_points);
+
+    // The boxes in which the points are placed have side length two, centered
+    // around offset_[xyz] 2 and scaled by a_values.
     for (int i = 0; i < n_values; ++i)
       random_points_host(i) = {{a_values * (offset_x + random()),
                                 a_values * (offset_y + random()),
                                 a_values * (offset_z + random())}};
-    int const max_offset = 2 * shift * i_max;
-    for (int i = 0; i < n_queries; ++i)
-      random_queries_host(i) = {
-          {a_queries * ((offset_x + random()) / 3 + max_offset / 3),
-           a_queries * ((offset_y + random()) / 3 + max_offset / 3),
-           a_queries * ((offset_z + random()) / 3 + max_offset / 3)}};
     Kokkos::deep_copy(random_points, random_points_host);
-    Kokkos::deep_copy(random_queries, random_queries_host);
-  }
 
-  if (!shift_queries)
-    random_queries = random_points;
+    if (shift_queries)
+    {
+      Kokkos::resize(random_queries, n_queries);
+      auto random_queries_host = Kokkos::create_mirror_view(random_queries);
+
+      // For the queries, we shrink the global box by a factor three, and
+      // move it by a third of the global size towards the global center.
+      int const max_offset = 2 * shift * i_max;
+      for (int i = 0; i < n_queries; ++i)
+        random_queries_host(i) = {
+            {a_values * ((offset_x + random()) / 3 + max_offset / 3),
+             a_values * ((offset_y + random()) / 3 + max_offset / 3),
+             a_values * ((offset_z + random()) / 3 + max_offset / 3)}};
+      Kokkos::deep_copy(random_queries, random_queries_host);
+    }
+    else
+    {
+      // Reuse constructed points both for values and queries.
+      Kokkos::resize(random_queries, n_construction_values);
+      Kokkos::deep_copy(random_queries, random_points_host);
+      Kokkos::resize(random_queries, n_queries);
+      Kokkos::resize(random_points, n_values);
+    }
+  }
 
   Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes(
       Kokkos::ViewAllocateWithoutInitializing("bounding_boxes"), n_values);
