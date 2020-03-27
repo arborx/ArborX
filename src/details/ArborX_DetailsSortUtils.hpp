@@ -88,6 +88,8 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
       bin_sort(view, CompType(n / 2, result.min_val, result.max_val), true);
   bin_sort.create_permute_vector();
   bin_sort.sort(view);
+  // FIXME Kokkos::BinSort is currently missing overloads that an execution
+  // space as argument
 
   return bin_sort.get_permute_vector();
 }
