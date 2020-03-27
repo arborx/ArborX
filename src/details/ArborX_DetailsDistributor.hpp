@@ -271,7 +271,7 @@ public:
       // Use KOKKOS_CLASS_LAMBDA when we require C++17.
       auto const permute_copy = _permute;
 
-      Kokkos::parallel_for("copy_destinations_permuted",
+      Kokkos::parallel_for(ARBORX_MARK_REGION("copy_destinations_permuted"),
                            Kokkos::RangePolicy<ExecutionSpace>(
                                0, _dest_offsets.back() * num_packets),
                            KOKKOS_LAMBDA(int const k) {
