@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indirect_sort, DeviceType, ARBORX_DEVICE_TYPES)
 
   std::vector<size_t> ref = {3, 2, 1, 0};
   // sort Morton codes and object ids
-  auto ids = ArborX::Details::sortObjects(k);
+  auto ids = ArborX::Details::sortObjects(ExecutionSpace{}, k);
 
   auto k_host = Kokkos::create_mirror_view(k);
   Kokkos::deep_copy(k_host, k);

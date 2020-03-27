@@ -81,7 +81,7 @@ public:
           morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
         });
 
-    return sortObjects(morton_codes);
+    return sortObjects(space, morton_codes);
   }
 
   // NOTE  trailing return type seems required :(
