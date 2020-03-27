@@ -291,8 +291,6 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     Kokkos::View<int *, DeviceType> &offset,
     Experimental::TraversalPolicy const &policy)
 {
-  (void)space;
-
   static_assert(is_detected<NearestPredicateInlineCallbackArchetypeExpression,
                             Callback, PredicatesHelper<Predicates>,
                             OutputFunctorHelper<OutputView>>::value,
@@ -313,18 +311,18 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   if (policy._sort_predicates)
   {
     permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-        ExecutionSpace{}, bvh.bounds(), predicates);
+        space, bvh.bounds(), predicates);
   }
   else
   {
     permute = Kokkos::View<size_t *, DeviceType>(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n_queries);
-    iota(ExecutionSpace{}, permute);
+    iota(space, permute);
   }
 
   // FIXME  readability!  queries is a sorted copy of the predicates
   auto queries = Details::BatchedQueries<DeviceType>::applyPermutation(
-      ExecutionSpace{}, permute, predicates);
+      space, permute, predicates);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX:BVH:init_offset");
@@ -333,10 +331,10 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("scan_queries_for_numbers_of_nearest_neighbors"),
-      Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int i) { offset(permute(i)) = getK(queries(i)); });
 
-  exclusivePrefixSum(ExecutionSpace{}, offset);
+  exclusivePrefixSum(space, offset);
   int const n_results = lastElement(offset);
 
   Kokkos::Profiling::popRegion();
@@ -348,7 +346,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   {
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("perform_deprecated_nearest_queries"),
-        Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i) {
           int count = 0;
           auto const shift = offset(permute(i));
@@ -378,7 +376,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("perform_nearest_queries"),
-        Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i) {
           int count = 0;
           auto const shift = offset(permute(i));
@@ -406,22 +404,22 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   // Find out if they are any invalid entries in the indices (i.e. at least
   // one query asked for more neighbors than there are leaves in the tree) and
   // eliminate them if necessary.
-  exclusivePrefixSum(ExecutionSpace{}, tmp_offset);
+  exclusivePrefixSum(space, tmp_offset);
   int const n_tmp_results = lastElement(tmp_offset);
   if (n_tmp_results != n_results)
   {
     OutputView tmp_out(Kokkos::ViewAllocateWithoutInitializing(out.label()),
                        n_tmp_results);
 
-    Kokkos::parallel_for(ARBORX_MARK_REGION("copy_valid_entries"),
-                         Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
-                         KOKKOS_LAMBDA(int q) {
-                           for (int i = 0;
-                                i < tmp_offset(q + 1) - tmp_offset(q); ++i)
-                           {
-                             tmp_out(tmp_offset(q) + i) = out(offset(q) + i);
-                           }
-                         });
+    Kokkos::parallel_for(
+        ARBORX_MARK_REGION("copy_valid_entries"),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+        KOKKOS_LAMBDA(int q) {
+          for (int i = 0; i < tmp_offset(q + 1) - tmp_offset(q); ++i)
+          {
+            tmp_out(tmp_offset(q) + i) = out(offset(q) + i);
+          }
+        });
     out = tmp_out;
     offset = tmp_offset;
   }
