@@ -272,7 +272,7 @@ struct BoundingVolumeHierarchyImpl
     reallocWithoutInitializing(indices, n);
     reallocWithoutInitializing(distances, n);
     Kokkos::parallel_for(ARBORX_MARK_REGION("split_pairs"),
-                         Kokkos::RangePolicy<ExecutionSpace>(0, n),
+                         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
                          KOKKOS_LAMBDA(int i) {
                            indices(i) = out(i).first;
                            distances(i) = out(i).second;
