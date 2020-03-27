@@ -35,8 +35,6 @@ template <typename DeviceType>
 struct BatchedQueries
 {
 public:
-  using ExecutionSpace = typename DeviceType::execution_space;
-
   // BatchedQueries defines functions for sorting queries along the Z-order
   // space-filling curve in order to minimize data divergence.  The goal is
   // to increase correlation between traversal decisions made by nearby
@@ -51,19 +49,21 @@ public:
   // indirection when recording results rather than using that function at
   // the end.  We decided to keep reversePermutation around for now.
 
-  template <typename Predicates>
+  template <typename ExecutionSpace, typename Predicates>
   static Kokkos::View<size_t *, DeviceType>
-  sortQueriesAlongZOrderCurve(Box const &scene_bounding_box,
+  sortQueriesAlongZOrderCurve(ExecutionSpace const &space,
+                              Box const &scene_bounding_box,
                               Predicates const &predicates)
   {
     Kokkos::View<Box, DeviceType> bounds("bounds");
     Kokkos::deep_copy(bounds, scene_bounding_box);
-    return sortQueriesAlongZOrderCurve(bounds, predicates);
+    return sortQueriesAlongZOrderCurve(space, bounds, predicates);
   }
 
-  template <typename Predicates>
+  template <typename ExecutionSpace, typename Predicates>
   static Kokkos::View<size_t *, DeviceType>
-  sortQueriesAlongZOrderCurve(Kokkos::View<Box const, DeviceType> bounds,
+  sortQueriesAlongZOrderCurve(ExecutionSpace const &space,
+                              Kokkos::View<Box const, DeviceType> bounds,
                               Predicates const &predicates)
   {
     using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
@@ -71,23 +71,25 @@ public:
 
     Kokkos::View<unsigned int *, DeviceType> morton_codes(
         Kokkos::ViewAllocateWithoutInitializing("morton"), n_queries);
-    Kokkos::parallel_for(ARBORX_MARK_REGION("assign_morton_codes_to_queries"),
-                         Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
-                         KOKKOS_LAMBDA(int i) {
-                           Point xyz = Details::returnCentroid(
-                               getGeometry(Access::get(predicates, i)));
-                           translateAndScale(xyz, xyz, bounds());
-                           morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
-                         });
+    Kokkos::parallel_for(
+        ARBORX_MARK_REGION("assign_morton_codes_to_queries"),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+        KOKKOS_LAMBDA(int i) {
+          Point xyz =
+              Details::returnCentroid(getGeometry(Access::get(predicates, i)));
+          translateAndScale(xyz, xyz, bounds());
+          morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
+        });
 
-    return sortObjects(morton_codes);
+    return sortObjects(space, morton_codes);
   }
 
   // NOTE  trailing return type seems required :(
   // error: The enclosing parent function ("applyPermutation") for an extended
   // __host__ __device__ lambda must not have deduced return type
-  template <typename Predicates>
-  static auto applyPermutation(Kokkos::View<size_t const *, DeviceType> permute,
+  template <typename ExecutionSpace, typename Predicates>
+  static auto applyPermutation(ExecutionSpace const &space,
+                               Kokkos::View<size_t const *, DeviceType> permute,
                                Predicates const &v)
       -> Kokkos::View<
           std::decay_t<
@@ -105,14 +107,16 @@ public:
         Kokkos::ViewAllocateWithoutInitializing("predicates"), n);
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("permute_entries"),
-        Kokkos::RangePolicy<ExecutionSpace>(0, n),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
         KOKKOS_LAMBDA(int i) { w(i) = Access::get(v, permute(i)); });
 
     return w;
   }
 
+  template <typename ExecutionSpace>
   static Kokkos::View<int *, DeviceType>
-  permuteOffset(Kokkos::View<size_t const *, DeviceType> permute,
+  permuteOffset(ExecutionSpace const &space,
+                Kokkos::View<size_t const *, DeviceType> permute,
                 Kokkos::View<int const *, DeviceType> offset)
   {
     auto const n = permute.extent(0);
@@ -121,7 +125,7 @@ public:
     auto tmp_offset = cloneWithoutInitializingNorCopying(offset);
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("adjacent_difference_and_permutation"),
-        Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
           tmp_offset(permute(i)) = offset(i + 1) - offset(i);
         });
 
@@ -130,9 +134,10 @@ public:
     return tmp_offset;
   }
 
-  template <typename T>
+  template <typename ExecutionSpace, typename T>
   static Kokkos::View<T *, DeviceType>
-  permuteIndices(Kokkos::View<size_t const *, DeviceType> permute,
+  permuteIndices(ExecutionSpace const &space,
+                 Kokkos::View<size_t const *, DeviceType> permute,
                  Kokkos::View<T const *, DeviceType> indices,
                  Kokkos::View<int const *, DeviceType> offset,
                  Kokkos::View<int const *, DeviceType> tmp_offset)
@@ -147,7 +152,7 @@ public:
     auto tmp_indices = cloneWithoutInitializingNorCopying(indices);
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("permute_indices"),
-        Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int q) {
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int q) {
           for (int i = 0; i < offset(q + 1) - offset(q); ++i)
           {
             tmp_indices(tmp_offset(permute(q)) + i) = indices(offset(q) + i);
@@ -156,23 +161,27 @@ public:
     return tmp_indices;
   }
 
+  template <typename ExecutionSpace>
   static std::tuple<Kokkos::View<int *, DeviceType>,
                     Kokkos::View<int *, DeviceType>>
-  reversePermutation(Kokkos::View<size_t const *, DeviceType> permute,
+  reversePermutation(ExecutionSpace const &space,
+                     Kokkos::View<size_t const *, DeviceType> permute,
                      Kokkos::View<int const *, DeviceType> offset,
                      Kokkos::View<int const *, DeviceType> indices)
   {
-    auto const tmp_offset = permuteOffset(permute, offset);
+    auto const tmp_offset = permuteOffset(space, permute, offset);
 
     auto const tmp_indices =
-        permuteIndices(permute, indices, offset, tmp_offset);
+        permuteIndices(space, permute, indices, offset, tmp_offset);
     return std::make_tuple(tmp_offset, tmp_indices);
   }
 
+  template <typename ExecutionSpace>
   static std::tuple<Kokkos::View<int *, DeviceType>,
                     Kokkos::View<int *, DeviceType>,
                     Kokkos::View<float *, DeviceType>>
-  reversePermutation(Kokkos::View<size_t const *, DeviceType> permute,
+  reversePermutation(ExecutionSpace const &space,
+                     Kokkos::View<size_t const *, DeviceType> permute,
                      Kokkos::View<int const *, DeviceType> offset,
                      Kokkos::View<int const *, DeviceType> indices,
                      Kokkos::View<float const *, DeviceType> distances)
@@ -180,10 +189,10 @@ public:
     auto const tmp_offset = permuteOffset(permute, offset);
 
     auto const tmp_indices =
-        permuteIndices(permute, indices, offset, tmp_offset);
+        permuteIndices(space, permute, indices, offset, tmp_offset);
 
     auto const tmp_distances =
-        permuteIndices(permute, distances, offset, tmp_offset);
+        permuteIndices(space, permute, distances, offset, tmp_offset);
 
     return std::make_tuple(tmp_offset, tmp_indices, tmp_distances);
   }

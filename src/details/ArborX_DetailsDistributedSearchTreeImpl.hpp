@@ -512,7 +512,8 @@ void DistributedSearchTreeImpl<DeviceType>::sortResults(
   // TODO try to avoid the copy
   View keys_clone(Kokkos::ViewAllocateWithoutInitializing("keys"), keys.size());
   Kokkos::deep_copy(keys_clone, keys);
-  auto const permutation = ArborX::Details::sortObjects(keys_clone);
+  auto const permutation =
+      ArborX::Details::sortObjects(ExecutionSpace{}, keys_clone);
 
   // Call applyPermutation for every entry in the parameter pack.
   // We need to use the comma operator here since the function returns void.

@@ -56,12 +56,10 @@ namespace Details
 {
 
 // NOTE returns the permutation indices **and** sorts the input view
-template <typename ViewType>
+template <typename ExecutionSpace, typename ViewType>
 Kokkos::View<size_t *, typename ViewType::device_type>
-sortObjects(ViewType &view)
+sortObjects(ExecutionSpace const &space, ViewType &view)
 {
-  using ExecutionSpace = typename ViewType::execution_space;
-
   int const n = view.extent(0);
 
   using ValueType = typename ViewType::value_type;
@@ -70,13 +68,13 @@ sortObjects(ViewType &view)
   Kokkos::MinMaxScalar<ValueType> result;
   Kokkos::MinMax<ValueType> reducer(result);
   parallel_reduce(ARBORX_MARK_REGION("find_min_max_view"),
-                  Kokkos::RangePolicy<ExecutionSpace>(0, n),
+                  Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
                   Kokkos::Impl::min_max_functor<ViewType>(view), reducer);
   if (result.min_val == result.max_val)
   {
     Kokkos::View<size_t *, typename ViewType::device_type> permute(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n);
-    iota(ExecutionSpace{}, permute);
+    iota(space, permute);
     return permute;
   }
 
@@ -90,6 +88,8 @@ sortObjects(ViewType &view)
       bin_sort(view, CompType(n / 2, result.min_val, result.max_val), true);
   bin_sort.create_permute_vector();
   bin_sort.sort(view);
+  // FIXME Kokkos::BinSort is currently missing overloads that an execution
+  // space as argument
 
   return bin_sort.get_permute_vector();
 }
@@ -98,18 +98,21 @@ sortObjects(ViewType &view)
 // NOTE returns the permutation indices **and** sorts the input view
 template <typename ValueType, typename MemorySpace>
 Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> sortObjects(
+    Kokkos::Cuda const &space,
     Kokkos::View<ValueType *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> view)
 {
   int const n = view.extent(0);
 
   Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> permute(
       Kokkos::ViewAllocateWithoutInitializing("permutation"), n);
-  ArborX::iota(Kokkos::Cuda{}, permute);
+  ArborX::iota(space, permute);
+
+  auto const execution_policy = thrust::cuda::par.on(space.cuda_stream());
 
   auto permute_ptr = thrust::device_ptr<size_t>(permute.data());
   auto begin_ptr = thrust::device_ptr<ValueType>(view.data());
   auto end_ptr = thrust::device_ptr<ValueType>(view.data() + n);
-  thrust::sort_by_key(begin_ptr, end_ptr, permute_ptr);
+  thrust::sort_by_key(execution_policy, begin_ptr, end_ptr, permute_ptr);
 
   return permute;
 }
