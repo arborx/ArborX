@@ -24,6 +24,16 @@ namespace ArborX
 
 namespace Details
 {
+
+template <class T>
+struct remove_cvref
+{
+  typedef std::remove_cv_t<std::remove_reference_t<T>> type;
+};
+
+template <class T>
+using remove_cvref_t = typename remove_cvref<T>::type;
+
 // NOTE: This functor is used in exclusivePrefixSum( src, dst ).  We were
 // getting a compile error on CUDA when using a KOKKOS_LAMBDA.
 template <typename T, typename DeviceType>
