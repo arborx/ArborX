@@ -206,7 +206,7 @@ minMax(ExecutionSpace &&space, ViewType const &v)
   Kokkos::MinMax<typename ViewType::non_const_value_type> reducer(result);
   Kokkos::RangePolicy<std::remove_reference_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_reduce(ARBORX_MARK_REGION("minMax"), policy,
+  Kokkos::parallel_reduce(ARBORX_MARK_REGION("min_max"), policy,
                           Kokkos::Impl::min_max_functor<ViewType>(v), reducer);
   return std::make_pair(result.min_val, result.max_val);
 }
@@ -364,7 +364,7 @@ void adjacentDifference(ExecutionSpace &&space, SrcViewType const &src,
   ARBORX_ASSERT(src != dst);
   Kokkos::RangePolicy<std::remove_reference_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_for(ARBORX_MARK_REGION("adjacentDifference"), policy,
+  Kokkos::parallel_for(ARBORX_MARK_REGION("adjacent_difference"), policy,
                        KOKKOS_LAMBDA(int i) {
                          if (i > 0)
                            dst(i) = src(i) - src(i - 1);
