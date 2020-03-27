@@ -361,8 +361,8 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     auto random_points_host = Kokkos::create_mirror_view(random_points);
 
     // The boxes in which the points are placed have side length two, centered
-    // around offset_[xyz] 2 and scaled by a_values.
-    for (int i = 0; i < n_values; ++i)
+    // around offset_[xyz] and scaled by a_values.
+    for (int i = 0; i < n_construction_values; ++i)
       random_points_host(i) = {{a_values * (offset_x + random()),
                                 a_values * (offset_y + random()),
                                 a_values * (offset_z + random())}};
@@ -386,9 +386,10 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     else
     {
       // Reuse constructed points both for values and queries.
-      Kokkos::resize(random_queries, n_construction_values);
-      Kokkos::deep_copy(random_queries, random_points_host);
       Kokkos::resize(random_queries, n_queries);
+      Kokkos::deep_copy(random_queries,
+                        Kokkos::subview(random_points_host,
+                                        Kokkos::pair<int, int>(0, n_queries)));
       Kokkos::resize(random_points, n_values);
     }
   }
