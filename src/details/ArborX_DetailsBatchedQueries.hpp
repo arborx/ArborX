@@ -35,8 +35,6 @@ template <typename DeviceType>
 struct BatchedQueries
 {
 public:
-  using DeprecatedExecutionSpace = typename DeviceType::execution_space;
-
   // BatchedQueries defines functions for sorting queries along the Z-order
   // space-filling curve in order to minimize data divergence.  The goal is
   // to increase correlation between traversal decisions made by nearby
