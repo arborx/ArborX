@@ -141,7 +141,7 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
   // Sort them
   auto permute =
       ArborX::Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-          bvh.bounds(), queries);
+          ExecutionSpace{}, bvh.bounds(), queries);
   queries = ArborX::Details::BatchedQueries<DeviceType>::applyPermutation(
       permute, queries);
   performQueries(prefix + "sorted_", suffix);

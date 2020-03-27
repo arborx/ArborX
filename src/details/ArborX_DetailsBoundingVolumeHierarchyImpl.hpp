@@ -313,7 +313,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   if (policy._sort_predicates)
   {
     permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-        bvh.bounds(), predicates);
+        ExecutionSpace{}, bvh.bounds(), predicates);
   }
   else
   {
@@ -463,7 +463,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   if (policy._sort_predicates)
   {
     permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-        bvh.bounds(), predicates);
+        ExecutionSpace{}, bvh.bounds(), predicates);
   }
   else
   {

@@ -51,19 +51,21 @@ public:
   // indirection when recording results rather than using that function at
   // the end.  We decided to keep reversePermutation around for now.
 
-  template <typename Predicates>
+  template <typename ExecutionSpace, typename Predicates>
   static Kokkos::View<size_t *, DeviceType>
-  sortQueriesAlongZOrderCurve(Box const &scene_bounding_box,
+  sortQueriesAlongZOrderCurve(ExecutionSpace const &space,
+                              Box const &scene_bounding_box,
                               Predicates const &predicates)
   {
     Kokkos::View<Box, DeviceType> bounds("bounds");
     Kokkos::deep_copy(bounds, scene_bounding_box);
-    return sortQueriesAlongZOrderCurve(bounds, predicates);
+    return sortQueriesAlongZOrderCurve(space, bounds, predicates);
   }
 
-  template <typename Predicates>
+  template <typename ExecutionSpace, typename Predicates>
   static Kokkos::View<size_t *, DeviceType>
-  sortQueriesAlongZOrderCurve(Kokkos::View<Box const, DeviceType> bounds,
+  sortQueriesAlongZOrderCurve(ExecutionSpace const &space,
+                              Kokkos::View<Box const, DeviceType> bounds,
                               Predicates const &predicates)
   {
     using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
@@ -73,7 +75,7 @@ public:
         Kokkos::ViewAllocateWithoutInitializing("morton"), n_queries);
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("assign_morton_codes_to_queries"),
-        Kokkos::RangePolicy<DeprecatedExecutionSpace>(0, n_queries),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i) {
           Point xyz =
               Details::returnCentroid(getGeometry(Access::get(predicates, i)));
