@@ -143,7 +143,7 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
       ArborX::Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
           ExecutionSpace{}, bvh.bounds(), queries);
   queries = ArborX::Details::BatchedQueries<DeviceType>::applyPermutation(
-      permute, queries);
+      ExecutionSpace{}, permute, queries);
   performQueries(prefix + "sorted_", suffix);
 }
 

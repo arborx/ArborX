@@ -324,7 +324,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 
   // FIXME  readability!  queries is a sorted copy of the predicates
   auto queries = Details::BatchedQueries<DeviceType>::applyPermutation(
-      permute, predicates);
+      ExecutionSpace{}, permute, predicates);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX:BVH:init_offset");
@@ -474,7 +474,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 
   // FIXME  readability!  queries is a sorted copy of the predicates
   auto queries = Details::BatchedQueries<DeviceType>::applyPermutation(
-      permute, predicates);
+      ExecutionSpace{}, permute, predicates);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX:BVH:first_pass");

@@ -89,8 +89,9 @@ public:
   // NOTE  trailing return type seems required :(
   // error: The enclosing parent function ("applyPermutation") for an extended
   // __host__ __device__ lambda must not have deduced return type
-  template <typename Predicates>
-  static auto applyPermutation(Kokkos::View<size_t const *, DeviceType> permute,
+  template <typename ExecutionSpace, typename Predicates>
+  static auto applyPermutation(ExecutionSpace const &space,
+                               Kokkos::View<size_t const *, DeviceType> permute,
                                Predicates const &v)
       -> Kokkos::View<
           std::decay_t<
@@ -108,7 +109,7 @@ public:
         Kokkos::ViewAllocateWithoutInitializing("predicates"), n);
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("permute_entries"),
-        Kokkos::RangePolicy<DeprecatedExecutionSpace>(0, n),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
         KOKKOS_LAMBDA(int i) { w(i) = Access::get(v, permute(i)); });
 
     return w;
