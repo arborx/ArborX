@@ -96,7 +96,7 @@ void exclusivePrefixSum(ExecutionSpace &&space,
 
   auto const n = src.extent(0);
   ARBORX_ASSERT(n == dst.extent(0));
-  Kokkos::RangePolicy<std::remove_reference_t<ExecutionSpace>> policy(
+  Kokkos::RangePolicy<Details::remove_cvref_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_scan(
       ARBORX_MARK_REGION("exclusive_scan"), policy,
@@ -181,7 +181,7 @@ void iota(ExecutionSpace &&space, Kokkos::View<T, P...> const &v,
                                   T, P...>::non_const_value_type>::value,
       "iota requires a View with non-const value type");
   auto const n = v.extent(0);
-  Kokkos::RangePolicy<std::remove_reference_t<ExecutionSpace>> policy(
+  Kokkos::RangePolicy<Details::remove_cvref_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_for(ARBORX_MARK_REGION("iota"), policy,
                        KOKKOS_LAMBDA(int i) { v(i) = value + (ValueType)i; });
@@ -214,7 +214,7 @@ minMax(ExecutionSpace &&space, ViewType const &v)
   ARBORX_ASSERT(n > 0);
   Kokkos::MinMaxScalar<typename ViewType::non_const_value_type> result;
   Kokkos::MinMax<typename ViewType::non_const_value_type> reducer(result);
-  Kokkos::RangePolicy<std::remove_reference_t<ExecutionSpace>> policy(
+  Kokkos::RangePolicy<Details::remove_cvref_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_reduce(ARBORX_MARK_REGION("min_max"), policy,
                           Kokkos::Impl::min_max_functor<ViewType>(v), reducer);
@@ -244,7 +244,7 @@ typename ViewType::non_const_value_type min(ExecutionSpace &&space,
   ARBORX_ASSERT(n > 0);
   typename ViewType::non_const_value_type result;
   Kokkos::Min<typename ViewType::non_const_value_type> reducer(result);
-  Kokkos::RangePolicy<std::remove_reference_t<ExecutionSpace>> policy(
+  Kokkos::RangePolicy<Details::remove_cvref_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_reduce(ARBORX_MARK_REGION("min"), policy,
                           KOKKOS_LAMBDA(int i, int &update) {
@@ -277,7 +277,7 @@ typename ViewType::non_const_value_type max(ExecutionSpace &&space,
   ARBORX_ASSERT(n > 0);
   typename ViewType::non_const_value_type result;
   Kokkos::Max<typename ViewType::non_const_value_type> reducer(result);
-  Kokkos::RangePolicy<std::remove_reference_t<ExecutionSpace>> policy(
+  Kokkos::RangePolicy<Details::remove_cvref_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_reduce(ARBORX_MARK_REGION("max"), policy,
                           KOKKOS_LAMBDA(int i, int &update) {
@@ -319,7 +319,7 @@ accumulate(ExecutionSpace &&space, ViewType const &v,
   // the reduction, introduce here a temporary variable and add it to init
   // before returning.
   typename ViewType::non_const_value_type tmp = 0;
-  Kokkos::RangePolicy<std::remove_reference_t<ExecutionSpace>> policy(
+  Kokkos::RangePolicy<Details::remove_cvref_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_reduce(
       ARBORX_MARK_REGION("accumulate"), policy,
@@ -372,7 +372,7 @@ void adjacentDifference(ExecutionSpace &&space, SrcViewType const &src,
   auto const n = src.extent(0);
   ARBORX_ASSERT(n == dst.extent(0));
   ARBORX_ASSERT(src != dst);
-  Kokkos::RangePolicy<std::remove_reference_t<ExecutionSpace>> policy(
+  Kokkos::RangePolicy<Details::remove_cvref_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_for(ARBORX_MARK_REGION("adjacent_difference"), policy,
                        KOKKOS_LAMBDA(int i) {
