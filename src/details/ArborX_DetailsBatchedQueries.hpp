@@ -115,8 +115,10 @@ public:
     return w;
   }
 
+  template <typename ExecutionSpace>
   static Kokkos::View<int *, DeviceType>
-  permuteOffset(Kokkos::View<size_t const *, DeviceType> permute,
+  permuteOffset(ExecutionSpace const &space,
+                Kokkos::View<size_t const *, DeviceType> permute,
                 Kokkos::View<int const *, DeviceType> offset)
   {
     auto const n = permute.extent(0);
@@ -125,19 +127,19 @@ public:
     auto tmp_offset = cloneWithoutInitializingNorCopying(offset);
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("adjacent_difference_and_permutation"),
-        Kokkos::RangePolicy<DeprecatedExecutionSpace>(0, n),
-        KOKKOS_LAMBDA(int i) {
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
           tmp_offset(permute(i)) = offset(i + 1) - offset(i);
         });
 
-    exclusivePrefixSum(DeprecatedExecutionSpace{}, tmp_offset);
+    exclusivePrefixSum(ExecutionSpace{}, tmp_offset);
 
     return tmp_offset;
   }
 
-  template <typename T>
+  template <typename ExecutionSpace, typename T>
   static Kokkos::View<T *, DeviceType>
-  permuteIndices(Kokkos::View<size_t const *, DeviceType> permute,
+  permuteIndices(ExecutionSpace const &space,
+                 Kokkos::View<size_t const *, DeviceType> permute,
                  Kokkos::View<T const *, DeviceType> indices,
                  Kokkos::View<int const *, DeviceType> offset,
                  Kokkos::View<int const *, DeviceType> tmp_offset)
@@ -150,35 +152,38 @@ public:
     ARBORX_ASSERT(lastElement(tmp_offset) == indices.extent_int(0));
 
     auto tmp_indices = cloneWithoutInitializingNorCopying(indices);
-    Kokkos::parallel_for(ARBORX_MARK_REGION("permute_indices"),
-                         Kokkos::RangePolicy<DeprecatedExecutionSpace>(0, n),
-                         KOKKOS_LAMBDA(int q) {
-                           for (int i = 0; i < offset(q + 1) - offset(q); ++i)
-                           {
-                             tmp_indices(tmp_offset(permute(q)) + i) =
-                                 indices(offset(q) + i);
-                           }
-                         });
+    Kokkos::parallel_for(
+        ARBORX_MARK_REGION("permute_indices"),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int q) {
+          for (int i = 0; i < offset(q + 1) - offset(q); ++i)
+          {
+            tmp_indices(tmp_offset(permute(q)) + i) = indices(offset(q) + i);
+          }
+        });
     return tmp_indices;
   }
 
+  template <typename ExecutionSpace>
   static std::tuple<Kokkos::View<int *, DeviceType>,
                     Kokkos::View<int *, DeviceType>>
-  reversePermutation(Kokkos::View<size_t const *, DeviceType> permute,
+  reversePermutation(ExecutionSpace const &space,
+                     Kokkos::View<size_t const *, DeviceType> permute,
                      Kokkos::View<int const *, DeviceType> offset,
                      Kokkos::View<int const *, DeviceType> indices)
   {
-    auto const tmp_offset = permuteOffset(permute, offset);
+    auto const tmp_offset = permuteOffset(space, permute, offset);
 
     auto const tmp_indices =
-        permuteIndices(permute, indices, offset, tmp_offset);
+        permuteIndices(space, permute, indices, offset, tmp_offset);
     return std::make_tuple(tmp_offset, tmp_indices);
   }
 
+  template <typename ExecutionSpace>
   static std::tuple<Kokkos::View<int *, DeviceType>,
                     Kokkos::View<int *, DeviceType>,
                     Kokkos::View<float *, DeviceType>>
-  reversePermutation(Kokkos::View<size_t const *, DeviceType> permute,
+  reversePermutation(ExecutionSpace const &space,
+                     Kokkos::View<size_t const *, DeviceType> permute,
                      Kokkos::View<int const *, DeviceType> offset,
                      Kokkos::View<int const *, DeviceType> indices,
                      Kokkos::View<float const *, DeviceType> distances)
@@ -186,10 +191,10 @@ public:
     auto const tmp_offset = permuteOffset(permute, offset);
 
     auto const tmp_indices =
-        permuteIndices(permute, indices, offset, tmp_offset);
+        permuteIndices(space, permute, indices, offset, tmp_offset);
 
     auto const tmp_distances =
-        permuteIndices(permute, distances, offset, tmp_offset);
+        permuteIndices(space, permute, distances, offset, tmp_offset);
 
     return std::make_tuple(tmp_offset, tmp_indices, tmp_distances);
   }
