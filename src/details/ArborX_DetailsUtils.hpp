@@ -13,6 +13,7 @@
 #define ARBORX_DETAILS_UTILS_HPP
 
 #include <ArborX_Exception.hpp>
+#include <ArborX_Macros.hpp>
 
 #include <Kokkos_Parallel.hpp>
 #include <Kokkos_Sort.hpp> // min_max_functor
@@ -52,6 +53,7 @@ private:
 
 /** \brief Computes an exclusive scan.
  *
+ *  \param[in] space Execution space
  *  \param[in] src Input view with range of elements to sum
  *  \param[out] dst Output view; may be equal to \p src
  *
@@ -61,8 +63,10 @@ private:
  *
  *  \pre \p src and \p dst must be of rank 1 and have the same size.
  */
-template <typename ST, typename... SP, typename DT, typename... DP>
-void exclusivePrefixSum(Kokkos::View<ST, SP...> const &src,
+template <typename ExecutionSpace, typename ST, typename... SP, typename DT,
+          typename... DP>
+void exclusivePrefixSum(ExecutionSpace &&space,
+                        Kokkos::View<ST, SP...> const &src,
                         Kokkos::View<DT, DP...> const &dst)
 {
   static_assert(
@@ -77,28 +81,47 @@ void exclusivePrefixSum(Kokkos::View<ST, SP...> const &src,
           (unsigned(Kokkos::ViewTraits<DT, DP...>::rank) == unsigned(1)),
       "exclusivePrefixSum requires Views of rank 1");
 
-  using ExecutionSpace =
-      typename Kokkos::ViewTraits<DT, DP...>::execution_space;
   using ValueType = typename Kokkos::ViewTraits<DT, DP...>::value_type;
   using DeviceType = typename Kokkos::ViewTraits<DT, DP...>::device_type;
 
   auto const n = src.extent(0);
   ARBORX_ASSERT(n == dst.extent(0));
+  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
+      std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_scan(
-      "exclusive_scan", Kokkos::RangePolicy<ExecutionSpace>(0, n),
+      ARBORX_MARK_REGION("exclusive_scan"), policy,
       Details::ExclusiveScanFunctor<ValueType, DeviceType>(src, dst));
 }
 
 /** \brief In-place exclusive scan.
  *
+ *  \param[in] space Execution space
  *  \param[in,out] v View with range of elements to sum
  *
  *  Calls \c exclusivePrefixSum(v, v)
  */
-template <typename T, typename... P>
-inline void exclusivePrefixSum(Kokkos::View<T, P...> const &v)
+template <typename ExecutionSpace, typename T, typename... P>
+inline std::enable_if_t<
+    Kokkos::is_execution_space<std::remove_reference_t<ExecutionSpace>>::value>
+exclusivePrefixSum(ExecutionSpace &&space, Kokkos::View<T, P...> const &v)
 {
-  exclusivePrefixSum(v, v);
+  exclusivePrefixSum(std::forward<ExecutionSpace>(space), v, v);
+}
+
+template <typename ST, typename... SP, typename DT, typename... DP>
+[[deprecated]] inline void
+exclusivePrefixSum(Kokkos::View<ST, SP...> const &src,
+                   Kokkos::View<DT, DP...> const &dst)
+{
+  using ExecutionSpace = typename Kokkos::View<DT, DP...>::execution_space;
+  exclusivePrefixSum(ExecutionSpace{}, src, dst);
+}
+
+template <typename T, typename... P>
+[[deprecated]] inline void exclusivePrefixSum(Kokkos::View<T, P...> const &v)
+{
+  using ExecutionSpace = typename Kokkos::View<T, P...>::execution_space;
+  exclusivePrefixSum(ExecutionSpace{}, v);
 }
 
 /** \brief Get a copy of the last element.
@@ -125,6 +148,7 @@ lastElement(Kokkos::View<T, P...> const &v)
 
 /** \brief Fills the view with a sequence of numbers
  *
+ *  \param[in] space Execution space
  *  \param[out] v Output view
  *  \param[in] value (optional) Initial value
  *
@@ -133,11 +157,10 @@ lastElement(Kokkos::View<T, P...> const &v)
  *  <code>++value</code> which would be difficult to achieve in a performant
  *  manner while still guaranteeing the order of execution.
  */
-template <typename T, typename... P>
-void iota(Kokkos::View<T, P...> const &v,
+template <typename ExecutionSpace, typename T, typename... P>
+void iota(ExecutionSpace &&space, Kokkos::View<T, P...> const &v,
           typename Kokkos::ViewTraits<T, P...>::value_type value = 0)
 {
-  using ExecutionSpace = typename Kokkos::ViewTraits<T, P...>::execution_space;
   using ValueType = typename Kokkos::ViewTraits<T, P...>::value_type;
   static_assert((unsigned(Kokkos::ViewTraits<T, P...>::rank) == unsigned(1)),
                 "iota requires a View of rank 1");
@@ -148,47 +171,72 @@ void iota(Kokkos::View<T, P...> const &v,
                                   T, P...>::non_const_value_type>::value,
       "iota requires a View with non-const value type");
   auto const n = v.extent(0);
-  Kokkos::parallel_for("iota", Kokkos::RangePolicy<ExecutionSpace>(0, n),
+  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
+      std::forward<ExecutionSpace>(space), 0, n);
+  Kokkos::parallel_for(ARBORX_MARK_REGION("iota"), policy,
                        KOKKOS_LAMBDA(int i) { v(i) = value + (ValueType)i; });
+}
+
+template <typename T, typename... P>
+[[deprecated]] inline void
+iota(Kokkos::View<T, P...> const &v,
+     typename Kokkos::ViewTraits<T, P...>::value_type value = 0)
+{
+  using ExecutionSpace = typename Kokkos::ViewTraits<T, P...>::execution_space;
+  iota(ExecutionSpace{}, v, value);
 }
 
 /** \brief Returns the smallest and the greatest element in the view
  *
+ *  \param[in] space Execution space
  *  \param[in] v Input view
  *
  *  Returns a pair on the host with the smallest value in the view as the first
  *  element and the greatest as the second.
  */
-template <typename ViewType>
+template <typename ExecutionSpace, typename ViewType>
 std::pair<typename ViewType::non_const_value_type,
           typename ViewType::non_const_value_type>
-minMax(ViewType const &v)
+minMax(ExecutionSpace &&space, ViewType const &v)
 {
   static_assert(ViewType::rank == 1, "minMax requires a View of rank 1");
-  using ExecutionSpace = typename ViewType::execution_space;
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
   Kokkos::MinMaxScalar<typename ViewType::non_const_value_type> result;
   Kokkos::MinMax<typename ViewType::non_const_value_type> reducer(result);
-  Kokkos::parallel_reduce("minMax", Kokkos::RangePolicy<ExecutionSpace>(0, n),
+  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
+      std::forward<ExecutionSpace>(space), 0, n);
+  Kokkos::parallel_reduce(ARBORX_MARK_REGION("min_max"), policy,
                           Kokkos::Impl::min_max_functor<ViewType>(v), reducer);
   return std::make_pair(result.min_val, result.max_val);
 }
 
+template <typename ViewType>
+[[deprecated]] inline std::pair<typename ViewType::non_const_value_type,
+                                typename ViewType::non_const_value_type>
+minMax(ViewType const &v)
+{
+  using ExecutionSpace = typename ViewType::execution_space;
+  return minMax(ExecutionSpace{}, v);
+}
+
 /** \brief Returns the smallest element in the view
  *
+ *  \param[in] space Execution space
  *  \param[in] v Input view
  */
-template <typename ViewType>
-typename ViewType::non_const_value_type min(ViewType const &v)
+template <typename ExecutionSpace, typename ViewType>
+typename ViewType::non_const_value_type min(ExecutionSpace &&space,
+                                            ViewType const &v)
 {
   static_assert(ViewType::rank == 1, "min requires a View of rank 1");
-  using ExecutionSpace = typename ViewType::execution_space;
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
   typename ViewType::non_const_value_type result;
   Kokkos::Min<typename ViewType::non_const_value_type> reducer(result);
-  Kokkos::parallel_reduce(Kokkos::RangePolicy<ExecutionSpace>(0, n),
+  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
+      std::forward<ExecutionSpace>(space), 0, n);
+  Kokkos::parallel_reduce(ARBORX_MARK_REGION("min"), policy,
                           KOKKOS_LAMBDA(int i, int &update) {
                             if (v(i) < update)
                               update = v(i);
@@ -197,20 +245,31 @@ typename ViewType::non_const_value_type min(ViewType const &v)
   return result;
 }
 
+template <typename ViewType>
+[[deprecated]] inline typename ViewType::non_const_value_type
+min(ViewType const &v)
+{
+  using ExecutionSpace = typename ViewType::execution_space;
+  return min(ExecutionSpace{}, v);
+}
+
 /** \brief Returns the greatest element in the view
  *
+ *  \param[in] space Execution space
  *  \param[in] v Input view
  */
-template <typename ViewType>
-typename ViewType::non_const_value_type max(ViewType const &v)
+template <typename ExecutionSpace, typename ViewType>
+typename ViewType::non_const_value_type max(ExecutionSpace &&space,
+                                            ViewType const &v)
 {
   static_assert(ViewType::rank == 1, "max requires a View of rank 1");
-  using ExecutionSpace = typename ViewType::execution_space;
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
   typename ViewType::non_const_value_type result;
   Kokkos::Max<typename ViewType::non_const_value_type> reducer(result);
-  Kokkos::parallel_reduce(Kokkos::RangePolicy<ExecutionSpace>(0, n),
+  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
+      std::forward<ExecutionSpace>(space), 0, n);
+  Kokkos::parallel_reduce(ARBORX_MARK_REGION("max"), policy,
                           KOKKOS_LAMBDA(int i, int &update) {
                             if (v(i) > update)
                               update = v(i);
@@ -219,20 +278,29 @@ typename ViewType::non_const_value_type max(ViewType const &v)
   return result;
 }
 
+template <typename ViewType>
+[[deprecated]] inline typename ViewType::non_const_value_type
+max(ViewType const &v)
+{
+  using ExecutionSpace = typename ViewType::execution_space;
+  return max(ExecutionSpace{}, v);
+}
+
 /** \brief Accumulate values in a view
  *
+ *  \param[in] space Execution space
  *  \param[in] v Input view
  *  \param[in] init Initial value of the sum
  *
  *  Returns the sum of the given \p init value and elements in the given view \p
  *  v.  Uses operator+ to sum up the elements.
  */
-template <typename ViewType>
+template <typename ExecutionSpace, typename ViewType>
 typename ViewType::non_const_value_type
-accumulate(ViewType const &v, typename ViewType::non_const_value_type init)
+accumulate(ExecutionSpace &&space, ViewType const &v,
+           typename ViewType::non_const_value_type init)
 {
   static_assert(ViewType::rank == 1, "accumulate requires a View of rank 1");
-  using ExecutionSpace = typename ViewType::execution_space;
   auto const n = v.extent(0);
   // NOTE: Passing the argument init directly to the parallel_reduce() while
   // using a lambda does not yield the expected result because Kokkos will
@@ -241,8 +309,10 @@ accumulate(ViewType const &v, typename ViewType::non_const_value_type init)
   // the reduction, introduce here a temporary variable and add it to init
   // before returning.
   typename ViewType::non_const_value_type tmp = 0;
+  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
+      std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_reduce(
-      "accumulate", Kokkos::RangePolicy<ExecutionSpace>(0, n),
+      ARBORX_MARK_REGION("accumulate"), policy,
       KOKKOS_LAMBDA(int i, typename ViewType::non_const_value_type &update) {
         update += v(i);
       },
@@ -251,12 +321,21 @@ accumulate(ViewType const &v, typename ViewType::non_const_value_type init)
   return init;
 }
 
+template <typename ViewType>
+[[deprecated]] inline typename ViewType::non_const_value_type
+accumulate(ViewType const &v, typename ViewType::non_const_value_type init)
+{
+  using ExecutionSpace = typename ViewType::execution_space;
+  return accumulate(ExecutionSpace{}, v, init);
+}
+
 // FIXME shameless forward declaration
 template <typename View>
 typename View::non_const_type clone(View &v);
 
 /** \brief Computes the adjacent difference.
  *
+ *  \param[in] space Execution space
  *  \param[in] src Input view
  *  \param[out] dst Output view; may not be equal to \p dst
  *
@@ -266,8 +345,9 @@ typename View::non_const_type clone(View &v);
  *
  *  \warning Undefined behavior if \p src and \p dst arrays overlap in any way.
  */
-template <typename SrcViewType, typename DstViewType>
-void adjacentDifference(SrcViewType const &src, DstViewType const &dst)
+template <typename ExecutionSpace, typename SrcViewType, typename DstViewType>
+void adjacentDifference(ExecutionSpace &&space, SrcViewType const &src,
+                        DstViewType const &dst)
 {
   static_assert(SrcViewType::rank == 1 && DstViewType::rank == 1,
                 "adjacentDifference operates on rank-1 views");
@@ -278,19 +358,27 @@ void adjacentDifference(SrcViewType const &src, DstViewType const &dst)
                              typename DstViewType::value_type>::value,
                 "adjacentDifference requires same value type for source and "
                 "destination");
-  using ExecutionSpace = typename DstViewType::execution_space;
   // QUESTION Should we assert anything about the memory spaces?
   auto const n = src.extent(0);
   ARBORX_ASSERT(n == dst.extent(0));
   ARBORX_ASSERT(src != dst);
-  Kokkos::parallel_for("adjacentDifference",
-                       Kokkos::RangePolicy<ExecutionSpace>(0, n),
+  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
+      std::forward<ExecutionSpace>(space), 0, n);
+  Kokkos::parallel_for(ARBORX_MARK_REGION("adjacent_difference"), policy,
                        KOKKOS_LAMBDA(int i) {
                          if (i > 0)
                            dst(i) = src(i) - src(i - 1);
                          else
                            dst(i) = src(i);
                        });
+}
+
+template <typename SrcViewType, typename DstViewType>
+[[deprecated]] inline void adjacentDifference(SrcViewType const &src,
+                                              DstViewType const &dst)
+{
+  using ExecutionSpace = typename DstViewType::execution_space;
+  adjacentDifference(ExecutionSpace{}, src, dst);
 }
 
 // FIXME split this into one for STL-like algorithms and another one for view
@@ -330,13 +418,20 @@ typename View::non_const_type cloneWithoutInitializingNorCopying(View &v)
       Kokkos::ViewAllocateWithoutInitializing(v.label()), v.layout());
 }
 
-template <typename View>
-typename View::non_const_type clone(View &v)
+template <typename ExecutionSpace, typename View>
+typename View::non_const_type clone(ExecutionSpace &&space, View &v)
 {
   typename View::non_const_type w(
       Kokkos::ViewAllocateWithoutInitializing(v.label()), v.layout());
-  Kokkos::deep_copy(w, v);
+  Kokkos::deep_copy(std::forward<ExecutionSpace>(space), w, v);
   return w;
+}
+
+template <typename View>
+[[deprecated]] inline typename View::non_const_type clone(View &v)
+{
+  using ExecutionSpace = typename View::execution_space;
+  return clone(ExecutionSpace{}, v);
 }
 
 } // namespace ArborX

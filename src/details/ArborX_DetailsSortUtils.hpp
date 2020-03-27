@@ -76,7 +76,7 @@ sortObjects(ViewType &view)
   {
     Kokkos::View<size_t *, typename ViewType::device_type> permute(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n);
-    iota(permute);
+    iota(ExecutionSpace{}, permute);
     return permute;
   }
 
@@ -104,7 +104,7 @@ Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> sortObjects(
 
   Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> permute(
       Kokkos::ViewAllocateWithoutInitializing("permutation"), n);
-  ArborX::iota(permute);
+  ArborX::iota(Kokkos::Cuda{}, permute);
 
   auto permute_ptr = thrust::device_ptr<size_t>(permute.data());
   auto begin_ptr = thrust::device_ptr<ValueType>(view.data());
@@ -163,15 +163,15 @@ void applyPermutation(PermutationView const &permutation, View &view)
 {
   static_assert(std::is_integral<typename PermutationView::value_type>::value,
                 "");
+  using ExecutionSpace = typename View::execution_space;
   ARBORX_ASSERT(permutation.extent(0) == view.extent(0));
-  auto scratch_view = clone(view);
-  Kokkos::parallel_for(
-      ARBORX_MARK_REGION("permute"),
-      Kokkos::RangePolicy<typename View::execution_space>(0, view.extent(0)),
-      KOKKOS_LAMBDA(int i) {
-        PermuteHelper::CopyOp<View, View>::copy(scratch_view, i, view,
-                                                permutation(i));
-      });
+  auto scratch_view = clone(ExecutionSpace{}, view);
+  Kokkos::parallel_for(ARBORX_MARK_REGION("permute"),
+                       Kokkos::RangePolicy<ExecutionSpace>(0, view.extent(0)),
+                       KOKKOS_LAMBDA(int i) {
+                         PermuteHelper::CopyOp<View, View>::copy(
+                             scratch_view, i, view, permutation(i));
+                       });
   Kokkos::deep_copy(view, scratch_view);
 }
 

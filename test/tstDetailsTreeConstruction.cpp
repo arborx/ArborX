@@ -15,7 +15,6 @@
 #include <ArborX_DetailsMortonCode.hpp> // expandBits, morton3D
 #include <ArborX_DetailsSortUtils.hpp>  // sortObjects
 #include <ArborX_DetailsTreeConstruction.hpp>
-#include <ArborX_DetailsUtils.hpp> // iota
 
 #include <boost/test/unit_test.hpp>
 

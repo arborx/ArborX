@@ -307,7 +307,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   {
     permute = Kokkos::View<size_t *, DeviceType>(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n_queries);
-    iota(permute);
+    iota(ExecutionSpace{}, permute);
   }
 
   // FIXME  readability!  queries is a sorted copy of the predicates
@@ -324,7 +324,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
       KOKKOS_LAMBDA(int i) { offset(permute(i)) = getK(queries(i)); });
 
-  exclusivePrefixSum(offset);
+  exclusivePrefixSum(ExecutionSpace{}, offset);
   int const n_results = lastElement(offset);
 
   Kokkos::Profiling::popRegion();
@@ -394,7 +394,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   // Find out if they are any invalid entries in the indices (i.e. at least
   // one query asked for more neighbors than there are leaves in the tree) and
   // eliminate them if necessary.
-  exclusivePrefixSum(tmp_offset);
+  exclusivePrefixSum(ExecutionSpace{}, tmp_offset);
   int const n_tmp_results = lastElement(tmp_offset);
   if (n_tmp_results != n_results)
   {
@@ -455,7 +455,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   {
     permute = Kokkos::View<size_t *, DeviceType>(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n_queries);
-    iota(permute);
+    iota(ExecutionSpace{}, permute);
   }
 
   // FIXME  readability!  queries is a sorted copy of the predicates
@@ -531,7 +531,8 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   // positive value can be assigned otherwise.
   auto const max_results_per_query =
       (buffer_size > 0)
-          ? max(Kokkos::subview(offset,
+          ? max(ExecutionSpace{},
+                Kokkos::subview(offset,
                                 Kokkos::pair<size_t, size_t>(0, n_queries)))
           : std::numeric_limits<typename std::remove_reference<decltype(
                 offset)>::type::value_type>::max();
@@ -540,7 +541,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   // [ 0 2 4 .... 2N-2 2N ]
   //                    ^
   //                    N
-  exclusivePrefixSum(offset);
+  exclusivePrefixSum(ExecutionSpace{}, offset);
 
   // Let us extract the last element in the view which is the total count of
   // objects which where found to meet the query predicates:

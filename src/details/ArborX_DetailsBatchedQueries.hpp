@@ -16,7 +16,7 @@
 #include <ArborX_DetailsAlgorithms.hpp> // returnCentroid, translateAndScale
 #include <ArborX_DetailsMortonCode.hpp> // morton3D
 #include <ArborX_DetailsSortUtils.hpp>  // sortObjects
-#include <ArborX_DetailsUtils.hpp>      // iota, exclusivePrefixSum, lastElement
+#include <ArborX_DetailsUtils.hpp>      // exclusivePrefixSum, lastElement
 #include <ArborX_Macros.hpp>
 #include <ArborX_Traits.hpp>
 
@@ -125,7 +125,7 @@ public:
           tmp_offset(permute(i)) = offset(i + 1) - offset(i);
         });
 
-    exclusivePrefixSum(tmp_offset);
+    exclusivePrefixSum(ExecutionSpace{}, tmp_offset);
 
     return tmp_offset;
   }

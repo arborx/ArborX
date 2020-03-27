@@ -286,11 +286,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
   BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset));
   checkResultsAreFine();
 
+  using ExecutionSpace = typename DeviceType::execution_space;
   // compute number of results per query
   auto counts = ArborX::cloneWithoutInitializingNorCopying(offset);
-  ArborX::adjacentDifference(offset, counts);
+  ArborX::adjacentDifference(ExecutionSpace{}, offset, counts);
   // extract optimal buffer size
-  auto const max_results_per_query = ArborX::max(counts);
+  auto const max_results_per_query = ArborX::max(ExecutionSpace{}, counts);
   BOOST_TEST(max_results_per_query == 4);
 
   // optimal size
