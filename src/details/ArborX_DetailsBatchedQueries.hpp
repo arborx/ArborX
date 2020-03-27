@@ -35,7 +35,7 @@ template <typename DeviceType>
 struct BatchedQueries
 {
 public:
-  using ExecutionSpace = typename DeviceType::execution_space;
+  using DeprecatedExecutionSpace = typename DeviceType::execution_space;
 
   // BatchedQueries defines functions for sorting queries along the Z-order
   // space-filling curve in order to minimize data divergence.  The goal is
@@ -71,14 +71,15 @@ public:
 
     Kokkos::View<unsigned int *, DeviceType> morton_codes(
         Kokkos::ViewAllocateWithoutInitializing("morton"), n_queries);
-    Kokkos::parallel_for(ARBORX_MARK_REGION("assign_morton_codes_to_queries"),
-                         Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
-                         KOKKOS_LAMBDA(int i) {
-                           Point xyz = Details::returnCentroid(
-                               getGeometry(Access::get(predicates, i)));
-                           translateAndScale(xyz, xyz, bounds());
-                           morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
-                         });
+    Kokkos::parallel_for(
+        ARBORX_MARK_REGION("assign_morton_codes_to_queries"),
+        Kokkos::RangePolicy<DeprecatedExecutionSpace>(0, n_queries),
+        KOKKOS_LAMBDA(int i) {
+          Point xyz =
+              Details::returnCentroid(getGeometry(Access::get(predicates, i)));
+          translateAndScale(xyz, xyz, bounds());
+          morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
+        });
 
     return sortObjects(morton_codes);
   }
@@ -105,7 +106,7 @@ public:
         Kokkos::ViewAllocateWithoutInitializing("predicates"), n);
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("permute_entries"),
-        Kokkos::RangePolicy<ExecutionSpace>(0, n),
+        Kokkos::RangePolicy<DeprecatedExecutionSpace>(0, n),
         KOKKOS_LAMBDA(int i) { w(i) = Access::get(v, permute(i)); });
 
     return w;
@@ -121,11 +122,12 @@ public:
     auto tmp_offset = cloneWithoutInitializingNorCopying(offset);
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("adjacent_difference_and_permutation"),
-        Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+        Kokkos::RangePolicy<DeprecatedExecutionSpace>(0, n),
+        KOKKOS_LAMBDA(int i) {
           tmp_offset(permute(i)) = offset(i + 1) - offset(i);
         });
 
-    exclusivePrefixSum(ExecutionSpace{}, tmp_offset);
+    exclusivePrefixSum(DeprecatedExecutionSpace{}, tmp_offset);
 
     return tmp_offset;
   }
@@ -145,14 +147,15 @@ public:
     ARBORX_ASSERT(lastElement(tmp_offset) == indices.extent_int(0));
 
     auto tmp_indices = cloneWithoutInitializingNorCopying(indices);
-    Kokkos::parallel_for(
-        ARBORX_MARK_REGION("permute_indices"),
-        Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int q) {
-          for (int i = 0; i < offset(q + 1) - offset(q); ++i)
-          {
-            tmp_indices(tmp_offset(permute(q)) + i) = indices(offset(q) + i);
-          }
-        });
+    Kokkos::parallel_for(ARBORX_MARK_REGION("permute_indices"),
+                         Kokkos::RangePolicy<DeprecatedExecutionSpace>(0, n),
+                         KOKKOS_LAMBDA(int q) {
+                           for (int i = 0; i < offset(q + 1) - offset(q); ++i)
+                           {
+                             tmp_indices(tmp_offset(permute(q)) + i) =
+                                 indices(offset(q) + i);
+                           }
+                         });
     return tmp_indices;
   }
 
