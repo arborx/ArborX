@@ -498,15 +498,6 @@ void DistributedSearchTreeImpl<DeviceType>::sortResults(
   if (n == 0)
     return;
 
-  using Value = typename View::non_const_value_type;
-
-  Kokkos::MinMaxScalar<Value> result;
-  Kokkos::MinMax<Value> reducer(result);
-  parallel_reduce(Kokkos::RangePolicy<ExecutionSpace>(0, n),
-                  Kokkos::Impl::min_max_functor<View>(keys), reducer);
-  if (result.min_val == result.max_val)
-    return;
-
   // We only want to get the permutation here, but sortObjects also sorts the
   // elements given to it. Hence, we need to create a copy.
   // TODO try to avoid the copy
