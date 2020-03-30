@@ -20,7 +20,7 @@
 namespace ArborX
 {
 
-template <typename DeviceType>
+template <typename DeviceType, typename Enable>
 class BoundingVolumeHierarchy;
 
 namespace Details
@@ -46,8 +46,10 @@ struct TreeVisualization
   struct TreeAccess
   {
     KOKKOS_INLINE_FUNCTION
-    static Node const *getLeaf(BoundingVolumeHierarchy<DeviceType> const &bvh,
-                               size_t index)
+    static Node const *getLeaf(
+        BoundingVolumeHierarchy<typename DeviceType::memory_space, void> const
+            &bvh,
+        size_t index)
     {
       auto leaf_nodes = bvh.getLeafNodes();
       Node const *first = leaf_nodes.data();
@@ -59,22 +61,28 @@ struct TreeVisualization
     }
 
     KOKKOS_INLINE_FUNCTION
-    static int getIndex(Node const *node,
-                        BoundingVolumeHierarchy<DeviceType> const &bvh)
+    static int getIndex(
+        Node const *node,
+        BoundingVolumeHierarchy<typename DeviceType::memory_space, void> const
+            &bvh)
     {
       return node->isLeaf() ? node->getLeafPermutationIndex()
                             : node - bvh.getRoot();
     }
 
     KOKKOS_INLINE_FUNCTION
-    static Node const *getRoot(BoundingVolumeHierarchy<DeviceType> const &bvh)
+    static Node const *getRoot(
+        BoundingVolumeHierarchy<typename DeviceType::memory_space, void> const
+            &bvh)
     {
       return bvh.getRoot();
     }
 
     KOKKOS_INLINE_FUNCTION
-    static Node const *
-    getNodePtr(BoundingVolumeHierarchy<DeviceType> const &bvh, int index)
+    static Node const *getNodePtr(
+        BoundingVolumeHierarchy<typename DeviceType::memory_space, void> const
+            &bvh,
+        int index)
     {
       return bvh.getNodePtr(index);
     }

@@ -33,18 +33,19 @@ template <typename DeviceType>
 struct TreeVisualization;
 }
 
-template <typename DeviceType>
+template <typename MemorySpace, typename Enable = void>
 class BoundingVolumeHierarchy
 {
 public:
-  using device_type = DeviceType;
+  using memory_space = MemorySpace;
   using bounding_volume_type = Box;
-  using size_type = typename DeviceType::memory_space::size_type;
+  using size_type = typename MemorySpace::size_type;
 
   BoundingVolumeHierarchy() = default; // build an empty tree
 
-  template <typename Primitives>
-  BoundingVolumeHierarchy(Primitives const &primitives);
+  template <typename ExecutionSpace, typename Primitives>
+  BoundingVolumeHierarchy(ExecutionSpace const &space,
+                          Primitives const &primitives);
 
   KOKKOS_INLINE_FUNCTION
   size_type size() const noexcept { return _size; }
@@ -54,8 +55,9 @@ public:
 
   bounding_volume_type bounds() const noexcept { return _bounds; }
 
-  template <typename Predicates, typename... Args>
-  void query(Predicates const &predicates, Args &&... args) const
+  template <typename ExecutionSpace, typename Predicates, typename... Args>
+  void query(ExecutionSpace const &space, Predicates const &predicates,
+             Args &&... args) const
   {
     using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
     static_assert(
@@ -66,9 +68,8 @@ public:
         "Traits::Access<Predicates,Traits::PredicatesTag> must define "
         "'memory_space' member type that is a valid Kokkos memory space");
     static_assert(
-        KokkosExt::is_accessible_from<
-            typename Access::memory_space,
-            typename device_type::execution_space>::value,
+        KokkosExt::is_accessible_from<typename Access::memory_space,
+                                      ExecutionSpace>::value,
         "Traits::Access<Predicates,Traits::PredicatesTag>::memory_space must "
         "be accessible from the bounding volume hierarchy execution space");
     static_assert(
@@ -85,24 +86,26 @@ public:
                       std::is_same<Tag, Details::SpatialPredicateTag>::value,
                   "Invalid tag for the predicates");
 
-    typename DeviceType::execution_space space{};
+    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     Details::BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
         Tag{}, *this, space, predicates, std::forward<Args>(args)...);
   }
 
 private:
-  friend struct Details::TreeTraversal<DeviceType>;
-  friend struct Details::TreeVisualization<DeviceType>;
+  template <typename DeviceType>
+  friend struct Details::TreeTraversal;
+  template <typename DeviceType>
+  friend struct Details::TreeVisualization;
   using Node = Details::Node;
 
-  Kokkos::View<Node *, DeviceType> getInternalNodes()
+  Kokkos::View<Node *, MemorySpace> getInternalNodes()
   {
     assert(!empty());
     return Kokkos::subview(_internal_and_leaf_nodes,
                            std::make_pair(size_type{0}, size() - 1));
   }
 
-  Kokkos::View<Node *, DeviceType> getLeafNodes()
+  Kokkos::View<Node *, MemorySpace> getLeafNodes()
   {
     assert(!empty());
     return Kokkos::subview(_internal_and_leaf_nodes,
@@ -132,23 +135,58 @@ private:
 
   size_t _size;
   bounding_volume_type _bounds;
-  Kokkos::View<Node *, DeviceType> _internal_and_leaf_nodes;
+  Kokkos::View<Node *, MemorySpace> _internal_and_leaf_nodes;
 };
 
-template <typename DeviceType>
-using BVH = BoundingVolumeHierarchy<DeviceType>;
+namespace Details
+{
+template <typename T>
+struct is_device_type_impl : std::false_type
+{
+};
+template <typename ExecutionSpace, typename MemorySpace>
+struct is_device_type_impl<Kokkos::Device<ExecutionSpace, MemorySpace>>
+    : std::true_type
+{
+};
+template <typename T>
+using is_device_type = typename is_device_type_impl<std::remove_cv_t<T>>::type;
+} // namespace Details
 
 template <typename DeviceType>
-template <typename Primitives>
-BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
-    Primitives const &primitives)
+class BoundingVolumeHierarchy<
+    DeviceType, std::enable_if_t<Details::is_device_type<DeviceType>::value>>
+    : public BoundingVolumeHierarchy<typename DeviceType::memory_space>
+{
+public:
+  using device_type = DeviceType;
+  BoundingVolumeHierarchy() = default;
+  template <typename Primitives>
+  BoundingVolumeHierarchy(Primitives const &primitives)
+      : BoundingVolumeHierarchy<typename DeviceType::memory_space>(
+            typename DeviceType::execution_space{}, primitives)
+  {
+  }
+  template <typename... Args>
+  void query(Args &&... args) const
+  {
+    BoundingVolumeHierarchy<typename DeviceType::memory_space>::query(
+        typename DeviceType::execution_space{}, std::forward<Args>(args)...);
+  }
+};
+
+template <typename MemorySpace>
+using BVH = BoundingVolumeHierarchy<MemorySpace>;
+
+template <typename MemorySpace, typename Enable>
+template <typename ExecutionSpace, typename Primitives>
+BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
+    ExecutionSpace const &space, Primitives const &primitives)
     : _size(Traits::Access<Primitives, Traits::PrimitivesTag>::size(primitives))
     , _internal_and_leaf_nodes(
           Kokkos::ViewAllocateWithoutInitializing("internal_and_leaf_nodes"),
           _size > 0 ? 2 * _size - 1 : 0)
 {
-  typename DeviceType::execution_space space{};
-
   Kokkos::Profiling::pushRegion("ArborX:BVH:construction");
 
   using Access = Traits::Access<Primitives, Traits::PrimitivesTag>;
@@ -160,9 +198,8 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
       "Traits::Access<Primitives,Traits::PrimitivesTag> must define "
       "'memory_space' member type that is a valid Kokkos memory space");
   static_assert(
-      KokkosExt::is_accessible_from<
-          typename Access::memory_space,
-          typename device_type::execution_space>::value,
+      KokkosExt::is_accessible_from<typename Access::memory_space,
+                                    ExecutionSpace>::value,
       "Traits::Access<Primitives,Traits::PrimitivesTag>::memory_space must be "
       "accessible from the bounding volume hierarchy execution space");
   static_assert(Details::has_size<Access>::value,
@@ -192,7 +229,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
 
   if (size() == 1)
   {
-    Kokkos::View<size_t *, DeviceType> permutation_indices("permute", 1);
+    Kokkos::View<size_t *, MemorySpace> permutation_indices("permute", 1);
     Details::TreeConstruction::initializeLeafNodes(
         space, primitives, permutation_indices, getLeafNodes());
     return;
@@ -201,7 +238,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
   Kokkos::Profiling::pushRegion("ArborX:BVH:assign_morton_codes");
 
   // calculate Morton codes of all objects
-  Kokkos::View<unsigned int *, DeviceType> morton_indices(
+  Kokkos::View<unsigned int *, MemorySpace> morton_indices(
       Kokkos::ViewAllocateWithoutInitializing("morton"), size());
   Details::TreeConstruction::assignMortonCodes(space, primitives,
                                                morton_indices, _bounds);
@@ -223,7 +260,7 @@ BoundingVolumeHierarchy<DeviceType>::BoundingVolumeHierarchy(
   Kokkos::Profiling::pushRegion("ArborX:BVH:generate_hierarchy");
 
   // generate bounding volume hierarchy
-  Kokkos::View<int *, DeviceType> parents(
+  Kokkos::View<int *, MemorySpace> parents(
       Kokkos::ViewAllocateWithoutInitializing("parents"), 2 * size() - 1);
   Details::TreeConstruction::generateHierarchy(
       space, morton_indices, getLeafNodes(), getInternalNodes(), parents);
