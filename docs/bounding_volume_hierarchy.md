@@ -86,8 +86,8 @@ int main(int argc, char *argv[])
     cloud[i] = {{(float)i, (float)i, (float)i}};
   });
 
-  using memory_space = decltype(cloud)::memory_space;
-  using execution_space = decltype(cloud)::execution_space;
+  using memory_space = decltype(cloud)::memory_space; // where to store the tree
+  using execution_space = decltype(cloud)::execution_space; // where to execute code
   ArborX::BVH<memory_space> bvh{execution_space{}, cloud};
 
   auto const box = bvh.bounds();
