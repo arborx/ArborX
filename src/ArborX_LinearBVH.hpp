@@ -38,8 +38,9 @@ class BoundingVolumeHierarchy
 {
 public:
   using memory_space = MemorySpace;
-  using bounding_volume_type = Box;
+  static_assert(Kokkos::is_memory_space<MemorySpace>::value, "");
   using size_type = typename MemorySpace::size_type;
+  using bounding_volume_type = Box;
 
   BoundingVolumeHierarchy() = default; // build an empty tree
 
