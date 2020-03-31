@@ -50,6 +50,8 @@ BVH(ExecutionSpace const& space, Primitives const& primitives); // (2)
 1) Default constructor.  Constructs an empty tree.  
 2) Constructs a bounding volume hierarchy from the given data source.
 ## Parameters
+`space`
+: the execution space.  
 `primitives`
 : geometrical objects one wishes to index.
 #### Type requirements

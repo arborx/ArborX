@@ -5,7 +5,7 @@ Defined in header [`<ArborX_Traits.hpp>`](https://github.com/arborx/ArborX/blob/
 template <typename T, typename Tag, typename Enable=void>
 struct Access;
 ```
-The struct template `ArborX::Traits::Access` tells the [`ArborX::BVH` constructor](https://github.com/arborx/ArborX/blob/master/docs/bounding_volume_hierarchy.md#arborxmemoryspacebvh) how much data to index and how to access that data,
+The struct template `ArborX::Traits::Access` tells the [`ArborX::BVH` constructor](https://github.com/arborx/ArborX/blob/master/docs/bounding_volume_hierarchy.md#arborxbvhmemoryspacebvh) how much data to index and how to access that data,
 or [`ArborX::BVH::query()`](https://github.com/arborx/ArborX/blob/master/docs/bounding_volume_hierarchy.md#arborxbvhmemoryspacequery) what predicates to query for.
 
 ArborX provides the following partial specialization for Kokkos views
