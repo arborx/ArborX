@@ -131,7 +131,7 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                 static_cast<void *>(boxes_host.data()), sizeof(Box), MPI_BYTE,
                 _comm);
-  Kokkos::deep_copy(boxes, boxes_host);
+  Kokkos::deep_copy(space, boxes, boxes_host);
 
   _top_tree = BVH<DeviceType>(boxes);
 
@@ -143,7 +143,7 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                 static_cast<void *>(bottom_tree_sizes_host.data()),
                 sizeof(size_type), MPI_BYTE, _comm);
-  Kokkos::deep_copy(_bottom_tree_sizes, bottom_tree_sizes_host);
+  Kokkos::deep_copy(space, _bottom_tree_sizes, bottom_tree_sizes_host);
 
   _top_tree_size = accumulate(space, _bottom_tree_sizes, 0);
 }
