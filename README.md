@@ -1,4 +1,4 @@
-![ArborX](docs/logos/arborx_logo_v1.0.png)
+<img src="docs/logos/arborx_logo_v1.0.png" width="192">
 
 ArborX
 ======
