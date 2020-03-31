@@ -1,3 +1,5 @@
+![ArborX](docs/logos/arborx_logo_v1.0.png)
+
 ArborX
 ======
 ArborX is an open-source library designed to provide performance portable
