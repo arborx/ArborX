@@ -1,7 +1,7 @@
 # `ArborX::BVH`
 Defined in header [`<ArborX_LinearBVH.hpp>`](https://github.com/arborx/ArborX/blob/master/src/ArborX_LinearBVH.hpp)
 ```C++
-template <typename DeviceType>
+template <typename MemorySpace>
 class BoundingVolumeHierarchy;
 ```
 
@@ -9,43 +9,43 @@ The class template `ArborX::BoundingVolumeHierarchy` is a tree data structure th
 
 ArborX defines the `ArborX::BVH` alias template for convenience.
 ```C++
-template <typename DeviceType>
-using BVH = BoundingVolumeHierarchy<DeviceType>;
+template <typename MemorySpace>
+using BVH = BoundingVolumeHierarchy<MemorySpace>;
 ```
 
 ## Template parameter
-`DeviceType`
-: A valid Kokkos device type.
+`MemorySpace`
+: A valid Kokkos memory space.
 
 ## Member types
 Member type | Definition
 --- | ---
-`device_type` | `DeviceType`
-`size_type` | `DeviceType::memory_space::size_type`
+`memory_space` | `MemorySpace`
+`size_type` | `MemorySpace::size_type`
 `bounding_volume_type` | `ArborX::Box`
 
 ## Member functions
-[`(constructor)`](#arborxbvhdevicetypebvh)
+[`(constructor)`](#arborxbvhmemoryspacebvh)
 : constructs the tree data structure.
 
-[`size`](#arborxbvhdevicetypesize)
+[`size`](#arborxbvhmemoryspacesize)
 : returns the number of leaves stored in the tree.
 
-[`empty`](#arborxbvhdevicetypeempty)
+[`empty`](#arborxbvhmemoryspaceempty)
 : checks whether the tree has no leaves.
 
-[`bounds`](#arborxbvhdevicetypebounds)
+[`bounds`](#arborxbvhmemoryspacebounds)
 : returns a bounding volume able to contain all leaves stored in the tree.
 
-[`query`](#arborxbvhdevicetypequery)
+[`query`](#arborxbvhmemoryspacequery)
 : finds all leaves that satisfy given predicates, e.g. nearest to a point or intersecting with a box or a sphere.
 
-# `ArborX::BVH<DeviceType>::BVH`
+# `ArborX::BVH<MemorySpace>::BVH`
 ```C++
 BVH() noexcept; // (1)
 
-template <typename Primitives>
-BVH(Primitives const& primitives); // (2)
+template <typename ExecutionSpace, typename Primitives>
+BVH(ExecutionSpace const& space, Primitives const& primitives); // (2)
 ```
 1) Default constructor.  Constructs an empty tree.  
 2) Constructs a bounding volume hierarchy from the given data source.
@@ -86,8 +86,9 @@ int main(int argc, char *argv[])
     cloud[i] = {{(float)i, (float)i, (float)i}};
   });
 
-  using device_type = decltype(cloud)::device_type;
-  ArborX::BVH<device_type> bvh{cloud};
+  using memory_space = decltype(cloud)::memory_space; // where to store the tree
+  using execution_space = decltype(cloud)::execution_space; // where to execute code
+  ArborX::BVH<memory_space> bvh{execution_space{}, cloud};
 
   auto const box = bvh.bounds();
   std::cout << box.minCorner() << " - " << box.maxCorner() << '\n';
@@ -102,12 +103,12 @@ Output
 (0,0,0) - (999,999,999)
 ```
 ## See also
-[`query`](#arborxbvhdevicetypequery)
+[`query`](#arborxbvhmemoryspacequery)
 : search for all primitives that meet some predicates.  
-[`bounds`](#arborxbvhdevicetypebounds)
+[`bounds`](#arborxbvhmemoryspacebounds)
 : returns the bounding volume that contains all leaves.
 
-# `ArborX::BVH<DeviceType>::size()`
+# `ArborX::BVH<MemorySpace>::size()`
 ```C++
 size_type size() const noexcept;
 ```
@@ -119,12 +120,12 @@ The number of leaves in the tree.
 ## Complexity
 Constant.
 ## See also
-[`empty`](#arborxbvhdevicetypeempty)
+[`empty`](#arborxbvhmemoryspaceempty)
 : checks whether the tree is empty.  
-[`bounds`](#arborxbvhdevicetypebounds)
+[`bounds`](#arborxbvhmemoryspacebounds)
 : returns the bounding volume that contains all leaves.
 
-# `ArborX::BVH<DeviceType>::empty()`
+# `ArborX::BVH<MemorySpace>::empty()`
 ```C++
 bool empty() const noexcept;
 ```
@@ -136,10 +137,10 @@ Checks if the tree has no leaves.
 ## Complexity
 Constant.
 ## See also
-[`size`](#arborxbvhdevicetypesize)
+[`size`](#arborxbvhmemoryspacesize)
 : returns the number of leaves.
 
-# `ArborX::BVH<DeviceType>::bounds()`
+# `ArborX::BVH<MemorySpace>::bounds()`
 ```C++
 bounding_volume_type bounds() const noexcept;
 ```
@@ -152,13 +153,15 @@ The smallest bounding volume that contains all leaves stored in the tree or an i
 Constant.
 ## See also
 
-# `ArborX::BVH<DeviceType>::query()`
+# `ArborX::BVH<MemorySpace>::query()`
 ```C++
-template <typename Predicates>
-void query(Predicates const& predicates, ...) const;
+template <typename ExecutionSpace, typename Predicates>
+void query(ExecutionSpace const& space, Predicates const& predicates, ...) const;
 ```
 
 ## Parameters
+`space`
+: Execution space that specifies where to execute code.  
 `predicates`
 : Predicates to check against the primitives.
 

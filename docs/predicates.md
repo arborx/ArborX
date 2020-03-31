@@ -8,14 +8,14 @@ Defined in header [`<ArborX_Predicates.hpp>`](https://github.com/arborx/ArborX/b
 
 
 ## See also
-[`ArborX::BVH<DeviceType>::query()`](https://github.com/arborx/ArborX/blob/master/docs/bounding_volume_hierarchy.md#arborxbvhdevicetypequery)
+[`ArborX::BVH<DeviceType>::query()`](https://github.com/arborx/ArborX/blob/master/docs/bounding_volume_hierarchy.md#arborxbvhmemoryspacequery)
 
 # `ArborX::nearest`
 ```C++
 template <typename Geometry>
 KOKKOS_FUNCTION unspecified nearest(Geometry const& geometry, std::size_t k) noexcept;
 ```
-Generate a nearest predicate to perform a k-nearest neighbors search with `ArborX::BVH<DeviceType>::query()`.
+Generate a nearest predicate to perform a k-nearest neighbors search with `ArborX::BVH<MemorySpace>::query()`.
 ## Template parameter(s)
 `Geometry`
 : The geometry type, e.g. `ArborX::Point`, `ArborX::Box`, or `ArborX::Sphere`.
@@ -34,7 +34,7 @@ auto nearest_five_to_origin_pred = ArborX::nearest(ArborX::Point{0, 0, 0}, 5);
 template <typename Geometry>
 KOKKOS_FUNCTION unspecified intersects(Geometry const& geometry) noexcept;
 ```
-Generate a spatial predicate to perform a search with `ArborX::BVH<DeviceType>::query()`.
+Generate a spatial predicate to perform a search with `ArborX::BVH<MemorySpace>::query()`.
 ## Template parameter(s)
 `Geometry`
 : The geometry type, e.g. `ArborX::Point`, `ArborX::Box`, or `ArborX::Sphere`.

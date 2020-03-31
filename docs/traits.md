@@ -5,8 +5,8 @@ Defined in header [`<ArborX_Traits.hpp>`](https://github.com/arborx/ArborX/blob/
 template <typename T, typename Tag, typename Enable=void>
 struct Access;
 ```
-The struct template `ArborX::Traits::Access` tells the [`ArborX::BVH` constructor](https://github.com/arborx/ArborX/blob/master/docs/bounding_volume_hierarchy.md#arborxbvhdevicetypebvh) how much data to index and how to access that data,
-or [`ArborX::BVH::query()`](https://github.com/arborx/ArborX/blob/master/docs/bounding_volume_hierarchy.md#arborxbvhdevicetypequery) what predicates to query for.
+The struct template `ArborX::Traits::Access` tells the [`ArborX::BVH` constructor](https://github.com/arborx/ArborX/blob/master/docs/bounding_volume_hierarchy.md#arborxmemoryspacebvh) how much data to index and how to access that data,
+or [`ArborX::BVH::query()`](https://github.com/arborx/ArborX/blob/master/docs/bounding_volume_hierarchy.md#arborxbvhmemoryspacequery) what predicates to query for.
 
 ArborX provides the following partial specialization for Kokkos views
 ```C++
@@ -105,11 +105,11 @@ int main(int argc, char *argv[])
     cudaMemcpy(d_a, a.data(), sizeof(float) * N, cudaMemcpyHostToDevice);
 
     using device_type = Kokkos::Cuda::device_type;
-    ArborX::BVH<device_type> bvh{PointCloud{d_a, d_a, d_a, N}};
+    ArborX::BVH<Kokkos::CudaSpace> bvh{Kokkos::Cuda{}, PointCloud{d_a, d_a, d_a, N}};
 
     Kokkos::View<int *, device_type> indices("indices", 0);
     Kokkos::View<int *, device_type> offset("offset", 0);
-    bvh.query(NearestToOrigin{5}, indices, offset);
+    bvh.query(Kokkos::Cuda{}, NearestToOrigin{5}, indices, offset);
 
     Kokkos::parallel_for(1, KOKKOS_LAMBDA(int i) {
       for (int j = offset(i); j < offset(i + 1); ++j)
@@ -139,7 +139,7 @@ static size_type size(T const& data);
 ```
 ## Parameters
 `data`
-: data argument passed to the `ArborX::BVH<DeviceType>::BVH` constructor or `ArborX::BVH<DeviceType>::query()`
+: data argument passed to the `ArborX::BVH<MemorySpace>::BVH` constructor or `ArborX::BVH<MemorySpace>::query()`
 ## Returns
 The number of primitives if the second template argument is `PrimitivesTag` or the number of queries to perform if it is `PredicatesTag`.
 
@@ -154,7 +154,7 @@ If `std::is_same<Tag,PredicatesTag>::value` is `true`, the return value type mus
 `get()` needs to be marked with the `KOKKOS_FUNCTION` or `KOKKOS_INLINE_FUNCTION` macro because it is called from the device.
 ## Parameters
 `data`
-: data argument passed to the `ArborX::BVH<DeviceType>::BVH` constructor or `ArborX::BVH<DeviceType>::query()`  
+: data argument passed to the `ArborX::BVH<MemorySpace>::BVH` constructor or `ArborX::BVH<MemorySpace>::query()`  
 `pos`
 : position of the primitive from which to return the centroid or the smallest bounding volume
 ## Returns
