@@ -21,7 +21,7 @@
 namespace ArborX
 {
 
-template <typename DeviceType>
+template <typename DeviceType, typename Enable>
 class BoundingVolumeHierarchy;
 
 namespace Details
@@ -34,8 +34,9 @@ public:
 
   template <typename Predicate, typename... Args>
   KOKKOS_INLINE_FUNCTION static int
-  query(BoundingVolumeHierarchy<DeviceType> const &bvh, Predicate const &pred,
-        Args &&... args)
+  query(BoundingVolumeHierarchy<typename DeviceType::memory_space, void> const
+            &bvh,
+        Predicate const &pred, Args &&... args)
   {
     using Tag = typename Predicate::Tag;
     return queryDispatch(Tag{}, bvh, pred, std::forward<Args>(args)...);
@@ -46,7 +47,8 @@ public:
   // documentation).
   template <typename Predicate, typename Insert>
   KOKKOS_FUNCTION static int
-  spatialQuery(BoundingVolumeHierarchy<DeviceType> const &bvh,
+  spatialQuery(BoundingVolumeHierarchy<typename DeviceType::memory_space,
+                                       void> const &bvh,
                Predicate const &predicate, Insert const &insert)
   {
     if (bvh.empty())
@@ -96,7 +98,8 @@ public:
   // query k nearest neighbours
   template <typename Distance, typename Insert, typename Buffer>
   KOKKOS_FUNCTION static int
-  nearestQuery(BoundingVolumeHierarchy<DeviceType> const &bvh,
+  nearestQuery(BoundingVolumeHierarchy<typename DeviceType::memory_space,
+                                       void> const &bvh,
                Distance const &distance, std::size_t k, Insert const &insert,
                Buffer const &buffer)
   {
@@ -220,7 +223,8 @@ public:
     // version with a stack.
     template <typename Distance, typename Insert>
     KOKKOS_FUNCTION static int
-    nearestQuery(BoundingVolumeHierarchy<DeviceType> const &bvh,
+    nearestQuery(BoundingVolumeHierarchy<typename DeviceType::memory_space,
+                                         void> const &bvh,
                  Distance const &distance, std::size_t k, Insert const &insert)
     {
       if (bvh.empty() || k < 1)
@@ -283,7 +287,8 @@ public:
   template <typename Predicate, typename Insert>
   KOKKOS_INLINE_FUNCTION static int
   queryDispatch(SpatialPredicateTag,
-                BoundingVolumeHierarchy<DeviceType> const &bvh,
+                BoundingVolumeHierarchy<typename DeviceType::memory_space,
+                                        void> const &bvh,
                 Predicate const &pred, Insert const &insert)
   {
     return spatialQuery(bvh, pred, insert);
@@ -291,7 +296,9 @@ public:
 
   template <typename Predicate, typename Insert, typename Buffer>
   KOKKOS_INLINE_FUNCTION static int queryDispatch(
-      NearestPredicateTag, BoundingVolumeHierarchy<DeviceType> const &bvh,
+      NearestPredicateTag,
+      BoundingVolumeHierarchy<typename DeviceType::memory_space, void> const
+          &bvh,
       Predicate const &pred, Insert const &insert, Buffer const &buffer)
   {
     auto const geometry = getGeometry(pred);
@@ -309,7 +316,8 @@ public:
   template <typename Predicate, typename Insert>
   KOKKOS_INLINE_FUNCTION static int
   queryDispatch(NearestPredicateTag,
-                BoundingVolumeHierarchy<DeviceType> const &bvh,
+                BoundingVolumeHierarchy<typename DeviceType::memory_space,
+                                        void> const &bvh,
                 Predicate const &pred, Insert const &insert)
   {
     auto const geometry = getGeometry(pred);
