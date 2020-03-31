@@ -161,21 +161,22 @@ struct CopyOp<DstViewType, SrcViewType, 3>
 };
 } // namespace PermuteHelper
 
-template <typename PermutationView, typename View>
-void applyPermutation(PermutationView const &permutation, View &view)
+template <typename ExecutionSpace, typename PermutationView, typename View>
+void applyPermutation(ExecutionSpace const &space,
+                      PermutationView const &permutation, View &view)
 {
   static_assert(std::is_integral<typename PermutationView::value_type>::value,
                 "");
-  using ExecutionSpace = typename View::execution_space;
   ARBORX_ASSERT(permutation.extent(0) == view.extent(0));
   auto scratch_view = clone(ExecutionSpace{}, view);
-  Kokkos::parallel_for(ARBORX_MARK_REGION("permute"),
-                       Kokkos::RangePolicy<ExecutionSpace>(0, view.extent(0)),
-                       KOKKOS_LAMBDA(int i) {
-                         PermuteHelper::CopyOp<View, View>::copy(
-                             scratch_view, i, view, permutation(i));
-                       });
-  Kokkos::deep_copy(view, scratch_view);
+  Kokkos::parallel_for(
+      ARBORX_MARK_REGION("permute"),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, view.extent(0)),
+      KOKKOS_LAMBDA(int i) {
+        PermuteHelper::CopyOp<View, View>::copy(scratch_view, i, view,
+                                                permutation(i));
+      });
+  Kokkos::deep_copy(space, view, scratch_view);
 }
 
 } // namespace Details

@@ -508,8 +508,9 @@ void DistributedSearchTreeImpl<DeviceType>::sortResults(
   // We need to use the comma operator here since the function returns void.
   // The variable we assign to is actually not needed. We just need something
   // to store the initializer list (that contains only zeros).
-  auto dummy = {
-      (ArborX::Details::applyPermutation(permutation, other_views), 0)...};
+  auto dummy = {(ArborX::Details::applyPermutation(ExecutionSpace{},
+                                                   permutation, other_views),
+                 0)...};
   std::ignore = dummy;
 }
 
