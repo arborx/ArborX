@@ -4,3 +4,4 @@ docker/ export-ignore
 .jenkins export-ignore
 .mailmap export-ignore
 .travis.yml export-ignore
+*.svg binary
