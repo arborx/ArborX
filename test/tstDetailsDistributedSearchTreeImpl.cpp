@@ -234,7 +234,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(create_layout_right_mirror_view, DeviceType,
   using Kokkos::subview;
   using Kokkos::View;
 
-  if (!Kokkos::Impl::SpaceAccessibility<
+  if (!Kokkos::SpaceAccessibility<
           Kokkos::HostSpace, typename DeviceType::memory_space>::accessible)
     return;
 

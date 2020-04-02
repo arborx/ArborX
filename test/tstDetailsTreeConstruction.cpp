@@ -242,7 +242,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(common_prefix, DeviceType, ARBORX_DEVICE_TYPES)
 BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
-  if (!Kokkos::Impl::SpaceAccessibility<
+  if (!Kokkos::SpaceAccessibility<
           Kokkos::HostSpace, typename DeviceType::memory_space>::accessible)
     return;
 
