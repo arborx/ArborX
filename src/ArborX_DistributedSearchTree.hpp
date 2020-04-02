@@ -87,11 +87,13 @@ public:
   template <typename Predicates, typename... Args>
   void query(Predicates const &predicates, Args &&... args) const
   {
+    using ExecutionSpace = typename DeviceType::execution_space;
+    ExecutionSpace space{};
     using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
     using Tag =
         typename Details::Tag<Details::decay_result_of_get_t<Access>>::type;
     Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-        Tag{}, *this, predicates, std::forward<Args>(args)...);
+        Tag{}, *this, space, predicates, std::forward<Args>(args)...);
   }
 
 private:
