@@ -23,15 +23,13 @@
 
 namespace boost
 {
-// TODO SpaceAccessibility has been promoted to Kokkos:: namespace in later
-// versions of Kokkos so eventually get rid of Impl::
 #define ARBORX_ASSERT_VIEW_COMPATIBLE(View)                                    \
   using Traits = typename View::traits;                                        \
   static_assert(Traits::rank == 1,                                             \
                 "Adaptor to Boost.Range only available for Views of rank 1");  \
   static_assert(                                                               \
-      Kokkos::Impl::SpaceAccessibility<                                        \
-          Kokkos::HostSpace, typename Traits::memory_space>::accessible,       \
+      Kokkos::SpaceAccessibility<Kokkos::HostSpace,                            \
+                                 typename Traits::memory_space>::accessible,   \
       "Adaptor to Boost.Range only available when View memory space is "       \
       "accessible from host");
 
