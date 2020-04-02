@@ -20,8 +20,7 @@
 #include <ArborX_Predicates.hpp>
 #include <ArborX_Traits.hpp>
 
-#include <Kokkos_Pair.hpp>
-#include <Kokkos_View.hpp>
+#include <Kokkos_Core.hpp>
 
 namespace ArborX
 {

@@ -20,11 +20,7 @@
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Predicates.hpp>
 
-#include <Kokkos_Atomic.hpp>
-#include <Kokkos_HostSpace.hpp>
-#include <Kokkos_Pair.hpp>
-#include <Kokkos_Sort.hpp>
-#include <Kokkos_View.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <mpi.h>
 

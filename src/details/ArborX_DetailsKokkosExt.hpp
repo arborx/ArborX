@@ -11,8 +11,7 @@
 #ifndef ARBORX_DETAILS_KOKKOS_EXT_HPP
 #define ARBORX_DETAILS_KOKKOS_EXT_HPP
 
-#include <Kokkos_Concepts.hpp>
-#include <Kokkos_View.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <cfloat>  // DBL_MAX, DBL_EPSILON
 #include <cmath>   // isfinite, HUGE_VAL

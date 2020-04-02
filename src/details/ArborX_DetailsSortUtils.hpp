@@ -16,8 +16,8 @@
 #include <ArborX_Exception.hpp>
 #include <ArborX_Macros.hpp>
 
+#include <Kokkos_Core.hpp>
 #include <Kokkos_Sort.hpp> // min_max_functor
-#include <Kokkos_View.hpp>
 
 // clang-format off
 #if defined(KOKKOS_ENABLE_CUDA)

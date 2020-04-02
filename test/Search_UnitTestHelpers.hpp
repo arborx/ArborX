@@ -26,8 +26,6 @@
 #endif
 #include <ArborX_LinearBVH.hpp>
 
-#include <Kokkos_View.hpp>
-
 #include <boost/test/unit_test.hpp>
 
 #include <iostream>

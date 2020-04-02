@@ -22,8 +22,7 @@
 #include <ArborX_DetailsTreeConstruction.hpp>
 #include <ArborX_Traits.hpp>
 
-#include <Kokkos_Macros.hpp>
-#include <Kokkos_View.hpp>
+#include <Kokkos_Core.hpp>
 
 namespace ArborX
 {
