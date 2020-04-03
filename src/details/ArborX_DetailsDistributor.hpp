@@ -153,7 +153,7 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
 
   Kokkos::View<int *, DeviceType> device_ranks_duplicate(
       Kokkos::ViewAllocateWithoutInitializing(ranks.label()), ranks.size());
-  Kokkos::deep_copy(device_ranks_duplicate, ranks);
+  Kokkos::deep_copy(space, device_ranks_duplicate, ranks);
   auto device_permutation_indices =
       Kokkos::create_mirror_view(DeviceType(), permutation_indices);
   int offset = 0;
@@ -187,7 +187,8 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
   counts.reserve(offsets.size() - 1);
   for (unsigned int i = 1; i < offsets.size(); ++i)
     counts.push_back(offsets[i] - offsets[i - 1]);
-  Kokkos::deep_copy(permutation_indices, device_permutation_indices);
+  // doesn't work yet
+  Kokkos::deep_copy(/*space,*/ permutation_indices, device_permutation_indices);
   ARBORX_ASSERT(offsets.back() == static_cast<int>(ranks.size()));
 }
 
@@ -332,7 +333,7 @@ public:
         Kokkos::View<const ValueType *, typename View::traits::device_type,
                      Kokkos::MemoryTraits<Kokkos::Unmanaged>>
             send_view(send_buffer_ptr, message_size / sizeof(ValueType));
-        Kokkos::deep_copy(receive_view, send_view);
+        Kokkos::deep_copy(space, receive_view, send_view);
       }
       else
       {

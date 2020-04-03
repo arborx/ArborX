@@ -258,7 +258,8 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
 #ifndef ARBORX_USE_CUDA_AWARE_MPI
   (void)space;
   auto exports_host = create_layout_right_mirror_view(exports);
-  Kokkos::deep_copy(exports_host, exports);
+  // doesn't work yet
+  Kokkos::deep_copy(/*space,*/ exports_host, exports);
 
   auto imports_host = create_layout_right_mirror_view(imports);
 
@@ -275,8 +276,8 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
 
   distributor.doPostsAndWaits(Kokkos::DefaultHostExecutionSpace{},
                               export_buffer, num_packets, import_buffer);
-
-  Kokkos::deep_copy(imports, imports_host);
+  // doesn't work yet
+  Kokkos::deep_copy(/*space,*/ imports, imports_host);
 #else
   distributor.doPostsAndWaits(space, exports, num_packets, imports);
 #endif
@@ -594,7 +595,7 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
 
   Kokkos::View<int *, DeviceType> export_ranks(
       Kokkos::ViewAllocateWithoutInitializing("export_ranks"), n_exports);
-  Kokkos::deep_copy(export_ranks, comm_rank);
+  Kokkos::deep_copy(space, export_ranks, comm_rank);
 
   Kokkos::View<int *, DeviceType> import_ranks(
       Kokkos::ViewAllocateWithoutInitializing("import_ranks"), n_imports);
@@ -646,7 +647,7 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
 
   Kokkos::View<int *, DeviceType> export_ranks(
       Kokkos::ViewAllocateWithoutInitializing(ranks.label()), n_exports);
-  Kokkos::deep_copy(export_ranks, comm_rank);
+  Kokkos::deep_copy(space, export_ranks, comm_rank);
   Kokkos::View<int *, DeviceType> export_ids(
       Kokkos::ViewAllocateWithoutInitializing(ids.label()), n_exports);
   Kokkos::parallel_for(
