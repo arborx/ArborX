@@ -256,6 +256,7 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
                            exports.extent(7);
 
 #ifndef ARBORX_USE_CUDA_AWARE_MPI
+  (void)space;
   auto exports_host = create_layout_right_mirror_view(exports);
   Kokkos::deep_copy(exports_host, exports);
 
@@ -272,7 +273,8 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
                Kokkos::MemoryTraits<Kokkos::Unmanaged>>
       import_buffer(imports_host.data(), imports_host.size());
 
-  distributor.doPostsAndWaits(space, export_buffer, num_packets, import_buffer);
+  distributor.doPostsAndWaits(Kokkos::DefaultHostExecutionSpace{},
+                              export_buffer, num_packets, import_buffer);
 
   Kokkos::deep_copy(imports, imports_host);
 #else

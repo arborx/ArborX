@@ -308,7 +308,7 @@ public:
 
     // make sure the data in dest_buffer has been copied before sending it.
     if (permutation_necessary)
-      ExecutionSpace().fence();
+      space.fence();
 
     for (int i = 0; i < outdegrees; ++i)
     {
