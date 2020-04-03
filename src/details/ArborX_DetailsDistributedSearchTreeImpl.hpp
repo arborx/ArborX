@@ -334,13 +334,15 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
   auto const n_queries = Access::size(queries);
 
   // Determine distance to the farthest neighbor found so far.
-  Kokkos::View<float *, DeviceType> farthest_distances("distances", n_queries);
+  Kokkos::View<float *, DeviceType> farthest_distances(
+      Kokkos::ViewAllocateWithoutInitializing("distances"), n_queries);
   // NOTE: in principle distances( j ) are arranged in ascending order for
   // offset( i ) <= j < offset( i + 1 ) so max() is not necessary.
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("most_distant_neighbor_so_far"),
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
         using KokkosExt::max;
+        farthest_distances(i) = 0.;
         for (int j = offset(i); j < offset(i + 1); ++j)
           farthest_distances(i) = max(farthest_distances(i), distances(j));
       });
