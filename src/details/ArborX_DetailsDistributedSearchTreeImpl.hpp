@@ -334,20 +334,22 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
   auto const n_queries = Access::size(queries);
 
   // Determine distance to the farthest neighbor found so far.
-  Kokkos::View<float *, DeviceType> farthest_distances("distances", n_queries);
+  Kokkos::View<float *, DeviceType> farthest_distances(
+      Kokkos::ViewAllocateWithoutInitializing("distances"), n_queries);
   // NOTE: in principle distances( j ) are arranged in ascending order for
   // offset( i ) <= j < offset( i + 1 ) so max() is not necessary.
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("most_distant_neighbor_so_far"),
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
         using KokkosExt::max;
+        farthest_distances(i) = 0.;
         for (int j = offset(i); j < offset(i + 1); ++j)
           farthest_distances(i) = max(farthest_distances(i), distances(j));
       });
 
   // Identify what ranks may have leaves that are within that distance.
   Kokkos::View<decltype(intersects(Sphere{})) *, DeviceType> radius_searches(
-      "queries", n_queries);
+      Kokkos::ViewAllocateWithoutInitializing("queries"), n_queries);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("bottom_trees_within_that_distance"),
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
@@ -578,11 +580,13 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
                            export_ids(i) = q;
                          }
                        });
-  Kokkos::View<int *, DeviceType> import_ids("import_ids", n_imports);
+  Kokkos::View<int *, DeviceType> import_ids(
+      Kokkos::ViewAllocateWithoutInitializing("import_ids"), n_imports);
   sendAcrossNetwork(distributor, export_ids, import_ids);
 
   // Send queries across the network
-  Kokkos::View<Query *, DeviceType> imports("queries", n_imports);
+  Kokkos::View<Query *, DeviceType> imports(
+      Kokkos::ViewAllocateWithoutInitializing("queries"), n_imports);
   sendAcrossNetwork(distributor, exports, imports);
 
   fwd_queries = imports;
@@ -643,8 +647,8 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
   {
     Kokkos::View<float *, DeviceType> &distances = *distances_ptr;
     Kokkos::View<float *, DeviceType> export_distances = distances;
-    Kokkos::View<float *, DeviceType> import_distances(distances.label(),
-                                                       n_imports);
+    Kokkos::View<float *, DeviceType> import_distances(
+        Kokkos::ViewAllocateWithoutInitializing(distances.label()), n_imports);
     sendAcrossNetwork(distributor, export_distances, import_distances);
     distances = import_distances;
   }
