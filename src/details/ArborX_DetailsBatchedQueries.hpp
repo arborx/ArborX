@@ -21,8 +21,6 @@
 #include <ArborX_Traits.hpp>
 
 #include <Kokkos_Core.hpp>
-#include <Kokkos_Parallel.hpp>
-#include <Kokkos_View.hpp>
 
 #include <tuple>
 

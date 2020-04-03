@@ -13,7 +13,7 @@
 
 #include <ArborX_DetailsTreeTraversal.hpp>
 
-#include <Kokkos_View.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <tuple> // ignore
 

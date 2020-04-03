@@ -14,8 +14,7 @@
 
 #include <ArborX_Exception.hpp>
 
-#include <Kokkos_Concepts.hpp>
-#include <Kokkos_View.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <boost/range.hpp>
 

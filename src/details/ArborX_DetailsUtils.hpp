@@ -15,9 +15,8 @@
 #include <ArborX_Exception.hpp>
 #include <ArborX_Macros.hpp>
 
-#include <Kokkos_Parallel.hpp>
+#include <Kokkos_Core.hpp>
 #include <Kokkos_Sort.hpp> // min_max_functor
-#include <Kokkos_View.hpp>
 
 namespace ArborX
 {

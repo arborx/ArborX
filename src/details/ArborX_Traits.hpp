@@ -16,7 +16,7 @@
 #include <ArborX_DetailsTags.hpp>
 #include <ArborX_Point.hpp>
 
-#include <Kokkos_View.hpp>
+#include <Kokkos_Core.hpp>
 
 namespace ArborX
 {
