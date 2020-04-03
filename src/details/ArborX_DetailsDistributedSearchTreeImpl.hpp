@@ -349,7 +349,7 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
 
   // Identify what ranks may have leaves that are within that distance.
   Kokkos::View<decltype(intersects(Sphere{})) *, DeviceType> radius_searches(
-      "queries", n_queries);
+      Kokkos::ViewAllocateWithoutInitializing("queries"), n_queries);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("bottom_trees_within_that_distance"),
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
