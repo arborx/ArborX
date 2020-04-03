@@ -580,11 +580,13 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
                            export_ids(i) = q;
                          }
                        });
-  Kokkos::View<int *, DeviceType> import_ids("import_ids", n_imports);
+  Kokkos::View<int *, DeviceType> import_ids(
+      Kokkos::ViewAllocateWithoutInitializing("import_ids"), n_imports);
   sendAcrossNetwork(distributor, export_ids, import_ids);
 
   // Send queries across the network
-  Kokkos::View<Query *, DeviceType> imports("queries", n_imports);
+  Kokkos::View<Query *, DeviceType> imports(
+      Kokkos::ViewAllocateWithoutInitializing("queries"), n_imports);
   sendAcrossNetwork(distributor, exports, imports);
 
   fwd_queries = imports;
@@ -645,8 +647,8 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
   {
     Kokkos::View<float *, DeviceType> &distances = *distances_ptr;
     Kokkos::View<float *, DeviceType> export_distances = distances;
-    Kokkos::View<float *, DeviceType> import_distances(distances.label(),
-                                                       n_imports);
+    Kokkos::View<float *, DeviceType> import_distances(
+        Kokkos::ViewAllocateWithoutInitializing(distances.label()), n_imports);
     sendAcrossNetwork(distributor, export_distances, import_distances);
     distances = import_distances;
   }
