@@ -34,10 +34,10 @@ namespace Details
 // Assuming that batched_ranks might contain elements multiply, but duplicates
 // are not separated by other elements, return the unique elements in that array
 // with the corresponding element counts and displacement (offsets).
-template <typename InputView, typename OutputView>
+template <typename ExecutionSpace, typename InputView, typename OutputView>
 static void
-determineBufferLayout(InputView batched_ranks, InputView batched_offsets,
-                      OutputView permutation_indices,
+determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
+                      InputView batched_offsets, OutputView permutation_indices,
                       std::vector<int> &unique_ranks, std::vector<int> &counts,
                       std::vector<int> &offsets)
 {
@@ -61,7 +61,6 @@ determineBufferLayout(InputView batched_ranks, InputView batched_offsets,
     return;
 
   using DeviceType = typename InputView::traits::device_type;
-  using ExecutionSpace = typename InputView::traits::execution_space;
 
   // Find the indices in batched_ranks for which the rank changes and store
   // these ranks and the corresponding offsets in a new container that we can be
@@ -78,7 +77,7 @@ determineBufferLayout(InputView batched_ranks, InputView batched_offsets,
   int n_unique_ranks;
   Kokkos::parallel_scan(
       ARBORX_MARK_REGION("compact_offsets_and_ranks"),
-      Kokkos::RangePolicy<ExecutionSpace>(0, n_batched_ranks),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_batched_ranks),
       KOKKOS_LAMBDA(unsigned int i, int &update, bool last_pass) {
         if (i == batched_ranks.size() - 1 ||
             batched_ranks(i + 1) != batched_ranks(i))
@@ -124,13 +123,15 @@ determineBufferLayout(InputView batched_ranks, InputView batched_offsets,
 // Computes the array of indices that sort the input array (in reverse order)
 // but also returns the sorted unique elements in that array with the
 // corresponding element counts and displacement (offsets)
-template <typename InputView, typename OutputView>
-static void sortAndDetermineBufferLayout(InputView ranks,
+template <typename ExecutionSpace, typename InputView, typename OutputView>
+static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
+                                         InputView ranks,
                                          OutputView permutation_indices,
                                          std::vector<int> &unique_ranks,
                                          std::vector<int> &counts,
                                          std::vector<int> &offsets)
 {
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
   ARBORX_ASSERT(unique_ranks.empty());
   ARBORX_ASSERT(offsets.empty());
   ARBORX_ASSERT(counts.empty());
@@ -149,7 +150,6 @@ static void sortAndDetermineBufferLayout(InputView ranks,
   // unique destination ranks. it performs better than other algorithms in the
   // case when (R) is small, but results may vary
   using DeviceType = typename InputView::traits::device_type;
-  using ExecutionSpace = typename InputView::traits::execution_space;
 
   Kokkos::View<int *, DeviceType> device_ranks_duplicate(
       Kokkos::ViewAllocateWithoutInitializing(ranks.label()), ranks.size());
@@ -166,7 +166,7 @@ static void sortAndDetermineBufferLayout(InputView ranks,
     unique_ranks.push_back(largest_rank);
     int result = 0;
     Kokkos::parallel_scan(ARBORX_MARK_REGION("process_biggest_rank_items"),
-                          Kokkos::RangePolicy<ExecutionSpace>(0, n),
+                          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
                           KOKKOS_LAMBDA(int i, int &update, bool last_pass) {
                             bool const is_largest_rank =
                                 (device_ranks_duplicate(i) == largest_rank);
@@ -201,8 +201,9 @@ public:
   {
   }
 
-  template <typename View>
-  size_t createFromSends(View const &batched_destination_ranks,
+  template <typename ExecutionSpace, typename View>
+  size_t createFromSends(ExecutionSpace const &space,
+                         View const &batched_destination_ranks,
                          View const &batch_offsets)
   {
     static_assert(View::rank == 1, "");
@@ -213,14 +214,15 @@ public:
     // overload.
     // Note that we don't resize _permute here since we are assuming that no
     // reordering is necessary.
-    determineBufferLayout(batched_destination_ranks, batch_offsets, _permute,
-                          _destinations, _dest_counts, _dest_offsets);
+    determineBufferLayout(space, batched_destination_ranks, batch_offsets,
+                          _permute, _destinations, _dest_counts, _dest_offsets);
 
     return preparePointToPointCommunication();
   }
 
-  template <typename View>
-  size_t createFromSends(View const &destination_ranks)
+  template <typename ExecutionSpace, typename View>
+  size_t createFromSends(ExecutionSpace const &space,
+                         View const &destination_ranks)
   {
     static_assert(View::rank == 1, "");
     static_assert(std::is_same<typename View::non_const_value_type, int>::value,
@@ -229,21 +231,21 @@ public:
     // The next two function calls are the only difference to the other
     // overload.
     reallocWithoutInitializing(_permute, destination_ranks.size());
-    sortAndDetermineBufferLayout(destination_ranks, _permute, _destinations,
-                                 _dest_counts, _dest_offsets);
+    sortAndDetermineBufferLayout(space, destination_ranks, _permute,
+                                 _destinations, _dest_counts, _dest_offsets);
 
     return preparePointToPointCommunication();
   }
 
-  template <typename View>
-  void doPostsAndWaits(typename View::const_type const &exports,
+  template <typename ExecutionSpace, typename View>
+  void doPostsAndWaits(ExecutionSpace const &space,
+                       typename View::const_type const &exports,
                        size_t num_packets, View const &imports) const
   {
     ARBORX_ASSERT(num_packets * _src_offsets.back() == imports.size());
     ARBORX_ASSERT(num_packets * _dest_offsets.back() == exports.size());
 
     using ValueType = typename View::value_type;
-    using ExecutionSpace = typename View::execution_space;
     static_assert(View::rank == 1, "");
 
     static_assert(
@@ -273,7 +275,7 @@ public:
 
       Kokkos::parallel_for(ARBORX_MARK_REGION("copy_destinations_permuted"),
                            Kokkos::RangePolicy<ExecutionSpace>(
-                               0, _dest_offsets.back() * num_packets),
+                               space, 0, _dest_offsets.back() * num_packets),
                            KOKKOS_LAMBDA(int const k) {
                              int const i = k / num_packets;
                              int const j = k % num_packets;
