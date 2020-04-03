@@ -87,11 +87,13 @@ public:
   template <typename Predicates, typename... Args>
   void query(Predicates const &predicates, Args &&... args) const
   {
+    using ExecutionSpace = typename DeviceType::execution_space;
+    ExecutionSpace space{};
     using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
     using Tag =
         typename Details::Tag<Details::decay_result_of_get_t<Access>>::type;
     Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-        Tag{}, *this, predicates, std::forward<Args>(args)...);
+        Tag{}, *this, space, predicates, std::forward<Args>(args)...);
   }
 
 private:
@@ -131,7 +133,8 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                 static_cast<void *>(boxes_host.data()), sizeof(Box), MPI_BYTE,
                 _comm);
-  Kokkos::deep_copy(boxes, boxes_host);
+  // FIXME bug in Kokkos that should be fixed in 3.1
+  Kokkos::deep_copy(/*space,*/ boxes, boxes_host);
 
   _top_tree = BVH<DeviceType>(boxes);
 
@@ -143,7 +146,8 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                 static_cast<void *>(bottom_tree_sizes_host.data()),
                 sizeof(size_type), MPI_BYTE, _comm);
-  Kokkos::deep_copy(_bottom_tree_sizes, bottom_tree_sizes_host);
+  // FIXME
+  Kokkos::deep_copy(/*space,*/ _bottom_tree_sizes, bottom_tree_sizes_host);
 
   _top_tree_size = accumulate(space, _bottom_tree_sizes, 0);
 }

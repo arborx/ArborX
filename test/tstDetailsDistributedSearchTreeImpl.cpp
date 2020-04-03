@@ -66,8 +66,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sort_results, DeviceType, ARBORX_DEVICE_TYPES)
       ranks_host(ranks_.data(), ranks_.size());
   Kokkos::deep_copy(ranks, ranks_host);
 
+  using ExecutionSpace = typename DeviceType::execution_space;
   ArborX::Details::DistributedSearchTreeImpl<DeviceType>::sortResults(
-      ids, results, ranks);
+      ExecutionSpace{}, ids, results, ranks);
 
   // COMMENT: ids are untouched
   Kokkos::deep_copy(ids_host, ids);
@@ -85,7 +86,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sort_results, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::View<int *, DeviceType> not_sized_properly("", m);
   BOOST_CHECK_THROW(
       ArborX::Details::DistributedSearchTreeImpl<DeviceType>::sortResults(
-          ids, not_sized_properly),
+          ExecutionSpace{}, ids, not_sized_properly),
       ArborX::SearchException);
 }
 
@@ -107,8 +108,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sort_results_2d, DeviceType, ARBORX_DEVICE_TYPES)
       results_2d_host(i, j) = results_2d_[i][j];
   Kokkos::deep_copy(results_2d, results_2d_host);
 
+  using ExecutionSpace = typename DeviceType::execution_space;
   ArborX::Details::DistributedSearchTreeImpl<DeviceType>::sortResults(
-      ids, results_2d);
+      ExecutionSpace{}, ids, results_2d);
 
   Kokkos::deep_copy(results_2d_host, results_2d);
   for (int i = 0; i < 5; ++i)
@@ -143,8 +145,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sort_results_3d, DeviceType, ARBORX_DEVICE_TYPES)
         results_3d_host(i, j, k) = results_3d_[i][j][k];
   Kokkos::deep_copy(results_3d, results_3d_host);
 
+  using ExecutionSpace = typename DeviceType::execution_space;
   ArborX::Details::DistributedSearchTreeImpl<DeviceType>::sortResults(
-      ids, results_3d);
+      ExecutionSpace{}, ids, results_3d);
 
   Kokkos::deep_copy(results_3d_host, results_3d);
   for (int i = 0; i < 5; ++i)
@@ -172,8 +175,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(count_results, DeviceType, ARBORX_DEVICE_TYPES)
 
   Kokkos::View<int *, DeviceType> offset("offset", m);
 
-  ArborX::Details::DistributedSearchTreeImpl<DeviceType>::countResults(m, ids,
-                                                                       offset);
+  using ExecutionSpace = typename DeviceType::execution_space;
+  ArborX::Details::DistributedSearchTreeImpl<DeviceType>::countResults(
+      ExecutionSpace{}, m, ids, offset);
 
   auto offset_host = Kokkos::create_mirror_view(offset);
   Kokkos::deep_copy(offset_host, offset);
