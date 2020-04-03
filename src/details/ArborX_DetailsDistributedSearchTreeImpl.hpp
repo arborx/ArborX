@@ -48,8 +48,6 @@ struct CallbackDefaultSpatialPredicateWithRank
 template <typename DeviceType>
 struct DistributedSearchTreeImpl
 {
-  using DeprecatedExecutionSpace = typename DeviceType::execution_space;
-
   // spatial queries
   template <typename ExecutionSpace, typename Predicates>
   static void queryDispatch(SpatialPredicateTag,
