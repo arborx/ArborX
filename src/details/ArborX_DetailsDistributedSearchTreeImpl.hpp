@@ -579,7 +579,8 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
   int const n_imports = distributor.createFromSends(indices);
 
   static_assert(std::is_same<Query, decay_result_of_get_t<Access>>::value, "");
-  Kokkos::View<Query *, DeviceType> exports("queries", n_exports);
+  Kokkos::View<Query *, DeviceType> exports(
+      Kokkos::ViewAllocateWithoutInitializing("queries"), n_exports);
   Kokkos::parallel_for(ARBORX_MARK_REGION("forward_queries_fill_buffer"),
                        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
                        KOKKOS_LAMBDA(int q) {
