@@ -131,7 +131,6 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
                                          std::vector<int> &counts,
                                          std::vector<int> &offsets)
 {
-  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
   ARBORX_ASSERT(unique_ranks.empty());
   ARBORX_ASSERT(offsets.empty());
   ARBORX_ASSERT(counts.empty());
@@ -159,8 +158,7 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
   int offset = 0;
   while (true)
   {
-    int const largest_rank =
-        ArborX::max(ExecutionSpace{}, device_ranks_duplicate);
+    int const largest_rank = ArborX::max(space, device_ranks_duplicate);
     if (largest_rank == -1)
       break;
     unique_ranks.push_back(largest_rank);
@@ -187,7 +185,7 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
   counts.reserve(offsets.size() - 1);
   for (unsigned int i = 1; i < offsets.size(); ++i)
     counts.push_back(offsets[i] - offsets[i - 1]);
-  // doesn't work yet
+  // FIXME doesn't work yet
   Kokkos::deep_copy(/*space,*/ permutation_indices, device_permutation_indices);
   ARBORX_ASSERT(offsets.back() == static_cast<int>(ranks.size()));
 }
