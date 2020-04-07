@@ -17,7 +17,7 @@
 #include <ArborX_Exception.hpp>
 #include <ArborX_Macros.hpp>
 
-#include <Kokkos_Core.hpp> // FIXME
+#include <Kokkos_Core.hpp>
 
 #include <algorithm> // max_element
 #include <numeric>   // iota
