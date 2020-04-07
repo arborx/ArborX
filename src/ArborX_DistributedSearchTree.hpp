@@ -90,6 +90,7 @@ public:
   void query(ExecutionSpace const &space, Predicates const &predicates,
              Args &&... args) const
   {
+    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
     using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
     using Tag =
         typename Details::Tag<Details::decay_result_of_get_t<Access>>::type;
@@ -114,6 +115,7 @@ DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
     MPI_Comm comm, ExecutionSpace const &space, Primitives const &primitives)
     : _bottom_tree{space, primitives}
 {
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
 
   // Create new context for the library to isolate library's communication from
   // user's
