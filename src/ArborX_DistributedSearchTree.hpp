@@ -29,16 +29,18 @@ namespace ArborX
  *  \note query() must be called as collective over all processes in the
  *  communicator passed to the constructor.
  */
-template <typename DeviceType>
+template <typename MemorySpace, typename Enable = void>
 class DistributedSearchTree
 {
 public:
-  using device_type = DeviceType;
-  using bounding_volume_type = typename BVH<DeviceType>::bounding_volume_type;
-  using size_type = typename BVH<DeviceType>::size_type;
+  using memory_space = MemorySpace;
+  static_assert(Kokkos::is_memory_space<MemorySpace>::value, "");
+  using size_type = typename BVH<MemorySpace>::size_type;
+  using bounding_volume_type = typename BVH<MemorySpace>::bounding_volume_type;
 
-  template <typename Primitives>
-  DistributedSearchTree(MPI_Comm comm, Primitives const &primitives);
+  template <typename ExecutionSpace, typename Primitives>
+  DistributedSearchTree(MPI_Comm comm, ExecutionSpace const &space,
+                        Primitives const &primitives);
 
   ~DistributedSearchTree() { MPI_Comm_free(&_comm); }
 
@@ -84,35 +86,34 @@ public:
    *     - \c distances Computed distances (optional and only for nearest
    *       predicates).
    */
-  template <typename Predicates, typename... Args>
-  void query(Predicates const &predicates, Args &&... args) const
+  template <typename ExecutionSpace, typename Predicates, typename... Args>
+  void query(ExecutionSpace const &space, Predicates const &predicates,
+             Args &&... args) const
   {
-    using ExecutionSpace = typename DeviceType::execution_space;
-    ExecutionSpace space{};
     using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
     using Tag =
         typename Details::Tag<Details::decay_result_of_get_t<Access>>::type;
+    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
         Tag{}, *this, space, predicates, std::forward<Args>(args)...);
   }
 
 private:
-  friend struct Details::DistributedSearchTreeImpl<DeviceType>;
+  template <typename DeviceType>
+  friend struct Details::DistributedSearchTreeImpl;
   MPI_Comm _comm;
-  BVH<DeviceType> _top_tree;    // replicated
-  BVH<DeviceType> _bottom_tree; // local
+  BVH<MemorySpace> _top_tree;    // replicated
+  BVH<MemorySpace> _bottom_tree; // local
   size_type _top_tree_size;
-  Kokkos::View<size_type *, DeviceType> _bottom_tree_sizes;
+  Kokkos::View<size_type *, MemorySpace> _bottom_tree_sizes;
 };
 
-template <typename DeviceType>
-template <typename Primitives>
-DistributedSearchTree<DeviceType>::DistributedSearchTree(
-    MPI_Comm comm, Primitives const &primitives)
-    : _bottom_tree(primitives)
+template <typename MemorySpace, typename Enable>
+template <typename ExecutionSpace, typename Primitives>
+DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
+    MPI_Comm comm, ExecutionSpace const &space, Primitives const &primitives)
+    : _bottom_tree{space, primitives}
 {
-  using ExecutionSpace = typename DeviceType::execution_space;
-  ExecutionSpace space{};
 
   // Create new context for the library to isolate library's communication from
   // user's
@@ -123,7 +124,7 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
   int comm_size;
   MPI_Comm_size(_comm, &comm_size);
 
-  Kokkos::View<Box *, DeviceType> boxes(
+  Kokkos::View<Box *, MemorySpace> boxes(
       Kokkos::ViewAllocateWithoutInitializing("rank_bounding_boxes"),
       comm_size);
   // FIXME when we move to MPI with CUDA-aware support, we will not need to
@@ -136,9 +137,9 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
   // FIXME bug in Kokkos that should be fixed in 3.1
   Kokkos::deep_copy(/*space,*/ boxes, boxes_host);
 
-  _top_tree = BVH<DeviceType>(boxes);
+  _top_tree = BVH<MemorySpace>{space, boxes};
 
-  _bottom_tree_sizes = Kokkos::View<size_type *, DeviceType>(
+  _bottom_tree_sizes = Kokkos::View<size_type *, MemorySpace>(
       Kokkos::ViewAllocateWithoutInitializing("leave_count_in_local_trees"),
       comm_size);
   auto bottom_tree_sizes_host = Kokkos::create_mirror_view(_bottom_tree_sizes);
@@ -151,6 +152,28 @@ DistributedSearchTree<DeviceType>::DistributedSearchTree(
 
   _top_tree_size = accumulate(space, _bottom_tree_sizes, 0);
 }
+
+template <typename DeviceType>
+class DistributedSearchTree<
+    DeviceType, std::enable_if_t<Details::is_device_type<DeviceType>::value>>
+    : public DistributedSearchTree<typename DeviceType::memory_space>
+{
+public:
+  using device_type = DeviceType;
+  DistributedSearchTree() = default;
+  template <typename Primitives>
+  DistributedSearchTree(MPI_Comm comm, Primitives const &primitives)
+      : DistributedSearchTree<typename DeviceType::memory_space>(
+            comm, typename DeviceType::execution_space{}, primitives)
+  {
+  }
+  template <typename... Args>
+  void query(Args &&... args) const
+  {
+    DistributedSearchTree<typename DeviceType::memory_space>::query(
+        typename DeviceType::execution_space{}, std::forward<Args>(args)...);
+  }
+};
 
 } // namespace ArborX
 
