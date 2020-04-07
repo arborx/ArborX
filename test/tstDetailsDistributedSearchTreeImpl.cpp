@@ -288,7 +288,9 @@ void checkBufferLayout(std::vector<int> const &ranks,
   std::vector<int> unique;
   std::vector<int> counts;
   std::vector<int> offsets;
+  Kokkos::DefaultHostExecutionSpace space;
   ArborX::Details::sortAndDetermineBufferLayout(
+      space,
       Kokkos::View<int const *, Kokkos::HostSpace,
                    Kokkos::MemoryTraits<Kokkos::Unmanaged>>(ranks.data(),
                                                             ranks.size()),
