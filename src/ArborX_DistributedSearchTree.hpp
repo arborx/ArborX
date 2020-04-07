@@ -162,7 +162,6 @@ class DistributedSearchTree<
 {
 public:
   using device_type = DeviceType;
-  DistributedSearchTree() = default;
   template <typename Primitives>
   DistributedSearchTree(MPI_Comm comm, Primitives const &primitives)
       : DistributedSearchTree<typename DeviceType::memory_space>(
