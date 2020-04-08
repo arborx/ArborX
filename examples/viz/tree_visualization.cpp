@@ -75,15 +75,14 @@ void printPointCloud(View points, std::ostream &os)
        << ") {\\textbullet};\n";
 }
 
-template <typename TreeType>
 void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
 {
-  using DeviceType = typename TreeType::device_type;
-  using ExecutionSpace = typename DeviceType::execution_space;
+  using ExecutionSpace = Kokkos::DefaultHostExecutionSpace;
+  using DeviceType = ExecutionSpace::device_type;
   Kokkos::View<ArborX::Point *, DeviceType> points("points", 0);
   loadPointCloud(infile, points);
 
-  TreeType bvh(points);
+  ArborX::BVH<Kokkos::HostSpace> bvh{ExecutionSpace{}, points};
 
   using TreeVisualization =
       typename ArborX::Details::TreeVisualization<DeviceType>;
@@ -177,8 +176,7 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  using Tree = ArborX::BVH<Kokkos::Serial::device_type>;
-  viz<Tree>(prefix, infile, n_neighbors);
+  viz(prefix, infile, n_neighbors);
 
   return 0;
 }
