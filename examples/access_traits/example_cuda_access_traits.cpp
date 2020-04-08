@@ -75,12 +75,13 @@ int main(int argc, char *argv[])
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     bvh.query(cuda, Spheres{d_a, d_a, d_a, d_a, N}, indices, offset);
 
-    Kokkos::parallel_for(N, KOKKOS_LAMBDA(int i) {
-      for (int j = offset(i); j < offset(i + 1); ++j)
-      {
-        printf("%i %i\n", i, indices(j));
-      }
-    });
+    Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::Cuda>(cuda, 0, N),
+                         KOKKOS_LAMBDA(int i) {
+                           for (int j = offset(i); j < offset(i + 1); ++j)
+                           {
+                             printf("%i %i\n", i, indices(j));
+                           }
+                         });
   }
   Kokkos::finalize();
 
