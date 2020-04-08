@@ -67,12 +67,15 @@ int main(int argc, char *argv[])
 
     cudaMemcpy(d_a, a.data(), sizeof(a), cudaMemcpyHostToDevice);
 
-    using device_type = Kokkos::Cuda::device_type;
-    ArborX::BVH<device_type> bvh{PointCloud{d_a, d_a, d_a, N}};
+    using MemorySpace = Kokkos::CudaSpace;
+    using ExecutionSpace = Kokkos::Cuda;
+    ArborX::BVH<MemorySpace> bvh{ExecutionSpace{},
+                                 PointCloud{d_a, d_a, d_a, N}};
 
-    Kokkos::View<int *, device_type> indices("indices", 0);
-    Kokkos::View<int *, device_type> offset("offset", 0);
-    bvh.query(Spheres{d_a, d_a, d_a, d_a, N}, indices, offset);
+    Kokkos::View<int *, ExecutionSpace> indices("indices", 0);
+    Kokkos::View<int *, ExecutionSpace> offset("offset", 0);
+    bvh.query(ExecutionSpace{}, Spheres{d_a, d_a, d_a, d_a, N}, indices,
+              offset);
 
     Kokkos::parallel_for(N, KOKKOS_LAMBDA(int i) {
       for (int j = offset(i); j < offset(i + 1); ++j)
