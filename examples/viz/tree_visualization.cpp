@@ -75,15 +75,14 @@ void printPointCloud(View points, std::ostream &os)
        << ") {\\textbullet};\n";
 }
 
-template <typename TreeType>
 void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
 {
-  using DeviceType = typename TreeType::device_type;
-  using ExecutionSpace = typename DeviceType::execution_space;
+  using ExecutionSpace = Kokkos::DefaultHostExecutionSpace;
+  using DeviceType = ExecutionSpace::device_type;
   Kokkos::View<ArborX::Point *, DeviceType> points("points", 0);
   loadPointCloud(infile, points);
 
-  TreeType bvh(points);
+  ArborX::BVH<Kokkos::HostSpace> bvh{ExecutionSpace{}, points};
 
   using TreeVisualization =
       typename ArborX::Details::TreeVisualization<DeviceType>;
@@ -147,22 +146,11 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
   performQueries(prefix + "sorted_", suffix);
 }
 
-// FIXME version of Kokkos in the CI/dev base image is too old and does not have
-// scope guards so we define our own...
-struct KokkosScopeGuard
-{
-  KokkosScopeGuard(Kokkos::InitArguments const &args)
-  {
-    Kokkos::initialize(args);
-  }
-  ~KokkosScopeGuard() { Kokkos::finalize(); }
-};
-
 int main(int argc, char *argv[])
 {
   Kokkos::InitArguments args;
   args.disable_warnings = true;
-  KokkosScopeGuard guard(args);
+  Kokkos::ScopeGuard guard(args);
 
   std::string prefix;
   std::string infile;
@@ -188,8 +176,7 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  using Tree = ArborX::BVH<Kokkos::Serial::device_type>;
-  viz<Tree>(prefix, infile, n_neighbors);
+  viz(prefix, infile, n_neighbors);
 
   return 0;
 }

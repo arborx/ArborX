@@ -65,21 +65,27 @@ int main(int argc, char *argv[])
 
     std::iota(std::begin(a), std::end(a), 1.0);
 
-    cudaMemcpy(d_a, a.data(), sizeof(a), cudaMemcpyHostToDevice);
+    cudaStream_t stream;
+    cudaStreamCreate(&stream);
+    cudaMemcpyAsync(d_a, a.data(), sizeof(a), cudaMemcpyHostToDevice, stream);
 
-    using device_type = Kokkos::Cuda::device_type;
-    ArborX::BVH<device_type> bvh{PointCloud{d_a, d_a, d_a, N}};
+    Kokkos::Cuda cuda{stream};
+    ArborX::BVH<Kokkos::CudaSpace> bvh{cuda, PointCloud{d_a, d_a, d_a, N}};
 
-    Kokkos::View<int *, device_type> indices("indices", 0);
-    Kokkos::View<int *, device_type> offset("offset", 0);
-    bvh.query(Spheres{d_a, d_a, d_a, d_a, N}, indices, offset);
+    using DeviceType = Kokkos::Cuda::device_type;
+    Kokkos::View<int *, DeviceType> indices("indices", 0);
+    Kokkos::View<int *, DeviceType> offset("offset", 0);
+    bvh.query(cuda, Spheres{d_a, d_a, d_a, d_a, N}, indices, offset);
 
-    Kokkos::parallel_for(N, KOKKOS_LAMBDA(int i) {
-      for (int j = offset(i); j < offset(i + 1); ++j)
-      {
-        printf("%i %i\n", i, indices(j));
-      }
-    });
+    Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::Cuda>(cuda, 0, N),
+                         KOKKOS_LAMBDA(int i) {
+                           for (int j = offset(i); j < offset(i + 1); ++j)
+                           {
+                             printf("%i %i\n", i, indices(j));
+                           }
+                         });
+
+    cudaStreamDestroy(stream);
   }
   Kokkos::finalize();
 
