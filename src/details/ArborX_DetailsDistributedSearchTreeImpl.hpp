@@ -27,7 +27,7 @@
 namespace ArborX
 {
 
-template <typename DeviceType>
+template <typename DeviceType, typename Enable>
 class DistributedSearchTree;
 
 namespace Details
@@ -50,13 +50,14 @@ struct DistributedSearchTreeImpl
 {
   // spatial queries
   template <typename ExecutionSpace, typename Predicates>
-  static void queryDispatch(SpatialPredicateTag,
-                            DistributedSearchTree<DeviceType> const &tree,
-                            ExecutionSpace const &space,
-                            Predicates const &queries,
-                            Kokkos::View<int *, DeviceType> &indices,
-                            Kokkos::View<int *, DeviceType> &offset,
-                            Kokkos::View<int *, DeviceType> &ranks)
+  static void
+  queryDispatch(SpatialPredicateTag,
+                DistributedSearchTree<typename DeviceType::memory_space,
+                                      void> const &tree,
+                ExecutionSpace const &space, Predicates const &queries,
+                Kokkos::View<int *, DeviceType> &indices,
+                Kokkos::View<int *, DeviceType> &offset,
+                Kokkos::View<int *, DeviceType> &ranks)
   {
     Kokkos::View<Kokkos::pair<int, int> *, DeviceType> out("pairs_index_rank",
                                                            0);
@@ -78,18 +79,20 @@ struct DistributedSearchTreeImpl
 
   template <typename ExecutionSpace, typename Predicates, typename OutputView,
             typename Callback>
-  static void queryDispatch(SpatialPredicateTag,
-                            DistributedSearchTree<DeviceType> const &tree,
-                            ExecutionSpace const &space,
-                            Predicates const &queries, Callback const &callback,
-                            OutputView &out,
-                            Kokkos::View<int *, DeviceType> &offset);
+  static void
+  queryDispatch(SpatialPredicateTag,
+                DistributedSearchTree<typename DeviceType::memory_space,
+                                      void> const &tree,
+                ExecutionSpace const &space, Predicates const &queries,
+                Callback const &callback, OutputView &out,
+                Kokkos::View<int *, DeviceType> &offset);
 
   // nearest neighbors queries
   template <typename ExecutionSpace, typename Predicates>
   static void
   queryDispatch(NearestPredicateTag,
-                DistributedSearchTree<DeviceType> const &tree,
+                DistributedSearchTree<typename DeviceType::memory_space,
+                                      void> const &tree,
                 ExecutionSpace const &space, Predicates const &queries,
                 Kokkos::View<int *, DeviceType> &indices,
                 Kokkos::View<int *, DeviceType> &offset,
@@ -97,34 +100,37 @@ struct DistributedSearchTreeImpl
                 Kokkos::View<float *, DeviceType> *distances_ptr = nullptr);
 
   template <typename ExecutionSpace, typename Predicates>
-  static void queryDispatch(NearestPredicateTag tag,
-                            DistributedSearchTree<DeviceType> const &tree,
-                            ExecutionSpace const &space,
-                            Predicates const &queries,
-                            Kokkos::View<int *, DeviceType> &indices,
-                            Kokkos::View<int *, DeviceType> &offset,
-                            Kokkos::View<int *, DeviceType> &ranks,
-                            Kokkos::View<float *, DeviceType> &distances)
+  static void
+  queryDispatch(NearestPredicateTag tag,
+                DistributedSearchTree<typename DeviceType::memory_space,
+                                      void> const &tree,
+                ExecutionSpace const &space, Predicates const &queries,
+                Kokkos::View<int *, DeviceType> &indices,
+                Kokkos::View<int *, DeviceType> &offset,
+                Kokkos::View<int *, DeviceType> &ranks,
+                Kokkos::View<float *, DeviceType> &distances)
   {
     queryDispatch(tag, tree, space, queries, indices, offset, ranks,
                   &distances);
   }
 
   template <typename ExecutionSpace, typename Predicates>
-  static void deviseStrategy(ExecutionSpace const &space,
-                             Predicates const &queries,
-                             DistributedSearchTree<DeviceType> const &tree,
-                             Kokkos::View<int *, DeviceType> &indices,
-                             Kokkos::View<int *, DeviceType> &offset,
-                             Kokkos::View<float *, DeviceType> &);
+  static void
+  deviseStrategy(ExecutionSpace const &space, Predicates const &queries,
+                 DistributedSearchTree<typename DeviceType::memory_space,
+                                       void> const &tree,
+                 Kokkos::View<int *, DeviceType> &indices,
+                 Kokkos::View<int *, DeviceType> &offset,
+                 Kokkos::View<float *, DeviceType> &);
 
   template <typename ExecutionSpace, typename Predicates>
-  static void reassessStrategy(ExecutionSpace const &space,
-                               Predicates const &queries,
-                               DistributedSearchTree<DeviceType> const &tree,
-                               Kokkos::View<int *, DeviceType> &indices,
-                               Kokkos::View<int *, DeviceType> &offset,
-                               Kokkos::View<float *, DeviceType> &distances);
+  static void
+  reassessStrategy(ExecutionSpace const &space, Predicates const &queries,
+                   DistributedSearchTree<typename DeviceType::memory_space,
+                                         void> const &tree,
+                   Kokkos::View<int *, DeviceType> &indices,
+                   Kokkos::View<int *, DeviceType> &offset,
+                   Kokkos::View<float *, DeviceType> &distances);
 
   template <typename ExecutionSpace, typename Predicates, typename Query>
   static void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
@@ -287,7 +293,7 @@ template <typename DeviceType>
 template <typename ExecutionSpace, typename Predicates>
 void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
     ExecutionSpace const &space, Predicates const &queries,
-    DistributedSearchTree<DeviceType> const &tree,
+    DistributedSearchTree<typename DeviceType::memory_space, void> const &tree,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset,
     Kokkos::View<float *, DeviceType> &)
@@ -296,7 +302,7 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
   auto const &bottom_tree_sizes = tree._bottom_tree_sizes;
 
   // Find the k nearest local trees.
-  top_tree.query(queries, indices, offset);
+  top_tree.query(space, queries, indices, offset);
 
   // Accumulate total leave count in the local trees until it reaches k which
   // is the number of neighbors queried for.  Stop if local trees get
@@ -344,7 +350,7 @@ template <typename DeviceType>
 template <typename ExecutionSpace, typename Predicates>
 void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
     ExecutionSpace const &space, Predicates const &queries,
-    DistributedSearchTree<DeviceType> const &tree,
+    DistributedSearchTree<typename DeviceType::memory_space, void> const &tree,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset,
     Kokkos::View<float *, DeviceType> &distances)
@@ -379,7 +385,7 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
                                     farthest_distances(i)});
                        });
 
-  top_tree.query(radius_searches, indices, offset);
+  top_tree.query(space, radius_searches, indices, offset);
   // NOTE: in principle, we could perform radius searches on the bottom_tree
   // rather than nearest queries.
 }
@@ -387,7 +393,8 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
 template <typename DeviceType>
 template <typename ExecutionSpace, typename Predicates>
 void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-    NearestPredicateTag, DistributedSearchTree<DeviceType> const &tree,
+    NearestPredicateTag,
+    DistributedSearchTree<typename DeviceType::memory_space, void> const &tree,
     ExecutionSpace const &space, Predicates const &queries,
     Kokkos::View<int *, DeviceType> &indices,
     Kokkos::View<int *, DeviceType> &offset,
@@ -413,11 +420,11 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
 
   // NOTE: compiler would not deduce __range for the braced-init-list but I
   // got it to work with the static_cast to function pointers.
-  using Strategy = void (*)(ExecutionSpace const &, Predicates const &,
-                            DistributedSearchTree<DeviceType> const &,
-                            Kokkos::View<int *, DeviceType> &,
-                            Kokkos::View<int *, DeviceType> &,
-                            Kokkos::View<float *, DeviceType> &);
+  using Strategy = void (*)(
+      ExecutionSpace const &, Predicates const &,
+      DistributedSearchTree<typename DeviceType::memory_space, void> const &,
+      Kokkos::View<int *, DeviceType> &, Kokkos::View<int *, DeviceType> &,
+      Kokkos::View<float *, DeviceType> &);
   for (auto implementStrategy :
        {static_cast<Strategy>(
             DistributedSearchTreeImpl<DeviceType>::deviseStrategy),
@@ -440,7 +447,7 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     ////////////////////////////////////////////////////////////////////////////
     // Perform queries that have been received
     ////////////////////////////////////////////////////////////////////////////
-    bottom_tree.query(fwd_queries, indices, offset, distances);
+    bottom_tree.query(space, fwd_queries, indices, offset, distances);
     ////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////////////////////////////////////////////
@@ -465,7 +472,8 @@ template <typename DeviceType>
 template <typename ExecutionSpace, typename Predicates, typename OutputView,
           typename Callback>
 void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-    SpatialPredicateTag, DistributedSearchTree<DeviceType> const &tree,
+    SpatialPredicateTag,
+    DistributedSearchTree<typename DeviceType::memory_space, void> const &tree,
     ExecutionSpace const &space, Predicates const &queries,
     Callback const &callback, OutputView &out,
     Kokkos::View<int *, DeviceType> &offset)
@@ -478,7 +486,7 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   Kokkos::View<int *, DeviceType> ranks("ranks", 0);
   ////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////
-  top_tree.query(queries, indices, offset);
+  top_tree.query(space, queries, indices, offset);
   ////////////////////////////////////////////////////////////////////////////
 
   ////////////////////////////////////////////////////////////////////////////
@@ -495,7 +503,7 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   ////////////////////////////////////////////////////////////////////////////
   // Perform queries that have been received
   ////////////////////////////////////////////////////////////////////////////
-  bottom_tree.query(fwd_queries, callback, out, offset);
+  bottom_tree.query(space, fwd_queries, callback, out, offset);
   ////////////////////////////////////////////////////////////////////////////
 
   ////////////////////////////////////////////////////////////////////////////
