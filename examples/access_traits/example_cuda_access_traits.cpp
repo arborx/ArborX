@@ -72,8 +72,9 @@ int main(int argc, char *argv[])
     ArborX::BVH<MemorySpace> bvh{ExecutionSpace{},
                                  PointCloud{d_a, d_a, d_a, N}};
 
-    Kokkos::View<int *, ExecutionSpace> indices("indices", 0);
-    Kokkos::View<int *, ExecutionSpace> offset("offset", 0);
+    using DeviceType = ExecutionSpace::device_type;
+    Kokkos::View<int *, DeviceType> indices("indices", 0);
+    Kokkos::View<int *, DeviceType> offset("offset", 0);
     bvh.query(ExecutionSpace{}, Spheres{d_a, d_a, d_a, d_a, N}, indices,
               offset);
 
