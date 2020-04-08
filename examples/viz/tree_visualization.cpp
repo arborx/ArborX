@@ -147,22 +147,11 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
   performQueries(prefix + "sorted_", suffix);
 }
 
-// FIXME version of Kokkos in the CI/dev base image is too old and does not have
-// scope guards so we define our own...
-struct KokkosScopeGuard
-{
-  KokkosScopeGuard(Kokkos::InitArguments const &args)
-  {
-    Kokkos::initialize(args);
-  }
-  ~KokkosScopeGuard() { Kokkos::finalize(); }
-};
-
 int main(int argc, char *argv[])
 {
   Kokkos::InitArguments args;
   args.disable_warnings = true;
-  KokkosScopeGuard guard(args);
+  Kokkos::ScopeGuard guard(args);
 
   std::string prefix;
   std::string infile;
