@@ -65,9 +65,11 @@ int main(int argc, char *argv[])
 
     std::iota(std::begin(a), std::end(a), 1.0);
 
-    cudaMemcpy(d_a, a.data(), sizeof(a), cudaMemcpyHostToDevice);
+    cudaStream_t stream;
+    cudaStreamCreate(&stream);
+    cudaMemcpyAsync(d_a, a.data(), sizeof(a), cudaMemcpyHostToDevice, stream);
 
-    Kokkos::Cuda cuda{};
+    Kokkos::Cuda cuda{stream};
     ArborX::BVH<Kokkos::CudaSpace> bvh{cuda, PointCloud{d_a, d_a, d_a, N}};
 
     using DeviceType = Kokkos::Cuda::device_type;
@@ -82,6 +84,8 @@ int main(int argc, char *argv[])
                              printf("%i %i\n", i, indices(j));
                            }
                          });
+
+    cudaStreamDestroy(stream);
   }
   Kokkos::finalize();
 
