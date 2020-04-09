@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
         curl \
         git \
         wget \
+        jq \
         vim \
         lcov \
         ccache \
@@ -81,12 +82,17 @@ ENV PATH=${OPENMPI_DIR}/bin:$PATH
 ENV BOOST_DIR=/opt/boost
 RUN BOOST_VERSION=1.67.0 && \
     BOOST_VERSION_UNDERSCORE=$(echo "$BOOST_VERSION" | sed -e "s/\./_/g") && \
-    BOOST_URL=https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2 && \
-    BOOST_SHA256=2684c972994ee57fc5632e03bf044746f6eb45d4920c343937a465fd67a5adba && \
+    BOOST_KEY=379CE192D401AB61 && \
+    BOOST_URL=https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source && \
     BOOST_ARCHIVE=boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2 && \
-    SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
-    wget --quiet ${BOOST_URL} --output-document=${BOOST_ARCHIVE} && \
-    echo "${BOOST_SHA256} ${BOOST_ARCHIVE}" | sha256sum -c && \
+    wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE} && \
+    wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.asc && \
+    wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json && \
+    wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json.asc && \
+    gpg --recv-keys ${BOOST_KEY} && \
+    gpg --verify ${BOOST_ARCHIVE}.json.asc ${BOOST_ARCHIVE}.json && \
+    gpg --verify ${BOOST_ARCHIVE}.asc ${BOOST_ARCHIVE} && \
+    cat ${BOOST_ARCHIVE}.json | jq -r '. | .sha256 + "  " + .file' | sha256sum --check && \
     mkdir -p boost && \
     tar -xf ${BOOST_ARCHIVE} -C boost --strip-components=1 && \
     cd boost && \
@@ -101,7 +107,7 @@ RUN BOOST_VERSION=1.67.0 && \
         cxxflags=-w \
         install \
         && \
-    rm -rf ${SCRATCH_DIR}
+    rm -rf boost*
 
 # Install Google Benchmark support library
 ENV BENCHMARK_DIR=/opt/benchmark
