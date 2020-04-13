@@ -22,6 +22,9 @@ RUN apt-get update && apt-get install -y \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Disable IPv6 (https://rvm.io/rvm/security#ipv6-issues)
+RUN mkdir -p ~/.gnupg && echo "disable-ipv6" >> ~/.gnupg/dirmngr.conf
+
 # Install CMake
 ENV CMAKE_DIR=/opt/cmake
 RUN CMAKE_VERSION=3.13.4 && \
@@ -49,7 +52,7 @@ RUN LLVM_VERSION=7.0.1 && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${LLVM_URL} --output-document=${LLVM_ARCHIVE} && \
     wget --quiet ${LLVM_URL}.sig --output-document=${LLVM_ARCHIVE}.sig && \
-    gpg --keyserver keys.gnupg.net --recv-keys ${LLVM_KEY} && \
+    gpg --recv-keys ${LLVM_KEY} && \
     gpg --verify ${LLVM_ARCHIVE}.sig ${LLVM_ARCHIVE} && \
     mkdir -p ${LLVM_DIR} && \
     tar -xvf ${LLVM_ARCHIVE} -C ${LLVM_DIR} --strip-components=1 && \
