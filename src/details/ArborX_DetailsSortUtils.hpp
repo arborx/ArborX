@@ -168,7 +168,7 @@ void applyPermutation(ExecutionSpace const &space,
   static_assert(std::is_integral<typename PermutationView::value_type>::value,
                 "");
   ARBORX_ASSERT(permutation.extent(0) == view.extent(0));
-  auto scratch_view = clone(ExecutionSpace{}, view);
+  auto scratch_view = clone(space, view);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("permute"),
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, view.extent(0)),

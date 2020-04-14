@@ -128,7 +128,7 @@ public:
           tmp_offset(permute(i)) = offset(i + 1) - offset(i);
         });
 
-    exclusivePrefixSum(ExecutionSpace{}, tmp_offset);
+    exclusivePrefixSum(space, tmp_offset);
 
     return tmp_offset;
   }
