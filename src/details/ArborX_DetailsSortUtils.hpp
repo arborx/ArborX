@@ -96,14 +96,18 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
 
 #if defined(KOKKOS_ENABLE_CUDA)
 // NOTE returns the permutation indices **and** sorts the input view
-template <typename ValueType, typename MemorySpace>
-Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> sortObjects(
-    Kokkos::Cuda const &space,
-    Kokkos::View<ValueType *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> view)
+template <typename ViewType>
+Kokkos::View<size_t *, typename ViewType::device_type>
+sortObjects(Kokkos::Cuda const &space, ViewType &view)
 {
   int const n = view.extent(0);
 
-  Kokkos::View<size_t *, Kokkos::Device<Kokkos::Cuda, MemorySpace>> permute(
+  using ValueType = typename ViewType::value_type;
+  static_assert(
+      std::is_same<Kokkos::Cuda, typename ViewType::execution_space>::value,
+      "");
+
+  Kokkos::View<size_t *, typename ViewType::device_type> permute(
       Kokkos::ViewAllocateWithoutInitializing("permutation"), n);
   ArborX::iota(space, permute);
 
