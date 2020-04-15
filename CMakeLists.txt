@@ -13,6 +13,10 @@ endif()
 add_library(ArborX INTERFACE)
 target_link_libraries(ArborX INTERFACE Kokkos::kokkos)
 set_target_properties(ArborX PROPERTIES INTERFACE_COMPILE_FEATURES cxx_std_14)
+# As all executables using ArborX depend on it, depending on record_hash allows
+# updating hash each time executable is rebuilt, including when called from
+# within a subdirectory.
+add_dependencies(ArborX record_hash)
 
 option(ARBORX_ENABLE_MPI "Enable MPI support" OFF)
 if(ARBORX_ENABLE_MPI)
@@ -44,8 +48,8 @@ install(EXPORT ArborXTargets
 
 set(ARBORX_VERSION_STRING "0.9 (dev)")
 
-# Makes sure to store the current git hash ArborX_Version.hpp each time we
-# recompile.
+# Make sure that the git hash in ArborX_Version.hpp is considered to be always
+# out of date, and thus is updated every recompile.
 add_custom_target(
   record_hash ALL VERBATIM
   COMMAND ${CMAKE_COMMAND}
@@ -54,7 +58,8 @@ add_custom_target(
     -DARBORX_VERSION_STRING=${ARBORX_VERSION_STRING}
     -P cmake/SetupVersion.cmake
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-# Also run the command when configuring
+# Also run the record_hash command during configuration stage to have a visible
+# ArborX_Version.hpp at all times.
 execute_process(
   COMMAND ${CMAKE_COMMAND}
     -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
