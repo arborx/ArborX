@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 project(ArborX CXX)
 
-find_package(Kokkos 3.0 REQUIRED QUIET)
+find_package(Kokkos 3.1 REQUIRED QUIET)
 if(Kokkos_ENABLE_CUDA)
   kokkos_check(OPTIONS CUDA_LAMBDA)
 endif()
