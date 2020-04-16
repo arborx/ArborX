@@ -2,7 +2,7 @@
 
 Dependency | Version | Required           | Runtime
 ---        | ---     | ---                | ---
-Kokkos     | 3.0.00  | :heavy_check_mark: | :heavy_check_mark:
+Kokkos     | 3.1.00  | :heavy_check_mark: | :heavy_check_mark:
 MPI        | 2       |                    | :heavy_check_mark:
 CMake      | 3.12    | :heavy_check_mark: |
 
