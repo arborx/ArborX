@@ -264,8 +264,7 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
 #ifndef ARBORX_USE_CUDA_AWARE_MPI
   (void)space;
   auto exports_host = create_layout_right_mirror_view(exports);
-  // FIXME doesn't work yet
-  Kokkos::deep_copy(/*space,*/ exports_host, exports);
+  Kokkos::deep_copy(space, exports_host, exports);
 
   auto imports_host = create_layout_right_mirror_view(imports);
 
@@ -282,8 +281,7 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
 
   distributor.doPostsAndWaits(Kokkos::DefaultHostExecutionSpace{},
                               export_buffer, num_packets, import_buffer);
-  // FIXME doesn't work yet
-  Kokkos::deep_copy(/*space,*/ imports, imports_host);
+  Kokkos::deep_copy(space, imports, imports_host);
 #else
   distributor.doPostsAndWaits(space, exports, num_packets, imports);
 #endif

@@ -54,8 +54,7 @@ public:
                               Predicates const &predicates)
   {
     Kokkos::View<Box, DeviceType> bounds("bounds");
-    // FIXME doesn't compile
-    Kokkos::deep_copy(/*space,*/ bounds, scene_bounding_box);
+    Kokkos::deep_copy(space, bounds, scene_bounding_box);
     return sortQueriesAlongZOrderCurve(space, bounds, predicates);
   }
 

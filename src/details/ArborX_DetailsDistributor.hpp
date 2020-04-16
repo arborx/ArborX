@@ -185,8 +185,7 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
   counts.reserve(offsets.size() - 1);
   for (unsigned int i = 1; i < offsets.size(); ++i)
     counts.push_back(offsets[i] - offsets[i - 1]);
-  // FIXME doesn't work yet
-  Kokkos::deep_copy(/*space,*/ permutation_indices, device_permutation_indices);
+  Kokkos::deep_copy(space, permutation_indices, device_permutation_indices);
   ARBORX_ASSERT(offsets.back() == static_cast<int>(ranks.size()));
 }
 
