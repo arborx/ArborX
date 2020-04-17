@@ -13,7 +13,7 @@ Defined in header [`<ArborX_Predicates.hpp>`](https://github.com/arborx/ArborX/b
 # `ArborX::nearest`
 ```C++
 template <typename Geometry>
-KOKKOS_FUNCTION unspecified nearest(Geometry const& geometry, std::size_t k) noexcept;
+KOKKOS_FUNCTION unspecified nearest(Geometry const& geometry, std::size_t k = 1) noexcept;
 ```
 Generate a nearest predicate to perform a k-nearest neighbors search with `ArborX::BVH<MemorySpace>::query()`.
 ## Template parameter(s)
