@@ -163,12 +163,12 @@ struct BoundingVolumeHierarchyImpl
 
   // Views are passed by reference here because internally Kokkos::realloc()
   // is called.
-  template <typename ExecutionSpace, typename Predicates>
+  template <typename ExecutionSpace, typename Predicates, typename Indices,
+            typename Offset>
   static void queryDispatch(SpatialPredicateTag, BVH const &bvh,
                             ExecutionSpace const &space,
-                            Predicates const &predicates,
-                            Kokkos::View<int *, DeviceType> &indices,
-                            Kokkos::View<int *, DeviceType> &offset,
+                            Predicates const &predicates, Indices &indices,
+                            Offset &offset,
                             Experimental::TraversalPolicy const &policy =
                                 Experimental::TraversalPolicy())
   {
@@ -177,24 +177,22 @@ struct BoundingVolumeHierarchyImpl
   }
 
   template <typename ExecutionSpace, typename Predicates, typename OutputView,
-            typename Callback>
+            typename OffsetView, typename Callback>
   static std::enable_if_t<
       std::is_same<typename Callback::tag, InlineCallbackTag>::value>
   queryDispatch(SpatialPredicateTag, BVH const &bvh,
                 ExecutionSpace const &space, Predicates const &predicates,
-                Callback const &callback, OutputView &out,
-                Kokkos::View<int *, DeviceType> &offset,
+                Callback const &callback, OutputView &out, OffsetView &offset,
                 Experimental::TraversalPolicy const &policy =
                     Experimental::TraversalPolicy());
 
   template <typename ExecutionSpace, typename Predicates, typename OutputView,
-            typename Callback>
+            typename OffsetView, typename Callback>
   static std::enable_if_t<
       std::is_same<typename Callback::tag, PostCallbackTag>::value>
   queryDispatch(SpatialPredicateTag, BVH const &bvh,
                 ExecutionSpace const &space, Predicates const &predicates,
-                Callback const &callback, OutputView &out,
-                Kokkos::View<int *, DeviceType> &offset,
+                Callback const &callback, OutputView &out, OffsetView &offset,
                 Experimental::TraversalPolicy const &policy =
                     Experimental::TraversalPolicy())
   {
@@ -423,13 +421,12 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 
 template <typename DeviceType>
 template <typename ExecutionSpace, typename Predicates, typename OutputView,
-          typename Callback>
+          typename OffsetView, typename Callback>
 std::enable_if_t<std::is_same<typename Callback::tag, InlineCallbackTag>::value>
 BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
     Predicates const &predicates, Callback const &callback, OutputView &out,
-    Kokkos::View<int *, DeviceType> &offset,
-    Experimental::TraversalPolicy const &policy)
+    OffsetView &offset, Experimental::TraversalPolicy const &policy)
 {
   static_assert(is_detected<SpatialPredicateInlineCallbackArchetypeExpression,
                             Callback, PredicatesHelper<Predicates>,
