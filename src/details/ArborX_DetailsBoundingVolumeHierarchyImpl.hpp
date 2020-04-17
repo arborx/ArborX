@@ -159,12 +159,10 @@ struct CallbackDefaultNearestPredicateWithDistance
 template <typename DeviceType>
 struct BoundingVolumeHierarchyImpl
 {
-  using BVH = BoundingVolumeHierarchy<typename DeviceType::memory_space, void>;
-
   // Views are passed by reference here because internally Kokkos::realloc()
   // is called.
-  template <typename ExecutionSpace, typename Predicates, typename Indices,
-            typename Offset>
+  template <typename BVH, typename ExecutionSpace, typename Predicates,
+            typename Indices, typename Offset>
   static void queryDispatch(SpatialPredicateTag, BVH const &bvh,
                             ExecutionSpace const &space,
                             Predicates const &predicates, Indices &indices,
@@ -176,8 +174,8 @@ struct BoundingVolumeHierarchyImpl
                   CallbackDefaultSpatialPredicate{}, indices, offset, policy);
   }
 
-  template <typename ExecutionSpace, typename Predicates, typename OutputView,
-            typename OffsetView, typename Callback>
+  template <typename BVH, typename ExecutionSpace, typename Predicates,
+            typename OutputView, typename OffsetView, typename Callback>
   static std::enable_if_t<
       std::is_same<typename Callback::tag, InlineCallbackTag>::value>
   queryDispatch(SpatialPredicateTag, BVH const &bvh,
@@ -186,8 +184,8 @@ struct BoundingVolumeHierarchyImpl
                 Experimental::TraversalPolicy const &policy =
                     Experimental::TraversalPolicy());
 
-  template <typename ExecutionSpace, typename Predicates, typename OutputView,
-            typename OffsetView, typename Callback>
+  template <typename BVH, typename ExecutionSpace, typename Predicates,
+            typename OutputView, typename OffsetView, typename Callback>
   static std::enable_if_t<
       std::is_same<typename Callback::tag, PostCallbackTag>::value>
   queryDispatch(SpatialPredicateTag, BVH const &bvh,
@@ -202,8 +200,8 @@ struct BoundingVolumeHierarchyImpl
     callback(predicates, offset, indices, out);
   }
 
-  template <typename ExecutionSpace, typename Predicates, typename OutputView,
-            typename OffsetView, typename Callback>
+  template <typename BVH, typename ExecutionSpace, typename Predicates,
+            typename OutputView, typename OffsetView, typename Callback>
   static std::enable_if_t<
       std::is_same<typename Callback::tag, InlineCallbackTag>::value>
   queryDispatch(NearestPredicateTag, BVH const &bvh,
@@ -212,8 +210,8 @@ struct BoundingVolumeHierarchyImpl
                 Experimental::TraversalPolicy const &policy =
                     Experimental::TraversalPolicy());
 
-  template <typename ExecutionSpace, typename Predicates, typename OutputView,
-            typename OffsetView, typename Callback>
+  template <typename BVH, typename ExecutionSpace, typename Predicates,
+            typename OutputView, typename OffsetView, typename Callback>
   static std::enable_if_t<
       std::is_same<typename Callback::tag, PostCallbackTag>::value>
   queryDispatch(NearestPredicateTag, BVH const &bvh,
@@ -230,8 +228,8 @@ struct BoundingVolumeHierarchyImpl
     callback(predicates, offset, pairs, out);
   }
 
-  template <typename ExecutionSpace, typename Predicates, typename Indices,
-            typename Offset>
+  template <typename BVH, typename ExecutionSpace, typename Predicates,
+            typename Indices, typename Offset>
   static void queryDispatch(NearestPredicateTag, BVH const &bvh,
                             ExecutionSpace const &space,
                             Predicates const &predicates, Indices &indices,
@@ -243,8 +241,8 @@ struct BoundingVolumeHierarchyImpl
                   CallbackDefaultNearestPredicate{}, indices, offset, policy);
   }
 
-  template <typename ExecutionSpace, typename Predicates, typename Indices,
-            typename Offset, typename DistanceDataType,
+  template <typename BVH, typename ExecutionSpace, typename Predicates,
+            typename Indices, typename Offset, typename DistanceDataType,
             typename... DistanceViewProperties>
   static void queryDispatch(
       NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
@@ -271,8 +269,8 @@ struct BoundingVolumeHierarchyImpl
 };
 
 template <typename DeviceType>
-template <typename ExecutionSpace, typename Predicates, typename OutputView,
-          typename OffsetView, typename Callback>
+template <typename BVH, typename ExecutionSpace, typename Predicates,
+          typename OutputView, typename OffsetView, typename Callback>
 std::enable_if_t<std::is_same<typename Callback::tag, InlineCallbackTag>::value>
 BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
@@ -417,8 +415,8 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 }
 
 template <typename DeviceType>
-template <typename ExecutionSpace, typename Predicates, typename OutputView,
-          typename OffsetView, typename Callback>
+template <typename BVH, typename ExecutionSpace, typename Predicates,
+          typename OutputView, typename OffsetView, typename Callback>
 std::enable_if_t<std::is_same<typename Callback::tag, InlineCallbackTag>::value>
 BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
