@@ -25,7 +25,7 @@
 namespace ArborX
 {
 
-template <typename DeviceType, typename Enable>
+template <typename MemorySpace, typename Enable>
 class BoundingVolumeHierarchy;
 
 namespace Details
