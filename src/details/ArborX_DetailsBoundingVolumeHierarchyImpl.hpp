@@ -24,10 +24,6 @@
 
 namespace ArborX
 {
-
-template <typename MemorySpace, typename Enable>
-class BoundingVolumeHierarchy;
-
 namespace Details
 {
 
