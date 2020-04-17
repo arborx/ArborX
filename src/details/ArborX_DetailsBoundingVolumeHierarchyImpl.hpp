@@ -156,7 +156,6 @@ struct CallbackDefaultNearestPredicateWithDistance
   }
 };
 
-template <typename DeviceType>
 struct BoundingVolumeHierarchyImpl
 {
   // Views are passed by reference here because internally Kokkos::realloc()
@@ -268,15 +267,17 @@ struct BoundingVolumeHierarchyImpl
   }
 };
 
-template <typename DeviceType>
 template <typename BVH, typename ExecutionSpace, typename Predicates,
           typename OutputView, typename OffsetView, typename Callback>
 std::enable_if_t<std::is_same<typename Callback::tag, InlineCallbackTag>::value>
-BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
+BoundingVolumeHierarchyImpl::queryDispatch(
     NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
     Predicates const &predicates, Callback const &callback, OutputView &out,
     OffsetView &offset, Experimental::TraversalPolicy const &policy)
 {
+  using MemorySpace = typename BVH::memory_space;
+  using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
+
   static_assert(is_detected<NearestPredicateInlineCallbackArchetypeExpression,
                             Callback, PredicatesHelper<Predicates>,
                             OutputFunctorHelper<OutputView>>::value,
@@ -414,15 +415,17 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   Kokkos::Profiling::popRegion();
 }
 
-template <typename DeviceType>
 template <typename BVH, typename ExecutionSpace, typename Predicates,
           typename OutputView, typename OffsetView, typename Callback>
 std::enable_if_t<std::is_same<typename Callback::tag, InlineCallbackTag>::value>
-BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
+BoundingVolumeHierarchyImpl::queryDispatch(
     SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
     Predicates const &predicates, Callback const &callback, OutputView &out,
     OffsetView &offset, Experimental::TraversalPolicy const &policy)
 {
+  using MemorySpace = typename BVH::memory_space;
+  using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
+
   static_assert(is_detected<SpatialPredicateInlineCallbackArchetypeExpression,
                             Callback, PredicatesHelper<Predicates>,
                             OutputFunctorHelper<OutputView>>::value,
