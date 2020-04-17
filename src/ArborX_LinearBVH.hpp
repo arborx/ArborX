@@ -155,7 +155,7 @@ using is_device_type = typename is_device_type_impl<std::remove_cv_t<T>>::type;
 
 template <typename DeviceType>
 class BoundingVolumeHierarchy<
-    DeviceType, std::enable_if_t<Details::is_device_type<DeviceType>::value>>
+    DeviceType, std::enable_if_t<Kokkos::is_device<DeviceType>::value>>
     : public BoundingVolumeHierarchy<typename DeviceType::memory_space>
 {
 public:

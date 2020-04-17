@@ -155,7 +155,7 @@ DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
 
 template <typename DeviceType>
 class DistributedSearchTree<
-    DeviceType, std::enable_if_t<Details::is_device_type<DeviceType>::value>>
+    DeviceType, std::enable_if_t<Kokkos::is_device<DeviceType>::value>>
     : public DistributedSearchTree<typename DeviceType::memory_space>
 {
 public:
