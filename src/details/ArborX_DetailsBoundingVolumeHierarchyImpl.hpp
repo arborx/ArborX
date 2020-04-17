@@ -196,7 +196,7 @@ struct BoundingVolumeHierarchyImpl
                 Experimental::TraversalPolicy const &policy =
                     Experimental::TraversalPolicy())
   {
-    Kokkos::View<int *, DeviceType> indices("indices", 0);
+    Kokkos::View<int *, ExecutionSpace> indices("indices", 0);
     queryDispatch(SpatialPredicateTag{}, bvh, space, predicates, indices,
                   offset, policy);
     callback(predicates, offset, indices, out);
@@ -222,7 +222,7 @@ struct BoundingVolumeHierarchyImpl
                 Experimental::TraversalPolicy const &policy =
                     Experimental::TraversalPolicy())
   {
-    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> pairs(
+    Kokkos::View<Kokkos::pair<int, float> *, ExecutionSpace> pairs(
         "pairs_index_distance", 0);
     queryDispatch(NearestPredicateTag{}, bvh, space, predicates,
                   CallbackDefaultNearestPredicateWithDistance{}, pairs, offset,
@@ -253,7 +253,7 @@ struct BoundingVolumeHierarchyImpl
       Experimental::TraversalPolicy const &policy =
           Experimental::TraversalPolicy())
   {
-    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> out(
+    Kokkos::View<Kokkos::pair<int, float> *, ExecutionSpace> out(
         "pairs_index_distance", 0);
     queryDispatch(NearestPredicateTag{}, bvh, space, predicates,
                   CallbackDefaultNearestPredicateWithDistance{}, out, offset,
