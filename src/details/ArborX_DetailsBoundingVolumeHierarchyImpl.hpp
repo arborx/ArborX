@@ -159,18 +159,18 @@ struct CallbackDefaultNearestPredicateWithDistance
 template <typename DeviceType>
 struct BoundingVolumeHierarchyImpl
 {
+  using BVH = BoundingVolumeHierarchy<typename DeviceType::memory_space, void>;
+
   // Views are passed by reference here because internally Kokkos::realloc()
   // is called.
   template <typename ExecutionSpace, typename Predicates>
-  static void
-  queryDispatch(SpatialPredicateTag,
-                BoundingVolumeHierarchy<typename DeviceType::memory_space,
-                                        void> const &bvh,
-                ExecutionSpace const &space, Predicates const &predicates,
-                Kokkos::View<int *, DeviceType> &indices,
-                Kokkos::View<int *, DeviceType> &offset,
-                Experimental::TraversalPolicy const &policy =
-                    Experimental::TraversalPolicy())
+  static void queryDispatch(SpatialPredicateTag, BVH const &bvh,
+                            ExecutionSpace const &space,
+                            Predicates const &predicates,
+                            Kokkos::View<int *, DeviceType> &indices,
+                            Kokkos::View<int *, DeviceType> &offset,
+                            Experimental::TraversalPolicy const &policy =
+                                Experimental::TraversalPolicy())
   {
     queryDispatch(SpatialPredicateTag{}, bvh, space, predicates,
                   CallbackDefaultSpatialPredicate{}, indices, offset, policy);
@@ -180,9 +180,7 @@ struct BoundingVolumeHierarchyImpl
             typename Callback>
   static std::enable_if_t<
       std::is_same<typename Callback::tag, InlineCallbackTag>::value>
-  queryDispatch(SpatialPredicateTag,
-                BoundingVolumeHierarchy<typename DeviceType::memory_space,
-                                        void> const &bvh,
+  queryDispatch(SpatialPredicateTag, BVH const &bvh,
                 ExecutionSpace const &space, Predicates const &predicates,
                 Callback const &callback, OutputView &out,
                 Kokkos::View<int *, DeviceType> &offset,
@@ -193,9 +191,7 @@ struct BoundingVolumeHierarchyImpl
             typename Callback>
   static std::enable_if_t<
       std::is_same<typename Callback::tag, PostCallbackTag>::value>
-  queryDispatch(SpatialPredicateTag,
-                BoundingVolumeHierarchy<typename DeviceType::memory_space,
-                                        void> const &bvh,
+  queryDispatch(SpatialPredicateTag, BVH const &bvh,
                 ExecutionSpace const &space, Predicates const &predicates,
                 Callback const &callback, OutputView &out,
                 Kokkos::View<int *, DeviceType> &offset,
@@ -212,9 +208,7 @@ struct BoundingVolumeHierarchyImpl
             typename Callback>
   static std::enable_if_t<
       std::is_same<typename Callback::tag, InlineCallbackTag>::value>
-  queryDispatch(NearestPredicateTag,
-                BoundingVolumeHierarchy<typename DeviceType::memory_space,
-                                        void> const &bvh,
+  queryDispatch(NearestPredicateTag, BVH const &bvh,
                 ExecutionSpace const &space, Predicates const &predicates,
                 Callback const &callback, OutputView &out,
                 Kokkos::View<int *, DeviceType> &offset,
@@ -225,9 +219,7 @@ struct BoundingVolumeHierarchyImpl
             typename Callback>
   static std::enable_if_t<
       std::is_same<typename Callback::tag, PostCallbackTag>::value>
-  queryDispatch(NearestPredicateTag,
-                BoundingVolumeHierarchy<typename DeviceType::memory_space,
-                                        void> const &bvh,
+  queryDispatch(NearestPredicateTag, BVH const &bvh,
                 ExecutionSpace const &space, Predicates const &predicates,
                 Callback const &callback, OutputView &out,
                 Kokkos::View<int *, DeviceType> &offset,
@@ -243,31 +235,27 @@ struct BoundingVolumeHierarchyImpl
   }
 
   template <typename ExecutionSpace, typename Predicates>
-  static void
-  queryDispatch(NearestPredicateTag,
-                BoundingVolumeHierarchy<typename DeviceType::memory_space,
-                                        void> const &bvh,
-                ExecutionSpace const &space, Predicates const &predicates,
-                Kokkos::View<int *, DeviceType> &indices,
-                Kokkos::View<int *, DeviceType> &offset,
-                Experimental::TraversalPolicy const &policy =
-                    Experimental::TraversalPolicy())
+  static void queryDispatch(NearestPredicateTag, BVH const &bvh,
+                            ExecutionSpace const &space,
+                            Predicates const &predicates,
+                            Kokkos::View<int *, DeviceType> &indices,
+                            Kokkos::View<int *, DeviceType> &offset,
+                            Experimental::TraversalPolicy const &policy =
+                                Experimental::TraversalPolicy())
   {
     queryDispatch(NearestPredicateTag{}, bvh, space, predicates,
                   CallbackDefaultNearestPredicate{}, indices, offset, policy);
   }
 
   template <typename ExecutionSpace, typename Predicates>
-  static void
-  queryDispatch(NearestPredicateTag,
-                BoundingVolumeHierarchy<typename DeviceType::memory_space,
-                                        void> const &bvh,
-                ExecutionSpace const &space, Predicates const &predicates,
-                Kokkos::View<int *, DeviceType> &indices,
-                Kokkos::View<int *, DeviceType> &offset,
-                Kokkos::View<float *, DeviceType> &distances,
-                Experimental::TraversalPolicy const &policy =
-                    Experimental::TraversalPolicy())
+  static void queryDispatch(NearestPredicateTag, BVH const &bvh,
+                            ExecutionSpace const &space,
+                            Predicates const &predicates,
+                            Kokkos::View<int *, DeviceType> &indices,
+                            Kokkos::View<int *, DeviceType> &offset,
+                            Kokkos::View<float *, DeviceType> &distances,
+                            Experimental::TraversalPolicy const &policy =
+                                Experimental::TraversalPolicy())
   {
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> out(
         "pairs_index_distance", 0);
@@ -291,10 +279,8 @@ template <typename ExecutionSpace, typename Predicates, typename OutputView,
           typename Callback>
 std::enable_if_t<std::is_same<typename Callback::tag, InlineCallbackTag>::value>
 BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
-    NearestPredicateTag,
-    BoundingVolumeHierarchy<typename DeviceType::memory_space, void> const &bvh,
-    ExecutionSpace const &space, Predicates const &predicates,
-    Callback const &callback, OutputView &out,
+    NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
+    Predicates const &predicates, Callback const &callback, OutputView &out,
     Kokkos::View<int *, DeviceType> &offset,
     Experimental::TraversalPolicy const &policy)
 {
@@ -440,10 +426,8 @@ template <typename ExecutionSpace, typename Predicates, typename OutputView,
           typename Callback>
 std::enable_if_t<std::is_same<typename Callback::tag, InlineCallbackTag>::value>
 BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
-    SpatialPredicateTag,
-    BoundingVolumeHierarchy<typename DeviceType::memory_space, void> const &bvh,
-    ExecutionSpace const &space, Predicates const &predicates,
-    Callback const &callback, OutputView &out,
+    SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
+    Predicates const &predicates, Callback const &callback, OutputView &out,
     Kokkos::View<int *, DeviceType> &offset,
     Experimental::TraversalPolicy const &policy)
 {
