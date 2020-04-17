@@ -295,7 +295,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
 
-  Kokkos::View<size_t *, DeviceType> permute;
+  Kokkos::View<size_t *, ExecutionSpace> permute;
   if (policy._sort_predicates)
   {
     permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
@@ -303,7 +303,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   }
   else
   {
-    permute = Kokkos::View<size_t *, DeviceType>(
+    permute = Kokkos::View<size_t *, ExecutionSpace>(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n_queries);
     iota(space, permute);
   }
@@ -359,7 +359,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
     // so far.  It is not possible to anticipate how much memory to
     // allocate since the number of nearest neighbors k is only known at
     // runtime.
-    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> buffer(
+    Kokkos::View<Kokkos::pair<int, float> *, ExecutionSpace> buffer(
         Kokkos::ViewAllocateWithoutInitializing("buffer"), n_results);
 
     Kokkos::parallel_for(
@@ -441,7 +441,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
 
-  Kokkos::View<size_t *, DeviceType> permute;
+  Kokkos::View<size_t *, ExecutionSpace> permute;
   if (policy._sort_predicates)
   {
     permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
@@ -449,7 +449,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   }
   else
   {
-    permute = Kokkos::View<size_t *, DeviceType>(
+    permute = Kokkos::View<size_t *, ExecutionSpace>(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n_queries);
     iota(space, permute);
   }
