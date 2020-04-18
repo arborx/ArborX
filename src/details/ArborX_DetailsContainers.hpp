@@ -35,7 +35,7 @@ class StaticVector
     using const_reference = value_type const &;
     using pointer = value_type *;
     using const_pointer = value_type const *;
-    KOKKOS_FUNCTION StaticVector() = default;
+    KOKKOS_DEFAULTED_FUNCTION StaticVector() = default;
     KOKKOS_INLINE_FUNCTION bool empty() const { return _size == 0; }
     KOKKOS_INLINE_FUNCTION size_type size() const { return _size; }
     KOKKOS_INLINE_FUNCTION constexpr size_type maxSize() const { return N; }

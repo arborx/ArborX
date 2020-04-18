@@ -25,7 +25,7 @@ namespace ArborX
  */
 struct Box
 {
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   constexpr Box() = default;
 
   KOKKOS_INLINE_FUNCTION
