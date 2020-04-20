@@ -86,8 +86,7 @@ public:
                       std::is_same<Tag, Details::SpatialPredicateTag>::value,
                   "Invalid tag for the predicates");
 
-    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
-    Details::BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
+    Details::BoundingVolumeHierarchyImpl::queryDispatch(
         Tag{}, *this, space, predicates, std::forward<Args>(args)...);
   }
 

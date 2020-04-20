@@ -72,9 +72,8 @@ int main(int argc, char *argv[])
     Kokkos::Cuda cuda{stream};
     ArborX::BVH<Kokkos::CudaSpace> bvh{cuda, PointCloud{d_a, d_a, d_a, N}};
 
-    using DeviceType = Kokkos::Cuda::device_type;
-    Kokkos::View<int *, DeviceType> indices("indices", 0);
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
+    Kokkos::View<int *, Kokkos::CudaSpace> indices("indices", 0);
+    Kokkos::View<int *, Kokkos::CudaSpace> offset("offset", 0);
     bvh.query(cuda, Spheres{d_a, d_a, d_a, d_a, N}, indices, offset);
 
     Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::Cuda>(cuda, 0, N),
