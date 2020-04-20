@@ -137,24 +137,9 @@ private:
   Kokkos::View<Node *, MemorySpace> _internal_and_leaf_nodes;
 };
 
-namespace Details
-{
-template <typename T>
-struct is_device_type_impl : std::false_type
-{
-};
-template <typename ExecutionSpace, typename MemorySpace>
-struct is_device_type_impl<Kokkos::Device<ExecutionSpace, MemorySpace>>
-    : std::true_type
-{
-};
-template <typename T>
-using is_device_type = typename is_device_type_impl<std::remove_cv_t<T>>::type;
-} // namespace Details
-
 template <typename DeviceType>
 class BoundingVolumeHierarchy<
-    DeviceType, std::enable_if_t<Details::is_device_type<DeviceType>::value>>
+    DeviceType, std::enable_if_t<Kokkos::is_device<DeviceType>::value>>
     : public BoundingVolumeHierarchy<typename DeviceType::memory_space>
 {
 public:
@@ -228,7 +213,7 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
 
   if (size() == 1)
   {
-    Kokkos::View<size_t *, MemorySpace> permutation_indices(
+    Kokkos::View<unsigned int *, MemorySpace> permutation_indices(
         Kokkos::view_alloc("permute", space), 1);
     Details::TreeConstruction::initializeLeafNodes(
         space, primitives, permutation_indices, getLeafNodes());

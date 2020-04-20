@@ -12,7 +12,7 @@ endif()
 string(REPLACE ";" "," ARBORX_DEVICE_TYPES "${ARBORX_DEVICE_TYPES}")
 
 if(NOT ARBORX_DEVICE_TYPES)
-  message(SEND_ERROR "Kokkos_DEVICES must include at least one of 'Serial', 'OpenMP' and 'Cuda'!")
+  message(SEND_ERROR "Kokkos_DEVICES must include at least one of 'SERIAL', 'OPENMP' and 'CUDA'!")
 endif()
 
 configure_file(ArborX_EnableDeviceTypes.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/ArborX_EnableDeviceTypes.hpp @ONLY)

@@ -48,19 +48,18 @@ public:
   // the end.  We decided to keep reversePermutation around for now.
 
   template <typename ExecutionSpace, typename Predicates>
-  static Kokkos::View<size_t *, DeviceType>
+  static Kokkos::View<unsigned int *, DeviceType>
   sortQueriesAlongZOrderCurve(ExecutionSpace const &space,
                               Box const &scene_bounding_box,
                               Predicates const &predicates)
   {
     Kokkos::View<Box, DeviceType> bounds("bounds");
-    // FIXME doesn't compile
-    Kokkos::deep_copy(/*space,*/ bounds, scene_bounding_box);
+    Kokkos::deep_copy(space, bounds, scene_bounding_box);
     return sortQueriesAlongZOrderCurve(space, bounds, predicates);
   }
 
   template <typename ExecutionSpace, typename Predicates>
-  static Kokkos::View<size_t *, DeviceType>
+  static Kokkos::View<unsigned int *, DeviceType>
   sortQueriesAlongZOrderCurve(ExecutionSpace const &space,
                               Kokkos::View<Box const, DeviceType> bounds,
                               Predicates const &predicates)
@@ -87,9 +86,10 @@ public:
   // error: The enclosing parent function ("applyPermutation") for an extended
   // __host__ __device__ lambda must not have deduced return type
   template <typename ExecutionSpace, typename Predicates>
-  static auto applyPermutation(ExecutionSpace const &space,
-                               Kokkos::View<size_t const *, DeviceType> permute,
-                               Predicates const &v)
+  static auto
+  applyPermutation(ExecutionSpace const &space,
+                   Kokkos::View<unsigned int const *, DeviceType> permute,
+                   Predicates const &v)
       -> Kokkos::View<
           std::decay_t<
               decltype(Traits::Access<Predicates, Traits::PredicatesTag>::get(

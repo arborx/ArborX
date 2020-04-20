@@ -136,8 +136,7 @@ DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                 static_cast<void *>(boxes_host.data()), sizeof(Box), MPI_BYTE,
                 _comm);
-  // FIXME bug in Kokkos that should be fixed in 3.1
-  Kokkos::deep_copy(/*space,*/ boxes, boxes_host);
+  Kokkos::deep_copy(space, boxes, boxes_host);
 
   _top_tree = BVH<MemorySpace>{space, boxes};
 
@@ -149,15 +148,14 @@ DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                 static_cast<void *>(bottom_tree_sizes_host.data()),
                 sizeof(size_type), MPI_BYTE, _comm);
-  // FIXME
-  Kokkos::deep_copy(/*space,*/ _bottom_tree_sizes, bottom_tree_sizes_host);
+  Kokkos::deep_copy(space, _bottom_tree_sizes, bottom_tree_sizes_host);
 
   _top_tree_size = accumulate(space, _bottom_tree_sizes, 0);
 }
 
 template <typename DeviceType>
 class DistributedSearchTree<
-    DeviceType, std::enable_if_t<Details::is_device_type<DeviceType>::value>>
+    DeviceType, std::enable_if_t<Kokkos::is_device<DeviceType>::value>>
     : public DistributedSearchTree<typename DeviceType::memory_space>
 {
 public:
