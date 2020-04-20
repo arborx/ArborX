@@ -431,38 +431,35 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   {
     implementStrategy(space, queries, tree, indices, offset, distances);
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Forward queries
-    ////////////////////////////////////////////////////////////////////////////
-    using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-    using Query = decay_result_of_get_t<Access>;
-    Kokkos::View<int *, DeviceType> ids("query_ids", 0);
-    Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries", 0);
-    forwardQueries(comm, space, queries, indices, offset, fwd_queries, ids,
-                   ranks);
-    ////////////////////////////////////////////////////////////////////////////
+    {
+      // NOTE_COMM_NEAREST: The communication pattern here for the nearest
+      // search is identical to that of the spatial search (see
+      // NOTE_COMM_SPATIAL). The code differences are:
+      // - no callbacks
+      // - explicit distances
+      // - results filtering
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Perform queries that have been received
-    ////////////////////////////////////////////////////////////////////////////
-    bottom_tree.query(space, fwd_queries, indices, offset, distances);
-    ////////////////////////////////////////////////////////////////////////////
+      // Forward queries
+      using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+      using Query = decay_result_of_get_t<Access>;
+      Kokkos::View<int *, DeviceType> ids("query_ids", 0);
+      Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries", 0);
+      forwardQueries(comm, space, queries, indices, offset, fwd_queries, ids,
+                     ranks);
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Communicate results back
-    ////////////////////////////////////////////////////////////////////////////
-    communicateResultsBack(comm, space, indices, offset, ranks, ids,
-                           &distances);
-    ////////////////////////////////////////////////////////////////////////////
+      // Perform queries that have been received
+      bottom_tree.query(space, fwd_queries, indices, offset, distances);
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Merge results
-    ////////////////////////////////////////////////////////////////////////////
-    int const n_queries = Access::size(queries);
-    countResults(space, n_queries, ids, offset);
-    sortResults(space, ids, indices, ranks, distances);
-    filterResults(space, queries, distances, indices, offset, ranks);
-    ////////////////////////////////////////////////////////////////////////////
+      // Communicate results back
+      communicateResultsBack(comm, space, indices, offset, ranks, ids,
+                             &distances);
+
+      // Merge results
+      int const n_queries = Access::size(queries);
+      countResults(space, n_queries, ids, offset);
+      sortResults(space, ids, indices, ranks, distances);
+      filterResults(space, queries, distances, indices, offset, ranks);
+    }
   }
 }
 
@@ -482,41 +479,35 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
 
   Kokkos::View<int *, DeviceType> indices("indices", 0);
   Kokkos::View<int *, DeviceType> ranks("ranks", 0);
-  ////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////////
   top_tree.query(space, queries, indices, offset);
-  ////////////////////////////////////////////////////////////////////////////
 
-  ////////////////////////////////////////////////////////////////////////////
-  // Forward queries
-  ////////////////////////////////////////////////////////////////////////////
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-  using Query = decay_result_of_get_t<Access>;
-  Kokkos::View<int *, DeviceType> ids("query_ids", 0);
-  Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries", 0);
-  forwardQueries(comm, space, queries, indices, offset, fwd_queries, ids,
-                 ranks);
-  ////////////////////////////////////////////////////////////////////////////
+  {
+    // NOTE_COMM_SPATIAL: The communication pattern here for the spatial search
+    // is identical to that of the nearest search (see NOTE_COMM_NEAREST). The
+    // code differences are:
+    // - usage of callbacks
+    // - no explicit distances
+    // - no results filtering
 
-  ////////////////////////////////////////////////////////////////////////////
-  // Perform queries that have been received
-  ////////////////////////////////////////////////////////////////////////////
-  bottom_tree.query(space, fwd_queries, callback, out, offset);
-  ////////////////////////////////////////////////////////////////////////////
+    // Forward queries
+    using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+    using Query = decay_result_of_get_t<Access>;
+    Kokkos::View<int *, DeviceType> ids("query_ids", 0);
+    Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries", 0);
+    forwardQueries(comm, space, queries, indices, offset, fwd_queries, ids,
+                   ranks);
 
-  ////////////////////////////////////////////////////////////////////////////
-  // Communicate results back
-  ////////////////////////////////////////////////////////////////////////////
-  communicateResultsBack(comm, space, out, offset, ranks, ids);
-  ////////////////////////////////////////////////////////////////////////////
+    // Perform queries that have been received
+    bottom_tree.query(space, fwd_queries, callback, out, offset);
 
-  ////////////////////////////////////////////////////////////////////////////
-  // Merge results
-  ////////////////////////////////////////////////////////////////////////////
-  int const n_queries = Access::size(queries);
-  countResults(space, n_queries, ids, offset);
-  sortResults(space, ids, out);
-  ////////////////////////////////////////////////////////////////////////////
+    // Communicate results back
+    communicateResultsBack(comm, space, out, offset, ranks, ids);
+
+    // Merge results
+    int const n_queries = Access::size(queries);
+    countResults(space, n_queries, ids, offset);
+    sortResults(space, ids, out);
+  }
 }
 
 template <typename DeviceType>
