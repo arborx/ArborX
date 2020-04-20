@@ -184,7 +184,7 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
 
-  Kokkos::View<size_t *, MemorySpace> permute;
+  Kokkos::View<unsigned int *, MemorySpace> permute;
   if (policy._sort_predicates)
   {
     permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
@@ -192,7 +192,7 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
   }
   else
   {
-    permute = Kokkos::View<size_t *, MemorySpace>(
+    permute = Kokkos::View<unsigned int *, MemorySpace>(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n_queries);
     iota(space, permute);
   }
@@ -413,7 +413,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
 
-  Kokkos::View<size_t *, MemorySpace> permute;
+  Kokkos::View<unsigned int *, MemorySpace> permute;
   if (policy._sort_predicates)
   {
     permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
@@ -421,7 +421,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
   }
   else
   {
-    permute = Kokkos::View<size_t *, MemorySpace>(
+    permute = Kokkos::View<unsigned int *, MemorySpace>(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n_queries);
     iota(space, permute);
   }
