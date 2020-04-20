@@ -39,8 +39,8 @@ Authors: Jayadharini Jaiganesh and Martin Burtscher
 #include <stdlib.h>
 #include <stdio.h>
 #include <cuda.h>
-#include <set>
-#include "ECLgraph.h"
+
+#include "ECL.hpp"
 
 static const int Device = 0;
 static const int ThreadsPerBlock = 256;
@@ -247,17 +247,7 @@ void flatten(const int nodes, const int* const __restrict__ nidx, const int* con
   }
 }
 
-
-struct GPUTimer
-{
-  cudaEvent_t beg, end;
-  GPUTimer() {cudaEventCreate(&beg);  cudaEventCreate(&end);}
-  ~GPUTimer() {cudaEventDestroy(beg);  cudaEventDestroy(end);}
-  void start() {cudaEventRecord(beg, 0);}
-  double stop() {cudaEventRecord(end, 0);  cudaEventSynchronize(end);  float ms;  cudaEventElapsedTime(&ms, beg, end);  return 0.001 * ms;}
-};
-
-static void computeCC(const int nodes, const int edges, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat)
+void computeCC(const int nodes, const int edges, const int* const __restrict__ nidx_d, const int* const __restrict__ nlist_d, int* const __restrict__ nstat_d)
 {
   cudaSetDevice(Device);
   cudaDeviceProp deviceProp;
@@ -265,20 +255,10 @@ static void computeCC(const int nodes, const int edges, const int* const __restr
   if ((deviceProp.major == 9999) && (deviceProp.minor == 9999)) {fprintf(stderr, "ERROR: there is no CUDA capable device\n\n");  exit(-1);}
   const int SMs = deviceProp.multiProcessorCount;
   const int mTSM = deviceProp.maxThreadsPerMultiProcessor;
-  printf("gpu: %s with %d SMs and %d mTpSM (%.1f MHz and %.1f MHz)\n", deviceProp.name, SMs, mTSM, deviceProp.clockRate * 0.001, deviceProp.memoryClockRate * 0.001);
 
-  int* nidx_d;
-  int* nlist_d;
-  int* nstat_d;
   int* wl_d;
 
-  if (cudaSuccess != cudaMalloc((void **)&nidx_d, (nodes + 1) * sizeof(int))) {fprintf(stderr, "ERROR: could not allocate nidx_d\n\n");  exit(-1);}
-  if (cudaSuccess != cudaMalloc((void **)&nlist_d, edges * sizeof(int))) {fprintf(stderr, "ERROR: could not allocate nlist_d\n\n");  exit(-1);}
-  if (cudaSuccess != cudaMalloc((void **)&nstat_d, nodes * sizeof(int))) {fprintf(stderr, "ERROR: could not allocate nstat_d,\n\n");  exit(-1);}
   if (cudaSuccess != cudaMalloc((void **)&wl_d, nodes * sizeof(int))) {fprintf(stderr, "ERROR: could not allocate wl_d,\n\n");  exit(-1);}
-
-  if (cudaSuccess != cudaMemcpy(nidx_d, nidx, (nodes + 1) * sizeof(int), cudaMemcpyHostToDevice)) {fprintf(stderr, "ERROR: copying to device failed\n\n");  exit(-1);}
-  if (cudaSuccess != cudaMemcpy(nlist_d, nlist, edges * sizeof(int), cudaMemcpyHostToDevice)) {fprintf(stderr, "ERROR: copying to device failed\n\n");  exit(-1);}
 
   cudaFuncSetCacheConfig(init, cudaFuncCachePreferL1);
   cudaFuncSetCacheConfig(compute1, cudaFuncCachePreferL1);
@@ -287,97 +267,11 @@ static void computeCC(const int nodes, const int edges, const int* const __restr
   cudaFuncSetCacheConfig(flatten, cudaFuncCachePreferL1);
 
   const int blocks = SMs * mTSM / ThreadsPerBlock;
-  GPUTimer timer;
-  timer.start();
   init<<<blocks, ThreadsPerBlock>>>(nodes, nidx_d, nlist_d, nstat_d);
   compute1<<<blocks, ThreadsPerBlock>>>(nodes, nidx_d, nlist_d, nstat_d, wl_d);
   compute2<<<blocks, ThreadsPerBlock>>>(nodes, nidx_d, nlist_d, nstat_d, wl_d);
   compute3<<<blocks, ThreadsPerBlock>>>(nodes, nidx_d, nlist_d, nstat_d, wl_d);
   flatten<<<blocks, ThreadsPerBlock>>>(nodes, nidx_d, nlist_d, nstat_d);
-  double runtime = timer.stop();
-
-  printf("compute time: %.4f s\n", runtime);
-  printf("throughput: %.3f Mnodes/s\n", nodes * 0.000001 / runtime);
-  printf("throughput: %.3f Medges/s\n", edges * 0.000001 / runtime);
-
-  if (cudaSuccess != cudaMemcpy(nstat, nstat_d, nodes * sizeof(int), cudaMemcpyDeviceToHost)) {fprintf(stderr, "ERROR: copying from device failed\n\n");  exit(-1);}
 
   cudaFree(wl_d);
-  cudaFree(nstat_d);
-  cudaFree(nlist_d);
-  cudaFree(nidx_d);
-}
-
-static void verify(const int v, const int id, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat)
-{
-  if (nstat[v] >= 0) {
-    if (nstat[v] != id) {fprintf(stderr, "ERROR: found incorrect ID value\n\n");  exit(-1);}
-    nstat[v] = -1;
-    for (int i = nidx[v]; i < nidx[v + 1]; i++) {
-      verify(nlist[i], id, nidx, nlist, nstat);
-    }
-  }
-}
-
-int main(int argc, char* argv[])
-{
-  printf("ECL-CC v1.0 (%s)\n", __FILE__);
-  printf("Copyright 2017 Texas State University\n");
-
-  if (argc != 2) {fprintf(stderr, "USAGE: %s input_file_name\n\n", argv[0]);  exit(-1);}
-
-  ECLgraph g = readECLgraph(argv[1]);
-
-  int* nodestatus = NULL;
-  cudaHostAlloc(&nodestatus, g.nodes * sizeof(int), cudaHostAllocDefault);
-  if (nodestatus == NULL) {fprintf(stderr, "ERROR: nodestatus - host memory allocation failed\n\n");  exit(-1);}
-
-  printf("input graph: %d nodes and %d edges (%s)\n", g.nodes, g.edges, argv[1]);
-  printf("average degree: %.2f edges per node\n", 1.0 * g.edges / g.nodes);
-  int mindeg = g.nodes;
-  int maxdeg = 0;
-  for (int v = 0; v < g.nodes; v++) {
-    int deg = g.nindex[v + 1] - g.nindex[v];
-    mindeg = std::min(mindeg, deg);
-    maxdeg = std::max(maxdeg, deg);
-  }
-  printf("minimum degree: %d edges\n", mindeg);
-  printf("maximum degree: %d edges\n", maxdeg);
-
-  computeCC(g.nodes, g.edges, g.nindex, g.nlist, nodestatus);
-
-  std::set<int> s1;
-  for (int v = 0; v < g.nodes; v++) {
-    s1.insert(nodestatus[v]);
-  }
-  printf("number of connected components: %d\n", s1.size());
-
-  /* verification code (may need extra runtime stack space due to deep recursion) */
-
-  for (int v = 0; v < g.nodes; v++) {
-    for (int i = g.nindex[v]; i < g.nindex[v + 1]; i++) {
-      if (nodestatus[g.nlist[i]] != nodestatus[v]) {fprintf(stderr, "ERROR: found adjacent nodes in different components\n\n");  exit(-1);}
-    }
-  }
-
-  for (int v = 0; v < g.nodes; v++) {
-    if (nodestatus[v] < 0) {fprintf(stderr, "ERROR: found negative component number\n\n");  exit(-1);}
-  }
-
-  std::set<int> s2;
-  int count = 0;
-  for (int v = 0; v < g.nodes; v++) {
-    if (nodestatus[v] >= 0) {
-      count++;
-      s2.insert(nodestatus[v]);
-      verify(v, nodestatus[v], g.nindex, g.nlist, nodestatus);
-    }
-  }
-  if (s1.size() != s2.size()) {fprintf(stderr, "ERROR: number of components do not match\n\n");  exit(-1);}
-  if (s1.size() != count) {fprintf(stderr, "ERROR: component IDs are not unique\n\n");  exit(-1);}
-
-  printf("all good\n\n");
-
-  cudaFreeHost(nodestatus);
-  return 0;
 }
