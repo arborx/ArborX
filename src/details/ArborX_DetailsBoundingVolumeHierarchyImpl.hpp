@@ -184,7 +184,7 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
 
-  Kokkos::View<size_t *, ExecutionSpace> permute;
+  Kokkos::View<size_t *, MemorySpace> permute;
   if (policy._sort_predicates)
   {
     permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
@@ -192,7 +192,7 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
   }
   else
   {
-    permute = Kokkos::View<size_t *, ExecutionSpace>(
+    permute = Kokkos::View<size_t *, MemorySpace>(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n_queries);
     iota(space, permute);
   }
@@ -378,7 +378,8 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
               Experimental::TraversalPolicy const &policy =
                   Experimental::TraversalPolicy())
 {
-  Kokkos::View<int *, ExecutionSpace> indices("indices", 0);
+  using MemorySpace = typename BVH::memory_space;
+  Kokkos::View<int *, MemorySpace> indices("indices", 0);
   queryDispatch(SpatialPredicateTag{}, bvh, space, predicates, indices, offset,
                 policy);
   callback(predicates, offset, indices, out);
@@ -412,7 +413,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
 
-  Kokkos::View<size_t *, ExecutionSpace> permute;
+  Kokkos::View<size_t *, MemorySpace> permute;
   if (policy._sort_predicates)
   {
     permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
@@ -420,7 +421,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
   }
   else
   {
-    permute = Kokkos::View<size_t *, ExecutionSpace>(
+    permute = Kokkos::View<size_t *, MemorySpace>(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n_queries);
     iota(space, permute);
   }
@@ -476,7 +477,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
     // so far.  It is not possible to anticipate how much memory to
     // allocate since the number of nearest neighbors k is only known at
     // runtime.
-    Kokkos::View<Kokkos::pair<int, float> *, ExecutionSpace> buffer(
+    Kokkos::View<Kokkos::pair<int, float> *, MemorySpace> buffer(
         Kokkos::ViewAllocateWithoutInitializing("buffer"), n_results);
 
     Kokkos::parallel_for(
@@ -543,7 +544,8 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
               Experimental::TraversalPolicy const &policy =
                   Experimental::TraversalPolicy())
 {
-  Kokkos::View<Kokkos::pair<int, float> *, ExecutionSpace> pairs(
+  using MemorySpace = typename BVH::memory_space;
+  Kokkos::View<Kokkos::pair<int, float> *, MemorySpace> pairs(
       "pairs_index_distance", 0);
   queryDispatch(NearestPredicateTag{}, bvh, space, predicates,
                 CallbackDefaultNearestPredicateWithDistance{}, pairs, offset,
@@ -573,7 +575,8 @@ inline void queryDispatch(
     Experimental::TraversalPolicy const &policy =
         Experimental::TraversalPolicy())
 {
-  Kokkos::View<Kokkos::pair<int, float> *, ExecutionSpace> out(
+  using MemorySpace = typename BVH::memory_space;
+  Kokkos::View<Kokkos::pair<int, float> *, MemorySpace> out(
       "pairs_index_distance", 0);
   queryDispatch(NearestPredicateTag{}, bvh, space, predicates,
                 CallbackDefaultNearestPredicateWithDistance{}, out, offset,
