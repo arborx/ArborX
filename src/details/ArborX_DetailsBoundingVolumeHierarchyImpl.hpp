@@ -314,7 +314,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
 
-  Kokkos::View<size_t *, DeviceType> permute;
+  Kokkos::View<unsigned int *, DeviceType> permute;
   if (policy._sort_predicates)
   {
     permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
@@ -322,7 +322,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   }
   else
   {
-    permute = Kokkos::View<size_t *, DeviceType>(
+    permute = Kokkos::View<unsigned int *, DeviceType>(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n_queries);
     iota(space, permute);
   }
@@ -463,7 +463,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
 
-  Kokkos::View<size_t *, DeviceType> permute;
+  Kokkos::View<unsigned int *, DeviceType> permute;
   if (policy._sort_predicates)
   {
     permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
@@ -471,7 +471,7 @@ BoundingVolumeHierarchyImpl<DeviceType>::queryDispatch(
   }
   else
   {
-    permute = Kokkos::View<size_t *, DeviceType>(
+    permute = Kokkos::View<unsigned int *, DeviceType>(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n_queries);
     iota(space, permute);
   }

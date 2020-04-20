@@ -300,7 +300,7 @@ template <typename ExecutionSpace, typename Primitives,
           typename... LeafNodesViewProperties>
 inline void initializeLeafNodes(
     ExecutionSpace const &space, Primitives const &primitives,
-    Kokkos::View<size_t const *, PermutationIndicesViewProperties...>
+    Kokkos::View<unsigned int const *, PermutationIndicesViewProperties...>
         permutation_indices,
     Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes)
 {
@@ -318,15 +318,15 @@ inline void initializeLeafNodes(
 template <typename ExecutionSpace, typename Primitives,
           typename... PermutationIndicesViewProperties,
           typename... LeafNodesViewProperties>
-inline void
-initializeLeafNodes(ExecutionSpace const &space, Primitives const &primitives,
-                    Kokkos::View<size_t *, PermutationIndicesViewProperties...>
-                        permutation_indices,
-                    Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes)
+inline void initializeLeafNodes(
+    ExecutionSpace const &space, Primitives const &primitives,
+    Kokkos::View<unsigned int *, PermutationIndicesViewProperties...>
+        permutation_indices,
+    Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes)
 {
   initializeLeafNodes(
       space, primitives,
-      Kokkos::View<size_t const *, PermutationIndicesViewProperties...>{
+      Kokkos::View<unsigned int const *, PermutationIndicesViewProperties...>{
           permutation_indices},
       leaf_nodes);
 }
