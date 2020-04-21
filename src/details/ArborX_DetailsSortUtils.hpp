@@ -160,21 +160,57 @@ struct CopyOp<DstViewType, SrcViewType, 3>
 };
 } // namespace PermuteHelper
 
-template <typename ExecutionSpace, typename PermutationView, typename View>
+template <typename ExecutionSpace, typename PermutationView, typename InputView,
+          typename OutputView>
 void applyPermutation(ExecutionSpace const &space,
-                      PermutationView const &permutation, View &view)
+                      PermutationView const &permutation,
+                      InputView const &input_view, OutputView &output_view,
+                      const bool reverse = false)
 {
   static_assert(std::is_integral<typename PermutationView::value_type>::value,
                 "");
-  ARBORX_ASSERT(permutation.extent(0) == view.extent(0));
+  int const permutation_size = permutation.extent(0);
+  int const num_packets = input_view.extent(0) / permutation_size;
+  ARBORX_ASSERT(num_packets * permutation_size == input_view.extent(0));
+  ARBORX_ASSERT(output_view.extent(0) == input_view.extent(0));
+
+  if (reverse)
+  {
+    Kokkos::parallel_for(
+        ARBORX_MARK_REGION("permute"),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, input_view.extent(0)),
+        KOKKOS_LAMBDA(int k) {
+          int const i = k / permutation_size;
+          int const j = k % permutation_size;
+          PermuteHelper::CopyOp<OutputView, InputView>::copy(
+              output_view, permutation_size * i + permutation(j), input_view,
+              permutation_size * i + j);
+        });
+  }
+  else
+  {
+    Kokkos::parallel_for(
+        ARBORX_MARK_REGION("permute"),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, input_view.extent(0)),
+        KOKKOS_LAMBDA(int k) {
+          int const i = k / permutation_size;
+          int const j = k % permutation_size;
+          PermuteHelper::CopyOp<OutputView, InputView>::copy(
+              output_view, permutation_size * i + j, input_view,
+              permutation_size * i + permutation(j));
+        });
+  }
+}
+
+template <typename ExecutionSpace, typename PermutationView, typename View>
+void applyPermutation(ExecutionSpace const &space,
+                      PermutationView const &permutation, View &view,
+                      const bool reverse = false)
+{
+  static_assert(std::is_integral<typename PermutationView::value_type>::value,
+                "");
   auto scratch_view = clone(space, view);
-  Kokkos::parallel_for(
-      ARBORX_MARK_REGION("permute"),
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, view.extent(0)),
-      KOKKOS_LAMBDA(int i) {
-        PermuteHelper::CopyOp<View, View>::copy(scratch_view, i, view,
-                                                permutation(i));
-      });
+  applyPermutation(space, permutation, view, scratch_view, reverse);
   Kokkos::deep_copy(space, view, scratch_view);
 }
 

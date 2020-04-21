@@ -13,6 +13,7 @@
 
 #include <ArborX_Config.hpp>
 
+#include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUtils.hpp> // max
 #include <ArborX_Exception.hpp>
 #include <ArborX_Macros.hpp>
@@ -236,8 +237,8 @@ public:
   }
 
   template <typename ExecutionSpace, typename ExportView, typename ImportView>
-  void doPostsAndWaits(ExecutionSpace const& space, ExportView const &exports, size_t num_packets,
-                       ImportView const &imports) const
+  void doPostsAndWaits(ExecutionSpace const &space, ExportView const &exports,
+                       size_t num_packets, ImportView const &imports) const
   {
     ARBORX_ASSERT(num_packets * _src_offsets.back() == imports.size());
     ARBORX_ASSERT(num_packets * _dest_offsets.back() == exports.size());
@@ -267,7 +268,10 @@ public:
       // Use KOKKOS_CLASS_LAMBDA when we require C++17.
       auto const permute_copy = _permute;
 
-      Kokkos::parallel_for(ARBORX_MARK_REGION("copy_destinations_permuted"),
+      ArborX::Details::applyPermutation(space, permute_copy, exports,
+                                        dest_buffer, true);
+
+      /*Kokkos::parallel_for(ARBORX_MARK_REGION("copy_destinations_permuted"),
                            Kokkos::RangePolicy<ExecutionSpace>(
                                space, 0, _dest_offsets.back() * num_packets),
                            KOKKOS_LAMBDA(int const k) {
@@ -275,7 +279,7 @@ public:
                              int const j = k % num_packets;
                              dest_buffer(num_packets * permute_copy[i] + j) =
                                  exports[num_packets * i + j];
-                           });
+                           });*/
     }
     auto dest_buffer_mirror = Kokkos::create_mirror_view_and_copy(
         typename ImportView::memory_space(), dest_buffer);
