@@ -1,12 +1,23 @@
-set(UNIT_TESTS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/test)
+if(NOT PROJECT_NAME)
+  cmake_minimum_required(VERSION 3.12)
+  project(SortBenchmark CXX)
+
+  find_package(Kokkos 3.0 REQUIRED QUIET)
+  if(Kokkos_ENABLE_CUDA)
+    kokkos_check(OPTIONS CUDA_LAMBDA)
+  endif()
+
+  find_package(Boost REQUIRED COMPONENTS program_options)
+
+  set(BENCHMARK_NAME SortBenchmark)
+else()
+  set(BENCHMARK_NAME ArborX_SortBenchmark)
+endif()
 
 # We require version 1.4.0 or higher but the format used by Google benchmark is
 # wrong and thus, we cannot check the version during the configuration step.
 find_package(benchmark REQUIRED)
 
-# find_package(Threads REQUIRED)
-
-add_executable(ArborX_SortBenchmark.exe sort_benchmark.cpp)
-target_link_libraries(ArborX_SortBenchmark.exe ArborX benchmark::benchmark Boost::program_options )#Threads::Threads)
-target_include_directories(ArborX_SortBenchmark.exe PRIVATE ${UNIT_TESTS_INCLUDE_DIR})
-add_test(NAME ArborX_SortBenchmark COMMAND ./ArborX_SortBenchmark.exe --num-values 10000 --value-type float --benchmark_color=true)
+add_executable(${BENCHMARK_NAME}.exe sort_benchmark.cpp)
+target_link_libraries(${BENCHMARK_NAME}.exe Kokkos::kokkos benchmark::benchmark Boost::program_options)
+add_test(NAME ${BENCHMARK_NAME} COMMAND ./${BENCHMARK_NAME}.exe --num-values 10000 --value-type float --benchmark_color=true)
