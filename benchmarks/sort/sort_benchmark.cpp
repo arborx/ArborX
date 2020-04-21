@@ -307,12 +307,12 @@ void sort(benchmark::State &state)
 
   // Construct random points
   Kokkos::View<ValueType *, DeviceType> data("data", n);
-  buildRandomData(data);
+  Kokkos::View<ValueType *, DeviceType> data_copy("data_copy", n);
+  buildRandomData(data_copy);
 
   for (auto _ : state)
   {
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
-    Kokkos::View<int *, DeviceType> indices("indices", 0);
+    Kokkos::deep_copy(data, data_copy);
     auto const start = std::chrono::high_resolution_clock::now();
     SortAlgorithm::sort(data);
     auto const end = std::chrono::high_resolution_clock::now();
@@ -331,12 +331,12 @@ void sort_and_compute_permutation(benchmark::State &state)
 
   // Construct random points
   Kokkos::View<ValueType *, DeviceType> data("data", n);
-  buildRandomData(data);
+  Kokkos::View<ValueType *, DeviceType> data_copy("data_copy", n);
+  buildRandomData(data_copy);
 
   for (auto _ : state)
   {
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
-    Kokkos::View<int *, DeviceType> indices("indices", 0);
+    Kokkos::deep_copy(data, data_copy);
     auto const start = std::chrono::high_resolution_clock::now();
     auto permute = SortAlgorithm::sortAndComputePermutation(data);
     std::ignore = permute;
@@ -356,15 +356,14 @@ void compute_permutation(benchmark::State &state)
 
   // Construct random points
   Kokkos::View<ValueType *, DeviceType> data("data", n);
-  buildRandomData(data);
+  Kokkos::View<ValueType *, DeviceType> data_copy("data_copy", n);
+  buildRandomData(data_copy);
 
   for (auto _ : state)
   {
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
-    Kokkos::View<int *, DeviceType> indices("indices", 0);
+    Kokkos::deep_copy(data, data_copy);
     auto const start = std::chrono::high_resolution_clock::now();
     auto permute = SortAlgorithm::computePermutation(data);
-    std::ignore = permute;
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
@@ -380,18 +379,15 @@ void apply_permutation(benchmark::State &state)
 
   // Construct random points
   Kokkos::View<ValueType *, DeviceType> data("data", n);
-  buildRandomData(data);
-
-  auto permute = SortAlgorithm::sortAndComputePermutation(data);
-
   Kokkos::View<ValueType *, DeviceType> data_copy("data_copy", n);
+  buildRandomData(data_copy);
+
+  auto permute = SortAlgorithm::sortAndComputePermutation(data_copy);
 
   for (auto _ : state)
   {
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
-    Kokkos::View<int *, DeviceType> indices("indices", 0);
     auto const start = std::chrono::high_resolution_clock::now();
-    SortAlgorithm::applyPermutation(permute, data, data_copy);
+    SortAlgorithm::applyPermutation(permute, data_copy, data);
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
