@@ -6,10 +6,16 @@ using ArborX::Details::check_valid_access_traits;
 using ArborX::Traits::PredicatesTag;
 using ArborX::Traits::PrimitivesTag;
 
-struct HasNoAccessTraitsSpecialization
+struct NoAccessTraitsSpecialization
 {
 };
-struct HasEmptySpecialization
+struct EmptySpecialization
+{
+};
+struct InvalidMemorySpace
+{
+};
+struct SizeMemberFunctionNotStatic
 {
 };
 namespace ArborX
@@ -17,8 +23,19 @@ namespace ArborX
 namespace Traits
 {
 template <typename Tag>
-struct Access<HasEmptySpecialization, Tag>
+struct Access<EmptySpecialization, Tag>
 {
+};
+template <typename Tag>
+struct Access<InvalidMemorySpace, Tag>
+{
+  using memory_space = void;
+};
+template <typename Tag>
+struct Access<SizeMemberFunctionNotStatic, Tag>
+{
+  using memory_space = Kokkos::HostSpace;
+  int size(SizeMemberFunctionNotStatic) { return 255; }
 };
 } // namespace Traits
 } // namespace ArborX
@@ -35,9 +52,13 @@ int main()
   check_valid_access_traits(PredicatesTag{}, q);
 
   // Uncomment to see error messages
-  // check_valid_access_traits(PrimitivesTag{},
-  // HasNoAccessTraitsSpecialization{});
 
-  // check_valid_access_traits(PrimitivesTag{}, HasEmptySpecialization{});
+  // check_valid_access_traits(PrimitivesTag{}, NoAccessTraitsSpecialization{});
+
+  // check_valid_access_traits(PrimitivesTag{}, EmptySpecialization{});
+
+  // check_valid_access_traits(PrimitivesTag{}, InvalidMemorySpace{});
+
+  // check_valid_access_traits(PrimitivesTag{}, SizeMemberFunctionNotStatic{});
 }
 
