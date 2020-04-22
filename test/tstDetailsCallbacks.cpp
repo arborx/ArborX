@@ -37,8 +37,6 @@ struct Access<DummySpatialPredicates, PredicatesTag>
 } // namespace Traits
 } // namespace ArborX
 
-using ArborX::Details::is_detected;
-
 // Custom callbacks
 struct SpatialPredicateCallbackMissingTag
 {
@@ -48,16 +46,6 @@ struct SpatialPredicateCallbackMissingTag
   }
 };
 
-static_assert(
-    is_detected<
-        ArborX::Details::SpatialPredicateInlineCallbackArchetypeExpression,
-        SpatialPredicateCallbackMissingTag,
-        ArborX::Traits::Helper<ArborX::Traits::Access<
-            DummySpatialPredicates, ArborX::Traits::PredicatesTag>>,
-        ArborX::Details::OutputFunctorHelper<
-            Kokkos::View<int *, Kokkos::HostSpace>>>{},
-    "");
-
 struct NearestPredicateCallbackMissingTag
 {
   template <typename Predicate, typename OutputFunctor>
@@ -66,18 +54,10 @@ struct NearestPredicateCallbackMissingTag
   }
 };
 
-static_assert(
-    is_detected<
-        ArborX::Details::NearestPredicateInlineCallbackArchetypeExpression,
-        NearestPredicateCallbackMissingTag,
-        ArborX::Traits::Helper<ArborX::Traits::Access<
-            DummyNearestPredicates, ArborX::Traits::PredicatesTag>>,
-        ArborX::Details::OutputFunctorHelper<
-            Kokkos::View<float *, Kokkos::HostSpace>>>{},
-    "");
-
 int main()
 {
+  using ArborX::Details::check_valid_callback;
+
   // view type does not matter as long as we do not call the output functor
   Kokkos::View<float *> v;
 
@@ -90,4 +70,12 @@ int main()
   check_valid_callback(
       ArborX::Details::CallbackDefaultNearestPredicateWithDistance{},
       DummyNearestPredicates{}, v);
+
+  // Uncomment to see error messages
+
+  // check_valid_callback(SpatialPredicateCallbackMissingTag{},
+  //                     DummySpatialPredicates{}, v);
+
+  // check_valid_callback(NearestPredicateCallbackMissingTag{},
+  //                     DummyNearestPredicates{}, v);
 }
