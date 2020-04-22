@@ -76,17 +76,8 @@ namespace ArborX
 namespace Details
 {
 
-template <typename T, typename TTag, typename = void>
-struct has_access_traits : std::false_type
-{
-};
-
 template <typename T, typename TTag>
-struct has_access_traits<
-    T, TTag, std::enable_if_t<is_complete<Traits::Access<T, TTag>>::value>>
-    : std::true_type
-{
-};
+using has_access_traits = typename is_complete<Traits::Access<T, TTag>>::type;
 
 template <typename T, typename = void>
 struct has_memory_space : std::false_type
