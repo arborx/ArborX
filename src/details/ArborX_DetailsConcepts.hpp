@@ -12,7 +12,6 @@
 #define ARBORX_DETAILS_CONCEPTS_HPP
 
 #include <ArborX_DetailsAlgorithms.hpp>
-#include <ArborX_Traits.hpp>
 
 #include <type_traits>
 
@@ -97,31 +96,6 @@ std::false_type is_complete_impl(...);
 template <class T>
 using is_complete = decltype(is_complete_impl(std::declval<T *>()));
 
-template <typename T, typename TTag, typename = void>
-struct has_access_traits : std::false_type
-{
-};
-
-template <typename T, typename TTag>
-struct has_access_traits<
-    T, TTag, std::enable_if_t<is_complete<Traits::Access<T, TTag>>::value>>
-    : std::true_type
-{
-};
-
-template <typename T, typename = void>
-struct has_memory_space : std::false_type
-{
-};
-
-template <typename T>
-struct has_memory_space<
-    T,
-    std::enable_if_t<Kokkos::is_memory_space<typename T::memory_space>::value>>
-    : std::true_type
-{
-};
-
 template <typename T>
 struct first_template_parameter;
 
@@ -133,45 +107,6 @@ struct first_template_parameter<E<Head, Tail...>>
 
 template <typename T>
 using first_template_parameter_t = typename first_template_parameter<T>::type;
-
-template <typename Traits>
-struct result_of_get
-{
-  using type = decltype(Traits::get(
-      std::declval<first_template_parameter_t<Traits> const &>(), 0));
-};
-
-template <typename Traits>
-using decay_result_of_get_t =
-    std::decay_t<typename result_of_get<Traits>::type>;
-
-template <typename Traits, typename = void>
-struct has_get : std::false_type
-{
-};
-
-template <typename Traits>
-struct has_get<
-    Traits,
-    std::void_t<decltype(Traits::get(
-        std::declval<first_template_parameter_t<Traits> const &>(), 0))>>
-    : std::true_type
-{
-};
-
-template <typename Traits, typename = void>
-struct has_size : std::false_type
-{
-};
-
-template <typename Traits>
-struct has_size<
-    Traits,
-    std::enable_if_t<std::is_integral<decltype(Traits::size(
-        std::declval<first_template_parameter_t<Traits> const &>()))>::value>>
-    : std::true_type
-{
-};
 
 } // namespace Details
 } // namespace ArborX
