@@ -80,6 +80,11 @@ namespace Details
 template <typename Traits>
 using AccessTraitsMemorySpaceArchetypeAlias = typename Traits::memory_space;
 
+// archetypal expression for 'size()' static member function in access traits
+template <typename Traits>
+using AccessTraitsSizeArchetypeExpression = decltype(
+    Traits::size(std::declval<first_template_parameter_t<Traits> const &>()));
+
 template <typename T, typename TTag>
 using has_access_traits = typename is_complete<Traits::Access<T, TTag>>::type;
 
@@ -165,9 +170,14 @@ void check_valid_access_traits(Traits::PredicatesTag, Predicates const &)
           detected_t<AccessTraitsMemorySpaceArchetypeAlias, Access>>{},
       "'memory_space' member type must be a valid Kokkos memory space");
 
-  static_assert(has_size<Access>{},
+  static_assert(is_detected<AccessTraitsSizeArchetypeExpression, Access>{},
                 "Traits::Access<Predicates,Traits::PredicatesTag> must define "
-                "'size()' member function");
+                "'size()' static member function");
+  static_assert(
+      std::is_integral<
+          detected_t<AccessTraitsSizeArchetypeExpression, Access>>{},
+      "size() static member function return type is not an integral type");
+
   static_assert(
       has_get<Access>{},
       "Traits::Access<Predicates,Traits::PredicatesTag> must define 'get()' "
@@ -194,9 +204,14 @@ void check_valid_access_traits(Traits::PrimitivesTag, Primitives const &)
           detected_t<AccessTraitsMemorySpaceArchetypeAlias, Access>>{},
       "'memory_space' member type must be a valid Kokkos memory space");
 
-  static_assert(has_size<Access>{},
+  static_assert(is_detected<AccessTraitsSizeArchetypeExpression, Access>{},
                 "Traits::Access<Primitives,Traits::PrimitivesTag> must define "
-                "'size()' member function");
+                "'size()' static member function");
+  static_assert(
+      std::is_integral<
+          detected_t<AccessTraitsSizeArchetypeExpression, Access>>{},
+      "size() static member function return type is not an integral type");
+
   static_assert(has_get<Access>{},
                 "Traits::Access<Primitives,Traits::PrimitivesTag> must define "
                 "'get()' member function");
