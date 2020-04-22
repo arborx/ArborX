@@ -52,7 +52,8 @@ static_assert(
     is_detected<
         ArborX::Details::SpatialPredicateInlineCallbackArchetypeExpression,
         SpatialPredicateCallbackMissingTag,
-        ArborX::Details::PredicatesHelper<DummySpatialPredicates>,
+        ArborX::Traits::Helper<ArborX::Traits::Access<
+            DummySpatialPredicates, ArborX::Traits::PredicatesTag>>,
         ArborX::Details::OutputFunctorHelper<
             Kokkos::View<int *, Kokkos::HostSpace>>>{},
     "");
@@ -69,7 +70,8 @@ static_assert(
     is_detected<
         ArborX::Details::NearestPredicateInlineCallbackArchetypeExpression,
         NearestPredicateCallbackMissingTag,
-        ArborX::Details::PredicatesHelper<DummySpatialPredicates>,
+        ArborX::Traits::Helper<ArborX::Traits::Access<
+            DummyNearestPredicates, ArborX::Traits::PredicatesTag>>,
         ArborX::Details::OutputFunctorHelper<
             Kokkos::View<float *, Kokkos::HostSpace>>>{},
     "");
