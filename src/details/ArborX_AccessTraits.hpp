@@ -90,60 +90,10 @@ template <typename Traits>
 using AccessTraitsGetArchetypeExpression = decltype(
     Traits::get(std::declval<first_template_parameter_t<Traits> const &>(), 0));
 
-template <typename T, typename TTag>
-using has_access_traits = typename is_complete<Traits::Access<T, TTag>>::type;
-
-template <typename T, typename = void>
-struct has_memory_space : std::false_type
-{
-};
-
-template <typename T>
-struct has_memory_space<
-    T,
-    std::enable_if_t<Kokkos::is_memory_space<typename T::memory_space>::value>>
-    : std::true_type
-{
-};
-
-template <typename Traits>
-struct result_of_get
-{
-  using type = decltype(Traits::get(
-      std::declval<first_template_parameter_t<Traits> const &>(), 0));
-};
-
+// Soon to be removed
 template <typename Traits>
 using decay_result_of_get_t =
-    std::decay_t<typename result_of_get<Traits>::type>;
-
-template <typename Traits, typename = void>
-struct has_get : std::false_type
-{
-};
-
-template <typename Traits>
-struct has_get<
-    Traits,
-    std::void_t<decltype(Traits::get(
-        std::declval<first_template_parameter_t<Traits> const &>(), 0))>>
-    : std::true_type
-{
-};
-
-template <typename Traits, typename = void>
-struct has_size : std::false_type
-{
-};
-
-template <typename Traits>
-struct has_size<
-    Traits,
-    std::enable_if_t<std::is_integral<decltype(Traits::size(
-        std::declval<first_template_parameter_t<Traits> const &>()))>::value>>
-    : std::true_type
-{
-};
+    std::decay_t<detected_t<AccessTraitsGetArchetypeExpression, Traits>>;
 } // namespace Details
 
 namespace Traits
