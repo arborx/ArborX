@@ -56,6 +56,9 @@ struct is_detected : is_detected_impl<void, Op, Args...>
 {
 };
 
+template <template <class...> class Op, class... Args>
+using detected_t = typename is_detected<Op, Args...>::type;
+
 // Checks for existence of a free function that expands an object of type
 // Geometry using an object of type Other
 template <typename Geometry, typename Other, typename = void>
