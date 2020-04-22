@@ -13,6 +13,7 @@
 #define ARBORX_DETAILS_BOUNDING_VOLUME_HIERARCHY_IMPL_HPP
 
 #include <ArborX_DetailsBatchedQueries.hpp>
+#include <ArborX_DetailsCallbacks.hpp>
 #include <ArborX_DetailsConcepts.hpp>  // is_detected
 #include <ArborX_DetailsKokkosExt.hpp> // ArithmeticTraits
 #include <ArborX_DetailsTreeTraversal.hpp>
@@ -51,14 +52,6 @@ using PredicatesHelper =
 
 template <typename OutputView>
 using OutputFunctorHelper = Sink<typename OutputView::value_type>;
-
-struct InlineCallbackTag
-{
-};
-
-struct PostCallbackTag
-{
-};
 
 // Silly name to discourage misuse...
 enum class NearestQueryAlgorithm
@@ -118,40 +111,6 @@ struct TraversalPolicy
 
 namespace Details
 {
-
-struct CallbackDefaultSpatialPredicate
-{
-  using tag = InlineCallbackTag;
-  template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &, int index,
-                                  Insert const &insert) const
-  {
-    insert(index);
-  }
-};
-
-struct CallbackDefaultNearestPredicate
-{
-  using tag = InlineCallbackTag;
-  template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &, int index, float,
-                                  Insert const &insert) const
-  {
-    insert(index);
-  }
-};
-
-struct CallbackDefaultNearestPredicateWithDistance
-{
-  using tag = InlineCallbackTag;
-  template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &, int index, float distance,
-                                  Insert const &insert) const
-  {
-    insert({index, distance});
-  }
-};
-
 namespace BoundingVolumeHierarchyImpl
 {
 // Views are passed by reference here because internally Kokkos::realloc()
