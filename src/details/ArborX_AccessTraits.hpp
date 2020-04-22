@@ -76,6 +76,10 @@ namespace ArborX
 namespace Details
 {
 
+// archetypal alias for a 'memory_space' type member in access traits
+template <typename Traits>
+using AccessTraitsMemorySpaceArchetypeAlias = typename Traits::memory_space;
+
 template <typename T, typename TTag>
 using has_access_traits = typename is_complete<Traits::Access<T, TTag>>::type;
 
@@ -152,10 +156,15 @@ void check_valid_access_traits(Traits::PredicatesTag, Predicates const &)
   static_assert(
       is_complete<Access>{},
       "Must specialize 'Traits::Access<Predicates,Traits::PredicatesTag>'");
+
+  static_assert(is_detected<AccessTraitsMemorySpaceArchetypeAlias, Access>{},
+                "Traits::Access<Predicates,Traits::PredicatesTag> must define "
+                "'memory_space' member type");
   static_assert(
-      has_memory_space<Access>{},
-      "Traits::Access<Predicates,Traits::PredicatesTag> must define "
-      "'memory_space' member type that is a valid Kokkos memory space");
+      Kokkos::is_memory_space<
+          detected_t<AccessTraitsMemorySpaceArchetypeAlias, Access>>{},
+      "'memory_space' member type must be a valid Kokkos memory space");
+
   static_assert(has_size<Access>{},
                 "Traits::Access<Predicates,Traits::PredicatesTag> must define "
                 "'size()' member function");
@@ -176,10 +185,15 @@ void check_valid_access_traits(Traits::PrimitivesTag, Primitives const &)
   static_assert(
       is_complete<Access>{},
       "Must specialize 'Traits::Access<Primitives,Traits::PrimitivesTag>'");
+
+  static_assert(is_detected<AccessTraitsMemorySpaceArchetypeAlias, Access>{},
+                "Traits::Access<Primitives,Traits::PrimitivesTag> must define "
+                "'memory_space' member type");
   static_assert(
-      has_memory_space<Access>{},
-      "Traits::Access<Primitives,Traits::PrimitivesTag> must define "
-      "'memory_space' member type that is a valid Kokkos memory space");
+      Kokkos::is_memory_space<
+          detected_t<AccessTraitsMemorySpaceArchetypeAlias, Access>>{},
+      "'memory_space' member type must be a valid Kokkos memory space");
+
   static_assert(has_size<Access>{},
                 "Traits::Access<Primitives,Traits::PrimitivesTag> must define "
                 "'size()' member function");
