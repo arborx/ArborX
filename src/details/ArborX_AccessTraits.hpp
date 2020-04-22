@@ -163,7 +163,7 @@ void check_valid_access_traits(Traits::PredicatesTag, Predicates const &)
       has_get<Access>{},
       "Traits::Access<Predicates,Traits::PredicatesTag> must define 'get()' "
       "member function");
-  using Tag = typename Tag<decay_result_of_get_t<Access>>::type;
+  using Tag = typename Traits::Helper<Access>::tag;
   static_assert(std::is_same<Tag, NearestPredicateTag>{} ||
                     std::is_same<Tag, SpatialPredicateTag>{},
                 "Invalid tag for the predicates");

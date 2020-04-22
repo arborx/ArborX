@@ -15,7 +15,6 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // expand
-#include <ArborX_DetailsConcepts.hpp>   // decay_result_of_get_t
 #include <ArborX_DetailsKokkosExt.hpp>  // clz, min, max, sgn
 #include <ArborX_DetailsMortonCode.hpp> // morton3D
 #include <ArborX_DetailsNode.hpp>
@@ -253,7 +252,7 @@ inline void assignMortonCodes(
   auto const n = Access::size(primitives);
   ARBORX_ASSERT(morton_codes.extent(0) == n);
 
-  using Tag = typename Tag<decay_result_of_get_t<Access>>::type;
+  using Tag = typename Traits::Helper<Access>::tag;
   assignMortonCodesDispatch(Tag{}, space, primitives, morton_codes,
                             scene_bounding_box);
 }
@@ -310,7 +309,7 @@ inline void initializeLeafNodes(
   ARBORX_ASSERT(permutation_indices.extent(0) == n);
   ARBORX_ASSERT(leaf_nodes.extent(0) == n);
 
-  using Tag = typename Tag<decay_result_of_get_t<Access>>::type;
+  using Tag = typename Traits::Helper<Access>::tag;
   initializeLeafNodesDispatch(Tag{}, space, primitives, permutation_indices,
                               leaf_nodes);
 }

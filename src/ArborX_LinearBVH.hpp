@@ -64,8 +64,8 @@ public:
     static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                                 ExecutionSpace>::value,
                   "Primitives must be accessible from the execution space");
-    using Tag =
-        typename Details::Tag<Details::decay_result_of_get_t<Access>>::type;
+
+    using Tag = typename Traits::Helper<Access>::tag;
 
     Details::BoundingVolumeHierarchyImpl::queryDispatch(
         Tag{}, *this, space, predicates, std::forward<Args>(args)...);
