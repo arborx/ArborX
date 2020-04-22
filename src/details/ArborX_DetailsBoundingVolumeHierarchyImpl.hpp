@@ -28,31 +28,6 @@ namespace ArborX
 namespace Details
 {
 
-// archetypal expression for user callbacks
-template <typename Callback, typename Predicate, typename Out>
-using NearestPredicateInlineCallbackArchetypeExpression =
-    decltype(std::declval<Callback const &>()(
-        std::declval<Predicate const &>(), 0, 0., std::declval<Out const &>()));
-
-template <typename Callback, typename Predicate, typename Out>
-using SpatialPredicateInlineCallbackArchetypeExpression =
-    decltype(std::declval<Callback const &>()(std::declval<Predicate const &>(),
-                                              0, std::declval<Out const &>()));
-
-// output functor to pass to the callback during detection
-template <typename T>
-struct Sink
-{
-  void operator()(T const &) const {}
-};
-
-template <typename Predicates>
-using PredicatesHelper =
-    decay_result_of_get_t<Traits::Access<Predicates, Traits::PredicatesTag>>;
-
-template <typename OutputView>
-using OutputFunctorHelper = Sink<typename OutputView::value_type>;
-
 // Silly name to discourage misuse...
 enum class NearestQueryAlgorithm
 {
