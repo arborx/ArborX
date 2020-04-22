@@ -12,6 +12,7 @@
 #ifndef ARBORX_DETAILS_TREE_CONSTRUCTION_HPP
 #define ARBORX_DETAILS_TREE_CONSTRUCTION_HPP
 
+#include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // expand
 #include <ArborX_DetailsConcepts.hpp>   // decay_result_of_get_t
@@ -20,7 +21,6 @@
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsTags.hpp>
 #include <ArborX_Macros.hpp>
-#include <ArborX_Traits.hpp>
 
 #include <Kokkos_Core.hpp>
 

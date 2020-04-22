@@ -12,6 +12,7 @@
 #ifndef ARBORX_LINEAR_BVH_HPP
 #define ARBORX_LINEAR_BVH_HPP
 
+#include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsBoundingVolumeHierarchyImpl.hpp>
 #include <ArborX_DetailsConcepts.hpp>
@@ -20,7 +21,6 @@
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsTags.hpp>
 #include <ArborX_DetailsTreeConstruction.hpp>
-#include <ArborX_Traits.hpp>
 
 #include <Kokkos_Core.hpp>
 

@@ -11,8 +11,8 @@
 #ifndef ARBORX_DETAILS_CALLBACKS_HPP
 #define ARBORX_DETAILS_CALLBACKS_HPP
 
+#include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsConcepts.hpp>
-#include <ArborX_Traits.hpp>
 
 #include <Kokkos_Macros.hpp>
 

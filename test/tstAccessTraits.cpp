@@ -1,4 +1,4 @@
-#include <ArborX_Traits.hpp>
+#include <ArborX_AccessTraits.hpp>
 
 #include <Kokkos_Core.hpp>
 

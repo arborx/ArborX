@@ -1,6 +1,6 @@
+#include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsCallbacks.hpp>
 #include <ArborX_Predicates.hpp>
-#include <ArborX_Traits.hpp>
 
 struct DummyNearestPredicates
 {

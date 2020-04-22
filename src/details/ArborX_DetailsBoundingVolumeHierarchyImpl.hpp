@@ -12,6 +12,7 @@
 #ifndef ARBORX_DETAILS_BOUNDING_VOLUME_HIERARCHY_IMPL_HPP
 #define ARBORX_DETAILS_BOUNDING_VOLUME_HIERARCHY_IMPL_HPP
 
+#include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsBatchedQueries.hpp>
 #include <ArborX_DetailsCallbacks.hpp>
 #include <ArborX_DetailsConcepts.hpp>  // is_detected
@@ -19,7 +20,6 @@
 #include <ArborX_DetailsTreeTraversal.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_Predicates.hpp>
-#include <ArborX_Traits.hpp>
 
 #include <Kokkos_Core.hpp>
 
