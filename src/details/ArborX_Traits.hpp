@@ -8,9 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-
-#ifndef ARBORX_DETAILS_TRAITS_HPP
-#define ARBORX_DETAILS_TRAITS_HPP
+#ifndef ARBORX_ACCESS_TRAITS_HPP
+#define ARBORX_ACCESS_TRAITS_HPP
 
 #include <ArborX_Point.hpp>
 
