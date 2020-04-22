@@ -75,6 +75,10 @@ using SpatialPredicateInlineCallbackArchetypeExpression =
     decltype(std::declval<Callback const &>()(std::declval<Predicate const &>(),
                                               0, std::declval<Out const &>()));
 
+// archetypal alias for a 'tag' type member in user callbacks
+template <typename Callback>
+using CallbackTagArchetypeAlias = typename Callback::tag;
+
 // output functor to pass to the callback during detection
 template <typename T>
 struct Sink
