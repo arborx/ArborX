@@ -15,7 +15,6 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsBatchedQueries.hpp>
 #include <ArborX_DetailsCallbacks.hpp>
-#include <ArborX_DetailsConcepts.hpp>  // is_detected
 #include <ArborX_DetailsKokkosExt.hpp> // ArithmeticTraits
 #include <ArborX_DetailsTreeTraversal.hpp>
 #include <ArborX_DetailsUtils.hpp>
@@ -102,14 +101,11 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
   using MemorySpace = typename BVH::memory_space;
   using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
 
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-  static_assert(is_detected<SpatialPredicateInlineCallbackArchetypeExpression,
-                            Callback, typename Traits::Helper<Access>::type,
-                            OutputFunctorHelper<OutputView>>::value,
-                "Callback function does not have the correct signature");
+  check_valid_callback(callback, predicates, out);
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:spatial_queries");
 
+  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
   auto const n_queries = Access::size(predicates);
 
   auto buffer_size = policy._buffer_size;
@@ -331,11 +327,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
   using MemorySpace = typename BVH::memory_space;
   using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
 
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-  static_assert(is_detected<NearestPredicateInlineCallbackArchetypeExpression,
-                            Callback, typename Traits::Helper<Access>::type,
-                            OutputFunctorHelper<OutputView>>::value,
-                "Callback function does not have the correct signature");
+  check_valid_callback(callback, predicates, out);
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:nearest_queries");
 
@@ -343,6 +335,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
       (policy._traversal_algorithm ==
        NearestQueryAlgorithm::PriorityQueueBased_Deprecated);
 
+  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
   auto const n_queries = Access::size(predicates);
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
