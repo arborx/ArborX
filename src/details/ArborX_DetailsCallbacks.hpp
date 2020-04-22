@@ -82,14 +82,6 @@ struct Sink
   void operator()(T const &) const {}
 };
 
-template <typename Predicates>
-struct PredicatesHelper
-{
-  using type =
-      decay_result_of_get_t<Traits::Access<Predicates, Traits::PredicatesTag>>;
-  using tag = typename Tag<type>::type;
-};
-
 template <typename OutputView>
 using OutputFunctorHelper = Sink<typename OutputView::value_type>;
 
