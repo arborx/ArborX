@@ -85,6 +85,11 @@ template <typename Traits>
 using AccessTraitsSizeArchetypeExpression = decltype(
     Traits::size(std::declval<first_template_parameter_t<Traits> const &>()));
 
+// archetypal expression for 'get()' static member function in access traits
+template <typename Traits>
+using AccessTraitsGetArchetypeExpression = decltype(
+    Traits::get(std::declval<first_template_parameter_t<Traits> const &>(), 0));
+
 template <typename T, typename TTag>
 using has_access_traits = typename is_complete<Traits::Access<T, TTag>>::type;
 
@@ -178,10 +183,10 @@ void check_valid_access_traits(Traits::PredicatesTag, Predicates const &)
           detected_t<AccessTraitsSizeArchetypeExpression, Access>>{},
       "size() static member function return type is not an integral type");
 
-  static_assert(
-      has_get<Access>{},
-      "Traits::Access<Predicates,Traits::PredicatesTag> must define 'get()' "
-      "member function");
+  static_assert(is_detected<AccessTraitsGetArchetypeExpression, Access>{},
+                "Traits::Access<Predicates,Traits::PredicatesTag> must define "
+                "'get()' static member function");
+
   using Tag = typename Traits::Helper<Access>::tag;
   static_assert(std::is_same<Tag, NearestPredicateTag>{} ||
                     std::is_same<Tag, SpatialPredicateTag>{},
@@ -212,12 +217,13 @@ void check_valid_access_traits(Traits::PrimitivesTag, Primitives const &)
           detected_t<AccessTraitsSizeArchetypeExpression, Access>>{},
       "size() static member function return type is not an integral type");
 
-  static_assert(has_get<Access>{},
+  static_assert(is_detected<AccessTraitsGetArchetypeExpression, Access>{},
                 "Traits::Access<Primitives,Traits::PrimitivesTag> must define "
-                "'get()' member function");
+                "'get()' static member function");
+  using T =
+      std::decay_t<detected_t<AccessTraitsGetArchetypeExpression, Access>>;
   static_assert(
-      std::is_same<decay_result_of_get_t<Access>, Point>{} ||
-          std::is_same<decay_result_of_get_t<Access>, Box>{},
+      std::is_same<T, Point>{} || std::is_same<T, Box>{},
       "Traits::Access<Primitives,Traits::PrimitivesTag>::get() return type "
       "must decay to Point or to Box");
 }
