@@ -89,6 +89,12 @@ using PredicatesHelper =
 template <typename OutputView>
 using OutputFunctorHelper = Sink<typename OutputView::value_type>;
 
+template <typename Callback, typename Predicates, typename OutputView>
+void check_valid_callback(Callback const &, Predicates const &,
+                          OutputView const &)
+{
+}
+
 } // namespace Details
 } // namespace ArborX
 
