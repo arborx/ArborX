@@ -12,7 +12,9 @@
 #define ARBORX_ACCESS_TRAITS_HPP
 
 #include <ArborX_DetailsConcepts.hpp> // is_complete
+#include <ArborX_DetailsTags.hpp>
 #include <ArborX_Point.hpp>
+#include <ArborX_Predicates.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -137,6 +139,54 @@ struct has_size<
     : std::true_type
 {
 };
+
+template <typename Predicates>
+void check_valid_access_traits(Traits::PredicatesTag, Predicates const &)
+{
+  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  static_assert(
+      is_complete<Access>{},
+      "Must specialize 'Traits::Access<Predicates,Traits::PredicatesTag>'");
+  static_assert(
+      has_memory_space<Access>{},
+      "Traits::Access<Predicates,Traits::PredicatesTag> must define "
+      "'memory_space' member type that is a valid Kokkos memory space");
+  static_assert(has_size<Access>{},
+                "Traits::Access<Predicates,Traits::PredicatesTag> must define "
+                "'size()' member function");
+  static_assert(
+      has_get<Access>{},
+      "Traits::Access<Predicates,Traits::PredicatesTag> must define 'get()' "
+      "member function");
+  using Tag = typename Tag<decay_result_of_get_t<Access>>::type;
+  static_assert(std::is_same<Tag, NearestPredicateTag>{} ||
+                    std::is_same<Tag, SpatialPredicateTag>{},
+                "Invalid tag for the predicates");
+}
+
+template <typename Primitives>
+void check_valid_access_traits(Traits::PrimitivesTag, Primitives const &)
+{
+  using Access = Traits::Access<Primitives, Traits::PrimitivesTag>;
+  static_assert(
+      is_complete<Access>{},
+      "Must specialize 'Traits::Access<Primitives,Traits::PrimitivesTag>'");
+  static_assert(
+      has_memory_space<Access>{},
+      "Traits::Access<Primitives,Traits::PrimitivesTag> must define "
+      "'memory_space' member type that is a valid Kokkos memory space");
+  static_assert(has_size<Access>{},
+                "Traits::Access<Primitives,Traits::PrimitivesTag> must define "
+                "'size()' member function");
+  static_assert(has_get<Access>{},
+                "Traits::Access<Primitives,Traits::PrimitivesTag> must define "
+                "'get()' member function");
+  static_assert(
+      std::is_same<decay_result_of_get_t<Access>, Point>{} ||
+          std::is_same<decay_result_of_get_t<Access>, Box>{},
+      "Traits::Access<Primitives,Traits::PrimitivesTag>::get() return type "
+      "must decay to Point or to Box");
+}
 
 } // namespace Details
 } // namespace ArborX
