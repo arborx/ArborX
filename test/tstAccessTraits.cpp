@@ -23,20 +23,14 @@ struct Access<HasEmptySpecialization, Tag>
 };
 } // namespace Traits
 } // namespace ArborX
-static_assert(has_access_traits<Kokkos::View<double *>, PrimitivesTag>::value,
-              "");
-static_assert(has_access_traits<Kokkos::View<double *>, PredicatesTag>::value,
-              "");
+static_assert(has_access_traits<Kokkos::View<double *>, PrimitivesTag>{}, "");
+static_assert(has_access_traits<Kokkos::View<double *>, PredicatesTag>{}, "");
 static_assert(
-    !has_access_traits<HasNoAccessTraitsSpecialization, PrimitivesTag>::value,
-    "");
+    !has_access_traits<HasNoAccessTraitsSpecialization, PrimitivesTag>{}, "");
 static_assert(
-    !has_access_traits<HasNoAccessTraitsSpecialization, PredicatesTag>::value,
-    "");
-static_assert(has_access_traits<HasEmptySpecialization, PrimitivesTag>::value,
-              "");
-static_assert(has_access_traits<HasEmptySpecialization, PredicatesTag>::value,
-              "");
+    !has_access_traits<HasNoAccessTraitsSpecialization, PredicatesTag>{}, "");
+static_assert(has_access_traits<HasEmptySpecialization, PrimitivesTag>{}, "");
+static_assert(has_access_traits<HasEmptySpecialization, PredicatesTag>{}, "");
 
 int main()
 {
