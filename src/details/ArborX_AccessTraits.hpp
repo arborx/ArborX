@@ -130,6 +130,20 @@ struct has_size<
     : std::true_type
 {
 };
+} // namespace Details
+
+namespace Traits
+{
+template <typename Access>
+struct Helper
+{
+  using type = Details::decay_result_of_get_t<Access>;
+  using tag = typename Details::Tag<type>::type;
+};
+} // namespace Traits
+
+namespace Details
+{
 
 template <typename Predicates>
 void check_valid_access_traits(Traits::PredicatesTag, Predicates const &)
