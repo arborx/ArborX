@@ -65,7 +65,7 @@ public:
     using Access = Traits::Access<Predicates, Traits::PrimitivesTag>;
     static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                                 ExecutionSpace>::value,
-                  "Primitives must be accessible from the execution space");
+                  "Predicates must be accessible from the execution space");
 
     Details::check_valid_callback_if_first_argument_is_not_a_view(
         callback_or_view, predicates, view);
