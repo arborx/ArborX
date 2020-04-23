@@ -90,10 +90,6 @@ template <typename Traits>
 using AccessTraitsGetArchetypeExpression = decltype(
     Traits::get(std::declval<first_template_parameter_t<Traits> const &>(), 0));
 
-// Soon to be removed
-template <typename Traits>
-using decay_result_of_get_t =
-    std::decay_t<detected_t<AccessTraitsGetArchetypeExpression, Traits>>;
 } // namespace Details
 
 namespace Traits
@@ -101,7 +97,9 @@ namespace Traits
 template <typename Access>
 struct Helper
 {
-  using type = Details::decay_result_of_get_t<Access>;
+  // Deduce return type of get()
+  using type = std::decay_t<
+      Details::detected_t<Details::AccessTraitsGetArchetypeExpression, Access>>;
   using tag = typename Details::Tag<type>::type;
 };
 } // namespace Traits
