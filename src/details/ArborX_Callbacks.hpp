@@ -34,33 +34,33 @@ struct PostCallbackTag
 struct CallbackDefaultSpatialPredicate
 {
   using tag = InlineCallbackTag;
-  template <typename Query, typename Insert>
+  template <typename Query, typename OutputFunctor>
   KOKKOS_FUNCTION void operator()(Query const &, int index,
-                                  Insert const &insert) const
+                                  OutputFunctor const &output) const
   {
-    insert(index);
+    output(index);
   }
 };
 
 struct CallbackDefaultNearestPredicate
 {
   using tag = InlineCallbackTag;
-  template <typename Query, typename Insert>
+  template <typename Query, typename OutputFunctor>
   KOKKOS_FUNCTION void operator()(Query const &, int index, float,
-                                  Insert const &insert) const
+                                  OutputFunctor const &output) const
   {
-    insert(index);
+    output(index);
   }
 };
 
 struct CallbackDefaultNearestPredicateWithDistance
 {
   using tag = InlineCallbackTag;
-  template <typename Query, typename Insert>
+  template <typename Query, typename OutputFunctor>
   KOKKOS_FUNCTION void operator()(Query const &, int index, float distance,
-                                  Insert const &insert) const
+                                  OutputFunctor const &output) const
   {
-    insert({index, distance});
+    output({index, distance});
   }
 };
 
