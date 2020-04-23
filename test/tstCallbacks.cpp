@@ -2,11 +2,11 @@
 #include <ArborX_Callbacks.hpp>
 #include <ArborX_Predicates.hpp>
 
-struct DummyNearestPredicates
+struct NearestPredicates
 {
 };
 
-struct DummySpatialPredicates
+struct SpatialPredicates
 {
 };
 
@@ -15,21 +15,21 @@ namespace ArborX
 namespace Traits
 {
 template <>
-struct Access<DummyNearestPredicates, PredicatesTag>
+struct Access<NearestPredicates, PredicatesTag>
 {
   using memory_space = Kokkos::HostSpace;
-  static inline int size(DummyNearestPredicates const &) { return 1; }
-  static inline auto get(DummyNearestPredicates const &, int)
+  static inline int size(NearestPredicates const &) { return 1; }
+  static inline auto get(NearestPredicates const &, int)
   {
     return nearest(Point{});
   }
 };
 template <>
-struct Access<DummySpatialPredicates, PredicatesTag>
+struct Access<SpatialPredicates, PredicatesTag>
 {
   using memory_space = Kokkos::HostSpace;
-  static inline int size(DummySpatialPredicates const &) { return 1; }
-  static inline auto get(DummySpatialPredicates const &, int)
+  static inline int size(SpatialPredicates const &) { return 1; }
+  static inline auto get(SpatialPredicates const &, int)
   {
     return intersects(Point{});
   }
@@ -62,20 +62,20 @@ int main()
   Kokkos::View<float *> v;
 
   check_valid_callback(ArborX::Details::CallbackDefaultSpatialPredicate{},
-                       DummySpatialPredicates{}, v);
+                       SpatialPredicates{}, v);
 
   check_valid_callback(ArborX::Details::CallbackDefaultNearestPredicate{},
-                       DummyNearestPredicates{}, v);
+                       NearestPredicates{}, v);
 
   check_valid_callback(
       ArborX::Details::CallbackDefaultNearestPredicateWithDistance{},
-      DummyNearestPredicates{}, v);
+      NearestPredicates{}, v);
 
   // Uncomment to see error messages
 
   // check_valid_callback(SpatialPredicateCallbackMissingTag{},
-  //                     DummySpatialPredicates{}, v);
+  //                     SpatialPredicates{}, v);
 
   // check_valid_callback(NearestPredicateCallbackMissingTag{},
-  //                     DummyNearestPredicates{}, v);
+  //                     NearestPredicates{}, v);
 }
