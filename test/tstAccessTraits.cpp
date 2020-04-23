@@ -61,4 +61,3 @@ int main()
 
   // check_valid_access_traits(PrimitivesTag{}, SizeMemberFunctionNotStatic{});
 }
-
