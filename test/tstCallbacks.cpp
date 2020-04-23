@@ -18,18 +18,15 @@ template <>
 struct Access<NearestPredicates, PredicatesTag>
 {
   using memory_space = Kokkos::HostSpace;
-  static inline int size(NearestPredicates const &) { return 1; }
-  static inline auto get(NearestPredicates const &, int)
-  {
-    return nearest(Point{});
-  }
+  static int size(NearestPredicates const &) { return 1; }
+  static auto get(NearestPredicates const &, int) { return nearest(Point{}); }
 };
 template <>
 struct Access<SpatialPredicates, PredicatesTag>
 {
   using memory_space = Kokkos::HostSpace;
-  static inline int size(SpatialPredicates const &) { return 1; }
-  static inline auto get(SpatialPredicates const &, int)
+  static int size(SpatialPredicates const &) { return 1; }
+  static auto get(SpatialPredicates const &, int)
   {
     return intersects(Point{});
   }
