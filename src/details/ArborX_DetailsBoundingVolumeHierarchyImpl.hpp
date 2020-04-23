@@ -13,8 +13,8 @@
 #define ARBORX_DETAILS_BOUNDING_VOLUME_HIERARCHY_IMPL_HPP
 
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_Callbacks.hpp>
 #include <ArborX_DetailsBatchedQueries.hpp>
-#include <ArborX_DetailsCallbacks.hpp>
 #include <ArborX_DetailsKokkosExt.hpp> // ArithmeticTraits
 #include <ArborX_DetailsTreeTraversal.hpp>
 #include <ArborX_DetailsUtils.hpp>
