@@ -62,7 +62,7 @@ public:
              Args &&... args) const
   {
     Details::check_valid_access_traits(Traits::PredicatesTag{}, predicates);
-    using Access = Traits::Access<Predicates, Traits::PrimitivesTag>;
+    using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
     static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                                 ExecutionSpace>::value,
                   "Predicates must be accessible from the execution space");
