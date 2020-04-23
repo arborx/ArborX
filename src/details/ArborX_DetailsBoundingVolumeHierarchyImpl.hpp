@@ -519,6 +519,25 @@ inline void queryDispatch(
                        });
 }
 } // namespace BoundingVolumeHierarchyImpl
+
+template <typename Callback, typename Predicates, typename OutputView>
+std::enable_if_t<!Kokkos::is_view<Callback>{}>
+check_valid_callback_if_first_argument_is_not_a_view(
+    Callback const &callback, Predicates const &predicates,
+    OutputView const &out)
+{
+  check_valid_callback(callback, predicates, out);
+}
+
+template <typename View, typename Predicates, typename OutputView>
+std::enable_if_t<Kokkos::is_view<View>{}>
+check_valid_callback_if_first_argument_is_not_a_view(View const &,
+                                                     Predicates const &,
+                                                     OutputView const &)
+{
+  // do nothing
+}
+
 } // namespace Details
 } // namespace ArborX
 
