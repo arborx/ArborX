@@ -8,8 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_DETAILS_CALLBACKS_HPP
-#define ARBORX_DETAILS_CALLBACKS_HPP
+#ifndef ARBORX_CALLBACKS_HPP
+#define ARBORX_CALLBACKS_HPP
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsConcepts.hpp>
