@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     ArborX::BVH<Kokkos::HostSpace> bvh{Kokkos::DefaultHostExecutionSpace{},
                                        points};
 
-    // Wrap the vector in an unmanaged View is supported too
+    // As a supported alternative, wrap the vector in an unmanaged View
     bvh = ArborX::BVH<Kokkos::HostSpace>{
         Kokkos::DefaultHostExecutionSpace{},
         Kokkos::View<ArborX::Point *, Kokkos::HostSpace,
