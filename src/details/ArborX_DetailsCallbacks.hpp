@@ -105,10 +105,14 @@ void check_valid_callback(Callback const &, Predicates const &,
   using PredicateTag = typename Traits::Helper<Access>::tag;
   using Predicate = typename Traits::Helper<Access>::type;
 
+  // FIXME
+  constexpr bool short_circuit = std::is_same<CallbackTag, PostCallbackTag>{};
   static_assert(
-      (std::is_same<PredicateTag, SpatialPredicateTag>{} &&
-       is_detected<SpatialPredicateInlineCallbackArchetypeExpression, Callback,
-                   Predicate, OutputFunctorHelper<OutputView>>{}) ||
+      short_circuit ||
+          (std::is_same<PredicateTag, SpatialPredicateTag>{} &&
+           is_detected<SpatialPredicateInlineCallbackArchetypeExpression,
+                       Callback, Predicate,
+                       OutputFunctorHelper<OutputView>>{}) ||
           (std::is_same<PredicateTag, NearestPredicateTag>{} &&
            is_detected<NearestPredicateInlineCallbackArchetypeExpression,
                        Callback, Predicate, OutputFunctorHelper<OutputView>>{}),
