@@ -18,6 +18,7 @@
 #include <cstdlib>
 #include <random>
 
+#include "pss_parallel_stable_sort.hpp"
 #include <benchmark/benchmark.h>
 
 #if defined(__GNUC__) && !defined(__CUDA_ARCH__)
@@ -217,12 +218,74 @@ struct SortGnuParallel
   static Kokkos::View<SizeType *, DeviceType>
   sortAndComputePermutation(Kokkos::View<ValueType *, DeviceType> view)
   {
+    check_exec_space(view);
+
     using ViewType = Kokkos::View<ValueType *, DeviceType>;
     using ExecutionSpace = typename ViewType::execution_space;
 
+    int const n = view.extent(0);
+
+    auto permute = computePermutation(view);
+
+    Kokkos::View<int *, DeviceType> view_copy("view_copy", n);
+    Kokkos::deep_copy(view_copy, view);
+    Kokkos::parallel_for(
+        "apply_permutation", Kokkos::RangePolicy<ExecutionSpace>(0, n),
+        KOKKOS_LAMBDA(int i) { view(i) = view_copy(permute(i)); });
+
+    return permute;
+  }
+};
+#endif
+
+#if defined(KOKKOS_ENABLE_OPENMP)
+template <typename ValueType, typename DeviceType, typename SizeType>
+struct SortPSS
+{
+  using value_type = ValueType;
+  using device_type = DeviceType;
+
+  static void check_exec_space(Kokkos::View<ValueType *, DeviceType>)
+  {
     static_assert(std::is_same<Kokkos::OpenMP,
                                typename DeviceType::execution_space>::value,
                   "");
+  }
+
+  static void sort(Kokkos::View<ValueType *, DeviceType> view)
+  {
+    check_exec_space(view);
+
+    int const n = view.extent(0);
+    pss::parallel_stable_sort(view.data(), view.data() + n,
+                              std::less<ValueType>{});
+  }
+
+  static auto computePermutation(Kokkos::View<ValueType *, DeviceType> view)
+  {
+    check_exec_space(view);
+
+    int const n = view.extent(0);
+
+    Kokkos::View<SizeType *, DeviceType> permute(
+        Kokkos::ViewAllocateWithoutInitializing("permute"), n);
+    iota(permute);
+
+    pss::parallel_stable_sort(permute.data(), permute.data() + n,
+                              [&view](size_t const &a, size_t const &b) {
+                                return view(a) < view(b);
+                              });
+
+    return permute;
+  }
+
+  static Kokkos::View<SizeType *, DeviceType>
+  sortAndComputePermutation(Kokkos::View<ValueType *, DeviceType> view)
+  {
+    check_exec_space(view);
+
+    using ViewType = Kokkos::View<ValueType *, DeviceType>;
+    using ExecutionSpace = typename ViewType::execution_space;
 
     int const n = view.extent(0);
 
@@ -502,6 +565,11 @@ void register_benchmarks(int const n)
   REGISTER_SORT_AND_COMPUTE_PERMUTATION_BENCHMARK(GnuParallel_OpenMP);
   REGISTER_SORT_BENCHMARK(GnuParallel_OpenMP);
 #endif
+
+  using PSS_OpenMP = SortPSS<ValueType, OpenMP, SizeType>;
+  REGISTER_COMPUTE_PERMUTATION_BENCHMARK(PSS_OpenMP);
+  REGISTER_SORT_AND_COMPUTE_PERMUTATION_BENCHMARK(PSS_OpenMP);
+  REGISTER_SORT_BENCHMARK(PSS_OpenMP);
 
 #endif
 
