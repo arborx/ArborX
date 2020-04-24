@@ -112,23 +112,26 @@ struct SortStd
   using value_type = ValueType;
   using device_type = DeviceType;
 
-  static void sort(Kokkos::View<ValueType *, DeviceType> view)
+  static void check_exec_space(Kokkos::View<ValueType *, DeviceType>)
   {
     static_assert(std::is_same<Kokkos::Serial,
                                typename DeviceType::execution_space>::value,
                   "");
+  }
+
+  static void sort(Kokkos::View<ValueType *, DeviceType> view)
+  {
+    check_exec_space(view);
 
     std::sort(view.data(), view.data() + view.extent(0));
   }
 
   static auto computePermutation(Kokkos::View<ValueType *, DeviceType> view)
   {
+    check_exec_space(view);
+
     using ViewType = Kokkos::View<ValueType *, DeviceType>;
     using ExecutionSpace = typename ViewType::execution_space;
-
-    static_assert(std::is_same<Kokkos::Serial,
-                               typename DeviceType::execution_space>::value,
-                  "");
 
     int const n = view.extent(0);
 
@@ -147,12 +150,10 @@ struct SortStd
   static Kokkos::View<SizeType *, DeviceType>
   sortAndComputePermutation(Kokkos::View<ValueType *, DeviceType> view)
   {
+    check_exec_space(view);
+
     using ViewType = Kokkos::View<ValueType *, DeviceType>;
     using ExecutionSpace = typename ViewType::execution_space;
-
-    static_assert(std::is_same<Kokkos::Serial,
-                               typename DeviceType::execution_space>::value,
-                  "");
 
     int const n = view.extent(0);
 
@@ -176,11 +177,16 @@ struct SortGnuParallel
   using value_type = ValueType;
   using device_type = DeviceType;
 
-  static void sort(Kokkos::View<ValueType *, DeviceType> view)
+  static void check_exec_space(Kokkos::View<ValueType *, DeviceType>)
   {
     static_assert(std::is_same<Kokkos::OpenMP,
                                typename DeviceType::execution_space>::value,
                   "");
+  }
+
+  static void sort(Kokkos::View<ValueType *, DeviceType> view)
+  {
+    check_exec_space(view);
 
 #if !defined(__CUDA_ARCH__)
     int const n = view.extent(0);
@@ -190,6 +196,8 @@ struct SortGnuParallel
 
   static auto computePermutation(Kokkos::View<ValueType *, DeviceType> view)
   {
+    check_exec_space(view);
+
     int const n = view.extent(0);
 
     Kokkos::View<SizeType *, DeviceType> permute(
@@ -238,11 +246,16 @@ struct SortThrust
   using value_type = ValueType;
   using device_type = DeviceType;
 
-  static void sort(Kokkos::View<ValueType *, DeviceType> view)
+  static void check_exec_space(Kokkos::View<ValueType *, DeviceType>)
   {
     static_assert(
         std::is_same<Kokkos::Cuda, typename DeviceType::execution_space>::value,
         "");
+  }
+
+  static void sort(Kokkos::View<ValueType *, DeviceType> view)
+  {
+    check_exec_space(view);
 
     int const n = view.extent(0);
 
@@ -254,12 +267,10 @@ struct SortThrust
   static auto
   sortAndComputePermutation(Kokkos::View<ValueType *, DeviceType> view)
   {
+    check_exec_space(view);
+
     using ViewType = Kokkos::View<ValueType *, DeviceType>;
     using ExecutionSpace = typename ViewType::execution_space;
-
-    static_assert(
-        std::is_same<Kokkos::Cuda, typename DeviceType::execution_space>::value,
-        "");
 
     int const n = view.extent(0);
 
