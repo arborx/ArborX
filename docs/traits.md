@@ -91,35 +91,31 @@ struct Access<NearestToOrigin, PredicatesTag>
 
 int main(int argc, char *argv[])
 {
-  Kokkos::initialize(argc, argv);
-  {
+  Kokkos::Kokkos::ScopeGuard guard(argc, argv);
 
-    constexpr std::size_t N = 1000;
-    std::array<float, N> a;
+  constexpr std::size_t N = 1000;
+  std::array<float, N> a;
 
-    float *d_a;
-    cudaMalloc(&d_a, sizeof(float) * N);
+  float *d_a;
+  cudaMalloc(&d_a, sizeof(float) * N);
 
-    std::iota(std::begin(a), std::end(a), 1.0);
+  std::iota(std::begin(a), std::end(a), 1.0);
 
-    cudaMemcpy(d_a, a.data(), sizeof(float) * N, cudaMemcpyHostToDevice);
+  cudaMemcpy(d_a, a.data(), sizeof(float) * N, cudaMemcpyHostToDevice);
 
-    using device_type = Kokkos::Cuda::device_type;
-    ArborX::BVH<Kokkos::CudaSpace> bvh{Kokkos::Cuda{}, PointCloud{d_a, d_a, d_a, N}};
+  using device_type = Kokkos::Cuda::device_type;
+  ArborX::BVH<Kokkos::CudaSpace> bvh{Kokkos::Cuda{}, PointCloud{d_a, d_a, d_a, N}};
 
-    Kokkos::View<int *, device_type> indices("indices", 0);
-    Kokkos::View<int *, device_type> offset("offset", 0);
-    bvh.query(Kokkos::Cuda{}, NearestToOrigin{5}, indices, offset);
+  Kokkos::View<int *, device_type> indices("indices", 0);
+  Kokkos::View<int *, device_type> offset("offset", 0);
+  bvh.query(Kokkos::Cuda{}, NearestToOrigin{5}, indices, offset);
 
-    Kokkos::parallel_for(1, KOKKOS_LAMBDA(int i) {
-      for (int j = offset(i); j < offset(i + 1); ++j)
-      {
-        printf("%i %i\n", i, indices(j));
-      }
-    });
-
-  }
-  Kokkos::finalize();
+  Kokkos::parallel_for(1, KOKKOS_LAMBDA(int i) {
+    for (int j = offset(i); j < offset(i + 1); ++j)
+    {
+      printf("%i %i\n", i, indices(j));
+    }
+  });
 
   return 0;
 }
