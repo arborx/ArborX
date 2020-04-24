@@ -91,7 +91,7 @@ struct Access<NearestToOrigin, PredicatesTag>
 
 int main(int argc, char *argv[])
 {
-  Kokkos::Kokkos::ScopeGuard guard(argc, argv);
+  Kokkos::ScopeGuard guard(argc, argv);
 
   constexpr std::size_t N = 1000;
   std::array<float, N> a;
