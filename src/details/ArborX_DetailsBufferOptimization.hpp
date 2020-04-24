@@ -11,6 +11,7 @@
 #ifndef ARBORX_DETAILS_BUFFER_OPTIMIZATON_HPP
 #define ARBORX_DETAILS_BUFFER_OPTIMIZATON_HPP
 
+#include <ArborX_DetailsUtils.hpp>
 #include <ArborX_Exception.hpp>
 #include <ArborX_Macros.hpp>
 #include <ArborX_Traits.hpp>
