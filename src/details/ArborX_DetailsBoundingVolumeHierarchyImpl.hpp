@@ -85,6 +85,33 @@ struct TraversalPolicy
 
 namespace Details
 {
+
+template <typename BVH>
+struct WrappedBVH
+{
+  BVH bvh_;
+
+  template <typename ExecutionSpace, typename Predicates, typename Callbacks>
+  void operator()(ExecutionSpace const &space, Predicates const predicates,
+                  Callbacks const &callbacks) const
+  {
+    using MemorySpace = typename BVH::memory_space;
+    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
+
+    using Access =
+        ArborX::Traits::Access<Predicates, ArborX::Traits::PredicatesTag>;
+
+    auto const &bvh = bvh_; // workaround to avoid implicit capture of *this
+    Kokkos::parallel_for(
+        ARBORX_MARK_REGION("BVH:spatial_queries"),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
+        KOKKOS_LAMBDA(int i) {
+          ArborX::Details::TreeTraversal<DeviceType>::query(
+              bvh, Access::get(predicates, i), callbacks(i));
+        });
+  }
+};
+
 namespace BoundingVolumeHierarchyImpl
 {
 // Views are passed by reference here because internally Kokkos::realloc()
