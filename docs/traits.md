@@ -1,5 +1,5 @@
 # `ArborX::Traits::Access`
-Defined in header [`<ArborX_Traits.hpp>`](https://github.com/arborx/ArborX/blob/master/src/details/ArborX_Traits.hpp)
+Defined in header [`<ArborX_AccessTraits.hpp>`](https://github.com/arborx/ArborX/blob/master/src/details/ArborX_AccessTraits.hpp)
 
 ```C++
 template <typename T, typename Tag, typename Enable=void>
