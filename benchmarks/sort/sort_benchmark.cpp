@@ -18,7 +18,9 @@
 #include <cstdlib>
 #include <random>
 
+#if defined(KOKKOS_ENABLE_OPENMP)
 #include "pss_parallel_stable_sort.hpp"
+#endif
 #include <benchmark/benchmark.h>
 
 #if defined(__GNUC__) && !defined(__CUDA_ARCH__)
