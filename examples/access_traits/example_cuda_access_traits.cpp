@@ -30,9 +30,8 @@ namespace Traits
 template <>
 struct Access<PointCloud, PrimitivesTag>
 {
-  inline static std::size_t size(PointCloud const &cloud) { return cloud.N; }
-  KOKKOS_INLINE_FUNCTION static Point get(PointCloud const &cloud,
-                                          std::size_t i)
+  static std::size_t size(PointCloud const &cloud) { return cloud.N; }
+  KOKKOS_FUNCTION static Point get(PointCloud const &cloud, std::size_t i)
   {
     return {{cloud.d_x[i], cloud.d_y[i], cloud.d_z[i]}};
   }
@@ -42,8 +41,8 @@ struct Access<PointCloud, PrimitivesTag>
 template <>
 struct Access<Spheres, PredicatesTag>
 {
-  inline static std::size_t size(Spheres const &d) { return d.N; }
-  KOKKOS_INLINE_FUNCTION static auto get(Spheres const &d, std::size_t i)
+  static std::size_t size(Spheres const &d) { return d.N; }
+  KOKKOS_FUNCTION static auto get(Spheres const &d, std::size_t i)
   {
     return intersects(Sphere{{{d.d_x[i], d.d_y[i], d.d_z[i]}}, d.d_r[i]});
   }
