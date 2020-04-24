@@ -1,6 +1,3 @@
-#ifndef PSS_COMMON_HPP
-#define PSS_COMMON_HPP
-
 /*
   Copyright (C) 2014 Intel Corporation
   All rights reserved.
@@ -32,6 +29,8 @@
   WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
   POSSIBILITY OF SUCH DAMAGE.
 */
+#ifndef PSS_COMMON_HPP
+#define PSS_COMMON_HPP
 
 namespace pss {
 
