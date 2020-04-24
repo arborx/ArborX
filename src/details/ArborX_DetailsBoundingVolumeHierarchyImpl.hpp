@@ -15,6 +15,7 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_Callbacks.hpp>
 #include <ArborX_DetailsBatchedQueries.hpp>
+#include <ArborX_DetailsBufferOptimization.hpp>
 #include <ArborX_DetailsKokkosExt.hpp> // ArithmeticTraits
 #include <ArborX_DetailsTreeTraversal.hpp>
 #include <ArborX_DetailsUtils.hpp>
@@ -130,187 +131,26 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
   check_valid_callback(callback, predicates, out);
 
-  Kokkos::Profiling::pushRegion("ArborX:BVH:spatial_queries");
-
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-  auto const n_queries = Access::size(predicates);
-
-  auto buffer_size = policy._buffer_size;
-  bool const throw_if_buffer_optimization_fails = (buffer_size < 0);
-  buffer_size = std::abs(buffer_size);
-
-  Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
-
-  Kokkos::View<unsigned int *, MemorySpace> permute;
   if (policy._sort_predicates)
   {
-    permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-        space, bvh.bounds(), predicates);
+    auto permute =
+        Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
+            space, bvh.bounds(), predicates);
+    auto permuted_predicates =
+        Details::BatchedQueries<DeviceType>::applyPermutation(space, permute,
+                                                              predicates);
+    queryImpl(space, WrappedBVH<BVH>{bvh}, permuted_predicates, callback, out,
+              offset, policy._buffer_size);
+
+    std::tie(offset, out) =
+        Details::BatchedQueries<DeviceType>::reversePermutation(space, permute,
+                                                                offset, out);
   }
   else
   {
-    permute = Kokkos::View<unsigned int *, MemorySpace>(
-        Kokkos::ViewAllocateWithoutInitializing("permute"), n_queries);
-    iota(space, permute);
+    queryImpl(space, WrappedBVH<BVH>{bvh}, predicates, callback, out, offset,
+              policy._buffer_size);
   }
-
-  // FIXME  readability!  queries is a sorted copy of the predicates
-  auto queries = Details::BatchedQueries<DeviceType>::applyPermutation(
-      space, permute, predicates);
-
-  Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::pushRegion("ArborX:BVH:first_pass");
-
-  // Initialize view
-  // [ 0 0 0 .... 0 0 ]
-  //                ^
-  //                N
-  reallocWithoutInitializing(offset, n_queries + 1);
-
-  // Say we found exactly two object for each query:
-  // [ 2 2 2 .... 2 0 ]
-  //   ^            ^
-  //   0th          Nth element in the view
-  if (buffer_size > 0)
-  {
-    reallocWithoutInitializing(out, n_queries * buffer_size);
-    // NOTE I considered filling with invalid indices but it is unecessary
-    // work
-
-    Kokkos::parallel_for(
-        ARBORX_MARK_REGION("first_pass_at_the_search_with_buffer_optimization"),
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int i) {
-          int count = 0;
-          auto const shift = permute(i) * buffer_size;
-          auto const &query = queries(i);
-          Details::TreeTraversal<DeviceType>::query(
-              bvh, query,
-              [&query, &callback, buffer_size, &out, shift, &count](int index) {
-                if (count < buffer_size)
-                  callback(query, index,
-                           [&count, &out, shift](
-                               typename OutputView::value_type const &value) {
-                             out(shift + count++) = value;
-                           });
-                else
-                  callback(query, index,
-                           [&count](typename OutputView::value_type const &) {
-                             ++count;
-                           });
-              });
-          offset(permute(i)) = count;
-        });
-  }
-  else
-  {
-    Kokkos::parallel_for(
-        ARBORX_MARK_REGION(
-            "first_pass_at_the_search_count_the_number_of_values"),
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int i) {
-          int count = 0;
-          auto const &query = queries(i);
-          Details::TreeTraversal<DeviceType>::query(
-              bvh, query, [&query, &callback, &count](int index) {
-                callback(query, index,
-                         [&count](typename OutputView::value_type const &) {
-                           ++count;
-                         });
-              });
-          offset(permute(i)) = count;
-        });
-  }
-
-  // NOTE max() internally calls Kokkos::parallel_reduce.  Only pay for it if
-  // actually trying buffer optimization. In principle, any strictly
-  // positive value can be assigned otherwise.
-  auto const max_results_per_query =
-      (buffer_size > 0)
-          ? max(space, Kokkos::subview(
-                           offset, Kokkos::pair<size_t, size_t>(0, n_queries)))
-          : std::numeric_limits<typename std::remove_reference<decltype(
-                offset)>::type::value_type>::max();
-
-  // Then we would get:
-  // [ 0 2 4 .... 2N-2 2N ]
-  //                    ^
-  //                    N
-  exclusivePrefixSum(space, offset);
-
-  // Let us extract the last element in the view which is the total count of
-  // objects which where found to meet the query predicates:
-  //
-  // [ 2N ]
-  int const n_results = lastElement(offset);
-
-  Kokkos::Profiling::popRegion();
-
-  // Exit early if either no results were found for any of the queries, or
-  // nothing was inserted inside a callback for found results. This check
-  // guarantees that the second pass will not be executed independent of
-  // buffer_size.
-  if (n_results == 0)
-  {
-    Kokkos::Profiling::popRegion();
-    return;
-  }
-
-  if (max_results_per_query > buffer_size)
-  {
-    Kokkos::Profiling::pushRegion("ArborX:BVH:second_pass");
-
-    // FIXME can definitely do better about error message
-    ARBORX_ASSERT(!throw_if_buffer_optimization_fails);
-
-    // We allocate the memory and fill
-    //
-    // [ A0 A1 B0 B1 C0 C1 ... X0 X1 ]
-    //   ^     ^     ^         ^     ^
-    //   0     2     4         2N-2  2N
-    reallocWithoutInitializing(out, n_results);
-    Kokkos::parallel_for(
-        ARBORX_MARK_REGION("second_pass"),
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int i) {
-          int count = 0;
-          auto const shift = offset(permute(i));
-          auto const &query = queries(i);
-          Details::TreeTraversal<DeviceType>::query(
-              bvh, query, [&query, &callback, &out, shift, &count](int index) {
-                callback(query, index,
-                         [&count, &out,
-                          shift](typename OutputView::value_type const &value) {
-                           out(shift + count++) = value;
-                         });
-              });
-          assert(offset(permute(i) + 1) - offset(permute(i)) == count);
-        });
-
-    Kokkos::Profiling::popRegion();
-  }
-  // do not copy if by some miracle each query exactly yielded as many results
-  // as the buffer size
-  else if (n_results != static_cast<int>(n_queries) * buffer_size)
-  {
-    Kokkos::Profiling::pushRegion("ArborX:BVH:copy_values");
-
-    OutputView tmp_out(Kokkos::ViewAllocateWithoutInitializing(out.label()),
-                       n_results);
-    Kokkos::parallel_for(
-        ARBORX_MARK_REGION("copy_valid_values"),
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int q) {
-          for (int i = 0; i < offset(q + 1) - offset(q); ++i)
-          {
-            tmp_out(offset(q) + i) = out(q * buffer_size + i);
-          }
-        });
-    out = tmp_out;
-
-    Kokkos::Profiling::popRegion();
-  }
-  Kokkos::Profiling::popRegion();
 }
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
