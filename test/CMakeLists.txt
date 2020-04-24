@@ -84,6 +84,12 @@ target_compile_definitions(ArborX_DetailsBatchedQueries.exe PRIVATE BOOST_TEST_D
 target_include_directories(ArborX_DetailsBatchedQueries.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_DetailsBatchedQueries_Test COMMAND ./ArborX_DetailsBatchedQueries.exe)
 
+add_executable(ArborX_DetailsBufferOptimization.exe tstDetailsBufferOptimization.cpp utf_main.cpp)
+target_link_libraries(ArborX_DetailsBufferOptimization.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_DetailsBufferOptimization.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_include_directories(ArborX_DetailsBufferOptimization.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_DetailsBufferOptimization_Test COMMAND ./ArborX_DetailsBufferOptimization.exe)
+
 if(ARBORX_ENABLE_MPI)
   add_executable(ArborX_DistributedSearchTree.exe tstDistributedSearchTree.cpp utf_main.cpp)
   target_link_libraries(ArborX_DistributedSearchTree.exe PRIVATE ArborX Boost::unit_test_framework)

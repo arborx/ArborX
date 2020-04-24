@@ -12,6 +12,7 @@
 #define ARBORX_DETAILS_BUFFER_OPTIMIZATON_HPP
 
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_DetailsUtils.hpp>
 #include <ArborX_Exception.hpp>
 #include <ArborX_Macros.hpp>
 
