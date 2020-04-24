@@ -2,6 +2,8 @@ if(NOT PROJECT_NAME)
   cmake_minimum_required(VERSION 3.12)
   project(SortBenchmark CXX)
 
+  set(CMAKE_CXX_STANDARD 14)
+
   find_package(Kokkos 3.0 REQUIRED QUIET)
   if(Kokkos_ENABLE_CUDA)
     kokkos_check(OPTIONS CUDA_LAMBDA)
