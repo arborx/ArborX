@@ -166,7 +166,7 @@ struct SortStd
     Kokkos::deep_copy(view_copy, view);
     Kokkos::parallel_for(
         "apply_permutation", Kokkos::RangePolicy<ExecutionSpace>(0, n),
-        KOKKOS_LAMBDA(int i) { view(i) = view_copy(permute(i)); });
+        KOKKOS_LAMBDA(int i) { view(permute(i)) = view_copy(i); });
 
     return permute;
   }
@@ -233,7 +233,7 @@ struct SortGnuParallel
     Kokkos::deep_copy(view_copy, view);
     Kokkos::parallel_for(
         "apply_permutation", Kokkos::RangePolicy<ExecutionSpace>(0, n),
-        KOKKOS_LAMBDA(int i) { view(i) = view_copy(permute(i)); });
+        KOKKOS_LAMBDA(int i) { view(permute(i)) = view_copy(i); });
 
     return permute;
   }
@@ -297,7 +297,7 @@ struct SortPSS
     Kokkos::deep_copy(view_copy, view);
     Kokkos::parallel_for(
         "apply_permutation", Kokkos::RangePolicy<ExecutionSpace>(0, n),
-        KOKKOS_LAMBDA(int i) { view(i) = view_copy(permute(i)); });
+        KOKKOS_LAMBDA(int i) { view(permute(i)) = view_copy(i); });
 
     return permute;
   }
