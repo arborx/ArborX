@@ -191,10 +191,8 @@ struct SortGnuParallel
   {
     check_exec_space(view);
 
-#if !defined(__CUDA_ARCH__)
     int const n = view.extent(0);
     __gnu_parallel::sort(view.data(), view.data() + n);
-#endif
   }
 
   static auto computePermutation(Kokkos::View<ValueType *, DeviceType> view)
@@ -207,12 +205,10 @@ struct SortGnuParallel
         Kokkos::ViewAllocateWithoutInitializing("permute"), n);
     iota(permute);
 
-#if !defined(__CUDA_ARCH__)
     __gnu_parallel::sort(permute.data(), permute.data() + n,
                          [&view](size_t const &a, size_t const &b) {
                            return view(a) < view(b);
                          });
-#endif
 
     return permute;
   }
