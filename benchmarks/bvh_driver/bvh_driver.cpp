@@ -11,6 +11,7 @@
 
 #include <ArborX_BoostRTreeHelpers.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <ArborX_NanoflannAdapters.hpp>
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -92,11 +93,126 @@ Spec create_spec_from_string(std::string const &spec_string)
 
   if (!(spec.backends == "all" || spec.backends == "serial" ||
         spec.backends == "openmp" || spec.backends == "threads" ||
-        spec.backends == "cuda" || spec.backends == "rtree"))
+        spec.backends == "cuda" || spec.backends == "rtree" ||
+        spec.backends == "nanoflann"))
     throw std::runtime_error("Backend " + spec.backends + " invalid!");
 
   return spec;
 }
+#ifdef KOKKOS_ENABLE_SERIAL
+class NanoflannKDTree
+{
+public:
+  using DeviceType = Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>;
+  using ExecutionSpace = Kokkos::Serial;
+  using device_type = DeviceType;
+
+  using DatasetAdapter = ArborX::NanoflannPointCloudAdapter<Kokkos::HostSpace>;
+  using CoordinateType = DatasetAdapter::CoordinateType;
+  using SizeType = DatasetAdapter::SizeType;
+
+  NanoflannKDTree(Kokkos::View<ArborX::Point *, DeviceType> points)
+      : _dataset_adapter(points)
+      , _tree(3, _dataset_adapter)
+  {
+    _tree.buildIndex();
+  }
+
+  template <typename Query>
+  void query(Kokkos::View<Query *, DeviceType> queries,
+             Kokkos::View<int *, DeviceType> &indices,
+             Kokkos::View<int *, DeviceType> &offset,
+             ArborX::Experimental::TraversalPolicy const &)
+  {
+    using Predicates = Kokkos::View<Query *, DeviceType>;
+    using Access =
+        ArborX::Traits::Access<Predicates, ArborX::Traits::PredicatesTag>;
+    using Tag = typename ArborX::Traits::Helper<Access>::tag;
+
+    int const n_queries = queries.extent_int(0);
+    Kokkos::realloc(offset, n_queries + 1);
+
+    std::vector<std::pair<SizeType, CoordinateType>> returned_indices_distances;
+
+    queryDispatch(Tag{}, queries, returned_indices_distances, offset);
+
+    ArborX::exclusivePrefixSum(ExecutionSpace{}, offset);
+    int const n_results = ArborX::lastElement(offset);
+
+    Kokkos::realloc(indices, n_results);
+    for (int i = 0; i < n_queries; ++i)
+      for (int j = offset(i); j < offset(i + 1); ++j)
+        indices(j) = returned_indices_distances[j].first;
+  }
+
+private:
+  using DistanceType =
+      nanoflann::L2_Simple_Adaptor<CoordinateType, DatasetAdapter>;
+  using KDTree =
+      nanoflann::KDTreeSingleIndexAdaptor<DistanceType, DatasetAdapter, 3,
+                                          SizeType>;
+
+  template <typename Query>
+  void queryDispatch(ArborX::Details::SpatialPredicateTag,
+                     Kokkos::View<Query *, DeviceType> queries,
+                     std::vector<std::pair<SizeType, CoordinateType>>
+                         &returned_indices_distances,
+                     Kokkos::View<int *, DeviceType> &offset)
+  {
+    int const n_queries = queries.extent_int(0);
+
+    std::vector<std::pair<SizeType, CoordinateType>> ret_matches;
+    for (int i = 0; i < n_queries; ++i)
+    {
+      auto const sphere = ArborX::getGeometry(queries(i));
+      auto const radius = sphere.radius();
+      auto const *const centroid = &sphere.centroid()[0];
+
+      ret_matches.resize(0);
+
+      nanoflann::SearchParams params;
+      offset(i) =
+          _tree.radiusSearch(centroid, radius * radius, ret_matches, params);
+
+      returned_indices_distances.insert(returned_indices_distances.end(),
+                                        ret_matches.begin(), ret_matches.end());
+    }
+  }
+
+  template <typename Query>
+  void queryDispatch(ArborX::Details::NearestPredicateTag,
+                     Kokkos::View<Query *, DeviceType> queries,
+                     std::vector<std::pair<SizeType, CoordinateType>>
+                         &returned_indices_distances,
+                     Kokkos::View<int *, DeviceType> &offset)
+  {
+    int const n_queries = queries.extent_int(0);
+
+    std::vector<SizeType> query_indices;
+    std::vector<CoordinateType> distances_sq;
+    for (int i = 0; i < n_queries; ++i)
+    {
+      auto const k = queries(i)._k;
+      auto const *const query_point = &ArborX::getGeometry(queries(i))[0];
+
+      query_indices.resize(k);
+      distances_sq.resize(k);
+      memset(query_indices.data(), 0, k * sizeof(SizeType));
+      memset(distances_sq.data(), 0, k * sizeof(CoordinateType));
+
+      offset(i) = _tree.knnSearch(query_point, k, query_indices.data(),
+                                  distances_sq.data());
+
+      for (int j = 0; j < offset(j); ++j)
+        returned_indices_distances.push_back(
+            std::make_pair(query_indices[j], std::sqrt(distances_sq[j])));
+    }
+  }
+
+  DatasetAdapter _dataset_adapter;
+  KDTree _tree;
+};
+#endif
 
 template <typename DeviceType>
 Kokkos::View<ArborX::Point *, DeviceType>
@@ -438,6 +554,11 @@ int main(int argc, char *argv[])
       using BoostRTree = BoostExt::RTree<ArborX::Point>;
       register_benchmark<BoostRTree>("BoostRTree", spec);
     }
+#endif
+
+#ifdef KOKKOS_ENABLE_SERIAL
+    if (spec.backends == "all" || spec.backends == "nanoflann")
+      register_benchmark<NanoflannKDTree>("NanoflannKDTree", spec);
 #endif
   }
 
