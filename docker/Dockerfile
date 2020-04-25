@@ -88,6 +88,7 @@ RUN BOOST_VERSION=1.67.0 && \
     BOOST_KEY=379CE192D401AB61 && \
     BOOST_URL=https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source && \
     BOOST_ARCHIVE=boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2 && \
+    SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE} && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.asc && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json && \
@@ -110,7 +111,7 @@ RUN BOOST_VERSION=1.67.0 && \
         cxxflags=-w \
         install \
         && \
-    rm -rf boost*
+    rm -rf ${SCRATCH_DIR}
 
 # Install Google Benchmark support library
 ENV BENCHMARK_DIR=/opt/benchmark
