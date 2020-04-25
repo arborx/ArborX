@@ -117,4 +117,10 @@ target_link_libraries(ArborX_BoostAdapters.exe PRIVATE ArborX Boost::unit_test_f
 target_compile_definitions(ArborX_BoostAdapters.exe PRIVATE BOOST_TEST_DYN_LINK)
 add_test(NAME ArborX_BoostAdapters_Test COMMAND ./ArborX_BoostAdapters.exe)
 
+add_executable(ArborX_NanoflannAdapters.exe tstNanoflannAdapters.cpp utf_main.cpp)
+target_include_directories(ArborX_NanoflannAdapters.exe PRIVATE ${PROJECT_SOURCE_DIR}/ext/nanoflann/include)
+target_link_libraries(ArborX_NanoflannAdapters.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_NanoflannAdapters.exe PRIVATE BOOST_TEST_DYN_LINK)
+add_test(NAME ArborX_NanoflannAdapters_Test COMMAND ./ArborX_NanoflannAdapters.exe)
+
 add_subdirectory(headers_self_contained)
