@@ -39,6 +39,9 @@ pipeline {
                                     -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
+                                    -D ARBORX_ENABLE_TESTS=ON \
+                                    -D ARBORX_ENABLE_EXAMPLES=ON \
+                                    -D ARBORX_ENABLE_BENCHMARKS=ON \
                                     -D ARBORX_USE_CUDA_AWARE_MPI=ON \
                                     -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
                                 ..
@@ -95,6 +98,9 @@ pipeline {
                                     -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
+                                    -D ARBORX_ENABLE_TESTS=ON \
+                                    -D ARBORX_ENABLE_EXAMPLES=ON \
+                                    -D ARBORX_ENABLE_BENCHMARKS=ON \
                                     -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
                                 ..
                             '''
@@ -150,6 +156,9 @@ pipeline {
                                     -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                    -D ARBORX_ENABLE_TESTS=ON \
+                                    -D ARBORX_ENABLE_EXAMPLES=ON \
+                                    -D ARBORX_ENABLE_BENCHMARKS=ON \
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'
@@ -205,6 +214,9 @@ pipeline {
                                     -D CMAKE_CXX_CLANG_TIDY="$LLVM_DIR/bin/clang-tidy" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
+                                    -D ARBORX_ENABLE_TESTS=ON \
+                                    -D ARBORX_ENABLE_EXAMPLES=ON \
+                                    -D ARBORX_ENABLE_BENCHMARKS=ON \
                                     -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
                                 ..
                             '''
@@ -258,6 +270,9 @@ pipeline {
                                     -D CMAKE_CXX_FLAGS="-Minform=inform" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
+                                    -D ARBORX_ENABLE_TESTS=ON \
+                                    -D ARBORX_ENABLE_EXAMPLES=ON \
+                                    -D ARBORX_ENABLE_BENCHMARKS=ON \
                                     -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
                                 ..
                             '''
