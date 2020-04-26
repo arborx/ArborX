@@ -208,7 +208,8 @@ struct StdSortHelper
 
     Kokkos::View<SizeType *, memory_space> permute(
         Kokkos::ViewAllocateWithoutInitializing("permute"), n);
-    iota(execution_space{}, permute);
+    for (int i = 0; i < n; ++i)
+      permute(i) = i;
 
     std::sort(permute.data(), permute.data() + n,
               [&view](size_t const &a, size_t const &b) {
@@ -225,12 +226,10 @@ struct StdSortHelper
 
     auto permute = computePermutation(view);
 
-    Kokkos::View<int *, memory_space> view_copy("view_copy", n);
-    Kokkos::deep_copy(view_copy, view);
-    Kokkos::parallel_for(
-        "apply_permutation",
-        Kokkos::RangePolicy<execution_space>(execution_space{}, 0, n),
-        KOKKOS_LAMBDA(int i) { view(permute(i)) = view_copy(i); });
+    std::vector<ValueType> view_copy(n);
+    memcpy(view_copy.data(), view.data(), n * sizeof(ValueType));
+    for (int i = 0; i < n; ++i)
+      view(permute(i)) = view_copy[i];
 
     return permute;
   }
@@ -360,12 +359,14 @@ struct ThrustHelper
 
     Kokkos::View<SizeType *, memory_space> permute(
         Kokkos::ViewAllocateWithoutInitializing("permutation"), n);
-    iota(execution_space{}, permute);
 
-    auto permute_ptr = thrust::device_ptr<SizeType>(permute.data());
-    auto begin_ptr = thrust::device_ptr<ValueType>(view.data());
-    auto end_ptr = thrust::device_ptr<ValueType>(view.data() + n);
-    thrust::sort_by_key(begin_ptr, end_ptr, permute_ptr);
+    auto permute_begin = thrust::device_ptr<SizeType>(permute.data());
+    auto permute_end = thrust::device_ptr<SizeType>(permute.data() + n);
+    auto view_begin = thrust::device_ptr<ValueType>(view.data());
+    auto view_end = thrust::device_ptr<ValueType>(view.data() + n);
+
+    thrust::sequence(permute_begin, permute_end, 0);
+    thrust::sort_by_key(view_begin, view_end, permute_begin);
 
     return permute;
   }
