@@ -18,6 +18,14 @@ endif()
 configure_file(ArborX_EnableDeviceTypes.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/ArborX_EnableDeviceTypes.hpp @ONLY)
 
 find_package(Boost 1.67.0 REQUIRED COMPONENTS unit_test_framework)
+# CMake Boost version check is tricky due to multiple changes to the way Boost
+# package stores version information
+if(NOT DEFINED Boost_VERSION_MINOR)
+  set(Boost_VERSION_MINOR ${Boost_MINOR_VERSION})
+endif()
+if(Kokkos_ENABLE_CUDA AND Boost_VERSION_MINOR GREATER_EQUAL 69)
+  message(FATAL_ERROR "Tests in CUDA-enabled ArborX are only compatible with Boost version 1.67 or 1.68")
+endif()
 
 # Compile only, nothing to run
 add_executable(ArborX_AccessTraits.exe tstAccessTraits.cpp)
