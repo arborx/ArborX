@@ -415,7 +415,7 @@ struct tensor_u {
     return 1;
   }; // data size
   static constexpr auto RANK = 0; // tensor rank
-  static constexpr size_t DIM[0] = {}; // tensor dimensions
+  static constexpr size_t* DIM = nullptr;// [] = {}; // tensor dimensions
   static constexpr auto multiindex() {
     return 0;
   }
