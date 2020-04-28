@@ -84,12 +84,14 @@ public:
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, centroids);
     auto morton_codes_host =
         Kokkos::create_mirror_view(Kokkos::HostSpace{}, morton_codes);
+    auto bounds_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, bounds);
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("assign_morton_codes_to_queries"),
         Kokkos::RangePolicy<Kokkos::DefaultHostExecutionSpace>(0, n_queries),
         KOKKOS_LAMBDA(int i) {
           morton_codes_host(i) =
-              flecsi_hilbert_proj(bounds(), centroids_host(i));
+              flecsi_hilbert_proj(bounds_host(), centroids_host(i));
         });
     Kokkos::deep_copy(morton_codes, morton_codes_host);
 
