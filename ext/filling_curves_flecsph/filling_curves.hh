@@ -107,7 +107,7 @@ public:
   }
   //! Search for the depth were two keys are in conflict
   int conflict_depth(filling_curve key_a, filling_curve key_b) {
-    int conflict = max_depth;
+    int conflict = max_depth_;
     while(key_a != key_b) {
       key_a.pop();
       key_b.pop();
