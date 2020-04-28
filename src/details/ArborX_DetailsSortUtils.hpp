@@ -22,10 +22,14 @@
 // clang-format off
 #if defined(KOKKOS_ENABLE_CUDA)
 #  if defined(KOKKOS_COMPILER_CLANG)
-// A range of versions of Clang cannot compile Thrust, failing with errors
-// like this:
+// Some versions of Clang fail to compile Thrust, failing with errors like
+// this:
 //    <snip>/thrust/system/cuda/detail/core/agent_launcher.h:557:11:
 //    error: use of undeclared identifier 'va_printf'
+// The exact combination of versions for Clang and Thrust (or CUDA) for this
+// failure was not investigated, however even very recent version combination
+// (Clang 10.0.0 and Cuda 10.0) demonstrated failure.
+//
 // Defining _CubLog here allows us to avoid that code path, however disabling
 // some debugging diagnostics
 //
