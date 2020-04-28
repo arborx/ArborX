@@ -136,7 +136,7 @@ magnitude(const space_vector_u<T, D> & a) {
  */
 template<typename T>
 space_vector_u<T, 1>
-cross(const space_vector_u<T, 1> & a, const space_vector_u<T, 1> & b) {
+cross(const space_vector_u<T, 1> & /*a*/, const space_vector_u<T, 1> & /*b*/) {
   space_vector_u<T, 1> c{0.0};
   return c;
 }
@@ -146,7 +146,7 @@ cross(const space_vector_u<T, 1> & a, const space_vector_u<T, 1> & b) {
  */
 template<typename T>
 space_vector_u<T, 2>
-cross(const space_vector_u<T, 2> & a, const space_vector_u<T, 2> & b) {
+cross(const space_vector_u<T, 2> & /*a*/, const space_vector_u<T, 2> & /*b*/) {
   space_vector_u<T, 2> c{0.0};
   return c;
 }
@@ -169,8 +169,8 @@ cross(const space_vector_u<T, 3> & a, const space_vector_u<T, 3> & b) {
  */
 template<typename T>
 T
-cross_magnitude(const space_vector_u<T, 1> & a,
-  const space_vector_u<T, 1> & b) {
+cross_magnitude(const space_vector_u<T, 1> & /*a*/,
+  const space_vector_u<T, 1> & /*b*/) {
   return 0.0;
 } // cross_magnitude
 
