@@ -211,16 +211,28 @@ inline void assignMortonCodesDispatch(BoxTag, ExecutionSpace const &space,
                                       MortonCodes morton_codes,
                                       Box const &scene_bounding_box)
 {
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
+  using Access = AccessTraits<Primitives, Traits::PrimitivesTag>;
+  using MemorySpace = typename Access::memory_space;
   auto const n = Access::size(primitives);
-  Kokkos::parallel_for(ARBORX_MARK_REGION("assign_morton_codes"),
+  Kokkos::View<Point *, MemorySpace> centroids(
+      Kokkos::ViewAllocateWithoutInitializing("centroids"), n);
+  Kokkos::parallel_for(ARBORX_MARK_REGION("compute_centroids"),
                        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
                        KOKKOS_LAMBDA(int i) {
-                         Point xyz;
-                         centroid(Access::get(primitives, i), xyz);
-                         translateAndScale(xyz, xyz, scene_bounding_box);
-                         morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
+                         centroid(Access::get(primitives, i), centroids(i));
                        });
+  auto centroids_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, centroids);
+  auto morton_codes_host =
+      Kokkos::create_mirror_view(Kokkos::HostSpace{}, morton_codes);
+  Kokkos::parallel_for(
+      ARBORX_MARK_REGION("assign_morton_codes"),
+      Kokkos::RangePolicy<Kokkos::DefaultHostExecutionSpace>(0, n),
+      KOKKOS_LAMBDA(int i) {
+        morton_codes_host(i) =
+            flecsi_hilbert_proj(scene_bounding_box, centroids_host(i));
+      });
+  Kokkos::deep_copy(morton_codes, morton_codes_host);
 }
 
 template <typename ExecutionSpace, typename Primitives, typename MortonCodes>

@@ -450,12 +450,12 @@ int main(int argc, char *argv[])
 #endif
   }
 
-  benchmark::RunSpecifiedBenchmarks();
+    benchmark::RunSpecifiedBenchmarks();
 
-  Kokkos::finalize();
+    Kokkos::finalize();
 #ifdef ARBORX_PERFORMANCE_TESTING
-  MPI_Finalize();
+    MPI_Finalize();
 #endif
 
-  return EXIT_SUCCESS;
-}
+    return EXIT_SUCCESS;
+  }

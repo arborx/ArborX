@@ -12,8 +12,11 @@
 #ifndef ARBORX_DETAILS_MORTON_CODE_UTILS_HPP
 #define ARBORX_DETAILS_MORTON_CODE_UTILS_HPP
 
+#include <ArborX_Box.hpp>
 #include <ArborX_DetailsKokkosExt.hpp> // min. max
 #include <ArborX_Exception.hpp>
+
+#include <filling_curves.hh>
 
 namespace ArborX
 {
@@ -54,6 +57,15 @@ unsigned int morton3D(double x, double y, double z)
   unsigned int yy = expandBits((unsigned int)y);
   unsigned int zz = expandBits((unsigned int)z);
   return xx * 4 + yy * 2 + zz;
+}
+
+unsigned int flecsi_hilbert_proj(Box const &b, Point const &p)
+{
+  using point_t = flecsi::space_vector_u<double, 3>;
+  using range_t = std::array<point_t, 2>;
+  auto a2f = [](Point const &x) -> point_t { return {x[0], x[1], x[2]}; };
+  range_t range = {a2f(b.minCorner()), a2f(b.maxCorner())};
+  return flecsi::hilbert_curve_u<3, uint32_t>{range, a2f(p)}.value();
 }
 
 } // namespace Details
