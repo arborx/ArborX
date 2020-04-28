@@ -1,0 +1,5 @@
+add_executable(ArborX_SpaceFillingCurve.exe example.cpp)
+target_link_libraries(ArborX_SpaceFillingCurve.exe ${ArborX_TARGET})
+target_include_directories(ArborX_SpaceFillingCurve.exe PRIVATE ${CMAKE_SOURCE_DIR}/ext/filling_curves_flecsph)
+set_target_properties(ArborX_SpaceFillingCurve.exe PROPERTIES CXX_STANDARD 17)
+add_test(NAME ArborX_SpaceFillingCurve_Example COMMAND ./ArborX_SpaceFillingCurve.exe)
