@@ -8,7 +8,7 @@ endif()
 
 add_library(ArborX INTERFACE)
 target_link_libraries(ArborX INTERFACE Kokkos::kokkos)
-set_target_properties(ArborX PROPERTIES INTERFACE_COMPILE_FEATURES cxx_std_14)
+set_target_properties(ArborX PROPERTIES INTERFACE_COMPILE_FEATURES cxx_std_17)
 # As all executables using ArborX depend on it, depending on record_hash allows
 # updating hash each time executable is rebuilt, including when called from
 # within a subdirectory.
@@ -27,6 +27,7 @@ cmake_dependent_option(ARBORX_USE_CUDA_AWARE_MPI
 target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/details>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/ext/filling_curves_flecsph>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   $<INSTALL_INTERFACE:include>
   $<INSTALL_INTERFACE:include/details>
