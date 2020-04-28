@@ -171,13 +171,13 @@ public:
     return value_;
   }
   //! Convert this key to coordinates in range.
-  void coordinates(const std::array<point_t, 2> & range, point_t & p) {}
+  void coordinates(const std::array<point_t, 2> & /*range*/, point_t & /*p*/) {}
 
   /**
    * @brief Compute the range of a branch from its key
    * The space is recursively decomposed regarding the dimension
    */
-  std::array<point_t, 2> range(const std::array<point_t, 2> & range) {
+  std::array<point_t, 2> range(const std::array<point_t, 2> & /*range*/) {
     return std::array<point_t, 2>{};
   }
 
@@ -336,7 +336,7 @@ public:
    * @brief Compute the range of a branch from its key
    * The space is recursively decomposed regarding the dimension
    */
-  std::array<point_t, 2> range(const std::array<point_t, 2> & range) {
+  std::array<point_t, 2> range(const std::array<point_t, 2> & /*range*/) {
     return std::array<point_t, 2>{};
   } // range
 
