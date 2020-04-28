@@ -267,19 +267,17 @@ public:
       // (via the 'this' pointer) which we can't do using a KOKKOS_LAMBDA.
       // Use KOKKOS_CLASS_LAMBDA when we require C++17.
       auto const permute_copy = _permute;
+      auto const permute_size = _permute.size();
 
-      ArborX::Details::applyPermutation(space, permute_copy, exports,
-                                        dest_buffer, true);
-
-      /*Kokkos::parallel_for(ARBORX_MARK_REGION("copy_destinations_permuted"),
-                           Kokkos::RangePolicy<ExecutionSpace>(
-                               space, 0, _dest_offsets.back() * num_packets),
-                           KOKKOS_LAMBDA(int const k) {
-                             int const i = k / num_packets;
-                             int const j = k % num_packets;
-                             dest_buffer(num_packets * permute_copy[i] + j) =
-                                 exports[num_packets * i + j];
-                           });*/
+      for (unsigned int i = 0; i < num_packets; ++i)
+        ArborX::Details::applyReversePermutation(
+            space, permute_copy,
+            Kokkos::subview(exports,
+                            std::pair<unsigned int, unsigned int>(
+                                permute_size * i, permute_size * (i + 1))),
+            Kokkos::subview(dest_buffer,
+                            std::pair<unsigned int, unsigned int>(
+                                permute_size * i, permute_size * (i + 1))));
     }
     auto dest_buffer_mirror = Kokkos::create_mirror_view_and_copy(
         typename ImportView::memory_space(), dest_buffer);
