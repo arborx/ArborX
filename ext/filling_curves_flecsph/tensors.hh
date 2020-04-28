@@ -420,7 +420,7 @@ struct tensor_u {
     return 0;
   }
   template<class Ind>
-  static constexpr Ind pascal_number(Ind && i) {
+  static constexpr Ind pascal_number(Ind && /*i*/) {
     return 1;
   }
 };
@@ -1157,7 +1157,7 @@ operator==(const tensor_u<T, ST, Ds...> & a, const tensor_u<T, ST, Ds...> & b) {
 template<class T, symmetry_type ST, auto... Ds>
 bool
 operator!=(const tensor_u<T, ST, Ds...> & a, const tensor_u<T, ST, Ds...> & b) {
-  bool answer = false;
+  //bool answer = false;
   for(size_t i = 0; i < tensor_u<T, ST, Ds...>::size(); ++i)
     if(a[i] != b[i])
       return true;
