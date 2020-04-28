@@ -21,8 +21,8 @@
 
 // clang-format off
 #if defined(KOKKOS_ENABLE_CUDA)
-#  if defined(KOKKOS_COMPILER_CLANG) && KOKKOS_COMPILER_CLANG < 900
-// Clang of version less than 9.0 cannot compile Thrust, failing with errors
+#  if defined(KOKKOS_COMPILER_CLANG)
+// A range of versions of Clang cannot compile Thrust, failing with errors
 // like this:
 //    <snip>/thrust/system/cuda/detail/core/agent_launcher.h:557:11:
 //    error: use of undeclared identifier 'va_printf'
@@ -42,10 +42,10 @@
 #      define _CubLog ARBORX_CubLog_save
 #      undef ARBORX_CubLog_save
 #    endif
-#  else // #if (KOKKOS_COMPILER_CLANG < 900)
+#  else // #if defined(KOKKOS_COMPILER_CLANG)
 #    include <thrust/device_ptr.h>
 #    include <thrust/sort.h>
-#  endif // #if (KOKKOS_COMPILER_CLANG < 900)
+#  endif // #if defined(KOKKOS_COMPILER_CLANG)
 #endif   // #if defined(KOKKOS_ENABLE_CUDA)
 // clang-format on
 
