@@ -209,8 +209,7 @@ void applyPermutation(ExecutionSpace const &space,
   static_assert(std::is_integral<typename PermutationView::value_type>::value,
                 "");
   auto scratch_view = clone(space, view);
-  applyPermutation(space, permutation, view, scratch_view);
-  Kokkos::deep_copy(space, view, scratch_view);
+  applyPermutation(space, permutation, scratch_view, view);
 }
 
 } // namespace Details
