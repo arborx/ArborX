@@ -270,7 +270,7 @@ public:
       auto const permute_size = _permute.size();
 
       for (unsigned int i = 0; i < num_packets; ++i)
-        ArborX::Details::applyReversePermutation(
+        ArborX::Details::applyInversePermutation(
             space, permute_copy,
             Kokkos::subview(exports,
                             std::pair<unsigned int, unsigned int>(
