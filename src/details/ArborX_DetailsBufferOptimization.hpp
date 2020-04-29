@@ -35,25 +35,28 @@ struct SecondPassTag
 
 template <typename Tag, typename Predicates, typename Callback,
           typename OutputView, typename CountView, typename OffsetView>
-struct WrappedCallback;
+struct InsertOperator;
 
 template <typename Predicates, typename Callback, typename OutputView,
           typename CountView, typename OffsetView>
-struct WrappedCallback<FirstPassTag, Predicates, Callback, OutputView,
-                       CountView, OffsetView>
+struct InsertOperator<FirstPassTag, Predicates, Callback, OutputView, CountView,
+                      OffsetView>
 {
   Predicates predicates_;
   Callback callback_;
   OutputView out_;
   CountView counts_;
   OffsetView offset_;
-  int j;
+  int predicate_index_;
 
   using ValueType = typename OutputView::value_type;
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
 
-  KOKKOS_FUNCTION void operator()(int i) const
+  KOKKOS_FUNCTION void operator()(int primitive_index) const
   {
+    int i = primitive_index;
+    int j = predicate_index_;
+
     if (offset_(j) + counts_(j) < offset_(j + 1))
       callback_(Access::get(predicates_, j), i, [&](ValueType const &value) {
         out_(offset_(j) + Kokkos::atomic_fetch_add(&counts_(j), 1)) = value;
@@ -67,21 +70,24 @@ struct WrappedCallback<FirstPassTag, Predicates, Callback, OutputView,
 
 template <typename Predicates, typename Callback, typename OutputView,
           typename CountView, typename OffsetView>
-struct WrappedCallback<FirstPassNoBufferOptimizationTag, Predicates, Callback,
-                       OutputView, CountView, OffsetView>
+struct InsertOperator<FirstPassNoBufferOptimizationTag, Predicates, Callback,
+                      OutputView, CountView, OffsetView>
 {
   Predicates predicates_;
   Callback callback_;
   OutputView out_;
   CountView counts_;
   OffsetView offset_;
-  int j;
+  int predicate_index_;
 
   using ValueType = typename OutputView::value_type;
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
 
-  KOKKOS_FUNCTION void operator()(int i) const
+  KOKKOS_FUNCTION void operator()(int primitive_index) const
   {
+    int i = primitive_index;
+    int j = predicate_index_;
+
     callback_(Access::get(predicates_, j), i, [&](ValueType const &) {
       Kokkos::atomic_fetch_add(&counts_(j), 1);
     });
@@ -90,21 +96,24 @@ struct WrappedCallback<FirstPassNoBufferOptimizationTag, Predicates, Callback,
 
 template <typename Predicates, typename Callback, typename OutputView,
           typename CountView, typename OffsetView>
-struct WrappedCallback<SecondPassTag, Predicates, Callback, OutputView,
-                       CountView, OffsetView>
+struct InsertOperator<SecondPassTag, Predicates, Callback, OutputView,
+                      CountView, OffsetView>
 {
   Predicates predicates_;
   Callback callback_;
   OutputView out_;
   CountView counts_;
   OffsetView offset_;
-  int j;
+  int predicate_index_;
 
   using ValueType = typename OutputView::value_type;
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
 
-  KOKKOS_FUNCTION void operator()(int i) const
+  KOKKOS_FUNCTION void operator()(int primitive_index) const
   {
+    int i = primitive_index;
+    int j = predicate_index_;
+
     callback_(Access::get(predicates_, j), i, [&](ValueType const &value) {
       out_(offset_(j) + Kokkos::atomic_fetch_add(&counts_(j), 1)) = value;
     });
@@ -113,7 +122,7 @@ struct WrappedCallback<SecondPassTag, Predicates, Callback, OutputView,
 
 template <typename Tag, typename Predicates, typename Callback,
           typename OutputView, typename CountView, typename OffsetView>
-struct CallbackGenerator
+struct InsertGenerator
 {
   Predicates predicates_;
   Callback callback_;
@@ -121,19 +130,20 @@ struct CallbackGenerator
   CountView counts_;
   OffsetView offset_;
 
-  KOKKOS_FUNCTION WrappedCallback<Tag, Predicates, Callback, OutputView,
-                                  CountView, OffsetView>
-  operator()(int j) const
+  KOKKOS_FUNCTION
+  InsertOperator<Tag, Predicates, Callback, OutputView, CountView, OffsetView>
+  operator()(int predicate_index) const
   {
-    return {predicates_, callback_, out_, counts_, offset_, j};
+    return {predicates_, callback_, out_, counts_, offset_, predicate_index};
   }
 };
 
-template <typename ExecutionSpace, typename Search, typename Predicates,
+template <typename ExecutionSpace, typename TreeTraversal, typename Predicates,
           typename Callback, typename OutputView, typename OffsetView>
-void queryImpl(ExecutionSpace const &space, Search const &search,
-               Predicates const &predicates, Callback const &callback,
-               OutputView &out, OffsetView &offset, int buffer_size)
+void spatialQueryImpl(ExecutionSpace const &space,
+                      TreeTraversal const &tree_traversal,
+                      Predicates const &predicates, Callback const &callback,
+                      OutputView &out, OffsetView &offset, int buffer_size)
 {
   static_assert(Kokkos::is_execution_space<ExecutionSpace>{}, "");
 
@@ -156,17 +166,18 @@ void queryImpl(ExecutionSpace const &space, Search const &search,
     reallocWithoutInitializing(out, n_queries * buffer_size);
     // NOTE I considered filling with invalid indices but it is unecessary work
 
-    search(space, predicates,
-           CallbackGenerator<FirstPassTag, Predicates, Callback, OutputView,
-                             CountView, OffsetView>{predicates, callback, out,
-                                                    counts, offset});
+    tree_traversal.launch(space, predicates,
+                          InsertGenerator<FirstPassTag, Predicates, Callback,
+                                          OutputView, CountView, OffsetView>{
+                              predicates, callback, out, counts, offset});
   }
   else
   {
-    search(space, predicates,
-           CallbackGenerator<FirstPassNoBufferOptimizationTag, Predicates,
-                             Callback, OutputView, CountView, OffsetView>{
-               predicates, callback, out, counts, offset});
+    tree_traversal.launch(
+        space, predicates,
+        InsertGenerator<FirstPassNoBufferOptimizationTag, Predicates, Callback,
+                        OutputView, CountView, OffsetView>{
+            predicates, callback, out, counts, offset});
   }
 
   // NOTE max() internally calls Kokkos::parallel_reduce.  Only pay for it if
@@ -200,10 +211,10 @@ void queryImpl(ExecutionSpace const &space, Search const &search,
 
     Kokkos::deep_copy(space, counts, 0); // FIXME
 
-    search(space, predicates,
-           CallbackGenerator<SecondPassTag, Predicates, Callback, OutputView,
-                             CountView, OffsetView>{predicates, callback, out,
-                                                    counts, offset});
+    tree_traversal.launch(space, predicates,
+                          InsertGenerator<SecondPassTag, Predicates, Callback,
+                                          OutputView, CountView, OffsetView>{
+                              predicates, callback, out, counts, offset});
   }
   // do not copy if by some miracle each query exactly yielded as many results
   // as the buffer size

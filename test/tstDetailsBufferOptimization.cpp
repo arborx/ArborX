@@ -24,23 +24,26 @@ namespace tt = boost::test_tools;
 
 struct Test1
 {
-  template <typename ExecutionSpace, typename Predicates, typename Callbacks>
-  void operator()(ExecutionSpace const &space, Predicates const &predicates,
-                  Callbacks const &callbacks) const
+  template <typename ExecutionSpace, typename Predicates,
+            typename InsertGenerator>
+  void launch(ExecutionSpace const &space, Predicates const &predicates,
+              InsertGenerator const &insert_generator) const
   {
     using Access =
         ArborX::Traits::Access<Predicates, ArborX::Traits::PredicatesTag>;
 
     Kokkos::parallel_for(
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
-        KOKKOS_LAMBDA(int i) {
-          for (int j = 0; j < i; ++j)
-            callbacks(i)(j);
+        KOKKOS_LAMBDA(int predicate_index) {
+          for (int primitive_index = 0; primitive_index < predicate_index;
+               ++primitive_index)
+            insert_generator(predicate_index)(primitive_index);
         });
   }
 };
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
+BOOST_AUTO_TEST_CASE_TEMPLATE(spatial_query_impl, DeviceType,
+                              ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
 
@@ -55,9 +58,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::View<Predicate *, DeviceType> predicates(
       Kokkos::view_alloc("predicates", Kokkos::WithoutInitializing), n);
 
-  ArborX::Details::queryImpl(ExecutionSpace{}, Test1{}, predicates,
-                             ArborX::Details::CallbackDefaultSpatialPredicate{},
-                             indices, offset, 0);
+  ArborX::Details::spatialQueryImpl(
+      ExecutionSpace{}, Test1{}, predicates,
+      ArborX::Details::CallbackDefaultSpatialPredicate{}, indices, offset, 0);
 
   auto indices_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);

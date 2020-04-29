@@ -87,14 +87,20 @@ struct TraversalPolicy
 namespace Details
 {
 
+// This class is the top level query distribution and search algorithm. It is
+// implementation specific tree traversal.
+// NOTE: There is nothing specific here about spatial, thus one should be able
+// to rewrite nearest using the same structure, with a benefit of potentially
+// adding threading.
 template <typename BVH>
-struct WrappedBVH
+struct BVHParallelTreeTraversal
 {
   BVH bvh_;
 
-  template <typename ExecutionSpace, typename Predicates, typename Callbacks>
-  void operator()(ExecutionSpace const &space, Predicates const predicates,
-                  Callbacks const &callbacks) const
+  template <typename ExecutionSpace, typename Predicates,
+            typename InsertGenerator>
+  void launch(ExecutionSpace const &space, Predicates const predicates,
+              InsertGenerator const &insert_generator) const
   {
     using MemorySpace = typename BVH::memory_space;
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
@@ -106,9 +112,10 @@ struct WrappedBVH
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("BVH:spatial_queries"),
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
-        KOKKOS_LAMBDA(int i) {
+        KOKKOS_LAMBDA(int predicate_index) {
           ArborX::Details::TreeTraversal<DeviceType>::query(
-              bvh, Access::get(predicates, i), callbacks(i));
+              bvh, Access::get(predicates, predicate_index),
+              insert_generator(predicate_index));
         });
   }
 };
@@ -139,8 +146,9 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
     auto permuted_predicates =
         Details::BatchedQueries<DeviceType>::applyPermutation(space, permute,
                                                               predicates);
-    queryImpl(space, WrappedBVH<BVH>{bvh}, permuted_predicates, callback, out,
-              offset, policy._buffer_size);
+    spatialQueryImpl(space, BVHParallelTreeTraversal<BVH>{bvh},
+                     permuted_predicates, callback, out, offset,
+                     policy._buffer_size);
 
     std::tie(offset, out) =
         Details::BatchedQueries<DeviceType>::reversePermutation(space, permute,
@@ -148,8 +156,8 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
   }
   else
   {
-    queryImpl(space, WrappedBVH<BVH>{bvh}, predicates, callback, out, offset,
-              policy._buffer_size);
+    spatialQueryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates,
+                     callback, out, offset, policy._buffer_size);
   }
 }
 
