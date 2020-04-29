@@ -108,7 +108,8 @@ struct BVHParallelTreeTraversal
     using Access =
         ArborX::Traits::Access<Predicates, ArborX::Traits::PredicatesTag>;
 
-    auto const &bvh = bvh_; // workaround to avoid implicit capture of *this
+    // workaround to avoid implicit capture of *this
+    auto const &bvh = bvh_;
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("BVH:spatial_queries"),
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
@@ -116,6 +117,36 @@ struct BVHParallelTreeTraversal
           ArborX::Details::TreeTraversal<DeviceType>::query(
               bvh, Access::get(predicates, predicate_index),
               insert_generator(predicate_index));
+        });
+  }
+};
+template <typename BVH, typename PermutationView>
+struct BVHParallelTreeTraversalWithPermute
+{
+  BVH bvh_;
+  PermutationView permute_;
+
+  template <typename ExecutionSpace, typename Predicates,
+            typename InsertGenerator>
+  void launch(ExecutionSpace const &space, Predicates const predicates,
+              InsertGenerator const &insert_generator) const
+  {
+    using MemorySpace = typename BVH::memory_space;
+    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
+
+    using Access =
+        ArborX::Traits::Access<Predicates, ArborX::Traits::PredicatesTag>;
+
+    // workaround to avoid implicit capture of *this
+    auto const &bvh = bvh_;
+    auto const &permute = permute_;
+    Kokkos::parallel_for(
+        ARBORX_MARK_REGION("BVH:spatial_queries"),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
+        KOKKOS_LAMBDA(int predicate_index) {
+          ArborX::Details::TreeTraversal<DeviceType>::query(
+              bvh, Access::get(predicates, permute(predicate_index)),
+              insert_generator(permute(predicate_index)));
         });
   }
 };
@@ -143,16 +174,12 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
     auto permute =
         Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
             space, bvh.bounds(), predicates);
-    auto permuted_predicates =
-        Details::BatchedQueries<DeviceType>::applyPermutation(space, permute,
-                                                              predicates);
-    spatialQueryImpl(space, BVHParallelTreeTraversal<BVH>{bvh},
-                     permuted_predicates, callback, out, offset,
-                     policy._buffer_size);
 
-    std::tie(offset, out) =
-        Details::BatchedQueries<DeviceType>::reversePermutation(space, permute,
-                                                                offset, out);
+    spatialQueryImpl(
+        space,
+        BVHParallelTreeTraversalWithPermute<BVH, decltype(permute)>{bvh,
+                                                                    permute},
+        predicates, callback, out, offset, policy._buffer_size);
   }
   else
   {
