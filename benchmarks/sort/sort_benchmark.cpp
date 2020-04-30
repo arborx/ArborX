@@ -74,27 +74,16 @@ void iota(ExecutionSpace exec_space, ViewType view)
                        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
                        KOKKOS_LAMBDA(int i) { view(i) = i; });
 }
-template <typename ExecutionSpace, typename ViewType>
-std::pair<typename ViewType::non_const_value_type,
-          typename ViewType::non_const_value_type>
-minMax(ExecutionSpace exec_space, ViewType v)
-{
-  static_assert(ViewType::rank == 1, "minMax requires a View of rank 1");
-  auto const n = v.extent(0);
 
-  using ValueType = typename ViewType::non_const_value_type;
-
-  Kokkos::MinMaxScalar<ValueType> result;
-  Kokkos::MinMax<ValueType> reducer(result);
-  Kokkos::parallel_reduce("min_max",
-                          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-                          Kokkos::Impl::min_max_functor<ViewType>(v), reducer);
-  return std::make_pair(result.min_val, result.max_val);
-}
+template <typename ValueType, typename ExecutionSpace, typename MemorySpace,
+          typename SizeType, typename Enable = void>
+struct KokkosHelper;
 
 template <typename ValueType, typename ExecutionSpace, typename MemorySpace,
           typename SizeType>
-struct KokkosHelper
+struct KokkosHelper<
+    ValueType, ExecutionSpace, MemorySpace, SizeType,
+    std::enable_if_t<is_accessible_from<MemorySpace, ExecutionSpace>::value>>
 {
   using value_type = ValueType;
   using execution_space = ExecutionSpace;
@@ -105,50 +94,84 @@ struct KokkosHelper
   {
     int const n = view.extent(0);
 
-    // FIXME: this is to unify if and else branches
-    Kokkos::View<SizeType *, memory_space>
-        // Kokkos::Device<typename memory_space::execution_space,
-        // typename memory_space::memory_space>>
-        permute(Kokkos::ViewAllocateWithoutInitializing("permute"), n);
-    if (is_accessible_from<memory_space, execution_space>::value)
-    {
-      auto result = minMax(execution_space{}, view);
+    using ViewType =
+        Kokkos::View<ValueType *,
+                     Kokkos::Device<execution_space, memory_space>>;
+    using CompType = Kokkos::BinOp1D<ViewType>;
 
-      using ViewType =
-          Kokkos::View<ValueType *,
-                       Kokkos::Device<execution_space, memory_space>>;
-      using CompType = Kokkos::BinOp1D<ViewType>;
+    Kokkos::MinMaxScalar<ValueType> result;
+    Kokkos::MinMax<ValueType> reducer(result);
+    Kokkos::parallel_reduce(
+        "min_max", Kokkos::RangePolicy<ExecutionSpace>(execution_space{}, 0, n),
+        Kokkos::Impl::min_max_functor<ViewType>(view), reducer);
 
-      Kokkos::BinSort<ViewType, CompType, typename ViewType::device_type,
-                      SizeType>
-          bin_sort(view, CompType(n / 2, result.first, result.second), true);
-      bin_sort.create_permute_vector();
-      bin_sort.sort(view);
+    Kokkos::BinSort<ViewType, CompType, typename ViewType::device_type,
+                    SizeType>
+        bin_sort(view, CompType(n / 2, result.min_val, result.max_val), true);
+    bin_sort.create_permute_vector();
+    bin_sort.sort(view);
 
-      permute = bin_sort.get_permute_vector();
-    }
-    else
-    {
-      auto view_mirror =
-          Kokkos::create_mirror_view_and_copy(execution_space{}, view);
+    return bin_sort.get_permute_vector();
+  }
 
-      auto result = minMax(execution_space{}, view_mirror);
+  static void sort(Kokkos::View<ValueType *, MemorySpace> view)
+  {
+    auto permute = sortAndComputePermutation(view);
+    std::ignore = permute;
+  }
 
-      using ViewType = decltype(view_mirror);
-      using CompType = Kokkos::BinOp1D<ViewType>;
+  static void applyPermutation(Kokkos::View<SizeType *, MemorySpace> permute,
+                               Kokkos::View<ValueType *, MemorySpace> in,
+                               Kokkos::View<ValueType *, MemorySpace> &out)
+  {
+    int const n = in.extent(0);
 
-      Kokkos::BinSort<ViewType, CompType, typename ViewType::device_type,
-                      SizeType>
-          bin_sort(view_mirror, CompType(n / 2, result.first, result.second),
-                   true);
-      bin_sort.create_permute_vector();
-      bin_sort.sort(view_mirror);
+    Kokkos::parallel_for(
+        "apply_permutation",
+        Kokkos::RangePolicy<execution_space>(execution_space{}, 0, n),
+        KOKKOS_LAMBDA(int const i) { out(permute(i)) = in(i); });
+  }
+};
 
-      Kokkos::deep_copy(view, view_mirror);
+template <typename ValueType, typename ExecutionSpace, typename MemorySpace,
+          typename SizeType>
+struct KokkosHelper<
+    ValueType, ExecutionSpace, MemorySpace, SizeType,
+    std::enable_if_t<!is_accessible_from<MemorySpace, ExecutionSpace>::value>>
+{
+  using value_type = ValueType;
+  using execution_space = ExecutionSpace;
+  using memory_space = MemorySpace;
 
-      Kokkos::deep_copy(permute, bin_sort.get_permute_vector());
-    }
-    return permute;
+  static auto
+  sortAndComputePermutation(Kokkos::View<ValueType *, memory_space> view)
+  {
+    int const n = view.extent(0);
+
+    auto view_mirror =
+        Kokkos::create_mirror_view_and_copy(execution_space{}, view);
+
+    using ViewType = decltype(view_mirror);
+    using CompType = Kokkos::BinOp1D<ViewType>;
+
+    Kokkos::MinMaxScalar<ValueType> result;
+    Kokkos::MinMax<ValueType> reducer(result);
+    Kokkos::parallel_reduce(
+        "min_max", Kokkos::RangePolicy<ExecutionSpace>(execution_space{}, 0, n),
+        Kokkos::Impl::min_max_functor<ViewType>(view_mirror), reducer);
+
+    Kokkos::BinSort<ViewType, CompType, typename ViewType::device_type,
+                    SizeType>
+        bin_sort(view_mirror, CompType(n / 2, result.min_val, result.max_val),
+                 true);
+    bin_sort.create_permute_vector();
+    bin_sort.sort(view_mirror);
+
+    Kokkos::deep_copy(view, view_mirror);
+
+    return Kokkos::create_mirror_view_and_copy(
+        typename memory_space::execution_space{},
+        bin_sort.get_permute_vector());
   }
 
   static void sort(Kokkos::View<ValueType *, MemorySpace> view)
@@ -165,29 +188,18 @@ struct KokkosHelper
 
     execution_space exec_space;
 
-    if (is_accessible_from<memory_space, execution_space>::value)
-    {
-      Kokkos::parallel_for(
-          "apply_permutation",
-          Kokkos::RangePolicy<execution_space>(exec_space, 0, n),
-          KOKKOS_LAMBDA(int const i) { out(permute(i)) = in(i); });
-    }
-    else
-    {
-      auto permute_mirror =
-          Kokkos::create_mirror_view_and_copy(exec_space, permute);
-      auto in_mirror = Kokkos::create_mirror_view_and_copy(exec_space, in);
-      auto out_mirror = Kokkos::create_mirror_view(exec_space, out);
+    auto permute_mirror =
+        Kokkos::create_mirror_view_and_copy(exec_space, permute);
+    auto in_mirror = Kokkos::create_mirror_view_and_copy(exec_space, in);
+    auto out_mirror = Kokkos::create_mirror_view(exec_space, out);
 
-      Kokkos::parallel_for(
-          "apply_permutation",
-          Kokkos::RangePolicy<execution_space>(exec_space, 0, n),
-          KOKKOS_LAMBDA(int const i) {
-            out_mirror(permute_mirror(i)) = in_mirror(i);
-          });
+    Kokkos::parallel_for("apply_permutation",
+                         Kokkos::RangePolicy<execution_space>(exec_space, 0, n),
+                         KOKKOS_LAMBDA(int const i) {
+                           out_mirror(permute_mirror(i)) = in_mirror(i);
+                         });
 
-      Kokkos::deep_copy(out, out_mirror);
-    }
+    Kokkos::deep_copy(out, out_mirror);
   }
 };
 
