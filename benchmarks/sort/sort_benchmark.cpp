@@ -114,7 +114,9 @@ struct KokkosHelper
     {
       auto result = minMax(execution_space{}, view);
 
-      using ViewType = decltype(view);
+      using ViewType =
+          Kokkos::View<ValueType *,
+                       Kokkos::Device<execution_space, memory_space>>;
       using CompType = Kokkos::BinOp1D<ViewType>;
 
       Kokkos::BinSort<ViewType, CompType, typename ViewType::device_type,
