@@ -198,6 +198,7 @@ struct KokkosHelper<
     auto view_mirror =
         Kokkos::create_mirror_view_and_copy(execution_space{}, view);
 
+#if 1
     using ViewType = decltype(view_mirror);
     using CompType = Kokkos::BinOp1D<ViewType>;
 
@@ -217,6 +218,13 @@ struct KokkosHelper<
     Kokkos::deep_copy(view, view_mirror);
 
     return bin_sort.get_permute_vector();
+#else
+    auto permute =
+        StdSortHelper<ValueType, SizeType>::sortAndComputePermutation(
+            view_mirror);
+    Kokkos::deep_copy(view, view_mirror);
+    return permute;
+#endif
   }
 
   static void sort(Kokkos::View<ValueType *, MemorySpace> view)
