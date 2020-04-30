@@ -116,10 +116,12 @@ struct BVHParallelTreeTraversal
         KOKKOS_LAMBDA(int predicate_index) {
           ArborX::Details::TreeTraversal<DeviceType>::query(
               bvh, Access::get(predicates, predicate_index),
-              insert_generator(predicate_index));
+              [&](int primitive_index) {
+                insert_generator(predicate_index, primitive_index);
+              });
         });
   }
-};
+}; // namespace Details
 template <typename BVH, typename PermutationView>
 struct BVHParallelTreeTraversalWithPermute
 {
@@ -146,7 +148,9 @@ struct BVHParallelTreeTraversalWithPermute
         KOKKOS_LAMBDA(int predicate_index) {
           ArborX::Details::TreeTraversal<DeviceType>::query(
               bvh, Access::get(predicates, permute(predicate_index)),
-              insert_generator(permute(predicate_index)));
+              [&](int primitive_index) {
+                insert_generator(permute(predicate_index), primitive_index);
+              });
         });
   }
 };

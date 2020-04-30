@@ -35,27 +35,23 @@ struct SecondPassTag
 
 template <typename Tag, typename Predicates, typename Callback,
           typename OutputView, typename CountView, typename OffsetView>
-struct InsertOperator;
-
-template <typename Predicates, typename Callback, typename OutputView,
-          typename CountView, typename OffsetView>
-struct InsertOperator<FirstPassTag, Predicates, Callback, OutputView, CountView,
-                      OffsetView>
+struct InsertGenerator
 {
   Predicates predicates_;
   Callback callback_;
   OutputView out_;
   CountView counts_;
   OffsetView offset_;
-  int predicate_index_;
 
   using ValueType = typename OutputView::value_type;
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
 
-  KOKKOS_FUNCTION void operator()(int primitive_index) const
+  template <typename U = Tag>
+  KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, FirstPassTag>::value>
+  operator()(int predicate_index, int primitive_index) const
   {
     int i = primitive_index;
-    int j = predicate_index_;
+    int j = predicate_index;
 
     if (offset_(j) + counts_(j) < offset_(j + 1))
       callback_(Access::get(predicates_, j), i, [&](ValueType const &value) {
@@ -66,75 +62,30 @@ struct InsertOperator<FirstPassTag, Predicates, Callback, OutputView, CountView,
         Kokkos::atomic_fetch_add(&counts_(j), 1);
       });
   }
-};
 
-template <typename Predicates, typename Callback, typename OutputView,
-          typename CountView, typename OffsetView>
-struct InsertOperator<FirstPassNoBufferOptimizationTag, Predicates, Callback,
-                      OutputView, CountView, OffsetView>
-{
-  Predicates predicates_;
-  Callback callback_;
-  OutputView out_;
-  CountView counts_;
-  OffsetView offset_;
-  int predicate_index_;
-
-  using ValueType = typename OutputView::value_type;
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-
-  KOKKOS_FUNCTION void operator()(int primitive_index) const
+  template <typename U = Tag>
+  KOKKOS_FUNCTION
+      std::enable_if_t<std::is_same<U, FirstPassNoBufferOptimizationTag>::value>
+      operator()(int predicate_index, int primitive_index) const
   {
     int i = primitive_index;
-    int j = predicate_index_;
+    int j = predicate_index;
 
     callback_(Access::get(predicates_, j), i, [&](ValueType const &) {
       Kokkos::atomic_fetch_add(&counts_(j), 1);
     });
   }
-};
 
-template <typename Predicates, typename Callback, typename OutputView,
-          typename CountView, typename OffsetView>
-struct InsertOperator<SecondPassTag, Predicates, Callback, OutputView,
-                      CountView, OffsetView>
-{
-  Predicates predicates_;
-  Callback callback_;
-  OutputView out_;
-  CountView counts_;
-  OffsetView offset_;
-  int predicate_index_;
-
-  using ValueType = typename OutputView::value_type;
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-
-  KOKKOS_FUNCTION void operator()(int primitive_index) const
+  template <typename U = Tag>
+  KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, SecondPassTag>::value>
+  operator()(int predicate_index, int primitive_index) const
   {
     int i = primitive_index;
-    int j = predicate_index_;
+    int j = predicate_index;
 
     callback_(Access::get(predicates_, j), i, [&](ValueType const &value) {
       out_(offset_(j) + Kokkos::atomic_fetch_add(&counts_(j), 1)) = value;
     });
-  }
-};
-
-template <typename Tag, typename Predicates, typename Callback,
-          typename OutputView, typename CountView, typename OffsetView>
-struct InsertGenerator
-{
-  Predicates predicates_;
-  Callback callback_;
-  OutputView out_;
-  CountView counts_;
-  OffsetView offset_;
-
-  KOKKOS_FUNCTION
-  InsertOperator<Tag, Predicates, Callback, OutputView, CountView, OffsetView>
-  operator()(int predicate_index) const
-  {
-    return {predicates_, callback_, out_, counts_, offset_, predicate_index};
   }
 };
 
