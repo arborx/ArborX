@@ -75,6 +75,53 @@ void iota(ExecutionSpace exec_space, ViewType view)
                        KOKKOS_LAMBDA(int i) { view(i) = i; });
 }
 
+#if defined(KOKKOS_ENABLE_SERIAL)
+template <typename ValueType, typename SizeType>
+struct StdSortHelper
+{
+  using value_type = ValueType;
+  using execution_space = Kokkos::Serial;
+  using memory_space = Kokkos::Serial::memory_space;
+
+  static void sort(Kokkos::View<ValueType *, memory_space> view)
+  {
+    std::sort(view.data(), view.data() + view.extent(0));
+  }
+
+  static auto computePermutation(Kokkos::View<ValueType *, memory_space> view)
+  {
+    int const n = view.extent(0);
+
+    Kokkos::View<SizeType *, memory_space> permute(
+        Kokkos::ViewAllocateWithoutInitializing("permute"), n);
+    for (int i = 0; i < n; ++i)
+      permute(i) = i;
+
+    std::sort(permute.data(), permute.data() + n,
+              [&view](size_t const &a, size_t const &b) {
+                return view(a) < view(b);
+              });
+
+    return permute;
+  }
+
+  static Kokkos::View<SizeType *, memory_space>
+  sortAndComputePermutation(Kokkos::View<ValueType *, memory_space> view)
+  {
+    int const n = view.extent(0);
+
+    auto permute = computePermutation(view);
+
+    std::vector<ValueType> view_copy(n);
+    memcpy(view_copy.data(), view.data(), n * sizeof(ValueType));
+    for (int i = 0; i < n; ++i)
+      view(permute(i)) = view_copy[i];
+
+    return permute;
+  }
+};
+#endif
+
 template <typename ValueType, typename ExecutionSpace, typename MemorySpace,
           typename SizeType, typename Enable = void>
 struct KokkosHelper;
@@ -202,53 +249,6 @@ struct KokkosHelper<
     Kokkos::deep_copy(out, out_mirror);
   }
 };
-
-#if defined(KOKKOS_ENABLE_SERIAL)
-template <typename ValueType, typename SizeType>
-struct StdSortHelper
-{
-  using value_type = ValueType;
-  using execution_space = Kokkos::Serial;
-  using memory_space = Kokkos::Serial::memory_space;
-
-  static void sort(Kokkos::View<ValueType *, memory_space> view)
-  {
-    std::sort(view.data(), view.data() + view.extent(0));
-  }
-
-  static auto computePermutation(Kokkos::View<ValueType *, memory_space> view)
-  {
-    int const n = view.extent(0);
-
-    Kokkos::View<SizeType *, memory_space> permute(
-        Kokkos::ViewAllocateWithoutInitializing("permute"), n);
-    for (int i = 0; i < n; ++i)
-      permute(i) = i;
-
-    std::sort(permute.data(), permute.data() + n,
-              [&view](size_t const &a, size_t const &b) {
-                return view(a) < view(b);
-              });
-
-    return permute;
-  }
-
-  static Kokkos::View<SizeType *, memory_space>
-  sortAndComputePermutation(Kokkos::View<ValueType *, memory_space> view)
-  {
-    int const n = view.extent(0);
-
-    auto permute = computePermutation(view);
-
-    std::vector<ValueType> view_copy(n);
-    memcpy(view_copy.data(), view.data(), n * sizeof(ValueType));
-    for (int i = 0; i < n; ++i)
-      view(permute(i)) = view_copy[i];
-
-    return permute;
-  }
-};
-#endif
 
 #if defined(KOKKOS_ENABLE_OPENMP) && defined(ENABLE_GNU_PARALLEL)
 template <typename ValueType, typename SizeType>
