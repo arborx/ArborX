@@ -509,6 +509,32 @@ void apply_permutation(benchmark::State &state)
   }
 }
 
+template <class SortAlgorithm>
+void sort_compute_and_apply_permutation(benchmark::State &state)
+{
+  using MemorySpace = typename SortAlgorithm::memory_space;
+  using ValueType = typename SortAlgorithm::value_type;
+
+  int const n = state.range(0);
+
+  // Construct random points
+  Kokkos::View<ValueType *, MemorySpace> data_orig("data", n);
+  Kokkos::View<ValueType *, MemorySpace> data("data", n);
+  Kokkos::View<ValueType *, MemorySpace> data_copy("data_copy", n);
+  buildRandomData(data_orig);
+
+  for (auto _ : state)
+  {
+    Kokkos::deep_copy(data, data_orig);
+    auto const start = std::chrono::high_resolution_clock::now();
+    auto permute = SortAlgorithm::sortAndComputePermutation(data);
+    SortAlgorithm::applyPermutation(permute, data, data_copy);
+    auto const end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    state.SetIterationTime(elapsed_seconds.count());
+  }
+}
+
 #define REGISTER_SORT_BENCHMARK(SortAlgorithm)                                 \
   BENCHMARK_TEMPLATE(sort, SortAlgorithm)                                      \
       ->Args({n})                                                              \
@@ -529,6 +555,12 @@ void apply_permutation(benchmark::State &state)
 
 #define REGISTER_APPLY_PERMUTATION_BENCHMARK(SortAlgorithm)                    \
   BENCHMARK_TEMPLATE(apply_permutation, SortAlgorithm)                         \
+      ->Args({n})                                                              \
+      ->UseManualTime()                                                        \
+      ->Unit(benchmark::kMicrosecond);
+
+#define REGISTER_SORT_COMPUTE_AND_APPLY_PERMUTATION_BENCHMARK(SortAlgorithm)   \
+  BENCHMARK_TEMPLATE(sort_compute_and_apply_permutation, SortAlgorithm)        \
       ->Args({n})                                                              \
       ->UseManualTime()                                                        \
       ->Unit(benchmark::kMicrosecond);
@@ -615,6 +647,7 @@ void register_benchmarks(int const n)
   REGISTER_SORT_AND_COMPUTE_PERMUTATION_BENCHMARK(StdSort_Serial);
   REGISTER_SORT_BENCHMARK(Kokkos_Serial);
   REGISTER_SORT_BENCHMARK(StdSort_Serial);
+  REGISTER_SORT_COMPUTE_AND_APPLY_PERMUTATION_BENCHMARK(Kokkos_Serial);
 #endif
 #if defined(KOKKOS_ENABLE_OPENMP)
   REGISTER_APPLY_PERMUTATION_BENCHMARK(Kokkos_OpenMP);
@@ -623,6 +656,7 @@ void register_benchmarks(int const n)
   REGISTER_SORT_AND_COMPUTE_PERMUTATION_BENCHMARK(PSS_OpenMP);
   REGISTER_SORT_BENCHMARK(Kokkos_OpenMP);
   REGISTER_SORT_BENCHMARK(PSS_OpenMP);
+  REGISTER_SORT_COMPUTE_AND_APPLY_PERMUTATION_BENCHMARK(Kokkos_OpenMP);
 #ifdef ENABLE_GNU_PARALLEL
   REGISTER_COMPUTE_PERMUTATION_BENCHMARK(GnuParallel_OpenMP);
   REGISTER_SORT_AND_COMPUTE_PERMUTATION_BENCHMARK(GnuParallel_OpenMP);
@@ -638,10 +672,13 @@ void register_benchmarks(int const n)
   REGISTER_SORT_BENCHMARK(Kokkos_Cuda);
   REGISTER_SORT_BENCHMARK(Kokkos_Cuda_Host);
   REGISTER_SORT_BENCHMARK(Thrust_Cuda);
+  REGISTER_SORT_COMPUTE_AND_APPLY_PERMUTATION_BENCHMARK(Kokkos_Cuda);
+  REGISTER_SORT_COMPUTE_AND_APPLY_PERMUTATION_BENCHMARK(Kokkos_Cuda_Host);
 #if defined(KOKKOS_ENABLE_SERIAL)
   REGISTER_APPLY_PERMUTATION_BENCHMARK(Kokkos_Cuda_Serial);
   REGISTER_SORT_AND_COMPUTE_PERMUTATION_BENCHMARK(Kokkos_Cuda_Serial);
   REGISTER_SORT_BENCHMARK(Kokkos_Cuda_Serial);
+  REGISTER_SORT_COMPUTE_AND_APPLY_PERMUTATION_BENCHMARK(Kokkos_Cuda_Serial);
 #endif
 #endif
 }
