@@ -595,7 +595,11 @@ void register_benchmarks(int const n)
   using Cuda = Kokkos::Cuda;
   using CudaSpace = Kokkos::CudaSpace;
   using Kokkos_Cuda = KokkosHelper<ValueType, Cuda, CudaSpace, SizeType>;
-  using Kokkos_Host = KokkosHelper<ValueType, Host, CudaSpace, SizeType>;
+  using Kokkos_Cuda_Host = KokkosHelper<ValueType, Host, CudaSpace, SizeType>;
+#if defined(KOKKOS_ENABLE_SERIAL)
+  using Kokkos_Cuda_Serial =
+      KokkosHelper<ValueType, Serial, CudaSpace, SizeType>;
+#endif
   using Thrust_Cuda = ThrustHelper<ValueType, SizeType>;
 #endif
 
@@ -622,13 +626,18 @@ void register_benchmarks(int const n)
 #endif
 #if defined(KOKKOS_ENABLE_CUDA)
   REGISTER_APPLY_PERMUTATION_BENCHMARK(Kokkos_Cuda);
-  REGISTER_APPLY_PERMUTATION_BENCHMARK(Kokkos_Host);
+  REGISTER_APPLY_PERMUTATION_BENCHMARK(Kokkos_Cuda_Host);
   REGISTER_SORT_AND_COMPUTE_PERMUTATION_BENCHMARK(Kokkos_Cuda);
-  REGISTER_SORT_AND_COMPUTE_PERMUTATION_BENCHMARK(Kokkos_Host);
+  REGISTER_SORT_AND_COMPUTE_PERMUTATION_BENCHMARK(Kokkos_Cuda_Host);
   REGISTER_SORT_AND_COMPUTE_PERMUTATION_BENCHMARK(Thrust_Cuda);
   REGISTER_SORT_BENCHMARK(Kokkos_Cuda);
-  REGISTER_SORT_BENCHMARK(Kokkos_Host);
+  REGISTER_SORT_BENCHMARK(Kokkos_Cuda_Host);
   REGISTER_SORT_BENCHMARK(Thrust_Cuda);
+#if defined(KOKKOS_ENABLE_SERIAL)
+  REGISTER_APPLY_PERMUTATION_BENCHMARK(Kokkos_Cuda_Serial);
+  REGISTER_SORT_AND_COMPUTE_PERMUTATION_BENCHMARK(Kokkos_Cuda_Serial);
+  REGISTER_SORT_BENCHMARK(Kokkos_Cuda_Serial);
+#endif
 #endif
 }
 
