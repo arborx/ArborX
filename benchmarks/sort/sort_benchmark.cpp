@@ -216,9 +216,7 @@ struct KokkosHelper<
 
     Kokkos::deep_copy(view, view_mirror);
 
-    return Kokkos::create_mirror_view_and_copy(
-        typename memory_space::execution_space{},
-        bin_sort.get_permute_vector());
+    return bin_sort.get_permute_vector();
   }
 
   static void sort(Kokkos::View<ValueType *, MemorySpace> view)
@@ -227,24 +225,23 @@ struct KokkosHelper<
     std::ignore = permute;
   }
 
-  static void applyPermutation(Kokkos::View<SizeType *, MemorySpace> permute,
-                               Kokkos::View<ValueType *, MemorySpace> in,
-                               Kokkos::View<ValueType *, MemorySpace> &out)
+  template <typename... PermuteViewProperties>
+  static void
+  applyPermutation(Kokkos::View<SizeType *, PermuteViewProperties...> permute,
+                   Kokkos::View<ValueType *, MemorySpace> in,
+                   Kokkos::View<ValueType *, MemorySpace> &out)
   {
     int const n = in.extent(0);
 
     execution_space exec_space;
 
-    auto permute_mirror =
-        Kokkos::create_mirror_view_and_copy(exec_space, permute);
     auto in_mirror = Kokkos::create_mirror_view_and_copy(exec_space, in);
     auto out_mirror = Kokkos::create_mirror_view(exec_space, out);
 
-    Kokkos::parallel_for("apply_permutation",
-                         Kokkos::RangePolicy<execution_space>(exec_space, 0, n),
-                         KOKKOS_LAMBDA(int const i) {
-                           out_mirror(permute_mirror(i)) = in_mirror(i);
-                         });
+    Kokkos::parallel_for(
+        "apply_permutation",
+        Kokkos::RangePolicy<execution_space>(exec_space, 0, n),
+        KOKKOS_LAMBDA(int const i) { out_mirror(permute(i)) = in_mirror(i); });
 
     Kokkos::deep_copy(out, out_mirror);
   }
