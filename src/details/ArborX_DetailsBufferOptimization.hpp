@@ -129,6 +129,39 @@ struct CallbackGenerator
   }
 };
 
+template <typename Permute, typename View>
+struct PermutedView
+{
+  Permute permute_;
+  View &orig_;
+  KOKKOS_FUNCTION decltype(auto) operator()(int i) const
+  {
+    return orig_(permute_(i));
+  }
+  operator View &() { return orig_; }
+};
+
+template <typename Permute, typename View>
+PermutedView<std::decay_t<Permute>, std::decay_t<View>>
+makePermutedView(Permute &&permute, View &&view)
+{
+  // would need to preallocate offset to check that
+  // ARBORX_ASSERT(permute.size() == view.size());
+  return {std::forward<Permute>(permute), std::forward<View>(view)};
+}
+
+template <typename View, typename = std::enable_if_t<Kokkos::is_view<View>{}>>
+View &viewCast(View &v)
+{
+  return v;
+}
+
+template <typename Permute, typename View>
+View &viewCast(PermutedView<Permute, View> &v)
+{
+  return v;
+}
+
 template <typename ExecutionSpace, typename Search, typename Predicates,
           typename Callback, typename OutputView, typename OffsetView>
 void queryImpl(ExecutionSpace const &space, Search const &search,
@@ -143,15 +176,15 @@ void queryImpl(ExecutionSpace const &space, Search const &search,
   bool const throw_if_buffer_optimization_fails = (buffer_size < 0);
   buffer_size = std::abs(buffer_size);
 
-  reallocWithoutInitializing(offset, n_queries + 1);
+  reallocWithoutInitializing(viewCast(offset), n_queries + 1);
 
-  using CountView = OffsetView;
+  using CountView = std::remove_reference_t<decltype(viewCast(offset))>;
   CountView counts(Kokkos::view_alloc("counts", space), n_queries);
 
   if (buffer_size > 0)
   {
-    Kokkos::deep_copy(space, offset, buffer_size); // FIXME
-    exclusivePrefixSum(space, offset);             // FIXME
+    Kokkos::deep_copy(space, viewCast(offset), buffer_size);
+    exclusivePrefixSum(space, viewCast(offset));
 
     reallocWithoutInitializing(out, n_queries * buffer_size);
     // NOTE I considered filling with invalid indices but it is unecessary work
@@ -175,14 +208,20 @@ void queryImpl(ExecutionSpace const &space, Search const &search,
   auto const max_results_per_query =
       (buffer_size > 0)
           ? max(space, counts)
-          : std::numeric_limits<typename std::remove_reference<decltype(
-                offset)>::type::value_type>::max();
+          : std::numeric_limits<typename CountView::value_type>::max();
 
-  Kokkos::deep_copy(
-      space, subview(offset, Kokkos::make_pair(0, (int)n_queries)), counts);
-  exclusivePrefixSum(space, offset);
+  // can't use deep_copy() because offset may be a permuted view
+  // Kokkos::deep_copy(
+  //    space,
+  //    Kokkos::subview(viewCast(offset), Kokkos::make_pair(0, (int)n_queries)),
+  //    counts);
 
-  int const n_results = lastElement(offset);
+  Kokkos::parallel_for(ARBORX_MARK_REGION("copy_counts"),
+                       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+                       KOKKOS_LAMBDA(int i) { offset(i) = counts(i); });
+  exclusivePrefixSum(space, viewCast(offset));
+
+  int const n_results = lastElement(viewCast(offset));
 
   // Exit early if either no results were found for any of the queries, or
   // nothing was inserted inside a callback for found results. This check
@@ -211,13 +250,14 @@ void queryImpl(ExecutionSpace const &space, Search const &search,
   {
     OutputView tmp_out(Kokkos::ViewAllocateWithoutInitializing(out.label()),
                        n_results);
+    auto offset_ = viewCast(offset);
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("copy_valid_values"),
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int q) {
-          for (int i = 0; i < offset(q + 1) - offset(q); ++i)
+          for (int i = 0; i < offset_(q + 1) - offset_(q); ++i)
           {
-            tmp_out(offset(q) + i) = out(q * buffer_size + i);
+            tmp_out(offset_(q) + i) = out(q * buffer_size + i);
           }
         });
     out = tmp_out;

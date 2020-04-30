@@ -208,15 +208,22 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
     auto permuted_predicates =
         Details::BatchedQueries<DeviceType>::applyPermutation(space, permute,
                                                               predicates);
+    Kokkos::resize(permute, permute.size() + 1);
+    Kokkos::deep_copy(Kokkos::subview(permute, permute.size() - 1),
+                      permute.size() - 1);
+    // using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+    // auto const n_queries = Access::size(predicates);
+    // reallocWithoutInitializing(offset, n_queries + 1);
+    auto permuted_offset = makePermutedView(permute, offset);
     queryImpl(space, WrappedBVH<BVH>{bvh}, permuted_predicates, callback, out,
-              offset, policy._buffer_size);
-
-    std::tie(offset, out) =
-        Details::BatchedQueries<DeviceType>::reversePermutation(space, permute,
-                                                                offset, out);
+              permuted_offset, policy._buffer_size);
   }
   else
   {
+    // using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+    // auto const n_queries = Access::size(predicates);
+    // reallocWithoutInitializing(offset, n_queries + 1);
+
     queryImpl(space, WrappedBVH<BVH>{bvh}, predicates, callback, out, offset,
               policy._buffer_size);
   }
