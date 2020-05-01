@@ -287,12 +287,15 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 }
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
-          typename Indices, typename Offset>
-inline void
-queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
-              Predicates const &predicates, Indices &indices, Offset &offset,
-              Experimental::TraversalPolicy const &policy =
-                  Experimental::TraversalPolicy())
+          typename IndicesViewDataType, typename... IndicesViewProperties,
+          typename OffsetViewDataType, typename... OffsetViewProperties>
+inline void queryDispatch(
+    SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
+    Predicates const &predicates,
+    Kokkos::View<IndicesViewDataType, IndicesViewProperties...> &indices,
+    Kokkos::View<OffsetViewDataType, OffsetViewProperties...> &offset,
+    Experimental::TraversalPolicy const &policy =
+        Experimental::TraversalPolicy())
 {
   queryDispatch(SpatialPredicateTag{}, bvh, space, predicates,
                 CallbackDefaultSpatialPredicate{}, indices, offset, policy);
