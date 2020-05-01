@@ -481,24 +481,30 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 }
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
-          typename Indices, typename Offset>
-inline void
-queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
-              Predicates const &predicates, Indices &indices, Offset &offset,
-              Experimental::TraversalPolicy const &policy =
-                  Experimental::TraversalPolicy())
+          typename IndicesViewDataType, typename... IndicesViewProperties,
+          typename OffsetViewDataType, typename... OffsetViewProperties>
+inline void queryDispatch(
+    NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
+    Predicates const &predicates,
+    Kokkos::View<IndicesViewDataType, IndicesViewProperties...> &indices,
+    Kokkos::View<OffsetViewDataType, OffsetViewProperties...> &offset,
+    Experimental::TraversalPolicy const &policy =
+        Experimental::TraversalPolicy())
 {
   queryDispatch(NearestPredicateTag{}, bvh, space, predicates,
                 CallbackDefaultNearestPredicate{}, indices, offset, policy);
 }
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
-          typename Indices, typename Offset, typename DistanceDataType,
-          typename... DistanceViewProperties>
+          typename IndicesViewDataType, typename... IndicesViewProperties,
+          typename OffsetViewDataType, typename... OffsetViewProperties,
+          typename DistanceViewDataType, typename... DistanceViewProperties>
 inline void queryDispatch(
     NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
-    Predicates const &predicates, Indices &indices, Offset &offset,
-    Kokkos::View<DistanceDataType, DistanceViewProperties...> &distances,
+    Predicates const &predicates,
+    Kokkos::View<IndicesViewDataType, IndicesViewProperties...> &indices,
+    Kokkos::View<OffsetViewDataType, OffsetViewProperties...> &offset,
+    Kokkos::View<DistanceViewDataType, DistanceViewProperties...> &distances,
     Experimental::TraversalPolicy const &policy =
         Experimental::TraversalPolicy())
 {
