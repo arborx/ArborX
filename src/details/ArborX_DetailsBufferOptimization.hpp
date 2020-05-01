@@ -133,7 +133,7 @@ template <typename Permute, typename View>
 struct PermutedView
 {
   Permute permute_;
-  View &orig_;
+  View orig_;
   KOKKOS_FUNCTION decltype(auto) operator()(int i) const
   {
     return orig_(permute_(i));
@@ -142,12 +142,12 @@ struct PermutedView
 };
 
 template <typename Permute, typename View>
-PermutedView<std::decay_t<Permute>, std::decay_t<View>>
-makePermutedView(Permute &&permute, View &&view)
+PermutedView<Permute, View> makePermutedView(Permute const &permute,
+                                             View const &view)
 {
   // would need to preallocate offset to check that
   // ARBORX_ASSERT(permute.size() == view.size());
-  return {std::forward<Permute>(permute), std::forward<View>(view)};
+  return {permute, view};
 }
 
 template <typename View, typename = std::enable_if_t<Kokkos::is_view<View>{}>>
@@ -176,7 +176,8 @@ void queryImpl(ExecutionSpace const &space, Search const &search,
   bool const throw_if_buffer_optimization_fails = (buffer_size < 0);
   buffer_size = std::abs(buffer_size);
 
-  reallocWithoutInitializing(viewCast(offset), n_queries + 1);
+  ARBORX_ASSERT(viewCast(offset).size() == n_queries + 1);
+  // reallocWithoutInitializing(viewCast(offset), n_queries + 1);
 
   using CountView = std::remove_reference_t<decltype(viewCast(offset))>;
   CountView counts(Kokkos::view_alloc("counts", space), n_queries);

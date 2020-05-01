@@ -55,6 +55,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::View<Predicate *, DeviceType> predicates(
       Kokkos::view_alloc("predicates", Kokkos::WithoutInitializing), n);
 
+  ArborX::reallocWithoutInitializing(offset, n + 1);
   ArborX::Details::queryImpl(ExecutionSpace{}, Test1{}, predicates,
                              ArborX::Details::CallbackDefaultSpatialPredicate{},
                              indices, offset, 0);
