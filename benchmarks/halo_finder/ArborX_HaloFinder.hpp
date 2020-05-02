@@ -19,11 +19,6 @@
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_View.hpp>
 
-#include <set>
-#include <stack>
-
-#include "ECL.hpp"
-
 namespace ArborX
 {
 
@@ -31,45 +26,15 @@ namespace HaloFinder
 {
 
 template <typename ExecutionSpace, typename... P>
-bool verifyCC(ExecutionSpace exec_space, Kokkos::View<int *, P...> offset,
-              Kokkos::View<int *, P...> indices, Kokkos::View<int *, P...> ccs);
-
-template <typename ExecutionSpace, typename... P>
-void findHalos(ExecutionSpace exec_space, Kokkos::View<int *, P...> offset,
-               Kokkos::View<int *, P...> indices,
+void findHalos(ExecutionSpace exec_space, Kokkos::View<int *, P...> ccs,
                Kokkos::View<int *, P...> &halos_offset,
-               Kokkos::View<int *, P...> &halos_indices, int min_size = 2,
-               bool verify = false)
+               Kokkos::View<int *, P...> &halos_indices, int min_size = 2)
 {
   using MemorySpace = typename Kokkos::View<int *, P...>::memory_space;
-#if defined(KOKKOS_ENABLE_CUDA)
-  static_assert(std::is_same<ExecutionSpace, Kokkos::Cuda>::value,
-                "HaloFinder is only available with CUDA execution "
-                "spaceimplemented only for CUDA");
-#else
-  static_assert(false,
-                "HaloFinder is not available when Kokkos CUDA is not enabled");
-#endif
+
+  auto const num_nodes = ccs.extent_int(0);
 
   Kokkos::Profiling::pushRegion("ArborX:HaloFinder");
-
-  int num_nodes = offset.size() - 1;
-  int num_edges = indices.size();
-
-  Kokkos::Profiling::pushRegion("ArborX:HaloFinder:ECL");
-
-  Kokkos::View<int *, MemorySpace> ccs(
-      Kokkos::ViewAllocateWithoutInitializing("ccs"), num_nodes);
-  computeCC(num_nodes, num_edges, offset.data(), indices.data(), ccs.data());
-
-  Kokkos::Profiling::popRegion();
-
-  if (verify)
-  {
-    Kokkos::Profiling::pushRegion("ArborX:HaloFinder:verify_ccs");
-    ARBORX_ASSERT(verifyCC(exec_space, offset, indices, ccs));
-    Kokkos::Profiling::popRegion();
-  }
 
   Kokkos::Profiling::pushRegion("ArborX:HaloFinder:sort_and_filter_ccs");
 
@@ -126,105 +91,6 @@ void findHalos(ExecutionSpace exec_space, Kokkos::View<int *, P...> offset,
   Kokkos::Profiling::popRegion();
 
   Kokkos::Profiling::popRegion();
-}
-
-template <typename ExecutionSpace, typename... P>
-bool verifyCC(ExecutionSpace exec_space, Kokkos::View<int *, P...> offset,
-              Kokkos::View<int *, P...> indices, Kokkos::View<int *, P...> ccs)
-{
-  int num_nodes = ccs.size();
-  ARBORX_ASSERT((int)offset.size() == num_nodes + 1);
-  ARBORX_ASSERT(ArborX::lastElement(offset) == (int)indices.size());
-
-  // Check that there are no negative cc indices
-  int num_incorrect = 0;
-  Kokkos::parallel_reduce(
-      ARBORX_MARK_REGION("verify_negative_indices"),
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_nodes),
-      KOKKOS_LAMBDA(int i, int &update) {
-        if (ccs(i) < 0)
-        {
-          printf("Negative cc index: %d\n", i);
-          update++;
-        }
-      },
-      num_incorrect);
-  if (num_incorrect)
-    return false;
-
-  // Check that connected vertices have the same cc index
-  num_incorrect = 0;
-  Kokkos::parallel_reduce(
-      ARBORX_MARK_REGION("verify_connected_indices"),
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_nodes),
-      KOKKOS_LAMBDA(int i, int &update) {
-        for (int j = offset(i); j < offset(i + 1); ++j)
-        {
-          if (ccs(i) != ccs(indices(j)))
-          {
-            printf("Non-matching cc indices: %d [%d] -> %d [%d]\n", i, ccs(i),
-                   indices(j), ccs(indices(j)));
-            update++;
-          }
-        }
-      },
-      num_incorrect);
-  if (num_incorrect)
-    return false;
-
-  // Check that non-connected vertices have different cc indices
-  auto ccs_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ccs);
-  auto offset_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
-  auto indices_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
-
-  std::set<int> unique_cc_indices;
-  for (int i = 0; i < num_nodes; i++)
-    unique_cc_indices.insert(ccs_host(i));
-  auto num_unique_cc_indices = unique_cc_indices.size();
-
-  unsigned int num_ccs = 0;
-  std::set<int> cc_sets;
-  for (int i = 0; i < num_nodes; i++)
-  {
-    if (ccs_host(i) >= 0)
-    {
-      auto id = ccs_host(i);
-      cc_sets.insert(id);
-      num_ccs++;
-
-      // DFS search
-      std::stack<int> stack;
-      stack.push(i);
-      while (!stack.empty())
-      {
-        auto k = stack.top();
-        stack.pop();
-        if (ccs_host(k) >= 0)
-        {
-          ARBORX_ASSERT(ccs_host(k) == id);
-          ccs_host(k) = -1;
-          for (int j = offset_host(k); j < offset_host(k + 1); j++)
-            stack.push(indices_host(j));
-        }
-      }
-    }
-  }
-  if (cc_sets.size() != num_unique_cc_indices)
-  {
-    // FIXME: Not sure how we can get here, but it was in the original verify
-    // check in ECL
-    std::cout << "Number of components does not match" << std::endl;
-    return false;
-  }
-  if (num_ccs != num_unique_cc_indices)
-  {
-    std::cout << "Component IDs are not unique" << std::endl;
-    return false;
-  }
-
-  return true;
 }
 
 } // namespace HaloFinder
