@@ -60,6 +60,7 @@ struct CCSCallback
   KOKKOS_INLINE_FUNCTION
   int representative(int const i) const
   {
+    // ##### ECL license (see LICENSE.ECL) #####
     int curr = stat_(i);
     if (curr != i)
     {
@@ -87,36 +88,39 @@ struct CCSCallback
       if (Kokkos::atomic_compare_exchange(&stat_(i), i, j) == i)
         return;
 
-      int vstat = representative(i);
-      int ostat = representative(j);
-
-      bool repeat;
-      do
       {
-        repeat = false;
-        if (vstat != ostat)
+        // ##### ECL license (see LICENSE.ECL) #####
+        int vstat = representative(i);
+        int ostat = representative(j);
+
+        bool repeat;
+        do
         {
-          int ret;
-          if (vstat < ostat)
+          repeat = false;
+          if (vstat != ostat)
           {
-            if ((ret = Kokkos::atomic_compare_exchange(&stat_(ostat), ostat,
-                                                       vstat)) != ostat)
+            int ret;
+            if (vstat < ostat)
             {
-              ostat = ret;
-              repeat = true;
+              if ((ret = Kokkos::atomic_compare_exchange(&stat_(ostat), ostat,
+                                                         vstat)) != ostat)
+              {
+                ostat = ret;
+                repeat = true;
+              }
+            }
+            else
+            {
+              if ((ret = Kokkos::atomic_compare_exchange(&stat_(vstat), vstat,
+                                                         ostat)) != vstat)
+              {
+                vstat = ret;
+                repeat = true;
+              }
             }
           }
-          else
-          {
-            if ((ret = Kokkos::atomic_compare_exchange(&stat_(vstat), vstat,
-                                                       ostat)) != vstat)
-            {
-              vstat = ret;
-              repeat = true;
-            }
-          }
-        }
-      } while (repeat);
+        } while (repeat);
+      }
     }
   }
 };
@@ -181,6 +185,7 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
   Kokkos::parallel_for(ARBORX_MARK_REGION("flatten_stat"),
                        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
                        KOKKOS_LAMBDA(int const i) {
+                         // ##### ECL license (see LICENSE.ECL) #####
                          int next, vstat = stat(i);
                          int const old = vstat;
                          while (vstat > (next = stat(vstat)))
