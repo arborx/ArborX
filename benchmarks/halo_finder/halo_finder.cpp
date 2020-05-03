@@ -10,14 +10,12 @@
  ****************************************************************************/
 
 #include <ArborX_HaloFinder.hpp>
-#include <ArborX_LinearBVH.hpp>
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
 
 #include <boost/program_options.hpp>
 
-#include <chrono>
 #include <fstream>
 
 std::vector<ArborX::Point> parsePoints(std::string const &filename,
@@ -89,106 +87,6 @@ auto vec2view(std::vector<T> const &in, std::string const &label = "")
   return out;
 }
 
-template <typename View>
-struct Wrapped
-{
-  View _M_view;
-  double _r;
-};
-
-template <typename View>
-auto wrap(View v, double r)
-{
-  return Wrapped<View>{v, r};
-}
-
-namespace ArborX
-{
-namespace Traits
-{
-template <typename View>
-struct Access<Wrapped<View>, PredicatesTag>
-{
-  using memory_space = typename View::memory_space;
-  static size_t size(Wrapped<View> const &w) { return w._M_view.extent(0); }
-  static KOKKOS_FUNCTION auto get(Wrapped<View> const &w, size_t i)
-  {
-    return attach(intersects(Sphere{w._M_view(i), w._r}), (int)i);
-  }
-};
-} // namespace Traits
-} // namespace ArborX
-
-template <typename MemorySpace>
-struct HaloCallback
-{
-  Kokkos::View<int *, MemorySpace> stat_;
-
-  KOKKOS_INLINE_FUNCTION
-  int representative(int const i) const
-  {
-    int curr = stat_(i);
-    if (curr != i)
-    {
-      int next, prev = i;
-      while (curr > (next = stat_(curr)))
-      {
-        stat_(prev) = next;
-        prev = curr;
-        curr = next;
-      }
-    }
-    return curr;
-  }
-
-  using tag = ArborX::Details::InlineCallbackTag;
-  template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &query, int j,
-                                  Insert const &) const
-  {
-    int const i = ArborX::getData(query);
-
-    // Only process edge in one direction
-    if (i > j)
-    {
-      // Initialize to the first neighbor that's smaller
-      if (Kokkos::atomic_compare_exchange(&stat_(i), i, j) == i)
-        return;
-
-      int vstat = representative(i);
-      int ostat = representative(j);
-
-      bool repeat;
-      do
-      {
-        repeat = false;
-        if (vstat != ostat)
-        {
-          int ret;
-          if (vstat < ostat)
-          {
-            if ((ret = Kokkos::atomic_compare_exchange(&stat_(ostat), ostat,
-                                                       vstat)) != ostat)
-            {
-              ostat = ret;
-              repeat = true;
-            }
-          }
-          else
-          {
-            if ((ret = Kokkos::atomic_compare_exchange(&stat_(vstat), vstat,
-                                                       ostat)) != vstat)
-            {
-              vstat = ret;
-              repeat = true;
-            }
-          }
-        }
-      } while (repeat);
-    }
-  }
-};
-
 int main(int argc, char *argv[])
 {
   using ExecutionSpace = Kokkos::Cuda;
@@ -203,7 +101,7 @@ int main(int argc, char *argv[])
 
   std::string filename;
   bool binary;
-  double linking_length;
+  float linking_length;
   int min_size;
 
   bpo::options_description desc("Allowed options");
@@ -212,7 +110,7 @@ int main(int argc, char *argv[])
         ( "help", "help message" )
         ( "filename,f", bpo::value<std::string>(&filename), "filename containing data" )
         ( "binary,b", bpo::bool_switch(&binary)->default_value(false), "binary file indicator")
-        ( "linking-length,l", bpo::value<double>(&linking_length), "linking length (radius)" )
+        ( "linking-length,l", bpo::value<float>(&linking_length), "linking length (radius)" )
         ( "min-size,s", bpo::value<int>(&min_size)->default_value(2), "minimum halo size")
         ;
   // clang-format on
@@ -229,60 +127,13 @@ int main(int argc, char *argv[])
   // read in data
   auto const points = parsePoints(filename, binary);
   auto const primitives = vec2view<MemorySpace>(points, "primitives");
-  auto const predicates =
-      wrap(vec2view<MemorySpace>(points, "predicates"), linking_length);
-
-  int const n = points.size();
-
-  using clock = std::chrono::high_resolution_clock;
-
-  clock::time_point start_total, start;
-  std::chrono::duration<double> elapsed_construction, elapsed_query,
-      elapsed_halos, elapsed_total;
 
   ExecutionSpace exec_space;
 
-  start_total = clock::now();
-
-  // build the tree
-  start = clock::now();
-  ArborX::BVH<MemorySpace> bvh(exec_space, primitives);
-  elapsed_construction = clock::now() - start;
-
-  // perform queries
-  start = clock::now();
-  Kokkos::View<int *, MemorySpace> indices("indices", 0);
-  Kokkos::View<int *, MemorySpace> offset("offset", 0);
-  Kokkos::View<int *, MemorySpace> stat(
-      Kokkos::ViewAllocateWithoutInitializing("stat"), n);
-  ArborX::iota(exec_space, stat);
-  // indices and offfset are not going to be used, as we never call insert()
-  bvh.query(exec_space, predicates, HaloCallback<MemorySpace>{stat}, indices,
-            offset);
-  // flatten stat
-  Kokkos::parallel_for("flatten",
-                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-                       KOKKOS_LAMBDA(int const i) {
-                         int next, vstat = stat(i);
-                         int const old = vstat;
-                         while (vstat > (next = stat(vstat)))
-                         {
-                           vstat = next;
-                         }
-                         if (vstat != old)
-                           stat(i) = vstat;
-                       });
-  elapsed_query = clock::now() - start;
-
-  // find halos
-  start = clock::now();
-  Kokkos::View<int *, MemorySpace> halos_offset("halos_offset", 0);
   Kokkos::View<int *, MemorySpace> halos_indices("halos_indices", 0);
-  ArborX::HaloFinder::findHalos(exec_space, stat, halos_offset, halos_indices,
-                                min_size);
-  elapsed_halos = clock::now() - start;
-
-  elapsed_total = clock::now() - start_total;
+  Kokkos::View<int *, MemorySpace> halos_offset("halos_offset", 0);
+  ArborX::HaloFinder::findHalos(exec_space, primitives, halos_indices,
+                                halos_offset, linking_length, min_size);
 
 #if 0
   int num_halos = halos_offset.size() - 1;
@@ -336,11 +187,6 @@ int main(int argc, char *argv[])
     }
   }
 #endif
-
-  printf("total time      : %10.3f\n", elapsed_total.count());
-  printf("-> construction : %10.3f\n", elapsed_construction.count());
-  printf("-> query+ccs    : %10.3f\n", elapsed_query.count());
-  printf("-> halos        : %10.3f\n", elapsed_halos.count());
 
   return EXIT_SUCCESS;
 }
