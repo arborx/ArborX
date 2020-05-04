@@ -287,15 +287,12 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 }
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
-          typename IndicesViewDataType, typename... IndicesViewProperties,
-          typename OffsetViewDataType, typename... OffsetViewProperties>
-inline void queryDispatch(
-    SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
-    Predicates const &predicates,
-    Kokkos::View<IndicesViewDataType, IndicesViewProperties...> &indices,
-    Kokkos::View<OffsetViewDataType, OffsetViewProperties...> &offset,
-    Experimental::TraversalPolicy const &policy =
-        Experimental::TraversalPolicy())
+          typename Indices, typename Offset>
+inline std::enable_if_t<Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{}>
+queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
+              Predicates const &predicates, Indices &indices, Offset &offset,
+              Experimental::TraversalPolicy const &policy =
+                  Experimental::TraversalPolicy())
 {
   queryDispatch(SpatialPredicateTag{}, bvh, space, predicates,
                 CallbackDefaultSpatialPredicate{}, indices, offset, policy);
@@ -484,32 +481,27 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 }
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
-          typename IndicesViewDataType, typename... IndicesViewProperties,
-          typename OffsetViewDataType, typename... OffsetViewProperties>
-inline void queryDispatch(
-    NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
-    Predicates const &predicates,
-    Kokkos::View<IndicesViewDataType, IndicesViewProperties...> &indices,
-    Kokkos::View<OffsetViewDataType, OffsetViewProperties...> &offset,
-    Experimental::TraversalPolicy const &policy =
-        Experimental::TraversalPolicy())
+          typename Indices, typename Offset>
+inline std::enable_if_t<Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{}>
+queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
+              Predicates const &predicates, Indices &indices, Offset &offset,
+              Experimental::TraversalPolicy const &policy =
+                  Experimental::TraversalPolicy())
 {
   queryDispatch(NearestPredicateTag{}, bvh, space, predicates,
                 CallbackDefaultNearestPredicate{}, indices, offset, policy);
 }
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
-          typename IndicesViewDataType, typename... IndicesViewProperties,
-          typename OffsetViewDataType, typename... OffsetViewProperties,
-          typename DistanceViewDataType, typename... DistanceViewProperties>
-inline void queryDispatch(
-    NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
-    Predicates const &predicates,
-    Kokkos::View<IndicesViewDataType, IndicesViewProperties...> &indices,
-    Kokkos::View<OffsetViewDataType, OffsetViewProperties...> &offset,
-    Kokkos::View<DistanceViewDataType, DistanceViewProperties...> &distances,
-    Experimental::TraversalPolicy const &policy =
-        Experimental::TraversalPolicy())
+          typename Indices, typename Offset, typename Distances>
+inline std::enable_if_t<Kokkos::is_view<Indices>{} &&
+                        Kokkos::is_view<Offset>{} &&
+                        Kokkos::is_view<Distances>{}>
+queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
+              Predicates const &predicates, Indices &indices, Offset &offset,
+              Distances &distances,
+              Experimental::TraversalPolicy const &policy =
+                  Experimental::TraversalPolicy())
 {
   using MemorySpace = typename BVH::memory_space;
   Kokkos::View<Kokkos::pair<int, float> *, MemorySpace> out(
