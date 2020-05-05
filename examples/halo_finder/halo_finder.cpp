@@ -89,8 +89,16 @@ auto vec2view(std::vector<T> const &in, std::string const &label = "")
 
 int main(int argc, char *argv[])
 {
+#if defined(KOKKOS_ENABLE_CUDA)
   using ExecutionSpace = Kokkos::Cuda;
-  using MemorySpace = Kokkos::CudaSpace;
+#elif defined(KOKKOS_ENABLE_OPENMP)
+  using ExecutionSpace = Kokkos::OpenMP;
+#elif defined(KOKKOS_ENABLE_SERIAL)
+  using ExecutionSpace = Kokkos::Serial;
+#else
+#error "No available Kokkos backend"
+#endif
+  using MemorySpace = typename ExecutionSpace::memory_space;
 
   Kokkos::ScopeGuard guard(argc, argv);
 

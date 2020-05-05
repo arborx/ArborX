@@ -1,12 +1,9 @@
-if(Kokkos_DEVICES MATCHES "CUDA")
-  set(ArborX_TARGET ArborX)
+set(ArborX_TARGET ArborX)
 
+add_executable(ArborX_HaloFinder.exe halo_finder.cpp)
+target_include_directories(ArborX_HaloFinder.exe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(ArborX_HaloFinder.exe ${ArborX_TARGET} Boost::program_options)
 
-  add_executable(ArborX_HaloFinder.exe halo_finder.cpp)
-  target_include_directories(ArborX_HaloFinder.exe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-  target_link_libraries(ArborX_HaloFinder.exe ${ArborX_TARGET} Boost::program_options)
-
-  set(input_file "input.txt")
-  add_test(NAME ArborX_HaloFinder COMMAND ./ArborX_HaloFinder.exe --filename=${input_file} --linking-length=1.4)
-  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${input_file} ${CMAKE_CURRENT_BINARY_DIR}/${input_file} COPYONLY)
-endif()
+set(input_file "input.txt")
+add_test(NAME ArborX_HaloFinder COMMAND ./ArborX_HaloFinder.exe --filename=${input_file} --linking-length=1.4)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${input_file} ${CMAKE_CURRENT_BINARY_DIR}/${input_file} COPYONLY)
