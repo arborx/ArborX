@@ -220,7 +220,7 @@ template <typename ExecutionSpace, typename Primitives,
           typename HalosIndicesView, typename HalosOffsetView>
 void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
                HalosIndicesView &halos_indices, HalosOffsetView &halos_offset,
-               float linking_length, int min_size = 2)
+               float linking_length, int min_size = 2, bool verbose = false)
 {
   static_assert(Kokkos::is_view<HalosIndicesView>{}, "");
   static_assert(Kokkos::is_view<HalosOffsetView>{}, "");
@@ -356,10 +356,13 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
 
   elapsed_total = clock::now() - start_total;
 
-  printf("total time      : %10.3f\n", elapsed_total.count());
-  printf("-> construction : %10.3f\n", elapsed_construction.count());
-  printf("-> query+ccs    : %10.3f\n", elapsed_query.count());
-  printf("-> halos        : %10.3f\n", elapsed_halos.count());
+  if (verbose)
+  {
+    printf("total time      : %10.3f\n", elapsed_total.count());
+    printf("-> construction : %10.3f\n", elapsed_construction.count());
+    printf("-> query+ccs    : %10.3f\n", elapsed_query.count());
+    printf("-> halos        : %10.3f\n", elapsed_halos.count());
+  }
 } // namespace HaloFinder
 
 } // namespace HaloFinder

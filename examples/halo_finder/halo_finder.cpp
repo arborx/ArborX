@@ -102,13 +102,10 @@ int main(int argc, char *argv[])
 
   Kokkos::ScopeGuard guard(argc, argv);
 
-  std::cout << "ArborX version: " << ArborX::version() << std::endl;
-  std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
-
   namespace bpo = boost::program_options;
 
   std::string filename;
-  bool binary;
+  bool binary, print_halo_timers, print_sizes_centers;
   float linking_length;
   int min_size;
 
@@ -116,10 +113,12 @@ int main(int argc, char *argv[])
   // clang-format off
     desc.add_options()
         ( "help", "help message" )
-        ( "filename,f", bpo::value<std::string>(&filename), "filename containing data" )
-        ( "binary,b", bpo::bool_switch(&binary)->default_value(false), "binary file indicator")
-        ( "linking-length,l", bpo::value<float>(&linking_length), "linking length (radius)" )
+        ( "filename", bpo::value<std::string>(&filename), "filename containing data" )
+        ( "binary", bpo::bool_switch(&binary)->default_value(false), "binary file indicator")
+        ( "linking-length", bpo::value<float>(&linking_length), "linking length (radius)" )
         ( "min-size,s", bpo::value<int>(&min_size)->default_value(2), "minimum halo size")
+        ( "print-halo-timers", bpo::bool_switch(&print_halo_timers)->default_value(false), "print halo timers")
+        ( "output-sizes-and-centers", bpo::bool_switch(&print_sizes_centers)->default_value(false), "print halo sizes and centers")
         ;
   // clang-format on
   bpo::variables_map vm;
@@ -132,6 +131,9 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+  std::cout << "ArborX version: " << ArborX::version() << std::endl;
+  std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
+
   // read in data
   auto const points = parsePoints(filename, binary);
   auto const primitives = vec2view<MemorySpace>(points, "primitives");
@@ -141,44 +143,48 @@ int main(int argc, char *argv[])
   Kokkos::View<int *, MemorySpace> halos_indices("halos_indices", 0);
   Kokkos::View<int *, MemorySpace> halos_offset("halos_offset", 0);
   ArborX::HaloFinder::findHalos(exec_space, primitives, halos_indices,
-                                halos_offset, linking_length, min_size);
+                                halos_offset, linking_length, min_size,
+                                print_halo_timers);
 
-  int num_halos = halos_offset.size() - 1;
-
-  Kokkos::View<ArborX::Point *, MemorySpace> halos_centers(
-      Kokkos::ViewAllocateWithoutInitializing("centers"), num_halos);
-  Kokkos::parallel_for(
-      "compute centers",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
-      KOKKOS_LAMBDA(int const i) {
-        int halo_size = halos_offset(i + 1) - halos_offset(i);
-
-        ArborX::Point halo_center{0.f, 0.f, 0.f};
-        for (int j = halos_offset(i); j < halos_offset(i + 1); j++)
-        {
-          auto const &halo_point = primitives(halos_indices(j));
-          halo_center[0] += halo_point[0] / halo_size;
-          halo_center[1] += halo_point[1] / halo_size;
-          halo_center[2] += halo_point[2] / halo_size;
-        }
-        halos_centers(i) = halo_center;
-      });
-
-  auto halos_offset_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, halos_offset);
-  auto halos_centers_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, halos_centers);
-  for (int i = 0; i < num_halos; i++)
+  if (print_sizes_centers)
   {
-    int halo_size = halos_offset_host(i + 1) - halos_offset_host(i);
+    int num_halos = halos_offset.size() - 1;
 
-    // This is HACC specific filtering
-    auto const &halo_center = halos_centers_host(i);
-    if (halo_center[0] >= 0 && halo_center[1] >= 0 && halo_center[2] >= 0 &&
-        halo_center[0] < 64 && halo_center[1] < 64 && halo_center[2] < 64)
+    Kokkos::View<ArborX::Point *, MemorySpace> halos_centers(
+        Kokkos::ViewAllocateWithoutInitializing("centers"), num_halos);
+    Kokkos::parallel_for(
+        "compute centers",
+        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
+        KOKKOS_LAMBDA(int const i) {
+          int halo_size = halos_offset(i + 1) - halos_offset(i);
+
+          ArborX::Point halo_center{0.f, 0.f, 0.f};
+          for (int j = halos_offset(i); j < halos_offset(i + 1); j++)
+          {
+            auto const &halo_point = primitives(halos_indices(j));
+            halo_center[0] += halo_point[0] / halo_size;
+            halo_center[1] += halo_point[1] / halo_size;
+            halo_center[2] += halo_point[2] / halo_size;
+          }
+          halos_centers(i) = halo_center;
+        });
+
+    auto halos_offset_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, halos_offset);
+    auto halos_centers_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, halos_centers);
+    for (int i = 0; i < num_halos; i++)
     {
-      printf("%d %e %e %e\n", halo_size, halo_center[0], halo_center[1],
-             halo_center[2]);
+      int halo_size = halos_offset_host(i + 1) - halos_offset_host(i);
+
+      // This is HACC specific filtering
+      auto const &halo_center = halos_centers_host(i);
+      if (halo_center[0] >= 0 && halo_center[1] >= 0 && halo_center[2] >= 0 &&
+          halo_center[0] < 64 && halo_center[1] < 64 && halo_center[2] < 64)
+      {
+        printf("%d %e %e %e\n", halo_size, halo_center[0], halo_center[1],
+               halo_center[2]);
+      }
     }
   }
 
