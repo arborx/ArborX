@@ -77,13 +77,9 @@ auto vec2view(std::vector<T> const &in, std::string const &label = "")
 {
   Kokkos::View<T *, P...> out(
       Kokkos::view_alloc(label, Kokkos::WithoutInitializing), in.size());
-  auto const start = std::chrono::high_resolution_clock::now();
   Kokkos::deep_copy(out, Kokkos::View<T const *, Kokkos::HostSpace,
                                       Kokkos::MemoryTraits<Kokkos::Unmanaged>>{
                              in.data(), in.size()});
-  auto const end = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> elapsed_seconds = end - start;
-  printf("deep copy       : %10.3f\n", elapsed_seconds.count());
   return out;
 }
 
@@ -105,7 +101,7 @@ int main(int argc, char *argv[])
   namespace bpo = boost::program_options;
 
   std::string filename;
-  bool binary, print_halo_timers, print_sizes_centers;
+  bool binary, verify, print_halo_timers, print_sizes_centers;
   float linking_length;
   int min_size;
 
@@ -116,7 +112,8 @@ int main(int argc, char *argv[])
         ( "filename", bpo::value<std::string>(&filename), "filename containing data" )
         ( "binary", bpo::bool_switch(&binary)->default_value(false), "binary file indicator")
         ( "linking-length", bpo::value<float>(&linking_length), "linking length (radius)" )
-        ( "min-size,s", bpo::value<int>(&min_size)->default_value(2), "minimum halo size")
+        ( "min-size", bpo::value<int>(&min_size)->default_value(2), "minimum halo size")
+        ( "verify", bpo::bool_switch(&verify)->default_value(false), "verify connected components")
         ( "print-halo-timers", bpo::bool_switch(&print_halo_timers)->default_value(false), "print halo timers")
         ( "output-sizes-and-centers", bpo::bool_switch(&print_sizes_centers)->default_value(false), "print halo sizes and centers")
         ;
@@ -144,7 +141,7 @@ int main(int argc, char *argv[])
   Kokkos::View<int *, MemorySpace> halos_offset("halos_offset", 0);
   ArborX::HaloFinder::findHalos(exec_space, primitives, halos_indices,
                                 halos_offset, linking_length, min_size,
-                                print_halo_timers);
+                                print_halo_timers, verify);
 
   if (print_sizes_centers)
   {

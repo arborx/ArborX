@@ -18,6 +18,8 @@
 #include <ArborX_Macros.hpp>
 
 #include <chrono>
+#include <set>
+#include <stack>
 
 // The algorithm is based on the the following paper:
 //
@@ -104,6 +106,91 @@ struct Access<Wrapped<View>, PredicatesTag>
 
 namespace HaloFinder
 {
+
+template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
+          typename CCSView>
+bool verifyCC(ExecutionSpace exec_space, IndicesView indices, OffsetView offset,
+              CCSView ccs)
+{
+  int num_nodes = ccs.size();
+  ARBORX_ASSERT((int)offset.size() == num_nodes + 1);
+  ARBORX_ASSERT(ArborX::lastElement(offset) == (int)indices.size());
+
+  // Check that connected vertices have the same cc index
+  int num_incorrect = 0;
+  Kokkos::parallel_reduce(
+      ARBORX_MARK_REGION("verify_connected_indices"),
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_nodes),
+      KOKKOS_LAMBDA(int i, int &update) {
+        for (int j = offset(i); j < offset(i + 1); ++j)
+        {
+          if (ccs(i) != ccs(indices(j)))
+          {
+            printf("Non-matching cc indices: %d [%d] -> %d [%d]\n", i, ccs(i),
+                   indices(j), ccs(indices(j)));
+            update++;
+          }
+        }
+      },
+      num_incorrect);
+  if (num_incorrect)
+    return false;
+
+  // Check that non-connected vertices have different cc indices
+  auto ccs_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ccs);
+  auto offset_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
+  auto indices_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
+
+  std::set<int> unique_cc_indices;
+  for (int i = 0; i < num_nodes; i++)
+    unique_cc_indices.insert(ccs_host(i));
+  auto num_unique_cc_indices = unique_cc_indices.size();
+
+  unsigned int num_ccs = 0;
+  std::set<int> cc_sets;
+  for (int i = 0; i < num_nodes; i++)
+  {
+    if (ccs_host(i) >= 0)
+    {
+      auto id = ccs_host(i);
+      cc_sets.insert(id);
+      num_ccs++;
+
+      // DFS search
+      std::stack<int> stack;
+      stack.push(i);
+      while (!stack.empty())
+      {
+        auto k = stack.top();
+        stack.pop();
+        if (ccs_host(k) >= 0)
+        {
+          ARBORX_ASSERT(ccs_host(k) == id);
+          ccs_host(k) = -1;
+          for (int j = offset_host(k); j < offset_host(k + 1); j++)
+            stack.push(indices_host(j));
+        }
+      }
+    }
+  }
+  if (cc_sets.size() != num_unique_cc_indices)
+  {
+    // FIXME: Not sure how we can get here, but it was in the original verify
+    // check in ECL
+    std::cout << "Number of components does not match" << std::endl;
+    return false;
+  }
+  if (num_ccs != num_unique_cc_indices)
+  {
+    std::cout << "Component IDs are not unique" << std::endl;
+    return false;
+  }
+
+  return true;
+}
+
 template <typename MemorySpace>
 struct CCSCallback
 {
@@ -220,7 +307,8 @@ template <typename ExecutionSpace, typename Primitives,
           typename HalosIndicesView, typename HalosOffsetView>
 void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
                HalosIndicesView &halos_indices, HalosOffsetView &halos_offset,
-               float linking_length, int min_size = 2, bool verbose = false)
+               float linking_length, int min_size = 2, bool verbose = false,
+               bool verify = false)
 {
   static_assert(Kokkos::is_view<HalosIndicesView>{}, "");
   static_assert(Kokkos::is_view<HalosOffsetView>{}, "");
@@ -243,7 +331,7 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
 
   clock::time_point start_total, start;
   std::chrono::duration<double> elapsed_construction, elapsed_query,
-      elapsed_halos, elapsed_total;
+      elapsed_halos, elapsed_total, elapsed_verify = clock::duration::zero();
 
   start_total = clock::now();
 
@@ -294,12 +382,27 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
   Kokkos::Profiling::popRegion();
   elapsed_query = clock::now() - start;
 
+  // Use new name to clearly demonstrate the meaning of this view from now on
+  auto ccs = stat;
+
+  elapsed_total += clock::now() - start_total;
+  if (verify)
+  {
+    start = clock::now();
+    Kokkos::Profiling::pushRegion("ArborX:HaloFinder:verify");
+
+    bvh.query(exec_space, predicates, indices, offset);
+    auto passed = verifyCC(exec_space, indices, offset, ccs);
+    printf("Verification %s\n", (passed ? "passed" : "failed"));
+
+    Kokkos::Profiling::popRegion();
+    elapsed_verify = clock::now() - start;
+  }
+  start_total = clock::now();
+
   // find halos
   start = clock::now();
   Kokkos::Profiling::pushRegion("ArborX:HaloFinder:sort_and_filter_ccs");
-
-  // Use new name to clearly demonstrate the meaning of this view from now on
-  auto ccs = stat;
 
   // sort ccs and compute permutation
   auto permute = Details::sortObjects(exec_space, ccs);
@@ -352,9 +455,7 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
   Kokkos::Profiling::popRegion();
   elapsed_halos = clock::now() - start;
 
-  Kokkos::Profiling::popRegion();
-
-  elapsed_total = clock::now() - start_total;
+  elapsed_total += clock::now() - start_total;
 
   if (verbose)
   {
@@ -362,8 +463,12 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
     printf("-> construction : %10.3f\n", elapsed_construction.count());
     printf("-> query+ccs    : %10.3f\n", elapsed_query.count());
     printf("-> halos        : %10.3f\n", elapsed_halos.count());
+    if (verify)
+      printf("verify          : %10.3f\n", elapsed_verify.count());
   }
-} // namespace HaloFinder
+
+  Kokkos::Profiling::popRegion();
+}
 
 } // namespace HaloFinder
 } // namespace ArborX
