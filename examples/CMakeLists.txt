@@ -8,8 +8,10 @@ elseif()
   set(ArborX_TARGET ArborX)
 endif()
 
+add_subdirectory(access_traits)
+
 find_package(Boost COMPONENTS program_options)
 if(Boost_FOUND)
   add_subdirectory(viz)
+  add_subdirectory(halo_finder)
 endif()
-add_subdirectory(access_traits)
