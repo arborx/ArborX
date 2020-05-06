@@ -158,9 +158,9 @@ struct WrappedBVH
 {
   BVH bvh_;
 
-  template <typename ExecutionSpace, typename Predicates, typename Callbacks>
+  template <typename ExecutionSpace, typename Predicates, typename Callback>
   void operator()(ExecutionSpace const &space, Predicates const predicates,
-                  Callbacks const &callbacks) const
+                  Callback const &callback) const
   {
     using MemorySpace = typename BVH::memory_space;
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
@@ -173,8 +173,9 @@ struct WrappedBVH
         ARBORX_MARK_REGION("BVH:spatial_queries"),
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
         KOKKOS_LAMBDA(int i) {
+          auto const &predicate = Access::get(predicates, i);
           ArborX::Details::TreeTraversal<DeviceType>::query(
-              bvh, Access::get(predicates, i), callbacks(i));
+              bvh, predicate, [&](int j) { callback(i, j); });
         });
   }
 };

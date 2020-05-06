@@ -47,12 +47,11 @@ struct WrappedCallback<FirstPassTag, Predicates, Callback, OutputView,
   OutputView out_;
   CountView counts_;
   OffsetView offset_;
-  int j;
 
   using ValueType = typename OutputView::value_type;
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
 
-  KOKKOS_FUNCTION void operator()(int i) const
+  KOKKOS_FUNCTION void operator()(int j, int i) const
   {
     if (offset_(j) + counts_(j) < offset_(j + 1))
       callback_(Access::get(predicates_, j), i, [&](ValueType const &value) {
@@ -75,12 +74,11 @@ struct WrappedCallback<FirstPassNoBufferOptimizationTag, Predicates, Callback,
   OutputView out_;
   CountView counts_;
   OffsetView offset_;
-  int j;
 
   using ValueType = typename OutputView::value_type;
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
 
-  KOKKOS_FUNCTION void operator()(int i) const
+  KOKKOS_FUNCTION void operator()(int j, int i) const
   {
     callback_(Access::get(predicates_, j), i, [&](ValueType const &) {
       Kokkos::atomic_fetch_add(&counts_(j), 1);
@@ -98,34 +96,15 @@ struct WrappedCallback<SecondPassTag, Predicates, Callback, OutputView,
   OutputView out_;
   CountView counts_;
   OffsetView offset_;
-  int j;
 
   using ValueType = typename OutputView::value_type;
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
 
-  KOKKOS_FUNCTION void operator()(int i) const
+  KOKKOS_FUNCTION void operator()(int j, int i) const
   {
     callback_(Access::get(predicates_, j), i, [&](ValueType const &value) {
       out_(offset_(j) + Kokkos::atomic_fetch_add(&counts_(j), 1)) = value;
     });
-  }
-};
-
-template <typename Tag, typename Predicates, typename Callback,
-          typename OutputView, typename CountView, typename OffsetView>
-struct CallbackGenerator
-{
-  Predicates predicates_;
-  Callback callback_;
-  OutputView out_;
-  CountView counts_;
-  OffsetView offset_;
-
-  KOKKOS_FUNCTION WrappedCallback<Tag, Predicates, Callback, OutputView,
-                                  CountView, OffsetView>
-  operator()(int j) const
-  {
-    return {predicates_, callback_, out_, counts_, offset_, j};
   }
 };
 
@@ -191,15 +170,15 @@ void queryImpl(ExecutionSpace const &space, Search const &search,
     // NOTE I considered filling with invalid indices but it is unecessary work
 
     search(space, predicates,
-           CallbackGenerator<FirstPassTag, Predicates, Callback, OutputView,
-                             CountView, OffsetView>{predicates, callback, out,
-                                                    counts, offset});
+           WrappedCallback<FirstPassTag, Predicates, Callback, OutputView,
+                           CountView, OffsetView>{predicates, callback, out,
+                                                  counts, offset});
   }
   else
   {
     search(space, predicates,
-           CallbackGenerator<FirstPassNoBufferOptimizationTag, Predicates,
-                             Callback, OutputView, CountView, OffsetView>{
+           WrappedCallback<FirstPassNoBufferOptimizationTag, Predicates,
+                           Callback, OutputView, CountView, OffsetView>{
                predicates, callback, out, counts, offset});
   }
 
@@ -241,9 +220,9 @@ void queryImpl(ExecutionSpace const &space, Search const &search,
     Kokkos::deep_copy(space, counts, 0); // FIXME
 
     search(space, predicates,
-           CallbackGenerator<SecondPassTag, Predicates, Callback, OutputView,
-                             CountView, OffsetView>{predicates, callback, out,
-                                                    counts, offset});
+           WrappedCallback<SecondPassTag, Predicates, Callback, OutputView,
+                           CountView, OffsetView>{predicates, callback, out,
+                                                  counts, offset});
   }
   // do not copy if by some miracle each query exactly yielded as many results
   // as the buffer size

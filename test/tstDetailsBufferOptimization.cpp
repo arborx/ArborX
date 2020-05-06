@@ -35,7 +35,7 @@ struct Test1
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
         KOKKOS_LAMBDA(int i) {
           for (int j = 0; j < i; ++j)
-            callbacks(i)(j);
+            callbacks(i, j);
         });
   }
 };
