@@ -85,31 +85,41 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   {
     auto const &predicate = Access::get(predicates_, queryIndex);
 
-    Stack<Node const *> stack;
-
-    stack.emplace(bvh_.getRoot());
-
-    while (!stack.empty())
+    Node const *stack[64];
+    Node const **stack_ptr = stack;
+    *stack_ptr++ = NULL;
+    Node const *node = bvh_.getRoot();
+    do
     {
-      Node const *node = stack.top();
-      stack.pop();
+      Node const *child_left = bvh_.getNodePtr(node->children.first);
+      Node const *child_right = bvh_.getNodePtr(node->children.second);
 
-      if (node->isLeaf())
+      bool overlap_left = predicate(bvh_.getBoundingVolume(child_left));
+      bool overlap_right = predicate(bvh_.getBoundingVolume(child_right));
+
+      if (overlap_left && child_left->isLeaf())
       {
-        callback_(queryIndex, node->getLeafPermutationIndex());
+        callback_(queryIndex, child_left->getLeafPermutationIndex());
+      }
+      if (overlap_right && child_right->isLeaf())
+      {
+        callback_(queryIndex, child_right->getLeafPermutationIndex());
+      }
+
+      bool traverse_left = (overlap_left && !child_left->isLeaf());
+      bool traverse_right = (overlap_right && !child_right->isLeaf());
+
+      if (!traverse_left && !traverse_right)
+      {
+        node = *--stack_ptr;
       }
       else
       {
-        for (Node const *child : {bvh_.getNodePtr(node->children.first),
-                                  bvh_.getNodePtr(node->children.second)})
-        {
-          if (predicate(bvh_.getBoundingVolume(child)))
-          {
-            stack.push(child);
-          }
-        }
+        node = traverse_left ? child_left : child_right;
+        if (traverse_left && traverse_right)
+          *stack_ptr++ = child_right;
       }
-    }
+    } while (node != NULL);
   }
 };
 
