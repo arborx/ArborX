@@ -33,42 +33,39 @@ public:
   using ExecutionSpace = typename DeviceType::execution_space;
 
   template <typename Predicate, typename... Args>
-  KOKKOS_INLINE_FUNCTION static int
+  KOKKOS_INLINE_FUNCTION static void
   query(BoundingVolumeHierarchy<typename DeviceType::memory_space, void> const
             &bvh,
         Predicate const &pred, Args &&... args)
   {
     using Tag = typename Predicate::Tag;
-    return queryDispatch(Tag{}, bvh, pred, std::forward<Args>(args)...);
+    queryDispatch(Tag{}, bvh, pred, std::forward<Args>(args)...);
   }
 
   // There are two (related) families of search: one using a spatial predicate
   // and one using nearest neighbours query (see boost::geometry::queries
   // documentation).
   template <typename Predicate, typename Insert>
-  KOKKOS_FUNCTION static int
+  KOKKOS_FUNCTION static void
   spatialQuery(BoundingVolumeHierarchy<typename DeviceType::memory_space,
                                        void> const &bvh,
                Predicate const &predicate, Insert const &insert)
   {
     if (bvh.empty())
-      return 0;
+      return;
 
     if (bvh.size() == 1)
     {
       if (predicate(bvh.getBoundingVolume(bvh.getRoot())))
       {
         insert(0);
-        return 1;
       }
-      else
-        return 0;
+      return;
     }
 
     Stack<Node const *> stack;
 
     stack.emplace(bvh.getRoot());
-    int count = 0;
 
     while (!stack.empty())
     {
@@ -78,7 +75,6 @@ public:
       if (node->isLeaf())
       {
         insert(node->getLeafPermutationIndex());
-        count++;
       }
       else
       {
@@ -92,24 +88,23 @@ public:
         }
       }
     }
-    return count;
   }
 
   // query k nearest neighbours
   template <typename Distance, typename Insert, typename Buffer>
-  KOKKOS_FUNCTION static int
+  KOKKOS_FUNCTION static void
   nearestQuery(BoundingVolumeHierarchy<typename DeviceType::memory_space,
                                        void> const &bvh,
                Distance const &distance, std::size_t k, Insert const &insert,
                Buffer const &buffer)
   {
     if (bvh.empty() || k < 1)
-      return 0;
+      return;
 
     if (bvh.size() == 1)
     {
       insert(0, distance(bvh.getRoot()));
-      return 1;
+      return;
     }
 
     // Nodes with a distance that exceed that radius can safely be
@@ -213,7 +208,6 @@ public:
       auto const leaf_distance = (heap.data() + i)->second;
       insert(leaf_index, leaf_distance);
     }
-    return heap.size();
   }
 
   struct Deprecated // using a struct to emulate a nested namespace
@@ -222,18 +216,18 @@ public:
     // priority queue and that was deemed less performant than the newer
     // version with a stack.
     template <typename Distance, typename Insert>
-    KOKKOS_FUNCTION static int
+    KOKKOS_FUNCTION static void
     nearestQuery(BoundingVolumeHierarchy<typename DeviceType::memory_space,
                                          void> const &bvh,
                  Distance const &distance, std::size_t k, Insert const &insert)
     {
       if (bvh.empty() || k < 1)
-        return 0;
+        return;
 
       if (bvh.size() == 1)
       {
         insert(0, distance(bvh.getRoot()));
-        return 1;
+        return;
       }
 
       using PairNodePtrDistance = Kokkos::pair<Node const *, float>;
@@ -254,8 +248,8 @@ public:
       // Do not bother computing the distance to the root node since it is
       // immediately popped out of the stack and processed.
       queue.emplace(bvh.getRoot(), 0.);
-      decltype(k) count = 0;
 
+      decltype(k) count = 0;
       while (!queue.empty() && count < k)
       {
         // Get the node that is on top of the priority list (i.e. the
@@ -280,22 +274,21 @@ public:
           queue.emplace(right_child, right_child_distance);
         }
       }
-      return count;
     }
   }; // "namespace" Deprecated
 
   template <typename Predicate, typename Insert>
-  KOKKOS_INLINE_FUNCTION static int
+  KOKKOS_INLINE_FUNCTION static void
   queryDispatch(SpatialPredicateTag,
                 BoundingVolumeHierarchy<typename DeviceType::memory_space,
                                         void> const &bvh,
                 Predicate const &pred, Insert const &insert)
   {
-    return spatialQuery(bvh, pred, insert);
+    spatialQuery(bvh, pred, insert);
   }
 
   template <typename Predicate, typename Insert, typename Buffer>
-  KOKKOS_INLINE_FUNCTION static int queryDispatch(
+  KOKKOS_INLINE_FUNCTION static void queryDispatch(
       NearestPredicateTag,
       BoundingVolumeHierarchy<typename DeviceType::memory_space, void> const
           &bvh,
@@ -303,18 +296,17 @@ public:
   {
     auto const geometry = getGeometry(pred);
     auto const k = getK(pred);
-    return nearestQuery(bvh,
-                        [geometry, &bvh](Node const *node) {
-                          return distance(geometry,
-                                          bvh.getBoundingVolume(node));
-                        },
-                        k, insert, buffer);
+    nearestQuery(bvh,
+                 [geometry, &bvh](Node const *node) {
+                   return distance(geometry, bvh.getBoundingVolume(node));
+                 },
+                 k, insert, buffer);
   }
 
   // WARNING Without the buffer argument, the dispatch function uses the
   // deprecated version of the nearest query.
   template <typename Predicate, typename Insert>
-  KOKKOS_INLINE_FUNCTION static int
+  KOKKOS_INLINE_FUNCTION static void
   queryDispatch(NearestPredicateTag,
                 BoundingVolumeHierarchy<typename DeviceType::memory_space,
                                         void> const &bvh,
@@ -322,7 +314,7 @@ public:
   {
     auto const geometry = getGeometry(pred);
     auto const k = getK(pred);
-    return Deprecated::nearestQuery(
+    Deprecated::nearestQuery(
         // ^^^^^^^^^^
         bvh,
         [geometry, &bvh](Node const *node) {
