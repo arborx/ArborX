@@ -288,7 +288,7 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
           typename Indices, typename Offset>
-inline void
+inline std::enable_if_t<Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{}>
 queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
               Predicates const &predicates, Indices &indices, Offset &offset,
               Experimental::TraversalPolicy const &policy =
@@ -482,7 +482,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
           typename Indices, typename Offset>
-inline void
+inline std::enable_if_t<Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{}>
 queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
               Predicates const &predicates, Indices &indices, Offset &offset,
               Experimental::TraversalPolicy const &policy =
@@ -493,14 +493,15 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 }
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
-          typename Indices, typename Offset, typename DistanceDataType,
-          typename... DistanceViewProperties>
-inline void queryDispatch(
-    NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
-    Predicates const &predicates, Indices &indices, Offset &offset,
-    Kokkos::View<DistanceDataType, DistanceViewProperties...> &distances,
-    Experimental::TraversalPolicy const &policy =
-        Experimental::TraversalPolicy())
+          typename Indices, typename Offset, typename Distances>
+inline std::enable_if_t<Kokkos::is_view<Indices>{} &&
+                        Kokkos::is_view<Offset>{} &&
+                        Kokkos::is_view<Distances>{}>
+queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
+              Predicates const &predicates, Indices &indices, Offset &offset,
+              Distances &distances,
+              Experimental::TraversalPolicy const &policy =
+                  Experimental::TraversalPolicy())
 {
   using MemorySpace = typename BVH::memory_space;
   Kokkos::View<Kokkos::pair<int, float> *, MemorySpace> out(
