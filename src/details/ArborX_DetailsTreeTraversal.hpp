@@ -28,6 +28,9 @@ template <typename BVH, typename Predicates = void, typename Callback = void,
 struct TreeTraversal;
 
 template <typename BVH>
+using DeprecatedTreeTraversal = TreeTraversal<BVH, void, void, void>;
+
+template <typename BVH>
 struct TreeTraversal<BVH, void, void, void>
 {
 public:
