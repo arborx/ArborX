@@ -139,57 +139,6 @@ public:
     return queryDispatch(Tag{}, bvh, pred, std::forward<Args>(args)...);
   }
 
-  // There are two (related) families of search: one using a spatial predicate
-  // and one using nearest neighbours query (see boost::geometry::queries
-  // documentation).
-  template <typename Predicate, typename Insert>
-  KOKKOS_FUNCTION static int
-  spatialQuery(BVH const &bvh, Predicate const &predicate, Insert const &insert)
-  {
-    if (bvh.empty())
-      return 0;
-
-    if (bvh.size() == 1)
-    {
-      if (predicate(bvh.getBoundingVolume(bvh.getRoot())))
-      {
-        insert(0);
-        return 1;
-      }
-      else
-        return 0;
-    }
-
-    Stack<Node const *> stack;
-
-    stack.emplace(bvh.getRoot());
-    int count = 0;
-
-    while (!stack.empty())
-    {
-      Node const *node = stack.top();
-      stack.pop();
-
-      if (node->isLeaf())
-      {
-        insert(node->getLeafPermutationIndex());
-        count++;
-      }
-      else
-      {
-        for (Node const *child : {bvh.getNodePtr(node->children.first),
-                                  bvh.getNodePtr(node->children.second)})
-        {
-          if (predicate(bvh.getBoundingVolume(child)))
-          {
-            stack.push(child);
-          }
-        }
-      }
-    }
-    return count;
-  }
-
   // query k nearest neighbours
   template <typename Distance, typename Insert, typename Buffer>
   KOKKOS_FUNCTION static int
@@ -375,14 +324,6 @@ public:
       return count;
     }
   }; // "namespace" Deprecated
-
-  template <typename Predicate, typename Insert>
-  KOKKOS_INLINE_FUNCTION static int
-  queryDispatch(SpatialPredicateTag, BVH const &bvh, Predicate const &pred,
-                Insert const &insert)
-  {
-    return spatialQuery(bvh, pred, insert);
-  }
 
   template <typename Predicate, typename Insert, typename Buffer>
   KOKKOS_INLINE_FUNCTION static int
