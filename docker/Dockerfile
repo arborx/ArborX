@@ -63,13 +63,14 @@ RUN LLVM_VERSION=7.0.1 && \
 ENV PATH=${LLVM_DIR}/bin:$PATH
 
 # Install OpenMPI
+ARG CUDA_AWARE_MPI
 ENV OPENMPI_DIR=/opt/openmpi
 RUN OPENMPI_VERSION=3.1.3 && \
     OPENMPI_VERSION_SHORT=$(echo "$OPENMPI_VERSION" | cut -d. -f1,2) && \
     OPENMPI_SHA1=b3c60e2bdd5a8a8e758fd741f9a5bebb84da5e81 && \
     OPENMPI_URL=https://download.open-mpi.org/release/open-mpi/v${OPENMPI_VERSION_SHORT}/openmpi-${OPENMPI_VERSION}.tar.bz2 && \
     OPENMPI_ARCHIVE=openmpi-${OPENMPI_VERSION}.tar.bz2 && \
-    [ ! -z "${CUDA_VERSION}" ] && CUDA_OPTIONS=--with-cuda || true && \
+    CUDA_OPTIONS=${CUDA_AWARE_MPI:+--with-cuda} && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${OPENMPI_URL} --output-document=${OPENMPI_ARCHIVE} && \
     echo "${OPENMPI_SHA1} ${OPENMPI_ARCHIVE}" | sha1sum -c && \
