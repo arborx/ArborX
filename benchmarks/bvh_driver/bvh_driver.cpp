@@ -30,6 +30,8 @@
 #include <benchmark/benchmark.h>
 #include <point_clouds.hpp>
 
+// #define CALCULATE_NEIGHBOR_STATS
+
 struct Spec
 {
   std::string create_label_construction(std::string const &tree_name) const
@@ -99,6 +101,7 @@ Spec create_spec_from_string(std::string const &spec_string)
 
   return spec;
 }
+
 #ifdef KOKKOS_ENABLE_SERIAL
 class NanoflannKDTree
 {
@@ -330,6 +333,9 @@ void BM_radius_search(benchmark::State &state, Spec const &spec)
       spec.n_values, spec.n_queries, spec.n_neighbors,
       spec.target_point_cloud_type);
 
+#ifdef CALCULATE_NEIGHBOR_STATS
+  bool first_pass = true;
+#endif
   for (auto _ : state)
   {
     Kokkos::View<int *, DeviceType> offset("offset", 0);
@@ -342,6 +348,24 @@ void BM_radius_search(benchmark::State &state, Spec const &spec)
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
+
+#ifdef CALCULATE_NEIGHBOR_STATS
+    if (first_pass)
+    {
+      auto offset_clone = ArborX::clone(offset);
+      ArborX::adjacentDifference(offset, offset_clone);
+      int const max = ArborX::max(offset_clone);
+      int const min = ArborX::min(Kokkos::subview(
+          offset_clone, std::make_pair(1, offset_clone.extent_int(0))));
+      double const avg = ((double)ArborX::lastElement(offset)) / n_queries;
+
+      printf("#values: %10d  #queries: %10d  neighbors: min=%3d, max=%3d, "
+             "avg=%3.2f\n",
+             n_values, n_queries, min, max, avg);
+
+      first_pass = false;
+    }
+#endif
   }
 }
 
