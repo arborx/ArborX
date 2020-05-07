@@ -11,11 +11,13 @@
 #ifndef ARBORX_DETAILS_TREE_TRAVERSAL_HPP
 #define ARBORX_DETAILS_TREE_TRAVERSAL_HPP
 
+#include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_DetailsStack.hpp>
 #include <ArborX_Exception.hpp>
+#include <ArborX_Macros.hpp>
 #include <ArborX_Predicates.hpp>
 
 namespace ArborX
@@ -26,6 +28,76 @@ namespace Details
 template <typename BVH, typename Predicates, typename Callback,
           typename Enable = void>
 struct TreeTraversal;
+
+template <typename BVH, typename Predicates, typename Callback>
+struct TreeTraversal<
+    BVH, Predicates, Callback,
+    std::enable_if_t<std::is_same<
+        SpatialPredicateTag, typename Traits::Helper<Traits::Access<
+                                 Predicates, Traits::PredicatesTag>>::tag>{}>>
+{
+  BVH bvh_;
+  Predicates predicates_;
+  Callback callback_;
+
+  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+
+  template <typename ExecutionSpace>
+  TreeTraversal(ExecutionSpace const &space, BVH const &bvh,
+                Predicates const &predicates, Callback const &callback)
+      : bvh_{bvh}
+      , predicates_{predicates}
+      , callback_{callback}
+  {
+    Kokkos::parallel_for(
+        ARBORX_MARK_REGION("BVH:spatial_queries"),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
+        *this);
+  }
+
+  KOKKOS_FUNCTION void operator()(int queryIndex) const
+  {
+    auto const &predicate = Access::get(predicates_, queryIndex);
+
+    if (bvh_.empty())
+      return;
+
+    if (bvh_.size() == 1)
+    {
+      if (predicate(bvh_.getBoundingVolume(bvh_.getRoot())))
+      {
+        callback_(queryIndex, 0);
+      }
+      return;
+    }
+
+    Stack<Node const *> stack;
+
+    stack.emplace(bvh_.getRoot());
+
+    while (!stack.empty())
+    {
+      Node const *node = stack.top();
+      stack.pop();
+
+      if (node->isLeaf())
+      {
+        callback_(queryIndex, node->getLeafPermutationIndex());
+      }
+      else
+      {
+        for (Node const *child : {bvh_.getNodePtr(node->children.first),
+                                  bvh_.getNodePtr(node->children.second)})
+        {
+          if (predicate(bvh_.getBoundingVolume(child)))
+          {
+            stack.push(child);
+          }
+        }
+      }
+    }
+  }
+};
 
 template <typename BVH>
 using DeprecatedTreeTraversal = TreeTraversal<BVH, void, void, void>;
