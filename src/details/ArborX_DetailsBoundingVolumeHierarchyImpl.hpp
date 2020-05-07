@@ -162,9 +162,6 @@ struct WrappedBVH
   void operator()(ExecutionSpace const &space, Predicates const predicates,
                   Callback const &callback) const
   {
-    using MemorySpace = typename BVH::memory_space;
-    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
-
     using Access =
         ArborX::Traits::Access<Predicates, ArborX::Traits::PredicatesTag>;
 
