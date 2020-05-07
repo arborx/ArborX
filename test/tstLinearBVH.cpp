@@ -769,15 +769,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(miscellaneous, DeviceType, ARBORX_DEVICE_TYPES)
       Kokkos::RangePolicy<ExecutionSpace>(0, 1), KOKKOS_LAMBDA(int) {
         ArborX::Point p = {{0., 0., 0.}};
         double r = 1.0;
+        using TreeTraversal =
+            ArborX::Details::TreeTraversal<ArborX::BVH<DeviceType>>;
         // spatial query on empty tree
-        zeros(0) = ArborX::Details::TreeTraversal<DeviceType>::query(
+        zeros(0) = TreeTraversal::query(
             empty_bvh, ArborX::intersects(ArborX::Sphere{p, r}), [](int) {});
         // nearest query on empty tree
-        zeros(1) = ArborX::Details::TreeTraversal<DeviceType>::query(
-            empty_bvh, ArborX::nearest(p), [](int, float) {}, empty_buffer);
+        zeros(1) = TreeTraversal::query(empty_bvh, ArborX::nearest(p),
+                                        [](int, float) {}, empty_buffer);
         // nearest query for k < 1
-        zeros(2) = ArborX::Details::TreeTraversal<DeviceType>::query(
-            bvh, ArborX::nearest(p, 0), [](int, float) {}, empty_buffer);
+        zeros(2) = TreeTraversal::query(bvh, ArborX::nearest(p, 0),
+                                        [](int, float) {}, empty_buffer);
       });
   auto zeros_host = Kokkos::create_mirror_view(zeros);
   Kokkos::deep_copy(zeros_host, zeros);
