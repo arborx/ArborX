@@ -57,6 +57,9 @@ struct TreeTraversal<
       , predicates_{predicates}
       , callback_{callback}
   {
+    if (bvh_.empty())
+      return;
+
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("BVH:spatial_queries"),
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
@@ -66,9 +69,6 @@ struct TreeTraversal<
   KOKKOS_FUNCTION void operator()(int queryIndex) const
   {
     auto const &predicate = Access::get(predicates_, queryIndex);
-
-    if (bvh_.empty())
-      return;
 
     if (bvh_.size() == 1)
     {
