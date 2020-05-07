@@ -328,7 +328,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
           int count = 0;
           auto const shift = offset(permute(i));
           auto const &query = queries(i);
-          Details::TreeTraversal<BVH>::query(
+          Details::DeprecatedTreeTraversal<BVH>::query(
               bvh, query,
               [&query, &callback, &out, shift, &count](int index,
                                                        float distance) {
@@ -358,7 +358,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
           int count = 0;
           auto const shift = offset(permute(i));
           auto const &query = queries(i);
-          Details::TreeTraversal<BVH>::query(
+          Details::DeprecatedTreeTraversal<BVH>::query(
               bvh, query,
               [&query, &callback, &out, shift, &count](int index,
                                                        float distance) {
