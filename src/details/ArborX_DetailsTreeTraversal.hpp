@@ -20,10 +20,6 @@
 
 namespace ArborX
 {
-
-template <typename DeviceType, typename Enable>
-class BoundingVolumeHierarchy;
-
 namespace Details
 {
 template <typename BVH>
