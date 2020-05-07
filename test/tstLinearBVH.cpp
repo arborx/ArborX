@@ -770,7 +770,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(miscellaneous, DeviceType, ARBORX_DEVICE_TYPES)
         ArborX::Point p = {{0., 0., 0.}};
         double r = 1.0;
         using TreeTraversal =
-            ArborX::Details::TreeTraversal<ArborX::BVH<DeviceType>>;
+            ArborX::Details::DeprecatedTreeTraversal<ArborX::BVH<DeviceType>>;
         // spatial query on empty tree
         zeros(0) = TreeTraversal::query(
             empty_bvh, ArborX::intersects(ArborX::Sphere{p, r}), [](int) {});
