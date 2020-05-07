@@ -22,8 +22,13 @@ namespace ArborX
 {
 namespace Details
 {
+
+template <typename BVH, typename Predicates = void, typename Callback = void,
+          typename Enable = void>
+struct TreeTraversal;
+
 template <typename BVH>
-struct TreeTraversal
+struct TreeTraversal<BVH, void, void, void>
 {
 public:
   template <typename Predicate, typename... Args>

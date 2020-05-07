@@ -91,7 +91,8 @@ public:
   }
 
 private:
-  template <typename DeviceType>
+  template <typename BVH, typename Predicates, typename Callback,
+            typename /*Enable*/>
   friend struct Details::TreeTraversal;
   template <typename DeviceType>
   friend struct Details::TreeVisualization;
