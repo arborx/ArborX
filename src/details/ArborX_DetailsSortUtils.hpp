@@ -21,11 +21,15 @@
 
 // clang-format off
 #if defined(KOKKOS_ENABLE_CUDA)
-#  if defined(KOKKOS_COMPILER_CLANG) && KOKKOS_COMPILER_CLANG < 900
-// Clang of version less than 9.0 cannot compile Thrust, failing with errors
-// like this:
+#  if defined(KOKKOS_COMPILER_CLANG)
+// Some versions of Clang fail to compile Thrust, failing with errors like
+// this:
 //    <snip>/thrust/system/cuda/detail/core/agent_launcher.h:557:11:
 //    error: use of undeclared identifier 'va_printf'
+// The exact combination of versions for Clang and Thrust (or CUDA) for this
+// failure was not investigated, however even very recent version combination
+// (Clang 10.0.0 and Cuda 10.0) demonstrated failure.
+//
 // Defining _CubLog here allows us to avoid that code path, however disabling
 // some debugging diagnostics
 //
@@ -42,10 +46,10 @@
 #      define _CubLog ARBORX_CubLog_save
 #      undef ARBORX_CubLog_save
 #    endif
-#  else // #if (KOKKOS_COMPILER_CLANG < 900)
+#  else // #if defined(KOKKOS_COMPILER_CLANG)
 #    include <thrust/device_ptr.h>
 #    include <thrust/sort.h>
-#  endif // #if (KOKKOS_COMPILER_CLANG < 900)
+#  endif // #if defined(KOKKOS_COMPILER_CLANG)
 #endif   // #if defined(KOKKOS_ENABLE_CUDA)
 // clang-format on
 
@@ -160,22 +164,56 @@ struct CopyOp<DstViewType, SrcViewType, 3>
 };
 } // namespace PermuteHelper
 
+template <typename ExecutionSpace, typename PermutationView, typename InputView,
+          typename OutputView>
+void applyInversePermutation(ExecutionSpace const &space,
+                             PermutationView const &permutation,
+                             InputView const &input_view,
+                             OutputView const &output_view)
+{
+  static_assert(std::is_integral<typename PermutationView::value_type>::value,
+                "");
+  ARBORX_ASSERT(permutation.extent(0) == input_view.extent(0));
+  ARBORX_ASSERT(output_view.extent(0) == input_view.extent(0));
+
+  Kokkos::parallel_for(
+      ARBORX_MARK_REGION("inverse_permute"),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, input_view.extent(0)),
+      KOKKOS_LAMBDA(int i) {
+        PermuteHelper::CopyOp<OutputView, InputView>::copy(
+            output_view, permutation(i), input_view, i);
+      });
+}
+
+template <typename ExecutionSpace, typename PermutationView, typename InputView,
+          typename OutputView>
+void applyPermutation(ExecutionSpace const &space,
+                      PermutationView const &permutation,
+                      InputView const &input_view,
+                      OutputView const &output_view)
+{
+  static_assert(std::is_integral<typename PermutationView::value_type>::value,
+                "");
+  ARBORX_ASSERT(permutation.extent(0) == input_view.extent(0));
+  ARBORX_ASSERT(output_view.extent(0) == input_view.extent(0));
+
+  Kokkos::parallel_for(
+      ARBORX_MARK_REGION("permute"),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, input_view.extent(0)),
+      KOKKOS_LAMBDA(int i) {
+        PermuteHelper::CopyOp<OutputView, InputView>::copy(
+            output_view, i, input_view, permutation(i));
+      });
+}
+
 template <typename ExecutionSpace, typename PermutationView, typename View>
 void applyPermutation(ExecutionSpace const &space,
                       PermutationView const &permutation, View &view)
 {
   static_assert(std::is_integral<typename PermutationView::value_type>::value,
                 "");
-  ARBORX_ASSERT(permutation.extent(0) == view.extent(0));
   auto scratch_view = clone(space, view);
-  Kokkos::parallel_for(
-      ARBORX_MARK_REGION("permute"),
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, view.extent(0)),
-      KOKKOS_LAMBDA(int i) {
-        PermuteHelper::CopyOp<View, View>::copy(scratch_view, i, view,
-                                                permutation(i));
-      });
-  Kokkos::deep_copy(space, view, scratch_view);
+  applyPermutation(space, permutation, scratch_view, view);
 }
 
 } // namespace Details

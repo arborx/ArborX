@@ -12,6 +12,8 @@
 #ifndef ARBORX_DETAILS_BOUNDING_VOLUME_HIERARCHY_IMPL_HPP
 #define ARBORX_DETAILS_BOUNDING_VOLUME_HIERARCHY_IMPL_HPP
 
+#include <ArborX_AccessTraits.hpp>
+#include <ArborX_Callbacks.hpp>
 #include <ArborX_DetailsBatchedQueries.hpp>
 #include <ArborX_DetailsBufferOptimization.hpp>
 #include <ArborX_DetailsConcepts.hpp>  // is_detected
@@ -19,7 +21,6 @@
 #include <ArborX_DetailsTreeTraversal.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_Predicates.hpp>
-#include <ArborX_Traits.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -27,39 +28,6 @@ namespace ArborX
 {
 namespace Details
 {
-
-// archetypal expression for user callbacks
-template <typename Callback, typename Predicate, typename Out>
-using NearestPredicateInlineCallbackArchetypeExpression =
-    decltype(std::declval<Callback const &>()(
-        std::declval<Predicate const &>(), 0, 0., std::declval<Out const &>()));
-
-template <typename Callback, typename Predicate, typename Out>
-using SpatialPredicateInlineCallbackArchetypeExpression =
-    decltype(std::declval<Callback const &>()(std::declval<Predicate const &>(),
-                                              0, std::declval<Out const &>()));
-
-// output functor to pass to the callback during detection
-template <typename T>
-struct Sink
-{
-  void operator()(T const &) const {}
-};
-
-template <typename Predicates>
-using PredicatesHelper =
-    decay_result_of_get_t<Traits::Access<Predicates, Traits::PredicatesTag>>;
-
-template <typename OutputView>
-using OutputFunctorHelper = Sink<typename OutputView::value_type>;
-
-struct InlineCallbackTag
-{
-};
-
-struct PostCallbackTag
-{
-};
 
 // Silly name to discourage misuse...
 enum class NearestQueryAlgorithm
@@ -120,39 +88,6 @@ struct TraversalPolicy
 namespace Details
 {
 
-struct CallbackDefaultSpatialPredicate
-{
-  using tag = InlineCallbackTag;
-  template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &, int index,
-                                  Insert const &insert) const
-  {
-    insert(index);
-  }
-};
-
-struct CallbackDefaultNearestPredicate
-{
-  using tag = InlineCallbackTag;
-  template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &, int index, float,
-                                  Insert const &insert) const
-  {
-    insert(index);
-  }
-};
-
-struct CallbackDefaultNearestPredicateWithDistance
-{
-  using tag = InlineCallbackTag;
-  template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &, int index, float distance,
-                                  Insert const &insert) const
-  {
-    insert({index, distance});
-  }
-};
-
 template <typename BVH>
 struct WrappedBVH
 {
@@ -193,10 +128,7 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
   using MemorySpace = typename BVH::memory_space;
   using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
 
-  static_assert(is_detected<SpatialPredicateInlineCallbackArchetypeExpression,
-                            Callback, PredicatesHelper<Predicates>,
-                            OutputFunctorHelper<OutputView>>::value,
-                "Callback function does not have the correct signature");
+  check_valid_callback(callback, predicates, out);
 
   if (policy._sort_predicates)
   {
@@ -229,7 +161,7 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
           typename Indices, typename Offset>
-inline void
+inline std::enable_if_t<Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{}>
 queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
               Predicates const &predicates, Indices &indices, Offset &offset,
               Experimental::TraversalPolicy const &policy =
@@ -268,10 +200,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
   using MemorySpace = typename BVH::memory_space;
   using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
 
-  static_assert(is_detected<NearestPredicateInlineCallbackArchetypeExpression,
-                            Callback, PredicatesHelper<Predicates>,
-                            OutputFunctorHelper<OutputView>>::value,
-                "Callback function does not have the correct signature");
+  check_valid_callback(callback, predicates, out);
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:nearest_queries");
 
@@ -426,7 +355,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
           typename Indices, typename Offset>
-inline void
+inline std::enable_if_t<Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{}>
 queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
               Predicates const &predicates, Indices &indices, Offset &offset,
               Experimental::TraversalPolicy const &policy =
@@ -437,14 +366,15 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 }
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
-          typename Indices, typename Offset, typename DistanceDataType,
-          typename... DistanceViewProperties>
-inline void queryDispatch(
-    NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
-    Predicates const &predicates, Indices &indices, Offset &offset,
-    Kokkos::View<DistanceDataType, DistanceViewProperties...> &distances,
-    Experimental::TraversalPolicy const &policy =
-        Experimental::TraversalPolicy())
+          typename Indices, typename Offset, typename Distances>
+inline std::enable_if_t<Kokkos::is_view<Indices>{} &&
+                        Kokkos::is_view<Offset>{} &&
+                        Kokkos::is_view<Distances>{}>
+queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
+              Predicates const &predicates, Indices &indices, Offset &offset,
+              Distances &distances,
+              Experimental::TraversalPolicy const &policy =
+                  Experimental::TraversalPolicy())
 {
   using MemorySpace = typename BVH::memory_space;
   Kokkos::View<Kokkos::pair<int, float> *, MemorySpace> out(
@@ -463,6 +393,25 @@ inline void queryDispatch(
                        });
 }
 } // namespace BoundingVolumeHierarchyImpl
+
+template <typename Callback, typename Predicates, typename OutputView>
+std::enable_if_t<!Kokkos::is_view<Callback>{}>
+check_valid_callback_if_first_argument_is_not_a_view(
+    Callback const &callback, Predicates const &predicates,
+    OutputView const &out)
+{
+  check_valid_callback(callback, predicates, out);
+}
+
+template <typename View, typename Predicates, typename OutputView>
+std::enable_if_t<Kokkos::is_view<View>{}>
+check_valid_callback_if_first_argument_is_not_a_view(View const &,
+                                                     Predicates const &,
+                                                     OutputView const &)
+{
+  // do nothing
+}
+
 } // namespace Details
 } // namespace ArborX
 

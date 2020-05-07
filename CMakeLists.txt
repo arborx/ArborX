@@ -100,9 +100,9 @@ if (NOT CMAKE_BUILD_TYPE)
     FORCE)
 endif()
 
-option(ARBORX_ENABLE_TESTS "Enable tests" ON)
-option(ARBORX_ENABLE_EXAMPLES "Enable examples" ON)
-option(ARBORX_ENABLE_BENCHMARKS "Enable benchmarks" ON)
+option(ARBORX_ENABLE_TESTS "Enable tests" OFF)
+option(ARBORX_ENABLE_EXAMPLES "Enable examples" OFF)
+option(ARBORX_ENABLE_BENCHMARKS "Enable benchmarks" OFF)
 
 if(${ARBORX_ENABLE_TESTS} OR ${ARBORX_ENABLE_EXAMPLES})
   enable_testing()

@@ -41,7 +41,7 @@ RUN CMAKE_VERSION=3.13.4 && \
     grep ${CMAKE_SCRIPT} ${CMAKE_SHA256} | sha256sum --check && \
     mkdir -p ${CMAKE_DIR} && \
     sh ${CMAKE_SCRIPT} --skip-license --prefix=${CMAKE_DIR} && \
-    rm ${CMAKE_SCRIPT}
+    rm cmake*
 ENV PATH=${CMAKE_DIR}/bin:$PATH
 
 # Install Clang/LLVM
@@ -88,6 +88,7 @@ RUN BOOST_VERSION=1.67.0 && \
     BOOST_KEY=379CE192D401AB61 && \
     BOOST_URL=https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source && \
     BOOST_ARCHIVE=boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2 && \
+    SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE} && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.asc && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json && \
@@ -110,7 +111,7 @@ RUN BOOST_VERSION=1.67.0 && \
         cxxflags=-w \
         install \
         && \
-    rm -rf boost*
+    rm -rf ${SCRATCH_DIR}
 
 # Install Google Benchmark support library
 ENV BENCHMARK_DIR=/opt/benchmark

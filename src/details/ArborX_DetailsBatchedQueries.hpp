@@ -12,13 +12,13 @@
 #ifndef ARBORX_DETAILS_BATCHED_QUERIES_HPP
 #define ARBORX_DETAILS_BATCHED_QUERIES_HPP
 
+#include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // returnCentroid, translateAndScale
 #include <ArborX_DetailsMortonCode.hpp> // morton3D
 #include <ArborX_DetailsSortUtils.hpp>  // sortObjects
 #include <ArborX_DetailsUtils.hpp>      // exclusivePrefixSum, lastElement
 #include <ArborX_Macros.hpp>
-#include <ArborX_Traits.hpp>
 
 #include <Kokkos_Core.hpp>
 

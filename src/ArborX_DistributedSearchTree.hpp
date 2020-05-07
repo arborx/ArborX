@@ -92,8 +92,7 @@ public:
   {
     static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
     using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-    using Tag =
-        typename Details::Tag<Details::decay_result_of_get_t<Access>>::type;
+    using Tag = typename Traits::Helper<Access>::tag;
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     Details::DistributedSearchTreeImpl<DeviceType>::queryDispatch(
         Tag{}, *this, space, predicates, std::forward<Args>(args)...);

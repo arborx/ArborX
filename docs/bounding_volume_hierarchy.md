@@ -81,7 +81,7 @@ std::ostream &operator<<(std::ostream &os, ArborX::Point const &p)
 
 int main(int argc, char *argv[])
 {
-  Kokkos::initialize(argc, argv);
+  Kokkos::ScopeGuard guard(argc, argv);
 
   Kokkos::View<ArborX::Point *> cloud("point_cloud", 1000);
   Kokkos::parallel_for(1000, KOKKOS_LAMBDA(int i) {
@@ -94,8 +94,6 @@ int main(int argc, char *argv[])
 
   auto const box = bvh.bounds();
   std::cout << box.minCorner() << " - " << box.maxCorner() << '\n';
-
-  Kokkos::finalize();
 
   return 0;
 }
