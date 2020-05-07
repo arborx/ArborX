@@ -29,6 +29,14 @@ template <typename BVH, typename Predicates, typename Callback,
           typename Enable = void>
 struct TreeTraversal;
 
+template <typename ExecutionSpace, typename BVH, typename Predicates,
+          typename Callback>
+void traverse(ExecutionSpace const &space, BVH const &bvh,
+              Predicates const &predicates, Callback const &callback)
+{
+  TreeTraversal<BVH, Predicates, Callback>(space, bvh, predicates, callback);
+}
+
 template <typename BVH, typename Predicates, typename Callback>
 struct TreeTraversal<
     BVH, Predicates, Callback,
