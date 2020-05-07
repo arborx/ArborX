@@ -30,8 +30,6 @@ template <typename DeviceType>
 struct TreeTraversal
 {
 public:
-  using ExecutionSpace = typename DeviceType::execution_space;
-
   template <typename Predicate, typename... Args>
   KOKKOS_INLINE_FUNCTION static int
   query(BoundingVolumeHierarchy<typename DeviceType::memory_space, void> const
