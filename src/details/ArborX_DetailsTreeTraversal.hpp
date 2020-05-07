@@ -26,15 +26,13 @@ class BoundingVolumeHierarchy;
 
 namespace Details
 {
-template <typename DeviceType>
+template <typename BVH>
 struct TreeTraversal
 {
 public:
   template <typename Predicate, typename... Args>
-  KOKKOS_INLINE_FUNCTION static int
-  query(BoundingVolumeHierarchy<typename DeviceType::memory_space, void> const
-            &bvh,
-        Predicate const &pred, Args &&... args)
+  KOKKOS_INLINE_FUNCTION static int query(BVH const &bvh, Predicate const &pred,
+                                          Args &&... args)
   {
     using Tag = typename Predicate::Tag;
     return queryDispatch(Tag{}, bvh, pred, std::forward<Args>(args)...);
@@ -45,9 +43,7 @@ public:
   // documentation).
   template <typename Predicate, typename Insert>
   KOKKOS_FUNCTION static int
-  spatialQuery(BoundingVolumeHierarchy<typename DeviceType::memory_space,
-                                       void> const &bvh,
-               Predicate const &predicate, Insert const &insert)
+  spatialQuery(BVH const &bvh, Predicate const &predicate, Insert const &insert)
   {
     if (bvh.empty())
       return 0;
@@ -96,10 +92,8 @@ public:
   // query k nearest neighbours
   template <typename Distance, typename Insert, typename Buffer>
   KOKKOS_FUNCTION static int
-  nearestQuery(BoundingVolumeHierarchy<typename DeviceType::memory_space,
-                                       void> const &bvh,
-               Distance const &distance, std::size_t k, Insert const &insert,
-               Buffer const &buffer)
+  nearestQuery(BVH const &bvh, Distance const &distance, std::size_t k,
+               Insert const &insert, Buffer const &buffer)
   {
     if (bvh.empty() || k < 1)
       return 0;
@@ -220,10 +214,9 @@ public:
     // priority queue and that was deemed less performant than the newer
     // version with a stack.
     template <typename Distance, typename Insert>
-    KOKKOS_FUNCTION static int
-    nearestQuery(BoundingVolumeHierarchy<typename DeviceType::memory_space,
-                                         void> const &bvh,
-                 Distance const &distance, std::size_t k, Insert const &insert)
+    KOKKOS_FUNCTION static int nearestQuery(BVH const &bvh,
+                                            Distance const &distance,
+                                            std::size_t k, Insert const &insert)
     {
       if (bvh.empty() || k < 1)
         return 0;
@@ -284,20 +277,16 @@ public:
 
   template <typename Predicate, typename Insert>
   KOKKOS_INLINE_FUNCTION static int
-  queryDispatch(SpatialPredicateTag,
-                BoundingVolumeHierarchy<typename DeviceType::memory_space,
-                                        void> const &bvh,
-                Predicate const &pred, Insert const &insert)
+  queryDispatch(SpatialPredicateTag, BVH const &bvh, Predicate const &pred,
+                Insert const &insert)
   {
     return spatialQuery(bvh, pred, insert);
   }
 
   template <typename Predicate, typename Insert, typename Buffer>
-  KOKKOS_INLINE_FUNCTION static int queryDispatch(
-      NearestPredicateTag,
-      BoundingVolumeHierarchy<typename DeviceType::memory_space, void> const
-          &bvh,
-      Predicate const &pred, Insert const &insert, Buffer const &buffer)
+  KOKKOS_INLINE_FUNCTION static int
+  queryDispatch(NearestPredicateTag, BVH const &bvh, Predicate const &pred,
+                Insert const &insert, Buffer const &buffer)
   {
     auto const geometry = getGeometry(pred);
     auto const k = getK(pred);
@@ -313,10 +302,8 @@ public:
   // deprecated version of the nearest query.
   template <typename Predicate, typename Insert>
   KOKKOS_INLINE_FUNCTION static int
-  queryDispatch(NearestPredicateTag,
-                BoundingVolumeHierarchy<typename DeviceType::memory_space,
-                                        void> const &bvh,
-                Predicate const &pred, Insert const &insert)
+  queryDispatch(NearestPredicateTag, BVH const &bvh, Predicate const &pred,
+                Insert const &insert)
   {
     auto const geometry = getGeometry(pred);
     auto const k = getK(pred);
