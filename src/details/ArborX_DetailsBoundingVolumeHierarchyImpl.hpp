@@ -174,7 +174,7 @@ struct WrappedBVH
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
         KOKKOS_LAMBDA(int i) {
           auto const &predicate = Access::get(predicates, i);
-          ArborX::Details::TreeTraversal<DeviceType>::query(
+          ArborX::Details::TreeTraversal<BVH>::query(
               bvh, predicate, [&](int j) { callback(i, j); });
         });
   }
