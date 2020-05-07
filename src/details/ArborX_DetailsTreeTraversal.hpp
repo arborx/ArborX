@@ -58,26 +58,43 @@ struct TreeTraversal<
       , callback_{callback}
   {
     if (bvh_.empty())
-      return;
+    {
+      // do nothing
+    }
+    else if (bvh_.size() == 1)
+    {
+      Kokkos::parallel_for(
+          ARBORX_MARK_REGION("BVH:spatial_queries_degenerated_one_leaf_tree"),
+          Kokkos::RangePolicy<ExecutionSpace, OneLeafTree>(
+              space, 0, Access::size(predicates)),
+          *this);
+    }
+    else
+    {
+      Kokkos::parallel_for(ARBORX_MARK_REGION("BVH:spatial_queries"),
+                           Kokkos::RangePolicy<ExecutionSpace>(
+                               space, 0, Access::size(predicates)),
+                           *this);
+    }
+  }
 
-    Kokkos::parallel_for(
-        ARBORX_MARK_REGION("BVH:spatial_queries"),
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
-        *this);
+  struct OneLeafTree
+  {
+  };
+
+  KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
+  {
+    auto const &predicate = Access::get(predicates_, queryIndex);
+
+    if (predicate(bvh_.getBoundingVolume(bvh_.getRoot())))
+    {
+      callback_(queryIndex, 0);
+    }
   }
 
   KOKKOS_FUNCTION void operator()(int queryIndex) const
   {
     auto const &predicate = Access::get(predicates_, queryIndex);
-
-    if (bvh_.size() == 1)
-    {
-      if (predicate(bvh_.getBoundingVolume(bvh_.getRoot())))
-      {
-        callback_(queryIndex, 0);
-      }
-      return;
-    }
 
     Stack<Node const *> stack;
 
