@@ -97,18 +97,7 @@ struct WrappedBVH
   void operator()(ExecutionSpace const &space, Predicates const predicates,
                   Callback const &callback) const
   {
-    using Access =
-        ArborX::Traits::Access<Predicates, ArborX::Traits::PredicatesTag>;
-
-    auto const &bvh = bvh_; // workaround to avoid implicit capture of *this
-    Kokkos::parallel_for(
-        ARBORX_MARK_REGION("BVH:spatial_queries"),
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
-        KOKKOS_LAMBDA(int i) {
-          auto const &predicate = Access::get(predicates, i);
-          ArborX::Details::DeprecatedTreeTraversal<BVH>::query(
-              bvh, predicate, [&](int j) { callback(i, j); });
-        });
+    traverse(space, bvh_, predicates, callback);
   }
 };
 
