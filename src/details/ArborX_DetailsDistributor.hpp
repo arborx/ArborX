@@ -280,7 +280,8 @@ public:
                                 permute_size * i, permute_size * (i + 1))));
     }
     auto dest_buffer_mirror = Kokkos::create_mirror_view_and_copy(
-        typename ImportView::memory_space(), dest_buffer);
+        typename ImportView::memory_space(),
+        permutation_necessary ? dest_buffer : exports);
 
     int comm_rank;
     MPI_Comm_rank(_comm, &comm_rank);
@@ -313,9 +314,7 @@ public:
       auto const message_size =
           _dest_counts[i] * num_packets * sizeof(ValueType);
       auto const send_buffer_ptr =
-          permutation_necessary
-              ? dest_buffer_mirror.data() + _dest_offsets[i] * num_packets
-              : exports.data() + _dest_offsets[i] * num_packets;
+          dest_buffer_mirror.data() + _dest_offsets[i] * num_packets;
       if (_destinations[i] == comm_rank)
       {
         auto const it = std::find(_sources.begin(), _sources.end(), comm_rank);
