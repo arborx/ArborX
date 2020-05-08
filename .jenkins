@@ -18,12 +18,12 @@ pipeline {
     stages {
         stage('Build') {
             parallel {
-                stage('CUDA-10.1-NVCC-CUDA-AWARE-MPI') {
+                stage('CUDA-9.2-NVCC-CUDA-AWARE-MPI') {
                     agent {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.1-devel --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_SNB=ON -DKokkos_ARCH_VOLTA70=ON" --build-arg CUDA_AWARE_MPI=1'
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:9.2-devel --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_VOLTA70=ON" --build-arg CUDA_AWARE_MPI=1'
                             args '-v /tmp/ccache:/tmp/ccache'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
@@ -83,7 +83,7 @@ pipeline {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.2-devel --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_SNB=ON -DKokkos_ARCH_VOLTA70=ON"'
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.2-devel --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_VOLTA70=ON"'
                             args '-v /tmp/ccache:/tmp/ccache'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
@@ -137,12 +137,12 @@ pipeline {
                         }
                     }
                 }
-                stage('CUDA-9.2-Clang') {
+                stage('CUDA-10.0-Clang') {
                     agent {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:9.2-devel-ubuntu18.04 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_COMPILER=clang++ -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_SNB=ON -DKokkos_ARCH_VOLTA70=ON"'
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.0-devel-ubuntu18.04 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_COMPILER=clang++ -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_VOLTA70=ON"'
                             args '-v /tmp/ccache:/tmp/ccache'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
