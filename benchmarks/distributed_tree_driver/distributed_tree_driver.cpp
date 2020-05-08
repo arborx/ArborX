@@ -481,21 +481,18 @@ int main(int argc, char *argv[])
   // Strip "--help" and "--kokkos-help" from the flags passed to Kokkos if we
   // are not on MPI rank 0 to prevent Kokkos from printing the help message
   // multiply.
-  auto kokkos_argv = argv;
-  auto kokkos_argc = argc;
   if (comm_rank != 0)
   {
-    auto help_it = std::find_if(kokkos_argv, kokkos_argv + kokkos_argc,
-                                [](std::string const &x) {
-                                  return x == "--help" || x == "--kokkos-help";
-                                });
-    if (help_it != kokkos_argv + kokkos_argc)
+    auto help_it = std::find_if(argv, argv + argc, [](std::string const &x) {
+      return x == "--help" || x == "--kokkos-help";
+    });
+    if (help_it != argv + argc)
     {
-      std::swap(*help_it, *(kokkos_argv + kokkos_argc - 1));
-      --kokkos_argc;
+      std::swap(*help_it, *(argv + argc - 1));
+      --argc;
     }
   }
-  Kokkos::initialize(kokkos_argc, kokkos_argv);
+  Kokkos::initialize(argc, argv);
 
   bool success = true;
 
