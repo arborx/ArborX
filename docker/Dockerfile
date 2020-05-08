@@ -60,7 +60,6 @@ RUN LLVM_VERSION=7.0.1 && \
     mkdir -p ${LLVM_DIR} && \
     tar -xvf ${LLVM_ARCHIVE} -C ${LLVM_DIR} --strip-components=1 && \
     echo "${LLVM_DIR}/lib" > /etc/ld.so.conf.d/llvm.conf && ldconfig && \
-    rm -rf /root/.gnupg && \
     rm -rf ${SCRATCH_DIR}
 ENV PATH=${LLVM_DIR}/bin:$PATH
 
