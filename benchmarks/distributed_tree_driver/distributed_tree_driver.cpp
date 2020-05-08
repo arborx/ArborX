@@ -83,6 +83,7 @@ public:
     _data.emplace_back(std::move(name), 0.);
     return std::make_unique<Timer>(_data.back());
   }
+
   void summarize(MPI_Comm comm, std::ostream &os = std::cout)
   {
     int comm_size;
@@ -483,7 +484,7 @@ int main(int argc, char *argv[])
   // multiply.
   if (comm_rank != 0)
   {
-    auto help_it = std::find_if(argv, argv + argc, [](std::string const &x) {
+    auto *help_it = std::find_if(argv, argv + argc, [](std::string const &x) {
       return x == "--help" || x == "--kokkos-help";
     });
     if (help_it != argv + argc)
