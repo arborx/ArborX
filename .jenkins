@@ -11,16 +11,19 @@ pipeline {
         BENCHMARK_COLOR = 'no'
         BOOST_TEST_COLOR_OUTPUT = 'no'
         CTEST_OPTIONS = '--timeout 180 --no-compress-output -T Test --test-output-size-passed=65536 --test-output-size-failed=1048576'
+        OMP_NUM_THREADS = 8
+        OMP_PLACES = 'threads'
+        OMP_PROC_BIND = 'spread'
     }
     stages {
         stage('Build') {
             parallel {
-                stage('CUDA-10.1-NVCC-CUDA-AWARE-MPI') {
+                stage('CUDA-9.2-NVCC-CUDA-AWARE-MPI') {
                     agent {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.1-devel --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_SNB=ON -DKokkos_ARCH_VOLTA70=ON"'
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:9.2-devel-ubuntu18.04 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_VOLTA70=ON" --build-arg CUDA_AWARE_MPI=1'
                             args '-v /tmp/ccache:/tmp/ccache'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
@@ -39,11 +42,12 @@ pipeline {
                                     -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
-                                    -D ARBORX_ENABLE_TESTS=ON \
-                                    -D ARBORX_ENABLE_EXAMPLES=ON \
-                                    -D ARBORX_ENABLE_BENCHMARKS=ON \
+                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                    -D MPIEXEC_MAX_NUMPROCS=4 \
                                     -D ARBORX_USE_CUDA_AWARE_MPI=ON \
-                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                    -D ARBORX_ENABLE_TESTS=ON \
+                                    -D ARBORX_ENABLE_EXAMPLES=ON \
+                                    -D ARBORX_ENABLE_BENCHMARKS=ON \
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'
@@ -74,12 +78,12 @@ pipeline {
                         }
                     }
                 }
-                stage('CUDA-10.1-NVCC') {
+                stage('CUDA-10.2-NVCC') {
                     agent {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.1-devel --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_SNB=ON -DKokkos_ARCH_VOLTA70=ON"'
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.2-devel --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_VOLTA70=ON"'
                             args '-v /tmp/ccache:/tmp/ccache'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
@@ -98,10 +102,11 @@ pipeline {
                                     -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
+                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                    -D MPIEXEC_MAX_NUMPROCS=4 \
                                     -D ARBORX_ENABLE_TESTS=ON \
                                     -D ARBORX_ENABLE_EXAMPLES=ON \
                                     -D ARBORX_ENABLE_BENCHMARKS=ON \
-                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'
@@ -132,12 +137,12 @@ pipeline {
                         }
                     }
                 }
-                stage('CUDA-9.2-Clang') {
+                stage('CUDA-10.0-Clang') {
                     agent {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:9.2-devel-ubuntu18.04 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_COMPILER=clang++ -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_SNB=ON -DKokkos_ARCH_VOLTA70=ON"'
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.0-devel-ubuntu18.04 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_COMPILER=clang++ -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_VOLTA70=ON"'
                             args '-v /tmp/ccache:/tmp/ccache'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
@@ -155,7 +160,9 @@ pipeline {
                                     -D CMAKE_CXX_EXTENSIONS=OFF \
                                     -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
-                                    -D ARBORX_ENABLE_MPI=ON -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                    -D ARBORX_ENABLE_MPI=ON \
+                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                    -D MPIEXEC_MAX_NUMPROCS=4 \
                                     -D ARBORX_ENABLE_TESTS=ON \
                                     -D ARBORX_ENABLE_EXAMPLES=ON \
                                     -D ARBORX_ENABLE_BENCHMARKS=ON \
@@ -195,7 +202,7 @@ pipeline {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=ubuntu:18.04 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DCMAKE_CXX_COMPILER=clang++"'
+                            additionalBuildArgs '--build-arg BASE=ubuntu:18.04 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_OPENMP=ON -DCMAKE_CXX_COMPILER=clang++"'
                             args '-v /tmp/ccache:/tmp/ccache'
                             label 'docker'
                         }
@@ -211,13 +218,13 @@ pipeline {
                                     -D CMAKE_CXX_COMPILER=clang++ \
                                     -D CMAKE_CXX_EXTENSIONS=OFF \
                                     -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
-                                    -D CMAKE_CXX_CLANG_TIDY="$LLVM_DIR/bin/clang-tidy" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
+                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                    -D MPIEXEC_MAX_NUMPROCS=4 \
                                     -D ARBORX_ENABLE_TESTS=ON \
                                     -D ARBORX_ENABLE_EXAMPLES=ON \
                                     -D ARBORX_ENABLE_BENCHMARKS=ON \
-                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'
@@ -270,10 +277,11 @@ pipeline {
                                     -D CMAKE_CXX_FLAGS="-Minform=inform" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
+                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                    -D MPIEXEC_MAX_NUMPROCS=4 \
                                     -D ARBORX_ENABLE_TESTS=ON \
                                     -D ARBORX_ENABLE_EXAMPLES=ON \
                                     -D ARBORX_ENABLE_BENCHMARKS=ON \
-                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'

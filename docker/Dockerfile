@@ -23,8 +23,13 @@ RUN apt-get update && apt-get install -y \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Disable IPv6 (https://rvm.io/rvm/security#ipv6-issues)
-RUN mkdir -p ~/.gnupg && echo "disable-ipv6" >> ~/.gnupg/dirmngr.conf
+RUN KEYDUMP_URL=https://cloud.cees.ornl.gov/download && \
+    KEYDUMP_FILE=keydump && \
+    wget --quiet ${KEYDUMP_URL}/${KEYDUMP_FILE} && \
+    wget --quiet ${KEYDUMP_URL}/${KEYDUMP_FILE}.sig && \
+    gpg --import ${KEYDUMP_FILE} && \
+    gpg --verify ${KEYDUMP_FILE}.sig ${KEYDUMP_FILE} && \
+    rm ${KEYDUMP_FILE}*
 
 # Install CMake
 ENV CMAKE_DIR=/opt/cmake
@@ -36,7 +41,6 @@ RUN CMAKE_VERSION=3.13.4 && \
     wget --quiet ${CMAKE_URL}/${CMAKE_SHA256} && \
     wget --quiet ${CMAKE_URL}/${CMAKE_SHA256}.asc && \
     wget --quiet ${CMAKE_URL}/${CMAKE_SCRIPT} && \
-    gpg --recv-keys ${CMAKE_KEY} && \
     gpg --verify ${CMAKE_SHA256}.asc ${CMAKE_SHA256} && \
     grep ${CMAKE_SCRIPT} ${CMAKE_SHA256} | sha256sum --check && \
     mkdir -p ${CMAKE_DIR} && \
@@ -46,30 +50,29 @@ ENV PATH=${CMAKE_DIR}/bin:$PATH
 
 # Install Clang/LLVM
 ENV LLVM_DIR=/opt/llvm
-RUN LLVM_VERSION=7.0.1 && \
-    LLVM_KEY=86419D8A && \
-    LLVM_URL=http://releases.llvm.org/${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-18.04.tar.xz && \
+RUN LLVM_VERSION=10.0.0 && \
+    LLVM_KEY="86419D8A 345AD05D" && \
+    LLVM_URL=https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-18.04.tar.xz && \
     LLVM_ARCHIVE=llvm-${LLVM_VERSION}.tar.xz && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${LLVM_URL} --output-document=${LLVM_ARCHIVE} && \
     wget --quiet ${LLVM_URL}.sig --output-document=${LLVM_ARCHIVE}.sig && \
-    gpg --recv-keys ${LLVM_KEY} && \
     gpg --verify ${LLVM_ARCHIVE}.sig ${LLVM_ARCHIVE} && \
     mkdir -p ${LLVM_DIR} && \
     tar -xvf ${LLVM_ARCHIVE} -C ${LLVM_DIR} --strip-components=1 && \
     echo "${LLVM_DIR}/lib" > /etc/ld.so.conf.d/llvm.conf && ldconfig && \
-    rm -rf /root/.gnupg && \
     rm -rf ${SCRATCH_DIR}
 ENV PATH=${LLVM_DIR}/bin:$PATH
 
 # Install OpenMPI
+ARG CUDA_AWARE_MPI
 ENV OPENMPI_DIR=/opt/openmpi
-RUN OPENMPI_VERSION=3.1.3 && \
-    OPENMPI_VERSION_SHORT=3.1 && \
-    OPENMPI_SHA1=b3c60e2bdd5a8a8e758fd741f9a5bebb84da5e81 && \
+RUN OPENMPI_VERSION=4.0.3 && \
+    OPENMPI_VERSION_SHORT=$(echo "$OPENMPI_VERSION" | cut -d. -f1,2) && \
+    OPENMPI_SHA1=d958454e32da2c86dd32b7d557cf9a401f0a08d3 && \
     OPENMPI_URL=https://download.open-mpi.org/release/open-mpi/v${OPENMPI_VERSION_SHORT}/openmpi-${OPENMPI_VERSION}.tar.bz2 && \
     OPENMPI_ARCHIVE=openmpi-${OPENMPI_VERSION}.tar.bz2 && \
-    [ ! -z "${CUDA_VERSION}" ] && CUDA_OPTIONS=--with-cuda || true && \
+    CUDA_OPTIONS=${CUDA_AWARE_MPI:+--with-cuda} && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${OPENMPI_URL} --output-document=${OPENMPI_ARCHIVE} && \
     echo "${OPENMPI_SHA1} ${OPENMPI_ARCHIVE}" | sha1sum -c && \
@@ -93,7 +96,6 @@ RUN BOOST_VERSION=1.67.0 && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.asc && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json.asc && \
-    gpg --recv-keys ${BOOST_KEY} && \
     gpg --verify ${BOOST_ARCHIVE}.json.asc ${BOOST_ARCHIVE}.json && \
     gpg --verify ${BOOST_ARCHIVE}.asc ${BOOST_ARCHIVE} && \
     cat ${BOOST_ARCHIVE}.json | jq -r '. | .sha256 + "  " + .file' | sha256sum --check && \
