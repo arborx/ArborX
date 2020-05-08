@@ -50,9 +50,9 @@ ENV PATH=${CMAKE_DIR}/bin:$PATH
 
 # Install Clang/LLVM
 ENV LLVM_DIR=/opt/llvm
-RUN LLVM_VERSION=7.0.1 && \
+RUN LLVM_VERSION=10.0.0 && \
     LLVM_KEY=86419D8A && \
-    LLVM_URL=http://releases.llvm.org/${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-18.04.tar.xz && \
+    LLVM_URL=https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-18.04.tar.xz && \
     LLVM_ARCHIVE=llvm-${LLVM_VERSION}.tar.xz && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${LLVM_URL} --output-document=${LLVM_ARCHIVE} && \
