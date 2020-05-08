@@ -30,9 +30,6 @@ RUN KEYDUMP_URL=https://cloud.cees.ornl.gov/download && \
     gpg --import ${KEYDUMP_FILE} && \
     gpg --verify ${KEYDUMP_FILE}.sig ${KEYDUMP_FILE}
 
-# Disable IPv6 (https://rvm.io/rvm/security#ipv6-issues)
-RUN mkdir -p ~/.gnupg && echo "disable-ipv6" >> ~/.gnupg/dirmngr.conf
-
 # Install CMake
 ENV CMAKE_DIR=/opt/cmake
 RUN CMAKE_VERSION=3.13.4 && \
