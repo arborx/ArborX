@@ -43,7 +43,6 @@ RUN CMAKE_VERSION=3.13.4 && \
     wget --quiet ${CMAKE_URL}/${CMAKE_SHA256} && \
     wget --quiet ${CMAKE_URL}/${CMAKE_SHA256}.asc && \
     wget --quiet ${CMAKE_URL}/${CMAKE_SCRIPT} && \
-    gpg --recv-keys ${CMAKE_KEY} && \
     gpg --verify ${CMAKE_SHA256}.asc ${CMAKE_SHA256} && \
     grep ${CMAKE_SCRIPT} ${CMAKE_SHA256} | sha256sum --check && \
     mkdir -p ${CMAKE_DIR} && \
@@ -60,7 +59,6 @@ RUN LLVM_VERSION=7.0.1 && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${LLVM_URL} --output-document=${LLVM_ARCHIVE} && \
     wget --quiet ${LLVM_URL}.sig --output-document=${LLVM_ARCHIVE}.sig && \
-    gpg --recv-keys ${LLVM_KEY} && \
     gpg --verify ${LLVM_ARCHIVE}.sig ${LLVM_ARCHIVE} && \
     mkdir -p ${LLVM_DIR} && \
     tar -xvf ${LLVM_ARCHIVE} -C ${LLVM_DIR} --strip-components=1 && \
@@ -101,7 +99,6 @@ RUN BOOST_VERSION=1.67.0 && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.asc && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json.asc && \
-    gpg --recv-keys ${BOOST_KEY} && \
     gpg --verify ${BOOST_ARCHIVE}.json.asc ${BOOST_ARCHIVE}.json && \
     gpg --verify ${BOOST_ARCHIVE}.asc ${BOOST_ARCHIVE} && \
     cat ${BOOST_ARCHIVE}.json | jq -r '. | .sha256 + "  " + .file' | sha256sum --check && \
