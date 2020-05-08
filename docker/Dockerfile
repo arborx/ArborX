@@ -28,7 +28,8 @@ RUN KEYDUMP_URL=https://cloud.cees.ornl.gov/download && \
     wget --quiet ${KEYDUMP_URL}/${KEYDUMP_FILE} && \
     wget --quiet ${KEYDUMP_URL}/${KEYDUMP_FILE}.sig && \
     gpg --import ${KEYDUMP_FILE} && \
-    gpg --verify ${KEYDUMP_FILE}.sig ${KEYDUMP_FILE}
+    gpg --verify ${KEYDUMP_FILE}.sig ${KEYDUMP_FILE} && \
+    rm ${KEYDUMP_FILE}*
 
 # Install CMake
 ENV CMAKE_DIR=/opt/cmake
