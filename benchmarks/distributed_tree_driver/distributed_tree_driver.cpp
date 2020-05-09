@@ -529,6 +529,9 @@ int main(int argc, char *argv[])
       std::cout << desc << '\n';
     }
 
+    if (node != "serial" && node != "openmp" && node != "cuda")
+      throw std::runtime_error("Unrecognized node type: \"" + node + "\"");
+
     if (node == "serial")
     {
 #ifdef KOKKOS_ENABLE_SERIAL
@@ -538,7 +541,7 @@ int main(int argc, char *argv[])
       throw std::runtime_error("Serial node type is disabled");
 #endif
     }
-    else if (node == "openmp")
+    if (node == "openmp")
     {
 #ifdef KOKKOS_ENABLE_OPENMP
       using Node = Kokkos::OpenMP;
@@ -547,7 +550,7 @@ int main(int argc, char *argv[])
       throw std::runtime_error("OpenMP node type is disabled");
 #endif
     }
-    else if (node == "cuda")
+    if (node == "cuda")
     {
 #ifdef KOKKOS_ENABLE_CUDA
       using Node = Kokkos::Device<Kokkos::Cuda, Kokkos::CudaSpace>;
@@ -555,10 +558,6 @@ int main(int argc, char *argv[])
 #else
       throw std::runtime_error("CUDA node type is disabled");
 #endif
-    }
-    else
-    {
-      throw std::runtime_error("Unrecognized node type");
     }
   }
   catch (HelpPrinted const &)
