@@ -33,7 +33,9 @@ std::vector<ArborX::Point> parsePoints(std::string const &filename,
   ARBORX_ASSERT(input.good());
 
   int num_points = 0;
-  std::vector<float> x, y, z;
+  std::vector<float> x;
+  std::vector<float> y;
+  std::vector<float> z;
   if (!binary)
   {
     input >> num_points;
@@ -101,7 +103,10 @@ int main(int argc, char *argv[])
   namespace bpo = boost::program_options;
 
   std::string filename;
-  bool binary, verify, print_halo_timers, print_sizes_centers;
+  bool binary;
+  bool verify;
+  bool print_halo_timers;
+  bool print_sizes_centers;
   float linking_length;
   int min_size;
 
@@ -122,7 +127,7 @@ int main(int argc, char *argv[])
   bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
   bpo::notify(vm);
 
-  if (vm.count("help"))
+  if (vm.count("help") > 0)
   {
     std::cout << desc << '\n';
     return 1;
