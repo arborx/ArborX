@@ -255,7 +255,7 @@ public:
 
   ~CmdLineArgs()
   {
-    for (auto p : _owner_ptrs)
+    for (auto *p : _owner_ptrs)
     {
       delete[] p;
     }

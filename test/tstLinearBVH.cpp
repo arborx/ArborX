@@ -798,20 +798,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
 
   Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes("bounding_boxes", n);
-  Kokkos::parallel_for("fill_bounding_boxes",
-                       Kokkos::RangePolicy<ExecutionSpace>(0, nx),
-                       KOKKOS_LAMBDA(int i) {
-                         [[gnu::unused]] double x, y, z;
-                         for (int j = 0; j < ny; ++j)
-                           for (int k = 0; k < nz; ++k)
-                           {
-                             x = i * Lx / (nx - 1);
-                             y = j * Ly / (ny - 1);
-                             z = k * Lz / (nz - 1);
-                             bounding_boxes[i + j * nx + k * (nx * ny)] = {
-                                 {{x, y, z}}, {{x, y, z}}};
-                           }
-                       });
+  Kokkos::parallel_for(
+      "fill_bounding_boxes", Kokkos::RangePolicy<ExecutionSpace>(0, nx),
+      KOKKOS_LAMBDA(int i) {
+        for (int j = 0; j < ny; ++j)
+          for (int k = 0; k < nz; ++k)
+          {
+            ArborX::Point p{
+                {i * Lx / (nx - 1), j * Ly / (ny - 1), k * Lz / (nz - 1)}};
+            bounding_boxes[i + j * nx + k * (nx * ny)] = {p, p};
+          }
+      });
 
   ArborX::BVH<DeviceType> bvh(bounding_boxes);
 
@@ -1027,15 +1024,12 @@ make_stuctured_cloud(double Lx, double Ly, double Lz, int nx, int ny, int nz)
   std::function<int(int, int, int)> ind = [nx, ny](int i, int j, int k) {
     return i + j * nx + k * (nx * ny);
   };
-  double x, y, z;
   for (int i = 0; i < nx; ++i)
     for (int j = 0; j < ny; ++j)
       for (int k = 0; k < nz; ++k)
       {
-        x = i * Lx / (nx - 1);
-        y = j * Ly / (ny - 1);
-        z = k * Lz / (nz - 1);
-        cloud[ind(i, j, k)] = {{x, y, z}};
+        cloud[ind(i, j, k)] = {
+            {i * Lx / (nx - 1), j * Ly / (ny - 1), k * Lz / (nz - 1)}};
       }
   return cloud;
 }
