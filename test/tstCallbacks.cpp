@@ -12,17 +12,15 @@ struct SpatialPredicates
 
 namespace ArborX
 {
-namespace Traits
-{
 template <>
-struct Access<NearestPredicates, PredicatesTag>
+struct AccessTraits<NearestPredicates, PredicatesTag>
 {
   using memory_space = Kokkos::HostSpace;
   static int size(NearestPredicates const &) { return 1; }
   static auto get(NearestPredicates const &, int) { return nearest(Point{}); }
 };
 template <>
-struct Access<SpatialPredicates, PredicatesTag>
+struct AccessTraits<SpatialPredicates, PredicatesTag>
 {
   using memory_space = Kokkos::HostSpace;
   static int size(SpatialPredicates const &) { return 1; }
@@ -31,7 +29,6 @@ struct Access<SpatialPredicates, PredicatesTag>
     return intersects(Point{});
   }
 };
-} // namespace Traits
 } // namespace ArborX
 
 // Custom callbacks
