@@ -164,13 +164,15 @@ namespace Traits
 {
 using ::ArborX::PredicatesTag;
 using ::ArborX::PrimitivesTag;
-// NOTE it is actually a breaking change in user code :/
-// error: cannot specialize a dependent template
 template <typename T, typename Tag, typename Enable = void>
-using Access = ::ArborX::AccessTraits<T, Tag, Enable>;
-template <typename Traits>
-using Helper = ::ArborX::Details::Helper<Traits>;
+struct Access;
 } // namespace Traits
+template <typename T, typename Tag>
+struct AccessTraits<
+    T, Tag, std::enable_if_t<Details::is_complete<Traits::Access<T, Tag>>{}>>
+    : Traits::Access<T, Tag>
+{
+};
 } // namespace ArborX
 
 #endif
