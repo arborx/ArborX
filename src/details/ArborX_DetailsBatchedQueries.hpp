@@ -64,7 +64,7 @@ public:
                               Kokkos::View<Box const, DeviceType> bounds,
                               Predicates const &predicates)
   {
-    using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+    using Access = AccessTraits<Predicates, PredicatesTag>;
     auto const n_queries = Access::size(predicates);
 
     Kokkos::View<unsigned int *, DeviceType> morton_codes(
@@ -91,12 +91,10 @@ public:
                    Kokkos::View<unsigned int const *, DeviceType> permute,
                    Predicates const &v)
       -> Kokkos::View<
-          std::decay_t<
-              decltype(Traits::Access<Predicates, Traits::PredicatesTag>::get(
-                  std::declval<Predicates const &>(), std::declval<int>()))> *,
+          typename Helper<AccessTraits<Predicates, PredicatesTag>>::type *,
           DeviceType>
   {
-    using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+    using Access = AccessTraits<Predicates, PredicatesTag>;
     auto const n = Access::size(v);
     ARBORX_ASSERT(permute.extent(0) == n);
 

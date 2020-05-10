@@ -101,9 +101,9 @@ void check_valid_callback(Callback const &, Predicates const &,
                     std::is_same<CallbackTag, PostCallbackTag>{},
                 "Tag must be either 'InlineCallbackTag' or 'PostCallbackTag'");
 
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-  using PredicateTag = typename Traits::Helper<Access>::tag;
-  using Predicate = typename Traits::Helper<Access>::type;
+  using Access = AccessTraits<Predicates, PredicatesTag>;
+  using PredicateTag = typename Helper<Access>::tag;
+  using Predicate = typename Helper<Access>::type;
 
   // FIXME
   constexpr bool short_circuit = std::is_same<CallbackTag, PostCallbackTag>{};

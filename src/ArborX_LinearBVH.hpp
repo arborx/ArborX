@@ -61,8 +61,8 @@ public:
              CallbackOrView &&callback_or_view, View &&view,
              Args &&... args) const
   {
-    Details::check_valid_access_traits(Traits::PredicatesTag{}, predicates);
-    using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+    Details::check_valid_access_traits(PredicatesTag{}, predicates);
+    using Access = AccessTraits<Predicates, PredicatesTag>;
     static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                                 ExecutionSpace>::value,
                   "Predicates must be accessible from the execution space");
@@ -70,7 +70,7 @@ public:
     Details::check_valid_callback_if_first_argument_is_not_a_view(
         callback_or_view, predicates, view);
 
-    using Tag = typename Traits::Helper<Access>::tag;
+    using Tag = typename Details::Helper<Access>::tag;
 
     Details::BoundingVolumeHierarchyImpl::queryDispatch(
         Tag{}, *this, space, predicates,
@@ -154,15 +154,15 @@ template <typename MemorySpace, typename Enable>
 template <typename ExecutionSpace, typename Primitives>
 BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
     ExecutionSpace const &space, Primitives const &primitives)
-    : _size(Traits::Access<Primitives, Traits::PrimitivesTag>::size(primitives))
+    : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
     , _internal_and_leaf_nodes(
           Kokkos::ViewAllocateWithoutInitializing("internal_and_leaf_nodes"),
           _size > 0 ? 2 * _size - 1 : 0)
 {
   Kokkos::Profiling::pushRegion("ArborX:BVH:construction");
 
-  Details::check_valid_access_traits(Traits::PrimitivesTag{}, primitives);
-  using Access = Traits::Access<Primitives, Traits::PrimitivesTag>;
+  Details::check_valid_access_traits(PrimitivesTag{}, primitives);
+  using Access = AccessTraits<Primitives, PrimitivesTag>;
   static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                               ExecutionSpace>::value,
                 "Primitives must be accessible from the execution space");
