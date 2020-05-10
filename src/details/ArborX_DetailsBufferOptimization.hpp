@@ -33,18 +33,62 @@ struct SecondPassTag
 {
 };
 
-template <typename Tag, typename Predicates, typename Callback,
-          typename OutputView, typename CountView, typename OffsetView>
+template <typename Predicates, typename CountView, typename OffsetView>
+struct WrappedPredicates
+{
+  using predicates_type = Predicates;
+
+  Predicates _predicates;
+  CountView _counts;
+  OffsetView _offset;
+};
+
+} // namespace Details
+
+namespace Traits
+{
+template <typename Predicates, typename CountView, typename OffsetView>
+struct Access<Details::WrappedPredicates<Predicates, CountView, OffsetView>,
+              PredicatesTag>
+{
+  using WrappedPredicates =
+      Details::WrappedPredicates<Predicates, CountView, OffsetView>;
+
+  using NativeAccess = Access<Predicates, PredicatesTag>;
+
+  inline static std::size_t size(WrappedPredicates const &wrapped_predicates)
+  {
+    return NativeAccess::size(wrapped_predicates._predicates);
+  }
+
+  KOKKOS_INLINE_FUNCTION static auto
+  get(WrappedPredicates const &wrapped_predicates, std::size_t i)
+  {
+    return attach(NativeAccess::get(wrapped_predicates._predicates, i),
+                  Kokkos::make_pair(wrapped_predicates._counts.data() + i,
+                                    wrapped_predicates._offset.data() + i));
+  }
+  using memory_space = typename NativeAccess::memory_space;
+};
+} // namespace Traits
+
+namespace Details
+{
+
+template <typename Tag, typename WrappedPredicatesType, typename Callback,
+          typename OutputView>
 struct InsertGenerator
 {
-  Predicates predicates_;
-  Callback callback_;
-  OutputView out_;
-  CountView counts_;
-  OffsetView offset_;
+  using Predicates = typename WrappedPredicatesType::predicates_type;
+  Predicates _predicates;
+  WrappedPredicatesType _wrapped_predicates;
+  Callback _callback;
+  OutputView _out;
 
   using ValueType = typename OutputView::value_type;
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  using WrappedAccess =
+      Traits::Access<WrappedPredicatesType, Traits::PredicatesTag>;
 
   template <typename U = Tag>
   KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, FirstPassTag>::value>
@@ -53,13 +97,20 @@ struct InsertGenerator
     int i = primitive_index;
     int j = predicate_index;
 
-    if (offset_(j) + counts_(j) < offset_(j + 1))
-      callback_(Access::get(predicates_, j), i, [&](ValueType const &value) {
-        out_(offset_(j) + Kokkos::atomic_fetch_add(&counts_(j), 1)) = value;
+    auto data = getData(WrappedAccess::get(_wrapped_predicates, j));
+    auto *count_ptr = data.first;
+    auto *offset_ptr = data.second;
+
+    auto offset = *offset_ptr;
+    auto offset_next = *(offset_ptr + 1);
+
+    if (offset + *count_ptr < offset_next)
+      _callback(Access::get(_predicates, j), i, [&](ValueType const &value) {
+        _out(offset + Kokkos::atomic_fetch_add(count_ptr, 1)) = value;
       });
     else
-      callback_(Access::get(predicates_, j), i, [&](ValueType const &) {
-        Kokkos::atomic_fetch_add(&counts_(j), 1);
+      _callback(Access::get(_predicates, j), i, [&](ValueType const &) {
+        Kokkos::atomic_fetch_add(count_ptr, 1);
       });
   }
 
@@ -71,8 +122,11 @@ struct InsertGenerator
     int i = primitive_index;
     int j = predicate_index;
 
-    callback_(Access::get(predicates_, j), i, [&](ValueType const &) {
-      Kokkos::atomic_fetch_add(&counts_(j), 1);
+    auto data = getData(WrappedAccess::get(_wrapped_predicates, j));
+    auto *count_ptr = data.first;
+
+    _callback(Access::get(_predicates, j), i, [&](ValueType const &) {
+      Kokkos::atomic_fetch_add(count_ptr, 1);
     });
   }
 
@@ -83,8 +137,14 @@ struct InsertGenerator
     int i = primitive_index;
     int j = predicate_index;
 
-    callback_(Access::get(predicates_, j), i, [&](ValueType const &value) {
-      out_(offset_(j) + Kokkos::atomic_fetch_add(&counts_(j), 1)) = value;
+    auto data = getData(WrappedAccess::get(_wrapped_predicates, j));
+    auto *count_ptr = data.first;
+    auto *offset_ptr = data.second;
+
+    auto offset = *offset_ptr;
+
+    _callback(Access::get(_predicates, j), i, [&](ValueType const &value) {
+      _out(offset + Kokkos::atomic_fetch_add(count_ptr, 1)) = value;
     });
   }
 };
@@ -109,6 +169,10 @@ void spatialQueryImpl(ExecutionSpace const &space,
   using CountView = OffsetView;
   CountView counts(Kokkos::view_alloc("counts", space), n_queries);
 
+  using WrappedPredicatesType =
+      WrappedPredicates<Predicates, CountView, OffsetView>;
+  WrappedPredicatesType wrapped_predicates{predicates, counts, offset};
+
   if (buffer_size > 0)
   {
     Kokkos::deep_copy(space, offset, buffer_size); // FIXME
@@ -118,17 +182,17 @@ void spatialQueryImpl(ExecutionSpace const &space,
     // NOTE I considered filling with invalid indices but it is unecessary work
 
     tree_traversal.launch(space, predicates,
-                          InsertGenerator<FirstPassTag, Predicates, Callback,
-                                          OutputView, CountView, OffsetView>{
-                              predicates, callback, out, counts, offset});
+                          InsertGenerator<FirstPassTag, WrappedPredicatesType,
+                                          Callback, OutputView>{
+                              predicates, wrapped_predicates, callback, out});
   }
   else
   {
     tree_traversal.launch(
-        space, predicates,
-        InsertGenerator<FirstPassNoBufferOptimizationTag, Predicates, Callback,
-                        OutputView, CountView, OffsetView>{
-            predicates, callback, out, counts, offset});
+        space, wrapped_predicates,
+        InsertGenerator<FirstPassNoBufferOptimizationTag, WrappedPredicatesType,
+                        Callback, OutputView>{predicates, wrapped_predicates,
+                                              callback, out});
   }
 
   // NOTE max() internally calls Kokkos::parallel_reduce.  Only pay for it if
@@ -162,10 +226,10 @@ void spatialQueryImpl(ExecutionSpace const &space,
 
     Kokkos::deep_copy(space, counts, 0); // FIXME
 
-    tree_traversal.launch(space, predicates,
-                          InsertGenerator<SecondPassTag, Predicates, Callback,
-                                          OutputView, CountView, OffsetView>{
-                              predicates, callback, out, counts, offset});
+    tree_traversal.launch(space, wrapped_predicates,
+                          InsertGenerator<SecondPassTag, WrappedPredicatesType,
+                                          Callback, OutputView>{
+                              predicates, wrapped_predicates, callback, out});
   }
   // do not copy if by some miracle each query exactly yielded as many results
   // as the buffer size
