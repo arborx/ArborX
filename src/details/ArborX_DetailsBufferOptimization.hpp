@@ -106,11 +106,12 @@ struct InsertGenerator
 
     if (offset + *count_ptr < offset_next)
       _callback(Access::get(_predicates, j), i, [&](ValueType const &value) {
-        _out(offset + (*count_ptr)++) = value;
+        _out(offset + Kokkos::atomic_fetch_add(count_ptr, 1)) = value;
       });
     else
-      _callback(Access::get(_predicates, j), i,
-                [&](ValueType const &) { (*count_ptr)++; });
+      _callback(Access::get(_predicates, j), i, [&](ValueType const &) {
+        Kokkos::atomic_fetch_add(count_ptr, 1);
+      });
   }
 
   template <typename U = Tag>
@@ -124,8 +125,9 @@ struct InsertGenerator
     auto data = getData(WrappedAccess::get(_wrapped_predicates, j));
     auto *count_ptr = data.first;
 
-    _callback(Access::get(_predicates, j), i,
-              [&](ValueType const &) { (*count_ptr)++; });
+    _callback(Access::get(_predicates, j), i, [&](ValueType const &) {
+      Kokkos::atomic_fetch_add(count_ptr, 1);
+    });
   }
 
   template <typename U = Tag>
@@ -142,7 +144,7 @@ struct InsertGenerator
     auto offset = *offset_ptr;
 
     _callback(Access::get(_predicates, j), i, [&](ValueType const &value) {
-      _out(offset + (*count_ptr)++) = value;
+      _out(offset + Kokkos::atomic_fetch_add(count_ptr, 1)) = value;
     });
   }
 };
