@@ -1,5 +1,3 @@
-set(ArborX_TARGET ArborX)
-
 add_executable(ArborX_HaloFinder.exe halo_finder.cpp)
 target_include_directories(ArborX_HaloFinder.exe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ArborX_HaloFinder.exe ${ArborX_TARGET} Boost::program_options)
