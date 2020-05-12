@@ -126,6 +126,8 @@ bool verifyCC(ExecutionSpace exec_space, IndicesView indices, OffsetView offset,
         {
           if (ccs(i) != ccs(indices(j)))
           {
+            // Would like to do fprintf(stderr, ...), but fprintf is __host__
+            // function in CUDA
             printf("Non-matching cc indices: %d [%d] -> %d [%d]\n", i, ccs(i),
                    indices(j), ccs(indices(j)));
             update++;
@@ -179,12 +181,12 @@ bool verifyCC(ExecutionSpace exec_space, IndicesView indices, OffsetView offset,
   {
     // FIXME: Not sure how we can get here, but it was in the original verify
     // check in ECL
-    std::cout << "Number of components does not match" << std::endl;
+    std::cerr << "Number of components does not match" << std::endl;
     return false;
   }
   if (num_ccs != num_unique_cc_indices)
   {
-    std::cout << "Component IDs are not unique" << std::endl;
+    std::cerr << "Component IDs are not unique" << std::endl;
     return false;
   }
 
@@ -220,7 +222,7 @@ struct CCSCallback
   // vertex that is in the middle of a path. If the find_repres code already
   // sees the new representative, it will return it. Otherwise, it will return
   // the old representative. Either return value is handled correctly.
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
   int representative(int const i) const
   {
     // ##### ECL license (see LICENSE.ECL) #####
@@ -312,26 +314,26 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
 {
   static_assert(Kokkos::is_view<HalosIndicesView>{}, "");
   static_assert(Kokkos::is_view<HalosOffsetView>{}, "");
-  static_assert(std::is_same<typename HalosIndicesView::value_type, int>::value,
-                "");
-  static_assert(std::is_same<typename HalosOffsetView::value_type, int>::value,
-                "");
+  static_assert(std::is_same<typename HalosIndicesView::value_type, int>{}, "");
+  static_assert(std::is_same<typename HalosOffsetView::value_type, int>{}, "");
 
   using MemorySpace = typename Primitives::memory_space;
   static_assert(
-      std::is_same<typename HalosIndicesView::memory_space, MemorySpace>::value,
-      "");
+      std::is_same<typename HalosIndicesView::memory_space, MemorySpace>{}, "");
   static_assert(
-      std::is_same<typename HalosOffsetView::memory_space, MemorySpace>::value,
-      "");
+      std::is_same<typename HalosOffsetView::memory_space, MemorySpace>{}, "");
 
   Kokkos::Profiling::pushRegion("ArborX:HaloFinder");
 
   using clock = std::chrono::high_resolution_clock;
 
-  clock::time_point start_total, start;
-  std::chrono::duration<double> elapsed_construction, elapsed_query,
-      elapsed_halos, elapsed_total, elapsed_verify = clock::duration::zero();
+  clock::time_point start_total;
+  clock::time_point start;
+  std::chrono::duration<double> elapsed_construction;
+  std::chrono::duration<double> elapsed_query;
+  std::chrono::duration<double> elapsed_halos;
+  std::chrono::duration<double> elapsed_total;
+  std::chrono::duration<double> elapsed_verify = clock::duration::zero();
 
   start_total = clock::now();
 
@@ -419,25 +421,27 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
   // the same (this indicates that this CC is at least of min_size size). If
   // those are true, we do a linear search from i + min_size till next CC
   // index change to find the CC size.
-  Kokkos::parallel_scan(ARBORX_MARK_REGION("compute_halos_starts_and_sizes"),
-                        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-                        KOKKOS_LAMBDA(int i, int &update, bool final_pass) {
-                          if ((i + min_size - 1 < n) &&
-                              (i == 0 || ccs(i) != ccs(i - 1)) &&
-                              (ccs(i + min_size - 1) == ccs(i)))
-                          {
-                            if (final_pass)
-                            {
-                              halos_starts(update) = i;
-                              int end = i + min_size - 1;
-                              while (++end < n && ccs(end) == ccs(i))
-                                ; // do nothing
-                              halos_offset(update) = end - i;
-                            }
-                            ++update;
-                          }
-                        },
-                        num_halos);
+  Kokkos::parallel_scan(
+      ARBORX_MARK_REGION("compute_halos_starts_and_sizes"),
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+      KOKKOS_LAMBDA(int i, int &update, bool final_pass) {
+        bool const is_cc_first_index = (i == 0 || ccs(i) != ccs(i - 1));
+        bool const is_cc_large_enough =
+            ((i + min_size - 1 < n) && (ccs(i + min_size - 1) == ccs(i)));
+        if (is_cc_first_index && is_cc_large_enough)
+        {
+          if (final_pass)
+          {
+            halos_starts(update) = i;
+            int end = i + min_size - 1;
+            while (++end < n && ccs(end) == ccs(i))
+              ; // do nothing
+            halos_offset(update) = end - i;
+          }
+          ++update;
+        }
+      },
+      num_halos);
   Kokkos::resize(halos_offset, num_halos + 1);
   exclusivePrefixSum(exec_space, halos_offset);
 

@@ -87,15 +87,7 @@ auto vec2view(std::vector<T> const &in, std::string const &label = "")
 
 int main(int argc, char *argv[])
 {
-#if defined(KOKKOS_ENABLE_CUDA)
-  using ExecutionSpace = Kokkos::Cuda;
-#elif defined(KOKKOS_ENABLE_OPENMP)
-  using ExecutionSpace = Kokkos::OpenMP;
-#elif defined(KOKKOS_ENABLE_SERIAL)
-  using ExecutionSpace = Kokkos::Serial;
-#else
-#error "No available Kokkos backend"
-#endif
+  using ExecutionSpace = Kokkos::DefaultExecutionSpace;
   using MemorySpace = typename ExecutionSpace::memory_space;
 
   Kokkos::ScopeGuard guard(argc, argv);
@@ -137,8 +129,8 @@ int main(int argc, char *argv[])
   std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
 
   // read in data
-  auto const points = parsePoints(filename, binary);
-  auto const primitives = vec2view<MemorySpace>(points, "primitives");
+  auto const primitives =
+      vec2view<MemorySpace>(parsePoints(filename, binary), "primitives");
 
   ExecutionSpace exec_space;
 
