@@ -34,7 +34,7 @@ struct SecondPassTag
 };
 
 template <typename Predicates, typename CountView, typename OffsetView>
-struct WrappedPredicates
+struct PredicatesWithCountsAndOffsets
 {
   using predicates_type = Predicates;
 
@@ -43,16 +43,27 @@ struct WrappedPredicates
   OffsetView _offset;
 };
 
+template <typename Predicates, typename CountView>
+struct PredicatesWithCounts
+{
+  using predicates_type = Predicates;
+
+  Predicates _predicates;
+  CountView _counts;
+};
+
 } // namespace Details
 
 namespace Traits
 {
 template <typename Predicates, typename CountView, typename OffsetView>
-struct Access<Details::WrappedPredicates<Predicates, CountView, OffsetView>,
-              PredicatesTag>
+struct Access<
+    Details::PredicatesWithCountsAndOffsets<Predicates, CountView, OffsetView>,
+    PredicatesTag>
 {
   using WrappedPredicates =
-      Details::WrappedPredicates<Predicates, CountView, OffsetView>;
+      Details::PredicatesWithCountsAndOffsets<Predicates, CountView,
+                                              OffsetView>;
 
   using NativeAccess = Access<Predicates, PredicatesTag>;
 
@@ -67,6 +78,28 @@ struct Access<Details::WrappedPredicates<Predicates, CountView, OffsetView>,
     return attach(NativeAccess::get(wrapped_predicates._predicates, i),
                   Kokkos::make_pair(wrapped_predicates._counts.data() + i,
                                     wrapped_predicates._offset.data() + i));
+  }
+  using memory_space = typename NativeAccess::memory_space;
+};
+template <typename Predicates, typename CountView>
+struct Access<Details::PredicatesWithCounts<Predicates, CountView>,
+              PredicatesTag>
+{
+  using WrappedPredicates =
+      Details::PredicatesWithCounts<Predicates, CountView>;
+
+  using NativeAccess = Access<Predicates, PredicatesTag>;
+
+  inline static std::size_t size(WrappedPredicates const &wrapped_predicates)
+  {
+    return NativeAccess::size(wrapped_predicates._predicates);
+  }
+
+  KOKKOS_INLINE_FUNCTION static auto
+  get(WrappedPredicates const &wrapped_predicates, std::size_t i)
+  {
+    return attach(NativeAccess::get(wrapped_predicates._predicates, i),
+                  wrapped_predicates._counts.data() + i);
   }
   using memory_space = typename NativeAccess::memory_space;
 };
@@ -104,6 +137,8 @@ struct InsertGenerator
     auto offset = *offset_ptr;
     auto offset_next = *(offset_ptr + 1);
 
+    // FIXME: race condition here, counts could be read but then incremented by
+    // a different thread
     if (offset + *count_ptr < offset_next)
       _callback(Access::get(_predicates, j), i, [&](ValueType const &value) {
         _out(offset + Kokkos::atomic_fetch_add(count_ptr, 1)) = value;
@@ -122,8 +157,7 @@ struct InsertGenerator
     int i = primitive_index;
     int j = predicate_index;
 
-    auto data = getData(WrappedAccess::get(_wrapped_predicates, j));
-    auto *count_ptr = data.first;
+    auto *count_ptr = getData(WrappedAccess::get(_wrapped_predicates, j));
 
     _callback(Access::get(_predicates, j), i, [&](ValueType const &) {
       Kokkos::atomic_fetch_add(count_ptr, 1);
@@ -137,14 +171,10 @@ struct InsertGenerator
     int i = primitive_index;
     int j = predicate_index;
 
-    auto data = getData(WrappedAccess::get(_wrapped_predicates, j));
-    auto *count_ptr = data.first;
-    auto *offset_ptr = data.second;
-
-    auto offset = *offset_ptr;
+    auto *offset_ptr = getData(WrappedAccess::get(_wrapped_predicates, j));
 
     _callback(Access::get(_predicates, j), i, [&](ValueType const &value) {
-      _out(offset + Kokkos::atomic_fetch_add(count_ptr, 1)) = value;
+      _out(Kokkos::atomic_fetch_add(offset_ptr, 1)) = value;
     });
   }
 };
@@ -167,11 +197,13 @@ void spatialQueryImpl(ExecutionSpace const &space,
   reallocWithoutInitializing(offset, n_queries + 1);
 
   using CountView = OffsetView;
-  CountView counts(Kokkos::view_alloc("counts", space), n_queries);
+  CountView counts(Kokkos::view_alloc("counts", space), n_queries + 1);
 
-  using WrappedPredicatesType =
-      WrappedPredicates<Predicates, CountView, OffsetView>;
-  WrappedPredicatesType wrapped_predicates{predicates, counts, offset};
+  using Predicates1 = PredicatesWithCounts<Predicates, CountView>;
+  using Predicates2 =
+      PredicatesWithCountsAndOffsets<Predicates, CountView, OffsetView>;
+  Predicates1 predicates1 = {predicates, counts};
+  Predicates2 predicates2 = {predicates, counts, offset};
 
   if (buffer_size > 0)
   {
@@ -181,18 +213,17 @@ void spatialQueryImpl(ExecutionSpace const &space,
     reallocWithoutInitializing(out, n_queries * buffer_size);
     // NOTE I considered filling with invalid indices but it is unecessary work
 
-    tree_traversal.launch(space, predicates,
-                          InsertGenerator<FirstPassTag, WrappedPredicatesType,
-                                          Callback, OutputView>{
-                              predicates, wrapped_predicates, callback, out});
+    tree_traversal.launch(
+        space, predicates2,
+        InsertGenerator<FirstPassTag, Predicates2, Callback, OutputView>{
+            predicates, predicates2, callback, out});
   }
   else
   {
     tree_traversal.launch(
-        space, wrapped_predicates,
-        InsertGenerator<FirstPassNoBufferOptimizationTag, WrappedPredicatesType,
-                        Callback, OutputView>{predicates, wrapped_predicates,
-                                              callback, out});
+        space, predicates1,
+        InsertGenerator<FirstPassNoBufferOptimizationTag, Predicates1, Callback,
+                        OutputView>{predicates, predicates1, callback, out});
   }
 
   // NOTE max() internally calls Kokkos::parallel_reduce.  Only pay for it if
@@ -204,9 +235,8 @@ void spatialQueryImpl(ExecutionSpace const &space,
           : std::numeric_limits<typename std::remove_reference<decltype(
                 offset)>::type::value_type>::max();
 
-  Kokkos::deep_copy(
-      space, subview(offset, Kokkos::make_pair(0, (int)n_queries)), counts);
-  exclusivePrefixSum(space, offset);
+  exclusivePrefixSum(space, counts);
+  Kokkos::deep_copy(space, offset, counts);
 
   int const n_results = lastElement(offset);
 
@@ -224,12 +254,10 @@ void spatialQueryImpl(ExecutionSpace const &space,
 
     reallocWithoutInitializing(out, n_results);
 
-    Kokkos::deep_copy(space, counts, 0); // FIXME
-
-    tree_traversal.launch(space, wrapped_predicates,
-                          InsertGenerator<SecondPassTag, WrappedPredicatesType,
-                                          Callback, OutputView>{
-                              predicates, wrapped_predicates, callback, out});
+    tree_traversal.launch(
+        space, predicates1,
+        InsertGenerator<SecondPassTag, Predicates1, Callback, OutputView>{
+            predicates, predicates1, callback, out});
   }
   // do not copy if by some miracle each query exactly yielded as many results
   // as the buffer size
