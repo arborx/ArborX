@@ -58,9 +58,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(spatial_query_impl, DeviceType,
   Kokkos::View<Predicate *, DeviceType> predicates(
       Kokkos::view_alloc("predicates", Kokkos::WithoutInitializing), n);
 
+  ExecutionSpace space{};
+
+  Kokkos::View<unsigned int *, DeviceType> permute(
+      Kokkos::ViewAllocateWithoutInitializing("permute"), n);
+  ArborX::iota(space, permute);
   ArborX::Details::spatialQueryImpl(
-      ExecutionSpace{}, Test1{}, predicates,
-      ArborX::Details::CallbackDefaultSpatialPredicate{}, indices, offset, 0);
+      space, Test1{}, predicates,
+      ArborX::Details::CallbackDefaultSpatialPredicate{}, indices, offset,
+      permute, 0);
 
   auto indices_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);

@@ -33,120 +33,42 @@ struct SecondPassTag
 {
 };
 
-template <typename Predicates, typename CountView, typename OffsetView>
-struct PredicatesWithCountsAndOffsets
-{
-  using predicates_type = Predicates;
-
-  Predicates _predicates;
-  CountView _counts;
-  OffsetView _offset;
-};
-
-template <typename Predicates, typename CountView>
-struct PredicatesWithCounts
-{
-  using predicates_type = Predicates;
-
-  Predicates _predicates;
-  CountView _counts;
-};
-
-} // namespace Details
-
-namespace Traits
-{
-template <typename Predicates, typename CountView, typename OffsetView>
-struct Access<
-    Details::PredicatesWithCountsAndOffsets<Predicates, CountView, OffsetView>,
-    PredicatesTag>
-{
-  using WrappedPredicates =
-      Details::PredicatesWithCountsAndOffsets<Predicates, CountView,
-                                              OffsetView>;
-
-  using NativeAccess = Access<Predicates, PredicatesTag>;
-
-  inline static std::size_t size(WrappedPredicates const &wrapped_predicates)
-  {
-    return NativeAccess::size(wrapped_predicates._predicates);
-  }
-
-  KOKKOS_INLINE_FUNCTION static auto
-  get(WrappedPredicates const &wrapped_predicates, std::size_t i)
-  {
-    return attach(NativeAccess::get(wrapped_predicates._predicates, i),
-                  Kokkos::make_pair(wrapped_predicates._counts.data() + i,
-                                    wrapped_predicates._offset.data() + i));
-  }
-  using memory_space = typename NativeAccess::memory_space;
-};
-template <typename Predicates, typename CountView>
-struct Access<Details::PredicatesWithCounts<Predicates, CountView>,
-              PredicatesTag>
-{
-  using WrappedPredicates =
-      Details::PredicatesWithCounts<Predicates, CountView>;
-
-  using NativeAccess = Access<Predicates, PredicatesTag>;
-
-  inline static std::size_t size(WrappedPredicates const &wrapped_predicates)
-  {
-    return NativeAccess::size(wrapped_predicates._predicates);
-  }
-
-  KOKKOS_INLINE_FUNCTION static auto
-  get(WrappedPredicates const &wrapped_predicates, std::size_t i)
-  {
-    return attach(NativeAccess::get(wrapped_predicates._predicates, i),
-                  wrapped_predicates._counts.data() + i);
-  }
-  using memory_space = typename NativeAccess::memory_space;
-};
-} // namespace Traits
-
-namespace Details
-{
-
-template <typename Tag, typename WrappedPredicatesType, typename Callback,
-          typename OutputView>
+template <typename Tag, typename Predicates, typename Callback,
+          typename OutputView, typename CountView, typename OffsetView,
+          typename PermuteType>
 struct InsertGenerator
 {
-  using Predicates = typename WrappedPredicatesType::predicates_type;
-  Predicates _predicates;
-  WrappedPredicatesType _wrapped_predicates;
+  Predicates _permuted_predicates;
   Callback _callback;
   OutputView _out;
+  CountView _counts;
+  OffsetView _offset;
+  PermuteType _permute;
 
   using ValueType = typename OutputView::value_type;
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-  using WrappedAccess =
-      Traits::Access<WrappedPredicatesType, Traits::PredicatesTag>;
 
   template <typename U = Tag>
   KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, FirstPassTag>::value>
   operator()(int predicate_index, int primitive_index) const
   {
-    int i = primitive_index;
-    int j = predicate_index;
+    // This seems to be the only function where we explicitly need
+    // predicate_index. In all other functions we could have used Query&
+    auto const permuted_predicate_index = _permute(predicate_index);
+    auto const offset = _offset(permuted_predicate_index);
+    auto const offset_next = _offset(permuted_predicate_index + 1);
+    auto &count = _counts(predicate_index);
 
-    auto data = getData(WrappedAccess::get(_wrapped_predicates, j));
-    auto *count_ptr = data.first;
-    auto *offset_ptr = data.second;
-
-    auto offset = *offset_ptr;
-    auto offset_next = *(offset_ptr + 1);
-
-    // FIXME: race condition here, counts could be read but then incremented by
-    // a different thread
-    if (offset + *count_ptr < offset_next)
-      _callback(Access::get(_predicates, j), i, [&](ValueType const &value) {
-        _out(offset + Kokkos::atomic_fetch_add(count_ptr, 1)) = value;
-      });
+    // FIXME: race condition on count in the if() branch
+    if (offset + count < offset_next)
+      _callback(Access::get(_permuted_predicates, predicate_index),
+                primitive_index, [&](ValueType const &value) {
+                  _out(offset + Kokkos::atomic_fetch_add(&count, 1)) = value;
+                });
     else
-      _callback(Access::get(_predicates, j), i, [&](ValueType const &) {
-        Kokkos::atomic_fetch_add(count_ptr, 1);
-      });
+      _callback(
+          Access::get(_permuted_predicates, predicate_index), primitive_index,
+          [&](ValueType const &) { Kokkos::atomic_fetch_add(&count, 1); });
   }
 
   template <typename U = Tag>
@@ -154,42 +76,82 @@ struct InsertGenerator
       std::enable_if_t<std::is_same<U, FirstPassNoBufferOptimizationTag>::value>
       operator()(int predicate_index, int primitive_index) const
   {
-    int i = primitive_index;
-    int j = predicate_index;
+    auto const permuted_predicate_index = _permute(predicate_index);
+    auto &count = _counts(predicate_index);
 
-    auto *count_ptr = getData(WrappedAccess::get(_wrapped_predicates, j));
-
-    _callback(Access::get(_predicates, j), i, [&](ValueType const &) {
-      Kokkos::atomic_fetch_add(count_ptr, 1);
-    });
+    _callback(Access::get(_permuted_predicates, predicate_index),
+              primitive_index,
+              [&](ValueType const &) { Kokkos::atomic_fetch_add(&count, 1); });
   }
 
   template <typename U = Tag>
   KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, SecondPassTag>::value>
   operator()(int predicate_index, int primitive_index) const
   {
-    int i = primitive_index;
-    int j = predicate_index;
+    int const permuted_predicate_index = _permute(predicate_index);
+    // we store offsets in counts, and offset(permute(i)) = counts(i)
+    auto &offset = _counts(predicate_index);
 
-    auto *offset_ptr = getData(WrappedAccess::get(_wrapped_predicates, j));
-
-    _callback(Access::get(_predicates, j), i, [&](ValueType const &value) {
-      _out(Kokkos::atomic_fetch_add(offset_ptr, 1)) = value;
-    });
+    _callback(Access::get(_permuted_predicates, predicate_index),
+              primitive_index, [&](ValueType const &value) {
+                _out(Kokkos::atomic_fetch_add(&offset, 1)) = value;
+              });
   }
 };
 
+template <typename Predicates, typename Permute>
+struct PermutedPredicates
+{
+  Predicates _predicates;
+  Permute _permute;
+  KOKKOS_FUNCTION auto operator()(int i) const
+  {
+    return _predicates(_permute(i));
+  }
+};
+
+} // namespace Details
+
+namespace Traits
+{
+template <typename Predicates, typename Permute>
+struct Access<Details::PermutedPredicates<Predicates, Permute>, PredicatesTag>
+{
+  using PermutedPredicates = Details::PermutedPredicates<Predicates, Permute>;
+  using NativeAccess = Access<Predicates, PredicatesTag>;
+
+  inline static std::size_t size(PermutedPredicates const &permuted_predicates)
+  {
+    return NativeAccess::size(permuted_predicates._predicates);
+  }
+
+  KOKKOS_INLINE_FUNCTION static auto
+  get(PermutedPredicates const &permuted_predicates, std::size_t i)
+  {
+    return NativeAccess::get(permuted_predicates._predicates,
+                             permuted_predicates._permute(i));
+  }
+  using memory_space = typename NativeAccess::memory_space;
+};
+} // namespace Traits
+
+namespace Details
+{
 template <typename ExecutionSpace, typename TreeTraversal, typename Predicates,
-          typename Callback, typename OutputView, typename OffsetView>
+          typename Callback, typename OutputView, typename OffsetView,
+          typename PermuteType>
 void spatialQueryImpl(ExecutionSpace const &space,
                       TreeTraversal const &tree_traversal,
                       Predicates const &predicates, Callback const &callback,
-                      OutputView &out, OffsetView &offset, int buffer_size)
+                      OutputView &out, OffsetView &offset, PermuteType permute,
+                      int buffer_size)
 {
   static_assert(Kokkos::is_execution_space<ExecutionSpace>{}, "");
 
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
   auto const n_queries = Access::size(predicates);
+
+  Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass");
 
   bool const throw_if_buffer_optimization_fails = (buffer_size < 0);
   buffer_size = std::abs(buffer_size);
@@ -197,14 +159,12 @@ void spatialQueryImpl(ExecutionSpace const &space,
   reallocWithoutInitializing(offset, n_queries + 1);
 
   using CountView = OffsetView;
-  CountView counts(Kokkos::view_alloc("counts", space), n_queries + 1);
+  CountView counts(Kokkos::view_alloc("counts", space), n_queries);
 
-  using Predicates1 = PredicatesWithCounts<Predicates, CountView>;
-  using Predicates2 =
-      PredicatesWithCountsAndOffsets<Predicates, CountView, OffsetView>;
-  Predicates1 predicates1 = {predicates, counts};
-  Predicates2 predicates2 = {predicates, counts, offset};
+  using PermutedPredicates = PermutedPredicates<Predicates, PermuteType>;
+  PermutedPredicates permuted_predicates = {predicates, permute};
 
+  Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:first_pass");
   if (buffer_size > 0)
   {
     Kokkos::deep_copy(space, offset, buffer_size); // FIXME
@@ -214,16 +174,19 @@ void spatialQueryImpl(ExecutionSpace const &space,
     // NOTE I considered filling with invalid indices but it is unecessary work
 
     tree_traversal.launch(
-        space, predicates2,
-        InsertGenerator<FirstPassTag, Predicates2, Callback, OutputView>{
-            predicates, predicates2, callback, out});
+        space, permuted_predicates,
+        InsertGenerator<FirstPassTag, PermutedPredicates, Callback, OutputView,
+                        CountView, OffsetView, PermuteType>{
+            permuted_predicates, callback, out, counts, offset, permute});
   }
   else
   {
     tree_traversal.launch(
-        space, predicates1,
-        InsertGenerator<FirstPassNoBufferOptimizationTag, Predicates1, Callback,
-                        OutputView>{predicates, predicates1, callback, out});
+        space, permuted_predicates,
+        InsertGenerator<FirstPassNoBufferOptimizationTag, PermutedPredicates,
+                        Callback, OutputView, CountView, OffsetView,
+                        PermuteType>{permuted_predicates, callback, out, counts,
+                                     offset, permute});
   }
 
   // NOTE max() internally calls Kokkos::parallel_reduce.  Only pay for it if
@@ -235,34 +198,56 @@ void spatialQueryImpl(ExecutionSpace const &space,
           : std::numeric_limits<typename std::remove_reference<decltype(
                 offset)>::type::value_type>::max();
 
-  exclusivePrefixSum(space, counts);
-  Kokkos::deep_copy(space, offset, counts);
+  Kokkos::parallel_for(ARBORX_MARK_REGION("copy_counts_to_offsets"),
+                       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+                       KOKKOS_LAMBDA(int const i) {
+                         // Last entry in offset is not used
+                         offset(permute(i)) = counts(i);
+                       });
+  exclusivePrefixSum(space, offset);
 
   int const n_results = lastElement(offset);
+
+  Kokkos::Profiling::popRegion();
 
   // Exit early if either no results were found for any of the queries, or
   // nothing was inserted inside a callback for found results. This check
   // guarantees that the second pass will not be executed independent of
   // buffer_size.
   if (n_results == 0)
+  {
+    Kokkos::Profiling::popRegion();
     return;
+  }
 
   if (max_results_per_query > buffer_size)
   {
+    Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:second_pass");
+
     // FIXME can definitely do better about error message
     ARBORX_ASSERT(!throw_if_buffer_optimization_fails);
+
+    Kokkos::parallel_for(
+        ARBORX_MARK_REGION("copy_offsets_to_counts"),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+        KOKKOS_LAMBDA(int const i) { counts(i) = offset(permute(i)); });
 
     reallocWithoutInitializing(out, n_results);
 
     tree_traversal.launch(
-        space, predicates1,
-        InsertGenerator<SecondPassTag, Predicates1, Callback, OutputView>{
-            predicates, predicates1, callback, out});
+        space, permuted_predicates,
+        InsertGenerator<SecondPassTag, PermutedPredicates, Callback, OutputView,
+                        CountView, OffsetView, PermuteType>{
+            permuted_predicates, callback, out, counts, offset, permute});
+
+    Kokkos::Profiling::popRegion();
   }
   // do not copy if by some miracle each query exactly yielded as many results
   // as the buffer size
   else if (n_results != static_cast<int>(n_queries) * buffer_size)
   {
+    Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:copy_values");
+
     OutputView tmp_out(Kokkos::ViewAllocateWithoutInitializing(out.label()),
                        n_results);
     Kokkos::parallel_for(
@@ -275,8 +260,11 @@ void spatialQueryImpl(ExecutionSpace const &space,
           }
         });
     out = tmp_out;
+
+    Kokkos::Profiling::popRegion();
   }
-}
+  Kokkos::Profiling::popRegion();
+} // namespace Details
 
 } // namespace Details
 } // namespace ArborX

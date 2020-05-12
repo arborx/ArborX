@@ -95,7 +95,7 @@ namespace Details
 template <typename BVH>
 struct BVHParallelTreeTraversal
 {
-  BVH bvh_;
+  BVH _bvh;
 
   template <typename ExecutionSpace, typename Predicates,
             typename InsertGenerator>
@@ -109,50 +109,23 @@ struct BVHParallelTreeTraversal
         ArborX::Traits::Access<Predicates, ArborX::Traits::PredicatesTag>;
 
     // workaround to avoid implicit capture of *this
-    auto const &bvh = bvh_;
+    auto const &bvh = _bvh;
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("BVH:spatial_queries"),
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
         KOKKOS_LAMBDA(int predicate_index) {
           ArborX::Details::TreeTraversal<DeviceType>::query(
               bvh, Access::get(predicates, predicate_index),
-              [&](int primitive_index) {
+              [&](int const primitive_index) {
                 insert_generator(predicate_index, primitive_index);
               });
         });
   }
-}; // namespace Details
-template <typename BVH, typename PermutationView>
-struct BVHParallelTreeTraversalWithPermute
+};
+
+struct Iota
 {
-  BVH bvh_;
-  PermutationView permute_;
-
-  template <typename ExecutionSpace, typename Predicates,
-            typename InsertGenerator>
-  void launch(ExecutionSpace const &space, Predicates const predicates,
-              InsertGenerator const &insert_generator) const
-  {
-    using MemorySpace = typename BVH::memory_space;
-    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
-
-    using Access =
-        ArborX::Traits::Access<Predicates, ArborX::Traits::PredicatesTag>;
-
-    // workaround to avoid implicit capture of *this
-    auto const &bvh = bvh_;
-    auto const &permute = permute_;
-    Kokkos::parallel_for(
-        ARBORX_MARK_REGION("BVH:spatial_queries"),
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
-        KOKKOS_LAMBDA(int predicate_index) {
-          ArborX::Details::TreeTraversal<DeviceType>::query(
-              bvh, Access::get(predicates, permute(predicate_index)),
-              [&](int primitive_index) {
-                insert_generator(permute(predicate_index), primitive_index);
-              });
-        });
-  }
+  KOKKOS_FUNCTION unsigned int operator()(int const i) const { return i; }
 };
 
 namespace BoundingVolumeHierarchyImpl
@@ -173,23 +146,30 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
   check_valid_callback(callback, predicates, out);
 
+  Kokkos::Profiling::pushRegion("ArborX:BVH:spatial_queries");
+
+  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  auto const n_queries = Access::size(predicates);
+
   if (policy._sort_predicates)
   {
+    Kokkos::Profiling::pushRegion("ArborX:BVH:spatial_queries:sort_queries");
     auto permute =
         Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
             space, bvh.bounds(), predicates);
+    Kokkos::Profiling::popRegion();
 
-    spatialQueryImpl(
-        space,
-        BVHParallelTreeTraversalWithPermute<BVH, decltype(permute)>{bvh,
-                                                                    permute},
-        predicates, callback, out, offset, policy._buffer_size);
+    spatialQueryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates,
+                     callback, out, offset, permute, policy._buffer_size);
   }
   else
   {
+    Iota permute;
     spatialQueryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates,
-                     callback, out, offset, policy._buffer_size);
+                     callback, out, offset, permute, policy._buffer_size);
   }
+
+  Kokkos::Profiling::popRegion();
 }
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
