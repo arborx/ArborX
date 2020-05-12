@@ -52,23 +52,17 @@ struct InsertGenerator
   KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, FirstPassTag>::value>
   operator()(int predicate_index, int primitive_index) const
   {
-    // This seems to be the only function where we explicitly need
-    // predicate_index. In all other functions we could have used Query&
     auto const permuted_predicate_index = _permute(predicate_index);
     auto const offset = _offset(permuted_predicate_index);
     auto const offset_next = _offset(permuted_predicate_index + 1);
     auto &count = _counts(predicate_index);
 
-    // FIXME: race condition on count in the if() branch
-    if (offset + count < offset_next)
-      _callback(Access::get(_permuted_predicates, predicate_index),
-                primitive_index, [&](ValueType const &value) {
-                  _out(offset + Kokkos::atomic_fetch_add(&count, 1)) = value;
-                });
-    else
-      _callback(
-          Access::get(_permuted_predicates, predicate_index), primitive_index,
-          [&](ValueType const &) { Kokkos::atomic_fetch_add(&count, 1); });
+    _callback(Access::get(_permuted_predicates, predicate_index),
+              primitive_index, [&](ValueType const &value) {
+                int count_old = Kokkos::atomic_fetch_add(&count, 1);
+                if (offset + count_old < offset_next)
+                  _out(offset + count_old) = value;
+              });
   }
 
   template <typename U = Tag>
