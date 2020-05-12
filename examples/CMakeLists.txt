@@ -1,6 +1,7 @@
 set(ArborX_TARGET ArborX)
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   cmake_minimum_required(VERSION 3.12)
+  project(ArborXExamples CXX)
   find_package(ArborX REQUIRED)
   enable_testing()
   set(ArborX_TARGET ArborX::ArborX)
