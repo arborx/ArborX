@@ -221,7 +221,8 @@ void queryImpl(ExecutionSpace const &space, Search const &search,
         ARBORX_MARK_REGION("check_if_second_pass_needed"),
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i, int &update) {
-          if (counts(i) > offset(i + 1) - offset(i))
+          auto const *const offset_ptr = &offset(i);
+          if (counts(i) > *(offset_ptr + 1) - *offset_ptr)
           {
             ++update;
           }
