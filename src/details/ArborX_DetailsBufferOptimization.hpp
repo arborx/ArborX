@@ -50,8 +50,11 @@ struct WrappedCallback<FirstPassTag, Predicates, Callback, OutputView,
 
   using ValueType = typename OutputView::value_type;
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  using Tag = typename Traits::Helper<Access>::tag;
 
-  KOKKOS_FUNCTION void operator()(int j, int i) const
+  template <typename Dumb = Tag>
+  KOKKOS_FUNCTION std::enable_if_t<std::is_same<Dumb, SpatialPredicateTag>{}>
+  operator()(int j, int i) const
   {
     if (offset_(j) + counts_(j) < offset_(j + 1))
       callback_(Access::get(predicates_, j), i, [&](ValueType const &value) {
@@ -59,6 +62,20 @@ struct WrappedCallback<FirstPassTag, Predicates, Callback, OutputView,
       });
     else
       callback_(Access::get(predicates_, j), i, [&](ValueType const &) {
+        Kokkos::atomic_fetch_add(&counts_(j), 1);
+      });
+  }
+
+  template <typename Dumb = Tag>
+  KOKKOS_FUNCTION std::enable_if_t<std::is_same<Dumb, NearestPredicateTag>{}>
+  operator()(int j, int i, float d) const
+  {
+    if (offset_(j) + counts_(j) < offset_(j + 1))
+      callback_(Access::get(predicates_, j), i, d, [&](ValueType const &value) {
+        out_(offset_(j) + Kokkos::atomic_fetch_add(&counts_(j), 1)) = value;
+      });
+    else
+      callback_(Access::get(predicates_, j), i, d, [&](ValueType const &) {
         Kokkos::atomic_fetch_add(&counts_(j), 1);
       });
   }
@@ -77,10 +94,22 @@ struct WrappedCallback<FirstPassNoBufferOptimizationTag, Predicates, Callback,
 
   using ValueType = typename OutputView::value_type;
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  using Tag = typename Traits::Helper<Access>::tag;
 
-  KOKKOS_FUNCTION void operator()(int j, int i) const
+  template <typename Dumb = Tag>
+  KOKKOS_FUNCTION std::enable_if_t<std::is_same<Dumb, SpatialPredicateTag>{}>
+  operator()(int j, int i) const
   {
     callback_(Access::get(predicates_, j), i, [&](ValueType const &) {
+      Kokkos::atomic_fetch_add(&counts_(j), 1);
+    });
+  }
+
+  template <typename Dumb = Tag>
+  KOKKOS_FUNCTION std::enable_if_t<std::is_same<Dumb, NearestPredicateTag>{}>
+  operator()(int j, int i, float d) const
+  {
+    callback_(Access::get(predicates_, j), i, d, [&](ValueType const &) {
       Kokkos::atomic_fetch_add(&counts_(j), 1);
     });
   }
@@ -99,10 +128,22 @@ struct WrappedCallback<SecondPassTag, Predicates, Callback, OutputView,
 
   using ValueType = typename OutputView::value_type;
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  using Tag = typename Traits::Helper<Access>::tag;
 
-  KOKKOS_FUNCTION void operator()(int j, int i) const
+  template <typename Dumb = Tag>
+  KOKKOS_FUNCTION std::enable_if_t<std::is_same<Dumb, SpatialPredicateTag>{}>
+  operator()(int j, int i) const
   {
     callback_(Access::get(predicates_, j), i, [&](ValueType const &value) {
+      out_(offset_(j) + Kokkos::atomic_fetch_add(&counts_(j), 1)) = value;
+    });
+  }
+
+  template <typename Dumb = Tag>
+  KOKKOS_FUNCTION std::enable_if_t<std::is_same<Dumb, NearestPredicateTag>{}>
+  operator()(int j, int i, float d) const
+  {
+    callback_(Access::get(predicates_, j), i, d, [&](ValueType const &value) {
       out_(offset_(j) + Kokkos::atomic_fetch_add(&counts_(j), 1)) = value;
     });
   }
