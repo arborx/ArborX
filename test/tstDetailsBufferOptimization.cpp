@@ -51,14 +51,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
   // Build a view of predicates.  Won't actually call any of them.  All is
   // required is a valid access traits assocated to it. 'get()' nevers get
   // called, only 'size()'.
-  using Predicate = decltype(ArborX::nearest(std::declval<ArborX::Point>()));
+  using Predicate = decltype(ArborX::intersects(std::declval<ArborX::Point>()));
   Kokkos::View<Predicate *, DeviceType> predicates(
       Kokkos::view_alloc("predicates", Kokkos::WithoutInitializing), n);
 
+  int const buffer_size = 2 * (n + 1);
   ArborX::reallocWithoutInitializing(offset, n + 1);
+  deep_copy(offset, buffer_size);
+  ArborX::exclusivePrefixSum(ExecutionSpace{}, offset);
+  ArborX::reallocWithoutInitializing(indices, ArborX::lastElement(offset));
   ArborX::Details::queryImpl(ExecutionSpace{}, Test1{}, predicates,
                              ArborX::Details::CallbackDefaultSpatialPredicate{},
-                             indices, offset, 0);
+                             indices, offset, -buffer_size);
 
   auto indices_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
