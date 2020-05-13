@@ -44,8 +44,8 @@ struct TraversalPolicy
   // Buffer size lets a user provide an upper bound for the number of results
   // per query. If the guess is accurate, it avoids performing the tree
   // traversals twice (the first one to count the number of results per query,
-  // the second to actually write down the results at the right location in the
-  // flattened array)
+  // the second to actually write down the results at the right location in
+  // the flattened array)
   //
   // The default value zero disables the buffer optimization. The sign of the
   // integer is used to specify the policy in the case the size insufficient.
@@ -102,24 +102,7 @@ struct BVHParallelTreeTraversal
   void launch(ExecutionSpace const &space, Predicates const predicates,
               InsertGenerator const &insert_generator) const
   {
-    using MemorySpace = typename BVH::memory_space;
-    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
-
-    using Access =
-        ArborX::Traits::Access<Predicates, ArborX::Traits::PredicatesTag>;
-
-    // workaround to avoid implicit capture of *this
-    auto const &bvh = _bvh;
-    Kokkos::parallel_for(
-        ARBORX_MARK_REGION("BVH:spatial_queries"),
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
-        KOKKOS_LAMBDA(int predicate_index) {
-          ArborX::Details::TreeTraversal<DeviceType>::query(
-              bvh, Access::get(predicates, predicate_index),
-              [&](int const primitive_index) {
-                insert_generator(predicate_index, primitive_index);
-              });
-        });
+    traverse(space, _bvh, predicates, insert_generator);
   }
 };
 
@@ -151,22 +134,42 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
   auto const n_queries = Access::size(predicates);
 
+  Kokkos::Profiling::pushRegion("ArborX:BVH:spatial_queries:init_and_alloc");
+  reallocWithoutInitializing(offset, n_queries + 1);
+
+  int const buffer_size = std::abs(policy._buffer_size);
+  if (buffer_size > 0)
+  {
+    Kokkos::deep_copy(space, offset, buffer_size);
+    exclusivePrefixSum(space, offset);
+    // Use calculation for the size to avoid calling lastElement(offset) as it
+    // will launch an extra kernel to copy to host. And there is unnecessary to
+    // fill with invalid indices.
+    reallocWithoutInitializing(out, n_queries * buffer_size);
+  }
+  else
+  {
+    Kokkos::deep_copy(offset, 0);
+  }
+  Kokkos::Profiling::popRegion();
+
   if (policy._sort_predicates)
   {
-    Kokkos::Profiling::pushRegion("ArborX:BVH:spatial_queries:sort_queries");
+    Kokkos::Profiling::pushRegion(
+        "ArborX:BVH:spatial_queries:compute_permutation");
     auto permute =
         Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
             space, bvh.bounds(), predicates);
     Kokkos::Profiling::popRegion();
 
-    spatialQueryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates,
-                     callback, out, offset, permute, policy._buffer_size);
+    queryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates, callback,
+              out, offset, permute, policy._buffer_size);
   }
   else
   {
     Iota permute;
-    spatialQueryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates,
-                     callback, out, offset, permute, policy._buffer_size);
+    queryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates, callback,
+              out, offset, permute, policy._buffer_size);
   }
 
   Kokkos::Profiling::popRegion();
@@ -217,133 +220,47 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:nearest_queries");
 
-  bool const use_deprecated_nearest_query_algorithm =
-      (policy._traversal_algorithm ==
-       NearestQueryAlgorithm::PriorityQueueBased_Deprecated);
-
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
   auto const n_queries = Access::size(predicates);
 
-  Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
+  bool const use_deprecated_nearest_query_algorithm =
+      (policy._traversal_algorithm ==
+       NearestQueryAlgorithm::PriorityQueueBased_Deprecated);
+  std::ignore = use_deprecated_nearest_query_algorithm;
 
-  Kokkos::View<unsigned int *, MemorySpace> permute;
-  if (policy._sort_predicates)
-  {
-    permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-        space, bvh.bounds(), predicates);
-  }
-  else
-  {
-    permute = Kokkos::View<unsigned int *, MemorySpace>(
-        Kokkos::ViewAllocateWithoutInitializing("permute"), n_queries);
-    iota(space, permute);
-  }
-
-  // FIXME  readability!  queries is a sorted copy of the predicates
-  auto queries = Details::BatchedQueries<DeviceType>::applyPermutation(
-      space, permute, predicates);
-
-  Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::pushRegion("ArborX:BVH:init_offset");
+  Kokkos::Profiling::pushRegion("ArborX:BVH:nearest_queries:init_and_alloc");
 
   reallocWithoutInitializing(offset, n_queries + 1);
-
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("scan_queries_for_numbers_of_nearest_neighbors"),
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-      KOKKOS_LAMBDA(int i) { offset(permute(i)) = getK(queries(i)); });
-
+      KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
   exclusivePrefixSum(space, offset);
+
   int const n_results = lastElement(offset);
+  reallocWithoutInitializing(out, n_results);
 
   Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::pushRegion("ArborX:BVH:traversal");
 
-  reallocWithoutInitializing(out, n_results);
-  auto tmp_offset = cloneWithoutInitializingNorCopying(offset);
-  if (use_deprecated_nearest_query_algorithm)
+  if (policy._sort_predicates)
   {
-    Kokkos::parallel_for(
-        ARBORX_MARK_REGION("perform_deprecated_nearest_queries"),
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int i) {
-          int count = 0;
-          auto const shift = offset(permute(i));
-          auto const &query = queries(i);
-          Details::TreeTraversal<DeviceType>::query(
-              bvh, query,
-              [&query, &callback, &out, shift, &count](int index,
-                                                       float distance) {
-                callback(query, index, distance,
-                         [&out, shift, &count](
-                             typename OutputView::value_type const &value) {
-                           out(shift + count++) = value;
-                         });
-              });
-          tmp_offset(permute(i)) = count;
-        });
+    Kokkos::Profiling::pushRegion(
+        "ArborX:BVH:nearest_queries:compute_permutation");
+    auto permute =
+        Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
+            space, bvh.bounds(), predicates);
+    Kokkos::Profiling::popRegion();
+
+    queryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates, callback,
+              out, offset, permute, policy._buffer_size);
   }
   else
   {
-    // Allocate buffer over which to perform heap operations in
-    // TreeTraversal::nearestQuery() to store nearest leaf nodes found
-    // so far.  It is not possible to anticipate how much memory to
-    // allocate since the number of nearest neighbors k is only known at
-    // runtime.
-    Kokkos::View<Kokkos::pair<int, float> *, MemorySpace> buffer(
-        Kokkos::ViewAllocateWithoutInitializing("buffer"), n_results);
-
-    Kokkos::parallel_for(
-        ARBORX_MARK_REGION("perform_nearest_queries"),
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int i) {
-          int count = 0;
-          auto const shift = offset(permute(i));
-          auto const &query = queries(i);
-          Details::TreeTraversal<DeviceType>::query(
-              bvh, query,
-              [&query, &callback, &out, shift, &count](int index,
-                                                       float distance) {
-                callback(query, index, distance,
-                         [&out, shift, &count](
-                             typename OutputView::value_type const &value) {
-                           out(shift + count++) = value;
-                         });
-              },
-              Kokkos::subview(buffer,
-                              Kokkos::make_pair(offset(permute(i)),
-                                                offset(permute(i) + 1))));
-          tmp_offset(permute(i)) = count;
-        });
+    Iota permute;
+    queryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates, callback,
+              out, offset, permute, policy._buffer_size);
   }
 
-  Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::pushRegion("ArborX:BVH:filter_out_invalid_entries");
-
-  // Find out if they are any invalid entries in the indices (i.e. at least
-  // one query asked for more neighbors than there are leaves in the tree) and
-  // eliminate them if necessary.
-  exclusivePrefixSum(space, tmp_offset);
-  int const n_tmp_results = lastElement(tmp_offset);
-  if (n_tmp_results != n_results)
-  {
-    OutputView tmp_out(Kokkos::ViewAllocateWithoutInitializing(out.label()),
-                       n_tmp_results);
-
-    Kokkos::parallel_for(
-        ARBORX_MARK_REGION("copy_valid_entries"),
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int q) {
-          for (int i = 0; i < tmp_offset(q + 1) - tmp_offset(q); ++i)
-          {
-            tmp_out(tmp_offset(q) + i) = out(offset(q) + i);
-          }
-        });
-    out = tmp_out;
-    offset = tmp_offset;
-  }
-
-  Kokkos::Profiling::popRegion();
   Kokkos::Profiling::popRegion();
 }
 

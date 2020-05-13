@@ -749,42 +749,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
   }
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(miscellaneous, DeviceType, ARBORX_DEVICE_TYPES)
-{
-  auto const bvh = make<ArborX::BVH<DeviceType>>({
-      {{{1., 3., 5.}}, {{2., 4., 6.}}},
-  });
-  auto const empty_bvh = make<ArborX::BVH<DeviceType>>({});
-
-  // Batched queries BVH::query( Kokkos::View<Query *, ...>, ... ) returns
-  // early if the tree is empty.  Below we ensure that a direct call to the
-  // single query TreeTraversal::query() actually handles empty trees
-  // properly.
-  using ExecutionSpace = typename DeviceType::execution_space;
-  Kokkos::View<int *, DeviceType> zeros("zeros", 3);
-  Kokkos::deep_copy(zeros, 255);
-  Kokkos::View<Kokkos::pair<int, float> *, DeviceType> empty_buffer(
-      "empty_buffer", 0);
-  Kokkos::parallel_for(
-      Kokkos::RangePolicy<ExecutionSpace>(0, 1), KOKKOS_LAMBDA(int) {
-        ArborX::Point p = {{0., 0., 0.}};
-        double r = 1.0;
-        // spatial query on empty tree
-        zeros(0) = ArborX::Details::TreeTraversal<DeviceType>::query(
-            empty_bvh, ArborX::intersects(ArborX::Sphere{p, r}), [](int) {});
-        // nearest query on empty tree
-        zeros(1) = ArborX::Details::TreeTraversal<DeviceType>::query(
-            empty_bvh, ArborX::nearest(p), [](int, float) {}, empty_buffer);
-        // nearest query for k < 1
-        zeros(2) = ArborX::Details::TreeTraversal<DeviceType>::query(
-            bvh, ArborX::nearest(p, 0), [](int, float) {}, empty_buffer);
-      });
-  auto zeros_host = Kokkos::create_mirror_view(zeros);
-  Kokkos::deep_copy(zeros_host, zeros);
-  std::vector<int> zeros_ref = {0, 0, 0};
-  BOOST_TEST(zeros_host == zeros_ref, tt::per_element());
-}
-
 BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
 {
   double Lx = 100.0;
