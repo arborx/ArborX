@@ -181,21 +181,20 @@ void spatialQueryImpl(ExecutionSpace const &space,
                                      offset, permute});
   }
 
-  // NOTE max() internally calls Kokkos::parallel_reduce.  Only pay for it if
-  // actually trying buffer optimization. In principle, any strictly
-  // positive value can be assigned otherwise.
+  int max_counts = 0;
+  Kokkos::parallel_reduce(
+      ARBORX_MARK_REGION("copy_counts_to_offsets_and_compute_max"),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+      KOKKOS_LAMBDA(int const i, int &update) {
+        auto const c = counts(i);
+        offset(permute(i)) = c;
+        if (c > update)
+          update = c;
+      },
+      max_counts);
   auto const max_results_per_query =
-      (buffer_size > 0)
-          ? max(space, counts)
-          : std::numeric_limits<typename std::remove_reference<decltype(
-                offset)>::type::value_type>::max();
+      (buffer_size > 0) ? max_counts : std::numeric_limits<int>::max();
 
-  Kokkos::parallel_for(ARBORX_MARK_REGION("copy_counts_to_offsets"),
-                       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-                       KOKKOS_LAMBDA(int const i) {
-                         // Last entry in offset is not used
-                         offset(permute(i)) = counts(i);
-                       });
   exclusivePrefixSum(space, offset);
 
   int const n_results = lastElement(offset);
