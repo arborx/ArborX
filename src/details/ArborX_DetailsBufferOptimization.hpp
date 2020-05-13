@@ -54,13 +54,13 @@ struct InsertGenerator
   {
     auto const permuted_predicate_index = _permute(predicate_index);
     auto const offset = _offset(permuted_predicate_index);
-    auto const offset_next = _offset(permuted_predicate_index + 1);
+    auto const buffer_size = _offset(permuted_predicate_index + 1) - offset;
     auto &count = _counts(predicate_index);
 
     _callback(Access::get(_permuted_predicates, predicate_index),
               primitive_index, [&](ValueType const &value) {
                 int count_old = Kokkos::atomic_fetch_add(&count, 1);
-                if (offset + count_old < offset_next)
+                if (count_old < buffer_size)
                   _out(offset + count_old) = value;
               });
   }
