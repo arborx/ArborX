@@ -278,7 +278,7 @@ struct TreeTraversal<
     // preserve the heap structure internally at all time.  There is no
     // memory allocation, elements are stored in the buffer passed as an
     // argument. The farthest leaf node is on top.
-    assert(k == buffer.size());
+    assert(k == (int)buffer.size());
     PriorityQueue<PairIndexDistance, CompareDistance,
                   UnmanagedStaticVector<PairIndexDistance>>
         heap(UnmanagedStaticVector<PairIndexDistance>(buffer.data(),
@@ -302,12 +302,12 @@ struct TreeTraversal<
         {
           int const leaf_index = node->getLeafPermutationIndex();
           auto const leaf_distance = node_distance;
-          if (heap.size() < k)
+          if ((int)heap.size() < k)
           {
             // Insert leaf node and update radius if it was the kth
             // one.
             heap.push(Kokkos::make_pair(leaf_index, leaf_distance));
-            if (heap.size() == k)
+            if ((int)heap.size() == k)
               radius = heap.top().second;
           }
           else
