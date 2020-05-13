@@ -40,6 +40,50 @@ traverse(ExecutionSpace const &space, BVH const &bvh,
   TreeTraversal<BVH, Predicates, Callback>(space, bvh, predicates, callback);
 }
 
+template <typename ExecutionSpace, typename BVH, typename Predicates,
+          typename Callback>
+std::enable_if_t<std::is_same<NearestPredicateTag,
+                              typename Traits::Helper<Traits::Access<
+                                  Predicates, Traits::PredicatesTag>>::tag>{}>
+traverse(ExecutionSpace const &space, BVH const &bvh,
+         Predicates const &predicates, Callback const &callback)
+{
+  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  auto const n_queries = Access::size(predicates);
+
+  using Offset = Kokkos::View<int *, ExecutionSpace>;
+  Offset offset(Kokkos::ViewAllocateWithoutInitializing("offset"),
+                n_queries + 1);
+  Kokkos::parallel_for(
+      ARBORX_MARK_REGION("scan_queries_for_numbers_of_nearest_neighbors"),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+      KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
+  exclusivePrefixSum(space, offset);
+  int const buffer_size = lastElement(offset);
+  // Allocate buffer over which to perform heap operations in
+  // TreeTraversal::nearestQuery() to store nearest leaf nodes found so far.
+  // It is not possible to anticipate how much memory to allocate since the
+  // number of nearest neighbors k is only known at runtime.
+  using Buffer = Kokkos::View<Kokkos::pair<int, float> *, ExecutionSpace>;
+  Buffer buffer(Kokkos::ViewAllocateWithoutInitializing("buffer"), buffer_size);
+
+  struct BufferProvider
+  {
+    Buffer buffer_;
+    Offset offset_;
+
+    KOKKOS_FUNCTION auto operator()(int i) const
+    {
+      auto const *offset_ptr = &offset_(i);
+      return Kokkos::subview(buffer_,
+                             Kokkos::make_pair(*offset_ptr, *(offset_ptr + 1)));
+    }
+  };
+
+  TreeTraversal<BVH, Predicates, std::tuple<Callback, BufferProvider>>(
+      space, bvh, predicates, callback, BufferProvider{buffer, offset});
+}
+
 template <typename BVH, typename Predicates, typename Callback>
 struct TreeTraversal<
     BVH, Predicates, Callback,
