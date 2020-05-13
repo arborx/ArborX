@@ -199,10 +199,46 @@ struct TreeTraversal<
       , callback_{callback}
       , buffer_{buffer}
   {
-    Kokkos::parallel_for(
-        ARBORX_MARK_REGION("BVH:nearest_queries"),
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
-        *this);
+    if (bvh_.empty())
+    {
+      // do nothing
+    }
+    else if (bvh_.size() == 1)
+    {
+      Kokkos::parallel_for(
+          ARBORX_MARK_REGION("BVH:nearest_queries_degenerated_one_leaf_tree"),
+          Kokkos::RangePolicy<ExecutionSpace, OneLeafTree>(
+              space, 0, Access::size(predicates)),
+          *this);
+    }
+    else
+    {
+      Kokkos::parallel_for(ARBORX_MARK_REGION("BVH:nearest_queries"),
+                           Kokkos::RangePolicy<ExecutionSpace>(
+                               space, 0, Access::size(predicates)),
+                           *this);
+    }
+  }
+
+  struct OneLeafTree
+  {
+  };
+
+  KOKKOS_FUNCTION int operator()(OneLeafTree, int queryIndex) const
+  {
+    auto const &predicate = Access::get(predicates_, queryIndex);
+    auto const k = getK(predicate);
+    auto const distance = [geometry = getGeometry(predicate),
+                           bvh = bvh_](Node const *node) {
+      return Details::distance(geometry, bvh.getBoundingVolume(node));
+    };
+
+    // NOTE thinking about making this a precondition
+    if (k < 1)
+      return 0;
+
+    callback_(queryIndex, 0, distance(bvh_.getRoot()));
+    return 1;
   }
 
   KOKKOS_FUNCTION int operator()(int queryIndex) const
@@ -215,14 +251,9 @@ struct TreeTraversal<
     };
     auto const buffer = buffer_(queryIndex);
 
-    if (bvh_.empty() || k < 1)
+    // NOTE thinking about making this a precondition
+    if (k < 1)
       return 0;
-
-    if (bvh_.size() == 1)
-    {
-      callback_(queryIndex, 0, distance(bvh_.getRoot()));
-      return 1;
-    }
 
     // Nodes with a distance that exceed that radius can safely be
     // discarded. Initialize the radius to infinity and tighten it once k
@@ -345,14 +376,9 @@ struct TreeTraversal<
       return Details::distance(geometry, bvh.getBoundingVolume(node));
     };
 
-    if (bvh_.empty() || k < 1)
+    // NOTE thinking about making this a precondition
+    if (k < 1)
       return 0;
-
-    if (bvh_.size() == 1)
-    {
-      callback_(queryIndex, 0, distance(bvh_.getRoot()));
-      return 1;
-    }
 
     using PairNodePtrDistance = Kokkos::pair<Node const *, float>;
     struct CompareDistance
