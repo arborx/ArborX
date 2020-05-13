@@ -188,7 +188,7 @@ void queryImpl(ExecutionSpace const &space, Search const &search,
                Predicates const &predicates, Callback const &callback,
                OutputView &out, OffsetView &offset, int buffer_size)
 {
-  static_assert(Kokkos::is_execution_space<ExecutionSpace>{}, "");
+  // pre-condition: offset and out are preallocated
 
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
   auto const n_queries = Access::size(predicates);
@@ -196,20 +196,11 @@ void queryImpl(ExecutionSpace const &space, Search const &search,
   bool const throw_if_buffer_optimization_fails = (buffer_size < 0);
   buffer_size = std::abs(buffer_size);
 
-  ARBORX_ASSERT(viewCast(offset).size() == n_queries + 1);
-  // reallocWithoutInitializing(viewCast(offset), n_queries + 1);
-
   using CountView = std::remove_reference_t<decltype(viewCast(offset))>;
   CountView counts(Kokkos::view_alloc("counts", space), n_queries);
 
   if (buffer_size > 0)
   {
-    Kokkos::deep_copy(space, viewCast(offset), buffer_size);
-    exclusivePrefixSum(space, viewCast(offset));
-
-    reallocWithoutInitializing(out, n_queries * buffer_size);
-    // NOTE I considered filling with invalid indices but it is unecessary work
-
     search(space, predicates,
            WrappedCallback<FirstPassTag, Predicates, Callback, OutputView,
                            CountView, OffsetView>{predicates, callback, out,
@@ -223,23 +214,31 @@ void queryImpl(ExecutionSpace const &space, Search const &search,
                predicates, callback, out, counts, offset});
   }
 
-  // NOTE max() internally calls Kokkos::parallel_reduce.  Only pay for it if
-  // actually trying buffer optimization. In principle, any strictly
-  // positive value can be assigned otherwise.
-  auto const max_results_per_query =
-      (buffer_size > 0)
-          ? max(space, counts)
-          : std::numeric_limits<typename CountView::value_type>::max();
+  int n_bad_guesses = 0;
+  if (buffer_size > 0)
+  {
+    Kokkos::parallel_reduce(
+        ARBORX_MARK_REGION("check_if_second_pass_needed"),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+        KOKKOS_LAMBDA(int i, int &update) {
+          if (counts(i) > offset(i + 1) - offset(i))
+          {
+            ++update;
+          }
+        },
+        n_bad_guesses);
+  }
 
-  // can't use deep_copy() because offset may be a permuted view
+  // NOTE can't use deep_copy() because offset may be a permuted view
   // Kokkos::deep_copy(
   //    space,
   //    Kokkos::subview(viewCast(offset), Kokkos::make_pair(0, (int)n_queries)),
   //    counts);
-
+  auto tmp_offset = clone(space, viewCast(offset));
   Kokkos::parallel_for(ARBORX_MARK_REGION("copy_counts"),
                        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
                        KOKKOS_LAMBDA(int i) { offset(i) = counts(i); });
+
   exclusivePrefixSum(space, viewCast(offset));
 
   int const n_results = lastElement(viewCast(offset));
@@ -249,16 +248,19 @@ void queryImpl(ExecutionSpace const &space, Search const &search,
   // guarantees that the second pass will not be executed independent of
   // buffer_size.
   if (n_results == 0)
+  {
+    Kokkos::resize(out, 0);
     return;
+  }
 
-  if (max_results_per_query > buffer_size)
+  if (n_bad_guesses > 0 || buffer_size == 0)
   {
     // FIXME can definitely do better about error message
     ARBORX_ASSERT(!throw_if_buffer_optimization_fails);
 
     reallocWithoutInitializing(out, n_results);
 
-    Kokkos::deep_copy(space, counts, 0); // FIXME
+    Kokkos::deep_copy(space, counts, 0);
 
     search(space, predicates,
            WrappedCallback<SecondPassTag, Predicates, Callback, OutputView,
@@ -267,7 +269,7 @@ void queryImpl(ExecutionSpace const &space, Search const &search,
   }
   // do not copy if by some miracle each query exactly yielded as many results
   // as the buffer size
-  else if (n_results != static_cast<int>(n_queries) * buffer_size)
+  else if (n_results != (int)out.size())
   {
     OutputView tmp_out(Kokkos::ViewAllocateWithoutInitializing(out.label()),
                        n_results);
@@ -278,7 +280,7 @@ void queryImpl(ExecutionSpace const &space, Search const &search,
         KOKKOS_LAMBDA(int q) {
           for (int i = 0; i < offset_(q + 1) - offset_(q); ++i)
           {
-            tmp_out(offset_(q) + i) = out(q * buffer_size + i);
+            tmp_out(offset_(q) + i) = out(tmp_offset(q) + i); // FIXME
           }
         });
     out = tmp_out;
