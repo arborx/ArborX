@@ -31,8 +31,11 @@ struct TreeTraversal;
 
 template <typename ExecutionSpace, typename BVH, typename Predicates,
           typename Callback>
-void traverse(ExecutionSpace const &space, BVH const &bvh,
-              Predicates const &predicates, Callback const &callback)
+std::enable_if_t<std::is_same<SpatialPredicateTag,
+                              typename Traits::Helper<Traits::Access<
+                                  Predicates, Traits::PredicatesTag>>::tag>{}>
+traverse(ExecutionSpace const &space, BVH const &bvh,
+         Predicates const &predicates, Callback const &callback)
 {
   TreeTraversal<BVH, Predicates, Callback>(space, bvh, predicates, callback);
 }
