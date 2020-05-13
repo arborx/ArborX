@@ -408,16 +408,8 @@ using DeprecatedTreeTraversal = TreeTraversal<BVH, void, void, void>;
 template <typename BVH>
 struct TreeTraversal<BVH, void, void, void>
 {
-public:
-  template <typename Predicate, typename... Args>
-  KOKKOS_INLINE_FUNCTION static int query(BVH const &bvh, Predicate const &pred,
-                                          Args &&... args)
-  {
-    using Tag = typename Predicate::Tag;
-    return queryDispatch(Tag{}, bvh, pred, std::forward<Args>(args)...);
-  }
-
-  // query k nearest neighbours
+  // WARNING deprecated will be removed soon
+  // still used in TreeVisualization
   template <typename Distance, typename Insert, typename Buffer>
   KOKKOS_FUNCTION static int
   nearestQuery(BVH const &bvh, Distance const &distance, std::size_t k,
@@ -602,39 +594,6 @@ public:
       return count;
     }
   }; // "namespace" Deprecated
-
-  template <typename Predicate, typename Insert, typename Buffer>
-  KOKKOS_INLINE_FUNCTION static int
-  queryDispatch(NearestPredicateTag, BVH const &bvh, Predicate const &pred,
-                Insert const &insert, Buffer const &buffer)
-  {
-    auto const geometry = getGeometry(pred);
-    auto const k = getK(pred);
-    return nearestQuery(bvh,
-                        [geometry, &bvh](Node const *node) {
-                          return distance(geometry,
-                                          bvh.getBoundingVolume(node));
-                        },
-                        k, insert, buffer);
-  }
-
-  // WARNING Without the buffer argument, the dispatch function uses the
-  // deprecated version of the nearest query.
-  template <typename Predicate, typename Insert>
-  KOKKOS_INLINE_FUNCTION static int
-  queryDispatch(NearestPredicateTag, BVH const &bvh, Predicate const &pred,
-                Insert const &insert)
-  {
-    auto const geometry = getGeometry(pred);
-    auto const k = getK(pred);
-    return Deprecated::nearestQuery(
-        // ^^^^^^^^^^
-        bvh,
-        [geometry, &bvh](Node const *node) {
-          return distance(geometry, bvh.getBoundingVolume(node));
-        },
-        k, insert);
-  }
 };
 
 } // namespace Details
