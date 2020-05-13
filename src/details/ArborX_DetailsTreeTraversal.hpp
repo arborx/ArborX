@@ -328,6 +328,78 @@ struct TreeTraversal<
     }
     return heap.size();
   }
+
+  struct Deprecated
+  {
+  };
+
+  // This is the older version of the nearest traversal that uses a priority
+  // queue and that was deemed less performant than the newer version with a
+  // stack.
+  KOKKOS_FUNCTION int operator()(Deprecated, int queryIndex) const
+  {
+    auto const &predicate = Access::get(predicates_, queryIndex);
+    auto const k = getK(predicate);
+    auto const distance = [geometry = getGeometry(predicate),
+                           bvh = bvh_](Node const *node) {
+      return Details::distance(geometry, bvh.getBoundingVolume(node));
+    };
+
+    if (bvh_.empty() || k < 1)
+      return 0;
+
+    if (bvh_.size() == 1)
+    {
+      callback_(queryIndex, 0, distance(bvh_.getRoot()));
+      return 1;
+    }
+
+    using PairNodePtrDistance = Kokkos::pair<Node const *, float>;
+    struct CompareDistance
+    {
+      KOKKOS_INLINE_FUNCTION bool
+      operator()(PairNodePtrDistance const &lhs,
+                 PairNodePtrDistance const &rhs) const
+      {
+        // Reverse order (larger distance means lower priority)
+        return lhs.second > rhs.second;
+      }
+    };
+    PriorityQueue<PairNodePtrDistance, CompareDistance,
+                  StaticVector<PairNodePtrDistance, 256>>
+        queue;
+
+    // Do not bother computing the distance to the root node since it is
+    // immediately popped out of the stack and processed.
+    queue.emplace(bvh_.getRoot(), 0.);
+    decltype(k) count = 0;
+
+    while (!queue.empty() && count < k)
+    {
+      // Get the node that is on top of the priority list (i.e. the
+      // one that is closest to the query point)
+      Node const *node = queue.top().first;
+      auto const node_distance = queue.top().second;
+
+      if (node->isLeaf())
+      {
+        queue.pop();
+        callback_(queryIndex, node->getLeafPermutationIndex(), node_distance);
+        ++count;
+      }
+      else
+      {
+        // Insert children into the priority queue
+        Node const *left_child = bvh_.getNodePtr(node->children.first);
+        Node const *right_child = bvh_.getNodePtr(node->children.second);
+        auto const left_child_distance = distance(left_child);
+        auto const right_child_distance = distance(right_child);
+        queue.popPush(left_child, left_child_distance);
+        queue.emplace(right_child, right_child_distance);
+      }
+    }
+    return count;
+  }
 };
 
 template <typename BVH>
