@@ -203,136 +203,43 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
   check_valid_callback(callback, predicates, out);
 
-  Kokkos::Profiling::pushRegion("ArborX:BVH:nearest_queries");
-
   bool const use_deprecated_nearest_query_algorithm =
       (policy._traversal_algorithm ==
        NearestQueryAlgorithm::PriorityQueueBased_Deprecated);
 
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
   auto const n_queries = Access::size(predicates);
-
-  Kokkos::Profiling::pushRegion("ArborX:BVH:sort_queries");
-
-  Kokkos::View<unsigned int *, MemorySpace> permute;
-  if (policy._sort_predicates)
-  {
-    permute = Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-        space, bvh.bounds(), predicates);
-  }
-  else
-  {
-    permute = Kokkos::View<unsigned int *, MemorySpace>(
-        Kokkos::ViewAllocateWithoutInitializing("permute"), n_queries);
-    iota(space, permute);
-  }
-
-  // FIXME  readability!  queries is a sorted copy of the predicates
-  auto queries = Details::BatchedQueries<DeviceType>::applyPermutation(
-      space, permute, predicates);
-
-  Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::pushRegion("ArborX:BVH:init_offset");
-
   reallocWithoutInitializing(offset, n_queries + 1);
 
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("scan_queries_for_numbers_of_nearest_neighbors"),
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-      KOKKOS_LAMBDA(int i) { offset(permute(i)) = getK(queries(i)); });
-
+      KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
   exclusivePrefixSum(space, offset);
   int const n_results = lastElement(offset);
 
-  Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::pushRegion("ArborX:BVH:traversal");
-
   reallocWithoutInitializing(out, n_results);
-  auto tmp_offset = cloneWithoutInitializingNorCopying(offset);
-  if (use_deprecated_nearest_query_algorithm)
+
+  if (policy._sort_predicates && false)
   {
-    Kokkos::parallel_for(
-        ARBORX_MARK_REGION("perform_deprecated_nearest_queries"),
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int i) {
-          int count = 0;
-          auto const shift = offset(permute(i));
-          auto const &query = queries(i);
-          Details::DeprecatedTreeTraversal<BVH>::query(
-              bvh, query,
-              [&query, &callback, &out, shift, &count](int index,
-                                                       float distance) {
-                callback(query, index, distance,
-                         [&out, shift, &count](
-                             typename OutputView::value_type const &value) {
-                           out(shift + count++) = value;
-                         });
-              });
-          tmp_offset(permute(i)) = count;
-        });
+    auto permute =
+        Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
+            space, bvh.bounds(), predicates);
+    auto permuted_predicates =
+        Details::BatchedQueries<DeviceType>::applyPermutation(space, permute,
+                                                              predicates);
+    Kokkos::resize(permute, permute.size() + 1);
+    Kokkos::deep_copy(Kokkos::subview(permute, permute.size() - 1),
+                      permute.size() - 1);
+    auto permuted_offset = makePermutedView(permute, offset);
+    queryImpl(space, WrappedBVH<BVH>{bvh}, permuted_predicates, callback, out,
+              permuted_offset, -1);
   }
   else
   {
-    // Allocate buffer over which to perform heap operations in
-    // TreeTraversal::nearestQuery() to store nearest leaf nodes found
-    // so far.  It is not possible to anticipate how much memory to
-    // allocate since the number of nearest neighbors k is only known at
-    // runtime.
-    Kokkos::View<Kokkos::pair<int, float> *, MemorySpace> buffer(
-        Kokkos::ViewAllocateWithoutInitializing("buffer"), n_results);
-
-    Kokkos::parallel_for(
-        ARBORX_MARK_REGION("perform_nearest_queries"),
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int i) {
-          int count = 0;
-          auto const shift = offset(permute(i));
-          auto const &query = queries(i);
-          Details::DeprecatedTreeTraversal<BVH>::query(
-              bvh, query,
-              [&query, &callback, &out, shift, &count](int index,
-                                                       float distance) {
-                callback(query, index, distance,
-                         [&out, shift, &count](
-                             typename OutputView::value_type const &value) {
-                           out(shift + count++) = value;
-                         });
-              },
-              Kokkos::subview(buffer,
-                              Kokkos::make_pair(offset(permute(i)),
-                                                offset(permute(i) + 1))));
-          tmp_offset(permute(i)) = count;
-        });
+    queryImpl(space, WrappedBVH<BVH>{bvh}, predicates, callback, out, offset,
+              -1);
   }
-
-  Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::pushRegion("ArborX:BVH:filter_out_invalid_entries");
-
-  // Find out if they are any invalid entries in the indices (i.e. at least
-  // one query asked for more neighbors than there are leaves in the tree) and
-  // eliminate them if necessary.
-  exclusivePrefixSum(space, tmp_offset);
-  int const n_tmp_results = lastElement(tmp_offset);
-  if (n_tmp_results != n_results)
-  {
-    OutputView tmp_out(Kokkos::ViewAllocateWithoutInitializing(out.label()),
-                       n_tmp_results);
-
-    Kokkos::parallel_for(
-        ARBORX_MARK_REGION("copy_valid_entries"),
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int q) {
-          for (int i = 0; i < tmp_offset(q + 1) - tmp_offset(q); ++i)
-          {
-            tmp_out(tmp_offset(q) + i) = out(offset(q) + i);
-          }
-        });
-    out = tmp_out;
-    offset = tmp_offset;
-  }
-
-  Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::popRegion();
 }
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
