@@ -70,7 +70,6 @@ struct InsertGenerator
       std::enable_if_t<std::is_same<U, FirstPassNoBufferOptimizationTag>::value>
       operator()(int predicate_index, int primitive_index) const
   {
-    auto const permuted_predicate_index = _permute(predicate_index);
     auto &count = _counts(predicate_index);
 
     _callback(Access::get(_permuted_predicates, predicate_index),
@@ -82,7 +81,6 @@ struct InsertGenerator
   KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, SecondPassTag>::value>
   operator()(int predicate_index, int primitive_index) const
   {
-    int const permuted_predicate_index = _permute(predicate_index);
     // we store offsets in counts, and offset(permute(i)) = counts(i)
     auto &offset = _counts(predicate_index);
 
