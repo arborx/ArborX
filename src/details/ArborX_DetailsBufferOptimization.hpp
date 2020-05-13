@@ -54,7 +54,11 @@ struct InsertGenerator
   {
     auto const permuted_predicate_index = _permute(predicate_index);
     auto const offset = _offset(permuted_predicate_index);
-    auto const buffer_size = _offset(permuted_predicate_index + 1) - offset;
+    // With permutation, we access offset in random manner, and
+    // _offset(permutated_predicate_index+1) may be in a completely different
+    // place. Instead, use pointers to get the correct value for the buffer
+    // size.
+    auto const buffer_size = *(&offset + 1) - offset;
     auto &count = _counts(predicate_index);
 
     _callback(Access::get(_permuted_predicates, predicate_index),
