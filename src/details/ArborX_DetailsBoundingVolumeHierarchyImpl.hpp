@@ -119,6 +119,25 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
   check_valid_callback(callback, predicates, out);
 
+  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  auto const n_queries = Access::size(predicates);
+  reallocWithoutInitializing(offset, n_queries + 1);
+
+  int const buffer_size = std::abs(policy._buffer_size);
+  if (buffer_size > 0)
+  {
+    Kokkos::deep_copy(space, offset, buffer_size);
+    exclusivePrefixSum(space, offset);
+    reallocWithoutInitializing(
+        out, n_queries * buffer_size); // avoid lastElement() that makes a copy
+                                       // from device to host
+    // NOTE I considered filling with invalid indices but it is unecessary work
+  }
+  else
+  {
+    Kokkos::deep_copy(offset, 0);
+  }
+
   if (policy._sort_predicates)
   {
     auto permute =
@@ -130,19 +149,12 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
     Kokkos::resize(permute, permute.size() + 1);
     Kokkos::deep_copy(Kokkos::subview(permute, permute.size() - 1),
                       permute.size() - 1);
-    using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-    auto const n_queries = Access::size(predicates);
-    reallocWithoutInitializing(offset, n_queries + 1);
     auto permuted_offset = makePermutedView(permute, offset);
     queryImpl(space, WrappedBVH<BVH>{bvh}, permuted_predicates, callback, out,
               permuted_offset, policy._buffer_size);
   }
   else
   {
-    using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-    auto const n_queries = Access::size(predicates);
-    reallocWithoutInitializing(offset, n_queries + 1);
-
     queryImpl(space, WrappedBVH<BVH>{bvh}, predicates, callback, out, offset,
               policy._buffer_size);
   }
