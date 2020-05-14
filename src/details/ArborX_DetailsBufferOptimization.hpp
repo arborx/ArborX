@@ -55,11 +55,11 @@ struct InsertGenerator
   operator()(int predicate_index, int primitive_index) const
   {
     auto const permuted_predicate_index = _permute(predicate_index);
-    auto const offset = _offset(permuted_predicate_index);
     // With permutation, we access offset in random manner, and
     // _offset(permutated_predicate_index+1) may be in a completely different
     // place. Instead, use pointers to get the correct value for the buffer
-    // size.
+    // size. For this reason, also take a reference for offset.
+    auto const &offset = _offset(permuted_predicate_index);
     auto const buffer_size = *(&offset + 1) - offset;
     auto &count = _counts(predicate_index);
 
@@ -76,11 +76,11 @@ struct InsertGenerator
   operator()(int predicate_index, int primitive_index, float distance) const
   {
     auto const permuted_predicate_index = _permute(predicate_index);
-    auto const offset = _offset(permuted_predicate_index);
     // With permutation, we access offset in random manner, and
     // _offset(permutated_predicate_index+1) may be in a completely different
     // place. Instead, use pointers to get the correct value for the buffer
-    // size.
+    // size. For this reason, also take a reference for offset.
+    auto const &offset = _offset(permuted_predicate_index);
     auto const buffer_size = *(&offset + 1) - offset;
     auto &count = _counts(predicate_index);
 
