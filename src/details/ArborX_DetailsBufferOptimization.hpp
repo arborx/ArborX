@@ -142,6 +142,10 @@ struct InsertGenerator
     // we store offsets in counts, and offset(permute(i)) = counts(i)
     auto &offset = _counts(predicate_index);
 
+    // TODO: there is a tradeoff here between skipping computation offset +
+    // count, and atomic increment of count. I think atomically incrementing
+    // offset is problematic for OpenMP as you potentially constantly steal
+    // cache lines.
     _callback(Access::get(_permuted_predicates, predicate_index),
               primitive_index, [&](ValueType const &value) {
                 _out(Kokkos::atomic_fetch_add(&offset, 1)) = value;
@@ -156,6 +160,10 @@ struct InsertGenerator
     // we store offsets in counts, and offset(permute(i)) = counts(i)
     auto &offset = _counts(predicate_index);
 
+    // TODO: there is a tradeoff here between skipping computation offset +
+    // count, and atomic increment of count. I think atomically incrementing
+    // offset is problematic for OpenMP as you potentially constantly steal
+    // cache lines.
     _callback(Access::get(_permuted_predicates, predicate_index),
               primitive_index, distance, [&](ValueType const &value) {
                 _out(Kokkos::atomic_fetch_add(&offset, 1)) = value;
@@ -227,6 +235,8 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   PermutedPredicates permuted_predicates = {predicates, permute};
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:first_pass");
+  bool underflow = false;
+  bool overflow = false;
   if (buffer_status != BufferStatus::PreallocationNone)
   {
     tree_traversal.launch(
@@ -234,6 +244,32 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
         InsertGenerator<FirstPassTag, PermutedPredicates, Callback, OutputView,
                         CountView, OffsetView, PermuteType>{
             permuted_predicates, callback, out, counts, offset, permute});
+
+    // Detecting overflow is a local operation that needs to be done for every
+    // index. We allow individual buffer sizes to differ, so it's not as easy
+    // as computing max counts.
+    int overflow_int = 0;
+    Kokkos::parallel_reduce(
+        ARBORX_MARK_REGION("compute_overflow"),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+        KOKKOS_LAMBDA(int i, int &update) {
+          auto const *const offset_ptr = &offset(permute(i));
+          if (counts(i) > *(offset_ptr + 1) - *offset_ptr)
+            update = 1;
+        },
+        overflow_int);
+    overflow = (overflow_int > 0);
+
+    if (!overflow)
+    {
+      int n_results = 0;
+      Kokkos::parallel_reduce(
+          ARBORX_MARK_REGION("compute_underflow"),
+          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+          KOKKOS_LAMBDA(int i, int &update) { update += counts(i); },
+          n_results);
+      underflow = (n_results < out.extent_int(0));
+    }
   }
   else
   {
@@ -243,49 +279,20 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
                         Callback, OutputView, CountView, OffsetView,
                         PermuteType>{permuted_predicates, callback, out, counts,
                                      offset, permute});
+    // This may not be true, but it does not matter. As long as we have
+    // (n_results == 0) check before second pass, this value is not used.
+    // Otherwise, we know it's overflowed as there is no allocation.
+    overflow = true;
   }
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:first_pass_postprocess");
 
-  bool underflow = false;
-  bool overflow = false;
-  if (buffer_status != BufferStatus::PreallocationNone)
-  {
-    // FIXME: combine these two reductions into one
-    int underflow_int = 0;
-    Kokkos::parallel_reduce(
-        ARBORX_MARK_REGION("compute_overflow_underflow"),
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int i, int &update) {
-          auto const *const offset_ptr = &offset(permute(i));
-          int diff = counts(i) - (*(offset_ptr + 1) - *offset_ptr);
-          if (diff < 0)
-            update = -1;
-        },
-        underflow_int);
-    underflow = (underflow_int < 0);
-
-    int overflow_int = 0;
-    Kokkos::parallel_reduce(
-        ARBORX_MARK_REGION("compute_overflow_underflow"),
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int i, int &update) {
-          auto const *const offset_ptr = &offset(permute(i));
-          int diff = counts(i) - (*(offset_ptr + 1) - *offset_ptr);
-          if (diff > 0)
-            update = 1;
-        },
-        overflow_int);
-    overflow = (overflow_int > 0);
-  }
-
   OffsetView preallocated_offset("offset_copy", 0);
-  if (underflow && !overflow)
+  if (underflow)
   {
     // Store a copy of the original offset. We'll need it for compression.
-    reallocWithoutInitializing(preallocated_offset, offset.extent(0));
-    Kokkos::deep_copy(space, preallocated_offset, offset);
+    preallocated_offset = clone(offset);
   }
 
   Kokkos::parallel_for(
