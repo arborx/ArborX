@@ -163,13 +163,13 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
     Kokkos::Profiling::popRegion();
 
     queryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates, callback,
-              out, offset, permute, policy._buffer_size);
+              out, offset, permute, toBufferStatus(policy._buffer_size));
   }
   else
   {
     Iota permute;
     queryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates, callback,
-              out, offset, permute, policy._buffer_size);
+              out, offset, permute, toBufferStatus(policy._buffer_size));
   }
 
   Kokkos::Profiling::popRegion();
@@ -252,13 +252,13 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
     Kokkos::Profiling::popRegion();
 
     queryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates, callback,
-              out, offset, permute, policy._buffer_size);
+              out, offset, permute, BufferStatus::PreallocationSoft);
   }
   else
   {
     Iota permute;
     queryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates, callback,
-              out, offset, permute, policy._buffer_size);
+              out, offset, permute, BufferStatus::PreallocationSoft);
   }
 
   Kokkos::Profiling::popRegion();

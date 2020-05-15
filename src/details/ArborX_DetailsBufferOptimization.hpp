@@ -23,6 +23,22 @@ namespace ArborX
 namespace Details
 {
 
+enum BufferStatus
+{
+  PreallocationNone = 0,
+  PreallocationHard = -1,
+  PreallocationSoft = 1
+};
+
+BufferStatus toBufferStatus(int buffer_size)
+{
+  if (buffer_size == 0)
+    return BufferStatus::PreallocationNone;
+  if (buffer_size > 0)
+    return BufferStatus::PreallocationSoft;
+  return BufferStatus::PreallocationHard;
+}
+
 struct FirstPassTag
 {
 };
@@ -185,13 +201,14 @@ struct Access<Details::PermutedPredicates<Predicates, Permute>, PredicatesTag>
 
 namespace Details
 {
+
 template <typename ExecutionSpace, typename TreeTraversal, typename Predicates,
           typename Callback, typename OutputView, typename OffsetView,
           typename PermuteType>
 void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
                Predicates const &predicates, Callback const &callback,
                OutputView &out, OffsetView &offset, PermuteType permute,
-               int buffer_size)
+               BufferStatus buffer_status)
 {
   // pre-condition: offset and out are preallocated. If buffer_size > 0, offset
   // is pre-initialized
@@ -203,9 +220,6 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass");
 
-  bool const throw_if_buffer_optimization_fails = (buffer_size < 0);
-  buffer_size = std::abs(buffer_size);
-
   using CountView = OffsetView;
   CountView counts(Kokkos::view_alloc("counts", space), n_queries);
 
@@ -213,7 +227,7 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   PermutedPredicates permuted_predicates = {predicates, permute};
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:first_pass");
-  if (buffer_size > 0)
+  if (buffer_status != BufferStatus::PreallocationNone)
   {
     tree_traversal.launch(
         space, permuted_predicates,
@@ -234,21 +248,44 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:first_pass_postprocess");
 
-  // FIXME
-  int num_bad_guesses = 0;
-  if (buffer_size > 0)
+  bool underflow = false;
+  bool overflow = false;
+  if (buffer_status != BufferStatus::PreallocationNone)
   {
+    // FIXME: combine these two reductions into one
+    int underflow_int = 0;
     Kokkos::parallel_reduce(
-        ARBORX_MARK_REGION("check_if_second_pass_needed"),
+        ARBORX_MARK_REGION("compute_overflow_underflow"),
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i, int &update) {
           auto const *const offset_ptr = &offset(permute(i));
-          if (counts(i) > *(offset_ptr + 1) - *offset_ptr)
-          {
-            ++update;
-          }
+          int diff = counts(i) - (*(offset_ptr + 1) - *offset_ptr);
+          if (diff < 0)
+            update = -1;
         },
-        num_bad_guesses);
+        underflow_int);
+    underflow = (underflow_int < 0);
+
+    int overflow_int = 0;
+    Kokkos::parallel_reduce(
+        ARBORX_MARK_REGION("compute_overflow_underflow"),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+        KOKKOS_LAMBDA(int i, int &update) {
+          auto const *const offset_ptr = &offset(permute(i));
+          int diff = counts(i) - (*(offset_ptr + 1) - *offset_ptr);
+          if (diff > 0)
+            update = 1;
+        },
+        overflow_int);
+    overflow = (overflow_int > 0);
+  }
+
+  OffsetView preallocated_offset("offset_copy", 0);
+  if (underflow && !overflow)
+  {
+    // Store a copy of the original offset. We'll need it for compression.
+    reallocWithoutInitializing(preallocated_offset, offset.extent(0));
+    Kokkos::deep_copy(space, preallocated_offset, offset);
   }
 
   Kokkos::parallel_for(
@@ -261,23 +298,26 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
 
   Kokkos::Profiling::popRegion();
 
-  // Exit early if either no results were found for any of the queries, or
-  // nothing was inserted inside a callback for found results. This check
-  // guarantees that the second pass will not be executed independent of
-  // buffer_size.
   if (n_results == 0)
   {
+    // Exit early if either no results were found for any of the queries, or
+    // nothing was inserted inside a callback for found results. This check
+    // guarantees that the second pass will not be executed.
     Kokkos::resize(out, 0);
+    // FIXME: do we need to reset offset if it was preallocated here?
     Kokkos::Profiling::popRegion();
     return;
   }
 
-  if (num_bad_guesses > 0 || buffer_size == 0)
+  if (overflow || buffer_status == BufferStatus::PreallocationNone)
   {
-    Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:second_pass");
+    // Not enough (individual) storage for results
 
-    // FIXME can definitely do better about error message
-    ARBORX_ASSERT(!throw_if_buffer_optimization_fails);
+    // If it was hard preallocation, we simply throw
+    ARBORX_ASSERT(buffer_status != BufferStatus::PreallocationHard);
+
+    // Otherwise, do the second pass
+    Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:second_pass");
 
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("copy_offsets_to_counts"),
@@ -294,10 +334,9 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
 
     Kokkos::Profiling::popRegion();
   }
-  // do not copy if by some miracle each query exactly yielded as many results
-  // as the buffer size
-  else if (n_results != static_cast<int>(n_queries) * buffer_size)
+  else if (underflow)
   {
+    // More than enough storage for results, need compression
     Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:copy_values");
 
     OutputView tmp_out(Kokkos::ViewAllocateWithoutInitializing(out.label()),
@@ -306,15 +345,20 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("copy_valid_values"),
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int q) {
-          for (int i = 0; i < offset(q + 1) - offset(q); ++i)
+        KOKKOS_LAMBDA(int i) {
+          int count = offset(i + 1) - offset(i);
+          for (int j = 0; j < count; ++j)
           {
-            tmp_out(offset(q) + i) = out(q * buffer_size + i);
+            tmp_out(offset(i) + j) = out(preallocated_offset(i) + j);
           }
         });
     out = tmp_out;
 
     Kokkos::Profiling::popRegion();
+  }
+  else
+  {
+    // The allocated storage was exactly enough for results, do nothing
   }
   Kokkos::Profiling::popRegion();
 } // namespace Details

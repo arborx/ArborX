@@ -70,7 +70,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
   ArborX::reallocWithoutInitializing(indices, ArborX::lastElement(offset));
   ArborX::Details::queryImpl(ExecutionSpace{}, Test1{}, predicates,
                              ArborX::Details::CallbackDefaultSpatialPredicate{},
-                             indices, offset, permute, -buffer_size);
+                             indices, offset, permute,
+                             ArborX::Details::BufferStatus::PreallocationHard);
 
   auto indices_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
