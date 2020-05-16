@@ -213,6 +213,7 @@ pipeline {
                         dir('build') {
                             sh '''
                                 cmake \
+                                    -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
                                     -D CMAKE_BUILD_TYPE=Debug \
                                     -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                                     -D CMAKE_CXX_COMPILER=clang++ \
@@ -272,6 +273,7 @@ pipeline {
                         dir('build') {
                             sh '''
                                 cmake \
+                                    -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
                                     -D CMAKE_BUILD_TYPE=Debug \
                                     -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                                     -D CMAKE_CXX_COMPILER=pgc++ \
