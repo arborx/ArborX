@@ -37,7 +37,8 @@ struct Test1
         KOKKOS_LAMBDA(int predicate_index) {
           for (int primitive_index = 0; primitive_index < predicate_index;
                ++primitive_index)
-            insert_generator(predicate_index, primitive_index);
+            insert_generator(Access::get(predicates, predicate_index),
+                             primitive_index);
         });
   }
 };

@@ -49,12 +49,11 @@ struct SecondPassTag
 {
 };
 
-template <typename PassTag, typename Predicates, typename Callback,
-          typename OutputView, typename CountView, typename OffsetView,
-          typename PermuteType>
+template <typename PassTag, typename Tag, typename NativePredicateType,
+          typename Callback, typename OutputView, typename CountView,
+          typename OffsetView, typename PermuteType>
 struct InsertGenerator
 {
-  Predicates _permuted_predicates;
   Callback _callback;
   OutputView _out;
   CountView _counts;
@@ -62,14 +61,15 @@ struct InsertGenerator
   PermuteType _permute;
 
   using ValueType = typename OutputView::value_type;
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-  using Tag = typename Traits::Helper<Access>::tag;
 
-  template <typename U = PassTag, typename V = Tag>
+  template <typename Query, typename U = PassTag, typename V = Tag>
   KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, FirstPassTag>{} &&
                                    std::is_same<V, SpatialPredicateTag>{}>
-  operator()(int predicate_index, int primitive_index) const
+  operator()(Query const &query, int primitive_index) const
   {
+    auto const predicate_index = getData(query);
+    auto const &predicate = static_cast<NativePredicateType const &>(query);
+
     auto const permuted_predicate_index = _permute(predicate_index);
     // With permutation, we access offset in random manner, and
     // _offset(permutated_predicate_index+1) may be in a completely different
@@ -79,18 +79,20 @@ struct InsertGenerator
     auto const buffer_size = *(&offset + 1) - offset;
     auto &count = _counts(predicate_index);
 
-    _callback(Access::get(_permuted_predicates, predicate_index),
-              primitive_index, [&](ValueType const &value) {
-                int count_old = Kokkos::atomic_fetch_add(&count, 1);
-                if (count_old < buffer_size)
-                  _out(offset + count_old) = value;
-              });
+    _callback(predicate, primitive_index, [&](ValueType const &value) {
+      int count_old = Kokkos::atomic_fetch_add(&count, 1);
+      if (count_old < buffer_size)
+        _out(offset + count_old) = value;
+    });
   }
-  template <typename U = PassTag, typename V = Tag>
+  template <typename Query, typename U = PassTag, typename V = Tag>
   KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, FirstPassTag>{} &&
                                    std::is_same<V, NearestPredicateTag>{}>
-  operator()(int predicate_index, int primitive_index, float distance) const
+  operator()(Query const &query, int primitive_index, float distance) const
   {
+    auto const predicate_index = getData(query);
+    auto const &predicate = static_cast<NativePredicateType const &>(query);
+
     auto const permuted_predicate_index = _permute(predicate_index);
     // With permutation, we access offset in random manner, and
     // _offset(permutated_predicate_index+1) may be in a completely different
@@ -100,45 +102,52 @@ struct InsertGenerator
     auto const buffer_size = *(&offset + 1) - offset;
     auto &count = _counts(predicate_index);
 
-    _callback(Access::get(_permuted_predicates, predicate_index),
-              primitive_index, distance, [&](ValueType const &value) {
+    _callback(predicate, primitive_index, distance,
+              [&](ValueType const &value) {
                 int count_old = Kokkos::atomic_fetch_add(&count, 1);
                 if (count_old < buffer_size)
                   _out(offset + count_old) = value;
               });
   }
 
-  template <typename U = PassTag, typename V = Tag>
+  template <typename Query, typename U = PassTag, typename V = Tag>
   KOKKOS_FUNCTION
       std::enable_if_t<std::is_same<U, FirstPassNoBufferOptimizationTag>{} &&
                        std::is_same<V, SpatialPredicateTag>{}>
-      operator()(int predicate_index, int primitive_index) const
+      operator()(Query const &query, int primitive_index) const
   {
+    auto const predicate_index = getData(query);
+    auto const &predicate = static_cast<NativePredicateType const &>(query);
+
     auto &count = _counts(predicate_index);
 
-    _callback(Access::get(_permuted_predicates, predicate_index),
-              primitive_index,
+    _callback(predicate, primitive_index,
               [&](ValueType const &) { Kokkos::atomic_fetch_add(&count, 1); });
   }
 
-  template <typename U = PassTag, typename V = Tag>
+  template <typename Query, typename U = PassTag, typename V = Tag>
   KOKKOS_FUNCTION
       std::enable_if_t<std::is_same<U, FirstPassNoBufferOptimizationTag>{} &&
                        std::is_same<V, NearestPredicateTag>{}>
-      operator()(int predicate_index, int primitive_index, float distance) const
+      operator()(Query const &query, int primitive_index, float distance) const
   {
+    auto const predicate_index = getData(query);
+    auto const &predicate = static_cast<NativePredicateType const &>(query);
+
     auto &count = _counts(predicate_index);
 
-    _callback(Access::get(_permuted_predicates, predicate_index),
-              primitive_index, distance,
+    _callback(predicate, primitive_index, distance,
               [&](ValueType const &) { Kokkos::atomic_fetch_add(&count, 1); });
   }
 
-  template <typename U = PassTag, typename V = Tag>
+  template <typename Query, typename U = PassTag, typename V = Tag>
   KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, SecondPassTag>{} &&
                                    std::is_same<V, SpatialPredicateTag>{}>
-  operator()(int predicate_index, int primitive_index) const
+  operator()(Query const &query, int primitive_index) const
   {
+    auto const predicate_index = getData(query);
+    auto const &predicate = static_cast<NativePredicateType const &>(query);
+
     // we store offsets in counts, and offset(permute(i)) = counts(i)
     auto &offset = _counts(predicate_index);
 
@@ -146,17 +155,19 @@ struct InsertGenerator
     // count, and atomic increment of count. I think atomically incrementing
     // offset is problematic for OpenMP as you potentially constantly steal
     // cache lines.
-    _callback(Access::get(_permuted_predicates, predicate_index),
-              primitive_index, [&](ValueType const &value) {
-                _out(Kokkos::atomic_fetch_add(&offset, 1)) = value;
-              });
+    _callback(predicate, primitive_index, [&](ValueType const &value) {
+      _out(Kokkos::atomic_fetch_add(&offset, 1)) = value;
+    });
   }
 
-  template <typename U = PassTag, typename V = Tag>
+  template <typename Query, typename U = PassTag, typename V = Tag>
   KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, SecondPassTag>{} &&
                                    std::is_same<V, NearestPredicateTag>{}>
-  operator()(int predicate_index, int primitive_index, float distance) const
+  operator()(Query const &query, int primitive_index, float distance) const
   {
+    auto const predicate_index = getData(query);
+    auto const &predicate = static_cast<NativePredicateType const &>(query);
+
     // we store offsets in counts, and offset(permute(i)) = counts(i)
     auto &offset = _counts(predicate_index);
 
@@ -164,8 +175,8 @@ struct InsertGenerator
     // count, and atomic increment of count. I think atomically incrementing
     // offset is problematic for OpenMP as you potentially constantly steal
     // cache lines.
-    _callback(Access::get(_permuted_predicates, predicate_index),
-              primitive_index, distance, [&](ValueType const &value) {
+    _callback(predicate, primitive_index, distance,
+              [&](ValueType const &value) {
                 _out(Kokkos::atomic_fetch_add(&offset, 1)) = value;
               });
   }
@@ -200,8 +211,9 @@ struct Access<Details::PermutedPredicates<Predicates, Permute>, PredicatesTag>
   KOKKOS_INLINE_FUNCTION static auto
   get(PermutedPredicates const &permuted_predicates, std::size_t i)
   {
-    return NativeAccess::get(permuted_predicates._predicates,
-                             permuted_predicates._permute(i));
+    return attach(NativeAccess::get(permuted_predicates._predicates,
+                                    permuted_predicates._permute(i)),
+                  (int)i);
   }
   using memory_space = typename NativeAccess::memory_space;
 };
@@ -224,6 +236,8 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   static_assert(Kokkos::is_execution_space<ExecutionSpace>{}, "");
 
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  using Tag = typename Traits::Helper<Access>::tag;
+
   auto const n_queries = Access::size(predicates);
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass");
@@ -232,6 +246,10 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   CountView counts(Kokkos::view_alloc("counts", space), n_queries);
 
   using PermutedPredicates = PermutedPredicates<Predicates, PermuteType>;
+  using NativePredicateType = std::decay_t<decltype(
+      Traits::Access<Predicates, Traits::PredicatesTag>::get(
+          std::declval<Predicates const &>(), std::declval<int>()))>;
+
   PermutedPredicates permuted_predicates = {predicates, permute};
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:first_pass");
@@ -241,9 +259,9 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   {
     tree_traversal.launch(
         space, permuted_predicates,
-        InsertGenerator<FirstPassTag, PermutedPredicates, Callback, OutputView,
-                        CountView, OffsetView, PermuteType>{
-            permuted_predicates, callback, out, counts, offset, permute});
+        InsertGenerator<FirstPassTag, Tag, NativePredicateType, Callback,
+                        OutputView, CountView, OffsetView, PermuteType>{
+            callback, out, counts, offset, permute});
 
     // Detecting overflow is a local operation that needs to be done for every
     // index. We allow individual buffer sizes to differ, so it's not as easy
@@ -275,10 +293,10 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   {
     tree_traversal.launch(
         space, permuted_predicates,
-        InsertGenerator<FirstPassNoBufferOptimizationTag, PermutedPredicates,
-                        Callback, OutputView, CountView, OffsetView,
-                        PermuteType>{permuted_predicates, callback, out, counts,
-                                     offset, permute});
+        InsertGenerator<FirstPassNoBufferOptimizationTag, Tag,
+                        NativePredicateType, Callback, OutputView, CountView,
+                        OffsetView, PermuteType>{callback, out, counts, offset,
+                                                 permute});
     // This may not be true, but it does not matter. As long as we have
     // (n_results == 0) check before second pass, this value is not used.
     // Otherwise, we know it's overflowed as there is no allocation.
@@ -335,9 +353,9 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
 
     tree_traversal.launch(
         space, permuted_predicates,
-        InsertGenerator<SecondPassTag, PermutedPredicates, Callback, OutputView,
-                        CountView, OffsetView, PermuteType>{
-            permuted_predicates, callback, out, counts, offset, permute});
+        InsertGenerator<SecondPassTag, Tag, NativePredicateType, Callback,
+                        OutputView, CountView, OffsetView, PermuteType>{
+            callback, out, counts, offset, permute});
 
     Kokkos::Profiling::popRegion();
   }
