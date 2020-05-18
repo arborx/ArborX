@@ -94,7 +94,8 @@ using AccessTraitsGetArchetypeExpression = decltype(
 
 namespace Traits
 {
-template <typename Access>
+template <typename Access,
+          typename = std::enable_if_t<Details::is_complete<Access>{}>>
 struct Helper
 {
   // Deduce return type of get()
