@@ -271,7 +271,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
   ViewType indices("indices", 0);
   ViewType offset("offset", 0);
 
-  std::vector<int> indices_ref = {3, 2, 1, 0};
+  std::vector<int> indices_ref = {0, 1, 2, 3};
   std::vector<int> offset_ref = {0, 0, 4, 4};
   auto checkResultsAreFine = [&indices, &offset, &indices_ref,
                               &offset_ref]() -> void {
@@ -344,7 +344,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
   ViewType indices("indices", 0);
   ViewType offset("offset", 0);
 
-  std::vector<int> indices_ref = {3, 2, 1, 0};
+  std::vector<int> indices_ref = {2, 3, 0, 1};
   std::vector<int> offset_ref = {0, 2, 4};
   auto checkResultsAreFine = [&indices, &offset, &indices_ref,
                               &offset_ref]() -> void {
