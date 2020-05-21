@@ -14,7 +14,7 @@ if(Kokkos_ENABLE_PTHREAD)
 endif()
 
 if(NOT ARBORX_DEVICE_TYPES)
-  message(SEND_ERROR "Kokkos_DEVICES must include at least one of 'Serial', 'OpenMP', 'Cuda' and 'Pthread'!")
+  message(SEND_ERROR "Kokkos_DEVICES must include at least one of 'Serial', 'OpenMP', 'Cuda', or 'Pthread'!")
 endif()
 
 string(REPLACE ";" "," ARBORX_DEVICE_TYPES "${ARBORX_DEVICE_TYPES}")
