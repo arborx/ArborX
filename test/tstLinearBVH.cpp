@@ -14,6 +14,7 @@
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_LinearBVH.hpp>
 
+#include "boost_ext/CompressedStorageComparison.hpp"
 #include <boost/test/unit_test.hpp>
 
 #include <algorithm>
@@ -279,8 +280,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
     Kokkos::deep_copy(indices_host, indices);
     auto offset_host = Kokkos::create_mirror_view(offset);
     Kokkos::deep_copy(offset_host, offset);
-    BOOST_TEST(indices_host == indices_ref, tt::per_element());
-    BOOST_TEST(offset_host == offset_ref, tt::per_element());
+    BOOST_TEST(make_compressed_storage(offset_host, indices_host) ==
+                   make_compressed_storage(offset_ref, indices_ref),
+               tt::per_element());
   };
 
   BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset));
@@ -352,8 +354,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
     Kokkos::deep_copy(indices_host, indices);
     auto offset_host = Kokkos::create_mirror_view(offset);
     Kokkos::deep_copy(offset_host, offset);
-    BOOST_TEST(indices_host == indices_ref, tt::per_element());
-    BOOST_TEST(offset_host == offset_ref, tt::per_element());
+    BOOST_TEST(make_compressed_storage(offset_host, indices_host) ==
+                   make_compressed_storage(offset_ref, indices_ref),
+               tt::per_element());
   };
 
   {
