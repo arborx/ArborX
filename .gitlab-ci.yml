@@ -38,7 +38,7 @@ stages:
       cd benchmark &&
       git clone https://github.com/google/googletest.git -b release-1.8.1 &&
       mkdir build && cd build &&
-      cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DCMAKE_INSTALL_PREFIX=/ccsopen/proj/csc333/benchmark.install .. &&
+      cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DBENCHMARK_ENABLE_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/ccsopen/proj/csc333/benchmark.install .. &&
       make && make install
   tags:
     - nobatch
