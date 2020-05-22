@@ -89,9 +89,8 @@ ENV BENCHMARK_DIR=/opt/benchmark
 RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     git clone https://github.com/google/benchmark.git -b v1.4.1 && \
     cd benchmark && \
-    git clone https://github.com/google/googletest.git -b release-1.8.1 && \
     mkdir build && cd build && \
-    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${BENCHMARK_DIR} .. && \
+    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${BENCHMARK_DIR} -D BENCHMARK_ENABLE_TESTING=OFF .. && \
     make -j${NPROCS} && make install && \
     rm -rf ${SCRATCH_DIR}
 
