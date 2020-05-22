@@ -50,8 +50,8 @@ struct CompressedStorage
     }
     value_type operator*()
     {
-      return {p->values.data() + *(p->offsets.data() + i),
-              p->values.data() + *(p->offsets.data() + i + 1)};
+      return {p->values.data() + p->offsets[i],
+              p->values.data() + p->offsets[i + 1]};
     }
   };
   ConstForwardIterator cbegin() const { return {0, this}; }
