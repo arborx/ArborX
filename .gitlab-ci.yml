@@ -63,7 +63,7 @@ BuildArborXBranch:
   script:
     - git fetch
     - export BRANCH_HASH=`git rev-parse HEAD`
-    - git merge origin/master-ci
+    - git merge origin/master
     - mkdir build && cd build &&
       cmake -DCMAKE_PREFIX_PATH="/ccsopen/proj/csc333/kokkos.install;/ccsopen/proj/csc333/benchmark.install;/ccsopen/proj/csc333/boost.install"
             -DCMAKE_CXX_COMPILER=/ccsopen/proj/csc333/kokkos.install/bin/nvcc_wrapper
@@ -85,7 +85,7 @@ BuildArborXMaster:
   stage: buildArborX
   script:
     - git fetch
-    - git worktree add -f ${CI_PROJECT_DIR}/arborx-master origin/master-ci
+    - git worktree add -f ${CI_PROJECT_DIR}/arborx-master origin/master
     - cd ${CI_PROJECT_DIR}/arborx-master
     - export MASTER_HASH=`git rev-parse HEAD`
     - mkdir build_master && cd build_master &&
