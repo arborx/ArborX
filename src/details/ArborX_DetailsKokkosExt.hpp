@@ -168,6 +168,166 @@ struct epsilon<double>
 
 } // namespace ArithmeticTraits
 
+namespace DoNotTryThisAtHome
+{
+
+class BlockSize
+{
+  unsigned const size_;
+
+public:
+  explicit constexpr BlockSize(unsigned size) noexcept
+      : size_{size}
+  {
+  }
+  constexpr operator unsigned() const noexcept { return size_; }
+};
+
+class SharedMemSize
+{
+  unsigned const size_;
+
+public:
+  explicit constexpr SharedMemSize(unsigned size) noexcept
+      : size_{size}
+  {
+  }
+  constexpr operator unsigned() const noexcept { return size_; }
+};
+
+template <typename FunctorType, typename ExecPolicy>
+class ParallelFor;
+
+template <class FunctorType, class ExecPolicy>
+inline std::enable_if_t<
+    !std::is_same<typename Kokkos::Impl::FunctorPolicyExecutionSpace<
+                      FunctorType, ExecPolicy>::execution_space,
+                  Kokkos::Cuda>{}>
+parallel_for(const std::string &str, const ExecPolicy &policy,
+             const FunctorType &functor, BlockSize, SharedMemSize)
+{
+  Kokkos::parallel_for(str, policy, functor);
+}
+
+template <class FunctorType, class ExecPolicy>
+
+inline std::enable_if_t<
+    std::is_same<typename Kokkos::Impl::FunctorPolicyExecutionSpace<
+                     FunctorType, ExecPolicy>::execution_space,
+                 Kokkos::Cuda>{}>
+parallel_for(const std::string &str, const ExecPolicy &policy,
+             const FunctorType &functor, BlockSize block_size,
+             SharedMemSize shmem)
+{
+#if defined(KOKKOS_ENABLE_PROFILING)
+  uint64_t kpID = 0;
+  if (Kokkos::Profiling::profileLibraryLoaded())
+  {
+    Kokkos::Impl::ParallelConstructName<FunctorType,
+                                        typename ExecPolicy::work_tag>
+        name(str);
+    Kokkos::Profiling::beginParallelFor(
+        name.get(), Kokkos::Profiling::Experimental::device_id(policy.space()),
+        &kpID);
+  }
+#else
+  (void)str;
+#endif
+
+  Kokkos::Impl::shared_allocation_tracking_disable();
+  ParallelFor<FunctorType, ExecPolicy> closure(functor, policy, block_size,
+                                               shmem);
+  Kokkos::Impl::shared_allocation_tracking_enable();
+
+  closure.execute();
+
+#if defined(KOKKOS_ENABLE_PROFILING)
+  if (Kokkos::Profiling::profileLibraryLoaded())
+  {
+    Kokkos::Profiling::endParallelFor(kpID);
+  }
+#endif
+}
+
+template <class FunctorType, class... Traits>
+class ParallelFor<FunctorType, Kokkos::RangePolicy<Traits...>>
+{
+public:
+  typedef Kokkos::RangePolicy<Traits...> Policy;
+
+private:
+  typedef typename Policy::member_type Member;
+  typedef typename Policy::work_tag WorkTag;
+  typedef typename Policy::launch_bounds LaunchBounds;
+
+  FunctorType const m_functor;
+  Policy const m_policy;
+  BlockSize const m_block_size;
+  SharedMemSize const m_shmem;
+
+  ParallelFor() = delete;
+  ParallelFor &operator=(const ParallelFor &) = delete;
+
+  template <class TagType>
+  __device__ std::enable_if_t<std::is_same<TagType, void>{}>
+  exec_range(const Member i) const
+  {
+    m_functor(i);
+  }
+
+  template <class TagType>
+  __device__ std::enable_if_t<!std::is_same<TagType, void>{}>
+  exec_range(const Member i) const
+  {
+    m_functor(TagType(), i);
+  }
+
+public:
+  typedef FunctorType functor_type;
+
+  inline __device__ void operator()(void) const
+  {
+    const Member work_stride = blockDim.y * gridDim.x;
+    const Member work_end = m_policy.end();
+
+    for (Member iwork =
+             m_policy.begin() + threadIdx.y + blockDim.y * blockIdx.x;
+         iwork < work_end;
+         iwork = iwork < work_end - work_stride ? iwork + work_stride
+                                                : work_end)
+    {
+      this->template exec_range<WorkTag>(iwork);
+    }
+  }
+
+  void execute() const
+  {
+    const typename Policy::index_type nwork = m_policy.end() - m_policy.begin();
+
+    dim3 block(1, m_block_size, 1);
+    dim3 grid(
+        std::min(typename Policy::index_type((nwork + block.y - 1) / block.y),
+                 typename Policy::index_type(
+                     Kokkos::Impl::cuda_internal_maximum_grid_count())),
+        1, 1);
+
+    Kokkos::Impl::CudaParallelLaunch<ParallelFor, LaunchBounds>(
+        *this, grid, block, m_shmem,
+        m_policy.space().impl_internal_space_instance(), false);
+  }
+
+  ParallelFor(FunctorType const &functor, Policy const &policy,
+              BlockSize block_size, SharedMemSize shmem)
+      : m_functor(functor)
+      , m_policy(policy)
+      , m_block_size{block_size}
+      , m_shmem{shmem}
+  {
+  }
+};
+
+} // namespace DoNotTryThisAtHome
+
 } // namespace KokkosExt
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
