@@ -22,6 +22,10 @@
 #include <cstdlib>
 #include <random>
 
+#ifdef ARBORX_PERFORMANCE_TESTING
+#include <mpi.h>
+#endif
+
 #include <benchmark/benchmark.h>
 #include <point_clouds.hpp>
 
@@ -206,7 +210,8 @@ public:
   ~KokkosScopeGuard() { Kokkos::finalize(); }
 };
 
-#define REGISTER_BENCHMARK(TreeType)                                           \
+#ifndef ARBORX_PERFORMANCE_TESTING
+#define REGISTER_BENCHMARK(TreeType, r1, r2, r3)                               \
   BENCHMARK_TEMPLATE(BM_construction, TreeType)                                \
       ->Args({n_values, source_point_cloud_type})                              \
       ->UseManualTime()                                                        \
@@ -221,6 +226,37 @@ public:
               buffer_size, source_point_cloud_type, target_point_cloud_type})  \
       ->UseManualTime()                                                        \
       ->Unit(benchmark::kMicrosecond);
+
+#else
+#define REGISTER_BENCHMARK(TreeType, r1, r2, r3)                               \
+  BENCHMARK_TEMPLATE(BM_construction, TreeType)                                \
+      ->Args({(int)r1, 0})                                                     \
+      ->Args({(int)r2, 0})                                                     \
+      ->Args({(int)r3, 0})                                                     \
+      ->Args({(int)r1, 1})                                                     \
+      ->Args({(int)r2, 1})                                                     \
+      ->Args({(int)r3, 1})                                                     \
+      ->UseManualTime()                                                        \
+      ->Unit(benchmark::kMicrosecond);                                         \
+  BENCHMARK_TEMPLATE(BM_knn_search, TreeType)                                  \
+      ->Args({(int)r1, (int)r1, 10, 1, 0, 2})                                  \
+      ->Args({(int)r2, (int)r2, 10, 1, 0, 2})                                  \
+      ->Args({(int)r3, (int)r3, 10, 1, 0, 2})                                  \
+      ->Args({(int)r1, (int)r1, 10, 1, 1, 3})                                  \
+      ->Args({(int)r2, (int)r2, 10, 1, 1, 3})                                  \
+      ->Args({(int)r3, (int)r3, 10, 1, 1, 3})                                  \
+      ->UseManualTime()                                                        \
+      ->Unit(benchmark::kMicrosecond);                                         \
+  BENCHMARK_TEMPLATE(BM_radius_search, TreeType)                               \
+      ->Args({(int)r1, (int)r1, 10, 1, 0, 0, 2})                               \
+      ->Args({(int)r2, (int)r2, 10, 1, 0, 0, 2})                               \
+      ->Args({(int)r3, (int)r3, 10, 1, 0, 0, 2})                               \
+      ->Args({(int)r1, (int)r1, 10, 1, 0, 1, 3})                               \
+      ->Args({(int)r2, (int)r2, 10, 1, 0, 1, 3})                               \
+      ->Args({(int)r3, (int)r3, 10, 1, 0, 1, 3})                               \
+      ->UseManualTime()                                                        \
+      ->Unit(benchmark::kMicrosecond);
+#endif
 
 // NOTE Motivation for this class that stores the argument count and values is
 // I could not figure out how to make the parser consume arguments with
@@ -268,7 +304,10 @@ public:
 
 int main(int argc, char *argv[])
 {
-  KokkosScopeGuard guard(argc, argv);
+#ifdef ARBORX_PERFORMANCE_TESTING
+  MPI_Init(&argc, &argv);
+#endif
+  Kokkos::initialize(argc, argv);
 
   namespace bpo = boost::program_options;
   bpo::options_description desc("Allowed options");
@@ -346,29 +385,36 @@ int main(int argc, char *argv[])
 
 #ifdef KOKKOS_ENABLE_SERIAL
   using Serial = Kokkos::Serial::device_type;
-  REGISTER_BENCHMARK(ArborX::BVH<Serial>);
+  REGISTER_BENCHMARK(ArborX::BVH<Serial>, 1e3, 1e4, 1e5);
 #endif
 
 #ifdef KOKKOS_ENABLE_OPENMP
   using OpenMP = Kokkos::OpenMP::device_type;
-  REGISTER_BENCHMARK(ArborX::BVH<OpenMP>);
+  REGISTER_BENCHMARK(ArborX::BVH<OpenMP>, 1e3, 1e4, 1e5);
 #endif
 
 #ifdef KOKKOS_ENABLE_THREADS
   using Threads = Kokkos::Threads::device_type;
-  REGISTER_BENCHMARK(ArborX::BVH<Threads>);
+  REGISTER_BENCHMARK(ArborX::BVH<Threads>, 1e3, 1e4, 1e5);
 #endif
 
 #ifdef KOKKOS_ENABLE_CUDA
   using Cuda = Kokkos::Cuda::device_type;
-  REGISTER_BENCHMARK(ArborX::BVH<Cuda>);
+  REGISTER_BENCHMARK(ArborX::BVH<Cuda>, 1e4, 1e5, 1e6);
 #endif
 
-#if defined(KOKKOS_ENABLE_SERIAL)
-  REGISTER_BENCHMARK(BoostRTree);
+#ifndef ARBORX_PERFORMANCE_TESTING
+#ifdef KOKKOS_ENABLE_SERIAL
+  REGISTER_BENCHMARK(BoostRTree, 1e3, 1e4, 1e5);
+#endif
 #endif
 
   benchmark::RunSpecifiedBenchmarks();
+
+  Kokkos::finalize();
+#ifdef ARBORX_PERFORMANCE_TESTING
+  MPI_Finalize();
+#endif
 
   return EXIT_SUCCESS;
 }
