@@ -1,14 +1,14 @@
 name: Mirror and run GitLab CI
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Mirror + trigger CI
-      uses: SvanBoxel/gitlab-mirror-and-ci-action@master
+      uses: masterleinad/gitlab-mirror-and-ci-action@master
       with:
         args: "https://code.ornl.gov/ecpcitest/alexa/"
       env:
