@@ -1065,10 +1065,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
 
   Kokkos::deep_copy(bounding_boxes, bounding_boxes_host);
 
-  ArborX::BVH<DeviceType> bvh(bounding_boxes);
-
-  auto rtree = BoostRTreeHelpers::makeRTree(bounding_boxes_host);
-
   // random points for radius search and kNN queries
   // compare our solution against Boost R-tree
   int const n_points = 100;
@@ -1133,16 +1129,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
   auto within_queries_host = Kokkos::create_mirror_view(within_queries);
   Kokkos::deep_copy(within_queries_host, within_queries);
 
-  auto rtree_results =
-      BoostRTreeHelpers::performQueries(rtree, nearest_queries_host);
+  ArborX::BVH<DeviceType> bvh(bounding_boxes);
+
+  BoostExt::RTree<ArborX::Box> rtree(bounding_boxes_host);
 
   ARBORX_TEST_QUERY_TREE(bvh, nearest_queries,
-                         make_compressed_storage(std::get<0>(rtree_results),
-                                                 std::get<1>(rtree_results)));
-
-  rtree_results = BoostRTreeHelpers::performQueries(rtree, within_queries_host);
+                         query(rtree, nearest_queries_host));
 
   ARBORX_TEST_QUERY_TREE(bvh, within_queries,
-                         make_compressed_storage(std::get<0>(rtree_results),
-                                                 std::get<1>(rtree_results)));
+                         query(rtree, within_queries_host));
 }
