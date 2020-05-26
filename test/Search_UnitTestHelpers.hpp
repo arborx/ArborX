@@ -15,6 +15,7 @@
 // clang-format off
 #include "boost_ext/KokkosPairComparison.hpp"
 #include "boost_ext/TupleComparison.hpp"
+#include "boost_ext/CompressedStorageComparison.hpp"
 #include "CompressedSparseRow.hpp"
 #include "VectorOfTuples.hpp"
 // clang-format on
@@ -62,6 +63,29 @@ struct ArrayTraits<std::vector<T>>
 };
 
 } // namespace Details
+
+template <typename T>
+auto make_reference_solution(std::vector<T> const &values,
+                             std::vector<int> const &offsets)
+{
+  return make_compressed_storage(offsets, values);
+}
+
+template <typename Tree, typename Queries>
+auto query(Tree const &tree, Queries const &queries)
+{
+  using device_type = typename Tree::device_type;
+  Kokkos::View<int *, device_type> indices("indices", 0);
+  Kokkos::View<int *, device_type> offset("offset", 0);
+  tree.query(queries, indices, offset);
+  return make_compressed_storage(
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset),
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices));
+}
+
+#define ARBORX_TEST_QUERY_TREE(tree, queries, reference)                       \
+  BOOST_TEST(query(tree, queries) == reference,                                \
+             boost::test_tools::per_element());
 
 template <typename T1, typename T2>
 void validateResults(T1 const &reference, T2 const &other)
