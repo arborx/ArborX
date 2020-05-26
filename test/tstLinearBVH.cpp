@@ -11,10 +11,8 @@
 
 #include "ArborX_BoostRTreeHelpers.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
-#include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_LinearBVH.hpp>
 
-#include "boost_ext/CompressedStorageComparison.hpp"
 #include <boost/test/unit_test.hpp>
 
 #include <algorithm>
