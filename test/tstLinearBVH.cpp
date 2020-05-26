@@ -1147,15 +1147,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
 
   validateResults(rtree_results, bvh_results);
 
-  bvh.query(nearest_queries, indices_nearest, offset_nearest,
-            ArborX::Experimental::TraversalPolicy().setTraversalAlgorithm(
-                ArborX::Details::NearestQueryAlgorithm::
-                    PriorityQueueBased_Deprecated));
-  Kokkos::deep_copy(offset_nearest_host, offset_nearest);
-  Kokkos::deep_copy(indices_nearest_host, indices_nearest);
-  bvh_results = std::make_tuple(offset_nearest_host, indices_nearest_host);
-  validateResults(rtree_results, bvh_results);
-
   Kokkos::View<int *, DeviceType> offset_within("offset_within", 0);
   Kokkos::View<int *, DeviceType> indices_within("indices_within", 0);
   bvh.query(within_queries, indices_within, offset_within);
