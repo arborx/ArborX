@@ -224,4 +224,28 @@ performQueries(ParallelRTree<Indexable> const &rtree, InputView const &queries)
 #endif
 } // end namespace BoostRTreeHelpers
 
+class BoostRTree
+{
+public:
+  using DeviceType = Kokkos::DefaultHostExecutionSpace::device_type;
+  using device_type = DeviceType;
+
+  BoostRTree(Kokkos::View<ArborX::Point *, DeviceType> const &points)
+  {
+    _tree = BoostRTreeHelpers::makeRTree(points);
+  }
+
+  template <typename Query, typename... TrailingArgs>
+  void query(Kokkos::View<Query *, DeviceType> queries,
+             Kokkos::View<int *, DeviceType> &indices,
+             Kokkos::View<int *, DeviceType> &offset, TrailingArgs &&...)
+  {
+    std::tie(offset, indices) =
+        BoostRTreeHelpers::performQueries(_tree, queries);
+  }
+
+private:
+  BoostRTreeHelpers::RTree<ArborX::Point> _tree;
+};
+
 #endif

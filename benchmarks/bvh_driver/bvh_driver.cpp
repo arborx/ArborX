@@ -29,33 +29,6 @@
 #include <benchmark/benchmark.h>
 #include <point_clouds.hpp>
 
-#if defined(KOKKOS_ENABLE_SERIAL)
-class BoostRTree
-{
-public:
-  using DeviceType = Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>;
-  using device_type = DeviceType;
-
-  BoostRTree(Kokkos::View<ArborX::Point *, DeviceType> const &points)
-  {
-    _tree = BoostRTreeHelpers::makeRTree(points);
-  }
-
-  template <typename Query>
-  void query(Kokkos::View<Query *, DeviceType> queries,
-             Kokkos::View<int *, DeviceType> &indices,
-             Kokkos::View<int *, DeviceType> &offset,
-             ArborX::Experimental::TraversalPolicy const &)
-  {
-    std::tie(offset, indices) =
-        BoostRTreeHelpers::performQueries(_tree, queries);
-  }
-
-private:
-  BoostRTreeHelpers::RTree<ArborX::Point> _tree;
-};
-#endif
-
 template <typename DeviceType>
 Kokkos::View<ArborX::Point *, DeviceType>
 constructPoints(int n_values, PointCloudType point_cloud_type)
