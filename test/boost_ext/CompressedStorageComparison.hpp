@@ -98,7 +98,10 @@ boost_test_print_type(std::ostream &os,
 {
   os << '(';
   for (auto const &x : s)
-    os << ' ' << x;
+  {
+    os << ' ';
+    boost::test_tools::tt_detail::print_log_value<Key>()(os, x);
+  }
   os << " )";
   return os;
 }
