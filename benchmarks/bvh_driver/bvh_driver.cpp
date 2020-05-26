@@ -377,6 +377,7 @@ int main(int argc, char *argv[])
 #endif
 
 #ifndef ARBORX_PERFORMANCE_TESTING
+  using BoostRTree = BoostExt::RTree<ArborX::Point>;
   REGISTER_BENCHMARK(BoostRTree, 1e3, 1e4, 1e5);
 #endif
 
