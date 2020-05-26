@@ -87,7 +87,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
 
     Node const *stack[64];
     Node const **stack_ptr = stack;
-    *stack_ptr++ = NULL;
+    *stack_ptr++ = nullptr;
     Node const *node = bvh_.getRoot();
     do
     {
@@ -119,7 +119,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
         if (traverse_left && traverse_right)
           *stack_ptr++ = child_right;
       }
-    } while (node != NULL);
+    } while (node != nullptr);
   }
 };
 
@@ -275,17 +275,14 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
                                                       buffer.size()));
 
     using PairNodePtrDistance = Kokkos::pair<Node const *, float>;
-    Stack<PairNodePtrDistance> stack;
-    // Do not bother computing the distance to the root node since it is
-    // immediately popped out of the stack and processed.
-    stack.emplace(bvh_.getRoot(), 0.);
+    PairNodePtrDistance stack[64];
+    auto *stack_ptr = stack;
+    *stack_ptr++ = {nullptr, 0.f};
 
-    while (!stack.empty())
+    Node const *node = bvh_.getRoot();
+    float node_distance = 0.f;
+    do
     {
-      Node const *node = stack.top().first;
-      auto const node_distance = stack.top().second;
-      stack.pop();
-
       if (node_distance < radius)
       {
         if (node->isLeaf())
@@ -306,6 +303,9 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
             heap.popPush(Kokkos::make_pair(leaf_index, leaf_distance));
             radius = heap.top().second;
           }
+          auto const &pair = *--stack_ptr;
+          node = pair.first;
+          node_distance = pair.second;
         }
         else
         {
@@ -323,20 +323,29 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
 #if defined(__CUDA_ARCH__)
             if (right_child_distance < radius)
 #endif
-              stack.emplace(right_child, right_child_distance);
-            stack.emplace(left_child, left_child_distance);
+              *stack_ptr++ = {right_child, right_child_distance};
+            node = left_child;
+            node_distance = left_child_distance;
           }
           else
           {
 #if defined(__CUDA_ARCH__)
             if (left_child_distance < radius)
 #endif
-              stack.emplace(left_child, left_child_distance);
-            stack.emplace(right_child, right_child_distance);
+              *stack_ptr++ = {left_child, left_child_distance};
+            node = right_child;
+            node_distance = right_child_distance;
           }
         }
       }
-    }
+      else
+      {
+        auto const &pair = *--stack_ptr;
+        node = pair.first;
+        node_distance = pair.second;
+      }
+    } while (node != nullptr);
+
     // Sort the leaf nodes and output the results.
     // NOTE: Do not try this at home.  Messing with the underlying container
     // invalidates the state of the PriorityQueue.
