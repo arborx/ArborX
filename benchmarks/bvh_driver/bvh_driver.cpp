@@ -377,9 +377,7 @@ int main(int argc, char *argv[])
 #endif
 
 #ifndef ARBORX_PERFORMANCE_TESTING
-#ifdef KOKKOS_ENABLE_SERIAL
   REGISTER_BENCHMARK(BoostRTree, 1e3, 1e4, 1e5);
-#endif
 #endif
 
   benchmark::RunSpecifiedBenchmarks();
