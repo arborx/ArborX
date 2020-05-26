@@ -87,7 +87,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
 
     Node const *stack[64];
     Node const **stack_ptr = stack;
-    *stack_ptr++ = NULL;
+    *stack_ptr++ = nullptr;
     Node const *node = bvh_.getRoot();
     do
     {
@@ -119,7 +119,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
         if (traverse_left && traverse_right)
           *stack_ptr++ = child_right;
       }
-    } while (node != NULL);
+    } while (node != nullptr);
   }
 };
 
@@ -344,7 +344,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
         node = pair.first;
         node_distance = pair.second;
       }
-    } while (node != NULL);
+    } while (node != nullptr);
 
     // Sort the leaf nodes and output the results.
     // NOTE: Do not try this at home.  Messing with the underlying container
