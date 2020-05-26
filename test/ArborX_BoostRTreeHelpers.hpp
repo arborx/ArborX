@@ -227,6 +227,7 @@ performQueries(ParallelRTree<Indexable> const &rtree, InputView const &queries)
 namespace BoostExt
 {
 
+// FIXME Goal is to match the BVH interface
 template <typename Indexable>
 class RTree
 {
@@ -239,13 +240,13 @@ public:
     _tree = BoostRTreeHelpers::makeRTree(values);
   }
 
-  template <typename Query, typename... TrailingArgs>
-  void query(Kokkos::View<Query *, DeviceType> queries,
-             Kokkos::View<int *, DeviceType> &indices,
-             Kokkos::View<int *, DeviceType> &offset, TrailingArgs &&...) const
+  // WARNING trailing pack will match anything :/
+  template <typename Predicates, typename InputView, typename... TrailingArgs>
+  void query(Predicates const &predicates, InputView &indices,
+             InputView &offset, TrailingArgs &&...) const
   {
     std::tie(offset, indices) =
-        BoostRTreeHelpers::performQueries(_tree, queries);
+        BoostRTreeHelpers::performQueries(_tree, predicates);
   }
 
 private:
