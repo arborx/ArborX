@@ -18,14 +18,6 @@
 #include <cstdint> // uint32_t
 #include <type_traits>
 
-#if __cplusplus < 201402L
-namespace std
-{
-template <bool B, class T = void>
-using enable_if_t = typename std::enable_if<B, T>::type;
-} // namespace std
-#endif
-
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 namespace KokkosExt
 {
