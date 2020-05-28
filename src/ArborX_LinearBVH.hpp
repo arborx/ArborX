@@ -19,7 +19,6 @@
 #include <ArborX_DetailsKokkosExt.hpp>
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
-#include <ArborX_DetailsTags.hpp>
 #include <ArborX_DetailsTreeConstruction.hpp>
 
 #include <Kokkos_Core.hpp>
