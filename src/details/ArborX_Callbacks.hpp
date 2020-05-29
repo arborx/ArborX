@@ -100,6 +100,13 @@ template <typename Callback, typename Predicates, typename OutputView>
 void check_valid_callback(Callback const &, Predicates const &,
                           OutputView const &)
 {
+#ifdef __NVCC__
+  // Without it would get a segmentation fault and no diagnostic whatsoever
+  static_assert(
+      !__nv_is_extended_host_device_lambda_closure_type(Callback),
+      "__host__ __device__ extended lambdas cannot be generic lambdas");
+#endif
+
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
   using PredicateTag = typename Traits::Helper<Access>::tag;
   using Predicate = typename Traits::Helper<Access>::type;
