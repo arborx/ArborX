@@ -51,6 +51,18 @@ struct NearestPredicateCallbackMissingTag
   }
 };
 
+struct Wrong
+{
+};
+
+struct SpatialPredicateCallbackDoesNotTakeCorrectArgument
+{
+  template <typename OutputFunctor>
+  void operator()(Wrong, int, OutputFunctor const &) const
+  {
+  }
+};
+
 int main()
 {
   using ArborX::Details::check_valid_callback;
@@ -68,21 +80,32 @@ int main()
       ArborX::Details::CallbackDefaultNearestPredicateWithDistance{},
       NearestPredicates{}, v);
 
-  // Uncomment to see error messages
-
+  // not required to tag inline callbacks any more
   check_valid_callback(SpatialPredicateCallbackMissingTag{},
                        SpatialPredicates{}, v);
 
   check_valid_callback(NearestPredicateCallbackMissingTag{},
                        NearestPredicates{}, v);
 
+  // generic lambdas are supported if not using NVCC
 #ifndef __NVCC__
-  check_valid_callback(
-      [](auto const &predicate, int primitive, auto const &out) {},
-      SpatialPredicates{}, v);
+  check_valid_callback([](auto const & /*predicate*/, int /*primitive*/,
+                          auto const & /*out*/) {},
+                       SpatialPredicates{}, v);
 
-  check_valid_callback([](auto const &predicate, int primitive, float distance,
-                          auto const &out) {},
+  check_valid_callback([](auto const & /*predicate*/, int /*primitive*/,
+                          float /*distance*/, auto const & /*out*/) {},
                        NearestPredicates{}, v);
 #endif
+
+  // Uncomment to see error messages
+
+  // check_valid_callback(SpatialPredicateCallbackDoesNotTakeCorrectArgument{},
+  //                     SpatialPredicates{}, v);
+
+  // check_valid_callback(ArborX::Details::CallbackDefaultSpatialPredicate{},
+  //                     NearestPredicates{}, v);
+
+  // check_valid_callback(ArborX::Details::CallbackDefaultNearestPredicate{},
+  //                     SpatialPredicates{}, v);
 }
