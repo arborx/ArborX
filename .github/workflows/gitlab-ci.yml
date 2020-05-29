@@ -7,8 +7,8 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v1
-    - name: Mirror + trigger CI
-      uses: SvanBoxel/gitlab-mirror-and-ci-action@master
+    - name: Trigger GitLab CI
+      uses: masterleinad/gitlab-mirror-and-ci-action@master
       with:
         args: "https://code.ornl.gov/ecpcitest/alexa/"
       env:
