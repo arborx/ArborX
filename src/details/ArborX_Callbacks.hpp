@@ -100,14 +100,6 @@ template <typename Callback, typename Predicates, typename OutputView>
 void check_valid_callback(Callback const &, Predicates const &,
                           OutputView const &)
 {
-  static_assert(is_detected<CallbackTagArchetypeAlias, Callback>{},
-                "Callback must define 'tag' member type");
-
-  using CallbackTag = detected_t<CallbackTagArchetypeAlias, Callback>;
-  static_assert(std::is_same<CallbackTag, InlineCallbackTag>{} ||
-                    std::is_same<CallbackTag, PostCallbackTag>{},
-                "Tag must be either 'InlineCallbackTag' or 'PostCallbackTag'");
-
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
   using PredicateTag = typename Traits::Helper<Access>::tag;
   using Predicate = typename Traits::Helper<Access>::type;
