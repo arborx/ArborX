@@ -107,13 +107,12 @@ int main(int argc, char *argv[])
     bvh.query(ExecutionSpace{}, FirstOctant{}, PrintfCallback{}, values,
               offsets);
 #ifndef __NVCC__
-    bvh.query(
-        ExecutionSpace{}, FirstOctant{},
-        KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
-                      auto /*output_functor*/) {
-          printf("Found %d from generic lambda\n", primitive);
-        },
-        values, offsets);
+    bvh.query(ExecutionSpace{}, FirstOctant{},
+              KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
+                            auto /*output_functor*/) {
+                printf("Found %d from generic lambda\n", primitive);
+              },
+              values, offsets);
 #endif
   }
 
@@ -132,6 +131,18 @@ int main(int argc, char *argv[])
               },
               values, offsets);
 #endif
+  }
+
+  {
+    // EXPERIMENTAL
+    // TODO replace with BVH::query(ExecutionSpace, Predicates, Callback) when
+    // new overload is added
+    Kokkos::View<int, ExecutionSpace, Kokkos::MemoryTraits<Kokkos::Atomic>> c(
+        "counter");
+
+    ArborX::Details::traverse(
+        ExecutionSpace{}, bvh, FirstOctant{},
+        KOKKOS_LAMBDA(int i, int j) { printf("%d %d %d\n", ++c(), i, j); });
   }
 
   return 0;
