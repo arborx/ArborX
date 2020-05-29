@@ -52,6 +52,7 @@ public:
   KOKKOS_FUNCTION
   bool empty() const noexcept { return size() == 0; }
 
+  KOKKOS_FUNCTION
   bounding_volume_type bounds() const noexcept { return _bounds; }
 
   template <typename ExecutionSpace, typename Predicates,
