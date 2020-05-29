@@ -79,6 +79,13 @@ using SpatialPredicateInlineCallbackArchetypeExpression =
 template <typename Callback>
 using CallbackTagArchetypeAlias = typename Callback::tag;
 
+template <typename Callback>
+struct is_tagged_post_callback
+    : std::is_same<detected_t<CallbackTagArchetypeAlias, Callback>,
+                   PostCallbackTag>::type
+{
+};
+
 // output functor to pass to the callback during detection
 template <typename T>
 struct Sink
@@ -106,7 +113,7 @@ void check_valid_callback(Callback const &, Predicates const &,
   using Predicate = typename Traits::Helper<Access>::type;
 
   // FIXME
-  constexpr bool short_circuit = std::is_same<CallbackTag, PostCallbackTag>{};
+  constexpr bool short_circuit = is_tagged_post_callback<Callback>{};
   static_assert(
       short_circuit ||
           (std::is_same<PredicateTag, SpatialPredicateTag>{} &&
