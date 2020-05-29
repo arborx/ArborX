@@ -53,17 +53,6 @@ public:
                               Box const &scene_bounding_box,
                               Predicates const &predicates)
   {
-    Kokkos::View<Box, DeviceType> bounds("bounds");
-    Kokkos::deep_copy(space, bounds, scene_bounding_box);
-    return sortQueriesAlongZOrderCurve(space, bounds, predicates);
-  }
-
-  template <typename ExecutionSpace, typename Predicates>
-  static Kokkos::View<unsigned int *, DeviceType>
-  sortQueriesAlongZOrderCurve(ExecutionSpace const &space,
-                              Kokkos::View<Box const, DeviceType> bounds,
-                              Predicates const &predicates)
-  {
     using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
     auto const n_queries = Access::size(predicates);
 
@@ -75,7 +64,7 @@ public:
         KOKKOS_LAMBDA(int i) {
           Point xyz =
               Details::returnCentroid(getGeometry(Access::get(predicates, i)));
-          translateAndScale(xyz, xyz, bounds());
+          translateAndScale(xyz, xyz, scene_bounding_box);
           morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
         });
 
