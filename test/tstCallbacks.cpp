@@ -70,9 +70,19 @@ int main()
 
   // Uncomment to see error messages
 
-  // check_valid_callback(SpatialPredicateCallbackMissingTag{},
-  //                     SpatialPredicates{}, v);
+  check_valid_callback(SpatialPredicateCallbackMissingTag{},
+                       SpatialPredicates{}, v);
 
-  // check_valid_callback(NearestPredicateCallbackMissingTag{},
-  //                     NearestPredicates{}, v);
+  check_valid_callback(NearestPredicateCallbackMissingTag{},
+                       NearestPredicates{}, v);
+
+#ifndef __NVCC__
+  check_valid_callback(
+      [](auto const &predicate, int primitive, auto const &out) {},
+      SpatialPredicates{}, v);
+
+  check_valid_callback([](auto const &predicate, int primitive, float distance,
+                          auto const &out) {},
+                       NearestPredicates{}, v);
+#endif
 }
