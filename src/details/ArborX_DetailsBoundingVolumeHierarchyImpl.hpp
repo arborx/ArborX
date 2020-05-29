@@ -117,7 +117,8 @@ namespace BoundingVolumeHierarchyImpl
 // is called.
 template <typename BVH, typename ExecutionSpace, typename Predicates,
           typename OutputView, typename OffsetView, typename Callback>
-std::enable_if_t<std::is_same<typename Callback::tag, InlineCallbackTag>::value>
+std::enable_if_t<!is_tagged_post_callback<Callback>{} &&
+                 Kokkos::is_view<OutputView>{} && Kokkos::is_view<OffsetView>{}>
 queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
               Predicates const &predicates, Callback const &callback,
               OutputView &out, OffsetView &offset,
@@ -189,8 +190,7 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
           typename OutputView, typename OffsetView, typename Callback>
-inline std::enable_if_t<
-    std::is_same<typename Callback::tag, PostCallbackTag>::value>
+inline std::enable_if_t<is_tagged_post_callback<Callback>{}>
 queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
               Predicates const &predicates, Callback const &callback,
               OutputView &out, OffsetView &offset,
@@ -206,7 +206,8 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
           typename OutputView, typename OffsetView, typename Callback>
-std::enable_if_t<std::is_same<typename Callback::tag, InlineCallbackTag>::value>
+std::enable_if_t<!is_tagged_post_callback<Callback>{} &&
+                 Kokkos::is_view<OutputView>{} && Kokkos::is_view<OffsetView>{}>
 queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
               Predicates const &predicates, Callback const &callback,
               OutputView &out, OffsetView &offset,
@@ -266,8 +267,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
 template <typename BVH, typename ExecutionSpace, typename Predicates,
           typename OutputView, typename OffsetView, typename Callback>
-inline std::enable_if_t<
-    std::is_same<typename Callback::tag, PostCallbackTag>::value>
+inline std::enable_if_t<is_tagged_post_callback<Callback>{}>
 queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
               Predicates const &predicates, Callback const &callback,
               OutputView &out, OffsetView &offset,
@@ -325,12 +325,23 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 } // namespace BoundingVolumeHierarchyImpl
 
 template <typename Callback, typename Predicates, typename OutputView>
-std::enable_if_t<!Kokkos::is_view<Callback>{}>
+std::enable_if_t<!Kokkos::is_view<Callback>{} &&
+                 !is_tagged_post_callback<Callback>{}>
 check_valid_callback_if_first_argument_is_not_a_view(
     Callback const &callback, Predicates const &predicates,
     OutputView const &out)
 {
   check_valid_callback(callback, predicates, out);
+}
+
+template <typename Callback, typename Predicates, typename OutputView>
+std::enable_if_t<!Kokkos::is_view<Callback>{} &&
+                 is_tagged_post_callback<Callback>{}>
+check_valid_callback_if_first_argument_is_not_a_view(Callback const &,
+                                                     Predicates const &,
+                                                     OutputView const &)
+{
+  // TODO
 }
 
 template <typename View, typename Predicates, typename OutputView>
