@@ -19,7 +19,6 @@
 #include <ArborX_DetailsKokkosExt.hpp>
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
-#include <ArborX_DetailsTags.hpp>
 #include <ArborX_DetailsTreeConstruction.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -47,12 +46,13 @@ public:
   BoundingVolumeHierarchy(ExecutionSpace const &space,
                           Primitives const &primitives);
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
   size_type size() const noexcept { return _size; }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
   bool empty() const noexcept { return size() == 0; }
 
+  KOKKOS_FUNCTION
   bounding_volume_type bounds() const noexcept { return _bounds; }
 
   template <typename ExecutionSpace, typename Predicates,
@@ -100,22 +100,22 @@ private:
                            std::make_pair(size() - 1, 2 * size() - 1));
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
   Node const *getRoot() const { return _internal_and_leaf_nodes.data(); }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
   Node *getRoot() { return _internal_and_leaf_nodes.data(); }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
   Node const *getNodePtr(int i) const { return &_internal_and_leaf_nodes(i); }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
   bounding_volume_type const &getBoundingVolume(Node const *node) const
   {
     return node->bounding_box;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
   bounding_volume_type &getBoundingVolume(Node *node)
   {
     return node->bounding_box;
