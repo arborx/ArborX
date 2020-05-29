@@ -325,12 +325,23 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 } // namespace BoundingVolumeHierarchyImpl
 
 template <typename Callback, typename Predicates, typename OutputView>
-std::enable_if_t<!Kokkos::is_view<Callback>{}>
+std::enable_if_t<!Kokkos::is_view<Callback>{} &&
+                 !is_tagged_post_callback<Callback>{}>
 check_valid_callback_if_first_argument_is_not_a_view(
     Callback const &callback, Predicates const &predicates,
     OutputView const &out)
 {
   check_valid_callback(callback, predicates, out);
+}
+
+template <typename Callback, typename Predicates, typename OutputView>
+std::enable_if_t<!Kokkos::is_view<Callback>{} &&
+                 is_tagged_post_callback<Callback>{}>
+check_valid_callback_if_first_argument_is_not_a_view(
+    Callback const &callback, Predicates const &predicates,
+    OutputView const &out)
+{
+  // TODO
 }
 
 template <typename View, typename Predicates, typename OutputView>
