@@ -85,7 +85,9 @@ struct InsertGenerator
     _callback(Access::get(_permuted_predicates, predicate_index),
               primitive_index, [&](ValueType const &value) {
                 int count_old = Kokkos::atomic_fetch_add(&count, 1);
-                _out.insert({predicate_index, count_old, value});
+                auto result = _out.insert({predicate_index, count_old, value});
+		if (!result)
+		  Kokkos::abort("Could not insert");
               });
   }
   template <typename U = PassTag, typename V = Tag>
@@ -156,7 +158,7 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   using MapType =
       StaticDeviceVector<ExecutionSpace,
                          SearchMatch<typename OutputView::value_type>>;
-  MapType unordered_map(1000000);
+  MapType unordered_map(out.size());
 
   static_assert(Kokkos::is_execution_space<ExecutionSpace>{}, "");
 

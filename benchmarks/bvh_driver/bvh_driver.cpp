@@ -150,7 +150,7 @@ void BM_radius_search(benchmark::State &state)
   int const n_queries = state.range(1);
   int const n_neighbors = state.range(2);
   int const sort_predicates_int = state.range(3);
-  int const buffer_size = state.range(4);
+  int const buffer_size = -(n_neighbors+1);//state.range(4);
   auto const source_point_cloud_type =
       static_cast<PointCloudType>(state.range(5));
   auto const target_point_cloud_type =
