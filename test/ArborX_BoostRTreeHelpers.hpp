@@ -22,6 +22,7 @@
 #include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
 
+#include <boost/function_output_iterator.hpp>
 #include <boost/range/adaptors.hpp>
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/transform.hpp>
@@ -173,28 +174,85 @@ static auto translate(ArborX::Nearest<Geometry> const &query)
   return boost::geometry::index::nearest(geometry, k);
 }
 
-template <typename Indexable, typename InputView,
-          typename OutputView = Kokkos::View<int *, Kokkos::HostSpace>>
+#if defined(KOKKOS_ENABLE_SERIAL)
+template <typename ExecutionSpace, typename Indexable, typename InputView,
+          typename OutputView = Kokkos::View<
+              int *, Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>>,
+          std::enable_if_t<std::is_same<ExecutionSpace, Kokkos::Serial>{}, int>
+              * = nullptr>
 static std::tuple<OutputView, OutputView>
-performQueries(RTree<Indexable> const &rtree, InputView const &queries)
+performQueries(ExecutionSpace const &exec_space, RTree<Indexable> const &rtree,
+               InputView const &queries)
 {
   static_assert(KokkosExt::is_accessible_from_host<InputView>::value, "");
+
   using Value = typename RTree<Indexable>::value_type;
   auto const n_queries = queries.extent_int(0);
+
   OutputView offset("offset", n_queries + 1);
   std::vector<Value> returned_values;
   for (int i = 0; i < n_queries; ++i)
     offset(i) = rtree.query(translate<Value>(queries(i)),
                             std::back_inserter(returned_values));
-  using ExecutionSpace = typename InputView::execution_space;
-  ArborX::exclusivePrefixSum(ExecutionSpace{}, offset);
+
+  ArborX::exclusivePrefixSum(exec_space, offset);
   auto const n_results = ArborX::lastElement(offset);
+
   OutputView indices("indices", n_results);
   for (int i = 0; i < n_queries; ++i)
     for (int j = offset(i); j < offset(i + 1); ++j)
       indices(j) = returned_values[j].second;
+
   return std::make_tuple(offset, indices);
 }
+#endif
+
+#if defined(KOKKOS_ENABLE_OPENMP)
+template <typename ExecutionSpace, typename Indexable, typename InputView,
+          typename OutputView = Kokkos::View<
+              int *, Kokkos::Device<Kokkos::OpenMP, Kokkos::HostSpace>>,
+          std::enable_if_t<std::is_same<ExecutionSpace, Kokkos::OpenMP>{}, int>
+              * = nullptr>
+static std::tuple<OutputView, OutputView>
+performQueries(ExecutionSpace const &exec_space, RTree<Indexable> const &rtree,
+               InputView const &queries)
+{
+  static_assert(KokkosExt::is_accessible_from_host<InputView>::value, "");
+
+  using Value = typename RTree<Indexable>::value_type;
+
+  auto const n_queries = queries.extent_int(0);
+
+  OutputView offset("offset", n_queries + 1);
+  Kokkos::parallel_for(
+      "boost:first_pass",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n_queries),
+      [&](int const i) {
+        offset(i) = rtree.query(translate<Value>(queries(i)),
+                                boost::make_function_output_iterator(
+                                    [](auto const &) { // Do nothing
+                                    }));
+      });
+
+  ArborX::exclusivePrefixSum(exec_space, offset);
+  auto const n_results = ArborX::lastElement(offset);
+
+  auto shift = ArborX::clone(offset);
+
+  OutputView indices("indices", n_results);
+  Kokkos::parallel_for(
+      "boost:second_pass",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n_queries),
+      [&](int const i) {
+        rtree.query(translate<Value>(queries(i)),
+                    boost::make_function_output_iterator([&](auto const &val) {
+                      indices(shift(i)++) = val.second;
+                    }));
+      });
+
+  return std::make_tuple(offset, indices);
+}
+#endif
 
 #ifdef ARBORX_ENABLE_MPI
 template <typename Indexable, typename InputView,
@@ -228,11 +286,10 @@ namespace BoostExt
 {
 
 // FIXME Goal is to match the BVH interface
-template <typename Indexable>
+template <typename DeviceType, typename Indexable>
 class RTree
 {
 public:
-  using DeviceType = Kokkos::DefaultHostExecutionSpace::device_type;
   using device_type = DeviceType;
 
   RTree(Kokkos::View<Indexable *, DeviceType> const &values)
@@ -245,8 +302,9 @@ public:
   void query(Predicates const &predicates, InputView &indices,
              InputView &offset, TrailingArgs &&...) const
   {
+    using ExecutionSpace = typename DeviceType::execution_space;
     std::tie(offset, indices) =
-        BoostRTreeHelpers::performQueries(_tree, predicates);
+        BoostRTreeHelpers::performQueries(ExecutionSpace{}, _tree, predicates);
   }
 
 private:

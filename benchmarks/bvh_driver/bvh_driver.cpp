@@ -29,6 +29,9 @@
 #include <benchmark/benchmark.h>
 #include <point_clouds.hpp>
 
+template <typename T>
+using BoostRTree = BoostExt::RTree<T, ArborX::Point>;
+
 template <typename DeviceType>
 Kokkos::View<ArborX::Point *, DeviceType>
 constructPoints(int n_values, PointCloudType point_cloud_type)
@@ -377,8 +380,12 @@ int main(int argc, char *argv[])
 #endif
 
 #ifndef ARBORX_PERFORMANCE_TESTING
-  using BoostRTree = BoostExt::RTree<ArborX::Point>;
-  REGISTER_BENCHMARK(BoostRTree, 1e3, 1e4, 1e5);
+#ifdef KOKKOS_ENABLE_SERIAL
+  REGISTER_BENCHMARK(BoostRTree<Serial>, 1e3, 1e4, 1e5);
+#endif
+#ifdef KOKKOS_ENABLE_OPENMP
+  REGISTER_BENCHMARK(BoostRTree<OpenMP>, 1e3, 1e4, 1e5);
+#endif
 #endif
 
   benchmark::RunSpecifiedBenchmarks();
