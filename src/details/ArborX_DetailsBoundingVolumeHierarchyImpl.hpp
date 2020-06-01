@@ -372,10 +372,30 @@ query(ExecutionSpace const &space, BVH const &bvh, Predicates const &predicates,
 template <typename ExecutionSpace, typename BVH, typename Predicates,
           typename Callback>
 inline void query(ExecutionSpace const &space, BVH const &bvh,
-                  Predicates const &predicates, Callback const &callback)
+                  Predicates const &predicates, Callback const &callback,
+                  Experimental::TraversalPolicy const &policy =
+                      Experimental::TraversalPolicy())
 {
   // TODO check signature of the callback
-  traverse(space, bvh, predicates, callback);
+  if (policy._sort_predicates)
+  {
+    Kokkos::Profiling::pushRegion("ArborX:BVH:compute_permutation");
+    using MemorySpace = typename BVH::memory_space;
+    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
+    auto permute =
+        Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
+            space, bvh.bounds(), predicates);
+    Kokkos::Profiling::popRegion();
+
+    traverse(
+        space, bvh,
+        PermutedPredicates<Predicates, decltype(permute)>{predicates, permute},
+        callback);
+  }
+  else
+  {
+    traverse(space, bvh, predicates, callback);
+  }
 }
 
 } // namespace BoundingVolumeHierarchyImpl
