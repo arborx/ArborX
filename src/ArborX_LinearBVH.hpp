@@ -55,10 +55,8 @@ public:
   KOKKOS_FUNCTION
   bounding_volume_type bounds() const noexcept { return _bounds; }
 
-  template <typename ExecutionSpace, typename Predicates,
-            typename CallbackOrView, typename View, typename... Args>
+  template <typename ExecutionSpace, typename Predicates, typename... Args>
   void query(ExecutionSpace const &space, Predicates const &predicates,
-             CallbackOrView &&callback_or_view, View &&view,
              Args &&... args) const
   {
     Details::check_valid_access_traits(PredicatesTag{}, predicates);
@@ -67,15 +65,8 @@ public:
                                                 ExecutionSpace>::value,
                   "Predicates must be accessible from the execution space");
 
-    Details::check_valid_callback_if_first_argument_is_not_a_view(
-        callback_or_view, predicates, view);
-
-    using Tag = typename Details::AccessTraitsHelper<Access>::tag;
-
-    Details::BoundingVolumeHierarchyImpl::queryDispatch(
-        Tag{}, *this, space, predicates,
-        std::forward<CallbackOrView>(callback_or_view),
-        std::forward<View>(view), std::forward<Args>(args)...);
+    Details::BoundingVolumeHierarchyImpl::query(space, *this, predicates,
+                                                std::forward<Args>(args)...);
   }
 
 private:

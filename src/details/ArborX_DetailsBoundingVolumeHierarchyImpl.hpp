@@ -322,7 +322,6 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
                          distances(i) = out(i).second;
                        });
 }
-} // namespace BoundingVolumeHierarchyImpl
 
 template <typename Callback, typename Predicates, typename OutputView>
 std::enable_if_t<!Kokkos::is_view<Callback>{} &&
@@ -353,6 +352,33 @@ check_valid_callback_if_first_argument_is_not_a_view(View const &,
   // do nothing
 }
 
+template <typename ExecutionSpace, typename BVH, typename Predicates,
+          typename CallbackOrView, typename View, typename... Args>
+inline void
+query(ExecutionSpace const &space, BVH const &bvh, Predicates const &predicates,
+      CallbackOrView &&callback_or_view, View &&view, Args &&... args)
+{
+  check_valid_callback_if_first_argument_is_not_a_view(callback_or_view,
+                                                       predicates, view);
+
+  using Access = AccessTraits<Predicates, Traits::PredicatesTag>;
+  using Tag = typename AccessTraitsHelper<Access>::tag;
+
+  queryDispatch(Tag{}, bvh, space, predicates,
+                std::forward<CallbackOrView>(callback_or_view),
+                std::forward<View>(view), std::forward<Args>(args)...);
+}
+
+template <typename ExecutionSpace, typename BVH, typename Predicates,
+          typename Callback>
+inline void query(ExecutionSpace const &space, BVH const &bvh,
+                  Predicates const &predicates, Callback const &callback)
+{
+  // TODO check signature of the callback
+  traverse(space, bvh, predicates, callback);
+}
+
+} // namespace BoundingVolumeHierarchyImpl
 } // namespace Details
 } // namespace ArborX
 
