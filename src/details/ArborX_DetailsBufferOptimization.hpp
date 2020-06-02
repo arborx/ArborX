@@ -158,7 +158,7 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   using MapType =
       StaticDeviceVector<ExecutionSpace,
                          SearchMatch<typename OutputView::value_type>>;
-  MapType unordered_map(out.size());
+  MapType unordered_map(out.size()>0?out.size():100000);
 
   static_assert(Kokkos::is_execution_space<ExecutionSpace>{}, "");
 

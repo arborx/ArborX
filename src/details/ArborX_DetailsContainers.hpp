@@ -28,7 +28,7 @@ class StaticDeviceVector
 public:
   using value_type = typename T::value_type;
 
-  KOKKOS_FUNCTION StaticDeviceVector(std::size_t const N)
+  StaticDeviceVector(std::size_t const N)
       : _data{Kokkos::ViewAllocateWithoutInitializing{"StaticDeviceVectorData"},
               N}
       , _insert_index{"StaticDeviceVectorInsertIndex"}
