@@ -11,7 +11,7 @@
 #ifndef ARBORX_DETAILS_CONTAINERS_HPP
 #define ARBORX_DETAILS_CONTAINERS_HPP
 
-#include <Kokkos_Macros.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <cassert> // assert
 #include <cstddef> // size_t, ptrdiff_t
@@ -21,6 +21,54 @@ namespace ArborX
 {
 namespace Details
 {
+
+template <typename MemorySpace, typename T>
+class StaticDeviceVector
+{
+public:
+  using value_type = typename T::value_type;
+
+  KOKKOS_FUNCTION StaticDeviceVector(std::size_t const N)
+      : _data{Kokkos::ViewAllocateWithoutInitializing{"StaticDeviceVectorData"},
+              N}
+      , _insert_index{"StaticDeviceVectorInsertIndex"}
+      , _max_size{N}
+  {
+  }
+
+  KOKKOS_FUNCTION int insert(const T &t) const
+  {
+    auto const insert_position = Kokkos::atomic_fetch_add(&_insert_index(), 1);
+    if (insert_position < _max_size)
+    {
+      _data[insert_position] = t;
+      return true;
+    }
+    return false;
+  }
+
+  KOKKOS_FUNCTION T &operator[](std::size_t const index)
+  {
+    return _data[index];
+  }
+
+  KOKKOS_FUNCTION T const &operator[](std::size_t const index) const
+  {
+    return _data[index];
+  }
+
+  std::size_t size() const
+  {
+    auto const size =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), _insert_index);
+    return size();
+  }
+
+private:
+  Kokkos::View<T *, MemorySpace> _data;
+  Kokkos::View<std::size_t, MemorySpace> _insert_index;
+  std::size_t const _max_size;
+};
 
 // dynamic vector with fixed maximum size
 template <typename T, std::size_t N>

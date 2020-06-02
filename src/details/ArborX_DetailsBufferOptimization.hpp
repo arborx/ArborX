@@ -12,6 +12,7 @@
 #define ARBORX_DETAILS_BUFFER_OPTIMIZATON_HPP
 
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_DetailsContainers.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_Exception.hpp>
 #include <ArborX_Macros.hpp>
@@ -50,6 +51,16 @@ struct SecondPassTag
 {
 };
 
+template <typename ValueType>
+struct SearchMatch
+{
+  using value_type = ValueType;
+
+  int predicate_index;
+  int index_within_predicate;
+  ValueType value;
+};
+
 template <typename PassTag, typename Predicates, typename Callback,
           typename OutputView, typename CountView, typename OffsetView,
           typename PermuteType>
@@ -74,8 +85,7 @@ struct InsertGenerator
     _callback(Access::get(_permuted_predicates, predicate_index),
               primitive_index, [&](ValueType const &value) {
                 int count_old = Kokkos::atomic_fetch_add(&count, 1);
-                _out.insert(Kokkos::pair<int, int>{predicate_index, count_old},
-                            value);
+                _out.insert({predicate_index, count_old, value});
               });
   }
   template <typename U = PassTag, typename V = Tag>
@@ -88,8 +98,7 @@ struct InsertGenerator
     _callback(Access::get(_permuted_predicates, predicate_index),
               primitive_index, distance, [&](ValueType const &value) {
                 int count_old = Kokkos::atomic_fetch_add(&count, 1);
-                _out.insert(Kokkos::pair<int, int>{predicate_index, count_old},
-                            value);
+                _out.insert({predicate_index, count_old, value});
               });
   }
 };
@@ -145,8 +154,8 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   // is pre-initialized
 
   using MapType =
-      Kokkos::UnorderedMap<Kokkos::pair<int, int>,
-                           typename OutputView::value_type, ExecutionSpace>;
+      StaticDeviceVector<ExecutionSpace,
+                         SearchMatch<typename OutputView::value_type>>;
   MapType unordered_map(1000000);
 
   static_assert(Kokkos::is_execution_space<ExecutionSpace>{}, "");
@@ -177,16 +186,14 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
 
   // fill the output view from the unordered_map
   Kokkos::parallel_for(
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, unordered_map.capacity()),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_results),
       KOKKOS_LAMBDA(uint32_t i) {
-        if (unordered_map.valid_at(i))
-        {
-          auto key = unordered_map.key_at(i);
-          auto value = unordered_map.value_at(i);
-          out(offset(permute(key.first)) + key.second) = value;
-        }
+        auto predicate_index = unordered_map[i].predicate_index;
+        auto index_within_predicate = unordered_map[i].index_within_predicate;
+        auto value = unordered_map[i].value;
+        out(offset(permute(predicate_index)) + index_within_predicate) = value;
       });
-} // namespace Details
+}
 
 } // namespace Details
 } // namespace ArborX
