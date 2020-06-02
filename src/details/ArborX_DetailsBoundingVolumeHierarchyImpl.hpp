@@ -354,7 +354,7 @@ check_valid_callback_if_first_argument_is_not_a_view(View const &,
 
 template <typename ExecutionSpace, typename BVH, typename Predicates,
           typename CallbackOrView, typename View, typename... Args>
-inline void
+inline std::enable_if_t<Kokkos::is_view<std::decay_t<View>>{}>
 query(ExecutionSpace const &space, BVH const &bvh, Predicates const &predicates,
       CallbackOrView &&callback_or_view, View &&view, Args &&... args)
 {
