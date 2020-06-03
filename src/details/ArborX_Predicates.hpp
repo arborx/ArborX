@@ -125,6 +125,13 @@ getData(PredicateWithAttachment<Predicate, Data> const &pred) noexcept
 }
 
 template <typename Predicate, typename Data>
+KOKKOS_INLINE_FUNCTION Predicate const &
+getPredicate(PredicateWithAttachment<Predicate, Data> const &pred) noexcept
+{
+  return static_cast<Predicate const &>(pred); // slicing
+}
+
+template <typename Predicate, typename Data>
 KOKKOS_INLINE_FUNCTION constexpr auto attach(Predicate &&pred, Data &&data)
 {
   return PredicateWithAttachment<std::decay_t<Predicate>, std::decay_t<Data>>{
