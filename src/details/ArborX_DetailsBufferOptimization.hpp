@@ -71,7 +71,7 @@ struct InsertGenerator
   OutputView _out;
   CountView _counts;
 
-  using ValueType = typename OutputView::value_type;
+  using ValueType = typename OutputView::key_type::value_type;
   using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
   using Tag = typename Traits::Helper<Access>::tag;
 
@@ -85,9 +85,9 @@ struct InsertGenerator
     _callback(Access::get(_permuted_predicates, predicate_index),
               primitive_index, [&](ValueType const &value) {
                 int count_old = Kokkos::atomic_fetch_add(&count, 1);
-                auto result = _out.insert({predicate_index, count_old, value});
-		if (!result)
-		  Kokkos::abort("Could not insert");
+                auto const result = _out.insert({predicate_index, count_old, value});
+		if (result.failed())
+                 Kokkos::abort("Could not insert");
               });
   }
   template <typename U = PassTag, typename V = Tag>
@@ -100,7 +100,9 @@ struct InsertGenerator
     _callback(Access::get(_permuted_predicates, predicate_index),
               primitive_index, distance, [&](ValueType const &value) {
                 int count_old = Kokkos::atomic_fetch_add(&count, 1);
-                _out.insert({predicate_index, count_old, value});
+                auto const result = _out.insert({predicate_index, count_old, value});
+		if (result.failed())
+                   Kokkos::abort("Could not insert");
               });
   }
 };
@@ -156,9 +158,8 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   // is pre-initialized
 
   using MapType =
-      StaticDeviceVector<ExecutionSpace,
-                         SearchMatch<typename OutputView::value_type>>;
-  MapType unordered_map(out.size()>0?out.size():100000);
+    Kokkos::UnorderedMap<SearchMatch<typename OutputView::value_type>, ExecutionSpace>;
+  MapType unordered_map(out.size()>0?out.size():1000000);
 
   static_assert(Kokkos::is_execution_space<ExecutionSpace>{}, "");
 
@@ -188,12 +189,13 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
 
   // fill the output view from the unordered_map
   Kokkos::parallel_for(
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_results),
-      KOKKOS_LAMBDA(uint32_t i) {
-        auto predicate_index = unordered_map[i].predicate_index;
-        auto index_within_predicate = unordered_map[i].index_within_predicate;
-        auto value = unordered_map[i].value;
-        out(offset(permute(predicate_index)) + index_within_predicate) = value;
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, unordered_map.capacity()),
+       KOKKOS_LAMBDA(uint32_t i) {
+        if (unordered_map.valid_at(i))
+        {
+          auto key = unordered_map.key_at(i);
+          out(offset(permute(key.predicate_index)) + key.index_within_predicate) = key.value;
+        }
       });
 }
 
