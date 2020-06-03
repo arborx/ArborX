@@ -100,7 +100,8 @@ int main(int argc, char *argv[])
   bool print_halo_timers;
   bool print_sizes_centers;
   float linking_length;
-  int halo_min_size;
+  int cluster_min_size;
+  int core_min_size;
 
   bpo::options_description desc("Allowed options");
   // clang-format off
@@ -109,7 +110,8 @@ int main(int argc, char *argv[])
         ( "filename", bpo::value<std::string>(&filename), "filename containing data" )
         ( "binary", bpo::bool_switch(&binary)->default_value(false), "binary file indicator")
         ( "linking-length", bpo::value<float>(&linking_length), "linking length (radius)" )
-        ( "min-size", bpo::value<int>(&halo_min_size)->default_value(2), "minimum halo size")
+        ( "cluster-min-size", bpo::value<int>(&cluster_min_size)->default_value(2), "minimum cluster size")
+        ( "core-min-size", bpo::value<int>(&core_min_size)->default_value(1), "minimum number of points to be a core point")
         ( "verify", bpo::bool_switch(&verify)->default_value(false), "verify connected components")
         ( "print-halo-timers", bpo::bool_switch(&print_halo_timers)->default_value(false), "print halo timers")
         ( "output-sizes-and-centers", bpo::bool_switch(&print_sizes_centers)->default_value(false), "print halo sizes and centers")
@@ -137,7 +139,7 @@ int main(int argc, char *argv[])
   Kokkos::View<int *, MemorySpace> halos_indices("Testing::halos_indices", 0);
   Kokkos::View<int *, MemorySpace> halos_offset("Testing::halos_offset", 0);
   ArborX::DBSCAN::dbscan(exec_space, primitives, halos_indices, halos_offset,
-                         linking_length, 1 /*core_min_size*/, halo_min_size,
+                         linking_length, core_min_size, cluster_min_size,
                          print_halo_timers, verify);
 
   if (print_sizes_centers)
