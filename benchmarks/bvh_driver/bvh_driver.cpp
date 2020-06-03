@@ -283,6 +283,7 @@ int main(int argc, char *argv[])
 
   namespace bpo = boost::program_options;
   bpo::options_description desc("Allowed options");
+  std::string backends;
   int n_values;
   int n_queries;
   int n_neighbors;
@@ -294,6 +295,7 @@ int main(int argc, char *argv[])
   // clang-format off
     desc.add_options()
         ( "help", "produce help message" )
+	( "backends", bpo::value<std::string>(&backends)->default_value("all"), "backends to run on can be 'all', 'serial', 'openmp', or 'cuda'" )
         ( "values", bpo::value<int>(&n_values)->default_value(50000), "number of indexable values (source)" )
         ( "queries", bpo::value<int>(&n_queries)->default_value(20000), "number of queries (target)" )
         ( "predicate-sort", bpo::value<bool>(&sort_predicates)->default_value(true), "sort predicates" )
@@ -374,9 +376,9 @@ int main(int argc, char *argv[])
   {
     exact_specs.resize(1);
     auto &spec = exact_specs[0];
-    spec = std::to_string(n_values);
+    spec = backends;
     for (auto &var :
-         {n_queries, n_neighbors, sort_predicates_int, buffer_size,
+         {n_values, n_queries, n_neighbors, sort_predicates_int, buffer_size,
           (int)source_point_cloud_type, (int)target_point_cloud_type})
       spec += "/" + std::to_string(var);
   }
@@ -387,6 +389,7 @@ int main(int argc, char *argv[])
     std::string token;
 
     // clang-format off
+    getline(ss, token, '/');  backends = token;
     getline(ss, token, '/');  n_values = std::stoi(token);
     getline(ss, token, '/');  n_queries = std::stoi(token);
     getline(ss, token, '/');  n_neighbors = std::stoi(token);
@@ -397,42 +400,57 @@ int main(int argc, char *argv[])
     // clang-format on
 
 #ifdef KOKKOS_ENABLE_SERIAL
-    using Serial = Kokkos::Serial::device_type;
-    register_benchmark<ArborX::BVH<Serial>>(
-        "ArborX::BVH<Serial>", n_values, n_queries, n_neighbors,
-        sort_predicates_int, buffer_size, source_point_cloud_type,
-        target_point_cloud_type);
+    if (backends == "all" || backends == "serial")
+    {
+      using Serial = Kokkos::Serial::device_type;
+      register_benchmark<ArborX::BVH<Serial>>(
+          "ArborX::BVH<Serial>", n_values, n_queries, n_neighbors,
+          sort_predicates_int, buffer_size, source_point_cloud_type,
+          target_point_cloud_type);
+    }
 #endif
 
 #ifdef KOKKOS_ENABLE_OPENMP
-    using OpenMP = Kokkos::OpenMP::device_type;
-    register_benchmark<ArborX::BVH<OpenMP>>(
-        "ArborX::BVH<OpenMP>", n_values, n_queries, n_neighbors,
-        sort_predicates_int, buffer_size, source_point_cloud_type,
-        target_point_cloud_type);
+    if (backends == "all" || backends == "openmp")
+    {
+      using OpenMP = Kokkos::OpenMP::device_type;
+      register_benchmark<ArborX::BVH<OpenMP>>(
+          "ArborX::BVH<OpenMP>", n_values, n_queries, n_neighbors,
+          sort_predicates_int, buffer_size, source_point_cloud_type,
+          target_point_cloud_type);
+    }
 #endif
 
 #ifdef KOKKOS_ENABLE_THREADS
-    using Threads = Kokkos::Threads::device_type;
-    register_benchmark<ArborX::BVH<Threads>>(
-        "ArborX::BVH<Threads>", n_values, n_queries, n_neighbors,
-        sort_predicates_int, buffer_size, source_point_cloud_type,
-        target_point_cloud_type);
+    if (backends == "all" || backends == "threads")
+    {
+      using Threads = Kokkos::Threads::device_type;
+      register_benchmark<ArborX::BVH<Threads>>(
+          "ArborX::BVH<Threads>", n_values, n_queries, n_neighbors,
+          sort_predicates_int, buffer_size, source_point_cloud_type,
+          target_point_cloud_type);
+    }
 #endif
 
 #ifdef KOKKOS_ENABLE_CUDA
-    using Cuda = Kokkos::Cuda::device_type;
-    register_benchmark<ArborX::BVH<Cuda>>(
-        "ArborX::BVH<Cuda>", n_values, n_queries, n_neighbors,
-        sort_predicates_int, buffer_size, source_point_cloud_type,
-        target_point_cloud_type);
+    if (backends == "all" || backends == "cuda")
+    {
+      using Cuda = Kokkos::Cuda::device_type;
+      register_benchmark<ArborX::BVH<Cuda>>(
+          "ArborX::BVH<Cuda>", n_values, n_queries, n_neighbors,
+          sort_predicates_int, buffer_size, source_point_cloud_type,
+          target_point_cloud_type);
+    }
 #endif
 
 #if defined(KOKKOS_ENABLE_SERIAL)
-    using BoostRTree = BoostExt::RTree<ArborX::Point>;
-    register_benchmark<BoostRTree>(
-        "BoostRTree", n_values, n_queries, n_neighbors, sort_predicates_int,
-        buffer_size, source_point_cloud_type, target_point_cloud_type);
+    if (backends == "all" || backends == "rtree")
+    {
+      using BoostRTree = BoostExt::RTree<ArborX::Point>;
+      register_benchmark<BoostRTree>(
+          "BoostRTree", n_values, n_queries, n_neighbors, sort_predicates_int,
+          buffer_size, source_point_cloud_type, target_point_cloud_type);
+    }
 #endif
   }
 
