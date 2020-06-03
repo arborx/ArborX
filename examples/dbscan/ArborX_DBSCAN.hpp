@@ -360,13 +360,13 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
       n);
   int num_clusters = 0;
   // In the following scan, we locate the starting position (stored in
-  // cluster_starts) and size (stored in cluster_offset) of each valid halo
-  // (i.e., connected component of size >= cluster_min_size). For every index
-  // i, we check whether its CC index is different from the previous one (this
-  // indicates a start of connected component) and whether the CC index of i +
-  // cluster_min_size is the same (this indicates that this CC is at least of
-  // cluster_min_size size). If those are true, we do a linear search from i +
-  // cluster_min_size till next CC index change to find the CC size.
+  // cluster_starts) and size (stored in cluster_offset) of each valid cluster
+  // (i.e., of size >= cluster_min_size). For every index i, we check whether
+  // its CC index is different from the previous one (this indicates a start of
+  // connected component) and whether the CC index of i + cluster_min_size is
+  // the same (this indicates that this CC is at least of cluster_min_size
+  // size). If those are true, we do a linear search from i + cluster_min_size
+  // till next CC index change to find the CC size.
   Kokkos::parallel_scan(
       "ArborX::DBSCAN::compute_cluster_starts_and_sizes",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
