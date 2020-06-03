@@ -50,8 +50,7 @@ struct SecondPassTag
 };
 
 template <typename PassTag, typename Predicates, typename Callback,
-          typename OutputView, typename CountView, typename OffsetView,
-          typename PermuteType>
+          typename OutputView, typename CountView, typename OffsetView>
 struct InsertGenerator
 {
   Predicates _permuted_predicates;
@@ -59,7 +58,6 @@ struct InsertGenerator
   OutputView _out;
   CountView _counts;
   OffsetView _offset;
-  PermuteType _permute;
 
   using ValueType = typename OutputView::value_type;
   using Access = AccessTraits<Predicates, PredicatesTag>;
@@ -275,8 +273,8 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
     tree_traversal.launch(
         space, permuted_predicates,
         InsertGenerator<FirstPassTag, PermutedPredicates, Callback, OutputView,
-                        CountView, OffsetView, PermuteType>{
-            permuted_predicates, callback, out, counts, offset, permute});
+                        CountView, OffsetView>{permuted_predicates, callback,
+                                               out, counts, offset});
 
     // Detecting overflow is a local operation that needs to be done for every
     // index. We allow individual buffer sizes to differ, so it's not as easy
@@ -309,9 +307,8 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
     tree_traversal.launch(
         space, permuted_predicates,
         InsertGenerator<FirstPassNoBufferOptimizationTag, PermutedPredicates,
-                        Callback, OutputView, CountView, OffsetView,
-                        PermuteType>{permuted_predicates, callback, out, counts,
-                                     offset, permute});
+                        Callback, OutputView, CountView, OffsetView>{
+            permuted_predicates, callback, out, counts, offset});
     // This may not be true, but it does not matter. As long as we have
     // (n_results == 0) check before second pass, this value is not used.
     // Otherwise, we know it's overflowed as there is no allocation.
@@ -369,8 +366,8 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
     tree_traversal.launch(
         space, permuted_predicates,
         InsertGenerator<SecondPassTag, PermutedPredicates, Callback, OutputView,
-                        CountView, OffsetView, PermuteType>{
-            permuted_predicates, callback, out, counts, offset, permute});
+                        CountView, OffsetView>{permuted_predicates, callback,
+                                               out, counts, offset});
 
     Kokkos::Profiling::popRegion();
   }
