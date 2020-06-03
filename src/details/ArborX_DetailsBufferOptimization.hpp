@@ -401,7 +401,7 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
     // The allocated storage was exactly enough for results, do nothing
   }
   Kokkos::Profiling::popRegion();
-} // namespace Details
+}
 
 } // namespace Details
 } // namespace ArborX
