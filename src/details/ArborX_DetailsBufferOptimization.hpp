@@ -208,6 +208,13 @@ struct PermutedPredicates
   }
 };
 
+// TODO find a better name and think harder about int versus size_t
+struct PermutedIndices
+{
+  int original;
+  int permuted;
+};
+
 } // namespace Details
 
 template <typename Predicates, typename Permute>
@@ -217,16 +224,18 @@ struct AccessTraits<Details::PermutedPredicates<Predicates, Permute>,
   using PermutedPredicates = Details::PermutedPredicates<Predicates, Permute>;
   using NativeAccess = AccessTraits<Predicates, PredicatesTag>;
 
-  inline static std::size_t size(PermutedPredicates const &permuted_predicates)
+  static std::size_t size(PermutedPredicates const &permuted_predicates)
   {
     return NativeAccess::size(permuted_predicates._predicates);
   }
 
-  KOKKOS_INLINE_FUNCTION static auto
-  get(PermutedPredicates const &permuted_predicates, std::size_t i)
+  KOKKOS_FUNCTION static auto get(PermutedPredicates const &permuted_predicates,
+                                  std::size_t index)
   {
-    return NativeAccess::get(permuted_predicates._predicates,
-                             permuted_predicates._permute(i));
+    auto const permuted_index = permuted_predicates._permute(index);
+    return attach(
+        NativeAccess::get(permuted_predicates._predicates, permuted_index),
+        Details::PermutedIndices{(int)index, (int)permuted_index});
   }
   using memory_space = typename NativeAccess::memory_space;
 };
