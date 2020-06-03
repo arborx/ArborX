@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_HALO_FINDER_HPP
-#define ARBORX_HALO_FINDER_HPP
+#ifndef ARBORX_DBSCAN_HPP
+#define ARBORX_DBSCAN_HPP
 
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUtils.hpp>
@@ -103,7 +103,7 @@ struct Access<Wrapped<View>, PredicatesTag>
 };
 } // namespace Traits
 
-namespace HaloFinder
+namespace DBSCAN
 {
 
 template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
@@ -118,7 +118,7 @@ bool verifyCC(ExecutionSpace exec_space, IndicesView indices, OffsetView offset,
   // Check that connected vertices have the same cc index
   int num_incorrect = 0;
   Kokkos::parallel_reduce(
-      "ArborX::HaloFinder::verify_connected_indices",
+      "ArborX::DBSCAN::verify_connected_indices",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_nodes),
       KOKKOS_LAMBDA(int i, int &update) {
         for (int j = offset(i); j < offset(i + 1); ++j)
@@ -306,24 +306,29 @@ struct CCSCallback
 };
 
 template <typename ExecutionSpace, typename Primitives,
-          typename HalosIndicesView, typename HalosOffsetView>
-void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
-               HalosIndicesView &halos_indices, HalosOffsetView &halos_offset,
-               float linking_length, int min_size = 2, bool verbose = false,
-               bool verify = false)
+          typename ClusterIndicesView, typename ClusterOffsetView>
+void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
+            ClusterIndicesView &cluster_indices,
+            ClusterOffsetView &cluster_offsets, float eps,
+            int core_min_size = 1, int cluster_min_size = 2,
+            bool verbose = false, bool verify = false)
 {
-  static_assert(Kokkos::is_view<HalosIndicesView>{}, "");
-  static_assert(Kokkos::is_view<HalosOffsetView>{}, "");
-  static_assert(std::is_same<typename HalosIndicesView::value_type, int>{}, "");
-  static_assert(std::is_same<typename HalosOffsetView::value_type, int>{}, "");
+  static_assert(Kokkos::is_view<ClusterIndicesView>{}, "");
+  static_assert(Kokkos::is_view<ClusterOffsetView>{}, "");
+  static_assert(std::is_same<typename ClusterIndicesView::value_type, int>{},
+                "");
+  static_assert(std::is_same<typename ClusterOffsetView::value_type, int>{},
+                "");
 
   using MemorySpace = typename Primitives::memory_space;
   static_assert(
-      std::is_same<typename HalosIndicesView::memory_space, MemorySpace>{}, "");
+      std::is_same<typename ClusterIndicesView::memory_space, MemorySpace>{},
+      "");
   static_assert(
-      std::is_same<typename HalosOffsetView::memory_space, MemorySpace>{}, "");
+      std::is_same<typename ClusterOffsetView::memory_space, MemorySpace>{},
+      "");
 
-  Kokkos::Profiling::pushRegion("ArborX::HaloFinder");
+  Kokkos::Profiling::pushRegion("ArborX::DBSCAN");
 
   using clock = std::chrono::high_resolution_clock;
 
@@ -331,46 +336,69 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
   clock::time_point start;
   std::chrono::duration<double> elapsed_construction;
   std::chrono::duration<double> elapsed_query;
-  std::chrono::duration<double> elapsed_halos;
+  std::chrono::duration<double> elapsed_cluster;
   std::chrono::duration<double> elapsed_total;
   std::chrono::duration<double> elapsed_verify = clock::duration::zero();
 
   start_total = clock::now();
 
-  auto const predicates = wrap(primitives, linking_length);
+  auto const predicates = wrap(primitives, eps);
 
   int const n = primitives.extent_int(0);
 
+  // TODO: remove these once type 1 interface is available
+  // NOTE: indices and offfset are not going to be used as
+  // insert() will not be called
+  Kokkos::View<int *, MemorySpace> indices("indices", 0);
+  Kokkos::View<int *, MemorySpace> offset("offset", 0);
+
   // build the tree
   start = clock::now();
-  Kokkos::Profiling::pushRegion("ArborX::HaloFinder::tree_construction");
+  Kokkos::Profiling::pushRegion("ArborX::DBSCAN::tree_construction");
   ArborX::BVH<MemorySpace> bvh(exec_space, primitives);
   Kokkos::Profiling::popRegion();
   elapsed_construction = clock::now() - start;
 
-  // perform the queries and build ccs through callback
-  // NOTE: indices and offfset are not going to be used as
-  // insert() will not be called
   start = clock::now();
-  Kokkos::Profiling::pushRegion("ArborX::HaloFinder::ccs");
-  Kokkos::View<int *, MemorySpace> indices("ArborX::HaloFinder::indices", 0);
-  Kokkos::View<int *, MemorySpace> offset("ArborX::HaloFinder::offset", 0);
+  Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters");
+
   Kokkos::View<int *, MemorySpace> stat(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                         "ArborX::HaloFinder::stat"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::DBSCAN::stat"),
       n);
   ArborX::iota(exec_space, stat);
-  Kokkos::Profiling::pushRegion("ArborX::HaloFinder::ccs::query");
-  bvh.query(exec_space, predicates, CCSCallback<MemorySpace>{stat}, indices,
-            offset);
-  Kokkos::Profiling::popRegion();
+  if (core_min_size == 1)
+  {
+    // perform the queries and build clusters through callback
+    Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
+    bvh.query(exec_space, predicates, CCSCallback<MemorySpace>{stat}, indices,
+              offset);
+    Kokkos::Profiling::popRegion();
+  }
+  else
+  {
+    throw std::runtime_error("Not implemented");
+#if 0
+    // Compute number of neighbors
+    Kokkos::Profiling::pushRegion("ArborX:DBSCAN:clusters:num_neigh");
+    Kokkos::View<int *, MemorySpace> num_neigh("num_neighbors", n);
+    bvh.query(exec_space, predicates, NumNeigh<MemorySpace>{stat}, indices,
+              offset);
+    Kokkos::Profiling::popRegion();
+
+    Kokkos::Profiling::pushRegion("ArborX:DBSCAN:clusters:query");
+    bvh.query(exec_space, predicates,
+              DBSCANCallback<MemorySpace>{stat, num_neigh}, indices, offset);
+    Kokkos::Profiling::popRegion();
+#endif
+  }
+
   // Per [1]:
   //
   // ```
   // The finalization kernel will, ultimately, make all parents
   // point directly to the representative.
   // ```
-  Kokkos::parallel_for("ArborX::HaloFinder::flatten_stat",
+  Kokkos::parallel_for("ArborX::DBSCAN::flatten_stat",
                        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
                        KOKKOS_LAMBDA(int const i) {
                          // ##### ECL license (see LICENSE.ECL) #####
@@ -388,16 +416,17 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
   elapsed_query = clock::now() - start;
 
   // Use new name to clearly demonstrate the meaning of this view from now on
-  auto ccs = stat;
+  auto clusters = stat;
 
   elapsed_total += clock::now() - start_total;
   if (verify)
   {
+    // FIXME: needs fixing for full DBSCAN
     start = clock::now();
-    Kokkos::Profiling::pushRegion("ArborX::HaloFinder::verify");
+    Kokkos::Profiling::pushRegion("ArborX::DBSCAN::verify");
 
     bvh.query(exec_space, predicates, indices, offset);
-    auto passed = verifyCC(exec_space, indices, offset, ccs);
+    auto passed = verifyCC(exec_space, indices, offset, clusters);
     printf("Verification %s\n", (passed ? "passed" : "failed"));
 
     Kokkos::Profiling::popRegion();
@@ -405,81 +434,83 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
   }
   start_total = clock::now();
 
-  // find halos
+  // find clusters
   start = clock::now();
-  Kokkos::Profiling::pushRegion("ArborX::HaloFinder::sort_and_filter_ccs");
+  Kokkos::Profiling::pushRegion("ArborX::DBSCAN::sort_and_filter_clusters");
 
-  // sort ccs and compute permutation
-  auto permute = Details::sortObjects(exec_space, ccs);
+  // sort clusters and compute permutation
+  auto permute = Details::sortObjects(exec_space, clusters);
 
-  reallocWithoutInitializing(halos_offset, n + 1);
-  Kokkos::View<int *, MemorySpace> halos_starts(
-      Kokkos::ViewAllocateWithoutInitializing(
-          "ArborX::HaloFinder::halos_starts"),
+  reallocWithoutInitializing(cluster_offsets, n + 1);
+  Kokkos::View<int *, MemorySpace> cluster_starts(
+      Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::cluster_starts"),
       n);
-  int num_halos = 0;
+  int num_clusters = 0;
   // In the following scan, we locate the starting position (stored in
-  // halos_starts) and size (stored in halos_offset) of each valid halo (i.e.,
-  // connected component of size >= min_size). For every index i, we check
-  // whether its CC index is different from the previous one (this indicates a
-  // start of connected component) and whether the CC index of i + min_size is
-  // the same (this indicates that this CC is at least of min_size size). If
-  // those are true, we do a linear search from i + min_size till next CC
-  // index change to find the CC size.
+  // cluster_starts) and size (stored in cluster_offsets) of each valid halo
+  // (i.e., connected component of size >= cluster_min_size). For every index i,
+  // we check whether its CC index is different from the previous one (this
+  // indicates a start of connected component) and whether the CC index of i +
+  // cluster_min_size is the same (this indicates that this CC is at least of
+  // cluster_min_size size). If those are true, we do a linear search from i +
+  // cluster_min_size till next CC index change to find the CC size.
   Kokkos::parallel_scan(
-      "ArborX::HaloFinder::compute_halos_starts_and_sizes",
+      "ArborX::DBSCAN::compute_cluster_starts_and_sizes",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
       KOKKOS_LAMBDA(int i, int &update, bool final_pass) {
-        bool const is_cc_first_index = (i == 0 || ccs(i) != ccs(i - 1));
-        bool const is_cc_large_enough =
-            ((i + min_size - 1 < n) && (ccs(i + min_size - 1) == ccs(i)));
-        if (is_cc_first_index && is_cc_large_enough)
+        bool const is_cluster_first_index =
+            (i == 0 || clusters(i) != clusters(i - 1));
+        bool const is_cluster_large_enough =
+            ((i + cluster_min_size - 1 < n) &&
+             (clusters(i + cluster_min_size - 1) == clusters(i)));
+        if (is_cluster_first_index && is_cluster_large_enough)
         {
           if (final_pass)
           {
-            halos_starts(update) = i;
-            int end = i + min_size - 1;
-            while (++end < n && ccs(end) == ccs(i))
+            cluster_starts(update) = i;
+            int end = i + cluster_min_size - 1;
+            while (++end < n && clusters(end) == clusters(i))
               ; // do nothing
-            halos_offset(update) = end - i;
+            cluster_offsets(update) = end - i;
           }
           ++update;
         }
       },
-      num_halos);
-  Kokkos::resize(halos_offset, num_halos + 1);
-  exclusivePrefixSum(exec_space, halos_offset);
+      num_clusters);
+  Kokkos::resize(cluster_offsets, num_clusters + 1);
+  exclusivePrefixSum(exec_space, cluster_offsets);
 
-  // Copy ccs indices to halos
-  reallocWithoutInitializing(halos_indices, lastElement(halos_offset));
+  // Construct cluster indices
+  reallocWithoutInitializing(cluster_indices, lastElement(cluster_offsets));
   Kokkos::parallel_for(
-      "ArborX::HaloFinder::populate_halos",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
+      "ArborX::DBSCAN::populate_clusters",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_clusters),
       KOKKOS_LAMBDA(int i) {
-        for (int k = halos_offset(i); k < halos_offset(i + 1); ++k)
+        for (int k = cluster_offsets(i); k < cluster_offsets(i + 1); ++k)
         {
-          halos_indices(k) = permute(halos_starts(i) + (k - halos_offset(i)));
+          cluster_indices(k) =
+              permute(cluster_starts(i) + (k - cluster_offsets(i)));
         }
       });
   Kokkos::Profiling::popRegion();
-  elapsed_halos = clock::now() - start;
+  elapsed_cluster = clock::now() - start;
 
   elapsed_total += clock::now() - start_total;
 
   if (verbose)
   {
-    printf("total time      : %10.3f\n", elapsed_total.count());
-    printf("-> construction : %10.3f\n", elapsed_construction.count());
-    printf("-> query+ccs    : %10.3f\n", elapsed_query.count());
-    printf("-> halos        : %10.3f\n", elapsed_halos.count());
+    printf("total time          : %10.3f\n", elapsed_total.count());
+    printf("-> construction     : %10.3f\n", elapsed_construction.count());
+    printf("-> query+cluster    : %10.3f\n", elapsed_query.count());
+    printf("-> postprocess      : %10.3f\n", elapsed_cluster.count());
     if (verify)
-      printf("verify          : %10.3f\n", elapsed_verify.count());
+      printf("verify              : %10.3f\n", elapsed_verify.count());
   }
 
   Kokkos::Profiling::popRegion();
 }
 
-} // namespace HaloFinder
+} // namespace DBSCAN
 } // namespace ArborX
 
 #endif

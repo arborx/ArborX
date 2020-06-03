@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_HaloFinder.hpp>
+#include <ArborX_DBSCAN.hpp>
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
   bool print_halo_timers;
   bool print_sizes_centers;
   float linking_length;
-  int min_size;
+  int halo_min_size;
 
   bpo::options_description desc("Allowed options");
   // clang-format off
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
         ( "filename", bpo::value<std::string>(&filename), "filename containing data" )
         ( "binary", bpo::bool_switch(&binary)->default_value(false), "binary file indicator")
         ( "linking-length", bpo::value<float>(&linking_length), "linking length (radius)" )
-        ( "min-size", bpo::value<int>(&min_size)->default_value(2), "minimum halo size")
+        ( "min-size", bpo::value<int>(&halo_min_size)->default_value(2), "minimum halo size")
         ( "verify", bpo::bool_switch(&verify)->default_value(false), "verify connected components")
         ( "print-halo-timers", bpo::bool_switch(&print_halo_timers)->default_value(false), "print halo timers")
         ( "output-sizes-and-centers", bpo::bool_switch(&print_sizes_centers)->default_value(false), "print halo sizes and centers")
@@ -134,20 +134,20 @@ int main(int argc, char *argv[])
 
   ExecutionSpace exec_space;
 
-  Kokkos::View<int *, MemorySpace> halos_indices("halos_indices", 0);
-  Kokkos::View<int *, MemorySpace> halos_offset("halos_offset", 0);
-  ArborX::HaloFinder::findHalos(exec_space, primitives, halos_indices,
-                                halos_offset, linking_length, min_size,
-                                print_halo_timers, verify);
+  Kokkos::View<int *, MemorySpace> halos_indices("Testing::halos_indices", 0);
+  Kokkos::View<int *, MemorySpace> halos_offset("Testing::halos_offset", 0);
+  ArborX::DBSCAN::dbscan(exec_space, primitives, halos_indices, halos_offset,
+                         linking_length, 1 /*core_min_size*/, halo_min_size,
+                         print_halo_timers, verify);
 
   if (print_sizes_centers)
   {
     auto const num_halos = static_cast<int>(halos_offset.size()) - 1;
 
     Kokkos::View<ArborX::Point *, MemorySpace> halos_centers(
-        Kokkos::ViewAllocateWithoutInitializing("centers"), num_halos);
+        Kokkos::ViewAllocateWithoutInitializing("Testing::centers"), num_halos);
     Kokkos::parallel_for(
-        "compute centers",
+        "Testing::compute centers",
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
         KOKKOS_LAMBDA(int const i) {
           int halo_size = halos_offset(i + 1) - halos_offset(i);
