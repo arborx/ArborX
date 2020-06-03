@@ -181,24 +181,21 @@ void generatePointCloud(PointCloudType const point_cloud_type,
                         Kokkos::View<ArborX::Point *, DeviceType> random_points)
 {
   auto random_points_host = Kokkos::create_mirror_view(random_points);
-  if (point_cloud_type == PointCloudType::filled_box)
+  switch (point_cloud_type)
   {
+  case PointCloudType::filled_box:
     filledBoxCloud(length, random_points_host);
-  }
-  else if (point_cloud_type == PointCloudType::hollow_box)
-  {
+    break;
+  case PointCloudType::hollow_box:
     hollowBoxCloud(length, random_points_host);
-  }
-  else if (point_cloud_type == PointCloudType::filled_sphere)
-  {
+    break;
+  case PointCloudType::filled_sphere:
     filledSphereCloud(length, random_points_host);
-  }
-  else if (point_cloud_type == PointCloudType::hollow_sphere)
-  {
+    break;
+  case PointCloudType::hollow_sphere:
     hollowSphereCloud(length, random_points_host);
-  }
-  else
-  {
+    break;
+  default:
     throw ArborX::SearchException("not implemented");
   }
   Kokkos::deep_copy(random_points, random_points_host);
