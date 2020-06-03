@@ -55,28 +55,77 @@ namespace DBSCAN
 {
 
 template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
-          typename CCSView>
-bool verifyCC(ExecutionSpace exec_space, IndicesView indices, OffsetView offset,
-              CCSView ccs)
+          typename ClusterView>
+bool verifyClusters(ExecutionSpace exec_space, IndicesView indices,
+                    OffsetView offset, ClusterView clusters, int core_min_size)
 {
-  int num_nodes = ccs.size();
-  ARBORX_ASSERT((int)offset.size() == num_nodes + 1);
+  int n = clusters.size();
+  ARBORX_ASSERT((int)offset.size() == n + 1);
   ARBORX_ASSERT(ArborX::lastElement(offset) == (int)indices.size());
 
-  // Check that connected vertices have the same cc index
+  // Check that connected core points have same cluster indices
+  // NOTE: if core_min_size = 1, all points are core points
   int num_incorrect = 0;
   Kokkos::parallel_reduce(
-      "ArborX::DBSCAN::verify_connected_indices",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_nodes),
+      "ArborX::DBSCAN::verify_connected_core_points",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
       KOKKOS_LAMBDA(int i, int &update) {
-        for (int j = offset(i); j < offset(i + 1); ++j)
+        bool self_is_core_point =
+            (offset(i + 1) - offset(i) - 1 >= core_min_size);
+        if (self_is_core_point)
         {
-          if (ccs(i) != ccs(indices(j)))
+          for (int jj = offset(i); jj < offset(i + 1); ++jj)
           {
-            // Would like to do fprintf(stderr, ...), but fprintf is __host__
-            // function in CUDA
-            printf("Non-matching cc indices: %d [%d] -> %d [%d]\n", i, ccs(i),
-                   indices(j), ccs(indices(j)));
+            int j = indices(jj);
+            bool neigh_is_core_point =
+                (offset(j + 1) - offset(j) - 1 >= core_min_size);
+
+            if (neigh_is_core_point && clusters(i) != clusters(j))
+            {
+              printf("Connected cores do not belong to the same cluster: "
+                     "%d [%d] -> %d [%d]\n",
+                     i, clusters(i), j, clusters(j));
+              update++;
+            }
+          }
+        }
+      },
+      num_incorrect);
+  if (num_incorrect)
+    return false;
+
+  // Check that non-core points are either noise, or share index with at least
+  // one core point
+  num_incorrect = 0;
+  Kokkos::parallel_reduce(
+      "ArborX::DBSCAN::verify_connected_boundary_points",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+      KOKKOS_LAMBDA(int i, int &update) {
+        bool self_is_core_point =
+            (offset(i + 1) - offset(i) - 1 >= core_min_size);
+        if (!self_is_core_point)
+        {
+          bool is_noise = true;
+          bool have_shared_core = false;
+          for (int jj = offset(i); jj < offset(i + 1); ++jj)
+          {
+            int j = indices(jj);
+            bool neigh_is_core_point =
+                (offset(j + 1) - offset(j) - 1 >= core_min_size);
+
+            if (neigh_is_core_point)
+            {
+              is_noise = false;
+              if (clusters(i) == clusters(j))
+                have_shared_core = true;
+            }
+          }
+
+          if (!is_noise && !have_shared_core)
+          {
+            printf("Boundary point does not belong to a cluster: "
+                   "%d [%d]\n",
+                   i, clusters(i));
             update++;
           }
         }
@@ -85,27 +134,28 @@ bool verifyCC(ExecutionSpace exec_space, IndicesView indices, OffsetView offset,
   if (num_incorrect)
     return false;
 
-  // Check that non-connected vertices have different cc indices
-  auto ccs_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ccs);
+  // Check that cluster indices are unique
+  auto clusters_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, clusters);
   auto offset_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
   auto indices_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
 
-  std::set<int> unique_cc_indices;
-  for (int i = 0; i < num_nodes; i++)
-    unique_cc_indices.insert(ccs_host(i));
-  auto num_unique_cc_indices = unique_cc_indices.size();
+  std::set<int> unique_cluster_indices;
+  for (int i = 0; i < n; i++)
+    unique_cluster_indices.insert(clusters_host(i));
+  auto num_unique_cluster_indices = unique_cluster_indices.size();
 
-  unsigned int num_ccs = 0;
-  std::set<int> cc_sets;
-  for (int i = 0; i < num_nodes; i++)
+  unsigned int num_clusters = 0;
+  std::set<int> cluster_sets;
+  for (int i = 0; i < n; i++)
   {
-    if (ccs_host(i) >= 0)
+    if (clusters_host(i) >= 0)
     {
-      auto id = ccs_host(i);
-      cc_sets.insert(id);
-      num_ccs++;
+      auto id = clusters_host(i);
+      cluster_sets.insert(id);
+      num_clusters++;
 
       // DFS search
       std::stack<int> stack;
@@ -114,31 +164,37 @@ bool verifyCC(ExecutionSpace exec_space, IndicesView indices, OffsetView offset,
       {
         auto k = stack.top();
         stack.pop();
-        if (ccs_host(k) >= 0)
+        if (clusters_host(k) >= 0)
         {
-          ARBORX_ASSERT(ccs_host(k) == id);
-          ccs_host(k) = -1;
-          for (int j = offset_host(k); j < offset_host(k + 1); j++)
-            stack.push(indices_host(j));
+          ARBORX_ASSERT(clusters_host(k) == id);
+          clusters_host(k) = -1;
+          for (int jj = offset_host(k); jj < offset_host(k + 1); jj++)
+          {
+            int j = indices_host(jj);
+            bool neigh_is_core_point =
+                (offset_host(j + 1) - offset_host(j) - 1 >= core_min_size);
+            if (neigh_is_core_point || (clusters_host(j) == id))
+              stack.push(j);
+          }
         }
       }
     }
   }
-  if (cc_sets.size() != num_unique_cc_indices)
+  if (cluster_sets.size() != num_unique_cluster_indices)
   {
     // FIXME: Not sure how we can get here, but it was in the original verify
     // check in ECL
     std::cerr << "Number of components does not match" << std::endl;
     return false;
   }
-  if (num_ccs != num_unique_cc_indices)
+  if (num_clusters != num_unique_cluster_indices)
   {
     std::cerr << "Component IDs are not unique" << std::endl;
     return false;
   }
 
   return true;
-}
+} // namespace ArborX
 
 template <typename MemorySpace>
 struct NumNeighCallback
@@ -158,9 +214,8 @@ template <typename ExecutionSpace, typename Primitives,
           typename ClusterIndicesView, typename ClusterOffsetView>
 void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
             ClusterIndicesView &cluster_indices,
-            ClusterOffsetView &cluster_offsets, float eps,
-            int core_min_size = 1, int cluster_min_size = 2,
-            bool verbose = false, bool verify = false)
+            ClusterOffsetView &cluster_offset, float eps, int core_min_size = 1,
+            int cluster_min_size = 2, bool verbose = false, bool verify = false)
 {
   static_assert(Kokkos::is_view<ClusterIndicesView>{}, "");
   static_assert(Kokkos::is_view<ClusterOffsetView>{}, "");
@@ -279,12 +334,12 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
   elapsed_total += clock::now() - start_total;
   if (verify)
   {
-    // FIXME: needs fixing for full DBSCAN
     start = clock::now();
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::verify");
 
     bvh.query(exec_space, predicates, indices, offset);
-    auto passed = verifyCC(exec_space, indices, offset, clusters);
+    auto passed =
+        verifyClusters(exec_space, indices, offset, clusters, core_min_size);
     printf("Verification %s\n", (passed ? "passed" : "failed"));
 
     Kokkos::Profiling::popRegion();
@@ -299,15 +354,15 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
   // sort clusters and compute permutation
   auto permute = Details::sortObjects(exec_space, clusters);
 
-  reallocWithoutInitializing(cluster_offsets, n + 1);
+  reallocWithoutInitializing(cluster_offset, n + 1);
   Kokkos::View<int *, MemorySpace> cluster_starts(
       Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::cluster_starts"),
       n);
   int num_clusters = 0;
   // In the following scan, we locate the starting position (stored in
-  // cluster_starts) and size (stored in cluster_offsets) of each valid halo
-  // (i.e., connected component of size >= cluster_min_size). For every index i,
-  // we check whether its CC index is different from the previous one (this
+  // cluster_starts) and size (stored in cluster_offset) of each valid halo
+  // (i.e., connected component of size >= cluster_min_size). For every index
+  // i, we check whether its CC index is different from the previous one (this
   // indicates a start of connected component) and whether the CC index of i +
   // cluster_min_size is the same (this indicates that this CC is at least of
   // cluster_min_size size). If those are true, we do a linear search from i +
@@ -329,25 +384,25 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
             int end = i + cluster_min_size - 1;
             while (++end < n && clusters(end) == clusters(i))
               ; // do nothing
-            cluster_offsets(update) = end - i;
+            cluster_offset(update) = end - i;
           }
           ++update;
         }
       },
       num_clusters);
-  Kokkos::resize(cluster_offsets, num_clusters + 1);
-  exclusivePrefixSum(exec_space, cluster_offsets);
+  Kokkos::resize(cluster_offset, num_clusters + 1);
+  exclusivePrefixSum(exec_space, cluster_offset);
 
   // Construct cluster indices
-  reallocWithoutInitializing(cluster_indices, lastElement(cluster_offsets));
+  reallocWithoutInitializing(cluster_indices, lastElement(cluster_offset));
   Kokkos::parallel_for(
       "ArborX::DBSCAN::populate_clusters",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_clusters),
       KOKKOS_LAMBDA(int i) {
-        for (int k = cluster_offsets(i); k < cluster_offsets(i + 1); ++k)
+        for (int k = cluster_offset(i); k < cluster_offset(i + 1); ++k)
         {
           cluster_indices(k) =
-              permute(cluster_starts(i) + (k - cluster_offsets(i)));
+              permute(cluster_starts(i) + (k - cluster_offset(i)));
         }
       });
   Kokkos::Profiling::popRegion();
