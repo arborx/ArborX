@@ -399,48 +399,52 @@ int main(int argc, char *argv[])
     getline(ss, token, '/');  target_point_cloud_type = to_point_cloud_enum[token];
     // clang-format on
 
+    if (!(backends == "all" || backends == "serial" || backends == "openmp" ||
+          backends == "threads" || backends == "cuda" || backends == "rtree"))
+      throw std::runtime_error("Backend " + backends + " invalid!");
+
 #ifdef KOKKOS_ENABLE_SERIAL
     if (backends == "all" || backends == "serial")
-    {
-      using Serial = Kokkos::Serial::device_type;
-      register_benchmark<ArborX::BVH<Serial>>(
+      register_benchmark<ArborX::BVH<Kokkos::Serial::device_type>>(
           "ArborX::BVH<Serial>", n_values, n_queries, n_neighbors,
           sort_predicates_int, buffer_size, source_point_cloud_type,
           target_point_cloud_type);
-    }
+#else
+    if (backends == "serial")
+      throw std::runtime_error("Serial backend not available!");
 #endif
 
 #ifdef KOKKOS_ENABLE_OPENMP
     if (backends == "all" || backends == "openmp")
-    {
-      using OpenMP = Kokkos::OpenMP::device_type;
-      register_benchmark<ArborX::BVH<OpenMP>>(
+      register_benchmark<ArborX::BVH<Kokkos::OpenMP::device_type>>(
           "ArborX::BVH<OpenMP>", n_values, n_queries, n_neighbors,
           sort_predicates_int, buffer_size, source_point_cloud_type,
           target_point_cloud_type);
-    }
+#else
+    if (backends == "openmp")
+      throw std::runtime_error("OpenMP backend not available!");
 #endif
 
 #ifdef KOKKOS_ENABLE_THREADS
     if (backends == "all" || backends == "threads")
-    {
-      using Threads = Kokkos::Threads::device_type;
-      register_benchmark<ArborX::BVH<Threads>>(
+      register_benchmark<ArborX::BVH<Kokkos::Threads::device_type>>(
           "ArborX::BVH<Threads>", n_values, n_queries, n_neighbors,
           sort_predicates_int, buffer_size, source_point_cloud_type,
           target_point_cloud_type);
-    }
+#else
+    if (backends == "threads")
+      throw std::runtime_error("Threads backend not available!");
 #endif
 
 #ifdef KOKKOS_ENABLE_CUDA
     if (backends == "all" || backends == "cuda")
-    {
-      using Cuda = Kokkos::Cuda::device_type;
-      register_benchmark<ArborX::BVH<Cuda>>(
+      register_benchmark<ArborX::BVH<Kokkos::Cuda::device_type>>(
           "ArborX::BVH<Cuda>", n_values, n_queries, n_neighbors,
           sort_predicates_int, buffer_size, source_point_cloud_type,
           target_point_cloud_type);
-    }
+#else
+    if (backends == "cuda")
+      throw std::runtime_error("CUDA backend not available!");
 #endif
 
 #if defined(KOKKOS_ENABLE_SERIAL)
