@@ -174,7 +174,7 @@ public:
 };
 
 template <typename TreeType>
-void register_benchmark(const std::string description, int const n_values,
+void register_benchmark(std::string const &description, int const n_values,
                         int const n_queries, int const n_neighbors,
                         int const sort_predicates_int, int const buffer_size,
                         PointCloudType const &source_point_cloud_type,
@@ -182,25 +182,25 @@ void register_benchmark(const std::string description, int const n_values,
 {
   auto label_construction = [&](std::string const &tree_name) -> std::string {
     std::string s = std::string("BM_construction<") + tree_name + ">";
-    for (auto &var : {n_values, (int)source_point_cloud_type})
+    for (auto const &var : {n_values, (int)source_point_cloud_type})
       s += "/" + std::to_string(var);
-    return s.c_str();
+    return s;
   };
   auto label_knn_search = [&](std::string const &tree_name) -> std::string {
     std::string s = std::string("BM_knn_search<") + tree_name + ">";
-    for (auto &var :
+    for (auto const &var :
          {n_values, n_queries, n_neighbors, sort_predicates_int,
           (int)source_point_cloud_type, (int)target_point_cloud_type})
       s += "/" + std::to_string(var);
-    return s.c_str();
+    return s;
   };
   auto label_radius_search = [&](std::string const &tree_name) -> std::string {
     std::string s = std::string("BM_radius_search<") + tree_name + ">";
-    for (auto &var :
+    for (auto const &var :
          {n_values, n_queries, n_neighbors, sort_predicates_int, buffer_size,
           (int)source_point_cloud_type, (int)target_point_cloud_type})
       s += "/" + std::to_string(var);
-    return s.c_str();
+    return s;
   };
 
   benchmark::RegisterBenchmark(label_construction(description).c_str(),
@@ -349,8 +349,8 @@ int main(int argc, char *argv[])
     {
       if (!vm[option].defaulted())
       {
-        std::cout << "Conflicting options: \"exact-spec\" and \"" << option
-                  << "\", exiting..." << std::endl;
+        std::cout << "Conflicting options: 'exact-spec' and '" << option
+                  << "', exiting..." << std::endl;
         return EXIT_FAILURE;
       }
     }
@@ -369,15 +369,18 @@ int main(int argc, char *argv[])
   to_point_cloud_enum["filled_sphere"] = PointCloudType::filled_sphere;
   to_point_cloud_enum["hollow_sphere"] = PointCloudType::hollow_sphere;
 
-  PointCloudType source_point_cloud_type;
-  PointCloudType target_point_cloud_type;
+  PointCloudType source_point_cloud_type =
+      to_point_cloud_enum.at(source_pt_cloud);
+  PointCloudType target_point_cloud_type =
+      to_point_cloud_enum.at(target_pt_cloud);
+  ;
 
   if (vm.count("exact-spec") == 0)
   {
     exact_specs.resize(1);
     auto &spec = exact_specs[0];
     spec = backends;
-    for (auto &var :
+    for (auto const &var :
          {n_values, n_queries, n_neighbors, sort_predicates_int, buffer_size,
           (int)source_point_cloud_type, (int)target_point_cloud_type})
       spec += "/" + std::to_string(var);
@@ -395,8 +398,8 @@ int main(int argc, char *argv[])
     getline(ss, token, '/');  n_neighbors = std::stoi(token);
     getline(ss, token, '/');  sort_predicates_int = std::stoi(token);
     getline(ss, token, '/');  buffer_size = std::stoi(token);
-    getline(ss, token, '/');  source_point_cloud_type = to_point_cloud_enum[token];
-    getline(ss, token, '/');  target_point_cloud_type = to_point_cloud_enum[token];
+    getline(ss, token, '/');  source_point_cloud_type = static_cast<PointCloudType>(std::stoi(token));
+    getline(ss, token, '/');  target_point_cloud_type = static_cast<PointCloudType>(std::stoi(token));
     // clang-format on
 
     if (!(backends == "all" || backends == "serial" || backends == "openmp" ||
