@@ -135,11 +135,13 @@ int main(int argc, char *argv[])
     Kokkos::View<int, ExecutionSpace, Kokkos::MemoryTraits<Kokkos::Atomic>> c(
         "counter");
 
+#ifndef __NVCC__
     bvh.query(
         ExecutionSpace{}, FirstOctant{},
         KOKKOS_LAMBDA(auto /*predicate*/, int j) {
           printf("%d %d %d\n", ++c(), -1, j);
         });
+#endif
   }
 
   return 0;
