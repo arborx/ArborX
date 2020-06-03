@@ -195,7 +195,7 @@ struct InsertGenerator
   }
 };
 
-template <typename Predicates, typename Permute>
+template <typename Predicates, typename Permute, bool AttachIndices = false>
 struct PermutedPredicates
 {
   Predicates _predicates;
@@ -215,11 +215,13 @@ struct PermutedIndices
 
 } // namespace Details
 
-template <typename Predicates, typename Permute>
-struct AccessTraits<Details::PermutedPredicates<Predicates, Permute>,
-                    PredicatesTag>
+template <typename Predicates, typename Permute, bool AttachIndices>
+struct AccessTraits<
+    Details::PermutedPredicates<Predicates, Permute, AttachIndices>,
+    PredicatesTag>
 {
-  using PermutedPredicates = Details::PermutedPredicates<Predicates, Permute>;
+  using PermutedPredicates =
+      Details::PermutedPredicates<Predicates, Permute, AttachIndices>;
   using NativeAccess = AccessTraits<Predicates, PredicatesTag>;
 
   static std::size_t size(PermutedPredicates const &permuted_predicates)
@@ -227,13 +229,22 @@ struct AccessTraits<Details::PermutedPredicates<Predicates, Permute>,
     return NativeAccess::size(permuted_predicates._predicates);
   }
 
+  template <bool _Attach = AttachIndices>
   KOKKOS_FUNCTION static auto get(PermutedPredicates const &permuted_predicates,
-                                  std::size_t index)
+                                  std::enable_if_t<_Attach, std::size_t> index)
   {
     auto const permuted_index = permuted_predicates._permute(index);
     return attach(
         NativeAccess::get(permuted_predicates._predicates, permuted_index),
         Details::PermutedIndices{(int)index, (int)permuted_index});
+  }
+
+  template <bool _Attach = AttachIndices>
+  KOKKOS_FUNCTION static auto get(PermutedPredicates const &permuted_predicates,
+                                  std::enable_if_t<!_Attach, std::size_t> index)
+  {
+    auto const permuted_index = permuted_predicates._permute(index);
+    return NativeAccess::get(permuted_predicates._predicates, permuted_index);
   }
   using memory_space = typename NativeAccess::memory_space;
 };
@@ -262,7 +273,7 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   using CountView = OffsetView;
   CountView counts(Kokkos::view_alloc("counts", space), n_queries);
 
-  using PermutedPredicates = PermutedPredicates<Predicates, PermuteType>;
+  using PermutedPredicates = PermutedPredicates<Predicates, PermuteType, true>;
   PermutedPredicates permuted_predicates = {predicates, permute};
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:first_pass");
