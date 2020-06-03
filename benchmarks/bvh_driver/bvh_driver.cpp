@@ -173,33 +173,62 @@ public:
   ~KokkosScopeGuard() { Kokkos::finalize(); }
 };
 
-#define REGISTER_BENCHMARK(...)                                                \
-  benchmark::RegisterBenchmark(label_construction(#__VA_ARGS__).c_str(),       \
-                               [=](benchmark::State &state) {                  \
-                                 BM_construction<__VA_ARGS__>(                 \
-                                     state, n_values,                          \
-                                     source_point_cloud_type);                 \
-                               })                                              \
-      ->UseManualTime()                                                        \
-      ->Unit(benchmark::kMicrosecond);                                         \
-  benchmark::RegisterBenchmark(                                                \
-      label_knn_search(#__VA_ARGS__).c_str(),                                  \
-      [=](benchmark::State &state) {                                           \
-        BM_knn_search<__VA_ARGS__>(                                            \
-            state, n_values, n_queries, n_neighbors, sort_predicates_int,      \
-            source_point_cloud_type, target_point_cloud_type);                 \
-      })                                                                       \
-      ->UseManualTime()                                                        \
-      ->Unit(benchmark::kMicrosecond);                                         \
-  benchmark::RegisterBenchmark(                                                \
-      label_radius_search(#__VA_ARGS__).c_str(),                               \
-      [=](benchmark::State &state) {                                           \
-        BM_radius_search<__VA_ARGS__>(                                         \
-            state, n_values, n_queries, n_neighbors, sort_predicates_int,      \
-            buffer_size, source_point_cloud_type, target_point_cloud_type);    \
-      })                                                                       \
-      ->UseManualTime()                                                        \
+template <typename TreeType>
+void register_benchmark(const std::string description, int const n_values,
+                        int const n_queries, int const n_neighbors,
+                        int const sort_predicates_int, int const buffer_size,
+                        PointCloudType const &source_point_cloud_type,
+                        PointCloudType const &target_point_cloud_type)
+{
+  auto label_construction = [&](std::string const &tree_name) -> std::string {
+    std::string s = std::string("BM_construction<") + tree_name + ">";
+    for (auto &var : {n_values, (int)source_point_cloud_type})
+      s += "/" + std::to_string(var);
+    return s.c_str();
+  };
+  auto label_knn_search = [&](std::string const &tree_name) -> std::string {
+    std::string s = std::string("BM_knn_search<") + tree_name + ">";
+    for (auto &var :
+         {n_values, n_queries, n_neighbors, sort_predicates_int,
+          (int)source_point_cloud_type, (int)target_point_cloud_type})
+      s += "/" + std::to_string(var);
+    return s.c_str();
+  };
+  auto label_radius_search = [&](std::string const &tree_name) -> std::string {
+    std::string s = std::string("BM_radius_search<") + tree_name + ">";
+    for (auto &var :
+         {n_values, n_queries, n_neighbors, sort_predicates_int, buffer_size,
+          (int)source_point_cloud_type, (int)target_point_cloud_type})
+      s += "/" + std::to_string(var);
+    return s.c_str();
+  };
+
+  benchmark::RegisterBenchmark(label_construction(description).c_str(),
+                               [=](benchmark::State &state) {
+                                 BM_construction<TreeType>(
+                                     state, n_values, source_point_cloud_type);
+                               })
+      ->UseManualTime()
       ->Unit(benchmark::kMicrosecond);
+  benchmark::RegisterBenchmark(
+      label_knn_search(description).c_str(),
+      [=](benchmark::State &state) {
+        BM_knn_search<TreeType>(state, n_values, n_queries, n_neighbors,
+                                sort_predicates_int, source_point_cloud_type,
+                                target_point_cloud_type);
+      })
+      ->UseManualTime()
+      ->Unit(benchmark::kMicrosecond);
+  benchmark::RegisterBenchmark(
+      label_radius_search(description).c_str(),
+      [=](benchmark::State &state) {
+        BM_radius_search<TreeType>(
+            state, n_values, n_queries, n_neighbors, sort_predicates_int,
+            buffer_size, source_point_cloud_type, target_point_cloud_type);
+      })
+      ->UseManualTime()
+      ->Unit(benchmark::kMicrosecond);
+}
 
 // NOTE Motivation for this class that stores the argument count and values is
 // I could not figure out how to make the parser consume arguments with
@@ -341,29 +370,6 @@ int main(int argc, char *argv[])
   PointCloudType source_point_cloud_type;
   PointCloudType target_point_cloud_type;
 
-  auto label_construction = [&](std::string const &tree_name) -> std::string {
-    std::string s = std::string("BM_construction<") + tree_name + ">";
-    for (auto &var : {n_values, (int)source_point_cloud_type})
-      s += "/" + std::to_string(var);
-    return s.c_str();
-  };
-  auto label_knn_search = [&](std::string const &tree_name) -> std::string {
-    std::string s = std::string("BM_knn_search<") + tree_name + ">";
-    for (auto &var :
-         {n_values, n_queries, n_neighbors, sort_predicates_int,
-          (int)source_point_cloud_type, (int)target_point_cloud_type})
-      s += "/" + std::to_string(var);
-    return s.c_str();
-  };
-  auto label_radius_search = [&](std::string const &tree_name) -> std::string {
-    std::string s = std::string("BM_radius_search<") + tree_name + ">";
-    for (auto &var :
-         {n_values, n_queries, n_neighbors, sort_predicates_int, buffer_size,
-          (int)source_point_cloud_type, (int)target_point_cloud_type})
-      s += "/" + std::to_string(var);
-    return s.c_str();
-  };
-
   if (vm.count("exact-spec") == 0)
   {
     exact_specs.resize(1);
@@ -381,38 +387,52 @@ int main(int argc, char *argv[])
     std::string token;
 
     // clang-format off
-      getline(ss, token, '/');  n_values = std::stoi(token);
-      getline(ss, token, '/');  n_queries = std::stoi(token);
-      getline(ss, token, '/');  n_neighbors = std::stoi(token);
-      getline(ss, token, '/');  sort_predicates_int = std::stoi(token);
-      getline(ss, token, '/');  buffer_size = std::stoi(token);
-      getline(ss, token, '/');  source_point_cloud_type = to_point_cloud_enum[token];
-      getline(ss, token, '/');  target_point_cloud_type = to_point_cloud_enum[token];
+    getline(ss, token, '/');  n_values = std::stoi(token);
+    getline(ss, token, '/');  n_queries = std::stoi(token);
+    getline(ss, token, '/');  n_neighbors = std::stoi(token);
+    getline(ss, token, '/');  sort_predicates_int = std::stoi(token);
+    getline(ss, token, '/');  buffer_size = std::stoi(token);
+    getline(ss, token, '/');  source_point_cloud_type = to_point_cloud_enum[token];
+    getline(ss, token, '/');  target_point_cloud_type = to_point_cloud_enum[token];
     // clang-format on
 
 #ifdef KOKKOS_ENABLE_SERIAL
     using Serial = Kokkos::Serial::device_type;
-    REGISTER_BENCHMARK(ArborX::BVH<Serial>);
+    register_benchmark<ArborX::BVH<Serial>>(
+        "ArborX::BVH<Serial>", n_values, n_queries, n_neighbors,
+        sort_predicates_int, buffer_size, source_point_cloud_type,
+        target_point_cloud_type);
 #endif
 
 #ifdef KOKKOS_ENABLE_OPENMP
     using OpenMP = Kokkos::OpenMP::device_type;
-    REGISTER_BENCHMARK(ArborX::BVH<OpenMP>);
+    register_benchmark<ArborX::BVH<OpenMP>>(
+        "ArborX::BVH<OpenMP>", n_values, n_queries, n_neighbors,
+        sort_predicates_int, buffer_size, source_point_cloud_type,
+        target_point_cloud_type);
 #endif
 
 #ifdef KOKKOS_ENABLE_THREADS
     using Threads = Kokkos::Threads::device_type;
-    REGISTER_BENCHMARK(ArborX::BVH<Threads>);
+    register_benchmark<ArborX::BVH<Threads>>(
+        "ArborX::BVH<Threads>", n_values, n_queries, n_neighbors,
+        sort_predicates_int, buffer_size, source_point_cloud_type,
+        target_point_cloud_type);
 #endif
 
 #ifdef KOKKOS_ENABLE_CUDA
     using Cuda = Kokkos::Cuda::device_type;
-    REGISTER_BENCHMARK(ArborX::BVH<Cuda>);
+    register_benchmark<ArborX::BVH<Cuda>>(
+        "ArborX::BVH<Cuda>", n_values, n_queries, n_neighbors,
+        sort_predicates_int, buffer_size, source_point_cloud_type,
+        target_point_cloud_type);
 #endif
 
 #if defined(KOKKOS_ENABLE_SERIAL)
     using BoostRTree = BoostExt::RTree<ArborX::Point>;
-    REGISTER_BENCHMARK(BoostRTree);
+    register_benchmark<BoostRTree>(
+        "BoostRTree", n_values, n_queries, n_neighbors, sort_predicates_int,
+        buffer_size, source_point_cloud_type, target_point_cloud_type);
 #endif
   }
 
