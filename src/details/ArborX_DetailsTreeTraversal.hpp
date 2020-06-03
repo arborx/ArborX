@@ -77,7 +77,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
 
     if (predicate(bvh_.getBoundingVolume(bvh_.getRoot())))
     {
-      callback_(queryIndex, 0);
+      callback_(predicate, 0);
     }
   }
 
@@ -99,11 +99,11 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
 
       if (overlap_left && child_left->isLeaf())
       {
-        callback_(queryIndex, child_left->getLeafPermutationIndex());
+        callback_(predicate, child_left->getLeafPermutationIndex());
       }
       if (overlap_right && child_right->isLeaf())
       {
-        callback_(queryIndex, child_right->getLeafPermutationIndex());
+        callback_(predicate, child_right->getLeafPermutationIndex());
       }
 
       bool traverse_left = (overlap_left && !child_left->isLeaf());
@@ -226,7 +226,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     if (k < 1)
       return 0;
 
-    callback_(queryIndex, 0, distance(bvh_.getRoot()));
+    callback_(predicate, 0, distance(bvh_.getRoot()));
     return 1;
   }
 
@@ -353,7 +353,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     {
       int const leaf_index = (heap.data() + i)->first;
       auto const leaf_distance = (heap.data() + i)->second;
-      callback_(queryIndex, leaf_index, leaf_distance);
+      callback_(predicate, leaf_index, leaf_distance);
     }
     return heap.size();
   }
@@ -408,7 +408,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
       if (node->isLeaf())
       {
         queue.pop();
-        callback_(queryIndex, node->getLeafPermutationIndex(), node_distance);
+        callback_(predicate, node->getLeafPermutationIndex(), node_distance);
         ++count;
       }
       else
