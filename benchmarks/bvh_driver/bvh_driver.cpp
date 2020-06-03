@@ -261,6 +261,7 @@ int main(int argc, char *argv[])
   bool sort_predicates;
   std::string source_pt_cloud;
   std::string target_pt_cloud;
+  std::vector<std::string> exact_specs;
   // clang-format off
     desc.add_options()
         ( "help", "produce help message" )
@@ -272,6 +273,7 @@ int main(int argc, char *argv[])
         ( "source-point-cloud-type", bpo::value<std::string>(&source_pt_cloud)->default_value("filled_box"), "shape of the source point cloud"  )
         ( "target-point-cloud-type", bpo::value<std::string>(&target_pt_cloud)->default_value("filled_box"), "shape of the target point cloud"  )
         ( "no-header", bpo::bool_switch(), "do not print version and hash" )
+        ( "exact-spec", bpo::value<std::vector<std::string>>(&exact_specs)->multitoken(), "exact specification (can be specified multiple times for batch)" )
     ;
   // clang-format on
   bpo::variables_map vm;
@@ -308,6 +310,21 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+  if (vm.count("exact-spec") > 0)
+  {
+    for (std::string option :
+         {"values", "queries", "predicate-sort", "neighbors", "buffer",
+          "source-point-cloud-type", "target-point-cloud-type"})
+    {
+      if (!vm[option].defaulted())
+      {
+        std::cout << "Conflicting options: \"exact-spec\" and \"" << option
+                  << "\", exiting..." << std::endl;
+        return EXIT_FAILURE;
+      }
+    }
+  }
+
   benchmark::Initialize(&pass_further.argc(), pass_further.argv());
   // Throw if some of the arguments have not been recognized.
   std::ignore =
@@ -315,25 +332,22 @@ int main(int argc, char *argv[])
           .options(bpo::options_description(""))
           .run();
 
-  // Google benchmark only supports integer arguments (see
-  // https://github.com/google/benchmark/issues/387), so we map the string to
-  // an enum.
   std::map<std::string, PointCloudType> to_point_cloud_enum;
   to_point_cloud_enum["filled_box"] = PointCloudType::filled_box;
   to_point_cloud_enum["hollow_box"] = PointCloudType::hollow_box;
   to_point_cloud_enum["filled_sphere"] = PointCloudType::filled_sphere;
   to_point_cloud_enum["hollow_sphere"] = PointCloudType::hollow_sphere;
 
-  PointCloudType source_point_cloud_type = to_point_cloud_enum[source_pt_cloud];
-  PointCloudType target_point_cloud_type = to_point_cloud_enum[target_pt_cloud];
+  PointCloudType source_point_cloud_type;
+  PointCloudType target_point_cloud_type;
 
-  auto label_construction = [=](std::string const &tree_name) -> std::string {
+  auto label_construction = [&](std::string const &tree_name) -> std::string {
     std::string s = std::string("BM_construction<") + tree_name + ">";
     for (auto &var : {n_values, (int)source_point_cloud_type})
       s += "/" + std::to_string(var);
     return s.c_str();
   };
-  auto label_knn_search = [=](std::string const &tree_name) -> std::string {
+  auto label_knn_search = [&](std::string const &tree_name) -> std::string {
     std::string s = std::string("BM_knn_search<") + tree_name + ">";
     for (auto &var :
          {n_values, n_queries, n_neighbors, sort_predicates_int,
@@ -341,7 +355,7 @@ int main(int argc, char *argv[])
       s += "/" + std::to_string(var);
     return s.c_str();
   };
-  auto label_radius_search = [=](std::string const &tree_name) -> std::string {
+  auto label_radius_search = [&](std::string const &tree_name) -> std::string {
     std::string s = std::string("BM_radius_search<") + tree_name + ">";
     for (auto &var :
          {n_values, n_queries, n_neighbors, sort_predicates_int, buffer_size,
@@ -350,30 +364,57 @@ int main(int argc, char *argv[])
     return s.c_str();
   };
 
+  if (vm.count("exact-spec") == 0)
+  {
+    exact_specs.resize(1);
+    auto &spec = exact_specs[0];
+    spec = std::to_string(n_values);
+    for (auto &var :
+         {n_queries, n_neighbors, sort_predicates_int, buffer_size,
+          (int)source_point_cloud_type, (int)target_point_cloud_type})
+      spec += "/" + std::to_string(var);
+  }
+
+  for (auto const &spec : exact_specs)
+  {
+    std::istringstream ss(spec);
+    std::string token;
+
+    // clang-format off
+      getline(ss, token, '/');  n_values = std::stoi(token);
+      getline(ss, token, '/');  n_queries = std::stoi(token);
+      getline(ss, token, '/');  n_neighbors = std::stoi(token);
+      getline(ss, token, '/');  sort_predicates_int = std::stoi(token);
+      getline(ss, token, '/');  buffer_size = std::stoi(token);
+      getline(ss, token, '/');  source_point_cloud_type = to_point_cloud_enum[token];
+      getline(ss, token, '/');  target_point_cloud_type = to_point_cloud_enum[token];
+    // clang-format on
+
 #ifdef KOKKOS_ENABLE_SERIAL
-  using Serial = Kokkos::Serial::device_type;
-  REGISTER_BENCHMARK(ArborX::BVH<Serial>);
+    using Serial = Kokkos::Serial::device_type;
+    REGISTER_BENCHMARK(ArborX::BVH<Serial>);
 #endif
 
 #ifdef KOKKOS_ENABLE_OPENMP
-  using OpenMP = Kokkos::OpenMP::device_type;
-  REGISTER_BENCHMARK(ArborX::BVH<OpenMP>);
+    using OpenMP = Kokkos::OpenMP::device_type;
+    REGISTER_BENCHMARK(ArborX::BVH<OpenMP>);
 #endif
 
 #ifdef KOKKOS_ENABLE_THREADS
-  using Threads = Kokkos::Threads::device_type;
-  REGISTER_BENCHMARK(ArborX::BVH<Threads>);
+    using Threads = Kokkos::Threads::device_type;
+    REGISTER_BENCHMARK(ArborX::BVH<Threads>);
 #endif
 
 #ifdef KOKKOS_ENABLE_CUDA
-  using Cuda = Kokkos::Cuda::device_type;
-  REGISTER_BENCHMARK(ArborX::BVH<Cuda>);
+    using Cuda = Kokkos::Cuda::device_type;
+    REGISTER_BENCHMARK(ArborX::BVH<Cuda>);
 #endif
 
-#ifndef ARBORX_PERFORMANCE_TESTING
-  using BoostRTree = BoostExt::RTree<ArborX::Point>;
-  REGISTER_BENCHMARK(BoostRTree);
+#if defined(KOKKOS_ENABLE_SERIAL)
+    using BoostRTree = BoostExt::RTree<ArborX::Point>;
+    REGISTER_BENCHMARK(BoostRTree);
 #endif
+  }
 
   benchmark::RunSpecifiedBenchmarks();
 
