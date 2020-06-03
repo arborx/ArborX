@@ -135,9 +135,11 @@ int main(int argc, char *argv[])
     Kokkos::View<int, ExecutionSpace, Kokkos::MemoryTraits<Kokkos::Atomic>> c(
         "counter");
 
-    bvh.query(ExecutionSpace{}, FirstOctant{}, KOKKOS_LAMBDA(int i, int j) {
-      printf("%d %d %d\n", ++c(), i, j);
-    });
+    bvh.query(
+        ExecutionSpace{}, FirstOctant{},
+        KOKKOS_LAMBDA(auto /*predicate*/, int j) {
+          printf("%d %d %d\n", ++c(), -1, j);
+        });
   }
 
   return 0;
