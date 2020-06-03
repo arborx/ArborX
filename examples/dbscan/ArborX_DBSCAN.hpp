@@ -202,8 +202,7 @@ struct NumNeighCallback
   Kokkos::View<int *, MemorySpace> num_neigh_;
 
   template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &query, int j,
-                                  Insert const &) const
+  KOKKOS_FUNCTION void operator()(Query const &query, int, Insert const &) const
   {
     auto i = getData(query);
     Kokkos::atomic_fetch_add(&num_neigh_(i), 1);
