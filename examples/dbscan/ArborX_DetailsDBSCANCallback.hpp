@@ -85,6 +85,7 @@ struct DBSCANCallback
 {
   Kokkos::View<int *, MemorySpace> stat_;
   Kokkos::View<int *, MemorySpace> num_neigh_;
+  int core_min_size_ = 1;
 
   // Per [1]:
   //
@@ -128,74 +129,90 @@ struct DBSCANCallback
     return curr;
   }
 
+  KOKKOS_FUNCTION
+  void propagate(int i, int j) const
+  {
+    // Per [1]:
+    //
+    // ```
+    // ...checks if the representatives of the two endpoints of the edge are
+    // the same. If so, nothing needs to be done. If not, the parent of the
+    // larger of the two representatives is updated to point to the smaller
+    // representative using an atomic CAS operation (<snip> depending on
+    // which representative is smaller). The atomic CAS is required because
+    // the representative may have been changed by another thread between
+    // the call to `representative()` and the call to the CAS. If it has
+    // been changed, `ostat` or `vstat` is updated with the latest value and
+    // the do-while loop repeats the computation until it succeeds, i.e.,
+    // until there is no data race on the parent.
+    // ```
+
+    // initialize to the first neighbor that's smaller
+    if (Kokkos::atomic_compare_exchange(&stat_(i), i, j) == i)
+      return;
+
+    // ##### ECL license (see LICENSE.ECL) #####
+    int vstat = representative(i);
+    int ostat = representative(j);
+
+    bool repeat;
+    do
+    {
+      repeat = false;
+      if (vstat != ostat)
+      {
+        int ret;
+        if (vstat < ostat)
+        {
+          if ((ret = Kokkos::atomic_compare_exchange(&stat_(ostat), ostat,
+                                                     vstat)) != ostat)
+          {
+            ostat = ret;
+            repeat = true;
+          }
+        }
+        else
+        {
+          if ((ret = Kokkos::atomic_compare_exchange(&stat_(vstat), vstat,
+                                                     ostat)) != vstat)
+          {
+            vstat = ret;
+            repeat = true;
+          }
+        }
+      }
+    } while (repeat);
+  }
+
   template <typename Query, typename Insert, typename T = Tag>
   KOKKOS_FUNCTION std::enable_if_t<std::is_same<T, CCSTag>{}>
   operator()(Query const &query, int j, Insert const &) const
   {
     int const i = ArborX::getData(query);
 
-    // only process edge in one direction
+    // Only process edge in one direction
     if (i > j)
     {
-      // initialize to the first neighbor that's smaller
-      if (Kokkos::atomic_compare_exchange(&stat_(i), i, j) == i)
-        return;
-
-      {
-        // Per [1]:
-        //
-        // ```
-        // ...checks if the representatives of the two endpoints of the edge are
-        // the same. If so, nothing needs to be done. If not, the parent of the
-        // larger of the two representatives is updated to point to the smaller
-        // representative using an atomic CAS operation (<snip> depending on
-        // which representative is smaller). The atomic CAS is required because
-        // the representative may have been changed by another thread between
-        // the call to `representative()` and the call to the CAS. If it has
-        // been changed, `ostat` or `vstat` is updated with the latest value and
-        // the do-while loop repeats the computation until it succeeds, i.e.,
-        // until there is no data race on the parent.
-        // ```
-
-        // ##### ECL license (see LICENSE.ECL) #####
-        int vstat = representative(i);
-        int ostat = representative(j);
-
-        bool repeat;
-        do
-        {
-          repeat = false;
-          if (vstat != ostat)
-          {
-            int ret;
-            if (vstat < ostat)
-            {
-              if ((ret = Kokkos::atomic_compare_exchange(&stat_(ostat), ostat,
-                                                         vstat)) != ostat)
-              {
-                ostat = ret;
-                repeat = true;
-              }
-            }
-            else
-            {
-              if ((ret = Kokkos::atomic_compare_exchange(&stat_(vstat), vstat,
-                                                         ostat)) != vstat)
-              {
-                vstat = ret;
-                repeat = true;
-              }
-            }
-          }
-        } while (repeat);
-      }
+      propagate(i, j);
     }
   }
+
+  KOKKOS_FUNCTION
+  bool is_core_point(int i) const { return num_neigh_(i) >= core_min_size_; }
 
   template <typename Query, typename Insert, typename T = Tag>
   KOKKOS_FUNCTION std::enable_if_t<std::is_same<T, DBSCANTag>{}>
   operator()(Query const &query, int j, Insert const &) const
   {
+    int const i = ArborX::getData(query);
+
+    // Only process edges in the following situations:
+    // - From a non-core point to core point
+    // - From core point to core point (only in one direction)
+    if (is_core_point(j) && (!is_core_point(i) || (is_core_point(i) && i > j)))
+    {
+      propagate(i, j);
+    }
   }
 };
 } // namespace Details

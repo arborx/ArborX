@@ -177,6 +177,9 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
       std::is_same<typename ClusterOffsetView::memory_space, MemorySpace>{},
       "");
 
+  ARBORX_ASSERT(core_min_size >= 1);
+  ARBORX_ASSERT(cluster_min_size >= 2);
+
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN");
 
   using clock = std::chrono::high_resolution_clock;
@@ -232,7 +235,8 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
   {
     // Compute number of neighbors
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::num_neigh");
-    Kokkos::deep_copy(num_neigh, 0);
+    // Initialize to -1 as we don't want to count ourselves as a neighbor
+    Kokkos::deep_copy(num_neigh, -1);
     // FIXME: wrap predicates to attach their index
     bvh.query(exec_space, predicates, NumNeighCallback<MemorySpace>{num_neigh},
               indices, offset);
@@ -241,7 +245,7 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
     bvh.query(exec_space, predicates,
               Details::DBSCANCallback<MemorySpace, Details::DBSCANTag>{
-                  stat, num_neigh},
+                  stat, num_neigh, core_min_size},
               indices, offset);
     Kokkos::Profiling::popRegion();
   }
