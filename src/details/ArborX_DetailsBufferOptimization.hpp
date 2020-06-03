@@ -161,7 +161,7 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
 
   using MapType =
       Kokkos::UnorderedMap<SearchMatch<typename OutputView::value_type>,
-                           ExecutionSpace>;
+                           void, ExecutionSpace>;
   MapType unordered_map(out.size() > 0 ? out.size() : 1000000);
 
   static_assert(Kokkos::is_execution_space<ExecutionSpace>{}, "");
