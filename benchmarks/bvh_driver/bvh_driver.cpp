@@ -67,6 +67,37 @@ struct Spec
       throw std::runtime_error("Backend " + backends + " invalid!");
   }
 
+  std::string create_label_construction(std::string const &tree_name) const
+  {
+    std::string s = std::string("BM_construction<") + tree_name + ">";
+    for (auto const &var :
+         {n_values, static_cast<int>(source_point_cloud_type)})
+      s += "/" + std::to_string(var);
+    return s;
+  }
+
+  std::string create_label_knn_search(std::string const &tree_name) const
+  {
+    std::string s = std::string("BM_knn_search<") + tree_name + ">";
+    for (auto const &var :
+         {n_values, n_queries, n_neighbors, sort_predicates_int,
+          static_cast<int>(source_point_cloud_type),
+          static_cast<int>(target_point_cloud_type)})
+      s += "/" + std::to_string(var);
+    return s;
+  }
+
+  std::string create_label_radius_search(std::string const &tree_name) const
+  {
+    std::string s = std::string("BM_radius_search<") + tree_name + ">";
+    for (auto const &var :
+         {n_values, n_queries, n_neighbors, sort_predicates_int, buffer_size,
+          static_cast<int>(source_point_cloud_type),
+          static_cast<int>(target_point_cloud_type)})
+      s += "/" + std::to_string(var);
+    return s;
+  }
+
   std::string backends;
   int n_values;
   int n_queries;
@@ -218,43 +249,20 @@ public:
 template <typename TreeType>
 void register_benchmark(std::string const &description, Spec const &spec)
 {
-  auto label_construction = [&](std::string const &tree_name) -> std::string {
-    std::string s = std::string("BM_construction<") + tree_name + ">";
-    for (auto const &var : {spec.n_values, (int)spec.source_point_cloud_type})
-      s += "/" + std::to_string(var);
-    return s;
-  };
-  auto label_knn_search = [&](std::string const &tree_name) -> std::string {
-    std::string s = std::string("BM_knn_search<") + tree_name + ">";
-    for (auto const &var :
-         {spec.n_values, spec.n_queries, spec.n_neighbors,
-          spec.sort_predicates_int, (int)spec.source_point_cloud_type,
-          (int)spec.target_point_cloud_type})
-      s += "/" + std::to_string(var);
-    return s;
-  };
-  auto label_radius_search = [&](std::string const &tree_name) -> std::string {
-    std::string s = std::string("BM_radius_search<") + tree_name + ">";
-    for (auto const &var :
-         {spec.n_values, spec.n_queries, spec.n_neighbors,
-          spec.sort_predicates_int, spec.buffer_size,
-          (int)spec.source_point_cloud_type, (int)spec.target_point_cloud_type})
-      s += "/" + std::to_string(var);
-    return s;
-  };
+  std::cout << "register_benchmark " << description << std::endl;
 
   benchmark::RegisterBenchmark(
-      label_construction(description).c_str(),
+      spec.create_label_construction(description).c_str(),
       [=](benchmark::State &state) { BM_construction<TreeType>(state, spec); })
       ->UseManualTime()
       ->Unit(benchmark::kMicrosecond);
   benchmark::RegisterBenchmark(
-      label_knn_search(description).c_str(),
+      spec.create_label_knn_search(description).c_str(),
       [=](benchmark::State &state) { BM_knn_search<TreeType>(state, spec); })
       ->UseManualTime()
       ->Unit(benchmark::kMicrosecond);
   benchmark::RegisterBenchmark(
-      label_radius_search(description).c_str(),
+      spec.create_label_radius_search(description).c_str(),
       [=](benchmark::State &state) { BM_radius_search<TreeType>(state, spec); })
       ->UseManualTime()
       ->Unit(benchmark::kMicrosecond);
@@ -394,6 +402,8 @@ int main(int argc, char *argv[])
   std::vector<Spec> specs;
   for (auto const &spec_string : exact_specs)
     specs.emplace_back(spec_string);
+
+  std::cout << "Number of specs " << vm.count("exact-spec") << std::endl;
 
   if (vm.count("exact-spec") == 0)
   {
