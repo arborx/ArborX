@@ -294,7 +294,6 @@ int main(int argc, char *argv[])
 
   namespace bpo = boost::program_options;
   bpo::options_description desc("Allowed options");
-  std::string backends;
   int n_values;
   int n_queries;
   int n_neighbors;
@@ -306,7 +305,6 @@ int main(int argc, char *argv[])
   // clang-format off
     desc.add_options()
         ( "help", "produce help message" )
-	( "backends", bpo::value<std::string>(&backends)->default_value("all"), "backends to run on can be 'all', 'serial', 'openmp', or 'cuda'" )
         ( "values", bpo::value<int>(&n_values)->default_value(50000), "number of indexable values (source)" )
         ( "queries", bpo::value<int>(&n_queries)->default_value(20000), "number of queries (target)" )
         ( "predicate-sort", bpo::value<bool>(&sort_predicates)->default_value(true), "sort predicates" )
@@ -390,7 +388,7 @@ int main(int argc, char *argv[])
   {
     exact_specs.resize(1);
     auto &spec = exact_specs[0];
-    spec = backends;
+    spec = "all";
     for (auto const &var :
          {n_values, n_queries, n_neighbors, sort_predicates_int, buffer_size,
           (int)source_point_cloud_type, (int)target_point_cloud_type})
@@ -407,43 +405,43 @@ int main(int argc, char *argv[])
       throw std::runtime_error("Backend " + spec.backends + " invalid!");
 
 #ifdef KOKKOS_ENABLE_SERIAL
-    if (backends == "all" || backends == "serial")
+    if (spec.backends == "all" || spec.backends == "serial")
       register_benchmark<ArborX::BVH<Kokkos::Serial::device_type>>(
           "ArborX::BVH<Serial>", spec);
 #else
-    if (backends == "serial")
+    if (spec.backends == "serial")
       throw std::runtime_error("Serial backend not available!");
 #endif
 
 #ifdef KOKKOS_ENABLE_OPENMP
-    if (backends == "all" || backends == "openmp")
+    if (spec.backends == "all" || spec.backends == "openmp")
       register_benchmark<ArborX::BVH<Kokkos::OpenMP::device_type>>(
           "ArborX::BVH<OpenMP>", spec);
 #else
-    if (backends == "openmp")
+    if (spec.backends == "openmp")
       throw std::runtime_error("OpenMP backend not available!");
 #endif
 
 #ifdef KOKKOS_ENABLE_THREADS
-    if (backends == "all" || backends == "threads")
+    if (spec.backends == "all" || spec.backends == "threads")
       register_benchmark<ArborX::BVH<Kokkos::Threads::device_type>>(
           "ArborX::BVH<Threads>", spec);
 #else
-    if (backends == "threads")
+    if (spec.backends == "threads")
       throw std::runtime_error("Threads backend not available!");
 #endif
 
 #ifdef KOKKOS_ENABLE_CUDA
-    if (backends == "all" || backends == "cuda")
+    if (spec.backends == "all" || spec.backends == "cuda")
       register_benchmark<ArborX::BVH<Kokkos::Cuda::device_type>>(
           "ArborX::BVH<Cuda>", spec);
 #else
-    if (backends == "cuda")
+    if (spec.backends == "cuda")
       throw std::runtime_error("CUDA backend not available!");
 #endif
 
 #if defined(KOKKOS_ENABLE_SERIAL)
-    if (backends == "all" || backends == "rtree")
+    if (spec.backends == "all" || spec.backends == "rtree")
     {
       using BoostRTree = BoostExt::RTree<ArborX::Point>;
       register_benchmark<BoostRTree>("BoostRTree", spec);
