@@ -52,7 +52,7 @@ struct SecondPassTag
 };
 
 template <typename ValueType>
-struct SearchMatch
+struct __align__(16) SearchMatch
 {
   using value_type = ValueType;
 
