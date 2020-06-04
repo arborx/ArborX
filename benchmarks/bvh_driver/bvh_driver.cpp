@@ -29,6 +29,35 @@
 #include <benchmark/benchmark.h>
 #include <point_clouds.hpp>
 
+struct Spec
+{
+  Spec(std::string const &spec_string)
+  {
+    std::istringstream ss(spec_string);
+    std::string token;
+
+    // clang-format off
+    getline(ss, token, '/');  backends = token;
+    getline(ss, token, '/');  n_values = std::stoi(token);
+    getline(ss, token, '/');  n_queries = std::stoi(token);
+    getline(ss, token, '/');  n_neighbors = std::stoi(token);
+    getline(ss, token, '/');  sort_predicates_int = std::stoi(token);
+    getline(ss, token, '/');  buffer_size = std::stoi(token);
+    getline(ss, token, '/');  source_point_cloud_type = static_cast<PointCloudType>(std::stoi(token));
+    getline(ss, token, '/');  target_point_cloud_type = static_cast<PointCloudType>(std::stoi(token));
+    // clang-format on
+  }
+
+  std::string backends;
+  int n_values;
+  int n_queries;
+  int n_neighbors;
+  int sort_predicates_int;
+  int buffer_size;
+  PointCloudType source_point_cloud_type;
+  PointCloudType target_point_cloud_type;
+};
+
 template <typename DeviceType>
 Kokkos::View<ArborX::Point *, DeviceType>
 constructPoints(int n_values, PointCloudType point_cloud_type)
@@ -93,11 +122,11 @@ makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
 }
 
 template <class TreeType>
-void BM_construction(benchmark::State &state, int const n_values,
-                     PointCloudType const point_cloud_type)
+void BM_construction(benchmark::State &state, Spec const &spec)
 {
   using DeviceType = typename TreeType::device_type;
-  auto const points = constructPoints<DeviceType>(n_values, point_cloud_type);
+  auto const points =
+      constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type);
 
   for (auto _ : state)
   {
@@ -110,18 +139,15 @@ void BM_construction(benchmark::State &state, int const n_values,
 }
 
 template <class TreeType>
-void BM_knn_search(benchmark::State &state, int const n_values,
-                   int const n_queries, int const n_neighbors,
-                   int const sort_predicates_int,
-                   PointCloudType const source_point_cloud_type,
-                   PointCloudType const target_point_cloud_type)
+void BM_knn_search(benchmark::State &state, Spec const &spec)
 {
   using DeviceType = typename TreeType::device_type;
 
   TreeType index(
-      constructPoints<DeviceType>(n_values, source_point_cloud_type));
+      constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type));
   auto const queries = makeNearestQueries<DeviceType>(
-      n_values, n_queries, n_neighbors, target_point_cloud_type);
+      spec.n_values, spec.n_queries, spec.n_neighbors,
+      spec.target_point_cloud_type);
 
   for (auto _ : state)
   {
@@ -130,7 +156,7 @@ void BM_knn_search(benchmark::State &state, int const n_values,
     auto const start = std::chrono::high_resolution_clock::now();
     index.query(queries, indices, offset,
                 ArborX::Experimental::TraversalPolicy().setPredicateSorting(
-                    sort_predicates_int));
+                    spec.sort_predicates_int));
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
@@ -138,18 +164,15 @@ void BM_knn_search(benchmark::State &state, int const n_values,
 }
 
 template <class TreeType>
-void BM_radius_search(benchmark::State &state, int const n_values,
-                      int const n_queries, int const n_neighbors,
-                      int const sort_predicates_int, int const buffer_size,
-                      PointCloudType const source_point_cloud_type,
-                      PointCloudType const target_point_cloud_type)
+void BM_radius_search(benchmark::State &state, Spec const &spec)
 {
   using DeviceType = typename TreeType::device_type;
 
   TreeType index(
-      constructPoints<DeviceType>(n_values, source_point_cloud_type));
+      constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type));
   auto const queries = makeSpatialQueries<DeviceType>(
-      n_values, n_queries, n_neighbors, target_point_cloud_type);
+      spec.n_values, spec.n_queries, spec.n_neighbors,
+      spec.target_point_cloud_type);
 
   for (auto _ : state)
   {
@@ -158,8 +181,8 @@ void BM_radius_search(benchmark::State &state, int const n_values,
     auto const start = std::chrono::high_resolution_clock::now();
     index.query(queries, indices, offset,
                 ArborX::Experimental::TraversalPolicy()
-                    .setPredicateSorting(sort_predicates_int)
-                    .setBufferSize(buffer_size));
+                    .setPredicateSorting(spec.sort_predicates_int)
+                    .setBufferSize(spec.buffer_size));
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
@@ -174,58 +197,46 @@ public:
 };
 
 template <typename TreeType>
-void register_benchmark(std::string const &description, int const n_values,
-                        int const n_queries, int const n_neighbors,
-                        int const sort_predicates_int, int const buffer_size,
-                        PointCloudType const &source_point_cloud_type,
-                        PointCloudType const &target_point_cloud_type)
+void register_benchmark(std::string const &description, Spec const &spec)
 {
   auto label_construction = [&](std::string const &tree_name) -> std::string {
     std::string s = std::string("BM_construction<") + tree_name + ">";
-    for (auto const &var : {n_values, (int)source_point_cloud_type})
+    for (auto const &var : {spec.n_values, (int)spec.source_point_cloud_type})
       s += "/" + std::to_string(var);
     return s;
   };
   auto label_knn_search = [&](std::string const &tree_name) -> std::string {
     std::string s = std::string("BM_knn_search<") + tree_name + ">";
     for (auto const &var :
-         {n_values, n_queries, n_neighbors, sort_predicates_int,
-          (int)source_point_cloud_type, (int)target_point_cloud_type})
+         {spec.n_values, spec.n_queries, spec.n_neighbors,
+          spec.sort_predicates_int, (int)spec.source_point_cloud_type,
+          (int)spec.target_point_cloud_type})
       s += "/" + std::to_string(var);
     return s;
   };
   auto label_radius_search = [&](std::string const &tree_name) -> std::string {
     std::string s = std::string("BM_radius_search<") + tree_name + ">";
     for (auto const &var :
-         {n_values, n_queries, n_neighbors, sort_predicates_int, buffer_size,
-          (int)source_point_cloud_type, (int)target_point_cloud_type})
+         {spec.n_values, spec.n_queries, spec.n_neighbors,
+          spec.sort_predicates_int, spec.buffer_size,
+          (int)spec.source_point_cloud_type, (int)spec.target_point_cloud_type})
       s += "/" + std::to_string(var);
     return s;
   };
 
-  benchmark::RegisterBenchmark(label_construction(description).c_str(),
-                               [=](benchmark::State &state) {
-                                 BM_construction<TreeType>(
-                                     state, n_values, source_point_cloud_type);
-                               })
+  benchmark::RegisterBenchmark(
+      label_construction(description).c_str(),
+      [=](benchmark::State &state) { BM_construction<TreeType>(state, spec); })
       ->UseManualTime()
       ->Unit(benchmark::kMicrosecond);
   benchmark::RegisterBenchmark(
       label_knn_search(description).c_str(),
-      [=](benchmark::State &state) {
-        BM_knn_search<TreeType>(state, n_values, n_queries, n_neighbors,
-                                sort_predicates_int, source_point_cloud_type,
-                                target_point_cloud_type);
-      })
+      [=](benchmark::State &state) { BM_knn_search<TreeType>(state, spec); })
       ->UseManualTime()
       ->Unit(benchmark::kMicrosecond);
   benchmark::RegisterBenchmark(
       label_radius_search(description).c_str(),
-      [=](benchmark::State &state) {
-        BM_radius_search<TreeType>(
-            state, n_values, n_queries, n_neighbors, sort_predicates_int,
-            buffer_size, source_point_cloud_type, target_point_cloud_type);
-      })
+      [=](benchmark::State &state) { BM_radius_search<TreeType>(state, spec); })
       ->UseManualTime()
       ->Unit(benchmark::kMicrosecond);
 }
@@ -386,32 +397,19 @@ int main(int argc, char *argv[])
       spec += "/" + std::to_string(var);
   }
 
-  for (auto const &spec : exact_specs)
+  for (auto const &spec_string : exact_specs)
   {
-    std::istringstream ss(spec);
-    std::string token;
+    Spec spec(spec_string);
 
-    // clang-format off
-    getline(ss, token, '/');  backends = token;
-    getline(ss, token, '/');  n_values = std::stoi(token);
-    getline(ss, token, '/');  n_queries = std::stoi(token);
-    getline(ss, token, '/');  n_neighbors = std::stoi(token);
-    getline(ss, token, '/');  sort_predicates_int = std::stoi(token);
-    getline(ss, token, '/');  buffer_size = std::stoi(token);
-    getline(ss, token, '/');  source_point_cloud_type = static_cast<PointCloudType>(std::stoi(token));
-    getline(ss, token, '/');  target_point_cloud_type = static_cast<PointCloudType>(std::stoi(token));
-    // clang-format on
-
-    if (!(backends == "all" || backends == "serial" || backends == "openmp" ||
-          backends == "threads" || backends == "cuda" || backends == "rtree"))
-      throw std::runtime_error("Backend " + backends + " invalid!");
+    if (!(spec.backends == "all" || spec.backends == "serial" ||
+          spec.backends == "openmp" || spec.backends == "threads" ||
+          spec.backends == "cuda" || spec.backends == "rtree"))
+      throw std::runtime_error("Backend " + spec.backends + " invalid!");
 
 #ifdef KOKKOS_ENABLE_SERIAL
     if (backends == "all" || backends == "serial")
       register_benchmark<ArborX::BVH<Kokkos::Serial::device_type>>(
-          "ArborX::BVH<Serial>", n_values, n_queries, n_neighbors,
-          sort_predicates_int, buffer_size, source_point_cloud_type,
-          target_point_cloud_type);
+          "ArborX::BVH<Serial>", spec);
 #else
     if (backends == "serial")
       throw std::runtime_error("Serial backend not available!");
@@ -420,9 +418,7 @@ int main(int argc, char *argv[])
 #ifdef KOKKOS_ENABLE_OPENMP
     if (backends == "all" || backends == "openmp")
       register_benchmark<ArborX::BVH<Kokkos::OpenMP::device_type>>(
-          "ArborX::BVH<OpenMP>", n_values, n_queries, n_neighbors,
-          sort_predicates_int, buffer_size, source_point_cloud_type,
-          target_point_cloud_type);
+          "ArborX::BVH<OpenMP>", spec);
 #else
     if (backends == "openmp")
       throw std::runtime_error("OpenMP backend not available!");
@@ -431,9 +427,7 @@ int main(int argc, char *argv[])
 #ifdef KOKKOS_ENABLE_THREADS
     if (backends == "all" || backends == "threads")
       register_benchmark<ArborX::BVH<Kokkos::Threads::device_type>>(
-          "ArborX::BVH<Threads>", n_values, n_queries, n_neighbors,
-          sort_predicates_int, buffer_size, source_point_cloud_type,
-          target_point_cloud_type);
+          "ArborX::BVH<Threads>", spec);
 #else
     if (backends == "threads")
       throw std::runtime_error("Threads backend not available!");
@@ -442,9 +436,7 @@ int main(int argc, char *argv[])
 #ifdef KOKKOS_ENABLE_CUDA
     if (backends == "all" || backends == "cuda")
       register_benchmark<ArborX::BVH<Kokkos::Cuda::device_type>>(
-          "ArborX::BVH<Cuda>", n_values, n_queries, n_neighbors,
-          sort_predicates_int, buffer_size, source_point_cloud_type,
-          target_point_cloud_type);
+          "ArborX::BVH<Cuda>", spec);
 #else
     if (backends == "cuda")
       throw std::runtime_error("CUDA backend not available!");
@@ -454,9 +446,7 @@ int main(int argc, char *argv[])
     if (backends == "all" || backends == "rtree")
     {
       using BoostRTree = BoostExt::RTree<ArborX::Point>;
-      register_benchmark<BoostRTree>(
-          "BoostRTree", n_values, n_queries, n_neighbors, sort_predicates_int,
-          buffer_size, source_point_cloud_type, target_point_cloud_type);
+      register_benchmark<BoostRTree>("BoostRTree", spec);
     }
 #endif
   }
