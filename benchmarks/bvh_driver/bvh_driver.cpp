@@ -31,6 +31,21 @@
 
 struct Spec
 {
+  Spec(std::string const &backends, int const n_values, int const n_queries,
+       int const n_neighbors, int const sort_predicates_int,
+       int const buffer_size, PointCloudType const source_point_cloud_type,
+       PointCloudType const target_point_cloud_type)
+      : backends(backends)
+      , n_values(n_values)
+      , n_queries(n_queries)
+      , n_neighbors(n_neighbors)
+      , sort_predicates_int(sort_predicates_int)
+      , buffer_size(buffer_size)
+      , source_point_cloud_type(source_point_cloud_type)
+      , target_point_cloud_type(target_point_cloud_type)
+  {
+  }
+
   Spec(std::string const &spec_string)
   {
     std::istringstream ss(spec_string);
@@ -46,6 +61,10 @@ struct Spec
     getline(ss, token, '/');  source_point_cloud_type = static_cast<PointCloudType>(std::stoi(token));
     getline(ss, token, '/');  target_point_cloud_type = static_cast<PointCloudType>(std::stoi(token));
     // clang-format on
+
+    if (!(backends == "all" || backends == "serial" || backends == "openmp" ||
+          backends == "threads" || backends == "cuda" || backends == "rtree"))
+      throw std::runtime_error("Backend " + backends + " invalid!");
   }
 
   std::string backends;
@@ -372,38 +391,20 @@ int main(int argc, char *argv[])
           .options(bpo::options_description(""))
           .run();
 
-  std::map<std::string, PointCloudType> to_point_cloud_enum;
-  to_point_cloud_enum["filled_box"] = PointCloudType::filled_box;
-  to_point_cloud_enum["hollow_box"] = PointCloudType::hollow_box;
-  to_point_cloud_enum["filled_sphere"] = PointCloudType::filled_sphere;
-  to_point_cloud_enum["hollow_sphere"] = PointCloudType::hollow_sphere;
-
-  PointCloudType source_point_cloud_type =
-      to_point_cloud_enum.at(source_pt_cloud);
-  PointCloudType target_point_cloud_type =
-      to_point_cloud_enum.at(target_pt_cloud);
-  ;
+  std::vector<Spec> specs;
+  for (auto const &spec_string : exact_specs)
+    specs.emplace_back(spec_string);
 
   if (vm.count("exact-spec") == 0)
   {
-    exact_specs.resize(1);
-    auto &spec = exact_specs[0];
-    spec = "all";
-    for (auto const &var :
-         {n_values, n_queries, n_neighbors, sort_predicates_int, buffer_size,
-          (int)source_point_cloud_type, (int)target_point_cloud_type})
-      spec += "/" + std::to_string(var);
+    specs.emplace_back("all", n_values, n_queries, n_neighbors,
+                       sort_predicates_int, buffer_size,
+                       to_point_cloud_enum(source_pt_cloud),
+                       to_point_cloud_enum(target_pt_cloud));
   }
 
-  for (auto const &spec_string : exact_specs)
+  for (auto const &spec : specs)
   {
-    Spec spec(spec_string);
-
-    if (!(spec.backends == "all" || spec.backends == "serial" ||
-          spec.backends == "openmp" || spec.backends == "threads" ||
-          spec.backends == "cuda" || spec.backends == "rtree"))
-      throw std::runtime_error("Backend " + spec.backends + " invalid!");
-
 #ifdef KOKKOS_ENABLE_SERIAL
     if (spec.backends == "all" || spec.backends == "serial")
       register_benchmark<ArborX::BVH<Kokkos::Serial::device_type>>(

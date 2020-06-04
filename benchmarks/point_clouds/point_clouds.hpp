@@ -19,13 +19,27 @@
 #include <fstream>
 #include <random>
 
-enum PointCloudType
+enum class PointCloudType
 {
   filled_box,
   hollow_box,
   filled_sphere,
   hollow_sphere
 };
+
+PointCloudType to_point_cloud_enum(std::string const &str)
+{
+  if (str == "filled_box")
+    return PointCloudType::filled_box;
+  if (str == "hollow_box")
+    return PointCloudType::hollow_box;
+  if (str == "filled_sphere")
+    return PointCloudType::filled_sphere;
+  if (str == "hollow_sphere")
+    return PointCloudType::hollow_sphere;
+  throw std::runtime_error(str +
+                           " doesn't correspond to any known PointCloudType!");
+}
 
 template <typename Layout, typename DeviceType>
 void filledBoxCloud(
