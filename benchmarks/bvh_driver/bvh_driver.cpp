@@ -400,6 +400,7 @@ int main(int argc, char *argv[])
           .run();
 
   std::vector<Spec> specs;
+  specs.reserve(exact_specs.size());
   for (auto const &spec_string : exact_specs)
     specs.emplace_back(spec_string);
 
