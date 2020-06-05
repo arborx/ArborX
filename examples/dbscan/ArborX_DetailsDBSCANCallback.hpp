@@ -130,7 +130,7 @@ struct DBSCANCallback
   }
 
   KOKKOS_FUNCTION
-  void propagate(int i, int j) const
+  void propagate(int self, int neighbor) const
   {
     // Per [1]:
     //
@@ -146,6 +146,8 @@ struct DBSCANCallback
     // the do-while loop repeats the computation until it succeeds, i.e.,
     // until there is no data race on the parent.
     // ```
+    auto i = self;
+    auto j = neighbor;
 
     // initialize to the first neighbor that's smaller
     if (Kokkos::atomic_compare_exchange(&stat_(i), i, j) == i)
@@ -184,35 +186,36 @@ struct DBSCANCallback
     } while (repeat);
   }
 
-  template <typename Query, typename Insert, typename T = Tag>
-  KOKKOS_FUNCTION std::enable_if_t<std::is_same<T, CCSTag>{}>
-  operator()(Query const &query, int j, Insert const &) const
-  {
-    int const i = ArborX::getData(query);
-
-    // Only process edge in one direction
-    if (i > j)
-    {
-      propagate(i, j);
-    }
-  }
-
   KOKKOS_FUNCTION
   bool is_core_point(int i) const { return num_neigh_(i) >= core_min_size_; }
 
-  template <typename Query, typename Insert, typename T = Tag>
-  KOKKOS_FUNCTION std::enable_if_t<std::is_same<T, DBSCANTag>{}>
-  operator()(Query const &query, int j, Insert const &) const
+  template <typename T = Tag>
+  KOKKOS_FUNCTION std::enable_if_t<std::is_same<T, CCSTag>{}, bool>
+  should_propagate(int self, int neighbor) const
   {
-    int const i = ArborX::getData(query);
+    // Only process edge in one direction
+    return (self > neighbor);
+  }
 
+  template <typename T = Tag>
+  KOKKOS_FUNCTION std::enable_if_t<std::is_same<T, DBSCANTag>{}, bool>
+  should_propagate(int self, int neighbor) const
+  {
     // Only process edges in the following situations:
     // - From a non-core point to core point
     // - From core point to core point (only in one direction)
-    if (is_core_point(j) && (!is_core_point(i) || (is_core_point(i) && i > j)))
-    {
+    return (is_core_point(neighbor) &&
+            (!is_core_point(self) || self > neighbor));
+  }
+
+  template <typename Query, typename Insert>
+  KOKKOS_FUNCTION void operator()(Query const &query, int j,
+                                  Insert const &) const
+  {
+    int const i = ArborX::getData(query);
+
+    if (should_propagate(i, j))
       propagate(i, j);
-    }
   }
 };
 } // namespace Details
