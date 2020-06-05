@@ -209,6 +209,23 @@ struct NumNeighCallback
   }
 };
 
+struct CCSCorePoints
+{
+  KOKKOS_FUNCTION bool is_core_point(int) const { return true; }
+};
+
+template <typename MemorySpace>
+struct DBSCANCorePoints
+{
+  Kokkos::View<int *, MemorySpace> num_neigh_;
+  int core_min_size_ = 1;
+
+  KOKKOS_FUNCTION bool is_core_point(int const i) const
+  {
+    return num_neigh_(i) >= core_min_size_;
+  }
+};
+
 template <typename ExecutionSpace, typename Primitives,
           typename ClusterIndicesView, typename ClusterOffsetView>
 void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
@@ -277,11 +294,13 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
       n);
   if (core_min_size == 1)
   {
+    using CorePoints = CCSCorePoints;
+    CorePoints core_points;
     // perform the queries and build clusters through callback
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
     bvh.query(
         exec_space, predicates,
-        Details::DBSCANCallback<MemorySpace, Details::CCSTag>{stat, num_neigh},
+        Details::DBSCANCallback<MemorySpace, CorePoints>{stat, core_points},
         indices, offset);
     Kokkos::Profiling::popRegion();
   }
@@ -296,10 +315,12 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
               indices, offset);
     Kokkos::Profiling::popRegion();
 
-    Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
+    using CorePoints = DBSCANCorePoints<MemorySpace>;
+
+    Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters:query");
     bvh.query(exec_space, predicates,
-              Details::DBSCANCallback<MemorySpace, Details::DBSCANTag>{
-                  stat, num_neigh, core_min_size},
+              Details::DBSCANCallback<MemorySpace, CorePoints>{
+                  stat, CorePoints{num_neigh, core_min_size}},
               indices, offset);
     Kokkos::Profiling::popRegion();
   }

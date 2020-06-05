@@ -73,19 +73,12 @@ namespace ArborX
 {
 namespace Details
 {
-struct CCSTag
-{
-};
-struct DBSCANTag
-{
-};
 
-template <typename MemorySpace, typename Tag>
+template <typename MemorySpace, typename CorePointsType>
 struct DBSCANCallback
 {
   Kokkos::View<int *, MemorySpace> stat_;
-  Kokkos::View<int *, MemorySpace> num_neigh_;
-  int core_min_size_ = 1;
+  CorePointsType core_points_;
 
   // Per [1]:
   //
@@ -186,35 +179,21 @@ struct DBSCANCallback
     } while (repeat);
   }
 
-  KOKKOS_FUNCTION
-  bool is_core_point(int i) const { return num_neigh_(i) >= core_min_size_; }
-
-  template <typename T = Tag>
-  KOKKOS_FUNCTION std::enable_if_t<std::is_same<T, CCSTag>{}, bool>
-  should_propagate(int self, int neighbor) const
-  {
-    // Only process edge in one direction
-    return (self > neighbor);
-  }
-
-  template <typename T = Tag>
-  KOKKOS_FUNCTION std::enable_if_t<std::is_same<T, DBSCANTag>{}, bool>
-  should_propagate(int self, int neighbor) const
-  {
-    // Only process edges in the following situations:
-    // - From a non-core point to core point
-    // - From core point to core point (only in one direction)
-    return (is_core_point(neighbor) &&
-            (!is_core_point(self) || self > neighbor));
-  }
-
   template <typename Query, typename Insert>
   KOKKOS_FUNCTION void operator()(Query const &query, int j,
                                   Insert const &) const
   {
     int const i = ArborX::getData(query);
 
-    if (should_propagate(i, j))
+    // Only process edges in the following situations:
+    // - From a non-core point to core point
+    // - From core point to core point (only in one direction)
+    // For halo finder this will auto simplity to
+    //   if (i > j)
+    bool do_propagation = (core_points_.is_core_point(j) &&
+                           (!core_points_.is_core_point(i) || i > j));
+
+    if (do_propagation)
       propagate(i, j);
   }
 };
