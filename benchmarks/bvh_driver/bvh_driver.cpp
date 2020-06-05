@@ -84,7 +84,7 @@ Spec create_spec_from_string(std::string const &spec_string)
     getline(ss, token, '/');  spec.n_values = std::stoi(token);
     getline(ss, token, '/');  spec.n_queries = std::stoi(token);
     getline(ss, token, '/');  spec.n_neighbors = std::stoi(token);
-    getline(ss, token, '/');  spec.sort_predicates = std::stoi(token);
+    getline(ss, token, '/');  spec.sort_predicates = static_cast<bool>(std::stoi(token));
     getline(ss, token, '/');  spec.buffer_size = std::stoi(token);
     getline(ss, token, '/');  spec.source_point_cloud_type = static_cast<PointCloudType>(std::stoi(token));
     getline(ss, token, '/');  spec.target_point_cloud_type = static_cast<PointCloudType>(std::stoi(token));
