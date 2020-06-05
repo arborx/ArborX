@@ -31,42 +31,6 @@
 
 struct Spec
 {
-  Spec(std::string const &backends, int const n_values, int const n_queries,
-       int const n_neighbors, int const sort_predicates_int,
-       int const buffer_size, PointCloudType const source_point_cloud_type,
-       PointCloudType const target_point_cloud_type)
-      : backends(backends)
-      , n_values(n_values)
-      , n_queries(n_queries)
-      , n_neighbors(n_neighbors)
-      , sort_predicates_int(sort_predicates_int)
-      , buffer_size(buffer_size)
-      , source_point_cloud_type(source_point_cloud_type)
-      , target_point_cloud_type(target_point_cloud_type)
-  {
-  }
-
-  Spec(std::string const &spec_string)
-  {
-    std::istringstream ss(spec_string);
-    std::string token;
-
-    // clang-format off
-    getline(ss, token, '/');  backends = token;
-    getline(ss, token, '/');  n_values = std::stoi(token);
-    getline(ss, token, '/');  n_queries = std::stoi(token);
-    getline(ss, token, '/');  n_neighbors = std::stoi(token);
-    getline(ss, token, '/');  sort_predicates_int = std::stoi(token);
-    getline(ss, token, '/');  buffer_size = std::stoi(token);
-    getline(ss, token, '/');  source_point_cloud_type = static_cast<PointCloudType>(std::stoi(token));
-    getline(ss, token, '/');  target_point_cloud_type = static_cast<PointCloudType>(std::stoi(token));
-    // clang-format on
-
-    if (!(backends == "all" || backends == "serial" || backends == "openmp" ||
-          backends == "threads" || backends == "cuda" || backends == "rtree"))
-      throw std::runtime_error("Backend " + backends + " invalid!");
-  }
-
   std::string create_label_construction(std::string const &tree_name) const
   {
     std::string s = std::string("BM_construction<") + tree_name + ">";
@@ -80,7 +44,7 @@ struct Spec
   {
     std::string s = std::string("BM_knn_search<") + tree_name + ">";
     for (auto const &var :
-         {n_values, n_queries, n_neighbors, sort_predicates_int,
+         {n_values, n_queries, n_neighbors, static_cast<int>(sort_predicates),
           static_cast<int>(source_point_cloud_type),
           static_cast<int>(target_point_cloud_type)})
       s += "/" + std::to_string(var);
@@ -91,8 +55,8 @@ struct Spec
   {
     std::string s = std::string("BM_radius_search<") + tree_name + ">";
     for (auto const &var :
-         {n_values, n_queries, n_neighbors, sort_predicates_int, buffer_size,
-          static_cast<int>(source_point_cloud_type),
+         {n_values, n_queries, n_neighbors, static_cast<int>(sort_predicates),
+          buffer_size, static_cast<int>(source_point_cloud_type),
           static_cast<int>(target_point_cloud_type)})
       s += "/" + std::to_string(var);
     return s;
@@ -102,11 +66,37 @@ struct Spec
   int n_values;
   int n_queries;
   int n_neighbors;
-  int sort_predicates_int;
+  bool sort_predicates;
   int buffer_size;
   PointCloudType source_point_cloud_type;
   PointCloudType target_point_cloud_type;
 };
+
+Spec create_spec_from_string(std::string const &spec_string)
+{
+  std::istringstream ss(spec_string);
+  std::string token;
+
+  Spec spec;
+
+  // clang-format off
+    getline(ss, token, '/');  spec.backends = token;
+    getline(ss, token, '/');  spec.n_values = std::stoi(token);
+    getline(ss, token, '/');  spec.n_queries = std::stoi(token);
+    getline(ss, token, '/');  spec.n_neighbors = std::stoi(token);
+    getline(ss, token, '/');  spec.sort_predicates = std::stoi(token);
+    getline(ss, token, '/');  spec.buffer_size = std::stoi(token);
+    getline(ss, token, '/');  spec.source_point_cloud_type = static_cast<PointCloudType>(std::stoi(token));
+    getline(ss, token, '/');  spec.target_point_cloud_type = static_cast<PointCloudType>(std::stoi(token));
+  // clang-format on
+
+  if (!(spec.backends == "all" || spec.backends == "serial" ||
+        spec.backends == "openmp" || spec.backends == "threads" ||
+        spec.backends == "cuda" || spec.backends == "rtree"))
+    throw std::runtime_error("Backend " + spec.backends + " invalid!");
+
+  return spec;
+}
 
 template <typename DeviceType>
 Kokkos::View<ArborX::Point *, DeviceType>
@@ -206,7 +196,7 @@ void BM_knn_search(benchmark::State &state, Spec const &spec)
     auto const start = std::chrono::high_resolution_clock::now();
     index.query(queries, indices, offset,
                 ArborX::Experimental::TraversalPolicy().setPredicateSorting(
-                    spec.sort_predicates_int));
+                    spec.sort_predicates));
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
@@ -231,7 +221,7 @@ void BM_radius_search(benchmark::State &state, Spec const &spec)
     auto const start = std::chrono::high_resolution_clock::now();
     index.query(queries, indices, offset,
                 ArborX::Experimental::TraversalPolicy()
-                    .setPredicateSorting(spec.sort_predicates_int)
+                    .setPredicateSorting(spec.sort_predicates)
                     .setBufferSize(spec.buffer_size));
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
@@ -321,22 +311,18 @@ int main(int argc, char *argv[])
 
   namespace bpo = boost::program_options;
   bpo::options_description desc("Allowed options");
-  int n_values;
-  int n_queries;
-  int n_neighbors;
-  int buffer_size;
-  bool sort_predicates;
+  Spec single_spec;
   std::string source_pt_cloud;
   std::string target_pt_cloud;
   std::vector<std::string> exact_specs;
   // clang-format off
     desc.add_options()
         ( "help", "produce help message" )
-        ( "values", bpo::value<int>(&n_values)->default_value(50000), "number of indexable values (source)" )
-        ( "queries", bpo::value<int>(&n_queries)->default_value(20000), "number of queries (target)" )
-        ( "predicate-sort", bpo::value<bool>(&sort_predicates)->default_value(true), "sort predicates" )
-        ( "neighbors", bpo::value<int>(&n_neighbors)->default_value(10), "desired number of results per query" )
-        ( "buffer", bpo::value<int>(&buffer_size)->default_value(0), "size for buffer optimization in radius search" )
+        ( "values", bpo::value<int>(&single_spec.n_values)->default_value(50000), "number of indexable values (source)" )
+        ( "queries", bpo::value<int>(&single_spec.n_queries)->default_value(20000), "number of queries (target)" )
+        ( "predicate-sort", bpo::value<bool>(&single_spec.sort_predicates)->default_value(true), "sort predicates" )
+        ( "neighbors", bpo::value<int>(&single_spec.n_neighbors)->default_value(10), "desired number of results per query" )
+        ( "buffer", bpo::value<int>(&single_spec.buffer_size)->default_value(0), "size for buffer optimization in radius search" )
         ( "source-point-cloud-type", bpo::value<std::string>(&source_pt_cloud)->default_value("filled_box"), "shape of the source point cloud"  )
         ( "target-point-cloud-type", bpo::value<std::string>(&target_pt_cloud)->default_value("filled_box"), "shape of the target point cloud"  )
         ( "no-header", bpo::bool_switch(), "do not print version and hash" )
@@ -353,8 +339,6 @@ int main(int argc, char *argv[])
       bpo::collect_unrecognized(parsed.options, bpo::include_positional),
       argv[0]};
   bpo::notify(vm);
-
-  int sort_predicates_int = (sort_predicates ? 1 : 0);
 
   if (!vm["no-header"].as<bool>())
   {
@@ -402,16 +386,16 @@ int main(int argc, char *argv[])
   std::vector<Spec> specs;
   specs.reserve(exact_specs.size());
   for (auto const &spec_string : exact_specs)
-    specs.emplace_back(spec_string);
+    specs.push_back(create_spec_from_string(spec_string));
 
   std::cout << "Number of specs " << vm.count("exact-spec") << std::endl;
 
   if (vm.count("exact-spec") == 0)
   {
-    specs.emplace_back("all", n_values, n_queries, n_neighbors,
-                       sort_predicates_int, buffer_size,
-                       to_point_cloud_enum(source_pt_cloud),
-                       to_point_cloud_enum(target_pt_cloud));
+    single_spec.backends = "all";
+    single_spec.source_point_cloud_type = to_point_cloud_enum(source_pt_cloud);
+    single_spec.target_point_cloud_type = to_point_cloud_enum(target_pt_cloud);
+    specs.push_back(single_spec);
   }
 
   for (auto const &spec : specs)
