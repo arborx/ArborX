@@ -310,7 +310,6 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::num_neigh");
     // Initialize to -1 as we don't want to count ourselves as a neighbor
     Kokkos::deep_copy(num_neigh, -1);
-    // FIXME: wrap predicates to attach their index
     bvh.query(exec_space, predicates, NumNeighCallback<MemorySpace>{num_neigh},
               indices, offset);
     Kokkos::Profiling::popRegion();
