@@ -19,13 +19,27 @@
 #include <fstream>
 #include <random>
 
-enum PointCloudType
+enum class PointCloudType
 {
   filled_box,
   hollow_box,
   filled_sphere,
   hollow_sphere
 };
+
+PointCloudType to_point_cloud_enum(std::string const &str)
+{
+  if (str == "filled_box")
+    return PointCloudType::filled_box;
+  if (str == "hollow_box")
+    return PointCloudType::hollow_box;
+  if (str == "filled_sphere")
+    return PointCloudType::filled_sphere;
+  if (str == "hollow_sphere")
+    return PointCloudType::hollow_sphere;
+  throw std::runtime_error(str +
+                           " doesn't correspond to any known PointCloudType!");
+}
 
 template <typename Layout, typename DeviceType>
 void filledBoxCloud(
@@ -181,24 +195,21 @@ void generatePointCloud(PointCloudType const point_cloud_type,
                         Kokkos::View<ArborX::Point *, DeviceType> random_points)
 {
   auto random_points_host = Kokkos::create_mirror_view(random_points);
-  if (point_cloud_type == PointCloudType::filled_box)
+  switch (point_cloud_type)
   {
+  case PointCloudType::filled_box:
     filledBoxCloud(length, random_points_host);
-  }
-  else if (point_cloud_type == PointCloudType::hollow_box)
-  {
+    break;
+  case PointCloudType::hollow_box:
     hollowBoxCloud(length, random_points_host);
-  }
-  else if (point_cloud_type == PointCloudType::filled_sphere)
-  {
+    break;
+  case PointCloudType::filled_sphere:
     filledSphereCloud(length, random_points_host);
-  }
-  else if (point_cloud_type == PointCloudType::hollow_sphere)
-  {
+    break;
+  case PointCloudType::hollow_sphere:
     hollowSphereCloud(length, random_points_host);
-  }
-  else
-  {
+    break;
+  default:
     throw ArborX::SearchException("not implemented");
   }
   Kokkos::deep_copy(random_points, random_points_host);
