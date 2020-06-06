@@ -211,7 +211,7 @@ struct NumNeighCallback
 
 struct CCSCorePoints
 {
-  KOKKOS_FUNCTION bool is_core_point(int) const { return true; }
+  KOKKOS_FUNCTION bool operator()(int) const { return true; }
 };
 
 template <typename MemorySpace>
@@ -220,7 +220,7 @@ struct DBSCANCorePoints
   Kokkos::View<int *, MemorySpace> num_neigh_;
   int core_min_size_ = 1;
 
-  KOKKOS_FUNCTION bool is_core_point(int const i) const
+  KOKKOS_FUNCTION bool operator()(int const i) const
   {
     return num_neigh_(i) >= core_min_size_;
   }
@@ -289,9 +289,6 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::DBSCAN::stat"),
       n);
   ArborX::iota(exec_space, stat);
-  Kokkos::View<int *, MemorySpace> num_neigh(
-      Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::num_neighbors"),
-      n);
   if (core_min_size == 1)
   {
     using CorePoints = CCSCorePoints;
@@ -308,6 +305,10 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
   {
     // Compute number of neighbors
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::num_neigh");
+    Kokkos::View<int *, MemorySpace> num_neigh(
+        Kokkos::ViewAllocateWithoutInitializing(
+            "ArborX::DBSCAN::num_neighbors"),
+        n);
     // Initialize to -1 as we don't want to count ourselves as a neighbor
     Kokkos::deep_copy(num_neigh, -1);
     bvh.query(exec_space, predicates, NumNeighCallback<MemorySpace>{num_neigh},

@@ -78,7 +78,7 @@ template <typename MemorySpace, typename CorePointsType>
 struct DBSCANCallback
 {
   Kokkos::View<int *, MemorySpace> stat_;
-  CorePointsType core_points_;
+  CorePointsType is_core_point_;
 
   // Per [1]:
   //
@@ -123,7 +123,7 @@ struct DBSCANCallback
   }
 
   KOKKOS_FUNCTION
-  void propagate(int self, int neighbor) const
+  void combine_trees(int self, int neighbor) const
   {
     // Per [1]:
     //
@@ -185,16 +185,38 @@ struct DBSCANCallback
   {
     int const i = ArborX::getData(query);
 
-    // Only process edges in the following situations:
-    // - From a non-core point to core point
-    // - From core point to core point (only in one direction)
-    // For halo finder this will auto simplity to
+    // NOTE: for halo finder/ccs algorithm (in which is_core_point(i) is always
+    // true), the algorithm below will be simplified to
     //   if (i > j)
-    bool do_propagation = (core_points_.is_core_point(j) &&
-                           (!core_points_.is_core_point(i) || i > j));
 
-    if (do_propagation)
-      propagate(i, j);
+    if (!is_core_point_(j))
+    {
+      // The neighbor is not a core point, do nothing
+      return;
+    }
+
+    bool is_boundary_point =
+        !is_core_point_(i); // is_core_point_(j) is aready true
+
+    if (is_boundary_point && stat_(i) == i)
+    {
+      // For a boundary point that was not processed before (stat_(i) == i),
+      // set its representative to that of the core point. This way, when
+      // another neighbor that is core point appears later, we won't process
+      // this point.
+      //
+      // NOTE: DO NOT USE combine_trees(i, j) here. This may set this boundary
+      // point as a representative for the whole cluster. This would mean that
+      // a) stat_(i) == i still (so it would be processed later, and b) it may
+      // be combined with a different cluster later forming a bridge.
+      stat_(i) = representative(j);
+    }
+    else if (!is_boundary_point && i > j)
+    {
+      // For a core point that is connected to another core point, do the
+      // standard CCS algorithm
+      combine_trees(i, j);
+    }
   }
 };
 } // namespace Details
