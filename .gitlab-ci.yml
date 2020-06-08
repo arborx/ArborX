@@ -85,9 +85,9 @@ BuildArborXMaster:
   stage: buildArborX
   script:
     - git fetch
+    - export BRANCH_HASH=`git rev-parse HEAD`
     - git worktree add -f ${CI_PROJECT_DIR}/arborx-master origin/master
     - cd ${CI_PROJECT_DIR}/arborx-master
-    - export MASTER_HASH=`git rev-parse HEAD`
     - mkdir build_master && cd build_master &&
       cmake -DCMAKE_PREFIX_PATH="/ccsopen/proj/csc333/kokkos.install;/ccsopen/proj/csc333/benchmark.install;/ccsopen/proj/csc333/boost.install"
             -DCMAKE_CXX_COMPILER=/ccsopen/proj/csc333/kokkos.install/bin/nvcc_wrapper
@@ -96,19 +96,14 @@ BuildArborXMaster:
             -DARBORX_ENABLE_BENCHMARKS=ON
             -DARBORX_PERFORMANCE_TESTING=ON .. &&
       make ArborX_BoundingVolumeHierarchy.exe
-    - cp ./benchmarks/bvh_driver/ArborX_BoundingVolumeHierarchy.exe /ccsopen/proj/csc333/ArborX_BoundingVolumeHierarchyMaster${MASTER_HASH}.exe
-    - echo export MASTER_HASH=${MASTER_HASH} > ${CI_PROJECT_DIR}/master_hash
+    - cp ./benchmarks/bvh_driver/ArborX_BoundingVolumeHierarchy.exe /ccsopen/proj/csc333/ArborX_BoundingVolumeHierarchyMaster${BRANCH_HASH}.exe
   tags:
     - nobatch
-  artifacts:
-    paths:
-      - ${CI_PROJECT_DIR}/master_hash
 
 RunBenchmarks:
   extends: .LoadModules
   stage: runBenchmarks
   script:
-    - source ${CI_PROJECT_DIR}/master_hash
     - source ${CI_PROJECT_DIR}/branch_hash
     - export OMP_PROC_BIND=spread
     - export OMP_PLACES=threads
@@ -133,8 +128,8 @@ RunBenchmarks:
                                 --exact-spec cuda/100000/100000/10/1/0/1/3
                                 --exact-spec cuda/1000000/1000000/10/1/0/1/3"
     - jsrun ${JSRUN_OPTIONS} /ccsopen/proj/csc333/ArborX_BoundingVolumeHierarchyBranch${BRANCH_HASH}.exe ${BENCHMARK_OPTIONS} --benchmark_out_format=json --benchmark_out=/ccsopen/proj/csc333/arborx-branch${BRANCH_HASH}.json
-    - jsrun ${JSRUN_OPTIONS} /ccsopen/proj/csc333/ArborX_BoundingVolumeHierarchyMaster${MASTER_HASH}.exe ${BENCHMARK_OPTIONS} --benchmark_out_format=json --benchmark_out=/ccsopen/proj/csc333/arborx-master${MASTER_HASH}.json
-    - rm /ccsopen/proj/csc333/ArborX_BoundingVolumeHierarchyBranch${BRANCH_HASH}.exe /ccsopen/proj/csc333/ArborX_BoundingVolumeHierarchyMaster${MASTER_HASH}.exe
+    - jsrun ${JSRUN_OPTIONS} /ccsopen/proj/csc333/ArborX_BoundingVolumeHierarchyMaster${BRANCH_HASH}.exe ${BENCHMARK_OPTIONS} --benchmark_out_format=json --benchmark_out=/ccsopen/proj/csc333/arborx-master${BRANCH_HASH}.json
+    - rm /ccsopen/proj/csc333/ArborX_BoundingVolumeHierarchyBranch${BRANCH_HASH}.exe /ccsopen/proj/csc333/ArborX_BoundingVolumeHierarchyMaster${BRANCH_HASH}.exe
   tags:
     - batch
 
@@ -142,9 +137,11 @@ CompareResults:
   stage: compare
   script:
     - module load python/3.6.6-anaconda3-5.3.0
-    - source ${CI_PROJECT_DIR}/master_hash
     - source ${CI_PROJECT_DIR}/branch_hash
-    - /ccsopen/proj/csc333/tools/compare.py benchmarks /ccsopen/proj/csc333/arborx-master${MASTER_HASH}.json /ccsopen/proj/csc333/arborx-branch${BRANCH_HASH}.json | grep "median\|mean"
-    - rm /ccsopen/proj/csc333/arborx-branch${BRANCH_HASH}.json /ccsopen/proj/csc333/arborx-master${MASTER_HASH}.json
+    - /ccsopen/proj/csc333/tools/compare.py benchmarks /ccsopen/proj/csc333/arborx-master${BRANCH_HASH}.json /ccsopen/proj/csc333/arborx-branch${BRANCH_HASH}.json | grep "median" | tee regression${BRANCH_HASH}.txt
+    - rm /ccsopen/proj/csc333/arborx-branch${BRANCH_HASH}.json /ccsopen/proj/csc333/arborx-master${BRANCH_HASH}.json
   tags:
     - nobatch
+  artifacts:
+    paths:
+      - ${CI_PROJECT_DIR}/regression${BRANCH_HASH}.txt
