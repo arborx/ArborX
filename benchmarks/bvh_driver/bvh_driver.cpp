@@ -239,8 +239,6 @@ public:
 template <typename TreeType>
 void register_benchmark(std::string const &description, Spec const &spec)
 {
-  std::cout << "register_benchmark " << description << std::endl;
-
   benchmark::RegisterBenchmark(
       spec.create_label_construction(description).c_str(),
       [=](benchmark::State &state) { BM_construction<TreeType>(state, spec); })
@@ -387,8 +385,6 @@ int main(int argc, char *argv[])
   specs.reserve(exact_specs.size());
   for (auto const &spec_string : exact_specs)
     specs.push_back(create_spec_from_string(spec_string));
-
-  std::cout << "Number of specs " << vm.count("exact-spec") << std::endl;
 
   if (vm.count("exact-spec") == 0)
   {
