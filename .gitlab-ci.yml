@@ -113,7 +113,7 @@ RunBenchmarks:
     - export OMP_PROC_BIND=spread
     - export OMP_PLACES=threads
     - export JSRUN_OPTIONS="-n 1 -a 1 -c 42 -g 1 -r 1 -l CPU-CPU -d packed -b packed:42"
-    - export BENCHMARK_OPTIONS="--benchmark_format=json --no-header --benchmark_repetitions=15
+    - export BENCHMARK_OPTIONS="--benchmark_repetitions=15
                                 --exact-spec serial/1000/1000/10/1/0/0/2
                                 --exact-spec serial/10000/10000/10/1/0/0/2
                                 --exact-spec serial/100000/100000/10/1/0/0/2
@@ -132,8 +132,8 @@ RunBenchmarks:
                                 --exact-spec cuda/10000/10000/10/1/0/1/3
                                 --exact-spec cuda/100000/100000/10/1/0/1/3
                                 --exact-spec cuda/1000000/1000000/10/1/0/1/3"
-    - jsrun ${JSRUN_OPTIONS} /ccsopen/proj/csc333/ArborX_BoundingVolumeHierarchyBranch${BRANCH_HASH}.exe ${BENCHMARK_OPTIONS} | tee /ccsopen/proj/csc333/arborx-branch${BRANCH_HASH}.json
-    - jsrun ${JSRUN_OPTIONS} /ccsopen/proj/csc333/ArborX_BoundingVolumeHierarchyMaster${MASTER_HASH}.exe ${BENCHMARK_OPTIONS} | tee /ccsopen/proj/csc333/arborx-master${MASTER_HASH}.json
+    - jsrun ${JSRUN_OPTIONS} /ccsopen/proj/csc333/ArborX_BoundingVolumeHierarchyBranch${BRANCH_HASH}.exe ${BENCHMARK_OPTIONS} --benchmark_out_format=json --benchmark_out=/ccsopen/proj/csc333/arborx-branch${BRANCH_HASH}.json
+    - jsrun ${JSRUN_OPTIONS} /ccsopen/proj/csc333/ArborX_BoundingVolumeHierarchyMaster${MASTER_HASH}.exe ${BENCHMARK_OPTIONS} --benchmark_out_format=json --benchmark_out=/ccsopen/proj/csc333/arborx-master${MASTER_HASH}.json
     - rm /ccsopen/proj/csc333/ArborX_BoundingVolumeHierarchyBranch${BRANCH_HASH}.exe /ccsopen/proj/csc333/ArborX_BoundingVolumeHierarchyMaster${MASTER_HASH}.exe
   tags:
     - batch
