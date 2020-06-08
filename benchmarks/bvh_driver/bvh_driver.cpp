@@ -323,7 +323,6 @@ int main(int argc, char *argv[])
         ( "buffer", bpo::value<int>(&single_spec.buffer_size)->default_value(0), "size for buffer optimization in radius search" )
         ( "source-point-cloud-type", bpo::value<std::string>(&source_pt_cloud)->default_value("filled_box"), "shape of the source point cloud"  )
         ( "target-point-cloud-type", bpo::value<std::string>(&target_pt_cloud)->default_value("filled_box"), "shape of the target point cloud"  )
-        ( "no-header", bpo::bool_switch(), "do not print version and hash" )
         ( "exact-spec", bpo::value<std::vector<std::string>>(&exact_specs)->multitoken(), "exact specification (can be specified multiple times for batch)" )
     ;
   // clang-format on
@@ -338,11 +337,8 @@ int main(int argc, char *argv[])
       argv[0]};
   bpo::notify(vm);
 
-  if (!vm["no-header"].as<bool>())
-  {
-    std::cout << "ArborX version: " << ArborX::version() << std::endl;
-    std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
-  }
+  std::cout << "ArborX version: " << ArborX::version() << std::endl;
+  std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
 
   if (vm.count("help") > 0)
   {
