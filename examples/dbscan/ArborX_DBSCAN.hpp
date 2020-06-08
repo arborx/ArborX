@@ -13,13 +13,12 @@
 #define ARBORX_DBSCAN_HPP
 
 #include <ArborX_DetailsDBSCANCallback.hpp>
+#include <ArborX_DetailsDBSCANVerification.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_LinearBVH.hpp>
 
 #include <chrono>
-#include <set>
-#include <stack>
 
 namespace ArborX
 {
@@ -53,148 +52,6 @@ struct Access<Wrapped<View>, PredicatesTag>
 
 namespace DBSCAN
 {
-
-template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
-          typename ClusterView>
-bool verifyClusters(ExecutionSpace exec_space, IndicesView indices,
-                    OffsetView offset, ClusterView clusters, int core_min_size)
-{
-  int n = clusters.size();
-  ARBORX_ASSERT((int)offset.size() == n + 1);
-  ARBORX_ASSERT(ArborX::lastElement(offset) == (int)indices.size());
-
-  // Check that connected core points have same cluster indices
-  // NOTE: if core_min_size = 1, all points are core points
-  int num_incorrect = 0;
-  Kokkos::parallel_reduce(
-      "ArborX::DBSCAN::verify_connected_core_points",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-      KOKKOS_LAMBDA(int i, int &update) {
-        bool self_is_core_point =
-            (offset(i + 1) - offset(i) - 1 >= core_min_size);
-        if (self_is_core_point)
-        {
-          for (int jj = offset(i); jj < offset(i + 1); ++jj)
-          {
-            int j = indices(jj);
-            bool neigh_is_core_point =
-                (offset(j + 1) - offset(j) - 1 >= core_min_size);
-
-            if (neigh_is_core_point && clusters(i) != clusters(j))
-            {
-              printf("Connected cores do not belong to the same cluster: "
-                     "%d [%d] -> %d [%d]\n",
-                     i, clusters(i), j, clusters(j));
-              update++;
-            }
-          }
-        }
-      },
-      num_incorrect);
-  if (num_incorrect)
-    return false;
-
-  // Check that non-core points are either noise, or share index with at least
-  // one core point
-  num_incorrect = 0;
-  Kokkos::parallel_reduce(
-      "ArborX::DBSCAN::verify_connected_boundary_points",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-      KOKKOS_LAMBDA(int i, int &update) {
-        bool self_is_core_point =
-            (offset(i + 1) - offset(i) - 1 >= core_min_size);
-        if (!self_is_core_point)
-        {
-          bool is_noise = true;
-          bool have_shared_core = false;
-          for (int jj = offset(i); jj < offset(i + 1); ++jj)
-          {
-            int j = indices(jj);
-            bool neigh_is_core_point =
-                (offset(j + 1) - offset(j) - 1 >= core_min_size);
-
-            if (neigh_is_core_point)
-            {
-              is_noise = false;
-              if (clusters(i) == clusters(j))
-                have_shared_core = true;
-            }
-          }
-
-          if (!is_noise && !have_shared_core)
-          {
-            printf("Boundary point does not belong to a cluster: "
-                   "%d [%d]\n",
-                   i, clusters(i));
-            update++;
-          }
-        }
-      },
-      num_incorrect);
-  if (num_incorrect)
-    return false;
-
-  // Check that cluster indices are unique
-  auto clusters_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, clusters);
-  auto offset_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
-  auto indices_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
-
-  std::set<int> unique_cluster_indices;
-  for (int i = 0; i < n; i++)
-    unique_cluster_indices.insert(clusters_host(i));
-  auto num_unique_cluster_indices = unique_cluster_indices.size();
-
-  unsigned int num_clusters = 0;
-  std::set<int> cluster_sets;
-  for (int i = 0; i < n; i++)
-  {
-    if (clusters_host(i) >= 0)
-    {
-      auto id = clusters_host(i);
-      cluster_sets.insert(id);
-      num_clusters++;
-
-      // DFS search
-      std::stack<int> stack;
-      stack.push(i);
-      while (!stack.empty())
-      {
-        auto k = stack.top();
-        stack.pop();
-        if (clusters_host(k) >= 0)
-        {
-          ARBORX_ASSERT(clusters_host(k) == id);
-          clusters_host(k) = -1;
-          for (int jj = offset_host(k); jj < offset_host(k + 1); jj++)
-          {
-            int j = indices_host(jj);
-            bool neigh_is_core_point =
-                (offset_host(j + 1) - offset_host(j) - 1 >= core_min_size);
-            if (neigh_is_core_point || (clusters_host(j) == id))
-              stack.push(j);
-          }
-        }
-      }
-    }
-  }
-  if (cluster_sets.size() != num_unique_cluster_indices)
-  {
-    // FIXME: Not sure how we can get here, but it was in the original verify
-    // check in ECL
-    std::cerr << "Number of components does not match" << std::endl;
-    return false;
-  }
-  if (num_clusters != num_unique_cluster_indices)
-  {
-    std::cerr << "Component IDs are not unique" << std::endl;
-    return false;
-  }
-
-  return true;
-} // namespace ArborX
 
 template <typename MemorySpace>
 struct NumNeighCallback
@@ -358,8 +215,8 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::verify");
 
     bvh.query(exec_space, predicates, indices, offset);
-    auto passed =
-        verifyClusters(exec_space, indices, offset, clusters, core_min_size);
+    auto passed = Details::verifyClusters(exec_space, indices, offset, clusters,
+                                          core_min_size);
     printf("Verification %s\n", (passed ? "passed" : "failed"));
 
     Kokkos::Profiling::popRegion();
