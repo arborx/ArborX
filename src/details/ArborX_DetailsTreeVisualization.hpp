@@ -220,7 +220,7 @@ struct TreeVisualization
     auto const geometry = getGeometry(pred);
     auto const k = getK(pred);
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> buffer("buffer", k);
-    int const count = TreeTraversal<DeviceType>::nearestQuery(
+    int const count = DeprecatedTreeTraversal<Tree>::nearestQuery(
         tree,
         [geometry, &visitor, &tree](Node const *node) {
           visitor.visit(node, tree);

@@ -22,35 +22,81 @@
 #include <cstdlib>
 #include <random>
 
+#ifdef ARBORX_PERFORMANCE_TESTING
+#include <mpi.h>
+#endif
+
 #include <benchmark/benchmark.h>
 #include <point_clouds.hpp>
 
-#if defined(KOKKOS_ENABLE_SERIAL)
-class BoostRTree
+struct Spec
 {
-public:
-  using DeviceType = Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>;
-  using device_type = DeviceType;
-
-  BoostRTree(Kokkos::View<ArborX::Point *, DeviceType> const &points)
+  std::string create_label_construction(std::string const &tree_name) const
   {
-    _tree = BoostRTreeHelpers::makeRTree(points);
+    std::string s = std::string("BM_construction<") + tree_name + ">";
+    for (auto const &var :
+         {n_values, static_cast<int>(source_point_cloud_type)})
+      s += "/" + std::to_string(var);
+    return s;
   }
 
-  template <typename Query>
-  void query(Kokkos::View<Query *, DeviceType> queries,
-             Kokkos::View<int *, DeviceType> &indices,
-             Kokkos::View<int *, DeviceType> &offset,
-             ArborX::Experimental::TraversalPolicy const &)
+  std::string create_label_knn_search(std::string const &tree_name) const
   {
-    std::tie(offset, indices) =
-        BoostRTreeHelpers::performQueries(_tree, queries);
+    std::string s = std::string("BM_knn_search<") + tree_name + ">";
+    for (auto const &var :
+         {n_values, n_queries, n_neighbors, static_cast<int>(sort_predicates),
+          static_cast<int>(source_point_cloud_type),
+          static_cast<int>(target_point_cloud_type)})
+      s += "/" + std::to_string(var);
+    return s;
   }
 
-private:
-  BoostRTreeHelpers::RTree<ArborX::Point> _tree;
+  std::string create_label_radius_search(std::string const &tree_name) const
+  {
+    std::string s = std::string("BM_radius_search<") + tree_name + ">";
+    for (auto const &var :
+         {n_values, n_queries, n_neighbors, static_cast<int>(sort_predicates),
+          buffer_size, static_cast<int>(source_point_cloud_type),
+          static_cast<int>(target_point_cloud_type)})
+      s += "/" + std::to_string(var);
+    return s;
+  }
+
+  std::string backends;
+  int n_values;
+  int n_queries;
+  int n_neighbors;
+  bool sort_predicates;
+  int buffer_size;
+  PointCloudType source_point_cloud_type;
+  PointCloudType target_point_cloud_type;
 };
-#endif
+
+Spec create_spec_from_string(std::string const &spec_string)
+{
+  std::istringstream ss(spec_string);
+  std::string token;
+
+  Spec spec;
+
+  // clang-format off
+    getline(ss, token, '/');  spec.backends = token;
+    getline(ss, token, '/');  spec.n_values = std::stoi(token);
+    getline(ss, token, '/');  spec.n_queries = std::stoi(token);
+    getline(ss, token, '/');  spec.n_neighbors = std::stoi(token);
+    getline(ss, token, '/');  spec.sort_predicates = static_cast<bool>(std::stoi(token));
+    getline(ss, token, '/');  spec.buffer_size = std::stoi(token);
+    getline(ss, token, '/');  spec.source_point_cloud_type = static_cast<PointCloudType>(std::stoi(token));
+    getline(ss, token, '/');  spec.target_point_cloud_type = static_cast<PointCloudType>(std::stoi(token));
+  // clang-format on
+
+  if (!(spec.backends == "all" || spec.backends == "serial" ||
+        spec.backends == "openmp" || spec.backends == "threads" ||
+        spec.backends == "cuda" || spec.backends == "rtree"))
+    throw std::runtime_error("Backend " + spec.backends + " invalid!");
+
+  return spec;
+}
 
 template <typename DeviceType>
 Kokkos::View<ArborX::Point *, DeviceType>
@@ -116,12 +162,11 @@ makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
 }
 
 template <class TreeType>
-void BM_construction(benchmark::State &state)
+void BM_construction(benchmark::State &state, Spec const &spec)
 {
   using DeviceType = typename TreeType::device_type;
-  int const n_values = state.range(0);
-  auto const point_cloud_type = static_cast<PointCloudType>(state.range(1));
-  auto const points = constructPoints<DeviceType>(n_values, point_cloud_type);
+  auto const points =
+      constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type);
 
   for (auto _ : state)
   {
@@ -134,22 +179,15 @@ void BM_construction(benchmark::State &state)
 }
 
 template <class TreeType>
-void BM_knn_search(benchmark::State &state)
+void BM_knn_search(benchmark::State &state, Spec const &spec)
 {
   using DeviceType = typename TreeType::device_type;
-  int const n_values = state.range(0);
-  int const n_queries = state.range(1);
-  int const n_neighbors = state.range(2);
-  bool const sort_predicates_int = state.range(3);
-  auto const source_point_cloud_type =
-      static_cast<PointCloudType>(state.range(4));
-  auto const target_point_cloud_type =
-      static_cast<PointCloudType>(state.range(5));
 
   TreeType index(
-      constructPoints<DeviceType>(n_values, source_point_cloud_type));
+      constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type));
   auto const queries = makeNearestQueries<DeviceType>(
-      n_values, n_queries, n_neighbors, target_point_cloud_type);
+      spec.n_values, spec.n_queries, spec.n_neighbors,
+      spec.target_point_cloud_type);
 
   for (auto _ : state)
   {
@@ -158,7 +196,7 @@ void BM_knn_search(benchmark::State &state)
     auto const start = std::chrono::high_resolution_clock::now();
     index.query(queries, indices, offset,
                 ArborX::Experimental::TraversalPolicy().setPredicateSorting(
-                    sort_predicates_int));
+                    spec.sort_predicates));
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
@@ -166,23 +204,15 @@ void BM_knn_search(benchmark::State &state)
 }
 
 template <class TreeType>
-void BM_radius_search(benchmark::State &state)
+void BM_radius_search(benchmark::State &state, Spec const &spec)
 {
   using DeviceType = typename TreeType::device_type;
-  int const n_values = state.range(0);
-  int const n_queries = state.range(1);
-  int const n_neighbors = state.range(2);
-  int const sort_predicates_int = state.range(3);
-  int const buffer_size = state.range(4);
-  auto const source_point_cloud_type =
-      static_cast<PointCloudType>(state.range(5));
-  auto const target_point_cloud_type =
-      static_cast<PointCloudType>(state.range(6));
 
   TreeType index(
-      constructPoints<DeviceType>(n_values, source_point_cloud_type));
+      constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type));
   auto const queries = makeSpatialQueries<DeviceType>(
-      n_values, n_queries, n_neighbors, target_point_cloud_type);
+      spec.n_values, spec.n_queries, spec.n_neighbors,
+      spec.target_point_cloud_type);
 
   for (auto _ : state)
   {
@@ -191,8 +221,8 @@ void BM_radius_search(benchmark::State &state)
     auto const start = std::chrono::high_resolution_clock::now();
     index.query(queries, indices, offset,
                 ArborX::Experimental::TraversalPolicy()
-                    .setPredicateSorting(sort_predicates_int)
-                    .setBufferSize(buffer_size));
+                    .setPredicateSorting(spec.sort_predicates)
+                    .setBufferSize(spec.buffer_size));
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
@@ -206,21 +236,25 @@ public:
   ~KokkosScopeGuard() { Kokkos::finalize(); }
 };
 
-#define REGISTER_BENCHMARK(TreeType)                                           \
-  BENCHMARK_TEMPLATE(BM_construction, TreeType)                                \
-      ->Args({n_values, source_point_cloud_type})                              \
-      ->UseManualTime()                                                        \
-      ->Unit(benchmark::kMicrosecond);                                         \
-  BENCHMARK_TEMPLATE(BM_knn_search, TreeType)                                  \
-      ->Args({n_values, n_queries, n_neighbors, sort_predicates_int,           \
-              source_point_cloud_type, target_point_cloud_type})               \
-      ->UseManualTime()                                                        \
-      ->Unit(benchmark::kMicrosecond);                                         \
-  BENCHMARK_TEMPLATE(BM_radius_search, TreeType)                               \
-      ->Args({n_values, n_queries, n_neighbors, sort_predicates_int,           \
-              buffer_size, source_point_cloud_type, target_point_cloud_type})  \
-      ->UseManualTime()                                                        \
+template <typename TreeType>
+void register_benchmark(std::string const &description, Spec const &spec)
+{
+  benchmark::RegisterBenchmark(
+      spec.create_label_construction(description).c_str(),
+      [=](benchmark::State &state) { BM_construction<TreeType>(state, spec); })
+      ->UseManualTime()
       ->Unit(benchmark::kMicrosecond);
+  benchmark::RegisterBenchmark(
+      spec.create_label_knn_search(description).c_str(),
+      [=](benchmark::State &state) { BM_knn_search<TreeType>(state, spec); })
+      ->UseManualTime()
+      ->Unit(benchmark::kMicrosecond);
+  benchmark::RegisterBenchmark(
+      spec.create_label_radius_search(description).c_str(),
+      [=](benchmark::State &state) { BM_radius_search<TreeType>(state, spec); })
+      ->UseManualTime()
+      ->Unit(benchmark::kMicrosecond);
+}
 
 // NOTE Motivation for this class that stores the argument count and values is
 // I could not figure out how to make the parser consume arguments with
@@ -268,28 +302,28 @@ public:
 
 int main(int argc, char *argv[])
 {
-  KokkosScopeGuard guard(argc, argv);
+#ifdef ARBORX_PERFORMANCE_TESTING
+  MPI_Init(&argc, &argv);
+#endif
+  Kokkos::initialize(argc, argv);
 
   namespace bpo = boost::program_options;
   bpo::options_description desc("Allowed options");
-  int n_values;
-  int n_queries;
-  int n_neighbors;
-  int buffer_size;
-  bool sort_predicates;
+  Spec single_spec;
   std::string source_pt_cloud;
   std::string target_pt_cloud;
+  std::vector<std::string> exact_specs;
   // clang-format off
     desc.add_options()
         ( "help", "produce help message" )
-        ( "values", bpo::value<int>(&n_values)->default_value(50000), "number of indexable values (source)" )
-        ( "queries", bpo::value<int>(&n_queries)->default_value(20000), "number of queries (target)" )
-        ( "predicate-sort", bpo::value<bool>(&sort_predicates)->default_value(true), "sort predicates" )
-        ( "neighbors", bpo::value<int>(&n_neighbors)->default_value(10), "desired number of results per query" )
-        ( "buffer", bpo::value<int>(&buffer_size)->default_value(0), "size for buffer optimization in radius search" )
+        ( "values", bpo::value<int>(&single_spec.n_values)->default_value(50000), "number of indexable values (source)" )
+        ( "queries", bpo::value<int>(&single_spec.n_queries)->default_value(20000), "number of queries (target)" )
+        ( "predicate-sort", bpo::value<bool>(&single_spec.sort_predicates)->default_value(true), "sort predicates" )
+        ( "neighbors", bpo::value<int>(&single_spec.n_neighbors)->default_value(10), "desired number of results per query" )
+        ( "buffer", bpo::value<int>(&single_spec.buffer_size)->default_value(0), "size for buffer optimization in radius search" )
         ( "source-point-cloud-type", bpo::value<std::string>(&source_pt_cloud)->default_value("filled_box"), "shape of the source point cloud"  )
         ( "target-point-cloud-type", bpo::value<std::string>(&target_pt_cloud)->default_value("filled_box"), "shape of the target point cloud"  )
-        ( "no-header", bpo::bool_switch(), "do not print version and hash" )
+        ( "exact-spec", bpo::value<std::vector<std::string>>(&exact_specs)->multitoken(), "exact specification (can be specified multiple times for batch)" )
     ;
   // clang-format on
   bpo::variables_map vm;
@@ -303,13 +337,8 @@ int main(int argc, char *argv[])
       argv[0]};
   bpo::notify(vm);
 
-  int sort_predicates_int = (sort_predicates ? 1 : 0);
-
-  if (!vm["no-header"].as<bool>())
-  {
-    std::cout << "ArborX version: " << ArborX::version() << std::endl;
-    std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
-  }
+  std::cout << "ArborX version: " << ArborX::version() << std::endl;
+  std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
 
   if (vm.count("help") > 0)
   {
@@ -326,6 +355,21 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+  if (vm.count("exact-spec") > 0)
+  {
+    for (std::string option :
+         {"values", "queries", "predicate-sort", "neighbors", "buffer",
+          "source-point-cloud-type", "target-point-cloud-type"})
+    {
+      if (!vm[option].defaulted())
+      {
+        std::cout << "Conflicting options: 'exact-spec' and '" << option
+                  << "', exiting..." << std::endl;
+        return EXIT_FAILURE;
+      }
+    }
+  }
+
   benchmark::Initialize(&pass_further.argc(), pass_further.argv());
   // Throw if some of the arguments have not been recognized.
   std::ignore =
@@ -333,37 +377,72 @@ int main(int argc, char *argv[])
           .options(bpo::options_description(""))
           .run();
 
-  // Google benchmark only supports integer arguments (see
-  // https://github.com/google/benchmark/issues/387), so we map the string to
-  // an enum.
-  std::map<std::string, PointCloudType> to_point_cloud_enum;
-  to_point_cloud_enum["filled_box"] = PointCloudType::filled_box;
-  to_point_cloud_enum["hollow_box"] = PointCloudType::hollow_box;
-  to_point_cloud_enum["filled_sphere"] = PointCloudType::filled_sphere;
-  to_point_cloud_enum["hollow_sphere"] = PointCloudType::hollow_sphere;
-  int source_point_cloud_type = to_point_cloud_enum.at(source_pt_cloud);
-  int target_point_cloud_type = to_point_cloud_enum.at(target_pt_cloud);
+  std::vector<Spec> specs;
+  specs.reserve(exact_specs.size());
+  for (auto const &spec_string : exact_specs)
+    specs.push_back(create_spec_from_string(spec_string));
 
+  if (vm.count("exact-spec") == 0)
+  {
+    single_spec.backends = "all";
+    single_spec.source_point_cloud_type = to_point_cloud_enum(source_pt_cloud);
+    single_spec.target_point_cloud_type = to_point_cloud_enum(target_pt_cloud);
+    specs.push_back(single_spec);
+  }
+
+  for (auto const &spec : specs)
+  {
 #ifdef KOKKOS_ENABLE_SERIAL
-  using Serial = Kokkos::Serial::device_type;
-  REGISTER_BENCHMARK(ArborX::BVH<Serial>);
+    if (spec.backends == "all" || spec.backends == "serial")
+      register_benchmark<ArborX::BVH<Kokkos::Serial::device_type>>(
+          "ArborX::BVH<Serial>", spec);
+#else
+    if (spec.backends == "serial")
+      throw std::runtime_error("Serial backend not available!");
 #endif
 
 #ifdef KOKKOS_ENABLE_OPENMP
-  using OpenMP = Kokkos::OpenMP::device_type;
-  REGISTER_BENCHMARK(ArborX::BVH<OpenMP>);
+    if (spec.backends == "all" || spec.backends == "openmp")
+      register_benchmark<ArborX::BVH<Kokkos::OpenMP::device_type>>(
+          "ArborX::BVH<OpenMP>", spec);
+#else
+    if (spec.backends == "openmp")
+      throw std::runtime_error("OpenMP backend not available!");
+#endif
+
+#ifdef KOKKOS_ENABLE_THREADS
+    if (spec.backends == "all" || spec.backends == "threads")
+      register_benchmark<ArborX::BVH<Kokkos::Threads::device_type>>(
+          "ArborX::BVH<Threads>", spec);
+#else
+    if (spec.backends == "threads")
+      throw std::runtime_error("Threads backend not available!");
 #endif
 
 #ifdef KOKKOS_ENABLE_CUDA
-  using Cuda = Kokkos::Cuda::device_type;
-  REGISTER_BENCHMARK(ArborX::BVH<Cuda>);
+    if (spec.backends == "all" || spec.backends == "cuda")
+      register_benchmark<ArborX::BVH<Kokkos::Cuda::device_type>>(
+          "ArborX::BVH<Cuda>", spec);
+#else
+    if (spec.backends == "cuda")
+      throw std::runtime_error("CUDA backend not available!");
 #endif
 
 #if defined(KOKKOS_ENABLE_SERIAL)
-  REGISTER_BENCHMARK(BoostRTree);
+    if (spec.backends == "all" || spec.backends == "rtree")
+    {
+      using BoostRTree = BoostExt::RTree<ArborX::Point>;
+      register_benchmark<BoostRTree>("BoostRTree", spec);
+    }
 #endif
+  }
 
   benchmark::RunSpecifiedBenchmarks();
+
+  Kokkos::finalize();
+#ifdef ARBORX_PERFORMANCE_TESTING
+  MPI_Finalize();
+#endif
 
   return EXIT_SUCCESS;
 }

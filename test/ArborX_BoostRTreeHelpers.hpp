@@ -224,4 +224,35 @@ performQueries(ParallelRTree<Indexable> const &rtree, InputView const &queries)
 #endif
 } // end namespace BoostRTreeHelpers
 
+namespace BoostExt
+{
+
+// FIXME Goal is to match the BVH interface
+template <typename Indexable>
+class RTree
+{
+public:
+  using DeviceType = Kokkos::DefaultHostExecutionSpace::device_type;
+  using device_type = DeviceType;
+
+  RTree(Kokkos::View<Indexable *, DeviceType> const &values)
+  {
+    _tree = BoostRTreeHelpers::makeRTree(values);
+  }
+
+  // WARNING trailing pack will match anything :/
+  template <typename Predicates, typename InputView, typename... TrailingArgs>
+  void query(Predicates const &predicates, InputView &indices,
+             InputView &offset, TrailingArgs &&...) const
+  {
+    std::tie(offset, indices) =
+        BoostRTreeHelpers::performQueries(_tree, predicates);
+  }
+
+private:
+  BoostRTreeHelpers::RTree<Indexable> _tree;
+};
+
+} // namespace BoostExt
+
 #endif

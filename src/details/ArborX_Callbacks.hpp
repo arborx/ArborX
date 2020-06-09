@@ -79,6 +79,13 @@ using SpatialPredicateInlineCallbackArchetypeExpression =
 template <typename Callback>
 using CallbackTagArchetypeAlias = typename Callback::tag;
 
+template <typename Callback>
+struct is_tagged_post_callback
+    : std::is_same<detected_t<CallbackTagArchetypeAlias, Callback>,
+                   PostCallbackTag>::type
+{
+};
+
 // output functor to pass to the callback during detection
 template <typename T>
 struct Sink
@@ -93,26 +100,21 @@ template <typename Callback, typename Predicates, typename OutputView>
 void check_valid_callback(Callback const &, Predicates const &,
                           OutputView const &)
 {
-  static_assert(is_detected<CallbackTagArchetypeAlias, Callback>{},
-                "Callback must define 'tag' member type");
-
-  using CallbackTag = detected_t<CallbackTagArchetypeAlias, Callback>;
-  static_assert(std::is_same<CallbackTag, InlineCallbackTag>{} ||
-                    std::is_same<CallbackTag, PostCallbackTag>{},
-                "Tag must be either 'InlineCallbackTag' or 'PostCallbackTag'");
+#ifdef __NVCC__
+  // Without it would get a segmentation fault and no diagnostic whatsoever
+  static_assert(
+      !__nv_is_extended_host_device_lambda_closure_type(Callback),
+      "__host__ __device__ extended lambdas cannot be generic lambdas");
+#endif
 
   using Access = AccessTraits<Predicates, PredicatesTag>;
   using PredicateTag = typename Helper<Access>::tag;
   using Predicate = typename Helper<Access>::type;
 
-  // FIXME
-  constexpr bool short_circuit = std::is_same<CallbackTag, PostCallbackTag>{};
   static_assert(
-      short_circuit ||
-          (std::is_same<PredicateTag, SpatialPredicateTag>{} &&
-           is_detected<SpatialPredicateInlineCallbackArchetypeExpression,
-                       Callback, Predicate,
-                       OutputFunctorHelper<OutputView>>{}) ||
+      (std::is_same<PredicateTag, SpatialPredicateTag>{} &&
+       is_detected<SpatialPredicateInlineCallbackArchetypeExpression, Callback,
+                   Predicate, OutputFunctorHelper<OutputView>>{}) ||
           (std::is_same<PredicateTag, NearestPredicateTag>{} &&
            is_detected<NearestPredicateInlineCallbackArchetypeExpression,
                        Callback, Predicate, OutputFunctorHelper<OutputView>>{}),

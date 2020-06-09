@@ -83,7 +83,8 @@ template <typename Traits>
 using AccessTraitsGetArchetypeExpression = decltype(
     Traits::get(std::declval<first_template_parameter_t<Traits> const &>(), 0));
 
-template <typename Access>
+template <typename Access,
+          typename = std::enable_if_t<Details::is_complete<Access>{}>>
 struct Helper
 {
   // Deduce return type of get()

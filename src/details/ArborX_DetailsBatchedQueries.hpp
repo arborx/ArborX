@@ -53,17 +53,6 @@ public:
                               Box const &scene_bounding_box,
                               Predicates const &predicates)
   {
-    Kokkos::View<Box, DeviceType> bounds("bounds");
-    Kokkos::deep_copy(space, bounds, scene_bounding_box);
-    return sortQueriesAlongZOrderCurve(space, bounds, predicates);
-  }
-
-  template <typename ExecutionSpace, typename Predicates>
-  static Kokkos::View<unsigned int *, DeviceType>
-  sortQueriesAlongZOrderCurve(ExecutionSpace const &space,
-                              Kokkos::View<Box const, DeviceType> bounds,
-                              Predicates const &predicates)
-  {
     using Access = AccessTraits<Predicates, PredicatesTag>;
     auto const n_queries = Access::size(predicates);
 
@@ -75,7 +64,7 @@ public:
         KOKKOS_LAMBDA(int i) {
           Point xyz =
               Details::returnCentroid(getGeometry(Access::get(predicates, i)));
-          translateAndScale(xyz, xyz, bounds());
+          translateAndScale(xyz, xyz, scene_bounding_box);
           morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
         });
 
@@ -110,11 +99,10 @@ public:
     return w;
   }
 
-  template <typename ExecutionSpace>
-  static Kokkos::View<int *, DeviceType>
-  permuteOffset(ExecutionSpace const &space,
-                Kokkos::View<size_t const *, DeviceType> permute,
-                Kokkos::View<int const *, DeviceType> offset)
+  template <typename ExecutionSpace, typename Permute, typename Offset>
+  static typename Offset::non_const_type
+  permuteOffset(ExecutionSpace const &space, Permute const &permute,
+                Offset const &offset)
   {
     auto const n = permute.extent(0);
     ARBORX_ASSERT(offset.extent(0) == n + 1);
@@ -131,13 +119,12 @@ public:
     return tmp_offset;
   }
 
-  template <typename ExecutionSpace, typename T>
-  static Kokkos::View<T *, DeviceType>
-  permuteIndices(ExecutionSpace const &space,
-                 Kokkos::View<size_t const *, DeviceType> permute,
-                 Kokkos::View<T const *, DeviceType> indices,
-                 Kokkos::View<int const *, DeviceType> offset,
-                 Kokkos::View<int const *, DeviceType> tmp_offset)
+  template <typename ExecutionSpace, typename Permute, typename Values,
+            typename Offset, typename Offset2>
+  static typename Values::non_const_type
+  permuteIndices(ExecutionSpace const &space, Permute const &permute,
+                 Values const &indices, Offset const &offset,
+                 Offset2 const &tmp_offset)
   {
     auto const n = permute.extent(0);
 
@@ -158,19 +145,18 @@ public:
     return tmp_indices;
   }
 
-  template <typename ExecutionSpace>
-  static std::tuple<Kokkos::View<int *, DeviceType>,
-                    Kokkos::View<int *, DeviceType>>
+  template <typename ExecutionSpace, typename T, typename... P>
+  static std::tuple<Kokkos::View<int *, DeviceType>, Kokkos::View<T *, P...>>
   reversePermutation(ExecutionSpace const &space,
-                     Kokkos::View<size_t const *, DeviceType> permute,
+                     Kokkos::View<unsigned int const *, DeviceType> permute,
                      Kokkos::View<int const *, DeviceType> offset,
-                     Kokkos::View<int const *, DeviceType> indices)
+                     Kokkos::View<T /*const*/ *, P...> out)
   {
     auto const tmp_offset = permuteOffset(space, permute, offset);
 
-    auto const tmp_indices =
-        permuteIndices(space, permute, indices, offset, tmp_offset);
-    return std::make_tuple(tmp_offset, tmp_indices);
+    auto const tmp_out =
+        permuteIndices(space, permute, out, offset, tmp_offset);
+    return std::make_tuple(tmp_offset, tmp_out);
   }
 
   template <typename ExecutionSpace>
@@ -178,7 +164,7 @@ public:
                     Kokkos::View<int *, DeviceType>,
                     Kokkos::View<float *, DeviceType>>
   reversePermutation(ExecutionSpace const &space,
-                     Kokkos::View<size_t const *, DeviceType> permute,
+                     Kokkos::View<unsigned int const *, DeviceType> permute,
                      Kokkos::View<int const *, DeviceType> offset,
                      Kokkos::View<int const *, DeviceType> indices,
                      Kokkos::View<float const *, DeviceType> distances)
