@@ -559,7 +559,7 @@ void traverse(ExecutionSpace const &space, BVH const &bvh,
               Predicates const &predicates, Callback const &callback)
 {
   using Access = AccessTraits<Predicates, PredicatesTag>;
-  using Tag = typename Helper<Access>::tag;
+  using Tag = typename AccessTraitsHelper<Access>::tag;
   TreeTraversal<BVH, Predicates, Callback, Tag>(space, bvh, predicates,
                                                 callback);
 }

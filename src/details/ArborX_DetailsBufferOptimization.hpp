@@ -63,7 +63,7 @@ struct InsertGenerator
 
   using ValueType = typename OutputView::value_type;
   using Access = AccessTraits<Predicates, PredicatesTag>;
-  using Tag = typename Helper<Access>::tag;
+  using Tag = typename AccessTraitsHelper<Access>::tag;
 
   template <typename U = PassTag, typename V = Tag>
   KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, FirstPassTag>{} &&

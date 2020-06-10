@@ -88,7 +88,7 @@ using AccessTraitsGetArchetypeExpression = decltype(
     Traits::get(std::declval<first_template_parameter_t<Traits> const &>(), 0));
 
 template <typename Access>
-struct Helper
+struct AccessTraitsHelper
 {
   // Deduce return type of get()
   using type =
@@ -124,7 +124,7 @@ void check_valid_access_traits(PredicatesTag, Predicates const &)
                 "AccessTraits<Predicates,PredicatesTag> must define "
                 "'get()' static member function");
 
-  using Tag = typename Helper<Access>::tag;
+  using Tag = typename AccessTraitsHelper<Access>::tag;
   static_assert(std::is_same<Tag, NearestPredicateTag>{} ||
                     std::is_same<Tag, SpatialPredicateTag>{},
                 "Invalid tag for the predicates");

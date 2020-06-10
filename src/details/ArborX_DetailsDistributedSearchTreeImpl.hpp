@@ -431,7 +431,7 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
 
       // Forward queries
       using Access = AccessTraits<Predicates, PredicatesTag>;
-      using Query = typename Helper<Access>::type;
+      using Query = typename AccessTraitsHelper<Access>::type;
       Kokkos::View<int *, DeviceType> ids("query_ids", 0);
       Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries", 0);
       forwardQueries(comm, space, queries, indices, offset, fwd_queries, ids,
@@ -481,7 +481,7 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
 
     // Forward queries
     using Access = AccessTraits<Predicates, PredicatesTag>;
-    using Query = typename Helper<Access>::type;
+    using Query = typename AccessTraitsHelper<Access>::type;
     Kokkos::View<int *, DeviceType> ids("query_ids", 0);
     Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries", 0);
     forwardQueries(comm, space, queries, indices, offset, fwd_queries, ids,
@@ -569,7 +569,8 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
   int const n_exports = lastElement(offset);
   int const n_imports = distributor.createFromSends(space, indices);
 
-  static_assert(std::is_same<Query, typename Helper<Access>::type>::value, "");
+  static_assert(
+      std::is_same<Query, typename AccessTraitsHelper<Access>::type>{}, "");
   Kokkos::View<Query *, DeviceType> exports(
       Kokkos::ViewAllocateWithoutInitializing("queries"), n_exports);
   Kokkos::parallel_for(ARBORX_MARK_REGION("forward_queries_fill_buffer"),

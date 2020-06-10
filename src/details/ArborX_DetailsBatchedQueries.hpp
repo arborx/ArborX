@@ -79,9 +79,9 @@ public:
   applyPermutation(ExecutionSpace const &space,
                    Kokkos::View<unsigned int const *, DeviceType> permute,
                    Predicates const &v)
-      -> Kokkos::View<
-          typename Helper<AccessTraits<Predicates, PredicatesTag>>::type *,
-          DeviceType>
+      -> Kokkos::View<typename AccessTraitsHelper<
+                          AccessTraits<Predicates, PredicatesTag>>::type *,
+                      DeviceType>
   {
     using Access = AccessTraits<Predicates, PredicatesTag>;
     auto const n = Access::size(v);

@@ -70,7 +70,7 @@ public:
     Details::check_valid_callback_if_first_argument_is_not_a_view(
         callback_or_view, predicates, view);
 
-    using Tag = typename Details::Helper<Access>::tag;
+    using Tag = typename Details::AccessTraitsHelper<Access>::tag;
 
     Details::BoundingVolumeHierarchyImpl::queryDispatch(
         Tag{}, *this, space, predicates,

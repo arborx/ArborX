@@ -108,8 +108,8 @@ void check_valid_callback(Callback const &, Predicates const &,
 #endif
 
   using Access = AccessTraits<Predicates, PredicatesTag>;
-  using PredicateTag = typename Helper<Access>::tag;
-  using Predicate = typename Helper<Access>::type;
+  using PredicateTag = typename AccessTraitsHelper<Access>::tag;
+  using Predicate = typename AccessTraitsHelper<Access>::type;
 
   static_assert(
       (std::is_same<PredicateTag, SpatialPredicateTag>{} &&
