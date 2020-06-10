@@ -215,23 +215,11 @@ public:
       Kokkos::View<int, MemorySpace> root_node_index)
       : _sorted_morton_codes(sorted_morton_codes)
       , _internal_nodes(internal_nodes)
-      , _flags(Kokkos::ViewAllocateWithoutInitializing("flags"),
-               internal_nodes.extent(0))
-      , _ranges_left(Kokkos::ViewAllocateWithoutInitializing("ranges_left"),
-                     2 * internal_nodes.extent(0) + 1)
-      , _ranges_right(Kokkos::ViewAllocateWithoutInitializing("ranges_right"),
-                      2 * internal_nodes.extent(0) + 1)
+      , _ranges(Kokkos::ViewAllocateWithoutInitializing("ranges"),
+                internal_nodes.extent(0))
       , _root_node_index(root_node_index)
   {
-    Kokkos::deep_copy(space, _flags, 0);
-
-    auto const n_internal_nodes = internal_nodes.extent(0);
-    iota(space, Kokkos::subview(_ranges_left,
-                                std::make_pair(n_internal_nodes,
-                                               2 * n_internal_nodes + 1)));
-    iota(space, Kokkos::subview(_ranges_right,
-                                std::make_pair(n_internal_nodes,
-                                               2 * n_internal_nodes + 1)));
+    Kokkos::deep_copy(space, _ranges, -1);
   }
 
   KOKKOS_FUNCTION
@@ -246,60 +234,50 @@ public:
     //   finding the index of the highest differing bit as we can compare the
     //   numbers. The higher the index of the differing bit, the larger the
     //   number.
-    if (_sorted_morton_codes(i) == _sorted_morton_codes(i + 1))
-    {
-      // FIXME: not sure about this
-      return -i;
-    }
-    return (_sorted_morton_codes(i) ^ _sorted_morton_codes(i + 1));
+    return ((_sorted_morton_codes(i) != _sorted_morton_codes(i + 1))
+                ? (_sorted_morton_codes(i) ^ _sorted_morton_codes(i + 1))
+                : -i); // FIXME: not sure about this
   }
 
-  KOKKOS_FUNCTION
-  void operator()(int i) const
+  KOKKOS_FUNCTION void operator()(int i) const
   {
     auto const n = _internal_nodes.extent_int(0);
 
+    // For a leaf node, the range is just one index
+    int range[2] = {i - n, i - n};
+    int &range_left = range[0];
+    int &range_right = range[1];
+
     // Walk toward the root and do process it even though technically its
     // bounding box has already been computed (bounding box of the scene)
-    while (true)
+    do
     {
-      // Determine the parent, set parent->child connection, and update the
-      // parent range
-      int range_left = _ranges_left(i);
-      int range_right = _ranges_right(i);
+      // Determine the parent and set parent->child connection
+      int parent_index =
+          (range_left == 0 ||
+           (range_right != n && delta(range_right) < delta(range_left - 1)));
+      bool is_left_child = parent_index == 1;
 
-      if (range_right - range_left == n)
-      {
-        // root node
-        _root_node_index() = i;
-        break;
-      }
+      // parent = range_left - 1 or parent = range_right
+      // to avoid if/else, do this calculation
+      int parent = range[parent_index] - (1 - parent_index);
+      Node *node = &_internal_nodes(parent);
 
-      int parent;
-      if (range_left == 0 ||
-          (range_right != n && delta(range_right) < delta(range_left - 1)))
-      {
-        // Left child of the found parent
-        parent = range_right;
-        _internal_nodes(parent).children.first = i;
-        _ranges_left(parent) = range_left;
-      }
+      if (is_left_child)
+        node->children.first = i;
       else
-      {
-        // Right child of the found parent
-        parent = range_left - 1;
-        _internal_nodes(parent).children.second = i;
-        _ranges_right(parent) = range_right;
-      }
+        node->children.second = i;
 
-      // Continue up
-      i = parent;
+      // Replace one of the boundaries with the one coming from the parent
+      // It also serves as an atomic check whether a thread should continue
+      range[parent_index] = Kokkos::atomic_compare_exchange(
+          &_ranges(parent), -1, range[1 - parent_index]);
 
       // Use an atomic flag per internal node to terminate the first
       // thread that enters it, while letting the second one through.
       // This ensures that every node gets processed only once, and not
       // before both of its children are processed.
-      if (Kokkos::atomic_compare_exchange_strong(&_flags(i), 0, 1))
+      if (range[parent_index] == -1)
         break;
 
       // Internal node bounding boxes are unitialized hence the
@@ -307,12 +285,21 @@ public:
       // FIXME: accessing Node::bounding_box is not ideal but I was
       // reluctant to pass the bounding volume hierarchy to
       // generateHierarchy()
-      Node *node = &_internal_nodes(i);
       Node const *first_child = &_internal_nodes(node->children.first);
       Node const *second_child = &_internal_nodes(node->children.second);
       node->bounding_box = first_child->bounding_box;
       expand(node->bounding_box, second_child->bounding_box);
-    }
+
+      i = parent;
+
+      if (range_right - range_left == n)
+      {
+        // root node
+        _root_node_index() = i;
+        break;
+      }
+    } while (true);
+
     // NOTE: could check that bounding box of the root node is indeed the
     // union of the two children.
   }
@@ -322,9 +309,7 @@ private:
   Kokkos::View<Node *, MemorySpace> _internal_nodes;
   // Use int instead of bool because CAS (Compare And Swap) on CUDA does not
   // support boolean
-  Kokkos::View<int *, MemorySpace> _flags;
-  Kokkos::View<int *, MemorySpace> _ranges_left;
-  Kokkos::View<int *, MemorySpace> _ranges_right;
+  Kokkos::View<int *, MemorySpace> _ranges;
   Kokkos::View<int, MemorySpace> _root_node_index;
 };
 
