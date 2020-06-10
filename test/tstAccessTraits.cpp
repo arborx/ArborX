@@ -2,9 +2,9 @@
 
 #include <Kokkos_Core.hpp>
 
+using ArborX::PredicatesTag;
+using ArborX::PrimitivesTag;
 using ArborX::Details::check_valid_access_traits;
-using ArborX::Traits::PredicatesTag;
-using ArborX::Traits::PrimitivesTag;
 
 struct NoAccessTraitsSpecialization
 {
@@ -37,6 +37,24 @@ struct AccessTraits<SizeMemberFunctionNotStatic, Tag>
 };
 } // namespace ArborX
 
+// Ensure legacy access traits are still valid
+struct LegacyAccessTraits
+{
+};
+namespace ArborX
+{
+namespace Traits
+{
+template <typename Tag>
+struct Access<LegacyAccessTraits, Tag>
+{
+  using memory_space = Kokkos::HostSpace;
+  KOKKOS_FUNCTION static int size(LegacyAccessTraits) { return 0; }
+  KOKKOS_FUNCTION static Point get(LegacyAccessTraits, int) { return {}; }
+};
+} // namespace Traits
+} // namespace ArborX
+
 int main()
 {
   Kokkos::View<ArborX::Point *> p;
@@ -47,6 +65,8 @@ int main()
   using NearestPredicate = decltype(ArborX::nearest(ArborX::Point{}));
   Kokkos::View<NearestPredicate *> q;
   check_valid_access_traits(PredicatesTag{}, q);
+
+  check_valid_access_traits(PrimitivesTag{}, LegacyAccessTraits{});
 
   // Uncomment to see error messages
 
