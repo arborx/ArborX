@@ -186,10 +186,8 @@ struct RadiusSearches
 
 namespace ArborX
 {
-namespace Traits
-{
 template <typename DeviceType>
-struct Access<RadiusSearches<DeviceType>, PredicatesTag>
+struct AccessTraits<RadiusSearches<DeviceType>, PredicatesTag>
 {
   using memory_space = typename DeviceType::memory_space;
   static std::size_t size(RadiusSearches<DeviceType> const &pred)
@@ -203,7 +201,7 @@ struct Access<RadiusSearches<DeviceType>, PredicatesTag>
   }
 };
 template <typename DeviceType>
-struct Access<NearestNeighborsSearches<DeviceType>, PredicatesTag>
+struct AccessTraits<NearestNeighborsSearches<DeviceType>, PredicatesTag>
 {
   using memory_space = typename DeviceType::memory_space;
   static std::size_t size(NearestNeighborsSearches<DeviceType> const &pred)
@@ -216,7 +214,6 @@ struct Access<NearestNeighborsSearches<DeviceType>, PredicatesTag>
     return nearest(pred.points(i), pred.k);
   }
 };
-} // namespace Traits
 } // namespace ArborX
 
 namespace bpo = boost::program_options;
