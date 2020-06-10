@@ -107,9 +107,9 @@ void check_valid_callback(Callback const &, Predicates const &,
       "__host__ __device__ extended lambdas cannot be generic lambdas");
 #endif
 
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-  using PredicateTag = typename Traits::Helper<Access>::tag;
-  using Predicate = typename Traits::Helper<Access>::type;
+  using Access = AccessTraits<Predicates, PredicatesTag>;
+  using PredicateTag = typename AccessTraitsHelper<Access>::tag;
+  using Predicate = typename AccessTraitsHelper<Access>::type;
 
   static_assert(
       (std::is_same<PredicateTag, SpatialPredicateTag>{} &&

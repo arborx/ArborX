@@ -37,7 +37,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   Predicates predicates_;
   Callback callback_;
 
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  using Access = AccessTraits<Predicates, PredicatesTag>;
 
   template <typename ExecutionSpace>
   TreeTraversal(ExecutionSpace const &space, BVH const &bvh,
@@ -135,7 +135,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   Predicates predicates_;
   Callback callback_;
 
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  using Access = AccessTraits<Predicates, PredicatesTag>;
 
   using Buffer = Kokkos::View<Kokkos::pair<int, float> *, MemorySpace>;
   using Offset = Kokkos::View<int *, MemorySpace>;
@@ -157,7 +157,6 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   template <typename ExecutionSpace>
   void allocateBuffer(ExecutionSpace const &space)
   {
-    using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
     auto const n_queries = Access::size(predicates_);
 
     Offset offset(Kokkos::ViewAllocateWithoutInitializing("offset"),
@@ -559,8 +558,8 @@ template <typename ExecutionSpace, typename BVH, typename Predicates,
 void traverse(ExecutionSpace const &space, BVH const &bvh,
               Predicates const &predicates, Callback const &callback)
 {
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-  using Tag = typename Traits::Helper<Access>::tag;
+  using Access = AccessTraits<Predicates, PredicatesTag>;
+  using Tag = typename AccessTraitsHelper<Access>::tag;
   TreeTraversal<BVH, Predicates, Callback, Tag>(space, bvh, predicates,
                                                 callback);
 }

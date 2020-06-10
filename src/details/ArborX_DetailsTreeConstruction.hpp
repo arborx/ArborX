@@ -165,7 +165,7 @@ template <typename Primitives>
 class CalculateBoundingBoxOfTheSceneFunctor
 {
 public:
-  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
+  using Access = AccessTraits<Primitives, PrimitivesTag>;
 
   CalculateBoundingBoxOfTheSceneFunctor(Primitives const &primitives)
       : _primitives(primitives)
@@ -196,7 +196,7 @@ inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
                                            Primitives const &primitives,
                                            Box &scene_bounding_box)
 {
-  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
+  using Access = AccessTraits<Primitives, PrimitivesTag>;
   auto const n = Access::size(primitives);
   Kokkos::parallel_reduce(
       ARBORX_MARK_REGION("calculate_bounding_box_of_the_scene"),
@@ -211,7 +211,7 @@ inline void assignMortonCodesDispatch(BoxTag, ExecutionSpace const &space,
                                       MortonCodes morton_codes,
                                       Box const &scene_bounding_box)
 {
-  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
+  using Access = AccessTraits<Primitives, PrimitivesTag>;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(ARBORX_MARK_REGION("assign_morton_codes"),
                        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
@@ -229,7 +229,7 @@ inline void assignMortonCodesDispatch(PointTag, ExecutionSpace const &space,
                                       MortonCodes morton_codes,
                                       Box const &scene_bounding_box)
 {
-  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
+  using Access = AccessTraits<Primitives, PrimitivesTag>;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("assign_morton_codes"),
@@ -247,12 +247,12 @@ inline void assignMortonCodes(
     Kokkos::View<unsigned int *, MortonCodesViewProperties...> morton_codes,
     Box const &scene_bounding_box)
 {
-  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
+  using Access = AccessTraits<Primitives, PrimitivesTag>;
 
   auto const n = Access::size(primitives);
   ARBORX_ASSERT(morton_codes.extent(0) == n);
 
-  using Tag = typename Traits::Helper<Access>::tag;
+  using Tag = typename AccessTraitsHelper<Access>::tag;
   assignMortonCodesDispatch(Tag{}, space, primitives, morton_codes,
                             scene_bounding_box);
 }
@@ -264,7 +264,7 @@ inline void initializeLeafNodesDispatch(BoxTag, ExecutionSpace const &space,
                                         Indices permutation_indices,
                                         Nodes leaf_nodes)
 {
-  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
+  using Access = AccessTraits<Primitives, PrimitivesTag>;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("initialize_leaf_nodes"),
@@ -282,7 +282,7 @@ inline void initializeLeafNodesDispatch(PointTag, ExecutionSpace const &space,
                                         Indices permutation_indices,
                                         Nodes leaf_nodes)
 {
-  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
+  using Access = AccessTraits<Primitives, PrimitivesTag>;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("initialize_leaf_nodes"),
@@ -303,13 +303,13 @@ inline void initializeLeafNodes(
         permutation_indices,
     Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes)
 {
-  using Access = typename Traits::Access<Primitives, Traits::PrimitivesTag>;
+  using Access = AccessTraits<Primitives, PrimitivesTag>;
 
   auto const n = Access::size(primitives);
   ARBORX_ASSERT(permutation_indices.extent(0) == n);
   ARBORX_ASSERT(leaf_nodes.extent(0) == n);
 
-  using Tag = typename Traits::Helper<Access>::tag;
+  using Tag = typename AccessTraitsHelper<Access>::tag;
   initializeLeafNodesDispatch(Tag{}, space, primitives, permutation_indices,
                               leaf_nodes);
 }

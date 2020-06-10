@@ -19,10 +19,8 @@
 
 namespace ArborX
 {
-namespace Traits
-{
 template <typename T, typename Tag>
-struct Access<std::vector<T>, Tag>
+struct AccessTraits<std::vector<T>, Tag>
 {
   static std::size_t size(std::vector<T> const &v) { return v.size(); }
   KOKKOS_FUNCTION static T const &get(std::vector<T> const &v, std::size_t i)
@@ -31,7 +29,6 @@ struct Access<std::vector<T>, Tag>
   }
   using memory_space = Kokkos::HostSpace;
 };
-} // namespace Traits
 } // namespace ArborX
 
 int main(int argc, char *argv[])

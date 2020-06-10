@@ -53,7 +53,7 @@ public:
                               Box const &scene_bounding_box,
                               Predicates const &predicates)
   {
-    using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+    using Access = AccessTraits<Predicates, PredicatesTag>;
     auto const n_queries = Access::size(predicates);
 
     Kokkos::View<unsigned int *, DeviceType> morton_codes(
@@ -79,13 +79,11 @@ public:
   applyPermutation(ExecutionSpace const &space,
                    Kokkos::View<unsigned int const *, DeviceType> permute,
                    Predicates const &v)
-      -> Kokkos::View<
-          std::decay_t<
-              decltype(Traits::Access<Predicates, Traits::PredicatesTag>::get(
-                  std::declval<Predicates const &>(), std::declval<int>()))> *,
-          DeviceType>
+      -> Kokkos::View<typename AccessTraitsHelper<
+                          AccessTraits<Predicates, PredicatesTag>>::type *,
+                      DeviceType>
   {
-    using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+    using Access = AccessTraits<Predicates, PredicatesTag>;
     auto const n = Access::size(v);
     ARBORX_ASSERT(permute.extent(0) == n);
 

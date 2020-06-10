@@ -296,7 +296,7 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
   // is the number of neighbors queried for.  Stop if local trees get
   // empty because it means that they are no more leaves and there is no point
   // on forwarding queries to leafless trees.
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  using Access = AccessTraits<Predicates, PredicatesTag>;
   auto const n_queries = Access::size(queries);
   Kokkos::View<int *, DeviceType> new_offset(
       Kokkos::view_alloc(offset.label(), space), n_queries + 1);
@@ -344,7 +344,7 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
     Kokkos::View<float *, DeviceType> &distances)
 {
   auto const &top_tree = tree._top_tree;
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  using Access = AccessTraits<Predicates, PredicatesTag>;
   auto const n_queries = Access::size(queries);
 
   // Determine distance to the farthest neighbor found so far.
@@ -430,8 +430,8 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
       // - results filtering
 
       // Forward queries
-      using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-      using Query = typename Traits::Helper<Access>::type;
+      using Access = AccessTraits<Predicates, PredicatesTag>;
+      using Query = typename AccessTraitsHelper<Access>::type;
       Kokkos::View<int *, DeviceType> ids("query_ids", 0);
       Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries", 0);
       forwardQueries(comm, space, queries, indices, offset, fwd_queries, ids,
@@ -480,8 +480,8 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     // - no results filtering
 
     // Forward queries
-    using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-    using Query = typename Traits::Helper<Access>::type;
+    using Access = AccessTraits<Predicates, PredicatesTag>;
+    using Query = typename AccessTraitsHelper<Access>::type;
     Kokkos::View<int *, DeviceType> ids("query_ids", 0);
     Kokkos::View<Query *, DeviceType> fwd_queries("fwd_queries", 0);
     forwardQueries(comm, space, queries, indices, offset, fwd_queries, ids,
@@ -564,13 +564,13 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
 
   Distributor<DeviceType> distributor(comm);
 
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  using Access = AccessTraits<Predicates, PredicatesTag>;
   int const n_queries = Access::size(queries);
   int const n_exports = lastElement(offset);
   int const n_imports = distributor.createFromSends(space, indices);
 
   static_assert(
-      std::is_same<Query, typename Traits::Helper<Access>::type>::value, "");
+      std::is_same<Query, typename AccessTraitsHelper<Access>::type>{}, "");
   Kokkos::View<Query *, DeviceType> exports(
       Kokkos::ViewAllocateWithoutInitializing("queries"), n_exports);
   Kokkos::parallel_for(ARBORX_MARK_REGION("forward_queries_fill_buffer"),
@@ -685,7 +685,7 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
     Kokkos::View<int *, DeviceType> &offset,
     Kokkos::View<int *, DeviceType> &ranks)
 {
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  using Access = AccessTraits<Predicates, PredicatesTag>;
   int const n_queries = Access::size(queries);
   // truncated views are prefixed with an underscore
   Kokkos::View<int *, DeviceType> new_offset(offset.label(), n_queries + 1);

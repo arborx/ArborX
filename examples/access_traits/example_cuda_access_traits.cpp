@@ -36,10 +36,8 @@ struct Spheres
 
 namespace ArborX
 {
-namespace Traits
-{
 template <>
-struct Access<PointCloud, PrimitivesTag>
+struct AccessTraits<PointCloud, PrimitivesTag>
 {
   static std::size_t size(PointCloud const &cloud) { return cloud.N; }
   KOKKOS_FUNCTION static Point get(PointCloud const &cloud, std::size_t i)
@@ -50,7 +48,7 @@ struct Access<PointCloud, PrimitivesTag>
 };
 
 template <>
-struct Access<Spheres, PredicatesTag>
+struct AccessTraits<Spheres, PredicatesTag>
 {
   static std::size_t size(Spheres const &d) { return d.N; }
   KOKKOS_FUNCTION static auto get(Spheres const &d, std::size_t i)
@@ -59,7 +57,6 @@ struct Access<Spheres, PredicatesTag>
   }
   using memory_space = Kokkos::CudaSpace;
 };
-} // namespace Traits
 } // namespace ArborX
 
 int main(int argc, char *argv[])

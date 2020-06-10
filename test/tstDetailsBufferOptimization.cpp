@@ -29,8 +29,7 @@ struct Test1
   void launch(ExecutionSpace const &space, Predicates const &predicates,
               InsertGenerator const &insert_generator) const
   {
-    using Access =
-        ArborX::Traits::Access<Predicates, ArborX::Traits::PredicatesTag>;
+    using Access = ArborX::AccessTraits<Predicates, ArborX::PredicatesTag>;
 
     Kokkos::parallel_for(
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),

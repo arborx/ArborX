@@ -20,8 +20,6 @@
 
 namespace ArborX
 {
-namespace Traits
-{
 
 struct PrimitivesTag
 {
@@ -31,14 +29,19 @@ struct PredicatesTag
 {
 };
 
-// Only a declaration so that existence of a specialization can be detected
 template <typename T, typename Tag, typename Enable = void>
-struct Access;
+struct AccessTraits
+{
+  using not_specialized = void; // tag to detect existence of a specialization
+};
+
+template <typename Traits>
+using AccessTraitsNotSpecializedArchetypeAlias =
+    typename Traits::not_specialized;
 
 template <typename View, typename Tag>
-struct Access<View, Tag,
-              typename std::enable_if<Kokkos::is_view<View>::value &&
-                                      View::rank == 1>::type>
+struct AccessTraits<
+    View, Tag, std::enable_if_t<Kokkos::is_view<View>{} && View::rank == 1>>
 {
   // Returns a const reference
   KOKKOS_FUNCTION static typename View::const_value_type &get(View const &v,
@@ -53,9 +56,8 @@ struct Access<View, Tag,
 };
 
 template <typename View, typename Tag>
-struct Access<View, Tag,
-              typename std::enable_if<Kokkos::is_view<View>::value &&
-                                      View::rank == 2>::type>
+struct AccessTraits<
+    View, Tag, std::enable_if_t<Kokkos::is_view<View>{} && View::rank == 2>>
 {
   // Returns by value
   KOKKOS_FUNCTION static Point get(View const &v, int i)
@@ -68,11 +70,6 @@ struct Access<View, Tag,
   using memory_space = typename View::memory_space;
 };
 
-} // namespace Traits
-} // namespace ArborX
-
-namespace ArborX
-{
 namespace Details
 {
 
@@ -90,34 +87,25 @@ template <typename Traits>
 using AccessTraitsGetArchetypeExpression = decltype(
     Traits::get(std::declval<first_template_parameter_t<Traits> const &>(), 0));
 
-} // namespace Details
-
-namespace Traits
-{
-template <typename Access,
-          typename = std::enable_if_t<Details::is_complete<Access>{}>>
-struct Helper
+template <typename Access>
+struct AccessTraitsHelper
 {
   // Deduce return type of get()
-  using type = std::decay_t<
-      Details::detected_t<Details::AccessTraitsGetArchetypeExpression, Access>>;
-  using tag = typename Details::Tag<type>::type;
+  using type =
+      std::decay_t<detected_t<AccessTraitsGetArchetypeExpression, Access>>;
+  using tag = typename Tag<type>::type;
 };
-} // namespace Traits
-
-namespace Details
-{
 
 template <typename Predicates>
-void check_valid_access_traits(Traits::PredicatesTag, Predicates const &)
+void check_valid_access_traits(PredicatesTag, Predicates const &)
 {
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  using Access = AccessTraits<Predicates, PredicatesTag>;
   static_assert(
-      is_complete<Access>{},
-      "Must specialize 'Traits::Access<Predicates,Traits::PredicatesTag>'");
+      !is_detected<AccessTraitsNotSpecializedArchetypeAlias, Access>{},
+      "Must specialize 'AccessTraits<Predicates,PredicatesTag>'");
 
   static_assert(is_detected<AccessTraitsMemorySpaceArchetypeAlias, Access>{},
-                "Traits::Access<Predicates,Traits::PredicatesTag> must define "
+                "AccessTraits<Predicates,PredicatesTag> must define "
                 "'memory_space' member type");
   static_assert(
       Kokkos::is_memory_space<
@@ -125,7 +113,7 @@ void check_valid_access_traits(Traits::PredicatesTag, Predicates const &)
       "'memory_space' member type must be a valid Kokkos memory space");
 
   static_assert(is_detected<AccessTraitsSizeArchetypeExpression, Access>{},
-                "Traits::Access<Predicates,Traits::PredicatesTag> must define "
+                "AccessTraits<Predicates,PredicatesTag> must define "
                 "'size()' static member function");
   static_assert(
       std::is_integral<
@@ -133,25 +121,25 @@ void check_valid_access_traits(Traits::PredicatesTag, Predicates const &)
       "size() static member function return type is not an integral type");
 
   static_assert(is_detected<AccessTraitsGetArchetypeExpression, Access>{},
-                "Traits::Access<Predicates,Traits::PredicatesTag> must define "
+                "AccessTraits<Predicates,PredicatesTag> must define "
                 "'get()' static member function");
 
-  using Tag = typename Traits::Helper<Access>::tag;
+  using Tag = typename AccessTraitsHelper<Access>::tag;
   static_assert(std::is_same<Tag, NearestPredicateTag>{} ||
                     std::is_same<Tag, SpatialPredicateTag>{},
                 "Invalid tag for the predicates");
 }
 
 template <typename Primitives>
-void check_valid_access_traits(Traits::PrimitivesTag, Primitives const &)
+void check_valid_access_traits(PrimitivesTag, Primitives const &)
 {
-  using Access = Traits::Access<Primitives, Traits::PrimitivesTag>;
+  using Access = AccessTraits<Primitives, PrimitivesTag>;
   static_assert(
-      is_complete<Access>{},
-      "Must specialize 'Traits::Access<Primitives,Traits::PrimitivesTag>'");
+      !is_detected<AccessTraitsNotSpecializedArchetypeAlias, Access>{},
+      "Must specialize 'AccessTraits<Primitives,PrimitivesTag>'");
 
   static_assert(is_detected<AccessTraitsMemorySpaceArchetypeAlias, Access>{},
-                "Traits::Access<Primitives,Traits::PrimitivesTag> must define "
+                "AccessTraits<Primitives,PrimitivesTag> must define "
                 "'memory_space' member type");
   static_assert(
       Kokkos::is_memory_space<
@@ -159,7 +147,7 @@ void check_valid_access_traits(Traits::PrimitivesTag, Primitives const &)
       "'memory_space' member type must be a valid Kokkos memory space");
 
   static_assert(is_detected<AccessTraitsSizeArchetypeExpression, Access>{},
-                "Traits::Access<Primitives,Traits::PrimitivesTag> must define "
+                "AccessTraits<Primitives,PrimitivesTag> must define "
                 "'size()' static member function");
   static_assert(
       std::is_integral<
@@ -167,17 +155,35 @@ void check_valid_access_traits(Traits::PrimitivesTag, Primitives const &)
       "size() static member function return type is not an integral type");
 
   static_assert(is_detected<AccessTraitsGetArchetypeExpression, Access>{},
-                "Traits::Access<Primitives,Traits::PrimitivesTag> must define "
+                "AccessTraits<Primitives,PrimitivesTag> must define "
                 "'get()' static member function");
   using T =
       std::decay_t<detected_t<AccessTraitsGetArchetypeExpression, Access>>;
-  static_assert(
-      std::is_same<T, Point>{} || std::is_same<T, Box>{},
-      "Traits::Access<Primitives,Traits::PrimitivesTag>::get() return type "
-      "must decay to Point or to Box");
+  static_assert(std::is_same<T, Point>{} || std::is_same<T, Box>{},
+                "AccessTraits<Primitives,PrimitivesTag>::get() return type "
+                "must decay to Point or to Box");
 }
 
 } // namespace Details
+
+namespace Traits
+{
+using ::ArborX::PredicatesTag;
+using ::ArborX::PrimitivesTag;
+template <typename T, typename Tag, typename Enable = void>
+struct Access
+{
+  using not_specialized = void;
+};
+} // namespace Traits
+template <typename T, typename Tag>
+struct AccessTraits<
+    T, Tag,
+    std::enable_if_t<!Details::is_detected<
+        AccessTraitsNotSpecializedArchetypeAlias, Traits::Access<T, Tag>>{}>>
+    : Traits::Access<T, Tag>
+{
+};
 } // namespace ArborX
 
 #endif

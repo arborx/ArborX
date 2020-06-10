@@ -62,8 +62,8 @@ struct InsertGenerator
   PermuteType _permute;
 
   using ValueType = typename OutputView::value_type;
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
-  using Tag = typename Traits::Helper<Access>::tag;
+  using Access = AccessTraits<Predicates, PredicatesTag>;
+  using Tag = typename AccessTraitsHelper<Access>::tag;
 
   template <typename U = PassTag, typename V = Tag>
   KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, FirstPassTag>{} &&
@@ -184,13 +184,12 @@ struct PermutedPredicates
 
 } // namespace Details
 
-namespace Traits
-{
 template <typename Predicates, typename Permute>
-struct Access<Details::PermutedPredicates<Predicates, Permute>, PredicatesTag>
+struct AccessTraits<Details::PermutedPredicates<Predicates, Permute>,
+                    PredicatesTag>
 {
   using PermutedPredicates = Details::PermutedPredicates<Predicates, Permute>;
-  using NativeAccess = Access<Predicates, PredicatesTag>;
+  using NativeAccess = AccessTraits<Predicates, PredicatesTag>;
 
   inline static std::size_t size(PermutedPredicates const &permuted_predicates)
   {
@@ -205,7 +204,6 @@ struct Access<Details::PermutedPredicates<Predicates, Permute>, PredicatesTag>
   }
   using memory_space = typename NativeAccess::memory_space;
 };
-} // namespace Traits
 
 namespace Details
 {
@@ -223,7 +221,7 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
 
   static_assert(Kokkos::is_execution_space<ExecutionSpace>{}, "");
 
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  using Access = AccessTraits<Predicates, PredicatesTag>;
   auto const n_queries = Access::size(predicates);
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass");

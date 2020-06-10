@@ -132,7 +132,7 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:spatial_queries");
 
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  using Access = AccessTraits<Predicates, PredicatesTag>;
   auto const n_queries = Access::size(predicates);
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:spatial_queries:init_and_alloc");
@@ -221,7 +221,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:nearest_queries");
 
-  using Access = Traits::Access<Predicates, Traits::PredicatesTag>;
+  using Access = AccessTraits<Predicates, Traits::PredicatesTag>;
   auto const n_queries = Access::size(predicates);
 
   bool const use_deprecated_nearest_query_algorithm =

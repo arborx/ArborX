@@ -31,10 +31,8 @@ struct NearestToOrigin
 
 namespace ArborX
 {
-namespace Traits
-{
 template <>
-struct Access<FirstOctant, PredicatesTag>
+struct AccessTraits<FirstOctant, PredicatesTag>
 {
   KOKKOS_FUNCTION static std::size_t size(FirstOctant) { return 1; }
   KOKKOS_FUNCTION static auto get(FirstOctant, std::size_t)
@@ -44,7 +42,7 @@ struct Access<FirstOctant, PredicatesTag>
   using memory_space = MemorySpace;
 };
 template <>
-struct Access<NearestToOrigin, PredicatesTag>
+struct AccessTraits<NearestToOrigin, PredicatesTag>
 {
   KOKKOS_FUNCTION static std::size_t size(NearestToOrigin) { return 1; }
   KOKKOS_FUNCTION static auto get(NearestToOrigin d, std::size_t)
@@ -53,7 +51,6 @@ struct Access<NearestToOrigin, PredicatesTag>
   }
   using memory_space = MemorySpace;
 };
-} // namespace Traits
 } // namespace ArborX
 
 struct PairIndexDistance
