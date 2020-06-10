@@ -20,24 +20,21 @@ struct SizeMemberFunctionNotStatic
 };
 namespace ArborX
 {
-namespace Traits
-{
 template <typename Tag>
-struct Access<EmptySpecialization, Tag>
+struct AccessTraits<EmptySpecialization, Tag>
 {
 };
 template <typename Tag>
-struct Access<InvalidMemorySpace, Tag>
+struct AccessTraits<InvalidMemorySpace, Tag>
 {
   using memory_space = void;
 };
 template <typename Tag>
-struct Access<SizeMemberFunctionNotStatic, Tag>
+struct AccessTraits<SizeMemberFunctionNotStatic, Tag>
 {
   using memory_space = Kokkos::HostSpace;
   int size(SizeMemberFunctionNotStatic) { return 255; }
 };
-} // namespace Traits
 } // namespace ArborX
 
 int main()

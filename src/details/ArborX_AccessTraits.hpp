@@ -29,9 +29,15 @@ struct PredicatesTag
 {
 };
 
-// Only a declaration so that existence of a specialization can be detected
 template <typename T, typename Tag, typename Enable = void>
-struct AccessTraits;
+struct AccessTraits
+{
+  using not_specialized = void; // tag to detect existence of a specialization
+};
+
+template <typename Traits>
+using AccessTraitsNotSpecializedArchetypeAlias =
+    typename Traits::not_specialized;
 
 template <typename View, typename Tag>
 struct AccessTraits<View, Tag,
@@ -83,8 +89,7 @@ template <typename Traits>
 using AccessTraitsGetArchetypeExpression = decltype(
     Traits::get(std::declval<first_template_parameter_t<Traits> const &>(), 0));
 
-template <typename Access,
-          typename = std::enable_if_t<Details::is_complete<Access>{}>>
+template <typename Access>
 struct Helper
 {
   // Deduce return type of get()
@@ -97,8 +102,9 @@ template <typename Predicates>
 void check_valid_access_traits(PredicatesTag, Predicates const &)
 {
   using Access = AccessTraits<Predicates, PredicatesTag>;
-  static_assert(is_complete<Access>{},
-                "Must specialize 'AccessTraits<Predicates,PredicatesTag>'");
+  static_assert(
+      !is_detected<AccessTraitsNotSpecializedArchetypeAlias, Access>{},
+      "Must specialize 'AccessTraits<Predicates,PredicatesTag>'");
 
   static_assert(is_detected<AccessTraitsMemorySpaceArchetypeAlias, Access>{},
                 "AccessTraits<Predicates,PredicatesTag> must define "
@@ -130,8 +136,9 @@ template <typename Primitives>
 void check_valid_access_traits(PrimitivesTag, Primitives const &)
 {
   using Access = AccessTraits<Primitives, PrimitivesTag>;
-  static_assert(is_complete<Access>{},
-                "Must specialize 'AccessTraits<Primitives,PrimitivesTag>'");
+  static_assert(
+      !is_detected<AccessTraitsNotSpecializedArchetypeAlias, Access>{},
+      "Must specialize 'AccessTraits<Primitives,PrimitivesTag>'");
 
   static_assert(is_detected<AccessTraitsMemorySpaceArchetypeAlias, Access>{},
                 "AccessTraits<Primitives,PrimitivesTag> must define "
@@ -166,11 +173,16 @@ namespace Traits
 using ::ArborX::PredicatesTag;
 using ::ArborX::PrimitivesTag;
 template <typename T, typename Tag, typename Enable = void>
-struct Access;
+struct Access
+{
+  using not_specialized = void;
+};
 } // namespace Traits
 template <typename T, typename Tag>
 struct AccessTraits<
-    T, Tag, std::enable_if_t<Details::is_complete<Traits::Access<T, Tag>>{}>>
+    T, Tag,
+    std::enable_if_t<!Details::is_detected<
+        AccessTraitsNotSpecializedArchetypeAlias, Traits::Access<T, Tag>>{}>>
     : Traits::Access<T, Tag>
 {
 };
