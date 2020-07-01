@@ -428,12 +428,18 @@ int main(int argc, char *argv[])
       throw std::runtime_error("CUDA backend not available!");
 #endif
 
-#if defined(KOKKOS_ENABLE_SERIAL)
+#ifdef KOKKOS_ENABLE_HIP
+    if (spec.backends == "all" || spec.backends == "hip")
+      register_benchmark<ArborX::BVH<Kokkos::Experimental::HIP::device_type>>(
+          "ArborX::BVH<HIP>", spec);
+#else
+    if (spec.backends == "hip")
+      throw std::runtime_error("HIP backend not available!");
+#endif
+
+#ifdef KOKKOS_ENABLE_SERIAL
     if (spec.backends == "all" || spec.backends == "rtree")
-    {
-      using BoostRTree = BoostExt::RTree<ArborX::Point>;
-      register_benchmark<BoostRTree>("BoostRTree", spec);
-    }
+      register_benchmark<BoostExt::RTree<ArborX::Point>>("BoostRTree", spec);
 #endif
   }
 

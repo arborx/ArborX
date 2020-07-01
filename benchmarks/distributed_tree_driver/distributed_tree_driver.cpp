@@ -498,7 +498,9 @@ int main(int argc, char *argv[])
   {
     std::string node;
     // NOTE Lame trick to get a valid default value
-#if defined(KOKKOS_ENABLE_CUDA)
+#if defined(KOKKOS_ENABLE_HIP)
+    node = "hip";
+#elif defined(KOKKOS_ENABLE_CUDA)
     node = "cuda";
 #elif defined(KOKKOS_ENABLE_OPENMP)
     node = "openmp";
@@ -528,7 +530,8 @@ int main(int argc, char *argv[])
       std::cout << desc << '\n';
     }
 
-    if (node != "serial" && node != "openmp" && node != "cuda")
+    if (node != "serial" && node != "openmp" && node != "cuda" &&
+        node != "threads" && node != "hip")
       throw std::runtime_error("Unrecognized node type: \"" + node + "\"");
 
     if (node == "serial")
@@ -565,6 +568,16 @@ int main(int argc, char *argv[])
       main_<Node>(pass_further, comm);
 #else
       throw std::runtime_error("CUDA node type is disabled");
+#endif
+    }
+    if (node == "hip")
+    {
+#ifdef KOKKOS_ENABLE_HIP
+      using Node = Kokkos::Device<Kokkos::Experimental::HIP,
+                                  Kokkos::Experimental::HIPSpace>;
+      main_<Node>(pass_further, comm);
+#else
+      throw std::runtime_error("HIP node type is disabled");
 #endif
     }
   }
