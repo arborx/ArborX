@@ -106,8 +106,8 @@ public:
   KOKKOS_INLINE_FUNCTION void popPush(Args &&... args)
   {
     assert(_c.size() > 0);
-    __bubbleDown(_c.data(), std::ptrdiff_t(0), std::ptrdiff_t(_c.size()),
-                 T{std::forward<Args>(args)...}, _compare);
+    bubbleDown(_c.data(), std::ptrdiff_t(0), std::ptrdiff_t(_c.size()),
+               T{std::forward<Args>(args)...}, _compare);
   }
 
   // Accessors that shouldn't be there but that are convenient in
