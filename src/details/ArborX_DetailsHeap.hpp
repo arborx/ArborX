@@ -39,9 +39,9 @@ KOKKOS_INLINE_FUNCTION bool isHeap(RandomIterator first, RandomIterator last,
 
 template <typename RandomIterator, typename DistanceType, typename ValueType,
           typename Compare>
-KOKKOS_INLINE_FUNCTION void __bubbleUp(RandomIterator first, DistanceType pos,
-                                       DistanceType top, ValueType val,
-                                       Compare comp)
+KOKKOS_INLINE_FUNCTION void bubbleUp(RandomIterator first, DistanceType pos,
+                                     DistanceType top, ValueType val,
+                                     Compare comp)
 {
   DistanceType parent = (pos - 1) / 2;
   while (pos > top && comp(*(first + parent), val))
@@ -63,16 +63,16 @@ KOKKOS_INLINE_FUNCTION void pushHeap(RandomIterator first, RandomIterator last,
   if (last - first > 1)
   {
     ValueType value = std::move(*(last - 1));
-    __bubbleUp(first, DistanceType((last - first) - 1), DistanceType(0),
-               std::move(value), comp);
+    bubbleUp(first, DistanceType((last - first) - 1), DistanceType(0),
+             std::move(value), comp);
   }
 }
 
 template <typename RandomIterator, typename DistanceType, typename ValueType,
           typename Compare>
-KOKKOS_INLINE_FUNCTION void __bubbleDown(RandomIterator first, DistanceType pos,
-                                         DistanceType len, ValueType val,
-                                         Compare comp)
+KOKKOS_INLINE_FUNCTION void bubbleDown(RandomIterator first, DistanceType pos,
+                                       DistanceType len, ValueType val,
+                                       Compare comp)
 {
   DistanceType child = 2 * pos + 1;
   // if right child exists and compares greater than left child
@@ -100,8 +100,8 @@ KOKKOS_INLINE_FUNCTION void popHeap(RandomIterator first, RandomIterator last,
   if (last - first > 1)
   {
     ValueType value = std::move(*first);
-    __bubbleDown(first, DistanceType(0), DistanceType((last - first) - 1),
-                 std::move(*(last - 1)), comp);
+    bubbleDown(first, DistanceType(0), DistanceType((last - first) - 1),
+               std::move(*(last - 1)), comp);
     *(last - 1) = std::move(value);
   }
 }
