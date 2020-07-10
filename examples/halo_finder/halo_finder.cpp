@@ -156,9 +156,14 @@ int main(int argc, char *argv[])
           for (int j = halos_offset(i); j < halos_offset(i + 1); j++)
           {
             auto const &halo_point = primitives(halos_indices(j));
-            halo_center[0] += halo_point[0] / halo_size;
-            halo_center[1] += halo_point[1] / halo_size;
-            halo_center[2] += halo_point[2] / halo_size;
+            // NOTE The explicit casts below are intended to silent warnings
+            // about narrowing conversion from 'int' to 'float'.  The potential
+            // issue is that 'float' can represent all integer values in the
+            // range [-2^23, 2^23] but 'int' can actually represent values in
+            // the range [-2^31, 2^31-1].
+            halo_center[0] += halo_point[0] / (float)halo_size;
+            halo_center[1] += halo_point[1] / (float)halo_size;
+            halo_center[2] += halo_point[2] / (float)halo_size;
           }
           halos_centers(i) = halo_center;
         });
