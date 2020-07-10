@@ -132,7 +132,7 @@ template <typename T, typename... P>
  *  \pre \c v is of rank 1 and not empty.
  */
 template <typename T, typename... P>
-typename Kokkos::ViewTraits<T, P...>::value_type
+typename Kokkos::ViewTraits<T, P...>::non_const_value_type
 lastElement(Kokkos::View<T, P...> const &v)
 {
   static_assert((unsigned(Kokkos::ViewTraits<T, P...>::rank) == unsigned(1)),
