@@ -184,7 +184,7 @@ KOKKOS_INLINE_FUNCTION
 void centroid(Box const &box, Point &c)
 {
   for (int d = 0; d < 3; ++d)
-    c[d] = 0.5 * (box.minCorner()[d] + box.maxCorner()[d]);
+    c[d] = (box.minCorner()[d] + box.maxCorner()[d]) / 2;
 }
 
 KOKKOS_INLINE_FUNCTION
@@ -201,7 +201,7 @@ Point returnCentroid(Box const &box)
 {
   Point c;
   for (int d = 0; d < 3; ++d)
-    c[d] = 0.5 * (box.minCorner()[d] + box.maxCorner()[d]);
+    c[d] = (box.minCorner()[d] + box.maxCorner()[d]) / 2;
   return c;
 }
 
