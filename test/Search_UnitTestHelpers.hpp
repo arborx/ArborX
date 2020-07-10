@@ -84,7 +84,7 @@ auto query(Tree const &tree, Queries const &queries)
 }
 
 #define ARBORX_TEST_QUERY_TREE(tree, queries, reference)                       \
-  BOOST_TEST(query(tree, queries) == reference,                                \
+  BOOST_TEST(query(tree, queries) == (reference),                              \
              boost::test_tools::per_element());
 
 template <typename Tree, typename Queries>
@@ -102,7 +102,7 @@ auto query_with_distance(Tree const &tree, Queries const &queries)
 }
 
 #define ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(tree, queries, reference)         \
-  BOOST_TEST(query_with_distance(tree, queries) == reference,                  \
+  BOOST_TEST(query_with_distance(tree, queries) == (reference),                \
              boost::test_tools::per_element());
 
 template <typename T1, typename T2>
