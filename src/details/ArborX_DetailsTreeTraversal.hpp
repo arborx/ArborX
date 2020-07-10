@@ -60,16 +60,11 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     }
     else
     {
-      Kokkos::parallel_for(ARBORX_MARK_REGION("BVH:spatial_queries"),
-                           Kokkos::RangePolicy<ExecutionSpace>(
-                               space, 0, Access::size(predicates)),
-                           *this);
-      // KokkosExt::DoNotTryThisAtHome::parallel_for(
-      //    ARBORX_MARK_REGION("BVH:spatial_queries"),
-      //    Kokkos::RangePolicy<ExecutionSpace>(space, 0,
-      //                                        Access::size(predicates)),
-      //    *this, KokkosExt::DoNotTryThisAtHome::BlockSize{128},
-      //    KokkosExt::DoNotTryThisAtHome::SharedMemSize{2 * 1024});
+      KokkosExt::DoNotTryThisAtHome::parallel_for(
+          ARBORX_MARK_REGION("BVH:spatial_queries"),
+          Kokkos::RangePolicy<ExecutionSpace>(space, 0,
+                                              Access::size(predicates)),
+          *this, KokkosExt::DoNotTryThisAtHome::Occupancy{25});
     }
   }
 
@@ -208,10 +203,11 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     {
       allocateBuffer(space);
 
-      Kokkos::parallel_for(ARBORX_MARK_REGION("BVH:nearest_queries"),
-                           Kokkos::RangePolicy<ExecutionSpace>(
-                               space, 0, Access::size(predicates)),
-                           *this);
+      KokkosExt::DoNotTryThisAtHome::parallel_for(
+          ARBORX_MARK_REGION("BVH:nearest_queries"),
+          Kokkos::RangePolicy<ExecutionSpace>(space, 0,
+                                              Access::size(predicates)),
+          *this, KokkosExt::DoNotTryThisAtHome::Occupancy{25});
     }
   }
 

@@ -13,6 +13,7 @@
 
 #include <Kokkos_Core.hpp>
 
+#include <cassert>
 #include <cfloat>  // DBL_MAX, DBL_EPSILON
 #include <cmath>   // isfinite, HUGE_VAL
 #include <cstdint> // uint32_t
@@ -171,6 +172,19 @@ struct epsilon<double>
 namespace DoNotTryThisAtHome
 {
 
+class Occupancy
+{
+  int const desired_occupancy_;
+
+public:
+  explicit constexpr Occupancy(int desired_occupancy) noexcept
+      : desired_occupancy_{desired_occupancy}
+  {
+    assert(0 <= desired_occupancy_ && desired_occupancy_ <= 100);
+  }
+  constexpr operator unsigned() const noexcept { return desired_occupancy_; }
+};
+
 class BlockSize
 {
   unsigned const size_;
@@ -204,7 +218,7 @@ inline std::enable_if_t<
                       FunctorType, ExecPolicy>::execution_space,
                   Kokkos::Cuda>{}>
 parallel_for(const std::string &str, const ExecPolicy &policy,
-             const FunctorType &functor, BlockSize, SharedMemSize)
+             const FunctorType &functor, Occupancy)
 {
   Kokkos::parallel_for(str, policy, functor);
 }
@@ -216,8 +230,7 @@ inline std::enable_if_t<
                      FunctorType, ExecPolicy>::execution_space,
                  Kokkos::Cuda>{}>
 parallel_for(const std::string &str, const ExecPolicy &policy,
-             const FunctorType &functor, BlockSize block_size,
-             SharedMemSize shmem)
+             const FunctorType &functor, Occupancy desired_occupancy)
 {
 #if defined(KOKKOS_ENABLE_PROFILING)
   uint64_t kpID = 0;
@@ -235,8 +248,8 @@ parallel_for(const std::string &str, const ExecPolicy &policy,
 #endif
 
   Kokkos::Impl::shared_allocation_tracking_disable();
-  ParallelFor<FunctorType, ExecPolicy> closure(functor, policy, block_size,
-                                               shmem);
+  ParallelFor<FunctorType, ExecPolicy> closure(functor, policy, BlockSize{128},
+                                               desired_occupancy);
   Kokkos::Impl::shared_allocation_tracking_enable();
 
   closure.execute();
@@ -263,7 +276,7 @@ private:
   FunctorType const m_functor;
   Policy const m_policy;
   BlockSize const m_block_size;
-  SharedMemSize const m_shmem;
+  Occupancy const m_desired_occupancy;
 
   ParallelFor() = delete;
   ParallelFor &operator=(const ParallelFor &) = delete;
@@ -304,6 +317,60 @@ public:
   {
     const typename Policy::index_type nwork = m_policy.end() - m_policy.begin();
 
+    auto const attributes = Kokkos::Impl::CudaParallelLaunch<
+        ParallelFor, LaunchBounds>::get_cuda_func_attributes();
+
+    auto const &properties = Kokkos::Cuda().cuda_device_prop();
+
+    // Assuming cudaFuncSetCacheConfig(MyKernel, cudaFuncCachePreferL1)
+    size_t const shmem_per_sm_prefer_l1 = [&properties]() {
+      int const compute_capability = properties.major * 10 + properties.minor;
+      switch (compute_capability)
+      {
+      case 30:
+      case 32:
+      case 35:
+        return 16;
+      case 37:
+        return 80;
+      case 50:
+      case 53:
+      case 60:
+      case 62:
+        return 64;
+      case 52:
+      case 61:
+        return 96;
+      case 70:
+      case 80:
+        return 8;
+      case 75:
+        return 32;
+      default:
+        Kokkos::Impl::throw_runtime_exception(
+            "Unknown device in cuda block size deduction");
+      }
+    }() * 1024;
+
+    // size_t const shmem_per_sm = properties.sharedMemPerMultiprocessor;
+    size_t const shmem_per_block = properties.sharedMemPerBlock;
+    size_t const static_shmem = attributes.sharedSizeBytes;
+    // int const carveout = attributes.preferredShmemCarveout;
+    // size_t const local_size = attributes.localSizeBytes;
+    // size_t const shared_size = attributes.sharedSizeBytes;
+    // printf("carveout %d  local_size %lu  shared_size%lu\n", carveout,
+    //       local_size, shared_size);
+    // printf("shmem_per_sm %lu  shmem_per_block %lu  static_shmem %lu\n",
+    //       shmem_per_sm, shmem_per_block, static_shmem);
+    int active_blocks = properties.maxThreadsPerMultiProcessor / m_block_size *
+                        m_desired_occupancy / 100;
+
+    size_t const dynamic_shmem =
+        shmem_per_sm_prefer_l1 / active_blocks - static_shmem;
+    // size_t const max_threads_per_sm = properties.maxThreadsPerMultiProcessor;
+    // printf("active_blocks %d  dynamic_shmem %lu  max_threads_per_sm  %lu\n",
+    //       active_blocks, dynamic_shmem, max_threads_per_sm);
+
     dim3 block(1, m_block_size, 1);
     dim3 grid(
         std::min(typename Policy::index_type((nwork + block.y - 1) / block.y),
@@ -312,16 +379,16 @@ public:
         1, 1);
 
     Kokkos::Impl::CudaParallelLaunch<ParallelFor, LaunchBounds>(
-        *this, grid, block, m_shmem,
+        *this, grid, block, dynamic_shmem,
         m_policy.space().impl_internal_space_instance(), false);
   }
 
   ParallelFor(FunctorType const &functor, Policy const &policy,
-              BlockSize block_size, SharedMemSize shmem)
+              BlockSize block_size, Occupancy desired_occupancy)
       : m_functor(functor)
       , m_policy(policy)
       , m_block_size{block_size}
-      , m_shmem{shmem}
+      , m_desired_occupancy{desired_occupancy}
   {
   }
 };
