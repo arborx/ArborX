@@ -161,9 +161,9 @@ int main(int argc, char *argv[])
             // issue is that 'float' can represent all integer values in the
             // range [-2^23, 2^23] but 'int' can actually represent values in
             // the range [-2^31, 2^31-1].
-            halo_center[0] += halo_point[0] / (float)halo_size;
-            halo_center[1] += halo_point[1] / (float)halo_size;
-            halo_center[2] += halo_point[2] / (float)halo_size;
+            halo_center[0] += halo_point[0] / static_cast<float>(halo_size);
+            halo_center[1] += halo_point[1] / static_cast<float>(halo_size);
+            halo_center[2] += halo_point[2] / static_cast<float>(halo_size);
           }
           halos_centers(i) = halo_center;
         });
