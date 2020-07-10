@@ -37,7 +37,8 @@ public:
 
   KOKKOS_INLINE_FUNCTION
   constexpr Point(Abomination data)
-      : Point(data.xyz[0], data.xyz[1], data.xyz[2])
+      : Point(static_cast<float>(data.xyz[0]), static_cast<float>(data.xyz[1]),
+              static_cast<float>(data.xyz[2]))
   {
   }
 
