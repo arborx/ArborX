@@ -978,9 +978,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
         {{x + 0.5 * Lx / (nx - 1), y + 0.5 * Ly / (ny - 1),
           z + 0.5 * Lz / (nz - 1)}}};
 
-    int i = std::round(x / Lx * (nx - 1));
-    int j = std::round(y / Ly * (ny - 1));
-    int k = std::round(z / Lz * (nz - 1));
+    auto const i = static_cast<int>(std::round(x / Lx * (nx - 1)));
+    auto const j = static_cast<int>(std::round(y / Ly * (ny - 1)));
+    auto const k = static_cast<int>(std::round(z / Lz * (nz - 1)));
     // Save the indices for the check
     ref[l] = {ind(i, j, k)};
   }

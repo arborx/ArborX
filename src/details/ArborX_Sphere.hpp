@@ -26,7 +26,7 @@ struct Sphere
   KOKKOS_INLINE_FUNCTION
   constexpr Sphere(Point const &centroid, double radius) // FIXME
       : _centroid(centroid)
-      , _radius(radius)
+      , _radius(static_cast<float>(radius))
   {
   }
 
