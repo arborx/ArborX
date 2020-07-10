@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 
   if (print_sizes_centers)
   {
-    int num_halos = halos_offset.size() - 1;
+    auto const num_halos = static_cast<int>(halos_offset.size()) - 1;
 
     Kokkos::View<ArborX::Point *, MemorySpace> halos_centers(
         Kokkos::ViewAllocateWithoutInitializing("centers"), num_halos);
