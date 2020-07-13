@@ -46,7 +46,7 @@ using space_vector_u = tensor_u<T, symmetry_type::generic, D>;
 template<typename T, size_t D>
 T
 distance(space_vector_u<T, D> const & a, space_vector_u<T, D> const & b) {
-  if constexpr(D == 1)
+  if(D == 1)
     return std::abs(a[0] - b[0]);
 
   T sum(0);
@@ -121,7 +121,7 @@ dot(const space_vector_u<T, D> & a, const space_vector_u<T, D> & b) {
 template<typename T, size_t D>
 T
 magnitude(const space_vector_u<T, D> & a) {
-  if constexpr(D == 1)
+  if(D == 1)
     return std::abs(a[0]);
 
   T sum(0);

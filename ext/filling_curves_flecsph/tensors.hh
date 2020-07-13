@@ -410,7 +410,7 @@ using are_type_u = and_<std::is_same<TARGETS, TARGET>...>;
   \tparam Ds..   Dimensions of the product vector space where the tensor is
                  acting
  */
-template<class T, symmetry_type ST, auto... Ds> // variadic recursion base
+template<class T, symmetry_type ST, int... Ds> // variadic recursion base
 struct tensor_u {
   static constexpr auto size() {
     return 1;
@@ -426,7 +426,7 @@ struct tensor_u {
   }
 };
 
-template<class T, symmetry_type ST, auto D, auto... Ds>
+template<class T, symmetry_type ST, int D, int... Ds>
 struct tensor_u<T, ST, D, Ds...> {
 
   //! Default constructor.
@@ -485,10 +485,10 @@ struct tensor_u<T, ST, D, Ds...> {
 
   // data size
   static constexpr auto size() {
-    if constexpr(ST == symmetry_type::generic)
+    if (ST == symmetry_type::generic)
       return D * tensor_u<T, ST, Ds...>::size();
 
-    if constexpr(ST == symmetry_type::symmetric)
+    if (ST == symmetry_type::symmetric)
       return pascal_number(D);
   }
 
@@ -496,7 +496,7 @@ struct tensor_u<T, ST, D, Ds...> {
   static constexpr auto RANK = 1 + tensor_u<T, ST, Ds...>::RANK;
 
   // tensor dimensions
-  static constexpr size_t DIM[RANK] = {D, Ds...};
+  static constexpr std::array<size_t, RANK>  DIM = {D, Ds...};
 
   // access flattened data via integer-type index
   constexpr decltype(auto) operator[](const size_t ind) {
@@ -521,24 +521,24 @@ struct tensor_u<T, ST, D, Ds...> {
     using namespace tensor_indices;
 
     // generic case: no symmetry
-    if constexpr(ST == symmetry_type::generic) {
-      if constexpr(D == 1) {
+    if (ST == symmetry_type::generic) {
+      if(D == 1) {
         assert(ind == 0);
         return data_[0];
       }
-      if constexpr(D == 2) {
+      if(D == 2) {
         constexpr int remap[] = {0, 2, -1, -1, 1, 3};
         assert(ind < 6);
         assert(remap[ind] >= 0);
         return data_[remap[ind]];
       }
-      if constexpr(D == 3) {
+      if(D == 3) {
         constexpr int remap[] = {0, 3, 6, -1, 1, 4, 7, -1, 2, 5, 8};
         assert(ind < 11);
         assert(remap[ind] >= 0);
         return data_[remap[ind]];
       }
-      if constexpr(D == 4) {
+      if(D == 4) {
         constexpr int remap[] = {
           0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15};
         return data_[remap[ind]];
@@ -546,24 +546,24 @@ struct tensor_u<T, ST, D, Ds...> {
     }
 
     // symmetric tensor of rank 2
-    if constexpr(ST == symmetry_type::symmetric) {
-      if constexpr(D == 1) {
+    if(ST == symmetry_type::symmetric) {
+      if(D == 1) {
         assert(ind == 0);
         return data_[0];
       }
-      if constexpr(D == 2) {
+      if(D == 2) {
         constexpr int remap[] = {0, 1, -1, -1, 1, 2};
         assert(ind < 6);
         assert(remap[ind] >= 0);
         return data_[remap[ind]];
       }
-      if constexpr(D == 3) {
+      if(D == 3) {
         constexpr int remap[] = {0, 1, 3, -1, 1, 2, 4, -1, 3, 4, 5};
         assert(ind < 11);
         assert(remap[ind] >= 0);
         return data_[remap[ind]];
       }
-      if constexpr(D == 4) {
+      if(D == 4) {
         constexpr int remap[] = {
           0, 1, 3, 6, 1, 2, 4, 7, 3, 4, 5, 8, 6, 7, 8, 9};
 
@@ -580,12 +580,12 @@ struct tensor_u<T, ST, D, Ds...> {
     using namespace tensor_indices;
 
     // generic case: no symmetry
-    if constexpr(ST == symmetry_type::generic) {
-      if constexpr(D == 1) {
+    if(ST == symmetry_type::generic) {
+      if(D == 1) {
         assert(ind == 0);
         return data_[0];
       }
-      if constexpr(D == 2) {
+      if(D == 2) {
         constexpr int remap[] = {0, 4, -1, -1, 2, 6, -1, -1, -1, -1, -1, -1, -1,
           -1, -1, -1,
 
@@ -594,7 +594,7 @@ struct tensor_u<T, ST, D, Ds...> {
         assert(remap[ind] >= 0);
         return data_[remap[ind]];
       }
-      if constexpr(D == 3) {
+      if(D == 3) {
         constexpr int remap[] = {0, 9, 18, -1, 3, 12, 21, -1, 6, 15, 24, -1, -1,
           -1, -1, -1,
 
@@ -605,7 +605,7 @@ struct tensor_u<T, ST, D, Ds...> {
         assert(remap[ind] >= 0);
         return data_[remap[ind]];
       }
-      if constexpr(D == 4) {
+      if(D == 4) {
         constexpr int remap[] = {0, 16, 32, 48, 4, 20, 36, 52, 8, 24, 40, 56,
           12, 28, 44, 60,
 
@@ -620,12 +620,12 @@ struct tensor_u<T, ST, D, Ds...> {
     }
 
     // symmetric tensor of rank 2
-    if constexpr(ST == symmetry_type::symmetric) {
-      if constexpr(D == 1) {
+    if(ST == symmetry_type::symmetric) {
+      if(D == 1) {
         assert(ind == 0);
         return data_[0];
       }
-      if constexpr(D == 2) {
+      if(D == 2) {
         constexpr int remap[] = {0, 1, -1, -1, 1, 2, -1, -1, -1, -1, -1, -1, -1,
           -1, -1, -1,
 
@@ -634,7 +634,7 @@ struct tensor_u<T, ST, D, Ds...> {
         assert(remap[ind] >= 0);
         return data_[remap[ind]];
       }
-      if constexpr(D == 3) {
+      if(D == 3) {
         constexpr int remap[] = {0, 1, 4, -1, 1, 2, 5, -1, 4, 5, 7, -1, -1, -1,
           -1, -1,
 
@@ -645,7 +645,7 @@ struct tensor_u<T, ST, D, Ds...> {
         assert(remap[ind] >= 0);
         return data_[remap[ind]];
       }
-      if constexpr(D == 4) {
+      if(D == 4) {
         constexpr int remap[] = {0, 1, 4, 10, 1, 2, 5, 11, 4, 5, 7, 13, 10, 11,
           13, 16,
 
@@ -669,12 +669,12 @@ struct tensor_u<T, ST, D, Ds...> {
     using namespace tensor_indices;
 
     // generic case: no symmetry
-    if constexpr(ST == symmetry_type::generic) {
-      if constexpr(D == 1) {
+    if(ST == symmetry_type::generic) {
+      if(D == 1) {
         assert(ind == 0);
         return data_[0];
       }
-      if constexpr(D == 2) {
+      if(D == 2) {
         constexpr int remap[] = {0, 8, -1, -1, 4, 12, -1, -1, -1, -1, -1, -1,
           -1, -1, -1, -1,
 
@@ -691,7 +691,7 @@ struct tensor_u<T, ST, D, Ds...> {
         assert(remap[ind] >= 0);
         return data_[remap[ind]];
       }
-      if constexpr(D == 3) {
+      if(D == 3) {
         constexpr int remap[] = {0, 27, 54, -1, 9, 36, 63, -1, 18, 45, 72, -1,
           -1, -1, -1, -1,
 
@@ -718,7 +718,7 @@ struct tensor_u<T, ST, D, Ds...> {
         assert(remap[ind] >= 0);
         return data_[remap[ind]];
       }
-      if constexpr(D == 4) {
+      if(D == 4) {
         constexpr int remap[] = {0, 64, 128, 192, 16, 80, 144, 208, 32, 96, 160,
           224, 48, 112, 176, 240,
 
@@ -772,12 +772,12 @@ struct tensor_u<T, ST, D, Ds...> {
     }
 
     // symmetric tensor of rank 2
-    if constexpr(ST == symmetry_type::symmetric) {
-      if constexpr(D == 1) {
+    if(ST == symmetry_type::symmetric) {
+      if(D == 1) {
         assert(ind == 0);
         return data_[0];
       }
-      if constexpr(D == 2) {
+      if(D == 2) {
         constexpr int remap[] = {0, 1, -1, -1, 1, 2, -1, -1, -1, -1, -1, -1, -1,
           -1, -1, -1,
 
@@ -794,7 +794,7 @@ struct tensor_u<T, ST, D, Ds...> {
         assert(remap[ind] >= 0);
         return data_[remap[ind]];
       }
-      if constexpr(D == 3) {
+      if(D == 3) {
         constexpr int remap[] = {0, 1, 5, -1, 1, 2, 6, -1, 5, 6, 9, -1, -1, -1,
           -1, -1,
 
@@ -821,7 +821,7 @@ struct tensor_u<T, ST, D, Ds...> {
         assert(remap[ind] >= 0);
         return data_[remap[ind]];
       }
-      if constexpr(D == 4) {
+      if(D == 4) {
         constexpr int remap[] = {0, 1, 5, 15, 1, 2, 6, 16, 5, 6, 9, 19, 15, 16,
           19, 25,
 
@@ -873,17 +873,17 @@ struct tensor_u<T, ST, D, Ds...> {
   // constexpr for compile-time eval
   template<class Ind, class... Inds>
   static constexpr auto multiindex(Ind && i, Inds &&... inds) {
-    if constexpr(ST == symmetry_type::generic)
+    if(ST == symmetry_type::generic)
       return D * tensor_u<T, ST, Ds...>::multiindex(inds...) + i;
 
-    if constexpr(ST == symmetry_type::symmetric) {
-      if constexpr(RANK == 2)
+    if(ST == symmetry_type::symmetric) {
+      if(RANK == 2)
         return symindx2(i, inds...);
 
-      if constexpr(RANK == 3)
+      if(RANK == 3)
         return symindx3(i, inds...);
 
-      if constexpr(RANK == 4)
+      if(RANK == 4)
         return symindx4(i, inds...);
     }
   }
@@ -1023,7 +1023,7 @@ private:
   \param a       first tensor
   \param b       second tensor
  */
-template<class T, symmetry_type ST, auto... Ds>
+template<class T, symmetry_type ST, int... Ds>
 tensor_u<T, ST, Ds...>
 operator+(const tensor_u<T, ST, Ds...> & a, const tensor_u<T, ST, Ds...> & b) {
   tensor_u<T, ST, Ds...> tmp(a);
@@ -1042,7 +1042,7 @@ operator+(const tensor_u<T, ST, Ds...> & a, const tensor_u<T, ST, Ds...> & b) {
   \param a       first tensor
   \param b       second tensor
  */
-template<class T, symmetry_type ST, auto... Ds>
+template<class T, symmetry_type ST, int... Ds>
 tensor_u<T, ST, Ds...>
 operator-(const tensor_u<T, ST, Ds...> & a, const tensor_u<T, ST, Ds...> & b) {
   tensor_u<T, ST, Ds...> tmp(a);
@@ -1061,11 +1061,11 @@ operator-(const tensor_u<T, ST, Ds...> & a, const tensor_u<T, ST, Ds...> & b) {
   \param stream  The output stream.
   \param a       The tensor to output
  */
-template<class T, symmetry_type ST, auto... Ds>
+template<class T, symmetry_type ST, int... Ds>
 std::ostream &
 operator<<(std::ostream & stream, tensor_u<T, ST, Ds...> const & a) {
   using tensor = tensor_u<T, ST, Ds...>;
-  if constexpr(tensor::RANK == 0) {
+  if(tensor::RANK == 0) {
     stream << "[]";
   }
   else {
@@ -1089,7 +1089,7 @@ operator<<(std::ostream & stream, tensor_u<T, ST, Ds...> const & a) {
   \param X       Tensor
   \param a       scalar
  */
-template<class T, symmetry_type ST, auto... Ds>
+template<class T, symmetry_type ST, int... Ds>
 tensor_u<T, ST, Ds...> operator*(const tensor_u<T, ST, Ds...> & X,
   const T & a) {
   tensor_u<T, ST, Ds...> tmp(X);
@@ -1097,7 +1097,7 @@ tensor_u<T, ST, Ds...> operator*(const tensor_u<T, ST, Ds...> & X,
   return tmp;
 } // operator *
 
-template<class T, symmetry_type ST, auto... Ds>
+template<class T, symmetry_type ST, int... Ds>
 tensor_u<T, ST, Ds...> operator*(const T & a,
   const tensor_u<T, ST, Ds...> & X) {
   tensor_u<T, ST, Ds...> tmp(X);
@@ -1116,7 +1116,7 @@ tensor_u<T, ST, Ds...> operator*(const T & a,
   \param X       Tensor
   \param a       scalar
  */
-template<class T, symmetry_type ST, auto... Ds>
+template<class T, symmetry_type ST, int... Ds>
 tensor_u<T, ST, Ds...>
 operator/(const tensor_u<T, ST, Ds...> & X, const T & a) {
   tensor_u<T, ST, Ds...> tmp(X);
@@ -1135,7 +1135,7 @@ operator/(const tensor_u<T, ST, Ds...> & X, const T & a) {
   \param a       Tensor A
   \param b       Tensor B
  */
-template<class T, symmetry_type ST, auto... Ds>
+template<class T, symmetry_type ST, int... Ds>
 bool
 operator==(const tensor_u<T, ST, Ds...> & a, const tensor_u<T, ST, Ds...> & b) {
   for(size_t i = 0; i < tensor_u<T, ST, Ds...>::size(); ++i)
@@ -1155,7 +1155,7 @@ operator==(const tensor_u<T, ST, Ds...> & a, const tensor_u<T, ST, Ds...> & b) {
   \param a       Tensor A
   \param b       Tensor B
  */
-template<class T, symmetry_type ST, auto... Ds>
+template<class T, symmetry_type ST, int... Ds>
 bool
 operator!=(const tensor_u<T, ST, Ds...> & a, const tensor_u<T, ST, Ds...> & b) {
   //bool answer = false;

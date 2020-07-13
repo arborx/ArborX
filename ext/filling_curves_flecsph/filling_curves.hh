@@ -283,11 +283,11 @@ public:
       for(size_t j = 0; j < dimension; ++j) {
         bits[j] = (s & coords[j]) > 0;
       }
-      if constexpr (dimension == 2) {
+      if (dimension == 2) {
         value_ += s * s * ((3 * bits[0]) ^ bits[1]);
         rotation2d(s, coords, bits);
       }
-      if constexpr (dimension == 3) {
+      if (dimension == 3) {
         value_ += s * s * s * ((7 * bits[0]) ^ (3 * bits[1]) ^ bits[2]);
         rotation3d(s, coords, bits);
       }
@@ -305,7 +305,7 @@ public:
     int_t n = int_t(1) << (max_depth_); // Number of cells to an edge.
     for(int_t mask = int_t(1); mask < n; mask <<= 1) {
       std::array<int_t, dimension> bits = {};
-      if constexpr (dimension == 3) {
+      if (dimension == 3) {
         bits[0] = (key & 4) > 0;
         bits[1] = ((key & 2) ^ bits[0]) > 0;
         bits[2] = ((key & 1) ^ bits[0] ^ bits[1]) > 0;
@@ -314,7 +314,7 @@ public:
         coords[1] += bits[1] * mask;
         coords[2] += bits[2] * mask;
       }
-      if constexpr (dimension == 2) {
+      if (dimension == 2) {
         bits[0] = (key & 2) > 0;
         bits[1] = ((key & 1) ^ bits[0]) > 0;
         rotation2d(mask, coords, bits);
