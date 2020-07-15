@@ -67,8 +67,8 @@ unsigned int flecsi_hilbert_proj(Box const &b, Point const &p)
   using range_t = std::array<point_t, 2>;
   auto a2f = [](Point const &x) -> point_t { return {x[0], x[1], x[2]}; };
   range_t range = {a2f(b.minCorner()), a2f(b.maxCorner())};
-  // return flecsi::morton_curve_u<3, uint32_t>{range, a2f(p)}.value();
-  return flecsi::hilbert_curve_u<3, uint32_t>{range, a2f(p)}.value();
+  return flecsi::morton_curve_u<3, uint32_t>{range, a2f(p)}.value();
+  //return flecsi::hilbert_curve_u<3, uint32_t>{range, a2f(p)}.value();
 #else
   Point xyz;
   translateAndScale(p, xyz, b);
