@@ -282,6 +282,8 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     float node_distance = 0.f;
     do
     {
+      if (!node->isLeaf())
+        ++(node->counter());
       if (node_distance < radius)
       {
         if (node->isLeaf())

@@ -25,14 +25,14 @@ namespace Details
 struct Node
 {
   KOKKOS_DEFAULTED_FUNCTION
-  constexpr Node() = default;
+  Node() = default;
 
-  KOKKOS_INLINE_FUNCTION constexpr bool isLeaf() const noexcept
+  KOKKOS_INLINE_FUNCTION bool isLeaf() const noexcept
   {
     return children.first == -1;
   }
 
-  KOKKOS_INLINE_FUNCTION constexpr std::size_t getLeafPermutationIndex() const
+  KOKKOS_INLINE_FUNCTION std::size_t getLeafPermutationIndex() const
       noexcept
   {
     assert(isLeaf());
@@ -41,9 +41,10 @@ struct Node
 
   Kokkos::pair<int, int> children = {-1, -1};
   Box bounding_box;
+  Kokkos::View<int, Kokkos::MemoryTraits<Kokkos::Atomic>> counter;
 };
 
-KOKKOS_INLINE_FUNCTION constexpr Node
+KOKKOS_INLINE_FUNCTION Node
 makeLeafNode(std::size_t permutation_index, Box box) noexcept
 {
   return {{-1, static_cast<int>(permutation_index)}, std::move(box)};
