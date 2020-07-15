@@ -243,9 +243,11 @@ public:
     ARBORX_ASSERT(num_packets * _src_offsets.back() == imports.size());
     ARBORX_ASSERT(num_packets * _dest_offsets.back() == exports.size());
 
-    using ValueType = typename ExportView::value_type;
+    using ValueType = typename ImportView::value_type;
     static_assert(
-        std::is_same<ValueType, typename ImportView::value_type>::value, "");
+        std::is_same<ValueType,
+                     std::remove_cv_t<typename ExportView::value_type>>::value,
+        "");
     static_assert(ExportView::rank == 1, "");
     static_assert(ImportView::rank == 1, "");
 
@@ -279,9 +281,13 @@ public:
                             std::pair<unsigned int, unsigned int>(
                                 permute_size * i, permute_size * (i + 1))));
     }
+    Kokkos::View<ValueType *, typename ExportView::traits::device_type,
+                 Kokkos::MemoryTraits<Kokkos::Unmanaged>>
+        unmanaged_dest_buffer(dest_buffer.data(), dest_buffer.size());
+
     auto dest_buffer_mirror = Kokkos::create_mirror_view_and_copy(
         typename ImportView::memory_space(),
-        permutation_necessary ? dest_buffer : exports);
+        permutation_necessary ? unmanaged_dest_buffer : exports);
 
     int comm_rank;
     MPI_Comm_rank(_comm, &comm_rank);
