@@ -41,13 +41,13 @@ struct Node
 
   Kokkos::pair<int, int> children = {-1, -1};
   Box bounding_box;
-  Kokkos::View<int, Kokkos::MemoryTraits<Kokkos::Atomic>> counter;
+  mutable int counter = 0;
 };
 
 KOKKOS_INLINE_FUNCTION Node
 makeLeafNode(std::size_t permutation_index, Box box) noexcept
 {
-  return {{-1, static_cast<int>(permutation_index)}, std::move(box)};
+  return {{-1, static_cast<int>(permutation_index)}, std::move(box), 0};
 }
 } // namespace Details
 } // namespace ArborX
