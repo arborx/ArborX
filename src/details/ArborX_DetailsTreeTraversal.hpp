@@ -282,8 +282,10 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     float node_distance = 0.f;
     do
     {
+#ifdef __CUDA_ARCH__
       if (!node->isLeaf())
         Kokkos::atomic_add(&(node->counter), 1);
+#endif
       if (node_distance < radius)
       {
         if (node->isLeaf())
