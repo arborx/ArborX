@@ -179,6 +179,41 @@ void BM_construction(benchmark::State &state, Spec const &spec)
 }
 
 template <class TreeType>
+void print_internal_nodes(TreeType const& index)
+{
+  using DeviceType = typename TreeType::device_type;
+
+ Kokkos::View<int, DeviceType> n_internal_nodes("n_internal_nodes");
+  Kokkos::parallel_for("count_internal_nodes",
+    Kokkos::RangePolicy<typename DeviceType::execution_space>(0,1),
+    KOKKOS_LAMBDA (int)
+    {
+      ArborX::Details::Stack<ArborX::Details::Node const *> stack;
+      stack.emplace(index.getRoot());
+
+      while (!stack.empty())
+      {
+        ArborX::Details::Node const *node = stack.top();
+        stack.pop();
+
+        if (!node->isLeaf())
+        {
+          n_internal_nodes() += node->counter;
+          // Insert children into the stack and make sure that the
+          // closest one ends on top.
+          ArborX::Details::Node const *left_child = index.getNodePtr(node->children.first);
+          ArborX::Details::Node const *right_child = index.getNodePtr(node->children.second);
+          stack.emplace(right_child);
+          stack.emplace(left_child);
+        }
+      }
+    });
+  int n_host_nodes = 0;
+  Kokkos::deep_copy(n_host_nodes, n_internal_nodes);
+  std::cout << "n_internal_nodes: " << n_host_nodes << std::endl;
+}
+
+template <class TreeType>
 void BM_knn_search(benchmark::State &state, Spec const &spec)
 {
   using DeviceType = typename TreeType::device_type;
@@ -207,7 +242,11 @@ void BM_knn_search(benchmark::State &state, Spec const &spec)
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
   }
+
+  print_internal_nodes(index);
 }
+
+
 
 template <class TreeType>
 void BM_radius_search(benchmark::State &state, Spec const &spec)

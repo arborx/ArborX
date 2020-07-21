@@ -78,13 +78,23 @@ public:
         std::forward<View>(view), std::forward<Args>(args)...);
   }
 
+  using Node = Details::Node;
+
+  KOKKOS_FUNCTION
+  Node const *getRoot() const { return _internal_and_leaf_nodes.data(); }
+
+  KOKKOS_FUNCTION
+  Node *getRoot() { return _internal_and_leaf_nodes.data(); }
+
+  KOKKOS_FUNCTION
+  Node const *getNodePtr(int i) const { return &_internal_and_leaf_nodes(i); }
+
 private:
   template <typename BVH, typename Predicates, typename Callback,
             typename /*Enable*/>
   friend struct Details::TreeTraversal;
   template <typename DeviceType>
   friend struct Details::TreeVisualization;
-  using Node = Details::Node;
 
   Kokkos::View<Node *, MemorySpace> getInternalNodes()
   {
@@ -99,15 +109,6 @@ private:
     return Kokkos::subview(_internal_and_leaf_nodes,
                            std::make_pair(size() - 1, 2 * size() - 1));
   }
-
-  KOKKOS_FUNCTION
-  Node const *getRoot() const { return _internal_and_leaf_nodes.data(); }
-
-  KOKKOS_FUNCTION
-  Node *getRoot() { return _internal_and_leaf_nodes.data(); }
-
-  KOKKOS_FUNCTION
-  Node const *getNodePtr(int i) const { return &_internal_and_leaf_nodes(i); }
 
   KOKKOS_FUNCTION
   bounding_volume_type const &getBoundingVolume(Node const *node) const
@@ -157,7 +158,7 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
     ExecutionSpace const &space, Primitives const &primitives)
     : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
     , _internal_and_leaf_nodes(
-          Kokkos::ViewAllocateWithoutInitializing("internal_and_leaf_nodes"),
+          /*Kokkos::ViewAllocateWithoutInitializing(*/"internal_and_leaf_nodes"/*)*/,
           _size > 0 ? 2 * _size - 1 : 0)
 {
   Kokkos::Profiling::pushRegion("ArborX:BVH:construction");
