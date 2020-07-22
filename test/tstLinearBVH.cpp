@@ -37,7 +37,7 @@ struct TreeTypeTraits<std::tuple<DeviceTypes...>>
 
 using TreeTypes = typename TreeTypeTraits<ARBORX_DEVICE_TYPES>::type;
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, Tree, TreeTypes)
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_empty_tree, Tree, TreeTypes)
 {
   using device_type = typename Tree::device_type;
   // tree is empty, it has no leaves.
@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, Tree, TreeTypes)
   }
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, Tree, TreeTypes)
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_single_leaf_tree, Tree, TreeTypes)
 {
   using device_type = typename Tree::device_type;
   // tree has a single leaf (unit box)
@@ -178,7 +178,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, Tree, TreeTypes)
                                                           {0, 1, 2, 3}));
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, Tree, TreeTypes)
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_couple_leaves_tree, Tree, TreeTypes)
 {
   using device_type = typename Tree::device_type;
 

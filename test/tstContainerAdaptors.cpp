@@ -18,7 +18,7 @@ using namespace ArborX::Details;
 
 BOOST_AUTO_TEST_SUITE(ContainerAdaptors)
 
-BOOST_AUTO_TEST_CASE(stack)
+BOOST_AUTO_TEST_CASE(test_stack)
 {
   // stack is empty at construction
   Stack<int> stack;
