@@ -41,57 +41,55 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, Tree, TreeTypes)
 {
   using device_type = typename Tree::device_type;
   // tree is empty, it has no leaves.
-  for (auto const &empty_tree : {
+  for (auto const &tree : {
            Tree{},         // default constructed
            make<Tree>({}), // constructed with empty view of boxes
        })
   {
-    BOOST_TEST(empty_tree.empty());
-    BOOST_TEST(empty_tree.size() == 0);
+    BOOST_TEST(tree.empty());
+    BOOST_TEST(tree.size() == 0);
     // Tree::bounds() returns an invalid box when the tree is empty.
-    BOOST_TEST(ArborX::Details::equals(empty_tree.bounds(), {}));
+    BOOST_TEST(ArborX::Details::equals(tree.bounds(), {}));
 
     // Passing a view with no query does seem a bit silly but we still need
     // to support it. And since the tag dispatching yields different tree
     // traversals for nearest and spatial predicates, we do have to check
     // the results for various type of queries.
-    ARBORX_TEST_QUERY_TREE(empty_tree,
-                           makeIntersectsBoxQueries<device_type>({}),
+    ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<device_type>({}),
                            make_reference_solution<int>({}, {0}));
 
     // NOTE: Admittedly testing for both intersection with a box and with a
     // sphere queries might be a bit overkill but I'd rather test for all the
     // queries we plan on using.
-    ARBORX_TEST_QUERY_TREE(empty_tree,
-                           makeIntersectsSphereQueries<device_type>({}),
+    ARBORX_TEST_QUERY_TREE(tree, makeIntersectsSphereQueries<device_type>({}),
                            make_reference_solution<int>({}, {0}));
 
-    ARBORX_TEST_QUERY_TREE(empty_tree, makeNearestQueries<device_type>({}),
+    ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<device_type>({}),
                            make_reference_solution<int>({}, {0}));
 
     // Passing an empty distance vector.
     ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-        empty_tree, makeNearestQueries<device_type>({}),
+        tree, makeNearestQueries<device_type>({}),
         (make_reference_solution<Kokkos::pair<int, float>>)({}, {0}));
 
     // Now passing a couple queries of various type and checking the
     // results.
     ARBORX_TEST_QUERY_TREE(
-        empty_tree,
+        tree,
         makeIntersectsBoxQueries<device_type>({
             {}, // Did not bother giving a valid box here but that's fine.
             {},
         }),
         make_reference_solution<int>({}, {0, 0, 0}));
 
-    ARBORX_TEST_QUERY_TREE(empty_tree,
+    ARBORX_TEST_QUERY_TREE(tree,
                            makeIntersectsSphereQueries<device_type>({
                                {{{0., 0., 0.}}, 1.},
                                {{{1., 1., 1.}}, 2.},
                            }),
                            make_reference_solution<int>({}, {0, 0, 0}));
 
-    ARBORX_TEST_QUERY_TREE(empty_tree,
+    ARBORX_TEST_QUERY_TREE(tree,
                            makeNearestQueries<device_type>({
                                {{{0., 0., 0.}}, 1},
                                {{{1., 1., 1.}}, 2},
@@ -99,7 +97,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, Tree, TreeTypes)
                            make_reference_solution<int>({}, {0, 0, 0}));
 
     ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-        empty_tree,
+        tree,
         makeNearestQueries<device_type>({
             {{{0., 0., 0.}}, 1},
             {{{1., 1., 1.}}, 2},
@@ -112,44 +110,42 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, Tree, TreeTypes)
 {
   using device_type = typename Tree::device_type;
   // tree has a single leaf (unit box)
-  auto const single_leaf_tree = make<Tree>({
+  auto const tree = make<Tree>({
       {{{0., 0., 0.}}, {{1., 1., 1.}}},
   });
 
-  BOOST_TEST(!single_leaf_tree.empty());
-  BOOST_TEST(single_leaf_tree.size() == 1);
-  BOOST_TEST(ArborX::Details::equals(single_leaf_tree.bounds(),
-                                     {{{0., 0., 0.}}, {{1., 1., 1.}}}));
+  BOOST_TEST(!tree.empty());
+  BOOST_TEST(tree.size() == 1);
+  BOOST_TEST(
+      ArborX::Details::equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
-  ARBORX_TEST_QUERY_TREE(single_leaf_tree,
-                         makeIntersectsBoxQueries<device_type>({}),
+  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<device_type>({}),
                          make_reference_solution<int>({}, {0}));
 
-  ARBORX_TEST_QUERY_TREE(single_leaf_tree,
-                         makeIntersectsSphereQueries<device_type>({}),
+  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsSphereQueries<device_type>({}),
                          make_reference_solution<int>({}, {0}));
 
-  ARBORX_TEST_QUERY_TREE(single_leaf_tree, makeNearestQueries<device_type>({}),
+  ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<device_type>({}),
                          make_reference_solution<int>({}, {0}));
 
   ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-      single_leaf_tree, makeNearestQueries<device_type>({}),
+      tree, makeNearestQueries<device_type>({}),
       (make_reference_solution<Kokkos::pair<int, float>>)({}, {0}));
 
   ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-      single_leaf_tree,
+      tree,
       makeNearestQueries<device_type>({{{0., 0., 0.}, 3}, {{4., 5., 1.}, 1}}),
       (make_reference_solution<Kokkos::pair<int, float>>)({{0, 0.}, {0, 5.}},
                                                           {0, 1, 2}));
 
-  ARBORX_TEST_QUERY_TREE(single_leaf_tree,
+  ARBORX_TEST_QUERY_TREE(tree,
                          makeIntersectsBoxQueries<device_type>({
                              {{{5., 5., 5.}}, {{5., 5., 5.}}},
                              {{{.5, .5, .5}}, {{.5, .5, .5}}},
                          }),
                          make_reference_solution<int>({0}, {0, 0, 1}));
 
-  ARBORX_TEST_QUERY_TREE(single_leaf_tree,
+  ARBORX_TEST_QUERY_TREE(tree,
                          makeIntersectsSphereQueries<device_type>({
                              {{{0., 0., 0.}}, 1.},
                              {{{1., 1., 1.}}, 3.},
@@ -157,7 +153,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, Tree, TreeTypes)
                          }),
                          make_reference_solution<int>({0, 0}, {0, 1, 2, 2}));
 
-  ARBORX_TEST_QUERY_TREE(single_leaf_tree,
+  ARBORX_TEST_QUERY_TREE(tree,
                          makeNearestQueries<device_type>({
                              {{{0., 0., 0.}}, 1},
                              {{{1., 1., 1.}}, 2},
@@ -166,7 +162,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, Tree, TreeTypes)
                          make_reference_solution<int>({0, 0, 0}, {0, 1, 2, 3}));
 
   ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-      single_leaf_tree,
+      tree,
       makeNearestQueries<device_type>({
           {{{1., 0., 0.}}, 1},
           {{{0., 2., 0.}}, 2},
@@ -182,39 +178,39 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, Tree, TreeTypes)
 {
   using device_type = typename Tree::device_type;
 
-  auto const couple_leaves_tree = make<Tree>({
+  auto const tree = make<Tree>({
       {{{0., 0., 0.}}, {{0., 0., 0.}}},
       {{{1., 1., 1.}}, {{1., 1., 1.}}},
   });
 
-  BOOST_TEST(!couple_leaves_tree.empty());
-  BOOST_TEST(couple_leaves_tree.size() == 2);
-  BOOST_TEST(ArborX::Details::equals(couple_leaves_tree.bounds(),
-                                     {{{0., 0., 0.}}, {{1., 1., 1.}}}));
+  BOOST_TEST(!tree.empty());
+  BOOST_TEST(tree.size() == 2);
+  BOOST_TEST(
+      ArborX::Details::equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   // single query intersects with nothing
-  ARBORX_TEST_QUERY_TREE(couple_leaves_tree,
+  ARBORX_TEST_QUERY_TREE(tree,
                          makeIntersectsBoxQueries<device_type>({
                              {},
                          }),
                          make_reference_solution<int>({}, {0, 0}));
 
   // single query intersects with both
-  ARBORX_TEST_QUERY_TREE(couple_leaves_tree,
+  ARBORX_TEST_QUERY_TREE(tree,
                          makeIntersectsBoxQueries<device_type>({
                              {{{0., 0., 0.}}, {{1., 1., 1.}}},
                          }),
                          make_reference_solution<int>({1, 0}, {0, 2}));
 
   // single query intersects with only one
-  ARBORX_TEST_QUERY_TREE(couple_leaves_tree,
+  ARBORX_TEST_QUERY_TREE(tree,
                          makeIntersectsBoxQueries<device_type>({
                              {{{0.5, 0.5, 0.5}}, {{1.5, 1.5, 1.5}}},
                          }),
                          make_reference_solution<int>({1}, {0, 1}));
 
   // a couple queries both intersect with nothing
-  ARBORX_TEST_QUERY_TREE(couple_leaves_tree,
+  ARBORX_TEST_QUERY_TREE(tree,
                          makeIntersectsBoxQueries<device_type>({
                              {},
                              {},
@@ -222,7 +218,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, Tree, TreeTypes)
                          make_reference_solution<int>({}, {0, 0, 0}));
 
   // a couple queries first intersects with nothing second with only one
-  ARBORX_TEST_QUERY_TREE(couple_leaves_tree,
+  ARBORX_TEST_QUERY_TREE(tree,
                          makeIntersectsBoxQueries<device_type>({
                              {},
                              {{{0., 0., 0.}}, {{0., 0., 0.}}},
@@ -230,12 +226,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, Tree, TreeTypes)
                          make_reference_solution<int>({0}, {0, 0, 1}));
 
   // no query
-  ARBORX_TEST_QUERY_TREE(couple_leaves_tree,
-                         makeIntersectsBoxQueries<device_type>({}),
+  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<device_type>({}),
                          make_reference_solution<int>({}, {0}));
 
   ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-      couple_leaves_tree,
+      tree,
       makeNearestQueries<device_type>({
           {{{0., 0., 0.}}, 2},
           {{{1., 0., 0.}}, 4},
