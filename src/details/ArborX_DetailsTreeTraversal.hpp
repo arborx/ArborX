@@ -91,6 +91,11 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     Node const *node = bvh_.getRoot();
     do
     {
+#ifdef __CUDA_ARCH__
+      if (!node->isLeaf() && threadIdx.x==0 && threadIdx.y==0 && threadIdx.z==0)
+        Kokkos::atomic_add(&(node->counter), 1);
+#endif
+
       Node const *child_left = bvh_.getNodePtr(node->children.first);
       Node const *child_right = bvh_.getNodePtr(node->children.second);
 

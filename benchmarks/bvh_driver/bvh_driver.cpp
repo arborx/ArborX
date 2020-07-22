@@ -198,7 +198,8 @@ void print_internal_nodes(TreeType const& index)
 
         if (!node->isLeaf())
         {
-          if (node->counter>0) ++(n_internal_nodes());// += node->counter;
+          // if (node->counter>0) ++(n_internal_nodes());
+	  n_internal_nodes() += node->counter;
           // Insert children into the stack and make sure that the
           // closest one ends on top.
           ArborX::Details::Node const *left_child = index.getNodePtr(node->children.first);
