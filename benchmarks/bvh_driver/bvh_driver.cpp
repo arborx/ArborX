@@ -198,7 +198,7 @@ void print_internal_nodes(TreeType const& index)
 
         if (!node->isLeaf())
         {
-          n_internal_nodes() += node->counter;
+          if (node->counter>0) ++(n_internal_nodes());// += node->counter;
           // Insert children into the stack and make sure that the
           // closest one ends on top.
           ArborX::Details::Node const *left_child = index.getNodePtr(node->children.first);
@@ -278,6 +278,8 @@ void BM_radius_search(benchmark::State &state, Spec const &spec)
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
   }
+
+  print_internal_nodes(index);
 }
 
 class KokkosScopeGuard
