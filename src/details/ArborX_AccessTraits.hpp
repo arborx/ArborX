@@ -62,7 +62,7 @@ struct AccessTraits<
   // Returns by value
   KOKKOS_FUNCTION static Point get(View const &v, int i)
   {
-    return {v(i, 0), v(i, 1), v(i, 2)};
+    return {{v(i, 0), v(i, 1), v(i, 2)}};
   }
 
   static typename View::size_type size(View const &v) { return v.extent(0); }
