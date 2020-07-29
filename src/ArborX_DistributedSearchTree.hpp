@@ -42,7 +42,16 @@ public:
   DistributedSearchTree(MPI_Comm comm, ExecutionSpace const &space,
                         Primitives const &primitives);
 
-  ~DistributedSearchTree() { MPI_Comm_free(&_comm); }
+  ~DistributedSearchTree()
+  {
+    int mpi_is_finalized;
+    MPI_Finalized(&mpi_is_finalized);
+    if (!mpi_is_finalized)
+    {
+      MPI_Comm_free(&_comm);
+    }
+    _comm = MPI_COMM_NULL;
+  }
 
   /** Returns the smallest axis-aligned box able to contain all the objects
    *  stored in the tree or an invalid box if the tree is empty.
