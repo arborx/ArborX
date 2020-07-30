@@ -27,9 +27,6 @@
 namespace ArborX
 {
 
-template <typename DeviceType, typename Enable>
-class DistributedSearchTree;
-
 namespace Details
 {
 
