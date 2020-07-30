@@ -1,6 +1,6 @@
 if(Kokkos_ENABLE_SERIAL)
   add_executable(ArborX_TreeViz.exe tree_visualization.cpp)
-  target_link_libraries(ArborX_TreeViz.exe ${ArborX_TARGET} Boost::program_options)
+  target_link_libraries(ArborX_TreeViz.exe ArborX::ArborX Boost::program_options)
   add_test(NAME ArborX_TreeViz_Example COMMAND ./ArborX_TreeViz.exe)
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/leaf_cloud.txt ${CMAKE_CURRENT_BINARY_DIR}/leaf_cloud.txt COPYONLY)
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/arborx_query_sort.py ${CMAKE_CURRENT_BINARY_DIR}/arborx_query_sort.py COPYONLY)
