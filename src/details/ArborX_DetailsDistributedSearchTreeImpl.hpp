@@ -49,15 +49,15 @@ template <typename DeviceType>
 struct DistributedSearchTreeImpl
 {
   // spatial queries
-  template <typename ExecutionSpace, typename Predicates>
-  static void
+  template <typename ExecutionSpace, typename Predicates, typename Indices,
+            typename Offset, typename Ranks>
+  static std::enable_if_t<Kokkos::is_view<Indices>{} &&
+                          Kokkos::is_view<Offset>{} && Kokkos::is_view<Ranks>{}>
   queryDispatch(SpatialPredicateTag,
                 DistributedSearchTree<typename DeviceType::memory_space,
                                       void> const &tree,
                 ExecutionSpace const &space, Predicates const &queries,
-                Kokkos::View<int *, DeviceType> &indices,
-                Kokkos::View<int *, DeviceType> &offset,
-                Kokkos::View<int *, DeviceType> &ranks)
+                Indices &indices, Offset &offset, Ranks &ranks)
   {
     Kokkos::View<Kokkos::pair<int, int> *, DeviceType> out("pairs_index_rank",
                                                            0);
@@ -161,10 +161,10 @@ struct DistributedSearchTreeImpl
   static void sortResults(ExecutionSpace const &space, View keys,
                           OtherViews... other_views);
 
-  template <typename ExecutionSpace>
+  template <typename ExecutionSpace, typename OffsetView>
   static void countResults(ExecutionSpace const &space, int n_queries,
                            Kokkos::View<int *, DeviceType> query_ids,
-                           Kokkos::View<int *, DeviceType> &offset);
+                           OffsetView &offset);
 
   template <typename ExecutionSpace, typename View>
   static typename std::enable_if<Kokkos::is_view<View>::value>::type
@@ -464,13 +464,13 @@ void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
 
 template <typename DeviceType>
 template <typename ExecutionSpace, typename Predicates, typename OutputView,
-          typename Callback>
-void DistributedSearchTreeImpl<DeviceType>::queryDispatch(
+          typename OffsetView, typename Callback>
+std::enable_if_t<Kokkos::is_view<OutputView>{} && Kokkos::is_view<OffsetView>{}>
+DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     SpatialPredicateTag,
     DistributedSearchTree<typename DeviceType::memory_space, void> const &tree,
     ExecutionSpace const &space, Predicates const &queries,
-    Callback const &callback, OutputView &out,
-    Kokkos::View<int *, DeviceType> &offset)
+    Callback const &callback, OutputView &out, OffsetView &offset)
 {
   auto const &top_tree = tree._top_tree;
   auto const &bottom_tree = tree._bottom_tree;
@@ -539,11 +539,10 @@ void DistributedSearchTreeImpl<DeviceType>::sortResults(
 }
 
 template <typename DeviceType>
-template <typename ExecutionSpace>
+template <typename ExecutionSpace, typename OffsetView>
 void DistributedSearchTreeImpl<DeviceType>::countResults(
     ExecutionSpace const &space, int n_queries,
-    Kokkos::View<int *, DeviceType> query_ids,
-    Kokkos::View<int *, DeviceType> &offset)
+    Kokkos::View<int *, DeviceType> query_ids, OffsetView &offset)
 {
   int const nnz = query_ids.extent(0);
 
