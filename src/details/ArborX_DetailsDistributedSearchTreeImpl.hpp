@@ -49,13 +49,12 @@ template <typename DeviceType>
 struct DistributedSearchTreeImpl
 {
   // spatial queries
-  template <typename ExecutionSpace, typename Predicates, typename Indices,
-            typename Offset, typename Ranks>
+  template <typename DistributedTree, typename ExecutionSpace,
+            typename Predicates, typename Indices, typename Offset,
+            typename Ranks>
   static std::enable_if_t<Kokkos::is_view<Indices>{} &&
                           Kokkos::is_view<Offset>{} && Kokkos::is_view<Ranks>{}>
-  queryDispatch(SpatialPredicateTag,
-                DistributedSearchTree<typename DeviceType::memory_space,
-                                      void> const &tree,
+  queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
                 ExecutionSpace const &space, Predicates const &queries,
                 Indices &indices, Offset &offset, Ranks &ranks)
   {
@@ -77,38 +76,35 @@ struct DistributedSearchTreeImpl
                          });
   }
 
-  template <typename ExecutionSpace, typename Predicates, typename OutputView,
-            typename OffsetView, typename Callback>
+  template <typename DistributedTree, typename ExecutionSpace,
+            typename Predicates, typename OutputView, typename OffsetView,
+            typename Callback>
   static std::enable_if_t<Kokkos::is_view<OutputView>{} &&
                           Kokkos::is_view<OffsetView>{}>
-  queryDispatch(SpatialPredicateTag,
-                DistributedSearchTree<typename DeviceType::memory_space,
-                                      void> const &tree,
+  queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
                 ExecutionSpace const &space, Predicates const &queries,
                 Callback const &callback, OutputView &out, OffsetView &offset);
 
   // nearest neighbors queries
-  template <typename ExecutionSpace, typename Predicates, typename Indices,
-            typename Offset, typename Ranks,
+  template <typename DistributedTree, typename ExecutionSpace,
+            typename Predicates, typename Indices, typename Offset,
+            typename Ranks,
             typename Distances = Kokkos::View<float *, DeviceType>>
   static std::enable_if_t<
       Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{} &&
       Kokkos::is_view<Ranks>{} && Kokkos::is_view<Distances>{}>
-  queryDispatch(NearestPredicateTag,
-                DistributedSearchTree<typename DeviceType::memory_space,
-                                      void> const &tree,
+  queryDispatch(NearestPredicateTag, DistributedTree const &tree,
                 ExecutionSpace const &space, Predicates const &queries,
                 Indices &indices, Offset &offset, Ranks &ranks,
                 Distances *distances_ptr = nullptr);
 
-  template <typename ExecutionSpace, typename Predicates, typename Indices,
-            typename Offset, typename Ranks, typename Distances>
+  template <typename DistributedTree, typename ExecutionSpace,
+            typename Predicates, typename Indices, typename Offset,
+            typename Ranks, typename Distances>
   static std::enable_if_t<
       Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{} &&
       Kokkos::is_view<Ranks>{} && Kokkos::is_view<Distances>{}>
-  queryDispatch(NearestPredicateTag tag,
-                DistributedSearchTree<typename DeviceType::memory_space,
-                                      void> const &tree,
+  queryDispatch(NearestPredicateTag tag, DistributedTree const &tree,
                 ExecutionSpace const &space, Predicates const &queries,
                 Indices &indices, Offset &offset, Ranks &ranks,
                 Distances &distances)
@@ -117,21 +113,21 @@ struct DistributedSearchTreeImpl
                   &distances);
   }
 
-  template <typename ExecutionSpace, typename Predicates, typename Indices,
-            typename Offset, typename Distances>
-  static void
-  deviseStrategy(ExecutionSpace const &space, Predicates const &queries,
-                 DistributedSearchTree<typename DeviceType::memory_space,
-                                       void> const &tree,
-                 Indices &indices, Offset &offset, Distances &);
+  template <typename DistributedTree, typename ExecutionSpace,
+            typename Predicates, typename Indices, typename Offset,
+            typename Distances>
+  static void deviseStrategy(ExecutionSpace const &space,
+                             Predicates const &queries,
+                             DistributedTree const &tree, Indices &indices,
+                             Offset &offset, Distances &);
 
-  template <typename ExecutionSpace, typename Predicates, typename Indices,
-            typename Offset, typename Distances>
-  static void
-  reassessStrategy(ExecutionSpace const &space, Predicates const &queries,
-                   DistributedSearchTree<typename DeviceType::memory_space,
-                                         void> const &tree,
-                   Indices &indices, Offset &offset, Distances &distances);
+  template <typename DistributedTree, typename ExecutionSpace,
+            typename Predicates, typename Indices, typename Offset,
+            typename Distances>
+  static void reassessStrategy(ExecutionSpace const &space,
+                               Predicates const &queries,
+                               DistributedTree const &tree, Indices &indices,
+                               Offset &offset, Distances &distances);
 
   template <typename ExecutionSpace, typename Predicates, typename Ranks,
             typename Query>
@@ -289,12 +285,12 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
 }
 
 template <typename DeviceType>
-template <typename ExecutionSpace, typename Predicates, typename Indices,
-          typename Offset, typename Distances>
+template <typename DistributedTree, typename ExecutionSpace,
+          typename Predicates, typename Indices, typename Offset,
+          typename Distances>
 void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
     ExecutionSpace const &space, Predicates const &queries,
-    DistributedSearchTree<typename DeviceType::memory_space, void> const &tree,
-    Indices &indices, Offset &offset, Distances &)
+    DistributedTree const &tree, Indices &indices, Offset &offset, Distances &)
 {
   auto const &top_tree = tree._top_tree;
   auto const &bottom_tree_sizes = tree._bottom_tree_sizes;
@@ -345,12 +341,13 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
 }
 
 template <typename DeviceType>
-template <typename ExecutionSpace, typename Predicates, typename Indices,
-          typename Offset, typename Distances>
+template <typename DistributedTree, typename ExecutionSpace,
+          typename Predicates, typename Indices, typename Offset,
+          typename Distances>
 void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
     ExecutionSpace const &space, Predicates const &queries,
-    DistributedSearchTree<typename DeviceType::memory_space, void> const &tree,
-    Indices &indices, Offset &offset, Distances &distances)
+    DistributedTree const &tree, Indices &indices, Offset &offset,
+    Distances &distances)
 {
   auto const &top_tree = tree._top_tree;
   using Access = AccessTraits<Predicates, PredicatesTag>;
@@ -388,13 +385,13 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
 }
 
 template <typename DeviceType>
-template <typename ExecutionSpace, typename Predicates, typename Indices,
-          typename Offset, typename Ranks, typename Distances>
+template <typename DistributedTree, typename ExecutionSpace,
+          typename Predicates, typename Indices, typename Offset,
+          typename Ranks, typename Distances>
 std::enable_if_t<Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{} &&
                  Kokkos::is_view<Ranks>{} && Kokkos::is_view<Distances>{}>
 DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-    NearestPredicateTag,
-    DistributedSearchTree<typename DeviceType::memory_space, void> const &tree,
+    NearestPredicateTag, DistributedTree const &tree,
     ExecutionSpace const &space, Predicates const &queries, Indices &indices,
     Offset &offset, Ranks &ranks, Distances *distances_ptr)
 {
@@ -417,10 +414,9 @@ DistributedSearchTreeImpl<DeviceType>::queryDispatch(
 
   // NOTE: compiler would not deduce __range for the braced-init-list but I
   // got it to work with the static_cast to function pointers.
-  using Strategy = void (*)(
-      ExecutionSpace const &, Predicates const &,
-      DistributedSearchTree<typename DeviceType::memory_space, void> const &,
-      Indices &, Offset &, Distances &);
+  using Strategy =
+      void (*)(ExecutionSpace const &, Predicates const &,
+               DistributedTree const &, Indices &, Offset &, Distances &);
   for (auto implementStrategy :
        {static_cast<Strategy>(
             DistributedSearchTreeImpl<DeviceType>::deviseStrategy),
@@ -462,12 +458,12 @@ DistributedSearchTreeImpl<DeviceType>::queryDispatch(
 }
 
 template <typename DeviceType>
-template <typename ExecutionSpace, typename Predicates, typename OutputView,
-          typename OffsetView, typename Callback>
+template <typename DistributedTree, typename ExecutionSpace,
+          typename Predicates, typename OutputView, typename OffsetView,
+          typename Callback>
 std::enable_if_t<Kokkos::is_view<OutputView>{} && Kokkos::is_view<OffsetView>{}>
 DistributedSearchTreeImpl<DeviceType>::queryDispatch(
-    SpatialPredicateTag,
-    DistributedSearchTree<typename DeviceType::memory_space, void> const &tree,
+    SpatialPredicateTag, DistributedTree const &tree,
     ExecutionSpace const &space, Predicates const &queries,
     Callback const &callback, OutputView &out, OffsetView &offset)
 {
