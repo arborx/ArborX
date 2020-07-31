@@ -234,9 +234,19 @@ public:
     //   finding the index of the highest differing bit as we can compare the
     //   numbers. The higher the index of the differing bit, the larger the
     //   number.
-    return ((_sorted_morton_codes(i) != _sorted_morton_codes(i + 1))
-                ? (_sorted_morton_codes(i) ^ _sorted_morton_codes(i + 1))
-                : -i); // FIXME: not sure about this
+    // The Apetrei's paper does not mention dealing with duplicate indices. We
+    // follow the original Karras idea in this situation:
+    //   The case of duplicate Morton codes has to be handled explicitly, since
+    //   our construction algorithm relies on the keys being unique. We
+    //   accomplish this by augmenting each key with a bit representation of
+    //   its index, i.e. k_i = k_i <+> i, where <+> indicates string
+    //   concatenation.
+    // In this case, if the Morton indices are the same, we want to compare is.
+    // We also want the result in this situation to always be less than any
+    // Morton comparison. Thus, we add INT_MIN to it.
+    // We also avoid if/else statement by doing a "x + !x*<blah>" trick.
+    auto x = _sorted_morton_codes(i) ^ _sorted_morton_codes(i + 1);
+    return x + (!x) * (INT_MIN + (i ^ (i + 1)));
   }
 
   KOKKOS_FUNCTION void operator()(int i) const
