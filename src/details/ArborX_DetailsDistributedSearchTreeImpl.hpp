@@ -631,7 +631,7 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
   // these batches appear consecutively. Hence, no reordering is necessary.
   Distributor<DeviceType> distributor(comm);
   // FIXME Distributor::createFromSends takes two views of the same type by
-  // const reference.  They were two easy way out, either take the views by
+  // a const reference.  There were two easy ways out, either take the views by
   // value or cast at the callsite.  I went with the latter.  Proper fix
   // involves more code cleanup in ArborX_DetailsDistributor.hpp than I am
   // willing to do just now.
