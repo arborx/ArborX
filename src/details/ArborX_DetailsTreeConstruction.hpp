@@ -15,7 +15,6 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // expand
-#include <ArborX_DetailsKokkosExt.hpp>  // min, max
 #include <ArborX_DetailsMortonCode.hpp> // morton3D
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsTags.hpp>
@@ -267,66 +266,69 @@ public:
     // bounding box has already been computed (bounding box of the scene)
     do
     {
-      // Determine whether this node is left or right child
-      int parent_index = (delta(range_right) < delta(range_left - 1));
+      // Determine whether this node is left or right child of its parent
+      //   direction_index == 1: left child
+      //   direction_index == 0: right child
+      int direction_index = (delta(range_right) < delta(range_left - 1));
 
-      // In the literature, it is `range_left - 1` or `range_right`.
-      // We want to avoid if/else, instead doing index trick.
-      int apetrei_parent = range[parent_index] - (1 - parent_index);
+      // Per Apetrei, the parent node index is either `range_left - 1` or
+      // `range_right`.
+      int apetrei_index = range[direction_index] - (1 - direction_index);
 
-      // Replace one of the boundaries with the one coming from the
-      // apetrei_parent. It also serves as an atomic check whether a thread
-      // should continue
-      int saved_range = range[parent_index];
-      range[parent_index] = Kokkos::atomic_compare_exchange(
-          &_ranges(apetrei_parent), -1, range[1 - parent_index]);
+      // The range of the parent is the union of the ranges of children. Each
+      // child updates one of these range values. The first thread up stores
+      // the updated range value (which also serves as a flag). The second
+      // thread up construct the full parent range.
+      // In addition, save the discarded value for the second thread up as it
+      // is needed later to compute other child index (specifically, whether it
+      // is a leaf node).
+      int discarded_range = range[direction_index];
+      range[direction_index] = Kokkos::atomic_compare_exchange(
+          &_ranges(apetrei_index), -1, range[1 - direction_index]);
 
       // Use an atomic flag per internal node to terminate the first
       // thread that enters it, while letting the second one through.
       // This ensures that every node gets processed only once, and not
       // before both of its children are processed.
-      if (range[parent_index] == -1)
+      if (range[direction_index] == -1)
         break;
 
-      // We now have the full range for the parent
-      // NOTE: the opposite index was updated above, so this check is different
-      // from the top one) This determines whether the parent is left or right
-      // child of the level above)
-      int x = delta(range_right) < delta(range_left - 1);
-      int karras_parent = (1 - x) * range_left + x * range_right;
+      // We now have the full range for the parent, stored in `range`, and can
+      // compute the Karras index.
+      // NOTE: `range` was updated above, so this check is different from the
+      // one above, despite looking exactly the same.
+      int x = (delta(range_right) < delta(range_left - 1));
+      int karras_index = (1 - x) * range_left + x * range_right;
 
-      Node *node = &_internal_nodes(karras_parent);
+      Node *node = &_internal_nodes(karras_index);
 
-      bool is_left_child = (parent_index == 1);
+      // This is slightly convoluted due to the fact that the indices of
+      // leaf nodes have to be shifted. The determination whether the second
+      // child is a leaf node depends on the position of the split (which is
+      // apetrei index) to the correct range boundary.
+      bool is_left_child = (direction_index == 1);
       if (is_left_child)
       {
         node->children.first = i;
         node->children.second =
-            saved_range + 1 + (range_right - apetrei_parent == 1) * n;
+            discarded_range + 1 + (range_right - apetrei_index == 1) * n;
       }
       else
       {
         node->children.first =
-            saved_range - 1 + (apetrei_parent - range_left == 0) * n;
+            discarded_range - 1 + (apetrei_index - range_left == 0) * n;
         node->children.second = i;
       }
 
       // Internal node bounding boxes are unitialized hence the
       // assignment operator below.
-      // FIXME: accessing Node::bounding_box is not ideal but I was
-      // reluctant to pass the bounding volume hierarchy to
-      // generateHierarchy()
       Node const *first_child = &_internal_nodes(node->children.first);
       Node const *second_child = &_internal_nodes(node->children.second);
       node->bounding_box = first_child->bounding_box;
       expand(node->bounding_box, second_child->bounding_box);
 
-      i = karras_parent;
-
-    } while (range_right - range_left != n);
-
-    // NOTE: could check that bounding box of the root node is indeed the
-    // union of the two children.
+      i = karras_index;
+    } while (i);
   }
 
 private:
