@@ -218,7 +218,7 @@ public:
                 internal_nodes.extent(0))
       , _other_child(Kokkos::ViewAllocateWithoutInitializing("other_child"),
                      internal_nodes.extent(0))
-      , _root_node_index(root_node_index)
+      , _num_internal_nodes(_internal_nodes.extent_int(0))
   {
     Kokkos::deep_copy(space, _ranges, -1);
     Kokkos::deep_copy(space, _other_child, -1);
@@ -247,13 +247,19 @@ public:
     // We also want the result in this situation to always be less than any
     // Morton comparison. Thus, we add INT_MIN to it.
     // We also avoid if/else statement by doing a "x + !x*<blah>" trick.
+
+    // This check is here simply to avoid code complications in the main
+    // operator
+    if (i < 0 || i >= _num_internal_nodes)
+      return INT_MAX;
+
     auto x = _sorted_morton_codes(i) ^ _sorted_morton_codes(i + 1);
     return x + (!x) * (INT_MIN + (i ^ (i + 1)));
   }
 
   KOKKOS_FUNCTION void operator()(int i) const
   {
-    auto const n = _internal_nodes.extent_int(0);
+    auto const n = _num_internal_nodes;
 
     // For a leaf node, the range is just one index
     int range[2] = {i - n, i - n};
@@ -264,18 +270,18 @@ public:
     // bounding box has already been computed (bounding box of the scene)
     do
     {
-      // Determine the parent and set parent->child connection
-      int parent_index =
-          (range_left == 0 ||
-           (range_right != n && delta(range_right) < delta(range_left - 1)));
-      bool is_left_child = (parent_index == 1);
+      // Determine whether this node is left or right child
+      int parent_index = (delta(range_right) < delta(range_left - 1));
 
-      // parent = range_left - 1 or parent = range_right
-      // to avoid if/else, do this calculation
+      // In the literature,
+      //   apetrei_parent = range_left - 1
+      // or
+      //   apetrei_parent = range_right
+      // We want to avoid if/else, instead doing index trick.
       int apetrei_parent = range[parent_index] - (1 - parent_index);
 
       // Replace one of the boundaries with the one coming from the
-      // apetrei_parent It also serves as an atomic check whether a thread
+      // apetrei_parent. It also serves as an atomic check whether a thread
       // should continue
       range[parent_index] = Kokkos::atomic_compare_exchange(
           &_ranges(apetrei_parent), -1, range[1 - parent_index]);
@@ -290,6 +296,8 @@ public:
         break;
       }
 
+      // Do a loop to avoid race condition where we access the other_child in
+      // the other thread before setting it in the first one
       int other_child;
       while ((other_child = _other_child(apetrei_parent)) == -1)
         ;
@@ -298,28 +306,13 @@ public:
       // NOTE: the opposite index was updated above, so this check is different
       // from the top one) This determines whether the parent is left or right
       // child of the level above)
-      int karras_parent;
-      if (range_left == 0 && range_right == n)
-      {
-        karras_parent = 0;
-      }
-      else if (range_left == 0 && range_right != n)
-      {
+      int karras_parent = range_left;
+      if (delta(range_right) < delta(range_left - 1))
         karras_parent = range_right;
-      }
-      else if (range_left != 0 && range_right == n)
-      {
-        karras_parent = range_left;
-      }
-      else
-      {
-        if (delta(range_right) < delta(range_left - 1))
-          karras_parent = range_right;
-        else
-          karras_parent = range_left;
-      }
 
       Node *node = &_internal_nodes(karras_parent);
+
+      bool is_left_child = (parent_index == 1);
       if (is_left_child)
       {
         node->children.first = i;
@@ -356,6 +349,7 @@ private:
   // support boolean
   Kokkos::View<int *, MemorySpace> _ranges;
   Kokkos::View<int *, MemorySpace> _other_child;
+  int _num_internal_nodes;
 };
 
 template <typename ExecutionSpace, typename... MortonCodesViewProperties,
