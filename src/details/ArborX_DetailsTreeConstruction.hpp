@@ -216,12 +216,9 @@ public:
       , _internal_nodes(internal_nodes)
       , _ranges(Kokkos::ViewAllocateWithoutInitializing("ranges"),
                 internal_nodes.extent(0))
-      , _other_child(Kokkos::ViewAllocateWithoutInitializing("other_child"),
-                     internal_nodes.extent(0))
       , _num_internal_nodes(_internal_nodes.extent_int(0))
   {
     Kokkos::deep_copy(space, _ranges, -1);
-    Kokkos::deep_copy(space, _other_child, -1);
   }
 
   KOKKOS_FUNCTION
@@ -236,6 +233,12 @@ public:
     //   finding the index of the highest differing bit as we can compare the
     //   numbers. The higher the index of the differing bit, the larger the
     //   number.
+
+    // This check is here simply to avoid code complications in the main
+    // operator
+    if (i < 0 || i >= _num_internal_nodes)
+      return INT_MAX;
+
     // The Apetrei's paper does not mention dealing with duplicate indices. We
     // follow the original Karras idea in this situation:
     //   The case of duplicate Morton codes has to be handled explicitly, since
@@ -247,12 +250,6 @@ public:
     // We also want the result in this situation to always be less than any
     // Morton comparison. Thus, we add INT_MIN to it.
     // We also avoid if/else statement by doing a "x + !x*<blah>" trick.
-
-    // This check is here simply to avoid code complications in the main
-    // operator
-    if (i < 0 || i >= _num_internal_nodes)
-      return INT_MAX;
-
     auto x = _sorted_morton_codes(i) ^ _sorted_morton_codes(i + 1);
     return x + (!x) * (INT_MIN + (i ^ (i + 1)));
   }
@@ -273,16 +270,14 @@ public:
       // Determine whether this node is left or right child
       int parent_index = (delta(range_right) < delta(range_left - 1));
 
-      // In the literature,
-      //   apetrei_parent = range_left - 1
-      // or
-      //   apetrei_parent = range_right
+      // In the literature, it is `range_left - 1` or `range_right`.
       // We want to avoid if/else, instead doing index trick.
       int apetrei_parent = range[parent_index] - (1 - parent_index);
 
       // Replace one of the boundaries with the one coming from the
       // apetrei_parent. It also serves as an atomic check whether a thread
       // should continue
+      int saved_range = range[parent_index];
       range[parent_index] = Kokkos::atomic_compare_exchange(
           &_ranges(apetrei_parent), -1, range[1 - parent_index]);
 
@@ -291,24 +286,14 @@ public:
       // This ensures that every node gets processed only once, and not
       // before both of its children are processed.
       if (range[parent_index] == -1)
-      {
-        _other_child(apetrei_parent) = i;
         break;
-      }
-
-      // Do a loop to avoid race condition where we access the other_child in
-      // the other thread before setting it in the first one
-      int other_child;
-      while ((other_child = _other_child(apetrei_parent)) == -1)
-        ;
 
       // We now have the full range for the parent
       // NOTE: the opposite index was updated above, so this check is different
       // from the top one) This determines whether the parent is left or right
       // child of the level above)
-      int karras_parent = range_left;
-      if (delta(range_right) < delta(range_left - 1))
-        karras_parent = range_right;
+      int x = delta(range_right) < delta(range_left - 1);
+      int karras_parent = (1 - x) * range_left + x * range_right;
 
       Node *node = &_internal_nodes(karras_parent);
 
@@ -316,11 +301,13 @@ public:
       if (is_left_child)
       {
         node->children.first = i;
-        node->children.second = other_child;
+        node->children.second =
+            saved_range + 1 + (range_right - apetrei_parent == 1) * n;
       }
       else
       {
-        node->children.first = other_child;
+        node->children.first =
+            saved_range - 1 + (apetrei_parent - range_left == 0) * n;
         node->children.second = i;
       }
 
@@ -348,7 +335,6 @@ private:
   // Use int instead of bool because CAS (Compare And Swap) on CUDA does not
   // support boolean
   Kokkos::View<int *, MemorySpace> _ranges;
-  Kokkos::View<int *, MemorySpace> _other_child;
   int _num_internal_nodes;
 };
 
