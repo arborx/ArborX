@@ -262,6 +262,10 @@ public:
     int &range_left = range[0];
     int &range_right = range[1];
 
+    int deltas[2] = {delta(range_left - 1), delta(range_right)};
+    int &delta_left = deltas[0];
+    int &delta_right = deltas[1];
+
     // Walk toward the root and do process it even though technically its
     // bounding box has already been computed (bounding box of the scene)
     do
@@ -269,7 +273,7 @@ public:
       // Determine whether this node is left or right child of its parent
       //   direction_index == 1: left child
       //   direction_index == 0: right child
-      int direction_index = (delta(range_right) < delta(range_left - 1));
+      int direction_index = (delta_right < delta_left);
 
       // Per Apetrei, the parent node index is either `range_left - 1` or
       // `range_right`.
@@ -293,11 +297,15 @@ public:
       if (range[direction_index] == -1)
         break;
 
+      // Update deltas
+      deltas[direction_index] =
+          delta(range[direction_index] - (1 - direction_index));
+
       // We now have the full range for the parent, stored in `range`, and can
       // compute the Karras index.
       // NOTE: `range` was updated above, so this check is different from the
       // one above, despite looking exactly the same.
-      int x = (delta(range_right) < delta(range_left - 1));
+      int x = (delta_right < delta_left);
       int karras_index = (1 - x) * range_left + x * range_right;
 
       Node *node = &_internal_nodes(karras_index);
