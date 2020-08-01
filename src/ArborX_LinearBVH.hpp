@@ -101,13 +101,10 @@ private:
   }
 
   KOKKOS_FUNCTION
-  Node const *getRoot() const
-  {
-    return _internal_and_leaf_nodes.data() + _root_node_index;
-  }
+  Node const *getRoot() const { return _internal_and_leaf_nodes.data(); }
 
   KOKKOS_FUNCTION
-  Node *getRoot() { return _internal_and_leaf_nodes.data() + _root_node_index; }
+  Node *getRoot() { return _internal_and_leaf_nodes.data(); }
 
   KOKKOS_FUNCTION
   Node const *getNodePtr(int i) const { return &_internal_and_leaf_nodes(i); }
@@ -127,7 +124,6 @@ private:
   size_t _size;
   bounding_volume_type _bounds;
   Kokkos::View<Node *, MemorySpace> _internal_and_leaf_nodes;
-  int _root_node_index;
 };
 
 template <typename DeviceType>
@@ -191,7 +187,6 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
         Kokkos::view_alloc("permute", space), 1);
     Details::TreeConstruction::initializeLeafNodes(
         space, primitives, permutation_indices, getLeafNodes());
-    _root_node_index = 0;
     return;
   }
 
@@ -220,8 +215,8 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
   Kokkos::Profiling::pushRegion("ArborX:BVH:generate_hierarchy");
 
   // generate bounding volume hierarchy
-  _root_node_index = Details::TreeConstruction::generateHierarchy(
-      space, morton_indices, getInternalNodes());
+  Details::TreeConstruction::generateHierarchy(space, morton_indices,
+                                               getInternalNodes());
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::popRegion();

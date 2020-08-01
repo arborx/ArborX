@@ -211,15 +211,17 @@ public:
       ExecutionSpace const &space,
       Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
           sorted_morton_codes,
-      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
-      Kokkos::View<int, MemorySpace> root_node_index)
+      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
       : _sorted_morton_codes(sorted_morton_codes)
       , _internal_nodes(internal_nodes)
       , _ranges(Kokkos::ViewAllocateWithoutInitializing("ranges"),
                 internal_nodes.extent(0))
+      , _other_child(Kokkos::ViewAllocateWithoutInitializing("other_child"),
+                     internal_nodes.extent(0))
       , _root_node_index(root_node_index)
   {
     Kokkos::deep_copy(space, _ranges, -1);
+    Kokkos::deep_copy(space, _other_child, -1);
   }
 
   KOKKOS_FUNCTION
@@ -266,29 +268,68 @@ public:
       int parent_index =
           (range_left == 0 ||
            (range_right != n && delta(range_right) < delta(range_left - 1)));
-      bool is_left_child = parent_index == 1;
+      bool is_left_child = (parent_index == 1);
 
       // parent = range_left - 1 or parent = range_right
       // to avoid if/else, do this calculation
-      int parent = range[parent_index] - (1 - parent_index);
-      Node *node = &_internal_nodes(parent);
+      int apetrei_parent = range[parent_index] - (1 - parent_index);
 
-      if (is_left_child)
-        node->children.first = i;
-      else
-        node->children.second = i;
-
-      // Replace one of the boundaries with the one coming from the parent
-      // It also serves as an atomic check whether a thread should continue
+      // Replace one of the boundaries with the one coming from the
+      // apetrei_parent It also serves as an atomic check whether a thread
+      // should continue
       range[parent_index] = Kokkos::atomic_compare_exchange(
-          &_ranges(parent), -1, range[1 - parent_index]);
+          &_ranges(apetrei_parent), -1, range[1 - parent_index]);
 
       // Use an atomic flag per internal node to terminate the first
       // thread that enters it, while letting the second one through.
       // This ensures that every node gets processed only once, and not
       // before both of its children are processed.
       if (range[parent_index] == -1)
+      {
+        _other_child(apetrei_parent) = i;
         break;
+      }
+
+      int other_child;
+      while ((other_child = _other_child(apetrei_parent)) == -1)
+        ;
+
+      // We now have the full range for the parent
+      // NOTE: the opposite index was updated above, so this check is different
+      // from the top one) This determines whether the parent is left or right
+      // child of the level above)
+      int karras_parent;
+      if (range_left == 0 && range_right == n)
+      {
+        karras_parent = 0;
+      }
+      else if (range_left == 0 && range_right != n)
+      {
+        karras_parent = range_right;
+      }
+      else if (range_left != 0 && range_right == n)
+      {
+        karras_parent = range_left;
+      }
+      else
+      {
+        if (delta(range_right) < delta(range_left - 1))
+          karras_parent = range_right;
+        else
+          karras_parent = range_left;
+      }
+
+      Node *node = &_internal_nodes(karras_parent);
+      if (is_left_child)
+      {
+        node->children.first = i;
+        node->children.second = other_child;
+      }
+      else
+      {
+        node->children.first = other_child;
+        node->children.second = i;
+      }
 
       // Internal node bounding boxes are unitialized hence the
       // assignment operator below.
@@ -300,15 +341,9 @@ public:
       node->bounding_box = first_child->bounding_box;
       expand(node->bounding_box, second_child->bounding_box);
 
-      i = parent;
+      i = karras_parent;
 
-      if (range_right - range_left == n)
-      {
-        // root node
-        _root_node_index() = i;
-        break;
-      }
-    } while (true);
+    } while (range_right - range_left != n);
 
     // NOTE: could check that bounding box of the root node is indeed the
     // union of the two children.
@@ -320,12 +355,12 @@ private:
   // Use int instead of bool because CAS (Compare And Swap) on CUDA does not
   // support boolean
   Kokkos::View<int *, MemorySpace> _ranges;
-  Kokkos::View<int, MemorySpace> _root_node_index;
+  Kokkos::View<int *, MemorySpace> _other_child;
 };
 
 template <typename ExecutionSpace, typename... MortonCodesViewProperties,
           typename... InternalNodesViewProperties>
-int generateHierarchy(
+void generateHierarchy(
     ExecutionSpace const &space,
     Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
         sorted_morton_codes,
@@ -333,29 +368,23 @@ int generateHierarchy(
 {
   using MemorySpace = typename decltype(internal_nodes)::memory_space;
   auto const n_internal_nodes = internal_nodes.extent(0);
-  Kokkos::View<int, MemorySpace> root_node_index("root_node");
 
-  Kokkos::parallel_for(
-      ARBORX_MARK_REGION("generate_hierarchy"),
-      Kokkos::RangePolicy<ExecutionSpace>(space, n_internal_nodes,
-                                          2 * n_internal_nodes + 1),
-      GenerateHierarchyFunctor<MemorySpace>(space, sorted_morton_codes,
-                                            internal_nodes, root_node_index));
-  auto root_node_index_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, root_node_index);
-
-  return root_node_index_host();
+  Kokkos::parallel_for(ARBORX_MARK_REGION("generate_hierarchy"),
+                       Kokkos::RangePolicy<ExecutionSpace>(
+                           space, n_internal_nodes, 2 * n_internal_nodes + 1),
+                       GenerateHierarchyFunctor<MemorySpace>(
+                           space, sorted_morton_codes, internal_nodes));
 }
 
 template <typename ExecutionSpace, typename... MortonCodesViewProperties,
           typename... InternalNodesViewProperties>
-int generateHierarchy(
+void generateHierarchy(
     ExecutionSpace const &space,
     Kokkos::View<unsigned int *, MortonCodesViewProperties...>
         sorted_morton_codes,
     Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
 {
-  return generateHierarchy(
+  generateHierarchy(
       space,
       Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
           sorted_morton_codes},
