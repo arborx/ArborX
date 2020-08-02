@@ -37,7 +37,7 @@ struct CallbackDefaultSpatialPredicateWithRank
   KOKKOS_FUNCTION void operator()(Predicate const &, int primitive_index,
                                   OutputFunctor const &out) const
   {
-    out(Kokkos::pair<int, int>{primitive_index, _rank});
+    out({primitive_index, _rank});
   }
 };
 
