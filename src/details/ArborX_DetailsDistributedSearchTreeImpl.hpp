@@ -46,6 +46,21 @@ struct DistributedSearchTreeImpl
 {
   // spatial queries
   template <typename DistributedTree, typename ExecutionSpace,
+            typename Predicates, typename IndicesAndRanks, typename Offset>
+  static std::enable_if_t<Kokkos::is_view<IndicesAndRanks>{} &&
+                          Kokkos::is_view<Offset>{}>
+  queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
+                ExecutionSpace const &space, Predicates const &queries,
+                IndicesAndRanks &values, Offset &offset)
+  {
+    int comm_rank;
+    MPI_Comm_rank(tree._comm, &comm_rank);
+    queryDispatch(SpatialPredicateTag{}, tree, space, queries,
+                  CallbackDefaultSpatialPredicateWithRank{comm_rank}, values,
+                  offset);
+  }
+
+  template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename Indices, typename Offset,
             typename Ranks>
   static std::enable_if_t<Kokkos::is_view<Indices>{} &&
