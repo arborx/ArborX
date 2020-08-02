@@ -63,8 +63,9 @@ struct DistributedSearchTreeImpl
   template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename Indices, typename Offset,
             typename Ranks>
-  static std::enable_if_t<Kokkos::is_view<Indices>{} &&
-                          Kokkos::is_view<Offset>{} && Kokkos::is_view<Ranks>{}>
+  /*deprecated*/ static std::enable_if_t<Kokkos::is_view<Indices>{} &&
+                                         Kokkos::is_view<Offset>{} &&
+                                         Kokkos::is_view<Ranks>{}>
   queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
                 ExecutionSpace const &space, Predicates const &queries,
                 Indices &indices, Offset &offset, Ranks &ranks)
