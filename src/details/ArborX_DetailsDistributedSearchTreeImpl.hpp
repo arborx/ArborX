@@ -69,21 +69,21 @@ struct DistributedSearchTreeImpl
                 ExecutionSpace const &space, Predicates const &queries,
                 Indices &indices, Offset &offset, Ranks &ranks)
   {
-    Kokkos::View<Kokkos::pair<int, int> *, DeviceType> out("pairs_index_rank",
-                                                           0);
-    int comm_rank;
-    MPI_Comm_rank(tree._comm, &comm_rank);
-    queryDispatch(SpatialPredicateTag{}, tree, space, queries,
-                  CallbackDefaultSpatialPredicateWithRank{comm_rank}, out,
-                  offset);
+    struct PairIndexRank
+    {
+      int index;
+      int rank;
+    };
+    Kokkos::View<PairIndexRank *, ExecutionSpace> out("pairs_index_rank", 0);
+    queryDispatch(SpatialPredicateTag{}, tree, space, queries, out, offset);
     auto const n = out.extent(0);
     reallocWithoutInitializing(indices, n);
     reallocWithoutInitializing(ranks, n);
     Kokkos::parallel_for(ARBORX_MARK_REGION("split_pairs"),
                          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
                          KOKKOS_LAMBDA(int i) {
-                           indices(i) = out(i).first;
-                           ranks(i) = out(i).second;
+                           indices(i) = out(i).index;
+                           ranks(i) = out(i).rank;
                          });
   }
 
