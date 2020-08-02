@@ -33,11 +33,11 @@ namespace Details
 struct CallbackDefaultSpatialPredicateWithRank
 {
   int _rank;
-  template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &, int index,
-                                  Insert const &insert) const
+  template <typename Predicate, typename OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Predicate const &, int primitive_index,
+                                  OutputFunctor const &out) const
   {
-    insert(Kokkos::pair<int, int>{index, _rank});
+    out(Kokkos::pair<int, int>{primitive_index, _rank});
   }
 };
 
