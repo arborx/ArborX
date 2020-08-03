@@ -205,13 +205,16 @@ class GenerateHierarchyFunctor
 {
 public:
   template <typename ExecutionSpace, typename... MortonCodesViewProperties,
+            typename... LeafNodesViewProperties,
             typename... InternalNodesViewProperties>
   GenerateHierarchyFunctor(
       ExecutionSpace const &space,
       Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
           sorted_morton_codes,
+      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
       Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
       : _sorted_morton_codes(sorted_morton_codes)
+      , _leaf_nodes(leaf_nodes)
       , _internal_nodes(internal_nodes)
       , _ranges(Kokkos::ViewAllocateWithoutInitializing("ranges"),
                 internal_nodes.extent(0))
@@ -256,6 +259,7 @@ public:
   KOKKOS_FUNCTION void operator()(int i) const
   {
     auto const n = _num_internal_nodes;
+    auto const leaf_nodes_shift = n;
 
     // For a leaf node, the range is just one index
     int range[2] = {i - n, i - n};
@@ -319,28 +323,38 @@ public:
       {
         node->children.first = i;
         node->children.second =
-            discarded_range + 1 + (range_right - apetrei_index == 1) * n;
+            discarded_range + 1 +
+            (range_right - apetrei_index == 1) * leaf_nodes_shift;
       }
       else
       {
         node->children.first =
-            discarded_range - 1 + (apetrei_index - range_left == 0) * n;
+            discarded_range - 1 +
+            (apetrei_index - range_left == 0) * leaf_nodes_shift;
         node->children.second = i;
       }
 
       // Internal node bounding boxes are unitialized hence the
       // assignment operator below.
-      Node const *first_child = &_internal_nodes(node->children.first);
-      Node const *second_child = &_internal_nodes(node->children.second);
+      Node const *first_child =
+          (node->children.first < n
+               ? &_internal_nodes(node->children.first)
+               : &_leaf_nodes(node->children.first - leaf_nodes_shift));
+      Node const *second_child =
+          (node->children.second < n
+               ? &_internal_nodes(node->children.second)
+               : &_leaf_nodes(node->children.second - leaf_nodes_shift));
       node->bounding_box = first_child->bounding_box;
       expand(node->bounding_box, second_child->bounding_box);
 
       i = karras_index;
+
     } while (i);
   }
 
 private:
   Kokkos::View<unsigned int const *, MemorySpace> _sorted_morton_codes;
+  Kokkos::View<Node *, MemorySpace> _leaf_nodes;
   Kokkos::View<Node *, MemorySpace> _internal_nodes;
   // Use int instead of bool because CAS (Compare And Swap) on CUDA does not
   // support boolean
@@ -349,36 +363,41 @@ private:
 };
 
 template <typename ExecutionSpace, typename... MortonCodesViewProperties,
+          typename... LeafNodesViewProperties,
           typename... InternalNodesViewProperties>
 void generateHierarchy(
     ExecutionSpace const &space,
     Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
         sorted_morton_codes,
+    Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
     Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
 {
   using MemorySpace = typename decltype(internal_nodes)::memory_space;
   auto const n_internal_nodes = internal_nodes.extent(0);
 
-  Kokkos::parallel_for(ARBORX_MARK_REGION("generate_hierarchy"),
-                       Kokkos::RangePolicy<ExecutionSpace>(
-                           space, n_internal_nodes, 2 * n_internal_nodes + 1),
-                       GenerateHierarchyFunctor<MemorySpace>(
-                           space, sorted_morton_codes, internal_nodes));
+  Kokkos::parallel_for(
+      ARBORX_MARK_REGION("generate_hierarchy"),
+      Kokkos::RangePolicy<ExecutionSpace>(space, n_internal_nodes,
+                                          2 * n_internal_nodes + 1),
+      GenerateHierarchyFunctor<MemorySpace>(space, sorted_morton_codes,
+                                            leaf_nodes, internal_nodes));
 }
 
 template <typename ExecutionSpace, typename... MortonCodesViewProperties,
+          typename... LeafNodesViewProperties,
           typename... InternalNodesViewProperties>
 void generateHierarchy(
     ExecutionSpace const &space,
     Kokkos::View<unsigned int *, MortonCodesViewProperties...>
         sorted_morton_codes,
+    Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
     Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
 {
   generateHierarchy(
       space,
       Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
           sorted_morton_codes},
-      internal_nodes);
+      leaf_nodes, internal_nodes);
 }
 
 } // namespace TreeConstruction

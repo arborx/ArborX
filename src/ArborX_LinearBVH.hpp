@@ -215,8 +215,8 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
   Kokkos::Profiling::pushRegion("ArborX:BVH:generate_hierarchy");
 
   // generate bounding volume hierarchy
-  Details::TreeConstruction::generateHierarchy(space, morton_indices,
-                                               getInternalNodes());
+  Details::TreeConstruction::generateHierarchy(
+      space, morton_indices, getLeafNodes(), getInternalNodes());
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::popRegion();
