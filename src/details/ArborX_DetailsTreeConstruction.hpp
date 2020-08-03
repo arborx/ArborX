@@ -200,6 +200,16 @@ inline void initializeLeafNodes(
       leaf_nodes);
 }
 
+namespace
+{
+// Ideally, this would be
+//     static int constexpr UNTOUCHED_NODE = -1;
+// inside the GenerateHierachyFunctor class. But prior to C++17, this would
+// require to also have a definition outside of the class as it is odr-used.
+// This is a workaround.
+int constexpr UNTOUCHED_NODE = -1;
+} // namespace
+
 template <typename MemorySpace>
 class GenerateHierarchyFunctor
 {
@@ -220,7 +230,7 @@ public:
                 internal_nodes.extent(0))
       , _num_internal_nodes(_internal_nodes.extent_int(0))
   {
-    Kokkos::deep_copy(space, _ranges, -1);
+    Kokkos::deep_copy(space, _ranges, UNTOUCHED_NODE);
   }
 
   KOKKOS_FUNCTION
@@ -292,13 +302,13 @@ public:
       // is a leaf node).
       int discarded_range = range[direction_index];
       range[direction_index] = Kokkos::atomic_compare_exchange(
-          &_ranges(apetrei_index), -1, range[1 - direction_index]);
+          &_ranges(apetrei_index), UNTOUCHED_NODE, range[1 - direction_index]);
 
       // Use an atomic flag per internal node to terminate the first
       // thread that enters it, while letting the second one through.
       // This ensures that every node gets processed only once, and not
       // before both of its children are processed.
-      if (range[direction_index] == -1)
+      if (range[direction_index] == UNTOUCHED_NODE)
         break;
 
       // Update deltas
