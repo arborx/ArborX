@@ -167,27 +167,6 @@ struct DistributedSearchTreeImpl
                     typename View::non_const_type imports);
 };
 
-namespace internal
-{
-template <typename PointerType>
-struct PointerDepth
-{
-  static int constexpr value = 0;
-};
-
-template <typename PointerType>
-struct PointerDepth<PointerType *>
-{
-  static int constexpr value = PointerDepth<PointerType>::value + 1;
-};
-
-template <typename PointerType, std::size_t N>
-struct PointerDepth<PointerType[N]>
-{
-  static int constexpr value = PointerDepth<PointerType>::value;
-};
-} // namespace internal
-
 template <typename View>
 inline Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
                     typename View::traits::host_mirror_space>
