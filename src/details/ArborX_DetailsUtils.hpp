@@ -130,7 +130,7 @@ inline auto create_layout_right_mirror_view_and_copy(
 
 template <typename View, typename ExecutionSpace>
 inline auto create_layout_right_mirror_view_and_copy(
-    ExecutionSpace const &execution_space, View const &src,
+    ExecutionSpace const & /*execution_space*/, View const &src,
     typename std::enable_if<
         ((std::is_same<typename View::traits::array_layout,
                        Kokkos::LayoutRight>::value ||

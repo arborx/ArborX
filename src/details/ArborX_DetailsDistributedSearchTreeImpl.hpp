@@ -190,28 +190,27 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
                            exports.extent(7);
 
   using NonConstValueType = typename View::non_const_value_type;
-  using ConstValueType = typename View::const_value_type;
-
-  Kokkos::View<ConstValueType *, typename View::device_type,
-               Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-      export_buffer(exports.data(), exports.size());
 
 #ifndef ARBORX_USE_CUDA_AWARE_MPI
-  auto imports_host = create_layout_right_mirror_view(imports);
-
-  Kokkos::View<NonConstValueType *, Kokkos::HostSpace,
-               Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-      import_buffer(imports_host.data(), imports_host.size());
-
-  distributor.doPostsAndWaits(space, export_buffer, num_packets, import_buffer);
-  Kokkos::deep_copy(space, imports, imports_host);
+  using MirrorSpace = typename View::host_mirror_space;
+  MirrorSpace const execution_space;
 #else
-  Kokkos::View<NonConstValueType *, typename View::device_type,
-               Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-      import_buffer(imports.data(), imports.size());
-
-  distributor.doPostsAndWaits(space, export_buffer, num_packets, import_buffer);
+  using MirrorSpace = typename View::device_type;
+  auto const &execution_space = space;
 #endif
+
+  auto imports_layout_right =
+      create_layout_right_mirror_view(execution_space, imports);
+
+  Kokkos::View<NonConstValueType *, MirrorSpace,
+               Kokkos::MemoryTraits<Kokkos::Unmanaged>>
+      import_buffer(imports_layout_right.data(), imports_layout_right.size());
+
+  distributor.doPostsAndWaits(space, exports, num_packets, import_buffer);
+
+  auto tmp_view = Kokkos::create_mirror_view_and_copy(
+      typename View::device_type{}, imports_layout_right);
+  Kokkos::deep_copy(space, imports, tmp_view);
 }
 
 template <typename DeviceType>
