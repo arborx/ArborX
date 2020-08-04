@@ -622,3 +622,76 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
 
   validateResults(bvh_results, rtree_results);
 }
+
+template <typename DeviceType>
+struct Helper
+{
+  template <typename View1, typename View2>
+  static void checkSendAcrossNetwork(MPI_Comm comm, View1 const &ranks,
+                                     View2 const &v_exp, View2 const &v_ref)
+  {
+    ArborX::Details::Distributor<DeviceType> distributor(comm);
+    distributor.createFromSends(typename DeviceType::execution_space{}, ranks);
+
+    // NOTE here we assume that the reference solution is sized properly
+    auto v_imp = Kokkos::create_mirror(typename View2::memory_space(), v_ref);
+
+    ArborX::Details::DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
+        typename DeviceType::execution_space{}, distributor, v_exp, v_imp);
+
+    // FIXME not sure why I need that guy but I do get a bus error when it
+    // is not here...
+    Kokkos::fence();
+
+    auto v_imp_host = Kokkos::create_mirror_view(v_imp);
+    Kokkos::deep_copy(v_imp_host, v_imp);
+    auto v_ref_host = Kokkos::create_mirror_view(v_ref);
+    Kokkos::deep_copy(v_ref_host, v_ref);
+
+    BOOST_TEST(v_imp.extent(0) == v_ref.extent(0));
+    BOOST_TEST(v_imp.extent(1) == v_ref.extent(1));
+    for (unsigned int i = 0; i < v_imp.extent(0); ++i)
+    {
+      for (unsigned int j = 0; j < v_imp.extent(1); ++j)
+      {
+        BOOST_TEST(v_imp_host(i, j) == v_ref_host(i, j));
+      }
+    }
+  }
+};
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(send_across_network, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  using ExecutionSpace = typename DeviceType::execution_space;
+  MPI_Comm comm = MPI_COMM_WORLD;
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+  int comm_size;
+  MPI_Comm_size(comm, &comm_size);
+
+  int const DIM = 3;
+
+  // send 1 packet to rank k
+  // receive comm_size packets
+  Kokkos::View<int **, DeviceType> u_exp("u_exp", comm_size, DIM);
+  Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, comm_size),
+                       KOKKOS_LAMBDA(int i) {
+                         for (int j = 0; j < DIM; ++j)
+                           u_exp(i, j) = i + j * comm_rank;
+                       });
+  Kokkos::fence();
+
+  Kokkos::View<int *, DeviceType> ranks_u("", comm_size);
+  ArborX::iota(ExecutionSpace{}, ranks_u, 0);
+
+  Kokkos::View<int **, DeviceType> u_ref("u_ref", comm_size, DIM);
+  Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, comm_size),
+                       KOKKOS_LAMBDA(int i) {
+                         for (int j = 0; j < DIM; ++j)
+                           u_ref(i, j) = comm_rank + i * j;
+                       });
+  Kokkos::fence();
+
+  Helper<DeviceType>::checkSendAcrossNetwork(comm, ranks_u, u_exp, u_ref);
+}
