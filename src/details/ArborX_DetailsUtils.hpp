@@ -514,6 +514,20 @@ template <typename SrcViewType, typename DstViewType>
 #endif
 // clang-format on
 
+template <typename View>
+View create_empty_view(std::string const &label)
+{
+  constexpr int rank = View::rank_dynamic;
+  return View(label, rank > 0 ? 0 : KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+              rank > 1 ? 0 : KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+              rank > 2 ? 0 : KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+              rank > 3 ? 0 : KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+              rank > 4 ? 0 : KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+              rank > 5 ? 0 : KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+              rank > 6 ? 0 : KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+              rank > 7 ? 0 : KOKKOS_IMPL_CTOR_DEFAULT_ARG);
+}
+
 // NOTE: not possible to avoid initialization with Kokkos::realloc()
 template <typename View>
 void reallocWithoutInitializing(View &v,
