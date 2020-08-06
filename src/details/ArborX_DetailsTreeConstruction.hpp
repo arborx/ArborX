@@ -21,7 +21,6 @@
 #include <ArborX_Macros.hpp>
 
 #include <Kokkos_Core.hpp>
-#include <Kokkos_OffsetView.hpp>
 
 #include <cassert>
 
@@ -215,26 +214,61 @@ template <typename MemorySpace>
 class GenerateHierarchyFunctor
 {
 public:
-  template <typename ExecutionSpace, typename... DeltasViewProperties,
+  template <typename ExecutionSpace, typename... MortonCodesViewProperties,
             typename... LeafNodesViewProperties,
             typename... InternalNodesViewProperties>
   GenerateHierarchyFunctor(
       ExecutionSpace const &space,
-      Kokkos::Experimental::OffsetView<int *, DeltasViewProperties...> deltas,
+      Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
+          sorted_morton_codes,
       Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
       Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
-      : _delta(deltas)
+      : _sorted_morton_codes(sorted_morton_codes)
       , _leaf_nodes(leaf_nodes)
       , _internal_nodes(internal_nodes)
       , _ranges(Kokkos::ViewAllocateWithoutInitializing("ranges"),
                 internal_nodes.extent(0))
+      , _num_internal_nodes(_internal_nodes.extent_int(0))
   {
     Kokkos::deep_copy(space, _ranges, UNTOUCHED_NODE);
   }
 
+  KOKKOS_FUNCTION
+  int delta(int const i) const
+  {
+    // Per Apetrei:
+    //   Because we already know where the highest differing bit is for each
+    //   internal node, the delta function basically represents a distance
+    //   metric between two keys. Unlike the delta used by Karras, we are
+    //   interested in the index of the highest differing bit and not the length
+    //   of the common prefix. In practice, logical xor can be used instead of
+    //   finding the index of the highest differing bit as we can compare the
+    //   numbers. The higher the index of the differing bit, the larger the
+    //   number.
+
+    // This check is here simply to avoid code complications in the main
+    // operator
+    if (i < 0 || i >= _num_internal_nodes)
+      return INT_MAX;
+
+    // The Apetrei's paper does not mention dealing with duplicate indices. We
+    // follow the original Karras idea in this situation:
+    //   The case of duplicate Morton codes has to be handled explicitly, since
+    //   our construction algorithm relies on the keys being unique. We
+    //   accomplish this by augmenting each key with a bit representation of
+    //   its index, i.e. k_i = k_i <+> i, where <+> indicates string
+    //   concatenation.
+    // In this case, if the Morton indices are the same, we want to compare is.
+    // We also want the result in this situation to always be less than any
+    // Morton comparison. Thus, we add INT_MIN to it.
+    // We also avoid if/else statement by doing a "x + !x*<blah>" trick.
+    auto x = _sorted_morton_codes(i) ^ _sorted_morton_codes(i + 1);
+    return x + (!x) * (INT_MIN + (i ^ (i + 1)));
+  }
+
   KOKKOS_FUNCTION void operator()(int i) const
   {
-    auto const n = _internal_nodes.extent_int(0);
+    auto const n = _num_internal_nodes;
     auto const leaf_nodes_shift = n;
 
     // For a leaf node, the range is just one index
@@ -242,7 +276,7 @@ public:
     int &range_left = range[0];
     int &range_right = range[1];
 
-    int deltas[2] = {_delta(range_left - 1), _delta(range_right)};
+    int deltas[2] = {delta(range_left - 1), delta(range_right)};
     int &delta_left = deltas[0];
     int &delta_right = deltas[1];
 
@@ -279,7 +313,7 @@ public:
 
       // Update deltas
       deltas[direction_index] =
-          _delta(range[direction_index] - (1 - direction_index));
+          delta(range[direction_index] - (1 - direction_index));
 
       // We now have the full range for the parent, stored in `range`, and can
       // compute the Karras index.
@@ -329,69 +363,13 @@ public:
   }
 
 private:
-  Kokkos::Experimental::OffsetView<int *, MemorySpace> _delta;
+  Kokkos::View<unsigned int const *, MemorySpace> _sorted_morton_codes;
   Kokkos::View<Node *, MemorySpace> _leaf_nodes;
   Kokkos::View<Node *, MemorySpace> _internal_nodes;
   // Use int instead of bool because CAS (Compare And Swap) on CUDA does not
   // support boolean
   Kokkos::View<int *, MemorySpace> _ranges;
-};
-
-template <typename MemorySpace>
-class ComputeDeltasFunctor
-{
-public:
-  template <typename... MortonCodesViewProperties,
-            typename... DeltasViewProperties>
-  ComputeDeltasFunctor(
-      Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
-          sorted_morton_codes,
-      Kokkos::Experimental::OffsetView<int *, DeltasViewProperties...> delta)
-      : _sorted_morton_codes(sorted_morton_codes)
-      , _delta(delta)
-      , _n_leaf_nodes(sorted_morton_codes.extent_int(0))
-  {
-  }
-
-  KOKKOS_FUNCTION void operator()(int i) const
-  {
-    // Per Apetrei:
-    //   Because we already know where the highest differing bit is for each
-    //   internal node, the delta function basically represents a distance
-    //   metric between two keys. Unlike the delta used by Karras, we are
-    //   interested in the index of the highest differing bit and not the
-    //   length of the common prefix. In practice, logical xor can be used
-    //   instead of finding the index of the highest differing bit as we can
-    //   compare the numbers. The higher the index of the differing bit, the
-    //   larger the number.
-
-    // This check is here simply to avoid code complications in the main
-    // operator
-    if (i == -1 || i == _n_leaf_nodes - 1)
-    {
-      _delta(i) = INT_MAX;
-      return;
-    }
-
-    // The Apetrei's paper does not mention dealing with duplicate indices.
-    // We follow the original Karras idea in this situation:
-    //   The case of duplicate Morton codes has to be handled explicitly,
-    //   since our construction algorithm relies on the keys being unique.
-    //   We accomplish this by augmenting each key with a bit representation
-    //   of its index, i.e. k_i = k_i <+> i, where <+> indicates string
-    //   concatenation.
-    // In this case, if the Morton indices are the same, we want to compare
-    // is. We also want the result in this situation to always be less than
-    // any Morton comparison. Thus, we add INT_MIN to it. We also avoid
-    // if/else statement by doing a "x + !x*<blah>" trick.
-    auto x = _sorted_morton_codes(i) ^ _sorted_morton_codes(i + 1);
-    _delta(i) = x + (!x) * (INT_MIN + (i ^ (i + 1)));
-  }
-
-private:
-  Kokkos::View<unsigned const *, MemorySpace> _sorted_morton_codes;
-  Kokkos::Experimental::OffsetView<int *, MemorySpace> _delta;
-  int _n_leaf_nodes;
+  int _num_internal_nodes;
 };
 
 template <typename ExecutionSpace, typename... MortonCodesViewProperties,
@@ -405,30 +383,14 @@ void generateHierarchy(
     Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
 {
   using MemorySpace = typename decltype(internal_nodes)::memory_space;
-  auto const n_leaf_nodes = leaf_nodes.extent_int(0);
-  auto const leaf_nodes_shift = n_leaf_nodes - 1;
-
-  // Use Kokkos::View for a workaround for the fact that Kokkos::OffsetView
-  // does not support ViewAllocateWithoutInitializing
-  Kokkos::View<int *, MemorySpace> delta_storage(
-      Kokkos::ViewAllocateWithoutInitializing("delta"), n_leaf_nodes + 1);
-  Kokkos::Experimental::OffsetView<int *, MemorySpace> delta(delta_storage,
-                                                             {-1});
-
-  // NOTE: for some reason, KOKKOS_LAMBDA with CUDA does not here. It seems to
-  // be unable to take the pointer of the generateHierarchy function.
-  Kokkos::parallel_for(
-      ARBORX_MARK_REGION("precompute_deltas"),
-      Kokkos::RangePolicy<ExecutionSpace, Kokkos::IndexType<int>>(space, -1,
-                                                                  n_leaf_nodes),
-      ComputeDeltasFunctor<MemorySpace>(sorted_morton_codes, delta));
+  auto const n_internal_nodes = internal_nodes.extent(0);
 
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("generate_hierarchy"),
-      Kokkos::RangePolicy<ExecutionSpace>(space, leaf_nodes_shift,
-                                          leaf_nodes_shift + n_leaf_nodes),
-      GenerateHierarchyFunctor<MemorySpace>(space, delta, leaf_nodes,
-                                            internal_nodes));
+      Kokkos::RangePolicy<ExecutionSpace>(space, n_internal_nodes,
+                                          2 * n_internal_nodes + 1),
+      GenerateHierarchyFunctor<MemorySpace>(space, sorted_morton_codes,
+                                            leaf_nodes, internal_nodes));
 }
 
 template <typename ExecutionSpace, typename... MortonCodesViewProperties,
