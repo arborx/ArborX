@@ -268,17 +268,18 @@ public:
 
   KOKKOS_FUNCTION void operator()(int i) const
   {
-    auto const n = _num_internal_nodes;
-    auto const leaf_nodes_shift = n;
+    auto const leaf_nodes_shift = _num_internal_nodes;
 
     // For a leaf node, the range is just one index
-    int range[2] = {i - n, i - n};
+    int range[2] = {i - leaf_nodes_shift, i - leaf_nodes_shift};
     int &range_left = range[0];
     int &range_right = range[1];
 
     int deltas[2] = {delta(range_left - 1), delta(range_right)};
     int &delta_left = deltas[0];
     int &delta_right = deltas[1];
+
+    Box box = (&_leaf_nodes(i - leaf_nodes_shift))->bounding_box;
 
     // Walk toward the root and do process it even though technically its
     // bounding box has already been computed (bounding box of the scene)
@@ -297,10 +298,6 @@ public:
       // child updates one of these range values. The first thread up stores
       // the updated range value (which also serves as a flag). The second
       // thread up construct the full parent range.
-      // In addition, save the discarded value for the second thread up as it
-      // is needed later to compute other child index (specifically, whether it
-      // is a leaf node).
-      int discarded_range = range[direction_index];
       range[direction_index] = Kokkos::atomic_compare_exchange(
           &_ranges(apetrei_index), UNTOUCHED_NODE, range[1 - direction_index]);
 
@@ -319,8 +316,7 @@ public:
       // compute the Karras index.
       // NOTE: `range` was updated above, so this check is different from the
       // one above, despite looking exactly the same.
-      int x = (delta_right < delta_left);
-      int karras_index = (1 - x) * range_left + x * range_right;
+      int karras_index = range[delta_right < delta_left];
 
       Node *node = &_internal_nodes(karras_index);
 
@@ -328,34 +324,31 @@ public:
       // leaf nodes have to be shifted. The determination whether the second
       // child is a leaf node depends on the position of the split (which is
       // apetrei index) to the correct range boundary.
+      int other_child_index = apetrei_index + direction_index;
+      bool is_other_child_leaf = (other_child_index == range[direction_index]);
+      Node const *other_child = &_internal_nodes(other_child_index);
+      if (is_other_child_leaf)
+      {
+        other_child = &_leaf_nodes(other_child_index);
+        other_child_index += leaf_nodes_shift;
+      }
+
       bool is_left_child = (direction_index == 1);
       if (is_left_child)
       {
         node->children.first = i;
-        node->children.second =
-            discarded_range + 1 +
-            (range_right - apetrei_index == 1) * leaf_nodes_shift;
+        node->children.second = other_child_index;
       }
       else
       {
-        node->children.first =
-            discarded_range - 1 +
-            (apetrei_index - range_left == 0) * leaf_nodes_shift;
+        node->children.first = other_child_index;
         node->children.second = i;
       }
 
       // Internal node bounding boxes are unitialized hence the
       // assignment operator below.
-      Node const *first_child =
-          (node->children.first < n
-               ? &_internal_nodes(node->children.first)
-               : &_leaf_nodes(node->children.first - leaf_nodes_shift));
-      Node const *second_child =
-          (node->children.second < n
-               ? &_internal_nodes(node->children.second)
-               : &_leaf_nodes(node->children.second - leaf_nodes_shift));
-      node->bounding_box = first_child->bounding_box;
-      expand(node->bounding_box, second_child->bounding_box);
+      expand(box, other_child->bounding_box);
+      node->bounding_box = box;
 
       i = karras_index;
 
