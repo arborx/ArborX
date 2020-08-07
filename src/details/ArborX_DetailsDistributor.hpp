@@ -248,7 +248,6 @@ public:
         std::is_same<ValueType,
                      std::remove_cv_t<typename ExportView::value_type>>::value,
         "");
-    static_assert(ExportView::rank == 1, "");
     static_assert(ImportView::rank == 1, "");
 
     static_assert(
@@ -259,35 +258,34 @@ public:
     // If _permute is empty, we are assuming that we don't need to permute
     // exports.
     bool const permutation_necessary = _permute.size() != 0;
-    Kokkos::View<ValueType *, typename ExportView::traits::device_type>
-        dest_buffer("destination_buffer", 0);
+    auto dest_buffer =
+        ExportView("destination_buffer", typename ExportView::array_layout{});
     if (permutation_necessary)
     {
-      reallocWithoutInitializing(dest_buffer, exports.size());
+      reallocWithoutInitializing(dest_buffer, exports.layout());
 
       // We need to create a local copy to avoid capturing a member variable
       // (via the 'this' pointer) which we can't do using a KOKKOS_LAMBDA.
       // Use KOKKOS_CLASS_LAMBDA when we require C++17.
       auto const permute_copy = _permute;
-      auto const permute_size = _permute.size();
 
-      for (unsigned int i = 0; i < num_packets; ++i)
-        ArborX::Details::applyInversePermutation(
-            space, permute_copy,
-            Kokkos::subview(exports,
-                            std::pair<unsigned int, unsigned int>(
-                                permute_size * i, permute_size * (i + 1))),
-            Kokkos::subview(dest_buffer,
-                            std::pair<unsigned int, unsigned int>(
-                                permute_size * i, permute_size * (i + 1))));
+      ArborX::Details::applyInversePermutation(space, permute_copy, exports,
+                                               dest_buffer);
     }
-    Kokkos::View<ValueType *, typename ExportView::traits::device_type,
-                 Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-        unmanaged_dest_buffer(dest_buffer.data(), dest_buffer.size());
+    auto dest_buffer_mirror =
+        ArborX::Details::create_layout_right_mirror_view_and_copy(
+            typename ImportView::memory_space(),
+            permutation_necessary ? dest_buffer : exports);
 
-    auto dest_buffer_mirror = Kokkos::create_mirror_view_and_copy(
-        typename ImportView::memory_space(),
-        permutation_necessary ? unmanaged_dest_buffer : exports);
+    static_assert(
+        decltype(dest_buffer_mirror)::rank == 1 ||
+            std::is_same<typename decltype(dest_buffer_mirror)::array_layout,
+                         Kokkos::LayoutRight>::value,
+        "");
+    static_assert(ImportView::rank == 1 ||
+                      std::is_same<typename ImportView::array_layout,
+                                   Kokkos::LayoutRight>::value,
+                  "");
 
     int comm_rank;
     MPI_Comm_rank(_comm, &comm_rank);

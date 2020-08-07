@@ -167,72 +167,6 @@ struct DistributedSearchTreeImpl
                     typename View::non_const_type imports);
 };
 
-namespace internal
-{
-template <typename PointerType>
-struct PointerDepth
-{
-  static int constexpr value = 0;
-};
-
-template <typename PointerType>
-struct PointerDepth<PointerType *>
-{
-  static int constexpr value = PointerDepth<PointerType>::value + 1;
-};
-
-template <typename PointerType, std::size_t N>
-struct PointerDepth<PointerType[N]>
-{
-  static int constexpr value = PointerDepth<PointerType>::value;
-};
-} // namespace internal
-
-template <typename View>
-inline Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
-                    typename View::traits::host_mirror_space>
-create_layout_right_mirror_view(
-    View const &src,
-    typename std::enable_if<!(
-        (std::is_same<typename View::traits::array_layout,
-                      Kokkos::LayoutRight>::value ||
-         (View::rank == 1 && !std::is_same<typename View::traits::array_layout,
-                                           Kokkos::LayoutStride>::value)) &&
-        std::is_same<typename View::traits::memory_space,
-                     typename View::traits::host_mirror_space::memory_space>::
-            value)>::type * = 0)
-{
-  constexpr int pointer_depth =
-      internal::PointerDepth<typename View::traits::data_type>::value;
-  return Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
-                      typename View::traits::host_mirror_space>(
-      std::string(src.label()).append("_layout_right_mirror"), src.extent(0),
-      pointer_depth > 1 ? src.extent(1) : KOKKOS_INVALID_INDEX,
-      pointer_depth > 2 ? src.extent(2) : KOKKOS_INVALID_INDEX,
-      pointer_depth > 3 ? src.extent(3) : KOKKOS_INVALID_INDEX,
-      pointer_depth > 4 ? src.extent(4) : KOKKOS_INVALID_INDEX,
-      pointer_depth > 5 ? src.extent(5) : KOKKOS_INVALID_INDEX,
-      pointer_depth > 6 ? src.extent(6) : KOKKOS_INVALID_INDEX,
-      pointer_depth > 7 ? src.extent(7) : KOKKOS_INVALID_INDEX);
-}
-
-template <typename View>
-inline Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
-                    typename View::traits::host_mirror_space>
-create_layout_right_mirror_view(
-    View const &src,
-    typename std::enable_if<
-        ((std::is_same<typename View::traits::array_layout,
-                       Kokkos::LayoutRight>::value ||
-          (View::rank == 1 && !std::is_same<typename View::traits::array_layout,
-                                            Kokkos::LayoutStride>::value)) &&
-         std::is_same<typename View::traits::memory_space,
-                      typename View::traits::host_mirror_space::memory_space>::
-             value)>::type * = 0)
-{
-  return src;
-}
-
 template <typename DeviceType>
 template <typename ExecutionSpace, typename View>
 typename std::enable_if<Kokkos::is_view<View>::value>::type
@@ -256,28 +190,27 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
                            exports.extent(7);
 
   using NonConstValueType = typename View::non_const_value_type;
-  using ConstValueType = typename View::const_value_type;
-
-  Kokkos::View<ConstValueType *, typename View::device_type,
-               Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-      export_buffer(exports.data(), exports.size());
 
 #ifndef ARBORX_USE_CUDA_AWARE_MPI
-  auto imports_host = create_layout_right_mirror_view(imports);
-
-  Kokkos::View<NonConstValueType *, Kokkos::HostSpace,
-               Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-      import_buffer(imports_host.data(), imports_host.size());
-
-  distributor.doPostsAndWaits(space, export_buffer, num_packets, import_buffer);
-  Kokkos::deep_copy(space, imports, imports_host);
+  using MirrorSpace = typename View::host_mirror_space;
+  MirrorSpace const execution_space;
 #else
-  Kokkos::View<NonConstValueType *, typename View::device_type,
-               Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-      import_buffer(imports.data(), imports.size());
-
-  distributor.doPostsAndWaits(space, export_buffer, num_packets, import_buffer);
+  using MirrorSpace = typename View::device_type;
+  auto const &execution_space = space;
 #endif
+
+  auto imports_layout_right =
+      create_layout_right_mirror_view(execution_space, imports);
+
+  Kokkos::View<NonConstValueType *, MirrorSpace,
+               Kokkos::MemoryTraits<Kokkos::Unmanaged>>
+      import_buffer(imports_layout_right.data(), imports_layout_right.size());
+
+  distributor.doPostsAndWaits(space, exports, num_packets, import_buffer);
+
+  auto tmp_view =
+      Kokkos::create_mirror_view_and_copy(space, imports_layout_right);
+  Kokkos::deep_copy(space, imports, tmp_view);
 }
 
 template <typename DeviceType>
