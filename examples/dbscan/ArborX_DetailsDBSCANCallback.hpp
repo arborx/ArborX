@@ -179,9 +179,8 @@ struct DBSCANCallback
     } while (repeat);
   }
 
-  template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &query, int j,
-                                  Insert const &) const
+  template <typename Query>
+  KOKKOS_FUNCTION void operator()(Query const &query, int j) const
   {
     int const i = ArborX::getData(query);
 

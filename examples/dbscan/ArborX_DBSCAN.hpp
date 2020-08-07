@@ -58,8 +58,8 @@ struct NumNeighCallback
 {
   Kokkos::View<int *, MemorySpace> num_neigh_;
 
-  template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &query, int, Insert const &) const
+  template <typename Query>
+  KOKKOS_FUNCTION void operator()(Query const &query, int) const
   {
     auto i = getData(query);
     Kokkos::atomic_fetch_add(&num_neigh_(i), 1);
@@ -126,12 +126,6 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
 
   int const n = primitives.extent_int(0);
 
-  // TODO: remove these once type 1 interface is available
-  // NOTE: indices and offfset are not going to be used as
-  // insert() will not be called
-  Kokkos::View<int *, MemorySpace> indices("Testing::indices", 0);
-  Kokkos::View<int *, MemorySpace> offset("Testing::offset", 0);
-
   // build the tree
   start = clock::now();
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::tree_construction");
@@ -154,8 +148,7 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
     bvh.query(
         exec_space, predicates,
-        Details::DBSCANCallback<MemorySpace, CorePoints>{stat, core_points},
-        indices, offset);
+        Details::DBSCANCallback<MemorySpace, CorePoints>{stat, core_points});
     Kokkos::Profiling::popRegion();
   }
   else
@@ -168,8 +161,7 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
         n);
     // Initialize to -1 as we don't want to count ourselves as a neighbor
     Kokkos::deep_copy(num_neigh, -1);
-    bvh.query(exec_space, predicates, NumNeighCallback<MemorySpace>{num_neigh},
-              indices, offset);
+    bvh.query(exec_space, predicates, NumNeighCallback<MemorySpace>{num_neigh});
     Kokkos::Profiling::popRegion();
 
     using CorePoints = DBSCANCorePoints<MemorySpace>;
@@ -177,8 +169,7 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters:query");
     bvh.query(exec_space, predicates,
               Details::DBSCANCallback<MemorySpace, CorePoints>{
-                  stat, CorePoints{num_neigh, core_min_size}},
-              indices, offset);
+                  stat, CorePoints{num_neigh, core_min_size}});
     Kokkos::Profiling::popRegion();
   }
 
@@ -214,7 +205,10 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
     start = clock::now();
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::verify");
 
+    Kokkos::View<int *, MemorySpace> indices("indices", 0);
+    Kokkos::View<int *, MemorySpace> offset("offset", 0);
     bvh.query(exec_space, predicates, indices, offset);
+
     auto passed = Details::verifyClusters(exec_space, indices, offset, clusters,
                                           core_min_size);
     printf("Verification %s\n", (passed ? "passed" : "failed"));
