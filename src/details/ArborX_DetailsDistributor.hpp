@@ -278,11 +278,13 @@ public:
             permutation_necessary ? dest_buffer : exports);
 
     static_assert(
-        std::is_same<typename decltype(dest_buffer_mirror)::array_layout,
-                     Kokkos::LayoutRight>::value,
+        decltype(dest_buffer_mirror)::rank == 1 ||
+            std::is_same<typename decltype(dest_buffer_mirror)::array_layout,
+                         Kokkos::LayoutRight>::value,
         "");
-    static_assert(std::is_same<typename ImportView::array_layout,
-                               Kokkos::LayoutRight>::value,
+    static_assert(ImportView::rank == 1 ||
+                      std::is_same<typename ImportView::array_layout,
+                                   Kokkos::LayoutRight>::value,
                   "");
 
     int comm_rank;
