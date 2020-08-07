@@ -208,8 +208,8 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
 
   distributor.doPostsAndWaits(space, exports, num_packets, import_buffer);
 
-  auto tmp_view = Kokkos::create_mirror_view_and_copy(
-      typename View::device_type{}, imports_layout_right);
+  auto tmp_view =
+      Kokkos::create_mirror_view_and_copy(space, imports_layout_right);
   Kokkos::deep_copy(space, imports, tmp_view);
 }
 
