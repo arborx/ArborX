@@ -639,10 +639,6 @@ struct Helper
     ArborX::Details::DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
         typename DeviceType::execution_space{}, distributor, v_exp, v_imp);
 
-    // FIXME not sure why I need that guy but I do get a bus error when it
-    // is not here...
-    Kokkos::fence();
-
     auto v_imp_host = Kokkos::create_mirror_view(v_imp);
     Kokkos::deep_copy(v_imp_host, v_imp);
     auto v_ref_host = Kokkos::create_mirror_view(v_ref);
@@ -680,7 +676,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(send_across_network, DeviceType,
                          for (int j = 0; j < DIM; ++j)
                            u_exp(i, j) = i + j * comm_rank;
                        });
-  Kokkos::fence();
 
   Kokkos::View<int *, DeviceType> ranks_u("", comm_size);
   ArborX::iota(ExecutionSpace{}, ranks_u, 0);
@@ -691,7 +686,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(send_across_network, DeviceType,
                          for (int j = 0; j < DIM; ++j)
                            u_ref(i, j) = comm_rank + i * j;
                        });
-  Kokkos::fence();
 
   Helper<DeviceType>::checkSendAcrossNetwork(comm, ranks_u, u_exp, u_ref);
 }
