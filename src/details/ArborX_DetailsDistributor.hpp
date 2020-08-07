@@ -259,7 +259,7 @@ public:
     // exports.
     bool const permutation_necessary = _permute.size() != 0;
     auto dest_buffer =
-        ArborX::create_empty_view<ExportView>("destination_buffer");
+        ExportView("destination_buffer", typename ExportView::array_layout{});
     if (permutation_necessary)
     {
       reallocWithoutInitializing(dest_buffer, exports.layout());
