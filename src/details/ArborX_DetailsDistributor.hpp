@@ -262,8 +262,7 @@ public:
         ArborX::create_empty_view<ExportView>("destination_buffer");
     if (permutation_necessary)
     {
-      dest_buffer = Kokkos::create_mirror(
-          typename ExportView::execution_space{}, exports);
+      reallocWithoutInitializing(dest_buffer, exports.layout());
 
       // We need to create a local copy to avoid capturing a member variable
       // (via the 'this' pointer) which we can't do using a KOKKOS_LAMBDA.

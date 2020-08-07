@@ -540,8 +540,17 @@ void reallocWithoutInitializing(View &v,
                                 size_t n6 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
                                 size_t n7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG)
 {
+  static_assert(View::is_managed, "Can only realloc managed views");
   v = View(Kokkos::ViewAllocateWithoutInitializing(v.label()), n0, n1, n2, n3,
            n4, n5, n6, n7);
+}
+
+template <typename View>
+void reallocWithoutInitializing(View &v,
+                                const typename View::array_layout &layout)
+{
+  static_assert(View::is_managed, "Can only realloc managed views");
+  v = View(Kokkos::ViewAllocateWithoutInitializing(v.label()), layout);
 }
 
 template <typename View>
