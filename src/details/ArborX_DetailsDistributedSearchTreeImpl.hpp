@@ -126,6 +126,27 @@ struct DistributedSearchTreeImpl
   }
 
   template <typename DistributedTree, typename ExecutionSpace,
+            typename Predicates, typename IndicesAndRanks, typename Offset>
+  static std::enable_if_t<Kokkos::is_view<IndicesAndRanks>{} &&
+                          Kokkos::is_view<Offset>{}>
+  queryDispatch(NearestPredicateTag tag, DistributedTree const &tree,
+                ExecutionSpace const &space, Predicates const &queries,
+                IndicesAndRanks &values, Offset &offset)
+  {
+    // FIXME
+    Kokkos::View<int *, ExecutionSpace> indices("indices", 0);
+    Kokkos::View<int *, ExecutionSpace> ranks("ranks", 0);
+    queryDispatch(tag, tree, space, queries, indices, offset, ranks);
+    auto const n = indices.extent(0);
+    reallocWithoutInitializing(values, n);
+    Kokkos::parallel_for(ARBORX_MARK_REGION("zip"),
+                         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+                         KOKKOS_LAMBDA(int i) {
+                           values(i) = {indices(i), ranks(i)};
+                         });
+  }
+
+  template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename Indices, typename Offset,
             typename Distances>
   static void deviseStrategy(ExecutionSpace const &space,
