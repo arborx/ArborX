@@ -50,14 +50,13 @@ struct SecondPassTag
 };
 
 template <typename PassTag, typename Predicates, typename Callback,
-          typename OutputView, typename CountView, typename OffsetView>
+          typename OutputView, typename CountView, typename PermutedOffset>
 struct InsertGenerator
 {
-  Predicates _permuted_predicates;
   Callback _callback;
   OutputView _out;
   CountView _counts;
-  OffsetView _offset;
+  PermutedOffset _permuted_offset;
 
   using ValueType = typename OutputView::value_type;
   using Access = AccessTraits<Predicates, PredicatesTag>;
@@ -69,15 +68,13 @@ struct InsertGenerator
                                    std::is_same<V, SpatialPredicateTag>{}>
   operator()(PredicateType const &predicate, int primitive_index) const
   {
-    auto const &data = getData(predicate);
-    auto const predicate_index = data.original;
-    auto const permuted_predicate_index = data.permuted;
+    auto const predicate_index = getData(predicate);
     auto const &raw_predicate = getPredicate(predicate);
     // With permutation, we access offset in random manner, and
     // _offset(permutated_predicate_index+1) may be in a completely different
     // place. Instead, use pointers to get the correct value for the buffer
     // size. For this reason, also take a reference for offset.
-    auto const &offset = _offset(permuted_predicate_index);
+    auto const &offset = _permuted_offset(predicate_index);
     auto const buffer_size = *(&offset + 1) - offset;
     auto &count = _counts(predicate_index);
 
@@ -93,15 +90,13 @@ struct InsertGenerator
   operator()(PredicateType const &predicate, int primitive_index,
              float distance) const
   {
-    auto const &data = getData(predicate);
-    auto const predicate_index = data.original;
-    auto const permuted_predicate_index = data.permuted;
+    auto const predicate_index = getData(predicate);
     auto const &raw_predicate = getPredicate(predicate);
     // With permutation, we access offset in random manner, and
     // _offset(permutated_predicate_index+1) may be in a completely different
     // place. Instead, use pointers to get the correct value for the buffer
     // size. For this reason, also take a reference for offset.
-    auto const &offset = _offset(permuted_predicate_index);
+    auto const &offset = _permuted_offset(predicate_index);
     auto const buffer_size = *(&offset + 1) - offset;
     auto &count = _counts(predicate_index);
 
@@ -119,9 +114,7 @@ struct InsertGenerator
                        std::is_same<V, SpatialPredicateTag>{}>
       operator()(PredicateType const &predicate, int primitive_index) const
   {
-    auto const &data = getData(predicate);
-    auto const predicate_index = data.original;
-    auto const permuted_predicate_index = data.permuted;
+    auto const predicate_index = getData(predicate);
     auto const &raw_predicate = getPredicate(predicate);
 
     auto &count = _counts(predicate_index);
@@ -137,9 +130,7 @@ struct InsertGenerator
       operator()(PredicateType const &predicate, int primitive_index,
                  float distance) const
   {
-    auto const &data = getData(predicate);
-    auto const predicate_index = data.original;
-    auto const permuted_predicate_index = data.permuted;
+    auto const predicate_index = getData(predicate);
     auto const &raw_predicate = getPredicate(predicate);
 
     auto &count = _counts(predicate_index);
@@ -153,9 +144,7 @@ struct InsertGenerator
                                    std::is_same<V, SpatialPredicateTag>{}>
   operator()(PredicateType const &predicate, int primitive_index) const
   {
-    auto const &data = getData(predicate);
-    auto const predicate_index = data.original;
-    auto const permuted_predicate_index = data.permuted;
+    auto const predicate_index = getData(predicate);
     auto const &raw_predicate = getPredicate(predicate);
 
     // we store offsets in counts, and offset(permute(i)) = counts(i)
@@ -176,9 +165,7 @@ struct InsertGenerator
   operator()(PredicateType const &predicate, int primitive_index,
              float distance) const
   {
-    auto const &data = getData(predicate);
-    auto const predicate_index = data.original;
-    auto const permuted_predicate_index = data.permuted;
+    auto const predicate_index = getData(predicate);
     auto const &raw_predicate = getPredicate(predicate);
 
     // we store offsets in counts, and offset(permute(i)) = counts(i)
@@ -195,38 +182,27 @@ struct InsertGenerator
   }
 };
 
-template <typename Predicates, typename Permute, bool AttachIndices = false>
-struct PermutedPredicates
+template <typename Data, typename Permute, bool AttachIndices = false>
+struct PermutedData
 {
-  Predicates _predicates;
+  Data _data;
   Permute _permute;
-  KOKKOS_FUNCTION auto operator()(int i) const
-  {
-    return _predicates(_permute(i));
-  }
-};
-
-// TODO find a better name and think harder about int versus size_t
-struct PermutedIndices
-{
-  int original;
-  int permuted;
+  KOKKOS_FUNCTION auto &operator()(int i) const { return _data(_permute(i)); }
 };
 
 } // namespace Details
 
 template <typename Predicates, typename Permute, bool AttachIndices>
-struct AccessTraits<
-    Details::PermutedPredicates<Predicates, Permute, AttachIndices>,
-    PredicatesTag>
+struct AccessTraits<Details::PermutedData<Predicates, Permute, AttachIndices>,
+                    PredicatesTag>
 {
   using PermutedPredicates =
-      Details::PermutedPredicates<Predicates, Permute, AttachIndices>;
+      Details::PermutedData<Predicates, Permute, AttachIndices>;
   using NativeAccess = AccessTraits<Predicates, PredicatesTag>;
 
   static std::size_t size(PermutedPredicates const &permuted_predicates)
   {
-    return NativeAccess::size(permuted_predicates._predicates);
+    return NativeAccess::size(permuted_predicates._data);
   }
 
   template <bool _Attach = AttachIndices>
@@ -234,9 +210,8 @@ struct AccessTraits<
                                   std::enable_if_t<_Attach, std::size_t> index)
   {
     auto const permuted_index = permuted_predicates._permute(index);
-    return attach(
-        NativeAccess::get(permuted_predicates._predicates, permuted_index),
-        Details::PermutedIndices{(int)index, (int)permuted_index});
+    return attach(NativeAccess::get(permuted_predicates._data, permuted_index),
+                  (int)index);
   }
 
   template <bool _Attach = AttachIndices>
@@ -244,7 +219,7 @@ struct AccessTraits<
                                   std::enable_if_t<!_Attach, std::size_t> index)
   {
     auto const permuted_index = permuted_predicates._permute(index);
-    return NativeAccess::get(permuted_predicates._predicates, permuted_index);
+    return NativeAccess::get(permuted_predicates._data, permuted_index);
   }
   using memory_space = typename NativeAccess::memory_space;
 };
@@ -273,8 +248,12 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   using CountView = OffsetView;
   CountView counts(Kokkos::view_alloc("counts", space), n_queries);
 
-  using PermutedPredicates = PermutedPredicates<Predicates, PermuteType, true>;
+  using PermutedPredicates =
+      PermutedData<Predicates, PermuteType, true /*AttachIndices*/>;
   PermutedPredicates permuted_predicates = {predicates, permute};
+
+  using PermutedOffset = PermutedData<OffsetView, PermuteType>;
+  PermutedOffset permuted_offset = {offset, permute};
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:first_pass");
   bool underflow = false;
@@ -284,8 +263,8 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
     tree_traversal.launch(
         space, permuted_predicates,
         InsertGenerator<FirstPassTag, PermutedPredicates, Callback, OutputView,
-                        CountView, OffsetView>{permuted_predicates, callback,
-                                               out, counts, offset});
+                        CountView, PermutedOffset>{callback, out, counts,
+                                                   permuted_offset});
 
     // Detecting overflow is a local operation that needs to be done for every
     // index. We allow individual buffer sizes to differ, so it's not as easy
@@ -295,7 +274,7 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
         ARBORX_MARK_REGION("compute_overflow"),
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i, int &update) {
-          auto const *const offset_ptr = &offset(permute(i));
+          auto const *const offset_ptr = &permuted_offset(i);
           if (counts(i) > *(offset_ptr + 1) - *offset_ptr)
             update = 1;
         },
@@ -318,8 +297,8 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
     tree_traversal.launch(
         space, permuted_predicates,
         InsertGenerator<FirstPassNoBufferOptimizationTag, PermutedPredicates,
-                        Callback, OutputView, CountView, OffsetView>{
-            permuted_predicates, callback, out, counts, offset});
+                        Callback, OutputView, CountView, PermutedOffset>{
+            callback, out, counts, permuted_offset});
     // This may not be true, but it does not matter. As long as we have
     // (n_results == 0) check before second pass, this value is not used.
     // Otherwise, we know it's overflowed as there is no allocation.
@@ -339,7 +318,7 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("copy_counts_to_offsets"),
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-      KOKKOS_LAMBDA(int const i) { offset(permute(i)) = counts(i); });
+      KOKKOS_LAMBDA(int const i) { permuted_offset(i) = counts(i); });
   exclusivePrefixSum(space, offset);
 
   int const n_results = lastElement(offset);
@@ -370,15 +349,15 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("copy_offsets_to_counts"),
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int const i) { counts(i) = offset(permute(i)); });
+        KOKKOS_LAMBDA(int const i) { counts(i) = permuted_offset(i); });
 
     reallocWithoutInitializing(out, n_results);
 
     tree_traversal.launch(
         space, permuted_predicates,
         InsertGenerator<SecondPassTag, PermutedPredicates, Callback, OutputView,
-                        CountView, OffsetView>{permuted_predicates, callback,
-                                               out, counts, offset});
+                        CountView, PermutedOffset>{callback, out, counts,
+                                                   permuted_offset});
 
     Kokkos::Profiling::popRegion();
   }

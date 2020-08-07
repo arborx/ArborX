@@ -37,8 +37,7 @@ struct Test1
           for (int primitive_index = 0; primitive_index < predicate_index;
                ++primitive_index)
             insert_generator(attach(Access::get(predicates, predicate_index),
-                                    ArborX::Details::PermutedIndices{
-                                        predicate_index, predicate_index}),
+                                    predicate_index),
                              primitive_index);
         });
   }

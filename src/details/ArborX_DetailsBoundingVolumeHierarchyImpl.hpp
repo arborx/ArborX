@@ -387,10 +387,8 @@ inline void query(ExecutionSpace const &space, BVH const &bvh,
             space, bvh.bounds(), predicates);
     Kokkos::Profiling::popRegion();
 
-    traverse(
-        space, bvh,
-        PermutedPredicates<Predicates, decltype(permute)>{predicates, permute},
-        callback);
+    using PermutedPredicates = PermutedData<Predicates, decltype(permute)>;
+    traverse(space, bvh, PermutedPredicates{predicates, permute}, callback);
   }
   else
   {
