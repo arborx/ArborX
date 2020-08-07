@@ -36,7 +36,9 @@ struct Test1
         KOKKOS_LAMBDA(int predicate_index) {
           for (int primitive_index = 0; primitive_index < predicate_index;
                ++primitive_index)
-            insert_generator(predicate_index, primitive_index);
+            insert_generator(attach(Access::get(predicates, predicate_index),
+                                    predicate_index),
+                             primitive_index);
         });
   }
 };
@@ -51,7 +53,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
   int const n = 10;
   // Build a view of predicates.  Won't actually call any of them.  All is
   // required is a valid access traits assocated to it. 'get()' nevers get
-  // called, only 'size()'.
+  // called, only 'size()'.  FIXME
   using Predicate = decltype(ArborX::intersects(std::declval<ArborX::Point>()));
   Kokkos::View<Predicate *, DeviceType> predicates(
       Kokkos::view_alloc("predicates", Kokkos::WithoutInitializing), n);

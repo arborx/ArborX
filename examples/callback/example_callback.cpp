@@ -132,14 +132,15 @@ int main(int argc, char *argv[])
 
   {
     // EXPERIMENTAL
-    // TODO replace with BVH::query(ExecutionSpace, Predicates, Callback) when
-    // new overload is added
     Kokkos::View<int, ExecutionSpace, Kokkos::MemoryTraits<Kokkos::Atomic>> c(
         "counter");
 
-    ArborX::Details::traverse(
-        ExecutionSpace{}, bvh, FirstOctant{},
-        KOKKOS_LAMBDA(int i, int j) { printf("%d %d %d\n", ++c(), i, j); });
+#ifndef __NVCC__
+    bvh.query(ExecutionSpace{}, FirstOctant{},
+              KOKKOS_LAMBDA(auto /*predicate*/, int j) {
+                printf("%d %d %d\n", ++c(), -1, j);
+              });
+#endif
   }
 
   return 0;

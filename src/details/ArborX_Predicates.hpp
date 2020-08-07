@@ -119,9 +119,16 @@ struct PredicateWithAttachment : Predicate
 
 template <typename Predicate, typename Data>
 KOKKOS_INLINE_FUNCTION Data const &
-getData(PredicateWithAttachment<Predicate, Data> const &pred)
+getData(PredicateWithAttachment<Predicate, Data> const &pred) noexcept
 {
   return pred._data;
+}
+
+template <typename Predicate, typename Data>
+KOKKOS_INLINE_FUNCTION Predicate const &
+getPredicate(PredicateWithAttachment<Predicate, Data> const &pred) noexcept
+{
+  return static_cast<Predicate const &>(pred); // slicing
 }
 
 template <typename Predicate, typename Data>
