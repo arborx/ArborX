@@ -60,6 +60,15 @@ struct DistributedSearchTreeImpl
                   offset);
   }
 
+  // NOTE NVCC did not like having definition of that type within the
+  // queryDispatch function below while using an extended __host__ __device__
+  // lambda
+  struct PairIndexRank
+  {
+    int index;
+    int rank;
+  };
+
   template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename Indices, typename Offset,
             typename Ranks>
@@ -70,11 +79,6 @@ struct DistributedSearchTreeImpl
                 ExecutionSpace const &space, Predicates const &queries,
                 Indices &indices, Offset &offset, Ranks &ranks)
   {
-    struct PairIndexRank
-    {
-      int index;
-      int rank;
-    };
     Kokkos::View<PairIndexRank *, ExecutionSpace> out("pairs_index_rank", 0);
     queryDispatch(SpatialPredicateTag{}, tree, space, queries, out, offset);
     auto const n = out.extent(0);
