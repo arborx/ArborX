@@ -106,7 +106,7 @@ struct DistributedSearchTreeImpl
             typename Predicates, typename Indices, typename Offset,
             typename Ranks,
             typename Distances = Kokkos::View<float *, DeviceType>>
-  static std::enable_if_t<
+  /*deprecated*/ static std::enable_if_t<
       Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{} &&
       Kokkos::is_view<Ranks>{} && Kokkos::is_view<Distances>{}>
   queryDispatch(NearestPredicateTag, DistributedTree const &tree,
@@ -117,7 +117,7 @@ struct DistributedSearchTreeImpl
   template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename Indices, typename Offset,
             typename Ranks, typename Distances>
-  static std::enable_if_t<
+  /*deprecated*/ static std::enable_if_t<
       Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{} &&
       Kokkos::is_view<Ranks>{} && Kokkos::is_view<Distances>{}>
   queryDispatch(NearestPredicateTag tag, DistributedTree const &tree,
@@ -137,7 +137,7 @@ struct DistributedSearchTreeImpl
                 ExecutionSpace const &space, Predicates const &queries,
                 IndicesAndRanks &values, Offset &offset)
   {
-    // FIXME
+    // FIXME avoid zipping when distributed nearest callbacks become availale
     Kokkos::View<int *, ExecutionSpace> indices("indices", 0);
     Kokkos::View<int *, ExecutionSpace> ranks("ranks", 0);
     queryDispatch(tag, tree, space, queries, indices, offset, ranks);
