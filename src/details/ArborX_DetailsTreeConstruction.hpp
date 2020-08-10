@@ -324,8 +324,8 @@ public:
           delta_right < delta_left ? range_right : range_left;
 
       auto *parent_node = getNodePtr(karras_parent);
-      parent_node->children.first = left_child;
-      parent_node->children.second = right_child;
+      parent_node->left_child = left_child;
+      parent_node->right_child = right_child;
       parent_node->bounding_box = bbox;
 
       i = karras_parent;

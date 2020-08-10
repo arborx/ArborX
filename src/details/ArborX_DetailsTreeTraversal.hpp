@@ -91,8 +91,8 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     Node const *node = bvh_.getRoot();
     do
     {
-      Node const *child_left = bvh_.getNodePtr(node->children.first);
-      Node const *child_right = bvh_.getNodePtr(node->children.second);
+      Node const *child_left = bvh_.getNodePtr(node->left_child);
+      Node const *child_right = bvh_.getNodePtr(node->right_child);
 
       bool overlap_left = predicate(bvh_.getBoundingVolume(child_left));
       bool overlap_right = predicate(bvh_.getBoundingVolume(child_right));
@@ -300,8 +300,8 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
       {
         // Insert children into the stack and make sure that the
         // closest one ends on top.
-        child_left = bvh_.getNodePtr(node->children.first);
-        child_right = bvh_.getNodePtr(node->children.second);
+        child_left = bvh_.getNodePtr(node->left_child);
+        child_right = bvh_.getNodePtr(node->right_child);
 
         distance_left = distance(child_left);
         distance_right = distance(child_right);
