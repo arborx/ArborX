@@ -29,14 +29,14 @@ struct Node
 
   KOKKOS_INLINE_FUNCTION constexpr bool isLeaf() const noexcept
   {
-    return left_child == -1;
+    return left_child <= 0; // FIXME: only works with current impl
   }
 
   KOKKOS_INLINE_FUNCTION constexpr std::size_t getLeafPermutationIndex() const
       noexcept
   {
     assert(isLeaf());
-    return right_child;
+    return -left_child;
   }
 
   int left_child = -1;
@@ -47,7 +47,7 @@ struct Node
 KOKKOS_INLINE_FUNCTION constexpr Node
 makeLeafNode(std::size_t permutation_index, Box box) noexcept
 {
-  return {-1, static_cast<int>(permutation_index), std::move(box)};
+  return {-static_cast<int>(permutation_index), -1, std::move(box)};
 }
 } // namespace Details
 } // namespace ArborX
