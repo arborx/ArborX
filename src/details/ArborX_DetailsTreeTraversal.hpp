@@ -273,76 +273,64 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
         heap(UnmanagedStaticVector<PairIndexDistance>(buffer.data(),
                                                       buffer.size()));
 
-    using PairNodePtrDistance = Kokkos::pair<Node const *, float>;
-    PairNodePtrDistance stack[64];
-    auto *stack_ptr = stack;
-    *stack_ptr++ = {nullptr, 0.f};
-
+    Node const *stack[64];
+    Node const **stack_ptr = stack;
+    *stack_ptr++ = nullptr;
     Node const *node = bvh_.getRoot();
-    float node_distance = 0.f;
     do
     {
-      if (node_distance < radius)
+      // Insert children into the stack and make sure that the
+      // closest one ends on top.
+      Node const *child_left = bvh_.getNodePtr(node->children.first);
+      Node const *child_right = bvh_.getNodePtr(node->children.second);
+
+      auto const distance_left = distance(child_left);
+      auto const distance_right = distance(child_right);
+
+      if (distance_left < radius && child_left->isLeaf())
       {
-        if (node->isLeaf())
-        {
-          int const leaf_index = node->getLeafPermutationIndex();
-          auto const leaf_distance = node_distance;
-          if ((int)heap.size() < k)
-          {
-            // Insert leaf node and update radius if it was the kth
-            // one.
-            heap.push(Kokkos::make_pair(leaf_index, leaf_distance));
-            if ((int)heap.size() == k)
-              radius = heap.top().second;
-          }
-          else
-          {
-            // Replace top element in the heap and update radius.
-            heap.popPush(Kokkos::make_pair(leaf_index, leaf_distance));
-            radius = heap.top().second;
-          }
-          auto const &pair = *--stack_ptr;
-          node = pair.first;
-          node_distance = pair.second;
-        }
+        auto leaf_pair = Kokkos::make_pair(
+            child_left->getLeafPermutationIndex(), distance_left);
+        if ((int)heap.size() < k)
+          heap.push(leaf_pair);
         else
-        {
-          // Insert children into the stack and make sure that the
-          // closest one ends on top.
-          Node const *left_child = bvh_.getNodePtr(node->children.first);
-          Node const *right_child = bvh_.getNodePtr(node->children.second);
-          auto const left_child_distance = distance(left_child);
-          auto const right_child_distance = distance(right_child);
-          if (left_child_distance < right_child_distance)
-          {
-            // NOTE not really sure why but it performed better with
-            // the conditional insertion on the device and without
-            // it on the host (~5% improvement for both)
-#if defined(__CUDA_ARCH__)
-            if (right_child_distance < radius)
-#endif
-              *stack_ptr++ = {right_child, right_child_distance};
-            node = left_child;
-            node_distance = left_child_distance;
-          }
-          else
-          {
-#if defined(__CUDA_ARCH__)
-            if (left_child_distance < radius)
-#endif
-              *stack_ptr++ = {left_child, left_child_distance};
-            node = right_child;
-            node_distance = right_child_distance;
-          }
-        }
+          heap.popPush(leaf_pair);
+        if ((int)heap.size() == k)
+          radius = heap.top().second;
+      }
+
+      // Note: radius may have been already updated here from the left child
+      if (distance_right < radius && child_right->isLeaf())
+      {
+        auto leaf_pair = Kokkos::make_pair(
+            child_right->getLeafPermutationIndex(), distance_right);
+        if ((int)heap.size() < k)
+          heap.push(leaf_pair);
+        else
+          heap.popPush(leaf_pair);
+        if ((int)heap.size() == k)
+          radius = heap.top().second;
+      }
+
+      bool traverse_left = (distance_left < radius && !child_left->isLeaf());
+      bool traverse_right = (distance_right < radius && !child_right->isLeaf());
+
+      if (!traverse_left && !traverse_right)
+      {
+        node = *--stack_ptr;
       }
       else
       {
-        auto const &pair = *--stack_ptr;
-        node = pair.first;
-        node_distance = pair.second;
+        node = (traverse_left &&
+                (distance_left <= distance_right || !traverse_right))
+                   ? child_left
+                   : child_right;
+        if (traverse_left && traverse_right)
+        {
+          *stack_ptr++ = (node == child_left ? child_right : child_left);
+        }
       }
+
     } while (node != nullptr);
 
     // Sort the leaf nodes and output the results.
