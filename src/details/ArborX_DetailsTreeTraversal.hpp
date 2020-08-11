@@ -274,50 +274,80 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
                                                       buffer.size()));
 
     Node const *stack[64];
-    Node const **stack_ptr = stack;
+    auto *stack_ptr = stack;
     *stack_ptr++ = nullptr;
+#if !defined(__CUDA_ARCH__)
+    float stack_distance[64];
+    auto *stack_distance_ptr = stack_distance;
+    *stack_distance_ptr++ = 0.f;
+#endif
+
     Node const *node = bvh_.getRoot();
+    Node const *child_left = nullptr;
+    Node const *child_right = nullptr;
+
+    float distance_left = 0.f;
+    float distance_right = 0.f;
+    float distance_node = 0.f;
+
     do
     {
-      // Insert children into the stack and make sure that the
-      // closest one ends on top.
-      Node const *child_left = bvh_.getNodePtr(node->children.first);
-      Node const *child_right = bvh_.getNodePtr(node->children.second);
+      bool traverse_left = false;
+      bool traverse_right = false;
 
-      auto const distance_left = distance(child_left);
-      auto const distance_right = distance(child_right);
-
-      if (distance_left < radius && child_left->isLeaf())
+      if (distance_node < radius)
       {
-        auto leaf_pair = Kokkos::make_pair(
-            child_left->getLeafPermutationIndex(), distance_left);
-        if ((int)heap.size() < k)
-          heap.push(leaf_pair);
-        else
-          heap.popPush(leaf_pair);
-        if ((int)heap.size() == k)
-          radius = heap.top().second;
-      }
+        // Insert children into the stack and make sure that the
+        // closest one ends on top.
+        child_left = bvh_.getNodePtr(node->children.first);
+        child_right = bvh_.getNodePtr(node->children.second);
 
-      // Note: radius may have been already updated here from the left child
-      if (distance_right < radius && child_right->isLeaf())
-      {
-        auto leaf_pair = Kokkos::make_pair(
-            child_right->getLeafPermutationIndex(), distance_right);
-        if ((int)heap.size() < k)
-          heap.push(leaf_pair);
-        else
-          heap.popPush(leaf_pair);
-        if ((int)heap.size() == k)
-          radius = heap.top().second;
-      }
+        distance_left = distance(child_left);
+        distance_right = distance(child_right);
 
-      bool traverse_left = (distance_left < radius && !child_left->isLeaf());
-      bool traverse_right = (distance_right < radius && !child_right->isLeaf());
+        if (distance_left < radius && child_left->isLeaf())
+        {
+          auto leaf_pair = Kokkos::make_pair(
+              child_left->getLeafPermutationIndex(), distance_left);
+          if ((int)heap.size() < k)
+            heap.push(leaf_pair);
+          else
+            heap.popPush(leaf_pair);
+          if ((int)heap.size() == k)
+            radius = heap.top().second;
+        }
+
+        // Note: radius may have been already updated here from the left child
+        if (distance_right < radius && child_right->isLeaf())
+        {
+          auto leaf_pair = Kokkos::make_pair(
+              child_right->getLeafPermutationIndex(), distance_right);
+          if ((int)heap.size() < k)
+            heap.push(leaf_pair);
+          else
+            heap.popPush(leaf_pair);
+          if ((int)heap.size() == k)
+            radius = heap.top().second;
+        }
+
+        traverse_left = (distance_left < radius && !child_left->isLeaf());
+        traverse_right = (distance_right < radius && !child_right->isLeaf());
+      }
 
       if (!traverse_left && !traverse_right)
       {
         node = *--stack_ptr;
+#if defined(__CUDA_ARCH__)
+        if (node != nullptr)
+        {
+          // This is a theoretically unnecessary duplication of distance
+          // calculation for stack nodes. However, for Cuda it's better than
+          // than putting the distances in stack.
+          distance_node = distance(node);
+        }
+#else
+        distance_node = *--stack_distance_ptr;
+#endif
       }
       else
       {
@@ -325,12 +355,16 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
                 (distance_left <= distance_right || !traverse_right))
                    ? child_left
                    : child_right;
+        distance_node = (node == child_left ? distance_left : distance_right);
         if (traverse_left && traverse_right)
         {
           *stack_ptr++ = (node == child_left ? child_right : child_left);
+#if !defined(__CUDA_ARCH__)
+          *stack_distance_ptr++ =
+              (node == child_left ? distance_right : distance_left);
+#endif
         }
       }
-
     } while (node != nullptr);
 
     // Sort the leaf nodes and output the results.
