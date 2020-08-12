@@ -335,10 +335,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(do_not_exceed_capacity, DeviceType,
   ArborX::DistributedSearchTree<DeviceType> tree{comm, points};
   Kokkos::View<decltype(nearest(Point{})) *, DeviceType> queries("queries", 1);
   Kokkos::deep_copy(queries, nearest(Point{0, 0, 0}, 512));
-  Kokkos::View<int *, DeviceType> indices("indices", 0);
+  Kokkos::View<PairIndexRank *, DeviceType> values("values", 0);
   Kokkos::View<int *, DeviceType> offset("offset", 0);
-  Kokkos::View<int *, DeviceType> ranks("ranks", 0);
-  BOOST_CHECK_NO_THROW(tree.query(queries, indices, offset, ranks));
+  BOOST_CHECK_NO_THROW(tree.query(queries, values, offset));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_nearest_neighbors, DeviceType,
@@ -379,17 +378,24 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_nearest_neighbors, DeviceType,
   //          ^          ^          ^          ^
   //          3          2          1          0
   if (comm_rank > 0)
-    checkResults(tree,
-                 makeNearestQueries<DeviceType>({
-                     {{{(double)(comm_size - 1 - comm_rank) + .75, 0., 0.}}, 1},
-                 }),
-                 {0}, {0, 1}, {comm_size - comm_rank});
+  {
+    ARBORX_TEST_QUERY_TREE(
+        tree,
+        makeNearestQueries<DeviceType>({
+            {{{(double)(comm_size - 1 - comm_rank) + .75, 0., 0.}}, 1},
+        }),
+        make_reference_solution<PairIndexRank>({{0, comm_size - comm_rank}},
+                                               {0, 1}));
+  }
   else
-    checkResults(tree,
-                 makeNearestQueries<DeviceType>({
-                     {{{(double)(comm_size - 1 - comm_rank) + .75, 0., 0.}}, 1},
-                 }),
-                 {0}, {0, 1}, {comm_size - 1});
+  {
+    ARBORX_TEST_QUERY_TREE(
+        tree,
+        makeNearestQueries<DeviceType>({
+            {{{(double)(comm_size - 1 - comm_rank) + .75, 0., 0.}}, 1},
+        }),
+        make_reference_solution<PairIndexRank>({{0, comm_size - 1}}, {0, 1}));
+  }
 }
 
 template <typename DeviceType>
