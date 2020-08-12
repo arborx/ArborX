@@ -166,7 +166,6 @@ void validateResults(T1 const &reference, T2 const &other)
     BOOST_TEST(l == r, boost::test_tools::per_element());
   }
 }
-#endif
 
 template <typename Tree>
 auto make(std::vector<ArborX::Box> const &b)
@@ -277,3 +276,5 @@ makeIntersectsSphereQueries(
   Kokkos::deep_copy(queries, queries_host);
   return queries;
 }
+
+#endif
