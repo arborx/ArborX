@@ -293,9 +293,6 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
               << '\n';
   }
 
-  if (partition_dim < 1 || partition_dim > 3)
-    throw std::runtime_error("partition_dim should be 1, 2, or 3");
-
   Kokkos::View<ArborX::Point *, DeviceType> random_values(
       Kokkos::ViewAllocateWithoutInitializing("values"), n_values);
   Kokkos::View<ArborX::Point *, DeviceType> random_queries(
@@ -343,6 +340,10 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
       a = std::cbrt(n_values);
 
       break;
+    }
+    default:
+    {
+      throw std::runtime_error("partition_dim should be 1, 2, or 3");
     }
     }
 
@@ -440,24 +441,27 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   if (perform_radius_search)
   {
     // Radius is computed so that the number of results per query for a
-    // uniformly distributed points in a [-a,a]^d box is approximately
-    // n_neighbors. This requires adjusting as construction is based on
-    // [-1,1]^d boxes. Instead of an exact calculation using integrals,
-    // an approximation is made by averaging half-edge and half-diagonal).
+    // uniformly distributed primitives in a [-a,a]^d box is approximately
+    // n_neighbors. The primivites are boxes and not points. Thus, the radius
+    // we would have chosen for the case of point primitives has to be adjusted
+    // to account for box-box interaction. The radius is decreased by an
+    // average of the lengths of a half-edge and a half-diagonal to account for
+    // that (approximately). An exact calculation would require computing
+    // an integral.
     double r = 0.;
     switch (partition_dim)
     {
     case 1:
-      // n_values*(2*r)/(2a) = n_neighbors
+      // Derivation (first term): n_values*(2*r)/(2a) = n_neighbors
       r = static_cast<double>(n_neighbors) - 1.;
       break;
     case 2:
-      // n_values*(M_PI*r^2)/(2a)^2 = n_neighbors
+      // Derivation (first term): n_values*(M_PI*r^2)/(2a)^2 = n_neighbors
       r = std::sqrt(static_cast<double>(n_neighbors) * 4. / M_PI) -
           (1. + std::sqrt(2.)) / 2;
       break;
     case 3:
-      // n_values*(4/3*M_PI*r^3)/(2a)^3 = n_neighbors
+      // Derivation (first term): n_values*(4/3*M_PI*r^3)/(2a)^3 = n_neighbors
       r = std::cbrt(static_cast<double>(n_neighbors) * 6. / M_PI) -
           (1. + std::cbrt(3.)) / 2;
       break;
