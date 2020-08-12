@@ -418,16 +418,15 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
 
   if (perform_knn_search)
   {
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
-    Kokkos::View<int *, DeviceType> indices("indices", 0);
-    Kokkos::View<int *, DeviceType> ranks("ranks", 0);
+    Kokkos::View<int *, DeviceType> offsets("offsets", 0);
+    Kokkos::View<Kokkos::pair<int, int> *, DeviceType> values("values", 0);
 
     auto knn = time_monitor.getNewTimer("knn");
     MPI_Barrier(comm);
     knn->start();
     distributed_tree.query(
         NearestNeighborsSearches<DeviceType>{random_queries, n_neighbors},
-        indices, offset, ranks);
+        values, offsets);
     knn->stop();
 
     if (comm_rank == 0)
