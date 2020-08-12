@@ -599,8 +599,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
   ArborX::DistributedSearchTree<DeviceType> distributed_tree(comm,
                                                              bounding_boxes);
 
-  auto rtree = BoostRTreeHelpers::makeRTree(comm, bounding_boxes_host);
-
   // make queries
   using ExecutionSpace = typename DeviceType::execution_space;
   Kokkos::View<double * [3], ExecutionSpace> point_coords("point_coords",
@@ -642,25 +640,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
             radii(i)});
       });
 
-  // Perform the search
-  Kokkos::View<int *, DeviceType> indices("indices", 0);
-  Kokkos::View<int *, DeviceType> offset("offset", 0);
-  Kokkos::View<int *, DeviceType> ranks("ranks", 0);
-  distributed_tree.query(within_queries, indices, offset, ranks);
-  auto indices_host = Kokkos::create_mirror_view(indices);
-  Kokkos::deep_copy(indices_host, indices);
-  auto offset_host = Kokkos::create_mirror_view(offset);
-  Kokkos::deep_copy(offset_host, offset);
-  auto ranks_host = Kokkos::create_mirror_view(ranks);
-  Kokkos::deep_copy(ranks_host, ranks);
-  auto bvh_results = std::make_tuple(offset_host, indices_host, ranks_host);
-
   auto within_queries_host = Kokkos::create_mirror_view(within_queries);
   Kokkos::deep_copy(within_queries_host, within_queries);
-  auto rtree_results =
-      BoostRTreeHelpers::performQueries(rtree, within_queries_host);
 
-  validateResults(bvh_results, rtree_results);
+  BoostExt::ParallelRTree<ArborX::Box> rtree(comm, bounding_boxes_host);
+
+  ARBORX_TEST_QUERY_TREE(distributed_tree, within_queries,
+                         query(rtree, within_queries_host));
 }
 
 template <typename DeviceType>

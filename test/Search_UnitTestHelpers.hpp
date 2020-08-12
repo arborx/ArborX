@@ -20,6 +20,7 @@
 #include "VectorOfTuples.hpp"
 // clang-format on
 
+#include "ArborX_BoostRTreeHelpers.hpp"
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsKokkosExt.hpp> // is_accessible_from
 #ifdef ARBORX_ENABLE_MPI
@@ -75,6 +76,10 @@ struct is_distributed<ArborX::DistributedSearchTree<D>> : std::true_type
 {
 };
 
+template <typename I>
+struct is_distributed<BoostExt::ParallelRTree<I>> : std::true_type
+{
+};
 #endif
 
 template <typename T>
