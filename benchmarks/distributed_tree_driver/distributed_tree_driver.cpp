@@ -444,15 +444,14 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
         2. * std::cbrt(static_cast<double>(n_neighbors) * 3. / (4. * M_PI)) -
         (1. + std::sqrt(3.)) / 2.;
 
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
-    Kokkos::View<int *, DeviceType> indices("indices", 0);
-    Kokkos::View<int *, DeviceType> ranks("ranks", 0);
+    Kokkos::View<int *, DeviceType> offsets("offsets", 0);
+    Kokkos::View<Kokkos::pair<int, int> *, DeviceType> values("values", 0);
 
     auto radius = time_monitor.getNewTimer("radius");
     MPI_Barrier(comm);
     radius->start();
     distributed_tree.query(RadiusSearches<DeviceType>{random_queries, r},
-                           indices, offset, ranks);
+                           values, offsets);
     radius->stop();
 
     if (comm_rank == 0)
