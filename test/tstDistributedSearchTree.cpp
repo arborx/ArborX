@@ -26,6 +26,7 @@
 #define BOOST_TEST_MODULE DistributedSearchTree
 
 using PairIndexRank = Kokkos::pair<int, int>;
+using TupleIndexRankDistance = Kokkos::pair<Kokkos::pair<int, int>, float>;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
 {
@@ -148,7 +149,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
   ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<DeviceType>({}),
                          make_reference_solution<PairIndexRank>({}, {0}));
 
-  checkResults(tree, makeNearestQueries<DeviceType>({}), {}, {0}, {}, {});
+  ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
+      tree, makeNearestQueries<DeviceType>({}),
+      make_reference_solution<TupleIndexRankDistance>({}, {0}));
 
   // Only rank 0 has a couple spatial queries with a spatial predicate
   if (comm_rank == 0)
@@ -196,11 +199,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
 
   // All ranks have a single query with a nearest predicate (this version
   // returns distances as well)
-  checkResults(tree,
-               makeNearestQueries<DeviceType>({
-                   {{{0., 0., 0.}}, comm_size},
-               }),
-               {}, {0, 0}, {}, {});
+  ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
+      tree,
+      makeNearestQueries<DeviceType>({
+          {{{0., 0., 0.}}, comm_size},
+      }),
+      make_reference_solution<TupleIndexRankDistance>({}, {0, 0}));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
@@ -236,7 +240,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
   ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<DeviceType>({}),
                          make_reference_solution<PairIndexRank>({}, {0}));
 
-  checkResults(tree, makeNearestQueries<DeviceType>({}), {}, {0}, {}, {});
+  ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
+      tree, makeNearestQueries<DeviceType>({}),
+      make_reference_solution<TupleIndexRankDistance>({}, {0}));
 
   // Querying for more neighbors than there are leaves in the tree
   ARBORX_TEST_QUERY_TREE(

@@ -108,16 +108,45 @@ auto query(Tree const &tree, Queries const &queries)
              boost::test_tools::per_element());
 
 template <typename Tree, typename Queries>
-auto query_with_distance(Tree const &tree, Queries const &queries)
+auto query_with_distance(Tree const &tree, Queries const &queries,
+                         std::enable_if_t<!is_distributed<Tree>{}> * = nullptr)
 {
   using device_type = typename Tree::device_type;
-  Kokkos::View<Kokkos::pair<int, float> *, device_type> values("indices", 0);
-  Kokkos::View<int *, device_type> offset("offset", 0);
+  Kokkos::View<Kokkos::pair<int, float> *, device_type> values("values", 0);
+  Kokkos::View<int *, device_type> offsets("offsets", 0);
   tree.query(queries,
              ArborX::Details::CallbackDefaultNearestPredicateWithDistance{},
-             values, offset);
+             values, offsets);
   return make_compressed_storage(
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset),
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
+}
+
+template <typename Tree, typename Queries>
+auto query_with_distance(Tree const &tree, Queries const &queries,
+                         std::enable_if_t<is_distributed<Tree>{}> * = nullptr)
+{
+  using device_type = typename Tree::device_type;
+  Kokkos::View<int *, device_type> offsets("offsets", 0);
+  Kokkos::View<int *, device_type> indices("indices", 0);
+  Kokkos::View<int *, device_type> ranks("ranks", 0);
+  Kokkos::View<float *, device_type> distances("distances", 0);
+  using ExecutionSpace = typename device_type::execution_space;
+  ExecutionSpace space;
+  ArborX::Details::DistributedSearchTreeImpl<device_type>::queryDispatchImpl(
+      ArborX::Details::NearestPredicateTag{}, tree, space, queries, indices,
+      offsets, ranks, &distances);
+
+  auto const n = indices.extent(0);
+  Kokkos::View<Kokkos::pair<Kokkos::pair<int, int>, float> *, device_type>
+      values(Kokkos::view_alloc(Kokkos::WithoutInitializing, "values"), n);
+  Kokkos::parallel_for("ArborX:UnitTestSupport:zip",
+                       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+                       KOKKOS_LAMBDA(int i) {
+                         values(i) = {{indices(i), ranks(i)}, distances(i)};
+                       });
+  return make_compressed_storage(
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
 }
 
