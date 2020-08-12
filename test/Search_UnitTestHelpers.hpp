@@ -166,61 +166,6 @@ void validateResults(T1 const &reference, T2 const &other)
     BOOST_TEST(l == r, boost::test_tools::per_element());
   }
 }
-
-namespace tt = boost::test_tools;
-
-template <typename Tree, typename Queries,
-          std::enable_if_t<is_distributed<Tree>::value, int> = 0>
-void checkResults(Tree const &tree, Queries const &queries,
-                  std::vector<int> const &indices_ref,
-                  std::vector<int> const &offset_ref,
-                  std::vector<int> const &ranks_ref)
-{
-  using device_type = typename Tree::device_type;
-  Kokkos::View<int *, device_type> indices("indices", 0);
-  Kokkos::View<int *, device_type> offset("offset", 0);
-  Kokkos::View<int *, device_type> ranks("ranks", 0);
-  tree.query(queries, indices, offset, ranks);
-
-  auto indices_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
-  auto offset_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
-  auto ranks_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ranks);
-
-  validateResults(std::make_tuple(offset_host, ranks_host, indices_host),
-                  std::make_tuple(offset_ref, ranks_ref, indices_ref));
-}
-
-template <typename Tree, typename Queries,
-          typename std::enable_if_t<is_distributed<Tree>::value, int> = 0>
-void checkResults(Tree const &tree, Queries const &queries,
-                  std::vector<int> const &indices_ref,
-                  std::vector<int> const &offset_ref,
-                  std::vector<int> const &ranks_ref,
-                  std::vector<float> const &distances_ref)
-{
-  using device_type = typename Tree::device_type;
-  Kokkos::View<int *, device_type> indices("indices", 0);
-  Kokkos::View<int *, device_type> offset("offset", 0);
-  Kokkos::View<int *, device_type> ranks("ranks", 0);
-  Kokkos::View<float *, device_type> distances("distances", 0);
-  tree.query(queries, indices, offset, ranks, distances);
-
-  auto indices_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
-  auto offset_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
-  auto ranks_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ranks);
-  auto distances_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, distances);
-
-  validateResults(
-      std::make_tuple(offset_host, ranks_host, indices_host, distances_host),
-      std::make_tuple(offset_ref, ranks_ref, indices_ref, distances_ref));
-}
 #endif
 
 template <typename Tree>
