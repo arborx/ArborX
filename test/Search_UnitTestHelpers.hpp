@@ -16,7 +16,6 @@
 #include "boost_ext/KokkosPairComparison.hpp"
 #include "boost_ext/TupleComparison.hpp"
 #include "boost_ext/CompressedStorageComparison.hpp"
-#include "CompressedSparseRow.hpp"
 #include "VectorOfTuples.hpp"
 // clang-format on
 
@@ -153,19 +152,6 @@ auto query_with_distance(Tree const &tree, Queries const &queries,
 #define ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(tree, queries, reference)         \
   BOOST_TEST(query_with_distance(tree, queries) == (reference),                \
              boost::test_tools::per_element());
-
-template <typename T1, typename T2>
-void validateResults(T1 const &reference, T2 const &other)
-{
-  auto const m = getNumberOfRows(reference);
-  BOOST_TEST(m == getNumberOfRows(other));
-  for (std::size_t i = 0; i < m; ++i)
-  {
-    auto const l = extractRow(other, i);
-    auto const r = extractRow(reference, i);
-    BOOST_TEST(l == r, boost::test_tools::per_element());
-  }
-}
 
 template <typename Tree>
 auto make(std::vector<ArborX::Box> const &b)

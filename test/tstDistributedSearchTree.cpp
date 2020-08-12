@@ -25,6 +25,8 @@
 
 #define BOOST_TEST_MODULE DistributedSearchTree
 
+namespace tt = boost::test_tools;
+
 using PairIndexRank = Kokkos::pair<int, int>;
 using TupleIndexRankDistance = Kokkos::pair<Kokkos::pair<int, int>, float>;
 
@@ -524,8 +526,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
     auto offset_host =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
-    validateResults(std::make_tuple(offset_host, custom_host),
-                    std::make_tuple(offset_host, ref_host));
+    BOOST_TEST(make_compressed_storage(offset_host, custom_host) ==
+                   make_compressed_storage(offset_host, ref_host),
+               tt::per_element());
   }
   {
     Kokkos::View<float *, DeviceType> custom("custom", 0);
@@ -541,8 +544,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
     auto offset_host =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
-    validateResults(std::make_tuple(offset_host, custom_host),
-                    std::make_tuple(offset_host, ref_host));
+    BOOST_TEST(make_compressed_storage(offset_host, custom_host) ==
+                   make_compressed_storage(offset_host, ref_host),
+               tt::per_element());
   }
 }
 
