@@ -106,9 +106,9 @@ if(ARBORX_ENABLE_MPI)
 
   add_executable(ArborX_DetailsDistributedSearchTreeImpl.exe tstDetailsDistributedSearchTreeImpl.cpp utf_main.cpp)
   target_link_libraries(ArborX_DetailsDistributedSearchTreeImpl.exe PRIVATE ArborX Boost::unit_test_framework)
-  target_compile_definitions(ArborX_DetailsDistributedSearchTreeImpl.exe PRIVATE BOOST_TEST_DYN_LINK)
+  target_compile_definitions(ArborX_DetailsDistributedSearchTreeImpl.exe PRIVATE BOOST_TEST_DYN_LINK ARBORX_MPI_UNIT_TEST)
   target_include_directories(ArborX_DetailsDistributedSearchTreeImpl.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-  add_test(NAME ArborX_DetailsDistributedSearchTreeImpl_Test COMMAND ./ArborX_DetailsDistributedSearchTreeImpl.exe)
+  add_test(NAME ArborX_DetailsDistributedSearchTreeImpl_Test COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} ./ArborX_DetailsDistributedSearchTreeImpl.exe ${MPIEXEC_POSTFLAGS})
 endif()
 
 add_executable(ArborX_BoostAdapters.exe tstBoostGeometryAdapters.cpp tstBoostRangeAdapters.cpp utf_main.cpp)
