@@ -18,7 +18,7 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cmath> // cbrt
+#include <cmath> // sqrt, cbrt
 #include <iomanip>
 #include <numeric>
 #include <random>
@@ -298,12 +298,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   Kokkos::View<ArborX::Point *, DeviceType> random_queries(
       Kokkos::ViewAllocateWithoutInitializing("queries"), n_queries);
   {
-    std::uniform_real_distribution<double> distribution(-1., 1.);
-    std::default_random_engine generator;
-    auto random = [&distribution, &generator]() {
-      return distribution(generator);
-    };
-
+    double a = 0.;
     double offset_x = 0.;
     double offset_y = 0.;
     double offset_z = 0.;
@@ -317,6 +312,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     {
       i_max = comm_size;
       offset_x = 2 * shift * comm_rank;
+      a = n_values;
 
       break;
     }
@@ -327,6 +323,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
       int j = comm_rank / i_max;
       offset_x = 2 * shift * i;
       offset_y = 2 * shift * j;
+      a = std::sqrt(n_values);
 
       break;
     }
@@ -340,6 +337,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
       offset_x = 2 * shift * i;
       offset_y = 2 * shift * j;
       offset_z = 2 * shift * k;
+      a = std::cbrt(n_values);
 
       break;
     }
@@ -350,8 +348,11 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     }
 
     // Generate random points uniformly distributed within a box.
-    // FIXME: should be fixed to 1D/2D
-    auto const a = std::cbrt(n_values);
+    std::uniform_real_distribution<double> distribution(-1., 1.);
+    std::default_random_engine generator;
+    auto random = [&distribution, &generator]() {
+      return distribution(generator);
+    };
 
     // The boxes in which the points are placed have side length two, centered
     // around offset_[xyz] and scaled by a.
@@ -360,9 +361,10 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
         std::max(n_values, n_queries));
     auto random_points_host = Kokkos::create_mirror_view(random_points);
     for (int i = 0; i < random_points.extent_int(0); ++i)
-      random_points_host(i) = {{a * (offset_x + random()),
-                                a * (offset_y + random()),
-                                a * (offset_z + random())}};
+      random_points_host(i) = {
+          {a * (offset_x + random()),
+           a * (offset_y + random()) * (partition_dim > 1),
+           a * (offset_z + random()) * (partition_dim > 2)}};
     Kokkos::deep_copy(random_points, random_points_host);
 
     Kokkos::deep_copy(
@@ -387,8 +389,10 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
       for (int i = 0; i < n_queries; ++i)
         random_queries_host(i) = {
             {a * ((offset_x + random()) / 3 + max_offset / 3),
-             a * ((offset_y + random()) / 3 + max_offset / 3),
-             a * ((offset_z + random()) / 3 + max_offset / 3)}};
+             a * ((offset_y + random()) / 3 + max_offset / 3) *
+                 (partition_dim > 1),
+             a * ((offset_z + random()) / 3 + max_offset / 3) *
+                 (partition_dim > 2)}};
       Kokkos::deep_copy(random_queries, random_queries_host);
     }
   }
@@ -436,13 +440,32 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
 
   if (perform_radius_search)
   {
-    // radius chosen in order to control the number of results per query
-    // NOTE: minus "1+sqrt(3)/2 \approx 1.37" matches the size of the boxes
-    // inserted into the tree (mid-point between half-edge and
-    // half-diagonal)
-    double const r =
-        2. * std::cbrt(static_cast<double>(n_neighbors) * 3. / (4. * M_PI)) -
-        (1. + std::sqrt(3.)) / 2.;
+    // Radius is computed so that the number of results per query for a
+    // uniformly distributed primitives in a [-a,a]^d box is approximately
+    // n_neighbors. The primivites are boxes and not points. Thus, the radius
+    // we would have chosen for the case of point primitives has to be adjusted
+    // to account for box-box interaction. The radius is decreased by an
+    // average of the lengths of a half-edge and a half-diagonal to account for
+    // that (approximately). An exact calculation would require computing
+    // an integral.
+    double r = 0.;
+    switch (partition_dim)
+    {
+    case 1:
+      // Derivation (first term): n_values*(2*r)/(2a) = n_neighbors
+      r = static_cast<double>(n_neighbors) - 1.;
+      break;
+    case 2:
+      // Derivation (first term): n_values*(M_PI*r^2)/(2a)^2 = n_neighbors
+      r = std::sqrt(static_cast<double>(n_neighbors) * 4. / M_PI) -
+          (1. + std::sqrt(2.)) / 2;
+      break;
+    case 3:
+      // Derivation (first term): n_values*(4/3*M_PI*r^3)/(2a)^3 = n_neighbors
+      r = std::cbrt(static_cast<double>(n_neighbors) * 6. / M_PI) -
+          (1. + std::cbrt(3.)) / 2;
+      break;
+    }
 
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     Kokkos::View<int *, DeviceType> indices("indices", 0);
