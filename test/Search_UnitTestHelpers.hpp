@@ -65,6 +65,19 @@ struct ArrayTraits<std::vector<T>>
 } // namespace Details
 
 template <typename T>
+struct is_distributed : std::false_type
+{
+};
+
+#ifdef ARBORX_ENABLE_MPI
+template <typename D>
+struct is_distributed<ArborX::DistributedSearchTree<D>> : std::true_type
+{
+};
+
+#endif
+
+template <typename T>
 auto make_reference_solution(std::vector<T> const &values,
                              std::vector<int> const &offsets)
 {
@@ -75,12 +88,14 @@ template <typename Tree, typename Queries>
 auto query(Tree const &tree, Queries const &queries)
 {
   using device_type = typename Tree::device_type;
-  Kokkos::View<int *, device_type> indices("indices", 0);
-  Kokkos::View<int *, device_type> offset("offset", 0);
-  tree.query(queries, indices, offset);
+  using value_type =
+      std::conditional_t<is_distributed<Tree>{}, Kokkos::pair<int, int>, int>;
+  Kokkos::View<value_type *, device_type> values("values", 0);
+  Kokkos::View<int *, device_type> offsets("offsets", 0);
+  tree.query(queries, values, offsets);
   return make_compressed_storage(
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset),
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices));
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
 }
 
 #define ARBORX_TEST_QUERY_TREE(tree, queries, reference)                       \
@@ -119,17 +134,6 @@ void validateResults(T1 const &reference, T2 const &other)
 }
 
 namespace tt = boost::test_tools;
-
-template <typename T>
-struct is_distributed : std::false_type
-{
-};
-
-#ifdef ARBORX_ENABLE_MPI
-template <typename D>
-struct is_distributed<ArborX::DistributedSearchTree<D>> : std::true_type
-{
-};
 
 template <typename Tree, typename Queries,
           std::enable_if_t<is_distributed<Tree>::value, int> = 0>
@@ -294,5 +298,3 @@ makeIntersectsSphereQueries(
   Kokkos::deep_copy(queries, queries_host);
   return queries;
 }
-
-#endif
