@@ -132,62 +132,71 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
   int comm_size;
   MPI_Comm_size(comm, &comm_size);
 
-  auto const empty_dist_tree = makeDistributedSearchTree<DeviceType>(comm, {});
+  auto const tree = makeDistributedSearchTree<DeviceType>(comm, {});
 
-  BOOST_TEST(empty_dist_tree.empty());
-  BOOST_TEST(empty_dist_tree.size() == 0);
+  BOOST_TEST(tree.empty());
+  BOOST_TEST(tree.size() == 0);
 
-  BOOST_TEST(ArborX::Details::equals(empty_dist_tree.bounds(), {}));
+  BOOST_TEST(ArborX::Details::equals(tree.bounds(), {}));
 
-  checkResults(empty_dist_tree, makeIntersectsBoxQueries<DeviceType>({}), {},
-               {0}, {});
+  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<DeviceType>({}),
+                         make_reference_solution<PairIndexRank>({}, {0}));
 
-  checkResults(empty_dist_tree, makeIntersectsSphereQueries<DeviceType>({}), {},
-               {0}, {});
+  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsSphereQueries<DeviceType>({}),
+                         make_reference_solution<PairIndexRank>({}, {0}));
 
-  checkResults(empty_dist_tree, makeNearestQueries<DeviceType>({}), {}, {0},
-               {});
+  ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<DeviceType>({}),
+                         make_reference_solution<PairIndexRank>({}, {0}));
 
-  checkResults(empty_dist_tree, makeNearestQueries<DeviceType>({}), {}, {0}, {},
-               {});
+  checkResults(tree, makeNearestQueries<DeviceType>({}), {}, {0}, {}, {});
 
   // Only rank 0 has a couple spatial queries with a spatial predicate
   if (comm_rank == 0)
-    checkResults(empty_dist_tree,
-                 makeIntersectsBoxQueries<DeviceType>({
-                     {},
-                     {},
-                 }),
-                 {}, {0, 0, 0}, {});
+  {
+    ARBORX_TEST_QUERY_TREE(
+        tree, makeIntersectsBoxQueries<DeviceType>({{}, {}}),
+        make_reference_solution<PairIndexRank>({}, {0, 0, 0}));
+  }
   else
-    checkResults(empty_dist_tree, makeIntersectsBoxQueries<DeviceType>({}), {},
-                 {0}, {});
+  {
+    ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<DeviceType>({}),
+                           make_reference_solution<PairIndexRank>({}, {0}));
+  }
 
   // All ranks but rank 0 have a single query with a spatial predicate
   if (comm_rank == 0)
-    checkResults(empty_dist_tree, makeIntersectsSphereQueries<DeviceType>({}),
-                 {}, {0}, {});
+  {
+    ARBORX_TEST_QUERY_TREE(tree, makeIntersectsSphereQueries<DeviceType>({}),
+                           make_reference_solution<PairIndexRank>({}, {0}));
+  }
   else
-    checkResults(empty_dist_tree,
-                 makeIntersectsSphereQueries<DeviceType>({
-                     {{{(double)comm_rank, 0., 0.}}, (double)comm_size},
-                 }),
-                 {}, {0, 0}, {});
+  {
+    ARBORX_TEST_QUERY_TREE(
+        tree,
+        makeIntersectsSphereQueries<DeviceType>({
+            {{{(double)comm_rank, 0., 0.}}, (double)comm_size},
+        }),
+        make_reference_solution<PairIndexRank>({}, {0, 0}));
+  }
 
   // All ranks but rank 0 have a single query with a nearest predicate
   if (comm_rank == 0)
-    checkResults(empty_dist_tree, makeNearestQueries<DeviceType>({}), {}, {0},
-                 {});
+  {
+    ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<DeviceType>({}),
+                           make_reference_solution<PairIndexRank>({}, {0}));
+  }
   else
-    checkResults(empty_dist_tree,
-                 makeNearestQueries<DeviceType>({
-                     {{{0., 0., 0.}}, comm_rank},
-                 }),
-                 {}, {0, 0}, {});
+  {
+    ARBORX_TEST_QUERY_TREE(tree,
+                           makeNearestQueries<DeviceType>({
+                               {{{0., 0., 0.}}, comm_rank},
+                           }),
+                           make_reference_solution<PairIndexRank>({}, {0, 0}));
+  }
 
   // All ranks have a single query with a nearest predicate (this version
   // returns distances as well)
-  checkResults(empty_dist_tree,
+  checkResults(tree,
                makeNearestQueries<DeviceType>({
                    {{{0., 0., 0.}}, comm_size},
                }),
@@ -218,21 +227,25 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
   BOOST_TEST(
       ArborX::Details::equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
-  checkResults(tree, makeIntersectsBoxQueries<DeviceType>({}), {}, {0}, {});
+  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<DeviceType>({}),
+                         make_reference_solution<PairIndexRank>({}, {0}));
 
-  checkResults(tree, makeIntersectsSphereQueries<DeviceType>({}), {}, {0}, {});
+  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsSphereQueries<DeviceType>({}),
+                         make_reference_solution<PairIndexRank>({}, {0}));
 
-  checkResults(tree, makeNearestQueries<DeviceType>({}), {}, {0}, {});
+  ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<DeviceType>({}),
+                         make_reference_solution<PairIndexRank>({}, {0}));
 
   checkResults(tree, makeNearestQueries<DeviceType>({}), {}, {0}, {}, {});
 
   // Querying for more neighbors than there are leaves in the tree
-  checkResults(tree,
-               makeNearestQueries<DeviceType>({
-                   {{{(double)comm_rank, (double)comm_rank, (double)comm_rank}},
-                    comm_size},
-               }),
-               {0}, {0, 1}, {0});
+  ARBORX_TEST_QUERY_TREE(
+      tree,
+      makeNearestQueries<DeviceType>({
+          {{{(double)comm_rank, (double)comm_rank, (double)comm_rank}},
+           comm_size},
+      }),
+      make_reference_solution<PairIndexRank>({{0, 0}}, {0, 1}));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
@@ -257,34 +270,47 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
   BOOST_TEST(ArborX::Details::equals(
       tree.bounds(), {{{0., 0., 0.}}, {{(double)comm_size, 1., 1.}}}));
 
-  checkResults(tree,
-               makeIntersectsBoxQueries<DeviceType>({
-                   {{{(double)comm_size - (double)comm_rank - .5, .5, .5}},
-                    {{(double)comm_size - (double)comm_rank - .5, .5, .5}}},
-                   {{{(double)comm_rank + .5, .5, .5}},
-                    {{(double)comm_rank + .5, .5, .5}}},
-               }),
-               {0, 0}, {0, 1, 2}, {comm_size - 1 - comm_rank, comm_rank});
+  ARBORX_TEST_QUERY_TREE(
+      tree,
+      makeIntersectsBoxQueries<DeviceType>({
+          {{{(double)comm_size - (double)comm_rank - .5, .5, .5}},
+           {{(double)comm_size - (double)comm_rank - .5, .5, .5}}},
+          {{{(double)comm_rank + .5, .5, .5}},
+           {{(double)comm_rank + .5, .5, .5}}},
+      }),
+      make_reference_solution<PairIndexRank>(
+          {{0, comm_size - 1 - comm_rank}, {0, comm_rank}}, {0, 1, 2}));
 
-  checkResults(tree, makeNearestQueries<DeviceType>({}), {}, {0}, {});
-  checkResults(tree, makeIntersectsBoxQueries<DeviceType>({}), {}, {0}, {});
+  ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<DeviceType>({}),
+                         make_reference_solution<PairIndexRank>({}, {0}));
+
+  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<DeviceType>({}),
+                         make_reference_solution<PairIndexRank>({}, {0}));
 
   if (comm_rank > 0)
-    checkResults(tree,
-                 makeNearestQueries<DeviceType>({
-                     {{{0., 0., 0.}}, comm_rank * comm_size},
-                 }),
-                 std::vector<int>(comm_size, 0), {0, comm_size}, [comm_size]() {
-                   std::vector<int> r(comm_size);
-                   std::iota(begin(r), end(r), 0);
-                   return r;
-                 }());
+  {
+    ARBORX_TEST_QUERY_TREE(tree,
+                           makeNearestQueries<DeviceType>({
+                               {{{0., 0., 0.}}, comm_rank * comm_size},
+                           }),
+                           make_reference_solution(
+                               [comm_size]() {
+                                 std::vector<PairIndexRank> values;
+                                 values.reserve(comm_size);
+                                 for (int i = 0; i < comm_size; ++i)
+                                   values.emplace_back(0, i);
+                                 return values;
+                               }(),
+                               {0, comm_size}));
+  }
   else
-    checkResults(tree,
-                 makeNearestQueries<DeviceType>({
-                     {{{0., 0., 0.}}, comm_rank * comm_size},
-                 }),
-                 {}, {0, 0}, {});
+  {
+    ARBORX_TEST_QUERY_TREE(tree,
+                           makeNearestQueries<DeviceType>({
+                               {{{0., 0., 0.}}, comm_rank * comm_size},
+                           }),
+                           make_reference_solution<PairIndexRank>({}, {0, 0}));
+  }
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(do_not_exceed_capacity, DeviceType,
