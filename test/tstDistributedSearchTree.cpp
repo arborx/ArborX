@@ -25,6 +25,8 @@
 
 #define BOOST_TEST_MODULE DistributedSearchTree
 
+using PairIndexRank = Kokkos::pair<int, int>;
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
 {
   MPI_Comm comm = MPI_COMM_WORLD;
@@ -84,35 +86,41 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
       comm_rank < comm_size - 1 ? 3 : 2);
   deep_copy(nearest_queries, nearest_queries_host);
 
-  std::vector<int> indices_ref;
-  std::vector<int> ranks_ref;
+  std::vector<PairIndexRank> values;
+  values.reserve(n + 1);
   for (int i = 0; i < n; ++i)
   {
-    indices_ref.push_back(n - 1 - i);
-    ranks_ref.push_back(comm_size - 1 - comm_rank);
+    values.emplace_back(n - 1 - i, comm_size - 1 - comm_rank);
   }
   if (comm_rank > 0)
   {
-    indices_ref.push_back(0);
-    ranks_ref.push_back(comm_size - comm_rank);
-    checkResults(tree, queries, indices_ref, {0, n + 1}, ranks_ref);
+    values.emplace_back(0, comm_size - comm_rank);
+    ARBORX_TEST_QUERY_TREE(tree, queries,
+                           make_reference_solution(values, {0, n + 1}));
   }
   else
   {
-    checkResults(tree, queries, indices_ref, {0, n}, ranks_ref);
+    ARBORX_TEST_QUERY_TREE(tree, queries,
+                           make_reference_solution(values, {0, n}));
   }
 
   BOOST_TEST(n > 2);
   if (comm_rank < comm_size - 1)
   {
-    checkResults(tree, nearest_queries, {0, n - 1, 1}, {0, 3},
-                 {comm_size - 1 - comm_rank, comm_size - 2 - comm_rank,
-                  comm_size - 1 - comm_rank});
+    ARBORX_TEST_QUERY_TREE(tree, nearest_queries,
+                           make_reference_solution<PairIndexRank>(
+                               {{0, comm_size - 1 - comm_rank},
+                                {n - 1, comm_size - 2 - comm_rank},
+                                {1, comm_size - 1 - comm_rank}},
+                               {0, 3}));
   }
   else
   {
-    checkResults(tree, nearest_queries, {0, 1}, {0, 2},
-                 {comm_size - 1 - comm_rank, comm_size - 1 - comm_rank});
+    ARBORX_TEST_QUERY_TREE(
+        tree, nearest_queries,
+        make_reference_solution<PairIndexRank>(
+            {{0, comm_size - 1 - comm_rank}, {1, comm_size - 1 - comm_rank}},
+            {0, 2}));
   }
 }
 
