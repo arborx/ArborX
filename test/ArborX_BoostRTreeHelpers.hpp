@@ -198,14 +198,16 @@ performQueries(RTree<Indexable> const &rtree, InputView const &queries)
 
 #ifdef ARBORX_ENABLE_MPI
 template <typename Indexable, typename InputView,
-          typename OutputView = Kokkos::View<int *, Kokkos::HostSpace>>
-static std::tuple<OutputView, OutputView, OutputView>
+          typename OutputView1 =
+              Kokkos::View<Kokkos::pair<int, int> *, Kokkos::HostSpace>,
+          typename OutputView2 = Kokkos::View<int *, Kokkos::HostSpace>>
+static std::tuple<OutputView2, OutputView1>
 performQueries(ParallelRTree<Indexable> const &rtree, InputView const &queries)
 {
   static_assert(KokkosExt::is_accessible_from_host<InputView>::value, "");
   using Value = typename ParallelRTree<Indexable>::value_type;
   auto const n_queries = queries.extent_int(0);
-  OutputView offset("offset", n_queries + 1);
+  OutputView2 offset("offset", n_queries + 1);
   std::vector<Value> returned_values;
   for (int i = 0; i < n_queries; ++i)
     offset(i) = rtree.query(translate<Value>(queries(i)),
@@ -213,13 +215,16 @@ performQueries(ParallelRTree<Indexable> const &rtree, InputView const &queries)
   using ExecutionSpace = typename InputView::execution_space;
   ArborX::exclusivePrefixSum(ExecutionSpace{}, offset);
   auto const n_results = ArborX::lastElement(offset);
-  OutputView indices("indices", n_results);
-  OutputView ranks("ranks", n_results);
+  OutputView1 values("values", n_results);
   for (int i = 0; i < n_queries; ++i)
     for (int j = offset(i); j < offset(i + 1); ++j)
-      boost::tie(boost::tuples::ignore, indices(j), ranks(j)) =
-          returned_values[j];
-  return std::make_tuple(offset, indices, ranks);
+    {
+      int index;
+      int rank;
+      boost::tie(boost::tuples::ignore, index, rank) = returned_values[j];
+      values(j) = {index, rank};
+    }
+  return std::make_tuple(offset, values);
 }
 #endif
 } // end namespace BoostRTreeHelpers
@@ -252,6 +257,35 @@ public:
 private:
   BoostRTreeHelpers::RTree<Indexable> _tree;
 };
+
+#ifdef ARBORX_ENABLE_MPI
+template <typename Indexable>
+class ParallelRTree
+{
+public:
+  using DeviceType = Kokkos::DefaultHostExecutionSpace::device_type;
+  using device_type = DeviceType;
+
+  ParallelRTree(MPI_Comm comm,
+                Kokkos::View<Indexable *, DeviceType> const &values)
+  {
+    _tree = BoostRTreeHelpers::makeRTree(comm, values);
+  }
+
+  // WARNING trailing pack will match anything :/
+  template <typename Predicates, typename InputView1, typename InputView2,
+            typename... TrailingArgs>
+  void query(Predicates const &predicates, InputView1 &indices,
+             InputView2 &offset, TrailingArgs &&...) const
+  {
+    std::tie(offset, indices) =
+        BoostRTreeHelpers::performQueries(_tree, predicates);
+  }
+
+private:
+  BoostRTreeHelpers::ParallelRTree<Indexable> _tree;
+};
+#endif
 
 } // namespace BoostExt
 

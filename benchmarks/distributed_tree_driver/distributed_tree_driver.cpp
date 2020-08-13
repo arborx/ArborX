@@ -420,18 +420,19 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   if (comm_rank == 0)
     os << "construction done\n";
 
+  using PairIndexRank = Kokkos::pair<int, int>;
+
   if (perform_knn_search)
   {
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
-    Kokkos::View<int *, DeviceType> indices("indices", 0);
-    Kokkos::View<int *, DeviceType> ranks("ranks", 0);
+    Kokkos::View<int *, DeviceType> offsets("offsets", 0);
+    Kokkos::View<PairIndexRank *, DeviceType> values("values", 0);
 
     auto knn = time_monitor.getNewTimer("knn");
     MPI_Barrier(comm);
     knn->start();
     distributed_tree.query(
         NearestNeighborsSearches<DeviceType>{random_queries, n_neighbors},
-        indices, offset, ranks);
+        values, offsets);
     knn->stop();
 
     if (comm_rank == 0)
@@ -467,15 +468,14 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
       break;
     }
 
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
-    Kokkos::View<int *, DeviceType> indices("indices", 0);
-    Kokkos::View<int *, DeviceType> ranks("ranks", 0);
+    Kokkos::View<int *, DeviceType> offsets("offsets", 0);
+    Kokkos::View<PairIndexRank *, DeviceType> values("values", 0);
 
     auto radius = time_monitor.getNewTimer("radius");
     MPI_Barrier(comm);
     radius->start();
     distributed_tree.query(RadiusSearches<DeviceType>{random_queries, r},
-                           indices, offset, ranks);
+                           values, offsets);
     radius->stop();
 
     if (comm_rank == 0)

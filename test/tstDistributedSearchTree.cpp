@@ -25,6 +25,11 @@
 
 #define BOOST_TEST_MODULE DistributedSearchTree
 
+namespace tt = boost::test_tools;
+
+using PairIndexRank = Kokkos::pair<int, int>;
+using TupleIndexRankDistance = Kokkos::pair<Kokkos::pair<int, int>, float>;
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
 {
   MPI_Comm comm = MPI_COMM_WORLD;
@@ -84,35 +89,41 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
       comm_rank < comm_size - 1 ? 3 : 2);
   deep_copy(nearest_queries, nearest_queries_host);
 
-  std::vector<int> indices_ref;
-  std::vector<int> ranks_ref;
+  std::vector<PairIndexRank> values;
+  values.reserve(n + 1);
   for (int i = 0; i < n; ++i)
   {
-    indices_ref.push_back(n - 1 - i);
-    ranks_ref.push_back(comm_size - 1 - comm_rank);
+    values.emplace_back(n - 1 - i, comm_size - 1 - comm_rank);
   }
   if (comm_rank > 0)
   {
-    indices_ref.push_back(0);
-    ranks_ref.push_back(comm_size - comm_rank);
-    checkResults(tree, queries, indices_ref, {0, n + 1}, ranks_ref);
+    values.emplace_back(0, comm_size - comm_rank);
+    ARBORX_TEST_QUERY_TREE(tree, queries,
+                           make_reference_solution(values, {0, n + 1}));
   }
   else
   {
-    checkResults(tree, queries, indices_ref, {0, n}, ranks_ref);
+    ARBORX_TEST_QUERY_TREE(tree, queries,
+                           make_reference_solution(values, {0, n}));
   }
 
   BOOST_TEST(n > 2);
   if (comm_rank < comm_size - 1)
   {
-    checkResults(tree, nearest_queries, {0, n - 1, 1}, {0, 3},
-                 {comm_size - 1 - comm_rank, comm_size - 2 - comm_rank,
-                  comm_size - 1 - comm_rank});
+    ARBORX_TEST_QUERY_TREE(tree, nearest_queries,
+                           make_reference_solution<PairIndexRank>(
+                               {{0, comm_size - 1 - comm_rank},
+                                {n - 1, comm_size - 2 - comm_rank},
+                                {1, comm_size - 1 - comm_rank}},
+                               {0, 3}));
   }
   else
   {
-    checkResults(tree, nearest_queries, {0, 1}, {0, 2},
-                 {comm_size - 1 - comm_rank, comm_size - 1 - comm_rank});
+    ARBORX_TEST_QUERY_TREE(
+        tree, nearest_queries,
+        make_reference_solution<PairIndexRank>(
+            {{0, comm_size - 1 - comm_rank}, {1, comm_size - 1 - comm_rank}},
+            {0, 2}));
   }
 }
 
@@ -124,66 +135,78 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
   int comm_size;
   MPI_Comm_size(comm, &comm_size);
 
-  auto const empty_dist_tree = makeDistributedSearchTree<DeviceType>(comm, {});
+  auto const tree = makeDistributedSearchTree<DeviceType>(comm, {});
 
-  BOOST_TEST(empty_dist_tree.empty());
-  BOOST_TEST(empty_dist_tree.size() == 0);
+  BOOST_TEST(tree.empty());
+  BOOST_TEST(tree.size() == 0);
 
-  BOOST_TEST(ArborX::Details::equals(empty_dist_tree.bounds(), {}));
+  BOOST_TEST(ArborX::Details::equals(tree.bounds(), {}));
 
-  checkResults(empty_dist_tree, makeIntersectsBoxQueries<DeviceType>({}), {},
-               {0}, {});
+  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<DeviceType>({}),
+                         make_reference_solution<PairIndexRank>({}, {0}));
 
-  checkResults(empty_dist_tree, makeIntersectsSphereQueries<DeviceType>({}), {},
-               {0}, {});
+  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsSphereQueries<DeviceType>({}),
+                         make_reference_solution<PairIndexRank>({}, {0}));
 
-  checkResults(empty_dist_tree, makeNearestQueries<DeviceType>({}), {}, {0},
-               {});
+  ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<DeviceType>({}),
+                         make_reference_solution<PairIndexRank>({}, {0}));
 
-  checkResults(empty_dist_tree, makeNearestQueries<DeviceType>({}), {}, {0}, {},
-               {});
+  ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
+      tree, makeNearestQueries<DeviceType>({}),
+      make_reference_solution<TupleIndexRankDistance>({}, {0}));
 
   // Only rank 0 has a couple spatial queries with a spatial predicate
   if (comm_rank == 0)
-    checkResults(empty_dist_tree,
-                 makeIntersectsBoxQueries<DeviceType>({
-                     {},
-                     {},
-                 }),
-                 {}, {0, 0, 0}, {});
+  {
+    ARBORX_TEST_QUERY_TREE(
+        tree, makeIntersectsBoxQueries<DeviceType>({{}, {}}),
+        make_reference_solution<PairIndexRank>({}, {0, 0, 0}));
+  }
   else
-    checkResults(empty_dist_tree, makeIntersectsBoxQueries<DeviceType>({}), {},
-                 {0}, {});
+  {
+    ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<DeviceType>({}),
+                           make_reference_solution<PairIndexRank>({}, {0}));
+  }
 
   // All ranks but rank 0 have a single query with a spatial predicate
   if (comm_rank == 0)
-    checkResults(empty_dist_tree, makeIntersectsSphereQueries<DeviceType>({}),
-                 {}, {0}, {});
+  {
+    ARBORX_TEST_QUERY_TREE(tree, makeIntersectsSphereQueries<DeviceType>({}),
+                           make_reference_solution<PairIndexRank>({}, {0}));
+  }
   else
-    checkResults(empty_dist_tree,
-                 makeIntersectsSphereQueries<DeviceType>({
-                     {{{(double)comm_rank, 0., 0.}}, (double)comm_size},
-                 }),
-                 {}, {0, 0}, {});
+  {
+    ARBORX_TEST_QUERY_TREE(
+        tree,
+        makeIntersectsSphereQueries<DeviceType>({
+            {{{(double)comm_rank, 0., 0.}}, (double)comm_size},
+        }),
+        make_reference_solution<PairIndexRank>({}, {0, 0}));
+  }
 
   // All ranks but rank 0 have a single query with a nearest predicate
   if (comm_rank == 0)
-    checkResults(empty_dist_tree, makeNearestQueries<DeviceType>({}), {}, {0},
-                 {});
+  {
+    ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<DeviceType>({}),
+                           make_reference_solution<PairIndexRank>({}, {0}));
+  }
   else
-    checkResults(empty_dist_tree,
-                 makeNearestQueries<DeviceType>({
-                     {{{0., 0., 0.}}, comm_rank},
-                 }),
-                 {}, {0, 0}, {});
+  {
+    ARBORX_TEST_QUERY_TREE(tree,
+                           makeNearestQueries<DeviceType>({
+                               {{{0., 0., 0.}}, comm_rank},
+                           }),
+                           make_reference_solution<PairIndexRank>({}, {0, 0}));
+  }
 
   // All ranks have a single query with a nearest predicate (this version
   // returns distances as well)
-  checkResults(empty_dist_tree,
-               makeNearestQueries<DeviceType>({
-                   {{{0., 0., 0.}}, comm_size},
-               }),
-               {}, {0, 0}, {}, {});
+  ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
+      tree,
+      makeNearestQueries<DeviceType>({
+          {{{0., 0., 0.}}, comm_size},
+      }),
+      make_reference_solution<TupleIndexRankDistance>({}, {0, 0}));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
@@ -210,21 +233,27 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
   BOOST_TEST(
       ArborX::Details::equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
-  checkResults(tree, makeIntersectsBoxQueries<DeviceType>({}), {}, {0}, {});
+  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<DeviceType>({}),
+                         make_reference_solution<PairIndexRank>({}, {0}));
 
-  checkResults(tree, makeIntersectsSphereQueries<DeviceType>({}), {}, {0}, {});
+  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsSphereQueries<DeviceType>({}),
+                         make_reference_solution<PairIndexRank>({}, {0}));
 
-  checkResults(tree, makeNearestQueries<DeviceType>({}), {}, {0}, {});
+  ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<DeviceType>({}),
+                         make_reference_solution<PairIndexRank>({}, {0}));
 
-  checkResults(tree, makeNearestQueries<DeviceType>({}), {}, {0}, {}, {});
+  ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
+      tree, makeNearestQueries<DeviceType>({}),
+      make_reference_solution<TupleIndexRankDistance>({}, {0}));
 
   // Querying for more neighbors than there are leaves in the tree
-  checkResults(tree,
-               makeNearestQueries<DeviceType>({
-                   {{{(double)comm_rank, (double)comm_rank, (double)comm_rank}},
-                    comm_size},
-               }),
-               {0}, {0, 1}, {0});
+  ARBORX_TEST_QUERY_TREE(
+      tree,
+      makeNearestQueries<DeviceType>({
+          {{{(double)comm_rank, (double)comm_rank, (double)comm_rank}},
+           comm_size},
+      }),
+      make_reference_solution<PairIndexRank>({{0, 0}}, {0, 1}));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
@@ -249,34 +278,47 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
   BOOST_TEST(ArborX::Details::equals(
       tree.bounds(), {{{0., 0., 0.}}, {{(double)comm_size, 1., 1.}}}));
 
-  checkResults(tree,
-               makeIntersectsBoxQueries<DeviceType>({
-                   {{{(double)comm_size - (double)comm_rank - .5, .5, .5}},
-                    {{(double)comm_size - (double)comm_rank - .5, .5, .5}}},
-                   {{{(double)comm_rank + .5, .5, .5}},
-                    {{(double)comm_rank + .5, .5, .5}}},
-               }),
-               {0, 0}, {0, 1, 2}, {comm_size - 1 - comm_rank, comm_rank});
+  ARBORX_TEST_QUERY_TREE(
+      tree,
+      makeIntersectsBoxQueries<DeviceType>({
+          {{{(double)comm_size - (double)comm_rank - .5, .5, .5}},
+           {{(double)comm_size - (double)comm_rank - .5, .5, .5}}},
+          {{{(double)comm_rank + .5, .5, .5}},
+           {{(double)comm_rank + .5, .5, .5}}},
+      }),
+      make_reference_solution<PairIndexRank>(
+          {{0, comm_size - 1 - comm_rank}, {0, comm_rank}}, {0, 1, 2}));
 
-  checkResults(tree, makeNearestQueries<DeviceType>({}), {}, {0}, {});
-  checkResults(tree, makeIntersectsBoxQueries<DeviceType>({}), {}, {0}, {});
+  ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<DeviceType>({}),
+                         make_reference_solution<PairIndexRank>({}, {0}));
+
+  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<DeviceType>({}),
+                         make_reference_solution<PairIndexRank>({}, {0}));
 
   if (comm_rank > 0)
-    checkResults(tree,
-                 makeNearestQueries<DeviceType>({
-                     {{{0., 0., 0.}}, comm_rank * comm_size},
-                 }),
-                 std::vector<int>(comm_size, 0), {0, comm_size}, [comm_size]() {
-                   std::vector<int> r(comm_size);
-                   std::iota(begin(r), end(r), 0);
-                   return r;
-                 }());
+  {
+    ARBORX_TEST_QUERY_TREE(tree,
+                           makeNearestQueries<DeviceType>({
+                               {{{0., 0., 0.}}, comm_rank * comm_size},
+                           }),
+                           make_reference_solution(
+                               [comm_size]() {
+                                 std::vector<PairIndexRank> values;
+                                 values.reserve(comm_size);
+                                 for (int i = 0; i < comm_size; ++i)
+                                   values.emplace_back(0, i);
+                                 return values;
+                               }(),
+                               {0, comm_size}));
+  }
   else
-    checkResults(tree,
-                 makeNearestQueries<DeviceType>({
-                     {{{0., 0., 0.}}, comm_rank * comm_size},
-                 }),
-                 {}, {0, 0}, {});
+  {
+    ARBORX_TEST_QUERY_TREE(tree,
+                           makeNearestQueries<DeviceType>({
+                               {{{0., 0., 0.}}, comm_rank * comm_size},
+                           }),
+                           make_reference_solution<PairIndexRank>({}, {0, 0}));
+  }
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(do_not_exceed_capacity, DeviceType,
@@ -301,10 +343,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(do_not_exceed_capacity, DeviceType,
   ArborX::DistributedSearchTree<DeviceType> tree{comm, points};
   Kokkos::View<decltype(nearest(Point{})) *, DeviceType> queries("queries", 1);
   Kokkos::deep_copy(queries, nearest(Point{0, 0, 0}, 512));
-  Kokkos::View<int *, DeviceType> indices("indices", 0);
+  Kokkos::View<PairIndexRank *, DeviceType> values("values", 0);
   Kokkos::View<int *, DeviceType> offset("offset", 0);
-  Kokkos::View<int *, DeviceType> ranks("ranks", 0);
-  BOOST_CHECK_NO_THROW(tree.query(queries, indices, offset, ranks));
+  BOOST_CHECK_NO_THROW(tree.query(queries, values, offset));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_nearest_neighbors, DeviceType,
@@ -345,17 +386,24 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_nearest_neighbors, DeviceType,
   //          ^          ^          ^          ^
   //          3          2          1          0
   if (comm_rank > 0)
-    checkResults(tree,
-                 makeNearestQueries<DeviceType>({
-                     {{{(double)(comm_size - 1 - comm_rank) + .75, 0., 0.}}, 1},
-                 }),
-                 {0}, {0, 1}, {comm_size - comm_rank});
+  {
+    ARBORX_TEST_QUERY_TREE(
+        tree,
+        makeNearestQueries<DeviceType>({
+            {{{(double)(comm_size - 1 - comm_rank) + .75, 0., 0.}}, 1},
+        }),
+        make_reference_solution<PairIndexRank>({{0, comm_size - comm_rank}},
+                                               {0, 1}));
+  }
   else
-    checkResults(tree,
-                 makeNearestQueries<DeviceType>({
-                     {{{(double)(comm_size - 1 - comm_rank) + .75, 0., 0.}}, 1},
-                 }),
-                 {0}, {0, 1}, {comm_size - 1});
+  {
+    ARBORX_TEST_QUERY_TREE(
+        tree,
+        makeNearestQueries<DeviceType>({
+            {{{(double)(comm_size - 1 - comm_rank) + .75, 0., 0.}}, 1},
+        }),
+        make_reference_solution<PairIndexRank>({{0, comm_size - 1}}, {0, 1}));
+  }
 }
 
 template <typename DeviceType>
@@ -478,8 +526,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
     auto offset_host =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
-    validateResults(std::make_tuple(offset_host, custom_host),
-                    std::make_tuple(offset_host, ref_host));
+    BOOST_TEST(make_compressed_storage(offset_host, custom_host) ==
+                   make_compressed_storage(offset_host, ref_host),
+               tt::per_element());
   }
   {
     Kokkos::View<float *, DeviceType> custom("custom", 0);
@@ -495,8 +544,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
     auto offset_host =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
-    validateResults(std::make_tuple(offset_host, custom_host),
-                    std::make_tuple(offset_host, ref_host));
+    BOOST_TEST(make_compressed_storage(offset_host, custom_host) ==
+                   make_compressed_storage(offset_host, ref_host),
+               tt::per_element());
   }
 }
 
@@ -559,8 +609,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
   ArborX::DistributedSearchTree<DeviceType> distributed_tree(comm,
                                                              bounding_boxes);
 
-  auto rtree = BoostRTreeHelpers::makeRTree(comm, bounding_boxes_host);
-
   // make queries
   using ExecutionSpace = typename DeviceType::execution_space;
   Kokkos::View<double * [3], ExecutionSpace> point_coords("point_coords",
@@ -602,23 +650,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
             radii(i)});
       });
 
-  // Perform the search
-  Kokkos::View<int *, DeviceType> indices("indices", 0);
-  Kokkos::View<int *, DeviceType> offset("offset", 0);
-  Kokkos::View<int *, DeviceType> ranks("ranks", 0);
-  distributed_tree.query(within_queries, indices, offset, ranks);
-  auto indices_host = Kokkos::create_mirror_view(indices);
-  Kokkos::deep_copy(indices_host, indices);
-  auto offset_host = Kokkos::create_mirror_view(offset);
-  Kokkos::deep_copy(offset_host, offset);
-  auto ranks_host = Kokkos::create_mirror_view(ranks);
-  Kokkos::deep_copy(ranks_host, ranks);
-  auto bvh_results = std::make_tuple(offset_host, indices_host, ranks_host);
-
   auto within_queries_host = Kokkos::create_mirror_view(within_queries);
   Kokkos::deep_copy(within_queries_host, within_queries);
-  auto rtree_results =
-      BoostRTreeHelpers::performQueries(rtree, within_queries_host);
 
-  validateResults(bvh_results, rtree_results);
+  BoostExt::ParallelRTree<ArborX::Box> rtree(comm, bounding_boxes_host);
+
+  ARBORX_TEST_QUERY_TREE(distributed_tree, within_queries,
+                         query(rtree, within_queries_host));
 }
