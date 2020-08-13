@@ -156,7 +156,7 @@ struct DistributedSearchTreeImpl
     queryDispatchImpl(tag, tree, space, queries, indices, offset, ranks);
     auto const n = indices.extent(0);
     reallocWithoutInitializing(values, n);
-    Kokkos::parallel_for(ARBORX_MARK_REGION("zip"),
+    Kokkos::parallel_for(ARBORX_MARK_REGION("zip_indices_and_ranks"),
                          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
                          KOKKOS_LAMBDA(int i) {
                            values(i) = {indices(i), ranks(i)};
