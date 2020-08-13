@@ -30,7 +30,7 @@ enum BufferStatus
   PreallocationSoft = 1
 };
 
-BufferStatus toBufferStatus(int buffer_size)
+inline BufferStatus toBufferStatus(int buffer_size)
 {
   if (buffer_size == 0)
     return BufferStatus::PreallocationNone;
