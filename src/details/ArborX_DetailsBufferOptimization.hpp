@@ -30,6 +30,8 @@ enum BufferStatus
   PreallocationSoft = 1
 };
 
+// NOTE cheap trick to avoid duplicate symbol errors downstream
+template <typename AlwaysVoid = void>
 BufferStatus toBufferStatus(int buffer_size)
 {
   if (buffer_size == 0)
