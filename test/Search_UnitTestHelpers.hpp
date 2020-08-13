@@ -121,6 +121,26 @@ auto query_with_distance(Tree const &tree, Queries const &queries,
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
 }
 
+// Workaround for NVCC that complains that the enclosing parent function
+// (query_with_distance) for an extended __host__ __device__ lambda must not
+// have deduced return type
+template <typename DeviceType, typename ExecutionSpace>
+Kokkos::View<Kokkos::pair<Kokkos::pair<int, int>, float> *, DeviceType>
+zip(ExecutionSpace const &space, Kokkos::View<int *, DeviceType> indices,
+    Kokkos::View<int *, DeviceType> ranks,
+    Kokkos::View<float *, DeviceType> distances)
+{
+  auto const n = indices.extent(0);
+  Kokkos::View<Kokkos::pair<Kokkos::pair<int, int>, float> *, DeviceType>
+      values(Kokkos::view_alloc(Kokkos::WithoutInitializing, "values"), n);
+  Kokkos::parallel_for("ArborX:UnitTestSupport:zip",
+                       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+                       KOKKOS_LAMBDA(int i) {
+                         values(i) = {{indices(i), ranks(i)}, distances(i)};
+                       });
+  return values;
+}
+
 template <typename Tree, typename Queries>
 auto query_with_distance(Tree const &tree, Queries const &queries,
                          std::enable_if_t<is_distributed<Tree>{}> * = nullptr)
@@ -136,14 +156,8 @@ auto query_with_distance(Tree const &tree, Queries const &queries,
       ArborX::Details::NearestPredicateTag{}, tree, space, queries, indices,
       offsets, ranks, &distances);
 
-  auto const n = indices.extent(0);
-  Kokkos::View<Kokkos::pair<Kokkos::pair<int, int>, float> *, device_type>
-      values(Kokkos::view_alloc(Kokkos::WithoutInitializing, "values"), n);
-  Kokkos::parallel_for("ArborX:UnitTestSupport:zip",
-                       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         values(i) = {{indices(i), ranks(i)}, distances(i)};
-                       });
+  auto values = zip(space, indices, ranks, distances);
+
   return make_compressed_storage(
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
