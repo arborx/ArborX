@@ -204,30 +204,42 @@ struct TreeVisualization
     }
   }
 
-  template <typename Tree, typename Predicate, typename Visitor>
-  static int visit(Tree const &tree, Predicate const &pred,
-                   Visitor const &visitor)
+  template <typename TreeType, typename VisitorType>
+  struct NearestCallback
   {
-    // The preprocessor directives below are intended to silent the
+    template <typename Query>
+    KOKKOS_FUNCTION void operator()(Query const &, int index, float) const
+    {
+      _visitor.visit(_tree.getNodePtr(index), _tree);
+    }
+
+    TreeType _tree;
+    VisitorType _visitor;
+  };
+
+  template <typename Tree, typename Predicate, typename Visitor>
+  static void visit(Tree const &tree, Predicate const &pred,
+                    Visitor const &visitor)
+  {
+    // The preprocessor directives below are intended to silence the
     // warnings about calling a __host__ function from a __host__
     // __device__ function emitted by nvcc.
 #if defined(__CUDA_ARCH__)
     std::ignore = tree;
     std::ignore = pred;
     std::ignore = visitor;
-    throw std::runtime_error("not meant to execute on the GPU");
+    throw std::runtime_error("visit() is not meant to execute on the GPU");
 #else
-    auto const geometry = getGeometry(pred);
-    auto const k = getK(pred);
-    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> buffer("buffer", k);
-    int const count = DeprecatedTreeTraversal<Tree>::nearestQuery(
-        tree,
-        [geometry, &visitor, &tree](Node const *node) {
-          visitor.visit(node, tree);
-          return distance(geometry, TreeAccess::getBoundingVolume(node, tree));
-        },
-        k, [](int, float) {}, buffer);
-    return count;
+    using ExecutionSpace = typename DeviceType::execution_space;
+    using Predicates = Kokkos::View<Predicate *, DeviceType>;
+    using Callback = NearestCallback<Tree, Visitor>;
+
+    Predicates predicates("predicates", 1);
+    predicates(0) = pred;
+
+    TreeTraversal<Tree, Predicates, Callback, NearestPredicateTag>
+        tree_traversal(ExecutionSpace{}, tree, predicates,
+                       Callback{tree, visitor});
 #endif
   }
 };

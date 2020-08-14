@@ -25,17 +25,6 @@
 
 namespace ArborX
 {
-namespace Details
-{
-
-// Silly name to discourage misuse...
-enum class NearestQueryAlgorithm
-{
-  StackBased_Default,
-  PriorityQueueBased_Deprecated
-};
-
-} // namespace Details
 
 namespace Experimental
 {
@@ -56,25 +45,12 @@ struct TraversalPolicy
   // Sort predicates allows disabling predicate sorting.
   bool _sort_predicates = true;
 
-  // This parameter lets the developer choose from two different tree
-  // traversal algorithms. With the default argument, the nearest queries are
-  // performed using a stack. This was deemed to be slightly more efficient
-  // than the other alternative that uses a priority queue. The existence of
-  // the parameter shall not be advertised to the user.
-  Details::NearestQueryAlgorithm _traversal_algorithm =
-      Details::NearestQueryAlgorithm::StackBased_Default;
-
   TraversalPolicy &setBufferSize(int buffer_size)
   {
     _buffer_size = buffer_size;
     return *this;
   }
-  TraversalPolicy &
-  setTraversalAlgorithm(Details::NearestQueryAlgorithm traversal_algorithm)
-  {
-    _traversal_algorithm = traversal_algorithm;
-    return *this;
-  }
+
   TraversalPolicy &setPredicateSorting(bool sort_predicates)
   {
     _sort_predicates = sort_predicates;
@@ -223,11 +199,6 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
   using Access = AccessTraits<Predicates, Traits::PredicatesTag>;
   auto const n_queries = Access::size(predicates);
-
-  bool const use_deprecated_nearest_query_algorithm =
-      (policy._traversal_algorithm ==
-       NearestQueryAlgorithm::PriorityQueueBased_Deprecated);
-  std::ignore = use_deprecated_nearest_query_algorithm;
 
   Kokkos::Profiling::pushRegion("ArborX:BVH:nearest_queries:init_and_alloc");
 
