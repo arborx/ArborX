@@ -221,7 +221,7 @@ public:
       ExecutionSpace const &space,
       Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
           sorted_morton_codes,
-      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
+      Kokkos::View<Node const *, LeafNodesViewProperties...> leaf_nodes,
       Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
       : _sorted_morton_codes(sorted_morton_codes)
       , _leaf_nodes(leaf_nodes)
@@ -279,7 +279,13 @@ public:
     int &delta_left = deltas[0];
     int &delta_right = deltas[1];
 
-    Box box = (&_leaf_nodes(i - leaf_nodes_shift))->bounding_box;
+    auto getNodePtr = [this, leaf_nodes_shift](int index) {
+      return (index >= leaf_nodes_shift
+                  ? &(this->_leaf_nodes(index - leaf_nodes_shift))
+                  : &(this->_internal_nodes(index)));
+    };
+
+    Box box = getNodePtr(i)->bounding_box;
 
     // Walk toward the root and do process it even though technically its
     // bounding box has already been computed (bounding box of the scene)
@@ -318,20 +324,18 @@ public:
       // one above, despite looking exactly the same.
       int karras_index = range[delta_right < delta_left];
 
-      Node *node = &_internal_nodes(karras_index);
+      Node *node = &(_internal_nodes(karras_index));
 
       // This is slightly convoluted due to the fact that the indices of
       // leaf nodes have to be shifted. The determination whether the second
       // child is a leaf node depends on the position of the split (which is
-      // apetrei index) to the correct range boundary.
+      // apetrei index) to the range boundary.
       int other_child_index = apetrei_index + direction_index;
       bool is_other_child_leaf = (other_child_index == range[direction_index]);
-      Node const *other_child = &_internal_nodes(other_child_index);
       if (is_other_child_leaf)
-      {
-        other_child = &_leaf_nodes(other_child_index);
         other_child_index += leaf_nodes_shift;
-      }
+
+      Node const *other_child = getNodePtr(other_child_index);
 
       bool is_left_child = (direction_index == 1);
       if (is_left_child)
@@ -357,10 +361,8 @@ public:
 
 private:
   Kokkos::View<unsigned int const *, MemorySpace> _sorted_morton_codes;
-  Kokkos::View<Node *, MemorySpace> _leaf_nodes;
+  Kokkos::View<Node const *, MemorySpace> _leaf_nodes;
   Kokkos::View<Node *, MemorySpace> _internal_nodes;
-  // Use int instead of bool because CAS (Compare And Swap) on CUDA does not
-  // support boolean
   Kokkos::View<int *, MemorySpace> _ranges;
   int _num_internal_nodes;
 };
@@ -372,7 +374,7 @@ void generateHierarchy(
     ExecutionSpace const &space,
     Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
         sorted_morton_codes,
-    Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
+    Kokkos::View<Node const *, LeafNodesViewProperties...> leaf_nodes,
     Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
 {
   using MemorySpace = typename decltype(internal_nodes)::memory_space;
@@ -400,7 +402,8 @@ void generateHierarchy(
       space,
       Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
           sorted_morton_codes},
-      leaf_nodes, internal_nodes);
+      Kokkos::View<Node const *, LeafNodesViewProperties...>{leaf_nodes},
+      internal_nodes);
 }
 
 } // namespace TreeConstruction
