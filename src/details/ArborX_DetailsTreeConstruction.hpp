@@ -230,10 +230,32 @@ public:
     return (i < n ? &(_internal_nodes(i)) : &(_leaf_nodes(i - n)));
   }
 
+  KOKKOS_FUNCTION int calculateRope(int range_right, int delta_right) const
+  {
+    int rope;
+    if (range_right != _num_internal_nodes)
+    {
+      // The way Karras indices constructed, the rope is going to be the right
+      // child of the first internal node that we are in the left subtree of.
+      // The determination of whether that node is internal or leaf requires an
+      // additional delta() evaluation.
+      rope = range_right + 1;
+      if (delta_right < delta(range_right + 1))
+        rope += _num_internal_nodes;
+    }
+    else
+    {
+      // The node is on the right-most path in the tree. The only reason we
+      // need to set it is because nodes may have been allocated without
+      // initializing.
+      rope = ROPE_SENTINEL;
+    }
+    return rope;
+  }
+
   KOKKOS_FUNCTION void operator()(int i) const
   {
     auto const leaf_nodes_shift = _num_internal_nodes;
-    auto const num_leaf_nodes = _num_internal_nodes + 1;
 
     // Index in the orginal order primitives were given in.
     auto const original_index = _permutation_indices(i - leaf_nodes_shift);
@@ -243,7 +265,8 @@ public:
     expand(bbox, Access::get(_primitives, original_index));
 
     // Initialize leaf node
-    *getNodePtr(i) = makeLeafNode(original_index, bbox);
+    auto *leaf_node = getNodePtr(i);
+    *leaf_node = makeLeafNode(original_index, bbox);
 
     // For a leaf node, the range is just one index
     int range_left = i - leaf_nodes_shift;
@@ -251,6 +274,8 @@ public:
 
     int delta_left = delta(range_left - 1);
     int delta_right = delta(range_right);
+
+    leaf_node->rope = calculateRope(range_right, delta_right);
 
     // Walk toward the root and do process it even though technically its
     // bounding box has already been computed (bounding box of the scene)
@@ -326,27 +351,8 @@ public:
 
       auto *parent_node = getNodePtr(karras_parent);
       parent_node->left_child = left_child;
+      parent_node->rope = calculateRope(range_right, delta_right);
       parent_node->bounding_box = bbox;
-
-      // Temporarily store right child in the rope to shortcut later rope
-      // setting. For the right-most path that is unnecessary, but it still
-      // needs to be initialized as internal nodes are allocated without
-      // initialing.
-      parent_node->rope =
-          (range_right != num_leaf_nodes - 1 ? right_child : ROPE_SENTINEL);
-
-      // Set correct ropes for right-most path in the left subtree.
-      Node *child = getNodePtr(left_child);
-      int next_right_child = child->rope;
-      child->rope = right_child;
-      while (!child->isLeaf())
-      {
-        // Here, we use the shortcut the traversal, as we stored the right
-        // child in the rope on the previous step.
-        child = getNodePtr(next_right_child);
-        next_right_child = child->rope;
-        child->rope = right_child;
-      }
 
       i = karras_parent;
 
