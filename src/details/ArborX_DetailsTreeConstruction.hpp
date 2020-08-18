@@ -279,27 +279,50 @@ public:
 
     Box bbox = getNodePtr(i)->bounding_box;
 
+    // For a leaf node, the range is just one index
     int range_left = i - leaf_nodes_shift;
-    int range_right = i - leaf_nodes_shift;
+    int range_right = range_left;
+
     int delta_left = delta(range_left - 1);
     int delta_right = delta(range_right);
 
+    // Walk toward the root and do process it even though technically its
+    // bounding box has already been computed (bounding box of the scene)
     do
     {
+      // Determine whether this node is left or right child of its parent
       bool const is_left_child = delta_right < delta_left;
 
       int left_child;
       int right_child;
       if (is_left_child)
       {
+        // The main benefit of the Apetrei index (which is also called a split
+        // in the Karras algorithm) is that each child can compute it based
+        // just on the child's range. This is different from a Karras index,
+        // where the index can only be computed based on the range of the
+        // parent, and thus requires knowing the ranges of both children.
         int const apetrei_parent = range_right;
 
+        // The range of the parent is the union of the ranges of children. Each
+        // child updates one of these range values, the farthest from the
+        // split. The first thread up stores the updated range value (which
+        // also serves as a flag). The second thread up finishes constructing
+        // the full parent range.
         range_right = Kokkos::atomic_compare_exchange(
             &_ranges(apetrei_parent), UNTOUCHED_NODE, range_left);
 
+        // Use an atomic flag per internal node to terminate the first
+        // thread that enters it, while letting the second one through.
+        // This ensures that every node gets processed only once, and not
+        // before both of its children are processed.
         if (range_right == UNTOUCHED_NODE)
           break;
 
+        // This is slightly convoluted due to the fact that the indices of leaf
+        // nodes have to be shifted. The determination whether the other child
+        // is a leaf node depends on the position of the split (which is
+        // apetrei index) to the range boundary.
         left_child = i;
         right_child = apetrei_parent + 1;
         if (right_child == range_right)
@@ -311,6 +334,9 @@ public:
       }
       else
       {
+        // The comments for this clause are identical to the ones above (in the
+        // if clause), and thus ommitted for brevity.
+
         int const apetrei_parent = range_left - 1;
 
         range_left = Kokkos::atomic_compare_exchange(
@@ -328,6 +354,7 @@ public:
         expand(bbox, getNodePtr(left_child)->bounding_box);
       }
 
+      // Having the full range for the parent, we can compute the Karras index.
       int const karras_parent =
           delta_right < delta_left ? range_right : range_left;
 
