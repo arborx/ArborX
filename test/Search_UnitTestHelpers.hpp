@@ -141,6 +141,7 @@ zip(ExecutionSpace const &space, Kokkos::View<int *, DeviceType> indices,
   return values;
 }
 
+#ifdef ARBORX_ENABLE_MPI
 template <typename Tree, typename Queries>
 auto query_with_distance(Tree const &tree, Queries const &queries,
                          std::enable_if_t<is_distributed<Tree>{}> * = nullptr)
@@ -162,6 +163,7 @@ auto query_with_distance(Tree const &tree, Queries const &queries,
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
 }
+#endif
 
 #define ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(tree, queries, reference)         \
   BOOST_TEST(query_with_distance(tree, queries) == (reference),                \
