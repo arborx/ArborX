@@ -233,6 +233,7 @@ public:
   KOKKOS_FUNCTION void operator()(int i) const
   {
     auto const leaf_nodes_shift = _num_internal_nodes;
+    auto const num_leaf_nodes = _num_internal_nodes + 1;
 
     // Index in the orginal order primitives were given in.
     auto const original_index = _permutation_indices(i - leaf_nodes_shift);
@@ -325,8 +326,27 @@ public:
 
       auto *parent_node = getNodePtr(karras_parent);
       parent_node->left_child = left_child;
-      parent_node->right_child = right_child;
       parent_node->bounding_box = bbox;
+
+      // Temporarily store right child in the rope to shortcut later rope
+      // setting. For the right-most path that is unnecessary, but it still
+      // needs to be initialized as internal nodes are allocated without
+      // initialing.
+      parent_node->rope =
+          (range_right != num_leaf_nodes - 1 ? right_child : ROPE_SENTINEL);
+
+      // Set correct ropes for right-most path in the left subtree.
+      Node *child = getNodePtr(left_child);
+      int next_right_child = child->rope;
+      child->rope = right_child;
+      while (!child->isLeaf())
+      {
+        // Here, we use the shortcut the traversal, as we stored the right
+        // child in the rope on the previous step.
+        child = getNodePtr(next_right_child);
+        next_right_child = child->rope;
+        child->rope = right_child;
+      }
 
       i = karras_parent;
 

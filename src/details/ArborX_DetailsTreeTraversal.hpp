@@ -13,6 +13,7 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
+#include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_DetailsStack.hpp>
 #include <ArborX_DetailsUtils.hpp>
@@ -85,41 +86,30 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   {
     auto const &predicate = Access::get(predicates_, queryIndex);
 
-    Node const *stack[64];
-    Node const **stack_ptr = stack;
-    *stack_ptr++ = nullptr;
-    Node const *node = bvh_.getRoot();
+    Node const *node;
+    int next = 0; // start with root
     do
     {
-      Node const *child_left = bvh_.getNodePtr(node->left_child);
-      Node const *child_right = bvh_.getNodePtr(node->right_child);
+      node = bvh_.getNodePtr(next);
 
-      bool overlap_left = predicate(bvh_.getBoundingVolume(child_left));
-      bool overlap_right = predicate(bvh_.getBoundingVolume(child_right));
-
-      if (overlap_left && child_left->isLeaf())
+      if (predicate(bvh_.getBoundingVolume(node)))
       {
-        callback_(predicate, child_left->getLeafPermutationIndex());
-      }
-      if (overlap_right && child_right->isLeaf())
-      {
-        callback_(predicate, child_right->getLeafPermutationIndex());
-      }
-
-      bool traverse_left = (overlap_left && !child_left->isLeaf());
-      bool traverse_right = (overlap_right && !child_right->isLeaf());
-
-      if (!traverse_left && !traverse_right)
-      {
-        node = *--stack_ptr;
+        if (!node->isLeaf())
+        {
+          next = node->left_child;
+        }
+        else
+        {
+          callback_(predicate, node->getLeafPermutationIndex());
+          next = node->rope;
+        }
       }
       else
       {
-        node = traverse_left ? child_left : child_right;
-        if (traverse_left && traverse_right)
-          *stack_ptr++ = child_right;
+        next = node->rope;
       }
-    } while (node != nullptr);
+
+    } while (next != ROPE_SENTINEL);
   }
 };
 
@@ -301,7 +291,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
         // Insert children into the stack and make sure that the
         // closest one ends on top.
         child_left = bvh_.getNodePtr(node->left_child);
-        child_right = bvh_.getNodePtr(node->right_child);
+        child_right = bvh_.getNodePtr(child_left->rope);
 
         distance_left = distance(child_left);
         distance_right = distance(child_right);

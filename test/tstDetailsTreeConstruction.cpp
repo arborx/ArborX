@@ -12,8 +12,8 @@
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsMortonCode.hpp> // expandBits, morton3D
-#include <ArborX_DetailsNode.hpp>
-#include <ArborX_DetailsSortUtils.hpp> // sortObjects
+#include <ArborX_DetailsNode.hpp>       // ROPE SENTINEL
+#include <ArborX_DetailsSortUtils.hpp>  // sortObjects
 #include <ArborX_DetailsTreeConstruction.hpp>
 
 #include <boost/test/unit_test.hpp>
@@ -148,53 +148,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
     sorted_morton_codes(i) = b.to_ulong();
   }
 
-  // reference solution for a recursive traversal from top to bottom
-  // starting from root, visiting first the left child and then the right one
-  std::ostringstream ref;
-  ref << "I0"
-      << "I3"
-      << "I1"
-      << "L0"
-      << "L1"
-      << "I2"
-      << "L2"
-      << "L3"
-      << "I4"
-      << "L4"
-      << "I5"
-      << "I6"
-      << "L5"
-      << "L6"
-      << "L7";
-  std::cout << "ref=" << ref.str() << "\n";
-
   // hierarchy generation
   using ArborX::Box;
   using ArborX::Details::makeLeafNode;
   using ArborX::Details::Node;
+  using ArborX::Details::ROPE_SENTINEL;
+
   Kokkos::View<Node *, DeviceType> leaf_nodes("Testing::leaf_nodes", n);
   Kokkos::View<Node *, DeviceType> internal_nodes("Testing::internal_nodes",
                                                   n - 1);
   for (int i = 0; i < n; ++i)
     leaf_nodes(i) = makeLeafNode(i, Box{});
-  auto getNodePtr = [&leaf_nodes, &internal_nodes](int i) {
-    return i < n - 1 ? &internal_nodes(i) : &leaf_nodes(i - n + 1);
-  };
-  std::function<void(Node const *, std::ostream &)> traverseRecursive;
-  traverseRecursive = [&leaf_nodes, &internal_nodes, &traverseRecursive,
-                       &getNodePtr](Node const *node, std::ostream &os) {
-    if (node->isLeaf())
-    {
-      os << "L" << node - leaf_nodes.data();
-    }
-    else
-    {
-      os << "I" << node - internal_nodes.data();
-      for (Node const *child :
-           {getNodePtr(node->left_child), getNodePtr(node->right_child)})
-        traverseRecursive(child, os);
-    }
-  };
 
   typename DeviceType::execution_space space{};
 
@@ -209,9 +173,76 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
 
   Node const *root = internal_nodes.data();
 
-  std::ostringstream sol;
-  traverseRecursive(root, sol);
-  std::cout << "sol=" << sol.str() << "\n";
+  auto getNodePtr = [&leaf_nodes, &internal_nodes](int i) {
+    return i < n - 1 ? &internal_nodes(i) : &leaf_nodes(i - n + 1);
+  };
+  auto getLeftChild = [&getNodePtr](Node const *node) {
+    return getNodePtr(node->left_child);
+  };
+  auto getRightChild = [&getNodePtr](Node const *node) {
+    return getNodePtr(getNodePtr(node->left_child)->rope);
+  };
 
-  BOOST_TEST(sol.str().compare(ref.str()) == 0);
+  // Reference solution for a recursive traversal from top to bottom starting
+  // from the root, visiting first the left child and then the right one
+  std::ostringstream ref_recursive;
+  // clang-format off
+  ref_recursive << "I0" << "I3" << "I1" << "L0" << "L1" << "I2" << "L2" << "L3"
+                << "I4" << "L4" << "I5" << "I6" << "L5" << "L6" << "L7";
+
+  // clang-format on
+  std::cout << "ref(recursive) = " << ref_recursive.str() << "\n";
+
+  std::function<void(Node const *, std::ostream &)> traverseRecursive;
+  traverseRecursive = [&leaf_nodes, &internal_nodes, &traverseRecursive,
+                       &getLeftChild,
+                       &getRightChild](Node const *node, std::ostream &os) {
+    if (node->isLeaf())
+    {
+      os << "L" << node - leaf_nodes.data();
+    }
+    else
+    {
+      os << "I" << node - internal_nodes.data();
+      for (Node const *child : {getLeftChild(node), getRightChild(node)})
+        traverseRecursive(child, os);
+    }
+  };
+
+  std::ostringstream sol_recursive;
+  traverseRecursive(root, sol_recursive);
+  std::cout << "sol(recursive) = " << sol_recursive.str() << "\n";
+
+  BOOST_TEST(sol_recursive.str().compare(ref_recursive.str()) == 0);
+
+  // Reference solution for a rope-based traversal starting from the root.
+  std::ostringstream ref_ropes;
+  // clang-format off
+  ref_ropes << "I0" << "I3" << "I1" << "L0" << "L1" << "I2" << "L2" << "L3"
+            << "I4" << "L4" << "I5" << "I6" << "L5" << "L6" << "L7";
+
+  // clang-format on
+  std::cout << "ref(ropes) = " << ref_ropes.str() << "\n";
+
+  std::function<void(Node const *, std::ostream &)> traverseRopes;
+  traverseRopes = [&leaf_nodes, &internal_nodes, &traverseRopes,
+                   &getNodePtr](Node const *node, std::ostream &os) {
+    if (node->isLeaf())
+    {
+      os << "L" << node - leaf_nodes.data();
+      if (node->rope != ROPE_SENTINEL)
+        traverseRopes(getNodePtr(node->rope), os);
+    }
+    else
+    {
+      os << "I" << node - internal_nodes.data();
+      traverseRopes(getNodePtr(node->left_child), os);
+    }
+  };
+
+  std::ostringstream sol_ropes;
+  traverseRopes(root, sol_ropes);
+  std::cout << "sol(ropes) = " << sol_ropes.str() << "\n";
+
+  BOOST_TEST(sol_ropes.str().compare(ref_ropes.str()) == 0);
 }

@@ -139,11 +139,12 @@ struct TreeVisualization
     {
       auto const node_label = getNodeLabel(node, tree);
       auto const node_is_internal = !node->isLeaf();
-      auto getNodePr = [&](int i) { return TreeAccess::getNodePtr(tree, i); };
+      auto getNodePtr = [&](int i) { return TreeAccess::getNodePtr(tree, i); };
 
       if (node_is_internal)
         for (auto const *child :
-             {getNodePr(node->left_child), getNodePr(node->right_child)})
+             {getNodePtr(node->left_child),                    // left child
+              getNodePtr(getNodePtr(node->left_child)->rope)}) // right child
         {
           auto const child_label = getNodeLabel(child, tree);
           auto const edge_attributes = getEdgeAttributes(node, child, tree);
@@ -181,21 +182,15 @@ struct TreeVisualization
   template <typename Tree, typename Visitor>
   static void visitAllIterative(Tree const &tree, Visitor const &visitor)
   {
-    using Node = typename Tree::node_type;
-    Stack<Node const *> stack;
-    stack.emplace(TreeAccess::getRoot(tree));
     auto getNodePtr = [&](int i) { return TreeAccess::getNodePtr(tree, i); };
-    while (!stack.empty())
+    int next = 0;
+    while (next != ROPE_SENTINEL)
     {
-      auto const *node = stack.top();
-      stack.pop();
+      auto const *node = getNodePtr(next);
 
       visitor.visit(node, tree);
 
-      if (!node->isLeaf())
-        for (auto const *child :
-             {getNodePtr(node->left_child), getNodePtr(node->right_child)})
-          stack.push(child);
+      next = (node->isLeaf() ? node->rope : node->left_child);
     }
   }
 
