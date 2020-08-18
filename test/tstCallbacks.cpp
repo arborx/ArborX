@@ -32,18 +32,10 @@ struct AccessTraits<SpatialPredicates, PredicatesTag>
 } // namespace ArborX
 
 // Custom callbacks
-struct SpatialPredicateCallbackMissingTag
+struct PredicateCallbackMissingTag
 {
   template <typename Predicate, typename OutputFunctor>
   void operator()(Predicate const &, int, OutputFunctor const &) const
-  {
-  }
-};
-
-struct NearestPredicateCallbackMissingTag
-{
-  template <typename Predicate, typename OutputFunctor>
-  void operator()(Predicate const &, int, float, OutputFunctor const &) const
   {
   }
 };
@@ -52,7 +44,7 @@ struct Wrong
 {
 };
 
-struct SpatialPredicateCallbackDoesNotTakeCorrectArgument
+struct PredicateCallbackDoesNotTakeCorrectArgument
 {
   template <typename OutputFunctor>
   void operator()(Wrong, int, OutputFunctor const &) const
@@ -60,15 +52,7 @@ struct SpatialPredicateCallbackDoesNotTakeCorrectArgument
   }
 };
 
-struct CustomCallbackNearestPredicate
-{
-  template <class Predicate>
-  KOKKOS_FUNCTION void operator()(Predicate const &, int, float) const
-  {
-  }
-};
-
-struct CustomCallbackSpatialPredicate
+struct CustomCallbackPredicate
 {
   template <class Predicate>
   KOKKOS_FUNCTION void operator()(Predicate const &, int) const
@@ -76,7 +60,7 @@ struct CustomCallbackSpatialPredicate
   }
 };
 
-struct CustomCallbackSpatialPredicateMissingConstQualifier
+struct CustomCallbackPredicateMissingConstQualifier
 {
   template <class Predicate>
   KOKKOS_FUNCTION void operator()(Predicate const &, int)
@@ -84,7 +68,7 @@ struct CustomCallbackSpatialPredicateMissingConstQualifier
   }
 };
 
-struct CustomCallbackSpatialPredicateNonVoidReturnType
+struct CustomCallbackPredicateNonVoidReturnType
 {
   template <class Predicate>
   KOKKOS_FUNCTION auto operator()(Predicate const &, int) const
@@ -100,22 +84,17 @@ int main()
   // view type does not matter as long as we do not call the output functor
   Kokkos::View<float *> v;
 
-  check_valid_callback(ArborX::Details::CallbackDefaultSpatialPredicate{},
+  check_valid_callback(ArborX::Details::CallbackDefaultPredicate{},
                        SpatialPredicates{}, v);
-
-  check_valid_callback(ArborX::Details::CallbackDefaultNearestPredicate{},
+  check_valid_callback(ArborX::Details::CallbackDefaultPredicate{},
                        NearestPredicates{}, v);
-
-  check_valid_callback(
-      ArborX::Details::CallbackDefaultNearestPredicateWithDistance{},
-      NearestPredicates{}, v);
 
   // not required to tag inline callbacks any more
-  check_valid_callback(SpatialPredicateCallbackMissingTag{},
-                       SpatialPredicates{}, v);
+  check_valid_callback(PredicateCallbackMissingTag{}, SpatialPredicates{}, v);
+  check_valid_callback(PredicateCallbackMissingTag{}, NearestPredicates{}, v);
 
-  check_valid_callback(NearestPredicateCallbackMissingTag{},
-                       NearestPredicates{}, v);
+  check_valid_callback(CustomCallbackPredicate{}, SpatialPredicates{});
+  check_valid_callback(CustomCallbackPredicate{}, NearestPredicates{});
 
   // generic lambdas are supported if not using NVCC
 #ifndef __NVCC__
@@ -124,49 +103,28 @@ int main()
                        SpatialPredicates{}, v);
 
   check_valid_callback([](auto const & /*predicate*/, int /*primitive*/,
-                          float /*distance*/, auto const & /*out*/) {},
+                          auto const & /*out*/) {},
                        NearestPredicates{}, v);
+
+  check_valid_callback([](auto const & /*predicate*/, int /*primitive*/) {},
+                       SpatialPredicates{});
+
+  check_valid_callback([](auto const & /*predicate*/, int /*primitive*/) {},
+                       NearestPredicates{});
 #endif
 
   // Uncomment to see error messages
 
-  // check_valid_callback(SpatialPredicateCallbackDoesNotTakeCorrectArgument{},
+  // check_valid_callback(PredicateCallbackDoesNotTakeCorrectArgument{},
   //                     SpatialPredicates{}, v);
 
-  // check_valid_callback(ArborX::Details::CallbackDefaultSpatialPredicate{},
-  //                     NearestPredicates{}, v);
-
-  // check_valid_callback(ArborX::Details::CallbackDefaultNearestPredicate{},
-  //                     SpatialPredicates{}, v);
-
-  check_valid_callback(CustomCallbackNearestPredicate{}, NearestPredicates{});
-
-  check_valid_callback(CustomCallbackSpatialPredicate{}, SpatialPredicates{});
-
-  // Uncomment to see error messages
-
-  // check_valid_callback(CustomCallbackSpatialPredicateNonVoidReturnType{},
+  // check_valid_callback(CustomCallbackPredicateNonVoidReturnType{},
   //                     SpatialPredicates{});
 
-  // check_valid_callback(CustomCallbackSpatialPredicateMissingConstQualifier{},
+  // check_valid_callback(CustomCallbackPredicateMissingConstQualifier{},
   //                     SpatialPredicates{});
-
-  // check_valid_callback(CustomCallbackNearestPredicate{},
-  // SpatialPredicates{});
-
-  // check_valid_callback(CustomCallbackSpatialPredicate{},
-  // NearestPredicates{});
 
 #ifndef __NVCC__
-  check_valid_callback([](auto const & /*predicate*/, int /*primitive*/) {},
-                       SpatialPredicates{});
-
-  check_valid_callback(
-      [](auto const & /*predicate*/, int /*primitive*/, float /*distance*/) {},
-      NearestPredicates{});
-
-  // Uncomment to see error messages
-
   // check_valid_callback([](Wrong, int /*primitive*/) {}, SpatialPredicates{});
 #endif
 }

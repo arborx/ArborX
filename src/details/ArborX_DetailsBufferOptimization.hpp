@@ -59,13 +59,10 @@ struct InsertGenerator
 
   using ValueType = typename OutputView::value_type;
   using Access = AccessTraits<Predicates, PredicatesTag>;
-  using Tag = typename AccessTraitsHelper<Access>::tag;
   using PredicateType = typename AccessTraitsHelper<Access>::type;
 
-  template <
-      typename U = PassTag, typename V = Tag,
-      std::enable_if_t<std::is_same<U, FirstPassTag>{} &&
-                       std::is_same<V, SpatialPredicateTag>{}> * = nullptr>
+  template <typename U = PassTag,
+            std::enable_if_t<std::is_same<U, FirstPassTag>{}> * = nullptr>
   KOKKOS_FUNCTION auto operator()(PredicateType const &predicate,
                                   int primitive_index) const
   {
@@ -86,34 +83,11 @@ struct InsertGenerator
                          _out(offset + count_old) = value;
                      });
   }
-  template <typename U = PassTag, typename V = Tag>
-  KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, FirstPassTag>{} &&
-                                   std::is_same<V, NearestPredicateTag>{}>
-  operator()(PredicateType const &predicate, int primitive_index,
-             float distance) const
-  {
-    auto const predicate_index = getData(predicate);
-    auto const &raw_predicate = getPredicate(predicate);
-    // With permutation, we access offset in random manner, and
-    // _offset(permutated_predicate_index+1) may be in a completely different
-    // place. Instead, use pointers to get the correct value for the buffer
-    // size. For this reason, also take a reference for offset.
-    auto const &offset = _permuted_offset(predicate_index);
-    auto const buffer_size = *(&offset + 1) - offset;
-    auto &count = _counts(predicate_index);
-
-    _callback(raw_predicate, primitive_index, distance,
-              [&](ValueType const &value) {
-                int count_old = Kokkos::atomic_fetch_add(&count, 1);
-                if (count_old < buffer_size)
-                  _out(offset + count_old) = value;
-              });
-  }
 
   template <
-      typename U = PassTag, typename V = Tag,
-      std::enable_if_t<std::is_same<U, FirstPassNoBufferOptimizationTag>{} &&
-                       std::is_same<V, SpatialPredicateTag>{}> * = nullptr>
+      typename U = PassTag,
+      std::enable_if_t<std::is_same<U, FirstPassNoBufferOptimizationTag>{}> * =
+          nullptr>
   KOKKOS_FUNCTION auto operator()(PredicateType const &predicate,
                                   int primitive_index) const
   {
@@ -127,26 +101,8 @@ struct InsertGenerator
     });
   }
 
-  template <typename U = PassTag, typename V = Tag>
-  KOKKOS_FUNCTION
-      std::enable_if_t<std::is_same<U, FirstPassNoBufferOptimizationTag>{} &&
-                       std::is_same<V, NearestPredicateTag>{}>
-      operator()(PredicateType const &predicate, int primitive_index,
-                 float distance) const
-  {
-    auto const predicate_index = getData(predicate);
-    auto const &raw_predicate = getPredicate(predicate);
-
-    auto &count = _counts(predicate_index);
-
-    _callback(raw_predicate, primitive_index, distance,
-              [&](ValueType const &) { Kokkos::atomic_fetch_add(&count, 1); });
-  }
-
-  template <
-      typename U = PassTag, typename V = Tag,
-      std::enable_if_t<std::is_same<U, SecondPassTag>{} &&
-                       std::is_same<V, SpatialPredicateTag>{}> * = nullptr>
+  template <typename U = PassTag,
+            std::enable_if_t<std::is_same<U, SecondPassTag>{}> * = nullptr>
   KOKKOS_FUNCTION auto operator()(PredicateType const &predicate,
                                   int primitive_index) const
   {
@@ -164,28 +120,6 @@ struct InsertGenerator
                      [&](ValueType const &value) {
                        _out(Kokkos::atomic_fetch_add(&offset, 1)) = value;
                      });
-  }
-
-  template <typename U = PassTag, typename V = Tag>
-  KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, SecondPassTag>{} &&
-                                   std::is_same<V, NearestPredicateTag>{}>
-  operator()(PredicateType const &predicate, int primitive_index,
-             float distance) const
-  {
-    auto const predicate_index = getData(predicate);
-    auto const &raw_predicate = getPredicate(predicate);
-
-    // we store offsets in counts, and offset(permute(i)) = counts(i)
-    auto &offset = _counts(predicate_index);
-
-    // TODO: there is a tradeoff here between skipping computation offset +
-    // count, and atomic increment of count. I think atomically incrementing
-    // offset is problematic for OpenMP as you potentially constantly steal
-    // cache lines.
-    _callback(raw_predicate, primitive_index, distance,
-              [&](ValueType const &value) {
-                _out(Kokkos::atomic_fetch_add(&offset, 1)) = value;
-              });
   }
 };
 

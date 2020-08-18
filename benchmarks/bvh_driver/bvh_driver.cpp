@@ -240,7 +240,7 @@ struct NearestCallback
   Kokkos::View<int *, DeviceType> count_;
 
   template <typename Query>
-  KOKKOS_FUNCTION void operator()(Query const &query, int, float) const
+  KOKKOS_FUNCTION void operator()(Query const &query, int) const
   {
     auto const i = ArborX::getData(query);
     Kokkos::atomic_fetch_add(&count_(i), 1);
