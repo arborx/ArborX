@@ -266,97 +266,80 @@ public:
     return x + (!x) * (INT_MIN + (i ^ (i + 1)));
   }
 
+  KOKKOS_FUNCTION Node *getNodePtr(int i) const
+  {
+    int const n = _num_internal_nodes;
+    return i >= n ? const_cast<Node *>(&(_leaf_nodes(i - n)))
+                  : &(_internal_nodes(i));
+  }
+
   KOKKOS_FUNCTION void operator()(int i) const
   {
     auto const leaf_nodes_shift = _num_internal_nodes;
 
-    // For a leaf node, the range is just one index
-    int range[2] = {i - leaf_nodes_shift, i - leaf_nodes_shift};
-    int &range_left = range[0];
-    int &range_right = range[1];
+    Box bbox = getNodePtr(i)->bounding_box;
 
-    int deltas[2] = {delta(range_left - 1), delta(range_right)};
-    int &delta_left = deltas[0];
-    int &delta_right = deltas[1];
+    int range_left = i - leaf_nodes_shift;
+    int range_right = i - leaf_nodes_shift;
+    int delta_left = delta(range_left - 1);
+    int delta_right = delta(range_right);
 
-    auto getNodePtr = [this, leaf_nodes_shift](int index) {
-      return (index >= leaf_nodes_shift
-                  ? &(this->_leaf_nodes(index - leaf_nodes_shift))
-                  : &(this->_internal_nodes(index)));
-    };
-
-    Box box = getNodePtr(i)->bounding_box;
-
-    // Walk toward the root and do process it even though technically its
-    // bounding box has already been computed (bounding box of the scene)
     do
     {
-      // Determine whether this node is left or right child of its parent
-      //   direction_index == 1: left child
-      //   direction_index == 0: right child
-      int direction_index = (delta_right < delta_left);
-
-      // Per Apetrei, the parent node index is either `range_left - 1` or
-      // `range_right`.
-      int apetrei_index = range[direction_index] - (1 - direction_index);
-
-      // The range of the parent is the union of the ranges of children. Each
-      // child updates one of these range values. The first thread up stores
-      // the updated range value (which also serves as a flag). The second
-      // thread up construct the full parent range.
-      range[direction_index] = Kokkos::atomic_compare_exchange(
-          &_ranges(apetrei_index), UNTOUCHED_NODE, range[1 - direction_index]);
-
-      // Use an atomic flag per internal node to terminate the first
-      // thread that enters it, while letting the second one through.
-      // This ensures that every node gets processed only once, and not
-      // before both of its children are processed.
-      if (range[direction_index] == UNTOUCHED_NODE)
-        break;
-
-      // Update deltas
-      deltas[direction_index] =
-          delta(range[direction_index] - (1 - direction_index));
-
-      // We now have the full range for the parent, stored in `range`, and can
-      // compute the Karras index.
-      // NOTE: `range` was updated above, so this check is different from the
-      // one above, despite looking exactly the same.
-      int karras_index = range[delta_right < delta_left];
-
-      Node *node = &(_internal_nodes(karras_index));
-
-      // This is slightly convoluted due to the fact that the indices of
-      // leaf nodes have to be shifted. The determination whether the second
-      // child is a leaf node depends on the position of the split (which is
-      // apetrei index) to the range boundary.
-      int other_child_index = apetrei_index + direction_index;
-      bool is_other_child_leaf = (other_child_index == range[direction_index]);
-      if (is_other_child_leaf)
-        other_child_index += leaf_nodes_shift;
-
-      Node const *other_child = getNodePtr(other_child_index);
-
-      bool is_left_child = (direction_index == 1);
+      bool const is_left_child = delta_right < delta_left;
       if (is_left_child)
       {
-        node->children.first = i;
-        node->children.second = other_child_index;
+        int parent = range_right;
+
+        range_right = Kokkos::atomic_compare_exchange(
+            &_ranges(parent), UNTOUCHED_NODE, range_left);
+        if (range_right == UNTOUCHED_NODE)
+          break;
+
+        int other_child = parent + 1;
+
+        if (other_child == range_right)
+          other_child += leaf_nodes_shift;
+
+        delta_right = delta(range_right);
+
+        parent = delta_right < delta_left ? range_right : range_left;
+
+        auto *parent_node = getNodePtr(parent);
+        parent_node->children.first = i;
+        parent_node->children.second = other_child;
+        expand(bbox, getNodePtr(other_child)->bounding_box);
+        parent_node->bounding_box = bbox;
+
+        i = parent;
       }
       else
       {
-        node->children.first = other_child_index;
-        node->children.second = i;
+        int parent = range_left - 1;
+
+        range_left = Kokkos::atomic_compare_exchange(
+            &_ranges(parent), UNTOUCHED_NODE, range_right);
+        if (range_left == UNTOUCHED_NODE)
+          break;
+
+        int other_child = parent;
+
+        if (other_child == range_left)
+          other_child += leaf_nodes_shift;
+
+        delta_left = delta(range_left - 1);
+
+        parent = delta_right < delta_left ? range_right : range_left;
+
+        auto *parent_node = getNodePtr(parent);
+        parent_node->children.first = other_child;
+        parent_node->children.second = i;
+        expand(bbox, getNodePtr(other_child)->bounding_box);
+        parent_node->bounding_box = bbox;
+
+        i = parent;
       }
-
-      // Internal node bounding boxes are unitialized hence the
-      // assignment operator below.
-      expand(box, other_child->bounding_box);
-      node->bounding_box = box;
-
-      i = karras_index;
-
-    } while (i);
+    } while (i != 0);
   }
 
 private:
@@ -365,7 +348,7 @@ private:
   Kokkos::View<Node *, MemorySpace> _internal_nodes;
   Kokkos::View<int *, MemorySpace> _ranges;
   int _num_internal_nodes;
-};
+}; // namespace TreeConstruction
 
 template <typename ExecutionSpace, typename... MortonCodesViewProperties,
           typename... LeafNodesViewProperties,
