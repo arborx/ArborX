@@ -43,10 +43,7 @@ unsigned int morton3D(double x, double y, double z)
 
   // The interval [0,1] is subdivided into 1024 bins (in each direction).
   // If we were to use more bits to encode the Morton code, we would need
-  // to reflect these changes in expandBits() as well as in the clz()
-  // function that returns the number of leading zero bits since it
-  // currently assumes that the code can be represented by a 32 bit
-  // integer.
+  // to reflect these changes in expandBits()
   x = min(max(x * 1024.0, 0.0), 1023.0);
   y = min(max(y * 1024.0, 0.0), 1023.0);
   z = min(max(z * 1024.0, 0.0), 1023.0);

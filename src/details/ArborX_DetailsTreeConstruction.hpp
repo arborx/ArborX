@@ -15,7 +15,6 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // expand
-#include <ArborX_DetailsKokkosExt.hpp>  // clz, min, max, sgn
 #include <ArborX_DetailsMortonCode.hpp> // morton3D
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsTags.hpp>
@@ -31,135 +30,6 @@ namespace Details
 {
 namespace TreeConstruction
 {
-template <typename... MortonCodesViewProperties>
-KOKKOS_FUNCTION int
-commonPrefix(Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
-                 morton_codes,
-             int i, int j)
-{
-  using KokkosExt::clz;
-
-  int const n = morton_codes.extent(0);
-  if (j < 0 || j > n - 1)
-    return -1;
-
-  // our construction algorithm relies on keys being unique so we handle
-  // explicitly case of duplicate Morton codes by augmenting each key by
-  // a bit representation of its index.
-  if (morton_codes[i] == morton_codes[j])
-  {
-    // clz( k[i] ^ k[j] ) == 32
-    return 32 + clz(i ^ j);
-  }
-  return clz(morton_codes[i] ^ morton_codes[j]);
-}
-
-template <typename... MortonCodesViewProperties>
-KOKKOS_INLINE_FUNCTION auto commonPrefix(
-    Kokkos::View<unsigned int *, MortonCodesViewProperties...> morton_codes,
-    int i, int j)
-{
-  return commonPrefix(
-      Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
-          morton_codes},
-      i, j);
-}
-
-template <typename... MortonCodesViewProperties>
-KOKKOS_FUNCTION int
-findSplit(Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
-              sorted_morton_codes,
-          int first, int last)
-{
-  // Calculate the number of highest bits that are the same
-  // for all objects, using the count-leading-zeros intrinsic.
-
-  int common_prefix = commonPrefix(sorted_morton_codes, first, last);
-
-  // Use binary search to find where the next bit differs.
-  // Specifically, we are looking for the highest object that
-  // shares more than commonPrefix bits with the first one.
-
-  int split = first; // initial guess
-  int step = last - first;
-
-  do
-  {
-    step = (step + 1) >> 1;       // exponential decrease
-    int new_split = split + step; // proposed new position
-
-    if (new_split < last)
-    {
-      if (commonPrefix(sorted_morton_codes, first, new_split) > common_prefix)
-        split = new_split; // accept proposal
-    }
-  } while (step > 1);
-
-  return split;
-}
-
-template <typename... MortonCodesViewProperties>
-KOKKOS_INLINE_FUNCTION auto
-findSplit(Kokkos::View<unsigned int *, MortonCodesViewProperties...>
-              sorted_morton_codes,
-          int first, int last)
-{
-  return findSplit(
-      Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
-          sorted_morton_codes},
-      first, last);
-}
-
-template <typename... MortonCodesViewProperties>
-KOKKOS_FUNCTION Kokkos::pair<int, int>
-determineRange(Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
-                   sorted_morton_codes,
-               int i)
-{
-  using KokkosExt::max;
-  using KokkosExt::min;
-  using KokkosExt::sgn;
-
-  // determine direction of the range (+1 or -1)
-  int direction = sgn(commonPrefix(sorted_morton_codes, i, i + 1) -
-                      commonPrefix(sorted_morton_codes, i, i - 1));
-  assert(direction == +1 || direction == -1);
-
-  // compute upper bound for the length of the range
-  int max_step = 2;
-  int common_prefix = commonPrefix(sorted_morton_codes, i, i - direction);
-  while (commonPrefix(sorted_morton_codes, i, i + direction * max_step) >
-         common_prefix)
-  {
-    max_step = max_step << 1;
-  }
-
-  // find the other end using binary search
-  int split = 0;
-  int step = max_step;
-  do
-  {
-    step = step >> 1;
-    if (commonPrefix(sorted_morton_codes, i, i + (split + step) * direction) >
-        common_prefix)
-      split += step;
-  } while (step > 1);
-  int j = i + split * direction;
-
-  return {min(i, j), max(i, j)};
-}
-
-template <typename... MortonCodesViewProperties>
-KOKKOS_INLINE_FUNCTION auto
-determineRange(Kokkos::View<unsigned int *, MortonCodesViewProperties...>
-                   sorted_morton_codes,
-               int i)
-{
-  return determineRange(
-      Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
-          sorted_morton_codes},
-      i);
-}
 
 template <typename Primitives>
 class CalculateBoundingBoxOfTheSceneFunctor
@@ -330,221 +200,221 @@ inline void initializeLeafNodes(
       leaf_nodes);
 }
 
+namespace
+{
+// Ideally, this would be
+//     static int constexpr UNTOUCHED_NODE = -1;
+// inside the GenerateHierachyFunctor class. But prior to C++17, this would
+// require to also have a definition outside of the class as it is odr-used.
+// This is a workaround.
+int constexpr UNTOUCHED_NODE = -1;
+} // namespace
+
 template <typename MemorySpace>
 class GenerateHierarchyFunctor
 {
 public:
-  template <typename... MortonCodesViewProperties,
+  template <typename ExecutionSpace, typename... MortonCodesViewProperties,
             typename... LeafNodesViewProperties,
-            typename... InternalNodesViewProperties,
-            typename... ParentsViewProperties>
+            typename... InternalNodesViewProperties>
   GenerateHierarchyFunctor(
+      ExecutionSpace const &space,
       Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
           sorted_morton_codes,
-      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
-      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
-      Kokkos::View<int *, ParentsViewProperties...> parents)
+      Kokkos::View<Node const *, LeafNodesViewProperties...> leaf_nodes,
+      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
       : _sorted_morton_codes(sorted_morton_codes)
       , _leaf_nodes(leaf_nodes)
       , _internal_nodes(internal_nodes)
-      , _parents(parents)
-      , _leaf_nodes_shift(internal_nodes.extent(0))
+      , _ranges(Kokkos::ViewAllocateWithoutInitializing("ranges"),
+                internal_nodes.extent(0))
+      , _num_internal_nodes(_internal_nodes.extent_int(0))
   {
+    Kokkos::deep_copy(space, _ranges, UNTOUCHED_NODE);
   }
 
-  // from "Thinking Parallel, Part III: Tree Construction on the GPU" by Karras
+  KOKKOS_FUNCTION
+  int delta(int const i) const
+  {
+    // Per Apetrei:
+    //   Because we already know where the highest differing bit is for each
+    //   internal node, the delta function basically represents a distance
+    //   metric between two keys. Unlike the delta used by Karras, we are
+    //   interested in the index of the highest differing bit and not the length
+    //   of the common prefix. In practice, logical xor can be used instead of
+    //   finding the index of the highest differing bit as we can compare the
+    //   numbers. The higher the index of the differing bit, the larger the
+    //   number.
+
+    // This check is here simply to avoid code complications in the main
+    // operator
+    if (i < 0 || i >= _num_internal_nodes)
+      return INT_MAX;
+
+    // The Apetrei's paper does not mention dealing with duplicate indices. We
+    // follow the original Karras idea in this situation:
+    //   The case of duplicate Morton codes has to be handled explicitly, since
+    //   our construction algorithm relies on the keys being unique. We
+    //   accomplish this by augmenting each key with a bit representation of
+    //   its index, i.e. k_i = k_i <+> i, where <+> indicates string
+    //   concatenation.
+    // In this case, if the Morton indices are the same, we want to compare is.
+    // We also want the result in this situation to always be less than any
+    // Morton comparison. Thus, we add INT_MIN to it.
+    // We also avoid if/else statement by doing a "x + !x*<blah>" trick.
+    auto x = _sorted_morton_codes(i) ^ _sorted_morton_codes(i + 1);
+    return x + (!x) * (INT_MIN + (i ^ (i + 1)));
+  }
+
+  KOKKOS_FUNCTION Node *getNodePtr(int i) const
+  {
+    int const n = _num_internal_nodes;
+    return (i < n ? &(_internal_nodes(i))
+                  : const_cast<Node *>(&(_leaf_nodes(i - n))));
+  }
+
   KOKKOS_FUNCTION void operator()(int i) const
   {
-    using TreeConstruction::determineRange;
-    using TreeConstruction::findSplit;
+    auto const leaf_nodes_shift = _num_internal_nodes;
 
-    // Construct internal nodes.
-    // Find out which range of objects the node corresponds to.
-    // (This is where the magic happens!)
+    Box bbox = getNodePtr(i)->bounding_box;
 
-    auto range = determineRange(_sorted_morton_codes, i);
-    int first = range.first;
-    int last = range.second;
+    // For a leaf node, the range is just one index
+    int range_left = i - leaf_nodes_shift;
+    int range_right = range_left;
 
-    // Determine where to split the range.
+    int delta_left = delta(range_left - 1);
+    int delta_right = delta(range_right);
 
-    int split = findSplit(_sorted_morton_codes, first, last);
-
-    // Select first child and record parent-child relationship.
-
-    if (split == first)
+    // Walk toward the root and do process it even though technically its
+    // bounding box has already been computed (bounding box of the scene)
+    do
     {
-      _internal_nodes(i).children.first = split + _leaf_nodes_shift;
-      _parents(split + _leaf_nodes_shift) = i;
-    }
-    else
-    {
-      _internal_nodes(i).children.first = split;
-      _parents(split) = i;
-    }
+      // Determine whether this node is left or right child of its parent
+      bool const is_left_child = delta_right < delta_left;
 
-    // Select second child and record parent-child relationship.
+      int left_child;
+      int right_child;
+      if (is_left_child)
+      {
+        // The main benefit of the Apetrei index (which is also called a split
+        // in the Karras algorithm) is that each child can compute it based
+        // just on the child's range. This is different from a Karras index,
+        // where the index can only be computed based on the range of the
+        // parent, and thus requires knowing the ranges of both children.
+        int const apetrei_parent = range_right;
 
-    if (split + 1 == last)
-    {
-      _internal_nodes(i).children.second = split + 1 + _leaf_nodes_shift;
-      _parents(split + 1 + _leaf_nodes_shift) = i;
-    }
-    else
-    {
-      _internal_nodes(i).children.second = split + 1;
-      _parents(split + 1) = i;
-    }
+        // The range of the parent is the union of the ranges of children. Each
+        // child updates one of these range values, the farthest from the
+        // split. The first thread up stores the updated range value (which
+        // also serves as a flag). The second thread up finishes constructing
+        // the full parent range.
+        range_right = Kokkos::atomic_compare_exchange(
+            &_ranges(apetrei_parent), UNTOUCHED_NODE, range_left);
+
+        // Use an atomic flag per internal node to terminate the first
+        // thread that enters it, while letting the second one through.
+        // This ensures that every node gets processed only once, and not
+        // before both of its children are processed.
+        if (range_right == UNTOUCHED_NODE)
+          break;
+
+        // This is slightly convoluted due to the fact that the indices of leaf
+        // nodes have to be shifted. The determination whether the other child
+        // is a leaf node depends on the position of the split (which is
+        // apetrei index) to the range boundary.
+        left_child = i;
+        right_child = apetrei_parent + 1;
+        if (right_child == range_right)
+          right_child += leaf_nodes_shift;
+
+        delta_right = delta(range_right);
+
+        expand(bbox, getNodePtr(right_child)->bounding_box);
+      }
+      else
+      {
+        // The comments for this clause are identical to the ones above (in the
+        // if clause), and thus ommitted for brevity.
+
+        int const apetrei_parent = range_left - 1;
+
+        range_left = Kokkos::atomic_compare_exchange(
+            &_ranges(apetrei_parent), UNTOUCHED_NODE, range_right);
+        if (range_left == UNTOUCHED_NODE)
+          break;
+
+        left_child = apetrei_parent;
+        if (left_child == range_left)
+          left_child += leaf_nodes_shift;
+        right_child = i;
+
+        delta_left = delta(range_left - 1);
+
+        expand(bbox, getNodePtr(left_child)->bounding_box);
+      }
+
+      // Having the full range for the parent, we can compute the Karras index.
+      int const karras_parent =
+          delta_right < delta_left ? range_right : range_left;
+
+      auto *parent_node = getNodePtr(karras_parent);
+      parent_node->children.first = left_child;
+      parent_node->children.second = right_child;
+      parent_node->bounding_box = bbox;
+
+      i = karras_parent;
+
+    } while (i != 0);
   }
 
 private:
   Kokkos::View<unsigned int const *, MemorySpace> _sorted_morton_codes;
-  Kokkos::View<Node *, MemorySpace> _leaf_nodes;
+  Kokkos::View<Node const *, MemorySpace> _leaf_nodes;
   Kokkos::View<Node *, MemorySpace> _internal_nodes;
-  Kokkos::View<int *, MemorySpace> _parents;
-  int _leaf_nodes_shift;
+  Kokkos::View<int *, MemorySpace> _ranges;
+  int _num_internal_nodes;
 };
 
 template <typename ExecutionSpace, typename... MortonCodesViewProperties,
           typename... LeafNodesViewProperties,
-          typename... InternalNodesViewProperties,
-          typename... ParentsViewProperties>
-Node *generateHierarchy(
+          typename... InternalNodesViewProperties>
+void generateHierarchy(
     ExecutionSpace const &space,
     Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
         sorted_morton_codes,
-    Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
-    Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
-    Kokkos::View<int *, ParentsViewProperties...> parents)
+    Kokkos::View<Node const *, LeafNodesViewProperties...> leaf_nodes,
+    Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
 {
-  using MemorySpace = typename decltype(leaf_nodes)::memory_space;
-  auto const n = sorted_morton_codes.extent(0);
+  using MemorySpace = typename decltype(internal_nodes)::memory_space;
+  auto const n_internal_nodes = internal_nodes.extent(0);
+
   Kokkos::parallel_for(
       ARBORX_MARK_REGION("generate_hierarchy"),
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n - 1),
-      GenerateHierarchyFunctor<MemorySpace>(sorted_morton_codes, leaf_nodes,
-                                            internal_nodes, parents));
-  // returns a pointer to the root node of the tree
-  return internal_nodes.data();
+      Kokkos::RangePolicy<ExecutionSpace>(space, n_internal_nodes,
+                                          2 * n_internal_nodes + 1),
+      GenerateHierarchyFunctor<MemorySpace>(space, sorted_morton_codes,
+                                            leaf_nodes, internal_nodes));
 }
 
 template <typename ExecutionSpace, typename... MortonCodesViewProperties,
           typename... LeafNodesViewProperties,
-          typename... InternalNodesViewProperties,
-          typename... ParentsViewProperties>
-inline Node *generateHierarchy(
+          typename... InternalNodesViewProperties>
+void generateHierarchy(
     ExecutionSpace const &space,
     Kokkos::View<unsigned int *, MortonCodesViewProperties...>
         sorted_morton_codes,
     Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
-    Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
-    Kokkos::View<int *, ParentsViewProperties...> parents)
+    Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
 {
-  return generateHierarchy(
+  generateHierarchy(
       space,
       Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
           sorted_morton_codes},
-      leaf_nodes, internal_nodes, parents);
+      Kokkos::View<Node const *, LeafNodesViewProperties...>{leaf_nodes},
+      internal_nodes);
 }
 
-template <typename MemorySpace>
-class CalculateInternalNodesBoundingVolumesFunctor
-{
-public:
-  template <typename ExecutionSpace, typename... NodesViewProperties,
-            typename... ParentsViewProperties>
-  CalculateInternalNodesBoundingVolumesFunctor(
-      ExecutionSpace const &space,
-      Kokkos::View<Node *, NodesViewProperties...> internal_and_leaf_nodes,
-      Kokkos::View<int const *, ParentsViewProperties...> parents,
-      size_t n_internal_nodes)
-      : _flags(Kokkos::ViewAllocateWithoutInitializing("flags"),
-               n_internal_nodes)
-      , _parents(parents)
-      , _internal_and_leaf_nodes(internal_and_leaf_nodes)
-  {
-    // Initialize flags to zero
-    Kokkos::deep_copy(space, _flags, 0);
-  }
-
-  KOKKOS_FUNCTION
-  void operator()(int i) const
-  {
-    // Walk toward the root and do process it even though technically its
-    // bounding box has already been computed (bounding box of the scene)
-    while (true)
-    {
-      i = _parents(i);
-
-      // Use an atomic flag per internal node to terminate the first
-      // thread that enters it, while letting the second one through.
-      // This ensures that every node gets processed only once, and not
-      // before both of its children are processed.
-      if (Kokkos::atomic_compare_exchange_strong(&_flags(i), 0, 1))
-        break;
-
-      // Internal node bounding boxes are unitialized hence the
-      // assignment operator below.
-      // FIXME: accessing Node::bounding_box is not ideal but I was
-      // reluctant to pass the bounding volume hierarchy to
-      // generateHierarchy()
-      Node *node = &_internal_and_leaf_nodes(i);
-      Node const *first_child = &_internal_and_leaf_nodes(node->children.first);
-      Node const *second_child =
-          &_internal_and_leaf_nodes(node->children.second);
-      node->bounding_box = first_child->bounding_box;
-      expand(node->bounding_box, second_child->bounding_box);
-      if (i == 0) // root node
-        break;
-    }
-    // NOTE: could check that bounding box of the root node is indeed the
-    // union of the two children.
-  }
-
-private:
-  // Use int instead of bool because CAS (Compare And Swap) on CUDA does not
-  // support boolean
-  Kokkos::View<int *, MemorySpace> _flags;
-  Kokkos::View<int const *, MemorySpace> _parents;
-  Kokkos::View<Node *, MemorySpace> _internal_and_leaf_nodes;
-};
-
-template <typename ExecutionSpace, typename... LeafNodesViewProperties,
-          typename... InternalNodesViewProperties,
-          typename... ParentsViewProperties>
-void calculateInternalNodesBoundingVolumes(
-    ExecutionSpace const &space,
-    Kokkos::View<Node const *, LeafNodesViewProperties...> leaf_nodes,
-    Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
-    Kokkos::View<int const *, ParentsViewProperties...> parents)
-{
-  auto const first = internal_nodes.extent(0);
-  auto const last = first + leaf_nodes.extent(0);
-  Kokkos::View<Node *, InternalNodesViewProperties...,
-               Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-      internal_and_leaf_nodes(internal_nodes.data(), last);
-  using MemorySpace = typename decltype(leaf_nodes)::memory_space;
-  Kokkos::parallel_for(
-      ARBORX_MARK_REGION("calculate_bounding_boxes"),
-      Kokkos::RangePolicy<ExecutionSpace>(space, first, last),
-      CalculateInternalNodesBoundingVolumesFunctor<MemorySpace>(
-          space, internal_and_leaf_nodes, parents, first));
-}
-
-template <typename ExecutionSpace, typename... LeafNodesViewProperties,
-          typename... InternalNodesViewProperties,
-          typename... ParentsViewProperties>
-inline void calculateInternalNodesBoundingVolumes(
-    ExecutionSpace const &space,
-    Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
-    Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
-    Kokkos::View<int *, ParentsViewProperties...> parents)
-{
-  calculateInternalNodesBoundingVolumes(
-      space, Kokkos::View<Node const *, LeafNodesViewProperties...>{leaf_nodes},
-      internal_nodes,
-      Kokkos::View<int const *, ParentsViewProperties...>{parents});
-}
 } // namespace TreeConstruction
 } // namespace Details
 } // namespace ArborX
