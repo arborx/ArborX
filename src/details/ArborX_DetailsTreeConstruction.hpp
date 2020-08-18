@@ -269,8 +269,8 @@ public:
   KOKKOS_FUNCTION Node *getNodePtr(int i) const
   {
     int const n = _num_internal_nodes;
-    return i >= n ? const_cast<Node *>(&(_leaf_nodes(i - n)))
-                  : &(_internal_nodes(i));
+    return (i < n ? &(_internal_nodes(i))
+                  : const_cast<Node *>(&(_leaf_nodes(i - n))));
   }
 
   KOKKOS_FUNCTION void operator()(int i) const
@@ -287,58 +287,57 @@ public:
     do
     {
       bool const is_left_child = delta_right < delta_left;
+
+      int left_child;
+      int right_child;
       if (is_left_child)
       {
-        int parent = range_right;
+        int const apetrei_parent = range_right;
 
         range_right = Kokkos::atomic_compare_exchange(
-            &_ranges(parent), UNTOUCHED_NODE, range_left);
+            &_ranges(apetrei_parent), UNTOUCHED_NODE, range_left);
+
         if (range_right == UNTOUCHED_NODE)
           break;
 
-        int other_child = parent + 1;
-
-        if (other_child == range_right)
-          other_child += leaf_nodes_shift;
+        left_child = i;
+        right_child = apetrei_parent + 1;
+        if (right_child == range_right)
+          right_child += leaf_nodes_shift;
 
         delta_right = delta(range_right);
 
-        parent = delta_right < delta_left ? range_right : range_left;
-
-        auto *parent_node = getNodePtr(parent);
-        parent_node->children.first = i;
-        parent_node->children.second = other_child;
-        expand(bbox, getNodePtr(other_child)->bounding_box);
-        parent_node->bounding_box = bbox;
-
-        i = parent;
+        expand(bbox, getNodePtr(right_child)->bounding_box);
       }
       else
       {
-        int parent = range_left - 1;
+        int const apetrei_parent = range_left - 1;
 
         range_left = Kokkos::atomic_compare_exchange(
-            &_ranges(parent), UNTOUCHED_NODE, range_right);
+            &_ranges(apetrei_parent), UNTOUCHED_NODE, range_right);
         if (range_left == UNTOUCHED_NODE)
           break;
 
-        int other_child = parent;
-
-        if (other_child == range_left)
-          other_child += leaf_nodes_shift;
+        left_child = apetrei_parent;
+        if (left_child == range_left)
+          left_child += leaf_nodes_shift;
+        right_child = i;
 
         delta_left = delta(range_left - 1);
 
-        parent = delta_right < delta_left ? range_right : range_left;
-
-        auto *parent_node = getNodePtr(parent);
-        parent_node->children.first = other_child;
-        parent_node->children.second = i;
-        expand(bbox, getNodePtr(other_child)->bounding_box);
-        parent_node->bounding_box = bbox;
-
-        i = parent;
+        expand(bbox, getNodePtr(left_child)->bounding_box);
       }
+
+      int const karras_parent =
+          delta_right < delta_left ? range_right : range_left;
+
+      auto *parent_node = getNodePtr(karras_parent);
+      parent_node->children.first = left_child;
+      parent_node->children.second = right_child;
+      parent_node->bounding_box = bbox;
+
+      i = karras_parent;
+
     } while (i != 0);
   }
 
@@ -348,7 +347,7 @@ private:
   Kokkos::View<Node *, MemorySpace> _internal_nodes;
   Kokkos::View<int *, MemorySpace> _ranges;
   int _num_internal_nodes;
-}; // namespace TreeConstruction
+};
 
 template <typename ExecutionSpace, typename... MortonCodesViewProperties,
           typename... LeafNodesViewProperties,
