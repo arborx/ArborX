@@ -160,9 +160,7 @@ pipeline {
                                     -D CMAKE_CXX_EXTENSIONS=OFF \
                                     -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
-                                    -D ARBORX_ENABLE_MPI=ON \
-                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
-                                    -D MPIEXEC_MAX_NUMPROCS=4 \
+                                    -D ARBORX_ENABLE_MPI=OFF \
                                     -D ARBORX_ENABLE_TESTS=ON \
                                     -D ARBORX_ENABLE_EXAMPLES=ON \
                                     -D ARBORX_ENABLE_BENCHMARKS=ON \
