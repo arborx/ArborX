@@ -387,6 +387,38 @@ void DistributedTreeImpl<DeviceType>::reassessStrategy(
   Kokkos::Profiling::popRegion();
 }
 
+struct PairIndexDistance
+{
+  int index;
+  float distance;
+};
+
+template <typename Tree>
+struct CallbackWithDistance
+{
+  Tree _tree;
+  Kokkos::View<unsigned int *, typename Tree::memory_space> _rev_permute;
+
+  template <typename ExecutionSpace>
+  CallbackWithDistance(ExecutionSpace const &exec_space, Tree const &tree)
+      : _tree(tree)
+  {
+    _rev_permute = Details::getReversePermutation(exec_space, _tree);
+  }
+
+  template <typename Query, typename OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Query const &query, int index,
+                                  OutputFunctor const &output) const
+  {
+    // TODO: This breaks the abstraction of the distributed Tree not knowing
+    // the details of the local tree. Right now, this is the only way. Will
+    // need to be fixed with a proper callback abstraction.
+    output({index,
+            distance(getGeometry(query),
+                     getPrimitiveBoundingVolume(_tree, _rev_permute, index))});
+  }
+};
+
 template <typename DeviceType>
 template <typename DistributedTree, typename ExecutionSpace,
           typename Predicates, typename Indices, typename Offset,
@@ -416,6 +448,9 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
   // The current implementation discards the results after the 1st pass and
   // recompute everything instead of just searching for potential better
   // neighbors and updating the list.
+
+  CallbackWithDistance<BVH<typename DeviceType::memory_space>>
+      callback_with_distance(space, bottom_tree);
 
   // NOTE: compiler would not deduce __range for the braced-init-list but I
   // got it to work with the static_cast to function pointers.
@@ -448,7 +483,22 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
                      ranks);
 
       // Perform queries that have been received
-      bottom_tree.query(space, fwd_queries, indices, offset, distances);
+      Kokkos::View<PairIndexDistance *, DeviceType> out(
+          "ArborX::DistributedTree::query::pairs_index_distance", 0);
+      bottom_tree.query(space, fwd_queries, callback_with_distance, out,
+                        offset);
+
+      // Unzip
+      auto const n = out.extent(0);
+      reallocWithoutInitializing(indices, n);
+      reallocWithoutInitializing(distances, n);
+      Kokkos::parallel_for("ArborX::DistributedTree::query::nearest::split_"
+                           "index_distance_pairs",
+                           Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+                           KOKKOS_LAMBDA(int i) {
+                             indices(i) = out(i).index;
+                             distances(i) = out(i).distance;
+                           });
 
       // Communicate results back
       communicateResultsBack(comm, space, indices, offset, ranks, ids,
@@ -456,7 +506,7 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
 
       // Merge results
       Kokkos::Profiling::pushRegion(
-          "ArborX::DistributedTree::postprocess_results");
+          "ArborX::DistributedTree::nearest::postprocess_results");
 
       int const n_queries = Access::size(queries);
       countResults(space, n_queries, ids, offset);
@@ -493,9 +543,9 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   top_tree.query(space, queries, indices, offset);
 
   {
-    // NOTE_COMM_SPATIAL: The communication pattern here for the spatial search
-    // is identical to that of the nearest search (see NOTE_COMM_NEAREST). The
-    // code differences are:
+    // NOTE_COMM_SPATIAL: The communication pattern here for the spatial
+    // search is identical to that of the nearest search (see
+    // NOTE_COMM_NEAREST). The code differences are:
     // - usage of callbacks
     // - no explicit distances
     // - no results filtering
@@ -517,7 +567,7 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
     communicateResultsBack(comm, space, out, offset, ranks, ids);
 
     Kokkos::Profiling::pushRegion(
-        "ArborX::DistributedTree::postprocess_results");
+        "ArborX::DistributedTree::spatial::postprocess_results");
 
     // Merge results
     int const n_queries = Access::size(queries);
@@ -685,8 +735,8 @@ void DistributedTreeImpl<DeviceType>::communicateResultsBack(
   // these batches appear consecutively. Hence, no reordering is necessary.
   Distributor<DeviceType> distributor(comm);
   // FIXME Distributor::createFromSends takes two views of the same type by
-  // a const reference.  There were two easy ways out, either take the views by
-  // value or cast at the callsite.  I went with the latter.  Proper fix
+  // a const reference.  There were two easy ways out, either take the views
+  // by value or cast at the callsite.  I went with the latter.  Proper fix
   // involves more code cleanup in ArborX_DetailsDistributor.hpp than I am
   // willing to do just now.
   int const n_imports =
