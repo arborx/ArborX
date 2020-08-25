@@ -50,7 +50,8 @@ pipeline {
                                     -D ARBORX_ENABLE_BENCHMARKS=ON \
                                 ..
                             '''
-                            sh 'make -j8 VERBOSE=1'
+                            sh 'make -j8 VERBOSE=1 2>&1 | tee log.txt'
+                            sh '! grep "warning: " log.txt'
                             sh 'ctest $CTEST_OPTIONS'
                         }
                     }
@@ -72,7 +73,8 @@ pipeline {
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
                                     examples \
                                 '''
-                                sh 'make VERBOSE=1'
+                                sh 'make VERBOSE=1 2>&1 | tee log.txt'
+                                sh '! grep "warning: " log.txt'
                                 sh 'make test'
                             }
                         }
@@ -109,7 +111,8 @@ pipeline {
                                     -D ARBORX_ENABLE_BENCHMARKS=ON \
                                 ..
                             '''
-                            sh 'make -j8 VERBOSE=1'
+                            sh 'make -j8 VERBOSE=1 2>&1 | tee log.txt'
+                            sh '! grep "warning: " log.txt'
                             sh 'ctest $CTEST_OPTIONS'
                         }
                     }
@@ -131,7 +134,8 @@ pipeline {
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
                                     examples \
                                 '''
-                                sh 'make VERBOSE=1'
+                                sh 'make VERBOSE=1 2>&1 | tee log.txt'
+                                sh '! grep "warning: " log.txt'
                                 sh 'make test'
                             }
                         }
@@ -166,7 +170,8 @@ pipeline {
                                     -D ARBORX_ENABLE_BENCHMARKS=ON \
                                 ..
                             '''
-                            sh 'make -j8 VERBOSE=1'
+                            sh 'make -j8 VERBOSE=1 2>&1 | tee log.txt'
+                            sh '! grep "warning: " log.txt'
                             sh 'ctest $CTEST_OPTIONS'
                         }
                     }
@@ -188,7 +193,8 @@ pipeline {
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
                                     examples \
                                 '''
-                                sh 'make VERBOSE=1'
+                                sh 'make VERBOSE=1 2>&1 | tee log.txt'
+                                sh '! grep "warning: " log.txt'
                                 sh 'make test'
                             }
                         }
@@ -227,7 +233,8 @@ pipeline {
                                     -D ARBORX_ENABLE_BENCHMARKS=ON \
                                 ..
                             '''
-                            sh 'make -j8 VERBOSE=1'
+                            sh 'make -j8 VERBOSE=1 2>&1 | tee log.txt'
+                            sh '! grep "warning: " log.txt'
                             sh 'ctest $CTEST_OPTIONS'
                         }
                     }
@@ -249,7 +256,8 @@ pipeline {
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
                                     examples \
                                 '''
-                                sh 'make VERBOSE=1'
+                                sh 'make VERBOSE=1 2>&1 | tee log.txt'
+                                sh '! grep "warning: " log.txt'
                                 sh 'make test'
                             }
                         }
@@ -285,7 +293,8 @@ pipeline {
                                     -D ARBORX_ENABLE_BENCHMARKS=ON \
                                 ..
                             '''
-                            sh 'make -j8 VERBOSE=1'
+                            sh 'make -j8 VERBOSE=1 2>&1 | tee log.txt'
+                            sh '! grep "warning: " log.txt'
                             sh 'ctest $CTEST_OPTIONS'
                         }
                     }
@@ -306,7 +315,8 @@ pipeline {
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
                                     examples \
                                 '''
-                                sh 'make VERBOSE=1'
+                                sh 'make VERBOSE=1 2>&1 | tee log.txt'
+                                sh '! grep "warning: " log.txt'
                                 sh 'make test'
                             }
                         }
