@@ -19,6 +19,8 @@
 
 #include <Kokkos_Core.hpp>
 
+#include <memory>
+
 #include <mpi.h>
 
 namespace ArborX
@@ -41,8 +43,6 @@ public:
   template <typename ExecutionSpace, typename Primitives>
   DistributedSearchTree(MPI_Comm comm, ExecutionSpace const &space,
                         Primitives const &primitives);
-
-  ~DistributedSearchTree() { MPI_Comm_free(&_comm); }
 
   /** Returns the smallest axis-aligned box able to contain all the objects
    *  stored in the tree or an invalid box if the tree is empty.
@@ -101,7 +101,7 @@ public:
 private:
   template <typename DeviceType>
   friend struct Details::DistributedSearchTreeImpl;
-  MPI_Comm _comm;
+  std::shared_ptr<MPI_Comm> _comm_ptr;
   BVH<MemorySpace> _top_tree;    // replicated
   BVH<MemorySpace> _bottom_tree; // local
   size_type _top_tree_size;
@@ -118,12 +118,21 @@ DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
 
   // Create new context for the library to isolate library's communication from
   // user's
-  MPI_Comm_dup(comm, &_comm);
+  _comm_ptr.reset(
+      [comm]() {
+        auto p = std::make_unique<MPI_Comm>();
+        MPI_Comm_dup(comm, p.get());
+        return p.release();
+      }(),
+      [](MPI_Comm *p) {
+        MPI_Comm_free(p);
+        delete p;
+      });
 
   int comm_rank;
-  MPI_Comm_rank(_comm, &comm_rank);
+  MPI_Comm_rank(*_comm_ptr, &comm_rank);
   int comm_size;
-  MPI_Comm_size(_comm, &comm_size);
+  MPI_Comm_size(*_comm_ptr, &comm_size);
 
   Kokkos::View<Box *, MemorySpace> boxes(
       Kokkos::ViewAllocateWithoutInitializing("rank_bounding_boxes"),
@@ -134,7 +143,7 @@ DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
   boxes_host(comm_rank) = _bottom_tree.bounds();
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                 static_cast<void *>(boxes_host.data()), sizeof(Box), MPI_BYTE,
-                _comm);
+                *_comm_ptr);
   Kokkos::deep_copy(space, boxes, boxes_host);
 
   _top_tree = BVH<MemorySpace>{space, boxes};
@@ -146,7 +155,7 @@ DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
   bottom_tree_sizes_host(comm_rank) = _bottom_tree.size();
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                 static_cast<void *>(bottom_tree_sizes_host.data()),
-                sizeof(size_type), MPI_BYTE, _comm);
+                sizeof(size_type), MPI_BYTE, *_comm_ptr);
   Kokkos::deep_copy(space, _bottom_tree_sizes, bottom_tree_sizes_host);
 
   _top_tree_size = accumulate(space, _bottom_tree_sizes, 0);
