@@ -42,8 +42,6 @@ public:
   DistributedSearchTree(MPI_Comm comm, ExecutionSpace const &space,
                         Primitives const &primitives);
 
-  ~DistributedSearchTree() { MPI_Comm_free(&_comm); }
-
   /** Returns the smallest axis-aligned box able to contain all the objects
    *  stored in the tree or an invalid box if the tree is empty.
    */
@@ -101,7 +99,30 @@ public:
 private:
   template <typename DeviceType>
   friend struct Details::DistributedSearchTreeImpl;
-  MPI_Comm _comm;
+
+  struct MPICommWrapper
+  {
+    MPI_Comm _mpi_comm;
+    operator MPI_Comm() const { return _mpi_comm; }
+    MPICommWrapper(MPI_Comm mpi_comm) { MPI_Comm_dup(mpi_comm, &_mpi_comm); }
+    MPICommWrapper(const MPICommWrapper &other_comm)
+    {
+      MPI_Comm_dup(other_comm._mpi_comm, &_mpi_comm);
+    }
+    MPICommWrapper(MPICommWrapper &&other_comm) noexcept
+    {
+      MPI_Comm_dup(other_comm._mpi_comm, &_mpi_comm);
+    }
+    MPICommWrapper &operator=(const MPICommWrapper &other_comm)
+    {
+      MPI_Comm_dup(other_comm._mpi_comm, &_mpi_comm);
+    }
+    MPICommWrapper &operator=(MPICommWrapper &&other_comm) noexcept
+    {
+      MPI_Comm_dup(other_comm._mpi_comm, &_mpi_comm);
+    }
+    ~MPICommWrapper() noexcept { MPI_Comm_free(&_mpi_comm); }
+  } _comm;
   BVH<MemorySpace> _top_tree;    // replicated
   BVH<MemorySpace> _bottom_tree; // local
   size_type _top_tree_size;
@@ -112,13 +133,10 @@ template <typename MemorySpace, typename Enable>
 template <typename ExecutionSpace, typename Primitives>
 DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
     MPI_Comm comm, ExecutionSpace const &space, Primitives const &primitives)
-    : _bottom_tree{space, primitives}
+    : _comm(comm)
+    , _bottom_tree{space, primitives}
 {
   static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
-
-  // Create new context for the library to isolate library's communication from
-  // user's
-  MPI_Comm_dup(comm, &_comm);
 
   int comm_rank;
   MPI_Comm_rank(_comm, &comm_rank);
