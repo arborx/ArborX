@@ -46,7 +46,7 @@ struct Node
 KOKKOS_INLINE_FUNCTION constexpr Node
 makeLeafNode(std::size_t permutation_index, Box box) noexcept
 {
-  return {{-1, static_cast<int>(permutation_index)}, std::move(box)};
+  return {{-1, static_cast<int>(permutation_index)}, box};
 }
 } // namespace Details
 } // namespace ArborX

@@ -57,7 +57,7 @@ create_layout_right_mirror_view(
                                            Kokkos::LayoutStride>::value)) &&
         std::is_same<typename View::traits::memory_space,
                      typename ExecutionSpace::memory_space>::value)>::type * =
-        0)
+        nullptr)
 {
   constexpr int pointer_depth =
       internal::PointerDepth<typename View::traits::data_type>::value;
@@ -83,7 +83,7 @@ inline auto create_layout_right_mirror_view(
                                             Kokkos::LayoutStride>::value)) &&
          std::is_same<typename View::traits::memory_space,
                       typename ExecutionSpace::memory_space>::value)>::type * =
-        0)
+        nullptr)
 {
   return src;
 }
@@ -138,7 +138,7 @@ inline auto create_layout_right_mirror_view_and_copy(
                                             Kokkos::LayoutStride>::value)) &&
          std::is_same<typename View::traits::memory_space,
                       typename ExecutionSpace::memory_space>::value)>::type * =
-        0)
+        nullptr)
 {
   return src;
 }

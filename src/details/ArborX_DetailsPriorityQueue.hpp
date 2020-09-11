@@ -105,7 +105,7 @@ public:
   template <typename... Args>
   KOKKOS_INLINE_FUNCTION void popPush(Args &&... args)
   {
-    assert(_c.size() > 0);
+    assert(!_c.empty());
     bubbleDown(_c.data(), std::ptrdiff_t(0), std::ptrdiff_t(_c.size()),
                T{std::forward<Args>(args)...}, _compare);
   }
