@@ -1,5 +1,5 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,performance-*,-performance-inefficient-string-concatenation,mpi-*,modernize-*,-modernize-pass-by-value,-modernize-use-trailing-return-type,-modernize-avoid-c-arrays,readability-*,-readability-braces-around-statements,-readability-named-parameter,-readability-magic-numbers,-readability-uppercase-literal-suffix'
+Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,performance-*,-performance-inefficient-string-concatenation,mpi-*,modernize-*,-modernize-pass-by-value,-modernize-use-trailing-return-type,-modernize-avoid-c-arrays,readability-*,-readability-braces-around-statements,-readability-named-parameter,-readability-magic-numbers,-readability-uppercase-literal-suffix,cppcoreguidelines-special-member-functions'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false

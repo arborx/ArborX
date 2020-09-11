@@ -16,6 +16,15 @@ struct ExecutionEnvironmentScopeGuard
 #endif
     Kokkos::initialize(argc, argv);
   }
+
+  ExecutionEnvironmentScopeGuard(const ExecutionEnvironmentScopeGuard &) =
+      default;
+  ExecutionEnvironmentScopeGuard(ExecutionEnvironmentScopeGuard &&) = default;
+  ExecutionEnvironmentScopeGuard &
+  operator=(const ExecutionEnvironmentScopeGuard &) = default;
+  ExecutionEnvironmentScopeGuard &
+  operator=(ExecutionEnvironmentScopeGuard &&) = default;
+
   ~ExecutionEnvironmentScopeGuard()
   {
     Kokkos::finalize();

@@ -34,7 +34,9 @@ struct not_a_type
   not_a_type() = delete;
   ~not_a_type() = delete;
   not_a_type(not_a_type const &) = delete;
+  not_a_type(not_a_type &&) = delete;
   void operator=(not_a_type const &) = delete;
+  void operator=(not_a_type &&) = delete;
 };
 
 // primary template handles all types not supporting the archetypal Op

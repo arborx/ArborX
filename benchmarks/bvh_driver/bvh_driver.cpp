@@ -233,6 +233,10 @@ class KokkosScopeGuard
 {
 public:
   KokkosScopeGuard(int &argc, char *argv[]) { Kokkos::initialize(argc, argv); }
+  KokkosScopeGuard(const KokkosScopeGuard &) = default;
+  KokkosScopeGuard(KokkosScopeGuard &&) = default;
+  KokkosScopeGuard &operator=(const KokkosScopeGuard &) = default;
+  KokkosScopeGuard &operator=(KokkosScopeGuard &&) = default;
   ~KokkosScopeGuard() { Kokkos::finalize(); }
 };
 
@@ -286,6 +290,11 @@ public:
     }
     _argv = _owner_ptrs;
   }
+
+  CmdLineArgs(const CmdLineArgs &) = delete;
+  CmdLineArgs(CmdLineArgs &&) = delete;
+  CmdLineArgs &operator=(const CmdLineArgs &) = delete;
+  CmdLineArgs &operator=(CmdLineArgs &&) = delete;
 
   ~CmdLineArgs()
   {
