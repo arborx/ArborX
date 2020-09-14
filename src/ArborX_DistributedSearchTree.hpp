@@ -120,11 +120,14 @@ DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
   // Create new context for the library to isolate library's communication from
   // user's
   _comm_ptr.reset(
+      // duplicate the communicator and store it in a std::shared_ptr so that
+      // all copies of the distributed tree point to the same object
       [comm]() {
         auto p = std::make_unique<MPI_Comm>();
         MPI_Comm_dup(comm, p.get());
         return p.release();
       }(),
+      // custom deleter to mark the communicator object for deallocation
       [](MPI_Comm *p) {
         MPI_Comm_free(p);
         delete p;
