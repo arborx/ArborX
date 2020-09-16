@@ -78,7 +78,7 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
   if (result.min_val == result.max_val)
   {
     Kokkos::View<SizeType *, typename ViewType::device_type> permute(
-        Kokkos::ViewAllocateWithoutInitializing("permute"), n);
+        Kokkos::ViewAllocateWithoutInitializing("ArborX::Sorting::permute"), n);
     iota(space, permute);
     return permute;
   }
