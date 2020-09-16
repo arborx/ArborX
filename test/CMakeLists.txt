@@ -63,7 +63,7 @@ target_compile_definitions(ArborX_DetailsAlgorithms.exe PRIVATE BOOST_TEST_MAIN 
 target_include_directories(ArborX_DetailsAlgorithms.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_DetailsAlgorithms_Test COMMAND ./ArborX_DetailsAlgorithms.exe)
 
-add_executable(ArborX_LinearBVH.exe tstLinearBVH.cpp utf_main.cpp)
+add_executable(ArborX_LinearBVH.exe tstLinearBVH.cpp tstKokkosToolsAnnotations.cpp utf_main.cpp)
 target_link_libraries(ArborX_LinearBVH.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_LinearBVH.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_LinearBVH.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
