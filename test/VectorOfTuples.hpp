@@ -31,7 +31,7 @@ struct ArrayTraits
   static value_type const &access(array_type const &, std::size_t);
 };
 
-void checkProperlySized(std::size_t, std::size_t) {}
+inline void checkProperlySized(std::size_t, std::size_t) {}
 
 // Checks that all the arrays have size s. The only sensible value for pos is 1
 // to get the appropriate error message when not calling it recursively.
