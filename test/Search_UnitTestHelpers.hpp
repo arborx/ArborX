@@ -94,8 +94,8 @@ auto query(Tree const &tree, Queries const &queries)
   using device_type = typename Tree::device_type;
   using value_type =
       std::conditional_t<is_distributed<Tree>{}, Kokkos::pair<int, int>, int>;
-  Kokkos::View<value_type *, device_type> values("values", 0);
-  Kokkos::View<int *, device_type> offsets("offsets", 0);
+  Kokkos::View<value_type *, device_type> values("Testing::values", 0);
+  Kokkos::View<int *, device_type> offsets("Testing::offsets", 0);
   tree.query(queries, values, offsets);
   return make_compressed_storage(
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
@@ -111,8 +111,9 @@ auto query_with_distance(Tree const &tree, Queries const &queries,
                          std::enable_if_t<!is_distributed<Tree>{}> * = nullptr)
 {
   using device_type = typename Tree::device_type;
-  Kokkos::View<Kokkos::pair<int, float> *, device_type> values("values", 0);
-  Kokkos::View<int *, device_type> offsets("offsets", 0);
+  Kokkos::View<Kokkos::pair<int, float> *, device_type> values(
+      "Testing::values", 0);
+  Kokkos::View<int *, device_type> offsets("Testing::offsets", 0);
   tree.query(queries,
              ArborX::Details::CallbackDefaultNearestPredicateWithDistance{},
              values, offsets);
@@ -132,7 +133,8 @@ zip(ExecutionSpace const &space, Kokkos::View<int *, DeviceType> indices,
 {
   auto const n = indices.extent(0);
   Kokkos::View<Kokkos::pair<Kokkos::pair<int, int>, float> *, DeviceType>
-      values(Kokkos::view_alloc(Kokkos::WithoutInitializing, "values"), n);
+      values(Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::values"),
+             n);
   Kokkos::parallel_for("ArborX:UnitTestSupport:zip",
                        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
                        KOKKOS_LAMBDA(int i) {
@@ -147,10 +149,10 @@ auto query_with_distance(Tree const &tree, Queries const &queries,
                          std::enable_if_t<is_distributed<Tree>{}> * = nullptr)
 {
   using device_type = typename Tree::device_type;
-  Kokkos::View<int *, device_type> offsets("offsets", 0);
-  Kokkos::View<int *, device_type> indices("indices", 0);
-  Kokkos::View<int *, device_type> ranks("ranks", 0);
-  Kokkos::View<float *, device_type> distances("distances", 0);
+  Kokkos::View<int *, device_type> offsets("Testing::offsets", 0);
+  Kokkos::View<int *, device_type> indices("Testing::indices", 0);
+  Kokkos::View<int *, device_type> ranks("Testing::ranks", 0);
+  Kokkos::View<float *, device_type> distances("Testing::distances", 0);
   using ExecutionSpace = typename device_type::execution_space;
   ExecutionSpace space;
   ArborX::Details::DistributedSearchTreeImpl<device_type>::queryDispatchImpl(
@@ -173,7 +175,8 @@ template <typename Tree>
 auto make(std::vector<ArborX::Box> const &b)
 {
   int const n = b.size();
-  Kokkos::View<ArborX::Box *, typename Tree::device_type> boxes("boxes", n);
+  Kokkos::View<ArborX::Box *, typename Tree::device_type> boxes(
+      "Testing::boxes", n);
   auto boxes_host = Kokkos::create_mirror_view(boxes);
   for (int i = 0; i < n; ++i)
     boxes_host(i) = b[i];
@@ -187,7 +190,7 @@ ArborX::DistributedSearchTree<DeviceType>
 makeDistributedSearchTree(MPI_Comm comm, std::vector<ArborX::Box> const &b)
 {
   int const n = b.size();
-  Kokkos::View<ArborX::Box *, DeviceType> boxes("boxes", n);
+  Kokkos::View<ArborX::Box *, DeviceType> boxes("Testing::boxes", n);
   auto boxes_host = Kokkos::create_mirror_view(boxes);
   for (int i = 0; i < n; ++i)
     boxes_host(i) = b[i];
@@ -201,7 +204,7 @@ auto makeIntersectsBoxQueries(std::vector<ArborX::Box> const &boxes)
 {
   int const n = boxes.size();
   Kokkos::View<decltype(ArborX::intersects(ArborX::Box{})) *, DeviceType>
-      queries("intersecting_with_box_predicates", n);
+      queries("Testing::intersecting_with_box_predicates", n);
   auto queries_host = Kokkos::create_mirror_view(queries);
   for (int i = 0; i < n; ++i)
     queries_host(i) = ArborX::intersects(boxes[i]);
@@ -217,7 +220,7 @@ auto makeIntersectsBoxWithAttachmentQueries(
   Kokkos::View<decltype(
                    ArborX::attach(ArborX::intersects(ArborX::Box{}), Data{})) *,
                DeviceType>
-      queries("intersecting_with_box_with_attachment_predicates", n);
+      queries("Testing::intersecting_with_box_with_attachment_predicates", n);
   auto queries_host = Kokkos::create_mirror_view(queries);
   for (int i = 0; i < n; ++i)
     queries_host(i) = ArborX::attach(ArborX::intersects(boxes[i]), data[i]);
@@ -233,7 +236,7 @@ auto makeNearestQueries(
   // actual point and the number k of neighbors to query for.
   int const n = points.size();
   Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> queries(
-      "nearest_queries", n);
+      "Testing::nearest_queries", n);
   auto queries_host = Kokkos::create_mirror_view(queries);
   for (int i = 0; i < n; ++i)
     queries_host(i) = ArborX::nearest(points[i].first, points[i].second);
@@ -252,7 +255,7 @@ auto makeNearestWithAttachmentQueries(
   Kokkos::View<decltype(
                    ArborX::attach(ArborX::Nearest<ArborX::Point>{}, Data{})) *,
                DeviceType>
-      queries("nearest_queries", n);
+      queries("Testing::nearest_queries", n);
   auto queries_host = Kokkos::create_mirror_view(queries);
   for (int i = 0; i < n; ++i)
     queries_host(i) = ArborX::attach(
@@ -270,7 +273,7 @@ makeIntersectsSphereQueries(
   // actual point and the radius for the search around that point.
   int const n = points.size();
   Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
-      queries("intersecting_with_sphere_predicates", n);
+      queries("Testing::intersecting_with_sphere_predicates", n);
   auto queries_host = Kokkos::create_mirror_view(queries);
   for (int i = 0; i < n; ++i)
     queries_host(i) =
