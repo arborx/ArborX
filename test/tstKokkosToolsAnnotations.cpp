@@ -48,6 +48,77 @@ BOOST_AUTO_TEST_CASE(is_prefixed_with)
   BOOST_TEST(!isPrefixedWith("Nope::ArborX", "ArborX"));
 }
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, Tree, TreeTypes)
+{
+  Kokkos::Tools::Experimental::set_allocate_data_callback(
+      [](Kokkos::Profiling::SpaceHandle /*handle*/, const char *label,
+         void const * /*ptr*/, uint64_t /*size*/) {
+        std::cout << label << '\n';
+        BOOST_TEST(
+            (isPrefixedWith(label, "ArborX::BVH::BVH::") ||
+             isPrefixedWith(label, "ArborX::Sorting::") ||
+             isPrefixedWith(label,
+                            "Kokkos::Serial::") || // unsure what's going on
+             isPrefixedWith(label, "Testing::")));
+      });
+
+  { // default constructed
+    Tree tree;
+  }
+
+  { // empty
+    auto tree = make<Tree>({});
+  }
+
+  { // one leaf
+    auto tree = make<Tree>({
+        {{{0, 0, 0}}, {{1, 1, 1}}},
+    });
+  }
+
+  { // two leaves
+    auto tree = make<Tree>({
+        {{{0, 0, 0}}, {{1, 1, 1}}},
+        {{{0, 0, 0}}, {{1, 1, 1}}},
+    });
+  }
+
+  Kokkos::Tools::Experimental::set_allocate_data_callback(nullptr);
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, Tree, TreeTypes)
+{
+  auto tree = make<Tree>({
+      {{{0, 0, 0}}, {{1, 1, 1}}},
+      {{{0, 0, 0}}, {{1, 1, 1}}},
+  });
+
+  Kokkos::Tools::Experimental::set_allocate_data_callback(
+      [](Kokkos::Profiling::SpaceHandle /*handle*/, const char *label,
+         void const * /*ptr*/, uint64_t /*size*/) {
+        std::cout << label << '\n';
+        BOOST_TEST((isPrefixedWith(label, "ArborX::BVH::query::") ||
+                    isPrefixedWith(label, "ArborX::Sorting::") ||
+                    isPrefixedWith(label, "Testing::")));
+      });
+
+  using DeviceType = typename Tree::device_type;
+
+  // spatial predicates
+  query(tree, makeIntersectsBoxQueries<DeviceType>({
+                  {{{0, 0, 0}}, {{1, 1, 1}}},
+                  {{{0, 0, 0}}, {{1, 1, 1}}},
+              }));
+
+  // nearest predicates
+  query(tree, makeNearestQueries<DeviceType>({
+                  {{{0, 0, 0}}, 1},
+                  {{{0, 0, 0}}, 2},
+              }));
+
+  Kokkos::Tools::Experimental::set_allocate_data_callback(nullptr);
+}
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, Tree, TreeTypes)
 {
   auto const callback = [](char const *label, uint32_t, uint64_t *) {
