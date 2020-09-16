@@ -161,6 +161,7 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
 
   if (empty())
   {
+    Kokkos::Profiling::popRegion();
     return;
   }
 
@@ -178,6 +179,7 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
         Kokkos::view_alloc("permute", space), 1);
     Details::TreeConstruction::initializeLeafNodes(
         space, primitives, permutation_indices, getLeafNodes());
+    Kokkos::Profiling::popRegion();
     return;
   }
 
