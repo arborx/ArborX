@@ -54,7 +54,7 @@ struct DistributedSearchTreeImpl
                 IndicesAndRanks &values, Offset &offset)
   {
     int comm_rank;
-    MPI_Comm_rank(tree._comm, &comm_rank);
+    MPI_Comm_rank(tree.getComm(), &comm_rank);
     queryDispatch(SpatialPredicateTag{}, tree, space, queries,
                   CallbackDefaultSpatialPredicateWithRank{comm_rank}, values,
                   offset);
@@ -379,7 +379,7 @@ DistributedSearchTreeImpl<DeviceType>::queryDispatchImpl(
     Offset &offset, Ranks &ranks, Distances *distances_ptr)
 {
   auto const &bottom_tree = tree._bottom_tree;
-  auto comm = tree._comm;
+  auto comm = tree.getComm();
 
   Distances distances("distances", 0);
   if (distances_ptr)
@@ -452,7 +452,7 @@ DistributedSearchTreeImpl<DeviceType>::queryDispatch(
 {
   auto const &top_tree = tree._top_tree;
   auto const &bottom_tree = tree._bottom_tree;
-  auto comm = tree._comm;
+  auto comm = tree.getComm();
 
   Kokkos::View<int *, DeviceType> indices("indices", 0);
   Kokkos::View<int *, DeviceType> ranks("ranks", 0);
