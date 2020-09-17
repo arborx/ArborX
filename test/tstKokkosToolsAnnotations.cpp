@@ -12,13 +12,14 @@
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <ArborX_LinearBVH.hpp>
 
-#include <impl/Kokkos_Profiling.hpp>
-
 #include <boost/test/unit_test.hpp>
 
 #include <string>
 
 #include "Search_UnitTestHelpers.hpp"
+
+#if (KOKKOS_VERSION >= 30200) // callback registriation from within the program
+                              // was added in Kokkkos v3.2
 
 BOOST_AUTO_TEST_SUITE(KokkosToolsAnnotations)
 
@@ -108,3 +109,5 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, Tree, TreeTypes)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+#endif
