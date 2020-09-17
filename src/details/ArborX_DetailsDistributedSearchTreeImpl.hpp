@@ -192,7 +192,7 @@ struct DistributedSearchTreeImpl
   template <typename ExecutionSpace, typename OutputView, typename Ranks,
             typename Distances = Kokkos::View<float *, DeviceType>>
   static void communicateResultsBack(MPI_Comm comm, ExecutionSpace const &space,
-                                     OutputView &view,
+                                     OutputView &out,
                                      Kokkos::View<int *, DeviceType> offset,
                                      Ranks &ranks,
                                      Kokkos::View<int *, DeviceType> &ids,

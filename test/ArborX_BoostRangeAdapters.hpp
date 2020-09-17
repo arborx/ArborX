@@ -38,8 +38,8 @@ struct range_iterator<Kokkos::View<T, P...>>
 {
   using View = Kokkos::View<T, P...>;
   ARBORX_ASSERT_VIEW_COMPATIBLE(View)
-  typedef typename std::add_pointer<
-      typename Kokkos::ViewTraits<T, P...>::value_type>::type type;
+  using type = typename std::add_pointer<
+      typename Kokkos::ViewTraits<T, P...>::value_type>::type;
 };
 
 template <typename T, typename... P>
@@ -47,8 +47,8 @@ struct range_const_iterator<Kokkos::View<T, P...>>
 {
   using View = Kokkos::View<T, P...>;
   ARBORX_ASSERT_VIEW_COMPATIBLE(View)
-  typedef typename std::add_pointer<
-      typename Kokkos::ViewTraits<T, P...>::const_value_type>::type type;
+  using type = typename std::add_pointer<
+      typename Kokkos::ViewTraits<T, P...>::const_value_type>::type;
 };
 
 template <typename T, typename... P>
@@ -56,7 +56,7 @@ struct range_value<Kokkos::View<T, P...>>
 {
   using View = Kokkos::View<T, P...>;
   ARBORX_ASSERT_VIEW_COMPATIBLE(View)
-  typedef typename Kokkos::ViewTraits<T, P...>::value_type type;
+  using type = typename Kokkos::ViewTraits<T, P...>::value_type;
 };
 
 template <typename T, typename... P>
@@ -64,7 +64,7 @@ struct range_reference<Kokkos::View<T, P...>>
 {
   using View = Kokkos::View<T, P...>;
   ARBORX_ASSERT_VIEW_COMPATIBLE(View)
-  typedef typename Kokkos::ViewTraits<T, P...>::reference_type type;
+  using type = typename Kokkos::ViewTraits<T, P...>::reference_type;
 };
 
 template <typename T, typename... P>
@@ -72,7 +72,7 @@ struct range_size<Kokkos::View<T, P...>>
 {
   using View = Kokkos::View<T, P...>;
   ARBORX_ASSERT_VIEW_COMPATIBLE(View)
-  typedef typename Kokkos::ViewTraits<T, P...>::size_type type;
+  using type = typename Kokkos::ViewTraits<T, P...>::size_type;
 };
 
 } // namespace boost

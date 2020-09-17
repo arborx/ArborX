@@ -229,7 +229,8 @@ struct CCSCallback
     int curr = stat_(i);
     if (curr != i)
     {
-      int next, prev = i;
+      int next;
+      int prev = i;
       while (curr > (next = stat_(curr)))
       {
         stat_(prev) = next;
@@ -372,7 +373,8 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
                        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
                        KOKKOS_LAMBDA(int const i) {
                          // ##### ECL license (see LICENSE.ECL) #####
-                         int next, vstat = stat(i);
+                         int next;
+                         int vstat = stat(i);
                          int const old = vstat;
                          while (vstat > (next = stat(vstat)))
                          {

@@ -27,19 +27,19 @@ namespace traits
 template <>
 struct tag<ArborX::Point>
 {
-  typedef point_tag type;
+  using type = point_tag;
 };
 
 template <>
 struct coordinate_type<ArborX::Point>
 {
-  typedef float type;
+  using type = float;
 };
 
 template <>
 struct coordinate_system<ArborX::Point>
 {
-  typedef cs::cartesian type;
+  using type = cs::cartesian;
 };
 
 template <>
@@ -59,13 +59,13 @@ struct access<ArborX::Point, D>
 template <>
 struct tag<ArborX::Box>
 {
-  typedef box_tag type;
+  using type = box_tag;
 };
 
 template <>
 struct point_type<ArborX::Box>
 {
-  typedef ArborX::Point type;
+  using type = ArborX::Point;
 };
 
 template <size_t D>
