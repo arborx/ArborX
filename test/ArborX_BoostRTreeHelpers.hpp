@@ -117,7 +117,7 @@ static ParallelRTree<typename View::value_type> makeRTree(MPI_Comm comm,
     offsets[i + 1] = counts[i] + offsets[i];
   decltype(buffer) all_buffers(offsets.back());
   auto const bytes_per_element = sizeof(typename decltype(buffer)::value_type);
-  for (auto pv : {&counts, &offsets})
+  for (auto *pv : {&counts, &offsets})
     for (auto &x : *pv)
       x *= bytes_per_element;
   MPI_Allgatherv(buffer.data(), counts[comm_rank], MPI_BYTE, all_buffers.data(),

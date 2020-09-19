@@ -20,9 +20,6 @@
 namespace ArborX
 {
 
-template <typename DeviceType, typename Enable>
-class BoundingVolumeHierarchy;
-
 namespace Details
 {
 std::ostream &operator<<(std::ostream &os, Point const &p)
@@ -39,13 +36,11 @@ struct TreeVisualization
                 "tree visualization only available on the host");
   struct TreeAccess
   {
-    KOKKOS_INLINE_FUNCTION
-    static Node const *getLeaf(
-        BoundingVolumeHierarchy<typename DeviceType::memory_space, void> const
-            &bvh,
-        size_t index)
+    template <typename Tree>
+    KOKKOS_INLINE_FUNCTION static Node const *getLeaf(Tree const &tree,
+                                                      size_t index)
     {
-      auto leaf_nodes = bvh.getLeafNodes();
+      auto leaf_nodes = tree.getLeafNodes();
       Node const *first = leaf_nodes.data();
       Node const *last = first + static_cast<ptrdiff_t>(leaf_nodes.size());
       for (; first != last; ++first)
@@ -54,31 +49,25 @@ struct TreeVisualization
       return nullptr;
     }
 
-    KOKKOS_INLINE_FUNCTION
-    static int getIndex(
-        Node const *node,
-        BoundingVolumeHierarchy<typename DeviceType::memory_space, void> const
-            &bvh)
+    template <typename Tree>
+    KOKKOS_INLINE_FUNCTION static int getIndex(Node const *node,
+                                               Tree const &tree)
     {
       return node->isLeaf() ? node->getLeafPermutationIndex()
-                            : node - bvh.getRoot();
+                            : node - tree.getRoot();
     }
 
-    KOKKOS_INLINE_FUNCTION
-    static Node const *getRoot(
-        BoundingVolumeHierarchy<typename DeviceType::memory_space, void> const
-            &bvh)
+    template <typename Tree>
+    KOKKOS_INLINE_FUNCTION static Node const *getRoot(Tree const &tree)
     {
-      return bvh.getRoot();
+      return tree.getRoot();
     }
 
-    KOKKOS_INLINE_FUNCTION
-    static Node const *getNodePtr(
-        BoundingVolumeHierarchy<typename DeviceType::memory_space, void> const
-            &bvh,
-        int index)
+    template <typename Tree>
+    KOKKOS_INLINE_FUNCTION static Node const *getNodePtr(Tree const &tree,
+                                                         int index)
     {
-      return bvh.getNodePtr(index);
+      return tree.getNodePtr(index);
     }
 
     template <typename Tree>
