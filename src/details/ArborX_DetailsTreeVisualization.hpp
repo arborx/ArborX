@@ -20,9 +20,6 @@
 namespace ArborX
 {
 
-template <typename DeviceType, typename Enable>
-class BoundingVolumeHierarchy;
-
 namespace Details
 {
 std::ostream &operator<<(std::ostream &os, Point const &p)
