@@ -441,10 +441,13 @@ DistributedSearchTreeImpl<DeviceType>::queryDispatchImpl(
                              &distances);
 
       // Merge results
+      Kokkos::Profiling::pushRegion(
+          "ArborX::DistributedSearchTree::postprocess_results");
       int const n_queries = Access::size(queries);
       countResults(space, n_queries, ids, offset);
       sortResults(space, ids, indices, ranks, distances);
       filterResults(space, queries, distances, indices, offset, ranks);
+      Kokkos::Profiling::popRegion();
 
       Kokkos::Profiling::popRegion();
     }
@@ -496,9 +499,12 @@ DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     communicateResultsBack(comm, space, out, offset, ranks, ids);
 
     // Merge results
+    Kokkos::Profiling::pushRegion(
+        "ArborX::DistributedSearchTree::postprocess_results");
     int const n_queries = Access::size(queries);
     countResults(space, n_queries, ids, offset);
     sortResults(space, ids, out);
+    Kokkos::Profiling::popRegion();
   }
 
   Kokkos::Profiling::popRegion();
