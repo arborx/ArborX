@@ -115,6 +115,8 @@ DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
     MPI_Comm comm, ExecutionSpace const &space, Primitives const &primitives)
     : _bottom_tree{space, primitives}
 {
+  Kokkos::Profiling::pushRegion("ArborX:DistributedSearchTree:construction");
+
   static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
 
   // Create new context for the library to isolate library's communication from
@@ -163,6 +165,8 @@ DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
   Kokkos::deep_copy(space, _bottom_tree_sizes, bottom_tree_sizes_host);
 
   _top_tree_size = accumulate(space, _bottom_tree_sizes, 0);
+
+  Kokkos::Profiling::popRegion();
 }
 
 template <typename DeviceType>
