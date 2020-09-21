@@ -325,8 +325,6 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
 
   offset = new_offset;
   indices = new_indices;
-
-  Kokkos::Profiling::popRegion();
 }
 
 template <typename DeviceType>
@@ -374,8 +372,6 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
   top_tree.query(space, radius_searches, indices, offset);
   // NOTE: in principle, we could perform radius searches on the bottom_tree
   // rather than nearest queries.
-
-  Kokkos::Profiling::popRegion();
 }
 
 template <typename DeviceType>
@@ -449,6 +445,8 @@ DistributedSearchTreeImpl<DeviceType>::queryDispatchImpl(
       countResults(space, n_queries, ids, offset);
       sortResults(space, ids, indices, ranks, distances);
       filterResults(space, queries, distances, indices, offset, ranks);
+
+      Kokkos::Profiling::popRegion();
     }
   }
 
