@@ -148,7 +148,7 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
     ExecutionSpace const &space, Primitives const &primitives)
     : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
     , _internal_and_leaf_nodes(Kokkos::ViewAllocateWithoutInitializing(
-                                   "ArborX::BVH::BVH::internal_and_leaf_nodes"),
+                                   "ArborX::BVH::internal_and_leaf_nodes"),
                                _size > 0 ? 2 * _size - 1 : 0)
 {
   Kokkos::Profiling::pushRegion("ArborX:BVH:construction");
