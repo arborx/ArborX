@@ -57,7 +57,8 @@ public:
     auto const n_queries = Access::size(predicates);
 
     Kokkos::View<unsigned int *, DeviceType> morton_codes(
-        Kokkos::ViewAllocateWithoutInitializing("morton"), n_queries);
+        Kokkos::ViewAllocateWithoutInitializing("ArborX::BVH::query::morton"),
+        n_queries);
     Kokkos::parallel_for(
         ARBORX_MARK_REGION("assign_morton_codes_to_queries"),
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
