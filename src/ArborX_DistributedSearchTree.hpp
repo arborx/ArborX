@@ -115,7 +115,8 @@ DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
     MPI_Comm comm, ExecutionSpace const &space, Primitives const &primitives)
     : _bottom_tree{space, primitives}
 {
-  Kokkos::Profiling::pushRegion("ArborX::DistributedSearchTree::construction");
+  Kokkos::Profiling::pushRegion(
+      "ArborX::DistributedSearchTree::DistributedSearchTree");
 
   static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
 
