@@ -174,7 +174,8 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
                   Experimental::TraversalPolicy())
 {
   using MemorySpace = typename BVH::memory_space;
-  Kokkos::View<int *, MemorySpace> indices("indices", 0);
+  Kokkos::View<int *, MemorySpace> indices(
+      "ArborX::BVH::query::spatial::indices", 0);
   queryDispatch(SpatialPredicateTag{}, bvh, space, predicates, indices, offset,
                 policy);
   callback(predicates, offset, indices, out);
@@ -248,7 +249,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 {
   using MemorySpace = typename BVH::memory_space;
   Kokkos::View<Kokkos::pair<int, float> *, MemorySpace> pairs(
-      "pairs_index_distance", 0);
+      "ArborX::BVH::query::nearest::pairs_index_distance", 0);
   queryDispatch(NearestPredicateTag{}, bvh, space, predicates,
                 CallbackDefaultNearestPredicateWithDistance{}, pairs, offset,
                 policy);
