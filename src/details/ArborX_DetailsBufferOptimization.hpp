@@ -242,7 +242,7 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   using Access = AccessTraits<Predicates, PredicatesTag>;
   auto const n_queries = Access::size(predicates);
 
-  Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass");
+  Kokkos::Profiling::pushRegion("ArborX::BufferOptimization::two_pass");
 
   using CountView = OffsetView;
   CountView counts(Kokkos::view_alloc("ArborX::BVH::query::counts", space),
@@ -255,7 +255,8 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   using PermutedOffset = PermutedData<OffsetView, PermuteType>;
   PermutedOffset permuted_offset = {offset, permute};
 
-  Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:first_pass");
+  Kokkos::Profiling::pushRegion(
+      "ArborX::BufferOptimization::two_pass::first_pass");
   bool underflow = false;
   bool overflow = false;
   if (buffer_status != BufferStatus::PreallocationNone)
@@ -306,7 +307,8 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   }
 
   Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:first_pass_postprocess");
+  Kokkos::Profiling::pushRegion(
+      "ArborX::BufferOptimization::first_pass_postprocess");
 
   OffsetView preallocated_offset("ArborX::BVH::query::offset_copy", 0);
   if (underflow)
@@ -344,7 +346,8 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
     ARBORX_ASSERT(buffer_status != BufferStatus::PreallocationHard);
 
     // Otherwise, do the second pass
-    Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:second_pass");
+    Kokkos::Profiling::pushRegion(
+        "ArborX::BufferOptimization::two_pass:second_pass");
 
     Kokkos::parallel_for(
         "ArborX::BufferOptimization::copy_offsets_to_counts",
@@ -364,7 +367,8 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   else if (underflow)
   {
     // More than enough storage for results, need compression
-    Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:copy_values");
+    Kokkos::Profiling::pushRegion(
+        "ArborX::BufferOptimization::two_pass:copy_values");
 
     OutputView tmp_out(Kokkos::ViewAllocateWithoutInitializing(out.label()),
                        n_results);
