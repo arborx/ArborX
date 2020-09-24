@@ -18,7 +18,6 @@
 #include <ArborX_DetailsMortonCode.hpp> // morton3D
 #include <ArborX_DetailsSortUtils.hpp>  // sortObjects
 #include <ArborX_DetailsUtils.hpp>      // exclusivePrefixSum, lastElement
-#include <ArborX_Macros.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -60,7 +59,7 @@ public:
         Kokkos::ViewAllocateWithoutInitializing("ArborX::BVH::query::morton"),
         n_queries);
     Kokkos::parallel_for(
-        ARBORX_MARK_REGION("assign_morton_codes_to_queries"),
+        "ArborX::BatchedQueries::assign_morton_codes_to_queries",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i) {
           Point xyz =
@@ -93,7 +92,7 @@ public:
     Kokkos::View<T *, DeviceType> w(
         Kokkos::ViewAllocateWithoutInitializing("predicates"), n);
     Kokkos::parallel_for(
-        ARBORX_MARK_REGION("permute_entries"),
+        "ArborX::BatchedQueries::permute_entries",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
         KOKKOS_LAMBDA(int i) { w(i) = Access::get(v, permute(i)); });
 
@@ -110,7 +109,7 @@ public:
 
     auto tmp_offset = cloneWithoutInitializingNorCopying(offset);
     Kokkos::parallel_for(
-        ARBORX_MARK_REGION("adjacent_difference_and_permutation"),
+        "ArborX::BatchedQueries::adjacent_difference_and_permutation",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
           tmp_offset(permute(i)) = offset(i + 1) - offset(i);
         });
@@ -136,7 +135,7 @@ public:
 
     auto tmp_indices = cloneWithoutInitializingNorCopying(indices);
     Kokkos::parallel_for(
-        ARBORX_MARK_REGION("permute_indices"),
+        "ArborX::BatchedQueries::permute_indices",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int q) {
           for (int i = 0; i < offset(q + 1) - offset(q); ++i)
           {
