@@ -55,6 +55,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, Tree, TreeTypes)
          void const * /*ptr*/, uint64_t /*size*/) {
         std::cout << label << '\n';
         BOOST_TEST(
+            (isPrefixedWith(label, "ArborX::BVH::") || // data member
             (isPrefixedWith(label, "ArborX::BVH::BVH::") ||
              isPrefixedWith(label, "ArborX::Sorting::") ||
              isPrefixedWith(label,
@@ -123,7 +124,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, Tree, TreeTypes)
 {
   auto const callback = [](char const *label, uint32_t, uint64_t *) {
     std::cout << label << '\n';
-    BOOST_TEST((isPrefixedWith(label, "ArborX_") ||
+    BOOST_TEST((isPrefixedWith(label, "ArborX::") ||
                 isPrefixedWith(label, "Kokkos::")));
   };
   Kokkos::Tools::Experimental::set_begin_parallel_for_callback(callback);

@@ -18,7 +18,6 @@
 #include <ArborX_DetailsStack.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_Exception.hpp>
-#include <ArborX_Macros.hpp>
 #include <ArborX_Predicates.hpp>
 
 namespace ArborX
@@ -54,14 +53,14 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     else if (bvh_.size() == 1)
     {
       Kokkos::parallel_for(
-          ARBORX_MARK_REGION("BVH:spatial_queries_degenerated_one_leaf_tree"),
+          "ArborX::TreeTraversal::spatial_queries_degenerated_one_leaf_tree",
           Kokkos::RangePolicy<ExecutionSpace, OneLeafTree>(
               space, 0, Access::size(predicates)),
           *this);
     }
     else
     {
-      Kokkos::parallel_for(ARBORX_MARK_REGION("BVH:spatial_queries"),
+      Kokkos::parallel_for("ArborX::TreeTraversal::spatial_queries",
                            Kokkos::RangePolicy<ExecutionSpace>(
                                space, 0, Access::size(predicates)),
                            *this);
@@ -163,7 +162,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     // NOTE workaround to avoid implicit capture of *this
     auto const &predicates = predicates_;
     Kokkos::parallel_for(
-        ARBORX_MARK_REGION("scan_queries_for_numbers_of_nearest_neighbors"),
+        "ArborX::TreeTraversal::scan_queries_for_numbers_of_nearest_neighbors",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
     exclusivePrefixSum(space, offset);
@@ -193,7 +192,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     else if (bvh_.size() == 1)
     {
       Kokkos::parallel_for(
-          ARBORX_MARK_REGION("BVH:nearest_queries_degenerated_one_leaf_tree"),
+          "ArborX::TreeTraversal::nearest_queries_degenerated_one_leaf_tree",
           Kokkos::RangePolicy<ExecutionSpace, OneLeafTree>(
               space, 0, Access::size(predicates)),
           *this);
@@ -202,7 +201,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     {
       allocateBuffer(space);
 
-      Kokkos::parallel_for(ARBORX_MARK_REGION("BVH:nearest_queries"),
+      Kokkos::parallel_for("ArborX::TreeTraversal::nearest_queries",
                            Kokkos::RangePolicy<ExecutionSpace>(
                                space, 0, Access::size(predicates)),
                            *this);

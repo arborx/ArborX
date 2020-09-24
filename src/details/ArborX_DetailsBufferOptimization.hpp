@@ -14,7 +14,6 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_Exception.hpp>
-#include <ArborX_Macros.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -272,7 +271,7 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
     // as computing max counts.
     int overflow_int = 0;
     Kokkos::parallel_reduce(
-        ARBORX_MARK_REGION("compute_overflow"),
+        "ArborX::BufferOptimization::compute_overflow",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i, int &update) {
           auto const *const offset_ptr = &permuted_offset(i);
@@ -286,7 +285,7 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
     {
       int n_results = 0;
       Kokkos::parallel_reduce(
-          ARBORX_MARK_REGION("compute_underflow"),
+          "ArborX::BufferOptimization::compute_underflow",
           Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
           KOKKOS_LAMBDA(int i, int &update) { update += counts(i); },
           n_results);
@@ -317,7 +316,7 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   }
 
   Kokkos::parallel_for(
-      ARBORX_MARK_REGION("copy_counts_to_offsets"),
+      "ArborX::BufferOptimization::copy_counts_to_offsets",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int const i) { permuted_offset(i) = counts(i); });
   exclusivePrefixSum(space, offset);
@@ -348,7 +347,7 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
     Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:second_pass");
 
     Kokkos::parallel_for(
-        ARBORX_MARK_REGION("copy_offsets_to_counts"),
+        "ArborX::BufferOptimization::copy_offsets_to_counts",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int const i) { counts(i) = permuted_offset(i); });
 
@@ -371,7 +370,7 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
                        n_results);
 
     Kokkos::parallel_for(
-        ARBORX_MARK_REGION("copy_valid_values"),
+        "ArborX::BufferOptimization::copy_valid_values",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i) {
           int count = offset(i + 1) - offset(i);

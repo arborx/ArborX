@@ -18,7 +18,6 @@
 #include <ArborX_DetailsMortonCode.hpp> // morton3D
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsTags.hpp>
-#include <ArborX_Macros.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -69,7 +68,7 @@ inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
   using Access = AccessTraits<Primitives, PrimitivesTag>;
   auto const n = Access::size(primitives);
   Kokkos::parallel_reduce(
-      ARBORX_MARK_REGION("calculate_bounding_box_of_the_scene"),
+      "ArborX::TreeConstruction::calculate_bounding_box_of_the_scene",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
       CalculateBoundingBoxOfTheSceneFunctor<Primitives>(primitives),
       scene_bounding_box);
@@ -83,7 +82,7 @@ inline void assignMortonCodesDispatch(BoxTag, ExecutionSpace const &space,
 {
   using Access = AccessTraits<Primitives, PrimitivesTag>;
   auto const n = Access::size(primitives);
-  Kokkos::parallel_for(ARBORX_MARK_REGION("assign_morton_codes"),
+  Kokkos::parallel_for("ArborX::TreeConstruction::assign_morton_codes",
                        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
                        KOKKOS_LAMBDA(int i) {
                          Point xyz;
@@ -102,7 +101,7 @@ inline void assignMortonCodesDispatch(PointTag, ExecutionSpace const &space,
   using Access = AccessTraits<Primitives, PrimitivesTag>;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
-      ARBORX_MARK_REGION("assign_morton_codes"),
+      "ArborX::TreeConstruction::assign_morton_codes",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
         Point xyz;
         translateAndScale(Access::get(primitives, i), xyz, scene_bounding_box);
@@ -137,7 +136,7 @@ inline void initializeLeafNodesDispatch(BoxTag, ExecutionSpace const &space,
   using Access = AccessTraits<Primitives, PrimitivesTag>;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
-      ARBORX_MARK_REGION("initialize_leaf_nodes"),
+      "ArborX::TreeConstruction::initialize_leaf_nodes",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
         leaf_nodes(i) =
             makeLeafNode(permutation_indices(i),
@@ -155,7 +154,7 @@ inline void initializeLeafNodesDispatch(PointTag, ExecutionSpace const &space,
   using Access = AccessTraits<Primitives, PrimitivesTag>;
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
-      ARBORX_MARK_REGION("initialize_leaf_nodes"),
+      "ArborX::TreeConstruction::initialize_leaf_nodes",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
         leaf_nodes(i) =
             makeLeafNode(permutation_indices(i),
@@ -391,7 +390,7 @@ void generateHierarchy(
   auto const n_internal_nodes = internal_nodes.extent(0);
 
   Kokkos::parallel_for(
-      ARBORX_MARK_REGION("generate_hierarchy"),
+      "ArborX::TreeConstruction::generate_hierarchy",
       Kokkos::RangePolicy<ExecutionSpace>(space, n_internal_nodes,
                                           2 * n_internal_nodes + 1),
       GenerateHierarchyFunctor<MemorySpace>(space, sorted_morton_codes,
