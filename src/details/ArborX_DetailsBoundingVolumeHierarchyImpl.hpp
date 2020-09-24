@@ -205,7 +205,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
   reallocWithoutInitializing(offset, n_queries + 1);
   Kokkos::parallel_for(
-      "ArborX::BVH::query::"
+      "ArborX::BVH::query::nearest::"
       "scan_queries_for_numbers_of_nearest_neighbors",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
@@ -281,14 +281,14 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 {
   using MemorySpace = typename BVH::memory_space;
   Kokkos::View<Kokkos::pair<int, float> *, MemorySpace> out(
-      "ArborX::BVH::query::pairs_index_distance", 0);
+      "ArborX::BVH::query::nearest::pairs_index_distance", 0);
   queryDispatch(NearestPredicateTag{}, bvh, space, predicates,
                 CallbackDefaultNearestPredicateWithDistance{}, out, offset,
                 policy);
   auto const n = out.extent(0);
   reallocWithoutInitializing(indices, n);
   reallocWithoutInitializing(distances, n);
-  Kokkos::parallel_for("ArborX::BVH::query::split_pairs",
+  Kokkos::parallel_for("ArborX::BVH::query::nearest::split_pairs",
                        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
                        KOKKOS_LAMBDA(int i) {
                          indices(i) = out(i).first;
