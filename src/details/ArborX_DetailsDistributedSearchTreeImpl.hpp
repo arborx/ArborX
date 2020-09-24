@@ -228,6 +228,8 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
     ExecutionSpace const &space, Distributor<DeviceType> const &distributor,
     View exports, typename View::non_const_type imports)
 {
+  Kokkos::Profiling::pushRegion(
+      "ArborX::DistributedSearchTree::sendAcrossNetwork");
   ARBORX_ASSERT((exports.extent(0) == distributor.getTotalSendLength()) &&
                 (imports.extent(0) == distributor.getTotalReceiveLength()) &&
                 (exports.extent(1) == imports.extent(1)) &&
@@ -265,6 +267,7 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
   auto tmp_view =
       Kokkos::create_mirror_view_and_copy(space, imports_layout_right);
   Kokkos::deep_copy(space, imports, tmp_view);
+  Kokkos::Profiling::popRegion();
 }
 
 template <typename DeviceType>
