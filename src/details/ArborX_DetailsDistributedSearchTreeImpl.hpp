@@ -230,6 +230,7 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
 {
   Kokkos::Profiling::pushRegion(
       "ArborX::DistributedSearchTree::sendAcrossNetwork");
+
   ARBORX_ASSERT((exports.extent(0) == distributor.getTotalSendLength()) &&
                 (imports.extent(0) == distributor.getTotalReceiveLength()) &&
                 (exports.extent(1) == imports.extent(1)) &&
@@ -267,6 +268,7 @@ DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
   auto tmp_view =
       Kokkos::create_mirror_view_and_copy(space, imports_layout_right);
   Kokkos::deep_copy(space, imports, tmp_view);
+
   Kokkos::Profiling::popRegion();
 }
 
@@ -328,6 +330,8 @@ void DistributedSearchTreeImpl<DeviceType>::deviseStrategy(
 
   offset = new_offset;
   indices = new_indices;
+
+  Kokkos::Profiling::popRegion();
 }
 
 template <typename DeviceType>
@@ -375,6 +379,8 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
   top_tree.query(space, radius_searches, indices, offset);
   // NOTE: in principle, we could perform radius searches on the bottom_tree
   // rather than nearest queries.
+
+  Kokkos::Profiling::popRegion();
 }
 
 template <typename DeviceType>
@@ -447,11 +453,11 @@ DistributedSearchTreeImpl<DeviceType>::queryDispatchImpl(
       // Merge results
       Kokkos::Profiling::pushRegion(
           "ArborX::DistributedSearchTree::postprocess_results");
+
       int const n_queries = Access::size(queries);
       countResults(space, n_queries, ids, offset);
       sortResults(space, ids, indices, ranks, distances);
       filterResults(space, queries, distances, indices, offset, ranks);
-      Kokkos::Profiling::popRegion();
 
       Kokkos::Profiling::popRegion();
     }
@@ -503,12 +509,14 @@ DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     // Communicate results back
     communicateResultsBack(comm, space, out, offset, ranks, ids);
 
-    // Merge results
     Kokkos::Profiling::pushRegion(
         "ArborX::DistributedSearchTree::postprocess_results");
+
+    // Merge results
     int const n_queries = Access::size(queries);
     countResults(space, n_queries, ids, offset);
     sortResults(space, ids, out);
+
     Kokkos::Profiling::popRegion();
   }
 
@@ -715,6 +723,8 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
     Kokkos::View<float *, DeviceType> distances, Indices &indices,
     Offset &offset, Ranks &ranks)
 {
+  Kokkos::Profiling::pushRegion("ArborX::DistributedSearchTree::filterResults");
+
   using Access = AccessTraits<Predicates, PredicatesTag>;
   int const n_queries = Access::size(queries);
   // truncated views are prefixed with an underscore
@@ -782,6 +792,8 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
   indices = new_indices;
   ranks = new_ranks;
   offset = new_offset;
+
+  Kokkos::Profiling::popRegion();
 }
 
 } // namespace Details

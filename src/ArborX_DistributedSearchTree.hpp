@@ -113,7 +113,6 @@ template <typename MemorySpace, typename Enable>
 template <typename ExecutionSpace, typename Primitives>
 DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
     MPI_Comm comm, ExecutionSpace const &space, Primitives const &primitives)
-    : _bottom_tree{space, primitives}
 {
   Kokkos::Profiling::pushRegion(
       "ArborX::DistributedSearchTree::DistributedSearchTree");
@@ -136,6 +135,17 @@ DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
         delete p;
       });
 
+  Kokkos::Profiling::pushRegion(
+      "ArborX::DistributedSearchTree::DistributedSearchTree::"
+      "bottom_tree_construction");
+
+  _bottom_tree = BVH<MemorySpace>(space, primitives);
+
+  Kokkos::Profiling::popRegion();
+  Kokkos::Profiling::pushRegion(
+      "ArborX::DistributedSearchTree::DistributedSearchTree::"
+      "top_tree_construction");
+
   int comm_rank;
   MPI_Comm_rank(getComm(), &comm_rank);
   int comm_size;
@@ -155,6 +165,11 @@ DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
 
   _top_tree = BVH<MemorySpace>{space, boxes};
 
+  Kokkos::Profiling::popRegion();
+  Kokkos::Profiling::pushRegion(
+      "ArborX::DistributedSearchTree::DistributedSearchTree::"
+      "size_calculation");
+
   _bottom_tree_sizes = Kokkos::View<size_type *, MemorySpace>(
       Kokkos::ViewAllocateWithoutInitializing("leave_count_in_local_trees"),
       comm_size);
@@ -167,6 +182,7 @@ DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
 
   _top_tree_size = accumulate(space, _bottom_tree_sizes, 0);
 
+  Kokkos::Profiling::popRegion();
   Kokkos::Profiling::popRegion();
 }
 
