@@ -15,7 +15,6 @@
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_LinearBVH.hpp>
-#include <ArborX_Macros.hpp>
 
 #include <chrono>
 #include <set>
@@ -119,7 +118,7 @@ bool verifyCC(ExecutionSpace exec_space, IndicesView indices, OffsetView offset,
   // Check that connected vertices have the same cc index
   int num_incorrect = 0;
   Kokkos::parallel_reduce(
-      ARBORX_MARK_REGION("verify_connected_indices"),
+      "ArborX::HaloFinder::verify_connected_indices",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_nodes),
       KOKKOS_LAMBDA(int i, int &update) {
         for (int j = offset(i); j < offset(i + 1); ++j)
@@ -369,7 +368,7 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
   // The finalization kernel will, ultimately, make all parents
   // point directly to the representative.
   // ```
-  Kokkos::parallel_for(ARBORX_MARK_REGION("flatten_stat"),
+  Kokkos::parallel_for("ArborX::HaloFinder::flatten_stat",
                        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
                        KOKKOS_LAMBDA(int const i) {
                          // ##### ECL license (see LICENSE.ECL) #####
@@ -424,7 +423,7 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
   // those are true, we do a linear search from i + min_size till next CC
   // index change to find the CC size.
   Kokkos::parallel_scan(
-      ARBORX_MARK_REGION("compute_halos_starts_and_sizes"),
+      "ArborX::HaloFinder::compute_halos_starts_and_sizes",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
       KOKKOS_LAMBDA(int i, int &update, bool final_pass) {
         bool const is_cc_first_index = (i == 0 || ccs(i) != ccs(i - 1));
@@ -450,7 +449,7 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
   // Copy ccs indices to halos
   reallocWithoutInitializing(halos_indices, lastElement(halos_offset));
   Kokkos::parallel_for(
-      ARBORX_MARK_REGION("populate_halos"),
+      "ArborX::HaloFinder::populate_halos",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
       KOKKOS_LAMBDA(int i) {
         for (int k = halos_offset(i); k < halos_offset(i + 1); ++k)
