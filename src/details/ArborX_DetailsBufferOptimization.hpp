@@ -245,8 +245,9 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   Kokkos::Profiling::pushRegion("ArborX::BufferOptimization::two_pass");
 
   using CountView = OffsetView;
-  CountView counts(Kokkos::view_alloc("ArborX::BVH::query::counts", space),
-                   n_queries);
+  CountView counts(
+      Kokkos::view_alloc("ArborX::BufferOptimization::counts", space),
+      n_queries);
 
   using PermutedPredicates =
       PermutedData<Predicates, PermuteType, true /*AttachIndices*/>;
@@ -310,7 +311,7 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
   Kokkos::Profiling::pushRegion(
       "ArborX::BufferOptimization::first_pass_postprocess");
 
-  OffsetView preallocated_offset("ArborX::BVH::query::offset_copy", 0);
+  OffsetView preallocated_offset("ArborX::BufferOptimization::offset_copy", 0);
   if (underflow)
   {
     // Store a copy of the original offset. We'll need it for compression.
