@@ -106,7 +106,8 @@ sortObjects(Kokkos::Cuda const &space, ViewType &view)
       "");
 
   Kokkos::View<SizeType *, typename ViewType::device_type> permute(
-      Kokkos::ViewAllocateWithoutInitializing("permutation"), n);
+      Kokkos::ViewAllocateWithoutInitializing("ArborX::Sorting::permutation"),
+      n);
   ArborX::iota(space, permute);
 
   auto const execution_policy = thrust::cuda::par.on(space.cuda_stream());
