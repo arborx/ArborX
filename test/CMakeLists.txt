@@ -98,7 +98,7 @@ target_include_directories(ArborX_DetailsBufferOptimization.exe PRIVATE ${CMAKE_
 add_test(NAME ArborX_DetailsBufferOptimization_Test COMMAND ./ArborX_DetailsBufferOptimization.exe)
 
 if(ARBORX_ENABLE_MPI)
-  add_executable(ArborX_DistributedSearchTree.exe tstDistributedSearchTree.cpp utf_main.cpp)
+  add_executable(ArborX_DistributedSearchTree.exe tstDistributedSearchTree.cpp tstDistributedKokkosToolsAnnotations.cpp utf_main.cpp)
   target_link_libraries(ArborX_DistributedSearchTree.exe PRIVATE ArborX Boost::unit_test_framework)
   target_compile_definitions(ArborX_DistributedSearchTree.exe PRIVATE BOOST_TEST_DYN_LINK ARBORX_MPI_UNIT_TEST)
   target_include_directories(ArborX_DistributedSearchTree.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
