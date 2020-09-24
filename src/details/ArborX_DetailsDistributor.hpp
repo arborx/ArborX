@@ -195,7 +195,9 @@ class Distributor
 public:
   Distributor(MPI_Comm comm)
       : _comm(comm)
-      , _permute{Kokkos::ViewAllocateWithoutInitializing("permute"), 0}
+      , _permute{Kokkos::ViewAllocateWithoutInitializing(
+                     "ArborX::Distributor::permute"),
+                 0}
   {
   }
 
