@@ -260,7 +260,8 @@ public:
     // exports.
     bool const permutation_necessary = _permute.size() != 0;
     auto dest_buffer =
-        ExportView("destination_buffer", typename ExportView::array_layout{});
+        ExportView("ArborX::Distributor::doPostsAndWaits::destination_buffer",
+                   typename ExportView::array_layout{});
     if (permutation_necessary)
     {
       reallocWithoutInitializing(dest_buffer, exports.layout());
