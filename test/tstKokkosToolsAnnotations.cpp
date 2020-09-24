@@ -55,6 +55,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, Tree, TreeTypes)
          void const * /*ptr*/, uint64_t /*size*/) {
         std::cout << label << '\n';
         BOOST_TEST(
+            (isPrefixedWith(label, "ArborX::BVH::") || // data member
             (isPrefixedWith(label, "ArborX::BVH::BVH::") ||
              isPrefixedWith(label, "ArborX::Sorting::") ||
              isPrefixedWith(label,
