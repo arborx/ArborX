@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
     auto const num_halos = static_cast<int>(halos_offset.size()) - 1;
 
     Kokkos::View<ArborX::Point *, MemorySpace> halos_centers(
-        Kokkos::ViewAllocateWithoutInitializing("centers"), num_halos);
+        Kokkos::view_alloc(Kokkos::WithoutInitializing, "centers"), num_halos);
     Kokkos::parallel_for(
         "compute centers",
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),

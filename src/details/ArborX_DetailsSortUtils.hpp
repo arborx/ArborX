@@ -77,7 +77,9 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
   if (result.min_val == result.max_val)
   {
     Kokkos::View<SizeType *, typename ViewType::device_type> permute(
-        Kokkos::ViewAllocateWithoutInitializing("ArborX::Sorting::permute"), n);
+        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                           "ArborX::Sorting::permute"),
+        n);
     iota(space, permute);
     return permute;
   }
@@ -106,7 +108,7 @@ sortObjects(Kokkos::Cuda const &space, ViewType &view)
       "");
 
   Kokkos::View<SizeType *, typename ViewType::device_type> permute(
-      Kokkos::ViewAllocateWithoutInitializing("permutation"), n);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "permutation"), n);
   ArborX::iota(space, permute);
 
   auto const execution_policy = thrust::cuda::par.on(space.cuda_stream());

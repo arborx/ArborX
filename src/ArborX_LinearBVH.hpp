@@ -147,9 +147,10 @@ template <typename ExecutionSpace, typename Primitives>
 BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
     ExecutionSpace const &space, Primitives const &primitives)
     : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
-    , _internal_and_leaf_nodes(Kokkos::ViewAllocateWithoutInitializing(
-                                   "ArborX::BVH::internal_and_leaf_nodes"),
-                               _size > 0 ? 2 * _size - 1 : 0)
+    , _internal_and_leaf_nodes(
+          Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                             "ArborX::BVH::internal_and_leaf_nodes"),
+          _size > 0 ? 2 * _size - 1 : 0)
 {
   Kokkos::Profiling::pushRegion("ArborX:BVH:construction");
 
@@ -187,7 +188,8 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
 
   // calculate Morton codes of all objects
   Kokkos::View<unsigned int *, MemorySpace> morton_indices(
-      Kokkos::ViewAllocateWithoutInitializing("ArborX::BVH::BVH::morton"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                         "ArborX::BVH::BVH::morton"),
       size());
   Details::TreeConstruction::assignMortonCodes(space, primitives,
                                                morton_indices, _bounds);

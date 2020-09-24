@@ -366,8 +366,9 @@ void queryImpl(ExecutionSpace const &space, TreeTraversal const &tree_traversal,
     // More than enough storage for results, need compression
     Kokkos::Profiling::pushRegion("ArborX:BVH:two_pass:copy_values");
 
-    OutputView tmp_out(Kokkos::ViewAllocateWithoutInitializing(out.label()),
-                       n_results);
+    OutputView tmp_out(
+        Kokkos::view_alloc(Kokkos::WithoutInitializing, out.label()),
+        n_results);
 
     Kokkos::parallel_for(
         "ArborX::BufferOptimization::copy_valid_values",

@@ -139,7 +139,7 @@ DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
   MPI_Comm_size(getComm(), &comm_size);
 
   Kokkos::View<Box *, MemorySpace> boxes(
-      Kokkos::ViewAllocateWithoutInitializing("rank_bounding_boxes"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "rank_bounding_boxes"),
       comm_size);
   // FIXME when we move to MPI with CUDA-aware support, we will not need to
   // copy from the device to the host
@@ -153,7 +153,8 @@ DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
   _top_tree = BVH<MemorySpace>{space, boxes};
 
   _bottom_tree_sizes = Kokkos::View<size_type *, MemorySpace>(
-      Kokkos::ViewAllocateWithoutInitializing("leave_count_in_local_trees"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                         "leave_count_in_local_trees"),
       comm_size);
   auto bottom_tree_sizes_host = Kokkos::create_mirror_view(_bottom_tree_sizes);
   bottom_tree_sizes_host(comm_rank) = _bottom_tree.size();

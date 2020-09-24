@@ -356,7 +356,7 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
   Kokkos::View<int *, MemorySpace> indices("indices", 0);
   Kokkos::View<int *, MemorySpace> offset("offset", 0);
   Kokkos::View<int *, MemorySpace> stat(
-      Kokkos::ViewAllocateWithoutInitializing("stat"), n);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "stat"), n);
   ArborX::iota(exec_space, stat);
   Kokkos::Profiling::pushRegion("ArborX:HaloFinder:ccs:query");
   bvh.query(exec_space, predicates, CCSCallback<MemorySpace>{stat}, indices,
@@ -412,7 +412,7 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
 
   reallocWithoutInitializing(halos_offset, n + 1);
   Kokkos::View<int *, MemorySpace> halos_starts(
-      Kokkos::ViewAllocateWithoutInitializing("halos_starts"), n);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "halos_starts"), n);
   int num_halos = 0;
   // In the following scan, we locate the starting position (stored in
   // halos_starts) and size (stored in halos_offset) of each valid halo (i.e.,

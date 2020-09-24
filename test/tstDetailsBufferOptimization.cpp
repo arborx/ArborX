@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::deep_copy(offset, buffer_size);
 
   Kokkos::View<unsigned int *, DeviceType> permute(
-      Kokkos::ViewAllocateWithoutInitializing("permute"), n);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "permute"), n);
   ArborX::iota(ExecutionSpace{}, permute);
 
   ArborX::exclusivePrefixSum(ExecutionSpace{}, offset);
