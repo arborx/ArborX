@@ -80,7 +80,7 @@ struct DistributedSearchTreeImpl
                 Indices &indices, Offset &offset, Ranks &ranks)
   {
     Kokkos::View<PairIndexRank *, ExecutionSpace> out(
-        "ArborX::DistributedSearchTree::spatial_queries::pairs_index_rank", 0);
+        "ArborX::DistributedSearchTree::query::spatial::pairs_index_rank", 0);
     queryDispatch(SpatialPredicateTag{}, tree, space, queries, out, offset);
     auto const n = out.extent(0);
     reallocWithoutInitializing(indices, n);
@@ -153,9 +153,9 @@ struct DistributedSearchTreeImpl
   {
     // FIXME avoid zipping when distributed nearest callbacks become availale
     Kokkos::View<int *, ExecutionSpace> indices(
-        "ArborX::DistributedSearchTree::nearest_queries::indices", 0);
+        "ArborX::DistributedSearchTree::query::nearest::indices", 0);
     Kokkos::View<int *, ExecutionSpace> ranks(
-        "ArborX::DistributedSearchTree::nearest_queries::ranks", 0);
+        "ArborX::DistributedSearchTree::query::nearest::ranks", 0);
     queryDispatchImpl(tag, tree, space, queries, indices, offset, ranks);
     auto const n = indices.extent(0);
     reallocWithoutInitializing(values, n);
@@ -408,7 +408,7 @@ DistributedSearchTreeImpl<DeviceType>::queryDispatchImpl(
   auto comm = tree.getComm();
 
   Distances distances(
-      "ArborX::DistributedSearchTree::nearest_queries::distances", 0);
+      "ArborX::DistributedSearchTree::query::nearest::distances", 0);
   if (distances_ptr)
     distances = *distances_ptr;
 
@@ -447,9 +447,9 @@ DistributedSearchTreeImpl<DeviceType>::queryDispatchImpl(
       using Access = AccessTraits<Predicates, PredicatesTag>;
       using Query = typename AccessTraitsHelper<Access>::type;
       Kokkos::View<int *, DeviceType> ids(
-          "ArborX::DistributedSearchTree::nearest_queries::query_ids", 0);
+          "ArborX::DistributedSearchTree::query::nearest::query_ids", 0);
       Kokkos::View<Query *, DeviceType> fwd_queries(
-          "ArborX::DistributedSearchTree::nearest_queries::fwd_queries", 0);
+          "ArborX::DistributedSearchTree::query::nearest::fwd_queries", 0);
       forwardQueries(comm, space, queries, indices, offset, fwd_queries, ids,
                      ranks);
 
@@ -494,9 +494,9 @@ DistributedSearchTreeImpl<DeviceType>::queryDispatch(
   auto comm = tree.getComm();
 
   Kokkos::View<int *, DeviceType> indices(
-      "ArborX::DistributedSearchTree::spatial_queries::indices", 0);
+      "ArborX::DistributedSearchTree::query::spatial::indices", 0);
   Kokkos::View<int *, DeviceType> ranks(
-      "ArborX::DistributedSearchTree::spatial_queries::ranks", 0);
+      "ArborX::DistributedSearchTree::query::spatial::ranks", 0);
   top_tree.query(space, queries, indices, offset);
 
   {
@@ -511,9 +511,9 @@ DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     using Access = AccessTraits<Predicates, PredicatesTag>;
     using Query = typename AccessTraitsHelper<Access>::type;
     Kokkos::View<int *, DeviceType> ids(
-        "ArborX::DistributedSearchTree::spatial_queries::query_ids", 0);
+        "ArborX::DistributedSearchTree::query::spatial::query_ids", 0);
     Kokkos::View<Query *, DeviceType> fwd_queries(
-        "ArborX::DistributedSearchTree::spatial_queries::fwd_queries", 0);
+        "ArborX::DistributedSearchTree::query::spatial::fwd_queries", 0);
     forwardQueries(comm, space, queries, indices, offset, fwd_queries, ids,
                    ranks);
 
