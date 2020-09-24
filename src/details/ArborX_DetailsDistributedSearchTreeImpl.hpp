@@ -356,7 +356,7 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
   // Determine distance to the farthest neighbor found so far.
   Kokkos::View<float *, DeviceType> farthest_distances(
       Kokkos::ViewAllocateWithoutInitializing(
-          "ArborX::DistributedSearchTree::reassessStrategy::distances"),
+          "ArborX::DistributedSearchTree::query::reassessStrategy::distances"),
       n_queries);
   // NOTE: in principle distances( j ) are arranged in ascending order for
   // offset( i ) <= j < offset( i + 1 ) so max() is not necessary.
@@ -373,7 +373,7 @@ void DistributedSearchTreeImpl<DeviceType>::reassessStrategy(
   // Identify what ranks may have leaves that are within that distance.
   Kokkos::View<decltype(intersects(Sphere{})) *, DeviceType> radius_searches(
       Kokkos::ViewAllocateWithoutInitializing(
-          "ArborX::DistributedSearchTree::reassessStrategy::queries"),
+          "ArborX::DistributedSearchTree::query::reassessStrategy::queries"),
       n_queries);
   Kokkos::parallel_for(
       "ArborX::DistributedTree::query::bottom_trees_within_that_distance",
@@ -552,9 +552,10 @@ void DistributedSearchTreeImpl<DeviceType>::sortResults(
   // We only want to get the permutation here, but sortObjects also sorts the
   // elements given to it. Hence, we need to create a copy.
   // TODO try to avoid the copy
-  View keys_clone(Kokkos::ViewAllocateWithoutInitializing(
-                      "ArborX::DistributedSearchTree::sortResults::keys"),
-                  keys.size());
+  View keys_clone(
+      Kokkos::ViewAllocateWithoutInitializing(
+          "ArborX::DistributedSearchTree::query::sortResults::keys"),
+      keys.size());
   Kokkos::deep_copy(space, keys_clone, keys);
   auto const permutation = ArborX::Details::sortObjects(space, keys_clone);
 
@@ -614,7 +615,7 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
       std::is_same<Query, typename AccessTraitsHelper<Access>::type>{}, "");
   Kokkos::View<Query *, DeviceType> exports(
       Kokkos::ViewAllocateWithoutInitializing(
-          "ArborX::DistributedSearchTree::forwardQueries::queries"),
+          "ArborX::DistributedSearchTree::query::forwardQueries::queries"),
       n_exports);
   Kokkos::parallel_for(
       "ArborX::DistributedTree::query::forward_queries_fill_buffer",
@@ -628,19 +629,19 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
 
   Kokkos::View<int *, DeviceType> export_ranks(
       Kokkos::ViewAllocateWithoutInitializing(
-          "ArborX::DistributedSearchTree::forwardQueries::export_ranks"),
+          "ArborX::DistributedSearchTree::query::forwardQueries::export_ranks"),
       n_exports);
   Kokkos::deep_copy(space, export_ranks, comm_rank);
 
   Kokkos::View<int *, DeviceType> import_ranks(
       Kokkos::ViewAllocateWithoutInitializing(
-          "ArborX::DistributedSearchTree::forwardQueries::import_ranks"),
+          "ArborX::DistributedSearchTree::query::forwardQueries::import_ranks"),
       n_imports);
   sendAcrossNetwork(space, distributor, export_ranks, import_ranks);
 
   Kokkos::View<int *, DeviceType> export_ids(
       Kokkos::ViewAllocateWithoutInitializing(
-          "ArborX::DistributedSearchTree::forwardQueries::export_ids"),
+          "ArborX::DistributedSearchTree::query::forwardQueries::export_ids"),
       n_exports);
   Kokkos::parallel_for(
       "ArborX::DistributedTree::query::forward_queries_fill_ids",
@@ -653,14 +654,14 @@ void DistributedSearchTreeImpl<DeviceType>::forwardQueries(
       });
   Kokkos::View<int *, DeviceType> import_ids(
       Kokkos::ViewAllocateWithoutInitializing(
-          "ArborX::DistributedSearchTree::forwardQueries::import_ids"),
+          "ArborX::DistributedSearchTree::query::forwardQueries::import_ids"),
       n_imports);
   sendAcrossNetwork(space, distributor, export_ids, import_ids);
 
   // Send queries across the network
   Kokkos::View<Query *, DeviceType> imports(
       Kokkos::ViewAllocateWithoutInitializing(
-          "ArborX::DistributedSearchTree::forwardQueries::queries"),
+          "ArborX::DistributedSearchTree::query::forwardQueries::queries"),
       n_imports);
   sendAcrossNetwork(space, distributor, exports, imports);
 
@@ -787,7 +788,7 @@ void DistributedSearchTreeImpl<DeviceType>::filterResults(
   int const n_results = lastElement(offset);
   Kokkos::View<PairIndexDistance *, DeviceType> buffer(
       Kokkos::ViewAllocateWithoutInitializing(
-          "ArborX::DistributedSearchTree::filterResults::buffer"),
+          "ArborX::DistributedSearchTree::query::filterResults::buffer"),
       n_results);
   using PriorityQueue =
       Details::PriorityQueue<PairIndexDistance, CompareDistance,
