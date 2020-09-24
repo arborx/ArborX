@@ -174,7 +174,7 @@ DistributedSearchTree<MemorySpace, Enable>::DistributedSearchTree(
 
   _bottom_tree_sizes = Kokkos::View<size_type *, MemorySpace>(
       Kokkos::ViewAllocateWithoutInitializing(
-          "ArborX::DistributedSearchTree::DistributedSearchTree::leave_count_"
+          "ArborX::DistributedSearchTree::leave_count_"
           "in_local_trees"),
       comm_size);
   auto bottom_tree_sizes_host = Kokkos::create_mirror_view(_bottom_tree_sizes);
