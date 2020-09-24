@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, Tree, TreeTypes)
         std::cout << label << '\n';
         BOOST_TEST(
             (isPrefixedWith(label, "ArborX::BVH::") || // data member
-            (isPrefixedWith(label, "ArborX::BVH::BVH::") ||
+             isPrefixedWith(label, "ArborX::BVH::BVH::") ||
              isPrefixedWith(label, "ArborX::Sorting::") ||
              isPrefixedWith(label,
                             "Kokkos::Serial::") || // unsure what's going on
@@ -99,6 +99,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, Tree, TreeTypes)
          void const * /*ptr*/, uint64_t /*size*/) {
         std::cout << label << '\n';
         BOOST_TEST((isPrefixedWith(label, "ArborX::BVH::query::") ||
+                    isPrefixedWith(label, "ArborX::BufferOptimization::") ||
                     isPrefixedWith(label, "ArborX::Sorting::") ||
                     isPrefixedWith(label, "Testing::")));
       });
@@ -178,6 +179,61 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, Tree, TreeTypes)
   Kokkos::Tools::Experimental::set_begin_parallel_for_callback(nullptr);
   Kokkos::Tools::Experimental::set_begin_parallel_scan_callback(nullptr);
   Kokkos::Tools::Experimental::set_begin_parallel_reduce_callback(nullptr);
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, Tree, TreeTypes)
+{
+  Kokkos::Tools::Experimental::set_push_region_callback([](char const *label) {
+    std::cout << label << '\n';
+    BOOST_TEST((isPrefixedWith(label, "ArborX::") ||
+                isPrefixedWith(label, "Kokkos::")));
+  });
+
+  // BVH::BVH
+
+  { // default constructed
+    Tree tree;
+  }
+
+  { // empty
+    auto tree = make<Tree>({});
+  }
+
+  { // one leaf
+    auto tree = make<Tree>({
+        {{{0, 0, 0}}, {{1, 1, 1}}},
+    });
+  }
+
+  { // two leaves
+    auto tree = make<Tree>({
+        {{{0, 0, 0}}, {{1, 1, 1}}},
+        {{{0, 0, 0}}, {{1, 1, 1}}},
+    });
+  }
+
+  // BVH::query
+
+  auto tree = make<Tree>({
+      {{{0, 0, 0}}, {{1, 1, 1}}},
+      {{{0, 0, 0}}, {{1, 1, 1}}},
+  });
+
+  using DeviceType = typename Tree::device_type;
+
+  // spatial predicates
+  query(tree, makeIntersectsBoxQueries<DeviceType>({
+                  {{{0, 0, 0}}, {{1, 1, 1}}},
+                  {{{0, 0, 0}}, {{1, 1, 1}}},
+              }));
+
+  // nearest predicates
+  query(tree, makeNearestQueries<DeviceType>({
+                  {{{0, 0, 0}}, 1},
+                  {{{0, 0, 0}}, 2},
+              }));
+
+  Kokkos::Tools::Experimental::set_push_region_callback(nullptr);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

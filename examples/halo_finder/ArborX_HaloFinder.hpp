@@ -323,7 +323,7 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
   static_assert(
       std::is_same<typename HalosOffsetView::memory_space, MemorySpace>{}, "");
 
-  Kokkos::Profiling::pushRegion("ArborX:HaloFinder");
+  Kokkos::Profiling::pushRegion("ArborX::HaloFinder");
 
   using clock = std::chrono::high_resolution_clock;
 
@@ -343,7 +343,7 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
 
   // build the tree
   start = clock::now();
-  Kokkos::Profiling::pushRegion("ArborX:HaloFinder:tree_construction");
+  Kokkos::Profiling::pushRegion("ArborX::HaloFinder::tree_construction");
   ArborX::BVH<MemorySpace> bvh(exec_space, primitives);
   Kokkos::Profiling::popRegion();
   elapsed_construction = clock::now() - start;
@@ -352,13 +352,15 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
   // NOTE: indices and offfset are not going to be used as
   // insert() will not be called
   start = clock::now();
-  Kokkos::Profiling::pushRegion("ArborX:HaloFinder:ccs");
-  Kokkos::View<int *, MemorySpace> indices("indices", 0);
-  Kokkos::View<int *, MemorySpace> offset("offset", 0);
+  Kokkos::Profiling::pushRegion("ArborX::HaloFinder::ccs");
+  Kokkos::View<int *, MemorySpace> indices("ArborX::HaloFinder::indices", 0);
+  Kokkos::View<int *, MemorySpace> offset("ArborX::HaloFinder::offset", 0);
   Kokkos::View<int *, MemorySpace> stat(
-      Kokkos::ViewAllocateWithoutInitializing("stat"), n);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                         "ArborX::HaloFinder::stat"),
+      n);
   ArborX::iota(exec_space, stat);
-  Kokkos::Profiling::pushRegion("ArborX:HaloFinder:ccs:query");
+  Kokkos::Profiling::pushRegion("ArborX::HaloFinder::ccs::query");
   bvh.query(exec_space, predicates, CCSCallback<MemorySpace>{stat}, indices,
             offset);
   Kokkos::Profiling::popRegion();
@@ -392,7 +394,7 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
   if (verify)
   {
     start = clock::now();
-    Kokkos::Profiling::pushRegion("ArborX:HaloFinder:verify");
+    Kokkos::Profiling::pushRegion("ArborX::HaloFinder::verify");
 
     bvh.query(exec_space, predicates, indices, offset);
     auto passed = verifyCC(exec_space, indices, offset, ccs);
@@ -405,14 +407,16 @@ void findHalos(ExecutionSpace exec_space, Primitives const &primitives,
 
   // find halos
   start = clock::now();
-  Kokkos::Profiling::pushRegion("ArborX:HaloFinder:sort_and_filter_ccs");
+  Kokkos::Profiling::pushRegion("ArborX::HaloFinder::sort_and_filter_ccs");
 
   // sort ccs and compute permutation
   auto permute = Details::sortObjects(exec_space, ccs);
 
   reallocWithoutInitializing(halos_offset, n + 1);
   Kokkos::View<int *, MemorySpace> halos_starts(
-      Kokkos::ViewAllocateWithoutInitializing("halos_starts"), n);
+      Kokkos::ViewAllocateWithoutInitializing(
+          "ArborX::HaloFinder::halos_starts"),
+      n);
   int num_halos = 0;
   // In the following scan, we locate the starting position (stored in
   // halos_starts) and size (stored in halos_offset) of each valid halo (i.e.,

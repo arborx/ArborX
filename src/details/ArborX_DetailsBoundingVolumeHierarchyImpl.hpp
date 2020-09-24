@@ -106,12 +106,12 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
   check_valid_callback(callback, predicates, out);
 
-  Kokkos::Profiling::pushRegion("ArborX:BVH:spatial_queries");
+  Kokkos::Profiling::pushRegion("ArborX::BVH::query::spatial");
 
   using Access = AccessTraits<Predicates, PredicatesTag>;
   auto const n_queries = Access::size(predicates);
 
-  Kokkos::Profiling::pushRegion("ArborX:BVH:spatial_queries:init_and_alloc");
+  Kokkos::Profiling::pushRegion("ArborX::BVH::query::spatial::init_and_alloc");
   reallocWithoutInitializing(offset, n_queries + 1);
 
   int const buffer_size = std::abs(policy._buffer_size);
@@ -133,7 +133,7 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
   if (policy._sort_predicates)
   {
     Kokkos::Profiling::pushRegion(
-        "ArborX:BVH:spatial_queries:compute_permutation");
+        "ArborX::BVH::query::spatial::compute_permutation");
     auto permute =
         Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
             space, bvh.bounds(), predicates);
@@ -174,7 +174,8 @@ queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
                   Experimental::TraversalPolicy())
 {
   using MemorySpace = typename BVH::memory_space;
-  Kokkos::View<int *, MemorySpace> indices("indices", 0);
+  Kokkos::View<int *, MemorySpace> indices(
+      "ArborX::BVH::query::spatial::indices", 0);
   queryDispatch(SpatialPredicateTag{}, bvh, space, predicates, indices, offset,
                 policy);
   callback(predicates, offset, indices, out);
@@ -195,16 +196,16 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 
   check_valid_callback(callback, predicates, out);
 
-  Kokkos::Profiling::pushRegion("ArborX:BVH:nearest_queries");
+  Kokkos::Profiling::pushRegion("ArborX::BVH::query::nearest");
 
   using Access = AccessTraits<Predicates, Traits::PredicatesTag>;
   auto const n_queries = Access::size(predicates);
 
-  Kokkos::Profiling::pushRegion("ArborX:BVH:nearest_queries:init_and_alloc");
+  Kokkos::Profiling::pushRegion("ArborX::BVH::query::nearest::init_and_alloc");
 
   reallocWithoutInitializing(offset, n_queries + 1);
   Kokkos::parallel_for(
-      "ArborX::BVH::query::"
+      "ArborX::BVH::query::nearest::"
       "scan_queries_for_numbers_of_nearest_neighbors",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
@@ -218,7 +219,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
   if (policy._sort_predicates)
   {
     Kokkos::Profiling::pushRegion(
-        "ArborX:BVH:nearest_queries:compute_permutation");
+        "ArborX::BVH::query::nearest::compute_permutation");
     auto permute =
         Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
             space, bvh.bounds(), predicates);
@@ -248,7 +249,7 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 {
   using MemorySpace = typename BVH::memory_space;
   Kokkos::View<Kokkos::pair<int, float> *, MemorySpace> pairs(
-      "pairs_index_distance", 0);
+      "ArborX::BVH::query::nearest::pairs_index_distance", 0);
   queryDispatch(NearestPredicateTag{}, bvh, space, predicates,
                 CallbackDefaultNearestPredicateWithDistance{}, pairs, offset,
                 policy);
@@ -280,14 +281,14 @@ queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
 {
   using MemorySpace = typename BVH::memory_space;
   Kokkos::View<Kokkos::pair<int, float> *, MemorySpace> out(
-      "ArborX::BVH::query::pairs_index_distance", 0);
+      "ArborX::BVH::query::nearest::pairs_index_distance", 0);
   queryDispatch(NearestPredicateTag{}, bvh, space, predicates,
                 CallbackDefaultNearestPredicateWithDistance{}, out, offset,
                 policy);
   auto const n = out.extent(0);
   reallocWithoutInitializing(indices, n);
   reallocWithoutInitializing(distances, n);
-  Kokkos::parallel_for("ArborX::BVH::query::split_pairs",
+  Kokkos::parallel_for("ArborX::BVH::query::nearest::split_pairs",
                        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
                        KOKKOS_LAMBDA(int i) {
                          indices(i) = out(i).first;
@@ -351,7 +352,8 @@ inline void query(ExecutionSpace const &space, BVH const &bvh,
   // TODO check signature of the callback
   if (policy._sort_predicates)
   {
-    Kokkos::Profiling::pushRegion("ArborX:BVH:compute_permutation");
+    Kokkos::Profiling::pushRegion(
+        "ArborX::BVH::query::nearest::compute_permutation");
     using MemorySpace = typename BVH::memory_space;
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     auto permute =
