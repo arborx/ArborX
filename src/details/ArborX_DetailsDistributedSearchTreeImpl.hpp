@@ -389,7 +389,7 @@ DistributedSearchTreeImpl<DeviceType>::queryDispatchImpl(
     Offset &offset, Ranks &ranks, Distances *distances_ptr)
 {
   Kokkos::Profiling::pushRegion(
-      "ArborX::DistributedSearchTree::nearest_queries");
+      "ArborX::DistributedSearchTree::query::nearest");
 
   auto const &bottom_tree = tree._bottom_tree;
   auto comm = tree.getComm();
@@ -471,7 +471,7 @@ DistributedSearchTreeImpl<DeviceType>::queryDispatch(
     Callback const &callback, OutputView &out, OffsetView &offset)
 {
   Kokkos::Profiling::pushRegion(
-      "ArborX::DistributedSearchTree::spatial_queries");
+      "ArborX::DistributedSearchTree::query::spatial");
 
   auto const &top_tree = tree._top_tree;
   auto const &bottom_tree = tree._bottom_tree;
