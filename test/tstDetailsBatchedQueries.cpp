@@ -22,7 +22,7 @@ namespace tt = boost::test_tools;
 template <typename DeviceType, typename ValueType>
 Kokkos::View<ValueType *, DeviceType> toView(std::vector<ValueType> const &v)
 {
-  Kokkos::View<ValueType *, DeviceType> w("whocares", v.size());
+  Kokkos::View<ValueType *, DeviceType> w("Testing::whocares", v.size());
   auto w_host = Kokkos::create_mirror_view(w);
   for (int i = 0; i < w.extent_int(0); ++i)
     w_host(i) = v[i];
@@ -35,10 +35,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(permute_offset_and_indices, DeviceType,
 {
   using ExecutionSpace = typename DeviceType::execution_space;
 
-  Kokkos::View<int *, DeviceType> offset("offset", 0);
-  Kokkos::View<int *, DeviceType> indices("indices", 0);
+  Kokkos::View<int *, DeviceType> offset("Testing::offset", 0);
+  Kokkos::View<int *, DeviceType> indices("Testing::indices", 0);
 
-  Kokkos::View<unsigned int *, DeviceType> permute("permute", 0);
+  Kokkos::View<unsigned int *, DeviceType> permute("Testing::permute", 0);
 
   BOOST_CHECK_THROW(
       ArborX::Details::BatchedQueries<DeviceType>::reversePermutation(
