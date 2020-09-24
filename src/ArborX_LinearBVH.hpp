@@ -151,7 +151,7 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
                                    "ArborX::BVH::internal_and_leaf_nodes"),
                                _size > 0 ? 2 * _size - 1 : 0)
 {
-  Kokkos::Profiling::pushRegion("ArborX:BVH:construction");
+  Kokkos::Profiling::pushRegion("ArborX::BVH::BVH");
 
   Details::check_valid_access_traits(PrimitivesTag{}, primitives);
   using Access = AccessTraits<Primitives, PrimitivesTag>;
@@ -165,7 +165,8 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
     return;
   }
 
-  Kokkos::Profiling::pushRegion("ArborX:BVH:calculate_scene_bounding_box");
+  Kokkos::Profiling::pushRegion(
+      "ArborX::BVH::BVH::calculate_scene_bounding_box");
 
   // determine the bounding box of the scene
   Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, primitives,
@@ -183,7 +184,7 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
     return;
   }
 
-  Kokkos::Profiling::pushRegion("ArborX:BVH:assign_morton_codes");
+  Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::assign_morton_codes");
 
   // calculate Morton codes of all objects
   Kokkos::View<unsigned int *, MemorySpace> morton_indices(
@@ -193,20 +194,20 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
                                                morton_indices, _bounds);
 
   Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::pushRegion("ArborX:BVH:sort_morton_codes");
+  Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::sort_morton_codes");
 
   // compute the ordering of primitives along Z-order space-filling curve
   auto permutation_indices = Details::sortObjects(space, morton_indices);
 
   Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::pushRegion("ArborX:BVH:init_leaves");
+  Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::init_leaves");
 
   // initialize leaves using the computed ordering
   Details::TreeConstruction::initializeLeafNodes(
       space, primitives, permutation_indices, getLeafNodes());
 
   Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::pushRegion("ArborX:BVH:generate_hierarchy");
+  Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::generate_hierarchy");
 
   // generate bounding volume hierarchy
   Details::TreeConstruction::generateHierarchy(
