@@ -16,7 +16,6 @@
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUtils.hpp> // max
 #include <ArborX_Exception.hpp>
-#include <ArborX_Macros.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -77,7 +76,7 @@ determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
   // Consequently, it is uninitialized.
   int n_unique_ranks;
   Kokkos::parallel_scan(
-      ARBORX_MARK_REGION("compact_offsets_and_ranks"),
+      "ArborX::Distributor::compact_offsets_and_ranks",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_batched_ranks),
       KOKKOS_LAMBDA(unsigned int i, int &update, bool last_pass) {
         if (i == batched_ranks.size() - 1 ||
@@ -164,7 +163,7 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
       break;
     unique_ranks.push_back(largest_rank);
     int result = 0;
-    Kokkos::parallel_scan(ARBORX_MARK_REGION("process_biggest_rank_items"),
+    Kokkos::parallel_scan("ArborX::Distributor::process_biggest_rank_items",
                           Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
                           KOKKOS_LAMBDA(int i, int &update, bool last_pass) {
                             bool const is_largest_rank =
