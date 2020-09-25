@@ -21,7 +21,7 @@
 #if (KOKKOS_VERSION >= 30200) // callback registriation from within the program
                               // was added in Kokkkos v3.2
 
-BOOST_AUTO_TEST_SUITE(DistributedKokkosToolsAnnotations)
+BOOST_AUTO_TEST_SUITE(KokkosToolsDistributedAnnotations)
 
 namespace tt = boost::test_tools;
 
@@ -51,21 +51,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
                     isPrefixedWith(label, "Testing::")));
       });
 
-  { // empty
-    auto tree = makeDistributedSearchTree<DeviceType>(MPI_COMM_WORLD, {});
-  }
-
   { // one leaf per process
     auto tree = makeDistributedSearchTree<DeviceType>(
         MPI_COMM_WORLD, {
-                            {{{0, 0, 0}}, {{1, 1, 1}}},
-                        });
-  }
-
-  { // two leaves per process
-    auto tree = makeDistributedSearchTree<DeviceType>(
-        MPI_COMM_WORLD, {
-                            {{{0, 0, 0}}, {{1, 1, 1}}},
                             {{{0, 0, 0}}, {{1, 1, 1}}},
                         });
   }
@@ -112,64 +100,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
   Kokkos::Tools::Experimental::set_allocate_data_callback(nullptr);
 }
 
-/*
-BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
-{
-  auto const callback = [](char const *label, uint32_t, uint64_t *) {
-    std::cout << label << '\n';
-    BOOST_TEST((isPrefixedWith(label, "ArborX::") ||
-                isPrefixedWith(label, "Kokkos::")));
-  };
-  Kokkos::Tools::Experimental::set_begin_parallel_for_callback(callback);
-  Kokkos::Tools::Experimental::set_begin_parallel_scan_callback(callback);
-  Kokkos::Tools::Experimental::set_begin_parallel_reduce_callback(callback);
-
-  // DistributedSearchTree::DistributedSearchTree
-
-  { // empty
-    auto tree = makeDistributedSearchTree<DeviceType>(MPI_COMM_WORLD, {});
-  }
-
-  { // one leaf
-    auto tree = makeDistributedSearchTree<DeviceType>(
-        MPI_COMM_WORLD, {
-                            {{{0, 0, 0}}, {{1, 1, 1}}},
-                        });
-  }
-
-  { // two leaves
-    auto tree = makeDistributedSearchTree<DeviceType>(
-        MPI_COMM_WORLD, {
-                            {{{0, 0, 0}}, {{1, 1, 1}}},
-                            {{{0, 0, 0}}, {{1, 1, 1}}},
-                        });
-  }
-
-  // DistributedSearchTree::query
-
-  auto tree = makeDistributedSearchTree<DeviceType>(
-      MPI_COMM_WORLD, {
-                          {{{0, 0, 0}}, {{1, 1, 1}}},
-                          {{{0, 0, 0}}, {{1, 1, 1}}},
-                      });
-
-  // spatial predicates
-  query(tree, makeIntersectsBoxQueries<DeviceType>({
-                  {{{0, 0, 0}}, {{1, 1, 1}}},
-                  {{{0, 0, 0}}, {{1, 1, 1}}},
-              }));
-
-  // nearest predicates
-  query(tree, makeNearestQueries<DeviceType>({
-                  {{{0, 0, 0}}, 1},
-                  {{{0, 0, 0}}, 2},
-              }));
-
-  Kokkos::Tools::Experimental::set_begin_parallel_for_callback(nullptr);
-  Kokkos::Tools::Experimental::set_begin_parallel_scan_callback(nullptr);
-  Kokkos::Tools::Experimental::set_begin_parallel_reduce_callback(nullptr);
-}
-
 BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 {
   Kokkos::Tools::Experimental::set_push_region_callback([](char const *label) {
@@ -182,19 +112,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 
   { // empty
     auto tree = makeDistributedSearchTree<DeviceType>(MPI_COMM_WORLD, {});
-  }
-
-  { // one leaf per process
-    auto tree = makeDistributedSearchTree<DeviceType>(
-        MPI_COMM_WORLD, {{{{0, 0, 0}}, {{1, 1, 1}}}});
-  }
-
-  { // two leaves per process
-    auto tree = makeDistributedSearchTree<DeviceType>(
-        MPI_COMM_WORLD, {
-                            {{{0, 0, 0}}, {{1, 1, 1}}},
-                            {{{0, 0, 0}}, {{1, 1, 1}}},
-                        });
   }
 
   // DistributedSearchTree::query
@@ -219,7 +136,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 
   Kokkos::Tools::Experimental::set_push_region_callback(nullptr);
 }
-*/
 
 BOOST_AUTO_TEST_SUITE_END()
 
