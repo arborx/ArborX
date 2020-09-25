@@ -3,6 +3,9 @@ FROM $BASE
 
 ARG NPROCS=4
 
+# Avoid tzdata dialog
+ARG DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update && apt-get install -y \
         build-essential \
         bc \
