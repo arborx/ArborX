@@ -21,7 +21,7 @@
 #if (KOKKOS_VERSION >= 30200) // callback registriation from within the program
                               // was added in Kokkkos v3.2
 
-BOOST_AUTO_TEST_SUITE(KokkosDistributedToolsAnnotations)
+BOOST_AUTO_TEST_SUITE(KokkosToolsDistributedAnnotations)
 
 namespace tt = boost::test_tools;
 
@@ -49,19 +49,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 
   { // empty
     auto tree = makeDistributedSearchTree<DeviceType>(MPI_COMM_WORLD, {});
-  }
-
-  { // one leaf
-    auto tree = makeDistributedSearchTree<DeviceType>(
-        MPI_COMM_WORLD, {{{{0, 0, 0}}, {{1, 1, 1}}}});
-  }
-
-  { // two leaves
-    auto tree = makeDistributedSearchTree<DeviceType>(
-        MPI_COMM_WORLD, {
-                            {{{0, 0, 0}}, {{1, 1, 1}}},
-                            {{{0, 0, 0}}, {{1, 1, 1}}},
-                        });
   }
 
   // DistributedSearchTree::query
