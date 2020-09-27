@@ -128,60 +128,44 @@ inline void assignMortonCodes(
 
 template <typename ExecutionSpace, typename Primitives, typename Indices,
           typename Nodes>
-inline void initializeLeafNodesDispatch(BoxTag, ExecutionSpace const &space,
-                                        Primitives const &primitives,
-                                        Indices permutation_indices,
-                                        Nodes leaf_nodes)
+struct InitializeLeafNodes
 {
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-  auto const n = Access::size(primitives);
-  Kokkos::parallel_for(
-      "ArborX::TreeConstruction::initialize_leaf_nodes",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
-        leaf_nodes(i) =
-            makeLeafNode(permutation_indices(i),
-                         Access::get(primitives, permutation_indices(i)));
-      });
-}
+  Primitives primitives_;
+  Indices permutation_indices_;
+  Nodes leaf_nodes_;
 
-template <typename ExecutionSpace, typename Primitives, typename Indices,
-          typename Nodes>
-inline void initializeLeafNodesDispatch(PointTag, ExecutionSpace const &space,
-                                        Primitives const &primitives,
-                                        Indices permutation_indices,
-                                        Nodes leaf_nodes)
-{
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-  auto const n = Access::size(primitives);
-  Kokkos::parallel_for(
-      "ArborX::TreeConstruction::initialize_leaf_nodes",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
-        leaf_nodes(i) =
-            makeLeafNode(permutation_indices(i),
-                         {Access::get(primitives, permutation_indices(i)),
-                          Access::get(primitives, permutation_indices(i))});
-      });
-}
-
-template <typename ExecutionSpace, typename Primitives,
-          typename... PermutationIndicesViewProperties,
-          typename... LeafNodesViewProperties>
-inline void initializeLeafNodes(
-    ExecutionSpace const &space, Primitives const &primitives,
-    Kokkos::View<unsigned int const *, PermutationIndicesViewProperties...>
-        permutation_indices,
-    Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes)
-{
   using Access = AccessTraits<Primitives, PrimitivesTag>;
 
-  auto const n = Access::size(primitives);
-  ARBORX_ASSERT(permutation_indices.extent(0) == n);
-  ARBORX_ASSERT(leaf_nodes.extent(0) == n);
+  InitializeLeafNodes(ExecutionSpace const &space, Primitives const &primitives,
+                      Indices const &indices, Nodes const &nodes)
+      : primitives_(primitives)
+      , permutation_indices_(indices)
+      , leaf_nodes_(nodes)
+  {
+    auto const n = Access::size(primitives_);
+    ARBORX_ASSERT(permutation_indices_.extent(0) == n);
+    ARBORX_ASSERT(leaf_nodes_.extent(0) == n);
 
-  using Tag = typename AccessTraitsHelper<Access>::tag;
-  initializeLeafNodesDispatch(Tag{}, space, primitives, permutation_indices,
-                              leaf_nodes);
-}
+    using Tag = typename AccessTraitsHelper<Access>::tag;
+    Kokkos::parallel_for("ArbroX::TreeConstruction::initialize_leaf_nodes",
+                         Kokkos::RangePolicy<ExecutionSpace, Tag>(space, 0, n),
+                         *this);
+  }
+
+  KOKKOS_FUNCTION void operator()(BoxTag, int i) const
+  {
+    leaf_nodes_(i) =
+        makeLeafNode(permutation_indices_(i),
+                     Access::get(primitives_, permutation_indices_(i)));
+  }
+  KOKKOS_FUNCTION void operator()(PointTag, int i) const
+  {
+    leaf_nodes_(i) =
+        makeLeafNode(permutation_indices_(i),
+                     {Access::get(primitives_, permutation_indices_(i)),
+                      Access::get(primitives_, permutation_indices_(i))});
+  }
+};
 
 template <typename ExecutionSpace, typename Primitives,
           typename... PermutationIndicesViewProperties,
@@ -192,11 +176,11 @@ inline void initializeLeafNodes(
         permutation_indices,
     Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes)
 {
-  initializeLeafNodes(
-      space, primitives,
-      Kokkos::View<unsigned int const *, PermutationIndicesViewProperties...>{
-          permutation_indices},
-      leaf_nodes);
+  using Indices =
+      Kokkos::View<unsigned int const *, PermutationIndicesViewProperties...>;
+  using Nodes = Kokkos::View<Node *, LeafNodesViewProperties...>;
+  InitializeLeafNodes<ExecutionSpace, Primitives, Indices, Nodes>(
+      space, primitives, Indices(permutation_indices), leaf_nodes);
 }
 
 namespace
