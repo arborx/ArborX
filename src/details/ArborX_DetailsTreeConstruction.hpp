@@ -146,24 +146,16 @@ struct InitializeLeafNodes
     ARBORX_ASSERT(permutation_indices_.extent(0) == n);
     ARBORX_ASSERT(leaf_nodes_.extent(0) == n);
 
-    using Tag = typename AccessTraitsHelper<Access>::tag;
     Kokkos::parallel_for("ArbroX::TreeConstruction::initialize_leaf_nodes",
-                         Kokkos::RangePolicy<ExecutionSpace, Tag>(space, 0, n),
+                         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
                          *this);
   }
 
-  KOKKOS_FUNCTION void operator()(BoxTag, int i) const
+  KOKKOS_FUNCTION void operator()(int i) const
   {
-    leaf_nodes_(i) =
-        makeLeafNode(permutation_indices_(i),
-                     Access::get(primitives_, permutation_indices_(i)));
-  }
-  KOKKOS_FUNCTION void operator()(PointTag, int i) const
-  {
-    leaf_nodes_(i) =
-        makeLeafNode(permutation_indices_(i),
-                     {Access::get(primitives_, permutation_indices_(i)),
-                      Access::get(primitives_, permutation_indices_(i))});
+    Box bbox{};
+    expand(bbox, Access::get(primitives_, permutation_indices_(i)));
+    leaf_nodes_(i) = makeLeafNode(permutation_indices_(i), std::move(bbox));
   }
 };
 
