@@ -48,8 +48,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
                                               });
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(
-      [](Kokkos::Profiling::SpaceHandle handle, const char *label,
-         void const *ptr, uint64_t size) {
+      [](Kokkos::Profiling::SpaceHandle /*handle*/, const char *label,
+         void const * /*ptr*/, uint64_t /*size*/) {
         std::cout << label << '\n';
         BOOST_TEST((isPrefixedWith(label, "ArborX::DistributedTree::") ||
                     isPrefixedWith(label, "ArborX::BVH::") ||
@@ -78,8 +78,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
                                               });
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(
-      [](Kokkos::Profiling::SpaceHandle handle, const char *label,
-         void const *ptr, uint64_t size) {
+      [](Kokkos::Profiling::SpaceHandle /*handle*/, const char *label,
+         void const * /*ptr*/, uint64_t /*size*/) {
         std::cout << label << '\n';
         BOOST_TEST((isPrefixedWith(label, "ArborX::DistributedTree::query::") ||
                     isPrefixedWith(label, "ArborX::Distributor::") ||
