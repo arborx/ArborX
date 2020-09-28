@@ -234,13 +234,15 @@ public:
   {
     auto const leaf_nodes_shift = _num_internal_nodes;
 
+    // Index in the orginal order primitives were given in.
+    auto const original_index = _permutation_indices(i - leaf_nodes_shift);
+
     Box bbox{};
     using Access = AccessTraits<Primitives, PrimitivesTag>;
-    expand(bbox, Access::get(_primitives,
-                             _permutation_indices(i - leaf_nodes_shift)));
+    expand(bbox, Access::get(_primitives, original_index));
+
     // Initialize leaf node
-    *getNodePtr(i) =
-        makeLeafNode(_permutation_indices(i - leaf_nodes_shift), bbox);
+    *getNodePtr(i) = makeLeafNode(original_index, bbox);
 
     // For a leaf node, the range is just one index
     int range_left = i - leaf_nodes_shift;
