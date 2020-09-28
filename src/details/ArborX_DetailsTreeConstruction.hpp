@@ -126,25 +126,6 @@ inline void assignMortonCodes(
                             scene_bounding_box);
 }
 
-template <typename ExecutionSpace, typename Primitives, typename Indices,
-          typename Nodes>
-inline void
-initializeLeafNodes(ExecutionSpace const &space, Primitives const &primitives,
-                    Indices const &permutation_indices, Nodes const &leaf_nodes)
-{
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-  auto const n = Access::size(primitives);
-  ARBORX_ASSERT(permutation_indices.extent(0) == n);
-  ARBORX_ASSERT(leaf_nodes.extent(0) == n);
-  Kokkos::parallel_for(
-      "ArborX::TreeConstruction::initialize_leaf_nodes",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
-        Box bbox{};
-        expand(bbox, Access::get(primitives, permutation_indices(i)));
-        leaf_nodes(i) = makeLeafNode(permutation_indices(i), std::move(bbox));
-      });
-}
-
 namespace
 {
 // Ideally, this would be
@@ -155,20 +136,26 @@ namespace
 int constexpr UNTOUCHED_NODE = -1;
 } // namespace
 
-template <typename MemorySpace>
-class GenerateHierarchyFunctor
+template <typename Primitives, typename MemorySpace>
+class GenerateHierarchy
 {
 public:
-  template <typename ExecutionSpace, typename... MortonCodesViewProperties,
+  template <typename ExecutionSpace,
+            typename... PermutationIndicesViewProperties,
+            typename... MortonCodesViewProperties,
             typename... LeafNodesViewProperties,
             typename... InternalNodesViewProperties>
-  GenerateHierarchyFunctor(
-      ExecutionSpace const &space,
+  GenerateHierarchy(
+      ExecutionSpace const &space, Primitives const &primitives,
+      Kokkos::View<unsigned int const *, PermutationIndicesViewProperties...>
+          permutation_indices,
       Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
           sorted_morton_codes,
-      Kokkos::View<Node const *, LeafNodesViewProperties...> leaf_nodes,
+      Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
       Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
-      : _sorted_morton_codes(sorted_morton_codes)
+      : _primitives(primitives)
+      , _permutation_indices(permutation_indices)
+      , _sorted_morton_codes(sorted_morton_codes)
       , _leaf_nodes(leaf_nodes)
       , _internal_nodes(internal_nodes)
       , _ranges(
@@ -177,6 +164,12 @@ public:
       , _num_internal_nodes(_internal_nodes.extent_int(0))
   {
     Kokkos::deep_copy(space, _ranges, UNTOUCHED_NODE);
+
+    Kokkos::parallel_for(
+        "ArborX::TreeConstruction::generate_hierarchy",
+        Kokkos::RangePolicy<ExecutionSpace>(space, _num_internal_nodes,
+                                            2 * _num_internal_nodes + 1),
+        *this);
   }
 
   KOKKOS_FUNCTION
@@ -215,15 +208,20 @@ public:
   KOKKOS_FUNCTION Node *getNodePtr(int i) const
   {
     int const n = _num_internal_nodes;
-    return (i < n ? &(_internal_nodes(i))
-                  : const_cast<Node *>(&(_leaf_nodes(i - n))));
+    return (i < n ? &(_internal_nodes(i)) : &(_leaf_nodes(i - n)));
   }
 
   KOKKOS_FUNCTION void operator()(int i) const
   {
     auto const leaf_nodes_shift = _num_internal_nodes;
 
-    Box bbox = getNodePtr(i)->bounding_box;
+    Box bbox{};
+    using Access = AccessTraits<Primitives, PrimitivesTag>;
+    expand(bbox, Access::get(_primitives,
+                             _permutation_indices(i - leaf_nodes_shift)));
+    // Initialize leaf node
+    *getNodePtr(i) =
+        makeLeafNode(_permutation_indices(i - leaf_nodes_shift), bbox);
 
     // For a leaf node, the range is just one index
     int range_left = i - leaf_nodes_shift;
@@ -315,50 +313,39 @@ public:
   }
 
 private:
+  Primitives _primitives;
+  Kokkos::View<unsigned int const *, MemorySpace> _permutation_indices;
   Kokkos::View<unsigned int const *, MemorySpace> _sorted_morton_codes;
-  Kokkos::View<Node const *, MemorySpace> _leaf_nodes;
+  Kokkos::View<Node *, MemorySpace> _leaf_nodes;
   Kokkos::View<Node *, MemorySpace> _internal_nodes;
   Kokkos::View<int *, MemorySpace> _ranges;
   int _num_internal_nodes;
 };
 
-template <typename ExecutionSpace, typename... MortonCodesViewProperties,
+template <typename ExecutionSpace, typename Primitives,
+          typename... PermutationIndicesViewProperties,
+          typename... MortonCodesViewProperties,
           typename... LeafNodesViewProperties,
           typename... InternalNodesViewProperties>
 void generateHierarchy(
-    ExecutionSpace const &space,
-    Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
-        sorted_morton_codes,
-    Kokkos::View<Node const *, LeafNodesViewProperties...> leaf_nodes,
-    Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
-{
-  using MemorySpace = typename decltype(internal_nodes)::memory_space;
-  auto const n_internal_nodes = internal_nodes.extent(0);
-
-  Kokkos::parallel_for(
-      "ArborX::TreeConstruction::generate_hierarchy",
-      Kokkos::RangePolicy<ExecutionSpace>(space, n_internal_nodes,
-                                          2 * n_internal_nodes + 1),
-      GenerateHierarchyFunctor<MemorySpace>(space, sorted_morton_codes,
-                                            leaf_nodes, internal_nodes));
-}
-
-template <typename ExecutionSpace, typename... MortonCodesViewProperties,
-          typename... LeafNodesViewProperties,
-          typename... InternalNodesViewProperties>
-void generateHierarchy(
-    ExecutionSpace const &space,
+    ExecutionSpace const &space, Primitives const &primitives,
+    Kokkos::View<unsigned int *, PermutationIndicesViewProperties...>
+        permutation_indices,
     Kokkos::View<unsigned int *, MortonCodesViewProperties...>
         sorted_morton_codes,
     Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
     Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
 {
-  generateHierarchy(
-      space,
-      Kokkos::View<unsigned int const *, MortonCodesViewProperties...>{
-          sorted_morton_codes},
-      Kokkos::View<Node const *, LeafNodesViewProperties...>{leaf_nodes},
-      internal_nodes);
+  using ConstPermutationIndices =
+      Kokkos::View<unsigned int const *, PermutationIndicesViewProperties...>;
+  using ConstMortonCodes =
+      Kokkos::View<unsigned int const *, MortonCodesViewProperties...>;
+
+  using MemorySpace = typename decltype(internal_nodes)::memory_space;
+
+  GenerateHierarchy<Primitives, MemorySpace>(
+      space, primitives, ConstPermutationIndices(permutation_indices),
+      ConstMortonCodes(sorted_morton_codes), leaf_nodes, internal_nodes);
 }
 
 } // namespace TreeConstruction
