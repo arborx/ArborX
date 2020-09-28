@@ -37,6 +37,69 @@ BOOST_AUTO_TEST_CASE(is_prefixed_with)
   BOOST_TEST(!isPrefixedWith("Nope::ArborX", "ArborX"));
 }
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(
+    distributed_search_tree_distributed_search_tree_allocations_prefixed,
+    DeviceType, ARBORX_DEVICE_TYPES)
+{
+  Kokkos::Tools::Experimental::set_allocate_data_callback(
+      [](Kokkos::Profiling::SpaceHandle handle, const char *label,
+         void const *ptr, uint64_t size) {
+        std::cout << label << '\n';
+        BOOST_TEST((isPrefixedWith(label, "ArborX::DistributedSearchTree::") ||
+                    isPrefixedWith(label, "ArborX::BVH::") ||
+                    isPrefixedWith(label, "ArborX::Sorting::") ||
+                    isPrefixedWith(label, "Testing::")));
+      });
+
+  { // one leaf per process
+    auto tree = makeDistributedSearchTree<DeviceType>(
+        MPI_COMM_WORLD, {
+                            {{{0, 0, 0}}, {{1, 1, 1}}},
+                        });
+  }
+
+  Kokkos::Tools::Experimental::set_allocate_data_callback(nullptr);
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(
+    distributed_search_tree_query_allocations_prefixed, DeviceType,
+    ARBORX_DEVICE_TYPES)
+{
+  auto tree = makeDistributedSearchTree<DeviceType>(
+      MPI_COMM_WORLD, {
+                          {{{0, 0, 0}}, {{1, 1, 1}}},
+                          {{{0, 0, 0}}, {{1, 1, 1}}},
+                      });
+
+  Kokkos::Tools::Experimental::set_allocate_data_callback(
+      [](Kokkos::Profiling::SpaceHandle handle, const char *label,
+         void const *ptr, uint64_t size) {
+        std::cout << label << '\n';
+        BOOST_TEST(
+            (isPrefixedWith(label, "ArborX::DistributedSearchTree::query::") ||
+             isPrefixedWith(label, "ArborX::Distributor::") ||
+             isPrefixedWith(label, "ArborX::BVH::query::") ||
+             isPrefixedWith(label, "ArborX::BufferOptimization::") ||
+             isPrefixedWith(label, "ArborX::Sorting::") ||
+             isPrefixedWith(label, "Kokkos::SortImpl::") ||
+             isPrefixedWith(label, "Testing::")));
+      });
+
+  // spatial predicates
+  query(tree, makeIntersectsBoxQueries<DeviceType>({
+                  {{{0, 0, 0}}, {{1, 1, 1}}},
+                  {{{0, 0, 0}}, {{1, 1, 1}}},
+              }));
+
+  // nearest predicates
+  query(tree, makeNearestQueries<DeviceType>({
+                  {{{0, 0, 0}}, 1},
+                  {{{0, 0, 0}}, 2},
+              }));
+
+  Kokkos::Tools::Experimental::set_allocate_data_callback(nullptr);
+}
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 {
   Kokkos::Tools::Experimental::set_push_region_callback([](char const *label) {
