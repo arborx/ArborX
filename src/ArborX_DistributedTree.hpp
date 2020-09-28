@@ -206,9 +206,13 @@ public:
   }
 };
 
+// clang-format off
+
 template <typename MemorySpace, typename Enable = void>
-using DistributedSearchTree[[deprecated("Use DistributedTree instead.")]] =
+using DistributedSearchTree [[deprecated("Use DistributedTree instead.")]] =
     DistributedTree<MemorySpace, Enable>;
+
+// clang-format-on   
 
 } // namespace ArborX
 
