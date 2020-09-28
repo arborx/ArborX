@@ -126,14 +126,11 @@ inline void assignMortonCodes(
                             scene_bounding_box);
 }
 
-template <typename ExecutionSpace, typename Primitives,
-          typename... PermutationIndicesViewProperties,
-          typename... LeafNodesViewProperties>
-inline void initializeLeafNodes(
-    ExecutionSpace const &space, Primitives const &primitives,
-    Kokkos::View<unsigned int *, PermutationIndicesViewProperties...>
-        permutation_indices,
-    Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes)
+template <typename ExecutionSpace, typename Primitives, typename Indices,
+          typename Nodes>
+inline void
+initializeLeafNodes(ExecutionSpace const &space, Primitives const &primitives,
+                    Indices const &permutation_indices, Nodes const &leaf_nodes)
 {
   using Access = AccessTraits<Primitives, PrimitivesTag>;
   auto const n = Access::size(primitives);
