@@ -126,39 +126,6 @@ inline void assignMortonCodes(
                             scene_bounding_box);
 }
 
-template <typename ExecutionSpace, typename Primitives, typename Indices,
-          typename Nodes>
-struct InitializeLeafNodes
-{
-  Primitives primitives_;
-  Indices permutation_indices_;
-  Nodes leaf_nodes_;
-
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-
-  InitializeLeafNodes(ExecutionSpace const &space, Primitives const &primitives,
-                      Indices const &indices, Nodes const &nodes)
-      : primitives_(primitives)
-      , permutation_indices_(indices)
-      , leaf_nodes_(nodes)
-  {
-    auto const n = Access::size(primitives_);
-    ARBORX_ASSERT(permutation_indices_.extent(0) == n);
-    ARBORX_ASSERT(leaf_nodes_.extent(0) == n);
-
-    Kokkos::parallel_for("ArbroX::TreeConstruction::initialize_leaf_nodes",
-                         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-                         *this);
-  }
-
-  KOKKOS_FUNCTION void operator()(int i) const
-  {
-    Box bbox{};
-    expand(bbox, Access::get(primitives_, permutation_indices_(i)));
-    leaf_nodes_(i) = makeLeafNode(permutation_indices_(i), std::move(bbox));
-  }
-};
-
 template <typename ExecutionSpace, typename Primitives,
           typename... PermutationIndicesViewProperties,
           typename... LeafNodesViewProperties>
@@ -168,11 +135,17 @@ inline void initializeLeafNodes(
         permutation_indices,
     Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes)
 {
-  using Indices =
-      Kokkos::View<unsigned int const *, PermutationIndicesViewProperties...>;
-  using Nodes = Kokkos::View<Node *, LeafNodesViewProperties...>;
-  InitializeLeafNodes<ExecutionSpace, Primitives, Indices, Nodes>(
-      space, primitives, Indices(permutation_indices), leaf_nodes);
+  using Access = AccessTraits<Primitives, PrimitivesTag>;
+  auto const n = Access::size(primitives);
+  ARBORX_ASSERT(permutation_indices.extent(0) == n);
+  ARBORX_ASSERT(leaf_nodes.extent(0) == n);
+  Kokkos::parallel_for(
+      "ArborX::TreeConstruction::initialize_leaf_nodes",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+        Box bbox{};
+        expand(bbox, Access::get(primitives, permutation_indices(i)));
+        leaf_nodes(i) = makeLeafNode(permutation_indices(i), std::move(bbox));
+      });
 }
 
 namespace
