@@ -41,6 +41,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
     distributed_search_tree_distributed_search_tree_allocations_prefixed,
     DeviceType, ARBORX_DEVICE_TYPES)
 {
+  auto tree = makeDistributedSearchTree<DeviceType>(
+      MPI_COMM_WORLD, {
+                          {{{0, 0, 0}}, {{1, 1, 1}}},
+                          {{{0, 0, 0}}, {{1, 1, 1}}},
+                      });
+
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle handle, const char *label,
          void const *ptr, uint64_t size) {
@@ -98,6 +104,42 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
               }));
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(nullptr);
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
+{
+  auto const callback = [](char const *label, uint32_t, uint64_t *) {
+    std::cout << label << '\n';
+    BOOST_TEST((isPrefixedWith(label, "ArborX::") ||
+                isPrefixedWith(label, "Kokkos::")));
+  };
+  Kokkos::Tools::Experimental::set_begin_parallel_for_callback(callback);
+  Kokkos::Tools::Experimental::set_begin_parallel_scan_callback(callback);
+  Kokkos::Tools::Experimental::set_begin_parallel_reduce_callback(callback);
+
+  // DistributedSearchTree::query
+
+  auto tree = makeDistributedSearchTree<DeviceType>(
+      MPI_COMM_WORLD, {
+                          {{{0, 0, 0}}, {{1, 1, 1}}},
+                          {{{0, 0, 0}}, {{1, 1, 1}}},
+                      });
+
+  // spatial predicates
+  query(tree, makeIntersectsBoxQueries<DeviceType>({
+                  {{{0, 0, 0}}, {{1, 1, 1}}},
+                  {{{0, 0, 0}}, {{1, 1, 1}}},
+              }));
+
+  // nearest predicates
+  query(tree, makeNearestQueries<DeviceType>({
+                  {{{0, 0, 0}}, 1},
+                  {{{0, 0, 0}}, 2},
+              }));
+
+  Kokkos::Tools::Experimental::set_begin_parallel_for_callback(nullptr);
+  Kokkos::Tools::Experimental::set_begin_parallel_scan_callback(nullptr);
+  Kokkos::Tools::Experimental::set_begin_parallel_reduce_callback(nullptr);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
