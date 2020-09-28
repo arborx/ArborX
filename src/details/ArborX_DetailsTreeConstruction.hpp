@@ -133,6 +133,9 @@ inline void initializeSingleLeafNode(ExecutionSpace const &space,
 {
   using Access = AccessTraits<Primitives, PrimitivesTag>;
 
+  ARBORX_ASSERT(leaf_nodes.extent(0) == 1);
+  ARBORX_ASSERT(Access::size(primitives) == 1);
+
   Kokkos::parallel_for(
       "ArborX::TreeConstruction::initialize_single_leaf",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1), KOKKOS_LAMBDA(int) {
