@@ -195,8 +195,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   };
 
   typename DeviceType::execution_space space{};
+
+  Kokkos::View<Box *, DeviceType> primitives("primitives", n);
+  Kokkos::View<unsigned int *, DeviceType> permutation_indices("indices", n);
+  ArborX::iota(space, permutation_indices);
+
   ArborX::Details::TreeConstruction::generateHierarchy(
-      space, sorted_morton_codes, leaf_nodes, internal_nodes);
+      space, primitives, permutation_indices, sorted_morton_codes, leaf_nodes,
+      internal_nodes);
 
   Node const *root = internal_nodes.data();
 
