@@ -176,14 +176,8 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
 
   if (size() == 1)
   {
-    Kokkos::parallel_for("ArborX::BVH::BVH::initialize_single_leaf",
-                         Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1),
-                         KOKKOS_LAMBDA(int i) {
-                           Box bbox;
-                           Details::expand(bbox, Access::get(primitives, 0));
-                           _internal_and_leaf_nodes(0) =
-                               Details::makeLeafNode(0, std::move(bbox));
-                         });
+    Details::TreeConstruction::initializeSingleLeafNode(
+        space, primitives, _internal_and_leaf_nodes);
     Kokkos::Profiling::popRegion();
     return;
   }

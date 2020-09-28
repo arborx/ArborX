@@ -126,6 +126,22 @@ inline void assignMortonCodes(
                             scene_bounding_box);
 }
 
+template <typename ExecutionSpace, typename Primitives, typename Nodes>
+inline void initializeSingleLeafNode(ExecutionSpace const &space,
+                                     Primitives const &primitives,
+                                     Nodes const &leaf_nodes)
+{
+  using Access = AccessTraits<Primitives, PrimitivesTag>;
+
+  Kokkos::parallel_for(
+      "ArborX::TreeConstruction::initialize_single_leaf",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1), KOKKOS_LAMBDA(int) {
+        Box bbox{};
+        expand(bbox, Access::get(primitives, 0));
+        leaf_nodes(0) = Details::makeLeafNode(0, std::move(bbox));
+      });
+}
+
 namespace
 {
 // Ideally, this would be
