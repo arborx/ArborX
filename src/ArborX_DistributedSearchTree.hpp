@@ -14,7 +14,10 @@
 
 #include <ArborX_DistributedTree.hpp>
 
-_Pragma("message(\"This file is deprecated. Use ArborX_DistributedTree.hpp "
-        "instead!\")")
+// clang-format off
+
+_Pragma("message(\"This file is deprecated. Use ArborX_DistributedTree.hpp instead!\")")
+
+// clang-format on
 
 #endif
