@@ -11,11 +11,11 @@
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
-#include <ArborX_DetailsDistributedSearchTreeImpl.hpp>
+#include <ArborX_DetailsDistributedTreeImpl.hpp>
 
 #include <boost/test/unit_test.hpp>
 
-#define BOOST_TEST_MODULE DetailsDistributedSearchTreeImpl
+#define BOOST_TEST_MODULE DetailsDistributedTreeImpl
 
 #include <set>
 
@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sort_results, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::deep_copy(ranks, ranks_host);
 
   using ExecutionSpace = typename DeviceType::execution_space;
-  ArborX::Details::DistributedSearchTreeImpl<DeviceType>::sortResults(
+  ArborX::Details::DistributedTreeImpl<DeviceType>::sortResults(
       ExecutionSpace{}, ids, results, ranks);
 
   // COMMENT: ids are untouched
@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sort_results, DeviceType, ARBORX_DEVICE_TYPES)
 
   Kokkos::View<int *, DeviceType> not_sized_properly("", m);
   BOOST_CHECK_THROW(
-      ArborX::Details::DistributedSearchTreeImpl<DeviceType>::sortResults(
+      ArborX::Details::DistributedTreeImpl<DeviceType>::sortResults(
           ExecutionSpace{}, ids, not_sized_properly),
       ArborX::SearchException);
 }
@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sort_results_2d, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::deep_copy(results_2d, results_2d_host);
 
   using ExecutionSpace = typename DeviceType::execution_space;
-  ArborX::Details::DistributedSearchTreeImpl<DeviceType>::sortResults(
+  ArborX::Details::DistributedTreeImpl<DeviceType>::sortResults(
       ExecutionSpace{}, ids, results_2d);
 
   Kokkos::deep_copy(results_2d_host, results_2d);
@@ -146,7 +146,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sort_results_3d, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::deep_copy(results_3d, results_3d_host);
 
   using ExecutionSpace = typename DeviceType::execution_space;
-  ArborX::Details::DistributedSearchTreeImpl<DeviceType>::sortResults(
+  ArborX::Details::DistributedTreeImpl<DeviceType>::sortResults(
       ExecutionSpace{}, ids, results_3d);
 
   Kokkos::deep_copy(results_3d_host, results_3d);
@@ -176,7 +176,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(count_results, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::View<int *, DeviceType> offset("offset", m);
 
   using ExecutionSpace = typename DeviceType::execution_space;
-  ArborX::Details::DistributedSearchTreeImpl<DeviceType>::countResults(
+  ArborX::Details::DistributedTreeImpl<DeviceType>::countResults(
       ExecutionSpace{}, m, ids, offset);
 
   auto offset_host = Kokkos::create_mirror_view(offset);
@@ -358,7 +358,7 @@ struct Helper
     // NOTE here we assume that the reference solution is sized properly
     auto v_imp = Kokkos::create_mirror(typename View2::memory_space(), v_ref);
 
-    ArborX::Details::DistributedSearchTreeImpl<DeviceType>::sendAcrossNetwork(
+    ArborX::Details::DistributedTreeImpl<DeviceType>::sendAcrossNetwork(
         typename DeviceType::execution_space{}, distributor, v_exp, v_imp);
 
     auto v_imp_host = Kokkos::create_mirror_view(v_imp);

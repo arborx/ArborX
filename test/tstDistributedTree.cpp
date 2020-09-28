@@ -11,7 +11,7 @@
 
 #include "ArborX_BoostRTreeHelpers.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
-#include <ArborX_DistributedSearchTree.hpp>
+#include <ArborX_DistributedTree.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -23,7 +23,7 @@
 #include "Search_UnitTestHelpers.hpp"
 #include <mpi.h>
 
-#define BOOST_TEST_MODULE DistributedSearchTree
+#define BOOST_TEST_MODULE DistributedTree
 
 namespace tt = boost::test_tools;
 
@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
                          points(i) = {{(double)i / n + comm_rank, 0., 0.}};
                        });
 
-  ArborX::DistributedSearchTree<DeviceType> tree(comm, points);
+  ArborX::DistributedTree<DeviceType> tree(comm, points);
 
   // 0---0---0---0---1---1---1---1---2---2---2---2---3---3---3---3---
   // |               |               |               |               |
@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
   int comm_size;
   MPI_Comm_size(comm, &comm_size);
 
-  auto const tree = makeDistributedSearchTree<DeviceType>(comm, {});
+  auto const tree = makeDistributedTree<DeviceType>(comm, {});
 
   BOOST_TEST(tree.empty());
   BOOST_TEST(tree.size() == 0);
@@ -220,12 +220,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
 
   // tree has one unique leaf that lives on rank 0
   auto const tree =
-      (comm_rank == 0 ? makeDistributedSearchTree<DeviceType>(
+      (comm_rank == 0 ? makeDistributedTree<DeviceType>(
                             comm,
                             {
                                 {{{0., 0., 0.}}, {{1., 1., 1.}}},
                             })
-                      : makeDistributedSearchTree<DeviceType>(comm, {}));
+                      : makeDistributedTree<DeviceType>(comm, {}));
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 1);
@@ -266,7 +266,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
   MPI_Comm_size(comm, &comm_size);
 
   // tree has one leaf per rank
-  auto const tree = makeDistributedSearchTree<DeviceType>(
+  auto const tree = makeDistributedTree<DeviceType>(
       comm,
       {
           {{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank + 1., 1., 1.}}},
@@ -340,7 +340,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(do_not_exceed_capacity, DeviceType,
                        KOKKOS_LAMBDA(int i) {
                          points(i) = {{(float)i, (float)i, (float)i}};
                        });
-  ArborX::DistributedSearchTree<DeviceType> tree{comm, points};
+  ArborX::DistributedTree<DeviceType> tree{comm, points};
   Kokkos::View<decltype(nearest(Point{})) *, DeviceType> queries(
       "Testing::queries", 1);
   Kokkos::deep_copy(queries, nearest(Point{0, 0, 0}, 512));
@@ -368,7 +368,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_nearest_neighbors, DeviceType,
   //             [  rank 1  ]
   //                        [  rank 2  ]
   //                                   [  rank 3  ]
-  auto const tree = makeDistributedSearchTree<DeviceType>(
+  auto const tree = makeDistributedTree<DeviceType>(
       comm, {
                 {{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank, 0., 0.}}},
                 {{{(double)comm_rank + 1., 1., 1.}},
@@ -472,7 +472,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
   //             [  rank 1  ]
   //                        [  rank 2  ]
   //                                   [  rank 3  ]
-  auto const tree = makeDistributedSearchTree<DeviceType>(
+  auto const tree = makeDistributedTree<DeviceType>(
       comm,
       {{{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank + 1, 1., 1.}}}});
 
@@ -608,8 +608,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::deep_copy(bounding_boxes, bounding_boxes_host);
 
   // Initialize the distributed search tree
-  ArborX::DistributedSearchTree<DeviceType> distributed_tree(comm,
-                                                             bounding_boxes);
+  ArborX::DistributedTree<DeviceType> distributed_tree(comm, bounding_boxes);
 
   // make queries
   using ExecutionSpace = typename DeviceType::execution_space;
