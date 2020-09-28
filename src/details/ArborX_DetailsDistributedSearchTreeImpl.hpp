@@ -706,7 +706,7 @@ void DistributedSearchTreeImpl<DeviceType>::communicateResultsBack(
   Kokkos::View<int *, DeviceType> export_ids(
       Kokkos::ViewAllocateWithoutInitializing(ids.label()), n_exports);
   Kokkos::parallel_for(
-      "AborX::DistributedTree::query::fill_buffer",
+      "ArborX::DistributedTree::query::fill_buffer",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_fwd_queries),
       KOKKOS_LAMBDA(int q) {
         for (int i = offset(q); i < offset(q + 1); ++i)
