@@ -12,6 +12,10 @@
 #ifndef ARBORX_DISTRIBUTED_TREE_HPP
 #define ARBORX_DISTRIBUTED_TREE_HPP
 
+#include <ArborX_Config.hpp>
+
+#ifdef ARBORX_ENABLE_MPI
+
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsDistributedTreeImpl.hpp>
 #include <ArborX_DetailsUtils.hpp> // accumulate
@@ -216,4 +220,5 @@ using DistributedSearchTree [[deprecated("Use DistributedTree instead.")]] =
 
 } // namespace ArborX
 
+#endif
 #endif

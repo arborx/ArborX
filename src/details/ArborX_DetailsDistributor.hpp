@@ -13,6 +13,8 @@
 
 #include <ArborX_Config.hpp>
 
+#ifdef ARBORX_ENABLE_MPI
+
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUtils.hpp> // max
 #include <ArborX_Exception.hpp>
@@ -391,4 +393,5 @@ private:
 } // namespace Details
 } // namespace ArborX
 
+#endif
 #endif

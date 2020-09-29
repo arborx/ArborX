@@ -13,6 +13,8 @@
 
 #include <ArborX_Config.hpp>
 
+#ifdef ARBORX_ENABLE_MPI
+
 #include <ArborX_DetailsDistributor.hpp>
 #include <ArborX_DetailsKokkosExt.hpp> // min, max
 #include <ArborX_DetailsPriorityQueue.hpp>
@@ -822,4 +824,5 @@ void DistributedTreeImpl<DeviceType>::filterResults(
 } // namespace Details
 } // namespace ArborX
 
+#endif
 #endif
