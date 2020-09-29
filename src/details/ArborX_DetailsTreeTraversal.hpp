@@ -163,7 +163,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     auto const &predicates = predicates_;
     Kokkos::parallel_for(
         "ArborX::TreeTraversal::nearest::"
-        "scan_queries_for_numbers_of_nearest_neighbors",
+        "scan_queries_for_numbers_of_neighbors",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
     exclusivePrefixSum(space, offset);
