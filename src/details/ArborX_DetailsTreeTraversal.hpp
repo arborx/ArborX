@@ -13,7 +13,6 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
-#include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_DetailsStack.hpp>
 #include <ArborX_DetailsUtils.hpp>
@@ -38,6 +37,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   Callback callback_;
 
   using Access = AccessTraits<Predicates, PredicatesTag>;
+  using Node = typename BVH::node_type;
 
   template <typename ExecutionSpace>
   TreeTraversal(ExecutionSpace const &space, BVH const &bvh,
@@ -133,6 +133,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   Callback callback_;
 
   using Access = AccessTraits<Predicates, PredicatesTag>;
+  using Node = typename BVH::node_type;
 
   using Buffer = Kokkos::View<Kokkos::pair<int, float> *, MemorySpace>;
   using Offset = Kokkos::View<int *, MemorySpace>;
