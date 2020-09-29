@@ -84,6 +84,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
         BOOST_TEST((isPrefixedWith(label, "ArborX::DistributedTree::query::") ||
                     isPrefixedWith(label, "ArborX::Distributor::") ||
                     isPrefixedWith(label, "ArborX::BVH::query::") ||
+                    isPrefixedWith(label, "ArborX::TreeTraversal::spatial::") ||
+                    isPrefixedWith(label, "ArborX::TreeTraversal::nearest::") ||
                     isPrefixedWith(label, "ArborX::BufferOptimization::") ||
                     isPrefixedWith(label, "ArborX::Sorting::") ||
                     isPrefixedWith(label, "Kokkos::SortImpl::") ||
