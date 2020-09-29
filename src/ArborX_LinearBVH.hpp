@@ -75,16 +75,16 @@ private:
   friend struct Details::TreeTraversal;
   template <typename DeviceType>
   friend struct Details::TreeVisualization;
-  using Node = Details::Node;
+  using node_type = Details::Node;
 
-  Kokkos::View<Node *, MemorySpace> getInternalNodes()
+  Kokkos::View<node_type *, MemorySpace> getInternalNodes()
   {
     assert(!empty());
     return Kokkos::subview(_internal_and_leaf_nodes,
                            std::make_pair(size_type{0}, size() - 1));
   }
 
-  Kokkos::View<Node *, MemorySpace> getLeafNodes()
+  Kokkos::View<node_type *, MemorySpace> getLeafNodes()
   {
     assert(!empty());
     return Kokkos::subview(_internal_and_leaf_nodes,
@@ -92,29 +92,32 @@ private:
   }
 
   KOKKOS_FUNCTION
-  Node const *getRoot() const { return _internal_and_leaf_nodes.data(); }
+  node_type const *getRoot() const { return _internal_and_leaf_nodes.data(); }
 
   KOKKOS_FUNCTION
-  Node *getRoot() { return _internal_and_leaf_nodes.data(); }
+  node_type *getRoot() { return _internal_and_leaf_nodes.data(); }
 
   KOKKOS_FUNCTION
-  Node const *getNodePtr(int i) const { return &_internal_and_leaf_nodes(i); }
+  node_type const *getNodePtr(int i) const
+  {
+    return &_internal_and_leaf_nodes(i);
+  }
 
   KOKKOS_FUNCTION
-  bounding_volume_type const &getBoundingVolume(Node const *node) const
+  bounding_volume_type const &getBoundingVolume(node_type const *node) const
   {
     return node->bounding_box;
   }
 
   KOKKOS_FUNCTION
-  bounding_volume_type &getBoundingVolume(Node *node)
+  bounding_volume_type &getBoundingVolume(node_type *node)
   {
     return node->bounding_box;
   }
 
   size_t _size;
   bounding_volume_type _bounds;
-  Kokkos::View<Node *, MemorySpace> _internal_and_leaf_nodes;
+  Kokkos::View<node_type *, MemorySpace> _internal_and_leaf_nodes;
 };
 
 template <typename DeviceType>
