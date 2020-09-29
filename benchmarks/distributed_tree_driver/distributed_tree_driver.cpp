@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_DistributedSearchTree.hpp>
+#include <ArborX_DistributedTree.hpp>
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -413,8 +413,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   auto construction = time_monitor.getNewTimer("construction");
   MPI_Barrier(comm);
   construction->start();
-  ArborX::DistributedSearchTree<DeviceType> distributed_tree(comm,
-                                                             bounding_boxes);
+  ArborX::DistributedTree<DeviceType> distributed_tree(comm, bounding_boxes);
   construction->stop();
 
   std::ostream &os = std::cout;

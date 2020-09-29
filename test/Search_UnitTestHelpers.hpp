@@ -23,7 +23,7 @@
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsKokkosExt.hpp> // is_accessible_from
 #ifdef ARBORX_ENABLE_MPI
-#include <ArborX_DistributedSearchTree.hpp>
+#include <ArborX_DistributedTree.hpp>
 #endif
 #include <ArborX_LinearBVH.hpp>
 
@@ -71,7 +71,7 @@ struct is_distributed : std::false_type
 
 #ifdef ARBORX_ENABLE_MPI
 template <typename D>
-struct is_distributed<ArborX::DistributedSearchTree<D>> : std::true_type
+struct is_distributed<ArborX::DistributedTree<D>> : std::true_type
 {
 };
 
@@ -155,7 +155,7 @@ auto query_with_distance(Tree const &tree, Queries const &queries,
   Kokkos::View<float *, device_type> distances("Testing::distances", 0);
   using ExecutionSpace = typename device_type::execution_space;
   ExecutionSpace space;
-  ArborX::Details::DistributedSearchTreeImpl<device_type>::queryDispatchImpl(
+  ArborX::Details::DistributedTreeImpl<device_type>::queryDispatchImpl(
       ArborX::Details::NearestPredicateTag{}, tree, space, queries, indices,
       offsets, ranks, &distances);
 
@@ -186,8 +186,8 @@ auto make(std::vector<ArborX::Box> const &b)
 
 #ifdef ARBORX_ENABLE_MPI
 template <typename DeviceType>
-ArborX::DistributedSearchTree<DeviceType>
-makeDistributedSearchTree(MPI_Comm comm, std::vector<ArborX::Box> const &b)
+ArborX::DistributedTree<DeviceType>
+makeDistributedTree(MPI_Comm comm, std::vector<ArborX::Box> const &b)
 {
   int const n = b.size();
   Kokkos::View<ArborX::Box *, DeviceType> boxes("Testing::boxes", n);
@@ -195,7 +195,7 @@ makeDistributedSearchTree(MPI_Comm comm, std::vector<ArborX::Box> const &b)
   for (int i = 0; i < n; ++i)
     boxes_host(i) = b[i];
   Kokkos::deep_copy(boxes, boxes_host);
-  return ArborX::DistributedSearchTree<DeviceType>(comm, boxes);
+  return ArborX::DistributedTree<DeviceType>(comm, boxes);
 }
 #endif
 
