@@ -176,10 +176,8 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
 
   if (size() == 1)
   {
-    Kokkos::View<unsigned int *, MemorySpace> permutation_indices(
-        Kokkos::view_alloc("ArborX::BVH::BVH::permute", space), 1);
-    Details::TreeConstruction::initializeLeafNodes(
-        space, primitives, permutation_indices, getLeafNodes());
+    Details::TreeConstruction::initializeSingleLeafNode(
+        space, primitives, _internal_and_leaf_nodes);
     Kokkos::Profiling::popRegion();
     return;
   }
@@ -200,18 +198,12 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
   auto permutation_indices = Details::sortObjects(space, morton_indices);
 
   Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::init_leaves");
-
-  // initialize leaves using the computed ordering
-  Details::TreeConstruction::initializeLeafNodes(
-      space, primitives, permutation_indices, getLeafNodes());
-
-  Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::generate_hierarchy");
 
   // generate bounding volume hierarchy
   Details::TreeConstruction::generateHierarchy(
-      space, morton_indices, getLeafNodes(), getInternalNodes());
+      space, primitives, permutation_indices, morton_indices, getLeafNodes(),
+      getInternalNodes());
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::popRegion();

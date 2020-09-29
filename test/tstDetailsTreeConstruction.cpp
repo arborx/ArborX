@@ -171,8 +171,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   using ArborX::Box;
   using ArborX::Details::makeLeafNode;
   using ArborX::Details::Node;
-  Kokkos::View<Node *, DeviceType> leaf_nodes("leaf_nodes", n);
-  Kokkos::View<Node *, DeviceType> internal_nodes("internal_nodes", n - 1);
+  Kokkos::View<Node *, DeviceType> leaf_nodes("Testing::leaf_nodes", n);
+  Kokkos::View<Node *, DeviceType> internal_nodes("Testing::internal_nodes",
+                                                  n - 1);
   for (int i = 0; i < n; ++i)
     leaf_nodes(i) = makeLeafNode(i, Box{});
   auto getNodePtr = [&leaf_nodes, &internal_nodes](int i) {
@@ -195,8 +196,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   };
 
   typename DeviceType::execution_space space{};
+
+  Kokkos::View<Box *, DeviceType> primitives("Testing::primitives", n);
+  Kokkos::View<unsigned int *, DeviceType> permutation_indices(
+      "Testing::indices", n);
+  ArborX::iota(space, permutation_indices);
+
   ArborX::Details::TreeConstruction::generateHierarchy(
-      space, sorted_morton_codes, leaf_nodes, internal_nodes);
+      space, primitives, permutation_indices, sorted_morton_codes, leaf_nodes,
+      internal_nodes);
 
   Node const *root = internal_nodes.data();
 
