@@ -53,14 +53,14 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     else if (bvh_.size() == 1)
     {
       Kokkos::parallel_for(
-          "ArborX::TreeTraversal::spatial_queries_degenerated_one_leaf_tree",
+          "ArborX::TreeTraversal::spatial::degenerated_one_leaf_tree",
           Kokkos::RangePolicy<ExecutionSpace, OneLeafTree>(
               space, 0, Access::size(predicates)),
           *this);
     }
     else
     {
-      Kokkos::parallel_for("ArborX::TreeTraversal::spatial_queries",
+      Kokkos::parallel_for("ArborX::TreeTraversal::spatial",
                            Kokkos::RangePolicy<ExecutionSpace>(
                                space, 0, Access::size(predicates)),
                            *this);
@@ -156,13 +156,14 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   {
     auto const n_queries = Access::size(predicates_);
 
-    Offset offset(
-        Kokkos::ViewAllocateWithoutInitializing("ArborX::BVH::query::offset"),
-        n_queries + 1);
+    Offset offset(Kokkos::ViewAllocateWithoutInitializing(
+                      "ArborX::TreeTraversal::nearest::offset"),
+                  n_queries + 1);
     // NOTE workaround to avoid implicit capture of *this
     auto const &predicates = predicates_;
     Kokkos::parallel_for(
-        "ArborX::TreeTraversal::scan_queries_for_numbers_of_nearest_neighbors",
+        "ArborX::TreeTraversal::nearest::"
+        "scan_queries_for_numbers_of_nearest_neighbors",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
     exclusivePrefixSum(space, offset);
@@ -172,9 +173,9 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     // It is not possible to anticipate how much memory to allocate since the
     // number of nearest neighbors k is only known at runtime.
 
-    Buffer buffer(
-        Kokkos::ViewAllocateWithoutInitializing("ArborX::BVH::query::buffer"),
-        buffer_size);
+    Buffer buffer(Kokkos::ViewAllocateWithoutInitializing(
+                      "ArborX::TreeTraversal::nearest::buffer"),
+                  buffer_size);
     buffer_ = BufferProvider{buffer, offset};
   }
 
@@ -192,7 +193,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     else if (bvh_.size() == 1)
     {
       Kokkos::parallel_for(
-          "ArborX::TreeTraversal::nearest_queries_degenerated_one_leaf_tree",
+          "ArborX::TreeTraversal::nearest::degenerated_one_leaf_tree",
           Kokkos::RangePolicy<ExecutionSpace, OneLeafTree>(
               space, 0, Access::size(predicates)),
           *this);
@@ -201,7 +202,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     {
       allocateBuffer(space);
 
-      Kokkos::parallel_for("ArborX::TreeTraversal::nearest_queries",
+      Kokkos::parallel_for("ArborX::TreeTraversal::nearest",
                            Kokkos::RangePolicy<ExecutionSpace>(
                                space, 0, Access::size(predicates)),
                            *this);
