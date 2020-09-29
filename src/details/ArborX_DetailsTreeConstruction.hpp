@@ -16,7 +16,6 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // expand
 #include <ArborX_DetailsMortonCode.hpp> // morton3D
-#include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsTags.hpp>
 
 #include <Kokkos_Core.hpp>
