@@ -37,12 +37,12 @@ struct TreeVisualization
   struct TreeAccess
   {
     template <typename Tree>
-    KOKKOS_INLINE_FUNCTION static Node const *getLeaf(Tree const &tree,
-                                                      size_t index)
+    KOKKOS_INLINE_FUNCTION static typename Tree::node_type const *
+    getLeaf(Tree const &tree, size_t index)
     {
       auto leaf_nodes = tree.getLeafNodes();
-      Node const *first = leaf_nodes.data();
-      Node const *last = first + static_cast<ptrdiff_t>(leaf_nodes.size());
+      auto const *first = leaf_nodes.data();
+      auto const *last = first + static_cast<ptrdiff_t>(leaf_nodes.size());
       for (; first != last; ++first)
         if (index == first->getLeafPermutationIndex())
           return first;
@@ -50,36 +50,38 @@ struct TreeVisualization
     }
 
     template <typename Tree>
-    KOKKOS_INLINE_FUNCTION static int getIndex(Node const *node,
-                                               Tree const &tree)
+    KOKKOS_INLINE_FUNCTION static int
+    getIndex(typename Tree::node_type const *node, Tree const &tree)
     {
       return node->isLeaf() ? node->getLeafPermutationIndex()
                             : node - tree.getRoot();
     }
 
     template <typename Tree>
-    KOKKOS_INLINE_FUNCTION static Node const *getRoot(Tree const &tree)
+    KOKKOS_INLINE_FUNCTION static typename Tree::node_type const *
+    getRoot(Tree const &tree)
     {
       return tree.getRoot();
     }
 
     template <typename Tree>
-    KOKKOS_INLINE_FUNCTION static Node const *getNodePtr(Tree const &tree,
-                                                         int index)
+    KOKKOS_INLINE_FUNCTION static typename Tree::node_type const *
+    getNodePtr(Tree const &tree, int index)
     {
       return tree.getNodePtr(index);
     }
 
     template <typename Tree>
     KOKKOS_INLINE_FUNCTION static typename Tree::bounding_volume_type
-    getBoundingVolume(Node const *node, Tree const &tree)
+    getBoundingVolume(typename Tree::node_type const *node, Tree const &tree)
     {
       return tree.getBoundingVolume(node);
     }
   };
 
   template <typename Tree>
-  static std::string getNodeLabel(Node const *node, Tree const &tree)
+  static std::string getNodeLabel(typename Tree::node_type const *node,
+                                  Tree const &tree)
   {
     auto const node_is_leaf = node->isLeaf();
     auto const node_index = TreeAccess::getIndex(node, tree);
@@ -89,14 +91,16 @@ struct TreeVisualization
   }
 
   template <typename Tree>
-  static std::string getNodeAttributes(Node const *node, Tree const &)
+  static std::string getNodeAttributes(typename Tree::node_type const *node,
+                                       Tree const &)
   {
     return node->isLeaf() ? "[leaf]" : "[internal]";
   }
 
   template <typename Tree>
-  static std::string getEdgeAttributes(Node const * /*parent*/,
-                                       Node const *child, Tree const &)
+  static std::string
+  getEdgeAttributes(typename Tree::node_type const * /*parent*/,
+                    typename Tree::node_type const *child, Tree const &)
   {
     return child->isLeaf() ? "[pendant]" : "[edge]";
   }
@@ -114,13 +118,13 @@ struct TreeVisualization
     std::ostream &_os;
 
     template <typename Tree>
-    void visit(Node const *node, Tree const &tree) const
+    void visit(typename Tree::node_type const *node, Tree const &tree) const
     {
       visitNode(node, tree);
       visitEdgesStartingFromNode(node, tree);
     }
 
-    template <typename Tree>
+    template <typename Node, typename Tree>
     void visitNode(Node const *node, Tree const &tree) const
     {
       auto const node_label = getNodeLabel(node, tree);
@@ -130,14 +134,15 @@ struct TreeVisualization
     }
 
     template <typename Tree>
-    void visitEdgesStartingFromNode(Node const *node, Tree const &tree) const
+    void visitEdgesStartingFromNode(typename Tree::node_type const *node,
+                                    Tree const &tree) const
     {
       auto const node_label = getNodeLabel(node, tree);
       auto const node_is_internal = !node->isLeaf();
       auto getNodePr = [&](int i) { return TreeAccess::getNodePtr(tree, i); };
 
       if (node_is_internal)
-        for (Node const *child : {getNodePr(node->children.first),
+        for (auto const *child : {getNodePr(node->children.first),
                                   getNodePr(node->children.second)})
         {
           auto const child_label = getNodeLabel(child, tree);
@@ -161,7 +166,7 @@ struct TreeVisualization
     std::ostream &_os;
 
     template <typename Tree>
-    void visit(Node const *node, Tree const &tree) const
+    void visit(typename Tree::node_type const *node, Tree const &tree) const
     {
       auto const node_label = getNodeLabel(node, tree);
       auto const node_attributes = getNodeAttributes(node, tree);
@@ -176,18 +181,19 @@ struct TreeVisualization
   template <typename Tree, typename Visitor>
   static void visitAllIterative(Tree const &tree, Visitor const &visitor)
   {
+    using Node = typename Tree::node_type;
     Stack<Node const *> stack;
     stack.emplace(TreeAccess::getRoot(tree));
     auto getNodePtr = [&](int i) { return TreeAccess::getNodePtr(tree, i); };
     while (!stack.empty())
     {
-      Node const *node = stack.top();
+      auto const *node = stack.top();
       stack.pop();
 
       visitor.visit(node, tree);
 
       if (!node->isLeaf())
-        for (Node const *child : {getNodePtr(node->children.first),
+        for (auto const *child : {getNodePtr(node->children.first),
                                   getNodePtr(node->children.second)})
           stack.push(child);
     }

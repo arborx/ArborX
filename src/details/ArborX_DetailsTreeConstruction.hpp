@@ -16,7 +16,7 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // expand
 #include <ArborX_DetailsMortonCode.hpp> // morton3D
-#include <ArborX_DetailsNode.hpp>
+#include <ArborX_DetailsNode.hpp>       // makeLeafNode
 #include <ArborX_DetailsTags.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -155,7 +155,7 @@ namespace
 int constexpr UNTOUCHED_NODE = -1;
 } // namespace
 
-template <typename Primitives, typename MemorySpace>
+template <typename Primitives, typename MemorySpace, typename Node>
 class GenerateHierarchy
 {
 public:
@@ -345,7 +345,7 @@ private:
 
 template <typename ExecutionSpace, typename Primitives,
           typename... PermutationIndicesViewProperties,
-          typename... MortonCodesViewProperties,
+          typename... MortonCodesViewProperties, typename Node,
           typename... LeafNodesViewProperties,
           typename... InternalNodesViewProperties>
 void generateHierarchy(
@@ -364,7 +364,7 @@ void generateHierarchy(
 
   using MemorySpace = typename decltype(internal_nodes)::memory_space;
 
-  GenerateHierarchy<Primitives, MemorySpace>(
+  GenerateHierarchy<Primitives, MemorySpace, Node>(
       space, primitives, ConstPermutationIndices(permutation_indices),
       ConstMortonCodes(sorted_morton_codes), leaf_nodes, internal_nodes);
 }

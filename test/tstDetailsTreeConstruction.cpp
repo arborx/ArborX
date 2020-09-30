@@ -12,7 +12,8 @@
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsMortonCode.hpp> // expandBits, morton3D
-#include <ArborX_DetailsSortUtils.hpp>  // sortObjects
+#include <ArborX_DetailsNode.hpp>
+#include <ArborX_DetailsSortUtils.hpp> // sortObjects
 #include <ArborX_DetailsTreeConstruction.hpp>
 
 #include <boost/test/unit_test.hpp>
