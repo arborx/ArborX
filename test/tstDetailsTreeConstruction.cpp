@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   // hierarchy generation
   using ArborX::Box;
   using ArborX::Details::makeLeafNode;
-  using ArborX::Details::Node;
+  using Node = ArborX::Details::NodeWithLeftChildAndRope;
   using ArborX::Details::ROPE_SENTINEL;
 
   Kokkos::View<Node *, DeviceType> leaf_nodes("Testing::leaf_nodes", n);

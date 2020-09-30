@@ -25,10 +25,10 @@ namespace Details
 
 int constexpr ROPE_SENTINEL = -1;
 
-struct Node
+struct NodeWithLeftChildAndRope
 {
   KOKKOS_DEFAULTED_FUNCTION
-  constexpr Node() = default;
+  constexpr NodeWithLeftChildAndRope() = default;
 
   KOKKOS_INLINE_FUNCTION constexpr bool isLeaf() const noexcept
   {
@@ -58,7 +58,7 @@ struct Node
   Box bounding_box;
 };
 
-KOKKOS_INLINE_FUNCTION constexpr Node
+KOKKOS_INLINE_FUNCTION constexpr NodeWithLeftChildAndRope
 makeLeafNode(std::size_t permutation_index, Box box) noexcept
 {
   return {-static_cast<int>(permutation_index), ROPE_SENTINEL, std::move(box)};

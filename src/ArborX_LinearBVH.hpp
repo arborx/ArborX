@@ -75,7 +75,7 @@ private:
   friend struct Details::TreeTraversal;
   template <typename DeviceType>
   friend struct Details::TreeVisualization;
-  using node_type = Details::Node;
+  using node_type = Details::NodeWithLeftChildAndRope;
 
   Kokkos::View<node_type *, MemorySpace> getInternalNodes()
   {
