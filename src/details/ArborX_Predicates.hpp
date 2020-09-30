@@ -12,7 +12,6 @@
 #define ARBORX_PREDICATE_HPP
 
 #include <ArborX_DetailsAlgorithms.hpp>
-#include <ArborX_DetailsNode.hpp>
 
 namespace ArborX
 {
