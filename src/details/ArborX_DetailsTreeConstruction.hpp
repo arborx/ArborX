@@ -136,12 +136,15 @@ inline void initializeSingleLeafNode(ExecutionSpace const &space,
   ARBORX_ASSERT(leaf_nodes.extent(0) == 1);
   ARBORX_ASSERT(Access::size(primitives) == 1);
 
+  using Node = typename Nodes::value_type;
+
   Kokkos::parallel_for(
       "ArborX::TreeConstruction::initialize_single_leaf",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1), KOKKOS_LAMBDA(int) {
         Box bbox{};
         expand(bbox, Access::get(primitives, 0));
-        leaf_nodes(0) = Details::makeLeafNode(0, std::move(bbox));
+        leaf_nodes(0) =
+            Details::makeLeafNode(typename Node::Tag{}, 0, std::move(bbox));
       });
 }
 
@@ -266,7 +269,7 @@ public:
 
     // Initialize leaf node
     auto *leaf_node = getNodePtr(i);
-    *leaf_node = makeLeafNode(original_index, bbox);
+    *leaf_node = makeLeafNode(typename Node::Tag{}, original_index, bbox);
 
     // For a leaf node, the range is just one index
     int range_left = i - leaf_nodes_shift;

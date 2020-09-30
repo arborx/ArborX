@@ -158,7 +158,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   Kokkos::View<Node *, DeviceType> internal_nodes("Testing::internal_nodes",
                                                   n - 1);
   for (int i = 0; i < n; ++i)
-    leaf_nodes(i) = makeLeafNode(i, Box{});
+    leaf_nodes(i) = makeLeafNode(typename Node::Tag{}, i, Box{});
 
   typename DeviceType::execution_space space{};
 
