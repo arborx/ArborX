@@ -1,9 +1,10 @@
-ARG BASE=rocm/dev-ubuntu-18.04:3.5
+ARG BASE=rocm/dev-ubuntu-20.04:3.8
 FROM $BASE
 
 ARG NPROCS=4
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -yq \
         build-essential \
         bc \
         curl \
@@ -25,6 +26,14 @@ RUN apt-get update && apt-get install -y \
 
 ENV PATH=/opt/rocm/bin:$PATH
 
+RUN KEYDUMP_URL=https://cloud.cees.ornl.gov/download && \
+    KEYDUMP_FILE=keydump && \
+    wget --quiet ${KEYDUMP_URL}/${KEYDUMP_FILE} && \
+    wget --quiet ${KEYDUMP_URL}/${KEYDUMP_FILE}.sig && \
+    gpg --import ${KEYDUMP_FILE} && \
+    gpg --verify ${KEYDUMP_FILE}.sig ${KEYDUMP_FILE} && \
+    rm ${KEYDUMP_FILE}*
+
 # Install CMake
 ENV CMAKE_DIR=/opt/cmake
 RUN CMAKE_VERSION=3.13.4 && \
@@ -35,12 +44,11 @@ RUN CMAKE_VERSION=3.13.4 && \
     wget --quiet ${CMAKE_URL}/${CMAKE_SHA256} && \
     wget --quiet ${CMAKE_URL}/${CMAKE_SHA256}.asc && \
     wget --quiet ${CMAKE_URL}/${CMAKE_SCRIPT} && \
-    gpg --recv-keys ${CMAKE_KEY} && \
     gpg --verify ${CMAKE_SHA256}.asc ${CMAKE_SHA256} && \
     grep ${CMAKE_SCRIPT} ${CMAKE_SHA256} | sha256sum --check && \
     mkdir -p ${CMAKE_DIR} && \
     sh ${CMAKE_SCRIPT} --skip-license --prefix=${CMAKE_DIR} && \
-    rm ${CMAKE_SCRIPT}
+    rm cmake*
 ENV PATH=${CMAKE_DIR}/bin:$PATH
 
 # Install Boost
@@ -50,14 +58,14 @@ RUN BOOST_VERSION=1.72.0 && \
     BOOST_KEY=379CE192D401AB61 && \
     BOOST_URL=https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source && \
     BOOST_ARCHIVE=boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2 && \
+    SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE} && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.asc && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json.asc && \
-    gpg --recv-keys ${BOOST_KEY} && \
     gpg --verify ${BOOST_ARCHIVE}.json.asc ${BOOST_ARCHIVE}.json && \
-    cat ${BOOST_ARCHIVE}.json | jq -r '. | .sha256 + "  " + .file' | sha256sum --check && \
     gpg --verify ${BOOST_ARCHIVE}.asc ${BOOST_ARCHIVE} && \
+    cat ${BOOST_ARCHIVE}.json | jq -r '. | .sha256 + "  " + .file' | sha256sum --check && \
     mkdir -p boost && \
     tar -xf ${BOOST_ARCHIVE} -C boost --strip-components=1 && \
     cd boost && \
@@ -71,21 +79,20 @@ RUN BOOST_VERSION=1.72.0 && \
         cxxflags=-w \
         install \
         && \
-    rm -rf boost*
+    rm -rf ${SCRATCH_DIR}
 
 # Install Google Benchmark support library
 ENV BENCHMARK_DIR=/opt/benchmark
 RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     git clone https://github.com/google/benchmark.git -b v1.5.0 && \
     cd benchmark && \
-    git clone https://github.com/google/googletest.git -b release-1.10.0 && \
     mkdir build && cd build && \
-    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${BENCHMARK_DIR} .. && \
+    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${BENCHMARK_DIR} -D BENCHMARK_ENABLE_TESTING=OFF .. && \
     make -j${NPROCS} && make install && \
     rm -rf ${SCRATCH_DIR}
 
 # Install Kokkos
-ARG KOKKOS_VERSION=450cb346631c47646228e7cc0b5f78c5889c4a4c
+ARG KOKKOS_VERSION=3.2.00
 ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_HIP=ON -DKokkos_ARCH_VEGA906=ON"
 ENV KOKKOS_DIR=/opt/kokkos
 RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
