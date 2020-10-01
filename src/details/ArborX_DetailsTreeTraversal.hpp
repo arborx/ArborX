@@ -284,6 +284,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
       std::enable_if_t<std::is_same<Tag, NodeWithTwoChildrenTag>{}, int>
       getRightChild(Node const *node) const
   {
+    assert(!node->isLeaf());
     return node->right_child;
   }
 
