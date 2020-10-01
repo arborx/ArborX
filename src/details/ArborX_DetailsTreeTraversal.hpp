@@ -61,6 +61,11 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     }
     else
     {
+      static_assert(
+          std::is_same<typename Node::Tag, NodeWithTwoChildrenTag>{} ||
+              std::is_same<typename Node::Tag, NodeWithLeftChildAndRopeTag>{},
+          "Unrecognized node tag");
+
       Kokkos::parallel_for("ArborX::TreeTraversal::spatial",
                            Kokkos::RangePolicy<ExecutionSpace>(
                                space, 0, Access::size(predicates)),
@@ -82,7 +87,55 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     }
   }
 
-  KOKKOS_FUNCTION void operator()(int queryIndex) const
+  // Stack-based traversal
+  template <typename Tag = typename Node::Tag>
+  KOKKOS_FUNCTION std::enable_if_t<std::is_same<Tag, NodeWithTwoChildrenTag>{}>
+  operator()(int queryIndex) const
+  {
+    auto const &predicate = Access::get(predicates_, queryIndex);
+
+    Node const *stack[64];
+    Node const **stack_ptr = stack;
+    *stack_ptr++ = nullptr;
+    Node const *node = bvh_.getRoot();
+    do
+    {
+      Node const *child_left = bvh_.getNodePtr(node->left_child);
+      Node const *child_right = bvh_.getNodePtr(node->right_child);
+
+      bool overlap_left = predicate(bvh_.getBoundingVolume(child_left));
+      bool overlap_right = predicate(bvh_.getBoundingVolume(child_right));
+
+      if (overlap_left && child_left->isLeaf())
+      {
+        callback_(predicate, child_left->getLeafPermutationIndex());
+      }
+      if (overlap_right && child_right->isLeaf())
+      {
+        callback_(predicate, child_right->getLeafPermutationIndex());
+      }
+
+      bool traverse_left = (overlap_left && !child_left->isLeaf());
+      bool traverse_right = (overlap_right && !child_right->isLeaf());
+
+      if (!traverse_left && !traverse_right)
+      {
+        node = *--stack_ptr;
+      }
+      else
+      {
+        node = traverse_left ? child_left : child_right;
+        if (traverse_left && traverse_right)
+          *stack_ptr++ = child_right;
+      }
+    } while (node != nullptr);
+  }
+
+  // Ropes-based traversal
+  template <typename Tag = typename Node::Tag>
+  KOKKOS_FUNCTION
+      std::enable_if_t<std::is_same<Tag, NodeWithLeftChildAndRopeTag>{}>
+      operator()(int queryIndex) const
   {
     auto const &predicate = Access::get(predicates_, queryIndex);
 
@@ -191,6 +244,11 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     }
     else
     {
+      static_assert(
+          std::is_same<typename Node::Tag, NodeWithLeftChildAndRopeTag>{} ||
+              std::is_same<typename Node::Tag, NodeWithTwoChildrenTag>{},
+          "Unrecognized node tag");
+
       allocateBuffer(space);
 
       Kokkos::parallel_for("ArborX::TreeTraversal::nearest",
@@ -219,6 +277,23 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
 
     callback_(predicate, 0, distance(bvh_.getRoot()));
     return 1;
+  }
+
+  template <typename Tag = typename Node::Tag>
+  KOKKOS_FUNCTION
+      std::enable_if_t<std::is_same<Tag, NodeWithTwoChildrenTag>{}, int>
+      getRightChild(Node const *node) const
+  {
+    return node->right_child;
+  }
+
+  template <typename Tag = typename Node::Tag>
+  KOKKOS_FUNCTION
+      std::enable_if_t<std::is_same<Tag, NodeWithLeftChildAndRopeTag>{}, int>
+      getRightChild(Node const *node) const
+  {
+    assert(!node->isLeaf());
+    return bvh_.getNodePtr(node->left_child)->rope;
   }
 
   KOKKOS_FUNCTION int operator()(int queryIndex) const
@@ -291,7 +366,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
         // Insert children into the stack and make sure that the
         // closest one ends on top.
         child_left = bvh_.getNodePtr(node->left_child);
-        child_right = bvh_.getNodePtr(child_left->rope);
+        child_right = bvh_.getNodePtr(getRightChild(node));
 
         distance_left = distance(child_left);
         distance_right = distance(child_right);

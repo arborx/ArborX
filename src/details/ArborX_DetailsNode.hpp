@@ -23,9 +23,43 @@ namespace ArborX
 namespace Details
 {
 
+struct NodeWithTwoChildrenTag
+{
+};
 struct NodeWithLeftChildAndRopeTag
 {
 };
+
+struct NodeWithTwoChildren
+{
+  using Tag = NodeWithTwoChildrenTag;
+
+  KOKKOS_DEFAULTED_FUNCTION
+  constexpr NodeWithTwoChildren() = default;
+
+  KOKKOS_INLINE_FUNCTION constexpr bool isLeaf() const noexcept
+  {
+    return left_child == -1;
+  }
+
+  KOKKOS_INLINE_FUNCTION constexpr std::size_t getLeafPermutationIndex() const
+      noexcept
+  {
+    assert(isLeaf());
+    return right_child;
+  }
+
+  int left_child = -1;
+  int right_child = -1;
+  Box bounding_box;
+};
+
+KOKKOS_INLINE_FUNCTION constexpr NodeWithTwoChildren
+makeLeafNode(NodeWithTwoChildrenTag, std::size_t permutation_index,
+             Box box) noexcept
+{
+  return {-1, static_cast<int>(permutation_index), std::move(box)};
+} // namespace Details
 
 int constexpr ROPE_SENTINEL = -1;
 

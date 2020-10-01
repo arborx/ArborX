@@ -233,7 +233,18 @@ public:
     return (i < n ? &(_internal_nodes(i)) : &(_leaf_nodes(i - n)));
   }
 
-  KOKKOS_FUNCTION int calculateRope(int range_right, int delta_right) const
+  template <typename Tag = typename Node::Tag>
+  KOKKOS_FUNCTION std::enable_if_t<std::is_same<Tag, NodeWithTwoChildrenTag>{}>
+  setRightChildOrRope(Node *node, int child_right, int, int) const
+  {
+    node->right_child = child_right;
+  }
+
+  template <typename Tag = typename Node::Tag>
+  KOKKOS_FUNCTION
+      std::enable_if_t<std::is_same<Tag, NodeWithLeftChildAndRopeTag>{}>
+      setRightChildOrRope(Node *node, int, int range_right,
+                          int delta_right) const
   {
     int rope;
     if (range_right != _num_internal_nodes)
@@ -253,7 +264,7 @@ public:
       // initializing.
       rope = ROPE_SENTINEL;
     }
-    return rope;
+    node->rope = rope;
   }
 
   KOKKOS_FUNCTION void operator()(int i) const
@@ -278,7 +289,7 @@ public:
     int delta_left = delta(range_left - 1);
     int delta_right = delta(range_right);
 
-    leaf_node->rope = calculateRope(range_right, delta_right);
+    setRightChildOrRope(leaf_node, original_index, range_right, delta_right);
 
     // Walk toward the root and do process it even though technically its
     // bounding box has already been computed (bounding box of the scene)
@@ -354,7 +365,7 @@ public:
 
       auto *parent_node = getNodePtr(karras_parent);
       parent_node->left_child = left_child;
-      parent_node->rope = calculateRope(range_right, delta_right);
+      setRightChildOrRope(parent_node, right_child, range_right, delta_right);
       parent_node->bounding_box = bbox;
 
       i = karras_parent;
