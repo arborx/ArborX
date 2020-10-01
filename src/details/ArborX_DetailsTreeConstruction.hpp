@@ -247,6 +247,7 @@ public:
       setRightChild(Node *node, int) const
   {
     assert(!node->isLeaf());
+    (void)node;
   }
 
   template <typename Tag = typename Node::Tag>
