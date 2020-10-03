@@ -260,7 +260,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
     traverse(leaf_nodes, internal_nodes, root, sol);
     std::cout << "sol(node_with_two_children) = " << sol.str() << "\n";
 
-    BOOST_TEST(sol.str().compare(ref.str()) == 0);
+    BOOST_TEST(sol.str() == ref.str());
   }
   {
     using Node = ArborX::Details::NodeWithLeftChildAndRope;
@@ -276,6 +276,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
     traverse(leaf_nodes, internal_nodes, root, sol);
     std::cout << "sol(node_with_left_child_and_rope) = " << sol.str() << "\n";
 
-    BOOST_TEST(sol.str().compare(ref.str()) == 0);
+    BOOST_TEST(sol.str() == ref.str());
   }
 }
