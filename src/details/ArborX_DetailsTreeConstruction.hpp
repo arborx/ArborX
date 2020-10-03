@@ -136,12 +136,15 @@ inline void initializeSingleLeafNode(ExecutionSpace const &space,
   ARBORX_ASSERT(leaf_nodes.extent(0) == 1);
   ARBORX_ASSERT(Access::size(primitives) == 1);
 
+  using Node = typename Nodes::value_type;
+
   Kokkos::parallel_for(
       "ArborX::TreeConstruction::initialize_single_leaf",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1), KOKKOS_LAMBDA(int) {
         Box bbox{};
         expand(bbox, Access::get(primitives, 0));
-        leaf_nodes(0) = Details::makeLeafNode(0, std::move(bbox));
+        leaf_nodes(0) =
+            Details::makeLeafNode(typename Node::Tag{}, 0, std::move(bbox));
       });
 }
 
@@ -230,6 +233,55 @@ public:
     return (i < n ? &(_internal_nodes(i)) : &(_leaf_nodes(i - n)));
   }
 
+  template <typename Tag = typename Node::Tag>
+  KOKKOS_FUNCTION std::enable_if_t<std::is_same<Tag, NodeWithTwoChildrenTag>{}>
+  setRightChild(Node *node, int child_right) const
+  {
+    assert(!node->isLeaf());
+    node->right_child = child_right;
+  }
+
+  template <typename Tag = typename Node::Tag>
+  KOKKOS_FUNCTION
+      std::enable_if_t<std::is_same<Tag, NodeWithLeftChildAndRopeTag>{}>
+      setRightChild(Node *node, int) const
+  {
+    assert(!node->isLeaf());
+    (void)node;
+  }
+
+  template <typename Tag = typename Node::Tag>
+  KOKKOS_FUNCTION std::enable_if_t<std::is_same<Tag, NodeWithTwoChildrenTag>{}>
+  setRope(Node *, int, int) const
+  {
+  }
+
+  template <typename Tag = typename Node::Tag>
+  KOKKOS_FUNCTION
+      std::enable_if_t<std::is_same<Tag, NodeWithLeftChildAndRopeTag>{}>
+      setRope(Node *node, int range_right, int delta_right) const
+  {
+    int rope;
+    if (range_right != _num_internal_nodes)
+    {
+      // The way Karras indices constructed, the rope is going to be the right
+      // child of the first internal node that we are in the left subtree of.
+      // The determination of whether that node is internal or leaf requires an
+      // additional delta() evaluation.
+      rope = range_right + 1;
+      if (delta_right < delta(range_right + 1))
+        rope += _num_internal_nodes;
+    }
+    else
+    {
+      // The node is on the right-most path in the tree. The only reason we
+      // need to set it is because nodes may have been allocated without
+      // initializing.
+      rope = ROPE_SENTINEL;
+    }
+    node->rope = rope;
+  }
+
   KOKKOS_FUNCTION void operator()(int i) const
   {
     auto const leaf_nodes_shift = _num_internal_nodes;
@@ -242,7 +294,8 @@ public:
     expand(bbox, Access::get(_primitives, original_index));
 
     // Initialize leaf node
-    *getNodePtr(i) = makeLeafNode(original_index, bbox);
+    auto *leaf_node = getNodePtr(i);
+    *leaf_node = makeLeafNode(typename Node::Tag{}, original_index, bbox);
 
     // For a leaf node, the range is just one index
     int range_left = i - leaf_nodes_shift;
@@ -250,6 +303,8 @@ public:
 
     int delta_left = delta(range_left - 1);
     int delta_right = delta(range_right);
+
+    setRope(leaf_node, range_right, delta_right);
 
     // Walk toward the root and do process it even though technically its
     // bounding box has already been computed (bounding box of the scene)
@@ -324,8 +379,9 @@ public:
           delta_right < delta_left ? range_right : range_left;
 
       auto *parent_node = getNodePtr(karras_parent);
-      parent_node->children.first = left_child;
-      parent_node->children.second = right_child;
+      parent_node->left_child = left_child;
+      setRightChild(parent_node, right_child);
+      setRope(parent_node, range_right, delta_right);
       parent_node->bounding_box = bbox;
 
       i = karras_parent;

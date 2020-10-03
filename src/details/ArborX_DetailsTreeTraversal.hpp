@@ -13,6 +13,7 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
+#include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_DetailsStack.hpp>
 #include <ArborX_DetailsUtils.hpp>
@@ -60,6 +61,11 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     }
     else
     {
+      static_assert(
+          std::is_same<typename Node::Tag, NodeWithTwoChildrenTag>{} ||
+              std::is_same<typename Node::Tag, NodeWithLeftChildAndRopeTag>{},
+          "Unrecognized node tag");
+
       Kokkos::parallel_for("ArborX::TreeTraversal::spatial",
                            Kokkos::RangePolicy<ExecutionSpace>(
                                space, 0, Access::size(predicates)),
@@ -81,7 +87,10 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     }
   }
 
-  KOKKOS_FUNCTION void operator()(int queryIndex) const
+  // Stack-based traversal
+  template <typename Tag = typename Node::Tag>
+  KOKKOS_FUNCTION std::enable_if_t<std::is_same<Tag, NodeWithTwoChildrenTag>{}>
+  operator()(int queryIndex) const
   {
     auto const &predicate = Access::get(predicates_, queryIndex);
 
@@ -91,8 +100,8 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     Node const *node = bvh_.getRoot();
     do
     {
-      Node const *child_left = bvh_.getNodePtr(node->children.first);
-      Node const *child_right = bvh_.getNodePtr(node->children.second);
+      Node const *child_left = bvh_.getNodePtr(node->left_child);
+      Node const *child_right = bvh_.getNodePtr(node->right_child);
 
       bool overlap_left = predicate(bvh_.getBoundingVolume(child_left));
       bool overlap_right = predicate(bvh_.getBoundingVolume(child_right));
@@ -120,6 +129,40 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
           *stack_ptr++ = child_right;
       }
     } while (node != nullptr);
+  }
+
+  // Ropes-based traversal
+  template <typename Tag = typename Node::Tag>
+  KOKKOS_FUNCTION
+      std::enable_if_t<std::is_same<Tag, NodeWithLeftChildAndRopeTag>{}>
+      operator()(int queryIndex) const
+  {
+    auto const &predicate = Access::get(predicates_, queryIndex);
+
+    Node const *node;
+    int next = 0; // start with root
+    do
+    {
+      node = bvh_.getNodePtr(next);
+
+      if (predicate(bvh_.getBoundingVolume(node)))
+      {
+        if (!node->isLeaf())
+        {
+          next = node->left_child;
+        }
+        else
+        {
+          callback_(predicate, node->getLeafPermutationIndex());
+          next = node->rope;
+        }
+      }
+      else
+      {
+        next = node->rope;
+      }
+
+    } while (next != ROPE_SENTINEL);
   }
 };
 
@@ -201,6 +244,11 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     }
     else
     {
+      static_assert(
+          std::is_same<typename Node::Tag, NodeWithLeftChildAndRopeTag>{} ||
+              std::is_same<typename Node::Tag, NodeWithTwoChildrenTag>{},
+          "Unrecognized node tag");
+
       allocateBuffer(space);
 
       Kokkos::parallel_for("ArborX::TreeTraversal::nearest",
@@ -229,6 +277,24 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
 
     callback_(predicate, 0, distance(bvh_.getRoot()));
     return 1;
+  }
+
+  template <typename Tag = typename Node::Tag>
+  KOKKOS_FUNCTION
+      std::enable_if_t<std::is_same<Tag, NodeWithTwoChildrenTag>{}, int>
+      getRightChild(Node const *node) const
+  {
+    assert(!node->isLeaf());
+    return node->right_child;
+  }
+
+  template <typename Tag = typename Node::Tag>
+  KOKKOS_FUNCTION
+      std::enable_if_t<std::is_same<Tag, NodeWithLeftChildAndRopeTag>{}, int>
+      getRightChild(Node const *node) const
+  {
+    assert(!node->isLeaf());
+    return bvh_.getNodePtr(node->left_child)->rope;
   }
 
   KOKKOS_FUNCTION int operator()(int queryIndex) const
@@ -300,8 +366,8 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
       {
         // Insert children into the stack and make sure that the
         // closest one ends on top.
-        child_left = bvh_.getNodePtr(node->children.first);
-        child_right = bvh_.getNodePtr(node->children.second);
+        child_left = bvh_.getNodePtr(node->left_child);
+        child_right = bvh_.getNodePtr(getRightChild(node));
 
         distance_left = distance(child_left);
         distance_right = distance(child_right);

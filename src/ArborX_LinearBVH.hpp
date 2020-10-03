@@ -75,7 +75,18 @@ private:
   friend struct Details::TreeTraversal;
   template <typename DeviceType>
   friend struct Details::TreeVisualization;
-  using node_type = Details::Node;
+
+#if defined(KOKKOS_ENABLE_CUDA)
+  // Ropes based traversal is only used for CUDA, as it was found to be slower
+  // than regular one for Power9 on Summit.
+  // TODO: determine whether it should also be use for AMD GPUs
+  using node_type =
+      std::conditional_t<std::is_same<MemorySpace, Kokkos::CudaSpace>{},
+                         Details::NodeWithLeftChildAndRope,
+                         Details::NodeWithTwoChildren>;
+#else
+  using node_type = Details::NodeWithTwoChildren;
+#endif
 
   Kokkos::View<node_type *, MemorySpace> getInternalNodes()
   {
