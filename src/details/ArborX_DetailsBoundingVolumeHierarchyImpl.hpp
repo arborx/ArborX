@@ -352,8 +352,7 @@ inline void query(ExecutionSpace const &space, BVH const &bvh,
   // TODO check signature of the callback
   if (policy._sort_predicates)
   {
-    Kokkos::Profiling::pushRegion(
-        "ArborX::BVH::query::nearest::compute_permutation");
+    Kokkos::Profiling::pushRegion("ArborX::BVH::query::compute_permutation");
     using MemorySpace = typename BVH::memory_space;
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     auto permute =
