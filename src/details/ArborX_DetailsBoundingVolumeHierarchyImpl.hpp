@@ -349,6 +349,8 @@ inline void query(ExecutionSpace const &space, BVH const &bvh,
                   Experimental::TraversalPolicy const &policy =
                       Experimental::TraversalPolicy())
 {
+  Kokkos::Profiling::pushRegion("ArborX::BVH::query");
+
   // TODO check signature of the callback
   if (policy._sort_predicates)
   {
@@ -367,6 +369,8 @@ inline void query(ExecutionSpace const &space, BVH const &bvh,
   {
     traverse(space, bvh, predicates, callback);
   }
+
+  Kokkos::Profiling::popRegion();
 }
 
 } // namespace BoundingVolumeHierarchyImpl
