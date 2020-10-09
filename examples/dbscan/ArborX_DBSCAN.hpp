@@ -36,10 +36,8 @@ auto wrap(View v, double r)
   return Wrapped<View>{v, r};
 }
 
-namespace Traits
-{
 template <typename View>
-struct Access<Wrapped<View>, PredicatesTag>
+struct AccessTraits<Wrapped<View>, PredicatesTag>
 {
   using memory_space = typename View::memory_space;
   static size_t size(Wrapped<View> const &w) { return w._M_view.extent(0); }
@@ -48,7 +46,6 @@ struct Access<Wrapped<View>, PredicatesTag>
     return attach(intersects(Sphere{w._M_view(i), w._r}), (int)i);
   }
 };
-} // namespace Traits
 
 namespace DBSCAN
 {
