@@ -24,24 +24,25 @@ namespace ArborX
 {
 
 template <typename View>
-struct Wrapped
+struct PrimitivesWithRadius
 {
   View _M_view;
   double _r;
 };
 
 template <typename View>
-auto wrap(View v, double r)
+auto buildPredicates(View v, double r)
 {
-  return Wrapped<View>{v, r};
+  return PrimitivesWithRadius<View>{v, r};
 }
 
 template <typename View>
-struct AccessTraits<Wrapped<View>, PredicatesTag>
+struct AccessTraits<PrimitivesWithRadius<View>, PredicatesTag>
 {
   using memory_space = typename View::memory_space;
-  static size_t size(Wrapped<View> const &w) { return w._M_view.extent(0); }
-  static KOKKOS_FUNCTION auto get(Wrapped<View> const &w, size_t i)
+  using Predicates = PrimitivesWithRadius<View>;
+  static size_t size(Predicates const &w) { return w._M_view.extent(0); }
+  static KOKKOS_FUNCTION auto get(Predicates const &w, size_t i)
   {
     return attach(intersects(Sphere{w._M_view(i), w._r}), (int)i);
   }
@@ -122,7 +123,7 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
 
   start_total = clock::now();
 
-  auto const predicates = wrap(primitives, eps);
+  auto const predicates = buildPredicates(primitives, eps);
 
   int const n = primitives.extent_int(0);
 
