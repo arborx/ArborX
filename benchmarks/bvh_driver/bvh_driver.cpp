@@ -40,9 +40,12 @@ struct Spec
     return s;
   }
 
-  std::string create_label_knn_search(std::string const &tree_name) const
+  std::string create_label_knn_search(std::string const &tree_name,
+                                      std::string const &flavor = "") const
   {
-    std::string s = std::string("BM_knn_search<") + tree_name + ">";
+    std::string s = std::string("BM_knn_") +
+                    (flavor.empty() ? "" : flavor + "_") + "search<" +
+                    tree_name + ">";
     for (auto const &var :
          {n_values, n_queries, n_neighbors, static_cast<int>(sort_predicates),
           static_cast<int>(source_point_cloud_type),
@@ -51,9 +54,12 @@ struct Spec
     return s;
   }
 
-  std::string create_label_radius_search(std::string const &tree_name) const
+  std::string create_label_radius_search(std::string const &tree_name,
+                                         std::string const &flavor = "") const
   {
-    std::string s = std::string("BM_radius_search<") + tree_name + ">";
+    std::string s = std::string("BM_radius_") +
+                    (flavor.empty() ? "" : flavor + "_") + "search<" +
+                    tree_name + ">";
     for (auto const &var :
          {n_values, n_queries, n_neighbors, static_cast<int>(sort_predicates),
           buffer_size, static_cast<int>(source_point_cloud_type),
@@ -162,6 +168,26 @@ makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
   return queries;
 }
 
+template <typename Queries>
+struct QueriesWithIndex
+{
+  Queries _queries;
+};
+
+template <typename Queries>
+struct ArborX::AccessTraits<QueriesWithIndex<Queries>, ArborX::PredicatesTag>
+{
+  using memory_space = typename Queries::memory_space;
+  static size_t size(QueriesWithIndex<Queries> const &q)
+  {
+    return q._queries.extent(0);
+  }
+  static KOKKOS_FUNCTION auto get(QueriesWithIndex<Queries> const &q, size_t i)
+  {
+    return attach(q._queries(i), (int)i);
+  }
+};
+
 template <class TreeType>
 void BM_construction(benchmark::State &state, Spec const &spec)
 {
@@ -204,6 +230,47 @@ void BM_knn_search(benchmark::State &state, Spec const &spec)
   }
 }
 
+template <typename DeviceType>
+struct NearestCallback
+{
+  Kokkos::View<int *, DeviceType> count_;
+
+  template <typename Query>
+  KOKKOS_FUNCTION void operator()(Query const &query, int, float) const
+  {
+    auto const i = ArborX::getData(query);
+    Kokkos::atomic_fetch_add(&count_(i), 1);
+  }
+};
+
+template <class TreeType>
+void BM_knn_callback_search(benchmark::State &state, Spec const &spec)
+{
+  using DeviceType = typename TreeType::device_type;
+
+  TreeType index(
+      constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type));
+  auto const queries_no_index = makeNearestQueries<DeviceType>(
+      spec.n_values, spec.n_queries, spec.n_neighbors,
+      spec.target_point_cloud_type);
+  QueriesWithIndex<decltype(queries_no_index)> queries{queries_no_index};
+
+  for (auto _ : state)
+  {
+    Kokkos::View<int *, DeviceType> num_neigh("Testing::num_neigh",
+                                              spec.n_queries);
+    NearestCallback<DeviceType> callback{num_neigh};
+
+    auto const start = std::chrono::high_resolution_clock::now();
+    index.query(queries, callback,
+                ArborX::Experimental::TraversalPolicy().setPredicateSorting(
+                    spec.sort_predicates));
+    auto const end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    state.SetIterationTime(elapsed_seconds.count());
+  }
+}
+
 template <class TreeType>
 void BM_radius_search(benchmark::State &state, Spec const &spec)
 {
@@ -221,6 +288,48 @@ void BM_radius_search(benchmark::State &state, Spec const &spec)
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     auto const start = std::chrono::high_resolution_clock::now();
     index.query(queries, indices, offset,
+                ArborX::Experimental::TraversalPolicy()
+                    .setPredicateSorting(spec.sort_predicates)
+                    .setBufferSize(spec.buffer_size));
+    auto const end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    state.SetIterationTime(elapsed_seconds.count());
+  }
+}
+
+template <typename DeviceType>
+struct SpatialCallback
+{
+  Kokkos::View<int *, DeviceType> count_;
+
+  template <typename Query>
+  KOKKOS_FUNCTION void operator()(Query const &query, int) const
+  {
+    auto const i = ArborX::getData(query);
+    Kokkos::atomic_fetch_add(&count_(i), 1);
+  }
+};
+
+template <class TreeType>
+void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
+{
+  using DeviceType = typename TreeType::device_type;
+
+  TreeType index(
+      constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type));
+  auto const queries_no_index = makeSpatialQueries<DeviceType>(
+      spec.n_values, spec.n_queries, spec.n_neighbors,
+      spec.target_point_cloud_type);
+  QueriesWithIndex<decltype(queries_no_index)> queries{queries_no_index};
+
+  for (auto _ : state)
+  {
+    Kokkos::View<int *, DeviceType> num_neigh("Testing::num_neigh",
+                                              spec.n_queries);
+    SpatialCallback<DeviceType> callback{num_neigh};
+
+    auto const start = std::chrono::high_resolution_clock::now();
+    index.query(queries, callback,
                 ArborX::Experimental::TraversalPolicy()
                     .setPredicateSorting(spec.sort_predicates)
                     .setBufferSize(spec.buffer_size));
@@ -250,11 +359,31 @@ void register_benchmark(std::string const &description, Spec const &spec)
       [=](benchmark::State &state) { BM_knn_search<TreeType>(state, spec); })
       ->UseManualTime()
       ->Unit(benchmark::kMicrosecond);
+  if (description != "BoostRTree")
+  {
+    benchmark::RegisterBenchmark(
+        spec.create_label_knn_search(description, "callback").c_str(),
+        [=](benchmark::State &state) {
+          BM_knn_callback_search<TreeType>(state, spec);
+        })
+        ->UseManualTime()
+        ->Unit(benchmark::kMicrosecond);
+  }
   benchmark::RegisterBenchmark(
       spec.create_label_radius_search(description).c_str(),
       [=](benchmark::State &state) { BM_radius_search<TreeType>(state, spec); })
       ->UseManualTime()
       ->Unit(benchmark::kMicrosecond);
+  if (description != "BoostRTree")
+  {
+    benchmark::RegisterBenchmark(
+        spec.create_label_radius_search(description, "callback").c_str(),
+        [=](benchmark::State &state) {
+          BM_radius_callback_search<TreeType>(state, spec);
+        })
+        ->UseManualTime()
+        ->Unit(benchmark::kMicrosecond);
+  }
 }
 
 // NOTE Motivation for this class that stores the argument count and values is

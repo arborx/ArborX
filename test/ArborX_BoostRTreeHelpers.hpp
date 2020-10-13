@@ -254,6 +254,13 @@ public:
         BoostRTreeHelpers::performQueries(_tree, predicates);
   }
 
+  template <typename Predicates, typename Callback, typename... TrailingArgs>
+  void query(Predicates const &, Callback const &, TrailingArgs &&...) const
+  {
+    throw std::runtime_error(
+        "Boost RTree does not support callback only query overload.");
+  }
+
 private:
   BoostRTreeHelpers::RTree<Indexable> _tree;
 };
