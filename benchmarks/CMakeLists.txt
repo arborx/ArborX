@@ -1,4 +1,4 @@
-find_package(Boost REQUIRED COMPONENTS program_options)
+find_package(Boost 1.56.0 REQUIRED COMPONENTS program_options)
 
 add_subdirectory(bvh_driver)
 if (ARBORX_ENABLE_MPI)
