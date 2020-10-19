@@ -33,9 +33,9 @@ struct TreeTraversal
 template <typename BVH, typename Predicates, typename Callback>
 struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
 {
-  BVH bvh_;
-  Predicates predicates_;
-  Callback callback_;
+  BVH _bvh;
+  Predicates _predicates;
+  Callback _callback;
 
   using Access = AccessTraits<Predicates, PredicatesTag>;
   using Node = typename BVH::node_type;
@@ -43,15 +43,15 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   template <typename ExecutionSpace>
   TreeTraversal(ExecutionSpace const &space, BVH const &bvh,
                 Predicates const &predicates, Callback const &callback)
-      : bvh_{bvh}
-      , predicates_{predicates}
-      , callback_{callback}
+      : _bvh{bvh}
+      , _predicates{predicates}
+      , _callback{callback}
   {
-    if (bvh_.empty())
+    if (_bvh.empty())
     {
       // do nothing
     }
-    else if (bvh_.size() == 1)
+    else if (_bvh.size() == 1)
     {
       Kokkos::parallel_for(
           "ArborX::TreeTraversal::spatial::degenerated_one_leaf_tree",
@@ -79,11 +79,11 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
 
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
   {
-    auto const &predicate = Access::get(predicates_, queryIndex);
+    auto const &predicate = Access::get(_predicates, queryIndex);
 
-    if (predicate(bvh_.getBoundingVolume(bvh_.getRoot())))
+    if (predicate(_bvh.getBoundingVolume(_bvh.getRoot())))
     {
-      callback_(predicate, 0);
+      _callback(predicate, 0);
     }
   }
 
@@ -92,27 +92,27 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   KOKKOS_FUNCTION std::enable_if_t<std::is_same<Tag, NodeWithTwoChildrenTag>{}>
   operator()(int queryIndex) const
   {
-    auto const &predicate = Access::get(predicates_, queryIndex);
+    auto const &predicate = Access::get(_predicates, queryIndex);
 
     Node const *stack[64];
     Node const **stack_ptr = stack;
     *stack_ptr++ = nullptr;
-    Node const *node = bvh_.getRoot();
+    Node const *node = _bvh.getRoot();
     do
     {
-      Node const *child_left = bvh_.getNodePtr(node->left_child);
-      Node const *child_right = bvh_.getNodePtr(node->right_child);
+      Node const *child_left = _bvh.getNodePtr(node->left_child);
+      Node const *child_right = _bvh.getNodePtr(node->right_child);
 
-      bool overlap_left = predicate(bvh_.getBoundingVolume(child_left));
-      bool overlap_right = predicate(bvh_.getBoundingVolume(child_right));
+      bool overlap_left = predicate(_bvh.getBoundingVolume(child_left));
+      bool overlap_right = predicate(_bvh.getBoundingVolume(child_right));
 
       if (overlap_left && child_left->isLeaf())
       {
-        callback_(predicate, child_left->getLeafPermutationIndex());
+        _callback(predicate, child_left->getLeafPermutationIndex());
       }
       if (overlap_right && child_right->isLeaf())
       {
-        callback_(predicate, child_right->getLeafPermutationIndex());
+        _callback(predicate, child_right->getLeafPermutationIndex());
       }
 
       bool traverse_left = (overlap_left && !child_left->isLeaf());
@@ -137,15 +137,15 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
       std::enable_if_t<std::is_same<Tag, NodeWithLeftChildAndRopeTag>{}>
       operator()(int queryIndex) const
   {
-    auto const &predicate = Access::get(predicates_, queryIndex);
+    auto const &predicate = Access::get(_predicates, queryIndex);
 
     Node const *node;
     int next = 0; // start with root
     do
     {
-      node = bvh_.getNodePtr(next);
+      node = _bvh.getNodePtr(next);
 
-      if (predicate(bvh_.getBoundingVolume(node)))
+      if (predicate(_bvh.getBoundingVolume(node)))
       {
         if (!node->isLeaf())
         {
@@ -153,7 +153,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
         }
         else
         {
-          callback_(predicate, node->getLeafPermutationIndex());
+          _callback(predicate, node->getLeafPermutationIndex());
           next = node->rope;
         }
       }
@@ -171,9 +171,9 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
 {
   using MemorySpace = typename BVH::memory_space;
 
-  BVH bvh_;
-  Predicates predicates_;
-  Callback callback_;
+  BVH _bvh;
+  Predicates _predicates;
+  Callback _callback;
 
   using Access = AccessTraits<Predicates, PredicatesTag>;
   using Node = typename BVH::node_type;
@@ -182,36 +182,36 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   using Offset = Kokkos::View<int *, MemorySpace>;
   struct BufferProvider
   {
-    Buffer buffer_;
-    Offset offset_;
+    Buffer _buffer;
+    Offset _offset;
 
     KOKKOS_FUNCTION auto operator()(int i) const
     {
-      auto const *offset_ptr = &offset_(i);
-      return Kokkos::subview(buffer_,
-                             Kokkos::make_pair(*offset_ptr, *(offset_ptr + 1)));
+      auto const *_offsetptr = &_offset(i);
+      return Kokkos::subview(_buffer,
+                             Kokkos::make_pair(*_offsetptr, *(_offsetptr + 1)));
     }
   };
 
-  BufferProvider buffer_;
+  BufferProvider _buffer;
 
   template <typename ExecutionSpace>
   void allocateBuffer(ExecutionSpace const &space)
   {
-    auto const n_queries = Access::size(predicates_);
+    auto const n_queries = Access::size(_predicates);
 
     Offset offset(Kokkos::ViewAllocateWithoutInitializing(
                       "ArborX::TreeTraversal::nearest::offset"),
                   n_queries + 1);
     // NOTE workaround to avoid implicit capture of *this
-    auto const &predicates = predicates_;
+    auto const &predicates = _predicates;
     Kokkos::parallel_for(
         "ArborX::TreeTraversal::nearest::"
         "scan_queries_for_numbers_of_neighbors",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
     exclusivePrefixSum(space, offset);
-    int const buffer_size = lastElement(offset);
+    int const _buffersize = lastElement(offset);
     // Allocate buffer over which to perform heap operations in
     // TreeTraversal::nearestQuery() to store nearest leaf nodes found so far.
     // It is not possible to anticipate how much memory to allocate since the
@@ -219,22 +219,22 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
 
     Buffer buffer(Kokkos::ViewAllocateWithoutInitializing(
                       "ArborX::TreeTraversal::nearest::buffer"),
-                  buffer_size);
-    buffer_ = BufferProvider{buffer, offset};
+                  _buffersize);
+    _buffer = BufferProvider{buffer, offset};
   }
 
   template <typename ExecutionSpace>
   TreeTraversal(ExecutionSpace const &space, BVH const &bvh,
                 Predicates const &predicates, Callback const &callback)
-      : bvh_{bvh}
-      , predicates_{predicates}
-      , callback_{callback}
+      : _bvh{bvh}
+      , _predicates{predicates}
+      , _callback{callback}
   {
-    if (bvh_.empty())
+    if (_bvh.empty())
     {
       // do nothing
     }
-    else if (bvh_.size() == 1)
+    else if (_bvh.size() == 1)
     {
       Kokkos::parallel_for(
           "ArborX::TreeTraversal::nearest::degenerated_one_leaf_tree",
@@ -264,10 +264,10 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
 
   KOKKOS_FUNCTION int operator()(OneLeafTree, int queryIndex) const
   {
-    auto const &predicate = Access::get(predicates_, queryIndex);
+    auto const &predicate = Access::get(_predicates, queryIndex);
     auto const k = getK(predicate);
     auto const distance = [geometry = getGeometry(predicate),
-                           bvh = bvh_](Node const *node) {
+                           bvh = _bvh](Node const *node) {
       return Details::distance(geometry, bvh.getBoundingVolume(node));
     };
 
@@ -275,7 +275,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     if (k < 1)
       return 0;
 
-    callback_(predicate, 0, distance(bvh_.getRoot()));
+    _callback(predicate, 0, distance(_bvh.getRoot()));
     return 1;
   }
 
@@ -294,18 +294,18 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
       getRightChild(Node const *node) const
   {
     assert(!node->isLeaf());
-    return bvh_.getNodePtr(node->left_child)->rope;
+    return _bvh.getNodePtr(node->left_child)->rope;
   }
 
   KOKKOS_FUNCTION int operator()(int queryIndex) const
   {
-    auto const &predicate = Access::get(predicates_, queryIndex);
+    auto const &predicate = Access::get(_predicates, queryIndex);
     auto const k = getK(predicate);
     auto const distance = [geometry = getGeometry(predicate),
-                           bvh = bvh_](Node const *node) {
+                           bvh = _bvh](Node const *node) {
       return Details::distance(geometry, bvh.getBoundingVolume(node));
     };
-    auto const buffer = buffer_(queryIndex);
+    auto const buffer = _buffer(queryIndex);
 
     // NOTE thinking about making this a precondition
     if (k < 1)
@@ -349,7 +349,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     *stack_distance_ptr++ = 0.f;
 #endif
 
-    Node const *node = bvh_.getRoot();
+    Node const *node = _bvh.getRoot();
     Node const *child_left = nullptr;
     Node const *child_right = nullptr;
 
@@ -366,8 +366,8 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
       {
         // Insert children into the stack and make sure that the
         // closest one ends on top.
-        child_left = bvh_.getNodePtr(node->left_child);
-        child_right = bvh_.getNodePtr(getRightChild(node));
+        child_left = _bvh.getNodePtr(node->left_child);
+        child_right = _bvh.getNodePtr(getRightChild(node));
 
         distance_left = distance(child_left);
         distance_right = distance(child_right);
@@ -442,7 +442,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     {
       int const leaf_index = (heap.data() + i)->first;
       auto const leaf_distance = (heap.data() + i)->second;
-      callback_(predicate, leaf_index, leaf_distance);
+      _callback(predicate, leaf_index, leaf_distance);
     }
     return heap.size();
   }
