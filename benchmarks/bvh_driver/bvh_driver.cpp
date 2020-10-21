@@ -298,6 +298,50 @@ void BM_radius_search(benchmark::State &state, Spec const &spec)
 }
 
 template <typename DeviceType>
+struct SpatialCallback_FirstPass_BufferOptimization
+{
+  Kokkos::View<int *, DeviceType> offsets_;
+  Kokkos::View<int *, DeviceType> indices_;
+  Kokkos::View<int *, DeviceType> counts_;
+
+  template <typename Query>
+  KOKKOS_FUNCTION void operator()(Query const &query, int primitive_index) const
+  {
+    auto const predicate_index = ArborX::getData(query);
+    auto const &offset = offsets_(predicate_index);
+    auto const buffer_size = *(&offset + 1) - offset;
+
+    auto &count = counts_(predicate_index);
+    if (count < buffer_size)
+      indices_(offset + (count++)) = primitive_index;
+    else
+      ++count;
+  }
+};
+
+template <typename DeviceType>
+struct SpatialCallback_SecondPass_BufferOptimization
+{
+  Kokkos::View<int *, DeviceType> offsets_;
+  Kokkos::View<int *, DeviceType> indices_;
+  Kokkos::View<int *, DeviceType> counts_;
+
+  template <typename Query>
+  KOKKOS_FUNCTION void operator()(Query const &query, int primitive_index) const
+  {
+    auto const predicate_index = ArborX::getData(query);
+    auto const &offset = offsets_(predicate_index);
+    auto const buffer_size = *(&offset + 1) - offset;
+
+    auto &count = counts_(predicate_index);
+
+    if (!(count < buffer_size))
+      Kokkos::abort("Didn't update buffer size");
+    indices_(offset + (count++)) = primitive_index;
+  }
+};
+
+template <typename DeviceType>
 struct SpatialCallback
 {
   Kokkos::View<int *, DeviceType> count_;
@@ -314,28 +358,113 @@ template <class TreeType>
 void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
 {
   using DeviceType = typename TreeType::device_type;
+  using ExecutionSpace = typename DeviceType::execution_space;
 
   TreeType index(
       constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type));
   auto const queries_no_index = makeSpatialQueries<DeviceType>(
       spec.n_values, spec.n_queries, spec.n_neighbors,
       spec.target_point_cloud_type);
+
   QueriesWithIndex<decltype(queries_no_index)> queries{queries_no_index};
+
+  Kokkos::View<int *, DeviceType> offsets("offsets", 0);
+  Kokkos::View<int *, DeviceType> indices("indices", 0);
+  Kokkos::View<int *, DeviceType> counts("counts", 0);
+
+  SpatialCallback_FirstPass_BufferOptimization<DeviceType> callback_first;
+  SpatialCallback_SecondPass_BufferOptimization<DeviceType> callback_second;
 
   for (auto _ : state)
   {
     Kokkos::View<int *, DeviceType> num_neigh("Testing::num_neigh",
                                               spec.n_queries);
-    SpatialCallback<DeviceType> callback{num_neigh};
+
+    Kokkos::realloc(offsets, spec.n_queries + 1);
+
+    Kokkos::parallel_for(
+        "initialize_offsets",
+        Kokkos::RangePolicy<ExecutionSpace>(0, offsets.size()),
+        KOKKOS_LAMBDA(const int &i) { offsets(i) = i * spec.buffer_size; });
+    Kokkos::realloc(indices, spec.n_queries * spec.buffer_size);
+    Kokkos::realloc(counts, spec.n_queries);
+
+    callback_first.offsets_ = offsets;
+    callback_first.indices_ = indices;
+    callback_first.counts_ = counts;
+    SpatialCallback_SecondPass_BufferOptimization<DeviceType> callback_second;
+    callback_second.offsets_ = offsets;
+    callback_second.indices_ = indices;
+    callback_second.counts_ = counts;
 
     auto const start = std::chrono::high_resolution_clock::now();
-    index.query(queries, callback,
+    index.query(queries, callback_first,
                 ArborX::Experimental::TraversalPolicy()
                     .setPredicateSorting(spec.sort_predicates)
                     .setBufferSize(spec.buffer_size));
+
+    int total_size = 0;
+    Kokkos::parallel_reduce(
+        "reduce_counts", Kokkos::RangePolicy<ExecutionSpace>(0, counts.size()),
+        KOKKOS_LAMBDA(const int &i, int &sum) { sum += counts(i); },
+        total_size);
+    Kokkos::realloc(callback_second.indices_, total_size);
+
+    Kokkos::parallel_scan("scan_counts",
+                          Kokkos::RangePolicy<ExecutionSpace>(0, counts.size()),
+                          KOKKOS_LAMBDA(int i, int &update, bool final_pass) {
+                            update += counts(i);
+                            if (final_pass)
+                              offsets(i + 1) = update;
+                          });
+
+    Kokkos::deep_copy(callback_second.counts_, 0);
+
+    index.query(queries, callback_second,
+                ArborX::Experimental::TraversalPolicy()
+                    .setPredicateSorting(spec.sort_predicates)
+                    .setBufferSize(spec.buffer_size));
+
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
+
+    Kokkos::View<int *, DeviceType> reference_offset("offset", 0);
+    Kokkos::View<int *, DeviceType> reference_indices("indices", 0);
+    index.query(queries_no_index, reference_indices, reference_offset,
+                ArborX::Experimental::TraversalPolicy()
+                    .setPredicateSorting(spec.sort_predicates)
+                    .setBufferSize(spec.buffer_size));
+
+    assert(reference_offset.size() == callback_second.offsets_.size());
+    Kokkos::parallel_for(
+        "verify_callback",
+        Kokkos::RangePolicy<ExecutionSpace>(0, reference_offset.size()),
+        KOKKOS_LAMBDA(const int i) {
+          const auto reference = reference_offset(i);
+          const auto other = callback_second.offsets_(i);
+          if (reference != other)
+          {
+            printf("reference_offsets(%d)=%d should be offsets(%d)=%d\n!", i,
+                   reference, i, other);
+            Kokkos::abort("Mismatch");
+          }
+        });
+
+    assert(reference_indices.size() == callback_second.indices_.size());
+    Kokkos::parallel_for(
+        "verify_callback",
+        Kokkos::RangePolicy<ExecutionSpace>(0, reference_indices.size()),
+        KOKKOS_LAMBDA(const int i) {
+          const auto reference = reference_indices(i);
+          const auto other = callback_second.indices_(i);
+          if (reference != other)
+          {
+            printf("reference_offsets(%d)=%d should be offsets(%d)=%d\n!", i,
+                   reference, i, other);
+            Kokkos::abort("Mismatch");
+          }
+        });
   }
 }
 
