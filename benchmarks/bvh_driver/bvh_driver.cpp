@@ -398,11 +398,13 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
     callback_second.counts_ = counts;
 
     auto const start = std::chrono::high_resolution_clock::now();
+    Kokkos::Profiling::pushRegion("first_pass");
     index.query(queries, callback_first,
                 ArborX::Experimental::TraversalPolicy()
                     .setPredicateSorting(spec.sort_predicates)
                     .setBufferSize(spec.buffer_size));
-
+    Kokkos::Profiling::popRegion();
+    Kokkos::Profiling::pushRegion("intermediate");
     int total_size = 0;
     Kokkos::parallel_reduce(
         "reduce_counts", Kokkos::RangePolicy<ExecutionSpace>(0, counts.size()),
@@ -419,16 +421,19 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
                           });
 
     Kokkos::deep_copy(callback_second.counts_, 0);
-
+    Kokkos::Profiling::popRegion();
+    Kokkos::Profiling::pushRegion("second_pass");
     index.query(queries, callback_second,
                 ArborX::Experimental::TraversalPolicy()
                     .setPredicateSorting(spec.sort_predicates)
                     .setBufferSize(spec.buffer_size));
+    Kokkos::Profiling::popRegion();
 
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
 
+    /*
     Kokkos::View<int *, DeviceType> reference_offset("offset", 0);
     Kokkos::View<int *, DeviceType> reference_indices("indices", 0);
     index.query(queries_no_index, reference_indices, reference_offset,
@@ -465,6 +470,7 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
             Kokkos::abort("Mismatch");
           }
         });
+        */
   }
 }
 
