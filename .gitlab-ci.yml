@@ -1,7 +1,7 @@
 # see https://docs.gitlab.com/ce/ci/yaml/README.html for all available options
 
 variables:
-  SCHEDULER_PARAMETERS: "-J ArborX_CI -W 0:30 -nnodes 1 -P CSC333 -alloc_flags smt1"
+  SCHEDULER_PARAMETERS: "-J ArborX_CI -W 1:00 -nnodes 1 -P CSC333 -alloc_flags smt1"
 
 stages:
   - buildDependencies
