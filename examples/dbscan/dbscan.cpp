@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_HaloFinder.hpp>
+#include <ArborX_DBSCAN.hpp>
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -97,10 +97,11 @@ int main(int argc, char *argv[])
   std::string filename;
   bool binary;
   bool verify;
-  bool print_halo_timers;
+  bool print_dbscan_timers;
   bool print_sizes_centers;
-  float linking_length;
-  int min_size;
+  float eps;
+  int cluster_min_size;
+  int core_min_size;
 
   bpo::options_description desc("Allowed options");
   // clang-format off
@@ -108,11 +109,12 @@ int main(int argc, char *argv[])
         ( "help", "help message" )
         ( "filename", bpo::value<std::string>(&filename), "filename containing data" )
         ( "binary", bpo::bool_switch(&binary)->default_value(false), "binary file indicator")
-        ( "linking-length", bpo::value<float>(&linking_length), "linking length (radius)" )
-        ( "min-size", bpo::value<int>(&min_size)->default_value(2), "minimum halo size")
+        ( "eps", bpo::value<float>(&eps), "DBSCAN eps" )
+        ( "cluster-min-size", bpo::value<int>(&cluster_min_size)->default_value(2), "minimum cluster size")
+        ( "core-min-size", bpo::value<int>(&core_min_size)->default_value(1), "DBSCAN min_pts")
         ( "verify", bpo::bool_switch(&verify)->default_value(false), "verify connected components")
-        ( "print-halo-timers", bpo::bool_switch(&print_halo_timers)->default_value(false), "print halo timers")
-        ( "output-sizes-and-centers", bpo::bool_switch(&print_sizes_centers)->default_value(false), "print halo sizes and centers")
+        ( "print-dbscan-timers", bpo::bool_switch(&print_dbscan_timers)->default_value(false), "print dbscan timers")
+        ( "output-sizes-and-centers", bpo::bool_switch(&print_sizes_centers)->default_value(false), "print cluster sizes and centers")
         ;
   // clang-format on
   bpo::variables_map vm;
@@ -134,55 +136,61 @@ int main(int argc, char *argv[])
 
   ExecutionSpace exec_space;
 
-  Kokkos::View<int *, MemorySpace> halos_indices("halos_indices", 0);
-  Kokkos::View<int *, MemorySpace> halos_offset("halos_offset", 0);
-  ArborX::HaloFinder::findHalos(exec_space, primitives, halos_indices,
-                                halos_offset, linking_length, min_size,
-                                print_halo_timers, verify);
+  Kokkos::View<int *, MemorySpace> cluster_indices("Testing::cluster_indices",
+                                                   0);
+  Kokkos::View<int *, MemorySpace> cluster_offset("Testing::cluster_offset", 0);
+  ArborX::DBSCAN::dbscan(exec_space, primitives, cluster_indices,
+                         cluster_offset, eps, core_min_size, cluster_min_size,
+                         print_dbscan_timers, verify);
 
   if (print_sizes_centers)
   {
-    auto const num_halos = static_cast<int>(halos_offset.size()) - 1;
+    auto const num_clusters = static_cast<int>(cluster_offset.size()) - 1;
 
-    Kokkos::View<ArborX::Point *, MemorySpace> halos_centers(
-        Kokkos::ViewAllocateWithoutInitializing("centers"), num_halos);
+    Kokkos::View<ArborX::Point *, MemorySpace> cluster_centers(
+        Kokkos::ViewAllocateWithoutInitializing("Testing::centers"),
+        num_clusters);
     Kokkos::parallel_for(
-        "compute centers",
-        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
+        "Testing::compute_centers",
+        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_clusters),
         KOKKOS_LAMBDA(int const i) {
-          int halo_size = halos_offset(i + 1) - halos_offset(i);
+          int cluster_size = cluster_offset(i + 1) - cluster_offset(i);
 
-          ArborX::Point halo_center{0.f, 0.f, 0.f};
-          for (int j = halos_offset(i); j < halos_offset(i + 1); j++)
+          ArborX::Point cluster_center{0.f, 0.f, 0.f};
+          for (int j = cluster_offset(i); j < cluster_offset(i + 1); j++)
           {
-            auto const &halo_point = primitives(halos_indices(j));
+            auto const &cluster_point = primitives(cluster_indices(j));
             // NOTE The explicit casts below are intended to silent warnings
             // about narrowing conversion from 'int' to 'float'.  The potential
             // issue is that 'float' can represent all integer values in the
             // range [-2^23, 2^23] but 'int' can actually represent values in
             // the range [-2^31, 2^31-1].
-            halo_center[0] += halo_point[0] / static_cast<float>(halo_size);
-            halo_center[1] += halo_point[1] / static_cast<float>(halo_size);
-            halo_center[2] += halo_point[2] / static_cast<float>(halo_size);
+            cluster_center[0] +=
+                cluster_point[0] / static_cast<float>(cluster_size);
+            cluster_center[1] +=
+                cluster_point[1] / static_cast<float>(cluster_size);
+            cluster_center[2] +=
+                cluster_point[2] / static_cast<float>(cluster_size);
           }
-          halos_centers(i) = halo_center;
+          cluster_centers(i) = cluster_center;
         });
 
-    auto halos_offset_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, halos_offset);
-    auto halos_centers_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, halos_centers);
-    for (int i = 0; i < num_halos; i++)
+    auto cluster_offset_host = Kokkos::create_mirror_view_and_copy(
+        Kokkos::HostSpace{}, cluster_offset);
+    auto cluster_centers_host = Kokkos::create_mirror_view_and_copy(
+        Kokkos::HostSpace{}, cluster_centers);
+    for (int i = 0; i < num_clusters; i++)
     {
-      int halo_size = halos_offset_host(i + 1) - halos_offset_host(i);
+      int cluster_size = cluster_offset_host(i + 1) - cluster_offset_host(i);
 
       // This is HACC specific filtering
-      auto const &halo_center = halos_centers_host(i);
-      if (halo_center[0] >= 0 && halo_center[1] >= 0 && halo_center[2] >= 0 &&
-          halo_center[0] < 64 && halo_center[1] < 64 && halo_center[2] < 64)
+      auto const &cluster_center = cluster_centers_host(i);
+      if (cluster_center[0] >= 0 && cluster_center[1] >= 0 &&
+          cluster_center[2] >= 0 && cluster_center[0] < 64 &&
+          cluster_center[1] < 64 && cluster_center[2] < 64)
       {
-        printf("%d %e %e %e\n", halo_size, halo_center[0], halo_center[1],
-               halo_center[2]);
+        printf("%d %e %e %e\n", cluster_size, cluster_center[0],
+               cluster_center[1], cluster_center[2]);
       }
     }
   }
