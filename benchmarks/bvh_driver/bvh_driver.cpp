@@ -488,7 +488,7 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
     Kokkos::Profiling::pushRegion("second_pass");
     index.query(queries, callback_second,
                 ArborX::Experimental::TraversalPolicy()
-                    .setPredicateSorting(spec.sort_predicates)
+                    .setPredicateSorting(false)
                     .setBufferSize(spec.buffer_size));
     Kokkos::Profiling::popRegion();
 
