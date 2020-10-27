@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include <ArborX_BoostRTreeHelpers.hpp>
+#include <ArborX_DetailsBatchedQueries.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Version.hpp>
 
@@ -275,21 +276,48 @@ template <class TreeType>
 void BM_radius_search(benchmark::State &state, Spec const &spec)
 {
   using DeviceType = typename TreeType::device_type;
+  using ExecutionSpace = typename DeviceType::execution_space;
 
   TreeType index(
       constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type));
-  auto const queries = makeSpatialQueries<DeviceType>(
-      spec.n_values, spec.n_queries, spec.n_neighbors,
-      spec.target_point_cloud_type);
+  auto queries = makeSpatialQueries<DeviceType>(spec.n_values, spec.n_queries,
+                                                spec.n_neighbors,
+                                                spec.target_point_cloud_type);
 
   for (auto _ : state)
   {
+    if (spec.sort_predicates)
+    {
+      using Access =
+          ArborX::AccessTraits<decltype(queries), ArborX::PredicatesTag>;
+
+      auto permute = ArborX::Details::BatchedQueries<
+          DeviceType>::sortQueriesAlongZOrderCurve(ExecutionSpace{},
+                                                   index.bounds(), queries);
+      queries = ArborX::Details::BatchedQueries<DeviceType>::applyPermutation(
+          ExecutionSpace{}, permute, queries);
+      // DEBUG
+      /*auto permute2 =
+      ArborX::Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(ExecutionSpace{},
+      index.bounds(), queries);
+
+      Kokkos::parallel_for("check_permutation",
+      Kokkos::RangePolicy<ExecutionSpace>(0, Access::size(queries)),
+                        KOKKOS_LAMBDA(const int i) {
+                          if (permute2(i) != i)
+                          {
+                            printf("%d should be %d\n", permute2(i), i);
+                            Kokkos::abort("wrong permutation");
+                          }
+                        });*/
+    }
+
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     auto const start = std::chrono::high_resolution_clock::now();
     index.query(queries, indices, offset,
                 ArborX::Experimental::TraversalPolicy()
-                    .setPredicateSorting(spec.sort_predicates)
+                    .setPredicateSorting(false)
                     .setBufferSize(spec.buffer_size));
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
@@ -397,11 +425,46 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
     callback_second.indices_ = indices;
     callback_second.counts_ = counts;
 
+    if (spec.sort_predicates)
+    {
+      using Access =
+          ArborX::AccessTraits<decltype(queries), ArborX::PredicatesTag>;
+
+      auto permute = ArborX::Details::BatchedQueries<
+          DeviceType>::sortQueriesAlongZOrderCurve(ExecutionSpace{},
+                                                   index.bounds(), queries);
+      auto sorted_queries =
+          ArborX::Details::BatchedQueries<DeviceType>::applyPermutation(
+              ExecutionSpace{}, permute, queries);
+      Kokkos::parallel_for(
+          "assign_sorted_queries",
+          Kokkos::RangePolicy<ExecutionSpace>(0, Access::size(queries)),
+          KOKKOS_LAMBDA(const int i) {
+            queries._queries(i) =
+                static_cast<typename decltype(queries_no_index)::value_type>(
+                    sorted_queries(i));
+          });
+      // DEBUG
+      /*auto permute2 =
+      ArborX::Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(ExecutionSpace{},
+      index.bounds(), queries);
+
+      Kokkos::parallel_for("check_permutation",
+      Kokkos::RangePolicy<ExecutionSpace>(0, Access::size(queries)),
+                        KOKKOS_LAMBDA(const int i) {
+                          if (permute2(i) != i)
+                          {
+                            printf("%d should be %d\n", permute2(i), i);
+                            Kokkos::abort("wrong permutation");
+                          }
+                        });*/
+    }
     auto const start = std::chrono::high_resolution_clock::now();
     Kokkos::Profiling::pushRegion("first_pass");
+
     index.query(queries, callback_first,
                 ArborX::Experimental::TraversalPolicy()
-                    .setPredicateSorting(spec.sort_predicates)
+                    .setPredicateSorting(false)
                     .setBufferSize(spec.buffer_size));
     Kokkos::Profiling::popRegion();
     Kokkos::Profiling::pushRegion("intermediate");
@@ -433,8 +496,8 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
 
-    /*
-    Kokkos::View<int *, DeviceType> reference_offset("offset", 0);
+    // DEBUG
+    /*Kokkos::View<int *, DeviceType> reference_offset("offset", 0);
     Kokkos::View<int *, DeviceType> reference_indices("indices", 0);
     index.query(queries_no_index, reference_indices, reference_offset,
                 ArborX::Experimental::TraversalPolicy()
@@ -469,8 +532,7 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
                    reference, i, other);
             Kokkos::abort("Mismatch");
           }
-        });
-        */
+        });*/
   }
 }
 
@@ -703,8 +765,8 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef KOKKOS_ENABLE_SERIAL
-    if (spec.backends == "all" || spec.backends == "rtree")
-      register_benchmark<BoostExt::RTree<ArborX::Point>>("BoostRTree", spec);
+/*    if (spec.backends == "all" || spec.backends == "rtree")
+      register_benchmark<BoostExt::RTree<ArborX::Point>>("BoostRTree", spec);*/
 #endif
   }
 
