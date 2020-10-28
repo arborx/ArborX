@@ -76,14 +76,19 @@ private:
   template <typename DeviceType>
   friend struct Details::TreeVisualization;
 
-#if defined(KOKKOS_ENABLE_CUDA)
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
   // Ropes based traversal is only used for CUDA, as it was found to be slower
-  // than regular one for Power9 on Summit.
-  // TODO: determine whether it should also be use for AMD GPUs
-  using node_type =
-      std::conditional_t<std::is_same<MemorySpace, Kokkos::CudaSpace>{},
-                         Details::NodeWithLeftChildAndRope,
-                         Details::NodeWithTwoChildren>;
+  // than regular one for Power9 on Summit.  It is also used with HIP.
+  using node_type = std::conditional_t<std::is_same<MemorySpace,
+#if defined(KOKKOS_ENABLE_CUDA)
+                                                    Kokkos::CudaSpace
+#else
+                                                    Kokkos::Experimental::
+                                                        HIPSpace
+#endif
+                                                    >{},
+                                       Details::NodeWithLeftChildAndRope,
+                                       Details::NodeWithTwoChildren>;
 #else
   using node_type = Details::NodeWithTwoChildren;
 #endif
