@@ -339,11 +339,11 @@ struct SpatialCallback_FirstPass_BufferOptimization
     auto const &offset = offsets_(predicate_index);
     auto const buffer_size = *(&offset + 1) - offset;
 
-    auto &count = counts_(predicate_index);
-    if (count < buffer_size)
-      indices_(offset + (count++)) = primitive_index;
-    else
-      ++count;
+    int const count_old =
+        Kokkos::atomic_fetch_add(&counts_(predicate_index), 1);
+
+    if (count_old < buffer_size)
+      indices_(offset + count_old) = primitive_index;
   }
 };
 
@@ -361,11 +361,13 @@ struct SpatialCallback_SecondPass_BufferOptimization
     auto const &offset = offsets_(predicate_index);
     auto const buffer_size = *(&offset + 1) - offset;
 
-    auto &count = counts_(predicate_index);
+    int const count_old =
+        Kokkos::atomic_fetch_add(&counts_(predicate_index), 1);
 
-    if (!(count < buffer_size))
-      Kokkos::abort("Didn't update buffer size");
-    indices_(offset + (count++)) = primitive_index;
+    // DEBUG
+    /*    if (!(count_old < buffer_size))
+          Kokkos::abort("Didn't update buffer size");*/
+    indices_(offset + count_old) = primitive_index;
   }
 };
 
