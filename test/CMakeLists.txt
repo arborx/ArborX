@@ -116,4 +116,9 @@ target_link_libraries(ArborX_BoostAdapters.exe PRIVATE ArborX Boost::unit_test_f
 target_compile_definitions(ArborX_BoostAdapters.exe PRIVATE BOOST_TEST_DYN_LINK)
 add_test(NAME ArborX_BoostAdapters_Test COMMAND ./ArborX_BoostAdapters.exe)
 
+add_executable(ArborX_DetailsRay.exe tstDetailsRay.cpp utf_main.cpp)
+target_link_libraries(ArborX_DetailsRay.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_DetailsRay.exe PRIVATE BOOST_TEST_DYN_LINK)
+add_test(NAME ArborX_DetailsRay_Test COMMAND ./ArborX_DetailsRay.exe)
+
 add_subdirectory(headers_self_contained)
