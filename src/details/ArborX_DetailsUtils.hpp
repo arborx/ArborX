@@ -561,37 +561,6 @@ template <typename View>
   return clone(ExecutionSpace{}, v);
 }
 
-namespace Details
-{
-template <class MT, unsigned T, bool UpdateMode>
-struct UpdateTraits
-{
-};
-
-template <unsigned U, unsigned T>
-struct UpdateTraits<Kokkos::MemoryTraits<U>, T, true>
-{
-  using type = Kokkos::MemoryTraits<U | T>;
-};
-
-template <unsigned U, unsigned T>
-struct UpdateTraits<Kokkos::MemoryTraits<U>, T, false>
-{
-  using type = Kokkos::MemoryTraits<U &(~T)>;
-};
-} // namespace Details
-
-template <typename ViewType, unsigned MemoryTraits, bool UpdateMode>
-struct UpdateMemoryTraits
-{
-  static_assert(Kokkos::is_view<ViewType>{}, "");
-  using type = Kokkos::View<
-      typename ViewType::data_type, typename ViewType::array_layout,
-      typename ViewType::device_type,
-      typename Details::UpdateTraits<typename ViewType::memory_traits,
-                                     MemoryTraits, UpdateMode>::type>;
-};
-
 } // namespace ArborX
 
 #endif

@@ -257,13 +257,15 @@ public:
         "");
 
     // This allows function to work even when ExportView is unmanaged.
-    using ManagedExportView =
-        typename UpdateMemoryTraits<ExportView, Kokkos::Unmanaged, false>::type;
+    using ExportViewWithoutMemoryTraits =
+        Kokkos::View<typename ExportView::data_type,
+                     typename ExportView::array_layout,
+                     typename ExportView::device_type>;
 
     using DestBufferMirrorViewType =
         decltype(ArborX::Details::create_layout_right_mirror_view_and_copy(
             std::declval<typename ImportView::memory_space>(),
-            std::declval<ManagedExportView>()));
+            std::declval<ExportViewWithoutMemoryTraits>()));
 
     constexpr int pointer_depth = internal::PointerDepth<
         typename DestBufferMirrorViewType::traits::data_type>::value;
@@ -282,7 +284,7 @@ public:
     bool const permutation_necessary = _permute.size() != 0;
     if (permutation_necessary)
     {
-      auto dest_buffer = ManagedExportView(
+      auto dest_buffer = ExportViewWithoutMemoryTraits(
           "ArborX::Distributor::doPostsAndWaits::destination_buffer",
           typename ExportView::array_layout{});
 
