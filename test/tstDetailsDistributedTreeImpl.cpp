@@ -348,15 +348,15 @@ BOOST_AUTO_TEST_CASE(pointer_depth)
 template <typename DeviceType>
 struct Helper
 {
-  template <typename View1, typename View2>
+  template <typename View1, typename View2, typename View3>
   static void checkSendAcrossNetwork(MPI_Comm comm, View1 const &ranks,
-                                     View2 const &v_exp, View2 const &v_ref)
+                                     View2 const &v_exp, View3 const &v_ref)
   {
     ArborX::Details::Distributor<DeviceType> distributor(comm);
     distributor.createFromSends(typename DeviceType::execution_space{}, ranks);
 
     // NOTE here we assume that the reference solution is sized properly
-    auto v_imp = Kokkos::create_mirror(typename View2::memory_space(), v_ref);
+    auto v_imp = Kokkos::create_mirror(typename View3::memory_space(), v_ref);
 
     ArborX::Details::DistributedTreeImpl<DeviceType>::sendAcrossNetwork(
         typename DeviceType::execution_space{}, distributor, v_exp, v_imp);
@@ -410,4 +410,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(send_across_network, DeviceType,
                        });
 
   Helper<DeviceType>::checkSendAcrossNetwork(comm, ranks_u, u_exp, u_ref);
+
+  Kokkos::View<int **, DeviceType, Kokkos::MemoryUnmanaged> u_exp_unmanaged{
+      u_exp};
+  Helper<DeviceType>::checkSendAcrossNetwork(comm, ranks_u, u_exp_unmanaged,
+                                             u_ref);
 }

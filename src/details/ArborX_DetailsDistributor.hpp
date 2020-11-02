@@ -256,14 +256,38 @@ public:
                      typename decltype(_permute)::memory_space>::value,
         "");
 
+    // This allows function to work even when ExportView is unmanaged.
+    using ExportViewWithoutMemoryTraits =
+        Kokkos::View<typename ExportView::data_type,
+                     typename ExportView::array_layout,
+                     typename ExportView::device_type>;
+
+    using DestBufferMirrorViewType =
+        decltype(ArborX::Details::create_layout_right_mirror_view_and_copy(
+            std::declval<typename ImportView::memory_space>(),
+            std::declval<ExportViewWithoutMemoryTraits>()));
+
+    constexpr int pointer_depth = internal::PointerDepth<
+        typename DestBufferMirrorViewType::traits::data_type>::value;
+    DestBufferMirrorViewType dest_buffer_mirror(
+        "ArborX::Distributor::doPostsAndWaits::destination_buffer_mirror", 0,
+        pointer_depth > 1 ? 0 : KOKKOS_INVALID_INDEX,
+        pointer_depth > 2 ? 0 : KOKKOS_INVALID_INDEX,
+        pointer_depth > 3 ? 0 : KOKKOS_INVALID_INDEX,
+        pointer_depth > 4 ? 0 : KOKKOS_INVALID_INDEX,
+        pointer_depth > 5 ? 0 : KOKKOS_INVALID_INDEX,
+        pointer_depth > 6 ? 0 : KOKKOS_INVALID_INDEX,
+        pointer_depth > 7 ? 0 : KOKKOS_INVALID_INDEX);
+
     // If _permute is empty, we are assuming that we don't need to permute
     // exports.
     bool const permutation_necessary = _permute.size() != 0;
-    auto dest_buffer =
-        ExportView("ArborX::Distributor::doPostsAndWaits::destination_buffer",
-                   typename ExportView::array_layout{});
     if (permutation_necessary)
     {
+      auto dest_buffer = ExportViewWithoutMemoryTraits(
+          "ArborX::Distributor::doPostsAndWaits::destination_buffer",
+          typename ExportView::array_layout{});
+
       reallocWithoutInitializing(dest_buffer, exports.layout());
 
       // We need to create a local copy to avoid capturing a member variable
@@ -273,11 +297,17 @@ public:
 
       ArborX::Details::applyInversePermutation(space, permute_copy, exports,
                                                dest_buffer);
+
+      dest_buffer_mirror =
+          ArborX::Details::create_layout_right_mirror_view_and_copy(
+              typename ImportView::memory_space(), dest_buffer);
     }
-    auto dest_buffer_mirror =
-        ArborX::Details::create_layout_right_mirror_view_and_copy(
-            typename ImportView::memory_space(),
-            permutation_necessary ? dest_buffer : exports);
+    else
+    {
+      dest_buffer_mirror =
+          ArborX::Details::create_layout_right_mirror_view_and_copy(
+              typename ImportView::memory_space(), exports);
+    }
 
     static_assert(
         decltype(dest_buffer_mirror)::rank == 1 ||
