@@ -567,6 +567,25 @@ int main(int argc, char *argv[])
       throw std::runtime_error("HIP backend not available!");
 #endif
 
+#ifdef KOKKOS_ENABLE_OPENMPTARGET
+    if (spec.backends == "all" || spec.backends == "openmptarget")
+      register_benchmark<
+          ArborX::BVH<Kokkos::Experimental::OpenMPTarget::device_type>>(
+          "ArborX::BVH<OpenMPTarget>", spec);
+#else
+    if (spec.backends == "openmptarget")
+      throw std::runtime_error("OpenMPTarget backend not available!");
+#endif
+
+#ifdef KOKKOS_ENABLE_
+    if (spec.backends == "all" || spec.backends == "sycl")
+      register_benchmark<ArborX::BVH<Kokkos::Experimental::SYCL::device_type>>(
+          "ArborX::BVH<SYCL>", spec);
+#else
+    if (spec.backends == "sycl")
+      throw std::runtime_error("SYCL backend not available!");
+#endif
+
 #ifdef KOKKOS_ENABLE_SERIAL
     if (spec.backends == "all" || spec.backends == "rtree")
       register_benchmark<BoostExt::RTree<ArborX::Point>>("BoostRTree", spec);
