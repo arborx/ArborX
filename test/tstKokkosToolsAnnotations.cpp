@@ -58,6 +58,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, Tree, TreeTypes)
             (isPrefixedWith(label, "ArborX::BVH::") || // data member
              isPrefixedWith(label, "ArborX::BVH::BVH::") ||
              isPrefixedWith(label, "ArborX::Sorting::") ||
+             isPrefixedWith(label, "Kokkos::SortImpl::BinSortFunctor::") ||
              isPrefixedWith(label,
                             "Kokkos::Serial::") || // unsure what's going on
              isPrefixedWith(label, "Testing::")));
@@ -98,12 +99,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, Tree, TreeTypes)
       [](Kokkos::Profiling::SpaceHandle /*handle*/, const char *label,
          void const * /*ptr*/, uint64_t /*size*/) {
         std::cout << label << '\n';
-        BOOST_TEST((isPrefixedWith(label, "ArborX::BVH::query::") ||
-                    isPrefixedWith(label, "ArborX::TreeTraversal::spatial::") ||
-                    isPrefixedWith(label, "ArborX::TreeTraversal::nearest::") ||
-                    isPrefixedWith(label, "ArborX::BufferOptimization::") ||
-                    isPrefixedWith(label, "ArborX::Sorting::") ||
-                    isPrefixedWith(label, "Testing::")));
+        BOOST_TEST(
+            (isPrefixedWith(label, "ArborX::BVH::query::") ||
+             isPrefixedWith(label, "ArborX::TreeTraversal::spatial::") ||
+             isPrefixedWith(label, "ArborX::TreeTraversal::nearest::") ||
+             isPrefixedWith(label, "ArborX::BufferOptimization::") ||
+             isPrefixedWith(label, "ArborX::Sorting::") ||
+             isPrefixedWith(label, "Kokkos::SortImpl::BinSortFunctor::") ||
+             isPrefixedWith(label, "Testing::")));
       });
 
   using DeviceType = typename Tree::device_type;
