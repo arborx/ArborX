@@ -12,6 +12,8 @@
 #ifndef ARBORX_DETAILS_SORT_UTILS_HPP
 #define ARBORX_DETAILS_SORT_UTILS_HPP
 
+#include <ArborX_Config.hpp> // ARBORX_ENABLE_ROCTHRUST
+
 #include <ArborX_DetailsUtils.hpp> // iota
 #include <ArborX_Exception.hpp>
 
@@ -52,7 +54,7 @@
 #endif   // #if defined(KOKKOS_ENABLE_CUDA)
 // clang-format on
 
-#if defined(KOKKOS_ENABLE_HIP)
+#if defined(KOKKOS_ENABLE_HIP) && defined(ARBORX_ENABLE_ROCTHRUST)
 #include <thrust/device_ptr.h>
 #include <thrust/sort.h>
 #endif
@@ -97,7 +99,8 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
   return bin_sort.get_permute_vector();
 }
 
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
+#if defined(KOKKOS_ENABLE_CUDA) ||                                             \
+    (defined(KOKKOS_ENABLE_HIP) && defined(ARBORX_ENABLE_ROCTHRUST))
 // NOTE returns the permutation indices **and** sorts the input view
 template <typename ViewType, class SizeType = unsigned int>
 Kokkos::View<SizeType *, typename ViewType::device_type> sortObjects(

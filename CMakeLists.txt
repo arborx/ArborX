@@ -14,9 +14,14 @@ set_target_properties(ArborX PROPERTIES INTERFACE_COMPILE_FEATURES cxx_std_14)
 # within a subdirectory.
 add_dependencies(ArborX record_hash)
 
-if(Kokkos_ENABLE_HIP)
+option(ARBORX_ENABLE_ROCTHRUST "Enable rocThrust support" OFF)
+if(Kokkos_ENABLE_HIP AND ARBORX_ENABLE_ROCTHRUST)
   find_package(rocthrust REQUIRED CONFIG)
   target_link_libraries(ArborX INTERFACE roc::rocthrust)
+endif()
+
+if(Kokkos_ENABLE_HIP AND NOT ARBORX_ENABLE_ROCTHRUST)
+  message(WARNING "rocThrust is NOT enabled.\nThis will negatively impact performance on AMD GPUs.")
 endif()
 
 # Refer to the alias target in examples and benchmarks so they can be built
