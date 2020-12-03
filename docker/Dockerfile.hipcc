@@ -20,6 +20,7 @@ RUN apt-get update && \
         python-dev \
         autotools-dev \
         libopenmpi-dev \
+        rocthrust \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
