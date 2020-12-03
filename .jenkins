@@ -379,7 +379,7 @@ pipeline {
                                     examples \
                                 '''
                                 sh 'make VERBOSE=1'
-                                sh 'make test'
+                                sh 'ctest --output-on-failure'
                             }
                         }
                     }
