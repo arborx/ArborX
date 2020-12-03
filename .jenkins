@@ -375,6 +375,7 @@ pipeline {
                                     cmake \
                                         -D CMAKE_CXX_COMPILER=hipcc \
                                         -D CMAKE_CXX_EXTENSIONS=OFF \
+                                        -D CMAKE_BUILD_TYPE=RelWithDebInfo \
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
                                     examples \
                                 '''
