@@ -26,24 +26,15 @@
 
 namespace tt = boost::test_tools;
 
-template <typename T>
-struct TreeTypeTraits;
-
-template <typename... DeviceTypes>
-struct TreeTypeTraits<std::tuple<DeviceTypes...>>
+BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
 {
-  using type = std::tuple<ArborX::BVH<DeviceTypes>...>;
-};
+  using Tree = ArborX::BVH<typename DeviceType::memory_space>;
+  using ExecutionSpace = typename DeviceType::execution_space;
 
-using TreeTypes = typename TreeTypeTraits<ARBORX_DEVICE_TYPES>::type;
-
-BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, Tree, TreeTypes)
-{
-  using device_type = typename Tree::device_type;
   // tree is empty, it has no leaves.
   for (auto const &tree : {
-           Tree{},         // default constructed
-           make<Tree>({}), // constructed with empty view of boxes
+           Tree{},                   // default constructed
+           makeTree<DeviceType>({}), // constructed with empty view of boxes
        })
   {
     BOOST_TEST(tree.empty());
@@ -55,50 +46,53 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, Tree, TreeTypes)
     // to support it. And since the tag dispatching yields different tree
     // traversals for nearest and spatial predicates, we do have to check
     // the results for various type of queries.
-    ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<device_type>({}),
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                           makeIntersectsBoxQueries<DeviceType>({}),
                            make_reference_solution<int>({}, {0}));
 
     // NOTE: Admittedly testing for both intersection with a box and with a
     // sphere queries might be a bit overkill but I'd rather test for all the
     // queries we plan on using.
-    ARBORX_TEST_QUERY_TREE(tree, makeIntersectsSphereQueries<device_type>({}),
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                           makeIntersectsSphereQueries<DeviceType>({}),
                            make_reference_solution<int>({}, {0}));
 
-    ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<device_type>({}),
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                           makeNearestQueries<DeviceType>({}),
                            make_reference_solution<int>({}, {0}));
 
     // Passing an empty distance vector.
     ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-        tree, makeNearestQueries<device_type>({}),
+        ExecutionSpace{}, tree, makeNearestQueries<DeviceType>({}),
         (make_reference_solution<Kokkos::pair<int, float>>)({}, {0}));
 
     // Now passing a couple queries of various type and checking the
     // results.
     ARBORX_TEST_QUERY_TREE(
-        tree,
-        makeIntersectsBoxQueries<device_type>({
+        ExecutionSpace{}, tree,
+        makeIntersectsBoxQueries<DeviceType>({
             {}, // Did not bother giving a valid box here but that's fine.
             {},
         }),
         make_reference_solution<int>({}, {0, 0, 0}));
 
-    ARBORX_TEST_QUERY_TREE(tree,
-                           makeIntersectsSphereQueries<device_type>({
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                           makeIntersectsSphereQueries<DeviceType>({
                                {{{0., 0., 0.}}, 1.},
                                {{{1., 1., 1.}}, 2.},
                            }),
                            make_reference_solution<int>({}, {0, 0, 0}));
 
-    ARBORX_TEST_QUERY_TREE(tree,
-                           makeNearestQueries<device_type>({
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                           makeNearestQueries<DeviceType>({
                                {{{0., 0., 0.}}, 1},
                                {{{1., 1., 1.}}, 2},
                            }),
                            make_reference_solution<int>({}, {0, 0, 0}));
 
     ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-        tree,
-        makeNearestQueries<device_type>({
+        ExecutionSpace{}, tree,
+        makeNearestQueries<DeviceType>({
             {{{0., 0., 0.}}, 1},
             {{{1., 1., 1.}}, 2},
         }),
@@ -106,11 +100,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, Tree, TreeTypes)
   }
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, Tree, TreeTypes)
+BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, DeviceType, ARBORX_DEVICE_TYPES)
 {
-  using device_type = typename Tree::device_type;
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   // tree has a single leaf (unit box)
-  auto const tree = make<Tree>({
+  auto const tree = makeTree<DeviceType>({
+
       {{{0., 0., 0.}}, {{1., 1., 1.}}},
   });
 
@@ -119,42 +115,45 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, Tree, TreeTypes)
   BOOST_TEST(
       ArborX::Details::equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
-  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<device_type>({}),
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeIntersectsBoxQueries<DeviceType>({}),
                          make_reference_solution<int>({}, {0}));
 
-  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsSphereQueries<device_type>({}),
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeIntersectsSphereQueries<DeviceType>({}),
                          make_reference_solution<int>({}, {0}));
 
-  ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<device_type>({}),
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeNearestQueries<DeviceType>({}),
                          make_reference_solution<int>({}, {0}));
 
   ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-      tree, makeNearestQueries<device_type>({}),
+      ExecutionSpace{}, tree, makeNearestQueries<DeviceType>({}),
       (make_reference_solution<Kokkos::pair<int, float>>)({}, {0}));
 
   ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-      tree,
-      makeNearestQueries<device_type>({{{0., 0., 0.}, 3}, {{4., 5., 1.}, 1}}),
+      ExecutionSpace{}, tree,
+      makeNearestQueries<DeviceType>({{{0., 0., 0.}, 3}, {{4., 5., 1.}, 1}}),
       (make_reference_solution<Kokkos::pair<int, float>>)({{0, 0.}, {0, 5.}},
                                                           {0, 1, 2}));
 
-  ARBORX_TEST_QUERY_TREE(tree,
-                         makeIntersectsBoxQueries<device_type>({
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeIntersectsBoxQueries<DeviceType>({
                              {{{5., 5., 5.}}, {{5., 5., 5.}}},
                              {{{.5, .5, .5}}, {{.5, .5, .5}}},
                          }),
                          make_reference_solution<int>({0}, {0, 0, 1}));
 
-  ARBORX_TEST_QUERY_TREE(tree,
-                         makeIntersectsSphereQueries<device_type>({
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeIntersectsSphereQueries<DeviceType>({
                              {{{0., 0., 0.}}, 1.},
                              {{{1., 1., 1.}}, 3.},
                              {{{5., 5., 5.}}, 2.},
                          }),
                          make_reference_solution<int>({0, 0}, {0, 1, 2, 2}));
 
-  ARBORX_TEST_QUERY_TREE(tree,
-                         makeNearestQueries<device_type>({
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeNearestQueries<DeviceType>({
                              {{{0., 0., 0.}}, 1},
                              {{{1., 1., 1.}}, 2},
                              {{{2., 2., 2.}}, 3},
@@ -162,8 +161,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, Tree, TreeTypes)
                          make_reference_solution<int>({0, 0, 0}, {0, 1, 2, 3}));
 
   ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-      tree,
-      makeNearestQueries<device_type>({
+      ExecutionSpace{}, tree,
+      makeNearestQueries<DeviceType>({
           {{{1., 0., 0.}}, 1},
           {{{0., 2., 0.}}, 2},
           {{{0., 0., 3.}}, 3},
@@ -174,11 +173,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, Tree, TreeTypes)
                                                           {0, 1, 2, 3}));
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, Tree, TreeTypes)
+BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, DeviceType,
+                              ARBORX_DEVICE_TYPES)
 {
-  using device_type = typename Tree::device_type;
+  using ExecutionSpace = typename DeviceType::execution_space;
 
-  auto const tree = make<Tree>({
+  auto const tree = makeTree<DeviceType>({
       {{{0., 0., 0.}}, {{0., 0., 0.}}},
       {{{1., 1., 1.}}, {{1., 1., 1.}}},
   });
@@ -189,49 +189,50 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, Tree, TreeTypes)
       ArborX::Details::equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   // single query intersects with nothing
-  ARBORX_TEST_QUERY_TREE(tree,
-                         makeIntersectsBoxQueries<device_type>({
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeIntersectsBoxQueries<DeviceType>({
                              {},
                          }),
                          make_reference_solution<int>({}, {0, 0}));
 
   // single query intersects with both
-  ARBORX_TEST_QUERY_TREE(tree,
-                         makeIntersectsBoxQueries<device_type>({
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeIntersectsBoxQueries<DeviceType>({
                              {{{0., 0., 0.}}, {{1., 1., 1.}}},
                          }),
                          make_reference_solution<int>({1, 0}, {0, 2}));
 
   // single query intersects with only one
-  ARBORX_TEST_QUERY_TREE(tree,
-                         makeIntersectsBoxQueries<device_type>({
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeIntersectsBoxQueries<DeviceType>({
                              {{{0.5, 0.5, 0.5}}, {{1.5, 1.5, 1.5}}},
                          }),
                          make_reference_solution<int>({1}, {0, 1}));
 
   // a couple queries both intersect with nothing
-  ARBORX_TEST_QUERY_TREE(tree,
-                         makeIntersectsBoxQueries<device_type>({
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeIntersectsBoxQueries<DeviceType>({
                              {},
                              {},
                          }),
                          make_reference_solution<int>({}, {0, 0, 0}));
 
   // a couple queries first intersects with nothing second with only one
-  ARBORX_TEST_QUERY_TREE(tree,
-                         makeIntersectsBoxQueries<device_type>({
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeIntersectsBoxQueries<DeviceType>({
                              {},
                              {{{0., 0., 0.}}, {{0., 0., 0.}}},
                          }),
                          make_reference_solution<int>({0}, {0, 0, 1}));
 
   // no query
-  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<device_type>({}),
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeIntersectsBoxQueries<DeviceType>({}),
                          make_reference_solution<int>({}, {0}));
 
   ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-      tree,
-      makeNearestQueries<device_type>({
+      ExecutionSpace{}, tree,
+      makeNearestQueries<DeviceType>({
           {{{0., 0., 0.}}, 2},
           {{{1., 0., 0.}}, 4},
       }),
@@ -245,12 +246,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, Tree, TreeTypes)
 BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   // The tree contains multiple (more than two) leaves that will be assigned
   // the same Morton code.  This was able to trigger a bug that we discovered
   // when building trees over ~10M indexable values.  The hierarchy generated
   // at construction had leaves with no parent which yielded a segfault later
   // when computing bounding boxes and walking the hierarchy toward the root.
-  auto const bvh = make<ArborX::BVH<DeviceType>>({
+  auto const bvh = makeTree<DeviceType>({
       {{{0., 0., 0.}}, {{0., 0., 0.}}},
       {{{1., 1., 1.}}, {{1., 1., 1.}}},
       {{{1., 1., 1.}}, {{1., 1., 1.}}},
@@ -258,7 +261,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves, DeviceType,
   });
 
   ARBORX_TEST_QUERY_TREE(
-      bvh,
+      ExecutionSpace{}, bvh,
       makeIntersectsSphereQueries<DeviceType>({
           {{{0., 0., 0.}}, 1.},
           {{{1., 1., 1.}}, 1.},
@@ -270,7 +273,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves, DeviceType,
 BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
-  auto const bvh = make<ArborX::BVH<DeviceType>>({
+  using ExecutionSpace = typename DeviceType::execution_space;
+
+  auto const bvh = makeTree<DeviceType>({
       {{{0., 0., 0.}}, {{0., 0., 0.}}},
       {{{1., 0., 0.}}, {{1., 0., 0.}}},
       {{{2., 0., 0.}}, {{2., 0., 0.}}},
@@ -300,10 +305,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
                tt::per_element());
   };
 
-  BOOST_CHECK_NO_THROW(bvh.query(queries, indices, offset));
+  BOOST_CHECK_NO_THROW(bvh.query(ExecutionSpace{}, queries, indices, offset));
   checkResultsAreFine();
 
-  using ExecutionSpace = typename DeviceType::execution_space;
   // compute number of results per query
   auto counts = ArborX::cloneWithoutInitializingNorCopying(offset);
   ArborX::adjacentDifference(ExecutionSpace{}, offset, counts);
@@ -313,7 +317,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
 
   // optimal size
   BOOST_CHECK_NO_THROW(
-      bvh.query(queries, indices, offset,
+      bvh.query(ExecutionSpace{}, queries, indices, offset,
                 ArborX::Experimental::TraversalPolicy().setBufferSize(
                     -max_results_per_query)));
   checkResultsAreFine();
@@ -321,28 +325,28 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
   // buffer size insufficient
   BOOST_TEST(max_results_per_query > 1);
   BOOST_CHECK_NO_THROW(
-      bvh.query(queries, indices, offset,
+      bvh.query(ExecutionSpace{}, queries, indices, offset,
                 ArborX::Experimental::TraversalPolicy().setBufferSize(+1)));
   checkResultsAreFine();
   BOOST_CHECK_THROW(
-      bvh.query(queries, indices, offset,
+      bvh.query(ExecutionSpace{}, queries, indices, offset,
                 ArborX::Experimental::TraversalPolicy().setBufferSize(-1)),
       ArborX::SearchException);
 
   // adequate buffer size
   BOOST_TEST(max_results_per_query < 5);
   BOOST_CHECK_NO_THROW(
-      bvh.query(queries, indices, offset,
+      bvh.query(ExecutionSpace{}, queries, indices, offset,
                 ArborX::Experimental::TraversalPolicy().setBufferSize(+5)));
   checkResultsAreFine();
   BOOST_CHECK_NO_THROW(
-      bvh.query(queries, indices, offset,
+      bvh.query(ExecutionSpace{}, queries, indices, offset,
                 ArborX::Experimental::TraversalPolicy().setBufferSize(-5)));
   checkResultsAreFine();
 
   // passing null size skips the buffer optimization and never throws
   BOOST_CHECK_NO_THROW(
-      bvh.query(queries, indices, offset,
+      bvh.query(ExecutionSpace{}, queries, indices, offset,
                 ArborX::Experimental::TraversalPolicy().setBufferSize(0)));
   checkResultsAreFine();
 }
@@ -350,7 +354,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
 BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
-  auto const bvh = make<ArborX::BVH<DeviceType>>({
+  using ExecutionSpace = typename DeviceType::execution_space;
+
+  auto const bvh = makeTree<DeviceType>({
       {{{0., 0., 0.}}, {{0., 0., 0.}}},
       {{{1., 1., 1.}}, {{1., 1., 1.}}},
       {{{2., 2., 2.}}, {{2., 2., 2.}}},
@@ -381,12 +387,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
     });
 
     BOOST_CHECK_NO_THROW(bvh.query(
-        queries, indices, offset,
+        ExecutionSpace{}, queries, indices, offset,
         ArborX::Experimental::TraversalPolicy().setPredicateSorting(true)));
     checkResultsAreFine();
 
     BOOST_CHECK_NO_THROW(bvh.query(
-        queries, indices, offset,
+        ExecutionSpace{}, queries, indices, offset,
         ArborX::Experimental::TraversalPolicy().setPredicateSorting(false)));
     checkResultsAreFine();
   }
@@ -399,12 +405,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
     });
 
     BOOST_CHECK_NO_THROW(bvh.query(
-        queries, indices, offset,
+        ExecutionSpace{}, queries, indices, offset,
         ArborX::Experimental::TraversalPolicy().setPredicateSorting(true)));
     checkResultsAreFine();
 
     BOOST_CHECK_NO_THROW(bvh.query(
-        queries, indices, offset,
+        ExecutionSpace{}, queries, indices, offset,
         ArborX::Experimental::TraversalPolicy().setPredicateSorting(false)));
     checkResultsAreFine();
   }
@@ -413,6 +419,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
 BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   std::vector<ArborX::Box> boxes;
   int const n = 4096; // exceed stack capacity which is 64
   boxes.reserve(n);
@@ -422,20 +430,22 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity, DeviceType,
     double const b = i + 1;
     boxes.push_back({{{a, a, a}}, {{b, b, b}}});
   }
-  auto const bvh = make<ArborX::BVH<DeviceType>>(boxes);
+  auto const bvh = makeTree<DeviceType>(boxes);
 
   Kokkos::View<int *, DeviceType> indices("indices", 0);
   Kokkos::View<int *, DeviceType> offset("offset", 0);
   // query number of nearest neighbors that exceed capacity of the stack is
   // not a problem
-  BOOST_CHECK_NO_THROW(bvh.query(makeNearestQueries<DeviceType>({
+  BOOST_CHECK_NO_THROW(bvh.query(ExecutionSpace{},
+                                 makeNearestQueries<DeviceType>({
                                      {{{0., 0., 0.}}, n},
                                  }),
                                  indices, offset));
   BOOST_TEST(ArborX::lastElement(offset) == n);
 
   // spatial query that find all indexable in the tree is also fine
-  BOOST_CHECK_NO_THROW(bvh.query(makeIntersectsBoxQueries<DeviceType>({
+  BOOST_CHECK_NO_THROW(bvh.query(ExecutionSpace{},
+                                 makeIntersectsBoxQueries<DeviceType>({
                                      {},
                                      {{{0., 0., 0.}}, {{n, n, n}}},
                                  }),
@@ -523,21 +533,25 @@ struct CustomPostCallbackNearestPredicate
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(callback, DeviceType, ARBORX_DEVICE_TYPES)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   int const n = 10;
   Kokkos::View<ArborX::Point *, DeviceType> points("points", n);
   Kokkos::View<Kokkos::pair<int, float> *, DeviceType> ref("ref", n);
   ArborX::Point const origin = {{0., 0., 0.}};
-  using ExecutionSpace = typename DeviceType::execution_space;
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
         points(i) = {{(double)i, (double)i, (double)i}};
         ref(i) = {i, (float)ArborX::Details::distance(points(i), origin)};
       });
-  ArborX::BVH<DeviceType> const bvh{points};
+
+  ArborX::BVH<typename DeviceType::memory_space> const bvh(ExecutionSpace{},
+                                                           points);
   {
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
     Kokkos::View<int *, DeviceType> offset("offset", 0);
-    bvh.query(makeIntersectsBoxQueries<DeviceType>({
+    bvh.query(ExecutionSpace{},
+              makeIntersectsBoxQueries<DeviceType>({
                   bvh.bounds(),
               }),
               CustomInlineCallbackSpatialPredicate<DeviceType>{points}, custom,
@@ -556,7 +570,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback, DeviceType, ARBORX_DEVICE_TYPES)
   {
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
     Kokkos::View<int *, DeviceType> offset("offset", 0);
-    bvh.query(makeIntersectsBoxQueries<DeviceType>({
+    bvh.query(ExecutionSpace{},
+              makeIntersectsBoxQueries<DeviceType>({
                   bvh.bounds(),
               }),
               CustomPostCallbackSpatialPredicate<DeviceType>{points}, custom,
@@ -575,7 +590,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback, DeviceType, ARBORX_DEVICE_TYPES)
   {
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
     Kokkos::View<int *, DeviceType> offset("offset", 0);
-    bvh.query(makeNearestQueries<DeviceType>({
+    bvh.query(ExecutionSpace{},
+              makeNearestQueries<DeviceType>({
                   {origin, n},
               }),
               CustomInlineCallbackNearestPredicate<DeviceType>{}, custom,
@@ -590,7 +606,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback, DeviceType, ARBORX_DEVICE_TYPES)
   {
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
     Kokkos::View<int *, DeviceType> offset("offset", 0);
-    bvh.query(makeNearestQueries<DeviceType>({
+    bvh.query(ExecutionSpace{},
+              makeNearestQueries<DeviceType>({
                   {origin, n},
               }),
               CustomPostCallbackNearestPredicate<DeviceType>{}, custom, offset);
@@ -690,22 +707,27 @@ struct CustomPostCallbackAttachmentNearestPredicate
 BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   int const n = 10;
   Kokkos::View<ArborX::Point *, DeviceType> points("points", n);
   Kokkos::View<Kokkos::pair<int, float> *, DeviceType> ref("ref", n);
   ArborX::Point const origin = {{0., 0., 0.}};
   float const delta = 5.0;
-  using ExecutionSpace = typename DeviceType::execution_space;
+
   Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(
                                                                       int i) {
     points(i) = {{(double)i, (double)i, (double)i}};
     ref(i) = {i, delta + (float)ArborX::Details::distance(points(i), origin)};
   });
-  ArborX::BVH<DeviceType> const bvh{points};
+
+  ArborX::BVH<typename DeviceType::memory_space> const bvh(ExecutionSpace{},
+                                                           points);
   {
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     bvh.query(
+        ExecutionSpace{},
         makeIntersectsBoxWithAttachmentQueries<DeviceType, float>(
             {bvh.bounds()}, {delta}),
         CustomInlineCallbackAttachmentSpatialPredicate<DeviceType>{points},
@@ -724,7 +746,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
   {
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
     Kokkos::View<int *, DeviceType> offset("offset", 0);
-    bvh.query(makeIntersectsBoxWithAttachmentQueries<DeviceType,
+    bvh.query(ExecutionSpace{},
+              makeIntersectsBoxWithAttachmentQueries<DeviceType,
                                                      Kokkos::Array<float, 2>>(
                   {bvh.bounds()}, {{0., delta}}),
               CustomPostCallbackAttachmentSpatialPredicate<DeviceType>{points},
@@ -743,7 +766,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
   {
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
     Kokkos::View<int *, DeviceType> offset("offset", 0);
-    bvh.query(makeNearestWithAttachmentQueries<DeviceType, float>({{origin, n}},
+    bvh.query(ExecutionSpace{},
+              makeNearestWithAttachmentQueries<DeviceType, float>({{origin, n}},
                                                                   {delta}),
               CustomInlineCallbackAttachmentNearestPredicate<DeviceType>{},
               custom, offset);
@@ -758,6 +782,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     bvh.query(
+        ExecutionSpace{},
         makeNearestWithAttachmentQueries<DeviceType, Kokkos::Array<float, 2>>(
             {{origin, n}}, {{0, delta}}),
         CustomPostCallbackAttachmentNearestPredicate<DeviceType>{}, custom,
@@ -773,6 +798,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   double Lx = 100.0;
   double Ly = 100.0;
   double Lz = 100.0;
@@ -780,8 +807,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
   int ny = 11;
   int nz = 11;
   int n = nx * ny * nz;
-
-  using ExecutionSpace = typename DeviceType::execution_space;
 
   Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes("bounding_boxes", n);
   Kokkos::parallel_for(
@@ -796,7 +821,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
           }
       });
 
-  ArborX::BVH<DeviceType> bvh(bounding_boxes);
+  ArborX::BVH<typename DeviceType::memory_space> const bvh(ExecutionSpace{},
+                                                           bounding_boxes);
 
   // (i) use same objects for the queries than the objects we constructed the
   // BVH
@@ -821,7 +847,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::View<int *, DeviceType> indices("indices", n);
   Kokkos::View<int *, DeviceType> offset("offset", n);
 
-  bvh.query(queries, indices, offset);
+  bvh.query(ExecutionSpace{}, queries, indices, offset);
 
   auto indices_host = Kokkos::create_mirror_view(indices);
   Kokkos::deep_copy(indices_host, indices);
@@ -931,7 +957,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
                        KOKKOS_LAMBDA(int i) {
                          queries[i] = ArborX::intersects(bounding_boxes[i]);
                        });
-  bvh.query(queries, indices, offset);
+  bvh.query(ExecutionSpace{}, queries, indices, offset);
   indices_host = Kokkos::create_mirror_view(indices);
   Kokkos::deep_copy(indices_host, indices);
   offset_host = Kokkos::create_mirror_view(offset);
@@ -990,7 +1016,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
                        KOKKOS_LAMBDA(int i) {
                          queries[i] = ArborX::intersects(bounding_boxes[i]);
                        });
-  bvh.query(queries, indices, offset);
+  bvh.query(ExecutionSpace{}, queries, indices, offset);
   indices_host = Kokkos::create_mirror_view(indices);
   Kokkos::deep_copy(indices_host, indices);
   offset_host = Kokkos::create_mirror_view(offset);
@@ -1044,6 +1070,8 @@ BOOST_TEST_DECORATOR(*boost::unit_test::expected_failures(2))
 #endif
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   // construct a cloud of points (nodes of a structured grid)
   double Lx = 10.0;
   double Ly = 10.0;
@@ -1072,7 +1100,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
   // compare our solution against Boost R-tree
   int const n_points = 100;
   auto queries = make_random_cloud(Lx, Ly, Lz, n_points);
-  using ExecutionSpace = typename DeviceType::execution_space;
   Kokkos::View<double * [3], ExecutionSpace> point_coords("point_coords",
                                                           n_points);
   auto point_coords_host = Kokkos::create_mirror_view(point_coords);
@@ -1132,15 +1159,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
   auto within_queries_host = Kokkos::create_mirror_view(within_queries);
   Kokkos::deep_copy(within_queries_host, within_queries);
 
-  ArborX::BVH<DeviceType> bvh(bounding_boxes);
+  ArborX::BVH<typename DeviceType::memory_space> bvh(ExecutionSpace{},
+                                                     bounding_boxes);
 
   BoostExt::RTree<ArborX::Box> rtree(bounding_boxes_host);
 
   // FIXME check currently sporadically fails when using the HIP backend
-  ARBORX_TEST_QUERY_TREE(bvh, nearest_queries,
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, bvh, nearest_queries,
                          query(rtree, nearest_queries_host));
 
   // FIXME ditto
-  ARBORX_TEST_QUERY_TREE(bvh, within_queries,
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, bvh, within_queries,
                          query(rtree, within_queries_host));
 }
