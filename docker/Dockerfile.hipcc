@@ -1,4 +1,4 @@
-ARG BASE=rocm/dev-ubuntu-20.04:3.8
+ARG BASE=rocm/dev-ubuntu-20.04:3.10
 FROM $BASE
 
 ARG NPROCS=4
@@ -20,6 +20,7 @@ RUN apt-get update && \
         python-dev \
         autotools-dev \
         libopenmpi-dev \
+        rocthrust \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -36,7 +37,7 @@ RUN KEYDUMP_URL=https://cloud.cees.ornl.gov/download && \
 
 # Install CMake
 ENV CMAKE_DIR=/opt/cmake
-RUN CMAKE_VERSION=3.13.4 && \
+RUN CMAKE_VERSION=3.18.5 && \
     CMAKE_KEY=2D2CEF1034921684 && \
     CMAKE_URL=https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION} && \
     CMAKE_SCRIPT=cmake-${CMAKE_VERSION}-Linux-x86_64.sh && \

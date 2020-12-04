@@ -327,12 +327,12 @@ pipeline {
                     }
                 }
 
-                stage('HIP-3.8') {
+                stage('HIP-3.10') {
                     agent {
                         dockerfile {
                             filename "Dockerfile.hipcc"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=rocm/dev-ubuntu-20.04:3.8'
+                            additionalBuildArgs '--build-arg BASE=rocm/dev-ubuntu-20.04:3.10'
                             args '-v /tmp/ccache.kokkos:/tmp/ccache --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --env HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES}'
                             label 'rocm-docker && vega'
                         }
@@ -375,11 +375,12 @@ pipeline {
                                     cmake \
                                         -D CMAKE_CXX_COMPILER=hipcc \
                                         -D CMAKE_CXX_EXTENSIONS=OFF \
+                                        -D CMAKE_BUILD_TYPE=RelWithDebInfo \
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
                                     examples \
                                 '''
                                 sh 'make VERBOSE=1'
-                                sh 'make test'
+                                sh 'ctest --output-on-failure'
                             }
                         }
                     }

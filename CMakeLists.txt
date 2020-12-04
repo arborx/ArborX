@@ -14,6 +14,17 @@ set_target_properties(ArborX PROPERTIES INTERFACE_COMPILE_FEATURES cxx_std_14)
 # within a subdirectory.
 add_dependencies(ArborX record_hash)
 
+include(CMakeDependentOption)
+cmake_dependent_option(ARBORX_ENABLE_ROCTHRUST "Enable rocThrust support" ON "Kokkos_ENABLE_HIP" OFF)
+if(Kokkos_ENABLE_HIP AND ARBORX_ENABLE_ROCTHRUST)
+  find_package(rocthrust REQUIRED CONFIG)
+  target_link_libraries(ArborX INTERFACE roc::rocthrust)
+endif()
+
+if(Kokkos_ENABLE_HIP AND NOT ARBORX_ENABLE_ROCTHRUST)
+  message(WARNING "rocThrust is NOT enabled.\nThis will negatively impact performance on AMD GPUs.")
+endif()
+
 # Refer to the alias target in examples and benchmarks so they can be built
 # against an installed ArborX
 add_library(ArborX::ArborX ALIAS ArborX)
@@ -23,7 +34,6 @@ if(ARBORX_ENABLE_MPI)
   find_package(MPI REQUIRED)
   target_link_libraries(ArborX INTERFACE MPI::MPI_CXX)
 endif()
-include(CMakeDependentOption)
 cmake_dependent_option(ARBORX_USE_CUDA_AWARE_MPI
                        "Allow using device data in MPI communication"
                        OFF "ARBORX_ENABLE_MPI" OFF)

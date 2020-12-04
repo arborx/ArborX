@@ -12,6 +12,8 @@
 #ifndef ARBORX_DETAILS_SORT_UTILS_HPP
 #define ARBORX_DETAILS_SORT_UTILS_HPP
 
+#include <ArborX_Config.hpp> // ARBORX_ENABLE_ROCTHRUST
+
 #include <ArborX_DetailsUtils.hpp> // iota
 #include <ArborX_Exception.hpp>
 
@@ -51,6 +53,11 @@
 #  endif // #if defined(KOKKOS_COMPILER_CLANG)
 #endif   // #if defined(KOKKOS_ENABLE_CUDA)
 // clang-format on
+
+#if defined(KOKKOS_ENABLE_HIP) && defined(ARBORX_ENABLE_ROCTHRUST)
+#include <thrust/device_ptr.h>
+#include <thrust/sort.h>
+#endif
 
 namespace ArborX
 {
@@ -92,25 +99,35 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
   return bin_sort.get_permute_vector();
 }
 
-#if defined(KOKKOS_ENABLE_CUDA)
+#if defined(KOKKOS_ENABLE_CUDA) ||                                             \
+    (defined(KOKKOS_ENABLE_HIP) && defined(ARBORX_ENABLE_ROCTHRUST))
 // NOTE returns the permutation indices **and** sorts the input view
 template <typename ViewType, class SizeType = unsigned int>
-Kokkos::View<SizeType *, typename ViewType::device_type>
-sortObjects(Kokkos::Cuda const &space, ViewType &view)
+Kokkos::View<SizeType *, typename ViewType::device_type> sortObjects(
+#if defined(KOKKOS_ENABLE_CUDA)
+    Kokkos::Cuda const &space,
+#else
+    Kokkos::Experimental::HIP const &space,
+#endif
+    ViewType &view)
 {
   int const n = view.extent(0);
 
   using ValueType = typename ViewType::value_type;
-  static_assert(
-      std::is_same<Kokkos::Cuda, typename ViewType::execution_space>::value,
-      "");
+  static_assert(std::is_same<std::decay_t<decltype(space)>,
+                             typename ViewType::execution_space>::value,
+                "");
 
   Kokkos::View<SizeType *, typename ViewType::device_type> permute(
       Kokkos::ViewAllocateWithoutInitializing("ArborX::Sorting::permutation"),
       n);
   ArborX::iota(space, permute);
 
+#if defined(KOKKOS_ENABLE_CUDA)
   auto const execution_policy = thrust::cuda::par.on(space.cuda_stream());
+#else
+  auto const execution_policy = thrust::hip::par.on(space.hip_stream());
+#endif
 
   auto permute_ptr = thrust::device_ptr<SizeType>(permute.data());
   auto begin_ptr = thrust::device_ptr<ValueType>(view.data());
