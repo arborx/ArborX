@@ -239,19 +239,36 @@ class RTree
 public:
   using DeviceType = Kokkos::DefaultHostExecutionSpace::device_type;
   using device_type = DeviceType;
+  using memory_space = typename DeviceType::memory_space;
 
   RTree(Kokkos::View<Indexable *, DeviceType> const &values)
   {
     _tree = BoostRTreeHelpers::makeRTree(values);
   }
 
+  template <typename ExecutionSpace>
+  RTree(ExecutionSpace, Kokkos::View<Indexable *, DeviceType> const &values)
+      : RTree(values)
+  {
+  }
+
   // WARNING trailing pack will match anything :/
   template <typename Predicates, typename InputView, typename... TrailingArgs>
-  void query(Predicates const &predicates, InputView &indices,
-             InputView &offset, TrailingArgs &&...) const
+  std::enable_if_t<!Kokkos::is_execution_space<Predicates>::value>
+  query(Predicates const &predicates, InputView &indices, InputView &offset,
+        TrailingArgs &&...) const
   {
     std::tie(offset, indices) =
         BoostRTreeHelpers::performQueries(_tree, predicates);
+  }
+
+  template <typename ExecutionSpace, typename Predicates, typename InputView,
+            typename... TrailingArgs>
+  std::enable_if_t<Kokkos::is_execution_space<ExecutionSpace>::value>
+  query(ExecutionSpace, Predicates const &predicates, InputView &indices,
+        InputView &offset, TrailingArgs &&...) const
+  {
+    query(predicates, indices, offset);
   }
 
   template <typename Predicates, typename Callback, typename... TrailingArgs>
