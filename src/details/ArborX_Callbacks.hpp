@@ -103,9 +103,8 @@ struct Sink
 template <typename OutputView>
 using OutputFunctorHelper = Sink<typename OutputView::value_type>;
 
-template <typename Callback, typename Predicates, typename OutputView>
-void check_valid_callback(Callback const &, Predicates const &,
-                          OutputView const &)
+template <class Callback>
+void check_generic_lambda_support(Callback const &)
 {
 #ifdef __NVCC__
   // Without it would get a segmentation fault and no diagnostic whatsoever
@@ -113,6 +112,13 @@ void check_valid_callback(Callback const &, Predicates const &,
       !__nv_is_extended_host_device_lambda_closure_type(Callback),
       "__host__ __device__ extended lambdas cannot be generic lambdas");
 #endif
+}
+
+template <typename Callback, typename Predicates, typename OutputView>
+void check_valid_callback(Callback const &callback, Predicates const &,
+                          OutputView const &)
+{
+  check_generic_lambda_support(callback);
 
   using Access = AccessTraits<Predicates, PredicatesTag>;
   using PredicateTag = typename AccessTraitsHelper<Access>::tag;
