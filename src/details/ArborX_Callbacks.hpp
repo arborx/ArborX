@@ -189,6 +189,25 @@ KOKKOS_INLINE_FUNCTION
   return false;
 }
 
+template <typename Callback, typename Predicates>
+void check_valid_callback(Callback const &callback, Predicates const &)
+{
+  check_generic_lambda_support(callback);
+
+  using Access = AccessTraits<Predicates, PredicatesTag>;
+  using PredicateTag = typename AccessTraitsHelper<Access>::tag;
+  using Predicate = typename AccessTraitsHelper<Access>::type;
+
+  static_assert(
+      (std::is_same<PredicateTag, SpatialPredicateTag>{} &&
+       is_detected<Experimental_SpatialPredicateCallbackArchetypeExpression,
+                   Callback, Predicate, int>{}) ||
+          (std::is_same<PredicateTag, NearestPredicateTag>{} &&
+           is_detected<Experimental_NearestPredicateCallbackArchetypeExpression,
+                       Callback, Predicate, int>{}),
+      "Callback 'operator()' does not have the correct signature");
+}
+
 } // namespace Details
 } // namespace ArborX
 

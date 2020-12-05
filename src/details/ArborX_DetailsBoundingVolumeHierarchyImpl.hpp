@@ -349,9 +349,10 @@ inline void query(ExecutionSpace const &space, BVH const &bvh,
                   Experimental::TraversalPolicy const &policy =
                       Experimental::TraversalPolicy())
 {
+  check_valid_callback(callback, predicates);
+
   Kokkos::Profiling::pushRegion("ArborX::BVH::query");
 
-  // TODO check signature of the callback
   if (policy._sort_predicates)
   {
     Kokkos::Profiling::pushRegion("ArborX::BVH::query::compute_permutation");
