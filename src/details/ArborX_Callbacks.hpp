@@ -121,6 +121,17 @@ void check_valid_callback(Callback const &, Predicates const &,
       "Callback 'operator()' does not have the correct signature");
 }
 
+// EXPERIMENTAL archetypal expression for user callbacks
+template <typename Callback, typename Predicate, typename Primitive>
+using Experimental_NearestPredicateCallbackArchetypeExpression = decltype(
+    std::declval<Callback const &>()(std::declval<Predicate const &>(),
+                                     std::declval<Primitive const &>(), 0.));
+
+template <typename Callback, typename Predicate, typename Primitive>
+using Experimental_SpatialPredicateCallbackArchetypeExpression =
+    decltype(std::declval<Callback const &>()(
+        std::declval<Predicate const &>(), std::declval<Primitive const &>()));
+
 } // namespace Details
 } // namespace ArborX
 
