@@ -1162,13 +1162,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
   ArborX::BVH<typename DeviceType::memory_space> bvh(ExecutionSpace{},
                                                      bounding_boxes);
 
-  BoostExt::RTree<ArborX::Box> rtree(bounding_boxes_host);
+  BoostExt::RTree<ArborX::Box> rtree(ExecutionSpace{}, bounding_boxes_host);
 
   // FIXME check currently sporadically fails when using the HIP backend
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, bvh, nearest_queries,
-                         query(rtree, nearest_queries_host));
+                         query(ExecutionSpace{}, rtree, nearest_queries_host));
 
   // FIXME ditto
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, bvh, within_queries,
-                         query(rtree, within_queries_host));
+                         query(ExecutionSpace{}, rtree, within_queries_host));
 }

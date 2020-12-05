@@ -686,8 +686,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
   auto within_queries_host = Kokkos::create_mirror_view(within_queries);
   Kokkos::deep_copy(within_queries_host, within_queries);
 
-  BoostExt::ParallelRTree<ArborX::Box> rtree(comm, bounding_boxes_host);
+  BoostExt::ParallelRTree<ArborX::Box> rtree(comm, ExecutionSpace{},
+                                             bounding_boxes_host);
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, distributed_tree, within_queries,
-                         query(rtree, within_queries_host));
+                         query(ExecutionSpace{}, rtree, within_queries_host));
 }

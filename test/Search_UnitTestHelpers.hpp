@@ -88,20 +88,6 @@ auto make_reference_solution(std::vector<T> const &values,
   return make_compressed_storage(offsets, values);
 }
 
-template <typename Tree, typename Queries>
-auto query(Tree const &tree, Queries const &queries)
-{
-  using device_type = typename Tree::device_type;
-  using value_type =
-      std::conditional_t<is_distributed<Tree>{}, Kokkos::pair<int, int>, int>;
-  Kokkos::View<value_type *, device_type> values("Testing::values", 0);
-  Kokkos::View<int *, device_type> offsets("Testing::offsets", 0);
-  tree.query(queries, values, offsets);
-  return make_compressed_storage(
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
-}
-
 template <typename ExecutionSpace, typename Tree, typename Queries>
 auto query(ExecutionSpace const &exec_space, Tree const &tree,
            Queries const &queries)
