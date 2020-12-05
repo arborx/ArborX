@@ -540,12 +540,9 @@ int main(int argc, char *argv[])
   {
 #ifdef KOKKOS_ENABLE_SERIAL
     if (spec.backends == "all" || spec.backends == "serial")
-    {
-      using DeviceType = Kokkos::Serial::device_type;
-      register_benchmark<typename DeviceType::execution_space,
-                         ArborX::BVH<typename DeviceType::memory_space>>(
+      register_benchmark<Kokkos::Serial,
+                         ArborX::BVH<typename Kokkos::Serial::memory_space>>(
           "ArborX::BVH<Serial>", spec);
-    }
 #else
     if (spec.backends == "serial")
       throw std::runtime_error("Serial backend not available!");
@@ -553,12 +550,9 @@ int main(int argc, char *argv[])
 
 #ifdef KOKKOS_ENABLE_OPENMP
     if (spec.backends == "all" || spec.backends == "openmp")
-    {
-      using DeviceType = Kokkos::OpenMP::device_type;
-      register_benchmark<typename DeviceType::execution_space,
-                         ArborX::BVH<typename DeviceType::memory_space>>(
+      register_benchmark<Kokkos::OpenMP,
+                         ArborX::BVH<typename Kokkos::OpenMP::memory_space>>(
           "ArborX::BVH<OpenMP>", spec);
-    }
 #else
     if (spec.backends == "openmp")
       throw std::runtime_error("OpenMP backend not available!");
@@ -566,12 +560,9 @@ int main(int argc, char *argv[])
 
 #ifdef KOKKOS_ENABLE_THREADS
     if (spec.backends == "all" || spec.backends == "threads")
-    {
-      using DeviceType = Kokkos::Threads::device_type;
-      register_benchmark<typename DeviceType::execution_space,
-                         ArborX::BVH<typename DeviceType::memory_space>>(
+      register_benchmark<Kokkos::Threads,
+                         ArborX::BVH<typename Kokkos::Threads::memory_space>>(
           "ArborX::BVH<Threads>", spec);
-    }
 #else
     if (spec.backends == "threads")
       throw std::runtime_error("Threads backend not available!");
@@ -579,12 +570,9 @@ int main(int argc, char *argv[])
 
 #ifdef KOKKOS_ENABLE_CUDA
     if (spec.backends == "all" || spec.backends == "cuda")
-    {
-      using DeviceType = Kokkos::Cuda::device_type;
-      register_benchmark<typename DeviceType::execution_space,
-                         ArborX::BVH<typename DeviceType::memory_space>>(
+      register_benchmark<Kokkos::Cuda,
+                         ArborX::BVH<typename Kokkos::Cuda::memory_space>>(
           "ArborX::BVH<Cuda>", spec);
-    }
 #else
     if (spec.backends == "cuda")
       throw std::runtime_error("CUDA backend not available!");
@@ -592,12 +580,10 @@ int main(int argc, char *argv[])
 
 #ifdef KOKKOS_ENABLE_HIP
     if (spec.backends == "all" || spec.backends == "hip")
-    {
-      using DeviceType = Kokkos::Experimental::HIP::device_type;
-      register_benchmark<typename DeviceType::execution_space,
-                         ArborX::BVH<typename DeviceType::memory_space>>(
+      register_benchmark<
+          Kokkos::Experimental::HIP,
+          ArborX::BVH<typename Kokkos::Experimental::HIP::memory_space>>(
           "ArborX::BVH<HIP>", spec);
-    }
 #else
     if (spec.backends == "hip")
       throw std::runtime_error("HIP backend not available!");
@@ -605,12 +591,11 @@ int main(int argc, char *argv[])
 
 #ifdef KOKKOS_ENABLE_OPENMPTARGET
     if (spec.backends == "all" || spec.backends == "openmptarget")
-    {
-      using DeviceType = Kokkos::Experimental::OpenMPTarget::device_type;
-      register_benchmark<typename DeviceType::execution_space,
-                         ArborX::BVH<typename DeviceType::memory_space>>(
+      register_benchmark<
+          Kokkos::Experimental::OpenMPTarget,
+          ArborX::BVH<
+              typename Kokkos::Experimental::OpenMPTarget::memory_space>>(
           "ArborX::BVH<OpenMPTarget>", spec);
-    }
 #else
     if (spec.backends == "openmptarget")
       throw std::runtime_error("OpenMPTarget backend not available!");
@@ -618,12 +603,10 @@ int main(int argc, char *argv[])
 
 #ifdef KOKKOS_ENABLE_
     if (spec.backends == "all" || spec.backends == "sycl")
-    {
-      using DeviceType = Kokkos::Experimental::SYCL::device_type;
-      register_benchmark<typename DeviceType::execution_space,
-                         ArborX::BVH<typename DeviceType::memory_space>>(
+      register_benchmark<
+          Kokkos::Experimental::SYCL,
+          ArborX::BVH<typename Kokkos::Experimental::SYCL::memory_space>>(
           "ArborX::BVH<SYCL>", spec);
-    }
 #else
     if (spec.backends == "sycl")
       throw std::runtime_error("SYCL backend not available!");
@@ -631,8 +614,8 @@ int main(int argc, char *argv[])
 
 #ifdef KOKKOS_ENABLE_SERIAL
     if (spec.backends == "all" || spec.backends == "rtree")
-      register_benchmark<typename Kokkos::Serial::execution_space,
-                         BoostExt::RTree<ArborX::Point>>("BoostRTree", spec);
+      register_benchmark<Kokkos::Serial, BoostExt::RTree<ArborX::Point>>(
+          "BoostRTree", spec);
 #endif
   }
 
