@@ -139,6 +139,50 @@ using Experimental_SpatialPredicateCallbackArchetypeExpression =
     decltype(std::declval<Callback const &>()(
         std::declval<Predicate const &>(), std::declval<Primitive const &>()));
 
+// Determine whether the callback returns a hint to exit the tree traversal
+// early.
+template <typename Callback, typename Predicate, typename Primitive>
+struct invoke_callback_and_check_early_exit_helper
+    : std::is_same<
+          CallbackTreeTraversalControl,
+          detected_t<Experimental_SpatialPredicateCallbackArchetypeExpression,
+                     Callback, Predicate, Primitive>>::type
+{
+};
+
+// Invoke a callback that may return a hint to interrupt the tree traversal and
+// return true for early exit, or false for normal continuation.
+template <typename Callback, typename Predicate, typename Primitive>
+KOKKOS_INLINE_FUNCTION
+    std::enable_if_t<invoke_callback_and_check_early_exit_helper<
+                         std::decay_t<Callback>, std::decay_t<Predicate>,
+                         std::decay_t<Primitive>>::value,
+                     bool>
+    invoke_callback_and_check_early_exit(Callback &&callback,
+                                         Predicate &&predicate,
+                                         Primitive &&primitive)
+{
+  return ((Callback &&) callback)((Predicate &&) predicate,
+                                  (Primitive &&) primitive) ==
+         CallbackTreeTraversalControl::early_exit;
+}
+
+// Invoke a callback that does not return a hint.  Always return false to
+// signify that the tree traversal should continue normally.
+template <typename Callback, typename Predicate, typename Primitive>
+KOKKOS_INLINE_FUNCTION
+    std::enable_if_t<!invoke_callback_and_check_early_exit_helper<
+                         std::decay_t<Callback>, std::decay_t<Predicate>,
+                         std::decay_t<Primitive>>::value,
+                     bool>
+    invoke_callback_and_check_early_exit(Callback &&callback,
+                                         Predicate &&predicate,
+                                         Primitive &&primitive)
+{
+  ((Callback &&) callback)((Predicate &&) predicate, (Primitive &&) primitive);
+  return false;
+}
+
 } // namespace Details
 } // namespace ArborX
 
