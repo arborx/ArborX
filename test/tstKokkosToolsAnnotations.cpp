@@ -40,6 +40,9 @@ BOOST_AUTO_TEST_CASE(is_prefixed_with)
 BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
+  using Tree = ArborX::BVH<typename DeviceType::memory_space>;
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle /*handle*/, const char *label,
          void const * /*ptr*/, uint64_t /*size*/) {
@@ -55,24 +58,26 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, DeviceType,
       });
 
   { // default constructed
-    ArborX::BVH<typename DeviceType::memory_space> tree;
+    Tree tree;
   }
 
   { // empty
-    auto tree = makeTree<DeviceType>({});
+    auto tree = makeTree<ExecutionSpace, Tree>(ExecutionSpace{}, {});
   }
 
   { // one leaf
-    auto tree = makeTree<DeviceType>({
-        {{{0, 0, 0}}, {{1, 1, 1}}},
-    });
+    auto tree = makeTree<ExecutionSpace, Tree>(ExecutionSpace{},
+                                               {
+                                                   {{{0, 0, 0}}, {{1, 1, 1}}},
+                                               });
   }
 
   { // two leaves
-    auto tree = makeTree<DeviceType>({
-        {{{0, 0, 0}}, {{1, 1, 1}}},
-        {{{0, 0, 0}}, {{1, 1, 1}}},
-    });
+    auto tree = makeTree<ExecutionSpace, Tree>(ExecutionSpace{},
+                                               {
+                                                   {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                   {{{0, 0, 0}}, {{1, 1, 1}}},
+                                               });
   }
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(nullptr);
@@ -83,10 +88,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, DeviceType,
 {
   using ExecutionSpace = typename DeviceType::execution_space;
 
-  auto tree = makeTree<DeviceType>({
-      {{{0, 0, 0}}, {{1, 1, 1}}},
-      {{{0, 0, 0}}, {{1, 1, 1}}},
-  });
+  auto tree =
+      makeTree<ExecutionSpace, ArborX::BVH<typename DeviceType::memory_space>>(
+          ExecutionSpace{}, {
+                                {{{0, 0, 0}}, {{1, 1, 1}}},
+                                {{{0, 0, 0}}, {{1, 1, 1}}},
+                            });
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle /*handle*/, const char *label,
@@ -121,6 +128,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, DeviceType,
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 {
+  using Tree = ArborX::BVH<typename DeviceType::memory_space>;
   using ExecutionSpace = typename DeviceType::execution_space;
 
   auto const callback = [](char const *label, uint32_t, uint64_t *) {
@@ -135,32 +143,35 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   // BVH::BVH
 
   { // default constructed
-    ArborX::BVH<typename DeviceType::memory_space> tree;
+    Tree tree;
   }
 
   { // empty
-    auto tree = makeTree<DeviceType>({});
+    auto tree = makeTree<ExecutionSpace, Tree>(ExecutionSpace{}, {});
   }
 
   { // one leaf
-    auto tree = makeTree<DeviceType>({
-        {{{0, 0, 0}}, {{1, 1, 1}}},
-    });
+    auto tree = makeTree<ExecutionSpace, Tree>(ExecutionSpace{},
+                                               {
+                                                   {{{0, 0, 0}}, {{1, 1, 1}}},
+                                               });
   }
 
   { // two leaves
-    auto tree = makeTree<DeviceType>({
-        {{{0, 0, 0}}, {{1, 1, 1}}},
-        {{{0, 0, 0}}, {{1, 1, 1}}},
-    });
+    auto tree = makeTree<ExecutionSpace, Tree>(ExecutionSpace{},
+                                               {
+                                                   {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                   {{{0, 0, 0}}, {{1, 1, 1}}},
+                                               });
   }
 
   // BVH::query
 
-  auto tree = makeTree<DeviceType>({
-      {{{0, 0, 0}}, {{1, 1, 1}}},
-      {{{0, 0, 0}}, {{1, 1, 1}}},
-  });
+  auto tree = makeTree<ExecutionSpace, Tree>(ExecutionSpace{},
+                                             {
+                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
+                                             });
 
   // spatial predicates
   query(ExecutionSpace{}, tree,
@@ -183,6 +194,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 {
+  using Tree = ArborX::BVH<typename DeviceType::memory_space>;
   using ExecutionSpace = typename DeviceType::execution_space;
 
   Kokkos::Tools::Experimental::set_push_region_callback([](char const *label) {
@@ -194,32 +206,35 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   // BVH::BVH
 
   { // default constructed
-    ArborX::BVH<typename DeviceType::memory_space> tree;
+    Tree tree;
   }
 
   { // empty
-    auto tree = makeTree<DeviceType>({});
+    auto tree = makeTree<ExecutionSpace, Tree>(ExecutionSpace{}, {});
   }
 
   { // one leaf
-    auto tree = makeTree<DeviceType>({
-        {{{0, 0, 0}}, {{1, 1, 1}}},
-    });
+    auto tree = makeTree<ExecutionSpace, Tree>(ExecutionSpace{},
+                                               {
+                                                   {{{0, 0, 0}}, {{1, 1, 1}}},
+                                               });
   }
 
   { // two leaves
-    auto tree = makeTree<DeviceType>({
-        {{{0, 0, 0}}, {{1, 1, 1}}},
-        {{{0, 0, 0}}, {{1, 1, 1}}},
-    });
+    auto tree = makeTree<ExecutionSpace, Tree>(ExecutionSpace{},
+                                               {
+                                                   {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                   {{{0, 0, 0}}, {{1, 1, 1}}},
+                                               });
   }
 
   // BVH::query
 
-  auto tree = makeTree<DeviceType>({
-      {{{0, 0, 0}}, {{1, 1, 1}}},
-      {{{0, 0, 0}}, {{1, 1, 1}}},
-  });
+  auto tree = makeTree<ExecutionSpace, Tree>(ExecutionSpace{},
+                                             {
+                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
+                                             });
 
   // spatial predicates
   query(ExecutionSpace{}, tree,

@@ -33,8 +33,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
 
   // tree is empty, it has no leaves.
   for (auto const &tree : {
-           Tree{},                   // default constructed
-           makeTree<DeviceType>({}), // constructed with empty view of boxes
+           Tree{}, // default constructed
+           makeTree<ExecutionSpace, Tree>(
+               ExecutionSpace{}, {}), // constructed with empty view of boxes
        })
   {
     BOOST_TEST(tree.empty());
@@ -105,10 +106,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
 
   // tree has a single leaf (unit box)
-  auto const tree = makeTree<DeviceType>({
-
-      {{{0., 0., 0.}}, {{1., 1., 1.}}},
-  });
+  auto const tree =
+      makeTree<ExecutionSpace, ArborX::BVH<typename DeviceType::memory_space>>(
+          ExecutionSpace{}, {
+                                {{{0., 0., 0.}}, {{1., 1., 1.}}},
+                            });
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 1);
@@ -178,10 +180,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, DeviceType,
 {
   using ExecutionSpace = typename DeviceType::execution_space;
 
-  auto const tree = makeTree<DeviceType>({
-      {{{0., 0., 0.}}, {{0., 0., 0.}}},
-      {{{1., 1., 1.}}, {{1., 1., 1.}}},
-  });
+  auto const tree =
+      makeTree<ExecutionSpace, ArborX::BVH<typename DeviceType::memory_space>>(
+          ExecutionSpace{}, {
+                                {{{0., 0., 0.}}, {{0., 0., 0.}}},
+                                {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                            });
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 2);
@@ -253,12 +257,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves, DeviceType,
   // when building trees over ~10M indexable values.  The hierarchy generated
   // at construction had leaves with no parent which yielded a segfault later
   // when computing bounding boxes and walking the hierarchy toward the root.
-  auto const bvh = makeTree<DeviceType>({
-      {{{0., 0., 0.}}, {{0., 0., 0.}}},
-      {{{1., 1., 1.}}, {{1., 1., 1.}}},
-      {{{1., 1., 1.}}, {{1., 1., 1.}}},
-      {{{1., 1., 1.}}, {{1., 1., 1.}}},
-  });
+  auto const bvh =
+      makeTree<ExecutionSpace, ArborX::BVH<typename DeviceType::memory_space>>(
+          ExecutionSpace{}, {
+                                {{{0., 0., 0.}}, {{0., 0., 0.}}},
+                                {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                                {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                                {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                            });
 
   ARBORX_TEST_QUERY_TREE(
       ExecutionSpace{}, bvh,
@@ -275,12 +281,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
 {
   using ExecutionSpace = typename DeviceType::execution_space;
 
-  auto const bvh = makeTree<DeviceType>({
-      {{{0., 0., 0.}}, {{0., 0., 0.}}},
-      {{{1., 0., 0.}}, {{1., 0., 0.}}},
-      {{{2., 0., 0.}}, {{2., 0., 0.}}},
-      {{{3., 0., 0.}}, {{3., 0., 0.}}},
-  });
+  auto const bvh =
+      makeTree<ExecutionSpace, ArborX::BVH<typename DeviceType::memory_space>>(
+          ExecutionSpace{}, {
+                                {{{0., 0., 0.}}, {{0., 0., 0.}}},
+                                {{{1., 0., 0.}}, {{1., 0., 0.}}},
+                                {{{2., 0., 0.}}, {{2., 0., 0.}}},
+                                {{{3., 0., 0.}}, {{3., 0., 0.}}},
+                            });
 
   auto const queries = makeIntersectsBoxQueries<DeviceType>({
       {},
@@ -356,12 +364,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
 {
   using ExecutionSpace = typename DeviceType::execution_space;
 
-  auto const bvh = makeTree<DeviceType>({
-      {{{0., 0., 0.}}, {{0., 0., 0.}}},
-      {{{1., 1., 1.}}, {{1., 1., 1.}}},
-      {{{2., 2., 2.}}, {{2., 2., 2.}}},
-      {{{3., 3., 3.}}, {{3., 3., 3.}}},
-  });
+  auto const bvh =
+      makeTree<ExecutionSpace, ArborX::BVH<typename DeviceType::memory_space>>(
+          ExecutionSpace{}, {
+                                {{{0., 0., 0.}}, {{0., 0., 0.}}},
+                                {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                                {{{2., 2., 2.}}, {{2., 2., 2.}}},
+                                {{{3., 3., 3.}}, {{3., 3., 3.}}},
+                            });
 
   using ViewType = Kokkos::View<int *, DeviceType>;
   ViewType indices("indices", 0);
@@ -430,7 +440,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity, DeviceType,
     double const b = i + 1;
     boxes.push_back({{{a, a, a}}, {{b, b, b}}});
   }
-  auto const bvh = makeTree<DeviceType>(boxes);
+  auto const bvh =
+      makeTree<ExecutionSpace, ArborX::BVH<typename DeviceType::memory_space>>(
+          ExecutionSpace{}, boxes);
 
   Kokkos::View<int *, DeviceType> indices("indices", 0);
   Kokkos::View<int *, DeviceType> offset("offset", 0);

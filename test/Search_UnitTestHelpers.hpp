@@ -191,20 +191,18 @@ auto query_with_distance(ExecutionSpace const &exec_space, Tree const &tree,
   BOOST_TEST(query_with_distance(exec_space, tree, queries) == (reference),    \
              boost::test_tools::per_element());
 
-template <typename DeviceType>
-ArborX::BVH<typename DeviceType::memory_space>
-makeTree(std::vector<ArborX::Box> const &b)
+template <typename ExecutionSpace, typename Tree>
+auto makeTree(ExecutionSpace const &exec_space,
+              std::vector<ArborX::Box> const &b)
 {
-  using ExecutionSpace = typename DeviceType::execution_space;
-
   int const n = b.size();
-  Kokkos::View<ArborX::Box *, DeviceType> boxes("Testing::boxes", n);
+  Kokkos::View<ArborX::Box *, typename Tree::memory_space> boxes(
+      "Testing::boxes", n);
   auto boxes_host = Kokkos::create_mirror_view(boxes);
   for (int i = 0; i < n; ++i)
     boxes_host(i) = b[i];
   Kokkos::deep_copy(boxes, boxes_host);
-  return ArborX::BVH<typename DeviceType::memory_space>(ExecutionSpace{},
-                                                        boxes);
+  return Tree(exec_space, boxes);
 }
 
 #ifdef ARBORX_ENABLE_MPI
