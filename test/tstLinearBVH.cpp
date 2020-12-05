@@ -710,6 +710,53 @@ struct CustomPostCallbackAttachmentNearestPredicate
   }
 };
 
+template <class DeviceType>
+struct Experimental_CustomCallbackSpatialPredicateEarlyExit
+{
+  Kokkos::View<int *, DeviceType, Kokkos::MemoryTraits<Kokkos::Atomic>> counts;
+  template <class Predicate>
+  KOKKOS_FUNCTION auto operator()(Predicate const &predicate, int) const
+  {
+    int i = getData(predicate);
+
+    if (counts(i)++ < i)
+    {
+      return ArborX::CallbackTreeTraversalControl::normal_continuation;
+    }
+
+    return ArborX::CallbackTreeTraversalControl::early_exit;
+  }
+};
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(callback_early_exit, Tree, TreeTypes)
+{
+  using device_type = typename Tree::device_type;
+  auto const tree = make<Tree>({
+      {{{0., 0., 0.}}, {{0., 0., 0.}}},
+      {{{1., 1., 1.}}, {{1., 1., 1.}}},
+      {{{2., 2., 2.}}, {{2., 2., 2.}}},
+      {{{3., 3., 3.}}, {{3., 3., 3.}}},
+  });
+
+  Kokkos::View<int *, device_type> counts("counts", 4);
+
+  std::vector<int> counts_ref(4);
+  std::iota(counts_ref.begin(), counts_ref.end(), 1);
+
+  auto b = tree.bounds();
+  auto predicates = makeIntersectsBoxWithAttachmentQueries<device_type, int>(
+      {b, b, b, b}, {0, 1, 2, 3});
+
+  tree.query(predicates,
+             Experimental_CustomCallbackSpatialPredicateEarlyExit<device_type>{
+                 counts});
+
+  auto counts_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, counts);
+
+  BOOST_TEST(counts_host == counts_ref, tt::per_element());
+}
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
