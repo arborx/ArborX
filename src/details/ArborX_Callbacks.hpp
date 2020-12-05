@@ -20,6 +20,13 @@
 
 namespace ArborX
 {
+
+enum class CallbackTreeTraversalControl
+{
+  early_exit,
+  normal_continuation
+};
+
 namespace Details
 {
 
