@@ -14,17 +14,23 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
-#include <ArborX_DetailsBoundingVolumeHierarchyImpl.hpp>
+#include <ArborX_Callbacks.hpp>
+#include <ArborX_CrsGraphWrapper.hpp>
+#include <ArborX_DetailsBatchedQueries.hpp>
 #include <ArborX_DetailsConcepts.hpp>
 #include <ArborX_DetailsKokkosExt.hpp>
 #include <ArborX_DetailsNode.hpp>
+#include <ArborX_DetailsPermutedData.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsTreeConstruction.hpp>
+#include <ArborX_DetailsTreeTraversal.hpp>
+#include <ArborX_TraversalPolicy.hpp>
 
 #include <Kokkos_Core.hpp>
 
 namespace ArborX
 {
+
 namespace Details
 {
 template <typename DeviceType>
@@ -55,18 +61,25 @@ public:
   KOKKOS_FUNCTION
   bounding_volume_type bounds() const noexcept { return _bounds; }
 
-  template <typename ExecutionSpace, typename Predicates, typename... Args>
+  template <typename ExecutionSpace, typename Predicates, typename Callback>
   void query(ExecutionSpace const &space, Predicates const &predicates,
-             Args &&... args) const
-  {
-    Details::check_valid_access_traits(PredicatesTag{}, predicates);
-    using Access = AccessTraits<Predicates, PredicatesTag>;
-    static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
-                                                ExecutionSpace>::value,
-                  "Predicates must be accessible from the execution space");
+             Callback const &callback,
+             Experimental::TraversalPolicy const &policy =
+                 Experimental::TraversalPolicy()) const;
 
-    Details::BoundingVolumeHierarchyImpl::query(space, *this, predicates,
-                                                std::forward<Args>(args)...);
+  template <typename ExecutionSpace, typename Predicates,
+            typename CallbackOrView, typename View, typename... Args>
+  // clang-format off
+  [[deprecated( "For crs format output, use standalone ArborX::query_crs instead.")]]
+  // clang-format on
+  std::enable_if_t<Kokkos::is_view<std::decay_t<View>>{}>
+  query(ExecutionSpace const &space, Predicates const &predicates,
+        CallbackOrView &&callback_or_view, View &&view, Args &&... args) const
+  {
+    auto const &bvh = *this;
+    ArborX::query_crs(space, bvh, predicates,
+                      std::forward<CallbackOrView>(callback_or_view),
+                      std::forward<View>(view), std::forward<Args>(args)...);
   }
 
 private:
@@ -161,7 +174,7 @@ public:
   void query(Args &&... args) const
   {
     BoundingVolumeHierarchy<typename DeviceType::memory_space>::query(
-        typename DeviceType::execution_space{}, std::forward<Args>(args)...);
+        std::forward<Args>(args)...);
   }
 };
 
@@ -232,6 +245,45 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
       getInternalNodes());
 
   Kokkos::Profiling::popRegion();
+  Kokkos::Profiling::popRegion();
+}
+
+template <typename MemorySpace, typename Enable>
+template <typename ExecutionSpace, typename Predicates, typename Callback>
+void BoundingVolumeHierarchy<MemorySpace, Enable>::query(
+    ExecutionSpace const &space, Predicates const &predicates,
+    Callback const &callback, Experimental::TraversalPolicy const &policy) const
+{
+  Details::check_valid_access_traits(PredicatesTag{}, predicates);
+  using Access = AccessTraits<Predicates, PredicatesTag>;
+  static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
+                                              ExecutionSpace>::value,
+                "Predicates must be accessible from the execution space");
+
+  Details::check_valid_callback(callback, predicates);
+
+  Kokkos::Profiling::pushRegion("ArborX::BVH::query");
+
+  auto const &bvh = *this;
+  if (policy._sort_predicates)
+  {
+    Kokkos::Profiling::pushRegion("ArborX::BVH::query::compute_permutation");
+    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
+    auto permute =
+        Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
+            space, bounds(), predicates);
+    Kokkos::Profiling::popRegion();
+
+    using PermutedPredicates =
+        Details::PermutedData<Predicates, decltype(permute)>;
+    Details::traverse(space, bvh, PermutedPredicates{predicates, permute},
+                      callback);
+  }
+  else
+  {
+    Details::traverse(space, bvh, predicates, callback);
+  }
+
   Kokkos::Profiling::popRegion();
 }
 
