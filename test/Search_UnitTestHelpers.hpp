@@ -103,6 +103,19 @@ auto query(ExecutionSpace const &exec_space, Tree const &tree,
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
 }
 
+template <typename ExecutionSpace, typename MemorySpace, typename Queries>
+auto query(ExecutionSpace const &exec_space,
+           ArborX::BVH<MemorySpace> const &tree, Queries const &queries)
+{
+  using memory_space = MemorySpace;
+  Kokkos::View<int *, memory_space> values("Testing::values", 0);
+  Kokkos::View<int *, memory_space> offsets("Testing::offsets", 0);
+  ArborX::query_crs(exec_space, tree, queries, values, offsets);
+  return make_compressed_storage(
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
+}
+
 #define ARBORX_TEST_QUERY_TREE(exec_space, tree, queries, reference)           \
   BOOST_TEST(query(exec_space, tree, queries) == (reference),                  \
              boost::test_tools::per_element());
@@ -119,6 +132,24 @@ auto query_with_distance(ExecutionSpace const &exec_space, Tree const &tree,
   tree.query(exec_space, queries,
              ArborX::Details::CallbackDefaultNearestPredicateWithDistance{},
              values, offsets);
+  return make_compressed_storage(
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
+}
+
+template <typename ExecutionSpace, typename MemorySpace, typename Queries>
+auto query_with_distance(ExecutionSpace const &exec_space,
+                         ArborX::BVH<MemorySpace> const &tree,
+                         Queries const &queries)
+{
+  using memory_space = MemorySpace;
+  Kokkos::View<Kokkos::pair<int, float> *, memory_space> values(
+      "Testing::values", 0);
+  Kokkos::View<int *, memory_space> offsets("Testing::offsets", 0);
+  ArborX::query_crs(
+      exec_space, tree, queries,
+      ArborX::Details::CallbackDefaultNearestPredicateWithDistance{}, values,
+      offsets);
   return make_compressed_storage(
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
