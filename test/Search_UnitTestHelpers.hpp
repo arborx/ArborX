@@ -107,22 +107,6 @@ auto query(ExecutionSpace const &exec_space, Tree const &tree,
   BOOST_TEST(query(exec_space, tree, queries) == (reference),                  \
              boost::test_tools::per_element());
 
-template <typename Tree, typename Queries>
-auto query_with_distance(Tree const &tree, Queries const &queries,
-                         std::enable_if_t<!is_distributed<Tree>{}> * = nullptr)
-{
-  using device_type = typename Tree::device_type;
-  Kokkos::View<Kokkos::pair<int, float> *, device_type> values(
-      "Testing::values", 0);
-  Kokkos::View<int *, device_type> offsets("Testing::offsets", 0);
-  tree.query(queries,
-             ArborX::Details::CallbackDefaultNearestPredicateWithDistance{},
-             values, offsets);
-  return make_compressed_storage(
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
-}
-
 template <typename ExecutionSpace, typename Tree, typename Queries>
 auto query_with_distance(ExecutionSpace const &exec_space, Tree const &tree,
                          Queries const &queries,
