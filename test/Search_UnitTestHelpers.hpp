@@ -175,9 +175,8 @@ auto query_with_distance(ExecutionSpace const &exec_space, Tree const &tree,
   BOOST_TEST(query_with_distance(exec_space, tree, queries) == (reference),    \
              boost::test_tools::per_element());
 
-template <typename ExecutionSpace, typename Tree>
-auto makeTree(ExecutionSpace const &exec_space,
-              std::vector<ArborX::Box> const &b)
+template <typename Tree, typename ExecutionSpace>
+auto make(ExecutionSpace const &exec_space, std::vector<ArborX::Box> const &b)
 {
   int const n = b.size();
   Kokkos::View<ArborX::Box *, typename Tree::memory_space> boxes(
