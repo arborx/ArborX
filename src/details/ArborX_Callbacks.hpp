@@ -227,6 +227,12 @@ void check_valid_callback(Callback const &callback, Predicates const &)
         std::is_void<
             detected_t<Experimental_SpatialPredicateCallbackArchetypeExpression,
                        Callback, Predicate, int>>{})) ||
+          std::is_same<PredicateTag, NearestPredicateTag>{},
+      "Callback 'operator()' return type must be void or "
+      "ArborX::CallbackTreeTraversalControl");
+
+  static_assert(
+      std::is_same<PredicateTag, SpatialPredicateTag>{} ||
           (std::is_same<PredicateTag, NearestPredicateTag>{} &&
            std::is_void<detected_t<
                Experimental_NearestPredicateCallbackArchetypeExpression,
