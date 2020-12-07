@@ -32,6 +32,9 @@ using TupleIndexRankDistance = Kokkos::pair<Kokkos::pair<int, int>, float>;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
 {
+  using Tree = ArborX::DistributedTree<typename DeviceType::memory_space>;
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
@@ -47,13 +50,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
   //                 0   1   2   3   ^   ^   ^   ^
   //                                 0   1   2   3   ^   ^   ^   ^
   //                                                 0   1   2   3
-  using ExecutionSpace = typename DeviceType::execution_space;
   Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n),
                        KOKKOS_LAMBDA(int i) {
                          points(i) = {{(double)i / n + comm_rank, 0., 0.}};
                        });
 
-  ArborX::DistributedTree<DeviceType> tree(comm, points);
+  Tree tree(comm, ExecutionSpace{}, points);
 
   // 0---0---0---0---1---1---1---1---2---2---2---2---3---3---3---3---
   // |               |               |               |               |
@@ -98,19 +100,19 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
   if (comm_rank > 0)
   {
     values.emplace_back(0, comm_size - comm_rank);
-    ARBORX_TEST_QUERY_TREE(tree, queries,
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, queries,
                            make_reference_solution(values, {0, n + 1}));
   }
   else
   {
-    ARBORX_TEST_QUERY_TREE(tree, queries,
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, queries,
                            make_reference_solution(values, {0, n}));
   }
 
   BOOST_TEST(n > 2);
   if (comm_rank < comm_size - 1)
   {
-    ARBORX_TEST_QUERY_TREE(tree, nearest_queries,
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, nearest_queries,
                            make_reference_solution<PairIndexRank>(
                                {{0, comm_size - 1 - comm_rank},
                                 {n - 1, comm_size - 2 - comm_rank},
@@ -120,7 +122,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
   else
   {
     ARBORX_TEST_QUERY_TREE(
-        tree, nearest_queries,
+        ExecutionSpace{}, tree, nearest_queries,
         make_reference_solution<PairIndexRank>(
             {{0, comm_size - 1 - comm_rank}, {1, comm_size - 1 - comm_rank}},
             {0, 2}));
@@ -129,6 +131,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
@@ -142,42 +146,47 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
 
   BOOST_TEST(ArborX::Details::equals(tree.bounds(), {}));
 
-  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<DeviceType>({}),
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeIntersectsBoxQueries<DeviceType>({}),
                          make_reference_solution<PairIndexRank>({}, {0}));
 
-  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsSphereQueries<DeviceType>({}),
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeIntersectsSphereQueries<DeviceType>({}),
                          make_reference_solution<PairIndexRank>({}, {0}));
 
-  ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<DeviceType>({}),
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeNearestQueries<DeviceType>({}),
                          make_reference_solution<PairIndexRank>({}, {0}));
 
   ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-      tree, makeNearestQueries<DeviceType>({}),
+      ExecutionSpace{}, tree, makeNearestQueries<DeviceType>({}),
       make_reference_solution<TupleIndexRankDistance>({}, {0}));
 
   // Only rank 0 has a couple spatial queries with a spatial predicate
   if (comm_rank == 0)
   {
     ARBORX_TEST_QUERY_TREE(
-        tree, makeIntersectsBoxQueries<DeviceType>({{}, {}}),
+        ExecutionSpace{}, tree, makeIntersectsBoxQueries<DeviceType>({{}, {}}),
         make_reference_solution<PairIndexRank>({}, {0, 0, 0}));
   }
   else
   {
-    ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<DeviceType>({}),
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                           makeIntersectsBoxQueries<DeviceType>({}),
                            make_reference_solution<PairIndexRank>({}, {0}));
   }
 
   // All ranks but rank 0 have a single query with a spatial predicate
   if (comm_rank == 0)
   {
-    ARBORX_TEST_QUERY_TREE(tree, makeIntersectsSphereQueries<DeviceType>({}),
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                           makeIntersectsSphereQueries<DeviceType>({}),
                            make_reference_solution<PairIndexRank>({}, {0}));
   }
   else
   {
     ARBORX_TEST_QUERY_TREE(
-        tree,
+        ExecutionSpace{}, tree,
         makeIntersectsSphereQueries<DeviceType>({
             {{{(double)comm_rank, 0., 0.}}, (double)comm_size},
         }),
@@ -187,12 +196,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
   // All ranks but rank 0 have a single query with a nearest predicate
   if (comm_rank == 0)
   {
-    ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<DeviceType>({}),
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                           makeNearestQueries<DeviceType>({}),
                            make_reference_solution<PairIndexRank>({}, {0}));
   }
   else
   {
-    ARBORX_TEST_QUERY_TREE(tree,
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
                            makeNearestQueries<DeviceType>({
                                {{{0., 0., 0.}}, comm_rank},
                            }),
@@ -202,7 +212,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
   // All ranks have a single query with a nearest predicate (this version
   // returns distances as well)
   ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-      tree,
+      ExecutionSpace{}, tree,
       makeNearestQueries<DeviceType>({
           {{{0., 0., 0.}}, comm_size},
       }),
@@ -212,6 +222,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
 BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
@@ -233,22 +245,25 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
   BOOST_TEST(
       ArborX::Details::equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
-  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<DeviceType>({}),
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeIntersectsBoxQueries<DeviceType>({}),
                          make_reference_solution<PairIndexRank>({}, {0}));
 
-  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsSphereQueries<DeviceType>({}),
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeIntersectsSphereQueries<DeviceType>({}),
                          make_reference_solution<PairIndexRank>({}, {0}));
 
-  ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<DeviceType>({}),
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeNearestQueries<DeviceType>({}),
                          make_reference_solution<PairIndexRank>({}, {0}));
 
   ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-      tree, makeNearestQueries<DeviceType>({}),
+      ExecutionSpace{}, tree, makeNearestQueries<DeviceType>({}),
       make_reference_solution<TupleIndexRankDistance>({}, {0}));
 
   // Querying for more neighbors than there are leaves in the tree
   ARBORX_TEST_QUERY_TREE(
-      tree,
+      ExecutionSpace{}, tree,
       makeNearestQueries<DeviceType>({
           {{{(double)comm_rank, (double)comm_rank, (double)comm_rank}},
            comm_size},
@@ -259,6 +274,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
 BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
@@ -279,7 +296,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
       tree.bounds(), {{{0., 0., 0.}}, {{(double)comm_size, 1., 1.}}}));
 
   ARBORX_TEST_QUERY_TREE(
-      tree,
+      ExecutionSpace{}, tree,
       makeIntersectsBoxQueries<DeviceType>({
           {{{(double)comm_size - (double)comm_rank - .5, .5, .5}},
            {{(double)comm_size - (double)comm_rank - .5, .5, .5}}},
@@ -289,15 +306,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
       make_reference_solution<PairIndexRank>(
           {{0, comm_size - 1 - comm_rank}, {0, comm_rank}}, {0, 1, 2}));
 
-  ARBORX_TEST_QUERY_TREE(tree, makeNearestQueries<DeviceType>({}),
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeNearestQueries<DeviceType>({}),
                          make_reference_solution<PairIndexRank>({}, {0}));
 
-  ARBORX_TEST_QUERY_TREE(tree, makeIntersectsBoxQueries<DeviceType>({}),
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeIntersectsBoxQueries<DeviceType>({}),
                          make_reference_solution<PairIndexRank>({}, {0}));
 
   if (comm_rank > 0)
   {
-    ARBORX_TEST_QUERY_TREE(tree,
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
                            makeNearestQueries<DeviceType>({
                                {{{0., 0., 0.}}, comm_rank * comm_size},
                            }),
@@ -313,7 +332,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
   }
   else
   {
-    ARBORX_TEST_QUERY_TREE(tree,
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
                            makeNearestQueries<DeviceType>({
                                {{{0., 0., 0.}}, comm_rank * comm_size},
                            }),
@@ -324,6 +343,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
 BOOST_AUTO_TEST_CASE_TEMPLATE(do_not_exceed_capacity, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   // This unit tests exposes bug that essentially assumed the number of
   // neighbors queried for would not exceed the maximum size of the default
   // underlying container for a priority queue which was 256.
@@ -340,18 +361,22 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(do_not_exceed_capacity, DeviceType,
                        KOKKOS_LAMBDA(int i) {
                          points(i) = {{(float)i, (float)i, (float)i}};
                        });
-  ArborX::DistributedTree<DeviceType> tree{comm, points};
+
+  ArborX::DistributedTree<typename DeviceType::memory_space> tree{
+      comm, ExecutionSpace{}, points};
   Kokkos::View<decltype(nearest(Point{})) *, DeviceType> queries(
       "Testing::queries", 1);
   Kokkos::deep_copy(queries, nearest(Point{0, 0, 0}, 512));
   Kokkos::View<PairIndexRank *, DeviceType> values("Testing::values", 0);
   Kokkos::View<int *, DeviceType> offset("Testing::offset", 0);
-  BOOST_CHECK_NO_THROW(tree.query(queries, values, offset));
+  BOOST_CHECK_NO_THROW(tree.query(ExecutionSpace{}, queries, values, offset));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_nearest_neighbors, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
@@ -389,7 +414,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_nearest_neighbors, DeviceType,
   if (comm_rank > 0)
   {
     ARBORX_TEST_QUERY_TREE(
-        tree,
+        ExecutionSpace{}, tree,
         makeNearestQueries<DeviceType>({
             {{{(double)(comm_size - 1 - comm_rank) + .75, 0., 0.}}, 1},
         }),
@@ -399,7 +424,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_nearest_neighbors, DeviceType,
   else
   {
     ARBORX_TEST_QUERY_TREE(
-        tree,
+        ExecutionSpace{}, tree,
         makeNearestQueries<DeviceType>({
             {{{(double)(comm_size - 1 - comm_rank) + .75, 0., 0.}}, 1},
         }),
@@ -456,6 +481,8 @@ struct CustomPostCallbackAttachmentSpatialPredicate
 BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
@@ -517,6 +544,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
     Kokkos::View<float *, DeviceType> custom("Testing::custom", 0);
     Kokkos::View<int *, DeviceType> offset("Testing::offset", 0);
     tree.query(
+        ExecutionSpace{},
         makeIntersectsBoxWithAttachmentQueries<DeviceType, int>(
             {{points_host(0), points_host(0)}}, {comm_rank}),
         CustomInlineCallbackAttachmentSpatialPredicate<DeviceType>{points},
@@ -535,7 +563,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
   {
     Kokkos::View<float *, DeviceType> custom("Testing::custom", 0);
     Kokkos::View<int *, DeviceType> offset("Testing::offset", 0);
-    tree.query(makeIntersectsBoxWithAttachmentQueries<DeviceType, int>(
+    tree.query(ExecutionSpace{},
+               makeIntersectsBoxWithAttachmentQueries<DeviceType, int>(
                    {{points_host(0), points_host(0)}}, {comm_rank}),
                CustomPostCallbackAttachmentSpatialPredicate<DeviceType>{points},
                custom, offset);
@@ -573,6 +602,8 @@ make_random_cloud(double const Lx, double const Ly, double const Lz,
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
@@ -608,10 +639,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::deep_copy(bounding_boxes, bounding_boxes_host);
 
   // Initialize the distributed search tree
-  ArborX::DistributedTree<DeviceType> distributed_tree(comm, bounding_boxes);
+  ArborX::DistributedTree<typename DeviceType::memory_space> distributed_tree(
+      comm, ExecutionSpace{}, bounding_boxes);
 
   // make queries
-  using ExecutionSpace = typename DeviceType::execution_space;
   Kokkos::View<double * [3], ExecutionSpace> point_coords(
       "Testing::point_coords", local_n);
   auto point_coords_host = Kokkos::create_mirror_view(point_coords);
@@ -655,8 +686,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
   auto within_queries_host = Kokkos::create_mirror_view(within_queries);
   Kokkos::deep_copy(within_queries_host, within_queries);
 
-  BoostExt::ParallelRTree<ArborX::Box> rtree(comm, bounding_boxes_host);
+  BoostExt::ParallelRTree<ArborX::Box> rtree(comm, ExecutionSpace{},
+                                             bounding_boxes_host);
 
-  ARBORX_TEST_QUERY_TREE(distributed_tree, within_queries,
-                         query(rtree, within_queries_host));
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, distributed_tree, within_queries,
+                         query(ExecutionSpace{}, rtree, within_queries_host));
 }

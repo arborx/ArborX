@@ -143,13 +143,20 @@ class BoundingVolumeHierarchy<
 {
 public:
   using device_type = DeviceType;
+
+  // clang-format off
+  [[deprecated("ArborX::BoundingVolumeHierarchy templated on a device type "
+               "is deprecated, use it templated on a memory space instead.")]]
   BoundingVolumeHierarchy() = default;
   template <typename Primitives>
+  [[deprecated("ArborX::BoundingVolumeHierarchy templated on a device type "
+               "is deprecated, use it templated on a memory space instead.")]]
   BoundingVolumeHierarchy(Primitives const &primitives)
       : BoundingVolumeHierarchy<typename DeviceType::memory_space>(
             typename DeviceType::execution_space{}, primitives)
   {
   }
+  // clang-format on
   template <typename... Args>
   void query(Args &&... args) const
   {

@@ -225,6 +225,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
 
   using DeviceType = typename NO::device_type;
   using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
 
   int n_values;
   int n_queries;
@@ -413,7 +414,8 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   auto construction = time_monitor.getNewTimer("construction");
   MPI_Barrier(comm);
   construction->start();
-  ArborX::DistributedTree<DeviceType> distributed_tree(comm, bounding_boxes);
+  ArborX::DistributedTree<MemorySpace> distributed_tree(comm, ExecutionSpace{},
+                                                        bounding_boxes);
   construction->stop();
 
   std::ostream &os = std::cout;
@@ -431,6 +433,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     MPI_Barrier(comm);
     knn->start();
     distributed_tree.query(
+        ExecutionSpace{},
         NearestNeighborsSearches<DeviceType>{random_queries, n_neighbors},
         values, offsets);
     knn->stop();
@@ -474,7 +477,8 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     auto radius = time_monitor.getNewTimer("radius");
     MPI_Barrier(comm);
     radius->start();
-    distributed_tree.query(RadiusSearches<DeviceType>{random_queries, r},
+    distributed_tree.query(ExecutionSpace{},
+                           RadiusSearches<DeviceType>{random_queries, r},
                            values, offsets);
     radius->stop();
 

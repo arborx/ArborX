@@ -88,33 +88,35 @@ auto make_reference_solution(std::vector<T> const &values,
   return make_compressed_storage(offsets, values);
 }
 
-template <typename Tree, typename Queries>
-auto query(Tree const &tree, Queries const &queries)
+template <typename ExecutionSpace, typename Tree, typename Queries>
+auto query(ExecutionSpace const &exec_space, Tree const &tree,
+           Queries const &queries)
 {
-  using device_type = typename Tree::device_type;
+  using memory_space = typename Tree::memory_space;
   using value_type =
       std::conditional_t<is_distributed<Tree>{}, Kokkos::pair<int, int>, int>;
-  Kokkos::View<value_type *, device_type> values("Testing::values", 0);
-  Kokkos::View<int *, device_type> offsets("Testing::offsets", 0);
-  tree.query(queries, values, offsets);
+  Kokkos::View<value_type *, memory_space> values("Testing::values", 0);
+  Kokkos::View<int *, memory_space> offsets("Testing::offsets", 0);
+  tree.query(exec_space, queries, values, offsets);
   return make_compressed_storage(
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
 }
 
-#define ARBORX_TEST_QUERY_TREE(tree, queries, reference)                       \
-  BOOST_TEST(query(tree, queries) == (reference),                              \
+#define ARBORX_TEST_QUERY_TREE(exec_space, tree, queries, reference)           \
+  BOOST_TEST(query(exec_space, tree, queries) == (reference),                  \
              boost::test_tools::per_element());
 
-template <typename Tree, typename Queries>
-auto query_with_distance(Tree const &tree, Queries const &queries,
+template <typename ExecutionSpace, typename Tree, typename Queries>
+auto query_with_distance(ExecutionSpace const &exec_space, Tree const &tree,
+                         Queries const &queries,
                          std::enable_if_t<!is_distributed<Tree>{}> * = nullptr)
 {
-  using device_type = typename Tree::device_type;
-  Kokkos::View<Kokkos::pair<int, float> *, device_type> values(
+  using memory_space = typename Tree::memory_space;
+  Kokkos::View<Kokkos::pair<int, float> *, memory_space> values(
       "Testing::values", 0);
-  Kokkos::View<int *, device_type> offsets("Testing::offsets", 0);
-  tree.query(queries,
+  Kokkos::View<int *, memory_space> offsets("Testing::offsets", 0);
+  tree.query(exec_space, queries,
              ArborX::Details::CallbackDefaultNearestPredicateWithDistance{},
              values, offsets);
   return make_compressed_storage(
@@ -144,22 +146,23 @@ zip(ExecutionSpace const &space, Kokkos::View<int *, DeviceType> indices,
 }
 
 #ifdef ARBORX_ENABLE_MPI
-template <typename Tree, typename Queries>
-auto query_with_distance(Tree const &tree, Queries const &queries,
+template <typename ExecutionSpace, typename Tree, typename Queries>
+auto query_with_distance(ExecutionSpace const &exec_space, Tree const &tree,
+                         Queries const &queries,
                          std::enable_if_t<is_distributed<Tree>{}> * = nullptr)
 {
-  using device_type = typename Tree::device_type;
-  Kokkos::View<int *, device_type> offsets("Testing::offsets", 0);
-  Kokkos::View<int *, device_type> indices("Testing::indices", 0);
-  Kokkos::View<int *, device_type> ranks("Testing::ranks", 0);
-  Kokkos::View<float *, device_type> distances("Testing::distances", 0);
-  using ExecutionSpace = typename device_type::execution_space;
-  ExecutionSpace space;
-  ArborX::Details::DistributedTreeImpl<device_type>::queryDispatchImpl(
-      ArborX::Details::NearestPredicateTag{}, tree, space, queries, indices,
-      offsets, ranks, &distances);
+  using MemorySpace = typename Tree::memory_space;
+  using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
 
-  auto values = zip(space, indices, ranks, distances);
+  Kokkos::View<int *, MemorySpace> offsets("Testing::offsets", 0);
+  Kokkos::View<int *, MemorySpace> indices("Testing::indices", 0);
+  Kokkos::View<int *, MemorySpace> ranks("Testing::ranks", 0);
+  Kokkos::View<float *, MemorySpace> distances("Testing::distances", 0);
+  ArborX::Details::DistributedTreeImpl<DeviceType>::queryDispatchImpl(
+      ArborX::Details::NearestPredicateTag{}, tree, exec_space, queries,
+      indices, offsets, ranks, &distances);
+
+  auto values = zip(exec_space, indices, ranks, distances);
 
   return make_compressed_storage(
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
@@ -167,35 +170,40 @@ auto query_with_distance(Tree const &tree, Queries const &queries,
 }
 #endif
 
-#define ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(tree, queries, reference)         \
-  BOOST_TEST(query_with_distance(tree, queries) == (reference),                \
+#define ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(exec_space, tree, queries,        \
+                                             reference)                        \
+  BOOST_TEST(query_with_distance(exec_space, tree, queries) == (reference),    \
              boost::test_tools::per_element());
 
-template <typename Tree>
-auto make(std::vector<ArborX::Box> const &b)
+template <typename Tree, typename ExecutionSpace>
+auto make(ExecutionSpace const &exec_space, std::vector<ArborX::Box> const &b)
 {
   int const n = b.size();
-  Kokkos::View<ArborX::Box *, typename Tree::device_type> boxes(
+  Kokkos::View<ArborX::Box *, typename Tree::memory_space> boxes(
       "Testing::boxes", n);
   auto boxes_host = Kokkos::create_mirror_view(boxes);
   for (int i = 0; i < n; ++i)
     boxes_host(i) = b[i];
   Kokkos::deep_copy(boxes, boxes_host);
-  return Tree(boxes);
+  return Tree(exec_space, boxes);
 }
 
 #ifdef ARBORX_ENABLE_MPI
 template <typename DeviceType>
-ArborX::DistributedTree<DeviceType>
+ArborX::DistributedTree<typename DeviceType::memory_space>
 makeDistributedTree(MPI_Comm comm, std::vector<ArborX::Box> const &b)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+
   int const n = b.size();
   Kokkos::View<ArborX::Box *, DeviceType> boxes("Testing::boxes", n);
   auto boxes_host = Kokkos::create_mirror_view(boxes);
   for (int i = 0; i < n; ++i)
     boxes_host(i) = b[i];
   Kokkos::deep_copy(boxes, boxes_host);
-  return ArborX::DistributedTree<DeviceType>(comm, boxes);
+
+  return ArborX::DistributedTree<typename DeviceType::memory_space>(
+      comm, ExecutionSpace{}, boxes);
 }
 #endif
 

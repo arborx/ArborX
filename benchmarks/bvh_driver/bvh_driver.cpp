@@ -188,29 +188,33 @@ struct ArborX::AccessTraits<QueriesWithIndex<Queries>, ArborX::PredicatesTag>
   }
 };
 
-template <class TreeType>
+template <typename ExecutionSpace, class TreeType>
 void BM_construction(benchmark::State &state, Spec const &spec)
 {
-  using DeviceType = typename TreeType::device_type;
+  using DeviceType =
+      Kokkos::Device<ExecutionSpace, typename TreeType::memory_space>;
+
   auto const points =
       constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type);
 
   for (auto _ : state)
   {
     auto const start = std::chrono::high_resolution_clock::now();
-    TreeType index(points);
+    TreeType index(ExecutionSpace{}, points);
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
   }
 }
 
-template <class TreeType>
+template <typename ExecutionSpace, class TreeType>
 void BM_knn_search(benchmark::State &state, Spec const &spec)
 {
-  using DeviceType = typename TreeType::device_type;
+  using DeviceType =
+      Kokkos::Device<ExecutionSpace, typename TreeType::memory_space>;
 
   TreeType index(
+      ExecutionSpace{},
       constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type));
   auto const queries = makeNearestQueries<DeviceType>(
       spec.n_values, spec.n_queries, spec.n_neighbors,
@@ -221,7 +225,7 @@ void BM_knn_search(benchmark::State &state, Spec const &spec)
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     auto const start = std::chrono::high_resolution_clock::now();
-    index.query(queries, indices, offset,
+    index.query(ExecutionSpace{}, queries, indices, offset,
                 ArborX::Experimental::TraversalPolicy().setPredicateSorting(
                     spec.sort_predicates));
     auto const end = std::chrono::high_resolution_clock::now();
@@ -243,12 +247,14 @@ struct NearestCallback
   }
 };
 
-template <class TreeType>
+template <typename ExecutionSpace, class TreeType>
 void BM_knn_callback_search(benchmark::State &state, Spec const &spec)
 {
-  using DeviceType = typename TreeType::device_type;
+  using DeviceType =
+      Kokkos::Device<ExecutionSpace, typename TreeType::memory_space>;
 
   TreeType index(
+      ExecutionSpace{},
       constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type));
   auto const queries_no_index = makeNearestQueries<DeviceType>(
       spec.n_values, spec.n_queries, spec.n_neighbors,
@@ -262,7 +268,7 @@ void BM_knn_callback_search(benchmark::State &state, Spec const &spec)
     NearestCallback<DeviceType> callback{num_neigh};
 
     auto const start = std::chrono::high_resolution_clock::now();
-    index.query(queries, callback,
+    index.query(ExecutionSpace{}, queries, callback,
                 ArborX::Experimental::TraversalPolicy().setPredicateSorting(
                     spec.sort_predicates));
     auto const end = std::chrono::high_resolution_clock::now();
@@ -271,12 +277,14 @@ void BM_knn_callback_search(benchmark::State &state, Spec const &spec)
   }
 }
 
-template <class TreeType>
+template <typename ExecutionSpace, class TreeType>
 void BM_radius_search(benchmark::State &state, Spec const &spec)
 {
-  using DeviceType = typename TreeType::device_type;
+  using DeviceType =
+      Kokkos::Device<ExecutionSpace, typename TreeType::memory_space>;
 
   TreeType index(
+      ExecutionSpace{},
       constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type));
   auto const queries = makeSpatialQueries<DeviceType>(
       spec.n_values, spec.n_queries, spec.n_neighbors,
@@ -287,7 +295,7 @@ void BM_radius_search(benchmark::State &state, Spec const &spec)
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     auto const start = std::chrono::high_resolution_clock::now();
-    index.query(queries, indices, offset,
+    index.query(ExecutionSpace{}, queries, indices, offset,
                 ArborX::Experimental::TraversalPolicy()
                     .setPredicateSorting(spec.sort_predicates)
                     .setBufferSize(spec.buffer_size));
@@ -310,12 +318,14 @@ struct SpatialCallback
   }
 };
 
-template <class TreeType>
+template <typename ExecutionSpace, class TreeType>
 void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
 {
-  using DeviceType = typename TreeType::device_type;
+  using DeviceType =
+      Kokkos::Device<ExecutionSpace, typename TreeType::memory_space>;
 
   TreeType index(
+      ExecutionSpace{},
       constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type));
   auto const queries_no_index = makeSpatialQueries<DeviceType>(
       spec.n_values, spec.n_queries, spec.n_neighbors,
@@ -329,7 +339,7 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
     SpatialCallback<DeviceType> callback{num_neigh};
 
     auto const start = std::chrono::high_resolution_clock::now();
-    index.query(queries, callback,
+    index.query(ExecutionSpace{}, queries, callback,
                 ArborX::Experimental::TraversalPolicy()
                     .setPredicateSorting(spec.sort_predicates)
                     .setBufferSize(spec.buffer_size));
@@ -346,17 +356,21 @@ public:
   ~KokkosScopeGuard() { Kokkos::finalize(); }
 };
 
-template <typename TreeType>
+template <typename ExecutionSpace, typename TreeType>
 void register_benchmark(std::string const &description, Spec const &spec)
 {
   benchmark::RegisterBenchmark(
       spec.create_label_construction(description).c_str(),
-      [=](benchmark::State &state) { BM_construction<TreeType>(state, spec); })
+      [=](benchmark::State &state) {
+        BM_construction<ExecutionSpace, TreeType>(state, spec);
+      })
       ->UseManualTime()
       ->Unit(benchmark::kMicrosecond);
   benchmark::RegisterBenchmark(
       spec.create_label_knn_search(description).c_str(),
-      [=](benchmark::State &state) { BM_knn_search<TreeType>(state, spec); })
+      [=](benchmark::State &state) {
+        BM_knn_search<ExecutionSpace, TreeType>(state, spec);
+      })
       ->UseManualTime()
       ->Unit(benchmark::kMicrosecond);
   if (description != "BoostRTree")
@@ -364,14 +378,16 @@ void register_benchmark(std::string const &description, Spec const &spec)
     benchmark::RegisterBenchmark(
         spec.create_label_knn_search(description, "callback").c_str(),
         [=](benchmark::State &state) {
-          BM_knn_callback_search<TreeType>(state, spec);
+          BM_knn_callback_search<ExecutionSpace, TreeType>(state, spec);
         })
         ->UseManualTime()
         ->Unit(benchmark::kMicrosecond);
   }
   benchmark::RegisterBenchmark(
       spec.create_label_radius_search(description).c_str(),
-      [=](benchmark::State &state) { BM_radius_search<TreeType>(state, spec); })
+      [=](benchmark::State &state) {
+        BM_radius_search<ExecutionSpace, TreeType>(state, spec);
+      })
       ->UseManualTime()
       ->Unit(benchmark::kMicrosecond);
   if (description != "BoostRTree")
@@ -379,7 +395,7 @@ void register_benchmark(std::string const &description, Spec const &spec)
     benchmark::RegisterBenchmark(
         spec.create_label_radius_search(description, "callback").c_str(),
         [=](benchmark::State &state) {
-          BM_radius_callback_search<TreeType>(state, spec);
+          BM_radius_callback_search<ExecutionSpace, TreeType>(state, spec);
         })
         ->UseManualTime()
         ->Unit(benchmark::kMicrosecond);
@@ -524,7 +540,8 @@ int main(int argc, char *argv[])
   {
 #ifdef KOKKOS_ENABLE_SERIAL
     if (spec.backends == "all" || spec.backends == "serial")
-      register_benchmark<ArborX::BVH<Kokkos::Serial::device_type>>(
+      register_benchmark<Kokkos::Serial,
+                         ArborX::BVH<typename Kokkos::Serial::memory_space>>(
           "ArborX::BVH<Serial>", spec);
 #else
     if (spec.backends == "serial")
@@ -533,7 +550,8 @@ int main(int argc, char *argv[])
 
 #ifdef KOKKOS_ENABLE_OPENMP
     if (spec.backends == "all" || spec.backends == "openmp")
-      register_benchmark<ArborX::BVH<Kokkos::OpenMP::device_type>>(
+      register_benchmark<Kokkos::OpenMP,
+                         ArborX::BVH<typename Kokkos::OpenMP::memory_space>>(
           "ArborX::BVH<OpenMP>", spec);
 #else
     if (spec.backends == "openmp")
@@ -542,7 +560,8 @@ int main(int argc, char *argv[])
 
 #ifdef KOKKOS_ENABLE_THREADS
     if (spec.backends == "all" || spec.backends == "threads")
-      register_benchmark<ArborX::BVH<Kokkos::Threads::device_type>>(
+      register_benchmark<Kokkos::Threads,
+                         ArborX::BVH<typename Kokkos::Threads::memory_space>>(
           "ArborX::BVH<Threads>", spec);
 #else
     if (spec.backends == "threads")
@@ -551,7 +570,8 @@ int main(int argc, char *argv[])
 
 #ifdef KOKKOS_ENABLE_CUDA
     if (spec.backends == "all" || spec.backends == "cuda")
-      register_benchmark<ArborX::BVH<Kokkos::Cuda::device_type>>(
+      register_benchmark<Kokkos::Cuda,
+                         ArborX::BVH<typename Kokkos::Cuda::memory_space>>(
           "ArborX::BVH<Cuda>", spec);
 #else
     if (spec.backends == "cuda")
@@ -560,7 +580,9 @@ int main(int argc, char *argv[])
 
 #ifdef KOKKOS_ENABLE_HIP
     if (spec.backends == "all" || spec.backends == "hip")
-      register_benchmark<ArborX::BVH<Kokkos::Experimental::HIP::device_type>>(
+      register_benchmark<
+          Kokkos::Experimental::HIP,
+          ArborX::BVH<typename Kokkos::Experimental::HIP::memory_space>>(
           "ArborX::BVH<HIP>", spec);
 #else
     if (spec.backends == "hip")
@@ -570,7 +592,9 @@ int main(int argc, char *argv[])
 #ifdef KOKKOS_ENABLE_OPENMPTARGET
     if (spec.backends == "all" || spec.backends == "openmptarget")
       register_benchmark<
-          ArborX::BVH<Kokkos::Experimental::OpenMPTarget::device_type>>(
+          Kokkos::Experimental::OpenMPTarget,
+          ArborX::BVH<
+              typename Kokkos::Experimental::OpenMPTarget::memory_space>>(
           "ArborX::BVH<OpenMPTarget>", spec);
 #else
     if (spec.backends == "openmptarget")
@@ -579,7 +603,9 @@ int main(int argc, char *argv[])
 
 #ifdef KOKKOS_ENABLE_
     if (spec.backends == "all" || spec.backends == "sycl")
-      register_benchmark<ArborX::BVH<Kokkos::Experimental::SYCL::device_type>>(
+      register_benchmark<
+          Kokkos::Experimental::SYCL,
+          ArborX::BVH<typename Kokkos::Experimental::SYCL::memory_space>>(
           "ArborX::BVH<SYCL>", spec);
 #else
     if (spec.backends == "sycl")
@@ -588,7 +614,8 @@ int main(int argc, char *argv[])
 
 #ifdef KOKKOS_ENABLE_SERIAL
     if (spec.backends == "all" || spec.backends == "rtree")
-      register_benchmark<BoostExt::RTree<ArborX::Point>>("BoostRTree", spec);
+      register_benchmark<Kokkos::Serial, BoostExt::RTree<ArborX::Point>>(
+          "BoostRTree", spec);
 #endif
   }
 

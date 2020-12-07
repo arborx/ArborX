@@ -179,6 +179,7 @@ static std::tuple<OutputView, OutputView>
 performQueries(RTree<Indexable> const &rtree, InputView const &queries)
 {
   static_assert(KokkosExt::is_accessible_from_host<InputView>::value, "");
+
   using Value = typename RTree<Indexable>::value_type;
   auto const n_queries = queries.extent_int(0);
   OutputView offset("offset", n_queries + 1);
@@ -238,25 +239,35 @@ class RTree
 {
 public:
   using DeviceType = Kokkos::DefaultHostExecutionSpace::device_type;
-  using device_type = DeviceType;
+  using memory_space = typename DeviceType::memory_space;
 
-  RTree(Kokkos::View<Indexable *, DeviceType> const &values)
+  template <typename ExecutionSpace>
+  RTree(ExecutionSpace, Kokkos::View<Indexable *, DeviceType> const &values)
   {
+    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
+
     _tree = BoostRTreeHelpers::makeRTree(values);
   }
 
   // WARNING trailing pack will match anything :/
-  template <typename Predicates, typename InputView, typename... TrailingArgs>
-  void query(Predicates const &predicates, InputView &indices,
-             InputView &offset, TrailingArgs &&...) const
+  template <typename ExecutionSpace, typename Predicates, typename InputView,
+            typename... TrailingArgs>
+  void query(ExecutionSpace const &, Predicates const &predicates,
+             InputView &indices, InputView &offset, TrailingArgs &&...) const
   {
+    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
+
     std::tie(offset, indices) =
         BoostRTreeHelpers::performQueries(_tree, predicates);
   }
 
-  template <typename Predicates, typename Callback, typename... TrailingArgs>
-  void query(Predicates const &, Callback const &, TrailingArgs &&...) const
+  template <typename ExecutionSpace, typename Predicates, typename Callback,
+            typename... TrailingArgs>
+  void query(ExecutionSpace const &, Predicates const &, Callback const &,
+             TrailingArgs &&...) const
   {
+    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
+
     throw std::runtime_error(
         "Boost RTree does not support callback only query overload.");
   }
@@ -271,20 +282,25 @@ class ParallelRTree
 {
 public:
   using DeviceType = Kokkos::DefaultHostExecutionSpace::device_type;
-  using device_type = DeviceType;
+  using memory_space = typename DeviceType::memory_space;
 
-  ParallelRTree(MPI_Comm comm,
+  template <typename ExecutionSpace>
+  ParallelRTree(MPI_Comm comm, ExecutionSpace const &,
                 Kokkos::View<Indexable *, DeviceType> const &values)
   {
+    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
+
     _tree = BoostRTreeHelpers::makeRTree(comm, values);
   }
 
   // WARNING trailing pack will match anything :/
-  template <typename Predicates, typename InputView1, typename InputView2,
-            typename... TrailingArgs>
-  void query(Predicates const &predicates, InputView1 &indices,
-             InputView2 &offset, TrailingArgs &&...) const
+  template <typename ExecutionSpace, typename Predicates, typename InputView1,
+            typename InputView2, typename... TrailingArgs>
+  void query(ExecutionSpace const &, Predicates const &predicates,
+             InputView1 &indices, InputView2 &offset, TrailingArgs &&...) const
   {
+    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
+
     std::tie(offset, indices) =
         BoostRTreeHelpers::performQueries(_tree, predicates);
   }
