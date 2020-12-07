@@ -60,6 +60,39 @@ struct SpatialPredicateCallbackDoesNotTakeCorrectArgument
   }
 };
 
+struct CustomCallbackNearestPredicate
+{
+  template <class Predicate>
+  KOKKOS_FUNCTION void operator()(Predicate const &, int, float) const
+  {
+  }
+};
+
+struct CustomCallbackSpatialPredicate
+{
+  template <class Predicate>
+  KOKKOS_FUNCTION void operator()(Predicate const &, int) const
+  {
+  }
+};
+
+struct CustomCallbackSpatialPredicateMissingConstQualifier
+{
+  template <class Predicate>
+  KOKKOS_FUNCTION void operator()(Predicate const &, int)
+  {
+  }
+};
+
+struct CustomCallbackSpatialPredicateNonVoidReturnType
+{
+  template <class Predicate>
+  KOKKOS_FUNCTION auto operator()(Predicate const &, int) const
+  {
+    return Wrong{};
+  }
+};
+
 int main()
 {
   using ArborX::Details::check_valid_callback;
@@ -105,4 +138,35 @@ int main()
 
   // check_valid_callback(ArborX::Details::CallbackDefaultNearestPredicate{},
   //                     SpatialPredicates{}, v);
+
+  check_valid_callback(CustomCallbackNearestPredicate{}, NearestPredicates{});
+
+  check_valid_callback(CustomCallbackSpatialPredicate{}, SpatialPredicates{});
+
+  // Uncomment to see error messages
+
+  // check_valid_callback(CustomCallbackSpatialPredicateNonVoidReturnType{},
+  //                     SpatialPredicates{});
+
+  // check_valid_callback(CustomCallbackSpatialPredicateMissingConstQualifier{},
+  //                     SpatialPredicates{});
+
+  // check_valid_callback(CustomCallbackNearestPredicate{},
+  // SpatialPredicates{});
+
+  // check_valid_callback(CustomCallbackSpatialPredicate{},
+  // NearestPredicates{});
+
+#ifndef __NVCC__
+  check_valid_callback([](auto const & /*predicate*/, int /*primitive*/) {},
+                       SpatialPredicates{});
+
+  check_valid_callback(
+      [](auto const & /*predicate*/, int /*primitive*/, float /*distance*/) {},
+      NearestPredicates{});
+
+  // Uncomment to see error messages
+
+  // check_valid_callback([](Wrong, int /*primitive*/) {}, SpatialPredicates{});
+#endif
 }

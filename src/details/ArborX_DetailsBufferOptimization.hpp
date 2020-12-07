@@ -62,10 +62,12 @@ struct InsertGenerator
   using Tag = typename AccessTraitsHelper<Access>::tag;
   using PredicateType = typename AccessTraitsHelper<Access>::type;
 
-  template <typename U = PassTag, typename V = Tag>
-  KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, FirstPassTag>{} &&
-                                   std::is_same<V, SpatialPredicateTag>{}>
-  operator()(PredicateType const &predicate, int primitive_index) const
+  template <
+      typename U = PassTag, typename V = Tag,
+      std::enable_if_t<std::is_same<U, FirstPassTag>{} &&
+                       std::is_same<V, SpatialPredicateTag>{}> * = nullptr>
+  KOKKOS_FUNCTION auto operator()(PredicateType const &predicate,
+                                  int primitive_index) const
   {
     auto const predicate_index = getData(predicate);
     auto const &raw_predicate = getPredicate(predicate);
@@ -77,11 +79,12 @@ struct InsertGenerator
     auto const buffer_size = *(&offset + 1) - offset;
     auto &count = _counts(predicate_index);
 
-    _callback(raw_predicate, primitive_index, [&](ValueType const &value) {
-      int count_old = Kokkos::atomic_fetch_add(&count, 1);
-      if (count_old < buffer_size)
-        _out(offset + count_old) = value;
-    });
+    return _callback(raw_predicate, primitive_index,
+                     [&](ValueType const &value) {
+                       int count_old = Kokkos::atomic_fetch_add(&count, 1);
+                       if (count_old < buffer_size)
+                         _out(offset + count_old) = value;
+                     });
   }
   template <typename U = PassTag, typename V = Tag>
   KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, FirstPassTag>{} &&
@@ -107,19 +110,21 @@ struct InsertGenerator
               });
   }
 
-  template <typename U = PassTag, typename V = Tag>
-  KOKKOS_FUNCTION
+  template <
+      typename U = PassTag, typename V = Tag,
       std::enable_if_t<std::is_same<U, FirstPassNoBufferOptimizationTag>{} &&
-                       std::is_same<V, SpatialPredicateTag>{}>
-      operator()(PredicateType const &predicate, int primitive_index) const
+                       std::is_same<V, SpatialPredicateTag>{}> * = nullptr>
+  KOKKOS_FUNCTION auto operator()(PredicateType const &predicate,
+                                  int primitive_index) const
   {
     auto const predicate_index = getData(predicate);
     auto const &raw_predicate = getPredicate(predicate);
 
     auto &count = _counts(predicate_index);
 
-    _callback(raw_predicate, primitive_index,
-              [&](ValueType const &) { Kokkos::atomic_fetch_add(&count, 1); });
+    return _callback(raw_predicate, primitive_index, [&](ValueType const &) {
+      Kokkos::atomic_fetch_add(&count, 1);
+    });
   }
 
   template <typename U = PassTag, typename V = Tag>
@@ -138,10 +143,12 @@ struct InsertGenerator
               [&](ValueType const &) { Kokkos::atomic_fetch_add(&count, 1); });
   }
 
-  template <typename U = PassTag, typename V = Tag>
-  KOKKOS_FUNCTION std::enable_if_t<std::is_same<U, SecondPassTag>{} &&
-                                   std::is_same<V, SpatialPredicateTag>{}>
-  operator()(PredicateType const &predicate, int primitive_index) const
+  template <
+      typename U = PassTag, typename V = Tag,
+      std::enable_if_t<std::is_same<U, SecondPassTag>{} &&
+                       std::is_same<V, SpatialPredicateTag>{}> * = nullptr>
+  KOKKOS_FUNCTION auto operator()(PredicateType const &predicate,
+                                  int primitive_index) const
   {
     auto const predicate_index = getData(predicate);
     auto const &raw_predicate = getPredicate(predicate);
@@ -153,9 +160,10 @@ struct InsertGenerator
     // count, and atomic increment of count. I think atomically incrementing
     // offset is problematic for OpenMP as you potentially constantly steal
     // cache lines.
-    _callback(raw_predicate, primitive_index, [&](ValueType const &value) {
-      _out(Kokkos::atomic_fetch_add(&offset, 1)) = value;
-    });
+    return _callback(raw_predicate, primitive_index,
+                     [&](ValueType const &value) {
+                       _out(Kokkos::atomic_fetch_add(&offset, 1)) = value;
+                     });
   }
 
   template <typename U = PassTag, typename V = Tag>

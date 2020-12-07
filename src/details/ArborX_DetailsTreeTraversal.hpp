@@ -108,11 +108,15 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
 
       if (overlap_left && child_left->isLeaf())
       {
-        _callback(predicate, child_left->getLeafPermutationIndex());
+        if (invoke_callback_and_check_early_exit(
+                _callback, predicate, child_left->getLeafPermutationIndex()))
+          return;
       }
       if (overlap_right && child_right->isLeaf())
       {
-        _callback(predicate, child_right->getLeafPermutationIndex());
+        if (invoke_callback_and_check_early_exit(
+                _callback, predicate, child_right->getLeafPermutationIndex()))
+          return;
       }
 
       bool traverse_left = (overlap_left && !child_left->isLeaf());
@@ -153,7 +157,9 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
         }
         else
         {
-          _callback(predicate, node->getLeafPermutationIndex());
+          if (invoke_callback_and_check_early_exit(
+                  _callback, predicate, node->getLeafPermutationIndex()))
+            return;
           next = node->rope;
         }
       }
