@@ -89,7 +89,7 @@ struct CustomCallbackSpatialPredicateNonVoidReturnType
   template <class Predicate>
   KOKKOS_FUNCTION auto operator()(Predicate const &, int) const
   {
-    return Wrong{}; // actually this is currently allowed
+    return Wrong{};
   }
 };
 
@@ -143,9 +143,10 @@ int main()
 
   check_valid_callback(CustomCallbackSpatialPredicate{}, SpatialPredicates{});
 
-  check_valid_callback(CustomCallbackSpatialPredicateNonVoidReturnType{},
-
   // Uncomment to see error messages
+
+  // check_valid_callback(CustomCallbackSpatialPredicateNonVoidReturnType{},
+  //                     SpatialPredicates{});
 
   // check_valid_callback(CustomCallbackSpatialPredicateMissingConstQualifier{},
   //                     SpatialPredicates{});

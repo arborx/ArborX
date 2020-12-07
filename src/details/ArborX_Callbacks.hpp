@@ -132,6 +132,17 @@ void check_valid_callback(Callback const &callback, Predicates const &,
            is_detected<NearestPredicateInlineCallbackArchetypeExpression,
                        Callback, Predicate, OutputFunctorHelper<OutputView>>{}),
       "Callback 'operator()' does not have the correct signature");
+
+  static_assert(
+      (std::is_same<PredicateTag, SpatialPredicateTag>{} &&
+       std::is_void<detected_t<
+           SpatialPredicateInlineCallbackArchetypeExpression, Callback,
+           Predicate, OutputFunctorHelper<OutputView>>>{}) ||
+          (std::is_same<PredicateTag, NearestPredicateTag>{} &&
+           std::is_void<detected_t<
+               NearestPredicateInlineCallbackArchetypeExpression, Callback,
+               Predicate, OutputFunctorHelper<OutputView>>>{}),
+      "Callback 'operator()' return type must be void");
 }
 
 // EXPERIMENTAL archetypal expression for user callbacks
@@ -206,6 +217,21 @@ void check_valid_callback(Callback const &callback, Predicates const &)
            is_detected<Experimental_NearestPredicateCallbackArchetypeExpression,
                        Callback, Predicate, int>{}),
       "Callback 'operator()' does not have the correct signature");
+
+  static_assert(
+      (std::is_same<PredicateTag, SpatialPredicateTag>{} &&
+       (std::is_same<
+            CallbackTreeTraversalControl,
+            detected_t<Experimental_SpatialPredicateCallbackArchetypeExpression,
+                       Callback, Predicate, int>>{} ||
+        std::is_void<
+            detected_t<Experimental_SpatialPredicateCallbackArchetypeExpression,
+                       Callback, Predicate, int>>{})) ||
+          (std::is_same<PredicateTag, NearestPredicateTag>{} &&
+           std::is_void<detected_t<
+               Experimental_NearestPredicateCallbackArchetypeExpression,
+               Callback, Predicate, int>>{}),
+      "Callback 'operator()' return type must be void");
 }
 
 } // namespace Details
