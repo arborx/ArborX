@@ -76,8 +76,7 @@ public:
   query(ExecutionSpace const &space, Predicates const &predicates,
         CallbackOrView &&callback_or_view, View &&view, Args &&... args) const
   {
-    auto const &bvh = *this;
-    ArborX::query_crs(space, bvh, predicates,
+    ArborX::query_crs(space, *this, predicates,
                       std::forward<CallbackOrView>(callback_or_view),
                       std::forward<View>(view), std::forward<Args>(args)...);
   }
@@ -273,7 +272,6 @@ void BoundingVolumeHierarchy<MemorySpace, Enable>::query(
 
   Kokkos::Profiling::pushRegion("ArborX::BVH::query");
 
-  auto const &bvh = *this;
   if (policy._sort_predicates)
   {
     Kokkos::Profiling::pushRegion("ArborX::BVH::query::compute_permutation");
@@ -285,12 +283,12 @@ void BoundingVolumeHierarchy<MemorySpace, Enable>::query(
 
     using PermutedPredicates =
         Details::PermutedData<Predicates, decltype(permute)>;
-    Details::traverse(space, bvh, PermutedPredicates{predicates, permute},
+    Details::traverse(space, *this, PermutedPredicates{predicates, permute},
                       callback);
   }
   else
   {
-    Details::traverse(space, bvh, predicates, callback);
+    Details::traverse(space, *this, predicates, callback);
   }
 
   Kokkos::Profiling::popRegion();
