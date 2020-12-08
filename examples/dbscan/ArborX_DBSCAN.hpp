@@ -52,15 +52,23 @@ namespace DBSCAN
 {
 
 template <typename MemorySpace>
-struct NumNeighCallback
+struct NumNeighEarlyExitCallback
 {
-  Kokkos::View<int *, MemorySpace> num_neigh_;
+  Kokkos::View<int *, MemorySpace> _num_neigh;
+  int _core_min_size = 1;
 
   template <typename Query>
-  KOKKOS_FUNCTION void operator()(Query const &query, int) const
+  KOKKOS_FUNCTION auto operator()(Query const &query, int) const
   {
     auto i = getData(query);
-    Kokkos::atomic_fetch_add(&num_neigh_(i), 1);
+    Kokkos::atomic_fetch_add(&_num_neigh(i), 1);
+
+    if (_num_neigh(i) < _core_min_size)
+      return ArborX::CallbackTreeTraversalControl::normal_continuation;
+
+    // Once _core_min_size neighbors are found, it is guaranteed to be a core
+    // point, and there is no reason to continue the search.
+    return ArborX::CallbackTreeTraversalControl::early_exit;
   }
 };
 
@@ -72,12 +80,12 @@ struct CCSCorePoints
 template <typename MemorySpace>
 struct DBSCANCorePoints
 {
-  Kokkos::View<int *, MemorySpace> num_neigh_;
-  int core_min_size_ = 1;
+  Kokkos::View<int *, MemorySpace> _num_neigh;
+  int _core_min_size = 1;
 
   KOKKOS_FUNCTION bool operator()(int const i) const
   {
-    return num_neigh_(i) >= core_min_size_;
+    return _num_neigh(i) >= _core_min_size;
   }
 };
 
@@ -163,7 +171,8 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
         n);
     // Initialize to -1 as we don't want to count ourselves as a neighbor
     Kokkos::deep_copy(num_neigh, -1);
-    bvh.query(exec_space, predicates, NumNeighCallback<MemorySpace>{num_neigh});
+    bvh.query(exec_space, predicates,
+              NumNeighEarlyExitCallback<MemorySpace>{num_neigh, core_min_size});
     Kokkos::Profiling::popRegion();
     elapsed_neigh = clock::now() - start_local;
 
