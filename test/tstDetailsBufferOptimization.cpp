@@ -27,12 +27,10 @@ struct Test1
             typename InsertGenerator>
   void query(ExecutionSpace const &space, Predicates const &predicates,
              InsertGenerator const &insert_generator,
-             ArborX::Experimental::TraversalPolicy const &policy =
+             ArborX::Experimental::TraversalPolicy const & =
                  ArborX::Experimental::TraversalPolicy()) const
   {
     using Access = ArborX::AccessTraits<Predicates, ArborX::PredicatesTag>;
-
-    std::ignore = policy;
 
     Kokkos::parallel_for(
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
