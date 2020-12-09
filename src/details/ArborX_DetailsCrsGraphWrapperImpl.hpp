@@ -610,24 +610,6 @@ check_valid_callback_if_first_argument_is_not_a_view(View const &,
   // do nothing
 }
 
-template <typename Tree, typename ExecutionSpace, typename Predicates,
-          typename CallbackOrView, typename View, typename... Args>
-inline std::enable_if_t<Kokkos::is_view<std::decay_t<View>>{}>
-query(Tree const &tree, ExecutionSpace const &space,
-      Predicates const &predicates, CallbackOrView &&callback_or_view,
-      View &&view, Args &&... args)
-{
-  check_valid_callback_if_first_argument_is_not_a_view(callback_or_view,
-                                                       predicates, view);
-
-  using Access = AccessTraits<Predicates, Traits::PredicatesTag>;
-  using Tag = typename AccessTraitsHelper<Access>::tag;
-
-  queryDispatch(Tag{}, tree, space, predicates,
-                std::forward<CallbackOrView>(callback_or_view),
-                std::forward<View>(view), std::forward<Args>(args)...);
-}
-
 } // namespace CrsGraphWrapperImpl
 
 } // namespace Details

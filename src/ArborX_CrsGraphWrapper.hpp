@@ -24,9 +24,17 @@ inline void query(Tree const &tree, ExecutionSpace const &space,
                   CallbackOrView &&callback_or_view, View &&view,
                   Args &&... args)
 {
-  Details::CrsGraphWrapperImpl::query(
-      tree, space, predicates, std::forward<CallbackOrView>(callback_or_view),
-      std::forward<View>(view), std::forward<Args>(args)...);
+  Details::CrsGraphWrapperImpl::
+      check_valid_callback_if_first_argument_is_not_a_view(callback_or_view,
+                                                           predicates, view);
+
+  using Access = AccessTraits<Predicates, Traits::PredicatesTag>;
+  using Tag = typename Details::AccessTraitsHelper<Access>::tag;
+
+  ArborX::Details::CrsGraphWrapperImpl::queryDispatch(
+      Tag{}, tree, space, predicates,
+      std::forward<CallbackOrView>(callback_or_view), std::forward<View>(view),
+      std::forward<Args>(args)...);
 }
 
 } // namespace ArborX
