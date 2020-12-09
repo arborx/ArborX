@@ -76,7 +76,7 @@ public:
   query(ExecutionSpace const &space, Predicates const &predicates,
         CallbackOrView &&callback_or_view, View &&view, Args &&... args) const
   {
-    ArborX::query_crs(space, *this, predicates,
+    ArborX::query_crs(*this, space, predicates,
                       std::forward<CallbackOrView>(callback_or_view),
                       std::forward<View>(view), std::forward<Args>(args)...);
   }

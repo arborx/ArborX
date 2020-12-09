@@ -227,7 +227,7 @@ void BM_knn_search(benchmark::State &state, Spec const &spec)
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     auto const start = std::chrono::high_resolution_clock::now();
     ArborX::query_crs(
-        ExecutionSpace{}, index, queries, indices, offset,
+        index, ExecutionSpace{}, queries, indices, offset,
         ArborX::Experimental::TraversalPolicy().setPredicateSorting(
             spec.sort_predicates));
     auto const end = std::chrono::high_resolution_clock::now();
@@ -297,7 +297,7 @@ void BM_radius_search(benchmark::State &state, Spec const &spec)
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     auto const start = std::chrono::high_resolution_clock::now();
-    ArborX::query_crs(ExecutionSpace{}, index, queries, indices, offset,
+    ArborX::query_crs(index, ExecutionSpace{}, queries, indices, offset,
                       ArborX::Experimental::TraversalPolicy()
                           .setPredicateSorting(spec.sort_predicates)
                           .setBufferSize(spec.buffer_size));

@@ -105,10 +105,10 @@ int main(int argc, char *argv[])
   {
     Kokkos::View<int *, MemorySpace> values("values", 0);
     Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
-    ArborX::query_crs(ExecutionSpace{}, bvh, FirstOctant{}, PrintfCallback{},
+    ArborX::query_crs(bvh, ExecutionSpace{}, FirstOctant{}, PrintfCallback{},
                       values, offsets);
 #ifndef __NVCC__
-    ArborX::query_crs(ExecutionSpace{}, bvh, FirstOctant{},
+    ArborX::query_crs(bvh, ExecutionSpace{}, FirstOctant{},
                       KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
                                     auto /*output_functor*/) {
 #ifndef KOKKOS_ENABLE_SYCL
@@ -123,10 +123,10 @@ int main(int argc, char *argv[])
     int const k = 10;
     Kokkos::View<PairIndexDistance *, MemorySpace> values("values", 0);
     Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
-    ArborX::query_crs(ExecutionSpace{}, bvh, NearestToOrigin{k},
+    ArborX::query_crs(bvh, ExecutionSpace{}, NearestToOrigin{k},
                       PrintfCallback{}, values, offsets);
 #ifndef __NVCC__
-    ArborX::query_crs(ExecutionSpace{}, bvh, NearestToOrigin{k},
+    ArborX::query_crs(bvh, ExecutionSpace{}, NearestToOrigin{k},
                       KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
                                     float distance, auto /*output_functor*/) {
 #ifndef KOKKOS_ENABLE_SYCL

@@ -17,15 +17,15 @@
 namespace ArborX
 {
 
-template <typename ExecutionSpace, typename Tree, typename Predicates,
+template <typename Tree, typename ExecutionSpace, typename Predicates,
           typename CallbackOrView, typename View, typename... Args>
-inline void query_crs(ExecutionSpace const &space, Tree const &tree,
+inline void query_crs(Tree const &tree, ExecutionSpace const &space,
                       Predicates const &predicates,
                       CallbackOrView &&callback_or_view, View &&view,
                       Args &&... args)
 {
   Details::CrsGraphWrapperImpl::query(
-      space, tree, predicates, std::forward<CallbackOrView>(callback_or_view),
+      tree, space, predicates, std::forward<CallbackOrView>(callback_or_view),
       std::forward<View>(view), std::forward<Args>(args)...);
 }
 
