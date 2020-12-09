@@ -70,15 +70,15 @@ public:
   template <typename ExecutionSpace, typename Predicates,
             typename CallbackOrView, typename View, typename... Args>
   // clang-format off
-  [[deprecated( "For crs format output, use standalone ArborX::query_crs instead.")]]
+  [[deprecated( "For crs format output, use standalone ArborX::query instead.")]]
   // clang-format on
   std::enable_if_t<Kokkos::is_view<std::decay_t<View>>{}>
   query(ExecutionSpace const &space, Predicates const &predicates,
         CallbackOrView &&callback_or_view, View &&view, Args &&... args) const
   {
-    ArborX::query_crs(*this, space, predicates,
-                      std::forward<CallbackOrView>(callback_or_view),
-                      std::forward<View>(view), std::forward<Args>(args)...);
+    ArborX::query(*this, space, predicates,
+                  std::forward<CallbackOrView>(callback_or_view),
+                  std::forward<View>(view), std::forward<Args>(args)...);
   }
 
 private:

@@ -110,7 +110,7 @@ auto query(ExecutionSpace const &exec_space,
   using memory_space = MemorySpace;
   Kokkos::View<int *, memory_space> values("Testing::values", 0);
   Kokkos::View<int *, memory_space> offsets("Testing::offsets", 0);
-  ArborX::query_crs(tree, exec_space, queries, values, offsets);
+  ArborX::query(tree, exec_space, queries, values, offsets);
   return make_compressed_storage(
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
@@ -146,10 +146,9 @@ auto query_with_distance(ExecutionSpace const &exec_space,
   Kokkos::View<Kokkos::pair<int, float> *, memory_space> values(
       "Testing::values", 0);
   Kokkos::View<int *, memory_space> offsets("Testing::offsets", 0);
-  ArborX::query_crs(
-      tree, exec_space, queries,
-      ArborX::Details::CallbackDefaultNearestPredicateWithDistance{}, values,
-      offsets);
+  ArborX::query(tree, exec_space, queries,
+                ArborX::Details::CallbackDefaultNearestPredicateWithDistance{},
+                values, offsets);
   return make_compressed_storage(
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));

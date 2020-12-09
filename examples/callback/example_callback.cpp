@@ -105,17 +105,17 @@ int main(int argc, char *argv[])
   {
     Kokkos::View<int *, MemorySpace> values("values", 0);
     Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
-    ArborX::query_crs(bvh, ExecutionSpace{}, FirstOctant{}, PrintfCallback{},
-                      values, offsets);
+    ArborX::query(bvh, ExecutionSpace{}, FirstOctant{}, PrintfCallback{},
+                  values, offsets);
 #ifndef __NVCC__
-    ArborX::query_crs(bvh, ExecutionSpace{}, FirstOctant{},
-                      KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
-                                    auto /*output_functor*/) {
+    ArborX::query(bvh, ExecutionSpace{}, FirstOctant{},
+                  KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
+                                auto /*output_functor*/) {
 #ifndef KOKKOS_ENABLE_SYCL
-                        printf("Found %d from generic lambda\n", primitive);
+                    printf("Found %d from generic lambda\n", primitive);
 #endif
-                      },
-                      values, offsets);
+                  },
+                  values, offsets);
 #endif
   }
 
@@ -123,19 +123,18 @@ int main(int argc, char *argv[])
     int const k = 10;
     Kokkos::View<PairIndexDistance *, MemorySpace> values("values", 0);
     Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
-    ArborX::query_crs(bvh, ExecutionSpace{}, NearestToOrigin{k},
-                      PrintfCallback{}, values, offsets);
+    ArborX::query(bvh, ExecutionSpace{}, NearestToOrigin{k}, PrintfCallback{},
+                  values, offsets);
 #ifndef __NVCC__
-    ArborX::query_crs(bvh, ExecutionSpace{}, NearestToOrigin{k},
-                      KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
-                                    float distance, auto /*output_functor*/) {
+    ArborX::query(bvh, ExecutionSpace{}, NearestToOrigin{k},
+                  KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
+                                float distance, auto /*output_functor*/) {
 #ifndef KOKKOS_ENABLE_SYCL
-                        printf(
-                            "Found %d with distance %.3f from generic lambda\n",
-                            primitive, distance);
+                    printf("Found %d with distance %.3f from generic lambda\n",
+                           primitive, distance);
 #endif
-                      },
-                      values, offsets);
+                  },
+                  values, offsets);
 #endif
   }
 
