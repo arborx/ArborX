@@ -126,8 +126,8 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
   std::chrono::duration<double> elapsed_neigh;
   std::chrono::duration<double> elapsed_query;
   std::chrono::duration<double> elapsed_cluster;
-  std::chrono::duration<double> elapsed_total;
-  std::chrono::duration<double> elapsed_verify = clock::duration::zero();
+  std::chrono::duration<double> elapsed_total = clock::duration::zero();
+  std::chrono::duration<double> elapsed_verify;
 
   start_total = clock::now();
 
