@@ -76,9 +76,13 @@ public:
   query(ExecutionSpace const &space, Predicates const &predicates,
         CallbackOrView &&callback_or_view, View &&view, Args &&... args) const
   {
+    Kokkos::Profiling::pushRegion("ArborX::BVH::query");
+
     ArborX::query(*this, space, predicates,
                   std::forward<CallbackOrView>(callback_or_view),
                   std::forward<View>(view), std::forward<Args>(args)...);
+
+    Kokkos::Profiling::popRegion();
   }
 
 private:

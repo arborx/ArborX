@@ -24,6 +24,8 @@ inline void query(Tree const &tree, ExecutionSpace const &space,
                   CallbackOrView &&callback_or_view, View &&view,
                   Args &&... args)
 {
+  Kokkos::Profiling::pushRegion("ArborX::query");
+
   Details::CrsGraphWrapperImpl::
       check_valid_callback_if_first_argument_is_not_a_view(callback_or_view,
                                                            predicates, view);
@@ -35,6 +37,8 @@ inline void query(Tree const &tree, ExecutionSpace const &space,
       Tag{}, tree, space, predicates,
       std::forward<CallbackOrView>(callback_or_view), std::forward<View>(view),
       std::forward<Args>(args)...);
+
+  Kokkos::Profiling::popRegion();
 }
 
 } // namespace ArborX
