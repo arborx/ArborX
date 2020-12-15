@@ -96,14 +96,10 @@ initAllocatedStorage(Tag, ExecutionSpace const &space,
                      Predicates const & /*predicates*/, OffsetView offset,
                      int buffer_size)
 {
-  buffer_size = std::abs(buffer_size);
+  Kokkos::deep_copy(space, offset, std::abs(buffer_size));
 
-  if (buffer_size > 0)
-    Kokkos::deep_copy(space, offset, buffer_size);
-  else
-    Kokkos::deep_copy(space, offset, 0);
-
-  exclusivePrefixSum(space, offset);
+  if (buffer_size != 0)
+    exclusivePrefixSum(space, offset);
 }
 
 template <typename Tag, typename ExecutionSpace, typename Predicates,
