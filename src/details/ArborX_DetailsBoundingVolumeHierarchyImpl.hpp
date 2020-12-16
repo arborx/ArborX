@@ -112,7 +112,8 @@ initAllocatedStorage(Tag, ExecutionSpace const &space,
   using Access = AccessTraits<Predicates, PredicatesTag>;
   auto n_queries = offset.extent(0) - 1;
   Kokkos::parallel_for(
-      "ArborX::BVH::query::scan_queries_for_numbers_of_nearest_neighbors",
+      "ArborX::BVH::query::nearest::"
+      "scan_queries_for_numbers_of_nearest_neighbors",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
   exclusivePrefixSum(space, offset);
@@ -136,12 +137,16 @@ queryDispatch(Tag, BVH const &bvh, ExecutionSpace const &space,
 
   check_valid_callback(callback, predicates, out);
 
-  Kokkos::Profiling::pushRegion("ArborX::BVH::query");
+  auto profiling_prefix =
+      std::string("ArborX::BVH::query::") +
+      (std::is_same<Tag, SpatialPredicateTag>{} ? "spatial" : "nearest");
+
+  Kokkos::Profiling::pushRegion(profiling_prefix);
 
   using Access = AccessTraits<Predicates, PredicatesTag>;
   auto const n_queries = Access::size(predicates);
 
-  Kokkos::Profiling::pushRegion("ArborX::BVH::query::init_and_alloc");
+  Kokkos::Profiling::pushRegion(profiling_prefix + "::init_and_alloc");
 
   reallocWithoutInitializing(offset, n_queries + 1);
   initAllocatedStorage(Tag{}, space, predicates, offset, policy._buffer_size);
@@ -155,7 +160,7 @@ queryDispatch(Tag, BVH const &bvh, ExecutionSpace const &space,
 
   if (policy._sort_predicates)
   {
-    Kokkos::Profiling::pushRegion("ArborX::BVH::query::compute_permutation");
+    Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
     auto permute =
         Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
             space, bvh.bounds(), predicates);
@@ -257,11 +262,18 @@ inline void query(ExecutionSpace const &space, BVH const &bvh,
 {
   check_valid_callback(callback, predicates);
 
-  Kokkos::Profiling::pushRegion("ArborX::BVH::query");
+  using Access = AccessTraits<Predicates, Traits::PredicatesTag>;
+  using Tag = typename AccessTraitsHelper<Access>::tag;
+
+  auto profiling_prefix =
+      std::string("ArborX::BVH::query::") +
+      (std::is_same<Tag, SpatialPredicateTag>{} ? "spatial" : "nearest");
+
+  Kokkos::Profiling::pushRegion(profiling_prefix);
 
   if (policy._sort_predicates)
   {
-    Kokkos::Profiling::pushRegion("ArborX::BVH::query::compute_permutation");
+    Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
     using MemorySpace = typename BVH::memory_space;
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     auto permute =
