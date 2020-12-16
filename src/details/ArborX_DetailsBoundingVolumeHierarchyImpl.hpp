@@ -182,8 +182,8 @@ queryDispatch(Tag, BVH const &bvh, ExecutionSpace const &space,
               Experimental::TraversalPolicy const &policy =
                   Experimental::TraversalPolicy())
 {
-  queryDispatch(Tag{}, bvh, space, predicates, CallbackDefaultPredicate{},
-                indices, offset, policy);
+  queryDispatch(Tag{}, bvh, space, predicates, DefaultCallback{}, indices,
+                offset, policy);
 }
 
 template <typename Tag, typename BVH, typename ExecutionSpace,

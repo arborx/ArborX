@@ -30,7 +30,7 @@ namespace ArborX
 namespace Details
 {
 
-struct CallbackDefaultSpatialPredicateWithRank
+struct DefaultCallbackSpatialPredicateWithRank
 {
   int _rank;
   template <typename Predicate, typename OutputFunctor>
@@ -56,7 +56,7 @@ struct DistributedTreeImpl
     int comm_rank;
     MPI_Comm_rank(tree.getComm(), &comm_rank);
     queryDispatch(SpatialPredicateTag{}, tree, space, queries,
-                  CallbackDefaultSpatialPredicateWithRank{comm_rank}, values,
+                  DefaultCallbackSpatialPredicateWithRank{comm_rank}, values,
                   offset);
   }
 
@@ -543,9 +543,9 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   top_tree.query(space, queries, indices, offset);
 
   {
-    // NOTE_COMM_SPATIAL: The communication pattern here for the spatial
-    // search is identical to that of the nearest search (see
-    // NOTE_COMM_NEAREST). The code differences are:
+    // NOTE_COMM_SPATIAL: The communication pattern here for the spatial search
+    // is identical to that of the nearest search (see NOTE_COMM_NEAREST). The
+    // code differences are:
     // - usage of callbacks
     // - no explicit distances
     // - no results filtering
@@ -735,8 +735,8 @@ void DistributedTreeImpl<DeviceType>::communicateResultsBack(
   // these batches appear consecutively. Hence, no reordering is necessary.
   Distributor<DeviceType> distributor(comm);
   // FIXME Distributor::createFromSends takes two views of the same type by
-  // a const reference.  There were two easy ways out, either take the views
-  // by value or cast at the callsite.  I went with the latter.  Proper fix
+  // a const reference.  There were two easy ways out, either take the views by
+  // value or cast at the callsite.  I went with the latter.  Proper fix
   // involves more code cleanup in ArborX_DetailsDistributor.hpp than I am
   // willing to do just now.
   int const n_imports =

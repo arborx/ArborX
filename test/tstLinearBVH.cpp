@@ -607,7 +607,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_early_exit, DeviceType,
 }
 
 template <typename DeviceType>
-struct CustomInlineCallbackAttachmentPredicate
+struct CustomInlineCallbackWithPredicateAttachment
 {
   using tag = ArborX::Details::InlineCallbackTag;
   Kokkos::View<ArborX::Point *, DeviceType> points;
@@ -678,7 +678,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
     bvh.query(ExecutionSpace{},
               makeIntersectsBoxWithAttachmentQueries<DeviceType, float>(
                   {bvh.bounds()}, {delta}),
-              CustomInlineCallbackAttachmentPredicate<DeviceType>{points},
+              CustomInlineCallbackWithPredicateAttachment<DeviceType>{points},
               custom, offset);
 
     auto custom_host =
@@ -717,7 +717,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
     bvh.query(ExecutionSpace{},
               makeNearestWithAttachmentQueries<DeviceType, float>({{origin, n}},
                                                                   {delta}),
-              CustomInlineCallbackAttachmentPredicate<DeviceType>{points},
+              CustomInlineCallbackWithPredicateAttachment<DeviceType>{points},
               custom, offset);
 
     auto custom_host =

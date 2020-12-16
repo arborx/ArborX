@@ -38,7 +38,7 @@ struct PostCallbackTag
 {
 };
 
-struct CallbackDefaultPredicate
+struct DefaultCallback
 {
   using tag = InlineCallbackTag;
   template <typename Query, typename OutputFunctor>
@@ -51,7 +51,7 @@ struct CallbackDefaultPredicate
 
 // archetypal expression for user callbacks
 template <typename Callback, typename Predicate, typename Out>
-using PredicateInlineCallbackArchetypeExpression =
+using InlineCallbackArchetypeExpression =
     decltype(std::declval<Callback const &>()(std::declval<Predicate const &>(),
                                               0, std::declval<Out const &>()));
 
@@ -97,17 +97,15 @@ void check_valid_callback(Callback const &callback, Predicates const &,
   using PredicateTag = typename AccessTraitsHelper<Access>::tag;
   using Predicate = typename AccessTraitsHelper<Access>::type;
 
-  static_assert(
-      (std::is_same<PredicateTag, SpatialPredicateTag>{} ||
-       std::is_same<PredicateTag, NearestPredicateTag>{}) &&
-          is_detected<PredicateInlineCallbackArchetypeExpression, Callback,
-                      Predicate, OutputFunctorHelper<OutputView>>{},
-      "Callback 'operator()' does not have the correct signature");
+  static_assert((std::is_same<PredicateTag, SpatialPredicateTag>{} ||
+                 std::is_same<PredicateTag, NearestPredicateTag>{}) &&
+                    is_detected<InlineCallbackArchetypeExpression, Callback,
+                                Predicate, OutputFunctorHelper<OutputView>>{},
+                "Callback 'operator()' does not have the correct signature");
 
   static_assert(
-      std::is_void<
-          detected_t<PredicateInlineCallbackArchetypeExpression, Callback,
-                     Predicate, OutputFunctorHelper<OutputView>>>{},
+      std::is_void<detected_t<InlineCallbackArchetypeExpression, Callback,
+                              Predicate, OutputFunctorHelper<OutputView>>>{},
       "Callback 'operator()' return type must be void");
 }
 

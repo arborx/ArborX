@@ -70,8 +70,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
   ArborX::exclusivePrefixSum(ExecutionSpace{}, offset);
   ArborX::reallocWithoutInitializing(indices, ArborX::lastElement(offset));
   ArborX::Details::queryImpl(ExecutionSpace{}, Test1{}, predicates,
-                             ArborX::Details::CallbackDefaultPredicate{},
-                             indices, offset, permute,
+                             ArborX::Details::DefaultCallback{}, indices,
+                             offset, permute,
                              ArborX::Details::BufferStatus::PreallocationHard);
 
   auto indices_host =

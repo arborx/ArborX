@@ -32,7 +32,7 @@ struct AccessTraits<SpatialPredicates, PredicatesTag>
 } // namespace ArborX
 
 // Custom callbacks
-struct PredicateCallbackMissingTag
+struct CallbackMissingTag
 {
   template <typename Predicate, typename OutputFunctor>
   void operator()(Predicate const &, int, OutputFunctor const &) const
@@ -44,7 +44,7 @@ struct Wrong
 {
 };
 
-struct PredicateCallbackDoesNotTakeCorrectArgument
+struct CallbackDoesNotTakeCorrectArgument
 {
   template <typename OutputFunctor>
   void operator()(Wrong, int, OutputFunctor const &) const
@@ -84,14 +84,14 @@ int main()
   // view type does not matter as long as we do not call the output functor
   Kokkos::View<float *> v;
 
-  check_valid_callback(ArborX::Details::CallbackDefaultPredicate{},
-                       SpatialPredicates{}, v);
-  check_valid_callback(ArborX::Details::CallbackDefaultPredicate{},
-                       NearestPredicates{}, v);
+  check_valid_callback(ArborX::Details::DefaultCallback{}, SpatialPredicates{},
+                       v);
+  check_valid_callback(ArborX::Details::DefaultCallback{}, NearestPredicates{},
+                       v);
 
   // not required to tag inline callbacks any more
-  check_valid_callback(PredicateCallbackMissingTag{}, SpatialPredicates{}, v);
-  check_valid_callback(PredicateCallbackMissingTag{}, NearestPredicates{}, v);
+  check_valid_callback(CallbackMissingTag{}, SpatialPredicates{}, v);
+  check_valid_callback(CallbackMissingTag{}, NearestPredicates{}, v);
 
   check_valid_callback(CustomCallbackPredicate{}, SpatialPredicates{});
   check_valid_callback(CustomCallbackPredicate{}, NearestPredicates{});
@@ -115,7 +115,7 @@ int main()
 
   // Uncomment to see error messages
 
-  // check_valid_callback(PredicateCallbackDoesNotTakeCorrectArgument{},
+  // check_valid_callback(CallbackDoesNotTakeCorrectArgument{},
   //                     SpatialPredicates{}, v);
 
   // check_valid_callback(CustomCallbackPredicateNonVoidReturnType{},
