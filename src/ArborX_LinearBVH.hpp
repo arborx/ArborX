@@ -88,7 +88,7 @@ private:
   friend KOKKOS_FUNCTION typename BVH::bounding_volume_type const &
   Details::getPrimitiveBoundingVolume(BVH const &bvh,
                                       ReversePermutation const &rev_permute,
-                                      int i);
+                                      int leaf_index);
 
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
   // Ropes based traversal is only used for CUDA, as it was found to be slower
