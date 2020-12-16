@@ -245,6 +245,10 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
                                                   1);
                        });
 
+  // The idea here is to replace cluster indices for small clusters (containing
+  // less than cluster_min_size points) to INT_MAX. This way, during the sort
+  // routine afterwards, they will be at the end of the permutation array,
+  // allowing us to simply truncate it to get the result.
   int num_skipped = 0;
   Kokkos::parallel_reduce("ArborX::DBSCAN::replace_skipped_cluster_indices",
                           Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
@@ -261,6 +265,7 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
   // sort clusters and compute permutation
   auto permute = Details::sortObjects(exec_space, clusters);
 
+  // truncate the permutation array, see comment above
   reallocWithoutInitializing(cluster_indices, num_cluster_indices);
   Kokkos::deep_copy(
       exec_space, cluster_indices,
@@ -269,6 +274,9 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
   // we could have resized clusters to num_cluster_indices, but that's
   // unnecessary
 
+  // Compute the positions in the (sorted) clusters array where values change.
+  // The number of clusters is appended at the end to allow for easy computation
+  // of cluster sizes through `cluster_starts(i+1) - cluster_starts(i)`.
   Kokkos::View<int *, MemorySpace> cluster_starts(
       Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::cluster_starts"),
       num_cluster_indices + 1);
@@ -290,6 +298,8 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
       num_clusters);
   --num_clusters; // subtract the tail
 
+  // this kernel is equivalent to running adjacentDifference +
+  // exclusivePrefixSum, but is done in a single kernel launch
   reallocWithoutInitializing(cluster_offset, num_clusters + 1);
   Kokkos::parallel_scan(
       "ArborX::DBSCAN::compute_cluster_offset",
