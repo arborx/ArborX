@@ -17,7 +17,10 @@ add_dependencies(ArborX record_hash)
 include(CMakeDependentOption)
 cmake_dependent_option(ARBORX_ENABLE_ROCTHRUST "Enable rocThrust support" ON "Kokkos_ENABLE_HIP" OFF)
 if(Kokkos_ENABLE_HIP AND ARBORX_ENABLE_ROCTHRUST)
-  find_package(rocthrust REQUIRED CONFIG)
+  # Require at least rocThrust-2.10.5 (that comes with ROCm 3.9) because
+  # rocPRIM dependency is not set properly in exported configuration for
+  # earlier versions
+  find_package(rocthrust 2.10.5 REQUIRED CONFIG)
   target_link_libraries(ArborX INTERFACE roc::rocthrust)
 endif()
 
