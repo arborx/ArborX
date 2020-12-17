@@ -13,6 +13,7 @@ endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/ArborXSettings.cmake")
 if(Kokkos_ENABLE_HIP AND ARBORX_ENABLE_ROCTHRUST)
+  find_dependency(rocprim)
   find_dependency(rocthrust)
 endif()
 if(ARBORX_ENABLE_MPI)
