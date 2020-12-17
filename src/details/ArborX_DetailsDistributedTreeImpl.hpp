@@ -30,7 +30,7 @@ namespace ArborX
 namespace Details
 {
 
-struct DefaultCallbackSpatialPredicateWithRank
+struct DefaultCallbackWithRank
 {
   int _rank;
   template <typename Predicate, typename OutputFunctor>
@@ -56,8 +56,7 @@ struct DistributedTreeImpl
     int comm_rank;
     MPI_Comm_rank(tree.getComm(), &comm_rank);
     queryDispatch(SpatialPredicateTag{}, tree, space, queries,
-                  DefaultCallbackSpatialPredicateWithRank{comm_rank}, values,
-                  offset);
+                  DefaultCallbackWithRank{comm_rank}, values, offset);
   }
 
   // NOTE NVCC did not like having definition of that type within the

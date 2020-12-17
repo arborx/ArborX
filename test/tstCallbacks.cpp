@@ -52,7 +52,7 @@ struct CallbackDoesNotTakeCorrectArgument
   }
 };
 
-struct CustomCallbackPredicate
+struct CustomCallback
 {
   template <class Predicate>
   KOKKOS_FUNCTION void operator()(Predicate const &, int) const
@@ -60,7 +60,7 @@ struct CustomCallbackPredicate
   }
 };
 
-struct CustomCallbackPredicateMissingConstQualifier
+struct CustomCallbackMissingConstQualifier
 {
   template <class Predicate>
   KOKKOS_FUNCTION void operator()(Predicate const &, int)
@@ -68,7 +68,7 @@ struct CustomCallbackPredicateMissingConstQualifier
   }
 };
 
-struct CustomCallbackPredicateNonVoidReturnType
+struct CustomCallbackNonVoidReturnType
 {
   template <class Predicate>
   KOKKOS_FUNCTION auto operator()(Predicate const &, int) const
@@ -93,8 +93,8 @@ int main()
   check_valid_callback(CallbackMissingTag{}, SpatialPredicates{}, v);
   check_valid_callback(CallbackMissingTag{}, NearestPredicates{}, v);
 
-  check_valid_callback(CustomCallbackPredicate{}, SpatialPredicates{});
-  check_valid_callback(CustomCallbackPredicate{}, NearestPredicates{});
+  check_valid_callback(CustomCallback{}, SpatialPredicates{});
+  check_valid_callback(CustomCallback{}, NearestPredicates{});
 
   // generic lambdas are supported if not using NVCC
 #ifndef __NVCC__
@@ -118,10 +118,10 @@ int main()
   // check_valid_callback(CallbackDoesNotTakeCorrectArgument{},
   //                     SpatialPredicates{}, v);
 
-  // check_valid_callback(CustomCallbackPredicateNonVoidReturnType{},
+  // check_valid_callback(CustomCallbackNonVoidReturnType{},
   //                     SpatialPredicates{});
 
-  // check_valid_callback(CustomCallbackPredicateMissingConstQualifier{},
+  // check_valid_callback(CustomCallbackMissingConstQualifier{},
   //                     SpatialPredicates{});
 
 #ifndef __NVCC__
