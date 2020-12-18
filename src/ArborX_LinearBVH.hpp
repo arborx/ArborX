@@ -12,6 +12,8 @@
 #ifndef ARBORX_LINEAR_BVH_HPP
 #define ARBORX_LINEAR_BVH_HPP
 
+#include <ArborX_Config.hpp> // ARBORX_ENABLE_MPI
+
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsBoundingVolumeHierarchyImpl.hpp>
@@ -29,7 +31,11 @@ namespace Details
 {
 template <typename DeviceType>
 struct TreeVisualization;
-}
+#ifdef ARBORX_ENABLE_MPI
+template <typename BVH>
+struct DistributedTreeNearestUtils;
+#endif
+} // namespace Details
 
 template <typename MemorySpace, typename Enable = void>
 class BoundingVolumeHierarchy
@@ -75,20 +81,10 @@ private:
   friend struct Details::TreeTraversal;
   template <typename DeviceType>
   friend struct Details::TreeVisualization;
-
-  // FIXME: this is only necessary for the DistributedTree, and should be
-  // removed once proper callback API is in place
-  template <typename ExecutionSpace, typename BVH>
-  friend Kokkos::View<unsigned int *, typename BVH::memory_space>
-  Details::getReversePermutation(ExecutionSpace const &exec_space,
-                                 BVH const &bvh);
-  // FIXME: this is only necessary for the DistributedTree, and should be
-  // removed once proper callback API is in place
-  template <typename BVH, typename ReversePermutation>
-  friend KOKKOS_FUNCTION typename BVH::bounding_volume_type const &
-  Details::getPrimitiveBoundingVolume(BVH const &bvh,
-                                      ReversePermutation const &rev_permute,
-                                      int leaf_index);
+#ifdef ARBORX_ENABLE_MPI
+  template <typename BVH>
+  friend struct Details::DistributedTreeNearestUtils;
+#endif
 
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
   // Ropes based traversal is only used for CUDA, as it was found to be slower

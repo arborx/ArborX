@@ -25,45 +25,6 @@ namespace ArborX
 namespace Details
 {
 
-// FIXME: this is only necessary for the DistributedTree, and should be
-// removed once proper callback API is in place
-template <typename BVH, typename ReversePermutation>
-KOKKOS_FUNCTION typename BVH::bounding_volume_type const &
-getPrimitiveBoundingVolume(BVH const &bvh,
-                           ReversePermutation const &rev_permute,
-                           int leaf_index)
-{
-  int const leaf_nodes_shift = bvh.size() - 1;
-  return bvh.getBoundingVolume(
-      bvh.getNodePtr(rev_permute(leaf_index) + leaf_nodes_shift));
-}
-
-// FIXME: this is only necessary for the DistributedTree, and should be
-// removed once proper callback API is in place
-template <typename ExecutionSpace, typename BVH>
-Kokkos::View<unsigned int *, typename BVH::memory_space>
-getReversePermutation(ExecutionSpace const &exec_space, BVH const &bvh)
-{
-  auto const n = bvh.size();
-
-  Kokkos::View<unsigned int *, typename BVH::memory_space> rev_permute(
-      Kokkos::ViewAllocateWithoutInitializing(
-          "ArborX::DistributedTree::query::nearest::reverse_permutation"),
-      n);
-  if (!bvh.empty())
-  {
-    auto const &leaf_nodes = bvh.getLeafNodes();
-    Kokkos::parallel_for(
-        "ArborX::DistributedTree::query::nearest::compute_reverse_permutation",
-        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-        KOKKOS_LAMBDA(int const i) {
-          rev_permute(leaf_nodes(i).getLeafPermutationIndex()) = i;
-        });
-  }
-
-  return rev_permute;
-}
-
 template <typename BVH, typename Predicates, typename Callback, typename Tag>
 struct TreeTraversal
 {
