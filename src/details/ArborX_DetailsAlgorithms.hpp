@@ -47,6 +47,12 @@ constexpr bool equals(Sphere const &l, Sphere const &r)
 }
 
 KOKKOS_INLINE_FUNCTION
+constexpr bool equals(Ray const &l, Ray const &r)
+{
+  return equals(l.origin(), r.origin()) && equals(l.direction(), r.direction());
+}
+
+KOKKOS_INLINE_FUNCTION
 bool isValid(Point const &p)
 {
   using KokkosExt::isFinite;
