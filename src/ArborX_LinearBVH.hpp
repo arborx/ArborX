@@ -12,8 +12,6 @@
 #ifndef ARBORX_LINEAR_BVH_HPP
 #define ARBORX_LINEAR_BVH_HPP
 
-#include <ArborX_Config.hpp> // ARBORX_ENABLE_MPI
-
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsBoundingVolumeHierarchyImpl.hpp>
@@ -31,10 +29,8 @@ namespace Details
 {
 template <typename DeviceType>
 struct TreeVisualization;
-#ifdef ARBORX_ENABLE_MPI
 template <typename BVH>
 struct DistributedTreeNearestUtils;
-#endif
 } // namespace Details
 
 template <typename MemorySpace, typename Enable = void>
@@ -81,10 +77,8 @@ private:
   friend struct Details::TreeTraversal;
   template <typename DeviceType>
   friend struct Details::TreeVisualization;
-#ifdef ARBORX_ENABLE_MPI
   template <typename BVH>
   friend struct Details::DistributedTreeNearestUtils;
-#endif
 
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
   // Ropes based traversal is only used for CUDA, as it was found to be slower
