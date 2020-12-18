@@ -77,6 +77,14 @@ struct CustomCallbackNonVoidReturnType
   }
 };
 
+struct LegacyNearestPredicateCallback
+{
+  template <class Predicate, class OutputFunctor>
+  void operator()(Predicate const &, int, float, OutputFunctor const &) const
+  {
+  }
+};
+
 int main()
 {
   using ArborX::Details::check_valid_callback;
@@ -114,6 +122,9 @@ int main()
 #endif
 
   // Uncomment to see error messages
+
+  // check_valid_callback(LegacyNearestPredicateCallback{}, NearestPredicates{},
+  //                     v);
 
   // check_valid_callback(CallbackDoesNotTakeCorrectArgument{},
   //                     SpatialPredicates{}, v);

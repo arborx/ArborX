@@ -55,6 +55,12 @@ using InlineCallbackArchetypeExpression =
     decltype(std::declval<Callback const &>()(std::declval<Predicate const &>(),
                                               0, std::declval<Out const &>()));
 
+// legacy nearest predicate archetypal expression for user callbacks
+template <typename Callback, typename Predicate, typename Out>
+using Legacy_NearestPredicateInlineCallbackArchetypeExpression = decltype(
+    std::declval<Callback const &>()(std::declval<Predicate const &>(), 0, 0.f,
+                                     std::declval<Out const &>()));
+
 // archetypal alias for a 'tag' type member in user callbacks
 template <typename Callback>
 using CallbackTagArchetypeAlias = typename Callback::tag;
@@ -96,6 +102,14 @@ void check_valid_callback(Callback const &callback, Predicates const &,
   using Access = AccessTraits<Predicates, PredicatesTag>;
   using PredicateTag = typename AccessTraitsHelper<Access>::tag;
   using Predicate = typename AccessTraitsHelper<Access>::type;
+
+  static_assert(
+      !(std::is_same<PredicateTag, NearestPredicateTag>{} &&
+        is_detected<Legacy_NearestPredicateInlineCallbackArchetypeExpression,
+                    Callback, Predicate, OutputFunctorHelper<OutputView>>{}),
+      R"error(Callback signature has changed for nearest predicates.
+See https://github.com/arborx/ArborX/pull/366 for more details.
+Sorry!)error");
 
   static_assert((std::is_same<PredicateTag, SpatialPredicateTag>{} ||
                  std::is_same<PredicateTag, NearestPredicateTag>{}) &&
