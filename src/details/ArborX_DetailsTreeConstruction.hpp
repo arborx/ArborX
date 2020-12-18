@@ -23,42 +23,21 @@
 
 #include <cassert>
 
+namespace Kokkos
+{ // reduction identity must be defined in Kokkos namespace
+template <>
+struct reduction_identity<ArborX::Box>
+{
+  KOKKOS_FUNCTION static ArborX::Box sum() { return {}; }
+};
+} // namespace Kokkos
+
 namespace ArborX
 {
 namespace Details
 {
 namespace TreeConstruction
 {
-
-template <typename Primitives>
-class CalculateBoundingBoxOfTheSceneFunctor
-{
-public:
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-
-  CalculateBoundingBoxOfTheSceneFunctor(Primitives const &primitives)
-      : _primitives(primitives)
-  {
-  }
-
-  KOKKOS_INLINE_FUNCTION
-  void init(Box &box) const { box = Box(); }
-
-  KOKKOS_INLINE_FUNCTION
-  void operator()(int const i, Box &box) const
-  {
-    expand(box, Access::get(_primitives, i));
-  }
-
-  KOKKOS_INLINE_FUNCTION
-  void join(volatile Box &dst, volatile Box const &src) const
-  {
-    expand(dst, src);
-  }
-
-private:
-  Primitives _primitives;
-};
 
 template <typename ExecutionSpace, typename Primitives>
 inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
@@ -70,7 +49,9 @@ inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
   Kokkos::parallel_reduce(
       "ArborX::TreeConstruction::calculate_bounding_box_of_the_scene",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-      CalculateBoundingBoxOfTheSceneFunctor<Primitives>(primitives),
+      KOKKOS_LAMBDA(int i, Box &update) {
+        update += Access::get(primitives, i);
+      },
       scene_bounding_box);
 }
 
