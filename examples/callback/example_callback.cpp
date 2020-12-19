@@ -53,12 +53,6 @@ struct AccessTraits<NearestToOrigin, PredicatesTag>
 };
 } // namespace ArborX
 
-struct PairIndexDistance
-{
-  int index;
-  float distance;
-};
-
 struct PrintfCallback
 {
   template <typename Predicate, typename OutputFunctor>
@@ -69,15 +63,6 @@ struct PrintfCallback
     printf("Found %d from functor\n", primitive);
 #endif
     out(primitive);
-  }
-  template <typename Predicate, typename OutputFunctor>
-  KOKKOS_FUNCTION void operator()(Predicate, int primitive, float distance,
-                                  OutputFunctor const &out) const
-  {
-#ifndef KOKKOS_ENABLE_SYCL
-    printf("Found %d with distance %.3f from functor\n", primitive, distance);
-#endif
-    out({primitive, distance});
   }
 };
 
@@ -121,17 +106,16 @@ int main(int argc, char *argv[])
 
   {
     int const k = 10;
-    Kokkos::View<PairIndexDistance *, MemorySpace> values("values", 0);
+    Kokkos::View<int *, MemorySpace> values("values", 0);
     Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
     ArborX::query(bvh, ExecutionSpace{}, NearestToOrigin{k}, PrintfCallback{},
                   values, offsets);
 #ifndef __NVCC__
     ArborX::query(bvh, ExecutionSpace{}, NearestToOrigin{k},
                   KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
-                                float distance, auto /*output_functor*/) {
+                                auto /*output_functor*/) {
 #ifndef KOKKOS_ENABLE_SYCL
-                    printf("Found %d with distance %.3f from generic lambda\n",
-                           primitive, distance);
+                    printf("Found %d from generic lambda\n", primitive);
 #endif
                   },
                   values, offsets);

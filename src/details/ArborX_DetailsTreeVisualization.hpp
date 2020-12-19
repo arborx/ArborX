@@ -200,10 +200,10 @@ struct TreeVisualization
   }
 
   template <typename TreeType, typename VisitorType>
-  struct NearestCallback
+  struct VisitorCallback
   {
     template <typename Query>
-    KOKKOS_FUNCTION void operator()(Query const &, int index, float) const
+    KOKKOS_FUNCTION void operator()(Query const &, int index) const
     {
       _visitor.visit(_tree.getNodePtr(index), _tree);
     }
@@ -227,7 +227,7 @@ struct TreeVisualization
 #else
     using ExecutionSpace = typename DeviceType::execution_space;
     using Predicates = Kokkos::View<Predicate *, DeviceType>;
-    using Callback = NearestCallback<Tree, Visitor>;
+    using Callback = VisitorCallback<Tree, Visitor>;
 
     Predicates predicates("predicates", 1);
     predicates(0) = pred;

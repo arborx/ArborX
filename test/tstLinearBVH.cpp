@@ -62,11 +62,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
                            makeNearestQueries<DeviceType>({}),
                            make_reference_solution<int>({}, {0}));
 
-    // Passing an empty distance vector.
-    ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-        ExecutionSpace{}, tree, makeNearestQueries<DeviceType>({}),
-        (make_reference_solution<Kokkos::pair<int, float>>)({}, {0}));
-
     // Now passing a couple queries of various type and checking the
     // results.
     ARBORX_TEST_QUERY_TREE(
@@ -90,14 +85,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
                                {{{1., 1., 1.}}, 2},
                            }),
                            make_reference_solution<int>({}, {0, 0, 0}));
-
-    ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-        ExecutionSpace{}, tree,
-        makeNearestQueries<DeviceType>({
-            {{{0., 0., 0.}}, 1},
-            {{{1., 1., 1.}}, 2},
-        }),
-        (make_reference_solution<Kokkos::pair<int, float>>)({}, {0, 0, 0}));
   }
 }
 
@@ -127,16 +114,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, DeviceType, ARBORX_DEVICE_TYPES)
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
                          makeNearestQueries<DeviceType>({}),
                          make_reference_solution<int>({}, {0}));
-
-  ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-      ExecutionSpace{}, tree, makeNearestQueries<DeviceType>({}),
-      (make_reference_solution<Kokkos::pair<int, float>>)({}, {0}));
-
-  ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
+  ARBORX_TEST_QUERY_TREE(
       ExecutionSpace{}, tree,
       makeNearestQueries<DeviceType>({{{0., 0., 0.}, 3}, {{4., 5., 1.}, 1}}),
-      (make_reference_solution<Kokkos::pair<int, float>>)({{0, 0.}, {0, 5.}},
-                                                          {0, 1, 2}));
+      make_reference_solution<int>({0, 0}, {0, 1, 2}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
                          makeIntersectsBoxQueries<DeviceType>({
@@ -160,18 +141,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, DeviceType, ARBORX_DEVICE_TYPES)
                              {{{2., 2., 2.}}, 3},
                          }),
                          make_reference_solution<int>({0, 0, 0}, {0, 1, 2, 3}));
-
-  ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-      ExecutionSpace{}, tree,
-      makeNearestQueries<DeviceType>({
-          {{{1., 0., 0.}}, 1},
-          {{{0., 2., 0.}}, 2},
-          {{{0., 0., 3.}}, 3},
-      }),
-      (make_reference_solution<Kokkos::pair<int, float>>)({{0, 0.f},
-                                                           {0, 1.f},
-                                                           {0, 2.f}},
-                                                          {0, 1, 2, 3}));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, DeviceType,
@@ -232,17 +201,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, DeviceType,
                          makeIntersectsBoxQueries<DeviceType>({}),
                          make_reference_solution<int>({}, {0}));
 
-  ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-      ExecutionSpace{}, tree,
-      makeNearestQueries<DeviceType>({
-          {{{0., 0., 0.}}, 2},
-          {{{1., 0., 0.}}, 4},
-      }),
-      (make_reference_solution<Kokkos::pair<int, float>>)({{0, 0.f},
-                                                           {1, sqrt(3.f)},
-                                                           {0, 1.f},
-                                                           {1, sqrt(2.f)}},
-                                                          {0, 2, 4}));
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeNearestQueries<DeviceType>({
+                             {{{0., 0., 0.}}, 2},
+                             {{{1., 0., 0.}}, 4},
+                         }),
+                         make_reference_solution<int>({0, 1, 0, 1}, {0, 2, 4}));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves, DeviceType,
@@ -461,7 +425,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity, DeviceType,
 }
 
 template <typename DeviceType>
-struct CustomInlineCallbackSpatialPredicate
+struct CustomInlineCallback
 {
   using tag = ArborX::Details::InlineCallbackTag;
   Kokkos::View<ArborX::Point *, DeviceType> points;
@@ -477,7 +441,7 @@ struct CustomInlineCallbackSpatialPredicate
 };
 
 template <typename DeviceType>
-struct CustomPostCallbackSpatialPredicate
+struct CustomPostCallback
 {
   using tag = ArborX::Details::PostCallbackTag;
   Kokkos::View<ArborX::Point *, DeviceType> points;
@@ -504,40 +468,6 @@ struct CustomPostCallbackSpatialPredicate
   }
 };
 
-template <typename DeviceType>
-struct CustomInlineCallbackNearestPredicate
-{
-  using tag = ArborX::Details::InlineCallbackTag;
-  template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &, int index, float distance,
-                                  Insert const &insert) const
-  {
-    insert({index, (float)distance});
-  }
-};
-
-template <typename DeviceType>
-struct CustomPostCallbackNearestPredicate
-{
-  using tag = ArborX::Details::PostCallbackTag;
-  template <typename Predicates, typename InOutView, typename InView,
-            typename OutView>
-  void operator()(Predicates const &, InOutView &offset, InView in,
-                  OutView &out) const
-  {
-    using ExecutionSpace = typename DeviceType::execution_space;
-    auto const n = offset.extent(0) - 1;
-    ArborX::reallocWithoutInitializing(out, in.extent(0));
-    Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n),
-                         KOKKOS_LAMBDA(int i) {
-                           for (int j = offset(i); j < offset(i + 1); ++j)
-                           {
-                             out(j) = {in(j).first, (float)in(j).second};
-                           }
-                         });
-  }
-};
-
 BOOST_AUTO_TEST_CASE_TEMPLATE(callback, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
@@ -561,8 +491,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback, DeviceType, ARBORX_DEVICE_TYPES)
                   makeIntersectsBoxQueries<DeviceType>({
                       bvh.bounds(),
                   }),
-                  CustomInlineCallbackSpatialPredicate<DeviceType>{points},
-                  custom, offset);
+                  CustomInlineCallback<DeviceType>{points}, custom, offset);
 
     auto custom_host =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
@@ -581,8 +510,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback, DeviceType, ARBORX_DEVICE_TYPES)
                   makeIntersectsBoxQueries<DeviceType>({
                       bvh.bounds(),
                   }),
-                  CustomPostCallbackSpatialPredicate<DeviceType>{points},
-                  custom, offset);
+                  CustomPostCallback<DeviceType>{points}, custom, offset);
 
     auto custom_host =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
@@ -601,8 +529,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback, DeviceType, ARBORX_DEVICE_TYPES)
                   makeNearestQueries<DeviceType>({
                       {origin, n},
                   }),
-                  CustomInlineCallbackNearestPredicate<DeviceType>{}, custom,
-                  offset);
+                  CustomInlineCallback<DeviceType>{points}, custom, offset);
 
     auto custom_host =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
@@ -617,8 +544,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback, DeviceType, ARBORX_DEVICE_TYPES)
                   makeNearestQueries<DeviceType>({
                       {origin, n},
                   }),
-                  CustomPostCallbackNearestPredicate<DeviceType>{}, custom,
-                  offset);
+                  CustomPostCallback<DeviceType>{points}, custom, offset);
 
     auto custom_host =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
@@ -628,92 +554,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback, DeviceType, ARBORX_DEVICE_TYPES)
   }
 }
 
-template <typename DeviceType>
-struct CustomInlineCallbackAttachmentSpatialPredicate
-{
-  using tag = ArborX::Details::InlineCallbackTag;
-  Kokkos::View<ArborX::Point *, DeviceType> points;
-  ArborX::Point const origin = {{0., 0., 0.}};
-  template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &query, int index,
-                                  Insert const &insert) const
-  {
-    float const distance_to_origin =
-        ArborX::Details::distance(points(index), origin);
-
-    auto data = ArborX::getData(query);
-    insert({index, data + distance_to_origin});
-  }
-};
-template <typename DeviceType>
-struct CustomPostCallbackAttachmentSpatialPredicate
-{
-  using tag = ArborX::Details::PostCallbackTag;
-  Kokkos::View<ArborX::Point *, DeviceType> points;
-  ArborX::Point const origin = {{0., 0., 0.}};
-  template <typename Predicates, typename InOutView, typename InView,
-            typename OutView>
-  void operator()(Predicates const &queries, InOutView &offset, InView in,
-                  OutView &out) const
-  {
-    using ExecutionSpace = typename DeviceType::execution_space;
-    using ArborX::Details::distance;
-    auto const n = offset.extent(0) - 1;
-    ArborX::reallocWithoutInitializing(out, in.extent(0));
-    // NOTE workaround to avoid implicit capture of *this
-    auto const &points_ = points;
-    auto const &origin_ = origin;
-    Kokkos::parallel_for(
-        Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
-          auto data_2 = ArborX::getData(queries(i));
-          auto data = data_2[1];
-          for (int j = offset(i); j < offset(i + 1); ++j)
-          {
-            out(j) = {in(j), data + (float)distance(points_(in(j)), origin_)};
-          }
-        });
-  }
-};
-
-template <typename DeviceType>
-struct CustomInlineCallbackAttachmentNearestPredicate
-{
-  using tag = ArborX::Details::InlineCallbackTag;
-  template <typename Query, typename Insert>
-  KOKKOS_FUNCTION void operator()(Query const &query, int index, float distance,
-                                  Insert const &insert) const
-  {
-    auto data = ArborX::getData(query);
-    insert({index, data + (float)distance});
-  }
-};
-
-template <typename DeviceType>
-struct CustomPostCallbackAttachmentNearestPredicate
-{
-  using tag = ArborX::Details::PostCallbackTag;
-  template <typename Predicates, typename InOutView, typename InView,
-            typename OutView>
-  void operator()(Predicates const &queries, InOutView &offset, InView in,
-                  OutView &out) const
-  {
-    using ExecutionSpace = typename DeviceType::execution_space;
-    auto const n = offset.extent(0) - 1;
-    ArborX::reallocWithoutInitializing(out, in.extent(0));
-    Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n),
-                         KOKKOS_LAMBDA(int i) {
-                           auto data_2 = ArborX::getData(queries(i));
-                           auto data = data_2[1];
-                           for (int j = offset(i); j < offset(i + 1); ++j)
-                           {
-                             out(j) = {in(j).first, data + (float)in(j).second};
-                           }
-                         });
-  }
-};
-
 template <class DeviceType>
-struct Experimental_CustomCallbackSpatialPredicateEarlyExit
+struct Experimental_CustomCallbackEarlyExit
 {
   Kokkos::View<int *, DeviceType, Kokkos::MemoryTraits<Kokkos::Atomic>> counts;
   template <class Predicate>
@@ -753,15 +595,61 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_early_exit, DeviceType,
   auto predicates = makeIntersectsBoxWithAttachmentQueries<DeviceType, int>(
       {b, b, b, b}, {0, 1, 2, 3});
 
-  tree.query(
-      ExecutionSpace{}, predicates,
-      Experimental_CustomCallbackSpatialPredicateEarlyExit<DeviceType>{counts});
+  tree.query(ExecutionSpace{}, predicates,
+             Experimental_CustomCallbackEarlyExit<DeviceType>{counts});
 
   auto counts_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, counts);
 
   BOOST_TEST(counts_host == counts_ref, tt::per_element());
 }
+
+template <typename DeviceType>
+struct CustomInlineCallbackWithAttachment
+{
+  using tag = ArborX::Details::InlineCallbackTag;
+  Kokkos::View<ArborX::Point *, DeviceType> points;
+  ArborX::Point const origin = {{0., 0., 0.}};
+  template <typename Query, typename Insert>
+  KOKKOS_FUNCTION void operator()(Query const &query, int index,
+                                  Insert const &insert) const
+  {
+    float const distance_to_origin =
+        ArborX::Details::distance(points(index), origin);
+
+    auto data = ArborX::getData(query);
+    insert({index, data + distance_to_origin});
+  }
+};
+template <typename DeviceType>
+struct CustomPostCallbackWithAttachment
+{
+  using tag = ArborX::Details::PostCallbackTag;
+  Kokkos::View<ArborX::Point *, DeviceType> points;
+  ArborX::Point const origin = {{0., 0., 0.}};
+  template <typename Predicates, typename InOutView, typename InView,
+            typename OutView>
+  void operator()(Predicates const &queries, InOutView &offset, InView in,
+                  OutView &out) const
+  {
+    using ExecutionSpace = typename DeviceType::execution_space;
+    using ArborX::Details::distance;
+    auto const n = offset.extent(0) - 1;
+    ArborX::reallocWithoutInitializing(out, in.extent(0));
+    // NOTE workaround to avoid implicit capture of *this
+    auto const &points_ = points;
+    auto const &origin_ = origin;
+    Kokkos::parallel_for(
+        Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+          auto data_2 = ArborX::getData(queries(i));
+          auto data = data_2[1];
+          for (int j = offset(i); j < offset(i + 1); ++j)
+          {
+            out(j) = {in(j), data + (float)distance(points_(in(j)), origin_)};
+          }
+        });
+  }
+};
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
                               ARBORX_DEVICE_TYPES)
@@ -785,12 +673,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
   {
     Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
     Kokkos::View<int *, DeviceType> offset("offset", 0);
-    ArborX::query(
-        bvh, ExecutionSpace{},
-        makeIntersectsBoxWithAttachmentQueries<DeviceType, float>(
-            {bvh.bounds()}, {delta}),
-        CustomInlineCallbackAttachmentSpatialPredicate<DeviceType>{points},
-        custom, offset);
+    ArborX::query(bvh, ExecutionSpace{},
+                  makeIntersectsBoxWithAttachmentQueries<DeviceType, float>(
+                      {bvh.bounds()}, {delta}),
+                  CustomInlineCallbackWithAttachment<DeviceType>{points},
+                  custom, offset);
 
     auto custom_host =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
@@ -810,8 +697,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
         makeIntersectsBoxWithAttachmentQueries<DeviceType,
                                                Kokkos::Array<float, 2>>(
             {bvh.bounds()}, {{0., delta}}),
-        CustomPostCallbackAttachmentSpatialPredicate<DeviceType>{points},
-        custom, offset);
+        CustomPostCallbackWithAttachment<DeviceType>{points}, custom, offset);
 
     auto custom_host =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
@@ -829,7 +715,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
     ArborX::query(bvh, ExecutionSpace{},
                   makeNearestWithAttachmentQueries<DeviceType, float>(
                       {{origin, n}}, {delta}),
-                  CustomInlineCallbackAttachmentNearestPredicate<DeviceType>{},
+                  CustomInlineCallbackWithAttachment<DeviceType>{points},
                   custom, offset);
 
     auto custom_host =
@@ -845,8 +731,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
         bvh, ExecutionSpace{},
         makeNearestWithAttachmentQueries<DeviceType, Kokkos::Array<float, 2>>(
             {{origin, n}}, {{0, delta}}),
-        CustomPostCallbackAttachmentNearestPredicate<DeviceType>{}, custom,
-        offset);
+        CustomPostCallbackWithAttachment<DeviceType>{points}, custom, offset);
 
     auto custom_host =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);

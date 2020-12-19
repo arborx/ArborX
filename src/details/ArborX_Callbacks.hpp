@@ -38,7 +38,7 @@ struct PostCallbackTag
 {
 };
 
-struct CallbackDefaultSpatialPredicate
+struct DefaultCallback
 {
   using tag = InlineCallbackTag;
   template <typename Query, typename OutputFunctor>
@@ -49,38 +49,17 @@ struct CallbackDefaultSpatialPredicate
   }
 };
 
-struct CallbackDefaultNearestPredicate
-{
-  using tag = InlineCallbackTag;
-  template <typename Query, typename OutputFunctor>
-  KOKKOS_FUNCTION void operator()(Query const &, int index, float,
-                                  OutputFunctor const &output) const
-  {
-    output(index);
-  }
-};
-
-struct CallbackDefaultNearestPredicateWithDistance
-{
-  using tag = InlineCallbackTag;
-  template <typename Query, typename OutputFunctor>
-  KOKKOS_FUNCTION void operator()(Query const &, int index, float distance,
-                                  OutputFunctor const &output) const
-  {
-    output({index, distance});
-  }
-};
-
 // archetypal expression for user callbacks
 template <typename Callback, typename Predicate, typename Out>
-using NearestPredicateInlineCallbackArchetypeExpression =
-    decltype(std::declval<Callback const &>()(
-        std::declval<Predicate const &>(), 0, 0., std::declval<Out const &>()));
-
-template <typename Callback, typename Predicate, typename Out>
-using SpatialPredicateInlineCallbackArchetypeExpression =
+using InlineCallbackArchetypeExpression =
     decltype(std::declval<Callback const &>()(std::declval<Predicate const &>(),
                                               0, std::declval<Out const &>()));
+
+// legacy nearest predicate archetypal expression for user callbacks
+template <typename Callback, typename Predicate, typename Out>
+using Legacy_NearestPredicateInlineCallbackArchetypeExpression = decltype(
+    std::declval<Callback const &>()(std::declval<Predicate const &>(), 0, 0.f,
+                                     std::declval<Out const &>()));
 
 // archetypal alias for a 'tag' type member in user callbacks
 template <typename Callback>
@@ -125,34 +104,28 @@ void check_valid_callback(Callback const &callback, Predicates const &,
   using Predicate = typename AccessTraitsHelper<Access>::type;
 
   static_assert(
-      (std::is_same<PredicateTag, SpatialPredicateTag>{} &&
-       is_detected<SpatialPredicateInlineCallbackArchetypeExpression, Callback,
-                   Predicate, OutputFunctorHelper<OutputView>>{}) ||
-          (std::is_same<PredicateTag, NearestPredicateTag>{} &&
-           is_detected<NearestPredicateInlineCallbackArchetypeExpression,
-                       Callback, Predicate, OutputFunctorHelper<OutputView>>{}),
-      "Callback 'operator()' does not have the correct signature");
+      !(std::is_same<PredicateTag, NearestPredicateTag>{} &&
+        is_detected<Legacy_NearestPredicateInlineCallbackArchetypeExpression,
+                    Callback, Predicate, OutputFunctorHelper<OutputView>>{}),
+      R"error(Callback signature has changed for nearest predicates.
+See https://github.com/arborx/ArborX/pull/366 for more details.
+Sorry!)error");
+
+  static_assert((std::is_same<PredicateTag, SpatialPredicateTag>{} ||
+                 std::is_same<PredicateTag, NearestPredicateTag>{}) &&
+                    is_detected<InlineCallbackArchetypeExpression, Callback,
+                                Predicate, OutputFunctorHelper<OutputView>>{},
+                "Callback 'operator()' does not have the correct signature");
 
   static_assert(
-      (std::is_same<PredicateTag, SpatialPredicateTag>{} &&
-       std::is_void<detected_t<
-           SpatialPredicateInlineCallbackArchetypeExpression, Callback,
-           Predicate, OutputFunctorHelper<OutputView>>>{}) ||
-          (std::is_same<PredicateTag, NearestPredicateTag>{} &&
-           std::is_void<detected_t<
-               NearestPredicateInlineCallbackArchetypeExpression, Callback,
-               Predicate, OutputFunctorHelper<OutputView>>>{}),
+      std::is_void<detected_t<InlineCallbackArchetypeExpression, Callback,
+                              Predicate, OutputFunctorHelper<OutputView>>>{},
       "Callback 'operator()' return type must be void");
 }
 
 // EXPERIMENTAL archetypal expression for user callbacks
 template <typename Callback, typename Predicate, typename Primitive>
-using Experimental_NearestPredicateCallbackArchetypeExpression = decltype(
-    std::declval<Callback const &>()(std::declval<Predicate const &>(),
-                                     std::declval<Primitive const &>(), 0.));
-
-template <typename Callback, typename Predicate, typename Primitive>
-using Experimental_SpatialPredicateCallbackArchetypeExpression =
+using Experimental_CallbackArchetypeExpression =
     decltype(std::declval<Callback const &>()(
         std::declval<Predicate const &>(), std::declval<Primitive const &>()));
 
@@ -160,10 +133,9 @@ using Experimental_SpatialPredicateCallbackArchetypeExpression =
 // early.
 template <typename Callback, typename Predicate, typename Primitive>
 struct invoke_callback_and_check_early_exit_helper
-    : std::is_same<
-          CallbackTreeTraversalControl,
-          detected_t<Experimental_SpatialPredicateCallbackArchetypeExpression,
-                     Callback, Predicate, Primitive>>::type
+    : std::is_same<CallbackTreeTraversalControl,
+                   detected_t<Experimental_CallbackArchetypeExpression,
+                              Callback, Predicate, Primitive>>::type
 {
 };
 
@@ -209,24 +181,19 @@ void check_valid_callback(Callback const &callback, Predicates const &)
   using PredicateTag = typename AccessTraitsHelper<Access>::tag;
   using Predicate = typename AccessTraitsHelper<Access>::type;
 
-  static_assert(
-      (std::is_same<PredicateTag, SpatialPredicateTag>{} &&
-       is_detected<Experimental_SpatialPredicateCallbackArchetypeExpression,
-                   Callback, Predicate, int>{}) ||
-          (std::is_same<PredicateTag, NearestPredicateTag>{} &&
-           is_detected<Experimental_NearestPredicateCallbackArchetypeExpression,
-                       Callback, Predicate, int>{}),
-      "Callback 'operator()' does not have the correct signature");
+  static_assert((std::is_same<PredicateTag, SpatialPredicateTag>{} ||
+                 std::is_same<PredicateTag, NearestPredicateTag>{}) &&
+                    is_detected<Experimental_CallbackArchetypeExpression,
+                                Callback, Predicate, int>{},
+                "Callback 'operator()' does not have the correct signature");
 
   static_assert(
       (std::is_same<PredicateTag, SpatialPredicateTag>{} &&
-       (std::is_same<
-            CallbackTreeTraversalControl,
-            detected_t<Experimental_SpatialPredicateCallbackArchetypeExpression,
-                       Callback, Predicate, int>>{} ||
-        std::is_void<
-            detected_t<Experimental_SpatialPredicateCallbackArchetypeExpression,
-                       Callback, Predicate, int>>{})) ||
+       (std::is_same<CallbackTreeTraversalControl,
+                     detected_t<Experimental_CallbackArchetypeExpression,
+                                Callback, Predicate, int>>{} ||
+        std::is_void<detected_t<Experimental_CallbackArchetypeExpression,
+                                Callback, Predicate, int>>{})) ||
           std::is_same<PredicateTag, NearestPredicateTag>{},
       "Callback 'operator()' return type must be void or "
       "ArborX::CallbackTreeTraversalControl");
@@ -234,9 +201,8 @@ void check_valid_callback(Callback const &callback, Predicates const &)
   static_assert(
       std::is_same<PredicateTag, SpatialPredicateTag>{} ||
           (std::is_same<PredicateTag, NearestPredicateTag>{} &&
-           std::is_void<detected_t<
-               Experimental_NearestPredicateCallbackArchetypeExpression,
-               Callback, Predicate, int>>{}),
+           std::is_void<detected_t<Experimental_CallbackArchetypeExpression,
+                                   Callback, Predicate, int>>{}),
       "Callback 'operator()' return type must be void");
 }
 

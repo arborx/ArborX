@@ -236,12 +236,12 @@ void BM_knn_search(benchmark::State &state, Spec const &spec)
 }
 
 template <typename DeviceType>
-struct NearestCallback
+struct CountCallback
 {
   Kokkos::View<int *, DeviceType> count_;
 
   template <typename Query>
-  KOKKOS_FUNCTION void operator()(Query const &query, int, float) const
+  KOKKOS_FUNCTION void operator()(Query const &query, int) const
   {
     auto const i = ArborX::getData(query);
     Kokkos::atomic_fetch_add(&count_(i), 1);
@@ -266,7 +266,7 @@ void BM_knn_callback_search(benchmark::State &state, Spec const &spec)
   {
     Kokkos::View<int *, DeviceType> num_neigh("Testing::num_neigh",
                                               spec.n_queries);
-    NearestCallback<DeviceType> callback{num_neigh};
+    CountCallback<DeviceType> callback{num_neigh};
 
     auto const start = std::chrono::high_resolution_clock::now();
     index.query(ExecutionSpace{}, queries, callback,
@@ -306,19 +306,6 @@ void BM_radius_search(benchmark::State &state, Spec const &spec)
   }
 }
 
-template <typename DeviceType>
-struct SpatialCallback
-{
-  Kokkos::View<int *, DeviceType> count_;
-
-  template <typename Query>
-  KOKKOS_FUNCTION void operator()(Query const &query, int) const
-  {
-    auto const i = ArborX::getData(query);
-    Kokkos::atomic_fetch_add(&count_(i), 1);
-  }
-};
-
 template <typename ExecutionSpace, class TreeType>
 void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
 {
@@ -337,7 +324,7 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
   {
     Kokkos::View<int *, DeviceType> num_neigh("Testing::num_neigh",
                                               spec.n_queries);
-    SpatialCallback<DeviceType> callback{num_neigh};
+    CountCallback<DeviceType> callback{num_neigh};
 
     auto const start = std::chrono::high_resolution_clock::now();
     index.query(ExecutionSpace{}, queries, callback,

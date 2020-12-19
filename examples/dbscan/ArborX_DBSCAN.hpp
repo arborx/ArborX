@@ -126,8 +126,8 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
   std::chrono::duration<double> elapsed_neigh;
   std::chrono::duration<double> elapsed_query;
   std::chrono::duration<double> elapsed_cluster;
-  std::chrono::duration<double> elapsed_total;
-  std::chrono::duration<double> elapsed_verify = clock::duration::zero();
+  std::chrono::duration<double> elapsed_total = clock::duration::zero();
+  std::chrono::duration<double> elapsed_verify;
 
   start_total = clock::now();
 
@@ -236,60 +236,80 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
   start = clock::now();
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::sort_and_filter_clusters");
 
+  Kokkos::View<int *, MemorySpace> cluster_sizes(
+      "ArborX::DBSCAN::cluster_sizes", n);
+  Kokkos::parallel_for("ArborX::DBSCAN::compute_cluster_sizes",
+                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+                       KOKKOS_LAMBDA(int const i) {
+                         Kokkos::atomic_fetch_add(&cluster_sizes(clusters(i)),
+                                                  1);
+                       });
+
+  // The idea here is to replace cluster indices for small clusters (containing
+  // less than cluster_min_size points) to INT_MAX. This way, during the sort
+  // routine afterwards, they will be at the end of the permutation array,
+  // allowing us to simply truncate it to get the result.
+  int num_skipped = 0;
+  Kokkos::parallel_reduce("ArborX::DBSCAN::replace_skipped_cluster_indices",
+                          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+                          KOKKOS_LAMBDA(int const i, int &update) {
+                            if (cluster_sizes(clusters(i)) < cluster_min_size)
+                            {
+                              clusters(i) = INT_MAX;
+                              update++;
+                            }
+                          },
+                          num_skipped);
+  auto num_cluster_indices = n - num_skipped;
+
   // sort clusters and compute permutation
   auto permute = Details::sortObjects(exec_space, clusters);
 
-  reallocWithoutInitializing(cluster_offset, n + 1);
+  // truncate the permutation array, see comment above
+  reallocWithoutInitializing(cluster_indices, num_cluster_indices);
+  Kokkos::deep_copy(
+      exec_space, cluster_indices,
+      Kokkos::subview(permute, std::make_pair(0, num_cluster_indices)));
+
+  // we could have resized clusters to num_cluster_indices, but that's
+  // unnecessary
+
+  // Compute the positions in the (sorted) clusters array where values change.
+  // The number of clusters is appended at the end to allow for easy computation
+  // of cluster sizes through `cluster_starts(i+1) - cluster_starts(i)`.
   Kokkos::View<int *, MemorySpace> cluster_starts(
       Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::cluster_starts"),
-      n);
-  int num_clusters = 0;
-  // In the following scan, we locate the starting position (stored in
-  // cluster_starts) and size (stored in cluster_offset) of each valid cluster
-  // (i.e., of size >= cluster_min_size). For every index i, we check whether
-  // its CC index is different from the previous one (this indicates a start of
-  // connected component) and whether the CC index of i + cluster_min_size is
-  // the same (this indicates that this CC is at least of cluster_min_size
-  // size). If those are true, we do a linear search from i + cluster_min_size
-  // till next CC index change to find the CC size.
+      num_cluster_indices + 1);
+  int num_clusters;
   Kokkos::parallel_scan(
-      "ArborX::DBSCAN::compute_cluster_starts_and_sizes",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+      "ArborX::DBSCAN::compute_cluster_starts",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0,
+                                          num_cluster_indices + 1),
       KOKKOS_LAMBDA(int i, int &update, bool final_pass) {
         bool const is_cluster_first_index =
             (i == 0 || clusters(i) != clusters(i - 1));
-        bool const is_cluster_large_enough =
-            ((i + cluster_min_size - 1 < n) &&
-             (clusters(i + cluster_min_size - 1) == clusters(i)));
-        if (is_cluster_first_index && is_cluster_large_enough)
+        if (is_cluster_first_index || i == num_cluster_indices)
         {
           if (final_pass)
-          {
             cluster_starts(update) = i;
-            int end = i + cluster_min_size - 1;
-            while (++end < n && clusters(end) == clusters(i))
-              ; // do nothing
-            cluster_offset(update) = end - i;
-          }
           ++update;
         }
       },
       num_clusters);
-  Kokkos::resize(cluster_offset, num_clusters + 1);
-  exclusivePrefixSum(exec_space, cluster_offset);
+  --num_clusters; // subtract the tail
 
-  // Construct cluster indices
-  reallocWithoutInitializing(cluster_indices, lastElement(cluster_offset));
-  Kokkos::parallel_for(
-      "ArborX::DBSCAN::populate_clusters",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_clusters),
-      KOKKOS_LAMBDA(int i) {
-        for (int k = cluster_offset(i); k < cluster_offset(i + 1); ++k)
-        {
-          cluster_indices(k) =
-              permute(cluster_starts(i) + (k - cluster_offset(i)));
-        }
+  // this kernel is equivalent to running adjacentDifference +
+  // exclusivePrefixSum, but is done in a single kernel launch
+  reallocWithoutInitializing(cluster_offset, num_clusters + 1);
+  Kokkos::parallel_scan(
+      "ArborX::DBSCAN::compute_cluster_offset",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_clusters + 1),
+      KOKKOS_LAMBDA(int i, int &update, bool final_pass) {
+        if (final_pass)
+          cluster_offset(i) = update;
+        update += cluster_starts(i + 1) - cluster_starts(i);
       });
+
   Kokkos::Profiling::popRegion();
   elapsed_cluster = clock::now() - start;
 

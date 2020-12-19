@@ -35,7 +35,9 @@ namespace Details
 {
 template <typename DeviceType>
 struct TreeVisualization;
-}
+template <typename BVH>
+struct DistributedTreeNearestUtils;
+} // namespace Details
 
 template <typename MemorySpace, typename Enable = void>
 class BoundingVolumeHierarchy
@@ -91,6 +93,8 @@ private:
   friend struct Details::TreeTraversal;
   template <typename DeviceType>
   friend struct Details::TreeVisualization;
+  template <typename BVH>
+  friend struct Details::DistributedTreeNearestUtils;
 
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
   // Ropes based traversal is only used for CUDA, as it was found to be slower
@@ -117,6 +121,12 @@ private:
   }
 
   Kokkos::View<node_type *, MemorySpace> getLeafNodes()
+  {
+    assert(!empty());
+    return Kokkos::subview(_internal_and_leaf_nodes,
+                           std::make_pair(size() - 1, 2 * size() - 1));
+  }
+  Kokkos::View<node_type const *, MemorySpace> getLeafNodes() const
   {
     assert(!empty());
     return Kokkos::subview(_internal_and_leaf_nodes,
@@ -267,18 +277,20 @@ void BoundingVolumeHierarchy<MemorySpace, Enable>::query(
     Callback const &callback, Experimental::TraversalPolicy const &policy) const
 {
   Details::check_valid_access_traits(PredicatesTag{}, predicates);
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
-                                              ExecutionSpace>::value,
-                "Predicates must be accessible from the execution space");
 
-  Details::check_valid_callback(callback, predicates);
+  using Access = AccessTraits<Predicates, Traits::PredicatesTag>;
+  using Tag = typename Details::AccessTraitsHelper<Access>::tag;
 
-  Kokkos::Profiling::pushRegion("ArborX::BVH::query");
+  auto profiling_prefix =
+      std::string("ArborX::BVH::query::") +
+      (std::is_same<Tag, Details::SpatialPredicateTag>{} ? "spatial"
+                                                         : "nearest");
+
+  Kokkos::Profiling::pushRegion(profiling_prefix);
 
   if (policy._sort_predicates)
   {
-    Kokkos::Profiling::pushRegion("ArborX::BVH::query::compute_permutation");
+    Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     auto permute =
         Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
