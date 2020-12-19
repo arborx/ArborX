@@ -107,23 +107,6 @@ auto query(ExecutionSpace const &exec_space, Tree const &tree,
   BOOST_TEST(query(exec_space, tree, queries) == (reference),                  \
              boost::test_tools::per_element());
 
-template <typename ExecutionSpace, typename Tree, typename Queries>
-auto query_with_distance(ExecutionSpace const &exec_space, Tree const &tree,
-                         Queries const &queries,
-                         std::enable_if_t<!is_distributed<Tree>{}> * = nullptr)
-{
-  using memory_space = typename Tree::memory_space;
-  Kokkos::View<Kokkos::pair<int, float> *, memory_space> values(
-      "Testing::values", 0);
-  Kokkos::View<int *, memory_space> offsets("Testing::offsets", 0);
-  tree.query(exec_space, queries,
-             ArborX::Details::CallbackDefaultNearestPredicateWithDistance{},
-             values, offsets);
-  return make_compressed_storage(
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
-}
-
 // Workaround for NVCC that complains that the enclosing parent function
 // (query_with_distance) for an extended __host__ __device__ lambda must not
 // have deduced return type

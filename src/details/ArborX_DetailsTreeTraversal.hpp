@@ -281,7 +281,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     if (k < 1)
       return 0;
 
-    _callback(predicate, 0, distance(_bvh.getRoot()));
+    _callback(predicate, 0);
     return 1;
   }
 
@@ -447,8 +447,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     for (decltype(heap.size()) i = 0; i < heap.size(); ++i)
     {
       int const leaf_index = (heap.data() + i)->first;
-      auto const leaf_distance = (heap.data() + i)->second;
-      _callback(predicate, leaf_index, leaf_distance);
+      _callback(predicate, leaf_index);
     }
     return heap.size();
   }

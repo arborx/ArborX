@@ -433,7 +433,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_nearest_neighbors, DeviceType,
 }
 
 template <typename DeviceType>
-struct CustomInlineCallbackAttachmentSpatialPredicate
+struct CustomInlineCallbackWithAttachment
 {
   using tag = ArborX::Details::InlineCallbackTag;
   Kokkos::View<ArborX::Point *, DeviceType> points;
@@ -451,7 +451,7 @@ struct CustomInlineCallbackAttachmentSpatialPredicate
 };
 
 template <typename DeviceType>
-struct CustomPostCallbackAttachmentSpatialPredicate
+struct CustomPostCallbackWithAttachment
 {
   using tag = ArborX::Details::PostCallbackTag;
   Kokkos::View<ArborX::Point *, DeviceType> points;
@@ -543,12 +543,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
   {
     Kokkos::View<float *, DeviceType> custom("Testing::custom", 0);
     Kokkos::View<int *, DeviceType> offset("Testing::offset", 0);
-    tree.query(
-        ExecutionSpace{},
-        makeIntersectsBoxWithAttachmentQueries<DeviceType, int>(
-            {{points_host(0), points_host(0)}}, {comm_rank}),
-        CustomInlineCallbackAttachmentSpatialPredicate<DeviceType>{points},
-        custom, offset);
+    tree.query(ExecutionSpace{},
+               makeIntersectsBoxWithAttachmentQueries<DeviceType, int>(
+                   {{points_host(0), points_host(0)}}, {comm_rank}),
+               CustomInlineCallbackWithAttachment<DeviceType>{points}, custom,
+               offset);
 
     auto custom_host =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
@@ -566,8 +565,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
     tree.query(ExecutionSpace{},
                makeIntersectsBoxWithAttachmentQueries<DeviceType, int>(
                    {{points_host(0), points_host(0)}}, {comm_rank}),
-               CustomPostCallbackAttachmentSpatialPredicate<DeviceType>{points},
-               custom, offset);
+               CustomPostCallbackWithAttachment<DeviceType>{points}, custom,
+               offset);
 
     auto custom_host =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);

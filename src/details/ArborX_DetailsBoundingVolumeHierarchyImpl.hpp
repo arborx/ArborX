@@ -89,211 +89,122 @@ struct Iota
 
 namespace BoundingVolumeHierarchyImpl
 {
-// Views are passed by reference here because internally Kokkos::realloc()
-// is called.
-template <typename BVH, typename ExecutionSpace, typename Predicates,
-          typename OutputView, typename OffsetView, typename Callback>
-std::enable_if_t<!is_tagged_post_callback<Callback>{} &&
-                 Kokkos::is_view<OutputView>{} && Kokkos::is_view<OffsetView>{}>
-queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
-              Predicates const &predicates, Callback const &callback,
-              OutputView &out, OffsetView &offset,
-              Experimental::TraversalPolicy const &policy =
-                  Experimental::TraversalPolicy())
+template <typename Tag, typename ExecutionSpace, typename Predicates,
+          typename OffsetView>
+std::enable_if_t<std::is_same<Tag, SpatialPredicateTag>{}>
+initAllocatedStorage(Tag, ExecutionSpace const &space,
+                     Predicates const & /*predicates*/, OffsetView offset,
+                     int buffer_size)
 {
-  using MemorySpace = typename BVH::memory_space;
-  using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
+  Kokkos::deep_copy(space, offset, std::abs(buffer_size));
 
-  check_valid_callback(callback, predicates, out);
-
-  Kokkos::Profiling::pushRegion("ArborX::BVH::query::spatial");
-
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  auto const n_queries = Access::size(predicates);
-
-  Kokkos::Profiling::pushRegion("ArborX::BVH::query::spatial::init_and_alloc");
-  reallocWithoutInitializing(offset, n_queries + 1);
-
-  int const buffer_size = std::abs(policy._buffer_size);
-  if (buffer_size > 0)
-  {
-    Kokkos::deep_copy(space, offset, buffer_size);
+  if (buffer_size != 0)
     exclusivePrefixSum(space, offset);
-    // Use calculation for the size to avoid calling lastElement(offset) as it
-    // will launch an extra kernel to copy to host. And there is unnecessary to
-    // fill with invalid indices.
-    reallocWithoutInitializing(out, n_queries * buffer_size);
-  }
-  else
-  {
-    Kokkos::deep_copy(offset, 0);
-  }
-  Kokkos::Profiling::popRegion();
-
-  if (policy._sort_predicates)
-  {
-    Kokkos::Profiling::pushRegion(
-        "ArborX::BVH::query::spatial::compute_permutation");
-    auto permute =
-        Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-            space, bvh.bounds(), predicates);
-    Kokkos::Profiling::popRegion();
-
-    queryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates, callback,
-              out, offset, permute, toBufferStatus(policy._buffer_size));
-  }
-  else
-  {
-    Iota permute;
-    queryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates, callback,
-              out, offset, permute, toBufferStatus(policy._buffer_size));
-  }
-
-  Kokkos::Profiling::popRegion();
 }
 
-template <typename BVH, typename ExecutionSpace, typename Predicates,
-          typename Indices, typename Offset>
-inline std::enable_if_t<Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{}>
-queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
-              Predicates const &predicates, Indices &indices, Offset &offset,
-              Experimental::TraversalPolicy const &policy =
-                  Experimental::TraversalPolicy())
+template <typename Tag, typename ExecutionSpace, typename Predicates,
+          typename OffsetView>
+std::enable_if_t<std::is_same<Tag, NearestPredicateTag>{}>
+initAllocatedStorage(Tag, ExecutionSpace const &space,
+                     Predicates const &predicates, OffsetView offset,
+                     int /*buffer_size*/)
 {
-  queryDispatch(SpatialPredicateTag{}, bvh, space, predicates,
-                CallbackDefaultSpatialPredicate{}, indices, offset, policy);
-}
-
-template <typename BVH, typename ExecutionSpace, typename Predicates,
-          typename OutputView, typename OffsetView, typename Callback>
-inline std::enable_if_t<is_tagged_post_callback<Callback>{}>
-queryDispatch(SpatialPredicateTag, BVH const &bvh, ExecutionSpace const &space,
-              Predicates const &predicates, Callback const &callback,
-              OutputView &out, OffsetView &offset,
-              Experimental::TraversalPolicy const &policy =
-                  Experimental::TraversalPolicy())
-{
-  using MemorySpace = typename BVH::memory_space;
-  Kokkos::View<int *, MemorySpace> indices(
-      "ArborX::BVH::query::spatial::indices", 0);
-  queryDispatch(SpatialPredicateTag{}, bvh, space, predicates, indices, offset,
-                policy);
-  callback(predicates, offset, indices, out);
-}
-
-template <typename BVH, typename ExecutionSpace, typename Predicates,
-          typename OutputView, typename OffsetView, typename Callback>
-std::enable_if_t<!is_tagged_post_callback<Callback>{} &&
-                 Kokkos::is_view<OutputView>{} && Kokkos::is_view<OffsetView>{}>
-queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
-              Predicates const &predicates, Callback const &callback,
-              OutputView &out, OffsetView &offset,
-              Experimental::TraversalPolicy const &policy =
-                  Experimental::TraversalPolicy())
-{
-  using MemorySpace = typename BVH::memory_space;
-  using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
-
-  check_valid_callback(callback, predicates, out);
-
-  Kokkos::Profiling::pushRegion("ArborX::BVH::query::nearest");
-
-  using Access = AccessTraits<Predicates, Traits::PredicatesTag>;
-  auto const n_queries = Access::size(predicates);
-
-  Kokkos::Profiling::pushRegion("ArborX::BVH::query::nearest::init_and_alloc");
-
-  reallocWithoutInitializing(offset, n_queries + 1);
+  using Access = AccessTraits<Predicates, PredicatesTag>;
+  auto n_queries = offset.extent(0) - 1;
   Kokkos::parallel_for(
       "ArborX::BVH::query::nearest::"
       "scan_queries_for_numbers_of_nearest_neighbors",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
   exclusivePrefixSum(space, offset);
-
-  int const n_results = lastElement(offset);
-  reallocWithoutInitializing(out, n_results);
-
-  Kokkos::Profiling::popRegion();
-
-  if (policy._sort_predicates)
-  {
-    Kokkos::Profiling::pushRegion(
-        "ArborX::BVH::query::nearest::compute_permutation");
-    auto permute =
-        Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-            space, bvh.bounds(), predicates);
-    Kokkos::Profiling::popRegion();
-
-    queryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates, callback,
-              out, offset, permute, BufferStatus::PreallocationSoft);
-  }
-  else
-  {
-    Iota permute;
-    queryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates, callback,
-              out, offset, permute, BufferStatus::PreallocationSoft);
-  }
-
-  Kokkos::Profiling::popRegion();
 }
 
-template <typename BVH, typename ExecutionSpace, typename Predicates,
-          typename OutputView, typename OffsetView, typename Callback>
-inline std::enable_if_t<is_tagged_post_callback<Callback>{}>
-queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
+// Views are passed by reference here because internally Kokkos::realloc()
+// is called.
+template <typename Tag, typename BVH, typename ExecutionSpace,
+          typename Predicates, typename OutputView, typename OffsetView,
+          typename Callback>
+std::enable_if_t<!is_tagged_post_callback<Callback>{} &&
+                 Kokkos::is_view<OutputView>{} && Kokkos::is_view<OffsetView>{}>
+queryDispatch(Tag, BVH const &bvh, ExecutionSpace const &space,
               Predicates const &predicates, Callback const &callback,
               OutputView &out, OffsetView &offset,
               Experimental::TraversalPolicy const &policy =
                   Experimental::TraversalPolicy())
 {
   using MemorySpace = typename BVH::memory_space;
-  Kokkos::View<Kokkos::pair<int, float> *, MemorySpace> pairs(
-      "ArborX::BVH::query::nearest::pairs_index_distance", 0);
-  queryDispatch(NearestPredicateTag{}, bvh, space, predicates,
-                CallbackDefaultNearestPredicateWithDistance{}, pairs, offset,
-                policy);
-  callback(predicates, offset, pairs, out);
+  using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
+
+  check_valid_callback(callback, predicates, out);
+
+  auto profiling_prefix =
+      std::string("ArborX::BVH::query::") +
+      (std::is_same<Tag, SpatialPredicateTag>{} ? "spatial" : "nearest");
+
+  Kokkos::Profiling::pushRegion(profiling_prefix);
+
+  using Access = AccessTraits<Predicates, PredicatesTag>;
+  auto const n_queries = Access::size(predicates);
+
+  Kokkos::Profiling::pushRegion(profiling_prefix + "::init_and_alloc");
+
+  reallocWithoutInitializing(offset, n_queries + 1);
+  initAllocatedStorage(Tag{}, space, predicates, offset, policy._buffer_size);
+  reallocWithoutInitializing(out, lastElement(offset));
+
+  Kokkos::Profiling::popRegion();
+
+  auto buffer_status = (std::is_same<Tag, SpatialPredicateTag>{}
+                            ? toBufferStatus(policy._buffer_size)
+                            : BufferStatus::PreallocationSoft);
+
+  if (policy._sort_predicates)
+  {
+    Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
+    auto permute =
+        Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
+            space, bvh.bounds(), predicates);
+    Kokkos::Profiling::popRegion();
+
+    queryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates, callback,
+              out, offset, permute, buffer_status);
+  }
+  else
+  {
+    Iota permute;
+    queryImpl(space, BVHParallelTreeTraversal<BVH>{bvh}, predicates, callback,
+              out, offset, permute, buffer_status);
+  }
+
+  Kokkos::Profiling::popRegion();
 }
 
-template <typename BVH, typename ExecutionSpace, typename Predicates,
-          typename Indices, typename Offset>
+template <typename Tag, typename BVH, typename ExecutionSpace,
+          typename Predicates, typename Indices, typename Offset>
 inline std::enable_if_t<Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{}>
-queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
+queryDispatch(Tag, BVH const &bvh, ExecutionSpace const &space,
               Predicates const &predicates, Indices &indices, Offset &offset,
               Experimental::TraversalPolicy const &policy =
                   Experimental::TraversalPolicy())
 {
-  queryDispatch(NearestPredicateTag{}, bvh, space, predicates,
-                CallbackDefaultNearestPredicate{}, indices, offset, policy);
+  queryDispatch(Tag{}, bvh, space, predicates, DefaultCallback{}, indices,
+                offset, policy);
 }
 
-template <typename BVH, typename ExecutionSpace, typename Predicates,
-          typename Indices, typename Offset, typename Distances>
-inline std::enable_if_t<Kokkos::is_view<Indices>{} &&
-                        Kokkos::is_view<Offset>{} &&
-                        Kokkos::is_view<Distances>{}>
-queryDispatch(NearestPredicateTag, BVH const &bvh, ExecutionSpace const &space,
-              Predicates const &predicates, Indices &indices, Offset &offset,
-              Distances &distances,
+template <typename Tag, typename BVH, typename ExecutionSpace,
+          typename Predicates, typename OutputView, typename OffsetView,
+          typename Callback>
+inline std::enable_if_t<is_tagged_post_callback<Callback>{}>
+queryDispatch(Tag, BVH const &bvh, ExecutionSpace const &space,
+              Predicates const &predicates, Callback const &callback,
+              OutputView &out, OffsetView &offset,
               Experimental::TraversalPolicy const &policy =
                   Experimental::TraversalPolicy())
 {
   using MemorySpace = typename BVH::memory_space;
-  Kokkos::View<Kokkos::pair<int, float> *, MemorySpace> out(
-      "ArborX::BVH::query::nearest::pairs_index_distance", 0);
-  queryDispatch(NearestPredicateTag{}, bvh, space, predicates,
-                CallbackDefaultNearestPredicateWithDistance{}, out, offset,
-                policy);
-  auto const n = out.extent(0);
-  reallocWithoutInitializing(indices, n);
-  reallocWithoutInitializing(distances, n);
-  Kokkos::parallel_for("ArborX::BVH::query::nearest::split_pairs",
-                       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         indices(i) = out(i).first;
-                         distances(i) = out(i).second;
-                       });
+  Kokkos::View<int *, MemorySpace> indices("ArborX::BVH::query::indices", 0);
+  queryDispatch(Tag{}, bvh, space, predicates, indices, offset, policy);
+  callback(predicates, offset, indices, out);
 }
 
 template <typename Callback, typename Predicates, typename OutputView>
@@ -351,11 +262,18 @@ inline void query(ExecutionSpace const &space, BVH const &bvh,
 {
   check_valid_callback(callback, predicates);
 
-  Kokkos::Profiling::pushRegion("ArborX::BVH::query");
+  using Access = AccessTraits<Predicates, Traits::PredicatesTag>;
+  using Tag = typename AccessTraitsHelper<Access>::tag;
+
+  auto profiling_prefix =
+      std::string("ArborX::BVH::query::") +
+      (std::is_same<Tag, SpatialPredicateTag>{} ? "spatial" : "nearest");
+
+  Kokkos::Profiling::pushRegion(profiling_prefix);
 
   if (policy._sort_predicates)
   {
-    Kokkos::Profiling::pushRegion("ArborX::BVH::query::compute_permutation");
+    Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
     using MemorySpace = typename BVH::memory_space;
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     auto permute =

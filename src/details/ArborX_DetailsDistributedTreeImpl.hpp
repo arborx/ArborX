@@ -29,8 +29,48 @@ namespace ArborX
 
 namespace Details
 {
+// This is a struct only make it a friend to BVH
+template <typename BVH>
+struct DistributedTreeNearestUtils
+{
+  template <typename ReversePermutation>
+  static KOKKOS_FUNCTION typename BVH::bounding_volume_type const &
+  getPrimitiveBoundingVolume(BVH const &bvh,
+                             ReversePermutation const &rev_permute,
+                             int leaf_index)
+  {
+    int const leaf_nodes_shift = bvh.size() - 1;
+    return bvh.getBoundingVolume(
+        bvh.getNodePtr(rev_permute(leaf_index) + leaf_nodes_shift));
+  }
 
-struct CallbackDefaultSpatialPredicateWithRank
+  template <typename ExecutionSpace>
+  static Kokkos::View<unsigned int *, typename BVH::memory_space>
+  getReversePermutation(ExecutionSpace const &exec_space, BVH const &bvh)
+  {
+    auto const n = bvh.size();
+
+    Kokkos::View<unsigned int *, typename BVH::memory_space> rev_permute(
+        Kokkos::ViewAllocateWithoutInitializing(
+            "ArborX::DistributedTree::query::nearest::reverse_permutation"),
+        n);
+    if (!bvh.empty())
+    {
+      auto const &leaf_nodes = bvh.getLeafNodes();
+      Kokkos::parallel_for(
+          "ArborX::DistributedTree::query::nearest::compute_reverse_"
+          "permutation",
+          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+          KOKKOS_LAMBDA(int const i) {
+            rev_permute(leaf_nodes(i).getLeafPermutationIndex()) = i;
+          });
+    }
+
+    return rev_permute;
+  }
+};
+
+struct DefaultCallbackWithRank
 {
   int _rank;
   template <typename Predicate, typename OutputFunctor>
@@ -56,8 +96,7 @@ struct DistributedTreeImpl
     int comm_rank;
     MPI_Comm_rank(tree.getComm(), &comm_rank);
     queryDispatch(SpatialPredicateTag{}, tree, space, queries,
-                  CallbackDefaultSpatialPredicateWithRank{comm_rank}, values,
-                  offset);
+                  DefaultCallbackWithRank{comm_rank}, values, offset);
   }
 
   // NOTE NVCC did not like having definition of that type within the
@@ -387,6 +426,41 @@ void DistributedTreeImpl<DeviceType>::reassessStrategy(
   Kokkos::Profiling::popRegion();
 }
 
+struct PairIndexDistance
+{
+  int index;
+  float distance;
+};
+
+template <typename Tree>
+struct CallbackWithDistance
+{
+  Tree _tree;
+  Kokkos::View<unsigned int *, typename Tree::memory_space> _rev_permute;
+
+  template <typename ExecutionSpace>
+  CallbackWithDistance(ExecutionSpace const &exec_space, Tree const &tree)
+      : _tree(tree)
+  {
+    _rev_permute = DistributedTreeNearestUtils<Tree>::getReversePermutation(
+        exec_space, _tree);
+  }
+
+  template <typename Query, typename OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Query const &query, int index,
+                                  OutputFunctor const &output) const
+  {
+    // TODO: This breaks the abstraction of the distributed Tree not knowing
+    // the details of the local tree. Right now, this is the only way. Will
+    // need to be fixed with a proper callback abstraction.
+    output(
+        {index,
+         distance(getGeometry(query),
+                  DistributedTreeNearestUtils<Tree>::getPrimitiveBoundingVolume(
+                      _tree, _rev_permute, index))});
+  }
+};
+
 template <typename DeviceType>
 template <typename DistributedTree, typename ExecutionSpace,
           typename Predicates, typename Indices, typename Offset,
@@ -416,6 +490,12 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
   // The current implementation discards the results after the 1st pass and
   // recompute everything instead of just searching for potential better
   // neighbors and updating the list.
+
+  // Right now, distance calcuations only work with BVH due to using functions
+  // in DistributedTreeNearestUtils. So, there's no point in replacing this
+  // with decltype.
+  CallbackWithDistance<BVH<typename DeviceType::memory_space>>
+      callback_with_distance(space, bottom_tree);
 
   // NOTE: compiler would not deduce __range for the braced-init-list but I
   // got it to work with the static_cast to function pointers.
@@ -448,7 +528,22 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
                      ranks);
 
       // Perform queries that have been received
-      bottom_tree.query(space, fwd_queries, indices, offset, distances);
+      Kokkos::View<PairIndexDistance *, DeviceType> out(
+          "ArborX::DistributedTree::query::pairs_index_distance", 0);
+      bottom_tree.query(space, fwd_queries, callback_with_distance, out,
+                        offset);
+
+      // Unzip
+      auto const n = out.extent(0);
+      reallocWithoutInitializing(indices, n);
+      reallocWithoutInitializing(distances, n);
+      Kokkos::parallel_for("ArborX::DistributedTree::query::nearest::split_"
+                           "index_distance_pairs",
+                           Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+                           KOKKOS_LAMBDA(int i) {
+                             indices(i) = out(i).index;
+                             distances(i) = out(i).distance;
+                           });
 
       // Communicate results back
       communicateResultsBack(comm, space, indices, offset, ranks, ids,
@@ -456,7 +551,7 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
 
       // Merge results
       Kokkos::Profiling::pushRegion(
-          "ArborX::DistributedTree::postprocess_results");
+          "ArborX::DistributedTree::nearest::postprocess_results");
 
       int const n_queries = Access::size(queries);
       countResults(space, n_queries, ids, offset);
@@ -517,7 +612,7 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
     communicateResultsBack(comm, space, out, offset, ranks, ids);
 
     Kokkos::Profiling::pushRegion(
-        "ArborX::DistributedTree::postprocess_results");
+        "ArborX::DistributedTree::spatial::postprocess_results");
 
     // Merge results
     int const n_queries = Access::size(queries);

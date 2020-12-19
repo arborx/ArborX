@@ -29,7 +29,9 @@ namespace Details
 {
 template <typename DeviceType>
 struct TreeVisualization;
-}
+template <typename BVH>
+struct DistributedTreeNearestUtils;
+} // namespace Details
 
 template <typename MemorySpace, typename Enable = void>
 class BoundingVolumeHierarchy
@@ -75,6 +77,8 @@ private:
   friend struct Details::TreeTraversal;
   template <typename DeviceType>
   friend struct Details::TreeVisualization;
+  template <typename BVH>
+  friend struct Details::DistributedTreeNearestUtils;
 
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
   // Ropes based traversal is only used for CUDA, as it was found to be slower
@@ -101,6 +105,12 @@ private:
   }
 
   Kokkos::View<node_type *, MemorySpace> getLeafNodes()
+  {
+    assert(!empty());
+    return Kokkos::subview(_internal_and_leaf_nodes,
+                           std::make_pair(size() - 1, 2 * size() - 1));
+  }
+  Kokkos::View<node_type const *, MemorySpace> getLeafNodes() const
   {
     assert(!empty());
     return Kokkos::subview(_internal_and_leaf_nodes,
