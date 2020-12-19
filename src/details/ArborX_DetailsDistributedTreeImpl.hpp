@@ -491,6 +491,9 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
   // recompute everything instead of just searching for potential better
   // neighbors and updating the list.
 
+  // Right now, distance calcuations only work with BVH due to using functions
+  // in DistributedTreeNearestUtils. So, there's no point in replacing this
+  // with decltype.
   CallbackWithDistance<BVH<typename DeviceType::memory_space>>
       callback_with_distance(space, bottom_tree);
 
