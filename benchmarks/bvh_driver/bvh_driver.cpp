@@ -601,9 +601,9 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef KOKKOS_ENABLE_SERIAL
-      // if (spec.backends == "all" || spec.backends == "rtree")
-      // register_benchmark<Kokkos::Serial, BoostExt::RTree<ArborX::Point>>(
-      // "BoostRTree", spec);
+    if (spec.backends == "all" || spec.backends == "rtree")
+      register_benchmark<Kokkos::Serial, BoostExt::RTree<ArborX::Point>>(
+          "BoostRTree", spec);
 #endif
   }
 
