@@ -72,7 +72,7 @@ public:
   template <typename ExecutionSpace, typename Predicates,
             typename CallbackOrView, typename View, typename... Args>
   // clang-format off
-  [[deprecated( "For crs format output, use standalone ArborX::query instead.")]]
+  [[deprecated( "For crs format output, use a free function ArborX::query instead.")]]
   // clang-format on
   std::enable_if_t<Kokkos::is_view<std::decay_t<View>>{}>
   query(ExecutionSpace const &space, Predicates const &predicates,
