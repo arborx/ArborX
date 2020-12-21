@@ -273,8 +273,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
                tt::per_element());
   };
 
-  BOOST_CHECK_NO_THROW(
-      ArborX::query(bvh, ExecutionSpace{}, queries, indices, offset));
+  BOOST_CHECK_NO_THROW(query(bvh, ExecutionSpace{}, queries, indices, offset));
   checkResultsAreFine();
 
   // compute number of results per query

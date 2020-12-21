@@ -17,7 +17,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#define BOOST_TEST_MODULE DetailsBufferOptiization
+#define BOOST_TEST_MODULE DetailsCrsGraphWrapperImpl
 
 namespace tt = boost::test_tools;
 
