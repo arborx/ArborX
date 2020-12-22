@@ -161,9 +161,6 @@ queryDispatch(Tag, BVH const &bvh, ExecutionSpace const &space,
 
   Kokkos::Profiling::pushRegion(profiling_prefix);
 
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  auto const n_queries = Access::size(predicates);
-
   Kokkos::Profiling::pushRegion(profiling_prefix + "::init_and_alloc");
 
   allocateAndInititalizeStorage(Tag{}, space, predicates, offset, out,
