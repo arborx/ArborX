@@ -180,19 +180,28 @@ public:
   }
   // clang-format on
   template <typename FirstArgumentType, typename... Args>
-  std::enable_if_t<Kokkos::is_execution_space<FirstArgumentType>::value>
-  query(FirstArgumentType const &space, Args &&... args) const
-  {
-    BoundingVolumeHierarchy<typename DeviceType::memory_space>::query(
-        space, std::forward<Args>(args)...);
-  }
-  template <typename FirstArgumentType, typename... Args>
   std::enable_if_t<!Kokkos::is_execution_space<FirstArgumentType>::value>
   query(FirstArgumentType &&arg1, Args &&... args) const
   {
     BoundingVolumeHierarchy<typename DeviceType::memory_space>::query(
         typename DeviceType::execution_space{},
         std::forward<FirstArgumentType>(arg1), std::forward<Args>(args)...);
+  }
+
+private:
+  template <typename Tree, typename ExecutionSpace, typename Predicates,
+            typename CallbackOrView, typename View, typename... Args>
+  friend void ArborX::query(Tree const &tree, ExecutionSpace const &space,
+                            Predicates const &predicates,
+                            CallbackOrView &&callback_or_view, View &&view,
+                            Args &&... args);
+
+  template <typename FirstArgumentType, typename... Args>
+  std::enable_if_t<Kokkos::is_execution_space<FirstArgumentType>::value>
+  query(FirstArgumentType const &space, Args &&... args) const
+  {
+    BoundingVolumeHierarchy<typename DeviceType::memory_space>::query(
+        space, std::forward<Args>(args)...);
   }
 };
 
