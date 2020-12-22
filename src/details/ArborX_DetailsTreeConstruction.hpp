@@ -119,7 +119,7 @@ inline void assignMortonCodes(
   using Access = AccessTraits<Primitives, PrimitivesTag>;
 
   auto const n = Access::size(primitives);
-  ARBORX_ASSERT(morton_codes.extent(0) == n);
+  ARBORX_ASSERT(static_cast<decltype(n)>(morton_codes.extent(0)) == n);
 
   using Tag = typename AccessTraitsHelper<Access>::tag;
   assignMortonCodesDispatch(Tag{}, space, primitives, morton_codes,

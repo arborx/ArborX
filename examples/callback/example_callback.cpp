@@ -65,7 +65,7 @@ struct PrintfCallback
   KOKKOS_FUNCTION void operator()(Predicate, int primitive,
                                   OutputFunctor const &out) const
   {
-#ifndef KOKKOS_ENABLE_SYCL
+#ifndef __SYCL_DEVICE_ONLY__
     printf("Found %d from functor\n", primitive);
 #endif
     out(primitive);
@@ -98,12 +98,14 @@ int main(int argc, char *argv[])
     Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
     bvh.query(ExecutionSpace{}, FirstOctant{}, PrintfCallback{}, values,
               offsets);
-#ifndef __NVCC__
+#if !defined(__NVCC__)
     bvh.query(ExecutionSpace{}, FirstOctant{},
               KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
                             auto /*output_functor*/) {
-#ifndef KOKKOS_ENABLE_SYCL
+#ifndef __SYCL_DEVICE_ONLY__
                 printf("Found %d from generic lambda\n", primitive);
+#else
+                (void)primitive;
 #endif
               },
               values, offsets);
@@ -116,12 +118,14 @@ int main(int argc, char *argv[])
     Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
     bvh.query(ExecutionSpace{}, NearestToOrigin{k}, PrintfCallback{}, values,
               offsets);
-#ifndef __NVCC__
+#if !defined(__NVCC__)
     bvh.query(ExecutionSpace{}, NearestToOrigin{k},
               KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
                             auto /*output_functor*/) {
-#ifndef KOKKOS_ENABLE_SYCL
+#ifndef __SYCL_DEVICE_ONLY__
                 printf("Found %d from generic lambda\n", primitive);
+#else
+                (void)primitive;
 #endif
               },
               values, offsets);
@@ -133,11 +137,13 @@ int main(int argc, char *argv[])
     Kokkos::View<int, ExecutionSpace, Kokkos::MemoryTraits<Kokkos::Atomic>> c(
         "counter");
 
-#ifndef __NVCC__
+#if !defined(__NVCC__)
     bvh.query(ExecutionSpace{}, FirstOctant{},
               KOKKOS_LAMBDA(auto /*predicate*/, int j) {
-#ifndef KOKKOS_ENABLE_SYCL
+#ifndef __SYCL_DEVICE_ONLY__
                 printf("%d %d %d\n", ++c(), -1, j);
+#else
+                (void)j;
 #endif
               });
 #endif

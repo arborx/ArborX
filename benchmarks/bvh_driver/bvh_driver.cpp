@@ -588,7 +588,7 @@ int main(int argc, char *argv[])
       throw std::runtime_error("OpenMPTarget backend not available!");
 #endif
 
-#ifdef KOKKOS_ENABLE_
+#ifdef KOKKOS_ENABLE_SYCL
     if (spec.backends == "all" || spec.backends == "sycl")
       register_benchmark<
           Kokkos::Experimental::SYCL,
