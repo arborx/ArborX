@@ -90,33 +90,51 @@ struct Iota
 namespace BoundingVolumeHierarchyImpl
 {
 template <typename Tag, typename ExecutionSpace, typename Predicates,
-          typename OffsetView>
+          typename OffsetView, typename OutView>
 std::enable_if_t<std::is_same<Tag, SpatialPredicateTag>{}>
-initAllocatedStorage(Tag, ExecutionSpace const &space,
-                     Predicates const & /*predicates*/, OffsetView offset,
-                     int buffer_size)
+allocateAndInititalizeStorage(Tag, ExecutionSpace const &space,
+                              Predicates const &predicates, OffsetView &offset,
+                              OutView &out, int buffer_size)
 {
-  Kokkos::deep_copy(space, offset, std::abs(buffer_size));
+  using Access = AccessTraits<Predicates, PredicatesTag>;
+
+  auto const n_queries = Access::size(predicates);
+  reallocWithoutInitializing(offset, n_queries + 1);
+
+  buffer_size = std::abs(buffer_size);
+
+  Kokkos::deep_copy(space, offset, buffer_size);
 
   if (buffer_size != 0)
+  {
     exclusivePrefixSum(space, offset);
+
+    // Use calculation for the size to avoid calling lastElement(offset) as it
+    // will launch an extra kernel to copy to host.
+    reallocWithoutInitializing(out, n_queries * buffer_size);
+  }
 }
 
 template <typename Tag, typename ExecutionSpace, typename Predicates,
-          typename OffsetView>
+          typename OffsetView, typename OutView>
 std::enable_if_t<std::is_same<Tag, NearestPredicateTag>{}>
-initAllocatedStorage(Tag, ExecutionSpace const &space,
-                     Predicates const &predicates, OffsetView offset,
-                     int /*buffer_size*/)
+allocateAndInititalizeStorage(Tag, ExecutionSpace const &space,
+                              Predicates const &predicates, OffsetView &offset,
+                              OutView &out, int /*buffer_size*/)
 {
   using Access = AccessTraits<Predicates, PredicatesTag>;
-  auto n_queries = offset.extent(0) - 1;
+
+  auto const n_queries = Access::size(predicates);
+  reallocWithoutInitializing(offset, n_queries + 1);
+
   Kokkos::parallel_for(
       "ArborX::BVH::query::nearest::"
       "scan_queries_for_numbers_of_nearest_neighbors",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
   exclusivePrefixSum(space, offset);
+
+  reallocWithoutInitializing(out, lastElement(offset));
 }
 
 // Views are passed by reference here because internally Kokkos::realloc()
@@ -148,9 +166,8 @@ queryDispatch(Tag, BVH const &bvh, ExecutionSpace const &space,
 
   Kokkos::Profiling::pushRegion(profiling_prefix + "::init_and_alloc");
 
-  reallocWithoutInitializing(offset, n_queries + 1);
-  initAllocatedStorage(Tag{}, space, predicates, offset, policy._buffer_size);
-  reallocWithoutInitializing(out, lastElement(offset));
+  allocateAndInititalizeStorage(Tag{}, space, predicates, offset, out,
+                                policy._buffer_size);
 
   Kokkos::Profiling::popRegion();
 
