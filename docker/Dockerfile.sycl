@@ -1,0 +1,116 @@
+ARG BASE=nvidia/cuda:10.2-devel
+FROM $BASE
+
+ARG NPROCS=4
+
+RUN apt-get update && apt-get install -y \
+        bc \
+        wget \
+        ccache \
+        ninja-build \
+        python3 \
+        git \
+        vim \
+        jq \
+        libopenmpi-dev \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN KEYDUMP_URL=https://cloud.cees.ornl.gov/download && \
+    KEYDUMP_FILE=keydump && \
+    wget --quiet ${KEYDUMP_URL}/${KEYDUMP_FILE} && \
+    wget --quiet ${KEYDUMP_URL}/${KEYDUMP_FILE}.sig && \
+    gpg --import ${KEYDUMP_FILE} && \
+    gpg --verify ${KEYDUMP_FILE}.sig ${KEYDUMP_FILE} && \
+    rm ${KEYDUMP_FILE}*
+
+ARG CMAKE_VERSION=3.19.0
+ENV CMAKE_DIR=/opt/cmake
+RUN CMAKE_KEY=2D2CEF1034921684 && \
+    CMAKE_URL=https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION} && \
+    CMAKE_SCRIPT=cmake-${CMAKE_VERSION}-Linux-x86_64.sh && \
+    CMAKE_SHA256=cmake-${CMAKE_VERSION}-SHA-256.txt && \
+    wget --quiet ${CMAKE_URL}/${CMAKE_SHA256} && \
+    wget --quiet ${CMAKE_URL}/${CMAKE_SHA256}.asc && \
+    wget --quiet ${CMAKE_URL}/${CMAKE_SCRIPT} && \
+    gpg --keyserver pool.sks-keyservers.net --recv-keys ${CMAKE_KEY} && \
+    gpg --verify ${CMAKE_SHA256}.asc ${CMAKE_SHA256} && \
+    grep ${CMAKE_SCRIPT} ${CMAKE_SHA256} | sha256sum --check && \
+    mkdir -p ${CMAKE_DIR} && \
+    sh ${CMAKE_SCRIPT} --skip-license --prefix=${CMAKE_DIR} && \
+    rm cmake*
+ENV PATH=${CMAKE_DIR}/bin:$PATH
+
+ENV SYCL_DIR=/opt/sycl
+RUN SYCL_VERSION=20201207 && \
+    SYCL_URL=https://github.com/intel/llvm/archive/sycl-nightly && \
+    SYCL_ARCHIVE=${SYCL_VERSION}.tar.gz && \
+    SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
+    wget --quiet ${SYCL_URL}/${SYCL_ARCHIVE} && \
+    mkdir llvm && \
+    tar -xf ${SYCL_ARCHIVE} -C llvm --strip-components=1 && \
+    cd llvm && \
+    python3 buildbot/configure.py --cuda && \
+    python3 buildbot/compile.py && \
+    mkdir -p ${SYCL_DIR} && \
+    mv ${SCRATCH_DIR}/llvm/build/install/* ${SYCL_DIR} && \
+    echo "${SYCL_DIR}/lib" > /etc/ld.so.conf.d/sycl.conf && ldconfig && \
+    rm -rf ${SCRATCH_DIR}
+ENV PATH=${SYCL_DIR}/bin:$PATH
+
+# Install Boost
+ENV BOOST_DIR=/opt/boost
+RUN BOOST_VERSION=1.72.0 && \
+    BOOST_VERSION_UNDERSCORE=$(echo "$BOOST_VERSION" | sed -e "s/\./_/g") && \
+    BOOST_KEY=379CE192D401AB61 && \
+    BOOST_URL=https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source && \
+    BOOST_ARCHIVE=boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2 && \
+    SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
+    wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE} && \
+    wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.asc && \
+    wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json && \
+    wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json.asc && \
+    gpg --verify ${BOOST_ARCHIVE}.json.asc ${BOOST_ARCHIVE}.json && \
+    gpg --verify ${BOOST_ARCHIVE}.asc ${BOOST_ARCHIVE} && \
+    cat ${BOOST_ARCHIVE}.json | jq -r '. | .sha256 + "  " + .file' | sha256sum --check && \
+    mkdir -p boost && \
+    tar -xf ${BOOST_ARCHIVE} -C boost --strip-components=1 && \
+    cd boost && \
+    ./bootstrap.sh \
+        --prefix=${BOOST_DIR} \
+        && \
+    ./b2 -j${NPROCS} \
+        hardcode-dll-paths=true dll-path=${BOOST_DIR}/lib \
+        link=shared \
+        variant=release \
+        cxxflags=-w \
+        install \
+        && \
+    rm -rf ${SCRATCH_DIR}
+
+# Install Google Benchmark support library
+ENV BENCHMARK_DIR=/opt/benchmark
+RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
+    git clone https://github.com/google/benchmark.git -b v1.5.0 && \
+    cd benchmark && \
+    mkdir build && cd build && \
+    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${BENCHMARK_DIR} -D BENCHMARK_ENABLE_TESTING=OFF .. && \
+    make -j${NPROCS} && make install && \
+    rm -rf ${SCRATCH_DIR}
+
+# Install Kokkos
+ARG KOKKOS_VERSION=8c241078d0b844633cb1eae186bbb6a8a810ff5d
+ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_SYCL=ON -DCMAKE_CXX_FLAGS=-Wno-unknown-cuda-version -DKokkos_ENABLE_UNSUPPORTED_ARCHS=ON -DKokkos_ARCH_VOLTA70=ON -DCMAKE_CXX_STANDARD=17"
+ENV KOKKOS_DIR=/opt/kokkos
+RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
+    KOKKOS_ARCHIVE=kokkos-${KOKKOS_HASH}.tar.gz && \
+    SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
+    wget --quiet ${KOKKOS_URL} --output-document=${KOKKOS_ARCHIVE} && \
+    mkdir -p kokkos && \
+    tar -xf ${KOKKOS_ARCHIVE} -C kokkos --strip-components=1 && \
+    cd kokkos && \
+    mkdir -p build && cd build && \
+    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${KOKKOS_DIR} -D CMAKE_CXX_COMPILER=clang++ ${KOKKOS_OPTIONS} .. && \
+    make -j${NPROCS} install && \
+    rm -rf ${SCRATCH_DIR}
