@@ -52,7 +52,7 @@ bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
 
             if (neigh_is_core_point && clusters(i) != clusters(j))
             {
-#ifndef KOKKOS_ENABLE_SYCL
+#ifndef __SYCL_DEVICE_ONLY__
               printf("Connected cores do not belong to the same cluster: "
                      "%d [%d] -> %d [%d]\n",
                      i, clusters(i), j, clusters(j));
@@ -107,7 +107,7 @@ bool verifyBoundaryPointsConnectToCorePoints(ExecutionSpace const &exec_space,
 
           if (is_boundary && !have_shared_core)
           {
-#ifndef KOKKOS_ENABLE_SYCL
+#ifndef __SYCL_DEVICE_ONLY__
             printf("Boundary point does not belong to a cluster: "
                    "%d [%d]\n",
                    i, clusters(i));
