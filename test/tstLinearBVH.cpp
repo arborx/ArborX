@@ -914,7 +914,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::deep_copy(offset_host, offset);
 
   std::vector<int> ref_counts(ArborX::lastElement(offset_host));
-  std::vector<int> zero(ref_counts.size());
+  std::vector<int> zeros(ref_counts.size());
 
   for (int i = 0; i < nx; ++i)
     for (int j = 0; j < ny; ++j)
@@ -924,7 +924,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
         for (int l = offset_host(index); l < offset_host(index + 1); ++l)
           ref_counts[l] = ref[index].count(indices_host(l));
       }
-  BOOST_TEST(ref_counts != zero, tt::per_element());
+  BOOST_TEST(ref_counts != zeros, tt::per_element());
 
   // (iii) use random points
   //
@@ -975,12 +975,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::deep_copy(offset_host, offset);
 
   ref_counts = std::vector<int>(n);
-  zero = std::vector<int>(n);
+  zeros = std::vector<int>(n);
   for (int i = 0; i < n; ++i)
     ref_counts[i] = ref[i].count(indices_host(i));
 
   BOOST_TEST(offset_host == offset_ref, tt::per_element());
-  BOOST_TEST(ref_counts != zero, tt::per_element());
+  BOOST_TEST(ref_counts != zeros, tt::per_element());
 }
 
 std::vector<std::array<double, 3>>
