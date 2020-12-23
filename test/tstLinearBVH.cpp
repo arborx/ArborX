@@ -800,11 +800,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::deep_copy(offset_host, offset);
 
   // we expect the collision list to be diag(0, 1, ..., nx*ny*nz-1)
-  for (int i = 0; i < n; ++i)
-  {
-    BOOST_TEST(indices_host(i) == i);
-    BOOST_TEST(offset_host(i) == i);
-  }
+  std::vector<int> indices_ref(n);
+  std::vector<int> offset_ref(n + 1);
+  std::iota(indices_ref.begin(), indices_ref.end(), 0);
+  std::iota(offset_ref.begin(), offset_ref.end(), 0);
+  BOOST_TEST(indices_host == indices_ref, tt::per_element());
+  BOOST_TEST(offset_host == offset_ref, tt::per_element());
 
   // (ii) use bounding boxes that intersects with first neighbors
   //
@@ -908,16 +909,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
   offset_host = Kokkos::create_mirror_view(offset);
   Kokkos::deep_copy(offset_host, offset);
 
+  std::vector<int> ref_counts(ArborX::lastElement(offset_host));
+  std::vector<int> zero(ref_counts.size());
+
   for (int i = 0; i < nx; ++i)
     for (int j = 0; j < ny; ++j)
       for (int k = 0; k < nz; ++k)
       {
         int index = ind(i, j, k);
         for (int l = offset_host(index); l < offset_host(index + 1); ++l)
-        {
-          BOOST_TEST(ref[index].count(indices_host(l)) != 0);
-        }
+          ref_counts[l] = ref[index].count(indices_host(l));
       }
+  BOOST_TEST(ref_counts != zero, tt::per_element());
 
   // (iii) use random points
   //
@@ -967,11 +970,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
   offset_host = Kokkos::create_mirror_view(offset);
   Kokkos::deep_copy(offset_host, offset);
 
+  ref_counts = std::vector<int>(n);
+  zero = std::vector<int>(n);
   for (int i = 0; i < n; ++i)
-  {
-    BOOST_TEST(offset_host(i) == i);
-    BOOST_TEST(ref[i].count(indices_host(i)) != 0);
-  }
+    ref_counts[i] = ref[i].count(indices_host(i));
+
+  BOOST_TEST(offset_host == offset_ref, tt::per_element());
+  BOOST_TEST(ref_counts != zero, tt::per_element());
 }
 
 std::vector<std::array<double, 3>>
