@@ -65,6 +65,53 @@ struct Box
   Point _max_corner = {{-KokkosExt::ArithmeticTraits::max<float>::value,
                         -KokkosExt::ArithmeticTraits::max<float>::value,
                         -KokkosExt::ArithmeticTraits::max<float>::value}};
+
+  KOKKOS_FUNCTION Box &operator+=(Box const &other)
+  {
+    using KokkosExt::max;
+    using KokkosExt::min;
+
+    for (int d = 0; d < 3; ++d)
+    {
+      minCorner()[d] = min(minCorner()[d], other.minCorner()[d]);
+      maxCorner()[d] = max(maxCorner()[d], other.maxCorner()[d]);
+    }
+    return *this;
+  }
+
+  KOKKOS_FUNCTION void operator+=(Box const volatile &other) volatile
+  {
+    using KokkosExt::max;
+    using KokkosExt::min;
+
+    for (int d = 0; d < 3; ++d)
+    {
+      minCorner()[d] = min(minCorner()[d], other.minCorner()[d]);
+      maxCorner()[d] = max(maxCorner()[d], other.maxCorner()[d]);
+    }
+  }
+
+  KOKKOS_FUNCTION Box &operator+=(Point const &point)
+  {
+    using KokkosExt::max;
+    using KokkosExt::min;
+
+    for (int d = 0; d < 3; ++d)
+    {
+      minCorner()[d] = min(minCorner()[d], point[d]);
+      maxCorner()[d] = max(maxCorner()[d], point[d]);
+    }
+    return *this;
+  }
+
+// FIXME Temporary workaround until we clarify requirements on the Kokkos side.
+#ifdef KOKKOS_ENABLE_OPENMPTARGET
+private:
+  friend KOKKOS_FUNCTION Box operator+(Box box, Box const &other)
+  {
+    return box += other;
+  }
+#endif
 };
 } // namespace ArborX
 
