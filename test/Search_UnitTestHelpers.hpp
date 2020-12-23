@@ -103,6 +103,8 @@ auto query(ExecutionSpace const &exec_space, Tree const &tree,
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
 }
 
+// This is a temporary workaround until we reconcile interfaces of
+// DistributedTree and BVH
 template <typename ExecutionSpace, typename MemorySpace, typename Queries>
 auto query(ExecutionSpace const &exec_space,
            ArborX::BVH<MemorySpace> const &tree, Queries const &queries)
