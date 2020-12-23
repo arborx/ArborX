@@ -741,6 +741,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
   }
 }
 
+// FIXME temporary workaround bug in HIP-Clang (register spill) and SYCL
+#if defined(KOKKOS_ENABLE_HIP) || defined(KOKKOS_ENABLE_SYCL)
+BOOST_TEST_DECORATOR(*boost::unit_test::expected_failures(5))
+#endif
 BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
