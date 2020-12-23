@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
     Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
     bvh.query(ExecutionSpace{}, FirstOctant{}, PrintfCallback{}, values,
               offsets);
-#if !defined(__NVCC__)
+#ifndef __NVCC__
     bvh.query(ExecutionSpace{}, FirstOctant{},
               KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
                             auto /*output_functor*/) {
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
     Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
     bvh.query(ExecutionSpace{}, NearestToOrigin{k}, PrintfCallback{}, values,
               offsets);
-#if !defined(__NVCC__)
+#ifndef __NVCC__
     bvh.query(ExecutionSpace{}, NearestToOrigin{k},
               KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
                             auto /*output_functor*/) {
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
     Kokkos::View<int, ExecutionSpace, Kokkos::MemoryTraits<Kokkos::Atomic>> c(
         "counter");
 
-#if !defined(__NVCC__)
+#ifndef __NVCC__
     bvh.query(ExecutionSpace{}, FirstOctant{},
               KOKKOS_LAMBDA(auto /*predicate*/, int j) {
 #ifndef __SYCL_DEVICE_ONLY__
