@@ -105,7 +105,7 @@ struct Box
   }
 
 // FIXME Temporary workaround until we clarify requirements on the Kokkos side.
-#ifdef KOKKOS_ENABLE_OPENMPTARGET
+#if defined(KOKKOS_ENABLE_OPENMPTARGET) || defined(KOKKOS_ENABLE_SYCL)
 private:
   friend KOKKOS_FUNCTION Box operator+(Box box, Box const &other)
   {
