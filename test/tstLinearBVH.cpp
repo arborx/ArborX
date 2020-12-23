@@ -789,8 +789,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
                          queries(i) = ArborX::intersects(bounding_boxes(i));
                        });
 
-  Kokkos::View<int *, DeviceType> indices("indices", n);
-  Kokkos::View<int *, DeviceType> offset("offset", n);
+  Kokkos::View<int *, DeviceType> indices("indices", 0);
+  Kokkos::View<int *, DeviceType> offset("offset", 0);
 
   ArborX::query(bvh, ExecutionSpace{}, queries, indices, offset);
 
