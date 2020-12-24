@@ -171,6 +171,18 @@ bool intersects(Sphere const &sphere, Box const &box)
   return distance(sphere.centroid(), box) <= sphere.radius();
 }
 
+KOKKOS_INLINE_FUNCTION
+bool intersects(Sphere const &sphere, Point const &point)
+{
+  return distance(sphere.centroid(), point) <= sphere.radius();
+}
+
+KOKKOS_INLINE_FUNCTION
+bool intersects(Point const &point, Sphere const &sphere)
+{
+  return intersects(sphere, point);
+}
+
 // calculate the centroid of a box
 KOKKOS_INLINE_FUNCTION
 void centroid(Box const &box, Point &c)
