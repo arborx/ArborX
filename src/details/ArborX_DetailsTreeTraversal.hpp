@@ -268,17 +268,16 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   {
   };
 
-  KOKKOS_FUNCTION int operator()(OneLeafTree, int queryIndex) const
+  KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
     auto const k = getK(predicate);
 
     // NOTE thinking about making this a precondition
     if (k < 1)
-      return 0;
+      return;
 
     _callback(predicate, 0);
-    return 1;
   }
 
   template <typename Tag = typename Node::Tag>
@@ -299,7 +298,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     return _bvh.getNodePtr(node->left_child)->rope;
   }
 
-  KOKKOS_FUNCTION int operator()(int queryIndex) const
+  KOKKOS_FUNCTION void operator()(int queryIndex) const
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
     auto const k = getK(predicate);
@@ -311,7 +310,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
 
     // NOTE thinking about making this a precondition
     if (k < 1)
-      return 0;
+      return;
 
     // Nodes with a distance that exceed that radius can safely be
     // discarded. Initialize the radius to infinity and tighten it once k
@@ -445,7 +444,6 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
       int const leaf_index = (heap.data() + i)->first;
       _callback(predicate, leaf_index);
     }
-    return heap.size();
   }
 };
 
