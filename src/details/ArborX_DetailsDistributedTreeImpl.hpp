@@ -327,7 +327,7 @@ void DistributedTreeImpl<DeviceType>::deviseStrategy(
   auto const &bottom_tree_sizes = tree._bottom_tree_sizes;
 
   // Find the k nearest local trees.
-  top_tree.query(space, queries, indices, offset);
+  query(top_tree, space, queries, indices, offset);
 
   // Accumulate total leave count in the local trees until it reaches k which
   // is the number of neighbors queried for.  Stop if local trees get
@@ -419,7 +419,7 @@ void DistributedTreeImpl<DeviceType>::reassessStrategy(
             getGeometry(Access::get(queries, i)), farthest_distances(i)});
       });
 
-  top_tree.query(space, radius_searches, indices, offset);
+  query(top_tree, space, radius_searches, indices, offset);
   // NOTE: in principle, we could perform radius searches on the bottom_tree
   // rather than nearest queries.
 
@@ -530,8 +530,8 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
       // Perform queries that have been received
       Kokkos::View<PairIndexDistance *, DeviceType> out(
           "ArborX::DistributedTree::query::pairs_index_distance", 0);
-      bottom_tree.query(space, fwd_queries, callback_with_distance, out,
-                        offset);
+      query(bottom_tree, space, fwd_queries, callback_with_distance, out,
+            offset);
 
       // Unzip
       auto const n = out.extent(0);
@@ -585,7 +585,7 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
       "ArborX::DistributedTree::query::spatial::indices", 0);
   Kokkos::View<int *, DeviceType> ranks(
       "ArborX::DistributedTree::query::spatial::ranks", 0);
-  top_tree.query(space, queries, indices, offset);
+  query(top_tree, space, queries, indices, offset);
 
   {
     // NOTE_COMM_SPATIAL: The communication pattern here for the spatial search
@@ -606,7 +606,7 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
                    ranks);
 
     // Perform queries that have been received
-    bottom_tree.query(space, fwd_queries, callback, out, offset);
+    query(bottom_tree, space, fwd_queries, callback, out, offset);
 
     // Communicate results back
     communicateResultsBack(comm, space, out, offset, ranks, ids);

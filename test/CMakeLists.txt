@@ -97,11 +97,11 @@ target_compile_definitions(ArborX_DetailsBatchedQueries.exe PRIVATE BOOST_TEST_D
 target_include_directories(ArborX_DetailsBatchedQueries.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_DetailsBatchedQueries_Test COMMAND ./ArborX_DetailsBatchedQueries.exe)
 
-add_executable(ArborX_DetailsBufferOptimization.exe tstDetailsBufferOptimization.cpp utf_main.cpp)
-target_link_libraries(ArborX_DetailsBufferOptimization.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_DetailsBufferOptimization.exe PRIVATE BOOST_TEST_DYN_LINK)
-target_include_directories(ArborX_DetailsBufferOptimization.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_DetailsBufferOptimization_Test COMMAND ./ArborX_DetailsBufferOptimization.exe)
+add_executable(ArborX_DetailsCrsGraphWrapperImpl.exe tstDetailsCrsGraphWrapperImpl.cpp utf_main.cpp)
+target_link_libraries(ArborX_DetailsCrsGraphWrapperImpl.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_DetailsCrsGraphWrapperImpl.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_include_directories(ArborX_DetailsCrsGraphWrapperImpl.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_DetailsCrsGraphWrapperImpl_Test COMMAND ./ArborX_DetailsCrsGraphWrapperImpl.exe)
 
 if(ARBORX_ENABLE_MPI)
   add_executable(ArborX_DistributedTree.exe tstDistributedTree.cpp tstKokkosToolsDistributedAnnotations.cpp utf_main.cpp)

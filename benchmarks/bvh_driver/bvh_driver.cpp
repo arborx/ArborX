@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include <ArborX_BoostRTreeHelpers.hpp>
+#include <ArborX_CrsGraphWrapper.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Version.hpp>
 
@@ -225,9 +226,9 @@ void BM_knn_search(benchmark::State &state, Spec const &spec)
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     auto const start = std::chrono::high_resolution_clock::now();
-    index.query(ExecutionSpace{}, queries, indices, offset,
-                ArborX::Experimental::TraversalPolicy().setPredicateSorting(
-                    spec.sort_predicates));
+    ArborX::query(index, ExecutionSpace{}, queries, indices, offset,
+                  ArborX::Experimental::TraversalPolicy().setPredicateSorting(
+                      spec.sort_predicates));
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
@@ -295,10 +296,10 @@ void BM_radius_search(benchmark::State &state, Spec const &spec)
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     Kokkos::View<int *, DeviceType> indices("indices", 0);
     auto const start = std::chrono::high_resolution_clock::now();
-    index.query(ExecutionSpace{}, queries, indices, offset,
-                ArborX::Experimental::TraversalPolicy()
-                    .setPredicateSorting(spec.sort_predicates)
-                    .setBufferSize(spec.buffer_size));
+    ArborX::query(index, ExecutionSpace{}, queries, indices, offset,
+                  ArborX::Experimental::TraversalPolicy()
+                      .setPredicateSorting(spec.sort_predicates)
+                      .setBufferSize(spec.buffer_size));
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());

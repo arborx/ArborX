@@ -11,14 +11,13 @@
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
-#include <ArborX_DetailsBufferOptimization.hpp>
-//#include <ArborX_Callbacks.hpp>
-#include <ArborX_DetailsBoundingVolumeHierarchyImpl.hpp> // FIXME
+#include <ArborX_DetailsCrsGraphWrapperImpl.hpp>
 #include <ArborX_Predicates.hpp>
+#include <ArborX_TraversalPolicy.hpp>
 
 #include <boost/test/unit_test.hpp>
 
-#define BOOST_TEST_MODULE DetailsBufferOptiization
+#define BOOST_TEST_MODULE DetailsCrsGraphWrapperImpl
 
 namespace tt = boost::test_tools;
 
@@ -26,8 +25,10 @@ struct Test1
 {
   template <typename ExecutionSpace, typename Predicates,
             typename InsertGenerator>
-  void launch(ExecutionSpace const &space, Predicates const &predicates,
-              InsertGenerator const &insert_generator) const
+  void query(ExecutionSpace const &space, Predicates const &predicates,
+             InsertGenerator const &insert_generator,
+             ArborX::Experimental::TraversalPolicy const & =
+                 ArborX::Experimental::TraversalPolicy()) const
   {
     using Access = ArborX::AccessTraits<Predicates, ArborX::PredicatesTag>;
 
@@ -69,10 +70,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
 
   ArborX::exclusivePrefixSum(ExecutionSpace{}, offset);
   ArborX::reallocWithoutInitializing(indices, ArborX::lastElement(offset));
-  ArborX::Details::queryImpl(ExecutionSpace{}, Test1{}, predicates,
-                             ArborX::Details::DefaultCallback{}, indices,
-                             offset, permute,
-                             ArborX::Details::BufferStatus::PreallocationHard);
+  ArborX::Details::CrsGraphWrapperImpl::queryImpl(
+      ExecutionSpace{}, Test1{}, predicates, ArborX::Details::DefaultCallback{},
+      indices, offset, permute,
+      ArborX::Details::BufferStatus::PreallocationHard);
 
   auto indices_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);

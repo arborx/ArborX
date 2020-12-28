@@ -312,4 +312,19 @@ private:
 
 } // namespace BoostExt
 
+namespace ArborX
+{
+// Specialization of ArborX::query
+template <typename Indexable, typename ExecutionSpace, typename Predicates,
+          typename InputView, typename... TrailingArgs>
+inline void query(BoostExt::RTree<Indexable> const &rtree,
+                  ExecutionSpace const &space, Predicates const &predicates,
+                  InputView &indices, InputView &offset,
+                  TrailingArgs &&... args)
+{
+  rtree.query(space, predicates, indices, offset,
+              std::forward<TrailingArgs>(args)...);
+}
+} // namespace ArborX
+
 #endif

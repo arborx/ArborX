@@ -18,6 +18,7 @@
 #ifdef ARBORX_ENABLE_MPI
 #include <ArborX_DistributedTree.hpp>
 #endif
+#include <ArborX_CrsGraphWrapper.hpp>
 #include <ArborX_Exception.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Point.hpp>
