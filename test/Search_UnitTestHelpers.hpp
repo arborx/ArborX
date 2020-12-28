@@ -16,7 +16,6 @@
 #include "boost_ext/KokkosPairComparison.hpp"
 #include "boost_ext/TupleComparison.hpp"
 #include "boost_ext/CompressedStorageComparison.hpp"
-#include "VectorOfTuples.hpp"
 // clang-format on
 
 #include "ArborX_BoostRTreeHelpers.hpp"
@@ -30,39 +29,8 @@
 #include <boost/test/unit_test.hpp>
 
 #include <iostream>
-#include <tuple>
+#include <utility>
 #include <vector>
-
-namespace Details
-{
-
-template <typename... Ps>
-struct ArrayTraits<Kokkos::View<Ps...>>
-{
-
-  using array_type = Kokkos::View<Ps...>;
-  static_assert(array_type::rank == 1, "requires rank-1 views");
-  using value_type = typename array_type::value_type;
-  static std::size_t size(array_type const &v) { return v.extent(0); }
-  static value_type const &access(array_type const &v, std::size_t i)
-  {
-    return v(i);
-  }
-};
-
-template <typename T>
-struct ArrayTraits<std::vector<T>>
-{
-  using array_type = std::vector<T>;
-  using value_type = typename array_type::value_type;
-  static std::size_t size(array_type const &v) { return v.size(); }
-  static value_type const &access(array_type const &v, std::size_t i)
-  {
-    return v[i];
-  }
-};
-
-} // namespace Details
 
 template <typename T>
 struct is_distributed : std::false_type
