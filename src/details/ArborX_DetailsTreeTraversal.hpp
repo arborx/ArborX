@@ -272,10 +272,6 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
     auto const k = getK(predicate);
-    auto const distance = [geometry = getGeometry(predicate),
-                           bvh = _bvh](Node const *node) {
-      return Details::distance(geometry, bvh.getBoundingVolume(node));
-    };
 
     // NOTE thinking about making this a precondition
     if (k < 1)
