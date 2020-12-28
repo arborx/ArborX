@@ -50,14 +50,9 @@ target_link_libraries(ArborX_Callbacks.exe PRIVATE ArborX)
 add_executable(ArborX_DetailsConcepts.exe tstDetailsConcepts.cpp)
 target_link_libraries(ArborX_DetailsConcepts.exe PRIVATE ArborX)
 
-add_executable(ArborX_Miscellaneous.exe tstMiscellaneous.cpp tstException.cpp)
+add_executable(ArborX_DetailsUtils.exe tstDetailsUtils.cpp utf_main.cpp)
 # TODO link Boost::dynamic_linking interface target to enable dynamic linking
 # (adds BOOST_ALL_DYN_LINK)
-target_link_libraries(ArborX_Miscellaneous.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_Miscellaneous.exe PRIVATE BOOST_TEST_DYN_LINK)
-add_test(NAME ArborX_Miscellaneous_Test COMMAND ./ArborX_Miscellaneous.exe)
-
-add_executable(ArborX_DetailsUtils.exe tstDetailsUtils.cpp utf_main.cpp)
 target_link_libraries(ArborX_DetailsUtils.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_DetailsUtils.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_DetailsUtils.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
