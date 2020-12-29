@@ -67,10 +67,20 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
               std::is_same<typename Node::Tag, NodeWithLeftChildAndRopeTag>{},
           "Unrecognized node tag");
 
-      Kokkos::parallel_for("ArborX::TreeTraversal::spatial",
-                           Kokkos::RangePolicy<ExecutionSpace>(
-                               space, 0, Access::size(predicates)),
-                           *this);
+#if defined(KOKKOS_ENABLE_CUDA) && KOKKOS_VERSION >= 30300
+      if (std::is_same<ExecutionSpace, Kokkos::Cuda>{})
+        Kokkos::parallel_for("ArborX::TreeTraversal::spatial",
+                             Kokkos::Experimental::prefer(
+                                 Kokkos::RangePolicy<ExecutionSpace>(
+                                     space, 0, Access::size(predicates)),
+                                 Kokkos::Experimental::DesiredOccupancy{75}),
+                             *this);
+      else
+#endif
+        Kokkos::parallel_for("ArborX::TreeTraversal::spatial",
+                             Kokkos::RangePolicy<ExecutionSpace>(
+                                 space, 0, Access::size(predicates)),
+                             *this);
     }
   }
 
@@ -258,10 +268,20 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
 
       allocateBuffer(space);
 
-      Kokkos::parallel_for("ArborX::TreeTraversal::nearest",
-                           Kokkos::RangePolicy<ExecutionSpace>(
-                               space, 0, Access::size(predicates)),
-                           *this);
+#if defined(KOKKOS_ENABLE_CUDA) && KOKKOS_VERSION >= 30300
+      if (std::is_same<ExecutionSpace, Kokkos::Cuda>{})
+        Kokkos::parallel_for("ArborX::TreeTraversal::nearest",
+                             Kokkos::Experimental::prefer(
+                                 Kokkos::RangePolicy<ExecutionSpace>(
+                                     space, 0, Access::size(predicates)),
+                                 Kokkos::Experimental::DesiredOccupancy{75}),
+                             *this);
+      else
+#endif
+        Kokkos::parallel_for("ArborX::TreeTraversal::nearest",
+                             Kokkos::RangePolicy<ExecutionSpace>(
+                                 space, 0, Access::size(predicates)),
+                             *this);
     }
   }
 
