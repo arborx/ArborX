@@ -405,7 +405,7 @@ pipeline {
                                     -D CMAKE_BUILD_TYPE=Debug \
                                     -D CMAKE_CXX_COMPILER=clang++ \
                                     -D CMAKE_CXX_EXTENSIONS=OFF \
-                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra -Wno-unknown-cuda-version -fsycl -fsycl-targets=nvptx64-nvidia-cuda-sycldevice" \
+                                    -D CMAKE_CXX_FLAGS="-Wpedantic -DNDEBUG -Wall -Wextra -Wno-unknown-cuda-version -fsycl -fsycl-targets=nvptx64-nvidia-cuda-sycldevice" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR;$ONE_DPL_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
                                     -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
