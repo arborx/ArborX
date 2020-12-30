@@ -198,10 +198,16 @@ void BM_construction(benchmark::State &state, Spec const &spec)
   auto const points =
       constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type);
 
+  ExecutionSpace exec_space;
+
   for (auto _ : state)
   {
+    exec_space.fence();
     auto const start = std::chrono::high_resolution_clock::now();
-    TreeType index(ExecutionSpace{}, points);
+
+    TreeType index(exec_space, points);
+
+    exec_space.fence();
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
@@ -214,9 +220,10 @@ void BM_knn_search(benchmark::State &state, Spec const &spec)
   using DeviceType =
       Kokkos::Device<ExecutionSpace, typename TreeType::memory_space>;
 
-  TreeType index(
-      ExecutionSpace{},
-      constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type));
+  ExecutionSpace exec_space;
+
+  TreeType index(exec_space, constructPoints<DeviceType>(
+                                 spec.n_values, spec.source_point_cloud_type));
   auto const queries = makeNearestQueries<DeviceType>(
       spec.n_values, spec.n_queries, spec.n_neighbors,
       spec.target_point_cloud_type);
@@ -225,10 +232,15 @@ void BM_knn_search(benchmark::State &state, Spec const &spec)
   {
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     Kokkos::View<int *, DeviceType> indices("indices", 0);
+
+    exec_space.fence();
     auto const start = std::chrono::high_resolution_clock::now();
-    ArborX::query(index, ExecutionSpace{}, queries, indices, offset,
+
+    ArborX::query(index, exec_space, queries, indices, offset,
                   ArborX::Experimental::TraversalPolicy().setPredicateSorting(
                       spec.sort_predicates));
+
+    exec_space.fence();
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
@@ -254,9 +266,10 @@ void BM_knn_callback_search(benchmark::State &state, Spec const &spec)
   using DeviceType =
       Kokkos::Device<ExecutionSpace, typename TreeType::memory_space>;
 
-  TreeType index(
-      ExecutionSpace{},
-      constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type));
+  ExecutionSpace exec_space;
+
+  TreeType index(exec_space, constructPoints<DeviceType>(
+                                 spec.n_values, spec.source_point_cloud_type));
   auto const queries_no_index = makeNearestQueries<DeviceType>(
       spec.n_values, spec.n_queries, spec.n_neighbors,
       spec.target_point_cloud_type);
@@ -268,10 +281,14 @@ void BM_knn_callback_search(benchmark::State &state, Spec const &spec)
                                               spec.n_queries);
     CountCallback<DeviceType> callback{num_neigh};
 
+    exec_space.fence();
     auto const start = std::chrono::high_resolution_clock::now();
-    index.query(ExecutionSpace{}, queries, callback,
+
+    index.query(exec_space, queries, callback,
                 ArborX::Experimental::TraversalPolicy().setPredicateSorting(
                     spec.sort_predicates));
+
+    exec_space.fence();
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
@@ -284,9 +301,10 @@ void BM_radius_search(benchmark::State &state, Spec const &spec)
   using DeviceType =
       Kokkos::Device<ExecutionSpace, typename TreeType::memory_space>;
 
-  TreeType index(
-      ExecutionSpace{},
-      constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type));
+  ExecutionSpace exec_space;
+
+  TreeType index(exec_space, constructPoints<DeviceType>(
+                                 spec.n_values, spec.source_point_cloud_type));
   auto const queries = makeSpatialQueries<DeviceType>(
       spec.n_values, spec.n_queries, spec.n_neighbors,
       spec.target_point_cloud_type);
@@ -295,11 +313,16 @@ void BM_radius_search(benchmark::State &state, Spec const &spec)
   {
     Kokkos::View<int *, DeviceType> offset("offset", 0);
     Kokkos::View<int *, DeviceType> indices("indices", 0);
+
+    exec_space.fence();
     auto const start = std::chrono::high_resolution_clock::now();
-    ArborX::query(index, ExecutionSpace{}, queries, indices, offset,
+
+    ArborX::query(index, exec_space, queries, indices, offset,
                   ArborX::Experimental::TraversalPolicy()
                       .setPredicateSorting(spec.sort_predicates)
                       .setBufferSize(spec.buffer_size));
+
+    exec_space.fence();
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
@@ -311,6 +334,8 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
 {
   using DeviceType =
       Kokkos::Device<ExecutionSpace, typename TreeType::memory_space>;
+
+  ExecutionSpace exec_space;
 
   TreeType index(
       ExecutionSpace{},
@@ -326,11 +351,15 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
                                               spec.n_queries);
     CountCallback<DeviceType> callback{num_neigh};
 
+    exec_space.fence();
     auto const start = std::chrono::high_resolution_clock::now();
-    index.query(ExecutionSpace{}, queries, callback,
+
+    index.query(exec_space, queries, callback,
                 ArborX::Experimental::TraversalPolicy()
                     .setPredicateSorting(spec.sort_predicates)
                     .setBufferSize(spec.buffer_size));
+
+    exec_space.fence();
     auto const end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     state.SetIterationTime(elapsed_seconds.count());
