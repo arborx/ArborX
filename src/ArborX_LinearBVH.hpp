@@ -108,20 +108,20 @@ private:
 
   Kokkos::View<node_type *, MemorySpace> getInternalNodes()
   {
-    assert(!empty());
+    ARBORX_ASSERT(!empty());
     return Kokkos::subview(_internal_and_leaf_nodes,
                            std::make_pair(size_type{0}, size() - 1));
   }
 
   Kokkos::View<node_type *, MemorySpace> getLeafNodes()
   {
-    assert(!empty());
+    ARBORX_ASSERT(!empty());
     return Kokkos::subview(_internal_and_leaf_nodes,
                            std::make_pair(size() - 1, 2 * size() - 1));
   }
   Kokkos::View<node_type const *, MemorySpace> getLeafNodes() const
   {
-    assert(!empty());
+    ARBORX_ASSERT(!empty());
     return Kokkos::subview(_internal_and_leaf_nodes,
                            std::make_pair(size() - 1, 2 * size() - 1));
   }

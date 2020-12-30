@@ -285,7 +285,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
       std::enable_if_t<std::is_same<Tag, NodeWithTwoChildrenTag>{}, int>
       getRightChild(Node const *node) const
   {
-    assert(!node->isLeaf());
+    ARBORX_ASSERT(!node->isLeaf());
     return node->right_child;
   }
 
@@ -294,7 +294,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
       std::enable_if_t<std::is_same<Tag, NodeWithLeftChildAndRopeTag>{}, int>
       getRightChild(Node const *node) const
   {
-    assert(!node->isLeaf());
+    ARBORX_ASSERT(!node->isLeaf());
     return _bvh.getNodePtr(node->left_child)->rope;
   }
 
@@ -335,7 +335,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     // preserve the heap structure internally at all time.  There is no
     // memory allocation, elements are stored in the buffer passed as an
     // argument. The farthest leaf node is on top.
-    assert(k == (int)buffer.size());
+    ARBORX_ASSERT(k == (int)buffer.size());
     PriorityQueue<PairIndexDistance, CompareDistance,
                   UnmanagedStaticVector<PairIndexDistance>>
         heap(UnmanagedStaticVector<PairIndexDistance>(buffer.data(),

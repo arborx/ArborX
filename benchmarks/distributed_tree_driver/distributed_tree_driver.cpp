@@ -55,13 +55,13 @@ public:
     }
     void start()
     {
-      assert(!_started);
+      ARBORX_ASSERT(!_started);
       _tick = std::chrono::high_resolution_clock::now();
       _started = true;
     }
     void stop()
     {
-      assert(_started);
+      ARBORX_ASSERT(_started);
       std::chrono::duration<double> duration =
           std::chrono::high_resolution_clock::now() - _tick;
       // NOTE I have put much thought into whether we should use the

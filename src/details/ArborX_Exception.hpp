@@ -11,6 +11,8 @@
 #ifndef ARBORX_SEARCH_EXCEPTION_HPP
 #define ARBORX_SEARCH_EXCEPTION_HPP
 
+#include <impl/Kokkos_Error.hpp>
+
 #include <stdexcept>
 #include <string>
 
@@ -34,7 +36,6 @@ public:
 // Once moved out, possibly make it conditional
 #define ARBORX_ASSERT(c)                                                       \
   if (!(c))                                                                    \
-  throw ArborX::SearchException(#c ", failed at " __FILE__                     \
-                                   ":" ARBORX_STRINGIZE(__LINE__) ".")
+  Kokkos::abort(#c ", failed at " __FILE__ ":" ARBORX_STRINGIZE(__LINE__) ".")
 
 #endif

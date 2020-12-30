@@ -218,7 +218,7 @@ public:
   KOKKOS_FUNCTION std::enable_if_t<std::is_same<Tag, NodeWithTwoChildrenTag>{}>
   setRightChild(Node *node, int child_right) const
   {
-    assert(!node->isLeaf());
+    ARBORX_ASSERT(!node->isLeaf());
     node->right_child = child_right;
   }
 
@@ -227,7 +227,7 @@ public:
       std::enable_if_t<std::is_same<Tag, NodeWithLeftChildAndRopeTag>{}>
       setRightChild(Node *node, int) const
   {
-    assert(!node->isLeaf());
+    ARBORX_ASSERT(!node->isLeaf());
     (void)node;
   }
 

@@ -13,6 +13,7 @@
 #define ARBORX_NODE_HPP
 
 #include <ArborX_Box.hpp>
+#include <details/ArborX_Exception.hpp>
 
 #include <Kokkos_Pair.hpp>
 
@@ -45,7 +46,7 @@ struct NodeWithTwoChildren
   KOKKOS_INLINE_FUNCTION constexpr std::size_t getLeafPermutationIndex() const
       noexcept
   {
-    assert(isLeaf());
+    ARBORX_ASSERT(isLeaf());
     return right_child;
   }
 
@@ -82,7 +83,7 @@ struct NodeWithLeftChildAndRope
   KOKKOS_INLINE_FUNCTION constexpr std::size_t getLeafPermutationIndex() const
       noexcept
   {
-    assert(isLeaf());
+    ARBORX_ASSERT(isLeaf());
     return -left_child;
   }
 

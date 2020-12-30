@@ -14,6 +14,7 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsKokkosExt.hpp>
 #include <ArborX_Point.hpp>
+#include <details/ArborX_Exception.hpp>
 
 #include <Kokkos_Macros.hpp>
 
@@ -51,7 +52,7 @@ struct Ray
   KOKKOS_FUNCTION static void normalize(Vector &v)
   {
     auto const magv = norm(v);
-    assert(magv > 0);
+    ARBORX_ASSERT(magv > 0);
     for (int d = 0; d < 3; ++d)
       v[d] /= magv;
   }
