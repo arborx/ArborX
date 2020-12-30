@@ -355,9 +355,8 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
     auto const start = std::chrono::high_resolution_clock::now();
 
     index.query(exec_space, queries, callback,
-                ArborX::Experimental::TraversalPolicy()
-                    .setPredicateSorting(spec.sort_predicates)
-                    .setBufferSize(spec.buffer_size));
+                ArborX::Experimental::TraversalPolicy().setPredicateSorting(
+                    spec.sort_predicates));
 
     exec_space.fence();
     auto const end = std::chrono::high_resolution_clock::now();
