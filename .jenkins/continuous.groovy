@@ -402,7 +402,7 @@ pipeline {
                             sh '''
                                 cmake \
                                     -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
-                                    -D CMAKE_BUILD_TYPE=Release \
+                                    -D CMAKE_BUILD_TYPE=Debug \
                                     -D CMAKE_CXX_COMPILER=clang++ \
                                     -D CMAKE_CXX_EXTENSIONS=OFF \
                                     -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra -Wno-unknown-cuda-version -fsycl -fsycl-targets=nvptx64-nvidia-cuda-sycldevice" \
