@@ -68,6 +68,10 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
           "Unrecognized node tag");
 
 #if defined(KOKKOS_ENABLE_CUDA) && KOKKOS_VERSION >= 30300
+      // While DesiredOccupancy option is only implemented for Cuda and is
+      // no-op for other backends, we don't want a surprise in the future once
+      // it's implemented for HIP. It is also unclear at this point what HIP
+      // value is going to be.
       if (std::is_same<ExecutionSpace, Kokkos::Cuda>{})
         Kokkos::parallel_for("ArborX::TreeTraversal::spatial",
                              Kokkos::Experimental::prefer(
@@ -269,6 +273,10 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
       allocateBuffer(space);
 
 #if defined(KOKKOS_ENABLE_CUDA) && KOKKOS_VERSION >= 30300
+      // While DesiredOccupancy option is only implemented for Cuda and is
+      // no-op for other backends, we don't want a surprise in the future once
+      // it's implemented for HIP. It is also unclear at this point what HIP
+      // value is going to be.
       if (std::is_same<ExecutionSpace, Kokkos::Cuda>{})
         Kokkos::parallel_for("ArborX::TreeTraversal::nearest",
                              Kokkos::Experimental::prefer(
