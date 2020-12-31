@@ -54,6 +54,7 @@ RUN SYCL_VERSION=20210311 && \
     python3 buildbot/configure.py --cuda && \
     python3 buildbot/compile.py && \
     mkdir -p ${SYCL_DIR} && \
+    cp ${SCRATCH_DIR}/llvm/build/bin/clang-offload-deps ${SCRATCH_DIR}/llvm/build/install/bin && \
     mv ${SCRATCH_DIR}/llvm/build/install/* ${SYCL_DIR} && \
     echo "${SYCL_DIR}/lib" > /etc/ld.so.conf.d/sycl.conf && ldconfig && \
     rm -rf ${SCRATCH_DIR}
