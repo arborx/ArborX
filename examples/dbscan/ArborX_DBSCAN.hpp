@@ -120,29 +120,45 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
 
   clock::time_point start_total;
   clock::time_point start;
-  clock::time_point start_local;
-  std::chrono::duration<double> elapsed_construction;
-  std::chrono::duration<double> elapsed_stat;
-  std::chrono::duration<double> elapsed_neigh;
-  std::chrono::duration<double> elapsed_query;
-  std::chrono::duration<double> elapsed_cluster;
+  std::chrono::duration<double> elapsed_construction = clock::duration::zero();
+  std::chrono::duration<double> elapsed_stat = clock::duration::zero();
+  std::chrono::duration<double> elapsed_neigh = clock::duration::zero();
+  std::chrono::duration<double> elapsed_query = clock::duration::zero();
+  std::chrono::duration<double> elapsed_cluster = clock::duration::zero();
   std::chrono::duration<double> elapsed_total = clock::duration::zero();
-  std::chrono::duration<double> elapsed_verify;
+  std::chrono::duration<double> elapsed_verify = clock::duration::zero();
 
-  start_total = clock::now();
+  auto clock_start = [&exec_space, verbose](clock::time_point &clock_time) {
+    if (verbose)
+    {
+      exec_space.fence();
+      clock_time = clock::now();
+    }
+  };
+  auto clock_stop = [&exec_space,
+                     verbose](clock::time_point const &clock_time,
+                              std::chrono::duration<double> &elapsed) {
+    if (verbose)
+    {
+      exec_space.fence();
+      elapsed += clock::now() - clock_time;
+    }
+  };
+
+  clock_start(start_total);
 
   auto const predicates = buildPredicates(primitives, eps);
 
   int const n = primitives.extent_int(0);
 
   // Build the tree
-  start = clock::now();
+  clock_start(start);
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::tree_construction");
   ArborX::BVH<MemorySpace> bvh(exec_space, primitives);
   Kokkos::Profiling::popRegion();
-  elapsed_construction = clock::now() - start;
+  clock_stop(start, elapsed_construction);
 
-  start = clock::now();
+  clock_start(start);
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters");
 
   Kokkos::View<int *, MemorySpace> stat(
@@ -152,6 +168,7 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
   if (core_min_size == 1)
   {
     // Perform the queries and build clusters through callback
+
     using CorePoints = CCSCorePoints;
     CorePoints core_points;
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
@@ -163,7 +180,8 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
   else
   {
     // Determine core points
-    start_local = clock::now();
+    clock::time_point start_local;
+    clock_start(start_local);
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::num_neigh");
     Kokkos::View<int *, MemorySpace> num_neigh(
         Kokkos::ViewAllocateWithoutInitializing(
@@ -174,17 +192,18 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
     bvh.query(exec_space, predicates,
               NumNeighEarlyExitCallback<MemorySpace>{num_neigh, core_min_size});
     Kokkos::Profiling::popRegion();
-    elapsed_neigh = clock::now() - start_local;
+    clock_stop(start_local, elapsed_neigh);
 
     using CorePoints = DBSCANCorePoints<MemorySpace>;
 
-    start_local = clock::now();
+    // Perform the queries and build clusters through callback
+    clock_start(start_local);
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters:query");
     bvh.query(exec_space, predicates,
               Details::DBSCANCallback<MemorySpace, CorePoints>{
                   stat, CorePoints{num_neigh, core_min_size}});
     Kokkos::Profiling::popRegion();
-    elapsed_query = clock::now() - start_local;
+    clock_stop(start_local, elapsed_query);
   }
 
   // Per [1]:
@@ -208,15 +227,16 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
                            stat(i) = vstat;
                        });
   Kokkos::Profiling::popRegion();
-  elapsed_stat = clock::now() - start;
+  clock_stop(start, elapsed_stat);
 
-  // Use new name to clearly demonstrate the meaning of this view from now on
+  // Use new name to clearly demonstrate the meaning of this view from now
+  // on
   auto clusters = stat;
 
-  elapsed_total += clock::now() - start_total;
   if (verify)
   {
-    start = clock::now();
+    clock_stop(start_total, elapsed_total);
+    clock_start(start);
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::verify");
 
     Kokkos::View<int *, MemorySpace> indices("indices", 0);
@@ -228,12 +248,12 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
     printf("Verification %s\n", (passed ? "passed" : "failed"));
 
     Kokkos::Profiling::popRegion();
-    elapsed_verify = clock::now() - start;
+    clock_stop(start, elapsed_verify);
+    clock_start(start_total);
   }
-  start_total = clock::now();
 
   // find clusters
-  start = clock::now();
+  clock_start(start);
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::sort_and_filter_clusters");
 
   Kokkos::View<int *, MemorySpace> cluster_sizes(
@@ -311,9 +331,9 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
       });
 
   Kokkos::Profiling::popRegion();
-  elapsed_cluster = clock::now() - start;
+  clock_stop(start, elapsed_cluster);
 
-  elapsed_total += clock::now() - start_total;
+  clock_stop(start_total, elapsed_total);
 
   if (verbose)
   {
