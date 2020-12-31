@@ -1009,10 +1009,6 @@ std::vector<std::array<double, 3>> make_random_cloud(double Lx, double Ly,
   return cloud;
 }
 
-// FIXME temporary workaround bug in HIP-Clang (register spill)
-#ifdef KOKKOS_ENABLE_HIP
-BOOST_TEST_DECORATOR(*boost::unit_test::expected_failures(2))
-#endif
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
