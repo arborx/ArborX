@@ -23,6 +23,8 @@ struct Tuple
 };
 
 #ifndef ARBORX_TEST_TREE_TYPES
+// NOTE Emulate resulting name from using ArborX::BoundingVolumeHierarchy as
+// template parameter in Boost.Test
 template <class MemorySpace>
 using ArborX__BoundingVolumeHierarchy =
     ArborX::BoundingVolumeHierarchy<MemorySpace>;
