@@ -14,7 +14,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <algorithm>
+#include <numeric>
 #include <vector>
 
 #include "Search_UnitTestHelpers.hpp"
