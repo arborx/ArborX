@@ -23,7 +23,7 @@
 
 #include "Search_UnitTestHelpers.hpp"
 
-BOOST_AUTO_TEST_SUITE(ComparisonWithBoostGeometryIndex)
+BOOST_AUTO_TEST_SUITE(ComparisonWithBoost)
 
 namespace tt = boost::test_tools;
 
