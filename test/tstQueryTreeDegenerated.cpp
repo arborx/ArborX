@@ -97,10 +97,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree, TreeTypeTraits,
   using DeviceType = typename TreeTypeTraits::device_type;
 
   // tree has a single leaf (unit box)
-  auto const tree = make<ArborX::BVH<typename DeviceType::memory_space>>(
-      ExecutionSpace{}, {
-                            {{{0., 0., 0.}}, {{1., 1., 1.}}},
-                        });
+  auto const tree =
+      make<Tree>(ExecutionSpace{}, {
+                                       {{{0., 0., 0.}}, {{1., 1., 1.}}},
+                                   });
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 1);
@@ -155,11 +155,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree, TreeTypeTraits,
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
 
-  auto const tree = make<ArborX::BVH<typename DeviceType::memory_space>>(
-      ExecutionSpace{}, {
-                            {{{0., 0., 0.}}, {{0., 0., 0.}}},
-                            {{{1., 1., 1.}}, {{1., 1., 1.}}},
-                        });
+  auto const tree =
+      make<Tree>(ExecutionSpace{}, {
+                                       {{{0., 0., 0.}}, {{0., 0., 0.}}},
+                                       {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                                   });
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 2);
@@ -228,16 +228,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves, TreeTypeTraits,
   // when building trees over ~10M indexable values.  The hierarchy generated
   // at construction had leaves with no parent which yielded a segfault later
   // when computing bounding boxes and walking the hierarchy toward the root.
-  auto const bvh = make<ArborX::BVH<typename DeviceType::memory_space>>(
-      ExecutionSpace{}, {
-                            {{{0., 0., 0.}}, {{0., 0., 0.}}},
-                            {{{1., 1., 1.}}, {{1., 1., 1.}}},
-                            {{{1., 1., 1.}}, {{1., 1., 1.}}},
-                            {{{1., 1., 1.}}, {{1., 1., 1.}}},
-                        });
+  auto const tree =
+      make<Tree>(ExecutionSpace{}, {
+                                       {{{0., 0., 0.}}, {{0., 0., 0.}}},
+                                       {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                                       {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                                       {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                                   });
 
   ARBORX_TEST_QUERY_TREE(
-      ExecutionSpace{}, bvh,
+      ExecutionSpace{}, tree,
       makeIntersectsSphereQueries<DeviceType>({
           {{{0., 0., 0.}}, 1.},
           {{{1., 1., 1.}}, 1.},
@@ -253,7 +253,8 @@ BOOST_AUTO_TEST_SUITE(Miscellaneous)
 BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity, TreeTypeTraits,
                               TreeTypeTraitsList)
 {
-  using Tree = typename TreeTypeTraits::type;
+  // FIXME This unit test might make little sense for other trees than BVH
+  // using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
 
