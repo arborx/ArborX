@@ -60,24 +60,24 @@ struct Concatenate<std::tuple<Ts...>, std::tuple<Us...>>
 };
 
 template <class T, class U>
-struct CrossProduct;
+struct CartesianProduct;
 
 template <class... Us>
-struct CrossProduct<Tuple<>, std::tuple<Us...>>
+struct CartesianProduct<Tuple<>, std::tuple<Us...>>
 {
   using type = std::tuple<>;
 };
 
 template <template <class> class T, template <class> class... Ts, class... Us>
-struct CrossProduct<Tuple<T, Ts...>, std::tuple<Us...>>
+struct CartesianProduct<Tuple<T, Ts...>, std::tuple<Us...>>
 {
   using type = typename Concatenate<
       std::tuple<TreeExecutionAndMemorySpaces<T, Us>...>,
-      typename CrossProduct<Tuple<Ts...>, std::tuple<Us...>>::type>::type;
+      typename CartesianProduct<Tuple<Ts...>, std::tuple<Us...>>::type>::type;
 };
 
 using TreeTypeTraitsList =
-    typename CrossProduct<ARBORX_TEST_TREE_TYPES,
-                          ARBORX_TEST_DEVICE_TYPES>::type;
+    typename CartesianProduct<ARBORX_TEST_TREE_TYPES,
+                              ARBORX_TEST_DEVICE_TYPES>::type;
 
 #endif
