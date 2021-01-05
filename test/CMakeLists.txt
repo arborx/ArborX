@@ -64,10 +64,29 @@ target_compile_definitions(ArborX_DetailsAlgorithms.exe PRIVATE BOOST_TEST_MAIN 
 target_include_directories(ArborX_DetailsAlgorithms.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_DetailsAlgorithms_Test COMMAND ./ArborX_DetailsAlgorithms.exe)
 
-add_executable(ArborX_LinearBVH.exe tstLinearBVH.cpp tstKokkosToolsAnnotations.cpp utf_main.cpp)
+set(ARBORX_TEST_QUERY_TREE_SOURCES)
+foreach(_test Degenerate)
+  set(_suffix "_InstantiateAll")
+  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}${_suffix}.cpp"
+    "#include <ArborX_LinearBVH.hpp>\n"
+    "template <class MemorySpace> using ArborX__BoundingVolumeHierarchy = ArborX::BVH<MemorySpace>;\n"
+    "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX__BoundingVolumeHierarchy>\n"
+    "#define ARBORX_TEST_DEVICE_TYPES std::tuple<${ARBORX_DEVICE_TYPES}>\n"
+    "#include <tstQueryTree${_test}.cpp>\n"
+  )
+  list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}${_suffix}.cpp")
+endforeach()
+add_executable(ArborX_LinearBVH.exe
+  ${ARBORX_TEST_QUERY_TREE_SOURCES}
+  tstQueryTreeComparisonWithBoost.cpp
+  tstQueryTreeManufacturedSolution.cpp
+  tstQueryTreeCallbacks.cpp
+  tstQueryTreeTraversalPolicy.cpp
+  tstKokkosToolsAnnotations.cpp
+  utf_main.cpp)
 target_link_libraries(ArborX_LinearBVH.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_LinearBVH.exe PRIVATE BOOST_TEST_DYN_LINK)
-target_include_directories(ArborX_LinearBVH.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(ArborX_LinearBVH.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 add_test(NAME ArborX_LinearBVH_Test COMMAND ./ArborX_LinearBVH.exe)
 
 add_executable(ArborX_DetailsTreeConstruction.exe tstDetailsTreeConstruction.cpp utf_main.cpp)
