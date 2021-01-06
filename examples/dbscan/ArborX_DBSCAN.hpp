@@ -224,8 +224,8 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
     timer_start(timer);
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::verify");
 
-    Kokkos::View<int *, MemorySpace> indices("indices", 0);
-    Kokkos::View<int *, MemorySpace> offset("offset", 0);
+    Kokkos::View<int *, MemorySpace> indices("ArborX::DBSCAN::indices", 0);
+    Kokkos::View<int *, MemorySpace> offset("ArborX::DBSCAN::offset", 0);
     ArborX::query(bvh, exec_space, predicates, indices, offset);
 
     auto passed = Details::verifyClusters(exec_space, indices, offset, clusters,

@@ -123,14 +123,18 @@ bool verifyBoundaryPointsConnectToCorePoints(ExecutionSpace const &exec_space,
 // Check that cluster indices are unique
 template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
           typename ClusterView>
-bool verifyClustersAreUnique(ExecutionSpace const &, IndicesView indices,
-                             OffsetView offset, ClusterView clusters,
-                             int core_min_size)
+bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
+                             IndicesView indices, OffsetView offset,
+                             ClusterView clusters, int core_min_size)
 {
   int n = clusters.size();
 
-  auto clusters_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, clusters);
+  decltype(Kokkos::create_mirror_view(Kokkos::HostSpace{},
+                                      std::declval<ClusterView>()))
+      clusters_host(Kokkos::ViewAllocateWithoutInitializing(
+                        "ArborX::DBSCAN::clusters_host"),
+                    clusters.size());
+  Kokkos::deep_copy(exec_space, clusters_host, clusters);
   auto offset_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
   auto indices_host =
