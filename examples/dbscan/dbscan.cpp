@@ -10,6 +10,8 @@
  ****************************************************************************/
 
 #include <ArborX_DBSCAN.hpp>
+#include <ArborX_DetailsHeap.hpp>
+#include <ArborX_DetailsPriorityQueue.hpp> // Greater
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -154,12 +156,30 @@ int main(int argc, char *argv[])
         "Testing::compute_centers",
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_clusters),
         KOKKOS_LAMBDA(int const i) {
+          // The only reason we use heap here is for reproducibility. Current
+          // DBSCAN algorithm does not guarantee that the indices corresponding
+          // to the same cluster are going to appear in the same order from run
+          // to run. Using heap, we explicitly sort them in ascending order,
+          // thus guaranteeing the same summation order when computing cluster
+          // centers.
+          auto *cluster_start = cluster_indices.data() + cluster_offset(i);
           int cluster_size = cluster_offset(i + 1) - cluster_offset(i);
 
+          // Initialize heap
+          for (int j = 0; j < cluster_size; ++j)
+            ArborX::Details::pushHeap(cluster_start, cluster_start + j + 1,
+                                      ArborX::Details::Greater<int>());
+
           ArborX::Point cluster_center{0.f, 0.f, 0.f};
-          for (int j = cluster_offset(i); j < cluster_offset(i + 1); j++)
+          for (int j = 0; j < cluster_size; ++j)
           {
-            auto const &cluster_point = primitives(cluster_indices(j));
+            // Pop heap
+            ArborX::Details::popHeap(cluster_start,
+                                     cluster_start + cluster_size - j,
+                                     ArborX::Details::Greater<int>());
+            auto index = *(cluster_start + cluster_size - 1 - j);
+
+            auto const &cluster_point = primitives(index);
             // NOTE The explicit casts below are intended to silent warnings
             // about narrowing conversion from 'int' to 'float'.  The potential
             // issue is that 'float' can represent all integer values in the
