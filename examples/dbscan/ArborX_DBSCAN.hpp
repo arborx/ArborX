@@ -215,9 +215,8 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
   Kokkos::Profiling::popRegion();
   elapsed["query+cluster"] = timer_seconds(timer);
 
-  // Use new name to clearly demonstrate the meaning of this view from now
-  // on
-  auto clusters = stat;
+  // Use new name to clearly demonstrate the meaning of this view from now on
+  auto const &clusters = stat;
 
   if (verify)
   {
@@ -256,7 +255,7 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
   //   the offset array
   // We reuse the cluster_sizes array for the second, creating a new alias for
   // it for clarity.
-  auto map_cluster_to_offset_position = cluster_sizes;
+  auto &map_cluster_to_offset_position = cluster_sizes;
   int constexpr IGNORED_CLUSTER = -1;
   int num_clusters;
   reallocWithoutInitializing(cluster_offset, n + 1);
