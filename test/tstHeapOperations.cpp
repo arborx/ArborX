@@ -160,9 +160,24 @@ BOOST_AUTO_TEST_CASE(min_heap)
   BOOST_TEST(a == ref, tt::per_element());
 }
 
+BOOST_AUTO_TEST_CASE(make_heap)
+{
+  for (auto v : {
+           std::vector<int>{}, std::vector<int>{6}, std::vector<int>{2, 1},
+           std::vector<int>{1, 6, 2, 2, 9, 4, 16},
+           std::vector<int>{8, 6, 7, 2, 0}, std::vector<int>{3, 3, 3, 3, 3, 1},
+           std::vector<int>{36, 19, 25, 17, 3, 7, 1, 2, 9}, // <- already a heap
+       })
+  {
+    makeHeap(v.data(), v.data() + v.size(), Less<int>());
+    BOOST_TEST(std::is_heap(v.begin(), v.end()));
+  }
+}
+
 BOOST_AUTO_TEST_CASE(sort_heap)
 {
-  for (auto heap : {std::vector<int>{36, 19, 25, 17, 3, 7, 1, 2, 9},
+  for (auto heap : {std::vector<int>{}, std::vector<int>{3},
+                    std::vector<int>{36, 19, 25, 17, 3, 7, 1, 2, 9},
                     std::vector<int>{36, 19, 25, 17, 3, 9, 1, 2, 7},
                     std::vector<int>{100, 19, 36, 17, 3, 25, 1, 2, 7},
                     std::vector<int>{15, 5, 11, 3, 4, 8}})
@@ -175,13 +190,13 @@ BOOST_AUTO_TEST_CASE(sort_heap)
 
 BOOST_AUTO_TEST_CASE(heap_sort)
 {
-  for (auto heap :
+  for (auto v :
        {std::vector<int>{}, std::vector<int>{1}, std::vector<int>{2, 1},
         std::vector<int>{1, 6, 2, 2, 9, 4, 16}, std::vector<int>{8, 6, 7, 2, 0},
         std::vector<int>{3, 3, 3, 3, 3, 1}})
   {
-    heapSort(heap.data(), heap.data() + heap.size(), Less<int>());
-    BOOST_TEST(std::is_sorted(heap.begin(), heap.end()));
+    heapSort(v.data(), v.data() + v.size(), Less<int>());
+    BOOST_TEST(std::is_sorted(v.begin(), v.end()));
   }
 }
 
