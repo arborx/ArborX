@@ -129,6 +129,10 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
 {
   int n = clusters.size();
 
+  // FIXME we don't want to modify the clusters view in this check. What we
+  // want here is to create a view on the host, and deep_copy into it.
+  // create_mirror_view_and_copy won't work, because it is a no-op if clusters
+  // is already on the host.
   decltype(Kokkos::create_mirror_view(Kokkos::HostSpace{},
                                       std::declval<ClusterView>()))
       clusters_host(Kokkos::ViewAllocateWithoutInitializing(
