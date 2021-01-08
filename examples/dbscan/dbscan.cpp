@@ -162,16 +162,18 @@ int main(int argc, char *argv[])
           // order from run to run. Using sorted indices, we explicitly
           // guarantee the same summation order when computing cluster centers.
 
+          auto *cluster_start = cluster_indices.data() + cluster_offset(i);
+          auto cluster_size = cluster_offset(i + 1) - cluster_offset(i);
+
           // Sort cluster indices in ascending order. This uses heap for
           // sorting, only because there is no other convenient utility that
           // could sort within a kernel.
-          ArborX::Details::heapSort(cluster_indices.data() + cluster_offset(i),
-                                    cluster_indices.data() +
-                                        cluster_offset(i + 1),
+          ArborX::Details::makeHeap(cluster_start, cluster_start + cluster_size,
+                                    ArborX::Details::Less<int>());
+          ArborX::Details::sortHeap(cluster_start, cluster_start + cluster_size,
                                     ArborX::Details::Less<int>());
 
           // Compute cluster centers
-          auto cluster_size = cluster_offset(i + 1) - cluster_offset(i);
           ArborX::Point cluster_center{0.f, 0.f, 0.f};
           for (int j = cluster_offset(i); j < cluster_offset(i + 1); j++)
           {

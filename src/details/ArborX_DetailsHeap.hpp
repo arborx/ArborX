@@ -123,14 +123,6 @@ KOKKOS_INLINE_FUNCTION void sortHeap(RandomIterator first, RandomIterator last,
     popHeap(first, last--, comp);
 }
 
-template <typename RandomIterator, typename Compare>
-KOKKOS_INLINE_FUNCTION void heapSort(RandomIterator first, RandomIterator last,
-                                     Compare comp)
-{
-  makeHeap(first, last, comp);
-  sortHeap(first, last, comp);
-}
-
 } // namespace Details
 } // namespace ArborX
 

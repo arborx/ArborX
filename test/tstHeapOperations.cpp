@@ -188,18 +188,6 @@ BOOST_AUTO_TEST_CASE(sort_heap)
   }
 }
 
-BOOST_AUTO_TEST_CASE(heap_sort)
-{
-  for (auto v :
-       {std::vector<int>{}, std::vector<int>{1}, std::vector<int>{2, 1},
-        std::vector<int>{1, 6, 2, 2, 9, 4, 16}, std::vector<int>{8, 6, 7, 2, 0},
-        std::vector<int>{3, 3, 3, 3, 3, 1}})
-  {
-    heapSort(v.data(), v.data() + v.size(), Less<int>());
-    BOOST_TEST(std::is_sorted(v.begin(), v.end()));
-  }
-}
-
 BOOST_AUTO_TEST_CASE(is_heap)
 {
   for (auto heap : {std::vector<int>{36, 19, 25, 17, 3, 7, 1, 2, 9},
