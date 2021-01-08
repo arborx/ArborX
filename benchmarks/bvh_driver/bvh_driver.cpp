@@ -100,7 +100,8 @@ Spec create_spec_from_string(std::string const &spec_string)
   if (!(spec.backends == "all" || spec.backends == "serial" ||
         spec.backends == "openmp" || spec.backends == "threads" ||
         spec.backends == "cuda" || spec.backends == "rtree" ||
-        spec.backends == "hip"))
+        spec.backends == "hip" || spec.backends == "sycl" ||
+        spec.backends == "openmptarget"))
     throw std::runtime_error("Backend " + spec.backends + " invalid!");
 
   return spec;
