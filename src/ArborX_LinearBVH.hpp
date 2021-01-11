@@ -239,8 +239,9 @@ BoundingVolumeHierarchyBase<MemorySpace, BoundingVolume, Enable>::
       "ArborX::BVH::BVH::calculate_scene_bounding_box");
 
   // determine the bounding box of the scene
+  Box bbox{};
   Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, primitives,
-                                                            _bounds);
+                                                            bbox);
 
   Kokkos::Profiling::popRegion();
 
@@ -248,6 +249,10 @@ BoundingVolumeHierarchyBase<MemorySpace, BoundingVolume, Enable>::
   {
     Details::TreeConstruction::initializeSingleLeafNode(
         space, primitives, _internal_and_leaf_nodes);
+    Kokkos::deep_copy(space,
+                      Kokkos::View<BoundingVolume, Kokkos::HostSpace>(&_bounds),
+                      Kokkos::View<BoundingVolume, MemorySpace>(
+                          &getBoundingVolume(getRoot())));
     Kokkos::Profiling::popRegion();
     return;
   }
@@ -259,7 +264,7 @@ BoundingVolumeHierarchyBase<MemorySpace, BoundingVolume, Enable>::
       Kokkos::ViewAllocateWithoutInitializing("ArborX::BVH::BVH::morton"),
       size());
   Details::TreeConstruction::assignMortonCodes(space, primitives,
-                                               morton_indices, _bounds);
+                                               morton_indices, bbox);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::sort_morton_codes");
@@ -274,6 +279,10 @@ BoundingVolumeHierarchyBase<MemorySpace, BoundingVolume, Enable>::
   Details::TreeConstruction::generateHierarchy(
       space, primitives, permutation_indices, morton_indices, getLeafNodes(),
       getInternalNodes());
+
+  Kokkos::deep_copy(
+      space, Kokkos::View<BoundingVolume, Kokkos::HostSpace>(&_bounds),
+      Kokkos::View<BoundingVolume, MemorySpace>(&getBoundingVolume(getRoot())));
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::popRegion();
@@ -303,7 +312,7 @@ void BoundingVolumeHierarchyBase<MemorySpace, BoundingVolume, Enable>::query(
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     auto permute =
         Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-            space, bounds(), predicates);
+            space, static_cast<Box>(bounds()), predicates);
     Kokkos::Profiling::popRegion();
 
     using PermutedPredicates =
