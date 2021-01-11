@@ -160,6 +160,9 @@ class BoundingVolumeHierarchy<
     DeviceType, std::enable_if_t<Kokkos::is_device<DeviceType>::value>>
     : public BoundingVolumeHierarchy<typename DeviceType::memory_space>
 {
+  using base_type =
+      BoundingVolumeHierarchy<typename DeviceType::memory_space>;
+
 public:
   using device_type = DeviceType;
 
@@ -171,7 +174,7 @@ public:
   [[deprecated("ArborX::BoundingVolumeHierarchy templated on a device type "
                "is deprecated, use it templated on a memory space instead.")]]
   BoundingVolumeHierarchy(Primitives const &primitives)
-      : BoundingVolumeHierarchy<typename DeviceType::memory_space>(
+      : base_type(
             typename DeviceType::execution_space{}, primitives)
   {
   }
@@ -180,9 +183,9 @@ public:
   std::enable_if_t<!Kokkos::is_execution_space<FirstArgumentType>::value>
   query(FirstArgumentType &&arg1, Args &&... args) const
   {
-    BoundingVolumeHierarchy<typename DeviceType::memory_space>::query(
-        typename DeviceType::execution_space{},
-        std::forward<FirstArgumentType>(arg1), std::forward<Args>(args)...);
+    base_type::query(typename DeviceType::execution_space{},
+                     std::forward<FirstArgumentType>(arg1),
+                     std::forward<Args>(args)...);
   }
 
 private:
@@ -197,8 +200,7 @@ private:
   std::enable_if_t<Kokkos::is_execution_space<FirstArgumentType>::value>
   query(FirstArgumentType const &space, Args &&... args) const
   {
-    BoundingVolumeHierarchy<typename DeviceType::memory_space>::query(
-        space, std::forward<Args>(args)...);
+    base_type::query(space, std::forward<Args>(args)...);
   }
 };
 
