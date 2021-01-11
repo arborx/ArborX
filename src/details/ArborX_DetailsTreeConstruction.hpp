@@ -125,7 +125,7 @@ inline void initializeSingleLeafNode(ExecutionSpace const &space,
         Box bbox{};
         expand(bbox, Access::get(primitives, 0));
         leaf_nodes(0) =
-            Details::makeLeafNode(typename Node::Tag{}, 0, std::move(bbox));
+            makeLeafNode(typename Node::Tag{}, 0, std::move(bbox));
       });
 }
 
