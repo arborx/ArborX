@@ -59,7 +59,7 @@ makeLeafNode(NodeWithTwoChildrenTag, std::size_t permutation_index,
              Box box) noexcept
 {
   return {-1, static_cast<int>(permutation_index), std::move(box)};
-} // namespace Details
+}
 
 int constexpr ROPE_SENTINEL = -1;
 
