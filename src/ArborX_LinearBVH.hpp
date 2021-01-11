@@ -41,7 +41,7 @@ struct DistributedTreeNearestUtils;
 
 template <typename MemorySpace, typename BoundingVolume = Box,
           typename Enable = void>
-class BoundingVolumeHierarchyBase
+class BasicBoundingVolumeHierarchy
 {
 public:
   using memory_space = MemorySpace;
@@ -49,11 +49,11 @@ public:
   using size_type = typename MemorySpace::size_type;
   using bounding_volume_type = BoundingVolume;
 
-  BoundingVolumeHierarchyBase() = default; // build an empty tree
+  BasicBoundingVolumeHierarchy() = default; // build an empty tree
 
   template <typename ExecutionSpace, typename Primitives>
-  BoundingVolumeHierarchyBase(ExecutionSpace const &space,
-                              Primitives const &primitives);
+  BasicBoundingVolumeHierarchy(ExecutionSpace const &space,
+                               Primitives const &primitives);
 
   KOKKOS_FUNCTION
   size_type size() const noexcept { return _size; }
@@ -157,12 +157,12 @@ private:
 };
 
 template <typename DeviceType>
-class BoundingVolumeHierarchyBase<
+class BasicBoundingVolumeHierarchy<
     DeviceType, std::enable_if_t<Kokkos::is_device<DeviceType>::value>>
-    : public BoundingVolumeHierarchyBase<typename DeviceType::memory_space>
+    : public BasicBoundingVolumeHierarchy<typename DeviceType::memory_space>
 {
   using base_type =
-      BoundingVolumeHierarchyBase<typename DeviceType::memory_space>;
+      BasicBoundingVolumeHierarchy<typename DeviceType::memory_space>;
 
 public:
   using device_type = DeviceType;
@@ -170,11 +170,11 @@ public:
   // clang-format off
   [[deprecated("ArborX::BoundingVolumeHierarchy templated on a device type "
                "is deprecated, use it templated on a memory space instead.")]]
-  BoundingVolumeHierarchyBase() = default;
+  BasicBoundingVolumeHierarchy() = default;
   template <typename Primitives>
   [[deprecated("ArborX::BoundingVolumeHierarchy templated on a device type "
                "is deprecated, use it templated on a memory space instead.")]]
-  BoundingVolumeHierarchyBase(Primitives const &primitives)
+  BasicBoundingVolumeHierarchy(Primitives const &primitives)
       : base_type(
             typename DeviceType::execution_space{}, primitives)
   {
@@ -206,16 +206,16 @@ private:
 };
 
 template <typename MemorySpace>
-using BoundingVolumeHierarchy = BoundingVolumeHierarchyBase<MemorySpace>;
+using BoundingVolumeHierarchy = BasicBoundingVolumeHierarchy<MemorySpace>;
 
 template <typename MemorySpace>
 using BVH = BoundingVolumeHierarchy<MemorySpace>;
 
 template <typename MemorySpace, typename BoundingVolume, typename Enable>
 template <typename ExecutionSpace, typename Primitives>
-BoundingVolumeHierarchyBase<MemorySpace, BoundingVolume, Enable>::
-    BoundingVolumeHierarchyBase(ExecutionSpace const &space,
-                                Primitives const &primitives)
+BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
+    BasicBoundingVolumeHierarchy(ExecutionSpace const &space,
+                                 Primitives const &primitives)
     : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
     , _internal_and_leaf_nodes(Kokkos::ViewAllocateWithoutInitializing(
                                    "ArborX::BVH::internal_and_leaf_nodes"),
@@ -290,7 +290,7 @@ BoundingVolumeHierarchyBase<MemorySpace, BoundingVolume, Enable>::
 
 template <typename MemorySpace, typename BoundingVolume, typename Enable>
 template <typename ExecutionSpace, typename Predicates, typename Callback>
-void BoundingVolumeHierarchyBase<MemorySpace, BoundingVolume, Enable>::query(
+void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
     ExecutionSpace const &space, Predicates const &predicates,
     Callback const &callback, Experimental::TraversalPolicy const &policy) const
 {
