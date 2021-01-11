@@ -131,16 +131,12 @@ void generateHierarchy(Primitives primitives, MortonCodes sorted_morton_codes,
                        LeafNodes &leaf_nodes, InternalNodes &internal_nodes)
 {
   using ArborX::Details::makeLeafNode;
-  using Node = typename LeafNodes::value_type;
-  using BoundingVolume = typename Node::bounding_volume_type;
   using DeviceType = typename MortonCodes::device_type;
 
   int const n = sorted_morton_codes.extent(0);
 
   Kokkos::realloc(leaf_nodes, n);
   Kokkos::realloc(internal_nodes, n - 1);
-  for (int i = 0; i < n; ++i)
-    leaf_nodes(i) = makeLeafNode(typename Node::Tag{}, i, BoundingVolume{});
 
   typename DeviceType::execution_space space{};
 
