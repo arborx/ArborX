@@ -118,14 +118,15 @@ inline void initializeSingleLeafNode(ExecutionSpace const &space,
   ARBORX_ASSERT(Access::size(primitives) == 1);
 
   using Node = typename Nodes::value_type;
+  using BoundingVolume = typename Node::bounding_volume_type;
 
   Kokkos::parallel_for(
       "ArborX::TreeConstruction::initialize_single_leaf",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1), KOKKOS_LAMBDA(int) {
-        Box bbox{};
-        expand(bbox, Access::get(primitives, 0));
+        BoundingVolume bounding_volume{};
+        expand(bounding_volume, Access::get(primitives, 0));
         leaf_nodes(0) =
-            makeLeafNode(typename Node::Tag{}, 0, std::move(bbox));
+            makeLeafNode(typename Node::Tag{}, 0, std::move(bounding_volume));
       });
 }
 
@@ -270,13 +271,15 @@ public:
     // Index in the orginal order primitives were given in.
     auto const original_index = _permutation_indices(i - leaf_nodes_shift);
 
-    Box bbox{};
+    using BoundingVolume = typename Node::bounding_volume_type;
+    BoundingVolume bounding_volume{};
     using Access = AccessTraits<Primitives, PrimitivesTag>;
-    expand(bbox, Access::get(_primitives, original_index));
+    expand(bounding_volume, Access::get(_primitives, original_index));
 
     // Initialize leaf node
     auto *leaf_node = getNodePtr(i);
-    *leaf_node = makeLeafNode(typename Node::Tag{}, original_index, bbox);
+    *leaf_node =
+        makeLeafNode(typename Node::Tag{}, original_index, bounding_volume);
 
     // For a leaf node, the range is just one index
     int range_left = i - leaf_nodes_shift;
@@ -331,7 +334,7 @@ public:
 
         delta_right = delta(range_right);
 
-        expand(bbox, getNodePtr(right_child)->bounding_box);
+        expand(bounding_volume, getNodePtr(right_child)->bounding_volume);
       }
       else
       {
@@ -352,7 +355,7 @@ public:
 
         delta_left = delta(range_left - 1);
 
-        expand(bbox, getNodePtr(left_child)->bounding_box);
+        expand(bounding_volume, getNodePtr(left_child)->bounding_volume);
       }
 
       // Having the full range for the parent, we can compute the Karras index.
@@ -363,7 +366,7 @@ public:
       parent_node->left_child = left_child;
       setRightChild(parent_node, right_child);
       setRope(parent_node, range_right, delta_right);
-      parent_node->bounding_box = bbox;
+      parent_node->bounding_volume = bounding_volume;
 
       i = karras_parent;
 

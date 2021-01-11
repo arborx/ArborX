@@ -92,18 +92,18 @@ private:
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
   // Ropes based traversal is only used for CUDA, as it was found to be slower
   // than regular one for Power9 on Summit.  It is also used with HIP.
-  using node_type = std::conditional_t<std::is_same<MemorySpace,
+  using node_type = std::conditional_t<
+      std::is_same<MemorySpace,
 #if defined(KOKKOS_ENABLE_CUDA)
-                                                    Kokkos::CudaSpace
+                   Kokkos::CudaSpace
 #else
-                                                    Kokkos::Experimental::
-                                                        HIPSpace
+                   Kokkos::Experimental::HIPSpace
 #endif
-                                                    >{},
-                                       Details::NodeWithLeftChildAndRope,
-                                       Details::NodeWithTwoChildren>;
+                   >{},
+      Details::NodeWithLeftChildAndRope<bounding_volume_type>,
+      Details::NodeWithTwoChildren<bounding_volume_type>>;
 #else
-  using node_type = Details::NodeWithTwoChildren;
+  using node_type = Details::NodeWithTwoChildren<bounding_volume_type>;
 #endif
 
   Kokkos::View<node_type *, MemorySpace> getInternalNodes()
@@ -141,13 +141,13 @@ private:
   KOKKOS_FUNCTION
   bounding_volume_type const &getBoundingVolume(node_type const *node) const
   {
-    return node->bounding_box;
+    return node->bounding_volume;
   }
 
   KOKKOS_FUNCTION
   bounding_volume_type &getBoundingVolume(node_type *node)
   {
-    return node->bounding_box;
+    return node->bounding_volume;
   }
 
   size_t _size;
