@@ -249,10 +249,12 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   {
     Details::TreeConstruction::initializeSingleLeafNode(
         space, primitives, _internal_and_leaf_nodes);
-    Kokkos::deep_copy(space,
-                      Kokkos::View<BoundingVolume, Kokkos::HostSpace>(&_bounds),
-                      Kokkos::View<BoundingVolume, MemorySpace>(
-                          &getBoundingVolume(getRoot())));
+    Kokkos::deep_copy(
+        space,
+        Kokkos::View<BoundingVolume, Kokkos::HostSpace,
+                     Kokkos::MemoryUnmanaged>(&_bounds),
+        Kokkos::View<BoundingVolume, MemorySpace, Kokkos::MemoryUnmanaged>(
+            &getBoundingVolume(getRoot())));
     Kokkos::Profiling::popRegion();
     return;
   }
@@ -281,8 +283,11 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
       getInternalNodes());
 
   Kokkos::deep_copy(
-      space, Kokkos::View<BoundingVolume, Kokkos::HostSpace>(&_bounds),
-      Kokkos::View<BoundingVolume, MemorySpace>(&getBoundingVolume(getRoot())));
+      space,
+      Kokkos::View<BoundingVolume, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
+          &_bounds),
+      Kokkos::View<BoundingVolume, MemorySpace, Kokkos::MemoryUnmanaged>(
+          &getBoundingVolume(getRoot())));
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::popRegion();
