@@ -39,20 +39,21 @@ template <typename BVH>
 struct DistributedTreeNearestUtils;
 } // namespace Details
 
-template <typename MemorySpace, typename Enable = void>
-class BoundingVolumeHierarchy
+template <typename MemorySpace, typename BoundingVolume = Box,
+          typename Enable = void>
+class BasicBoundingVolumeHierarchy
 {
 public:
   using memory_space = MemorySpace;
   static_assert(Kokkos::is_memory_space<MemorySpace>::value, "");
   using size_type = typename MemorySpace::size_type;
-  using bounding_volume_type = Box;
+  using bounding_volume_type = BoundingVolume;
 
-  BoundingVolumeHierarchy() = default; // build an empty tree
+  BasicBoundingVolumeHierarchy() = default; // build an empty tree
 
   template <typename ExecutionSpace, typename Primitives>
-  BoundingVolumeHierarchy(ExecutionSpace const &space,
-                          Primitives const &primitives);
+  BasicBoundingVolumeHierarchy(ExecutionSpace const &space,
+                               Primitives const &primitives);
 
   KOKKOS_FUNCTION
   size_type size() const noexcept { return _size; }
@@ -92,18 +93,18 @@ private:
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
   // Ropes based traversal is only used for CUDA, as it was found to be slower
   // than regular one for Power9 on Summit.  It is also used with HIP.
-  using node_type = std::conditional_t<std::is_same<MemorySpace,
+  using node_type = std::conditional_t<
+      std::is_same<MemorySpace,
 #if defined(KOKKOS_ENABLE_CUDA)
-                                                    Kokkos::CudaSpace
+                   Kokkos::CudaSpace
 #else
-                                                    Kokkos::Experimental::
-                                                        HIPSpace
+                   Kokkos::Experimental::HIPSpace
 #endif
-                                                    >{},
-                                       Details::NodeWithLeftChildAndRope,
-                                       Details::NodeWithTwoChildren>;
+                   >{},
+      Details::NodeWithLeftChildAndRope<bounding_volume_type>,
+      Details::NodeWithTwoChildren<bounding_volume_type>>;
 #else
-  using node_type = Details::NodeWithTwoChildren;
+  using node_type = Details::NodeWithTwoChildren<bounding_volume_type>;
 #endif
 
   Kokkos::View<node_type *, MemorySpace> getInternalNodes()
@@ -141,13 +142,13 @@ private:
   KOKKOS_FUNCTION
   bounding_volume_type const &getBoundingVolume(node_type const *node) const
   {
-    return node->bounding_box;
+    return node->bounding_volume;
   }
 
   KOKKOS_FUNCTION
   bounding_volume_type &getBoundingVolume(node_type *node)
   {
-    return node->bounding_box;
+    return node->bounding_volume;
   }
 
   size_t _size;
@@ -156,22 +157,25 @@ private:
 };
 
 template <typename DeviceType>
-class BoundingVolumeHierarchy<
+class BasicBoundingVolumeHierarchy<
     DeviceType, std::enable_if_t<Kokkos::is_device<DeviceType>::value>>
-    : public BoundingVolumeHierarchy<typename DeviceType::memory_space>
+    : public BasicBoundingVolumeHierarchy<typename DeviceType::memory_space>
 {
+  using base_type =
+      BasicBoundingVolumeHierarchy<typename DeviceType::memory_space>;
+
 public:
   using device_type = DeviceType;
 
   // clang-format off
   [[deprecated("ArborX::BoundingVolumeHierarchy templated on a device type "
                "is deprecated, use it templated on a memory space instead.")]]
-  BoundingVolumeHierarchy() = default;
+  BasicBoundingVolumeHierarchy() = default;
   template <typename Primitives>
   [[deprecated("ArborX::BoundingVolumeHierarchy templated on a device type "
                "is deprecated, use it templated on a memory space instead.")]]
-  BoundingVolumeHierarchy(Primitives const &primitives)
-      : BoundingVolumeHierarchy<typename DeviceType::memory_space>(
+  BasicBoundingVolumeHierarchy(Primitives const &primitives)
+      : base_type(
             typename DeviceType::execution_space{}, primitives)
   {
   }
@@ -180,9 +184,9 @@ public:
   std::enable_if_t<!Kokkos::is_execution_space<FirstArgumentType>::value>
   query(FirstArgumentType &&arg1, Args &&... args) const
   {
-    BoundingVolumeHierarchy<typename DeviceType::memory_space>::query(
-        typename DeviceType::execution_space{},
-        std::forward<FirstArgumentType>(arg1), std::forward<Args>(args)...);
+    base_type::query(typename DeviceType::execution_space{},
+                     std::forward<FirstArgumentType>(arg1),
+                     std::forward<Args>(args)...);
   }
 
 private:
@@ -197,18 +201,21 @@ private:
   std::enable_if_t<Kokkos::is_execution_space<FirstArgumentType>::value>
   query(FirstArgumentType const &space, Args &&... args) const
   {
-    BoundingVolumeHierarchy<typename DeviceType::memory_space>::query(
-        space, std::forward<Args>(args)...);
+    base_type::query(space, std::forward<Args>(args)...);
   }
 };
 
 template <typename MemorySpace>
+using BoundingVolumeHierarchy = BasicBoundingVolumeHierarchy<MemorySpace>;
+
+template <typename MemorySpace>
 using BVH = BoundingVolumeHierarchy<MemorySpace>;
 
-template <typename MemorySpace, typename Enable>
+template <typename MemorySpace, typename BoundingVolume, typename Enable>
 template <typename ExecutionSpace, typename Primitives>
-BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
-    ExecutionSpace const &space, Primitives const &primitives)
+BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
+    BasicBoundingVolumeHierarchy(ExecutionSpace const &space,
+                                 Primitives const &primitives)
     : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
     , _internal_and_leaf_nodes(Kokkos::ViewAllocateWithoutInitializing(
                                    "ArborX::BVH::internal_and_leaf_nodes"),
@@ -232,8 +239,9 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
       "ArborX::BVH::BVH::calculate_scene_bounding_box");
 
   // determine the bounding box of the scene
+  Box bbox{};
   Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, primitives,
-                                                            _bounds);
+                                                            bbox);
 
   Kokkos::Profiling::popRegion();
 
@@ -241,6 +249,12 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
   {
     Details::TreeConstruction::initializeSingleLeafNode(
         space, primitives, _internal_and_leaf_nodes);
+    Kokkos::deep_copy(
+        space,
+        Kokkos::View<BoundingVolume, Kokkos::HostSpace,
+                     Kokkos::MemoryUnmanaged>(&_bounds),
+        Kokkos::View<BoundingVolume, MemorySpace, Kokkos::MemoryUnmanaged>(
+            &getBoundingVolume(getRoot())));
     Kokkos::Profiling::popRegion();
     return;
   }
@@ -252,7 +266,7 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
       Kokkos::ViewAllocateWithoutInitializing("ArborX::BVH::BVH::morton"),
       size());
   Details::TreeConstruction::assignMortonCodes(space, primitives,
-                                               morton_indices, _bounds);
+                                               morton_indices, bbox);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::sort_morton_codes");
@@ -268,13 +282,20 @@ BoundingVolumeHierarchy<MemorySpace, Enable>::BoundingVolumeHierarchy(
       space, primitives, permutation_indices, morton_indices, getLeafNodes(),
       getInternalNodes());
 
+  Kokkos::deep_copy(
+      space,
+      Kokkos::View<BoundingVolume, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
+          &_bounds),
+      Kokkos::View<BoundingVolume, MemorySpace, Kokkos::MemoryUnmanaged>(
+          &getBoundingVolume(getRoot())));
+
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::popRegion();
 }
 
-template <typename MemorySpace, typename Enable>
+template <typename MemorySpace, typename BoundingVolume, typename Enable>
 template <typename ExecutionSpace, typename Predicates, typename Callback>
-void BoundingVolumeHierarchy<MemorySpace, Enable>::query(
+void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
     ExecutionSpace const &space, Predicates const &predicates,
     Callback const &callback, Experimental::TraversalPolicy const &policy) const
 {
@@ -296,7 +317,7 @@ void BoundingVolumeHierarchy<MemorySpace, Enable>::query(
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     auto permute =
         Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-            space, bounds(), predicates);
+            space, static_cast<Box>(bounds()), predicates);
     Kokkos::Profiling::popRegion();
 
     using PermutedPredicates =
