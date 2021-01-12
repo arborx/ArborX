@@ -21,8 +21,6 @@
 
 #include "Search_UnitTestHelpers.hpp"
 
-#define BOOST_TEST_MODULE LinearBVH
-
 BOOST_AUTO_TEST_SUITE(ManufacturedSolution)
 
 namespace tt = boost::test_tools;

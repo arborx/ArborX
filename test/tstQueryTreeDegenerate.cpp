@@ -20,8 +20,6 @@
 #include "ArborXTest_TreeTypeTraits.hpp"
 // clang-format on
 
-#define BOOST_TEST_MODULE LinearBVH
-
 BOOST_AUTO_TEST_SUITE(Degenerate)
 
 namespace tt = boost::test_tools;
