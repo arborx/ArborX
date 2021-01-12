@@ -65,7 +65,7 @@ target_include_directories(ArborX_DetailsAlgorithms.exe PRIVATE ${CMAKE_CURRENT_
 add_test(NAME ArborX_DetailsAlgorithms_Test COMMAND ./ArborX_DetailsAlgorithms.exe)
 
 set(ARBORX_TEST_QUERY_TREE_SOURCES)
-foreach(_test Degenerate)
+foreach(_test Callbacks Degenerate)
   set(_suffix "_InstantiateAll")
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}${_suffix}.cpp"
     "#include <ArborX_LinearBVH.hpp>\n"
@@ -80,7 +80,6 @@ add_executable(ArborX_QueryTree.exe
   ${ARBORX_TEST_QUERY_TREE_SOURCES}
   tstQueryTreeComparisonWithBoost.cpp
   tstQueryTreeManufacturedSolution.cpp
-  tstQueryTreeCallbacks.cpp
   tstQueryTreeTraversalPolicy.cpp
   tstKokkosToolsAnnotations.cpp
   utf_main.cpp)
