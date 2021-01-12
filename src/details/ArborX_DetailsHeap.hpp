@@ -107,6 +107,15 @@ KOKKOS_INLINE_FUNCTION void popHeap(RandomIterator first, RandomIterator last,
 }
 
 template <typename RandomIterator, typename Compare>
+KOKKOS_INLINE_FUNCTION void makeHeap(RandomIterator first, RandomIterator last,
+                                     Compare comp)
+{
+  RandomIterator heap_end = first;
+  while (heap_end != last)
+    pushHeap(first, ++heap_end, comp);
+}
+
+template <typename RandomIterator, typename Compare>
 KOKKOS_INLINE_FUNCTION void sortHeap(RandomIterator first, RandomIterator last,
                                      Compare comp)
 {

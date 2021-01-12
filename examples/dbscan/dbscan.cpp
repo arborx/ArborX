@@ -10,6 +10,8 @@
  ****************************************************************************/
 
 #include <ArborX_DBSCAN.hpp>
+#include <ArborX_DetailsHeap.hpp>
+#include <ArborX_DetailsPriorityQueue.hpp> // Less
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -154,8 +156,24 @@ int main(int argc, char *argv[])
         "Testing::compute_centers",
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_clusters),
         KOKKOS_LAMBDA(int const i) {
-          int cluster_size = cluster_offset(i + 1) - cluster_offset(i);
+          // The only reason we sort indices here is for reproducibility.
+          // Current DBSCAN algorithm does not guarantee that the indices
+          // corresponding to the same cluster are going to appear in the same
+          // order from run to run. Using sorted indices, we explicitly
+          // guarantee the same summation order when computing cluster centers.
 
+          auto *cluster_start = cluster_indices.data() + cluster_offset(i);
+          auto cluster_size = cluster_offset(i + 1) - cluster_offset(i);
+
+          // Sort cluster indices in ascending order. This uses heap for
+          // sorting, only because there is no other convenient utility that
+          // could sort within a kernel.
+          ArborX::Details::makeHeap(cluster_start, cluster_start + cluster_size,
+                                    ArborX::Details::Less<int>());
+          ArborX::Details::sortHeap(cluster_start, cluster_start + cluster_size,
+                                    ArborX::Details::Less<int>());
+
+          // Compute cluster centers
           ArborX::Point cluster_center{0.f, 0.f, 0.f};
           for (int j = cluster_offset(i); j < cluster_offset(i + 1); j++)
           {
