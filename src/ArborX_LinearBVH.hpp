@@ -272,7 +272,11 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::sort_morton_codes");
 
   // compute the ordering of primitives along Z-order space-filling curve
-  auto permutation_indices = Details::sortObjects(space, morton_indices);
+  Kokkos::View<unsigned int *, MemorySpace> permutation_indices(
+      Kokkos::ViewAllocateWithoutInitializing("ArborX::BVH::BVH::permutation"),
+      size());
+  iota(space, permutation_indices);
+  Details::sortByKey(space, morton_indices, permutation_indices);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::generate_hierarchy");

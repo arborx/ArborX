@@ -638,14 +638,20 @@ void DistributedTreeImpl<DeviceType>::sortResults(ExecutionSpace const &space,
   if (n == 0)
     return;
 
-  // We only want to get the permutation here, but sortObjects also sorts the
+  // We only want to get the permutation here, but sortByKey also sorts the
   // elements given to it. Hence, we need to create a copy.
   // TODO try to avoid the copy
   View keys_clone(Kokkos::ViewAllocateWithoutInitializing(
                       "ArborX::DistributedTree::query::sortResults::keys"),
                   keys.size());
   Kokkos::deep_copy(space, keys_clone, keys);
-  auto const permutation = ArborX::Details::sortObjects(space, keys_clone);
+
+  Kokkos::View<unsigned int *, DeviceType> permutation(
+      Kokkos::ViewAllocateWithoutInitializing(
+          "ArborX::DistributedTree::query::permutation"),
+      keys.size());
+  iota(space, permutation);
+  Details::sortByKey(space, keys_clone, permutation);
 
   // Call applyPermutation for every entry in the parameter pack.
   // We need to use the comma operator here since the function returns void.

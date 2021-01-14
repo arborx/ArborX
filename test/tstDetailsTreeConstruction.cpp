@@ -13,7 +13,7 @@
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsMortonCode.hpp> // expandBits, morton3D
 #include <ArborX_DetailsNode.hpp>       // ROPE SENTINEL
-#include <ArborX_DetailsSortUtils.hpp>  // sortObjects
+#include <ArborX_DetailsSortUtils.hpp>  // sortByKey
 #include <ArborX_DetailsTreeConstruction.hpp>
 
 #include <boost/test/unit_test.hpp>
@@ -111,7 +111,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indirect_sort, DeviceType, ARBORX_DEVICE_TYPES)
 
   std::vector<size_t> ref = {3, 2, 1, 0};
   // sort Morton codes and object ids
-  auto ids = ArborX::Details::sortObjects(ExecutionSpace{}, k);
+  Kokkos::View<unsigned int *, DeviceType> ids(
+      Kokkos::ViewAllocateWithoutInitializing("ArborX::Testing::ids"), n);
+  ArborX::iota(ExecutionSpace{}, ids);
+  ArborX::Details::sortByKey(ExecutionSpace{}, k, ids);
 
   auto k_host = Kokkos::create_mirror_view(k);
   Kokkos::deep_copy(k_host, k);

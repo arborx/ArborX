@@ -65,63 +65,51 @@ namespace ArborX
 namespace Details
 {
 
-// NOTE returns the permutation indices **and** sorts the input view
-template <typename ExecutionSpace, typename ViewType,
-          class SizeType = unsigned int>
-Kokkos::View<SizeType *, typename ViewType::device_type>
-sortObjects(ExecutionSpace const &space, ViewType &view)
+template <typename ExecutionSpace, typename ValuesType>
+void sort(ExecutionSpace const &space, ValuesType &values)
 {
-  int const n = view.extent(0);
+  static_assert(Kokkos::is_view<ValuesType>::value, "");
 
-  using ValueType = typename ViewType::value_type;
-  using CompType = Kokkos::BinOp1D<ViewType>;
+  int const n = values.extent(0);
+
+  using SizeType = unsigned int;
+  using ValueType = typename ValuesType::value_type;
+  using CompType = Kokkos::BinOp1D<ValuesType>;
 
   Kokkos::MinMaxScalar<ValueType> result;
   Kokkos::MinMax<ValueType> reducer(result);
   parallel_reduce("ArborX::Sorting::find_min_max_view",
                   Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-                  Kokkos::Impl::min_max_functor<ViewType>(view), reducer);
+                  Kokkos::Impl::min_max_functor<ValuesType>(values), reducer);
   if (result.min_val == result.max_val)
-  {
-    Kokkos::View<SizeType *, typename ViewType::device_type> permute(
-        Kokkos::ViewAllocateWithoutInitializing("ArborX::Sorting::permute"), n);
-    iota(space, permute);
-    return permute;
-  }
+    return;
 
-  Kokkos::BinSort<ViewType, CompType, typename ViewType::device_type, SizeType>
-      bin_sort(view, CompType(n / 2, result.min_val, result.max_val), true);
-  bin_sort.create_permute_vector();
-  bin_sort.sort(view);
   // FIXME Kokkos::BinSort is currently missing overloads that an execution
   // space as argument
-
-  return bin_sort.get_permute_vector();
+  Kokkos::BinSort<ValuesType, CompType, typename ValuesType::device_type,
+                  SizeType>
+      bin_sort(values, CompType(n / 2, result.min_val, result.max_val), true);
+  bin_sort.create_permute_vector();
+  bin_sort.sort(values);
 }
 
 #if defined(KOKKOS_ENABLE_CUDA) ||                                             \
     (defined(KOKKOS_ENABLE_HIP) && defined(ARBORX_ENABLE_ROCTHRUST))
-// NOTE returns the permutation indices **and** sorts the input view
-template <typename ViewType, class SizeType = unsigned int>
-Kokkos::View<SizeType *, typename ViewType::device_type> sortObjects(
+template <typename ValuesType>
+void sort(
 #if defined(KOKKOS_ENABLE_CUDA)
     Kokkos::Cuda const &space,
 #else
     Kokkos::Experimental::HIP const &space,
 #endif
-    ViewType &view)
+    ValuesType &values)
 {
-  int const n = view.extent(0);
-
-  using ValueType = typename ViewType::value_type;
+  static_assert(Kokkos::is_view<ValuesType>::value, "");
   static_assert(std::is_same<std::decay_t<decltype(space)>,
-                             typename ViewType::execution_space>::value,
+                             typename ValuesType::execution_space>::value,
                 "");
 
-  Kokkos::View<SizeType *, typename ViewType::device_type> permute(
-      Kokkos::ViewAllocateWithoutInitializing("ArborX::Sorting::permutation"),
-      n);
-  ArborX::iota(space, permute);
+  int const n = values.extent(0);
 
 #if defined(KOKKOS_ENABLE_CUDA)
   auto const execution_policy = thrust::cuda::par.on(space.cuda_stream());
@@ -129,12 +117,84 @@ Kokkos::View<SizeType *, typename ViewType::device_type> sortObjects(
   auto const execution_policy = thrust::hip::par.on(space.hip_stream());
 #endif
 
-  auto permute_ptr = thrust::device_ptr<SizeType>(permute.data());
-  auto begin_ptr = thrust::device_ptr<ValueType>(view.data());
-  auto end_ptr = thrust::device_ptr<ValueType>(view.data() + n);
-  thrust::sort_by_key(execution_policy, begin_ptr, end_ptr, permute_ptr);
+  using ValueType = typename ValuesType::value_type;
 
-  return permute;
+  auto values_first = thrust::device_ptr<ValueType>(values.data());
+  auto values_last = thrust::device_ptr<ValueType>(values.data() + n);
+  thrust::sort(execution_policy, values_first, values_last);
+}
+#endif
+
+template <typename ExecutionSpace, typename KeysType, typename ValuesType>
+void sortByKey(ExecutionSpace const &space, KeysType &keys, ValuesType &values)
+{
+  static_assert(Kokkos::is_view<KeysType>::value, "");
+  static_assert(Kokkos::is_view<ValuesType>::value, "");
+
+  int const n = keys.extent(0);
+
+  using SizeType = unsigned int;
+  using ValueType = typename KeysType::value_type;
+  using CompType = Kokkos::BinOp1D<KeysType>;
+
+  Kokkos::MinMaxScalar<ValueType> result;
+  Kokkos::MinMax<ValueType> reducer(result);
+  parallel_reduce("ArborX::Sorting::find_min_max_view",
+                  Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+                  Kokkos::Impl::min_max_functor<KeysType>(keys), reducer);
+  if (result.min_val == result.max_val)
+    return;
+
+  Kokkos::BinSort<KeysType, CompType, typename KeysType::device_type, SizeType>
+      bin_sort(keys, CompType(n / 2, result.min_val, result.max_val), true);
+  bin_sort.create_permute_vector();
+  bin_sort.sort(keys);
+  // FIXME Kokkos::BinSort is currently missing overloads that an execution
+  // space as argument
+
+  auto permute = bin_sort.get_permute_vector();
+  auto values_clone = clone(values);
+  Kokkos::parallel_for(
+      "ArborX::Sorting::apply_permutation",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+      KOKKOS_LAMBDA(int const i) { values(i) = values_clone(permute(i)); });
+}
+
+#if defined(KOKKOS_ENABLE_CUDA) ||                                             \
+    (defined(KOKKOS_ENABLE_HIP) && defined(ARBORX_ENABLE_ROCTHRUST))
+template <typename KeysType, typename ValuesType>
+void sortByKey(
+#if defined(KOKKOS_ENABLE_CUDA)
+    Kokkos::Cuda const &space,
+#else
+    Kokkos::Experimental::HIP const &space,
+#endif
+    KeysType &keys, ValuesType &values)
+{
+  static_assert(Kokkos::is_view<KeysType>::value, "");
+  static_assert(Kokkos::is_view<ValuesType>::value, "");
+  static_assert(std::is_same<std::decay_t<decltype(space)>,
+                             typename ValuesType::execution_space>::value,
+                "");
+  static_assert(std::is_same<typename ValuesType::device_type,
+                             typename KeysType::device_type>::value);
+  ARBORX_ASSERT(values.extent(0) >= keys.extent(0));
+
+  int const n = keys.extent(0);
+
+#if defined(KOKKOS_ENABLE_CUDA)
+  auto const execution_policy = thrust::cuda::par.on(space.cuda_stream());
+#else
+  auto const execution_policy = thrust::hip::par.on(space.hip_stream());
+#endif
+
+  using ValueType = typename ValuesType::value_type;
+  using KeyType = typename KeysType::value_type;
+
+  auto keys_first = thrust::device_ptr<KeyType>(keys.data());
+  auto keys_last = thrust::device_ptr<KeyType>(keys.data() + n);
+  auto values_first = thrust::device_ptr<ValueType>(values.data());
+  thrust::sort_by_key(execution_policy, keys_first, keys_last, values_first);
 }
 #endif
 
