@@ -29,29 +29,27 @@ struct NearestToOrigin
   int k;
 };
 
-namespace ArborX
-{
 template <>
-struct AccessTraits<FirstOctant, PredicatesTag>
+struct ArborX::AccessTraits<FirstOctant, ArborX::PredicatesTag>
 {
-  KOKKOS_FUNCTION static std::size_t size(FirstOctant) { return 1; }
-  KOKKOS_FUNCTION static auto get(FirstOctant, std::size_t)
+  static KOKKOS_FUNCTION std::size_t size(FirstOctant) { return 1; }
+  static KOKKOS_FUNCTION auto get(FirstOctant, std::size_t)
   {
-    return intersects(Box{{{0, 0, 0}}, {{1, 1, 1}}});
+    return ArborX::intersects(ArborX::Box{{{0, 0, 0}}, {{1, 1, 1}}});
   }
   using memory_space = MemorySpace;
 };
+
 template <>
-struct AccessTraits<NearestToOrigin, PredicatesTag>
+struct ArborX::AccessTraits<NearestToOrigin, ArborX::PredicatesTag>
 {
-  KOKKOS_FUNCTION static std::size_t size(NearestToOrigin) { return 1; }
-  KOKKOS_FUNCTION static auto get(NearestToOrigin d, std::size_t)
+  static KOKKOS_FUNCTION std::size_t size(NearestToOrigin) { return 1; }
+  static KOKKOS_FUNCTION auto get(NearestToOrigin d, std::size_t)
   {
-    return nearest(Point{0, 0, 0}, d.k);
+    return ArborX::nearest(ArborX::Point{0, 0, 0}, d.k);
   }
   using memory_space = MemorySpace;
 };
-} // namespace ArborX
 
 struct PrintfCallback
 {

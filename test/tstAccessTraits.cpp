@@ -17,54 +17,50 @@ using ArborX::PredicatesTag;
 using ArborX::PrimitivesTag;
 using ArborX::Details::check_valid_access_traits;
 
+// NOTE Let's not bother with __host__ __device__ annotations here
+
 struct NoAccessTraitsSpecialization
 {
 };
+
 struct EmptySpecialization
 {
 };
+template <typename Tag>
+struct ArborX::AccessTraits<EmptySpecialization, Tag>
+{
+};
+
 struct InvalidMemorySpace
 {
 };
-struct SizeMemberFunctionNotStatic
-{
-};
-namespace ArborX
-{
 template <typename Tag>
-struct AccessTraits<EmptySpecialization, Tag>
-{
-};
-template <typename Tag>
-struct AccessTraits<InvalidMemorySpace, Tag>
+struct ArborX::AccessTraits<InvalidMemorySpace, Tag>
 {
   using memory_space = void;
 };
+
+struct SizeMemberFunctionNotStatic
+{
+};
 template <typename Tag>
-struct AccessTraits<SizeMemberFunctionNotStatic, Tag>
+struct ArborX::AccessTraits<SizeMemberFunctionNotStatic, Tag>
 {
   using memory_space = Kokkos::HostSpace;
   int size(SizeMemberFunctionNotStatic) { return 255; }
 };
-} // namespace ArborX
 
 // Ensure legacy access traits are still valid
 struct LegacyAccessTraits
 {
 };
-namespace ArborX
-{
-namespace Traits
-{
 template <typename Tag>
-struct Access<LegacyAccessTraits, Tag>
+struct ArborX::Traits::Access<LegacyAccessTraits, Tag>
 {
   using memory_space = Kokkos::HostSpace;
-  KOKKOS_FUNCTION static int size(LegacyAccessTraits) { return 0; }
-  KOKKOS_FUNCTION static Point get(LegacyAccessTraits, int) { return {}; }
+  static int size(LegacyAccessTraits) { return 0; }
+  static Point get(LegacyAccessTraits, int) { return {}; }
 };
-} // namespace Traits
-} // namespace ArborX
 
 int main()
 {
