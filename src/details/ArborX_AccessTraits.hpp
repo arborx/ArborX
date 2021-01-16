@@ -50,6 +50,7 @@ struct AccessTraits<
     return v(i);
   }
 
+  KOKKOS_FUNCTION
   static typename View::size_type size(View const &v) { return v.extent(0); }
 
   using memory_space = typename View::memory_space;
@@ -65,6 +66,7 @@ struct AccessTraits<
     return {{v(i, 0), v(i, 1), v(i, 2)}};
   }
 
+  KOKKOS_FUNCTION
   static typename View::size_type size(View const &v) { return v.extent(0); }
 
   using memory_space = typename View::memory_space;
