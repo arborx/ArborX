@@ -17,19 +17,13 @@
 #include <random>
 #include <vector>
 
-namespace ArborX
-{
 template <typename T, typename Tag>
-struct AccessTraits<std::vector<T>, Tag>
+struct ArborX::AccessTraits<std::vector<T>, Tag>
 {
   static std::size_t size(std::vector<T> const &v) { return v.size(); }
-  KOKKOS_FUNCTION static T const &get(std::vector<T> const &v, std::size_t i)
-  {
-    return v[i];
-  }
+  static T const &get(std::vector<T> const &v, std::size_t i) { return v[i]; }
   using memory_space = Kokkos::HostSpace;
 };
-} // namespace ArborX
 
 int main(int argc, char *argv[])
 {

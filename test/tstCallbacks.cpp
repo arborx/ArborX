@@ -13,25 +13,24 @@
 #include <ArborX_Callbacks.hpp>
 #include <ArborX_Predicates.hpp>
 
+// NOTE Let's not bother with __host__ __device__ annotations here
+
 struct NearestPredicates
 {
 };
-
-struct SpatialPredicates
-{
-};
-
-namespace ArborX
-{
 template <>
-struct AccessTraits<NearestPredicates, PredicatesTag>
+struct ArborX::AccessTraits<NearestPredicates, ArborX::PredicatesTag>
 {
   using memory_space = Kokkos::HostSpace;
   static int size(NearestPredicates const &) { return 1; }
   static auto get(NearestPredicates const &, int) { return nearest(Point{}); }
 };
+
+struct SpatialPredicates
+{
+};
 template <>
-struct AccessTraits<SpatialPredicates, PredicatesTag>
+struct ArborX::AccessTraits<SpatialPredicates, ArborX::PredicatesTag>
 {
   using memory_space = Kokkos::HostSpace;
   static int size(SpatialPredicates const &) { return 1; }
@@ -40,7 +39,6 @@ struct AccessTraits<SpatialPredicates, PredicatesTag>
     return intersects(Point{});
   }
 };
-} // namespace ArborX
 
 // Custom callbacks
 struct CallbackMissingTag

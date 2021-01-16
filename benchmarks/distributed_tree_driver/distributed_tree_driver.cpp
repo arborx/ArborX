@@ -184,37 +184,38 @@ struct RadiusSearches
   double radius;
 };
 
-namespace ArborX
-{
 template <typename DeviceType>
-struct AccessTraits<RadiusSearches<DeviceType>, PredicatesTag>
+struct ArborX::AccessTraits<RadiusSearches<DeviceType>, ArborX::PredicatesTag>
 {
   using memory_space = typename DeviceType::memory_space;
-  static std::size_t size(RadiusSearches<DeviceType> const &pred)
+  static KOKKOS_FUNCTION std::size_t
+  size(RadiusSearches<DeviceType> const &pred)
   {
     return pred.points.extent(0);
   }
   static KOKKOS_FUNCTION auto get(RadiusSearches<DeviceType> const &pred,
                                   std::size_t i)
   {
-    return intersects(Sphere{pred.points(i), pred.radius});
+    return ArborX::intersects(ArborX::Sphere{pred.points(i), pred.radius});
   }
 };
+
 template <typename DeviceType>
-struct AccessTraits<NearestNeighborsSearches<DeviceType>, PredicatesTag>
+struct ArborX::AccessTraits<NearestNeighborsSearches<DeviceType>,
+                            ArborX::PredicatesTag>
 {
   using memory_space = typename DeviceType::memory_space;
-  static std::size_t size(NearestNeighborsSearches<DeviceType> const &pred)
+  static KOKKOS_FUNCTION std::size_t
+  size(NearestNeighborsSearches<DeviceType> const &pred)
   {
     return pred.points.extent(0);
   }
   static KOKKOS_FUNCTION auto
   get(NearestNeighborsSearches<DeviceType> const &pred, std::size_t i)
   {
-    return nearest(pred.points(i), pred.k);
+    return ArborX::nearest(pred.points(i), pred.k);
   }
 };
-} // namespace ArborX
 
 namespace bpo = boost::program_options;
 

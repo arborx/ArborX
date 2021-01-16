@@ -34,13 +34,15 @@ struct Spheres
   int N;
 };
 
-namespace ArborX
-{
 template <>
-struct AccessTraits<PointCloud, PrimitivesTag>
+struct ArborX::AccessTraits<PointCloud, ArborX::PrimitivesTag>
 {
-  static std::size_t size(PointCloud const &cloud) { return cloud.N; }
-  KOKKOS_FUNCTION static Point get(PointCloud const &cloud, std::size_t i)
+  static KOKKOS_FUNCTION std::size_t size(PointCloud const &cloud)
+  {
+    return cloud.N;
+  }
+  static KOKKOS_FUNCTION ArborX::Point get(PointCloud const &cloud,
+                                           std::size_t i)
   {
     return {{cloud.d_x[i], cloud.d_y[i], cloud.d_z[i]}};
   }
@@ -48,16 +50,16 @@ struct AccessTraits<PointCloud, PrimitivesTag>
 };
 
 template <>
-struct AccessTraits<Spheres, PredicatesTag>
+struct ArborX::AccessTraits<Spheres, ArborX::PredicatesTag>
 {
-  static std::size_t size(Spheres const &d) { return d.N; }
-  KOKKOS_FUNCTION static auto get(Spheres const &d, std::size_t i)
+  static KOKKOS_FUNCTION std::size_t size(Spheres const &d) { return d.N; }
+  static KOKKOS_FUNCTION auto get(Spheres const &d, std::size_t i)
   {
-    return intersects(Sphere{{{d.d_x[i], d.d_y[i], d.d_z[i]}}, d.d_r[i]});
+    return ArborX::intersects(
+        ArborX::Sphere{{{d.d_x[i], d.d_y[i], d.d_z[i]}}, d.d_r[i]});
   }
   using memory_space = Kokkos::CudaSpace;
 };
-} // namespace ArborX
 
 int main(int argc, char *argv[])
 {
