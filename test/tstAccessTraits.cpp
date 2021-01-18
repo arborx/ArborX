@@ -64,10 +64,10 @@ struct ArborX::Traits::Access<LegacyAccessTraits, Tag>
 
 int main()
 {
-  Kokkos::View<ArborX::Point *> p;
-  Kokkos::View<float **> v;
-  check_valid_access_traits(PrimitivesTag{}, p);
-  check_valid_access_traits(PrimitivesTag{}, v);
+  check_valid_access_traits(PrimitivesTag{}, Kokkos::View<ArborX::Point *>{});
+  check_valid_access_traits(PrimitivesTag{},
+                            Kokkos::View<ArborX::Box const *>{});
+  check_valid_access_traits(PrimitivesTag{}, Kokkos::View<float **>{});
 
   using NearestPredicate = decltype(ArborX::nearest(ArborX::Point{}));
   Kokkos::View<NearestPredicate *> q;
@@ -76,6 +76,15 @@ int main()
   check_valid_access_traits(PrimitivesTag{}, LegacyAccessTraits{});
 
   // Uncomment to see error messages
+
+  // check_valid_access_traits(PrimitivesTag{},
+  // Kokkos::View<ArborX::Sphere*>{});
+
+  // check_valid_access_traits(PrimitivesTag{}, Kokkos::View<float *>{});
+
+  // check_valid_access_traits(PrimitivesTag{}, Kokkos::View<float ***>{});
+
+  // check_valid_access_traits(PrimitivesTag{}, Kokkos::View<int **>{});
 
   // check_valid_access_traits(PrimitivesTag{}, NoAccessTraitsSpecialization{});
 

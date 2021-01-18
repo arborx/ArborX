@@ -223,6 +223,18 @@ KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakeBoundingVolume) {}
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakePrimitive) {}
 } // namespace Test
 
+template <typename... ViewProperties>
+struct ArborX::AccessTraits<
+    Kokkos::View<Test::FakePrimitive *, ViewProperties...>,
+    ArborX::PrimitivesTag>
+{
+  using Primitives = Kokkos::View<Test::FakePrimitive *, ViewProperties...>;
+  KOKKOS_FUNCTION
+  static size_t size(Primitives) { return 0; }
+  KOKKOS_FUNCTION
+  static Test::FakeBoundingVolume get(Primitives, int) { return {}; }
+};
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
