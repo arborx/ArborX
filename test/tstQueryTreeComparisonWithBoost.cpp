@@ -14,11 +14,9 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <array>
 #include <functional>
 #include <iostream>
 #include <random>
-#include <vector>
 
 #include "Search_UnitTestHelpers.hpp"
 // clang-format off
@@ -30,13 +28,15 @@ BOOST_AUTO_TEST_SUITE(ComparisonWithBoost)
 
 namespace tt = boost::test_tools;
 
-inline std::vector<std::array<double, 3>>
+inline Kokkos::View<ArborX::Point *, Kokkos::HostSpace>
 make_stuctured_cloud(double Lx, double Ly, double Lz, int nx, int ny, int nz)
 {
-  std::vector<std::array<double, 3>> cloud(nx * ny * nz);
   std::function<int(int, int, int)> ind = [nx, ny](int i, int j, int k) {
     return i + j * nx + k * (nx * ny);
   };
+  Kokkos::View<ArborX::Point *, Kokkos::HostSpace> cloud(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "structured_cloud"),
+      nx * ny * nz);
   for (int i = 0; i < nx; ++i)
     for (int j = 0; j < ny; ++j)
       for (int k = 0; k < nz; ++k)
@@ -47,10 +47,11 @@ make_stuctured_cloud(double Lx, double Ly, double Lz, int nx, int ny, int nz)
   return cloud;
 }
 
-inline std::vector<std::array<double, 3>>
+inline Kokkos::View<ArborX::Point *, Kokkos::HostSpace>
 make_random_cloud(double Lx, double Ly, double Lz, int n)
 {
-  std::vector<std::array<double, 3>> cloud(n);
+  Kokkos::View<ArborX::Point *, Kokkos::HostSpace> cloud(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "random_cloud"), n);
   std::default_random_engine generator;
   std::uniform_real_distribution<double> distribution_x(0.0, Lx);
   std::uniform_real_distribution<double> distribution_y(0.0, Ly);
@@ -87,10 +88,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, TreeTypeTraits, TreeTypeTraitsList)
   for (int i = 0; i < n; ++i)
   {
     auto const &point = cloud[i];
-    double x = std::get<0>(point);
-    double y = std::get<1>(point);
-    double z = std::get<2>(point);
-    bounding_boxes_host[i] = {{{x, y, z}}, {{x, y, z}}};
+    bounding_boxes_host[i] = ArborX::Box{point, point};
   }
 
   Kokkos::deep_copy(bounding_boxes, bounding_boxes_host);
@@ -120,14 +118,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, TreeTypeTraits, TreeTypeTraitsList)
   for (unsigned int i = 0; i < n_points; ++i)
   {
     auto const &point = queries[i];
-    double x = std::get<0>(point);
-    double y = std::get<1>(point);
-    double z = std::get<2>(point);
     radii_host[i] = distribution_radius(generator);
     k_host[i] = distribution_k(generator);
-    point_coords_host(i, 0) = x;
-    point_coords_host(i, 1) = y;
-    point_coords_host(i, 2) = z;
+    point_coords_host(i, 0) = point[0];
+    point_coords_host(i, 1) = point[1];
+    point_coords_host(i, 2) = point[2];
   }
 
   Kokkos::deep_copy(point_coords, point_coords_host);
