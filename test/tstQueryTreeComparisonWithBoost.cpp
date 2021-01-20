@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_SUITE(ComparisonWithBoost)
 
 namespace tt = boost::test_tools;
 
-std::vector<std::array<double, 3>>
+inline std::vector<std::array<double, 3>>
 make_stuctured_cloud(double Lx, double Ly, double Lz, int nx, int ny, int nz)
 {
   std::vector<std::array<double, 3>> cloud(nx * ny * nz);
@@ -47,8 +47,8 @@ make_stuctured_cloud(double Lx, double Ly, double Lz, int nx, int ny, int nz)
   return cloud;
 }
 
-std::vector<std::array<double, 3>> make_random_cloud(double Lx, double Ly,
-                                                     double Lz, int n)
+inline std::vector<std::array<double, 3>>
+make_random_cloud(double Lx, double Ly, double Lz, int n)
 {
   std::vector<std::array<double, 3>> cloud(n);
   std::default_random_engine generator;
