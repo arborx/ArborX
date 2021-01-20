@@ -10,7 +10,6 @@
  ****************************************************************************/
 
 #include "ArborX_BoostRTreeHelpers.hpp"
-#include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <ArborX_LinearBVH.hpp>
 
 #include <boost/test/unit_test.hpp>
@@ -22,6 +21,10 @@
 #include <vector>
 
 #include "Search_UnitTestHelpers.hpp"
+// clang-format off
+#include "ArborXTest_TreeTypeTraits.hpp"
+#include <Kokkos_CopyViews.hpp>
+// clang-format on
 
 BOOST_AUTO_TEST_SUITE(ComparisonWithBoost)
 
@@ -62,9 +65,11 @@ std::vector<std::array<double, 3>> make_random_cloud(double Lx, double Ly,
   return cloud;
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
+BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, TreeTypeTraits, TreeTypeTraitsList)
 {
-  using ExecutionSpace = typename DeviceType::execution_space;
+  using Tree = typename TreeTypeTraits::type;
+  using ExecutionSpace = typename TreeTypeTraits::execution_space;
+  using DeviceType = typename TreeTypeTraits::device_type;
 
   // construct a cloud of points (nodes of a structured grid)
   double Lx = 10.0;
@@ -153,17 +158,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, DeviceType, ARBORX_DEVICE_TYPES)
   auto within_queries_host = Kokkos::create_mirror_view(within_queries);
   Kokkos::deep_copy(within_queries_host, within_queries);
 
-  ArborX::BVH<typename DeviceType::memory_space> bvh(ExecutionSpace{},
-                                                     bounding_boxes);
+  Tree tree(ExecutionSpace{}, bounding_boxes);
 
   BoostExt::RTree<ArborX::Box> rtree(ExecutionSpace{}, bounding_boxes_host);
 
   // FIXME check currently sporadically fails when using the HIP backend
-  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, bvh, nearest_queries,
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, nearest_queries,
                          query(ExecutionSpace{}, rtree, nearest_queries_host));
 
   // FIXME ditto
-  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, bvh, within_queries,
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, within_queries,
                          query(ExecutionSpace{}, rtree, within_queries_host));
 }
 
