@@ -102,10 +102,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, TreeTypeTraits, TreeTypeTraitsList)
   auto point_coords_host = Kokkos::create_mirror_view(point_coords);
   Kokkos::View<double *, ExecutionSpace> radii("radii", n_points);
   auto radii_host = Kokkos::create_mirror_view(radii);
-  Kokkos::View<int * [2], ExecutionSpace> within_n_pts("within_n_pts",
-                                                       n_points);
-  Kokkos::View<int * [2], ExecutionSpace> nearest_n_pts("nearest_n_pts",
-                                                        n_points);
   Kokkos::View<int *, ExecutionSpace> k("distribution_k", n_points);
   auto k_host = Kokkos::create_mirror_view(k);
   // use random radius for the search and random number k of for the kNN
