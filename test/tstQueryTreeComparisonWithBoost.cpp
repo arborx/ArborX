@@ -66,7 +66,8 @@ make_random_cloud(double Lx, double Ly, double Lz, int n)
   return cloud;
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, TreeTypeTraits, TreeTypeTraitsList)
+BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
+                              TreeTypeTraitsList)
 {
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
@@ -80,9 +81,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, TreeTypeTraits, TreeTypeTraitsList)
   int ny = 11;
   int nz = 11;
   auto cloud = make_stuctured_cloud(Lx, Ly, Lz, nx, ny, nz);
-  int n = cloud.size();
 
-  // random points for radius search and kNN queries
+  // random points for radius search
   // compare our solution against Boost R-tree
   int const n_points = 100;
   using MemorySpace = typename Tree::memory_space;
@@ -91,33 +91,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, TreeTypeTraits, TreeTypeTraitsList)
 
   Kokkos::View<double *, ExecutionSpace> radii("radii", n_points);
   auto radii_host = Kokkos::create_mirror_view(radii);
-  Kokkos::View<int *, ExecutionSpace> k("distribution_k", n_points);
-  auto k_host = Kokkos::create_mirror_view(k);
-  // use random radius for the search and random number k of for the kNN
-  // search
+  // use random radius for the search
   std::default_random_engine generator;
   std::uniform_real_distribution<double> distribution_radius(
       0.0, std::sqrt(Lx * Lx + Ly * Ly + Lz * Lz));
-  std::uniform_int_distribution<int> distribution_k(
-      1, std::floor(sqrt(nx * nx + ny * ny + nz * nz)));
   for (unsigned int i = 0; i < n_points; ++i)
   {
     radii_host[i] = distribution_radius(generator);
-    k_host[i] = distribution_k(generator);
   }
 
   Kokkos::deep_copy(radii, radii_host);
-  Kokkos::deep_copy(k, k_host);
-
-  Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> nearest_queries(
-      "nearest_queries", n_points);
-  Kokkos::parallel_for("register_nearest_queries",
-                       Kokkos::RangePolicy<ExecutionSpace>(0, n_points),
-                       KOKKOS_LAMBDA(int i) {
-                         nearest_queries(i) = ArborX::nearest(points(i), k(i));
-                       });
-  auto nearest_queries_host = Kokkos::create_mirror_view(nearest_queries);
-  Kokkos::deep_copy(nearest_queries_host, nearest_queries);
 
   Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
       within_queries("within_queries", n_points);
@@ -135,13 +118,64 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, TreeTypeTraits, TreeTypeTraitsList)
 
   BoostExt::RTree<decltype(cloud)::value_type> rtree(ExecutionSpace{}, cloud);
 
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, within_queries,
+                         query(ExecutionSpace{}, rtree, within_queries_host));
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate, TreeTypeTraits,
+                              TreeTypeTraitsList)
+{
+  using Tree = typename TreeTypeTraits::type;
+  using ExecutionSpace = typename TreeTypeTraits::execution_space;
+  using DeviceType = typename TreeTypeTraits::device_type;
+
+  // construct a cloud of points (nodes of a structured grid)
+  double Lx = 10.0;
+  double Ly = 10.0;
+  double Lz = 10.0;
+  int nx = 11;
+  int ny = 11;
+  int nz = 11;
+  auto cloud = make_stuctured_cloud(Lx, Ly, Lz, nx, ny, nz);
+
+  // random points for kNN queries
+  // compare our solution against Boost R-tree
+  int const n_points = 100;
+  using MemorySpace = typename Tree::memory_space;
+  auto points = Kokkos::create_mirror_view_and_copy(
+      MemorySpace{}, make_random_cloud(Lx, Ly, Lz, n_points));
+
+  Kokkos::View<int *, ExecutionSpace> k("distribution_k", n_points);
+  auto k_host = Kokkos::create_mirror_view(k);
+  // use random number k of for the kNN search
+  std::default_random_engine generator;
+  std::uniform_int_distribution<int> distribution_k(
+      1, std::floor(sqrt(nx * nx + ny * ny + nz * nz)));
+  for (unsigned int i = 0; i < n_points; ++i)
+  {
+    k_host[i] = distribution_k(generator);
+  }
+
+  Kokkos::deep_copy(k, k_host);
+
+  Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> nearest_queries(
+      "nearest_queries", n_points);
+  Kokkos::parallel_for("register_nearest_queries",
+                       Kokkos::RangePolicy<ExecutionSpace>(0, n_points),
+                       KOKKOS_LAMBDA(int i) {
+                         nearest_queries(i) = ArborX::nearest(points(i), k(i));
+                       });
+  auto nearest_queries_host = Kokkos::create_mirror_view(nearest_queries);
+  Kokkos::deep_copy(nearest_queries_host, nearest_queries);
+
+  Tree tree(ExecutionSpace{},
+            Kokkos::create_mirror_view_and_copy(MemorySpace{}, cloud));
+
+  BoostExt::RTree<decltype(cloud)::value_type> rtree(ExecutionSpace{}, cloud);
+
   // FIXME check currently sporadically fails when using the HIP backend
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, nearest_queries,
                          query(ExecutionSpace{}, rtree, nearest_queries_host));
-
-  // FIXME ditto
-  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, within_queries,
-                         query(ExecutionSpace{}, rtree, within_queries_host));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
