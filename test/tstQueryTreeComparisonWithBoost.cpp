@@ -82,17 +82,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, TreeTypeTraits, TreeTypeTraitsList)
   auto cloud = make_stuctured_cloud(Lx, Ly, Lz, nx, ny, nz);
   int n = cloud.size();
 
-  Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes("bounding_boxes", n);
-  auto bounding_boxes_host = Kokkos::create_mirror_view(bounding_boxes);
-  // build bounding volume hierarchy
-  for (int i = 0; i < n; ++i)
-  {
-    auto const &point = cloud[i];
-    bounding_boxes_host[i] = ArborX::Box{point, point};
-  }
-
-  Kokkos::deep_copy(bounding_boxes, bounding_boxes_host);
-
   // random points for radius search and kNN queries
   // compare our solution against Boost R-tree
   int const n_points = 100;
@@ -141,9 +130,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, TreeTypeTraits, TreeTypeTraitsList)
   auto within_queries_host = Kokkos::create_mirror_view(within_queries);
   Kokkos::deep_copy(within_queries_host, within_queries);
 
-  Tree tree(ExecutionSpace{}, bounding_boxes);
+  Tree tree(ExecutionSpace{},
+            Kokkos::create_mirror_view_and_copy(MemorySpace{}, cloud));
 
-  BoostExt::RTree<ArborX::Box> rtree(ExecutionSpace{}, bounding_boxes_host);
+  BoostExt::RTree<decltype(cloud)::value_type> rtree(ExecutionSpace{}, cloud);
 
   // FIXME check currently sporadically fails when using the HIP backend
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, nearest_queries,
