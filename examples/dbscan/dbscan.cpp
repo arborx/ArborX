@@ -11,7 +11,7 @@
 
 #include <ArborX_DBSCAN.hpp>
 #include <ArborX_DetailsHeap.hpp>
-#include <ArborX_DetailsPriorityQueue.hpp> // Less
+#include <ArborX_DetailsOperatorFunctionObjects.hpp> // Less
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>

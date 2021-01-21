@@ -13,6 +13,7 @@
 
 #include <ArborX_DetailsContainers.hpp>
 #include <ArborX_DetailsHeap.hpp>
+#include <ArborX_DetailsOperatorFunctionObjects.hpp> // Less
 
 #include <Kokkos_Macros.hpp>
 
@@ -24,26 +25,6 @@ namespace ArborX
 {
 namespace Details
 {
-
-template <typename T>
-struct Less
-{
-public:
-  KOKKOS_INLINE_FUNCTION bool operator()(T const &lhs, T const &rhs) const
-  {
-    return lhs < rhs;
-  }
-};
-
-template <typename T>
-struct Greater
-{
-public:
-  KOKKOS_INLINE_FUNCTION bool operator()(T const &lhs, T const &rhs) const
-  {
-    return lhs > rhs;
-  }
-};
 
 template <typename T, typename Compare = Less<T>,
           typename Container = StaticVector<T, 256>>
