@@ -96,10 +96,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, TreeTypeTraits, TreeTypeTraitsList)
   // random points for radius search and kNN queries
   // compare our solution against Boost R-tree
   int const n_points = 100;
-  auto queries = make_random_cloud(Lx, Ly, Lz, n_points);
-  Kokkos::View<double * [3], ExecutionSpace> point_coords("point_coords",
-                                                          n_points);
-  auto point_coords_host = Kokkos::create_mirror_view(point_coords);
+  using MemorySpace = typename Tree::memory_space;
+  auto points = Kokkos::create_mirror_view_and_copy(
+      MemorySpace{}, make_random_cloud(Lx, Ly, Lz, n_points));
+
   Kokkos::View<double *, ExecutionSpace> radii("radii", n_points);
   auto radii_host = Kokkos::create_mirror_view(radii);
   Kokkos::View<int *, ExecutionSpace> k("distribution_k", n_points);
@@ -113,27 +113,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, TreeTypeTraits, TreeTypeTraitsList)
       1, std::floor(sqrt(nx * nx + ny * ny + nz * nz)));
   for (unsigned int i = 0; i < n_points; ++i)
   {
-    auto const &point = queries[i];
     radii_host[i] = distribution_radius(generator);
     k_host[i] = distribution_k(generator);
-    point_coords_host(i, 0) = point[0];
-    point_coords_host(i, 1) = point[1];
-    point_coords_host(i, 2) = point[2];
   }
 
-  Kokkos::deep_copy(point_coords, point_coords_host);
   Kokkos::deep_copy(radii, radii_host);
   Kokkos::deep_copy(k, k_host);
 
   Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> nearest_queries(
       "nearest_queries", n_points);
-  Kokkos::parallel_for(
-      "register_nearest_queries",
-      Kokkos::RangePolicy<ExecutionSpace>(0, n_points), KOKKOS_LAMBDA(int i) {
-        nearest_queries(i) = ArborX::nearest<ArborX::Point>(
-            {{point_coords(i, 0), point_coords(i, 1), point_coords(i, 2)}},
-            k(i));
-      });
+  Kokkos::parallel_for("register_nearest_queries",
+                       Kokkos::RangePolicy<ExecutionSpace>(0, n_points),
+                       KOKKOS_LAMBDA(int i) {
+                         nearest_queries(i) = ArborX::nearest(points(i), k(i));
+                       });
   auto nearest_queries_host = Kokkos::create_mirror_view(nearest_queries);
   Kokkos::deep_copy(nearest_queries_host, nearest_queries);
 
@@ -142,9 +135,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree, TreeTypeTraits, TreeTypeTraitsList)
   Kokkos::parallel_for(
       "register_within_queries",
       Kokkos::RangePolicy<ExecutionSpace>(0, n_points), KOKKOS_LAMBDA(int i) {
-        within_queries(i) = ArborX::intersects(ArborX::Sphere{
-            {{point_coords(i, 0), point_coords(i, 1), point_coords(i, 2)}},
-            radii(i)});
+        within_queries(i) =
+            ArborX::intersects(ArborX::Sphere{points(i), radii(i)});
       });
   auto within_queries_host = Kokkos::create_mirror_view(within_queries);
   Kokkos::deep_copy(within_queries_host, within_queries);
