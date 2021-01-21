@@ -8,10 +8,12 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
+
 #ifndef ARBORX_BOX_HPP
 #define ARBORX_BOX_HPP
 
-#include <ArborX_DetailsKokkosExt.hpp> // ArithmeticTraits
+#include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
+#include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_Point.hpp>
 
 #include <Kokkos_Macros.hpp>

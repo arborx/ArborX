@@ -20,7 +20,6 @@
 
 #include "ArborX_BoostRTreeHelpers.hpp"
 #include "ArborX_EnableViewComparison.hpp"
-#include <ArborX_DetailsKokkosExt.hpp> // is_accessible_from
 #ifdef ARBORX_ENABLE_MPI
 #include <ArborX_DistributedTree.hpp>
 #endif

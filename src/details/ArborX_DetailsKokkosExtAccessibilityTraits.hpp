@@ -8,19 +8,19 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_DETAILS_KOKKOS_EXT_HPP
-#define ARBORX_DETAILS_KOKKOS_EXT_HPP
+
+#ifndef ARBORX_DETAILS_KOKKOS_EXT_ACCESSIBILITY_TRAITS_HPP
+#define ARBORX_DETAILS_KOKKOS_EXT_ACCESSIBILITY_TRAITS_HPP
 
 #include <Kokkos_Core.hpp>
 
-#include <cfloat>  // DBL_MAX, DBL_EPSILON
-#include <cmath>   // isfinite, HUGE_VAL
-#include <cstdint> // uint32_t
 #include <type_traits>
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
+
 namespace KokkosExt
 {
+
 template <typename MemorySpace, typename ExecutionSpace, typename = void>
 struct is_accessible_from : std::false_type
 {
@@ -43,88 +43,8 @@ struct is_accessible_from_host
   static_assert(Kokkos::is_view<View>::value, "");
 };
 
-//! Compute the maximum of two values.
-template <typename T>
-KOKKOS_INLINE_FUNCTION constexpr T const &max(T const &a, T const &b)
-{
-  return (a > b) ? a : b;
-}
-
-//! Compute the minimum of two values.
-template <typename T>
-KOKKOS_INLINE_FUNCTION constexpr T const &min(T const &a, T const &b)
-{
-  return (a < b) ? a : b;
-}
-
-/** Determine whether the given floating point argument @param x has finite
- * value.
- *
- * NOTE: Clang issues a warning if the std:: namespace is missing and nvcc
- * complains about calling a __host__ function from a __host__ __device__
- * function when it is present.
- */
-template <typename T>
-KOKKOS_INLINE_FUNCTION bool isFinite(T x)
-{
-#ifdef __CUDA_ARCH__
-  return isfinite(x);
-#else
-  return std::isfinite(x);
-#endif
-}
-
-namespace ArithmeticTraits
-{
-
-template <typename T>
-struct infinity;
-
-template <>
-struct infinity<float>
-{
-  static constexpr float value = HUGE_VALF;
-};
-
-template <>
-struct infinity<double>
-{
-  static constexpr double value = HUGE_VAL;
-};
-
-template <typename T>
-struct max;
-
-template <>
-struct max<float>
-{
-  static constexpr float value = FLT_MAX;
-};
-
-template <>
-struct max<double>
-{
-  static constexpr double value = DBL_MAX;
-};
-
-template <typename T>
-struct epsilon;
-
-template <>
-struct epsilon<float>
-{
-  static constexpr float value = FLT_EPSILON;
-};
-
-template <>
-struct epsilon<double>
-{
-  static constexpr double value = DBL_EPSILON;
-};
-
-} // namespace ArithmeticTraits
-
 } // namespace KokkosExt
+
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
 #endif

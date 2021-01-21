@@ -12,7 +12,8 @@
 #define ARBORX_DETAILS_ALGORITHMS_HPP
 
 #include <ArborX_Box.hpp>
-#include <ArborX_DetailsKokkosExt.hpp> // min, max, isFinite
+#include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
+#include <ArborX_DetailsKokkosExtMathFunctions.hpp> // isFinite
 #include <ArborX_Point.hpp>
 #include <ArborX_Ray.hpp>
 #include <ArborX_Sphere.hpp>

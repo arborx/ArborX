@@ -14,9 +14,11 @@
 
 #include <ArborX_Box.hpp>
 
-#include <Kokkos_Pair.hpp>
+#include <Kokkos_Macros.hpp>
 
 #include <cassert>
+#include <climits> // INT_MIN
+#include <utility> // std::move
 
 namespace ArborX
 {

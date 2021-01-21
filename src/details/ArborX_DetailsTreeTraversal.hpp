@@ -13,6 +13,7 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
+#include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_DetailsStack.hpp>
