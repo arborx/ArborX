@@ -328,7 +328,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_spatial_predicate,
   using DeviceType = typename TreeTypeTraits::device_type;
 
   std::vector<ArborX::Box> boxes;
-  int const n = 4096; // exceed stack capacity which is 64
+  int const n = 4096; // exceeds stack capacity which is 64
   boxes.reserve(n);
   for (int i = 0; i < n; ++i)
   {
@@ -341,8 +341,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_spatial_predicate,
 
   Kokkos::View<int *, DeviceType> indices("indices", 0);
   Kokkos::View<int *, DeviceType> offset("offset", 0);
-  // spatial query that find all indexable in the
-  // tree is fine
+  // spatial query that is satisfied by all leaves in the tree
   BOOST_CHECK_NO_THROW(ArborX::query(bvh, ExecutionSpace{},
                                      makeIntersectsBoxQueries<DeviceType>({
                                          {},
@@ -374,8 +373,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_nearest_predicate,
 
   Kokkos::View<int *, DeviceType> indices("indices", 0);
   Kokkos::View<int *, DeviceType> offset("offset", 0);
-  // query number of nearest neighbors that exceed
-  // capacity of the stack is not a problem
+  // nearest query asking for as many neighbors as they are leaves in the tree
   BOOST_CHECK_NO_THROW(ArborX::query(bvh, ExecutionSpace{},
                                      makeNearestQueries<DeviceType>({
                                          {{{0., 0., 0.}}, n},
