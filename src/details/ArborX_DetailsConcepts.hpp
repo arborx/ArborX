@@ -8,10 +8,9 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
+
 #ifndef ARBORX_DETAILS_CONCEPTS_HPP
 #define ARBORX_DETAILS_CONCEPTS_HPP
-
-#include <ArborX_DetailsAlgorithms.hpp>
 
 #include <type_traits>
 
@@ -58,46 +57,6 @@ struct is_detected : is_detected_impl<void, Op, Args...>
 
 template <template <class...> class Op, class... Args>
 using detected_t = typename is_detected<Op, Args...>::type;
-
-// Checks for existence of a free function that expands an object of type
-// Geometry using an object of type Other
-template <typename Geometry, typename Other, typename = void>
-struct is_expandable : std::false_type
-{
-};
-
-template <typename Geometry, typename Other>
-struct is_expandable<
-    Geometry, Other,
-    std::void_t<decltype(
-        expand(std::declval<Geometry &>(), std::declval<Other const &>()))>>
-    : std::true_type
-{
-};
-
-// Checks for existence of a free function that calculates the centroid of an
-// object of type Geometry
-template <typename Geometry, typename Point, typename = void>
-struct has_centroid : std::false_type
-{
-};
-
-template <typename Geometry, typename Point>
-struct has_centroid<
-    Geometry, Point,
-    std::void_t<decltype(centroid(std::declval<Geometry const &>(),
-                                  std::declval<Point &>()))>> : std::true_type
-{
-};
-
-// is_complete implementation taken from https://stackoverflow.com/a/44229779
-template <class T, std::size_t = sizeof(T)>
-std::true_type is_complete_impl(T *);
-
-std::false_type is_complete_impl(...);
-
-template <class T>
-using is_complete = decltype(is_complete_impl(std::declval<T *>()));
 
 template <typename T>
 struct first_template_parameter;
