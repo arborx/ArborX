@@ -65,7 +65,7 @@ target_include_directories(ArborX_DetailsAlgorithms.exe PRIVATE ${CMAKE_CURRENT_
 add_test(NAME ArborX_DetailsAlgorithms_Test COMMAND ./ArborX_DetailsAlgorithms.exe)
 
 set(ARBORX_TEST_QUERY_TREE_SOURCES)
-foreach(_test Degenerate)
+foreach(_test Callbacks Degenerate ManufacturedSolution)
   set(_suffix "_InstantiateAll")
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}${_suffix}.cpp"
     "#include <ArborX_LinearBVH.hpp>\n"
@@ -76,18 +76,16 @@ foreach(_test Degenerate)
   )
   list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}${_suffix}.cpp")
 endforeach()
-add_executable(ArborX_LinearBVH.exe
+add_executable(ArborX_QueryTree.exe
   ${ARBORX_TEST_QUERY_TREE_SOURCES}
   tstQueryTreeComparisonWithBoost.cpp
-  tstQueryTreeManufacturedSolution.cpp
-  tstQueryTreeCallbacks.cpp
   tstQueryTreeTraversalPolicy.cpp
   tstKokkosToolsAnnotations.cpp
   utf_main.cpp)
-target_link_libraries(ArborX_LinearBVH.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_LinearBVH.exe PRIVATE BOOST_TEST_DYN_LINK)
-target_include_directories(ArborX_LinearBVH.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
-add_test(NAME ArborX_LinearBVH_Test COMMAND ./ArborX_LinearBVH.exe)
+target_link_libraries(ArborX_QueryTree.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_QueryTree.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_include_directories(ArborX_QueryTree.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
+add_test(NAME ArborX_QueryTree_Test COMMAND ./ArborX_QueryTree.exe)
 
 add_executable(ArborX_DetailsTreeConstruction.exe tstDetailsTreeConstruction.cpp utf_main.cpp)
 target_link_libraries(ArborX_DetailsTreeConstruction.exe PRIVATE ArborX Boost::unit_test_framework)

@@ -9,7 +9,6 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <ArborX_LinearBVH.hpp>
 
 #include <boost/test/unit_test.hpp>
@@ -20,16 +19,20 @@
 #include <tuple>
 
 #include "Search_UnitTestHelpers.hpp"
-
-#define BOOST_TEST_MODULE LinearBVH
+// clang-format off
+#include "ArborXTest_TreeTypeTraits.hpp"
+// clang-format on
 
 BOOST_AUTO_TEST_SUITE(ManufacturedSolution)
 
 namespace tt = boost::test_tools;
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
+BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
+                              TreeTypeTraitsList)
 {
-  using ExecutionSpace = typename DeviceType::execution_space;
+  using Tree = typename TreeTypeTraits::type;
+  using ExecutionSpace = typename TreeTypeTraits::execution_space;
+  using DeviceType = typename TreeTypeTraits::device_type;
 
   double Lx = 100.0;
   double Ly = 100.0;
@@ -52,8 +55,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
           }
       });
 
-  ArborX::BVH<typename DeviceType::memory_space> const bvh(ExecutionSpace{},
-                                                           bounding_boxes);
+  Tree const tree(ExecutionSpace{}, bounding_boxes);
 
   // (i) use same objects for the queries than the objects we constructed the
   // BVH
@@ -78,7 +80,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::View<int *, DeviceType> indices("indices", n);
   Kokkos::View<int *, DeviceType> offset("offset", n);
 
-  ArborX::query(bvh, ExecutionSpace{}, queries, indices, offset);
+  ArborX::query(tree, ExecutionSpace{}, queries, indices, offset);
 
   auto indices_host = Kokkos::create_mirror_view(indices);
   Kokkos::deep_copy(indices_host, indices);
@@ -188,7 +190,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
                        KOKKOS_LAMBDA(int i) {
                          queries[i] = ArborX::intersects(bounding_boxes[i]);
                        });
-  ArborX::query(bvh, ExecutionSpace{}, queries, indices, offset);
+  ArborX::query(tree, ExecutionSpace{}, queries, indices, offset);
   indices_host = Kokkos::create_mirror_view(indices);
   Kokkos::deep_copy(indices_host, indices);
   offset_host = Kokkos::create_mirror_view(offset);
@@ -247,7 +249,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, DeviceType, ARBORX_DEVICE_TYPES)
                        KOKKOS_LAMBDA(int i) {
                          queries[i] = ArborX::intersects(bounding_boxes[i]);
                        });
-  ArborX::query(bvh, ExecutionSpace{}, queries, indices, offset);
+  ArborX::query(tree, ExecutionSpace{}, queries, indices, offset);
   indices_host = Kokkos::create_mirror_view(indices);
   Kokkos::deep_copy(indices_host, indices);
   offset_host = Kokkos::create_mirror_view(offset);
