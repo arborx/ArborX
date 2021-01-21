@@ -15,19 +15,6 @@
 
 #include <tuple>
 
-using ArborX::Details::is_complete;
-
-template <typename T, typename Enable = void>
-struct NotSpecializedForIntegralTypes;
-template <typename T>
-struct NotSpecializedForIntegralTypes<
-    T, std::enable_if_t<!std::is_integral<T>::value>>
-{
-};
-
-static_assert(is_complete<NotSpecializedForIntegralTypes<float>>::value, "");
-static_assert(!is_complete<NotSpecializedForIntegralTypes<int>>::value, "");
-
 using ArborX::Details::first_template_parameter_t;
 static_assert(std::is_same<first_template_parameter_t<std::tuple<int, float>>,
                            int>::value,

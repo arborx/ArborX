@@ -58,15 +58,6 @@ struct is_detected : is_detected_impl<void, Op, Args...>
 template <template <class...> class Op, class... Args>
 using detected_t = typename is_detected<Op, Args...>::type;
 
-// is_complete implementation taken from https://stackoverflow.com/a/44229779
-template <class T, std::size_t = sizeof(T)>
-std::true_type is_complete_impl(T *);
-
-std::false_type is_complete_impl(...);
-
-template <class T>
-using is_complete = decltype(is_complete_impl(std::declval<T *>()));
-
 template <typename T>
 struct first_template_parameter;
 
