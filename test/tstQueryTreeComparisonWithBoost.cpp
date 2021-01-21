@@ -21,8 +21,8 @@
 #include "Search_UnitTestHelpers.hpp"
 // clang-format off
 #include "ArborXTest_TreeTypeTraits.hpp"
-#include <Kokkos_CopyViews.hpp>
 // clang-format on
+#include <Kokkos_Core.hpp>
 
 BOOST_AUTO_TEST_SUITE(ComparisonWithBoost)
 
@@ -105,7 +105,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
   Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
       within_queries("within_queries", n_points);
   Kokkos::parallel_for(
-      "register_within_queries",
       Kokkos::RangePolicy<ExecutionSpace>(0, n_points), KOKKOS_LAMBDA(int i) {
         within_queries(i) =
             ArborX::intersects(ArborX::Sphere{points(i), radii(i)});
@@ -118,6 +117,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
 
   BoostExt::RTree<decltype(cloud)::value_type> rtree(ExecutionSpace{}, cloud);
 
+  // FIXME check currently sporadically fails when using the HIP backend
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, within_queries,
                          query(ExecutionSpace{}, rtree, within_queries_host));
 }
@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate, TreeTypeTraits,
   auto points = Kokkos::create_mirror_view_and_copy(
       MemorySpace{}, make_random_cloud(Lx, Ly, Lz, n_points));
 
-  Kokkos::View<int *, ExecutionSpace> k("distribution_k", n_points);
+  Kokkos::View<int *, ExecutionSpace> k("k", n_points);
   auto k_host = Kokkos::create_mirror_view(k);
   // use random number k of for the kNN search
   std::default_random_engine generator;
@@ -160,8 +160,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate, TreeTypeTraits,
 
   Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> nearest_queries(
       "nearest_queries", n_points);
-  Kokkos::parallel_for("register_nearest_queries",
-                       Kokkos::RangePolicy<ExecutionSpace>(0, n_points),
+  Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n_points),
                        KOKKOS_LAMBDA(int i) {
                          nearest_queries(i) = ArborX::nearest(points(i), k(i));
                        });
