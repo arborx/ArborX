@@ -14,7 +14,7 @@
 #include <ArborX_Config.hpp>
 
 #include <ArborX_DetailsDistributor.hpp>
-#include <ArborX_DetailsKokkosExt.hpp> // min, max
+#include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_LinearBVH.hpp>

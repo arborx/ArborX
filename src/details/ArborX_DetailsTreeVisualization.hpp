@@ -11,6 +11,7 @@
 #ifndef ARBORX_DETAILS_TREE_VISUALIZATION_HPP
 #define ARBORX_DETAILS_TREE_VISUALIZATION_HPP
 
+#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_DetailsTreeTraversal.hpp>
 
 #include <Kokkos_Core.hpp>

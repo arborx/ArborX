@@ -12,7 +12,7 @@
 #define ARBORX_RAY_HPP
 
 #include <ArborX_Box.hpp>
-#include <ArborX_DetailsKokkosExt.hpp>
+#include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_Point.hpp>
 
 #include <Kokkos_Macros.hpp>

@@ -17,8 +17,8 @@
 #include "ArborX_BoostGeometryAdapters.hpp"
 #include "ArborX_BoostRangeAdapters.hpp"
 #include <ArborX_Box.hpp>
-#include <ArborX_DetailsKokkosExt.hpp> // is_accessible_from_host
-#include <ArborX_DetailsUtils.hpp>     // exclusivePrefixSum, lastElement
+#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp> // is_accessible_from_host
+#include <ArborX_DetailsUtils.hpp> // exclusivePrefixSum, lastElement
 #include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
 
