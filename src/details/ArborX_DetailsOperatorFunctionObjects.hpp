@@ -23,7 +23,7 @@ template <typename T>
 struct Less
 {
 public:
-  KOKKOS_INLINE_FUNCTION bool operator()(T const &lhs, T const &rhs) const
+  KOKKOS_FUNCTION constexpr bool operator()(T const &lhs, T const &rhs) const
   {
     return lhs < rhs;
   }
@@ -33,7 +33,7 @@ template <typename T>
 struct Greater
 {
 public:
-  KOKKOS_INLINE_FUNCTION bool operator()(T const &lhs, T const &rhs) const
+  KOKKOS_FUNCTION constexpr bool operator()(T const &lhs, T const &rhs) const
   {
     return lhs > rhs;
   }
