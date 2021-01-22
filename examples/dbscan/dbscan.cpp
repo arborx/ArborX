@@ -13,6 +13,7 @@
 #include <ArborX_DBSCANVerification.hpp>
 #include <ArborX_DetailsHeap.hpp>
 #include <ArborX_DetailsOperatorFunctionObjects.hpp> // Less
+#include <ArborX_IO.hpp>
 #include <ArborX_MinimumSpanningTree.hpp>
 #include <ArborX_Version.hpp>
 
@@ -376,6 +377,10 @@ int main(int argc, char *argv[])
   if (num_samples > 0 && num_samples < (int)data.size())
     data = sampleData(data, num_samples);
   auto const primitives = vec2view<MemorySpace>(data, "primitives");
+
+  saveData("data-binary.arborx", primitives, true);
+  saveData("data-text.arborx", primitives, false);
+  return 0;
 
   ExecutionSpace exec_space;
 
