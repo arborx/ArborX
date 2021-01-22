@@ -77,6 +77,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_spatial_predicate, TreeTypeTraits,
   }
 }
 
+#ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
 BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_nearest_predicate, TreeTypeTraits,
                               TreeTypeTraitsList)
 {
@@ -114,6 +115,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_nearest_predicate, TreeTypeTraits,
                            make_reference_solution<int>({}, {0, 0, 0}));
   }
 }
+#endif
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_spatial_predicate,
                               TreeTypeTraits, TreeTypeTraitsList)
@@ -157,6 +159,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_spatial_predicate,
                          make_reference_solution<int>({0, 0}, {0, 1, 2, 2}));
 }
 
+#ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
 BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_nearest_predicate,
                               TreeTypeTraits, TreeTypeTraitsList)
 {
@@ -191,6 +194,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_nearest_predicate,
                          }),
                          make_reference_solution<int>({0, 0, 0}, {0, 1, 2, 3}));
 }
+#endif
 
 // FIXME Tree with two leaves is not "degenerated".  Find a better place for it.
 BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_spatial_predicate,
@@ -254,6 +258,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_spatial_predicate,
                          make_reference_solution<int>({}, {0}));
 }
 
+#ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
 BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_nearest_predicate,
                               TreeTypeTraits, TreeTypeTraitsList)
 {
@@ -284,6 +289,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_nearest_predicate,
                          }),
                          make_reference_solution<int>({0, 1, 0, 1}, {0, 2, 4}));
 }
+#endif
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves_spatial_predicate,
                               TreeTypeTraits, TreeTypeTraitsList)
@@ -351,6 +357,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_spatial_predicate,
   BOOST_TEST(ArborX::lastElement(offset) == n);
 }
 
+#ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
 BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_nearest_predicate,
                               TreeTypeTraits, TreeTypeTraitsList)
 {
@@ -381,5 +388,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_nearest_predicate,
                                      indices, offset));
   BOOST_TEST(ArborX::lastElement(offset) == n);
 }
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -122,6 +122,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
                          query(ExecutionSpace{}, rtree, within_queries_host));
 }
 
+#ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate, TreeTypeTraits,
                               TreeTypeTraitsList)
 {
@@ -176,5 +177,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate, TreeTypeTraits,
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, nearest_queries,
                          query(ExecutionSpace{}, rtree, nearest_queries_host));
 }
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()

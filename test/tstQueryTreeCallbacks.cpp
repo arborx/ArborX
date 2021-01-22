@@ -127,6 +127,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_spatial_predicate, TreeTypeTraits,
   }
 }
 
+#ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
 BOOST_AUTO_TEST_CASE_TEMPLATE(callback_nearest_predicate, TreeTypeTraits,
                               TreeTypeTraitsList)
 {
@@ -176,6 +177,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_nearest_predicate, TreeTypeTraits,
     BOOST_TEST(custom_host == ref_host, tt::per_element());
   }
 }
+#endif
 
 template <class DeviceType>
 struct Experimental_CustomCallbackEarlyExit
@@ -336,6 +338,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_spatial_predicate,
   }
 }
 
+#ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
 BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_nearest_predicate,
                               TreeTypeTraits, TreeTypeTraitsList)
 {
@@ -387,5 +390,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_nearest_predicate,
     BOOST_TEST(custom_host == ref_host, tt::per_element());
   }
 }
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()
