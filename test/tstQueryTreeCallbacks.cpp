@@ -179,6 +179,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_nearest_predicate, TreeTypeTraits,
 }
 #endif
 
+#ifndef ARBORX_TEST_DISABLE_CALLBACK_EARLY_EXIT
 template <class DeviceType>
 struct Experimental_CustomCallbackEarlyExit
 {
@@ -229,6 +230,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_early_exit, TreeTypeTraits,
 
   BOOST_TEST(counts_host == counts_ref, tt::per_element());
 }
+#endif
 
 template <typename DeviceType>
 struct CustomInlineCallbackWithAttachment
