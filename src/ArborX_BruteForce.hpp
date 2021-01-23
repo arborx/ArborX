@@ -74,7 +74,7 @@ BruteForce<MemorySpace>::BruteForce(ExecutionSpace const &space,
                                     Primitives const &primitives)
     : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
     , _bounding_volumes(Kokkos::ViewAllocateWithoutInitializing(
-                            "ArborX::BF::bounding_volumes"),
+                            "ArborX::BruteForce::bounding_volumes"),
                         _size)
 {
   static_assert(
@@ -85,7 +85,7 @@ BruteForce<MemorySpace>::BruteForce(ExecutionSpace const &space,
                                               ExecutionSpace>::value,
                 "Primitives must be accessible from the execution space");
 
-  Kokkos::Profiling::pushRegion("ArborX::BF::BF");
+  Kokkos::Profiling::pushRegion("ArborX::BruteForce::BruteForce");
 
   Details::BruteForceImpl::initializeBoundingVolumesAndReduceBoundsOfTheScene(
       space, primitives, _bounding_volumes, _bounds);
@@ -111,7 +111,7 @@ void BruteForce<MemorySpace>::query(ExecutionSpace const &space,
   static_assert(std::is_same<Tag, Details::SpatialPredicateTag>{},
                 "nearest query not implemented yet");
 
-  Kokkos::Profiling::pushRegion("ArborX::BF::query::spatial");
+  Kokkos::Profiling::pushRegion("ArborX::BruteForce::query::spatial");
 
   Details::BruteForceImpl::query(space, _bounding_volumes, predicates,
                                  callback);

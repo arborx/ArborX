@@ -34,17 +34,18 @@ struct BruteForceImpl
 
     int const n = Access::size(primitives);
 
-    Kokkos::parallel_reduce(
-        "ArborX::BF::BF::initialize_boounding_volumes_and_reduce_bounds",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-        KOKKOS_LAMBDA(int i, Bounds &update) {
-          using Details::expand;
-          Bounds bounding_volume{};
-          expand(bounding_volume, Access::get(primitives, i));
-          bounding_volumes(i) = bounding_volume;
-          update += bounding_volume;
-        },
-        bounds);
+    Kokkos::parallel_reduce("ArborX::BruteForce::BruteForce::"
+                            "initialize_bounding_volumes_and_reduce_bounds",
+                            Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+                            KOKKOS_LAMBDA(int i, Bounds &update) {
+                              using Details::expand;
+                              Bounds bounding_volume{};
+                              expand(bounding_volume,
+                                     Access::get(primitives, i));
+                              bounding_volumes(i) = bounding_volume;
+                              update += bounding_volume;
+                            },
+                            bounds);
   }
 
   template <class ExecutionSpace, class Primitives, class Predicates,
@@ -59,7 +60,8 @@ struct BruteForceImpl
     int const n_predicates = AccessPredicates::size(predicates);
 
     Kokkos::parallel_for(
-        "ArborX::BF::query::check_all_predicates_against_all_primitives",
+        "ArborX::BruteForce::query::spatial::"
+        "check_all_predicates_against_all_primitives",
         Kokkos::MDRangePolicy<ExecutionSpace, Kokkos::Rank<2>>(
             space, {0, 0}, {n_primitives, n_predicates}),
         KOKKOS_LAMBDA(int primitive_index, int predicate_index) {
