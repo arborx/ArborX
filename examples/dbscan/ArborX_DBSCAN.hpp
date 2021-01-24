@@ -55,7 +55,7 @@ template <typename MemorySpace>
 struct NumNeighEarlyExitCallback
 {
   Kokkos::View<int *, MemorySpace> _num_neigh;
-  int _core_min_size = 1;
+  int _core_min_size;
 
   template <typename Query>
   KOKKOS_FUNCTION auto operator()(Query const &query, int) const
@@ -81,7 +81,7 @@ template <typename MemorySpace>
 struct DBSCANCorePoints
 {
   Kokkos::View<int *, MemorySpace> _num_neigh;
-  int _core_min_size = 1;
+  int _core_min_size;
 
   KOKKOS_FUNCTION bool operator()(int const i) const
   {
@@ -93,7 +93,7 @@ template <typename ExecutionSpace, typename Primitives,
           typename ClusterIndicesView, typename ClusterOffsetView>
 void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
             ClusterIndicesView &cluster_indices,
-            ClusterOffsetView &cluster_offset, float eps, int core_min_size = 1,
+            ClusterOffsetView &cluster_offset, float eps, int core_min_size,
             int cluster_min_size = 2, bool verbose = false, bool verify = false)
 {
   static_assert(Kokkos::is_view<ClusterIndicesView>{}, "");
@@ -111,8 +111,9 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
       std::is_same<typename ClusterOffsetView::memory_space, MemorySpace>{},
       "");
 
-  ARBORX_ASSERT(core_min_size >= 1);
+  ARBORX_ASSERT(core_min_size >= 2);
   ARBORX_ASSERT(cluster_min_size >= 2);
+  bool const is_special_case = (core_min_size == 2);
 
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN");
 
@@ -151,7 +152,7 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::DBSCAN::stat"),
       n);
   ArborX::iota(exec_space, stat);
-  if (core_min_size == 1)
+  if (is_special_case)
   {
     // Perform the queries and build clusters through callback
 
@@ -169,12 +170,8 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
     Kokkos::Timer timer_local;
     timer_start(timer_local);
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::num_neigh");
-    Kokkos::View<int *, MemorySpace> num_neigh(
-        Kokkos::ViewAllocateWithoutInitializing(
-            "ArborX::DBSCAN::num_neighbors"),
-        n);
-    // Initialize to -1 as we don't want to count ourselves as a neighbor
-    Kokkos::deep_copy(num_neigh, -1);
+    Kokkos::View<int *, MemorySpace> num_neigh("ArborX::DBSCAN::num_neighbors",
+                                               n);
     bvh.query(exec_space, predicates,
               NumNeighEarlyExitCallback<MemorySpace>{num_neigh, core_min_size});
     Kokkos::Profiling::popRegion();
@@ -308,7 +305,7 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
     printf("total time          : %10.3f\n", elapsed["total"]);
     printf("-- construction     : %10.3f\n", elapsed["construction"]);
     printf("-- query+cluster    : %10.3f\n", elapsed["query+cluster"]);
-    if (core_min_size > 1)
+    if (!is_special_case)
     {
       printf("---- neigh          : %10.3f\n", elapsed["neigh"]);
       printf("---- query          : %10.3f\n", elapsed["query"]);

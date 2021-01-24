@@ -40,15 +40,14 @@ bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
       "ArborX::DBSCAN::verify_connected_core_points",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
       KOKKOS_LAMBDA(int i, int &update) {
-        bool self_is_core_point =
-            (offset(i + 1) - offset(i) - 1 >= core_min_size);
+        bool self_is_core_point = (offset(i + 1) - offset(i) >= core_min_size);
         if (self_is_core_point)
         {
           for (int jj = offset(i); jj < offset(i + 1); ++jj)
           {
             int j = indices(jj);
             bool neigh_is_core_point =
-                (offset(j + 1) - offset(j) - 1 >= core_min_size);
+                (offset(j + 1) - offset(j) >= core_min_size);
 
             if (neigh_is_core_point && clusters(i) != clusters(j))
             {
@@ -82,8 +81,7 @@ bool verifyBoundaryPointsConnectToCorePoints(ExecutionSpace const &exec_space,
       "ArborX::DBSCAN::verify_connected_boundary_points",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
       KOKKOS_LAMBDA(int i, int &update) {
-        bool self_is_core_point =
-            (offset(i + 1) - offset(i) - 1 >= core_min_size);
+        bool self_is_core_point = (offset(i + 1) - offset(i) >= core_min_size);
         if (!self_is_core_point)
         {
           bool is_boundary = false;
@@ -92,7 +90,7 @@ bool verifyBoundaryPointsConnectToCorePoints(ExecutionSpace const &exec_space,
           {
             int j = indices(jj);
             bool neigh_is_core_point =
-                (offset(j + 1) - offset(j) - 1 >= core_min_size);
+                (offset(j + 1) - offset(j) >= core_min_size);
 
             if (neigh_is_core_point)
             {
@@ -145,7 +143,7 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
 
   auto is_core_point = [&](int i) {
-    return offset_host(i + 1) - offset_host(i) - 1 >= core_min_size;
+    return offset_host(i + 1) - offset_host(i) >= core_min_size;
   };
 
   // Remove all boundary points from consideration
