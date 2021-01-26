@@ -27,7 +27,7 @@ enum class PointCloudType
   hollow_sphere
 };
 
-PointCloudType to_point_cloud_enum(std::string const &str)
+inline PointCloudType to_point_cloud_enum(std::string const &str)
 {
   if (str == "filled_box")
     return PointCloudType::filled_box;
