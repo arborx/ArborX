@@ -134,6 +134,7 @@ void sortByKey(ExecutionSpace const &space, KeysType &keys, ValuesType &values)
   static_assert(Kokkos::is_view<ValuesType>::value, "");
   static_assert(KeysType::rank == 1, "");
   static_assert(ValuesType::rank == 1, "");
+  ARBORX_ASSERT(values.extent(0) == keys.extent(0));
 
   int const n = keys.extent(0);
 
@@ -184,7 +185,7 @@ void sortByKey(
                 "");
   static_assert(std::is_same<typename ValuesType::device_type,
                              typename KeysType::device_type>::value);
-  ARBORX_ASSERT(values.extent(0) >= keys.extent(0));
+  ARBORX_ASSERT(values.extent(0) == keys.extent(0));
 
   int const n = keys.extent(0);
 
