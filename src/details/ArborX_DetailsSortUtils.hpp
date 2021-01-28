@@ -14,7 +14,8 @@
 
 #include <ArborX_Config.hpp> // ARBORX_ENABLE_ROCTHRUST
 
-#include <ArborX_DetailsUtils.hpp> // iota
+#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp> // is_accessible_from
+#include <ArborX_DetailsUtils.hpp>                        // iota
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -70,6 +71,9 @@ void sort(ExecutionSpace const &space, ValuesType &values)
 {
   static_assert(Kokkos::is_view<ValuesType>::value, "");
   static_assert(ValuesType::rank == 1, "");
+  static_assert(KokkosExt::is_accessible_from<typename ValuesType::memory_space,
+                                              ExecutionSpace>::value,
+                "");
 
   int const n = values.extent(0);
 
@@ -105,10 +109,11 @@ void sort(
 #endif
     ValuesType &values)
 {
+  using ExecutionSpace = std::decay_t<decltype(space)>;
   static_assert(Kokkos::is_view<ValuesType>::value, "");
   static_assert(ValuesType::rank == 1, "");
-  static_assert(std::is_same<std::decay_t<decltype(space)>,
-                             typename ValuesType::execution_space>::value,
+  static_assert(KokkosExt::is_accessible_from<typename ValuesType::memory_space,
+                                              ExecutionSpace>::value,
                 "");
 
   int const n = values.extent(0);
@@ -134,6 +139,12 @@ void sortByKey(ExecutionSpace const &space, KeysType &keys, ValuesType &values)
   static_assert(Kokkos::is_view<ValuesType>::value, "");
   static_assert(KeysType::rank == 1, "");
   static_assert(ValuesType::rank == 1, "");
+  static_assert(KokkosExt::is_accessible_from<typename KeysType::memory_space,
+                                              ExecutionSpace>::value,
+                "");
+  static_assert(KokkosExt::is_accessible_from<typename ValuesType::memory_space,
+                                              ExecutionSpace>::value,
+                "");
   ARBORX_ASSERT(values.extent(0) == keys.extent(0));
 
   int const n = keys.extent(0);
@@ -170,15 +181,17 @@ void sortByKey(
 #endif
     KeysType &keys, ValuesType &values)
 {
+  using ExecutionSpace = std::decay_t<decltype(space)>;
   static_assert(Kokkos::is_view<KeysType>::value, "");
   static_assert(Kokkos::is_view<ValuesType>::value, "");
   static_assert(KeysType::rank == 1, "");
   static_assert(ValuesType::rank == 1, "");
-  static_assert(std::is_same<std::decay_t<decltype(space)>,
-                             typename ValuesType::execution_space>::value,
+  static_assert(KokkosExt::is_accessible_from<typename KeysType::memory_space,
+                                              ExecutionSpace>::value,
                 "");
-  static_assert(std::is_same<typename ValuesType::device_type,
-                             typename KeysType::device_type>::value);
+  static_assert(KokkosExt::is_accessible_from<typename ValuesType::memory_space,
+                                              ExecutionSpace>::value,
+                "");
   ARBORX_ASSERT(values.extent(0) == keys.extent(0));
 
   int const n = keys.extent(0);
@@ -206,6 +219,9 @@ Kokkos::View<SizeType *, typename ViewType::device_type>
 sortObjects(ExecutionSpace const &exec_space, ViewType &view)
 {
   using MemorySpace = typename ViewType::memory_space;
+  static_assert(
+      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
+
   Kokkos::View<SizeType *, MemorySpace> permutation_indices(
       Kokkos::ViewAllocateWithoutInitializing(
           "ArborX::Sorting::permutation_indices"),
