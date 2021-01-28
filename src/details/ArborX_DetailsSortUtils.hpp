@@ -154,15 +154,9 @@ void sortByKey(ExecutionSpace const &space, KeysType &keys, ValuesType &values)
       bin_sort(keys, CompType(n / 2, result.min_val, result.max_val), true);
   bin_sort.create_permute_vector();
   bin_sort.sort(keys);
+  bin_sort.sort(values);
   // FIXME Kokkos::BinSort is currently missing overloads that take an
   // execution space as argument
-
-  auto permute = bin_sort.get_permute_vector();
-  auto values_clone = clone(values);
-  Kokkos::parallel_for(
-      "ArborX::Sorting::apply_permutation",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-      KOKKOS_LAMBDA(int const i) { values(i) = values_clone(permute(i)); });
 }
 
 #if defined(KOKKOS_ENABLE_CUDA) ||                                             \
