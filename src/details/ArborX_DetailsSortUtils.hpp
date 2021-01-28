@@ -69,6 +69,7 @@ template <typename ExecutionSpace, typename ValuesType>
 void sort(ExecutionSpace const &space, ValuesType &values)
 {
   static_assert(Kokkos::is_view<ValuesType>::value, "");
+  static_assert(ValuesType::rank == 1, "");
 
   int const n = values.extent(0);
 
@@ -105,6 +106,7 @@ void sort(
     ValuesType &values)
 {
   static_assert(Kokkos::is_view<ValuesType>::value, "");
+  static_assert(ValuesType::rank == 1, "");
   static_assert(std::is_same<std::decay_t<decltype(space)>,
                              typename ValuesType::execution_space>::value,
                 "");
@@ -130,6 +132,8 @@ void sortByKey(ExecutionSpace const &space, KeysType &keys, ValuesType &values)
 {
   static_assert(Kokkos::is_view<KeysType>::value, "");
   static_assert(Kokkos::is_view<ValuesType>::value, "");
+  static_assert(KeysType::rank == 1, "");
+  static_assert(ValuesType::rank == 1, "");
 
   int const n = keys.extent(0);
 
@@ -173,6 +177,8 @@ void sortByKey(
 {
   static_assert(Kokkos::is_view<KeysType>::value, "");
   static_assert(Kokkos::is_view<ValuesType>::value, "");
+  static_assert(KeysType::rank == 1, "");
+  static_assert(ValuesType::rank == 1, "");
   static_assert(std::is_same<std::decay_t<decltype(space)>,
                              typename ValuesType::execution_space>::value,
                 "");
