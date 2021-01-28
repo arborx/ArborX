@@ -23,7 +23,6 @@
 #ifdef ARBORX_ENABLE_MPI
 #include <ArborX_DistributedTree.hpp>
 #endif
-#include <ArborX_LinearBVH.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -55,6 +54,19 @@ auto make_reference_solution(std::vector<T> const &values,
   return make_compressed_storage(offsets, values);
 }
 
+#ifdef ARBORX_ENABLE_MPI
+// FIXME This is a temporary workaround until we reconcile interfaces of
+// DistributedTree and BVH
+template <typename ExecutionSpace, typename MemorySpace, typename Queries,
+          typename Values, typename Offsets>
+void query(ArborX::DistributedTree<MemorySpace> const &tree,
+           ExecutionSpace const &space, Queries const &queries,
+           Values const &values, Offsets const &offsets)
+{
+  tree.query(space, queries, values, offsets);
+}
+#endif
+
 template <typename ExecutionSpace, typename Tree, typename Queries>
 auto query(ExecutionSpace const &exec_space, Tree const &tree,
            Queries const &queries)
@@ -65,21 +77,6 @@ auto query(ExecutionSpace const &exec_space, Tree const &tree,
   Kokkos::View<value_type *, memory_space> values("Testing::values", 0);
   Kokkos::View<int *, memory_space> offsets("Testing::offsets", 0);
   tree.query(exec_space, queries, values, offsets);
-  return make_compressed_storage(
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
-}
-
-// This is a temporary workaround until we reconcile interfaces of
-// DistributedTree and BVH
-template <typename ExecutionSpace, typename MemorySpace, typename Queries>
-auto query(ExecutionSpace const &exec_space,
-           ArborX::BVH<MemorySpace> const &tree, Queries const &queries)
-{
-  using memory_space = MemorySpace;
-  Kokkos::View<int *, memory_space> values("Testing::values", 0);
-  Kokkos::View<int *, memory_space> offsets("Testing::offsets", 0);
-  ArborX::query(tree, exec_space, queries, values, offsets);
   return make_compressed_storage(
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
