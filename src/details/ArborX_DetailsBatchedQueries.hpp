@@ -16,7 +16,7 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // returnCentroid, translateAndScale
 #include <ArborX_DetailsMortonCode.hpp> // morton3D
-#include <ArborX_DetailsSortUtils.hpp>  // sortByKey
+#include <ArborX_DetailsSortUtils.hpp>  // sortObjects
 #include <ArborX_DetailsUtils.hpp>      // exclusivePrefixSum, lastElement
 
 #include <Kokkos_Core.hpp>
@@ -68,13 +68,7 @@ public:
           morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
         });
 
-    Kokkos::View<unsigned int *, DeviceType> permutation_indices(
-        Kokkos::ViewAllocateWithoutInitializing(
-            "ArborX::BVH::query::permutation"),
-        n_queries);
-    iota(space, permutation_indices);
-    Details::sortByKey(space, morton_codes, permutation_indices);
-    return permutation_indices;
+    return sortObjects(space, morton_codes);
   }
 
   // NOTE  trailing return type seems required :(

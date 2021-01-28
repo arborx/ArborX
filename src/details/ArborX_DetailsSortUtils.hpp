@@ -84,8 +84,8 @@ void sort(ExecutionSpace const &space, ValuesType &values)
   if (result.min_val == result.max_val)
     return;
 
-  // FIXME Kokkos::BinSort is currently missing overloads that an execution
-  // space as argument
+  // FIXME Kokkos::BinSort is currently missing overloads that take an
+  // execution space as argument
   Kokkos::BinSort<ValuesType, CompType, typename ValuesType::device_type,
                   SizeType>
       bin_sort(values, CompType(n / 2, result.min_val, result.max_val), true);
@@ -149,8 +149,8 @@ void sortByKey(ExecutionSpace const &space, KeysType &keys, ValuesType &values)
       bin_sort(keys, CompType(n / 2, result.min_val, result.max_val), true);
   bin_sort.create_permute_vector();
   bin_sort.sort(keys);
-  // FIXME Kokkos::BinSort is currently missing overloads that an execution
-  // space as argument
+  // FIXME Kokkos::BinSort is currently missing overloads that take an
+  // execution space as argument
 
   auto permute = bin_sort.get_permute_vector();
   auto values_clone = clone(values);
@@ -197,6 +197,22 @@ void sortByKey(
   thrust::sort_by_key(execution_policy, keys_first, keys_last, values_first);
 }
 #endif
+
+// NOTE returns the permutation indices **and** sorts the input view
+template <typename ExecutionSpace, typename ViewType,
+          class SizeType = unsigned int>
+Kokkos::View<SizeType *, typename ViewType::device_type>
+sortObjects(ExecutionSpace const &exec_space, ViewType &view)
+{
+  using MemorySpace = typename ViewType::memory_space;
+  Kokkos::View<SizeType *, MemorySpace> permutation_indices(
+      Kokkos::ViewAllocateWithoutInitializing(
+          "ArborX::Sorting::permutation_indices"),
+      view.size());
+  iota(exec_space, permutation_indices);
+  Details::sortByKey(exec_space, view, permutation_indices);
+  return permutation_indices;
+}
 
 // Helper functions and structs for applyPermutations
 namespace PermuteHelper
