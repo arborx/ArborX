@@ -81,24 +81,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
                          queries(i) = ArborX::intersects(bounding_boxes(i));
                        });
 
-  Kokkos::View<int *, DeviceType> indices("indices", 0);
-  Kokkos::View<int *, DeviceType> offset("offset", 0);
-
-  ArborX::query(tree, ExecutionSpace{}, queries, indices, offset);
-
-  auto indices_host = Kokkos::create_mirror_view(indices);
-  Kokkos::deep_copy(indices_host, indices);
-  auto offset_host = Kokkos::create_mirror_view(offset);
-  Kokkos::deep_copy(offset_host, offset);
-
   // we expect the collision list to be diag(0, 1, ..., nx*ny*nz-1)
   std::vector<int> indices_ref(n);
   std::vector<int> offset_ref(n + 1);
   std::iota(indices_ref.begin(), indices_ref.end(), 0);
   std::iota(offset_ref.begin(), offset_ref.end(), 0);
-  BOOST_TEST(make_compressed_storage(offset_host, indices_host) ==
-                 make_compressed_storage(offset_ref, indices_ref),
-             tt::per_element());
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, queries,
+                         make_reference_solution(indices_ref, offset_ref));
 
   // (ii) use bounding boxes that intersects with first neighbors
   //
@@ -196,10 +185,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
                        KOKKOS_LAMBDA(int i) {
                          queries[i] = ArborX::intersects(bounding_boxes[i]);
                        });
+
+  Kokkos::View<int *, DeviceType> indices("indices", 0);
+  Kokkos::View<int *, DeviceType> offset("offset", 0);
   ArborX::query(tree, ExecutionSpace{}, queries, indices, offset);
-  indices_host = Kokkos::create_mirror_view(indices);
+  auto indices_host = Kokkos::create_mirror_view(indices);
   Kokkos::deep_copy(indices_host, indices);
-  offset_host = Kokkos::create_mirror_view(offset);
+  auto offset_host = Kokkos::create_mirror_view(offset);
   Kokkos::deep_copy(offset_host, offset);
 
   std::vector<int> ref_counts(ArborX::lastElement(offset_host));
