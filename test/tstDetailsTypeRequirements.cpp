@@ -32,6 +32,7 @@ KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakePrimitive) {}
 struct FakePredicateGeometry {};
 KOKKOS_FUNCTION ArborX::Point returnCentroid(FakePredicateGeometry) { return {}; }
 KOKKOS_FUNCTION bool intersects(FakePredicateGeometry, FakeBoundingVolume) { return true; }
+KOKKOS_FUNCTION float distance(FakePredicateGeometry, FakeBoundingVolume) { return 0.f; }
 // clang-format on
 } // namespace Test
 
@@ -46,10 +47,19 @@ void check_bounding_volume_and_predicate_geometry_type_requirements()
   Kokkos::View<Test::FakePrimitive *, MemorySpace> primitives("primitives", 0);
   Tree tree(ExecutionSpace{}, primitives);
 
-  Kokkos::View<decltype(ArborX::intersects(Test::FakePredicateGeometry{})) *,
-               MemorySpace>
-      predicates("predicates", 0);
-  tree.query(ExecutionSpace{}, predicates, [](auto, int) {});
+  using SpatialPredicate =
+      decltype(ArborX::intersects(Test::FakePredicateGeometry{}));
+  Kokkos::View<SpatialPredicate *, MemorySpace> spatial_predicates(
+      "spatial_predicates", 0);
+  tree.query(ExecutionSpace{}, spatial_predicates,
+             KOKKOS_LAMBDA(SpatialPredicate, int){});
+
+  using NearestPredicate =
+      decltype(ArborX::nearest(Test::FakePredicateGeometry{}));
+  Kokkos::View<NearestPredicate *, MemorySpace> nearest_predicates(
+      "nearest_predicates", 0);
+  tree.query(ExecutionSpace{}, nearest_predicates,
+             KOKKOS_LAMBDA(NearestPredicate, int){});
 }
 
 int main() { return 0; }
