@@ -62,8 +62,8 @@ public:
         "ArborX::BatchedQueries::assign_morton_codes_to_queries",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i) {
-          Point xyz =
-              Details::returnCentroid(getGeometry(Access::get(predicates, i)));
+          using Details::returnCentroid;
+          Point xyz = returnCentroid(getGeometry(Access::get(predicates, i)));
           translateAndScale(xyz, xyz, scene_bounding_box);
           morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
         });
