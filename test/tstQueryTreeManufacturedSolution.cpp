@@ -77,8 +77,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
                          queries(i) = ArborX::intersects(bounding_boxes(i));
                        });
 
-  Kokkos::View<int *, DeviceType> indices("indices", n);
-  Kokkos::View<int *, DeviceType> offset("offset", n);
+  Kokkos::View<int *, DeviceType> indices("indices", 0);
+  Kokkos::View<int *, DeviceType> offset("offset", 0);
 
   ArborX::query(tree, ExecutionSpace{}, queries, indices, offset);
 
@@ -88,11 +88,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   Kokkos::deep_copy(offset_host, offset);
 
   // we expect the collision list to be diag(0, 1, ..., nx*ny*nz-1)
-  for (int i = 0; i < n; ++i)
-  {
-    BOOST_TEST(indices_host(i) == i);
-    BOOST_TEST(offset_host(i) == i);
-  }
+  std::vector<int> indices_ref(n);
+  std::vector<int> offset_ref(n + 1);
+  std::iota(indices_ref.begin(), indices_ref.end(), 0);
+  std::iota(offset_ref.begin(), offset_ref.end(), 0);
+  BOOST_TEST(indices_host == indices_ref, tt::per_element());
+  BOOST_TEST(offset_host == offset_ref, tt::per_element());
 
   // (ii) use bounding boxes that intersects with first neighbors
   //
@@ -196,16 +197,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   offset_host = Kokkos::create_mirror_view(offset);
   Kokkos::deep_copy(offset_host, offset);
 
+  std::vector<int> ref_counts(ArborX::lastElement(offset_host));
+  std::vector<int> zeros(ref_counts.size());
+
   for (int i = 0; i < nx; ++i)
     for (int j = 0; j < ny; ++j)
       for (int k = 0; k < nz; ++k)
       {
         int index = ind(i, j, k);
         for (int l = offset_host(index); l < offset_host(index + 1); ++l)
-        {
-          BOOST_TEST(ref[index].count(indices_host(l)) != 0);
-        }
+          ref_counts[l] = ref[index].count(indices_host(l));
       }
+  BOOST_TEST(ref_counts != zeros, tt::per_element());
 
   // (iii) use random points
   //
@@ -255,11 +258,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   offset_host = Kokkos::create_mirror_view(offset);
   Kokkos::deep_copy(offset_host, offset);
 
+  ref_counts = std::vector<int>(n);
+  zeros = std::vector<int>(n);
   for (int i = 0; i < n; ++i)
-  {
-    BOOST_TEST(offset_host(i) == i);
-    BOOST_TEST(ref[i].count(indices_host(i)) != 0);
-  }
+    ref_counts[i] = ref[i].count(indices_host(i));
+
+  BOOST_TEST(offset_host == offset_ref, tt::per_element());
+  BOOST_TEST(ref_counts != zeros, tt::per_element());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
