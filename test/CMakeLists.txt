@@ -50,6 +50,9 @@ target_link_libraries(ArborX_Callbacks.exe PRIVATE ArborX)
 add_executable(ArborX_DetailsConcepts.exe tstDetailsConcepts.cpp)
 target_link_libraries(ArborX_DetailsConcepts.exe PRIVATE ArborX)
 
+add_executable(ArborX_TypeRequirements.exe tstDetailsTypeRequirements.cpp)
+target_link_libraries(ArborX_TypeRequirements.exe PRIVATE ArborX)
+
 add_executable(ArborX_DetailsUtils.exe tstDetailsUtils.cpp utf_main.cpp)
 # TODO link Boost::dynamic_linking interface target to enable dynamic linking
 # (adds BOOST_ALL_DYN_LINK)
