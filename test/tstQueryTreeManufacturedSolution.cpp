@@ -29,7 +29,7 @@ namespace tt = boost::test_tools;
 
 // FIXME temporary workaround bug in HIP-Clang (register spill)
 #if defined(KOKKOS_ENABLE_HIP)
-BOOST_TEST_DECORATOR(*boost::unit_test::expected_failures(5))
+BOOST_TEST_DECORATOR(*boost::unit_test::expected_failures(4))
 #endif
 BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
                               TreeTypeTraitsList)
@@ -96,8 +96,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   std::vector<int> offset_ref(n + 1);
   std::iota(indices_ref.begin(), indices_ref.end(), 0);
   std::iota(offset_ref.begin(), offset_ref.end(), 0);
-  BOOST_TEST(indices_host == indices_ref, tt::per_element());
-  BOOST_TEST(offset_host == offset_ref, tt::per_element());
+  BOOST_TEST(make_compressed_storage(offset_host, indices_host) ==
+                 make_compressed_storage(offset_ref, indices_ref),
+             tt::per_element());
 
   // (ii) use bounding boxes that intersects with first neighbors
   //
