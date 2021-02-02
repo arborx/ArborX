@@ -305,7 +305,8 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     auto const k = getK(predicate);
     auto const distance = [geometry = getGeometry(predicate),
                            bvh = _bvh](Node const *node) {
-      return Details::distance(geometry, bvh.getBoundingVolume(node));
+      using Details::distance;
+      return distance(geometry, bvh.getBoundingVolume(node));
     };
     auto const buffer = _buffer(queryIndex);
 
