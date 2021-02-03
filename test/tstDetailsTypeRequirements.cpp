@@ -16,18 +16,18 @@
 namespace Test
 {
 // NOTE only supporting Point and Box
-using FakePrimitive = ArborX::Point;
-// using FakePrimitive = ArborX::Box;
+using PrimitivePointOrBox = ArborX::Point;
+// using PrimitivePointOrBox = ArborX::Box;
 
 // clang-format off
 struct FakeBoundingVolume
 {
-  KOKKOS_FUNCTION FakeBoundingVolume &operator+=(FakePrimitive) { return *this; }
-  KOKKOS_FUNCTION void operator+=(FakePrimitive) volatile {}
+  KOKKOS_FUNCTION FakeBoundingVolume &operator+=(PrimitivePointOrBox) { return *this; }
+  KOKKOS_FUNCTION void operator+=(PrimitivePointOrBox) volatile {}
   KOKKOS_FUNCTION operator ArborX::Box() const { return {}; }
 };
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakeBoundingVolume) {}
-KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakePrimitive) {}
+KOKKOS_FUNCTION void expand(FakeBoundingVolume, PrimitivePointOrBox) {}
 
 struct FakePredicateGeometry {};
 KOKKOS_FUNCTION ArborX::Point returnCentroid(FakePredicateGeometry) { return {}; }
@@ -44,7 +44,8 @@ void check_bounding_volume_and_predicate_geometry_type_requirements()
   using Tree = ArborX::BasicBoundingVolumeHierarchy<MemorySpace,
                                                     Test::FakeBoundingVolume>;
 
-  Kokkos::View<Test::FakePrimitive *, MemorySpace> primitives("primitives", 0);
+  Kokkos::View<Test::PrimitivePointOrBox *, MemorySpace> primitives(
+      "primitives", 0);
   Tree tree(ExecutionSpace{}, primitives);
 
   using SpatialPredicate =
