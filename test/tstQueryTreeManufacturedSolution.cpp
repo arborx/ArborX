@@ -38,13 +38,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
 
-  double Lx = 100.0;
-  double Ly = 100.0;
-  double Lz = 100.0;
+  float Lx = 100.0;
+  float Ly = 100.0;
+  float Lz = 100.0;
   int nx = 11;
   int ny = 11;
   int nz = 11;
   int n = nx * ny * nz;
+  float hx = Lx / (nx - 1);
+  float hy = Ly / (ny - 1);
+  float hz = Lz / (nz - 1);
 
   Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes("bounding_boxes", n);
   Kokkos::parallel_for(
@@ -53,8 +56,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
         for (int j = 0; j < ny; ++j)
           for (int k = 0; k < nz; ++k)
           {
-            ArborX::Point p{
-                {i * Lx / (nx - 1), j * Ly / (ny - 1), k * Lz / (nz - 1)}};
+            ArborX::Point p{{i * hx, j * hy, k * hz}};
             bounding_boxes[i + j * nx + k * (nx * ny)] = {p, p};
           }
       });
@@ -115,10 +117,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
         // bounding box around nodes of the structured grid will
         // intersect with neighboring nodes
         bounding_boxes_host[index] = {
-            {{(i - 1) * Lx / (nx - 1), (j - 1) * Ly / (ny - 1),
-              (k - 1) * Lz / (nz - 1)}},
-            {{(i + 1) * Lx / (nx - 1), (j + 1) * Ly / (ny - 1),
-              (k + 1) * Lz / (nz - 1)}}};
+            {{(i - 1) * hx, (j - 1) * hy, (k - 1) * hz}},
+            {{(i + 1) * hx, (j + 1) * hy, (k + 1) * hz}}};
         // fill in reference solution to check against the collision
         // list computed during the tree traversal
         if ((i > 0) && (j > 0) && (k > 0))
@@ -230,15 +230,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
     double x = distribution_x(generator);
     double y = distribution_y(generator);
     double z = distribution_z(generator);
-    bounding_boxes_host(l) = {
-        {{x - 0.5 * Lx / (nx - 1), y - 0.5 * Ly / (ny - 1),
-          z - 0.5 * Lz / (nz - 1)}},
-        {{x + 0.5 * Lx / (nx - 1), y + 0.5 * Ly / (ny - 1),
-          z + 0.5 * Lz / (nz - 1)}}};
+    bounding_boxes_host(l) = {{{x - 0.5 * hx, y - 0.5 * hy, z - 0.5 * hz}},
+                              {{x + 0.5 * hx, y + 0.5 * hy, z + 0.5 * hz}}};
 
-    auto const i = static_cast<int>(std::round(x / Lx * (nx - 1)));
-    auto const j = static_cast<int>(std::round(y / Ly * (ny - 1)));
-    auto const k = static_cast<int>(std::round(z / Lz * (nz - 1)));
+    auto const i = static_cast<int>(std::round(x / hx));
+    auto const j = static_cast<int>(std::round(y / hy));
+    auto const k = static_cast<int>(std::round(z / hz));
     // Save the indices for the check
     ref[l] = {ind(i, j, k)};
   }
