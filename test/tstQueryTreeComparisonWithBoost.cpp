@@ -66,6 +66,10 @@ make_random_cloud(double Lx, double Ly, double Lz, int n)
   return cloud;
 }
 
+// FIXME temporary workaround bug in HIP-Clang (register spill)
+#ifdef KOKKOS_ENABLE_HIP
+BOOST_TEST_DECORATOR(*boost::unit_test::expected_failures(1))
+#endif
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
                               TreeTypeTraitsList)
 {
@@ -123,6 +127,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
 }
 
 #ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
+// FIXME temporary workaround bug in HIP-Clang (register spill)
+#ifdef KOKKOS_ENABLE_HIP
+BOOST_TEST_DECORATOR(*boost::unit_test::expected_failures(1))
+#endif
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate, TreeTypeTraits,
                               TreeTypeTraitsList)
 {
