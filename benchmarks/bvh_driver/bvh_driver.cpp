@@ -140,6 +140,8 @@ void register_boostrtree_benchmarks(Spec const &spec)
   if (spec.backends == "all" || spec.backends == "rtree")
     BenchmarkRegistration<Kokkos::Serial, BoostExt::RTree<ArborX::Point>>(
         spec, "BoostRTree");
+#else
+  std::ignore = spec;
 #endif
 }
 
@@ -267,7 +269,7 @@ int main(int argc, char *argv[])
   std::vector<Spec> specs;
   specs.reserve(exact_specs.size());
   for (auto const &spec_string : exact_specs)
-    specs.push_back(spec_string);
+    specs.emplace_back(spec_string);
 
   if (vm.count("exact-spec") == 0)
   {

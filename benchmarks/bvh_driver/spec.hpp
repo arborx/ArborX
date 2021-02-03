@@ -28,7 +28,7 @@ struct Spec
   PointCloudType source_point_cloud_type;
   PointCloudType target_point_cloud_type;
 
-  Spec() {}
+  Spec() = default;
   Spec(std::string const &spec_string)
   {
     std::istringstream ss(spec_string);
