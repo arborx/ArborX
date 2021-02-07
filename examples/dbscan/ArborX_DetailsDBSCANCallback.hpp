@@ -143,8 +143,8 @@ struct DBSCANCallback
     auto j = neighbor;
 
     // initialize to the first neighbor that's smaller
-    if (Kokkos::atomic_compare_exchange(&stat_(i), i, j) == i)
-      return;
+    // FIXME Understand why this has to be removed when we don't have (i > j)
+    // check if (Kokkos::atomic_compare_exchange(&stat_(i), i, j) == i) return;
 
     // ##### ECL license (see LICENSE.ECL) #####
     int vstat = representative(i);
@@ -184,9 +184,12 @@ struct DBSCANCallback
   {
     int const i = ArborX::getData(query);
 
+    if (j == i)
+      return;
+
     // NOTE: for halo finder/ccs algorithm (in which is_core_point(i) is always
     // true), the algorithm below will be simplified to
-    //   if (i > j)
+    //   combine_trees(i, j)
 
     if (!is_core_point_(j))
     {
@@ -210,7 +213,7 @@ struct DBSCANCallback
       // be combined with a different cluster later forming a bridge.
       stat_(i) = representative(j);
     }
-    else if (!is_boundary_point && i > j)
+    else if (!is_boundary_point)
     {
       // For a core point that is connected to another core point, do the
       // standard CCS algorithm

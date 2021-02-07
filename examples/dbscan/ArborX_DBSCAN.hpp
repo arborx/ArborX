@@ -23,7 +23,37 @@
 namespace ArborX
 {
 
-template <typename View>
+// Combine Sphere with x >= 0
+struct HalfSphere
+{
+  Sphere _sphere;
+
+  KOKKOS_FUNCTION
+  constexpr HalfSphere(Point const &centroid, double radius)
+      : _sphere{centroid, radius}
+  {
+  }
+  KOKKOS_FUNCTION auto const &sphere() const { return _sphere; }
+  KOKKOS_FUNCTION auto const &centroid() const { return _sphere.centroid(); }
+};
+KOKKOS_FUNCTION Point const &returnCentroid(HalfSphere const &half_sphere)
+{
+  return half_sphere.centroid();
+}
+KOKKOS_FUNCTION bool intersects(HalfSphere const &half_sphere, Box const &box)
+{
+  constexpr int d = 0;
+  if (box.maxCorner()[d] >= half_sphere.centroid()[d])
+    return Details::intersects(half_sphere.sphere(), box);
+  return false;
+}
+KOKKOS_FUNCTION float distance(HalfSphere const &, Box const &)
+{
+  assert(false); // not implemented, as we only need spatial
+  return 0.f;
+}
+
+template <typename View, typename Geometry>
 struct PrimitivesWithRadius
 {
   View _M_view;
@@ -31,20 +61,26 @@ struct PrimitivesWithRadius
 };
 
 template <typename View>
-auto buildPredicates(View v, double r)
+auto buildSpherePredicates(View v, double r)
 {
-  return PrimitivesWithRadius<View>{v, r};
+  return PrimitivesWithRadius<View, Sphere>{v, r};
 }
 
 template <typename View>
-struct AccessTraits<PrimitivesWithRadius<View>, PredicatesTag>
+auto buildHalfSpherePredicates(View v, double r)
+{
+  return PrimitivesWithRadius<View, HalfSphere>{v, r};
+}
+
+template <typename View, typename Geometry>
+struct AccessTraits<PrimitivesWithRadius<View, Geometry>, PredicatesTag>
 {
   using memory_space = typename View::memory_space;
-  using Predicates = PrimitivesWithRadius<View>;
+  using Predicates = PrimitivesWithRadius<View, Geometry>;
   static size_t size(Predicates const &w) { return w._M_view.extent(0); }
   static KOKKOS_FUNCTION auto get(Predicates const &w, size_t i)
   {
-    return attach(intersects(Sphere{w._M_view(i), w._r}), (int)i);
+    return attach(intersects(Geometry(w._M_view(i), w._r)), (int)i);
   }
 };
 
@@ -74,7 +110,7 @@ struct NumNeighEarlyExitCallback
 
 struct CCSCorePoints
 {
-  KOKKOS_FUNCTION bool operator()(int) const { return true; }
+  KOKKOS_FUNCTION constexpr bool operator()(int) const { return true; }
 };
 
 template <typename MemorySpace>
@@ -134,8 +170,6 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
 
   timer_start(timer_total);
 
-  auto const predicates = buildPredicates(primitives, eps);
-
   int const n = primitives.extent_int(0);
 
   // Build the tree
@@ -147,6 +181,9 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
 
   timer_start(timer);
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters");
+
+  auto const predicates_halfsphere = buildHalfSpherePredicates(primitives, eps);
+  auto const predicates_sphere = buildSpherePredicates(primitives, eps);
 
   Kokkos::View<int *, MemorySpace> stat(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::DBSCAN::stat"),
@@ -160,7 +197,7 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
     CorePoints core_points;
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
     bvh.query(
-        exec_space, predicates,
+        exec_space, predicates_halfsphere,
         Details::DBSCANCallback<MemorySpace, CorePoints>{stat, core_points});
     Kokkos::Profiling::popRegion();
   }
@@ -172,7 +209,7 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::num_neigh");
     Kokkos::View<int *, MemorySpace> num_neigh("ArborX::DBSCAN::num_neighbors",
                                                n);
-    bvh.query(exec_space, predicates,
+    bvh.query(exec_space, predicates_sphere,
               NumNeighEarlyExitCallback<MemorySpace>{num_neigh, core_min_size});
     Kokkos::Profiling::popRegion();
     elapsed["neigh"] = timer_seconds(timer_local);
@@ -182,7 +219,7 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
     // Perform the queries and build clusters through callback
     timer_start(timer_local);
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters:query");
-    bvh.query(exec_space, predicates,
+    bvh.query(exec_space, predicates_halfsphere,
               Details::DBSCANCallback<MemorySpace, CorePoints>{
                   stat, CorePoints{num_neigh, core_min_size}});
     Kokkos::Profiling::popRegion();
@@ -222,7 +259,7 @@ void dbscan(ExecutionSpace exec_space, Primitives const &primitives,
 
     Kokkos::View<int *, MemorySpace> indices("ArborX::DBSCAN::indices", 0);
     Kokkos::View<int *, MemorySpace> offset("ArborX::DBSCAN::offset", 0);
-    ArborX::query(bvh, exec_space, predicates, indices, offset);
+    ArborX::query(bvh, exec_space, predicates_sphere, indices, offset);
 
     auto passed = Details::verifyClusters(exec_space, indices, offset, clusters,
                                           core_min_size);
