@@ -94,7 +94,7 @@ struct LegacyNearestPredicateCallback
   }
 };
 
-int main()
+void test_callbacks_compile_only()
 {
   using ArborX::Details::check_valid_callback;
 
