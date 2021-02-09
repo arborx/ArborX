@@ -15,6 +15,7 @@
 #include <ArborX_DetailsAlgorithms.hpp> // equal
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_Point.hpp>
+#include <ArborX_Sphere.hpp>
 
 #include <Kokkos_Macros.hpp>
 
@@ -145,6 +146,96 @@ bool intersects(Ray const &ray, Box const &box)
   }
 
   return max_min <= min_max && (min_max >= 0);
+}
+
+KOKKOS_INLINE_FUNCTION float dotProduct(Ray::Vector const &v1,
+                                        Ray::Vector const &v2)
+{
+  return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
+}
+
+// Solves a*x^2 + b*x + c = 0.
+// If a solution exists, return true and stores roots at x1, x2.
+// If a solution does not exist, returns false.
+KOKKOS_INLINE_FUNCTION bool solveQuadratic(float const a, float const b,
+                                           float const c, float &x1, float &x2)
+{
+  assert(a != 0);
+
+  auto const discriminant = b * b - 4 * a * c;
+  if (discriminant < 0)
+    return false;
+  if (discriminant == 0)
+  {
+    x1 = x2 = -b / (2 * a);
+    return true;
+  }
+
+  // Instead of doing a simple
+  //    (-b +- std::sqrt(discriminant)) / (2*a)
+  // we use a more stable algorithm with less loss of precision (see, for
+  // example, https://www.scratchapixel.com/lessons/3d-basic-rendering/
+  // minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection).
+  auto const q = (b > 0) ? (-b - std::sqrt(discriminant)) / 2.0
+                         : (-b + std::sqrt(discriminant)) / 2.0;
+  x1 = q / a;
+  x2 = c / q;
+
+  return true;
+}
+
+// Ray-Sphere intersection algorithm.
+//
+// The sphere can be expressed as the solution to
+//     |p - c|^2 - r^2 = 0,           (1)
+// where c is the center of the sphere, and r is the radius. On the other
+// hand, any point on a bidirectional ray satisfies
+//     p = o + t*d,                   (2)
+// where o is the origin, and d is the direction vector.
+// Substituting (2) into (1),
+//     |(o + t*d) - c|^2 - r^2 = 0,   (3)
+// results in a quadratic equation for unknown t
+//     a2 * t^2 + a1 * t + a0 = 0
+// with
+//     a2 = |d|^2, a1 = 2*(d, o - c), and a0 = |o - c|^2 - r^2.
+// Then, we only need to intersect the solution interval [tmin, tmax] with
+// [0, +inf) for the unidirectional ray.
+KOKKOS_INLINE_FUNCTION float overlapDistance(Ray const &ray,
+                                             Sphere const &sphere)
+{
+  auto const &r = sphere.radius();
+
+  // Vector oc = (origin_of_ray - center_of_sphere)
+  Ray::Vector const oc{ray.origin()[0] - sphere.centroid()[0],
+                       ray.origin()[1] - sphere.centroid()[1],
+                       ray.origin()[2] - sphere.centroid()[2]};
+
+  float const a2 = 1.f; // directions are normalized
+  float const a1 = 2.f * dotProduct(ray.direction(), oc);
+  float const a0 = dotProduct(oc, oc) - r * r;
+
+  float t1;
+  float t2;
+  if (!solveQuadratic(a2, a1, a0, t1, t2))
+  {
+    // No intersection of a bidirectional ray with the sphere
+    return 0.f;
+  }
+  float tmin = KokkosExt::min(t1, t2);
+  float tmax = KokkosExt::max(t1, t2);
+
+  if (tmax < 0)
+  {
+    // Half-ray does not intersect with the sphere
+    return 0.f;
+  }
+
+  // Overlap [tmin, tmax] with [0, +inf)
+  tmin = KokkosExt::max(0.f, tmin);
+
+  // As direction is normalized,
+  //   |(o + tmax*d) - (o + tmin*d)| = tmax - tmin
+  return (tmax - tmin);
 }
 
 } // namespace Experimental
