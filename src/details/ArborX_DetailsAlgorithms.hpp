@@ -15,7 +15,6 @@
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtMathFunctions.hpp> // isFinite
 #include <ArborX_Point.hpp>
-#include <ArborX_Ray.hpp>
 #include <ArborX_Sphere.hpp>
 
 #include <Kokkos_Macros.hpp>
@@ -45,12 +44,6 @@ KOKKOS_INLINE_FUNCTION
 constexpr bool equals(Sphere const &l, Sphere const &r)
 {
   return equals(l.centroid(), r.centroid()) && l.radius() == r.radius();
-}
-
-KOKKOS_INLINE_FUNCTION
-constexpr bool equals(Ray const &l, Ray const &r)
-{
-  return equals(l.origin(), r.origin()) && equals(l.direction(), r.direction());
 }
 
 KOKKOS_INLINE_FUNCTION
@@ -200,9 +193,6 @@ Point returnCentroid(Box const &box)
 
 KOKKOS_INLINE_FUNCTION
 Point returnCentroid(Sphere const &sphere) { return sphere.centroid(); }
-
-KOKKOS_INLINE_FUNCTION
-Point returnCentroid(Ray const &ray) { return ray.origin(); }
 
 // transformation that maps the unit cube into a new axis-aligned box
 // NOTE safe to perform in-place

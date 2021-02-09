@@ -12,6 +12,7 @@
 #define ARBORX_RAY_HPP
 
 #include <ArborX_Box.hpp>
+#include <ArborX_DetailsAlgorithms.hpp> // equal
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_Point.hpp>
 
@@ -21,6 +22,8 @@
 #include <cmath>
 
 namespace ArborX
+{
+namespace Experimental
 {
 struct Ray
 {
@@ -72,8 +75,16 @@ struct Ray
   Vector _direction = {{0.f, 0.f, 0.f}};
 };
 
-namespace Details
+KOKKOS_INLINE_FUNCTION
+constexpr bool equals(Ray const &l, Ray const &r)
 {
+  using ArborX::Details::equals;
+  return equals(l.origin(), r.origin()) && equals(l.direction(), r.direction());
+}
+
+KOKKOS_INLINE_FUNCTION
+Point returnCentroid(Ray const &ray) { return ray.origin(); }
+
 // The ray-box intersection algorithm is based on [1]. Their 'efficient slag'
 // algorithm checks the intersections both in front and behind the ray. The
 // function here checks the intersections in front of the ray.
@@ -136,6 +147,6 @@ bool intersects(Ray const &ray, Box const &box)
   return max_min <= min_max && (min_max >= 0);
 }
 
-} // namespace Details
+} // namespace Experimental
 } // namespace ArborX
 #endif
