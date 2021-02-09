@@ -41,17 +41,14 @@ if(Kokkos_ENABLE_CUDA AND Boost_VERSION_MINOR GREATER_EQUAL 69)
 endif()
 
 # Compile only, nothing to run
-add_executable(ArborX_AccessTraits.exe tstAccessTraits.cpp)
-target_link_libraries(ArborX_AccessTraits.exe PRIVATE ArborX)
-
-add_executable(ArborX_Callbacks.exe tstCallbacks.cpp)
-target_link_libraries(ArborX_Callbacks.exe PRIVATE ArborX)
-
-add_executable(ArborX_DetailsConcepts.exe tstDetailsConcepts.cpp)
-target_link_libraries(ArborX_DetailsConcepts.exe PRIVATE ArborX)
-
-add_executable(ArborX_TypeRequirements.exe tstDetailsTypeRequirements.cpp)
-target_link_libraries(ArborX_TypeRequirements.exe PRIVATE ArborX)
+add_executable(ArborX_CompileOnly.exe
+  tstCompileOnlyAccessTraits.cpp
+  tstCompileOnlyCallbacks.cpp
+  tstCompileOnlyConcepts.cpp
+  tstCompileOnlyTypeRequirements.cpp
+  tstCompileOnlyMain.cpp
+)
+target_link_libraries(ArborX_CompileOnly.exe PRIVATE ArborX)
 
 add_executable(ArborX_DetailsUtils.exe tstDetailsUtils.cpp utf_main.cpp)
 # TODO link Boost::dynamic_linking interface target to enable dynamic linking

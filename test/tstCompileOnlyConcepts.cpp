@@ -11,13 +11,13 @@
 
 #include <ArborX_DetailsConcepts.hpp>
 
-#include <Kokkos_Core.hpp>
-
 #include <tuple>
+#include <type_traits>
 
-using ArborX::Details::first_template_parameter_t;
-static_assert(std::is_same<first_template_parameter_t<std::tuple<int, float>>,
-                           int>::value,
-              "");
-
-int main() {}
+void test_concepts_compile_only()
+{
+  using ArborX::Details::first_template_parameter_t;
+  static_assert(std::is_same<first_template_parameter_t<std::tuple<int, float>>,
+                             int>::value,
+                "");
+}

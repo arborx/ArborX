@@ -62,7 +62,7 @@ struct ArborX::Traits::Access<LegacyAccessTraits, Tag>
   static Point get(LegacyAccessTraits, int) { return {}; }
 };
 
-int main()
+void test_access_traits_compile_only()
 {
   Kokkos::View<ArborX::Point *> p;
   Kokkos::View<float **> v;

@@ -62,5 +62,3 @@ void check_bounding_volume_and_predicate_geometry_type_requirements()
   tree.query(ExecutionSpace{}, nearest_predicates,
              KOKKOS_LAMBDA(NearestPredicate, int){});
 }
-
-int main() { return 0; }
