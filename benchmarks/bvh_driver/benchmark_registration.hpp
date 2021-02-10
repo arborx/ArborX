@@ -66,7 +66,6 @@ makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
   return queries;
 }
 
-#ifndef ARBORX_BENCHMARK_DISABLE_NEAREST_QUERY
 template <typename DeviceType>
 inline Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType>
 makeNearestQueries(int n_values, int n_queries, int n_neighbors,
@@ -88,7 +87,6 @@ makeNearestQueries(int n_values, int n_queries, int n_neighbors,
       });
   return queries;
 }
-#endif
 
 template <typename Queries>
 struct QueriesWithIndex
@@ -190,7 +188,6 @@ void BM_radius_search(benchmark::State &state, Spec const &spec)
       spec.n_queries * state.iterations(), benchmark::Counter::kIsRate);
 }
 
-#ifndef ARBORX_BENCHMARK_DISABLE_CALLBACK_QUERY
 template <typename ExecutionSpace, class TreeType>
 void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
 {
@@ -228,9 +225,7 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
   state.counters["rate"] = benchmark::Counter(
       spec.n_queries * state.iterations(), benchmark::Counter::kIsRate);
 }
-#endif
 
-#ifndef ARBORX_BENCHMARK_DISABLE_NEAREST_QUERY
 template <typename ExecutionSpace, class TreeType>
 void BM_knn_search(benchmark::State &state, Spec const &spec)
 {
@@ -266,7 +261,6 @@ void BM_knn_search(benchmark::State &state, Spec const &spec)
       spec.n_queries * state.iterations(), benchmark::Counter::kIsRate);
 }
 
-#ifndef ARBORX_BENCHMARK_DISABLE_CALLBACK_QUERY
 template <typename ExecutionSpace, class TreeType>
 void BM_knn_callback_search(benchmark::State &state, Spec const &spec)
 {
@@ -303,8 +297,6 @@ void BM_knn_callback_search(benchmark::State &state, Spec const &spec)
   state.counters["rate"] = benchmark::Counter(
       spec.n_queries * state.iterations(), benchmark::Counter::kIsRate);
 }
-#endif
-#endif
 
 template <typename ExecutionSpace, typename TreeType>
 void register_benchmark_construction(Spec const &spec,
