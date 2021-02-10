@@ -26,7 +26,6 @@
 #endif
 
 #include <benchmark/benchmark.h>
-#include <spec.hpp>
 
 template <typename ExecutionSpace, typename TreeType>
 struct BenchmarkRegistration
