@@ -307,9 +307,9 @@ struct Iota
 template <typename Tag, typename ExecutionSpace, typename Predicates,
           typename OffsetView, typename OutView>
 std::enable_if_t<std::is_same<Tag, SpatialPredicateTag>{}>
-allocateAndInititalizeStorage(Tag, ExecutionSpace const &space,
-                              Predicates const &predicates, OffsetView &offset,
-                              OutView &out, int buffer_size)
+allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
+                             Predicates const &predicates, OffsetView &offset,
+                             OutView &out, int buffer_size)
 {
   using Access = AccessTraits<Predicates, PredicatesTag>;
 
@@ -333,9 +333,9 @@ allocateAndInititalizeStorage(Tag, ExecutionSpace const &space,
 template <typename Tag, typename ExecutionSpace, typename Predicates,
           typename OffsetView, typename OutView>
 std::enable_if_t<std::is_same<Tag, NearestPredicateTag>{}>
-allocateAndInititalizeStorage(Tag, ExecutionSpace const &space,
-                              Predicates const &predicates, OffsetView &offset,
-                              OutView &out, int /*buffer_size*/)
+allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
+                             Predicates const &predicates, OffsetView &offset,
+                             OutView &out, int /*buffer_size*/)
 {
   using Access = AccessTraits<Predicates, PredicatesTag>;
 
@@ -378,8 +378,8 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
 
   Kokkos::Profiling::pushRegion(profiling_prefix + "::init_and_alloc");
 
-  allocateAndInititalizeStorage(Tag{}, space, predicates, offset, out,
-                                policy._buffer_size);
+  allocateAndInitializeStorage(Tag{}, space, predicates, offset, out,
+                               policy._buffer_size);
 
   Kokkos::Profiling::popRegion();
 
