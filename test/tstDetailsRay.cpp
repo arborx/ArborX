@@ -19,8 +19,7 @@ BOOST_AUTO_TEST_CASE(intersects_box)
 {
   using ArborX::Box;
   using ArborX::Point;
-  using ArborX::Ray;
-  using ArborX::Details::intersects;
+  using ArborX::Experimental::Ray;
 
   Box unit_box{{0, 0, 0}, {1, 1, 1}};
 
@@ -157,4 +156,74 @@ BOOST_AUTO_TEST_CASE(intersects_box)
   BOOST_TEST(intersects(Ray{{1, 1.5, 1}, {-2, -1, 0}}, unit_box));
   BOOST_TEST(!intersects(Ray{{1, 1.5, 1}, {0, -1, -2.1}}, unit_box));
   BOOST_TEST(!intersects(Ray{{1, 1.5, 1}, {-2.1, -1, 0}}, unit_box));
+}
+
+// NOTE until boost 1.70 need to cast both operands when comparing floating
+// points
+BOOST_AUTO_TEST_CASE(overlap_distance_sphere,
+                     *boost::unit_test::tolerance(1e-6f))
+{
+  using ArborX::Sphere;
+  using ArborX::Experimental::Ray;
+  constexpr Sphere unit_sphere{{0, 0, 0}, 1};
+
+  auto const sqrtf_3 = std::sqrt(3.f);
+  auto const half_sqrtf_2 = std::sqrt(2.f) / 2;
+  auto const half_sqrtf_3 = std::sqrt(3.f) / 2;
+
+  // hit center of the sphere
+  BOOST_TEST(overlapDistance(Ray{{-2, 0, 0}, {1, 0, 0}}, unit_sphere) == 2.f);
+  BOOST_TEST(overlapDistance(Ray{{0, 3, 0}, {0, -1, 0}}, unit_sphere) == 2.f);
+  BOOST_TEST(overlapDistance(Ray{{0, 0, -4}, {0, 0, 1}}, unit_sphere) == 2.f);
+  BOOST_TEST(overlapDistance(Ray{{-2, -2, -2}, {1, 1, 1}}, unit_sphere) == 2.f);
+  // miss it
+  BOOST_TEST(overlapDistance(Ray{{-2, -2, -2}, {1, 0, 0}}, unit_sphere) == 0.f);
+  BOOST_TEST(overlapDistance(Ray{{1, 2, 3}, {4, 5, 6}}, unit_sphere) == 0.f);
+  // half-radius
+  BOOST_TEST(overlapDistance(Ray{{-2, 0, 0.5}, {1, 0, 0}}, unit_sphere) ==
+             sqrtf_3);
+  BOOST_TEST(overlapDistance(Ray{{0, -0.5, 2}, {0, 0, -1}}, unit_sphere) ==
+             sqrtf_3);
+  // touch surface but no intersection
+  BOOST_TEST(overlapDistance(Ray{{1, -2, 0}, {0, 1, 0}}, unit_sphere) == 0.f);
+  BOOST_TEST(overlapDistance(Ray{{2, 2, -1}, {-1, -1, 0}}, unit_sphere) == 0.f);
+
+  // behind the origin
+  BOOST_TEST(overlapDistance(Ray{{-2, 0, 0}, {-1, 0, 0}}, unit_sphere) == 0.f);
+  BOOST_TEST(overlapDistance(Ray{{0, 2, 2}, {0, 1, 1}}, unit_sphere) == 0.f);
+  BOOST_TEST(overlapDistance(Ray{{0, 2, 2}, {0, 1, 1}}, unit_sphere) == 0.f);
+
+  // origin inside
+  BOOST_TEST(overlapDistance(Ray{{0.5, 0, 0}, {0, 1, 1}}, unit_sphere) ==
+             half_sqrtf_3);
+  BOOST_TEST(overlapDistance(Ray{{0, -half_sqrtf_3, 0}, {0, 0, 1}},
+                             unit_sphere) == 0.5f);
+  BOOST_TEST(overlapDistance(Ray{{0, 0, half_sqrtf_2}, {1, -1, 0}},
+                             unit_sphere) == half_sqrtf_2);
+  BOOST_TEST(overlapDistance(Ray{{0, 0.6, 0}, {0, 1, 0}}, unit_sphere) == 0.4f);
+  BOOST_TEST(overlapDistance(Ray{{0, 0, 0}, {1, 2, 3}}, unit_sphere) == 1.f);
+
+  // origin on surface
+  //   tangent
+  BOOST_TEST(overlapDistance(Ray{{0, 0, 1}, {1, -1, 0}}, unit_sphere) == 0.f);
+  BOOST_TEST(overlapDistance(Ray{{0, 1, 0}, {2, 0, 3}}, unit_sphere) == 0.f);
+  BOOST_TEST(
+      overlapDistance(Ray{{half_sqrtf_2, half_sqrtf_2, 0}, {1, -1, 0}},
+                      unit_sphere) == 0.f,
+      boost::test_tools::tolerance(5e-4f)); // inside at machine precision...
+  BOOST_TEST(overlapDistance(Ray{{-half_sqrtf_3, 0.5, 0}, {1, 2, 0}},
+                             unit_sphere) == 0.f);
+  BOOST_TEST(overlapDistance(Ray{{0.5, half_sqrtf_3, 0}, {2, -1, 0}},
+                             unit_sphere) == 0.f);
+  //   directed at sphere
+  BOOST_TEST(overlapDistance(Ray{{1, 0, 0}, {-2, 0, 0}}, unit_sphere) == 2.f);
+  BOOST_TEST(overlapDistance(Ray{{1, 0, 0}, {-2, 0, 0}}, unit_sphere) == 2.f);
+  BOOST_TEST(overlapDistance(Ray{{0, -half_sqrtf_2, half_sqrtf_2}, {0, 1, -1}},
+                             unit_sphere) == 2.f);
+  BOOST_TEST(overlapDistance(Ray{{half_sqrtf_3, 0.5, 0}, {-1, 0, 0}},
+                             unit_sphere) == sqrtf_3);
+  //   directed away
+  BOOST_TEST(overlapDistance(Ray{{0, 0, 1}, {1, 1, 1}}, unit_sphere) == 0.f);
+  BOOST_TEST(overlapDistance(Ray{{half_sqrtf_3, 0.5, 0}, {1, 0, 0}},
+                             unit_sphere) == 0.f);
 }
