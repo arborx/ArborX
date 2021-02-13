@@ -197,6 +197,8 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   // The finalization kernel will, ultimately, make all parents
   // point directly to the representative.
   // ```
+  Kokkos::View<int *, MemorySpace> cluster_sizes(
+      "ArborX::dbscan::cluster_sizes", n);
   Kokkos::parallel_for("ArborX::dbscan::finalize_labels",
                        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
                        KOKKOS_LAMBDA(int const i) {
@@ -210,6 +212,14 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
                          }
                          if (vstat != old)
                            labels(i) = vstat;
+
+                         Kokkos::atomic_fetch_add(&cluster_sizes(labels(i)), 1);
+                       });
+  Kokkos::parallel_for("ArborX::dbscan::mark_noise",
+                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+                       KOKKOS_LAMBDA(int const i) {
+                         if (cluster_sizes(labels(i)) == 1)
+                           labels(i) = -1;
                        });
   Kokkos::Profiling::popRegion();
   elapsed["query+cluster"] = timer_seconds(timer);

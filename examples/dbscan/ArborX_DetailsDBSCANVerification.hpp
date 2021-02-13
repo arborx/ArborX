@@ -65,7 +65,8 @@ bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
   return (num_incorrect == 0);
 }
 
-// Check that boundary points share index with at least one core point
+// Check that boundary points share index with at least one core point, and
+// that noise points have index -1
 template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
           typename LabelsView>
 bool verifyBoundaryAndNoisePoints(ExecutionSpace const &exec_space,
@@ -101,12 +102,20 @@ bool verifyBoundaryAndNoisePoints(ExecutionSpace const &exec_space,
             }
           }
 
+          // Boundary point must be connected to a core point
           if (is_boundary && !have_shared_core)
           {
 #ifndef __SYCL_DEVICE_ONLY__
-            printf("Boundary point does not belong to a cluster: "
-                   "%d [%d]\n",
-                   i, clusters(i));
+            printf("Boundary point does not belong to a cluster: %d [%d]\n", i,
+                   labels(i));
+#endif
+            update++;
+          }
+          // Noise points must have index -1
+          if (!is_boundary && labels(i) != -1)
+          {
+#ifndef __SYCL_DEVICE_ONLY__
+            printf("Noise point does have index -1: %d [%d]\n", i, labels(i));
 #endif
             update++;
           }

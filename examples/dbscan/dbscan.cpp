@@ -135,6 +135,10 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
   Kokkos::parallel_for("ArborX::DBSCAN::compute_cluster_sizes",
                        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
                        KOKKOS_LAMBDA(int const i) {
+                         // Ignore noise points
+                         if (labels(i) < 0)
+                           return;
+
                          Kokkos::atomic_fetch_add(&cluster_sizes(labels(i)), 1);
                        });
 
@@ -179,6 +183,10 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
   Kokkos::parallel_for("ArborX::DBSCAN::compute_cluster_indices",
                        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
                        KOKKOS_LAMBDA(int const i) {
+                         // Ignore noise points
+                         if (labels(i) < 0)
+                           return;
+
                          auto offset_pos =
                              map_cluster_to_offset_position(labels(i));
                          if (offset_pos != IGNORED_CLUSTER)
