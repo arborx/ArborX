@@ -77,7 +77,7 @@ namespace Details
 template <typename MemorySpace, typename CorePointsType>
 struct DBSCANCallback
 {
-  Kokkos::View<int *, MemorySpace> stat_;
+  Kokkos::View<int *, MemorySpace> labels_;
   CorePointsType is_core_point_;
 
   // Per [1]:
@@ -107,14 +107,14 @@ struct DBSCANCallback
   int representative(int const i) const
   {
     // ##### ECL license (see LICENSE.ECL) #####
-    int curr = stat_(i);
+    int curr = labels_(i);
     if (curr != i)
     {
       int next;
       int prev = i;
-      while (curr > (next = stat_(curr)))
+      while (curr > (next = labels_(curr)))
       {
-        stat_(prev) = next;
+        labels_(prev) = next;
         prev = curr;
         curr = next;
       }
@@ -143,7 +143,7 @@ struct DBSCANCallback
     auto j = neighbor;
 
     // initialize to the first neighbor that's smaller
-    if (Kokkos::atomic_compare_exchange(&stat_(i), i, j) == i)
+    if (Kokkos::atomic_compare_exchange(&labels_(i), i, j) == i)
       return;
 
     // ##### ECL license (see LICENSE.ECL) #####
@@ -159,7 +159,7 @@ struct DBSCANCallback
         int ret;
         if (vstat < ostat)
         {
-          if ((ret = Kokkos::atomic_compare_exchange(&stat_(ostat), ostat,
+          if ((ret = Kokkos::atomic_compare_exchange(&labels_(ostat), ostat,
                                                      vstat)) != ostat)
           {
             ostat = ret;
@@ -168,7 +168,7 @@ struct DBSCANCallback
         }
         else
         {
-          if ((ret = Kokkos::atomic_compare_exchange(&stat_(vstat), vstat,
+          if ((ret = Kokkos::atomic_compare_exchange(&labels_(vstat), vstat,
                                                      ostat)) != vstat)
           {
             vstat = ret;
@@ -197,18 +197,18 @@ struct DBSCANCallback
     bool is_boundary_point =
         !is_core_point_(i); // is_core_point_(j) is aready true
 
-    if (is_boundary_point && stat_(i) == i)
+    if (is_boundary_point && labels_(i) == i)
     {
-      // For a boundary point that was not processed before (stat_(i) == i),
+      // For a boundary point that was not processed before (labels_(i) == i),
       // set its representative to that of the core point. This way, when
       // another neighbor that is core point appears later, we won't process
       // this point.
       //
       // NOTE: DO NOT USE combine_trees(i, j) here. This may set this boundary
       // point as a representative for the whole cluster. This would mean that
-      // a) stat_(i) == i still (so it would be processed later, and b) it may
+      // a) labels_(i) == i still (so it would be processed later, and b) it may
       // be combined with a different cluster later forming a bridge.
-      stat_(i) = representative(j);
+      labels_(i) = representative(j);
     }
     else if (!is_boundary_point && i > j)
     {

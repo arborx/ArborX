@@ -13,6 +13,7 @@
 #define ARBORX_DETAILSDBSCANVERIFICATION_HPP
 
 #include <ArborX_DetailsUtils.hpp>
+#include <ArborX_LinearBVH.hpp>
 
 #include <Kokkos_View.hpp>
 
@@ -25,15 +26,14 @@ namespace Details
 {
 
 // Check that connected core points have same cluster indices
-// NOTE: if core_min_size = 1, all points are core points
+// NOTE: if core_min_size = 2, all points are core points
 template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
-          typename ClusterView>
+          typename LabelsView>
 bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
                                          IndicesView indices, OffsetView offset,
-                                         ClusterView clusters,
-                                         int core_min_size)
+                                         LabelsView labels, int core_min_size)
 {
-  int n = clusters.size();
+  int n = labels.size();
 
   int num_incorrect = 0;
   Kokkos::parallel_reduce(
@@ -49,12 +49,12 @@ bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
             bool neigh_is_core_point =
                 (offset(j + 1) - offset(j) >= core_min_size);
 
-            if (neigh_is_core_point && clusters(i) != clusters(j))
+            if (neigh_is_core_point && labels(i) != labels(j))
             {
 #ifndef __SYCL_DEVICE_ONLY__
               printf("Connected cores do not belong to the same cluster: "
                      "%d [%d] -> %d [%d]\n",
-                     i, clusters(i), j, clusters(j));
+                     i, labels(i), j, labels(j));
 #endif
               update++;
             }
@@ -67,14 +67,12 @@ bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
 
 // Check that boundary points share index with at least one core point
 template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
-          typename ClusterView>
-bool verifyBoundaryPointsConnectToCorePoints(ExecutionSpace const &exec_space,
-                                             IndicesView indices,
-                                             OffsetView offset,
-                                             ClusterView clusters,
-                                             int core_min_size)
+          typename LabelsView>
+bool verifyBoundaryAndNoisePoints(ExecutionSpace const &exec_space,
+                                  IndicesView indices, OffsetView offset,
+                                  LabelsView labels, int core_min_size)
 {
-  int n = clusters.size();
+  int n = labels.size();
 
   int num_incorrect = 0;
   Kokkos::parallel_reduce(
@@ -95,7 +93,7 @@ bool verifyBoundaryPointsConnectToCorePoints(ExecutionSpace const &exec_space,
             if (neigh_is_core_point)
             {
               is_boundary = true;
-              if (clusters(i) == clusters(j))
+              if (labels(i) == labels(j))
               {
                 have_shared_core = true;
                 break;
@@ -120,23 +118,23 @@ bool verifyBoundaryPointsConnectToCorePoints(ExecutionSpace const &exec_space,
 
 // Check that cluster indices are unique
 template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
-          typename ClusterView>
+          typename LabelsView>
 bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
                              IndicesView indices, OffsetView offset,
-                             ClusterView clusters, int core_min_size)
+                             LabelsView labels, int core_min_size)
 {
-  int n = clusters.size();
+  int n = labels.size();
 
-  // FIXME we don't want to modify the clusters view in this check. What we
+  // FIXME we don't want to modify the labels view in this check. What we
   // want here is to create a view on the host, and deep_copy into it.
-  // create_mirror_view_and_copy won't work, because it is a no-op if clusters
+  // create_mirror_view_and_copy won't work, because it is a no-op if labels
   // is already on the host.
   decltype(Kokkos::create_mirror_view(Kokkos::HostSpace{},
-                                      std::declval<ClusterView>()))
-      clusters_host(Kokkos::ViewAllocateWithoutInitializing(
-                        "ArborX::DBSCAN::clusters_host"),
-                    clusters.size());
-  Kokkos::deep_copy(exec_space, clusters_host, clusters);
+                                      std::declval<LabelsView>()))
+      labels_host(Kokkos::ViewAllocateWithoutInitializing(
+                      "ArborX::DBSCAN::labels_host"),
+                  labels.size());
+  Kokkos::deep_copy(exec_space, labels_host, labels);
   auto offset_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
   auto indices_host =
@@ -146,10 +144,10 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
     return offset_host(i + 1) - offset_host(i) >= core_min_size;
   };
 
-  // Remove all boundary points from consideration
-  // The idea is that this way if clusters were bridged through a boundary
-  // point, we will count them as separate clusters but with a shared cluster
-  // index, which will fail the unique clusters check
+  // Remove all boundary points from consideration (noise points are already -1)
+  // The idea is that this way if labels were bridged through a boundary
+  // point, we will count them as separate labels but with a shared cluster
+  // index, which will fail the unique labels check
   for (int i = 0; i < n; ++i)
   {
     if (!is_core_point(i))
@@ -160,7 +158,7 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
         if (is_core_point(j))
         {
           // The point is a boundary point
-          clusters_host(i) = -1;
+          labels_host(i) = -1;
           break;
         }
       }
@@ -170,8 +168,8 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
   // Record all unique cluster indices
   std::set<int> unique_cluster_indices;
   for (int i = 0; i < n; ++i)
-    if (clusters_host(i) != -1)
-      unique_cluster_indices.insert(clusters_host(i));
+    if (labels_host(i) != -1)
+      unique_cluster_indices.insert(labels_host(i));
   auto num_unique_cluster_indices = unique_cluster_indices.size();
 
   // Record all cluster indices, assigning a unique index to each (which is
@@ -181,9 +179,9 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
   std::set<int> cluster_sets;
   for (int i = 0; i < n; ++i)
   {
-    if (clusters_host(i) >= 0)
+    if (labels_host(i) >= 0)
     {
-      auto id = clusters_host(i);
+      auto id = labels_host(i);
       cluster_sets.insert(id);
       num_clusters++;
 
@@ -194,13 +192,13 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
       {
         auto k = stack.top();
         stack.pop();
-        if (clusters_host(k) >= 0)
+        if (labels_host(k) >= 0)
         {
-          clusters_host(k) = -1;
+          labels_host(k) = -1;
           for (int jj = offset_host(k); jj < offset_host(k + 1); ++jj)
           {
             int j = indices_host(jj);
-            if (is_core_point(j) || (clusters_host(j) == id))
+            if (is_core_point(j) || (labels_host(j) == id))
               stack.push(j);
           }
         }
@@ -222,30 +220,60 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
 }
 
 template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
-          typename ClusterView>
+          typename LabelsView>
 bool verifyClusters(ExecutionSpace const &exec_space, IndicesView indices,
-                    OffsetView offset, ClusterView clusters, int core_min_size)
+                    OffsetView offset, LabelsView labels, int core_min_size)
 {
-  int n = clusters.size();
+  int n = labels.size();
   if ((int)offset.size() != n + 1 ||
       ArborX::lastElement(offset) != (int)indices.size())
     return false;
 
   using Verify = bool (*)(ExecutionSpace const &, IndicesView, OffsetView,
-                          ClusterView, int);
+                          LabelsView, int);
 
-  for (auto verify :
-       {static_cast<Verify>(verifyConnectedCorePointsShareIndex),
-        static_cast<Verify>(verifyBoundaryPointsConnectToCorePoints),
-        static_cast<Verify>(verifyClustersAreUnique)})
+  for (auto verify : {static_cast<Verify>(verifyConnectedCorePointsShareIndex),
+                      static_cast<Verify>(verifyBoundaryAndNoisePoints),
+                      static_cast<Verify>(verifyClustersAreUnique)})
   {
-    if (!verify(exec_space, indices, offset, clusters, core_min_size))
+    if (!verify(exec_space, indices, offset, labels, core_min_size))
       return false;
   }
 
   return true;
 }
 
+template <typename ExecutionSpace, typename Primitives, typename LabelsView>
+bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
+                  float eps, int core_min_size, LabelsView const &labels)
+{
+  Kokkos::Profiling::pushRegion("ArborX::DBSCAN::verify");
+
+  static_assert(Kokkos::is_view<LabelsView>{}, "");
+
+  using MemorySpace = typename Primitives::memory_space;
+
+  static_assert(std::is_same<typename LabelsView::value_type, int>{}, "");
+  static_assert(std::is_same<typename LabelsView::memory_space, MemorySpace>{},
+                "");
+
+  ARBORX_ASSERT(eps > 0);
+  ARBORX_ASSERT(core_min_size >= 2);
+
+  ArborX::BVH<MemorySpace> bvh(exec_space, primitives);
+
+  auto const predicates = buildPredicates(primitives, eps);
+
+  Kokkos::View<int *, MemorySpace> indices("ArborX::DBSCAN::indices", 0);
+  Kokkos::View<int *, MemorySpace> offset("ArborX::DBSCAN::offset", 0);
+  ArborX::query(bvh, exec_space, predicates, indices, offset);
+
+  auto passed = Details::verifyClusters(exec_space, indices, offset, labels,
+                                        core_min_size);
+  Kokkos::Profiling::popRegion();
+
+  return passed;
+}
 } // namespace Details
 } // namespace ArborX
 

@@ -87,12 +87,189 @@ auto vec2view(std::vector<T> const &in, std::string const &label = "")
   return out;
 }
 
+template <typename ExecutionSpace, typename LabelsView,
+          typename ClusterIndicesView, typename ClusterOffsetView>
+void sortAndFilterClusters(ExecutionSpace const &exec_space,
+                           LabelsView const &labels,
+                           ClusterIndicesView &cluster_indices,
+                           ClusterOffsetView &cluster_offset,
+                           int cluster_min_size = 2)
+{
+  Kokkos::Profiling::pushRegion("ArborX::DBSCAN::sortAndFilterClusters");
+
+  static_assert(Kokkos::is_view<LabelsView>{}, "");
+  static_assert(Kokkos::is_view<ClusterIndicesView>{}, "");
+  static_assert(Kokkos::is_view<ClusterOffsetView>{}, "");
+
+  using MemorySpace = typename LabelsView::memory_space;
+
+  static_assert(std::is_same<typename LabelsView::value_type, int>{}, "");
+  static_assert(std::is_same<typename ClusterIndicesView::value_type, int>{},
+                "");
+  static_assert(std::is_same<typename ClusterOffsetView::value_type, int>{},
+                "");
+
+  static_assert(std::is_same<typename LabelsView::memory_space, MemorySpace>{},
+                "");
+  static_assert(
+      std::is_same<typename ClusterIndicesView::memory_space, MemorySpace>{},
+      "");
+  static_assert(
+      std::is_same<typename ClusterOffsetView::memory_space, MemorySpace>{},
+      "");
+
+  ARBORX_ASSERT(cluster_min_size >= 2);
+
+  int const n = labels.extent_int(0);
+
+  Kokkos::View<int *, MemorySpace> cluster_sizes(
+      "ArborX::DBSCAN::cluster_sizes", n);
+  Kokkos::parallel_for("ArborX::DBSCAN::compute_cluster_sizes",
+                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+                       KOKKOS_LAMBDA(int const i) {
+                         Kokkos::atomic_fetch_add(&cluster_sizes(labels(i)), 1);
+                       });
+
+  // This kernel serves dual purpose:
+  // - it constructs an offset array through exclusive prefix sum, with a
+  //   caveat that small clusters (of size < cluster_min_size) are filtered out
+  // - it creates a mapping from a cluster index into the cluster's position in
+  //   the offset array
+  // We reuse the cluster_sizes array for the second, creating a new alias for
+  // it for clarity.
+  auto &map_cluster_to_offset_position = cluster_sizes;
+  int constexpr IGNORED_CLUSTER = -1;
+  int num_clusters;
+  ArborX::reallocWithoutInitializing(cluster_offset, n + 1);
+  Kokkos::parallel_scan(
+      "ArborX::DBSCAN::compute_cluster_offset_with_filter",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+      KOKKOS_LAMBDA(int const i, int &update, bool final_pass) {
+        bool is_cluster_too_small = (cluster_sizes(i) < cluster_min_size);
+        if (!is_cluster_too_small)
+        {
+          if (final_pass)
+          {
+            cluster_offset(update) = cluster_sizes(i);
+            map_cluster_to_offset_position(i) = update;
+          }
+          ++update;
+        }
+        else
+        {
+          if (final_pass)
+            map_cluster_to_offset_position(i) = IGNORED_CLUSTER;
+        }
+      },
+      num_clusters);
+  Kokkos::resize(Kokkos::WithoutInitializing, cluster_offset, num_clusters + 1);
+  ArborX::exclusivePrefixSum(exec_space, cluster_offset);
+
+  auto cluster_starts = ArborX::clone(exec_space, cluster_offset);
+  ArborX::reallocWithoutInitializing(cluster_indices,
+                                     ArborX::lastElement(cluster_offset));
+  Kokkos::parallel_for("ArborX::DBSCAN::compute_cluster_indices",
+                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+                       KOKKOS_LAMBDA(int const i) {
+                         auto offset_pos =
+                             map_cluster_to_offset_position(labels(i));
+                         if (offset_pos != IGNORED_CLUSTER)
+                         {
+                           auto position = Kokkos::atomic_fetch_add(
+                               &cluster_starts(offset_pos), 1);
+                           cluster_indices(position) = i;
+                         }
+                       });
+
+  Kokkos::Profiling::popRegion();
+}
+
+template <typename ExecutionSpace, typename Primitives,
+          typename ClusterIndicesView, typename ClusterOffsetView>
+void printClusterSizesAndCenters(ExecutionSpace const &exec_space,
+                                 Primitives const &primitives,
+                                 ClusterIndicesView &cluster_indices,
+                                 ClusterOffsetView &cluster_offset)
+{
+  auto const num_clusters = static_cast<int>(cluster_offset.size()) - 1;
+
+  using MemorySpace = typename ClusterIndicesView::memory_space;
+
+  Kokkos::View<ArborX::Point *, MemorySpace> cluster_centers(
+      Kokkos::ViewAllocateWithoutInitializing("Testing::centers"),
+      num_clusters);
+  Kokkos::parallel_for(
+      "Testing::compute_centers",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_clusters),
+      KOKKOS_LAMBDA(int const i) {
+        // The only reason we sort indices here is for reproducibility.
+        // Current DBSCAN algorithm does not guarantee that the indices
+        // corresponding to the same cluster are going to appear in the same
+        // order from run to run. Using sorted indices, we explicitly
+        // guarantee the same summation order when computing cluster centers.
+
+        auto *cluster_start = cluster_indices.data() + cluster_offset(i);
+        auto cluster_size = cluster_offset(i + 1) - cluster_offset(i);
+
+        // Sort cluster indices in ascending order. This uses heap for
+        // sorting, only because there is no other convenient utility that
+        // could sort within a kernel.
+        ArborX::Details::makeHeap(cluster_start, cluster_start + cluster_size,
+                                  ArborX::Details::Less<int>());
+        ArborX::Details::sortHeap(cluster_start, cluster_start + cluster_size,
+                                  ArborX::Details::Less<int>());
+
+        // Compute cluster centers
+        ArborX::Point cluster_center{0.f, 0.f, 0.f};
+        for (int j = cluster_offset(i); j < cluster_offset(i + 1); j++)
+        {
+          auto const &cluster_point = primitives(cluster_indices(j));
+          // NOTE The explicit casts below are intended to silence warnings
+          // about narrowing conversion from 'int' to 'float'. A potential
+          // accuracy issue here is that 'float' can represent all integer
+          // values in the range [-2^23, 2^23] but 'int' can actually represent
+          // values in the range [-2^31, 2^31-1]. However, we ignore it for
+          // now.
+          cluster_center[0] +=
+              cluster_point[0] / static_cast<float>(cluster_size);
+          cluster_center[1] +=
+              cluster_point[1] / static_cast<float>(cluster_size);
+          cluster_center[2] +=
+              cluster_point[2] / static_cast<float>(cluster_size);
+        }
+        cluster_centers(i) = cluster_center;
+      });
+
+  auto cluster_offset_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, cluster_offset);
+  auto cluster_centers_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, cluster_centers);
+  for (int i = 0; i < num_clusters; i++)
+  {
+    int cluster_size = cluster_offset_host(i + 1) - cluster_offset_host(i);
+
+    // This is HACC specific filtering. It is only interested in the clusters
+    // with centers in [0,64]^3 domain.
+    auto const &cluster_center = cluster_centers_host(i);
+    if (cluster_center[0] >= 0 && cluster_center[1] >= 0 &&
+        cluster_center[2] >= 0 && cluster_center[0] < 64 &&
+        cluster_center[1] < 64 && cluster_center[2] < 64)
+    {
+      printf("%d %e %e %e\n", cluster_size, cluster_center[0],
+             cluster_center[1], cluster_center[2]);
+    }
+  }
+}
+
 int main(int argc, char *argv[])
 {
   using ExecutionSpace = Kokkos::DefaultExecutionSpace;
   using MemorySpace = typename ExecutionSpace::memory_space;
 
   Kokkos::ScopeGuard guard(argc, argv);
+
+  std::cout << "ArborX version: " << ArborX::version() << std::endl;
+  std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
 
   namespace bpo = boost::program_options;
 
@@ -107,17 +284,17 @@ int main(int argc, char *argv[])
 
   bpo::options_description desc("Allowed options");
   // clang-format off
-    desc.add_options()
-        ( "help", "help message" )
-        ( "filename", bpo::value<std::string>(&filename), "filename containing data" )
-        ( "binary", bpo::bool_switch(&binary)->default_value(false), "binary file indicator")
-        ( "eps", bpo::value<float>(&eps), "DBSCAN eps" )
-        ( "cluster-min-size", bpo::value<int>(&cluster_min_size)->default_value(2), "minimum cluster size")
-        ( "core-min-size", bpo::value<int>(&core_min_size)->default_value(2), "DBSCAN min_pts")
-        ( "verify", bpo::bool_switch(&verify)->default_value(false), "verify connected components")
-        ( "print-dbscan-timers", bpo::bool_switch(&print_dbscan_timers)->default_value(false), "print dbscan timers")
-        ( "output-sizes-and-centers", bpo::bool_switch(&print_sizes_centers)->default_value(false), "print cluster sizes and centers")
-        ;
+  desc.add_options()
+      ( "help", "help message" )
+      ( "filename", bpo::value<std::string>(&filename), "filename containing data" )
+      ( "binary", bpo::bool_switch(&binary)->default_value(false), "binary file indicator")
+      ( "eps", bpo::value<float>(&eps), "DBSCAN eps" )
+      ( "cluster-min-size", bpo::value<int>(&cluster_min_size)->default_value(2), "minimum cluster size")
+      ( "core-min-size", bpo::value<int>(&core_min_size)->default_value(2), "DBSCAN min_pts")
+      ( "verify", bpo::bool_switch(&verify)->default_value(false), "verify connected components")
+      ( "print-dbscan-timers", bpo::bool_switch(&print_dbscan_timers)->default_value(false), "print dbscan timers")
+      ( "output-sizes-and-centers", bpo::bool_switch(&print_sizes_centers)->default_value(false), "print cluster sizes and centers")
+      ;
   // clang-format on
   bpo::variables_map vm;
   bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
@@ -129,89 +306,57 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  std::cout << "ArborX version: " << ArborX::version() << std::endl;
-  std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
-
   // read in data
   auto const primitives =
       vec2view<MemorySpace>(parsePoints(filename, binary), "primitives");
 
   ExecutionSpace exec_space;
 
+  Kokkos::Timer timer_total;
+  Kokkos::Timer timer;
+  std::map<std::string, double> elapsed;
+
+  bool const verbose = print_dbscan_timers;
+  auto timer_start = [&exec_space, verbose](Kokkos::Timer &timer) {
+    if (verbose)
+      exec_space.fence();
+    timer.reset();
+  };
+  auto timer_seconds = [&exec_space, verbose](Kokkos::Timer const &timer) {
+    if (verbose)
+      exec_space.fence();
+    return timer.seconds();
+  };
+
+  timer_start(timer_total);
+
+  Kokkos::View<int *, MemorySpace> labels("Testing::labels", 0);
+  ArborX::dbscan(
+      exec_space, primitives, eps, core_min_size, labels,
+      ArborX::DBSCAN::Parameters().setPrintTimers(print_dbscan_timers));
+
+  timer_start(timer);
   Kokkos::View<int *, MemorySpace> cluster_indices("Testing::cluster_indices",
                                                    0);
   Kokkos::View<int *, MemorySpace> cluster_offset("Testing::cluster_offset", 0);
-  ArborX::DBSCAN::dbscan(exec_space, primitives, cluster_indices,
-                         cluster_offset, eps, core_min_size, cluster_min_size,
-                         print_dbscan_timers, verify);
+  sortAndFilterClusters(exec_space, labels, cluster_indices, cluster_offset,
+                        cluster_min_size);
+  elapsed["cluster"] = timer_seconds(timer);
+  elapsed["total"] = timer_seconds(timer_total);
+
+  printf("-- postprocess      : %10.3f\n", elapsed["cluster"]);
+  printf("total time          : %10.3f\n", elapsed["total"]);
+
+  if (verify)
+  {
+    auto passed = ArborX::Details::verifyDBSCAN(exec_space, primitives, eps,
+                                                core_min_size, labels);
+    printf("Verification %s\n", (passed ? "passed" : "failed"));
+  }
 
   if (print_sizes_centers)
-  {
-    auto const num_clusters = static_cast<int>(cluster_offset.size()) - 1;
-
-    Kokkos::View<ArborX::Point *, MemorySpace> cluster_centers(
-        Kokkos::ViewAllocateWithoutInitializing("Testing::centers"),
-        num_clusters);
-    Kokkos::parallel_for(
-        "Testing::compute_centers",
-        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_clusters),
-        KOKKOS_LAMBDA(int const i) {
-          // The only reason we sort indices here is for reproducibility.
-          // Current DBSCAN algorithm does not guarantee that the indices
-          // corresponding to the same cluster are going to appear in the same
-          // order from run to run. Using sorted indices, we explicitly
-          // guarantee the same summation order when computing cluster centers.
-
-          auto *cluster_start = cluster_indices.data() + cluster_offset(i);
-          auto cluster_size = cluster_offset(i + 1) - cluster_offset(i);
-
-          // Sort cluster indices in ascending order. This uses heap for
-          // sorting, only because there is no other convenient utility that
-          // could sort within a kernel.
-          ArborX::Details::makeHeap(cluster_start, cluster_start + cluster_size,
-                                    ArborX::Details::Less<int>());
-          ArborX::Details::sortHeap(cluster_start, cluster_start + cluster_size,
-                                    ArborX::Details::Less<int>());
-
-          // Compute cluster centers
-          ArborX::Point cluster_center{0.f, 0.f, 0.f};
-          for (int j = cluster_offset(i); j < cluster_offset(i + 1); j++)
-          {
-            auto const &cluster_point = primitives(cluster_indices(j));
-            // NOTE The explicit casts below are intended to silent warnings
-            // about narrowing conversion from 'int' to 'float'.  The potential
-            // issue is that 'float' can represent all integer values in the
-            // range [-2^23, 2^23] but 'int' can actually represent values in
-            // the range [-2^31, 2^31-1].
-            cluster_center[0] +=
-                cluster_point[0] / static_cast<float>(cluster_size);
-            cluster_center[1] +=
-                cluster_point[1] / static_cast<float>(cluster_size);
-            cluster_center[2] +=
-                cluster_point[2] / static_cast<float>(cluster_size);
-          }
-          cluster_centers(i) = cluster_center;
-        });
-
-    auto cluster_offset_host = Kokkos::create_mirror_view_and_copy(
-        Kokkos::HostSpace{}, cluster_offset);
-    auto cluster_centers_host = Kokkos::create_mirror_view_and_copy(
-        Kokkos::HostSpace{}, cluster_centers);
-    for (int i = 0; i < num_clusters; i++)
-    {
-      int cluster_size = cluster_offset_host(i + 1) - cluster_offset_host(i);
-
-      // This is HACC specific filtering
-      auto const &cluster_center = cluster_centers_host(i);
-      if (cluster_center[0] >= 0 && cluster_center[1] >= 0 &&
-          cluster_center[2] >= 0 && cluster_center[0] < 64 &&
-          cluster_center[1] < 64 && cluster_center[2] < 64)
-      {
-        printf("%d %e %e %e\n", cluster_size, cluster_center[0],
-               cluster_center[1], cluster_center[2]);
-      }
-    }
-  }
+    printClusterSizesAndCenters(exec_space, primitives, cluster_indices,
+                                cluster_offset);
 
   return EXIT_SUCCESS;
 }
