@@ -21,7 +21,8 @@
 #include <fstream>
 
 std::vector<ArborX::Point> parsePoints(std::string const &filename,
-                                       bool binary = false)
+                                       bool binary = false,
+                                       int max_num_points = -1)
 {
   std::cout << "Reading in \"" << filename << "\" in "
             << (binary ? "binary" : "text") << " mode...";
@@ -65,6 +66,13 @@ std::vector<ArborX::Point> parsePoints(std::string const &filename,
     input.read(reinterpret_cast<char *>(z.data()), num_points * sizeof(float));
   }
   input.close();
+  if (max_num_points != -1)
+  {
+    num_points = std::min(num_points, max_num_points);
+    x.resize(num_points);
+    y.resize(num_points);
+    z.resize(num_points);
+  }
   std::cout << "done\nRead in " << num_points << " points" << std::endl;
 
   std::vector<ArborX::Point> v(num_points);
@@ -281,6 +289,7 @@ int main(int argc, char *argv[])
   float eps;
   int cluster_min_size;
   int core_min_size;
+  int max_num_points;
 
   bpo::options_description desc("Allowed options");
   // clang-format off
@@ -288,6 +297,7 @@ int main(int argc, char *argv[])
       ( "help", "help message" )
       ( "filename", bpo::value<std::string>(&filename), "filename containing data" )
       ( "binary", bpo::bool_switch(&binary)->default_value(false), "binary file indicator")
+      ( "max-num-points", bpo::value<int>(&max_num_points)->default_value(-1), "max number of points to read in")
       ( "eps", bpo::value<float>(&eps), "DBSCAN eps" )
       ( "cluster-min-size", bpo::value<int>(&cluster_min_size)->default_value(2), "minimum cluster size")
       ( "core-min-size", bpo::value<int>(&core_min_size)->default_value(2), "DBSCAN min_pts")
@@ -307,8 +317,8 @@ int main(int argc, char *argv[])
   }
 
   // read in data
-  auto const primitives =
-      vec2view<MemorySpace>(parsePoints(filename, binary), "primitives");
+  auto const primitives = vec2view<MemorySpace>(
+      parsePoints(filename, binary, max_num_points), "primitives");
 
   ExecutionSpace exec_space;
 
