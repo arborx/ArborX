@@ -39,7 +39,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_spatial_predicate, TreeTypeTraits,
     BOOST_TEST(tree.empty());
     BOOST_TEST(tree.size() == 0);
     // Tree::bounds() returns an invalid box when the tree is empty.
-    BOOST_TEST(ArborX::Details::equals(tree.bounds(), {}));
+    using ArborX::Details::equals;
+    BOOST_TEST(equals(tree.bounds(), {}));
 
     // Passing a view with no query does seem a bit silly but we still need
     // to support it. And since the tag dispatching yields different tree
@@ -93,7 +94,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_nearest_predicate, TreeTypeTraits,
     BOOST_TEST(tree.empty());
     BOOST_TEST(tree.size() == 0);
     // Tree::bounds() returns an invalid box when the tree is empty.
-    BOOST_TEST(ArborX::Details::equals(tree.bounds(), {}));
+    using ArborX::Details::equals;
+    BOOST_TEST(equals(tree.bounds(), {}));
 
     // Passing a view with no query does seem a bit silly but we still need
     // to support it. And since the tag dispatching yields different tree
@@ -173,8 +175,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_nearest_predicate,
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 1);
-  BOOST_TEST(
-      ArborX::Details::equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
+  using ArborX::Details::equals;
+  BOOST_TEST(equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
                          makeNearestQueries<DeviceType>({}),
@@ -210,8 +212,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_spatial_predicate,
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 2);
-  BOOST_TEST(
-      ArborX::Details::equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
+  using ArborX::Details::equals;
+  BOOST_TEST(equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   // single query intersects with nothing
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
@@ -272,8 +274,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_nearest_predicate,
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 2);
-  BOOST_TEST(
-      ArborX::Details::equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
+  using ArborX::Details::equals;
+  BOOST_TEST(equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   // no query
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
