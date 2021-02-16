@@ -10,9 +10,8 @@
  ****************************************************************************/
 #include <ArborX_DetailsAlgorithms.hpp>
 
+#define BOOST_TEST_MODULE Geometry
 #include <boost/test/unit_test.hpp>
-
-#define BOOST_TEST_MODULE DetailsAlgorithms
 
 // NOTE: message is not required any more with C++17
 #define STATIC_ASSERT(cond) static_assert(cond, "");

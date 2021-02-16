@@ -13,8 +13,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-#define BOOST_TEST_MODULE DetailsRay
-
 BOOST_AUTO_TEST_CASE(intersects_box)
 {
   using ArborX::Box;

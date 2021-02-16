@@ -58,11 +58,14 @@ target_compile_definitions(ArborX_DetailsUtils.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_DetailsUtils.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_DetailsUtils_Test COMMAND ./ArborX_DetailsUtils.exe)
 
-add_executable(ArborX_DetailsAlgorithms.exe tstDetailsAlgorithms.cpp)
-target_link_libraries(ArborX_DetailsAlgorithms.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_DetailsAlgorithms.exe PRIVATE BOOST_TEST_MAIN BOOST_TEST_DYN_LINK)
-target_include_directories(ArborX_DetailsAlgorithms.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_DetailsAlgorithms_Test COMMAND ./ArborX_DetailsAlgorithms.exe)
+add_executable(ArborX_Geometry.exe
+  tstDetailsAlgorithms.cpp
+  tstDetailsRay.cpp
+)
+target_link_libraries(ArborX_Geometry.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_Geometry.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_include_directories(ArborX_Geometry.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_Geometry_Test COMMAND ./ArborX_Geometry.exe)
 
 set(ARBORX_TEST_QUERY_TREE_SOURCES)
 foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
@@ -147,10 +150,5 @@ add_executable(ArborX_BoostAdapters.exe tstBoostGeometryAdapters.cpp tstBoostRan
 target_link_libraries(ArborX_BoostAdapters.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_BoostAdapters.exe PRIVATE BOOST_TEST_DYN_LINK)
 add_test(NAME ArborX_BoostAdapters_Test COMMAND ./ArborX_BoostAdapters.exe)
-
-add_executable(ArborX_DetailsRay.exe tstDetailsRay.cpp utf_main.cpp)
-target_link_libraries(ArborX_DetailsRay.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_DetailsRay.exe PRIVATE BOOST_TEST_DYN_LINK)
-add_test(NAME ArborX_DetailsRay_Test COMMAND ./ArborX_DetailsRay.exe)
 
 add_subdirectory(headers_self_contained)
