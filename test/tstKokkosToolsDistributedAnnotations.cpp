@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle /*handle*/, const char *label,
          void const * /*ptr*/, uint64_t /*size*/) {
-        std::cout << label << '\n';
+        BOOST_TEST_MESSAGE(label);
         BOOST_TEST((isPrefixedWith(label, "ArborX::DistributedTree::") ||
                     isPrefixedWith(label, "ArborX::BVH::") ||
                     isPrefixedWith(label, "ArborX::Sorting::") ||
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle /*handle*/, const char *label,
          void const * /*ptr*/, uint64_t /*size*/) {
-        std::cout << label << '\n';
+        BOOST_TEST_MESSAGE(label);
         BOOST_TEST((isPrefixedWith(label, "ArborX::DistributedTree::query::") ||
                     isPrefixedWith(label, "ArborX::Distributor::") ||
                     isPrefixedWith(label, "ArborX::BVH::query::") ||
@@ -116,7 +116,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
 
   auto const callback = [](char const *label, uint32_t, uint64_t *) {
-    std::cout << label << '\n';
+    BOOST_TEST_MESSAGE(label);
     BOOST_TEST((isPrefixedWith(label, "ArborX::") ||
                 isPrefixedWith(label, "Kokkos::")));
   };
@@ -156,7 +156,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
 
   Kokkos::Tools::Experimental::set_push_region_callback([](char const *label) {
-    std::cout << label << '\n';
+    BOOST_TEST_MESSAGE(label);
     BOOST_TEST((isPrefixedWith(label, "ArborX::") ||
                 isPrefixedWith(label, "Kokkos::")));
   });
