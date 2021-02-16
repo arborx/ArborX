@@ -60,7 +60,7 @@ add_test(NAME ArborX_DetailsUtils_Test COMMAND ./ArborX_DetailsUtils.exe)
 
 add_executable(ArborX_Geometry.exe
   tstDetailsAlgorithms.cpp
-  tstDetailsRay.cpp
+  tstRay.cpp
 )
 target_link_libraries(ArborX_Geometry.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Geometry.exe PRIVATE BOOST_TEST_DYN_LINK)
