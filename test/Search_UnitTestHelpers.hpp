@@ -18,9 +18,9 @@
 #include "boost_ext/CompressedStorageComparison.hpp"
 // clang-format on
 
-#include "ArborX_BoostRTreeHelpers.hpp"
 #include "ArborX_EnableViewComparison.hpp"
 #ifdef ARBORX_ENABLE_MPI
+#include "ArborX_BoostRTreeHelpers.hpp"
 #include <ArborX_DistributedTree.hpp>
 #endif
 
