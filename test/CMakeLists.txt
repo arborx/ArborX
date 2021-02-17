@@ -151,4 +151,6 @@ target_link_libraries(ArborX_BoostAdapters.exe PRIVATE ArborX Boost::unit_test_f
 target_compile_definitions(ArborX_BoostAdapters.exe PRIVATE BOOST_TEST_DYN_LINK)
 add_test(NAME ArborX_BoostAdapters_Test COMMAND ./ArborX_BoostAdapters.exe)
 
-add_subdirectory(headers_self_contained)
+if(ARBORX_ENABLE_HEADER_SELF_CONTAINMENT_TESTS)
+  add_subdirectory(headers_self_contained)
+endif()
