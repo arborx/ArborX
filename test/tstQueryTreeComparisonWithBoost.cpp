@@ -193,11 +193,29 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
   auto within_queries_host = Kokkos::create_mirror_view(within_queries);
   Kokkos::deep_copy(within_queries_host, within_queries);
 
+  Kokkos::View<decltype(ArborX::intersects(ArborX::Box{})) *, DeviceType>
+      intersects_queries("intersects_queries", n_points);
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<ExecutionSpace>(0, n_points), KOKKOS_LAMBDA(int i) {
+        ArborX::Box box{{static_cast<float>(points(i)[0] - radii(i)),
+                         static_cast<float>(points(i)[1] - radii(i)),
+                         static_cast<float>(points(i)[2] - radii(i))},
+                        {static_cast<float>(points(i)[0] + radii(i)),
+                         static_cast<float>(points(i)[1] + radii(i)),
+                         static_cast<float>(points(i)[2] + radii(i))}};
+        intersects_queries(i) = ArborX::intersects(box);
+      });
+  auto intersects_queries_host = Kokkos::create_mirror_view(intersects_queries);
+  Kokkos::deep_copy(intersects_queries_host, intersects_queries);
+
   Tree tree(ExecutionSpace{},
             Kokkos::create_mirror_view_and_copy(MemorySpace{}, cloud));
 
   BoostExt::RTree<decltype(cloud)::value_type> rtree(ExecutionSpace{}, cloud);
 
+  ARBORX_TEST_QUERY_TREE(
+      ExecutionSpace{}, tree, intersects_queries,
+      query(ExecutionSpace{}, rtree, intersects_queries_host));
 #ifndef ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_SPHERE
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, within_queries,
                          query(ExecutionSpace{}, rtree, within_queries_host));
