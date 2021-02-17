@@ -9,8 +9,6 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_LinearBVH.hpp>
-
 #include <boost/test/unit_test.hpp>
 
 #include <vector>

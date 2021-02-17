@@ -10,7 +10,6 @@
  ****************************************************************************/
 
 #include "ArborX_BoostRTreeHelpers.hpp"
-#include <ArborX_LinearBVH.hpp>
 
 #include <boost/test/unit_test.hpp>
 
