@@ -165,6 +165,13 @@ static auto translate(ArborX::Intersects<ArborX::Sphere> const &query)
              }));
 }
 
+template <typename Value>
+static auto translate(ArborX::Intersects<ArborX::Box> const &query)
+{
+  ArborX::Box const &box = getGeometry(query);
+  return boost::geometry::index::intersects(box);
+}
+
 template <typename Value, typename Geometry>
 static auto translate(ArborX::Nearest<Geometry> const &query)
 {
