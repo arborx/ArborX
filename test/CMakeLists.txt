@@ -119,6 +119,7 @@ endforeach()
 add_executable(ArborX_QueryTree.exe
   ${ARBORX_TEST_QUERY_TREE_SOURCES}
   tstQueryTreeTraversalPolicy.cpp
+  tstQueryTreeIntersectsKDOP.cpp
   tstKokkosToolsAnnotations.cpp
   utf_main.cpp)
 target_link_libraries(ArborX_QueryTree.exe PRIVATE ArborX Boost::unit_test_framework)
