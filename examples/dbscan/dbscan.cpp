@@ -348,9 +348,8 @@ int main(int argc, char *argv[])
 
   timer_start(timer_total);
 
-  Kokkos::View<int *, MemorySpace> labels("Testing::labels", 0);
-  ArborX::dbscan(
-      exec_space, primitives, eps, core_min_size, labels,
+  auto labels = ArborX::dbscan(
+      exec_space, primitives, eps, core_min_size,
       ArborX::DBSCAN::Parameters().setPrintTimers(print_dbscan_timers));
 
   timer_start(timer);

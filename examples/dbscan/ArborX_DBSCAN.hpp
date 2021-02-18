@@ -103,20 +103,15 @@ struct Parameters
 
 } // namespace DBSCAN
 
-template <typename ExecutionSpace, typename Primitives, typename LabelsView>
-void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
-            float eps, int core_min_size, LabelsView &labels,
-            DBSCAN::Parameters const &parameters = DBSCAN::Parameters())
+template <typename ExecutionSpace, typename Primitives>
+Kokkos::View<int *, typename Primitives::memory_space>
+dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
+       float eps, int core_min_size,
+       DBSCAN::Parameters const &parameters = DBSCAN::Parameters())
 {
   Kokkos::Profiling::pushRegion("ArborX::dbscan");
 
-  static_assert(Kokkos::is_view<LabelsView>{}, "");
-
   using MemorySpace = typename Primitives::memory_space;
-
-  static_assert(std::is_same<typename LabelsView::value_type, int>{}, "");
-  static_assert(std::is_same<typename LabelsView::memory_space, MemorySpace>{},
-                "");
 
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
@@ -152,7 +147,8 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   timer_start(timer);
   Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters");
 
-  Kokkos::resize(Kokkos::WithoutInitializing, labels, n);
+  Kokkos::View<int *, MemorySpace> labels(
+      Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::labels"), n);
   ArborX::iota(exec_space, labels);
   if (is_special_case)
   {
@@ -236,6 +232,8 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   }
 
   Kokkos::Profiling::popRegion();
+
+  return labels;
 }
 
 } // namespace ArborX
