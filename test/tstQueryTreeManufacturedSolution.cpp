@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2012-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2021 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -8,8 +8,6 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-
-#include <ArborX_LinearBVH.hpp>
 
 #include <boost/test/unit_test.hpp>
 
