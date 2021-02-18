@@ -142,15 +142,14 @@ BOOST_AUTO_TEST_CASE(centroid)
 
 BOOST_AUTO_TEST_CASE(is_valid)
 {
-  // NOTE "empty" box is considered as valid in ArborX but it is
-  // not according to Boost.Geometry
   details::Box empty_box = {};
-  BOOST_TEST(details::isValid(empty_box));
+  BOOST_TEST(!details::isValid(empty_box));
   std::string message;
   BOOST_TEST(!bg::is_valid(empty_box, message));
   BOOST_TEST(message == "Box has corners in wrong order");
 
-  // Same issue with infinitesimal box around a point (here the origin)
+  // NOTE infinitesimal box around a point (here the origin) is considered as
+  // valid in ArborX but it is not according to Boost.Geometry
   details::Box a_box = {{{0., 0., 0.}}, {{0., 0., 0.}}};
   BOOST_TEST(details::isValid(a_box));
   BOOST_TEST(!bg::is_valid(a_box, message));
@@ -165,11 +164,26 @@ BOOST_AUTO_TEST_CASE(is_valid)
   BOOST_TEST(!bg::is_valid(invalid_box, message));
   BOOST_TEST(message == "Geometry has point(s) with invalid coordinate(s)");
 
+  details::Box other_invalid_box = {{{1., 5., 3.}}, {{4., 3., 6.}}};
+  BOOST_TEST(!details::isValid(other_invalid_box));
+  BOOST_TEST(!bg::is_valid(other_invalid_box, message));
+  BOOST_TEST(message == "Box has corners in wrong order");
+
+  auto const infty = std::numeric_limits<double>::infinity();
+  other_invalid_box = {{{1., 5., 3.}}, {{infty, 3., 6.}}};
+  BOOST_TEST(!details::isValid(other_invalid_box));
+  BOOST_TEST(!bg::is_valid(other_invalid_box, message));
+  BOOST_TEST(message == "Geometry has point(s) with invalid coordinate(s)");
+
+  other_invalid_box = {{{1., 5., infty}}, {{4., 3., 6.}}};
+  BOOST_TEST(!details::isValid(other_invalid_box));
+  BOOST_TEST(!bg::is_valid(other_invalid_box, message));
+  BOOST_TEST(message == "Geometry has point(s) with invalid coordinate(s)");
+
   details::Point a_point = {{1., 2., 3.}};
   BOOST_TEST(details::isValid(a_point));
   BOOST_TEST(bg::is_valid(a_point));
 
-  auto const infty = std::numeric_limits<double>::infinity();
   details::Point invalid_point = {{infty, 1.41, 3.14}};
   BOOST_TEST(!details::isValid(invalid_point));
   BOOST_TEST(!bg::is_valid(invalid_point, message));
@@ -181,6 +195,7 @@ BOOST_AUTO_TEST_CASE(is_valid)
   BOOST_TEST(!bg::is_empty(empty_box));
   BOOST_TEST(!bg::is_empty(a_box));
   BOOST_TEST(!bg::is_empty(unit_box));
+  BOOST_TEST(!bg::is_empty(a_point));
 }
 
 BOOST_AUTO_TEST_CASE(intersects)

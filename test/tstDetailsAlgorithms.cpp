@@ -164,7 +164,10 @@ BOOST_AUTO_TEST_CASE(is_valid)
   BOOST_TEST(isValid(Box{{{0., 0., 0.}}, {{0., 0., 0.}}}));
   BOOST_TEST(!isValid(Box{{{0., 0., -infty}}, {{0., 0., 0.}}}));
   BOOST_TEST(!isValid(Box{{{0., 0., 0.}}, {{+infty, 0., 0.}}}));
-  BOOST_TEST(isValid(Box{}));
+  BOOST_TEST(!isValid(Box{}));
+  BOOST_TEST(!isValid(Box{{{1., 1., 1.}}, {{0., 0., 0.}}}));
+  BOOST_TEST(!isValid(Box{{{0., 0., 1.}}, {{0., 0., 0.}}}));
+  BOOST_TEST(!isValid(Box{{{0., 0., 0.}}, {{-1, 0., 0.}}}));
 
   BOOST_TEST(isValid(Sphere{{{1., 2., 3.}}, 4.}));
   BOOST_TEST(isValid(Sphere{{{0., 0., 0.}}, 0.}));
