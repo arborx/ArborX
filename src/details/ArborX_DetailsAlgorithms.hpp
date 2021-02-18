@@ -59,7 +59,14 @@ bool isValid(Point const &p)
 KOKKOS_INLINE_FUNCTION
 bool isValid(Box const &b)
 {
-  return isValid(b.minCorner()) && isValid(b.maxCorner());
+  using KokkosExt::isFinite;
+  for (int d = 0; d < 3; ++d)
+  {
+    auto const r_d = b.maxCorner()[d] - b.minCorner()[d];
+    if (r_d < 0 || !isFinite(r_d))
+      return false;
+  }
+  return true;
 }
 
 KOKKOS_INLINE_FUNCTION
