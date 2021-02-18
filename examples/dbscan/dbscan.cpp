@@ -284,8 +284,8 @@ int main(int argc, char *argv[])
 
   Kokkos::ScopeGuard guard(argc, argv);
 
-  std::cout << "ArborX version: " << ArborX::version() << std::endl;
-  std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
+  std::cout << "ArborX version    : " << ArborX::version() << std::endl;
+  std::cout << "ArborX hash       : " << ArborX::gitCommitHash() << std::endl;
 
   namespace bpo = boost::program_options;
 
@@ -323,6 +323,16 @@ int main(int argc, char *argv[])
     std::cout << desc << '\n';
     return 1;
   }
+
+  // Print out the runtime parameters
+  printf("eps               : %f\n", eps);
+  printf("minpts            : %d\n", core_min_size);
+  printf("cluster min size  : %d\n", cluster_min_size);
+  printf("filename          : %s [%s, max_pts = %d]\n", filename.c_str(),
+         (binary ? "binary" : "text"), max_num_points);
+  printf("verify            : %s\n", (verify ? "true" : "false"));
+  printf("print timers      : %s\n", (print_dbscan_timers ? "true" : "false"));
+  printf("output centers    : %s\n", (print_sizes_centers ? "true" : "false"));
 
   // read in data
   auto const primitives = vec2view<MemorySpace>(
