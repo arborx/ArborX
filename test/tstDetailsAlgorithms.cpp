@@ -161,7 +161,7 @@ BOOST_AUTO_TEST_CASE(is_valid)
   BOOST_TEST(!isValid(Point{{0., infty, 0.}}));
 
   BOOST_TEST(isValid(Box{{{1., 2., 3.}}, {{4., 5., 6.}}}));
-  BOOST_TEST(isValid(Box{{{0., 0., 0.}}, {{0., 0., 0.}}}));
+  BOOST_TEST(!isValid(Box{{{0., 0., 0.}}, {{0., 0., 0.}}}));
   BOOST_TEST(!isValid(Box{{{0., 0., -infty}}, {{0., 0., 0.}}}));
   BOOST_TEST(!isValid(Box{{{0., 0., 0.}}, {{+infty, 0., 0.}}}));
   BOOST_TEST(!isValid(Box{}));

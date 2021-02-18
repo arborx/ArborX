@@ -63,7 +63,7 @@ bool isValid(Box const &b)
   for (int d = 0; d < 3; ++d)
   {
     auto const r_d = b.maxCorner()[d] - b.minCorner()[d];
-    if (r_d < 0 || !isFinite(r_d))
+    if (r_d <= 0 || !isFinite(r_d))
       return false;
   }
   return true;

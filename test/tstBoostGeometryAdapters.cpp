@@ -148,10 +148,8 @@ BOOST_AUTO_TEST_CASE(is_valid)
   BOOST_TEST(!bg::is_valid(empty_box, message));
   BOOST_TEST(message == "Box has corners in wrong order");
 
-  // NOTE infinitesimal box around a point (here the origin) is considered as
-  // valid in ArborX but it is not according to Boost.Geometry
   details::Box a_box = {{{0., 0., 0.}}, {{0., 0., 0.}}};
-  BOOST_TEST(details::isValid(a_box));
+  BOOST_TEST(!details::isValid(a_box));
   BOOST_TEST(!bg::is_valid(a_box, message));
   BOOST_TEST(message == "Geometry has wrong topological dimension");
 
