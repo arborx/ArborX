@@ -41,11 +41,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(assign_morton_codes, DeviceType,
       {{0, 0, 0}}, {{0, 0, 0}}, {{0, 0, 0}},         {{0, 0, 0}},
       {{1, 2, 3}}, {{1, 2, 3}}, {{1023, 1023, 1023}}};
   auto fun = [](std::array<unsigned int, 3> const &anchor) {
-    using ArborX::Details::expandBits;
+    using ArborX::Details::expandBitsBy2;
     unsigned int i = std::get<0>(anchor);
     unsigned int j = std::get<1>(anchor);
     unsigned int k = std::get<2>(anchor);
-    return 4 * expandBits(i) + 2 * expandBits(j) + expandBits(k);
+    return 4 * expandBitsBy2(i) + 2 * expandBitsBy2(j) + expandBitsBy2(k);
   };
   std::vector<unsigned int> ref(n, std::numeric_limits<unsigned int>::max());
   for (int i = 0; i < n; ++i)
