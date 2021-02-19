@@ -19,7 +19,7 @@
 
 #include <cstdlib>
 
-#include <benchmark_registration.hpp>
+#include "benchmark_registration.hpp"
 
 #ifdef ARBORX_PERFORMANCE_TESTING
 #include <mpi.h>
