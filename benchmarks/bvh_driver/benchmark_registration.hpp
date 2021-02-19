@@ -97,7 +97,7 @@ struct Spec
 };
 
 template <typename DeviceType>
-inline Kokkos::View<ArborX::Point *, DeviceType>
+Kokkos::View<ArborX::Point *, DeviceType>
 constructPoints(int n_values, PointCloudType point_cloud_type)
 {
   Kokkos::View<ArborX::Point *, DeviceType> random_points(
@@ -113,8 +113,7 @@ constructPoints(int n_values, PointCloudType point_cloud_type)
 }
 
 template <typename DeviceType>
-inline Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *,
-                    DeviceType>
+Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
 makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
                    PointCloudType target_point_cloud_type)
 {
@@ -139,7 +138,7 @@ makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
 }
 
 template <typename DeviceType>
-inline Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType>
+Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType>
 makeNearestQueries(int n_values, int n_queries, int n_neighbors,
                    PointCloudType target_point_cloud_type)
 {
