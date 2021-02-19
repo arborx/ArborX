@@ -20,9 +20,8 @@
 
 #include <fstream>
 
-std::vector<ArborX::Point> parsePoints(std::string const &filename,
-                                       bool binary = false,
-                                       int max_num_points = -1)
+std::vector<ArborX::Point> loadData(std::string const &filename,
+                                    bool binary = true, int max_num_points = -1)
 {
   std::cout << "Reading in \"" << filename << "\" in "
             << (binary ? "binary" : "text") << " mode...";
@@ -35,51 +34,38 @@ std::vector<ArborX::Point> parsePoints(std::string const &filename,
     input.open(filename, std::ifstream::binary);
   ARBORX_ASSERT(input.good());
 
+  std::vector<ArborX::Point> v;
+
   int num_points = 0;
-  std::vector<float> x;
-  std::vector<float> y;
-  std::vector<float> z;
+  if (!binary)
+    input >> num_points;
+  else
+    input.read(reinterpret_cast<char *>(&num_points), sizeof(int));
+
+  if (max_num_points > 0 && max_num_points < num_points)
+    num_points = max_num_points;
+
   if (!binary)
   {
-    input >> num_points;
+    v.reserve(num_points);
 
-    x.reserve(num_points);
-    y.reserve(num_points);
-    z.reserve(num_points);
-
-    auto read_float = [&input]() {
-      return *(std::istream_iterator<float>(input));
+    auto read_point = [&input]() {
+      auto it = std::istream_iterator<float>(input);
+      auto x = *it++;
+      auto y = *it++;
+      auto z = *it;
+      return ArborX::Point{x, y, z};
     };
-    std::generate_n(std::back_inserter(x), num_points, read_float);
-    std::generate_n(std::back_inserter(y), num_points, read_float);
-    std::generate_n(std::back_inserter(z), num_points, read_float);
+    std::generate_n(std::back_inserter(v), num_points, read_point);
   }
   else
   {
-    input.read(reinterpret_cast<char *>(&num_points), sizeof(int));
-
-    x.resize(num_points);
-    y.resize(num_points);
-    z.resize(num_points);
-    input.read(reinterpret_cast<char *>(x.data()), num_points * sizeof(float));
-    input.read(reinterpret_cast<char *>(y.data()), num_points * sizeof(float));
-    input.read(reinterpret_cast<char *>(z.data()), num_points * sizeof(float));
+    v.resize(num_points);
+    input.read(reinterpret_cast<char *>(v.data()),
+               num_points * sizeof(ArborX::Point));
   }
   input.close();
-  if (max_num_points != -1)
-  {
-    num_points = std::min(num_points, max_num_points);
-    x.resize(num_points);
-    y.resize(num_points);
-    z.resize(num_points);
-  }
   std::cout << "done\nRead in " << num_points << " points" << std::endl;
-
-  std::vector<ArborX::Point> v(num_points);
-  for (int i = 0; i < num_points; i++)
-  {
-    v[i] = {x[i], y[i], z[i]};
-  }
 
   return v;
 }
@@ -374,8 +360,7 @@ int main(int argc, char *argv[])
   printf("output centers    : %s\n", (print_sizes_centers ? "true" : "false"));
 
   // read in data
-  std::vector<ArborX::Point> data =
-      parsePoints(filename, binary, max_num_points);
+  std::vector<ArborX::Point> data = loadData(filename, binary, max_num_points);
   if (num_samples > 0 && num_samples < (int)data.size())
     data = sampleData(data, num_samples);
   auto const primitives = vec2view<MemorySpace>(data, "primitives");
