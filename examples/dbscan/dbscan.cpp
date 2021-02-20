@@ -84,6 +84,21 @@ std::vector<ArborX::Point> parsePoints(std::string const &filename,
   return v;
 }
 
+template <typename MemorySpace>
+void writeLabelsData(std::string const &filename,
+                     Kokkos::View<int *, MemorySpace> labels)
+{
+  std::ofstream out(filename, std::ofstream::binary);
+  ARBORX_ASSERT(out.good());
+
+  auto labels_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, labels);
+
+  int n = labels_host.size();
+  out.write((char *)&n, sizeof(int));
+  out.write((char *)labels_host.data(), sizeof(int) * n);
+}
+
 template <typename... P, typename T>
 auto vec2view(std::vector<T> const &in, std::string const &label = "")
 {
@@ -299,6 +314,7 @@ int main(int argc, char *argv[])
   int core_min_size;
   int max_num_points;
   int num_samples;
+  std::string filename_labels;
 
   bpo::options_description desc("Allowed options");
   // clang-format off
@@ -312,6 +328,7 @@ int main(int argc, char *argv[])
       ( "core-min-size", bpo::value<int>(&core_min_size)->default_value(2), "DBSCAN min_pts")
       ( "verify", bpo::bool_switch(&verify)->default_value(false), "verify connected components")
       ( "samples", bpo::value<int>(&num_samples)->default_value(-1), "number of samples" )
+      ( "labels", bpo::value<std::string>(&filename_labels)->default_value(""), "clutering results output" )
       ( "print-dbscan-timers", bpo::bool_switch(&print_dbscan_timers)->default_value(false), "print dbscan timers")
       ( "output-sizes-and-centers", bpo::bool_switch(&print_sizes_centers)->default_value(false), "print cluster sizes and centers")
       ;
@@ -332,6 +349,7 @@ int main(int argc, char *argv[])
   printf("cluster min size  : %d\n", cluster_min_size);
   printf("filename          : %s [%s, max_pts = %d]\n", filename.c_str(),
          (binary ? "binary" : "text"), max_num_points);
+  printf("filename [labels] : %s [binary]\n", filename_labels.c_str());
   printf("samples           : %d\n", num_samples);
   printf("verify            : %s\n", (verify ? "true" : "false"));
   printf("print timers      : %s\n", (print_dbscan_timers ? "true" : "false"));
@@ -400,6 +418,9 @@ int main(int argc, char *argv[])
                                                 core_min_size, labels);
     printf("Verification %s\n", (passed ? "passed" : "failed"));
   }
+
+  if (filename_labels != "")
+    writeLabelsData(filename_labels, labels);
 
   if (print_sizes_centers)
     printClusterSizesAndCenters(exec_space, primitives, cluster_indices,
