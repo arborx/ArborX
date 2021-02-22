@@ -74,11 +74,10 @@ namespace ArborX
 namespace Details
 {
 
-template <typename MemorySpace, typename CorePointsType>
-struct DBSCANCallback
+template <typename MemorySpace>
+struct UnionFind
 {
   Kokkos::View<int *, MemorySpace> labels_;
-  CorePointsType is_core_point_;
 
   // Per [1]:
   //
@@ -123,7 +122,10 @@ struct DBSCANCallback
   }
 
   KOKKOS_FUNCTION
-  void combine_trees(int self, int neighbor) const
+  void union_1way(int i, int j) const { labels_(i) = representative(j); }
+
+  KOKKOS_FUNCTION
+  void union_2way(int i, int j) const
   {
     // Per [1]:
     //
@@ -139,8 +141,6 @@ struct DBSCANCallback
     // the do-while loop repeats the computation until it succeeds, i.e.,
     // until there is no data race on the parent.
     // ```
-    auto i = self;
-    auto j = neighbor;
 
     // ##### ECL license (see LICENSE.ECL) #####
     int vstat = representative(i);
@@ -174,6 +174,13 @@ struct DBSCANCallback
       }
     } while (repeat);
   }
+};
+
+template <typename MemorySpace, typename CorePointsType>
+struct DBSCANCallback
+{
+  UnionFind<MemorySpace> union_find_;
+  CorePointsType is_core_point_;
 
   template <typename Query>
   KOKKOS_FUNCTION void operator()(Query const &query, int j) const
@@ -193,24 +200,24 @@ struct DBSCANCallback
     bool is_boundary_point =
         !is_core_point_(i); // is_core_point_(j) is aready true
 
-    if (is_boundary_point && labels_(i) == i)
+    if (is_boundary_point && union_find_.representative(i) == i)
     {
       // For a boundary point that was not processed before (labels_(i) == i),
       // set its representative to that of the core point. This way, when
       // another neighbor that is core point appears later, we won't process
       // this point.
       //
-      // NOTE: DO NOT USE combine_trees(i, j) here. This may set this boundary
+      // NOTE: DO NOT USE union_2way(i, j) here. This may set this boundary
       // point as a representative for the whole cluster. This would mean that
       // a) labels_(i) == i still (so it would be processed later, and b) it may
       // be combined with a different cluster later forming a bridge.
-      labels_(i) = representative(j);
+      union_find_.union_1way(i, j);
     }
     else if (!is_boundary_point && i > j)
     {
       // For a core point that is connected to another core point, do the
       // standard CCS algorithm
-      combine_trees(i, j);
+      union_find_.union_2way(i, j);
     }
   }
 };
