@@ -31,10 +31,10 @@ struct Direction
 };
 
 template <int k>
-struct kDOP_Directions;
+struct KDOP_Directions;
 
 template <>
-struct kDOP_Directions<6>
+struct KDOP_Directions<6>
 {
 protected:
   static constexpr int n_directions = 3;
@@ -51,7 +51,7 @@ protected:
 };
 
 template <>
-struct kDOP_Directions<14>
+struct KDOP_Directions<14>
 {
 protected:
   static constexpr int n_directions = 7;
@@ -73,7 +73,7 @@ protected:
 };
 
 template <>
-struct kDOP_Directions<18>
+struct KDOP_Directions<18>
 {
 protected:
   static constexpr int n_directions = 9;
@@ -97,7 +97,7 @@ protected:
 };
 
 template <>
-struct kDOP_Directions<26>
+struct KDOP_Directions<26>
 {
 protected:
   static constexpr int n_directions = 13;
@@ -139,12 +139,12 @@ namespace Experimental
 {
 
 template <int k>
-struct kDOP : private Details::kDOP_Directions<k>
+struct KDOP : private Details::KDOP_Directions<k>
 {
-  static constexpr int n_directions = Details::kDOP_Directions<k>::n_directions;
+  static constexpr int n_directions = Details::KDOP_Directions<k>::n_directions;
   Kokkos::Array<float, n_directions> _min_values;
   Kokkos::Array<float, n_directions> _max_values;
-  KOKKOS_FUNCTION kDOP()
+  KOKKOS_FUNCTION KDOP()
   {
     for (int i = 0; i < n_directions; ++i)
     {
@@ -152,7 +152,7 @@ struct kDOP : private Details::kDOP_Directions<k>
       _max_values[i] = -KokkosExt::ArithmeticTraits::max<float>::value;
     }
   }
-  KOKKOS_FUNCTION kDOP &operator+=(Point const &p)
+  KOKKOS_FUNCTION KDOP &operator+=(Point const &p)
   {
     using KokkosExt::max;
     using KokkosExt::min;
@@ -164,10 +164,10 @@ struct kDOP : private Details::kDOP_Directions<k>
     }
     return *this;
   }
-  KOKKOS_FUNCTION kDOP &operator+=(Box const &b)
+  KOKKOS_FUNCTION KDOP &operator+=(Box const &b)
   {
     // NOTE if any of the ranges is invalid, the code below would actually
-    // expand the kDOP which is not what we want.
+    // expand the KDOP which is not what we want.
     // We may revisit this later and decide passing a valid box becomes a
     // precondition but this would be a breaking change (going from a wide to a
     // narrow contract).
@@ -200,7 +200,7 @@ struct kDOP : private Details::kDOP_Directions<k>
     }
     return *this;
   }
-  KOKKOS_FUNCTION kDOP &operator+=(kDOP const &other)
+  KOKKOS_FUNCTION KDOP &operator+=(KDOP const &other)
   {
     using KokkosExt::max;
     using KokkosExt::min;
@@ -213,7 +213,7 @@ struct kDOP : private Details::kDOP_Directions<k>
   }
   KOKKOS_FUNCTION explicit operator Box() const
   {
-    // WARNING implicit requirement on kDOP first three directions
+    // WARNING implicit requirement on KDOP first three directions
     Box b{};
     for (int i = 0; i < 3; ++i)
     {
@@ -236,11 +236,11 @@ struct kDOP : private Details::kDOP_Directions<k>
   }
   KOKKOS_FUNCTION bool intersects(Box const &box) const
   {
-    kDOP other{};
+    KDOP other{};
     other += box;
     return intersects(other);
   }
-  KOKKOS_FUNCTION bool intersects(kDOP<k> const &other) const
+  KOKKOS_FUNCTION bool intersects(KDOP<k> const &other) const
   {
     for (int i = 0; i < n_directions; ++i)
     {
@@ -255,56 +255,56 @@ struct kDOP : private Details::kDOP_Directions<k>
 };
 
 template <int k>
-KOKKOS_INLINE_FUNCTION void expand(kDOP<k> &that, kDOP<k> const &other)
+KOKKOS_INLINE_FUNCTION void expand(KDOP<k> &that, KDOP<k> const &other)
 {
   that += other;
 }
 
 template <int k>
-KOKKOS_INLINE_FUNCTION void expand(kDOP<k> &that, Point const &point)
+KOKKOS_INLINE_FUNCTION void expand(KDOP<k> &that, Point const &point)
 {
   that += point;
 }
 
 template <int k>
-KOKKOS_INLINE_FUNCTION void expand(kDOP<k> &that, Box const &box)
+KOKKOS_INLINE_FUNCTION void expand(KDOP<k> &that, Box const &box)
 {
   that += box;
 }
 
 template <int k>
-KOKKOS_INLINE_FUNCTION void expand(Box &a, kDOP<k> const &b)
+KOKKOS_INLINE_FUNCTION void expand(Box &a, KDOP<k> const &b)
 {
   ArborX::Details::expand(a, (Box)b);
 }
 
 // NOTE intersects(predicate_geometry, bounding_volume)
 template <int k>
-KOKKOS_INLINE_FUNCTION bool intersects(Box const &a, kDOP<k> const &b)
+KOKKOS_INLINE_FUNCTION bool intersects(Box const &a, KDOP<k> const &b)
 {
   return b.intersects(a);
 }
 
 template <int k>
-KOKKOS_INLINE_FUNCTION bool intersects(kDOP<k> const &a, Box const &b)
+KOKKOS_INLINE_FUNCTION bool intersects(KDOP<k> const &a, Box const &b)
 {
   return a.intersects(b);
 }
 
 template <int k>
-KOKKOS_INLINE_FUNCTION bool intersects(Point const &p, kDOP<k> const &x)
+KOKKOS_INLINE_FUNCTION bool intersects(Point const &p, KDOP<k> const &x)
 {
   return x.intersects(p);
 }
 
 template <int k>
-KOKKOS_INLINE_FUNCTION bool intersects(kDOP<k> const &a, kDOP<k> const &b)
+KOKKOS_INLINE_FUNCTION bool intersects(KDOP<k> const &a, KDOP<k> const &b)
 {
   return a.intersects(b);
 }
 
 template <int k>
-KOKKOS_INLINE_FUNCTION Point returnCentroid(kDOP<k> const &p)
+KOKKOS_INLINE_FUNCTION Point returnCentroid(KDOP<k> const &p)
 {
   // FIXME approximation
   return ArborX::Details::returnCentroid((Box)p);

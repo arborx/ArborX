@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop, DeviceType, ARBORX_DEVICE_TYPES)
               primitives.data(), primitives.size())));
 
   // (0,0,0)->(1,2,3) box with (0,0,0)--(0,0,3) edge cut off
-  ArborX::Experimental::kDOP<18> x;
+  ArborX::Experimental::KDOP<18> x;
   // bottom
   x += ArborX::Point{0.25, 0, 0};
   x += ArborX::Point{1, 0, 0};
