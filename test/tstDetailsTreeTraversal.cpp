@@ -15,7 +15,7 @@
 
 #include <random>
 
-namespace details = ArborX::Details;
+using ArborX::Details::PriorityQueue;
 
 namespace tt = boost::test_tools;
 
@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(pop_push)
   // note that calling pop_push(x) does not necessarily yield the same heap
   // than calling consecutively pop() and push(x)
   // below is a max heap example to illustrate this interesting property
-  details::PriorityQueue<int> queue;
+  PriorityQueue<int> queue;
 
   std::vector<int> ref = {100, 19, 36, 17, 3, 25, 1, 2, 7};
   for (auto x : ref)
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(pop_push)
   //                                    ^^       ^^
 
   // Clear the content of the queue
-  queue = details::PriorityQueue<int>();
+  queue = PriorityQueue<int>();
   for (auto x : ref)
     queue.push(x);
   check_heap(queue, ref);
@@ -86,7 +86,7 @@ void check_heap(PriorityQueue const &queue)
 
 BOOST_AUTO_TEST_CASE(maintain_heap_properties)
 {
-  ArborX::Details::PriorityQueue<int> queue;
+  PriorityQueue<int> queue;
 
   std::default_random_engine generator;
   std::uniform_int_distribution<int> uniform_distribution(0, 100);
