@@ -14,7 +14,8 @@
 
 #include <boost/test/unit_test.hpp>
 
-using namespace ArborX::Details;
+using ArborX::Details::PriorityQueue;
+using ArborX::Details::Stack;
 
 BOOST_AUTO_TEST_SUITE(ContainerAdaptors)
 
