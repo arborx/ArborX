@@ -202,6 +202,51 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_early_exit, TreeTypeTraits,
 
   BOOST_TEST(counts_host == counts_ref, tt::per_element());
 }
+
+struct Experimental_CustomCallbackQuickTraversal
+{
+  using TreeTraversalControl = ArborX::Experimental::TreeTraversalQuick;
+  template <class Predicate, class OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Predicate const &predicate, int j,
+                                  OutputFunctor const &out) const
+  {
+    int i = getData(predicate);
+    (void)i;
+    out(j);
+  }
+};
+static_assert(ArborX::Details::traverse_half<
+                  Experimental_CustomCallbackQuickTraversal>::value,
+              "");
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(callback_quick_traverse, TreeTypeTraits,
+                              TreeTypeTraitsList)
+{
+  using Tree = typename TreeTypeTraits::type;
+  using ExecutionSpace = typename TreeTypeTraits::execution_space;
+  using DeviceType = typename TreeTypeTraits::device_type;
+
+  auto const tree =
+      make<Tree>(ExecutionSpace{}, {
+                                       {{{0., 0., 0.}}, {{0., 0., 0.}}},
+                                       {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                                       {{{2., 2., 2.}}, {{2., 2., 2.}}},
+                                       {{{3., 3., 3.}}, {{3., 3., 3.}}},
+                                   });
+
+  auto b = static_cast<ArborX::Box>(tree.bounds());
+  auto predicates = makeIntersectsBoxWithAttachmentQueries<DeviceType, int>(
+      {b, b, b, b}, {0, 1, 2, 3});
+
+  Kokkos::View<int *, DeviceType> indices("indices", 0);
+  Kokkos::View<int *, DeviceType> offsets("offsets", 0);
+  tree.query(ExecutionSpace{}, predicates,
+             Experimental_CustomCallbackQuickTraversal{}, indices, offsets);
+  BOOST_TEST(
+      make_compressed_storage(offsets, indices) ==
+          make_reference_solution<int>({1, 2, 3, 2, 3, 3}, {0, 3, 5, 6, 6}),
+      tt::per_element());
+}
 #endif
 
 template <typename DeviceType>
