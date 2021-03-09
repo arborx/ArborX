@@ -27,6 +27,13 @@ enum class CallbackTreeTraversalControl
   normal_continuation
 };
 
+namespace Experimental
+{
+class TreeTraversalQuick
+{
+};
+} // namespace Experimental
+
 namespace Details
 {
 
@@ -171,6 +178,18 @@ KOKKOS_INLINE_FUNCTION
   ((Callback &&) callback)((Predicate &&) predicate, (Primitive &&) primitive);
   return false;
 }
+
+template <typename Callback>
+using CallbackTreeTraversalControlArchetypeAlias =
+    typename Callback::TreeTraversalControl;
+
+template <typename Callback>
+struct traverse_half
+    : std::is_same<
+          detected_t<CallbackTreeTraversalControlArchetypeAlias, Callback>,
+          Experimental::TreeTraversalQuick>
+{
+};
 
 template <typename Callback, typename Predicates>
 void check_valid_callback(Callback const &callback, Predicates const &)
