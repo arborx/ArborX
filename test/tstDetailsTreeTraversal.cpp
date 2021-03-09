@@ -19,6 +19,8 @@ using ArborX::Details::PriorityQueue;
 
 namespace tt = boost::test_tools;
 
+BOOST_AUTO_TEST_SUITE(PriorityQueueMiscellaneous)
+
 template <typename PriorityQueue>
 void check_heap(PriorityQueue const &queue,
                 std::vector<typename PriorityQueue::value_type> const &heap_ref)
@@ -33,8 +35,6 @@ void check_heap(PriorityQueue const &queue,
   for (typename PriorityQueue::size_type i = 0; i < size; ++i)
     BOOST_TEST(heap[i] == heap_ref[i]);
 }
-
-#define BOOST_TEST_MODULE PriorityQueue
 
 BOOST_AUTO_TEST_CASE(pop_push)
 {
@@ -137,3 +137,5 @@ BOOST_AUTO_TEST_CASE(maintain_heap_properties)
     check_heap(queue);
   }
 }
+
+BOOST_AUTO_TEST_SUITE_END()
