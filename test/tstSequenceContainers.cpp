@@ -14,7 +14,8 @@
 #define BOOST_TEST_MODULE Containers
 #include <boost/test/unit_test.hpp>
 
-using namespace ArborX::Details;
+using ArborX::Details::StaticVector;
+using ArborX::Details::UnmanagedStaticVector;
 
 BOOST_AUTO_TEST_SUITE(SequenceContainers)
 

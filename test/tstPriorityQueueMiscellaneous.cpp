@@ -9,24 +9,20 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_DetailsContainers.hpp>
 #include <ArborX_DetailsPriorityQueue.hpp>
-#include <ArborX_DetailsStack.hpp>
-
-// FIXME Some versions of kokkos have this header missing before the definition
-// of Kokkos::Array.
-#include "ArborX_EnableViewComparison.hpp"
-
-#include <Kokkos_Array.hpp>
-#include <impl/Kokkos_Error.hpp>
 
 #include <boost/test/unit_test.hpp>
 
 #include <random>
 
-namespace details = ArborX::Details;
+using ArborX::Details::PriorityQueue;
 
 namespace tt = boost::test_tools;
+
+// NOTE The tests below check that the priority queue invariant is maintained
+// while inserting and removing elements into the queue.  They rely on a hack
+// (reinterpret_cast) to access the underlying container.
+BOOST_AUTO_TEST_SUITE(PriorityQueueMiscellaneous)
 
 template <typename PriorityQueue>
 void check_heap(PriorityQueue const &queue,
@@ -43,14 +39,12 @@ void check_heap(PriorityQueue const &queue,
     BOOST_TEST(heap[i] == heap_ref[i]);
 }
 
-#define BOOST_TEST_MODULE PriorityQueue
-
 BOOST_AUTO_TEST_CASE(pop_push)
 {
   // note that calling pop_push(x) does not necessarily yield the same heap
   // than calling consecutively pop() and push(x)
   // below is a max heap example to illustrate this interesting property
-  details::PriorityQueue<int> queue;
+  PriorityQueue<int> queue;
 
   std::vector<int> ref = {100, 19, 36, 17, 3, 25, 1, 2, 7};
   for (auto x : ref)
@@ -65,7 +59,7 @@ BOOST_AUTO_TEST_CASE(pop_push)
   //                                    ^^       ^^
 
   // Clear the content of the queue
-  queue = details::PriorityQueue<int>();
+  queue = PriorityQueue<int>();
   for (auto x : ref)
     queue.push(x);
   check_heap(queue, ref);
@@ -95,7 +89,7 @@ void check_heap(PriorityQueue const &queue)
 
 BOOST_AUTO_TEST_CASE(maintain_heap_properties)
 {
-  ArborX::Details::PriorityQueue<int> queue;
+  PriorityQueue<int> queue;
 
   std::default_random_engine generator;
   std::uniform_int_distribution<int> uniform_distribution(0, 100);
@@ -146,3 +140,5 @@ BOOST_AUTO_TEST_CASE(maintain_heap_properties)
     check_heap(queue);
   }
 }
+
+BOOST_AUTO_TEST_SUITE_END()
