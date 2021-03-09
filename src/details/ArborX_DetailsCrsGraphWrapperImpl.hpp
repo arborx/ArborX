@@ -59,6 +59,9 @@ struct InsertGenerator
   CountView _counts;
   PermutedOffset _permuted_offset;
 
+  using TreeTraversalControl =
+      detected_t<CallbackTreeTraversalControlArchetypeAlias, Callback>;
+
   using ValueType = typename OutputView::value_type;
   using Access = AccessTraits<Predicates, PredicatesTag>;
   using PredicateType = typename AccessTraitsHelper<Access>::type;
