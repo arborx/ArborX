@@ -23,8 +23,6 @@
 #include <ArborX_Exception.hpp>
 #include <ArborX_Predicates.hpp>
 
-#include <type_traits>
-
 namespace ArborX
 {
 namespace Details
@@ -113,14 +111,16 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
       {
         if (HappyTreeFriends::isLeaf(_bvh, left_child))
         {
-          if (invoke_callback_and_check_early_exit(
+          if (!pruneLeaf(queryIndex, left_child) &&
+              invoke_callback_and_check_early_exit(
                   _callback, predicate,
                   HappyTreeFriends::getLeafPermutationIndex(_bvh, left_child)))
             return;
         }
         else
         {
-          traverse_left = true;
+          if (!pruneLeftSubtree(queryIndex, left_child))
+            traverse_left = true;
         }
       }
 
@@ -128,7 +128,8 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
       {
         if (HappyTreeFriends::isLeaf(_bvh, right_child))
         {
-          if (invoke_callback_and_check_early_exit(
+          if (!pruneLeaf(queryIndex, right_child) &&
+              invoke_callback_and_check_early_exit(
                   _callback, predicate,
                   HappyTreeFriends::getLeafPermutationIndex(_bvh, right_child)))
             return;
@@ -170,7 +171,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
       {
         if (!HappyTreeFriends::isLeaf(_bvh, node))
         {
-          int left_child = HappyTreeFriends::getLeftChild(_bvh, node);
+          int const left_child = HappyTreeFriends::getLeftChild(_bvh, node);
           if (!pruneLeftSubtree(queryIndex, left_child))
             next = left_child;
           else
