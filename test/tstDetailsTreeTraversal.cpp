@@ -9,16 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_DetailsContainers.hpp>
 #include <ArborX_DetailsPriorityQueue.hpp>
-#include <ArborX_DetailsStack.hpp>
-
-// FIXME Some versions of kokkos have this header missing before the definition
-// of Kokkos::Array.
-#include "ArborX_EnableViewComparison.hpp"
-
-#include <Kokkos_Array.hpp>
-#include <impl/Kokkos_Error.hpp>
 
 #include <boost/test/unit_test.hpp>
 
