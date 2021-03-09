@@ -36,8 +36,8 @@ find_package(Boost 1.67.0 REQUIRED COMPONENTS unit_test_framework)
 if(NOT DEFINED Boost_VERSION_MINOR)
   set(Boost_VERSION_MINOR ${Boost_MINOR_VERSION})
 endif()
-if(Kokkos_ENABLE_CUDA AND Boost_VERSION_MINOR GREATER_EQUAL 69)
-  message(FATAL_ERROR "Tests in CUDA-enabled ArborX are only compatible with Boost version 1.67 or 1.68")
+if(Kokkos_ENABLE_CUDA AND Boost_VERSION VERSION_GREATER 1.68 AND Boost_VERSION VERSION_LESS 1.75)
+  message(WARNING "Boost versions 1.69 to 1.74 are known to yield build issues with NVCC")
 endif()
 
 # Compile only, nothing to run
