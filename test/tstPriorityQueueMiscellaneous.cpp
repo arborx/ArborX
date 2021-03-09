@@ -19,6 +19,9 @@ using ArborX::Details::PriorityQueue;
 
 namespace tt = boost::test_tools;
 
+// NOTE The tests below check that the priority queue invariant is maintained
+// while inserting and removing elements into the queue.  They rely on a hack
+// (reinterpret_cast) to access the underlying container.
 BOOST_AUTO_TEST_SUITE(PriorityQueueMiscellaneous)
 
 template <typename PriorityQueue>
