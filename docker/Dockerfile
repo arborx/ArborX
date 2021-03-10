@@ -86,7 +86,7 @@ ENV PATH=${OPENMPI_DIR}/bin:$PATH
 
 # Install Boost
 ENV BOOST_DIR=/opt/boost
-RUN BOOST_VERSION=1.67.0 && \
+RUN BOOST_VERSION=1.75.0 && \
     BOOST_VERSION_UNDERSCORE=$(echo "$BOOST_VERSION" | sed -e "s/\./_/g") && \
     BOOST_KEY=379CE192D401AB61 && \
     BOOST_URL=https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source && \
