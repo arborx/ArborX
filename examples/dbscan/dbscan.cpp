@@ -84,6 +84,24 @@ std::vector<ArborX::Point> parsePoints(std::string const &filename,
   return v;
 }
 
+std::vector<ArborX::Point> sampleData(std::vector<ArborX::Point> &data,
+                                      int num_samples)
+{
+  std::vector<ArborX::Point> sampled_data(num_samples);
+
+  // Knuth algorithm
+  auto const N = (int)data.size();
+  auto const M = num_samples;
+  for (int in = 0, im = 0; in < N && im < M; ++in)
+  {
+    int rn = N - in;
+    int rm = M - im;
+    if (rand() % rn < rm)
+      sampled_data[im++] = data[in + 1];
+  }
+  return sampled_data;
+}
+
 template <typename MemorySpace>
 void writeLabelsData(std::string const &filename,
                      Kokkos::View<int *, MemorySpace> labels)
@@ -359,21 +377,7 @@ int main(int argc, char *argv[])
   std::vector<ArborX::Point> data =
       parsePoints(filename, binary, max_num_points);
   if (num_samples > 0 && num_samples < (int)data.size())
-  {
-    std::vector<ArborX::Point> sampled_data(num_samples);
-
-    // Knuth algorithm
-    auto const N = (int)data.size();
-    auto const M = num_samples;
-    for (int in = 0, im = 0; in < N && im < M; ++in)
-    {
-      int rn = N - in;
-      int rm = M - im;
-      if (rand() % rn < rm)
-        sampled_data[im++] = data[in + 1];
-    }
-    data = sampled_data;
-  }
+    data = sampleData(data, num_samples);
   auto const primitives = vec2view<MemorySpace>(data, "primitives");
 
   ExecutionSpace exec_space;
