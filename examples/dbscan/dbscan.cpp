@@ -84,7 +84,7 @@ std::vector<ArborX::Point> parsePoints(std::string const &filename,
   return v;
 }
 
-std::vector<ArborX::Point> sampleData(std::vector<ArborX::Point> &data,
+std::vector<ArborX::Point> sampleData(std::vector<ArborX::Point> const &data,
                                       int num_samples)
 {
   std::vector<ArborX::Point> sampled_data(num_samples);
@@ -423,7 +423,7 @@ int main(int argc, char *argv[])
     printf("Verification %s\n", (passed ? "passed" : "failed"));
   }
 
-  if (filename_labels != "")
+  if (!filename_labels.empty())
     writeLabelsData(filename_labels, labels);
 
   if (print_sizes_centers)
