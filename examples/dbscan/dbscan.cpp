@@ -97,7 +97,7 @@ std::vector<ArborX::Point> sampleData(std::vector<ArborX::Point> const &data,
     int rn = N - in;
     int rm = M - im;
     if (rand() % rn < rm)
-      sampled_data[im++] = data[in + 1];
+      sampled_data[im++] = data[in];
   }
   return sampled_data;
 }
