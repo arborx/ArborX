@@ -308,11 +308,34 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
       using Details::distance;
       return distance(geometry, bvh.getBoundingVolume(node));
     };
-    auto const buffer = _buffer(queryIndex);
 
     // NOTE thinking about making this a precondition
     if (k < 1)
       return;
+
+    if (k == 1)
+    {
+      Node const *node = _bvh.getRoot();
+      do
+      {
+        Node const *child_left = _bvh.getNodePtr(node->left_child);
+        Node const *child_right = _bvh.getNodePtr(getRightChild(node));
+
+        float const distance_left = distance(child_left);
+        float const distance_right = distance(child_right);
+
+        node = (distance_left <= distance_right ? child_left : child_right);
+
+        if (node->isLeaf())
+        {
+          _callback(predicate, node->getLeafPermutationIndex());
+          return;
+        }
+      } while (true);
+    }
+
+    // k > 1
+    auto const buffer = _buffer(queryIndex);
 
     // Nodes with a distance that exceed that radius can safely be
     // discarded. Initialize the radius to infinity and tighten it once k
