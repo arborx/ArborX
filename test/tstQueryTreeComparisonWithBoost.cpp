@@ -160,7 +160,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate, TreeTypeTraits,
       1, std::floor(sqrt(nx * nx + ny * ny + nz * nz)));
   for (unsigned int i = 0; i < n_points; ++i)
   {
-    k_host[i] = distribution_k(generator);
+    // make sure that at least few have k = 1, as we have a separate path for
+    // this special case
+    bool const use_k1 = (i == 0 || (i % 37));
+    k_host[i] = (!use_k1 ? distribution_k(generator) : 1);
   }
 
   Kokkos::deep_copy(k, k_host);
