@@ -51,11 +51,11 @@ make_random_cloud(double Lx, double Ly, double Lz, int n);
 
 template <>
 inline Kokkos::View<ArborX::Point *, Kokkos::HostSpace>
-make_random_cloud(double Lx, double Ly, double Lz, int n)
+make_random_cloud(double Lx, double Ly, double Lz, int n, int seed = 0)
 {
   Kokkos::View<ArborX::Point *, Kokkos::HostSpace> cloud(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "random_cloud"), n);
-  std::default_random_engine generator;
+  std::default_random_engine generator(seed);
   std::uniform_real_distribution<double> distribution_x(0.0, Lx);
   std::uniform_real_distribution<double> distribution_y(0.0, Ly);
   std::uniform_real_distribution<double> distribution_z(0.0, Lz);
