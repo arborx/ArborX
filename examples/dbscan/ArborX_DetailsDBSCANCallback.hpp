@@ -65,6 +65,7 @@
 //
 // This is encoded in `representative()` function.
 
+#include <ArborX_Callbacks.hpp>
 #include <ArborX_Predicates.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -77,6 +78,7 @@ namespace Details
 template <typename MemorySpace, typename CorePointsType>
 struct DBSCANCallback
 {
+  using TreeTraversalControl = ::ArborX::Experimental::TreeTraversalQuick;
   Kokkos::View<int *, MemorySpace> labels_;
   CorePointsType is_core_point_;
 
@@ -142,10 +144,6 @@ struct DBSCANCallback
     auto i = self;
     auto j = neighbor;
 
-    // initialize to the first neighbor that's smaller
-    if (Kokkos::atomic_compare_exchange(&labels_(i), i, j) == i)
-      return;
-
     // ##### ECL license (see LICENSE.ECL) #####
     int vstat = representative(i);
     int ostat = representative(j);
@@ -182,17 +180,18 @@ struct DBSCANCallback
   template <typename Query>
   KOKKOS_FUNCTION void operator()(Query const &query, int j) const
   {
-    int const i = ArborX::getData(query);
-
-    // NOTE: for halo finder/ccs algorithm (in which is_core_point(i) is always
-    // true), the algorithm below will be simplified to
-    //   if (i > j)
+    int i = ArborX::getData(query);
 
     if (!is_core_point_(j))
     {
-      // The neighbor is not a core point, do nothing
-      return;
+      if (!is_core_point_(i))
+        return;
+      int t = j;
+      j = i;
+      i = t;
     }
+
+    // j is now guaranteed to be a core point
 
     bool is_boundary_point =
         !is_core_point_(i); // is_core_point_(j) is aready true
@@ -210,7 +209,7 @@ struct DBSCANCallback
       // be combined with a different cluster later forming a bridge.
       labels_(i) = representative(j);
     }
-    else if (!is_boundary_point && i > j)
+    else if (!is_boundary_point)
     {
       // For a core point that is connected to another core point, do the
       // standard CCS algorithm
