@@ -114,6 +114,35 @@ float distance(Point const &point, Sphere const &sphere)
   return max(distance(point, sphere.centroid()) - sphere.radius(), 0.f);
 }
 
+// distance box-box
+KOKKOS_INLINE_FUNCTION
+float distance(Box const &box_a, Box const &box_b)
+{
+  float distance_squared = 0.;
+  for (int d = 0; d < 3; ++d)
+  {
+    auto const a_min = box_a.minCorner()[d];
+    auto const a_max = box_a.maxCorner()[d];
+    auto const b_min = box_b.minCorner()[d];
+    auto const b_max = box_b.maxCorner()[d];
+    if (a_min > b_max)
+    {
+      float const delta = a_min - b_max;
+      distance_squared += delta * delta;
+    }
+    else if (b_min > a_max)
+    {
+      float const delta = b_min - a_max;
+      distance_squared += delta * delta;
+    }
+    else
+    {
+      // The boxes overlap on this axis: distance along this axis is zero.
+    }
+  }
+  return std::sqrt(distance_squared);
+}
+
 // expand an axis-aligned bounding box to include a point
 KOKKOS_INLINE_FUNCTION
 void expand(Box &box, Point const &point) { box += point; }
