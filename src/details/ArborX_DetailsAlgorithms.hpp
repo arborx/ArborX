@@ -143,6 +143,16 @@ float distance(Box const &box_a, Box const &box_b)
   return std::sqrt(distance_squared);
 }
 
+// distance box-sphere
+KOKKOS_INLINE_FUNCTION
+float distance(Sphere const &sphere, Box const &box)
+{
+  using KokkosExt::max;
+
+  float distance_center_box = distance(sphere.centroid(), box);
+  return max(distance_center_box - sphere.radius(), 0.f);
+}
+
 // expand an axis-aligned bounding box to include a point
 KOKKOS_INLINE_FUNCTION
 void expand(Box &box, Point const &point) { box += point; }
