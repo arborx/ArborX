@@ -242,7 +242,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   for (int i = 0; i < n; ++i)
   {
     std::bitset<6> b(s[i]);
-    std::cout << b << "  " << b.to_ulong() << "\n";
+    BOOST_TEST_MESSAGE(b << "  " << b.to_ulong());
     sorted_morton_codes(i) = b.to_ulong();
   }
 
@@ -255,7 +255,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   ref << "I0" << "I3" << "I1" << "L0" << "L1" << "I2" << "L2" << "L3"
       << "I4" << "L4" << "I5" << "I6" << "L5" << "L6" << "L7";
   // clang-format on
-  std::cout << "ref = " << ref.str() << "\n";
+  BOOST_TEST_MESSAGE("ref = " << ref.str());
 
   {
     using Node = ArborX::Details::NodeWithTwoChildren<Test::FakeBoundingVolume>;
@@ -270,7 +270,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
 
     std::ostringstream sol;
     traverse(leaf_nodes, internal_nodes, root, sol);
-    std::cout << "sol(node_with_two_children) = " << sol.str() << "\n";
+
+    BOOST_TEST_MESSAGE("sol(node_with_two_children) = " << sol.str());
 
     BOOST_TEST(sol.str() == ref.str());
   }
@@ -288,7 +289,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
 
     std::ostringstream sol;
     traverse(leaf_nodes, internal_nodes, root, sol);
-    std::cout << "sol(node_with_left_child_and_rope) = " << sol.str() << "\n";
+
+    BOOST_TEST_MESSAGE("sol(node_with_left_child_and_rope) = " << sol.str());
 
     BOOST_TEST(sol.str() == ref.str());
   }
