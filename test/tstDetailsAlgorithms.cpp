@@ -8,7 +8,9 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
+
 #include <ArborX_DetailsAlgorithms.hpp>
+#include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 
 #define BOOST_TEST_MODULE Geometry
 #include <boost/test/unit_test.hpp>
@@ -44,6 +46,40 @@ BOOST_AUTO_TEST_CASE(distance)
   BOOST_TEST(distance({{.5, .5, .5}}, sphere) == 0.);
   BOOST_TEST(distance({{2., 0., 0.}}, sphere) == 1.);
   BOOST_TEST(distance({{1., 1., 1.}}, sphere) == std::sqrt(3.f) - 1.f);
+}
+
+BOOST_AUTO_TEST_CASE(distance_box_box)
+{
+  using ArborX::Details::distance;
+
+  constexpr Box unit_box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
+
+  // distance to self
+  BOOST_TEST(distance(unit_box, unit_box) == 0);
+  // distance to another unit box translated along one axis
+  BOOST_TEST(distance(unit_box, Box{{{2, 0, 0}}, {{3, 1, 1}}}) == 1);
+  BOOST_TEST(distance(unit_box, Box{{{0, -3, 0}}, {{1, -2, 1}}}) == 2);
+  BOOST_TEST(distance(unit_box, Box{{{0, 0, 4}}, {{1, 1, 5}}}) == 3);
+  // distance to another unit box translated along a plane
+  BOOST_TEST(distance(unit_box, Box{{{-4, -4, 0}}, {{-3, -3, 1}}}) ==
+             3 * std::sqrt(2.f));
+  BOOST_TEST(distance(unit_box, Box{{{0, -2, 3}}, {{1, -1, 4}}}) ==
+             std::sqrt(5.f));
+  BOOST_TEST(distance(unit_box, Box{{{5, 0, 7}}, {{6, 1, 8}}}) ==
+             2 * std::sqrt(13.f));
+
+  // distance to another box that contains the box
+  BOOST_TEST(distance(unit_box, Box{{{-1, -2, -3}}, {{4, 5, 6}}}) == 0);
+  // distance to another box within the unit box
+  BOOST_TEST(distance(unit_box, Box{{{.1, .2, .3}}, {{.4, .5, .6}}}) == 0);
+  // distance to another box that overlaps with the unit box
+  BOOST_TEST(distance(unit_box, Box{{{.1, .2, .3}}, {{4, 5, 6}}}) == 0);
+
+  // distance to empty boxes
+  auto infinity = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  BOOST_TEST(distance(unit_box, Box{}) == infinity);
+  BOOST_TEST(distance(Box{}, unit_box) == infinity);
+  BOOST_TEST(distance(Box{}, Box{}) == infinity);
 }
 
 BOOST_AUTO_TEST_CASE(intersects)
