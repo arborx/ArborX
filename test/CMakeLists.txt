@@ -40,6 +40,12 @@ if(Kokkos_ENABLE_CUDA AND Boost_VERSION VERSION_GREATER 1.68 AND Boost_VERSION V
   message(WARNING "Boost versions 1.69 to 1.74 are known to yield build issues with NVCC")
 endif()
 
+# Precompile Kokkos and Boost.Test headers
+add_executable(ArborX_PrecompileHeaders.exe tstCompileOnlyMain.cpp)
+target_compile_definitions(ArborX_PrecompileHeaders.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_link_libraries(ArborX_PrecompileHeaders.exe PRIVATE Kokkos::kokkos Boost::unit_test_framework)
+target_precompile_headers(ArborX_PrecompileHeaders.exe PRIVATE ArborXTest_PrecompileHeaders.hpp)
+
 # Compile only, nothing to run
 add_executable(ArborX_CompileOnly.exe
   tstCompileOnlyAccessTraits.cpp
