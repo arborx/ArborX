@@ -18,7 +18,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <algorithm>
 #include <array>
 #include <bitset>
 #include <functional>
