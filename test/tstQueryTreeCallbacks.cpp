@@ -75,54 +75,40 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_spatial_predicate, TreeTypeTraits,
   using DeviceType = typename TreeTypeTraits::device_type;
 
   int const n = 10;
-  Kokkos::View<ArborX::Point *, DeviceType> points("points", n);
-  Kokkos::View<Kokkos::pair<int, float> *, DeviceType> ref("ref", n);
-  ArborX::Point const origin = {{0., 0., 0.}};
-  Kokkos::parallel_for(
-      Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
-        points(i) = {{(double)i, (double)i, (double)i}};
-        ref(i) = {i, (float)ArborX::Details::distance(points(i), origin)};
-      });
+  ArborX::Point const origin{0, 0, 0};
+  std::vector<ArborX::Point> pts;
+  std::vector<Kokkos::pair<int, float>> values;
+  for (int i = 0; i < 10; ++i)
+  {
+    ArborX::Point pt{{(double)i, (double)i, (double)i}};
+    values.emplace_back(i, ArborX::Details::distance(pt, origin));
+    pts.emplace_back(std::move(pt));
+  }
+  std::vector<int> offsets = {0, n};
+
+  Kokkos::View<ArborX::Point *, DeviceType> points(
+      Kokkos::view_alloc("Test::points", Kokkos::WithoutInitializing),
+      pts.size());
+  Kokkos::deep_copy(points,
+                    Kokkos::View<ArborX::Point const *, Kokkos::HostSpace,
+                                 Kokkos::MemoryTraits<Kokkos::Unmanaged>>{
+                        pts.data(), pts.size()});
 
   Tree const tree(ExecutionSpace{}, points);
-  {
-    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
-    ArborX::query(tree, ExecutionSpace{},
-                  makeIntersectsBoxQueries<DeviceType>({
-                      static_cast<ArborX::Box>(tree.bounds()),
-                  }),
-                  CustomInlineCallback<DeviceType>{points}, custom, offset);
 
-    auto custom_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
-    auto ref_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
-    auto offset_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
-    BOOST_TEST(make_compressed_storage(offset_host, custom_host) ==
-                   make_compressed_storage(offset_host, ref_host),
-               tt::per_element());
-  }
-  {
-    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
-    ArborX::query(tree, ExecutionSpace{},
-                  makeIntersectsBoxQueries<DeviceType>({
-                      static_cast<ArborX::Box>(tree.bounds()),
-                  }),
-                  CustomPostCallback<DeviceType>{points}, custom, offset);
+  ARBORX_TEST_QUERY_TREE_CALLBACK(ExecutionSpace{}, tree,
+                                  makeIntersectsBoxQueries<DeviceType>({
+                                      static_cast<ArborX::Box>(tree.bounds()),
+                                  }),
+                                  CustomInlineCallback<DeviceType>{points},
+                                  make_compressed_storage(offsets, values));
 
-    auto custom_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
-    auto ref_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
-    auto offset_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
-    BOOST_TEST(make_compressed_storage(offset_host, custom_host) ==
-                   make_compressed_storage(offset_host, ref_host),
-               tt::per_element());
-  }
+  ARBORX_TEST_QUERY_TREE_CALLBACK(ExecutionSpace{}, tree,
+                                  makeIntersectsBoxQueries<DeviceType>({
+                                      static_cast<ArborX::Box>(tree.bounds()),
+                                  }),
+                                  CustomPostCallback<DeviceType>{points},
+                                  make_compressed_storage(offsets, values));
 }
 
 #ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
@@ -134,46 +120,40 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_nearest_predicate, TreeTypeTraits,
   using DeviceType = typename TreeTypeTraits::device_type;
 
   int const n = 10;
-  Kokkos::View<ArborX::Point *, DeviceType> points("points", n);
-  Kokkos::View<Kokkos::pair<int, float> *, DeviceType> ref("ref", n);
-  ArborX::Point const origin = {{0., 0., 0.}};
-  Kokkos::parallel_for(
-      Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
-        points(i) = {{(double)i, (double)i, (double)i}};
-        ref(i) = {i, (float)ArborX::Details::distance(points(i), origin)};
-      });
+  ArborX::Point const origin{0, 0, 0};
+  std::vector<ArborX::Point> pts;
+  std::vector<Kokkos::pair<int, float>> values;
+  for (int i = 0; i < 10; ++i)
+  {
+    ArborX::Point pt{{(double)i, (double)i, (double)i}};
+    values.emplace_back(i, ArborX::Details::distance(pt, origin));
+    pts.emplace_back(std::move(pt));
+  }
+  std::vector<int> offsets = {0, n};
+
+  Kokkos::View<ArborX::Point *, DeviceType> points(
+      Kokkos::view_alloc("Test::points", Kokkos::WithoutInitializing),
+      pts.size());
+  Kokkos::deep_copy(points,
+                    Kokkos::View<ArborX::Point const *, Kokkos::HostSpace,
+                                 Kokkos::MemoryTraits<Kokkos::Unmanaged>>{
+                        pts.data(), pts.size()});
 
   Tree const tree(ExecutionSpace{}, points);
-  {
-    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
-    ArborX::query(tree, ExecutionSpace{},
-                  makeNearestQueries<DeviceType>({
-                      {origin, n},
-                  }),
-                  CustomInlineCallback<DeviceType>{points}, custom, offset);
 
-    auto custom_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
-    auto ref_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
-    BOOST_TEST(custom_host == ref_host, tt::per_element());
-  }
-  {
-    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
-    ArborX::query(tree, ExecutionSpace{},
-                  makeNearestQueries<DeviceType>({
-                      {origin, n},
-                  }),
-                  CustomPostCallback<DeviceType>{points}, custom, offset);
+  ARBORX_TEST_QUERY_TREE_CALLBACK(ExecutionSpace{}, tree,
+                                  makeNearestQueries<DeviceType>({
+                                      {origin, n},
+                                  }),
+                                  CustomInlineCallback<DeviceType>{points},
+                                  make_compressed_storage(offsets, values));
 
-    auto custom_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
-    auto ref_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
-    BOOST_TEST(custom_host == ref_host, tt::per_element());
-  }
+  ARBORX_TEST_QUERY_TREE_CALLBACK(ExecutionSpace{}, tree,
+                                  makeNearestQueries<DeviceType>({
+                                      {origin, n},
+                                  }),
+                                  CustomPostCallback<DeviceType>{points},
+                                  make_compressed_storage(offsets, values));
 }
 #endif
 
@@ -285,57 +265,42 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_spatial_predicate,
   using DeviceType = typename TreeTypeTraits::device_type;
 
   int const n = 10;
-  Kokkos::View<ArborX::Point *, DeviceType> points("points", n);
-  Kokkos::View<Kokkos::pair<int, float> *, DeviceType> ref("ref", n);
-  ArborX::Point const origin = {{0., 0., 0.}};
-  float const delta = 5.0;
+  float const delta = 5.f;
+  ArborX::Point const origin{0, 0, 0};
+  std::vector<ArborX::Point> pts;
+  std::vector<Kokkos::pair<int, float>> values;
+  for (int i = 0; i < 10; ++i)
+  {
+    ArborX::Point pt{{(double)i, (double)i, (double)i}};
+    values.emplace_back(i, delta + ArborX::Details::distance(pt, origin));
+    pts.emplace_back(std::move(pt));
+  }
+  std::vector<int> offsets = {0, n};
 
-  Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(
-                                                                      int i) {
-    points(i) = {{(double)i, (double)i, (double)i}};
-    ref(i) = {i, delta + (float)ArborX::Details::distance(points(i), origin)};
-  });
+  Kokkos::View<ArborX::Point *, DeviceType> points(
+      Kokkos::view_alloc("Test::points", Kokkos::WithoutInitializing),
+      pts.size());
+  Kokkos::deep_copy(points,
+                    Kokkos::View<ArborX::Point const *, Kokkos::HostSpace,
+                                 Kokkos::MemoryTraits<Kokkos::Unmanaged>>{
+                        pts.data(), pts.size()});
 
   Tree const tree(ExecutionSpace{}, points);
-  {
-    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
-    ArborX::query(tree, ExecutionSpace{},
-                  makeIntersectsBoxWithAttachmentQueries<DeviceType, float>(
-                      {static_cast<ArborX::Box>(tree.bounds())}, {delta}),
-                  CustomInlineCallbackWithAttachment<DeviceType>{points},
-                  custom, offset);
 
-    auto custom_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
-    auto ref_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
-    auto offset_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
-    BOOST_TEST(make_compressed_storage(offset_host, custom_host) ==
-                   make_compressed_storage(offset_host, ref_host),
-               tt::per_element());
-  }
-  {
-    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
-    ArborX::query(
-        tree, ExecutionSpace{},
-        makeIntersectsBoxWithAttachmentQueries<DeviceType,
-                                               Kokkos::Array<float, 2>>(
-            {static_cast<ArborX::Box>(tree.bounds())}, {{0., delta}}),
-        CustomPostCallbackWithAttachment<DeviceType>{points}, custom, offset);
+  ARBORX_TEST_QUERY_TREE_CALLBACK(
+      ExecutionSpace{}, tree,
+      (makeIntersectsBoxWithAttachmentQueries<DeviceType, float>(
+          {static_cast<ArborX::Box>(tree.bounds())}, {delta})),
+      CustomInlineCallbackWithAttachment<DeviceType>{points},
+      make_compressed_storage(offsets, values));
 
-    auto custom_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
-    auto ref_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
-    auto offset_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
-    BOOST_TEST(make_compressed_storage(offset_host, custom_host) ==
-                   make_compressed_storage(offset_host, ref_host),
-               tt::per_element());
-  }
+  ARBORX_TEST_QUERY_TREE_CALLBACK(
+      ExecutionSpace{}, tree,
+      (makeIntersectsBoxWithAttachmentQueries<DeviceType,
+                                              Kokkos::Array<float, 2>>(
+          {static_cast<ArborX::Box>(tree.bounds())}, {{0., delta}})),
+      CustomPostCallbackWithAttachment<DeviceType>{points},
+      make_compressed_storage(offsets, values));
 }
 
 #ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
@@ -347,48 +312,41 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_nearest_predicate,
   using DeviceType = typename TreeTypeTraits::device_type;
 
   int const n = 10;
-  Kokkos::View<ArborX::Point *, DeviceType> points("points", n);
-  Kokkos::View<Kokkos::pair<int, float> *, DeviceType> ref("ref", n);
-  ArborX::Point const origin = {{0., 0., 0.}};
-  float const delta = 5.0;
+  float const delta = 5.f;
+  ArborX::Point const origin{0, 0, 0};
+  std::vector<ArborX::Point> pts;
+  std::vector<Kokkos::pair<int, float>> values;
+  for (int i = 0; i < 10; ++i)
+  {
+    ArborX::Point pt{{(double)i, (double)i, (double)i}};
+    values.emplace_back(i, delta + ArborX::Details::distance(pt, origin));
+    pts.emplace_back(std::move(pt));
+  }
+  std::vector<int> offsets = {0, n};
 
-  Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(
-                                                                      int i) {
-    points(i) = {{(double)i, (double)i, (double)i}};
-    ref(i) = {i, delta + (float)ArborX::Details::distance(points(i), origin)};
-  });
+  Kokkos::View<ArborX::Point *, DeviceType> points(
+      Kokkos::view_alloc("Test::points", Kokkos::WithoutInitializing),
+      pts.size());
+  Kokkos::deep_copy(points,
+                    Kokkos::View<ArborX::Point const *, Kokkos::HostSpace,
+                                 Kokkos::MemoryTraits<Kokkos::Unmanaged>>{
+                        pts.data(), pts.size()});
 
   Tree const tree(ExecutionSpace{}, points);
-  {
-    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
-    ArborX::query(tree, ExecutionSpace{},
-                  makeNearestWithAttachmentQueries<DeviceType, float>(
-                      {{origin, n}}, {delta}),
-                  CustomInlineCallbackWithAttachment<DeviceType>{points},
-                  custom, offset);
 
-    auto custom_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
-    auto ref_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
-    BOOST_TEST(custom_host == ref_host, tt::per_element());
-  }
-  {
-    Kokkos::View<Kokkos::pair<int, float> *, DeviceType> custom("custom", 0);
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
-    ArborX::query(
-        tree, ExecutionSpace{},
-        makeNearestWithAttachmentQueries<DeviceType, Kokkos::Array<float, 2>>(
-            {{origin, n}}, {{0, delta}}),
-        CustomPostCallbackWithAttachment<DeviceType>{points}, custom, offset);
+  ARBORX_TEST_QUERY_TREE_CALLBACK(
+      ExecutionSpace{}, tree,
+      (makeNearestWithAttachmentQueries<DeviceType, float>({{origin, n}},
+                                                           {delta})),
+      CustomInlineCallbackWithAttachment<DeviceType>{points},
+      make_compressed_storage(offsets, values));
 
-    auto custom_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, custom);
-    auto ref_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref);
-    BOOST_TEST(custom_host == ref_host, tt::per_element());
-  }
+  ARBORX_TEST_QUERY_TREE_CALLBACK(
+      ExecutionSpace{}, tree,
+      (makeNearestWithAttachmentQueries<DeviceType, Kokkos::Array<float, 2>>(
+          {{origin, n}}, {{0, delta}})),
+      CustomPostCallbackWithAttachment<DeviceType>{points},
+      make_compressed_storage(offsets, values));
 }
 #endif
 
