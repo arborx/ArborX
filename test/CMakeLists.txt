@@ -65,6 +65,7 @@ add_executable(ArborX_DetailsUtils.exe
 target_link_libraries(ArborX_DetailsUtils.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_DetailsUtils.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_DetailsUtils.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_precompile_headers(ArborX_DetailsUtils.exe REUSE_FROM ArborX_PrecompileHeaders.exe)
 add_test(NAME ArborX_DetailsUtils_Test COMMAND ./ArborX_DetailsUtils.exe)
 
 add_executable(ArborX_Geometry.exe
@@ -135,12 +136,14 @@ add_executable(ArborX_QueryTree.exe
 target_link_libraries(ArborX_QueryTree.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_QueryTree.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_QueryTree.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
+target_precompile_headers(ArborX_QueryTree.exe REUSE_FROM ArborX_PrecompileHeaders.exe)
 add_test(NAME ArborX_QueryTree_Test COMMAND ./ArborX_QueryTree.exe)
 
 add_executable(ArborX_DetailsTreeConstruction.exe tstDetailsMortonCodes.cpp tstDetailsTreeConstruction.cpp utf_main.cpp)
 target_link_libraries(ArborX_DetailsTreeConstruction.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_DetailsTreeConstruction.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_DetailsTreeConstruction.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_precompile_headers(ArborX_DetailsTreeConstruction.exe REUSE_FROM ArborX_PrecompileHeaders.exe)
 add_test(NAME ArborX_DetailsTreeConstruction_Test COMMAND ./ArborX_DetailsTreeConstruction.exe)
 
 add_executable(ArborX_DetailsContainers.exe
@@ -157,18 +160,21 @@ add_executable(ArborX_DetailsBatchedQueries.exe tstDetailsBatchedQueries.cpp utf
 target_link_libraries(ArborX_DetailsBatchedQueries.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_DetailsBatchedQueries.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_DetailsBatchedQueries.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_precompile_headers(ArborX_DetailsBatchedQueries.exe REUSE_FROM ArborX_PrecompileHeaders.exe)
 add_test(NAME ArborX_DetailsBatchedQueries_Test COMMAND ./ArborX_DetailsBatchedQueries.exe)
 
 add_executable(ArborX_DetailsCrsGraphWrapperImpl.exe tstDetailsCrsGraphWrapperImpl.cpp utf_main.cpp)
 target_link_libraries(ArborX_DetailsCrsGraphWrapperImpl.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_DetailsCrsGraphWrapperImpl.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_DetailsCrsGraphWrapperImpl.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_precompile_headers(ArborX_DetailsCrsGraphWrapperImpl.exe REUSE_FROM ArborX_PrecompileHeaders.exe)
 add_test(NAME ArborX_DetailsCrsGraphWrapperImpl_Test COMMAND ./ArborX_DetailsCrsGraphWrapperImpl.exe)
 
 add_executable(ArborX_Clustering.exe tstDBSCAN.cpp utf_main.cpp)
 target_link_libraries(ArborX_Clustering.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Clustering.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Clustering.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/examples/dbscan)
+target_precompile_headers(ArborX_Clustering.exe REUSE_FROM ArborX_PrecompileHeaders.exe)
 add_test(NAME ArborX_Clustering_Test COMMAND ./ArborX_Clustering.exe)
 
 if(Kokkos_VERSION VERSION_GREATER_EQUAL 3.5 AND NOT Kokkos_ENABLE_SYCL) # FIXME_SYCL
@@ -185,6 +191,7 @@ add_executable(ArborX_DetailsClusteringHelpers.exe
 target_link_libraries(ArborX_DetailsClusteringHelpers.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_DetailsClusteringHelpers.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_DetailsClusteringHelpers.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_precompile_headers(ArborX_DetailsClusteringHelpers.exe REUSE_FROM ArborX_PrecompileHeaders.exe)
 add_test(NAME ArborX_DetailsClusteringHelpers_Test COMMAND ./ArborX_DetailsClusteringHelpers.exe)
 
 if(ARBORX_ENABLE_MPI)
@@ -192,12 +199,14 @@ if(ARBORX_ENABLE_MPI)
   target_link_libraries(ArborX_DistributedTree.exe PRIVATE ArborX Boost::unit_test_framework)
   target_compile_definitions(ArborX_DistributedTree.exe PRIVATE BOOST_TEST_DYN_LINK ARBORX_MPI_UNIT_TEST)
   target_include_directories(ArborX_DistributedTree.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+  target_precompile_headers(ArborX_DistributedTree.exe REUSE_FROM ArborX_PrecompileHeaders.exe)
   add_test(NAME ArborX_DistributedTree_Test COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} ./ArborX_DistributedTree.exe ${MPIEXEC_POSTFLAGS})
 
   add_executable(ArborX_DetailsDistributedTreeImpl.exe tstDetailsDistributedTreeImpl.cpp utf_main.cpp)
   target_link_libraries(ArborX_DetailsDistributedTreeImpl.exe PRIVATE ArborX Boost::unit_test_framework)
   target_compile_definitions(ArborX_DetailsDistributedTreeImpl.exe PRIVATE BOOST_TEST_DYN_LINK ARBORX_MPI_UNIT_TEST)
   target_include_directories(ArborX_DetailsDistributedTreeImpl.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+  target_precompile_headers(ArborX_DetailsDistributedTreeImpl.exe REUSE_FROM ArborX_PrecompileHeaders.exe)
   add_test(NAME ArborX_DetailsDistributedTreeImpl_Test COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} ./ArborX_DetailsDistributedTreeImpl.exe ${MPIEXEC_POSTFLAGS})
 endif()
 
