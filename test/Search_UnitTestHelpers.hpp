@@ -86,6 +86,27 @@ auto query(ExecutionSpace const &exec_space, Tree const &tree,
   BOOST_TEST(query(exec_space, tree, queries) == (reference),                  \
              boost::test_tools::per_element());
 
+template <typename ValueType, typename ExecutionSpace, typename Tree,
+          typename Queries, typename Callback>
+auto query(ExecutionSpace const &exec_space, Tree const &tree,
+           Queries const &queries, Callback const &callback)
+{
+  using memory_space = typename Tree::memory_space;
+  Kokkos::View<ValueType *, memory_space> values("Testing::values", 0);
+  Kokkos::View<int *, memory_space> offsets("Testing::offsets", 0);
+  tree.query(exec_space, queries, callback, values, offsets);
+  return make_compressed_storage(
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
+}
+
+#define ARBORX_TEST_QUERY_TREE_CALLBACK(exec_space, tree, queries, callback,   \
+                                        reference)                             \
+  using value_type = typename decltype(reference)::value_type;                 \
+  BOOST_TEST(query<value_type>(exec_space, tree, queries, callback) ==         \
+                 (reference),                                                  \
+             boost::test_tools::per_element());
+
 // Workaround for NVCC that complains that the enclosing parent function
 // (query_with_distance) for an extended __host__ __device__ lambda must not
 // have deduced return type
