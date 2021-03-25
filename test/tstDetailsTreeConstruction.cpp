@@ -26,8 +26,6 @@
 #include <sstream>
 #include <vector>
 
-#define BOOST_TEST_MODULE DetailsTreeConstruction
-
 namespace tt = boost::test_tools;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(assign_morton_codes, DeviceType,
