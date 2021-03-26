@@ -82,6 +82,26 @@ BOOST_AUTO_TEST_CASE(distance_box_box)
   BOOST_TEST(distance(Box{}, Box{}) == infinity);
 }
 
+BOOST_AUTO_TEST_CASE(distance_sphere_box)
+{
+  using ArborX::Details::distance;
+  auto infinity = KokkosExt::ArithmeticTraits::infinity<float>::value;
+
+  // unit sphere
+  constexpr Sphere sphere{{{0., 0., 0.}}, 1.};
+  // distance between a sphere and a box no intersection
+  BOOST_TEST(distance(sphere, Box{{2.0, 3.0, 4.0}, {2.5, 3.5, 4.5}}) ==
+             std::sqrt(29.f) - 1.f);
+  // distance between a sphere and a box with intersection
+  BOOST_TEST(distance(sphere, Box{{0.5, 0.5, 0.5}, {2.5, 3.5, 4.5}}) == 0.f);
+  // distance between a sphere included in a box and that box
+  BOOST_TEST(distance(sphere, Box{{-2., -2., -2.}, {2., 2., 2.}}) == 0.f);
+  // distance between a sphere and a box included in that sphere
+  BOOST_TEST(distance(sphere, Box{{0., 0., 0.}, {0.1, 0.2, 0.3}}) == 0.f);
+  // distance to empty box
+  BOOST_TEST(distance(sphere, Box{}) == infinity);
+}
+
 BOOST_AUTO_TEST_CASE(intersects)
 {
   using ArborX::Details::intersects;
