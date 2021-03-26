@@ -235,6 +235,28 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate, TreeTypeTraits,
   }
 
   {
+    auto sources = make_random_cloud<ArborX::Point>(Lx, Ly, Lz, nx * ny * nz);
+    // Make seed the size of the point cloud for the tree. This way we
+    // guarantee that the query points are different from the tree points.
+    int const seed = sources.size();
+    auto targets =
+        make_random_cloud<ArborX::Point>(Lx, Ly, Lz, n_queries, seed);
+
+    std::vector<int> ks(n_queries);
+    std::default_random_engine generator;
+    std::uniform_int_distribution<int> distribution_k(
+        1, std::floor(sqrt(nx * nx + ny * ny + nz * nz)));
+    for (unsigned int i = 0; i < n_queries; ++i)
+    {
+      // make sure that at least few have k = 1 (common use case)
+      bool const use_k1 = (i == 0 || (i % 13 == 0));
+      ks[i] = (!use_k1 ? distribution_k(generator) : 1);
+    }
+
+    test_nearest_predicate<Tree, DeviceType>(sources, targets, ks);
+  }
+
+  {
     auto sources = make_stuctured_cloud(Lx, Ly, Lz, nx, ny, nz);
     auto targets = make_random_cloud<ArborX::Box>(Lx, Ly, Lz, n_queries);
 
