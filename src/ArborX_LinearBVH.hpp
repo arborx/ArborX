@@ -33,6 +33,7 @@ namespace ArborX
 
 namespace Details
 {
+struct HappyTreeFriends;
 template <typename DeviceType>
 struct TreeVisualization;
 template <typename BVH>
@@ -89,6 +90,7 @@ private:
   friend struct Details::TreeVisualization;
   template <typename BVH>
   friend struct Details::DistributedTreeNearestUtils;
+  friend struct Details::HappyTreeFriends;
 
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
   // Ropes based traversal is only used for CUDA, as it was found to be slower
