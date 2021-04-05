@@ -143,15 +143,10 @@ void boost_rtree_nearest_predicate()
 
   BoostExt::RTree<decltype(cloud)::value_type> rtree(ExecutionSpace{}, cloud);
 
-  // FIXME check currently sporadically fails when using the HIP backend
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, nearest_queries,
                          query(ExecutionSpace{}, rtree, nearest_queries_host));
 }
 
-// FIXME temporary workaround bug in HIP-Clang (register spill)
-#ifdef KOKKOS_ENABLE_HIP
-BOOST_TEST_DECORATOR(*boost::unit_test::expected_failures(1))
-#endif
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
                               TreeTypeTraitsList)
 {
@@ -203,16 +198,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
 
   BoostExt::RTree<decltype(cloud)::value_type> rtree(ExecutionSpace{}, cloud);
 
-  // FIXME check currently sporadically fails when using the HIP backend
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, within_queries,
                          query(ExecutionSpace{}, rtree, within_queries_host));
 }
 
 #ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
-// FIXME temporary workaround bug in HIP-Clang (register spill)
-#ifdef KOKKOS_ENABLE_HIP
-BOOST_TEST_DECORATOR(*boost::unit_test::expected_failures(1))
-#endif
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate_point,
                               TreeTypeTraits, TreeTypeTraitsList)
 {
