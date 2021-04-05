@@ -14,6 +14,7 @@
 #include <ArborX_Config.hpp>
 
 #include <ArborX_DetailsDistributor.hpp>
+#include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_DetailsUtils.hpp>
@@ -29,47 +30,6 @@ namespace ArborX
 
 namespace Details
 {
-// This is a struct only make it a friend to BVH
-template <typename BVH>
-struct DistributedTreeNearestUtils
-{
-  template <typename ReversePermutation>
-  static KOKKOS_FUNCTION typename BVH::bounding_volume_type const &
-  getPrimitiveBoundingVolume(BVH const &bvh,
-                             ReversePermutation const &rev_permute,
-                             int leaf_index)
-  {
-    int const leaf_nodes_shift = bvh.size() - 1;
-    return bvh.getBoundingVolume(
-        bvh.getNodePtr(rev_permute(leaf_index) + leaf_nodes_shift));
-  }
-
-  template <typename ExecutionSpace>
-  static Kokkos::View<unsigned int *, typename BVH::memory_space>
-  getReversePermutation(ExecutionSpace const &exec_space, BVH const &bvh)
-  {
-    auto const n = bvh.size();
-
-    Kokkos::View<unsigned int *, typename BVH::memory_space> rev_permute(
-        Kokkos::ViewAllocateWithoutInitializing(
-            "ArborX::DistributedTree::query::nearest::reverse_permutation"),
-        n);
-    if (!bvh.empty())
-    {
-      auto const &leaf_nodes = bvh.getLeafNodes();
-      Kokkos::parallel_for(
-          "ArborX::DistributedTree::query::nearest::compute_reverse_"
-          "permutation",
-          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-          KOKKOS_LAMBDA(int const i) {
-            rev_permute(leaf_nodes(i).getLeafPermutationIndex()) = i;
-          });
-    }
-
-    return rev_permute;
-  }
-};
-
 struct DefaultCallbackWithRank
 {
   int _rank;
@@ -442,22 +402,48 @@ struct CallbackWithDistance
   CallbackWithDistance(ExecutionSpace const &exec_space, Tree const &tree)
       : _tree(tree)
   {
-    _rev_permute = DistributedTreeNearestUtils<Tree>::getReversePermutation(
-        exec_space, _tree);
+    // NOTE cannot have extended __host__ __device__  lambda in constructor with
+    // NVCC
+    computeReversePermutation(exec_space);
+  }
+
+  template <typename ExecutionSpace>
+  void computeReversePermutation(ExecutionSpace const &exec_space)
+  {
+    auto const n = _tree.size();
+
+    _rev_permute = Kokkos::View<unsigned int *, typename Tree::memory_space>(
+        Kokkos::ViewAllocateWithoutInitializing(
+            "ArborX::DistributedTree::query::nearest::reverse_permutation"),
+        n);
+    if (!_tree.empty())
+    {
+      auto const &leaf_nodes = HappyTreeFriends::getLeafNodes(_tree);
+      auto const &rev_permute = _rev_permute; // avoid implicit capture of *this
+      Kokkos::parallel_for(
+          "ArborX::DistributedTree::query::nearest::"
+          "compute_reverse_permutation",
+          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+          KOKKOS_LAMBDA(int const i) {
+            rev_permute(leaf_nodes(i).getLeafPermutationIndex()) = i;
+          });
+    }
   }
 
   template <typename Query, typename OutputFunctor>
   KOKKOS_FUNCTION void operator()(Query const &query, int index,
-                                  OutputFunctor const &output) const
+                                  OutputFunctor const &out) const
   {
     // TODO: This breaks the abstraction of the distributed Tree not knowing
     // the details of the local tree. Right now, this is the only way. Will
     // need to be fixed with a proper callback abstraction.
-    output(
-        {index,
-         distance(getGeometry(query),
-                  DistributedTreeNearestUtils<Tree>::getPrimitiveBoundingVolume(
-                      _tree, _rev_permute, index))});
+    int const leaf_nodes_shift = _tree.size() - 1;
+    int const leaf_node_index = _rev_permute(index) + leaf_nodes_shift;
+    auto const *leaf_node_ptr =
+        HappyTreeFriends::getNodePtr(_tree, leaf_node_index);
+    auto const &leaf_node_bounding_volume =
+        HappyTreeFriends::getBoundingVolume(_tree, leaf_node_ptr);
+    out({index, distance(getGeometry(query), leaf_node_bounding_volume)});
   }
 };
 

@@ -34,8 +34,6 @@ namespace ArborX
 namespace Details
 {
 struct HappyTreeFriends;
-template <typename BVH>
-struct DistributedTreeNearestUtils;
 } // namespace Details
 
 template <typename MemorySpace, typename BoundingVolume = Box,
@@ -81,8 +79,6 @@ public:
   }
 
 private:
-  template <typename BVH>
-  friend struct Details::DistributedTreeNearestUtils;
   friend struct Details::HappyTreeFriends;
 
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
