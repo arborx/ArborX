@@ -13,6 +13,7 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
+#include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
 #include <ArborX_DetailsPriorityQueue.hpp>
@@ -39,7 +40,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   Callback _callback;
 
   using Access = AccessTraits<Predicates, PredicatesTag>;
-  using Node = typename BVH::node_type;
+  using Node = HappyTreeFriends::node_t<BVH>;
 
   template <typename ExecutionSpace>
   TreeTraversal(ExecutionSpace const &space, BVH const &bvh,
@@ -81,8 +82,10 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
-
-    if (predicate(_bvh.getBoundingVolume(_bvh.getRoot())))
+    Node const *root = HappyTreeFriends::getRoot(_bvh);
+    auto const &root_bounding_volume =
+        HappyTreeFriends::getBoundingVolume(_bvh, root);
+    if (predicate(root_bounding_volume))
     {
       _callback(predicate, 0);
     }
@@ -98,14 +101,18 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     Node const *stack[64];
     Node const **stack_ptr = stack;
     *stack_ptr++ = nullptr;
-    Node const *node = _bvh.getRoot();
+    Node const *node = HappyTreeFriends::getRoot(_bvh);
     do
     {
-      Node const *child_left = _bvh.getNodePtr(node->left_child);
-      Node const *child_right = _bvh.getNodePtr(node->right_child);
+      Node const *child_left =
+          HappyTreeFriends::getNodePtr(_bvh, node->left_child);
+      Node const *child_right =
+          HappyTreeFriends::getNodePtr(_bvh, node->right_child);
 
-      bool overlap_left = predicate(_bvh.getBoundingVolume(child_left));
-      bool overlap_right = predicate(_bvh.getBoundingVolume(child_right));
+      bool overlap_left =
+          predicate(HappyTreeFriends::getBoundingVolume(_bvh, child_left));
+      bool overlap_right =
+          predicate(HappyTreeFriends::getBoundingVolume(_bvh, child_right));
 
       if (overlap_left && child_left->isLeaf())
       {
@@ -148,9 +155,9 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     int next = 0; // start with root
     do
     {
-      node = _bvh.getNodePtr(next);
+      node = HappyTreeFriends::getNodePtr(_bvh, next);
 
-      if (predicate(_bvh.getBoundingVolume(node)))
+      if (predicate(HappyTreeFriends::getBoundingVolume(_bvh, node)))
       {
         if (!node->isLeaf())
         {
@@ -183,7 +190,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   Callback _callback;
 
   using Access = AccessTraits<Predicates, PredicatesTag>;
-  using Node = typename BVH::node_type;
+  using Node = HappyTreeFriends::node_t<BVH>;
 
   using Buffer = Kokkos::View<Kokkos::pair<int, float> *, MemorySpace>;
   using Offset = Kokkos::View<int *, MemorySpace>;
@@ -296,7 +303,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
       getRightChild(Node const *node) const
   {
     assert(!node->isLeaf());
-    return _bvh.getNodePtr(node->left_child)->rope;
+    return HappyTreeFriends::getNodePtr(_bvh, node->left_child)->rope;
   }
 
   KOKKOS_FUNCTION void operator()(int queryIndex) const
@@ -306,7 +313,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     auto const distance = [geometry = getGeometry(predicate),
                            bvh = _bvh](Node const *node) {
       using Details::distance;
-      return distance(geometry, bvh.getBoundingVolume(node));
+      return distance(geometry, HappyTreeFriends::getBoundingVolume(bvh, node));
     };
     auto const buffer = _buffer(queryIndex);
 
@@ -352,7 +359,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     *stack_distance_ptr++ = 0.f;
 #endif
 
-    Node const *node = _bvh.getRoot();
+    Node const *node = HappyTreeFriends::getRoot(_bvh);
     Node const *child_left = nullptr;
     Node const *child_right = nullptr;
 
@@ -369,8 +376,8 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
       {
         // Insert children into the stack and make sure that the
         // closest one ends on top.
-        child_left = _bvh.getNodePtr(node->left_child);
-        child_right = _bvh.getNodePtr(getRightChild(node));
+        child_left = HappyTreeFriends::getNodePtr(_bvh, node->left_child);
+        child_right = HappyTreeFriends::getNodePtr(_bvh, getRightChild(node));
 
         distance_left = distance(child_left);
         distance_right = distance(child_right);
