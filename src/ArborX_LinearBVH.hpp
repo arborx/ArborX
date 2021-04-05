@@ -34,8 +34,6 @@ namespace ArborX
 namespace Details
 {
 struct HappyTreeFriends;
-template <typename DeviceType>
-struct TreeVisualization;
 template <typename BVH>
 struct DistributedTreeNearestUtils;
 } // namespace Details
@@ -83,8 +81,6 @@ public:
   }
 
 private:
-  template <typename DeviceType>
-  friend struct Details::TreeVisualization;
   template <typename BVH>
   friend struct Details::DistributedTreeNearestUtils;
   friend struct Details::HappyTreeFriends;

@@ -11,6 +11,7 @@
 #ifndef ARBORX_DETAILS_TREE_VISUALIZATION_HPP
 #define ARBORX_DETAILS_TREE_VISUALIZATION_HPP
 
+#include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_DetailsTreeTraversal.hpp>
 
@@ -38,10 +39,10 @@ struct TreeVisualization
   struct TreeAccess
   {
     template <typename Tree>
-    KOKKOS_INLINE_FUNCTION static typename Tree::node_type const *
+    KOKKOS_INLINE_FUNCTION static HappyTreeFriends::node_t<Tree> const *
     getLeaf(Tree const &tree, size_t index)
     {
-      auto leaf_nodes = tree.getLeafNodes();
+      auto leaf_nodes = HappyTreeFriends::getLeafNodes(tree);
       auto const *first = leaf_nodes.data();
       auto const *last = first + static_cast<ptrdiff_t>(leaf_nodes.size());
       for (; first != last; ++first)
@@ -52,37 +53,36 @@ struct TreeVisualization
 
     template <typename Tree>
     KOKKOS_INLINE_FUNCTION static int
-    getIndex(typename Tree::node_type const *node, Tree const &tree)
+    getIndex(HappyTreeFriends::node_t<Tree> const *node, Tree const &tree)
     {
       return node->isLeaf() ? node->getLeafPermutationIndex()
-                            : node - tree.getRoot();
+                            : node - getRoot(tree);
     }
 
     template <typename Tree>
-    KOKKOS_INLINE_FUNCTION static typename Tree::node_type const *
+    KOKKOS_INLINE_FUNCTION static HappyTreeFriends::node_t<Tree> const *
     getRoot(Tree const &tree)
     {
-      return tree.getRoot();
+      return HappyTreeFriends::getRoot(tree);
     }
 
     template <typename Tree>
-    KOKKOS_INLINE_FUNCTION static typename Tree::node_type const *
+    KOKKOS_INLINE_FUNCTION static HappyTreeFriends::node_t<Tree> const *
     getNodePtr(Tree const &tree, int index)
     {
-      return tree.getNodePtr(index);
+      return HappyTreeFriends::getNodePtr(tree, index);
     }
 
-    template <typename Tree>
+    template <typename Tree, typename Node = HappyTreeFriends::node_t<Tree>>
     KOKKOS_INLINE_FUNCTION static typename Tree::bounding_volume_type
-    getBoundingVolume(typename Tree::node_type const *node, Tree const &tree)
+    getBoundingVolume(Node const *node, Tree const &tree)
     {
-      return tree.getBoundingVolume(node);
+      return HappyTreeFriends::getBoundingVolume(tree, node);
     }
   };
 
-  template <typename Tree>
-  static std::string getNodeLabel(typename Tree::node_type const *node,
-                                  Tree const &tree)
+  template <typename Tree, typename Node = HappyTreeFriends::node_t<Tree>>
+  static std::string getNodeLabel(Node const *node, Tree const &tree)
   {
     auto const node_is_leaf = node->isLeaf();
     auto const node_index = TreeAccess::getIndex(node, tree);
@@ -91,17 +91,15 @@ struct TreeVisualization
     return label;
   }
 
-  template <typename Tree>
-  static std::string getNodeAttributes(typename Tree::node_type const *node,
-                                       Tree const &)
+  template <typename Tree, typename Node = HappyTreeFriends::node_t<Tree>>
+  static std::string getNodeAttributes(Node const *node, Tree const &)
   {
     return node->isLeaf() ? "[leaf]" : "[internal]";
   }
 
-  template <typename Tree>
-  static std::string
-  getEdgeAttributes(typename Tree::node_type const * /*parent*/,
-                    typename Tree::node_type const *child, Tree const &)
+  template <typename Tree, typename Node = HappyTreeFriends::node_t<Tree>>
+  static std::string getEdgeAttributes(Node const * /*parent*/,
+                                       Node const *child, Tree const &)
   {
     return child->isLeaf() ? "[pendant]" : "[edge]";
   }
@@ -118,14 +116,14 @@ struct TreeVisualization
   {
     std::ostream &_os;
 
-    template <typename Tree>
-    void visit(typename Tree::node_type const *node, Tree const &tree) const
+    template <typename Tree, typename Node = HappyTreeFriends::node_t<Tree>>
+    void visit(Node const *node, Tree const &tree) const
     {
       visitNode(node, tree);
       visitEdgesStartingFromNode(node, tree);
     }
 
-    template <typename Node, typename Tree>
+    template <typename Tree, typename Node = HappyTreeFriends::node_t<Tree>>
     void visitNode(Node const *node, Tree const &tree) const
     {
       auto const node_label = getNodeLabel(node, tree);
@@ -134,9 +132,8 @@ struct TreeVisualization
       _os << "    " << node_label << " " << node_attributes << ";\n";
     }
 
-    template <typename Tree>
-    void visitEdgesStartingFromNode(typename Tree::node_type const *node,
-                                    Tree const &tree) const
+    template <typename Tree, typename Node = HappyTreeFriends::node_t<Tree>>
+    void visitEdgesStartingFromNode(Node const *node, Tree const &tree) const
     {
       auto const node_label = getNodeLabel(node, tree);
       auto const node_is_internal = !node->isLeaf();
@@ -166,8 +163,8 @@ struct TreeVisualization
   {
     std::ostream &_os;
 
-    template <typename Tree>
-    void visit(typename Tree::node_type const *node, Tree const &tree) const
+    template <typename Tree, typename Node = HappyTreeFriends::node_t<Tree>>
+    void visit(Node const *node, Tree const &tree) const
     {
       auto const node_label = getNodeLabel(node, tree);
       auto const node_attributes = getNodeAttributes(node, tree);
@@ -182,7 +179,7 @@ struct TreeVisualization
   template <typename Tree, typename Visitor>
   static void visitAllIterative(Tree const &tree, Visitor const &visitor)
   {
-    using Node = typename Tree::node_type;
+    using Node = HappyTreeFriends::node_t<Tree>;
     Stack<Node const *> stack;
     stack.emplace(TreeAccess::getRoot(tree));
     auto getNodePtr = [&](int i) { return TreeAccess::getNodePtr(tree, i); };
@@ -206,7 +203,7 @@ struct TreeVisualization
     template <typename Query>
     KOKKOS_FUNCTION void operator()(Query const &, int index) const
     {
-      _visitor.visit(_tree.getNodePtr(index), _tree);
+      _visitor.visit(TreeAccess::getNodePtr(_tree, index), _tree);
     }
 
     TreeType _tree;
