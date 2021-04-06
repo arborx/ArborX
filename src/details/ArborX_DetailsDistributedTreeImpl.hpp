@@ -418,6 +418,7 @@ struct CallbackWithDistance
         n);
     if (!_tree.empty())
     {
+      int const leaf_nodes_shift = _tree.size() - 1;
       auto const &leaf_nodes = HappyTreeFriends::getLeafNodes(_tree);
       auto const &rev_permute = _rev_permute; // avoid implicit capture of *this
       Kokkos::parallel_for(
@@ -425,7 +426,8 @@ struct CallbackWithDistance
           "compute_reverse_permutation",
           Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
           KOKKOS_LAMBDA(int const i) {
-            rev_permute(leaf_nodes(i).getLeafPermutationIndex()) = i;
+            rev_permute(leaf_nodes(i).getLeafPermutationIndex()) =
+                i + leaf_nodes_shift;
           });
     }
   }
@@ -437,8 +439,7 @@ struct CallbackWithDistance
     // TODO: This breaks the abstraction of the distributed Tree not knowing
     // the details of the local tree. Right now, this is the only way. Will
     // need to be fixed with a proper callback abstraction.
-    int const leaf_nodes_shift = _tree.size() - 1;
-    int const leaf_node_index = _rev_permute(index) + leaf_nodes_shift;
+    int const leaf_node_index = _rev_permute(index);
     auto const *leaf_node_ptr =
         HappyTreeFriends::getNodePtr(_tree, leaf_node_index);
     auto const &leaf_node_bounding_volume =
