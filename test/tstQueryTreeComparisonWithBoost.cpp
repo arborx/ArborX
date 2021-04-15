@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_SUITE(ComparisonWithBoost)
 namespace tt = boost::test_tools;
 
 inline std::vector<ArborX::Point>
-make_stuctured_cloud(double Lx, double Ly, double Lz, int nx, int ny, int nz)
+make_structured_cloud(double Lx, double Ly, double Lz, int nx, int ny, int nz)
 {
   std::function<int(int, int, int)> ind = [nx, ny](int i, int j, int k) {
     return i + j * nx + k * (nx * ny);
@@ -185,7 +185,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
   int const n_queries = 100;
 
   {
-    auto sources = make_stuctured_cloud(Lx, Ly, Lz, nx, ny, nz);
+    auto sources = make_structured_cloud(Lx, Ly, Lz, nx, ny, nz);
     auto targets = make_random_cloud<ArborX::Point>(Lx, Ly, Lz, n_queries);
 
     // use random number k of for the kNN search
@@ -220,7 +220,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate, TreeTypeTraits,
   int const n_queries = 100;
 
   {
-    auto sources = make_stuctured_cloud(Lx, Ly, Lz, nx, ny, nz);
+    auto sources = make_structured_cloud(Lx, Ly, Lz, nx, ny, nz);
     auto targets = make_random_cloud<ArborX::Point>(Lx, Ly, Lz, n_queries);
 
     // use random number k of for the kNN search
@@ -257,7 +257,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate, TreeTypeTraits,
   }
 
   {
-    auto sources = make_stuctured_cloud(Lx, Ly, Lz, nx, ny, nz);
+    auto sources = make_structured_cloud(Lx, Ly, Lz, nx, ny, nz);
     auto targets = make_random_cloud<ArborX::Box>(Lx, Ly, Lz, n_queries);
 
     // use random number k of for the kNN search
