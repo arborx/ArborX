@@ -1,5 +1,7 @@
+set(UNIT_TESTS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/test)
+
 add_executable(ArborX_DBSCAN.exe dbscan.cpp)
-target_include_directories(ArborX_DBSCAN.exe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(ArborX_DBSCAN.exe PRIVATE ${UNIT_TESTS_INCLUDE_DIR})
 target_link_libraries(ArborX_DBSCAN.exe ArborX::ArborX Boost::program_options)
 
 set(input_file "input.txt")

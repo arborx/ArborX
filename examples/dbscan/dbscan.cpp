@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include <ArborX_DBSCAN.hpp>
+#include <ArborX_DBSCANVerification.hpp>
 #include <ArborX_DetailsHeap.hpp>
 #include <ArborX_DetailsOperatorFunctionObjects.hpp> // Less
 #include <ArborX_Version.hpp>
