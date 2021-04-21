@@ -115,7 +115,8 @@ bool verifyBoundaryAndNoisePoints(ExecutionSpace const &exec_space,
           if (!is_boundary && labels(i) != -1)
           {
 #ifndef __SYCL_DEVICE_ONLY__
-            printf("Noise point does have index -1: %d [%d]\n", i, labels(i));
+            printf("Noise point does not have index -1: %d [%d]\n", i,
+                   labels(i));
 #endif
             update++;
           }
