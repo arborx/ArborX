@@ -227,6 +227,14 @@ BOOST_AUTO_TEST_CASE(overlap_distance_sphere,
 }
 
 #define STATIC_ASSERT(cond) static_assert(cond, "");
+BOOST_AUTO_TEST_CASE(make_euclidean_vector)
+{
+  using ArborX::Experimental::makeVector;
+  using ArborX::Experimental::Vector;
+  STATIC_ASSERT((makeVector({0, 0, 0}, {1, 2, 3}) == Vector{1, 2, 3}));
+  STATIC_ASSERT((makeVector({1, 2, 3}, {4, 5, 6}) == Vector{3, 3, 3}));
+}
+
 BOOST_AUTO_TEST_CASE(dot_product)
 {
   using ArborX::Experimental::dotProduct;

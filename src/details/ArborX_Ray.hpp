@@ -243,9 +243,7 @@ KOKKOS_INLINE_FUNCTION float overlapDistance(Ray const &ray,
   auto const &r = sphere.radius();
 
   // Vector oc = (origin_of_ray - center_of_sphere)
-  Vector const oc{ray.origin()[0] - sphere.centroid()[0],
-                  ray.origin()[1] - sphere.centroid()[1],
-                  ray.origin()[2] - sphere.centroid()[2]};
+  Vector const oc = makeVector(sphere.centroid(), ray.origin());
 
   float const a2 = 1.f; // directions are normalized
   float const a1 = 2.f * dotProduct(ray.direction(), oc);
