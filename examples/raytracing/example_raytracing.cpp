@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
     float xi_2 = rand_uniform();
 
     rays_host(i) = {ArborX::Point{rand_uniform() * L, rand_uniform() * L, 0.f},
-                    ArborX::Experimental::Ray::Vector{
+                    ArborX::Experimental::Vector{
                         float(std::cos(2 * M_PI * xi_2) * std::sqrt(xi_1)),
                         float(std::sin(2 * M_PI * xi_2) * std::sqrt(xi_1)),
                         std::sqrt(1.f - xi_1)}};
