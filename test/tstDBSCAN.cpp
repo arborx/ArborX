@@ -14,6 +14,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+BOOST_AUTO_TEST_SUITE(DBSCAN)
+
 template <typename DeviceType, typename T>
 auto buildView(std::vector<T> const &v)
 {
@@ -168,3 +170,5 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
         verifyDBSCAN(space, points, 1.0, 4, dbscan(space, points, 1, 4)));
   }
 }
+
+BOOST_AUTO_TEST_SUITE_END()
