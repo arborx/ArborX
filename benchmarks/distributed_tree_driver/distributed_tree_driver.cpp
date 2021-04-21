@@ -241,8 +241,8 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   // clang-format off
     desc.add_options()
         ( "help", "produce help message" )
-        ( "values", bpo::value<int>(&n_values)->default_value(50000), "Number of indexable values (source) per MPI rank." )
-        ( "queries", bpo::value<int>(&n_queries)->default_value(20000), "Number of queries (target) per MPI rank." )
+        ( "values", bpo::value<int>(&n_values)->default_value(20000), "Number of indexable values (source) per MPI rank." )
+        ( "queries", bpo::value<int>(&n_queries)->default_value(5000), "Number of queries (target) per MPI rank." )
         ( "neighbors", bpo::value<int>(&n_neighbors)->default_value(10), "Desired number of results per query." )
         ( "shift", bpo::value<double>(&shift)->default_value(1.), "Shift of the point clouds. '0' means the clouds are built "
 	                                                          "at the same place, while '1' places the clouds next to each"
