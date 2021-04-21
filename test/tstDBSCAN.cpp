@@ -20,10 +20,9 @@ auto buildView(std::vector<T> const &v)
   using ExecutionSpace = typename DeviceType::execution_space;
 
   Kokkos::View<T *, DeviceType> view("Testing::v", v.size());
-  Kokkos::deep_copy(ExecutionSpace{}, view,
-                    Kokkos::View<T const *, Kokkos::HostSpace,
-                                 Kokkos::MemoryTraits<Kokkos::Unmanaged>>(
-                        v.data(), v.size()));
+  Kokkos::deep_copy(view, Kokkos::View<T const *, Kokkos::HostSpace,
+                                       Kokkos::MemoryTraits<Kokkos::Unmanaged>>(
+                              v.data(), v.size()));
   return view;
 }
 
@@ -85,7 +84,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier, DeviceType, ARBORX_DEVICE_TYPES)
   }
 
   {
-    // check for briging effect
+    // check for bridging effect
     auto points = buildView<DeviceType, Point>({{-1, 0.5, 0},
                                                 {-1, -0.5, 0},
                                                 {-1, 0, 0},
@@ -154,7 +153,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
   }
 
   {
-    // check for briging effect
+    // check for bridging effect
     auto points = buildView<DeviceType, Point>({{-1, 0.5, 0},
                                                 {-1, -0.5, 0},
                                                 {-1, 0, 0},
