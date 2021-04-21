@@ -225,3 +225,27 @@ BOOST_AUTO_TEST_CASE(overlap_distance_sphere,
   BOOST_TEST(overlapDistance(Ray{{half_sqrtf_3, 0.5, 0}, {1, 0, 0}},
                              unit_sphere) == 0.f);
 }
+
+#define STATIC_ASSERT(cond) static_assert(cond, "");
+BOOST_AUTO_TEST_CASE(dot_product)
+{
+  using ArborX::Experimental::dotProduct;
+  STATIC_ASSERT(dotProduct({1, 0, 0}, {1, 0, 0}) == 1);
+  STATIC_ASSERT(dotProduct({1, 0, 0}, {0, 1, 0}) == 0);
+  STATIC_ASSERT(dotProduct({1, 0, 0}, {0, 0, 1}) == 0);
+  STATIC_ASSERT(dotProduct({1, 1, 1}, {1, 1, 1}) == 3);
+}
+
+BOOST_AUTO_TEST_CASE(cross_product)
+{
+  using ArborX::Experimental::crossProduct;
+  using ArborX::Experimental::Vector;
+  STATIC_ASSERT((crossProduct({1, 0, 0}, {1, 0, 0}) == Vector{0, 0, 0}));
+  STATIC_ASSERT((crossProduct({1, 0, 0}, {0, 1, 0}) == Vector{0, 0, 1}));
+  STATIC_ASSERT((crossProduct({1, 0, 0}, {0, 0, 1}) == Vector{0, -1, 0}));
+  STATIC_ASSERT((crossProduct({0, 1, 0}, {1, 0, 0}) == Vector{0, 0, -1}));
+  STATIC_ASSERT((crossProduct({0, 1, 0}, {0, 1, 0}) == Vector{0, 0, 0}));
+  STATIC_ASSERT((crossProduct({0, 1, 0}, {0, 0, 1}) == Vector{1, 0, 0}));
+  STATIC_ASSERT((crossProduct({1, 1, 1}, {1, 1, 1}) == Vector{0, 0, 0}));
+}
+#undef STATIC_ASSERT
