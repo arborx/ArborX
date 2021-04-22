@@ -20,8 +20,6 @@ BOOST_AUTO_TEST_SUITE(DBSCAN)
 template <typename DeviceType, typename T>
 auto buildView(std::vector<T> const &v)
 {
-  using ExecutionSpace = typename DeviceType::execution_space;
-
   Kokkos::View<T *, DeviceType> view("Testing::v", v.size());
   Kokkos::deep_copy(view, Kokkos::View<T const *, Kokkos::HostSpace,
                                        Kokkos::MemoryTraits<Kokkos::Unmanaged>>(
