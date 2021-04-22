@@ -142,10 +142,6 @@ struct DBSCANCallback
     auto i = self;
     auto j = neighbor;
 
-    // initialize to the first neighbor that's smaller
-    if (Kokkos::atomic_compare_exchange(&labels_(i), i, j) == i)
-      return;
-
     // ##### ECL license (see LICENSE.ECL) #####
     int vstat = representative(i);
     int ostat = representative(j);
