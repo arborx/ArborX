@@ -13,7 +13,6 @@
 #define ARBORX_DBSCAN_HPP
 
 #include <ArborX_DetailsDBSCANCallback.hpp>
-#include <ArborX_DetailsDBSCANVerification.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_LinearBVH.hpp>
