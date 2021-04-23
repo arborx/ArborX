@@ -172,7 +172,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters::query");
     bvh.query(
         exec_space, predicates,
-        Details::DBSCANCallback<MemorySpace, CorePoints>{labels, core_points});
+        Details::FDBSCANCallback<MemorySpace, CorePoints>{labels, core_points});
     Kokkos::Profiling::popRegion();
   }
   else
@@ -195,7 +195,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     timer_start(timer_local);
     Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters:query");
     bvh.query(exec_space, predicates,
-              Details::DBSCANCallback<MemorySpace, CorePoints>{
+              Details::FDBSCANCallback<MemorySpace, CorePoints>{
                   labels, CorePoints{num_neigh, core_min_size}});
     Kokkos::Profiling::popRegion();
     elapsed["query"] = timer_seconds(timer_local);

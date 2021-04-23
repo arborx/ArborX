@@ -23,13 +23,13 @@ namespace Details
 {
 
 template <typename MemorySpace, typename CorePointsType>
-struct DBSCANCallback
+struct FDBSCANCallback
 {
   UnionFind<MemorySpace> union_find_;
   CorePointsType is_core_point_;
 
-  DBSCANCallback(Kokkos::View<int *, MemorySpace> const &view,
-                 CorePointsType is_core_point)
+  FDBSCANCallback(Kokkos::View<int *, MemorySpace> const &view,
+                  CorePointsType is_core_point)
       : union_find_(view)
       , is_core_point_(is_core_point)
   {
