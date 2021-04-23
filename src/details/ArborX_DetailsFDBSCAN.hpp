@@ -12,6 +12,7 @@
 #ifndef ARBORX_DETAILSFDBSCAN_HPP
 #define ARBORX_DETAILSFDBSCAN_HPP
 
+#include <ArborX_Callbacks.hpp>
 #include <ArborX_DetailsUnionFind.hpp>
 #include <ArborX_Predicates.hpp>
 
@@ -21,6 +22,27 @@ namespace ArborX
 {
 namespace Details
 {
+
+template <typename MemorySpace>
+struct FDBSCANNumNeighEarlyExitCallback
+{
+  Kokkos::View<int *, MemorySpace> _num_neigh;
+  int _core_min_size;
+
+  template <typename Query>
+  KOKKOS_FUNCTION auto operator()(Query const &query, int) const
+  {
+    auto i = getData(query);
+    Kokkos::atomic_fetch_add(&_num_neigh(i), 1);
+
+    if (_num_neigh(i) < _core_min_size)
+      return ArborX::CallbackTreeTraversalControl::normal_continuation;
+
+    // Once _core_min_size neighbors are found, it is guaranteed to be a core
+    // point, and there is no reason to continue the search.
+    return ArborX::CallbackTreeTraversalControl::early_exit;
+  }
+};
 
 template <typename MemorySpace, typename CorePointsType>
 struct FDBSCANCallback

@@ -59,27 +59,6 @@ struct AccessTraits<PrimitivesWithRadius<Primitives>, PredicatesTag>
 namespace DBSCAN
 {
 
-template <typename MemorySpace>
-struct NumNeighEarlyExitCallback
-{
-  Kokkos::View<int *, MemorySpace> _num_neigh;
-  int _core_min_size;
-
-  template <typename Query>
-  KOKKOS_FUNCTION auto operator()(Query const &query, int) const
-  {
-    auto i = getData(query);
-    Kokkos::atomic_fetch_add(&_num_neigh(i), 1);
-
-    if (_num_neigh(i) < _core_min_size)
-      return ArborX::CallbackTreeTraversalControl::normal_continuation;
-
-    // Once _core_min_size neighbors are found, it is guaranteed to be a core
-    // point, and there is no reason to continue the search.
-    return ArborX::CallbackTreeTraversalControl::early_exit;
-  }
-};
-
 struct CCSCorePoints
 {
   KOKKOS_FUNCTION bool operator()(int) const { return true; }
@@ -184,8 +163,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     Kokkos::View<int *, MemorySpace> num_neigh("ArborX::dbscan::num_neighbors",
                                                n);
     bvh.query(exec_space, predicates,
-              DBSCAN::NumNeighEarlyExitCallback<MemorySpace>{num_neigh,
-                                                             core_min_size});
+              Details::FDBSCANNumNeighEarlyExitCallback<MemorySpace>{
+                  num_neigh, core_min_size});
     Kokkos::Profiling::popRegion();
     elapsed["neigh"] = timer_seconds(timer_local);
 
