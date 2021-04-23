@@ -8,9 +8,9 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#include "ArborX_DBSCANVerification.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <ArborX_DBSCAN.hpp>
+#include <ArborX_DBSCANVerification.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
@@ -167,66 +167,77 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
 
   ExecutionSpace space;
 
+  for (auto impl : {ArborX::DBSCAN::Implementation::FDBSCAN,
+                    ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox})
   {
-    auto points = buildView<DeviceType, Point>({{{0, 0, 0}}, {{1, 1, 1}}});
+    ArborX::DBSCAN::Parameters params;
+    params.setImplementation(impl);
+    {
+      auto points = buildView<DeviceType, Point>({{{0, 0, 0}}, {{1, 1, 1}}});
 
-    auto r = std::sqrt(3);
+      auto r = std::sqrt(3);
 
-    BOOST_TEST(verifyDBSCAN(space, points, r - 0.1, 2,
-                            dbscan(space, points, r - 0.1, 2)));
-    BOOST_TEST(verifyDBSCAN(space, points, r, 2, dbscan(space, points, r, 2)));
-    BOOST_TEST(verifyDBSCAN(space, points, r, 3, dbscan(space, points, r, 3)));
+      BOOST_TEST(verifyDBSCAN(space, points, r - 0.1, 2,
+                              dbscan(space, points, r - 0.1, 2, params)));
+      BOOST_TEST(verifyDBSCAN(space, points, r, 2,
+                              dbscan(space, points, r, 2, params)));
+      BOOST_TEST(verifyDBSCAN(space, points, r, 3,
+                              dbscan(space, points, r, 3, params)));
 
-    // Test non-View primitives
-    HiddenView<decltype(points)> hidden_points{points};
-    BOOST_TEST(verifyDBSCAN(space, hidden_points, r - 0.1, 2,
-                            dbscan(space, hidden_points, r - 0.1, 2)));
-    BOOST_TEST(verifyDBSCAN(space, hidden_points, r, 2,
-                            dbscan(space, hidden_points, r, 2)));
-    BOOST_TEST(verifyDBSCAN(space, hidden_points, r, 3,
-                            dbscan(space, hidden_points, r, 3)));
-  }
+      // Test non-View primitives
+      HiddenView<decltype(points)> hidden_points{points};
+      BOOST_TEST(
+          verifyDBSCAN(space, hidden_points, r - 0.1, 2,
+                       dbscan(space, hidden_points, r - 0.1, 2, params)));
+      BOOST_TEST(verifyDBSCAN(space, hidden_points, r, 2,
+                              dbscan(space, hidden_points, r, 2, params)));
+      BOOST_TEST(verifyDBSCAN(space, hidden_points, r, 3,
+                              dbscan(space, hidden_points, r, 3, params)));
+    }
 
-  {
-    auto points = buildView<DeviceType, Point>(
-        {{{0, 0, 0}}, {{1, 1, 1}}, {{3, 3, 3}}, {{6, 6, 6}}});
+    {
+      auto points = buildView<DeviceType, Point>(
+          {{{0, 0, 0}}, {{1, 1, 1}}, {{3, 3, 3}}, {{6, 6, 6}}});
 
-    auto r = std::sqrt(3);
+      auto r = std::sqrt(3);
 
-    BOOST_TEST(verifyDBSCAN(space, points, r, 2, dbscan(space, points, r, 2)));
-    BOOST_TEST(verifyDBSCAN(space, points, r, 3, dbscan(space, points, r, 3)));
+      BOOST_TEST(verifyDBSCAN(space, points, r, 2,
+                              dbscan(space, points, r, 2, params)));
+      BOOST_TEST(verifyDBSCAN(space, points, r, 3,
+                              dbscan(space, points, r, 3, params)));
 
-    BOOST_TEST(
-        verifyDBSCAN(space, points, 2 * r, 2, dbscan(space, points, 2 * r, 2)));
-    BOOST_TEST(
-        verifyDBSCAN(space, points, 2 * r, 3, dbscan(space, points, 2 * r, 3)));
-    BOOST_TEST(
-        verifyDBSCAN(space, points, 2 * r, 4, dbscan(space, points, 2 * r, 4)));
+      BOOST_TEST(verifyDBSCAN(space, points, 2 * r, 2,
+                              dbscan(space, points, 2 * r, 2, params)));
+      BOOST_TEST(verifyDBSCAN(space, points, 2 * r, 3,
+                              dbscan(space, points, 2 * r, 3, params)));
+      BOOST_TEST(verifyDBSCAN(space, points, 2 * r, 4,
+                              dbscan(space, points, 2 * r, 4, params)));
 
-    BOOST_TEST(
-        verifyDBSCAN(space, points, 3 * r, 2, dbscan(space, points, 3 * r, 2)));
-    BOOST_TEST(
-        verifyDBSCAN(space, points, 3 * r, 3, dbscan(space, points, 3 * r, 3)));
-    BOOST_TEST(
-        verifyDBSCAN(space, points, 3 * r, 4, dbscan(space, points, 3 * r, 4)));
-    BOOST_TEST(
-        verifyDBSCAN(space, points, 3 * r, 5, dbscan(space, points, 3 * r, 5)));
-  }
+      BOOST_TEST(verifyDBSCAN(space, points, 3 * r, 2,
+                              dbscan(space, points, 3 * r, 2, params)));
+      BOOST_TEST(verifyDBSCAN(space, points, 3 * r, 3,
+                              dbscan(space, points, 3 * r, 3, params)));
+      BOOST_TEST(verifyDBSCAN(space, points, 3 * r, 4,
+                              dbscan(space, points, 3 * r, 4, params)));
+      BOOST_TEST(verifyDBSCAN(space, points, 3 * r, 5,
+                              dbscan(space, points, 3 * r, 5, params)));
+    }
 
-  {
-    // check for bridging effect
-    auto points = buildView<DeviceType, Point>({{-1, 0.5, 0},
-                                                {-1, -0.5, 0},
-                                                {-1, 0, 0},
-                                                {{0, 0, 0}},
-                                                {{1, 0, 0}},
-                                                {{1, 0.5, 0}},
-                                                {{1, -0.5, 0}}});
+    {
+      // check for bridging effect
+      auto points = buildView<DeviceType, Point>({{-1, 0.5, 0},
+                                                  {-1, -0.5, 0},
+                                                  {-1, 0, 0},
+                                                  {{0, 0, 0}},
+                                                  {{1, 0, 0}},
+                                                  {{1, 0.5, 0}},
+                                                  {{1, -0.5, 0}}});
 
-    BOOST_TEST(
-        verifyDBSCAN(space, points, 1.0, 3, dbscan(space, points, 1, 3)));
-    BOOST_TEST(
-        verifyDBSCAN(space, points, 1.0, 4, dbscan(space, points, 1, 4)));
+      BOOST_TEST(verifyDBSCAN(space, points, 1.0, 3,
+                              dbscan(space, points, 1, 3, params)));
+      BOOST_TEST(verifyDBSCAN(space, points, 1.0, 4,
+                              dbscan(space, points, 1, 4, params)));
+    }
   }
 
   {

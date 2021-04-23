@@ -14,8 +14,8 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsFDBSCAN.hpp>
+#include <ArborX_DetailsFDBSCANDenseBox.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
-#include <ArborX_DetailsUtils.hpp>
 #include <ArborX_LinearBVH.hpp>
 
 #include <map>
@@ -76,14 +76,26 @@ struct DBSCANCorePoints
   }
 };
 
+enum class Implementation
+{
+  FDBSCAN,
+  FDBSCAN_DenseBox
+};
+
 struct Parameters
 {
   // Print timers to standard output
   bool _print_timers = false;
+  Implementation _implementation = Implementation::FDBSCAN;
 
   Parameters &setPrintTimers(bool print_timers)
   {
     _print_timers = print_timers;
+    return *this;
+  }
+  Parameters &setImplementation(Implementation impl)
+  {
+    _implementation = impl;
     return *this;
   }
 };
@@ -126,19 +138,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     return timer.seconds();
   };
 
-  auto const predicates = buildPredicates(primitives, eps);
-
   auto const n = Access::size(primitives);
-
-  // Build the tree
-  timer_start(timer);
-  Kokkos::Profiling::pushRegion("ArborX::dbscan::tree_construction");
-  ArborX::BVH<MemorySpace> bvh(exec_space, primitives);
-  Kokkos::Profiling::popRegion();
-  elapsed["construction"] = timer_seconds(timer);
-
-  timer_start(timer);
-  Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters");
 
   Kokkos::View<int *, MemorySpace> num_neigh("ArborX::dbscan::num_neighbors",
                                              0);
@@ -146,39 +146,157 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   Kokkos::View<int *, MemorySpace> labels(
       Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::labels"), n);
   ArborX::iota(exec_space, labels);
-  if (is_special_case)
+
+  if (parameters._implementation == DBSCAN::Implementation::FDBSCAN)
   {
-    // Perform the queries and build clusters through callback
-    using CorePoints = DBSCAN::CCSCorePoints;
-    CorePoints core_points;
-    Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters::query");
-    bvh.query(
-        exec_space, predicates,
-        Details::FDBSCANCallback<MemorySpace, CorePoints>{labels, core_points});
+    auto const predicates = buildPredicates(primitives, eps);
+
+    // Build the tree
+    timer_start(timer);
+    Kokkos::Profiling::pushRegion("ArborX::dbscan::tree_construction");
+    ArborX::BVH<MemorySpace> bvh(exec_space, primitives);
     Kokkos::Profiling::popRegion();
+    elapsed["construction"] = timer_seconds(timer);
+
+    timer_start(timer);
+    Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters");
+    if (is_special_case)
+    {
+      // Perform the queries and build clusters through callback
+      using CorePoints = DBSCAN::CCSCorePoints;
+      CorePoints core_points;
+      Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters::query");
+      bvh.query(exec_space, predicates,
+                Details::FDBSCANCallback<MemorySpace, CorePoints>{labels,
+                                                                  core_points});
+      Kokkos::Profiling::popRegion();
+    }
+    else
+    {
+      // Determine core points
+      Kokkos::Timer timer_local;
+      timer_start(timer_local);
+      Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters::num_neigh");
+      Kokkos::resize(num_neigh, n);
+      bvh.query(exec_space, predicates,
+                Details::CountUpToN<MemorySpace>{num_neigh, core_min_size});
+      Kokkos::Profiling::popRegion();
+      elapsed["neigh"] = timer_seconds(timer_local);
+
+      using CorePoints = DBSCAN::DBSCANCorePoints<MemorySpace>;
+
+      // Perform the queries and build clusters through callback
+      timer_start(timer_local);
+      Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters:query");
+      bvh.query(exec_space, predicates,
+                Details::FDBSCANCallback<MemorySpace, CorePoints>{
+                    labels, CorePoints{num_neigh, core_min_size}});
+      Kokkos::Profiling::popRegion();
+      elapsed["query"] = timer_seconds(timer_local);
+    }
   }
-  else
+  else if (parameters._implementation ==
+           DBSCAN::Implementation::FDBSCAN_DenseBox)
   {
-    // Determine core points
-    Kokkos::Timer timer_local;
-    timer_start(timer_local);
-    Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters::num_neigh");
-    Kokkos::resize(num_neigh, n);
-    bvh.query(exec_space, predicates,
-              Details::CountUpToN<MemorySpace>{num_neigh, core_min_size});
-    Kokkos::Profiling::popRegion();
-    elapsed["neigh"] = timer_seconds(timer_local);
+    auto const predicates = buildPredicates(primitives, eps);
 
-    using CorePoints = DBSCAN::DBSCANCorePoints<MemorySpace>;
+    // Find dense boxes
+    timer_start(timer);
+    Kokkos::Profiling::pushRegion("ArborX::dbscan::dense_cells");
+    Box bounds;
+    Details::TreeConstruction::calculateBoundingBoxOfTheScene(
+        exec_space, primitives, bounds);
 
-    // Perform the queries and build clusters through callback
-    timer_start(timer_local);
-    Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters:query");
-    bvh.query(exec_space, predicates,
-              Details::FDBSCANCallback<MemorySpace, CorePoints>{
-                  labels, CorePoints{num_neigh, core_min_size}});
+    // The cell length is chosen to be eps/sqrt(dimension), so that any two
+    // points within the same cell are within eps distance of each other.
+    float const h = eps / std::sqrt(3); // 3D (for 2D change to std::sqrt(2))
+    Details::CartesianGrid const grid(bounds, h);
+    if (verbose)
+      printf("h = %e, nx = %zu, ny = %zu, nz = %zu\n", h, grid._nx, grid._ny,
+             grid._nz);
+
+    auto cell_indices =
+        Details::computeCellIndices(exec_space, primitives, grid);
+    auto permute = Details::sortObjects(exec_space, cell_indices);
+    auto &sorted_cell_indices = cell_indices; // alias
+
+    auto mixed_offsets = Details::computeMixedOffsets(
+        exec_space, core_min_size, sorted_cell_indices, verbose);
+
+    Details::unionFindWithinEachDenseCell(
+        exec_space, core_min_size, mixed_offsets, labels, permute, verbose);
+
+    auto box_primitives = Details::buildBoxPrimitives(
+        exec_space, primitives, core_min_size, grid, mixed_offsets,
+        sorted_cell_indices, permute);
+
+    Kokkos::View<int *, MemorySpace> point2offset(
+        Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::point2offset"),
+        n);
+    Kokkos::parallel_for("ArborX::DBSCAN::compute_point2offset",
+                         Kokkos::RangePolicy<ExecutionSpace>(
+                             exec_space, 0, mixed_offsets.size() - 1),
+                         KOKKOS_LAMBDA(int i) {
+                           for (int j = mixed_offsets(i);
+                                j < mixed_offsets(i + 1); ++j)
+                             point2offset(permute(j)) = i;
+                         });
+
     Kokkos::Profiling::popRegion();
-    elapsed["query"] = timer_seconds(timer_local);
+    elapsed["dense_cells"] = timer_seconds(timer);
+
+    // Build the tree
+    timer_start(timer);
+    Kokkos::Profiling::pushRegion("ArborX::dbscan::tree_construction");
+    BVH<MemorySpace> bvh(exec_space, box_primitives);
+    Kokkos::Profiling::popRegion();
+    elapsed["construction"] = timer_seconds(timer);
+
+    timer_start(timer);
+    Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters");
+
+    if (is_special_case)
+    {
+      // Perform the queries and build clusters through callback
+      using CorePoints = DBSCAN::CCSCorePoints;
+      Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters::query");
+      bvh.query(
+          exec_space, predicates,
+          Details::FDBSCANDenseBoxCallback<
+              MemorySpace, CorePoints, Primitives, decltype(mixed_offsets),
+              decltype(point2offset), decltype(permute)>{
+              labels, CorePoints{}, primitives, mixed_offsets, point2offset,
+              permute, core_min_size, eps});
+      Kokkos::Profiling::popRegion();
+    }
+    else
+    {
+      // Determine core points
+      Kokkos::Timer timer_local;
+      timer_start(timer_local);
+      Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters::num_neigh");
+      Kokkos::resize(num_neigh, n);
+      Details::computeNumNeighbors(exec_space, primitives, core_min_size, eps,
+                                   mixed_offsets, permute, num_neigh, bvh,
+                                   verbose);
+      Kokkos::Profiling::popRegion();
+      elapsed["neigh"] = timer_seconds(timer_local);
+
+      using CorePoints = DBSCAN::DBSCANCorePoints<MemorySpace>;
+
+      // Perform the queries and build clusters through callback
+      timer_start(timer_local);
+      Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters:query");
+      bvh.query(
+          exec_space, predicates,
+          Details::FDBSCANDenseBoxCallback<
+              MemorySpace, CorePoints, Primitives, decltype(mixed_offsets),
+              decltype(point2offset), decltype(permute)>{
+              labels, CorePoints{num_neigh, core_min_size}, primitives,
+              mixed_offsets, point2offset, permute, core_min_size, eps});
+      Kokkos::Profiling::popRegion();
+      elapsed["query"] = timer_seconds(timer_local);
+    }
   }
 
   // Per [1]:
@@ -235,6 +353,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
   if (verbose)
   {
+    if (parameters._implementation == DBSCAN::Implementation::FDBSCAN_DenseBox)
+      printf("-- dense cells      : %10.3f\n", elapsed["dense_cells"]);
     printf("-- construction     : %10.3f\n", elapsed["construction"]);
     printf("-- query+cluster    : %10.3f\n", elapsed["query+cluster"]);
     if (!is_special_case)
