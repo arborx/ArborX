@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILSDBSCANCALLBACK_HPP
-#define ARBORX_DETAILSDBSCANCALLBACK_HPP
+#ifndef ARBORX_DETAILSFDBSCAN_HPP
+#define ARBORX_DETAILSFDBSCAN_HPP
 
 #include <ArborX_DetailsUnionFind.hpp>
 #include <ArborX_Predicates.hpp>
