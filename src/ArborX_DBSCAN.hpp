@@ -12,6 +12,7 @@
 #ifndef ARBORX_DBSCAN_HPP
 #define ARBORX_DBSCAN_HPP
 
+#include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsDBSCANCallback.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUtils.hpp>
@@ -22,28 +23,36 @@
 namespace ArborX
 {
 
-template <typename View>
+template <typename Primitives>
 struct PrimitivesWithRadius
 {
-  View _M_view;
+  Primitives _primitives;
   double _r;
 };
 
-template <typename View>
-auto buildPredicates(View v, double r)
+template <typename Primitives>
+auto buildPredicates(Primitives const &v, double r)
 {
-  return PrimitivesWithRadius<View>{v, r};
+  return PrimitivesWithRadius<Primitives>{v, r};
 }
 
-template <typename View>
-struct AccessTraits<PrimitivesWithRadius<View>, PredicatesTag>
+template <typename Primitives>
+struct AccessTraits<PrimitivesWithRadius<Primitives>, PredicatesTag>
 {
-  using memory_space = typename View::memory_space;
-  using Predicates = PrimitivesWithRadius<View>;
-  static size_t size(Predicates const &w) { return w._M_view.extent(0); }
+  using PrimitivesAccess = AccessTraits<Primitives, PrimitivesTag>;
+
+  using memory_space = typename PrimitivesAccess::memory_space;
+  using Predicates = PrimitivesWithRadius<Primitives>;
+
+  static size_t size(Predicates const &w)
+  {
+    return PrimitivesAccess::size(w._primitives);
+  }
   static KOKKOS_FUNCTION auto get(Predicates const &w, size_t i)
   {
-    return attach(intersects(Sphere{w._M_view(i), w._r}), (int)i);
+    return attach(
+        intersects(Sphere{PrimitivesAccess::get(w._primitives, i), w._r}),
+        (int)i);
   }
 };
 
@@ -103,14 +112,20 @@ struct Parameters
 } // namespace DBSCAN
 
 template <typename ExecutionSpace, typename Primitives>
-Kokkos::View<int *, typename Primitives::memory_space>
+Kokkos::View<int *,
+             typename AccessTraits<Primitives, PrimitivesTag>::memory_space>
 dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
        float eps, int core_min_size,
        DBSCAN::Parameters const &parameters = DBSCAN::Parameters())
 {
   Kokkos::Profiling::pushRegion("ArborX::dbscan");
 
-  using MemorySpace = typename Primitives::memory_space;
+  using Access = AccessTraits<Primitives, PrimitivesTag>;
+  using MemorySpace = typename Access::memory_space;
+
+  static_assert(
+      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
+      "Primitives must be accessible from the execution space");
 
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
@@ -134,7 +149,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
   auto const predicates = buildPredicates(primitives, eps);
 
-  int const n = primitives.extent_int(0);
+  auto const n = Access::size(primitives);
 
   // Build the tree
   timer_start(timer);
