@@ -261,7 +261,8 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
 
   static_assert(Kokkos::is_view<LabelsView>{}, "");
 
-  using MemorySpace = typename Primitives::memory_space;
+  using Access = AccessTraits<Primitives, PrimitivesTag>;
+  using MemorySpace = typename Access::memory_space;
 
   static_assert(std::is_same<typename LabelsView::value_type, int>{}, "");
   static_assert(std::is_same<typename LabelsView::memory_space, MemorySpace>{},
