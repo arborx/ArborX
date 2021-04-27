@@ -15,6 +15,14 @@
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
 
+template <typename T, typename Tag>
+struct ArborX::AccessTraits<std::vector<T>, Tag>
+{
+  static std::size_t size(std::vector<T> const &v) { return v.size(); }
+  static T const &get(std::vector<T> const &v, std::size_t i) { return v[i]; }
+  using memory_space = Kokkos::HostSpace;
+};
+
 BOOST_AUTO_TEST_SUITE(DBSCAN)
 
 template <typename DeviceType, typename T>
@@ -113,6 +121,23 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
   using ArborX::dbscan;
   using ArborX::Point;
   using ArborX::Details::verifyDBSCAN;
+
+  {
+    std::vector<ArborX::Point> points;
+    points.emplace_back(ArborX::Point{0, 0, 0});
+    points.emplace_back(ArborX::Point{1, 1, 1});
+
+    auto r = std::sqrt(3);
+
+    Kokkos::DefaultHostExecutionSpace host_space;
+
+    BOOST_TEST(verifyDBSCAN(host_space, points, r - 0.1, 2,
+                            dbscan(host_space, points, r - 0.1, 2)));
+    BOOST_TEST(verifyDBSCAN(host_space, points, r, 2,
+                            dbscan(host_space, points, r, 2)));
+    BOOST_TEST(verifyDBSCAN(host_space, points, r, 3,
+                            dbscan(host_space, points, r, 3)));
+  }
 
   ExecutionSpace space;
 
