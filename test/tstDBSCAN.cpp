@@ -123,6 +123,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
   using ArborX::Details::verifyDBSCAN;
 
   {
+    // Disable this test for CUDA, as it results in warning about calling
+    // __host__ function from __host__ __device__ one.
+#ifndef KOKKOS_ENABLE_CUDA
     std::vector<ArborX::Point> points;
     points.emplace_back(ArborX::Point{0, 0, 0});
     points.emplace_back(ArborX::Point{1, 1, 1});
@@ -137,6 +140,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
                             dbscan(host_space, points, r, 2)));
     BOOST_TEST(verifyDBSCAN(host_space, points, r, 3,
                             dbscan(host_space, points, r, 3)));
+#endif
   }
 
   ExecutionSpace space;
