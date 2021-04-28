@@ -15,6 +15,27 @@
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
 
+template <typename View>
+struct HiddenView
+{
+  View _view;
+};
+template <typename View>
+struct ArborX::AccessTraits<HiddenView<View>, ArborX::PrimitivesTag>
+{
+  using Data = HiddenView<View>;
+  static KOKKOS_FUNCTION std::size_t size(Data const &data)
+  {
+    return data._view.extent(0);
+  }
+  static KOKKOS_FUNCTION typename View::value_type const &get(Data const &data,
+                                                              std::size_t i)
+  {
+    return data._view(i);
+  }
+  using memory_space = typename View::memory_space;
+};
+
 BOOST_AUTO_TEST_SUITE(DBSCAN)
 
 template <typename DeviceType, typename T>
@@ -125,6 +146,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
                             dbscan(space, points, r - 0.1, 2)));
     BOOST_TEST(verifyDBSCAN(space, points, r, 2, dbscan(space, points, r, 2)));
     BOOST_TEST(verifyDBSCAN(space, points, r, 3, dbscan(space, points, r, 3)));
+
+    // Test non-View primitives
+    HiddenView<decltype(points)> hidden_points{points};
+    BOOST_TEST(verifyDBSCAN(space, hidden_points, r - 0.1, 2,
+                            dbscan(space, hidden_points, r - 0.1, 2)));
+    BOOST_TEST(verifyDBSCAN(space, hidden_points, r, 2,
+                            dbscan(space, hidden_points, r, 2)));
+    BOOST_TEST(verifyDBSCAN(space, hidden_points, r, 3,
+                            dbscan(space, hidden_points, r, 3)));
   }
 
   {
