@@ -43,7 +43,7 @@ RUN CMAKE_KEY=2D2CEF1034921684 && \
 ENV PATH=${CMAKE_DIR}/bin:$PATH
 
 ENV SYCL_DIR=/opt/sycl
-RUN SYCL_VERSION=20210303 && \
+RUN SYCL_VERSION=20210311 && \
     SYCL_URL=https://github.com/intel/llvm/archive/sycl-nightly && \
     SYCL_ARCHIVE=${SYCL_VERSION}.tar.gz && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
@@ -99,8 +99,8 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     make -j${NPROCS} && make install && \
     rm -rf ${SCRATCH_DIR}
 
-# Install Kokkos, the commit is post 3.3.00 release
-ARG KOKKOS_VERSION=8c241078d0b844633cb1eae186bbb6a8a810ff5d
+# Install Kokkos
+ARG KOKKOS_VERSION=3.4.00
 ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_SYCL=ON -DCMAKE_CXX_FLAGS=-Wno-unknown-cuda-version -DKokkos_ENABLE_UNSUPPORTED_ARCHS=ON -DKokkos_ARCH_VOLTA70=ON -DCMAKE_CXX_STANDARD=17"
 ENV KOKKOS_DIR=/opt/kokkos
 RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
