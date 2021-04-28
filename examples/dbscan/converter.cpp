@@ -95,7 +95,8 @@ std::vector<Point> loadNGSIMData(std::string const &filename)
   if (!file.good())
     throw std::runtime_error("Cannot open file");
 
-  std::string thisWord, line;
+  std::string thisWord;
+  std::string line;
 
   std::vector<Point> v;
   int n_points = 0;
@@ -169,7 +170,7 @@ std::vector<Point> loadTaxiPortoData(std::string const &filename)
   int lonlatno = 100;
 
   float thisWord;
-  while (fgets(line, sizeof(line), fp_data))
+  while (fgets(line, sizeof(line), fp_data) != nullptr)
   {
     if (lineNo > -1)
     {
@@ -393,18 +394,18 @@ std::vector<Point> loadData(std::string const &filename,
 {
   if (reader_type == "hacc")
     return loadHACCData(filename);
-  else if (reader_type == "ngsim")
+  if (reader_type == "ngsim")
     return loadNGSIMData(filename);
-  else if (reader_type == "taxiporto")
+  if (reader_type == "taxiporto")
     return loadTaxiPortoData(filename);
-  else if (reader_type == "3droad")
+  if (reader_type == "3droad")
     return load3DRoadNetworkData(filename);
-  else if (reader_type == "sw")
+  if (reader_type == "sw")
     return loadSWData(filename);
-  else if (reader_type == "gaia")
+  if (reader_type == "gaia")
     return loadGaiaData(filename);
-  else
-    throw std::runtime_error("Unknown reader type: \"" + reader_type + "\"");
+
+  throw std::runtime_error("Unknown reader type: \"" + reader_type + "\"");
 }
 
 int main(int argc, char *argv[])
