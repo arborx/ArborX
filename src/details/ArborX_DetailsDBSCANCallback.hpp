@@ -53,17 +53,17 @@ struct DBSCANCallback
       // another neighbor that is core point appears later, we won't process
       // this point.
       //
-      // NOTE: DO NOT USE union_2way(i, j) here. This may set this boundary
+      // NOTE: DO NOT USE merge(i, j) here. This may set this boundary
       // point as a representative for the whole cluster. This would mean that
       // a) labels_(i) == i still (so it would be processed later, and b) it may
       // be combined with a different cluster later forming a bridge.
-      union_find_.union_1way(i, j);
+      union_find_.merge_into(i, j);
     }
     else if (!is_boundary_point && i > j)
     {
       // For a core point that is connected to another core point, do the
       // standard CCS algorithm
-      union_find_.union_2way(i, j);
+      union_find_.merge(i, j);
     }
   }
 };

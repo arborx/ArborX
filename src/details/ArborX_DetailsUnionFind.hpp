@@ -119,11 +119,15 @@ struct UnionFind
     return curr;
   }
 
+  // In some situations it is necessary to make sure that the a particular
+  // label is assigned to a point. As a regular merge() does not guarantee
+  // that, an extra function is introduced, which assigns the label of the
+  // second point (or, rather, the label of its representative) to the first.
   KOKKOS_FUNCTION
-  void union_1way(int i, int j) const { labels_(i) = representative(j); }
+  void merge_into(int i, int j) const { labels_(i) = representative(j); }
 
   KOKKOS_FUNCTION
-  void union_2way(int i, int j) const
+  void merge(int i, int j) const
   {
     // Per [1]:
     //
