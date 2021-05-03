@@ -1,0 +1,81 @@
+Q: How to estimate r_200?
+A: Given an FOF halo of mass M (adding up all the particles in a given FOF
+   halo), r_200 ~ (M_fof / constant)^(0.3333).
+
+Q: What is R_max?
+A: 2 x r_200
+
+Q: What is R_min?
+A: Rmin is 0.05 * interparticle seperation, which is just 0.05 * rl/np, rl is
+   the boxsize of the simulation and np is the number of particles.
+
+Q: How are radial bins constructed?
+A: Bins are evenly spaced logarithmically between R_min and R_max. All particles
+   within R_min placed into extra bin.
+
+----------------------------------------------------------------------
+   R_delta = log10(R_max / R_min) / (N_bins - 1)
+  this->deltaRadius = log10(this->maxRadius / this->minRadius) / (this->numberOfBins - 1);
+
+  // Bin 0 is for all particles less than the minimum
+
+  this->binRadius[0] = this->minRadius;
+
+  for (int bin = 1; bin < this->numberOfBins; bin++) {
+
+    this->binRadius[bin] = pow(10.0,(this->deltaRadius * bin))*this->minRadius;
+
+  }
+
+
+----------------------------------------------------------------------
+Then any particle a distance 'dist' from the central point is placed in a bin as follows:
+
+            int bin = 0;
+
+            if (dist > this->minRadius) {
+
+              bin = (int) (floor(log10(dist/this->minRadius) /
+
+                                    this->deltaRadius)) + 1;
+
+            }
+
+            if (bin >= this->numberOfBins) {
+
+              bin = this->numberOfBins - 1;
+
+            }
+
+            this->binCount[bin]++;
+
+----------------------------------------------------------------------
+
+int bin = 0;
+if (dist > this->minRadius) {
+  bin = (int) (floor(log10(dist/this->minRadius) /
+                        this->deltaRadius)) + 1;
+}
+if (bin >= this->numberOfBins) {
+  bin = this->numberOfBins - 1;
+}
+
+this->cMinFactor * this->rSmooth
+cMinFactor = 0.05
+rsmooth = rl/np = 250.0/3072
+this->maxRadius = this->cMaxFactor * this->initRadius;
+cMaxFactor = 2.0
+initRadius = pow
+  ((FOFhaloMass / this->SODMASS),(1.0 / 3.0))
+HaloMass is from catalog
+
+SODMASS = 1.0e14
+
+500 particles cutoff for fof_halo_count
+
+----------------------------------------------------------------------
+
+See source in cosmotools/algorithms/halofinder/SODHalo.cxx.
+
+----------------------------------------------------------------------
+https://anl.app.box.com/s/71299ug0x7ngp8jowfqkdr2kt38clcoi
