@@ -149,16 +149,15 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   Kokkos::View<int *, MemorySpace> labels(
       Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::labels"), n);
   ArborX::iota(exec_space, labels);
-  Details::UnionFind<MemorySpace> union_find{labels};
   if (is_special_case)
   {
     // Perform the queries and build clusters through callback
     using CorePoints = DBSCAN::CCSCorePoints;
     CorePoints core_points;
     Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters::query");
-    bvh.query(exec_space, predicates,
-              Details::DBSCANCallback<MemorySpace, CorePoints>{union_find,
-                                                               core_points});
+    bvh.query(
+        exec_space, predicates,
+        Details::DBSCANCallback<MemorySpace, CorePoints>{labels, core_points});
     Kokkos::Profiling::popRegion();
   }
   else
@@ -182,7 +181,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters:query");
     bvh.query(exec_space, predicates,
               Details::DBSCANCallback<MemorySpace, CorePoints>{
-                  union_find, CorePoints{num_neigh, core_min_size}});
+                  labels, CorePoints{num_neigh, core_min_size}});
     Kokkos::Profiling::popRegion();
     elapsed["query"] = timer_seconds(timer_local);
   }
