@@ -28,6 +28,13 @@ struct DBSCANCallback
   UnionFind<MemorySpace> union_find_;
   CorePointsType is_core_point_;
 
+  DBSCANCallback(Kokkos::View<int *, MemorySpace> const &view,
+                 CorePointsType is_core_point)
+      : union_find_(view)
+      , is_core_point_(is_core_point)
+  {
+  }
+
   template <typename Query>
   KOKKOS_FUNCTION void operator()(Query const &query, int j) const
   {
