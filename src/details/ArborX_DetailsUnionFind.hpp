@@ -77,6 +77,11 @@ struct UnionFind
 {
   Kokkos::View<int *, MemorySpace> labels_;
 
+  UnionFind(Kokkos::View<int *, MemorySpace> labels)
+      : labels_(labels)
+  {
+  }
+
   // Per [1]:
   //
   // Note that the [`representative()`] code is re-entrant and synchronization
