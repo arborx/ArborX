@@ -12,7 +12,9 @@
 #ifndef ARBORX_POINT_CLOUDS_HPP
 #define ARBORX_POINT_CLOUDS_HPP
 
-#include <ArborX.hpp>
+#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_Exception.hpp>
+#include <ArborX_Point.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -47,8 +49,7 @@ void filledBoxCloud(
     Kokkos::View<ArborX::Point *, Layout, DeviceType> random_points)
 {
   static_assert(
-      Kokkos::Impl::MemorySpaceAccess<
-          Kokkos::HostSpace, typename DeviceType::memory_space>::accessible,
+      KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
   std::uniform_real_distribution<double> distribution(-half_edge, half_edge);
   std::default_random_engine generator;
@@ -66,8 +67,7 @@ void hollowBoxCloud(
     Kokkos::View<ArborX::Point *, Layout, DeviceType> random_points)
 {
   static_assert(
-      Kokkos::Impl::MemorySpaceAccess<
-          Kokkos::HostSpace, typename DeviceType::memory_space>::accessible,
+      KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
   std::uniform_real_distribution<double> distribution(-half_edge, half_edge);
   std::default_random_engine generator;
@@ -130,8 +130,7 @@ void filledSphereCloud(
     Kokkos::View<ArborX::Point *, Layout, DeviceType> random_points)
 {
   static_assert(
-      Kokkos::Impl::MemorySpaceAccess<
-          Kokkos::HostSpace, typename DeviceType::memory_space>::accessible,
+      KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
   std::default_random_engine generator;
 
@@ -166,8 +165,7 @@ void hollowSphereCloud(
     Kokkos::View<ArborX::Point *, Layout, DeviceType> random_points)
 {
   static_assert(
-      Kokkos::Impl::MemorySpaceAccess<
-          Kokkos::HostSpace, typename DeviceType::memory_space>::accessible,
+      KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
   std::default_random_engine generator;
 
