@@ -275,42 +275,52 @@ KOKKOS_INLINE_FUNCTION float overlapDistance(Ray const &ray,
 }
 
 // Möller–Trumbore intersection algorithm
-KOKKOS_INLINE_FUNCTION bool intersects(Ray const &ray, Triangle const &triangle)
+KOKKOS_INLINE_FUNCTION bool rayTriangleIntersect(Ray const &ray,
+                                                 Triangle const &triangle,
+                                                 float &t, float &u, float &v)
 {
   auto ab = makeVector(triangle.a, triangle.b);
   auto ac = makeVector(triangle.a, triangle.c);
 
-  auto h = crossProduct(ray.direction(), ac);
-  auto a = dotProduct(ab, h);
+  auto p = crossProduct(ray.direction(), ac);
+  auto det = dotProduct(ab, p);
 
   auto const epsilon = 0.0000001f;
-  if (a > -epsilon && a < epsilon)
+  // If the determinant is negative the triangle is back-facing.
+  // If the determinant is close to 0, the ray misses the triangle because they
+  // are in the same plane.
+  if (det < epsilon)
   {
-    return false; // ray parallel to the triangle
+    return false;
   }
 
-  auto f = 1.f / a;
+  float const inv_det = 1.f / det;
+
   auto s = makeVector(triangle.a, ray.origin());
-  auto u = f * dotProduct(s, h);
+  u = inv_det * dotProduct(s, p);
   if (u < 0.f || u > 1.f)
   {
     return false;
   }
 
   auto q = crossProduct(s, ab);
-  auto v = f * dotProduct(ray.direction(), q);
+  v = inv_det * dotProduct(ray.direction(), q);
   if (v < 0.f || u + v > 1.f)
   {
     return false;
   }
 
-  auto t = f * dotProduct(ac, q);
-  if (t > epsilon)
-  {
-    return true;
-  }
+  t = inv_det * dotProduct(ac, q);
 
-  return false;
+  return true;
+}
+
+KOKKOS_INLINE_FUNCTION bool intersects(Ray const &ray, Triangle const &triangle)
+{
+  float t;
+  float u;
+  float v;
+  return rayTriangleIntersect(ray, triangle, t, u, v);
 }
 
 } // namespace Experimental
