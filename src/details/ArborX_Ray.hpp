@@ -26,9 +26,52 @@ namespace ArborX
 {
 namespace Experimental
 {
+
+struct Vector : private Point
+{
+  using Point::Point;
+  using Point::operator[];
+};
+
+KOKKOS_INLINE_FUNCTION constexpr Vector makeVector(Point const &begin,
+                                                   Point const &end)
+{
+  Vector v;
+  for (int d = 0; d < 3; ++d)
+  {
+    v[d] = end[d] - begin[d];
+  }
+  return v;
+}
+
+KOKKOS_INLINE_FUNCTION constexpr auto dotProduct(Vector const &v,
+                                                 Vector const &w)
+{
+  return v[0] * w[0] + v[1] * w[1] + v[2] * w[2];
+}
+
+KOKKOS_INLINE_FUNCTION constexpr Vector crossProduct(Vector const &v,
+                                                     Vector const &w)
+{
+  return {v[1] * w[2] - v[2] * w[1], v[2] * w[0] - v[0] * w[2],
+          v[0] * w[1] - v[1] * w[0]};
+}
+
+KOKKOS_INLINE_FUNCTION constexpr bool operator==(Vector const &v,
+                                                 Vector const &w)
+{
+  return v[0] == w[0] && v[1] == w[1] && v[2] == w[2];
+}
+
+KOKKOS_INLINE_FUNCTION constexpr bool equals(Vector const &v, Vector const &w)
+{
+  return v == w;
+}
+
 struct Ray
 {
-  using Vector = Point; // will regret this later
+  Point _origin = {};
+  Vector _direction = {0.f, 0.f, 0.f};
 
   using Scalar = std::decay_t<decltype(std::declval<Vector>()[0])>;
 
@@ -72,8 +115,8 @@ struct Ray
   KOKKOS_FUNCTION
   constexpr Vector const &direction() const { return _direction; }
 
-  Point _origin = {};
-  Vector _direction = {{0.f, 0.f, 0.f}};
+  // FIXME avoid breaking Wenjun's code
+  using Vector [[deprecated]] = ArborX::Experimental::Vector;
 };
 
 KOKKOS_INLINE_FUNCTION
@@ -148,12 +191,6 @@ bool intersects(Ray const &ray, Box const &box)
   return max_min <= min_max && (min_max >= 0);
 }
 
-KOKKOS_INLINE_FUNCTION float dotProduct(Ray::Vector const &v1,
-                                        Ray::Vector const &v2)
-{
-  return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
-}
-
 // Solves a*x^2 + b*x + c = 0.
 // If a solution exists, return true and stores roots at x1, x2.
 // If a solution does not exist, returns false.
@@ -206,9 +243,7 @@ KOKKOS_INLINE_FUNCTION float overlapDistance(Ray const &ray,
   auto const &r = sphere.radius();
 
   // Vector oc = (origin_of_ray - center_of_sphere)
-  Ray::Vector const oc{ray.origin()[0] - sphere.centroid()[0],
-                       ray.origin()[1] - sphere.centroid()[1],
-                       ray.origin()[2] - sphere.centroid()[2]};
+  Vector const oc = makeVector(sphere.centroid(), ray.origin());
 
   float const a2 = 1.f; // directions are normalized
   float const a1 = 2.f * dotProduct(ray.direction(), oc);
