@@ -109,16 +109,17 @@ int main()
     auto indices_host =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
 
-    assert(static_cast<int>(offsets_host.size()) == n + 1);
-    for (int i = 0; i < n + 1; ++i)
-    {
-      assert(offsets_host(i) == i);
-    }
-    assert(static_cast<int>(indices_host.size()) == n);
-    for (int i = 0; i < n; ++i)
-    {
-      assert(indices_host(i) == i);
-    }
+    if (offsets_host.size() != n + 1)
+      Kokkos::abort("Wrong dimensions for the offsets View!\n");
+    for (int i = 0; i < static_cast<int>(n + 1); ++i)
+      if (offsets_host(i) != i)
+        Kokkos::abort("Wrong entry in the offsets View!\n");
+
+    if (indices_host.size() != n)
+      Kokkos::abort("Wrong dimensions for the indices View!\n");
+    for (int i = 0; i < static_cast<int>(n); ++i)
+      if (indices_host(i) != i)
+        Kokkos::abort("Wrong entry in the indices View!\n");
     std::cout << "Checking results successful." << '\n';
   }
 
