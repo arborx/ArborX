@@ -12,6 +12,7 @@
 #ifndef ARBORX_BOOST_RANGE_ADAPTERS_HPP
 #define ARBORX_BOOST_RANGE_ADAPTERS_HPP
 
+#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -27,8 +28,7 @@ namespace boost
   static_assert(Traits::rank == 1,                                             \
                 "Adaptor to Boost.Range only available for Views of rank 1");  \
   static_assert(                                                               \
-      Kokkos::SpaceAccessibility<Kokkos::HostSpace,                            \
-                                 typename Traits::memory_space>::accessible,   \
+      KokkosExt::is_accessible_from_host<View>::value,                         \
       "Adaptor to Boost.Range only available when View memory space is "       \
       "accessible from host");
 

@@ -9,6 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_DetailsTreeVisualization.hpp>
 #include <ArborX_LinearBVH.hpp>
 
@@ -52,8 +53,7 @@ void writePointCloud(
 
 {
   static_assert(
-      Kokkos::Impl::MemorySpaceAccess<
-          Kokkos::HostSpace, typename DeviceType::memory_space>::accessible,
+      KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
   std::ofstream file(filename);
   if (file.is_open())

@@ -30,8 +30,8 @@ struct is_accessible_from : std::false_type
 
 template <typename MemorySpace, typename ExecutionSpace>
 struct is_accessible_from<MemorySpace, ExecutionSpace,
-                          typename std::enable_if<Kokkos::SpaceAccessibility<
-                              ExecutionSpace, MemorySpace>::accessible>::type>
+                          std::enable_if_t<Kokkos::SpaceAccessibility<
+                              ExecutionSpace, MemorySpace>::accessible>>
     : std::true_type
 {
 };
