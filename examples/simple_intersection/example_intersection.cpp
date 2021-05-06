@@ -28,45 +28,55 @@
 //  o    o   o   o   j-2
 //
 
+template <typename DeviceType>
+Kokkos::View<ArborX::Box *, typename DeviceType::memory_space>
+create_bounding_boxes(
+    typename DeviceType::execution_space const &execution_space)
+{
+  float Lx = 100.0;
+  float Ly = 100.0;
+  float Lz = 100.0;
+  int nx = 11;
+  int ny = 11;
+  int nz = 11;
+  int n = nx * ny * nz;
+  float hx = Lx / (nx - 1);
+  float hy = Ly / (ny - 1);
+  float hz = Lz / (nz - 1);
+
+  auto index = [nx, ny](int i, int j, int k) {
+    return i + j * nx + k * (nx * ny);
+  };
+
+  Kokkos::View<ArborX::Box *, typename DeviceType::memory_space> bounding_boxes(
+      "bounding_boxes", n);
+  auto bounding_boxes_host = Kokkos::create_mirror_view(bounding_boxes);
+
+  for (int i = 0; i < nx; ++i)
+    for (int j = 0; j < ny; ++j)
+      for (int k = 0; k < nz; ++k)
+      {
+        ArborX::Point p_lower{{(i - .25) * hx, (j - .25) * hy, (k - .25) * hz}};
+        ArborX::Point p_upper{{(i + .25) * hx, (j + .25) * hy, (k + .25) * hz}};
+        bounding_boxes_host[index(i, j, k)] = {p_lower, p_upper};
+      }
+  Kokkos::deep_copy(execution_space, bounding_boxes, bounding_boxes_host);
+
+  return bounding_boxes;
+}
+
 int main()
 {
   Kokkos::initialize();
   {
     using ExecutionSpace = Kokkos::DefaultExecutionSpace;
     using MemorySpace = typename ExecutionSpace::memory_space;
+    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     ExecutionSpace execution_space;
 
     std::cout << "Create grid with bounding boxes" << '\n';
-    float Lx = 100.0;
-    float Ly = 100.0;
-    float Lz = 100.0;
-    int nx = 11;
-    int ny = 11;
-    int nz = 11;
-    int n = nx * ny * nz;
-    float hx = Lx / (nx - 1);
-    float hy = Ly / (ny - 1);
-    float hz = Lz / (nz - 1);
-
-    std::function<int(int, int, int)> ind = [nx, ny](int i, int j, int k) {
-      return i + j * nx + k * (nx * ny);
-    };
-
-    Kokkos::View<ArborX::Box *, MemorySpace> bounding_boxes("bounding_boxes",
-                                                            n);
-    auto bounding_boxes_host = Kokkos::create_mirror_view(bounding_boxes);
-
-    for (int i = 0; i < nx; ++i)
-      for (int j = 0; j < ny; ++j)
-        for (int k = 0; k < nz; ++k)
-        {
-          ArborX::Point p_lower{
-              {(i - .25) * hx, (j - .25) * hy, (k - .25) * hz}};
-          ArborX::Point p_upper{
-              {(i + .25) * hx, (j + .25) * hy, (k + .25) * hz}};
-          bounding_boxes_host[ind(i, j, k)] = {p_lower, p_upper};
-        }
-    Kokkos::deep_copy(bounding_boxes, bounding_boxes_host);
+    Kokkos::View<ArborX::Box *, MemorySpace> bounding_boxes =
+        create_bounding_boxes<DeviceType>(execution_space);
     std::cout << "Bounding boxes set up." << '\n';
 
     std::cout << "Creating BVH tree." << '\n';
@@ -74,6 +84,7 @@ int main()
     std::cout << "BVH tree set up." << '\n';
 
     std::cout << "Filling queries." << '\n';
+    auto const n = bounding_boxes.size();
     Kokkos::View<decltype(ArborX::intersects(ArborX::Box{})) *, MemorySpace>
         queries("queries", n);
     Kokkos::parallel_for(
