@@ -10,6 +10,7 @@
  ****************************************************************************/
 #include <ArborX_Box.hpp>
 #include <ArborX_Ray.hpp>
+#include <ArborX_Triangle.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -224,6 +225,47 @@ BOOST_AUTO_TEST_CASE(overlap_distance_sphere,
   BOOST_TEST(overlapDistance(Ray{{0, 0, 1}, {1, 1, 1}}, unit_sphere) == 0.f);
   BOOST_TEST(overlapDistance(Ray{{half_sqrtf_3, 0.5, 0}, {1, 0, 0}},
                              unit_sphere) == 0.f);
+}
+
+BOOST_AUTO_TEST_CASE(intersects_triangle)
+{
+  using ArborX::Experimental::Ray;
+  using ArborX::Experimental::Triangle;
+  constexpr Triangle unit_triangle{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}};
+
+  BOOST_TEST(intersects(Ray{{.1, .2, .3}, {0, 0, -1}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{1.1, 1.2, 1}, {-1, -1, -1}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{-1.9, 3.2, -1}, {2, -3, 1}}, unit_triangle));
+
+  // ray origin on the triangle
+  BOOST_TEST(!intersects(Ray{{.1, .2, 0}, {0, 0, 1}}, unit_triangle));
+  BOOST_TEST(!intersects(Ray{{.1, .2, 0}, {0, 0, -1}}, unit_triangle));
+  BOOST_TEST(!intersects(Ray{{.1, .2, 0}, {1, 2, 3}}, unit_triangle));
+
+  // ray directed away from the triangle
+  BOOST_TEST(!intersects(Ray{{.1, .2, .3}, {0, 0, 1}}, unit_triangle));
+
+  // ray in the same plane as the triangle
+  BOOST_TEST(!intersects(Ray{{1, 2, 3}, {1, 1, 0}}, unit_triangle));
+  BOOST_TEST(!intersects(Ray{{1, 2, 3}, {1, 0, 0}}, unit_triangle));
+  BOOST_TEST(!intersects(Ray{{1, 2, 3}, {0, 1, 0}}, unit_triangle));
+  BOOST_TEST(!intersects(Ray{{.3, .3, 0}, {1, 1, 0}}, unit_triangle));
+
+  // ray misses the triangle
+  BOOST_TEST(!intersects(Ray{{-1, 2, -3}, {0, 0, 1}}, unit_triangle));
+
+  // ray hits vertices
+  BOOST_TEST(intersects(Ray{{0, 0, -1}, {0, 0, 1}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{1, 0, -2}, {0, 0, 1}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{0, 1, -3}, {0, 0, 1}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{1, 2, 3}, {-1, -2, -3}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{1, 2, 3}, {0, -2, -3}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{1, 2, 3}, {-1, -1, -3}}, unit_triangle)); // bad
+
+  // ray hits edges
+  BOOST_TEST(intersects(Ray{{.1, 0, -1}, {0, 0, 1}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{0, .2, -2}, {0, 0, 1}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{.5, .5, -3}, {0, 0, 1}}, unit_triangle));
 }
 
 #define STATIC_ASSERT(cond) static_assert(cond, "");

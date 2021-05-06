@@ -16,6 +16,7 @@
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
+#include <ArborX_Triangle.hpp>
 
 #include <Kokkos_Macros.hpp>
 
@@ -271,6 +272,45 @@ KOKKOS_INLINE_FUNCTION float overlapDistance(Ray const &ray,
   // As direction is normalized,
   //   |(o + tmax*d) - (o + tmin*d)| = tmax - tmin
   return (tmax - tmin);
+}
+
+// Möller–Trumbore intersection algorithm
+KOKKOS_INLINE_FUNCTION bool intersects(Ray const &ray, Triangle const &triangle)
+{
+  auto ab = makeVector(triangle.a, triangle.b);
+  auto ac = makeVector(triangle.a, triangle.c);
+
+  auto h = crossProduct(ray.direction(), ac);
+  auto a = dotProduct(ab, h);
+
+  auto const epsilon = 0.0000001f;
+  if (a > -epsilon && a < epsilon)
+  {
+    return false; // ray parallel to the triangle
+  }
+
+  auto f = 1.f / a;
+  auto s = makeVector(triangle.a, ray.origin());
+  auto u = f * dotProduct(s, h);
+  if (u < 0.f || u > 1.f)
+  {
+    return false;
+  }
+
+  auto q = crossProduct(s, ab);
+  auto v = f * dotProduct(ray.direction(), q);
+  if (v < 0.f || u + v > 1.f)
+  {
+    return false;
+  }
+
+  auto t = f * dotProduct(ac, q);
+  if (t > epsilon)
+  {
+    return true;
+  }
+
+  return false;
 }
 
 } // namespace Experimental
