@@ -71,15 +71,16 @@ KOKKOS_INLINE_FUNCTION constexpr bool equals(Vector const &v, Vector const &w)
 struct Ray
 {
   Point _origin = {};
-  Vector _direction = {0.f, 0.f, 0.f};
+  Experimental::Vector _direction = {0.f, 0.f, 0.f};
 
-  using Scalar = std::decay_t<decltype(std::declval<Vector>()[0])>;
+  using Scalar =
+      std::decay_t<decltype(std::declval<Experimental::Vector>()[0])>;
 
   KOKKOS_DEFAULTED_FUNCTION
   constexpr Ray() = default;
 
   KOKKOS_FUNCTION
-  Ray(Point const &origin, Vector const &direction)
+  Ray(Point const &origin, Experimental::Vector const &direction)
       : _origin(origin)
       , _direction(direction)
   {
@@ -87,7 +88,7 @@ struct Ray
   }
 
   KOKKOS_FUNCTION
-  static Scalar norm(Vector const &v)
+  static Scalar norm(Experimental::Vector const &v)
   {
     Scalar sq{};
     for (int d = 0; d < 3; ++d)
@@ -95,7 +96,7 @@ struct Ray
     return std::sqrt(sq);
   }
 
-  KOKKOS_FUNCTION static void normalize(Vector &v)
+  KOKKOS_FUNCTION static void normalize(Experimental::Vector &v)
   {
     auto const magv = norm(v);
     assert(magv > 0);
@@ -110,10 +111,10 @@ struct Ray
   constexpr Point const &origin() const { return _origin; }
 
   KOKKOS_FUNCTION
-  constexpr Vector &direction() { return _direction; }
+  constexpr Experimental::Vector &direction() { return _direction; }
 
   KOKKOS_FUNCTION
-  constexpr Vector const &direction() const { return _direction; }
+  constexpr Experimental::Vector const &direction() const { return _direction; }
 
   // FIXME avoid breaking Wenjun's code
   using Vector [[deprecated]] = ArborX::Experimental::Vector;
