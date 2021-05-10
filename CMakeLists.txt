@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(ArborX CXX)
 
-find_package(Kokkos 3.1 REQUIRED)
+find_package(Kokkos 3.1 REQUIRED CONFIG)
 if(Kokkos_ENABLE_CUDA)
   kokkos_check(OPTIONS CUDA_LAMBDA)
 endif()
@@ -121,7 +121,7 @@ option(ARBORX_ENABLE_TESTS "Enable tests" OFF)
 option(ARBORX_ENABLE_EXAMPLES "Enable examples" OFF)
 option(ARBORX_ENABLE_BENCHMARKS "Enable benchmarks" OFF)
 
-if(${ARBORX_ENABLE_TESTS} OR ${ARBORX_ENABLE_EXAMPLES})
+if(ARBORX_ENABLE_TESTS OR ARBORX_ENABLE_EXAMPLES OR ARBORX_ENABLE_BENCHMARKS)
   enable_testing()
 endif()
 
