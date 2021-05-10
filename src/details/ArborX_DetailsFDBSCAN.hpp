@@ -24,22 +24,21 @@ namespace Details
 {
 
 template <typename MemorySpace>
-struct FDBSCANNumNeighEarlyExitCallback
+struct CountUpToN
 {
-  Kokkos::View<int *, MemorySpace> _num_neigh;
-  int _core_min_size;
+  Kokkos::View<int *, MemorySpace> _counts;
+  int _n;
 
   template <typename Query>
   KOKKOS_FUNCTION auto operator()(Query const &query, int) const
   {
     auto i = getData(query);
-    Kokkos::atomic_fetch_add(&_num_neigh(i), 1);
+    Kokkos::atomic_fetch_add(&_counts(i), 1);
 
-    if (_num_neigh(i) < _core_min_size)
+    if (_counts(i) < _n)
       return ArborX::CallbackTreeTraversalControl::normal_continuation;
 
-    // Once _core_min_size neighbors are found, it is guaranteed to be a core
-    // point, and there is no reason to continue the search.
+    // Once count reaches threshold, terminate the traversal.
     return ArborX::CallbackTreeTraversalControl::early_exit;
   }
 };

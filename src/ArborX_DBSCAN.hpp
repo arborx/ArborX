@@ -163,8 +163,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     Kokkos::View<int *, MemorySpace> num_neigh("ArborX::dbscan::num_neighbors",
                                                n);
     bvh.query(exec_space, predicates,
-              Details::FDBSCANNumNeighEarlyExitCallback<MemorySpace>{
-                  num_neigh, core_min_size});
+              Details::CountUpToN<MemorySpace>{num_neigh, core_min_size});
     Kokkos::Profiling::popRegion();
     elapsed["neigh"] = timer_seconds(timer_local);
 
