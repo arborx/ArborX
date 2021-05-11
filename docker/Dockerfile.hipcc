@@ -94,7 +94,10 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
 
 # Install Kokkos
 ARG KOKKOS_VERSION=3.3.01
-ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_HIP=ON -DKokkos_ARCH_VEGA906=ON"
+ARG KOKKOS_ARCH=Kokkos_ARCH_VEGA906
+# Temporary hack
+ENV KOKKOS_ARCH_TMP=${KOKKOS_ARCH:-Kokkos_ARCH_VEGA906} 
+ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_HIP=ON -D${KOKKOS_ARCH_TMP}=ON"
 ENV KOKKOS_DIR=/opt/kokkos
 RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
     KOKKOS_ARCHIVE=kokkos-${KOKKOS_HASH}.tar.gz && \
