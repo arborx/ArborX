@@ -93,8 +93,13 @@ configure_package_config_file(cmake/ArborXConfig.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
   INSTALL_DESTINATION lib/cmake/ArborX
 )
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/ArborXConfigVersion.cmake
+  VERSION ${ARBORX_VERSION_STRING}
+  COMPATIBILITY SameMajorVersion
+)
 install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfigVersion.cmake
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXSettings.cmake
   DESTINATION lib/cmake/ArborX )
 
