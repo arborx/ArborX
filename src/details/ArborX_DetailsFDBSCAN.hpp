@@ -9,9 +9,10 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILSDBSCANCALLBACK_HPP
-#define ARBORX_DETAILSDBSCANCALLBACK_HPP
+#ifndef ARBORX_DETAILSFDBSCAN_HPP
+#define ARBORX_DETAILSFDBSCAN_HPP
 
+#include <ArborX_Callbacks.hpp>
 #include <ArborX_DetailsUnionFind.hpp>
 #include <ArborX_Predicates.hpp>
 
@@ -22,14 +23,34 @@ namespace ArborX
 namespace Details
 {
 
+template <typename MemorySpace>
+struct CountUpToN
+{
+  Kokkos::View<int *, MemorySpace> _counts;
+  int _n;
+
+  template <typename Query>
+  KOKKOS_FUNCTION auto operator()(Query const &query, int) const
+  {
+    auto i = getData(query);
+    Kokkos::atomic_fetch_add(&_counts(i), 1);
+
+    if (_counts(i) < _n)
+      return ArborX::CallbackTreeTraversalControl::normal_continuation;
+
+    // Once count reaches threshold, terminate the traversal.
+    return ArborX::CallbackTreeTraversalControl::early_exit;
+  }
+};
+
 template <typename MemorySpace, typename CorePointsType>
-struct DBSCANCallback
+struct FDBSCANCallback
 {
   UnionFind<MemorySpace> union_find_;
   CorePointsType is_core_point_;
 
-  DBSCANCallback(Kokkos::View<int *, MemorySpace> const &view,
-                 CorePointsType is_core_point)
+  FDBSCANCallback(Kokkos::View<int *, MemorySpace> const &view,
+                  CorePointsType is_core_point)
       : union_find_(view)
       , is_core_point_(is_core_point)
   {

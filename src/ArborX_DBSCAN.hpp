@@ -13,7 +13,7 @@
 #define ARBORX_DBSCAN_HPP
 
 #include <ArborX_AccessTraits.hpp>
-#include <ArborX_DetailsDBSCANCallback.hpp>
+#include <ArborX_DetailsFDBSCAN.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_LinearBVH.hpp>
@@ -58,27 +58,6 @@ struct AccessTraits<PrimitivesWithRadius<Primitives>, PredicatesTag>
 
 namespace DBSCAN
 {
-
-template <typename MemorySpace>
-struct NumNeighEarlyExitCallback
-{
-  Kokkos::View<int *, MemorySpace> _num_neigh;
-  int _core_min_size;
-
-  template <typename Query>
-  KOKKOS_FUNCTION auto operator()(Query const &query, int) const
-  {
-    auto i = getData(query);
-    Kokkos::atomic_fetch_add(&_num_neigh(i), 1);
-
-    if (_num_neigh(i) < _core_min_size)
-      return ArborX::CallbackTreeTraversalControl::normal_continuation;
-
-    // Once _core_min_size neighbors are found, it is guaranteed to be a core
-    // point, and there is no reason to continue the search.
-    return ArborX::CallbackTreeTraversalControl::early_exit;
-  }
-};
 
 struct CCSCorePoints
 {
@@ -172,7 +151,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters::query");
     bvh.query(
         exec_space, predicates,
-        Details::DBSCANCallback<MemorySpace, CorePoints>{labels, core_points});
+        Details::FDBSCANCallback<MemorySpace, CorePoints>{labels, core_points});
     Kokkos::Profiling::popRegion();
   }
   else
@@ -184,8 +163,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     Kokkos::View<int *, MemorySpace> num_neigh("ArborX::dbscan::num_neighbors",
                                                n);
     bvh.query(exec_space, predicates,
-              DBSCAN::NumNeighEarlyExitCallback<MemorySpace>{num_neigh,
-                                                             core_min_size});
+              Details::CountUpToN<MemorySpace>{num_neigh, core_min_size});
     Kokkos::Profiling::popRegion();
     elapsed["neigh"] = timer_seconds(timer_local);
 
@@ -195,7 +173,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     timer_start(timer_local);
     Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters:query");
     bvh.query(exec_space, predicates,
-              Details::DBSCANCallback<MemorySpace, CorePoints>{
+              Details::FDBSCANCallback<MemorySpace, CorePoints>{
                   labels, CorePoints{num_neigh, core_min_size}});
     Kokkos::Profiling::popRegion();
     elapsed["query"] = timer_seconds(timer_local);
