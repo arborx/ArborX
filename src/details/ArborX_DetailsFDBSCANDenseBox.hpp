@@ -292,7 +292,8 @@ computeMixedOffsets(ExecutionSpace const &exec_space, int core_min_size,
   // NOTE: This is not ideal, as it does a thread may do a linear scan over a
   // range. The only saving grace is that this linear scan is guaranteed to not
   // exceed core_min_size. Would prefer a better way, but cannot figure out how.
-  auto constexpr SWITCH_VALUE = std::numeric_limits<size_t>::max();
+  auto constexpr SWITCH_VALUE =
+      std::numeric_limits<typename CellIndices::value_type>::max();
   auto modified_cell_indices = clone(exec_space, sorted_cell_indices);
   Kokkos::parallel_for(
       "ArborX::dbscan::modify_sorted_cell_indices",
@@ -396,44 +397,6 @@ void unionFindWithinEachDenseCell(ExecutionSpace const &exec_space,
            num_points_in_dense_cells_host(),
            (100.f * num_points_in_dense_cells_host()) / n);
   }
-}
-
-template <typename ExecutionSpace, typename Primitives, typename MixedOffsets,
-          typename CellIndices, typename Permutation>
-Kokkos::View<Box *, typename Permutation::memory_space>
-buildBoxPrimitives(ExecutionSpace const &exec_space,
-                   Primitives const &primitives, int core_min_size,
-                   CartesianGrid const &grid, MixedOffsets mixed_offsets,
-                   CellIndices sorted_cell_indices, Permutation permute)
-{
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-  using MemorySpace = typename Access::memory_space;
-
-  auto const num_boxes = mixed_offsets.size() - 1;
-  Kokkos::View<Box *, MemorySpace> box_primitives(
-      Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::box_primitives"),
-      num_boxes);
-  Kokkos::parallel_for(
-      "ArborX::dbscan::build_dense_box_primitives",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_boxes),
-      KOKKOS_LAMBDA(int index) {
-        int num_points_in_cell =
-            mixed_offsets(index + 1) - mixed_offsets(index);
-        if (num_points_in_cell >= core_min_size)
-        {
-          auto cell_index = sorted_cell_indices(mixed_offsets(index));
-          box_primitives(index) = grid.cellBox(cell_index);
-        }
-        else
-        {
-          assert(num_points_in_cell == 1);
-          Point const &point =
-              Access::get(primitives, permute(mixed_offsets(index)));
-          Box point_box{point, point};
-          box_primitives(index) = point_box;
-        }
-      });
-  return box_primitives;
 }
 
 template <typename ExecutionSpace, typename Primitives, typename MixedOffsets,

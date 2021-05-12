@@ -100,7 +100,55 @@ struct Parameters
   }
 };
 
+template <typename PointPrimitives, typename MixedOffsets, typename CellIndices,
+          typename Permutation>
+struct MixedBoxPrimitives
+{
+  PointPrimitives _point_primitives;
+  int _core_min_size;
+  Details::CartesianGrid _grid;
+  MixedOffsets _mixed_offsets;
+  CellIndices _sorted_cell_indices;
+  Permutation _permute;
+};
+
 } // namespace DBSCAN
+
+template <typename PointPrimitives, typename MixedOffsets, typename CellIndices,
+          typename Permutation>
+struct AccessTraits<DBSCAN::MixedBoxPrimitives<PointPrimitives, MixedOffsets,
+                                               CellIndices, Permutation>,
+                    ArborX::PrimitivesTag>
+{
+  using Primitives = DBSCAN::MixedBoxPrimitives<PointPrimitives, MixedOffsets,
+                                                CellIndices, Permutation>;
+  static KOKKOS_FUNCTION std::size_t size(Primitives const &primitives)
+  {
+    return primitives._mixed_offsets.size() - 1;
+  }
+  static KOKKOS_FUNCTION ArborX::Box get(Primitives const &primitives,
+                                         std::size_t i)
+  {
+    auto const &mixed_offsets = primitives._mixed_offsets;
+
+    int num_points_in_cell = mixed_offsets(i + 1) - mixed_offsets(i);
+    if (num_points_in_cell >= primitives._core_min_size)
+    {
+      auto cell_index = primitives._sorted_cell_indices(mixed_offsets(i));
+      return primitives._grid.cellBox(cell_index);
+    }
+    else
+    {
+      assert(num_points_in_cell == 1);
+      using Access = AccessTraits<PointPrimitives, PrimitivesTag>;
+
+      Point const &point = Access::get(primitives._point_primitives,
+                                       primitives._permute(mixed_offsets(i)));
+      return {point, point};
+    }
+  }
+  using memory_space = typename MixedOffsets::memory_space;
+};
 
 template <typename ExecutionSpace, typename Primitives>
 Kokkos::View<int *,
@@ -226,10 +274,6 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     Details::unionFindWithinEachDenseCell(
         exec_space, core_min_size, mixed_offsets, labels, permute, verbose);
 
-    auto box_primitives = Details::buildBoxPrimitives(
-        exec_space, primitives, core_min_size, grid, mixed_offsets,
-        sorted_cell_indices, permute);
-
     Kokkos::View<int *, MemorySpace> point2offset(
         Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::point2offset"),
         n);
@@ -248,7 +292,13 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     // Build the tree
     timer_start(timer);
     Kokkos::Profiling::pushRegion("ArborX::dbscan::tree_construction");
-    BVH<MemorySpace> bvh(exec_space, box_primitives);
+    BVH<MemorySpace> bvh(
+        exec_space,
+        DBSCAN::MixedBoxPrimitives<Primitives, decltype(mixed_offsets),
+                                   decltype(cell_indices), decltype(permute)>{
+            primitives, core_min_size, grid, mixed_offsets, sorted_cell_indices,
+            permute});
+
     Kokkos::Profiling::popRegion();
     elapsed["construction"] = timer_seconds(timer);
 
