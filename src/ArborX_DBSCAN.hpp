@@ -23,36 +23,52 @@
 namespace ArborX
 {
 
-template <typename Primitives>
+template <typename Primitives, typename FilterAndPermuter>
 struct PrimitivesWithRadius
 {
   Primitives _primitives;
+  FilterAndPermuter _filter;
   double _r;
+};
+
+struct Iota
+{
+  size_t _n;
+  KOKKOS_FUNCTION unsigned int operator()(int const i) const { return i; }
+  KOKKOS_FUNCTION size_t extent(int) const { return _n; }
 };
 
 template <typename Primitives>
 auto buildPredicates(Primitives const &v, double r)
 {
-  return PrimitivesWithRadius<Primitives>{v, r};
+  using Access = AccessTraits<Primitives, PrimitivesTag>;
+
+  return PrimitivesWithRadius<Primitives, Iota>{
+      v, Iota{(size_t)Access::size(v)}, r};
 }
 
-template <typename Primitives>
-struct AccessTraits<PrimitivesWithRadius<Primitives>, PredicatesTag>
+template <typename Primitives, typename FilterAndPermuter>
+auto buildPredicates(Primitives const &v, double r, FilterAndPermuter filter)
+{
+  return PrimitivesWithRadius<Primitives, FilterAndPermuter>{v, filter, r};
+}
+
+template <typename Primitives, typename FilterAndPermuter>
+struct AccessTraits<PrimitivesWithRadius<Primitives, FilterAndPermuter>,
+                    PredicatesTag>
 {
   using PrimitivesAccess = AccessTraits<Primitives, PrimitivesTag>;
 
   using memory_space = typename PrimitivesAccess::memory_space;
-  using Predicates = PrimitivesWithRadius<Primitives>;
+  using Predicates = PrimitivesWithRadius<Primitives, FilterAndPermuter>;
 
-  static size_t size(Predicates const &w)
-  {
-    return PrimitivesAccess::size(w._primitives);
-  }
+  static size_t size(Predicates const &w) { return w._filter.extent(0); }
   static KOKKOS_FUNCTION auto get(Predicates const &w, size_t i)
   {
+    int index = w._filter(i);
     return attach(
-        intersects(Sphere{PrimitivesAccess::get(w._primitives, i), w._r}),
-        (int)i);
+        intersects(Sphere{PrimitivesAccess::get(w._primitives, index), w._r}),
+        (int)index);
   }
 };
 
@@ -100,14 +116,14 @@ struct Parameters
   }
 };
 
-template <typename PointPrimitives, typename MixedOffsets, typename CellIndices,
-          typename Permutation>
+template <typename PointPrimitives, typename DenseCellOffsets,
+          typename CellIndices, typename Permutation>
 struct MixedBoxPrimitives
 {
   PointPrimitives _point_primitives;
-  int _core_min_size;
   Details::CartesianGrid _grid;
-  MixedOffsets _mixed_offsets;
+  DenseCellOffsets _dense_cell_offsets;
+  int _num_points_in_dense_cells; // to avoid lastElement() in AccessTraits
   CellIndices _sorted_cell_indices;
   Permutation _permute;
 };
@@ -122,28 +138,32 @@ struct AccessTraits<DBSCAN::MixedBoxPrimitives<PointPrimitives, MixedOffsets,
 {
   using Primitives = DBSCAN::MixedBoxPrimitives<PointPrimitives, MixedOffsets,
                                                 CellIndices, Permutation>;
-  static KOKKOS_FUNCTION std::size_t size(Primitives const &primitives)
+  static KOKKOS_FUNCTION std::size_t size(Primitives const &w)
   {
-    return primitives._mixed_offsets.size() - 1;
-  }
-  static KOKKOS_FUNCTION ArborX::Box get(Primitives const &primitives,
-                                         std::size_t i)
-  {
-    auto const &mixed_offsets = primitives._mixed_offsets;
+    auto const &dco = w._dense_cell_offsets;
 
-    int num_points_in_cell = mixed_offsets(i + 1) - mixed_offsets(i);
-    if (num_points_in_cell >= primitives._core_min_size)
+    auto const n = w._permute.size();
+    auto num_dense_primitives = dco.size() - 1;
+    auto num_sparse_primitives = n - w._num_points_in_dense_cells;
+
+    return num_dense_primitives + num_sparse_primitives;
+  }
+  static KOKKOS_FUNCTION ArborX::Box get(Primitives const &w, std::size_t i)
+  {
+    auto const &dco = w._dense_cell_offsets;
+
+    auto num_dense_primitives = dco.size() - 1;
+    if (i < num_dense_primitives)
     {
-      auto cell_index = primitives._sorted_cell_indices(mixed_offsets(i));
-      return primitives._grid.cellBox(cell_index);
+      auto cell_index = w._sorted_cell_indices(dco(i));
+      return w._grid.cellBox(cell_index);
     }
     else
     {
-      assert(num_points_in_cell == 1);
       using Access = AccessTraits<PointPrimitives, PrimitivesTag>;
 
-      Point const &point = Access::get(primitives._point_primitives,
-                                       primitives._permute(mixed_offsets(i)));
+      i = (i - num_dense_primitives) + w._num_points_in_dense_cells;
+      Point const &point = Access::get(w._point_primitives, w._permute(i));
       return {point, point};
     }
   }
@@ -186,13 +206,13 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     return timer.seconds();
   };
 
-  auto const n = Access::size(primitives);
+  int const n = Access::size(primitives);
 
   Kokkos::View<int *, MemorySpace> num_neigh("ArborX::dbscan::num_neighbors",
                                              0);
 
   Kokkos::View<int *, MemorySpace> labels(
-      Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::labels"), n);
+      Kokkos::ViewAllocateWithoutInitializing("ArborX::dbscan::labels"), n);
   ArborX::iota(exec_space, labels);
 
   if (parameters._implementation == DBSCAN::Implementation::FDBSCAN)
@@ -259,32 +279,50 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     // points within the same cell are within eps distance of each other.
     float const h = eps / std::sqrt(3); // 3D (for 2D change to std::sqrt(2))
     Details::CartesianGrid const grid(bounds, h);
-    if (verbose)
-      printf("h = %e, nx = %zu, ny = %zu, nz = %zu\n", h, grid._nx, grid._ny,
-             grid._nz);
 
     auto cell_indices =
         Details::computeCellIndices(exec_space, primitives, grid);
+
     auto permute = Details::sortObjects(exec_space, cell_indices);
     auto &sorted_cell_indices = cell_indices; // alias
 
-    auto mixed_offsets = Details::computeMixedOffsets(
-        exec_space, core_min_size, sorted_cell_indices, verbose);
+    int num_nonempty_cells;
+    int num_points_in_dense_cells;
+    {
+      // Reorder indices and permutation so that the dense cells go first
+      auto cell_offsets =
+          Details::computeOffsetsInOrderedView(exec_space, sorted_cell_indices);
+      num_nonempty_cells = cell_offsets.size() - 1;
 
-    Details::unionFindWithinEachDenseCell(
-        exec_space, core_min_size, mixed_offsets, labels, permute, verbose);
+      num_points_in_dense_cells = Details::reorderDenseAndSparseCells(
+          exec_space, cell_offsets, core_min_size, sorted_cell_indices,
+          permute);
+    }
+    int num_points_in_sparse_cells = n - num_points_in_dense_cells;
 
-    Kokkos::View<int *, MemorySpace> point2offset(
-        Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::point2offset"),
-        n);
-    Kokkos::parallel_for("ArborX::DBSCAN::compute_point2offset",
-                         Kokkos::RangePolicy<ExecutionSpace>(
-                             exec_space, 0, mixed_offsets.size() - 1),
-                         KOKKOS_LAMBDA(int i) {
-                           for (int j = mixed_offsets(i);
-                                j < mixed_offsets(i + 1); ++j)
-                             point2offset(permute(j)) = i;
-                         });
+    auto dense_sorted_cell_indices = Kokkos::subview(
+        sorted_cell_indices, Kokkos::make_pair(0, num_points_in_dense_cells));
+
+    auto dense_cell_offsets = Details::computeOffsetsInOrderedView(
+        exec_space, dense_sorted_cell_indices);
+    int num_dense_cells = dense_cell_offsets.size() - 1;
+    if (verbose)
+    {
+      printf("h = %e, nx = %zu, ny = %zu, nz = %zu\n", h, grid._nx, grid._ny,
+             grid._nz);
+      printf("#nonempty cells     : %10d\n", num_nonempty_cells);
+      printf("#dense cells        : %10d [%.2f%%]\n", num_dense_cells,
+             (100.f * num_dense_cells) / num_nonempty_cells);
+      printf("#dense cell points  : %10d [%.2f%%]\n", num_points_in_dense_cells,
+             (100.f * num_points_in_dense_cells) / n);
+      printf("#dense primitives   : %10d\n", num_dense_cells);
+      printf("#point primitives   : %10d\n", num_points_in_sparse_cells);
+      printf("#total primitives   : %10d\n",
+             num_dense_cells + num_points_in_sparse_cells);
+    }
+
+    Details::unionFindWithinEachDenseCell(exec_space, dense_sorted_cell_indices,
+                                          permute, labels);
 
     Kokkos::Profiling::popRegion();
     elapsed["dense_cells"] = timer_seconds(timer);
@@ -294,10 +332,10 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     Kokkos::Profiling::pushRegion("ArborX::dbscan::tree_construction");
     BVH<MemorySpace> bvh(
         exec_space,
-        DBSCAN::MixedBoxPrimitives<Primitives, decltype(mixed_offsets),
+        DBSCAN::MixedBoxPrimitives<Primitives, decltype(dense_cell_offsets),
                                    decltype(cell_indices), decltype(permute)>{
-            primitives, core_min_size, grid, mixed_offsets, sorted_cell_indices,
-            permute});
+            primitives, grid, dense_cell_offsets, num_points_in_dense_cells,
+            sorted_cell_indices, permute});
 
     Kokkos::Profiling::popRegion();
     elapsed["construction"] = timer_seconds(timer);
@@ -312,11 +350,11 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters::query");
       bvh.query(
           exec_space, predicates,
-          Details::FDBSCANDenseBoxCallback<
-              MemorySpace, CorePoints, Primitives, decltype(mixed_offsets),
-              decltype(point2offset), decltype(permute)>{
-              labels, CorePoints{}, primitives, mixed_offsets, point2offset,
-              permute, core_min_size, eps});
+          Details::FDBSCANDenseBoxCallback<MemorySpace, CorePoints, Primitives,
+                                           decltype(dense_cell_offsets),
+                                           decltype(permute)>{
+              labels, CorePoints{}, primitives, dense_cell_offsets, permute,
+              eps});
       Kokkos::Profiling::popRegion();
     }
     else
@@ -325,10 +363,25 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       Kokkos::Timer timer_local;
       timer_start(timer_local);
       Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters::num_neigh");
+      // Set num neighbors for points in dense cells to max, so that they are
+      // automatically core points
       Kokkos::resize(num_neigh, n);
-      Details::computeNumNeighbors(exec_space, primitives, core_min_size, eps,
-                                   mixed_offsets, permute, num_neigh, bvh,
-                                   verbose);
+      Kokkos::parallel_for(
+          "ArborX::dbscan::mark_dense_cells_core_points",
+          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0,
+                                              num_points_in_dense_cells),
+          KOKKOS_LAMBDA(int i) { num_neigh(permute(i)) = INT_MAX; });
+      // Count neighbors for points in sparse cells
+      auto const sparse_predicates = buildPredicates(
+          primitives, eps,
+          Kokkos::subview(permute,
+                          Kokkos::make_pair(num_points_in_dense_cells, n)));
+      bvh.query(exec_space, sparse_predicates,
+                Details::CountUpToN_DenseBox<MemorySpace, Primitives,
+                                             decltype(dense_cell_offsets),
+                                             decltype(permute)>(
+                    num_neigh, primitives, dense_cell_offsets, permute,
+                    core_min_size, eps));
       Kokkos::Profiling::popRegion();
       elapsed["neigh"] = timer_seconds(timer_local);
 
@@ -339,11 +392,11 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       Kokkos::Profiling::pushRegion("ArborX::dbscan::clusters:query");
       bvh.query(
           exec_space, predicates,
-          Details::FDBSCANDenseBoxCallback<
-              MemorySpace, CorePoints, Primitives, decltype(mixed_offsets),
-              decltype(point2offset), decltype(permute)>{
+          Details::FDBSCANDenseBoxCallback<MemorySpace, CorePoints, Primitives,
+                                           decltype(dense_cell_offsets),
+                                           decltype(permute)>{
               labels, CorePoints{num_neigh, core_min_size}, primitives,
-              mixed_offsets, point2offset, permute, core_min_size, eps});
+              dense_cell_offsets, permute, eps});
       Kokkos::Profiling::popRegion();
       elapsed["query"] = timer_seconds(timer_local);
     }
