@@ -180,14 +180,28 @@ struct FDBSCANDenseBoxCallback
 
     if (is_dense_cell)
     {
-      Point const &query_point = Access::get(_primitives, i);
-
       int const cell_start = _dense_cell_offsets(k);
       int const cell_end = _dense_cell_offsets(k + 1);
+
+      // Skip the dense box if they were already merged together
+      if (_union_find.representative(i) ==
+          _union_find.representative(_permute(cell_start)))
+        return ArborX::CallbackTreeTraversalControl::normal_continuation;
+
+      Point const &query_point = Access::get(_primitives, i);
+
       for (int jj = cell_start; jj < cell_end; ++jj)
       {
         int j = _permute(jj);
-        if (i >= j && distance(query_point, Access::get(_primitives, j)) <= eps)
+
+        // As soon as a pair is found, all other potentially search pairs for
+        // these two boxes will stop too
+        // TODO: can this be optimized out, i.e., not reload
+        // _union_find.representative(i)
+        if (_union_find.representative(i) == _union_find.representative(j))
+          break;
+
+        if (distance(query_point, Access::get(_primitives, j)) <= eps)
         {
           // We connected to at least one point in the dense box, thus we
           // connected to all of them, so may terminate
