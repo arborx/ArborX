@@ -25,10 +25,6 @@ BOOST_AUTO_TEST_SUITE(ManufacturedSolution)
 
 namespace tt = boost::test_tools;
 
-// FIXME temporary workaround bug in HIP-Clang (register spill)
-#if defined(KOKKOS_ENABLE_HIP)
-BOOST_TEST_DECORATOR(*boost::unit_test::expected_failures(3))
-#endif
 BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
                               TreeTypeTraitsList)
 {
