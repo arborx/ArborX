@@ -44,6 +44,11 @@ struct CartesianGrid
     _nx = std::ceil((max_corner[0] - min_corner[0]) / h);
     _ny = std::ceil((max_corner[1] - min_corner[1]) / h);
     _nz = std::ceil((max_corner[2] - min_corner[2]) / h);
+
+    // Catch overflow in grid cell indices
+    size_t constexpr max_size_t = std::numeric_limits<size_t>::max();
+    ARBORX_ASSERT(_nx == 0 || _ny == 0 || _nz == 0 ||
+                  (_ny < max_size_t / _nx && _nz < max_size_t / (_nx * _ny)));
   }
 
   KOKKOS_FUNCTION
