@@ -39,7 +39,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_spatial_predicate, TreeTypeTraits,
     BOOST_TEST(tree.empty());
     BOOST_TEST(tree.size() == 0);
     // Tree::bounds() returns an invalid box when the tree is empty.
-    BOOST_TEST(ArborX::Details::equals(tree.bounds(), {}));
+    using ArborX::Details::equals;
+    BOOST_TEST(equals(static_cast<ArborX::Box>(tree.bounds()), {}));
 
     // Passing a view with no query does seem a bit silly but we still need
     // to support it. And since the tag dispatching yields different tree
@@ -47,13 +48,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_spatial_predicate, TreeTypeTraits,
     // the results for various type of queries.
     ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
                            makeIntersectsBoxQueries<DeviceType>({}),
-                           make_reference_solution<int>({}, {0}));
-
-    // NOTE: Admittedly testing for both intersection with a box and with a
-    // sphere queries might be a bit overkill but I'd rather test for all the
-    // queries we plan on using.
-    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                           makeIntersectsSphereQueries<DeviceType>({}),
                            make_reference_solution<int>({}, {0}));
 
     // Now passing a couple queries of various type and checking the
@@ -66,12 +60,21 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_spatial_predicate, TreeTypeTraits,
         }),
         make_reference_solution<int>({}, {0, 0, 0}));
 
+#ifndef ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_SPHERE
+    // NOTE: Admittedly testing for both intersection with a box and with a
+    // sphere queries might be a bit overkill but I'd rather test for all the
+    // queries we plan on using.
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                           makeIntersectsSphereQueries<DeviceType>({}),
+                           make_reference_solution<int>({}, {0}));
+
     ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
                            makeIntersectsSphereQueries<DeviceType>({
                                {{{0., 0., 0.}}, 1.},
                                {{{1., 1., 1.}}, 2.},
                            }),
                            make_reference_solution<int>({}, {0, 0, 0}));
+#endif
   }
 }
 
@@ -93,7 +96,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_nearest_predicate, TreeTypeTraits,
     BOOST_TEST(tree.empty());
     BOOST_TEST(tree.size() == 0);
     // Tree::bounds() returns an invalid box when the tree is empty.
-    BOOST_TEST(ArborX::Details::equals(tree.bounds(), {}));
+    using ArborX::Details::equals;
+    BOOST_TEST(equals(static_cast<ArborX::Box>(tree.bounds()), {}));
 
     // Passing a view with no query does seem a bit silly but we still need
     // to support it. And since the tag dispatching yields different tree
@@ -130,15 +134,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_spatial_predicate,
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 1);
-  BOOST_TEST(
-      ArborX::Details::equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
+  using ArborX::Details::equals;
+  BOOST_TEST(equals(static_cast<ArborX::Box>(tree.bounds()),
+                    {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
                          makeIntersectsBoxQueries<DeviceType>({}),
-                         make_reference_solution<int>({}, {0}));
-
-  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeIntersectsSphereQueries<DeviceType>({}),
                          make_reference_solution<int>({}, {0}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
@@ -148,6 +149,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_spatial_predicate,
                          }),
                          make_reference_solution<int>({0}, {0, 0, 1}));
 
+#ifndef ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_SPHERE
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeIntersectsSphereQueries<DeviceType>({}),
+                         make_reference_solution<int>({}, {0}));
+
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
                          makeIntersectsSphereQueries<DeviceType>({
                              {{{0., 0., 0.}}, 1.},
@@ -155,6 +161,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_spatial_predicate,
                              {{{5., 5., 5.}}, 2.},
                          }),
                          make_reference_solution<int>({0, 0}, {0, 1, 2, 2}));
+#endif
 }
 
 #ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
@@ -173,8 +180,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_nearest_predicate,
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 1);
-  BOOST_TEST(
-      ArborX::Details::equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
+  using ArborX::Details::equals;
+  BOOST_TEST(equals(static_cast<ArborX::Box>(tree.bounds()),
+                    {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
                          makeNearestQueries<DeviceType>({}),
@@ -210,8 +218,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_spatial_predicate,
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 2);
-  BOOST_TEST(
-      ArborX::Details::equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
+  using ArborX::Details::equals;
+  BOOST_TEST(equals(static_cast<ArborX::Box>(tree.bounds()),
+                    {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   // single query intersects with nothing
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
@@ -272,8 +281,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_nearest_predicate,
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 2);
-  BOOST_TEST(
-      ArborX::Details::equals(tree.bounds(), {{{0., 0., 0.}}, {{1., 1., 1.}}}));
+  using ArborX::Details::equals;
+  BOOST_TEST(equals(static_cast<ArborX::Box>(tree.bounds()),
+                    {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   // no query
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
@@ -289,6 +299,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_nearest_predicate,
 }
 #endif
 
+#ifndef ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_SPHERE
 BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves_spatial_predicate,
                               TreeTypeTraits, TreeTypeTraitsList)
 {
@@ -318,6 +329,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves_spatial_predicate,
       }),
       make_reference_solution<int>({0, 1, 2, 3, 0, 1, 2, 3}, {0, 1, 4, 8}));
 }
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()
 

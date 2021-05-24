@@ -61,6 +61,7 @@ add_test(NAME ArborX_DetailsUtils_Test COMMAND ./ArborX_DetailsUtils.exe)
 add_executable(ArborX_Geometry.exe
   tstDetailsAlgorithms.cpp
   tstRay.cpp
+  tstKDOP.cpp
 )
 target_link_libraries(ArborX_Geometry.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Geometry.exe PRIVATE BOOST_TEST_DYN_LINK)
@@ -93,10 +94,32 @@ foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
     "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BF.cpp" COPYONLY
   )
   list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BF.cpp")
+  foreach(_bounding_volume KDOP14 KDOP18) # purposefully ommitting KDOP6 and KDOP26 to reduce the number of instantiations
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_bounding_volume}.cpp.tmp"
+      "#include <ArborX_LinearBVH.hpp>\n"
+      "#include <ArborX_KDOP.hpp>\n"
+      "using KDOP6 = ArborX::Experimental::KDOP<6>;\n"
+      "using KDOP14 = ArborX::Experimental::KDOP<14>;\n"
+      "using KDOP18 = ArborX::Experimental::KDOP<18>;\n"
+      "using KDOP26 = ArborX::Experimental::KDOP<26>;\n"
+      "template <class MemorySpace> using ArborX__BoundingVolumeHierarchy_${_bounding_volume} = ArborX::BasicBoundingVolumeHierarchy<MemorySpace, ${_bounding_volume}>;\n"
+      "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX__BoundingVolumeHierarchy_${_bounding_volume}>\n"
+      "#define ARBORX_TEST_DEVICE_TYPES std::tuple<${ARBORX_DEVICE_TYPES}>\n"
+      "#define ARBORX_TEST_DISABLE_NEAREST_QUERY\n"
+      "#define ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_SPHERE\n"
+      "#include <tstQueryTree${_test}.cpp>\n"
+    )
+    configure_file(
+      "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_bounding_volume}.cpp.tmp"
+      "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_bounding_volume}.cpp" COPYONLY
+    )
+    list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_bounding_volume}.cpp")
+  endforeach()
 endforeach()
 add_executable(ArborX_QueryTree.exe
   ${ARBORX_TEST_QUERY_TREE_SOURCES}
   tstQueryTreeTraversalPolicy.cpp
+  tstQueryTreeIntersectsKDOP.cpp
   tstKokkosToolsAnnotations.cpp
   utf_main.cpp)
 target_link_libraries(ArborX_QueryTree.exe PRIVATE ArborX Boost::unit_test_framework)
