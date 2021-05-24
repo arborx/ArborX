@@ -45,7 +45,9 @@ struct CartesianGrid
     _ny = std::ceil((max_corner[1] - min_corner[1]) / h);
     _nz = std::ceil((max_corner[2] - min_corner[2]) / h);
 
-    // Catch overflow in grid cell indices
+    // Catch potential overflow in grid cell indices early. This is a
+    // conservative check as an actual overflow may not occur, depending on
+    // which cells are filled.
     size_t constexpr max_size_t = std::numeric_limits<size_t>::max();
     ARBORX_ASSERT(_nx == 0 || _ny == 0 || _nz == 0 ||
                   (_ny < max_size_t / _nx && _nz < max_size_t / (_nx * _ny)));
@@ -87,12 +89,13 @@ struct CountUpToN_DenseBox
   Permutation _permute;
   int core_min_size;
   float eps;
+  int _n;
 
   CountUpToN_DenseBox(Kokkos::View<int *, MemorySpace> const &counts,
                       Primitives const &primitives,
                       DenseCellOffsets const &dense_cell_offsets,
                       Permutation const &permute, int core_min_size_in,
-                      float eps_in)
+                      float eps_in, int n)
       : _counts(counts)
       , _primitives(primitives)
       , _dense_cell_offsets(dense_cell_offsets)
@@ -100,6 +103,7 @@ struct CountUpToN_DenseBox
       , _permute(permute)
       , core_min_size(core_min_size_in)
       , eps(eps_in)
+      , _n(n)
   {
   }
 
@@ -125,7 +129,7 @@ struct CountUpToN_DenseBox
         if (distance(query_point, Access::get(_primitives, j)) <= eps)
         {
           Kokkos::atomic_fetch_add(&count, 1);
-          if (count >= core_min_size)
+          if (count >= _n)
             return ArborX::CallbackTreeTraversalControl::early_exit;
         }
       }
@@ -133,7 +137,7 @@ struct CountUpToN_DenseBox
     else
     {
       Kokkos::atomic_fetch_add(&count, 1);
-      if (count >= core_min_size)
+      if (count >= _n)
         return ArborX::CallbackTreeTraversalControl::early_exit;
     }
 
@@ -199,10 +203,9 @@ struct FDBSCANDenseBoxCallback
       {
         int j = _permute(jj);
 
-        // As soon as a pair is found, all other potentially search pairs for
-        // these two boxes will stop too
-        // TODO: can this be optimized out, i.e., not reload
-        // _union_find.representative(i)
+        // As soon as a pair is found, stop the search. If it is a case of
+        // merging two dense cells, this will stop all other threads from
+        // processing the same merge.
         if (_union_find.representative(i) == _union_find.representative(j))
           break;
 
@@ -355,21 +358,26 @@ int reorderDenseAndSparseCells(ExecutionSpace const &exec_space,
 template <typename ExecutionSpace, typename CellIndices, typename Permutation,
           typename Labels>
 void unionFindWithinEachDenseCell(ExecutionSpace const &exec_space,
-                                  CellIndices sorted_cell_indices,
+                                  CellIndices sorted_dense_cell_indices,
                                   Permutation permute, Labels labels)
 {
   using MemorySpace = typename Permutation::memory_space;
 
   UnionFind<MemorySpace> union_find{labels};
 
-  auto const n = sorted_cell_indices.size();
+  // The algorithm relies on the fact that the cell indices array only contains
+  // dense cells. Thus, as long as two cell indices are the same, a) they
+  // belong to the same cell, and b) that cell is dense, thus they should be in
+  // the same cluster. If, on the other hand, the array also contained
+  // non-dense cells, that would not have been possible, as an additional
+  // computations would have to be done to figure out if the points belong to a
+  // dense cell, which would have required a linear scan.
+  auto const n = sorted_dense_cell_indices.size();
   Kokkos::parallel_for("ArborX::dbscan::union_find_within_each_dense_box",
                        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 1, n),
                        KOKKOS_LAMBDA(int i) {
-                         // Each thread union-merges a pair if they belong to
-                         // the same cell
-                         if (sorted_cell_indices(i) ==
-                             sorted_cell_indices(i - 1))
+                         if (sorted_dense_cell_indices(i) ==
+                             sorted_dense_cell_indices(i - 1))
                            union_find.merge(permute(i), permute(i - 1));
                        });
 }
