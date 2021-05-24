@@ -450,6 +450,12 @@ int main(int argc, char *argv[])
   printf("-- postprocess      : %10.3f\n", elapsed["cluster"]);
   printf("total time          : %10.3f\n", elapsed["total"]);
 
+  int num_clusters = cluster_offset.size() - 1;
+  int num_cluster_points = cluster_indices.size();
+  printf("\n#clusters       : %d\n", num_clusters);
+  printf("#cluster points : %d [%.2f%%]\n", num_cluster_points,
+         (100.f * num_cluster_points / data.size()));
+
   if (verify)
   {
     auto passed = ArborX::Details::verifyDBSCAN(exec_space, primitives, eps,
