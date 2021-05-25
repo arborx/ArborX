@@ -28,6 +28,12 @@ if(Kokkos_ENABLE_HIP AND NOT ARBORX_ENABLE_ROCTHRUST)
   message(WARNING "rocThrust is NOT enabled.\nThis will negatively impact performance on AMD GPUs.")
 endif()
 
+cmake_dependent_option(ARBORX_ENABLE_ONEDPL "Enable oneDPL support" ON "Kokkos_ENABLE_SYCL" OFF)
+if(Kokkos_ENABLE_SYCL AND ARBORX_ENABLE_ONEDPL)
+  find_package(oneDPL REQUIRED)
+  target_link_libraries(ArborX INTERFACE oneDPL)
+endif()
+
 # Refer to the alias target in examples and benchmarks so they can be built
 # against an installed ArborX
 add_library(ArborX::ArborX ALIAS ArborX)

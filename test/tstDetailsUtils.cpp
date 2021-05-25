@@ -11,6 +11,7 @@
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
+#include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_Exception.hpp>
 
@@ -234,4 +235,34 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(min_and_max, DeviceType, ARBORX_DEVICE_TYPES)
   ArborX::iota(space, w, 2);
   BOOST_TEST(ArborX::min(space, w) == 2);
   BOOST_TEST(ArborX::max(space, w) == 8);
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(sort_objects, DeviceType, ARBORX_DEVICE_TYPES)
+{
+  using ExecutionSpace = typename DeviceType::execution_space;
+  ExecutionSpace space{};
+
+  for (const auto &values : {std::vector<int>{36, 19, 25, 17, 3, 7, 1, 2, 9},
+                             std::vector<int>{36, 19, 25, 17, 3, 9, 1, 2, 7},
+                             std::vector<int>{100, 19, 36, 17, 3, 25, 1, 2, 7},
+                             std::vector<int>{15, 5, 11, 3, 4, 8}})
+  {
+    Kokkos::View<int *, Kokkos::HostSpace> host_view("data", values.size());
+    std::copy(values.begin(), values.end(), host_view.data());
+    auto device_view = Kokkos::create_mirror_view_and_copy(space, host_view);
+    auto device_permutation = ArborX::Details::sortObjects(space, device_view);
+    Kokkos::deep_copy(space, host_view, device_view);
+
+    // Check that values were sorted properly
+    std::vector<int> values_copy = values;
+    std::sort(values_copy.begin(), values_copy.end());
+    auto host_permutation = Kokkos::create_mirror_view_and_copy(
+        Kokkos::HostSpace{}, device_permutation);
+    BOOST_TEST(host_view == values_copy, tt::per_element());
+
+    // Check correctness of the permutation
+    for (unsigned int i = 0; i < values.size(); ++i)
+      values_copy[i] = values[host_permutation(i)];
+    BOOST_TEST(host_view == values_copy, tt::per_element());
+  }
 }

@@ -14,7 +14,8 @@
 
 #include <ArborX_Config.hpp> // ARBORX_ENABLE_ROCTHRUST
 
-#include <ArborX_DetailsUtils.hpp> // iota
+#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp> // is_accessible_from
+#include <ArborX_DetailsUtils.hpp>                        // iota
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -57,6 +58,12 @@
 #if defined(KOKKOS_ENABLE_HIP) && defined(ARBORX_ENABLE_ROCTHRUST)
 #include <thrust/device_ptr.h>
 #include <thrust/sort.h>
+#endif
+
+#if defined(KOKKOS_ENABLE_SYCL) && defined(ARBORX_ENABLE_ONEDPL)
+#include <oneapi/dpl/algorithm>
+#include <oneapi/dpl/execution>
+#include <oneapi/dpl/iterator>
 #endif
 
 namespace ArborX
@@ -133,6 +140,36 @@ Kokkos::View<SizeType *, typename ViewType::device_type> sortObjects(
   auto begin_ptr = thrust::device_ptr<ValueType>(view.data());
   auto end_ptr = thrust::device_ptr<ValueType>(view.data() + n);
   thrust::sort_by_key(execution_policy, begin_ptr, end_ptr, permute_ptr);
+
+  return permute;
+}
+#endif
+
+#if defined(KOKKOS_ENABLE_SYCL) && defined(ARBORX_ENABLE_ONEDPL)
+// NOTE returns the permutation indices **and** sorts the input view
+template <typename ViewType, class SizeType = unsigned int>
+Kokkos::View<SizeType *, typename ViewType::device_type>
+sortObjects(Kokkos::Experimental::SYCL const &space, ViewType &view)
+{
+  int const n = view.extent(0);
+
+  static_assert(
+      KokkosExt::is_accessible_from<typename ViewType::memory_space,
+                                    Kokkos::Experimental::SYCL>::value,
+      "");
+
+  Kokkos::View<SizeType *, typename ViewType::device_type> permute(
+      Kokkos::ViewAllocateWithoutInitializing("ArborX::Sorting::permutation"),
+      n);
+  ArborX::iota(space, permute);
+
+  auto zipped_begin =
+      oneapi::dpl::make_zip_iterator(view.data(), permute.data());
+  oneapi::dpl::execution::device_policy policy(
+      *space.impl_internal_space_instance()->m_queue);
+  oneapi::dpl::sort(
+      policy, zipped_begin, zipped_begin + n,
+      [](auto lhs, auto rhs) { return std::get<0>(lhs) < std::get<0>(rhs); });
 
   return permute;
 }
