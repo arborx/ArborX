@@ -302,7 +302,7 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   ArborX::BVH<MemorySpace> bvh(exec_space, primitives);
 
   auto const predicates =
-      DBSCAN::PrimitivesWithRadius<Primitives>{primitives, eps};
+      Details::PrimitivesWithRadius<Primitives>{primitives, eps};
 
   Kokkos::View<int *, MemorySpace> indices("ArborX::DBSCAN::indices", 0);
   Kokkos::View<int *, MemorySpace> offset("ArborX::DBSCAN::offset", 0);

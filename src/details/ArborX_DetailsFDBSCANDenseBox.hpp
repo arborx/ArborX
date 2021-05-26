@@ -248,9 +248,9 @@ computeCellIndices(ExecutionSpace const &exec_space,
   auto const n = Access::size(primitives);
 
   Kokkos::View<size_t *, MemorySpace> cell_indices(
-      Kokkos::ViewAllocateWithoutInitializing("ArborX::dbscan::cell_indices"),
+      Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::cell_indices"),
       n);
-  Kokkos::parallel_for("ArborX::dbscan::compute_cell_indices",
+  Kokkos::parallel_for("ArborX::DBSCAN::compute_cell_indices",
                        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
                        KOKKOS_LAMBDA(int i) {
                          auto const &xyz = Access::get(primitives, i);
@@ -259,8 +259,8 @@ computeCellIndices(ExecutionSpace const &exec_space,
   return cell_indices;
 }
 
-// TODO: may be better to put it together with outher commonly used Kokkos
-// routines
+// TODO: should put it together with other commonly used Kokkos
+// routines and unit test it in the future
 template <typename ExecutionSpace, typename View>
 Kokkos::View<int *, typename View::memory_space>
 computeOffsetsInOrderedView(ExecutionSpace const &exec_space, View view)
@@ -274,10 +274,10 @@ computeOffsetsInOrderedView(ExecutionSpace const &exec_space, View view)
 
   int num_offsets;
   Kokkos::View<int *, MemorySpace> offsets(
-      Kokkos::ViewAllocateWithoutInitializing("ArborX::dbscan::offsets"),
+      Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::offsets"),
       n + 1);
   Kokkos::parallel_scan(
-      "ArborX::dbscan::compute_offsets",
+      "ArborX::DBSCAN::compute_offsets",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n + 1),
       KOKKOS_LAMBDA(int i, int &update, bool final_pass) {
         bool const is_cell_first_index =
@@ -313,7 +313,7 @@ int reorderDenseAndSparseCells(ExecutionSpace const &exec_space,
   // Count the number of points in the dense cells
   int num_points_in_dense_cells = 0;
   Kokkos::parallel_reduce(
-      "ArborX::dbscan::compute_num_points_in_dense_cells",
+      "ArborX::DBSCAN::count_points_in_dense_cells",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_nonempty_cells),
       KOKKOS_LAMBDA(int i, int &update) {
         int num_points_in_cell = cell_offsets(i + 1) - cell_offsets(i);
@@ -334,7 +334,7 @@ int reorderDenseAndSparseCells(ExecutionSpace const &exec_space,
   auto reordered_cell_indices =
       cloneWithoutInitializingNorCopying(sorted_cell_indices);
   Kokkos::parallel_for(
-      "ArborX::dbscan::reorder_cell_indices_and_permutation",
+      "ArborX::DBSCAN::reorder_cell_indices_and_permutation",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_nonempty_cells),
       KOKKOS_LAMBDA(int i) {
         auto const num_points_in_cell = cell_offsets(i + 1) - cell_offsets(i);
@@ -373,7 +373,7 @@ void unionFindWithinEachDenseCell(ExecutionSpace const &exec_space,
   // computations would have to be done to figure out if the points belong to a
   // dense cell, which would have required a linear scan.
   auto const n = sorted_dense_cell_indices.size();
-  Kokkos::parallel_for("ArborX::dbscan::union_find_within_each_dense_box",
+  Kokkos::parallel_for("ArborX::DBSCAN::union_find_within_each_dense_box",
                        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 1, n),
                        KOKKOS_LAMBDA(int i) {
                          if (sorted_dense_cell_indices(i) ==
