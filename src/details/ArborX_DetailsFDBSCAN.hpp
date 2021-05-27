@@ -71,23 +71,23 @@ struct FDBSCANCallback
       return;
     }
 
-    bool is_boundary_point =
+    bool is_border_point =
         !is_core_point_(i); // is_core_point_(j) is aready true
 
-    if (is_boundary_point && union_find_.representative(i) == i)
+    if (is_border_point && union_find_.representative(i) == i)
     {
-      // For a boundary point that was not processed before (labels_(i) == i),
+      // For a border point that was not processed before (labels_(i) == i),
       // set its representative to that of the core point. This way, when
       // another neighbor that is core point appears later, we won't process
       // this point.
       //
-      // NOTE: DO NOT USE merge(i, j) here. This may set this boundary
+      // NOTE: DO NOT USE merge(i, j) here. This may set this border
       // point as a representative for the whole cluster. This would mean that
       // a) labels_(i) == i still (so it would be processed later, and b) it may
       // be combined with a different cluster later forming a bridge.
       union_find_.merge_into(i, j);
     }
-    else if (!is_boundary_point && i > j)
+    else if (!is_border_point && i > j)
     {
       // For a core point that is connected to another core point, do the
       // standard CCS algorithm
