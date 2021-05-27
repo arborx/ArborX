@@ -25,8 +25,35 @@ namespace ArborX
 namespace Details
 {
 
+// Check that core points have nonnegative indices
+template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
+          typename LabelsView>
+bool verifyCorePointsNonnegativeIndex(ExecutionSpace const &exec_space,
+                                      IndicesView /*indices*/,
+                                      OffsetView offset, LabelsView labels,
+                                      int core_min_size)
+{
+  int n = labels.size();
+
+  int num_incorrect = 0;
+  Kokkos::parallel_reduce(
+      "ArborX::DBSCAN::verify_core_points_nonnegative",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+      KOKKOS_LAMBDA(int i, int &update) {
+        bool self_is_core_point = (offset(i + 1) - offset(i) >= core_min_size);
+        if (self_is_core_point && labels(i) < 0)
+        {
+#ifndef __SYCL_DEVICE_ONLY__
+          printf("Core point is marked as noise: %d [%d]\n", i, labels(i));
+#endif
+          update++;
+        }
+      },
+      num_incorrect);
+  return (num_incorrect == 0);
+}
+
 // Check that connected core points have same cluster indices
-// NOTE: if core_min_size = 2, all points are core points
 template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
           typename LabelsView>
 bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
@@ -242,7 +269,8 @@ bool verifyClusters(ExecutionSpace const &exec_space, IndicesView indices,
   using Verify = bool (*)(ExecutionSpace const &, IndicesView, OffsetView,
                           LabelsView, int);
 
-  for (auto verify : {static_cast<Verify>(verifyConnectedCorePointsShareIndex),
+  for (auto verify : {static_cast<Verify>(verifyCorePointsNonnegativeIndex),
+                      static_cast<Verify>(verifyConnectedCorePointsShareIndex),
                       static_cast<Verify>(verifyBoundaryAndNoisePoints),
                       static_cast<Verify>(verifyClustersAreUnique)})
   {
