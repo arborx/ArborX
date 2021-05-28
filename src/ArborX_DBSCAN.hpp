@@ -207,7 +207,12 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
                        });
   if (is_special_case)
   {
-    // Cannot use CCSCore as it always returns true
+    // Ideally, this kernel would have had the exactly same form as in the
+    // else() clause. But there's no available valid is_core() for use here:
+    // - CCSCorePoints cannot be used as it always returns true, which is OK
+    //   inside the callback, but not here
+    // - DBSCANCorePoints cannot be used either as num_neigh is not initialized
+    //   in the special case.
     Kokkos::parallel_for("ArborX::dbscan::mark_noise",
                          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
                          KOKKOS_LAMBDA(int const i) {
