@@ -126,6 +126,36 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier, DeviceType, ARBORX_DEVICE_TYPES)
         !verifyDBSCAN(space, points, 1, 4,
                       buildView<DeviceType, int>({5, 5, 5, 5, 5, 5, 5})));
   }
+
+  {
+    // check where a core point is connected to only boundary points, but which
+    // are stripped by a second core point
+
+    // o - core, x - border
+    //     -1 0 1 2
+    //    ----------
+    //  2 | x o x
+    //  1 |   x   x
+    //  0 |   o x o
+    // -1 |   x   x
+    // -2 | x o x
+    // clang-format off
+    auto points = buildView<DeviceType, Point>({
+        {0, -2, 0}, {-1, -2, 0}, {1, -2, 0}, {0, -1, 0}, // bottom
+        {0, 2, 0}, {-1, 2, 0}, {1, 2, 0}, {0, 1, 0}, // top
+        {2, 0, 0}, {2, -1, 0}, {2, 1, 0}, {1, 0, 0}, // right
+        {0, 0, 0}  // stripped core
+    });
+    // clang-format on
+
+    BOOST_TEST(verifyDBSCAN(
+        space, points, 1, 4,
+        buildView<DeviceType, int>({0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 5})));
+    // make sure the stripped core is not marked as noise
+    BOOST_TEST(!verifyDBSCAN(
+        space, points, 1, 4,
+        buildView<DeviceType, int>({0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, -1})));
+  }
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
@@ -197,6 +227,32 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
         verifyDBSCAN(space, points, 1.0, 3, dbscan(space, points, 1, 3)));
     BOOST_TEST(
         verifyDBSCAN(space, points, 1.0, 4, dbscan(space, points, 1, 4)));
+  }
+
+  {
+    // check where a core point is connected to only boundary points, but which
+    // are stripped by a second core point
+
+    // o - core, x - border
+    //     -1 0 1 2
+    //    ----------
+    //  2 | x o x
+    //  1 |   x   x
+    //  0 |   o x o
+    // -1 |   x   x
+    // -2 | x o x
+    // clang-format off
+    auto points = buildView<DeviceType, Point>({
+        {0, -2, 0}, {-1, -2, 0}, {1, -2, 0}, {0, -1, 0}, // bottom
+        {0, 2, 0}, {-1, 2, 0}, {1, 2, 0}, {0, 1, 0}, // top
+        {2, 0, 0}, {2, -1, 0}, {2, 1, 0}, {1, 0, 0}, // right
+        {0, 0, 0}  // stripped core
+    });
+    // clang-format on
+
+    // This does *not* guarantee to trigger the issue, as it depends on the
+    // specific implementation and runtime. But it may.
+    BOOST_TEST(verifyDBSCAN(space, points, 1, 4, dbscan(space, points, 1, 4)));
   }
 }
 
