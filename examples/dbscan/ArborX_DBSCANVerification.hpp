@@ -92,25 +92,25 @@ bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
   return (num_incorrect == 0);
 }
 
-// Check that boundary points share index with at least one core point, and
+// Check that border points share index with at least one core point, and
 // that noise points have index -1
 template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
           typename LabelsView>
-bool verifyBoundaryAndNoisePoints(ExecutionSpace const &exec_space,
-                                  IndicesView indices, OffsetView offset,
-                                  LabelsView labels, int core_min_size)
+bool verifyBorderAndNoisePoints(ExecutionSpace const &exec_space,
+                                IndicesView indices, OffsetView offset,
+                                LabelsView labels, int core_min_size)
 {
   int n = labels.size();
 
   int num_incorrect = 0;
   Kokkos::parallel_reduce(
-      "ArborX::DBSCAN::verify_connected_boundary_points",
+      "ArborX::DBSCAN::verify_connected_border_points",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
       KOKKOS_LAMBDA(int i, int &update) {
         bool self_is_core_point = (offset(i + 1) - offset(i) >= core_min_size);
         if (!self_is_core_point)
         {
-          bool is_boundary = false;
+          bool is_border = false;
           bool have_shared_core = false;
           for (int jj = offset(i); jj < offset(i + 1); ++jj)
           {
@@ -120,7 +120,7 @@ bool verifyBoundaryAndNoisePoints(ExecutionSpace const &exec_space,
 
             if (neigh_is_core_point)
             {
-              is_boundary = true;
+              is_border = true;
               if (labels(i) == labels(j))
               {
                 have_shared_core = true;
@@ -129,17 +129,17 @@ bool verifyBoundaryAndNoisePoints(ExecutionSpace const &exec_space,
             }
           }
 
-          // Boundary point must be connected to a core point
-          if (is_boundary && !have_shared_core)
+          // Border point must be connected to a core point
+          if (is_border && !have_shared_core)
           {
 #ifndef __SYCL_DEVICE_ONLY__
-            printf("Boundary point does not belong to a cluster: %d [%d]\n", i,
+            printf("Border point does not belong to a cluster: %d [%d]\n", i,
                    labels(i));
 #endif
             update++;
           }
           // Noise points must have index -1
-          if (!is_boundary && labels(i) != -1)
+          if (!is_border && labels(i) != -1)
           {
 #ifndef __SYCL_DEVICE_ONLY__
             printf("Noise point does not have index -1: %d [%d]\n", i,
@@ -181,8 +181,8 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
     return offset_host(i + 1) - offset_host(i) >= core_min_size;
   };
 
-  // Remove all boundary points from consideration (noise points are already -1)
-  // The idea is that this way if labels were bridged through a boundary
+  // Remove all border points from consideration (noise points are already -1)
+  // The idea is that this way if labels were bridged through a border
   // point, we will count them as separate labels but with a shared cluster
   // index, which will fail the unique labels check
   for (int i = 0; i < n; ++i)
@@ -194,7 +194,7 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
         int j = indices_host(jj);
         if (is_core_point(j))
         {
-          // The point is a boundary point
+          // The point is a border point
           labels_host(i) = -1;
           break;
         }
@@ -271,7 +271,7 @@ bool verifyClusters(ExecutionSpace const &exec_space, IndicesView indices,
 
   for (auto verify : {static_cast<Verify>(verifyCorePointsNonnegativeIndex),
                       static_cast<Verify>(verifyConnectedCorePointsShareIndex),
-                      static_cast<Verify>(verifyBoundaryAndNoisePoints),
+                      static_cast<Verify>(verifyBorderAndNoisePoints),
                       static_cast<Verify>(verifyClustersAreUnique)})
   {
     if (!verify(exec_space, indices, offset, labels, core_min_size))
