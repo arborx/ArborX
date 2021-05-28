@@ -176,7 +176,7 @@ struct Parameters
   // Print timers to standard output
   bool _print_timers = false;
   // Algorithm implementation (FDBSCAN or FDBSCAN-DenseBox)
-  Implementation _implementation = Implementation::FDBSCAN;
+  Implementation _implementation = Implementation::FDBSCAN_DenseBox;
 
   Parameters &setPrintTimers(bool print_timers)
   {
