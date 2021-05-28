@@ -121,7 +121,7 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
                            LabelsView const &labels,
                            ClusterIndicesView &cluster_indices,
                            ClusterOffsetView &cluster_offset,
-                           int cluster_min_size = 2)
+                           int cluster_min_size = 1)
 {
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::sortAndFilterClusters");
 
@@ -146,7 +146,7 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
       std::is_same<typename ClusterOffsetView::memory_space, MemorySpace>{},
       "");
 
-  ARBORX_ASSERT(cluster_min_size >= 2);
+  ARBORX_ASSERT(cluster_min_size >= 1);
 
   int const n = labels.extent_int(0);
 
@@ -371,7 +371,7 @@ int main(int argc, char *argv[])
       ( "binary", bpo::bool_switch(&binary)->default_value(false), "binary file indicator")
       ( "max-num-points", bpo::value<int>(&max_num_points)->default_value(-1), "max number of points to read in")
       ( "eps", bpo::value<float>(&eps), "DBSCAN eps" )
-      ( "cluster-min-size", bpo::value<int>(&cluster_min_size)->default_value(2), "minimum cluster size")
+      ( "cluster-min-size", bpo::value<int>(&cluster_min_size)->default_value(1), "minimum cluster size")
       ( "core-min-size", bpo::value<int>(&core_min_size)->default_value(2), "DBSCAN min_pts")
       ( "verify", bpo::bool_switch(&verify)->default_value(false), "verify connected components")
       ( "samples", bpo::value<int>(&num_samples)->default_value(-1), "number of samples" )
