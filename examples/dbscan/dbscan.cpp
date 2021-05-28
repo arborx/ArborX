@@ -297,6 +297,46 @@ void printClusterSizesAndCenters(ExecutionSpace const &exec_space,
   }
 }
 
+namespace ArborX
+{
+namespace DBSCAN
+{
+// This function is required for Boost program_options to be able to use the
+// Implementation enum.
+std::istream &operator>>(std::istream &in, Implementation &implementation)
+{
+  std::string impl_string;
+  in >> impl_string;
+
+  if (impl_string == "fdbscan")
+    implementation = ArborX::DBSCAN::Implementation::FDBSCAN;
+  else if (impl_string == "fdbscan-densebox")
+    implementation = ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox;
+  else
+    in.setstate(std::ios_base::failbit);
+
+  return in;
+}
+
+// This function is required for Boost program_options to use Implementation
+// enum as the default_value().
+std::ostream &operator<<(std::ostream &out,
+                         Implementation const &implementation)
+{
+  switch (implementation)
+  {
+  case ArborX::DBSCAN::Implementation::FDBSCAN:
+    out << "fdbscan";
+    break;
+  case ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox:
+    out << "fdbscan-densebox";
+    break;
+  }
+  return out;
+}
+} // namespace DBSCAN
+} // namespace ArborX
+
 int main(int argc, char *argv[])
 {
   using ExecutionSpace = Kokkos::DefaultExecutionSpace;
@@ -308,6 +348,7 @@ int main(int argc, char *argv[])
   std::cout << "ArborX hash       : " << ArborX::gitCommitHash() << std::endl;
 
   namespace bpo = boost::program_options;
+  using ArborX::DBSCAN::Implementation;
 
   std::string filename;
   bool binary;
@@ -320,6 +361,7 @@ int main(int argc, char *argv[])
   int max_num_points;
   int num_samples;
   std::string filename_labels;
+  Implementation implementation;
 
   bpo::options_description desc("Allowed options");
   // clang-format off
@@ -336,6 +378,7 @@ int main(int argc, char *argv[])
       ( "labels", bpo::value<std::string>(&filename_labels)->default_value(""), "clutering results output" )
       ( "print-dbscan-timers", bpo::bool_switch(&print_dbscan_timers)->default_value(false), "print dbscan timers")
       ( "output-sizes-and-centers", bpo::bool_switch(&print_sizes_centers)->default_value(false), "print cluster sizes and centers")
+      ( "impl", bpo::value<Implementation>(&implementation)->default_value(Implementation::FDBSCAN), R"(implementation ("fdbscan" or "fdbscan-densebox"))")
       ;
   // clang-format on
   bpo::variables_map vm;
@@ -348,6 +391,9 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+  std::stringstream ss;
+  ss << implementation;
+
   // Print out the runtime parameters
   printf("eps               : %f\n", eps);
   printf("minpts            : %d\n", core_min_size);
@@ -355,6 +401,7 @@ int main(int argc, char *argv[])
   printf("filename          : %s [%s, max_pts = %d]\n", filename.c_str(),
          (binary ? "binary" : "text"), max_num_points);
   printf("filename [labels] : %s [binary]\n", filename_labels.c_str());
+  printf("implementation    : %s\n", ss.str().c_str());
   printf("samples           : %d\n", num_samples);
   printf("verify            : %s\n", (verify ? "true" : "false"));
   printf("print timers      : %s\n", (print_dbscan_timers ? "true" : "false"));
@@ -386,9 +433,10 @@ int main(int argc, char *argv[])
 
   timer_start(timer_total);
 
-  auto labels = ArborX::dbscan(
-      exec_space, primitives, eps, core_min_size,
-      ArborX::DBSCAN::Parameters().setPrintTimers(print_dbscan_timers));
+  auto labels = ArborX::dbscan(exec_space, primitives, eps, core_min_size,
+                               ArborX::DBSCAN::Parameters()
+                                   .setPrintTimers(print_dbscan_timers)
+                                   .setImplementation(implementation));
 
   timer_start(timer);
   Kokkos::View<int *, MemorySpace> cluster_indices("Testing::cluster_indices",
@@ -401,6 +449,12 @@ int main(int argc, char *argv[])
 
   printf("-- postprocess      : %10.3f\n", elapsed["cluster"]);
   printf("total time          : %10.3f\n", elapsed["total"]);
+
+  int num_clusters = cluster_offset.size() - 1;
+  int num_cluster_points = cluster_indices.size();
+  printf("\n#clusters       : %d\n", num_clusters);
+  printf("#cluster points : %d [%.2f%%]\n", num_cluster_points,
+         (100.f * num_cluster_points / data.size()));
 
   if (verify)
   {
