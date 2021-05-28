@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(min_heap)
   // This helped resolving an issue with ProprityQueue::pop() that was not
   // exposed by other unit tests in this file, partly because they were too
   // trivial.  The bug was only showing with real kNN search problems when
-  // comparing results from BoundaryVolumeHierarchy with boost::rtree.
+  // comparing results from BoundingVolumeHierarchy with boost::rtree.
   Kokkos::Array<int, 9> a = {1, 2, 3, 17, 19, 36, 7, 25, 100};
   Kokkos::Array<int, 9> ref;
   for (int i = 0; i < 9; ++i)
