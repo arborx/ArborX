@@ -102,7 +102,7 @@ RUN BOOST_VERSION=1.75.0 && \
     mkdir -p boost && \
     tar -xf ${BOOST_ARCHIVE} -C boost --strip-components=1 && \
     cd boost && \
-    ./bootstrap.sh \
+    CXXFLAGS="-w" ./bootstrap.sh \
         --prefix=${BOOST_DIR} \
         && \
     echo "using mpi ;" >> project-config.jam && \
