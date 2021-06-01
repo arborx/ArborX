@@ -181,8 +181,8 @@ struct FDBSCANDenseBoxCallback
 
     auto const i = ArborX::getData(query);
 
-    bool const is_boundary_point = !_is_core_point(i);
-    if (is_boundary_point)
+    bool const is_border_point = !_is_core_point(i);
+    if (is_border_point)
       return ArborX::CallbackTreeTraversalControl::early_exit;
 
     bool const is_dense_cell = (k < _num_dense_cells);
