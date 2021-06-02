@@ -38,10 +38,20 @@ std::vector<ArborX::Point> loadData(std::string const &filename,
   std::vector<ArborX::Point> v;
 
   int num_points = 0;
+  int dim = 0;
   if (!binary)
+  {
     input >> num_points;
+    input >> dim;
+  }
   else
+  {
     input.read(reinterpret_cast<char *>(&num_points), sizeof(int));
+    input.read(reinterpret_cast<char *>(&dim), sizeof(int));
+  }
+
+  // For now, only allow reading in 2D or 3D data. Will relax in the future.
+  ARBORX_ASSERT(dim == 2 || dim == 3);
 
   if (max_num_points > 0 && max_num_points < num_points)
     num_points = max_num_points;
@@ -50,23 +60,43 @@ std::vector<ArborX::Point> loadData(std::string const &filename,
   {
     v.reserve(num_points);
 
-    auto read_point = [&input]() {
+    auto read_point = [&input, dim]() {
       auto it = std::istream_iterator<float>(input);
-      auto x = *it++;
-      auto y = *it++;
-      auto z = *it;
-      return ArborX::Point{x, y, z};
+      float xyz[3] = {0.f, 0.f, 0.f};
+      for (int i = 0; i < dim; ++i)
+        xyz[i] = *it++;
+      return ArborX::Point{xyz[0], xyz[1], xyz[2]};
     };
     std::generate_n(std::back_inserter(v), num_points, read_point);
   }
   else
   {
     v.resize(num_points);
-    input.read(reinterpret_cast<char *>(v.data()),
-               num_points * sizeof(ArborX::Point));
+
+    if (dim == 3)
+    {
+      // Can directly read into ArborX::Point
+      input.read(reinterpret_cast<char *>(v.data()),
+                 num_points * sizeof(ArborX::Point));
+    }
+    else
+    {
+      std::vector<float> aux(num_points * dim);
+      input.read(reinterpret_cast<char *>(aux.data()),
+                 aux.size() * sizeof(float));
+
+      for (int i = 0; i < num_points; ++i)
+      {
+        ArborX::Point p{0.f, 0.f, 0.f};
+        for (int d = 0; d < dim; ++d)
+          p[d] = aux[i * dim + d];
+        v[i] = p;
+      }
+    }
   }
   input.close();
-  std::cout << "done\nRead in " << num_points << " points" << std::endl;
+  std::cout << "done\nRead in " << num_points << " " << dim << "D points"
+            << std::endl;
 
   return v;
 }

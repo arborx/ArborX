@@ -21,17 +21,41 @@
 #include <stdexcept>
 #include <vector>
 
-struct Point
+class Points
 {
-  float _data[3] = {};
-  constexpr Point() noexcept = default;
-  constexpr Point(float x, float y, float z)
-      : _data{x, y, z}
+private:
+  std::vector<std::vector<float>> _data;
+
+public:
+  Points(int dim, int num_points = 0)
   {
+    _data.resize(dim);
+    for (int i = 0; i < dim; ++i)
+      _data[i].resize(num_points);
+  }
+
+  int dimension() const { return _data.size(); }
+
+  int size() const
+  {
+    assert(dimension() > 0);
+    return _data[0].size();
+  }
+
+  std::vector<float> &operator[](int d)
+  {
+    assert(d < dimension());
+    return _data[d];
+  }
+
+  std::vector<float> const &operator[](int d) const
+  {
+    assert(d < dimension());
+    return _data[d];
   }
 };
 
-std::vector<Point> loadHACCData(std::string const &filename)
+auto loadHACCData(std::string const &filename)
 {
   std::cout << "Assuming HACC data.\n";
   std::cout << "Reading in \"" << filename << "\" in binary mode...";
@@ -44,22 +68,17 @@ std::vector<Point> loadHACCData(std::string const &filename)
   int num_points = 0;
   input.read(reinterpret_cast<char *>(&num_points), sizeof(int));
 
-  std::vector<float> x(num_points);
-  std::vector<float> y(num_points);
-  std::vector<float> z(num_points);
-  input.read(reinterpret_cast<char *>(x.data()), num_points * sizeof(float));
-  input.read(reinterpret_cast<char *>(y.data()), num_points * sizeof(float));
-  input.read(reinterpret_cast<char *>(z.data()), num_points * sizeof(float));
+  Points points(3, num_points);
+  input.read(reinterpret_cast<char *>(points[0].data()),
+             num_points * sizeof(float));
+  input.read(reinterpret_cast<char *>(points[1].data()),
+             num_points * sizeof(float));
+  input.read(reinterpret_cast<char *>(points[2].data()),
+             num_points * sizeof(float));
   input.close();
   std::cout << "done\nRead in " << num_points << " points" << std::endl;
 
-  std::vector<Point> v(num_points);
-  for (int i = 0; i < num_points; i++)
-  {
-    v[i] = {x[i], y[i], z[i]};
-  }
-
-  return v;
+  return points;
 }
 
 // Next Generation Simulation (NGSIM) Vehicle Trajectories data reader.
@@ -85,7 +104,7 @@ std::vector<Point> loadHACCData(std::string const &filename)
 // The code here is different from the source code for the Mustafa2019 paper.
 // In that codebase, they seem to have a filtered file that only contains the
 // global coordinates and not all the other data fields.
-std::vector<Point> loadNGSIMData(std::string const &filename)
+auto loadNGSIMData(std::string const &filename)
 {
   std::cout << "Assuming NGSIM data.\n";
   std::cout << "Reading in \"" << filename << "\" in text mode...";
@@ -98,10 +117,10 @@ std::vector<Point> loadNGSIMData(std::string const &filename)
   std::string thisWord;
   std::string line;
 
-  std::vector<Point> v;
-  int n_points = 0;
+  Points points(2);
 
   // ignore first line that contains the descriptions
+  int n_points = 0;
   getline(file, thisWord);
   while (file.good())
   {
@@ -117,15 +136,16 @@ std::vector<Point> loadNGSIMData(std::string const &filename)
     float longitude = stof(thisWord);
     getline(ss, thisWord, ',');
     float latitude = stof(thisWord);
-    v.emplace_back(longitude, latitude, 0.f);
+    points[0].emplace_back(longitude);
+    points[1].emplace_back(latitude);
     // v_length,v_Width,v_Class,v_Vel,v_Acc,Lane_ID,O_Zone,D_Zone,Int_ID,Section_ID,Direction,Movement,Preceding,Following,Space_Headway,Time_Headway,Location
     for (int i = 0; i < 16; ++i)
       getline(ss, thisWord, ',');
     getline(ss, thisWord, ',');
     ++n_points;
   }
-  std::cout << "done\nRead in " << v.size() << " points" << std::endl;
-  return v;
+  std::cout << "done\nRead in " << n_points << " points" << std::endl;
+  return points;
 }
 
 // Taxi Service Trajectory Prediction Challenge data reader.
@@ -142,7 +162,7 @@ std::vector<Point> loadNGSIMData(std::string const &filename)
 // Every data point in this dataset has, besides longitude and latitude values,
 // a unique identifier for each taxi trip, taxi ID, timestamp, and user
 // information.
-std::vector<Point> loadTaxiPortoData(std::string const &filename)
+auto loadTaxiPortoData(std::string const &filename)
 {
   std::cout << "Assuming TaxiPorto data.\n";
   std::cout << "Reading in \"" << filename << "\" in text mode...";
@@ -163,7 +183,6 @@ std::vector<Point> loadTaxiPortoData(std::string const &filename)
 
   std::vector<float> longitudes;
   std::vector<float> latitudes;
-  std::vector<Point> v;
 
   int lineNo = -1;
   int wordNo = 0;
@@ -233,13 +252,14 @@ std::vector<Point> loadTaxiPortoData(std::string const &filename)
 
   int num_points = longitudes.size();
   assert(longitudes.size() == latitudes.size());
-  v.reserve(num_points);
-  for (int i = 0; i < num_points; ++i)
-    v.emplace_back(longitudes[i], latitudes[i], 0.f);
 
-  std::cout << "done\nRead in " << v.size() << " points" << std::endl;
+  Points points(2, num_points);
+  std::copy(longitudes.begin(), longitudes.end(), points[0].begin());
+  std::copy(latitudes.begin(), latitudes.end(), points[1].begin());
 
-  return v;
+  std::cout << "done\nRead in " << num_points << " points" << std::endl;
+
+  return points;
 }
 
 // 3D Road Network data reader.
@@ -253,7 +273,7 @@ std::vector<Point> loadTaxiPortoData(std::string const &filename)
 // https://archive.ics.uci.edu/ml/machine-learning-databases/00246/3D_spatial_network.txt).
 //
 // Each data point contains its ID, longitude, latitude, and altitude.
-std::vector<Point> load3DRoadNetworkData(std::string const &filename)
+auto load3DRoadNetworkData(std::string const &filename)
 {
   std::cout << "Assuming 3DRoadNetwork data.\n";
   std::cout << "Reading in \"" << filename << "\" in text mode...";
@@ -264,7 +284,7 @@ std::vector<Point> load3DRoadNetworkData(std::string const &filename)
   if (!file.good())
     throw std::runtime_error("Cannot open file");
 
-  std::vector<Point> v;
+  Points points(2);
 
   std::string thisWord;
   while (file.good())
@@ -274,15 +294,16 @@ std::vector<Point> load3DRoadNetworkData(std::string const &filename)
     float longitude = stof(thisWord);
     getline(file, thisWord, ',');
     float latitude = stof(thisWord);
-    v.emplace_back(longitude, latitude, 0.f);
+    points[0].emplace_back(longitude);
+    points[1].emplace_back(latitude);
   }
   // In Mustafa2019 they discarded the last item read but it's not quite clear
   // if/why this was necessary.
   // lon_ptr.pop_back();
   // lat_ptr.pop_back();
-  std::cout << "done\nRead in " << v.size() << " points" << std::endl;
+  std::cout << "done\nRead in " << points.size() << " points" << std::endl;
 
-  return v;
+  return points;
 }
 
 // SW data reader.
@@ -307,7 +328,7 @@ std::vector<Point> load3DRoadNetworkData(std::string const &filename)
 //   because in the application scenario of monitoring space weather, we
 //   typically first selected the data points based on TEC, and then cluster
 //   the positions of the points
-std::vector<Point> loadSWData(std::string const &filename)
+auto loadSWData(std::string const &filename)
 {
   std::cout << "Assuming SW data.\n";
   std::cout << "Reading in \"" << filename << "\" in text mode...";
@@ -318,7 +339,7 @@ std::vector<Point> loadSWData(std::string const &filename)
   if (!input.good())
     throw std::runtime_error("Cannot open file");
 
-  std::vector<Point> v;
+  Points points(2);
   while (input.good())
   {
     std::string line;
@@ -333,12 +354,13 @@ std::vector<Point> loadSWData(std::string const &filename)
     float latitude = std::stof(word);
     std::getline(line_stream, word, ','); // TEC field (ignored)
 
-    v.emplace_back(longitude, latitude, 0.f);
+    points[0].emplace_back(longitude);
+    points[1].emplace_back(latitude);
   }
   input.close();
-  std::cout << "done\nRead in " << v.size() << " points" << std::endl;
+  std::cout << "done\nRead in " << points.size() << " points" << std::endl;
 
-  return v;
+  return points;
 }
 
 // Gaia data reader.
@@ -356,7 +378,7 @@ std::vector<Point> loadSWData(std::string const &filename)
 //
 // The data file is a text file. Each line contains two floating point
 // numbers separated by ','. The fields corespond to longitude, latitude.
-std::vector<Point> loadGaiaData(std::string const &filename)
+auto loadGaiaData(std::string const &filename)
 {
   std::cout << "Assuming Gaia data.\n";
   std::cout << "Reading in \"" << filename << "\" in text mode...";
@@ -367,7 +389,7 @@ std::vector<Point> loadGaiaData(std::string const &filename)
   if (!input.good())
     throw std::runtime_error("Cannot open file");
 
-  std::vector<Point> v;
+  Points points(2);
   while (input.good())
   {
     std::string line;
@@ -381,16 +403,16 @@ std::vector<Point> loadGaiaData(std::string const &filename)
     std::getline(line_stream, word, ','); // latitude field
     float latitude = std::stof(word);
 
-    v.emplace_back(longitude, latitude, 0.f);
+    points[0].emplace_back(longitude);
+    points[1].emplace_back(latitude);
   }
   input.close();
-  std::cout << "done\nRead in " << v.size() << " points" << std::endl;
+  std::cout << "done\nRead in " << points.size() << " points" << std::endl;
 
-  return v;
+  return points;
 }
 
-std::vector<Point> loadData(std::string const &filename,
-                            std::string const &reader_type)
+auto loadData(std::string const &filename, std::string const &reader_type)
 {
   if (reader_type == "hacc")
     return loadHACCData(filename);
@@ -436,11 +458,15 @@ int main(int argc, char *argv[])
   }
 
   auto points = loadData(input_file, reader);
+  int n = points.size();
+  int dim = points.dimension();
 
   std::ofstream out(output_file, std::ofstream::binary);
-  int n = points.size();
   out.write((char *)&n, sizeof(int));
-  out.write((char *)points.data(), sizeof(Point) * n);
+  out.write((char *)&dim, sizeof(int));
+  for (int i = 0; i < n; ++i)
+    for (int d = 0; d < dim; ++d)
+      out.write((char *)(&points[d][i]), sizeof(float));
 
   return EXIT_SUCCESS;
 }
