@@ -46,13 +46,13 @@ struct CountUpToN
 template <typename MemorySpace, typename CorePointsType>
 struct FDBSCANCallback
 {
-  UnionFind<MemorySpace> union_find_;
-  CorePointsType is_core_point_;
+  UnionFind<MemorySpace> _union_find;
+  CorePointsType _is_core_point;
 
   FDBSCANCallback(Kokkos::View<int *, MemorySpace> const &view,
                   CorePointsType is_core_point)
-      : union_find_(view)
-      , is_core_point_(is_core_point)
+      : _union_find(view)
+      , _is_core_point(is_core_point)
   {
   }
 
@@ -61,7 +61,7 @@ struct FDBSCANCallback
   {
     int const i = ArborX::getData(query);
 
-    bool const is_border_point = !is_core_point_(i);
+    bool const is_border_point = !_is_core_point(i);
     if (is_border_point)
     {
       // Ignore border points, they will be processed by the
@@ -70,12 +70,12 @@ struct FDBSCANCallback
       return ArborX::CallbackTreeTraversalControl::early_exit;
     }
 
-    bool const is_neighbor_core_point = is_core_point_(j);
+    bool const is_neighbor_core_point = _is_core_point(j);
     if (is_neighbor_core_point && i > j)
     {
       // For a core point that is connected to another core point, do the
       // standard CCS algorithm
-      union_find_.merge(i, j);
+      _union_find.merge(i, j);
     }
     else if (!is_neighbor_core_point)
     {
@@ -88,7 +88,7 @@ struct FDBSCANCallback
       // point as a representative for the whole cluster. This would mean that
       // a) labels_(i) == i still (so it would be processed later, and b) it may
       // be combined with a different cluster later forming a bridge.
-      union_find_.merge_into(j, i);
+      _union_find.merge_into(j, i);
     }
 
     return ArborX::CallbackTreeTraversalControl::normal_continuation;
