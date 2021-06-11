@@ -16,6 +16,7 @@
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
+#include <ArborX_Triangle.hpp>
 
 #include <Kokkos_Macros.hpp>
 
@@ -272,6 +273,58 @@ KOKKOS_INLINE_FUNCTION float overlapDistance(Ray const &ray,
   // As direction is normalized,
   //   |(o + tmax*d) - (o + tmin*d)| = tmax - tmin
   return (tmax - tmin);
+}
+
+// Möller–Trumbore intersection algorithm
+KOKKOS_INLINE_FUNCTION bool rayTriangleIntersect(Ray const &ray,
+                                                 Triangle const &triangle,
+                                                 float &t, float &u, float &v)
+{
+  auto const ab = makeVector(triangle.a, triangle.b);
+  auto const ac = makeVector(triangle.a, triangle.c);
+
+  auto const p = crossProduct(ray.direction(), ac);
+  auto const det = dotProduct(ab, p);
+
+  auto const epsilon = 0.0000001f;
+  // If the determinant is negative the triangle is back-facing.
+  // If the determinant is close to 0, the ray misses the triangle because they
+  // are in the same plane.
+  if (det > -epsilon && det < epsilon)
+  {
+    return false;
+  }
+
+  auto const inv_det = 1 / det;
+
+  auto const s = makeVector(triangle.a, ray.origin());
+  u = inv_det * dotProduct(s, p);
+  if (u < 0.f || u > 1.f)
+  {
+    return false;
+  }
+
+  auto const q = crossProduct(s, ab);
+  v = inv_det * dotProduct(ray.direction(), q);
+  if (v < 0.f || u + v > 1.f)
+  {
+    return false;
+  }
+
+  t = inv_det * dotProduct(ac, q);
+
+  if (t < epsilon)
+    return false;
+
+  return true;
+}
+
+KOKKOS_INLINE_FUNCTION bool intersects(Ray const &ray, Triangle const &triangle)
+{
+  float t;
+  float u;
+  float v;
+  return rayTriangleIntersect(ray, triangle, t, u, v);
 }
 
 } // namespace Experimental
