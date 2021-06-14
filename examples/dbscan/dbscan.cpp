@@ -21,6 +21,8 @@
 
 #include <fstream>
 
+#include "seed_spreader.hpp"
+
 std::vector<ArborX::Point> loadData(std::string const &filename,
                                     bool binary = true, int max_num_points = -1)
 {
@@ -390,8 +392,11 @@ int main(int argc, char *argv[])
   int core_min_size;
   int max_num_points;
   int num_samples;
+  int n;
+  int dim;
   std::string filename_labels;
   Implementation implementation;
+  bool variable_density;
 
   bpo::options_description desc("Allowed options");
   // clang-format off
@@ -406,9 +411,12 @@ int main(int argc, char *argv[])
       ( "verify", bpo::bool_switch(&verify)->default_value(false), "verify connected components")
       ( "samples", bpo::value<int>(&num_samples)->default_value(-1), "number of samples" )
       ( "labels", bpo::value<std::string>(&filename_labels)->default_value(""), "clutering results output" )
-      ( "print-dbscan-timers", bpo::bool_switch(&print_dbscan_timers)->default_value(false), "print dbscan timers")
-      ( "output-sizes-and-centers", bpo::bool_switch(&print_sizes_centers)->default_value(false), "print cluster sizes and centers")
+      ( "print-dbscan-timers", bpo::bool_switch(&print_dbscan_timers)->default_value(false), "print dbscan timers" )
+      ( "output-sizes-and-centers", bpo::bool_switch(&print_sizes_centers)->default_value(false), "print cluster sizes and centers" )
       ( "impl", bpo::value<Implementation>(&implementation)->default_value(Implementation::FDBSCAN), R"(implementation ("fdbscan" or "fdbscan-densebox"))")
+      ( "n", bpo::value<int>(&n), "number of points to generate" )
+      ( "variable-density", bpo::bool_switch(&variable_density)->default_value(false), "type of cluster density to generate" )
+      ( "dimension", bpo::value<int>(&dim)->default_value(3), "dimension of points to generate" )
       ;
   // clang-format on
   bpo::variables_map vm;
@@ -418,6 +426,13 @@ int main(int argc, char *argv[])
   if (vm.count("help") > 0)
   {
     std::cout << desc << '\n';
+    std::cout << "[Generator Help]\n"
+                 "If using generator, the recommended DBSCAN parameters are:\n"
+                 "- core-min-size = 10\n"
+                 "- eps = 60 (2D constant), 100 (2D variable), 200 (3D "
+                 "constant), 400 (3D variable)"
+              << std::endl;
+
     return 1;
   }
 
@@ -428,19 +443,38 @@ int main(int argc, char *argv[])
   printf("eps               : %f\n", eps);
   printf("minpts            : %d\n", core_min_size);
   printf("cluster min size  : %d\n", cluster_min_size);
-  printf("filename          : %s [%s, max_pts = %d]\n", filename.c_str(),
-         (binary ? "binary" : "text"), max_num_points);
+  if (!filename.empty())
+  {
+    // Data is read in
+    printf("filename          : %s [%s, max_pts = %d]\n", filename.c_str(),
+           (binary ? "binary" : "text"), max_num_points);
+    printf("samples           : %d\n", num_samples);
+  }
+  else
+  {
+    // Data is generated
+    printf("generator         : n = %d, dim = %d, density = %s\n", n, dim,
+           (variable_density ? "variable" : "constant"));
+  }
   printf("filename [labels] : %s [binary]\n", filename_labels.c_str());
   printf("implementation    : %s\n", ss.str().c_str());
-  printf("samples           : %d\n", num_samples);
   printf("verify            : %s\n", (verify ? "true" : "false"));
   printf("print timers      : %s\n", (print_dbscan_timers ? "true" : "false"));
   printf("output centers    : %s\n", (print_sizes_centers ? "true" : "false"));
 
-  // read in data
-  std::vector<ArborX::Point> data = loadData(filename, binary, max_num_points);
-  if (num_samples > 0 && num_samples < (int)data.size())
-    data = sampleData(data, num_samples);
+  std::vector<ArborX::Point> data;
+  if (!filename.empty())
+  {
+    // Read in data
+    data = loadData(filename, binary, max_num_points);
+    if (num_samples > 0 && num_samples < (int)data.size())
+      data = sampleData(data, num_samples);
+  }
+  else
+  {
+    // Generate data
+    data = seedSpreader(n, dim, variable_density);
+  }
   auto const primitives = vec2view<MemorySpace>(data, "primitives");
 
   ExecutionSpace exec_space;
