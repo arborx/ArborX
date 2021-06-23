@@ -76,10 +76,7 @@
 #include <oneapi/dpl/iterator>
 #endif
 
-namespace ArborX
-{
-
-namespace Details
+namespace ArborX::Details
 {
 
 // Helper functions and structs for applyPermutations
@@ -214,6 +211,32 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
   return bin_sort.get_permute_vector();
 }
 
+#if defined(KOKKOS_ENABLE_SERIAL)
+// NOTE returns the permutation indices **and** sorts the input view
+template <typename ViewType, class SizeType = unsigned int>
+Kokkos::View<SizeType *, typename ViewType::device_type>
+sortObjects(Kokkos::Serial const &space, ViewType &view)
+{
+  static_assert(KokkosExt::is_accessible_from<typename ViewType::memory_space,
+                                              Kokkos::Serial>::value);
+
+  int const n = view.extent(0);
+
+  Kokkos::View<SizeType *, typename ViewType::device_type> permute(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         "ArborX::Sorting::permutation"),
+      n);
+  ArborX::iota(space, permute);
+
+  std::sort(permute.data(), permute.data() + n,
+            [&view](auto i, auto j) { return view(i) < view(j); });
+
+  applyPermutation(space, permute, view);
+
+  return permute;
+}
+#endif
+
 #if defined(KOKKOS_ENABLE_CUDA) ||                                             \
     (defined(KOKKOS_ENABLE_HIP) && defined(ARBORX_ENABLE_ROCTHRUST))
 // NOTE returns the permutation indices **and** sorts the input view
@@ -283,8 +306,6 @@ sortObjects(Kokkos::Experimental::SYCL const &space, ViewType &view)
 }
 #endif
 
-} // namespace Details
-
-} // namespace ArborX
+} // namespace ArborX::Details
 
 #endif
