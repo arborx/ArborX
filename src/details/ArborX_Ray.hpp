@@ -73,8 +73,15 @@ struct Ray
   Point _origin = {};
   Experimental::Vector _direction = {0.f, 0.f, 0.f};
 
-  using Scalar =
-      std::decay_t<decltype(std::declval<Experimental::Vector>()[0])>;
+  // We would like to use Scalar defined as:
+  // using Scalar =
+  //    std::decay_t<decltype(std::declval<Experimental::Vector>()[0])>;
+  // However, this means using float to compute the norm. This creates a large
+  // error in the norm that affects ray tracing for triangles. Casting the
+  // norm from double to float once it has been computed is not enough to
+  // improve the value of the normalized vector. Thus, the norm has to return a
+  // double.
+  using Scalar = double;
 
   KOKKOS_DEFAULTED_FUNCTION
   constexpr Ray() = default;
@@ -92,7 +99,7 @@ struct Ray
   {
     Scalar sq{};
     for (int d = 0; d < 3; ++d)
-      sq += v[d] * v[d];
+      sq += static_cast<Scalar>(v[d]) * static_cast<Scalar>(v[d]);
     return std::sqrt(sq);
   }
 
