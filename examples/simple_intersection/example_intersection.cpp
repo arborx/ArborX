@@ -13,9 +13,10 @@
 
 #include <Kokkos_Core.hpp>
 
-// Do intersection queries using the same objects for the queries as the objects
-// used in BVH construction that are located on a regular spaced
+// Perform intersection queries using the same objects for the queries as the
+// objects used in BVH construction that are located on a regular spaced
 // three-dimensional grid.
+// Each box will only intersect with itself.
 //
 // i-2  i-1  i  i+1
 //
@@ -29,42 +30,94 @@
 //
 
 template <typename DeviceType>
-Kokkos::View<ArborX::Box *, typename DeviceType::memory_space>
-create_bounding_boxes(
-    typename DeviceType::execution_space const &execution_space)
+class Boxes
 {
-  float Lx = 100.0;
-  float Ly = 100.0;
-  float Lz = 100.0;
-  int nx = 11;
-  int ny = 11;
-  int nz = 11;
-  int n = nx * ny * nz;
-  float hx = Lx / (nx - 1);
-  float hy = Ly / (ny - 1);
-  float hz = Lz / (nz - 1);
+public:
+  // Create non-intersecting boxes on a 3D cartesian grid
+  // used both for queries and predicates.
+  Boxes(typename DeviceType::execution_space const &execution_space)
+  {
+    float Lx = 100.0;
+    float Ly = 100.0;
+    float Lz = 100.0;
+    int nx = 11;
+    int ny = 11;
+    int nz = 11;
+    int n = nx * ny * nz;
+    float hx = Lx / (nx - 1);
+    float hy = Ly / (ny - 1);
+    float hz = Lz / (nz - 1);
 
-  auto index = [nx, ny](int i, int j, int k) {
-    return i + j * nx + k * (nx * ny);
-  };
+    auto index = [nx, ny](int i, int j, int k) {
+      return i + j * nx + k * (nx * ny);
+    };
 
-  Kokkos::View<ArborX::Box *, typename DeviceType::memory_space> bounding_boxes(
-      "bounding_boxes", n);
-  auto bounding_boxes_host = Kokkos::create_mirror_view(bounding_boxes);
+    _boxes = Kokkos::View<ArborX::Box *, typename DeviceType::memory_space>(
+        Kokkos::view_alloc(Kokkos::WithoutInitializing, "boxes"), n);
+    auto boxes_host = Kokkos::create_mirror_view(_boxes);
 
-  for (int i = 0; i < nx; ++i)
-    for (int j = 0; j < ny; ++j)
-      for (int k = 0; k < nz; ++k)
-      {
-        ArborX::Point p_lower{{(i - .25) * hx, (j - .25) * hy, (k - .25) * hz}};
-        ArborX::Point p_upper{{(i + .25) * hx, (j + .25) * hy, (k + .25) * hz}};
-        bounding_boxes_host[index(i, j, k)] = {p_lower, p_upper};
-      }
-  Kokkos::deep_copy(execution_space, bounding_boxes, bounding_boxes_host);
+    for (int i = 0; i < nx; ++i)
+      for (int j = 0; j < ny; ++j)
+        for (int k = 0; k < nz; ++k)
+        {
+          ArborX::Point p_lower{
+              {(i - .25) * hx, (j - .25) * hy, (k - .25) * hz}};
+          ArborX::Point p_upper{
+              {(i + .25) * hx, (j + .25) * hy, (k + .25) * hz}};
+          boxes_host[index(i, j, k)] = {p_lower, p_upper};
+        }
+    Kokkos::deep_copy(execution_space, _boxes, boxes_host);
+  }
 
-  return bounding_boxes;
-}
+  // Return the number of boxes.
+  KOKKOS_FUNCTION int size() const { return _boxes.size(); }
 
+  // Return the box with index i.
+  KOKKOS_FUNCTION const ArborX::Box &get_box(int i) const { return _boxes(i); }
+
+private:
+  Kokkos::View<ArborX::Box *, typename DeviceType::memory_space> _boxes;
+};
+
+// For creating the bounding volume hierarchy given a Boxes object, we
+// need to define the memory space, how to get the total number of objects,
+// and how to access a specific box. Since there are corresponding functions in
+// the Boxes class, we just resort to them.
+template <typename DeviceType>
+struct ArborX::AccessTraits<Boxes<DeviceType>, ArborX::PrimitivesTag>
+{
+  using memory_space = typename DeviceType::memory_space;
+  static KOKKOS_FUNCTION int size(Boxes<DeviceType> const &boxes)
+  {
+    return boxes.size();
+  }
+  static KOKKOS_FUNCTION auto get(Boxes<DeviceType> const &boxes, int i)
+  {
+    return boxes.get_box(i);
+  }
+};
+
+// For performing the queries given a Boxes object, we need to define memory
+// space, how to get the total number of queries, and what the query with index
+// i should look like. Since we are using self-intersection (which boxes
+// intersect with the given one), the functions here very much look like the
+// ones in ArborX::AccessTraits<Boxes<DeviceType>, ArborX::PrimitivesTag>.
+template <typename DeviceType>
+struct ArborX::AccessTraits<Boxes<DeviceType>, ArborX::PredicatesTag>
+{
+  using memory_space = typename DeviceType::memory_space;
+  static KOKKOS_FUNCTION int size(Boxes<DeviceType> const &boxes)
+  {
+    return boxes.size();
+  }
+  static KOKKOS_FUNCTION auto get(Boxes<DeviceType> const &boxes, int i)
+  {
+    return intersects(boxes.get_box(i));
+  }
+};
+
+// Now that we have encapsulated the objects and queries to be used within the
+// Boxes class, we can continue with performing the actual search.
 int main()
 {
   Kokkos::initialize();
@@ -75,32 +128,19 @@ int main()
     ExecutionSpace execution_space;
 
     std::cout << "Create grid with bounding boxes" << '\n';
-    Kokkos::View<ArborX::Box *, MemorySpace> bounding_boxes =
-        create_bounding_boxes<DeviceType>(execution_space);
+    Boxes<DeviceType> boxes(execution_space);
     std::cout << "Bounding boxes set up." << '\n';
 
     std::cout << "Creating BVH tree." << '\n';
-    ArborX::BVH<MemorySpace> const tree(execution_space, bounding_boxes);
+    ArborX::BVH<MemorySpace> const tree(execution_space, boxes);
     std::cout << "BVH tree set up." << '\n';
-
-    std::cout << "Filling queries." << '\n';
-    auto const n = bounding_boxes.size();
-    Kokkos::View<decltype(ArborX::intersects(ArborX::Box{})) *, MemorySpace>
-        queries("queries", n);
-    Kokkos::parallel_for(
-        "fill_queries",
-        Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
-        KOKKOS_LAMBDA(int i) {
-          queries(i) = ArborX::intersects(bounding_boxes(i));
-        });
-    std::cout << "Queries set up." << '\n';
 
     std::cout << "Starting the queries." << '\n';
     // The query will resize indices and offsets accordingly
     Kokkos::View<int *, MemorySpace> indices("indices", 0);
     Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
 
-    ArborX::query(tree, execution_space, queries, indices, offsets);
+    ArborX::query(tree, execution_space, boxes, indices, offsets);
     std::cout << "Queries done." << '\n';
 
     std::cout << "Starting checking results." << '\n';
@@ -109,6 +149,7 @@ int main()
     auto indices_host =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
 
+    unsigned int const n = boxes.size();
     if (offsets_host.size() != n + 1)
       Kokkos::abort("Wrong dimensions for the offsets View!\n");
     for (int i = 0; i < static_cast<int>(n + 1); ++i)
