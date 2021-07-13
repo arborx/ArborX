@@ -73,9 +73,6 @@ struct Ray
   Point _origin = {};
   Experimental::Vector _direction = {0.f, 0.f, 0.f};
 
-  using Scalar =
-      std::decay_t<decltype(std::declval<Experimental::Vector>()[0])>;
-
   KOKKOS_DEFAULTED_FUNCTION
   constexpr Ray() = default;
 
@@ -88,11 +85,11 @@ struct Ray
   }
 
   KOKKOS_FUNCTION
-  static Scalar norm(Experimental::Vector const &v)
+  static double norm(Experimental::Vector const &v)
   {
-    Scalar sq{};
+    double sq = 0.;
     for (int d = 0; d < 3; ++d)
-      sq += v[d] * v[d];
+      sq += static_cast<double>(v[d]) * static_cast<double>(v[d]);
     return std::sqrt(sq);
   }
 
