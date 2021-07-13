@@ -13,6 +13,10 @@ Using ArborX
 ------------
 The interface is described [here](https://github.com/arborx/ArborX/wiki/ArborX%3A%3ABoundingVolumeHierarchy).
 
+Examples
+--------
+Examples can be found in the [examples directory](https://github.com/arborx/ArborX/examples).
+
 Questions, Bug Reporting, and Issue Tracking
 --------------------------------------------
 Questions, bug reporting and issue tracking are provided by GitHub. Please
