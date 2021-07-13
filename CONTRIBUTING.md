@@ -8,4 +8,5 @@ repository](https://github.com/ArborX/ArborX). Please allow edits from
 maintainers in the pull request.
 
 Your pull request must pass ArborX's tests. It is also desired that it follows
-the coding style (provided by `.clang-format`).
+the coding style used in ArborX (see
+[wiki](https://github.com/arborx/ArborX/wiki/CodeStyle)).
