@@ -233,7 +233,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
                                              0);
 
   Kokkos::View<int *, MemorySpace> labels(
-      Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::labels"), n);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::DBSCAN::labels"),
+      n);
   ArborX::iota(exec_space, labels);
 
   if (parameters._implementation == DBSCAN::Implementation::FDBSCAN)

@@ -296,9 +296,11 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   }
 
   Kokkos::View<ArborX::Point *, DeviceType> random_values(
-      Kokkos::ViewAllocateWithoutInitializing("Testing::values"), n_values);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::values"),
+      n_values);
   Kokkos::View<ArborX::Point *, DeviceType> random_queries(
-      Kokkos::ViewAllocateWithoutInitializing("Testing::queries"), n_queries);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::queries"),
+      n_queries);
   {
     double a = 0.;
     double offset_x = 0.;
@@ -359,7 +361,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     // The boxes in which the points are placed have side length two, centered
     // around offset_[xyz] and scaled by a.
     Kokkos::View<ArborX::Point *, DeviceType> random_points(
-        Kokkos::ViewAllocateWithoutInitializing("Testing::points"),
+        Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::points"),
         std::max(n_values, n_queries));
     auto random_points_host = Kokkos::create_mirror_view(random_points);
     for (int i = 0; i < random_points.extent_int(0); ++i)
@@ -400,7 +402,8 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   }
 
   Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes(
-      Kokkos::ViewAllocateWithoutInitializing("Testing::bounding_boxes"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                         "Testing::bounding_boxes"),
       n_values);
   Kokkos::parallel_for("bvh_driver:construct_bounding_boxes",
                        Kokkos::RangePolicy<ExecutionSpace>(0, n_values),

@@ -73,9 +73,10 @@ template <typename ExecutionSpace, typename Primitives>
 BruteForce<MemorySpace>::BruteForce(ExecutionSpace const &space,
                                     Primitives const &primitives)
     : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
-    , _bounding_volumes(Kokkos::ViewAllocateWithoutInitializing(
-                            "ArborX::BruteForce::bounding_volumes"),
-                        _size)
+    , _bounding_volumes(
+          Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                             "ArborX::BruteForce::bounding_volumes"),
+          _size)
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
