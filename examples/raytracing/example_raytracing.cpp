@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
   // The centers of spheres are uniformly sampling the domain. The radii of
   // spheres have Gaussian (mu_R, sigma_R) sampling.
   Kokkos::View<ArborX::Sphere *, MemorySpace> spheres(
-      Kokkos::ViewAllocateWithoutInitializing("spheres"), num_spheres);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "spheres"), num_spheres);
   auto spheres_host = Kokkos::create_mirror_view(spheres);
   for (int i = 0; i < num_spheres; ++i)
   {
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
   // A detailed description can be found in the slides here (slide 47):
   // https://cg.informatik.uni-freiburg.de/course_notes/graphics2_08_renderingEquation.pdf
   Kokkos::View<ArborX::Experimental::Ray *, MemorySpace> rays(
-      Kokkos::ViewAllocateWithoutInitializing("rays"), num_rays);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "rays"), num_rays);
   auto rays_host = Kokkos::create_mirror_view(rays);
 
   for (int i = 0; i < num_rays; ++i)

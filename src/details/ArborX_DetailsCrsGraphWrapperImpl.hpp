@@ -275,8 +275,9 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     Kokkos::Profiling::pushRegion(
         "ArborX::CrsGraphWrapper::two_pass:copy_values");
 
-    OutputView tmp_out(Kokkos::ViewAllocateWithoutInitializing(out.label()),
-                       n_results);
+    OutputView tmp_out(
+        Kokkos::view_alloc(Kokkos::WithoutInitializing, out.label()),
+        n_results);
 
     Kokkos::parallel_for(
         "ArborX::CrsGraphWrapper::copy_valid_values",

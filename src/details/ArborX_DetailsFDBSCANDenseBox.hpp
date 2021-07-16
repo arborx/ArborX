@@ -248,7 +248,8 @@ computeCellIndices(ExecutionSpace const &exec_space,
   auto const n = Access::size(primitives);
 
   Kokkos::View<size_t *, MemorySpace> cell_indices(
-      Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::cell_indices"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                         "ArborX::DBSCAN::cell_indices"),
       n);
   Kokkos::parallel_for("ArborX::DBSCAN::compute_cell_indices",
                        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
@@ -274,7 +275,8 @@ computeOffsetsInOrderedView(ExecutionSpace const &exec_space, View view)
 
   int num_offsets;
   Kokkos::View<int *, MemorySpace> offsets(
-      Kokkos::ViewAllocateWithoutInitializing("ArborX::DBSCAN::offsets"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                         "ArborX::DBSCAN::offsets"),
       n + 1);
   Kokkos::parallel_scan(
       "ArborX::DBSCAN::compute_offsets",

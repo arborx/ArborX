@@ -162,9 +162,9 @@ public:
       , _sorted_morton_codes(sorted_morton_codes)
       , _leaf_nodes(leaf_nodes)
       , _internal_nodes(internal_nodes)
-      , _ranges(
-            Kokkos::ViewAllocateWithoutInitializing("ArborX::BVH::BVH::ranges"),
-            internal_nodes.extent(0))
+      , _ranges(Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                                   "ArborX::BVH::BVH::ranges"),
+                internal_nodes.extent(0))
       , _num_internal_nodes(_internal_nodes.extent_int(0))
   {
     Kokkos::deep_copy(space, _ranges, UNTOUCHED_NODE);

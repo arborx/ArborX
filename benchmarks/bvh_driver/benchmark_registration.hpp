@@ -101,7 +101,8 @@ Kokkos::View<ArborX::Point *, DeviceType>
 constructPoints(int n_values, PointCloudType point_cloud_type)
 {
   Kokkos::View<ArborX::Point *, DeviceType> random_points(
-      Kokkos::ViewAllocateWithoutInitializing("random_points"), n_values);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "random_points"),
+      n_values);
   // Generate random points uniformly distributed within a box.  The edge
   // length of the box chosen such that object density (here objects will be
   // boxes 2x2x2 centered around a random point) will remain constant as
@@ -118,12 +119,14 @@ makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
                    PointCloudType target_point_cloud_type)
 {
   Kokkos::View<ArborX::Point *, DeviceType> random_points(
-      Kokkos::ViewAllocateWithoutInitializing("random_points"), n_queries);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "random_points"),
+      n_queries);
   auto const a = std::cbrt(n_values);
   generatePointCloud(target_point_cloud_type, a, random_points);
 
   Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
-      queries(Kokkos::ViewAllocateWithoutInitializing("queries"), n_queries);
+      queries(Kokkos::view_alloc(Kokkos::WithoutInitializing, "queries"),
+              n_queries);
   // Radius is computed so that the number of results per query for a uniformly
   // distributed points in a [-a,a]^3 box is approximately n_neighbors.
   // Calculation: n_values*(4/3*M_PI*r^3)/(2a)^3 = n_neighbors
@@ -143,12 +146,13 @@ makeNearestQueries(int n_values, int n_queries, int n_neighbors,
                    PointCloudType target_point_cloud_type)
 {
   Kokkos::View<ArborX::Point *, DeviceType> random_points(
-      Kokkos::ViewAllocateWithoutInitializing("random_points"), n_queries);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "random_points"),
+      n_queries);
   auto const a = std::cbrt(n_values);
   generatePointCloud(target_point_cloud_type, a, random_points);
 
   Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> queries(
-      Kokkos::ViewAllocateWithoutInitializing("queries"), n_queries);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "queries"), n_queries);
   using ExecutionSpace = typename DeviceType::execution_space;
   Kokkos::parallel_for(
       "bvh_driver:setup_knn_search_queries",

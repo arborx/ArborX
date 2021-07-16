@@ -168,8 +168,8 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
   // is already on the host.
   decltype(Kokkos::create_mirror_view(Kokkos::HostSpace{},
                                       std::declval<LabelsView>()))
-      labels_host(Kokkos::ViewAllocateWithoutInitializing(
-                      "ArborX::DBSCAN::labels_host"),
+      labels_host(Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                                     "ArborX::DBSCAN::labels_host"),
                   labels.size());
   Kokkos::deep_copy(exec_space, labels_host, labels);
   auto offset_host =
