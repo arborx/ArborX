@@ -262,7 +262,7 @@ void printClusterSizesAndCenters(ExecutionSpace const &exec_space,
   using MemorySpace = typename ClusterIndicesView::memory_space;
 
   Kokkos::View<ArborX::Point *, MemorySpace> cluster_centers(
-      Kokkos::ViewAllocateWithoutInitializing("Testing::centers"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::centers"),
       num_clusters);
   Kokkos::parallel_for(
       "Testing::compute_centers",

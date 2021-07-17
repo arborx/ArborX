@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_spatial_predicate, TreeTypeTraits,
 
   int const n = 10;
   Kokkos::View<ArborX::Point *, DeviceType> points(
-      Kokkos::ViewAllocateWithoutInitializing("points"), n);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
   ArborX::Point const origin = {{0., 0., 0.}};
   Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n),
                        KOKKOS_LAMBDA(int i) {
@@ -118,7 +118,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_nearest_predicate, TreeTypeTraits,
 
   int const n = 10;
   Kokkos::View<ArborX::Point *, DeviceType> points(
-      Kokkos::ViewAllocateWithoutInitializing("points"), n);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
   ArborX::Point const origin = {{0., 0., 0.}};
   Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n),
                        KOKKOS_LAMBDA(int i) {
@@ -260,7 +260,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_spatial_predicate,
 
   int const n = 10;
   Kokkos::View<ArborX::Point *, DeviceType> points(
-      Kokkos::ViewAllocateWithoutInitializing("points"), n);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
   ArborX::Point const origin = {{0., 0., 0.}};
   Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n),
                        KOKKOS_LAMBDA(int i) {
@@ -305,7 +305,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_nearest_predicate,
 
   int const n = 10;
   Kokkos::View<ArborX::Point *, DeviceType> points(
-      Kokkos::ViewAllocateWithoutInitializing("points"), n);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
   ArborX::Point const origin = {{0., 0., 0.}};
   Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n),
                        KOKKOS_LAMBDA(int i) {

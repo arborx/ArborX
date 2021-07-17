@@ -111,7 +111,8 @@ inline auto create_layout_right_mirror_view_and_copy(
   Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
                typename ExecutionSpace::memory_space>
       layout_right_view(
-          Kokkos::ViewAllocateWithoutInitializing(
+          Kokkos::view_alloc(
+              Kokkos::WithoutInitializing,
               std::string(src.label()).append("_layout_right_mirror")),
           src.extent(0),
           pointer_depth > 1 ? src.extent(1) : KOKKOS_INVALID_INDEX,
@@ -526,8 +527,8 @@ void reallocWithoutInitializing(View &v,
                                 size_t n7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG)
 {
   static_assert(View::is_managed, "Can only realloc managed views");
-  v = View(Kokkos::ViewAllocateWithoutInitializing(v.label()), n0, n1, n2, n3,
-           n4, n5, n6, n7);
+  v = View(Kokkos::view_alloc(Kokkos::WithoutInitializing, v.label()), n0, n1,
+           n2, n3, n4, n5, n6, n7);
 }
 
 template <typename View>
@@ -535,21 +536,21 @@ void reallocWithoutInitializing(View &v,
                                 const typename View::array_layout &layout)
 {
   static_assert(View::is_managed, "Can only realloc managed views");
-  v = View(Kokkos::ViewAllocateWithoutInitializing(v.label()), layout);
+  v = View(Kokkos::view_alloc(Kokkos::WithoutInitializing, v.label()), layout);
 }
 
 template <typename View>
 typename View::non_const_type cloneWithoutInitializingNorCopying(View &v)
 {
   return typename View::non_const_type(
-      Kokkos::ViewAllocateWithoutInitializing(v.label()), v.layout());
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, v.label()), v.layout());
 }
 
 template <typename ExecutionSpace, typename View>
 typename View::non_const_type clone(ExecutionSpace &&space, View &v)
 {
   typename View::non_const_type w(
-      Kokkos::ViewAllocateWithoutInitializing(v.label()), v.layout());
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, v.label()), v.layout());
   Kokkos::deep_copy(std::forward<ExecutionSpace>(space), w, v);
   return w;
 }

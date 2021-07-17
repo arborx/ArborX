@@ -66,10 +66,10 @@ determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
   // these ranks and the corresponding offsets in a new container that we can be
   // sure to be large enough.
   Kokkos::View<int *, DeviceType> compact_offsets(
-      Kokkos::ViewAllocateWithoutInitializing(batched_offsets.label()),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, batched_offsets.label()),
       batched_offsets.size());
   Kokkos::View<int *, DeviceType> compact_ranks(
-      Kokkos::ViewAllocateWithoutInitializing(batched_ranks.label()),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, batched_ranks.label()),
       batched_ranks.size());
 
   // Note that we never touch the first element of compact_offsets below.
@@ -151,7 +151,8 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
   using DeviceType = typename InputView::traits::device_type;
 
   Kokkos::View<int *, DeviceType> device_ranks_duplicate(
-      Kokkos::ViewAllocateWithoutInitializing(ranks.label()), ranks.size());
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, ranks.label()),
+      ranks.size());
   Kokkos::deep_copy(space, device_ranks_duplicate, ranks);
   auto device_permutation_indices =
       Kokkos::create_mirror_view(DeviceType(), permutation_indices);
@@ -195,8 +196,8 @@ class Distributor
 public:
   Distributor(MPI_Comm comm)
       : _comm(comm)
-      , _permute{Kokkos::ViewAllocateWithoutInitializing(
-                     "ArborX::Distributor::permute"),
+      , _permute{Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                                    "ArborX::Distributor::permute"),
                  0}
   {
   }

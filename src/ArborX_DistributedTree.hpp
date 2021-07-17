@@ -149,9 +149,9 @@ DistributedTree<MemorySpace, Enable>::DistributedTree(
   MPI_Comm_size(getComm(), &comm_size);
 
   Kokkos::View<Box *, MemorySpace> boxes(
-      Kokkos::ViewAllocateWithoutInitializing(
-          "ArborX::DistributedTree::DistributedTree::"
-          "rank_bounding_boxes"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                         "ArborX::DistributedTree::DistributedTree::"
+                         "rank_bounding_boxes"),
       comm_size);
   // FIXME when we move to MPI with CUDA-aware support, we will not need to
   // copy from the device to the host
@@ -169,8 +169,9 @@ DistributedTree<MemorySpace, Enable>::DistributedTree(
                                 "size_calculation");
 
   _bottom_tree_sizes = Kokkos::View<size_type *, MemorySpace>(
-      Kokkos::ViewAllocateWithoutInitializing("ArborX::DistributedTree::"
-                                              "leave_count_in_local_trees"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                         "ArborX::DistributedTree::"
+                         "leave_count_in_local_trees"),
       comm_size);
   auto bottom_tree_sizes_host = Kokkos::create_mirror_view(_bottom_tree_sizes);
   bottom_tree_sizes_host(comm_rank) = _bottom_tree.size();
