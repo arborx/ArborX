@@ -269,14 +269,14 @@ int main_(std::vector<std::string> const &args)
                        });
 
   const auto create_and_query = [perform_knn_search, n_neighbors, perform_radius_search, partition_dim](ExecutionSpace const& exec_space, Kokkos::View<ArborX::Box *, DeviceType> const& subboxes, Kokkos::View<ArborX::Point *, DeviceType> const &subqueries){
-    ArborX::BVH<MemorySpace> distributed_tree(exec_space, subboxes);
+    ArborX::BVH<MemorySpace> tree(exec_space, subboxes);
 
     if (perform_knn_search)
     {
       Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
       Kokkos::View<int *, DeviceType> values("Testing::values", 0);
 
-      distributed_tree.query(
+      tree.query(
           exec_space,
           NearestNeighborsSearches<DeviceType>{subqueries, n_neighbors},
           values, offsets);
@@ -314,7 +314,7 @@ int main_(std::vector<std::string> const &args)
       Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
       Kokkos::View<int *, DeviceType> values("Testing::values", 0);
 
-      distributed_tree.query(exec_space,
+      tree.query(exec_space,
                              RadiusSearches<DeviceType>{subqueries, r},
                              values, offsets);
     }
