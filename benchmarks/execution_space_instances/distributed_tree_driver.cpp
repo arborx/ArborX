@@ -42,7 +42,8 @@ struct RadiusSearches
   double radius;
 };
 
-namespace ArborX {
+namespace ArborX
+{
 template <typename DeviceType>
 struct AccessTraits<RadiusSearches<DeviceType>, ArborX::PredicatesTag>
 {
@@ -60,8 +61,7 @@ struct AccessTraits<RadiusSearches<DeviceType>, ArborX::PredicatesTag>
 };
 
 template <typename DeviceType>
-struct AccessTraits<NearestNeighborsSearches<DeviceType>,
-                            ArborX::PredicatesTag>
+struct AccessTraits<NearestNeighborsSearches<DeviceType>, ArborX::PredicatesTag>
 {
   using memory_space = typename DeviceType::memory_space;
   static KOKKOS_FUNCTION std::size_t
@@ -75,7 +75,7 @@ struct AccessTraits<NearestNeighborsSearches<DeviceType>,
     return ArborX::nearest(pred.points(i), pred.k);
   }
 };
-}
+} // namespace ArborX
 
 namespace bpo = boost::program_options;
 
@@ -137,9 +137,11 @@ int main_(std::vector<std::string> const &args)
 
   std::cout << std::boolalpha;
   std::cout << "\nRunning with arguments:\n"
-	    << "number of execution space instances : " << n_spaces << '\n'
-            << "perform knn search                  : " << perform_knn_search << '\n'
-            << "perform radius search               : " << perform_radius_search << '\n'
+            << "number of execution space instances : " << n_spaces << '\n'
+            << "perform knn search                  : " << perform_knn_search
+            << '\n'
+            << "perform radius search               : " << perform_radius_search
+            << '\n'
             << "#points/execution space instance    : " << n_values << '\n'
             << "#queries/execution space instance   : " << n_queries << '\n'
             << "size of shift                       : " << shift << '\n'
@@ -151,11 +153,11 @@ int main_(std::vector<std::string> const &args)
 
   Kokkos::View<ArborX::Point *, DeviceType> random_values(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::values"),
-      n_values*n_spaces);
+      n_values * n_spaces);
   Kokkos::View<ArborX::Point *, DeviceType> random_queries(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::queries"),
-      n_queries*n_spaces);
-  for (int instance=0; instance<n_spaces; ++instance)
+      n_queries * n_spaces);
+  for (int instance = 0; instance < n_spaces; ++instance)
   {
     double a = 0.;
     double offset_x = 0.;
@@ -227,7 +229,9 @@ int main_(std::vector<std::string> const &args)
     Kokkos::deep_copy(random_points, random_points_host);
 
     Kokkos::deep_copy(
-        Kokkos::subview(random_values, Kokkos::pair<int, int>(instance*n_values, (instance+1)*n_values)),
+        Kokkos::subview(random_values,
+                        Kokkos::pair<int, int>(instance * n_values,
+                                               (instance + 1) * n_values)),
         Kokkos::subview(random_points, Kokkos::pair<int, int>(0, n_values)));
 
     if (!shift_queries)
@@ -235,14 +239,18 @@ int main_(std::vector<std::string> const &args)
       // By default, random points are "reused" between building the tree and
       // performing queries.
       Kokkos::deep_copy(
-          Kokkos::subview(random_queries, Kokkos::pair<int, int>(instance*n_queries, (instance+1)*n_queries)),
+          Kokkos::subview(random_queries,
+                          Kokkos::pair<int, int>(instance * n_queries,
+                                                 (instance + 1) * n_queries)),
           Kokkos::subview(random_points, Kokkos::pair<int, int>(0, n_queries)));
     }
     else
     {
       // For the queries, we shrink the global box by a factor three, and
       // move it by a third of the global size towards the global center.
-      auto subview = Kokkos::subview(random_queries, Kokkos::pair<int, int>(instance*n_queries, (instance+1)*n_queries));
+      auto subview = Kokkos::subview(
+          random_queries, Kokkos::pair<int, int>(instance * n_queries,
+                                                 (instance + 1) * n_queries));
       auto random_queries_host = Kokkos::create_mirror_view(subview);
 
       int const max_offset = 2 * shift * i_max;
@@ -253,96 +261,111 @@ int main_(std::vector<std::string> const &args)
                  (partition_dim > 1),
              a * ((offset_z + random()) / 3 + max_offset / 3) *
                  (partition_dim > 2)}};
-      Kokkos::deep_copy(Kokkos::subview(random_queries, Kokkos::pair<int, int>(instance*n_queries, (instance+1)*n_queries)), random_queries_host);
+      Kokkos::deep_copy(
+          Kokkos::subview(random_queries,
+                          Kokkos::pair<int, int>(instance * n_queries,
+                                                 (instance + 1) * n_queries)),
+          random_queries_host);
     }
   }
 
   Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
                          "Testing::bounding_boxes"),
-      n_values*n_spaces);
-  Kokkos::parallel_for("bvh_driver:construct_bounding_boxes",
-                       Kokkos::RangePolicy<ExecutionSpace>(0, n_values*n_spaces),
-                       KOKKOS_LAMBDA(int i) {
-                         double const x = random_values(i)[0];
-                         double const y = random_values(i)[1];
-                         double const z = random_values(i)[2];
-                         bounding_boxes(i) = {{{x - 1., y - 1., z - 1.}},
-                                              {{x + 1., y + 1., z + 1.}}};
-                       });
+      n_values * n_spaces);
+  Kokkos::parallel_for(
+      "bvh_driver:construct_bounding_boxes",
+      Kokkos::RangePolicy<ExecutionSpace>(0, n_values * n_spaces),
+      KOKKOS_LAMBDA(int i) {
+        double const x = random_values(i)[0];
+        double const y = random_values(i)[1];
+        double const z = random_values(i)[2];
+        bounding_boxes(i) = {{{x - 1., y - 1., z - 1.}},
+                             {{x + 1., y + 1., z + 1.}}};
+      });
 
-  const auto create_and_query = [perform_knn_search, n_neighbors, perform_radius_search, partition_dim](ExecutionSpace const& exec_space, Kokkos::View<ArborX::Box *, DeviceType> const& subboxes, Kokkos::View<ArborX::Point *, DeviceType> const &subqueries){
-    ArborX::BVH<MemorySpace> tree(exec_space, subboxes);
+  const auto create_and_query =
+      [perform_knn_search, n_neighbors, perform_radius_search, partition_dim](
+          ExecutionSpace const &exec_space,
+          Kokkos::View<ArborX::Box *, DeviceType> const &subboxes,
+          Kokkos::View<ArborX::Point *, DeviceType> const &subqueries) {
+        ArborX::BVH<MemorySpace> tree(exec_space, subboxes);
 
-    if (perform_knn_search)
-    {
-      Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
-      Kokkos::View<int *, DeviceType> values("Testing::values", 0);
+        if (perform_knn_search)
+        {
+          Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
+          Kokkos::View<int *, DeviceType> values("Testing::values", 0);
 
-      tree.query(
-          exec_space,
-          NearestNeighborsSearches<DeviceType>{subqueries, n_neighbors},
-          values, offsets);
-    }
+          tree.query(
+              exec_space,
+              NearestNeighborsSearches<DeviceType>{subqueries, n_neighbors},
+              values, offsets);
+        }
 
-    if (perform_radius_search)
-    {
-      // Radius is computed so that the number of results per query for a
-      // uniformly distributed primitives in a [-a,a]^d box is approximately
-      // n_neighbors. The primivites are boxes and not points. Thus, the radius
-      // we would have chosen for the case of point primitives has to be adjusted
-      // to account for box-box interaction. The radius is decreased by an
-      // average of the lengths of a half-edge and a half-diagonal to account for
-      // that (approximately). An exact calculation would require computing
-      // an integral.
-      double r = 0.;
-      switch (partition_dim)
-      {
-      case 1:
-        // Derivation (first term): n_values*(2*r)/(2a) = n_neighbors
-        r = static_cast<double>(n_neighbors) - 1.;
-        break;
-      case 2:
-        // Derivation (first term): n_values*(M_PI*r^2)/(2a)^2 = n_neighbors
-        r = std::sqrt(static_cast<double>(n_neighbors) * 4. / M_PI) -
-            (1. + std::sqrt(2.)) / 2;
-        break;
-      case 3:
-        // Derivation (first term): n_values*(4/3*M_PI*r^3)/(2a)^3 = n_neighbors
-        r = std::cbrt(static_cast<double>(n_neighbors) * 6. / M_PI) -
-            (1. + std::cbrt(3.)) / 2;
-        break;
-      }
+        if (perform_radius_search)
+        {
+          // Radius is computed so that the number of results per query for a
+          // uniformly distributed primitives in a [-a,a]^d box is approximately
+          // n_neighbors. The primivites are boxes and not points. Thus, the
+          // radius we would have chosen for the case of point primitives has to
+          // be adjusted to account for box-box interaction. The radius is
+          // decreased by an average of the lengths of a half-edge and a
+          // half-diagonal to account for that (approximately). An exact
+          // calculation would require computing an integral.
+          double r = 0.;
+          switch (partition_dim)
+          {
+          case 1:
+            // Derivation (first term): n_values*(2*r)/(2a) = n_neighbors
+            r = static_cast<double>(n_neighbors) - 1.;
+            break;
+          case 2:
+            // Derivation (first term): n_values*(M_PI*r^2)/(2a)^2 = n_neighbors
+            r = std::sqrt(static_cast<double>(n_neighbors) * 4. / M_PI) -
+                (1. + std::sqrt(2.)) / 2;
+            break;
+          case 3:
+            // Derivation (first term): n_values*(4/3*M_PI*r^3)/(2a)^3 =
+            // n_neighbors
+            r = std::cbrt(static_cast<double>(n_neighbors) * 6. / M_PI) -
+                (1. + std::cbrt(3.)) / 2;
+            break;
+          }
 
-      Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
-      Kokkos::View<int *, DeviceType> values("Testing::values", 0);
+          Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
+          Kokkos::View<int *, DeviceType> values("Testing::values", 0);
 
-      tree.query(exec_space,
-                             RadiusSearches<DeviceType>{subqueries, r},
-                             values, offsets);
-    }
-  };
+          tree.query(exec_space, RadiusSearches<DeviceType>{subqueries, r},
+                     values, offsets);
+        }
+      };
 
   Kokkos::fence();
   Kokkos::Timer total_time;
   total_time.reset();
 
-  for (int instance=0; instance < n_spaces; ++instance)
+  for (int instance = 0; instance < n_spaces; ++instance)
   {
-    create_and_query(instances[instance],
-		     Kokkos::subview(bounding_boxes, Kokkos::pair<int, int>(n_values*instance, n_values*(instance+1))),
-                     Kokkos::subview(random_queries, Kokkos::pair<int, int>(n_queries*instance, n_queries*(instance+1)))
-		    );
+    create_and_query(
+        instances[instance],
+        Kokkos::subview(bounding_boxes,
+                        Kokkos::pair<int, int>(n_values * instance,
+                                               n_values * (instance + 1))),
+        Kokkos::subview(random_queries,
+                        Kokkos::pair<int, int>(n_queries * instance,
+                                               n_queries * (instance + 1))));
   }
 
   Kokkos::fence();
-  std::cout << "Multiple instances running in " << total_time.seconds() << " seconds" << std::endl;
+  std::cout << "Multiple instances running in " << total_time.seconds()
+            << " seconds" << std::endl;
   total_time.reset();
 
   create_and_query(ExecutionSpace{}, bounding_boxes, random_queries);
 
   Kokkos::fence();
-  std::cout << "Single instance running in " << total_time.seconds() << " seconds" << std::endl;
+  std::cout << "Single instance running in " << total_time.seconds()
+            << " seconds" << std::endl;
 
   return 0;
 }
@@ -385,9 +408,8 @@ int main(int argc, char *argv[])
     bpo::notify(vm);
 
     if (std::find_if(pass_further.begin(), pass_further.end(),
-                                       [](std::string const &x) {
-                                         return x == "--help";
-                                       }) != pass_further.end())
+                     [](std::string const &x) { return x == "--help"; }) !=
+        pass_further.end())
     {
       std::cout << desc << '\n';
     }
