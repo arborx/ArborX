@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_DistributedTree.hpp>
+#include <ArborX_LinearBVH.hpp>
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -25,150 +25,8 @@
 #include <utility>
 #include <vector>
 
-#include <mpi.h>
-
 struct HelpPrinted
 {
-};
-
-// The TimeMonitor class can be used to measure for a series of events, i.e. it
-// represents a set of timers of type Timer. It is a poor man's drop-in
-// replacement for Teuchos::TimeMonitor
-class TimeMonitor
-{
-  using container_type = std::vector<std::pair<std::string, double>>;
-  using entry_reference_type = container_type::reference;
-  container_type _data;
-
-public:
-  class Timer
-  {
-    entry_reference_type _entry;
-    bool _started;
-    std::chrono::high_resolution_clock::time_point _tick;
-
-  public:
-    Timer(entry_reference_type ref)
-        : _entry{ref}
-        , _started{false}
-    {
-    }
-    void start()
-    {
-      assert(!_started);
-      _tick = std::chrono::high_resolution_clock::now();
-      _started = true;
-    }
-    void stop()
-    {
-      assert(_started);
-      std::chrono::duration<double> duration =
-          std::chrono::high_resolution_clock::now() - _tick;
-      // NOTE I have put much thought into whether we should use the
-      // operator+= and keep track of how many times the timer was
-      // restarted.  To be honest I have not even looked was the original
-      // TimeMonitor behavior is :)
-      _entry.second = duration.count();
-      _started = false;
-    }
-  };
-  // NOTE Original code had the pointer semantics.  Can change in the future.
-  // The smart pointer is a distraction.  The main problem here is that the
-  // reference stored by the timer is invalidated if the time monitor gets
-  // out of scope.
-  std::unique_ptr<Timer> getNewTimer(std::string name)
-  {
-    // FIXME Consider searching whether there already is an entry with the
-    // same name.
-    _data.emplace_back(std::move(name), 0.);
-    return std::make_unique<Timer>(_data.back());
-  }
-
-  void summarize(MPI_Comm comm, std::ostream &os = std::cout)
-  {
-    int comm_size;
-    MPI_Comm_size(comm, &comm_size);
-    int comm_rank;
-    MPI_Comm_rank(comm, &comm_rank);
-    int n_timers = _data.size();
-
-    os << std::left << std::scientific;
-
-    // Initialize with length of "Timer Name"
-    std::string const timer_name = "Timer Name";
-    std::size_t const max_section_length = std::accumulate(
-        _data.begin(), _data.end(), timer_name.size(),
-        [](std::size_t current_max, entry_reference_type section) {
-          return std::max(current_max, section.first.size());
-        });
-
-    if (comm_size == 1)
-    {
-      std::string const header_without_timer_name = " | GlobalTime";
-      std::stringstream dummy_string_stream;
-      dummy_string_stream << std::setprecision(os.precision())
-                          << std::scientific << " | " << 1.;
-      int const header_width =
-          max_section_length + std::max<int>(header_without_timer_name.size(),
-                                             dummy_string_stream.str().size());
-
-      os << std::string(header_width, '=') << "\n\n";
-      os << "TimeMonitor results over 1 processor\n\n";
-      os << std::setw(max_section_length) << timer_name
-         << header_without_timer_name << '\n';
-      os << std::string(header_width, '-') << '\n';
-      for (int i = 0; i < n_timers; ++i)
-      {
-        os << std::setw(max_section_length) << _data[i].first << " | "
-           << _data[i].second << '\n';
-      }
-      os << std::string(header_width, '=') << '\n';
-      return;
-    }
-    std::vector<double> all_entries(comm_size * n_timers);
-    std::transform(
-        _data.begin(), _data.end(), all_entries.begin() + comm_rank * n_timers,
-        [](std::pair<std::string, double> const &x) { return x.second; });
-    // FIXME No guarantee that all processors have the same timers!
-    MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, all_entries.data(),
-                  n_timers, MPI_DOUBLE, comm);
-    std::string const header_without_timer_name =
-        " | MinOverProcs | MeanOverProcs | MaxOverProcs";
-    if (comm_rank == 0)
-    {
-      os << std::string(max_section_length + header_without_timer_name.size(),
-                        '=')
-         << "\n\n";
-      os << "TimeMonitor results over " << comm_size << " processors\n";
-      os << std::setw(max_section_length) << timer_name
-         << header_without_timer_name << '\n';
-      os << std::string(max_section_length + header_without_timer_name.size(),
-                        '-')
-         << '\n';
-    }
-    std::vector<double> tmp(comm_size);
-    for (int i = 0; i < n_timers; ++i)
-    {
-      for (int j = 0; j < comm_size; ++j)
-      {
-        tmp[j] = all_entries[j * n_timers + i];
-      }
-      auto min = *std::min_element(tmp.begin(), tmp.end());
-      auto max = *std::max_element(tmp.begin(), tmp.end());
-      auto mean = std::accumulate(tmp.begin(), tmp.end(), 0.) / comm_size;
-      if (comm_rank == 0)
-      {
-        os << std::setw(max_section_length) << _data[i].first << " | " << min
-           << " |  " << mean << " | " << max << '\n';
-      }
-    }
-    if (comm_rank == 0)
-    {
-      os << std::string(max_section_length + header_without_timer_name.size(),
-                        '=')
-         << '\n';
-    }
-  }
 };
 
 template <typename DeviceType>
@@ -220,14 +78,13 @@ struct ArborX::AccessTraits<NearestNeighborsSearches<DeviceType>,
 namespace bpo = boost::program_options;
 
 template <class NO>
-int main_(std::vector<std::string> const &args, const MPI_Comm comm)
+int main_(std::vector<std::string> const &args)
 {
-  TimeMonitor time_monitor;
-
   using DeviceType = typename NO::device_type;
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
 
+  int n_spaces;
   int n_values;
   int n_queries;
   int n_neighbors;
@@ -241,8 +98,9 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   // clang-format off
     desc.add_options()
         ( "help", "produce help message" )
-        ( "values", bpo::value<int>(&n_values)->default_value(20000), "Number of indexable values (source) per MPI rank." )
-        ( "queries", bpo::value<int>(&n_queries)->default_value(5000), "Number of queries (target) per MPI rank." )
+	( "spaces", bpo::value<int>(&n_spaces)->default_value(1), "Number of execution space instances." )
+        ( "values", bpo::value<int>(&n_values)->default_value(20000), "Number of indexable values (source) per execution space instance." )
+        ( "queries", bpo::value<int>(&n_queries)->default_value(5000), "Number of queries (target) per execution space instance." )
         ( "neighbors", bpo::value<int>(&n_neighbors)->default_value(10), "Desired number of results per query." )
         ( "shift", bpo::value<double>(&shift)->default_value(1.), "Shift of the point clouds. '0' means the clouds are built "
 	                                                          "at the same place, while '1' places the clouds next to each"
@@ -255,22 +113,16 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
         ( "do-not-perform-radius-search", "skip radius search" )
         ( "shift-queries" , "By default, points are reused for the queries. Enabling this option shrinks the local box queries are created "
                             "in to a third of its size and moves it to the center of the global box. The result is a huge imbalance for the "
-                            "number of queries that need to be processed by each processor.")
+                            "number of queries that need to be processed by each execution space instance.")
         ;
   // clang-format on
   bpo::variables_map vm;
   bpo::store(bpo::command_line_parser(args).options(desc).run(), vm);
   bpo::notify(vm);
 
-  int comm_rank;
-  MPI_Comm_rank(comm, &comm_rank);
-  int comm_size;
-  MPI_Comm_size(comm, &comm_size);
-
   if (vm.count("help"))
   {
-    if (comm_rank == 0)
-      std::cout << desc << '\n';
+    std::cout << desc << '\n';
     throw HelpPrinted();
   }
 
@@ -281,26 +133,27 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   if (vm.count("shift-queries"))
     shift_queries = true;
 
-  if (comm_rank == 0)
-  {
-    std::cout << std::boolalpha;
-    std::cout << "\nRunning with arguments:\n"
-              << "perform knn search      : " << perform_knn_search << '\n'
-              << "perform radius search   : " << perform_radius_search << '\n'
-              << "#points/MPI process     : " << n_values << '\n'
-              << "#queries/MPI process    : " << n_queries << '\n'
-              << "size of shift           : " << shift << '\n'
-              << "dimension               : " << partition_dim << '\n'
-              << "shift-queries           : " << shift_queries << '\n'
-              << '\n';
-  }
+  std::cout << std::boolalpha;
+  std::cout << "\nRunning with arguments:\n"
+	    << "number of execution space instances : " << n_spaces << '\n'
+            << "perform knn search                  : " << perform_knn_search << '\n'
+            << "perform radius search               : " << perform_radius_search << '\n'
+            << "#points/execution space instance    : " << n_values << '\n'
+            << "#queries/execution space instance   : " << n_queries << '\n'
+            << "size of shift                       : " << shift << '\n'
+            << "dimension                           : " << partition_dim << '\n'
+            << "shift-queries                       : " << shift_queries << '\n'
+            << '\n';
+
+  std::vector<ExecutionSpace> instances(n_spaces);
 
   Kokkos::View<ArborX::Point *, DeviceType> random_values(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::values"),
-      n_values);
+      n_values*n_spaces);
   Kokkos::View<ArborX::Point *, DeviceType> random_queries(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::queries"),
-      n_queries);
+      n_queries*n_spaces);
+  for (int instance=0; instance<n_spaces; ++instance)
   {
     double a = 0.;
     double offset_x = 0.;
@@ -314,17 +167,17 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     {
     case 1:
     {
-      i_max = comm_size;
-      offset_x = 2 * shift * comm_rank;
+      i_max = n_spaces;
+      offset_x = 2 * shift * instance;
       a = n_values;
 
       break;
     }
     case 2:
     {
-      i_max = std::ceil(std::sqrt(comm_size));
-      int i = comm_rank % i_max;
-      int j = comm_rank / i_max;
+      i_max = std::ceil(std::sqrt(n_spaces));
+      int i = instance % i_max;
+      int j = instance / i_max;
       offset_x = 2 * shift * i;
       offset_y = 2 * shift * j;
       a = std::sqrt(n_values);
@@ -333,11 +186,11 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     }
     case 3:
     {
-      i_max = std::ceil(std::cbrt(comm_size));
+      i_max = std::ceil(std::cbrt(n_spaces));
       int j_max = i_max;
-      int i = comm_rank % i_max;
-      int j = (comm_rank / i_max) % j_max;
-      int k = comm_rank / (i_max * j_max);
+      int i = instance % i_max;
+      int j = (instance / i_max) % j_max;
+      int k = instance / (i_max * j_max);
       offset_x = 2 * shift * i;
       offset_y = 2 * shift * j;
       offset_z = 2 * shift * k;
@@ -372,7 +225,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     Kokkos::deep_copy(random_points, random_points_host);
 
     Kokkos::deep_copy(
-        random_values,
+        Kokkos::subview(random_values, Kokkos::pair<int, int>(instance*n_values, (instance+1)*n_values)),
         Kokkos::subview(random_points, Kokkos::pair<int, int>(0, n_values)));
 
     if (!shift_queries)
@@ -380,7 +233,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
       // By default, random points are "reused" between building the tree and
       // performing queries.
       Kokkos::deep_copy(
-          random_queries,
+          Kokkos::subview(random_queries, Kokkos::pair<int, int>(instance*n_queries, (instance+1)*n_queries)),
           Kokkos::subview(random_points, Kokkos::pair<int, int>(0, n_queries)));
     }
     else
@@ -397,16 +250,16 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
                  (partition_dim > 1),
              a * ((offset_z + random()) / 3 + max_offset / 3) *
                  (partition_dim > 2)}};
-      Kokkos::deep_copy(random_queries, random_queries_host);
+      Kokkos::deep_copy(Kokkos::subview(random_queries, Kokkos::pair<int, int>(instance*n_queries, (instance+1)*n_queries)), random_queries_host);
     }
   }
 
   Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
                          "Testing::bounding_boxes"),
-      n_values);
+      n_values*n_spaces);
   Kokkos::parallel_for("bvh_driver:construct_bounding_boxes",
-                       Kokkos::RangePolicy<ExecutionSpace>(0, n_values),
+                       Kokkos::RangePolicy<ExecutionSpace>(0, n_values*n_spaces),
                        KOKKOS_LAMBDA(int i) {
                          double const x = random_values(i)[0];
                          double const y = random_values(i)[1];
@@ -415,112 +268,87 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
                                               {{x + 1., y + 1., z + 1.}}};
                        });
 
-  auto construction = time_monitor.getNewTimer("construction");
-  MPI_Barrier(comm);
-  construction->start();
-  ArborX::DistributedTree<MemorySpace> distributed_tree(comm, ExecutionSpace{},
-                                                        bounding_boxes);
-  construction->stop();
+  const auto create_and_query = [perform_knn_search, n_neighbors, perform_radius_search, partition_dim](ExecutionSpace const& exec_space, Kokkos::View<ArborX::Box *, DeviceType> const& subboxes, Kokkos::View<ArborX::Point *, DeviceType> const &subqueries){
+    ArborX::BVH<MemorySpace> distributed_tree(exec_space, subboxes);
 
-  std::ostream &os = std::cout;
-  if (comm_rank == 0)
-    os << "construction done\n";
-
-  using PairIndexRank = Kokkos::pair<int, int>;
-
-  if (perform_knn_search)
-  {
-    Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
-    Kokkos::View<PairIndexRank *, DeviceType> values("Testing::values", 0);
-
-    auto knn = time_monitor.getNewTimer("knn");
-    MPI_Barrier(comm);
-    knn->start();
-    distributed_tree.query(
-        ExecutionSpace{},
-        NearestNeighborsSearches<DeviceType>{random_queries, n_neighbors},
-        values, offsets);
-    knn->stop();
-
-    if (comm_rank == 0)
-      os << "knn done\n";
-  }
-
-  if (perform_radius_search)
-  {
-    // Radius is computed so that the number of results per query for a
-    // uniformly distributed primitives in a [-a,a]^d box is approximately
-    // n_neighbors. The primivites are boxes and not points. Thus, the radius
-    // we would have chosen for the case of point primitives has to be adjusted
-    // to account for box-box interaction. The radius is decreased by an
-    // average of the lengths of a half-edge and a half-diagonal to account for
-    // that (approximately). An exact calculation would require computing
-    // an integral.
-    double r = 0.;
-    switch (partition_dim)
+    if (perform_knn_search)
     {
-    case 1:
-      // Derivation (first term): n_values*(2*r)/(2a) = n_neighbors
-      r = static_cast<double>(n_neighbors) - 1.;
-      break;
-    case 2:
-      // Derivation (first term): n_values*(M_PI*r^2)/(2a)^2 = n_neighbors
-      r = std::sqrt(static_cast<double>(n_neighbors) * 4. / M_PI) -
-          (1. + std::sqrt(2.)) / 2;
-      break;
-    case 3:
-      // Derivation (first term): n_values*(4/3*M_PI*r^3)/(2a)^3 = n_neighbors
-      r = std::cbrt(static_cast<double>(n_neighbors) * 6. / M_PI) -
-          (1. + std::cbrt(3.)) / 2;
-      break;
+      Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
+      Kokkos::View<int *, DeviceType> values("Testing::values", 0);
+
+      distributed_tree.query(
+          exec_space,
+          NearestNeighborsSearches<DeviceType>{subqueries, n_neighbors},
+          values, offsets);
     }
 
-    Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
-    Kokkos::View<PairIndexRank *, DeviceType> values("Testing::values", 0);
+    if (perform_radius_search)
+    {
+      // Radius is computed so that the number of results per query for a
+      // uniformly distributed primitives in a [-a,a]^d box is approximately
+      // n_neighbors. The primivites are boxes and not points. Thus, the radius
+      // we would have chosen for the case of point primitives has to be adjusted
+      // to account for box-box interaction. The radius is decreased by an
+      // average of the lengths of a half-edge and a half-diagonal to account for
+      // that (approximately). An exact calculation would require computing
+      // an integral.
+      double r = 0.;
+      switch (partition_dim)
+      {
+      case 1:
+        // Derivation (first term): n_values*(2*r)/(2a) = n_neighbors
+        r = static_cast<double>(n_neighbors) - 1.;
+        break;
+      case 2:
+        // Derivation (first term): n_values*(M_PI*r^2)/(2a)^2 = n_neighbors
+        r = std::sqrt(static_cast<double>(n_neighbors) * 4. / M_PI) -
+            (1. + std::sqrt(2.)) / 2;
+        break;
+      case 3:
+        // Derivation (first term): n_values*(4/3*M_PI*r^3)/(2a)^3 = n_neighbors
+        r = std::cbrt(static_cast<double>(n_neighbors) * 6. / M_PI) -
+            (1. + std::cbrt(3.)) / 2;
+        break;
+      }
 
-    auto radius = time_monitor.getNewTimer("radius");
-    MPI_Barrier(comm);
-    radius->start();
-    distributed_tree.query(ExecutionSpace{},
-                           RadiusSearches<DeviceType>{random_queries, r},
-                           values, offsets);
-    radius->stop();
+      Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
+      Kokkos::View<int *, DeviceType> values("Testing::values", 0);
 
-    if (comm_rank == 0)
-      os << "radius done\n";
+      distributed_tree.query(exec_space,
+                             RadiusSearches<DeviceType>{subqueries, r},
+                             values, offsets);
+    }
+  };
+
+  Kokkos::fence();
+  Kokkos::Timer total_time;
+  total_time.reset();
+
+  for (int instance=0; instance < n_spaces; ++instance)
+  {
+    create_and_query(instances[instance],
+		     Kokkos::subview(bounding_boxes, Kokkos::pair<int, int>(n_values*instance, n_values*(instance+1))),
+                     Kokkos::subview(random_queries, Kokkos::pair<int, int>(n_queries*instance, n_queries*(instance+1)))
+		    );
   }
-  time_monitor.summarize(comm);
+
+  Kokkos::fence();
+  std::cout << "Multiple instances running in " << total_time.seconds() << " seconds" << std::endl;
+  total_time.reset();
+
+  create_and_query(ExecutionSpace{}, bounding_boxes, random_queries);
+
+  Kokkos::fence();
+  std::cout << "Single instance running in " << total_time.seconds() << " seconds" << std::endl;
 
   return 0;
 }
 
 int main(int argc, char *argv[])
 {
-  MPI_Init(&argc, &argv);
+  std::cout << "ArborX version: " << ArborX::version() << std::endl;
+  std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
 
-  MPI_Comm const comm = MPI_COMM_WORLD;
-  int comm_rank;
-  MPI_Comm_rank(comm, &comm_rank);
-  if (comm_rank == 0)
-  {
-    std::cout << "ArborX version: " << ArborX::version() << std::endl;
-    std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
-  }
-
-  // Strip "--help" and "--kokkos-help" from the flags passed to Kokkos if we
-  // are not on MPI rank 0 to prevent Kokkos from printing the help message
-  // multiply.
-  if (comm_rank != 0)
-  {
-    auto *help_it = std::find_if(argv, argv + argc, [](std::string const &x) {
-      return x == "--help" || x == "--kokkos-help";
-    });
-    if (help_it != argv + argc)
-    {
-      std::swap(*help_it, *(argv + argc - 1));
-      --argc;
-    }
-  }
   Kokkos::initialize(argc, argv);
 
   bool success = true;
@@ -553,7 +381,7 @@ int main(int argc, char *argv[])
         bpo::collect_unrecognized(parsed.options, bpo::include_positional);
     bpo::notify(vm);
 
-    if (comm_rank == 0 && std::find_if(pass_further.begin(), pass_further.end(),
+    if (std::find_if(pass_further.begin(), pass_further.end(),
                                        [](std::string const &x) {
                                          return x == "--help";
                                        }) != pass_further.end())
@@ -569,7 +397,7 @@ int main(int argc, char *argv[])
     {
 #ifdef KOKKOS_ENABLE_SERIAL
       using Node = Kokkos::Serial;
-      main_<Node>(pass_further, comm);
+      main_<Node>(pass_further);
 #else
       throw std::runtime_error("Serial node type is disabled");
 #endif
@@ -578,7 +406,7 @@ int main(int argc, char *argv[])
     {
 #ifdef KOKKOS_ENABLE_OPENMP
       using Node = Kokkos::OpenMP;
-      main_<Node>(pass_further, comm);
+      main_<Node>(pass_further);
 #else
       throw std::runtime_error("OpenMP node type is disabled");
 #endif
@@ -587,7 +415,7 @@ int main(int argc, char *argv[])
     {
 #ifdef KOKKOS_ENABLE_THREADS
       using Node = Kokkos::Threads;
-      main_<Node>(pass_further, comm);
+      main_<Node>(pass_further);
 #else
       throw std::runtime_error("Threads node type is disabled");
 #endif
@@ -596,7 +424,7 @@ int main(int argc, char *argv[])
     {
 #ifdef KOKKOS_ENABLE_CUDA
       using Node = Kokkos::Device<Kokkos::Cuda, Kokkos::CudaSpace>;
-      main_<Node>(pass_further, comm);
+      main_<Node>(pass_further);
 #else
       throw std::runtime_error("CUDA node type is disabled");
 #endif
@@ -606,7 +434,7 @@ int main(int argc, char *argv[])
 #ifdef KOKKOS_ENABLE_HIP
       using Node = Kokkos::Device<Kokkos::Experimental::HIP,
                                   Kokkos::Experimental::HIPSpace>;
-      main_<Node>(pass_further, comm);
+      main_<Node>(pass_further);
 #else
       throw std::runtime_error("HIP node type is disabled");
 #endif
@@ -618,20 +446,16 @@ int main(int argc, char *argv[])
   }
   catch (std::exception const &e)
   {
-    std::cerr << "processor " << comm_rank
-              << " caught a std::exception: " << e.what() << '\n';
+    std::cerr << "caught a std::exception: " << e.what() << '\n';
     success = false;
   }
   catch (...)
   {
-    std::cerr << "processor " << comm_rank
-              << " caught some kind of exception\n";
+    std::cerr << "caught some kind of exception\n";
     success = false;
   }
 
   Kokkos::finalize();
-
-  MPI_Finalize();
 
   return (success ? EXIT_SUCCESS : EXIT_FAILURE);
 }
