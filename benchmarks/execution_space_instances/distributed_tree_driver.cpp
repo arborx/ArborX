@@ -42,8 +42,9 @@ struct RadiusSearches
   double radius;
 };
 
+namespace ArborX {
 template <typename DeviceType>
-struct ArborX::AccessTraits<RadiusSearches<DeviceType>, ArborX::PredicatesTag>
+struct AccessTraits<RadiusSearches<DeviceType>, ArborX::PredicatesTag>
 {
   using memory_space = typename DeviceType::memory_space;
   static KOKKOS_FUNCTION std::size_t
@@ -59,7 +60,7 @@ struct ArborX::AccessTraits<RadiusSearches<DeviceType>, ArborX::PredicatesTag>
 };
 
 template <typename DeviceType>
-struct ArborX::AccessTraits<NearestNeighborsSearches<DeviceType>,
+struct AccessTraits<NearestNeighborsSearches<DeviceType>,
                             ArborX::PredicatesTag>
 {
   using memory_space = typename DeviceType::memory_space;
@@ -74,6 +75,7 @@ struct ArborX::AccessTraits<NearestNeighborsSearches<DeviceType>,
     return ArborX::nearest(pred.points(i), pred.k);
   }
 };
+}
 
 namespace bpo = boost::program_options;
 
@@ -91,8 +93,8 @@ int main_(std::vector<std::string> const &args)
   double shift;
   int partition_dim;
   bool perform_knn_search = true;
-  bool perform_radius_search = true;
-  bool shift_queries = false;
+  bool perform_radius_search = false;
+  bool shift_queries = true;
 
   bpo::options_description desc("Allowed options");
   // clang-format off
@@ -240,7 +242,8 @@ int main_(std::vector<std::string> const &args)
     {
       // For the queries, we shrink the global box by a factor three, and
       // move it by a third of the global size towards the global center.
-      auto random_queries_host = Kokkos::create_mirror_view(random_queries);
+      auto subview = Kokkos::subview(random_queries, Kokkos::pair<int, int>(instance*n_queries, (instance+1)*n_queries));
+      auto random_queries_host = Kokkos::create_mirror_view(subview);
 
       int const max_offset = 2 * shift * i_max;
       for (int i = 0; i < n_queries; ++i)
