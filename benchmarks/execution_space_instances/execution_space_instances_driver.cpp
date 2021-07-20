@@ -288,7 +288,7 @@ int main_(std::vector<std::string> const &args)
     {
       for (unsigned int i = 0; i + 1 < vec.size(); ++i)
         compare_offsets_individual.push_back(combined_size + vec[i]);
-      combined_size += vec.size() - 1;
+      combined_size += vec.back();
     }
     compare_offsets_individual.push_back(combined_size);
   }
