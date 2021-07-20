@@ -236,8 +236,8 @@ int main_(std::vector<std::string> const &args)
         double const x = random_values(i)[0];
         double const y = random_values(i)[1];
         double const z = random_values(i)[2];
-        bounding_boxes(i) = {{{x - 1., y - 1., z - 1.}},
-                             {{x + 1., y + 1., z + 1.}}};
+        bounding_boxes(i) = {{{x - .1, y - .1, z - .1}},
+                             {{x + .1, y + .1, z + .1}}};
       });
 
   const auto create_and_query =
