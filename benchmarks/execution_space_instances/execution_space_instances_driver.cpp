@@ -230,7 +230,10 @@ int main_(std::vector<std::string> const &args)
         tree.query(exec_space, IntersectionSearches<DeviceType>{subqueries},
                    values, offsets);
 
-#ifndef NDEBUG
+#ifdef NDEBUG
+	(void) output_offsets;
+	(void) output_values;
+#else
 	{
           output_offsets.resize(offsets.size());
           Kokkos::deep_copy(exec_space, 
