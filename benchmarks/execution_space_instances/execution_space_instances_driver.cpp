@@ -219,7 +219,9 @@ int main_(std::vector<std::string> const &args)
       [n_neighbors, partition_dim](
           ExecutionSpace const &exec_space,
           Kokkos::View<ArborX::Box *, DeviceType> const &subboxes,
-          Kokkos::View<ArborX::Point *, DeviceType> const &subqueries) {
+          Kokkos::View<ArborX::Point *, DeviceType> const &subqueries, 
+	  std::vector<int> &output_offsets,
+	  std::vector<int> &output_values) {
         ArborX::BVH<MemorySpace> tree(exec_space, subboxes);
 
         Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
@@ -227,11 +229,31 @@ int main_(std::vector<std::string> const &args)
 
         tree.query(exec_space, IntersectionSearches<DeviceType>{subqueries},
                    values, offsets);
+
+#ifndef NDEBUG
+	{
+          output_offsets.resize(offsets.size());
+          Kokkos::deep_copy(exec_space, 
+                            Kokkos::View<int*, Kokkos::HostSpace>(
+                              output_offsets.data(), offsets.size()),
+			    offsets);
+	}
+        {
+          output_values.resize(values.size());
+          Kokkos::deep_copy(exec_space,
+                            Kokkos::View<int*, Kokkos::HostSpace>(
+                              output_values.data(), values.size()),
+                            values);
+        }
+#endif
       };
 
   Kokkos::fence();
   Kokkos::Timer total_time;
   total_time.reset();
+
+  std::vector<std::vector<int>> all_offsets_individual(n_spaces);
+  std::vector<std::vector<int>> all_values_individual(n_spaces);
 
   for (int instance = 0; instance < n_spaces; ++instance)
   {
@@ -242,19 +264,60 @@ int main_(std::vector<std::string> const &args)
                                                n_values * (instance + 1))),
         Kokkos::subview(random_queries,
                         Kokkos::pair<int, int>(n_queries * instance,
-                                               n_queries * (instance + 1))));
+                                               n_queries * (instance + 1))),
+	all_offsets_individual[instance],
+	all_values_individual[instance]
+	);
   }
 
   Kokkos::fence();
   std::cout << "Multiple instances running in " << total_time.seconds()
             << " seconds" << std::endl;
+
+#ifndef NDEBUG
+  std::vector<int> compare_offsets_individual;  
+  {
+    int combined_size = 0;
+    for (auto const &vec: all_offsets_individual)
+    {
+      for (unsigned int i=0; i+1<vec.size(); ++i)
+	compare_offsets_individual.push_back(combined_size+vec[i]);
+      combined_size += vec.size()-1;
+    }
+    compare_offsets_individual.push_back(combined_size);
+  }
+  std::vector<int> compare_values_individual;
+  {
+    for (unsigned int j=0; j<all_values_individual.size(); ++j)
+      for (auto const el: all_values_individual[j])
+	compare_values_individual.push_back(n_values*j+el);
+  }
+#endif
+
   total_time.reset();
 
-  create_and_query(ExecutionSpace{}, bounding_boxes, random_queries);
+  std::vector<int> all_offsets_combined;
+  std::vector<int> all_values_combined;
+
+  create_and_query(ExecutionSpace{}, bounding_boxes, random_queries, all_offsets_combined, all_values_combined);
 
   Kokkos::fence();
   std::cout << "Single instance running in " << total_time.seconds()
             << " seconds" << std::endl;
+#ifndef NDEBUG
+  std::cout << "Checking results...";
+  assert(compare_offsets_individual.size() == all_offsets_combined.size());
+  for (unsigned int i=0; i < all_offsets_combined.size(); ++i)
+  {
+    assert(all_offsets_combined[i]==compare_offsets_individual[i]);
+  }
+  assert(compare_values_individual.size() == all_values_combined.size());
+  for (unsigned int i=0; i < all_values_combined.size(); ++i)
+  {
+    assert(all_values_combined[i]==compare_values_individual[i]);
+  }
+  std::cout << "done" << std::endl;
+#endif
 
   return 0;
 }
