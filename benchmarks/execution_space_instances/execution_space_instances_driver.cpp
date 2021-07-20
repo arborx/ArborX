@@ -309,19 +309,33 @@ int main_(std::vector<std::string> const &args)
                    all_offsets_combined, all_values_combined);
 
   Kokkos::fence();
+
+  std::cout << "Last element in all_offsets_combined is "
+            << all_offsets_combined.back() << std::endl;
+  std::cout << "Size of all_offsets_combined is " << all_offsets_combined.size()
+            << std::endl;
+  std::cout << "Size of all_values_combined is " << all_values_combined.size()
+            << std::endl;
+
   std::cout << "Single instance running in " << total_time.seconds()
             << " seconds" << std::endl;
 #ifndef NDEBUG
-  std::cout << "Checking results...";
+  std::cout << "Checking results..." << std::endl;
   assert(compare_offsets_individual.size() == all_offsets_combined.size());
   for (unsigned int i = 0; i < all_offsets_combined.size(); ++i)
   {
-    assert(all_offsets_combined[i] == compare_offsets_individual[i]);
+    if (all_offsets_combined[i] != compare_offsets_individual[i])
+      std::cout << "offsets " << i << ": " << all_offsets_combined[i] << " vs. "
+                << compare_offsets_individual[i] << std::endl;
+    //assert(all_offsets_combined[i] == compare_offsets_individual[i]);
   }
   assert(compare_values_individual.size() == all_values_combined.size());
   for (unsigned int i = 0; i < all_values_combined.size(); ++i)
   {
-    assert(all_values_combined[i] == compare_values_individual[i]);
+    if (all_values_combined[i] != compare_values_individual[i])
+      std::cout << "values " << i << ": " << all_values_combined[i] << " vs. "
+                << compare_values_individual[i] << std::endl;
+    //assert(all_values_combined[i] == compare_values_individual[i]);
   }
   std::cout << "done" << std::endl;
 #endif
