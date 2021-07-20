@@ -94,7 +94,6 @@ int main_(std::vector<std::string> const &args)
   int partition_dim;
   bool perform_knn_search = true;
   bool perform_radius_search = false;
-  bool shift_queries = true;
 
   bpo::options_description desc("Allowed options");
   // clang-format off
@@ -132,8 +131,6 @@ int main_(std::vector<std::string> const &args)
     perform_knn_search = false;
   if (vm.count("do-not-perform-radius-search"))
     perform_radius_search = false;
-  if (vm.count("shift-queries"))
-    shift_queries = true;
 
   std::cout << std::boolalpha;
   std::cout << "\nRunning with arguments:\n"
@@ -146,7 +143,6 @@ int main_(std::vector<std::string> const &args)
             << "#queries/execution space instance   : " << n_queries << '\n'
             << "size of shift                       : " << shift << '\n'
             << "dimension                           : " << partition_dim << '\n'
-            << "shift-queries                       : " << shift_queries << '\n'
             << '\n';
 
   std::vector<ExecutionSpace> instances(n_spaces);
@@ -234,39 +230,12 @@ int main_(std::vector<std::string> const &args)
                                                (instance + 1) * n_values)),
         Kokkos::subview(random_points, Kokkos::pair<int, int>(0, n_values)));
 
-    if (!shift_queries)
-    {
-      // By default, random points are "reused" between building the tree and
-      // performing queries.
-      Kokkos::deep_copy(
-          Kokkos::subview(random_queries,
-                          Kokkos::pair<int, int>(instance * n_queries,
-                                                 (instance + 1) * n_queries)),
-          Kokkos::subview(random_points, Kokkos::pair<int, int>(0, n_queries)));
-    }
-    else
-    {
-      // For the queries, we shrink the global box by a factor three, and
-      // move it by a third of the global size towards the global center.
-      auto subview = Kokkos::subview(
-          random_queries, Kokkos::pair<int, int>(instance * n_queries,
-                                                 (instance + 1) * n_queries));
-      auto random_queries_host = Kokkos::create_mirror_view(subview);
-
-      int const max_offset = 2 * shift * i_max;
-      for (int i = 0; i < n_queries; ++i)
-        random_queries_host(i) = {
-            {a * ((offset_x + random()) / 3 + max_offset / 3),
-             a * ((offset_y + random()) / 3 + max_offset / 3) *
-                 (partition_dim > 1),
-             a * ((offset_z + random()) / 3 + max_offset / 3) *
-                 (partition_dim > 2)}};
-      Kokkos::deep_copy(
-          Kokkos::subview(random_queries,
-                          Kokkos::pair<int, int>(instance * n_queries,
-                                                 (instance + 1) * n_queries)),
-          random_queries_host);
-    }
+    // Random points are "reused" between building the tree and performing queries.
+    Kokkos::deep_copy(
+        Kokkos::subview(random_queries,
+                        Kokkos::pair<int, int>(instance * n_queries,
+                                               (instance + 1) * n_queries)),
+        Kokkos::subview(random_points, Kokkos::pair<int, int>(0, n_queries)));
   }
 
   Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes(
