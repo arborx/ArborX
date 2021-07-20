@@ -30,49 +30,26 @@ struct HelpPrinted
 };
 
 template <typename DeviceType>
-struct NearestNeighborsSearches
+struct IntersectionSearches
 {
   Kokkos::View<ArborX::Point *, DeviceType> points;
-  int k;
-};
-template <typename DeviceType>
-struct RadiusSearches
-{
-  Kokkos::View<ArborX::Point *, DeviceType> points;
-  double radius;
 };
 
 namespace ArborX
 {
 template <typename DeviceType>
-struct AccessTraits<RadiusSearches<DeviceType>, ArborX::PredicatesTag>
+struct AccessTraits<IntersectionSearches<DeviceType>, ArborX::PredicatesTag>
 {
   using memory_space = typename DeviceType::memory_space;
   static KOKKOS_FUNCTION std::size_t
-  size(RadiusSearches<DeviceType> const &pred)
+  size(IntersectionSearches<DeviceType> const &pred)
   {
     return pred.points.extent(0);
   }
-  static KOKKOS_FUNCTION auto get(RadiusSearches<DeviceType> const &pred,
+  static KOKKOS_FUNCTION auto get(IntersectionSearches<DeviceType> const &pred,
                                   std::size_t i)
   {
-    return ArborX::intersects(ArborX::Sphere{pred.points(i), pred.radius});
-  }
-};
-
-template <typename DeviceType>
-struct AccessTraits<NearestNeighborsSearches<DeviceType>, ArborX::PredicatesTag>
-{
-  using memory_space = typename DeviceType::memory_space;
-  static KOKKOS_FUNCTION std::size_t
-  size(NearestNeighborsSearches<DeviceType> const &pred)
-  {
-    return pred.points.extent(0);
-  }
-  static KOKKOS_FUNCTION auto
-  get(NearestNeighborsSearches<DeviceType> const &pred, std::size_t i)
-  {
-    return ArborX::nearest(pred.points(i), pred.k);
+    return ArborX::intersects(pred.points(i));
   }
 };
 } // namespace ArborX
@@ -245,38 +222,10 @@ int main_(std::vector<std::string> const &args)
           Kokkos::View<ArborX::Point *, DeviceType> const &subqueries) {
         ArborX::BVH<MemorySpace> tree(exec_space, subboxes);
 
-        // Radius is computed so that the number of results per query for a
-        // uniformly distributed primitives in a [-a,a]^d box is approximately
-        // n_neighbors. The primivites are boxes and not points. Thus, the
-        // radius we would have chosen for the case of point primitives has to
-        // be adjusted to account for box-box interaction. The radius is
-        // decreased by an average of the lengths of a half-edge and a
-        // half-diagonal to account for that (approximately). An exact
-        // calculation would require computing an integral.
-        double r = 0.;
-        switch (partition_dim)
-        {
-        case 1:
-          // Derivation (first term): n_values*(2*r)/(2a) = n_neighbors
-          r = static_cast<double>(n_neighbors) - 1.;
-          break;
-        case 2:
-          // Derivation (first term): n_values*(M_PI*r^2)/(2a)^2 = n_neighbors
-          r = std::sqrt(static_cast<double>(n_neighbors) * 4. / M_PI) -
-              (1. + std::sqrt(2.)) / 2;
-          break;
-        case 3:
-          // Derivation (first term): n_values*(4/3*M_PI*r^3)/(2a)^3 =
-          // n_neighbors
-          r = std::cbrt(static_cast<double>(n_neighbors) * 6. / M_PI) -
-              (1. + std::cbrt(3.)) / 2;
-          break;
-        }
-
         Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
         Kokkos::View<int *, DeviceType> values("Testing::values", 0);
 
-        tree.query(exec_space, RadiusSearches<DeviceType>{subqueries, r},
+        tree.query(exec_space, IntersectionSearches<DeviceType>{subqueries},
                    values, offsets);
       };
 
