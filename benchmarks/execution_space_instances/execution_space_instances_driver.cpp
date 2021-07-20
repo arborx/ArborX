@@ -92,8 +92,6 @@ int main_(std::vector<std::string> const &args)
   int n_neighbors;
   double shift;
   int partition_dim;
-  bool perform_knn_search = true;
-  bool perform_radius_search = false;
 
   bpo::options_description desc("Allowed options");
   // clang-format off
@@ -110,8 +108,6 @@ int main_(std::vector<std::string> const &args)
         ( "partition_dim", bpo::value<int>(&partition_dim)->default_value(3), "Number of dimension used by the partitioning of the global "
                                                                               "point cloud. 1 -> local clouds are aligned on a line, 2 -> "
                                                                               "local clouds form a board, 3 -> local clouds form a box." )
-        ( "do-not-perform-knn-search", "skip kNN search" )
-        ( "do-not-perform-radius-search", "skip radius search" )
         ( "shift-queries" , "By default, points are reused for the queries. Enabling this option shrinks the local box queries are created "
                             "in to a third of its size and moves it to the center of the global box. The result is a huge imbalance for the "
                             "number of queries that need to be processed by each execution space instance.")
@@ -127,18 +123,9 @@ int main_(std::vector<std::string> const &args)
     throw HelpPrinted();
   }
 
-  if (vm.count("do-not-perform-knn-search"))
-    perform_knn_search = false;
-  if (vm.count("do-not-perform-radius-search"))
-    perform_radius_search = false;
-
   std::cout << std::boolalpha;
   std::cout << "\nRunning with arguments:\n"
             << "number of execution space instances : " << n_spaces << '\n'
-            << "perform knn search                  : " << perform_knn_search
-            << '\n'
-            << "perform radius search               : " << perform_radius_search
-            << '\n'
             << "#points/execution space instance    : " << n_values << '\n'
             << "#queries/execution space instance   : " << n_queries << '\n'
             << "size of shift                       : " << shift << '\n'
@@ -254,59 +241,45 @@ int main_(std::vector<std::string> const &args)
       });
 
   const auto create_and_query =
-      [perform_knn_search, n_neighbors, perform_radius_search, partition_dim](
+      [n_neighbors, partition_dim](
           ExecutionSpace const &exec_space,
           Kokkos::View<ArborX::Box *, DeviceType> const &subboxes,
           Kokkos::View<ArborX::Point *, DeviceType> const &subqueries) {
         ArborX::BVH<MemorySpace> tree(exec_space, subboxes);
 
-        if (perform_knn_search)
+        // Radius is computed so that the number of results per query for a
+        // uniformly distributed primitives in a [-a,a]^d box is approximately
+        // n_neighbors. The primivites are boxes and not points. Thus, the
+        // radius we would have chosen for the case of point primitives has to
+        // be adjusted to account for box-box interaction. The radius is
+        // decreased by an average of the lengths of a half-edge and a
+        // half-diagonal to account for that (approximately). An exact
+        // calculation would require computing an integral.
+        double r = 0.;
+        switch (partition_dim)
         {
-          Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
-          Kokkos::View<int *, DeviceType> values("Testing::values", 0);
-
-          tree.query(
-              exec_space,
-              NearestNeighborsSearches<DeviceType>{subqueries, n_neighbors},
-              values, offsets);
+        case 1:
+          // Derivation (first term): n_values*(2*r)/(2a) = n_neighbors
+          r = static_cast<double>(n_neighbors) - 1.;
+          break;
+        case 2:
+          // Derivation (first term): n_values*(M_PI*r^2)/(2a)^2 = n_neighbors
+          r = std::sqrt(static_cast<double>(n_neighbors) * 4. / M_PI) -
+              (1. + std::sqrt(2.)) / 2;
+          break;
+        case 3:
+          // Derivation (first term): n_values*(4/3*M_PI*r^3)/(2a)^3 =
+          // n_neighbors
+          r = std::cbrt(static_cast<double>(n_neighbors) * 6. / M_PI) -
+              (1. + std::cbrt(3.)) / 2;
+          break;
         }
 
-        if (perform_radius_search)
-        {
-          // Radius is computed so that the number of results per query for a
-          // uniformly distributed primitives in a [-a,a]^d box is approximately
-          // n_neighbors. The primivites are boxes and not points. Thus, the
-          // radius we would have chosen for the case of point primitives has to
-          // be adjusted to account for box-box interaction. The radius is
-          // decreased by an average of the lengths of a half-edge and a
-          // half-diagonal to account for that (approximately). An exact
-          // calculation would require computing an integral.
-          double r = 0.;
-          switch (partition_dim)
-          {
-          case 1:
-            // Derivation (first term): n_values*(2*r)/(2a) = n_neighbors
-            r = static_cast<double>(n_neighbors) - 1.;
-            break;
-          case 2:
-            // Derivation (first term): n_values*(M_PI*r^2)/(2a)^2 = n_neighbors
-            r = std::sqrt(static_cast<double>(n_neighbors) * 4. / M_PI) -
-                (1. + std::sqrt(2.)) / 2;
-            break;
-          case 3:
-            // Derivation (first term): n_values*(4/3*M_PI*r^3)/(2a)^3 =
-            // n_neighbors
-            r = std::cbrt(static_cast<double>(n_neighbors) * 6. / M_PI) -
-                (1. + std::cbrt(3.)) / 2;
-            break;
-          }
+        Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
+        Kokkos::View<int *, DeviceType> values("Testing::values", 0);
 
-          Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
-          Kokkos::View<int *, DeviceType> values("Testing::values", 0);
-
-          tree.query(exec_space, RadiusSearches<DeviceType>{subqueries, r},
-                     values, offsets);
-        }
+        tree.query(exec_space, RadiusSearches<DeviceType>{subqueries, r},
+                   values, offsets);
       };
 
   Kokkos::fence();
