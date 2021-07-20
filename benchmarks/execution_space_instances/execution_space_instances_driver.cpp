@@ -66,9 +66,7 @@ int main_(std::vector<std::string> const &args)
   int n_spaces;
   int n_values;
   int n_queries;
-  int n_neighbors;
   double shift;
-  int partition_dim;
 
   bpo::options_description desc("Allowed options");
   // clang-format off
@@ -77,14 +75,10 @@ int main_(std::vector<std::string> const &args)
 	( "spaces", bpo::value<int>(&n_spaces)->default_value(1), "Number of execution space instances." )
         ( "values", bpo::value<int>(&n_values)->default_value(20000), "Number of indexable values (source) per execution space instance." )
         ( "queries", bpo::value<int>(&n_queries)->default_value(5000), "Number of queries (target) per execution space instance." )
-        ( "neighbors", bpo::value<int>(&n_neighbors)->default_value(10), "Desired number of results per query." )
         ( "shift", bpo::value<double>(&shift)->default_value(2.), "Shift of the point clouds. '0' means the clouds are built "
 	                                                          "at the same place, while '1' places the clouds next to each"
 								  "other. Negative values and values larger than one "
                                                                   "mean that the clouds are separated." )
-        ( "partition_dim", bpo::value<int>(&partition_dim)->default_value(3), "Number of dimension used by the partitioning of the global "
-                                                                              "point cloud. 1 -> local clouds are aligned on a line, 2 -> "
-                                                                              "local clouds form a board, 3 -> local clouds form a box." )
         ;
   // clang-format on
   bpo::variables_map vm;
@@ -103,7 +97,6 @@ int main_(std::vector<std::string> const &args)
             << "#points/execution space instance    : " << n_values << '\n'
             << "#queries/execution space instance   : " << n_queries << '\n'
             << "size of shift                       : " << shift << '\n'
-            << "dimension                           : " << partition_dim << '\n'
             << '\n';
 
   std::vector<ExecutionSpace> instances(n_spaces);
@@ -121,31 +114,7 @@ int main_(std::vector<std::string> const &args)
     double offset_y = 0.;
     double offset_z = 0.;
     int i_max = 0;
-    // Change the geometry of the problem. In 1D, all the point clouds are
-    // aligned on a line. In 2D, the point clouds create a board and in 3D,
-    // they create a box.
-    switch (partition_dim)
-    {
-    case 1:
-    {
-      i_max = n_spaces;
-      offset_x = 2 * shift * instance;
-      a = n_values;
-
-      break;
-    }
-    case 2:
-    {
-      i_max = std::ceil(std::sqrt(n_spaces));
-      int i = instance % i_max;
-      int j = instance / i_max;
-      offset_x = 2 * shift * i;
-      offset_y = 2 * shift * j;
-      a = std::sqrt(n_values);
-
-      break;
-    }
-    case 3:
+    // All the point clouds form a box.
     {
       i_max = std::ceil(std::cbrt(n_spaces));
       int j_max = i_max;
@@ -156,13 +125,6 @@ int main_(std::vector<std::string> const &args)
       offset_y = 2 * shift * j;
       offset_z = 2 * shift * k;
       a = std::cbrt(n_values);
-
-      break;
-    }
-    default:
-    {
-      throw std::runtime_error("partition_dim should be 1, 2, or 3");
-    }
     }
 
     // Generate random points uniformly distributed within a box.
@@ -179,10 +141,9 @@ int main_(std::vector<std::string> const &args)
         std::max(n_values, n_queries));
     auto random_points_host = Kokkos::create_mirror_view(random_points);
     for (int i = 0; i < random_points.extent_int(0); ++i)
-      random_points_host(i) = {
-          {a * (offset_x + random()),
-           a * (offset_y + random()) * (partition_dim > 1),
-           a * (offset_z + random()) * (partition_dim > 2)}};
+      random_points_host(i) = {{a * (offset_x + random()),
+                                a * (offset_y + random()),
+                                a * (offset_z + random())}};
     Kokkos::deep_copy(random_points, random_points_host);
 
     Kokkos::deep_copy(
@@ -216,11 +177,10 @@ int main_(std::vector<std::string> const &args)
       });
 
   const auto create_and_query =
-      [n_neighbors, partition_dim](
-          ExecutionSpace const &exec_space,
-          Kokkos::View<ArborX::Box *, DeviceType> const &subboxes,
-          Kokkos::View<ArborX::Point *, DeviceType> const &subqueries,
-          std::vector<int> &output_offsets, std::vector<int> &output_values) {
+      [](ExecutionSpace const &exec_space,
+         Kokkos::View<ArborX::Box *, DeviceType> const &subboxes,
+         Kokkos::View<ArborX::Point *, DeviceType> const &subqueries,
+         std::vector<int> &output_offsets, std::vector<int> &output_values) {
         ArborX::BVH<MemorySpace> tree(exec_space, subboxes);
 
         Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
