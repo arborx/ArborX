@@ -214,7 +214,8 @@ int main_(std::vector<std::string> const &args)
                                                (instance + 1) * n_values)),
         Kokkos::subview(random_points, Kokkos::pair<int, int>(0, n_values)));
 
-    // Random points are "reused" between building the tree and performing queries.
+    // Random points are "reused" between building the tree and performing
+    // queries.
     Kokkos::deep_copy(
         Kokkos::subview(random_queries,
                         Kokkos::pair<int, int>(instance * n_queries,
