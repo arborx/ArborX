@@ -117,7 +117,7 @@ struct Ray
   constexpr Experimental::Vector const &direction() const { return _direction; }
 
   // FIXME avoid breaking Wenjun's code
-  using Vector[[deprecated]] = ArborX::Experimental::Vector;
+  using Vector [[deprecated]] = ArborX::Experimental::Vector;
 };
 
 KOKKOS_INLINE_FUNCTION
