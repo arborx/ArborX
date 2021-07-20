@@ -108,9 +108,6 @@ int main_(std::vector<std::string> const &args)
         ( "partition_dim", bpo::value<int>(&partition_dim)->default_value(3), "Number of dimension used by the partitioning of the global "
                                                                               "point cloud. 1 -> local clouds are aligned on a line, 2 -> "
                                                                               "local clouds form a board, 3 -> local clouds form a box." )
-        ( "shift-queries" , "By default, points are reused for the queries. Enabling this option shrinks the local box queries are created "
-                            "in to a third of its size and moves it to the center of the global box. The result is a huge imbalance for the "
-                            "number of queries that need to be processed by each execution space instance.")
         ;
   // clang-format on
   bpo::variables_map vm;
