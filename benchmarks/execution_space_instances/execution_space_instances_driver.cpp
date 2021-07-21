@@ -227,13 +227,19 @@ int main_(std::vector<std::string> const &args)
          Kokkos::View<ArborX::Box *, DeviceType> const &subboxes,
          Kokkos::View<ArborX::Point *, DeviceType> const &subqueries,
          std::vector<int> &output_offsets, std::vector<int> &output_values) {
+        Kokkos::Profiling::pushRegion("TestExecutionSpace::tree_construction");
         ArborX::BVH<MemorySpace> tree(exec_space, subboxes);
+        exec_space.fence();
+        Kokkos::Profiling::popRegion();
 
         Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
         Kokkos::View<int *, DeviceType> values("Testing::values", 0);
 
+        Kokkos::Profiling::pushRegion("TestExecutionSpace::query");
         tree.query(exec_space, IntersectionSearches<DeviceType>{subqueries},
                    values, offsets);
+        exec_space.fence();
+        Kokkos::Profiling::popRegion();
 
 #ifdef NDEBUG
         (void)output_offsets;
@@ -263,11 +269,12 @@ int main_(std::vector<std::string> const &args)
   std::vector<std::vector<int>> all_offsets_individual(n_spaces);
   std::vector<std::vector<int>> all_values_individual(n_spaces);
 
+  Kokkos::Profiling::pushRegion("TestExecutionSpace::separate_instances");
+
   for (int instance = 0; instance < n_spaces; ++instance)
   {
     create_and_query(
-        instances[instance],
-	bounding_boxes,
+        instances[instance], bounding_boxes,
         /*Kokkos::subview(bounding_boxes,
                         Kokkos::pair<int, int>(n_values * instance,
                                                n_values * (instance + 1))),*/
@@ -276,8 +283,8 @@ int main_(std::vector<std::string> const &args)
                                                n_queries * (instance + 1))),
         all_offsets_individual[instance], all_values_individual[instance]);
   }
-
   Kokkos::fence();
+  Kokkos::Profiling::popRegion();
   std::cout << "Multiple instances running in " << total_time.seconds()
             << " seconds" << std::endl;
 
@@ -306,10 +313,12 @@ int main_(std::vector<std::string> const &args)
   std::vector<int> all_offsets_combined;
   std::vector<int> all_values_combined;
 
+  Kokkos::Profiling::pushRegion("run_combined_instance");
   create_and_query(ExecutionSpace{}, bounding_boxes, random_queries,
                    all_offsets_combined, all_values_combined);
 
   Kokkos::fence();
+  Kokkos::Profiling::popRegion();
 
   std::cout << "Last element in all_offsets_combined is "
             << all_offsets_combined.back() << std::endl;
