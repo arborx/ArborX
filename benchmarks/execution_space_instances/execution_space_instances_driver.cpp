@@ -111,12 +111,14 @@ int main_(std::vector<std::string> const &args)
   int n_values;
   int n_queries;
   double shift;
+  bool separate_trees;
 
   bpo::options_description desc("Allowed options");
   // clang-format off
     desc.add_options()
         ( "help", "produce help message" )
 	( "spaces", bpo::value<int>(&n_spaces)->default_value(1), "Number of execution space instances." )
+        ( "separate-trees", bpo::value<bool>(&separate_trees)->default_value(false), "Create separate trees for the execution space instances." )
         ( "values", bpo::value<int>(&n_values)->default_value(20000), "Number of indexable values (source) per execution space instance." )
         ( "queries", bpo::value<int>(&n_queries)->default_value(5000), "Number of queries (target) per execution space instance." )
         ( "shift", bpo::value<double>(&shift)->default_value(2.), "Shift of the point clouds. '0' means the clouds are built "
@@ -138,6 +140,8 @@ int main_(std::vector<std::string> const &args)
   std::cout << std::boolalpha;
   std::cout << "\nRunning with arguments:\n"
             << "number of execution space instances : " << n_spaces << '\n'
+            << "separate trees                      : " << separate_trees
+            << '\n'
             << "#points/execution space instance    : " << n_values << '\n'
             << "#queries/execution space instance   : " << n_queries << '\n'
             << "size of shift                       : " << shift << '\n'
@@ -273,11 +277,13 @@ int main_(std::vector<std::string> const &args)
 
   for (int instance = 0; instance < n_spaces; ++instance)
   {
+    int box_start = separate_trees ? n_values * instance : 0;
+    int box_end =
+        separate_trees ? n_values * (instance + 1) : bounding_boxes.size();
     create_and_query(
-        instances[instance], bounding_boxes,
-        /*Kokkos::subview(bounding_boxes,
-                        Kokkos::pair<int, int>(n_values * instance,
-                                               n_values * (instance + 1))),*/
+        instances[instance],
+        Kokkos::subview(bounding_boxes,
+                        Kokkos::pair<int, int>(box_start, box_end)),
         Kokkos::subview(random_queries,
                         Kokkos::pair<int, int>(n_queries * instance,
                                                n_queries * (instance + 1))),
@@ -304,7 +310,8 @@ int main_(std::vector<std::string> const &args)
   {
     for (unsigned int j = 0; j < all_values_individual.size(); ++j)
       for (auto const el : all_values_individual[j])
-        compare_values_individual.push_back(/*n_values * j+*/ el);
+        compare_values_individual.push_back(separate_trees ? (el + n_values * j)
+                                                           : el);
   }
 #endif
 
