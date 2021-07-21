@@ -267,9 +267,10 @@ int main_(std::vector<std::string> const &args)
   {
     create_and_query(
         instances[instance],
-        Kokkos::subview(bounding_boxes,
+	bounding_boxes,
+        /*Kokkos::subview(bounding_boxes,
                         Kokkos::pair<int, int>(n_values * instance,
-                                               n_values * (instance + 1))),
+                                               n_values * (instance + 1))),*/
         Kokkos::subview(random_queries,
                         Kokkos::pair<int, int>(n_queries * instance,
                                                n_queries * (instance + 1))),
@@ -296,7 +297,7 @@ int main_(std::vector<std::string> const &args)
   {
     for (unsigned int j = 0; j < all_values_individual.size(); ++j)
       for (auto const el : all_values_individual[j])
-        compare_values_individual.push_back(n_values * j + el);
+        compare_values_individual.push_back(/*n_values * j+*/ el);
   }
 #endif
 
