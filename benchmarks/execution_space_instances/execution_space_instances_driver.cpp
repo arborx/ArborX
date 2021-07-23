@@ -299,8 +299,8 @@ int main_(std::vector<std::string> const &args)
           Kokkos::subview(random_queries,
                           Kokkos::pair<int, int>(n_queries * instance,
                                                  n_queries * (instance + 1))),
-          trees[instance], all_offsets_individual[instance],
-          all_values_individual[instance]);
+          trees[separate_trees ? instance : 0],
+          all_offsets_individual[instance], all_values_individual[instance]);
   Kokkos::fence();
   Kokkos::Profiling::popRegion();
   std::cout << "Multiple instances running in " << total_time.seconds()
