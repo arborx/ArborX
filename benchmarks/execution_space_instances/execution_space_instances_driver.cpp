@@ -239,13 +239,10 @@ int main_(std::vector<std::string> const &args)
   const auto query =
       [](ExecutionSpace const &exec_space,
          Kokkos::View<ArborX::Point *, DeviceType> const &subqueries,
-         ArborX::BVH<MemorySpace> const &tree, std::vector<int> &output_offsets,
-         std::vector<int> &output_values) {
-        Kokkos::View<int *, DeviceType> offsets("Testing::offsets",
-                                                subqueries.size() + 1);
-        Kokkos::View<int *, DeviceType> values("Testing::values",
-                                               2 * subqueries.size());
-
+         ArborX::BVH<MemorySpace> const &tree,
+         Kokkos::View<int *, DeviceType> &offsets,
+         Kokkos::View<int *, DeviceType> &values,
+         std::vector<int> &output_offsets, std::vector<int> &output_values) {
         Kokkos::Profiling::pushRegion("TestExecutionSpace::query");
         tree.query(exec_space, IntersectionSearches<DeviceType>{subqueries},
                    values, offsets);
@@ -296,13 +293,20 @@ int main_(std::vector<std::string> const &args)
     trees.push_back(create(instances[0], bounding_boxes));
     Kokkos::fence();
   }
+  std::vector<Kokkos::View<int *, DeviceType>> all_offsets(
+      n_spaces,
+      Kokkos::View<int *, DeviceType>("Testing::offsets", n_queries + 1));
+  std::vector<Kokkos::View<int *, DeviceType>> all_values(
+      n_spaces,
+      Kokkos::View<int *, DeviceType>("Testing::values", 2 * n_queries));
   for (int instance = 0; instance < n_spaces; ++instance)
     query(instances[instance],
           Kokkos::subview(random_queries,
                           Kokkos::pair<int, int>(n_queries * instance,
                                                  n_queries * (instance + 1))),
-          trees[separate_trees ? instance : 0],
-          all_offsets_individual[instance], all_values_individual[instance]);
+          trees[separate_trees ? instance : 0], all_offsets[instance],
+          all_values[instance], all_offsets_individual[instance],
+          all_values_individual[instance]);
   Kokkos::fence();
   Kokkos::Profiling::popRegion();
   std::cout << "Multiple instances running in " << total_time.seconds()
@@ -334,10 +338,15 @@ int main_(std::vector<std::string> const &args)
   std::vector<int> all_offsets_combined;
   std::vector<int> all_values_combined;
 
+  Kokkos::View<int *, DeviceType> combined_offsets("Testing::offsets",
+                                                   n_spaces * n_queries + 1);
+  Kokkos::View<int *, DeviceType> combined_values("Testing::values",
+                                                  n_spaces * 2 * n_queries);
+
   Kokkos::Profiling::pushRegion("run_combined_instance");
   auto tree = create(ExecutionSpace{}, bounding_boxes);
-  query(ExecutionSpace{}, random_queries, tree, all_offsets_combined,
-        all_values_combined);
+  query(ExecutionSpace{}, random_queries, tree, combined_offsets,
+        combined_values, all_offsets_combined, all_values_combined);
 
   Kokkos::fence();
   Kokkos::Profiling::popRegion();
