@@ -93,7 +93,7 @@ struct AccessTraits<IntersectionSearches<DeviceType>, ArborX::PredicatesTag>
   static KOKKOS_FUNCTION auto get(IntersectionSearches<DeviceType> const &pred,
                                   std::size_t i)
   {
-    return ArborX::intersects(pred.points(i));
+    return ArborX::nearest(pred.points(i), 2);
   }
 };
 } // namespace ArborX
@@ -241,8 +241,10 @@ int main_(std::vector<std::string> const &args)
          Kokkos::View<ArborX::Point *, DeviceType> const &subqueries,
          ArborX::BVH<MemorySpace> const &tree, std::vector<int> &output_offsets,
          std::vector<int> &output_values) {
-        Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
-        Kokkos::View<int *, DeviceType> values("Testing::values", 0);
+        Kokkos::View<int *, DeviceType> offsets("Testing::offsets",
+                                                subqueries.size() + 1);
+        Kokkos::View<int *, DeviceType> values("Testing::values",
+                                               2 * subqueries.size());
 
         Kokkos::Profiling::pushRegion("TestExecutionSpace::query");
         tree.query(exec_space, IntersectionSearches<DeviceType>{subqueries},
