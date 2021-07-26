@@ -61,7 +61,9 @@ public:
         n_queries);
     Kokkos::parallel_for(
         "ArborX::BatchedQueries::assign_morton_codes_to_queries",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+        Kokkos::Experimental::require(
+            Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
         KOKKOS_LAMBDA(int i) {
           using Details::returnCentroid;
           Point xyz = returnCentroid(getGeometry(Access::get(predicates, i)));
@@ -94,7 +96,9 @@ public:
         Kokkos::view_alloc(Kokkos::WithoutInitializing, "predicates"), n);
     Kokkos::parallel_for(
         "ArborX::BatchedQueries::permute_entries",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+        Kokkos::Experimental::require(
+            Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
         KOKKOS_LAMBDA(int i) { w(i) = Access::get(v, permute(i)); });
 
     return w;
@@ -111,7 +115,10 @@ public:
     auto tmp_offset = cloneWithoutInitializingNorCopying(offset);
     Kokkos::parallel_for(
         "ArborX::BatchedQueries::adjacent_difference_and_permutation",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+        Kokkos::Experimental::require(
+            Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+        KOKKOS_LAMBDA(int i) {
           tmp_offset(permute(i)) = offset(i + 1) - offset(i);
         });
 
@@ -137,7 +144,10 @@ public:
     auto tmp_indices = cloneWithoutInitializingNorCopying(indices);
     Kokkos::parallel_for(
         "ArborX::BatchedQueries::permute_indices",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int q) {
+        Kokkos::Experimental::require(
+            Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+        KOKKOS_LAMBDA(int q) {
           for (int i = 0; i < offset(q + 1) - offset(q); ++i)
           {
             tmp_indices(tmp_offset(permute(q)) + i) = indices(offset(q) + i);

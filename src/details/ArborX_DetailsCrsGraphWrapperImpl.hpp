@@ -176,7 +176,9 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     int overflow_int = 0;
     Kokkos::parallel_reduce(
         "ArborX::CrsGraphWrapper::compute_overflow",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+        Kokkos::Experimental::require(
+            Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
         KOKKOS_LAMBDA(int i, int &update) {
           auto const *const offset_ptr = &permuted_offset(i);
           if (counts(i) > *(offset_ptr + 1) - *offset_ptr)
@@ -190,7 +192,9 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
       int n_results = 0;
       Kokkos::parallel_reduce(
           "ArborX::CrsGraphWrapper::compute_underflow",
-          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+          Kokkos::Experimental::require(
+              Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+              Kokkos::Experimental::WorkItemProperty::HintLightWeight),
           KOKKOS_LAMBDA(int i, int &update) { update += counts(i); },
           n_results);
       underflow = (n_results < out.extent_int(0));
@@ -223,7 +227,9 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
 
   Kokkos::parallel_for(
       "ArborX::CrsGraphWrapper::copy_counts_to_offsets",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+      Kokkos::Experimental::require(
+          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+          Kokkos::Experimental::WorkItemProperty::HintLightWeight),
       KOKKOS_LAMBDA(int const i) { permuted_offset(i) = counts(i); });
   exclusivePrefixSum(space, offset);
 
@@ -255,7 +261,9 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
 
     Kokkos::parallel_for(
         "ArborX::CrsGraphWrapper::copy_offsets_to_counts",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+        Kokkos::Experimental::require(
+            Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
         KOKKOS_LAMBDA(int const i) { counts(i) = permuted_offset(i); });
 
     reallocWithoutInitializing(out, n_results);
@@ -281,7 +289,9 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
 
     Kokkos::parallel_for(
         "ArborX::CrsGraphWrapper::copy_valid_values",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+        Kokkos::Experimental::require(
+            Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
         KOKKOS_LAMBDA(int i) {
           int count = offset(i + 1) - offset(i);
           for (int j = 0; j < count; ++j)
@@ -346,7 +356,9 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
   Kokkos::parallel_for(
       "ArborX::CrsGraphWrapper::query::nearest::"
       "scan_queries_for_numbers_of_nearest_neighbors",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+      Kokkos::Experimental::require(
+          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+          Kokkos::Experimental::WorkItemProperty::HintLightWeight),
       KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
   exclusivePrefixSum(space, offset);
 

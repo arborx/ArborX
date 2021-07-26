@@ -388,8 +388,10 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       // automatically core points
       Kokkos::parallel_for(
           "ArborX::DBSCAN::mark_dense_cells_core_points",
-          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0,
-                                              num_points_in_dense_cells),
+          Kokkos::Experimental::require(
+              Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0,
+                                                  num_points_in_dense_cells),
+              , Kokkos::Experimental::WorkItemProperty::HintLightWeight),
           KOKKOS_LAMBDA(int i) { num_neigh(permute(i)) = INT_MAX; });
       // Count neighbors for points in sparse cells
       auto sparse_permute = Kokkos::subview(
@@ -435,22 +437,25 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   // ```
   Kokkos::View<int *, MemorySpace> cluster_sizes(
       "ArborX::DBSCAN::cluster_sizes", n);
-  Kokkos::parallel_for("ArborX::DBSCAN::finalize_labels",
-                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-                       KOKKOS_LAMBDA(int const i) {
-                         // ##### ECL license (see LICENSE.ECL) #####
-                         int next;
-                         int vstat = labels(i);
-                         int const old = vstat;
-                         while (vstat > (next = labels(vstat)))
-                         {
-                           vstat = next;
-                         }
-                         if (vstat != old)
-                           labels(i) = vstat;
+  Kokkos::parallel_for(
+      "ArborX::DBSCAN::finalize_labels",
+      Kokkos::Experimental::require(
+          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+          Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+      KOKKOS_LAMBDA(int const i) {
+        // ##### ECL license (see LICENSE.ECL) #####
+        int next;
+        int vstat = labels(i);
+        int const old = vstat;
+        while (vstat > (next = labels(vstat)))
+        {
+          vstat = next;
+        }
+        if (vstat != old)
+          labels(i) = vstat;
 
-                         Kokkos::atomic_fetch_add(&cluster_sizes(labels(i)), 1);
-                       });
+        Kokkos::atomic_fetch_add(&cluster_sizes(labels(i)), 1);
+      });
   if (is_special_case)
   {
     // Ideally, this kernel would have had the exactly same form as in the
@@ -459,22 +464,28 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     //   inside the callback, but not here
     // - DBSCANCorePoints cannot be used either as num_neigh is not initialized
     //   in the special case.
-    Kokkos::parallel_for("ArborX::DBSCAN::mark_noise",
-                         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-                         KOKKOS_LAMBDA(int const i) {
-                           if (cluster_sizes(labels(i)) == 1)
-                             labels(i) = -1;
-                         });
+    Kokkos::parallel_for(
+        "ArborX::DBSCAN::mark_noise",
+        Kokkos::Experimental::require(
+            Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+        KOKKOS_LAMBDA(int const i) {
+          if (cluster_sizes(labels(i)) == 1)
+            labels(i) = -1;
+        });
   }
   else
   {
     Details::DBSCANCorePoints<MemorySpace> is_core{num_neigh, core_min_size};
-    Kokkos::parallel_for("ArborX::DBSCAN::mark_noise",
-                         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-                         KOKKOS_LAMBDA(int const i) {
-                           if (cluster_sizes(labels(i)) == 1 && !is_core(i))
-                             labels(i) = -1;
-                         });
+    Kokkos::parallel_for(
+        "ArborX::DBSCAN::mark_noise",
+        Kokkos::Experimental::require(
+            Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+        KOKKOS_LAMBDA(int const i) {
+          if (cluster_sizes(labels(i)) == 1 && !is_core(i))
+            labels(i) = -1;
+        });
   }
   Kokkos::Profiling::popRegion();
   elapsed["query+cluster"] = timer_seconds(timer);

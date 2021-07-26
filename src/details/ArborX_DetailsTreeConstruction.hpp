@@ -48,7 +48,9 @@ inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
   auto const n = Access::size(primitives);
   Kokkos::parallel_reduce(
       "ArborX::TreeConstruction::calculate_bounding_box_of_the_scene",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+      Kokkos::Experimental::require(
+          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+          Kokkos::Experimental::WorkItemProperty::HintLightWeight),
       KOKKOS_LAMBDA(int i, Box &update) {
         update += Access::get(primitives, i);
       },
@@ -63,14 +65,17 @@ inline void assignMortonCodesDispatch(BoxTag, ExecutionSpace const &space,
 {
   using Access = AccessTraits<Primitives, PrimitivesTag>;
   auto const n = Access::size(primitives);
-  Kokkos::parallel_for("ArborX::TreeConstruction::assign_morton_codes",
-                       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         Point xyz;
-                         centroid(Access::get(primitives, i), xyz);
-                         translateAndScale(xyz, xyz, scene_bounding_box);
-                         morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
-                       });
+  Kokkos::parallel_for(
+      "ArborX::TreeConstruction::assign_morton_codes",
+      Kokkos::Experimental::require(
+          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+          Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+      KOKKOS_LAMBDA(int i) {
+        Point xyz;
+        centroid(Access::get(primitives, i), xyz);
+        translateAndScale(xyz, xyz, scene_bounding_box);
+        morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
+      });
 }
 
 template <typename ExecutionSpace, typename Primitives, typename MortonCodes>
@@ -83,7 +88,10 @@ inline void assignMortonCodesDispatch(PointTag, ExecutionSpace const &space,
   auto const n = Access::size(primitives);
   Kokkos::parallel_for(
       "ArborX::TreeConstruction::assign_morton_codes",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+      Kokkos::Experimental::require(
+          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+          Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+      KOKKOS_LAMBDA(int i) {
         Point xyz;
         translateAndScale(Access::get(primitives, i), xyz, scene_bounding_box);
         morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
@@ -122,7 +130,10 @@ inline void initializeSingleLeafNode(ExecutionSpace const &space,
 
   Kokkos::parallel_for(
       "ArborX::TreeConstruction::initialize_single_leaf",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1), KOKKOS_LAMBDA(int) {
+      Kokkos::Experimental::require(
+          Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1),
+          Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+      KOKKOS_LAMBDA(int) {
         BoundingVolume bounding_volume{};
         expand(bounding_volume, Access::get(primitives, 0));
         leaf_nodes(0) =
@@ -171,8 +182,10 @@ public:
 
     Kokkos::parallel_for(
         "ArborX::TreeConstruction::generate_hierarchy",
-        Kokkos::RangePolicy<ExecutionSpace>(space, _num_internal_nodes,
-                                            2 * _num_internal_nodes + 1),
+        Kokkos::Experimental::require(
+            Kokkos::RangePolicy<ExecutionSpace>(space, _num_internal_nodes,
+                                                2 * _num_internal_nodes + 1),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
         *this);
   }
 
