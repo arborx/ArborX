@@ -79,7 +79,8 @@ struct QueriesWithIndex
   Queries _queries;
 };
 
-namespace ArborX{
+namespace ArborX
+{
 
 template <typename Queries>
 struct AccessTraits<QueriesWithIndex<Queries>, ArborX::PredicatesTag>
@@ -243,7 +244,6 @@ int main_(std::vector<std::string> const &args)
          Kokkos::View<ArborX::Box *, DeviceType> const &subboxes) {
         Kokkos::Profiling::pushRegion("TestExecutionSpace::tree_construction");
         ArborX::BVH<MemorySpace> tree(exec_space, subboxes);
-        exec_space.fence();
         Kokkos::Profiling::popRegion();
         return tree;
       };
@@ -257,17 +257,15 @@ int main_(std::vector<std::string> const &args)
         CountCallback<DeviceType> callbacks{n_neighbors_per_query};
         QueriesWithIndex<Kokkos::View<ArborX::Point *, DeviceType>> queries{
             subpoints};
-        tree.query(exec_space, queries, callbacks);
-        exec_space.fence();
+        tree.query(
+            exec_space, queries, callbacks,
+            ArborX::Experimental::TraversalPolicy().setPredicateSorting(false));
         Kokkos::Profiling::popRegion();
       };
 
   Kokkos::fence();
   Kokkos::Timer total_time;
   total_time.reset();
-
-  std::vector<std::vector<int>> all_offsets_individual(n_spaces);
-  std::vector<std::vector<int>> all_values_individual(n_spaces);
 
   Kokkos::Profiling::pushRegion("TestExecutionSpace::separate_instances");
   std::vector<ArborX::BVH<MemorySpace>> trees;
@@ -289,12 +287,6 @@ int main_(std::vector<std::string> const &args)
     trees.push_back(create(instances[0], bounding_boxes));
     Kokkos::fence();
   }
-  std::vector<Kokkos::View<int *, DeviceType>> all_offsets(
-      n_spaces,
-      Kokkos::View<int *, DeviceType>("Testing::offsets", n_queries + 1));
-  std::vector<Kokkos::View<int *, DeviceType>> all_values(
-      n_spaces,
-      Kokkos::View<int *, DeviceType>("Testing::values", 2 * n_queries));
   for (int instance = 0; instance < n_spaces; ++instance)
     query(instances[instance],
           Kokkos::subview(random_queries,
@@ -309,13 +301,6 @@ int main_(std::vector<std::string> const &args)
 
   total_time.reset();
 
-  std::vector<int> all_offsets_combined;
-  std::vector<int> all_values_combined;
-
-  Kokkos::View<int *, DeviceType> combined_offsets("Testing::offsets",
-                                                   n_spaces * n_queries + 1);
-  Kokkos::View<int *, DeviceType> combined_values("Testing::values",
-                                                  n_spaces * 2 * n_queries);
   Kokkos::View<int *, DeviceType> combined_n_neighbors_per_query(
       "Testing::num_neigh", n_spaces * n_queries);
 
