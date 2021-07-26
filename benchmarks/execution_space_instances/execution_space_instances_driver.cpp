@@ -79,8 +79,10 @@ struct QueriesWithIndex
   Queries _queries;
 };
 
+namespace ArborX{
+
 template <typename Queries>
-struct ArborX::AccessTraits<QueriesWithIndex<Queries>, ArborX::PredicatesTag>
+struct AccessTraits<QueriesWithIndex<Queries>, ArborX::PredicatesTag>
 {
   using memory_space = typename Queries::memory_space;
   static size_t size(QueriesWithIndex<Queries> const &q)
@@ -92,6 +94,8 @@ struct ArborX::AccessTraits<QueriesWithIndex<Queries>, ArborX::PredicatesTag>
     return attach(ArborX::intersects(q._queries(i)), i);
   }
 };
+
+} // namespace ArborX
 
 template <typename DeviceType>
 struct CountCallback
