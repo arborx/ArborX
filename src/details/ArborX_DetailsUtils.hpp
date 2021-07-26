@@ -567,7 +567,6 @@ template <typename View>
 void reallocWithoutInitializing(View &v,
                                 const typename View::array_layout &layout)
 {
-  assert(false);
   static_assert(View::is_managed, "Can only realloc managed views");
   v = View(Kokkos::view_alloc(Kokkos::WithoutInitializing, v.label()), layout);
 }
