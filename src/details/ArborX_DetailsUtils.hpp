@@ -526,7 +526,7 @@ void reallocWithoutInitializing(View &v,
                                 size_t n6 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
                                 size_t n7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG)
 {
-  int ranks[8] = {n0, n1, n2, n3, n4, n5, n6, n7};
+  size_t ranks[8] = {n0, n1, n2, n3, n4, n5, n6, n7};
   bool allocation_necessary = false;
   for (unsigned int dim = 0; dim < v.rank_dynamic; ++dim)
     if (ranks[dim] != v.extent(dim))
@@ -537,7 +537,6 @@ void reallocWithoutInitializing(View &v,
 
   if (allocation_necessary)
   {
-    abort();
     static_assert(View::is_managed, "Can only realloc managed views");
     v = View(Kokkos::view_alloc(Kokkos::WithoutInitializing, v.label()), n0, n1,
              n2, n3, n4, n5, n6, n7);
