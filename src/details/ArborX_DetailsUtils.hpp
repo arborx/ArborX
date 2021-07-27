@@ -208,9 +208,7 @@ void exclusivePrefixSum(ExecutionSpace &&space,
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_scan(
-      "ArborX::Algorithms::exclusive_scan",
-      Kokkos::Experimental::require(
-          policy, Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+      "ArborX::Algorithms::exclusive_scan", policy,
       Details::ExclusiveScanFunctor<ValueType, DeviceType>(src, dst));
 }
 
@@ -294,11 +292,8 @@ void iota(ExecutionSpace &&space, Kokkos::View<T, P...> const &v,
   auto const n = v.extent(0);
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_for(
-      "ArborX::Algorithms::iota",
-      Kokkos::Experimental::require(
-          policy, Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-      KOKKOS_LAMBDA(int i) { v(i) = value + (ValueType)i; });
+  Kokkos::parallel_for("ArborX::Algorithms::iota", policy,
+                       KOKKOS_LAMBDA(int i) { v(i) = value + (ValueType)i; });
 }
 
 template <typename T, typename... P>
@@ -330,11 +325,8 @@ minMax(ExecutionSpace &&space, ViewType const &v)
   Kokkos::MinMax<typename ViewType::non_const_value_type> reducer(result);
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_reduce(
-      "ArborX::Algorithms::minmax",
-      Kokkos::Experimental::require(
-          policy, Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-      Kokkos::Impl::min_max_functor<ViewType>(v), reducer);
+  Kokkos::parallel_reduce("ArborX::Algorithms::minmax", policy,
+                          Kokkos::Impl::min_max_functor<ViewType>(v), reducer);
   return std::make_pair(result.min_val, result.max_val);
 }
 
@@ -363,15 +355,12 @@ typename ViewType::non_const_value_type min(ExecutionSpace &&space,
   Kokkos::Min<typename ViewType::non_const_value_type> reducer(result);
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_reduce(
-      "ArborX::Algorithms::min",
-      Kokkos::Experimental::require(
-          policy, Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-      KOKKOS_LAMBDA(int i, int &update) {
-        if (v(i) < update)
-          update = v(i);
-      },
-      reducer);
+  Kokkos::parallel_reduce("ArborX::Algorithms::min", policy,
+                          KOKKOS_LAMBDA(int i, int &update) {
+                            if (v(i) < update)
+                              update = v(i);
+                          },
+                          reducer);
   return result;
 }
 
@@ -399,15 +388,12 @@ typename ViewType::non_const_value_type max(ExecutionSpace &&space,
   Kokkos::Max<typename ViewType::non_const_value_type> reducer(result);
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_reduce(
-      "ArborX::Algorithms::max",
-      Kokkos::Experimental::require(
-          policy, Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-      KOKKOS_LAMBDA(int i, int &update) {
-        if (v(i) > update)
-          update = v(i);
-      },
-      reducer);
+  Kokkos::parallel_reduce("ArborX::Algorithms::max", policy,
+                          KOKKOS_LAMBDA(int i, int &update) {
+                            if (v(i) > update)
+                              update = v(i);
+                          },
+                          reducer);
   return result;
 }
 
@@ -445,9 +431,7 @@ accumulate(ExecutionSpace &&space, ViewType const &v,
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_reduce(
-      "ArborX::Algorithms::accumulate",
-      Kokkos::Experimental::require(
-          policy, Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+      "ArborX::Algorithms::accumulate", policy,
       KOKKOS_LAMBDA(int i, typename ViewType::non_const_value_type &update) {
         update += v(i);
       },
@@ -499,16 +483,13 @@ void adjacentDifference(ExecutionSpace &&space, SrcViewType const &src,
   ARBORX_ASSERT(src != dst);
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_for(
-      "ArbroX::Algorithms::adjacent_difference",
-      Kokkos::Experimental::require(
-          policy, Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-      KOKKOS_LAMBDA(int i) {
-        if (i > 0)
-          dst(i) = src(i) - src(i - 1);
-        else
-          dst(i) = src(i);
-      });
+  Kokkos::parallel_for("ArbroX::Algorithms::adjacent_difference", policy,
+                       KOKKOS_LAMBDA(int i) {
+                         if (i > 0)
+                           dst(i) = src(i) - src(i - 1);
+                         else
+                           dst(i) = src(i);
+                       });
 }
 
 template <typename SrcViewType, typename DstViewType>
@@ -545,7 +526,7 @@ void reallocWithoutInitializing(View &v,
                                 size_t n6 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
                                 size_t n7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG)
 {
-  size_t ranks[8] = {n0, n1, n2, n3, n4, n5, n6, n7};
+  int ranks[8] = {n0, n1, n2, n3, n4, n5, n6, n7};
   bool allocation_necessary = false;
   for (unsigned int dim = 0; dim < v.rank_dynamic; ++dim)
     if (ranks[dim] != v.extent(dim))

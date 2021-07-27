@@ -251,15 +251,12 @@ computeCellIndices(ExecutionSpace const &exec_space,
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
                          "ArborX::DBSCAN::cell_indices"),
       n);
-  Kokkos::parallel_for(
-      "ArborX::DBSCAN::compute_cell_indices",
-      Kokkos::Experimental::require(
-          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-          Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-      KOKKOS_LAMBDA(int i) {
-        auto const &xyz = Access::get(primitives, i);
-        cell_indices(i) = grid.cellIndex(xyz);
-      });
+  Kokkos::parallel_for("ArborX::DBSCAN::compute_cell_indices",
+                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+                       KOKKOS_LAMBDA(int i) {
+                         auto const &xyz = Access::get(primitives, i);
+                         cell_indices(i) = grid.cellIndex(xyz);
+                       });
   return cell_indices;
 }
 
@@ -283,9 +280,7 @@ computeOffsetsInOrderedView(ExecutionSpace const &exec_space, View view)
       n + 1);
   Kokkos::parallel_scan(
       "ArborX::DBSCAN::compute_offsets",
-      Kokkos::Experimental::require(
-          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n + 1),
-          Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n + 1),
       KOKKOS_LAMBDA(int i, int &update, bool final_pass) {
         bool const is_cell_first_index =
             (i == 0 || i == (int)n || view(i) != view(i - 1));
@@ -321,10 +316,7 @@ int reorderDenseAndSparseCells(ExecutionSpace const &exec_space,
   int num_points_in_dense_cells = 0;
   Kokkos::parallel_reduce(
       "ArborX::DBSCAN::count_points_in_dense_cells",
-      Kokkos::Experimental::require(
-          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0,
-                                              num_nonempty_cells),
-          Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_nonempty_cells),
       KOKKOS_LAMBDA(int i, int &update) {
         int num_points_in_cell = cell_offsets(i + 1) - cell_offsets(i);
         if (num_points_in_cell >= core_min_size)
@@ -345,10 +337,7 @@ int reorderDenseAndSparseCells(ExecutionSpace const &exec_space,
       cloneWithoutInitializingNorCopying(sorted_cell_indices);
   Kokkos::parallel_for(
       "ArborX::DBSCAN::reorder_cell_indices_and_permutation",
-      Kokkos::Experimental::require(
-          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0,
-                                              num_nonempty_cells),
-          Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_nonempty_cells),
       KOKKOS_LAMBDA(int i) {
         auto const num_points_in_cell = cell_offsets(i + 1) - cell_offsets(i);
         bool const is_dense_cell = (num_points_in_cell >= core_min_size);
@@ -386,15 +375,13 @@ void unionFindWithinEachDenseCell(ExecutionSpace const &exec_space,
   // computations would have to be done to figure out if the points belong to a
   // dense cell, which would have required a linear scan.
   auto const n = sorted_dense_cell_indices.size();
-  Kokkos::parallel_for(
-      "ArborX::DBSCAN::union_find_within_each_dense_box",
-      Kokkos::Experimental::require(
-          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 1, n),
-          Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-      KOKKOS_LAMBDA(int i) {
-        if (sorted_dense_cell_indices(i) == sorted_dense_cell_indices(i - 1))
-          union_find.merge(permute(i), permute(i - 1));
-      });
+  Kokkos::parallel_for("ArborX::DBSCAN::union_find_within_each_dense_box",
+                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 1, n),
+                       KOKKOS_LAMBDA(int i) {
+                         if (sorted_dense_cell_indices(i) ==
+                             sorted_dense_cell_indices(i - 1))
+                           union_find.merge(permute(i), permute(i - 1));
+                       });
 }
 
 } // namespace Details

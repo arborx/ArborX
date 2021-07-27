@@ -77,9 +77,7 @@ determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
   int n_unique_ranks;
   Kokkos::parallel_scan(
       "ArborX::Distributor::compact_offsets_and_ranks",
-      Kokkos::Experimental::require(
-          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_batched_ranks),
-          Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_batched_ranks),
       KOKKOS_LAMBDA(unsigned int i, int &update, bool last_pass) {
         if (i == batched_ranks.size() - 1 ||
             batched_ranks(i + 1) != batched_ranks(i))
@@ -166,25 +164,22 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
       break;
     unique_ranks.push_back(largest_rank);
     int result = 0;
-    Kokkos::parallel_scan(
-        "ArborX::Distributor::process_biggest_rank_items",
-        Kokkos::Experimental::require(
-            Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-        KOKKOS_LAMBDA(int i, int &update, bool last_pass) {
-          bool const is_largest_rank =
-              (device_ranks_duplicate(i) == largest_rank);
-          if (is_largest_rank)
-          {
-            if (last_pass)
-            {
-              device_permutation_indices(i) = update + offset;
-              device_ranks_duplicate(i) = -1;
-            }
-            ++update;
-          }
-        },
-        result);
+    Kokkos::parallel_scan("ArborX::Distributor::process_biggest_rank_items",
+                          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+                          KOKKOS_LAMBDA(int i, int &update, bool last_pass) {
+                            bool const is_largest_rank =
+                                (device_ranks_duplicate(i) == largest_rank);
+                            if (is_largest_rank)
+                            {
+                              if (last_pass)
+                              {
+                                device_permutation_indices(i) = update + offset;
+                                device_ranks_duplicate(i) = -1;
+                              }
+                              ++update;
+                            }
+                          },
+                          result);
     offset += result;
     offsets.push_back(offset);
   }

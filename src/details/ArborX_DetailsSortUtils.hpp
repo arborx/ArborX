@@ -86,9 +86,7 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
   Kokkos::MinMaxScalar<ValueType> result;
   Kokkos::MinMax<ValueType> reducer(result);
   parallel_reduce("ArborX::Sorting::find_min_max_view",
-                  Kokkos::Experimental::require(
-                      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-                      Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+                  Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
                   Kokkos::Impl::min_max_functor<ViewType>(view), reducer);
   if (result.min_val == result.max_val)
   {
@@ -238,9 +236,7 @@ void applyInversePermutation(ExecutionSpace const &space,
 
   Kokkos::parallel_for(
       "ArborX::Sorting::inverse_permute",
-      Kokkos::Experimental::require(
-          Kokkos::RangePolicy<ExecutionSpace>(space, 0, input_view.extent(0)),
-          Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, input_view.extent(0)),
       KOKKOS_LAMBDA(int i) {
         PermuteHelper::CopyOp<OutputView, InputView>::copy(
             output_view, permutation(i), input_view, i);
@@ -261,9 +257,7 @@ void applyPermutation(ExecutionSpace const &space,
 
   Kokkos::parallel_for(
       "ArborX::Sorting::permute",
-      Kokkos::Experimental::require(
-          Kokkos::RangePolicy<ExecutionSpace>(space, 0, input_view.extent(0)),
-          Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, input_view.extent(0)),
       KOKKOS_LAMBDA(int i) {
         PermuteHelper::CopyOp<OutputView, InputView>::copy(
             output_view, i, input_view, permutation(i));

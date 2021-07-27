@@ -34,20 +34,18 @@ struct BruteForceImpl
 
     int const n = Access::size(primitives);
 
-    Kokkos::parallel_reduce(
-        "ArborX::BruteForce::BruteForce::"
-        "initialize_bounding_volumes_and_reduce_bounds",
-        Kokkos::Experimental::require(
-            Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-        KOKKOS_LAMBDA(int i, Bounds &update) {
-          using Details::expand;
-          Bounds bounding_volume{};
-          expand(bounding_volume, Access::get(primitives, i));
-          bounding_volumes(i) = bounding_volume;
-          update += bounding_volume;
-        },
-        bounds);
+    Kokkos::parallel_reduce("ArborX::BruteForce::BruteForce::"
+                            "initialize_bounding_volumes_and_reduce_bounds",
+                            Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+                            KOKKOS_LAMBDA(int i, Bounds &update) {
+                              using Details::expand;
+                              Bounds bounding_volume{};
+                              expand(bounding_volume,
+                                     Access::get(primitives, i));
+                              bounding_volumes(i) = bounding_volume;
+                              update += bounding_volume;
+                            },
+                            bounds);
   }
 
   template <class ExecutionSpace, class Primitives, class Predicates,
