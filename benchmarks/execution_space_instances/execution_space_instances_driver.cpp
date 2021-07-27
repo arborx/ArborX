@@ -130,13 +130,13 @@ int main_(std::vector<std::string> const &args)
   // clang-format off
     desc.add_options()
         ( "help", "produce help message" )
-	( "spaces", bpo::value<int>(&n_spaces)->default_value(1), "Number of execution space instances." )
+        ( "spaces", bpo::value<int>(&n_spaces)->default_value(1), "Number of execution space instances." )
         ( "separate-trees", bpo::value<bool>(&separate_trees)->default_value(false), "Create separate trees for the execution space instances." )
         ( "values", bpo::value<int>(&n_values)->default_value(20000), "Number of indexable values (source) per execution space instance." )
         ( "queries", bpo::value<int>(&n_queries)->default_value(5000), "Number of queries (target) per execution space instance." )
         ( "shift", bpo::value<double>(&shift)->default_value(2.), "Shift of the point clouds. '0' means the clouds are built "
-	                                                          "at the same place, while '1' places the clouds next to each"
-								  "other. Negative values and values larger than one "
+                                                                  "at the same place, while '1' places the clouds next to each"
+                                                                  "other. Negative values and values larger than one "
                                                                   "mean that the clouds are separated." )
         ;
   // clang-format on
