@@ -48,7 +48,7 @@ public:
   {
     _streams.resize(n_instances);
     _instances.reserve(n_instances);
-    for (unsigned int i = 0; i < n_instances; ++i)
+    for (int i = 0; i < n_instances; ++i)
     {
       cudaStreamCreate(&_streams[i]);
       _instances.emplace_back(_streams[i]);
