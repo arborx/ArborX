@@ -103,8 +103,8 @@ int main(int argc, char *argv[])
   // clang-format off
     desc.add_options()
         ( "help", "produce help message" )
-	( "num-spaces", bpo::value<int>(&num_exec_spaces)->default_value(1), "Number of execution space instances." )
-	( "num-problems", bpo::value<int>(&num_problems)->default_value(1), "Number of subproblems." )
+        ( "num-spaces", bpo::value<int>(&num_exec_spaces)->default_value(1), "Number of execution space instances." )
+        ( "num-problems", bpo::value<int>(&num_problems)->default_value(1), "Number of subproblems." )
         ( "values", bpo::value<int>(&num_primitives)->default_value(20000), "Number of indexable values (source) per subproblem." )
         ( "queries", bpo::value<int>(&num_predicates)->default_value(5000), "Number of queries (target) per subproblem." )
         ;
