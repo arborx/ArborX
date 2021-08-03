@@ -274,11 +274,11 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     throw HelpPrinted();
   }
 
-  if (vm.count("do-not-perform-knn-search"))
+  if (vm.count("do-not-perform-knn-search") > 0)
     perform_knn_search = false;
-  if (vm.count("do-not-perform-radius-search"))
+  if (vm.count("do-not-perform-radius-search") > 0)
     perform_radius_search = false;
-  if (vm.count("shift-queries"))
+  if (vm.count("shift-queries") > 0)
     shift_queries = true;
 
   if (comm_rank == 0)
