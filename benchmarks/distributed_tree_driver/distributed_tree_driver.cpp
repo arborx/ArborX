@@ -267,7 +267,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   int comm_size;
   MPI_Comm_size(comm, &comm_size);
 
-  if (vm.count("help"))
+  if (vm.count("help") > 0)
   {
     if (comm_rank == 0)
       std::cout << desc << '\n';
