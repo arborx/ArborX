@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
   float const r = 0.1f;
   float const shift = 2.f;
 
-  if (vm.count("help"))
+  if (vm.count("help") > 0)
   {
     std::cout << desc << '\n';
     return 1;
@@ -180,7 +180,7 @@ int main(int argc, char *argv[])
   std::vector<ArborX::BVH<MemorySpace>> trees;
   for (int p = 0; p < num_problems; ++p)
   {
-    auto &exec_space = instances[p % num_exec_spaces];
+    auto const &exec_space = instances[p % num_exec_spaces];
 
     trees.emplace_back(
         exec_space, Kokkos::subview(primitives, Kokkos::pair<int, int>(
@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
   query_time.reset();
   for (int p = 0; p < num_problems; ++p)
   {
-    auto &exec_space = instances[p % num_exec_spaces];
+    auto const &exec_space = instances[p % num_exec_spaces];
 
     trees[p].query(
         exec_space,
