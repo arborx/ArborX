@@ -60,8 +60,8 @@ std::vector<ArborX::Point> loadData(std::string const &filename,
   {
     v.reserve(num_points);
 
-    auto read_point = [&input, dim]() {
-      auto it = std::istream_iterator<float>(input);
+    auto it = std::istream_iterator<float>(input);
+    auto read_point = [&it, dim]() {
       float xyz[3] = {0.f, 0.f, 0.f};
       for (int i = 0; i < dim; ++i)
         xyz[i] = *it++;
