@@ -121,6 +121,7 @@ add_executable(ArborX_QueryTree.exe
   tstQueryTreeTraversalPolicy.cpp
   tstQueryTreeIntersectsKDOP.cpp
   tstKokkosToolsAnnotations.cpp
+  tstScopedProfileRegion.cpp
   utf_main.cpp)
 target_link_libraries(ArborX_QueryTree.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_QueryTree.exe PRIVATE BOOST_TEST_DYN_LINK)
