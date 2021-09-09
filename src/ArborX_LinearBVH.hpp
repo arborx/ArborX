@@ -19,6 +19,7 @@
 #include <ArborX_DetailsBatchedQueries.hpp>
 #include <ArborX_DetailsConcepts.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsPermutedData.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
@@ -213,7 +214,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
                              "ArborX::BVH::internal_and_leaf_nodes"),
           _size > 0 ? 2 * _size - 1 : 0)
 {
-  Kokkos::Profiling::pushRegion("ArborX::BVH::BVH");
+  KokkosExt::ScopedProfileRegion guard_constructor("ArborX::BVH::BVH");
 
   Details::check_valid_access_traits(PrimitivesTag{}, primitives);
   using Access = AccessTraits<Primitives, PrimitivesTag>;
@@ -223,19 +224,17 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
 
   if (empty())
   {
-    Kokkos::Profiling::popRegion();
     return;
   }
 
-  Kokkos::Profiling::pushRegion(
-      "ArborX::BVH::BVH::calculate_scene_bounding_box");
-
-  // determine the bounding box of the scene
   Box bbox{};
-  Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, primitives,
-                                                            bbox);
+  { // determine the bounding box of the scene
+    KokkosExt::ScopedProfileRegion guard_calculate_scene_bounding_box(
+        "ArborX::BVH::BVH::calculate_scene_bounding_box");
 
-  Kokkos::Profiling::popRegion();
+    Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, primitives,
+                                                              bbox);
+  }
 
   if (size() == 1)
   {
@@ -247,43 +246,45 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
                      Kokkos::MemoryUnmanaged>(&_bounds),
         Kokkos::View<BoundingVolume, MemorySpace, Kokkos::MemoryUnmanaged>(
             &getBoundingVolume(getRoot())));
-    Kokkos::Profiling::popRegion();
     return;
   }
 
-  Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::assign_morton_codes");
+  Kokkos::View<unsigned int *, MemorySpace> morton_indices;
+  { // calculate Morton codes of all objects
+    KokkosExt::ScopedProfileRegion guard_assign_morton_codes(
+        "ArborX::BVH::BVH::assign_morton_codes");
 
-  // calculate Morton codes of all objects
-  Kokkos::View<unsigned int *, MemorySpace> morton_indices(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                         "ArborX::BVH::BVH::morton"),
-      size());
-  Details::TreeConstruction::assignMortonCodes(space, primitives,
-                                               morton_indices, bbox);
-
-  Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::sort_morton_codes");
+    morton_indices = Kokkos::View<unsigned int *, MemorySpace>(
+        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                           "ArborX::BVH::BVH::morton"),
+        size());
+    Details::TreeConstruction::assignMortonCodes(space, primitives,
+                                                 morton_indices, bbox);
+  }
 
   // compute the ordering of primitives along Z-order space-filling curve
-  auto permutation_indices = Details::sortObjects(space, morton_indices);
+  auto permutation_indices = [&space, &morton_indices]() {
+    KokkosExt::ScopedProfileRegion guard_sort_morton_codes(
+        "ArborX::BVH::BVH::sort_morton_codes");
 
-  Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::generate_hierarchy");
+    return Details::sortObjects(space, morton_indices);
+  }();
 
-  // generate bounding volume hierarchy
-  Details::TreeConstruction::generateHierarchy(
-      space, primitives, permutation_indices, morton_indices, getLeafNodes(),
-      getInternalNodes());
+  { // generate bounding volume hierarchy
+    KokkosExt::ScopedProfileRegion guard_generate_hierarchy(
+        "ArborX::BVH::BVH::generate_hierarchy");
 
-  Kokkos::deep_copy(
-      space,
-      Kokkos::View<BoundingVolume, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
-          &_bounds),
-      Kokkos::View<BoundingVolume, MemorySpace, Kokkos::MemoryUnmanaged>(
-          &getBoundingVolume(getRoot())));
+    Details::TreeConstruction::generateHierarchy(
+        space, primitives, permutation_indices, morton_indices, getLeafNodes(),
+        getInternalNodes());
 
-  Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::popRegion();
+    Kokkos::deep_copy(
+        space,
+        Kokkos::View<BoundingVolume, Kokkos::HostSpace,
+                     Kokkos::MemoryUnmanaged>(&_bounds),
+        Kokkos::View<BoundingVolume, MemorySpace, Kokkos::MemoryUnmanaged>(
+            &getBoundingVolume(getRoot())));
+  }
 }
 
 template <typename MemorySpace, typename BoundingVolume, typename Enable>
@@ -302,16 +303,18 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
       (std::is_same<Tag, Details::SpatialPredicateTag>{} ? "spatial"
                                                          : "nearest");
 
-  Kokkos::Profiling::pushRegion(profiling_prefix);
+  KokkosExt::ScopedProfileRegion guard_query(profiling_prefix);
 
   if (policy._sort_predicates)
   {
-    Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
-    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
-    auto permute =
-        Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-            space, static_cast<Box>(bounds()), predicates);
-    Kokkos::Profiling::popRegion();
+    auto permute = [&]() {
+      KokkosExt::ScopedProfileRegion guard_compute_permutation(
+          profiling_prefix + "::compute_permutation");
+
+      using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
+      return Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
+          space, static_cast<Box>(bounds()), predicates);
+    }();
 
     using PermutedPredicates =
         Details::PermutedData<Predicates, decltype(permute)>;
@@ -322,8 +325,6 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
   {
     Details::traverse(space, *this, predicates, callback);
   }
-
-  Kokkos::Profiling::popRegion();
 }
 
 } // namespace ArborX
