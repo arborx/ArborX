@@ -19,6 +19,7 @@
 #include <ArborX_DetailsBatchedQueries.hpp>
 #include <ArborX_DetailsConcepts.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsPermutedData.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
@@ -213,7 +214,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
                              "ArborX::BVH::internal_and_leaf_nodes"),
           _size > 0 ? 2 * _size - 1 : 0)
 {
-  Kokkos::Profiling::pushRegion("ArborX::BVH::BVH");
+  KokkosExt::ScopedProfileRegion guard("ArborX::BVH::BVH");
 
   Details::check_valid_access_traits(PrimitivesTag{}, primitives);
   using Access = AccessTraits<Primitives, PrimitivesTag>;
@@ -223,7 +224,6 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
 
   if (empty())
   {
-    Kokkos::Profiling::popRegion();
     return;
   }
 
@@ -247,7 +247,6 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
                      Kokkos::MemoryUnmanaged>(&_bounds),
         Kokkos::View<BoundingVolume, MemorySpace, Kokkos::MemoryUnmanaged>(
             &getBoundingVolume(getRoot())));
-    Kokkos::Profiling::popRegion();
     return;
   }
 
@@ -282,7 +281,6 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
       Kokkos::View<BoundingVolume, MemorySpace, Kokkos::MemoryUnmanaged>(
           &getBoundingVolume(getRoot())));
 
-  Kokkos::Profiling::popRegion();
   Kokkos::Profiling::popRegion();
 }
 
