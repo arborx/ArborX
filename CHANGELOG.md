@@ -1,8 +1,8 @@
 # Changelog
 
-## [Unreleased](https://github.com/arborx/arborx/tree/HEAD)
+## [v1.1](https://github.com/arborx/arborx/tree/v1.1) (2021-09-23)
 
-[Full Changelog](https://github.com/arborx/arborx/compare/v1.0...HEAD)
+[Full Changelog](https://github.com/arborx/arborx/compare/v1.0...v1.1)
 
 **Implemented enhancements:**
 
