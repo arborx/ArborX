@@ -19,11 +19,6 @@
 - Fix text reader in DBSCAN [\#543](https://github.com/arborx/ArborX/pull/543)
 - Fix a subtle bug in DBSCAN noise marking [\#525](https://github.com/arborx/ArborX/pull/525)
 
-**Closed issues:**
-
-- Address timeout issues for PGI and SYCL builds [\#507](https://github.com/arborx/ArborX/issues/507)
-- DBSCAN algorithm improvements [\#417](https://github.com/arborx/ArborX/issues/417)
-
 **Merged pull requests:**
 
 - Fix compiler warnings [\#541](https://github.com/arborx/ArborX/pull/541)
@@ -87,15 +82,6 @@
 - Query overload with just a callback seems to require a fence [\#446](https://github.com/arborx/ArborX/issues/446)
 - Specify minimum boost version for benchmark [\#311](https://github.com/arborx/ArborX/issues/311)
 - Fix using of uninitialized value in DBSCAN timer [\#431](https://github.com/arborx/ArborX/pull/431)
-
-**Closed issues:**
-
-- Use of initializer lists in tests without type leads to ambiguity \(e.g., Box and Ray\) [\#435](https://github.com/arborx/ArborX/issues/435)
-- roc::rocprim\_hip target not found when using HIP compiler 3.8 with rocThrust [\#433](https://github.com/arborx/ArborX/issues/433)
-- Replace ViewAllocateWithoutInitializing with view\_alloc [\#363](https://github.com/arborx/ArborX/issues/363)
-- Wrong boost in PGI build CI [\#303](https://github.com/arborx/ArborX/issues/303)
-- xSDK policies compatibility [\#58](https://github.com/arborx/ArborX/issues/58)
-- Set properties on unit tests [\#50](https://github.com/arborx/ArborX/issues/50)
 
 **Merged pull requests:**
 
@@ -167,10 +153,6 @@
 - Using ArborX when data does not fit on a GPU [\#275](https://github.com/arborx/ArborX/issues/275)
 - Implement stackless tree traversal using escape index \(ropes\) [\#364](https://github.com/arborx/ArborX/pull/364)
 
-**Closed issues:**
-
-- Resolve HIP tester failures [\#373](https://github.com/arborx/ArborX/issues/373)
-
 **Merged pull requests:**
 
 - Fix a  label and a profiling region to the new query [\#406](https://github.com/arborx/ArborX/pull/406)
@@ -201,16 +183,6 @@
 - Resolve duplicate Details::toBufferStatus\(int\) symbol error downstream [\#360](https://github.com/arborx/ArborX/pull/360)
 - Fix sendAcrossNetwork for multi-dimensional Views [\#353](https://github.com/arborx/ArborX/pull/353)
 - Fix scaling issues in the distributed driver for 1D and 2D [\#241](https://github.com/arborx/ArborX/pull/241)
-
-**Closed issues:**
-
-- Run Style checks even if one of the builds fails [\#378](https://github.com/arborx/ArborX/issues/378)
-- .gitignore excludes \*.e files [\#354](https://github.com/arborx/ArborX/issues/354)
-- windows support with CUDA [\#321](https://github.com/arborx/ArborX/issues/321)
-- Fix warning in access\_traits\_host example [\#313](https://github.com/arborx/ArborX/issues/313)
-- Capture Use Case:  Distance to Wall [\#201](https://github.com/arborx/ArborX/issues/201)
-- Tested compilers in jenkins [\#68](https://github.com/arborx/ArborX/issues/68)
-- Decide on the minimum chunk of work for OpenMP [\#26](https://github.com/arborx/ArborX/issues/26)
 
 **Merged pull requests:**
 
@@ -417,24 +389,6 @@
 - ArborX hash is unreliable [\#264](https://github.com/arborx/ArborX/issues/264)
 - Failing Kokkos static\_asserts in tests. [\#96](https://github.com/arborx/ArborX/issues/96)
 
-**Closed issues:**
-
-- Use --benchmark\_out=\<filename\> option [\#336](https://github.com/arborx/ArborX/issues/336)
-- Performance regression [\#263](https://github.com/arborx/ArborX/issues/263)
-- Inspect copies between host and device [\#230](https://github.com/arborx/ArborX/issues/230)
-- Make ArborX work with current Trilinos/Kokkos install [\#224](https://github.com/arborx/ArborX/issues/224)
-- Enable compiler warnings in the CI [\#180](https://github.com/arborx/ArborX/issues/180)
-- Suppress Thrust warnings [\#175](https://github.com/arborx/ArborX/issues/175)
-- Cryptic error for using ArborX when CUDA is not loaded [\#118](https://github.com/arborx/ArborX/issues/118)
-- Treat CMake warnings as errors [\#103](https://github.com/arborx/ArborX/issues/103)
-- Add testing with DataTransferKit [\#71](https://github.com/arborx/ArborX/issues/71)
-- Revisit distributed search tree benchmark [\#57](https://github.com/arborx/ArborX/issues/57)
-- Get rid of unnecessary fences [\#45](https://github.com/arborx/ArborX/issues/45)
-- Document minimum versions for CMake and Boost [\#37](https://github.com/arborx/ArborX/issues/37)
-- Test ArborX installation [\#12](https://github.com/arborx/ArborX/issues/12)
-- Add include-what-you-use test [\#7](https://github.com/arborx/ArborX/issues/7)
-- Setup ArborX infrastructure [\#3](https://github.com/arborx/ArborX/issues/3)
-
 ## [v0.8-beta2](https://github.com/arborx/arborx/tree/v0.8-beta2) (2019-10-10)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/97bbec21cc92dd2b4bd3a68c52a230b4c3c4643c...v0.8-beta2)
@@ -451,24 +405,6 @@
 - Optimize communication within the same rank [\#134](https://github.com/arborx/ArborX/pull/134)
 - Fix for distributed searches with large count of results per que… [\#129](https://github.com/arborx/ArborX/pull/129)
 - Fix Kokkos\_DEVICES spelling [\#35](https://github.com/arborx/ArborX/pull/35)
-
-**Closed issues:**
-
-- Cannot build tests with PGI [\#128](https://github.com/arborx/ArborX/issues/128)
-- Separate benchmarks and examples [\#124](https://github.com/arborx/ArborX/issues/124)
-- PkgConfig and ArborX installation [\#120](https://github.com/arborx/ArborX/issues/120)
-- Weird CUDA 10.1 error [\#109](https://github.com/arborx/ArborX/issues/109)
-- Script to check/enforce code style [\#43](https://github.com/arborx/ArborX/issues/43)
-- Update docker-compose to allow running docker container locally [\#39](https://github.com/arborx/ArborX/issues/39)
-- Let MPI be an optional dependency [\#38](https://github.com/arborx/ArborX/issues/38)
-- Clang+CUDA builds [\#36](https://github.com/arborx/ArborX/issues/36)
-- Make tests and examples optional [\#30](https://github.com/arborx/ArborX/issues/30)
-- Remove deprecated Kokkos [\#28](https://github.com/arborx/ArborX/issues/28)
-- Fix Boost warnings [\#23](https://github.com/arborx/ArborX/issues/23)
-- Make tests pass in non-UVM mode [\#16](https://github.com/arborx/ArborX/issues/16)
-- Document access traits for spatial indexing [\#8](https://github.com/arborx/ArborX/issues/8)
-- Move ArborX related PRs from DTK [\#5](https://github.com/arborx/ArborX/issues/5)
-- Create Spack package [\#4](https://github.com/arborx/ArborX/issues/4)
 
 **Merged pull requests:**
 
