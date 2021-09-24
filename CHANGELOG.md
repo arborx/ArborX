@@ -145,31 +145,13 @@
 
 ## [v1.0-rc0](https://github.com/arborx/arborx/tree/v1.0-rc0) (2020-10-03)
 
-[Full Changelog](https://github.com/arborx/arborx/compare/kokkos-3.2...v1.0-rc0)
+[Full Changelog](https://github.com/arborx/arborx/compare/v0.9-beta...v1.0-rc0)
 
 **Implemented enhancements:**
 
 - Change naming of ArborX labels [\#362](https://github.com/arborx/ArborX/issues/362)
 - Using ArborX when data does not fit on a GPU [\#275](https://github.com/arborx/ArborX/issues/275)
 - Implement stackless tree traversal using escape index \(ropes\) [\#364](https://github.com/arborx/ArborX/pull/364)
-
-**Merged pull requests:**
-
-- Fix a  label and a profiling region to the new query [\#406](https://github.com/arborx/ArborX/pull/406)
-- Allow using HIP in BVH benchmark [\#404](https://github.com/arborx/ArborX/pull/404)
-- Reduce number of places that need to see the node type definition [\#403](https://github.com/arborx/ArborX/pull/403)
-- Ignore \#pragma-messages warnings in CI [\#400](https://github.com/arborx/ArborX/pull/400)
-- Finish label renaming in TreeTraversal [\#398](https://github.com/arborx/ArborX/pull/398)
-- Deprecate DistributedSearchTree [\#396](https://github.com/arborx/ArborX/pull/396)
-- Initialize leaf nodes in hierarchy generation [\#395](https://github.com/arborx/ArborX/pull/395)
-- Update HIP CI to version 3.8 [\#392](https://github.com/arborx/ArborX/pull/392)
-
-## [kokkos-3.2](https://github.com/arborx/arborx/tree/kokkos-3.2) (2020-09-28)
-
-[Full Changelog](https://github.com/arborx/arborx/compare/v0.9-beta...kokkos-3.2)
-
-**Implemented enhancements:**
-
 - Add profiling regions to the Distributed tree [\#377](https://github.com/arborx/ArborX/issues/377)
 - Examine interface and performance implications of having a query index [\#231](https://github.com/arborx/ArborX/issues/231)
 - Enable HIP [\#236](https://github.com/arborx/ArborX/pull/236)
@@ -186,6 +168,14 @@
 
 **Merged pull requests:**
 
+- Fix a  label and a profiling region to the new query [\#406](https://github.com/arborx/ArborX/pull/406)
+- Allow using HIP in BVH benchmark [\#404](https://github.com/arborx/ArborX/pull/404)
+- Reduce number of places that need to see the node type definition [\#403](https://github.com/arborx/ArborX/pull/403)
+- Ignore \#pragma-messages warnings in CI [\#400](https://github.com/arborx/ArborX/pull/400)
+- Finish label renaming in TreeTraversal [\#398](https://github.com/arborx/ArborX/pull/398)
+- Deprecate DistributedSearchTree [\#396](https://github.com/arborx/ArborX/pull/396)
+- Initialize leaf nodes in hierarchy generation [\#395](https://github.com/arborx/ArborX/pull/395)
+- Update HIP CI to version 3.8 [\#392](https://github.com/arborx/ArborX/pull/392)
 - Add check for labels in kernels for DistributedSearchTree [\#394](https://github.com/arborx/ArborX/pull/394)
 - Fix one missed label [\#391](https://github.com/arborx/ArborX/pull/391)
 - Update style of region labels and fixups [\#389](https://github.com/arborx/ArborX/pull/389)
