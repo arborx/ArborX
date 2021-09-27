@@ -6,60 +6,17 @@
 
 **Implemented enhancements:**
 
-- Implement non-axis aligned bounding volumes [\#387](https://github.com/arborx/ArborX/issues/387)
-- Add scope-based profiling region utility [\#544](https://github.com/arborx/ArborX/pull/544)
-- Store dimension value in a datafile [\#523](https://github.com/arborx/ArborX/pull/523)
+- Implement non-axis aligned bounding volumes [\#386](https://github.com/arborx/ArborX/pull/386)
 - Compute distance sphere-box [\#495](https://github.com/arborx/ArborX/pull/495)
 - Add Box-Box distance for Nearest query [\#494](https://github.com/arborx/ArborX/pull/494)
-- Add polytope to explore using it as bounding volume [\#386](https://github.com/arborx/ArborX/pull/386)
-
-**Fixed bugs:**
-
-- Fix DBSCAN test input file [\#546](https://github.com/arborx/ArborX/pull/546)
-- Fix text reader in DBSCAN [\#543](https://github.com/arborx/ArborX/pull/543)
-- Fix a subtle bug in DBSCAN noise marking [\#525](https://github.com/arborx/ArborX/pull/525)
-
-**Merged pull requests:**
-
-- Fix compiler warnings [\#541](https://github.com/arborx/ArborX/pull/541)
-- Fixup do not attempt to retrieve gpg key in SYCL image [\#540](https://github.com/arborx/ArborX/pull/540)
-- Check View sizes in reallocWithoutInitializing [\#539](https://github.com/arborx/ArborX/pull/539)
-- Benchmark multiple execution space instances [\#538](https://github.com/arborx/ArborX/pull/538)
-- Replace deprecated Kokkos::ViewAllocateWithoutInitializing [\#537](https://github.com/arborx/ArborX/pull/537)
-- Update contributing to point to ArborX style in wiki [\#536](https://github.com/arborx/ArborX/pull/536)
-- Use double to normalize Ray direction [\#535](https://github.com/arborx/ArborX/pull/535)
+- Add benchmark using multiple execution space instances [\#538](https://github.com/arborx/ArborX/pull/538)
 - Brute force algorithm for detecting collisions [\#534](https://github.com/arborx/ArborX/pull/534)
 - Update FDBSCAN to use algorithm from FDBSCAN-DenseBox for single points [\#532](https://github.com/arborx/ArborX/pull/532)
-- Add -w flag to ignore in Boost build of b2 [\#531](https://github.com/arborx/ArborX/pull/531)
-- Missed one "boundary" spot when rebasing DenseBox branch on master [\#530](https://github.com/arborx/ArborX/pull/530)
 - Change default DBSCAN implementation to FDBSCAN-DenseBox [\#529](https://github.com/arborx/ArborX/pull/529)
-- Rename "boundary" to "border" in DBSCAN [\#527](https://github.com/arborx/ArborX/pull/527)
-- Reduce default value of cluster\_min\_size in DBSCAN to 1 [\#526](https://github.com/arborx/ArborX/pull/526)
-- Remove unnecessary variable in HIP Dockerfile [\#524](https://github.com/arborx/ArborX/pull/524)
-- Add support for MI 100 in CI [\#522](https://github.com/arborx/ArborX/pull/522)
 - Add and install ArborXConfigVersion.cmake [\#521](https://github.com/arborx/ArborX/pull/521)
-- Rename DBSCANCallback to FDBSCANCallback [\#519](https://github.com/arborx/ArborX/pull/519)
-- Fix build error when using Vector inside Ray [\#518](https://github.com/arborx/ArborX/pull/518)
-- Fixup Kokkos space accessibility checks [\#516](https://github.com/arborx/ArborX/pull/516)
-- Download Boost from artifactory instead of bintray [\#515](https://github.com/arborx/ArborX/pull/515)
 - Add simple intersection example  [\#513](https://github.com/arborx/ArborX/pull/513)
-- Fix warnings from hipcc [\#512](https://github.com/arborx/ArborX/pull/512)
-- Use Kokkos 3.4 for SYCL [\#511](https://github.com/arborx/ArborX/pull/511)
-- Fix clang-tidy warnings in the converter [\#510](https://github.com/arborx/ArborX/pull/510)
-- Use AccessTraits instead of hardcoded View in DBSCAN [\#509](https://github.com/arborx/ArborX/pull/509)
 - Introduce new algorithm \(FDBSCAN-DenseBox\) for DBSCAN [\#508](https://github.com/arborx/ArborX/pull/508)
-- Create new UnionFind struct for DBSCAN [\#506](https://github.com/arborx/ArborX/pull/506)
-- Remove "fast" label initialization [\#505](https://github.com/arborx/ArborX/pull/505)
-- Reduce default problem size for the distributed benchmark [\#504](https://github.com/arborx/ArborX/pull/504)
-- Reorganize DBSCAN location and add unit testing [\#503](https://github.com/arborx/ArborX/pull/503)
-- Let abstraction for Euclidean vector be strongly typed [\#502](https://github.com/arborx/ArborX/pull/502)
-- Update ArborX version [\#501](https://github.com/arborx/ArborX/pull/501)
-- Use Attorney-Client idiom for BVH [\#500](https://github.com/arborx/ArborX/pull/500)
-- Update CI to ROCm 4.2 [\#499](https://github.com/arborx/ArborX/pull/499)
-- Avoid printing to the standard output in the tests [\#498](https://github.com/arborx/ArborX/pull/498)
-- Add query tree callback macro and cleanup tests [\#496](https://github.com/arborx/ArborX/pull/496)
 - Add data converters for DBSCAN [\#491](https://github.com/arborx/ArborX/pull/491)
-- Use oneDPL for sorting with SYCL [\#456](https://github.com/arborx/ArborX/pull/456)
 
 ## [v1.0](https://github.com/arborx/arborx/tree/v1.0) (2021-03-13)
 
