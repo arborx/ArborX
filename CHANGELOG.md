@@ -68,7 +68,7 @@
 **Fixed bugs:**
 
 - Fix double free when making copies of a distributed tree [\#369](https://github.com/arborx/ArborX/pull/369)
-- Resolve duplicate `Details::toBufferStatus\(int\)` symbol error downstream [\#360](https://github.com/arborx/ArborX/pull/360)
+- Resolve duplicate `Details::toBufferStatus(int)` symbol error downstream [\#360](https://github.com/arborx/ArborX/pull/360)
 - Fix narrowing conversion warnings [\#343](https://github.com/arborx/ArborX/pull/343)
 
 **Deprecations:**
