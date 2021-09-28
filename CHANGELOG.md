@@ -42,9 +42,8 @@
 **Enhancements:**
 
 - Add KOKKOS\_FUNCTION to AccessTraits::size\(\) in View specialization [\#463](https://github.com/arborx/ArborX/pull/463)
-- Allow running BVH benchmark with SYCL and OpenMPTarget explicitly [\#455](https://github.com/arborx/ArborX/pull/455)
 - Non-backward compatible: Change signature of the nearest callback [\#366](https://github.com/arborx/ArborX/pull/366)
-- Add a free function to execute queries [\#425](https://github.com/arborx/ArborX/pull/425)
+- Add `query()` free function [\#425](https://github.com/arborx/ArborX/pull/425)
 - Improve performance for the HIP backend through the use of rocThrust for sorting [\#424](https://github.com/arborx/ArborX/pull/424)
 - Support for SYCL and OpenMPTarget [\#422](https://github.com/arborx/ArborX/pull/422)
 
@@ -59,7 +58,7 @@
 **Implemented enhancements:**
 
 - Implement stackless tree traversal using escape index \(ropes\) [\#364](https://github.com/arborx/ArborX/pull/364)
-- Enable CI for HIP [\#236](https://github.com/arborx/ArborX/pull/236)
+- Add support for Kokkos HIP backend [\#236](https://github.com/arborx/ArborX/pull/236)
 - Ensure that all kernels and memory allocations are prefixed with `ArborX::` [\#362](https://github.com/arborx/ArborX/issues/362) and [\#380](https://github.com/arborx/ArborX/pull/380)
 - Improve performance of knn traversal [\#357](https://github.com/arborx/ArborX/pull/357)
 - Add new query overloads for the distributed tree [\#356](https://github.com/arborx/ArborX/pull/356)
@@ -144,12 +143,7 @@
 - Use MPI\_Comm\_dup to separate ArborX comm context from user's [\#135](https://github.com/arborx/ArborX/pull/135)
 - Add CMake option for enabling benchmarks [\#138](https://github.com/arborx/ArborX/pull/138)
 - Add intersects\(Point, Box\) [\#122](https://github.com/arborx/ArborX/pull/122)
-- Mark BVH::{size,empty,bounds} as noexcept [\#114](https://github.com/arborx/ArborX/pull/114)
 - Improve error messages in BVH constructor and BVH::query\(\) [\#113](https://github.com/arborx/ArborX/pull/113)
-- Make data private in Point [\#100](https://github.com/arborx/ArborX/pull/100)
-- Constexpr geometric primitives and algorithms [\#97](https://github.com/arborx/ArborX/pull/97)
-- Add CUDA+clang CI test [\#95](https://github.com/arborx/ArborX/pull/95)
-- Test installation of ArborX [\#48](https://github.com/arborx/ArborX/pull/48)
 - Relax CudaUVM requirement [\#24](https://github.com/arborx/ArborX/pull/24)
 - Find Boost in subdirectories that actually require it [\#22](https://github.com/arborx/ArborX/pull/22)
 
