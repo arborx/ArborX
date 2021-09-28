@@ -55,7 +55,7 @@
 
 - New BVH::query\(\) overload that only takes predicates and callback [\#329](https://github.com/arborx/ArborX/pull/329)
 
-**Implemented enhancements:**
+**Enhancements:**
 
 - Implement stackless tree traversal using escape index \(ropes\) [\#364](https://github.com/arborx/ArborX/pull/364)
 - Add support for Kokkos HIP backend [\#236](https://github.com/arborx/ArborX/pull/236)
@@ -94,7 +94,7 @@
 - Require C++14 standard when building ArborX [\#226](https://github.com/arborx/ArborX/pull/226)
 - Require Kokkos CMake build [\#93](https://github.com/arborx/ArborX/pull/93)
 
-**Implemented enhancements:**
+**Enhancements:**
 
 - Template BVH on memory space [\#251](https://github.com/arborx/ArborX/pull/251)
 - Add example for callbacks and lift requirement for tagging inline [\#325](https://github.com/arborx/ArborX/pull/325)
