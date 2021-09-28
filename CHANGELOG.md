@@ -43,8 +43,8 @@
 
 - Add KOKKOS\_FUNCTION to AccessTraits::size\(\) in View specialization [\#463](https://github.com/arborx/ArborX/pull/463)
 - Allow running BVH benchmark with SYCL and OpenMPTarget explicitly [\#455](https://github.com/arborx/ArborX/pull/455)
-- Change signature of the nearest callback [\#366](https://github.com/arborx/ArborX/pull/366)
-- Add a free function constructing CRS graph [\#425](https://github.com/arborx/ArborX/pull/425)
+- Non-backward compatible: Change signature of the nearest callback [\#366](https://github.com/arborx/ArborX/pull/366)
+- Add a free function to execute queries [\#425](https://github.com/arborx/ArborX/pull/425)
 - Improve performance for the HIP backend through the use of rocThrust for sorting [\#424](https://github.com/arborx/ArborX/pull/424)
 - Support for SYCL and OpenMPTarget [\#422](https://github.com/arborx/ArborX/pull/422)
 
