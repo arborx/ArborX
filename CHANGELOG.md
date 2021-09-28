@@ -33,7 +33,7 @@
 - Allow early termination of a traversal by a thread [\#427](https://github.com/arborx/ArborX/pull/427)
 - Implement DBSCAN clustering algorithm [\#331](https://github.com/arborx/ArborX/pull/331)
 - Implement brute-force algorithm [\#468](https://github.com/arborx/ArborX/pull/468)
-- Add ray-tracing example [\#414](https://github.com/arborx/ArborX/pull/414)
+- Add initial ray-tracing support [\#414](https://github.com/arborx/ArborX/pull/414)
 
 **Build changes:**
 
