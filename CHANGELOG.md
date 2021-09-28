@@ -4,106 +4,175 @@
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v1.0...v1.1)
 
-**Implemented enhancements:**
+**New features:**
 
-- Implement non-axis aligned bounding volumes [\#386](https://github.com/arborx/ArborX/pull/386)
-- Compute distance sphere-box [\#495](https://github.com/arborx/ArborX/pull/495)
-- Add Box-Box distance for Nearest query [\#494](https://github.com/arborx/ArborX/pull/494)
-- Add benchmark using multiple execution space instances [\#538](https://github.com/arborx/ArborX/pull/538)
-- Brute force algorithm for detecting collisions [\#534](https://github.com/arborx/ArborX/pull/534)
-- Update FDBSCAN to use algorithm from FDBSCAN-DenseBox for single points [\#532](https://github.com/arborx/ArborX/pull/532)
-- Change default DBSCAN implementation to FDBSCAN-DenseBox [\#529](https://github.com/arborx/ArborX/pull/529)
-- Add and install ArborXConfigVersion.cmake [\#521](https://github.com/arborx/ArborX/pull/521)
-- Add simple intersection example  [\#513](https://github.com/arborx/ArborX/pull/513)
-- Introduce new algorithm \(FDBSCAN-DenseBox\) for DBSCAN [\#508](https://github.com/arborx/ArborX/pull/508)
-- Add data converters for DBSCAN [\#491](https://github.com/arborx/ArborX/pull/491)
+- Allow k-DOP as a bounding volume in BVH [\#386](https://github.com/arborx/ArborX/pull/386)
+
+**Enhancements:**
+
+- Store a dimension value in a DBSCAN datafile [\#523](https://github.com/arborx/ArborX/pull/523)
+- Provide computation of a Sphere-Box distance [\#495](https://github.com/arborx/ArborX/pull/495)
+- Provide Box-Box distance for the Nearest query [\#494](https://github.com/arborx/ArborX/pull/494)
+- Use double to normalize Ray direction [\#535](https://github.com/arborx/ArborX/pull/535)
+- Improve performance of the brute force algorithm [\#534](https://github.com/arborx/ArborX/pull/534)
+- Improve performance of the DBSCAN algorithm (new FDBSCAN-DenseBox algorithm) [\#508](https://github.com/arborx/ArborX/pull/508)
+- Allow non-View input for DBSCAN [\#509](https://github.com/arborx/ArborX/pull/509)
+- Install ArborXConfigVersion.cmake [\#521](https://github.com/arborx/ArborX/pull/521)
+- Add a simple intersection example [\#513](https://github.com/arborx/ArborX/pull/513)
+- Improve performance for the SYCL backend through the use of oneDPL for sorting [\#456](https://github.com/arborx/ArborX/pull/456)
+
+**Fixed bugs:**
+
+- Fix a bug in DBSCAN noise marking [\#525](https://github.com/arborx/ArborX/pull/525)
 
 ## [v1.0](https://github.com/arborx/arborx/tree/v1.0) (2021-03-13)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v1.0-rc0...v1.0)
 
-**Implemented enhancements:**
+**New features:**
 
-- Feature proposal: allow early termination of traversal [\#407](https://github.com/arborx/ArborX/issues/407)
-- Add BruteForce data structure [\#468](https://github.com/arborx/ArborX/pull/468)
-- Add a ray class and a test for ray-box intersection [\#414](https://github.com/arborx/ArborX/pull/414)
-- Implement DBSCAN [\#331](https://github.com/arborx/ArborX/pull/331)
-- Adding features to DBSCAN cmd line interface [\#490](https://github.com/arborx/ArborX/pull/490)
+- Allow early termination of a traversal by a thread [\#427](https://github.com/arborx/ArborX/pull/427)
+- Implement DBSCAN clustering algorithm [\#331](https://github.com/arborx/ArborX/pull/331)
+- Implement brute-force algorithm [\#468](https://github.com/arborx/ArborX/pull/468)
+- Implement simple ray-tracing [\#414](https://github.com/arborx/ArborX/pull/414)
+
+**Build changes:**
+
 - Require CMake 3.16 [\#486](https://github.com/arborx/ArborX/pull/486)
-- Align the meaning of min\_pts parameter in DBSCAN with literature [\#469](https://github.com/arborx/ArborX/pull/469)
-- Add ray tracing example [\#461](https://github.com/arborx/ArborX/pull/461)
+
+**Enhancements:**
+
+- Add KOKKOS\_FUNCTION to AccessTraits::size\(\) in View specialization [\#463](https://github.com/arborx/ArborX/pull/463)
 - Allow running BVH benchmark with SYCL and OpenMPTarget explicitly [\#455](https://github.com/arborx/ArborX/pull/455)
-- Speed up DBSCAN post-processing [\#430](https://github.com/arborx/ArborX/pull/430)
-- Terminate DBSCAN's neighbor counting early once threshold is reached [\#428](https://github.com/arborx/ArborX/pull/428)
-- Enable all experimental backends [\#422](https://github.com/arborx/ArborX/pull/422)
-- Use ropes on AMD GPUs as well [\#418](https://github.com/arborx/ArborX/pull/418)
 - Change signature of the nearest callback [\#366](https://github.com/arborx/ArborX/pull/366)
+- Add a free function constructing CRS graph [\#425](https://github.com/arborx/ArborX/pull/425)
+- Improve performance for the HIP backend through the use of rocThrust for sorting [\#424](https://github.com/arborx/ArborX/pull/424)
+- Add CI for SYCL [\#423](https://github.com/arborx/ArborX/pull/423)
 
 ## [v1.0-rc0](https://github.com/arborx/arborx/tree/v1.0-rc0) (2020-10-03)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v0.9-beta...v1.0-rc0)
 
+**New features:**
+
+- New BVH::query\(\) overload that only takes predicates and callback [\#329](https://github.com/arborx/ArborX/pull/329)
+
 **Implemented enhancements:**
 
+- Change naming of ArborX labels [\#362](https://github.com/arborx/ArborX/issues/362)
 - Implement stackless tree traversal using escape index \(ropes\) [\#364](https://github.com/arborx/ArborX/pull/364)
-- Enable HIP [\#236](https://github.com/arborx/ArborX/pull/236)
-- Deprecate DistributedSearchTree [\#396](https://github.com/arborx/ArborX/pull/396)
-- Remove deprecated nearest traversals [\#361](https://github.com/arborx/ArborX/pull/361)
+- Enable CI for HIP [\#236](https://github.com/arborx/ArborX/pull/236)
+- Ensure that all kernels from BVH are properly marked [\#380](https://github.com/arborx/ArborX/pull/380)
 - Improve performance of knn traversal [\#357](https://github.com/arborx/ArborX/pull/357)
 - Add new query overloads for the distributed tree [\#356](https://github.com/arborx/ArborX/pull/356)
-- Apetrei's construction algorithm [\#350](https://github.com/arborx/ArborX/pull/350)
+- Increase performance of the BVH construction [\#350](https://github.com/arborx/ArborX/pull/350)
 - Allow non device type template parameter for output views in query\(\) on distributed trees [\#349](https://github.com/arborx/ArborX/pull/349)
-- New BVH::query\(\) overload that only takes predicates and callback [\#329](https://github.com/arborx/ArborX/pull/329)
+
+**Fixed bugs:**
+
+- Fix double free when making copies of a distributed tree [\#369](https://github.com/arborx/ArborX/pull/369)
+- Resolve duplicate Details::toBufferStatus\(int\) symbol error downstream [\#360](https://github.com/arborx/ArborX/pull/360)
+- Fix narrowing conversion warnings [\#343](https://github.com/arborx/ArborX/pull/343)
+
+**Deprecations:**
+
+- Deprecate DistributedSearchTree [\#396](https://github.com/arborx/ArborX/pull/396)
 
 ## [v0.9-beta](https://github.com/arborx/arborx/tree/v0.9-beta) (2020-06-10)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v0.8-beta2...v0.9-beta)
 
+**New features:**
+
+- Enable user-defined callback in BVH search [\#166](https://github.com/arborx/ArborX/pull/166)
+- Make predicates sorting optional [\#243](https://github.com/arborx/ArborX/pull/243)
+- Use user-provided execution space [\#250](https://github.com/arborx/ArborX/pull/250)
+- Implement algorithm for finding strongly connected components (halo finder) [\#237](https://github.com/arborx/ArborX/pull/237)
+- Use single precision floating point numbers for data [\#235](https://github.com/arborx/ArborX/pull/235)
+- Allow usage of CUDA-aware MPI [\#162](https://github.com/arborx/ArborX/pull/162)
+
+**Build changes:**
+
+- Require Kokkos 3.1 [\#268](https://github.com/arborx/ArborX/pull/268)
+- Require C++14 standard when building ArborX [\#226](https://github.com/arborx/ArborX/pull/226)
+- Require Kokkos CMake build [\#93](https://github.com/arborx/ArborX/pull/93)
+
 **Implemented enhancements:**
 
-- Add example for callbacks and lift requirement for tagging inline [\#325](https://github.com/arborx/ArborX/pull/325)
-- Complete buffer optimization refactoring [\#282](https://github.com/arborx/ArborX/pull/282)
-- Optional sorting of predicates [\#243](https://github.com/arborx/ArborX/pull/243)
-- Allow sortResults to work for 2D and 3D [\#197](https://github.com/arborx/ArborX/pull/197)
-- Enable user-defined callback in BVH search [\#166](https://github.com/arborx/ArborX/pull/166)
-- Use with Trilinos' Kokkos installation [\#156](https://github.com/arborx/ArborX/pull/156)
-- Add access traits CUDA example  [\#107](https://github.com/arborx/ArborX/pull/107)
-- Kokkos 3.1 [\#268](https://github.com/arborx/ArborX/pull/268)
-- Update examples to reflect the templated on memory space changes [\#261](https://github.com/arborx/ArborX/pull/261)
-- Template distributed search tree on the memory space [\#260](https://github.com/arborx/ArborX/pull/260)
 - Template BVH on memory space [\#251](https://github.com/arborx/ArborX/pull/251)
-- Update tree query to take execution space argument [\#250](https://github.com/arborx/ArborX/pull/250)
-- Update STL-like algorithms to take execution space as first argument [\#247](https://github.com/arborx/ArborX/pull/247)
-- Take execution space as argument in tree construction [\#244](https://github.com/arborx/ArborX/pull/244)
-- Halo finder [\#237](https://github.com/arborx/ArborX/pull/237)
-- Use single precision floating point numbers for coordinates [\#235](https://github.com/arborx/ArborX/pull/235)
-- Remove no longer necessary Trilinos-specific code to allow building against Trilinos installation of Kokkos [\#234](https://github.com/arborx/ArborX/pull/234)
-- Require C++14 standard when building ArborX [\#226](https://github.com/arborx/ArborX/pull/226)
-- Parallelize sortAndDetermineBufferLayout [\#172](https://github.com/arborx/ArborX/pull/172)
-- CUDA-aware MPI [\#162](https://github.com/arborx/ArborX/pull/162)
-- Require Kokkos CMake build [\#93](https://github.com/arborx/ArborX/pull/93)
-- Logo [\#56](https://github.com/arborx/ArborX/pull/56)
-- Make query sort optional [\#206](https://github.com/arborx/ArborX/issues/206)
-- Friends-of-Friends Query [\#161](https://github.com/arborx/ArborX/issues/161)
-- Let DistributedTree execute user payload  [\#86](https://github.com/arborx/ArborX/issues/86)
+- Add example for callbacks and lift requirement for tagging inline [\#325](https://github.com/arborx/ArborX/pull/325)
+- Enable building against Trilinos' Kokkos installation [\#156](https://github.com/arborx/ArborX/pull/156)
+- Add access traits CUDA example [\#107](https://github.com/arborx/ArborX/pull/107)
+- Let BVH::bounds\(\) be a KOKKOS\_FUNCTION [\#326](https://github.com/arborx/ArborX/pull/326)
+- Drop QUIET option when finding Kokkos [\#310](https://github.com/arborx/ArborX/pull/310)
+- Improve performance of the radius search [\#306](https://github.com/arborx/ArborX/pull/306)
+- Improve performance of the kNN search [\#308](https://github.com/arborx/ArborX/pull/308)
+- Rename Traits::Access to AccessTraits [\#300](https://github.com/arborx/ArborX/pull/300)
+- Retain the original path to Kokkos [\#287](https://github.com/arborx/ArborX/pull/287)
+- Disable tests, examples, benchmarks by default [\#284](https://github.com/arborx/ArborX/pull/284)
+- Improve error messages for inline callbacks [\#279](https://github.com/arborx/ArborX/pull/279)
+- Template distributed search tree on the memory space [\#260](https://github.com/arborx/ArborX/pull/260)
+- Enable predicates access traits in distributed search tree [\#196](https://github.com/arborx/ArborX/pull/196)
+- Set default build type to RelWithDebInfo [\#188](https://github.com/arborx/ArborX/pull/188)
+- Remove all fences [\#150](https://github.com/arborx/ArborX/pull/150)
+- Use Thrust for GPU sort [\#147](https://github.com/arborx/ArborX/pull/147)
+- Improve compilation error messages produced by BVH::query\(\) [\#279](https://github.com/arborx/ArborX/pulls/279)
+
+**Fixed bugs:**
+
+- Use Clang workaround for Thrust regarless of the version [\#288](https://github.com/arborx/ArborX/pull/288)
+- Fix ambiguity in queryDispatch\(\) overload resolution [\#293](https://github.com/arborx/ArborX/pull/293)
+- Properly update hash in version file when building from subdirs [\#266](https://github.com/arborx/ArborX/pull/266)
+- Avoid second pass for radius search when the results are empty [\#240](https://github.com/arborx/ArborX/pull/240)
+- Avoid more compiler warnings for nvcc\_wrapper [\#185](https://github.com/arborx/ArborX/pull/185)
+- Suppress Thrust warnings [\#178](https://github.com/arborx/ArborX/pull/178)
+- Fix segfault in Distributor [\#296](https://github.com/arborx/ArborX/pulls/296)
+- Allow non device type template parameter for output views in BVH::query\(\) [\#271](https://github.com/arborx/ArborX/pull/271)
 
 ## [v0.8-beta2](https://github.com/arborx/arborx/tree/v0.8-beta2) (2019-10-10)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/97bbec21cc92dd2b4bd3a68c52a230b4c3c4643c...v0.8-beta2)
 
-**Implemented enhancements:**
+**New features:**
 
-- Optimize communication within the same rank [\#134](https://github.com/arborx/ArborX/pull/134)
-- Add intersects\(Point, Box\) [\#122](https://github.com/arborx/ArborX/pull/122)
-- Deprecate old aliases to generate predicates [\#119](https://github.com/arborx/ArborX/pull/119)
-- Add documentation [\#116](https://github.com/arborx/ArborX/pull/116)
-- Refactor access traits [\#115](https://github.com/arborx/ArborX/pull/115)
-- Promote access traits class template to ArborX:: namespace [\#112](https://github.com/arborx/ArborX/pull/112)
-- Constexpr geometric primitives and algorithms [\#97](https://github.com/arborx/ArborX/pull/97)
-- Improve benchmark for distributed tree [\#78](https://github.com/arborx/ArborX/pull/78)
+- Provide access traits for predicates [\#117](https://github.com/arborx/ArborX/pull/117)
 - Add version\(\) and gitCommitHash\(\) [\#61](https://github.com/arborx/ArborX/pull/61)
-- Make MPI dependency optional [\#42](https://github.com/arborx/ArborX/pull/42)
-- Provide an option to disable tests and examples [\#31](https://github.com/arborx/ArborX/pull/31)
-- Fix build system to run without TriBITS [\#14](https://github.com/arborx/ArborX/pull/14)
 
-\* *This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)*
+**Build changes:**
+
+- Replace TRIBITS build system with CMake [\#14](https://github.com/arborx/ArborX/pull/14)
+- Replace ArborX\_ENABLE with ARBORX\_ENABLE [\#99](https://github.com/arborx/ArborX/pull/99)
+- Provide an option to disable tests and examples [\#31](https://github.com/arborx/ArborX/pull/31)
+- Make MPI dependency optional [\#42](https://github.com/arborx/ArborX/pull/42)
+
+**Enhancements:**
+
+- Use MPI\_Comm\_dup to separate ArborX comm context from user's [\#135](https://github.com/arborx/ArborX/pull/135)
+- Add CMake option for enabling benchmarks [\#138](https://github.com/arborx/ArborX/pull/138)
+- Add intersects\(Point, Box\) [\#122](https://github.com/arborx/ArborX/pull/122)
+- Mark BVH::{size,empty,bounds} as noexcept [\#114](https://github.com/arborx/ArborX/pull/114)
+- Improve error messages in BVH constructor and BVH::query\(\) [\#113](https://github.com/arborx/ArborX/pull/113)
+- Make data private in Point [\#100](https://github.com/arborx/ArborX/pull/100)
+- Constexpr geometric primitives and algorithms [\#97](https://github.com/arborx/ArborX/pull/97)
+- Add CUDA+clang CI test [\#95](https://github.com/arborx/ArborX/pull/95)
+- Make sure the recorded git hash is recent [\#79](https://github.com/arborx/ArborX/pull/79)
+- Test installation of ArborX [\#48](https://github.com/arborx/ArborX/pull/48)
+- Relax CudaUVM requirement [\#24](https://github.com/arborx/ArborX/pull/24)
+- Find Boost in subdirectories that actually require it [\#22](https://github.com/arborx/ArborX/pull/22)
+
+**Fixed bugs:**
+
+- Fix parsing options in the ArborX benchmark [\#54](https://github.com/arborx/ArborX/pulls/54)
+- Fix compilation against Kokkos development branch [\#40](https://github.com/arborx/ArborX/pulls/40)
+- Optimize communication within the same rank [\#134](https://github.com/arborx/ArborX/pull/134)
+- Fix for distributed searches with large count of results per que… [\#129](https://github.com/arborx/ArborX/pull/129)
+- Fix Kokkos\_DEVICES spelling [\#35](https://github.com/arborx/ArborX/pull/35)
+- Add missing STATUS keyword in message [\#98](https://github.com/arborx/ArborX/pull/98)
+- Fix memory management in CmdLineArgs [\#66](https://github.com/arborx/ArborX/pull/66)
+- Fix memory violation when processing cmd line args in the driver [\#63](https://github.com/arborx/ArborX/pull/63)
+- Fix unused variable warnings [\#25](https://github.com/arborx/ArborX/pull/25)
+
+**Deprecations:**
+
+- Deprecate old aliases to generate predicates [\#119](https://github.com/arborx/ArborX/pull/119)
+- Disable deprecated code [\#40](https://github.com/arborx/ArborX/pull/40)
