@@ -42,10 +42,14 @@
 **Enhancements:**
 
 - Add `KOKKOS_FUNCTION` to `AccessTraits::size()` in View specialization [\#463](https://github.com/arborx/ArborX/pull/463)
-- Non-backward compatible: Change signature of the nearest callback [\#366](https://github.com/arborx/ArborX/pull/366)
+- Change signature of the nearest callback [\#366](https://github.com/arborx/ArborX/pull/366)
 - Add `query()` free function [\#425](https://github.com/arborx/ArborX/pull/425)
 - Improve performance for the HIP backend through the use of rocThrust for sorting [\#424](https://github.com/arborx/ArborX/pull/424)
 - Support for SYCL and OpenMPTarget [\#422](https://github.com/arborx/ArborX/pull/422)
+
+**Incompatibilities**
+
+- Change signature of the nearest callback [\#366](https://github.com/arborx/ArborX/pull/366)
 
 ## [1.0-rc0](https://github.com/arborx/arborx/tree/v1.0-rc0) (2020-10-03)
 
@@ -103,7 +107,6 @@
 - Let `BVH::bounds()` be a `KOKKOS_FUNCTION` [\#326](https://github.com/arborx/ArborX/pull/326)
 - Improve performance of the radius search [\#306](https://github.com/arborx/ArborX/pull/306)
 - Improve performance of the kNN search [\#308](https://github.com/arborx/ArborX/pull/308)
-- Deprecate `Traits::Access` in favor of `AccessTraits` [\#300](https://github.com/arborx/ArborX/pull/300)
 - Retain the original path to Kokkos [\#287](https://github.com/arborx/ArborX/pull/287)
 - Disable tests, examples, benchmarks by default [\#284](https://github.com/arborx/ArborX/pull/284)
 - Template distributed search tree on the memory space [\#260](https://github.com/arborx/ArborX/pull/260)
@@ -121,6 +124,10 @@
 - Avoid more compiler warnings for `nvcc_wrapper` [\#185](https://github.com/arborx/ArborX/pull/185)
 - Fix segfault in `Distributor` [\#296](https://github.com/arborx/ArborX/pulls/296)
 - Allow non device type template parameter for output views in `BVH::query()` [\#271](https://github.com/arborx/ArborX/pull/271)
+
+**Deprecations:**
+
+- Deprecate `Traits::Access` in favor of `AccessTraits` [\#300](https://github.com/arborx/ArborX/pull/300)
 
 ## [0.8-beta2](https://github.com/arborx/arborx/tree/v0.8-beta2) (2019-10-10)
 
