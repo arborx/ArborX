@@ -41,7 +41,7 @@
 
 **Enhancements:**
 
-- Add KOKKOS\_FUNCTION to AccessTraits::size\(\) in View specialization [\#463](https://github.com/arborx/ArborX/pull/463)
+- Add `KOKKOS_FUNCTION` to `AccessTraits::size()` in View specialization [\#463](https://github.com/arborx/ArborX/pull/463)
 - Non-backward compatible: Change signature of the nearest callback [\#366](https://github.com/arborx/ArborX/pull/366)
 - Add `query()` free function [\#425](https://github.com/arborx/ArborX/pull/425)
 - Improve performance for the HIP backend through the use of rocThrust for sorting [\#424](https://github.com/arborx/ArborX/pull/424)
@@ -53,11 +53,11 @@
 
 **New features:**
 
-- New BVH::query\(\) overload that only takes predicates and callback [\#329](https://github.com/arborx/ArborX/pull/329)
+- New `BVH::query()` overload that only takes predicates and callback [\#329](https://github.com/arborx/ArborX/pull/329)
 
 **Enhancements:**
 
-- Implement stackless tree traversal using escape index \(ropes\) [\#364](https://github.com/arborx/ArborX/pull/364)
+- Implement stackless tree traversal using escape index (ropes) [\#364](https://github.com/arborx/ArborX/pull/364)
 - Add support for Kokkos HIP backend [\#236](https://github.com/arborx/ArborX/pull/236)
 - Ensure that all kernels and memory allocations are prefixed with `ArborX::` [\#362](https://github.com/arborx/ArborX/issues/362) and [\#380](https://github.com/arborx/ArborX/pull/380)
 - Improve performance of knn traversal [\#357](https://github.com/arborx/ArborX/pull/357)
@@ -68,7 +68,7 @@
 **Fixed bugs:**
 
 - Fix double free when making copies of a distributed tree [\#369](https://github.com/arborx/ArborX/pull/369)
-- Resolve duplicate Details::toBufferStatus\(int\) symbol error downstream [\#360](https://github.com/arborx/ArborX/pull/360)
+- Resolve duplicate `Details::toBufferStatus\(int\)` symbol error downstream [\#360](https://github.com/arborx/ArborX/pull/360)
 - Fix narrowing conversion warnings [\#343](https://github.com/arborx/ArborX/pull/343)
 
 **Deprecations:**
@@ -100,7 +100,7 @@
 - Add example for callbacks and lift requirement for tagging inline [\#325](https://github.com/arborx/ArborX/pull/325)
 - Enable building against Trilinos' Kokkos installation [\#156](https://github.com/arborx/ArborX/pull/156)
 - Add access traits CUDA example [\#107](https://github.com/arborx/ArborX/pull/107)
-- Let BVH::bounds\(\) be a KOKKOS\_FUNCTION [\#326](https://github.com/arborx/ArborX/pull/326)
+- Let `BVH::bounds()` be a `KOKKOS_FUNCTION` [\#326](https://github.com/arborx/ArborX/pull/326)
 - Improve performance of the radius search [\#306](https://github.com/arborx/ArborX/pull/306)
 - Improve performance of the kNN search [\#308](https://github.com/arborx/ArborX/pull/308)
 - Deprecate `Traits::Access` in favor of `AccessTraits` [\#300](https://github.com/arborx/ArborX/pull/300)
@@ -108,19 +108,19 @@
 - Disable tests, examples, benchmarks by default [\#284](https://github.com/arborx/ArborX/pull/284)
 - Template distributed search tree on the memory space [\#260](https://github.com/arborx/ArborX/pull/260)
 - Enable predicates access traits in distributed search tree [\#196](https://github.com/arborx/ArborX/pull/196)
-- Set default build type to RelWithDebInfo [\#188](https://github.com/arborx/ArborX/pull/188)
+- Set default build type to `RelWithDebInfo` [\#188](https://github.com/arborx/ArborX/pull/188)
 - Remove all fences [\#150](https://github.com/arborx/ArborX/pull/150)
 - Improve performance for sorting with CUDA by using Thrust [\#147](https://github.com/arborx/ArborX/pull/147)
-- Improve compilation error messages produced by BVH::query\(\) [\#279](https://github.com/arborx/ArborX/pulls/279)
+- Improve compilation error messages produced by `BVH::query()` [\#279](https://github.com/arborx/ArborX/pulls/279)
 
 **Fixed bugs:**
 
-- Fix ambiguity in queryDispatch\(\) overload resolution [\#293](https://github.com/arborx/ArborX/pull/293)
+- Fix ambiguity in `queryDispatch()` overload resolution [\#293](https://github.com/arborx/ArborX/pull/293)
 - Properly update hash in version file when building from subdirs [\#266](https://github.com/arborx/ArborX/pull/266)
 - Avoid second pass for radius search when the results are empty [\#240](https://github.com/arborx/ArborX/pull/240)
-- Avoid more compiler warnings for nvcc\_wrapper [\#185](https://github.com/arborx/ArborX/pull/185)
-- Fix segfault in Distributor [\#296](https://github.com/arborx/ArborX/pulls/296)
-- Allow non device type template parameter for output views in BVH::query\(\) [\#271](https://github.com/arborx/ArborX/pull/271)
+- Avoid more compiler warnings for `nvcc_wrapper` [\#185](https://github.com/arborx/ArborX/pull/185)
+- Fix segfault in `Distributor` [\#296](https://github.com/arborx/ArborX/pulls/296)
+- Allow non device type template parameter for output views in `BVH::query()` [\#271](https://github.com/arborx/ArborX/pull/271)
 
 ## [v0.8-beta2](https://github.com/arborx/arborx/tree/v0.8-beta2) (2019-10-10)
 
@@ -140,9 +140,9 @@
 
 **Enhancements:**
 
-- Use MPI\_Comm\_dup to separate ArborX comm context from user's [\#135](https://github.com/arborx/ArborX/pull/135)
+- Use `MPI_Comm_dup` to separate ArborX comm context from user's [\#135](https://github.com/arborx/ArborX/pull/135)
 - Add CMake option for enabling benchmarks [\#138](https://github.com/arborx/ArborX/pull/138)
-- Add intersects\(Point, Box\) [\#122](https://github.com/arborx/ArborX/pull/122)
+- Add intersection of a `Point` with `Box` [\#122](https://github.com/arborx/ArborX/pull/122)
 - Improve error messages in BVH constructor and BVH::query\(\) [\#113](https://github.com/arborx/ArborX/pull/113)
 - Relax CudaUVM requirement [\#24](https://github.com/arborx/ArborX/pull/24)
 - Find Boost in subdirectories that actually require it [\#22](https://github.com/arborx/ArborX/pull/22)
