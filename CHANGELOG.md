@@ -1,6 +1,6 @@
 # Changelog
 
-## [v1.1](https://github.com/arborx/arborx/tree/v1.1) (2021-09-23)
+## [1.1](https://github.com/arborx/arborx/tree/v1.1) (2021-09-23)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v1.0...v1.1)
 
@@ -24,7 +24,7 @@
 
 - Fix a bug in DBSCAN noise marking [\#525](https://github.com/arborx/ArborX/pull/525)
 
-## [v1.0](https://github.com/arborx/arborx/tree/v1.0) (2021-03-13)
+## [1.0](https://github.com/arborx/arborx/tree/v1.0) (2021-03-13)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v1.0-rc0...v1.0)
 
@@ -47,7 +47,7 @@
 - Improve performance for the HIP backend through the use of rocThrust for sorting [\#424](https://github.com/arborx/ArborX/pull/424)
 - Support for SYCL and OpenMPTarget [\#422](https://github.com/arborx/ArborX/pull/422)
 
-## [v1.0-rc0](https://github.com/arborx/arborx/tree/v1.0-rc0) (2020-10-03)
+## [1.0-rc0](https://github.com/arborx/arborx/tree/v1.0-rc0) (2020-10-03)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v0.9-beta...v1.0-rc0)
 
@@ -75,7 +75,7 @@
 
 - Deprecate `DistributedSearchTree` in favor of `DistributedTree` [\#396](https://github.com/arborx/ArborX/pull/396)
 
-## [v0.9-beta](https://github.com/arborx/arborx/tree/v0.9-beta) (2020-06-10)
+## [0.9-beta](https://github.com/arborx/arborx/tree/v0.9-beta) (2020-06-10)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v0.8-beta2...v0.9-beta)
 
@@ -122,7 +122,7 @@
 - Fix segfault in `Distributor` [\#296](https://github.com/arborx/ArborX/pulls/296)
 - Allow non device type template parameter for output views in `BVH::query()` [\#271](https://github.com/arborx/ArborX/pull/271)
 
-## [v0.8-beta2](https://github.com/arborx/arborx/tree/v0.8-beta2) (2019-10-10)
+## [0.8-beta2](https://github.com/arborx/arborx/tree/v0.8-beta2) (2019-10-10)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/97bbec21cc92dd2b4bd3a68c52a230b4c3c4643c...v0.8-beta2)
 
