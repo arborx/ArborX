@@ -47,7 +47,7 @@
 - Improve performance for the HIP backend through the use of rocThrust for sorting [\#424](https://github.com/arborx/ArborX/pull/424)
 - Support for SYCL and OpenMPTarget [\#422](https://github.com/arborx/ArborX/pull/422)
 
-**Incompatibilities**
+**Backward incompatible changes:**
 
 - Change signature of the nearest callback [\#366](https://github.com/arborx/ArborX/pull/366)
 
