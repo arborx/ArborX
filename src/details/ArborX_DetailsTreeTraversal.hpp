@@ -201,9 +201,9 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
 
     KOKKOS_FUNCTION auto operator()(int i) const
     {
-      auto const *_offsetptr = &_offset(i);
+      auto const *offset_ptr = &_offset(i);
       return Kokkos::subview(_buffer,
-                             Kokkos::make_pair(*_offsetptr, *(_offsetptr + 1)));
+                             Kokkos::make_pair(*offset_ptr, *(offset_ptr + 1)));
     }
   };
 
@@ -225,7 +225,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
     exclusivePrefixSum(space, offset);
-    int const _buffersize = lastElement(offset);
+    int const buffer_size = lastElement(offset);
     // Allocate buffer over which to perform heap operations in
     // TreeTraversal::nearestQuery() to store nearest leaf nodes found so far.
     // It is not possible to anticipate how much memory to allocate since the
@@ -233,7 +233,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
 
     Buffer buffer(Kokkos::view_alloc(Kokkos::WithoutInitializing,
                                      "ArborX::TreeTraversal::nearest::buffer"),
-                  _buffersize);
+                  buffer_size);
     _buffer = BufferProvider{buffer, offset};
   }
 
@@ -419,7 +419,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
         {
           // This is a theoretically unnecessary duplication of distance
           // calculation for stack nodes. However, for Cuda it's better than
-          // than putting the distances in stack.
+          // putting the distances in stack.
           distance_node = distance(node);
         }
 #else
