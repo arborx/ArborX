@@ -123,24 +123,14 @@ private:
   node_type const *getRoot() const { return _internal_and_leaf_nodes.data(); }
 
   KOKKOS_FUNCTION
-  node_type *getRoot() { return _internal_and_leaf_nodes.data(); }
-
-  KOKKOS_FUNCTION
-  node_type const *getNodePtr(int i) const
+  bounding_volume_type const *getRootBoundingVolumePtr() const
   {
-    return &_internal_and_leaf_nodes(i);
-  }
-
-  KOKKOS_FUNCTION
-  bounding_volume_type const &getBoundingVolume(node_type const *node) const
-  {
-    return node->bounding_volume;
-  }
-
-  KOKKOS_FUNCTION
-  bounding_volume_type &getBoundingVolume(node_type *node)
-  {
-    return node->bounding_volume;
+    // Need address of the root node's bounding box to copy it back on the host,
+    // but can't access _internal_and_leaf_nodes elements from the constructor
+    // since the data is on the device.
+    assert(Details::HappyTreeFriends::getRoot(*this) == 0 &&
+           "workaround below assumes root is stored as first element");
+    return &_internal_and_leaf_nodes.data()->bounding_volume;
   }
 
   size_t _size;
@@ -245,8 +235,8 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
         space,
         Kokkos::View<BoundingVolume, Kokkos::HostSpace,
                      Kokkos::MemoryUnmanaged>(&_bounds),
-        Kokkos::View<BoundingVolume, MemorySpace, Kokkos::MemoryUnmanaged>(
-            &getBoundingVolume(getRoot())));
+        Kokkos::View<BoundingVolume const, MemorySpace,
+                     Kokkos::MemoryUnmanaged>(getRootBoundingVolumePtr()));
     return;
   }
 
@@ -278,8 +268,8 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
       space,
       Kokkos::View<BoundingVolume, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
           &_bounds),
-      Kokkos::View<BoundingVolume, MemorySpace, Kokkos::MemoryUnmanaged>(
-          &getBoundingVolume(getRoot())));
+      Kokkos::View<BoundingVolume const, MemorySpace, Kokkos::MemoryUnmanaged>(
+          getRootBoundingVolumePtr()));
 
   Kokkos::Profiling::popRegion();
 }
