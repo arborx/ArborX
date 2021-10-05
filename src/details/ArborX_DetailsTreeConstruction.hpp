@@ -134,8 +134,8 @@ namespace
 {
 // Ideally, this would be
 //     static int constexpr UNTOUCHED_NODE = -1;
-// inside the GenerateHierachyFunctor class. But prior to C++17, this would
-// require to also have a definition outside of the class as it is odr-used.
+// inside the GenerateHierarchyFunctor class. But prior to C++17, this would
+// require to also have a definition outside the class as it is odr-used.
 // This is a workaround.
 int constexpr UNTOUCHED_NODE = -1;
 } // namespace
@@ -257,7 +257,7 @@ public:
     else
     {
       // The node is on the right-most path in the tree. The only reason we
-      // need to set it is because nodes may have been allocated without
+      // need to set it is that nodes may have been allocated without
       // initializing.
       rope = ROPE_SENTINEL;
     }
@@ -268,7 +268,7 @@ public:
   {
     auto const leaf_nodes_shift = _num_internal_nodes;
 
-    // Index in the orginal order primitives were given in.
+    // Index in the original order primitives were given in.
     auto const original_index = _permutation_indices(i - leaf_nodes_shift);
 
     using BoundingVolume = typename Node::bounding_volume_type;
@@ -339,7 +339,7 @@ public:
       else
       {
         // The comments for this clause are identical to the ones above (in the
-        // if clause), and thus ommitted for brevity.
+        // if clause), and thus omitted for brevity.
 
         int const apetrei_parent = range_left - 1;
 
