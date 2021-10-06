@@ -84,8 +84,7 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
 
   ArborX::BVH<Kokkos::HostSpace> bvh{ExecutionSpace{}, points};
 
-  using TreeVisualization =
-      typename ArborX::Details::TreeVisualization<DeviceType>;
+  using TreeVisualization = ArborX::Details::TreeVisualization;
   using TikZVisitor = typename TreeVisualization::TikZVisitor;
   using GraphvizVisitor = typename TreeVisualization::GraphvizVisitor;
 
