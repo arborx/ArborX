@@ -148,18 +148,18 @@ struct TreeVisualization
     }
   }
 
-  template <typename TreeType, typename VisitorType>
+  template <typename TreeType, typename VisitorType, typename Permute>
   struct VisitorCallback
   {
     template <typename Query>
     KOKKOS_FUNCTION void operator()(Query const &, int index) const
     {
-      // FIXME
-      _visitor.visit(_tree, index);
+      _visitor.visit(_tree, permute(index));
     }
 
     TreeType _tree;
     VisitorType _visitor;
+    Permute permute;
   };
 
   template <typename Tree, typename Predicate, typename Visitor>
@@ -177,14 +177,27 @@ struct TreeVisualization
 #else
     using ExecutionSpace = Kokkos::DefaultHostExecutionSpace;
     using Predicates = Kokkos::View<Predicate *, ExecutionSpace>;
-    using Callback = VisitorCallback<Tree, Visitor>;
+    using Permute = Kokkos::View<int *, ExecutionSpace>;
+    using Callback = VisitorCallback<Tree, Visitor, Permute>;
+
+    ExecutionSpace space;
+
+    int const n = tree.size();
+    Permute permute(Kokkos::view_alloc("permute", Kokkos::WithoutInitializing),
+                    n);
+    Kokkos::parallel_for(
+        "ArborX::Viz::compute_permutation",
+        Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 1),
+        KOKKOS_LAMBDA(int i) {
+          permute(HappyTreeFriends::getLeafPermutationIndex(tree, i)) = i;
+        });
 
     Predicates predicates("predicates", 1);
     predicates(0) = pred;
 
     TreeTraversal<Tree, Predicates, Callback, NearestPredicateTag>
         tree_traversal(ExecutionSpace{}, tree, predicates,
-                       Callback{tree, visitor});
+                       Callback{tree, visitor, permute});
 #endif
   }
 };
