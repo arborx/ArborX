@@ -120,7 +120,7 @@ endif()
 install(DIRECTORY ${PROJECT_BINARY_DIR}/include/ DESTINATION include
         FILES_MATCHING PATTERN "*.hpp")
 
-if (NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
   set(default_build_type "RelWithDebInfo")
   message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
   set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING
@@ -132,7 +132,7 @@ option(ARBORX_ENABLE_TESTS "Enable tests" OFF)
 option(ARBORX_ENABLE_EXAMPLES "Enable examples" OFF)
 option(ARBORX_ENABLE_BENCHMARKS "Enable benchmarks" OFF)
 
-if(${ARBORX_ENABLE_TESTS} OR ${ARBORX_ENABLE_EXAMPLES})
+if(ARBORX_ENABLE_TESTS OR ARBORX_ENABLE_EXAMPLES OR ARBORX_ENABLE_BENCHMARKS)
   enable_testing()
 endif()
 
