@@ -27,14 +27,12 @@ struct InputData
   View<Point> particles;
   View<float> particle_masses;
 
-  View<int> fof_halo_sizes;
   View<float> fof_halo_masses;
   View<Point> fof_halo_centers;
 
   InputData()
       : particles("particles", 0)
       , particle_masses("particle_masses", 0)
-      , fof_halo_sizes("fof_halo_sizes", 0)
       , fof_halo_masses("fof_halo_masses", 0)
       , fof_halo_centers("fof_halo_centers", 0)
   {
@@ -50,7 +48,6 @@ struct OutputData
   using BinView = Kokkos::View<T * [NUM_SOD_BINS], MemorySpace>;
 
   View<float> sod_halo_masses;
-  View<int64_t> sod_halo_sizes;
   View<float> sod_halo_rdeltas;
 
   BinView<int> sod_halo_bin_ids;
@@ -63,7 +60,6 @@ struct OutputData
 
   OutputData()
       : sod_halo_masses("sod_halo_masses", 0)
-      , sod_halo_sizes("sod_halo_sizes", 0)
       , sod_halo_rdeltas("sod_halo_rdeltas", 0)
       , sod_halo_bin_ids("sod_halo_bin_ids", 0)
       , sod_halo_bin_counts("sod_halo_bin_counts", 0)
@@ -125,29 +121,16 @@ struct AccessTraits<ParticlesWrapper<Particles>, PredicatesTag>
   }
 };
 
-template <typename ExecutionSpace>
-void sod(ExecutionSpace const &exec_space,
-         InputData<Kokkos::HostSpace> const &in,
-         OutputData<Kokkos::HostSpace> &out)
+template <typename ExecutionSpace, typename MemorySpace>
+void sodCore(ExecutionSpace const &exec_space, InputData<MemorySpace> const &in,
+             OutputData<MemorySpace> &out)
 {
-  using MemorySpace = typename ExecutionSpace::memory_space;
-  using HostExecutionSpace = Kokkos::DefaultHostExecutionSpace;
+  static_assert(
+      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
 
-  HostExecutionSpace host_space;
+  using Particles = decltype(in.particles);
 
-  auto const num_halos = in.fof_halo_centers.extent_int(0);
-
-  // Transfer data to device
-  auto particles =
-      Kokkos::create_mirror_view_and_copy(exec_space, in.particles);
-  auto particle_masses =
-      Kokkos::create_mirror_view_and_copy(exec_space, in.particle_masses);
-  auto fof_halo_centers =
-      Kokkos::create_mirror_view_and_copy(exec_space, in.fof_halo_centers);
-  auto fof_halo_masses =
-      Kokkos::create_mirror_view_and_copy(exec_space, in.fof_halo_masses);
-
-  using Particles = decltype(particles);
+  auto const num_halos = in.fof_halo_centers.extent(0);
 
   // HACC constants
   float constexpr RHO = 2.77536627e11;
@@ -166,20 +149,18 @@ void sod(ExecutionSpace const &exec_space,
   float r_min;
   Kokkos::View<float *, MemorySpace> r_max;
   std::tie(r_min, r_max) =
-      Details::computeSODRadii(exec_space, fof_halo_masses);
+      Details::computeSODRadii(exec_space, in.fof_halo_masses);
 
   // Construct the search index based on spheres (FOF centers with
   // corresponding R_max)
   BVH<MemorySpace> bvh(exec_space,
-                       Spheres<MemorySpace>{fof_halo_centers, r_max});
+                       Spheres<MemorySpace>{in.fof_halo_centers, r_max});
 
   // Compute bin outer radii
-  auto sod_halo_bin_outer_radii =
+  out.sod_halo_bin_outer_radii =
       Details::computeSODBinRadii(exec_space, r_min, r_max);
 
   // Step 2: compute some profiles (mass, count, avg radius);
-  Kokkos::View<int * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_counts(
-      "ArborX::SOD::sod_halo_bin_counts", num_halos);
   // NOTE: we will accumulate float quantities into double in order to
   // avoid loss of precision, which will occur once we start adding small
   // quantities to large
@@ -187,11 +168,13 @@ void sod(ExecutionSpace const &exec_space,
       "ArborX::SOD::sod_halo_bin_masses", num_halos);
   Kokkos::View<double * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_avg_radii(
       "ArborX::SOD::sod_halo_bin_avg_radii", num_halos);
+  Kokkos::resize(out.sod_halo_bin_counts, num_halos);
   bvh.query(
-      exec_space, ParticlesWrapper<Particles>{particles},
+      exec_space, ParticlesWrapper<Particles>{in.particles},
       Details::BinAccumulator<MemorySpace, Particles>{
-          particles, particle_masses, sod_halo_bin_counts, sod_halo_bin_masses,
-          sod_halo_bin_avg_radii, fof_halo_centers, r_min, r_max},
+          in.particles, in.particle_masses, out.sod_halo_bin_counts,
+          sod_halo_bin_masses, sod_halo_bin_avg_radii, in.fof_halo_centers,
+          r_min, r_max},
       Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
   Kokkos::parallel_for(
       "ArborX::SOD::normalize_avg_radii",
@@ -199,21 +182,29 @@ void sod(ExecutionSpace const &exec_space,
       KOKKOS_LAMBDA(int halo_index) {
         for (int bin_id = 0; bin_id < NUM_SOD_BINS; ++bin_id)
           sod_halo_bin_avg_radii(halo_index, bin_id) /=
-              sod_halo_bin_counts(halo_index, bin_id);
+              out.sod_halo_bin_counts(halo_index, bin_id);
+      });
+
+  Kokkos::resize(out.sod_halo_bin_masses, num_halos);
+  Kokkos::parallel_for(
+      "ArborX::SOD::copy_bin_masses",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
+      KOKKOS_LAMBDA(int halo_index) {
+        // double -> float conversion
+        for (int bin_id = 0; bin_id < NUM_SOD_BINS; ++bin_id)
+          out.sod_halo_bin_masses(halo_index, bin_id) =
+              sod_halo_bin_masses(halo_index, bin_id);
       });
 
   // Compute rhos and rho ratios
-  Kokkos::View<float * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_rhos;
-  Kokkos::View<float * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_rho_ratios;
-  std::tie(sod_halo_bin_rhos, sod_halo_bin_rho_ratios) =
+  std::tie(out.sod_halo_bin_rhos, out.sod_halo_bin_rho_ratios) =
       Details::computeSODRhos(exec_space, RHO, sod_halo_bin_masses,
                               sod_halo_bin_avg_radii);
-
   // Figure out critical bins
   float const DELTA = 200;
   auto critical_bin_ids = Details::computeSODCriticalBins(
-      exec_space, RHO, DELTA, sod_halo_bin_masses, sod_halo_bin_counts,
-      sod_halo_bin_outer_radii);
+      exec_space, RHO, DELTA, sod_halo_bin_masses, out.sod_halo_bin_counts,
+      out.sod_halo_bin_outer_radii);
 
   // Compute offsets for storing particles in critical bins
   Kokkos::View<int *, MemorySpace> critical_bin_offsets(
@@ -223,7 +214,7 @@ void sod(ExecutionSpace const &exec_space,
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
       KOKKOS_LAMBDA(int halo_index) {
         critical_bin_offsets(halo_index) =
-            sod_halo_bin_counts(halo_index, critical_bin_ids(halo_index));
+            out.sod_halo_bin_counts(halo_index, critical_bin_ids(halo_index));
       });
   exclusivePrefixSum(exec_space, critical_bin_offsets);
 
@@ -241,65 +232,92 @@ void sod(ExecutionSpace const &exec_space,
       num_critical_bin_particles);
   auto offsets = clone(critical_bin_offsets);
   bvh.query(
-      exec_space, ParticlesWrapper<Particles>{particles},
+      exec_space, ParticlesWrapper<Particles>{in.particles},
       Details::CriticalBinParticles<MemorySpace, Particles>{
-          particles, offsets, critical_bin_indices,
-          critical_bin_distances_augmented, critical_bin_ids, fof_halo_centers,
-          sod_halo_bin_outer_radii, r_min, r_max},
+          in.particles, offsets, critical_bin_indices,
+          critical_bin_distances_augmented, critical_bin_ids,
+          in.fof_halo_centers, out.sod_halo_bin_outer_radii, r_min, r_max},
       Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
 
   // Compute R_delta
   out.sod_halo_rdeltas = Details::computeSODRdeltas(
       exec_space, DELTA, RHO, in.particle_masses, sod_halo_bin_masses,
-      sod_halo_bin_outer_radii, critical_bin_ids, critical_bin_offsets,
+      out.sod_halo_bin_outer_radii, critical_bin_ids, critical_bin_offsets,
       critical_bin_indices, critical_bin_distances_augmented);
+}
 
-  // Copy required things to host
-  auto sod_halo_bin_outer_radii_host =
-      Kokkos::create_mirror_view_and_copy(host_space, sod_halo_bin_outer_radii);
-  Kokkos::resize(out.sod_halo_bin_outer_radii, num_halos);
-  Kokkos::deep_copy(out.sod_halo_bin_outer_radii,
+template <typename ExecutionSpace>
+void sod(ExecutionSpace const &exec_space,
+         InputData<Kokkos::HostSpace> const &in_host,
+         OutputData<Kokkos::HostSpace> &out_host)
+{
+  using MemorySpace = typename ExecutionSpace::memory_space;
+  using HostExecutionSpace = Kokkos::DefaultHostExecutionSpace;
+
+  HostExecutionSpace host_space;
+
+  auto const num_halos = in_host.fof_halo_centers.extent_int(0);
+
+  InputData<MemorySpace> in_device;
+  OutputData<MemorySpace> out_device;
+
+  // Transfer data from host to device
+  in_device.particles =
+      Kokkos::create_mirror_view_and_copy(exec_space, in_host.particles);
+  in_device.particle_masses =
+      Kokkos::create_mirror_view_and_copy(exec_space, in_host.particle_masses);
+  in_device.fof_halo_centers =
+      Kokkos::create_mirror_view_and_copy(exec_space, in_host.fof_halo_centers);
+  in_device.fof_halo_masses =
+      Kokkos::create_mirror_view_and_copy(exec_space, in_host.fof_halo_masses);
+
+  // Execute the kernels on the device
+  sodCore(exec_space, in_device, out_device);
+
+  // Transfer data from device to host
+  auto sod_halo_bin_outer_radii_host = Kokkos::create_mirror_view_and_copy(
+      host_space, out_device.sod_halo_bin_outer_radii);
+  Kokkos::resize(out_host.sod_halo_bin_outer_radii, num_halos);
+  Kokkos::deep_copy(out_host.sod_halo_bin_outer_radii,
                     sod_halo_bin_outer_radii_host);
 
-  auto sod_halo_bin_counts_host =
-      Kokkos::create_mirror_view_and_copy(host_space, sod_halo_bin_counts);
-  Kokkos::resize(out.sod_halo_bin_counts, num_halos);
-  Kokkos::deep_copy(out.sod_halo_bin_counts, sod_halo_bin_counts_host);
+  auto sod_halo_bin_masses_host = Kokkos::create_mirror_view_and_copy(
+      host_space, out_device.sod_halo_bin_masses);
+  Kokkos::resize(out_host.sod_halo_bin_masses, num_halos);
+  Kokkos::deep_copy(out_host.sod_halo_bin_masses, sod_halo_bin_masses_host);
 
-  auto sod_halo_bin_masses_host =
-      Kokkos::create_mirror_view_and_copy(host_space, sod_halo_bin_masses);
-  Kokkos::resize(out.sod_halo_bin_masses, num_halos);
-  Kokkos::parallel_for(
-      "copy_bin_masses",
-      Kokkos::RangePolicy<HostExecutionSpace>(host_space, 0, num_halos),
-      KOKKOS_LAMBDA(int halo_index) {
-        // double -> float conversion
-        for (int bin_id = 0; bin_id < NUM_SOD_BINS; ++bin_id)
-          out.sod_halo_bin_masses(halo_index, bin_id) =
-              sod_halo_bin_masses_host(halo_index, bin_id);
-      });
+  auto sod_halo_bin_rhos_host = Kokkos::create_mirror_view_and_copy(
+      host_space, out_device.sod_halo_bin_rhos);
+  Kokkos::resize(out_host.sod_halo_bin_rhos, num_halos);
+  Kokkos::deep_copy(out_host.sod_halo_bin_rhos, sod_halo_bin_rhos_host);
 
-  auto sod_halo_bin_rhos_host =
-      Kokkos::create_mirror_view_and_copy(host_space, sod_halo_bin_rhos);
-  Kokkos::resize(out.sod_halo_bin_rhos, num_halos);
-  Kokkos::deep_copy(out.sod_halo_bin_rhos, sod_halo_bin_rhos_host);
+  auto sod_halo_bin_rho_ratios_host = Kokkos::create_mirror_view_and_copy(
+      host_space, out_device.sod_halo_bin_rho_ratios);
+  Kokkos::resize(out_host.sod_halo_bin_rho_ratios, num_halos);
+  Kokkos::deep_copy(out_host.sod_halo_bin_rho_ratios,
+                    sod_halo_bin_rho_ratios_host);
 
-  auto sod_halo_bin_rho_ratios_host =
-      Kokkos::create_mirror_view_and_copy(host_space, sod_halo_bin_rho_ratios);
-  Kokkos::resize(out.sod_halo_bin_rho_ratios, num_halos);
-  Kokkos::deep_copy(out.sod_halo_bin_rho_ratios, sod_halo_bin_rho_ratios_host);
+  auto sod_halo_bin_counts_host = Kokkos::create_mirror_view_and_copy(
+      host_space, out_device.sod_halo_bin_counts);
+  Kokkos::resize(out_host.sod_halo_bin_counts, num_halos);
+  Kokkos::deep_copy(out_host.sod_halo_bin_counts, sod_halo_bin_counts_host);
+
+  auto sod_halo_rdeltas_host = Kokkos::create_mirror_view_and_copy(
+      host_space, out_device.sod_halo_rdeltas);
+  Kokkos::resize(out_host.sod_halo_rdeltas, num_halos);
+  Kokkos::deep_copy(out_host.sod_halo_rdeltas, sod_halo_rdeltas_host);
 
   // Free GPU space
-  Kokkos::resize(particle_masses, 0);
-  Kokkos::resize(fof_halo_masses, 0);
-  Kokkos::resize(sod_halo_bin_outer_radii, 0);
-  Kokkos::resize(sod_halo_bin_counts, 0);
-  Kokkos::resize(sod_halo_bin_masses, 0);
-  Kokkos::resize(sod_halo_bin_rhos, 0);
-  Kokkos::resize(sod_halo_bin_rho_ratios, 0);
+  Kokkos::resize(in_device.particle_masses, 0);
+  Kokkos::resize(in_device.fof_halo_masses, 0);
+  Kokkos::resize(out_device.sod_halo_bin_outer_radii, 0);
+  Kokkos::resize(out_device.sod_halo_bin_counts, 0);
+  Kokkos::resize(out_device.sod_halo_bin_masses, 0);
+  Kokkos::resize(out_device.sod_halo_bin_rhos, 0);
+  Kokkos::resize(out_device.sod_halo_bin_rho_ratios, 0);
 
-  auto sod_halo_rdeltas =
-      Kokkos::create_mirror_view_and_copy(exec_space, out.sod_halo_rdeltas);
+  auto sod_halo_rdeltas = Kokkos::create_mirror_view_and_copy(
+      exec_space, out_device.sod_halo_rdeltas);
 
 #if 0
   // Check overlaps

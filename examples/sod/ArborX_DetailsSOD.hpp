@@ -334,9 +334,9 @@ computeSODBinRadii(ExecutionSpace const &exec_space, float r_min,
 }
 
 template <typename ExecutionSpace, typename MemorySpace>
-Kokkos::View<float *, Kokkos::HostSpace> computeSODRdeltas(
+Kokkos::View<float *, MemorySpace> computeSODRdeltas(
     ExecutionSpace const &exec_space, float DELTA, float RHO,
-    Kokkos::View<float *, Kokkos::HostSpace> particle_masses,
+    Kokkos::View<float *, MemorySpace> particle_masses,
     Kokkos::View<double * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_masses,
     Kokkos::View<float * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_outer_radii,
     Kokkos::View<int *, MemorySpace> critical_bin_ids,
@@ -378,9 +378,11 @@ Kokkos::View<float *, Kokkos::HostSpace> computeSODRdeltas(
       Kokkos::HostSpace{}, sod_halo_bin_outer_radii);
   auto sod_halo_bin_masses_host =
       Kokkos::create_mirror_view_and_copy(host_space, sod_halo_bin_masses);
+  auto particle_masses_host =
+      Kokkos::create_mirror_view_and_copy(host_space, particle_masses);
 
   // Compute R_delta
-  Kokkos::View<float *, Kokkos::HostSpace> sod_halo_rdeltas(
+  Kokkos::View<float *, Kokkos::HostSpace> sod_halo_rdeltas_host(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::SOD::r_delta"),
       num_halos);
   Kokkos::parallel_for(
@@ -402,13 +404,13 @@ Kokkos::View<float *, Kokkos::HostSpace> computeSODRdeltas(
         // By default, set the r_delta to be the last particle in the bin. This
         // fixes a potential error of r_200 between the bin edge and the first
         // particle radius.
-        sod_halo_rdeltas(halo_index) =
+        sod_halo_rdeltas_host(halo_index) =
             (critical_bin_distances_augmented_host(bin_end - 1) - halo_index) *
             (1.1f * R_bin_outer); // see HACK comment above for details
 
         for (int i = bin_start; i < bin_end; ++i)
         {
-          mass += particle_masses(critical_bin_indices_host(i));
+          mass += particle_masses_host(critical_bin_indices_host(i));
           float r = (critical_bin_distances_augmented_host(i) - halo_index) *
                     (1.1f * R_bin_outer); // see HACK comment above for details
 
@@ -417,13 +419,17 @@ Kokkos::View<float *, Kokkos::HostSpace> computeSODRdeltas(
 
           if (ratio <= DELTA)
           {
-            sod_halo_rdeltas(halo_index) = r;
+            sod_halo_rdeltas_host(halo_index) = r;
             break;
           }
         }
       });
 
-  return sod_halo_rdeltas;
+  Kokkos::View<float *, MemorySpace> sod_halo_rdeltas_device(
+      "ArborX::SOD::r_delta", num_halos);
+  Kokkos::deep_copy(sod_halo_rdeltas_device, sod_halo_rdeltas_host);
+
+  return sod_halo_rdeltas_device;
 }
 
 } // namespace Details

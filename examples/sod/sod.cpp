@@ -110,8 +110,12 @@ void loadHalosData(std::string const &filename,
                n * sizeof(typename std::decay_t<decltype(view)>::value_type));
   };
 
+  Kokkos::View<int *, Kokkos::HostSpace> in_fof_halo_sizes("fof_halo_sizes", 0);
+  Kokkos::View<int64_t *, Kokkos::HostSpace> out_sod_halo_sizes(
+      "sod_halo_sizes", 0);
+
   read_view(in_fof_halo_tags, num_halos);
-  read_view(in.fof_halo_sizes, num_halos);
+  read_view(in_fof_halo_sizes, num_halos);
   read_view(in.fof_halo_masses, num_halos);
   {
     std::vector<float> x, y, z;
@@ -124,7 +128,7 @@ void loadHalosData(std::string const &filename,
       in.fof_halo_centers(i) = {x[i], y[i], z[i]};
   }
   read_view(out.sod_halo_masses, num_halos);
-  read_view(out.sod_halo_sizes, num_halos);
+  read_view(out_sod_halo_sizes, num_halos);
   read_view(out.sod_halo_rdeltas, num_halos);
 
   // Filter out
@@ -135,7 +139,7 @@ void loadHalosData(std::string const &filename,
   int num_filtered = 0;
   do
   {
-    if (in.fof_halo_sizes(i) < 500 || out.sod_halo_sizes(i) < 0)
+    if (in_fof_halo_sizes(i) < 500 || out_sod_halo_sizes(i) < 0)
     {
       // Instead of using erase(), swap with the last element
       ++num_filtered;
@@ -144,11 +148,11 @@ void loadHalosData(std::string const &filename,
       if (i < j)
       {
         swap(in_fof_halo_tags, i, j);
-        swap(in.fof_halo_sizes, i, j);
+        swap(in_fof_halo_sizes, i, j);
         swap(in.fof_halo_masses, i, j);
         swap(in.fof_halo_centers, i, j);
         swap(out.sod_halo_masses, i, j);
-        swap(out.sod_halo_sizes, i, j);
+        swap(out_sod_halo_sizes, i, j);
         swap(out.sod_halo_rdeltas, i, j);
       }
     }
@@ -162,11 +166,11 @@ void loadHalosData(std::string const &filename,
   {
     num_halos -= num_filtered;
     Kokkos::resize(in_fof_halo_tags, num_halos);
-    Kokkos::resize(in.fof_halo_sizes, num_halos);
+    Kokkos::resize(in_fof_halo_sizes, num_halos);
     Kokkos::resize(in.fof_halo_masses, num_halos);
     Kokkos::resize(in.fof_halo_centers, num_halos);
     Kokkos::resize(out.sod_halo_masses, num_halos);
-    Kokkos::resize(out.sod_halo_sizes, num_halos);
+    Kokkos::resize(out_sod_halo_sizes, num_halos);
     Kokkos::resize(out.sod_halo_rdeltas, num_halos);
   }
 
@@ -176,12 +180,9 @@ void loadHalosData(std::string const &filename,
   // Sort halos by tags for consistency
   auto host_space = Kokkos::DefaultHostExecutionSpace{};
   auto permute = ArborX::Details::sortObjects(host_space, in_fof_halo_tags);
-  applyPermutation(host_space, permute, in.fof_halo_sizes);
-  applyPermutation(host_space, permute, in.fof_halo_sizes);
   applyPermutation(host_space, permute, in.fof_halo_masses);
   applyPermutation(host_space, permute, in.fof_halo_centers);
   applyPermutation(host_space, permute, out.sod_halo_masses);
-  applyPermutation(host_space, permute, out.sod_halo_sizes);
   applyPermutation(host_space, permute, out.sod_halo_rdeltas);
 
   input.close();
