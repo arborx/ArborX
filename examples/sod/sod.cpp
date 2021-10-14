@@ -48,7 +48,8 @@ applyPermutation2(ExecutionSpace const &exec_space, Permute const &permute,
       view(i, j) = view_clone(permute(i), j);
 }
 
-void loadParticlesData(std::string const &filename, ArborX::InputData &in,
+void loadParticlesData(std::string const &filename,
+                       ArborX::InputData<Kokkos::HostSpace> &in,
                        int max_num_points = -1)
 {
   std::cout << "Reading in \"" << filename << "\" in binary mode...";
@@ -85,8 +86,9 @@ void loadParticlesData(std::string const &filename, ArborX::InputData &in,
   input.close();
 }
 
-void loadHalosData(std::string const &filename, ArborX::InputData &in,
-                   ArborX::OutputData &out)
+void loadHalosData(std::string const &filename,
+                   ArborX::InputData<Kokkos::HostSpace> &in,
+                   ArborX::OutputData<Kokkos::HostSpace> &out)
 {
   std::cout << "Reading in \"" << filename << "\" in binary mode...";
   std::cout.flush();
@@ -184,8 +186,9 @@ void loadHalosData(std::string const &filename, ArborX::InputData &in,
   input.close();
 }
 
-void loadProfilesData(std::string const &filename, ArborX::InputData const &in,
-                      ArborX::OutputData &out)
+void loadProfilesData(std::string const &filename,
+                      ArborX::InputData<Kokkos::HostSpace> const &in,
+                      ArborX::OutputData<Kokkos::HostSpace> &out)
 {
   std::cout << "Reading in \"" << filename << "\" in binary mode...";
   std::cout.flush();
@@ -308,14 +311,14 @@ int main(int argc, char *argv[])
   printf("filename [profiles]  : %s\n", filename_profiles.c_str());
 
   // read in data
-  ArborX::InputData input_data;
-  ArborX::OutputData validation_data;
+  ArborX::InputData<Kokkos::HostSpace> input_data;
+  ArborX::OutputData<Kokkos::HostSpace> validation_data;
   loadParticlesData(filename_particles, input_data, max_num_points);
   loadHalosData(filename_halos, input_data, validation_data);
   loadProfilesData(filename_profiles, input_data, validation_data);
 
   // run SOD
-  ArborX::OutputData output_data;
+  ArborX::OutputData<Kokkos::HostSpace> output_data;
   ArborX::sod(ExecutionSpace{}, input_data, output_data);
 
   // validate

@@ -18,10 +18,11 @@
 namespace ArborX
 {
 
+template <typename MemorySpace>
 struct InputData
 {
   template <typename T>
-  using View = Kokkos::View<T *, Kokkos::HostSpace>;
+  using View = Kokkos::View<T *, MemorySpace>;
 
   View<Point> particles;
   View<float> particle_masses;
@@ -42,12 +43,13 @@ struct InputData
   }
 };
 
+template <typename MemorySpace>
 struct OutputData
 {
   template <typename T>
-  using View = Kokkos::View<T *, Kokkos::HostSpace>;
+  using View = Kokkos::View<T *, MemorySpace>;
   template <typename T>
-  using BinView = Kokkos::View<T * [NUM_SOD_BINS], Kokkos::HostSpace>;
+  using BinView = Kokkos::View<T * [NUM_SOD_BINS], MemorySpace>;
 
   View<int64_t> fof_halo_tags;
 
@@ -129,7 +131,9 @@ struct AccessTraits<ParticlesWrapper<Particles>, PredicatesTag>
 };
 
 template <typename ExecutionSpace>
-void sod(ExecutionSpace const &exec_space, InputData const &in, OutputData &out)
+void sod(ExecutionSpace const &exec_space,
+         InputData<Kokkos::HostSpace> const &in,
+         OutputData<Kokkos::HostSpace> &out)
 {
   using MemorySpace = typename ExecutionSpace::memory_space;
   using HostExecutionSpace = Kokkos::DefaultHostExecutionSpace;
@@ -138,6 +142,7 @@ void sod(ExecutionSpace const &exec_space, InputData const &in, OutputData &out)
 
   auto const num_halos = in.fof_halo_tags.extent_int(0);
 
+  // Transfer data to device
   auto particles =
       Kokkos::create_mirror_view_and_copy(exec_space, in.particles);
   auto particle_masses =
