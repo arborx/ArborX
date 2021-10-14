@@ -27,7 +27,6 @@ struct InputData
   View<Point> particles;
   View<float> particle_masses;
 
-  View<int64_t> fof_halo_tags;
   View<int> fof_halo_sizes;
   View<float> fof_halo_masses;
   View<Point> fof_halo_centers;
@@ -35,7 +34,6 @@ struct InputData
   InputData()
       : particles("particles", 0)
       , particle_masses("particle_masses", 0)
-      , fof_halo_tags("fof_halo_tags", 0)
       , fof_halo_sizes("fof_halo_sizes", 0)
       , fof_halo_masses("fof_halo_masses", 0)
       , fof_halo_centers("fof_halo_centers", 0)
@@ -51,8 +49,6 @@ struct OutputData
   template <typename T>
   using BinView = Kokkos::View<T * [NUM_SOD_BINS], MemorySpace>;
 
-  View<int64_t> fof_halo_tags;
-
   View<float> sod_halo_masses;
   View<int64_t> sod_halo_sizes;
   View<float> sod_halo_rdeltas;
@@ -66,8 +62,7 @@ struct OutputData
   BinView<float> sod_halo_bin_radial_velocities;
 
   OutputData()
-      : fof_halo_tags("fof_halo_tags", 0)
-      , sod_halo_masses("sod_halo_masses", 0)
+      : sod_halo_masses("sod_halo_masses", 0)
       , sod_halo_sizes("sod_halo_sizes", 0)
       , sod_halo_rdeltas("sod_halo_rdeltas", 0)
       , sod_halo_bin_ids("sod_halo_bin_ids", 0)
@@ -140,7 +135,7 @@ void sod(ExecutionSpace const &exec_space,
 
   HostExecutionSpace host_space;
 
-  auto const num_halos = in.fof_halo_tags.extent_int(0);
+  auto const num_halos = in.fof_halo_centers.extent_int(0);
 
   // Transfer data to device
   auto particles =

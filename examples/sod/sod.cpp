@@ -88,6 +88,7 @@ void loadParticlesData(std::string const &filename,
 
 void loadHalosData(std::string const &filename,
                    ArborX::InputData<Kokkos::HostSpace> &in,
+                   Kokkos::View<int64_t *, Kokkos::HostSpace> &in_fof_halo_tags,
                    ArborX::OutputData<Kokkos::HostSpace> &out)
 {
   std::cout << "Reading in \"" << filename << "\" in binary mode...";
@@ -109,7 +110,7 @@ void loadHalosData(std::string const &filename,
                n * sizeof(typename std::decay_t<decltype(view)>::value_type));
   };
 
-  read_view(in.fof_halo_tags, num_halos);
+  read_view(in_fof_halo_tags, num_halos);
   read_view(in.fof_halo_sizes, num_halos);
   read_view(in.fof_halo_masses, num_halos);
   {
@@ -142,7 +143,7 @@ void loadHalosData(std::string const &filename,
       int j = num_halos - num_filtered;
       if (i < j)
       {
-        swap(in.fof_halo_tags, i, j);
+        swap(in_fof_halo_tags, i, j);
         swap(in.fof_halo_sizes, i, j);
         swap(in.fof_halo_masses, i, j);
         swap(in.fof_halo_centers, i, j);
@@ -160,7 +161,7 @@ void loadHalosData(std::string const &filename,
   if (num_filtered > 0)
   {
     num_halos -= num_filtered;
-    Kokkos::resize(in.fof_halo_tags, num_halos);
+    Kokkos::resize(in_fof_halo_tags, num_halos);
     Kokkos::resize(in.fof_halo_sizes, num_halos);
     Kokkos::resize(in.fof_halo_masses, num_halos);
     Kokkos::resize(in.fof_halo_centers, num_halos);
@@ -174,7 +175,7 @@ void loadHalosData(std::string const &filename,
 
   // Sort halos by tags for consistency
   auto host_space = Kokkos::DefaultHostExecutionSpace{};
-  auto permute = ArborX::Details::sortObjects(host_space, in.fof_halo_tags);
+  auto permute = ArborX::Details::sortObjects(host_space, in_fof_halo_tags);
   applyPermutation(host_space, permute, in.fof_halo_sizes);
   applyPermutation(host_space, permute, in.fof_halo_sizes);
   applyPermutation(host_space, permute, in.fof_halo_masses);
@@ -186,9 +187,9 @@ void loadHalosData(std::string const &filename,
   input.close();
 }
 
-void loadProfilesData(std::string const &filename,
-                      ArborX::InputData<Kokkos::HostSpace> const &in,
-                      ArborX::OutputData<Kokkos::HostSpace> &out)
+void loadProfilesData(
+    std::string const &filename, ArborX::OutputData<Kokkos::HostSpace> &out,
+    Kokkos::View<int64_t *, Kokkos::HostSpace> &out_fof_halo_tags)
 {
   std::cout << "Reading in \"" << filename << "\" in binary mode...";
   std::cout.flush();
@@ -231,10 +232,10 @@ void loadProfilesData(std::string const &filename,
 
   // FOF halo tags are repeated in groups of size NUM_SOD_BINS-1, make them
   // unique
-  read_view(out.fof_halo_tags, num_records);
+  read_view(out_fof_halo_tags, num_records);
   for (int i = 1; i < num_halos; ++i)
-    out.fof_halo_tags(i) = out.fof_halo_tags(i * (NUM_SOD_BINS - 1));
-  Kokkos::resize(out.fof_halo_tags, num_halos);
+    out_fof_halo_tags(i) = out_fof_halo_tags(i * (NUM_SOD_BINS - 1));
+  Kokkos::resize(out_fof_halo_tags, num_halos);
 
   read_bin_view(out.sod_halo_bin_ids, num_halos);
   read_bin_view(out.sod_halo_bin_counts, num_halos);
@@ -246,7 +247,7 @@ void loadProfilesData(std::string const &filename,
 
   // Sort halos by tags for consistency
   auto host_space = Kokkos::DefaultHostExecutionSpace{};
-  auto permute = ArborX::Details::sortObjects(host_space, out.fof_halo_tags);
+  auto permute = ArborX::Details::sortObjects(host_space, out_fof_halo_tags);
   applyPermutation2(host_space, permute, out.sod_halo_bin_ids);
   applyPermutation2(host_space, permute, out.sod_halo_bin_counts);
   applyPermutation2(host_space, permute, out.sod_halo_bin_masses);
@@ -258,12 +259,6 @@ void loadProfilesData(std::string const &filename,
   printf("done\nRead in %d halos\n", num_halos);
 
   input.close();
-
-  // Validate tags
-  ARBORX_ASSERT(out.fof_halo_tags.extent_int(0) ==
-                in.fof_halo_tags.extent_int(0));
-  for (int i = 0; i < num_halos; ++i)
-    ARBORX_ASSERT(in.fof_halo_tags(i) == out.fof_halo_tags(i));
 }
 
 int main(int argc, char *argv[])
@@ -313,9 +308,22 @@ int main(int argc, char *argv[])
   // read in data
   ArborX::InputData<Kokkos::HostSpace> input_data;
   ArborX::OutputData<Kokkos::HostSpace> validation_data;
+  Kokkos::View<int64_t *, Kokkos::HostSpace> in_fof_halo_tags(
+      "in_fof_halo_tags", 0);
+  Kokkos::View<int64_t *, Kokkos::HostSpace> validation_fof_halo_tags(
+      "in_fof_halo_tags", 0);
   loadParticlesData(filename_particles, input_data, max_num_points);
-  loadHalosData(filename_halos, input_data, validation_data);
-  loadProfilesData(filename_profiles, input_data, validation_data);
+  loadHalosData(filename_halos, input_data, in_fof_halo_tags, validation_data);
+  loadProfilesData(filename_profiles, validation_data,
+                   validation_fof_halo_tags);
+
+  int const num_halos = input_data.fof_halo_centers.extent_int(0);
+
+  // Validate tags
+  ARBORX_ASSERT(validation_fof_halo_tags.extent_int(0) ==
+                in_fof_halo_tags.extent_int(0));
+  for (int i = 0; i < num_halos; ++i)
+    ARBORX_ASSERT(in_fof_halo_tags(i) == validation_fof_halo_tags(i));
 
   // run SOD
   ArborX::OutputData<Kokkos::HostSpace> output_data;
@@ -324,7 +332,7 @@ int main(int argc, char *argv[])
   // validate
   if (validate)
   {
-    auto const num_halos = input_data.fof_halo_tags.extent_int(0);
+    auto const num_halos = input_data.fof_halo_centers.extent_int(0);
 
     auto relative_error = [](auto a, auto b) {
       if (a != 0)
@@ -348,7 +356,7 @@ int main(int argc, char *argv[])
       if (!matched)
       {
         printf("radii for halo tag %ld do not match: relative errors [",
-               input_data.fof_halo_tags(i));
+               in_fof_halo_tags(i));
         for (int bin_id = 1; bin_id < NUM_SOD_BINS; ++bin_id)
         {
           auto error = relative_error(
@@ -373,7 +381,7 @@ int main(int argc, char *argv[])
       if (!matched)
       {
         printf("counts for halo tag %ld do not match: validation = [",
-               input_data.fof_halo_tags(i));
+               in_fof_halo_tags(i));
         for (int bin_id = 1; bin_id < NUM_SOD_BINS; ++bin_id)
           printf(" %d", validation_data.sod_halo_bin_counts(i, bin_id));
         printf(" ], errors = [");
@@ -395,7 +403,7 @@ int main(int argc, char *argv[])
       if (!matched)
       {
         printf("masses for halo tag %ld do not match: relative errors [",
-               input_data.fof_halo_tags(i));
+               in_fof_halo_tags(i));
         for (int bin_id = 1; bin_id < NUM_SOD_BINS; ++bin_id)
           printf(" %e", relative_error(
                             output_data.sod_halo_bin_masses(i, bin_id),
@@ -418,7 +426,7 @@ int main(int argc, char *argv[])
         max_error = std::max(error, max_error);
         printf("%d rdelta for halo tag %ld do not match: "
                "output = %f, validation = %f, relative error = %e\n",
-               i, input_data.fof_halo_tags(i), a, b, error);
+               i, in_fof_halo_tags(i), a, b, error);
       }
     }
     printf(">>> rdelta max error = %e\n", max_error);
@@ -435,7 +443,7 @@ int main(int argc, char *argv[])
       if (!matched)
       {
         printf("rho for halo tag %ld do not match: relative errors [",
-               input_data.fof_halo_tags(i));
+               in_fof_halo_tags(i));
         for (int bin_id = 1; bin_id < NUM_SOD_BINS; ++bin_id)
         {
           auto error =
