@@ -204,7 +204,9 @@ void sodCore(ExecutionSpace const &exec_space, Particles &particles,
 
   // Compute offsets for storing particles in critical bins
   Kokkos::View<int *, MemorySpace> critical_bin_offsets(
-      "ArborX::SOD::critical_bin_offsets", num_halos + 1);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                         "ArborX::SOD::critical_bin_offsets"),
+      num_halos + 1);
   Kokkos::parallel_for(
       "compute_critical_bins",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
@@ -271,7 +273,8 @@ void sodCore(ExecutionSpace const &exec_space, Particles &particles,
   Kokkos::Profiling::pushRegion("ArborX::SOD::find_sod_particles");
 
   // Compute number of particles within SOD's R_delta
-  Kokkos::resize(out.sod_particles_offsets, num_halos + 1);
+  Kokkos::resize(Kokkos::WithoutInitializing, out.sod_particles_offsets,
+                 num_halos + 1);
   Kokkos::parallel_for(
       "ArborX::SOD::compute_sod_particles_counts",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
@@ -357,7 +360,8 @@ auto sod(ExecutionSpace const &exec_space, Particles particles,
   auto copy_bins_to_host = [](auto &view_host, auto &view_device) {
     auto view_mirror =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, view_device);
-    Kokkos::resize(view_host, view_device.extent(0));
+    Kokkos::resize(Kokkos::WithoutInitializing, view_host,
+                   view_device.extent(0));
     Kokkos::deep_copy(view_host, view_mirror);
   };
   copy_bins_to_host(out_host.sod_halo_bin_outer_radii,
@@ -371,7 +375,8 @@ auto sod(ExecutionSpace const &exec_space, Particles particles,
                     out_device.sod_halo_bin_counts);
 
   auto copy_to_host = [](auto &view_host, auto &view_device) {
-    Kokkos::resize(view_host, view_device.extent(0));
+    Kokkos::resize(Kokkos::WithoutInitializing, view_host,
+                   view_device.extent(0));
     Kokkos::deep_copy(view_host, view_device);
   };
   copy_to_host(out_host.sod_halo_rdeltas, out_device.sod_halo_rdeltas);
