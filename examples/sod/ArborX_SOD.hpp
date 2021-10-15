@@ -258,10 +258,13 @@ void sodCore(ExecutionSpace const &exec_space, InputData<MemorySpace> const &in,
   }
 
   // Compute R_delta
-  out.sod_halo_rdeltas = Details::computeSODRdeltas(
-      exec_space, DELTA, RHO, in.particle_masses, sod_halo_bin_masses,
-      out.sod_halo_bin_outer_radii, critical_bin_ids, critical_bin_offsets,
-      critical_bin_indices, critical_bin_distances_augmented);
+  Kokkos::View<int *, MemorySpace> sod_halo_rdeltas_index(
+      "ArborX::SOD::r_delta_index", 0);
+  std::tie(out.sod_halo_rdeltas, sod_halo_rdeltas_index) =
+      Details::computeSODRdeltas(
+          exec_space, DELTA, RHO, in.particle_masses, sod_halo_bin_masses,
+          out.sod_halo_bin_outer_radii, critical_bin_ids, critical_bin_offsets,
+          critical_bin_indices, critical_bin_distances_augmented);
 }
 
 template <typename ExecutionSpace>

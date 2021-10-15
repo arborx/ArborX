@@ -193,8 +193,8 @@ computeSODRadii(ExecutionSpace const &exec_space,
 
 // Compute rho and rho_ratio
 template <typename ExecutionSpace, typename MemorySpace>
-std::tuple<Kokkos::View<float * [NUM_SOD_BINS], MemorySpace>,
-           Kokkos::View<float *[NUM_SOD_BINS], MemorySpace>>
+std::pair<Kokkos::View<float * [NUM_SOD_BINS], MemorySpace>,
+          Kokkos::View<float *[NUM_SOD_BINS], MemorySpace>>
 computeSODRhos(
     ExecutionSpace const &exec_space, float RHO,
     Kokkos::View<double * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_masses,
@@ -334,15 +334,28 @@ computeSODBinRadii(ExecutionSpace const &exec_space, float r_min,
 }
 
 template <typename ExecutionSpace, typename MemorySpace>
-Kokkos::View<float *, MemorySpace> computeSODRdeltas(
-    ExecutionSpace const & /*exec_space*/, float DELTA, float RHO,
-    Kokkos::View<float *, MemorySpace> particle_masses,
-    Kokkos::View<double * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_masses,
-    Kokkos::View<float * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_outer_radii,
-    Kokkos::View<int *, MemorySpace> critical_bin_ids,
-    Kokkos::View<int *, MemorySpace> critical_bin_offsets,
-    Kokkos::View<int *, MemorySpace> sorted_critical_bin_indices,
-    Kokkos::View<float *, MemorySpace> critical_bin_distances_augmented)
+std::pair<
+    Kokkos::View<float *, MemorySpace>,
+    Kokkos::View<
+        int *,
+        MemorySpace>> computeSODRdeltas(ExecutionSpace const & /*exec_space*/,
+                                        float DELTA, float RHO,
+                                        Kokkos::View<float *, MemorySpace>
+                                            particle_masses,
+                                        Kokkos::View<double * [NUM_SOD_BINS],
+                                                     MemorySpace>
+                                            sod_halo_bin_masses,
+                                        Kokkos::View<float * [NUM_SOD_BINS],
+                                                     MemorySpace>
+                                            sod_halo_bin_outer_radii,
+                                        Kokkos::View<int *, MemorySpace>
+                                            critical_bin_ids,
+                                        Kokkos::View<int *, MemorySpace>
+                                            critical_bin_offsets,
+                                        Kokkos::View<int *, MemorySpace>
+                                            sorted_critical_bin_indices,
+                                        Kokkos::View<float *, MemorySpace>
+                                            critical_bin_distances_augmented)
 {
   using HostExecutionSpace = Kokkos::DefaultHostExecutionSpace;
 
@@ -371,6 +384,10 @@ Kokkos::View<float *, MemorySpace> computeSODRdeltas(
   Kokkos::View<float *, Kokkos::HostSpace> sod_halo_rdeltas_host(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::SOD::r_delta"),
       num_halos);
+  Kokkos::View<int *, Kokkos::HostSpace> sod_halo_rdeltas_index_host(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                         "ArborX::SOD::r_delta_index"),
+      num_halos);
   Kokkos::parallel_for(
       "ArborX::SOD::compute_r_delta",
       Kokkos::RangePolicy<HostExecutionSpace>(host_space, 0, num_halos),
@@ -393,6 +410,7 @@ Kokkos::View<float *, MemorySpace> computeSODRdeltas(
         sod_halo_rdeltas_host(halo_index) =
             (critical_bin_distances_augmented_host(bin_end - 1) - halo_index) *
             (1.1f * R_bin_outer); // see HACK comment above for details
+        sod_halo_rdeltas_index_host(halo_index) = (bin_end - 1 - bin_start);
 
         for (int i = bin_start; i < bin_end; ++i)
         {
@@ -406,6 +424,7 @@ Kokkos::View<float *, MemorySpace> computeSODRdeltas(
           if (ratio <= DELTA)
           {
             sod_halo_rdeltas_host(halo_index) = r;
+            sod_halo_rdeltas_index_host(halo_index) = (i - bin_start);
             break;
           }
         }
@@ -415,7 +434,11 @@ Kokkos::View<float *, MemorySpace> computeSODRdeltas(
       "ArborX::SOD::r_delta", num_halos);
   Kokkos::deep_copy(sod_halo_rdeltas_device, sod_halo_rdeltas_host);
 
-  return sod_halo_rdeltas_device;
+  Kokkos::View<int *, MemorySpace> sod_halo_rdeltas_index_device(
+      "ArborX::SOD::r_delta_index", num_halos);
+  Kokkos::deep_copy(sod_halo_rdeltas_index_device, sod_halo_rdeltas_index_host);
+
+  return std::make_pair(sod_halo_rdeltas_device, sod_halo_rdeltas_index_device);
 }
 
 } // namespace Details
