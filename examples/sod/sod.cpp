@@ -19,6 +19,26 @@
 
 #include <fstream>
 
+struct InputData
+{
+  template <typename T>
+  using View = Kokkos::View<T *, Kokkos::HostSpace>;
+
+  View<ArborX::Point> particles;
+  View<float> particle_masses;
+
+  View<ArborX::Point> fof_halo_centers;
+  View<float> fof_halo_masses;
+
+  InputData()
+      : particles("particles", 0)
+      , particle_masses("particle_masses", 0)
+      , fof_halo_centers("fof_halo_centers", 0)
+      , fof_halo_masses("fof_halo_masses", 0)
+  {
+  }
+};
+
 template <typename ExecutionSpace, typename Permute, typename View>
 std::enable_if_t<Kokkos::is_view<View>{} && View::rank == 1>
 applyPermutation(ExecutionSpace const &exec_space, Permute const &permute,
@@ -48,8 +68,7 @@ applyPermutation2(ExecutionSpace const &exec_space, Permute const &permute,
       view(i, j) = view_clone(permute(i), j);
 }
 
-void loadParticlesData(std::string const &filename,
-                       ArborX::InputData<Kokkos::HostSpace> &in,
+void loadParticlesData(std::string const &filename, InputData &in,
                        int max_num_points = -1)
 {
   std::cout << "Reading in \"" << filename << "\" in binary mode...";
@@ -86,10 +105,9 @@ void loadParticlesData(std::string const &filename,
   input.close();
 }
 
-void loadHalosData(std::string const &filename,
-                   ArborX::InputData<Kokkos::HostSpace> &in,
+void loadHalosData(std::string const &filename, InputData &in,
                    Kokkos::View<int64_t *, Kokkos::HostSpace> &in_fof_halo_tags,
-                   ArborX::OutputData<Kokkos::HostSpace> &out)
+                   ArborX::SODOutputData<Kokkos::HostSpace> &out)
 {
   std::cout << "Reading in \"" << filename << "\" in binary mode...";
   std::cout.flush();
@@ -189,7 +207,7 @@ void loadHalosData(std::string const &filename,
 }
 
 void loadProfilesData(
-    std::string const &filename, ArborX::OutputData<Kokkos::HostSpace> &out,
+    std::string const &filename, ArborX::SODOutputData<Kokkos::HostSpace> &out,
     Kokkos::View<int64_t *, Kokkos::HostSpace> &out_fof_halo_tags)
 {
   std::cout << "Reading in \"" << filename << "\" in binary mode...";
@@ -307,8 +325,8 @@ int main(int argc, char *argv[])
   printf("filename [profiles]  : %s\n", filename_profiles.c_str());
 
   // read in data
-  ArborX::InputData<Kokkos::HostSpace> input_data;
-  ArborX::OutputData<Kokkos::HostSpace> validation_data;
+  InputData input_data;
+  ArborX::SODOutputData<Kokkos::HostSpace> validation_data;
   Kokkos::View<int64_t *, Kokkos::HostSpace> in_fof_halo_tags(
       "in_fof_halo_tags", 0);
   Kokkos::View<int64_t *, Kokkos::HostSpace> validation_fof_halo_tags(
@@ -327,8 +345,9 @@ int main(int argc, char *argv[])
     ARBORX_ASSERT(in_fof_halo_tags(i) == validation_fof_halo_tags(i));
 
   // run SOD
-  ArborX::OutputData<Kokkos::HostSpace> output_data;
-  ArborX::sod(ExecutionSpace{}, input_data, output_data);
+  auto output_data = ArborX::sod(
+      ExecutionSpace{}, input_data.particles, input_data.particle_masses,
+      input_data.fof_halo_centers, input_data.fof_halo_masses);
 
   // validate
   if (validate)

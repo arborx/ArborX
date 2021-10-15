@@ -19,28 +19,7 @@ namespace ArborX
 {
 
 template <typename MemorySpace>
-struct InputData
-{
-  template <typename T>
-  using View = Kokkos::View<T *, MemorySpace>;
-
-  View<Point> particles;
-  View<float> particle_masses;
-
-  View<float> fof_halo_masses;
-  View<Point> fof_halo_centers;
-
-  InputData()
-      : particles("particles", 0)
-      , particle_masses("particle_masses", 0)
-      , fof_halo_masses("fof_halo_masses", 0)
-      , fof_halo_centers("fof_halo_centers", 0)
-  {
-  }
-};
-
-template <typename MemorySpace>
-struct OutputData
+struct SODOutputData
 {
   template <typename T>
   using View = Kokkos::View<T *, MemorySpace>;
@@ -61,7 +40,7 @@ struct OutputData
   View<int> sod_particles_offsets;
   View<int> sod_particles_indices;
 
-  OutputData()
+  SODOutputData()
       : sod_halo_masses("sod_halo_masses", 0)
       , sod_halo_rdeltas("sod_halo_rdeltas", 0)
       , sod_halo_bin_ids("sod_halo_bin_ids", 0)
@@ -124,16 +103,25 @@ struct AccessTraits<ParticlesWrapper<Particles>, PredicatesTag>
   }
 };
 
-template <typename ExecutionSpace, typename MemorySpace>
-void sodCore(ExecutionSpace const &exec_space, InputData<MemorySpace> &in,
-             OutputData<MemorySpace> &out)
+template <typename ExecutionSpace, typename MemorySpace, typename Particles,
+          typename ParticleMasses, typename FOFHaloCenters,
+          typename FOFHaloMasses>
+void sodCore(ExecutionSpace const &exec_space, Particles &particles,
+             ParticleMasses &particle_masses, FOFHaloCenters &fof_halo_centers,
+             FOFHaloMasses &fof_halo_masses, SODOutputData<MemorySpace> &out)
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
+  static_assert(std::is_same<typename Particles::memory_space, MemorySpace>{},
+                "");
+  static_assert(
+      std::is_same<typename ParticleMasses::memory_space, MemorySpace>{}, "");
+  static_assert(
+      std::is_same<typename FOFHaloCenters::memory_space, MemorySpace>{}, "");
+  static_assert(
+      std::is_same<typename FOFHaloMasses::memory_space, MemorySpace>{}, "");
 
-  using Particles = decltype(in.particles);
-
-  auto const num_halos = in.fof_halo_centers.extent(0);
+  auto const num_halos = fof_halo_centers.extent(0);
 
   // HACC constants
   float constexpr RHO = 2.77536627e11;
@@ -152,12 +140,13 @@ void sodCore(ExecutionSpace const &exec_space, InputData<MemorySpace> &in,
   float r_min;
   Kokkos::View<float *, MemorySpace> r_max;
   std::tie(r_min, r_max) =
-      Details::computeSODRadii(exec_space, in.fof_halo_masses);
+      Details::computeSODRadii(exec_space, fof_halo_masses);
+  Kokkos::resize(fof_halo_masses, 0); // free as not used afterwards
 
   // Construct the search index based on spheres (FOF centers with
   // corresponding R_max)
   BVH<MemorySpace> bvh(exec_space,
-                       Spheres<MemorySpace>{in.fof_halo_centers, r_max});
+                       Spheres<MemorySpace>{fof_halo_centers, r_max});
 
   // Compute bin outer radii
   out.sod_halo_bin_outer_radii =
@@ -173,11 +162,11 @@ void sodCore(ExecutionSpace const &exec_space, InputData<MemorySpace> &in,
       "ArborX::SOD::sod_halo_bin_avg_radii", num_halos);
   Kokkos::resize(out.sod_halo_bin_counts, num_halos);
   bvh.query(
-      exec_space, ParticlesWrapper<Particles>{in.particles},
+      exec_space, ParticlesWrapper<Particles>{particles},
       Details::BinAccumulator<MemorySpace, Particles>{
-          in.particles, in.particle_masses, out.sod_halo_bin_counts,
-          sod_halo_bin_masses, sod_halo_bin_avg_radii, in.fof_halo_centers,
-          r_min, r_max},
+          particles, particle_masses, out.sod_halo_bin_counts,
+          sod_halo_bin_masses, sod_halo_bin_avg_radii, fof_halo_centers, r_min,
+          r_max},
       Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
   Kokkos::parallel_for(
       "ArborX::SOD::normalize_avg_radii",
@@ -203,7 +192,7 @@ void sodCore(ExecutionSpace const &exec_space, InputData<MemorySpace> &in,
   std::tie(out.sod_halo_bin_rhos, out.sod_halo_bin_rho_ratios) =
       Details::computeSODRhos(exec_space, RHO, sod_halo_bin_masses,
                               sod_halo_bin_avg_radii);
-  Kokkos::resize(sod_halo_bin_avg_radii, 0);
+  Kokkos::resize(sod_halo_bin_avg_radii, 0); // free as not used aftewards
 
   // Figure out critical bins
   float const DELTA = 200;
@@ -240,11 +229,11 @@ void sodCore(ExecutionSpace const &exec_space, InputData<MemorySpace> &in,
   {
     auto offsets = clone(critical_bin_offsets);
     bvh.query(
-        exec_space, ParticlesWrapper<Particles>{in.particles},
+        exec_space, ParticlesWrapper<Particles>{particles},
         Details::CriticalBinParticles<MemorySpace, Particles>{
-            in.particles, offsets, critical_bin_indices,
+            particles, offsets, critical_bin_indices,
             critical_bin_distances_augmented, critical_bin_ids,
-            in.fof_halo_centers, out.sod_halo_bin_outer_radii, r_min, r_max},
+            fof_halo_centers, out.sod_halo_bin_outer_radii, r_min, r_max},
         Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
   }
 
@@ -273,12 +262,11 @@ void sodCore(ExecutionSpace const &exec_space, InputData<MemorySpace> &in,
       "ArborX::SOD::r_delta_index", 0);
   std::tie(out.sod_halo_rdeltas, sod_halo_rdeltas_index) =
       Details::computeSODRdeltas(
-          exec_space, DELTA, RHO, in.particle_masses, sod_halo_bin_masses,
+          exec_space, DELTA, RHO, particle_masses, sod_halo_bin_masses,
           out.sod_halo_bin_outer_radii, critical_bin_ids, critical_bin_offsets,
           critical_bin_indices, critical_bin_distances_augmented);
-
-  // Free some space
-  Kokkos::resize(in.particle_masses, 0);
+  Kokkos::resize(sod_halo_bin_masses, 0); // free as not used afterwards
+  Kokkos::resize(particle_masses, 0);     // free as not used afterwards
 
   Kokkos::Profiling::pushRegion("ArborX::SOD::find_sod_particles");
 
@@ -296,15 +284,6 @@ void sodCore(ExecutionSpace const &exec_space, InputData<MemorySpace> &in,
 
         // Add the count for the critical bin
         count += sod_halo_rdeltas_index(halo_index);
-#if 0
-        printf(
-            "[%d]: #critical = %d, index_critical = %d, remain = %d\n",
-            halo_index,
-            out.sod_halo_bin_counts(halo_index, critical_bin_ids(halo_index)),
-            sod_halo_rdeltas_index(halo_index),
-            out.sod_halo_bin_counts(halo_index, critical_bin_ids(halo_index)) -
-                sod_halo_rdeltas_index(halo_index));
-#endif
 
         out.sod_particles_offsets(halo_index) = count;
       });
@@ -328,45 +307,50 @@ void sodCore(ExecutionSpace const &exec_space, InputData<MemorySpace> &in,
           out.sod_particles_indices(critical_bin_offset++) =
               critical_bin_indices(critical_bin_offsets(halo_index) + i);
       });
+  Kokkos::resize(critical_bin_offsets, 0); // free as not used afterwards
+  Kokkos::resize(critical_bin_indices, 0); // free as not used afterwards
 
   {
     auto offsets = clone(out.sod_particles_offsets);
     bvh.query(
-        exec_space, ParticlesWrapper<Particles>{in.particles},
+        exec_space, ParticlesWrapper<Particles>{particles},
         Details::SODParticles<MemorySpace, Particles>{
-            in.particles, offsets, out.sod_particles_indices, critical_bin_ids,
-            in.fof_halo_centers, r_min, r_max},
+            particles, offsets, out.sod_particles_indices, critical_bin_ids,
+            fof_halo_centers, r_min, r_max},
         Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
   }
   Kokkos::Profiling::popRegion();
 }
 
-template <typename ExecutionSpace>
-void sod(ExecutionSpace const &exec_space,
-         InputData<Kokkos::HostSpace> const &in_host,
-         OutputData<Kokkos::HostSpace> &out_host)
+template <typename ExecutionSpace, typename Particles, typename ParticleMasses,
+          typename FOFHaloCenters, typename FOFHaloMasses>
+auto sod(ExecutionSpace const &exec_space, Particles particles,
+         ParticleMasses particle_masses, FOFHaloCenters fof_halo_centers,
+         FOFHaloMasses fof_halo_masses)
 {
   Kokkos::Profiling::pushRegion("ArborX::SOD");
 
   using MemorySpace = typename ExecutionSpace::memory_space;
 
-  InputData<MemorySpace> in_device;
-  OutputData<MemorySpace> out_device;
+  SODOutputData<MemorySpace> out_device;
 
   // Transfer data from host to device
   Kokkos::Profiling::pushRegion("ArborX::SOD::copy_input_data_to_device");
-  in_device.particles =
-      Kokkos::create_mirror_view_and_copy(exec_space, in_host.particles);
-  in_device.particle_masses =
-      Kokkos::create_mirror_view_and_copy(exec_space, in_host.particle_masses);
-  in_device.fof_halo_centers =
-      Kokkos::create_mirror_view_and_copy(exec_space, in_host.fof_halo_centers);
-  in_device.fof_halo_masses =
-      Kokkos::create_mirror_view_and_copy(exec_space, in_host.fof_halo_masses);
+  Kokkos::View<ArborX::Point *, MemorySpace> particles_device =
+      Kokkos::create_mirror_view_and_copy(exec_space, particles);
+  Kokkos::View<float *, MemorySpace> particle_masses_device =
+      Kokkos::create_mirror_view_and_copy(exec_space, particle_masses);
+  Kokkos::View<ArborX::Point *, MemorySpace> fof_halo_centers_device =
+      Kokkos::create_mirror_view_and_copy(exec_space, fof_halo_centers);
+  Kokkos::View<float *, MemorySpace> fof_halo_masses_device =
+      Kokkos::create_mirror_view_and_copy(exec_space, fof_halo_masses);
   Kokkos::Profiling::popRegion();
 
   // Execute the kernels on the device
-  sodCore(exec_space, in_device, out_device);
+  sodCore(exec_space, particles_device, particle_masses_device,
+          fof_halo_centers_device, fof_halo_masses_device, out_device);
+
+  SODOutputData<Kokkos::HostSpace> out_host;
 
   // Transfer data from device to host
   Kokkos::Profiling::pushRegion("ArborX::SOD::copy_output_data_from_device");
@@ -398,6 +382,8 @@ void sod(ExecutionSpace const &exec_space,
   Kokkos::Profiling::popRegion();
 
   Kokkos::Profiling::popRegion();
+
+  return out_host;
 }
 
 } // namespace ArborX
