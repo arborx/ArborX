@@ -335,13 +335,13 @@ computeSODBinRadii(ExecutionSpace const &exec_space, float r_min,
 
 template <typename ExecutionSpace, typename MemorySpace>
 Kokkos::View<float *, MemorySpace> computeSODRdeltas(
-    ExecutionSpace const &exec_space, float DELTA, float RHO,
+    ExecutionSpace const & /*exec_space*/, float DELTA, float RHO,
     Kokkos::View<float *, MemorySpace> particle_masses,
     Kokkos::View<double * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_masses,
     Kokkos::View<float * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_outer_radii,
     Kokkos::View<int *, MemorySpace> critical_bin_ids,
     Kokkos::View<int *, MemorySpace> critical_bin_offsets,
-    Kokkos::View<int *, MemorySpace> critical_bin_indices,
+    Kokkos::View<int *, MemorySpace> sorted_critical_bin_indices,
     Kokkos::View<float *, MemorySpace> critical_bin_distances_augmented)
 {
   using HostExecutionSpace = Kokkos::DefaultHostExecutionSpace;
@@ -349,33 +349,19 @@ Kokkos::View<float *, MemorySpace> computeSODRdeltas(
   HostExecutionSpace host_space;
 
   auto num_halos = critical_bin_offsets.extent(0) - 1;
-  auto num_critical_bin_particles = critical_bin_indices.extent(0);
-
-  // Permute found particles within a critical bin of each halo based on their
-  // distance to the center
-  auto permute =
-      Details::sortObjects(exec_space, critical_bin_distances_augmented);
-  auto critical_bin_indices_clone = clone(critical_bin_indices);
-  Kokkos::parallel_for("ArborX::SOD::apply_permutation",
-                       Kokkos::RangePolicy<ExecutionSpace>(
-                           exec_space, 0, num_critical_bin_particles),
-                       KOKKOS_LAMBDA(int i) {
-                         critical_bin_indices(i) =
-                             critical_bin_indices_clone(permute(i));
-                       });
 
   // Migrate the data to the host
-  auto critical_bin_ids_host = Kokkos::create_mirror_view_and_copy(
-      Kokkos::HostSpace{}, critical_bin_ids);
-  auto critical_bin_offsets_host = Kokkos::create_mirror_view_and_copy(
-      Kokkos::HostSpace{}, critical_bin_offsets);
+  auto critical_bin_ids_host =
+      Kokkos::create_mirror_view_and_copy(host_space, critical_bin_ids);
+  auto critical_bin_offsets_host =
+      Kokkos::create_mirror_view_and_copy(host_space, critical_bin_offsets);
   auto critical_bin_indices_host = Kokkos::create_mirror_view_and_copy(
-      Kokkos::HostSpace{}, critical_bin_indices);
+      host_space, sorted_critical_bin_indices);
   auto critical_bin_distances_augmented_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{},
+      Kokkos::create_mirror_view_and_copy(host_space,
                                           critical_bin_distances_augmented);
-  auto sod_halo_bin_outer_radii_host = Kokkos::create_mirror_view_and_copy(
-      Kokkos::HostSpace{}, sod_halo_bin_outer_radii);
+  auto sod_halo_bin_outer_radii_host =
+      Kokkos::create_mirror_view_and_copy(host_space, sod_halo_bin_outer_radii);
   auto sod_halo_bin_masses_host =
       Kokkos::create_mirror_view_and_copy(host_space, sod_halo_bin_masses);
   auto particle_masses_host =

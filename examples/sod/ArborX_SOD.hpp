@@ -200,6 +200,8 @@ void sodCore(ExecutionSpace const &exec_space, InputData<MemorySpace> const &in,
   std::tie(out.sod_halo_bin_rhos, out.sod_halo_bin_rho_ratios) =
       Details::computeSODRhos(exec_space, RHO, sod_halo_bin_masses,
                               sod_halo_bin_avg_radii);
+  Kokkos::resize(sod_halo_bin_avg_radii, 0);
+
   // Figure out critical bins
   float const DELTA = 200;
   auto critical_bin_ids = Details::computeSODCriticalBins(
@@ -238,6 +240,22 @@ void sodCore(ExecutionSpace const &exec_space, InputData<MemorySpace> const &in,
           critical_bin_distances_augmented, critical_bin_ids,
           in.fof_halo_centers, out.sod_halo_bin_outer_radii, r_min, r_max},
       Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
+  Kokkos::resize(offsets, 0);
+
+  {
+    // Permute found particles within a critical bin of each halo based on their
+    // distance to the center
+    auto permute =
+        Details::sortObjects(exec_space, critical_bin_distances_augmented);
+    auto critical_bin_indices_clone = clone(critical_bin_indices);
+    Kokkos::parallel_for("ArborX::SOD::apply_permutation",
+                         Kokkos::RangePolicy<ExecutionSpace>(
+                             exec_space, 0, num_critical_bin_particles),
+                         KOKKOS_LAMBDA(int i) {
+                           critical_bin_indices(i) =
+                               critical_bin_indices_clone(permute(i));
+                         });
+  }
 
   // Compute R_delta
   out.sod_halo_rdeltas = Details::computeSODRdeltas(
