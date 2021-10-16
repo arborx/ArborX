@@ -16,6 +16,7 @@
 #include <ArborX_DetailsCartesianGrid.hpp>
 #include <ArborX_DetailsFDBSCAN.hpp>
 #include <ArborX_DetailsFDBSCANDenseBox.hpp>
+#include <ArborX_DetailsHalfTraversal.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_HyperSphere.hpp>
@@ -53,6 +54,23 @@ struct PrimitivesWithRadius
 {
   Primitives _primitives;
   float _r;
+};
+
+struct WithinRadiusGetter
+{
+  float _r;
+
+  template <typename Box>
+  KOKKOS_FUNCTION auto operator()(Box const &box) const
+  {
+    static_assert(GeometryTraits::is_box<Box>{});
+
+    constexpr int dim = GeometryTraits::dimension_v<Box>;
+    auto const &hyper_point =
+        reinterpret_cast<ExperimentalHyperGeometry::Point<dim> const &>(
+            box.minCorner());
+    return intersects(ExperimentalHyperGeometry::Sphere<dim>{hyper_point, _r});
+  }
 };
 
 template <typename Primitives, typename PermuteFilter>
@@ -274,21 +292,22 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     Kokkos::Profiling::popRegion();
 
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters");
-    auto const predicates =
-        Details::PrimitivesWithRadius<Primitives>{primitives, eps};
     if (is_special_case)
     {
       // Perform the queries and build clusters through callback
       using CorePoints = Details::CCSCorePoints;
-      CorePoints core_points;
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
-      bvh.query(
-          exec_space, predicates,
-          Details::FDBSCANCallback<UnionFind, CorePoints>{labels, core_points});
+      Details::HalfTraversal(
+          exec_space, bvh,
+          Details::FDBSCANCallback<UnionFind, CorePoints>{labels, CorePoints{}},
+          Details::WithinRadiusGetter{eps});
       Kokkos::Profiling::popRegion();
     }
     else
     {
+      auto const predicates =
+          Details::PrimitivesWithRadius<Primitives>{primitives, eps};
+
       // Determine core points
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::num_neigh");
       Kokkos::resize(num_neigh, n);
@@ -300,9 +319,10 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
       // Perform the queries and build clusters through callback
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
-      bvh.query(exec_space, predicates,
-                Details::FDBSCANCallback<UnionFind, CorePoints>{
-                    labels, CorePoints{num_neigh, core_min_size}});
+      Details::HalfTraversal(exec_space, bvh,
+                             Details::FDBSCANCallback<UnionFind, CorePoints>{
+                                 labels, CorePoints{num_neigh, core_min_size}},
+                             Details::WithinRadiusGetter{eps});
       Kokkos::Profiling::popRegion();
     }
   }
