@@ -46,6 +46,8 @@ struct CountUpToN
 template <typename MemorySpace, typename CorePointsType>
 struct FDBSCANCallback
 {
+  using TreeTraversalControl = ::ArborX::Experimental::TreeTraversalQuick;
+
   UnionFind<MemorySpace> _union_find;
   CorePointsType _is_core_point;
 
@@ -59,41 +61,48 @@ struct FDBSCANCallback
   template <typename Query>
   KOKKOS_FUNCTION auto operator()(Query const &query, int j) const
   {
-    int const i = ArborX::getData(query);
+    int i = ArborX::getData(query);
 
     bool const is_border_point = !_is_core_point(i);
+    bool const is_neighbor_core_point = _is_core_point(j);
     if (is_border_point)
     {
-      // Ignore border points, they will be processed by the
-      // connected core points. Theoretically, border points could have been
-      // filtered out prior to running the algorithm, but that may be expensive.
-      return ArborX::CallbackTreeTraversalControl::early_exit;
-    }
+      if (is_neighbor_core_point)
+      {
+        // For a border point that is connected to a core point, set its
+        // representative to that of the core point. If it is connected to
+        // multiple core points, it will be assigned to the cluster that the
+        // first found core point neighbor was in.
+        //
+        // NOTE: DO NOT USE merge(i, j) here. This may set this border point as
+        // a representative for the whole cluster potentially formbing a bridge
+        // with a different cluster.
+        _union_find.merge_into(i, j);
 
-    bool const is_neighbor_core_point = _is_core_point(j);
-    if (is_neighbor_core_point && i > j)
-    {
-      // For a core point that is connected to another core point, do the
-      // standard CCS algorithm
-      _union_find.merge(i, j);
+        // Once a border point is assigned to a cluster, can terminate the
+        // associated traversal.
+        return ArborX::CallbackTreeTraversalControl::early_exit;
+      }
     }
-    else if (!is_neighbor_core_point)
+    else
     {
-      // For a border point that is connected to a core point, set its
-      // representative to that of the core point. If it is connected to
-      // multiple core points, it will be assigned to the cluster that the last
-      // core point was in.
-      //
-      // NOTE: DO NOT USE merge(i, j) here. This may set this border
-      // point as a representative for the whole cluster. This would mean that
-      // a) labels_(i) == i still (so it would be processed later, and b) it may
-      // be combined with a different cluster later forming a bridge.
-      _union_find.merge_into(j, i);
+      if (is_neighbor_core_point)
+      {
+        // For a core point that is connected to another core point, do the
+        // standard CCS algorithm
+        _union_find.merge(i, j);
+      }
+      else
+      {
+        // Merge the neighbor in (see comment above).
+        _union_find.merge_into(j, i);
+      }
     }
 
     return ArborX::CallbackTreeTraversalControl::normal_continuation;
   }
 };
+
 } // namespace Details
 } // namespace ArborX
 
