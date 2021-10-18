@@ -21,8 +21,9 @@
 
 #include <fstream>
 
-std::vector<ArborX::Point> loadData(std::string const &filename,
-                                    bool binary = true, int max_num_points = -1)
+std::pair<std::vector<ArborX::Point>, int> loadData(std::string const &filename,
+                                                    bool binary = true,
+                                                    int max_num_points = -1)
 {
   std::cout << "Reading in \"" << filename << "\" in "
             << (binary ? "binary" : "text") << " mode...";
@@ -98,7 +99,7 @@ std::vector<ArborX::Point> loadData(std::string const &filename,
   std::cout << "done\nRead in " << num_points << " " << dim << "D points"
             << std::endl;
 
-  return v;
+  return std::make_pair(v, dim);
 }
 
 std::vector<ArborX::Point> sampleData(std::vector<ArborX::Point> const &data,
@@ -359,7 +360,9 @@ int main(int argc, char *argv[])
   printf("print timers      : %s\n", (print_dbscan_timers ? "true" : "false"));
 
   // read in data
-  std::vector<ArborX::Point> data = loadData(filename, binary, max_num_points);
+  std::vector<ArborX::Point> data;
+  int dim;
+  std::tie(data, dim) = loadData(filename, binary, max_num_points);
   if (num_samples > 0 && num_samples < (int)data.size())
     data = sampleData(data, num_samples);
   auto const primitives = vec2view<MemorySpace>(data, "primitives");
@@ -387,7 +390,8 @@ int main(int argc, char *argv[])
   auto labels = ArborX::dbscan(exec_space, primitives, eps, core_min_size,
                                ArborX::DBSCAN::Parameters()
                                    .setPrintTimers(print_dbscan_timers)
-                                   .setImplementation(implementation));
+                                   .setImplementation(implementation)
+                                   .setDimension(dim));
 
   timer_start(timer);
   Kokkos::View<int *, MemorySpace> cluster_indices("Testing::cluster_indices",
