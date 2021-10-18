@@ -177,6 +177,10 @@ struct Parameters
   bool _print_timers = false;
   // Algorithm implementation (FDBSCAN or FDBSCAN-DenseBox)
   Implementation _implementation = Implementation::FDBSCAN_DenseBox;
+  // FIXME: as ArborX::Point is hardcoded to 3D right now, the only way to pass
+  // the dimension is through a parameter.
+  // NOTE: this is only useful for FDBSCAN-DenseBox algorithm
+  int _dim = 3;
 
   Parameters &setPrintTimers(bool print_timers)
   {
@@ -186,6 +190,12 @@ struct Parameters
   Parameters &setImplementation(Implementation impl)
   {
     _implementation = impl;
+    return *this;
+  }
+  Parameters &setDimension(int dim)
+  {
+    ARBORX_ASSERT(0 < dim && dim <= 3);
+    _dim = dim;
     return *this;
   }
 };
@@ -297,7 +307,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
     // The cell length is chosen to be eps/sqrt(dimension), so that any two
     // points within the same cell are within eps distance of each other.
-    float const h = eps / std::sqrt(3); // 3D (for 2D change to std::sqrt(2))
+    float const h = eps / std::sqrt(parameters._dim);
     Details::CartesianGrid const grid(bounds, h);
 
     auto cell_indices =
