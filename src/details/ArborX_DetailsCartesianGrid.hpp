@@ -71,6 +71,9 @@ public:
   {
     auto min = _bounds.minCorner();
     decltype(min) max;
+
+    // This code may suffer from loss of precision depending on the problem
+    // bounds and h. We try to detect this case in the constructor.
     for (int d = 0; d < DIM; ++d)
     {
       auto i = cell_index % _n[d];
@@ -117,6 +120,23 @@ private:
     {
       m /= _n[d - 1];
       ARBORX_ASSERT(_n[d] < m);
+    }
+
+    // Catch a potential loss of precision that may happen in cellBox() and can
+    // lead to wrong results.
+    //
+    // The machine precision by itself is not sufficient. In some experiments
+    // run with a full NGSIM datasets, values below 3 could still produce wrong
+    // results. This may still not be conservative enough, but all runs passed
+    // verification when this warning was not triggered.
+    constexpr auto eps = 5 * std::numeric_limits<float>::epsilon();
+    for (int d = 0; d < DIM; ++d)
+    {
+      if (std::abs(_h[d] / min_corner[d]) < eps)
+        throw std::runtime_error(
+            "ArborX exception: FDBSCAN-DenseBox algorithm will experience loss "
+            "of precision, undetectably producing wrong results. Please switch "
+            "to using FDBSCAN.");
     }
   }
 
