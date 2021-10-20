@@ -28,19 +28,19 @@ namespace internal
 template <typename PointerType>
 struct PointerDepth
 {
-  static int constexpr value = 0;
+  static constexpr int value = 0;
 };
 
 template <typename PointerType>
 struct PointerDepth<PointerType *>
 {
-  static int constexpr value = PointerDepth<PointerType>::value + 1;
+  static constexpr int value = PointerDepth<PointerType>::value + 1;
 };
 
 template <typename PointerType, std::size_t N>
 struct PointerDepth<PointerType[N]>
 {
-  static int constexpr value = PointerDepth<PointerType>::value;
+  static constexpr int value = PointerDepth<PointerType>::value;
 };
 } // namespace internal
 

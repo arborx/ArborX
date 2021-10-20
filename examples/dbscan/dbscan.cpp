@@ -200,7 +200,7 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
   // We reuse the cluster_sizes array for the second, creating a new alias for
   // it for clarity.
   auto &map_cluster_to_offset_position = cluster_sizes;
-  int constexpr IGNORED_CLUSTER = -1;
+  constexpr int IGNORED_CLUSTER = -1;
   int num_clusters;
   ArborX::reallocWithoutInitializing(cluster_offset, n + 1);
   Kokkos::parallel_scan(

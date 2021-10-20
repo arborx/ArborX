@@ -48,7 +48,7 @@ struct CartesianGrid
     // Catch potential overflow in grid cell indices early. This is a
     // conservative check as an actual overflow may not occur, depending on
     // which cells are filled.
-    size_t constexpr max_size_t = std::numeric_limits<size_t>::max();
+    constexpr auto max_size_t = std::numeric_limits<size_t>::max();
     ARBORX_ASSERT(_nx == 0 || _ny == 0 || _nz == 0 ||
                   (_ny < max_size_t / _nx && _nz < max_size_t / (_nx * _ny)));
   }
