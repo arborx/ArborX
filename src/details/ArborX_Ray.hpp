@@ -148,7 +148,7 @@ Point returnCentroid(Ray const &ray) { return ray.origin(); }
 // inv_ray_dir[d] == 0 && (minCorner[d] == origin[d] || maxCorner[d] ==
 // origin[d])). This leads to NaN, which are not treated correctly (unless, as
 // in [1], the underlying min/max functions are able to ignore them). The issue
-// is discussed in more details in [2] and the webiste (key word: A minimal
+// is discussed in more details in [2] and the website (key word: A minimal
 // ray-tracer: rendering simple shapes).
 //
 // In the algorithm below, we explicitly ignoring NaN values, leading to
@@ -218,8 +218,9 @@ KOKKOS_INLINE_FUNCTION bool solveQuadratic(float const a, float const b,
   // Instead of doing a simple
   //    (-b +- std::sqrt(discriminant)) / (2*a)
   // we use a more stable algorithm with less loss of precision (see, for
-  // example, https://www.scratchapixel.com/lessons/3d-basic-rendering/
-  // minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection).
+  // clang-format off
+  // example, https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection).
+  // clang-format on
   auto const q = (b > 0) ? (-b - std::sqrt(discriminant)) / 2.0
                          : (-b + std::sqrt(discriminant)) / 2.0;
   x1 = q / a;
