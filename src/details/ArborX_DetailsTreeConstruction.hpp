@@ -133,11 +133,11 @@ inline void initializeSingleLeafNode(ExecutionSpace const &space,
 namespace
 {
 // Ideally, this would be
-//     static int constexpr UNTOUCHED_NODE = -1;
+//     static constexpr int UNTOUCHED_NODE = -1;
 // inside the GenerateHierarchyFunctor class. But prior to C++17, this would
 // require to also have a definition outside the class as it is odr-used.
 // This is a workaround.
-int constexpr UNTOUCHED_NODE = -1;
+constexpr int UNTOUCHED_NODE = -1;
 } // namespace
 
 template <typename Primitives, typename MemorySpace, typename Node>

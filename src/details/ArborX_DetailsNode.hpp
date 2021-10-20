@@ -66,7 +66,7 @@ makeLeafNode(NodeWithTwoChildrenTag, std::size_t permutation_index,
   return {-1, static_cast<int>(permutation_index), std::move(bounding_volume)};
 }
 
-int constexpr ROPE_SENTINEL = -1;
+constexpr int ROPE_SENTINEL = -1;
 
 template <class BoundingVolume>
 struct NodeWithLeftChildAndRope
