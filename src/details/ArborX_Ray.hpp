@@ -31,6 +31,11 @@ struct Vector : private Point
 {
   using Point::Point;
   using Point::operator[];
+  friend KOKKOS_FUNCTION constexpr bool operator==(Vector const &v,
+                                                   Vector const &w)
+  {
+    return v[0] == w[0] && v[1] == w[1] && v[2] == w[2];
+  }
 };
 
 KOKKOS_INLINE_FUNCTION constexpr Vector makeVector(Point const &begin,
@@ -55,12 +60,6 @@ KOKKOS_INLINE_FUNCTION constexpr Vector crossProduct(Vector const &v,
 {
   return {v[1] * w[2] - v[2] * w[1], v[2] * w[0] - v[0] * w[2],
           v[0] * w[1] - v[1] * w[0]};
-}
-
-KOKKOS_INLINE_FUNCTION constexpr bool operator==(Vector const &v,
-                                                 Vector const &w)
-{
-  return v[0] == w[0] && v[1] == w[1] && v[2] == w[2];
 }
 
 KOKKOS_INLINE_FUNCTION constexpr bool equals(Vector const &v, Vector const &w)
