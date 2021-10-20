@@ -166,7 +166,7 @@ bool intersects(Ray const &ray, Box const &box)
   auto const &origin = ray.origin();
   auto const &direction = ray.direction();
 
-  auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
   float max_min = -inf;
   float min_max = inf;
 
