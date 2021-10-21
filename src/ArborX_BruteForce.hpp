@@ -111,6 +111,7 @@ void BruteForce<MemorySpace>::query(ExecutionSpace const &space,
   using Tag = typename Details::AccessTraitsHelper<Access>::tag;
   static_assert(std::is_same<Tag, Details::SpatialPredicateTag>{},
                 "nearest query not implemented yet");
+  Details::check_valid_callback(callback, predicates);
 
   Kokkos::Profiling::pushRegion("ArborX::BruteForce::query::spatial");
 
