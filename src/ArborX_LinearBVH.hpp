@@ -204,13 +204,15 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
                              "ArborX::BVH::internal_and_leaf_nodes"),
           _size > 0 ? 2 * _size - 1 : 0)
 {
-  KokkosExt::ScopedProfileRegion guard("ArborX::BVH::BVH");
-
+  static_assert(
+      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
   Details::check_valid_access_traits(PrimitivesTag{}, primitives);
   using Access = AccessTraits<Primitives, PrimitivesTag>;
   static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                               ExecutionSpace>::value,
                 "Primitives must be accessible from the execution space");
+
+  KokkosExt::ScopedProfileRegion guard("ArborX::BVH::BVH");
 
   if (empty())
   {
@@ -280,11 +282,16 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
     ExecutionSpace const &space, Predicates const &predicates,
     Callback const &callback, Experimental::TraversalPolicy const &policy) const
 {
+  static_assert(
+      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
   Details::check_valid_access_traits(PredicatesTag{}, predicates);
-
   using Access = AccessTraits<Predicates, Traits::PredicatesTag>;
-  using Tag = typename Details::AccessTraitsHelper<Access>::tag;
+  static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
+                                              ExecutionSpace>::value,
+                "Predicates must be accessible from the execution space");
+  Details::check_valid_callback(callback, predicates);
 
+  using Tag = typename Details::AccessTraitsHelper<Access>::tag;
   auto profiling_prefix =
       std::string("ArborX::BVH::query::") +
       (std::is_same<Tag, Details::SpatialPredicateTag>{} ? "spatial"
