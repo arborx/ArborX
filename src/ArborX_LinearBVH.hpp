@@ -120,9 +120,6 @@ private:
   }
 
   KOKKOS_FUNCTION
-  node_type const *getRoot() const { return _internal_and_leaf_nodes.data(); }
-
-  KOKKOS_FUNCTION
   bounding_volume_type const *getRootBoundingVolumePtr() const
   {
     // Need address of the root node's bounding box to copy it back on the host,
