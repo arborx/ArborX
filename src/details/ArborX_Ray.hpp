@@ -31,6 +31,11 @@ struct Vector : private Point
 {
   using Point::Point;
   using Point::operator[];
+  friend KOKKOS_FUNCTION constexpr bool operator==(Vector const &v,
+                                                   Vector const &w)
+  {
+    return v[0] == w[0] && v[1] == w[1] && v[2] == w[2];
+  }
 };
 
 KOKKOS_INLINE_FUNCTION constexpr Vector makeVector(Point const &begin,
@@ -55,12 +60,6 @@ KOKKOS_INLINE_FUNCTION constexpr Vector crossProduct(Vector const &v,
 {
   return {v[1] * w[2] - v[2] * w[1], v[2] * w[0] - v[0] * w[2],
           v[0] * w[1] - v[1] * w[0]};
-}
-
-KOKKOS_INLINE_FUNCTION constexpr bool operator==(Vector const &v,
-                                                 Vector const &w)
-{
-  return v[0] == w[0] && v[1] == w[1] && v[2] == w[2];
 }
 
 KOKKOS_INLINE_FUNCTION constexpr bool equals(Vector const &v, Vector const &w)
@@ -149,12 +148,8 @@ Point returnCentroid(Ray const &ray) { return ray.origin(); }
 // inv_ray_dir[d] == 0 && (minCorner[d] == origin[d] || maxCorner[d] ==
 // origin[d])). This leads to NaN, which are not treated correctly (unless, as
 // in [1], the underlying min/max functions are able to ignore them). The issue
-// is discussed in more details in [2] and the webiste (key word: A minimal
+// is discussed in more details in [2] and the website (key word: A minimal
 // ray-tracer: rendering simple shapes).
-//
-// In the algorithm below, we explicitly ignoring NaN values, leading to
-// correct algorithm. An interesting side note is that per IEEE standard, all
-// comparisons with NaN are false.
 //
 // [1] Majercik, A., Crassin, C., Shirley, P., & McGuire, M. (2018). A ray-box
 // intersection algorithm and efficient dynamic voxel rendering. Journal of
@@ -171,7 +166,7 @@ bool intersects(Ray const &ray, Box const &box)
   auto const &origin = ray.origin();
   auto const &direction = ray.direction();
 
-  auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
   float max_min = -inf;
   float min_max = inf;
 
@@ -190,9 +185,9 @@ bool intersects(Ray const &ray, Box const &box)
       tmax = (minCorner[d] - origin[d]) / direction[d];
     }
 
-    if (!std::isnan(tmin) && max_min < tmin)
+    if (max_min < tmin)
       max_min = tmin;
-    if (!std::isnan(tmax) && min_max > tmax)
+    if (min_max > tmax)
       min_max = tmax;
   }
 
@@ -219,8 +214,9 @@ KOKKOS_INLINE_FUNCTION bool solveQuadratic(float const a, float const b,
   // Instead of doing a simple
   //    (-b +- std::sqrt(discriminant)) / (2*a)
   // we use a more stable algorithm with less loss of precision (see, for
-  // example, https://www.scratchapixel.com/lessons/3d-basic-rendering/
-  // minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection).
+  // clang-format off
+  // example, https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection).
+  // clang-format on
   auto const q = (b > 0) ? (-b - std::sqrt(discriminant)) / 2.0
                          : (-b + std::sqrt(discriminant)) / 2.0;
   x1 = q / a;
