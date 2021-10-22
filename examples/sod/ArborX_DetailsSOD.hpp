@@ -19,8 +19,65 @@ int constexpr NUM_SOD_BINS = 20 + 1;
 namespace ArborX
 {
 
-namespace Details
+namespace SOD
 {
+
+struct Parameters
+{
+  // Number of bins to profile
+  int _num_sod_bins = 20 + 1;
+  // Interparticle separation. Equal to rl/np, where rl is the boxsize of the
+  // simulation, and np is the number of particles
+  float _r_smooth = -1.f;
+  float _rho = -1.f;
+  float _sod_mass = -1.f;
+  float _rho_ratio = 200;
+  float _min_factor = 0.05;
+  float _max_factor = 2.0;
+
+  Parameters &setNumSODBins(int num_sod_bins)
+  {
+    ARBORX_ASSERT(num_sod_bins > 0);
+    _num_sod_bins = num_sod_bins;
+    return *this;
+  }
+  Parameters &setRSmooth(float r_smooth)
+  {
+    ARBORX_ASSERT(r_smooth > 0);
+    _r_smooth = r_smooth;
+    return *this;
+  }
+  Parameters &setRho(float rho)
+  {
+    ARBORX_ASSERT(rho > 0);
+    _rho = rho;
+    return *this;
+  }
+  Parameters &setSODMass(float sod_mass)
+  {
+    ARBORX_ASSERT(sod_mass > 0);
+    _sod_mass = sod_mass;
+    return *this;
+  }
+  Parameters &setRhoRatio(float rho_ratio)
+  {
+    ARBORX_ASSERT(rho_ratio > 0);
+    _rho_ratio = rho_ratio;
+    return *this;
+  }
+  Parameters &setMinFactor(float min_factor)
+  {
+    ARBORX_ASSERT(min_factor > 0);
+    _min_factor = min_factor;
+    return *this;
+  }
+  Parameters &setMaxFactor(float max_factor)
+  {
+    ARBORX_ASSERT(max_factor > 0);
+    _max_factor = max_factor;
+    return *this;
+  }
+};
 
 KOKKOS_INLINE_FUNCTION
 float rDelta(float r_min, float r_max)
@@ -199,22 +256,14 @@ struct SODParticles
 // Compute R_min and R_max for each FOF halo
 template <typename ExecutionSpace, typename FOFHaloMases>
 std::pair<float, Kokkos::View<float *, typename FOFHaloMases::memory_space>>
-computeSODRadii(ExecutionSpace const &exec_space,
+computeSODRadii(ExecutionSpace const &exec_space, Parameters const &params,
                 FOFHaloMases const &fof_halo_masses)
 {
   Kokkos::Profiling::pushRegion("ArborX::SOD::compute_sod_radii");
 
   using MemorySpace = typename FOFHaloMases::memory_space;
 
-  // HACC constants
-  float constexpr MIN_FACTOR = 0.05;
-  float constexpr MAX_FACTOR = 2.0;
-  float constexpr R_SMOOTH =
-      250.f / 3072; // interparticle separation, rl/np, where rl is the boxsize
-                    // of the simulation, and np is the number of particles
-  float constexpr SOD_MASS = 1e14;
-
-  float r_min = MIN_FACTOR * R_SMOOTH;
+  float r_min = params._min_factor * params._r_smooth;
 
   auto const num_halos = fof_halo_masses.extent(0);
   Kokkos::View<float *, MemorySpace> r_max(
@@ -224,8 +273,8 @@ computeSODRadii(ExecutionSpace const &exec_space,
       "ArborX::SOD::compute_r_max",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
       KOKKOS_LAMBDA(int i) {
-        float R_init = std::cbrt(fof_halo_masses(i) / SOD_MASS);
-        r_max(i) = MAX_FACTOR * R_init;
+        float R_init = std::cbrt(fof_halo_masses(i) / params._sod_mass);
+        r_max(i) = params._max_factor * R_init;
       });
 
   Kokkos::Profiling::popRegion();
@@ -238,7 +287,7 @@ template <typename ExecutionSpace, typename MemorySpace>
 std::pair<Kokkos::View<float * [NUM_SOD_BINS], MemorySpace>,
           Kokkos::View<float *[NUM_SOD_BINS], MemorySpace>>
 computeSODRhos(
-    ExecutionSpace const &exec_space, float RHO,
+    ExecutionSpace const &exec_space, Parameters const &params,
     Kokkos::View<double * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_masses,
     Kokkos::View<double * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_avg_radii) {
   Kokkos::Profiling::pushRegion("ArborX::SOD::compute_rhos");
@@ -270,7 +319,7 @@ computeSODRhos(
           sod_halo_bin_rhos(halo_index, bin_id) =
               ((accumulated_mass > 0 && volume > 0) ? accumulated_mass / volume
                                                     : 0);
-          rho_ratio = rho / RHO;
+          rho_ratio = rho / params._rho;
         }
       });
 
@@ -282,7 +331,7 @@ computeSODRhos(
 // Compute critical bins
 template <typename ExecutionSpace, typename MemorySpace>
 Kokkos::View<int *, MemorySpace> computeSODCriticalBins(
-    ExecutionSpace const &exec_space, float RHO, float DELTA,
+    ExecutionSpace const &exec_space, Parameters const &params,
     Kokkos::View<double * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_masses,
     Kokkos::View<int * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_counts,
     Kokkos::View<float * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_outer_radii)
@@ -312,10 +361,10 @@ Kokkos::View<int *, MemorySpace> computeSODCriticalBins(
           if (outer_radius > 0)
           {
             auto volume = 4.f / 3 * M_PI * pow(outer_radius, 3);
-            bin_rho_ratio_int = (accumulated_mass / volume) / RHO;
+            bin_rho_ratio_int = (accumulated_mass / volume) / params._rho;
           }
 
-          if (bin_rho_ratio_int <= DELTA)
+          if (bin_rho_ratio_int <= params._rho_ratio)
           {
             critical_bin_id = bin_id;
             break;
@@ -393,7 +442,7 @@ std::pair<
     Kokkos::View<
         int *,
         MemorySpace>> computeSODRdeltas(ExecutionSpace const & /*exec_space*/,
-                                        float DELTA, float RHO,
+                                        Parameters const &params,
                                         Kokkos::View<float *, MemorySpace>
                                             particle_masses,
                                         Kokkos::View<double * [NUM_SOD_BINS],
@@ -475,9 +524,9 @@ std::pair<
                     (1.1f * R_bin_outer); // see HACK comment above for details
 
           float volume = 4.f / 3 * M_PI * pow(r, 3);
-          float ratio = (mass / volume) / RHO;
+          float ratio = (mass / volume) / params._rho;
 
-          if (ratio <= DELTA)
+          if (ratio <= params._rho_ratio)
           {
             sod_halo_rdeltas_host(halo_index) = r;
             sod_halo_rdeltas_index_host(halo_index) = (i - bin_start);
@@ -499,7 +548,7 @@ std::pair<
   return std::make_pair(sod_halo_rdeltas_device, sod_halo_rdeltas_index_device);
 }
 
-} // namespace Details
+} // namespace SOD
 
 } // namespace ArborX
 

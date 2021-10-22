@@ -347,7 +347,15 @@ int main(int argc, char *argv[])
   // run SOD
   auto output_data = ArborX::sod(
       ExecutionSpace{}, input_data.particles, input_data.particle_masses,
-      input_data.fof_halo_centers, input_data.fof_halo_masses);
+      input_data.fof_halo_centers, input_data.fof_halo_masses,
+      ArborX::SOD::Parameters()
+          .setNumSODBins(21)
+          .setMinFactor(0.05)
+          .setMaxFactor(2.0)
+          .setRho(2.77536627e11)
+          .setRhoRatio(200)
+          .setRSmooth(250.f / 3072)
+          .setSODMass(1e14));
 
   // validate
   if (validate)
