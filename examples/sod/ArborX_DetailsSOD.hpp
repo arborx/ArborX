@@ -14,8 +14,6 @@
 
 #include <ArborX.hpp>
 
-int constexpr NUM_SOD_BINS = 20 + 1;
-
 namespace ArborX
 {
 
@@ -80,22 +78,22 @@ struct Parameters
 };
 
 KOKKOS_INLINE_FUNCTION
-float rDelta(float r_min, float r_max)
+float rDelta(float r_min, float r_max, int num_sod_bins)
 {
-  return log10(r_max / r_min) / (NUM_SOD_BINS - 1);
+  return log10(r_max / r_min) / (num_sod_bins - 1);
 }
 
 KOKKOS_INLINE_FUNCTION
-int binID(float r_min, float r_max, float r)
+int binID(float r_min, float r_max, float r, int num_sod_bins)
 {
 
-  float r_delta = rDelta(r_min, r_max);
+  float r_delta = rDelta(r_min, r_max, num_sod_bins);
 
   int bin_id = 0;
   if (r > r_min)
     bin_id = (int)floor(log10(r / r_min) / r_delta) + 1;
-  if (bin_id >= NUM_SOD_BINS)
-    bin_id = NUM_SOD_BINS - 1;
+  if (bin_id >= num_sod_bins)
+    bin_id = num_sod_bins - 1;
 
   return bin_id;
 }
@@ -105,9 +103,9 @@ struct BinAccumulator
 {
   Particles _particles;
   Kokkos::View<float *, MemorySpace> _particle_masses;
-  Kokkos::View<int * [NUM_SOD_BINS], MemorySpace> _sod_halo_bin_counts;
-  Kokkos::View<double * [NUM_SOD_BINS], MemorySpace> _sod_halo_bin_masses;
-  Kokkos::View<double * [NUM_SOD_BINS], MemorySpace> _sod_halo_bin_avg_radii;
+  Kokkos::View<int **, MemorySpace> _sod_halo_bin_counts;
+  Kokkos::View<double **, MemorySpace> _sod_halo_bin_masses;
+  Kokkos::View<double **, MemorySpace> _sod_halo_bin_avg_radii;
   Kokkos::View<Point *, MemorySpace> _fof_halo_centers;
   float _r_min;
   Kokkos::View<float *, MemorySpace> _r_max;
@@ -127,7 +125,9 @@ struct BinAccumulator
       return;
     }
 
-    int bin_id = binID(_r_min, _r_max(halo_index), dist);
+    int const num_sod_bins = _sod_halo_bin_masses.extent(1);
+
+    int bin_id = binID(_r_min, _r_max(halo_index), dist, num_sod_bins);
     Kokkos::atomic_fetch_add(&_sod_halo_bin_counts(halo_index, bin_id), 1);
     Kokkos::atomic_fetch_add(&_sod_halo_bin_masses(halo_index, bin_id),
                              _particle_masses(particle_index));
@@ -166,7 +166,7 @@ struct CriticalBinParticles
   Kokkos::View<float *, MemorySpace> _distances_augmented;
   Kokkos::View<int *, MemorySpace> _critical_bin_ids;
   Kokkos::View<Point *, MemorySpace> _fof_halo_centers;
-  Kokkos::View<float * [NUM_SOD_BINS], MemorySpace> _sod_halo_bin_outer_radii;
+  Kokkos::View<float **, MemorySpace> _sod_halo_bin_outer_radii;
   float _r_min;
   Kokkos::View<float *, MemorySpace> _r_max;
 
@@ -186,7 +186,9 @@ struct CriticalBinParticles
       return;
     }
 
-    auto bin_id = binID(_r_min, _r_max(halo_index), dist);
+    int const num_sod_bins = _sod_halo_bin_outer_radii.extent(1);
+
+    auto bin_id = binID(_r_min, _r_max(halo_index), dist, num_sod_bins);
     if (bin_id == _critical_bin_ids(halo_index))
     {
       auto pos =
@@ -226,6 +228,7 @@ struct SODParticles
   Kokkos::View<Point *, MemorySpace> _fof_halo_centers;
   float _r_min;
   Kokkos::View<float *, MemorySpace> _r_max;
+  int _num_sod_bins;
 
   using ParticlesAccess = AccessTraits<Particles, PrimitivesTag>;
 
@@ -243,7 +246,7 @@ struct SODParticles
       return;
     }
 
-    auto bin_id = binID(_r_min, _r_max(halo_index), dist);
+    auto bin_id = binID(_r_min, _r_max(halo_index), dist, _num_sod_bins);
     if (bin_id < _critical_bin_ids(halo_index))
     {
       auto pos =
@@ -284,30 +287,32 @@ computeSODRadii(ExecutionSpace const &exec_space, Parameters const &params,
 
 // Compute rho and rho_ratio
 template <typename ExecutionSpace, typename MemorySpace>
-std::pair<Kokkos::View<float * [NUM_SOD_BINS], MemorySpace>,
-          Kokkos::View<float *[NUM_SOD_BINS], MemorySpace>>
-computeSODRhos(
-    ExecutionSpace const &exec_space, Parameters const &params,
-    Kokkos::View<double * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_masses,
-    Kokkos::View<double * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_avg_radii) {
+std::pair<Kokkos::View<float **, MemorySpace>,
+          Kokkos::View<float **, MemorySpace>>
+computeSODRhos(ExecutionSpace const &exec_space, Parameters const &params,
+               Kokkos::View<double **, MemorySpace> sod_halo_bin_masses,
+               Kokkos::View<double **, MemorySpace> sod_halo_bin_avg_radii)
+{
   Kokkos::Profiling::pushRegion("ArborX::SOD::compute_rhos");
 
   auto const num_halos = sod_halo_bin_masses.extent(0);
 
-  Kokkos::View<float * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_rhos(
+  int const num_sod_bins = sod_halo_bin_masses.extent(1);
+
+  Kokkos::View<float **, MemorySpace> sod_halo_bin_rhos(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
                          "ArborX::SOD::sod_halo_bin_rhos"),
-      num_halos);
-  Kokkos::View<float * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_rho_ratios(
+      num_halos, num_sod_bins);
+  Kokkos::View<float **, MemorySpace> sod_halo_bin_rho_ratios(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
                          "ArborX::SOD::sod_halo_bin_rho_ratios"),
-      num_halos);
+      num_halos, num_sod_bins);
   Kokkos::parallel_for(
       "ArborX::SOD::compute_rhos",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
       KOKKOS_LAMBDA(int halo_index) {
         double accumulated_mass = 0.;
-        for (int bin_id = 0; bin_id < NUM_SOD_BINS; ++bin_id)
+        for (int bin_id = 0; bin_id < num_sod_bins; ++bin_id)
         {
           auto &rho = sod_halo_bin_rhos(halo_index, bin_id);
           auto &rho_ratio = sod_halo_bin_rho_ratios(halo_index, bin_id);
@@ -332,13 +337,14 @@ computeSODRhos(
 template <typename ExecutionSpace, typename MemorySpace>
 Kokkos::View<int *, MemorySpace> computeSODCriticalBins(
     ExecutionSpace const &exec_space, Parameters const &params,
-    Kokkos::View<double * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_masses,
-    Kokkos::View<int * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_counts,
-    Kokkos::View<float * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_outer_radii)
+    Kokkos::View<double **, MemorySpace> sod_halo_bin_masses,
+    Kokkos::View<int **, MemorySpace> sod_halo_bin_counts,
+    Kokkos::View<float **, MemorySpace> sod_halo_bin_outer_radii)
 {
   Kokkos::Profiling::pushRegion("ArborX::SOD::compute_critical_bins");
 
   auto const num_halos = sod_halo_bin_masses.extent(0);
+  int const num_sod_bins = sod_halo_bin_masses.extent(1);
 
   Kokkos::View<int *, MemorySpace> critical_bin_ids(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
@@ -352,7 +358,7 @@ Kokkos::View<int *, MemorySpace> computeSODCriticalBins(
         int &critical_bin_id = critical_bin_ids(halo_index);
 
         double accumulated_mass = 0.;
-        for (int bin_id = 0; bin_id < NUM_SOD_BINS; ++bin_id)
+        for (int bin_id = 0; bin_id < num_sod_bins; ++bin_id)
         {
           accumulated_mass += sod_halo_bin_masses(halo_index, bin_id);
           float outer_radius = sod_halo_bin_outer_radii(halo_index, bin_id);
@@ -376,7 +382,7 @@ Kokkos::View<int *, MemorySpace> computeSODCriticalBins(
           printf("%d (halo tag ?): max radius is not big enough, will "
                  "underestimate\n",
                  halo_index);
-          critical_bin_id = NUM_SOD_BINS - 1;
+          critical_bin_id = num_sod_bins - 1;
           while (sod_halo_bin_counts(halo_index, critical_bin_id) == 0)
             --critical_bin_id;
         }
@@ -409,24 +415,25 @@ Kokkos::View<int *, MemorySpace> computeSODCriticalBins(
 
 // Compute radii for SOD bins
 template <typename ExecutionSpace, typename MemorySpace>
-Kokkos::View<float *[NUM_SOD_BINS], MemorySpace>
+Kokkos::View<float **, MemorySpace>
 computeSODBinRadii(ExecutionSpace const &exec_space, float r_min,
-                   Kokkos::View<float *, MemorySpace> r_max) {
+                   Kokkos::View<float *, MemorySpace> r_max, int num_sod_bins)
+{
   Kokkos::Profiling::pushRegion("ArborX::SOD::compute_sod_bin_radii");
 
   auto const num_halos = r_max.extent(0);
 
-  Kokkos::View<float * [NUM_SOD_BINS], MemorySpace> sod_halo_bin_outer_radii(
+  Kokkos::View<float **, MemorySpace> sod_halo_bin_outer_radii(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
                          "ArborX::SOD::sod_halo_bin_outer_radii"),
-      num_halos);
+      num_halos, num_sod_bins);
   Kokkos::parallel_for(
       "ArborX::SOD::compute_bin_outer_radii",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
       KOKKOS_LAMBDA(int halo_index) {
-        float r_delta = rDelta(r_min, r_max(halo_index));
+        float r_delta = rDelta(r_min, r_max(halo_index), num_sod_bins);
         sod_halo_bin_outer_radii(halo_index, 0) = r_min;
-        for (int bin_id = 1; bin_id < NUM_SOD_BINS; ++bin_id)
+        for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
           sod_halo_bin_outer_radii(halo_index, bin_id) =
               pow(10.0, bin_id * r_delta) * r_min;
       });
@@ -437,28 +444,16 @@ computeSODBinRadii(ExecutionSpace const &exec_space, float r_min,
 }
 
 template <typename ExecutionSpace, typename MemorySpace>
-std::pair<
-    Kokkos::View<float *, MemorySpace>,
-    Kokkos::View<
-        int *,
-        MemorySpace>> computeSODRdeltas(ExecutionSpace const & /*exec_space*/,
-                                        Parameters const &params,
-                                        Kokkos::View<float *, MemorySpace>
-                                            particle_masses,
-                                        Kokkos::View<double * [NUM_SOD_BINS],
-                                                     MemorySpace>
-                                            sod_halo_bin_masses,
-                                        Kokkos::View<float * [NUM_SOD_BINS],
-                                                     MemorySpace>
-                                            sod_halo_bin_outer_radii,
-                                        Kokkos::View<int *, MemorySpace>
-                                            critical_bin_ids,
-                                        Kokkos::View<int *, MemorySpace>
-                                            critical_bin_offsets,
-                                        Kokkos::View<int *, MemorySpace>
-                                            sorted_critical_bin_indices,
-                                        Kokkos::View<float *, MemorySpace>
-                                            critical_bin_distances_augmented)
+std::pair<Kokkos::View<float *, MemorySpace>, Kokkos::View<int *, MemorySpace>>
+computeSODRdeltas(
+    ExecutionSpace const & /*exec_space*/, Parameters const &params,
+    Kokkos::View<float *, MemorySpace> particle_masses,
+    Kokkos::View<double **, MemorySpace> sod_halo_bin_masses,
+    Kokkos::View<float **, MemorySpace> sod_halo_bin_outer_radii,
+    Kokkos::View<int *, MemorySpace> critical_bin_ids,
+    Kokkos::View<int *, MemorySpace> critical_bin_offsets,
+    Kokkos::View<int *, MemorySpace> sorted_critical_bin_indices,
+    Kokkos::View<float *, MemorySpace> critical_bin_distances_augmented)
 {
   Kokkos::Profiling::pushRegion("ArborX::SOD::compute_r_delta");
 

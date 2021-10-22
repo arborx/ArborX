@@ -207,7 +207,8 @@ void loadHalosData(std::string const &filename, InputData &in,
 }
 
 void loadProfilesData(
-    std::string const &filename, ArborX::SODOutputData<Kokkos::HostSpace> &out,
+    std::string const &filename, int num_sod_bins,
+    ArborX::SODOutputData<Kokkos::HostSpace> &out,
     Kokkos::View<int64_t *, Kokkos::HostSpace> &out_fof_halo_tags)
 {
   std::cout << "Reading in \"" << filename << "\" in binary mode...";
@@ -217,43 +218,43 @@ void loadProfilesData(
   ARBORX_ASSERT(input.good());
 
   // The profile file does not contain first bin with < R_min)
-  ARBORX_ASSERT(NUM_SOD_BINS == 21);
+  ARBORX_ASSERT(num_sod_bins == 21);
 
   int num_records;
   input.read(reinterpret_cast<char *>(&num_records), 4);
-  ARBORX_ASSERT(num_records % (NUM_SOD_BINS - 1) == 0);
+  ARBORX_ASSERT(num_records % (num_sod_bins - 1) == 0);
 
-  int num_halos = num_records / (NUM_SOD_BINS - 1);
+  int num_halos = num_records / (num_sod_bins - 1);
 
   auto read_view = [&input](auto &view, int n) {
     Kokkos::resize(Kokkos::WithoutInitializing, view, n);
     input.read(reinterpret_cast<char *>(view.data()),
                n * sizeof(typename std::decay_t<decltype(view)>::value_type));
   };
-  auto read_bin_view = [&input](auto &view, int n) {
+  auto read_bin_view = [&input, &num_sod_bins](auto &view, int n) {
     using view_type = std::decay_t<decltype(view)>;
     using value_type = typename view_type::value_type;
 
     Kokkos::View<value_type *, typename view_type::device_type> v(
-        Kokkos::ViewAllocateWithoutInitializing("tmp"), n * (NUM_SOD_BINS - 1));
+        Kokkos::ViewAllocateWithoutInitializing("tmp"), n * (num_sod_bins - 1));
     input.read(reinterpret_cast<char *>(v.data()),
                v.extent(0) * sizeof(value_type));
 
     // First bin is unused, shift data
-    Kokkos::resize(Kokkos::WithoutInitializing, view, n);
+    Kokkos::resize(Kokkos::WithoutInitializing, view, n, num_sod_bins);
     for (int i = 0; i < n; ++i)
     {
       view(i, 0) = -1; // just want a value that is clearly unidentifiable
-      for (int j = 0; j < NUM_SOD_BINS - 1; ++j)
-        view(i, j + 1) = v(i * (NUM_SOD_BINS - 1) + j);
+      for (int j = 0; j < num_sod_bins - 1; ++j)
+        view(i, j + 1) = v(i * (num_sod_bins - 1) + j);
     }
   };
 
-  // FOF halo tags are repeated in groups of size NUM_SOD_BINS-1, make them
+  // FOF halo tags are repeated in groups of size num_sod_bins-1, make them
   // unique
   read_view(out_fof_halo_tags, num_records);
   for (int i = 1; i < num_halos; ++i)
-    out_fof_halo_tags(i) = out_fof_halo_tags(i * (NUM_SOD_BINS - 1));
+    out_fof_halo_tags(i) = out_fof_halo_tags(i * (num_sod_bins - 1));
   Kokkos::resize(out_fof_halo_tags, num_halos);
 
   read_bin_view(out.sod_halo_bin_ids, num_halos);
@@ -324,6 +325,8 @@ int main(int argc, char *argv[])
   printf("filename [halos]     : %s\n", filename_halos.c_str());
   printf("filename [profiles]  : %s\n", filename_profiles.c_str());
 
+  int const num_sod_bins = 20 + 1;
+
   // read in data
   InputData input_data;
   ArborX::SODOutputData<Kokkos::HostSpace> validation_data;
@@ -333,7 +336,7 @@ int main(int argc, char *argv[])
       "in_fof_halo_tags", 0);
   loadParticlesData(filename_particles, input_data, max_num_points);
   loadHalosData(filename_halos, input_data, in_fof_halo_tags, validation_data);
-  loadProfilesData(filename_profiles, validation_data,
+  loadProfilesData(filename_profiles, num_sod_bins, validation_data,
                    validation_fof_halo_tags);
 
   int const num_halos = input_data.fof_halo_centers.extent_int(0);
@@ -349,7 +352,7 @@ int main(int argc, char *argv[])
       ExecutionSpace{}, input_data.particles, input_data.particle_masses,
       input_data.fof_halo_centers, input_data.fof_halo_masses,
       ArborX::SOD::Parameters()
-          .setNumSODBins(21)
+          .setNumSODBins(num_sod_bins)
           .setMinFactor(0.05)
           .setMaxFactor(2.0)
           .setRho(2.77536627e11)
@@ -378,14 +381,14 @@ int main(int argc, char *argv[])
     for (int i = 0; i < num_halos; ++i)
     {
       bool matched = true;
-      for (int bin_id = 1; bin_id < NUM_SOD_BINS; ++bin_id)
+      for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
         matched &= (output_data.sod_halo_bin_outer_radii(i, bin_id) ==
                     validation_data.sod_halo_bin_outer_radii(i, bin_id));
       if (!matched)
       {
         printf("radii for halo tag %ld do not match: relative errors [",
                in_fof_halo_tags(i));
-        for (int bin_id = 1; bin_id < NUM_SOD_BINS; ++bin_id)
+        for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
         {
           auto error = relative_error(
               output_data.sod_halo_bin_outer_radii(i, bin_id),
@@ -403,17 +406,17 @@ int main(int argc, char *argv[])
     for (int i = 0; i < num_halos; ++i)
     {
       bool matched = true;
-      for (int bin_id = 1; bin_id < NUM_SOD_BINS; ++bin_id)
+      for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
         matched &= (output_data.sod_halo_bin_counts(i, bin_id) ==
                     validation_data.sod_halo_bin_counts(i, bin_id));
       if (!matched)
       {
         printf("counts for halo tag %ld do not match: validation = [",
                in_fof_halo_tags(i));
-        for (int bin_id = 1; bin_id < NUM_SOD_BINS; ++bin_id)
+        for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
           printf(" %d", validation_data.sod_halo_bin_counts(i, bin_id));
         printf(" ], errors = [");
-        for (int bin_id = 1; bin_id < NUM_SOD_BINS; ++bin_id)
+        for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
           printf(" %d", output_data.sod_halo_bin_counts(i, bin_id) -
                             validation_data.sod_halo_bin_counts(i, bin_id));
         printf(" ]\n");
@@ -422,23 +425,29 @@ int main(int argc, char *argv[])
 
     // bin masses
     printf(">>> validating bin masses\n");
+    max_error = 0.f;
     for (int i = 0; i < num_halos; ++i)
     {
       bool matched = true;
-      for (int bin_id = 1; bin_id < NUM_SOD_BINS; ++bin_id)
+      for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
         matched &= (output_data.sod_halo_bin_masses(i, bin_id) ==
                     validation_data.sod_halo_bin_masses(i, bin_id));
       if (!matched)
       {
         printf("masses for halo tag %ld do not match: relative errors [",
                in_fof_halo_tags(i));
-        for (int bin_id = 1; bin_id < NUM_SOD_BINS; ++bin_id)
-          printf(" %e", relative_error(
-                            output_data.sod_halo_bin_masses(i, bin_id),
-                            validation_data.sod_halo_bin_masses(i, bin_id)));
+        for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
+        {
+          auto error =
+              relative_error(output_data.sod_halo_bin_masses(i, bin_id),
+                             validation_data.sod_halo_bin_masses(i, bin_id));
+          max_error = std::max(error, max_error);
+          printf(" %e", error);
+        }
         printf(" ]\n");
       }
     }
+    printf(">>> bin masses max error = %e\n", max_error);
 
     // r_delta
     printf(">>> validating rdelta\n");
@@ -465,14 +474,14 @@ int main(int argc, char *argv[])
     for (int i = 0; i < num_halos; ++i)
     {
       bool matched = true;
-      for (int bin_id = 1; bin_id < NUM_SOD_BINS; ++bin_id)
+      for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
         matched &= (output_data.sod_halo_bin_rhos(i, bin_id) ==
                     validation_data.sod_halo_bin_rhos(i, bin_id));
       if (!matched)
       {
         printf("rho for halo tag %ld do not match: relative errors [",
                in_fof_halo_tags(i));
-        for (int bin_id = 1; bin_id < NUM_SOD_BINS; ++bin_id)
+        for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
         {
           auto error =
               relative_error(output_data.sod_halo_bin_rhos(i, bin_id),
