@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
   index.query(execution_space, Neighbors<MemorySpace>{particles, r}, indices,
               offsets);
 
-  Kokkos::View<float *[3], MemorySpace> forces("forces", n);
+  Kokkos::View<float * [3], MemorySpace> forces("forces", n);
   Kokkos::parallel_for(
       "compute_forces",
       Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
