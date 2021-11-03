@@ -486,11 +486,14 @@ int main(int argc, char *argv[])
   printf("#cluster points : %d [%.2f%%]\n", num_cluster_points,
          (100.f * num_cluster_points / data.size()));
 
+  bool success = true;
   if (verify)
   {
     auto passed = ArborX::Details::verifyDBSCAN(exec_space, primitives, eps,
                                                 core_min_size, labels);
     printf("Verification %s\n", (passed ? "passed" : "failed"));
+    if (!passed)
+      success = false;
   }
 
   if (!filename_labels.empty())
@@ -500,5 +503,5 @@ int main(int argc, char *argv[])
     printClusterSizesAndCenters(exec_space, primitives, cluster_indices,
                                 cluster_offset);
 
-  return EXIT_SUCCESS;
+  return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
