@@ -489,11 +489,9 @@ int main(int argc, char *argv[])
   bool success = true;
   if (verify)
   {
-    auto passed = ArborX::Details::verifyDBSCAN(exec_space, primitives, eps,
-                                                core_min_size, labels);
-    printf("Verification %s\n", (passed ? "passed" : "failed"));
-    if (!passed)
-      success = false;
+    success = ArborX::Details::verifyDBSCAN(exec_space, primitives, eps,
+                                            core_min_size, labels);
+    printf("Verification %s\n", (success ? "passed" : "failed"));
   }
 
   if (!filename_labels.empty())
