@@ -171,11 +171,10 @@ int main(int argc, char *argv[])
       KOKKOS_LAMBDA(int i) {
         auto const mass_i = 1.f; // FIXME
         auto const dt_m = dt / mass_i;
-        velocities(i, 0) += dt_m * forces(i, 0);
-        velocities(i, 1) += dt_m * forces(i, 1);
-        velocities(i, 2) += dt_m * forces(i, 2);
-        particles(i)[0] += dt * velocities(i, 0);
-        particles(i)[1] += dt * velocities(i, 1);
-        particles(i)[2] += dt * velocities(i, 2);
+        for (int d = 0; d < 3; ++d)
+        {
+          velocities(i, d) += dt_m * forces(i, d);
+          particles(i)[d] += dt * velocities(i, d);
+        }
       });
 }
