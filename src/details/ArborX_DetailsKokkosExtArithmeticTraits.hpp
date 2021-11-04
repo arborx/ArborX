@@ -14,10 +14,13 @@
 
 #include <cfloat> // DBL_MAX, DBL_EPSILON
 #include <cmath>  // HUGE_VAL
+#include <type_traits>
 
 namespace KokkosExt
 {
 namespace ArithmeticTraits
+{
+namespace Details
 {
 
 template <typename T>
@@ -63,6 +66,23 @@ template <>
 struct epsilon<double>
 {
   static constexpr double value = DBL_EPSILON;
+};
+
+} // namespace Details
+
+template <class T>
+struct infinity : Details::infinity<std::remove_cv_t<T>>
+{
+};
+
+template <class T>
+struct max : Details::max<std::remove_cv_t<T>>
+{
+};
+
+template <class T>
+struct epsilon : Details::epsilon<std::remove_cv_t<T>>
+{
 };
 
 } // namespace ArithmeticTraits
