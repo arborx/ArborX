@@ -20,6 +20,9 @@ pipeline {
                         sh 'apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y git cmake libboost-program-options-dev libboost-test-dev libbenchmark-dev'
                         sh 'rm -rf source* build* install*'
                         sh 'git clone https://github.com/kokkos/kokkos.git --branch develop --depth 1 source-kokkos'
+                        dir('source-kokkos') {
+                            sh 'git rev-parse --short HEAD'
+                        }
                         sh 'cmake -S source-kokkos -B build-kokkos -D CMAKE_INSTALL_PREFIX=$PWD/install-kokkos $CMAKE_OPTIONS -D Kokkos_ENABLE_CUDA=ON -D Kokkos_ENABLE_CUDA_LAMBDA=ON'
                         sh 'cmake --build build-kokkos --parallel 8'
                         sh 'cmake --install build-kokkos'
