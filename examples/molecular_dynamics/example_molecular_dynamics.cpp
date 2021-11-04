@@ -99,9 +99,10 @@ int main(int argc, char *argv[])
         Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
         KOKKOS_LAMBDA(int i) {
           RandomPool::generator_type generator = random_pool.get_state();
-          velocities(i, 0) = generator.frand(0.f, 1.f);
-          velocities(i, 1) = generator.frand(0.f, 1.f);
-          velocities(i, 2) = generator.frand(0.f, 1.f);
+          for (int d = 0; d < 3; ++d)
+          {
+            velocities(i, d) = generator.frand(0.f, 1.f);
+          }
           random_pool.free_state(generator);
         });
   }
