@@ -26,17 +26,15 @@ pipeline {
                         sh 'cmake -S source-kokkos -B build-kokkos -D CMAKE_INSTALL_PREFIX=$PWD/install-kokkos $CMAKE_OPTIONS -D Kokkos_ENABLE_CUDA=ON -D Kokkos_ENABLE_CUDA_LAMBDA=ON'
                         sh 'cmake --build build-kokkos --parallel 8'
                         sh 'cmake --install build-kokkos'
-                        sh 'cmake -B build-arborx -D CMAKE_INSTALL_PREFIX=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS'
+                        sh 'cmake -B build-arborx -D CMAKE_INSTALL_PREFIX=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS -D ARBORX_ENABLE_BENCHMARKS=ON'
                         sh 'cmake --build build-arborx --parallel 8'
+                        dir('build-arborx') {
+                            sh 'ctest $CTEST_OPTIONS'
+                        }
                         sh 'cmake --install build-arborx'
                         sh 'cmake -S examples -B build-examples -D ArborX_ROOT=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS'
                         sh 'cmake --build build-examples --parallel 8'
                         dir('build-examples') {
-                            sh 'ctest $CTEST_OPTIONS'
-                        }
-                        sh 'cmake -S benchmarks -B build-benchmarks -D ArborX_ROOT=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS'
-                        sh 'cmake --build build-benchmarks --parallel 8'
-                        dir('build-benchmarks') {
                             sh 'ctest $CTEST_OPTIONS'
                         }
                     }
