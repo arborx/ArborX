@@ -13,7 +13,7 @@ pipeline {
                         }
                     }
                     environment {
-                        CTEST_OPTIONS = '--no-compress-output -T Test'
+                        CTEST_OPTIONS = '--timeout 180 --no-compress-output -T Test'
                         CMAKE_OPTIONS = '-D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_STANDARD=17 -D CMAKE_CXX_EXTENSIONS=OFF'
                     }
                     steps {
