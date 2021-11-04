@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
           execution_space, {0, 0, 0}, {nx, ny, nz}),
       KOKKOS_LAMBDA(int i, int j, int k) {
         int const id = i * ny * nz + j * nz + k;
-        // fcc lattice
+        // face-centered cubic arrangement of particles
         particles[4 * id + 0] = {i * dx + .0f, j * dy + .0f, k * dz + .0f};
         particles[4 * id + 1] = {i * dx + .0f, j * dy + .5f, k * dz + .5f};
         particles[4 * id + 2] = {i * dx + .5f, j * dy + .0f, k * dz + .5f};
@@ -133,6 +133,8 @@ int main(int argc, char *argv[])
           auto const dy = y_i - particles(indices(j))[1];
           auto const dz = z_i - particles(indices(j))[2];
           auto const rsq = dx * dx + dy * dy + dz * dz;
+          // Typically, the neighbor search radius will be greater than the
+          // cut-off distance, hence the if condition below.
           auto const cutoff_sq_ij = KokkosExt::ArithmeticTraits::infinity<
               std::remove_cv_t<decltype(rsq)>>::value; // FIXME
           if (rsq < cutoff_sq_ij)
