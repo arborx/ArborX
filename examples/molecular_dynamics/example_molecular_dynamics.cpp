@@ -69,8 +69,8 @@ int main(int argc, char *argv[])
         particles[4 * id + 3] = {i * dx + .5f, j * dy + .5f, k * dz + .0f};
       });
 
-  Kokkos::View<float **, MemorySpace> velocities(
-      Kokkos::view_alloc("velocities", Kokkos::WithoutInitializing), n, 3);
+  Kokkos::View<float * [3], MemorySpace> velocities(
+      Kokkos::view_alloc("velocities", Kokkos::WithoutInitializing), n);
   { // scope so that random number generation resources are released
     using RandomPool = Kokkos::Random_XorShift64_Pool<ExecutionSpace>;
     RandomPool random_pool(5374857);
