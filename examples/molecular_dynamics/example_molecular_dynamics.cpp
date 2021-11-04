@@ -135,8 +135,8 @@ int main(int argc, char *argv[])
           auto const rsq = dx * dx + dy * dy + dz * dz;
           // Typically, the neighbor search radius will be greater than the
           // cut-off distance, hence the if condition below.
-          auto const cutoff_sq_ij = KokkosExt::ArithmeticTraits::infinity<
-              std::remove_cv_t<decltype(rsq)>>::value; // FIXME
+          auto const cutoff_sq_ij =
+              KokkosExt::ArithmeticTraits::infinity<decltype(rsq)>::value;
           if (rsq < cutoff_sq_ij)
           {
             auto const r2inv = static_cast<decltype(rsq)>(1) / rsq;
@@ -168,8 +168,8 @@ int main(int argc, char *argv[])
           auto const dy = y_i - particles(indices(j))[1];
           auto const dz = z_i - particles(indices(j))[2];
           auto const rsq = dx * dx + dy * dy + dz * dz;
-          auto const cutoff_sq_ij = KokkosExt::ArithmeticTraits::infinity<
-              std::remove_cv_t<decltype(rsq)>>::value; // FIXME
+          auto const cutoff_sq_ij =
+              KokkosExt::ArithmeticTraits::infinity<decltype(rsq)>::value;
           if (rsq < cutoff_sq_ij)
           {
             auto const r2inv = static_cast<decltype(rsq)>(1) / rsq;
