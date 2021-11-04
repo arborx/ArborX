@@ -57,11 +57,11 @@ int main(int argc, char *argv[])
 
   float const r = 3.f; // cut-off radius
 
-  Kokkos::Profiling::pushRegion("setup");
+  Kokkos::Profiling::pushRegion("Example::setup");
   Kokkos::View<ArborX::Point *, MemorySpace> particles(
-      Kokkos::view_alloc("points", Kokkos::WithoutInitializing), n);
+      Kokkos::view_alloc("Example::points", Kokkos::WithoutInitializing), n);
   Kokkos::parallel_for(
-      "make_particles",
+      "Example::make_particles",
       Kokkos::MDRangePolicy<Kokkos::Rank<3>, ExecutionSpace>(
           execution_space, {0, 0, 0}, {nx, ny, nz}),
       KOKKOS_LAMBDA(int i, int j, int k) {
@@ -74,13 +74,14 @@ int main(int argc, char *argv[])
       });
 
   Kokkos::View<float * [3], MemorySpace> velocities(
-      Kokkos::view_alloc("velocities", Kokkos::WithoutInitializing), n);
+      Kokkos::view_alloc("Example::velocities", Kokkos::WithoutInitializing),
+      n);
   { // scope so that random number generation resources are released
     using RandomPool = Kokkos::Random_XorShift64_Pool<ExecutionSpace>;
     RandomPool random_pool(5374857);
 
     Kokkos::parallel_for(
-        "assign_velocities",
+        "Example::assign_velocities",
         Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
         KOKKOS_LAMBDA(int i) {
           RandomPool::generator_type generator = random_pool.get_state();
@@ -95,14 +96,14 @@ int main(int argc, char *argv[])
 
   ArborX::BVH<MemorySpace> index(execution_space, particles);
 
-  Kokkos::View<int *, MemorySpace> indices("indices", 0);
-  Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
+  Kokkos::View<int *, MemorySpace> indices("Example::indices", 0);
+  Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
   index.query(execution_space, Neighbors<MemorySpace>{particles, r}, indices,
               offsets);
 
-  Kokkos::View<float * [3], MemorySpace> forces("forces", n);
+  Kokkos::View<float * [3], MemorySpace> forces("Example::forces", n);
   Kokkos::parallel_for(
-      "compute_forces",
+      "Example::compute_forces",
       Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
       KOKKOS_LAMBDA(int i) {
         auto const x_i = particles(i)[0];
@@ -138,7 +139,7 @@ int main(int argc, char *argv[])
 
   float potential_energy;
   Kokkos::parallel_reduce(
-      "compute_potential_energy",
+      "Example::compute_potential_energy",
       Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
       KOKKOS_LAMBDA(int i, float &local_energy) {
         auto const x_i = particles(i)[0];
@@ -165,7 +166,7 @@ int main(int argc, char *argv[])
       potential_energy);
 
   Kokkos::parallel_for(
-      "update_particles_position_and_velocity",
+      "Example::update_particles_position_and_velocity",
       Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
       KOKKOS_LAMBDA(int i) {
         auto const mass_i = 1.f; // FIXME
