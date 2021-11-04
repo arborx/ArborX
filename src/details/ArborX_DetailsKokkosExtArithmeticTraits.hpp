@@ -12,6 +12,25 @@
 #ifndef ARBORX_DETAILS_KOKKOS_EXT_ARITHMETIC_TRAITS_HPP
 #define ARBORX_DETAILS_KOKKOS_EXT_ARITHMETIC_TRAITS_HPP
 
+#include <Kokkos_Macros.hpp>
+#if KOKKOS_VERSION >= 30599
+#include <Kokkos_NumericTraits.hpp>
+namespace KokkosExt
+{
+namespace ArithmeticTraits
+{
+template <class T>
+using infinity = Kokkos::Experimental::infinity<T>;
+
+template <class T>
+using max = Kokkos::Experimental::finite_max<T>;
+
+template <class T>
+using epsilon = Kokkos::Experimental::epsilon<T>;
+} // namespace ArithmeticTraits
+} // namespace KokkosExt
+
+#else
 #include <cfloat> // DBL_MAX, DBL_EPSILON
 #include <cmath>  // HUGE_VAL
 #include <type_traits>
@@ -88,5 +107,6 @@ struct epsilon : Details::epsilon<std::remove_cv_t<T>>
 } // namespace ArithmeticTraits
 
 } // namespace KokkosExt
+#endif
 
 #endif
