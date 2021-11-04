@@ -124,8 +124,8 @@ int main(int argc, char *argv[])
           {
             auto const r2inv = static_cast<decltype(rsq)>(1) / rsq;
             auto const r6inv = r2inv * r2inv * r2inv;
-            auto const lj1_ij = 1.f; // FIXME
-            auto const lj2_ij = 1.f; // FIXME
+            auto const lj1_ij = 1.f;
+            auto const lj2_ij = 1.f;
             auto const fij = (r6inv * (lj1_ij * r6inv - lj2_ij)) * r2inv;
             fxi += dx * fij;
             fyi += dy * fij;
@@ -157,8 +157,8 @@ int main(int argc, char *argv[])
           {
             auto const r2inv = static_cast<decltype(rsq)>(1) / rsq;
             auto const r6inv = r2inv * r2inv * r2inv;
-            auto const lj1_ij = 1.f; // FIXME
-            auto const lj2_ij = 1.f; // FIXME
+            auto const lj1_ij = 1.f;
+            auto const lj2_ij = 1.f;
             local_energy = .5f * r6inv * (.5f * lj1_ij * r6inv - lj2_ij) / 6.f;
           }
         }
@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
       "Example::update_particles_position_and_velocity",
       Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
       KOKKOS_LAMBDA(int i) {
-        auto const mass_i = 1.f; // FIXME
+        auto const mass_i = 1.f;
         auto const dt_m = dt / mass_i;
         for (int d = 0; d < 3; ++d)
         {
