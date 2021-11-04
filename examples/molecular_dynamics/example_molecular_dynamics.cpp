@@ -44,15 +44,18 @@ int main(int argc, char *argv[])
 
   ExecutionSpace execution_space{};
 
-  float const dx = 1.f;
-  float const dy = 1.f;
-  float const dz = 1.f;
+  // face-centered cubic lattice parameters
+  float const dx = 1.7f;
+  float const dy = 1.7f;
+  float const dz = 1.7f;
   int const nx = 100;
   int const ny = 100;
   int const nz = 100;
   int const n = 4 * nx * ny * nz;
 
-  float const r = 1.f; // cut-off radius
+  auto const dt = 5e-3f; // time step
+
+  float const r = 3.f; // cut-off radius
 
   Kokkos::Profiling::pushRegion("setup");
   Kokkos::View<ArborX::Point *, MemorySpace> particles(
@@ -63,6 +66,7 @@ int main(int argc, char *argv[])
           execution_space, {0, 0, 0}, {nx, ny, nz}),
       KOKKOS_LAMBDA(int i, int j, int k) {
         int const id = i * ny * nz + j * nz + k;
+        // fcc lattice
         particles[4 * id + 0] = {i * dx + .0f, j * dy + .0f, k * dz + .0f};
         particles[4 * id + 1] = {i * dx + .0f, j * dy + .5f, k * dz + .5f};
         particles[4 * id + 2] = {i * dx + .5f, j * dy + .0f, k * dz + .5f};
@@ -164,7 +168,6 @@ int main(int argc, char *argv[])
       "update_particles_position_and_velocity",
       Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
       KOKKOS_LAMBDA(int i) {
-        auto const dt = 1.f;     // FIXME
         auto const mass_i = 1.f; // FIXME
         auto const dt_m = dt / mass_i;
         velocities(i, 0) += dt_m * forces(i, 0);
