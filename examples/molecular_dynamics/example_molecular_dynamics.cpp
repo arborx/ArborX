@@ -16,8 +16,8 @@
 template <class MemorySpace>
 struct Neighbors
 {
-  Kokkos::View<ArborX::Point *, MemorySpace> particles_;
-  float cutoff_radius_;
+  Kokkos::View<ArborX::Point *, MemorySpace> _particles;
+  float _radius;
 };
 
 template <class MemorySpace>
@@ -27,12 +27,11 @@ struct ArborX::AccessTraits<Neighbors<MemorySpace>, ArborX::PredicatesTag>
   using size_type = std::size_t;
   static KOKKOS_FUNCTION size_type size(Neighbors<MemorySpace> const &x)
   {
-    return x.particles_.extent(0);
+    return x._particles.extent(0);
   }
   static KOKKOS_FUNCTION auto get(Neighbors<MemorySpace> const &x, size_type i)
   {
-    return attach(intersects(Sphere{x.particles_(i), x.cutoff_radius_}),
-                  (int)i);
+    return attach(intersects(Sphere{x._particles(i), x._radius}), (int)i);
   }
 };
 
