@@ -35,6 +35,20 @@ struct ArborX::AccessTraits<Neighbors<MemorySpace>, ArborX::PredicatesTag>
   }
 };
 
+struct ExcludeSelfCollision
+{
+  template <class Predicate, class OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Predicate const &predicate, int i,
+                                  OutputFunctor const &out) const
+  {
+    int const j = getData(predicate);
+    if (i != j)
+    {
+      out(i);
+    }
+  }
+};
+
 int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
@@ -98,8 +112,8 @@ int main(int argc, char *argv[])
 
   Kokkos::View<int *, MemorySpace> indices("Example::indices", 0);
   Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
-  index.query(execution_space, Neighbors<MemorySpace>{particles, r}, indices,
-              offsets);
+  index.query(execution_space, Neighbors<MemorySpace>{particles, r},
+              ExcludeSelfCollision{}, indices, offsets);
 
   Kokkos::View<float * [3], MemorySpace> forces("Example::forces", n);
   Kokkos::parallel_for(
