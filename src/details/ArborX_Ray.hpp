@@ -70,7 +70,7 @@ KOKKOS_INLINE_FUNCTION constexpr bool equals(Vector const &v, Vector const &w)
 struct Ray
 {
   Point _origin = {};
-  Vector _direction = {0.f, 0.f, 0.f};
+  Vector _direction = {};
 
   KOKKOS_DEFAULTED_FUNCTION
   constexpr Ray() = default;
