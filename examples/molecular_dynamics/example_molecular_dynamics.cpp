@@ -62,9 +62,9 @@ int main(int argc, char *argv[])
   float const dx = 1.7f;
   float const dy = 1.7f;
   float const dz = 1.7f;
-  int const nx = 100;
-  int const ny = 100;
-  int const nz = 100;
+  int const nx = 10;
+  int const ny = 10;
+  int const nz = 10;
   int const n = 4 * nx * ny * nz;
 
   auto const dt = 5e-3f; // time step
