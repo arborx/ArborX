@@ -70,11 +70,10 @@ KOKKOS_INLINE_FUNCTION constexpr bool equals(Vector const &v, Vector const &w)
 struct Ray
 {
   Point _origin = {};
-  Experimental::Vector _direction = {0.f, 0.f, 0.f};
+  Vector _direction = {0.f, 0.f, 0.f};
 
   // We would like to use Scalar defined as:
-  // using Scalar =
-  //    std::decay_t<decltype(std::declval<Experimental::Vector>()[0])>;
+  // using Scalar = std::decay_t<decltype(std::declval<Vector>()[0])>;
   // However, this means using float to compute the norm. This creates a large
   // error in the norm that affects ray tracing for triangles. Casting the
   // norm from double to float once it has been computed is not enough to
@@ -86,7 +85,7 @@ struct Ray
   constexpr Ray() = default;
 
   KOKKOS_FUNCTION
-  Ray(Point const &origin, Experimental::Vector const &direction)
+  Ray(Point const &origin, Vector const &direction)
       : _origin(origin)
       , _direction(direction)
   {
@@ -94,7 +93,7 @@ struct Ray
   }
 
   KOKKOS_FUNCTION
-  static Scalar norm(Experimental::Vector const &v)
+  static Scalar norm(Vector const &v)
   {
     Scalar sq{};
     for (int d = 0; d < 3; ++d)
@@ -102,7 +101,7 @@ struct Ray
     return std::sqrt(sq);
   }
 
-  KOKKOS_FUNCTION static void normalize(Experimental::Vector &v)
+  KOKKOS_FUNCTION static void normalize(Vector &v)
   {
     auto const magv = norm(v);
     assert(magv > 0);
@@ -117,13 +116,10 @@ struct Ray
   constexpr Point const &origin() const { return _origin; }
 
   KOKKOS_FUNCTION
-  constexpr Experimental::Vector &direction() { return _direction; }
+  constexpr Vector &direction() { return _direction; }
 
   KOKKOS_FUNCTION
-  constexpr Experimental::Vector const &direction() const { return _direction; }
-
-  // FIXME avoid breaking Wenjun's code
-  using Vector [[deprecated]] = ArborX::Experimental::Vector;
+  constexpr Vector const &direction() const { return _direction; }
 };
 
 KOKKOS_INLINE_FUNCTION
