@@ -72,15 +72,6 @@ struct Ray
   Point _origin = {};
   Vector _direction = {0.f, 0.f, 0.f};
 
-  // We would like to use Scalar defined as:
-  // using Scalar = std::decay_t<decltype(std::declval<Vector>()[0])>;
-  // However, this means using float to compute the norm. This creates a large
-  // error in the norm that affects ray tracing for triangles. Casting the
-  // norm from double to float once it has been computed is not enough to
-  // improve the value of the normalized vector. Thus, the norm has to return a
-  // double.
-  using Scalar = double;
-
   KOKKOS_DEFAULTED_FUNCTION
   constexpr Ray() = default;
 
@@ -91,6 +82,28 @@ struct Ray
   {
     normalize(_direction);
   }
+
+  KOKKOS_FUNCTION
+  constexpr Point &origin() { return _origin; }
+
+  KOKKOS_FUNCTION
+  constexpr Point const &origin() const { return _origin; }
+
+  KOKKOS_FUNCTION
+  constexpr Vector &direction() { return _direction; }
+
+  KOKKOS_FUNCTION
+  constexpr Vector const &direction() const { return _direction; }
+
+private:
+  // We would like to use Scalar defined as:
+  // using Scalar = std::decay_t<decltype(std::declval<Vector>()[0])>;
+  // However, this means using float to compute the norm. This creates a large
+  // error in the norm that affects ray tracing for triangles. Casting the
+  // norm from double to float once it has been computed is not enough to
+  // improve the value of the normalized vector. Thus, the norm has to return a
+  // double.
+  using Scalar = double;
 
   KOKKOS_FUNCTION
   static Scalar norm(Vector const &v)
@@ -108,18 +121,6 @@ struct Ray
     for (int d = 0; d < 3; ++d)
       v[d] /= magv;
   }
-
-  KOKKOS_FUNCTION
-  constexpr Point &origin() { return _origin; }
-
-  KOKKOS_FUNCTION
-  constexpr Point const &origin() const { return _origin; }
-
-  KOKKOS_FUNCTION
-  constexpr Vector &direction() { return _direction; }
-
-  KOKKOS_FUNCTION
-  constexpr Vector const &direction() const { return _direction; }
 };
 
 KOKKOS_INLINE_FUNCTION
