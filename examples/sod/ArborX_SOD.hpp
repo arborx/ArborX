@@ -14,6 +14,7 @@
 
 #include <ArborX.hpp>
 #include <ArborX_DetailsSOD.hpp>
+#include <ArborX_SODStruct.hpp>
 
 namespace ArborX
 {
@@ -58,58 +59,26 @@ namespace SOD
 {
 
 template <typename MemorySpace>
-struct Spheres
+struct MassAvgRadiiCountProfiles
 {
-  Kokkos::View<Point *, MemorySpace> _centers;
-  Kokkos::View<float *, MemorySpace> _radii;
-};
+  Kokkos::View<ArborX::Point *, MemorySpace> _particles;
+  Kokkos::View<float *, MemorySpace> _particle_masses;
+  Kokkos::View<ArborX::Point *, MemorySpace> _fof_halo_centers;
+  Kokkos::View<double **, MemorySpace> _sod_halo_bin_masses;
+  Kokkos::View<int **, MemorySpace> _sod_halo_bin_counts;
+  Kokkos::View<double **, MemorySpace> _sod_halo_bin_avg_radii;
 
-template <typename Particles>
-struct ParticlesWrapper
-{
-  Particles _particles;
-};
-} // namespace SOD
-
-template <typename MemorySpace>
-struct AccessTraits<SOD::Spheres<MemorySpace>, PrimitivesTag>
-{
-  using memory_space = MemorySpace;
-
-  KOKKOS_FUNCTION static std::size_t
-  size(const SOD::Spheres<MemorySpace> &spheres)
+  KOKKOS_FUNCTION void operator()(int particle_index, int halo_index,
+                                  int bin_id) const
   {
-    return spheres._centers.extent(0);
-  }
-  KOKKOS_FUNCTION static Box get(SOD::Spheres<MemorySpace> const &spheres,
-                                 std::size_t const i)
-  {
-    auto const &c = spheres._centers(i);
-    auto const r = spheres._radii(i);
-    return {{c[0] - r, c[1] - r, c[2] - r}, {c[0] + r, c[1] + r, c[2] + r}};
+    Kokkos::atomic_fetch_add(&_sod_halo_bin_counts(halo_index, bin_id), 1);
+    Kokkos::atomic_fetch_add(&_sod_halo_bin_masses(halo_index, bin_id),
+                             _particle_masses(particle_index));
+    Kokkos::atomic_fetch_add(&_sod_halo_bin_avg_radii(halo_index, bin_id),
+                             Details::distance(_particles(particle_index),
+                                               _fof_halo_centers(halo_index)));
   }
 };
-
-template <typename Particles>
-struct AccessTraits<SOD::ParticlesWrapper<Particles>, PredicatesTag>
-{
-  using ParticlesAccess = AccessTraits<Particles, PrimitivesTag>;
-
-  using memory_space = typename ParticlesAccess::memory_space;
-  using Predicates = SOD::ParticlesWrapper<Particles>;
-
-  static KOKKOS_FUNCTION size_t size(Predicates const &w)
-  {
-    return ParticlesAccess::size(w._particles);
-  }
-  static KOKKOS_FUNCTION auto get(Predicates const &w, size_t i)
-  {
-    return attach(intersects(ParticlesAccess::get(w._particles, i)), (int)i);
-  }
-};
-
-namespace SOD
-{
 
 template <typename ExecutionSpace, typename MemorySpace, typename Particles,
           typename ParticleMasses, typename FOFHaloCenters,
@@ -149,6 +118,8 @@ void sodCore(ExecutionSpace const &exec_space, Particles &particles,
   BVH<MemorySpace> bvh(exec_space,
                        Spheres<MemorySpace>{fof_halo_centers, r_max});
 
+  SODStruct<MemorySpace> sod_struct(exec_space, fof_halo_centers, r_min, r_max);
+
   // Compute bin outer radii
   out.sod_halo_bin_outer_radii =
       computeSODBinRadii(exec_space, r_min, r_max, num_sod_bins);
@@ -162,13 +133,11 @@ void sodCore(ExecutionSpace const &exec_space, Particles &particles,
   Kokkos::View<double **, MemorySpace> sod_halo_bin_avg_radii(
       "ArborX::SOD::sod_halo_bin_avg_radii", num_halos, num_sod_bins);
   Kokkos::resize(out.sod_halo_bin_counts, num_halos, num_sod_bins);
-  bvh.query(
-      exec_space, ParticlesWrapper<Particles>{particles},
-      BinAccumulator<MemorySpace, Particles>{
-          particles, particle_masses, out.sod_halo_bin_counts,
-          sod_halo_bin_masses, sod_halo_bin_avg_radii, fof_halo_centers, r_min,
-          r_max},
-      Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
+  sod_struct.computeBinProfiles(
+      exec_space, particles, num_sod_bins,
+      MassAvgRadiiCountProfiles<MemorySpace>{
+          particles, particle_masses, fof_halo_centers, sod_halo_bin_masses,
+          out.sod_halo_bin_counts, sod_halo_bin_avg_radii});
   Kokkos::parallel_for(
       "ArborX::SOD::normalize_avg_radii",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
