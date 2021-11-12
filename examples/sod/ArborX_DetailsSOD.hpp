@@ -285,54 +285,6 @@ computeSODRadii(ExecutionSpace const &exec_space, Parameters const &params,
   return std::make_pair(r_min, r_max);
 }
 
-// Compute rho and rho_ratio
-template <typename ExecutionSpace, typename MemorySpace>
-std::pair<Kokkos::View<float **, MemorySpace>,
-          Kokkos::View<float **, MemorySpace>>
-computeSODRhos(ExecutionSpace const &exec_space, Parameters const &params,
-               Kokkos::View<double **, MemorySpace> sod_halo_bin_masses,
-               Kokkos::View<double **, MemorySpace> sod_halo_bin_avg_radii)
-{
-  Kokkos::Profiling::pushRegion("ArborX::SOD::compute_rhos");
-
-  auto const num_halos = sod_halo_bin_masses.extent(0);
-
-  int const num_sod_bins = sod_halo_bin_masses.extent(1);
-
-  Kokkos::View<float **, MemorySpace> sod_halo_bin_rhos(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                         "ArborX::SOD::sod_halo_bin_rhos"),
-      num_halos, num_sod_bins);
-  Kokkos::View<float **, MemorySpace> sod_halo_bin_rho_ratios(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                         "ArborX::SOD::sod_halo_bin_rho_ratios"),
-      num_halos, num_sod_bins);
-  Kokkos::parallel_for(
-      "ArborX::SOD::compute_rhos",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
-      KOKKOS_LAMBDA(int halo_index) {
-        double accumulated_mass = 0.;
-        for (int bin_id = 0; bin_id < num_sod_bins; ++bin_id)
-        {
-          auto &rho = sod_halo_bin_rhos(halo_index, bin_id);
-          auto &rho_ratio = sod_halo_bin_rho_ratios(halo_index, bin_id);
-
-          accumulated_mass += sod_halo_bin_masses(halo_index, bin_id);
-          auto avg_radius = sod_halo_bin_avg_radii(halo_index, bin_id);
-          auto volume = 4.f / 3 * M_PI * pow(avg_radius, 3);
-
-          sod_halo_bin_rhos(halo_index, bin_id) =
-              ((accumulated_mass > 0 && volume > 0) ? accumulated_mass / volume
-                                                    : 0);
-          rho_ratio = rho / params._rho;
-        }
-      });
-
-  Kokkos::Profiling::popRegion();
-
-  return std::make_pair(sod_halo_bin_rhos, sod_halo_bin_rho_ratios);
-}
-
 // Compute critical bins
 template <typename ExecutionSpace, typename MemorySpace>
 Kokkos::View<int *, MemorySpace> computeSODCriticalBins(

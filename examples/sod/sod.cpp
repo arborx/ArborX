@@ -261,8 +261,6 @@ void loadProfilesData(
   read_bin_view(out.sod_halo_bin_counts, num_halos);
   read_bin_view(out.sod_halo_bin_masses, num_halos);
   read_bin_view(out.sod_halo_bin_outer_radii, num_halos);
-  read_bin_view(out.sod_halo_bin_rhos, num_halos);
-  read_bin_view(out.sod_halo_bin_rho_ratios, num_halos);
   read_bin_view(out.sod_halo_bin_radial_velocities, num_halos);
 
   // Sort halos by tags for consistency
@@ -272,8 +270,6 @@ void loadProfilesData(
   applyPermutation2(host_space, permute, out.sod_halo_bin_counts);
   applyPermutation2(host_space, permute, out.sod_halo_bin_masses);
   applyPermutation2(host_space, permute, out.sod_halo_bin_outer_radii);
-  applyPermutation2(host_space, permute, out.sod_halo_bin_rhos);
-  applyPermutation2(host_space, permute, out.sod_halo_bin_rho_ratios);
   applyPermutation2(host_space, permute, out.sod_halo_bin_radial_velocities);
 
   printf("done\nRead in %d halos\n", num_halos);
@@ -467,32 +463,6 @@ int main(int argc, char *argv[])
       }
     }
     printf(">>> rdelta max error = %e\n", max_error);
-
-    // rho
-    printf(">>> validating rho\n");
-    max_error = 0.f;
-    for (int i = 0; i < num_halos; ++i)
-    {
-      bool matched = true;
-      for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
-        matched &= (output_data.sod_halo_bin_rhos(i, bin_id) ==
-                    validation_data.sod_halo_bin_rhos(i, bin_id));
-      if (!matched)
-      {
-        printf("rho for halo tag %ld do not match: relative errors [",
-               in_fof_halo_tags(i));
-        for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
-        {
-          auto error =
-              relative_error(output_data.sod_halo_bin_rhos(i, bin_id),
-                             validation_data.sod_halo_bin_rhos(i, bin_id));
-          max_error = std::max(error, max_error);
-          printf(" %e", error);
-        }
-        printf(" ]\n");
-      }
-    }
-    printf(">>> rho max error = %e\n", max_error);
   }
 
   return EXIT_SUCCESS;

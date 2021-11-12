@@ -34,8 +34,6 @@ struct SODOutputData
   BinView<int> sod_halo_bin_counts;
   BinView<float> sod_halo_bin_masses;
   BinView<float> sod_halo_bin_outer_radii;
-  BinView<float> sod_halo_bin_rhos;
-  BinView<float> sod_halo_bin_rho_ratios;
   BinView<float> sod_halo_bin_radial_velocities;
 
   View<int> sod_particles_offsets;
@@ -48,8 +46,6 @@ struct SODOutputData
       , sod_halo_bin_counts("sod_halo_bin_counts", 0, 0)
       , sod_halo_bin_masses("sod_halo_bin_masses", 0, 0)
       , sod_halo_bin_outer_radii("sod_halo_bin_outer_radii", 0, 0)
-      , sod_halo_bin_rhos("sod_halo_bin_rhos", 0, 0)
-      , sod_halo_bin_rho_ratios("sod_halo_bin_rho_ratios", 0, 0)
       , sod_halo_bin_radial_velocities("sod_hlo_bin_radial_velocities", 0, 0)
   {
   }
@@ -157,11 +153,6 @@ void sodCore(ExecutionSpace const &exec_space, Particles &particles,
           out.sod_halo_bin_masses(halo_index, bin_id) =
               sod_halo_bin_masses(halo_index, bin_id);
       });
-
-  // Compute rhos and rho ratios
-  std::tie(out.sod_halo_bin_rhos, out.sod_halo_bin_rho_ratios) = computeSODRhos(
-      exec_space, params, sod_halo_bin_masses, sod_halo_bin_avg_radii);
-  Kokkos::resize(sod_halo_bin_avg_radii, 0, 0); // free as not used aftewards
 
   // Figure out critical bins
   auto critical_bin_ids = computeSODCriticalBins(
@@ -338,9 +329,6 @@ auto sod(ExecutionSpace const &exec_space, Particles particles,
                     out_device.sod_halo_bin_outer_radii);
   copy_bins_to_host(out_host.sod_halo_bin_masses,
                     out_device.sod_halo_bin_masses);
-  copy_bins_to_host(out_host.sod_halo_bin_rhos, out_device.sod_halo_bin_rhos);
-  copy_bins_to_host(out_host.sod_halo_bin_rho_ratios,
-                    out_device.sod_halo_bin_rho_ratios);
   copy_bins_to_host(out_host.sod_halo_bin_counts,
                     out_device.sod_halo_bin_counts);
 
