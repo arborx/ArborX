@@ -62,7 +62,6 @@ struct MassAvgRadiiCountProfiles
   Kokkos::View<ArborX::Point *, MemorySpace> _fof_halo_centers;
   Kokkos::View<double **, MemorySpace> _sod_halo_bin_masses;
   Kokkos::View<int **, MemorySpace> _sod_halo_bin_counts;
-  Kokkos::View<double **, MemorySpace> _sod_halo_bin_avg_radii;
 
   KOKKOS_FUNCTION void operator()(int particle_index, int halo_index,
                                   int bin_id) const
@@ -70,9 +69,6 @@ struct MassAvgRadiiCountProfiles
     Kokkos::atomic_fetch_add(&_sod_halo_bin_counts(halo_index, bin_id), 1);
     Kokkos::atomic_fetch_add(&_sod_halo_bin_masses(halo_index, bin_id),
                              _particle_masses(particle_index));
-    Kokkos::atomic_fetch_add(&_sod_halo_bin_avg_radii(halo_index, bin_id),
-                             Details::distance(_particles(particle_index),
-                                               _fof_halo_centers(halo_index)));
   }
 };
 
@@ -126,22 +122,12 @@ void sodCore(ExecutionSpace const &exec_space, Particles &particles,
   // quantities to large
   Kokkos::View<double **, MemorySpace> sod_halo_bin_masses(
       "ArborX::SOD::sod_halo_bin_masses", num_halos, num_sod_bins);
-  Kokkos::View<double **, MemorySpace> sod_halo_bin_avg_radii(
-      "ArborX::SOD::sod_halo_bin_avg_radii", num_halos, num_sod_bins);
   Kokkos::resize(out.sod_halo_bin_counts, num_halos, num_sod_bins);
-  sod_struct.computeBinProfiles(
-      exec_space, particles, num_sod_bins,
-      MassAvgRadiiCountProfiles<MemorySpace>{
-          particles, particle_masses, fof_halo_centers, sod_halo_bin_masses,
-          out.sod_halo_bin_counts, sod_halo_bin_avg_radii});
-  Kokkos::parallel_for(
-      "ArborX::SOD::normalize_avg_radii",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
-      KOKKOS_LAMBDA(int halo_index) {
-        for (int bin_id = 0; bin_id < num_sod_bins; ++bin_id)
-          sod_halo_bin_avg_radii(halo_index, bin_id) /=
-              out.sod_halo_bin_counts(halo_index, bin_id);
-      });
+  sod_struct.computeBinProfiles(exec_space, particles, num_sod_bins,
+                                MassAvgRadiiCountProfiles<MemorySpace>{
+                                    particles, particle_masses,
+                                    fof_halo_centers, sod_halo_bin_masses,
+                                    out.sod_halo_bin_counts});
 
   Kokkos::resize(out.sod_halo_bin_masses, num_halos, num_sod_bins);
   Kokkos::parallel_for(

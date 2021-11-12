@@ -99,65 +99,6 @@ int binID(float r_min, float r_max, float r, int num_sod_bins)
 }
 
 template <typename MemorySpace, typename Particles>
-struct BinAccumulator
-{
-  Particles _particles;
-  Kokkos::View<float *, MemorySpace> _particle_masses;
-  Kokkos::View<int **, MemorySpace> _sod_halo_bin_counts;
-  Kokkos::View<double **, MemorySpace> _sod_halo_bin_masses;
-  Kokkos::View<double **, MemorySpace> _sod_halo_bin_avg_radii;
-  Kokkos::View<Point *, MemorySpace> _fof_halo_centers;
-  float _r_min;
-  Kokkos::View<float *, MemorySpace> _r_max;
-
-  using ParticlesAccess = AccessTraits<Particles, PrimitivesTag>;
-
-  template <typename Query>
-  KOKKOS_FUNCTION void operator()(Query const &query, int halo_index) const
-  {
-    auto particle_index = getData(query);
-    Point const &point = ParticlesAccess::get(_particles, particle_index);
-
-    float dist = Details::distance(point, _fof_halo_centers(halo_index));
-    if (dist > _r_max(halo_index))
-    {
-      // False positive
-      return;
-    }
-
-    int const num_sod_bins = _sod_halo_bin_masses.extent(1);
-
-    int bin_id = binID(_r_min, _r_max(halo_index), dist, num_sod_bins);
-    Kokkos::atomic_fetch_add(&_sod_halo_bin_counts(halo_index, bin_id), 1);
-    Kokkos::atomic_fetch_add(&_sod_halo_bin_masses(halo_index, bin_id),
-                             _particle_masses(particle_index));
-    Kokkos::atomic_fetch_add(&_sod_halo_bin_avg_radii(halo_index, bin_id),
-                             dist);
-  }
-};
-
-template <typename MemorySpace, typename Particles>
-struct OverlapCount
-{
-  Particles _particles;
-  Kokkos::View<int *, MemorySpace> _counts;
-  Kokkos::View<Point *, MemorySpace> _centers;
-  Kokkos::View<float *, MemorySpace> _radii;
-
-  using ParticlesAccess = AccessTraits<Particles, PrimitivesTag>;
-
-  template <typename Query>
-  KOKKOS_FUNCTION auto operator()(Query const &query, int halo_index) const
-  {
-    auto particle_index = getData(query);
-
-    Point const &particle = ParticlesAccess::get(_particles, particle_index);
-    if (Details::distance(particle, _centers(halo_index)) <= _radii(halo_index))
-      ++_counts(particle_index);
-  }
-};
-
-template <typename MemorySpace, typename Particles>
 struct CriticalBinParticles
 {
   Particles _particles;
