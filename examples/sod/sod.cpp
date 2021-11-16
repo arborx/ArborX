@@ -9,7 +9,6 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_Ray.hpp> // Vector
 #include <ArborX_SOD.hpp>
 #include <ArborX_Version.hpp>
 
@@ -35,6 +34,37 @@ struct InputData
       , particle_masses("particle_masses", 0)
       , fof_halo_centers("fof_halo_centers", 0)
       , fof_halo_masses("fof_halo_masses", 0)
+  {
+  }
+};
+
+template <typename MemorySpace>
+struct OutputData
+{
+  template <typename T>
+  using View = Kokkos::View<T *, MemorySpace>;
+  template <typename T>
+  using BinView = Kokkos::View<T **, MemorySpace>;
+
+  View<float> sod_halo_masses;
+  View<float> sod_halo_rdeltas;
+
+  BinView<int> sod_halo_bin_ids;
+  BinView<int> sod_halo_bin_counts;
+  BinView<float> sod_halo_bin_masses;
+  BinView<float> sod_halo_bin_outer_radii;
+  BinView<float> sod_halo_bin_radial_velocities;
+
+  View<int> sod_particles_offsets;
+  View<int> sod_particles_indices;
+
+  OutputData()
+      : sod_halo_masses("sod_halo_masses", 0)
+      , sod_halo_rdeltas("sod_halo_rdeltas", 0)
+      , sod_halo_bin_ids("sod_halo_bin_ids", 0, 0)
+      , sod_halo_bin_counts("sod_halo_bin_counts", 0, 0)
+      , sod_halo_bin_masses("sod_halo_bin_masses", 0, 0)
+      , sod_halo_bin_radial_velocities("sod_hlo_bin_radial_velocities", 0, 0)
   {
   }
 };
@@ -107,7 +137,7 @@ void loadParticlesData(std::string const &filename, InputData &in,
 
 void loadHalosData(std::string const &filename, InputData &in,
                    Kokkos::View<int64_t *, Kokkos::HostSpace> &in_fof_halo_tags,
-                   ArborX::SODOutputData<Kokkos::HostSpace> &out)
+                   OutputData<Kokkos::HostSpace> &out)
 {
   std::cout << "Reading in \"" << filename << "\" in binary mode...";
   std::cout.flush();
@@ -208,7 +238,7 @@ void loadHalosData(std::string const &filename, InputData &in,
 
 void loadProfilesData(
     std::string const &filename, int num_sod_bins,
-    ArborX::SODOutputData<Kokkos::HostSpace> &out,
+    OutputData<Kokkos::HostSpace> &out,
     Kokkos::View<int64_t *, Kokkos::HostSpace> &out_fof_halo_tags)
 {
   std::cout << "Reading in \"" << filename << "\" in binary mode...";
@@ -277,9 +307,122 @@ void loadProfilesData(
   input.close();
 }
 
+template <typename MemorySpace>
+struct MassAvgRadiiCountProfiles
+{
+  Kokkos::View<ArborX::Point *, MemorySpace> _particles;
+  Kokkos::View<float *, MemorySpace> _particle_masses;
+  Kokkos::View<ArborX::Point *, MemorySpace> _fof_halo_centers;
+  Kokkos::View<double **, MemorySpace> _sod_halo_bin_masses;
+  Kokkos::View<int **, MemorySpace> _sod_halo_bin_counts;
+
+  KOKKOS_FUNCTION void operator()(int particle_index, int halo_index,
+                                  int bin_id) const
+  {
+    Kokkos::atomic_fetch_add(&_sod_halo_bin_counts(halo_index, bin_id), 1);
+    Kokkos::atomic_fetch_add(&_sod_halo_bin_masses(halo_index, bin_id),
+                             _particle_masses(particle_index));
+  }
+};
+
+// Compute R_min and R_max for each FOF halo
+template <typename ExecutionSpace, typename FOFHaloMases>
+std::pair<float, Kokkos::View<float *, typename FOFHaloMases::memory_space>>
+computeSODRadii(ExecutionSpace const &exec_space,
+                ArborX::SOD::Parameters const &params,
+                FOFHaloMases const &fof_halo_masses)
+{
+  Kokkos::Profiling::pushRegion("ArborX::SOD::compute_sod_radii");
+
+  using MemorySpace = typename FOFHaloMases::memory_space;
+
+  float r_min = params._min_factor * params._r_smooth;
+
+  auto const num_halos = fof_halo_masses.extent(0);
+  Kokkos::View<float *, MemorySpace> r_max(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::SOD::r_max"),
+      num_halos);
+  Kokkos::parallel_for(
+      "ArborX::SOD::compute_r_max",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
+      KOKKOS_LAMBDA(int i) {
+        float R_init = std::cbrt(fof_halo_masses(i) / params._sod_mass);
+        r_max(i) = params._max_factor * R_init;
+      });
+
+  Kokkos::Profiling::popRegion();
+
+  return std::make_pair(r_min, r_max);
+}
+
+template <typename ExecutionSpace, typename MemorySpace, typename Particles,
+          typename ParticleMasses, typename FOFHaloCenters,
+          typename FOFHaloMasses>
+void sod(ExecutionSpace const &exec_space, Particles &particles,
+         ParticleMasses &particle_masses, FOFHaloCenters &fof_halo_centers,
+         FOFHaloMasses &fof_halo_masses, OutputData<MemorySpace> &out,
+         ArborX::SOD::Parameters const &params)
+{
+  static_assert(
+      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
+  static_assert(std::is_same<typename Particles::memory_space, MemorySpace>{},
+                "");
+  static_assert(
+      std::is_same<typename ParticleMasses::memory_space, MemorySpace>{}, "");
+  static_assert(
+      std::is_same<typename FOFHaloCenters::memory_space, MemorySpace>{}, "");
+  static_assert(
+      std::is_same<typename FOFHaloMasses::memory_space, MemorySpace>{}, "");
+
+  auto const num_halos = fof_halo_centers.extent(0);
+  auto const num_sod_bins = params._num_sod_bins;
+
+  // Compute R_min and R_max radii for every FOF halo
+  float r_min;
+  Kokkos::View<float *, MemorySpace> r_max;
+  std::tie(r_min, r_max) =
+      ArborX::Details::computeSODRadii(exec_space, params, fof_halo_masses);
+  Kokkos::resize(fof_halo_masses, 0); // free as not used afterwards
+
+  ArborX::SODHandle<MemorySpace> sod_handle(exec_space, fof_halo_centers, r_min,
+                                            r_max);
+
+  // Step 2: compute some profiles (mass, count, avg radius);
+  // NOTE: we will accumulate float quantities into double in order to
+  // avoid loss of precision, which will occur once we start adding small
+  // quantities to large
+  Kokkos::View<double **, MemorySpace> sod_halo_bin_masses(
+      "ArborX::SOD::sod_halo_bin_masses", num_halos, num_sod_bins);
+  Kokkos::resize(out.sod_halo_bin_counts, num_halos, num_sod_bins);
+  sod_handle.computeBinProfiles(exec_space, particles, num_sod_bins,
+                                MassAvgRadiiCountProfiles<MemorySpace>{
+                                    particles, particle_masses,
+                                    fof_halo_centers, sod_halo_bin_masses,
+                                    out.sod_halo_bin_counts});
+
+  Kokkos::resize(out.sod_halo_bin_masses, num_halos, num_sod_bins);
+  Kokkos::parallel_for(
+      "ArborX::SOD::copy_bin_masses",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
+      KOKKOS_LAMBDA(int halo_index) {
+        // double -> float conversion
+        for (int bin_id = 0; bin_id < num_sod_bins; ++bin_id)
+          out.sod_halo_bin_masses(halo_index, bin_id) =
+              sod_halo_bin_masses(halo_index, bin_id);
+      });
+
+  Kokkos::View<int *, MemorySpace> sod_halo_rdeltas_index(
+      "Examples:sod_halo_rdeltas_index", 0);
+  sod_handle.computeRdelta(exec_space, particles, particle_masses, params,
+                           out.sod_halo_rdeltas, sod_halo_rdeltas_index);
+
+  Kokkos::Profiling::popRegion();
+}
+
 int main(int argc, char *argv[])
 {
   using ExecutionSpace = Kokkos::DefaultExecutionSpace;
+  using MemorySpace = typename ExecutionSpace::memory_space;
 
   Kokkos::ScopeGuard guard(argc, argv);
 
@@ -324,18 +467,18 @@ int main(int argc, char *argv[])
   int const num_sod_bins = 20 + 1;
 
   // read in data
-  InputData input_data;
-  ArborX::SODOutputData<Kokkos::HostSpace> validation_data;
+  InputData in_host;
+  OutputData<Kokkos::HostSpace> validation_data;
   Kokkos::View<int64_t *, Kokkos::HostSpace> in_fof_halo_tags(
       "in_fof_halo_tags", 0);
   Kokkos::View<int64_t *, Kokkos::HostSpace> validation_fof_halo_tags(
       "in_fof_halo_tags", 0);
-  loadParticlesData(filename_particles, input_data, max_num_points);
-  loadHalosData(filename_halos, input_data, in_fof_halo_tags, validation_data);
+  loadParticlesData(filename_particles, in_host, max_num_points);
+  loadHalosData(filename_halos, in_host, in_fof_halo_tags, validation_data);
   loadProfilesData(filename_profiles, num_sod_bins, validation_data,
                    validation_fof_halo_tags);
 
-  int const num_halos = input_data.fof_halo_centers.extent_int(0);
+  int const num_halos = in_host.fof_halo_centers.extent_int(0);
 
   // Validate tags
   ARBORX_ASSERT(validation_fof_halo_tags.extent_int(0) ==
@@ -344,22 +487,65 @@ int main(int argc, char *argv[])
     ARBORX_ASSERT(in_fof_halo_tags(i) == validation_fof_halo_tags(i));
 
   // run SOD
-  auto output_data = ArborX::sod(
-      ExecutionSpace{}, input_data.particles, input_data.particle_masses,
-      input_data.fof_halo_centers, input_data.fof_halo_masses,
-      ArborX::SOD::Parameters()
-          .setNumSODBins(num_sod_bins)
-          .setMinFactor(0.05)
-          .setMaxFactor(2.0)
-          .setRho(2.77536627e11)
-          .setRhoRatio(200)
-          .setRSmooth(250.f / 3072)
-          .setSODMass(1e14));
+  ArborX::SOD::Parameters params;
+  params.setNumSODBins(num_sod_bins)
+      .setMinFactor(0.05)
+      .setMaxFactor(2.0)
+      .setRho(2.77536627e11)
+      .setRhoRatio(200)
+      .setRSmooth(250.f / 3072)
+      .setSODMass(1e14);
+
+  ExecutionSpace exec_space;
+
+  // Transfer data from host to device
+  Kokkos::Profiling::pushRegion("Example::copy_in_host_to_device");
+  Kokkos::View<ArborX::Point *, MemorySpace> particles_device =
+      Kokkos::create_mirror_view_and_copy(exec_space, in_host.particles);
+  Kokkos::View<float *, MemorySpace> particle_masses_device =
+      Kokkos::create_mirror_view_and_copy(exec_space, in_host.particle_masses);
+  Kokkos::View<ArborX::Point *, MemorySpace> fof_halo_centers_device =
+      Kokkos::create_mirror_view_and_copy(exec_space, in_host.fof_halo_centers);
+  Kokkos::View<float *, MemorySpace> fof_halo_masses_device =
+      Kokkos::create_mirror_view_and_copy(exec_space, in_host.fof_halo_masses);
+  Kokkos::Profiling::popRegion();
+
+  // Execute the kernels on the device
+  OutputData<MemorySpace> out_device;
+  sod(exec_space, particles_device, particle_masses_device,
+      fof_halo_centers_device, fof_halo_masses_device, out_device, params);
+
+  OutputData<Kokkos::HostSpace> out_host;
+
+  // Transfer data from device to host
+  Kokkos::Profiling::pushRegion("Example::copy_out_host_from_device");
+  auto copy_bins_to_host = [](auto &view_host, auto &view_device) {
+    auto view_mirror =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, view_device);
+    Kokkos::resize(Kokkos::WithoutInitializing, view_host,
+                   view_device.extent(0), view_device.extent(1));
+    Kokkos::deep_copy(view_host, view_mirror);
+  };
+  copy_bins_to_host(out_host.sod_halo_bin_masses,
+                    out_device.sod_halo_bin_masses);
+  copy_bins_to_host(out_host.sod_halo_bin_counts,
+                    out_device.sod_halo_bin_counts);
+
+  auto copy_to_host = [](auto &view_host, auto &view_device) {
+    Kokkos::resize(Kokkos::WithoutInitializing, view_host,
+                   view_device.extent(0));
+    Kokkos::deep_copy(view_host, view_device);
+  };
+  copy_to_host(out_host.sod_halo_rdeltas, out_device.sod_halo_rdeltas);
+  copy_to_host(out_host.sod_particles_offsets,
+               out_device.sod_particles_offsets);
+  copy_to_host(out_host.sod_particles_indices,
+               out_device.sod_particles_indices);
 
   // validate
   if (validate)
   {
-    auto const num_halos = input_data.fof_halo_centers.extent_int(0);
+    auto const num_halos = in_host.fof_halo_centers.extent_int(0);
 
     auto relative_error = [](auto a, auto b) {
       if (a != 0)
@@ -371,39 +557,13 @@ int main(int argc, char *argv[])
 
     float max_error;
 
-    // outer radii
-    printf(">>> validating radii\n");
-    max_error = 0.f;
-    for (int i = 0; i < num_halos; ++i)
-    {
-      bool matched = true;
-      for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
-        matched &= (output_data.sod_halo_bin_outer_radii(i, bin_id) ==
-                    validation_data.sod_halo_bin_outer_radii(i, bin_id));
-      if (!matched)
-      {
-        printf("radii for halo tag %ld do not match: relative errors [",
-               in_fof_halo_tags(i));
-        for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
-        {
-          auto error = relative_error(
-              output_data.sod_halo_bin_outer_radii(i, bin_id),
-              validation_data.sod_halo_bin_outer_radii(i, bin_id));
-          max_error = std::max(error, max_error);
-          printf(" %e", error);
-        }
-        printf(" ]\n");
-      }
-    }
-    printf(">>> radii max error = %e\n", max_error);
-
     // bin counts
     printf(">>> validating bin counts\n");
     for (int i = 0; i < num_halos; ++i)
     {
       bool matched = true;
       for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
-        matched &= (output_data.sod_halo_bin_counts(i, bin_id) ==
+        matched &= (out_host.sod_halo_bin_counts(i, bin_id) ==
                     validation_data.sod_halo_bin_counts(i, bin_id));
       if (!matched)
       {
@@ -413,7 +573,7 @@ int main(int argc, char *argv[])
           printf(" %d", validation_data.sod_halo_bin_counts(i, bin_id));
         printf(" ], errors = [");
         for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
-          printf(" %d", output_data.sod_halo_bin_counts(i, bin_id) -
+          printf(" %d", out_host.sod_halo_bin_counts(i, bin_id) -
                             validation_data.sod_halo_bin_counts(i, bin_id));
         printf(" ]\n");
       }
@@ -426,7 +586,7 @@ int main(int argc, char *argv[])
     {
       bool matched = true;
       for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
-        matched &= (output_data.sod_halo_bin_masses(i, bin_id) ==
+        matched &= (out_host.sod_halo_bin_masses(i, bin_id) ==
                     validation_data.sod_halo_bin_masses(i, bin_id));
       if (!matched)
       {
@@ -435,7 +595,7 @@ int main(int argc, char *argv[])
         for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
         {
           auto error =
-              relative_error(output_data.sod_halo_bin_masses(i, bin_id),
+              relative_error(out_host.sod_halo_bin_masses(i, bin_id),
                              validation_data.sod_halo_bin_masses(i, bin_id));
           max_error = std::max(error, max_error);
           printf(" %e", error);
@@ -450,7 +610,7 @@ int main(int argc, char *argv[])
     max_error = 0.f;
     for (int i = 0; i < num_halos; ++i)
     {
-      float a = output_data.sod_halo_rdeltas(i);
+      float a = out_host.sod_halo_rdeltas(i);
       float b = validation_data.sod_halo_rdeltas(i);
 
       if (a != b)

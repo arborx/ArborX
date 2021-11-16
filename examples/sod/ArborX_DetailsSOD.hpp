@@ -19,7 +19,6 @@ namespace ArborX
 
 namespace SOD
 {
-
 struct Parameters
 {
   // Number of bins to profile
@@ -76,6 +75,11 @@ struct Parameters
     return *this;
   }
 };
+
+} // namespace SOD
+
+namespace Details
+{
 
 KOKKOS_INLINE_FUNCTION
 float rDelta(float r_min, float r_max, int num_sod_bins)
@@ -200,7 +204,7 @@ struct SODParticles
 // Compute R_min and R_max for each FOF halo
 template <typename ExecutionSpace, typename FOFHaloMases>
 std::pair<float, Kokkos::View<float *, typename FOFHaloMases::memory_space>>
-computeSODRadii(ExecutionSpace const &exec_space, Parameters const &params,
+computeSODRadii(ExecutionSpace const &exec_space, SOD::Parameters const &params,
                 FOFHaloMases const &fof_halo_masses)
 {
   Kokkos::Profiling::pushRegion("ArborX::SOD::compute_sod_radii");
@@ -229,7 +233,7 @@ computeSODRadii(ExecutionSpace const &exec_space, Parameters const &params,
 // Compute critical bins
 template <typename ExecutionSpace, typename MemorySpace>
 Kokkos::View<int *, MemorySpace> computeSODCriticalBins(
-    ExecutionSpace const &exec_space, Parameters const &params,
+    ExecutionSpace const &exec_space, SOD::Parameters const &params,
     Kokkos::View<double **, MemorySpace> sod_halo_bin_masses,
     Kokkos::View<int **, MemorySpace> sod_halo_bin_counts,
     Kokkos::View<float **, MemorySpace> sod_halo_bin_outer_radii)
@@ -339,7 +343,7 @@ computeSODBinRadii(ExecutionSpace const &exec_space, float r_min,
 template <typename ExecutionSpace, typename MemorySpace>
 std::pair<Kokkos::View<float *, MemorySpace>, Kokkos::View<int *, MemorySpace>>
 computeSODRdeltas(
-    ExecutionSpace const & /*exec_space*/, Parameters const &params,
+    ExecutionSpace const & /*exec_space*/, SOD::Parameters const &params,
     Kokkos::View<float *, MemorySpace> particle_masses,
     Kokkos::View<double **, MemorySpace> sod_halo_bin_masses,
     Kokkos::View<float **, MemorySpace> sod_halo_bin_outer_radii,
@@ -436,7 +440,7 @@ computeSODRdeltas(
   return std::make_pair(sod_halo_rdeltas_device, sod_halo_rdeltas_index_device);
 }
 
-} // namespace SOD
+} // namespace Details
 
 } // namespace ArborX
 
