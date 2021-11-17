@@ -424,6 +424,13 @@ void sod(ExecutionSpace const &exec_space, Particles &particles,
   sod_handle.computeRdelta(exec_space, particles, particle_masses, params,
                            out.sod_halo_rdeltas, sod_halo_rdeltas_index);
 
+  // Free up memory that we don't need anymore
+  Kokkos::resize(particle_masses, 0);
+
+  Kokkos::View<int *, MemorySpace> offsets_all("Examples::offsets_all", 0);
+  Kokkos::View<int *, MemorySpace> indices_all("Examples::indices_all", 0);
+  sod_handle.query(exec_space, particles, offsets_all, indices_all);
+
   Kokkos::Profiling::popRegion();
 }
 

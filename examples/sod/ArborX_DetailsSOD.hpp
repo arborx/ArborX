@@ -125,44 +125,6 @@ struct CriticalBinParticles
   }
 };
 
-template <typename MemorySpace, typename Particles>
-struct SODParticles
-{
-  Particles _particles;
-  Kokkos::View<int *, MemorySpace> _sod_particles_offsets;
-  Kokkos::View<int *, MemorySpace> _sod_particles_indices;
-  Kokkos::View<int *, MemorySpace> _critical_bin_ids;
-  Kokkos::View<Point *, MemorySpace> _fof_halo_centers;
-  float _r_min;
-  Kokkos::View<float *, MemorySpace> _r_max;
-  int _num_sod_bins;
-
-  using ParticlesAccess = AccessTraits<Particles, PrimitivesTag>;
-
-  template <typename Query>
-  KOKKOS_FUNCTION void operator()(Query const &query, int halo_index) const
-  {
-    auto particle_index = getData(query);
-
-    Point const &particle = ParticlesAccess::get(_particles, particle_index);
-
-    float dist = Details::distance(particle, _fof_halo_centers(halo_index));
-    if (dist > _r_max(halo_index))
-    {
-      // False positive
-      return;
-    }
-
-    auto bin_id = binID(_r_min, _r_max(halo_index), dist, _num_sod_bins);
-    if (bin_id < _critical_bin_ids(halo_index))
-    {
-      auto pos =
-          Kokkos::atomic_fetch_add(&_sod_particles_offsets(halo_index), 1);
-      _sod_particles_indices(pos) = particle_index;
-    }
-  }
-};
-
 // Compute critical bins
 template <typename ExecutionSpace, typename MemorySpace>
 Kokkos::View<int *, MemorySpace> computeSODCriticalBins(
@@ -213,7 +175,8 @@ Kokkos::View<int *, MemorySpace> computeSODCriticalBins(
                  "underestimate\n",
                  halo_index);
           critical_bin_id = num_sod_bins - 1;
-          while (sod_halo_bin_counts(halo_index, critical_bin_id) == 0)
+          while (sod_halo_bin_counts(halo_index, critical_bin_id) == 0 &&
+                 critical_bin_id > 0)
             --critical_bin_id;
         }
         else if (critical_bin_id == 0)
@@ -221,7 +184,8 @@ Kokkos::View<int *, MemorySpace> computeSODCriticalBins(
           printf("%d (halo tag ?): min radius is not small enough, will "
                  "overestimate\n",
                  halo_index);
-          while (sod_halo_bin_counts(halo_index, critical_bin_id) == 0)
+          while (sod_halo_bin_counts(halo_index, critical_bin_id) == 0 &&
+                 critical_bin_id < num_sod_bins - 1)
             ++critical_bin_id;
         }
 

@@ -117,6 +117,47 @@ struct MassAvgRadiiCountProfiles
   }
 };
 
+template <typename MemorySpace>
+struct SODParticlesCount
+{
+  Kokkos::View<int *, MemorySpace> _counts;
+
+  template <typename Query>
+  KOKKOS_FUNCTION void operator()(Query const &query, int halo_index) const
+  {
+    Kokkos::atomic_fetch_add(&_counts(halo_index), 1);
+  }
+};
+
+struct SODPair
+{
+  int index;
+  float distance;
+  friend KOKKOS_FUNCTION bool operator<(SODPair const &l, SODPair const &r)
+  {
+    return l.distance < r.distance;
+  }
+};
+
+template <typename MemorySpace>
+struct SODParticles
+{
+  Kokkos::View<int *, MemorySpace> _offsets;
+  Kokkos::View<ArborX::Point *, MemorySpace> _fof_halo_centers;
+  Kokkos::View<SODPair *, MemorySpace> _values;
+
+  template <typename Query>
+  KOKKOS_FUNCTION void operator()(Query const &query, int halo_index) const
+  {
+    auto offset = Kokkos::atomic_fetch_add(&_offsets(halo_index), 1);
+
+    int particle_index = getData(query);
+    _values(offset).index = particle_index;
+    _values(offset).distance =
+        distance(ArborX::getGeometry(query), _fof_halo_centers(halo_index));
+  }
+};
+
 } // namespace Details
 
 template <typename MemorySpace>
@@ -138,18 +179,76 @@ struct SODHandle
   {
   }
 
-#if 0
-  template <typename ExecutionSpace>
-  void query(ExecutionSpace const &exec_space,
-             Kokkos::View<ArborX::Point *, MemorySpace> const &particles,
+  template <typename ExecutionSpace, typename Particles>
+  void query(ExecutionSpace const &exec_space, Particles const &particles,
              Kokkos::View<int *, MemorySpace> &offsets,
              Kokkos::View<int *, MemorySpace> &indices) const
   {
-    bvh.query(exec_space, ParticlesWrapper<Particles>{particles},
-              SODParticles<MemorySpace, Particles>{offsets, indices});
-    // TODO: sort results based on distance
-  }
+    Kokkos::Profiling::pushRegion("ArborX::SODHandle::query");
+
+    auto const num_halos = _fof_halo_centers.extent(0);
+
+    // Do not sort for now, so as to not allocate additional memory, which would
+    // take 8*n bytes (4 for Morton index, 4 for permutation index). This will
+    // results in running out of memory for the hardest HACC problem on V100.
+    bool const sort_predicates = false;
+
+    Kokkos::resize(offsets, num_halos + 1);
+
+    // We do two passes (count and fill) here. However, we can't use the ArborX
+    // core for that as what we fill is not associated with each query, but
+    // rather with each halo.
+
+    Kokkos::Profiling::pushRegion(
+        "ArborX::SODHandle::query::compute_particle_pairs");
+
+    auto &counts = offsets; // alias
+    Kokkos::deep_copy(counts, 0);
+    _bvh.query(
+        exec_space, SOD::ParticlesWrapper<Particles>{particles},
+        Details::SODParticlesCount<MemorySpace>{counts},
+        Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
+
+    exclusivePrefixSum(exec_space, offsets);
+
+    auto const num_values = lastElement(offsets);
+    printf("# values for all particles: %d\n", num_values);
+
+    Kokkos::View<Details::SODPair *, MemorySpace> values(
+        "ArborX::SODHandle::query::values", num_values);
+    auto offsets_clone = cloneWithoutInitializingNorCopying(offsets);
+    _bvh.query(
+        exec_space, SOD::ParticlesWrapper<Particles>{particles},
+        Details::SODParticles<MemorySpace>{offsets_clone, _fof_halo_centers,
+                                           values},
+        Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
+
+    Kokkos::Profiling::popRegion();
+    Kokkos::Profiling::pushRegion("ArborX::SODHandle::query::sort_pairs");
+
+    std::ignore = indices;
+    // Sort
+#if 1
+    // This takes extra memory for permutation
+    sortObjects(exec_space, values);
+#else
+    auto const execution_policy =
+        thrust::cuda::par.on(exec_space.cuda_stream());
+    auto begin_ptr = thrust::device_ptr<Details::SODPair>(values.data());
+    auto end_ptr =
+        thrust::device_ptr<Details::SODPair>(values.data() + num_values);
+    thrust::sort(execution_policy, begin_ptr, end_ptr);
 #endif
+    Kokkos::Profiling::popRegion();
+
+    Kokkos::resize(indices, num_values);
+    Kokkos::parallel_for(
+        "ArborX::SODHandle::query::copy_pairs",
+        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_values),
+        KOKKOS_LAMBDA(int const i) { indices(i) = values(i).index; });
+
+    Kokkos::Profiling::popRegion();
+  }
 
   template <typename ExecutionSpace, typename Particles>
   void
@@ -159,6 +258,8 @@ struct SODHandle
                 Kokkos::View<float *, MemorySpace> &sod_halo_rdeltas,
                 Kokkos::View<int *, MemorySpace> &sod_halo_rdeltas_index) const
   {
+    Kokkos::Profiling::pushRegion("ArborX::SODHandle::compute_R_delta");
+
     // TODO: for now, this is fixed to the usual number used for profiles.
     // But it does not have to. Need to play around with it to see what's the
     // fastest.
@@ -253,6 +354,8 @@ struct SODHandle
       Kokkos::Profiling::popRegion();
     }
 
+    Kokkos::Profiling::pushRegion(
+        "ArborX::SODHandle::compute_R_delta::compute_r_delta");
     // Compute R_delta
     Kokkos::resize(sod_halo_rdeltas_index, 0);
     std::tie(sod_halo_rdeltas, sod_halo_rdeltas_index) =
@@ -260,8 +363,11 @@ struct SODHandle
             exec_space, params, particle_masses, sod_halo_bin_masses,
             sod_halo_bin_outer_radii, critical_bin_ids, critical_bin_offsets,
             critical_bin_indices, critical_bin_distances_augmented);
+    Kokkos::Profiling::popRegion();
 
-    Kokkos::Profiling::pushRegion("ArborX::SOD::find_sod_particles");
+    exec_space.fence();
+
+    Kokkos::Profiling::popRegion();
   }
 
   template <typename ExecutionSpace, typename Particles, typename Callback>
