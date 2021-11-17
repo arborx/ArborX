@@ -21,57 +21,19 @@ namespace SOD
 {
 struct Parameters
 {
-  // Number of bins to profile
-  int _num_sod_bins = 20 + 1;
-  // Interparticle separation. Equal to rl/np, where rl is the boxsize of the
-  // simulation, and np is the number of particles
-  float _r_smooth = -1.f;
   float _rho = -1.f;
-  float _sod_mass = -1.f;
   float _rho_ratio = 200;
-  float _min_factor = 0.05;
-  float _max_factor = 2.0;
 
-  Parameters &setNumSODBins(int num_sod_bins)
-  {
-    ARBORX_ASSERT(num_sod_bins > 0);
-    _num_sod_bins = num_sod_bins;
-    return *this;
-  }
-  Parameters &setRSmooth(float r_smooth)
-  {
-    ARBORX_ASSERT(r_smooth > 0);
-    _r_smooth = r_smooth;
-    return *this;
-  }
   Parameters &setRho(float rho)
   {
     ARBORX_ASSERT(rho > 0);
     _rho = rho;
     return *this;
   }
-  Parameters &setSODMass(float sod_mass)
-  {
-    ARBORX_ASSERT(sod_mass > 0);
-    _sod_mass = sod_mass;
-    return *this;
-  }
   Parameters &setRhoRatio(float rho_ratio)
   {
     ARBORX_ASSERT(rho_ratio > 0);
     _rho_ratio = rho_ratio;
-    return *this;
-  }
-  Parameters &setMinFactor(float min_factor)
-  {
-    ARBORX_ASSERT(min_factor > 0);
-    _min_factor = min_factor;
-    return *this;
-  }
-  Parameters &setMaxFactor(float max_factor)
-  {
-    ARBORX_ASSERT(max_factor > 0);
-    _max_factor = max_factor;
     return *this;
   }
 };
@@ -200,35 +162,6 @@ struct SODParticles
     }
   }
 };
-
-// Compute R_min and R_max for each FOF halo
-template <typename ExecutionSpace, typename FOFHaloMases>
-std::pair<float, Kokkos::View<float *, typename FOFHaloMases::memory_space>>
-computeSODRadii(ExecutionSpace const &exec_space, SOD::Parameters const &params,
-                FOFHaloMases const &fof_halo_masses)
-{
-  Kokkos::Profiling::pushRegion("ArborX::SOD::compute_sod_radii");
-
-  using MemorySpace = typename FOFHaloMases::memory_space;
-
-  float r_min = params._min_factor * params._r_smooth;
-
-  auto const num_halos = fof_halo_masses.extent(0);
-  Kokkos::View<float *, MemorySpace> r_max(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::SOD::r_max"),
-      num_halos);
-  Kokkos::parallel_for(
-      "ArborX::SOD::compute_r_max",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
-      KOKKOS_LAMBDA(int i) {
-        float R_init = std::cbrt(fof_halo_masses(i) / params._sod_mass);
-        r_max(i) = params._max_factor * R_init;
-      });
-
-  Kokkos::Profiling::popRegion();
-
-  return std::make_pair(r_min, r_max);
-}
 
 // Compute critical bins
 template <typename ExecutionSpace, typename MemorySpace>

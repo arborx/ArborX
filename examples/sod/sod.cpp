@@ -329,14 +329,14 @@ struct MassAvgRadiiCountProfiles
 template <typename ExecutionSpace, typename FOFHaloMases>
 std::pair<float, Kokkos::View<float *, typename FOFHaloMases::memory_space>>
 computeSODRadii(ExecutionSpace const &exec_space,
-                ArborX::SOD::Parameters const &params,
-                FOFHaloMases const &fof_halo_masses)
+                FOFHaloMases const &fof_halo_masses, float r_smooth,
+                float min_factor, float max_factor, float sod_mass)
 {
   Kokkos::Profiling::pushRegion("ArborX::SOD::compute_sod_radii");
 
   using MemorySpace = typename FOFHaloMases::memory_space;
 
-  float r_min = params._min_factor * params._r_smooth;
+  float r_min = min_factor * r_smooth;
 
   auto const num_halos = fof_halo_masses.extent(0);
   Kokkos::View<float *, MemorySpace> r_max(
@@ -346,8 +346,8 @@ computeSODRadii(ExecutionSpace const &exec_space,
       "ArborX::SOD::compute_r_max",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
       KOKKOS_LAMBDA(int i) {
-        float R_init = std::cbrt(fof_halo_masses(i) / params._sod_mass);
-        r_max(i) = params._max_factor * R_init;
+        float R_init = std::cbrt(fof_halo_masses(i) / sod_mass);
+        r_max(i) = max_factor * R_init;
       });
 
   Kokkos::Profiling::popRegion();
@@ -361,7 +361,7 @@ template <typename ExecutionSpace, typename MemorySpace, typename Particles,
 void sod(ExecutionSpace const &exec_space, Particles &particles,
          ParticleMasses &particle_masses, FOFHaloCenters &fof_halo_centers,
          FOFHaloMasses &fof_halo_masses, OutputData<MemorySpace> &out,
-         ArborX::SOD::Parameters const &params)
+         ArborX::SOD::Parameters const &params, int num_sod_bins)
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
@@ -375,19 +375,27 @@ void sod(ExecutionSpace const &exec_space, Particles &particles,
       std::is_same<typename FOFHaloMasses::memory_space, MemorySpace>{}, "");
 
   auto const num_halos = fof_halo_centers.extent(0);
-  auto const num_sod_bins = params._num_sod_bins;
+
+  // Interparticle separation. Equal to rl/np, where rl is the boxsize of the
+  // simulation, and np is the number of particles
+  constexpr float r_smooth = 250.f / 3072;
+  constexpr float min_factor = 0.05f;
+  constexpr float max_factor = 2.0f;
+  constexpr float sod_mass = 1e14;
 
   // Compute R_min and R_max radii for every FOF halo
+
+  // run SOD
   float r_min;
   Kokkos::View<float *, MemorySpace> r_max;
-  std::tie(r_min, r_max) =
-      ArborX::Details::computeSODRadii(exec_space, params, fof_halo_masses);
+  std::tie(r_min, r_max) = computeSODRadii(
+      exec_space, fof_halo_masses, r_smooth, min_factor, max_factor, sod_mass);
   Kokkos::resize(fof_halo_masses, 0); // free as not used afterwards
 
   ArborX::SODHandle<MemorySpace> sod_handle(exec_space, fof_halo_centers, r_min,
                                             r_max);
 
-  // Step 2: compute some profiles (mass, count, avg radius);
+  // Step 2: compute some profiles (e.g., mass)
   // NOTE: we will accumulate float quantities into double in order to
   // avoid loss of precision, which will occur once we start adding small
   // quantities to large
@@ -488,13 +496,7 @@ int main(int argc, char *argv[])
 
   // run SOD
   ArborX::SOD::Parameters params;
-  params.setNumSODBins(num_sod_bins)
-      .setMinFactor(0.05)
-      .setMaxFactor(2.0)
-      .setRho(2.77536627e11)
-      .setRhoRatio(200)
-      .setRSmooth(250.f / 3072)
-      .setSODMass(1e14);
+  params.setRho(2.77536627e11).setRhoRatio(200);
 
   ExecutionSpace exec_space;
 
@@ -513,7 +515,8 @@ int main(int argc, char *argv[])
   // Execute the kernels on the device
   OutputData<MemorySpace> out_device;
   sod(exec_space, particles_device, particle_masses_device,
-      fof_halo_centers_device, fof_halo_masses_device, out_device, params);
+      fof_halo_centers_device, fof_halo_masses_device, out_device, params,
+      num_sod_bins);
 
   OutputData<Kokkos::HostSpace> out_host;
 
