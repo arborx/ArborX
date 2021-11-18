@@ -102,7 +102,6 @@ struct Profiles
 template <typename MemorySpace>
 struct MassAvgRadiiCountProfiles
 {
-  Kokkos::View<ArborX::Point *, MemorySpace> _particles;
   Kokkos::View<float *, MemorySpace> _particle_masses;
   Kokkos::View<ArborX::Point *, MemorySpace> _fof_halo_centers;
   Kokkos::View<double **, MemorySpace> _sod_halo_bin_masses;
@@ -160,27 +159,29 @@ struct SODParticles
 
 } // namespace Details
 
-template <typename MemorySpace>
+template <typename MemorySpace, typename Particles>
 struct SODHandle
 {
+  Particles _particles;
   Kokkos::View<ArborX::Point *, MemorySpace> _fof_halo_centers;
   float _r_min;
   Kokkos::View<float *, MemorySpace> _r_max;
   BVH<MemorySpace> _bvh;
 
   template <typename ExecutionSpace>
-  SODHandle(ExecutionSpace const &exec_space,
+  SODHandle(ExecutionSpace const &exec_space, Particles particles,
             Kokkos::View<ArborX::Point *, MemorySpace> fof_halo_centers,
             float r_min, Kokkos::View<float *, MemorySpace> r_max)
-      : _fof_halo_centers(fof_halo_centers)
+      : _particles(particles)
+      , _fof_halo_centers(fof_halo_centers)
       , _r_min(r_min)
       , _r_max(r_max)
       , _bvh(exec_space, SOD::Spheres<MemorySpace>{fof_halo_centers, r_max})
   {
   }
 
-  template <typename ExecutionSpace, typename Particles>
-  void query(ExecutionSpace const &exec_space, Particles const &particles,
+  template <typename ExecutionSpace>
+  void query(ExecutionSpace const &exec_space,
              Kokkos::View<int *, MemorySpace> &offsets,
              Kokkos::View<int *, MemorySpace> &indices) const
   {
@@ -205,7 +206,7 @@ struct SODHandle
     auto &counts = offsets; // alias
     Kokkos::deep_copy(counts, 0);
     _bvh.query(
-        exec_space, SOD::ParticlesWrapper<Particles>{particles},
+        exec_space, SOD::ParticlesWrapper<Particles>{_particles},
         Details::SODParticlesCount<MemorySpace>{counts},
         Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
 
@@ -218,7 +219,7 @@ struct SODHandle
         "ArborX::SODHandle::query::values", num_values);
     auto offsets_clone = cloneWithoutInitializingNorCopying(offsets);
     _bvh.query(
-        exec_space, SOD::ParticlesWrapper<Particles>{particles},
+        exec_space, SOD::ParticlesWrapper<Particles>{_particles},
         Details::SODParticles<MemorySpace>{offsets_clone, _fof_halo_centers,
                                            values},
         Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
@@ -226,19 +227,10 @@ struct SODHandle
     Kokkos::Profiling::popRegion();
     Kokkos::Profiling::pushRegion("ArborX::SODHandle::query::sort_pairs");
 
-    std::ignore = indices;
     // Sort
-#if 1
-    // This takes extra memory for permutation
+    // NOTE: current implementation also computes a permutation, which is
+    // unnecessary
     sortObjects(exec_space, values);
-#else
-    auto const execution_policy =
-        thrust::cuda::par.on(exec_space.cuda_stream());
-    auto begin_ptr = thrust::device_ptr<Details::SODPair>(values.data());
-    auto end_ptr =
-        thrust::device_ptr<Details::SODPair>(values.data() + num_values);
-    thrust::sort(execution_policy, begin_ptr, end_ptr);
-#endif
     Kokkos::Profiling::popRegion();
 
     Kokkos::resize(indices, num_values);
@@ -250,9 +242,9 @@ struct SODHandle
     Kokkos::Profiling::popRegion();
   }
 
-  template <typename ExecutionSpace, typename Particles>
+  template <typename ExecutionSpace>
   void
-  computeRdelta(ExecutionSpace const &exec_space, Particles const &particles,
+  computeRdelta(ExecutionSpace const &exec_space,
                 Kokkos::View<float *, MemorySpace> const &particle_masses,
                 SOD::Parameters const &params,
                 Kokkos::View<float *, MemorySpace> &sod_halo_rdeltas,
@@ -284,9 +276,9 @@ struct SODHandle
         "ArborX::SOD::sod_halo_bin_masses", num_halos, num_sod_bins);
     Kokkos::View<int **, MemorySpace> sod_halo_bin_counts(
         "ArborX::SOD::sod_halo_bin_masses", num_halos, num_sod_bins);
-    computeBinProfiles(exec_space, particles, num_sod_bins,
+    computeBinProfiles(exec_space, num_sod_bins,
                        Details::MassAvgRadiiCountProfiles<MemorySpace>{
-                           particles, particle_masses, _fof_halo_centers,
+                           particle_masses, _fof_halo_centers,
                            sod_halo_bin_masses, sod_halo_bin_counts});
 
     // Figure out critical bins
@@ -326,9 +318,9 @@ struct SODHandle
     {
       auto offsets = clone(critical_bin_offsets);
       _bvh.query(
-          exec_space, SOD::ParticlesWrapper<Particles>{particles},
+          exec_space, SOD::ParticlesWrapper<Particles>{_particles},
           Details::CriticalBinParticles<MemorySpace, Particles>{
-              particles, offsets, critical_bin_indices,
+              _particles, offsets, critical_bin_indices,
               critical_bin_distances_augmented, critical_bin_ids,
               _fof_halo_centers, sod_halo_bin_outer_radii, _r_min, _r_max},
           Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
@@ -365,14 +357,22 @@ struct SODHandle
             critical_bin_indices, critical_bin_distances_augmented);
     Kokkos::Profiling::popRegion();
 
+    Kokkos::parallel_for(
+        "ArborX::SODHandle::compute_R_delta::update_rdeltas_index",
+        Kokkos::RangePolicy<ExecutionSpace>(0, num_halos),
+        KOKKOS_LAMBDA(int const halo_index) {
+          for (int bin_id = 0; bin_id < critical_bin_ids(halo_index); ++bin_id)
+            sod_halo_rdeltas_index(halo_index) +=
+                sod_halo_bin_counts(halo_index, bin_id);
+        });
+
     exec_space.fence();
 
     Kokkos::Profiling::popRegion();
   }
 
-  template <typename ExecutionSpace, typename Particles, typename Callback>
-  void computeBinProfiles(ExecutionSpace const &exec_space,
-                          Particles const &particles, int num_bins,
+  template <typename ExecutionSpace, typename Callback>
+  void computeBinProfiles(ExecutionSpace const &exec_space, int num_bins,
                           Callback const &callback) const
   {
     // Do not sort for now, so as to not allocate additional memory, which would
@@ -380,7 +380,7 @@ struct SODHandle
     // results in running out of memory for the hardest HACC problem on V100.
     bool const sort_predicates = false;
     _bvh.query(
-        exec_space, SOD::ParticlesWrapper<Particles>{particles},
+        exec_space, SOD::ParticlesWrapper<Particles>{_particles},
         Details::Profiles<MemorySpace, Callback>{_fof_halo_centers, _r_min,
                                                  _r_max, num_bins, callback},
         Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));

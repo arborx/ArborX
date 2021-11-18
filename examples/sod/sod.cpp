@@ -310,7 +310,6 @@ void loadProfilesData(
 template <typename MemorySpace>
 struct MassAvgRadiiCountProfiles
 {
-  Kokkos::View<ArborX::Point *, MemorySpace> _particles;
   Kokkos::View<float *, MemorySpace> _particle_masses;
   Kokkos::View<ArborX::Point *, MemorySpace> _fof_halo_centers;
   Kokkos::View<double **, MemorySpace> _sod_halo_bin_masses;
@@ -385,28 +384,29 @@ void sod(ExecutionSpace const &exec_space, Particles &particles,
 
   // Compute R_min and R_max radii for every FOF halo
 
-  // run SOD
+  // Compute max radii
+  // This is done on the user side and is provided by HACC
   float r_min;
   Kokkos::View<float *, MemorySpace> r_max;
   std::tie(r_min, r_max) = computeSODRadii(
       exec_space, fof_halo_masses, r_smooth, min_factor, max_factor, sod_mass);
   Kokkos::resize(fof_halo_masses, 0); // free as not used afterwards
 
-  ArborX::SODHandle<MemorySpace> sod_handle(exec_space, fof_halo_centers, r_min,
-                                            r_max);
+  ArborX::SODHandle<MemorySpace, Particles> sod_handle(
+      exec_space, particles, fof_halo_centers, r_min, r_max);
 
-  // Step 2: compute some profiles (e.g., mass)
+  // Compute some profiles (e.g., mass)
   // NOTE: we will accumulate float quantities into double in order to
   // avoid loss of precision, which will occur once we start adding small
   // quantities to large
   Kokkos::View<double **, MemorySpace> sod_halo_bin_masses(
       "ArborX::SOD::sod_halo_bin_masses", num_halos, num_sod_bins);
   Kokkos::resize(out.sod_halo_bin_counts, num_halos, num_sod_bins);
-  sod_handle.computeBinProfiles(exec_space, particles, num_sod_bins,
-                                MassAvgRadiiCountProfiles<MemorySpace>{
-                                    particles, particle_masses,
-                                    fof_halo_centers, sod_halo_bin_masses,
-                                    out.sod_halo_bin_counts});
+  sod_handle.computeBinProfiles(
+      exec_space, num_sod_bins,
+      MassAvgRadiiCountProfiles<MemorySpace>{particle_masses, fof_halo_centers,
+                                             sod_halo_bin_masses,
+                                             out.sod_halo_bin_counts});
 
   Kokkos::resize(out.sod_halo_bin_masses, num_halos, num_sod_bins);
   Kokkos::parallel_for(
@@ -421,7 +421,7 @@ void sod(ExecutionSpace const &exec_space, Particles &particles,
 
   Kokkos::View<int *, MemorySpace> sod_halo_rdeltas_index(
       "Examples:sod_halo_rdeltas_index", 0);
-  sod_handle.computeRdelta(exec_space, particles, particle_masses, params,
+  sod_handle.computeRdelta(exec_space, particle_masses, params,
                            out.sod_halo_rdeltas, sod_halo_rdeltas_index);
 
   // Free up memory that we don't need anymore
@@ -429,7 +429,7 @@ void sod(ExecutionSpace const &exec_space, Particles &particles,
 
   Kokkos::View<int *, MemorySpace> offsets_all("Examples::offsets_all", 0);
   Kokkos::View<int *, MemorySpace> indices_all("Examples::indices_all", 0);
-  sod_handle.query(exec_space, particles, offsets_all, indices_all);
+  sod_handle.query(exec_space, offsets_all, indices_all);
 
   Kokkos::Profiling::popRegion();
 }
