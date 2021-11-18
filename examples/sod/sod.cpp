@@ -429,9 +429,11 @@ void sod(ExecutionSpace const &exec_space, Particles const &particles,
   // Free up memory that we don't need anymore
   Kokkos::resize(particle_masses, 0);
 
+#if 0
   Kokkos::View<int *, MemorySpace> offsets_all("Examples::offsets_all", 0);
   Kokkos::View<int *, MemorySpace> indices_all("Examples::indices_all", 0);
   sod_handle.query(exec_space, offsets_all, indices_all);
+#endif
 
   Kokkos::Profiling::popRegion();
 }
