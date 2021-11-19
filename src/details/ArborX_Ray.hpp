@@ -134,19 +134,18 @@ KOKKOS_INLINE_FUNCTION
 Point returnCentroid(Ray const &ray) { return ray.origin(); }
 
 // The ray-box intersection algorithm is based on [1]. Their 'efficient slag'
-// algorithm checks the intersections both in front and behind the ray. The
-// function here checks the intersections in front of the ray.
+// algorithm checks the intersections both in front and behind the ray.
 //
 // There are few issues here. First, when a ray direction is aligned with one
 // of the axis, a division by zero will occur. This is fine, as usually it
 // results in +inf or -inf, which are treated correctly. However, it also leads
 // to the second situation, when it is 0/0 which occurs when the ray's origin
-// in that dimension is on the same plane as one of the corners (i.e., if
-// inv_ray_dir[d] == 0 && (minCorner[d] == origin[d] || maxCorner[d] ==
-// origin[d])). This leads to NaN, which are not treated correctly (unless, as
-// in [1], the underlying min/max functions are able to ignore them). The issue
-// is discussed in more details in [2] and the website (key word: A minimal
-// ray-tracer: rendering simple shapes).
+// in that dimension is on the same plane as one of the corners of the box
+// (i.e., if inv_ray_dir[d] == 0 && (min_corner[d] == origin[d] || max_corner[d]
+// == origin[d])). This leads to NaN, which are not treated correctly (unless,
+// as in [1], the underlying min/max functions are able to ignore them). The
+// issue is discussed in more details in [2] and the website (key word: A
+// minimal ray-tracer: rendering simple shapes).
 //
 // [1] Majercik, A., Crassin, C., Shirley, P., & McGuire, M. (2018). A ray-box
 // intersection algorithm and efficient dynamic voxel rendering. Journal of
@@ -156,39 +155,46 @@ Point returnCentroid(Ray const &ray) { return ray.origin(); }
 // efficient and robust ray-box intersection algorithm. In ACM SIGGRAPH 2005
 // Courses (pp. 9-es).
 KOKKOS_INLINE_FUNCTION
-bool intersects(Ray const &ray, Box const &box)
+bool intersection(Ray const &ray, Box const &box, float &tmin, float &tmax)
 {
-  auto const &minCorner = box.minCorner();
-  auto const &maxCorner = box.maxCorner();
-  auto const &origin = ray.origin();
-  auto const &direction = ray.direction();
+  auto const &min = box.minCorner();
+  auto const &max = box.maxCorner();
+  auto const &orig = ray.origin();
+  auto const &dir = ray.direction();
 
   constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
-  float max_min = -inf;
-  float min_max = inf;
+  tmin = -inf;
+  tmax = inf;
 
   for (int d = 0; d < 3; ++d)
   {
-    float tmin;
-    float tmax;
-    if (direction[d] >= 0)
+    float tdmin;
+    float tdmax;
+    if (dir[d] >= 0)
     {
-      tmin = (minCorner[d] - origin[d]) / direction[d];
-      tmax = (maxCorner[d] - origin[d]) / direction[d];
+      tdmin = (min[d] - orig[d]) / dir[d];
+      tdmax = (max[d] - orig[d]) / dir[d];
     }
     else
     {
-      tmin = (maxCorner[d] - origin[d]) / direction[d];
-      tmax = (minCorner[d] - origin[d]) / direction[d];
+      tdmin = (max[d] - orig[d]) / dir[d];
+      tdmax = (min[d] - orig[d]) / dir[d];
     }
-
-    if (max_min < tmin)
-      max_min = tmin;
-    if (min_max > tmax)
-      min_max = tmax;
+    if (tmin < tdmin)
+      tmin = tdmin;
+    if (tmax > tdmax)
+      tmax = tdmax;
   }
+  return (tmin <= tmax);
+}
 
-  return max_min <= min_max && (min_max >= 0);
+KOKKOS_INLINE_FUNCTION
+bool intersects(Ray const &ray, Box const &box)
+{
+  float tmin;
+  float tmax;
+  // intersects only if box is in front of the ray
+  return intersection(ray, box, tmin, tmax) && (tmax >= 0.f);
 }
 
 // Solves a*x^2 + b*x + c = 0.
