@@ -279,14 +279,8 @@ KOKKOS_INLINE_FUNCTION float overlapDistance(Ray const &ray,
 {
   float tmin;
   float tmax;
-  if (!intersection(ray, sphere, tmin, tmax))
+  if (!intersection(ray, sphere, tmin, tmax) || (tmax < 0))
   {
-    return 0.f;
-  }
-
-  if (tmax < 0)
-  {
-    // Half-ray does not intersect with the sphere
     return 0.f;
   }
 
