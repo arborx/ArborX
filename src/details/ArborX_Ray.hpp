@@ -265,13 +265,10 @@ KOKKOS_INLINE_FUNCTION bool intersection(Ray const &ray, Sphere const &sphere,
 
     return true;
   }
-  else
-  {
-    constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
-    tmin = inf;
-    tmax = -inf;
-    return false;
-  }
+  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  tmin = inf;
+  tmax = -inf;
+  return false;
 }
 
 KOKKOS_INLINE_FUNCTION float overlapDistance(Ray const &ray,
