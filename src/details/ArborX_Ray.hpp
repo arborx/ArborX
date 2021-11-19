@@ -14,6 +14,7 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // equal
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
+#include <ArborX_DetailsKokkosExtSwap.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
 
@@ -244,8 +245,8 @@ KOKKOS_INLINE_FUNCTION bool solveQuadratic(float const a, float const b,
 //     a2 = |d|^2, a1 = 2*(d, o - c), and a0 = |o - c|^2 - r^2.
 // Then, we only need to intersect the solution interval [tmin, tmax] with
 // [0, +inf) for the unidirectional ray.
-KOKKOS_INLINE_FUNCTION float overlapDistance(Ray const &ray,
-                                             Sphere const &sphere)
+KOKKOS_INLINE_FUNCTION bool intersection(Ray const &ray, Sphere const &sphere,
+                                         float &tmin, float &tmax)
 {
   auto const &r = sphere.radius();
 
@@ -256,15 +257,32 @@ KOKKOS_INLINE_FUNCTION float overlapDistance(Ray const &ray,
   float const a1 = 2.f * dotProduct(ray.direction(), oc);
   float const a0 = dotProduct(oc, oc) - r * r;
 
-  float t1;
-  float t2;
-  if (!solveQuadratic(a2, a1, a0, t1, t2))
+  if (solveQuadratic(a2, a1, a0, tmin, tmax))
   {
-    // No intersection of a bidirectional ray with the sphere
+    // ensures that tmin <= tmax
+    if (tmin > tmax)
+      KokkosExt::swap(tmin, tmax);
+
+    return true;
+  }
+  else
+  {
+    constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+    tmin = inf;
+    tmax = -inf;
+    return false;
+  }
+}
+
+KOKKOS_INLINE_FUNCTION float overlapDistance(Ray const &ray,
+                                             Sphere const &sphere)
+{
+  float tmin;
+  float tmax;
+  if (!intersection(ray, sphere, tmin, tmax))
+  {
     return 0.f;
   }
-  float tmin = KokkosExt::min(t1, t2);
-  float tmax = KokkosExt::max(t1, t2);
 
   if (tmax < 0)
   {
