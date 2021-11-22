@@ -19,7 +19,7 @@ BOOST_AUTO_TEST_CASE(intersects_box)
   using ArborX::Point;
   using ArborX::Experimental::Ray;
 
-  Box unit_box{{0, 0, 0}, {1, 1, 1}};
+  constexpr Box unit_box{{0, 0, 0}, {1, 1, 1}};
 
   // origin is within the box
   BOOST_TEST(intersects(Ray{{.5, .5, .5}, {1, 0, 0}}, unit_box));
@@ -156,6 +156,95 @@ BOOST_AUTO_TEST_CASE(intersects_box)
   BOOST_TEST(!intersects(Ray{{1, 1.5, 1}, {-2.1, -1, 0}}, unit_box));
 }
 
+#define ARBORX_TEST_RAY_BOX_INTERSECTION(ray, box, t0_ref, t1_ref)             \
+  do                                                                           \
+  {                                                                            \
+    float t0;                                                                  \
+    float t1;                                                                  \
+    BOOST_TEST(ArborX::Experimental::intersection(ray, box, t0, t1));          \
+    BOOST_TEST(t0 == t0_ref);                                                  \
+    BOOST_TEST(t1 == t1_ref);                                                  \
+  } while (false)
+
+#define ARBORX_TEST_RAY_BOX_NO_INTERSECTION(ray, box)                          \
+  do                                                                           \
+  {                                                                            \
+    float t0;                                                                  \
+    float t1;                                                                  \
+    constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;  \
+    BOOST_TEST(!ArborX::Experimental::intersection(ray, box, t0, t1));         \
+    BOOST_TEST((t0 == inf || t1 == -inf));                                     \
+  } while (false)
+
+BOOST_AUTO_TEST_CASE(ray_box_intersection, *boost::unit_test::tolerance(1e-6f))
+{
+  using ArborX::Box;
+  using ArborX::Experimental::Ray;
+
+  constexpr Box unit_box{{0, 0, 0}, {1, 1, 1}};
+
+  auto const sqrtf_5 = std::sqrt(5.f);
+  auto const sqrtf_3 = std::sqrt(3.f);
+  auto const sqrtf_2 = std::sqrt(2.f);
+
+  // clang-format off
+  // origin is within the box
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{.5, .5, .5}, {1, 0, 0}}), unit_box, -.5f, .5f);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{.5, .5, .5}, {0, 1, 0}}), unit_box, -.5f, .5f);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{.5, .5, .5}, {0, 0, 1}}), unit_box, -.5f, .5f);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{.5, .5, .5}, {1, 1, 0}}), unit_box, -.5f*sqrtf_2, .5f*sqrtf_2);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{.5, .5, .5}, {1, 1, 1}}), unit_box, -.5f*sqrtf_3, .5f*sqrtf_3);
+
+  // origin is outside the box
+  // hit the center of the face
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{-1, .5, .5}, {1, 0, 0}}), unit_box, 1.f, 2.f);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{-1, .5, .5}, {-1, 0, 0}}), unit_box, -2.f, -1.f);
+  ARBORX_TEST_RAY_BOX_NO_INTERSECTION((Ray{{-1, .5, .5}, {0, 1, 1}}), unit_box);
+  ARBORX_TEST_RAY_BOX_NO_INTERSECTION((Ray{{-1, .5, .5}, {0, 1, 1}}), unit_box);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{2, .5, .5}, {-1, 0, 0}}), unit_box, 1.f, 2.f);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{2, .5, .5}, {1, 0, 0}}), unit_box, -2.f, -1.f);
+  ARBORX_TEST_RAY_BOX_NO_INTERSECTION((Ray{{2, .5, .5}, {0, 1, 1}}), unit_box);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{-1, 1.5, .5}, {1, -1, 0}}), unit_box, sqrtf_2, 1.5f*sqrtf_2);
+  ARBORX_TEST_RAY_BOX_NO_INTERSECTION((Ray{{-1, 1.5, .5}, {1, 0, 0}}), unit_box);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{-1, 1.5, 1.5}, {1, -1, -1}}), unit_box, sqrtf_3, 1.5f*sqrtf_3);
+  ARBORX_TEST_RAY_BOX_NO_INTERSECTION((Ray{{-1, 1.5, 1.5}, {1, 0, 0}}), unit_box);
+  ARBORX_TEST_RAY_BOX_NO_INTERSECTION((Ray{{-1, 1.5, 1.5}, {1, -1, 0}}), unit_box);
+  ARBORX_TEST_RAY_BOX_NO_INTERSECTION((Ray{{-1, 1.5, 1.5}, {1, 0, -1}}), unit_box);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{2, -.5, .5}, {-1, 1, 0}}), unit_box, sqrtf_2, 1.5f*sqrtf_2);
+  ARBORX_TEST_RAY_BOX_NO_INTERSECTION((Ray{{2, -.5, .5}, {-1, 0, 0}}), unit_box);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{2, -.5, 1.5}, {-1, 1, -1}}), unit_box, sqrtf_3, 1.5f*sqrtf_3);
+  ARBORX_TEST_RAY_BOX_NO_INTERSECTION((Ray{{2, -.5, 1.5}, {-1, 0, 0}}), unit_box);
+  ARBORX_TEST_RAY_BOX_NO_INTERSECTION((Ray{{2, -.5, 1.5}, {-1, 1, 0}}), unit_box);
+  ARBORX_TEST_RAY_BOX_NO_INTERSECTION((Ray{{2, -.5, 1.5}, {-1, 0, -1}}), unit_box);
+
+  // hit the center of an edge
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{-1, 0, .5}, {1, 0, 0}}), unit_box, 1.f, 2.f);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{-1, 0, .5}, {-1, 0, 0}}), unit_box, -2.f, -1.f);
+  ARBORX_TEST_RAY_BOX_NO_INTERSECTION((Ray{{-1, 0, .5}, {0, 1, 1}}), unit_box);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{2, 0, .5}, {-1, 0, 0}}), unit_box, 1.f, 2.f);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{2, 0, .5}, {1, 0, 0}}), unit_box, -2.f, -1.f);
+  ARBORX_TEST_RAY_BOX_NO_INTERSECTION((Ray{{2, 0, .5}, {0, 1, 1}}), unit_box);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{-1, -1, .5}, {1, 1, 0}}), unit_box, sqrtf_2, 2*sqrtf_2);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{-1, 1, .5}, {1, -1, 0}}), unit_box, sqrtf_2, sqrtf_2);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{-1, -2, .5}, {1, 2, 0}}), unit_box, sqrtf_5, 1.5f*sqrtf_5);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{2, 2, .5}, {-1, -1, 0}}), unit_box, sqrtf_2, 2*sqrtf_2);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{2, -1, .5}, {-1, 1, 0}}), unit_box, sqrtf_2, 2*sqrtf_2);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{2, 1, .5}, {-1, -1, 0}}), unit_box, sqrtf_2, sqrtf_2);
+
+  // hit a corner
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{-0.5, 1.5, 1.5}, {1, -1, -1}}), unit_box, .5f*sqrtf_3, 1.5f*sqrtf_3);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{-1, 1, 1}, {-1, 0, 0}}), unit_box,-2.f, -1.f);
+  ARBORX_TEST_RAY_BOX_NO_INTERSECTION((Ray{{-1, 1, 1}, {0, 1, 1}}), unit_box);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{2, 1, 1}, {1, 0, 0}}), unit_box, -2.f, -1.f);
+  ARBORX_TEST_RAY_BOX_NO_INTERSECTION((Ray{{2, 1, 1}, {0, 1, 1}}), unit_box);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{-1, -1, -1}, {1, 1, 1}}), unit_box, sqrtf_3, 2*sqrtf_3);
+  ARBORX_TEST_RAY_BOX_INTERSECTION((Ray{{2, 2, 2}, {-1, -1, -1}}), unit_box, sqrtf_3, 2*sqrtf_3);
+  // clang-format on
+}
+
+#undef ARBORX_TEST_RAY_BOX_INTERSECTION
+#undef ARBORX_TEST_RAY_BOX_NO_INTERSECTION
+
 // NOTE until boost 1.70 need to cast both operands when comparing floating
 // points
 BOOST_AUTO_TEST_CASE(overlap_distance_sphere,
@@ -188,7 +277,6 @@ BOOST_AUTO_TEST_CASE(overlap_distance_sphere,
 
   // behind the origin
   BOOST_TEST(overlapDistance(Ray{{-2, 0, 0}, {-1, 0, 0}}, unit_sphere) == 0.f);
-  BOOST_TEST(overlapDistance(Ray{{0, 2, 2}, {0, 1, 1}}, unit_sphere) == 0.f);
   BOOST_TEST(overlapDistance(Ray{{0, 2, 2}, {0, 1, 1}}, unit_sphere) == 0.f);
 
   // origin inside
@@ -225,6 +313,67 @@ BOOST_AUTO_TEST_CASE(overlap_distance_sphere,
   BOOST_TEST(overlapDistance(Ray{{half_sqrtf_3, 0.5, 0}, {1, 0, 0}},
                              unit_sphere) == 0.f);
 }
+
+#define ARBORX_TEST_RAY_SPHERE_INTERSECTION(ray, sphere, t0_ref, t1_ref)       \
+  do                                                                           \
+  {                                                                            \
+    float t0;                                                                  \
+    float t1;                                                                  \
+    BOOST_TEST(ArborX::Experimental::intersection(ray, sphere, t0, t1));       \
+    BOOST_TEST(t0 == t0_ref);                                                  \
+    BOOST_TEST(t1 == t1_ref);                                                  \
+  } while (false)
+
+#define ARBORX_TEST_RAY_SPHERE_NO_INTERSECTION(ray, sphere)                    \
+  do                                                                           \
+  {                                                                            \
+    float t0;                                                                  \
+    float t1;                                                                  \
+    constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;  \
+    BOOST_TEST(!ArborX::Experimental::intersection(ray, sphere, t0, t1));      \
+    BOOST_TEST((t0 == inf && t1 == -inf));                                     \
+  } while (false)
+
+BOOST_AUTO_TEST_CASE(ray_sphere_intersection,
+                     *boost::unit_test::tolerance(1e-6f))
+{
+  using ArborX::Sphere;
+  using ArborX::Experimental::Ray;
+
+  constexpr Sphere unit_sphere{{0, 0, 0}, 1};
+
+  auto const sqrtf_3 = std::sqrt(3.f);
+  auto const sqrtf_2 = std::sqrt(2.f);
+
+  // clang-format off
+  // hit center of the sphere
+  ARBORX_TEST_RAY_SPHERE_INTERSECTION((Ray{{-2, 0, 0}, {1, 0, 0}}), unit_sphere, 1.f, 3.f);
+  ARBORX_TEST_RAY_SPHERE_INTERSECTION((Ray{{0, 3, 0}, {0, -1, 0}}), unit_sphere, 2.f, 4.f);
+  ARBORX_TEST_RAY_SPHERE_INTERSECTION((Ray{{0, 0, -4}, {0, 0, 1}}), unit_sphere, 3.f, 5.f);
+  ARBORX_TEST_RAY_SPHERE_INTERSECTION((Ray{{-2, -2, -2}, {1, 1, 1}}), unit_sphere, 2*sqrtf_3-1, 2*sqrtf_3+1);
+  ARBORX_TEST_RAY_SPHERE_INTERSECTION((Ray{{1, 0, 0}, {1, 0, 0}}), unit_sphere, -2.f, 0.f);
+  ARBORX_TEST_RAY_SPHERE_INTERSECTION((Ray{{0, 3, 0}, {0, 1, 0}}), unit_sphere, -4.f, -2.f);
+  ARBORX_TEST_RAY_SPHERE_INTERSECTION((Ray{{0, 0, -4}, {0, 0, -1}}), unit_sphere, -5.f, -3.f);
+  ARBORX_TEST_RAY_SPHERE_INTERSECTION((Ray{{2, 2, 2}, {1, 1, 1}}), unit_sphere, -2*sqrtf_3-1, -2*sqrtf_3+1);
+
+  ARBORX_TEST_RAY_SPHERE_NO_INTERSECTION((Ray{{-2, -2, -2}, {1, 0, 0}}), unit_sphere);
+
+  // half-radius
+  ARBORX_TEST_RAY_SPHERE_INTERSECTION((Ray{{-2, 0, 0.5}, {1, 0, 0}}), unit_sphere, 2-sqrtf_3/2, 2+sqrtf_3/2);
+  ARBORX_TEST_RAY_SPHERE_INTERSECTION((Ray{{0, -0.5, 2}, {0, 0, -1}}), unit_sphere, 2-sqrtf_3/2, 2+sqrtf_3/2);
+
+ // touch surface
+ ARBORX_TEST_RAY_SPHERE_INTERSECTION((Ray{{1, -2, 0}, {0, 1, 0}}), unit_sphere, 2.f, 2.f);
+ // ARBORX_TEST_RAY_SPHERE_INTERSECTION((Ray{{2, 2, -1}, {-1, -1, 0}}), unit_sphere, 2*sqrtf_2, 2*sqrtf_2);  // machine precision
+
+ // behind the origin
+ ARBORX_TEST_RAY_SPHERE_INTERSECTION((Ray{{-2, 0, 0}, {-1, 0, 0}}), unit_sphere, -3.f, -1.f);
+ ARBORX_TEST_RAY_SPHERE_INTERSECTION((Ray{{0, 2, 2}, {0, 1, 1}}), unit_sphere, -2*sqrtf_2-1, -2*sqrtf_2+1);
+  // clang-format on
+}
+
+#undef ARBORX_TEST_RAY_SPHERE_INTERSECTION
+#undef ARBORX_TEST_RAY_SPHERE_NO_INTERSECTION
 
 #define STATIC_ASSERT(cond) static_assert(cond, "");
 BOOST_AUTO_TEST_CASE(make_euclidean_vector)
