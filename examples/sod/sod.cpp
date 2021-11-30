@@ -357,7 +357,7 @@ computeSODRadii(ExecutionSpace const &exec_space,
 template <typename ExecutionSpace, typename MemorySpace, typename Particles,
           typename ParticleMasses, typename FOFHaloCenters,
           typename FOFHaloMasses>
-void sod(ExecutionSpace const &exec_space, Particles &particles,
+void sod(ExecutionSpace const &exec_space, Particles const &particles,
          ParticleMasses &particle_masses, FOFHaloCenters &fof_halo_centers,
          FOFHaloMasses &fof_halo_masses, OutputData<MemorySpace> &out,
          ArborX::SOD::Parameters const &params, int num_sod_bins)
@@ -435,6 +435,30 @@ void sod(ExecutionSpace const &exec_space, Particles &particles,
 
   Kokkos::Profiling::popRegion();
 }
+
+template <typename Particles>
+struct GenericParticles
+{
+  Particles _particles;
+  using memory_space = typename Particles::memory_space;
+};
+template <typename Particles>
+struct ArborX::AccessTraits<GenericParticles<Particles>, ArborX::PrimitivesTag>
+{
+  using ParticlesAccess = AccessTraits<Particles, ArborX::PrimitivesTag>;
+
+  using memory_space = typename ParticlesAccess::memory_space;
+  using Primitives = GenericParticles<Particles>;
+
+  static KOKKOS_FUNCTION size_t size(Primitives const &w)
+  {
+    return ParticlesAccess::size(w._particles);
+  }
+  static KOKKOS_FUNCTION auto get(Primitives const &w, size_t i)
+  {
+    return ParticlesAccess::get(w._particles, i);
+  }
+};
 
 int main(int argc, char *argv[])
 {
@@ -524,9 +548,10 @@ int main(int argc, char *argv[])
 
   // Execute the kernels on the device
   OutputData<MemorySpace> out_device;
-  sod(exec_space, particles_device, particle_masses_device,
-      fof_halo_centers_device, fof_halo_masses_device, out_device, params,
-      num_sod_bins);
+  sod(exec_space,
+      GenericParticles<decltype(particles_device)>{particles_device},
+      particle_masses_device, fof_halo_centers_device, fof_halo_masses_device,
+      out_device, params, num_sod_bins);
 
   OutputData<Kokkos::HostSpace> out_host;
 
