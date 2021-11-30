@@ -45,7 +45,20 @@ struct HappyTreeFriends
   }
 
   template <class BVH>
+#if defined(__HIPCC__) && defined(__HIP_DEVICE_COMPILE__)
+  // The version of the function returning const ref runs signficantly slower
+  // than the version returning value when using HIP compiler. It seems that the
+  // optimizer struggles to figure things out, and produces suboptimal code for
+  // loading the data. This has been tested using version 4.3 of rocm compiler,
+  // with and without '-fno-legacy-pass-manager' flag).
+  //
+  // To make sure we don't lose on the performance, we use a workaround in this
+  // case. It is guarded by several macros (see
+  // https://rocmdocs.amd.com/en/latest/Programming_Guides/HIP-porting-guide.html).
+  static KOKKOS_FUNCTION auto getBoundingVolume(BVH const &bvh, int i)
+#else
   static KOKKOS_FUNCTION auto const &getBoundingVolume(BVH const &bvh, int i)
+#endif
   {
     return bvh._internal_and_leaf_nodes(i).bounding_volume;
   }
