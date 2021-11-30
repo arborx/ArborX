@@ -373,6 +373,8 @@ void sod(ExecutionSpace const &exec_space, Particles &particles,
   static_assert(
       std::is_same<typename FOFHaloMasses::memory_space, MemorySpace>{}, "");
 
+  Kokkos::Profiling::pushRegion("Examples::sod");
+
   auto const num_halos = fof_halo_centers.extent(0);
 
   // Interparticle separation. Equal to rl/np, where rl is the boxsize of the
@@ -517,6 +519,7 @@ int main(int argc, char *argv[])
       Kokkos::create_mirror_view_and_copy(exec_space, in_host.fof_halo_centers);
   Kokkos::View<float *, MemorySpace> fof_halo_masses_device =
       Kokkos::create_mirror_view_and_copy(exec_space, in_host.fof_halo_masses);
+  Kokkos::fence();
   Kokkos::Profiling::popRegion();
 
   // Execute the kernels on the device
@@ -551,6 +554,8 @@ int main(int argc, char *argv[])
                out_device.sod_particles_offsets);
   copy_to_host(out_host.sod_particles_indices,
                out_device.sod_particles_indices);
+  Kokkos::fence();
+  Kokkos::Profiling::popRegion();
 
   // validate
   if (validate)
