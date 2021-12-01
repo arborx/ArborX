@@ -46,7 +46,8 @@ struct HappyTreeFriends
 
   template <class BVH>
 #if defined(__HIPCC__) && defined(__HIP_DEVICE_COMPILE__)
-  // The version of the function returning const ref runs signficantly slower
+  // FIXME_HIP
+  // The version of the function returning const ref runs significantly slower
   // than the version returning value when using HIP compiler. It seems that the
   // optimizer struggles to figure things out, and produces suboptimal code for
   // loading the data. This has been tested using version 4.3 of rocm compiler,
