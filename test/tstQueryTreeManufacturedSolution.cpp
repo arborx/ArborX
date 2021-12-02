@@ -223,23 +223,25 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   //  o       o       o   j-1
   //
   std::default_random_engine generator;
-  std::uniform_real_distribution<double> distribution_x(0.0, Lz);
-  std::uniform_real_distribution<double> distribution_y(0.0, Ly);
-  std::uniform_real_distribution<double> distribution_z(0.0, Lz);
+  std::uniform_int_distribution<> dist_x(0, nx - 1);
+  std::uniform_int_distribution<> dist_y(0, ny - 1);
+  std::uniform_int_distribution<> dist_z(0, nz - 1);
+  std::uniform_real_distribution<double> dist_shift(-0.45, 0.45);
 
   std::iota(offset_ref.begin(), offset_ref.end(), 0);
   indices_ref.resize(n);
   for (int l = 0; l < n; ++l)
   {
-    double x = distribution_x(generator);
-    double y = distribution_y(generator);
-    double z = distribution_z(generator);
+    auto const i = dist_x(generator);
+    auto const j = dist_y(generator);
+    auto const k = dist_z(generator);
+
+    auto const x = (i + dist_shift(generator)) * hx;
+    auto const y = (j + dist_shift(generator)) * hy;
+    auto const z = (k + dist_shift(generator)) * hz;
     bounding_boxes_host(l) = {{{x - 0.5 * hx, y - 0.5 * hy, z - 0.5 * hz}},
                               {{x + 0.5 * hx, y + 0.5 * hy, z + 0.5 * hz}}};
 
-    auto const i = static_cast<int>(std::round(x / hx));
-    auto const j = static_cast<int>(std::round(y / hy));
-    auto const k = static_cast<int>(std::round(z / hz));
     // Save the indices for the check
     indices_ref[l] = ind(i, j, k);
   }
