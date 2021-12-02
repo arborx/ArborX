@@ -251,90 +251,81 @@ computeSODRdeltas(
 {
   Kokkos::Profiling::pushRegion("ArborX::SOD::compute_r_delta");
 
-  using HostExecutionSpace = Kokkos::DefaultHostExecutionSpace;
-
-  HostExecutionSpace host_space;
+  using TeamPolicy =
+      Kokkos::TeamPolicy<ExecutionSpace, Kokkos::Schedule<Kokkos::Dynamic>>;
+  using team_member = typename TeamPolicy::member_type;
 
   auto num_halos = critical_bin_offsets.extent(0) - 1;
 
-  // Migrate the data to the host
-  auto critical_bin_ids_host =
-      Kokkos::create_mirror_view_and_copy(host_space, critical_bin_ids);
-  auto critical_bin_offsets_host =
-      Kokkos::create_mirror_view_and_copy(host_space, critical_bin_offsets);
-  auto critical_bin_indices_host = Kokkos::create_mirror_view_and_copy(
-      host_space, sorted_critical_bin_indices);
-  auto critical_bin_distances_augmented_host =
-      Kokkos::create_mirror_view_and_copy(host_space,
-                                          critical_bin_distances_augmented);
-  auto sod_halo_bin_outer_radii_host =
-      Kokkos::create_mirror_view_and_copy(host_space, sod_halo_bin_outer_radii);
-  auto sod_halo_bin_masses_host =
-      Kokkos::create_mirror_view_and_copy(host_space, sod_halo_bin_masses);
-  auto particle_masses_host =
-      Kokkos::create_mirror_view_and_copy(host_space, particle_masses);
-
-  // Compute R_delta
-  Kokkos::View<float *, Kokkos::HostSpace> sod_halo_rdeltas_host(
+  Kokkos::View<float *, MemorySpace> sod_halo_rdeltas(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::SOD::r_delta"),
       num_halos);
-  Kokkos::View<int *, Kokkos::HostSpace> sod_halo_rdeltas_index_host(
+  Kokkos::View<int *, MemorySpace> sod_halo_rdeltas_index(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
                          "ArborX::SOD::r_delta_index"),
       num_halos);
   Kokkos::parallel_for(
-      "ArborX::SOD::compute_r_delta",
-      Kokkos::RangePolicy<HostExecutionSpace>(host_space, 0, num_halos),
-      KOKKOS_LAMBDA(int halo_index) {
-        double mass = 0.f;
-        for (int bin_id = 0; bin_id < critical_bin_ids_host(halo_index);
-             ++bin_id)
-          mass += sod_halo_bin_masses_host(halo_index, bin_id);
+      "ArborX::SODHandle::computeRdelta::compute_rdelta_index",
+      TeamPolicy(num_halos, Kokkos::AUTO),
+      KOKKOS_LAMBDA(const team_member &team) {
+        auto halo_index = team.league_rank();
 
-        float R_bin_outer = sod_halo_bin_outer_radii_host(
-            halo_index, critical_bin_ids_host(halo_index));
+        auto bin_start = critical_bin_offsets(halo_index);
+        auto bin_end = critical_bin_offsets(halo_index + 1);
 
-        auto bin_start = critical_bin_offsets_host(halo_index);
-        auto bin_end = critical_bin_offsets_host(halo_index + 1);
-        assert(bin_start < bin_end);
+        // Assert that the critical bin is not empty
+        assert(bin_end - bin_start > 0);
 
-        // By default, set the r_delta to be the last particle in the bin. This
-        // fixes a potential error of r_200 between the bin edge and the first
-        // particle radius.
-        sod_halo_rdeltas_host(halo_index) =
-            (critical_bin_distances_augmented_host(bin_end - 1) - halo_index) *
-            (1.1f * R_bin_outer); // see HACK comment above for details
-        sod_halo_rdeltas_index_host(halo_index) = (bin_end - 1 - bin_start);
+        // By default, set the r_delta to be the last particle in the bin.
+        // This fixes a potential error of r_200 between the bin edge and the
+        // first particle radius.
+        Kokkos::single(Kokkos::PerTeam(team), [&]() {
+          sod_halo_rdeltas_index(halo_index) = (bin_end - 1 - bin_start);
+        });
 
-        for (int i = bin_start; i < bin_end; ++i)
-        {
-          mass += particle_masses_host(critical_bin_indices_host(i));
-          float r = (critical_bin_distances_augmented_host(i) - halo_index) *
+        float R_bin_outer =
+            sod_halo_bin_outer_radii(halo_index, critical_bin_ids(halo_index));
+
+        double prior_mass = 0.;
+        for (int bin_id = 0; bin_id < critical_bin_ids(halo_index); ++bin_id)
+          prior_mass += sod_halo_bin_masses(halo_index, bin_id);
+
+        Kokkos::parallel_scan(
+            Kokkos::TeamThreadRange(team, bin_start, bin_end),
+            [&](int i, double &accumulated_mass, bool const final_pass) {
+              auto particle_index = sorted_critical_bin_indices(i);
+
+              accumulated_mass += particle_masses(particle_index);
+              if (final_pass)
+              {
+                float r =
+                    (critical_bin_distances_augmented(i) - halo_index) *
                     (1.1f * R_bin_outer); // see HACK comment above for details
+                float volume = 4.f / 3 * M_PI * pow(r, 3);
+                float ratio =
+                    ((prior_mass + accumulated_mass) / params._rho) / volume;
 
-          float volume = 4.f / 3 * M_PI * pow(r, 3);
-          float ratio = (mass / volume) / params._rho;
+                if (ratio <= params._rho_ratio)
+                  Kokkos::atomic_min_fetch(&sod_halo_rdeltas_index(halo_index),
+                                           i - bin_start);
+              }
+            });
 
-          if (ratio <= params._rho_ratio)
-          {
-            sod_halo_rdeltas_host(halo_index) = r;
-            sod_halo_rdeltas_index_host(halo_index) = (i - bin_start);
-            break;
-          }
-        }
+        Kokkos::single(Kokkos::PerTeam(team), [&]() {
+          auto particle_index = sorted_critical_bin_indices(
+              bin_start + sod_halo_rdeltas_index(halo_index));
+
+          sod_halo_rdeltas(halo_index) =
+              (critical_bin_distances_augmented(
+                   bin_start + sod_halo_rdeltas_index(halo_index)) -
+               halo_index) *
+              (1.1f * R_bin_outer); // see HACK comment above for details
+        });
       });
-
-  Kokkos::View<float *, MemorySpace> sod_halo_rdeltas_device(
-      "ArborX::SOD::r_delta", num_halos);
-  Kokkos::deep_copy(sod_halo_rdeltas_device, sod_halo_rdeltas_host);
-
-  Kokkos::View<int *, MemorySpace> sod_halo_rdeltas_index_device(
-      "ArborX::SOD::r_delta_index", num_halos);
-  Kokkos::deep_copy(sod_halo_rdeltas_index_device, sod_halo_rdeltas_index_host);
 
   Kokkos::Profiling::popRegion();
 
-  return std::make_pair(sod_halo_rdeltas_device, sod_halo_rdeltas_index_device);
+  return std::make_pair(sod_halo_rdeltas, sod_halo_rdeltas_index);
 }
 
 } // namespace Details
