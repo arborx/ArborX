@@ -128,13 +128,18 @@ struct SODParticlesCount
   }
 };
 
-struct SODPair
+struct SODTuple
 {
-  int index;
+  int particle_index;
+  int halo_index;
   float distance;
-  friend KOKKOS_FUNCTION bool operator<(SODPair const &l, SODPair const &r)
+  friend KOKKOS_FUNCTION bool operator<(SODTuple const &l, SODTuple const &r)
   {
-    return l.distance < r.distance;
+    if (l.halo_index < r.halo_index)
+      return true;
+    if (l.halo_index > r.halo_index)
+      return false;
+    return l.distance <= r.distance;
   }
 };
 
@@ -143,7 +148,7 @@ struct SODParticles
 {
   Kokkos::View<int *, MemorySpace> _offsets;
   Kokkos::View<ArborX::Point *, MemorySpace> _fof_halo_centers;
-  Kokkos::View<SODPair *, MemorySpace> _values;
+  Kokkos::View<SODTuple *, MemorySpace> _values;
 
   template <typename Query>
   KOKKOS_FUNCTION void operator()(Query const &query, int halo_index) const
@@ -151,7 +156,8 @@ struct SODParticles
     auto offset = Kokkos::atomic_fetch_add(&_offsets(halo_index), 1);
 
     int particle_index = getData(query);
-    _values(offset).index = particle_index;
+    _values(offset).particle_index = particle_index;
+    _values(offset).halo_index = halo_index;
     _values(offset).distance =
         distance(ArborX::getGeometry(query), _fof_halo_centers(halo_index));
   }
@@ -215,9 +221,9 @@ struct SODHandle
     auto const num_values = lastElement(offsets);
     printf("# values for all particles: %d\n", num_values);
 
-    Kokkos::View<Details::SODPair *, MemorySpace> values(
+    Kokkos::View<Details::SODTuple *, MemorySpace> values(
         "ArborX::SODHandle::query::values", num_values);
-    auto offsets_clone = cloneWithoutInitializingNorCopying(offsets);
+    auto offsets_clone = clone(offsets);
     _bvh.query(
         exec_space, SOD::ParticlesWrapper<Particles>{_particles},
         Details::SODParticles<MemorySpace>{offsets_clone, _fof_halo_centers,
@@ -235,9 +241,9 @@ struct SODHandle
 
     Kokkos::resize(indices, num_values);
     Kokkos::parallel_for(
-        "ArborX::SODHandle::query::copy_pairs",
+        "ArborX::SODHandle::query::extract_indices",
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_values),
-        KOKKOS_LAMBDA(int const i) { indices(i) = values(i).index; });
+        KOKKOS_LAMBDA(int const i) { indices(i) = values(i).particle_index; });
 
     Kokkos::Profiling::popRegion();
   }
