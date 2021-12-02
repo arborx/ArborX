@@ -396,16 +396,18 @@ struct SODHandle
 
     using ParticlesAccess = ArborX::AccessTraits<Particles, PrimitivesTag>;
 
+    auto particles = _particles;
+    auto fof_halo_centers = _fof_halo_centers;
+
     using TeamPolicy =
         Kokkos::TeamPolicy<ExecutionSpace, Kokkos::Schedule<Kokkos::Dynamic>>;
     using team_member = typename TeamPolicy::member_type;
 
-    Kokkos::resize(sod_halo_rdeltas, num_halos);
-    Kokkos::resize(sod_halo_rdeltas_index, num_halos);
+    ArborX::reallocWithoutInitializing(sod_halo_rdeltas, num_halos);
+    ArborX::reallocWithoutInitializing(sod_halo_rdeltas_index, num_halos);
+    Kokkos::deep_copy(sod_halo_rdeltas_index, INT_MAX);
 
     // Avoid capturing *this
-    auto particles = _particles;
-    auto fof_halo_centers = _fof_halo_centers;
     Kokkos::parallel_for(
         "ArborX::SODHandle::computeRdelta::compute_rdelta_index",
         TeamPolicy(num_halos, Kokkos::AUTO),
@@ -419,7 +421,6 @@ struct SODHandle
               Kokkos::TeamThreadRange(team, num_points_in_halo),
               [&](int i, double &accumulated_mass, bool const final_pass) {
                 auto particle_index = indices(halo_start + i);
-                auto mass = particle_masses(particle_index);
 
                 accumulated_mass += particle_masses(particle_index);
                 if (final_pass)
@@ -428,7 +429,7 @@ struct SODHandle
                       fof_halo_centers(halo_index),
                       ParticlesAccess::get(particles, particle_index));
                   float volume = 4.f / 3 * M_PI * pow(r, 3);
-                  float ratio = (mass / volume) / params._rho;
+                  float ratio = (accumulated_mass / params._rho) / volume;
 
                   if (ratio <= params._rho_ratio)
                     Kokkos::atomic_min_fetch(
@@ -441,11 +442,14 @@ struct SODHandle
         "ArborX::SODHandle::computeRdelta::compute_rdelta",
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
         KOKKOS_LAMBDA(int halo_index) {
-          auto particle_index =
-              indices(offsets(halo_index) + sod_halo_rdeltas_index(halo_index));
-          sod_halo_rdeltas(halo_index) = Details::distance(
-              fof_halo_centers(halo_index),
-              ParticlesAccess::get(particles, particle_index));
+          auto& rdelta_index = sod_halo_rdeltas_index(halo_index);
+          if (rdelta_index < INT_MAX) {
+              auto particle_index =
+                  indices(offsets(halo_index) + rdelta_index);
+              sod_halo_rdeltas(halo_index) = Details::distance(
+                  fof_halo_centers(halo_index),
+                  ParticlesAccess::get(particles, particle_index));
+          }
         });
 
     exec_space.fence();
