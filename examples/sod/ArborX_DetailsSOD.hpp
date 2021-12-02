@@ -56,46 +56,6 @@ struct SODTuple
   }
 };
 
-template <typename MemorySpace, typename Particles>
-struct CriticalBinParticles
-{
-  Particles _particles;
-  Kokkos::View<int *, MemorySpace> _critical_bin_offsets;
-  Kokkos::View<SODTuple *, MemorySpace> _critical_bin_values;
-  Kokkos::View<int *, MemorySpace> _critical_bin_ids;
-  Kokkos::View<Point *, MemorySpace> _fof_halo_centers;
-  int _num_sod_bins;
-  float _r_min;
-  Kokkos::View<float *, MemorySpace> _r_max;
-
-  using ParticlesAccess = AccessTraits<Particles, PrimitivesTag>;
-
-  template <typename Query>
-  KOKKOS_FUNCTION void operator()(Query const &query, int halo_index) const
-  {
-    auto particle_index = getData(query);
-
-    Point const &particle = ParticlesAccess::get(_particles, particle_index);
-
-    float dist = Details::distance(particle, _fof_halo_centers(halo_index));
-    if (dist > _r_max(halo_index))
-    {
-      // False positive
-      return;
-    }
-
-    auto bin_id = binID(_r_min, _r_max(halo_index), dist, _num_sod_bins);
-    if (bin_id == _critical_bin_ids(halo_index))
-    {
-      auto pos =
-          Kokkos::atomic_fetch_add(&_critical_bin_offsets(halo_index), 1);
-      _critical_bin_values(pos).particle_index = particle_index;
-      _critical_bin_values(pos).halo_index = halo_index;
-      _critical_bin_values(pos).distance = dist;
-    }
-  }
-};
-
 template <typename MemorySpace, typename Callback>
 struct Profiles
 {
@@ -112,8 +72,11 @@ struct Profiles
     Point const &point = getGeometry(query);
 
     float dist = Details::distance(point, _fof_halo_centers(halo_index));
-    if (dist > _r_max(halo_index)) // false positive
+    if (dist > _r_max(halo_index))
+    {
+      // false positive
       return;
+    }
 
     auto bin_id = binID(_r_min, _r_max(halo_index), dist, _num_bins);
     _callback(particle_index, halo_index, bin_id);
@@ -140,11 +103,22 @@ struct MassAvgRadiiCountProfiles
 template <typename MemorySpace>
 struct SODParticlesCount
 {
+  Kokkos::View<ArborX::Point *, MemorySpace> _fof_halo_centers;
+  Kokkos::View<float *, MemorySpace> _r_max;
+
   Kokkos::View<int *, MemorySpace> _counts;
 
   template <typename Query>
   KOKKOS_FUNCTION void operator()(Query const &query, int halo_index) const
   {
+    float dist =
+        Details::distance(getGeometry(query), _fof_halo_centers(halo_index));
+    if (dist > _r_max(halo_index))
+    {
+      // False positive
+      return;
+    }
+
     Kokkos::atomic_fetch_add(&_counts(halo_index), 1);
   }
 };
@@ -152,20 +126,67 @@ struct SODParticlesCount
 template <typename MemorySpace>
 struct SODParticles
 {
-  Kokkos::View<int *, MemorySpace> _offsets;
   Kokkos::View<ArborX::Point *, MemorySpace> _fof_halo_centers;
+  Kokkos::View<float *, MemorySpace> _r_max;
+
+  Kokkos::View<int *, MemorySpace> _offsets;
   Kokkos::View<SODTuple *, MemorySpace> _values;
 
   template <typename Query>
   KOKKOS_FUNCTION void operator()(Query const &query, int halo_index) const
   {
-    auto offset = Kokkos::atomic_fetch_add(&_offsets(halo_index), 1);
+    float dist =
+        Details::distance(getGeometry(query), _fof_halo_centers(halo_index));
+    if (dist > _r_max(halo_index))
+    {
+      // False positive
+      return;
+    }
+
+    auto pos = Kokkos::atomic_fetch_add(&_offsets(halo_index), 1);
 
     int particle_index = getData(query);
-    _values(offset).particle_index = particle_index;
-    _values(offset).halo_index = halo_index;
-    _values(offset).distance =
-        distance(ArborX::getGeometry(query), _fof_halo_centers(halo_index));
+    _values(pos).particle_index = particle_index;
+    _values(pos).halo_index = halo_index;
+    _values(pos).distance = dist;
+  }
+};
+
+template <typename MemorySpace, typename Particles>
+struct CriticalBinParticles
+{
+  Particles _particles;
+  Kokkos::View<int *, MemorySpace> _critical_bin_ids;
+  Kokkos::View<Point *, MemorySpace> _fof_halo_centers;
+  int _num_sod_bins;
+  float _r_min;
+  Kokkos::View<float *, MemorySpace> _r_max;
+
+  Kokkos::View<int *, MemorySpace> _critical_bin_offsets;
+  Kokkos::View<SODTuple *, MemorySpace> _critical_bin_values;
+
+  using ParticlesAccess = AccessTraits<Particles, PrimitivesTag>;
+
+  template <typename Query>
+  KOKKOS_FUNCTION void operator()(Query const &query, int halo_index) const
+  {
+    float dist =
+        Details::distance(getGeometry(query), _fof_halo_centers(halo_index));
+    if (dist > _r_max(halo_index))
+    {
+      // False positive
+      return;
+    }
+
+    auto bin_id = binID(_r_min, _r_max(halo_index), dist, _num_sod_bins);
+    if (bin_id == _critical_bin_ids(halo_index))
+    {
+      auto pos =
+          Kokkos::atomic_fetch_add(&_critical_bin_offsets(halo_index), 1);
+      _critical_bin_values(pos).particle_index = getData(query);
+      _critical_bin_values(pos).halo_index = halo_index;
+      _critical_bin_values(pos).distance = dist;
+    }
   }
 };
 
@@ -284,7 +305,7 @@ Kokkos::View<int *, MemorySpace> computeSODCriticalBins(
 template <typename ExecutionSpace, typename MemorySpace>
 std::pair<Kokkos::View<float *, MemorySpace>, Kokkos::View<int *, MemorySpace>>
 computeSODRdeltas(
-    ExecutionSpace const & /*exec_space*/, float rho, float rho_ratio,
+    ExecutionSpace const &exec_space, float rho, float rho_ratio,
     Kokkos::View<float *, MemorySpace> particle_masses,
     Kokkos::View<double **, MemorySpace> sod_halo_bin_masses,
     Kokkos::View<int *, MemorySpace> critical_bin_ids,
@@ -308,7 +329,7 @@ computeSODRdeltas(
       num_halos);
   Kokkos::parallel_for(
       "ArborX::SODHandle::computeRdelta::compute_rdelta_index",
-      TeamPolicy(num_halos, Kokkos::AUTO),
+      TeamPolicy(exec_space, num_halos, Kokkos::AUTO),
       KOKKOS_LAMBDA(const team_member &team) {
         auto halo_index = team.league_rank();
 

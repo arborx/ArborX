@@ -139,7 +139,8 @@ struct SODHandle
     Kokkos::deep_copy(counts, 0);
     _bvh.query(
         exec_space, SOD::ParticlesWrapper<Particles>{_particles},
-        Details::SODParticlesCount<MemorySpace>{counts},
+        Details::SODParticlesCount<MemorySpace>{_fof_halo_centers, _r_max,
+                                                counts},
         Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
 
     exclusivePrefixSum(exec_space, offsets);
@@ -152,8 +153,8 @@ struct SODHandle
     auto offsets_clone = clone(offsets);
     _bvh.query(
         exec_space, SOD::ParticlesWrapper<Particles>{_particles},
-        Details::SODParticles<MemorySpace>{offsets_clone, _fof_halo_centers,
-                                           values},
+        Details::SODParticles<MemorySpace>{_fof_halo_centers, _r_max,
+                                           offsets_clone, values},
         Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
 
     Kokkos::Profiling::popRegion();
@@ -251,9 +252,9 @@ struct SODHandle
         auto offsets = clone(critical_bin_offsets);
         _bvh.query(exec_space, SOD::ParticlesWrapper<Particles>{_particles},
                    Details::CriticalBinParticles<MemorySpace, Particles>{
-                       _particles, offsets, critical_bin_values,
-                       critical_bin_ids, _fof_halo_centers, num_sod_bins,
-                       _r_min, _r_max},
+                       _particles, critical_bin_ids, _fof_halo_centers,
+                       num_sod_bins, _r_min, _r_max, offsets,
+                       critical_bin_values},
                    Experimental::TraversalPolicy().setPredicateSorting(
                        sort_predicates));
       }
@@ -309,7 +310,8 @@ struct SODHandle
 
       Kokkos::parallel_for(
           "ArborX::SODHandle::computeRdelta::compute_rdelta_index",
-          TeamPolicy(num_halos, 512), KOKKOS_LAMBDA(const team_member &team) {
+          TeamPolicy(exec_space, num_halos, 512),
+          KOKKOS_LAMBDA(const team_member &team) {
             auto halo_index = team.league_rank();
 
             auto halo_start = offsets(halo_index);
