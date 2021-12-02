@@ -426,20 +426,16 @@ void sod(ExecutionSpace const &exec_space, Particles const &particles,
   sod_handle.computeRdelta(exec_space, particle_masses, params,
                            out.sod_halo_rdeltas, sod_halo_rdeltas_index,
                            true /*use bins*/);
-#if 0
-  sod_handle.computeRdeltaUsingScan(exec_space, particle_masses, params,
-                                    out.sod_halo_rdeltas,
-                                    sod_halo_rdeltas_index, false /*use bins*/);
-#endif
+  sod_handle.computeRdelta(exec_space, particle_masses, params,
+                           out.sod_halo_rdeltas, sod_halo_rdeltas_index,
+                           false /*do not use bins*/);
 
   // Free up memory that we don't need anymore
   Kokkos::resize(particle_masses, 0);
 
-#if 0
   Kokkos::View<int *, MemorySpace> offsets_all("Examples::offsets_all", 0);
   Kokkos::View<int *, MemorySpace> indices_all("Examples::indices_all", 0);
   sod_handle.query(exec_space, offsets_all, indices_all);
-#endif
 
   Kokkos::Profiling::popRegion();
 }

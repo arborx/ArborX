@@ -181,8 +181,6 @@ struct SODHandle
                      Kokkos::View<int *, MemorySpace> &sod_halo_rdeltas_index,
                      bool use_bin_approach = true) const
   {
-    Kokkos::Profiling::pushRegion("ArborX::SODHandle::compute_R_delta");
-
     auto const num_halos = _fof_halo_centers.extent(0);
 
     auto rho = params._rho;
@@ -190,6 +188,8 @@ struct SODHandle
 
     if (use_bin_approach)
     {
+      Kokkos::Profiling::pushRegion("ArborX::SODHandle::compute_R_delta_with_bins");
+
       // TODO: for now, this is fixed to the usual number used for profiles.
       // But it does not have to. Need to play around with it to see what's the
       // fastest.
@@ -287,9 +287,13 @@ struct SODHandle
               sod_halo_rdeltas_index(halo_index) +=
                   sod_halo_bin_counts(halo_index, bin_id);
           });
+
+      Kokkos::Profiling::popRegion();
     }
     else
     {
+      Kokkos::Profiling::pushRegion("ArborX::SODHandle::compute_R_delta_no_bins");
+
       Kokkos::View<int *, MemorySpace> offsets;
       Kokkos::View<int *, MemorySpace> indices;
       query(exec_space, offsets, indices);
@@ -351,10 +355,10 @@ struct SODHandle
                   ParticlesAccess::get(particles, particle_index));
             }
           });
+
+      Kokkos::Profiling::popRegion();
     }
     exec_space.fence();
-
-    Kokkos::Profiling::popRegion();
   }
 
   template <typename ExecutionSpace, typename Callback>
