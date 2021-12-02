@@ -21,6 +21,25 @@ namespace ArborX
 namespace SOD
 {
 
+struct Parameters
+{
+  float _rho = -1.f;
+  float _rho_ratio = 200;
+
+  Parameters &setRho(float rho)
+  {
+    ARBORX_ASSERT(rho > 0);
+    _rho = rho;
+    return *this;
+  }
+  Parameters &setRhoRatio(float rho_ratio)
+  {
+    ARBORX_ASSERT(rho_ratio > 0);
+    _rho_ratio = rho_ratio;
+    return *this;
+  }
+};
+
 template <typename MemorySpace>
 struct Spheres
 {
@@ -71,84 +90,6 @@ struct AccessTraits<SOD::ParticlesWrapper<Particles>, PredicatesTag>
     return attach(intersects(ParticlesAccess::get(w._particles, i)), (int)i);
   }
 };
-
-namespace Details
-{
-
-template <typename MemorySpace, typename Callback>
-struct Profiles
-{
-  Kokkos::View<Point *, MemorySpace> _fof_halo_centers;
-  float _r_min;
-  Kokkos::View<float *, MemorySpace> _r_max;
-  int _num_bins;
-  Callback _callback;
-
-  template <typename Query>
-  KOKKOS_FUNCTION void operator()(Query const &query, int halo_index) const
-  {
-    int particle_index = getData(query);
-    Point const &point = getGeometry(query);
-
-    float dist = Details::distance(point, _fof_halo_centers(halo_index));
-    if (dist > _r_max(halo_index)) // false positive
-      return;
-
-    auto bin_id = binID(_r_min, _r_max(halo_index), dist, _num_bins);
-    _callback(particle_index, halo_index, bin_id);
-  }
-};
-
-template <typename MemorySpace>
-struct MassAvgRadiiCountProfiles
-{
-  Kokkos::View<float *, MemorySpace> _particle_masses;
-  Kokkos::View<ArborX::Point *, MemorySpace> _fof_halo_centers;
-  Kokkos::View<double **, MemorySpace> _sod_halo_bin_masses;
-  Kokkos::View<int **, MemorySpace> _sod_halo_bin_counts;
-
-  KOKKOS_FUNCTION void operator()(int particle_index, int halo_index,
-                                  int bin_id) const
-  {
-    Kokkos::atomic_fetch_add(&_sod_halo_bin_counts(halo_index, bin_id), 1);
-    Kokkos::atomic_fetch_add(&_sod_halo_bin_masses(halo_index, bin_id),
-                             _particle_masses(particle_index));
-  }
-};
-
-template <typename MemorySpace>
-struct SODParticlesCount
-{
-  Kokkos::View<int *, MemorySpace> _counts;
-
-  template <typename Query>
-  KOKKOS_FUNCTION void operator()(Query const &query, int halo_index) const
-  {
-    Kokkos::atomic_fetch_add(&_counts(halo_index), 1);
-  }
-};
-
-template <typename MemorySpace>
-struct SODParticles
-{
-  Kokkos::View<int *, MemorySpace> _offsets;
-  Kokkos::View<ArborX::Point *, MemorySpace> _fof_halo_centers;
-  Kokkos::View<SODTuple *, MemorySpace> _values;
-
-  template <typename Query>
-  KOKKOS_FUNCTION void operator()(Query const &query, int halo_index) const
-  {
-    auto offset = Kokkos::atomic_fetch_add(&_offsets(halo_index), 1);
-
-    int particle_index = getData(query);
-    _values(offset).particle_index = particle_index;
-    _values(offset).halo_index = halo_index;
-    _values(offset).distance =
-        distance(ArborX::getGeometry(query), _fof_halo_centers(halo_index));
-  }
-};
-
-} // namespace Details
 
 template <typename MemorySpace, typename Particles>
 struct SODHandle
@@ -232,191 +173,183 @@ struct SODHandle
   }
 
   template <typename ExecutionSpace>
-  void
-  computeRdelta(ExecutionSpace const &exec_space,
-                Kokkos::View<float *, MemorySpace> const &particle_masses,
-                SOD::Parameters const &params,
-                Kokkos::View<float *, MemorySpace> &sod_halo_rdeltas,
-                Kokkos::View<int *, MemorySpace> &sod_halo_rdeltas_index) const
+  void computeRdelta(ExecutionSpace const &exec_space,
+                     Kokkos::View<float *, MemorySpace> const &particle_masses,
+                     SOD::Parameters const &params,
+                     Kokkos::View<float *, MemorySpace> &sod_halo_rdeltas,
+                     Kokkos::View<int *, MemorySpace> &sod_halo_rdeltas_index,
+                     bool use_bin_approach = true) const
   {
     Kokkos::Profiling::pushRegion("ArborX::SODHandle::compute_R_delta");
 
-    // TODO: for now, this is fixed to the usual number used for profiles.
-    // But it does not have to. Need to play around with it to see what's the
-    // fastest.
-    constexpr int num_sod_bins = 20 + 1;
-
     auto const num_halos = _fof_halo_centers.extent(0);
 
-    // Do not sort for now, so as to not allocate additional memory, which would
-    // take 8*n bytes (4 for Morton index, 4 for permutation index). This will
-    // results in running out of memory for the hardest HACC problem on V100.
-    bool const sort_predicates = false;
+    auto rho = params._rho;
+    auto rho_ratio = params._rho_ratio;
 
-    // Compute bin outer radii
-    auto sod_halo_bin_outer_radii =
-        Details::computeSODBinRadii(exec_space, _r_min, _r_max, num_sod_bins);
-
-    // Step 2: compute some profiles (mass, count, avg radius);
-    // NOTE: we will accumulate float quantities into double in order to
-    // avoid loss of precision, which will occur once we start adding small
-    // quantities to large
-    Kokkos::View<double **, MemorySpace> sod_halo_bin_masses(
-        "ArborX::SOD::sod_halo_bin_masses", num_halos, num_sod_bins);
-    Kokkos::View<int **, MemorySpace> sod_halo_bin_counts(
-        "ArborX::SOD::sod_halo_bin_masses", num_halos, num_sod_bins);
-    computeBinProfiles(exec_space, num_sod_bins,
-                       Details::MassAvgRadiiCountProfiles<MemorySpace>{
-                           particle_masses, _fof_halo_centers,
-                           sod_halo_bin_masses, sod_halo_bin_counts});
-
-    // Figure out critical bins
-    auto critical_bin_ids = Details::computeSODCriticalBins(
-        exec_space, params, sod_halo_bin_masses, sod_halo_bin_counts,
-        sod_halo_bin_outer_radii);
-
-    Kokkos::Profiling::pushRegion(
-        "ArborX::SOD::compute_critical_bin_particles");
-
-    // Compute offsets for storing particles in critical bins
-    Kokkos::View<int *, MemorySpace> critical_bin_offsets(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "ArborX::SOD::critical_bin_offsets"),
-        num_halos + 1);
-    Kokkos::parallel_for(
-        "ArborX::SOD::compute_critical_bins",
-        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
-        KOKKOS_LAMBDA(int halo_index) {
-          critical_bin_offsets(halo_index) =
-              sod_halo_bin_counts(halo_index, critical_bin_ids(halo_index));
-        });
-    exclusivePrefixSum(exec_space, critical_bin_offsets);
-
-    auto num_critical_bin_particles = lastElement(critical_bin_offsets);
-    printf("#particles in critical bins: %d\n", num_critical_bin_particles);
-
-    // Find particles in critical bins for each halo
-    Kokkos::View<Details::SODTuple *, MemorySpace> critical_bin_values(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "ArborX::SOD::critical_bin_values"),
-        num_critical_bin_particles);
+    if (use_bin_approach)
     {
-      auto offsets = clone(critical_bin_offsets);
-      _bvh.query(
-          exec_space, SOD::ParticlesWrapper<Particles>{_particles},
-          Details::CriticalBinParticles<MemorySpace, Particles>{
-              _particles, offsets, critical_bin_values, critical_bin_ids,
-              _fof_halo_centers, num_sod_bins, _r_min, _r_max},
-          Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
+      // TODO: for now, this is fixed to the usual number used for profiles.
+      // But it does not have to. Need to play around with it to see what's the
+      // fastest.
+      constexpr int num_sod_bins = 20 + 1;
+
+      // Do not sort for now, so as to not allocate additional memory, which
+      // would take 8*n bytes (4 for Morton index, 4 for permutation index).
+      // This will results in running out of memory for the hardest HACC problem
+      // on V100.
+      bool const sort_predicates = false;
+
+      // Compute bin outer radii
+      auto sod_halo_bin_outer_radii =
+          Details::computeSODBinRadii(exec_space, _r_min, _r_max, num_sod_bins);
+
+      // Step 2: compute some profiles (mass, count, avg radius);
+      // NOTE: we will accumulate float quantities into double in order to
+      // avoid loss of precision, which will occur once we start adding small
+      // quantities to large
+      Kokkos::View<double **, MemorySpace> sod_halo_bin_masses(
+          "ArborX::SOD::sod_halo_bin_masses", num_halos, num_sod_bins);
+      Kokkos::View<int **, MemorySpace> sod_halo_bin_counts(
+          "ArborX::SOD::sod_halo_bin_masses", num_halos, num_sod_bins);
+      computeBinProfiles(exec_space, num_sod_bins,
+                         Details::MassAvgRadiiCountProfiles<MemorySpace>{
+                             particle_masses, _fof_halo_centers,
+                             sod_halo_bin_masses, sod_halo_bin_counts});
+
+      // Figure out critical bins
+      auto critical_bin_ids = Details::computeSODCriticalBins(
+          exec_space, rho, rho_ratio, sod_halo_bin_masses, sod_halo_bin_counts,
+          sod_halo_bin_outer_radii);
+
+      Kokkos::Profiling::pushRegion(
+          "ArborX::SOD::compute_critical_bin_particles");
+
+      // Compute offsets for storing particles in critical bins
+      Kokkos::View<int *, MemorySpace> critical_bin_offsets(
+          Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                             "ArborX::SOD::critical_bin_offsets"),
+          num_halos + 1);
+      Kokkos::parallel_for(
+          "ArborX::SOD::compute_critical_bins",
+          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
+          KOKKOS_LAMBDA(int halo_index) {
+            critical_bin_offsets(halo_index) =
+                sod_halo_bin_counts(halo_index, critical_bin_ids(halo_index));
+          });
+      exclusivePrefixSum(exec_space, critical_bin_offsets);
+
+      auto num_critical_bin_particles = lastElement(critical_bin_offsets);
+      printf("#particles in critical bins: %d\n", num_critical_bin_particles);
+
+      // Find particles in critical bins for each halo
+      Kokkos::View<Details::SODTuple *, MemorySpace> critical_bin_values(
+          Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                             "ArborX::SOD::critical_bin_values"),
+          num_critical_bin_particles);
+      {
+        auto offsets = clone(critical_bin_offsets);
+        _bvh.query(exec_space, SOD::ParticlesWrapper<Particles>{_particles},
+                   Details::CriticalBinParticles<MemorySpace, Particles>{
+                       _particles, offsets, critical_bin_values,
+                       critical_bin_ids, _fof_halo_centers, num_sod_bins,
+                       _r_min, _r_max},
+                   Experimental::TraversalPolicy().setPredicateSorting(
+                       sort_predicates));
+      }
+
+      Kokkos::Profiling::popRegion();
+
+      // Sort the particles based on their distance to the corresponding FOF
+      // center
+      Kokkos::Profiling::pushRegion(
+          "ArborX::SODHandle::computeRdelta::sort_values");
+      sortObjects(exec_space, critical_bin_values);
+      Kokkos::Profiling::popRegion();
+
+      // Compute R_delta
+      Kokkos::Profiling::pushRegion(
+          "ArborX::SODHandle::compute_R_delta::compute_r_delta");
+      Kokkos::resize(sod_halo_rdeltas_index, 0);
+      std::tie(sod_halo_rdeltas, sod_halo_rdeltas_index) =
+          Details::computeSODRdeltas(
+              exec_space, rho, rho_ratio, particle_masses, sod_halo_bin_masses,
+              critical_bin_ids, critical_bin_offsets, critical_bin_values);
+      Kokkos::Profiling::popRegion();
+
+      Kokkos::parallel_for(
+          "ArborX::SODHandle::compute_R_delta::update_rdeltas_index",
+          Kokkos::RangePolicy<ExecutionSpace>(0, num_halos),
+          KOKKOS_LAMBDA(int const halo_index) {
+            for (int bin_id = 0; bin_id < critical_bin_ids(halo_index);
+                 ++bin_id)
+              sod_halo_rdeltas_index(halo_index) +=
+                  sod_halo_bin_counts(halo_index, bin_id);
+          });
     }
+    else
+    {
+      Kokkos::View<int *, MemorySpace> offsets;
+      Kokkos::View<int *, MemorySpace> indices;
+      query(exec_space, offsets, indices);
 
-    Kokkos::Profiling::popRegion();
+      using ParticlesAccess = ArborX::AccessTraits<Particles, PrimitivesTag>;
 
-    // Sort the particles based on their distance to the corresponding FOF
-    // center
-    Kokkos::Profiling::pushRegion(
-        "ArborX::SODHandle::computeRdelta::sort_values");
-    sortObjects(exec_space, critical_bin_values);
-    Kokkos::Profiling::popRegion();
+      using TeamPolicy =
+          Kokkos::TeamPolicy<ExecutionSpace, Kokkos::Schedule<Kokkos::Dynamic>>;
+      using team_member = typename TeamPolicy::member_type;
 
-    // Compute R_delta
-    Kokkos::Profiling::pushRegion(
-        "ArborX::SODHandle::compute_R_delta::compute_r_delta");
-    Kokkos::resize(sod_halo_rdeltas_index, 0);
-    std::tie(sod_halo_rdeltas, sod_halo_rdeltas_index) =
-        Details::computeSODRdeltas(exec_space, params, particle_masses,
-                                   sod_halo_bin_masses, critical_bin_ids,
-                                   critical_bin_offsets, critical_bin_values);
-    Kokkos::Profiling::popRegion();
+      ArborX::reallocWithoutInitializing(sod_halo_rdeltas, num_halos);
+      ArborX::reallocWithoutInitializing(sod_halo_rdeltas_index, num_halos);
+      Kokkos::deep_copy(sod_halo_rdeltas_index, INT_MAX);
 
-    Kokkos::parallel_for(
-        "ArborX::SODHandle::compute_R_delta::update_rdeltas_index",
-        Kokkos::RangePolicy<ExecutionSpace>(0, num_halos),
-        KOKKOS_LAMBDA(int const halo_index) {
-          for (int bin_id = 0; bin_id < critical_bin_ids(halo_index); ++bin_id)
-            sod_halo_rdeltas_index(halo_index) +=
-                sod_halo_bin_counts(halo_index, bin_id);
-        });
+      // Avoid capturing *this
+      auto particles = _particles;
+      auto fof_halo_centers = _fof_halo_centers;
 
-    exec_space.fence();
+      Kokkos::parallel_for(
+          "ArborX::SODHandle::computeRdelta::compute_rdelta_index",
+          TeamPolicy(num_halos, 512), KOKKOS_LAMBDA(const team_member &team) {
+            auto halo_index = team.league_rank();
 
-    Kokkos::Profiling::popRegion();
-  }
+            auto halo_start = offsets(halo_index);
+            auto num_points_in_halo = offsets(halo_index + 1) - halo_start;
 
-  template <typename ExecutionSpace>
-  void computeRdeltaUsingScan(
-      ExecutionSpace const &exec_space,
-      Kokkos::View<float *, MemorySpace> const &particle_masses,
-      SOD::Parameters const &params,
-      Kokkos::View<float *, MemorySpace> &sod_halo_rdeltas,
-      Kokkos::View<int *, MemorySpace> &sod_halo_rdeltas_index) const
-  {
-    Kokkos::Profiling::pushRegion(
-        "ArborX::SODHandle::compute_R_delta_using_scan");
+            Kokkos::parallel_scan(
+                Kokkos::TeamThreadRange(team, num_points_in_halo),
+                [&](int i, double &accumulated_mass, bool const final_pass) {
+                  auto particle_index = indices(halo_start + i);
 
-    auto const num_halos = _fof_halo_centers.extent(0);
+                  accumulated_mass += particle_masses(particle_index);
+                  if (final_pass)
+                  {
+                    auto r = Details::distance(
+                        fof_halo_centers(halo_index),
+                        ParticlesAccess::get(particles, particle_index));
+                    float volume = 4.f / 3 * M_PI * pow(r, 3);
+                    float ratio = (accumulated_mass / rho) / volume;
 
-    Kokkos::View<int *, MemorySpace> offsets;
-    Kokkos::View<int *, MemorySpace> indices;
-    query(exec_space, offsets, indices);
+                    if (ratio <= rho_ratio)
+                      Kokkos::atomic_min_fetch(
+                          &sod_halo_rdeltas_index(halo_index), i);
+                  }
+                });
+          });
 
-    using ParticlesAccess = ArborX::AccessTraits<Particles, PrimitivesTag>;
-
-    auto particles = _particles;
-    auto fof_halo_centers = _fof_halo_centers;
-
-    using TeamPolicy =
-        Kokkos::TeamPolicy<ExecutionSpace, Kokkos::Schedule<Kokkos::Dynamic>>;
-    using team_member = typename TeamPolicy::member_type;
-
-    ArborX::reallocWithoutInitializing(sod_halo_rdeltas, num_halos);
-    ArborX::reallocWithoutInitializing(sod_halo_rdeltas_index, num_halos);
-    Kokkos::deep_copy(sod_halo_rdeltas_index, INT_MAX);
-
-    // Avoid capturing *this
-    Kokkos::parallel_for(
-        "ArborX::SODHandle::computeRdelta::compute_rdelta_index",
-        TeamPolicy(num_halos, 512), KOKKOS_LAMBDA(const team_member &team) {
-          auto halo_index = team.league_rank();
-
-          auto halo_start = offsets(halo_index);
-          auto num_points_in_halo = offsets(halo_index + 1) - halo_start;
-
-          Kokkos::parallel_scan(
-              Kokkos::TeamThreadRange(team, num_points_in_halo),
-              [&](int i, double &accumulated_mass, bool const final_pass) {
-                auto particle_index = indices(halo_start + i);
-
-                accumulated_mass += particle_masses(particle_index);
-                if (final_pass)
-                {
-                  auto r = Details::distance(
-                      fof_halo_centers(halo_index),
-                      ParticlesAccess::get(particles, particle_index));
-                  float volume = 4.f / 3 * M_PI * pow(r, 3);
-                  float ratio = (accumulated_mass / params._rho) / volume;
-
-                  if (ratio <= params._rho_ratio)
-                    Kokkos::atomic_min_fetch(
-                        &sod_halo_rdeltas_index(halo_index), i);
-                }
-              });
-        });
-
-    Kokkos::parallel_for(
-        "ArborX::SODHandle::computeRdelta::compute_rdelta",
-        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
-        KOKKOS_LAMBDA(int halo_index) {
-          auto &rdelta_index = sod_halo_rdeltas_index(halo_index);
-          if (rdelta_index < INT_MAX)
-          {
-            auto particle_index = indices(offsets(halo_index) + rdelta_index);
-            sod_halo_rdeltas(halo_index) = Details::distance(
-                fof_halo_centers(halo_index),
-                ParticlesAccess::get(particles, particle_index));
-          }
-        });
-
+      Kokkos::parallel_for(
+          "ArborX::SODHandle::computeRdelta::compute_rdelta",
+          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
+          KOKKOS_LAMBDA(int halo_index) {
+            auto &rdelta_index = sod_halo_rdeltas_index(halo_index);
+            if (rdelta_index < INT_MAX)
+            {
+              auto particle_index = indices(offsets(halo_index) + rdelta_index);
+              sod_halo_rdeltas(halo_index) = Details::distance(
+                  fof_halo_centers(halo_index),
+                  ParticlesAccess::get(particles, particle_index));
+            }
+          });
+    }
     exec_space.fence();
 
     Kokkos::Profiling::popRegion();

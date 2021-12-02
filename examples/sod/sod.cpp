@@ -423,13 +423,13 @@ void sod(ExecutionSpace const &exec_space, Particles const &particles,
 
   Kokkos::View<int *, MemorySpace> sod_halo_rdeltas_index(
       "Examples:sod_halo_rdeltas_index", 0);
-#if 1
   sod_handle.computeRdelta(exec_space, particle_masses, params,
-                           out.sod_halo_rdeltas, sod_halo_rdeltas_index);
-#else
+                           out.sod_halo_rdeltas, sod_halo_rdeltas_index,
+                           true /*use bins*/);
+#if 0
   sod_handle.computeRdeltaUsingScan(exec_space, particle_masses, params,
                                     out.sod_halo_rdeltas,
-                                    sod_halo_rdeltas_index);
+                                    sod_halo_rdeltas_index, false /*use bins*/);
 #endif
 
   // Free up memory that we don't need anymore
