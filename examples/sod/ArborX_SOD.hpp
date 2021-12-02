@@ -377,13 +377,90 @@ struct SODHandle
     Kokkos::Profiling::popRegion();
   }
 
+  template <typename ExecutionSpace>
+  void computeRdeltaUsingScan(
+      ExecutionSpace const &exec_space,
+      Kokkos::View<float *, MemorySpace> const &particle_masses,
+      SOD::Parameters const &params,
+      Kokkos::View<float *, MemorySpace> &sod_halo_rdeltas,
+      Kokkos::View<int *, MemorySpace> &sod_halo_rdeltas_index) const
+  {
+    Kokkos::Profiling::pushRegion(
+        "ArborX::SODHandle::compute_R_delta_using_scan");
+
+    auto const num_halos = _fof_halo_centers.extent(0);
+
+    Kokkos::View<int *, MemorySpace> offsets;
+    Kokkos::View<int *, MemorySpace> indices;
+    query(exec_space, offsets, indices);
+
+    using ParticlesAccess = ArborX::AccessTraits<Particles, PrimitivesTag>;
+
+    using TeamPolicy =
+        Kokkos::TeamPolicy<ExecutionSpace, Kokkos::Schedule<Kokkos::Dynamic>>;
+    using team_member = typename TeamPolicy::member_type;
+
+    Kokkos::resize(sod_halo_rdeltas, num_halos);
+    Kokkos::resize(sod_halo_rdeltas_index, num_halos);
+
+    // Avoid capturing *this
+    auto particles = _particles;
+    auto fof_halo_centers = _fof_halo_centers;
+    Kokkos::parallel_for(
+        "ArborX::SODHandle::computeRdelta::compute_rdelta_index",
+        TeamPolicy(num_halos, Kokkos::AUTO),
+        KOKKOS_LAMBDA(const team_member &team) {
+          auto halo_index = team.league_rank();
+
+          auto halo_start = offsets(halo_index);
+          auto num_points_in_halo = offsets(halo_index + 1) - halo_start;
+
+          Kokkos::parallel_scan(
+              Kokkos::TeamThreadRange(team, num_points_in_halo),
+              [&](int i, double &accumulated_mass, bool const final_pass) {
+                auto particle_index = indices(halo_start + i);
+                auto mass = particle_masses(particle_index);
+
+                accumulated_mass += particle_masses(particle_index);
+                if (final_pass)
+                {
+                  auto r = Details::distance(
+                      fof_halo_centers(halo_index),
+                      ParticlesAccess::get(particles, particle_index));
+                  float volume = 4.f / 3 * M_PI * pow(r, 3);
+                  float ratio = (mass / volume) / params._rho;
+
+                  if (ratio <= params._rho_ratio)
+                    Kokkos::atomic_min_fetch(
+                        &sod_halo_rdeltas_index(halo_index), i);
+                }
+              });
+        });
+
+    Kokkos::parallel_for(
+        "ArborX::SODHandle::computeRdelta::compute_rdelta",
+        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
+        KOKKOS_LAMBDA(int halo_index) {
+          auto particle_index =
+              indices(offsets(halo_index) + sod_halo_rdeltas_index(halo_index));
+          sod_halo_rdeltas(halo_index) = Details::distance(
+              fof_halo_centers(halo_index),
+              ParticlesAccess::get(particles, particle_index));
+        });
+
+    exec_space.fence();
+
+    Kokkos::Profiling::popRegion();
+  }
+
   template <typename ExecutionSpace, typename Callback>
   void computeBinProfiles(ExecutionSpace const &exec_space, int num_bins,
                           Callback const &callback) const
   {
-    // Do not sort for now, so as to not allocate additional memory, which would
-    // take 8*n bytes (4 for Morton index, 4 for permutation index). This will
-    // results in running out of memory for the hardest HACC problem on V100.
+    // Do not sort for now, so as to not allocate additional memory, which
+    // would take 8*n bytes (4 for Morton index, 4 for permutation index).
+    // This will results in running out of memory for the hardest HACC problem
+    // on V100.
     bool const sort_predicates = false;
     _bvh.query(
         exec_space, SOD::ParticlesWrapper<Particles>{_particles},
