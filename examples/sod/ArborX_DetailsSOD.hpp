@@ -64,16 +64,30 @@ int binID(float r_min, float r_max, float r, int num_sod_bins)
   return bin_id;
 }
 
+struct SODTuple
+{
+  int particle_index;
+  int halo_index;
+  float distance;
+  friend KOKKOS_FUNCTION bool operator<(SODTuple const &l, SODTuple const &r)
+  {
+    if (l.halo_index < r.halo_index)
+      return true;
+    if (l.halo_index > r.halo_index)
+      return false;
+    return l.distance <= r.distance;
+  }
+};
+
 template <typename MemorySpace, typename Particles>
 struct CriticalBinParticles
 {
   Particles _particles;
   Kokkos::View<int *, MemorySpace> _critical_bin_offsets;
-  Kokkos::View<int *, MemorySpace> _critical_bin_indices;
-  Kokkos::View<float *, MemorySpace> _distances_augmented;
+  Kokkos::View<SODTuple *, MemorySpace> _critical_bin_values;
   Kokkos::View<int *, MemorySpace> _critical_bin_ids;
   Kokkos::View<Point *, MemorySpace> _fof_halo_centers;
-  Kokkos::View<float **, MemorySpace> _sod_halo_bin_outer_radii;
+  int _num_sod_bins;
   float _r_min;
   Kokkos::View<float *, MemorySpace> _r_max;
 
@@ -93,37 +107,47 @@ struct CriticalBinParticles
       return;
     }
 
-    int const num_sod_bins = _sod_halo_bin_outer_radii.extent(1);
-
-    auto bin_id = binID(_r_min, _r_max(halo_index), dist, num_sod_bins);
+    auto bin_id = binID(_r_min, _r_max(halo_index), dist, _num_sod_bins);
     if (bin_id == _critical_bin_ids(halo_index))
     {
       auto pos =
           Kokkos::atomic_fetch_add(&_critical_bin_offsets(halo_index), 1);
-      _critical_bin_indices(pos) = particle_index;
-
-      // NOTE: this is a HACK!!
-      // Instead of storing just the distance, we adjust the distance by
-      // scaling it to [0, 1) and adding the halo index. We call these
-      // distances augmented. This guarantees that the segments with augmented
-      // distances for each halo do not overlap, allowing us to then simply use
-      // a single sortObjects call that would automatically sort all distances
-      // for each halo without mixing them.
-      //
-      // The reason it is done here, instead of later, is because doing it
-      // later would require a linear scan through each halo by a single
-      // thread, which is extremely expensive compared to all other kernels.
-      //
-      // The way we scale each distance to [0, 1) is by noticing that we are
-      // only interested in particles in a critical bin. Thus, taking the outer
-      // radius of that bin guarantees this property. And just to be sure, we
-      // conservatively scale by 1.1.
-      _distances_augmented(pos) =
-          halo_index +
-          dist / (1.1f * _sod_halo_bin_outer_radii(halo_index, bin_id));
+      _critical_bin_values(pos).particle_index = particle_index;
+      _critical_bin_values(pos).halo_index = halo_index;
+      _critical_bin_values(pos).distance = dist;
     }
   }
 };
+
+// Compute radii for SOD bins
+template <typename ExecutionSpace, typename MemorySpace>
+Kokkos::View<float **, MemorySpace>
+computeSODBinRadii(ExecutionSpace const &exec_space, float r_min,
+                   Kokkos::View<float *, MemorySpace> r_max, int num_sod_bins)
+{
+  Kokkos::Profiling::pushRegion("ArborX::SOD::compute_sod_bin_radii");
+
+  auto const num_halos = r_max.extent(0);
+
+  Kokkos::View<float **, MemorySpace> sod_halo_bin_outer_radii(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                         "ArborX::SOD::sod_halo_bin_outer_radii"),
+      num_halos, num_sod_bins);
+  Kokkos::parallel_for(
+      "ArborX::SOD::compute_bin_outer_radii",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
+      KOKKOS_LAMBDA(int halo_index) {
+        float r_delta = rDelta(r_min, r_max(halo_index), num_sod_bins);
+        sod_halo_bin_outer_radii(halo_index, 0) = r_min;
+        for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
+          sod_halo_bin_outer_radii(halo_index, bin_id) =
+              pow(10.0, bin_id * r_delta) * r_min;
+      });
+
+  Kokkos::Profiling::popRegion();
+
+  return sod_halo_bin_outer_radii;
+}
 
 // Compute critical bins
 template <typename ExecutionSpace, typename MemorySpace>
@@ -207,47 +231,15 @@ Kokkos::View<int *, MemorySpace> computeSODCriticalBins(
   return critical_bin_ids;
 }
 
-// Compute radii for SOD bins
-template <typename ExecutionSpace, typename MemorySpace>
-Kokkos::View<float **, MemorySpace>
-computeSODBinRadii(ExecutionSpace const &exec_space, float r_min,
-                   Kokkos::View<float *, MemorySpace> r_max, int num_sod_bins)
-{
-  Kokkos::Profiling::pushRegion("ArborX::SOD::compute_sod_bin_radii");
-
-  auto const num_halos = r_max.extent(0);
-
-  Kokkos::View<float **, MemorySpace> sod_halo_bin_outer_radii(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                         "ArborX::SOD::sod_halo_bin_outer_radii"),
-      num_halos, num_sod_bins);
-  Kokkos::parallel_for(
-      "ArborX::SOD::compute_bin_outer_radii",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
-      KOKKOS_LAMBDA(int halo_index) {
-        float r_delta = rDelta(r_min, r_max(halo_index), num_sod_bins);
-        sod_halo_bin_outer_radii(halo_index, 0) = r_min;
-        for (int bin_id = 1; bin_id < num_sod_bins; ++bin_id)
-          sod_halo_bin_outer_radii(halo_index, bin_id) =
-              pow(10.0, bin_id * r_delta) * r_min;
-      });
-
-  Kokkos::Profiling::popRegion();
-
-  return sod_halo_bin_outer_radii;
-}
-
 template <typename ExecutionSpace, typename MemorySpace>
 std::pair<Kokkos::View<float *, MemorySpace>, Kokkos::View<int *, MemorySpace>>
 computeSODRdeltas(
     ExecutionSpace const & /*exec_space*/, SOD::Parameters const &params,
     Kokkos::View<float *, MemorySpace> particle_masses,
     Kokkos::View<double **, MemorySpace> sod_halo_bin_masses,
-    Kokkos::View<float **, MemorySpace> sod_halo_bin_outer_radii,
     Kokkos::View<int *, MemorySpace> critical_bin_ids,
     Kokkos::View<int *, MemorySpace> critical_bin_offsets,
-    Kokkos::View<int *, MemorySpace> sorted_critical_bin_indices,
-    Kokkos::View<float *, MemorySpace> critical_bin_distances_augmented)
+    Kokkos::View<SODTuple *, MemorySpace> sorted_critical_bin_values)
 {
   Kokkos::Profiling::pushRegion("ArborX::SOD::compute_r_delta");
 
@@ -283,9 +275,6 @@ computeSODRdeltas(
           sod_halo_rdeltas_index(halo_index) = (bin_end - 1 - bin_start);
         });
 
-        float R_bin_outer =
-            sod_halo_bin_outer_radii(halo_index, critical_bin_ids(halo_index));
-
         double prior_mass = 0.;
         for (int bin_id = 0; bin_id < critical_bin_ids(halo_index); ++bin_id)
           prior_mass += sod_halo_bin_masses(halo_index, bin_id);
@@ -293,14 +282,13 @@ computeSODRdeltas(
         Kokkos::parallel_scan(
             Kokkos::TeamThreadRange(team, bin_start, bin_end),
             [&](int i, double &accumulated_mass, bool const final_pass) {
-              auto particle_index = sorted_critical_bin_indices(i);
+              auto particle_index =
+                  sorted_critical_bin_values(i).particle_index;
 
               accumulated_mass += particle_masses(particle_index);
               if (final_pass)
               {
-                float r =
-                    (critical_bin_distances_augmented(i) - halo_index) *
-                    (1.1f * R_bin_outer); // see HACK comment above for details
+                float r = sorted_critical_bin_values(i).distance;
                 float volume = 4.f / 3 * M_PI * pow(r, 3);
                 float ratio =
                     ((prior_mass + accumulated_mass) / params._rho) / volume;
@@ -312,14 +300,9 @@ computeSODRdeltas(
             });
 
         Kokkos::single(Kokkos::PerTeam(team), [&]() {
-          auto particle_index = sorted_critical_bin_indices(
-              bin_start + sod_halo_rdeltas_index(halo_index));
-
+          auto index = bin_start + sod_halo_rdeltas_index(halo_index);
           sod_halo_rdeltas(halo_index) =
-              (critical_bin_distances_augmented(
-                   bin_start + sod_halo_rdeltas_index(halo_index)) -
-               halo_index) *
-              (1.1f * R_bin_outer); // see HACK comment above for details
+              sorted_critical_bin_values(index).distance;
         });
       });
 

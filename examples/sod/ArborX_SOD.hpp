@@ -128,21 +128,6 @@ struct SODParticlesCount
   }
 };
 
-struct SODTuple
-{
-  int particle_index;
-  int halo_index;
-  float distance;
-  friend KOKKOS_FUNCTION bool operator<(SODTuple const &l, SODTuple const &r)
-  {
-    if (l.halo_index < r.halo_index)
-      return true;
-    if (l.halo_index > r.halo_index)
-      return false;
-    return l.distance <= r.distance;
-  }
-};
-
 template <typename MemorySpace>
 struct SODParticles
 {
@@ -231,11 +216,9 @@ struct SODHandle
         Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
 
     Kokkos::Profiling::popRegion();
-    Kokkos::Profiling::pushRegion("ArborX::SODHandle::query::sort_pairs");
+    Kokkos::Profiling::pushRegion("ArborX::SODHandle::query::sort_values");
 
     // Sort
-    // NOTE: current implementation also computes a permutation, which is
-    // unnecessary
     sortObjects(exec_space, values);
     Kokkos::Profiling::popRegion();
 
@@ -301,7 +284,7 @@ struct SODHandle
                            "ArborX::SOD::critical_bin_offsets"),
         num_halos + 1);
     Kokkos::parallel_for(
-        "compute_critical_bins",
+        "ArborX::SOD::compute_critical_bins",
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
         KOKKOS_LAMBDA(int halo_index) {
           critical_bin_offsets(halo_index) =
@@ -313,54 +296,37 @@ struct SODHandle
     printf("#particles in critical bins: %d\n", num_critical_bin_particles);
 
     // Find particles in critical bins for each halo
-    Kokkos::View<int *, MemorySpace> critical_bin_indices(
+    Kokkos::View<Details::SODTuple *, MemorySpace> critical_bin_values(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "ArborX::SOD::critical_bin_indices"),
-        num_critical_bin_particles);
-    Kokkos::View<float *, MemorySpace> critical_bin_distances_augmented(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "ArborX::SOD::critical_bin_distances_augmented"),
+                           "ArborX::SOD::critical_bin_values"),
         num_critical_bin_particles);
     {
       auto offsets = clone(critical_bin_offsets);
       _bvh.query(
           exec_space, SOD::ParticlesWrapper<Particles>{_particles},
           Details::CriticalBinParticles<MemorySpace, Particles>{
-              _particles, offsets, critical_bin_indices,
-              critical_bin_distances_augmented, critical_bin_ids,
-              _fof_halo_centers, sod_halo_bin_outer_radii, _r_min, _r_max},
+              _particles, offsets, critical_bin_values, critical_bin_ids,
+              _fof_halo_centers, num_sod_bins, _r_min, _r_max},
           Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
     }
 
     Kokkos::Profiling::popRegion();
 
-    {
-      // Permute found particles within a critical bin of each halo based on
-      // their distance to the center
-      Kokkos::Profiling::pushRegion(
-          "ArborX::SOD::permute_critical_bin_particles");
-      auto permute =
-          Details::sortObjects(exec_space, critical_bin_distances_augmented);
-      auto critical_bin_indices_clone = clone(critical_bin_indices);
-      Kokkos::parallel_for("ArborX::SOD::apply_permutation",
-                           Kokkos::RangePolicy<ExecutionSpace>(
-                               exec_space, 0, num_critical_bin_particles),
-                           KOKKOS_LAMBDA(int i) {
-                             critical_bin_indices(i) =
-                                 critical_bin_indices_clone(permute(i));
-                           });
-      Kokkos::Profiling::popRegion();
-    }
+    // Sort the particles based on their distance to the corresponding FOF
+    // center
+    Kokkos::Profiling::pushRegion(
+        "ArborX::SODHandle::computeRdelta::sort_values");
+    sortObjects(exec_space, critical_bin_values);
+    Kokkos::Profiling::popRegion();
 
+    // Compute R_delta
     Kokkos::Profiling::pushRegion(
         "ArborX::SODHandle::compute_R_delta::compute_r_delta");
-    // Compute R_delta
     Kokkos::resize(sod_halo_rdeltas_index, 0);
     std::tie(sod_halo_rdeltas, sod_halo_rdeltas_index) =
-        Details::computeSODRdeltas(
-            exec_space, params, particle_masses, sod_halo_bin_masses,
-            sod_halo_bin_outer_radii, critical_bin_ids, critical_bin_offsets,
-            critical_bin_indices, critical_bin_distances_augmented);
+        Details::computeSODRdeltas(exec_space, params, particle_masses,
+                                   sod_halo_bin_masses, critical_bin_ids,
+                                   critical_bin_offsets, critical_bin_values);
     Kokkos::Profiling::popRegion();
 
     Kokkos::parallel_for(
