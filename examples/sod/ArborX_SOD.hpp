@@ -410,8 +410,7 @@ struct SODHandle
     // Avoid capturing *this
     Kokkos::parallel_for(
         "ArborX::SODHandle::computeRdelta::compute_rdelta_index",
-        TeamPolicy(num_halos, Kokkos::AUTO),
-        KOKKOS_LAMBDA(const team_member &team) {
+        TeamPolicy(num_halos, 512), KOKKOS_LAMBDA(const team_member &team) {
           auto halo_index = team.league_rank();
 
           auto halo_start = offsets(halo_index);
@@ -442,13 +441,13 @@ struct SODHandle
         "ArborX::SODHandle::computeRdelta::compute_rdelta",
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
         KOKKOS_LAMBDA(int halo_index) {
-          auto& rdelta_index = sod_halo_rdeltas_index(halo_index);
-          if (rdelta_index < INT_MAX) {
-              auto particle_index =
-                  indices(offsets(halo_index) + rdelta_index);
-              sod_halo_rdeltas(halo_index) = Details::distance(
-                  fof_halo_centers(halo_index),
-                  ParticlesAccess::get(particles, particle_index));
+          auto &rdelta_index = sod_halo_rdeltas_index(halo_index);
+          if (rdelta_index < INT_MAX)
+          {
+            auto particle_index = indices(offsets(halo_index) + rdelta_index);
+            sod_halo_rdeltas(halo_index) = Details::distance(
+                fof_halo_centers(halo_index),
+                ParticlesAccess::get(particles, particle_index));
           }
         });
 
