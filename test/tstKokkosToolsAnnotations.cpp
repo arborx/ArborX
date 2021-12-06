@@ -18,9 +18,6 @@
 
 #include "Search_UnitTestHelpers.hpp"
 
-#if (KOKKOS_VERSION >= 30200) // callback registriation from within the program
-                              // was added in Kokkkos v3.2
-
 BOOST_AUTO_TEST_SUITE(KokkosToolsAnnotations)
 
 namespace tt = boost::test_tools;
@@ -245,5 +242,3 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
-
-#endif
