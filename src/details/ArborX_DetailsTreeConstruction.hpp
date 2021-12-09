@@ -333,9 +333,8 @@ public:
           right_child += leaf_nodes_shift;
 
         delta_right = delta(range_right);
-        auto const right_child_bounding_volume =
-            Kokkos::volatile_load(&getNodePtr(right_child)->bounding_volume);
-        expand(bounding_volume, right_child_bounding_volume);
+
+        expand(bounding_volume, getNodePtr(right_child)->bounding_volume);
       }
       else
       {
@@ -355,9 +354,8 @@ public:
         right_child = i;
 
         delta_left = delta(range_left - 1);
-        auto const left_child_bounding_volume =
-            Kokkos::volatile_load(&getNodePtr(left_child)->bounding_volume);
-        expand(bounding_volume, left_child_bounding_volume);
+
+        expand(bounding_volume, getNodePtr(left_child)->bounding_volume);
       }
 
       // Having the full range for the parent, we can compute the Karras index.
@@ -368,7 +366,8 @@ public:
       parent_node->left_child = left_child;
       setRightChild(parent_node, right_child);
       setRope(parent_node, range_right, delta_right);
-      Kokkos::volatile_store(&parent_node->bounding_volume, bounding_volume);
+      parent_node->bounding_volume = bounding_volume;
+      Kokkos::memory_fence();
 
       i = karras_parent;
 
