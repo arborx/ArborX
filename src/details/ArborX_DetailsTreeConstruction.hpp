@@ -334,6 +334,7 @@ public:
 
         delta_right = delta(range_right);
 
+        Kokkos::load_fence();
         expand(bounding_volume, getNodePtr(right_child)->bounding_volume);
       }
       else
@@ -355,6 +356,7 @@ public:
 
         delta_left = delta(range_left - 1);
 
+        Kokkos::load_fence();
         expand(bounding_volume, getNodePtr(left_child)->bounding_volume);
       }
 
@@ -367,7 +369,6 @@ public:
       setRightChild(parent_node, right_child);
       setRope(parent_node, range_right, delta_right);
       parent_node->bounding_volume = bounding_volume;
-      Kokkos::memory_fence();
 
       i = karras_parent;
 
