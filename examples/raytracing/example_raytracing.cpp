@@ -83,7 +83,7 @@ struct AccumRaySphereInterDist
     float const length = overlapDistance(ray, sphere);
     int const i = getData(predicate);
 
-    Kokkos::atomic_fetch_add(&_accumulator(i), length);
+    Kokkos::atomic_add(&_accumulator(i), length);
   }
 };
 
