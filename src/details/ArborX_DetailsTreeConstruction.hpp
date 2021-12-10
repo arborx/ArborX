@@ -334,6 +334,10 @@ public:
 
         delta_right = delta(range_right);
 
+        // Memory synchronization below ensures write from other threads to the
+        // child bounding volume memory location are visible from the current
+        // thread.
+        // NOTE we need acquire semantics at the device scope
         Kokkos::load_fence();
         expand(bounding_volume, getNodePtr(right_child)->bounding_volume);
       }
