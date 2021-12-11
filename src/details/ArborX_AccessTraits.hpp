@@ -81,22 +81,25 @@ template <typename Traits>
 using AccessTraitsMemorySpaceArchetypeAlias = typename Traits::memory_space;
 
 // archetypal expression for 'size()' static member function in access traits
-template <typename Traits>
-using AccessTraitsSizeArchetypeExpression = decltype(
-    Traits::size(std::declval<first_template_parameter_t<Traits> const &>()));
+template <typename Traits, typename X>
+using AccessTraitsSizeArchetypeExpression =
+    decltype(Traits::size(std::declval<X const &>()));
 
 // archetypal expression for 'get()' static member function in access traits
-template <typename Traits>
-using AccessTraitsGetArchetypeExpression = decltype(
-    Traits::get(std::declval<first_template_parameter_t<Traits> const &>(), 0));
+template <typename Traits, typename X>
+using AccessTraitsGetArchetypeExpression =
+    decltype(Traits::get(std::declval<X const &>(), 0));
 
 template <typename Access>
-struct AccessTraitsHelper
+struct AccessTraitsHelper;
+
+template <typename X, typename Tag>
+struct AccessTraitsHelper<AccessTraits<X, Tag>>
 {
   // Deduce return type of get()
-  using type =
-      std::decay_t<detected_t<AccessTraitsGetArchetypeExpression, Access>>;
-  using tag = typename Tag<type>::type;
+  using type = std::decay_t<
+      detected_t<AccessTraitsGetArchetypeExpression, AccessTraits<X, Tag>, X>>;
+  using tag = typename ::ArborX::Details::Tag<type>::type;
 };
 
 template <typename Predicates>
@@ -115,17 +118,19 @@ void check_valid_access_traits(PredicatesTag, Predicates const &)
           detected_t<AccessTraitsMemorySpaceArchetypeAlias, Access>>{},
       "'memory_space' member type must be a valid Kokkos memory space");
 
-  static_assert(is_detected<AccessTraitsSizeArchetypeExpression, Access>{},
-                "AccessTraits<Predicates,PredicatesTag> must define "
-                "'size()' static member function");
   static_assert(
-      std::is_integral<
-          detected_t<AccessTraitsSizeArchetypeExpression, Access>>{},
+      is_detected<AccessTraitsSizeArchetypeExpression, Access, Predicates>{},
+      "AccessTraits<Predicates,PredicatesTag> must define 'size()' static "
+      "member function");
+  static_assert(
+      std::is_integral<detected_t<AccessTraitsSizeArchetypeExpression, Access,
+                                  Predicates>>{},
       "size() static member function return type is not an integral type");
 
-  static_assert(is_detected<AccessTraitsGetArchetypeExpression, Access>{},
-                "AccessTraits<Predicates,PredicatesTag> must define "
-                "'get()' static member function");
+  static_assert(
+      is_detected<AccessTraitsGetArchetypeExpression, Access, Predicates>{},
+      "AccessTraits<Predicates,PredicatesTag> must define 'get()' static "
+      "member function");
 
   using Tag = typename AccessTraitsHelper<Access>::tag;
   static_assert(std::is_same<Tag, NearestPredicateTag>{} ||
@@ -149,19 +154,21 @@ void check_valid_access_traits(PrimitivesTag, Primitives const &)
           detected_t<AccessTraitsMemorySpaceArchetypeAlias, Access>>{},
       "'memory_space' member type must be a valid Kokkos memory space");
 
-  static_assert(is_detected<AccessTraitsSizeArchetypeExpression, Access>{},
-                "AccessTraits<Primitives,PrimitivesTag> must define "
-                "'size()' static member function");
   static_assert(
-      std::is_integral<
-          detected_t<AccessTraitsSizeArchetypeExpression, Access>>{},
+      is_detected<AccessTraitsSizeArchetypeExpression, Access, Primitives>{},
+      "AccessTraits<Primitives,PrimitivesTag> must define 'size()' static "
+      "member function");
+  static_assert(
+      std::is_integral<detected_t<AccessTraitsSizeArchetypeExpression, Access,
+                                  Primitives>>{},
       "size() static member function return type is not an integral type");
 
-  static_assert(is_detected<AccessTraitsGetArchetypeExpression, Access>{},
-                "AccessTraits<Primitives,PrimitivesTag> must define "
-                "'get()' static member function");
-  using T =
-      std::decay_t<detected_t<AccessTraitsGetArchetypeExpression, Access>>;
+  static_assert(
+      is_detected<AccessTraitsGetArchetypeExpression, Access, Primitives>{},
+      "AccessTraits<Primitives,PrimitivesTag> must define 'get()' static "
+      "member function");
+  using T = std::decay_t<
+      detected_t<AccessTraitsGetArchetypeExpression, Access, Primitives>>;
   static_assert(std::is_same<T, Point>{} || std::is_same<T, Box>{},
                 "AccessTraits<Primitives,PrimitivesTag>::get() return type "
                 "must decay to Point or to Box");
