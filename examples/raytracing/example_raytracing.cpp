@@ -121,6 +121,7 @@ int main(int argc, char *argv[])
 
   std::cout << "ArborX version: " << ArborX::version() << std::endl;
   std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
+  std::cout << "Kokkos version: " << KokkosExt::version() << std::endl;
 
   std::uniform_real_distribution<float> uniform{0.0, 1.0};
   std::default_random_engine gen;
