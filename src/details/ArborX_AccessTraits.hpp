@@ -12,8 +12,8 @@
 #ifndef ARBORX_ACCESS_TRAITS_HPP
 #define ARBORX_ACCESS_TRAITS_HPP
 
+#include <ArborX_Box.hpp>
 #include <ArborX_DetailsKokkosExtDetectionIdiom.hpp>
-#include <ArborX_DetailsTags.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
 
@@ -90,6 +90,9 @@ template <typename Traits, typename X>
 using AccessTraitsGetArchetypeExpression =
     decltype(Traits::get(std::declval<X const &>(), 0));
 
+template <typename P>
+using PredicateTagArchetypeAlias = typename P::Tag;
+
 template <typename Access>
 struct AccessTraitsHelper;
 
@@ -100,7 +103,7 @@ struct AccessTraitsHelper<AccessTraits<X, Tag>>
   using type =
       std::decay_t<KokkosExt::detected_t<AccessTraitsGetArchetypeExpression,
                                          AccessTraits<X, Tag>, X>>;
-  using tag = typename ::ArborX::Details::Tag<type>::type;
+  using tag = KokkosExt::detected_t<PredicateTagArchetypeAlias, type>;
 };
 
 template <typename Predicates>
