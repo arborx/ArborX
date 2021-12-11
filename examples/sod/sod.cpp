@@ -318,22 +318,22 @@ struct MassAvgRadiiCountProfiles
   KOKKOS_FUNCTION void operator()(int particle_index, int halo_index,
                                   int bin_id) const
   {
-    Kokkos::atomic_fetch_add(&_sod_halo_bin_counts(halo_index, bin_id), 1);
-    Kokkos::atomic_fetch_add(&_sod_halo_bin_masses(halo_index, bin_id),
-                             _particle_masses(particle_index));
+    Kokkos::atomic_increment(&_sod_halo_bin_counts(halo_index, bin_id));
+    Kokkos::atomic_add(&_sod_halo_bin_masses(halo_index, bin_id),
+                       (double)_particle_masses(particle_index));
   }
 };
 
 // Compute R_min and R_max for each FOF halo
-template <typename ExecutionSpace, typename FOFHaloMases>
-std::pair<float, Kokkos::View<float *, typename FOFHaloMases::memory_space>>
+template <typename ExecutionSpace, typename FOFHaloMasses>
+std::pair<float, Kokkos::View<float *, typename FOFHaloMasses::memory_space>>
 computeSODRadii(ExecutionSpace const &exec_space,
-                FOFHaloMases const &fof_halo_masses, float r_smooth,
+                FOFHaloMasses const &fof_halo_masses, float r_smooth,
                 float min_factor, float max_factor, float sod_mass)
 {
   Kokkos::Profiling::pushRegion("ArborX::SOD::compute_sod_radii");
 
-  using MemorySpace = typename FOFHaloMases::memory_space;
+  using MemorySpace = typename FOFHaloMasses::memory_space;
 
   float r_min = min_factor * r_smooth;
 
@@ -458,7 +458,7 @@ struct ArborX::AccessTraits<GenericParticles<Particles>, ArborX::PrimitivesTag>
   {
     return ParticlesAccess::size(w._particles);
   }
-  static KOKKOS_FUNCTION auto get(Primitives const &w, size_t i)
+  static KOKKOS_FUNCTION auto &get(Primitives const &w, size_t i)
   {
     return ParticlesAccess::get(w._particles, i);
   }

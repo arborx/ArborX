@@ -60,7 +60,7 @@ struct AccessTraits<SOD::Spheres<MemorySpace>, PrimitivesTag>
   using memory_space = MemorySpace;
 
   KOKKOS_FUNCTION static std::size_t
-  size(const SOD::Spheres<MemorySpace> &spheres)
+  size(SOD::Spheres<MemorySpace> const &spheres)
   {
     return spheres._centers.extent(0);
   }
@@ -136,7 +136,7 @@ struct SODHandle
         "ArborX::SODHandle::query::compute_particle_pairs");
 
     auto &counts = offsets; // alias
-    Kokkos::deep_copy(counts, 0);
+    Kokkos::deep_copy(exec_space, counts, 0);
     _bvh.query(
         exec_space, SOD::ParticlesWrapper<Particles>{_particles},
         Details::SODParticlesCount<MemorySpace>{_fof_halo_centers, _r_max,
@@ -150,7 +150,7 @@ struct SODHandle
 
     Kokkos::View<Details::SODTuple *, MemorySpace> values(
         "ArborX::SODHandle::query::values", num_values);
-    auto offsets_clone = clone(offsets);
+    auto offsets_clone = clone(exec_space, offsets);
     _bvh.query(
         exec_space, SOD::ParticlesWrapper<Particles>{_particles},
         Details::SODParticles<MemorySpace>{_fof_halo_centers, _r_max,
@@ -188,7 +188,8 @@ struct SODHandle
 
     if (use_bin_approach)
     {
-      Kokkos::Profiling::pushRegion("ArborX::SODHandle::compute_R_delta_with_bins");
+      Kokkos::Profiling::pushRegion(
+          "ArborX::SODHandle::compute_R_delta_with_bins");
 
       // TODO: for now, this is fixed to the usual number used for profiles.
       // But it does not have to. Need to play around with it to see what's the
@@ -249,7 +250,7 @@ struct SODHandle
                              "ArborX::SOD::critical_bin_values"),
           num_critical_bin_particles);
       {
-        auto offsets = clone(critical_bin_offsets);
+        auto offsets = clone(exec_space, critical_bin_offsets);
         _bvh.query(exec_space, SOD::ParticlesWrapper<Particles>{_particles},
                    Details::CriticalBinParticles<MemorySpace, Particles>{
                        _particles, critical_bin_ids, _fof_halo_centers,
@@ -292,7 +293,8 @@ struct SODHandle
     }
     else
     {
-      Kokkos::Profiling::pushRegion("ArborX::SODHandle::compute_R_delta_no_bins");
+      Kokkos::Profiling::pushRegion(
+          "ArborX::SODHandle::compute_R_delta_no_bins");
 
       Kokkos::View<int *, MemorySpace> offsets;
       Kokkos::View<int *, MemorySpace> indices;
@@ -309,8 +311,8 @@ struct SODHandle
       Kokkos::deep_copy(sod_halo_rdeltas_index, INT_MAX);
 
       // Avoid capturing *this
-      auto particles = _particles;
-      auto fof_halo_centers = _fof_halo_centers;
+      auto const &particles = _particles;
+      auto const &fof_halo_centers = _fof_halo_centers;
 
       Kokkos::parallel_for(
           "ArborX::SODHandle::computeRdelta::compute_rdelta_index",
@@ -326,6 +328,7 @@ struct SODHandle
                 [&](int i, double &accumulated_mass, bool const final_pass) {
                   auto particle_index = indices(halo_start + i);
 
+                  // FIXME: Adding numbers of different orders of magnitude
                   accumulated_mass += particle_masses(particle_index);
                   if (final_pass)
                   {
@@ -336,8 +339,8 @@ struct SODHandle
                     float ratio = (accumulated_mass / rho) / volume;
 
                     if (ratio <= rho_ratio)
-                      Kokkos::atomic_min_fetch(
-                          &sod_halo_rdeltas_index(halo_index), i);
+                      Kokkos::atomic_min(&sod_halo_rdeltas_index(halo_index),
+                                         i);
                   }
                 });
           });

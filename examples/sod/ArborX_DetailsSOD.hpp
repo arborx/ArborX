@@ -21,22 +21,25 @@ namespace Details
 {
 
 KOKKOS_INLINE_FUNCTION
-float rDelta(float r_min, float r_max, int num_sod_bins)
+float rDelta(float r_min, float r_max, int num_bins)
 {
-  return log10(r_max / r_min) / (num_sod_bins - 1);
+  using Kokkos::Experimental::log10;
+
+  return log10(r_max / r_min) / (num_bins - 1);
 }
 
 KOKKOS_INLINE_FUNCTION
-int binID(float r_min, float r_max, float r, int num_sod_bins)
+int binID(float r_min, float r_max, int num_bins, float r)
 {
+  using Kokkos::Experimental::log10;
 
-  float r_delta = rDelta(r_min, r_max, num_sod_bins);
+  float r_delta = rDelta(r_min, r_max, num_bins);
 
   int bin_id = 0;
   if (r > r_min)
     bin_id = (int)floor(log10(r / r_min) / r_delta) + 1;
-  if (bin_id >= num_sod_bins)
-    bin_id = num_sod_bins - 1;
+  if (bin_id >= num_bins)
+    bin_id = num_bins - 1;
 
   return bin_id;
 }
@@ -46,13 +49,13 @@ struct SODTuple
   int particle_index;
   int halo_index;
   float distance;
+
+private:
   friend KOKKOS_FUNCTION bool operator<(SODTuple const &l, SODTuple const &r)
   {
-    if (l.halo_index < r.halo_index)
-      return true;
-    if (l.halo_index > r.halo_index)
-      return false;
-    return l.distance <= r.distance;
+    if (l.halo_index == r.halo_index)
+      return l.distance <  r.distance;
+    return l.halo_index < r.halo_index;
   }
 };
 
@@ -71,14 +74,14 @@ struct Profiles
     int particle_index = getData(query);
     Point const &point = getGeometry(query);
 
-    float dist = Details::distance(point, _fof_halo_centers(halo_index));
+    float dist = distance(point, _fof_halo_centers(halo_index));
     if (dist > _r_max(halo_index))
     {
       // false positive
       return;
     }
 
-    auto bin_id = binID(_r_min, _r_max(halo_index), dist, _num_bins);
+    auto bin_id = binID(_r_min, _r_max(halo_index), _num_bins, dist);
     _callback(particle_index, halo_index, bin_id);
   }
 };
@@ -94,9 +97,9 @@ struct MassAvgRadiiCountProfiles
   KOKKOS_FUNCTION void operator()(int particle_index, int halo_index,
                                   int bin_id) const
   {
-    Kokkos::atomic_fetch_add(&_sod_halo_bin_counts(halo_index, bin_id), 1);
-    Kokkos::atomic_fetch_add(&_sod_halo_bin_masses(halo_index, bin_id),
-                             _particle_masses(particle_index));
+    Kokkos::atomic_increment(&_sod_halo_bin_counts(halo_index, bin_id));
+    Kokkos::atomic_add(&_sod_halo_bin_masses(halo_index, bin_id),
+                       (double)_particle_masses(particle_index));
   }
 };
 
@@ -111,15 +114,14 @@ struct SODParticlesCount
   template <typename Query>
   KOKKOS_FUNCTION void operator()(Query const &query, int halo_index) const
   {
-    float dist =
-        Details::distance(getGeometry(query), _fof_halo_centers(halo_index));
+    float dist = distance(getGeometry(query), _fof_halo_centers(halo_index));
     if (dist > _r_max(halo_index))
     {
       // False positive
       return;
     }
 
-    Kokkos::atomic_fetch_add(&_counts(halo_index), 1);
+    Kokkos::atomic_increment(&_counts(halo_index));
   }
 };
 
@@ -135,8 +137,7 @@ struct SODParticles
   template <typename Query>
   KOKKOS_FUNCTION void operator()(Query const &query, int halo_index) const
   {
-    float dist =
-        Details::distance(getGeometry(query), _fof_halo_centers(halo_index));
+    float dist = distance(getGeometry(query), _fof_halo_centers(halo_index));
     if (dist > _r_max(halo_index))
     {
       // False positive
@@ -170,15 +171,14 @@ struct CriticalBinParticles
   template <typename Query>
   KOKKOS_FUNCTION void operator()(Query const &query, int halo_index) const
   {
-    float dist =
-        Details::distance(getGeometry(query), _fof_halo_centers(halo_index));
+    float dist = distance(getGeometry(query), _fof_halo_centers(halo_index));
     if (dist > _r_max(halo_index))
     {
       // False positive
       return;
     }
 
-    auto bin_id = binID(_r_min, _r_max(halo_index), dist, _num_sod_bins);
+    auto bin_id = binID(_r_min, _r_max(halo_index), _num_sod_bins, dist);
     if (bin_id == _critical_bin_ids(halo_index))
     {
       auto pos =
@@ -330,7 +330,7 @@ computeSODRdeltas(
   Kokkos::parallel_for(
       "ArborX::SODHandle::computeRdelta::compute_rdelta_index",
       TeamPolicy(exec_space, num_halos, Kokkos::AUTO),
-      KOKKOS_LAMBDA(const team_member &team) {
+      KOKKOS_LAMBDA(team_member const &team) {
         auto halo_index = team.league_rank();
 
         auto bin_start = critical_bin_offsets(halo_index);
@@ -364,8 +364,8 @@ computeSODRdeltas(
                 float ratio = ((prior_mass + accumulated_mass) / rho) / volume;
 
                 if (ratio <= rho_ratio)
-                  Kokkos::atomic_min_fetch(&sod_halo_rdeltas_index(halo_index),
-                                           i - bin_start);
+                  Kokkos::atomic_min(&sod_halo_rdeltas_index(halo_index),
+                                     i - bin_start);
               }
             });
 
