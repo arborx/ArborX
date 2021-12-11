@@ -449,7 +449,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
                          if (vstat != old)
                            labels(i) = vstat;
 
-                         Kokkos::atomic_fetch_add(&cluster_sizes(labels(i)), 1);
+                         Kokkos::atomic_increment(&cluster_sizes(labels(i)));
                        });
   if (is_special_case)
   {

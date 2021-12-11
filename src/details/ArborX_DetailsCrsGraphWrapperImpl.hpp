@@ -99,7 +99,7 @@ struct InsertGenerator
     auto &count = _counts(predicate_index);
 
     return _callback(raw_predicate, primitive_index, [&](ValueType const &) {
-      Kokkos::atomic_fetch_add(&count, 1);
+      Kokkos::atomic_increment(&count);
     });
   }
 

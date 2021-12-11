@@ -78,7 +78,7 @@ struct CountCallback
   KOKKOS_FUNCTION void operator()(Query const &query, int) const
   {
     auto const i = ArborX::getData(query);
-    Kokkos::atomic_fetch_add(&_counts(i), 1);
+    Kokkos::atomic_increment(&_counts(i));
   }
 };
 
