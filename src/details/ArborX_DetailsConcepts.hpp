@@ -58,18 +58,6 @@ struct is_detected : is_detected_impl<void, Op, Args...>
 template <template <class...> class Op, class... Args>
 using detected_t = typename is_detected<Op, Args...>::type;
 
-template <typename T>
-struct first_template_parameter;
-
-template <template <typename...> class E, typename Head, typename... Tail>
-struct first_template_parameter<E<Head, Tail...>>
-{
-  using type = Head;
-};
-
-template <typename T>
-using first_template_parameter_t = typename first_template_parameter<T>::type;
-
 } // namespace Details
 } // namespace ArborX
 #endif // DOXYGEN_SHOULD_SKIP_THIS
