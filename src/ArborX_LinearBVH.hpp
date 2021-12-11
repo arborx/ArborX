@@ -17,7 +17,6 @@
 #include <ArborX_Callbacks.hpp>
 #include <ArborX_CrsGraphWrapper.hpp>
 #include <ArborX_DetailsBatchedQueries.hpp>
-#include <ArborX_DetailsConcepts.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_DetailsNode.hpp>
