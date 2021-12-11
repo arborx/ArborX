@@ -299,6 +299,7 @@ int main(int argc, char *argv[])
 
   std::cout << "ArborX version    : " << ArborX::version() << std::endl;
   std::cout << "ArborX hash       : " << ArborX::gitCommitHash() << std::endl;
+  std::cout << "Kokkos version    : " << KokkosExt::version() << std::endl;
 
   namespace bpo = boost::program_options;
   using ArborX::DBSCAN::Implementation;

@@ -9,22 +9,25 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_VERSION_HPP
-#define ARBORX_VERSION_HPP
+#ifndef ARBORX_DETAILS_KOKKOS_EXT_VERSION_HPP
+#define ARBORX_DETAILS_KOKKOS_EXT_VERSION_HPP
 
-#include <ArborX_Config.hpp>
+#include <Kokkos_Macros.hpp>
 
-#include <ArborX_KokkosExtVersion.hpp>
-
+#include <sstream>
 #include <string>
 
-namespace ArborX
+namespace KokkosExt
 {
 
-inline std::string version() { return "@ARBORX_VERSION_STRING@"; }
+inline std::string version()
+{
+  std::stringstream sstr;
+  sstr << KOKKOS_VERSION / 10000 << "." << (KOKKOS_VERSION % 10000) / 100 << "."
+       << KOKKOS_VERSION % 100;
+  return sstr.str();
+}
 
-inline std::string gitCommitHash() { return "@ARBORX_GIT_COMMIT_HASH@"; }
-
-} // namespace ArborX
+} // namespace KokkosExt
 
 #endif
