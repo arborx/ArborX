@@ -270,6 +270,8 @@ std::istream &operator>>(std::istream &in, Implementation &implementation)
     implementation = ArborX::DBSCAN::Implementation::FDBSCAN;
   else if (impl_string == "fdbscan-densebox")
     implementation = ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox;
+  else if (impl_string == "fdbscan-grid")
+    implementation = ArborX::DBSCAN::Implementation::FDBSCAN_Grid;
   else
     in.setstate(std::ios_base::failbit);
 
@@ -288,6 +290,9 @@ std::ostream &operator<<(std::ostream &out,
     break;
   case ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox:
     out << "fdbscan-densebox";
+    break;
+  case ArborX::DBSCAN::Implementation::FDBSCAN_Grid:
+    out << "fdbscan-grid";
     break;
   }
   return out;
@@ -337,7 +342,7 @@ int main(int argc, char *argv[])
       ( "samples", bpo::value<int>(&num_samples)->default_value(-1), "number of samples" )
       ( "labels", bpo::value<std::string>(&filename_labels)->default_value(""), "clutering results output" )
       ( "print-dbscan-timers", bpo::bool_switch(&print_dbscan_timers)->default_value(false), "print dbscan timers")
-      ( "impl", bpo::value<Implementation>(&implementation)->default_value(Implementation::FDBSCAN), R"(implementation ("fdbscan" or "fdbscan-densebox"))")
+      ( "impl", bpo::value<Implementation>(&implementation)->default_value(Implementation::FDBSCAN), R"(implementation ("fdbscan", "fdbscan-densebox" or "fdbscan-grid"))")
       ;
   // clang-format on
   bpo::variables_map vm;

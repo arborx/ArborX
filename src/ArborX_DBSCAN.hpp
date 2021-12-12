@@ -17,6 +17,7 @@
 #include <ArborX_DetailsFDBSCAN.hpp>
 #include <ArborX_DetailsFDBSCANDenseBox.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
+#include <ArborX_Grid.hpp>
 #include <ArborX_LinearBVH.hpp>
 
 #include <map>
@@ -169,7 +170,8 @@ namespace DBSCAN
 enum class Implementation
 {
   FDBSCAN,
-  FDBSCAN_DenseBox
+  FDBSCAN_DenseBox,
+  FDBSCAN_Grid
 };
 
 struct Parameters
@@ -285,6 +287,34 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
                     labels, CorePoints{num_neigh, core_min_size}});
       Kokkos::Profiling::popRegion();
       elapsed["query"] = timer_seconds(timer_local);
+    }
+  }
+  else if (parameters._implementation == DBSCAN::Implementation::FDBSCAN_Grid)
+  {
+    ARBORX_ASSERT(is_special_case);
+
+    timer_start(timer);
+    Kokkos::Profiling::pushRegion("ArborX::DBSCAN::tree_construction");
+
+    ArborX::Grid<MemorySpace> grid(exec_space, primitives, eps, eps, eps);
+
+    Kokkos::Profiling::popRegion();
+    elapsed["construction"] = timer_seconds(timer);
+
+    timer_start(timer);
+    Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters");
+    auto const predicates =
+        Details::PrimitivesWithRadius<Primitives>{primitives, eps};
+    if (is_special_case)
+    {
+      // Perform the queries and build clusters through callback
+      using CorePoints = Details::CCSCorePoints;
+      CorePoints core_points;
+      Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
+      grid.query(exec_space, predicates,
+                 Details::FDBSCANCallback<MemorySpace, CorePoints>{
+                     labels, core_points});
+      Kokkos::Profiling::popRegion();
     }
   }
   else if (parameters._implementation ==
