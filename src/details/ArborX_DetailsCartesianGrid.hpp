@@ -135,6 +135,32 @@ computeCellIndices(ExecutionSpace const &exec_space,
   return cell_indices;
 }
 
+template <typename ExecutionSpace, typename Predicates>
+Kokkos::View<size_t *,
+             typename AccessTraits<Predicates, PredicatesTag>::memory_space>
+computeCellIndicesForPredicates(ExecutionSpace const &exec_space,
+                                Predicates const &predicates,
+                                CartesianGrid const &grid)
+{
+  using Access = AccessTraits<Predicates, PredicatesTag>;
+  using MemorySpace = typename Access::memory_space;
+
+  auto const n = Access::size(predicates);
+
+  Kokkos::View<size_t *, MemorySpace> cell_indices(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                         "ArborX::Grid::cell_indices"),
+      n);
+  Kokkos::parallel_for("ArborX::Grid::compute_cell_indices",
+                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+                       KOKKOS_LAMBDA(int i) {
+                         Point const &xyz =
+                             getGeometry(Access::get(predicates, i)).centroid();
+                         cell_indices(i) = grid.cellIndex(xyz);
+                       });
+  return cell_indices;
+}
+
 } // namespace Details
 } // namespace ArborX
 

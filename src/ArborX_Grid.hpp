@@ -120,7 +120,7 @@ Grid<MemorySpace>::Grid(ExecutionSpace const &exec_space,
   auto bin_indices_1d = Details::GridImpl::computeBinIndices(
       exec_space, bin_offsets_1d, sorted_indices);
 
-  _bins_3d_hash = Hash3D(num_bins);
+  _bins_3d_hash = Hash3D(2 * num_bins);
   Details::GridImpl::convertBinOffsetsTo3D(exec_space, _grid, bin_offsets_1d,
                                            bin_indices_1d, _bins_3d_hash);
 
@@ -167,10 +167,9 @@ void Grid<MemorySpace>::query(ExecutionSpace const &exec_space,
   if (policy._sort_predicates)
   {
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
-    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
-    auto permute =
-        Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-            exec_space, static_cast<Box>(bounds()), predicates);
+    auto indices =
+        Details::computeCellIndicesForPredicates(exec_space, predicates, _grid);
+    auto permute = Details::sortObjects(exec_space, indices);
     Kokkos::Profiling::popRegion();
 
     using PermutedPredicates =
