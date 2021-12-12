@@ -9,9 +9,20 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILS_CONCEPTS_HPP
-#define ARBORX_DETAILS_CONCEPTS_HPP
+#ifndef ARBORX_DETAILS_KOKKOS_EXT_DETECTION_IDIOM_HPP
+#define ARBORX_DETAILS_KOKKOS_EXT_DETECTION_IDIOM_HPP
 
+#include <Kokkos_Macros.hpp>
+#if KOKKOS_VERSION >= 30500
+#include <Kokkos_DetectionIdiom.hpp>
+
+namespace KokkosExt
+{
+using Kokkos::detected_t;
+using Kokkos::is_detected;
+} // namespace KokkosExt
+
+#else
 #include <type_traits>
 
 #if !defined(__cpp_lib_void_t)
@@ -22,10 +33,7 @@ using void_t = void;
 }
 #endif
 
-#if !defined(DOXYGEN_SHOULD_SKIP_THIS)
-namespace ArborX
-{
-namespace Details
+namespace KokkosExt
 {
 
 struct not_a_type
@@ -58,20 +66,7 @@ struct is_detected : is_detected_impl<void, Op, Args...>
 template <template <class...> class Op, class... Args>
 using detected_t = typename is_detected<Op, Args...>::type;
 
-template <typename T>
-struct first_template_parameter;
-
-template <template <typename...> class E, typename Head, typename... Tail>
-struct first_template_parameter<E<Head, Tail...>>
-{
-  using type = Head;
-};
-
-template <typename T>
-using first_template_parameter_t = typename first_template_parameter<T>::type;
-
-} // namespace Details
-} // namespace ArborX
-#endif // DOXYGEN_SHOULD_SKIP_THIS
+} // namespace KokkosExt
+#endif
 
 #endif
