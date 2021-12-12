@@ -22,6 +22,7 @@
 #include <ArborX_DetailsPermutedData.hpp>
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_UnorderedMap.hpp>
 
 namespace ArborX
 {
@@ -60,8 +61,9 @@ private:
   size_type _size;
   Kokkos::View<Point *, MemorySpace> _points;
   Details::CartesianGrid _grid;
-  Kokkos::View<int ***, MemorySpace> _bin_offsets_3d;
-  Kokkos::View<int ***, MemorySpace> _bin_counts_3d;
+  using Hash3D =
+      Kokkos::UnorderedMap<Details::GridImpl::Tuple3, Kokkos::pair<int, int>>;
+  Hash3D _bins_3d_hash;
   Kokkos::View<unsigned *, MemorySpace> _permute;
 };
 
@@ -75,8 +77,7 @@ Grid<MemorySpace>::Grid(ExecutionSpace const &exec_space,
                                  "ArborX::Grid::points"),
               _size)
     , _grid()
-    , _bin_offsets_3d("ArborX::Grid::bin_offsets_3d", 0, 0, 0)
-    , _bin_counts_3d("ArborX::Grid::bin_counts_3d", 0, 0, 0)
+    , _bins_3d_hash(0)
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
@@ -98,6 +99,7 @@ Grid<MemorySpace>::Grid(ExecutionSpace const &exec_space,
                                                     bounds);
 
   _grid = Details::CartesianGrid(bounds, hx, hy, hz);
+  printf("Grid: (%zu, %zu, %zu)\n", _grid._nx, _grid._ny, _grid._nz);
 
   auto indices = Details::computeCellIndices(exec_space, primitives, _grid);
 
@@ -118,9 +120,9 @@ Grid<MemorySpace>::Grid(ExecutionSpace const &exec_space,
   auto bin_indices_1d = Details::GridImpl::computeBinIndices(
       exec_space, bin_offsets_1d, sorted_indices);
 
+  _bins_3d_hash = Hash3D(num_bins);
   Details::GridImpl::convertBinOffsetsTo3D(exec_space, _grid, bin_offsets_1d,
-                                           bin_indices_1d, _bin_offsets_3d,
-                                           _bin_counts_3d);
+                                           bin_indices_1d, _bins_3d_hash);
 
   Kokkos::Profiling::popRegion();
 }
@@ -144,8 +146,6 @@ void Grid<MemorySpace>::query(ExecutionSpace const &exec_space,
   static_assert(std::is_same<Tag, Details::SpatialPredicateTag>{},
                 "nearest query not implemented yet");
   Details::check_valid_callback(callback, predicates);
-
-  Kokkos::Profiling::pushRegion("ArborX::Grid::query::spatial");
 
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
@@ -175,14 +175,14 @@ void Grid<MemorySpace>::query(ExecutionSpace const &exec_space,
 
     using PermutedPredicates =
         Details::PermutedData<Predicates, decltype(permute)>;
-    Details::GridImpl::query(
-        exec_space, PermutedPredicates{predicates, permute}, callback, _permute,
-        _points, _grid, _bin_offsets_3d, _bin_counts_3d);
+    Details::GridImpl::query(exec_space,
+                             PermutedPredicates{predicates, permute}, callback,
+                             _permute, _points, _grid, _bins_3d_hash);
   }
   else
   {
     Details::GridImpl::query(exec_space, predicates, callback, _permute,
-                             _points, _grid, _bin_offsets_3d, _bin_counts_3d);
+                             _points, _grid, _bins_3d_hash);
   }
 
   Kokkos::Profiling::popRegion();

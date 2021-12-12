@@ -24,6 +24,12 @@ namespace Details
 {
 struct GridImpl
 {
+  struct Tuple3
+  {
+    size_t i;
+    size_t j;
+    size_t k;
+  };
 
   template <typename ExecutionSpace, typename Primitives>
   inline static void
@@ -78,19 +84,13 @@ struct GridImpl
   }
 
   template <class ExecutionSpace, typename BinOffsets1D, typename BinIndices1D,
-            typename BinOffsets3D, typename BinCounts3D>
+            typename Bins3DHash>
   static void convertBinOffsetsTo3D(ExecutionSpace const &exec_space,
                                     Details::CartesianGrid const &grid,
                                     BinOffsets1D const &bin_offsets_1d,
                                     BinIndices1D const &bin_indices_1d,
-                                    BinOffsets3D &bin_offsets_3d,
-                                    BinCounts3D &bin_counts_3d)
+                                    Bins3DHash &bins_3d_hash)
   {
-    Kokkos::resize(Kokkos::WithoutInitializing, bin_offsets_3d, grid._nx,
-                   grid._ny, grid._nz);
-    Kokkos::deep_copy(bin_offsets_3d, -1);
-    Kokkos::resize(bin_counts_3d, grid._nx, grid._ny, grid._nz);
-
     auto const num_bins = bin_offsets_1d.extent_int(0) - 1;
     Kokkos::parallel_for(
         "ArborX::Grid::Grid::compute_bin_offset_3d_mapping",
@@ -101,20 +101,21 @@ struct GridImpl
           size_t j;
           size_t k;
           grid.cellIndex2Triplet(bin_index, i, j, k);
-          bin_offsets_3d(i, j, k) = bin_offsets_1d(index);
-          bin_counts_3d(i, j, k) =
+
+          auto const bin_offset = bin_offsets_1d(index);
+          auto const bin_count =
               bin_offsets_1d(index + 1) - bin_offsets_1d(index);
+          bins_3d_hash.insert(Tuple3{i, j, k},
+                              Kokkos::make_pair(bin_offset, bin_count));
         });
   }
 
   template <class ExecutionSpace, class Predicates, class Callback,
-            typename Permute, class Points, typename BinOffsets3D,
-            typename BinCounts3D>
+            typename Permute, class Points, typename Bins3DHash>
   static void
   query(ExecutionSpace const &exec_space, Predicates const &predicates,
         Callback const &callback, Permute const &permute, Points const &points,
-        Details::CartesianGrid const &grid, BinOffsets3D const &bin_offsets_3d,
-        BinCounts3D const &bin_counts_3d)
+        Details::CartesianGrid const &grid, Bins3DHash const &bins_3d_hash)
   {
     using Access = AccessTraits<Predicates, PredicatesTag>;
 
@@ -140,8 +141,13 @@ struct GridImpl
               for (size_t bi = min(bin_i - 1, (size_t)0);
                    bi <= min(bin_i + 1, grid._nx - 1); ++bi)
               {
-                auto neigh_bin_offset = bin_offsets_3d(bi, bj, bk);
-                auto num_neigh_bin_points = bin_counts_3d(bi, bj, bk);
+                auto map_index = bins_3d_hash.find(Tuple3{bi, bj, bk});
+                if (!bins_3d_hash.valid_at(map_index))
+                  continue;
+
+                auto const &bin_data = bins_3d_hash.value_at(map_index);
+                auto neigh_bin_offset = bin_data.first;
+                auto num_neigh_bin_points = bin_data.second;
 
                 for (int jj = 0; jj < num_neigh_bin_points; ++jj)
                 {
