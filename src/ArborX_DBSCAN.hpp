@@ -13,6 +13,7 @@
 #define ARBORX_DBSCAN_HPP
 
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_DetailsCartesianGrid.hpp>
 #include <ArborX_DetailsFDBSCAN.hpp>
 #include <ArborX_DetailsFDBSCANDenseBox.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
