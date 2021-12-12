@@ -13,6 +13,7 @@
 #define ARBORX_DETAILSFDBSCANDENSEBOX_HPP
 
 #include <ArborX_Callbacks.hpp>
+#include <ArborX_DetailsCartesianGrid.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsUnionFind.hpp>
@@ -27,57 +28,6 @@ namespace ArborX
 {
 namespace Details
 {
-
-struct CartesianGrid
-{
-  Box _bounds;
-  float _h;
-  size_t _nx;
-  size_t _ny;
-  size_t _nz;
-
-  CartesianGrid(Box const &bounds, float h)
-      : _bounds(bounds)
-      , _h(h)
-  {
-    auto const &min_corner = bounds.minCorner();
-    auto const &max_corner = bounds.maxCorner();
-    _nx = std::ceil((max_corner[0] - min_corner[0]) / h);
-    _ny = std::ceil((max_corner[1] - min_corner[1]) / h);
-    _nz = std::ceil((max_corner[2] - min_corner[2]) / h);
-
-    // Catch potential overflow in grid cell indices early. This is a
-    // conservative check as an actual overflow may not occur, depending on
-    // which cells are filled.
-    constexpr auto max_size_t = std::numeric_limits<size_t>::max();
-    ARBORX_ASSERT(_nx == 0 || _ny == 0 || _nz == 0 ||
-                  (_ny < max_size_t / _nx && _nz < max_size_t / (_nx * _ny)));
-  }
-
-  KOKKOS_FUNCTION
-  size_t cellIndex(Point const &point) const
-  {
-    auto const &min_corner = _bounds.minCorner();
-    size_t i = std::floor((point[0] - min_corner[0]) / _h);
-    size_t j = std::floor((point[1] - min_corner[1]) / _h);
-    size_t k = std::floor((point[2] - min_corner[2]) / _h);
-    return k * _nx * _ny + j * _nx + i;
-  }
-
-  KOKKOS_FUNCTION
-  Box cellBox(size_t cell_index) const
-  {
-    auto const &min_corner = _bounds.minCorner();
-
-    auto i = cell_index % _nx;
-    auto j = (cell_index / _nx) % _ny;
-    auto k = cell_index / (_nx * _ny);
-    return {{min_corner[0] + i * _h, min_corner[1] + j * _h,
-             min_corner[2] + k * _h},
-            {min_corner[0] + (i + 1) * _h, min_corner[1] + (j + 1) * _h,
-             min_corner[2] + (k + 1) * _h}};
-  }
-};
 
 template <typename MemorySpace, typename Primitives, typename DenseCellOffsets,
           typename Permutation>
