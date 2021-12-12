@@ -13,6 +13,7 @@
 #include <ArborX_DBSCANVerification.hpp>
 #include <ArborX_DetailsHeap.hpp>
 #include <ArborX_DetailsOperatorFunctionObjects.hpp> // Less
+#include <ArborX_HDBSCAN.hpp>
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -287,6 +288,7 @@ std::ostream &operator<<(std::ostream &out,
   }
   return out;
 }
+
 } // namespace DBSCAN
 } // namespace ArborX
 
@@ -305,6 +307,7 @@ int main(int argc, char *argv[])
   using ArborX::DBSCAN::Implementation;
 
   std::string filename;
+  std::string algorithm;
   bool binary;
   bool verify;
   bool print_dbscan_timers;
@@ -320,6 +323,7 @@ int main(int argc, char *argv[])
   // clang-format off
   desc.add_options()
       ( "help", "help message" )
+      ( "algorithm", bpo::value<std::string>(&algorithm)->default_value("hdbscan"), "algorithm (dbscan | hdbscan)" )
       ( "filename", bpo::value<std::string>(&filename), "filename containing data" )
       ( "binary", bpo::bool_switch(&binary)->default_value(false), "binary file indicator")
       ( "max-num-points", bpo::value<int>(&max_num_points)->default_value(-1), "max number of points to read in")
@@ -343,17 +347,21 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  std::stringstream ss;
-  ss << implementation;
+  std::stringstream ss_impl;
+  ss_impl << implementation;
 
   // Print out the runtime parameters
-  printf("eps               : %f\n", eps);
+  bool running_dbscan = (algorithm == "dbscan");
+  if (running_dbscan)
+    printf("eps               : %f\n", eps);
   printf("minpts            : %d\n", core_min_size);
   printf("cluster min size  : %d\n", cluster_min_size);
   printf("filename          : %s [%s, max_pts = %d]\n", filename.c_str(),
          (binary ? "binary" : "text"), max_num_points);
   printf("filename [labels] : %s [binary]\n", filename_labels.c_str());
-  printf("implementation    : %s\n", ss.str().c_str());
+  printf("algorithm         : %s\n", algorithm.c_str());
+  if (running_dbscan)
+    printf("implementation    : %s\n", ss_impl.str().c_str());
   printf("samples           : %d\n", num_samples);
   printf("verify            : %s\n", (verify ? "true" : "false"));
   printf("print timers      : %s\n", (print_dbscan_timers ? "true" : "false"));
@@ -384,10 +392,16 @@ int main(int argc, char *argv[])
 
   timer_start(timer_total);
 
-  auto labels = ArborX::dbscan(exec_space, primitives, eps, core_min_size,
-                               ArborX::DBSCAN::Parameters()
-                                   .setPrintTimers(print_dbscan_timers)
-                                   .setImplementation(implementation));
+  Kokkos::View<int *, MemorySpace> labels("labels", 0);
+  if (algorithm == "dbscan")
+    labels = ArborX::dbscan(exec_space, primitives, eps, core_min_size,
+                            ArborX::DBSCAN::Parameters()
+                                .setPrintTimers(print_dbscan_timers)
+                                .setImplementation(implementation));
+  else
+    ArborX::hdbscan(
+        exec_space, primitives, core_min_size,
+        ArborX::HDBSCAN::Parameters().setVerbose(print_dbscan_timers));
 
   timer_start(timer);
   Kokkos::View<int *, MemorySpace> cluster_indices("Testing::cluster_indices",
