@@ -190,30 +190,6 @@ struct FDBSCANDenseBoxCallback
   }
 };
 
-template <typename ExecutionSpace, typename Primitives>
-Kokkos::View<size_t *,
-             typename AccessTraits<Primitives, PrimitivesTag>::memory_space>
-computeCellIndices(ExecutionSpace const &exec_space,
-                   Primitives const &primitives, CartesianGrid const &grid)
-{
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-  using MemorySpace = typename Access::memory_space;
-
-  auto const n = Access::size(primitives);
-
-  Kokkos::View<size_t *, MemorySpace> cell_indices(
-      Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
-                         "ArborX::DBSCAN::cell_indices"),
-      n);
-  Kokkos::parallel_for("ArborX::DBSCAN::compute_cell_indices",
-                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         auto const &xyz = Access::get(primitives, i);
-                         cell_indices(i) = grid.cellIndex(xyz);
-                       });
-  return cell_indices;
-}
-
 template <typename ExecutionSpace, typename CellIndices, typename CellOffsets,
           typename Permutation>
 int reorderDenseAndSparseCells(ExecutionSpace const &exec_space,
