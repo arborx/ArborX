@@ -61,8 +61,7 @@ private:
   size_type _size;
   Kokkos::View<Point *, MemorySpace> _points;
   Details::CartesianGrid _grid;
-  using Hash3D =
-      Kokkos::UnorderedMap<Details::GridImpl::Tuple3, Kokkos::pair<int, int>>;
+  using Hash3D = Kokkos::UnorderedMap<size_t, Kokkos::pair<int, int>>;
   Hash3D _bins_3d_hash;
   Kokkos::View<unsigned *, MemorySpace> _permute;
 };
@@ -121,7 +120,7 @@ Grid<MemorySpace>::Grid(ExecutionSpace const &exec_space,
       exec_space, bin_offsets_1d, sorted_indices);
 
   _bins_3d_hash = Hash3D(2 * num_bins);
-  Details::GridImpl::convertBinOffsetsTo3D(exec_space, _grid, bin_offsets_1d,
+  Details::GridImpl::convertBinOffsetsTo3D(exec_space, bin_offsets_1d,
                                            bin_indices_1d, _bins_3d_hash);
 
   Kokkos::Profiling::popRegion();

@@ -24,13 +24,6 @@ namespace Details
 {
 struct GridImpl
 {
-  struct Tuple3
-  {
-    size_t i;
-    size_t j;
-    size_t k;
-  };
-
   template <typename ExecutionSpace, typename Primitives>
   inline static void
   calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
@@ -86,7 +79,6 @@ struct GridImpl
   template <class ExecutionSpace, typename BinOffsets1D, typename BinIndices1D,
             typename Bins3DHash>
   static void convertBinOffsetsTo3D(ExecutionSpace const &exec_space,
-                                    Details::CartesianGrid const &grid,
                                     BinOffsets1D const &bin_offsets_1d,
                                     BinIndices1D const &bin_indices_1d,
                                     Bins3DHash &bins_3d_hash)
@@ -97,15 +89,11 @@ struct GridImpl
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_bins),
         KOKKOS_LAMBDA(int index) {
           size_t bin_index = bin_indices_1d(index);
-          size_t i;
-          size_t j;
-          size_t k;
-          grid.cellIndex2Triplet(bin_index, i, j, k);
 
           auto const bin_offset = bin_offsets_1d(index);
           auto const bin_count =
               bin_offsets_1d(index + 1) - bin_offsets_1d(index);
-          bins_3d_hash.insert(Tuple3{i, j, k},
+          bins_3d_hash.insert(bin_index,
                               Kokkos::make_pair(bin_offset, bin_count));
         });
   }
@@ -141,7 +129,8 @@ struct GridImpl
               for (size_t bi = min(bin_i - 1, (size_t)0);
                    bi <= min(bin_i + 1, grid._nx - 1); ++bi)
               {
-                auto map_index = bins_3d_hash.find(Tuple3{bi, bj, bk});
+                auto neigh_bin_index = grid.triplet2CellIndex(bi, bj, bk);
+                auto map_index = bins_3d_hash.find(neigh_bin_index);
                 if (!bins_3d_hash.valid_at(map_index))
                   continue;
 
