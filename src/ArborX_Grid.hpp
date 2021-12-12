@@ -15,9 +15,11 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_CrsGraphWrapper.hpp>
+#include <ArborX_DetailsBatchedQueries.hpp>
 #include <ArborX_DetailsCartesianGrid.hpp>
 #include <ArborX_DetailsGridImpl.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_DetailsPermutedData.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -50,13 +52,14 @@ public:
   template <typename ExecutionSpace, typename Predicates, typename Callback,
             typename Ignore = int>
   void query(ExecutionSpace const &exec_space, Predicates const &predicates,
-             Callback const &callback, Ignore = Ignore()) const;
+             Callback const &callback,
+             Experimental::TraversalPolicy const &policy =
+                 Experimental::TraversalPolicy()) const;
 
 private:
   size_type _size;
   Kokkos::View<Point *, MemorySpace> _points;
   Details::CartesianGrid _grid;
-  Kokkos::View<size_t *, MemorySpace> _bin_indices_1d;
   Kokkos::View<int ***, MemorySpace> _bin_offsets_3d;
   Kokkos::View<int ***, MemorySpace> _bin_counts_3d;
   Kokkos::View<unsigned *, MemorySpace> _permute;
@@ -72,7 +75,6 @@ Grid<MemorySpace>::Grid(ExecutionSpace const &exec_space,
                                  "ArborX::Grid::points"),
               _size)
     , _grid()
-    , _bin_indices_1d("ArborX::Grid::bin_indices_1d", 0)
     , _bin_offsets_3d("ArborX::Grid::bin_offsets_3d", 0, 0, 0)
     , _bin_counts_3d("ArborX::Grid::bin_counts_3d", 0, 0, 0)
 {
@@ -113,11 +115,11 @@ Grid<MemorySpace>::Grid(ExecutionSpace const &exec_space,
 
   std::cout << "num_bins = " << num_bins << std::endl;
 
-  Details::GridImpl::computeBinIndices(exec_space, bin_offsets_1d,
-                                       sorted_indices, _bin_indices_1d);
+  auto bin_indices_1d = Details::GridImpl::computeBinIndices(
+      exec_space, bin_offsets_1d, sorted_indices);
 
   Details::GridImpl::convertBinOffsetsTo3D(exec_space, _grid, bin_offsets_1d,
-                                           _bin_indices_1d, _bin_offsets_3d,
+                                           bin_indices_1d, _bin_offsets_3d,
                                            _bin_counts_3d);
 
   Kokkos::Profiling::popRegion();
@@ -128,7 +130,8 @@ template <typename ExecutionSpace, typename Predicates, typename Callback,
           typename Ignore>
 void Grid<MemorySpace>::query(ExecutionSpace const &exec_space,
                               Predicates const &predicates,
-                              Callback const &callback, Ignore) const
+                              Callback const &callback,
+                              Experimental::TraversalPolicy const &policy) const
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
@@ -144,9 +147,43 @@ void Grid<MemorySpace>::query(ExecutionSpace const &exec_space,
 
   Kokkos::Profiling::pushRegion("ArborX::Grid::query::spatial");
 
-  Details::GridImpl::query(exec_space, predicates, callback, _permute, _points,
-                           _grid, _bin_indices_1d, _bin_offsets_3d,
-                           _bin_counts_3d);
+  static_assert(
+      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
+  Details::check_valid_access_traits(PredicatesTag{}, predicates);
+  using Access = AccessTraits<Predicates, Traits::PredicatesTag>;
+  static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
+                                              ExecutionSpace>::value,
+                "Predicates must be accessible from the execution exec_space");
+  Details::check_valid_callback(callback, predicates);
+
+  using Tag = typename Details::AccessTraitsHelper<Access>::tag;
+  auto profiling_prefix =
+      std::string("ArborX::Grid::query::") +
+      (std::is_same<Tag, Details::SpatialPredicateTag>{} ? "spatial"
+                                                         : "nearest");
+
+  Kokkos::Profiling::pushRegion(profiling_prefix);
+
+  if (policy._sort_predicates)
+  {
+    Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
+    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
+    auto permute =
+        Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
+            exec_space, static_cast<Box>(bounds()), predicates);
+    Kokkos::Profiling::popRegion();
+
+    using PermutedPredicates =
+        Details::PermutedData<Predicates, decltype(permute)>;
+    Details::GridImpl::query(
+        exec_space, PermutedPredicates{predicates, permute}, callback, _permute,
+        _points, _grid, _bin_offsets_3d, _bin_counts_3d);
+  }
+  else
+  {
+    Details::GridImpl::query(exec_space, predicates, callback, _permute,
+                             _points, _grid, _bin_offsets_3d, _bin_counts_3d);
+  }
 
   Kokkos::Profiling::popRegion();
 }

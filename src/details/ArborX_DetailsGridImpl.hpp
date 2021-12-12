@@ -57,21 +57,24 @@ struct GridImpl
                          });
   }
 
-  template <class ExecutionSpace, typename BinOffsets1D, typename Indices,
-            typename BinIndices1D>
-  static void computeBinIndices(ExecutionSpace const &exec_space,
-                                BinOffsets1D const &bin_offsets_1d,
-                                Indices const &sorted_indices,
-                                BinIndices1D &bin_indices_1d)
+  template <class ExecutionSpace, typename BinOffsets1D, typename Indices>
+  static Kokkos::View<int *, typename Indices::memory_space>
+  computeBinIndices(ExecutionSpace const &exec_space,
+                    BinOffsets1D const &bin_offsets_1d,
+                    Indices const &sorted_indices)
   {
     auto const num_bins = bin_offsets_1d.extent(0) - 1;
-    Kokkos::resize(Kokkos::WithoutInitializing, bin_indices_1d, num_bins);
+    Kokkos::View<int *, typename Indices::memory_space> bin_indices_1d(
+        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                           "ArborX::Grid::Grid::bin_indices_1d"),
+        num_bins);
     Kokkos::parallel_for(
         "ArborX::Grid::Grid::compute_bin_indices_1d",
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_bins),
         KOKKOS_LAMBDA(int const i) {
           bin_indices_1d(i) = sorted_indices(bin_offsets_1d(i));
         });
+    return bin_indices_1d;
   }
 
   template <class ExecutionSpace, typename BinOffsets1D, typename BinIndices1D,
@@ -105,61 +108,48 @@ struct GridImpl
   }
 
   template <class ExecutionSpace, class Predicates, class Callback,
-            typename Permute, class Points, typename BinIndices1D,
-            typename BinOffsets3D, typename BinCounts3D>
+            typename Permute, class Points, typename BinOffsets3D,
+            typename BinCounts3D>
   static void
   query(ExecutionSpace const &exec_space, Predicates const &predicates,
         Callback const &callback, Permute const &permute, Points const &points,
-        Details::CartesianGrid const &grid, BinIndices1D const &bin_indices_1d,
-        BinOffsets3D const &bin_offsets_3d, BinCounts3D const &bin_counts_3d)
+        Details::CartesianGrid const &grid, BinOffsets3D const &bin_offsets_3d,
+        BinCounts3D const &bin_counts_3d)
   {
     using Access = AccessTraits<Predicates, PredicatesTag>;
 
-    using TeamPolicy =
-        Kokkos::TeamPolicy<ExecutionSpace, Kokkos::Schedule<Kokkos::Dynamic>>;
-    using team_member = typename TeamPolicy::member_type;
-
-    auto const num_bins = bin_indices_1d.extent(0);
+    auto num_predicates = Access::size(predicates);
     Kokkos::parallel_for(
         "ArborX::Grid::query::spatial",
-        TeamPolicy(exec_space, num_bins, Kokkos::AUTO, 8),
-        KOKKOS_LAMBDA(team_member const &team) {
-          auto index = team.league_rank();
-          size_t bin_index = bin_indices_1d(index);
+        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_predicates),
+        KOKKOS_LAMBDA(int const i) {
+          auto const &predicate = Access::get(predicates, i);
+
+          size_t bin_index = grid.cellIndex(getGeometry(predicate).centroid());
 
           size_t bin_i;
           size_t bin_j;
           size_t bin_k;
           grid.cellIndex2Triplet(bin_index, bin_i, bin_j, bin_k);
 
-          auto const bin_offset = bin_offsets_3d(bin_i, bin_j, bin_k);
-          auto const num_bin_points = bin_counts_3d(bin_i, bin_j, bin_k);
-          Kokkos::parallel_for(
-              Kokkos::TeamThreadRange(team, num_bin_points), [&](int const ii) {
-                auto const i = permute(bin_offset + ii);
+          using KokkosExt::min;
+          for (size_t bk = min(bin_k - 1, (size_t)0);
+               bk <= min(bin_k + 1, grid._nz - 1); ++bk)
+            for (size_t bj = min(bin_j - 1, (size_t)0);
+                 bj <= min(bin_j + 1, grid._ny - 1); ++bj)
+              for (size_t bi = min(bin_i - 1, (size_t)0);
+                   bi <= min(bin_i + 1, grid._nx - 1); ++bi)
+              {
+                auto neigh_bin_offset = bin_offsets_3d(bi, bj, bk);
+                auto num_neigh_bin_points = bin_counts_3d(bi, bj, bk);
 
-                auto const &predicate = Access::get(predicates, i);
-
-                using KokkosExt::min;
-                for (size_t bk = min(bin_k - 2, (size_t)0);
-                     bk <= min(bin_k + 2, grid._nz - 1); ++bk)
-                  for (size_t bj = min(bin_j - 2, (size_t)0);
-                       bj <= min(bin_j + 2, grid._ny - 1); ++bj)
-                    for (size_t bi = min(bin_i - 2, (size_t)0);
-                         bi <= min(bin_i + 2, grid._nx - 1); ++bi)
-                    {
-                      auto neigh_bin_offset = bin_offsets_3d(bi, bj, bk);
-                      auto num_neigh_bin_points = bin_counts_3d(bi, bj, bk);
-
-                      Kokkos::parallel_for(
-                          Kokkos::ThreadVectorRange(team, num_neigh_bin_points),
-                          [&](int const jj) {
-                            auto const j = neigh_bin_offset + jj;
-                            if (predicate(points(j)))
-                              callback(predicate, permute(j));
-                          });
-                    }
-              });
+                for (int jj = 0; jj < num_neigh_bin_points; ++jj)
+                {
+                  auto const j = neigh_bin_offset + jj;
+                  if (predicate(points(j)))
+                    callback(predicate, permute(j));
+                }
+              }
         });
   }
 };
