@@ -281,7 +281,7 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
   Details::check_valid_access_traits(PredicatesTag{}, predicates);
-  using Access = AccessTraits<Predicates, Traits::PredicatesTag>;
+  using Access = AccessTraits<Predicates, PredicatesTag>;
   static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                               ExecutionSpace>::value,
                 "Predicates must be accessible from the execution space");
