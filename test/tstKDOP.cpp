@@ -38,6 +38,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(conversion_to_box, KDOP_t, KDOP_types)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_KDOP, KDOP_t, KDOP_types)
 {
+  using ArborX::Details::intersects;
   KDOP_t x;
   BOOST_TEST(!intersects(x, x));
   x += Point{1, 0, 0};
@@ -49,6 +50,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_KDOP, KDOP_t, KDOP_types)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_box, KDOP_t, KDOP_types)
 {
+  using ArborX::Details::intersects;
   KDOP_t x;
   BOOST_TEST(!intersects(x, Box{}));
   BOOST_TEST(!intersects(x, Box{{0, 0, 0}, {1, 1, 1}}));

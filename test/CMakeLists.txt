@@ -44,6 +44,7 @@ endif()
 add_executable(ArborX_CompileOnly.exe
   tstCompileOnlyAccessTraits.cpp
   tstCompileOnlyCallbacks.cpp
+  tstCompileOnlyGeometryAlgorithms.cpp
   tstCompileOnlyTypeRequirements.cpp
   tstCompileOnlyMain.cpp
 )

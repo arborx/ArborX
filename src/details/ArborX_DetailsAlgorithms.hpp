@@ -211,6 +211,15 @@ bool intersects(Sphere const &sphere, Box const &box)
   return distance(sphere.centroid(), box) <= sphere.radius();
 }
 
+// make overloaded function intersects(x, y) -> bool commutative
+template <class Geometry1, class Geometry2>
+KOKKOS_FUNCTION constexpr auto intersects(Geometry1 const &x,
+                                          Geometry2 const &y)
+    -> decltype(intersects(y, x)) // SFINAE on existence of the overload
+{
+  return intersects(y, x);
+}
+
 // calculate the centroid of a box
 KOKKOS_INLINE_FUNCTION
 void centroid(Box const &box, Point &c)

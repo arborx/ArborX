@@ -23,7 +23,7 @@
 
 namespace ArborX
 {
-namespace Details
+namespace DetailsButCannotBeCalledLikeThat
 {
 struct Direction
 {
@@ -133,15 +133,16 @@ KOKKOS_INLINE_FUNCTION float project(Point const &p, Direction const &d)
   }
   return r;
 }
-} // namespace Details
+} // namespace DetailsButCannotBeCalledLikeThat
 
 namespace Experimental
 {
 
 template <int k>
-struct KDOP : private Details::KDOP_Directions<k>
+struct KDOP : private DetailsButCannotBeCalledLikeThat::KDOP_Directions<k>
 {
-  static constexpr int n_directions = Details::KDOP_Directions<k>::n_directions;
+  static constexpr int n_directions =
+      DetailsButCannotBeCalledLikeThat::KDOP_Directions<k>::n_directions;
   Kokkos::Array<float, n_directions> _min_values;
   Kokkos::Array<float, n_directions> _max_values;
   KOKKOS_FUNCTION KDOP()
@@ -158,7 +159,8 @@ struct KDOP : private Details::KDOP_Directions<k>
     using KokkosExt::min;
     for (int i = 0; i < n_directions; ++i)
     {
-      auto const proj_i = Details::project(p, this->directions()[i]);
+      using DetailsButCannotBeCalledLikeThat::project;
+      auto const proj_i = project(p, this->directions[i]);
       _min_values[i] = min(_min_values[i], proj_i);
       _max_values[i] = max(_max_values[i], proj_i);
     }
@@ -226,7 +228,8 @@ struct KDOP : private Details::KDOP_Directions<k>
   {
     for (int i = 0; i < n_directions; ++i)
     {
-      auto const proj_i = Details::project(point, this->directions()[i]);
+      using DetailsButCannotBeCalledLikeThat::project;
+      auto const proj_i = project(point, this->directions[i]);
       if (proj_i < _min_values[i] || proj_i > _max_values[i])
       {
         return false;
@@ -283,12 +286,6 @@ template <int k>
 KOKKOS_INLINE_FUNCTION bool intersects(Box const &a, KDOP<k> const &b)
 {
   return b.intersects(a);
-}
-
-template <int k>
-KOKKOS_INLINE_FUNCTION bool intersects(KDOP<k> const &a, Box const &b)
-{
-  return a.intersects(b);
 }
 
 template <int k>
