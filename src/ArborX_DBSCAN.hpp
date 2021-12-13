@@ -31,7 +31,7 @@ namespace Details
 // pairs of points within the distance eps, in which case it is correct.
 struct CCSCorePoints
 {
-  KOKKOS_FUNCTION bool operator()(int) const { return true; }
+  KOKKOS_FUNCTION constexpr bool operator()(int) const { return true; }
 };
 
 template <typename MemorySpace>
@@ -46,7 +46,40 @@ struct DBSCANCorePoints
   }
 };
 
-template <typename Primitives>
+// Combine Sphere with a half-space
+struct HalfSphere
+{
+  Sphere _sphere;
+
+  KOKKOS_FUNCTION
+  constexpr HalfSphere(Point const &centroid, double radius)
+      : _sphere{centroid, radius}
+  {
+  }
+  KOKKOS_FUNCTION auto const &sphere() const { return _sphere; }
+  KOKKOS_FUNCTION auto const &centroid() const { return _sphere.centroid(); }
+};
+KOKKOS_FUNCTION Point const &returnCentroid(HalfSphere const &half_sphere)
+{
+  return half_sphere.centroid();
+}
+KOKKOS_FUNCTION bool intersects(HalfSphere const &half_sphere, Box const &box)
+{
+  // It is possible that aligning better with the Morton ordering (current zyx)
+  // could benefit here. However, setting this to the first dimension would
+  // also work for 1D and 2D problems.
+  constexpr int d = 0;
+  if (box.maxCorner()[d] >= half_sphere.centroid()[d])
+    return Details::intersects(half_sphere.sphere(), box);
+  return false;
+}
+KOKKOS_FUNCTION float distance(HalfSphere const &, Box const &)
+{
+  assert(false); // not implemented, as we only need spatial
+  return 0.f;
+}
+
+template <typename Primitives, typename Geometry = Sphere>
 struct PrimitivesWithRadius
 {
   Primitives _primitives;
@@ -77,13 +110,14 @@ struct MixedBoxPrimitives
 
 } // namespace Details
 
-template <typename Primitives>
-struct AccessTraits<Details::PrimitivesWithRadius<Primitives>, PredicatesTag>
+template <typename Primitives, typename Geometry>
+struct AccessTraits<Details::PrimitivesWithRadius<Primitives, Geometry>,
+                    PredicatesTag>
 {
   using PrimitivesAccess = AccessTraits<Primitives, PrimitivesTag>;
 
   using memory_space = typename PrimitivesAccess::memory_space;
-  using Predicates = Details::PrimitivesWithRadius<Primitives>;
+  using Predicates = Details::PrimitivesWithRadius<Primitives, Geometry>;
 
   static size_t size(Predicates const &w)
   {
@@ -92,7 +126,7 @@ struct AccessTraits<Details::PrimitivesWithRadius<Primitives>, PredicatesTag>
   static KOKKOS_FUNCTION auto get(Predicates const &w, size_t i)
   {
     return attach(
-        intersects(Sphere{PrimitivesAccess::get(w._primitives, i), w._r}),
+        intersects(Geometry(PrimitivesAccess::get(w._primitives, i), w._r)),
         (int)i);
   }
 };
@@ -248,17 +282,17 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
     timer_start(timer);
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters");
-    auto const predicates =
-        Details::PrimitivesWithRadius<Primitives>{primitives, eps};
     if (is_special_case)
     {
       // Perform the queries and build clusters through callback
       using CorePoints = Details::CCSCorePoints;
       CorePoints core_points;
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
-      bvh.query(exec_space, predicates,
-                Details::FDBSCANCallback<MemorySpace, CorePoints>{labels,
-                                                                  core_points});
+      bvh.query(exec_space,
+                Details::PrimitivesWithRadius<Primitives, Details::HalfSphere>{
+                    primitives, eps},
+                Details::FDBSCANCallback<MemorySpace, CorePoints, false>{
+                    labels, core_points});
       Kokkos::Profiling::popRegion();
     }
     else
@@ -268,7 +302,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       timer_start(timer_local);
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::num_neigh");
       Kokkos::resize(num_neigh, n);
-      bvh.query(exec_space, predicates,
+      bvh.query(exec_space,
+                Details::PrimitivesWithRadius<Primitives>{primitives, eps},
                 Details::CountUpToN<MemorySpace>{num_neigh, core_min_size});
       Kokkos::Profiling::popRegion();
       elapsed["neigh"] = timer_seconds(timer_local);
@@ -278,7 +313,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       // Perform the queries and build clusters through callback
       timer_start(timer_local);
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters:query");
-      bvh.query(exec_space, predicates,
+      bvh.query(exec_space,
+                Details::PrimitivesWithRadius<Primitives>{primitives, eps},
                 Details::FDBSCANCallback<MemorySpace, CorePoints>{
                     labels, CorePoints{num_neigh, core_min_size}});
       Kokkos::Profiling::popRegion();
@@ -366,13 +402,13 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       // Perform the queries and build clusters through callback
       using CorePoints = Details::CCSCorePoints;
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
-      auto const predicates =
-          Details::PrimitivesWithRadius<Primitives>{primitives, eps};
       bvh.query(
-          exec_space, predicates,
+          exec_space,
+          Details::PrimitivesWithRadius<Primitives, Details::HalfSphere>{
+              primitives, eps},
           Details::FDBSCANDenseBoxCallback<MemorySpace, CorePoints, Primitives,
                                            decltype(dense_cell_offsets),
-                                           decltype(permute)>{
+                                           decltype(permute), false>{
               labels, CorePoints{}, primitives, dense_cell_offsets, permute,
               eps});
       Kokkos::Profiling::popRegion();
@@ -413,10 +449,9 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       // Perform the queries and build clusters through callback
       timer_start(timer_local);
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters:query");
-      auto const predicates =
-          Details::PrimitivesWithRadius<Primitives>{primitives, eps};
       bvh.query(
-          exec_space, predicates,
+          exec_space,
+          Details::PrimitivesWithRadius<Primitives>{primitives, eps},
           Details::FDBSCANDenseBoxCallback<MemorySpace, CorePoints, Primitives,
                                            decltype(dense_cell_offsets),
                                            decltype(permute)>{

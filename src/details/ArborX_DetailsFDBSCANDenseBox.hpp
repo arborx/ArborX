@@ -146,7 +146,8 @@ struct CountUpToN_DenseBox
 };
 
 template <typename MemorySpace, typename CorePointsType, typename Primitives,
-          typename DenseCellOffsets, typename Permutation>
+          typename DenseCellOffsets, typename Permutation,
+          bool FastCheck = true>
 struct FDBSCANDenseBoxCallback
 {
   UnionFind<MemorySpace> _union_find;
@@ -172,6 +173,20 @@ struct FDBSCANDenseBoxCallback
       , _permute(permute)
       , eps(eps_in)
   {
+  }
+
+  template <bool Enable = FastCheck>
+  KOKKOS_FUNCTION constexpr std::enable_if_t<Enable, bool>
+  fastCheck(int i, int j) const
+  {
+    return i > j;
+  }
+
+  template <bool Enable = FastCheck>
+  KOKKOS_FUNCTION constexpr std::enable_if_t<!Enable, bool> fastCheck(int,
+                                                                      int) const
+  {
+    return true;
   }
 
   template <typename Query>
@@ -226,7 +241,7 @@ struct FDBSCANDenseBoxCallback
       // callback guarantees that it is <= eps
 
       bool const is_neighbor_core_point = _is_core_point(j);
-      if (is_neighbor_core_point && i > j)
+      if (is_neighbor_core_point && fastCheck(i, j))
         _union_find.merge(i, j);
       else if (!is_neighbor_core_point)
         _union_find.merge_into(j, i);

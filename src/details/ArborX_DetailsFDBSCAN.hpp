@@ -43,7 +43,7 @@ struct CountUpToN
   }
 };
 
-template <typename MemorySpace, typename CorePointsType>
+template <typename MemorySpace, typename CorePointsType, bool FastCheck = true>
 struct FDBSCANCallback
 {
   UnionFind<MemorySpace> _union_find;
@@ -54,6 +54,20 @@ struct FDBSCANCallback
       : _union_find(view)
       , _is_core_point(is_core_point)
   {
+  }
+
+  template <bool Enable = FastCheck>
+  KOKKOS_FUNCTION constexpr std::enable_if_t<Enable, bool>
+  fastCheck(int i, int j) const
+  {
+    return i > j;
+  }
+
+  template <bool Enable = FastCheck>
+  KOKKOS_FUNCTION constexpr std::enable_if_t<!Enable, bool> fastCheck(int,
+                                                                      int) const
+  {
+    return true;
   }
 
   template <typename Query>
@@ -71,7 +85,7 @@ struct FDBSCANCallback
     }
 
     bool const is_neighbor_core_point = _is_core_point(j);
-    if (is_neighbor_core_point && i > j)
+    if (is_neighbor_core_point && fastCheck(i, j))
     {
       // For a core point that is connected to another core point, do the
       // standard CCS algorithm
