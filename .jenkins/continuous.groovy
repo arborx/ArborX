@@ -270,63 +270,6 @@ pipeline {
                     }
                 }
 
-                stage('PGI') {
-                    agent {
-                        dockerfile {
-                            filename "Dockerfile.pgi"
-                            dir "docker"
-                            args '-v /tmp/ccache:/tmp/ccache'
-                            label 'docker'
-                        }
-                    }
-                    steps {
-                        sh 'ccache --zero-stats'
-                        sh 'rm -rf build && mkdir -p build'
-                        dir('build') {
-                            sh '''
-                                cmake \
-                                    -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
-                                    -D CMAKE_BUILD_TYPE=Debug \
-                                    -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
-                                    -D CMAKE_CXX_COMPILER=pgc++ \
-                                    -D CMAKE_CXX_FLAGS="-Minform=inform" \
-                                    -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
-                                    -D ARBORX_ENABLE_MPI=ON \
-                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
-                                    -D MPIEXEC_MAX_NUMPROCS=4 \
-                                    -D ARBORX_ENABLE_TESTS=ON \
-                                    -D ARBORX_ENABLE_EXAMPLES=ON \
-                                    -D ARBORX_ENABLE_BENCHMARKS=ON \
-                                ..
-                            '''
-                            sh 'make -j8 VERBOSE=1'
-                            sh 'ctest $CTEST_OPTIONS'
-                        }
-                    }
-                    post {
-                        always {
-                            sh 'ccache --show-stats'
-                            xunit reduceLog: false, tools:[CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)]
-                        }
-                        success {
-                            sh 'cd build && make install'
-                            sh 'rm -rf test_install && mkdir -p test_install'
-                            dir('test_install') {
-                                sh 'cp -r ../examples .'
-                                sh '''
-                                    cmake \
-                                        -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
-                                        -D CMAKE_CXX_COMPILER=pgc++ \
-                                        -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
-                                    examples \
-                                '''
-                                sh 'make VERBOSE=1'
-                                sh 'make test'
-                            }
-                        }
-                    }
-                }
-
                 stage('HIP-4.2') {
                     agent {
                         dockerfile {
