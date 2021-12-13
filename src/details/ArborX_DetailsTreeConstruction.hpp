@@ -17,7 +17,6 @@
 #include <ArborX_DetailsAlgorithms.hpp> // expand
 #include <ArborX_DetailsMortonCode.hpp> // morton3D
 #include <ArborX_DetailsNode.hpp>       // makeLeafNode
-#include <ArborX_DetailsTags.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -56,10 +55,11 @@ inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
 }
 
 template <typename ExecutionSpace, typename Primitives, typename MortonCodes>
-inline void assignMortonCodesDispatch(BoxTag, ExecutionSpace const &space,
-                                      Primitives const &primitives,
-                                      MortonCodes morton_codes,
-                                      Box const &scene_bounding_box)
+inline std::enable_if_t<
+    std::is_same<Box, typename AccessTraitsHelper<AccessTraits<
+                          Primitives, PrimitivesTag>>::type>::value>
+assignMortonCodesImpl(ExecutionSpace const &space, Primitives const &primitives,
+                      MortonCodes morton_codes, Box const &scene_bounding_box)
 {
   using Access = AccessTraits<Primitives, PrimitivesTag>;
   auto const n = Access::size(primitives);
@@ -74,10 +74,11 @@ inline void assignMortonCodesDispatch(BoxTag, ExecutionSpace const &space,
 }
 
 template <typename ExecutionSpace, typename Primitives, typename MortonCodes>
-inline void assignMortonCodesDispatch(PointTag, ExecutionSpace const &space,
-                                      Primitives const &primitives,
-                                      MortonCodes morton_codes,
-                                      Box const &scene_bounding_box)
+inline std::enable_if_t<
+    std::is_same<Point, typename AccessTraitsHelper<AccessTraits<
+                            Primitives, PrimitivesTag>>::type>::value>
+assignMortonCodesImpl(ExecutionSpace const &space, Primitives const &primitives,
+                      MortonCodes morton_codes, Box const &scene_bounding_box)
 {
   using Access = AccessTraits<Primitives, PrimitivesTag>;
   auto const n = Access::size(primitives);
@@ -102,9 +103,7 @@ inline void assignMortonCodes(
   auto const n = Access::size(primitives);
   ARBORX_ASSERT(static_cast<decltype(n)>(morton_codes.extent(0)) == n);
 
-  using Tag = typename AccessTraitsHelper<Access>::tag;
-  assignMortonCodesDispatch(Tag{}, space, primitives, morton_codes,
-                            scene_bounding_box);
+  assignMortonCodesImpl(space, primitives, morton_codes, scene_bounding_box);
 }
 
 template <typename ExecutionSpace, typename Primitives, typename Nodes>
