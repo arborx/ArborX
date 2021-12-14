@@ -144,8 +144,13 @@ BOOST_AUTO_TEST_CASE(intersects)
 
   // unit sphere
   constexpr Sphere sphere{{{0., 0., 0.}}, 1.};
-  BOOST_TEST(intersects(sphere, {{{0., 0., 0.}}, {{1., 1., 1.}}}));
-  BOOST_TEST(!intersects(sphere, {{{1., 2., 3.}}, {{4., 5., 6.}}}));
+  BOOST_TEST(intersects(sphere, Box{{{0., 0., 0.}}, {{1., 1., 1.}}}));
+  BOOST_TEST(!intersects(sphere, Box{{{1., 2., 3.}}, {{4., 5., 6.}}}));
+  BOOST_TEST(intersects(sphere, Point{0., 0.5, 0.5}));
+  BOOST_TEST(intersects(sphere, Point{0., 0., 1.0}));
+  BOOST_TEST(intersects(Point{-1., 0., 0.}, sphere));
+  BOOST_TEST(intersects(Point{-0.6, -0.8, 0.}, sphere));
+  BOOST_TEST(!intersects(Point{-0.7, -0.8, 0.}, sphere));
 }
 
 BOOST_AUTO_TEST_CASE(equals)
