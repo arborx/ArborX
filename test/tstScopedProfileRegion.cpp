@@ -17,9 +17,6 @@
 #include <string>
 #include <type_traits>
 
-#if (KOKKOS_VERSION >= 30200) // callback registration from within the program
-                              // was added in Kokkkos v3.2
-
 namespace
 {
 std::stack<std::string> arborx_test_region_stack;
@@ -93,5 +90,3 @@ static_assert(!std::is_move_assignable<KokkosExt::ScopedProfileRegion>::value,
               "");
 
 BOOST_AUTO_TEST_SUITE_END()
-
-#endif
