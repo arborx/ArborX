@@ -9,7 +9,7 @@ endif()
 if(Kokkos_ENABLE_CUDA)
   list(APPEND ARBORX_DEVICE_TYPES Kokkos::CudaSpace::device_type)
 endif()
-if(Kokkos_ENABLE_PTHREAD)
+if(Kokkos_ENABLE_THREADS OR Kokkos_ENABLE_PTHREAD)  # Kokkos_ENABLE_PTHREAD deprecated in Kokkos 3.6
   list(APPEND ARBORX_DEVICE_TYPES Kokkos::Threads::device_type)
 endif()
 if(Kokkos_ENABLE_HIP)
@@ -25,7 +25,7 @@ endif()
 string(REPLACE ";" "," ARBORX_DEVICE_TYPES "${ARBORX_DEVICE_TYPES}")
 
 if(NOT ARBORX_DEVICE_TYPES)
-  message(SEND_ERROR "Kokkos_DEVICES must include at least one of 'SERIAL', 'OPENMP', 'CUDA', 'HIP', 'OPENMPTARGET', 'SYCL' or 'PTHREAD'!")
+  message(SEND_ERROR "Kokkos_DEVICES must include at least one of 'SERIAL', 'OPENMP', 'CUDA', 'HIP', 'OPENMPTARGET', 'SYCL' or 'THREADS'!")
 endif()
 
 configure_file(ArborX_EnableDeviceTypes.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/ArborX_EnableDeviceTypes.hpp @ONLY)
