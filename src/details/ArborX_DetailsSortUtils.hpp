@@ -19,7 +19,7 @@
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
-#include <Kokkos_Sort.hpp> // min_max_functor
+#include <Kokkos_Sort.hpp>
 
 // clang-format off
 #if defined(KOKKOS_ENABLE_CUDA)
@@ -85,9 +85,21 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
 
   Kokkos::MinMaxScalar<ValueType> result;
   Kokkos::MinMax<ValueType> reducer(result);
-  parallel_reduce("ArborX::Sorting::find_min_max_view",
-                  Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-                  Kokkos::Impl::min_max_functor<ViewType>(view), reducer);
+  parallel_reduce(
+      "ArborX::Sorting::find_min_max_view",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+      KOKKOS_LAMBDA(int i, Kokkos::MinMaxScalar<ValueType> &local_minmax) {
+        auto const val = view(i);
+        if (val < local_minmax.min_val)
+        {
+          local_minmax.min_val = val;
+        }
+        if (val > local_minmax.max_val)
+        {
+          local_minmax.max_val = val;
+        }
+      },
+      reducer);
   if (result.min_val == result.max_val)
   {
     Kokkos::View<SizeType *, typename ViewType::device_type> permute(
