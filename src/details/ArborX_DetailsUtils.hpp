@@ -15,7 +15,7 @@
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
-#include <Kokkos_Sort.hpp> // min_max_functor
+#include <Kokkos_Sort.hpp>
 
 namespace ArborX
 {
@@ -326,7 +326,18 @@ minMax(ExecutionSpace &&space, ViewType const &v)
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_reduce("ArborX::Algorithms::minmax", policy,
-                          Kokkos::Impl::min_max_functor<ViewType>(v), reducer);
+                          KOKKOS_LAMBDA(int i, decltype(result) &local_minmax) {
+                            auto const val = v(i);
+                            if (val < local_minmax.min_val)
+                            {
+                              local_minmax.min_val = val;
+                            }
+                            if (val > local_minmax.max_val)
+                            {
+                              local_minmax.max_val = val;
+                            }
+                          },
+                          reducer);
   return std::make_pair(result.min_val, result.max_val);
 }
 
