@@ -83,24 +83,11 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
   using ValueType = typename ViewType::value_type;
   using CompType = Kokkos::BinOp1D<ViewType>;
 
-  Kokkos::MinMaxScalar<ValueType> result;
-  Kokkos::MinMax<ValueType> reducer(result);
-  parallel_reduce(
-      "ArborX::Sorting::find_min_max_view",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-      KOKKOS_LAMBDA(int i, Kokkos::MinMaxScalar<ValueType> &local_minmax) {
-        auto const val = view(i);
-        if (val < local_minmax.min_val)
-        {
-          local_minmax.min_val = val;
-        }
-        if (val > local_minmax.max_val)
-        {
-          local_minmax.max_val = val;
-        }
-      },
-      reducer);
-  if (result.min_val == result.max_val)
+  ValueType min_val;
+  ValueType max_val;
+  if (n > 0) // non-empty view is precondition of minMax algorithm
+    std::tie(min_val, max_val) = ArborX::minMax(space, view);
+  if ((n == 0) || (min_val >= max_val))
   {
     Kokkos::View<SizeType *, typename ViewType::device_type> permute(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
@@ -111,7 +98,7 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
   }
 
   Kokkos::BinSort<ViewType, CompType, typename ViewType::device_type, SizeType>
-      bin_sort(view, CompType(n / 2, result.min_val, result.max_val), true);
+      bin_sort(view, CompType(n / 2, min_val, max_val), true);
   bin_sort.create_permute_vector();
   bin_sort.sort(view);
   // FIXME Kokkos::BinSort is currently missing overloads that an execution
