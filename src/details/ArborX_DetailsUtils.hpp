@@ -15,7 +15,6 @@
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
-#include <Kokkos_Sort.hpp>
 
 namespace ArborX
 {
@@ -321,23 +320,25 @@ minMax(ExecutionSpace &&space, ViewType const &v)
   static_assert(ViewType::rank == 1, "minMax requires a View of rank 1");
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
-  Kokkos::MinMaxScalar<typename ViewType::non_const_value_type> result;
-  Kokkos::MinMax<typename ViewType::non_const_value_type> reducer(result);
+  using ValueType = typename ViewType::non_const_value_type;
+  Kokkos::MinMaxScalar<ValueType> result;
+  Kokkos::MinMax<ValueType> reducer(result);
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_reduce("ArborX::Algorithms::minmax", policy,
-                          KOKKOS_LAMBDA(int i, decltype(result) &local_minmax) {
-                            auto const val = v(i);
-                            if (val < local_minmax.min_val)
-                            {
-                              local_minmax.min_val = val;
-                            }
-                            if (val > local_minmax.max_val)
-                            {
-                              local_minmax.max_val = val;
-                            }
-                          },
-                          reducer);
+  Kokkos::parallel_reduce(
+      "ArborX::Algorithms::minmax", policy,
+      KOKKOS_LAMBDA(int i, Kokkos::MinMaxScalar<ValueType> &local_minmax) {
+        auto const &val = v(i);
+        if (val < local_minmax.min_val)
+        {
+          local_minmax.min_val = val;
+        }
+        if (val > local_minmax.max_val)
+        {
+          local_minmax.max_val = val;
+        }
+      },
+      reducer);
   return std::make_pair(result.min_val, result.max_val);
 }
 
