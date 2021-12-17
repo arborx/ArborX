@@ -80,14 +80,19 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
 {
   int const n = view.extent(0);
 
+  if (n == 0)
+  {
+    return Kokkos::View<SizeType *, typename ViewType::device_type> permute(
+        "ArborX::Sorting::permute", 0);
+  }
+
   using ValueType = typename ViewType::value_type;
   using CompType = Kokkos::BinOp1D<ViewType>;
 
   ValueType min_val;
   ValueType max_val;
-  if (n > 0) // non-empty view is precondition of minMax algorithm
-    std::tie(min_val, max_val) = ArborX::minMax(space, view);
-  if ((n == 0) || (min_val >= max_val))
+  std::tie(min_val, max_val) = ArborX::minMax(space, view);
+  if (min_val == max_val)
   {
     Kokkos::View<SizeType *, typename ViewType::device_type> permute(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
