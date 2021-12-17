@@ -50,7 +50,7 @@ RUN SYCL_VERSION=20210311 && \
     mkdir llvm && \
     tar -xf ${SYCL_ARCHIVE} -C llvm --strip-components=1 && \
     cd llvm && \
-    python3 buildbot/configure.py --cuda --cmake_opt="-DCMAKE_CXX_FLAGS=-w" && \
+    python3 buildbot/configure.py --cuda --cmake-opt="-DCMAKE_CXX_FLAGS=-w" && \
     python3 buildbot/compile.py && \
     mkdir -p ${SYCL_DIR} && \
     mv ${SCRATCH_DIR}/llvm/build/install/* ${SYCL_DIR} && \
