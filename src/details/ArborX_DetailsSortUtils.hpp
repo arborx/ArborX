@@ -82,7 +82,7 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
 
   if (n == 0)
   {
-    return Kokkos::View<SizeType *, typename ViewType::device_type> permute(
+    return Kokkos::View<SizeType *, typename ViewType::device_type>(
         "ArborX::Sorting::permute", 0);
   }
 
