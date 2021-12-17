@@ -321,25 +321,25 @@ minMax(ExecutionSpace &&space, ViewType const &v)
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
   using ValueType = typename ViewType::non_const_value_type;
-  Kokkos::MinMaxScalar<ValueType> result;
-  Kokkos::MinMax<ValueType> reducer(result);
+  ValueType min_val;
+  ValueType max_val;
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_reduce(
       "ArborX::Algorithms::minmax", policy,
-      KOKKOS_LAMBDA(int i, Kokkos::MinMaxScalar<ValueType> &local_minmax) {
+      KOKKOS_LAMBDA(int i, ValueType &local_min, ValueType &local_max) {
         auto const &val = v(i);
-        if (val < local_minmax.min_val)
+        if (val < local_min)
         {
-          local_minmax.min_val = val;
+          local_min = val;
         }
-        if (val > local_minmax.max_val)
+        if (val > local_max)
         {
-          local_minmax.max_val = val;
+          local_max = val;
         }
       },
-      reducer);
-  return std::make_pair(result.min_val, result.max_val);
+      Kokkos::Min<ValueType>(min_val), Kokkos::Max<ValueType>(max_val));
+  return std::make_pair(min_val, max_val);
 }
 
 template <typename ViewType>
