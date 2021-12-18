@@ -54,7 +54,7 @@ private:
   friend KOKKOS_FUNCTION bool operator<(SODTuple const &l, SODTuple const &r)
   {
     if (l.halo_index == r.halo_index)
-      return l.distance <  r.distance;
+      return l.distance < r.distance;
     return l.halo_index < r.halo_index;
   }
 };
