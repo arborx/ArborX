@@ -228,6 +228,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   std::uniform_int_distribution<> dist_z(0, nz - 1);
   std::uniform_real_distribution<double> dist_shift(-0.45, 0.45);
 
+  // The generation is a bit convoluted to avoid a situation where a centroid
+  // of a box falls on any of the lattice planes, resulting in multiple
+  // collisions. As a workaround, we generate the centroids of boxes within
+  // 0.45 x grid step of a lattice point.
   std::iota(offset_ref.begin(), offset_ref.end(), 0);
   indices_ref.resize(n);
   for (int l = 0; l < n; ++l)
