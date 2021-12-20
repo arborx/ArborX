@@ -154,10 +154,9 @@ DistributedTree<MemorySpace, Enable>::DistributedTree(
                          "rank_bounding_boxes"),
       comm_size);
 #ifdef ARBORX_USE_CUDA_AWARE_MPI
-  Box bottom_tree_bounds;
-  if (!_bottom_tree.empty())
-    Details::expand(bottom_tree_bounds, _bottom_tree.bounds());
-  Kokkos::deep_copy(Kokkos::subview(boxes, comm_rank), bottom_tree_bounds);
+  Kokkos::deep_copy(space, Kokkos::subview(boxes, comm_rank),
+                    _bottom_tree.bounds());
+  space.fence();
 
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                 static_cast<void *>(boxes.data()), sizeof(Box), MPI_BYTE,
