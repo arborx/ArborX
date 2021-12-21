@@ -161,6 +161,12 @@ target_compile_definitions(ArborX_Clustering.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Clustering.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/examples/dbscan)
 add_test(NAME ArborX_Clustering_Test COMMAND ./ArborX_Clustering.exe)
 
+add_executable(ArborX_DetailsTreeNodeLabeling.exe tstDetailsTreeNodeLabeling.cpp utf_main.cpp)
+target_link_libraries(ArborX_DetailsTreeNodeLabeling.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_DetailsTreeNodeLabeling.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_include_directories(ArborX_DetailsTreeNodeLabeling.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_DetailsTreeNodeLabeling_Test COMMAND ./ArborX_DetailsTreeNodeLabeling.exe)
+
 if(ARBORX_ENABLE_MPI)
   add_executable(ArborX_DistributedTree.exe tstDistributedTree.cpp tstKokkosToolsDistributedAnnotations.cpp utf_main.cpp)
   target_link_libraries(ArborX_DistributedTree.exe PRIVATE ArborX Boost::unit_test_framework)
