@@ -153,14 +153,24 @@ DistributedTree<MemorySpace, Enable>::DistributedTree(
                          "ArborX::DistributedTree::DistributedTree::"
                          "rank_bounding_boxes"),
       comm_size);
-  // FIXME when we move to MPI with CUDA-aware support, we will not need to
-  // copy from the device to the host
+#ifdef ARBORX_USE_CUDA_AWARE_MPI
+  Kokkos::deep_copy(space, Kokkos::subview(boxes, comm_rank),
+                    _bottom_tree.bounds());
+  space.fence();
+
+  MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
+                static_cast<void *>(boxes.data()), sizeof(Box), MPI_BYTE,
+                getComm());
+#else
   auto boxes_host = Kokkos::create_mirror_view(boxes);
   boxes_host(comm_rank) = _bottom_tree.bounds();
+
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                 static_cast<void *>(boxes_host.data()), sizeof(Box), MPI_BYTE,
                 getComm());
+
   Kokkos::deep_copy(space, boxes, boxes_host);
+#endif
 
   _top_tree = BVH<MemorySpace>{space, boxes};
 
