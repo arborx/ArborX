@@ -53,21 +53,14 @@ struct MockBVH
     return x.children_(i).second;                                              \
   }
 
+HAPPY_TREE_FRIENDS_GET_CHILDREN_SPECIALIZATION(
+    Kokkos::DefaultExecutionSpace::memory_space)
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP) ||               \
+    defined(KOKKOS_ENABLE_SYCL) || defined(KOKKOS_ENABLE_OPENMPTARGET)
+static_assert(!std::is_same<Kokkos::DefaultExecutionSpace::memory_space,
+                            Kokkos::HostSpace>::value,
+              "");
 HAPPY_TREE_FRIENDS_GET_CHILDREN_SPECIALIZATION(Kokkos::HostSpace)
-#ifdef KOKKOS_ENABLE_CUDA
-HAPPY_TREE_FRIENDS_GET_CHILDREN_SPECIALIZATION(Kokkos::Cuda::memory_space)
-#endif
-#ifdef KOKKOS_ENABLE_HIP
-HAPPY_TREE_FRIENDS_GET_CHILDREN_SPECIALIZATION(
-    Kokkos::Experimental::HIP::memory_space)
-#endif
-#ifdef KOKKOS_ENABLE_SYCL
-HAPPY_TREE_FRIENDS_GET_CHILDREN_SPECIALIZATION(
-    Kokkos::Experimental::SYCL::memory_space)
-#endif
-#ifdef KOKKOS_ENABLE_OPENMPTARGET
-HAPPY_TREE_FRIENDS_GET_CHILDREN_SPECIALIZATION(
-    Kokkos::Experimental::OpenMPTarget::memory_space)
 #endif
 
 namespace Test
