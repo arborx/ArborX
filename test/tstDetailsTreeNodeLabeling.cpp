@@ -113,32 +113,35 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(find_parents, DeviceType, ARBORX_DEVICE_TYPES)
 
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec_space;
-
-  // [0]--*--
-  //     / \
-  //    0   1
+  /*
+     [0]--*--
+         / \
+        0   1
+  */
   ARBORX_TEST_FIND_PARENTS(exec_space,
                            (std::vector<Kokkos::pair<int, int>>{{1, 2}}),
                            (std::vector<int>{-1, 0, 0}));
-
-  // [0]----*----
-  //       / \
-  //  --*[1]  |
-  //   / \    |
-  //  0   1   2
+  /*
+     [0]----*----
+           / \
+      --*[1]  |
+       / \    |
+      0   1   2
+  */
   ARBORX_TEST_FIND_PARENTS(
       exec_space, (std::vector<Kokkos::pair<int, int>>{{1, 4}, {2, 3}}),
       (std::vector<int>{-1, 0, 1, 1, 0}));
-
-  // [0]------------*--------------
-  //               / \
-  //  ------*----[3] [4]*----------
-  //       / \         / \
-  //  --*[1] [2]*--   |  [5]----*--
-  //   / \     / \    |        / \
-  //  |   |   |   |   |   --*[6]  |
-  //  |   |   |   |   |    / \    |
-  //  0   1   2   3   4   5   6   7
+  /*
+     [0]------------*--------------
+                   / \
+      ------*----[3] [4]*----------
+           / \         / \
+      --*[1] [2]*--   |  [5]----*--
+       / \     / \    |        / \
+      |   |   |   |   |   --*[6]  |
+      |   |   |   |   |    / \    |
+      0   1   2   3   4   5   6   7
+  */
   auto const parents =
       std::vector<int>{-1, 3, 3, 0, 0, 4, 5, 1, 1, 2, 2, 4, 6, 6, 5};
   //                    0  1  2  3  4  5  6  7  8  9 10 11 12 13 14
