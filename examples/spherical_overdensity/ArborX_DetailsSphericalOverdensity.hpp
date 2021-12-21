@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILSSOD_HPP
-#define ARBORX_DETAILSSOD_HPP
+#ifndef ARBORX_DETAILS_SPHERICAL_OVERDENSITY_HPP
+#define ARBORX_DETAILS_SPHERICAL_OVERDENSITY_HPP
 
 #include <ArborX.hpp>
 
@@ -44,14 +44,14 @@ int binID(float r_min, float r_max, int num_bins, float r)
   return bin_id;
 }
 
-struct SODTuple
+struct SOTuple
 {
   int particle_index;
   int halo_index;
   float distance;
 
 private:
-  friend KOKKOS_FUNCTION bool operator<(SODTuple const &l, SODTuple const &r)
+  friend KOKKOS_FUNCTION bool operator<(SOTuple const &l, SOTuple const &r)
   {
     if (l.halo_index == r.halo_index)
       return l.distance < r.distance;
@@ -104,7 +104,7 @@ struct MassAvgRadiiCountProfiles
 };
 
 template <typename MemorySpace>
-struct SODParticlesCount
+struct SOParticlesCount
 {
   Kokkos::View<ArborX::Point *, MemorySpace> _fof_halo_centers;
   Kokkos::View<float *, MemorySpace> _r_max;
@@ -126,13 +126,13 @@ struct SODParticlesCount
 };
 
 template <typename MemorySpace>
-struct SODParticles
+struct SOParticles
 {
   Kokkos::View<ArborX::Point *, MemorySpace> _fof_halo_centers;
   Kokkos::View<float *, MemorySpace> _r_max;
 
   Kokkos::View<int *, MemorySpace> _offsets;
-  Kokkos::View<SODTuple *, MemorySpace> _values;
+  Kokkos::View<SOTuple *, MemorySpace> _values;
 
   template <typename Query>
   KOKKOS_FUNCTION void operator()(Query const &query, int halo_index) const
@@ -164,7 +164,7 @@ struct CriticalBinParticles
   Kokkos::View<float *, MemorySpace> _r_max;
 
   Kokkos::View<int *, MemorySpace> _critical_bin_offsets;
-  Kokkos::View<SODTuple *, MemorySpace> _critical_bin_values;
+  Kokkos::View<SOTuple *, MemorySpace> _critical_bin_values;
 
   using ParticlesAccess = AccessTraits<Particles, PrimitivesTag>;
 
@@ -190,22 +190,22 @@ struct CriticalBinParticles
   }
 };
 
-// Compute radii for SOD bins
+// Compute radii for SO bins
 template <typename ExecutionSpace, typename MemorySpace>
 Kokkos::View<float **, MemorySpace>
-computeSODBinRadii(ExecutionSpace const &exec_space, float r_min,
-                   Kokkos::View<float *, MemorySpace> r_max, int num_sod_bins)
+computeSOBinRadii(ExecutionSpace const &exec_space, float r_min,
+                  Kokkos::View<float *, MemorySpace> r_max, int num_sod_bins)
 {
-  Kokkos::Profiling::pushRegion("ArborX::SOD::compute_sod_bin_radii");
+  Kokkos::Profiling::pushRegion("ArborX::SO::compute_sod_bin_radii");
 
   auto const num_halos = r_max.extent(0);
 
   Kokkos::View<float **, MemorySpace> sod_halo_bin_outer_radii(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                         "ArborX::SOD::sod_halo_bin_outer_radii"),
+                         "ArborX::SO::sod_halo_bin_outer_radii"),
       num_halos, num_sod_bins);
   Kokkos::parallel_for(
-      "ArborX::SOD::compute_bin_outer_radii",
+      "ArborX::SO::compute_bin_outer_radii",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
       KOKKOS_LAMBDA(int halo_index) {
         float r_delta = rDelta(r_min, r_max(halo_index), num_sod_bins);
@@ -222,24 +222,24 @@ computeSODBinRadii(ExecutionSpace const &exec_space, float r_min,
 
 // Compute critical bins
 template <typename ExecutionSpace, typename MemorySpace>
-Kokkos::View<int *, MemorySpace> computeSODCriticalBins(
+Kokkos::View<int *, MemorySpace> computeSOCriticalBins(
     ExecutionSpace const &exec_space, float rho, float rho_ratio,
     Kokkos::View<double **, MemorySpace> sod_halo_bin_masses,
     Kokkos::View<int **, MemorySpace> sod_halo_bin_counts,
     Kokkos::View<float **, MemorySpace> sod_halo_bin_outer_radii)
 {
-  Kokkos::Profiling::pushRegion("ArborX::SOD::compute_critical_bins");
+  Kokkos::Profiling::pushRegion("ArborX::SO::compute_critical_bins");
 
   auto const num_halos = sod_halo_bin_masses.extent(0);
   int const num_sod_bins = sod_halo_bin_masses.extent(1);
 
   Kokkos::View<int *, MemorySpace> critical_bin_ids(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                         "ArborX::SOD::critical_bin_ids"),
+                         "ArborX::SO::critical_bin_ids"),
       num_halos);
   Kokkos::deep_copy(critical_bin_ids, -1);
   Kokkos::parallel_for(
-      "ArborX::SOD::compute_critical_bins",
+      "ArborX::SO::compute_critical_bins",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
       KOKKOS_LAMBDA(int halo_index) {
         int &critical_bin_id = critical_bin_ids(halo_index);
@@ -304,15 +304,15 @@ Kokkos::View<int *, MemorySpace> computeSODCriticalBins(
 
 template <typename ExecutionSpace, typename MemorySpace>
 std::pair<Kokkos::View<float *, MemorySpace>, Kokkos::View<int *, MemorySpace>>
-computeSODRdeltas(
+computeSORdeltas(
     ExecutionSpace const &exec_space, float rho, float rho_ratio,
     Kokkos::View<float *, MemorySpace> particle_masses,
     Kokkos::View<double **, MemorySpace> sod_halo_bin_masses,
     Kokkos::View<int *, MemorySpace> critical_bin_ids,
     Kokkos::View<int *, MemorySpace> critical_bin_offsets,
-    Kokkos::View<SODTuple *, MemorySpace> sorted_critical_bin_values)
+    Kokkos::View<SOTuple *, MemorySpace> sorted_critical_bin_values)
 {
-  Kokkos::Profiling::pushRegion("ArborX::SOD::compute_r_delta");
+  Kokkos::Profiling::pushRegion("ArborX::SO::compute_r_delta");
 
   using TeamPolicy =
       Kokkos::TeamPolicy<ExecutionSpace, Kokkos::Schedule<Kokkos::Dynamic>>;
@@ -321,14 +321,14 @@ computeSODRdeltas(
   auto num_halos = critical_bin_offsets.extent(0) - 1;
 
   Kokkos::View<float *, MemorySpace> sod_halo_rdeltas(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::SOD::r_delta"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::SO::r_delta"),
       num_halos);
   Kokkos::View<int *, MemorySpace> sod_halo_rdeltas_index(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                         "ArborX::SOD::r_delta_index"),
+                         "ArborX::SO::r_delta_index"),
       num_halos);
   Kokkos::parallel_for(
-      "ArborX::SODHandle::computeRdelta::compute_rdelta_index",
+      "ArborX::SOHandle::computeRdelta::compute_rdelta_index",
       TeamPolicy(exec_space, num_halos, Kokkos::AUTO),
       KOKKOS_LAMBDA(team_member const &team) {
         auto halo_index = team.league_rank();

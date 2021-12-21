@@ -1,0 +1,3 @@
+add_executable(ArborX_SphericalOverdensity.exe spherical_overdensity.cpp)
+target_include_directories(ArborX_SphericalOverdensity.exe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(ArborX_SphericalOverdensity.exe ArborX::ArborX Boost::program_options)

@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_SOD.hpp>
+#include <ArborX_SphericalOverdensity.hpp>
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -181,7 +181,7 @@ void loadHalosData(std::string const &filename, InputData &in,
 
   // Filter out
   // - small halos (FOF halo size < 500)
-  // - invalid halos (SOD count size = -101)
+  // - invalid halos (SO count size = -101)
   auto swap = [](auto &view, int i, int j) { std::swap(view(i), view(j)); };
   int i = 0;
   int num_filtered = 0;
@@ -327,11 +327,11 @@ struct MassAvgRadiiCountProfiles
 // Compute R_min and R_max for each FOF halo
 template <typename ExecutionSpace, typename FOFHaloMasses>
 std::pair<float, Kokkos::View<float *, typename FOFHaloMasses::memory_space>>
-computeSODRadii(ExecutionSpace const &exec_space,
-                FOFHaloMasses const &fof_halo_masses, float r_smooth,
-                float min_factor, float max_factor, float sod_mass)
+computeSORadii(ExecutionSpace const &exec_space,
+               FOFHaloMasses const &fof_halo_masses, float r_smooth,
+               float min_factor, float max_factor, float sod_mass)
 {
-  Kokkos::Profiling::pushRegion("ArborX::SOD::compute_sod_radii");
+  Kokkos::Profiling::pushRegion("ArborX::SO::compute_sod_radii");
 
   using MemorySpace = typename FOFHaloMasses::memory_space;
 
@@ -339,10 +339,10 @@ computeSODRadii(ExecutionSpace const &exec_space,
 
   auto const num_halos = fof_halo_masses.extent(0);
   Kokkos::View<float *, MemorySpace> r_max(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::SOD::r_max"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::SO::r_max"),
       num_halos);
   Kokkos::parallel_for(
-      "ArborX::SOD::compute_r_max",
+      "ArborX::SO::compute_r_max",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
       KOKKOS_LAMBDA(int i) {
         float R_init = std::cbrt(fof_halo_masses(i) / sod_mass);
@@ -360,7 +360,8 @@ template <typename ExecutionSpace, typename MemorySpace, typename Particles,
 void sod(ExecutionSpace const &exec_space, Particles const &particles,
          ParticleMasses &particle_masses, FOFHaloCenters &fof_halo_centers,
          FOFHaloMasses &fof_halo_masses, OutputData<MemorySpace> &out,
-         ArborX::SOD::Parameters const &params, int num_sod_bins)
+         ArborX::SphericalOverdensity::Parameters const &params,
+         int num_sod_bins)
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
@@ -390,11 +391,11 @@ void sod(ExecutionSpace const &exec_space, Particles const &particles,
   // This is done on the user side and is provided by HACC
   float r_min;
   Kokkos::View<float *, MemorySpace> r_max;
-  std::tie(r_min, r_max) = computeSODRadii(
-      exec_space, fof_halo_masses, r_smooth, min_factor, max_factor, sod_mass);
+  std::tie(r_min, r_max) = computeSORadii(exec_space, fof_halo_masses, r_smooth,
+                                          min_factor, max_factor, sod_mass);
   Kokkos::resize(fof_halo_masses, 0); // free as not used afterwards
 
-  ArborX::SODHandle<MemorySpace, Particles> sod_handle(
+  ArborX::SphericalOverdensityHandle<MemorySpace, Particles> sod_handle(
       exec_space, particles, fof_halo_centers, r_min, r_max);
 
   // Compute some profiles (e.g., mass)
@@ -402,7 +403,7 @@ void sod(ExecutionSpace const &exec_space, Particles const &particles,
   // avoid loss of precision, which will occur once we start adding small
   // quantities to large
   Kokkos::View<double **, MemorySpace> sod_halo_bin_masses(
-      "ArborX::SOD::sod_halo_bin_masses", num_halos, num_sod_bins);
+      "ArborX::SO::sod_halo_bin_masses", num_halos, num_sod_bins);
   Kokkos::resize(out.sod_halo_bin_counts, num_halos, num_sod_bins);
   sod_handle.computeBinProfiles(
       exec_space, num_sod_bins,
@@ -412,7 +413,7 @@ void sod(ExecutionSpace const &exec_space, Particles const &particles,
 
   Kokkos::resize(out.sod_halo_bin_masses, num_halos, num_sod_bins);
   Kokkos::parallel_for(
-      "ArborX::SOD::copy_bin_masses",
+      "ArborX::SO::copy_bin_masses",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
       KOKKOS_LAMBDA(int halo_index) {
         // double -> float conversion
@@ -531,8 +532,8 @@ int main(int argc, char *argv[])
   for (int i = 0; i < num_halos; ++i)
     ARBORX_ASSERT(in_fof_halo_tags(i) == validation_fof_halo_tags(i));
 
-  // run SOD
-  ArborX::SOD::Parameters params;
+  // run SO
+  ArborX::SphericalOverdensity::Parameters params;
   params.setRho(2.77536627e11).setRhoRatio(200);
 
   ExecutionSpace exec_space;

@@ -9,16 +9,16 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_SOD_HPP
-#define ARBORX_SOD_HPP
+#ifndef ARBORX_SPHERICAL_OVERDENSITY_HPP
+#define ARBORX_SPHERICAL_OVERDENSITY_HPP
 
 #include <ArborX.hpp>
-#include <ArborX_DetailsSOD.hpp>
+#include <ArborX_DetailsSphericalOverdensity.hpp>
 
 namespace ArborX
 {
 
-namespace SOD
+namespace SphericalOverdensity
 {
 
 struct Parameters
@@ -52,20 +52,20 @@ struct ParticlesWrapper
 {
   Particles _particles;
 };
-} // namespace SOD
+} // namespace SphericalOverdensity
 
 template <typename MemorySpace>
-struct AccessTraits<SOD::Spheres<MemorySpace>, PrimitivesTag>
+struct AccessTraits<SphericalOverdensity::Spheres<MemorySpace>, PrimitivesTag>
 {
   using memory_space = MemorySpace;
 
-  KOKKOS_FUNCTION static std::size_t
-  size(SOD::Spheres<MemorySpace> const &spheres)
+  using Primitives = SphericalOverdensity::Spheres<MemorySpace>;
+
+  KOKKOS_FUNCTION static std::size_t size(Primitives const &spheres)
   {
     return spheres._centers.extent(0);
   }
-  KOKKOS_FUNCTION static Box get(SOD::Spheres<MemorySpace> const &spheres,
-                                 std::size_t const i)
+  KOKKOS_FUNCTION static Box get(Primitives const &spheres, std::size_t const i)
   {
     auto const &c = spheres._centers(i);
     auto const r = spheres._radii(i);
@@ -74,12 +74,13 @@ struct AccessTraits<SOD::Spheres<MemorySpace>, PrimitivesTag>
 };
 
 template <typename Particles>
-struct AccessTraits<SOD::ParticlesWrapper<Particles>, PredicatesTag>
+struct AccessTraits<SphericalOverdensity::ParticlesWrapper<Particles>,
+                    PredicatesTag>
 {
   using ParticlesAccess = AccessTraits<Particles, PrimitivesTag>;
 
   using memory_space = typename ParticlesAccess::memory_space;
-  using Predicates = SOD::ParticlesWrapper<Particles>;
+  using Predicates = SphericalOverdensity::ParticlesWrapper<Particles>;
 
   static KOKKOS_FUNCTION size_t size(Predicates const &w)
   {
@@ -92,7 +93,7 @@ struct AccessTraits<SOD::ParticlesWrapper<Particles>, PredicatesTag>
 };
 
 template <typename MemorySpace, typename Particles>
-struct SODHandle
+struct SphericalOverdensityHandle
 {
   Particles _particles;
   Kokkos::View<ArborX::Point *, MemorySpace> _fof_halo_centers;
@@ -101,14 +102,16 @@ struct SODHandle
   BVH<MemorySpace> _bvh;
 
   template <typename ExecutionSpace>
-  SODHandle(ExecutionSpace const &exec_space, Particles particles,
-            Kokkos::View<ArborX::Point *, MemorySpace> fof_halo_centers,
-            float r_min, Kokkos::View<float *, MemorySpace> r_max)
+  SphericalOverdensityHandle(
+      ExecutionSpace const &exec_space, Particles particles,
+      Kokkos::View<ArborX::Point *, MemorySpace> fof_halo_centers, float r_min,
+      Kokkos::View<float *, MemorySpace> r_max)
       : _particles(particles)
       , _fof_halo_centers(fof_halo_centers)
       , _r_min(r_min)
       , _r_max(r_max)
-      , _bvh(exec_space, SOD::Spheres<MemorySpace>{fof_halo_centers, r_max})
+      , _bvh(exec_space, SphericalOverdensity::Spheres<MemorySpace>{
+                             fof_halo_centers, r_max})
   {
   }
 
@@ -117,7 +120,7 @@ struct SODHandle
              Kokkos::View<int *, MemorySpace> &offsets,
              Kokkos::View<int *, MemorySpace> &indices) const
   {
-    Kokkos::Profiling::pushRegion("ArborX::SODHandle::query");
+    Kokkos::Profiling::pushRegion("ArborX::SOHandle::query");
 
     auto const num_halos = _fof_halo_centers.extent(0);
 
@@ -133,14 +136,15 @@ struct SODHandle
     // rather with each halo.
 
     Kokkos::Profiling::pushRegion(
-        "ArborX::SODHandle::query::compute_particle_pairs");
+        "ArborX::SOHandle::query::compute_particle_pairs");
 
     auto &counts = offsets; // alias
     Kokkos::deep_copy(exec_space, counts, 0);
     _bvh.query(
-        exec_space, SOD::ParticlesWrapper<Particles>{_particles},
-        Details::SODParticlesCount<MemorySpace>{_fof_halo_centers, _r_max,
-                                                counts},
+        exec_space,
+        SphericalOverdensity::ParticlesWrapper<Particles>{_particles},
+        Details::SOParticlesCount<MemorySpace>{_fof_halo_centers, _r_max,
+                                               counts},
         Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
 
     exclusivePrefixSum(exec_space, offsets);
@@ -148,17 +152,18 @@ struct SODHandle
     auto const num_values = lastElement(offsets);
     printf("# values for all particles: %d\n", num_values);
 
-    Kokkos::View<Details::SODTuple *, MemorySpace> values(
-        "ArborX::SODHandle::query::values", num_values);
+    Kokkos::View<Details::SOTuple *, MemorySpace> values(
+        "ArborX::SOHandle::query::values", num_values);
     auto offsets_clone = clone(exec_space, offsets);
     _bvh.query(
-        exec_space, SOD::ParticlesWrapper<Particles>{_particles},
-        Details::SODParticles<MemorySpace>{_fof_halo_centers, _r_max,
-                                           offsets_clone, values},
+        exec_space,
+        SphericalOverdensity::ParticlesWrapper<Particles>{_particles},
+        Details::SOParticles<MemorySpace>{_fof_halo_centers, _r_max,
+                                          offsets_clone, values},
         Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
 
     Kokkos::Profiling::popRegion();
-    Kokkos::Profiling::pushRegion("ArborX::SODHandle::query::sort_values");
+    Kokkos::Profiling::pushRegion("ArborX::SOHandle::query::sort_values");
 
     // Sort
     sortObjects(exec_space, values);
@@ -166,7 +171,7 @@ struct SODHandle
 
     Kokkos::resize(indices, num_values);
     Kokkos::parallel_for(
-        "ArborX::SODHandle::query::extract_indices",
+        "ArborX::SOHandle::query::extract_indices",
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_values),
         KOKKOS_LAMBDA(int const i) { indices(i) = values(i).particle_index; });
 
@@ -176,7 +181,7 @@ struct SODHandle
   template <typename ExecutionSpace>
   void computeRdelta(ExecutionSpace const &exec_space,
                      Kokkos::View<float *, MemorySpace> const &particle_masses,
-                     SOD::Parameters const &params,
+                     SphericalOverdensity::Parameters const &params,
                      Kokkos::View<float *, MemorySpace> &sod_halo_rdeltas,
                      Kokkos::View<int *, MemorySpace> &sod_halo_rdeltas_index,
                      bool use_bin_approach = true) const
@@ -189,7 +194,7 @@ struct SODHandle
     if (use_bin_approach)
     {
       Kokkos::Profiling::pushRegion(
-          "ArborX::SODHandle::compute_R_delta_with_bins");
+          "ArborX::SOHandle::compute_R_delta_with_bins");
 
       // TODO: for now, this is fixed to the usual number used for profiles.
       // But it does not have to. Need to play around with it to see what's the
@@ -204,36 +209,36 @@ struct SODHandle
 
       // Compute bin outer radii
       auto sod_halo_bin_outer_radii =
-          Details::computeSODBinRadii(exec_space, _r_min, _r_max, num_sod_bins);
+          Details::computeSOBinRadii(exec_space, _r_min, _r_max, num_sod_bins);
 
       // Step 2: compute some profiles (mass, count, avg radius);
       // NOTE: we will accumulate float quantities into double in order to
       // avoid loss of precision, which will occur once we start adding small
       // quantities to large
       Kokkos::View<double **, MemorySpace> sod_halo_bin_masses(
-          "ArborX::SOD::sod_halo_bin_masses", num_halos, num_sod_bins);
+          "ArborX::SO::sod_halo_bin_masses", num_halos, num_sod_bins);
       Kokkos::View<int **, MemorySpace> sod_halo_bin_counts(
-          "ArborX::SOD::sod_halo_bin_masses", num_halos, num_sod_bins);
+          "ArborX::SO::sod_halo_bin_masses", num_halos, num_sod_bins);
       computeBinProfiles(exec_space, num_sod_bins,
                          Details::MassAvgRadiiCountProfiles<MemorySpace>{
                              particle_masses, _fof_halo_centers,
                              sod_halo_bin_masses, sod_halo_bin_counts});
 
       // Figure out critical bins
-      auto critical_bin_ids = Details::computeSODCriticalBins(
+      auto critical_bin_ids = Details::computeSOCriticalBins(
           exec_space, rho, rho_ratio, sod_halo_bin_masses, sod_halo_bin_counts,
           sod_halo_bin_outer_radii);
 
       Kokkos::Profiling::pushRegion(
-          "ArborX::SOD::compute_critical_bin_particles");
+          "ArborX::SO::compute_critical_bin_particles");
 
       // Compute offsets for storing particles in critical bins
       Kokkos::View<int *, MemorySpace> critical_bin_offsets(
           Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                             "ArborX::SOD::critical_bin_offsets"),
+                             "ArborX::SO::critical_bin_offsets"),
           num_halos + 1);
       Kokkos::parallel_for(
-          "ArborX::SOD::compute_critical_bins",
+          "ArborX::SO::compute_critical_bins",
           Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
           KOKKOS_LAMBDA(int halo_index) {
             critical_bin_offsets(halo_index) =
@@ -245,19 +250,20 @@ struct SODHandle
       printf("#particles in critical bins: %d\n", num_critical_bin_particles);
 
       // Find particles in critical bins for each halo
-      Kokkos::View<Details::SODTuple *, MemorySpace> critical_bin_values(
+      Kokkos::View<Details::SOTuple *, MemorySpace> critical_bin_values(
           Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                             "ArborX::SOD::critical_bin_values"),
+                             "ArborX::SO::critical_bin_values"),
           num_critical_bin_particles);
       {
         auto offsets = clone(exec_space, critical_bin_offsets);
-        _bvh.query(exec_space, SOD::ParticlesWrapper<Particles>{_particles},
-                   Details::CriticalBinParticles<MemorySpace, Particles>{
-                       _particles, critical_bin_ids, _fof_halo_centers,
-                       num_sod_bins, _r_min, _r_max, offsets,
-                       critical_bin_values},
-                   Experimental::TraversalPolicy().setPredicateSorting(
-                       sort_predicates));
+        _bvh.query(
+            exec_space,
+            SphericalOverdensity::ParticlesWrapper<Particles>{_particles},
+            Details::CriticalBinParticles<MemorySpace, Particles>{
+                _particles, critical_bin_ids, _fof_halo_centers, num_sod_bins,
+                _r_min, _r_max, offsets, critical_bin_values},
+            Experimental::TraversalPolicy().setPredicateSorting(
+                sort_predicates));
       }
 
       Kokkos::Profiling::popRegion();
@@ -265,22 +271,22 @@ struct SODHandle
       // Sort the particles based on their distance to the corresponding FOF
       // center
       Kokkos::Profiling::pushRegion(
-          "ArborX::SODHandle::computeRdelta::sort_values");
+          "ArborX::SOHandle::computeRdelta::sort_values");
       sortObjects(exec_space, critical_bin_values);
       Kokkos::Profiling::popRegion();
 
       // Compute R_delta
       Kokkos::Profiling::pushRegion(
-          "ArborX::SODHandle::compute_R_delta::compute_r_delta");
+          "ArborX::SOHandle::compute_R_delta::compute_r_delta");
       Kokkos::resize(sod_halo_rdeltas_index, 0);
       std::tie(sod_halo_rdeltas, sod_halo_rdeltas_index) =
-          Details::computeSODRdeltas(
-              exec_space, rho, rho_ratio, particle_masses, sod_halo_bin_masses,
-              critical_bin_ids, critical_bin_offsets, critical_bin_values);
+          Details::computeSORdeltas(exec_space, rho, rho_ratio, particle_masses,
+                                    sod_halo_bin_masses, critical_bin_ids,
+                                    critical_bin_offsets, critical_bin_values);
       Kokkos::Profiling::popRegion();
 
       Kokkos::parallel_for(
-          "ArborX::SODHandle::compute_R_delta::update_rdeltas_index",
+          "ArborX::SOHandle::compute_R_delta::update_rdeltas_index",
           Kokkos::RangePolicy<ExecutionSpace>(0, num_halos),
           KOKKOS_LAMBDA(int const halo_index) {
             for (int bin_id = 0; bin_id < critical_bin_ids(halo_index);
@@ -294,7 +300,7 @@ struct SODHandle
     else
     {
       Kokkos::Profiling::pushRegion(
-          "ArborX::SODHandle::compute_R_delta_no_bins");
+          "ArborX::SOHandle::compute_R_delta_no_bins");
 
       Kokkos::View<int *, MemorySpace> offsets;
       Kokkos::View<int *, MemorySpace> indices;
@@ -315,7 +321,7 @@ struct SODHandle
       auto const &fof_halo_centers = _fof_halo_centers;
 
       Kokkos::parallel_for(
-          "ArborX::SODHandle::computeRdelta::compute_rdelta_index",
+          "ArborX::SOHandle::computeRdelta::compute_rdelta_index",
           TeamPolicy(exec_space, num_halos, 512),
           KOKKOS_LAMBDA(const team_member &team) {
             auto halo_index = team.league_rank();
@@ -346,7 +352,7 @@ struct SODHandle
           });
 
       Kokkos::parallel_for(
-          "ArborX::SODHandle::computeRdelta::compute_rdelta",
+          "ArborX::SOHandle::computeRdelta::compute_rdelta",
           Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
           KOKKOS_LAMBDA(int halo_index) {
             auto &rdelta_index = sod_halo_rdeltas_index(halo_index);
@@ -374,7 +380,8 @@ struct SODHandle
     // on V100.
     bool const sort_predicates = false;
     _bvh.query(
-        exec_space, SOD::ParticlesWrapper<Particles>{_particles},
+        exec_space,
+        SphericalOverdensity::ParticlesWrapper<Particles>{_particles},
         Details::Profiles<MemorySpace, Callback>{_fof_halo_centers, _r_min,
                                                  _r_max, num_bins, callback},
         Experimental::TraversalPolicy().setPredicateSorting(sort_predicates));
