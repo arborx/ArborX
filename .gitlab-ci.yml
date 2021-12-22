@@ -43,7 +43,7 @@ stages:
   tags:
     - nobatch
 
-BuildKokkos:
+.BuildKokkos:
   extends: .LoadModules
   stage: buildDependencies
   script:
