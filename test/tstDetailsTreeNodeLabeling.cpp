@@ -12,12 +12,9 @@
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsTreeNodeLabeling.hpp>
-#include <ArborX_LinearBVH.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
-
-#include <random>
 
 template <typename DeviceType, typename T>
 auto toView(std::vector<T> const &v, std::string const &lbl = "")
@@ -106,7 +103,7 @@ auto reduceLabels(ExecutionSpace const &exec_space,
 
 } // namespace Test
 
-BOOST_AUTO_TEST_SUITE(TreeHelpers)
+BOOST_AUTO_TEST_SUITE(TreeNodeLabeling)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(find_parents, DeviceType, ARBORX_DEVICE_TYPES)
 {
