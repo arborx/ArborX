@@ -79,7 +79,8 @@ struct MutualReachability
   using value_type = typename CoreDistances::non_const_value_type;
   using size_type = typename CoreDistances::memory_space::size_type;
 
-  value_type operator()(size_type i, size_type j, value_type distance_ij) const
+  KOKKOS_FUNCTION value_type operator()(size_type i, size_type j,
+                                        value_type distance_ij) const
   {
     using KokkosExt::max;
     return max({_core_distances(i), _core_distances(j), distance_ij});
