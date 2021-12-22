@@ -37,7 +37,7 @@ pipeline {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:9.2-devel-ubuntu18.04 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_VOLTA70=ON" --build-arg CUDA_AWARE_MPI=1'
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:9.2-devel-ubuntu18.04 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_VOLTA70=ON" --build-arg CUDA_AWARE_MPI=1 --build-arg KOKKOS_VERSION=3.5.00'
                             args '-v /tmp/ccache:/tmp/ccache --env NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES}'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
@@ -97,7 +97,7 @@ pipeline {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.2-devel --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_VOLTA70=ON"'
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.2-devel --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_VOLTA70=ON" --build-arg KOKKOS_VERSION=3.5.00'
                             args '-v /tmp/ccache:/tmp/ccache --env NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES}'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
@@ -156,7 +156,7 @@ pipeline {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.0-devel-ubuntu18.04 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_COMPILER=clang++ -DKokkos_ENABLE_PTHREAD=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_VOLTA70=ON"'
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:10.0-devel-ubuntu18.04 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_COMPILER=clang++ -DKokkos_ENABLE_PTHREAD=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_VOLTA70=ON" --build-arg KOKKOS_VERSION=3.5.00'
                             args '-v /tmp/ccache:/tmp/ccache --env NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES}'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
@@ -200,186 +200,6 @@ pipeline {
                                         -D CMAKE_CXX_COMPILER=clang++ \
                                         -D CMAKE_CXX_EXTENSIONS=OFF \
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
-                                    examples \
-                                '''
-                                sh 'make VERBOSE=1'
-                                sh 'make test'
-                            }
-                        }
-                    }
-                }
-
-                stage('Clang') {
-                    agent {
-                        dockerfile {
-                            filename "Dockerfile"
-                            dir "docker"
-                            additionalBuildArgs '--build-arg BASE=ubuntu:18.04 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_OPENMP=ON -DCMAKE_CXX_COMPILER=clang++"'
-                            args '-v /tmp/ccache:/tmp/ccache'
-                            label 'docker'
-                        }
-                    }
-                    steps {
-                        sh 'ccache --zero-stats'
-                        sh 'rm -rf build && mkdir -p build'
-                        dir('build') {
-                            sh '''
-                                cmake \
-                                    -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
-                                    -D CMAKE_BUILD_TYPE=Debug \
-                                    -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
-                                    -D CMAKE_CXX_COMPILER=clang++ \
-                                    -D CMAKE_CXX_EXTENSIONS=OFF \
-                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
-                                    -D CMAKE_CXX_CLANG_TIDY="$LLVM_DIR/bin/clang-tidy" \
-                                    -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
-                                    -D ARBORX_ENABLE_MPI=ON \
-                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
-                                    -D MPIEXEC_MAX_NUMPROCS=4 \
-                                    -D ARBORX_ENABLE_TESTS=ON \
-                                    -D ARBORX_ENABLE_EXAMPLES=ON \
-                                    -D ARBORX_ENABLE_BENCHMARKS=ON \
-                                ..
-                            '''
-                            sh 'make -j8 VERBOSE=1'
-                            sh 'ctest $CTEST_OPTIONS'
-                        }
-                    }
-                    post {
-                        always {
-                            sh 'ccache --show-stats'
-                            xunit reduceLog: false, tools:[CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)]
-                        }
-                        success {
-                            sh 'cd build && make install'
-                            sh 'rm -rf test_install && mkdir -p test_install'
-                            dir('test_install') {
-                                sh 'cp -r ../examples .'
-                                sh '''
-                                    cmake \
-                                        -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
-                                        -D CMAKE_CXX_COMPILER=clang++ \
-                                        -D CMAKE_CXX_EXTENSIONS=OFF \
-                                        -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
-                                    examples \
-                                '''
-                                sh 'make VERBOSE=1'
-                                sh 'make test'
-                            }
-                        }
-                    }
-                }
-
-                stage('HIP-4.2') {
-                    agent {
-                        dockerfile {
-                            filename "Dockerfile.hipcc"
-                            dir "docker"
-                            additionalBuildArgs '--build-arg BASE=rocm/dev-ubuntu-20.04:4.2 --build-arg KOKKOS_ARCH=${KOKKOS_ARCH}'
-                            args '-v /tmp/ccache.kokkos:/tmp/ccache --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --env HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES}'
-                            label 'rocm-docker && vega'
-                        }
-                    }
-                    steps {
-                        sh 'ccache --zero-stats'
-                        sh 'rm -rf build && mkdir -p build'
-                        dir('build') {
-                            sh '''
-                                cmake \
-                                    -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
-                                    -D CMAKE_BUILD_TYPE=Debug \
-                                    -D CMAKE_CXX_COMPILER=hipcc \
-                                    -D CMAKE_CXX_EXTENSIONS=OFF \
-                                    -D CMAKE_CXX_FLAGS="-DNDEBUG -Wpedantic -Wall -Wextra" \
-                                    -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
-                                    -D ARBORX_ENABLE_MPI=ON \
-                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
-                                    -D MPIEXEC_MAX_NUMPROCS=4 \
-                                    -D ARBORX_ENABLE_TESTS=ON \
-                                    -D ARBORX_ENABLE_EXAMPLES=ON \
-                                    -D ARBORX_ENABLE_BENCHMARKS=ON \
-                                ..
-                            '''
-                            sh 'make -j8 VERBOSE=1'
-                            sh 'ctest $CTEST_OPTIONS'
-                        }
-                    }
-                    post {
-                        always {
-                            sh 'ccache --show-stats'
-                            xunit reduceLog: false, tools:[CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)]
-                        }
-                        success {
-                            sh 'cd build && make install'
-                            sh 'rm -rf test_install && mkdir -p test_install'
-                            dir('test_install') {
-                                sh 'cp -r ../examples .'
-                                sh '''
-                                    cmake \
-                                        -D CMAKE_CXX_COMPILER=hipcc \
-                                        -D CMAKE_CXX_EXTENSIONS=OFF \
-                                        -D CMAKE_BUILD_TYPE=RelWithDebInfo \
-                                        -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
-                                    examples \
-                                '''
-                                sh 'make VERBOSE=1'
-                                sh 'ctest --output-on-failure'
-                            }
-                        }
-                    }
-                }
-
-                stage('SYCL') {
-                    agent {
-                        dockerfile {
-                            filename "Dockerfile.sycl"
-                            dir "docker"
-                            args '-v /tmp/ccache.kokkos:/tmp/ccache'
-                            label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
-                        }
-                    }
-                    steps {
-                        sh 'ccache --zero-stats'
-                        sh 'rm -rf build && mkdir -p build'
-                        dir('build') {
-                            sh '''
-                                cmake \
-                                    -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
-                                    -D CMAKE_BUILD_TYPE=Release \
-                                    -D CMAKE_CXX_COMPILER=clang++ \
-                                    -D CMAKE_CXX_EXTENSIONS=OFF \
-                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra -Wno-unknown-cuda-version -fsycl -fsycl-targets=nvptx64-nvidia-cuda-sycldevice" \
-                                    -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR;$ONE_DPL_DIR" \
-                                    -D ARBORX_ENABLE_MPI=ON \
-                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
-                                    -D MPIEXEC_MAX_NUMPROCS=4 \
-                                    -D ARBORX_ENABLE_TESTS=ON \
-                                    -D ARBORX_ENABLE_EXAMPLES=ON \
-                                    -D ARBORX_ENABLE_BENCHMARKS=ON \
-                                    -D ARBORX_ENABLE_ONEDPL=ON \
-                                ..
-                            '''
-                            sh 'make -j8 VERBOSE=1'
-                            sh 'ctest $CTEST_OPTIONS'
-                        }
-                    }
-                    post {
-                        always {
-                            sh 'ccache --show-stats'
-                            xunit reduceLog: false, tools:[CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)]
-                        }
-                        success {
-                            sh 'cd build && make install'
-                            sh 'rm -rf test_install && mkdir -p test_install'
-                            dir('test_install') {
-                                sh 'cp -r ../examples .'
-                                sh '''
-                                    cmake \
-                                        -D CMAKE_BUILD_TYPE=Release \
-                                        -D CMAKE_CXX_COMPILER=clang++ \
-                                        -D CMAKE_CXX_EXTENSIONS=OFF \
-                                        -D CMAKE_CXX_FLAGS="-Wno-unknown-cuda-version" \
-                                        -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR;$ONE_DPL_DIR" \
                                     examples \
                                 '''
                                 sh 'make VERBOSE=1'
