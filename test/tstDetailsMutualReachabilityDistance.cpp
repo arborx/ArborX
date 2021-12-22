@@ -67,13 +67,13 @@ auto compute_mutual_reachability_distances(
       n);
   ArborX::Details::MutualReachability<decltype(core_distances)> const
       distance_mutual_reach{core_distances};
-  Kokkos::parallel_for(
-      "Test::compute_mutual_reachability_distances",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-      KOKKOS_LAMBDA(int i) {
-        mutual_reachability_distances(i) = distance_mutual_reach(
-            edges(i).first, edges(i).second, distances(i));
-      });
+  Kokkos::parallel_for("Test::compute_mutual_reachability_distances",
+                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+                       KOKKOS_LAMBDA(int i) {
+                         mutual_reachability_distances(i) =
+                             distance_mutual_reach(
+                                 edges(i).first, edges(i).second, distances(i));
+                       });
 
   return Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{},
                                              mutual_reachability_distances);
@@ -95,42 +95,31 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(compute_core_distances, DeviceType,
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec_space;
 
-  ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space,
-                                     (std::vector<ArborX::Point>{
-                                         {0, 0, 0},
-                                         {1, 0, 0},
-                                         {2, 0, 0},
-                                         {3, 0, 0},
-                                         {4, 0, 0},
-                                     }),
-                                     1, (std::vector<float>{1, 1, 1, 1, 1}));
-  ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space,
-                                     (std::vector<ArborX::Point>{
-                                         {0, 0, 0},
-                                         {1, 0, 0},
-                                         {2, 0, 0},
-                                         {3, 0, 0},
-                                         {4, 0, 0},
-                                     }),
-                                     2, (std::vector<float>{2, 1, 1, 1, 2}));
-  ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space,
-                                     (std::vector<ArborX::Point>{
-                                         {0, 0, 0},
-                                         {1, 0, 0},
-                                         {2, 0, 0},
-                                         {3, 0, 0},
-                                         {4, 0, 0},
-                                     }),
-                                     3, (std::vector<float>{3, 2, 2, 2, 3}));
-  ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space,
-                                     (std::vector<ArborX::Point>{
-                                         {0, 0, 0},
-                                         {1, 0, 0},
-                                         {2, 0, 0},
-                                         {3, 0, 0},
-                                         {4, 0, 0},
-                                     }),
-                                     4, (std::vector<float>{4, 3, 2, 3, 4}));
+  std::vector<ArborX::Point> points{
+      {0, 0, 0}, {1, 0, 0}, {2, 0, 0}, {3, 0, 0}, {4, 0, 0},
+  };
+  ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, points, 1,
+                                     (std::vector<float>{1, 1, 1, 1, 1}));
+  ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, points, 2,
+                                     (std::vector<float>{2, 1, 1, 1, 2}));
+  ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, points, 3,
+                                     (std::vector<float>{3, 2, 2, 2, 3}));
+  ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, points, 4,
+                                     (std::vector<float>{4, 3, 2, 3, 4}));
+
+  std::vector<ArborX::Point> non_equidistant_points{
+      {0, 0, 0}, {1, 0, 0}, {2, 0, 0}, {3, 0, 0}, {6, 0, 0}, {10, 0, 0},
+  };
+  ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, non_equidistant_points, 1,
+                                     (std::vector<float>{1, 1, 1, 1, 3, 4}));
+  ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, non_equidistant_points, 2,
+                                     (std::vector<float>{2, 1, 1, 2, 4, 7}));
+  ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, non_equidistant_points, 3,
+                                     (std::vector<float>{3, 2, 2, 3, 4, 8}));
+  ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, non_equidistant_points, 4,
+                                     (std::vector<float>{6, 5, 4, 3, 5, 9}));
+  ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, non_equidistant_points, 5,
+                                     (std::vector<float>{10, 9, 8, 7, 6, 10}));
 }
 BOOST_AUTO_TEST_CASE_TEMPLATE(compute_mutual_reachability_distances, DeviceType,
                               ARBORX_DEVICE_TYPES)
@@ -138,22 +127,59 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(compute_mutual_reachability_distances, DeviceType,
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec_space;
 
-  std::vector<Kokkos::pair<int, int>> edges{{0, 1}, {0, 2}, {0, 3}, {0, 4},
-                                            {1, 2}, {1, 3}, {1, 4}, {2, 3},
-                                            {2, 4}, {3, 4}};
-  std::vector<float> distances{1, 2, 3, 4, 1, 2, 3, 1, 2, 1};
+  { // equidistant points
+    // 0     1     2     3     4
+    //[0]   [1]   [2]   [3]   [4]
+    std::vector<Kokkos::pair<int, int>> edges{{0, 1}, {0, 2}, {0, 3}, {0, 4},
+                                              {1, 2}, {1, 3}, {1, 4}, {2, 3},
+                                              {2, 4}, {3, 4}};
+    std::vector<float> distances{1, 2, 3, 4, 1, 2, 3, 1, 2, 1};
 
-  ARBORX_TEST_COMPUTE_MUTUAL_REACHABILITY_DISTANCES(
-      exec_space, (std::vector<float>{2, 1, 1, 1, 2}), edges, distances,
-      (std::vector<float>{2, 2, 3, 4, 1, 2, 3, 1, 2, 2}));
+    ARBORX_TEST_COMPUTE_MUTUAL_REACHABILITY_DISTANCES(
+        exec_space, (std::vector<float>{1, 1, 1, 1, 1}), edges, distances,
+        (std::vector<float>{1, 2, 3, 4, 1, 2, 3, 1, 2, 1}));
 
-  ARBORX_TEST_COMPUTE_MUTUAL_REACHABILITY_DISTANCES(
-      exec_space, (std::vector<float>{3, 2, 2, 2, 3}), edges, distances,
-      (std::vector<float>{3, 3, 3, 4, 2, 2, 3, 2, 3, 3}));
+    ARBORX_TEST_COMPUTE_MUTUAL_REACHABILITY_DISTANCES(
+        exec_space, (std::vector<float>{2, 1, 1, 1, 2}), edges, distances,
+        (std::vector<float>{2, 2, 3, 4, 1, 2, 3, 1, 2, 2}));
 
-  ARBORX_TEST_COMPUTE_MUTUAL_REACHABILITY_DISTANCES(
-      exec_space, (std::vector<float>{4, 3, 2, 3, 4}), edges, distances,
-      (std::vector<float>{4, 4, 4, 4, 3, 3, 4, 3, 4, 4}));
+    ARBORX_TEST_COMPUTE_MUTUAL_REACHABILITY_DISTANCES(
+        exec_space, (std::vector<float>{3, 2, 2, 2, 3}), edges, distances,
+        (std::vector<float>{3, 3, 3, 4, 2, 2, 3, 2, 3, 3}));
+
+    ARBORX_TEST_COMPUTE_MUTUAL_REACHABILITY_DISTANCES(
+        exec_space, (std::vector<float>{4, 3, 2, 3, 4}), edges, distances,
+        (std::vector<float>{4, 4, 4, 4, 3, 3, 4, 3, 4, 4}));
+  }
+  { // non-equidistant points
+    // 0   1   2   3   4   5   6   7   8   9   10
+    //[0] [1] [2] [3]         [4]             [5]
+    std::vector<Kokkos::pair<int, int>> edges{
+        {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {1, 2}, {1, 3}, {1, 4},
+        {1, 5}, {2, 3}, {2, 4}, {2, 5}, {3, 4}, {3, 5}, {4, 5}};
+    std::vector<float> distances{1, 2, 3, 6, 10, 1, 2, 5, 9, 1, 4, 8, 3, 7, 4};
+
+    ARBORX_TEST_COMPUTE_MUTUAL_REACHABILITY_DISTANCES(
+        exec_space, (std::vector<float>{1, 1, 1, 1, 3, 4}), edges, distances,
+        (std::vector<float>{1, 2, 3, 6, 10, 1, 2, 5, 9, 1, 4, 8, 3, 7, 4}));
+
+    ARBORX_TEST_COMPUTE_MUTUAL_REACHABILITY_DISTANCES(
+        exec_space, (std::vector<float>{2, 1, 1, 2, 4, 7}), edges, distances,
+        (std::vector<float>{2, 2, 3, 6, 10, 1, 2, 5, 9, 2, 4, 8, 4, 7, 7}));
+
+    ARBORX_TEST_COMPUTE_MUTUAL_REACHABILITY_DISTANCES(
+        exec_space, (std::vector<float>{3, 2, 2, 3, 4, 8}), edges, distances,
+        (std::vector<float>{3, 3, 3, 6, 10, 2, 3, 5, 9, 3, 4, 8, 4, 8, 8}));
+
+    ARBORX_TEST_COMPUTE_MUTUAL_REACHABILITY_DISTANCES(
+        exec_space, (std::vector<float>{6, 5, 4, 3, 5, 9}), edges, distances,
+        (std::vector<float>{6, 6, 6, 6, 10, 5, 5, 5, 9, 4, 5, 9, 5, 9, 9}));
+
+    ARBORX_TEST_COMPUTE_MUTUAL_REACHABILITY_DISTANCES(
+        exec_space, (std::vector<float>{10, 9, 8, 7, 6, 10}), edges, distances,
+        (std::vector<float>{10, 10, 10, 10, 10, 9, 9, 9, 10, 8, 8, 10, 7, 10,
+                            10}));
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
