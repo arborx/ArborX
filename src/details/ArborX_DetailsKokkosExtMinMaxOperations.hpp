@@ -14,6 +14,8 @@
 
 #include <Kokkos_Macros.hpp>
 
+#include <initializer_list>
+
 namespace KokkosExt
 {
 
@@ -29,6 +31,46 @@ template <typename T>
 KOKKOS_INLINE_FUNCTION constexpr T const &min(T const &a, T const &b)
 {
   return (a < b) ? a : b;
+}
+
+template <class T>
+KOKKOS_INLINE_FUNCTION constexpr T max(std::initializer_list<T> ilist)
+{
+  auto first = ilist.begin();
+  auto const last = ilist.end();
+  auto result = *first;
+  if (first == last)
+  {
+    return result;
+  }
+  while (++first != last)
+  {
+    if (result < *first)
+    {
+      result = *first;
+    }
+  }
+  return result;
+}
+
+template <class T>
+KOKKOS_INLINE_FUNCTION constexpr T min(std::initializer_list<T> ilist)
+{
+  auto first = ilist.begin();
+  auto const last = ilist.end();
+  auto result = *first;
+  if (first == last)
+  {
+    return result;
+  }
+  while (++first != last)
+  {
+    if (*first < result)
+    {
+      result = *first;
+    }
+  }
+  return result;
 }
 
 } // namespace KokkosExt
