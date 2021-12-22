@@ -9,6 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include "ArborXTest_StdVectorToKokkosView.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
@@ -18,19 +19,10 @@
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
 
-template <typename DeviceType, typename T>
-auto toView(std::vector<T> const &v, std::string const &lbl = "")
-{
-  Kokkos::View<T *, DeviceType> view(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, lbl), v.size());
-  Kokkos::deep_copy(view, Kokkos::View<T const *, Kokkos::HostSpace,
-                                       Kokkos::MemoryTraits<Kokkos::Unmanaged>>(
-                              v.data(), v.size()));
-  return view;
-}
-
 namespace Test
 {
+using ArborXTest::toView;
+
 template <class ExecutionSpace>
 auto compute_core_distances(ExecutionSpace exec_space,
                             std::vector<ArborX::Point> const &points_host,
@@ -75,13 +67,13 @@ auto compute_mutual_reachability_distances(
       n);
   ArborX::Details::MutualReachability<decltype(core_distances)> const
       distance_mutual_reach{core_distances};
-  Kokkos::parallel_for("Test::compute_mutual_reachability_distances",
-                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         mutual_reachability_distances(i) =
-                             distance_mutual_reach(
-                                 edges(i).first, edges(i).second, distances(i));
-                       });
+  Kokkos::parallel_for(
+      "Test::compute_mutual_reachability_distances",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+      KOKKOS_LAMBDA(int i) {
+        mutual_reachability_distances(i) = distance_mutual_reach(
+            edges(i).first, edges(i).second, distances(i));
+      });
 
   return Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{},
                                              mutual_reachability_distances);
