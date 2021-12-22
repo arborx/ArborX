@@ -54,6 +54,7 @@ auto compute_mutual_reachability_distances(
     ExecutionSpace exec_space, std::vector<float> const &core_distances_host,
     std::vector<Kokkos::pair<int, int>> const &edges_host,
     std::vector<float> const &distances_host)
+    -> Kokkos::View<float *, Kokkos::HostSpace>
 {
   auto core_distances =
       toView<ExecutionSpace>(core_distances_host, "Test::core_distances");
