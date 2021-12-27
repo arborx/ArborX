@@ -38,7 +38,10 @@ struct MaxDistance
     using KokkosExt::max;
     auto const distance_ij =
         distance(Access::get(_primitives, i), Access::get(_primitives, j));
-    _distances(j) = max(_distances(j), distance_ij); // careful here
+    // NOTE using knowledge that each nearest predicate traversal is performed
+    // by a single thread.  The distance update below would need to be atomic
+    // otherwise.
+    _distances(j) = max(_distances(j), distance_ij);
   }
 };
 
