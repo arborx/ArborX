@@ -30,7 +30,7 @@ auto compute_core_distances(ExecutionSpace exec_space,
 {
   auto points = toView<ExecutionSpace>(points_host, "Test::points");
 
-  ARBORX_ASSERT(points.extent_int(0) >= k + 1);
+  ARBORX_ASSERT(points.extent_int(0) >= k);
   using MemorySpace = typename ExecutionSpace::memory_space;
   ArborX::BVH<MemorySpace> bvh{exec_space, points};
   Kokkos::View<float *, MemorySpace> distances(
@@ -100,26 +100,28 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(compute_core_distances, DeviceType,
       {0, 0, 0}, {1, 0, 0}, {2, 0, 0}, {3, 0, 0}, {4, 0, 0},
   };
   ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, points, 1,
-                                     (std::vector<float>{1, 1, 1, 1, 1}));
+                                     (std::vector<float>{0, 0, 0, 0, 0}));
   ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, points, 2,
-                                     (std::vector<float>{2, 1, 1, 1, 2}));
+                                     (std::vector<float>{1, 1, 1, 1, 1}));
   ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, points, 3,
-                                     (std::vector<float>{3, 2, 2, 2, 3}));
+                                     (std::vector<float>{2, 1, 1, 1, 2}));
   ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, points, 4,
+                                     (std::vector<float>{3, 2, 2, 2, 3}));
+  ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, points, 5,
                                      (std::vector<float>{4, 3, 2, 3, 4}));
 
   std::vector<ArborX::Point> non_equidistant_points{
       {0, 0, 0}, {1, 0, 0}, {2, 0, 0}, {3, 0, 0}, {6, 0, 0}, {10, 0, 0},
   };
-  ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, non_equidistant_points, 1,
-                                     (std::vector<float>{1, 1, 1, 1, 3, 4}));
   ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, non_equidistant_points, 2,
-                                     (std::vector<float>{2, 1, 1, 2, 4, 7}));
+                                     (std::vector<float>{1, 1, 1, 1, 3, 4}));
   ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, non_equidistant_points, 3,
-                                     (std::vector<float>{3, 2, 2, 3, 4, 8}));
+                                     (std::vector<float>{2, 1, 1, 2, 4, 7}));
   ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, non_equidistant_points, 4,
-                                     (std::vector<float>{6, 5, 4, 3, 5, 9}));
+                                     (std::vector<float>{3, 2, 2, 3, 4, 8}));
   ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, non_equidistant_points, 5,
+                                     (std::vector<float>{6, 5, 4, 3, 5, 9}));
+  ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, non_equidistant_points, 6,
                                      (std::vector<float>{10, 9, 8, 7, 6, 10}));
 }
 BOOST_AUTO_TEST_CASE_TEMPLATE(compute_mutual_reachability_distances, DeviceType,

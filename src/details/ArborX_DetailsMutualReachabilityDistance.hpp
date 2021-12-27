@@ -49,7 +49,7 @@ template <class Primitives>
 struct NearestK
 {
   Primitives primitives;
-  int k;
+  int k; // including self-collisions
 };
 
 } // namespace Details
@@ -67,8 +67,7 @@ struct AccessTraits<Details::NearestK<Primitives>, PredicatesTag>
   static KOKKOS_FUNCTION auto get(Details::NearestK<Primitives> const &x,
                                   size_type i)
   {
-    // NOTE account for self collision
-    return attach(nearest(Access::get(x.primitives, i), x.k + 1), i);
+    return attach(nearest(Access::get(x.primitives, i), x.k), i);
   }
 };
 
