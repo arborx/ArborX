@@ -36,8 +36,8 @@ KOKKOS_INLINE_FUNCTION constexpr T const &min(T const &a, T const &b)
 template <class T>
 KOKKOS_INLINE_FUNCTION constexpr T max(std::initializer_list<T> ilist)
 {
-  auto first = ilist.begin();
-  auto const last = ilist.end();
+  auto const *first = ilist.begin();
+  auto const *const last = ilist.end();
   auto result = *first;
   if (first == last)
   {
@@ -56,8 +56,8 @@ KOKKOS_INLINE_FUNCTION constexpr T max(std::initializer_list<T> ilist)
 template <class T>
 KOKKOS_INLINE_FUNCTION constexpr T min(std::initializer_list<T> ilist)
 {
-  auto first = ilist.begin();
-  auto const last = ilist.end();
+  auto const *first = ilist.begin();
+  auto const *const last = ilist.end();
   auto result = *first;
   if (first == last)
   {
