@@ -15,7 +15,7 @@ The interface is described [here](https://github.com/arborx/ArborX/wiki/ArborX%3
 
 Examples
 --------
-Examples can be found in the [examples directory](https://github.com/arborx/ArborX/examples).
+Examples can be found in the [examples directory](https://github.com/arborx/ArborX/tree/master/examples).
 
 Questions, Bug Reporting, and Issue Tracking
 --------------------------------------------
