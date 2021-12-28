@@ -9,26 +9,13 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include "ArborXTest_StdVectorToKokkosView.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsTreeNodeLabeling.hpp>
-#include <ArborX_LinearBVH.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
-
-#include <random>
-
-template <typename DeviceType, typename T>
-auto toView(std::vector<T> const &v, std::string const &lbl = "")
-{
-  Kokkos::View<T *, DeviceType> view(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, lbl), v.size());
-  Kokkos::deep_copy(view, Kokkos::View<T const *, Kokkos::HostSpace,
-                                       Kokkos::MemoryTraits<Kokkos::Unmanaged>>(
-                              v.data(), v.size()));
-  return view;
-}
 
 template <class MemorySpace>
 struct MockBVH
@@ -65,6 +52,8 @@ HAPPY_TREE_FRIENDS_GET_CHILDREN_SPECIALIZATION(Kokkos::HostSpace)
 
 namespace Test
 {
+using ArborXTest::toView;
+
 template <class ExecutionSpace>
 auto findParents(ExecutionSpace const &exec_space,
                  std::vector<Kokkos::pair<int, int>> const &children_host)
@@ -106,7 +95,7 @@ auto reduceLabels(ExecutionSpace const &exec_space,
 
 } // namespace Test
 
-BOOST_AUTO_TEST_SUITE(TreeHelpers)
+BOOST_AUTO_TEST_SUITE(TreeNodeLabeling)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(find_parents, DeviceType, ARBORX_DEVICE_TYPES)
 {
