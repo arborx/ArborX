@@ -332,7 +332,7 @@ int main(int argc, char *argv[])
       ( "core-min-size", bpo::value<int>(&core_min_size)->default_value(2), "DBSCAN min_pts")
       ( "verify", bpo::bool_switch(&verify)->default_value(false), "verify connected components")
       ( "samples", bpo::value<int>(&num_samples)->default_value(-1), "number of samples" )
-      ( "labels", bpo::value<std::string>(&filename_labels)->default_value(""), "clutering results output" )
+      ( "labels", bpo::value<std::string>(&filename_labels)->default_value(""), "clustering results output" )
       ( "print-dbscan-timers", bpo::bool_switch(&print_dbscan_timers)->default_value(false), "print dbscan timers")
       ( "impl", bpo::value<Implementation>(&implementation)->default_value(Implementation::FDBSCAN), R"(implementation ("fdbscan" or "fdbscan-densebox"))")
       ;

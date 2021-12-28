@@ -98,7 +98,7 @@ void determineComponentEdges(ExecutionSpace const &exec_space,
   // Cannot simply copy into subview, as we also apply permutations
   initLabels(exec_space, bvh, labels, bvh_nodes_labels);
 
-  // Propagate leaf node lables to internal nodes
+  // Propagate leaf node labels to internal nodes
   reduceLabels(exec_space, bvh_parents, bvh_nodes_labels);
 
   // TODO: is there a smarter way to initialize radii?
@@ -158,9 +158,9 @@ void determineComponentEdges(ExecutionSpace const &exec_space,
         float distance_node = 0.f;
 
         // Important! The truncation radius is set to mutual reachability
-        // distance, rather than Euclidian distance. This works because mutual
-        // reachability distance is not less than Euclidian. Thus, nodes
-        // truncated by Euclidian would have mutual reachability distance
+        // distance, rather than Euclidean distance. This works because mutual
+        // reachability distance is not less than Euclidean. Thus, nodes
+        // truncated by Euclidean would have mutual reachability distance
         // larger anyway.
         do
         {
@@ -319,7 +319,7 @@ int updateLabels(ExecutionSpace const &exec_space, int num_components_old,
 {
   using MemorySpace = typename Labels::memory_space;
 
-  Kokkos::Profiling::pushRegion("ArborX::HDBSCA::update_labels");
+  Kokkos::Profiling::pushRegion("ArborX::HDBSCAN::update_labels");
 
   auto const n = labels.size();
 
@@ -336,7 +336,7 @@ int updateLabels(ExecutionSpace const &exec_space, int num_components_old,
         // Each Boruvka iterations creates connects several components
         // together. From a graph perspective, we first compute an edge for
         // each component leading to a component it will be connected to. The
-        // edges are directed. Following this edges, one eventally encounteres
+        // edges are directed. Following these edges, one eventually encounters
         // two components pointing to each other. We choose the component with
         // a minimum index of those two as the component label for all
         // components leading to it. We call that component "final component".
@@ -380,7 +380,7 @@ int updateLabels(ExecutionSpace const &exec_space, int num_components_old,
         }
         else
         {
-          // All non-final components store their ougoing edges as part of
+          // All non-final components store their outgoing edges as part of
           // MST. This will also include the edge leading to the final
           // component.
           int edge = Kokkos::atomic_fetch_add(&num_edges(), 1);
