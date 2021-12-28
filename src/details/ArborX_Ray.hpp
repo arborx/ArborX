@@ -28,6 +28,13 @@ namespace ArborX
 {
 namespace Experimental
 {
+struct Quaternion
+{
+  float r;
+  float i;
+  float j;
+  float k;
+};
 
 struct Vector : private Point
 {
@@ -97,7 +104,6 @@ struct Ray
   KOKKOS_FUNCTION
   constexpr Vector const &direction() const { return _direction; }
 
-private:
   // We would like to use Scalar defined as:
   // using Scalar = std::decay_t<decltype(std::declval<Vector>()[0])>;
   // However, this means using float to compute the norm. This creates a large
@@ -290,6 +296,74 @@ KOKKOS_INLINE_FUNCTION float overlapDistance(Ray const &ray,
   return (tmax - tmin);
 }
 
+KOKKOS_INLINE_FUNCTION Quaternion hamiltonProduct(Quaternion const &a,
+                                                  Quaternion const &b)
+{
+  Quaternion res;
+  res.r = a.r * b.r - a.i * b.i - a.j * b.j - a.k * b.k;
+  res.i = a.r * b.i + a.i * b.r + a.j * b.k - a.k * b.j;
+  res.j = a.r * b.j - a.i * b.k + a.j * b.r + a.k * b.i;
+  res.k = a.r * b.k + a.i * b.j - a.j * b.i + a.k * b.r;
+
+  return res;
+}
+
+KOKKOS_INLINE_FUNCTION Point rotatePoint(Point const &point,
+                                         Quaternion const &rotation_quat)
+{
+  Quaternion p = {0, point[0], point[1], point[2]};
+  Quaternion rotation_quat_inv = {rotation_quat.r, -rotation_quat.i,
+                                  -rotation_quat.j, -rotation_quat.k};
+  auto rotated_p =
+      hamiltonProduct(hamiltonProduct(rotation_quat, p), rotation_quat_inv);
+
+  return {rotated_p.i, rotated_p.j, rotated_p.k};
+}
+
+KOKKOS_INLINE_FUNCTION Quaternion computeQuaternionRotation(float const &angle,
+                                                            Vector const &axis)
+{
+  Quaternion rotation;
+  rotation.r = std::cos(angle / 2.f);
+  auto sin = std::sin(angle / 2.f);
+  rotation.i = sin * axis[0];
+  rotation.j = sin * axis[1];
+  rotation.k = sin * axis[2];
+
+  return rotation;
+}
+
+KOKKOS_INLINE_FUNCTION bool rayEdgeIntersect(Ray const &ray,
+                                             Point const &edge_vertex_1,
+                                             Point const &edge_vertex_2,
+                                             float &t)
+{
+  // https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line_segment
+  float x1 = ray.origin()[0];
+  float y1 = ray.origin()[1];
+  float x2 = ray.origin()[0] + ray.direction()[0];
+  float y2 = ray.origin()[1] + ray.direction()[1];
+  float x3 = edge_vertex_1[0];
+  float y3 = edge_vertex_1[1];
+  float x4 = edge_vertex_2[0];
+  float y4 = edge_vertex_2[1];
+  float det = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+  auto const epsilon = 0.000001f;
+  if (det > -epsilon && det < epsilon)
+  {
+    return false;
+  }
+  t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / det;
+
+  if (t >= 0.)
+  {
+    float u = ((x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2)) / det;
+    if (u >= 0. && u <= 1.)
+      return true;
+  }
+  return false;
+}
+
 // Möller–Trumbore intersection algorithm
 KOKKOS_INLINE_FUNCTION bool rayTriangleIntersect(Ray const &ray,
                                                  Triangle const &triangle,
@@ -301,12 +375,88 @@ KOKKOS_INLINE_FUNCTION bool rayTriangleIntersect(Ray const &ray,
   auto const p = crossProduct(ray.direction(), ac);
   auto const det = dotProduct(ab, p);
 
-  auto const epsilon = 0.0000001f;
+  auto const epsilon = 0.000001f;
   // If the determinant is negative the triangle is back-facing.
-  // If the determinant is close to 0, the ray misses the triangle because they
-  // are in the same plane.
+  // If the determinant is close to 0, the ray and the triangle are in the same
+  // plane.
   if (det > -epsilon && det < epsilon)
   {
+    // Check if the ray hits an edge of the triangle
+    // We need to rotate the triangle and the ray to be in the z = constant
+    // plane First compute the normal to the triangle: cross product of ab and
+    // ac
+    auto normal = crossProduct(ab, ac);
+    Ray::normalize(normal);
+    // Check if the rotation is necessary
+    auto normal_x = normal[0];
+    auto normal_y = normal[1];
+    auto normal_z = normal[2];
+    Point rotated_triangle_a;
+    Point rotated_triangle_b;
+    Point rotated_triangle_c;
+    Ray rotated_ray;
+    if ((normal_x > -epsilon && normal_x < epsilon) &&
+        (normal_y > -epsilon && normal_y < epsilon) &&
+        ((normal_z > 1. - epsilon && normal_z < 1. + epsilon) ||
+         (normal_z > -1. - epsilon && normal_z < -1. + epsilon)))
+    {
+      rotated_triangle_a = triangle.a;
+      rotated_triangle_b = triangle.b;
+      rotated_triangle_c = triangle.c;
+      rotated_ray = ray;
+    }
+    else
+    {
+      float angle = std::acos((double)normal[2]);
+      auto axis = crossProduct(normal, {0., 0., 1.});
+      Ray::normalize(axis);
+      auto rotation_quat = computeQuaternionRotation(angle, axis);
+      rotated_triangle_a = rotatePoint(triangle.a, rotation_quat);
+      rotated_triangle_b = rotatePoint(triangle.b, rotation_quat);
+      rotated_triangle_c = rotatePoint(triangle.c, rotation_quat);
+      rotated_ray.origin() = rotatePoint(ray.origin(), rotation_quat);
+      auto rotated_direction = rotatePoint(
+          {ray.direction()[0], ray.direction()[1], ray.direction()[2]},
+          rotation_quat);
+      rotated_ray.direction() = {rotated_direction[0], rotated_direction[1],
+                                 rotated_direction[2]};
+    }
+
+    // Check that they are in the same plane
+    if (rotated_triangle_a[2] - rotated_ray.origin()[2] > -epsilon &&
+        rotated_triangle_a[2] - rotated_ray.origin()[2] < epsilon)
+    {
+      constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+      // A ray can intersect multiple edges so we need to check all ray-edge
+      // intersections to find the first one.
+
+      // Intersection with ab
+      float t_ab = inf;
+      bool ab_intersect = rayEdgeIntersect(rotated_ray, rotated_triangle_a,
+                                           rotated_triangle_b, t_ab);
+      if (ab_intersect)
+        t = t_ab;
+
+      // Intersection with ac
+      float t_ac = inf;
+      bool ac_intersect = rayEdgeIntersect(rotated_ray, rotated_triangle_a,
+                                           rotated_triangle_c, t_ac);
+      if (ac_intersect)
+        t = KokkosExt::min(t, t_ac);
+
+      // Intersection with bc
+      float t_bc = inf;
+      bool bc_intersect = rayEdgeIntersect(rotated_ray, rotated_triangle_b,
+                                           rotated_triangle_c, t);
+      if (bc_intersect)
+        t = KokkosExt::min(t, t_bc);
+
+      if (ac_intersect || ac_intersect || bc_intersect)
+      {
+        return true;
+      }
+    }
+
     return false;
   }
 
@@ -328,7 +478,7 @@ KOKKOS_INLINE_FUNCTION bool rayTriangleIntersect(Ray const &ray,
 
   t = inv_det * dotProduct(ac, q);
 
-  if (t < epsilon)
+  if (t < -epsilon)
     return false;
 
   return true;
