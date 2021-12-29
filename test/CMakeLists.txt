@@ -22,7 +22,16 @@ if(Kokkos_ENABLE_SYCL)
   list(APPEND ARBORX_DEVICE_TYPES Kokkos::Experimental::SYCL::device_type)
 endif()
 
+set(ARBORX_DEVICE_NO_HOST_TYPES "${ARBORX_DEVICE_TYPES}")
+if(Kokkos_ENABLE_SERIAL)
+  list(REMOVE_ITEM ARBORX_DEVICE_NO_HOST_TYPES Kokkos::Serial::device_type)
+endif()
+if(Kokkos_ENABLE_OPENMP)
+  list(REMOVE_ITEM ARBORX_DEVICE_NO_HOST_TYPES Kokkos::OpenMP::device_type)
+endif()
+
 string(REPLACE ";" "," ARBORX_DEVICE_TYPES "${ARBORX_DEVICE_TYPES}")
+string(REPLACE ";" "," ARBORX_DEVICE_NO_HOST_TYPES "${ARBORX_DEVICE_NO_HOST_TYPES}")
 
 if(NOT ARBORX_DEVICE_TYPES)
   message(SEND_ERROR "Kokkos_DEVICES must include at least one of 'SERIAL', 'OPENMP', 'CUDA', 'HIP', 'OPENMPTARGET', 'SYCL' or 'THREADS'!")

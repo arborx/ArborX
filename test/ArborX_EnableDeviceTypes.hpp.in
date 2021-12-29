@@ -17,5 +17,6 @@
 #include <tuple>
 
 using ARBORX_DEVICE_TYPES = std::tuple<@ARBORX_DEVICE_TYPES@>;
+using ARBORX_DEVICE_NO_HOST_TYPES = std::tuple<@ARBORX_DEVICE_NO_HOST_TYPES@>;
 
 #endif
