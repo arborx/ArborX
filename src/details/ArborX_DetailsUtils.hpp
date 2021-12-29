@@ -333,7 +333,7 @@ minMax(ExecutionSpace &&space, ViewType const &v)
         {
           local_min = val;
         }
-        if (val > local_max)
+        if (local_max < val)
         {
           local_max = val;
         }
