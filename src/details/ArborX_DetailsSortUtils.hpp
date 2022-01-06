@@ -23,7 +23,9 @@
 
 // clang-format off
 #if defined(KOKKOS_ENABLE_CUDA)
-#  if defined(KOKKOS_COMPILER_CLANG)
+// Clang 11.1.0 with CUDA 11.4 built with and without the workaround below.
+// Clang 12.0.1 with CUDA 11.4 did not
+#  if defined(KOKKOS_COMPILER_CLANG) && KOKKOS_COMPILER_CLANG < 1200
 // Some versions of Clang fail to compile Thrust, failing with errors like
 // this:
 //    <snip>/thrust/system/cuda/detail/core/agent_launcher.h:557:11:
