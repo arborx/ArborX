@@ -108,23 +108,19 @@ struct BruteForceImpl
                                                   predicates_per_team);
           ScratchPrimitiveType scratch_primitives(teamMember.team_scratch(0),
                                                   primitives_per_team);
-          // rank 0 in each team fills the scratch space with the
-          // predicates / primitives in the tile
-          if (teamMember.team_rank() == 0)
-          {
-            Kokkos::parallel_for(
-                Kokkos::ThreadVectorRange(teamMember, predicates_in_this_team),
-                [&](const int q) {
-                  scratch_predicates(q) =
-                      AccessPredicates::get(predicates, predicate_start + q);
-                });
-            Kokkos::parallel_for(
-                Kokkos::ThreadVectorRange(teamMember, primitives_in_this_team),
-                [&](const int j) {
-                  scratch_primitives(j) =
-                      AccessPrimitives::get(primitives, primitive_start + j);
-                });
-          }
+          // fill the scratch space with the predicates / primitives in the tile
+          Kokkos::parallel_for(
+              Kokkos::TeamVectorRange(teamMember, predicates_in_this_team),
+              [&](const int q) {
+                scratch_predicates(q) =
+                    AccessPredicates::get(predicates, predicate_start + q);
+              });
+          Kokkos::parallel_for(
+              Kokkos::TeamVectorRange(teamMember, primitives_in_this_team),
+              [&](const int j) {
+                scratch_primitives(j) =
+                    AccessPrimitives::get(primitives, primitive_start + j);
+              });
           teamMember.team_barrier();
 
           // start threads for every predicate / primitive combination
