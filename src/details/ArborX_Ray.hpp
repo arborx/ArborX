@@ -17,6 +17,7 @@
 #include <ArborX_DetailsKokkosExtSwap.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
+#include <ArborX_Triangle.hpp>
 
 #include <Kokkos_Macros.hpp>
 
@@ -196,6 +197,227 @@ bool intersects(Ray const &ray, Box const &box)
   float tmax;
   // intersects only if box is in front of the ray
   return intersection(ray, box, tmin, tmax) && (tmax >= 0.f);
+}
+
+// The function returns the index of the largest
+// component of the direction vector.
+KOKKOS_INLINE_FUNCTION int findLargestComp(Vector const &dir)
+{
+  int kz = 0;
+  for (int i = 1; i < 3; i++)
+  {
+    float compmax = std::fabs(dir[i - 1]);
+    if (std::fabs(dir[i]) > compmax)
+    {
+      compmax = dir[i];
+      kz = i;
+    }
+  }
+  return kz;
+}
+
+// Both the ray and the triangle were transformed beforehand
+// so that the ray is a unit vector along the z-axis (0,0,1),
+// and the triangle is transformed with the same matrix
+// (which is M in the paper). This function is called only
+// when the ray is co-planar to the triangle (with the
+// determinant being zero). The rotation by this function is
+// to prepare for the ray-edge intersection calculations in 2D.
+// The rotation is around the z-axis. For any point after
+// the rotation, its new x* equals its original length
+// with the correct sign, and the new y* = z. The current
+// implementation avoids explicitly defining rotation angles
+// and directions. The following ray-edge intersection will
+// be in the x*-y* plane.
+KOKKOS_INLINE_FUNCTION Point rotate2D(Point const &point)
+{
+  Point point_star;
+  float r = std::sqrt(point[0] * point[0] + point[1] * point[1]);
+  if (point[0] != 0)
+  {
+    point_star[0] = (point[0] > 0 ? 1 : -1) * r;
+  }
+  else
+  {
+    point_star[0] = (point[1] > 0 ? 1 : -1) * r;
+  }
+  point_star[1] = point[2];
+  point_star[2] = 0.0;
+  return point_star;
+}
+
+// The function is for ray-edge intersection
+// with the rotated ray along the z-axis and
+// the transformed and rotated triangle edges
+// The algorithm is described in
+// https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line_segment
+KOKKOS_INLINE_FUNCTION bool rayEdgeIntersect(Point const &edge_vertex_1,
+                                             Point const &edge_vertex_2,
+                                             float &t)
+{
+  float x3 = edge_vertex_1[0];
+  float y3 = edge_vertex_1[1];
+  float x4 = edge_vertex_2[0];
+  float y4 = edge_vertex_2[1];
+
+  float y1 = KokkosExt::min(y3, y4);
+  float y2;
+  if (y1 >= 0.f)
+  {
+    y2 = KokkosExt::max(y3, y4);
+  }
+  else
+  {
+    y2 = KokkosExt::min(y3, y4);
+  }
+
+  float det = y2 * (x3 - x4);
+
+  auto const epsilon = 0.00001f;
+  //  the ray is parallel to the edge if det == 0.0
+  //  When the ray overlaps the edge (x3==x4==0.0), it also returns false,
+  //  and the intersection will be captured by the other two edges.
+  if (det == 0)
+  {
+    return false;
+  }
+  t = (-x3 * (y3 - y4) + y3 * (x3 - x4)) / det * y2;
+
+  if (t >= 0)
+  {
+    float u = x3 * y2 / det;
+    if (u >= 0 - epsilon && u <= 1 + epsilon)
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
+// The algorithm is described in
+// Watertight Ray/Triangle Intersection
+// [1] Woop, S. et al. (2013),
+// Journal of Computer Graphics Techniques Vol. 2(1)
+// The major difference is that here we return the intersection points
+// when the ray and the triangle is coplanar.
+// In the paper, they just need the boolean return.
+KOKKOS_INLINE_FUNCTION
+bool intersection(Ray const &ray, Triangle const &triangle, float &tmin,
+                  float &tmax)
+{
+  auto dir = ray.direction();
+  // normalize the direction vector by its largest component.
+  auto kz = findLargestComp(dir);
+  int kx = (kz + 1) % 3;
+  int ky = (kz + 2) % 3;
+
+  if (dir[kz] < 0)
+    KokkosExt::swap(kx, ky);
+
+  Vector s;
+
+  s[2] = 1.0f / dir[kz];
+  s[0] = dir[kx] * s[2];
+  s[1] = dir[ky] * s[2];
+
+  // calculate vertices relative to ray origin
+  Vector const oA = makeVector(ray.origin(), triangle.a);
+  Vector const oB = makeVector(ray.origin(), triangle.b);
+  Vector const oC = makeVector(ray.origin(), triangle.c);
+
+  Point A;
+  Point B;
+  Point C;
+
+  // perform shear and scale of vertices
+  A[0] = oA[kx] - s[0] * oA[kz];
+  A[1] = oA[ky] - s[1] * oA[kz];
+  B[0] = oB[kx] - s[0] * oB[kz];
+  B[1] = oB[ky] - s[1] * oB[kz];
+  C[0] = oC[kx] - s[0] * oC[kz];
+  C[1] = oC[ky] - s[1] * oC[kz];
+
+  // calculate scaled barycentric coordinates
+  float u = C[0] * B[1] - C[1] * B[0];
+  float v = A[0] * C[1] - A[1] * C[0];
+  float w = B[0] * A[1] - B[1] * A[0];
+
+  // fallback to edge test using double precision
+  if (u == 0 || v == 0 || w == 0)
+  {
+    u = (double)C[0] * B[1] - (double)C[1] * B[0];
+    v = (double)A[0] * C[1] - (double)A[1] * C[0];
+    w = (double)B[0] * A[1] - (double)B[1] * A[0];
+  }
+
+  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  tmin = inf;
+  tmax = -inf;
+
+  // The following 'if' statement work
+  // regardless of the facing of the triangle.
+  // In another word, 'Back-face culling' is not supported.
+  // Back-facing culling is to check whether
+  // a surface is 'visible' to a ray, which requires
+  // consistent definition of the facing of triangles.
+  if ((u < 0 || v < 0 || w < 0) && (u > 0 || v > 0 || w > 0))
+    return false;
+
+  // calculate determinant
+  float det = u + v + w;
+
+  A[2] = s[2] * oA[kz];
+  B[2] = s[2] * oB[kz];
+  C[2] = s[2] * oC[kz];
+
+  if (det != 0)
+  {
+    float t = (u * A[2] + v * B[2] + w * C[2]) / det;
+    tmax = t;
+    tmin = t;
+    return tmax >= tmin;
+  }
+  // The ray is co-planar to the triangle.
+  // Check the intersection with each edge
+  // the rotate2D function is to make sure the ray-edge
+  // intersection check is at the plane where ray and edges
+  // are at.
+  auto A_star = rotate2D(A);
+  auto B_star = rotate2D(B);
+  auto C_star = rotate2D(C);
+
+  float t_ab = inf;
+  bool ab_intersect = rayEdgeIntersect(A_star, B_star, t_ab);
+  if (ab_intersect)
+  {
+    tmin = t_ab;
+    tmax = t_ab;
+  }
+  float t_bc = inf;
+  bool bc_intersect = rayEdgeIntersect(B_star, C_star, t_bc);
+  if (bc_intersect)
+  {
+    tmin = KokkosExt::min(tmin, t_bc);
+    tmax = KokkosExt::max(tmax, t_bc);
+  }
+  float t_ca = inf;
+  bool ca_intersect = rayEdgeIntersect(C_star, A_star, t_ca);
+  if (ca_intersect)
+  {
+    tmin = KokkosExt::min(tmin, t_ca);
+    tmax = KokkosExt::max(tmax, t_ca);
+  }
+
+  return (ab_intersect || bc_intersect || ca_intersect);
+}
+
+KOKKOS_INLINE_FUNCTION
+bool intersects(Ray const &ray, Triangle const &triangle)
+{
+  float tmin;
+  float tmax;
+  // intersects only if triangle is in front of the ray
+  return intersection(ray, triangle, tmin, tmax) && (tmax >= 0.f);
 }
 
 // Solves a*x^2 + b*x + c = 0.
