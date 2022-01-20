@@ -73,7 +73,9 @@ void test_access_traits_compile_only()
   Kokkos::View<NearestPredicate *> q;
   check_valid_access_traits(PredicatesTag{}, q);
 
+#ifndef KOKKOS_COMPILER_NVHPC
   check_valid_access_traits(PrimitivesTag{}, LegacyAccessTraits{});
+#endif
 
   // Uncomment to see error messages
 
