@@ -35,7 +35,7 @@ pipeline {
                 stage('NVHPC-21.9') {
                     agent {
                         dockerfile {
-                            dockerfile 'Dockerfile.nvhpc'
+                            filename 'Dockerfile.nvhpc'
                             dir 'docker'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker && large_images'
                             args '--env NVIDIA_VISIBLE_DEVICES=$NVIDIA_VISIBLE_DEVICES'
