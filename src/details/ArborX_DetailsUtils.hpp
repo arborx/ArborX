@@ -295,6 +295,9 @@ void iota(ExecutionSpace &&space, Kokkos::View<T, P...> const &v,
                        KOKKOS_LAMBDA(int i) { v(i) = value + (ValueType)i; });
 }
 
+// FIXME
+//#ifndef KOKKOS_COMPILER_NVHPC
+#if 0
 template <typename T, typename... P>
 [[deprecated]] inline void
 iota(Kokkos::View<T, P...> const &v,
@@ -303,6 +306,7 @@ iota(Kokkos::View<T, P...> const &v,
   using ExecutionSpace = typename Kokkos::ViewTraits<T, P...>::execution_space;
   iota(ExecutionSpace{}, v, value);
 }
+#endif
 
 /** \brief Returns the smallest and the greatest element in the view
  *
