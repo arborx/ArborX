@@ -68,7 +68,10 @@ target_include_directories(ArborX_Geometry.exe PRIVATE ${CMAKE_CURRENT_BINARY_DI
 add_test(NAME ArborX_Geometry_Test COMMAND ./ArborX_Geometry.exe)
 
 set(ARBORX_TEST_QUERY_TREE_SOURCES)
-foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL NVHPC)
+  set(SKIP_IF_NVHPC ComparisonWithBoost)
+endif()
+foreach(_test Callbacks Degenerate ManufacturedSolution ${SKIP_IF_NVHPC})
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH.cpp.tmp"
     "#include <ArborX_LinearBVH.hpp>\n"
     "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX::BVH>\n"
@@ -185,7 +188,10 @@ if(ARBORX_ENABLE_MPI)
   add_test(NAME ArborX_DetailsDistributedTreeImpl_Test COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} ./ArborX_DetailsDistributedTreeImpl.exe ${MPIEXEC_POSTFLAGS})
 endif()
 
-add_executable(ArborX_BoostAdapters.exe tstBoostGeometryAdapters.cpp tstBoostRangeAdapters.cpp utf_main.cpp)
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL NVHPC)
+  set(SKIP_IF_NVHPC tstBoostGeometryAdapters.cpp)
+endif()
+add_executable(ArborX_BoostAdapters.exe ${SKIP_IF_NVHPC} tstBoostRangeAdapters.cpp utf_main.cpp)
 target_link_libraries(ArborX_BoostAdapters.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_BoostAdapters.exe PRIVATE BOOST_TEST_DYN_LINK)
 add_test(NAME ArborX_BoostAdapters_Test COMMAND ./ArborX_BoostAdapters.exe)
