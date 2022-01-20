@@ -1,0 +1,53 @@
+ARG BASE=nvcr.io/nvidia/nvhpc:21.9-devel-cuda11.4-ubuntu20.04
+FROM $BASE
+
+ARG NPROCS=4
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -yq \
+        libboost-program-options-dev \
+        libboost-test-dev \
+        libbenchmark-dev
+
+ENV PATH=/opt/rocm/bin:$PATH
+
+RUN KEYDUMP_URL=https://cloud.cees.ornl.gov/download && \
+    KEYDUMP_FILE=keydump && \
+    wget --quiet ${KEYDUMP_URL}/${KEYDUMP_FILE} && \
+    wget --quiet ${KEYDUMP_URL}/${KEYDUMP_FILE}.sig && \
+    gpg --import ${KEYDUMP_FILE} && \
+    gpg --verify ${KEYDUMP_FILE}.sig ${KEYDUMP_FILE} && \
+    rm ${KEYDUMP_FILE}*
+
+# Install CMake
+ARG CMAKE_VERSION=3.21.4
+ENV CMAKE_DIR=/opt/cmake
+RUN CMAKE_URL=https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION} && \
+    CMAKE_SCRIPT=cmake-${CMAKE_VERSION}-Linux-x86_64.sh && \
+    CMAKE_SHA256=cmake-${CMAKE_VERSION}-SHA-256.txt && \
+    wget --quiet ${CMAKE_URL}/${CMAKE_SHA256} && \
+    wget --quiet ${CMAKE_URL}/${CMAKE_SHA256}.asc && \
+    wget --quiet ${CMAKE_URL}/${CMAKE_SCRIPT} && \
+    gpg --verify ${CMAKE_SHA256}.asc ${CMAKE_SHA256} && \
+    grep -i ${CMAKE_SCRIPT} ${CMAKE_SHA256} | sed -e s/linux/Linux/ | sha256sum --check && \
+    mkdir -p ${CMAKE_DIR} && \
+    sh ${CMAKE_SCRIPT} --skip-license --prefix=${CMAKE_DIR} && \
+    rm cmake*
+ENV PATH=${CMAKE_DIR}/bin:$PATH
+
+# Install Kokkos
+ARG KOKKOS_VERSION=3.5.00
+ARG KOKKOS_ARCH=Kokkos_ARCH_VOLTA70
+ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ENABLE_OPENMP=ON -D${KOKKOS_ARCH}=ON"
+ENV KOKKOS_DIR=/opt/kokkos
+RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
+    KOKKOS_ARCHIVE=kokkos-${KOKKOS_HASH}.tar.gz && \
+    SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
+    wget --quiet ${KOKKOS_URL} --output-document=${KOKKOS_ARCHIVE} && \
+    mkdir -p kokkos && \
+    tar -xf ${KOKKOS_ARCHIVE} -C kokkos --strip-components=1 && \
+    cd kokkos && \
+    mkdir -p build && cd build && \
+    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${KOKKOS_DIR} -D CMAKE_CXX_COMPILER=nvc++ ${KOKKOS_OPTIONS} .. && \
+    make -j${NPROCS} install && \
+    rm -rf ${SCRATCH_DIR}
