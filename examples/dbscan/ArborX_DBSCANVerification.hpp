@@ -15,7 +15,7 @@
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_LinearBVH.hpp>
 
-#include <Kokkos_View.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <set>
 #include <stack>
