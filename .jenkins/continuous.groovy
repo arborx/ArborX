@@ -348,7 +348,7 @@ pipeline {
                                     -D CMAKE_BUILD_TYPE=Release \
                                     -D CMAKE_CXX_COMPILER=clang++ \
                                     -D CMAKE_CXX_EXTENSIONS=OFF \
-                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra -Wno-unknown-cuda-version -fsycl -fsycl-targets=nvptx64-nvidia-cuda-sycldevice" \
+                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra -Wno-unknown-cuda-version" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR;$ONE_DPL_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
                                     -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
@@ -357,6 +357,7 @@ pipeline {
                                     -D ARBORX_ENABLE_EXAMPLES=ON \
                                     -D ARBORX_ENABLE_BENCHMARKS=ON \
                                     -D ARBORX_ENABLE_ONEDPL=ON \
+                                    -D ONEDPL_PAR_BACKEND=serial \
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'
@@ -380,6 +381,7 @@ pipeline {
                                         -D CMAKE_CXX_EXTENSIONS=OFF \
                                         -D CMAKE_CXX_FLAGS="-Wno-unknown-cuda-version" \
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR;$ONE_DPL_DIR" \
+                                        -D ONEDPL_PAR_BACKEND=serial \
                                     examples \
                                 '''
                                 sh 'make VERBOSE=1'

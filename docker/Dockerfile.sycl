@@ -42,7 +42,7 @@ RUN CMAKE_KEY=2D2CEF1034921684 && \
 ENV PATH=${CMAKE_DIR}/bin:$PATH
 
 ENV SYCL_DIR=/opt/sycl
-RUN SYCL_VERSION=20210311 && \
+RUN SYCL_VERSION=20220106 && \
     SYCL_URL=https://github.com/intel/llvm/archive/sycl-nightly && \
     SYCL_ARCHIVE=${SYCL_VERSION}.tar.gz && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
@@ -60,7 +60,7 @@ ENV PATH=${SYCL_DIR}/bin:$PATH
 
 # Install oneDPL
 ENV ONE_DPL_DIR=/opt/onedpl
-RUN ONE_DPL_VERSION=oneDPL-2021.3.0-release && \
+RUN ONE_DPL_VERSION=oneDPL-2021.6.0-release && \
     ONE_DPL_URL=https://github.com/oneapi-src/oneDPL/archive && \
     ONE_DPL_ARCHIVE=${ONE_DPL_VERSION}.tar.gz && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
@@ -116,8 +116,9 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     rm -rf ${SCRATCH_DIR}
 
 # Install Kokkos
-ARG KOKKOS_VERSION=3.4.00
-ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_SYCL=ON -DCMAKE_CXX_FLAGS=-Wno-unknown-cuda-version -DKokkos_ENABLE_UNSUPPORTED_ARCHS=ON -DKokkos_ARCH_VOLTA70=ON -DCMAKE_CXX_STANDARD=17"
+# FIXME hash below correspond to 3.5.99 (pre 3.6 release develop branch)
+ARG KOKKOS_VERSION=bb340781ba774eb0829de03735fe25e89b1176fc
+ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_SYCL=ON -DCMAKE_CXX_FLAGS=-Wno-unknown-cuda-version -DKokkos_ENABLE_UNSUPPORTED_ARCHS=ON -DKokkos_ENABLE_DEPRECATED_CODE_3=OFF -DKokkos_ARCH_VOLTA70=ON -DCMAKE_CXX_STANDARD=17"
 ENV KOKKOS_DIR=/opt/kokkos
 RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
     KOKKOS_ARCHIVE=kokkos-${KOKKOS_HASH}.tar.gz && \
