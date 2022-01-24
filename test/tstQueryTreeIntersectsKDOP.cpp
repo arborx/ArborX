@@ -13,7 +13,7 @@
 #include <ArborX_KDOP.hpp>
 #include <ArborX_LinearBVH.hpp>
 
-#include <Kokkos_CopyViews.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <boost/test/unit_test.hpp>
 
