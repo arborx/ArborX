@@ -1,4 +1,7 @@
 pipeline {
+    options {
+        disableConcurrentBuilds(abortPrevious: true)
+    }
     triggers {
         issueCommentTrigger('.*test this please.*')
     }
