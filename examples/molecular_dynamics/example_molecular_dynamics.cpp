@@ -50,6 +50,100 @@ struct ExcludeSelfCollision
   }
 };
 
+template <class BVH, class Counts, class Save>
+struct CountAndSaveFirstCollision
+{
+  BVH _bvh;
+  Counts _counts;
+  Save _save;
+
+  template <class Predicate>
+  KOKKOS_FUNCTION void operator()(Predicate const &predicate, int i) const
+  {
+    int const j = getData(predicate);
+    using ArborX::Details::HappyTreeFriends;
+    if ((int)HappyTreeFriends::getLeafPermutationIndex(_bvh, i) != j)
+    {
+      if (++_counts(j) == 1)
+      {
+        _save(j) = i;
+      }
+    }
+  }
+};
+
+template <class BVH, class Counts, class Offsets, class Indices>
+struct CountAndFill
+{
+  BVH _bvh;
+  Counts _counts;
+  Offsets _offsets;
+  Indices _indices;
+
+  template <class Predicate>
+  KOKKOS_FUNCTION void operator()(Predicate const &predicate, int i) const
+  {
+    int const j = getData(predicate);
+    using ArborX::Details::HappyTreeFriends;
+    i = HappyTreeFriends::getLeafPermutationIndex(_bvh, i);
+    if (i != j)
+    {
+      _indices(_offsets(j) + _counts(j)++) = i;
+    }
+  }
+};
+
+template <class ExecutionSpace, class BVH, class Predicates, class Offsets,
+          class Indices>
+void query_with_restart(ExecutionSpace const &space, BVH const &bvh,
+                        Predicates const &predicates, Offsets &offsets,
+                        Indices &indices)
+{
+  Kokkos::Profiling::pushRegion("ArborX::Experimental::query_with_restart");
+  Kokkos::Profiling::pushRegion("ArborX::Experimental::FirstPass::count");
+
+  using MemorySpace = typename ExecutionSpace::memory_space;
+  using Access = ArborX::AccessTraits<Predicates, ArborX::PredicatesTag>;
+  auto const n = Access::size(predicates);
+
+  Kokkos::View<int *, MemorySpace> counts(
+      Kokkos::view_alloc("ArborX::Experimental::counts",
+                         Kokkos::WithoutInitializing),
+      n);
+  Kokkos::deep_copy(space, counts, 0);
+  Kokkos::View<int *, MemorySpace> restart(
+      Kokkos::view_alloc("ArborX::Experimental::first_collision",
+                         Kokkos::WithoutInitializing),
+      n);
+  ArborX::Details::restartRopeTraversal(
+      space, bvh, predicates,
+      CountAndSaveFirstCollision<BVH, decltype(counts), decltype(restart)>{
+          bvh, counts, restart},
+      ArborX::Details::StartFromRoot<BVH>{bvh});
+
+  Kokkos::Profiling::popRegion();
+  Kokkos::Profiling::pushRegion("ArborX::Experimental::SecondPass::fill");
+
+  ArborX::reallocWithoutInitializing(offsets, n + 1);
+  Kokkos::deep_copy(space, offsets, 0);
+  Kokkos::deep_copy(space, Kokkos::subview(offsets, std::make_pair(0, (int)n)),
+                    counts);
+  ArborX::exclusivePrefixSum(space, offsets);
+  auto const n_collisions = ArborX::lastElement(offsets);
+  ArborX::reallocWithoutInitializing(indices, n_collisions);
+  Kokkos::deep_copy(space, counts, 0);
+
+  ArborX::Details::restartRopeTraversal(
+      space, bvh, predicates,
+      CountAndFill<BVH, decltype(counts), Offsets, Indices>{bvh, counts,
+                                                            offsets, indices},
+      restart);
+  // ArborX::Details::StartFromRoot<BVH>{bvh});
+
+  Kokkos::Profiling::popRegion();
+  Kokkos::Profiling::popRegion();
+}
+
 int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
@@ -67,9 +161,9 @@ int main(int argc, char *argv[])
   float const dx = 1.7f;
   float const dy = 1.7f;
   float const dz = 1.7f;
-  int const nx = 10;
-  int const ny = 10;
-  int const nz = 10;
+  int const nx = 100;
+  int const ny = 100;
+  int const nz = 100;
   int const n = 4 * nx * ny * nz;
 
   auto const dt = 5e-3f; // time step
@@ -118,8 +212,13 @@ int main(int argc, char *argv[])
 
   Kokkos::View<int *, MemorySpace> indices("Example::indices", 0);
   Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
-  index.query(execution_space, Neighbors<MemorySpace>{particles, r},
-              ExcludeSelfCollision{}, indices, offsets);
+  index.query(
+      execution_space, Neighbors<MemorySpace>{particles, r},
+      ExcludeSelfCollision{}, indices, offsets,
+      ArborX::Experimental::TraversalPolicy().setPredicateSorting(false));
+
+  query_with_restart(execution_space, index,
+                     Neighbors<MemorySpace>{particles, r}, offsets, indices);
 
   Kokkos::View<float * [3], MemorySpace> forces("Example::forces", n);
   Kokkos::parallel_for(
