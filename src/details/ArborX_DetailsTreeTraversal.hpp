@@ -464,6 +464,88 @@ void traverse(ExecutionSpace const &space, BVH const &bvh,
                                                 callback);
 }
 
+template <typename BVH, typename Predicates, typename Callback,
+          typename Restart>
+struct RestartRopeTreeTraversal
+{
+  BVH _bvh;
+  Predicates _predicates;
+  Callback _callback;
+  Restart _restart;
+
+  using Access = AccessTraits<Predicates, PredicatesTag>;
+
+  static_assert(HappyTreeFriends::has_node_with_left_child_and_rope<BVH>{}, "");
+
+  template <typename ExecutionSpace>
+  RestartRopeTreeTraversal(ExecutionSpace const &space, BVH const &bvh,
+                           Predicates const &predicates,
+                           Callback const &callback, Restart const &restart)
+      : _bvh{bvh}
+      , _predicates{predicates}
+      , _callback{callback}
+      , _restart{restart}
+  {
+    ARBORX_ASSERT(_bvh.size() > 1);
+    Kokkos::parallel_for(
+        "ArborX::Experimental::restart_rope_tree_traversal",
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
+        *this);
+  }
+
+  KOKKOS_FUNCTION void operator()(int i) const
+  {
+    auto const &predicate = Access::get(_predicates, i);
+
+    int node;
+    int next = _restart(i);
+    do
+    {
+      node = next;
+
+      if (predicate(HappyTreeFriends::getBoundingVolume(_bvh, node)))
+      {
+        if (!HappyTreeFriends::isLeaf(_bvh, node))
+        {
+          next = HappyTreeFriends::getLeftChild(_bvh, node);
+        }
+        else
+        {
+          if (invoke_callback_and_check_early_exit(_callback, predicate, node))
+            // HappyTreeFriends::getLeafPermutationIndex(_bvh, node)))
+            return;
+          next = HappyTreeFriends::getRope(_bvh, node);
+        }
+      }
+      else
+      {
+        next = HappyTreeFriends::getRope(_bvh, node);
+      }
+
+    } while (next != ROPE_SENTINEL);
+  }
+};
+
+template <class BVH>
+struct StartFromRoot
+{
+  BVH _bvh;
+  KOKKOS_FUNCTION auto operator()(int) const
+  {
+    return HappyTreeFriends::getRoot(_bvh);
+  }
+};
+
+template <typename ExecutionSpace, typename BVH, typename Predicates,
+          typename Callback, typename Restart>
+void restartRopeTraversal(ExecutionSpace const &space, BVH const &bvh,
+                          Predicates const &predicates,
+                          Callback const &callback, Restart const &restart)
+{
+  RestartRopeTreeTraversal<BVH, Predicates, Callback, Restart>(
+      space, bvh, predicates, callback, restart);
+}
+
 } // namespace Details
 } // namespace ArborX
 
