@@ -101,12 +101,35 @@ void determineComponentEdges(ExecutionSpace const &exec_space,
   // Propagate leaf node labels to internal nodes
   reduceLabels(exec_space, bvh_parents, bvh_nodes_labels);
 
+  ArborX::Details::MutualReachability<CoreDistances> const dmreach{
+      core_distances};
+
   // TODO: is there a smarter way to initialize radii?
   Kokkos::View<float *, MemorySpace> radii(NoInit("ArborX::HDBSCAN::radii"), n);
   Kokkos::deep_copy(exec_space, radii, infinity);
+  // Note: predicates are already presorted based on Morton indices, and we use
+  // the fact that predicates geometry is the same as primitives
+  Kokkos::parallel_for(
+      "ArborX::HDBSCAN::init_shared_radii",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n - 1),
+      KOKKOS_LAMBDA(int ii) {
+        auto geometry = [&predicates](int k) {
+          return getGeometry(Access::get(predicates, k));
+        };
+        auto index = [&predicates](int k) {
+          return getData(Access::get(predicates, k));
+        };
 
-  ArborX::Details::MutualReachability<CoreDistances> const dmreach{
-      core_distances};
+        int i = index(ii);
+        int j = index(ii + 1);
+
+        if (labels(i) != labels(j))
+        {
+          auto r = dmreach(i, j, distance(geometry(ii), geometry(ii + 1)));
+          Kokkos::atomic_min(&radii(labels(i)), r);
+          Kokkos::atomic_min(&radii(labels(j)), r);
+        }
+      });
 
   // Compared to the standard kNN algorithm, this one uses mutual reachability
   // distance to define closeness, and shares the value of the radius among all
