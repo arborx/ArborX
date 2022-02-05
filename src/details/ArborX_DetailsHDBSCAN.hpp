@@ -195,17 +195,7 @@ void determineComponentEdges(ExecutionSpace const &exec_space,
                   nearest = candidate;
                   nearest_dist = candidate_dist;
 
-                  float t = radius;
-                  while (true)
-                  {
-                    float r = Kokkos::atomic_compare_exchange(&radius, t,
-                                                              nearest_dist);
-                    if (r == t ||         // this thread did the exchange
-                        r < nearest_dist) // another thread did the exchange
-                                          // with a smaller number
-                      break;
-                    t = r;
-                  }
+                  Kokkos::atomic_min(&radius, nearest_dist);
                 }
               }
               else
@@ -229,17 +219,7 @@ void determineComponentEdges(ExecutionSpace const &exec_space,
                   nearest = candidate;
                   nearest_dist = candidate_dist;
 
-                  float t = radius;
-                  while (true)
-                  {
-                    float r = Kokkos::atomic_compare_exchange(&radius, t,
-                                                              nearest_dist);
-                    if (r == t ||         // this thread did the exchange
-                        r < nearest_dist) // another thread did the exchange
-                                          // with a smaller number
-                      break;
-                    t = r;
-                  }
+                  Kokkos::atomic_min(&radius, nearest_dist);
                 }
               }
               else
