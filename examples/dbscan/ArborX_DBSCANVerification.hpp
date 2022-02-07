@@ -43,7 +43,9 @@ bool verifyCorePointsNonnegativeIndex(ExecutionSpace const &exec_space,
         bool self_is_core_point = (offset(i + 1) - offset(i) >= core_min_size);
         if (self_is_core_point && labels(i) < 0)
         {
+#ifndef __SYCL_DEVICE_ONLY__
           printf("Core point is marked as noise: %d [%d]\n", i, labels(i));
+#endif
           update++;
         }
       },
@@ -76,9 +78,11 @@ bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
 
             if (neigh_is_core_point && labels(i) != labels(j))
             {
+#ifndef __SYCL_DEVICE_ONLY__
               printf("Connected cores do not belong to the same cluster: "
                      "%d [%d] -> %d [%d]\n",
                      i, labels(i), j, labels(j));
+#endif
               update++;
             }
           }
@@ -128,15 +132,19 @@ bool verifyBorderAndNoisePoints(ExecutionSpace const &exec_space,
           // Border point must be connected to a core point
           if (is_border && !have_shared_core)
           {
+#ifndef __SYCL_DEVICE_ONLY__
             printf("Border point does not belong to a cluster: %d [%d]\n", i,
                    labels(i));
+#endif
             update++;
           }
           // Noise points must have index -1
           if (!is_border && labels(i) != -1)
           {
+#ifndef __SYCL_DEVICE_ONLY__
             printf("Noise point does not have index -1: %d [%d]\n", i,
                    labels(i));
+#endif
             update++;
           }
         }
