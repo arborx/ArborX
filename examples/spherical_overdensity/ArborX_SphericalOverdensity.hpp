@@ -312,9 +312,10 @@ struct SphericalOverdensityHandle
           Kokkos::TeamPolicy<ExecutionSpace, Kokkos::Schedule<Kokkos::Dynamic>>;
       using team_member = typename TeamPolicy::member_type;
 
+      constexpr int invalid = INT_MAX;
       ArborX::reallocWithoutInitializing(sod_halo_rdeltas, num_halos);
       ArborX::reallocWithoutInitializing(sod_halo_rdeltas_index, num_halos);
-      Kokkos::deep_copy(sod_halo_rdeltas_index, INT_MAX);
+      Kokkos::deep_copy(sod_halo_rdeltas_index, invalid);
 
       // Avoid capturing *this
       auto const &particles = _particles;
@@ -356,13 +357,20 @@ struct SphericalOverdensityHandle
           Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_halos),
           KOKKOS_LAMBDA(int halo_index) {
             auto &rdelta_index = sod_halo_rdeltas_index(halo_index);
-            if (rdelta_index < INT_MAX)
+            if (rdelta_index == invalid)
             {
-              auto particle_index = indices(offsets(halo_index) + rdelta_index);
-              sod_halo_rdeltas(halo_index) = Details::distance(
-                  fof_halo_centers(halo_index),
-                  ParticlesAccess::get(particles, particle_index));
+              // If we never found a particle satisfying the threshold
+              // criteria, assign the index to the last particle in the halo.
+              auto const num_points_in_halo =
+                  offsets(halo_index + 1) - offsets(halo_index);
+              assert(num_points_in_halo > 0);
+              rdelta_index = num_points_in_halo - 1;
             }
+
+            auto particle_index = indices(offsets(halo_index) + rdelta_index);
+            sod_halo_rdeltas(halo_index) = Details::distance(
+                fof_halo_centers(halo_index),
+                ParticlesAccess::get(particles, particle_index));
           });
 
       Kokkos::Profiling::popRegion();
