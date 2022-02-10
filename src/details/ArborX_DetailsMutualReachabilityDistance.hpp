@@ -89,6 +89,17 @@ struct MutualReachability
   }
 };
 
+struct Euclidean
+{
+  using value_type = float;
+  using size_type = int;
+  KOKKOS_FUNCTION value_type operator()(size_type /*i*/, size_type /*j*/,
+                                        value_type distance_ij) const
+  {
+    return distance_ij;
+  }
+};
+
 } // namespace Details
 
 } // namespace ArborX
