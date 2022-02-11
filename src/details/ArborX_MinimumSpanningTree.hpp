@@ -22,9 +22,7 @@
 
 #include <Kokkos_Core.hpp>
 
-#if KOKKOS_VERSION < 30500
-#error requiring atomic operations from Kokkos 3.5
-#endif
+#if KOKKOS_VERSION >= 30500
 
 namespace ArborX
 {
@@ -513,4 +511,5 @@ private:
 } // namespace Details
 } // namespace ArborX
 
+#endif
 #endif
