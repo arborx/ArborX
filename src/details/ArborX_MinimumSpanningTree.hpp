@@ -391,22 +391,27 @@ void resetSharedRadii(ExecutionSpace const &space, BVH const &bvh,
   // distance between all such pairs. Given that the Morton neighbors are
   // typically close to each other, this should provide a reasonably low bound.
   auto const n = bvh.size();
+  constexpr int num_shifts = 2;
   Kokkos::parallel_for(
       "ArborX::MST::reset_shared_radii",
-      Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 2),
+      Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 1 - num_shifts),
       KOKKOS_LAMBDA(int i) {
-        int const j = i + 1;
+        constexpr int shifts[num_shifts] = {1, 2};
         auto const label_i = labels(i);
-        auto const label_j = labels(j);
-        if (label_i != label_j)
+        for (int k = 0; k < num_shifts; ++k)
         {
-          auto const r =
-              metric(HappyTreeFriends::getLeafPermutationIndex(bvh, i),
-                     HappyTreeFriends::getLeafPermutationIndex(bvh, j),
-                     distance(HappyTreeFriends::getBoundingVolume(bvh, i),
-                              HappyTreeFriends::getBoundingVolume(bvh, j)));
-          Kokkos::atomic_min(&radii(label_i - n + 1), r);
-          Kokkos::atomic_min(&radii(label_j - n + 1), r);
+          int const j = i + shifts[k];
+          auto const label_j = labels(j);
+          if (label_i != label_j)
+          {
+            auto const r =
+                metric(HappyTreeFriends::getLeafPermutationIndex(bvh, i),
+                       HappyTreeFriends::getLeafPermutationIndex(bvh, j),
+                       distance(HappyTreeFriends::getBoundingVolume(bvh, i),
+                                HappyTreeFriends::getBoundingVolume(bvh, j)));
+            Kokkos::atomic_min(&radii(label_i - n + 1), r);
+            Kokkos::atomic_min(&radii(label_j - n + 1), r);
+          }
         }
       });
 }
