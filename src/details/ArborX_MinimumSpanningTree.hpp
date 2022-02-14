@@ -375,9 +375,9 @@ void resetSharedRadii(ExecutionSpace const &space, BVH const &bvh,
   // Here, we use the knowledge that it is a self-collision problem. In other
   // words, we only have a single point cloud. We further use the fact that if
   // we sort predicates based on the Morton codes, it will match the order of
-  // predicates (or be close enough, as some points with the same Morton codes
+  // primitives (or be close enough, as some points with the same Morton codes
   // may be in a different order due to the unstable sort that we use). Thus, if
-  // we take an index of a query, we assume that it matches corresponding
+  // we take an index of a query, we assume that it matches the corresponding
   // primitive. If a label of that primitive is different from a label of its
   // neighbor (which is in fact its Morton neighbor), we compute the distance
   // between the two. The upper bound for a component is set to the minimum
