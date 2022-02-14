@@ -110,7 +110,8 @@ struct FindComponentNearestNeighbors
 
     WeightedEdge current_best{i, undetermined, inf};
     static_assert(WeightedEdge{undetermined, undetermined, inf} <
-                  WeightedEdge{0, undetermined, inf});
+                      WeightedEdge{0, undetermined, inf},
+                  "");
 
     auto const n = _bvh.size();
     auto &radius = _radii(component - n + 1);
@@ -492,7 +493,7 @@ private:
       constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
       constexpr WeightedEdge uninitialized_edge{-1, -1, inf};
       constexpr WeightedEdge partially_initialized_edge{0, -1, inf};
-      static_assert(uninitialized_edge < partially_initialized_edge);
+      static_assert(uninitialized_edge < partially_initialized_edge, "");
       Kokkos::deep_copy(space, component_out_edges, uninitialized_edge);
       Kokkos::deep_copy(space, radii, inf);
       resetSharedRadii(space, bvh, labels, metric, radii);
