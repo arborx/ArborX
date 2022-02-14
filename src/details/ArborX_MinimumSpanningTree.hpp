@@ -505,9 +505,6 @@ private:
           static_cast<int>(n) -
           Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, num_edges)();
       Kokkos::Profiling::popRegion();
-#if 0
-      printf("%d: %d\n", iterations, num_components);
-#endif
     } while (num_components > 1);
     Kokkos::Profiling::popRegion();
   }
