@@ -41,8 +41,8 @@ public:
   // order, it returns the permutation indices.  applyPermutation() was added
   // in that purpose.  reversePermutation() is able to restore the initial
   // order on the results that are in "compressed row storage" format.  You
-  // may notice it is not used any more in the code that performs the batched
-  // queries.  We found that it was slighly more performant to add a level of
+  // may notice it is not used anymore in the code that performs the batched
+  // queries.  We found that it was slightly more performant to add a level of
   // indirection when recording results rather than using that function at
   // the end.  We decided to keep reversePermutation around for now.
 

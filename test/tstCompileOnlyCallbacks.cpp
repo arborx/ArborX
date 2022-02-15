@@ -106,7 +106,7 @@ void test_callbacks_compile_only()
   check_valid_callback(ArborX::Details::DefaultCallback{}, NearestPredicates{},
                        v);
 
-  // not required to tag inline callbacks any more
+  // not required to tag inline callbacks anymore
   check_valid_callback(CallbackMissingTag{}, SpatialPredicates{}, v);
   check_valid_callback(CallbackMissingTag{}, NearestPredicates{}, v);
 
