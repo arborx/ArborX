@@ -239,13 +239,16 @@ struct FindComponentNearestNeighbors
     // components. Otherwise, for a large number of points and a small number of
     // components it becomes extremely expensive.
     auto &component_edge = _edges(component - n + 1);
-    if (current_best < component_edge)
+    if (current_best.weight < inf &&
+        current_best.weight <= component_edge.weight)
     {
       Kokkos::atomic_min(&component_edge, current_best);
     }
   }
 };
 
+// For every component C, find the shortest edge (v, w) such that v is in C
+// and w is not in C. The found edge is stored in component_out_edges(C).
 template <class ExecutionSpace, class BVH, class Labels, class Edges,
           class Metric, class Radii>
 void findComponentNearestNeighbors(ExecutionSpace const &space, BVH const &bvh,
@@ -333,7 +336,9 @@ struct UpdateComponentsAndEdges
   }
 };
 
-// Merge components and append new edges
+// For every component C and a found shortest edge `(u, w)`, merge C with
+// the component that w belongs to by updating the labels, and add the edge to
+// the list of MST edges.
 template <class ExecutionSpace, class Labels, class ComponentOutEdges,
           class Edges, class EdgesCount>
 void updateComponentsAndEdges(ExecutionSpace const &space,
@@ -363,6 +368,7 @@ void finalizeEdges(ExecutionSpace const &space, BVH const &bvh,
       });
 }
 
+// Compute upper bound on the shortest edge of each component.
 template <class ExecutionSpace, class BVH, class Labels, class Metric,
           class Radii>
 void resetSharedRadii(ExecutionSpace const &space, BVH const &bvh,
@@ -489,6 +495,7 @@ private:
       Kokkos::Profiling::pushRegion("ArborX::Boruvka_" +
                                     std::to_string(++iterations) + "_" +
                                     std::to_string(num_components));
+      // Propagate leaf node labels to internal nodes
       reduceLabels(space, parents, labels);
       constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
       constexpr WeightedEdge uninitialized_edge{-1, -1, inf};
