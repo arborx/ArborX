@@ -59,7 +59,14 @@ private:
   }
 };
 
-template <class BVH, class Labels, class Edges, class Metric, class Radii>
+struct Zero
+{
+  int _n;
+  KOKKOS_FUNCTION constexpr float operator()(int) const { return 0.f; }
+};
+
+template <class BVH, class Labels, class Edges, class Metric, class Radii,
+          class LowerBounds>
 struct FindComponentNearestNeighbors
 {
   BVH _bvh;
@@ -67,16 +74,19 @@ struct FindComponentNearestNeighbors
   Edges _edges;
   Metric _metric;
   Radii _radii;
+  LowerBounds _lower_bounds;
 
   template <class ExecutionSpace>
   FindComponentNearestNeighbors(ExecutionSpace const &space, BVH const &bvh,
                                 Labels const &labels, Edges const &edges,
-                                Metric const &metric, Radii const &radii)
+                                Metric const &metric, Radii const &radii,
+                                LowerBounds const &lower_bounds)
       : _bvh(bvh)
       , _labels(labels)
       , _edges(edges)
       , _metric{metric}
       , _radii(radii)
+      , _lower_bounds(lower_bounds)
   {
     int const n = bvh.size();
     ARBORX_ASSERT(labels.extent_int(0) == 2 * n - 1);
@@ -90,6 +100,12 @@ struct FindComponentNearestNeighbors
 
   KOKKOS_FUNCTION void operator()(int i) const
   {
+    auto const n = _bvh.size();
+    auto const component = _labels(i);
+    auto &radius = _radii(component - n + 1);
+    if (radius < _lower_bounds(i - n + 1))
+      return;
+
     constexpr int undetermined = -1;
     constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
@@ -101,7 +117,6 @@ struct FindComponentNearestNeighbors
                       HappyTreeFriends::getBoundingVolume(bvh, j));
     };
 
-    auto const component = _labels(i);
     auto const predicate = [label_i = component, &labels = _labels](int j) {
       return label_i != labels(j);
     };
@@ -112,9 +127,6 @@ struct FindComponentNearestNeighbors
     static_assert(WeightedEdge{undetermined, undetermined, inf} <
                       WeightedEdge{0, undetermined, inf},
                   "");
-
-    auto const n = _bvh.size();
-    auto &radius = _radii(component - n + 1);
 
     constexpr int SENTINEL = -1;
     int stack[64];
@@ -250,13 +262,32 @@ struct FindComponentNearestNeighbors
 // For every component C, find the shortest edge (v, w) such that v is in C
 // and w is not in C. The found edge is stored in component_out_edges(C).
 template <class ExecutionSpace, class BVH, class Labels, class Edges,
-          class Metric, class Radii>
+          class Metric, class Radii, class LowerBounds>
 void findComponentNearestNeighbors(ExecutionSpace const &space, BVH const &bvh,
                                    Labels const &labels, Edges const &edges,
-                                   Metric const &metric, Radii const &radii)
+                                   Metric const &metric, Radii const &radii,
+                                   LowerBounds const &lower_bounds)
 {
-  FindComponentNearestNeighbors<BVH, Labels, Edges, Metric, Radii>(
-      space, bvh, labels, edges, metric, radii);
+  FindComponentNearestNeighbors<BVH, Labels, Edges, Metric, Radii, LowerBounds>(
+      space, bvh, labels, edges, metric, radii, lower_bounds);
+}
+
+template <class ExecutionSpace, class Labels, class ComponentOutEdges,
+          class LowerBounds>
+void updateLowerBounds(ExecutionSpace const &space, Labels const &labels,
+                       ComponentOutEdges const &component_out_edges,
+                       LowerBounds lower_bounds)
+{
+  auto const n = lower_bounds.extent(0);
+  Kokkos::parallel_for(
+      "ArborX::MST::update_lower_bounds",
+      Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 1),
+      KOKKOS_LAMBDA(int i) {
+        using KokkosExt::max;
+        auto component = labels(i);
+        auto const &edge = component_out_edges(component - n + 1);
+        lower_bounds(i - n + 1) = max(lower_bounds(i - n + 1), edge.weight);
+      });
 }
 
 template <class Labels, class OutEdges, class Edges, class EdgesCount>
@@ -482,6 +513,16 @@ private:
         Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::MST::radii"),
         n);
 
+    bool const use_lower_bounds =
+        (std::is_same<ExecutionSpace, Kokkos::Serial>{});
+    Kokkos::View<float *, MemorySpace> lower_bounds("ArborX::MST::lower_bounds",
+                                                    0);
+    if (use_lower_bounds)
+    {
+      Kokkos::resize(lower_bounds, n);
+      Kokkos::deep_copy(space, lower_bounds, 0.f);
+    }
+
     Kokkos::Profiling::pushRegion("ArborX::MST::Boruvka_loop");
     Kokkos::View<int, MemorySpace> num_edges(Kokkos::view_alloc(
         Kokkos::WithoutInitializing, "ArborX::MST::num_edges"));
@@ -495,15 +536,29 @@ private:
       Kokkos::Profiling::pushRegion("ArborX::Boruvka_" +
                                     std::to_string(++iterations) + "_" +
                                     std::to_string(num_components));
+
       // Propagate leaf node labels to internal nodes
       reduceLabels(space, parents, labels);
+
       constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
       constexpr WeightedEdge uninitialized_edge{-1, -1, inf};
       Kokkos::deep_copy(space, component_out_edges, uninitialized_edge);
+
       Kokkos::deep_copy(space, radii, inf);
       resetSharedRadii(space, bvh, labels, metric, radii);
-      findComponentNearestNeighbors(space, bvh, labels, component_out_edges,
-                                    metric, radii);
+
+      if (use_lower_bounds)
+      {
+        findComponentNearestNeighbors(space, bvh, labels, component_out_edges,
+                                      metric, radii, lower_bounds);
+        updateLowerBounds(space, labels, component_out_edges, lower_bounds);
+      }
+      else
+      {
+        findComponentNearestNeighbors(space, bvh, labels, component_out_edges,
+                                      metric, radii, Zero{(int)n});
+      }
+
       // NOTE could perform the label tree reduction as part of the update
       updateComponentsAndEdges(space, component_out_edges, labels, edges,
                                num_edges);
