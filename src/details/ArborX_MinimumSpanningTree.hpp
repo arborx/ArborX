@@ -499,8 +499,6 @@ private:
       reduceLabels(space, parents, labels);
       constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
       constexpr WeightedEdge uninitialized_edge{-1, -1, inf};
-      constexpr WeightedEdge partially_initialized_edge{0, -1, inf};
-      static_assert(uninitialized_edge < partially_initialized_edge, "");
       Kokkos::deep_copy(space, component_out_edges, uninitialized_edge);
       Kokkos::deep_copy(space, radii, inf);
       resetSharedRadii(space, bvh, labels, metric, radii);
