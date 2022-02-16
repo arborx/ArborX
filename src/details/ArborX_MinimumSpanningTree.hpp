@@ -479,7 +479,11 @@ struct MinimumSpanningTree
     Kokkos::Profiling::popRegion();
   }
 
+  // enclosing function for an extended __host__ __device__ lambda cannot have
+  // private or protected access within its class
+#ifndef KOKKOS_COMPILER_NVCC
 private:
+#endif
   template <class ExecutionSpace, class BVH, class Metric>
   void doBoruvka(ExecutionSpace const &space, BVH const &bvh,
                  Metric const &metric)
