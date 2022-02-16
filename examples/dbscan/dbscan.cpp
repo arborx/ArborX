@@ -19,6 +19,7 @@
 
 #include <boost/program_options.hpp>
 
+#include <cstdlib>
 #include <fstream>
 
 std::vector<ArborX::Point> loadData(std::string const &filename,
@@ -106,6 +107,8 @@ std::vector<ArborX::Point> sampleData(std::vector<ArborX::Point> const &data,
 {
   std::vector<ArborX::Point> sampled_data(num_samples);
 
+  std::srand(1337);
+
   // Knuth algorithm
   auto const N = (int)data.size();
   auto const M = num_samples;
@@ -113,7 +116,7 @@ std::vector<ArborX::Point> sampleData(std::vector<ArborX::Point> const &data,
   {
     int rn = N - in;
     int rm = M - im;
-    if (rand() % rn < rm)
+    if (std::rand() % rn < rm)
       sampled_data[im++] = data[in];
   }
   return sampled_data;
