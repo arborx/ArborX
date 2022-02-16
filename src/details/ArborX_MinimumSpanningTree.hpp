@@ -508,7 +508,11 @@ private:
         n);
 
     bool const use_lower_bounds =
-        (std::is_same<ExecutionSpace, Kokkos::Serial>{});
+#if defined(KOKKOS_ENABLE_SERIAL)
+        std::is_same<ExecutionSpace, Kokkos::Serial>::value;
+#else
+        false;
+#endif
     Kokkos::View<float *, MemorySpace> lower_bounds("ArborX::MST::lower_bounds",
                                                     0);
     if (use_lower_bounds)
