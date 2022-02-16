@@ -47,7 +47,7 @@ void findParents(ExecutionSpace const &exec_space, BVH const &bvh,
   auto const n = bvh.size();
 
   ARBORX_ASSERT(n >= 2);
-  ARBORX_ASSERT(parents.size() == 2 * n - 1);
+  ARBORX_ASSERT(parents.size() == 2 * (int)n - 1);
 
   Kokkos::parallel_for(
       "ArborX::recompute_internal_and_leaf_node_parents",

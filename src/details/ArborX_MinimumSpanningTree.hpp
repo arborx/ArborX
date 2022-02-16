@@ -79,9 +79,9 @@ struct FindComponentNearestNeighbors
       , _radii(radii)
   {
     auto const n = bvh.size();
-    ARBORX_ASSERT(labels.extent(0) == 2 * n - 1);
-    ARBORX_ASSERT(edges.extent(0) == n);
-    ARBORX_ASSERT(radii.extent(0) == n);
+    ARBORX_ASSERT(labels.extent(0) == 2 * (int)n - 1);
+    ARBORX_ASSERT(edges.extent(0) == (int)n);
+    ARBORX_ASSERT(radii.extent(0) == (int)n);
 
     Kokkos::parallel_for(
         "ArborX::MST::find_component_nearest_neighbors",
@@ -356,7 +356,7 @@ void finalizeEdges(ExecutionSpace const &space, BVH const &bvh,
                    Edges const &edges)
 {
   auto const n = bvh.size();
-  ARBORX_ASSERT(edges.extent(0) == n - 1);
+  ARBORX_ASSERT(edges.extent(0) == (int)n - 1);
   Kokkos::parallel_for(
       "ArborX::MST::finalize_edges",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n - 1),
