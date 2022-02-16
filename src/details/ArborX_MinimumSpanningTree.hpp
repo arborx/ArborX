@@ -59,12 +59,6 @@ private:
   }
 };
 
-struct Zero
-{
-  int _n;
-  KOKKOS_FUNCTION constexpr float operator()(int) const { return 0.f; }
-};
-
 template <class BVH, class Labels, class Edges, class Metric, class Radii,
           class LowerBounds>
 struct FindComponentNearestNeighbors
@@ -555,8 +549,11 @@ private:
       }
       else
       {
-        findComponentNearestNeighbors(space, bvh, labels, component_out_edges,
-                                      metric, radii, Zero{(int)n});
+        findComponentNearestNeighbors(
+            space, bvh, labels, component_out_edges, metric, radii,
+            /* fake view that is filled with zeros */
+            KOKKOS_LAMBDA(int)->
+            typename decltype(lower_bounds)::value_type { return 0; });
       }
 
       // NOTE could perform the label tree reduction as part of the update
