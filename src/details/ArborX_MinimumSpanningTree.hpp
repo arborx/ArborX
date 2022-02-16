@@ -517,8 +517,8 @@ private:
                                                     0);
     if (use_lower_bounds)
     {
-      Kokkos::resize(lower_bounds, n);
-      Kokkos::deep_copy(space, lower_bounds, 0.f);
+      reallocWithoutInitializing(lower_bounds, n);
+      Kokkos::deep_copy(space, lower_bounds, 0);
     }
 
     Kokkos::Profiling::pushRegion("ArborX::MST::Boruvka_loop");
