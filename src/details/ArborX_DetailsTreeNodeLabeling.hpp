@@ -26,11 +26,11 @@ template <class ExecutionSpace, class BVH, class LabelsIn, class LabelsOut>
 void initLabels(ExecutionSpace const &exec_space, BVH const &bvh,
                 LabelsIn const &in, LabelsOut &out)
 {
-  auto const n = bvh.size();
+  int const n = bvh.size();
 
   ARBORX_ASSERT(n >= 2);
-  ARBORX_ASSERT(in.size() == n);
-  ARBORX_ASSERT(out.size() == 2 * n - 1);
+  ARBORX_ASSERT((int)in.size() == n);
+  ARBORX_ASSERT((int)out.size() == 2 * n - 1);
 
   Kokkos::parallel_for(
       "ArborX::initialize_leaf_node_labels",
@@ -44,10 +44,10 @@ template <class ExecutionSpace, class BVH, class Parents>
 void findParents(ExecutionSpace const &exec_space, BVH const &bvh,
                  Parents const &parents)
 {
-  auto const n = bvh.size();
+  int const n = bvh.size();
 
   ARBORX_ASSERT(n >= 2);
-  ARBORX_ASSERT(parents.size() == 2 * (int)n - 1);
+  ARBORX_ASSERT((int)parents.size() == 2 * n - 1);
 
   Kokkos::parallel_for(
       "ArborX::recompute_internal_and_leaf_node_parents",
@@ -62,7 +62,7 @@ template <class ExecutionSpace, class Parents, class Labels>
 void reduceLabels(ExecutionSpace const &exec_space, Parents const &parents,
                   Labels labels)
 {
-  auto const n = (parents.size() + 1) / 2;
+  int const n = (parents.size() + 1) / 2;
 
   ARBORX_ASSERT(n >= 2);
   ARBORX_ASSERT(labels.size() == parents.size());
