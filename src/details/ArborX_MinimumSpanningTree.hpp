@@ -536,7 +536,6 @@ private:
         Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::MST::radii"),
         n);
 
-#ifdef KOKKOS_ENABLE_CXX17
     Kokkos::View<float *, MemorySpace> lower_bounds("ArborX::MST::lower_bounds",
                                                     0);
 
@@ -546,15 +545,11 @@ private:
 #else
         false;
 #endif
-    if constexpr (use_lower_bounds)
+    if (use_lower_bounds)
     {
       reallocWithoutInitializing(lower_bounds, n);
       Kokkos::deep_copy(space, lower_bounds, 0);
     }
-#else
-    Kokkos::View<float *, MemorySpace> lower_bounds("ArborX::MST::lower_bounds",
-                                                    n);
-#endif
 
     Kokkos::Profiling::pushRegion("ArborX::MST::Boruvka_loop");
     Kokkos::View<int, MemorySpace> num_edges(Kokkos::view_alloc(
@@ -582,10 +577,10 @@ private:
 
       findComponentNearestNeighbors(space, bvh, labels, component_out_edges,
                                     metric, radii, lower_bounds);
-#ifdef KOKKOS_ENABLE_CXX17
-      if constexpr (use_lower_bounds)
-#endif
+      if (use_lower_bounds)
+      {
         updateLowerBounds(space, labels, component_out_edges, lower_bounds);
+      }
 
       // NOTE could perform the label tree reduction as part of the update
       updateComponentsAndEdges(space, component_out_edges, labels, edges,
