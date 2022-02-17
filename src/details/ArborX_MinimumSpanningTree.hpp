@@ -70,10 +70,7 @@ struct FindComponentNearestNeighbors
   Radii _radii;
   LowerBounds _lower_bounds;
 
-  struct WithLowerBoundTag
-  {
-  };
-  struct WithoutLowerBoundTag
+  struct WithLowerBounds
   {
   };
 
@@ -98,9 +95,9 @@ struct FindComponentNearestNeighbors
     if (std::is_same<ExecutionSpace, Kokkos::Serial>{})
     {
       Kokkos::parallel_for(
-          "ArborX::MST::find_component_nearest_neighbors",
-          Kokkos::RangePolicy<ExecutionSpace, WithLowerBoundTag>(space, n - 1,
-                                                                 2 * n - 1),
+          "ArborX::MST::find_component_nearest_neighbors_with_lower_bounds",
+          Kokkos::RangePolicy<ExecutionSpace, WithLowerBounds>(space, n - 1,
+                                                               2 * n - 1),
           *this);
     }
     else
@@ -108,28 +105,21 @@ struct FindComponentNearestNeighbors
     {
       Kokkos::parallel_for(
           "ArborX::MST::find_component_nearest_neighbors",
-          Kokkos::RangePolicy<ExecutionSpace, WithoutLowerBoundTag>(
-              space, n - 1, 2 * n - 1),
-          *this);
+          Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 1), *this);
     }
   }
 
-  KOKKOS_FUNCTION void operator()(const WithLowerBoundTag, int i) const
+  KOKKOS_FUNCTION void operator()(WithLowerBounds, int i) const
   {
     auto const n = _bvh.size();
     auto const component = _labels(i);
-    if (_radii(component - n + 1) < _lower_bounds(i - n + 1))
-      return;
-
-    traverse(i);
+    if (_lower_bounds(i - n + 1) <= _radii(component - n + 1))
+    {
+      this->operator()(i);
+    }
   }
 
-  KOKKOS_FUNCTION void operator()(const WithoutLowerBoundTag, int i) const
-  {
-    traverse(i);
-  }
-
-  KOKKOS_FUNCTION void traverse(int i) const
+  KOKKOS_FUNCTION void operator()(int i) const
   {
     constexpr int undetermined = -1;
     constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
@@ -546,8 +536,25 @@ private:
         Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::MST::radii"),
         n);
 
+#ifdef KOKKOS_ENABLE_CXX17
+    Kokkos::View<float *, MemorySpace> lower_bounds("ArborX::MST::lower_bounds",
+                                                    0);
+
+    constexpr bool use_lower_bounds =
+#ifdef KOKKOS_ENABLE_SERIAL
+        std::is_same<ExecutionSpace, Kokkos::Serial>::value;
+#else
+        false;
+#endif
+    if constexpr (use_lower_bounds)
+    {
+      reallocWithoutInitializing(lower_bounds, n);
+      Kokkos::deep_copy(space, lower_bounds, 0);
+    }
+#else
     Kokkos::View<float *, MemorySpace> lower_bounds("ArborX::MST::lower_bounds",
                                                     n);
+#endif
 
     Kokkos::Profiling::pushRegion("ArborX::MST::Boruvka_loop");
     Kokkos::View<int, MemorySpace> num_edges(Kokkos::view_alloc(
@@ -575,7 +582,10 @@ private:
 
       findComponentNearestNeighbors(space, bvh, labels, component_out_edges,
                                     metric, radii, lower_bounds);
-      updateLowerBounds(space, labels, component_out_edges, lower_bounds);
+#ifdef KOKKOS_ENABLE_CXX17
+      if constexpr (use_lower_bounds)
+#endif
+        updateLowerBounds(space, labels, component_out_edges, lower_bounds);
 
       // NOTE could perform the label tree reduction as part of the update
       updateComponentsAndEdges(space, component_out_edges, labels, edges,
