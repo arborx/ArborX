@@ -396,12 +396,16 @@ BOOST_AUTO_TEST_CASE(intersects_triangle)
 
   // ray directed away from the triangle
   BOOST_TEST(!intersects(Ray{{.1, .2, .3}, {0, 0, 1}}, unit_triangle));
+  BOOST_TEST(!intersects(Ray{{1.0, 1.0, 0.0}, {0, 1, 0}}, unit_triangle));
 
   // ray in the same plane as the triangle
   BOOST_TEST(intersects(Ray{{.3, .3, 0}, {1, 1, 0}}, unit_triangle));
   BOOST_TEST(intersects(Ray{{-0.1, 0, 0}, {1, 0, 0}}, unit_triangle));
   BOOST_TEST(intersects(Ray{{0.1, -0.2, 0}, {0, 1, 0}}, unit_triangle));
   BOOST_TEST(!intersects(Ray{{-1, -1, 0}, {0, 1, 0}}, unit_triangle));
+
+  BOOST_TEST(intersects(Ray{{1.0, 0.0, 0.0}, {-1, 1, 0}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{1.0, 0.0, 0.0}, {1, 2, 3}}, unit_triangle));
 
   // ray misses the triangle
   BOOST_TEST(!intersects(Ray{{-1, 2, -3}, {0, 0, 1}}, unit_triangle));
@@ -480,7 +484,13 @@ BOOST_AUTO_TEST_CASE(ray_triangle_intersection,
   ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{-1.0, 0.0, 0.0}, {1, 0, 0}}), unit_triangle, 1.f, 2.f);
   ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{-1.0, 2.0, 0.0}, {1, -1, 0}}), unit_triangle, sqrtf_2, 2.0f*sqrtf_2);
   ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{2.0, -1.0, 0.0}, {-1, 1, 0}}), unit_triangle, sqrtf_2, 2.0f*sqrtf_2);
- 
+  ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{-1.0, 2.0, 0.0}, {1, -1, 0}}), unit_triangle, sqrtf_2, 2.0f*sqrtf_2);
+  ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{0.5,  0.5, 0.0}, {-1, 1, 0}}), unit_triangle, 0.f, 0.f);
+  ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{1.0,  0.0, 0.0}, {-1, 1, 0}}), unit_triangle, 0.f, 0.f);
+  ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{0.0,  1.0, 0.0}, {-1, 1, 0}}), unit_triangle, 0.f, 0.f);
+  ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{1.0,  1.0, 0.0}, {0, 1, 0}}), unit_triangle, -1.f, -1.f);
+  ARBORX_TEST_RAY_TRIANGLE_NO_INTERSECTION((Ray{{1.0,  1.0, 0.0}, {-1, 1, 0}}), unit_triangle);
+
   auto const sqrtf_1p01=std::sqrt(1.01f);
   ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{-4.0, 0.5, 0.0}, {5.0, -0.5, 0.0}}), unit_triangle, 4.f*sqrtf_1p01, 5.f*sqrtf_1p01);
 
@@ -520,6 +530,15 @@ BOOST_AUTO_TEST_CASE(ray_triangle_intersection,
   ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{1.0, 1.0, 0.0}, {1, 1, 1}}), triangle_up, 0.5f*sqrtf_3, 0.5f*sqrtf_3);
   ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{1.0, 1.0, 0.0}, {1, 1, 1}}), triangle_right, 0.5f*sqrtf_3, 0.5f*sqrtf_3);
 
+  // triangles with different sizes
+  float size = 0.01;
+  for(int i = 0; i < 4; i++)
+  {
+    Triangle triangle_size{{-size, 0, 0}, {0, size, 0}, {0, 0, size}};
+    ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{0.0, 0.0, 0.0}, {-size, size, size}}), triangle_size, size/sqrtf_3, size/sqrtf_3);
+    ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{-2.f*size, -size, 0.0}, {size, size, 0}}), triangle_size, sqrtf_2*size, 2.f*sqrtf_2*size);
+    size *= 10.f;
+  }
   // clang-format on
 }
 
