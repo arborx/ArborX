@@ -264,44 +264,6 @@ computeCellIndices(ExecutionSpace const &exec_space,
   return cell_indices;
 }
 
-// TODO: should put it together with other commonly used Kokkos
-// routines and unit test it in the future
-template <typename ExecutionSpace, typename View>
-Kokkos::View<int *, typename View::memory_space>
-computeOffsetsInOrderedView(ExecutionSpace const &exec_space, View view)
-{
-  using MemorySpace = typename View::memory_space;
-
-  static_assert(
-      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
-
-  auto const n = view.extent(0);
-
-  int num_offsets;
-  Kokkos::View<int *, MemorySpace> offsets(
-      Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
-                         "ArborX::DBSCAN::offsets"),
-      n + 1);
-  Kokkos::parallel_scan(
-      "ArborX::DBSCAN::compute_offsets",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n + 1),
-      KOKKOS_LAMBDA(int i, int &update, bool final_pass) {
-        bool const is_cell_first_index =
-            (i == 0 || i == (int)n || view(i) != view(i - 1));
-        if (is_cell_first_index)
-        {
-          if (final_pass)
-            offsets(update) = i;
-          ++update;
-        }
-      },
-      num_offsets);
-  --num_offsets;
-  Kokkos::resize(offsets, num_offsets + 1);
-
-  return offsets;
-}
-
 template <typename ExecutionSpace, typename CellIndices, typename CellOffsets,
           typename Permutation>
 int reorderDenseAndSparseCells(ExecutionSpace const &exec_space,
