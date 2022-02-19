@@ -46,7 +46,7 @@ unsigned int expandBitsBy2(unsigned int x)
 }
 
 // Calculates a 32-bit Morton code for a given 2D point located within the unit
-// cube [0,1].
+// square [0,1].
 KOKKOS_INLINE_FUNCTION
 unsigned int morton2D(float x, float y)
 {
@@ -62,8 +62,8 @@ unsigned int morton2D(float x, float y)
   return 2 * expandBitsBy1((unsigned int)x) + expandBitsBy1((unsigned int)y);
 }
 
-// Calculates a 30-bit Morton code for a
-// given 3D point located within the unit cube [0,1].
+// Calculates a 30-bit Morton code for a given 3D point located within the unit
+// cube [0,1].
 KOKKOS_INLINE_FUNCTION
 unsigned int morton3D(float x, float y, float z)
 {
