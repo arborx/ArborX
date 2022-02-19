@@ -127,7 +127,7 @@ target_compile_definitions(ArborX_QueryTree.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_QueryTree.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 add_test(NAME ArborX_QueryTree_Test COMMAND ./ArborX_QueryTree.exe)
 
-add_executable(ArborX_DetailsTreeConstruction.exe tstDetailsTreeConstruction.cpp utf_main.cpp)
+add_executable(ArborX_DetailsTreeConstruction.exe tstDetailsMortonCodes.cpp tstDetailsTreeConstruction.cpp utf_main.cpp)
 target_link_libraries(ArborX_DetailsTreeConstruction.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_DetailsTreeConstruction.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_DetailsTreeConstruction.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
