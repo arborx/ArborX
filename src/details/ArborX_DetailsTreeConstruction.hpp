@@ -69,7 +69,7 @@ assignMortonCodesImpl(ExecutionSpace const &space, Primitives const &primitives,
                          Point xyz;
                          centroid(Access::get(primitives, i), xyz);
                          translateAndScale(xyz, xyz, scene_bounding_box);
-                         morton_codes(i) = morton32(xyz[0], xyz[1], xyz[2]);
+                         morton_codes(i) = morton64(xyz[0], xyz[1], xyz[2]);
                        });
 }
 
@@ -87,7 +87,7 @@ assignMortonCodesImpl(ExecutionSpace const &space, Primitives const &primitives,
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
         Point xyz;
         translateAndScale(Access::get(primitives, i), xyz, scene_bounding_box);
-        morton_codes(i) = morton32(xyz[0], xyz[1], xyz[2]);
+        morton_codes(i) = morton64(xyz[0], xyz[1], xyz[2]);
       });
 }
 
@@ -95,7 +95,8 @@ template <typename ExecutionSpace, typename Primitives,
           typename... MortonCodesViewProperties>
 inline void assignMortonCodes(
     ExecutionSpace const &space, Primitives const &primitives,
-    Kokkos::View<unsigned int *, MortonCodesViewProperties...> morton_codes,
+    Kokkos::View<unsigned long long *, MortonCodesViewProperties...>
+        morton_codes,
     Box const &scene_bounding_box)
 {
   using Access = AccessTraits<Primitives, PrimitivesTag>;
@@ -152,7 +153,7 @@ public:
       ExecutionSpace const &space, Primitives const &primitives,
       Kokkos::View<unsigned int const *, PermutationIndicesViewProperties...>
           permutation_indices,
-      Kokkos::View<unsigned int const *, MortonCodesViewProperties...>
+      Kokkos::View<unsigned long long const *, MortonCodesViewProperties...>
           sorted_morton_codes,
       Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
       Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
@@ -176,7 +177,7 @@ public:
   }
 
   KOKKOS_FUNCTION
-  int delta(int const i) const
+  long long delta(int const i) const
   {
     // Per Apetrei:
     //   Because we already know where the highest differing bit is for each
@@ -191,7 +192,7 @@ public:
     // This check is here simply to avoid code complications in the main
     // operator
     if (i < 0 || i >= _num_internal_nodes)
-      return INT_MAX;
+      return LLONG_MAX;
 
     // The Apetrei's paper does not mention dealing with duplicate indices. We
     // follow the original Karras idea in this situation:
@@ -205,7 +206,7 @@ public:
     // Morton comparison. Thus, we add INT_MIN to it.
     // We also avoid if/else statement by doing a "x + !x*<blah>" trick.
     auto x = _sorted_morton_codes(i) ^ _sorted_morton_codes(i + 1);
-    return x + (!x) * (INT_MIN + (i ^ (i + 1)));
+    return x + (!x) * (LLONG_MIN + (i ^ (i + 1)));
   }
 
   KOKKOS_FUNCTION Node *getNodePtr(int i) const
@@ -240,7 +241,7 @@ public:
   template <typename Tag = typename Node::Tag>
   KOKKOS_FUNCTION
       std::enable_if_t<std::is_same<Tag, NodeWithLeftChildAndRopeTag>{}>
-      setRope(Node *node, int range_right, int delta_right) const
+      setRope(Node *node, int range_right, long long delta_right) const
   {
     int rope;
     if (range_right != _num_internal_nodes)
@@ -284,8 +285,8 @@ public:
     int range_left = i - leaf_nodes_shift;
     int range_right = range_left;
 
-    int delta_left = delta(range_left - 1);
-    int delta_right = delta(range_right);
+    auto delta_left = delta(range_left - 1);
+    auto delta_right = delta(range_right);
 
     setRope(leaf_node, range_right, delta_right);
 
@@ -381,7 +382,7 @@ public:
 private:
   Primitives _primitives;
   Kokkos::View<unsigned int const *, MemorySpace> _permutation_indices;
-  Kokkos::View<unsigned int const *, MemorySpace> _sorted_morton_codes;
+  Kokkos::View<unsigned long long const *, MemorySpace> _sorted_morton_codes;
   Kokkos::View<Node *, MemorySpace> _leaf_nodes;
   Kokkos::View<Node *, MemorySpace> _internal_nodes;
   Kokkos::View<int *, MemorySpace> _ranges;
@@ -397,7 +398,7 @@ void generateHierarchy(
     ExecutionSpace const &space, Primitives const &primitives,
     Kokkos::View<unsigned int *, PermutationIndicesViewProperties...>
         permutation_indices,
-    Kokkos::View<unsigned int *, MortonCodesViewProperties...>
+    Kokkos::View<unsigned long long *, MortonCodesViewProperties...>
         sorted_morton_codes,
     Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
     Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
@@ -405,7 +406,7 @@ void generateHierarchy(
   using ConstPermutationIndices =
       Kokkos::View<unsigned int const *, PermutationIndicesViewProperties...>;
   using ConstMortonCodes =
-      Kokkos::View<unsigned int const *, MortonCodesViewProperties...>;
+      Kokkos::View<unsigned long long const *, MortonCodesViewProperties...>;
 
   using MemorySpace = typename decltype(internal_nodes)::memory_space;
 

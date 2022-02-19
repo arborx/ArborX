@@ -66,6 +66,8 @@ public:
           using Details::returnCentroid;
           Point xyz = returnCentroid(getGeometry(Access::get(predicates, i)));
           translateAndScale(xyz, xyz, scene_bounding_box);
+          // Use 32-bit Morton indices instead of 64-bit as in construction. For
+          // most (all?) situations, 64-bit just adds a penalty with no benefit.
           morton_codes(i) = morton32(xyz[0], xyz[1], xyz[2]);
         });
 
