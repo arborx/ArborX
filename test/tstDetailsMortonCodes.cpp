@@ -39,6 +39,11 @@ BOOST_AUTO_TEST_CASE(morton_codes)
   BOOST_TEST(morton3D(1.f, 1.f, 1.f) == 0x3fffffff);
   BOOST_TEST(morton3D(0.f, 0.f, 1.f) == 0x9249249);
   BOOST_TEST(morton3D(1.f, 1.f, 0.f) == 0x36db6db6);
+
+  BOOST_TEST(morton3D64bit(0.f, 0.f, 0.f) == 0x0llu);
+  BOOST_TEST(morton3D64bit(1.f, 1.f, 1.f) == 0x7fffffffffffffffllu);
+  BOOST_TEST(morton3D64bit(0.f, 0.f, 1.f) == 0x1249249249249249llu);
+  BOOST_TEST(morton3D64bit(1.f, 1.f, 0.f) == 0x6db6db6db6db6db6llu);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
