@@ -28,11 +28,11 @@ namespace Details
 KOKKOS_INLINE_FUNCTION
 unsigned int expandBitsBy1(unsigned int x)
 {
-  x &= 0x0000ffff;
-  x = (x ^ (x << 8)) & 0x00ff00ff;
-  x = (x ^ (x << 4)) & 0x0f0f0f0f;
-  x = (x ^ (x << 2)) & 0x33333333;
-  x = (x ^ (x << 1)) & 0x55555555;
+  x &= 0x0000ffffu;
+  x = (x ^ (x << 8)) & 0x00ff00ffu;
+  x = (x ^ (x << 4)) & 0x0f0f0f0fu;
+  x = (x ^ (x << 2)) & 0x33333333u;
+  x = (x ^ (x << 1)) & 0x55555555u;
   return x;
 }
 
@@ -40,11 +40,11 @@ unsigned int expandBitsBy1(unsigned int x)
 KOKKOS_INLINE_FUNCTION
 unsigned int expandBitsBy2(unsigned int x)
 {
-  x &= 0x000003ff;
-  x = (x ^ (x << 16)) & 0xff0000ff;
-  x = (x ^ (x << 8)) & 0x0300f00f;
-  x = (x ^ (x << 4)) & 0x030c30c3;
-  x = (x ^ (x << 2)) & 0x09249249;
+  x &= 0x000003ffu;
+  x = (x ^ (x << 16)) & 0xff0000ffu;
+  x = (x ^ (x << 8)) & 0x0300f00fu;
+  x = (x ^ (x << 4)) & 0x030c30c3u;
+  x = (x ^ (x << 2)) & 0x09249249u;
   return x;
 }
 
