@@ -30,15 +30,20 @@ BOOST_AUTO_TEST_CASE(expand_bits)
 
 BOOST_AUTO_TEST_CASE(morton_codes)
 {
-  BOOST_TEST(morton32(0.f, 0.f) == 0x0);
-  BOOST_TEST(morton32(1.f, 1.f) == 0xffffffff);
-  BOOST_TEST(morton32(0.f, 1.f) == 0x55555555);
-  BOOST_TEST(morton32(1.f, 0.f) == 0xaaaaaaaa);
+  BOOST_TEST(morton32(0.f, 0.f) == 0x0u);
+  BOOST_TEST(morton32(1.f, 1.f) == 0xffffffffu);
+  BOOST_TEST(morton32(0.f, 1.f) == 0x55555555u);
+  BOOST_TEST(morton32(1.f, 0.f) == 0xaaaaaaaau);
 
-  BOOST_TEST(morton32(0.f, 0.f, 0.f) == 0x0);
-  BOOST_TEST(morton32(1.f, 1.f, 1.f) == 0x3fffffff);
-  BOOST_TEST(morton32(0.f, 0.f, 1.f) == 0x9249249);
-  BOOST_TEST(morton32(1.f, 1.f, 0.f) == 0x36db6db6);
+  BOOST_TEST(morton32(0.f, 0.f, 0.f) == 0x0u);
+  BOOST_TEST(morton32(1.f, 1.f, 1.f) == 0x3fffffffu);
+  BOOST_TEST(morton32(0.f, 0.f, 1.f) == 0x9249249u);
+  BOOST_TEST(morton32(1.f, 1.f, 0.f) == 0x36db6db6u);
+
+  BOOST_TEST(morton64(0.f, 0.f) == 0x0llu);
+  BOOST_TEST(morton64(1.f, 1.f) == 0x3fffffffffffffffllu);
+  BOOST_TEST(morton64(0.f, 1.f) == 0x1555555555555555llu);
+  BOOST_TEST(morton64(1.f, 0.f) == 0x2aaaaaaaaaaaaaaallu);
 
   BOOST_TEST(morton64(0.f, 0.f, 0.f) == 0x0llu);
   BOOST_TEST(morton64(1.f, 1.f, 1.f) == 0x7fffffffffffffffllu);

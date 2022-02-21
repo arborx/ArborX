@@ -36,6 +36,19 @@ unsigned int expandBitsBy1(unsigned int x)
   return x;
 }
 
+// Insert one 0 bit after each of the 31 low bits of x
+KOKKOS_INLINE_FUNCTION
+unsigned long long expandBitsBy1(unsigned long long x)
+{
+  x &= 0x7fffffffllu;
+  x = (x | x << 16) & 0x7fff0000ffffllu;
+  x = (x | x << 8) & 0x7f00ff00ff00ffllu;
+  x = (x | x << 4) & 0x70f0f0f0f0f0f0fllu;
+  x = (x | x << 2) & 0x1333333333333333llu;
+  x = (x | x << 1) & 0x1555555555555555llu;
+  return x;
+}
+
 // Insert two 0 bits after each of the 10 low bits of x
 KOKKOS_INLINE_FUNCTION
 unsigned int expandBitsBy2(unsigned int x)
@@ -48,6 +61,7 @@ unsigned int expandBitsBy2(unsigned int x)
   return x;
 }
 
+// Insert two 0 bits after each of the 21 low bits of x
 KOKKOS_INLINE_FUNCTION
 unsigned long long expandBitsBy2(unsigned long long x)
 {
@@ -60,12 +74,11 @@ unsigned long long expandBitsBy2(unsigned long long x)
   return x;
 }
 
-// Calculates a 32-bit Morton code for a given 2D point located within the unit
-// square [0,1].
+// Calculate a 32-bit Morton code for a 2D point located within [0, 1]^2.
 KOKKOS_INLINE_FUNCTION
 unsigned int morton32(float x, float y)
 {
-  // The interval [0,1] is subdivided into 65536 bins (in each direction).
+  // The interval [0,1] is subdivided into 65,536 bins (in each direction).
   constexpr unsigned N = (1 << 16);
 
   using KokkosExt::max;
@@ -77,8 +90,7 @@ unsigned int morton32(float x, float y)
   return 2 * expandBitsBy1((unsigned int)x) + expandBitsBy1((unsigned int)y);
 }
 
-// Calculates a 30-bit Morton code for a given 3D point located within the unit
-// cube [0,1].
+// Calculate a 30-bit Morton code for a 3D point located within [0, 1]^3.
 KOKKOS_INLINE_FUNCTION
 unsigned int morton32(float x, float y, float z)
 {
@@ -96,17 +108,38 @@ unsigned int morton32(float x, float y, float z)
          expandBitsBy2((unsigned)z);
 }
 
+// Calculate a 62-bit Morton code for a 2D point located within [0, 1]^2.
+KOKKOS_INLINE_FUNCTION
+unsigned long long morton64(float x, float y)
+{
+  // The interval [0,1] is subdivided into 2,147,483,648 bins (in each
+  // direction).
+  constexpr unsigned N = (1 << 31);
+
+  using KokkosExt::max;
+  using KokkosExt::min;
+
+  // Have to use double as float is not sufficient to represent large integers,
+  // which would results in some missing bins.
+  double xd = min(max((double)x * N, 0.), (double)N - 1);
+  double yd = min(max((double)y * N, 0.), (double)N - 1);
+
+  return 2 * expandBitsBy1((unsigned long long)xd) +
+         expandBitsBy1((unsigned long long)yd);
+}
+
+// Calculate a 63-bit Morton code for a 3D point located within [0, 1]^3.
 KOKKOS_INLINE_FUNCTION
 unsigned long long morton64(float x, float y, float z)
 {
-  // The interval [0,1] is subdivided into 2097152 bins (in each direction).
+  // The interval [0,1] is subdivided into 2,097,152 bins (in each direction).
   constexpr unsigned N = (1 << 21);
 
   using KokkosExt::max;
   using KokkosExt::min;
 
-  // float is sufficient to represent all integers up to 16777216 (2^24), which
-  // is greater than N. So there is no need to use double here.
+  // float is sufficient to represent all integers up to 16,777,216 (2^24),
+  // which is greater than N. So there is no need to use double here.
   x = min(max(x * N, 0.f), (float)N - 1);
   y = min(max(y * N, 0.f), (float)N - 1);
   z = min(max(z * N, 0.f), (float)N - 1);
