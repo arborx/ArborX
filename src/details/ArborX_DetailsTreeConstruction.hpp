@@ -15,7 +15,7 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // expand
-#include <ArborX_DetailsMortonCode.hpp> // morton3D
+#include <ArborX_DetailsMortonCode.hpp> // morton32
 #include <ArborX_DetailsNode.hpp>       // makeLeafNode
 
 #include <Kokkos_Core.hpp>
@@ -69,7 +69,7 @@ assignMortonCodesImpl(ExecutionSpace const &space, Primitives const &primitives,
                          Point xyz;
                          centroid(Access::get(primitives, i), xyz);
                          translateAndScale(xyz, xyz, scene_bounding_box);
-                         morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
+                         morton_codes(i) = morton32(xyz[0], xyz[1], xyz[2]);
                        });
 }
 
@@ -87,7 +87,7 @@ assignMortonCodesImpl(ExecutionSpace const &space, Primitives const &primitives,
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
         Point xyz;
         translateAndScale(Access::get(primitives, i), xyz, scene_bounding_box);
-        morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
+        morton_codes(i) = morton32(xyz[0], xyz[1], xyz[2]);
       });
 }
 

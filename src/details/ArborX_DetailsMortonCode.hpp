@@ -63,7 +63,7 @@ unsigned long long expandBitsBy2(unsigned long long x)
 // Calculates a 32-bit Morton code for a given 2D point located within the unit
 // square [0,1].
 KOKKOS_INLINE_FUNCTION
-unsigned int morton2D(float x, float y)
+unsigned int morton32(float x, float y)
 {
   // The interval [0,1] is subdivided into 65536 bins (in each direction).
   constexpr unsigned N = (1 << 16);
@@ -80,7 +80,7 @@ unsigned int morton2D(float x, float y)
 // Calculates a 30-bit Morton code for a given 3D point located within the unit
 // cube [0,1].
 KOKKOS_INLINE_FUNCTION
-unsigned int morton3D(float x, float y, float z)
+unsigned int morton32(float x, float y, float z)
 {
   // The interval [0,1] is subdivided into 1024 bins (in each direction).
   constexpr unsigned N = (1 << 10);
@@ -97,7 +97,7 @@ unsigned int morton3D(float x, float y, float z)
 }
 
 KOKKOS_INLINE_FUNCTION
-unsigned long long morton3D64bit(float x, float y, float z)
+unsigned long long morton64(float x, float y, float z)
 {
   // The interval [0,1] is subdivided into 2097152 bins (in each direction).
   constexpr unsigned N = (1 << 21);
