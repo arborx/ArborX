@@ -120,7 +120,7 @@ unsigned long long morton64(float x, float y)
   using KokkosExt::min;
 
   // Have to use double as float is not sufficient to represent large integers,
-  // which would results in some missing bins.
+  // which would result in some missing bins.
   double xd = min(max((double)x * N, 0.), (double)N - 1);
   double yd = min(max((double)y * N, 0.), (double)N - 1);
 
