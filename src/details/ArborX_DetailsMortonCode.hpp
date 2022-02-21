@@ -105,13 +105,15 @@ unsigned long long morton3D64bit(float x, float y, float z)
   using KokkosExt::max;
   using KokkosExt::min;
 
-  double xd = min(max((double)x * N, 0.), (double)N - 1);
-  double yd = min(max((double)y * N, 0.), (double)N - 1);
-  double zd = min(max((double)z * N, 0.), (double)N - 1);
+  // float is sufficient to represent all integers up to 16777216 (2^24), which
+  // is greater than N. So there is no need to use double here.
+  x = min(max(x * N, 0.f), (float)N - 1);
+  y = min(max(y * N, 0.f), (float)N - 1);
+  z = min(max(z * N, 0.f), (float)N - 1);
 
-  return 4 * expandBitsBy2((unsigned long long)xd) +
-         2 * expandBitsBy2((unsigned long long)yd) +
-         expandBitsBy2((unsigned long long)zd);
+  return 4 * expandBitsBy2((unsigned long long)x) +
+         2 * expandBitsBy2((unsigned long long)y) +
+         expandBitsBy2((unsigned long long)z);
 }
 
 } // namespace Details
