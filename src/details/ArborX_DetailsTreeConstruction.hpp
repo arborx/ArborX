@@ -206,7 +206,15 @@ public:
     // Morton comparison. Thus, we add INT_MIN to it.
     // We also avoid if/else statement by doing a "x + !x*<blah>" trick.
     auto x = _sorted_morton_codes(i) ^ _sorted_morton_codes(i + 1);
-    return x + (!x) * (LLONG_MIN + (i ^ (i + 1)));
+    if (x != 0)
+    {
+      // When using 63 bits for Morton codes, the LLONG_MAX is actually a valid
+      // code. As we want the return statement above to return a value always
+      // greater than anything here, we downshift by 1.
+      return x - 1;
+    }
+
+    return LLONG_MIN + (i ^ (i + 1));
   }
 
   KOKKOS_FUNCTION Node *getNodePtr(int i) const
