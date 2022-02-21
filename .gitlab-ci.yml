@@ -11,26 +11,9 @@ stages:
 
 .LoadModules:
   before_script:
-    - module load gcc/7.4.0 cuda/10.1.243 cmake/3.18.2 git/2.20.1 spectrum-mpi/10.3.1.2-20200121
+    - module load gcc/9.1.0 cuda/11.0.3 cmake/3.22.2 git/2.31.1 spectrum-mpi/10.4.0.3-20210112 boost/1.77.0
 
-.BuildBoost:
-  extends: .LoadModules
-  stage: buildDependencies
-  script:
-    - BOOST_VERSION=1.67.0 &&
-      BOOST_VERSION_UNDERSCORE=$(echo "$BOOST_VERSION" | sed -e "s/\./_/g") &&
-      BOOST_URL=https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VERSION}/source &&
-      BOOST_ARCHIVE=boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2 &&
-      wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE} &&
-      mkdir -p boost &&
-      tar -xf ${BOOST_ARCHIVE} -C boost --strip-components=1 &&
-      cd boost &&
-      ./bootstrap.sh --prefix=/ccsopen/proj/csc333/boost.install &&
-      ./b2 -j8 variant=release cxxflags=-w install
-  tags:
-    - nobatch
-
-.BuildBenchmark:
+BuildBenchmark:
   extends: .LoadModules
   stage: buildDependencies
   script:
@@ -43,7 +26,7 @@ stages:
   tags:
     - nobatch
 
-.BuildKokkos:
+BuildKokkos:
   extends: .LoadModules
   stage: buildDependencies
   script:
@@ -65,7 +48,7 @@ BuildArborXBranch:
     - export BRANCH_HASH=`git rev-parse HEAD`
     - git merge origin/arborx/ArborX/master
     - mkdir build && cd build &&
-      cmake -DCMAKE_PREFIX_PATH="/ccsopen/proj/csc333/kokkos.install;/ccsopen/proj/csc333/benchmark.install;/ccsopen/proj/csc333/boost.install"
+      cmake -DCMAKE_PREFIX_PATH="/ccsopen/proj/csc333/kokkos.install;/ccsopen/proj/csc333/benchmark.install"
             -DCMAKE_CXX_COMPILER=/ccsopen/proj/csc333/kokkos.install/bin/nvcc_wrapper
             -DARBORX_ENABLE_MPI=ON
             -DARBORX_ENABLE_TESTS=OFF
@@ -89,7 +72,7 @@ BuildArborXMaster:
     - git worktree add -f ${CI_PROJECT_DIR}/arborx-master origin/arborx/ArborX/master
     - cd ${CI_PROJECT_DIR}/arborx-master
     - mkdir build_master && cd build_master &&
-      cmake -DCMAKE_PREFIX_PATH="/ccsopen/proj/csc333/kokkos.install;/ccsopen/proj/csc333/benchmark.install;/ccsopen/proj/csc333/boost.install"
+      cmake -DCMAKE_PREFIX_PATH="/ccsopen/proj/csc333/kokkos.install;/ccsopen/proj/csc333/benchmark.install"
             -DCMAKE_CXX_COMPILER=/ccsopen/proj/csc333/kokkos.install/bin/nvcc_wrapper
             -DARBORX_ENABLE_MPI=ON
             -DARBORX_ENABLE_TESTS=OFF
