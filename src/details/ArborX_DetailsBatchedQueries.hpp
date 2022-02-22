@@ -15,7 +15,7 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // returnCentroid, translateAndScale
-#include <ArborX_DetailsMortonCode.hpp> // morton3D
+#include <ArborX_DetailsMortonCode.hpp> // morton32
 #include <ArborX_DetailsSortUtils.hpp>  // sortObjects
 #include <ArborX_DetailsUtils.hpp>      // exclusivePrefixSum, lastElement
 
@@ -66,7 +66,7 @@ public:
           using Details::returnCentroid;
           Point xyz = returnCentroid(getGeometry(Access::get(predicates, i)));
           translateAndScale(xyz, xyz, scene_bounding_box);
-          morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
+          morton_codes(i) = morton32(xyz[0], xyz[1], xyz[2]);
         });
 
     return sortObjects(space, morton_codes);
