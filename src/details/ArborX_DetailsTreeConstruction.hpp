@@ -203,8 +203,7 @@ public:
     //   concatenation.
     // In this case, if the Morton indices are the same, we want to compare is.
     // We also want the result in this situation to always be less than any
-    // Morton comparison. Thus, we add INT_MIN to it.
-    // We also avoid if/else statement by doing a "x + !x*<blah>" trick.
+    // Morton comparison. Thus, we add LLONG_MIN to it.
     auto x = _sorted_morton_codes(i) ^ _sorted_morton_codes(i + 1);
     if (x != 0)
     {

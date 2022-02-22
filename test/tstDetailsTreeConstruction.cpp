@@ -30,7 +30,9 @@ namespace tt = boost::test_tools;
 BOOST_AUTO_TEST_CASE_TEMPLATE(assign_morton_codes, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
-  int constexpr N = 1 << 21;
+  // N is the number of Morton grid cells in each dimension for 64-bit Morton
+  // codes.
+  constexpr unsigned long long N = 1 << 21;
   std::vector<ArborX::Point> points = {{{0.0, 0.0, 0.0}},
                                        {{0.25, 0.75, 0.25}},
                                        {{0.75, 0.25, 0.25}},
@@ -40,18 +42,19 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(assign_morton_codes, DeviceType,
                                        {{(float)N, (float)N, (float)N}}};
   int const n = points.size();
   // lower left front corner corner of the octant the points fall in
-  std::vector<std::array<unsigned int, 3>> anchors = {{{0, 0, 0}},
-                                                      {{0, 0, 0}},
-                                                      {{0, 0, 0}},
-                                                      {{0, 0, 0}},
-                                                      {{1, 2, 3}},
-                                                      {{1, 2, 3}},
-                                                      {{N - 1, N - 1, N - 1}}};
-  auto fun = [](std::array<unsigned int, 3> const &anchor) {
+  std::vector<std::array<unsigned long long, 3>> anchors = {
+      {{0, 0, 0}},
+      {{0, 0, 0}},
+      {{0, 0, 0}},
+      {{0, 0, 0}},
+      {{1, 2, 3}},
+      {{1, 2, 3}},
+      {{N - 1, N - 1, N - 1}}};
+  auto fun = [](std::array<unsigned long long, 3> const &anchor) {
     using ArborX::Details::expandBitsBy2;
-    unsigned long long i = std::get<0>(anchor);
-    unsigned long long j = std::get<1>(anchor);
-    unsigned long long k = std::get<2>(anchor);
+    auto i = std::get<0>(anchor);
+    auto j = std::get<1>(anchor);
+    auto k = std::get<2>(anchor);
     return 4 * expandBitsBy2(i) + 2 * expandBitsBy2(j) + expandBitsBy2(k);
   };
   std::vector<unsigned long long> ref(
@@ -240,7 +243,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   // See
   // https://devblogs.nvidia.com/parallelforall/thinking-parallel-part-iii-tree-construction-gpu/
   int const n = 8;
-  Kokkos::View<unsigned long long int *, DeviceType> sorted_morton_codes(
+  Kokkos::View<unsigned long long *, DeviceType> sorted_morton_codes(
       "sorted_morton_codes", n);
   std::vector<std::string> s{
       "00001", "00010", "00100", "00101", "10011", "11000", "11001", "11110",
