@@ -220,7 +220,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   {
     auto const n_queries = Access::size(_predicates);
 
-    Offset offset(Kokkos::view_alloc(Kokkos::WithoutInitializing,
+    Offset offset(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                      "ArborX::TreeTraversal::nearest::offset"),
                   n_queries + 1);
     // NOTE workaround to avoid implicit capture of *this
@@ -237,7 +237,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     // It is not possible to anticipate how much memory to allocate since the
     // number of nearest neighbors k is only known at runtime.
 
-    Buffer buffer(Kokkos::view_alloc(Kokkos::WithoutInitializing,
+    Buffer buffer(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                      "ArborX::TreeTraversal::nearest::buffer"),
                   buffer_size);
     _buffer = BufferProvider{buffer, offset};

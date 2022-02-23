@@ -95,7 +95,7 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
   if (min_val == max_val)
   {
     Kokkos::View<SizeType *, typename ViewType::device_type> permute(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::Sorting::permute"),
         n);
     iota(space, permute);
@@ -132,7 +132,7 @@ Kokkos::View<SizeType *, typename ViewType::device_type> sortObjects(
                 "");
 
   Kokkos::View<SizeType *, typename ViewType::device_type> permute(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::Sorting::permutation"),
       n);
   ArborX::iota(space, permute);
@@ -166,7 +166,7 @@ sortObjects(Kokkos::Experimental::SYCL const &space, ViewType &view)
       "");
 
   Kokkos::View<SizeType *, typename ViewType::device_type> permute(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::Sorting::permutation"),
       n);
   ArborX::iota(space, permute);

@@ -149,7 +149,7 @@ DistributedTree<MemorySpace, Enable>::DistributedTree(
   MPI_Comm_size(getComm(), &comm_size);
 
   Kokkos::View<Box *, MemorySpace> boxes(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::DistributedTree::DistributedTree::"
                          "rank_bounding_boxes"),
       comm_size);
@@ -179,7 +179,7 @@ DistributedTree<MemorySpace, Enable>::DistributedTree(
                                 "size_calculation");
 
   _bottom_tree_sizes = Kokkos::View<size_type *, MemorySpace>(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::DistributedTree::"
                          "leave_count_in_local_trees"),
       comm_size);

@@ -248,7 +248,7 @@ computeCellIndices(ExecutionSpace const &exec_space,
   auto const n = Access::size(primitives);
 
   Kokkos::View<size_t *, MemorySpace> cell_indices(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+      Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
                          "ArborX::DBSCAN::cell_indices"),
       n);
   Kokkos::parallel_for("ArborX::DBSCAN::compute_cell_indices",
@@ -275,7 +275,7 @@ computeOffsetsInOrderedView(ExecutionSpace const &exec_space, View view)
 
   int num_offsets;
   Kokkos::View<int *, MemorySpace> offsets(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+      Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
                          "ArborX::DBSCAN::offsets"),
       n + 1);
   Kokkos::parallel_scan(
@@ -329,8 +329,8 @@ int reorderDenseAndSparseCells(ExecutionSpace const &exec_space,
   // them. The points in the same cell are still together.
   Kokkos::View<int, MemorySpace> dense_offset("ArborX::DBSCAN::dense_offset");
   Kokkos::View<int, MemorySpace> sparse_offset("ArborX::DBSCAN::sparse_offset");
-  Kokkos::deep_copy(dense_offset, 0);
-  Kokkos::deep_copy(sparse_offset, num_points_in_dense_cells);
+  Kokkos::deep_copy(exec_space, dense_offset, 0);
+  Kokkos::deep_copy(exec_space, sparse_offset, num_points_in_dense_cells);
 
   auto reordered_permute = cloneWithoutInitializingNorCopying(permute);
   auto reordered_cell_indices =
