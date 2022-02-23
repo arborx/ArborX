@@ -79,7 +79,7 @@ KOKKOS_INLINE_FUNCTION
 unsigned int morton32(float x, float y)
 {
   // The interval [0,1] is subdivided into 65,536 bins (in each direction).
-  constexpr unsigned N = (1 << 16);
+  constexpr unsigned N = (1u << 16);
 
   using KokkosExt::max;
   using KokkosExt::min;
@@ -95,7 +95,7 @@ KOKKOS_INLINE_FUNCTION
 unsigned int morton32(float x, float y, float z)
 {
   // The interval [0,1] is subdivided into 1024 bins (in each direction).
-  constexpr unsigned N = (1 << 10);
+  constexpr unsigned N = (1u << 10);
 
   using KokkosExt::max;
   using KokkosExt::min;
@@ -114,7 +114,7 @@ unsigned long long morton64(float x, float y)
 {
   // The interval [0,1] is subdivided into 2,147,483,648 bins (in each
   // direction).
-  constexpr unsigned N = (1 << 31);
+  constexpr unsigned N = (1u << 31);
 
   using KokkosExt::max;
   using KokkosExt::min;
@@ -133,7 +133,7 @@ KOKKOS_INLINE_FUNCTION
 unsigned long long morton64(float x, float y, float z)
 {
   // The interval [0,1] is subdivided into 2,097,152 bins (in each direction).
-  constexpr unsigned N = (1 << 21);
+  constexpr unsigned N = (1u << 21);
 
   using KokkosExt::max;
   using KokkosExt::min;
