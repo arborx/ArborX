@@ -26,15 +26,29 @@ stages:
   tags:
     - nobatch
 
-.BuildKokkos:
+BuildKokkos35:
   extends: .LoadModules
   stage: buildDependencies
   script:
-    - git clone --depth=1 --branch 3.4.01 https://github.com/kokkos/kokkos.git &&
-      cd kokkos &&
+    - mkdir kokkos35 && git clone --depth=1 --branch 3.5.0 https://github.com/kokkos/kokkos.git kokkos35 &&
+      cd kokkos35 &&
       mkdir build &&
       cd build &&
-      cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/ccsopen/proj/csc333/kokkos.install -DCMAKE_CXX_COMPILER=${CI_PROJECT_DIR}/kokkos/bin/nvcc_wrapper -DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_POWER9=ON -DKokkos_ARCH_VOLTA70=ON .. &&
+      cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/ccsopen/proj/csc333/kokkos35.install -DCMAKE_CXX_COMPILER=${CI_PROJECT_DIR}/kokkos35/bin/nvcc_wrapper -DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_POWER9=ON -DKokkos_ARCH_VOLTA70=ON .. &&
+      make &&
+      make install
+  tags:
+    - nobatch
+
+BuildKokkos36:
+  extends: .LoadModules
+  stage: buildDependencies
+  script:
+    - mkdir kokkos36 git clone --depth=1 --branch release-candidate-3.6.0 https://github.com/kokkos/kokkos.git kokkos36 &&
+      cd kokkos36 &&
+      mkdir build &&
+      cd build &&
+      cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/ccsopen/proj/csc333/kokkos36.install -DCMAKE_CXX_COMPILER=${CI_PROJECT_DIR}/kokkos36/bin/nvcc_wrapper -DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_POWER9=ON -DKokkos_ARCH_VOLTA70=ON .. &&
       make &&
       make install
   tags:
@@ -48,8 +62,8 @@ BuildArborXBranch:
     - export BRANCH_HASH=`git rev-parse HEAD`
     - git merge origin/arborx/ArborX/master
     - mkdir build && cd build &&
-      cmake -DCMAKE_PREFIX_PATH="/ccsopen/proj/csc333/kokkos.install;/ccsopen/proj/csc333/benchmark.install"
-            -DCMAKE_CXX_COMPILER=/ccsopen/proj/csc333/kokkos.install/bin/nvcc_wrapper
+      cmake -DCMAKE_PREFIX_PATH="/ccsopen/proj/csc333/kokkos36.install;/ccsopen/proj/csc333/benchmark.install"
+            -DCMAKE_CXX_COMPILER=/ccsopen/proj/csc333/kokkos36.install/bin/nvcc_wrapper
             -DARBORX_ENABLE_MPI=ON
             -DARBORX_ENABLE_TESTS=OFF
             -DARBORX_ENABLE_BENCHMARKS=ON
@@ -72,8 +86,8 @@ BuildArborXMaster:
     - git worktree add -f ${CI_PROJECT_DIR}/arborx-master origin/arborx/ArborX/master
     - cd ${CI_PROJECT_DIR}/arborx-master
     - mkdir build_master && cd build_master &&
-      cmake -DCMAKE_PREFIX_PATH="/ccsopen/proj/csc333/kokkos.install;/ccsopen/proj/csc333/benchmark.install"
-            -DCMAKE_CXX_COMPILER=/ccsopen/proj/csc333/kokkos.install/bin/nvcc_wrapper
+      cmake -DCMAKE_PREFIX_PATH="/ccsopen/proj/csc333/kokkos35.install;/ccsopen/proj/csc333/benchmark.install"
+            -DCMAKE_CXX_COMPILER=/ccsopen/proj/csc333/kokkos35.install/bin/nvcc_wrapper
             -DARBORX_ENABLE_MPI=ON
             -DARBORX_ENABLE_TESTS=OFF
             -DARBORX_ENABLE_BENCHMARKS=ON
