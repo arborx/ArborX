@@ -17,6 +17,7 @@
 namespace KokkosExt
 {
 
+// FIXME it is not legal to use KOKKOS_IMPL_CTOR_DEFAULT_ARG
 template <class ExecutionSpace, class View>
 void reallocWithoutInitializing(ExecutionSpace const &space, View &v,
                                 size_t n0 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,

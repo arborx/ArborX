@@ -516,17 +516,6 @@ template <typename SrcViewType, typename DstViewType>
 // FIXME split this into one for STL-like algorithms and another one for view
 // utility helpers
 
-// FIXME get rid of this when Trilinos/Kokkos version is updated
-// clang-format off
-#ifndef KOKKOS_IMPL_CTOR_DEFAULT_ARG
-#  ifdef KOKKOS_ENABLE_DEPRECATED_CODE
-#    define KOKKOS_IMPL_CTOR_DEFAULT_ARG 0
-#  else
-#    define KOKKOS_IMPL_CTOR_DEFAULT_ARG (~std::size_t(0))
-#  endif
-#endif
-// clang-format on
-
 // NOTE: not possible to avoid initialization with Kokkos::realloc()
 template <typename View>
 [[deprecated]] void
