@@ -542,10 +542,11 @@ reallocWithoutInitializing(View &v, const typename View::array_layout &layout)
 }
 
 template <typename View>
-typename View::non_const_type cloneWithoutInitializingNorCopying(View &v)
+[[deprecated]] typename View::non_const_type
+cloneWithoutInitializingNorCopying(View &v)
 {
-  return typename View::non_const_type(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, v.label()), v.layout());
+  using ExecutionSpace = typename View::execution_space;
+  return KokkosExt::cloneWithoutInitializingNorCopying(ExecutionSpace{}, v);
 }
 
 template <typename ExecutionSpace, typename View>

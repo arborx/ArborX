@@ -15,6 +15,7 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // returnCentroid, translateAndScale
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsMortonCode.hpp> // morton32
 #include <ArborX_DetailsSortUtils.hpp>  // sortObjects
 #include <ArborX_DetailsUtils.hpp>      // exclusivePrefixSum, lastElement
@@ -110,7 +111,8 @@ public:
     auto const n = permute.extent(0);
     ARBORX_ASSERT(offset.extent(0) == n + 1);
 
-    auto tmp_offset = cloneWithoutInitializingNorCopying(offset);
+    auto tmp_offset =
+        KokkosExt::cloneWithoutInitializingNorCopying(space, offset);
     Kokkos::parallel_for(
         "ArborX::BatchedQueries::adjacent_difference_and_permutation",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
@@ -136,7 +138,8 @@ public:
     ARBORX_ASSERT(lastElement(offset) == indices.extent_int(0));
     ARBORX_ASSERT(lastElement(tmp_offset) == indices.extent_int(0));
 
-    auto tmp_indices = cloneWithoutInitializingNorCopying(indices);
+    auto tmp_indices =
+        KokkosExt::cloneWithoutInitializingNorCopying(space, indices);
     Kokkos::parallel_for(
         "ArborX::BatchedQueries::permute_indices",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int q) {

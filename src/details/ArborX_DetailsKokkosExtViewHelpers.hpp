@@ -70,6 +70,17 @@ typename View::non_const_type clone(ExecutionSpace const &space, View &v)
   return w;
 }
 
+template <class ExecutionSpace, class View>
+typename View::non_const_type
+cloneWithoutInitializingNorCopying(ExecutionSpace const &space, View &v)
+{
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
+  static_assert(Kokkos::is_view<View>::value, "");
+  return typename View::non_const_type(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, v.label()),
+      v.layout());
+}
+
 } // namespace KokkosExt
 
 #endif
