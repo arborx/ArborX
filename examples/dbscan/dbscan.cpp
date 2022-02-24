@@ -231,7 +231,7 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
   Kokkos::resize(Kokkos::WithoutInitializing, cluster_offset, num_clusters + 1);
   ArborX::exclusivePrefixSum(exec_space, cluster_offset);
 
-  auto cluster_starts = ArborX::clone(exec_space, cluster_offset);
+  auto cluster_starts = KokkosExt::clone(exec_space, cluster_offset);
   KokkosExt::reallocWithoutInitializing(exec_space, cluster_indices,
                                         ArborX::lastElement(cluster_offset));
   Kokkos::parallel_for("ArborX::DBSCAN::compute_cluster_indices",

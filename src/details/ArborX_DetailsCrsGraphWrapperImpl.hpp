@@ -219,7 +219,7 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
   if (underflow)
   {
     // Store a copy of the original offset. We'll need it for compression.
-    preallocated_offset = clone(space, offset);
+    preallocated_offset = KokkosExt::clone(space, offset);
   }
 
   Kokkos::parallel_for(

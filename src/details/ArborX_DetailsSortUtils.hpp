@@ -15,6 +15,7 @@
 #include <ArborX_Config.hpp> // ARBORX_ENABLE_ROCTHRUST
 
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp> // is_accessible_from
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>         // clone
 #include <ArborX_DetailsUtils.hpp>                        // iota
 #include <ArborX_Exception.hpp>
 
@@ -274,7 +275,7 @@ void applyPermutation(ExecutionSpace const &space,
 {
   static_assert(std::is_integral<typename PermutationView::value_type>::value,
                 "");
-  auto scratch_view = clone(space, view);
+  auto scratch_view = KokkosExt::clone(space, view);
   applyPermutation(space, permutation, scratch_view, view);
 }
 

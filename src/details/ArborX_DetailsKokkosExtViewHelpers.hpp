@@ -57,6 +57,18 @@ void reallocWithoutInitializing(ExecutionSpace const &space, View &v,
            layout);
 }
 
+template <class ExecutionSpace, class View>
+typename View::non_const_type clone(ExecutionSpace const &space, View &v)
+{
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
+  static_assert(Kokkos::is_view<View>::value, "");
+  typename View::non_const_type w(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, v.label()),
+      v.layout());
+  Kokkos::deep_copy(space, w, v);
+  return w;
+}
+
 } // namespace KokkosExt
 
 #endif

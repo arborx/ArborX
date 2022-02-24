@@ -560,20 +560,17 @@ typename View::non_const_type cloneWithoutInitializingNorCopying(View &v)
 }
 
 template <typename ExecutionSpace, typename View>
-typename View::non_const_type clone(ExecutionSpace const &space, View &v)
+[[deprecated]] typename View::non_const_type clone(ExecutionSpace const &space,
+                                                   View &v)
 {
-  typename View::non_const_type w(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, v.label()),
-      v.layout());
-  Kokkos::deep_copy(space, w, v);
-  return w;
+  return KokkosExt::clone(space, v);
 }
 
 template <typename View>
 [[deprecated]] inline typename View::non_const_type clone(View &v)
 {
   using ExecutionSpace = typename View::execution_space;
-  return clone(ExecutionSpace{}, v);
+  return KokkosExt::clone(ExecutionSpace{}, v);
 }
 
 } // namespace ArborX
