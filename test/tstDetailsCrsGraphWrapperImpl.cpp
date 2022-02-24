@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
 
   int const buffer_size = 2 * (n + 1);
 
-  ArborX::reallocWithoutInitializing(offset, n + 1);
+  Kokkos::realloc(offset, n + 1);
   Kokkos::deep_copy(offset, buffer_size);
 
   Kokkos::View<unsigned int *, DeviceType> permute(
@@ -69,7 +69,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
   ArborX::iota(ExecutionSpace{}, permute);
 
   ArborX::exclusivePrefixSum(ExecutionSpace{}, offset);
-  ArborX::reallocWithoutInitializing(indices, ArborX::lastElement(offset));
+  Kokkos::realloc(indices, ArborX::lastElement(offset));
   ArborX::Details::CrsGraphWrapperImpl::queryImpl(
       ExecutionSpace{}, Test1{}, predicates, ArborX::Details::DefaultCallback{},
       indices, offset, permute,

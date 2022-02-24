@@ -12,6 +12,7 @@
 #ifndef ARBORX_DETAILS_UTILS_HPP
 #define ARBORX_DETAILS_UTILS_HPP
 
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -528,38 +529,27 @@ template <typename SrcViewType, typename DstViewType>
 
 // NOTE: not possible to avoid initialization with Kokkos::realloc()
 template <typename View>
-void reallocWithoutInitializing(View &v,
-                                size_t n0 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n1 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n2 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n3 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n4 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n5 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n6 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG)
+[[deprecated]] void
+reallocWithoutInitializing(View &v, size_t n0 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n1 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n2 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n3 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n4 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n5 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n6 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG)
 {
-  static_assert(View::is_managed, "Can only realloc managed views");
-
-  size_t new_extents[8] = {n0, n1, n2, n3, n4, n5, n6, n7};
-  bool has_requested_extents = true;
-  for (unsigned int dim = 0; dim < v.rank_dynamic; ++dim)
-    if (new_extents[dim] != v.extent(dim))
-    {
-      has_requested_extents = false;
-      break;
-    }
-
-  if (!has_requested_extents)
-    v = View(Kokkos::view_alloc(Kokkos::WithoutInitializing, v.label()), n0, n1,
-             n2, n3, n4, n5, n6, n7);
+  using ExecutionSpace = typename View::execution_space;
+  KokkosExt::reallocWithoutInitializing(ExecutionSpace{}, v, n0, n1, n2, n3, n4,
+                                        n5, n6, n7);
 }
 
 template <typename View>
-void reallocWithoutInitializing(View &v,
-                                const typename View::array_layout &layout)
+[[deprecated]] void
+reallocWithoutInitializing(View &v, const typename View::array_layout &layout)
 {
-  static_assert(View::is_managed, "Can only realloc managed views");
-  v = View(Kokkos::view_alloc(Kokkos::WithoutInitializing, v.label()), layout);
+  using ExecutionSpace = typename View::execution_space;
+  KokkosExt::reallocWithoutInitializing(ExecutionSpace{}, v, layout);
 }
 
 template <typename View>

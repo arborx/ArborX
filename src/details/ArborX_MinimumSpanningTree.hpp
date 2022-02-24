@@ -15,6 +15,7 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsMutualReachabilityDistance.hpp>
 #include <ArborX_DetailsTreeNodeLabeling.hpp>
 #include <ArborX_DetailsUtils.hpp>
@@ -550,7 +551,7 @@ private:
 #endif
     if (use_lower_bounds)
     {
-      reallocWithoutInitializing(lower_bounds, n);
+      KokkosExt::reallocWithoutInitializing(space, lower_bounds, n);
       Kokkos::deep_copy(space, lower_bounds, 0);
     }
 
