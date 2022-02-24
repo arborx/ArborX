@@ -30,7 +30,7 @@ BuildKokkos35:
   extends: .LoadModules
   stage: buildDependencies
   script:
-    - mkdir kokkos35 && git clone --depth=1 --branch 3.5.0 https://github.com/kokkos/kokkos.git kokkos35 &&
+    - mkdir kokkos35 && git clone --depth=1 --branch 3.5.00 https://github.com/kokkos/kokkos.git kokkos35 &&
       cd kokkos35 &&
       mkdir build &&
       cd build &&
@@ -44,7 +44,7 @@ BuildKokkos36:
   extends: .LoadModules
   stage: buildDependencies
   script:
-    - mkdir kokkos36 git clone --depth=1 --branch release-candidate-3.6.0 https://github.com/kokkos/kokkos.git kokkos36 &&
+    - mkdir kokkos36 && git clone --depth=1 --branch release-candidate-3.6.0 https://github.com/kokkos/kokkos.git kokkos36 &&
       cd kokkos36 &&
       mkdir build &&
       cd build &&
