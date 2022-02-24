@@ -496,7 +496,7 @@ void adjacentDifference(ExecutionSpace &&space, SrcViewType const &src,
   ARBORX_ASSERT(src != dst);
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_for("ArbroX::Algorithms::adjacent_difference", policy,
+  Kokkos::parallel_for("ArborX::Algorithms::adjacent_difference", policy,
                        KOKKOS_LAMBDA(int i) {
                          if (i > 0)
                            dst(i) = src(i) - src(i - 1);
