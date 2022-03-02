@@ -13,6 +13,7 @@
 
 #include <ArborX_Config.hpp>
 
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUtils.hpp> // max
 #include <ArborX_Exception.hpp>
@@ -233,7 +234,8 @@ public:
 
     // The next two function calls are the only difference to the other
     // overload.
-    reallocWithoutInitializing(_permute, destination_ranks.size());
+    KokkosExt::reallocWithoutInitializing(space, _permute,
+                                          destination_ranks.size());
     sortAndDetermineBufferLayout(space, destination_ranks, _permute,
                                  _destinations, _dest_counts, _dest_offsets);
 
@@ -293,7 +295,8 @@ public:
               "ArborX::Distributor::doPostsAndWaits::destination_buffer"),
           typename ExportView::array_layout{});
 
-      reallocWithoutInitializing(dest_buffer, exports.layout());
+      KokkosExt::reallocWithoutInitializing(space, dest_buffer,
+                                            exports.layout());
 
       // We need to create a local copy to avoid capturing a member variable
       // (via the 'this' pointer) which we can't do using a KOKKOS_LAMBDA.

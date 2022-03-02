@@ -14,6 +14,7 @@
 
 #include <ArborX_Callbacks.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsUnionFind.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_Predicates.hpp>
@@ -332,9 +333,10 @@ int reorderDenseAndSparseCells(ExecutionSpace const &exec_space,
   Kokkos::deep_copy(exec_space, dense_offset, 0);
   Kokkos::deep_copy(exec_space, sparse_offset, num_points_in_dense_cells);
 
-  auto reordered_permute = cloneWithoutInitializingNorCopying(permute);
-  auto reordered_cell_indices =
-      cloneWithoutInitializingNorCopying(sorted_cell_indices);
+  auto reordered_permute =
+      KokkosExt::cloneWithoutInitializingNorCopying(exec_space, permute);
+  auto reordered_cell_indices = KokkosExt::cloneWithoutInitializingNorCopying(
+      exec_space, sorted_cell_indices);
   Kokkos::parallel_for(
       "ArborX::DBSCAN::reorder_cell_indices_and_permutation",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_nonempty_cells),

@@ -12,6 +12,7 @@
 #ifndef ARBORX_DETAILS_UTILS_HPP
 #define ARBORX_DETAILS_UTILS_HPP
 
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -495,7 +496,7 @@ void adjacentDifference(ExecutionSpace &&space, SrcViewType const &src,
   ARBORX_ASSERT(src != dst);
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_for("ArbroX::Algorithms::adjacent_difference", policy,
+  Kokkos::parallel_for("ArborX::Algorithms::adjacent_difference", policy,
                        KOKKOS_LAMBDA(int i) {
                          if (i > 0)
                            dst(i) = src(i) - src(i - 1);
@@ -515,75 +516,51 @@ template <typename SrcViewType, typename DstViewType>
 // FIXME split this into one for STL-like algorithms and another one for view
 // utility helpers
 
-// FIXME get rid of this when Trilinos/Kokkos version is updated
-// clang-format off
-#ifndef KOKKOS_IMPL_CTOR_DEFAULT_ARG
-#  ifdef KOKKOS_ENABLE_DEPRECATED_CODE
-#    define KOKKOS_IMPL_CTOR_DEFAULT_ARG 0
-#  else
-#    define KOKKOS_IMPL_CTOR_DEFAULT_ARG (~std::size_t(0))
-#  endif
-#endif
-// clang-format on
-
 // NOTE: not possible to avoid initialization with Kokkos::realloc()
 template <typename View>
-void reallocWithoutInitializing(View &v,
-                                size_t n0 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n1 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n2 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n3 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n4 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n5 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n6 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG)
+[[deprecated]] void
+reallocWithoutInitializing(View &v, size_t n0 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n1 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n2 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n3 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n4 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n5 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n6 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG)
 {
-  static_assert(View::is_managed, "Can only realloc managed views");
-
-  size_t new_extents[8] = {n0, n1, n2, n3, n4, n5, n6, n7};
-  bool has_requested_extents = true;
-  for (unsigned int dim = 0; dim < v.rank_dynamic; ++dim)
-    if (new_extents[dim] != v.extent(dim))
-    {
-      has_requested_extents = false;
-      break;
-    }
-
-  if (!has_requested_extents)
-    v = View(Kokkos::view_alloc(Kokkos::WithoutInitializing, v.label()), n0, n1,
-             n2, n3, n4, n5, n6, n7);
+  using ExecutionSpace = typename View::execution_space;
+  KokkosExt::reallocWithoutInitializing(ExecutionSpace{}, v, n0, n1, n2, n3, n4,
+                                        n5, n6, n7);
 }
 
 template <typename View>
-void reallocWithoutInitializing(View &v,
-                                const typename View::array_layout &layout)
+[[deprecated]] void
+reallocWithoutInitializing(View &v, const typename View::array_layout &layout)
 {
-  static_assert(View::is_managed, "Can only realloc managed views");
-  v = View(Kokkos::view_alloc(Kokkos::WithoutInitializing, v.label()), layout);
+  using ExecutionSpace = typename View::execution_space;
+  KokkosExt::reallocWithoutInitializing(ExecutionSpace{}, v, layout);
 }
 
 template <typename View>
-typename View::non_const_type cloneWithoutInitializingNorCopying(View &v)
+[[deprecated]] typename View::non_const_type
+cloneWithoutInitializingNorCopying(View &v)
 {
-  return typename View::non_const_type(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, v.label()), v.layout());
+  using ExecutionSpace = typename View::execution_space;
+  return KokkosExt::cloneWithoutInitializingNorCopying(ExecutionSpace{}, v);
 }
 
 template <typename ExecutionSpace, typename View>
-typename View::non_const_type clone(ExecutionSpace const &space, View &v)
+[[deprecated]] typename View::non_const_type clone(ExecutionSpace const &space,
+                                                   View &v)
 {
-  typename View::non_const_type w(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, v.label()),
-      v.layout());
-  Kokkos::deep_copy(space, w, v);
-  return w;
+  return KokkosExt::clone(space, v);
 }
 
 template <typename View>
 [[deprecated]] inline typename View::non_const_type clone(View &v)
 {
   using ExecutionSpace = typename View::execution_space;
-  return clone(ExecutionSpace{}, v);
+  return KokkosExt::clone(ExecutionSpace{}, v);
 }
 
 } // namespace ArborX

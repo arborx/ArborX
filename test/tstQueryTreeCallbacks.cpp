@@ -53,8 +53,8 @@ struct CustomPostCallback
     using ExecutionSpace = typename DeviceType::execution_space;
     using ArborX::Details::distance;
     auto const n = offset.extent(0) - 1;
-    ArborX::reallocWithoutInitializing(out, in.extent(0));
-    // NOTE woraround to avoid implicit capture of *this
+    Kokkos::realloc(out, in.extent(0));
+    // NOTE workaround to avoid implicit capture of *this
     auto const &points_ = points;
     auto const &origin_ = origin;
     Kokkos::parallel_for(
@@ -235,7 +235,7 @@ struct CustomPostCallbackWithAttachment
     using ExecutionSpace = typename DeviceType::execution_space;
     using ArborX::Details::distance;
     auto const n = offset.extent(0) - 1;
-    ArborX::reallocWithoutInitializing(out, in.extent(0));
+    Kokkos::realloc(out, in.extent(0));
     // NOTE workaround to avoid implicit capture of *this
     auto const &points_ = points;
     auto const &origin_ = origin;
