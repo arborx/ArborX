@@ -16,6 +16,7 @@
 #include <ArborX_DetailsDistributor.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_LinearBVH.hpp>
@@ -82,8 +83,8 @@ struct DistributedTreeImpl
         "ArborX::DistributedTree::query::spatial::pairs_index_rank", 0);
     queryDispatch(SpatialPredicateTag{}, tree, space, queries, out, offset);
     auto const n = out.extent(0);
-    reallocWithoutInitializing(indices, n);
-    reallocWithoutInitializing(ranks, n);
+    KokkosExt::reallocWithoutInitializing(space, indices, n);
+    KokkosExt::reallocWithoutInitializing(space, ranks, n);
     Kokkos::parallel_for("ArborX::DistributedTree::query::split_pairs",
                          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
                          KOKKOS_LAMBDA(int i) {
@@ -157,7 +158,7 @@ struct DistributedTreeImpl
         "ArborX::DistributedTree::query::nearest::ranks", 0);
     queryDispatchImpl(tag, tree, space, queries, indices, offset, ranks);
     auto const n = indices.extent(0);
-    reallocWithoutInitializing(values, n);
+    KokkosExt::reallocWithoutInitializing(space, values, n);
     Kokkos::parallel_for(
         "ArborX::DistributedTree::query::zip_indices_and_ranks",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
@@ -523,8 +524,8 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
 
       // Unzip
       auto const n = out.extent(0);
-      reallocWithoutInitializing(indices, n);
-      reallocWithoutInitializing(distances, n);
+      KokkosExt::reallocWithoutInitializing(space, indices, n);
+      KokkosExt::reallocWithoutInitializing(space, distances, n);
       Kokkos::parallel_for("ArborX::DistributedTree::query::nearest::split_"
                            "index_distance_pairs",
                            Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
