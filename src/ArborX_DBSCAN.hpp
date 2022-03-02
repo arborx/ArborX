@@ -233,7 +233,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
                                              0);
 
   Kokkos::View<int *, MemorySpace> labels(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::DBSCAN::labels"),
+      Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
+                         "ArborX::DBSCAN::labels"),
       n);
   ArborX::iota(exec_space, labels);
 
@@ -434,7 +435,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   // point directly to the representative.
   // ```
   Kokkos::View<int *, MemorySpace> cluster_sizes(
-      "ArborX::DBSCAN::cluster_sizes", n);
+      Kokkos::view_alloc(exec_space, "ArborX::DBSCAN::cluster_sizes"), n);
   Kokkos::parallel_for("ArborX::DBSCAN::finalize_labels",
                        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
                        KOKKOS_LAMBDA(int const i) {

@@ -78,7 +78,9 @@ int main(int argc, char *argv[])
 
   Kokkos::Profiling::pushRegion("Example::setup");
   Kokkos::View<ArborX::Point *, MemorySpace> particles(
-      Kokkos::view_alloc("Example::points", Kokkos::WithoutInitializing), n);
+      Kokkos::view_alloc(execution_space, Kokkos::WithoutInitializing,
+                         "Example::points"),
+      n);
   Kokkos::parallel_for(
       "Example::make_particles",
       Kokkos::MDRangePolicy<Kokkos::Rank<3>, ExecutionSpace>(
@@ -93,7 +95,8 @@ int main(int argc, char *argv[])
       });
 
   Kokkos::View<float * [3], MemorySpace> velocities(
-      Kokkos::view_alloc("Example::velocities", Kokkos::WithoutInitializing),
+      Kokkos::view_alloc(execution_space, Kokkos::WithoutInitializing,
+                         "Example::velocities"),
       n);
   { // scope so that random number generation resources are released
     using RandomPool = Kokkos::Random_XorShift64_Pool<ExecutionSpace>;
@@ -121,7 +124,8 @@ int main(int argc, char *argv[])
   index.query(execution_space, Neighbors<MemorySpace>{particles, r},
               ExcludeSelfCollision{}, indices, offsets);
 
-  Kokkos::View<float * [3], MemorySpace> forces("Example::forces", n);
+  Kokkos::View<float * [3], MemorySpace> forces(
+      Kokkos::view_alloc(execution_space, "Example::forces"), n);
   Kokkos::parallel_for(
       "Example::compute_forces",
       Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),

@@ -161,7 +161,7 @@ public:
       , _sorted_morton_codes(sorted_morton_codes)
       , _leaf_nodes(leaf_nodes)
       , _internal_nodes(internal_nodes)
-      , _ranges(Kokkos::view_alloc(Kokkos::WithoutInitializing,
+      , _ranges(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                    "ArborX::BVH::BVH::ranges"),
                 internal_nodes.extent(0))
       , _num_internal_nodes(_internal_nodes.extent_int(0))

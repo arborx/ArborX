@@ -74,7 +74,7 @@ BruteForce<MemorySpace>::BruteForce(ExecutionSpace const &space,
                                     Primitives const &primitives)
     : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
     , _bounding_volumes(
-          Kokkos::view_alloc(Kokkos::WithoutInitializing,
+          Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                              "ArborX::BruteForce::bounding_volumes"),
           _size)
 {

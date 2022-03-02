@@ -66,10 +66,12 @@ determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
   // these ranks and the corresponding offsets in a new container that we can be
   // sure to be large enough.
   Kokkos::View<int *, DeviceType> compact_offsets(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, batched_offsets.label()),
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         batched_offsets.label()),
       batched_offsets.size());
   Kokkos::View<int *, DeviceType> compact_ranks(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, batched_ranks.label()),
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         batched_ranks.label()),
       batched_ranks.size());
 
   // Note that we never touch the first element of compact_offsets below.
@@ -151,7 +153,7 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
   using DeviceType = typename InputView::traits::device_type;
 
   Kokkos::View<int *, DeviceType> device_ranks_duplicate(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, ranks.label()),
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, ranks.label()),
       ranks.size());
   Kokkos::deep_copy(space, device_ranks_duplicate, ranks);
   auto device_permutation_indices =
@@ -286,7 +288,9 @@ public:
     if (permutation_necessary)
     {
       auto dest_buffer = ExportViewWithoutMemoryTraits(
-          "ArborX::Distributor::doPostsAndWaits::destination_buffer",
+          Kokkos::view_alloc(
+              space,
+              "ArborX::Distributor::doPostsAndWaits::destination_buffer"),
           typename ExportView::array_layout{});
 
       reallocWithoutInitializing(dest_buffer, exports.layout());

@@ -111,7 +111,7 @@ inline auto create_layout_right_mirror_view_and_copy(
                typename ExecutionSpace::memory_space>
       layout_right_view(
           Kokkos::view_alloc(
-              Kokkos::WithoutInitializing,
+              execution_space, Kokkos::WithoutInitializing,
               std::string(src.label()).append("_layout_right_mirror")),
           src.extent(0),
           pointer_depth > 1 ? src.extent(1) : KOKKOS_INVALID_INDEX,
@@ -570,11 +570,12 @@ typename View::non_const_type cloneWithoutInitializingNorCopying(View &v)
 }
 
 template <typename ExecutionSpace, typename View>
-typename View::non_const_type clone(ExecutionSpace &&space, View &v)
+typename View::non_const_type clone(ExecutionSpace const &space, View &v)
 {
   typename View::non_const_type w(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, v.label()), v.layout());
-  Kokkos::deep_copy(std::forward<ExecutionSpace>(space), w, v);
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, v.label()),
+      v.layout());
+  Kokkos::deep_copy(space, w, v);
   return w;
 }
 

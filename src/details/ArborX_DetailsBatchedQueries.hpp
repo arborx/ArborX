@@ -56,7 +56,7 @@ public:
     auto const n_queries = Access::size(predicates);
 
     Kokkos::View<unsigned int *, DeviceType> morton_codes(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::BVH::query::morton"),
         n_queries);
     Kokkos::parallel_for(
@@ -91,7 +91,9 @@ public:
     using T = std::decay_t<decltype(
         Access::get(std::declval<Predicates const &>(), std::declval<int>()))>;
     Kokkos::View<T *, DeviceType> w(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing, "predicates"), n);
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                           "ArborX::permuted_predicates"),
+        n);
     Kokkos::parallel_for(
         "ArborX::BatchedQueries::permute_entries",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),

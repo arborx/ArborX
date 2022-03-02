@@ -469,7 +469,7 @@ struct MinimumSpanningTree
   template <class ExecutionSpace, class Primitives>
   MinimumSpanningTree(ExecutionSpace const &space, Primitives const &primitives,
                       int k = 1)
-      : edges(Kokkos::view_alloc(Kokkos::WithoutInitializing,
+      : edges(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                  "ArborX::MST::edges"),
               AccessTraits<Primitives, PrimitivesTag>::size(primitives) - 1)
   {
@@ -482,7 +482,7 @@ struct MinimumSpanningTree
     {
       Kokkos::Profiling::pushRegion("ArborX::MST::compute_core_distances");
       Kokkos::View<float *, MemorySpace> core_distances(
-          Kokkos::view_alloc(Kokkos::WithoutInitializing,
+          Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                              "ArborX::MST::core_distances"),
           n);
       bvh.query(space, NearestK<Primitives>{primitives, k},
@@ -515,25 +515,28 @@ private:
   {
     auto const n = bvh.size();
     Kokkos::View<int *, MemorySpace> parents(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::MST::parents"),
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                           "ArborX::MST::parents"),
         2 * n - 1);
     findParents(space, bvh, parents);
 
     Kokkos::Profiling::pushRegion("ArborX::MST::initialize_node_labels");
     Kokkos::View<int *, MemorySpace> labels(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::MST::labels"),
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                           "ArborX::MST::labels"),
         2 * n - 1);
     iota(space, Kokkos::subview(labels, std::make_pair(n - 1, 2 * n - 1)),
          n - 1);
     Kokkos::Profiling::popRegion();
 
     Kokkos::View<WeightedEdge *, MemorySpace> component_out_edges(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::MST::component_out_edges"),
         n);
 
     Kokkos::View<float *, MemorySpace> radii(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::MST::radii"),
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                           "ArborX::MST::radii"),
         n);
 
     Kokkos::View<float *, MemorySpace> lower_bounds("ArborX::MST::lower_bounds",
@@ -552,9 +555,8 @@ private:
     }
 
     Kokkos::Profiling::pushRegion("ArborX::MST::Boruvka_loop");
-    Kokkos::View<int, MemorySpace> num_edges(Kokkos::view_alloc(
-        Kokkos::WithoutInitializing, "ArborX::MST::num_edges"));
-    Kokkos::deep_copy(space, num_edges, 0);
+    Kokkos::View<int, MemorySpace> num_edges(
+        Kokkos::view_alloc(space, "ArborX::MST::num_edges")); // initialize to 0
 
     // Boruvka iterations
     int iterations = 0;

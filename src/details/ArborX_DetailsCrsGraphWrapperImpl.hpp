@@ -147,7 +147,7 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
   Kokkos::Profiling::pushRegion("ArborX::CrsGraphWrapper::two_pass");
 
   using CountView = OffsetView;
-  CountView counts(Kokkos::view_alloc("ArborX::CrsGraphWrapper::counts", space),
+  CountView counts(Kokkos::view_alloc(space, "ArborX::CrsGraphWrapper::counts"),
                    n_queries);
 
   using PermutedPredicates =
@@ -276,7 +276,7 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
         "ArborX::CrsGraphWrapper::two_pass:copy_values");
 
     OutputView tmp_out(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing, out.label()),
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing, out.label()),
         n_results);
 
     Kokkos::parallel_for(
