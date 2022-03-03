@@ -170,6 +170,19 @@ KOKKOS_INLINE_FUNCTION
   return false;
 }
 
+// EXPERIMENTAL archetypal expression for user distance callback
+template <typename Callback, typename Predicate, typename Primitive>
+using Experimental_CallbackDistanceArchetypeExpression =
+    decltype(std::declval<Callback const &>().distance(
+        std::declval<Predicate const &>(), std::declval<Primitive const &>()));
+
+template <typename Callback, typename Predicate>
+struct callback_overrides_distance
+    : std::is_same<float, Kokkos::detected_t<
+                              Experimental_CallbackDistanceArchetypeExpression,
+                              Callback, Predicate, int>>::type
+{};
+
 template <typename Callback, typename Predicates>
 void check_valid_callback(Callback const &callback, Predicates const &)
 {

@@ -61,6 +61,16 @@ struct InsertGenerator
   using Access = AccessTraits<Predicates, PredicatesTag>;
   using PredicateType = typename AccessTraitsHelper<Access>::type;
 
+  template <typename Query = PredicateType,
+            typename = std::enable_if_t<
+                std::is_same<Query, PredicateType>{} &&
+                callback_overrides_distance<Callback, Query>{}>>
+  KOKKOS_FUNCTION decltype(auto) distance(PredicateType const &predicate,
+                                          int primitive_index) const
+  {
+    return _callback.distance(predicate, primitive_index);
+  }
+
   template <typename U = PassTag,
             std::enable_if_t<std::is_same<U, FirstPassTag>{}> * = nullptr>
   KOKKOS_FUNCTION auto operator()(PredicateType const &predicate,

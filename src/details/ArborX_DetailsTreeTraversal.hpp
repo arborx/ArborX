@@ -12,6 +12,7 @@
 #define ARBORX_DETAILS_TREE_TRAVERSAL_HPP
 
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_Callbacks.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
@@ -286,6 +287,28 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     _callback(predicate, 0);
   }
 
+  template <typename Query, typename T = Callback>
+  KOKKOS_FUNCTION
+      std::enable_if_t<std::is_same<T, Callback>{} &&
+                           !callback_overrides_distance<Callback, Query>{},
+                       float>
+      primitiveDistance(Query const &, int, float distance) const
+  {
+    return distance;
+  }
+
+  template <typename Query, typename T = Callback>
+  KOKKOS_FUNCTION
+      std::enable_if_t<std::is_same<T, Callback>{} &&
+                           callback_overrides_distance<Callback, Query>{},
+                       float>
+      primitiveDistance(Query const &query, int leaf_index, float) const
+  {
+    auto primitive_index =
+        HappyTreeFriends::getLeafPermutationIndex(_bvh, leaf_index);
+    return _callback.distance(query, primitive_index);
+  }
+
   KOKKOS_FUNCTION void operator()(int queryIndex) const
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
@@ -367,6 +390,10 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
         {
           if (HappyTreeFriends::isLeaf(_bvh, left_child))
           {
+            // Update distance with the distance to the actual primitive
+            distance_left =
+                primitiveDistance(predicate, left_child, distance_left);
+
             auto leaf_pair = Kokkos::make_pair(
                 HappyTreeFriends::getLeafPermutationIndex(_bvh, left_child),
                 distance_left);
@@ -388,6 +415,10 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
         {
           if (HappyTreeFriends::isLeaf(_bvh, right_child))
           {
+            // Update distance with the distance to the actual primitive
+            distance_right =
+                primitiveDistance(predicate, right_child, distance_right);
+
             auto leaf_pair = Kokkos::make_pair(
                 HappyTreeFriends::getLeafPermutationIndex(_bvh, right_child),
                 distance_right);

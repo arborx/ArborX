@@ -73,7 +73,7 @@ target_include_directories(ArborX_Geometry.exe PRIVATE ${CMAKE_CURRENT_BINARY_DI
 add_test(NAME ArborX_Geometry_Test COMMAND ./ArborX_Geometry.exe)
 
 set(ARBORX_TEST_QUERY_TREE_SOURCES)
-foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
+foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost ExactNearestDistance)
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH.cpp.tmp"
     "#include <ArborX_LinearBVH.hpp>\n"
     "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX::BVH>\n"
