@@ -12,10 +12,34 @@
 #ifndef ARBORX_DETAILS_KOKKOS_EXT_VIEW_HELPERS_HPP
 #define ARBORX_DETAILS_KOKKOS_EXT_VIEW_HELPERS_HPP
 
+#include <ArborX_Exception.hpp>
+
 #include <Kokkos_Core.hpp>
 
 namespace KokkosExt
 {
+
+/** \brief Get a copy of the last element.
+ *
+ *  Returns a copy of the last element in the view on the host.  Note that it
+ *  may require communication between host and device (e.g. if the view passed
+ *  as an argument lives on the device).
+ *
+ *  \pre \c v is of rank 1 and not empty.
+ */
+template <class ExecutionSpace, class T, class... P>
+typename Kokkos::ViewTraits<T, P...>::non_const_value_type
+lastElement(ExecutionSpace const &space, Kokkos::View<T, P...> const &v)
+{
+  static_assert((unsigned(Kokkos::ViewTraits<T, P...>::rank) == unsigned(1)),
+                "lastElement requires Views of rank 1");
+  auto const n = v.extent(0);
+  ARBORX_ASSERT(n > 0);
+  auto v_subview = Kokkos::subview(v, n - 1);
+  auto v_host = Kokkos::create_mirror_view(v_subview); // FIXME
+  Kokkos::deep_copy(space, v_host, v_subview);
+  return v_host();
+}
 
 // FIXME it is not legal to use KOKKOS_IMPL_CTOR_DEFAULT_ARG
 template <class ExecutionSpace, class View>

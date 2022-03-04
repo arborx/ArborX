@@ -163,13 +163,14 @@ struct FDBSCANDenseBoxCallback
                           CorePointsType const &is_core_point,
                           Primitives const &primitives,
                           DenseCellOffsets const &dense_cell_offsets,
+                          int num_points_in_dense_cells,
                           Permutation const &permute, float eps_in)
       : _union_find(labels)
       , _is_core_point(is_core_point)
       , _primitives(primitives)
       , _dense_cell_offsets(dense_cell_offsets)
       , _num_dense_cells(dense_cell_offsets.size() - 1)
-      , _num_points_in_dense_cells(lastElement(dense_cell_offsets))
+      , _num_points_in_dense_cells(num_points_in_dense_cells)
       , _permute(permute)
       , eps(eps_in)
   {

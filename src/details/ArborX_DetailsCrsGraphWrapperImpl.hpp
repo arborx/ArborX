@@ -228,7 +228,7 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
       KOKKOS_LAMBDA(int const i) { permuted_offset(i) = counts(i); });
   exclusivePrefixSum(space, offset);
 
-  int const n_results = lastElement(offset);
+  int const n_results = KokkosExt::lastElement(space, offset);
 
   Kokkos::Profiling::popRegion();
 
@@ -326,8 +326,8 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
   {
     exclusivePrefixSum(space, offset);
 
-    // Use calculation for the size to avoid calling lastElement(offset) as it
-    // will launch an extra kernel to copy to host.
+    // Use calculation for the size to avoid calling lastElement(space, offset)
+    // as it will launch an extra kernel to copy to host.
     KokkosExt::reallocWithoutInitializing(space, out, n_queries * buffer_size);
   }
 }
@@ -351,7 +351,8 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
       KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
   exclusivePrefixSum(space, offset);
 
-  KokkosExt::reallocWithoutInitializing(space, out, lastElement(offset));
+  KokkosExt::reallocWithoutInitializing(space, out,
+                                        KokkosExt::lastElement(space, offset));
 }
 
 // Views are passed by reference here because internally Kokkos::realloc()
