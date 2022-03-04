@@ -34,8 +34,9 @@ using epsilon = Kokkos::Experimental::epsilon<T>;
 } // namespace KokkosExt
 
 #else
-#include <cfloat> // DBL_MAX, DBL_EPSILON
-#include <cmath>  // HUGE_VAL
+#include <cfloat>  // DBL_MAX, DBL_EPSILON
+#include <climits> // INT_MAX, INT_MIN
+#include <cmath>   // HUGE_VAL
 #include <type_traits>
 
 namespace KokkosExt
