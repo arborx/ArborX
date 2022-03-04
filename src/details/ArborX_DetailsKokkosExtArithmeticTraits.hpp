@@ -23,7 +23,10 @@ template <class T>
 using infinity = Kokkos::Experimental::infinity<T>;
 
 template <class T>
-using max = Kokkos::Experimental::finite_max<T>;
+using finite_max = Kokkos::Experimental::finite_max<T>;
+
+template <class T>
+using finite_min = Kokkos::Experimental::finite_min<T>;
 
 template <class T>
 using epsilon = Kokkos::Experimental::epsilon<T>;
@@ -58,18 +61,57 @@ struct infinity<double>
 };
 
 template <typename T>
-struct max;
+struct finite_max;
 
 template <>
-struct max<float>
+struct finite_max<float>
 {
   static constexpr float value = FLT_MAX;
 };
 
 template <>
-struct max<double>
+struct finite_max<double>
 {
   static constexpr double value = DBL_MAX;
+};
+
+template <>
+struct finite_max<int>
+{
+  static constexpr int value = INT_MAX;
+};
+
+template <>
+struct finite_max<long long>
+{
+  static constexpr long long value = LLONG_MAX;
+};
+
+template <typename T>
+struct finite_min;
+
+template <>
+struct finite_min<float>
+{
+  static constexpr float value = -FLT_MAX;
+};
+
+template <>
+struct finite_min<double>
+{
+  static constexpr double value = -DBL_MAX;
+};
+
+template <>
+struct finite_min<int>
+{
+  static constexpr int value = INT_MIN;
+};
+
+template <>
+struct finite_min<long long>
+{
+  static constexpr long long value = LLONG_MIN;
 };
 
 template <typename T>
@@ -95,7 +137,12 @@ struct infinity : Details::infinity<std::remove_cv_t<T>>
 };
 
 template <class T>
-struct max : Details::max<std::remove_cv_t<T>>
+struct finite_max : Details::finite_max<std::remove_cv_t<T>>
+{
+};
+
+template <class T>
+struct finite_min : Details::finite_min<std::remove_cv_t<T>>
 {
 };
 
