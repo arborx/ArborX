@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(assign_morton_codes, DeviceType,
                                        {{1.66, 2.66, 3.66}},
                                        {{(float)N, (float)N, (float)N}}};
   int const n = points.size();
-  // lower left front corner corner of the octant the points fall in
+  // lower left front corner of the octant the points fall in
   std::vector<std::array<unsigned long long, 3>> anchors = {
       {{0, 0, 0}},
       {{0, 0, 0}},
