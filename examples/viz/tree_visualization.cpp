@@ -137,9 +137,10 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
   performQueries(prefix + "shuffled_", suffix);
 
   // Sort them
-  auto permute =
-      ArborX::Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-          ExecutionSpace{}, bvh.bounds(), queries);
+  auto permute = ArborX::Details::BatchedQueries<DeviceType>::
+      sortPredicatesAlongSpaceFillingCurve(ExecutionSpace{},
+                                           ArborX::Experimental::Morton32(),
+                                           bvh.bounds(), queries);
   queries = ArborX::Details::BatchedQueries<DeviceType>::applyPermutation(
       ExecutionSpace{}, permute, queries);
   performQueries(prefix + "sorted_", suffix);
