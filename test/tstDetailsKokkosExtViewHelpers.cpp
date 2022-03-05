@@ -15,6 +15,7 @@
 
 #include <Kokkos_Core.hpp>
 
+#include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
 
 #define BOOST_TEST_MODULE KokkosExtViewHelpers
