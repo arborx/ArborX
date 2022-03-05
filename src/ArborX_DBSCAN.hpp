@@ -374,9 +374,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
           Details::FDBSCANDenseBoxCallback<MemorySpace, CorePoints, Primitives,
                                            decltype(dense_cell_offsets),
                                            decltype(permute)>{
-              labels, CorePoints{}, primitives, dense_cell_offsets,
-              KokkosExt::lastElement(exec_space, dense_cell_offsets), permute,
-              eps});
+              labels, CorePoints{}, primitives, dense_cell_offsets, exec_space,
+              permute, eps});
       Kokkos::Profiling::popRegion();
     }
     else
@@ -423,9 +422,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
                                            decltype(dense_cell_offsets),
                                            decltype(permute)>{
               labels, CorePoints{num_neigh, core_min_size}, primitives,
-              dense_cell_offsets,
-              KokkosExt::lastElement(exec_space, dense_cell_offsets), permute,
-              eps});
+              dense_cell_offsets, exec_space, permute, eps});
       Kokkos::Profiling::popRegion();
       elapsed["query"] = timer_seconds(timer_local);
     }
