@@ -61,12 +61,12 @@ struct Box
   KOKKOS_INLINE_FUNCTION
   Point volatile const &maxCorner() volatile const { return _max_corner; }
 
-  Point _min_corner = {{KokkosExt::ArithmeticTraits::max<float>::value,
-                        KokkosExt::ArithmeticTraits::max<float>::value,
-                        KokkosExt::ArithmeticTraits::max<float>::value}};
-  Point _max_corner = {{-KokkosExt::ArithmeticTraits::max<float>::value,
-                        -KokkosExt::ArithmeticTraits::max<float>::value,
-                        -KokkosExt::ArithmeticTraits::max<float>::value}};
+  Point _min_corner = {{KokkosExt::ArithmeticTraits::finite_max<float>::value,
+                        KokkosExt::ArithmeticTraits::finite_max<float>::value,
+                        KokkosExt::ArithmeticTraits::finite_max<float>::value}};
+  Point _max_corner = {{KokkosExt::ArithmeticTraits::finite_min<float>::value,
+                        KokkosExt::ArithmeticTraits::finite_min<float>::value,
+                        KokkosExt::ArithmeticTraits::finite_min<float>::value}};
 
   KOKKOS_FUNCTION Box &operator+=(Box const &other)
   {
