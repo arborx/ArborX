@@ -35,8 +35,8 @@ void findParents(ExecutionSpace const &exec_space, BVH const &bvh,
       "ArborX::recompute_internal_and_leaf_node_parents",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n - 1),
       KOKKOS_LAMBDA(int i) {
-        parents(Details::HappyTreeFriends::getLeftChild(bvh, i)) = i;
-        parents(Details::HappyTreeFriends::getRightChild(bvh, i)) = i;
+        parents(HappyTreeFriends::getLeftChild(bvh, i)) = i;
+        parents(HappyTreeFriends::getRightChild(bvh, i)) = i;
       });
 }
 
