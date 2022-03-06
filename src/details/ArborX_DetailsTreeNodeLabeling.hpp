@@ -22,24 +22,6 @@ namespace ArborX
 namespace Details
 {
 
-template <class ExecutionSpace, class BVH, class LabelsIn, class LabelsOut>
-void initLabels(ExecutionSpace const &exec_space, BVH const &bvh,
-                LabelsIn const &in, LabelsOut &out)
-{
-  int const n = bvh.size();
-
-  ARBORX_ASSERT(n >= 2);
-  ARBORX_ASSERT((int)in.size() == n);
-  ARBORX_ASSERT((int)out.size() == 2 * n - 1);
-
-  Kokkos::parallel_for(
-      "ArborX::initialize_leaf_node_labels",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, n - 1, 2 * n - 1),
-      KOKKOS_LAMBDA(int i) {
-        out(i) = in(Details::HappyTreeFriends::getLeafPermutationIndex(bvh, i));
-      });
-}
-
 template <class ExecutionSpace, class BVH, class Parents>
 void findParents(ExecutionSpace const &exec_space, BVH const &bvh,
                  Parents const &parents)
@@ -53,8 +35,8 @@ void findParents(ExecutionSpace const &exec_space, BVH const &bvh,
       "ArborX::recompute_internal_and_leaf_node_parents",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n - 1),
       KOKKOS_LAMBDA(int i) {
-        parents(Details::HappyTreeFriends::getLeftChild(bvh, i)) = i;
-        parents(Details::HappyTreeFriends::getRightChild(bvh, i)) = i;
+        parents(HappyTreeFriends::getLeftChild(bvh, i)) = i;
+        parents(HappyTreeFriends::getRightChild(bvh, i)) = i;
       });
 }
 
