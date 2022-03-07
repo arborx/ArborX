@@ -38,6 +38,7 @@ lastElement(ExecutionSpace const &space, Kokkos::View<T, P...> const &v)
   auto v_subview = Kokkos::subview(v, n - 1);
   auto v_host = Kokkos::create_mirror_view(v_subview); // FIXME
   Kokkos::deep_copy(space, v_host, v_subview);
+  space.fence();
   return v_host();
 }
 
