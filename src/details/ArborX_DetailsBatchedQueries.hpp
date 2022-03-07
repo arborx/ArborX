@@ -18,7 +18,7 @@
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsMortonCode.hpp> // morton32
 #include <ArborX_DetailsSortUtils.hpp>  // sortObjects
-#include <ArborX_DetailsUtils.hpp>      // exclusivePrefixSum, lastElement
+#include <ArborX_DetailsUtils.hpp>      // exclusivePrefixSum
 
 #include <Kokkos_Core.hpp>
 
@@ -137,8 +137,9 @@ public:
 
     ARBORX_ASSERT(offset.extent(0) == n + 1);
     ARBORX_ASSERT(tmp_offset.extent(0) == n + 1);
-    ARBORX_ASSERT(lastElement(offset) == indices.extent_int(0));
-    ARBORX_ASSERT(lastElement(tmp_offset) == indices.extent_int(0));
+    using KokkosExt::lastElement;
+    ARBORX_ASSERT(lastElement(space, offset) == indices.extent_int(0));
+    ARBORX_ASSERT(lastElement(space, tmp_offset) == indices.extent_int(0));
 
     auto tmp_indices =
         KokkosExt::cloneWithoutInitializingNorCopying(space, indices);

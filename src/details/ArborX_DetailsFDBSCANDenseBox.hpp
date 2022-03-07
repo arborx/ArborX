@@ -159,17 +159,20 @@ struct FDBSCANDenseBoxCallback
   Permutation _permute;
   float eps;
 
+  template <typename ExecutionSpace>
   FDBSCANDenseBoxCallback(Kokkos::View<int *, MemorySpace> const &labels,
                           CorePointsType const &is_core_point,
                           Primitives const &primitives,
                           DenseCellOffsets const &dense_cell_offsets,
+                          ExecutionSpace const &exec_space,
                           Permutation const &permute, float eps_in)
       : _union_find(labels)
       , _is_core_point(is_core_point)
       , _primitives(primitives)
       , _dense_cell_offsets(dense_cell_offsets)
       , _num_dense_cells(dense_cell_offsets.size() - 1)
-      , _num_points_in_dense_cells(lastElement(dense_cell_offsets))
+      , _num_points_in_dense_cells(
+            KokkosExt::lastElement(exec_space, _dense_cell_offsets))
       , _permute(permute)
       , eps(eps_in)
   {

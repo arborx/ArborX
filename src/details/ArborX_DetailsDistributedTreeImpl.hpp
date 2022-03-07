@@ -320,7 +320,8 @@ void DistributedTreeImpl<DeviceType>::deviseStrategy(
   // Truncate results so that queries will only be forwarded to as many local
   // trees as necessary to find k neighbors.
   Kokkos::View<int *, DeviceType> new_indices(
-      Kokkos::view_alloc(space, indices.label()), lastElement(new_offset));
+      Kokkos::view_alloc(space, indices.label()),
+      KokkosExt::lastElement(space, new_offset));
   Kokkos::parallel_for(
       "ArborX::DistributedTree::query::truncate_before_forwarding",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
@@ -685,7 +686,7 @@ void DistributedTreeImpl<DeviceType>::forwardQueries(
 
   using Access = AccessTraits<Predicates, PredicatesTag>;
   int const n_queries = Access::size(queries);
-  int const n_exports = lastElement(offset);
+  int const n_exports = KokkosExt::lastElement(space, offset);
   int const n_imports = distributor.createFromSends(space, indices);
 
   static_assert(
@@ -770,7 +771,7 @@ void DistributedTreeImpl<DeviceType>::communicateResultsBack(
   MPI_Comm_rank(comm, &comm_rank);
 
   int const n_fwd_queries = offset.extent_int(0) - 1;
-  int const n_exports = lastElement(offset);
+  int const n_exports = KokkosExt::lastElement(space, offset);
 
   // We are assuming here that if the same rank is related to multiple batches
   // these batches appear consecutively. Hence, no reordering is necessary.
@@ -860,7 +861,7 @@ void DistributedTreeImpl<DeviceType>::filterResults(
 
   exclusivePrefixSum(space, new_offset);
 
-  int const n_truncated_results = lastElement(new_offset);
+  int const n_truncated_results = KokkosExt::lastElement(space, new_offset);
   Kokkos::View<int *, DeviceType> new_indices(
       Kokkos::view_alloc(space, indices.label()), n_truncated_results);
   Kokkos::View<int *, DeviceType> new_ranks(
@@ -877,7 +878,7 @@ void DistributedTreeImpl<DeviceType>::filterResults(
     }
   };
 
-  int const n_results = lastElement(offset);
+  int const n_results = KokkosExt::lastElement(space, offset);
   Kokkos::View<PairIndexDistance *, DeviceType> buffer(
       Kokkos::view_alloc(
           space, Kokkos::WithoutInitializing,

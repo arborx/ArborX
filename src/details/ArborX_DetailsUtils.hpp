@@ -252,17 +252,11 @@ template <typename T, typename... P>
  *  \pre \c v is of rank 1 and not empty.
  */
 template <typename T, typename... P>
-typename Kokkos::ViewTraits<T, P...>::non_const_value_type
+[[deprecated]] typename Kokkos::ViewTraits<T, P...>::non_const_value_type
 lastElement(Kokkos::View<T, P...> const &v)
 {
-  static_assert((unsigned(Kokkos::ViewTraits<T, P...>::rank) == unsigned(1)),
-                "lastElement requires Views of rank 1");
-  auto const n = v.extent(0);
-  ARBORX_ASSERT(n > 0);
-  auto v_subview = Kokkos::subview(v, n - 1);
-  auto v_host = Kokkos::create_mirror_view(v_subview);
-  Kokkos::deep_copy(v_host, v_subview);
-  return v_host();
+  using ExecutionSpace = typename Kokkos::View<T, P...>::execution_space;
+  return KokkosExt::lastElement(ExecutionSpace{}, v);
 }
 
 /** \brief Fills the view with a sequence of numbers

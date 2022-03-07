@@ -18,7 +18,8 @@
 #include "ArborX_BoostRangeAdapters.hpp"
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp> // is_accessible_from_host
-#include <ArborX_DetailsUtils.hpp> // exclusivePrefixSum, lastElement
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>         // lastElement
+#include <ArborX_DetailsUtils.hpp>                        // exclusivePrefixSum
 #include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
 
@@ -195,8 +196,9 @@ performQueries(RTree<Indexable> const &rtree, InputView const &queries)
     offset(i) = rtree.query(translate<Value>(queries(i)),
                             std::back_inserter(returned_values));
   using ExecutionSpace = typename InputView::execution_space;
-  ArborX::exclusivePrefixSum(ExecutionSpace{}, offset);
-  auto const n_results = ArborX::lastElement(offset);
+  ExecutionSpace space;
+  ArborX::exclusivePrefixSum(space, offset);
+  auto const n_results = KokkosExt::lastElement(space, offset);
   OutputView indices("indices", n_results);
   for (int i = 0; i < n_queries; ++i)
     for (int j = offset(i); j < offset(i + 1); ++j)
@@ -221,8 +223,9 @@ performQueries(ParallelRTree<Indexable> const &rtree, InputView const &queries)
     offset(i) = rtree.query(translate<Value>(queries(i)),
                             std::back_inserter(returned_values));
   using ExecutionSpace = typename InputView::execution_space;
-  ArborX::exclusivePrefixSum(ExecutionSpace{}, offset);
-  auto const n_results = ArborX::lastElement(offset);
+  ExecutionSpace space;
+  ArborX::exclusivePrefixSum(space, offset);
+  auto const n_results = KokkosExt::lastElement(space, offset);
   OutputView1 values("values", n_results);
   for (int i = 0; i < n_queries; ++i)
     for (int j = offset(i); j < offset(i + 1); ++j)

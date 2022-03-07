@@ -58,7 +58,8 @@ determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
   offsets.push_back(0);
 
   auto const n_batched_ranks = batched_ranks.size();
-  if (n_batched_ranks == 0 || lastElement(batched_offsets) == 0)
+  if (n_batched_ranks == 0 ||
+      KokkosExt::lastElement(space, batched_offsets) == 0)
     return;
 
   using DeviceType = typename InputView::traits::device_type;

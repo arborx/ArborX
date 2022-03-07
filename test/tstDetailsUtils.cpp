@@ -104,21 +104,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(prefix_sum, DeviceType, ARBORX_DEVICE_TYPES)
   BOOST_TEST(w_host == w_ref, tt::per_element());
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(last_element, DeviceType, ARBORX_DEVICE_TYPES)
-{
-  Kokkos::View<int *, DeviceType> v("v", 2);
-  auto v_host = Kokkos::create_mirror_view(v);
-  v_host(0) = 33;
-  v_host(1) = 24;
-  Kokkos::deep_copy(v, v_host);
-  BOOST_TEST(ArborX::lastElement(v) == 24);
-  Kokkos::View<int *, DeviceType> w("w", 0);
-  BOOST_CHECK_THROW(ArborX::lastElement(w), ArborX::SearchException);
-  Kokkos::View<double[1], DeviceType> u("u");
-  Kokkos::deep_copy(u, 3.14);
-  BOOST_TEST(ArborX::lastElement(u) == 3.14);
-}
-
 BOOST_AUTO_TEST_CASE_TEMPLATE(minmax, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
