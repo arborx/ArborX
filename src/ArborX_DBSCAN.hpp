@@ -311,8 +311,10 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     int num_points_in_dense_cells;
     {
       // Reorder indices and permutation so that the dense cells go first
-      auto cell_offsets =
-          Details::computeOffsetsInOrderedView(exec_space, sorted_cell_indices);
+      Kokkos::View<int *, MemorySpace> cell_offsets(
+          "ArborX::DBSCAN::cell_offsets", 0);
+      Details::computeOffsetsInOrderedView(exec_space, sorted_cell_indices,
+                                           cell_offsets);
       num_nonempty_cells = cell_offsets.size() - 1;
 
       num_points_in_dense_cells = Details::reorderDenseAndSparseCells(
@@ -324,8 +326,10 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     auto dense_sorted_cell_indices = Kokkos::subview(
         sorted_cell_indices, Kokkos::make_pair(0, num_points_in_dense_cells));
 
-    auto dense_cell_offsets = Details::computeOffsetsInOrderedView(
-        exec_space, dense_sorted_cell_indices);
+    Kokkos::View<int *, MemorySpace> dense_cell_offsets(
+        "ArborX::DBSCAN::dense_cell_offsets", 0);
+    Details::computeOffsetsInOrderedView(exec_space, dense_sorted_cell_indices,
+                                         dense_cell_offsets);
     int num_dense_cells = dense_cell_offsets.size() - 1;
     if (verbose)
     {
