@@ -393,9 +393,10 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
   if (policy._sort_predicates)
   {
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
-    auto permute =
-        Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-            space, static_cast<Box>(tree.bounds()), predicates);
+    auto permute = Details::BatchedQueries<DeviceType>::
+        sortPredicatesAlongSpaceFillingCurve(space, Experimental::Morton32(),
+                                             static_cast<Box>(tree.bounds()),
+                                             predicates);
     Kokkos::Profiling::popRegion();
 
     queryImpl(space, tree, predicates, callback, out, offset, permute,

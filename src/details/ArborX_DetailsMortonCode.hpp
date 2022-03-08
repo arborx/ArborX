@@ -13,7 +13,6 @@
 #define ARBORX_DETAILS_MORTON_CODE_UTILS_HPP
 
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp> // min. max
-#include <ArborX_Exception.hpp>
 
 namespace ArborX
 {

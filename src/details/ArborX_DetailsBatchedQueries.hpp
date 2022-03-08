@@ -16,9 +16,9 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // returnCentroid, translateAndScale
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
-#include <ArborX_DetailsMortonCode.hpp> // morton32
-#include <ArborX_DetailsSortUtils.hpp>  // sortObjects
-#include <ArborX_DetailsUtils.hpp>      // exclusivePrefixSum
+#include <ArborX_DetailsSortUtils.hpp> // sortObjects
+#include <ArborX_DetailsUtils.hpp>     // exclusivePrefixSum, lastElement
+#include <ArborX_SpaceFillingCurves.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -47,32 +47,34 @@ public:
   // indirection when recording results rather than using that function at
   // the end.  We decided to keep reversePermutation around for now.
 
-  template <typename ExecutionSpace, typename Predicates>
+  template <typename ExecutionSpace, typename Predicates,
+            typename SpaceFillingCurve>
   static Kokkos::View<unsigned int *, DeviceType>
-  sortQueriesAlongZOrderCurve(ExecutionSpace const &space,
-                              Box const &scene_bounding_box,
-                              Predicates const &predicates)
+  sortPredicatesAlongSpaceFillingCurve(ExecutionSpace const &space,
+                                       SpaceFillingCurve const &curve,
+                                       Box const &scene_bounding_box,
+                                       Predicates const &predicates)
   {
     using Access = AccessTraits<Predicates, PredicatesTag>;
     auto const n_queries = Access::size(predicates);
 
-    Kokkos::View<unsigned int *, DeviceType> morton_codes(
+    using LinearOrderingValueType =
+        KokkosExt::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
+                              SpaceFillingCurve, Point>;
+    Kokkos::View<LinearOrderingValueType *, DeviceType> linear_ordering_indices(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                           "ArborX::BVH::query::morton"),
+                           "ArborX::BVH::query::linear_ordering"),
         n_queries);
     Kokkos::parallel_for(
-        "ArborX::BatchedQueries::assign_morton_codes_to_queries",
+        "ArborX::BatchedQueries::project_predicates_onto_space_filling_curve",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i) {
-          using Details::returnCentroid;
-          Point xyz = returnCentroid(getGeometry(Access::get(predicates, i)));
-          translateAndScale(xyz, xyz, scene_bounding_box);
-          // Use 32-bit Morton indices instead of 64-bit as in construction. For
-          // most (all?) situations, 64-bit just adds a penalty with no benefit.
-          morton_codes(i) = morton32(xyz[0], xyz[1], xyz[2]);
+          linear_ordering_indices(i) =
+              curve(scene_bounding_box,
+                    returnCentroid(getGeometry(Access::get(predicates, i))));
         });
 
-    return sortObjects(space, morton_codes);
+    return sortObjects(space, linear_ordering_indices);
   }
 
   // NOTE  trailing return type seems required :(

@@ -24,6 +24,7 @@
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsTreeConstruction.hpp>
 #include <ArborX_DetailsTreeTraversal.hpp>
+#include <ArborX_SpaceFillingCurves.hpp>
 #include <ArborX_TraversalPolicy.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -48,9 +49,11 @@ public:
 
   BasicBoundingVolumeHierarchy() = default; // build an empty tree
 
-  template <typename ExecutionSpace, typename Primitives>
-  BasicBoundingVolumeHierarchy(ExecutionSpace const &space,
-                               Primitives const &primitives);
+  template <typename ExecutionSpace, typename Primitives,
+            typename SpaceFillingCurve = Experimental::Morton64>
+  BasicBoundingVolumeHierarchy(
+      ExecutionSpace const &space, Primitives const &primitives,
+      SpaceFillingCurve const &curve = SpaceFillingCurve());
 
   KOKKOS_FUNCTION
   size_type size() const noexcept { return _size; }
@@ -190,10 +193,12 @@ template <typename MemorySpace>
 using BVH = BoundingVolumeHierarchy<MemorySpace>;
 
 template <typename MemorySpace, typename BoundingVolume, typename Enable>
-template <typename ExecutionSpace, typename Primitives>
+template <typename ExecutionSpace, typename Primitives,
+          typename SpaceFillingCurve>
 BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
     BasicBoundingVolumeHierarchy(ExecutionSpace const &space,
-                                 Primitives const &primitives)
+                                 Primitives const &primitives,
+                                 SpaceFillingCurve const &curve)
     : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
     , _internal_and_leaf_nodes(
           Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
@@ -207,6 +212,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                               ExecutionSpace>::value,
                 "Primitives must be accessible from the execution space");
+  Details::check_valid_space_filling_curve(curve);
 
   KokkosExt::ScopedProfileRegion guard("ArborX::BVH::BVH");
 
@@ -238,29 +244,33 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
     return;
   }
 
-  Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::assign_morton_codes");
+  Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::compute_linear_ordering");
 
-  // calculate Morton codes of all objects
-  Kokkos::View<unsigned long long *, MemorySpace> morton_indices(
+  // map primitives from multidimensional domain to one-dimensional interval
+  using LinearOrderingValueType = KokkosExt::detected_t<
+      Details::SpaceFillingCurveProjectionArchetypeExpression,
+      SpaceFillingCurve, Point>;
+  Kokkos::View<LinearOrderingValueType *, MemorySpace> linear_ordering_indices(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                         "ArborX::BVH::BVH::morton"),
+                         "ArborX::BVH::BVH::linear_ordering"),
       size());
-  Details::TreeConstruction::assignMortonCodes(space, primitives,
-                                               morton_indices, bbox);
+  Details::TreeConstruction::projectOntoSpaceFillingCurve(
+      space, primitives, curve, bbox, linear_ordering_indices);
 
   Kokkos::Profiling::popRegion();
-  Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::sort_morton_codes");
+  Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::sort_linearized_order");
 
-  // compute the ordering of primitives along Z-order space-filling curve
-  auto permutation_indices = Details::sortObjects(space, morton_indices);
+  // compute the ordering of the primitives along the space-filling curve
+  auto permutation_indices =
+      Details::sortObjects(space, linear_ordering_indices);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::generate_hierarchy");
 
   // generate bounding volume hierarchy
   Details::TreeConstruction::generateHierarchy(
-      space, primitives, permutation_indices, morton_indices, getLeafNodes(),
-      getInternalNodes());
+      space, primitives, permutation_indices, linear_ordering_indices,
+      getLeafNodes(), getInternalNodes());
 
   Kokkos::deep_copy(
       space,
@@ -299,9 +309,10 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
   {
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
-    auto permute =
-        Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-            space, static_cast<Box>(bounds()), predicates);
+    auto permute = Details::BatchedQueries<DeviceType>::
+        sortPredicatesAlongSpaceFillingCurve(space, Experimental::Morton32(),
+                                             static_cast<Box>(bounds()),
+                                             predicates);
     Kokkos::Profiling::popRegion();
 
     using PermutedPredicates =

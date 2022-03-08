@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(assign_morton_codes, DeviceType,
                                        {{1.66, 2.66, 3.66}},
                                        {{(float)N, (float)N, (float)N}}};
   int const n = points.size();
-  // lower left front corner corner of the octant the points fall in
+  // lower left front corner of the octant the points fall in
   std::vector<std::array<unsigned long long, 3>> anchors = {
       {{0, 0, 0}},
       {{0, 0, 0}},
@@ -79,8 +79,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(assign_morton_codes, DeviceType,
 
   Kokkos::View<unsigned long long *, DeviceType> morton_codes("morton_codes",
                                                               n);
-  ArborX::Details::TreeConstruction::assignMortonCodes(
-      space, boxes, morton_codes, scene_host);
+  ArborX::Details::TreeConstruction::projectOntoSpaceFillingCurve(
+      space, boxes, ArborX::Experimental::Morton64(), scene_host, morton_codes);
   auto morton_codes_host = Kokkos::create_mirror_view(morton_codes);
   Kokkos::deep_copy(morton_codes_host, morton_codes);
   BOOST_TEST(morton_codes_host == ref, tt::per_element());
