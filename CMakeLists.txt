@@ -18,6 +18,21 @@ add_dependencies(ArborX record_hash)
 include(CMakeDependentOption)
 cmake_dependent_option(ARBORX_ENABLE_ROCTHRUST "Enable rocThrust support" ON "Kokkos_ENABLE_HIP" OFF)
 if(Kokkos_ENABLE_HIP AND ARBORX_ENABLE_ROCTHRUST)
+
+  if(NOT DEFINED GPU_TARGETS)
+    if(VEGA900 IN_LIST Kokkos_ARCH)
+      set(GPU_TARGETS gfx900)
+    elseif(VEGA906 IN_LIST Kokkos_ARCH)
+      set(GPU_TARGETS gfx906)
+    elseif(VEGA908 IN_LIST Kokkos_ARCH)
+      set(GPU_TARGETS gfx908)
+    elseif(VEGA90A IN_LIST Kokkos_ARCH)
+      set(GPU_TARGETS gfx90a)
+    else()
+      message(WARNING "GPU device code will be built for all supported architectures for AMD ROCm.")
+    endif()
+  endif()
+
   # Require at least rocThrust-2.10.5 (that comes with ROCm 3.9) because
   # rocPRIM dependency is not set properly in exported configuration for
   # earlier versions
