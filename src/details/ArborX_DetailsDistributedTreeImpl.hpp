@@ -217,7 +217,7 @@ struct DistributedTreeImpl
                 ExecutionSpace const &space, Predicates const &queries,
                 IndicesAndRanks &values, Offset &offset)
   {
-    // FIXME avoid zipping when distributed nearest callbacks become availale
+    // FIXME avoid zipping when distributed nearest callbacks become available
     Kokkos::View<int *, ExecutionSpace> indices(
         "ArborX::DistributedTree::query::nearest::indices", 0);
     Kokkos::View<int *, ExecutionSpace> ranks(
@@ -536,13 +536,13 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
   // recompute everything instead of just searching for potential better
   // neighbors and updating the list.
 
-  // Right now, distance calcuations only work with BVH due to using functions
+  // Right now, distance calculations only work with BVH due to using functions
   // in DistributedTreeNearestUtils. So, there's no point in replacing this
   // with decltype.
   CallbackWithDistance<BVH<typename DeviceType::memory_space>>
       callback_with_distance(space, bottom_tree);
 
-  // NOTE: compiler would not deduce __range for the braced-init-list but I
+  // NOTE: compiler would not deduce __range for the braced-init-list, but I
   // got it to work with the static_cast to function pointers.
   using Strategy =
       void (*)(ExecutionSpace const &, Predicates const &,
@@ -833,7 +833,7 @@ void DistributedTreeImpl<DeviceType>::communicateResultsBack(
   Distributor<DeviceType> distributor(comm);
   // FIXME Distributor::createFromSends takes two views of the same type by
   // a const reference.  There were two easy ways out, either take the views by
-  // value or cast at the callsite.  I went with the latter.  Proper fix
+  // value or cast at the call site.  I went with the latter.  Proper fix
   // involves more code cleanup in ArborX_DetailsDistributor.hpp than I am
   // willing to do just now.
   int const n_imports =
