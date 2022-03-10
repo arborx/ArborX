@@ -19,8 +19,18 @@ namespace KokkosExt
 
 #if KOKKOS_VERSION >= 30699
 using Kokkos::isfinite;
+
+KOKKOS_INLINE_FUNCTION float hypot(float x, float y, float z)
+{
+  return Kokkos::sqrt(x * x + y * y + z * z);
+}
 #else
 using Kokkos::Experimental::isfinite;
+
+KOKKOS_INLINE_FUNCTION float hypot(float x, float y, float z)
+{
+  return Kokkos::Experimental::sqrt(x * x + y * y + z * z);
+}
 #endif
 
 } // namespace KokkosExt

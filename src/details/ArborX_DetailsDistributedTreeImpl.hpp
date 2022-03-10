@@ -42,6 +42,29 @@ struct DefaultCallbackWithRank
   }
 };
 
+KOKKOS_INLINE_FUNCTION Sphere buildSphere(Point const &center, float radius)
+{
+  return Sphere{center, radius};
+}
+
+KOKKOS_INLINE_FUNCTION Sphere buildSphere(Box const &box, float radius)
+{
+  Point center = returnCentroid(box);
+  // FIXME We would like to use the code below but makeVector is in ArborX_Ray.
+  // const diag = makeVector(box.minCorner(), box.maxCorner());
+  Point const diag{box.maxCorner()[0] - box.minCorner()[0],
+                   box.maxCorner()[1] - box.minCorner()[1],
+                   box.maxCorner()[2] - box.minCorner()[2]};
+  auto const hypot = KokkosExt::hypot(diag[0], diag[1], diag[2]);
+
+  return Sphere{center, radius + hypot / 2};
+}
+
+KOKKOS_INLINE_FUNCTION Sphere buildSphere(Sphere const &sphere, float radius)
+{
+  return Sphere{sphere.centroid(), radius + sphere.radius()};
+}
+
 template <typename DeviceType>
 struct DistributedTreeImpl
 {
@@ -379,8 +402,8 @@ void DistributedTreeImpl<DeviceType>::reassessStrategy(
       "ArborX::DistributedTree::query::bottom_trees_within_that_distance",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int i) {
-        radius_searches(i) = intersects(Sphere{
-            getGeometry(Access::get(queries, i)), farthest_distances(i)});
+        radius_searches(i) = intersects(buildSphere(
+            getGeometry(Access::get(queries, i)), farthest_distances(i)));
       });
 
   query(top_tree, space, radius_searches, indices, offset);
