@@ -85,14 +85,12 @@ struct AccessTraits<
     auto &min_corner = box.minCorner();
     auto &max_corner = box.maxCorner();
     auto const distance = x.distances(i);
-    Point point;
-    Details::centroid(box, point);
-    Point const diag{max_corner[0] - min_corner[0],
-                     max_corner[1] - min_corner[1],
-                     max_corner[2] - min_corner[2]};
-    auto const hypot = KokkosExt::hypot(diag[0], diag[1], diag[2]);
-
-    return intersects(Sphere{point, distance + hypot / 2});
+    for (int d = 0; d < 3; ++d)
+    {
+      min_corner[d] -= distance;
+      max_corner[d] += distance;
+    }
+    return intersects(box);
   }
   template <class Dummy = Geometry,
             std::enable_if_t<std::is_same<Dummy, Geometry>::value &&
