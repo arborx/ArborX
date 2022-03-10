@@ -42,28 +42,71 @@ struct DefaultCallbackWithRank
   }
 };
 
-KOKKOS_INLINE_FUNCTION Sphere buildSphere(Point const &center, float radius)
+template <class Predicates, class Distances>
+struct WithinDistanceFromPredicates
 {
-  return Sphere{center, radius};
-}
+  Predicates predicates;
+  Distances distances;
+};
 
-KOKKOS_INLINE_FUNCTION Sphere buildSphere(Box const &box, float radius)
+} // namespace Details
+
+template <class Predicates, class Distances>
+struct AccessTraits<
+    Details::WithinDistanceFromPredicates<Predicates, Distances>, PredicatesTag>
 {
-  Point center = returnCentroid(box);
-  // FIXME We would like to use the code below but makeVector is in ArborX_Ray.
-  // const diag = makeVector(box.minCorner(), box.maxCorner());
-  Point const diag{box.maxCorner()[0] - box.minCorner()[0],
-                   box.maxCorner()[1] - box.minCorner()[1],
-                   box.maxCorner()[2] - box.minCorner()[2]};
-  auto const hypot = KokkosExt::hypot(diag[0], diag[1], diag[2]);
+  using Access = AccessTraits<Predicates, PredicatesTag>;
+  using Predicate = typename Details::AccessTraitsHelper<Access>::type;
+  using Geometry =
+      std::decay_t<decltype(getGeometry(std::declval<Predicate const &>()))>;
+  using Self = Details::WithinDistanceFromPredicates<Predicates, Distances>;
 
-  return Sphere{center, radius + hypot / 2};
-}
+  using memory_space = typename Access::memory_space;
+  using size_type = size_t;
+  static KOKKOS_FUNCTION size_type size(Self const &x)
+  {
+    return Access::size(x.predicates);
+  }
+  template <class Dummy = Geometry,
+            std::enable_if_t<std::is_same<Dummy, Geometry>::value &&
+                             std::is_same<Dummy, Point>::value> * = nullptr>
+  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
+  {
+    auto const &point = getGeometry(Access::get(x.predicates, i));
+    auto const distance = x.distances(i);
+    return intersects(Sphere{point, distance});
+  }
+  template <class Dummy = Geometry,
+            std::enable_if_t<std::is_same<Dummy, Geometry>::value &&
+                             std::is_same<Dummy, Box>::value> * = nullptr>
+  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
+  {
+    auto box = getGeometry(Access::get(x.predicates, i));
+    auto &min_corner = box.minCorner();
+    auto &max_corner = box.maxCorner();
+    auto const distance = x.distances(i);
+    Point point;
+    Details::centroid(box, point);
+    Point const diag{max_corner[0] - min_corner[0],
+                     max_corner[1] - min_corner[1],
+                     max_corner[2] - min_corner[2]};
+    auto const hypot = KokkosExt::hypot(diag[0], diag[1], diag[2]);
 
-KOKKOS_INLINE_FUNCTION Sphere buildSphere(Sphere const &sphere, float radius)
+    return intersects(Sphere{point, distance + hypot / 2});
+  }
+  template <class Dummy = Geometry,
+            std::enable_if_t<std::is_same<Dummy, Geometry>::value &&
+                             std::is_same<Dummy, Sphere>::value> * = nullptr>
+  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
+  {
+    auto const &sphere = getGeometry(Access::get(x.predicates, i));
+    auto const distance = x.distances(i);
+    return intersects(Sphere{sphere.centroid(), distance + sphere.radius()});
+  }
+};
+
+namespace Details
 {
-  return Sphere{sphere.centroid(), radius + sphere.radius()};
-}
 
 template <typename DeviceType>
 struct DistributedTreeImpl
@@ -392,21 +435,10 @@ void DistributedTreeImpl<DeviceType>::reassessStrategy(
           farthest_distances(i) = max(farthest_distances(i), distances(j));
       });
 
-  // Identify what ranks may have leaves that are within that distance.
-  Kokkos::View<decltype(intersects(Sphere{})) *, DeviceType> radius_searches(
-      Kokkos::view_alloc(
-          space, Kokkos::WithoutInitializing,
-          "ArborX::DistributedTree::query::reassessStrategy::queries"),
-      n_queries);
-  Kokkos::parallel_for(
-      "ArborX::DistributedTree::query::bottom_trees_within_that_distance",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-      KOKKOS_LAMBDA(int i) {
-        radius_searches(i) = intersects(buildSphere(
-            getGeometry(Access::get(queries, i)), farthest_distances(i)));
-      });
-
-  query(top_tree, space, radius_searches, indices, offset);
+  query(top_tree, space,
+        WithinDistanceFromPredicates<Predicates, decltype(farthest_distances)>{
+            queries, farthest_distances},
+        indices, offset);
   // NOTE: in principle, we could perform radius searches on the bottom_tree
   // rather than nearest queries.
 
