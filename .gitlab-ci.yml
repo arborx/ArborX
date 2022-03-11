@@ -2,6 +2,7 @@
 
 variables:
   SCHEDULER_PARAMETERS: "-J ArborX_CI -W 1:00 -nnodes 1 -P CSC333 -alloc_flags smt1"
+  CUSTOM_CI_BUILDS_DIR: "/gpfs/wolf/csc333/scratch/${GITLAB_RUNNER_USER}"
 
 stages:
   - buildDependencies
