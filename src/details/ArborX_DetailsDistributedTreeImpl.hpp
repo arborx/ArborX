@@ -62,7 +62,7 @@ struct AccessTraits<
   using Self = Details::WithinDistanceFromPredicates<Predicates, Distances>;
 
   using memory_space = typename Access::memory_space;
-  using size_type = size_t;
+  using size_type = decltype(Access::size(std::declval<Predicates const &>()));
   static KOKKOS_FUNCTION size_type size(Self const &x)
   {
     return Access::size(x.predicates);
