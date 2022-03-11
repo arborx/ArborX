@@ -432,6 +432,130 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_nearest_neighbors, DeviceType,
   }
 }
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_box_nearest_neighbors, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  using ExecutionSpace = typename DeviceType::execution_space;
+
+  MPI_Comm comm = MPI_COMM_WORLD;
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+  int comm_size;
+  MPI_Comm_size(comm, &comm_size);
+
+  //  +----------0----------1----------2----------3
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  0----------1----------2----------3----------+
+  //  [  rank 0  ]
+  //             [  rank 1  ]
+  //                        [  rank 2  ]
+  //                                   [  rank 3  ]
+  auto const tree = makeDistributedTree<DeviceType>(
+      comm, {
+                {{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank, 0., 0.}}},
+                {{{(double)comm_rank + 1., 1., 1.}},
+                 {{(double)comm_rank + 1., 1., 1.}}},
+            });
+
+  BOOST_TEST(!tree.empty());
+  BOOST_TEST((int)tree.size() == 2 * comm_size);
+
+  //  +----------0----------1----------2----------3
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  0-------x--1-------X--2-------X--3-------X--+
+  //          ^          ^          ^          ^
+  //          3          2          1          0
+  if (comm_rank > 0)
+  {
+    ARBORX_TEST_QUERY_TREE(
+        ExecutionSpace{}, tree,
+        makeBoxNearestQueries<DeviceType>({
+            {{{(double)(comm_size - 1 - comm_rank) + .65, 0., 0.}},
+             {{(double)(comm_size - 1 - comm_rank) + .85, 0., 0.}},
+             1},
+        }),
+        make_reference_solution<PairIndexRank>({{0, comm_size - comm_rank}},
+                                               {0, 1}));
+  }
+  else
+  {
+    ARBORX_TEST_QUERY_TREE(
+        ExecutionSpace{}, tree,
+        makeBoxNearestQueries<DeviceType>({
+            {{{(double)(comm_size - 1 - comm_rank) + .65, 0., 0.}},
+             {{(double)(comm_size - 1 - comm_rank) + .85, 0., 0.}},
+             1},
+        }),
+        make_reference_solution<PairIndexRank>({{0, comm_size - 1}}, {0, 1}));
+  }
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_sphere_nearest_neighbors,
+                              DeviceType, ARBORX_DEVICE_TYPES)
+{
+  using ExecutionSpace = typename DeviceType::execution_space;
+
+  MPI_Comm comm = MPI_COMM_WORLD;
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+  int comm_size;
+  MPI_Comm_size(comm, &comm_size);
+
+  //  +----------0----------1----------2----------3
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  0----------1----------2----------3----------+
+  //  [  rank 0  ]
+  //             [  rank 1  ]
+  //                        [  rank 2  ]
+  //                                   [  rank 3  ]
+  auto const tree = makeDistributedTree<DeviceType>(
+      comm, {
+                {{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank, 0., 0.}}},
+                {{{(double)comm_rank + 1., 1., 1.}},
+                 {{(double)comm_rank + 1., 1., 1.}}},
+            });
+
+  BOOST_TEST(!tree.empty());
+  BOOST_TEST((int)tree.size() == 2 * comm_size);
+
+  //  +----------0----------1----------2----------3
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  0-------x--1-------X--2-------X--3-------X--+
+  //          ^          ^          ^          ^
+  //          3          2          1          0
+  if (comm_rank > 0)
+  {
+    ARBORX_TEST_QUERY_TREE(
+        ExecutionSpace{}, tree,
+        makeSphereNearestQueries<DeviceType>({
+            {{{(double)(comm_size - 1 - comm_rank) + .75, 0., 0.}}, 0.1, 1},
+        }),
+        make_reference_solution<PairIndexRank>({{0, comm_size - comm_rank}},
+                                               {0, 1}));
+  }
+  else
+  {
+    ARBORX_TEST_QUERY_TREE(
+        ExecutionSpace{}, tree,
+        makeSphereNearestQueries<DeviceType>({
+            {{{(double)(comm_size - 1 - comm_rank) + .75, 0., 0.}}, 0.1, 1},
+        }),
+        make_reference_solution<PairIndexRank>({{0, comm_size - 1}}, {0, 1}));
+  }
+}
+
 template <typename DeviceType>
 struct CustomInlineCallbackWithAttachment
 {

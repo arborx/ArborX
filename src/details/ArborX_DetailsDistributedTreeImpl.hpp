@@ -42,6 +42,70 @@ struct DefaultCallbackWithRank
   }
 };
 
+template <class Predicates, class Distances>
+struct WithinDistanceFromPredicates
+{
+  Predicates predicates;
+  Distances distances;
+};
+
+} // namespace Details
+
+template <class Predicates, class Distances>
+struct AccessTraits<
+    Details::WithinDistanceFromPredicates<Predicates, Distances>, PredicatesTag>
+{
+  using Access = AccessTraits<Predicates, PredicatesTag>;
+  using Predicate = typename Details::AccessTraitsHelper<Access>::type;
+  using Geometry =
+      std::decay_t<decltype(getGeometry(std::declval<Predicate const &>()))>;
+  using Self = Details::WithinDistanceFromPredicates<Predicates, Distances>;
+
+  using memory_space = typename Access::memory_space;
+  using size_type = decltype(Access::size(std::declval<Predicates const &>()));
+  static KOKKOS_FUNCTION size_type size(Self const &x)
+  {
+    return Access::size(x.predicates);
+  }
+  template <class Dummy = Geometry,
+            std::enable_if_t<std::is_same<Dummy, Geometry>::value &&
+                             std::is_same<Dummy, Point>::value> * = nullptr>
+  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
+  {
+    auto const point = getGeometry(Access::get(x.predicates, i));
+    auto const distance = x.distances(i);
+    return intersects(Sphere{point, distance});
+  }
+  template <class Dummy = Geometry,
+            std::enable_if_t<std::is_same<Dummy, Geometry>::value &&
+                             std::is_same<Dummy, Box>::value> * = nullptr>
+  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
+  {
+    auto box = getGeometry(Access::get(x.predicates, i));
+    auto &min_corner = box.minCorner();
+    auto &max_corner = box.maxCorner();
+    auto const distance = x.distances(i);
+    for (int d = 0; d < 3; ++d)
+    {
+      min_corner[d] -= distance;
+      max_corner[d] += distance;
+    }
+    return intersects(box);
+  }
+  template <class Dummy = Geometry,
+            std::enable_if_t<std::is_same<Dummy, Geometry>::value &&
+                             std::is_same<Dummy, Sphere>::value> * = nullptr>
+  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
+  {
+    auto const sphere = getGeometry(Access::get(x.predicates, i));
+    auto const distance = x.distances(i);
+    return intersects(Sphere{sphere.centroid(), distance + sphere.radius()});
+  }
+};
+
+namespace Details
+{
+
 template <typename DeviceType>
 struct DistributedTreeImpl
 {
@@ -151,7 +215,7 @@ struct DistributedTreeImpl
                 ExecutionSpace const &space, Predicates const &queries,
                 IndicesAndRanks &values, Offset &offset)
   {
-    // FIXME avoid zipping when distributed nearest callbacks become availale
+    // FIXME avoid zipping when distributed nearest callbacks become available
     Kokkos::View<int *, ExecutionSpace> indices(
         "ArborX::DistributedTree::query::nearest::indices", 0);
     Kokkos::View<int *, ExecutionSpace> ranks(
@@ -369,21 +433,10 @@ void DistributedTreeImpl<DeviceType>::reassessStrategy(
           farthest_distances(i) = max(farthest_distances(i), distances(j));
       });
 
-  // Identify what ranks may have leaves that are within that distance.
-  Kokkos::View<decltype(intersects(Sphere{})) *, DeviceType> radius_searches(
-      Kokkos::view_alloc(
-          space, Kokkos::WithoutInitializing,
-          "ArborX::DistributedTree::query::reassessStrategy::queries"),
-      n_queries);
-  Kokkos::parallel_for(
-      "ArborX::DistributedTree::query::bottom_trees_within_that_distance",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-      KOKKOS_LAMBDA(int i) {
-        radius_searches(i) = intersects(Sphere{
-            getGeometry(Access::get(queries, i)), farthest_distances(i)});
-      });
-
-  query(top_tree, space, radius_searches, indices, offset);
+  query(top_tree, space,
+        WithinDistanceFromPredicates<Predicates, decltype(farthest_distances)>{
+            queries, farthest_distances},
+        indices, offset);
   // NOTE: in principle, we could perform radius searches on the bottom_tree
   // rather than nearest queries.
 
@@ -481,13 +534,13 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
   // recompute everything instead of just searching for potential better
   // neighbors and updating the list.
 
-  // Right now, distance calcuations only work with BVH due to using functions
+  // Right now, distance calculations only work with BVH due to using functions
   // in DistributedTreeNearestUtils. So, there's no point in replacing this
   // with decltype.
   CallbackWithDistance<BVH<typename DeviceType::memory_space>>
       callback_with_distance(space, bottom_tree);
 
-  // NOTE: compiler would not deduce __range for the braced-init-list but I
+  // NOTE: compiler would not deduce __range for the braced-init-list, but I
   // got it to work with the static_cast to function pointers.
   using Strategy =
       void (*)(ExecutionSpace const &, Predicates const &,
@@ -778,7 +831,7 @@ void DistributedTreeImpl<DeviceType>::communicateResultsBack(
   Distributor<DeviceType> distributor(comm);
   // FIXME Distributor::createFromSends takes two views of the same type by
   // a const reference.  There were two easy ways out, either take the views by
-  // value or cast at the callsite.  I went with the latter.  Proper fix
+  // value or cast at the call site.  I went with the latter.  Proper fix
   // involves more code cleanup in ArborX_DetailsDistributor.hpp than I am
   // willing to do just now.
   int const n_imports =

@@ -235,6 +235,43 @@ auto makeNearestQueries(
   return queries;
 }
 
+template <typename DeviceType>
+auto makeBoxNearestQueries(
+    std::vector<std::tuple<ArborX::Point, ArborX::Point, int>> const &boxes)
+{
+  // NOTE: `boxes` is not a very descriptive name here. It stores both the
+  // corners of the boxe and the number k of neighbors to query for.
+  int const n = boxes.size();
+  Kokkos::View<ArborX::Nearest<ArborX::Box> *, DeviceType> queries(
+      "Testing::nearest_queries", n);
+  auto queries_host = Kokkos::create_mirror_view(queries);
+  for (int i = 0; i < n; ++i)
+    queries_host(i) = ArborX::nearest(
+        ArborX::Box{std::get<0>(boxes[i]), std::get<1>(boxes[i])},
+        std::get<2>(boxes[i]));
+  Kokkos::deep_copy(queries, queries_host);
+  return queries;
+}
+
+template <typename DeviceType>
+auto makeSphereNearestQueries(
+    std::vector<std::tuple<ArborX::Point, float, int>> const &spheres)
+{
+  // NOTE: `sphere` is not a very descriptive name here. It stores both the
+  // center and the radius of the sphere and the number k of neighbors to query
+  // for.
+  int const n = spheres.size();
+  Kokkos::View<ArborX::Nearest<ArborX::Sphere> *, DeviceType> queries(
+      "Testing::nearest_queries", n);
+  auto queries_host = Kokkos::create_mirror_view(queries);
+  for (int i = 0; i < n; ++i)
+    queries_host(i) = ArborX::nearest(
+        ArborX::Sphere{std::get<0>(spheres[i]), std::get<1>(spheres[i])},
+        std::get<2>(spheres[i]));
+  Kokkos::deep_copy(queries, queries_host);
+  return queries;
+}
+
 template <typename DeviceType, typename Data>
 auto makeNearestWithAttachmentQueries(
     std::vector<std::pair<ArborX::Point, int>> const &points,
