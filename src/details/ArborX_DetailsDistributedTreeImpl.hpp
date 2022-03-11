@@ -72,7 +72,7 @@ struct AccessTraits<
                              std::is_same<Dummy, Point>::value> * = nullptr>
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
-    auto const &point = getGeometry(Access::get(x.predicates, i));
+    auto const point = getGeometry(Access::get(x.predicates, i));
     auto const distance = x.distances(i);
     return intersects(Sphere{point, distance});
   }
@@ -97,7 +97,7 @@ struct AccessTraits<
                              std::is_same<Dummy, Sphere>::value> * = nullptr>
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
-    auto const &sphere = getGeometry(Access::get(x.predicates, i));
+    auto const sphere = getGeometry(Access::get(x.predicates, i));
     auto const distance = x.distances(i);
     return intersects(Sphere{sphere.centroid(), distance + sphere.radius()});
   }
