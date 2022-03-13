@@ -30,9 +30,7 @@ enum class CallbackTreeTraversalControl
 namespace Details
 {
 
-struct InlineCallbackTag
-{
-};
+struct [[deprecated]] InlineCallbackTag{};
 
 struct PostCallbackTag
 {
@@ -40,7 +38,6 @@ struct PostCallbackTag
 
 struct DefaultCallback
 {
-  using tag = InlineCallbackTag;
   template <typename Query, typename OutputFunctor>
   KOKKOS_FUNCTION void operator()(Query const &, int index,
                                   OutputFunctor const &output) const

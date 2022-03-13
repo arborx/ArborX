@@ -559,7 +559,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_sphere_nearest_neighbors,
 template <typename DeviceType>
 struct CustomInlineCallbackWithAttachment
 {
-  using tag = ArborX::Details::InlineCallbackTag;
   Kokkos::View<ArborX::Point *, DeviceType> points;
   ArborX::Point const origin = {{0., 0., 0.}};
   template <typename Query, typename Insert>
