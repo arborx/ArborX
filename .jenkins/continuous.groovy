@@ -56,7 +56,7 @@ pipeline {
                                     -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                                     -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper \
                                     -D CMAKE_CXX_EXTENSIONS=OFF \
-                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
+                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra -Werror" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
                                     -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
@@ -116,7 +116,7 @@ pipeline {
                                     -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                                     -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper \
                                     -D CMAKE_CXX_EXTENSIONS=OFF \
-                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
+                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra -Werror" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
                                     -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
@@ -175,7 +175,7 @@ pipeline {
                                     -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                                     -D CMAKE_CXX_COMPILER=clang++ \
                                     -D CMAKE_CXX_EXTENSIONS=OFF \
-                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
+                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra -Werror" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=OFF \
                                     -D ARBORX_ENABLE_TESTS=ON \
@@ -233,7 +233,7 @@ pipeline {
                                     -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                                     -D CMAKE_CXX_COMPILER=clang++ \
                                     -D CMAKE_CXX_EXTENSIONS=OFF \
-                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
+                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra -Werror" \
                                     -D CMAKE_CXX_CLANG_TIDY="$LLVM_DIR/bin/clang-tidy" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
@@ -293,7 +293,7 @@ pipeline {
                                     -D CMAKE_BUILD_TYPE=Debug \
                                     -D CMAKE_CXX_COMPILER=hipcc \
                                     -D CMAKE_CXX_EXTENSIONS=OFF \
-                                    -D CMAKE_CXX_FLAGS="-DNDEBUG -Wpedantic -Wall -Wextra" \
+                                    -D CMAKE_CXX_FLAGS="-DNDEBUG -Wpedantic -Wall -Wextra -Werror" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
                                     -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
@@ -351,7 +351,7 @@ pipeline {
                                     -D CMAKE_BUILD_TYPE=Release \
                                     -D CMAKE_CXX_COMPILER=clang++ \
                                     -D CMAKE_CXX_EXTENSIONS=OFF \
-                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra -Wno-unknown-cuda-version -Wno-linker-warnings" \
+                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra -Wno-unknown-cuda-version -Wno-linker-warnings -Werror" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR;$ONE_DPL_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
                                     -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
