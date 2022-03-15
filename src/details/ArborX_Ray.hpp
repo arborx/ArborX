@@ -315,24 +315,33 @@ bool intersection(Ray const &ray, Triangle const &triangle, float &tmin,
   Vector const oB = makeVector(ray.origin(), triangle.b);
   Vector const oC = makeVector(ray.origin(), triangle.c);
 
+  // oA, oB, oB need to be normalized, otherwise they
+  // will scale with the problem size.
+  float const mag_oA = std::sqrt(dotProduct(oA, oA));
+  float const mag_oB = std::sqrt(dotProduct(oB, oB));
+  float const mag_oC = std::sqrt(dotProduct(oC, oC));
+
+  auto mag_bar = 3.0 / (mag_oA + mag_oB + mag_oC);
+
   Point A;
   Point B;
   Point C;
 
   // perform shear and scale of vertices
-  A[0] = oA[kx] - s[0] * oA[kz];
-  A[1] = oA[ky] - s[1] * oA[kz];
-  B[0] = oB[kx] - s[0] * oB[kz];
-  B[1] = oB[ky] - s[1] * oB[kz];
-  C[0] = oC[kx] - s[0] * oC[kz];
-  C[1] = oC[ky] - s[1] * oC[kz];
+  // normalized by mag_bar
+  A[0] = (oA[kx] - s[0] * oA[kz]) * mag_bar;
+  A[1] = (oA[ky] - s[1] * oA[kz]) * mag_bar;
+  B[0] = (oB[kx] - s[0] * oB[kz]) * mag_bar;
+  B[1] = (oB[ky] - s[1] * oB[kz]) * mag_bar;
+  C[0] = (oC[kx] - s[0] * oC[kz]) * mag_bar;
+  C[1] = (oC[ky] - s[1] * oC[kz]) * mag_bar;
 
   // calculate scaled barycentric coordinates
   float u = C[0] * B[1] - C[1] * B[0];
   float v = A[0] * C[1] - A[1] * C[0];
   float w = B[0] * A[1] - B[1] * A[0];
 
-  // fallback to edge test using double precision
+  // fallback to double precision
   if (u == 0 || v == 0 || w == 0)
   {
     u = (double)C[0] * B[1] - (double)C[1] * B[0];
@@ -352,7 +361,7 @@ bool intersection(Ray const &ray, Triangle const &triangle, float &tmin,
   // only one of the conditions is needed,
   // either (u < 0 || v < 0 || w < 0) or
   // (u > 0 || v > 0 || w > 0), for Back-facing culling.
-  auto const epsilon = 0.00001f;
+  float const epsilon = 0.0000001f;
   if ((u < -epsilon || v < -epsilon || w < -epsilon) &&
       (u > epsilon || v > epsilon || w > epsilon))
     return false;
@@ -369,8 +378,9 @@ bool intersection(Ray const &ray, Triangle const &triangle, float &tmin,
     float t = (u * A[2] + v * B[2] + w * C[2]) / det;
     tmax = t;
     tmin = t;
-    return tmax >= tmin;
+    return true;
   }
+
   // The ray is co-planar to the triangle.
   // Check the intersection with each edge
   // the rotate2D function is to make sure the ray-edge
@@ -404,16 +414,28 @@ bool intersection(Ray const &ray, Triangle const &triangle, float &tmin,
 
   if (ab_intersect || bc_intersect || ca_intersect)
   {
+    // When (1) the origin of the ray is within the triangle
+    // and (2) they ray is coplanar with the triangle, the
+    // intersection length is zero.
     if (tmin * tmax <= 0)
     {
       tmin = 0;
       tmax = 0;
     }
+    else
+    {
+      // need to separate tmin tmax >0 and <0 cases
+      // e.g., tmin = -2 and tmax = -1, but
+      // we want tmin = -1 and tmax = -2, when the
+      // ray travels backward
+      if (tmin < 0)
+        KokkosExt::swap(tmin, tmax);
+    }
     return true;
   }
 
   return false;
-}
+} // namespace Experimental
 
 KOKKOS_INLINE_FUNCTION
 bool intersects(Ray const &ray, Triangle const &triangle)
