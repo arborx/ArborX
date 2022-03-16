@@ -70,6 +70,7 @@ struct FindComponentNearestNeighbors
   Metric _metric;
   Radii _radii;
   LowerBounds _lower_bounds;
+  Edges _found_edges;
 
   struct WithLowerBounds
   {
@@ -86,11 +87,20 @@ struct FindComponentNearestNeighbors
       , _metric{metric}
       , _radii(radii)
       , _lower_bounds(lower_bounds)
+      , _found_edges(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                                        "ArborX::MST::found_edges"),
+                     bvh.size())
+
   {
     int const n = bvh.size();
     ARBORX_ASSERT(labels.extent_int(0) == 2 * n - 1);
     ARBORX_ASSERT(edges.extent_int(0) == n);
     ARBORX_ASSERT(radii.extent_int(0) == n);
+
+    constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+    WeightedEdge uninitialized_edge{INT_MAX, INT_MAX, inf};
+    Kokkos::deep_copy(space, _edges, uninitialized_edge);
+    Kokkos::deep_copy(space, _found_edges, uninitialized_edge);
 
 #ifdef KOKKOS_ENABLE_SERIAL
     if (std::is_same<ExecutionSpace, Kokkos::Serial>{})
@@ -108,6 +118,71 @@ struct FindComponentNearestNeighbors
           "ArborX::MST::find_component_nearest_neighbors",
           Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 1), *this);
     }
+
+    atomicComponentEdgesWorkaround(space);
+  }
+
+  template <typename ExecutionSpace>
+  void atomicComponentEdgesWorkaround(ExecutionSpace const &space)
+  {
+    int const n = _bvh.size();
+
+    auto &labels = _labels;           // avoid capture *this
+    auto &found_edges = _found_edges; // avoid capture *this
+    auto &edges = _edges;             // avoid capture *this
+
+    // The weights of the component edges have already been set to the correct
+    // value inside the operator(). Now, we need to set each component's edge
+    // source and target vertices.
+
+    Kokkos::parallel_for(
+        "ArborX::MST::compute_component_edge_sources",
+        Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 1),
+        KOKKOS_LAMBDA(int i) {
+          int component = labels(i);
+          auto const &edge = found_edges(i - n + 1);
+          auto &component_edge = edges(component - n + 1);
+
+          if (edge.weight == component_edge.weight)
+          {
+            auto min = KokkosExt::min(edge.source, edge.target);
+            Kokkos::atomic_min(&component_edge.source, min);
+          }
+        });
+    Kokkos::parallel_for(
+        "ArborX::MST::compute_component_edge_targets",
+        Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 1),
+        KOKKOS_LAMBDA(int i) {
+          int component = labels(i);
+          auto const &edge = found_edges(i - n + 1);
+          auto &component_edge = edges(component - n + 1);
+
+          if (edge.weight == component_edge.weight)
+          {
+            auto min = KokkosExt::min(edge.source, edge.target);
+            if (min == component_edge.source)
+            {
+              auto max = KokkosExt::max(edge.source, edge.target);
+              Kokkos::atomic_min(&component_edge.target, max);
+            }
+          }
+        });
+    Kokkos::parallel_for(
+        "ArborX::MST::compute_component_edges",
+        Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 1),
+        KOKKOS_LAMBDA(int i) {
+          int component = labels(i);
+          auto const &edge = found_edges(i - n + 1);
+          auto &component_edge = edges(component - n + 1);
+
+          if (edge.weight == component_edge.weight)
+          {
+            auto min = KokkosExt::min(edge.source, edge.target);
+            auto max = KokkosExt::max(edge.source, edge.target);
+            if (min == component_edge.source && max == component_edge.target)
+              component_edge = edge;
+          }
+        });
   }
 
   KOKKOS_FUNCTION void operator()(WithLowerBounds, int i) const
@@ -267,14 +342,20 @@ struct FindComponentNearestNeighbors
       }
     } while (node != SENTINEL);
 
-    // This check is only here to reduce hammering the atomics for large
-    // components. Otherwise, for a large number of points and a small number of
-    // components it becomes extremely expensive.
-    auto &component_edge = _edges(component - n + 1);
-    if (current_best.weight < inf &&
-        current_best.weight <= component_edge.weight)
+    // Using atomics on WeightedEdge is exteremely slow when they are called
+    // often (e.g., PortoTaxi problem). Instead, we work around this by using
+    // several parallel loops to get the same result. Most of the loops are
+    // inside atomicComponentEdgesWorkaround, here we set the component edge
+    // weights.
+    if (current_best.weight < inf)
     {
-      Kokkos::atomic_min(&component_edge, current_best);
+      auto &component_edge = _edges(component - n + 1);
+      Kokkos::atomic_min(&component_edge.weight, current_best.weight);
+
+      // We want to reduce the number of memory writes as much as possible, so
+      // only do it when absolutely necessary.
+      if (current_best.weight == component_edge.weight)
+        _found_edges(i - n + 1) = current_best;
     }
   }
 };
@@ -572,8 +653,6 @@ private:
       reduceLabels(space, parents, labels);
 
       constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
-      constexpr WeightedEdge uninitialized_edge{-1, -1, inf};
-      Kokkos::deep_copy(space, component_out_edges, uninitialized_edge);
 
       Kokkos::deep_copy(space, radii, inf);
       resetSharedRadii(space, bvh, labels, metric, radii);
