@@ -60,12 +60,84 @@ private:
   }
 };
 
-template <class BVH, class Labels, class Edges, class Metric, class Radii,
-          class LowerBounds>
+class DirectedEdge
+{
+public:
+  unsigned long long directed_edge = ULLONG_MAX;
+  float weight = KokkosExt::ArithmeticTraits::infinity<float>::value;
+
+private:
+  static_assert(sizeof(unsigned long long) == 8, "");
+  static constexpr int source_shift = 32;
+  static constexpr int target_shift = 1;
+  static constexpr unsigned long long mask_source =
+      static_cast<unsigned long long>(UINT_MAX >> 1) << source_shift;
+  static constexpr unsigned long long mask_target =
+      static_cast<unsigned long long>(UINT_MAX >> 1) << target_shift;
+  // clang-format off
+  // | unused bit | 31 bits for the smallest of source and target | 31 bits for the largest of source and target | flag |
+  // clang-format on
+  static_assert((mask_source & mask_target) == 0, "implementation bug");
+  // direction must be stored in the least significant bit
+  static constexpr unsigned long long reverse_direction = 1;
+
+  // performs lexicographical comparison by comparing first the weights and then
+  // the unordered pair of vertices
+  friend KOKKOS_FUNCTION constexpr bool operator<(DirectedEdge const &lhs,
+                                                  DirectedEdge const &rhs)
+  {
+    return (lhs.weight != rhs.weight) ? (lhs.weight < rhs.weight)
+                                      : (lhs.directed_edge < rhs.directed_edge);
+  }
+
+  KOKKOS_FUNCTION constexpr bool reverse() const
+  {
+    return (directed_edge & reverse_direction) == reverse_direction;
+  }
+
+public:
+  KOKKOS_FUNCTION constexpr int source() const
+  {
+    return reverse() ? (directed_edge & mask_target) >> target_shift
+                     : (directed_edge & mask_source) >> source_shift;
+  }
+  KOKKOS_FUNCTION constexpr int target() const
+  {
+    return reverse() ? (directed_edge & mask_source) >> source_shift
+                     : (directed_edge & mask_target) >> target_shift;
+  }
+  KOKKOS_FUNCTION constexpr DirectedEdge(int source, int target, float weight)
+      : directed_edge{(source < target)
+                          ? (mask_source &
+                             (static_cast<unsigned long long>(source)
+                              << source_shift)) +
+                                (mask_target &
+                                 (static_cast<unsigned long long>(target)
+                                  << target_shift))
+                          : reverse_direction +
+                                (mask_source &
+                                 (static_cast<unsigned long long>(target)
+                                  << source_shift)) +
+                                (mask_target &
+                                 (static_cast<unsigned long long>(source))
+                                     << target_shift)}
+      , weight{weight}
+  {
+  }
+  KOKKOS_FUNCTION constexpr DirectedEdge() = default;
+  KOKKOS_FUNCTION explicit constexpr operator WeightedEdge()
+  {
+    return {source(), target(), weight};
+  }
+};
+
+template <class BVH, class Labels, class Weights, class Edges, class Metric,
+          class Radii, class LowerBounds>
 struct FindComponentNearestNeighbors
 {
   BVH _bvh;
   Labels _labels;
+  Weights _weights;
   Edges _edges;
   Metric _metric;
   Radii _radii;
@@ -77,11 +149,13 @@ struct FindComponentNearestNeighbors
 
   template <class ExecutionSpace>
   FindComponentNearestNeighbors(ExecutionSpace const &space, BVH const &bvh,
-                                Labels const &labels, Edges const &edges,
-                                Metric const &metric, Radii const &radii,
+                                Labels const &labels, Weights const &weights,
+                                Edges const &edges, Metric const &metric,
+                                Radii const &radii,
                                 LowerBounds const &lower_bounds)
       : _bvh(bvh)
       , _labels(labels)
+      , _weights(weights)
       , _edges(edges)
       , _metric{metric}
       , _radii(radii)
@@ -122,7 +196,6 @@ struct FindComponentNearestNeighbors
 
   KOKKOS_FUNCTION void operator()(int i) const
   {
-    constexpr int undetermined = -1;
     constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
     auto const distance = [bounding_volume_i =
@@ -140,10 +213,7 @@ struct FindComponentNearestNeighbors
     auto const leaf_permutation_i =
         HappyTreeFriends::getLeafPermutationIndex(_bvh, i);
 
-    WeightedEdge current_best{i, undetermined, inf};
-    static_assert(WeightedEdge{undetermined, undetermined, inf} <
-                      WeightedEdge{0, undetermined, inf},
-                  "");
+    DirectedEdge current_best{};
 
     auto const n = _bvh.size();
     auto &radius = _radii(component - n + 1);
@@ -198,7 +268,7 @@ struct FindComponentNearestNeighbors
                 leaf_permutation_i,
                 HappyTreeFriends::getLeafPermutationIndex(_bvh, left_child),
                 distance_left);
-            WeightedEdge const candidate_edge{i, left_child, candidate_dist};
+            DirectedEdge const candidate_edge{i, left_child, candidate_dist};
             if (candidate_edge < current_best)
             {
               current_best = candidate_edge;
@@ -220,7 +290,7 @@ struct FindComponentNearestNeighbors
                 leaf_permutation_i,
                 HappyTreeFriends::getLeafPermutationIndex(_bvh, right_child),
                 distance_right);
-            WeightedEdge const candidate_edge{i, right_child, candidate_dist};
+            DirectedEdge const candidate_edge{i, right_child, candidate_dist};
             if (candidate_edge < current_best)
             {
               current_best = candidate_edge;
@@ -270,26 +340,31 @@ struct FindComponentNearestNeighbors
     // This check is only here to reduce hammering the atomics for large
     // components. Otherwise, for a large number of points and a small number of
     // components it becomes extremely expensive.
-    auto &component_edge = _edges(component - n + 1);
-    if (current_best.weight < inf &&
-        current_best.weight <= component_edge.weight)
+    auto &component_weight = _weights(component - n + 1);
+    if (current_best.weight < inf && current_best.weight <= component_weight)
     {
-      Kokkos::atomic_min(&component_edge, current_best);
+      if (Kokkos::atomic_min_fetch(&component_weight, current_best.weight) ==
+          current_best.weight)
+      {
+        _edges(i - n + 1) = current_best;
+      }
     }
   }
 };
 
 // For every component C, find the shortest edge (v, w) such that v is in C
 // and w is not in C. The found edge is stored in component_out_edges(C).
-template <class ExecutionSpace, class BVH, class Labels, class Edges,
-          class Metric, class Radii, class LowerBounds>
+template <class ExecutionSpace, class BVH, class Labels, class Weights,
+          class Edges, class Metric, class Radii, class LowerBounds>
 void findComponentNearestNeighbors(ExecutionSpace const &space, BVH const &bvh,
-                                   Labels const &labels, Edges const &edges,
-                                   Metric const &metric, Radii const &radii,
+                                   Labels const &labels, Weights const &weights,
+                                   Edges const &edges, Metric const &metric,
+                                   Radii const &radii,
                                    LowerBounds const &lower_bounds)
 {
-  FindComponentNearestNeighbors<BVH, Labels, Edges, Metric, Radii, LowerBounds>(
-      space, bvh, labels, edges, metric, radii, lower_bounds);
+  FindComponentNearestNeighbors<BVH, Labels, Weights, Edges, Metric, Radii,
+                                LowerBounds>(space, bvh, labels, weights, edges,
+                                             metric, radii, lower_bounds);
 }
 
 template <class ExecutionSpace, class Labels, class ComponentOutEdges,
@@ -307,6 +382,44 @@ void updateLowerBounds(ExecutionSpace const &space, Labels const &labels,
         auto component = labels(i);
         auto const &edge = component_out_edges(component - n + 1);
         lower_bounds(i - n + 1) = max(lower_bounds(i - n + 1), edge.weight);
+      });
+}
+
+// workaround slow atomic min operations on edge type
+template <class ExecutionSpace, class Labels, class Weights, class Edges>
+void retrieveEdges(ExecutionSpace const &space, Labels const &labels,
+                   Weights const &weights, Edges const &edges)
+{
+  auto const n = weights.extent(0);
+  Kokkos::parallel_for(
+      "ArborX::MST::reset_component_edges",
+      Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 1),
+      KOKKOS_LAMBDA(int i) {
+        auto const component = labels(i);
+        if (i != component)
+          return;
+        auto const component_weight = weights(component - n + 1);
+        auto &component_edge = edges(component - n + 1);
+        // replace stale values by neutral element for min reduction
+        if (component_edge.weight != component_weight)
+        {
+          component_edge = {};
+          component_edge.weight = component_weight;
+        }
+      });
+  Kokkos::parallel_for(
+      "ArborX::MST::reduce_component_edges",
+      Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 1),
+      KOKKOS_LAMBDA(int i) {
+        auto const component = labels(i);
+        auto const component_weight = weights(component - n + 1);
+        auto const &edge = edges(i - n + 1);
+        if (edge.weight == component_weight)
+        {
+          auto &component_edge = edges(component - n + 1);
+          Kokkos::atomic_min(&(component_edge.directed_edge),
+                             edge.directed_edge);
+        }
       });
 }
 
@@ -340,9 +453,9 @@ struct UpdateComponentsAndEdges
   {
     auto const n = _out_edges.extent(0);
 
-    int next_component = _labels(_out_edges(component - n + 1).target);
+    int next_component = _labels(_out_edges(component - n + 1).target());
     int next_next_component =
-        _labels(_out_edges(next_component - n + 1).target);
+        _labels(_out_edges(next_component - n + 1).target());
 
     if (next_next_component != component)
     {
@@ -377,7 +490,7 @@ struct UpdateComponentsAndEdges
     auto const n = _out_edges.extent(0);
     if (i != final_component)
     {
-      auto const edge = _out_edges(i - n + 1);
+      auto const edge = static_cast<WeightedEdge>(_out_edges(i - n + 1));
       // append new edge at the "end" of the array (akin to
       // std::vector::push_back)
       auto const back =
@@ -530,9 +643,14 @@ private:
          n - 1);
     Kokkos::Profiling::popRegion();
 
-    Kokkos::View<WeightedEdge *, MemorySpace> component_out_edges(
+    Kokkos::View<DirectedEdge *, MemorySpace> component_out_edges(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::MST::component_out_edges"),
+        n);
+
+    Kokkos::View<float *, MemorySpace> weights(
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                           "ArborX::MST::weights"),
         n);
 
     Kokkos::View<float *, MemorySpace> radii(
@@ -572,14 +690,16 @@ private:
       reduceLabels(space, parents, labels);
 
       constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
-      constexpr WeightedEdge uninitialized_edge{-1, -1, inf};
+      constexpr DirectedEdge uninitialized_edge;
       Kokkos::deep_copy(space, component_out_edges, uninitialized_edge);
-
+      Kokkos::deep_copy(space, weights, inf);
       Kokkos::deep_copy(space, radii, inf);
       resetSharedRadii(space, bvh, labels, metric, radii);
 
-      findComponentNearestNeighbors(space, bvh, labels, component_out_edges,
-                                    metric, radii, lower_bounds);
+      findComponentNearestNeighbors(space, bvh, labels, weights,
+                                    component_out_edges, metric, radii,
+                                    lower_bounds);
+      retrieveEdges(space, labels, weights, component_out_edges);
       if (use_lower_bounds)
       {
         updateLowerBounds(space, labels, component_out_edges, lower_bounds);
