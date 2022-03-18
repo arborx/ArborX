@@ -165,9 +165,21 @@ target_compile_definitions(ArborX_Clustering.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Clustering.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/examples/dbscan)
 add_test(NAME ArborX_Clustering_Test COMMAND ./ArborX_Clustering.exe)
 
+# compare results with a dataset of 1000 points from mlpack
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/mst_golden_test_points.csv
+  ${CMAKE_CURRENT_BINARY_DIR}/mst_golden_test_points.csv
+  COPYONLY
+)
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/mst_golden_test_edges.csv
+  ${CMAKE_CURRENT_BINARY_DIR}/mst_golden_test_edges.csv
+  COPYONLY
+)
 if(Kokkos_VERSION VERSION_GREATER_EQUAL 3.5 AND NOT Kokkos_ENABLE_SYCL) # FIXME_SYCL
   set(MINIMUM_SPANNING_TREE_TESTS
     tstMinimumSpanningTree.cpp
+    tstMinimumSpanningTreeGoldenTest.cpp
   )
 endif()
 add_executable(ArborX_DetailsClusteringHelpers.exe
