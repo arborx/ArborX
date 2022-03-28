@@ -1,7 +1,7 @@
 pipeline {
     options {
         disableConcurrentBuilds(abortPrevious: true)
-        timeout(time: 2, unit: 'HOURS')
+        timeout(time: 3, unit: 'HOURS')
     }
     triggers {
         issueCommentTrigger('.*test this please.*')
