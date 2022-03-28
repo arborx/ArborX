@@ -121,6 +121,7 @@ foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
 endforeach()
 add_executable(ArborX_QueryTree.exe
   ${ARBORX_TEST_QUERY_TREE_SOURCES}
+  tstQueryTreeRay.cpp
   tstQueryTreeTraversalPolicy.cpp
   tstQueryTreeIntersectsKDOP.cpp
   tstKokkosToolsAnnotations.cpp
