@@ -85,7 +85,7 @@ struct AccessTraits<Details::PrimitivesWithRadius<Primitives>, PredicatesTag>
   using memory_space = typename PrimitivesAccess::memory_space;
   using Predicates = Details::PrimitivesWithRadius<Primitives>;
 
-  static size_t size(Predicates const &w)
+  static KOKKOS_FUNCTION size_t size(Predicates const &w)
   {
     return PrimitivesAccess::size(w._primitives);
   }
@@ -109,7 +109,10 @@ struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
       Details::PrimitivesWithRadiusReorderedAndFiltered<Primitives,
                                                         PermuteFilter>;
 
-  static size_t size(Predicates const &w) { return w._filter.extent(0); }
+  static KOKKOS_FUNCTION size_t size(Predicates const &w)
+  {
+    return w._filter.extent(0);
+  }
   static KOKKOS_FUNCTION auto get(Predicates const &w, size_t i)
   {
     int index = w._filter(i);
