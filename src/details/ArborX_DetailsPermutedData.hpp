@@ -38,7 +38,8 @@ struct AccessTraits<Details::PermutedData<Predicates, Permute, AttachIndices>,
       Details::PermutedData<Predicates, Permute, AttachIndices>;
   using NativeAccess = AccessTraits<Predicates, PredicatesTag>;
 
-  static std::size_t size(PermutedPredicates const &permuted_predicates)
+  KOKKOS_FUNCTION static std::size_t
+  size(PermutedPredicates const &permuted_predicates)
   {
     return NativeAccess::size(permuted_predicates._data);
   }
