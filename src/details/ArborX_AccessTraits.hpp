@@ -191,8 +191,10 @@ void check_valid_access_traits(PrimitivesTag, Primitives const &)
 
 namespace Traits
 {
-using ::ArborX::PredicatesTag;
-using ::ArborX::PrimitivesTag;
+using PredicatesTag [[deprecated("Use ArborX::PredicatesTag instead.")]] =
+    ::ArborX::PredicatesTag;
+using PrimitivesTag [[deprecated("Use ArborX::PrimitivesTag instead.")]] =
+    ::ArborX::PrimitivesTag;
 template <typename T, typename Tag, typename Enable = void>
 struct Access
 {
@@ -206,6 +208,11 @@ struct AccessTraits<
         AccessTraitsNotSpecializedArchetypeAlias, Traits::Access<T, Tag>>{}>>
     : Traits::Access<T, Tag>
 {
+  template <class U>
+  static constexpr bool always_false = std::is_void<U>::value;
+  static_assert(
+      always_false<T>,
+      "ArborX::Traits::Access was removed. Use ArborX::AccessTraits instead");
 };
 } // namespace ArborX
 

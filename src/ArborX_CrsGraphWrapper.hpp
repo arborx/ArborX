@@ -30,7 +30,7 @@ inline void query(Tree const &tree, ExecutionSpace const &space,
       check_valid_callback_if_first_argument_is_not_a_view(callback_or_view,
                                                            predicates, view);
 
-  using Access = AccessTraits<Predicates, Traits::PredicatesTag>;
+  using Access = AccessTraits<Predicates, ArborX::PredicatesTag>;
   using Tag = typename Details::AccessTraitsHelper<Access>::tag;
 
   ArborX::Details::CrsGraphWrapperImpl::queryDispatch(
