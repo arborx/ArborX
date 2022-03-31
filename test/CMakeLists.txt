@@ -177,7 +177,7 @@ configure_file(
   ${CMAKE_CURRENT_BINARY_DIR}/mst_golden_test_edges.csv
   COPYONLY
 )
-if(Kokkos_VERSION VERSION_GREATER_EQUAL 3.5 AND NOT Kokkos_ENABLE_SYCL) # FIXME_SYCL
+if(Kokkos_VERSION VERSION_GREATER_EQUAL 3.5)
   set(MINIMUM_SPANNING_TREE_TESTS
     tstMinimumSpanningTree.cpp
     tstMinimumSpanningTreeGoldenTest.cpp
