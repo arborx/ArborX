@@ -20,13 +20,6 @@
 // NOTE: message is not required anymore with C++17
 #define STATIC_ASSERT(cond) static_assert(cond, "")
 
-void test_compile_only()
-{
-  using ArborX::Details::WeightedEdge;
-  STATIC_ASSERT((WeightedEdge{1, 2, 3} < WeightedEdge{1, 2, 4}));
-  STATIC_ASSERT((WeightedEdge{1, 2, 3} < WeightedEdge{1, 4, 3}));
-}
-
 namespace ArborX
 {
 namespace Details
@@ -40,10 +33,11 @@ inline constexpr bool operator==(WeightedEdge const &lhs,
 } // namespace Details
 } // namespace ArborX
 
-void test_another_compile_only()
+void test_weighted_edges_comparison_compile_only()
 {
   using ArborX::Details::WeightedEdge;
   STATIC_ASSERT((WeightedEdge{1, 2, 3} == WeightedEdge{1, 2, 3}));
+  STATIC_ASSERT((WeightedEdge{1, 2, 3} == WeightedEdge{2, 1, 3}));
 }
 
 template <>
