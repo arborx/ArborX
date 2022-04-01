@@ -49,8 +49,8 @@ The example controls its input through command-line options:
   `fdbscan-densebox` (FDBSCAN-DenseBox).
 - `--verify`
   Internal check switch to verify clusters. This options is significantly more
-  expected, as it explicitly computes the graph. This may also mean that it
-  will run out of memory on GPU even if the DBSCAN algorithm itself does not.
+  expensive, as it explicitly computes the graph. This may also mean that it
+  may run out of memory on GPU even if the DBSCAN algorithm itself does not.
 
 ## Data file format
 
@@ -62,7 +62,7 @@ The example controls its input through command-line options:
 
 # Output
 
-The example produces clusters in CSR (compressed sparse storage) format
+The example produces clusters in CSR (compressed sparse row) format
 consisting of two arrays `(cluster_indices, cluster_offset)`, with indices for
 a cluster `i` being entries
 `cluster_indices(cluster_offset(i):cluster_offset(i+1)`.
