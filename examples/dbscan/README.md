@@ -43,19 +43,26 @@ The example controls its input through command-line options:
 - `--cluster-min-size`
 - `--filename`
   The data is expected to be provided as an argument to the `--filename`
-  option. The data is in the format `[number of points, X-coordinates,
-  Y-coordinates, Z-coordinates]`.
+  option.
 - `--impl`
   Switch between two algorithms described in [2]: `fdbscan` (FDBSCAN) and
   `fdbscan-densebox` (FDBSCAN-DenseBox).
 - `--verify`
   Internal check switch to verify clusters. This options is significantly more
-  expected, as it explicitly computes the graph. This may also mean that it
-  will run out of memory on GPU even if the DBSCAN algorithm itself does not.
+  expensive, as it explicitly computes the graph. This may also mean that it
+  may run out of memory on GPU even if the DBSCAN algorithm itself does not.
+
+## Data file format
+
+ For an `d`-dimensional data of size `n`, the structure of the file is `[n, d,
+ p_{1,1}, ..., p_{1,d}, p_{2,1}, ..., p_{2,d}, ...]`, where `p_i = (p_{i,1},
+ ..., p_{i,d})` is the `i`-th point in the dataset. In the binary format, all
+ fields are 4 bytes, with size and dimension being `int`, and coordinates being
+ `float`.
 
 # Output
 
-The example produces clusters in CSR (compressed sparse storage) format
+The example produces clusters in CSR (compressed sparse row) format
 consisting of two arrays `(cluster_indices, cluster_offset)`, with indices for
 a cluster `i` being entries
 `cluster_indices(cluster_offset(i):cluster_offset(i+1)`.
