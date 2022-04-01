@@ -1,5 +1,43 @@
 # Changelog
 
+## [1.2](https://github.com/arborx/arborx/tree/v1.2) (2022-04-01)
+
+[Full Changelog](https://github.com/arborx/arborx/compare/v1.1...v1.2)
+
+**New features:**
+
+- Implement Euclidean minimum spanning tree algorithm (EXPERIMENTAL) [\#624](https://github.com/arborx/ArborX/pull/624), [\#631](https://github.com/arborx/ArborX/pull/631), [\#661](https://github.com/arborx/ArborX/pull/631)
+
+**Build changes:**
+
+- Require Kokkos 3.4 [\#578](https://github.com/arborx/ArborX/pull/578)
+
+**Enhancements:**
+
+- Indicate the status of the worktree in the hash string ("-dirty") [\#558](https://github.com/arborx/ArborX/pull/558)
+- Check valid callback and space accessibility [\#563](https://github.com/arborx/ArborX/pull/563)
+- Add a molecular dynamics example [\#564](https://github.com/arborx/ArborX/pull/564)
+- Improve performance of the HIP backend when using HIP-Clang [\#575](https://github.com/arborx/ArborX/pull/575)
+- Add Point-Sphere intersection algorithm [\#584](https://github.com/arborx/ArborX/pull/584)
+- Avoid host copy in distributed tree construction when using CUDA-aware MPI [\#597](https://github.com/arborx/ArborX/pull/597)
+- Print Kokkos version during configuration [\#609](https://github.com/arborx/ArborX/pull/609)
+- Improve performance of the brute force algorithm [\#616](https://github.com/arborx/ArborX/pull/616)
+- Use 64-bit Morton indices by default in the construction [\#637](https://github.com/arborx/ArborX/pull/637)
+- Allow alternate space filling curves (EXPERIMENTAL) [\#646](https://github.com/arborx/ArborX/pull/646)
+- Add ray-triangle intersection algorithm [\#617](https://github.com/arborx/ArborX/pull/617)
+
+**Deprecations:**
+
+- Deprecate `lastElement` helper function in the `ArborX` namespace [\#648](https://github.com/arborx/ArborX/pull/648)
+- Deprecate `ArborX::InlineCallbackTag` [\#656](https://github.com/arborx/ArborX/pull/656)
+
+**Fixed bugs:**
+
+- Fix the exit status of the DBSCAN example [\#566](https://github.com/arborx/ArborX/pull/566)
+- Bring DBSCAN README documentation in line with the code [\#568](https://github.com/arborx/ArborX/pull/568), [\#668](https://github.com/arborx/ArborX/pull/668)
+- Fix a race condition in the BVH construction [\#579](https://github.com/arborx/ArborX/pull/579)
+- Fix a bug in the nearest search using the DistributedTree [\#653](https://github.com/arborx/ArborX/pull/653)
+
 ## [1.1](https://github.com/arborx/arborx/tree/v1.1) (2021-09-23)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v1.0...v1.1)
