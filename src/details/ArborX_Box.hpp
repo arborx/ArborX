@@ -155,11 +155,11 @@ struct DiscretizedBox
     const double h_z = (global_max_corner[2] - global_min_corner[2])/ (1<<10);
 
     float box_min_x = global_min_corner[0]+(_data & min_x_mask)*h_x; 
-    float box_max_x = global_min_corner[0]+(_data & max_x_mask)*h_x;
-    float box_min_y = global_min_corner[1]+(_data & min_y_mask)*h_y;
-    float box_max_y = global_min_corner[1]+(_data & max_y_mask)*h_y;
-    float box_min_z = global_min_corner[2]+(_data & min_z_mask)*h_z;
-    float box_max_z = global_min_corner[2]+(_data & max_z_mask)*h_z;
+    float box_max_x = global_min_corner[0]+((_data & max_x_mask) >> 10)*h_x;
+    float box_min_y = global_min_corner[1]+((_data & min_y_mask) >> 20)*h_y;
+    float box_max_y = global_min_corner[1]+((_data & max_y_mask) >> 30)*h_y;
+    float box_min_z = global_min_corner[2]+((_data & min_z_mask) >> 40)*h_z;
+    float box_max_z = global_min_corner[2]+((_data & max_z_mask) >> 50)*h_z;
     return {{box_min_x, box_min_y, box_min_z}, {box_max_x, box_max_y, box_max_z}};
   }
 
