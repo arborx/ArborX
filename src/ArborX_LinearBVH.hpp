@@ -135,8 +135,8 @@ public:
 
   size_t _size;
   bounding_volume_type _bounds;
-  Kokkos::View<bounding_volume_type, MemorySpace> _scene_bounding_box;
   Kokkos::View<node_type *, MemorySpace> _internal_and_leaf_nodes;
+  Kokkos::View<bounding_volume_type, MemorySpace> _scene_bounding_box;
 };
 
 template <typename DeviceType>
@@ -205,7 +205,8 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
     , _internal_and_leaf_nodes(
           Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                              "ArborX::BVH::internal_and_leaf_nodes"),
-          _size > 0 ? 2 * _size - 1 : 0)
+          _size > 0 ? 2 * _size - 1 : 0),
+    _scene_bounding_box("ArborX::BVH::scene_bounding_box")
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
