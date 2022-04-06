@@ -131,16 +131,16 @@ struct DiscretizedBox
     const Point& local_max_corner = local_box.maxCorner();
 
     const double inv_h_x = (1 << 10) / (global_max_corner[0] - global_min_corner[0]);
-    std::uint64_t min_x = (local_min_corner[0]- global_min_corner[0]) * inv_h_x;
-    std::uint64_t max_x = (local_max_corner[0] - global_min_corner[0]) * inv_h_x +1;
+    std::uint64_t min_x = std::max<std::uint64_t>(0, std::floor((local_min_corner[0]- global_min_corner[0]) * inv_h_x));
+    std::uint64_t max_x = std::min<std::uint64_t>(single_max, std::ceil((local_max_corner[0] - global_min_corner[0]) * inv_h_x));
 
     const double inv_h_y = (1 << 10) / (global_max_corner[1] - global_min_corner[1]);
-    std::uint64_t min_y = (local_min_corner[1] - global_min_corner[1]) * inv_h_y;
-    std::uint64_t max_y = (local_max_corner[1] - global_min_corner[1]) * inv_h_y +1;
+    std::uint64_t min_y = std::max<std::uint64_t>(0,std::floor((local_min_corner[1] - global_min_corner[1]) * inv_h_y));
+    std::uint64_t max_y = std::min<std::uint64_t>(single_max, std::ceil((local_max_corner[1] - global_min_corner[1]) * inv_h_y));
 
     const double inv_h_z = (1 << 10) / (global_max_corner[2] - global_min_corner[2]);
-    std::uint64_t min_z = (local_min_corner[2] - global_min_corner[2]) * inv_h_z;
-    std::uint64_t max_z = (local_max_corner[2] - global_min_corner[2]) * inv_h_z +1;
+    std::uint64_t min_z = std::max<std::uint64_t>(0,std::floor((local_min_corner[2] - global_min_corner[2]) * inv_h_z));
+    std::uint64_t max_z = std::min<std::uint64_t>(single_max, std::ceil((local_max_corner[2] - global_min_corner[2]) * inv_h_z));
 
     _data = min_x + (max_x << 10) + (min_y << 20) + (max_y << 30) + (min_z << 40) + (max_z << 50);
   }
