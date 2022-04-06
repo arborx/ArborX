@@ -77,10 +77,10 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
-    auto const root = HappyTreeFriends::getRoot(_bvh);
+/*    auto const root = HappyTreeFriends::getRoot(_bvh);
     auto const &root_bounding_volume =
-        HappyTreeFriends::getBoundingVolume(_bvh, root);
-    if (predicate(root_bounding_volume))
+        HappyTreeFriends::getBoundingVolume(_bvh, root);*/
+    if (predicate(_bvh._scene_bounding_box()/*root_bounding_volume)*/))
     {
       _callback(predicate, 0);
     }
@@ -107,7 +107,8 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
       bool traverse_left = false;
       bool traverse_right = false;
 
-      if (predicate(HappyTreeFriends::getBoundingVolume(_bvh, left_child)))
+      const auto& actual_left_primitive = convert_from_discretized_box(HappyTreeFriends::getBoundingVolume(_bvh, left_child), _bvh._scene_bounding_box());
+      if (predicate(actual_left_primitive))
       {
         if (HappyTreeFriends::isLeaf(_bvh, left_child))
         {
@@ -122,7 +123,8 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
         }
       }
 
-      if (predicate(HappyTreeFriends::getBoundingVolume(_bvh, right_child)))
+      const auto& actual_right_primitive = convert_from_discretized_box(HappyTreeFriends::getBoundingVolume(_bvh, right_child), _bvh._scene_bounding_box());
+      if (predicate(actual_right_primitive))
       {
         if (HappyTreeFriends::isLeaf(_bvh, right_child))
         {

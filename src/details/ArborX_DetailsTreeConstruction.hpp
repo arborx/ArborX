@@ -81,10 +81,11 @@ inline void projectOntoSpaceFillingCurve(ExecutionSpace const &space,
       });
 }
 
-template <typename ExecutionSpace, typename Primitives, typename Nodes>
+template <typename ExecutionSpace, typename Primitives, typename Nodes, typename RootNode>
 inline void initializeSingleLeafNode(ExecutionSpace const &space,
                                      Primitives const &primitives,
-                                     Nodes const &leaf_nodes)
+                                     Nodes const &leaf_nodes,
+				     RootNode const& root_node)
 {
   using Access = AccessTraits<Primitives, PrimitivesTag>;
 
@@ -98,7 +99,7 @@ inline void initializeSingleLeafNode(ExecutionSpace const &space,
       "ArborX::TreeConstruction::initialize_single_leaf",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1), KOKKOS_LAMBDA(int) {
         BoundingVolume bounding_volume{};
-        expand(bounding_volume, Access::get(primitives, 0));
+        expand(bounding_volume, Access::get(primitives, 0), root_node);
         leaf_nodes(0) =
             makeLeafNode(typename Node::Tag{}, 0, std::move(bounding_volume));
       });
@@ -115,7 +116,7 @@ constexpr int UNTOUCHED_NODE = -1;
 } // namespace
 
 template <typename Primitives, typename MemorySpace, typename Node,
-          typename LinearOrderingValueType>
+          typename LinearOrderingValueType, typename GlobalBoxView>
 class GenerateHierarchy
 {
 public:
@@ -132,7 +133,8 @@ public:
                    LinearOrderingViewProperties...>
           sorted_morton_codes,
       Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
-      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
+      Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
+      GlobalBoxView global_box)
       : _primitives(primitives)
       , _permutation_indices(permutation_indices)
       , _sorted_morton_codes(sorted_morton_codes)
@@ -142,6 +144,7 @@ public:
                                    "ArborX::BVH::BVH::ranges"),
                 internal_nodes.extent(0))
       , _num_internal_nodes(_internal_nodes.extent_int(0))
+      , _scene_bounding_box(global_box)
   {
     Kokkos::deep_copy(space, _ranges, UNTOUCHED_NODE);
 
@@ -261,7 +264,7 @@ public:
     using BoundingVolume = typename Node::bounding_volume_type;
     BoundingVolume bounding_volume{};
     using Access = AccessTraits<Primitives, PrimitivesTag>;
-    expand(bounding_volume, Access::get(_primitives, original_index));
+    expand(bounding_volume, Access::get(_primitives, original_index), _scene_bounding_box());
 
     // Initialize leaf node
     auto *leaf_node = getNodePtr(i);
@@ -326,7 +329,7 @@ public:
         // thread.
         // NOTE we need acquire semantics at the device scope
         Kokkos::load_fence();
-        expand(bounding_volume, getNodePtr(right_child)->bounding_volume);
+        expand(bounding_volume, getNodePtr(right_child)->bounding_volume, _scene_bounding_box());
       }
       else
       {
@@ -348,7 +351,7 @@ public:
         delta_left = delta(range_left - 1);
 
         Kokkos::load_fence();
-        expand(bounding_volume, getNodePtr(left_child)->bounding_volume);
+        expand(bounding_volume, getNodePtr(left_child)->bounding_volume, _scene_bounding_box());
       }
 
       // Having the full range for the parent, we can compute the Karras index.
@@ -375,6 +378,7 @@ private:
   Kokkos::View<Node *, MemorySpace> _internal_nodes;
   Kokkos::View<int *, MemorySpace> _ranges;
   int _num_internal_nodes;
+  GlobalBoxView _scene_bounding_box;
 };
 
 template <typename ExecutionSpace, typename Primitives,
@@ -382,7 +386,7 @@ template <typename ExecutionSpace, typename Primitives,
           typename LinearOrderingValueType,
           typename... LinearOrderingViewProperties, typename Node,
           typename... LeafNodesViewProperties,
-          typename... InternalNodesViewProperties>
+          typename... InternalNodesViewProperties, typename GlobalBox, typename... GlobalBoxProperties>
 void generateHierarchy(
     ExecutionSpace const &space, Primitives const &primitives,
     Kokkos::View<unsigned int *, PermutationIndicesViewProperties...>
@@ -390,7 +394,8 @@ void generateHierarchy(
     Kokkos::View<LinearOrderingValueType *, LinearOrderingViewProperties...>
         sorted_morton_codes,
     Kokkos::View<Node *, LeafNodesViewProperties...> leaf_nodes,
-    Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes)
+    Kokkos::View<Node *, InternalNodesViewProperties...> internal_nodes,
+    Kokkos::View<GlobalBox, GlobalBoxProperties...> global_box)
 {
   using ConstPermutationIndices =
       Kokkos::View<unsigned int const *, PermutationIndicesViewProperties...>;
@@ -399,9 +404,9 @@ void generateHierarchy(
 
   using MemorySpace = typename decltype(internal_nodes)::memory_space;
 
-  GenerateHierarchy<Primitives, MemorySpace, Node, LinearOrderingValueType>(
+  GenerateHierarchy<Primitives, MemorySpace, Node, LinearOrderingValueType, Kokkos::View<GlobalBox, GlobalBoxProperties...>>(
       space, primitives, ConstPermutationIndices(permutation_indices),
-      ConstLinearOrdering(sorted_morton_codes), leaf_nodes, internal_nodes);
+      ConstLinearOrdering(sorted_morton_codes), leaf_nodes, internal_nodes, global_box);
 }
 
 } // namespace TreeConstruction

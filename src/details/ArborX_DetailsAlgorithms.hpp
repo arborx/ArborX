@@ -154,19 +154,31 @@ float distance(Sphere const &sphere, Box const &box)
 }
 
 // expand an axis-aligned bounding box to include a point
+template <typename Dummy>
 KOKKOS_INLINE_FUNCTION
-void expand(Box &box, Point const &point) { box += point; }
+void expand(Box &box, Point const &point, Dummy const&) { box += point; }
 
 // expand an axis-aligned bounding box to include another box
 // NOTE: Box type is templated here to be able to use expand(box, box) in a
 // Kokkos::parallel_reduce() in which case the arguments must be declared
 // volatile.
-template <typename BOX,
+template <typename BOX, typename Dummy,
           typename = typename std::enable_if<std::is_same<
               typename std::remove_volatile<BOX>::type, Box>::value>::type>
-KOKKOS_INLINE_FUNCTION void expand(BOX &box, BOX const &other)
+KOKKOS_INLINE_FUNCTION void expand(BOX &box, BOX const &other, Dummy const&)
 {
   box += other;
+}
+
+template <typename Dummy>
+KOKKOS_INLINE_FUNCTION void expand(DiscretizedBox &box, DiscretizedBox const &other, Dummy const&)
+{
+  box += other;
+}
+
+KOKKOS_INLINE_FUNCTION void expand(DiscretizedBox &box, Box const &other, Box const& global_box)
+{
+  box += DiscretizedBox(other, global_box);
 }
 
 // expand an axis-aligned bounding box to include a sphere
@@ -182,6 +194,11 @@ void expand(Box &box, Sphere const &sphere)
     box.maxCorner()[d] =
         max(box.maxCorner()[d], sphere.centroid()[d] + sphere.radius());
   }
+}
+
+KOKKOS_INLINE_FUNCTION
+constexpr Box convert_from_discretized_box(const DiscretizedBox& discretized_box, const Box& global_box) {
+  return discretized_box.to_box(global_box);	
 }
 
 // check if two axis-aligned bounding boxes intersect

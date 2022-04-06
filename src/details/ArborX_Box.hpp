@@ -115,6 +115,80 @@ private:
   }
 #endif
 };
+
+struct DiscretizedBox
+{
+  // Initialize all max coordinates with 0 and all min coordinates with max.
+  KOKKOS_FUNCTION constexpr DiscretizedBox () :
+    _data (single_max + (0lu<<10) + (single_max << 20) + (0lu << 30) + (single_max << 40) + (0lu << 50))
+  {}
+
+  KOKKOS_FUNCTION DiscretizedBox (Box const& local_box, Box const& global_box)
+  {
+    const Point& global_min_corner = global_box.minCorner();
+    const Point& global_max_corner = global_box.maxCorner();
+    const Point& local_min_corner = local_box.minCorner();
+    const Point& local_max_corner = local_box.maxCorner();
+
+    const double inv_h_x = (1 << 10) / (global_max_corner[0] - global_min_corner[0]);
+    std::uint64_t min_x = (local_min_corner[0]- global_min_corner[0]) * inv_h_x;
+    std::uint64_t max_x = (local_max_corner[0] - global_min_corner[0]) * inv_h_x +1;
+
+    const double inv_h_y = (1 << 10) / (global_max_corner[1] - global_min_corner[1]);
+    std::uint64_t min_y = (local_min_corner[1] - global_min_corner[1]) * inv_h_y;
+    std::uint64_t max_y = (local_max_corner[1] - global_min_corner[1]) * inv_h_y +1;
+
+    const double inv_h_z = (1 << 10) / (global_max_corner[2] - global_min_corner[2]);
+    std::uint64_t min_z = (local_min_corner[2] - global_min_corner[2]) * inv_h_z;
+    std::uint64_t max_z = (local_max_corner[2] - global_min_corner[2]) * inv_h_z +1;
+
+    _data = min_x + (max_x << 10) + (min_y << 20) + (max_y << 30) + (min_z << 40) + (max_z << 50);
+  }
+
+  KOKKOS_FUNCTION constexpr Box to_box(Box const& global_box) const
+  {
+    const Point& global_min_corner = global_box.minCorner();
+    const Point& global_max_corner = global_box.maxCorner();
+
+    const double h_x = (global_max_corner[0] - global_min_corner[0])/ (1<<10);
+    const double h_y = (global_max_corner[1] - global_min_corner[1])/ (1<<10);
+    const double h_z = (global_max_corner[2] - global_min_corner[2])/ (1<<10);
+
+    float box_min_x = global_min_corner[0]+(_data & min_x_mask)*h_x; 
+    float box_max_x = global_min_corner[0]+(_data & max_x_mask)*h_x;
+    float box_min_y = global_min_corner[1]+(_data & min_y_mask)*h_y;
+    float box_max_y = global_min_corner[1]+(_data & max_y_mask)*h_y;
+    float box_min_z = global_min_corner[2]+(_data & min_z_mask)*h_z;
+    float box_max_z = global_min_corner[2]+(_data & max_z_mask)*h_z;
+    return {{box_min_x, box_min_y, box_min_z}, {box_max_x, box_max_y, box_max_z}};
+  }
+
+  KOKKOS_FUNCTION constexpr DiscretizedBox &operator+=(DiscretizedBox const &other)
+  {
+    using KokkosExt::max;
+    using KokkosExt::min;
+
+    _data = min(_data & min_x_mask, other._data & min_x_mask) |
+            max(_data & max_x_mask, other._data & max_x_mask) |
+            min(_data & min_y_mask, other._data & min_y_mask) |
+            max(_data & max_y_mask, other._data & max_y_mask) |
+            min(_data & min_z_mask, other._data & min_z_mask) |
+            max(_data & max_z_mask, other._data & max_z_mask);
+
+    return *this;
+  }
+
+  private:
+  std::uint64_t _data;
+  static constexpr std::uint64_t single_max = (1lu << 10) -1;
+  static constexpr std::uint64_t min_x_mask = single_max;
+  static constexpr std::uint64_t max_x_mask = single_max << 10;
+  static constexpr std::uint64_t min_y_mask = single_max << 20;
+  static constexpr std::uint64_t max_y_mask = single_max << 30;
+  static constexpr std::uint64_t min_z_mask = single_max << 40;
+  static constexpr std::uint64_t max_z_mask = single_max << 50;
+};
+
 } // namespace ArborX
 
 #endif

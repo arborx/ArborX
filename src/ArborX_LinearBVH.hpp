@@ -46,6 +46,7 @@ public:
   static_assert(Kokkos::is_memory_space<MemorySpace>::value, "");
   using size_type = typename MemorySpace::size_type;
   using bounding_volume_type = BoundingVolume;
+  using discretized_bounding_volume_type = ArborX::DiscretizedBox;
 
   BasicBoundingVolumeHierarchy() = default; // build an empty tree
 
@@ -81,7 +82,7 @@ public:
                   std::forward<View>(view), std::forward<Args>(args)...);
   }
 
-private:
+//private:
   friend struct Details::HappyTreeFriends;
 
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
@@ -95,10 +96,10 @@ private:
                    Kokkos::Experimental::HIPSpace
 #endif
                    >{},
-      Details::NodeWithLeftChildAndRope<bounding_volume_type>,
-      Details::NodeWithTwoChildren<bounding_volume_type>>;
+      Details::NodeWithLeftChildAndRope<discretized_bounding_volume_type>,
+      Details::NodeWithTwoChildren<discretized_bounding_volume_type>>;
 #else
-  using node_type = Details::NodeWithTwoChildren<bounding_volume_type>;
+  using node_type = Details::NodeWithTwoChildren<discretized_bounding_volume_type>;
 #endif
 
   Kokkos::View<node_type *, MemorySpace> getInternalNodes()
@@ -129,11 +130,12 @@ private:
     // since the data is on the device.
     assert(Details::HappyTreeFriends::getRoot(*this) == 0 &&
            "workaround below assumes root is stored as first element");
-    return &_internal_and_leaf_nodes.data()->bounding_volume;
+    return _scene_bounding_box.data();
   }
 
   size_t _size;
   bounding_volume_type _bounds;
+  Kokkos::View<bounding_volume_type, MemorySpace> _scene_bounding_box;
   Kokkos::View<node_type *, MemorySpace> _internal_and_leaf_nodes;
 };
 
@@ -228,13 +230,13 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   Box bbox{};
   Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, primitives,
                                                             bbox);
-
+  Kokkos::deep_copy(space, _scene_bounding_box, bbox);
   Kokkos::Profiling::popRegion();
 
   if (size() == 1)
   {
     Details::TreeConstruction::initializeSingleLeafNode(
-        space, primitives, _internal_and_leaf_nodes);
+        space, primitives, _internal_and_leaf_nodes, bbox);
     Kokkos::deep_copy(
         space,
         Kokkos::View<BoundingVolume, Kokkos::HostSpace,
@@ -270,9 +272,9 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   // generate bounding volume hierarchy
   Details::TreeConstruction::generateHierarchy(
       space, primitives, permutation_indices, linear_ordering_indices,
-      getLeafNodes(), getInternalNodes());
+      getLeafNodes(), getInternalNodes(), _scene_bounding_box);
 
-  Kokkos::deep_copy(
+   Kokkos::deep_copy(
       space,
       Kokkos::View<BoundingVolume, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
           &_bounds),
