@@ -77,10 +77,10 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
-/*    auto const root = HappyTreeFriends::getRoot(_bvh);
-    auto const &root_bounding_volume =
-        HappyTreeFriends::getBoundingVolume(_bvh, root);*/
-    if (predicate(_bvh._scene_bounding_box()/*root_bounding_volume)*/))
+    /*    auto const root = HappyTreeFriends::getRoot(_bvh);
+        auto const &root_bounding_volume =
+            HappyTreeFriends::getBoundingVolume(_bvh, root);*/
+    if (predicate(_bvh._scene_bounding_box() /*root_bounding_volume)*/))
     {
       _callback(predicate, 0);
     }
@@ -107,7 +107,9 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
       bool traverse_left = false;
       bool traverse_right = false;
 
-      const auto& actual_left_primitive = convert_from_discretized_box(HappyTreeFriends::getBoundingVolume(_bvh, left_child), _bvh._scene_bounding_box());
+      const auto &actual_left_primitive = convert_from_discretized_box(
+          HappyTreeFriends::getBoundingVolume(_bvh, left_child),
+          _bvh._scene_bounding_box());
       if (predicate(actual_left_primitive))
       {
         if (HappyTreeFriends::isLeaf(_bvh, left_child))
@@ -123,7 +125,9 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
         }
       }
 
-      const auto& actual_right_primitive = convert_from_discretized_box(HappyTreeFriends::getBoundingVolume(_bvh, right_child), _bvh._scene_bounding_box());
+      const auto &actual_right_primitive = convert_from_discretized_box(
+          HappyTreeFriends::getBoundingVolume(_bvh, right_child),
+          _bvh._scene_bounding_box());
       if (predicate(actual_right_primitive))
       {
         if (HappyTreeFriends::isLeaf(_bvh, right_child))
@@ -299,7 +303,10 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     auto const distance = [geometry = getGeometry(predicate),
                            bvh = _bvh](int node) {
       using Details::distance;
-      return distance(geometry, HappyTreeFriends::getBoundingVolume(bvh, node));
+      const auto &actual_primitive = convert_from_discretized_box(
+          HappyTreeFriends::getBoundingVolume(bvh, node),
+          bvh._scene_bounding_box());
+      return distance(geometry, actual_primitive);
     };
     auto const buffer = _buffer(queryIndex);
 

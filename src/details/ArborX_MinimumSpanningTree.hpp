@@ -198,12 +198,16 @@ struct FindComponentNearestNeighbors
   {
     constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
-    auto const distance = [bounding_volume_i =
+    auto const distance = [bounding_volume_i = convert_from_discretized_box(
                                HappyTreeFriends::getBoundingVolume(_bvh, i),
+                               _bvh._scene_bounding_box()),
                            &bvh = _bvh](int j) {
       using Details::distance;
-      return distance(bounding_volume_i,
-                      HappyTreeFriends::getBoundingVolume(bvh, j));
+      const auto &actual_primitive = convert_from_discretized_box(
+          HappyTreeFriends::getBoundingVolume(bvh, j),
+          bvh._scene_bounding_box());
+
+      return distance(bounding_volume_i, actual_primitive);
     };
 
     auto const component = _labels(i);
@@ -564,11 +568,17 @@ void resetSharedRadii(ExecutionSpace const &space, BVH const &bvh,
         auto const label_j = labels(j);
         if (label_i != label_j)
         {
+          const auto &actual_left_primitive = convert_from_discretized_box(
+              HappyTreeFriends::getBoundingVolume(bvh, i),
+              bvh._scene_bounding_box());
+          const auto &actual_right_primitive = convert_from_discretized_box(
+              HappyTreeFriends::getBoundingVolume(bvh, j),
+              bvh._scene_bounding_box());
+
           auto const r =
               metric(HappyTreeFriends::getLeafPermutationIndex(bvh, i),
                      HappyTreeFriends::getLeafPermutationIndex(bvh, j),
-                     distance(HappyTreeFriends::getBoundingVolume(bvh, i),
-                              HappyTreeFriends::getBoundingVolume(bvh, j)));
+                     distance(actual_left_primitive, actual_right_primitive));
           Kokkos::atomic_min(&radii(label_i - n + 1), r);
           Kokkos::atomic_min(&radii(label_j - n + 1), r);
         }

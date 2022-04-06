@@ -82,7 +82,7 @@ public:
                   std::forward<View>(view), std::forward<Args>(args)...);
   }
 
-//private:
+  // private:
   friend struct Details::HappyTreeFriends;
 
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
@@ -99,7 +99,8 @@ public:
       Details::NodeWithLeftChildAndRope<discretized_bounding_volume_type>,
       Details::NodeWithTwoChildren<discretized_bounding_volume_type>>;
 #else
-  using node_type = Details::NodeWithTwoChildren<discretized_bounding_volume_type>;
+  using node_type =
+      Details::NodeWithTwoChildren<discretized_bounding_volume_type>;
 #endif
 
   Kokkos::View<node_type *, MemorySpace> getInternalNodes()
@@ -123,7 +124,7 @@ public:
   }
 
   KOKKOS_FUNCTION
-  bounding_volume_type const *getRootBoundingVolumePtr() const
+  Box const *getRootBoundingVolumePtr() const
   {
     // Need address of the root node's bounding box to copy it back on the host,
     // but can't access _internal_and_leaf_nodes elements from the constructor
@@ -136,7 +137,7 @@ public:
   size_t _size;
   bounding_volume_type _bounds;
   Kokkos::View<node_type *, MemorySpace> _internal_and_leaf_nodes;
-  Kokkos::View<bounding_volume_type, MemorySpace> _scene_bounding_box;
+  Kokkos::View<Box, MemorySpace> _scene_bounding_box;
 };
 
 template <typename DeviceType>
@@ -205,8 +206,8 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
     , _internal_and_leaf_nodes(
           Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                              "ArborX::BVH::internal_and_leaf_nodes"),
-          _size > 0 ? 2 * _size - 1 : 0),
-    _scene_bounding_box("ArborX::BVH::scene_bounding_box")
+          _size > 0 ? 2 * _size - 1 : 0)
+    , _scene_bounding_box("ArborX::BVH::scene_bounding_box")
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
@@ -275,7 +276,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
       space, primitives, permutation_indices, linear_ordering_indices,
       getLeafNodes(), getInternalNodes(), _scene_bounding_box);
 
-   Kokkos::deep_copy(
+  Kokkos::deep_copy(
       space,
       Kokkos::View<BoundingVolume, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
           &_bounds),
