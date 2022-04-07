@@ -19,20 +19,40 @@ namespace Test
 using PrimitivePointOrBox = ArborX::Point;
 // using PrimitivePointOrBox = ArborX::Box;
 
+template <typename T>
+struct is_point_or_box : public std::false_type
+{
+};
+
+template <>
+struct is_point_or_box<ArborX::Point> : public std::true_type
+{
+};
+
+template <>
+struct is_point_or_box<ArborX::Box> : public std::true_type
+{
+};
+
 // clang-format off
 struct FakeBoundingVolume
 {
-  KOKKOS_FUNCTION FakeBoundingVolume &operator+=(PrimitivePointOrBox) { return *this; }
-  KOKKOS_FUNCTION void operator+=(PrimitivePointOrBox) volatile {}
+  template <typename T, typename = std::enable_if_t<is_point_or_box<T>::value>>
+  KOKKOS_FUNCTION FakeBoundingVolume &operator+=(T) { return *this; }
+  template <typename T, typename = std::enable_if_t<is_point_or_box<T>::value>>
+  KOKKOS_FUNCTION FakeBoundingVolume operator+=(T) volatile { return *this;}
   KOKKOS_FUNCTION operator ArborX::Box() const { return {}; }
 };
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakeBoundingVolume) {}
-KOKKOS_FUNCTION void expand(FakeBoundingVolume, PrimitivePointOrBox) {}
+template <typename T, typename = std::enable_if_t<is_point_or_box<T>::value>>
+KOKKOS_FUNCTION void expand(FakeBoundingVolume, T) {}
 
 struct FakePredicateGeometry {};
 KOKKOS_FUNCTION ArborX::Point returnCentroid(FakePredicateGeometry) { return {}; }
 KOKKOS_FUNCTION bool intersects(FakePredicateGeometry, FakeBoundingVolume) { return true; }
+KOKKOS_FUNCTION bool intersects(FakePredicateGeometry, ArborX::Box) { return true; }
 KOKKOS_FUNCTION float distance(FakePredicateGeometry, FakeBoundingVolume) { return 0.f; }
+KOKKOS_FUNCTION float distance(FakePredicateGeometry, ArborX::Box) { return 0.f; }
 // clang-format on
 
 struct PoorManLambda

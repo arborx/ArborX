@@ -170,7 +170,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     {
       node = next;
 
-       const auto &actual_primitive = convert_from_discretized_box(
+      const auto &actual_primitive = convert_from_discretized_box(
           HappyTreeFriends::getBoundingVolume(_bvh, node),
           _bvh._scene_bounding_box());
       if (predicate(actual_primitive))

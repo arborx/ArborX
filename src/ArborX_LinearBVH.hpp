@@ -123,17 +123,6 @@ public:
                            std::make_pair(size() - 1, 2 * size() - 1));
   }
 
-  KOKKOS_FUNCTION
-  Box const *getRootBoundingVolumePtr() const
-  {
-    // Need address of the root node's bounding box to copy it back on the host,
-    // but can't access _internal_and_leaf_nodes elements from the constructor
-    // since the data is on the device.
-    assert(Details::HappyTreeFriends::getRoot(*this) == 0 &&
-           "workaround below assumes root is stored as first element");
-    return _scene_bounding_box.data();
-  }
-
   size_t _size;
   bounding_volume_type _bounds;
   Kokkos::View<node_type *, MemorySpace> _internal_and_leaf_nodes;
@@ -232,6 +221,9 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   Box bbox{};
   Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, primitives,
                                                             bbox);
+  _bounds = bounding_volume_type{};
+  _bounds += bbox;
+
   Kokkos::deep_copy(space, _scene_bounding_box, bbox);
   Kokkos::Profiling::popRegion();
 
@@ -239,12 +231,6 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   {
     Details::TreeConstruction::initializeSingleLeafNode(
         space, primitives, _internal_and_leaf_nodes, bbox);
-    Kokkos::deep_copy(
-        space,
-        Kokkos::View<BoundingVolume, Kokkos::HostSpace,
-                     Kokkos::MemoryUnmanaged>(&_bounds),
-        Kokkos::View<BoundingVolume const, MemorySpace,
-                     Kokkos::MemoryUnmanaged>(getRootBoundingVolumePtr()));
     return;
   }
 
@@ -275,13 +261,6 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   Details::TreeConstruction::generateHierarchy(
       space, primitives, permutation_indices, linear_ordering_indices,
       getLeafNodes(), getInternalNodes(), _scene_bounding_box);
-
-  Kokkos::deep_copy(
-      space,
-      Kokkos::View<BoundingVolume, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
-          &_bounds),
-      Kokkos::View<BoundingVolume const, MemorySpace, Kokkos::MemoryUnmanaged>(
-          getRootBoundingVolumePtr()));
 
   Kokkos::Profiling::popRegion();
 }

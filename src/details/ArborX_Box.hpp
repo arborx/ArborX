@@ -222,6 +222,23 @@ private:
   static constexpr std::uint64_t max_z_mask = single_max << 50;
 };
 
+template <typename T>
+KOKKOS_INLINE_FUNCTION Box convert_to_box(const T &t, const Box &global_box);
+
+template <>
+KOKKOS_INLINE_FUNCTION Box convert_to_box<Box>(const Box &local_box,
+                                               const Box &)
+{
+  return local_box;
+}
+
+template <>
+KOKKOS_INLINE_FUNCTION Box convert_to_box<DiscretizedBox>(
+    const DiscretizedBox &local_box, const Box &global_box)
+{
+  return local_box.to_box(global_box);
+}
+
 } // namespace ArborX
 
 #endif

@@ -56,7 +56,7 @@ public:
         Kokkos::view_alloc(Kokkos::WithoutInitializing, "boxes"), n);
     auto boxes_host = Kokkos::create_mirror_view(_boxes);
 
-    ArborX::Box global_box {{0,0,0}, {Lx, Ly, Lz}};
+    ArborX::Box global_box{{0, 0, 0}, {Lx, Ly, Lz}};
 
     for (int i = 0; i < nx; ++i)
       for (int j = 0; j < ny; ++j)
@@ -67,16 +67,16 @@ public:
           ArborX::Point p_upper{
               {(i + .25) * hx, (j + .25) * hy, (k + .25) * hz}};
           boxes_host[index(i, j, k)] = {p_lower, p_upper};
-	  ArborX::DiscretizedBox discrete_box(boxes_host[index(i,j,k)], global_box);
-	  auto recovered_box = discrete_box.to_box(global_box);
-	  std::cout << i << ' ' << j << ' '  << ' ' << k << ": " 
-		    << recovered_box.minCorner()[0] << ' '
-		    << recovered_box.minCorner()[1] << ' '
-		    << recovered_box.minCorner()[2] << ' '
+          ArborX::DiscretizedBox discrete_box(boxes_host[index(i, j, k)],
+                                              global_box);
+          auto recovered_box = discrete_box.to_box(global_box);
+          std::cout << i << ' ' << j << ' ' << ' ' << k << ": "
+                    << recovered_box.minCorner()[0] << ' '
+                    << recovered_box.minCorner()[1] << ' '
+                    << recovered_box.minCorner()[2] << ' '
                     << recovered_box.maxCorner()[0] << ' '
-                    << recovered_box.maxCorner()[1] << ' ' 
-                    << recovered_box.maxCorner()[2]
-		    << std::endl;
+                    << recovered_box.maxCorner()[1] << ' '
+                    << recovered_box.maxCorner()[2] << std::endl;
         }
     Kokkos::deep_copy(execution_space, _boxes, boxes_host);
   }
@@ -167,7 +167,8 @@ int main()
     for (int i = 0; i < static_cast<int>(n + 1); ++i)
       if (offsets_host(i) != i)
       {
-        std::cout << "offsets_host(" << i << ") =" << offsets_host(i) << std::endl;
+        std::cout << "offsets_host(" << i << ") =" << offsets_host(i)
+                  << std::endl;
         Kokkos::abort("Wrong entry in the offsets View!\n");
       }
 
