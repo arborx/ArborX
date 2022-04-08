@@ -40,7 +40,7 @@ struct FakeBoundingVolume
   template <typename T, typename = std::enable_if_t<is_point_or_box<T>::value>>
   KOKKOS_FUNCTION FakeBoundingVolume &operator+=(T) { return *this; }
   template <typename T, typename = std::enable_if_t<is_point_or_box<T>::value>>
-  KOKKOS_FUNCTION FakeBoundingVolume operator+=(T) volatile { return *this;}
+  KOKKOS_FUNCTION FakeBoundingVolume operator+=(T) volatile { return {};}
   KOKKOS_FUNCTION operator ArborX::Box() const { return {}; }
 };
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakeBoundingVolume) {}

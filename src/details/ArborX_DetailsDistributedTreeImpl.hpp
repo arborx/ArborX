@@ -498,8 +498,9 @@ struct CallbackWithDistance
     // the details of the local tree. Right now, this is the only way. Will
     // need to be fixed with a proper callback abstraction.
     int const leaf_node_index = _rev_permute(index);
-    auto const &leaf_node_bounding_volume =
-        HappyTreeFriends::getBoundingVolume(_tree, leaf_node_index);
+    auto const &leaf_node_bounding_volume = convert_from_discretized_box(
+        HappyTreeFriends::getBoundingVolume(_tree, leaf_node_index),
+        _tree._scene_bounding_box());
     out({index, distance(getGeometry(query), leaf_node_bounding_volume)});
   }
 };
