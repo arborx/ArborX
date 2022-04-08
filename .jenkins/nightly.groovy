@@ -1,6 +1,5 @@
 pipeline {
     options {
-        disableConcurrentBuilds(abortPrevious: true)
         timeout(time: 3, unit: 'HOURS')
     }
     agent none
