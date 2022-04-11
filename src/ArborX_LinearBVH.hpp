@@ -84,15 +84,18 @@ public:
 private:
   friend struct Details::HappyTreeFriends;
 
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP) ||               \
+    defined(KOKKOS_ENABLE_SYCL)
   // Ropes based traversal is only used for CUDA, as it was found to be slower
   // than regular one for Power9 on Summit.  It is also used with HIP.
   using node_type = std::conditional_t<
       std::is_same<MemorySpace,
 #if defined(KOKKOS_ENABLE_CUDA)
                    Kokkos::CudaSpace
-#else
+#elif defined(KOKKOS_ENABLE_HIP)
                    Kokkos::Experimental::HIPSpace
+#else
+                   Kokkos::Experimental::SYCLDeviceUSMSpace
 #endif
                    >{},
       Details::NodeWithLeftChildAndRope<bounding_volume_type>,
