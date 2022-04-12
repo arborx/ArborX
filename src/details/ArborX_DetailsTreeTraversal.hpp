@@ -102,45 +102,56 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     do
     {
       int const left_child = HappyTreeFriends::getLeftChild(_bvh, node);
+      bool const left_child_is_leaf = HappyTreeFriends::isLeaf(_bvh, left_child);
+
       int const right_child = HappyTreeFriends::getRightChild(_bvh, node);
+      bool const right_child_is_leaf = HappyTreeFriends::isLeaf(_bvh, right_child);
 
       bool traverse_left = false;
       bool traverse_right = false;
 
-      const auto &actual_left_primitive = convert_from_discretized_box(
-          HappyTreeFriends::getBoundingVolume(_bvh, left_child),
-          _bvh._scene_bounding_box());
-      if (predicate(actual_left_primitive))
+      if (left_child_is_leaf)
       {
-        if (HappyTreeFriends::isLeaf(_bvh, left_child))
+        const auto &actual_left_primitive = convert_from_discretized_box(
+          HappyTreeFriends::getLeafBoundingVolume(_bvh, left_child),
+          _bvh._scene_bounding_box());
+	if(predicate(actual_left_primitive))
         {
           if (invoke_callback_and_check_early_exit(
                   _callback, predicate,
                   HappyTreeFriends::getLeafPermutationIndex(_bvh, left_child)))
             return;
         }
-        else
-        {
+      }
+      else
+      {
+         const auto &actual_left_primitive = convert_from_discretized_box(
+          HappyTreeFriends::getInternalBoundingVolume(_bvh, left_child),
+          _bvh._scene_bounding_box());
+         if(predicate(actual_left_primitive))
           traverse_left = true;
-        }
       }
 
-      const auto &actual_right_primitive = convert_from_discretized_box(
-          HappyTreeFriends::getBoundingVolume(_bvh, right_child),
-          _bvh._scene_bounding_box());
-      if (predicate(actual_right_primitive))
+      if (right_child_is_leaf)
       {
-        if (HappyTreeFriends::isLeaf(_bvh, right_child))
+        const auto &actual_right_primitive = convert_from_discretized_box(
+          HappyTreeFriends::getLeafBoundingVolume(_bvh, right_child),
+          _bvh._scene_bounding_box());
+        if(predicate(actual_right_primitive))
         {
           if (invoke_callback_and_check_early_exit(
                   _callback, predicate,
                   HappyTreeFriends::getLeafPermutationIndex(_bvh, right_child)))
             return;
         }
-        else
-        {
+      }
+      else
+      {
+         const auto &actual_right_primitive = convert_from_discretized_box(
+          HappyTreeFriends::getInternalBoundingVolume(_bvh, right_child),
+          _bvh._scene_bounding_box());
+         if(predicate(actual_right_primitive))
           traverse_right = true;
-        }
       }
 
       if (!traverse_left && !traverse_right)
@@ -169,30 +180,34 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     do
     {
       node = next;
+      bool const node_is_leaf = HappyTreeFriends::isLeaf(_bvh, node);
 
-      const auto &actual_primitive = convert_from_discretized_box(
-          HappyTreeFriends::getBoundingVolume(_bvh, node),
-          _bvh._scene_bounding_box());
-      if (predicate(actual_primitive))
+      if (node_is_leaf) 
       {
-        if (!HappyTreeFriends::isLeaf(_bvh, node))
-        {
-          next = HappyTreeFriends::getLeftChild(_bvh, node);
-        }
-        else
-        {
+        const auto &actual_primitive = convert_from_discretized_box(
+          HappyTreeFriends::getLeafBoundingVolume(_bvh, node),
+          _bvh._scene_biounding_box());
+        if (predicate(actual_primitive))
+	{
           if (invoke_callback_and_check_early_exit(
-                  _callback, predicate,
-                  HappyTreeFriends::getLeafPermutationIndex(_bvh, node)))
+                _callback, predicate,
+                HappyTreeFriends::getLeafPermutationIndex(_bvh, node)))
             return;
-          next = HappyTreeFriends::getRope(_bvh, node);
-        }
-      }
-      else
+          next = HappyTreeFriends::getRope(_bvh, node);			       
+	}
+	else
+	  next = HappyTreeFriends::getRope(_bvh, node);
+      } 
+      else 
       {
-        next = HappyTreeFriends::getRope(_bvh, node);
+        const auto &actual_primitive = convert_from_discretized_box(
+          HappyTreeFriends::getInternalBoundingVolume(_bvh, node),
+          _bvh._scene_biounding_box());
+        if (predicate(actual_primitive))
+	  next = HappyTreeFriends::getLeftChild(_bvh, node);
+	else
+	  next = HappyTreeFriends::getRope(_bvh, node);
       }
-
     } while (next != ROPE_SENTINEL);
   }
 };
@@ -303,11 +318,19 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
     auto const k = getK(predicate);
-    auto const distance = [geometry = getGeometry(predicate),
+    auto const leaf_distance = [geometry = getGeometry(predicate),
                            bvh = _bvh](int node) {
       using Details::distance;
       const auto &actual_primitive = convert_from_discretized_box(
-          HappyTreeFriends::getBoundingVolume(bvh, node),
+          HappyTreeFriends::getLeafBoundingVolume(bvh, node),
+          bvh._scene_bounding_box());
+      return distance(geometry, actual_primitive);
+    };
+    auto const internal_distance = [geometry = getGeometry(predicate),
+                           bvh = _bvh](int node) {
+      using Details::distance;
+      const auto &actual_primitive = convert_from_discretized_box(
+          HappyTreeFriends::getInternalBoundingVolume(bvh, node),
           bvh._scene_bounding_box());
       return distance(geometry, actual_primitive);
     };
@@ -374,6 +397,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
         // Insert children into the stack and make sure that the
         // closest one ends on top.
         left_child = HappyTreeFriends::getLeftChild(_bvh, node);
+	bool const left_child_is_leaf = HappyTreeFriends::isLeaf(_bvh, left_child);
         right_child = HappyTreeFriends::getRightChild(_bvh, node);
 
         distance_left = distance(left_child);
@@ -381,7 +405,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
 
         if (distance_left < radius)
         {
-          if (HappyTreeFriends::isLeaf(_bvh, left_child))
+          if (left_child_is_leaf)
           {
             auto leaf_pair = Kokkos::make_pair(
                 HappyTreeFriends::getLeafPermutationIndex(_bvh, left_child),

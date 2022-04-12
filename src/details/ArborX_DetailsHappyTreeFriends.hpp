@@ -45,34 +45,56 @@ struct HappyTreeFriends
   }
 
   template <class BVH>
+   static KOKKOS_FUNCTION
 // FIXME_HIP See https://github.com/arborx/ArborX/issues/553
 #ifdef __HIP_DEVICE_COMPILE__
-  static KOKKOS_FUNCTION auto getBoundingVolume(BVH const &bvh, int i)
+  auto
 #else
-  static KOKKOS_FUNCTION auto const &getBoundingVolume(BVH const &bvh, int i)
+  auto const &
 #endif
+  getLeafBoundingVolume(BVH const &bvh, int i)
   {
-    return bvh._internal_and_leaf_nodes(i).bounding_volume;
+    assert(isLeaf(bvh, i));
+    return bvh._leaf_nodes(i).bounding_volume();
+  }
+
+  template <class BVH>
+   static KOKKOS_FUNCTION
+// FIXME_HIP See https://github.com/arborx/ArborX/issues/553
+#ifdef __HIP_DEVICE_COMPILE__
+  auto
+#else
+  auto const &
+#endif
+  getInternalBoundingVolume(BVH const &bvh, int i)
+  {
+    assert(!isLeaf(bvh, i));
+    return bvh._internal_nodes(i).bounding_volume();
   }
 
   template <class BVH>
   static KOKKOS_FUNCTION bool isLeaf(BVH const &bvh, int i)
   {
-    return bvh._internal_and_leaf_nodes(i).isLeaf();
+    const int n = bvh._internal_nodes.size();
+    return i<n && bvh._leaf_nodes(i-n).isLeaf();
   }
 
   template <class BVH>
   static KOKKOS_FUNCTION auto getLeafPermutationIndex(BVH const &bvh, int i)
   {
     assert(isLeaf(bvh, i));
-    return bvh._internal_and_leaf_nodes(i).getLeafPermutationIndex();
+    return bvh._leaf_nodes(i).getLeafPermutationIndex();
   }
 
   template <class BVH>
   static KOKKOS_FUNCTION auto getLeftChild(BVH const &bvh, int i)
   {
     assert(!isLeaf(bvh, i));
-    return bvh._internal_and_leaf_nodes(i).left_child;
+    const int n = bvh._internal_nodes.size(); 
+    if (i < n)
+      return bvh._internal_nodes(i).left_child;
+    else
+      return bvh._leaf_nodes(i-n).left_child;
   }
 
   template <class BVH>
