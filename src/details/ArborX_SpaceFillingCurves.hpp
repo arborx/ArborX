@@ -14,9 +14,9 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
-#include <ArborX_DetailsKokkosExtDetectionIdiom.hpp>
 #include <ArborX_DetailsMortonCode.hpp>
 
+#include <Kokkos_DetectionIdiom.hpp>
 #include <Kokkos_Macros.hpp>
 
 namespace ArborX
@@ -74,24 +74,24 @@ template <class SpaceFillingCurve>
 void check_valid_space_filling_curve(SpaceFillingCurve const &)
 {
   static_assert(
-      KokkosExt::is_detected<SpaceFillingCurveProjectionArchetypeExpression,
-                             SpaceFillingCurve, Point>::value,
+      Kokkos::is_detected<SpaceFillingCurveProjectionArchetypeExpression,
+                          SpaceFillingCurve, Point>::value,
       "");
   static_assert(
-      KokkosExt::is_detected<SpaceFillingCurveProjectionArchetypeExpression,
-                             SpaceFillingCurve, Box>::value,
+      Kokkos::is_detected<SpaceFillingCurveProjectionArchetypeExpression,
+                          SpaceFillingCurve, Box>::value,
       "");
   using OrderValueType =
-      KokkosExt::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
-                            SpaceFillingCurve, Point>;
+      Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
+                         SpaceFillingCurve, Point>;
   static_assert(std::is_same<OrderValueType, unsigned int>::value ||
                     std::is_same<OrderValueType, unsigned long long>::value,
                 "");
   static_assert(
       std::is_same<
           OrderValueType,
-          KokkosExt::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
-                                SpaceFillingCurve, Box>>::value,
+          Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
+                             SpaceFillingCurve, Box>>::value,
       "");
 }
 

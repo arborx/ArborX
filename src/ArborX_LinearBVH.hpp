@@ -247,7 +247,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::compute_linear_ordering");
 
   // map primitives from multidimensional domain to one-dimensional interval
-  using LinearOrderingValueType = KokkosExt::detected_t<
+  using LinearOrderingValueType = Kokkos::detected_t<
       Details::SpaceFillingCurveProjectionArchetypeExpression,
       SpaceFillingCurve, Point>;
   Kokkos::View<LinearOrderingValueType *, MemorySpace> linear_ordering_indices(
