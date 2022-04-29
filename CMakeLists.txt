@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(ArborX CXX)
 
-find_package(Kokkos 3.4 REQUIRED CONFIG)
+find_package(Kokkos 3.5 REQUIRED CONFIG)
 message(STATUS "Found Kokkos: ${Kokkos_DIR} (version \"${Kokkos_VERSION}\")")
 if(Kokkos_ENABLE_CUDA)
   kokkos_check(OPTIONS CUDA_LAMBDA)
