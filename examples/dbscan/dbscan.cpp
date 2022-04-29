@@ -435,12 +435,8 @@ int main(int argc, char *argv[])
   }
   else if (algorithm == "mst")
   {
-#if KOKKOS_VERSION >= 30500
     ArborX::Details::MinimumSpanningTree<MemorySpace> mst(
         exec_space, primitives, core_min_size);
-#else
-    throw std::runtime_error("MST is only available with Kokkos 3.5 or later");
-#endif
   }
 
   return success ? EXIT_SUCCESS : EXIT_FAILURE;

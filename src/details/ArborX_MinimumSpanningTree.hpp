@@ -23,8 +23,6 @@
 
 #include <Kokkos_Core.hpp>
 
-#if KOKKOS_VERSION >= 30500
-
 namespace ArborX
 {
 namespace Details
@@ -721,5 +719,4 @@ private:
 } // namespace Details
 } // namespace ArborX
 
-#endif
 #endif

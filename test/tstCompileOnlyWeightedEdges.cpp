@@ -9,8 +9,6 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#if KOKKOS_VERSION >= 30500
-
 #include <ArborX_MinimumSpanningTree.hpp>
 
 namespace
@@ -70,5 +68,3 @@ KOKKOS_FUNCTION constexpr bool test_weighted_edges()
 STATIC_ASSERT(test_weighted_edges()); // avoid warning unused function
 
 } // namespace
-
-#endif
