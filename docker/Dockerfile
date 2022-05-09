@@ -67,9 +67,9 @@ ENV PATH=${LLVM_DIR}/bin:$PATH
 # Install OpenMPI
 ARG CUDA_AWARE_MPI
 ENV OPENMPI_DIR=/opt/openmpi
-RUN OPENMPI_VERSION=4.0.3 && \
+RUN OPENMPI_VERSION=4.1.3 && \
     OPENMPI_VERSION_SHORT=$(echo "$OPENMPI_VERSION" | cut -d. -f1,2) && \
-    OPENMPI_SHA1=d958454e32da2c86dd32b7d557cf9a401f0a08d3 && \
+    OPENMPI_SHA1=be3ebb8df076677889198b73b0b033b956c3d88b && \
     OPENMPI_URL=https://download.open-mpi.org/release/open-mpi/v${OPENMPI_VERSION_SHORT}/openmpi-${OPENMPI_VERSION}.tar.bz2 && \
     OPENMPI_ARCHIVE=openmpi-${OPENMPI_VERSION}.tar.bz2 && \
     CUDA_OPTIONS=${CUDA_AWARE_MPI:+--with-cuda} && \
