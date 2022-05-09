@@ -1,4 +1,4 @@
-ARG BASE=nvidia/cuda:10.1-devel
+ARG BASE=nvidia/cuda:11.0.3-devel-ubuntu18.04
 FROM $BASE
 
 ARG NPROCS=4
