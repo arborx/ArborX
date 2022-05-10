@@ -271,7 +271,7 @@ public:
     // Initialize leaf node
     auto *leaf_node = &_leaf_nodes(i-_num_internal_nodes);
     *leaf_node =
-        makeLeafNode(typename LeafNode::Tag{}, original_index, bounding_volume);
+        makeLeafNode(typename LeafNode::Tag{}, original_index, bounding_volume.to_box(_scene_bounding_box()));
 
     // For a leaf node, the range is just one index
     int range_left = i - leaf_nodes_shift;
@@ -333,10 +333,10 @@ public:
         // NOTE we need acquire semantics at the device scope
         Kokkos::load_fence();
 	if (right_child < n)
-          expand_helper(bounding_volume, &(_internal_nodes(right_child))->bounding_volume,
+          expand_helper(bounding_volume, (&_internal_nodes(right_child))->bounding_volume,
                         _scene_bounding_box());
 	else
-	  expand_helper(bounding_volume, &(_leaf_nodes(right_child-n))->bounding_volume,
+	  expand_helper(bounding_volume, (&_leaf_nodes(right_child-n))->bounding_volume,
                         _scene_bounding_box());
       }
       else
@@ -360,10 +360,10 @@ public:
 
         Kokkos::load_fence();
         if (left_child < n)
-          expand_helper(bounding_volume, &(_internal_nodes(left_child))->bounding_volume,
+          expand_helper(bounding_volume, (&_internal_nodes(left_child))->bounding_volume,
                         _scene_bounding_box());
         else
-          expand_helper(bounding_volume, &(_leaf_nodes(left_child-n))->bounding_volume,
+          expand_helper(bounding_volume, (&_leaf_nodes(left_child-n))->bounding_volume,
                         _scene_bounding_box());
       }
 
