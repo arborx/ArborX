@@ -120,9 +120,9 @@ struct TreeVisualization
     {
       auto const node_label = getNodeLabel(tree, node);
       auto const node_attributes = getNodeAttributes(tree, node);
-      auto const bounding_volume =
-          HappyTreeFriends::getBoundingVolume(tree, node);
-      Box const box = convert_to_box(bounding_volume, tree.bounds());
+      Box const box = HappyTreeFriends::isLeaf(tree, node) ? 
+        HappyTreeFriends::getLeafBoundingVolume(tree, node) : 
+        convert_to_box(HappyTreeFriends::getInternalBoundingVolume(tree, node), tree.bounds());
       auto const min_corner = box.minCorner();
       auto const max_corner = box.maxCorner();
       _os << R"(\draw)" << node_attributes << " " << min_corner << " rectangle "
