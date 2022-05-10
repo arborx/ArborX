@@ -132,7 +132,11 @@ struct HappyTreeFriends
   static KOKKOS_FUNCTION auto getRightChildImpl(BVH const &bvh, int i)
   {
     assert(!isLeaf(bvh, i));
-    return bvh._internal_and_leaf_nodes(i).right_child;
+    const int n = bvh._internal_nodes.size();
+    if (i < n)
+      return bvh._internal_nodes(i).right_child;
+    else
+      return bvh._leaf_nodes(i-n).right_child;    
   }
 
   template <class BVH,
@@ -141,7 +145,11 @@ struct HappyTreeFriends
   static KOKKOS_FUNCTION auto getRightChildImpl(BVH const &bvh, int i)
   {
     assert(!isLeaf(bvh, i));
-    return bvh._internal_and_leaf_nodes(getLeftChild(bvh, i)).rope;
+    const int n = bvh._internal_nodes.size();
+    if (i < n)
+      return bvh._internal_nodes(getLeftChild(bvh, i)).rope;
+    else
+      return bvh._leaf_nodes(getLeftChild(bvh, i-n)).rope;	    
   }
 #endif
 
@@ -150,7 +158,11 @@ struct HappyTreeFriends
                 nullptr>
   static KOKKOS_FUNCTION auto getRope(BVH const &bvh, int i)
   {
-    return bvh._internal_and_leaf_nodes(i).rope;
+    const int n = bvh._internal_nodes.size();
+    if (i < n)
+      return bvh._internal_nodes(i).rope;
+    else
+      return bvh._leaf_nodes(i-n).rope;  
   }
 
   template <class BVH>
