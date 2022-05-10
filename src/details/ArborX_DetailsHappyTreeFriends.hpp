@@ -45,29 +45,29 @@ struct HappyTreeFriends
   }
 
   template <class BVH>
-   static KOKKOS_FUNCTION
+  static KOKKOS_FUNCTION
 // FIXME_HIP See https://github.com/arborx/ArborX/issues/553
 #ifdef __HIP_DEVICE_COMPILE__
-  auto
+      auto
 #else
-  auto const &
+      auto const &
 #endif
-  getLeafBoundingVolume(BVH const &bvh, int i)
+      getLeafBoundingVolume(BVH const &bvh, int i)
   {
     assert(isLeaf(bvh, i));
     const int n = bvh._internal_nodes.size();
-    return bvh._leaf_nodes(i-n).bounding_volume;
+    return bvh._leaf_nodes(i - n).bounding_volume;
   }
 
   template <class BVH>
-   static KOKKOS_FUNCTION
+  static KOKKOS_FUNCTION
 // FIXME_HIP See https://github.com/arborx/ArborX/issues/553
 #ifdef __HIP_DEVICE_COMPILE__
-  auto
+      auto
 #else
-  auto const &
+      auto const &
 #endif
-  getInternalBoundingVolume(BVH const &bvh, int i)
+      getInternalBoundingVolume(BVH const &bvh, int i)
   {
     assert(!isLeaf(bvh, i));
     return bvh._internal_nodes(i).bounding_volume;
@@ -77,7 +77,7 @@ struct HappyTreeFriends
   static KOKKOS_FUNCTION bool isLeaf(BVH const &bvh, int i)
   {
     const int n = bvh._internal_nodes.size();
-    return i>=n && bvh._leaf_nodes(i-n).isLeaf();
+    return i >= n && bvh._leaf_nodes(i - n).isLeaf();
   }
 
   template <class BVH>
@@ -85,18 +85,18 @@ struct HappyTreeFriends
   {
     assert(isLeaf(bvh, i));
     const int n = bvh._internal_nodes.size();
-    return bvh._leaf_nodes(i-n).getLeafPermutationIndex();
+    return bvh._leaf_nodes(i - n).getLeafPermutationIndex();
   }
 
   template <class BVH>
   static KOKKOS_FUNCTION auto getLeftChild(BVH const &bvh, int i)
   {
     assert(!isLeaf(bvh, i));
-    const int n = bvh._internal_nodes.size(); 
+    const int n = bvh._internal_nodes.size();
     if (i < n)
       return bvh._internal_nodes(i).left_child;
     else
-      return bvh._leaf_nodes(i-n).left_child;
+      return bvh._leaf_nodes(i - n).left_child;
   }
 
   template <class BVH>
@@ -109,7 +109,7 @@ struct HappyTreeFriends
                   has_node_with_left_child_and_rope<BVH>::value);
     assert(!isLeaf(bvh, i));
     const int n = bvh._internal_nodes.size();
-    if (i < n) 
+    if (i < n)
     {
       if constexpr (has_node_with_left_child_and_rope<BVH>::value)
         return bvh._internal_nodes(getLeftChild(bvh, i)).rope;
@@ -119,9 +119,9 @@ struct HappyTreeFriends
     else
     {
       if constexpr (has_node_with_left_child_and_rope<BVH>::value)
-        return bvh._leaf_nodes(getLeftChild(bvh, i-n)).rope;
+        return bvh._leaf_nodes(getLeftChild(bvh, i - n)).rope;
       else
-        return bvh._leaf_nodes(i-n).right_child;  
+        return bvh._leaf_nodes(i - n).right_child;
     }
 #endif
   }

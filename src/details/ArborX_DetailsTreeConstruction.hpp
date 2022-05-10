@@ -116,8 +116,9 @@ namespace
 constexpr int UNTOUCHED_NODE = -1;
 } // namespace
 
-template <typename Primitives, typename MemorySpace, typename LeafNode, typename InternalNode,
-          typename LinearOrderingValueType, typename GlobalBoxView>
+template <typename Primitives, typename MemorySpace, typename LeafNode,
+          typename InternalNode, typename LinearOrderingValueType,
+          typename GlobalBoxView>
 class GenerateHierarchy
 {
 public:
@@ -134,7 +135,8 @@ public:
                    LinearOrderingViewProperties...>
           sorted_morton_codes,
       Kokkos::View<LeafNode *, LeafNodesViewProperties...> leaf_nodes,
-      Kokkos::View<InternalNode *, InternalNodesViewProperties...> internal_nodes,
+      Kokkos::View<InternalNode *, InternalNodesViewProperties...>
+          internal_nodes,
       GlobalBoxView global_box)
       : _primitives(primitives)
       , _permutation_indices(permutation_indices)
@@ -269,9 +271,9 @@ public:
                   _scene_bounding_box());
 
     // Initialize leaf node
-    auto *leaf_node = &_leaf_nodes(i-_num_internal_nodes);
-    *leaf_node =
-        makeLeafNode(typename LeafNode::Tag{}, original_index, bounding_volume.to_box(_scene_bounding_box()));
+    auto *leaf_node = &_leaf_nodes(i - _num_internal_nodes);
+    *leaf_node = makeLeafNode(typename LeafNode::Tag{}, original_index,
+                              bounding_volume.to_box(_scene_bounding_box()));
 
     // For a leaf node, the range is just one index
     int range_left = i - leaf_nodes_shift;
@@ -332,11 +334,13 @@ public:
         // thread.
         // NOTE we need acquire semantics at the device scope
         Kokkos::load_fence();
-	if (right_child < n)
-          expand_helper(bounding_volume, (&_internal_nodes(right_child))->bounding_volume,
+        if (right_child < n)
+          expand_helper(bounding_volume,
+                        (&_internal_nodes(right_child))->bounding_volume,
                         _scene_bounding_box());
-	else
-	  expand_helper(bounding_volume, (&_leaf_nodes(right_child-n))->bounding_volume,
+        else
+          expand_helper(bounding_volume,
+                        (&_leaf_nodes(right_child - n))->bounding_volume,
                         _scene_bounding_box());
       }
       else
@@ -360,10 +364,12 @@ public:
 
         Kokkos::load_fence();
         if (left_child < n)
-          expand_helper(bounding_volume, (&_internal_nodes(left_child))->bounding_volume,
+          expand_helper(bounding_volume,
+                        (&_internal_nodes(left_child))->bounding_volume,
                         _scene_bounding_box());
         else
-          expand_helper(bounding_volume, (&_leaf_nodes(left_child-n))->bounding_volume,
+          expand_helper(bounding_volume,
+                        (&_leaf_nodes(left_child - n))->bounding_volume,
                         _scene_bounding_box());
       }
 
@@ -418,7 +424,8 @@ void generateHierarchy(
 
   using MemorySpace = typename decltype(internal_nodes)::memory_space;
 
-  GenerateHierarchy<Primitives, MemorySpace, LeafNode, InternalNode, LinearOrderingValueType,
+  GenerateHierarchy<Primitives, MemorySpace, LeafNode, InternalNode,
+                    LinearOrderingValueType,
                     Kokkos::View<GlobalBox, GlobalBoxProperties...>>(
       space, primitives, ConstPermutationIndices(permutation_indices),
       ConstLinearOrdering(sorted_morton_codes), leaf_nodes, internal_nodes,

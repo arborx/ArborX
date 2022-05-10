@@ -68,33 +68,33 @@ struct PoorManLambda
 // Compile-only
 void check_bounding_volume_and_predicate_geometry_type_requirements()
 {
-	/*
-  using ExecutionSpace = Kokkos::DefaultExecutionSpace;
-  using MemorySpace = ExecutionSpace::memory_space;
-  using Tree = ArborX::BasicBoundingVolumeHierarchy<MemorySpace,
-                                                    Test::FakeBoundingVolume>;
+  /*
+using ExecutionSpace = Kokkos::DefaultExecutionSpace;
+using MemorySpace = ExecutionSpace::memory_space;
+using Tree = ArborX::BasicBoundingVolumeHierarchy<MemorySpace,
+                                              Test::FakeBoundingVolume>;
 
-  Kokkos::View<Test::PrimitivePointOrBox *, MemorySpace> primitives(
-      "primitives", 0);
-  Tree tree(ExecutionSpace{}, primitives);
+Kokkos::View<Test::PrimitivePointOrBox *, MemorySpace> primitives(
+"primitives", 0);
+Tree tree(ExecutionSpace{}, primitives);
 
-  using SpatialPredicate =
-      decltype(ArborX::intersects(Test::FakePredicateGeometry{}));
-  Kokkos::View<SpatialPredicate *, MemorySpace> spatial_predicates(
-      "spatial_predicates", 0);
-  tree.query(ExecutionSpace{}, spatial_predicates, Test::PoorManLambda{});
+using SpatialPredicate =
+decltype(ArborX::intersects(Test::FakePredicateGeometry{}));
+Kokkos::View<SpatialPredicate *, MemorySpace> spatial_predicates(
+"spatial_predicates", 0);
+tree.query(ExecutionSpace{}, spatial_predicates, Test::PoorManLambda{});
 #ifndef __NVCC__
-  tree.query(ExecutionSpace{}, spatial_predicates,
-             KOKKOS_LAMBDA(SpatialPredicate, int){});
+tree.query(ExecutionSpace{}, spatial_predicates,
+       KOKKOS_LAMBDA(SpatialPredicate, int){});
 #endif
 
-  using NearestPredicate =
-      decltype(ArborX::nearest(Test::FakePredicateGeometry{}));
-  Kokkos::View<NearestPredicate *, MemorySpace> nearest_predicates(
-      "nearest_predicates", 0);
-  tree.query(ExecutionSpace{}, nearest_predicates, Test::PoorManLambda{});
+using NearestPredicate =
+decltype(ArborX::nearest(Test::FakePredicateGeometry{}));
+Kokkos::View<NearestPredicate *, MemorySpace> nearest_predicates(
+"nearest_predicates", 0);
+tree.query(ExecutionSpace{}, nearest_predicates, Test::PoorManLambda{});
 #ifndef __NVCC__
-  tree.query(ExecutionSpace{}, nearest_predicates,
-             KOKKOS_LAMBDA(NearestPredicate, int){});
+tree.query(ExecutionSpace{}, nearest_predicates,
+       KOKKOS_LAMBDA(NearestPredicate, int){});
 #endif*/
 }

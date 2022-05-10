@@ -228,7 +228,7 @@ struct FakePrimitive
 };
 struct FakeBoundingVolume
 {
-	FakeBoundingVolume to_box (const ArborX::Box) const { return *this; }
+  FakeBoundingVolume to_box(const ArborX::Box) const { return *this; }
 };
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakeBoundingVolume) {}
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakePrimitive) {}

@@ -103,7 +103,7 @@ public:
       Details::NodeWithTwoChildren<discretized_bounding_volume_type>;
 #endif
 
-  #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
   // Ropes based traversal is only used for CUDA, as it was found to be slower
   // than regular one for Power9 on Summit.  It is also used with HIP.
   using leaf_node_type = std::conditional_t<
@@ -117,8 +117,7 @@ public:
       Details::NodeWithLeftChildAndRope<bounding_volume_type>,
       Details::NodeWithTwoChildren<bounding_volume_type>>;
 #else
-  using leaf_node_type =
-      Details::NodeWithTwoChildren<bounding_volume_type>;
+  using leaf_node_type = Details::NodeWithTwoChildren<bounding_volume_type>;
 #endif
 
   Kokkos::View<node_type *, MemorySpace> getInternalNodes()
@@ -208,11 +207,12 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
                                  Primitives const &primitives,
                                  SpaceFillingCurve const &curve)
     : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
-    , _internal_nodes(Kokkos::view_alloc(space, Kokkos::WithoutInitializing, "ArborX::BVH::internal_nodes"), _size > 0 ? _size - 1 : 0)
-    , _leaf_nodes(
-          Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                             "ArborX::BVH::leaf_nodes"),
-          _size)
+    , _internal_nodes(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                                         "ArborX::BVH::internal_nodes"),
+                      _size > 0 ? _size - 1 : 0)
+    , _leaf_nodes(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                                     "ArborX::BVH::leaf_nodes"),
+                  _size)
     , _scene_bounding_box("ArborX::BVH::scene_bounding_box")
 {
   static_assert(
@@ -246,8 +246,8 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
 
   if (size() == 1)
   {
-    Details::TreeConstruction::initializeSingleLeafNode(
-        space, primitives, _leaf_nodes, bbox);
+    Details::TreeConstruction::initializeSingleLeafNode(space, primitives,
+                                                        _leaf_nodes, bbox);
     return;
   }
 
