@@ -55,7 +55,8 @@ struct HappyTreeFriends
   getLeafBoundingVolume(BVH const &bvh, int i)
   {
     assert(isLeaf(bvh, i));
-    return bvh._leaf_nodes(i).bounding_volume;
+    const int n = bvh._internal_nodes.size();
+    return bvh._leaf_nodes(i-n).bounding_volume;
   }
 
   template <class BVH>
@@ -76,7 +77,6 @@ struct HappyTreeFriends
   static KOKKOS_FUNCTION bool isLeaf(BVH const &bvh, int i)
   {
     const int n = bvh._internal_nodes.size();
-    std::cout << "n: " << n << " i: " << i << std::endl;
     return i>=n && bvh._leaf_nodes(i-n).isLeaf();
   }
 
@@ -84,7 +84,8 @@ struct HappyTreeFriends
   static KOKKOS_FUNCTION auto getLeafPermutationIndex(BVH const &bvh, int i)
   {
     assert(isLeaf(bvh, i));
-    return bvh._leaf_nodes(i).getLeafPermutationIndex();
+    const int n = bvh._internal_nodes.size();
+    return bvh._leaf_nodes(i-n).getLeafPermutationIndex();
   }
 
   template <class BVH>
