@@ -136,7 +136,7 @@ struct HappyTreeFriends
     if (i < n)
       return bvh._internal_nodes(i).right_child;
     else
-      return bvh._leaf_nodes(i-n).right_child;    
+      return bvh._leaf_nodes(i - n).right_child;
   }
 
   template <class BVH,
@@ -149,7 +149,7 @@ struct HappyTreeFriends
     if (i < n)
       return bvh._internal_nodes(getLeftChild(bvh, i)).rope;
     else
-      return bvh._leaf_nodes(getLeftChild(bvh, i-n)).rope;	    
+      return bvh._leaf_nodes(getLeftChild(bvh, i - n)).rope;
   }
 #endif
 
@@ -162,7 +162,7 @@ struct HappyTreeFriends
     if (i < n)
       return bvh._internal_nodes(i).rope;
     else
-      return bvh._leaf_nodes(i-n).rope;  
+      return bvh._leaf_nodes(i - n).rope;
   }
 
   template <class BVH>
