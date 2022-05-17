@@ -44,13 +44,12 @@ public:
   class Timer
   {
     entry_reference_type _entry;
-    bool _started;
+    bool _started = false;
     std::chrono::high_resolution_clock::time_point _tick;
 
   public:
     Timer(entry_reference_type ref)
         : _entry{ref}
-        , _started{false}
     {
     }
     void start()

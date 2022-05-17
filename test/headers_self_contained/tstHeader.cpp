@@ -17,6 +17,7 @@
 
 // include header twice to see if the include guards are set correctly
 #include ARBORX_HEADER_TO_TEST
+// NOLINTNEXTLINE(readability-duplicate-include)
 #include ARBORX_HEADER_TO_TEST
 
 #if defined(ARBORX_HEADER_MUST_INCLUDE_CONFIG_HPP) &&                          \
