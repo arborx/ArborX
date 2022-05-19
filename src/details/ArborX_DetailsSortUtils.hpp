@@ -25,6 +25,15 @@
 // clang-format off
 #if defined(KOKKOS_ENABLE_CUDA)
 #  if defined(KOKKOS_COMPILER_CLANG)
+
+// Older Thrust (or CUB to be more precise) versions use __shfl instead of
+// __shfl_sync for clang which was removed in PTX ISA version 6.4, also see
+// https://github.com/NVIDIA/cub/pull/170.
+#include <cub/version.cuh>
+#if defined(CUB_VERSION) && (CUB_VERSION < 101100) && !defined(CUB_USE_COOPERATIVE_GROUPS)
+#define CUB_USE_COOPERATIVE_GROUPS
+#endif
+
 // Some versions of Clang fail to compile Thrust, failing with errors like
 // this:
 //    <snip>/thrust/system/cuda/detail/core/agent_launcher.h:557:11:

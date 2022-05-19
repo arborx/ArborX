@@ -19,6 +19,7 @@
 
 #include <set>
 #include <stack>
+#include <vector>
 
 namespace ArborX
 {
@@ -269,16 +270,14 @@ bool verifyClusters(ExecutionSpace const &exec_space, IndicesView indices,
   using Verify = bool (*)(ExecutionSpace const &, IndicesView, OffsetView,
                           LabelsView, int);
 
-  for (auto verify : {static_cast<Verify>(verifyCorePointsNonnegativeIndex),
-                      static_cast<Verify>(verifyConnectedCorePointsShareIndex),
-                      static_cast<Verify>(verifyBorderAndNoisePoints),
-                      static_cast<Verify>(verifyClustersAreUnique)})
-  {
-    if (!verify(exec_space, indices, offset, labels, core_min_size))
-      return false;
-  }
-
-  return true;
+  std::vector<Verify> verify{
+      static_cast<Verify>(verifyCorePointsNonnegativeIndex),
+      static_cast<Verify>(verifyConnectedCorePointsShareIndex),
+      static_cast<Verify>(verifyBorderAndNoisePoints),
+      static_cast<Verify>(verifyClustersAreUnique)};
+  return std::all_of(verify.begin(), verify.end(), [&](const Verify &verify) {
+    return verify(exec_space, indices, offset, labels, core_min_size);
+  });
 }
 
 template <typename ExecutionSpace, typename Primitives, typename LabelsView>

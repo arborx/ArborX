@@ -1,9 +1,11 @@
-ARG BASE=nvidia/cuda:10.1-devel
+ARG BASE=nvidia/cuda:11.0.3-devel-ubuntu18.04
 FROM $BASE
 
 ARG NPROCS=4
 
-RUN apt-get update && apt-get install -y \
+RUN if test ${NV_CUDA_LIB_VERSION}; then apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub; fi
+
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
         build-essential \
         bc \
         curl \
@@ -50,7 +52,7 @@ ENV PATH=${CMAKE_DIR}/bin:$PATH
 
 # Install Clang/LLVM
 ENV LLVM_DIR=/opt/llvm
-RUN LLVM_VERSION=10.0.0 && \
+RUN LLVM_VERSION=14.0.0 && \
     LLVM_KEY="86419D8A 345AD05D" && \
     LLVM_URL=https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-18.04.tar.xz && \
     LLVM_ARCHIVE=llvm-${LLVM_VERSION}.tar.xz && \
@@ -67,9 +69,9 @@ ENV PATH=${LLVM_DIR}/bin:$PATH
 # Install OpenMPI
 ARG CUDA_AWARE_MPI
 ENV OPENMPI_DIR=/opt/openmpi
-RUN OPENMPI_VERSION=4.0.3 && \
+RUN OPENMPI_VERSION=4.1.3 && \
     OPENMPI_VERSION_SHORT=$(echo "$OPENMPI_VERSION" | cut -d. -f1,2) && \
-    OPENMPI_SHA1=d958454e32da2c86dd32b7d557cf9a401f0a08d3 && \
+    OPENMPI_SHA1=be3ebb8df076677889198b73b0b033b956c3d88b && \
     OPENMPI_URL=https://download.open-mpi.org/release/open-mpi/v${OPENMPI_VERSION_SHORT}/openmpi-${OPENMPI_VERSION}.tar.bz2 && \
     OPENMPI_ARCHIVE=openmpi-${OPENMPI_VERSION}.tar.bz2 && \
     CUDA_OPTIONS=${CUDA_AWARE_MPI:+--with-cuda} && \
