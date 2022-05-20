@@ -1,4 +1,4 @@
-ARG BASE=rocm/dev-ubuntu-20.04:4.2
+ARG BASE=rocm/dev-ubuntu-20.04:5.0-complete
 FROM $BASE
 
 ARG NPROCS=4
@@ -37,7 +37,7 @@ RUN KEYDUMP_URL=https://cloud.cees.ornl.gov/download && \
 
 # Install CMake
 ENV CMAKE_DIR=/opt/cmake
-RUN CMAKE_VERSION=3.18.5 && \
+RUN CMAKE_VERSION=3.22.4 && \
     CMAKE_KEY=2D2CEF1034921684 && \
     CMAKE_URL=https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION} && \
     CMAKE_SCRIPT=cmake-${CMAKE_VERSION}-Linux-x86_64.sh && \
@@ -54,7 +54,7 @@ ENV PATH=${CMAKE_DIR}/bin:$PATH
 
 # Install Boost
 ENV BOOST_DIR=/opt/boost
-RUN BOOST_VERSION=1.72.0 && \
+RUN BOOST_VERSION=1.79.0 && \
     BOOST_VERSION_UNDERSCORE=$(echo "$BOOST_VERSION" | sed -e "s/\./_/g") && \
     BOOST_KEY=379CE192D401AB61 && \
     BOOST_URL=https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VERSION}/source && \
@@ -85,7 +85,7 @@ RUN BOOST_VERSION=1.72.0 && \
 # Install Google Benchmark support library
 ENV BENCHMARK_DIR=/opt/benchmark
 RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
-    git clone https://github.com/google/benchmark.git -b v1.5.0 && \
+    git clone https://github.com/google/benchmark.git -b v1.6.1 && \
     cd benchmark && \
     mkdir build && cd build && \
     cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${BENCHMARK_DIR} -D BENCHMARK_ENABLE_TESTING=OFF .. && \
