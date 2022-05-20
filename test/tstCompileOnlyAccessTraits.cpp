@@ -73,8 +73,6 @@ void test_access_traits_compile_only()
   Kokkos::View<NearestPredicate *> q;
   check_valid_access_traits(PredicatesTag{}, q);
 
-  check_valid_access_traits(PrimitivesTag{}, LegacyAccessTraits{});
-
   // Uncomment to see error messages
 
   // check_valid_access_traits(PrimitivesTag{}, NoAccessTraitsSpecialization{});
@@ -84,4 +82,6 @@ void test_access_traits_compile_only()
   // check_valid_access_traits(PrimitivesTag{}, InvalidMemorySpace{});
 
   // check_valid_access_traits(PrimitivesTag{}, SizeMemberFunctionNotStatic{});
+
+  // check_valid_access_traits(PrimitivesTag{}, LegacyAccessTraits{});
 }
