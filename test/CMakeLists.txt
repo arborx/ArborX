@@ -178,16 +178,11 @@ configure_file(
   ${CMAKE_CURRENT_BINARY_DIR}/mst_golden_test_edges.csv
   COPYONLY
 )
-if(Kokkos_VERSION VERSION_GREATER_EQUAL 3.5)
-  set(MINIMUM_SPANNING_TREE_TESTS
-    tstMinimumSpanningTree.cpp
-    tstMinimumSpanningTreeGoldenTest.cpp
-  )
-endif()
 add_executable(ArborX_DetailsClusteringHelpers.exe
   tstDetailsTreeNodeLabeling.cpp
   tstDetailsMutualReachabilityDistance.cpp
-  ${MINIMUM_SPANNING_TREE_TESTS}
+  tstMinimumSpanningTree.cpp
+  tstMinimumSpanningTreeGoldenTest.cpp
   utf_main.cpp
 )
 target_link_libraries(ArborX_DetailsClusteringHelpers.exe PRIVATE ArborX Boost::unit_test_framework)

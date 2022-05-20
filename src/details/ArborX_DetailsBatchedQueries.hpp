@@ -59,8 +59,8 @@ public:
     auto const n_queries = Access::size(predicates);
 
     using LinearOrderingValueType =
-        KokkosExt::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
-                              SpaceFillingCurve, Point>;
+        Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
+                           SpaceFillingCurve, Point>;
     Kokkos::View<LinearOrderingValueType *, DeviceType> linear_ordering_indices(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::BVH::query::linear_ordering"),

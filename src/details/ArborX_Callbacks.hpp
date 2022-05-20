@@ -12,8 +12,8 @@
 #define ARBORX_CALLBACKS_HPP
 
 #include <ArborX_AccessTraits.hpp>
-#include <ArborX_DetailsKokkosExtDetectionIdiom.hpp>
 
+#include <Kokkos_DetectionIdiom.hpp>
 #include <Kokkos_Macros.hpp>
 
 #include <utility> // declval
@@ -64,7 +64,7 @@ using CallbackTagArchetypeAlias = typename Callback::tag;
 
 template <typename Callback>
 struct is_tagged_post_callback
-    : std::is_same<KokkosExt::detected_t<CallbackTagArchetypeAlias, Callback>,
+    : std::is_same<Kokkos::detected_t<CallbackTagArchetypeAlias, Callback>,
                    PostCallbackTag>::type
 {
 };
@@ -101,7 +101,7 @@ void check_valid_callback(Callback const &callback, Predicates const &,
   using Predicate = typename AccessTraitsHelper<Access>::type;
 
   static_assert(!(std::is_same<PredicateTag, NearestPredicateTag>{} &&
-                  KokkosExt::is_detected<
+                  Kokkos::is_detected<
                       Legacy_NearestPredicateInlineCallbackArchetypeExpression,
                       Callback, Predicate, OutputFunctorHelper<OutputView>>{}),
                 R"error(Callback signature has changed for nearest predicates.
@@ -111,14 +111,14 @@ Sorry!)error");
   static_assert(
       (std::is_same<PredicateTag, SpatialPredicateTag>{} ||
        std::is_same<PredicateTag, NearestPredicateTag>{}) &&
-          KokkosExt::is_detected<InlineCallbackArchetypeExpression, Callback,
-                                 Predicate, OutputFunctorHelper<OutputView>>{},
+          Kokkos::is_detected<InlineCallbackArchetypeExpression, Callback,
+                              Predicate, OutputFunctorHelper<OutputView>>{},
       "Callback 'operator()' does not have the correct signature");
 
   static_assert(
       std::is_void<
-          KokkosExt::detected_t<InlineCallbackArchetypeExpression, Callback,
-                                Predicate, OutputFunctorHelper<OutputView>>>{},
+          Kokkos::detected_t<InlineCallbackArchetypeExpression, Callback,
+                             Predicate, OutputFunctorHelper<OutputView>>>{},
       "Callback 'operator()' return type must be void");
 }
 
@@ -132,10 +132,9 @@ using Experimental_CallbackArchetypeExpression =
 // early.
 template <typename Callback, typename Predicate, typename Primitive>
 struct invoke_callback_and_check_early_exit_helper
-    : std::is_same<
-          CallbackTreeTraversalControl,
-          KokkosExt::detected_t<Experimental_CallbackArchetypeExpression,
-                                Callback, Predicate, Primitive>>::type
+    : std::is_same<CallbackTreeTraversalControl,
+                   Kokkos::detected_t<Experimental_CallbackArchetypeExpression,
+                                      Callback, Predicate, Primitive>>::type
 {
 };
 
@@ -184,19 +183,19 @@ void check_valid_callback(Callback const &callback, Predicates const &)
   static_assert(
       (std::is_same<PredicateTag, SpatialPredicateTag>{} ||
        std::is_same<PredicateTag, NearestPredicateTag>{}) &&
-          KokkosExt::is_detected<Experimental_CallbackArchetypeExpression,
-                                 Callback, Predicate, int>{},
+          Kokkos::is_detected<Experimental_CallbackArchetypeExpression,
+                              Callback, Predicate, int>{},
       "Callback 'operator()' does not have the correct signature");
 
   static_assert(
       (std::is_same<PredicateTag, SpatialPredicateTag>{} &&
        (std::is_same<
             CallbackTreeTraversalControl,
-            KokkosExt::detected_t<Experimental_CallbackArchetypeExpression,
-                                  Callback, Predicate, int>>{} ||
+            Kokkos::detected_t<Experimental_CallbackArchetypeExpression,
+                               Callback, Predicate, int>>{} ||
         std::is_void<
-            KokkosExt::detected_t<Experimental_CallbackArchetypeExpression,
-                                  Callback, Predicate, int>>{})) ||
+            Kokkos::detected_t<Experimental_CallbackArchetypeExpression,
+                               Callback, Predicate, int>>{})) ||
           std::is_same<PredicateTag, NearestPredicateTag>{},
       "Callback 'operator()' return type must be void or "
       "ArborX::CallbackTreeTraversalControl");
@@ -205,8 +204,8 @@ void check_valid_callback(Callback const &callback, Predicates const &)
       std::is_same<PredicateTag, SpatialPredicateTag>{} ||
           (std::is_same<PredicateTag, NearestPredicateTag>{} &&
            std::is_void<
-               KokkosExt::detected_t<Experimental_CallbackArchetypeExpression,
-                                     Callback, Predicate, int>>{}),
+               Kokkos::detected_t<Experimental_CallbackArchetypeExpression,
+                                  Callback, Predicate, int>>{}),
       "Callback 'operator()' return type must be void");
 }
 
