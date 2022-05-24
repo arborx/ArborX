@@ -61,11 +61,7 @@ RUN BOOST_VERSION=1.79.0 && \
     BOOST_ARCHIVE=boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2 && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE} && \
-    wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.asc && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json && \
-    wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json.asc && \
-    gpg --verify ${BOOST_ARCHIVE}.json.asc ${BOOST_ARCHIVE}.json && \
-    gpg --verify ${BOOST_ARCHIVE}.asc ${BOOST_ARCHIVE} && \
     cat ${BOOST_ARCHIVE}.json | jq -r '. | .sha256 + "  " + .file' | sha256sum --check && \
     mkdir -p boost && \
     tar -xf ${BOOST_ARCHIVE} -C boost --strip-components=1 && \
