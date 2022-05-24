@@ -23,9 +23,10 @@ pipeline {
 
         stage("Style") {
             agent {
-                docker {
-                    // arbitrary image that has clang-format version 7.0
-                    image "dalg24/arborx_base:19.04.0-cuda-9.2"
+                dockerfile {
+                    filename "Dockerfile.clang-format"
+                    dir "docker"
+                    additionalBuildArgs "--build-arg CLANG_FORMAT_VERSION=14.0.0"
                     label 'docker'
                 }
             }
