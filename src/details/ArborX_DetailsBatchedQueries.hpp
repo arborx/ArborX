@@ -93,8 +93,8 @@ public:
     auto const n = Access::size(v);
     ARBORX_ASSERT(permute.extent(0) == n);
 
-    using T = std::decay_t<decltype(
-        Access::get(std::declval<Predicates const &>(), std::declval<int>()))>;
+    using T = std::decay_t<decltype(Access::get(
+        std::declval<Predicates const &>(), std::declval<int>()))>;
     Kokkos::View<T *, DeviceType> w(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::permuted_predicates"),

@@ -22,7 +22,7 @@ template <typename Tree, typename ExecutionSpace, typename Predicates,
 inline void query(Tree const &tree, ExecutionSpace const &space,
                   Predicates const &predicates,
                   CallbackOrView &&callback_or_view, View &&view,
-                  Args &&... args)
+                  Args &&...args)
 {
   Kokkos::Profiling::pushRegion("ArborX::query");
 

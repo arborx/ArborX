@@ -263,7 +263,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(create_layout_right_mirror_view, DeviceType,
   checkNewViewWasAllocated(w, w_h);
 
   // the same with compile time size
-  View<int * [5], LayoutLeft, DeviceType> w_c("v", 4);
+  View<int *[5], LayoutLeft, DeviceType> w_c("v", 4);
   auto w_c_h = create_layout_right_mirror_view(w_c);
   checkNewViewWasAllocated(w_c, w_c_h);
 
@@ -326,7 +326,7 @@ BOOST_AUTO_TEST_CASE(pointer_depth)
                 "Failing for double[2]");
   static_assert(ArborX::Details::internal::PointerDepth<double **>::value == 2,
                 "Failing for double**");
-  static_assert(ArborX::Details::internal::PointerDepth<double * [2]>::value ==
+  static_assert(ArborX::Details::internal::PointerDepth<double *[2]>::value ==
                     1,
                 "Failing for double*[2]");
   static_assert(ArborX::Details::internal::PointerDepth<double[2][3]>::value ==
@@ -334,11 +334,11 @@ BOOST_AUTO_TEST_CASE(pointer_depth)
                 "Failing for double[2][3]");
   static_assert(ArborX::Details::internal::PointerDepth<double ***>::value == 3,
                 "Failing for double***");
+  static_assert(ArborX::Details::internal::PointerDepth<double **[2]>::value ==
+                    2,
+                "Failing for double[2]");
   static_assert(
-      ArborX::Details::internal::PointerDepth<double * * [2]>::value == 2,
-      "Failing for double[2]");
-  static_assert(
-      ArborX::Details::internal::PointerDepth<double * [2][3]>::value == 1,
+      ArborX::Details::internal::PointerDepth<double *[2][3]>::value == 1,
       "Failing for double*[2][3]");
   static_assert(
       ArborX::Details::internal::PointerDepth<double[2][3][4]>::value == 0,
@@ -393,21 +393,21 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(send_across_network, DeviceType,
   // send 1 packet to rank k
   // receive comm_size packets
   Kokkos::View<int **, DeviceType> u_exp("u_exp", comm_size, DIM);
-  Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, comm_size),
-                       KOKKOS_LAMBDA(int i) {
-                         for (int j = 0; j < DIM; ++j)
-                           u_exp(i, j) = i + j * comm_rank;
-                       });
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<ExecutionSpace>(0, comm_size), KOKKOS_LAMBDA(int i) {
+        for (int j = 0; j < DIM; ++j)
+          u_exp(i, j) = i + j * comm_rank;
+      });
 
   Kokkos::View<int *, DeviceType> ranks_u("", comm_size);
   ArborX::iota(ExecutionSpace{}, ranks_u, 0);
 
   Kokkos::View<int **, DeviceType> u_ref("u_ref", comm_size, DIM);
-  Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, comm_size),
-                       KOKKOS_LAMBDA(int i) {
-                         for (int j = 0; j < DIM; ++j)
-                           u_ref(i, j) = comm_rank + i * j;
-                       });
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<ExecutionSpace>(0, comm_size), KOKKOS_LAMBDA(int i) {
+        for (int j = 0; j < DIM; ++j)
+          u_ref(i, j) = comm_rank + i * j;
+      });
 
   Helper<DeviceType>::checkSendAcrossNetwork(comm, ranks_u, u_exp, u_ref);
 

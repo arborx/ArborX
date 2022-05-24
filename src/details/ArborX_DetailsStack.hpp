@@ -57,7 +57,7 @@ public:
     _c.pushBack(std::move(value));
   }
   template <class... Args>
-  KOKKOS_INLINE_FUNCTION void emplace(Args &&... args)
+  KOKKOS_INLINE_FUNCTION void emplace(Args &&...args)
   {
     _c.emplaceBack(std::forward<Args>(args)...);
   }

@@ -21,8 +21,7 @@ using ExecutionSpace = Kokkos::DefaultExecutionSpace;
 using MemorySpace = ExecutionSpace::memory_space;
 
 struct FirstOctant
-{
-};
+{};
 
 struct NearestToOrigin
 {
@@ -91,16 +90,17 @@ int main(int argc, char *argv[])
     ArborX::query(bvh, ExecutionSpace{}, FirstOctant{}, PrintfCallback{},
                   values, offsets);
 #ifndef __NVCC__
-    ArborX::query(bvh, ExecutionSpace{}, FirstOctant{},
-                  KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
-                                auto /*output_functor*/) {
+    ArborX::query(
+        bvh, ExecutionSpace{}, FirstOctant{},
+        KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
+                      auto /*output_functor*/) {
 #ifndef __SYCL_DEVICE_ONLY__
-                    printf("Found %d from generic lambda\n", primitive);
+          printf("Found %d from generic lambda\n", primitive);
 #else
-                    (void)primitive;
+          (void)primitive;
 #endif
-                  },
-                  values, offsets);
+        },
+        values, offsets);
 #endif
   }
 
@@ -111,16 +111,17 @@ int main(int argc, char *argv[])
     ArborX::query(bvh, ExecutionSpace{}, NearestToOrigin{k}, PrintfCallback{},
                   values, offsets);
 #ifndef __NVCC__
-    ArborX::query(bvh, ExecutionSpace{}, NearestToOrigin{k},
-                  KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
-                                auto /*output_functor*/) {
+    ArborX::query(
+        bvh, ExecutionSpace{}, NearestToOrigin{k},
+        KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
+                      auto /*output_functor*/) {
 #ifndef __SYCL_DEVICE_ONLY__
-                    printf("Found %d from generic lambda\n", primitive);
+          printf("Found %d from generic lambda\n", primitive);
 #else
-                    (void)primitive;
+          (void)primitive;
 #endif
-                  },
-                  values, offsets);
+        },
+        values, offsets);
 #endif
   }
 
@@ -130,14 +131,15 @@ int main(int argc, char *argv[])
         "counter");
 
 #ifndef __NVCC__
-    bvh.query(ExecutionSpace{}, FirstOctant{},
-              KOKKOS_LAMBDA(auto /*predicate*/, int j) {
+    bvh.query(
+        ExecutionSpace{}, FirstOctant{},
+        KOKKOS_LAMBDA(auto /*predicate*/, int j) {
 #ifndef __SYCL_DEVICE_ONLY__
-                printf("%d %d %d\n", ++c(), -1, j);
+          printf("%d %d %d\n", ++c(), -1, j);
 #else
-                (void)j;
+          (void)j;
 #endif
-              });
+        });
 #endif
   }
 

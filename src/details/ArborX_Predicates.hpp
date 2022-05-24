@@ -18,11 +18,9 @@ namespace ArborX
 namespace Details
 {
 struct NearestPredicateTag
-{
-};
+{};
 struct SpatialPredicateTag
-{
-};
+{};
 } // namespace Details
 
 template <typename Geometry>
@@ -37,8 +35,7 @@ struct Nearest
   Nearest(Geometry const &geometry, int k)
       : _geometry(geometry)
       , _k(k)
-  {
-  }
+  {}
 
   Geometry _geometry;
   int _k = 0;
@@ -53,8 +50,7 @@ struct Intersects
 
   KOKKOS_INLINE_FUNCTION Intersects(Geometry const &geometry)
       : _geometry(geometry)
-  {
-  }
+  {}
 
   template <typename Other>
   KOKKOS_INLINE_FUNCTION bool operator()(Other const &other) const
@@ -107,13 +103,11 @@ struct PredicateWithAttachment : Predicate
                                                  Data const &data)
       : Predicate{pred}
       , _data{data}
-  {
-  }
+  {}
   KOKKOS_INLINE_FUNCTION PredicateWithAttachment(Predicate &&pred, Data &&data)
       : Predicate(std::forward<Predicate>(pred))
       , _data(std::forward<Data>(data))
-  {
-  }
+  {}
   Data _data;
 };
 

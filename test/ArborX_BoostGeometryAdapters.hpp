@@ -44,8 +44,7 @@ struct coordinate_system<ArborX::Point>
 
 template <>
 struct dimension<ArborX::Point> : boost::mpl::int_<3>
-{
-};
+{};
 
 template <size_t D>
 struct access<ArborX::Point, D>

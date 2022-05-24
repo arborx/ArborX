@@ -102,11 +102,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
 
   Kokkos::View<decltype(ArborX::intersects(ArborX::Box{})) *, DeviceType>
       queries("queries", n);
-  Kokkos::parallel_for("fill_queries",
-                       Kokkos::RangePolicy<ExecutionSpace>(0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         queries(i) = ArborX::intersects(bounding_boxes(i));
-                       });
+  Kokkos::parallel_for(
+      "fill_queries", Kokkos::RangePolicy<ExecutionSpace>(0, n),
+      KOKKOS_LAMBDA(int i) {
+        queries(i) = ArborX::intersects(bounding_boxes(i));
+      });
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, queries,
                          make_reference_solution(indices_ref, offset_ref));
 
@@ -201,11 +201,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
     offset_ref[i + 1] = indices_ref.size();
   }
 
-  Kokkos::parallel_for("fill_first_neighbors_queries",
-                       Kokkos::RangePolicy<ExecutionSpace>(0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         queries[i] = ArborX::intersects(bounding_boxes[i]);
-                       });
+  Kokkos::parallel_for(
+      "fill_first_neighbors_queries", Kokkos::RangePolicy<ExecutionSpace>(0, n),
+      KOKKOS_LAMBDA(int i) {
+        queries[i] = ArborX::intersects(bounding_boxes[i]);
+      });
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, queries,
                          make_reference_solution(indices_ref, offset_ref));
 
@@ -251,11 +251,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   }
   Kokkos::deep_copy(bounding_boxes, bounding_boxes_host);
 
-  Kokkos::parallel_for("fill_first_neighbors_queries",
-                       Kokkos::RangePolicy<ExecutionSpace>(0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         queries[i] = ArborX::intersects(bounding_boxes[i]);
-                       });
+  Kokkos::parallel_for(
+      "fill_first_neighbors_queries", Kokkos::RangePolicy<ExecutionSpace>(0, n),
+      KOKKOS_LAMBDA(int i) {
+        queries[i] = ArborX::intersects(bounding_boxes[i]);
+      });
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, queries,
                          make_reference_solution(indices_ref, offset_ref));
 }

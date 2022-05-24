@@ -34,8 +34,7 @@ struct Box
   constexpr Box(Point const &min_corner, Point const &max_corner)
       : _min_corner(min_corner)
       , _max_corner(max_corner)
-  {
-  }
+  {}
 
   KOKKOS_INLINE_FUNCTION
   constexpr Point &minCorner() { return _min_corner; }
@@ -47,7 +46,7 @@ struct Box
   Point volatile &minCorner() volatile { return _min_corner; }
 
   KOKKOS_INLINE_FUNCTION
-  Point volatile const &minCorner() volatile const { return _min_corner; }
+  Point const volatile &minCorner() const volatile { return _min_corner; }
 
   KOKKOS_INLINE_FUNCTION
   constexpr Point &maxCorner() { return _max_corner; }
@@ -59,7 +58,7 @@ struct Box
   Point volatile &maxCorner() volatile { return _max_corner; }
 
   KOKKOS_INLINE_FUNCTION
-  Point volatile const &maxCorner() volatile const { return _max_corner; }
+  Point const volatile &maxCorner() const volatile { return _max_corner; }
 
   Point _min_corner = {{KokkosExt::ArithmeticTraits::finite_max<float>::value,
                         KokkosExt::ArithmeticTraits::finite_max<float>::value,

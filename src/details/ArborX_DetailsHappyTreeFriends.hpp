@@ -28,15 +28,13 @@ struct HappyTreeFriends
   template <class BVH>
   struct has_node_with_two_children
       : std::is_same<typename BVH::node_type::Tag, NodeWithTwoChildrenTag>::type
-  {
-  };
+  {};
 
   template <class BVH>
   struct has_node_with_left_child_and_rope
       : std::is_same<typename BVH::node_type::Tag,
                      NodeWithLeftChildAndRopeTag>::type
-  {
-  };
+  {};
 
   template <class BVH>
   static KOKKOS_FUNCTION int getRoot(BVH const &)

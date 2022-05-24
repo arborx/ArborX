@@ -68,13 +68,13 @@ auto compute_mutual_reachability_distances(
       n);
   ArborX::Details::MutualReachability<decltype(core_distances)> const
       distance_mutual_reach{core_distances};
-  Kokkos::parallel_for("Test::compute_mutual_reachability_distances",
-                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         mutual_reachability_distances(i) =
-                             distance_mutual_reach(
-                                 edges(i).first, edges(i).second, distances(i));
-                       });
+  Kokkos::parallel_for(
+      "Test::compute_mutual_reachability_distances",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+      KOKKOS_LAMBDA(int i) {
+        mutual_reachability_distances(i) = distance_mutual_reach(
+            edges(i).first, edges(i).second, distances(i));
+      });
 
   return Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{},
                                              mutual_reachability_distances);

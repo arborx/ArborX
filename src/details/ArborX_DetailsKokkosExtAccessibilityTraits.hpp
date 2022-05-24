@@ -33,8 +33,7 @@ struct is_accessible_from<MemorySpace, ExecutionSpace,
                           std::enable_if_t<Kokkos::SpaceAccessibility<
                               ExecutionSpace, MemorySpace>::accessible>>
     : std::true_type
-{
-};
+{};
 
 template <typename View>
 struct is_accessible_from_host

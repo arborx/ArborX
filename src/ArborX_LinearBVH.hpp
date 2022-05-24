@@ -74,7 +74,7 @@ public:
             typename CallbackOrView, typename View, typename... Args>
   std::enable_if_t<Kokkos::is_view<std::decay_t<View>>{}>
   query(ExecutionSpace const &space, Predicates const &predicates,
-        CallbackOrView &&callback_or_view, View &&view, Args &&... args) const
+        CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
   {
     ArborX::query(*this, space, predicates,
                   std::forward<CallbackOrView>(callback_or_view),
@@ -163,7 +163,7 @@ public:
   // clang-format on
   template <typename FirstArgumentType, typename... Args>
   std::enable_if_t<!Kokkos::is_execution_space<FirstArgumentType>::value>
-  query(FirstArgumentType &&arg1, Args &&... args) const
+  query(FirstArgumentType &&arg1, Args &&...args) const
   {
     base_type::query(typename DeviceType::execution_space{},
                      std::forward<FirstArgumentType>(arg1),
@@ -176,11 +176,11 @@ private:
   friend void ArborX::query(Tree const &tree, ExecutionSpace const &space,
                             Predicates const &predicates,
                             CallbackOrView &&callback_or_view, View &&view,
-                            Args &&... args);
+                            Args &&...args);
 
   template <typename FirstArgumentType, typename... Args>
   std::enable_if_t<Kokkos::is_execution_space<FirstArgumentType>::value>
-  query(FirstArgumentType const &space, Args &&... args) const
+  query(FirstArgumentType const &space, Args &&...args) const
   {
     base_type::query(space, std::forward<Args>(args)...);
   }

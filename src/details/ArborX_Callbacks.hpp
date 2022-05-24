@@ -30,11 +30,11 @@ enum class CallbackTreeTraversalControl
 namespace Details
 {
 
-struct [[deprecated]] InlineCallbackTag{};
+struct [[deprecated]] InlineCallbackTag
+{};
 
 struct PostCallbackTag
-{
-};
+{};
 
 struct DefaultCallback
 {
@@ -54,9 +54,10 @@ using InlineCallbackArchetypeExpression =
 
 // legacy nearest predicate archetypal expression for user callbacks
 template <typename Callback, typename Predicate, typename Out>
-using Legacy_NearestPredicateInlineCallbackArchetypeExpression = decltype(
-    std::declval<Callback const &>()(std::declval<Predicate const &>(), 0, 0.f,
-                                     std::declval<Out const &>()));
+using Legacy_NearestPredicateInlineCallbackArchetypeExpression =
+    decltype(std::declval<Callback const &>()(std::declval<Predicate const &>(),
+                                              0, 0.f,
+                                              std::declval<Out const &>()));
 
 // archetypal alias for a 'tag' type member in user callbacks
 template <typename Callback>
@@ -66,8 +67,7 @@ template <typename Callback>
 struct is_tagged_post_callback
     : std::is_same<Kokkos::detected_t<CallbackTagArchetypeAlias, Callback>,
                    PostCallbackTag>::type
-{
-};
+{};
 
 // output functor to pass to the callback during detection
 template <typename T>
@@ -135,8 +135,7 @@ struct invoke_callback_and_check_early_exit_helper
     : std::is_same<CallbackTreeTraversalControl,
                    Kokkos::detected_t<Experimental_CallbackArchetypeExpression,
                                       Callback, Predicate, Primitive>>::type
-{
-};
+{};
 
 // Invoke a callback that may return a hint to interrupt the tree traversal and
 // return true for early exit, or false for normal continuation.

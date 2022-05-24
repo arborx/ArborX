@@ -92,8 +92,7 @@ class FillK
 public:
   FillK(Kokkos::View<unsigned int *, DeviceType> k)
       : _k(k)
-  {
-  }
+  {}
 
   KOKKOS_INLINE_FUNCTION
   void operator()(int const i) const { _k[i] = 4 - i; }
@@ -223,11 +222,9 @@ traverse(LeafNodes leaf_nodes, InternalNodes internal_nodes, Node const *root,
 namespace Test
 {
 struct FakePrimitive
-{
-};
+{};
 struct FakeBoundingVolume
-{
-};
+{};
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakeBoundingVolume) {}
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakePrimitive) {}
 } // namespace Test

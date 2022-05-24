@@ -21,8 +21,7 @@ class SearchException : public std::logic_error
 public:
   SearchException(std::string const &msg)
       : std::logic_error(std::string("ArborX exception: ") + msg)
-  {
-  }
+  {}
 };
 
 } // namespace ArborX

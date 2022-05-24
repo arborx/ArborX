@@ -32,19 +32,16 @@
 
 template <typename T>
 struct is_distributed : std::false_type
-{
-};
+{};
 
 #ifdef ARBORX_ENABLE_MPI
 template <typename D>
 struct is_distributed<ArborX::DistributedTree<D>> : std::true_type
-{
-};
+{};
 
 template <typename I>
 struct is_distributed<BoostExt::ParallelRTree<I>> : std::true_type
-{
-};
+{};
 #endif
 
 template <typename T>
@@ -120,11 +117,11 @@ zip(ExecutionSpace const &space, Kokkos::View<int *, DeviceType> indices,
   Kokkos::View<Kokkos::pair<Kokkos::pair<int, int>, float> *, DeviceType>
       values(Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::values"),
              n);
-  Kokkos::parallel_for("ArborX:UnitTestSupport:zip",
-                       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         values(i) = {{indices(i), ranks(i)}, distances(i)};
-                       });
+  Kokkos::parallel_for(
+      "ArborX:UnitTestSupport:zip",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+        values(i) = {{indices(i), ranks(i)}, distances(i)};
+      });
   return values;
 }
 
@@ -208,8 +205,8 @@ auto makeIntersectsBoxWithAttachmentQueries(
     std::vector<ArborX::Box> const &boxes, std::vector<Data> const &data)
 {
   int const n = boxes.size();
-  Kokkos::View<decltype(
-                   ArborX::attach(ArborX::intersects(ArborX::Box{}), Data{})) *,
+  Kokkos::View<decltype(ArborX::attach(ArborX::intersects(ArborX::Box{}),
+                                       Data{})) *,
                DeviceType>
       queries("Testing::intersecting_with_box_with_attachment_predicates", n);
   auto queries_host = Kokkos::create_mirror_view(queries);
@@ -280,8 +277,8 @@ auto makeNearestWithAttachmentQueries(
   // NOTE: `points` is not a very descriptive name here. It stores both the
   // actual point and the number k of neighbors to query for.
   int const n = points.size();
-  Kokkos::View<decltype(
-                   ArborX::attach(ArborX::Nearest<ArborX::Point>{}, Data{})) *,
+  Kokkos::View<decltype(ArborX::attach(ArborX::Nearest<ArborX::Point>{},
+                                       Data{})) *,
                DeviceType>
       queries("Testing::nearest_queries", n);
   auto queries_host = Kokkos::create_mirror_view(queries);

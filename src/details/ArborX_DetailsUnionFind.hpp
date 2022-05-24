@@ -79,8 +79,7 @@ struct UnionFind
 
   UnionFind(Kokkos::View<int *, MemorySpace> labels)
       : labels_(labels)
-  {
-  }
+  {}
 
   // Per [1]:
   //

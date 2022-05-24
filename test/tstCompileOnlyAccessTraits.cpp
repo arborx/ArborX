@@ -20,20 +20,16 @@ using ArborX::Details::check_valid_access_traits;
 // NOTE Let's not bother with __host__ __device__ annotations here
 
 struct NoAccessTraitsSpecialization
-{
-};
+{};
 
 struct EmptySpecialization
-{
-};
+{};
 template <typename Tag>
 struct ArborX::AccessTraits<EmptySpecialization, Tag>
-{
-};
+{};
 
 struct InvalidMemorySpace
-{
-};
+{};
 template <typename Tag>
 struct ArborX::AccessTraits<InvalidMemorySpace, Tag>
 {
@@ -41,8 +37,7 @@ struct ArborX::AccessTraits<InvalidMemorySpace, Tag>
 };
 
 struct SizeMemberFunctionNotStatic
-{
-};
+{};
 template <typename Tag>
 struct ArborX::AccessTraits<SizeMemberFunctionNotStatic, Tag>
 {
@@ -52,8 +47,7 @@ struct ArborX::AccessTraits<SizeMemberFunctionNotStatic, Tag>
 
 // Ensure legacy access traits are still valid
 struct LegacyAccessTraits
-{
-};
+{};
 template <typename Tag>
 struct ArborX::Traits::Access<LegacyAccessTraits, Tag>
 {
