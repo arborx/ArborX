@@ -169,6 +169,12 @@ KOKKOS_INLINE_FUNCTION void expand(BOX &box, BOX const &other)
   box += other;
 }
 
+KOKKOS_INLINE_FUNCTION void expand(DiscretizedBox &box,
+                                   DiscretizedBox const &other)
+{
+  box += other;
+}
+
 // expand an axis-aligned bounding box to include a sphere
 KOKKOS_INLINE_FUNCTION
 void expand(Box &box, Sphere const &sphere)
@@ -182,6 +188,33 @@ void expand(Box &box, Sphere const &sphere)
     box.maxCorner()[d] =
         max(box.maxCorner()[d], sphere.centroid()[d] + sphere.radius());
   }
+}
+
+template <typename T1, typename T2>
+KOKKOS_INLINE_FUNCTION void expand_helper(T1 &t1, T2 const &t2,
+                                          Box const & /*global_box*/)
+{
+  expand(t1, t2);
+}
+
+KOKKOS_INLINE_FUNCTION void
+expand_helper(DiscretizedBox &box, Point const &other, Box const &global_box)
+{
+  box += DiscretizedBox(Box(other, other), global_box);
+}
+
+KOKKOS_INLINE_FUNCTION void expand_helper(DiscretizedBox &box, Box const &other,
+                                          Box const &global_box)
+{
+  box += DiscretizedBox(other, global_box);
+}
+
+KOKKOS_INLINE_FUNCTION
+constexpr Box
+convert_from_discretized_box(const DiscretizedBox &discretized_box,
+                             const Box &global_box)
+{
+  return discretized_box.to_box(global_box);
 }
 
 // check if two axis-aligned bounding boxes intersect

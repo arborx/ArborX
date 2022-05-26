@@ -98,7 +98,7 @@ foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
     "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BF.cpp" COPYONLY
   )
   list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BF.cpp")
-  foreach(_bounding_volume KDOP14 KDOP18) # purposefully ommitting KDOP6 and KDOP26 to reduce the number of instantiations
+  foreach(_bounding_volume) # purposefully ommitting KDOP6 and KDOP26 to reduce the number of instantiations
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_bounding_volume}.cpp.tmp"
       "#include <ArborX_LinearBVH.hpp>\n"
       "#include <ArborX_KDOP.hpp>\n"

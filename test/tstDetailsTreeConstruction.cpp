@@ -135,9 +135,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indirect_sort, DeviceType, ARBORX_DEVICE_TYPES)
 }
 
 template <typename Primitives, typename MortonCodes, typename LeafNodes,
-          typename InternalNodes>
+          typename InternalNodes, typename GlobalBox>
 void generateHierarchy(Primitives primitives, MortonCodes sorted_morton_codes,
-                       LeafNodes &leaf_nodes, InternalNodes &internal_nodes)
+                       LeafNodes &leaf_nodes, InternalNodes &internal_nodes,
+                       GlobalBox &global_box)
 {
   using ArborX::Details::makeLeafNode;
   using DeviceType = typename MortonCodes::device_type;
@@ -155,7 +156,7 @@ void generateHierarchy(Primitives primitives, MortonCodes sorted_morton_codes,
 
   ArborX::Details::TreeConstruction::generateHierarchy(
       space, primitives, permutation_indices, sorted_morton_codes, leaf_nodes,
-      internal_nodes);
+      internal_nodes, global_box);
 }
 
 template <typename Node, typename LeafNodes, typename InternalNodes>
@@ -227,6 +228,10 @@ struct FakePrimitive
 };
 struct FakeBoundingVolume
 {
+  KOKKOS_FUNCTION FakeBoundingVolume to_box(const ArborX::Box) const
+  {
+    return *this;
+  }
 };
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakeBoundingVolume) {}
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakePrimitive) {}
@@ -257,6 +262,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
 
   Kokkos::View<Test::FakePrimitive *, DeviceType> primitives(
       "Testing::primitives", n);
+  Kokkos::View<ArborX::Box, DeviceType> dummy_global_box(
+      "Testing::dummy_global_box");
 
   // Reference solution for the depth first search
   std::ostringstream ref;
@@ -273,7 +280,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
     Kokkos::View<Node *, DeviceType> internal_nodes("Testing::internal_nodes",
                                                     0);
     generateHierarchy(primitives, sorted_morton_codes, leaf_nodes,
-                      internal_nodes);
+                      internal_nodes, dummy_global_box);
 
     auto const *root = internal_nodes.data();
 
@@ -292,7 +299,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
     Kokkos::View<Node *, DeviceType> internal_nodes("Testing::internal_nodes",
                                                     0);
     generateHierarchy(primitives, sorted_morton_codes, leaf_nodes,
-                      internal_nodes);
+                      internal_nodes, dummy_global_box);
 
     auto const *root = internal_nodes.data();
 

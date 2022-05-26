@@ -46,6 +46,7 @@ public:
   static_assert(Kokkos::is_memory_space<MemorySpace>::value, "");
   using size_type = typename MemorySpace::size_type;
   using bounding_volume_type = BoundingVolume;
+  using discretized_bounding_volume_type = ArborX::DiscretizedBox;
 
   BasicBoundingVolumeHierarchy() = default; // build an empty tree
 
@@ -81,7 +82,7 @@ public:
                   std::forward<View>(view), std::forward<Args>(args)...);
   }
 
-private:
+  // private:
   friend struct Details::HappyTreeFriends;
 
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
@@ -95,46 +96,52 @@ private:
                    Kokkos::Experimental::HIPSpace
 #endif
                    >{},
+      Details::NodeWithLeftChildAndRope<discretized_bounding_volume_type>,
+      Details::NodeWithTwoChildren<discretized_bounding_volume_type>>;
+#else
+  using node_type =
+      Details::NodeWithTwoChildren<discretized_bounding_volume_type>;
+#endif
+
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
+  // Ropes based traversal is only used for CUDA, as it was found to be slower
+  // than regular one for Power9 on Summit.  It is also used with HIP.
+  using leaf_node_type = std::conditional_t<
+      std::is_same<MemorySpace,
+#if defined(KOKKOS_ENABLE_CUDA)
+                   Kokkos::CudaSpace
+#else
+                   Kokkos::Experimental::HIPSpace
+#endif
+                   >{},
       Details::NodeWithLeftChildAndRope<bounding_volume_type>,
       Details::NodeWithTwoChildren<bounding_volume_type>>;
 #else
-  using node_type = Details::NodeWithTwoChildren<bounding_volume_type>;
+  using leaf_node_type = Details::NodeWithTwoChildren<bounding_volume_type>;
 #endif
 
   Kokkos::View<node_type *, MemorySpace> getInternalNodes()
   {
     assert(!empty());
-    return Kokkos::subview(_internal_and_leaf_nodes,
-                           std::make_pair(size_type{0}, size() - 1));
+    return _internal_nodes;
   }
 
-  Kokkos::View<node_type *, MemorySpace> getLeafNodes()
+  Kokkos::View<leaf_node_type *, MemorySpace> getLeafNodes()
   {
     assert(!empty());
-    return Kokkos::subview(_internal_and_leaf_nodes,
-                           std::make_pair(size() - 1, 2 * size() - 1));
+    return _leaf_nodes;
   }
-  Kokkos::View<node_type const *, MemorySpace> getLeafNodes() const
+  Kokkos::View<leaf_node_type const *, MemorySpace> getLeafNodes() const
   {
     assert(!empty());
-    return Kokkos::subview(_internal_and_leaf_nodes,
-                           std::make_pair(size() - 1, 2 * size() - 1));
-  }
-
-  KOKKOS_FUNCTION
-  bounding_volume_type const *getRootBoundingVolumePtr() const
-  {
-    // Need address of the root node's bounding box to copy it back on the host,
-    // but can't access _internal_and_leaf_nodes elements from the constructor
-    // since the data is on the device.
-    assert(Details::HappyTreeFriends::getRoot(*this) == 0 &&
-           "workaround below assumes root is stored as first element");
-    return &_internal_and_leaf_nodes.data()->bounding_volume;
+    return _leaf_nodes;
   }
 
   size_t _size;
   bounding_volume_type _bounds;
-  Kokkos::View<node_type *, MemorySpace> _internal_and_leaf_nodes;
+  Kokkos::View<node_type *, MemorySpace> _internal_nodes;
+  Kokkos::View<leaf_node_type *, MemorySpace> _leaf_nodes;
+  Kokkos::View<Box, MemorySpace> _scene_bounding_box;
 };
 
 template <typename DeviceType>
@@ -200,10 +207,13 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
                                  Primitives const &primitives,
                                  SpaceFillingCurve const &curve)
     : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
-    , _internal_and_leaf_nodes(
-          Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                             "ArborX::BVH::internal_and_leaf_nodes"),
-          _size > 0 ? 2 * _size - 1 : 0)
+    , _internal_nodes(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                                         "ArborX::BVH::internal_nodes"),
+                      _size > 0 ? _size - 1 : 0)
+    , _leaf_nodes(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                                     "ArborX::BVH::leaf_nodes"),
+                  _size)
+    , _scene_bounding_box("ArborX::BVH::scene_bounding_box")
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
@@ -228,19 +238,16 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   Box bbox{};
   Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, primitives,
                                                             bbox);
+  _bounds = bounding_volume_type{};
+  _bounds += bbox;
 
+  Kokkos::deep_copy(space, _scene_bounding_box, bbox);
   Kokkos::Profiling::popRegion();
 
   if (size() == 1)
   {
-    Details::TreeConstruction::initializeSingleLeafNode(
-        space, primitives, _internal_and_leaf_nodes);
-    Kokkos::deep_copy(
-        space,
-        Kokkos::View<BoundingVolume, Kokkos::HostSpace,
-                     Kokkos::MemoryUnmanaged>(&_bounds),
-        Kokkos::View<BoundingVolume const, MemorySpace,
-                     Kokkos::MemoryUnmanaged>(getRootBoundingVolumePtr()));
+    Details::TreeConstruction::initializeSingleLeafNode(space, primitives,
+                                                        _leaf_nodes, bbox);
     return;
   }
 
@@ -270,14 +277,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   // generate bounding volume hierarchy
   Details::TreeConstruction::generateHierarchy(
       space, primitives, permutation_indices, linear_ordering_indices,
-      getLeafNodes(), getInternalNodes());
-
-  Kokkos::deep_copy(
-      space,
-      Kokkos::View<BoundingVolume, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
-          &_bounds),
-      Kokkos::View<BoundingVolume const, MemorySpace, Kokkos::MemoryUnmanaged>(
-          getRootBoundingVolumePtr()));
+      getLeafNodes(), getInternalNodes(), _scene_bounding_box);
 
   Kokkos::Profiling::popRegion();
 }
