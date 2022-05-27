@@ -321,6 +321,7 @@ pipeline {
                                 sh 'cp -r ../examples .'
                                 sh '''
                                     cmake \
+                                        -D CMAKE_EXE_LINKER_FLAGS="-lopen-pal" \
                                         -D CMAKE_CXX_COMPILER=hipcc \
                                         -D CMAKE_CXX_EXTENSIONS=OFF \
                                         -D CMAKE_BUILD_TYPE=RelWithDebInfo \
