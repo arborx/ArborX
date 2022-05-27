@@ -299,6 +299,7 @@ pipeline {
                                     -D ARBORX_ENABLE_MPI=ON \
                                     -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
                                     -D MPIEXEC_MAX_NUMPROCS=4 \
+                                    -D CMAKE_EXE_LINKER_FLAGS="-lopen-pal" \
                                     -D ARBORX_ENABLE_TESTS=ON \
                                     -D ARBORX_ENABLE_EXAMPLES=ON \
                                     -D ARBORX_ENABLE_BENCHMARKS=ON \
