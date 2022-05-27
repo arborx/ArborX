@@ -88,7 +88,7 @@ public:
    */
   template <typename ExecutionSpace, typename Predicates, typename... Args>
   void query(ExecutionSpace const &space, Predicates const &predicates,
-             Args &&... args) const
+             Args &&...args) const
   {
     static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
     using Access = AccessTraits<Predicates, PredicatesTag>;
@@ -215,7 +215,7 @@ public:
   }
   // clang-format on
   template <typename... Args>
-  void query(Args &&... args) const
+  void query(Args &&...args) const
   {
     DistributedTree<typename DeviceType::memory_space>::query(
         typename DeviceType::execution_space{}, std::forward<Args>(args)...);

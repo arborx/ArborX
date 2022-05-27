@@ -134,23 +134,19 @@ struct epsilon<double>
 
 template <class T>
 struct infinity : Details::infinity<std::remove_cv_t<T>>
-{
-};
+{};
 
 template <class T>
 struct finite_max : Details::finite_max<std::remove_cv_t<T>>
-{
-};
+{};
 
 template <class T>
 struct finite_min : Details::finite_min<std::remove_cv_t<T>>
-{
-};
+{};
 
 template <class T>
 struct epsilon : Details::epsilon<std::remove_cv_t<T>>
-{
-};
+{};
 
 } // namespace ArithmeticTraits
 

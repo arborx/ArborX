@@ -228,7 +228,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sort_objects, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace space{};
 
-  for (const auto &values : {std::vector<int>{36, 19, 25, 17, 3, 7, 1, 2, 9},
+  for (auto const &values : {std::vector<int>{36, 19, 25, 17, 3, 7, 1, 2, 9},
                              std::vector<int>{36, 19, 25, 17, 3, 9, 1, 2, 7},
                              std::vector<int>{100, 19, 36, 17, 3, 25, 1, 2, 7},
                              std::vector<int>{15, 5, 11, 3, 4, 8}})

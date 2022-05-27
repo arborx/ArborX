@@ -73,8 +73,7 @@ class AppendRankToPairObjectIndex
 public:
   AppendRankToPairObjectIndex(int rank)
       : _rank(rank)
-  {
-  }
+  {}
 
   template <typename T1, typename T2>
   inline boost::tuple<T1, T2, int> operator()(std::pair<T1, T2> const &p) const
@@ -143,8 +142,7 @@ struct UnaryPredicate
   using Function = std::function<bool(Value const &)>;
   UnaryPredicate(Function pred)
       : _pred(pred)
-  {
-  }
+  {}
   inline bool operator()(Value const &val) const { return _pred(val); }
   Function _pred;
 };
@@ -329,8 +327,7 @@ template <typename Indexable, typename ExecutionSpace, typename Predicates,
           typename InputView, typename... TrailingArgs>
 inline void query(BoostExt::RTree<Indexable> const &rtree,
                   ExecutionSpace const &space, Predicates const &predicates,
-                  InputView &indices, InputView &offset,
-                  TrailingArgs &&... args)
+                  InputView &indices, InputView &offset, TrailingArgs &&...args)
 {
   rtree.query(space, predicates, indices, offset,
               std::forward<TrailingArgs>(args)...);

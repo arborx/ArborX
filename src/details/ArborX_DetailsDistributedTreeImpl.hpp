@@ -149,12 +149,12 @@ struct DistributedTreeImpl
     auto const n = out.extent(0);
     KokkosExt::reallocWithoutInitializing(space, indices, n);
     KokkosExt::reallocWithoutInitializing(space, ranks, n);
-    Kokkos::parallel_for("ArborX::DistributedTree::query::split_pairs",
-                         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-                         KOKKOS_LAMBDA(int i) {
-                           indices(i) = out(i).index;
-                           ranks(i) = out(i).rank;
-                         });
+    Kokkos::parallel_for(
+        "ArborX::DistributedTree::query::split_pairs",
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+          indices(i) = out(i).index;
+          ranks(i) = out(i).rank;
+        });
   }
 
   template <typename DistributedTree, typename ExecutionSpace,
@@ -580,13 +580,14 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
       auto const n = out.extent(0);
       KokkosExt::reallocWithoutInitializing(space, indices, n);
       KokkosExt::reallocWithoutInitializing(space, distances, n);
-      Kokkos::parallel_for("ArborX::DistributedTree::query::nearest::split_"
-                           "index_distance_pairs",
-                           Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-                           KOKKOS_LAMBDA(int i) {
-                             indices(i) = out(i).index;
-                             distances(i) = out(i).distance;
-                           });
+      Kokkos::parallel_for(
+          "ArborX::DistributedTree::query::nearest::split_"
+          "index_distance_pairs",
+          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+          KOKKOS_LAMBDA(int i) {
+            indices(i) = out(i).index;
+            distances(i) = out(i).distance;
+          });
 
       // Communicate results back
       communicateResultsBack(comm, space, indices, offset, ranks, ids,
@@ -904,13 +905,14 @@ void DistributedTreeImpl<DeviceType>::filterResults(
   Kokkos::View<int *, DeviceType> new_offset(
       Kokkos::view_alloc(space, offset.label()), n_queries + 1);
 
-  Kokkos::parallel_for("ArborX::DistributedTree::query::discard_results",
-                       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-                       KOKKOS_LAMBDA(int q) {
-                         using KokkosExt::min;
-                         new_offset(q) = min(offset(q + 1) - offset(q),
-                                             getK(Access::get(queries, q)));
-                       });
+  Kokkos::parallel_for(
+      "ArborX::DistributedTree::query::discard_results",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+      KOKKOS_LAMBDA(int q) {
+        using KokkosExt::min;
+        new_offset(q) =
+            min(offset(q + 1) - offset(q), getK(Access::get(queries, q)));
+      });
 
   exclusivePrefixSum(space, new_offset);
 

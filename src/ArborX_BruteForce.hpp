@@ -55,7 +55,7 @@ public:
             typename CallbackOrView, typename View, typename... Args>
   std::enable_if_t<Kokkos::is_view<std::decay_t<View>>{}>
   query(ExecutionSpace const &space, Predicates const &predicates,
-        CallbackOrView &&callback_or_view, View &&view, Args &&... args) const
+        CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
   {
     ArborX::query(*this, space, predicates,
                   std::forward<CallbackOrView>(callback_or_view),

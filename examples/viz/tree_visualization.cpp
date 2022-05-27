@@ -93,10 +93,10 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
     n_neighbors = bvh.size();
   Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> queries("queries",
                                                                      n_queries);
-  Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
-                       KOKKOS_LAMBDA(int i) {
-                         queries(i) = ArborX::nearest(points(i), n_neighbors);
-                       });
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
+        queries(i) = ArborX::nearest(points(i), n_neighbors);
+      });
 
   auto performQueries = [&bvh, &queries](std::string const &p,
                                          std::string const &s) {

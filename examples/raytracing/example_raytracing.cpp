@@ -32,7 +32,7 @@ struct ArborX::AccessTraits<SpheresToBoxes<MemorySpace>, ArborX::PrimitivesTag>
   using memory_space = MemorySpace;
 
   KOKKOS_FUNCTION static std::size_t
-  size(const SpheresToBoxes<MemorySpace> &stob)
+  size(SpheresToBoxes<MemorySpace> const &stob)
   {
     return stob._spheres.extent(0);
   }
@@ -57,7 +57,7 @@ struct ArborX::AccessTraits<Rays<MemorySpace>, ArborX::PredicatesTag>
 {
   using memory_space = MemorySpace;
 
-  KOKKOS_FUNCTION static std::size_t size(const Rays<MemorySpace> &rays)
+  KOKKOS_FUNCTION static std::size_t size(Rays<MemorySpace> const &rays)
   {
     return rays._rays.extent(0);
   }
@@ -128,8 +128,8 @@ int main(int argc, char *argv[])
   auto rand_uniform = [&]() { return uniform(gen); };
 
   // Random parameters for Gaussian distribution of radii
-  const float mu_R = 1.0;
-  const float sigma_R = mu_R / 3.0;
+  float const mu_R = 1.0;
+  float const sigma_R = mu_R / 3.0;
 
   std::normal_distribution<> normal{mu_R, sigma_R};
   auto rand_normal = [&]() { return std::max(normal(gen), 0.0); };

@@ -120,8 +120,7 @@ public:
                                  (static_cast<unsigned long long>(source))
                                      << target_shift)}
       , weight{weight}
-  {
-  }
+  {}
   KOKKOS_FUNCTION constexpr DirectedEdge() = default;
   KOKKOS_FUNCTION explicit constexpr operator WeightedEdge()
   {
@@ -142,8 +141,7 @@ struct FindComponentNearestNeighbors
   LowerBounds _lower_bounds;
 
   struct WithLowerBounds
-  {
-  };
+  {};
 
   template <class ExecutionSpace>
   FindComponentNearestNeighbors(ExecutionSpace const &space, BVH const &bvh,

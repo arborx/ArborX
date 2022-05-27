@@ -39,20 +39,18 @@ public:
   constexpr Point(Abomination data)
       : Point(static_cast<float>(data.xyz[0]), static_cast<float>(data.xyz[1]),
               static_cast<float>(data.xyz[2]))
-  {
-  }
+  {}
 
   KOKKOS_INLINE_FUNCTION
   constexpr Point(float x, float y, float z)
       : _data{{x, y, z}}
-  {
-  }
+  {}
 
   KOKKOS_INLINE_FUNCTION
   constexpr float &operator[](unsigned int i) { return _data.coords[i]; }
 
   KOKKOS_INLINE_FUNCTION
-  constexpr const float &operator[](unsigned int i) const
+  constexpr float const &operator[](unsigned int i) const
   {
     return _data.coords[i];
   }

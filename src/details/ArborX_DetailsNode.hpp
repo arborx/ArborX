@@ -26,11 +26,9 @@ namespace Details
 {
 
 struct NodeWithTwoChildrenTag
-{
-};
+{};
 struct NodeWithLeftChildAndRopeTag
-{
-};
+{};
 
 template <class BoundingVolume>
 struct NodeWithTwoChildren
@@ -46,8 +44,8 @@ struct NodeWithTwoChildren
     return left_child == -1;
   }
 
-  KOKKOS_INLINE_FUNCTION constexpr std::size_t getLeafPermutationIndex() const
-      noexcept
+  KOKKOS_INLINE_FUNCTION constexpr std::size_t
+  getLeafPermutationIndex() const noexcept
   {
     assert(isLeaf());
     return right_child;
@@ -86,8 +84,8 @@ struct NodeWithLeftChildAndRope
     return left_child <= 0;
   }
 
-  KOKKOS_INLINE_FUNCTION constexpr std::size_t getLeafPermutationIndex() const
-      noexcept
+  KOKKOS_INLINE_FUNCTION constexpr std::size_t
+  getLeafPermutationIndex() const noexcept
   {
     assert(isLeaf());
     return -left_child;

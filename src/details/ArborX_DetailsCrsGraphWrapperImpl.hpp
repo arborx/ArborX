@@ -42,14 +42,11 @@ inline BufferStatus toBufferStatus(int buffer_size)
 }
 
 struct FirstPassTag
-{
-};
+{};
 struct FirstPassNoBufferOptimizationTag
-{
-};
+{};
 struct SecondPassTag
-{
-};
+{};
 
 template <typename PassTag, typename Predicates, typename Callback,
           typename OutputView, typename CountView, typename PermutedOffset>

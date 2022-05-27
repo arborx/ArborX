@@ -222,8 +222,7 @@ public:
   template <typename Tag = typename Node::Tag>
   KOKKOS_FUNCTION std::enable_if_t<std::is_same<Tag, NodeWithTwoChildrenTag>{}>
   setRope(Node *, int, DeltaValueType) const
-  {
-  }
+  {}
 
   template <typename Tag = typename Node::Tag>
   KOKKOS_FUNCTION
@@ -362,7 +361,6 @@ public:
       parent_node->bounding_volume = bounding_volume;
 
       i = karras_parent;
-
     } while (i != 0);
   }
 

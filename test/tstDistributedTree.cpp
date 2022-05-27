@@ -50,10 +50,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
   //                 0   1   2   3   ^   ^   ^   ^
   //                                 0   1   2   3   ^   ^   ^   ^
   //                                                 0   1   2   3
-  Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         points(i) = {{(double)i / n + comm_rank, 0., 0.}};
-                       });
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+        points(i) = {{(double)i / n + comm_rank, 0., 0.}};
+      });
 
   Tree tree(comm, ExecutionSpace{}, points);
 
@@ -357,10 +357,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(do_not_exceed_capacity, DeviceType,
   using ExecutionSpace = typename DeviceType::execution_space;
   MPI_Comm comm = MPI_COMM_WORLD;
   Kokkos::View<Point *, DeviceType> points("Testing::points", 512);
-  Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, 512),
-                       KOKKOS_LAMBDA(int i) {
-                         points(i) = {{(float)i, (float)i, (float)i}};
-                       });
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<ExecutionSpace>(0, 512), KOKKOS_LAMBDA(int i) {
+        points(i) = {{(float)i, (float)i, (float)i}};
+      });
 
   ArborX::DistributedTree<typename DeviceType::memory_space> tree{
       comm, ExecutionSpace{}, points};
@@ -639,10 +639,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
   using ExecutionSpace = typename DeviceType::execution_space;
   Kokkos::View<ArborX::Point *, DeviceType> points("Testing::points",
                                                    n_queries);
-  Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n_queries),
-                       KOKKOS_LAMBDA(int i) {
-                         points(i) = {(float)(comm_rank) + 1.5f, 0.f, 0.f};
-                       });
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
+        points(i) = {(float)(comm_rank) + 1.5f, 0.f, 0.f};
+      });
   auto points_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, points);
 
@@ -765,13 +765,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
       comm, ExecutionSpace{}, bounding_boxes);
 
   // make queries
-  Kokkos::View<double * [3], ExecutionSpace> point_coords(
+  Kokkos::View<double *[3], ExecutionSpace> point_coords(
       "Testing::point_coords", local_n);
   auto point_coords_host = Kokkos::create_mirror_view(point_coords);
   Kokkos::View<double *, ExecutionSpace> radii("Testing::radii", local_n);
   auto radii_host = Kokkos::create_mirror_view(radii);
-  Kokkos::View<int * [2], ExecutionSpace> within_n_pts("Testing::within_n_pts",
-                                                       local_n);
+  Kokkos::View<int *[2], ExecutionSpace> within_n_pts("Testing::within_n_pts",
+                                                      local_n);
   std::default_random_engine generator(0);
   std::uniform_real_distribution<double> distribution_radius(
       0.0, std::sqrt(Lx * Lx + Ly * Ly + Lz * Lz));

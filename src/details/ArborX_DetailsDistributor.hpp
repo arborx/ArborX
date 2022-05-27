@@ -168,22 +168,23 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
       break;
     unique_ranks.push_back(largest_rank);
     int result = 0;
-    Kokkos::parallel_scan("ArborX::Distributor::process_biggest_rank_items",
-                          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-                          KOKKOS_LAMBDA(int i, int &update, bool last_pass) {
-                            bool const is_largest_rank =
-                                (device_ranks_duplicate(i) == largest_rank);
-                            if (is_largest_rank)
-                            {
-                              if (last_pass)
-                              {
-                                device_permutation_indices(i) = update + offset;
-                                device_ranks_duplicate(i) = -1;
-                              }
-                              ++update;
-                            }
-                          },
-                          result);
+    Kokkos::parallel_scan(
+        "ArborX::Distributor::process_biggest_rank_items",
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+        KOKKOS_LAMBDA(int i, int &update, bool last_pass) {
+          bool const is_largest_rank =
+              (device_ranks_duplicate(i) == largest_rank);
+          if (is_largest_rank)
+          {
+            if (last_pass)
+            {
+              device_permutation_indices(i) = update + offset;
+              device_ranks_duplicate(i) = -1;
+            }
+            ++update;
+          }
+        },
+        result);
     offset += result;
     offsets.push_back(offset);
   }
@@ -203,8 +204,7 @@ public:
       , _permute{Kokkos::view_alloc(Kokkos::WithoutInitializing,
                                     "ArborX::Distributor::permute"),
                  0}
-  {
-  }
+  {}
 
   template <typename ExecutionSpace, typename View>
   size_t createFromSends(ExecutionSpace const &space,
@@ -371,7 +371,7 @@ public:
         Kokkos::View<ValueType *, typename ImportView::traits::device_type,
                      Kokkos::MemoryTraits<Kokkos::Unmanaged>>
             receive_view(receive_buffer_ptr, message_size / sizeof(ValueType));
-        Kokkos::View<const ValueType *,
+        Kokkos::View<ValueType const *,
                      typename ExportView::traits::device_type,
                      Kokkos::MemoryTraits<Kokkos::Unmanaged>>
             send_view(send_buffer_ptr, message_size / sizeof(ValueType));

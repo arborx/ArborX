@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
         particles[4 * id + 3] = {i * dx + .5f, j * dy + .5f, k * dz + .0f};
       });
 
-  Kokkos::View<float * [3], MemorySpace> velocities(
+  Kokkos::View<float *[3], MemorySpace> velocities(
       Kokkos::view_alloc(execution_space, Kokkos::WithoutInitializing,
                          "Example::velocities"),
       n);
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
   index.query(execution_space, Neighbors<MemorySpace>{particles, r},
               ExcludeSelfCollision{}, indices, offsets);
 
-  Kokkos::View<float * [3], MemorySpace> forces(
+  Kokkos::View<float *[3], MemorySpace> forces(
       Kokkos::view_alloc(execution_space, "Example::forces"), n);
   Kokkos::parallel_for(
       "Example::compute_forces",

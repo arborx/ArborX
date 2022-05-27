@@ -39,8 +39,7 @@ struct PoorManLambda
 {
   template <class Predicate>
   KOKKOS_FUNCTION void operator()(Predicate, int) const
-  {
-  }
+  {}
 };
 } // namespace Test
 

@@ -105,8 +105,7 @@ struct CountUpToN_DenseBox
       , core_min_size(core_min_size_in)
       , eps(eps_in)
       , _n(n)
-  {
-  }
+  {}
 
   template <typename Query>
   KOKKOS_FUNCTION auto operator()(Query const &query, int k) const
@@ -175,8 +174,7 @@ struct FDBSCANDenseBoxCallback
             KokkosExt::lastElement(exec_space, _dense_cell_offsets))
       , _permute(permute)
       , eps(eps_in)
-  {
-  }
+  {}
 
   template <typename Query>
   KOKKOS_FUNCTION auto operator()(Query const &query, int k) const
@@ -255,12 +253,13 @@ computeCellIndices(ExecutionSpace const &exec_space,
       Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
                          "ArborX::DBSCAN::cell_indices"),
       n);
-  Kokkos::parallel_for("ArborX::DBSCAN::compute_cell_indices",
-                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         auto const &xyz = Access::get(primitives, i);
-                         cell_indices(i) = grid.cellIndex(xyz);
-                       });
+  Kokkos::parallel_for(
+      "ArborX::DBSCAN::compute_cell_indices",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+      KOKKOS_LAMBDA(int i) {
+        auto const &xyz = Access::get(primitives, i);
+        cell_indices(i) = grid.cellIndex(xyz);
+      });
   return cell_indices;
 }
 
@@ -342,13 +341,13 @@ void unionFindWithinEachDenseCell(ExecutionSpace const &exec_space,
   // computations would have to be done to figure out if the points belong to a
   // dense cell, which would have required a linear scan.
   auto const n = sorted_dense_cell_indices.size();
-  Kokkos::parallel_for("ArborX::DBSCAN::union_find_within_each_dense_box",
-                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 1, n),
-                       KOKKOS_LAMBDA(int i) {
-                         if (sorted_dense_cell_indices(i) ==
-                             sorted_dense_cell_indices(i - 1))
-                           union_find.merge(permute(i), permute(i - 1));
-                       });
+  Kokkos::parallel_for(
+      "ArborX::DBSCAN::union_find_within_each_dense_box",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 1, n),
+      KOKKOS_LAMBDA(int i) {
+        if (sorted_dense_cell_indices(i) == sorted_dense_cell_indices(i - 1))
+          union_find.merge(permute(i), permute(i - 1));
+      });
 }
 
 } // namespace Details

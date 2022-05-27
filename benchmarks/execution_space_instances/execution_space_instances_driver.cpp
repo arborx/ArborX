@@ -30,7 +30,7 @@ class InstanceManager
 {
 public:
   InstanceManager(int const n_instances) { _instances.resize(n_instances); }
-  const std::vector<ExecutionSpace> &get_instances() const
+  std::vector<ExecutionSpace> const &get_instances() const
   {
     return _instances;
   }
@@ -61,7 +61,7 @@ public:
       cudaStreamDestroy(stream);
   }
 
-  const std::vector<Kokkos::Cuda> &get_instances() const { return _instances; }
+  std::vector<Kokkos::Cuda> const &get_instances() const { return _instances; }
 
 private:
   std::vector<Kokkos::Cuda> _instances;

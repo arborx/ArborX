@@ -73,8 +73,7 @@ namespace unit_test
 template <typename Offsets, typename Values>
 struct is_forward_iterable<CompressedStorage<Offsets, Values>>
     : public boost::mpl::true_
-{
-};
+{};
 template <typename Offsets, typename Values>
 struct bt_iterator_traits<CompressedStorage<Offsets, Values>, true>
 {

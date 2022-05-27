@@ -53,8 +53,7 @@ struct FDBSCANCallback
                   CorePointsType is_core_point)
       : _union_find(view)
       , _is_core_point(is_core_point)
-  {
-  }
+  {}
 
   template <typename Query>
   KOKKOS_FUNCTION auto operator()(Query const &query, int j) const

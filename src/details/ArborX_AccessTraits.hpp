@@ -22,12 +22,10 @@ namespace ArborX
 {
 
 struct PrimitivesTag
-{
-};
+{};
 
 struct PredicatesTag
-{
-};
+{};
 
 template <typename T, typename Tag, typename Enable = void>
 struct AccessTraits

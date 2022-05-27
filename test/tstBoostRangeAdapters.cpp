@@ -38,7 +38,8 @@ BOOST_AUTO_TEST_CASE(range_algorithms)
   boost::reverse_copy(w, std::ostream_iterator<int>(ss, " "));
   BOOST_TEST(ss.str() == "3 2 1 0 ");
 
-  boost::replace_if(w, [](int i) { return (i > 1); }, -1);
+  boost::replace_if(
+      w, [](int i) { return (i > 1); }, -1);
   BOOST_TEST(w == std::vector<int>({0, 1, -1, -1}), tt::per_element());
 
   BOOST_TEST(boost::count(w, -1), 2);

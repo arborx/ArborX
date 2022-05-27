@@ -77,10 +77,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_spatial_predicate, TreeTypeTraits,
   Kokkos::View<ArborX::Point *, DeviceType> points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
   ArborX::Point const origin = {{0., 0., 0.}};
-  Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         points(i) = {{(double)i, (double)i, (double)i}};
-                       });
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+        points(i) = {{(double)i, (double)i, (double)i}};
+      });
   auto points_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, points);
 
@@ -119,10 +119,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_nearest_predicate, TreeTypeTraits,
   Kokkos::View<ArborX::Point *, DeviceType> points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
   ArborX::Point const origin = {{0., 0., 0.}};
-  Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         points(i) = {{(double)i, (double)i, (double)i}};
-                       });
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+        points(i) = {{(double)i, (double)i, (double)i}};
+      });
   auto points_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, points);
 
@@ -260,10 +260,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_spatial_predicate,
   Kokkos::View<ArborX::Point *, DeviceType> points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
   ArborX::Point const origin = {{0., 0., 0.}};
-  Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         points(i) = {{(double)i, (double)i, (double)i}};
-                       });
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+        points(i) = {{(double)i, (double)i, (double)i}};
+      });
   auto points_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, points);
 
@@ -305,10 +305,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_nearest_predicate,
   Kokkos::View<ArborX::Point *, DeviceType> points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
   ArborX::Point const origin = {{0., 0., 0.}};
-  Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         points(i) = {{(double)i, (double)i, (double)i}};
-                       });
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+        points(i) = {{(double)i, (double)i, (double)i}};
+      });
   auto points_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, points);
 

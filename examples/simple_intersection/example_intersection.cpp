@@ -73,7 +73,7 @@ public:
   KOKKOS_FUNCTION int size() const { return _boxes.size(); }
 
   // Return the box with index i.
-  KOKKOS_FUNCTION const ArborX::Box &get_box(int i) const { return _boxes(i); }
+  KOKKOS_FUNCTION ArborX::Box const &get_box(int i) const { return _boxes(i); }
 
 private:
   Kokkos::View<ArborX::Box *, typename DeviceType::memory_space> _boxes;

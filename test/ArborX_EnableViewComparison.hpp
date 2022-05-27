@@ -51,8 +51,7 @@ struct bt_iterator_traits<Kokkos::View<T, P...>, true>
 template <typename T, size_t N, typename Proxy>
 struct is_forward_iterable<Kokkos::Array<T, N, Proxy>>
     : public boost::mpl::true_
-{
-};
+{};
 
 template <typename T, size_t N, typename Proxy>
 struct bt_iterator_traits<Kokkos::Array<T, N, Proxy>, true>

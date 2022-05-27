@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, DeviceType,
   using ExecutionSpace = typename DeviceType::execution_space;
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(
-      [](Kokkos::Profiling::SpaceHandle /*handle*/, const char *label,
+      [](Kokkos::Profiling::SpaceHandle /*handle*/, char const *label,
          void const * /*ptr*/, uint64_t /*size*/) {
         BOOST_TEST_MESSAGE(label);
         BOOST_TEST(
@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, DeviceType,
                         });
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(
-      [](Kokkos::Profiling::SpaceHandle /*handle*/, const char *label,
+      [](Kokkos::Profiling::SpaceHandle /*handle*/, char const *label,
          void const * /*ptr*/, uint64_t /*size*/) {
         BOOST_TEST_MESSAGE(label);
         BOOST_TEST(

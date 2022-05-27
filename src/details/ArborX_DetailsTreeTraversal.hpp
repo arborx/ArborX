@@ -30,8 +30,7 @@ namespace Details
 
 template <typename BVH, typename Predicates, typename Callback, typename Tag>
 struct TreeTraversal
-{
-};
+{};
 
 template <typename BVH, typename Predicates, typename Callback>
 struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
@@ -71,8 +70,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   }
 
   struct OneLeafTree
-  {
-  };
+  {};
 
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
   {
@@ -183,7 +181,6 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
       {
         next = HappyTreeFriends::getRope(_bvh, node);
       }
-
     } while (next != ROPE_SENTINEL);
   }
 };
@@ -275,8 +272,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   }
 
   struct OneLeafTree
-  {
-  };
+  {};
 
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
   {
