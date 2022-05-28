@@ -275,13 +275,13 @@ pipeline {
                     }
                 }
 
-                stage('HIP-4.2') {
+                stage('HIP-5.0') {
                     agent {
                         dockerfile {
                             filename "Dockerfile.hipcc"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=rocm/dev-ubuntu-20.04:4.2 --build-arg KOKKOS_ARCH=${KOKKOS_ARCH}'
-                            args '-v /tmp/ccache.kokkos:/tmp/ccache --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --env HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES}'
+                            additionalBuildArgs '--build-arg BASE=rocm/dev-ubuntu-20.04:5.0-complete --build-arg KOKKOS_ARCH=${KOKKOS_ARCH}'
+                            args '-v /tmp/ccache.kokkos:/tmp/ccache --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --env HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES} --env AMDGPU_TARGET=${AMDGPU_TARGET}'
                             label 'rocm-docker && vega'
                         }
                     }
@@ -300,6 +300,8 @@ pipeline {
                                     -D ARBORX_ENABLE_MPI=ON \
                                     -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
                                     -D MPIEXEC_MAX_NUMPROCS=4 \
+                                    -D CMAKE_EXE_LINKER_FLAGS="-lopen-pal" \
+                                    -D GPU_TARGETS=${AMDGPU_TARGET} \
                                     -D ARBORX_ENABLE_TESTS=ON \
                                     -D ARBORX_ENABLE_EXAMPLES=ON \
                                     -D ARBORX_ENABLE_BENCHMARKS=ON \
@@ -321,6 +323,8 @@ pipeline {
                                 sh 'cp -r ../examples .'
                                 sh '''
                                     cmake \
+                                        -D CMAKE_EXE_LINKER_FLAGS="-lopen-pal" \
+                                        -D GPU_TARGETS=${AMDGPU_TARGET} \
                                         -D CMAKE_CXX_COMPILER=hipcc \
                                         -D CMAKE_CXX_EXTENSIONS=OFF \
                                         -D CMAKE_BUILD_TYPE=RelWithDebInfo \
