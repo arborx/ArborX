@@ -22,6 +22,24 @@ struct NearestPredicateTag
 struct SpatialPredicateTag
 {};
 } // namespace Details
+namespace Experimental
+{
+struct OrderedSpatialPredicateTag
+{};
+} // namespace Experimental
+
+namespace Details
+{
+// nvcc has problems with using std::interal_constant here.
+template <typename PredicateTag>
+struct is_valid_predicate_tag
+{
+  static constexpr bool value =
+      std::is_same<PredicateTag, SpatialPredicateTag>{} ||
+      std::is_same<PredicateTag, NearestPredicateTag>{} ||
+      std::is_same<PredicateTag, Experimental::OrderedSpatialPredicateTag>{};
+};
+} // namespace Details
 
 template <typename Geometry>
 struct Nearest
@@ -62,6 +80,25 @@ struct Intersects
   Geometry _geometry;
 };
 
+namespace Experimental
+{
+template <typename Geometry>
+struct OrderedSpatial
+{
+  using Tag = Experimental::OrderedSpatialPredicateTag;
+
+  KOKKOS_DEFAULTED_FUNCTION
+  OrderedSpatial() = default;
+
+  KOKKOS_INLINE_FUNCTION
+  OrderedSpatial(Geometry const &geometry)
+      : _geometry(geometry)
+  {}
+
+  Geometry _geometry;
+};
+} // namespace Experimental
+
 template <typename Geometry>
 KOKKOS_INLINE_FUNCTION Nearest<Geometry> nearest(Geometry const &geometry,
                                                  int k = 1)
@@ -81,6 +118,16 @@ KOKKOS_INLINE_FUNCTION int getK(Nearest<Geometry> const &pred)
   return pred._k;
 }
 
+namespace Experimental
+{
+template <typename Geometry>
+KOKKOS_INLINE_FUNCTION OrderedSpatial<Geometry>
+ordered_intersects(Geometry const &geometry)
+{
+  return OrderedSpatial<Geometry>(geometry);
+}
+} // namespace Experimental
+
 template <typename Geometry>
 KOKKOS_INLINE_FUNCTION Geometry const &
 getGeometry(Nearest<Geometry> const &pred)
@@ -91,6 +138,13 @@ getGeometry(Nearest<Geometry> const &pred)
 template <typename Geometry>
 KOKKOS_INLINE_FUNCTION Geometry const &
 getGeometry(Intersects<Geometry> const &pred)
+{
+  return pred._geometry;
+}
+
+template <typename Geometry>
+KOKKOS_INLINE_FUNCTION Geometry const &
+getGeometry(Experimental::OrderedSpatial<Geometry> const &pred)
 {
   return pred._geometry;
 }
