@@ -41,13 +41,14 @@ done
 # stop right here if clang-format does not exist in $PATH
 command -v $clang_format_executable >/dev/null 2>&1 || { echo >&2 "clang-format executable '$clang_format_executable' not found.  Aborting."; exit 1; }
 
+# check for the correct clang-format version
 clang_format_version="$(${clang_format_executable} --version)"
 clang_format_major_version=$(echo "${clang_format_version}" | sed 's/^[^0-9]*\([0-9]*\).*$/\1/g')
 clang_format_minor_version=$(echo "${clang_format_version}" | sed 's/^[^0-9]*[0-9]*\.\([0-9]*\).*$/\1/g')
-
-if [ "${clang_format_major_version}" -ne 14 ] || [ "${clang_format_minor_version}" -ne 0 ]; then
-  echo "***   This indent script requires clang-format version 14.0,"
-  echo "***   but version ${clang_format_major_version}.${clang_format_minor_version} was found instead."
+clang_format_patch_version=$(echo "${clang_format_version}" | sed 's/^[^0-9]*[0-9]*\.[0-9]*\.\([0-9]*\).*$/\1/g')
+if [ "${clang_format_major_version}" -ne 14 ] || [ "${clang_format_minor_version}" -ne 0 ] || [ "${clang_format_patch_version}" -ne 0 ]; then
+  echo "***   ArborX requires clang-format version 14.0.0,"
+  echo "***   but version ${clang_format_major_version}.${clang_format_minor_version}.${clang_format_patch_version} was found instead."
   exit 1
 fi
 
