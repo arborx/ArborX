@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
                                               });
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(
-      [](Kokkos::Profiling::SpaceHandle /*handle*/, const char *label,
+      [](Kokkos::Profiling::SpaceHandle /*handle*/, char const *label,
          void const * /*ptr*/, uint64_t /*size*/) {
         BOOST_TEST_MESSAGE(label);
         BOOST_TEST((isPrefixedWith(label, "ArborX::DistributedTree::") ||
@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
                                               });
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(
-      [](Kokkos::Profiling::SpaceHandle /*handle*/, const char *label,
+      [](Kokkos::Profiling::SpaceHandle /*handle*/, char const *label,
          void const * /*ptr*/, uint64_t /*size*/) {
         BOOST_TEST_MESSAGE(label);
         BOOST_TEST((isPrefixedWith(label, "ArborX::DistributedTree::query::") ||

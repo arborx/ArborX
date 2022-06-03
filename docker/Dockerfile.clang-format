@@ -1,0 +1,19 @@
+ARG BASE=ubuntu:18.04
+FROM $BASE
+
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
+        wget \
+        xz-utils \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install clang-format
+ARG CLANG_FORMAT_VERSION=14.0.0
+RUN CLANG_FORMAT_URL=https://github.com/llvm/llvm-project/releases/download/llvmorg-${CLANG_FORMAT_VERSION}/clang+llvm-${CLANG_FORMAT_VERSION}-x86_64-linux-gnu-ubuntu-18.04.tar.xz && \
+    CLANG_FORMAT_ARCHIVE=clang-format-$CLANG_FORMAT_VERSION.tar.xz && \
+    SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
+    wget --quiet ${CLANG_FORMAT_URL} --output-document=${CLANG_FORMAT_ARCHIVE} && \
+    tar -xf ${CLANG_FORMAT_ARCHIVE} --strip-components=1 && \
+    cp bin/clang-format /usr/bin && \
+    rm -rf ${SCRATCH_DIR}

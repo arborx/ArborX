@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -13,12 +13,14 @@
 #include <ArborX_DBSCANVerification.hpp>
 #include <ArborX_DetailsHeap.hpp>
 #include <ArborX_DetailsOperatorFunctionObjects.hpp> // Less
+#include <ArborX_MinimumSpanningTree.hpp>
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
 
 #include <boost/program_options.hpp>
 
+#include <cstdlib>
 #include <fstream>
 
 std::vector<ArborX::Point> loadData(std::string const &filename,
@@ -106,6 +108,8 @@ std::vector<ArborX::Point> sampleData(std::vector<ArborX::Point> const &data,
 {
   std::vector<ArborX::Point> sampled_data(num_samples);
 
+  std::srand(1337);
+
   // Knuth algorithm
   auto const N = (int)data.size();
   auto const M = num_samples;
@@ -113,7 +117,7 @@ std::vector<ArborX::Point> sampleData(std::vector<ArborX::Point> const &data,
   {
     int rn = N - in;
     int rm = M - im;
-    if (rand() % rn < rm)
+    if (std::rand() % rn < rm)
       sampled_data[im++] = data[in];
   }
   return sampled_data;
@@ -182,15 +186,16 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
 
   Kokkos::View<int *, MemorySpace> cluster_sizes(
       "ArborX::DBSCAN::cluster_sizes", n);
-  Kokkos::parallel_for("ArborX::DBSCAN::compute_cluster_sizes",
-                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-                       KOKKOS_LAMBDA(int const i) {
-                         // Ignore noise points
-                         if (labels(i) < 0)
-                           return;
+  Kokkos::parallel_for(
+      "ArborX::DBSCAN::compute_cluster_sizes",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+      KOKKOS_LAMBDA(int const i) {
+        // Ignore noise points
+        if (labels(i) < 0)
+          return;
 
-                         Kokkos::atomic_increment(&cluster_sizes(labels(i)));
-                       });
+        Kokkos::atomic_increment(&cluster_sizes(labels(i)));
+      });
 
   // This kernel serves dual purpose:
   // - it constructs an offset array through exclusive prefix sum, with a
@@ -202,7 +207,7 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
   auto &map_cluster_to_offset_position = cluster_sizes;
   constexpr int IGNORED_CLUSTER = -1;
   int num_clusters;
-  ArborX::reallocWithoutInitializing(cluster_offset, n + 1);
+  KokkosExt::reallocWithoutInitializing(exec_space, cluster_offset, n + 1);
   Kokkos::parallel_scan(
       "ArborX::DBSCAN::compute_cluster_offset_with_filter",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
@@ -227,25 +232,26 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
   Kokkos::resize(Kokkos::WithoutInitializing, cluster_offset, num_clusters + 1);
   ArborX::exclusivePrefixSum(exec_space, cluster_offset);
 
-  auto cluster_starts = ArborX::clone(exec_space, cluster_offset);
-  ArborX::reallocWithoutInitializing(cluster_indices,
-                                     ArborX::lastElement(cluster_offset));
-  Kokkos::parallel_for("ArborX::DBSCAN::compute_cluster_indices",
-                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-                       KOKKOS_LAMBDA(int const i) {
-                         // Ignore noise points
-                         if (labels(i) < 0)
-                           return;
+  auto cluster_starts = KokkosExt::clone(exec_space, cluster_offset);
+  KokkosExt::reallocWithoutInitializing(
+      exec_space, cluster_indices,
+      KokkosExt::lastElement(exec_space, cluster_offset));
+  Kokkos::parallel_for(
+      "ArborX::DBSCAN::compute_cluster_indices",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+      KOKKOS_LAMBDA(int const i) {
+        // Ignore noise points
+        if (labels(i) < 0)
+          return;
 
-                         auto offset_pos =
-                             map_cluster_to_offset_position(labels(i));
-                         if (offset_pos != IGNORED_CLUSTER)
-                         {
-                           auto position = Kokkos::atomic_fetch_add(
-                               &cluster_starts(offset_pos), 1);
-                           cluster_indices(position) = i;
-                         }
-                       });
+        auto offset_pos = map_cluster_to_offset_position(labels(i));
+        if (offset_pos != IGNORED_CLUSTER)
+        {
+          auto position =
+              Kokkos::atomic_fetch_add(&cluster_starts(offset_pos), 1);
+          cluster_indices(position) = i;
+        }
+      });
 
   Kokkos::Profiling::popRegion();
 }
@@ -305,6 +311,7 @@ int main(int argc, char *argv[])
   using ArborX::DBSCAN::Implementation;
 
   std::string filename;
+  std::string algorithm;
   bool binary;
   bool verify;
   bool print_dbscan_timers;
@@ -320,6 +327,7 @@ int main(int argc, char *argv[])
   // clang-format off
   desc.add_options()
       ( "help", "help message" )
+      ( "algorithm", bpo::value<std::string>(&algorithm)->default_value("dbscan"), "algorithm (dbscan | mst)" )
       ( "filename", bpo::value<std::string>(&filename), "filename containing data" )
       ( "binary", bpo::bool_switch(&binary)->default_value(false), "binary file indicator")
       ( "max-num-points", bpo::value<int>(&max_num_points)->default_value(-1), "max number of points to read in")
@@ -347,15 +355,20 @@ int main(int argc, char *argv[])
   ss << implementation;
 
   // Print out the runtime parameters
-  printf("eps               : %f\n", eps);
+  printf("algorithm         : %s\n", algorithm.c_str());
+  if (algorithm == "dbscan")
+  {
+    printf("eps               : %f\n", eps);
+    printf("cluster min size  : %d\n", cluster_min_size);
+    printf("implementation    : %s\n", ss.str().c_str());
+    printf("verify            : %s\n", (verify ? "true" : "false"));
+  }
   printf("minpts            : %d\n", core_min_size);
-  printf("cluster min size  : %d\n", cluster_min_size);
   printf("filename          : %s [%s, max_pts = %d]\n", filename.c_str(),
          (binary ? "binary" : "text"), max_num_points);
-  printf("filename [labels] : %s [binary]\n", filename_labels.c_str());
-  printf("implementation    : %s\n", ss.str().c_str());
+  if (!filename_labels.empty())
+    printf("filename [labels] : %s [binary]\n", filename_labels.c_str());
   printf("samples           : %d\n", num_samples);
-  printf("verify            : %s\n", (verify ? "true" : "false"));
   printf("print timers      : %s\n", (print_dbscan_timers ? "true" : "false"));
 
   // read in data
@@ -384,39 +397,48 @@ int main(int argc, char *argv[])
 
   timer_start(timer_total);
 
-  auto labels = ArborX::dbscan(exec_space, primitives, eps, core_min_size,
-                               ArborX::DBSCAN::Parameters()
-                                   .setPrintTimers(print_dbscan_timers)
-                                   .setImplementation(implementation));
-
-  timer_start(timer);
-  Kokkos::View<int *, MemorySpace> cluster_indices("Testing::cluster_indices",
-                                                   0);
-  Kokkos::View<int *, MemorySpace> cluster_offset("Testing::cluster_offset", 0);
-  sortAndFilterClusters(exec_space, labels, cluster_indices, cluster_offset,
-                        cluster_min_size);
-  elapsed["cluster"] = timer_seconds(timer);
-  elapsed["total"] = timer_seconds(timer_total);
-
-  printf("-- postprocess      : %10.3f\n", elapsed["cluster"]);
-  printf("total time          : %10.3f\n", elapsed["total"]);
-
-  int num_clusters = cluster_offset.size() - 1;
-  int num_cluster_points = cluster_indices.size();
-  printf("\n#clusters       : %d\n", num_clusters);
-  printf("#cluster points : %d [%.2f%%]\n", num_cluster_points,
-         (100.f * num_cluster_points / data.size()));
-
   bool success = true;
-  if (verify)
+  if (algorithm == "dbscan")
   {
-    success = ArborX::Details::verifyDBSCAN(exec_space, primitives, eps,
-                                            core_min_size, labels);
-    printf("Verification %s\n", (success ? "passed" : "failed"));
-  }
+    auto labels = ArborX::dbscan(exec_space, primitives, eps, core_min_size,
+                                 ArborX::DBSCAN::Parameters()
+                                     .setPrintTimers(print_dbscan_timers)
+                                     .setImplementation(implementation));
 
-  if (!filename_labels.empty())
-    writeLabelsData(filename_labels, labels);
+    timer_start(timer);
+    Kokkos::View<int *, MemorySpace> cluster_indices("Testing::cluster_indices",
+                                                     0);
+    Kokkos::View<int *, MemorySpace> cluster_offset("Testing::cluster_offset",
+                                                    0);
+    sortAndFilterClusters(exec_space, labels, cluster_indices, cluster_offset,
+                          cluster_min_size);
+    elapsed["cluster"] = timer_seconds(timer);
+    elapsed["total"] = timer_seconds(timer_total);
+
+    printf("-- postprocess      : %10.3f\n", elapsed["cluster"]);
+    printf("total time          : %10.3f\n", elapsed["total"]);
+
+    int num_clusters = cluster_offset.size() - 1;
+    int num_cluster_points = cluster_indices.size();
+    printf("\n#clusters       : %d\n", num_clusters);
+    printf("#cluster points : %d [%.2f%%]\n", num_cluster_points,
+           (100.f * num_cluster_points / data.size()));
+
+    if (verify)
+    {
+      success = ArborX::Details::verifyDBSCAN(exec_space, primitives, eps,
+                                              core_min_size, labels);
+      printf("Verification %s\n", (success ? "passed" : "failed"));
+    }
+
+    if (!filename_labels.empty())
+      writeLabelsData(filename_labels, labels);
+  }
+  else if (algorithm == "mst")
+  {
+    ArborX::Details::MinimumSpanningTree<MemorySpace> mst(
+        exec_space, primitives, core_min_size);
+  }
 
   return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }

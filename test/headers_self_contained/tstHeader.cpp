@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -17,6 +17,7 @@
 
 // include header twice to see if the include guards are set correctly
 #include ARBORX_HEADER_TO_TEST
+// NOLINTNEXTLINE(readability-duplicate-include)
 #include ARBORX_HEADER_TO_TEST
 
 #if defined(ARBORX_HEADER_MUST_INCLUDE_CONFIG_HPP) &&                          \

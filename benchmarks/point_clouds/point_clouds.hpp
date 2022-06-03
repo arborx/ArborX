@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -43,10 +43,10 @@ inline PointCloudType to_point_cloud_enum(std::string const &str)
                            " doesn't correspond to any known PointCloudType!");
 }
 
-template <typename Layout, typename DeviceType>
+template <typename... ViewProperties>
 void filledBoxCloud(
     double const half_edge,
-    Kokkos::View<ArborX::Point *, Layout, DeviceType> random_points)
+    Kokkos::View<ArborX::Point *, ViewProperties...> random_points)
 {
   static_assert(
       KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
@@ -61,10 +61,10 @@ void filledBoxCloud(
     random_points(i) = {{random(), random(), random()}};
 }
 
-template <typename Layout, typename DeviceType>
+template <typename... ViewProperties>
 void hollowBoxCloud(
     double const half_edge,
-    Kokkos::View<ArborX::Point *, Layout, DeviceType> random_points)
+    Kokkos::View<ArborX::Point *, ViewProperties...> random_points)
 {
   static_assert(
       KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
@@ -124,10 +124,10 @@ void hollowBoxCloud(
   }
 }
 
-template <typename Layout, typename DeviceType>
+template <typename... ViewProperties>
 void filledSphereCloud(
     double const radius,
-    Kokkos::View<ArborX::Point *, Layout, DeviceType> random_points)
+    Kokkos::View<ArborX::Point *, ViewProperties...> random_points)
 {
   static_assert(
       KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
@@ -159,10 +159,10 @@ void filledSphereCloud(
   }
 }
 
-template <typename Layout, typename DeviceType>
+template <typename... ViewProperties>
 void hollowSphereCloud(
     double const radius,
-    Kokkos::View<ArborX::Point *, Layout, DeviceType> random_points)
+    Kokkos::View<ArborX::Point *, ViewProperties...> random_points)
 {
   static_assert(
       KokkosExt::is_accessible_from_host<decltype(random_points)>::value,

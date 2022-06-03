@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 project(ArborX CXX)
 
-find_package(Kokkos 3.4 REQUIRED)
+find_package(Kokkos 3.5 REQUIRED CONFIG)
+message(STATUS "Found Kokkos: ${Kokkos_DIR} (version \"${Kokkos_VERSION}\")")
 if(Kokkos_ENABLE_CUDA)
   kokkos_check(OPTIONS CUDA_LAMBDA)
 endif()
@@ -65,7 +66,7 @@ install(EXPORT ArborXTargets
   DESTINATION lib/cmake/ArborX
 )
 
-set(ARBORX_VERSION_STRING "1.2 (dev)")
+set(ARBORX_VERSION_STRING "1.3 (dev)")
 
 # Make sure that the git hash in ArborX_Version.hpp is considered to be always
 # out of date, and thus is updated every recompile.

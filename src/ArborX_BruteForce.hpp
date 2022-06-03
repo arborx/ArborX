@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -55,7 +55,7 @@ public:
             typename CallbackOrView, typename View, typename... Args>
   std::enable_if_t<Kokkos::is_view<std::decay_t<View>>{}>
   query(ExecutionSpace const &space, Predicates const &predicates,
-        CallbackOrView &&callback_or_view, View &&view, Args &&... args) const
+        CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
   {
     ArborX::query(*this, space, predicates,
                   std::forward<CallbackOrView>(callback_or_view),
@@ -74,7 +74,7 @@ BruteForce<MemorySpace>::BruteForce(ExecutionSpace const &space,
                                     Primitives const &primitives)
     : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
     , _bounding_volumes(
-          Kokkos::view_alloc(Kokkos::WithoutInitializing,
+          Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                              "ArborX::BruteForce::bounding_volumes"),
           _size)
 {

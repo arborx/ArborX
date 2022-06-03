@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -70,7 +70,7 @@ public:
     pushHeap(_c.data(), _c.data() + _c.size(), _compare);
   }
   template <class... Args>
-  KOKKOS_INLINE_FUNCTION void emplace(Args &&... args)
+  KOKKOS_INLINE_FUNCTION void emplace(Args &&...args)
   {
     _c.emplaceBack(std::forward<Args>(args)...);
     pushHeap(_c.data(), _c.data() + _c.size(), _compare);
@@ -84,7 +84,7 @@ public:
   // an opportunity for doing a single bubble-down operation instead of paying
   // for both one bubble-down and one bubble-up
   template <typename... Args>
-  KOKKOS_INLINE_FUNCTION void popPush(Args &&... args)
+  KOKKOS_INLINE_FUNCTION void popPush(Args &&...args)
   {
     assert(!_c.empty());
     bubbleDown(_c.data(), std::ptrdiff_t(0), std::ptrdiff_t(_c.size()),

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -352,19 +352,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_spatial_predicate,
     double const b = i + 1;
     boxes.push_back({{{a, a, a}}, {{b, b, b}}});
   }
-  auto const bvh = make<ArborX::BVH<typename DeviceType::memory_space>>(
-      ExecutionSpace{}, boxes);
+  ExecutionSpace space;
+  auto const bvh =
+      make<ArborX::BVH<typename DeviceType::memory_space>>(space, boxes);
 
   Kokkos::View<int *, DeviceType> indices("indices", 0);
   Kokkos::View<int *, DeviceType> offset("offset", 0);
   // spatial query that is satisfied by all leaves in the tree
-  BOOST_CHECK_NO_THROW(ArborX::query(bvh, ExecutionSpace{},
+  BOOST_CHECK_NO_THROW(ArborX::query(bvh, space,
                                      makeIntersectsBoxQueries<DeviceType>({
                                          {},
                                          {{{0., 0., 0.}}, {{n, n, n}}},
                                      }),
                                      indices, offset));
-  BOOST_TEST(ArborX::lastElement(offset) == n);
+  BOOST_TEST(KokkosExt::lastElement(space, offset) == n);
 }
 
 #ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
@@ -385,18 +386,19 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_nearest_predicate,
     double const b = i + 1;
     boxes.push_back({{{a, a, a}}, {{b, b, b}}});
   }
-  auto const bvh = make<ArborX::BVH<typename DeviceType::memory_space>>(
-      ExecutionSpace{}, boxes);
+  ExecutionSpace space;
+  auto const bvh =
+      make<ArborX::BVH<typename DeviceType::memory_space>>(space, boxes);
 
   Kokkos::View<int *, DeviceType> indices("indices", 0);
   Kokkos::View<int *, DeviceType> offset("offset", 0);
   // nearest query asking for as many neighbors as they are leaves in the tree
-  BOOST_CHECK_NO_THROW(ArborX::query(bvh, ExecutionSpace{},
+  BOOST_CHECK_NO_THROW(ArborX::query(bvh, space,
                                      makeNearestQueries<DeviceType>({
                                          {{{0., 0., 0.}}, n},
                                      }),
                                      indices, offset));
-  BOOST_TEST(ArborX::lastElement(offset) == n);
+  BOOST_TEST(KokkosExt::lastElement(space, offset) == n);
 }
 #endif
 

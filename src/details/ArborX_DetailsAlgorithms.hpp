@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -13,7 +13,7 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
-#include <ArborX_DetailsKokkosExtMathFunctions.hpp> // isFinite
+#include <ArborX_DetailsKokkosExtMathFunctions.hpp> // isfinite
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
 
@@ -49,9 +49,9 @@ constexpr bool equals(Sphere const &l, Sphere const &r)
 KOKKOS_INLINE_FUNCTION
 bool isValid(Point const &p)
 {
-  using KokkosExt::isFinite;
+  using KokkosExt::isfinite;
   for (int d = 0; d < 3; ++d)
-    if (!isFinite(p[d]))
+    if (!isfinite(p[d]))
       return false;
   return true;
 }
@@ -59,11 +59,11 @@ bool isValid(Point const &p)
 KOKKOS_INLINE_FUNCTION
 bool isValid(Box const &b)
 {
-  using KokkosExt::isFinite;
+  using KokkosExt::isfinite;
   for (int d = 0; d < 3; ++d)
   {
     auto const r_d = b.maxCorner()[d] - b.minCorner()[d];
-    if (r_d <= 0 || !isFinite(r_d))
+    if (r_d <= 0 || !isfinite(r_d))
       return false;
   }
   return true;
@@ -72,8 +72,8 @@ bool isValid(Box const &b)
 KOKKOS_INLINE_FUNCTION
 bool isValid(Sphere const &s)
 {
-  using KokkosExt::isFinite;
-  return isValid(s.centroid()) && isFinite(s.radius()) && (s.radius() >= 0.);
+  using KokkosExt::isfinite;
+  return isValid(s.centroid()) && isfinite(s.radius()) && (s.radius() >= 0.);
 }
 
 // distance point-point

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -22,7 +22,7 @@ template <typename Tree, typename ExecutionSpace, typename Predicates,
 inline void query(Tree const &tree, ExecutionSpace const &space,
                   Predicates const &predicates,
                   CallbackOrView &&callback_or_view, View &&view,
-                  Args &&... args)
+                  Args &&...args)
 {
   Kokkos::Profiling::pushRegion("ArborX::query");
 
@@ -30,7 +30,7 @@ inline void query(Tree const &tree, ExecutionSpace const &space,
       check_valid_callback_if_first_argument_is_not_a_view(callback_or_view,
                                                            predicates, view);
 
-  using Access = AccessTraits<Predicates, Traits::PredicatesTag>;
+  using Access = AccessTraits<Predicates, ArborX::PredicatesTag>;
   using Tag = typename Details::AccessTraitsHelper<Access>::tag;
 
   ArborX::Details::CrsGraphWrapperImpl::queryDispatch(

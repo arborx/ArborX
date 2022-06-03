@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -20,20 +20,16 @@ using ArborX::Details::check_valid_access_traits;
 // NOTE Let's not bother with __host__ __device__ annotations here
 
 struct NoAccessTraitsSpecialization
-{
-};
+{};
 
 struct EmptySpecialization
-{
-};
+{};
 template <typename Tag>
 struct ArborX::AccessTraits<EmptySpecialization, Tag>
-{
-};
+{};
 
 struct InvalidMemorySpace
-{
-};
+{};
 template <typename Tag>
 struct ArborX::AccessTraits<InvalidMemorySpace, Tag>
 {
@@ -41,8 +37,7 @@ struct ArborX::AccessTraits<InvalidMemorySpace, Tag>
 };
 
 struct SizeMemberFunctionNotStatic
-{
-};
+{};
 template <typename Tag>
 struct ArborX::AccessTraits<SizeMemberFunctionNotStatic, Tag>
 {
@@ -52,8 +47,7 @@ struct ArborX::AccessTraits<SizeMemberFunctionNotStatic, Tag>
 
 // Ensure legacy access traits are still valid
 struct LegacyAccessTraits
-{
-};
+{};
 template <typename Tag>
 struct ArborX::Traits::Access<LegacyAccessTraits, Tag>
 {
@@ -73,8 +67,6 @@ void test_access_traits_compile_only()
   Kokkos::View<NearestPredicate *> q;
   check_valid_access_traits(PredicatesTag{}, q);
 
-  check_valid_access_traits(PrimitivesTag{}, LegacyAccessTraits{});
-
   // Uncomment to see error messages
 
   // check_valid_access_traits(PrimitivesTag{}, NoAccessTraitsSpecialization{});
@@ -84,4 +76,6 @@ void test_access_traits_compile_only()
   // check_valid_access_traits(PrimitivesTag{}, InvalidMemorySpace{});
 
   // check_valid_access_traits(PrimitivesTag{}, SizeMemberFunctionNotStatic{});
+
+  // check_valid_access_traits(PrimitivesTag{}, LegacyAccessTraits{});
 }

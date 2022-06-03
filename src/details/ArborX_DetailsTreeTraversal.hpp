@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -15,6 +15,7 @@
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_DetailsStack.hpp>
@@ -29,8 +30,7 @@ namespace Details
 
 template <typename BVH, typename Predicates, typename Callback, typename Tag>
 struct TreeTraversal
-{
-};
+{};
 
 template <typename BVH, typename Predicates, typename Callback>
 struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
@@ -70,8 +70,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   }
 
   struct OneLeafTree
-  {
-  };
+  {};
 
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
   {
@@ -182,7 +181,6 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
       {
         next = HappyTreeFriends::getRope(_bvh, node);
       }
-
     } while (next != ROPE_SENTINEL);
   }
 };
@@ -220,7 +218,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   {
     auto const n_queries = Access::size(_predicates);
 
-    Offset offset(Kokkos::view_alloc(Kokkos::WithoutInitializing,
+    Offset offset(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                      "ArborX::TreeTraversal::nearest::offset"),
                   n_queries + 1);
     // NOTE workaround to avoid implicit capture of *this
@@ -231,13 +229,13 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
     exclusivePrefixSum(space, offset);
-    int const buffer_size = lastElement(offset);
+    int const buffer_size = KokkosExt::lastElement(space, offset);
     // Allocate buffer over which to perform heap operations in
     // TreeTraversal::nearestQuery() to store nearest leaf nodes found so far.
     // It is not possible to anticipate how much memory to allocate since the
     // number of nearest neighbors k is only known at runtime.
 
-    Buffer buffer(Kokkos::view_alloc(Kokkos::WithoutInitializing,
+    Buffer buffer(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                      "ArborX::TreeTraversal::nearest::buffer"),
                   buffer_size);
     _buffer = BufferProvider{buffer, offset};
@@ -274,8 +272,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   }
 
   struct OneLeafTree
-  {
-  };
+  {};
 
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
   {

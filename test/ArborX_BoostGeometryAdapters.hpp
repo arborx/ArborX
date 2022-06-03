@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -44,8 +44,7 @@ struct coordinate_system<ArborX::Point>
 
 template <>
 struct dimension<ArborX::Point> : boost::mpl::int_<3>
-{
-};
+{};
 
 template <size_t D>
 struct access<ArborX::Point, D>

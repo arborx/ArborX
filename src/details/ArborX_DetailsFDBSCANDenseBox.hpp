@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -14,6 +14,7 @@
 
 #include <ArborX_Callbacks.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsUnionFind.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_Predicates.hpp>
@@ -104,8 +105,7 @@ struct CountUpToN_DenseBox
       , core_min_size(core_min_size_in)
       , eps(eps_in)
       , _n(n)
-  {
-  }
+  {}
 
   template <typename Query>
   KOKKOS_FUNCTION auto operator()(Query const &query, int k) const
@@ -158,21 +158,23 @@ struct FDBSCANDenseBoxCallback
   Permutation _permute;
   float eps;
 
+  template <typename ExecutionSpace>
   FDBSCANDenseBoxCallback(Kokkos::View<int *, MemorySpace> const &labels,
                           CorePointsType const &is_core_point,
                           Primitives const &primitives,
                           DenseCellOffsets const &dense_cell_offsets,
+                          ExecutionSpace const &exec_space,
                           Permutation const &permute, float eps_in)
       : _union_find(labels)
       , _is_core_point(is_core_point)
       , _primitives(primitives)
       , _dense_cell_offsets(dense_cell_offsets)
       , _num_dense_cells(dense_cell_offsets.size() - 1)
-      , _num_points_in_dense_cells(lastElement(dense_cell_offsets))
+      , _num_points_in_dense_cells(
+            KokkosExt::lastElement(exec_space, _dense_cell_offsets))
       , _permute(permute)
       , eps(eps_in)
-  {
-  }
+  {}
 
   template <typename Query>
   KOKKOS_FUNCTION auto operator()(Query const &query, int k) const
@@ -248,54 +250,17 @@ computeCellIndices(ExecutionSpace const &exec_space,
   auto const n = Access::size(primitives);
 
   Kokkos::View<size_t *, MemorySpace> cell_indices(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+      Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
                          "ArborX::DBSCAN::cell_indices"),
       n);
-  Kokkos::parallel_for("ArborX::DBSCAN::compute_cell_indices",
-                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         auto const &xyz = Access::get(primitives, i);
-                         cell_indices(i) = grid.cellIndex(xyz);
-                       });
+  Kokkos::parallel_for(
+      "ArborX::DBSCAN::compute_cell_indices",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+      KOKKOS_LAMBDA(int i) {
+        auto const &xyz = Access::get(primitives, i);
+        cell_indices(i) = grid.cellIndex(xyz);
+      });
   return cell_indices;
-}
-
-// TODO: should put it together with other commonly used Kokkos
-// routines and unit test it in the future
-template <typename ExecutionSpace, typename View>
-Kokkos::View<int *, typename View::memory_space>
-computeOffsetsInOrderedView(ExecutionSpace const &exec_space, View view)
-{
-  using MemorySpace = typename View::memory_space;
-
-  static_assert(
-      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
-
-  auto const n = view.extent(0);
-
-  int num_offsets;
-  Kokkos::View<int *, MemorySpace> offsets(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                         "ArborX::DBSCAN::offsets"),
-      n + 1);
-  Kokkos::parallel_scan(
-      "ArborX::DBSCAN::compute_offsets",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n + 1),
-      KOKKOS_LAMBDA(int i, int &update, bool final_pass) {
-        bool const is_cell_first_index =
-            (i == 0 || i == (int)n || view(i) != view(i - 1));
-        if (is_cell_first_index)
-        {
-          if (final_pass)
-            offsets(update) = i;
-          ++update;
-        }
-      },
-      num_offsets);
-  --num_offsets;
-  Kokkos::resize(offsets, num_offsets + 1);
-
-  return offsets;
 }
 
 template <typename ExecutionSpace, typename CellIndices, typename CellOffsets,
@@ -329,12 +294,13 @@ int reorderDenseAndSparseCells(ExecutionSpace const &exec_space,
   // them. The points in the same cell are still together.
   Kokkos::View<int, MemorySpace> dense_offset("ArborX::DBSCAN::dense_offset");
   Kokkos::View<int, MemorySpace> sparse_offset("ArborX::DBSCAN::sparse_offset");
-  Kokkos::deep_copy(dense_offset, 0);
-  Kokkos::deep_copy(sparse_offset, num_points_in_dense_cells);
+  Kokkos::deep_copy(exec_space, dense_offset, 0);
+  Kokkos::deep_copy(exec_space, sparse_offset, num_points_in_dense_cells);
 
-  auto reordered_permute = cloneWithoutInitializingNorCopying(permute);
-  auto reordered_cell_indices =
-      cloneWithoutInitializingNorCopying(sorted_cell_indices);
+  auto reordered_permute =
+      KokkosExt::cloneWithoutInitializingNorCopying(exec_space, permute);
+  auto reordered_cell_indices = KokkosExt::cloneWithoutInitializingNorCopying(
+      exec_space, sorted_cell_indices);
   Kokkos::parallel_for(
       "ArborX::DBSCAN::reorder_cell_indices_and_permutation",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_nonempty_cells),
@@ -375,13 +341,13 @@ void unionFindWithinEachDenseCell(ExecutionSpace const &exec_space,
   // computations would have to be done to figure out if the points belong to a
   // dense cell, which would have required a linear scan.
   auto const n = sorted_dense_cell_indices.size();
-  Kokkos::parallel_for("ArborX::DBSCAN::union_find_within_each_dense_box",
-                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 1, n),
-                       KOKKOS_LAMBDA(int i) {
-                         if (sorted_dense_cell_indices(i) ==
-                             sorted_dense_cell_indices(i - 1))
-                           union_find.merge(permute(i), permute(i - 1));
-                       });
+  Kokkos::parallel_for(
+      "ArborX::DBSCAN::union_find_within_each_dense_box",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 1, n),
+      KOKKOS_LAMBDA(int i) {
+        if (sorted_dense_cell_indices(i) == sorted_dense_cell_indices(i - 1))
+          union_find.merge(permute(i), permute(i - 1));
+      });
 }
 
 } // namespace Details

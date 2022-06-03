@@ -1,4 +1,4 @@
-ARG BASE=rocm/dev-ubuntu-20.04:4.2
+ARG BASE=rocm/dev-ubuntu-20.04:5.0-complete
 FROM $BASE
 
 ARG NPROCS=4
@@ -37,7 +37,7 @@ RUN KEYDUMP_URL=https://cloud.cees.ornl.gov/download && \
 
 # Install CMake
 ENV CMAKE_DIR=/opt/cmake
-RUN CMAKE_VERSION=3.18.5 && \
+RUN CMAKE_VERSION=3.22.4 && \
     CMAKE_KEY=2D2CEF1034921684 && \
     CMAKE_URL=https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION} && \
     CMAKE_SCRIPT=cmake-${CMAKE_VERSION}-Linux-x86_64.sh && \
@@ -46,7 +46,7 @@ RUN CMAKE_VERSION=3.18.5 && \
     wget --quiet ${CMAKE_URL}/${CMAKE_SHA256}.asc && \
     wget --quiet ${CMAKE_URL}/${CMAKE_SCRIPT} && \
     gpg --verify ${CMAKE_SHA256}.asc ${CMAKE_SHA256} && \
-    grep ${CMAKE_SCRIPT} ${CMAKE_SHA256} | sha256sum --check && \
+    grep -i ${CMAKE_SCRIPT} ${CMAKE_SHA256} | sed -e s/linux/Linux/ | sha256sum --check && \
     mkdir -p ${CMAKE_DIR} && \
     sh ${CMAKE_SCRIPT} --skip-license --prefix=${CMAKE_DIR} && \
     rm cmake*
@@ -54,18 +54,14 @@ ENV PATH=${CMAKE_DIR}/bin:$PATH
 
 # Install Boost
 ENV BOOST_DIR=/opt/boost
-RUN BOOST_VERSION=1.72.0 && \
+RUN BOOST_VERSION=1.79.0 && \
     BOOST_VERSION_UNDERSCORE=$(echo "$BOOST_VERSION" | sed -e "s/\./_/g") && \
     BOOST_KEY=379CE192D401AB61 && \
     BOOST_URL=https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VERSION}/source && \
     BOOST_ARCHIVE=boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2 && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE} && \
-    wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.asc && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json && \
-    wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json.asc && \
-    gpg --verify ${BOOST_ARCHIVE}.json.asc ${BOOST_ARCHIVE}.json && \
-    gpg --verify ${BOOST_ARCHIVE}.asc ${BOOST_ARCHIVE} && \
     cat ${BOOST_ARCHIVE}.json | jq -r '. | .sha256 + "  " + .file' | sha256sum --check && \
     mkdir -p boost && \
     tar -xf ${BOOST_ARCHIVE} -C boost --strip-components=1 && \
@@ -85,7 +81,7 @@ RUN BOOST_VERSION=1.72.0 && \
 # Install Google Benchmark support library
 ENV BENCHMARK_DIR=/opt/benchmark
 RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
-    git clone https://github.com/google/benchmark.git -b v1.5.0 && \
+    git clone https://github.com/google/benchmark.git -b v1.6.1 && \
     cd benchmark && \
     mkdir build && cd build && \
     cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${BENCHMARK_DIR} -D BENCHMARK_ENABLE_TESTING=OFF .. && \
@@ -93,7 +89,7 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     rm -rf ${SCRATCH_DIR}
 
 # Install Kokkos
-ARG KOKKOS_VERSION=3.4.00
+ARG KOKKOS_VERSION=3.5.00
 ARG KOKKOS_ARCH=Kokkos_ARCH_VEGA906
 ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_HIP=ON -D${KOKKOS_ARCH}=ON"
 ENV KOKKOS_DIR=/opt/kokkos

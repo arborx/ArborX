@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -15,8 +15,8 @@
 #define BOOST_TEST_MODULE Geometry
 #include <boost/test/unit_test.hpp>
 
-// NOTE: message is not required any more with C++17
-#define STATIC_ASSERT(cond) static_assert(cond, "");
+// NOTE: message is not required anymore with C++17
+#define STATIC_ASSERT(cond) static_assert(cond, "")
 
 using ArborX::Box;
 using ArborX::Point;

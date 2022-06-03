@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -53,8 +53,7 @@ struct FDBSCANCallback
                   CorePointsType is_core_point)
       : _union_find(view)
       , _is_core_point(is_core_point)
-  {
-  }
+  {}
 
   template <typename Query>
   KOKKOS_FUNCTION auto operator()(Query const &query, int j) const

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -15,9 +15,10 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // returnCentroid, translateAndScale
-#include <ArborX_DetailsMortonCode.hpp> // morton3D
-#include <ArborX_DetailsSortUtils.hpp>  // sortObjects
-#include <ArborX_DetailsUtils.hpp>      // exclusivePrefixSum, lastElement
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
+#include <ArborX_DetailsSortUtils.hpp> // sortObjects
+#include <ArborX_DetailsUtils.hpp>     // exclusivePrefixSum, lastElement
+#include <ArborX_SpaceFillingCurves.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -41,35 +42,39 @@ public:
   // order, it returns the permutation indices.  applyPermutation() was added
   // in that purpose.  reversePermutation() is able to restore the initial
   // order on the results that are in "compressed row storage" format.  You
-  // may notice it is not used any more in the code that performs the batched
-  // queries.  We found that it was slighly more performant to add a level of
+  // may notice it is not used anymore in the code that performs the batched
+  // queries.  We found that it was slightly more performant to add a level of
   // indirection when recording results rather than using that function at
   // the end.  We decided to keep reversePermutation around for now.
 
-  template <typename ExecutionSpace, typename Predicates>
+  template <typename ExecutionSpace, typename Predicates,
+            typename SpaceFillingCurve>
   static Kokkos::View<unsigned int *, DeviceType>
-  sortQueriesAlongZOrderCurve(ExecutionSpace const &space,
-                              Box const &scene_bounding_box,
-                              Predicates const &predicates)
+  sortPredicatesAlongSpaceFillingCurve(ExecutionSpace const &space,
+                                       SpaceFillingCurve const &curve,
+                                       Box const &scene_bounding_box,
+                                       Predicates const &predicates)
   {
     using Access = AccessTraits<Predicates, PredicatesTag>;
     auto const n_queries = Access::size(predicates);
 
-    Kokkos::View<unsigned int *, DeviceType> morton_codes(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "ArborX::BVH::query::morton"),
+    using LinearOrderingValueType =
+        Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
+                           SpaceFillingCurve, Point>;
+    Kokkos::View<LinearOrderingValueType *, DeviceType> linear_ordering_indices(
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                           "ArborX::BVH::query::linear_ordering"),
         n_queries);
     Kokkos::parallel_for(
-        "ArborX::BatchedQueries::assign_morton_codes_to_queries",
+        "ArborX::BatchedQueries::project_predicates_onto_space_filling_curve",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i) {
-          using Details::returnCentroid;
-          Point xyz = returnCentroid(getGeometry(Access::get(predicates, i)));
-          translateAndScale(xyz, xyz, scene_bounding_box);
-          morton_codes(i) = morton3D(xyz[0], xyz[1], xyz[2]);
+          linear_ordering_indices(i) =
+              curve(scene_bounding_box,
+                    returnCentroid(getGeometry(Access::get(predicates, i))));
         });
 
-    return sortObjects(space, morton_codes);
+    return sortObjects(space, linear_ordering_indices);
   }
 
   // NOTE  trailing return type seems required :(
@@ -88,10 +93,12 @@ public:
     auto const n = Access::size(v);
     ARBORX_ASSERT(permute.extent(0) == n);
 
-    using T = std::decay_t<decltype(
-        Access::get(std::declval<Predicates const &>(), std::declval<int>()))>;
+    using T = std::decay_t<decltype(Access::get(
+        std::declval<Predicates const &>(), std::declval<int>()))>;
     Kokkos::View<T *, DeviceType> w(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing, "predicates"), n);
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                           "ArborX::permuted_predicates"),
+        n);
     Kokkos::parallel_for(
         "ArborX::BatchedQueries::permute_entries",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
@@ -108,7 +115,8 @@ public:
     auto const n = permute.extent(0);
     ARBORX_ASSERT(offset.extent(0) == n + 1);
 
-    auto tmp_offset = cloneWithoutInitializingNorCopying(offset);
+    auto tmp_offset =
+        KokkosExt::cloneWithoutInitializingNorCopying(space, offset);
     Kokkos::parallel_for(
         "ArborX::BatchedQueries::adjacent_difference_and_permutation",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
@@ -131,10 +139,12 @@ public:
 
     ARBORX_ASSERT(offset.extent(0) == n + 1);
     ARBORX_ASSERT(tmp_offset.extent(0) == n + 1);
-    ARBORX_ASSERT(lastElement(offset) == indices.extent_int(0));
-    ARBORX_ASSERT(lastElement(tmp_offset) == indices.extent_int(0));
+    using KokkosExt::lastElement;
+    ARBORX_ASSERT(lastElement(space, offset) == indices.extent_int(0));
+    ARBORX_ASSERT(lastElement(space, tmp_offset) == indices.extent_int(0));
 
-    auto tmp_indices = cloneWithoutInitializingNorCopying(indices);
+    auto tmp_indices =
+        KokkosExt::cloneWithoutInitializingNorCopying(space, indices);
     Kokkos::parallel_for(
         "ArborX::BatchedQueries::permute_indices",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int q) {

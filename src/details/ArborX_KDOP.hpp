@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -148,8 +148,8 @@ struct KDOP : private Details::KDOP_Directions<k>
   {
     for (int i = 0; i < n_directions; ++i)
     {
-      _min_values[i] = KokkosExt::ArithmeticTraits::max<float>::value;
-      _max_values[i] = -KokkosExt::ArithmeticTraits::max<float>::value;
+      _min_values[i] = KokkosExt::ArithmeticTraits::finite_max<float>::value;
+      _max_values[i] = KokkosExt::ArithmeticTraits::finite_min<float>::value;
     }
   }
   KOKKOS_FUNCTION KDOP &operator+=(Point const &p)

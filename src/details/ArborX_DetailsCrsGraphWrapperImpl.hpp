@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -15,6 +15,7 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_Callbacks.hpp>
 #include <ArborX_DetailsBatchedQueries.hpp>
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsPermutedData.hpp>
 #include <ArborX_Predicates.hpp>
 #include <ArborX_TraversalPolicy.hpp>
@@ -41,14 +42,11 @@ inline BufferStatus toBufferStatus(int buffer_size)
 }
 
 struct FirstPassTag
-{
-};
+{};
 struct FirstPassNoBufferOptimizationTag
-{
-};
+{};
 struct SecondPassTag
-{
-};
+{};
 
 template <typename PassTag, typename Predicates, typename Callback,
           typename OutputView, typename CountView, typename PermutedOffset>
@@ -147,7 +145,7 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
   Kokkos::Profiling::pushRegion("ArborX::CrsGraphWrapper::two_pass");
 
   using CountView = OffsetView;
-  CountView counts(Kokkos::view_alloc("ArborX::CrsGraphWrapper::counts", space),
+  CountView counts(Kokkos::view_alloc(space, "ArborX::CrsGraphWrapper::counts"),
                    n_queries);
 
   using PermutedPredicates =
@@ -218,7 +216,7 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
   if (underflow)
   {
     // Store a copy of the original offset. We'll need it for compression.
-    preallocated_offset = clone(space, offset);
+    preallocated_offset = KokkosExt::clone(space, offset);
   }
 
   Kokkos::parallel_for(
@@ -227,7 +225,7 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
       KOKKOS_LAMBDA(int const i) { permuted_offset(i) = counts(i); });
   exclusivePrefixSum(space, offset);
 
-  int const n_results = lastElement(offset);
+  int const n_results = KokkosExt::lastElement(space, offset);
 
   Kokkos::Profiling::popRegion();
 
@@ -258,7 +256,7 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int const i) { counts(i) = permuted_offset(i); });
 
-    reallocWithoutInitializing(out, n_results);
+    KokkosExt::reallocWithoutInitializing(space, out, n_results);
 
     tree.query(
         space, permuted_predicates,
@@ -276,7 +274,7 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
         "ArborX::CrsGraphWrapper::two_pass:copy_values");
 
     OutputView tmp_out(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing, out.label()),
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing, out.label()),
         n_results);
 
     Kokkos::parallel_for(
@@ -315,7 +313,7 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
   using Access = AccessTraits<Predicates, PredicatesTag>;
 
   auto const n_queries = Access::size(predicates);
-  reallocWithoutInitializing(offset, n_queries + 1);
+  KokkosExt::reallocWithoutInitializing(space, offset, n_queries + 1);
 
   buffer_size = std::abs(buffer_size);
 
@@ -325,9 +323,9 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
   {
     exclusivePrefixSum(space, offset);
 
-    // Use calculation for the size to avoid calling lastElement(offset) as it
-    // will launch an extra kernel to copy to host.
-    reallocWithoutInitializing(out, n_queries * buffer_size);
+    // Use calculation for the size to avoid calling lastElement(space, offset)
+    // as it will launch an extra kernel to copy to host.
+    KokkosExt::reallocWithoutInitializing(space, out, n_queries * buffer_size);
   }
 }
 
@@ -341,7 +339,7 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
   using Access = AccessTraits<Predicates, PredicatesTag>;
 
   auto const n_queries = Access::size(predicates);
-  reallocWithoutInitializing(offset, n_queries + 1);
+  KokkosExt::reallocWithoutInitializing(space, offset, n_queries + 1);
 
   Kokkos::parallel_for(
       "ArborX::CrsGraphWrapper::query::nearest::"
@@ -350,7 +348,8 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
       KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
   exclusivePrefixSum(space, offset);
 
-  reallocWithoutInitializing(out, lastElement(offset));
+  KokkosExt::reallocWithoutInitializing(space, out,
+                                        KokkosExt::lastElement(space, offset));
 }
 
 // Views are passed by reference here because internally Kokkos::realloc()
@@ -391,9 +390,10 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
   if (policy._sort_predicates)
   {
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
-    auto permute =
-        Details::BatchedQueries<DeviceType>::sortQueriesAlongZOrderCurve(
-            space, static_cast<Box>(tree.bounds()), predicates);
+    auto permute = Details::BatchedQueries<DeviceType>::
+        sortPredicatesAlongSpaceFillingCurve(space, Experimental::Morton32(),
+                                             static_cast<Box>(tree.bounds()),
+                                             predicates);
     Kokkos::Profiling::popRegion();
 
     queryImpl(space, tree, predicates, callback, out, offset, permute,

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -12,10 +12,11 @@
 #ifndef ARBORX_DETAILS_UTILS_HPP
 #define ARBORX_DETAILS_UTILS_HPP
 
+#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
-#include <Kokkos_Sort.hpp> // min_max_functor
 
 namespace ArborX
 {
@@ -112,7 +113,7 @@ inline auto create_layout_right_mirror_view_and_copy(
                typename ExecutionSpace::memory_space>
       layout_right_view(
           Kokkos::view_alloc(
-              Kokkos::WithoutInitializing,
+              execution_space, Kokkos::WithoutInitializing,
               std::string(src.label()).append("_layout_right_mirror")),
           src.extent(0),
           pointer_depth > 1 ? src.extent(1) : KOKKOS_INVALID_INDEX,
@@ -153,8 +154,7 @@ public:
                        Kokkos::View<T *, DeviceType> const &out)
       : _in(in)
       , _out(out)
-  {
-  }
+  {}
   KOKKOS_INLINE_FUNCTION void operator()(int i, T &update,
                                          bool final_pass) const
   {
@@ -252,17 +252,11 @@ template <typename T, typename... P>
  *  \pre \c v is of rank 1 and not empty.
  */
 template <typename T, typename... P>
-typename Kokkos::ViewTraits<T, P...>::non_const_value_type
+[[deprecated]] typename Kokkos::ViewTraits<T, P...>::non_const_value_type
 lastElement(Kokkos::View<T, P...> const &v)
 {
-  static_assert((unsigned(Kokkos::ViewTraits<T, P...>::rank) == unsigned(1)),
-                "lastElement requires Views of rank 1");
-  auto const n = v.extent(0);
-  ARBORX_ASSERT(n > 0);
-  auto v_subview = Kokkos::subview(v, n - 1);
-  auto v_host = Kokkos::create_mirror_view(v_subview);
-  Kokkos::deep_copy(v_host, v_subview);
-  return v_host();
+  using ExecutionSpace = typename Kokkos::View<T, P...>::execution_space;
+  return KokkosExt::lastElement(ExecutionSpace{}, v);
 }
 
 /** \brief Fills the view with a sequence of numbers
@@ -292,8 +286,9 @@ void iota(ExecutionSpace &&space, Kokkos::View<T, P...> const &v,
   auto const n = v.extent(0);
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_for("ArborX::Algorithms::iota", policy,
-                       KOKKOS_LAMBDA(int i) { v(i) = value + (ValueType)i; });
+  Kokkos::parallel_for(
+      "ArborX::Algorithms::iota", policy,
+      KOKKOS_LAMBDA(int i) { v(i) = value + (ValueType)i; });
 }
 
 template <typename T, typename... P>
@@ -321,13 +316,26 @@ minMax(ExecutionSpace &&space, ViewType const &v)
   static_assert(ViewType::rank == 1, "minMax requires a View of rank 1");
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
-  Kokkos::MinMaxScalar<typename ViewType::non_const_value_type> result;
-  Kokkos::MinMax<typename ViewType::non_const_value_type> reducer(result);
+  using ValueType = typename ViewType::non_const_value_type;
+  ValueType min_val;
+  ValueType max_val;
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_reduce("ArborX::Algorithms::minmax", policy,
-                          Kokkos::Impl::min_max_functor<ViewType>(v), reducer);
-  return std::make_pair(result.min_val, result.max_val);
+  Kokkos::parallel_reduce(
+      "ArborX::Algorithms::minmax", policy,
+      KOKKOS_LAMBDA(int i, ValueType &local_min, ValueType &local_max) {
+        auto const &val = v(i);
+        if (val < local_min)
+        {
+          local_min = val;
+        }
+        if (local_max < val)
+        {
+          local_max = val;
+        }
+      },
+      Kokkos::Min<ValueType>(min_val), Kokkos::Max<ValueType>(max_val));
+  return std::make_pair(min_val, max_val);
 }
 
 template <typename ViewType>
@@ -355,12 +363,13 @@ typename ViewType::non_const_value_type min(ExecutionSpace &&space,
   Kokkos::Min<typename ViewType::non_const_value_type> reducer(result);
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_reduce("ArborX::Algorithms::min", policy,
-                          KOKKOS_LAMBDA(int i, int &update) {
-                            if (v(i) < update)
-                              update = v(i);
-                          },
-                          reducer);
+  Kokkos::parallel_reduce(
+      "ArborX::Algorithms::min", policy,
+      KOKKOS_LAMBDA(int i, int &update) {
+        if (v(i) < update)
+          update = v(i);
+      },
+      reducer);
   return result;
 }
 
@@ -388,12 +397,13 @@ typename ViewType::non_const_value_type max(ExecutionSpace &&space,
   Kokkos::Max<typename ViewType::non_const_value_type> reducer(result);
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_reduce("ArborX::Algorithms::max", policy,
-                          KOKKOS_LAMBDA(int i, int &update) {
-                            if (v(i) > update)
-                              update = v(i);
-                          },
-                          reducer);
+  Kokkos::parallel_reduce(
+      "ArborX::Algorithms::max", policy,
+      KOKKOS_LAMBDA(int i, int &update) {
+        if (v(i) > update)
+          update = v(i);
+      },
+      reducer);
   return result;
 }
 
@@ -483,13 +493,13 @@ void adjacentDifference(ExecutionSpace &&space, SrcViewType const &src,
   ARBORX_ASSERT(src != dst);
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_for("ArbroX::Algorithms::adjacent_difference", policy,
-                       KOKKOS_LAMBDA(int i) {
-                         if (i > 0)
-                           dst(i) = src(i) - src(i - 1);
-                         else
-                           dst(i) = src(i);
-                       });
+  Kokkos::parallel_for(
+      "ArborX::Algorithms::adjacent_difference", policy, KOKKOS_LAMBDA(int i) {
+        if (i > 0)
+          dst(i) = src(i) - src(i - 1);
+        else
+          dst(i) = src(i);
+      });
 }
 
 template <typename SrcViewType, typename DstViewType>
@@ -503,75 +513,89 @@ template <typename SrcViewType, typename DstViewType>
 // FIXME split this into one for STL-like algorithms and another one for view
 // utility helpers
 
-// FIXME get rid of this when Trilinos/Kokkos version is updated
-// clang-format off
-#ifndef KOKKOS_IMPL_CTOR_DEFAULT_ARG
-#  ifdef KOKKOS_ENABLE_DEPRECATED_CODE
-#    define KOKKOS_IMPL_CTOR_DEFAULT_ARG 0
-#  else
-#    define KOKKOS_IMPL_CTOR_DEFAULT_ARG (~std::size_t(0))
-#  endif
-#endif
-// clang-format on
-
 // NOTE: not possible to avoid initialization with Kokkos::realloc()
 template <typename View>
-void reallocWithoutInitializing(View &v,
-                                size_t n0 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n1 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n2 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n3 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n4 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n5 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n6 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
-                                size_t n7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG)
+[[deprecated]] void
+reallocWithoutInitializing(View &v, size_t n0 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n1 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n2 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n3 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n4 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n5 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n6 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+                           size_t n7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG)
 {
-  static_assert(View::is_managed, "Can only realloc managed views");
-
-  size_t new_extents[8] = {n0, n1, n2, n3, n4, n5, n6, n7};
-  bool has_requested_extents = true;
-  for (unsigned int dim = 0; dim < v.rank_dynamic; ++dim)
-    if (new_extents[dim] != v.extent(dim))
-    {
-      has_requested_extents = false;
-      break;
-    }
-
-  if (!has_requested_extents)
-    v = View(Kokkos::view_alloc(Kokkos::WithoutInitializing, v.label()), n0, n1,
-             n2, n3, n4, n5, n6, n7);
+  using ExecutionSpace = typename View::execution_space;
+  KokkosExt::reallocWithoutInitializing(ExecutionSpace{}, v, n0, n1, n2, n3, n4,
+                                        n5, n6, n7);
 }
 
 template <typename View>
-void reallocWithoutInitializing(View &v,
-                                const typename View::array_layout &layout)
+[[deprecated]] void
+reallocWithoutInitializing(View &v, const typename View::array_layout &layout)
 {
-  static_assert(View::is_managed, "Can only realloc managed views");
-  v = View(Kokkos::view_alloc(Kokkos::WithoutInitializing, v.label()), layout);
+  using ExecutionSpace = typename View::execution_space;
+  KokkosExt::reallocWithoutInitializing(ExecutionSpace{}, v, layout);
 }
 
 template <typename View>
-typename View::non_const_type cloneWithoutInitializingNorCopying(View &v)
+[[deprecated]] typename View::non_const_type
+cloneWithoutInitializingNorCopying(View &v)
 {
-  return typename View::non_const_type(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, v.label()), v.layout());
+  using ExecutionSpace = typename View::execution_space;
+  return KokkosExt::cloneWithoutInitializingNorCopying(ExecutionSpace{}, v);
 }
 
 template <typename ExecutionSpace, typename View>
-typename View::non_const_type clone(ExecutionSpace &&space, View &v)
+[[deprecated]] typename View::non_const_type clone(ExecutionSpace const &space,
+                                                   View &v)
 {
-  typename View::non_const_type w(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, v.label()), v.layout());
-  Kokkos::deep_copy(std::forward<ExecutionSpace>(space), w, v);
-  return w;
+  return KokkosExt::clone(space, v);
 }
 
 template <typename View>
 [[deprecated]] inline typename View::non_const_type clone(View &v)
 {
   using ExecutionSpace = typename View::execution_space;
-  return clone(ExecutionSpace{}, v);
+  return KokkosExt::clone(ExecutionSpace{}, v);
 }
+
+namespace Details
+{
+
+template <typename ExecutionSpace, typename View, typename Offset>
+void computeOffsetsInOrderedView(ExecutionSpace const &exec_space, View view,
+                                 Offset &offsets)
+{
+  static_assert(KokkosExt::is_accessible_from<typename View::memory_space,
+                                              ExecutionSpace>::value,
+                "");
+  static_assert(KokkosExt::is_accessible_from<typename Offset::memory_space,
+                                              ExecutionSpace>::value,
+                "");
+
+  auto const n = view.extent_int(0);
+
+  int num_offsets;
+  KokkosExt::reallocWithoutInitializing(exec_space, offsets, n + 1);
+  Kokkos::parallel_scan(
+      "ArborX::Algorithms::compute_offsets_in_sorted_view",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n + 1),
+      KOKKOS_LAMBDA(int i, int &update, bool final_pass) {
+        bool const is_cell_first_index =
+            (i == 0 || i == n || view(i) != view(i - 1));
+        if (is_cell_first_index)
+        {
+          if (final_pass)
+            offsets(update) = i;
+          ++update;
+        }
+      },
+      num_offsets);
+  Kokkos::resize(offsets, num_offsets);
+}
+
+} // namespace Details
 
 } // namespace ArborX
 

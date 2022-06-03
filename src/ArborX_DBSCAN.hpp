@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -85,7 +85,7 @@ struct AccessTraits<Details::PrimitivesWithRadius<Primitives>, PredicatesTag>
   using memory_space = typename PrimitivesAccess::memory_space;
   using Predicates = Details::PrimitivesWithRadius<Primitives>;
 
-  static size_t size(Predicates const &w)
+  static KOKKOS_FUNCTION size_t size(Predicates const &w)
   {
     return PrimitivesAccess::size(w._primitives);
   }
@@ -109,7 +109,10 @@ struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
       Details::PrimitivesWithRadiusReorderedAndFiltered<Primitives,
                                                         PermuteFilter>;
 
-  static size_t size(Predicates const &w) { return w._filter.extent(0); }
+  static KOKKOS_FUNCTION size_t size(Predicates const &w)
+  {
+    return w._filter.extent(0);
+  }
   static KOKKOS_FUNCTION auto get(Predicates const &w, size_t i)
   {
     int index = w._filter(i);
@@ -233,7 +236,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
                                              0);
 
   Kokkos::View<int *, MemorySpace> labels(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::DBSCAN::labels"),
+      Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
+                         "ArborX::DBSCAN::labels"),
       n);
   ArborX::iota(exec_space, labels);
 
@@ -310,8 +314,10 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     int num_points_in_dense_cells;
     {
       // Reorder indices and permutation so that the dense cells go first
-      auto cell_offsets =
-          Details::computeOffsetsInOrderedView(exec_space, sorted_cell_indices);
+      Kokkos::View<int *, MemorySpace> cell_offsets(
+          "ArborX::DBSCAN::cell_offsets", 0);
+      Details::computeOffsetsInOrderedView(exec_space, sorted_cell_indices,
+                                           cell_offsets);
       num_nonempty_cells = cell_offsets.size() - 1;
 
       num_points_in_dense_cells = Details::reorderDenseAndSparseCells(
@@ -323,8 +329,10 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     auto dense_sorted_cell_indices = Kokkos::subview(
         sorted_cell_indices, Kokkos::make_pair(0, num_points_in_dense_cells));
 
-    auto dense_cell_offsets = Details::computeOffsetsInOrderedView(
-        exec_space, dense_sorted_cell_indices);
+    Kokkos::View<int *, MemorySpace> dense_cell_offsets(
+        "ArborX::DBSCAN::dense_cell_offsets", 0);
+    Details::computeOffsetsInOrderedView(exec_space, dense_sorted_cell_indices,
+                                         dense_cell_offsets);
     int num_dense_cells = dense_cell_offsets.size() - 1;
     if (verbose)
     {
@@ -373,8 +381,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
           Details::FDBSCANDenseBoxCallback<MemorySpace, CorePoints, Primitives,
                                            decltype(dense_cell_offsets),
                                            decltype(permute)>{
-              labels, CorePoints{}, primitives, dense_cell_offsets, permute,
-              eps});
+              labels, CorePoints{}, primitives, dense_cell_offsets, exec_space,
+              permute, eps});
       Kokkos::Profiling::popRegion();
     }
     else
@@ -421,7 +429,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
                                            decltype(dense_cell_offsets),
                                            decltype(permute)>{
               labels, CorePoints{num_neigh, core_min_size}, primitives,
-              dense_cell_offsets, permute, eps});
+              dense_cell_offsets, exec_space, permute, eps});
       Kokkos::Profiling::popRegion();
       elapsed["query"] = timer_seconds(timer_local);
     }
@@ -434,23 +442,24 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   // point directly to the representative.
   // ```
   Kokkos::View<int *, MemorySpace> cluster_sizes(
-      "ArborX::DBSCAN::cluster_sizes", n);
-  Kokkos::parallel_for("ArborX::DBSCAN::finalize_labels",
-                       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-                       KOKKOS_LAMBDA(int const i) {
-                         // ##### ECL license (see LICENSE.ECL) #####
-                         int next;
-                         int vstat = labels(i);
-                         int const old = vstat;
-                         while (vstat > (next = labels(vstat)))
-                         {
-                           vstat = next;
-                         }
-                         if (vstat != old)
-                           labels(i) = vstat;
+      Kokkos::view_alloc(exec_space, "ArborX::DBSCAN::cluster_sizes"), n);
+  Kokkos::parallel_for(
+      "ArborX::DBSCAN::finalize_labels",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+      KOKKOS_LAMBDA(int const i) {
+        // ##### ECL license (see LICENSE.ECL) #####
+        int next;
+        int vstat = labels(i);
+        int const old = vstat;
+        while (vstat > (next = labels(vstat)))
+        {
+          vstat = next;
+        }
+        if (vstat != old)
+          labels(i) = vstat;
 
-                         Kokkos::atomic_increment(&cluster_sizes(labels(i)));
-                       });
+        Kokkos::atomic_increment(&cluster_sizes(labels(i)));
+      });
   if (is_special_case)
   {
     // Ideally, this kernel would have had the exactly same form as in the
@@ -459,22 +468,24 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     //   inside the callback, but not here
     // - DBSCANCorePoints cannot be used either as num_neigh is not initialized
     //   in the special case.
-    Kokkos::parallel_for("ArborX::DBSCAN::mark_noise",
-                         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-                         KOKKOS_LAMBDA(int const i) {
-                           if (cluster_sizes(labels(i)) == 1)
-                             labels(i) = -1;
-                         });
+    Kokkos::parallel_for(
+        "ArborX::DBSCAN::mark_noise",
+        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+        KOKKOS_LAMBDA(int const i) {
+          if (cluster_sizes(labels(i)) == 1)
+            labels(i) = -1;
+        });
   }
   else
   {
     Details::DBSCANCorePoints<MemorySpace> is_core{num_neigh, core_min_size};
-    Kokkos::parallel_for("ArborX::DBSCAN::mark_noise",
-                         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-                         KOKKOS_LAMBDA(int const i) {
-                           if (cluster_sizes(labels(i)) == 1 && !is_core(i))
-                             labels(i) = -1;
-                         });
+    Kokkos::parallel_for(
+        "ArborX::DBSCAN::mark_noise",
+        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+        KOKKOS_LAMBDA(int const i) {
+          if (cluster_sizes(labels(i)) == 1 && !is_core(i))
+            labels(i) = -1;
+        });
   }
   Kokkos::Profiling::popRegion();
   elapsed["query+cluster"] = timer_seconds(timer);

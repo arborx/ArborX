@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -13,7 +13,7 @@
 #include <ArborX_KDOP.hpp>
 #include <ArborX_LinearBVH.hpp>
 
-#include <Kokkos_CopyViews.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <boost/test/unit_test.hpp>
 

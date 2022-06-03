@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -15,15 +15,25 @@
 #include <ArborX_Config.hpp> // ARBORX_ENABLE_ROCTHRUST
 
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp> // is_accessible_from
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>         // clone
 #include <ArborX_DetailsUtils.hpp>                        // iota
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
-#include <Kokkos_Sort.hpp> // min_max_functor
+#include <Kokkos_Sort.hpp>
 
 // clang-format off
 #if defined(KOKKOS_ENABLE_CUDA)
 #  if defined(KOKKOS_COMPILER_CLANG)
+
+// Older Thrust (or CUB to be more precise) versions use __shfl instead of
+// __shfl_sync for clang which was removed in PTX ISA version 6.4, also see
+// https://github.com/NVIDIA/cub/pull/170.
+#include <cub/version.cuh>
+#if defined(CUB_VERSION) && (CUB_VERSION < 101100) && !defined(CUB_USE_COOPERATIVE_GROUPS)
+#define CUB_USE_COOPERATIVE_GROUPS
+#endif
+
 // Some versions of Clang fail to compile Thrust, failing with errors like
 // this:
 //    <snip>/thrust/system/cuda/detail/core/agent_launcher.h:557:11:
@@ -80,18 +90,22 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
 {
   int const n = view.extent(0);
 
+  if (n == 0)
+  {
+    return Kokkos::View<SizeType *, typename ViewType::device_type>(
+        "ArborX::Sorting::permute", 0);
+  }
+
   using ValueType = typename ViewType::value_type;
   using CompType = Kokkos::BinOp1D<ViewType>;
 
-  Kokkos::MinMaxScalar<ValueType> result;
-  Kokkos::MinMax<ValueType> reducer(result);
-  parallel_reduce("ArborX::Sorting::find_min_max_view",
-                  Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-                  Kokkos::Impl::min_max_functor<ViewType>(view), reducer);
-  if (result.min_val == result.max_val)
+  ValueType min_val;
+  ValueType max_val;
+  std::tie(min_val, max_val) = ArborX::minMax(space, view);
+  if (min_val == max_val)
   {
     Kokkos::View<SizeType *, typename ViewType::device_type> permute(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::Sorting::permute"),
         n);
     iota(space, permute);
@@ -99,7 +113,7 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
   }
 
   Kokkos::BinSort<ViewType, CompType, typename ViewType::device_type, SizeType>
-      bin_sort(view, CompType(n / 2, result.min_val, result.max_val), true);
+      bin_sort(view, CompType(n / 2, min_val, max_val), true);
   bin_sort.create_permute_vector();
   bin_sort.sort(view);
   // FIXME Kokkos::BinSort is currently missing overloads that an execution
@@ -128,7 +142,7 @@ Kokkos::View<SizeType *, typename ViewType::device_type> sortObjects(
                 "");
 
   Kokkos::View<SizeType *, typename ViewType::device_type> permute(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::Sorting::permutation"),
       n);
   ArborX::iota(space, permute);
@@ -162,7 +176,7 @@ sortObjects(Kokkos::Experimental::SYCL const &space, ViewType &view)
       "");
 
   Kokkos::View<SizeType *, typename ViewType::device_type> permute(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::Sorting::permutation"),
       n);
   ArborX::iota(space, permute);
@@ -270,7 +284,7 @@ void applyPermutation(ExecutionSpace const &space,
 {
   static_assert(std::is_integral<typename PermutationView::value_type>::value,
                 "");
-  auto scratch_view = clone(space, view);
+  auto scratch_view = KokkosExt::clone(space, view);
   applyPermutation(space, permutation, scratch_view, view);
 }
 

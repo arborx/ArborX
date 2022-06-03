@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -15,6 +15,7 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // expand
 #include <ArborX_DetailsTreeConstruction.hpp> // Kokkos::reduction_identity<ArborX::Box>
+#include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -34,18 +35,18 @@ struct BruteForceImpl
 
     int const n = Access::size(primitives);
 
-    Kokkos::parallel_reduce("ArborX::BruteForce::BruteForce::"
-                            "initialize_bounding_volumes_and_reduce_bounds",
-                            Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-                            KOKKOS_LAMBDA(int i, Bounds &update) {
-                              using Details::expand;
-                              Bounds bounding_volume{};
-                              expand(bounding_volume,
-                                     Access::get(primitives, i));
-                              bounding_volumes(i) = bounding_volume;
-                              update += bounding_volume;
-                            },
-                            bounds);
+    Kokkos::parallel_reduce(
+        "ArborX::BruteForce::BruteForce::"
+        "initialize_bounding_volumes_and_reduce_bounds",
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+        KOKKOS_LAMBDA(int i, Bounds &update) {
+          using Details::expand;
+          Bounds bounding_volume{};
+          expand(bounding_volume, Access::get(primitives, i));
+          bounding_volumes(i) = bounding_volume;
+          update += bounding_volume;
+        },
+        bounds);
   }
 
   template <class ExecutionSpace, class Primitives, class Predicates,
@@ -108,23 +109,19 @@ struct BruteForceImpl
                                                   predicates_per_team);
           ScratchPrimitiveType scratch_primitives(teamMember.team_scratch(0),
                                                   primitives_per_team);
-          // rank 0 in each team fills the scratch space with the
-          // predicates / primitives in the tile
-          if (teamMember.team_rank() == 0)
-          {
-            Kokkos::parallel_for(
-                Kokkos::ThreadVectorRange(teamMember, predicates_in_this_team),
-                [&](const int q) {
-                  scratch_predicates(q) =
-                      AccessPredicates::get(predicates, predicate_start + q);
-                });
-            Kokkos::parallel_for(
-                Kokkos::ThreadVectorRange(teamMember, primitives_in_this_team),
-                [&](const int j) {
-                  scratch_primitives(j) =
-                      AccessPrimitives::get(primitives, primitive_start + j);
-                });
-          }
+          // fill the scratch space with the predicates / primitives in the tile
+          Kokkos::parallel_for(
+              Kokkos::TeamVectorRange(teamMember, predicates_in_this_team),
+              [&](const int q) {
+                scratch_predicates(q) =
+                    AccessPredicates::get(predicates, predicate_start + q);
+              });
+          Kokkos::parallel_for(
+              Kokkos::TeamVectorRange(teamMember, primitives_in_this_team),
+              [&](const int j) {
+                scratch_primitives(j) =
+                    AccessPrimitives::get(primitives, primitive_start + j);
+              });
           teamMember.team_barrier();
 
           // start threads for every predicate / primitive combination

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -15,10 +15,11 @@
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_LinearBVH.hpp>
 
-#include <Kokkos_View.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <set>
 #include <stack>
+#include <vector>
 
 namespace ArborX
 {
@@ -263,22 +264,20 @@ bool verifyClusters(ExecutionSpace const &exec_space, IndicesView indices,
 {
   int n = labels.size();
   if ((int)offset.size() != n + 1 ||
-      ArborX::lastElement(offset) != (int)indices.size())
+      KokkosExt::lastElement(exec_space, offset) != (int)indices.size())
     return false;
 
   using Verify = bool (*)(ExecutionSpace const &, IndicesView, OffsetView,
                           LabelsView, int);
 
-  for (auto verify : {static_cast<Verify>(verifyCorePointsNonnegativeIndex),
-                      static_cast<Verify>(verifyConnectedCorePointsShareIndex),
-                      static_cast<Verify>(verifyBorderAndNoisePoints),
-                      static_cast<Verify>(verifyClustersAreUnique)})
-  {
-    if (!verify(exec_space, indices, offset, labels, core_min_size))
-      return false;
-  }
-
-  return true;
+  std::vector<Verify> verify{
+      static_cast<Verify>(verifyCorePointsNonnegativeIndex),
+      static_cast<Verify>(verifyConnectedCorePointsShareIndex),
+      static_cast<Verify>(verifyBorderAndNoisePoints),
+      static_cast<Verify>(verifyClustersAreUnique)};
+  return std::all_of(verify.begin(), verify.end(), [&](Verify const &verify) {
+    return verify(exec_space, indices, offset, labels, core_min_size);
+  });
 }
 
 template <typename ExecutionSpace, typename Primitives, typename LabelsView>

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -61,19 +61,19 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
 
   int const buffer_size = 2 * (n + 1);
 
-  ArborX::reallocWithoutInitializing(offset, n + 1);
+  Kokkos::realloc(offset, n + 1);
   Kokkos::deep_copy(offset, buffer_size);
 
   Kokkos::View<unsigned int *, DeviceType> permute(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::permute"), n);
-  ArborX::iota(ExecutionSpace{}, permute);
+  ExecutionSpace space;
+  ArborX::iota(space, permute);
 
-  ArborX::exclusivePrefixSum(ExecutionSpace{}, offset);
-  ArborX::reallocWithoutInitializing(indices, ArborX::lastElement(offset));
+  ArborX::exclusivePrefixSum(space, offset);
+  Kokkos::realloc(indices, KokkosExt::lastElement(space, offset));
   ArborX::Details::CrsGraphWrapperImpl::queryImpl(
-      ExecutionSpace{}, Test1{}, predicates, ArborX::Details::DefaultCallback{},
-      indices, offset, permute,
-      ArborX::Details::BufferStatus::PreallocationHard);
+      space, Test1{}, predicates, ArborX::Details::DefaultCallback{}, indices,
+      offset, permute, ArborX::Details::BufferStatus::PreallocationHard);
 
   auto indices_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -21,8 +21,7 @@ class SearchException : public std::logic_error
 public:
   SearchException(std::string const &msg)
       : std::logic_error(std::string("ArborX exception: ") + msg)
-  {
-  }
+  {}
 };
 
 } // namespace ArborX

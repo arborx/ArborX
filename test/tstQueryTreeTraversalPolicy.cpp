@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -66,7 +66,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
   checkResultsAreFine();
 
   // compute number of results per query
-  auto counts = ArborX::cloneWithoutInitializingNorCopying(offset);
+  auto counts =
+      KokkosExt::cloneWithoutInitializingNorCopying(ExecutionSpace{}, offset);
   ArborX::adjacentDifference(ExecutionSpace{}, offset, counts);
   // extract optimal buffer size
   auto const max_results_per_query = ArborX::max(ExecutionSpace{}, counts);

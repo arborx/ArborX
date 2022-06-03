@@ -45,11 +45,16 @@ add_executable(ArborX_CompileOnly.exe
   tstCompileOnlyAccessTraits.cpp
   tstCompileOnlyCallbacks.cpp
   tstCompileOnlyTypeRequirements.cpp
+  tstCompileOnlyWeightedEdges.cpp
   tstCompileOnlyMain.cpp
 )
 target_link_libraries(ArborX_CompileOnly.exe PRIVATE ArborX)
 
-add_executable(ArborX_DetailsUtils.exe tstDetailsUtils.cpp utf_main.cpp)
+add_executable(ArborX_DetailsUtils.exe
+  tstDetailsUtils.cpp
+  tstDetailsKokkosExtViewHelpers.cpp
+  utf_main.cpp
+)
 # TODO link Boost::dynamic_linking interface target to enable dynamic linking
 # (adds BOOST_ALL_DYN_LINK)
 target_link_libraries(ArborX_DetailsUtils.exe PRIVATE ArborX Boost::unit_test_framework)
@@ -117,6 +122,7 @@ foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
 endforeach()
 add_executable(ArborX_QueryTree.exe
   ${ARBORX_TEST_QUERY_TREE_SOURCES}
+  tstQueryTreeRay.cpp
   tstQueryTreeTraversalPolicy.cpp
   tstQueryTreeIntersectsKDOP.cpp
   tstKokkosToolsAnnotations.cpp
@@ -127,7 +133,7 @@ target_compile_definitions(ArborX_QueryTree.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_QueryTree.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 add_test(NAME ArborX_QueryTree_Test COMMAND ./ArborX_QueryTree.exe)
 
-add_executable(ArborX_DetailsTreeConstruction.exe tstDetailsTreeConstruction.cpp utf_main.cpp)
+add_executable(ArborX_DetailsTreeConstruction.exe tstDetailsMortonCodes.cpp tstDetailsTreeConstruction.cpp utf_main.cpp)
 target_link_libraries(ArborX_DetailsTreeConstruction.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_DetailsTreeConstruction.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_DetailsTreeConstruction.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
@@ -160,6 +166,29 @@ target_link_libraries(ArborX_Clustering.exe PRIVATE ArborX Boost::unit_test_fram
 target_compile_definitions(ArborX_Clustering.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Clustering.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/examples/dbscan)
 add_test(NAME ArborX_Clustering_Test COMMAND ./ArborX_Clustering.exe)
+
+# compare results with a dataset of 1000 points from mlpack
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/mst_golden_test_points.csv
+  ${CMAKE_CURRENT_BINARY_DIR}/mst_golden_test_points.csv
+  COPYONLY
+)
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/mst_golden_test_edges.csv
+  ${CMAKE_CURRENT_BINARY_DIR}/mst_golden_test_edges.csv
+  COPYONLY
+)
+add_executable(ArborX_DetailsClusteringHelpers.exe
+  tstDetailsTreeNodeLabeling.cpp
+  tstDetailsMutualReachabilityDistance.cpp
+  tstMinimumSpanningTree.cpp
+  tstMinimumSpanningTreeGoldenTest.cpp
+  utf_main.cpp
+)
+target_link_libraries(ArborX_DetailsClusteringHelpers.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_DetailsClusteringHelpers.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_include_directories(ArborX_DetailsClusteringHelpers.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_DetailsClusteringHelpers_Test COMMAND ./ArborX_DetailsClusteringHelpers.exe)
 
 if(ARBORX_ENABLE_MPI)
   add_executable(ArborX_DistributedTree.exe tstDistributedTree.cpp tstKokkosToolsDistributedAnnotations.cpp utf_main.cpp)

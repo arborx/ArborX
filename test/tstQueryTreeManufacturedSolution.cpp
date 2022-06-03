@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -102,11 +102,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
 
   Kokkos::View<decltype(ArborX::intersects(ArborX::Box{})) *, DeviceType>
       queries("queries", n);
-  Kokkos::parallel_for("fill_queries",
-                       Kokkos::RangePolicy<ExecutionSpace>(0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         queries(i) = ArborX::intersects(bounding_boxes(i));
-                       });
+  Kokkos::parallel_for(
+      "fill_queries", Kokkos::RangePolicy<ExecutionSpace>(0, n),
+      KOKKOS_LAMBDA(int i) {
+        queries(i) = ArborX::intersects(bounding_boxes(i));
+      });
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, queries,
                          make_reference_solution(indices_ref, offset_ref));
 
@@ -201,11 +201,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
     offset_ref[i + 1] = indices_ref.size();
   }
 
-  Kokkos::parallel_for("fill_first_neighbors_queries",
-                       Kokkos::RangePolicy<ExecutionSpace>(0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         queries[i] = ArborX::intersects(bounding_boxes[i]);
-                       });
+  Kokkos::parallel_for(
+      "fill_first_neighbors_queries", Kokkos::RangePolicy<ExecutionSpace>(0, n),
+      KOKKOS_LAMBDA(int i) {
+        queries[i] = ArborX::intersects(bounding_boxes[i]);
+      });
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, queries,
                          make_reference_solution(indices_ref, offset_ref));
 
@@ -223,33 +223,39 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   //  o       o       o   j-1
   //
   std::default_random_engine generator;
-  std::uniform_real_distribution<double> distribution_x(0.0, Lz);
-  std::uniform_real_distribution<double> distribution_y(0.0, Ly);
-  std::uniform_real_distribution<double> distribution_z(0.0, Lz);
+  std::uniform_int_distribution<> dist_x(0, nx - 1);
+  std::uniform_int_distribution<> dist_y(0, ny - 1);
+  std::uniform_int_distribution<> dist_z(0, nz - 1);
+  std::uniform_real_distribution<double> dist_shift(-0.45, 0.45);
 
+  // The generation is a bit convoluted to avoid a situation where a centroid
+  // of a box falls on any of the lattice planes, resulting in multiple
+  // collisions. As a workaround, we generate the centroids of boxes within
+  // 0.45 x grid step of a lattice point.
   std::iota(offset_ref.begin(), offset_ref.end(), 0);
   indices_ref.resize(n);
   for (int l = 0; l < n; ++l)
   {
-    double x = distribution_x(generator);
-    double y = distribution_y(generator);
-    double z = distribution_z(generator);
+    auto const i = dist_x(generator);
+    auto const j = dist_y(generator);
+    auto const k = dist_z(generator);
+
+    auto const x = (i + dist_shift(generator)) * hx;
+    auto const y = (j + dist_shift(generator)) * hy;
+    auto const z = (k + dist_shift(generator)) * hz;
     bounding_boxes_host(l) = {{{x - 0.5 * hx, y - 0.5 * hy, z - 0.5 * hz}},
                               {{x + 0.5 * hx, y + 0.5 * hy, z + 0.5 * hz}}};
 
-    auto const i = static_cast<int>(std::round(x / hx));
-    auto const j = static_cast<int>(std::round(y / hy));
-    auto const k = static_cast<int>(std::round(z / hz));
     // Save the indices for the check
     indices_ref[l] = ind(i, j, k);
   }
   Kokkos::deep_copy(bounding_boxes, bounding_boxes_host);
 
-  Kokkos::parallel_for("fill_first_neighbors_queries",
-                       Kokkos::RangePolicy<ExecutionSpace>(0, n),
-                       KOKKOS_LAMBDA(int i) {
-                         queries[i] = ArborX::intersects(bounding_boxes[i]);
-                       });
+  Kokkos::parallel_for(
+      "fill_first_neighbors_queries", Kokkos::RangePolicy<ExecutionSpace>(0, n),
+      KOKKOS_LAMBDA(int i) {
+        queries[i] = ArborX::intersects(bounding_boxes[i]);
+      });
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, queries,
                          make_reference_solution(indices_ref, offset_ref));
 }

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -28,8 +28,7 @@
 #include <mpi.h>
 
 struct HelpPrinted
-{
-};
+{};
 
 // The TimeMonitor class can be used to measure for a series of events, i.e. it
 // represents a set of timers of type Timer. It is a poor man's drop-in
@@ -44,15 +43,13 @@ public:
   class Timer
   {
     entry_reference_type _entry;
-    bool _started;
+    bool _started = false;
     std::chrono::high_resolution_clock::time_point _tick;
 
   public:
     Timer(entry_reference_type ref)
         : _entry{ref}
-        , _started{false}
-    {
-    }
+    {}
     void start()
     {
       assert(!_started);
@@ -405,15 +402,15 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
                          "Testing::bounding_boxes"),
       n_values);
-  Kokkos::parallel_for("bvh_driver:construct_bounding_boxes",
-                       Kokkos::RangePolicy<ExecutionSpace>(0, n_values),
-                       KOKKOS_LAMBDA(int i) {
-                         double const x = random_values(i)[0];
-                         double const y = random_values(i)[1];
-                         double const z = random_values(i)[2];
-                         bounding_boxes(i) = {{{x - 1., y - 1., z - 1.}},
-                                              {{x + 1., y + 1., z + 1.}}};
-                       });
+  Kokkos::parallel_for(
+      "bvh_driver:construct_bounding_boxes",
+      Kokkos::RangePolicy<ExecutionSpace>(0, n_values), KOKKOS_LAMBDA(int i) {
+        double const x = random_values(i)[0];
+        double const y = random_values(i)[1];
+        double const z = random_values(i)[2];
+        bounding_boxes(i) = {{{x - 1., y - 1., z - 1.}},
+                             {{x + 1., y + 1., z + 1.}}};
+      });
 
   auto construction = time_monitor.getNewTimer("construction");
   MPI_Barrier(comm);

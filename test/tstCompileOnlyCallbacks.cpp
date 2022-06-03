@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -16,8 +16,7 @@
 // NOTE Let's not bother with __host__ __device__ annotations here
 
 struct NearestPredicates
-{
-};
+{};
 template <>
 struct ArborX::AccessTraits<NearestPredicates, ArborX::PredicatesTag>
 {
@@ -27,8 +26,7 @@ struct ArborX::AccessTraits<NearestPredicates, ArborX::PredicatesTag>
 };
 
 struct SpatialPredicates
-{
-};
+{};
 template <>
 struct ArborX::AccessTraits<SpatialPredicates, ArborX::PredicatesTag>
 {
@@ -45,36 +43,31 @@ struct CallbackMissingTag
 {
   template <typename Predicate, typename OutputFunctor>
   void operator()(Predicate const &, int, OutputFunctor const &) const
-  {
-  }
+  {}
 };
 
 struct Wrong
-{
-};
+{};
 
 struct CallbackDoesNotTakeCorrectArgument
 {
   template <typename OutputFunctor>
   void operator()(Wrong, int, OutputFunctor const &) const
-  {
-  }
+  {}
 };
 
 struct CustomCallback
 {
   template <class Predicate>
   KOKKOS_FUNCTION void operator()(Predicate const &, int) const
-  {
-  }
+  {}
 };
 
 struct CustomCallbackMissingConstQualifier
 {
   template <class Predicate>
   KOKKOS_FUNCTION void operator()(Predicate const &, int)
-  {
-  }
+  {}
 };
 
 struct CustomCallbackNonVoidReturnType
@@ -90,8 +83,7 @@ struct LegacyNearestPredicateCallback
 {
   template <class Predicate, class OutputFunctor>
   void operator()(Predicate const &, int, float, OutputFunctor const &) const
-  {
-  }
+  {}
 };
 
 void test_callbacks_compile_only()
@@ -106,7 +98,7 @@ void test_callbacks_compile_only()
   check_valid_callback(ArborX::Details::DefaultCallback{}, NearestPredicates{},
                        v);
 
-  // not required to tag inline callbacks any more
+  // not required to tag inline callbacks anymore
   check_valid_callback(CallbackMissingTag{}, SpatialPredicates{}, v);
   check_valid_callback(CallbackMissingTag{}, NearestPredicates{}, v);
 

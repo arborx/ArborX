@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -73,8 +73,7 @@ namespace unit_test
 template <typename Offsets, typename Values>
 struct is_forward_iterable<CompressedStorage<Offsets, Values>>
     : public boost::mpl::true_
-{
-};
+{};
 template <typename Offsets, typename Values>
 struct bt_iterator_traits<CompressedStorage<Offsets, Values>, true>
 {

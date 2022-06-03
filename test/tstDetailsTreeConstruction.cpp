@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -11,7 +11,7 @@
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsAlgorithms.hpp>
-#include <ArborX_DetailsMortonCode.hpp> // expandBits, morton3D
+#include <ArborX_DetailsMortonCode.hpp> // expandBits, morton32
 #include <ArborX_DetailsNode.hpp>       // ROPE SENTINEL
 #include <ArborX_DetailsSortUtils.hpp>  // sortObjects
 #include <ArborX_DetailsTreeConstruction.hpp>
@@ -30,24 +30,35 @@ namespace tt = boost::test_tools;
 BOOST_AUTO_TEST_CASE_TEMPLATE(assign_morton_codes, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
-  std::vector<ArborX::Point> points = {
-      {{0.0, 0.0, 0.0}},          {{0.25, 0.75, 0.25}}, {{0.75, 0.25, 0.25}},
-      {{0.75, 0.75, 0.25}},       {{1.33, 2.33, 3.33}}, {{1.66, 2.66, 3.66}},
-      {{1024.0, 1024.0, 1024.0}},
-  };
+  // N is the number of Morton grid cells in each dimension for 64-bit Morton
+  // codes.
+  constexpr unsigned long long N = 1 << 21;
+  std::vector<ArborX::Point> points = {{{0.0, 0.0, 0.0}},
+                                       {{0.25, 0.75, 0.25}},
+                                       {{0.75, 0.25, 0.25}},
+                                       {{0.75, 0.75, 0.25}},
+                                       {{1.33, 2.33, 3.33}},
+                                       {{1.66, 2.66, 3.66}},
+                                       {{(float)N, (float)N, (float)N}}};
   int const n = points.size();
-  // lower left front corner corner of the octant the points fall in
-  std::vector<std::array<unsigned int, 3>> anchors = {
-      {{0, 0, 0}}, {{0, 0, 0}}, {{0, 0, 0}},         {{0, 0, 0}},
-      {{1, 2, 3}}, {{1, 2, 3}}, {{1023, 1023, 1023}}};
-  auto fun = [](std::array<unsigned int, 3> const &anchor) {
-    using ArborX::Details::expandBits;
-    unsigned int i = std::get<0>(anchor);
-    unsigned int j = std::get<1>(anchor);
-    unsigned int k = std::get<2>(anchor);
-    return 4 * expandBits(i) + 2 * expandBits(j) + expandBits(k);
+  // lower left front corner of the octant the points fall in
+  std::vector<std::array<unsigned long long, 3>> anchors = {
+      {{0, 0, 0}},
+      {{0, 0, 0}},
+      {{0, 0, 0}},
+      {{0, 0, 0}},
+      {{1, 2, 3}},
+      {{1, 2, 3}},
+      {{N - 1, N - 1, N - 1}}};
+  auto fun = [](std::array<unsigned long long, 3> const &anchor) {
+    using ArborX::Details::expandBitsBy2;
+    auto i = std::get<0>(anchor);
+    auto j = std::get<1>(anchor);
+    auto k = std::get<2>(anchor);
+    return 4 * expandBitsBy2(i) + 2 * expandBitsBy2(j) + expandBitsBy2(k);
   };
-  std::vector<unsigned int> ref(n, std::numeric_limits<unsigned int>::max());
+  std::vector<unsigned long long> ref(
+      n, std::numeric_limits<unsigned long long>::max());
   for (int i = 0; i < n; ++i)
     ref[i] = fun(anchors[i]);
   // using points rather than boxes for convenience here but still have to
@@ -64,11 +75,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(assign_morton_codes, DeviceType,
       space, boxes, scene_host);
 
   BOOST_TEST(ArborX::Details::equals(
-      scene_host, {{{0., 0., 0.}}, {{1024., 1024., 1024.}}}));
+      scene_host, {{{0.0, 0.0, 0.0}}, {{(float)N, (float)N, (float)N}}}));
 
-  Kokkos::View<unsigned int *, DeviceType> morton_codes("morton_codes", n);
-  ArborX::Details::TreeConstruction::assignMortonCodes(
-      space, boxes, morton_codes, scene_host);
+  Kokkos::View<unsigned long long *, DeviceType> morton_codes("morton_codes",
+                                                              n);
+  ArborX::Details::TreeConstruction::projectOntoSpaceFillingCurve(
+      space, boxes, ArborX::Experimental::Morton64(), scene_host, morton_codes);
   auto morton_codes_host = Kokkos::create_mirror_view(morton_codes);
   Kokkos::deep_copy(morton_codes_host, morton_codes);
   BOOST_TEST(morton_codes_host == ref, tt::per_element());
@@ -80,8 +92,7 @@ class FillK
 public:
   FillK(Kokkos::View<unsigned int *, DeviceType> k)
       : _k(k)
-  {
-  }
+  {}
 
   KOKKOS_INLINE_FUNCTION
   void operator()(int const i) const { _k[i] = 4 - i; }
@@ -211,11 +222,9 @@ traverse(LeafNodes leaf_nodes, InternalNodes internal_nodes, Node const *root,
 namespace Test
 {
 struct FakePrimitive
-{
-};
+{};
 struct FakeBoundingVolume
-{
-};
+{};
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakeBoundingVolume) {}
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakePrimitive) {}
 } // namespace Test
@@ -231,7 +240,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   // See
   // https://devblogs.nvidia.com/parallelforall/thinking-parallel-part-iii-tree-construction-gpu/
   int const n = 8;
-  Kokkos::View<unsigned int *, DeviceType> sorted_morton_codes(
+  Kokkos::View<unsigned long long *, DeviceType> sorted_morton_codes(
       "sorted_morton_codes", n);
   std::vector<std::string> s{
       "00001", "00010", "00100", "00101", "10011", "11000", "11001", "11110",
@@ -239,8 +248,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   for (int i = 0; i < n; ++i)
   {
     std::bitset<6> b(s[i]);
-    BOOST_TEST_MESSAGE(b << "  " << b.to_ulong());
-    sorted_morton_codes(i) = b.to_ulong();
+    BOOST_TEST_MESSAGE(b << "  " << b.to_ullong());
+    sorted_morton_codes(i) = b.to_ullong();
   }
 
   Kokkos::View<Test::FakePrimitive *, DeviceType> primitives(

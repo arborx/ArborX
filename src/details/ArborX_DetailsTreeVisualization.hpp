@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2021 by the ArborX authors                            *
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -183,7 +183,8 @@ struct TreeVisualization
     ExecutionSpace space;
 
     int const n = tree.size();
-    Permute permute(Kokkos::view_alloc("permute", Kokkos::WithoutInitializing),
+    Permute permute(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                                       "ArborX::permute"),
                     n);
     Kokkos::parallel_for(
         "ArborX::Viz::compute_permutation",
@@ -192,7 +193,9 @@ struct TreeVisualization
           permute(HappyTreeFriends::getLeafPermutationIndex(tree, i)) = i;
         });
 
-    Predicates predicates("predicates", 1);
+    Predicates predicates(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                                             "ArborX::predicates"),
+                          1);
     predicates(0) = pred;
 
     TreeTraversal<Tree, Predicates, Callback, NearestPredicateTag>
