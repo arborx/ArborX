@@ -173,7 +173,7 @@ template <typename Queries>
 struct ArborX::AccessTraits<QueriesWithIndex<Queries>, ArborX::PredicatesTag>
 {
   using memory_space = typename Queries::memory_space;
-  static size_t size(QueriesWithIndex<Queries> const &q)
+  static KOKKOS_FUNCTION size_t size(QueriesWithIndex<Queries> const &q)
   {
     return q._queries.extent(0);
   }
