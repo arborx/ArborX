@@ -524,15 +524,15 @@ BOOST_AUTO_TEST_CASE(ray_triangle_intersection,
   //narrow_triangle
   ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{-1.0, 2.0, 0.0}, {1, -1, 0}}), narrow_triangle, sqrtf_2, 1.5f*sqrtf_2);
   ARBORX_TEST_RAY_TRIANGLE_NO_INTERSECTION((Ray{{-1.0, 2.0, 0.0}, {1, -1.02, 0}}), narrow_triangle);
-  
+
   // a pyramid-shape test
   // These tests are inspired by the Fig. 1 in the paper [1] Woop, S, et al. (2013),
-  // the left subfigure shows the crack in the middle where the edges meet, and the right 
-  // subfigure shows that the proposed algorithm fixed the issue. In their own word, 
-  // "Plucker coordinates guarantee watertightness along the edges, but edges do not meet 
-  // exactly at the vertices. The algorithm described in this paper fixed this issue, and 
-  // guarantees watertightness along the edges and at the vertices". I assume the below 
-  // test would fail the "Plucker coordinates"-based algorithm, thus it is necessary to 
+  // the left subfigure shows the crack in the middle where the edges meet, and the right
+  // subfigure shows that the proposed algorithm fixed the issue. In their own word,
+  // "Plucker coordinates guarantee watertightness along the edges, but edges do not meet
+  // exactly at the vertices. The algorithm described in this paper fixed this issue, and
+  // guarantees watertightness along the edges and at the vertices". I assume the below
+  // test would fail the "Plucker coordinates"-based algorithm, thus it is necessary to
   // keep them here to show the watertightness of the current algorithm implemented.
   constexpr Point O{1.0, 1.0, 1.0};
   constexpr Point A{2.0, 2.0, 0.0};
@@ -566,9 +566,9 @@ BOOST_AUTO_TEST_CASE(ray_triangle_intersection,
   ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{1.0, 1.0, 0.0}, {1, 1, 1}}), triangle_right, 0.5f*sqrtf_3, 0.5f*sqrtf_3);
 
   // Problem with extreme sizes (compared to the above tests):
-  // In the original algorithm, the u, v, w scale with the size of the problem, which 
-  // leads to precision problems. The problem is fixed by normalizing the distances 
-  // between the origin of the ray and the vertices. 
+  // In the original algorithm, the u, v, w scale with the size of the problem, which
+  // leads to precision problems. The problem is fixed by normalizing the distances
+  // between the origin of the ray and the vertices.
   // These tests will fail if there is no normalization.
   float const size_s = 0.0001;
   Triangle small_triangle{{-size_s, 0, 0}, {0, size_s, 0}, {0, 0, size_s}};
