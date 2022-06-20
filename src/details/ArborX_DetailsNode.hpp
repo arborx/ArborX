@@ -25,51 +25,11 @@ namespace ArborX
 namespace Details
 {
 
-struct NodeWithTwoChildrenTag
-{};
-struct NodeWithLeftChildAndRopeTag
-{};
-
-template <class BoundingVolume>
-struct NodeWithTwoChildren
-{
-  using Tag = NodeWithTwoChildrenTag;
-  using bounding_volume_type = BoundingVolume;
-
-  KOKKOS_DEFAULTED_FUNCTION
-  constexpr NodeWithTwoChildren() = default;
-
-  KOKKOS_INLINE_FUNCTION constexpr bool isLeaf() const noexcept
-  {
-    return left_child == -1;
-  }
-
-  KOKKOS_INLINE_FUNCTION constexpr std::size_t
-  getLeafPermutationIndex() const noexcept
-  {
-    assert(isLeaf());
-    return right_child;
-  }
-
-  int left_child = -1;
-  int right_child = -1;
-  BoundingVolume bounding_volume;
-};
-
-template <class BoundingVolume>
-KOKKOS_INLINE_FUNCTION constexpr NodeWithTwoChildren<BoundingVolume>
-makeLeafNode(NodeWithTwoChildrenTag, std::size_t permutation_index,
-             BoundingVolume bounding_volume) noexcept
-{
-  return {-1, static_cast<int>(permutation_index), std::move(bounding_volume)};
-}
-
 constexpr int ROPE_SENTINEL = -1;
 
 template <class BoundingVolume>
 struct NodeWithLeftChildAndRope
 {
-  using Tag = NodeWithLeftChildAndRopeTag;
   using bounding_volume_type = BoundingVolume;
 
   KOKKOS_DEFAULTED_FUNCTION
@@ -105,7 +65,7 @@ struct NodeWithLeftChildAndRope
 
 template <class BoundingVolume>
 KOKKOS_INLINE_FUNCTION constexpr NodeWithLeftChildAndRope<BoundingVolume>
-makeLeafNode(NodeWithLeftChildAndRopeTag, std::size_t permutation_index,
+makeLeafNode(std::size_t permutation_index,
              BoundingVolume bounding_volume) noexcept
 {
   return {-static_cast<int>(permutation_index), ROPE_SENTINEL,

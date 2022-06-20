@@ -84,75 +84,8 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     }
   }
 
-  // Stack-based traversal
   template <typename BVH_ = BVH>
-  KOKKOS_FUNCTION
-      std::enable_if_t<HappyTreeFriends::has_node_with_two_children<BVH_>{}>
-      operator()(int queryIndex) const
-  {
-    auto const &predicate = Access::get(_predicates, queryIndex);
-
-    constexpr int SENTINEL = -1;
-    int stack[64];
-    auto *stack_ptr = stack;
-    *stack_ptr++ = SENTINEL;
-    int node = HappyTreeFriends::getRoot(_bvh);
-    do
-    {
-      int const left_child = HappyTreeFriends::getLeftChild(_bvh, node);
-      int const right_child = HappyTreeFriends::getRightChild(_bvh, node);
-
-      bool traverse_left = false;
-      bool traverse_right = false;
-
-      if (predicate(HappyTreeFriends::getBoundingVolume(_bvh, left_child)))
-      {
-        if (HappyTreeFriends::isLeaf(_bvh, left_child))
-        {
-          if (invoke_callback_and_check_early_exit(
-                  _callback, predicate,
-                  HappyTreeFriends::getLeafPermutationIndex(_bvh, left_child)))
-            return;
-        }
-        else
-        {
-          traverse_left = true;
-        }
-      }
-
-      if (predicate(HappyTreeFriends::getBoundingVolume(_bvh, right_child)))
-      {
-        if (HappyTreeFriends::isLeaf(_bvh, right_child))
-        {
-          if (invoke_callback_and_check_early_exit(
-                  _callback, predicate,
-                  HappyTreeFriends::getLeafPermutationIndex(_bvh, right_child)))
-            return;
-        }
-        else
-        {
-          traverse_right = true;
-        }
-      }
-
-      if (!traverse_left && !traverse_right)
-      {
-        node = *--stack_ptr;
-      }
-      else
-      {
-        node = traverse_left ? left_child : right_child;
-        if (traverse_left && traverse_right)
-          *stack_ptr++ = right_child;
-      }
-    } while (node != SENTINEL);
-  }
-
-  // Ropes-based traversal
-  template <typename BVH_ = BVH>
-  KOKKOS_FUNCTION std::enable_if_t<
-      HappyTreeFriends::has_node_with_left_child_and_rope<BVH_>{}>
-  operator()(int queryIndex) const
+  KOKKOS_FUNCTION void operator()(int queryIndex) const
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
 
