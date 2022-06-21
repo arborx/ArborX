@@ -99,8 +99,7 @@ inline void initializeSingleLeafNode(ExecutionSpace const &space,
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1), KOKKOS_LAMBDA(int) {
         BoundingVolume bounding_volume{};
         expand(bounding_volume, Access::get(primitives, 0));
-        leaf_nodes(0) =
-            makeLeafNode(typename Node::Tag{}, 0, std::move(bounding_volume));
+        leaf_nodes(0) = makeLeafNode(0, std::move(bounding_volume));
       });
 }
 
@@ -202,32 +201,8 @@ public:
     return (i < n ? &(_internal_nodes(i)) : &(_leaf_nodes(i - n)));
   }
 
-  template <typename Tag = typename Node::Tag>
-  KOKKOS_FUNCTION std::enable_if_t<std::is_same<Tag, NodeWithTwoChildrenTag>{}>
-  setRightChild(Node *node, int child_right) const
-  {
-    assert(!node->isLeaf());
-    node->right_child = child_right;
-  }
-
-  template <typename Tag = typename Node::Tag>
   KOKKOS_FUNCTION
-      std::enable_if_t<std::is_same<Tag, NodeWithLeftChildAndRopeTag>{}>
-      setRightChild(Node *node, int) const
-  {
-    assert(!node->isLeaf());
-    (void)node;
-  }
-
-  template <typename Tag = typename Node::Tag>
-  KOKKOS_FUNCTION std::enable_if_t<std::is_same<Tag, NodeWithTwoChildrenTag>{}>
-  setRope(Node *, int, DeltaValueType) const
-  {}
-
-  template <typename Tag = typename Node::Tag>
-  KOKKOS_FUNCTION
-      std::enable_if_t<std::is_same<Tag, NodeWithLeftChildAndRopeTag>{}>
-      setRope(Node *node, int range_right, DeltaValueType delta_right) const
+  void setRope(Node *node, int range_right, DeltaValueType delta_right) const
   {
     int rope;
     if (range_right != _num_internal_nodes)
@@ -264,8 +239,7 @@ public:
 
     // Initialize leaf node
     auto *leaf_node = getNodePtr(i);
-    *leaf_node =
-        makeLeafNode(typename Node::Tag{}, original_index, bounding_volume);
+    *leaf_node = makeLeafNode(original_index, bounding_volume);
 
     // For a leaf node, the range is just one index
     int range_left = i - leaf_nodes_shift;
@@ -356,7 +330,6 @@ public:
 
       auto *parent_node = getNodePtr(karras_parent);
       parent_node->left_child = left_child;
-      setRightChild(parent_node, right_child);
       setRope(parent_node, range_right, delta_right);
       parent_node->bounding_volume = bounding_volume;
 

@@ -26,17 +26,6 @@ namespace Details
 struct HappyTreeFriends
 {
   template <class BVH>
-  struct has_node_with_two_children
-      : std::is_same<typename BVH::node_type::Tag, NodeWithTwoChildrenTag>::type
-  {};
-
-  template <class BVH>
-  struct has_node_with_left_child_and_rope
-      : std::is_same<typename BVH::node_type::Tag,
-                     NodeWithLeftChildAndRopeTag>::type
-  {};
-
-  template <class BVH>
   static KOKKOS_FUNCTION int getRoot(BVH const &)
   {
     return 0;
@@ -76,41 +65,11 @@ struct HappyTreeFriends
   template <class BVH>
   static KOKKOS_FUNCTION auto getRightChild(BVH const &bvh, int i)
   {
-#ifndef KOKKOS_ENABLE_CXX17
-    return getRightChildImpl(bvh, i);
-#else
-    static_assert(has_node_with_two_children<BVH>::value ||
-                  has_node_with_left_child_and_rope<BVH>::value);
-    assert(!isLeaf(bvh, i));
-    if constexpr (has_node_with_left_child_and_rope<BVH>::value)
-      return bvh._internal_and_leaf_nodes(getLeftChild(bvh, i)).rope;
-    else
-      return bvh._internal_and_leaf_nodes(i).right_child;
-#endif
-  }
-
-#ifndef KOKKOS_ENABLE_CXX17
-  template <class BVH, std::enable_if_t<has_node_with_two_children<BVH>::value>
-                           * = nullptr>
-  static KOKKOS_FUNCTION auto getRightChildImpl(BVH const &bvh, int i)
-  {
-    assert(!isLeaf(bvh, i));
-    return bvh._internal_and_leaf_nodes(i).right_child;
-  }
-
-  template <class BVH,
-            std::enable_if_t<has_node_with_left_child_and_rope<BVH>::value> * =
-                nullptr>
-  static KOKKOS_FUNCTION auto getRightChildImpl(BVH const &bvh, int i)
-  {
     assert(!isLeaf(bvh, i));
     return bvh._internal_and_leaf_nodes(getLeftChild(bvh, i)).rope;
   }
-#endif
 
-  template <class BVH,
-            std::enable_if_t<has_node_with_left_child_and_rope<BVH>::value> * =
-                nullptr>
+  template <class BVH>
   static KOKKOS_FUNCTION auto getRope(BVH const &bvh, int i)
   {
     return bvh._internal_and_leaf_nodes(i).rope;
