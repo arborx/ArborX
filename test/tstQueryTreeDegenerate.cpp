@@ -30,8 +30,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_spatial_predicate, TreeTypeTraits,
   using DeviceType = typename TreeTypeTraits::device_type;
 
   // tree is empty, it has no leaves.
+  Tree default_initialized;
+  Tree value_initialized{};
   for (auto const &tree : {
-           Tree{}, // default constructed
+           default_initialized, value_initialized,
            make<Tree>(ExecutionSpace{},
                       {}), // constructed with empty view of boxes
        })
