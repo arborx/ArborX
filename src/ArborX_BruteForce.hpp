@@ -63,7 +63,7 @@ public:
   }
 
 private:
-  size_type _size;
+  size_type _size{0};
   bounding_volume_type _bounds;
   Kokkos::View<bounding_volume_type *, memory_space> _bounding_volumes;
 };
