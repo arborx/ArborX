@@ -117,7 +117,7 @@ private:
     return &_internal_and_leaf_nodes.data()->bounding_volume;
   }
 
-  size_t _size{0};
+  size_type _size{0};
   bounding_volume_type _bounds;
   Kokkos::View<node_type *, MemorySpace> _internal_and_leaf_nodes;
 };
