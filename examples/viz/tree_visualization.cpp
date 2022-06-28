@@ -148,9 +148,7 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
 
 int main(int argc, char *argv[])
 {
-  Kokkos::InitArguments args;
-  args.disable_warnings = true;
-  Kokkos::ScopeGuard guard(args);
+  Kokkos::ScopeGuard guard(argc, argv);
 
   std::string prefix;
   std::string infile;
