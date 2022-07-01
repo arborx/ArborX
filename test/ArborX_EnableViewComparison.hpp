@@ -32,8 +32,10 @@ struct is_forward_iterable<Kokkos::View<T, P...>> : public boost::mpl::true_
   // operator== for the operands is not as clear.
   static_assert(
       Kokkos::View<T, P...>::rank == 1 &&
+          !std::is_same<typename Kokkos::View<T, P...>::array_layout,
+                        Kokkos::LayoutStride>::value &&
           KokkosExt::is_accessible_from_host<Kokkos::View<T, P...>>::value,
-      "Restricted to rank-one host-accessible views");
+      "Restricted to contiguous rank-one host-accessible views");
 };
 
 template <typename T, typename... P>
