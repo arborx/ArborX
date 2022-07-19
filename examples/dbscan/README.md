@@ -80,3 +80,35 @@ data files commonly used are:
 - 497M problem
 
   `eps = 0.014` (computed as `0.168 * 250/3072`)
+
+For example, to run the smaller 37M HACC problem in Friends-of-Friends mode
+(`minPts = 2`), use the following command:
+```shell
+./ArborX_DBSCAN.exe --eps 0.042 --binary --filename hacc_37M.arborx --core-min-size 2 --print-dbscan-timers
+```
+which would produce an output similar to this:
+```text
+ArborX version    : 1.3 (dev)
+ArborX hash       : da19b797
+Kokkos version    : 3.5.0
+algorithm         : dbscan
+eps               : 0.042000
+cluster min size  : 1
+implementation    : fdbscan
+verify            : false
+minpts            : 2
+filename          : hacc_37M.arborx [binary, max_pts = -1]
+samples           : -1
+print timers      : true
+Reading in "hacc_37M.arborx" in binary mode...done
+Read in 36902719 3D points
+-- construction     :      0.165
+-- query+cluster    :      1.516
+-- postprocess      :      0.047
+total time          :      1.732
+
+#clusters       : 2763469
+#cluster points : 23609948 [63.98%]
+```
+The last two lines (number of clusters and cluster points) can be used for
+validation, as any difference in them would indicate an error.
