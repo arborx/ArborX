@@ -215,4 +215,73 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_intersection_new, DeviceType,
   }
 }
 
+template <typename DeviceType>
+auto makeOrderedIntersectsQueries(
+    std::vector<ArborX::Experimental::Ray> const &rays)
+{
+  int const n = rays.size();
+  Kokkos::View<decltype(ArborX::Experimental::ordered_intersects(
+                   ArborX::Experimental::Ray{})) *,
+               DeviceType>
+      queries("Testing::intersecting_with_box_predicates", n);
+  auto queries_host = Kokkos::create_mirror_view(queries);
+  for (int i = 0; i < n; ++i)
+    queries_host(i) = ArborX::Experimental::ordered_intersects(rays[i]);
+  Kokkos::deep_copy(queries, queries_host);
+  return queries;
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_ordered_spatial_predicate, DeviceType,
+                              ARBORX_TEST_DEVICE_TYPES)
+{
+
+  using MemorySpace = typename DeviceType::memory_space;
+  using ExecutionSpace = typename DeviceType::execution_space;
+  using Tree = ArborX::BVH<MemorySpace>;
+  Tree tree;
+  BOOST_TEST(tree.empty());
+  using ArborX::Details::equals;
+  BOOST_TEST(equals(static_cast<ArborX::Box>(tree.bounds()), {}));
+
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeOrderedIntersectsQueries<DeviceType>({}),
+                         make_reference_solution<int>({}, {0}));
+
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeOrderedIntersectsQueries<DeviceType>({
+                             {},
+                             {},
+                         }),
+                         make_reference_solution<int>({}, {0, 0, 0}));
+}
+BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_ordered_spatial_predicate,
+                              DeviceType, ARBORX_TEST_DEVICE_TYPES)
+{
+
+  using MemorySpace = typename DeviceType::memory_space;
+  using ExecutionSpace = typename DeviceType::execution_space;
+  using Tree = ArborX::BVH<MemorySpace>;
+
+  auto const tree =
+      make<Tree>(ExecutionSpace{}, {
+                                       {{{0., 0., 0.}}, {{1., 1., 1.}}},
+                                   });
+
+  BOOST_TEST(tree.size() == 1);
+  using ArborX::Details::equals;
+  BOOST_TEST(equals(static_cast<ArborX::Box>(tree.bounds()),
+                    {{{0., 0., 0.}}, {{1., 1., 1.}}}));
+
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeOrderedIntersectsQueries<DeviceType>({}),
+                         make_reference_solution<int>({}, {0}));
+
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         makeOrderedIntersectsQueries<DeviceType>({
+                             {{0, 0, 0}, {1, 1, 1}},
+                             {{4, 5, 6}, {7, 8, 9}},
+                         }),
+                         make_reference_solution<int>({0}, {0, 1, 1}));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
