@@ -298,7 +298,7 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
   }
   else
   {
-    Kokkos::abort("implementation bug");
+    Kokkos::abort("ArborX: implementation bug");
   }
 
   Kokkos::Profiling::pushRegion(profiling_prefix);
