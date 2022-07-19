@@ -305,7 +305,8 @@ struct Iota
 
 template <typename Tag, typename ExecutionSpace, typename Predicates,
           typename OffsetView, typename OutView>
-std::enable_if_t<std::is_same<Tag, SpatialPredicateTag>{}>
+std::enable_if_t<std::is_same<Tag, SpatialPredicateTag>{} ||
+                 std::is_same<Tag, Experimental::OrderedSpatialPredicateTag>{}>
 allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
                              Predicates const &predicates, OffsetView &offset,
                              OutView &out, int buffer_size)
