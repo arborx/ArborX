@@ -36,10 +36,8 @@ struct BoxesIntersectedByRay
   Kokkos::View<ArborX::Experimental::Ray *, DeviceType> rays;
 };
 
-namespace ArborX
-{
 template <typename DeviceType>
-struct AccessTraits<NearestBoxToRay<DeviceType>, ArborX::PredicatesTag>
+struct ArborX::AccessTraits<NearestBoxToRay<DeviceType>, ArborX::PredicatesTag>
 {
   using memory_space = typename DeviceType::memory_space;
   static KOKKOS_FUNCTION int
@@ -55,7 +53,8 @@ struct AccessTraits<NearestBoxToRay<DeviceType>, ArborX::PredicatesTag>
 };
 
 template <typename DeviceType>
-struct AccessTraits<BoxesIntersectedByRay<DeviceType>, ArborX::PredicatesTag>
+struct ArborX::AccessTraits<BoxesIntersectedByRay<DeviceType>,
+                            ArborX::PredicatesTag>
 {
   using memory_space = typename DeviceType::memory_space;
   static KOKKOS_FUNCTION int
@@ -69,8 +68,6 @@ struct AccessTraits<BoxesIntersectedByRay<DeviceType>, ArborX::PredicatesTag>
     return intersects(nearest_boxes.rays(i));
   }
 };
-
-} // namespace ArborX
 
 BOOST_AUTO_TEST_SUITE(RayTraversals)
 
