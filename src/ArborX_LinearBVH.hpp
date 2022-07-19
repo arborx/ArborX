@@ -283,10 +283,23 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
   Details::check_valid_callback(callback, predicates);
 
   using Tag = typename Details::AccessTraitsHelper<Access>::tag;
-  auto profiling_prefix =
-      std::string("ArborX::BVH::query::") +
-      (std::is_same<Tag, Details::SpatialPredicateTag>{} ? "spatial"
-                                                         : "nearest");
+  std::string profiling_prefix = "ArborX::BVH::query";
+  if (std::is_same<Tag, Details::SpatialPredicateTag>{})
+  {
+    profiling_prefix += "::spatial";
+  }
+  else if (std::is_same<Tag, Details::NearestPredicateTag>{})
+  {
+    profiling_prefix += "::nearest";
+  }
+  else if (std::is_same<Tag, Experimental::OrderedSpatialPredicateTag>{})
+  {
+    profiling_prefix += "::ordered_spatial;";
+  }
+  else
+  {
+    Kokkos::abort("implementation bug");
+  }
 
   Kokkos::Profiling::pushRegion(profiling_prefix);
 
