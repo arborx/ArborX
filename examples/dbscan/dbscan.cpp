@@ -423,6 +423,9 @@ int main(int argc, char *argv[])
     printf("\n#clusters       : %d\n", num_clusters);
     printf("#cluster points : %d [%.2f%%]\n", num_cluster_points,
            (100.f * num_cluster_points / data.size()));
+    int const n = data.size();
+    printf("#noise   points : %d [%.2f%%]\n", n - num_cluster_points,
+           (100.f * (n - num_cluster_points) / data.size()));
 
     if (verify)
     {
