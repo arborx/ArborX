@@ -169,7 +169,7 @@ void hollowSphereCloud(
       "The View should be accessible on the Host");
   std::default_random_engine generator;
 
-  std::uniform_real_distribution<double> distribution(-1., 1.);
+  std::normal_distribution<float> distribution(0.f, 1.f);
   auto random = [&distribution, &generator]() {
     return distribution(generator);
   };
