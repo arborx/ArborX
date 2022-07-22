@@ -49,7 +49,7 @@ struct Nearest
   KOKKOS_DEFAULTED_FUNCTION
   Nearest() = default;
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
   Nearest(Geometry const &geometry, int k)
       : _geometry(geometry)
       , _k(k)
@@ -66,12 +66,12 @@ struct Intersects
 
   KOKKOS_DEFAULTED_FUNCTION Intersects() = default;
 
-  KOKKOS_INLINE_FUNCTION Intersects(Geometry const &geometry)
+  KOKKOS_FUNCTION Intersects(Geometry const &geometry)
       : _geometry(geometry)
   {}
 
   template <typename Other>
-  KOKKOS_INLINE_FUNCTION bool operator()(Other const &other) const
+  KOKKOS_FUNCTION bool operator()(Other const &other) const
   {
     using Details::intersects;
     return intersects(_geometry, other);
@@ -90,7 +90,7 @@ struct OrderedSpatial
   KOKKOS_DEFAULTED_FUNCTION
   OrderedSpatial() = default;
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
   OrderedSpatial(Geometry const &geometry)
       : _geometry(geometry)
   {}
