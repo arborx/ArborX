@@ -84,7 +84,6 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     }
   }
 
-  template <typename BVH_ = BVH>
   KOKKOS_FUNCTION void operator()(int queryIndex) const
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
