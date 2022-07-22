@@ -55,6 +55,13 @@ struct Nearest
       , _k(k)
   {}
 
+  template <class Other>
+  KOKKOS_FUNCTION auto distance(Other const &other) const
+  {
+    using Details::distance;
+    return distance(_geometry, other);
+  }
+
   Geometry _geometry;
   int _k = 0;
 };
@@ -94,6 +101,13 @@ struct OrderedSpatial
   OrderedSpatial(Geometry const &geometry)
       : _geometry(geometry)
   {}
+
+  template <class Other>
+  KOKKOS_FUNCTION auto distance(Other const &other) const
+  {
+    using Details::distance;
+    return distance(_geometry, other);
+  }
 
   Geometry _geometry;
 };
