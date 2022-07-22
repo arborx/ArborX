@@ -222,11 +222,6 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
     auto const k = getK(predicate);
-    auto const distance = [geometry = getGeometry(predicate),
-                           bvh = _bvh](int node) {
-      using Details::distance;
-      return distance(geometry, HappyTreeFriends::getBoundingVolume(bvh, node));
-    };
     auto const buffer = _buffer(queryIndex);
 
     // NOTE thinking about making this a precondition
@@ -292,8 +287,10 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
         left_child = HappyTreeFriends::getLeftChild(_bvh, node);
         right_child = HappyTreeFriends::getRightChild(_bvh, node);
 
-        distance_left = distance(left_child);
-        distance_right = distance(right_child);
+        distance_left = predicate.distance(
+            HappyTreeFriends::getBoundingVolume(_bvh, left_child));
+        distance_right = predicate.distance(
+            HappyTreeFriends::getBoundingVolume(_bvh, right_child));
 
         if (distance_left < radius)
         {
@@ -346,7 +343,8 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
           // This is a theoretically unnecessary duplication of distance
           // calculation for stack nodes. However, for Cuda it's better than
           // putting the distances in stack.
-          distance_node = distance(node);
+          distance_node = predicate.distance(
+              HappyTreeFriends::getBoundingVolume(_bvh, node));
         }
 #else
         distance_node = *--stack_distance_ptr;
@@ -446,14 +444,8 @@ struct TreeTraversal<BVH, Predicates, Callback,
     auto const &predicate = Access::get(_predicates, queryIndex);
     using ArborX::Details::HappyTreeFriends;
 
-    auto const distance = [geometry = getGeometry(predicate),
-                           bvh = _bvh](int node) {
-      auto const &box = HappyTreeFriends::getBoundingVolume(bvh, node);
-      using Details::distance;
-      return distance(geometry, box);
-    };
-
-    using distance_type = decltype(distance(0));
+    using distance_type = decltype(predicate.distance(
+        HappyTreeFriends::getBoundingVolume(_bvh, 0)));
     using PairIndexDistance = Kokkos::pair<int, distance_type>;
     struct CompareDistance
     {
@@ -497,10 +489,12 @@ struct TreeTraversal<BVH, Predicates, Callback,
         left_child = HappyTreeFriends::getLeftChild(_bvh, node);
         right_child = HappyTreeFriends::getRightChild(_bvh, node);
 
-        auto const distance_left = distance(left_child);
+        auto const distance_left = predicate.distance(
+            HappyTreeFriends::getBoundingVolume(_bvh, left_child));
         auto const left_pair = Kokkos::make_pair(left_child, distance_left);
 
-        auto const distance_right = distance(right_child);
+        auto const distance_right = predicate.distance(
+            HappyTreeFriends::getBoundingVolume(_bvh, right_child));
         auto const right_pair = Kokkos::make_pair(right_child, distance_right);
 
         auto const &closer_pair =
