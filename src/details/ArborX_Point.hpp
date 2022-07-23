@@ -18,31 +18,40 @@
 
 namespace ArborX
 {
-class Point
+
+template <int DIM = 3>
+class PointD
 {
 private:
   struct Data
   {
-    float coords[3];
+    float coords[DIM];
   } _data = {};
 
   struct Abomination
   {
-    double xyz[3];
+    double xyz[DIM];
   };
 
 public:
-  KOKKOS_DEFAULTED_FUNCTION
-  constexpr Point() noexcept = default;
+  static int const dim = DIM;
 
-  KOKKOS_INLINE_FUNCTION
-  constexpr Point(Abomination data)
-      : Point(static_cast<float>(data.xyz[0]), static_cast<float>(data.xyz[1]),
-              static_cast<float>(data.xyz[2]))
+  KOKKOS_DEFAULTED_FUNCTION
+  constexpr PointD() noexcept = default;
+
+  KOKKOS_INLINE_FUNCTION constexpr PointD(Abomination data)
+  {
+    for (int d = 0; d < DIM; ++d)
+      _data.coords[d] = static_cast<float>(data.xyz[d]);
+  }
+
+  template <int D = DIM, std::enable_if_t<D == 2> = 0>
+  KOKKOS_INLINE_FUNCTION constexpr PointD(float x, float y)
+      : _data{{x, y}}
   {}
 
-  KOKKOS_INLINE_FUNCTION
-  constexpr Point(float x, float y, float z)
+  template <int D = DIM, std::enable_if_t<D == 3, int> = 0>
+  KOKKOS_INLINE_FUNCTION constexpr PointD(float x, float y, float z)
       : _data{{x, y, z}}
   {}
 
@@ -67,6 +76,9 @@ public:
     return _data.coords[i];
   }
 };
+
+using Point = PointD<3>;
+
 } // namespace ArborX
 
 #endif

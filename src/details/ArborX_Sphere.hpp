@@ -8,8 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_Sphere_HPP
-#define ARBORX_Sphere_HPP
+#ifndef ARBORX_SPHERE_HPP
+#define ARBORX_SPHERE_HPP
 
 #include <ArborX_Point.hpp>
 
@@ -18,29 +18,35 @@
 namespace ArborX
 {
 
-struct Sphere
+template <int DIM = 3>
+struct SphereD
 {
+  static int const dim = DIM;
+
   KOKKOS_DEFAULTED_FUNCTION
-  Sphere() = default;
+  SphereD() = default;
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Sphere(Point const &centroid, double radius) // FIXME
+  constexpr SphereD(PointD<DIM> const &centroid, double radius) // FIXME
       : _centroid(centroid)
       , _radius(static_cast<float>(radius))
   {}
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Point &centroid() { return _centroid; }
+  constexpr PointD<DIM> &centroid() { return _centroid; }
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Point const &centroid() const { return _centroid; }
+  constexpr PointD<DIM> const &centroid() const { return _centroid; }
 
   KOKKOS_INLINE_FUNCTION
   constexpr float radius() const { return _radius; }
 
-  Point _centroid = {};
+  PointD<DIM> _centroid = {};
   float _radius = 0.;
 };
+
+using Sphere = SphereD<3>;
+
 } // namespace ArborX
 
 #endif
