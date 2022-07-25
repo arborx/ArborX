@@ -55,8 +55,8 @@ struct Nearest
       , _k(k)
   {}
 
-  template <class Other>
-  KOKKOS_FUNCTION auto distance(Other const &other) const
+  template <class OtherGeometry>
+  KOKKOS_FUNCTION auto distance(OtherGeometry const &other) const
   {
     using Details::distance;
     return distance(_geometry, other);
@@ -77,8 +77,8 @@ struct Intersects
       : _geometry(geometry)
   {}
 
-  template <typename Other>
-  KOKKOS_FUNCTION bool operator()(Other const &other) const
+  template <typename OtherGeometry>
+  KOKKOS_FUNCTION bool operator()(OtherGeometry const &other) const
   {
     using Details::intersects;
     return intersects(_geometry, other);
@@ -102,8 +102,8 @@ struct OrderedSpatial
       : _geometry(geometry)
   {}
 
-  template <class Other>
-  KOKKOS_FUNCTION auto distance(Other const &other) const
+  template <class OtherGeometry>
+  KOKKOS_FUNCTION auto distance(OtherGeometry const &other) const
   {
     using Details::distance;
     return distance(_geometry, other);
