@@ -534,22 +534,36 @@ KOKKOS_INLINE_FUNCTION bool intersection(Ray const &ray, Sphere const &sphere,
   return false;
 }
 
-KOKKOS_INLINE_FUNCTION float overlapDistance(Ray const &ray,
-                                             Sphere const &sphere)
+template <typename Geometry>
+KOKKOS_INLINE_FUNCTION void
+overlapDistance(Ray const &ray, Geometry const &geometry, float &length,
+                float &distance_to_origin)
 {
   float tmin;
   float tmax;
-  if (!intersection(ray, sphere, tmin, tmax) || (tmax < 0))
+  if (intersection(ray, geometry, tmin, tmax) && (tmin <= tmax && tmax >= 0))
   {
-    return 0.f;
+    // Overlap [tmin, tmax] with [0, +inf)
+    tmin = KokkosExt::max(0.f, tmin);
+    // As direction is normalized,
+    //   |(o + tmax*d) - (o + tmin*d)| = tmax - tmin
+    length = tmax - tmin;
+    distance_to_origin = tmin;
   }
+  else
+  {
+    length = 0;
+    distance_to_origin = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  }
+}
 
-  // Overlap [tmin, tmax] with [0, +inf)
-  tmin = KokkosExt::max(0.f, tmin);
-
-  // As direction is normalized,
-  //   |(o + tmax*d) - (o + tmin*d)| = tmax - tmin
-  return (tmax - tmin);
+KOKKOS_INLINE_FUNCTION float overlapDistance(Ray const &ray,
+                                             Sphere const &sphere)
+{
+  float distance_to_origin;
+  float length;
+  overlapDistance(ray, sphere, length, distance_to_origin);
+  return length;
 }
 
 } // namespace Experimental
