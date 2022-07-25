@@ -62,7 +62,7 @@ struct DepositEnergy
     auto const &ray = ArborX::getGeometry(predicate);
     auto const &box = _boxes(primitive_index);
     int const predicate_index = ArborX::getData(predicate);
-    float const kappa = 1.; // NOTE may depend on box
+    float const kappa = 1.;
     overlapDistance(ray, box, length, entrylength);
     float const optical_path_length = kappa * length;
 
@@ -106,11 +106,11 @@ struct Rays
 };
 
 /*
- * IntersectedCell struct is a storage conatiners for all intersection between
- * rays and boxes that are detected when calling the AccumRaySphereOptDist
- * struct. The member variables that are relevant for sorting the intersection
- * according to box and ray are contained in the base class
- * IntersectedCellForSorting as performance improvement.
+ * IntersectedCell is a storage conatiner for all intersection between rays and
+ * boxes that are detected when calling the AccumRaySphereOptDist struct. The
+ * member variables that are relevant for sorting the intersection according to
+ * box and ray are contained in the base class IntersectedCellForSorting as
+ * performance improvement.
  */
 struct IntersectedCellForSorting
 {
@@ -156,7 +156,7 @@ struct AccumRaySphereOptDist
     auto const &ray = ArborX::getGeometry(predicate);
     auto const &box = _boxes(primitive_index);
     int const predicate_index = ArborX::getData(predicate);
-    float const kappa = 1.; // NOTE may depend on box
+    float const kappa = 1.;
     overlapDistance(ray, box, length, entrylength);
     out(IntersectedCell{/*key*/ entrylength,
                         /*optical_path_length*/ kappa * length,
