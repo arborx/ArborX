@@ -23,14 +23,14 @@
 namespace ArborX
 {
 
-template <typename MemorySpace>
+template <typename MemorySpace, int DIM = 3>
 class BruteForce
 {
 public:
   using memory_space = MemorySpace;
   static_assert(Kokkos::is_memory_space<MemorySpace>::value, "");
   using size_type = typename MemorySpace::size_type;
-  using bounding_volume_type = Box;
+  using bounding_volume_type = BoxD<DIM>;
 
   BruteForce() = default;
 
@@ -68,10 +68,10 @@ private:
   Kokkos::View<bounding_volume_type *, memory_space> _bounding_volumes;
 };
 
-template <typename MemorySpace>
+template <typename MemorySpace, int DIM>
 template <typename ExecutionSpace, typename Primitives>
-BruteForce<MemorySpace>::BruteForce(ExecutionSpace const &space,
-                                    Primitives const &primitives)
+BruteForce<MemorySpace, DIM>::BruteForce(ExecutionSpace const &space,
+                                         Primitives const &primitives)
     : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
     , _bounding_volumes(
           Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
@@ -94,12 +94,12 @@ BruteForce<MemorySpace>::BruteForce(ExecutionSpace const &space,
   Kokkos::Profiling::popRegion();
 }
 
-template <typename MemorySpace>
+template <typename MemorySpace, int DIM>
 template <typename ExecutionSpace, typename Predicates, typename Callback,
           typename Ignore>
-void BruteForce<MemorySpace>::query(ExecutionSpace const &space,
-                                    Predicates const &predicates,
-                                    Callback const &callback, Ignore) const
+void BruteForce<MemorySpace, DIM>::query(ExecutionSpace const &space,
+                                         Predicates const &predicates,
+                                         Callback const &callback, Ignore) const
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
