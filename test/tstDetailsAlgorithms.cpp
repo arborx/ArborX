@@ -25,7 +25,8 @@ using ArborX::Sphere;
 BOOST_AUTO_TEST_CASE(distance)
 {
   using ArborX::Details::distance;
-  BOOST_TEST(distance({{1.0, 2.0, 3.0}}, {{1.0, 1.0, 1.0}}) == std::sqrt(5.f));
+  BOOST_TEST(distance(Point{{1.0, 2.0, 3.0}}, {{1.0, 1.0, 1.0}}) ==
+             std::sqrt(5.f));
 
   // box is unit cube
   constexpr Box box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
@@ -165,9 +166,9 @@ BOOST_AUTO_TEST_CASE(equals)
   STATIC_ASSERT(!equals(Box{{{0.0, 0.0, 0.0}}, {{1.0, 0.0, 1.0}}},
                         {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}}));
   // spheres
-  STATIC_ASSERT(equals({{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 1.}));
-  STATIC_ASSERT(!equals({{{0., 0., 0.}}, 1.}, {{{0., 1., 2.}}, 1.}));
-  STATIC_ASSERT(!equals({{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 2.}));
+  STATIC_ASSERT(equals(Sphere{{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 1.}));
+  STATIC_ASSERT(!equals(Sphere{{{0., 0., 0.}}, 1.}, {{{0., 1., 2.}}, 1.}));
+  STATIC_ASSERT(!equals(Sphere{{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 2.}));
 }
 
 BOOST_AUTO_TEST_CASE(expand)
