@@ -17,14 +17,14 @@
 #include <tuple>
 
 // NOTE Because std::tuple does not take template template parameters
-template <template <class> class...>
+template <template <class, int> class...>
 struct Tuple
 {};
 
 #ifndef ARBORX_TEST_TREE_TYPES
 // NOTE Emulate resulting name from using ArborX::BoundingVolumeHierarchy as
 // template parameter in Boost.Test
-template <class MemorySpace>
+template <class MemorySpace, int>
 using ArborX__BoundingVolumeHierarchy =
     ArborX::BoundingVolumeHierarchy<MemorySpace>;
 #define ARBORX_TEST_TREE_TYPES Tuple<ArborX__BoundingVolumeHierarchy>
@@ -35,7 +35,7 @@ using ArborX__BoundingVolumeHierarchy =
   std::tuple<Kokkos::DefaultExecutionSpace::device_type>
 #endif
 
-template <template <class> class Tree, class DeviceType>
+template <template <class, int> class Tree, class DeviceType>
 struct TreeExecutionAndMemorySpaces
 // NOTE The name of this class will be part of the resulting name of the unit
 // test produced by Boost.Test, such as
@@ -48,7 +48,7 @@ struct TreeExecutionAndMemorySpaces
   using device_type = DeviceType;
   using execution_space = typename DeviceType::execution_space;
   using memory_space = typename DeviceType::memory_space;
-  using type = Tree<memory_space>;
+  using type = Tree<memory_space, 3>;
 };
 
 template <class...>
@@ -69,7 +69,8 @@ struct CartesianProduct<Tuple<>, std::tuple<Us...>>
   using type = std::tuple<>;
 };
 
-template <template <class> class T, template <class> class... Ts, class... Us>
+template <template <class, int> class T, template <class, int> class... Ts,
+          class... Us>
 struct CartesianProduct<Tuple<T, Ts...>, std::tuple<Us...>>
 {
   using type = typename Concatenate<
