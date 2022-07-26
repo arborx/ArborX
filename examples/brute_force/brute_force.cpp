@@ -16,6 +16,7 @@
 
 #include <boost/program_options.hpp>
 
+template <int DIM>
 struct Dummy
 {
   int count;
@@ -24,46 +25,95 @@ struct Dummy
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
 using MemorySpace = ExecutionSpace::memory_space;
 
-template <>
-struct ArborX::AccessTraits<Dummy, ArborX::PrimitivesTag>
+template <int DIM>
+struct ArborX::AccessTraits<Dummy<DIM>, ArborX::PrimitivesTag>
 {
   using memory_space = MemorySpace;
   using size_type = typename MemorySpace::size_type;
-  static KOKKOS_FUNCTION size_type size(Dummy const &d) { return d.count; }
-  static KOKKOS_FUNCTION Point get(Dummy const &, size_type i)
+  static KOKKOS_FUNCTION size_type size(Dummy<DIM> const &d) { return d.count; }
+  static KOKKOS_FUNCTION PointD<DIM> get(Dummy<DIM> const &, size_type i)
   {
-    return {{(float)i, (float)i, (float)i}};
+    PointD<DIM> point;
+    for (int d = 0; d < DIM; ++d)
+      point[d] = (float)i;
+    return point;
   }
 };
 
-template <>
-struct ArborX::AccessTraits<Dummy, ArborX::PredicatesTag>
+template <int DIM>
+struct ArborX::AccessTraits<Dummy<DIM>, ArborX::PredicatesTag>
 {
   using memory_space = MemorySpace;
   using size_type = typename MemorySpace::size_type;
-  static KOKKOS_FUNCTION size_type size(Dummy const &d) { return d.count; }
-  static KOKKOS_FUNCTION auto get(Dummy const &, size_type i)
+  static KOKKOS_FUNCTION size_type size(Dummy<DIM> const &d) { return d.count; }
+  static KOKKOS_FUNCTION auto get(Dummy<DIM> const &, size_type i)
   {
-    return attach(
-        intersects(Sphere{{{(float)i, (float)i, (float)i}}, (float)i}), i);
+    PointD<DIM> center;
+    for (int d = 0; d < DIM; ++d)
+      center[d] = (float)i;
+    return attach(intersects(SphereD<DIM>{center, (float)i}), i);
   }
 };
+
+template <int DIM>
+void run(int nprimitives, int nqueries)
+{
+  ExecutionSpace space{};
+  Dummy<DIM> primitives{nprimitives};
+  Dummy<DIM> predicates{nqueries};
+
+#if 0
+  unsigned int out_count;
+  {
+    Kokkos::Timer timer;
+    ArborX::BoundingVolumeHierarchy<MemorySpace> bvh{space, primitives};
+
+    Kokkos::View<int *, ExecutionSpace> indices("indices_ref", 0);
+    Kokkos::View<int *, ExecutionSpace> offset("offset_ref", 0);
+    bvh.query(space, predicates, indices, offset);
+
+    space.fence();
+    double time = timer.seconds();
+    if (i == 0)
+      printf("Collisions: %.5f\n",
+             (float)(indices.extent(0)) / (nprimitives * nqueries));
+    printf("Time BVH: %lf\n", time);
+    out_count = indices.extent(0);
+  }
+#endif
+
+  {
+    Kokkos::Timer timer;
+    ArborX::BruteForce<MemorySpace, DIM> brute{space, primitives};
+
+    Kokkos::View<int *, ExecutionSpace> indices("indices", 0);
+    Kokkos::View<int *, ExecutionSpace> offset("offset", 0);
+    brute.query(space, predicates, indices, offset);
+
+    space.fence();
+    double time = timer.seconds();
+    printf("Time BF: %lf\n", time);
+    // ARBORX_ASSERT(out_count == indices.extent(0));
+  }
+}
 
 int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
 
-  int nqueries;
+  int dim;
   int nprimitives;
+  int nqueries;
   int nrepeats;
   namespace bpo = boost::program_options;
   bpo::options_description desc("Allowed options");
   // clang-format off
   desc.add_options()
       ( "help", "help message" )
+      ( "dimension", bpo::value<int>(&dim)->default_value(3), "dimension" )
+      ( "iterations", bpo::value<int>(&nrepeats)->default_value(1), "number of iterations" )
       ( "predicates", bpo::value<int>(&nqueries)->default_value(5), "number of predicates" )
       ( "primitives", bpo::value<int>(&nprimitives)->default_value(5), "number of primitives" )
-      ( "iterations", bpo::value<int>(&nrepeats)->default_value(1), "number of iterations" )
       ;
   // clang-format on
   bpo::variables_map vm;
@@ -75,49 +125,30 @@ int main(int argc, char *argv[])
     std::cout << desc << '\n';
     return 1;
   }
+  printf("Dimension : %d\n", dim);
   printf("Primitives: %d\n", nprimitives);
   printf("Predicates: %d\n", nqueries);
   printf("Iterations: %d\n", nrepeats);
 
+  if (dim < 2 || dim > 3)
+  {
+    std::cerr << "Only dimensions 2-3 are allowed" << std::endl;
+    return 1;
+  }
+
   ARBORX_ASSERT(nprimitives > 0);
   ARBORX_ASSERT(nqueries > 0);
 
-  ExecutionSpace space{};
-  Dummy primitives{nprimitives};
-  Dummy predicates{nqueries};
-
   for (int i = 0; i < nrepeats; i++)
   {
-    unsigned int out_count;
+    switch (dim)
     {
-      Kokkos::Timer timer;
-      ArborX::BoundingVolumeHierarchy<MemorySpace> bvh{space, primitives};
-
-      Kokkos::View<int *, ExecutionSpace> indices("indices_ref", 0);
-      Kokkos::View<int *, ExecutionSpace> offset("offset_ref", 0);
-      bvh.query(space, predicates, indices, offset);
-
-      space.fence();
-      double time = timer.seconds();
-      if (i == 0)
-        printf("Collisions: %.5f\n",
-               (float)(indices.extent(0)) / (nprimitives * nqueries));
-      printf("Time BVH: %lf\n", time);
-      out_count = indices.extent(0);
-    }
-
-    {
-      Kokkos::Timer timer;
-      ArborX::BruteForce<MemorySpace> brute{space, primitives};
-
-      Kokkos::View<int *, ExecutionSpace> indices("indices", 0);
-      Kokkos::View<int *, ExecutionSpace> offset("offset", 0);
-      brute.query(space, predicates, indices, offset);
-
-      space.fence();
-      double time = timer.seconds();
-      printf("Time BF: %lf\n", time);
-      ARBORX_ASSERT(out_count == indices.extent(0));
+    case 2:
+      run<2>(nprimitives, nqueries);
+      break;
+    case 3:
+      run<3>(nprimitives, nqueries);
+      break;
     }
   }
   return 0;

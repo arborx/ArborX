@@ -43,6 +43,7 @@ class BasicBoundingVolumeHierarchy
 {
 public:
   using memory_space = MemorySpace;
+  static int const dim = 3;
   static_assert(Kokkos::is_memory_space<MemorySpace>::value, "");
   using size_type = typename MemorySpace::size_type;
   using bounding_volume_type = BoundingVolume;
@@ -50,7 +51,7 @@ public:
   BasicBoundingVolumeHierarchy() = default; // build an empty tree
 
   template <typename ExecutionSpace, typename Primitives,
-            typename SpaceFillingCurve = Experimental::Morton64<3>>
+            typename SpaceFillingCurve = Experimental::Morton64<dim>>
   BasicBoundingVolumeHierarchy(
       ExecutionSpace const &space, Primitives const &primitives,
       SpaceFillingCurve const &curve = SpaceFillingCurve());
@@ -308,9 +309,9 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     auto permute = Details::BatchedQueries<DeviceType>::
-        sortPredicatesAlongSpaceFillingCurve(space, Experimental::Morton32<3>(),
-                                             static_cast<Box>(bounds()),
-                                             predicates);
+        sortPredicatesAlongSpaceFillingCurve(
+            space, Experimental::Morton32<dim>(), static_cast<Box>(bounds()),
+            predicates);
     Kokkos::Profiling::popRegion();
 
     using PermutedPredicates =

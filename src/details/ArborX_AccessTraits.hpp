@@ -175,7 +175,10 @@ void check_valid_access_traits(PrimitivesTag, Primitives const &)
       "member function");
   using T = std::decay_t<Kokkos::detected_t<AccessTraitsGetArchetypeExpression,
                                             Access, Primitives>>;
-  static_assert(std::is_same<T, Point>{} || std::is_same<T, Box>{},
+  static_assert(std::is_same<T, PointD<2>>{} || std::is_same<T, PointD<3>>{} ||
+                    std::is_same<T, PointD<4>>{} ||
+                    std::is_same<T, PointD<5>>{} ||
+                    std::is_same<T, PointD<6>>{} || std::is_same<T, Box>{},
                 "AccessTraits<Primitives,PrimitivesTag>::get() return type "
                 "must decay to Point or to Box");
 }

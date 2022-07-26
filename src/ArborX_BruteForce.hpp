@@ -28,6 +28,7 @@ class BruteForce
 {
 public:
   using memory_space = MemorySpace;
+  static int const dim = DIM;
   static_assert(Kokkos::is_memory_space<MemorySpace>::value, "");
   using size_type = typename MemorySpace::size_type;
   using bounding_volume_type = BoxD<DIM>;

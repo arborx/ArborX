@@ -48,11 +48,11 @@ public:
   // the end.  We decided to keep reversePermutation around for now.
 
   template <typename ExecutionSpace, typename Predicates,
-            typename SpaceFillingCurve>
+            typename SpaceFillingCurve, int DIM>
   static Kokkos::View<unsigned int *, DeviceType>
   sortPredicatesAlongSpaceFillingCurve(ExecutionSpace const &space,
                                        SpaceFillingCurve const &curve,
-                                       Box const &scene_bounding_box,
+                                       BoxD<DIM> const &scene_bounding_box,
                                        Predicates const &predicates)
   {
     using Access = AccessTraits<Predicates, PredicatesTag>;
@@ -60,7 +60,7 @@ public:
 
     using LinearOrderingValueType =
         Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
-                           SpaceFillingCurve, Point>;
+                           SpaceFillingCurve, PointD<DIM>>;
     Kokkos::View<LinearOrderingValueType *, DeviceType> linear_ordering_indices(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::BVH::query::linear_ordering"),
