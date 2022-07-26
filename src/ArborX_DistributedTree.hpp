@@ -196,32 +196,6 @@ DistributedTree<MemorySpace, Enable>::DistributedTree(
   Kokkos::Profiling::popRegion();
 }
 
-template <typename DeviceType>
-class DistributedTree<DeviceType,
-                      std::enable_if_t<Kokkos::is_device<DeviceType>::value>>
-    : public DistributedTree<typename DeviceType::memory_space>
-{
-public:
-  using device_type = DeviceType;
-
-  // clang-format off
-  template <typename Primitives>
-  [[deprecated("ArborX::DistributedTree templated on a device type is "
-               "deprecated, use it templated on a memory space instead.")]]
-  DistributedTree(MPI_Comm comm, Primitives const &primitives)
-      : DistributedTree<typename DeviceType::memory_space>(
-            comm, typename DeviceType::execution_space{}, primitives)
-  {
-  }
-  // clang-format on
-  template <typename... Args>
-  void query(Args &&...args) const
-  {
-    DistributedTree<typename DeviceType::memory_space>::query(
-        typename DeviceType::execution_space{}, std::forward<Args>(args)...);
-  }
-};
-
 // clang-format off
 
 template <typename MemorySpace, typename Enable = void>
