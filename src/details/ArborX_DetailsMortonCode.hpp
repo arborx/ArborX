@@ -13,6 +13,7 @@
 #define ARBORX_DETAILS_MORTON_CODE_UTILS_HPP
 
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp> // min. max
+#include <ArborX_Point.hpp>
 
 namespace ArborX
 {
@@ -73,9 +74,12 @@ unsigned long long expandBitsBy2(unsigned long long x)
   return x;
 }
 
+template <int DIM>
+unsigned int morton32(PointD<DIM> const &p);
+
 // Calculate a 32-bit Morton code for a 2D point located within [0, 1]^2.
-KOKKOS_INLINE_FUNCTION
-unsigned int morton32(float x, float y)
+template <>
+KOKKOS_INLINE_FUNCTION unsigned int morton32<2>(PointD<2> const &p)
 {
   // The interval [0,1] is subdivided into 65,536 bins (in each direction).
   constexpr unsigned N = (1u << 16);
@@ -83,15 +87,15 @@ unsigned int morton32(float x, float y)
   using KokkosExt::max;
   using KokkosExt::min;
 
-  x = min(max(x * N, 0.f), (float)N - 1);
-  y = min(max(y * N, 0.f), (float)N - 1);
+  auto x = min(max(p[0] * N, 0.f), (float)N - 1);
+  auto y = min(max(p[1] * N, 0.f), (float)N - 1);
 
   return 2 * expandBitsBy1((unsigned int)x) + expandBitsBy1((unsigned int)y);
 }
 
 // Calculate a 30-bit Morton code for a 3D point located within [0, 1]^3.
-KOKKOS_INLINE_FUNCTION
-unsigned int morton32(float x, float y, float z)
+template <>
+KOKKOS_INLINE_FUNCTION unsigned int morton32<3>(PointD<3> const &p)
 {
   // The interval [0,1] is subdivided into 1024 bins (in each direction).
   constexpr unsigned N = (1u << 10);
@@ -99,17 +103,20 @@ unsigned int morton32(float x, float y, float z)
   using KokkosExt::max;
   using KokkosExt::min;
 
-  x = min(max(x * N, 0.f), (float)N - 1);
-  y = min(max(y * N, 0.f), (float)N - 1);
-  z = min(max(z * N, 0.f), (float)N - 1);
+  auto x = min(max(p[0] * N, 0.f), (float)N - 1);
+  auto y = min(max(p[1] * N, 0.f), (float)N - 1);
+  auto z = min(max(p[2] * N, 0.f), (float)N - 1);
 
   return 4 * expandBitsBy2((unsigned)x) + 2 * expandBitsBy2((unsigned)y) +
          expandBitsBy2((unsigned)z);
 }
 
+template <int DIM>
+unsigned long long morton64(PointD<DIM> const &p);
+
 // Calculate a 62-bit Morton code for a 2D point located within [0, 1]^2.
-KOKKOS_INLINE_FUNCTION
-unsigned long long morton64(float x, float y)
+template <>
+KOKKOS_INLINE_FUNCTION unsigned long long morton64<2>(PointD<2> const &p)
 {
   // The interval [0,1] is subdivided into 2,147,483,648 bins (in each
   // direction).
@@ -120,16 +127,16 @@ unsigned long long morton64(float x, float y)
 
   // Have to use double as float is not sufficient to represent large integers,
   // which would result in some missing bins.
-  double xd = min(max((double)x * N, 0.), (double)N - 1);
-  double yd = min(max((double)y * N, 0.), (double)N - 1);
+  auto xd = min(max((double)p[0] * N, 0.), (double)N - 1);
+  auto yd = min(max((double)p[1] * N, 0.), (double)N - 1);
 
   return 2 * expandBitsBy1((unsigned long long)xd) +
          expandBitsBy1((unsigned long long)yd);
 }
 
 // Calculate a 63-bit Morton code for a 3D point located within [0, 1]^3.
-KOKKOS_INLINE_FUNCTION
-unsigned long long morton64(float x, float y, float z)
+template <>
+KOKKOS_INLINE_FUNCTION unsigned long long morton64<3>(PointD<3> const &p)
 {
   // The interval [0,1] is subdivided into 2,097,152 bins (in each direction).
   constexpr unsigned N = (1u << 21);
@@ -139,9 +146,9 @@ unsigned long long morton64(float x, float y, float z)
 
   // float is sufficient to represent all integers up to 16,777,216 (2^24),
   // which is greater than N. So there is no need to use double here.
-  x = min(max(x * N, 0.f), (float)N - 1);
-  y = min(max(y * N, 0.f), (float)N - 1);
-  z = min(max(z * N, 0.f), (float)N - 1);
+  auto x = min(max(p[0] * N, 0.f), (float)N - 1);
+  auto y = min(max(p[1] * N, 0.f), (float)N - 1);
+  auto z = min(max(p[2] * N, 0.f), (float)N - 1);
 
   return 4 * expandBitsBy2((unsigned long long)x) +
          2 * expandBitsBy2((unsigned long long)y) +

@@ -24,39 +24,47 @@ namespace ArborX
 namespace Experimental
 {
 
+template <int DIM>
 struct Morton32
 {
-  KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box, Point p) const
+  static int const dim = DIM;
+
+  KOKKOS_FUNCTION auto operator()(BoxD<DIM> const &scene_bounding_box,
+                                  PointD<DIM> p) const
   {
     Details::translateAndScale(p, p, scene_bounding_box);
-    return Details::morton32(p[0], p[1], p[2]);
+    return Details::morton32(p);
   }
   template <typename Geometry>
-  KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box,
+  KOKKOS_FUNCTION auto operator()(BoxD<DIM> const &scene_bounding_box,
                                   Geometry const &geometry) const
   {
-    Point p;
+    PointD<DIM> p;
     Details::centroid(geometry, p);
     Details::translateAndScale(p, p, scene_bounding_box);
-    return Details::morton32(p[0], p[1], p[2]);
+    return Details::morton32(p);
   }
 };
 
+template <int DIM>
 struct Morton64
 {
-  KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box, Point p) const
+  static int const dim = DIM;
+
+  KOKKOS_FUNCTION auto operator()(BoxD<DIM> const &scene_bounding_box,
+                                  PointD<DIM> p) const
   {
     Details::translateAndScale(p, p, scene_bounding_box);
-    return Details::morton64(p[0], p[1], p[2]);
+    return Details::morton64(p);
   }
   template <class Geometry>
-  KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box,
+  KOKKOS_FUNCTION auto operator()(BoxD<DIM> const &scene_bounding_box,
                                   Geometry const &geometry) const
   {
-    Point p;
+    PointD<DIM> p;
     Details::centroid(geometry, p);
     Details::translateAndScale(p, p, scene_bounding_box);
-    return Details::morton64(p[0], p[1], p[2]);
+    return Details::morton64(p);
   }
 };
 
@@ -68,7 +76,8 @@ namespace Details
 template <class SpaceFillingCurve, class Geometry>
 using SpaceFillingCurveProjectionArchetypeExpression =
     decltype(std::declval<SpaceFillingCurve const &>()(
-        std::declval<Box const &>(), std::declval<Geometry const &>()));
+        std::declval<BoxD<SpaceFillingCurve::dim> const &>(),
+        std::declval<Geometry const &>()));
 
 template <class SpaceFillingCurve>
 void check_valid_space_filling_curve(SpaceFillingCurve const &)
@@ -83,15 +92,15 @@ void check_valid_space_filling_curve(SpaceFillingCurve const &)
       "");
   using OrderValueType =
       Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
-                         SpaceFillingCurve, Point>;
+                         SpaceFillingCurve, PointD<SpaceFillingCurve::dim>>;
   static_assert(std::is_same<OrderValueType, unsigned int>::value ||
                     std::is_same<OrderValueType, unsigned long long>::value,
                 "");
   static_assert(
-      std::is_same<
-          OrderValueType,
-          Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
-                             SpaceFillingCurve, Box>>::value,
+      std::is_same<OrderValueType,
+                   Kokkos::detected_t<
+                       SpaceFillingCurveProjectionArchetypeExpression,
+                       SpaceFillingCurve, BoxD<SpaceFillingCurve::dim>>>::value,
       "");
 }
 

@@ -80,7 +80,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(assign_morton_codes, DeviceType,
   Kokkos::View<unsigned long long *, DeviceType> morton_codes("morton_codes",
                                                               n);
   ArborX::Details::TreeConstruction::projectOntoSpaceFillingCurve(
-      space, boxes, ArborX::Experimental::Morton64(), scene_host, morton_codes);
+      space, boxes, ArborX::Experimental::Morton64<3>(), scene_host,
+      morton_codes);
   auto morton_codes_host = Kokkos::create_mirror_view(morton_codes);
   Kokkos::deep_copy(morton_codes_host, morton_codes);
   BOOST_TEST(morton_codes_host == ref, tt::per_element());

@@ -30,25 +30,28 @@ BOOST_AUTO_TEST_CASE(expand_bits)
 
 BOOST_AUTO_TEST_CASE(morton_codes)
 {
-  BOOST_TEST(morton32(0.f, 0.f) == 0x0u);
-  BOOST_TEST(morton32(1.f, 1.f) == 0xffffffffu);
-  BOOST_TEST(morton32(0.f, 1.f) == 0x55555555u);
-  BOOST_TEST(morton32(1.f, 0.f) == 0xaaaaaaaau);
+  using Point2 = ArborX::PointD<2>;
+  using Point3 = ArborX::PointD<3>;
 
-  BOOST_TEST(morton32(0.f, 0.f, 0.f) == 0x0u);
-  BOOST_TEST(morton32(1.f, 1.f, 1.f) == 0x3fffffffu);
-  BOOST_TEST(morton32(0.f, 0.f, 1.f) == 0x9249249u);
-  BOOST_TEST(morton32(1.f, 1.f, 0.f) == 0x36db6db6u);
+  BOOST_TEST(morton32(Point2{0.f, 0.f}) == 0x0u);
+  BOOST_TEST(morton32(Point2{1.f, 1.f}) == 0xffffffffu);
+  BOOST_TEST(morton32(Point2{0.f, 1.f}) == 0x55555555u);
+  BOOST_TEST(morton32(Point2{1.f, 0.f}) == 0xaaaaaaaau);
 
-  BOOST_TEST(morton64(0.f, 0.f) == 0x0llu);
-  BOOST_TEST(morton64(1.f, 1.f) == 0x3fffffffffffffffllu);
-  BOOST_TEST(morton64(0.f, 1.f) == 0x1555555555555555llu);
-  BOOST_TEST(morton64(1.f, 0.f) == 0x2aaaaaaaaaaaaaaallu);
+  BOOST_TEST(morton32(Point3{0.f, 0.f, 0.f}) == 0x0u);
+  BOOST_TEST(morton32(Point3{1.f, 1.f, 1.f}) == 0x3fffffffu);
+  BOOST_TEST(morton32(Point3{0.f, 0.f, 1.f}) == 0x9249249u);
+  BOOST_TEST(morton32(Point3{1.f, 1.f, 0.f}) == 0x36db6db6u);
 
-  BOOST_TEST(morton64(0.f, 0.f, 0.f) == 0x0llu);
-  BOOST_TEST(morton64(1.f, 1.f, 1.f) == 0x7fffffffffffffffllu);
-  BOOST_TEST(morton64(0.f, 0.f, 1.f) == 0x1249249249249249llu);
-  BOOST_TEST(morton64(1.f, 1.f, 0.f) == 0x6db6db6db6db6db6llu);
+  BOOST_TEST(morton64(Point2{0.f, 0.f}) == 0x0llu);
+  BOOST_TEST(morton64(Point2{1.f, 1.f}) == 0x3fffffffffffffffllu);
+  BOOST_TEST(morton64(Point2{0.f, 1.f}) == 0x1555555555555555llu);
+  BOOST_TEST(morton64(Point2{1.f, 0.f}) == 0x2aaaaaaaaaaaaaaallu);
+
+  BOOST_TEST(morton64(Point3{0.f, 0.f, 0.f}) == 0x0llu);
+  BOOST_TEST(morton64(Point3{1.f, 1.f, 1.f}) == 0x7fffffffffffffffllu);
+  BOOST_TEST(morton64(Point3{0.f, 0.f, 1.f}) == 0x1249249249249249llu);
+  BOOST_TEST(morton64(Point3{1.f, 1.f, 0.f}) == 0x6db6db6db6db6db6llu);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

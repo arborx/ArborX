@@ -45,7 +45,7 @@ public:
       _data.coords[d] = static_cast<float>(data.xyz[d]);
   }
 
-  template <int D = DIM, std::enable_if_t<D == 2> = 0>
+  template <int D = DIM, std::enable_if_t<D == 2, int> = 0>
   KOKKOS_INLINE_FUNCTION constexpr PointD(float x, float y)
       : _data{{x, y}}
   {}

@@ -50,7 +50,7 @@ public:
   BasicBoundingVolumeHierarchy() = default; // build an empty tree
 
   template <typename ExecutionSpace, typename Primitives,
-            typename SpaceFillingCurve = Experimental::Morton64>
+            typename SpaceFillingCurve = Experimental::Morton64<3>>
   BasicBoundingVolumeHierarchy(
       ExecutionSpace const &space, Primitives const &primitives,
       SpaceFillingCurve const &curve = SpaceFillingCurve());
@@ -308,7 +308,7 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     auto permute = Details::BatchedQueries<DeviceType>::
-        sortPredicatesAlongSpaceFillingCurve(space, Experimental::Morton32(),
+        sortPredicatesAlongSpaceFillingCurve(space, Experimental::Morton32<3>(),
                                              static_cast<Box>(bounds()),
                                              predicates);
     Kokkos::Profiling::popRegion();
