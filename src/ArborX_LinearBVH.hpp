@@ -122,55 +122,6 @@ private:
   Kokkos::View<node_type *, MemorySpace> _internal_and_leaf_nodes;
 };
 
-template <typename DeviceType>
-class BasicBoundingVolumeHierarchy<
-    DeviceType, std::enable_if_t<Kokkos::is_device<DeviceType>::value>>
-    : public BasicBoundingVolumeHierarchy<typename DeviceType::memory_space>
-{
-  using base_type =
-      BasicBoundingVolumeHierarchy<typename DeviceType::memory_space>;
-
-public:
-  using device_type = DeviceType;
-
-  // clang-format off
-  [[deprecated("ArborX::BoundingVolumeHierarchy templated on a device type "
-               "is deprecated, use it templated on a memory space instead.")]]
-  BasicBoundingVolumeHierarchy() = default;
-  template <typename Primitives>
-  [[deprecated("ArborX::BoundingVolumeHierarchy templated on a device type "
-               "is deprecated, use it templated on a memory space instead.")]]
-  BasicBoundingVolumeHierarchy(Primitives const &primitives)
-      : base_type(
-            typename DeviceType::execution_space{}, primitives)
-  {
-  }
-  // clang-format on
-  template <typename FirstArgumentType, typename... Args>
-  std::enable_if_t<!Kokkos::is_execution_space<FirstArgumentType>::value>
-  query(FirstArgumentType &&arg1, Args &&...args) const
-  {
-    base_type::query(typename DeviceType::execution_space{},
-                     std::forward<FirstArgumentType>(arg1),
-                     std::forward<Args>(args)...);
-  }
-
-private:
-  template <typename Tree, typename ExecutionSpace, typename Predicates,
-            typename CallbackOrView, typename View, typename... Args>
-  friend void ArborX::query(Tree const &tree, ExecutionSpace const &space,
-                            Predicates const &predicates,
-                            CallbackOrView &&callback_or_view, View &&view,
-                            Args &&...args);
-
-  template <typename FirstArgumentType, typename... Args>
-  std::enable_if_t<Kokkos::is_execution_space<FirstArgumentType>::value>
-  query(FirstArgumentType const &space, Args &&...args) const
-  {
-    base_type::query(space, std::forward<Args>(args)...);
-  }
-};
-
 template <typename MemorySpace>
 using BoundingVolumeHierarchy = BasicBoundingVolumeHierarchy<MemorySpace>;
 
