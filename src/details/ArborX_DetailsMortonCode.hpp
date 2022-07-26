@@ -51,6 +51,43 @@ KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy<2>(unsigned int x)
   return x;
 }
 
+// Insert three 0 bits after each of the 8 low bits of x
+template <>
+KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy<3>(unsigned int x)
+{
+  x &= 0xffu;
+  x = (x | x << 16) & 0xc0003fu;
+  x = (x | x << 8) & 0xc03807u;
+  x = (x | x << 4) & 0x8430843u;
+  x = (x | x << 2) & 0x9090909u;
+  x = (x | x << 1) & 0x11111111u;
+  return x;
+}
+
+// Insert four 0 bits after each of the 6 low bits of x
+template <>
+KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy<4>(unsigned int x)
+{
+  x &= 0x3fu;
+  x = (x | x << 16) & 0x30000fu;
+  x = (x | x << 8) & 0x300c03u;
+  x = (x | x << 4) & 0x2108421u;
+  return x;
+}
+
+// Insert five 0 bits after each of the 5 low bits of x
+template <>
+KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy<5>(unsigned int x)
+{
+  x &= 0x1fu;
+  x = (x | x << 16) & 0x10000fu;
+  x = (x | x << 8) & 0x100c03u;
+  x = (x | x << 4) & 0x1008421u;
+  x = (x | x << 2) & 0x1021021u;
+  x = (x | x << 1) & 0x1041041u;
+  return x;
+}
+
 template <int DIM>
 unsigned long long expandBitsBy(unsigned long long);
 
@@ -77,6 +114,49 @@ KOKKOS_INLINE_FUNCTION unsigned long long expandBitsBy<2>(unsigned long long x)
   x = (x | x << 8) & 0x100f00f00f00f00fllu;
   x = (x | x << 4) & 0x10c30c30c30c30c3llu;
   x = (x | x << 2) & 0x1249249249249249llu;
+  return x;
+}
+
+// Insert three 0 bits after each of the 15 low bits of x
+template<>
+KOKKOS_INLINE_FUNCTION
+unsigned long long expandBitsBy<3>(unsigned long long x)
+{
+  x &= 0x7fffllu;
+  x = (x | x << 32) & 0x7800000007ffllu;
+  x = (x | x << 16) & 0x780007c0003fllu;
+  x = (x | x << 8) & 0x40380700c03807llu;
+  x = (x | x << 4) & 0x43084308430843llu;
+  x = (x | x << 2) & 0x109090909090909llu;
+  x = (x | x << 1) & 0x111111111111111llu;
+  return x;
+}
+
+// Insert four 0 bits after each of the 12 low bits of x
+template<>
+KOKKOS_INLINE_FUNCTION
+unsigned long long expandBitsBy<4>(unsigned long long x)
+{
+  x &= 0xfffllu;
+  x = (x | x << 32) & 0xf00000000ffllu;
+  x = (x | x << 16) & 0xf0000f0000fllu;
+  x = (x | x << 8) & 0xc0300c0300c03llu;
+  x = (x | x << 4) & 0x84210842108421llu;
+  return x;
+}
+
+// Insert five 0 bits after each of the 10 low bits of x
+template<>
+KOKKOS_INLINE_FUNCTION
+unsigned long long expandBitsBy<5>(unsigned long long x)
+{
+  x &= 0x3ffllu;
+  x = (x | x << 32) & 0x3800000007fllu;
+  x = (x | x << 16) & 0x3800070000fllu;
+  x = (x | x << 8) & 0x3008060100c03llu;
+  x = (x | x << 4) & 0x21008421008421llu;
+  x = (x | x << 2) & 0x21021021021021llu;
+  x = (x | x << 1) & 0x41041041041041llu;
   return x;
 }
 
@@ -128,8 +208,8 @@ KOKKOS_INLINE_FUNCTION unsigned long long morton64<2>(PointD<2> const &p)
   using KokkosExt::max;
   using KokkosExt::min;
 
-  // Have to use double as float is not sufficient to represent large integers,
-  // which would result in some missing bins.
+  // Have to use double as float is not sufficient to represent large
+  // integers, which would result in some missing bins.
   auto xd = min(max((double)p[0] * N, 0.), (double)N - 1);
   auto yd = min(max((double)p[1] * N, 0.), (double)N - 1);
 
