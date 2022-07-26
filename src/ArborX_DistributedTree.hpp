@@ -196,14 +196,6 @@ DistributedTree<MemorySpace, Enable>::DistributedTree(
   Kokkos::Profiling::popRegion();
 }
 
-// clang-format off
-
-template <typename MemorySpace, typename Enable = void>
-using DistributedSearchTree [[deprecated("Use DistributedTree instead.")]] =
-    DistributedTree<MemorySpace, Enable>;
-
-// clang-format-on
-
 } // namespace ArborX
 
 #endif
