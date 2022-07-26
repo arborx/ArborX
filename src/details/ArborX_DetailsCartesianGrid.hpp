@@ -12,63 +12,81 @@
 #ifndef ARBORX_DETAILS_CARTESIAN_GRID_HPP
 #define ARBORX_DETAILS_CARTESIAN_GRID_HPP
 
-#include <ArborX_Box.hpp>
+#include <ArborX_DetailsKokkosExtMathFunctions.hpp>
 #include <ArborX_Exception.hpp>
+#include <ArborX_GeometryTraits.hpp>
+#include <ArborX_HyperBox.hpp>
 
 #include <Kokkos_Macros.hpp>
 
 namespace ArborX::Details
 {
 
+template <int DIM>
 struct CartesianGrid
 {
-  Box _bounds;
-  float _hx;
-  float _hy;
-  float _hz;
-  size_t _nx;
-  size_t _ny;
-  size_t _nz;
+private:
+  using Box = ExperimentalHyperGeometry::Box<DIM>;
+
+public:
+  static constexpr int dim = DIM;
 
   CartesianGrid(Box const &bounds, float h)
       : _bounds(bounds)
-      , _hx(h)
-      , _hy(h)
-      , _hz(h)
   {
+    ARBORX_ASSERT(h > 0);
+    for (int d = 0; d < DIM; ++d)
+      _h[d] = h;
     buildGrid();
   }
-  CartesianGrid(Box const &bounds, float hx, float hy, float hz)
+  CartesianGrid(Box const &bounds, float const h[DIM])
       : _bounds(bounds)
-      , _hx(hx)
-      , _hy(hy)
-      , _hz(hz)
   {
+    for (int d = 0; d < DIM; ++d)
+    {
+      ARBORX_ASSERT(_h[d] > 0);
+      _h[d] = h[d];
+    }
     buildGrid();
   }
 
-  KOKKOS_FUNCTION
-  size_t cellIndex(Point const &point) const
+  template <typename Point, typename Enable = std::enable_if_t<
+                                GeometryTraits::is_point<Point>{}>>
+  KOKKOS_FUNCTION size_t cellIndex(Point const &point) const
   {
+    static_assert(GeometryTraits::dimension<Point>::value == DIM);
+
     auto const &min_corner = _bounds.minCorner();
-    size_t i = std::floor((point[0] - min_corner[0]) / _hx);
-    size_t j = std::floor((point[1] - min_corner[1]) / _hy);
-    size_t k = std::floor((point[2] - min_corner[2]) / _hz);
-    return k * _nx * _ny + j * _nx + i;
+    size_t s = 0;
+    for (int d = DIM - 1; d >= 0; --d)
+    {
+      int i = KokkosExt::floor((point[d] - min_corner[d]) / _h[d]);
+      s = s * _n[d] + i;
+    }
+    return s;
   }
 
   KOKKOS_FUNCTION
   Box cellBox(size_t cell_index) const
   {
-    auto const &min_corner = _bounds.minCorner();
+    auto min = _bounds.minCorner();
+    decltype(min) max;
+    for (int d = 0; d < DIM; ++d)
+    {
+      auto i = cell_index % _n[d];
+      cell_index /= _n[d];
 
-    auto i = cell_index % _nx;
-    auto j = (cell_index / _nx) % _ny;
-    auto k = cell_index / (_nx * _ny);
-    return {{min_corner[0] + i * _hx, min_corner[1] + j * _hy,
-             min_corner[2] + k * _hz},
-            {min_corner[0] + (i + 1) * _hx, min_corner[1] + (j + 1) * _hy,
-             min_corner[2] + (k + 1) * _hz}};
+      max[d] = min[d] + (i + 1) * _h[d];
+      min[d] += i * _h[d];
+    }
+    return {min, max};
+  }
+
+  KOKKOS_FUNCTION
+  auto extent(int d) const
+  {
+    assert(0 <= d && d < DIM);
+    return _n[d];
   }
 
 private:
@@ -76,17 +94,35 @@ private:
   {
     auto const &min_corner = _bounds.minCorner();
     auto const &max_corner = _bounds.maxCorner();
-    _nx = std::ceil((max_corner[0] - min_corner[0]) / _hx);
-    _ny = std::ceil((max_corner[1] - min_corner[1]) / _hy);
-    _nz = std::ceil((max_corner[2] - min_corner[2]) / _hz);
+    for (int d = 0; d < DIM; ++d)
+    {
+      auto delta = max_corner[d] - min_corner[d];
+      if (delta != 0)
+      {
+        _n[d] = std::ceil(delta / _h[d]);
+        ARBORX_ASSERT(_n[d] > 0);
+      }
+      else
+      {
+        _n[d] = 1;
+      }
+    }
 
     // Catch potential overflow in grid cell indices early. This is a
     // conservative check as an actual overflow may not occur, depending on
     // which cells are filled.
     constexpr auto max_size_t = std::numeric_limits<size_t>::max();
-    ARBORX_ASSERT(_nx == 0 || _ny == 0 || _nz == 0 ||
-                  (_ny < max_size_t / _nx && _nz < max_size_t / (_nx * _ny)));
+    auto m = max_size_t;
+    for (int d = 1; d < DIM; ++d)
+    {
+      m /= _n[d - 1];
+      ARBORX_ASSERT(_n[d] < m);
+    }
   }
+
+  Box _bounds;
+  float _h[DIM];
+  size_t _n[DIM];
 };
 
 } // namespace ArborX::Details
