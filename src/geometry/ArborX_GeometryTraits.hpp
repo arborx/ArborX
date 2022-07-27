@@ -8,7 +8,6 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-
 #ifndef ARBORX_GEOMETRY_TRAITS_HPP
 #define ARBORX_GEOMETRY_TRAITS_HPP
 
@@ -17,7 +16,7 @@
 namespace ArborX
 {
 
-namespace Experimental
+namespace GeometryTraits
 {
 
 struct PointTag
@@ -29,36 +28,36 @@ struct BoxTag
 struct SphereTag
 {};
 
-template <typename Geometry, typename Enable = void>
-struct GeometryTraits
+template <typename Geometry>
+struct dimension
 {
   using not_specialized = void; // tag to detect existence of a specialization
 };
 
-template <typename Traits>
-using GeometryTraitsTagArchetypeAlias = typename Traits::tag;
+template <typename Geometry>
+struct tag
+{
+  using not_specialized = void; // tag to detect existence of a specialization
+};
+
+template <typename Geometry>
+using TagArchetypeAlias = typename tag<Geometry>::type;
 
 template <typename Geometry>
 struct is_point
-    : std::is_same<Kokkos::detected_t<GeometryTraitsTagArchetypeAlias,
-                                      GeometryTraits<Geometry>>,
-                   PointTag>::type
+    : Kokkos::is_detected_exact<PointTag, TagArchetypeAlias, Geometry>
 {};
 
 template <typename Geometry>
-struct is_box : std::is_same<Kokkos::detected_t<GeometryTraitsTagArchetypeAlias,
-                                                GeometryTraits<Geometry>>,
-                             BoxTag>::type
+struct is_box : Kokkos::is_detected_exact<BoxTag, TagArchetypeAlias, Geometry>
 {};
 
 template <typename Geometry>
 struct is_sphere
-    : std::is_same<Kokkos::detected_t<GeometryTraitsTagArchetypeAlias,
-                                      GeometryTraits<Geometry>>,
-                   SphereTag>::type
+    : Kokkos::is_detected_exact<SphereTag, TagArchetypeAlias, Geometry>
 {};
 
-} // namespace Experimental
+} // namespace GeometryTraits
 
 } // namespace ArborX
 

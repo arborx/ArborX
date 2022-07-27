@@ -70,18 +70,16 @@ public:
   }
 };
 
-namespace Experimental
-{
-
 template <>
-struct GeometryTraits<ArborX::Point>
+struct GeometryTraits::dimension<ArborX::Point>
 {
-  using tag = PointTag;
-  using coordinate_type = float;
-  static int const dimension = 3;
+  static constexpr int value = 3;
 };
-
-} // namespace Experimental
+template <>
+struct GeometryTraits::tag<ArborX::Point>
+{
+  using type = PointTag;
+};
 
 } // namespace ArborX
 

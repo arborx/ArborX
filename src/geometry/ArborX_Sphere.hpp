@@ -43,18 +43,16 @@ struct Sphere
   float _radius = 0.;
 };
 
-namespace Experimental
-{
-
 template <>
-struct GeometryTraits<ArborX::Sphere>
+struct GeometryTraits::dimension<ArborX::Sphere>
 {
-  using tag = SphereTag;
-  using coordinate_type = float;
-  static int const dimension = 3;
+  static constexpr int value = 3;
 };
-
-} // namespace Experimental
+template <>
+struct GeometryTraits::tag<ArborX::Sphere>
+{
+  using type = SphereTag;
+};
 
 } // namespace ArborX
 

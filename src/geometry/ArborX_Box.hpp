@@ -116,18 +116,16 @@ private:
 #endif
 };
 
-namespace Experimental
-{
-
 template <>
-struct GeometryTraits<ArborX::Box>
+struct GeometryTraits::dimension<ArborX::Box>
 {
-  using tag = BoxTag;
-  using coordinate_type = float;
-  static int const dimension = 3;
+  static constexpr int value = 3;
 };
-
-} // namespace Experimental
+template <>
+struct GeometryTraits::tag<ArborX::Box>
+{
+  using type = BoxTag;
+};
 
 } // namespace ArborX
 
