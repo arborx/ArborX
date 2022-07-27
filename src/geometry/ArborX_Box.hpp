@@ -14,6 +14,7 @@
 
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
+#include <ArborX_GeometryTraits.hpp>
 #include <ArborX_Point.hpp>
 
 #include <Kokkos_Macros.hpp>
@@ -114,6 +115,20 @@ private:
   }
 #endif
 };
+
+namespace Experimental
+{
+
+template <>
+struct GeometryTraits<ArborX::Box>
+{
+  using tag = BoxTag;
+  using coordinate_type = float;
+  static int const dimension = 3;
+};
+
+} // namespace Experimental
+
 } // namespace ArborX
 
 #endif
