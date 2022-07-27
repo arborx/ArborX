@@ -51,6 +51,7 @@ cmake_dependent_option(ARBORX_USE_CUDA_AWARE_MPI
 target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/details>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/geometry>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   $<INSTALL_INTERFACE:include>
   $<INSTALL_INTERFACE:include/details>
