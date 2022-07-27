@@ -11,11 +11,10 @@
 #ifndef ARBORX_DETAILS_ALGORITHMS_HPP
 #define ARBORX_DETAILS_ALGORITHMS_HPP
 
-#include <ArborX_Box.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
-#include <ArborX_DetailsKokkosExtMathFunctions.hpp> // isfinite
-#include <ArborX_Point.hpp>
-#include <ArborX_Sphere.hpp>
+#include <ArborX_DetailsKokkosExtMathFunctions.hpp>    // isfinite
+#include <ArborX_DetailsKokkosExtMinMaxOperations.hpp> // min, max
+#include <ArborX_GeometryTraits.hpp>
 
 #include <Kokkos_Macros.hpp>
 
@@ -24,43 +23,51 @@ namespace ArborX
 namespace Details
 {
 
-KOKKOS_INLINE_FUNCTION
-constexpr bool equals(Point const &l, Point const &r)
+template <typename Point,
+          std::enable_if_t<Experimental::is_point<Point>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION constexpr bool equals(Point const &l, Point const &r)
 {
-  for (int d = 0; d < 3; ++d)
+  constexpr int DIM = Experimental::GeometryTraits<Point>::dimension;
+  for (int d = 0; d < DIM; ++d)
     if (l[d] != r[d])
       return false;
   return true;
 }
 
-KOKKOS_INLINE_FUNCTION
-constexpr bool equals(Box const &l, Box const &r)
+template <typename Box,
+          std::enable_if_t<Experimental::is_box<Box>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION constexpr bool equals(Box const &l, Box const &r)
 {
   return equals(l.minCorner(), r.minCorner()) &&
          equals(l.maxCorner(), r.maxCorner());
 }
 
-KOKKOS_INLINE_FUNCTION
-constexpr bool equals(Sphere const &l, Sphere const &r)
+template <typename Sphere,
+          std::enable_if_t<Experimental::is_sphere<Sphere>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION constexpr bool equals(Sphere const &l, Sphere const &r)
 {
   return equals(l.centroid(), r.centroid()) && l.radius() == r.radius();
 }
 
-KOKKOS_INLINE_FUNCTION
-bool isValid(Point const &p)
+template <typename Point,
+          std::enable_if_t<Experimental::is_point<Point>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION bool isValid(Point const &p)
 {
   using KokkosExt::isfinite;
-  for (int d = 0; d < 3; ++d)
+  constexpr int DIM = Experimental::GeometryTraits<Point>::dimension;
+  for (int d = 0; d < DIM; ++d)
     if (!isfinite(p[d]))
       return false;
   return true;
 }
 
-KOKKOS_INLINE_FUNCTION
-bool isValid(Box const &b)
+template <typename Box,
+          std::enable_if_t<Experimental::is_box<Box>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION bool isValid(Box const &b)
 {
   using KokkosExt::isfinite;
-  for (int d = 0; d < 3; ++d)
+  constexpr int DIM = Experimental::GeometryTraits<Box>::dimension;
+  for (int d = 0; d < DIM; ++d)
   {
     auto const r_d = b.maxCorner()[d] - b.minCorner()[d];
     if (r_d <= 0 || !isfinite(r_d))
@@ -69,19 +76,22 @@ bool isValid(Box const &b)
   return true;
 }
 
-KOKKOS_INLINE_FUNCTION
-bool isValid(Sphere const &s)
+template <typename Sphere,
+          std::enable_if_t<Experimental::is_sphere<Sphere>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION bool isValid(Sphere const &s)
 {
   using KokkosExt::isfinite;
   return isValid(s.centroid()) && isfinite(s.radius()) && (s.radius() >= 0.);
 }
 
 // distance point-point
-KOKKOS_INLINE_FUNCTION
-float distance(Point const &a, Point const &b)
+template <typename Point,
+          std::enable_if_t<Experimental::is_point<Point>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION float distance(Point const &a, Point const &b)
 {
+  constexpr int DIM = Experimental::GeometryTraits<Point>::dimension;
   float distance_squared = 0.0;
-  for (int d = 0; d < 3; ++d)
+  for (int d = 0; d < DIM; ++d)
   {
     float tmp = b[d] - a[d];
     distance_squared += tmp * tmp;
@@ -90,11 +100,18 @@ float distance(Point const &a, Point const &b)
 }
 
 // distance point-box
-KOKKOS_INLINE_FUNCTION
-float distance(Point const &point, Box const &box)
+template <typename Point, typename Box,
+          std::enable_if_t<Experimental::is_point<Point>{} &&
+                           Experimental::is_box<Box>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION float distance(Point const &point, Box const &box)
 {
+  static_assert(Experimental::GeometryTraits<Point>::dimension ==
+                    Experimental::GeometryTraits<Box>::dimension,
+                "");
+  constexpr int DIM = Experimental::GeometryTraits<Point>::dimension;
+
   Point projected_point;
-  for (int d = 0; d < 3; ++d)
+  for (int d = 0; d < DIM; ++d)
   {
     if (point[d] < box.minCorner()[d])
       projected_point[d] = box.minCorner()[d];
@@ -107,19 +124,26 @@ float distance(Point const &point, Box const &box)
 }
 
 // distance point-sphere
-KOKKOS_INLINE_FUNCTION
-float distance(Point const &point, Sphere const &sphere)
+template <typename Point, typename Sphere,
+          std::enable_if_t<Experimental::is_point<Point>{} &&
+                           Experimental::is_sphere<Sphere>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION float distance(Point const &point, Sphere const &sphere)
 {
+  static_assert(Experimental::GeometryTraits<Point>::dimension ==
+                    Experimental::GeometryTraits<Sphere>::dimension,
+                "");
   using KokkosExt::max;
   return max(distance(point, sphere.centroid()) - sphere.radius(), 0.f);
 }
 
 // distance box-box
-KOKKOS_INLINE_FUNCTION
-float distance(Box const &box_a, Box const &box_b)
+template <typename Box,
+          std::enable_if_t<Experimental::is_box<Box>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION float distance(Box const &box_a, Box const &box_b)
 {
+  constexpr int DIM = Experimental::GeometryTraits<Box>::dimension;
   float distance_squared = 0.;
-  for (int d = 0; d < 3; ++d)
+  for (int d = 0; d < DIM; ++d)
   {
     auto const a_min = box_a.minCorner()[d];
     auto const a_max = box_a.maxCorner()[d];
@@ -144,9 +168,15 @@ float distance(Box const &box_a, Box const &box_b)
 }
 
 // distance box-sphere
-KOKKOS_INLINE_FUNCTION
-float distance(Sphere const &sphere, Box const &box)
+template <typename Sphere, typename Box,
+          std::enable_if_t<Experimental::is_sphere<Sphere>{} &&
+                           Experimental::is_box<Box>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION float distance(Sphere const &sphere, Box const &box)
 {
+  static_assert(Experimental::GeometryTraits<Sphere>::dimension ==
+                    Experimental::GeometryTraits<Box>::dimension,
+                "");
+
   using KokkosExt::max;
 
   float distance_center_box = distance(sphere.centroid(), box);
@@ -154,28 +184,44 @@ float distance(Sphere const &sphere, Box const &box)
 }
 
 // expand an axis-aligned bounding box to include a point
-KOKKOS_INLINE_FUNCTION
-void expand(Box &box, Point const &point) { box += point; }
+template <typename Point, typename Box,
+          std::enable_if_t<Experimental::is_point<Point>{} &&
+                           Experimental::is_box<Box>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION void expand(Box &box, Point const &point)
+{
+  static_assert(Experimental::GeometryTraits<Point>::dimension ==
+                    Experimental::GeometryTraits<Box>::dimension,
+                "");
+  box += point;
+}
 
 // expand an axis-aligned bounding box to include another box
 // NOTE: Box type is templated here to be able to use expand(box, box) in a
 // Kokkos::parallel_reduce() in which case the arguments must be declared
 // volatile.
 template <typename BOX,
-          typename = typename std::enable_if<std::is_same<
-              typename std::remove_volatile<BOX>::type, Box>::value>::type>
+          std::enable_if_t<Experimental::is_box<
+              typename std::remove_volatile<BOX>::type>{}> * = nullptr>
 KOKKOS_INLINE_FUNCTION void expand(BOX &box, BOX const &other)
 {
   box += other;
 }
 
 // expand an axis-aligned bounding box to include a sphere
-KOKKOS_INLINE_FUNCTION
-void expand(Box &box, Sphere const &sphere)
+template <typename Box, typename Sphere,
+          std::enable_if_t<Experimental::is_box<Box>{} &&
+                           Experimental::is_sphere<Sphere>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION void expand(Box &box, Sphere const &sphere)
 {
+  static_assert(Experimental::GeometryTraits<Sphere>::dimension ==
+                    Experimental::GeometryTraits<Box>::dimension,
+                "");
+
+  constexpr int DIM = Experimental::GeometryTraits<Box>::dimension;
+
   using KokkosExt::max;
   using KokkosExt::min;
-  for (int d = 0; d < 3; ++d)
+  for (int d = 0; d < DIM; ++d)
   {
     box.minCorner()[d] =
         min(box.minCorner()[d], sphere.centroid()[d] - sphere.radius());
@@ -185,79 +231,139 @@ void expand(Box &box, Sphere const &sphere)
 }
 
 // check if two axis-aligned bounding boxes intersect
-KOKKOS_INLINE_FUNCTION
-constexpr bool intersects(Box const &box, Box const &other)
+template <typename Box,
+          std::enable_if_t<Experimental::is_box<Box>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION constexpr bool intersects(Box const &box,
+                                                 Box const &other)
 {
-  for (int d = 0; d < 3; ++d)
+  constexpr int DIM = Experimental::GeometryTraits<Box>::dimension;
+  for (int d = 0; d < DIM; ++d)
     if (box.minCorner()[d] > other.maxCorner()[d] ||
         box.maxCorner()[d] < other.minCorner()[d])
       return false;
   return true;
 }
 
-KOKKOS_INLINE_FUNCTION
-constexpr bool intersects(Point const &point, Box const &other)
+template <typename Point, typename Box,
+          std::enable_if_t<Experimental::is_point<Point>{} &&
+                           Experimental::is_box<Box>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION constexpr bool intersects(Point const &point,
+                                                 Box const &other)
 {
-  for (int d = 0; d < 3; ++d)
+  static_assert(Experimental::GeometryTraits<Point>::dimension ==
+                    Experimental::GeometryTraits<Box>::dimension,
+                "");
+  constexpr int DIM = Experimental::GeometryTraits<Point>::dimension;
+  for (int d = 0; d < DIM; ++d)
     if (point[d] > other.maxCorner()[d] || point[d] < other.minCorner()[d])
       return false;
   return true;
 }
 
 // check if a sphere intersects with an  axis-aligned bounding box
-KOKKOS_INLINE_FUNCTION
-bool intersects(Sphere const &sphere, Box const &box)
+template <typename Sphere, typename Box,
+          std::enable_if_t<Experimental::is_sphere<Sphere>{} &&
+                           Experimental::is_box<Box>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION bool intersects(Sphere const &sphere, Box const &box)
 {
+  static_assert(Experimental::GeometryTraits<Sphere>::dimension ==
+                    Experimental::GeometryTraits<Box>::dimension,
+                "");
   return distance(sphere.centroid(), box) <= sphere.radius();
 }
 
-KOKKOS_INLINE_FUNCTION
-bool intersects(Sphere const &sphere, Point const &point)
+template <typename Sphere, typename Point,
+          std::enable_if_t<Experimental::is_sphere<Sphere>{} &&
+                           Experimental::is_point<Point>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION bool intersects(Sphere const &sphere, Point const &point)
 {
+  static_assert(Experimental::GeometryTraits<Sphere>::dimension ==
+                    Experimental::GeometryTraits<Point>::dimension,
+                "");
   return distance(sphere.centroid(), point) <= sphere.radius();
 }
 
-KOKKOS_INLINE_FUNCTION
-bool intersects(Point const &point, Sphere const &sphere)
+template <typename Sphere, typename Point,
+          std::enable_if_t<Experimental::is_sphere<Sphere>{} &&
+                           Experimental::is_point<Point>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION bool intersects(Point const &point, Sphere const &sphere)
 {
+  static_assert(Experimental::GeometryTraits<Sphere>::dimension ==
+                    Experimental::GeometryTraits<Point>::dimension,
+                "");
   return intersects(sphere, point);
 }
 
 // calculate the centroid of a box
-KOKKOS_INLINE_FUNCTION
-void centroid(Box const &box, Point &c)
+template <typename Box, typename Point,
+          std::enable_if_t<Experimental::is_box<Box>{} &&
+                           Experimental::is_point<Point>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION void centroid(Box const &box, Point &c)
 {
-  for (int d = 0; d < 3; ++d)
+  static_assert(Experimental::GeometryTraits<Point>::dimension ==
+                    Experimental::GeometryTraits<Box>::dimension,
+                "");
+  constexpr int DIM = Experimental::GeometryTraits<Point>::dimension;
+  for (int d = 0; d < DIM; ++d)
     c[d] = (box.minCorner()[d] + box.maxCorner()[d]) / 2;
 }
 
-KOKKOS_INLINE_FUNCTION
-void centroid(Point const &point, Point &c) { c = point; }
-
-KOKKOS_INLINE_FUNCTION
-void centroid(Sphere const &sphere, Point &c) { c = sphere.centroid(); }
-
-KOKKOS_INLINE_FUNCTION
-Point returnCentroid(Point const &point) { return point; }
-
-KOKKOS_INLINE_FUNCTION
-Point returnCentroid(Box const &box)
+template <typename Point,
+          std::enable_if_t<Experimental::is_point<Point>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION void centroid(Point const &point, Point &c)
 {
-  Point c;
-  for (int d = 0; d < 3; ++d)
-    c[d] = (box.minCorner()[d] + box.maxCorner()[d]) / 2;
+  c = point;
+}
+
+template <typename Sphere, typename Point,
+          std::enable_if_t<Experimental::is_sphere<Sphere>{} &&
+                           Experimental::is_point<Point>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION void centroid(Sphere const &sphere, Point &c)
+{
+  static_assert(Experimental::GeometryTraits<Point>::dimension ==
+                    Experimental::GeometryTraits<Sphere>::dimension,
+                "");
+  c = sphere.centroid();
+}
+
+template <typename Point,
+          std::enable_if_t<Experimental::is_point<Point>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION auto returnCentroid(Point const &point)
+{
+  return point;
+}
+
+template <typename Box,
+          std::enable_if_t<Experimental::is_box<Box>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION auto returnCentroid(Box const &box)
+{
+  constexpr int DIM = Experimental::GeometryTraits<Box>::dimension;
+  auto c = box.minCorner();
+  for (int d = 0; d < DIM; ++d)
+    c[d] = (c[d] + box.maxCorner()[d]) / 2;
   return c;
 }
 
-KOKKOS_INLINE_FUNCTION
-Point returnCentroid(Sphere const &sphere) { return sphere.centroid(); }
+template <typename Sphere,
+          std::enable_if_t<Experimental::is_sphere<Sphere>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION auto returnCentroid(Sphere const &sphere)
+{
+  return sphere.centroid();
+}
 
 // transformation that maps the unit cube into a new axis-aligned box
 // NOTE safe to perform in-place
-KOKKOS_INLINE_FUNCTION
-void translateAndScale(Point const &in, Point &out, Box const &ref)
+template <typename Point, typename Box,
+          std::enable_if_t<Experimental::is_point<Point>{} &&
+                           Experimental::is_box<Box>{}> * = nullptr>
+KOKKOS_INLINE_FUNCTION void translateAndScale(Point const &in, Point &out,
+                                              Box const &ref)
 {
-  for (int d = 0; d < 3; ++d)
+  static_assert(Experimental::GeometryTraits<Point>::dimension ==
+                    Experimental::GeometryTraits<Box>::dimension,
+                "");
+  constexpr int DIM = Experimental::GeometryTraits<Point>::dimension;
+  for (int d = 0; d < DIM; ++d)
   {
     auto const a = ref.minCorner()[d];
     auto const b = ref.maxCorner()[d];

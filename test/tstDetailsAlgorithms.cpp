@@ -28,27 +28,28 @@ using ArborX::Sphere;
 BOOST_AUTO_TEST_CASE(distance)
 {
   using ArborX::Details::distance;
-  BOOST_TEST(distance({{1.0, 2.0, 3.0}}, {{1.0, 1.0, 1.0}}) == std::sqrt(5.f));
+  BOOST_TEST(distance(Point{{1.0, 2.0, 3.0}}, Point{{1.0, 1.0, 1.0}}) ==
+             std::sqrt(5.f));
 
   // box is unit cube
   constexpr Box box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
 
   // distance is zero if the point is inside the box
-  BOOST_TEST(distance({{0.5, 0.5, 0.5}}, box) == 0.0);
+  BOOST_TEST(distance(Point{{0.5, 0.5, 0.5}}, box) == 0.0);
   // or anywhere on the boundary
-  BOOST_TEST(distance({{0.0, 0.0, 0.5}}, box) == 0.0);
+  BOOST_TEST(distance(Point{{0.0, 0.0, 0.5}}, box) == 0.0);
   // normal projection onto center of one face
-  BOOST_TEST(distance({{2.0, 0.5, 0.5}}, box) == 1.0);
+  BOOST_TEST(distance(Point{{2.0, 0.5, 0.5}}, box) == 1.0);
   // projection onto edge
-  BOOST_TEST(distance({{2.0, 0.75, -1.0}}, box) == std::sqrt(2.f));
+  BOOST_TEST(distance(Point{{2.0, 0.75, -1.0}}, box) == std::sqrt(2.f));
   // projection onto corner node
-  BOOST_TEST(distance({{-1.0, 2.0, 2.0}}, box) == std::sqrt(3.f));
+  BOOST_TEST(distance(Point{{-1.0, 2.0, 2.0}}, box) == std::sqrt(3.f));
 
   // unit sphere
   constexpr Sphere sphere{{{0., 0., 0.}}, 1.};
-  BOOST_TEST(distance({{.5, .5, .5}}, sphere) == 0.);
-  BOOST_TEST(distance({{2., 0., 0.}}, sphere) == 1.);
-  BOOST_TEST(distance({{1., 1., 1.}}, sphere) == std::sqrt(3.f) - 1.f);
+  BOOST_TEST(distance(Point{{.5, .5, .5}}, sphere) == 0.);
+  BOOST_TEST(distance(Point{{2., 0., 0.}}, sphere) == 1.);
+  BOOST_TEST(distance(Point{{1., 1., 1.}}, sphere) == std::sqrt(3.f) - 1.f);
 }
 
 BOOST_AUTO_TEST_CASE(distance_box_box)
@@ -110,7 +111,7 @@ BOOST_AUTO_TEST_CASE(intersects)
   using ArborX::Details::intersects;
 
   // uninitialized box does not intersect with other boxes
-  STATIC_ASSERT(!intersects(Box{}, {{{1.0, 2.0, 3.0}}, {{4.0, 5.0, 6.0}}}));
+  STATIC_ASSERT(!intersects(Box{}, Box{{{1.0, 2.0, 3.0}}, {{4.0, 5.0, 6.0}}}));
   // uninitialized box does not even intersect with itself
   STATIC_ASSERT(!intersects(Box{}, Box{}));
   // box with zero extent does
@@ -120,30 +121,33 @@ BOOST_AUTO_TEST_CASE(intersects)
   // point
   constexpr Point point{{1.0, 1.0, 1.0}};
   // point is contained in a box
-  STATIC_ASSERT(intersects(point, {{{0.0, 0.0, 0.0}}, {{2.0, 2.0, 2.0}}}));
-  STATIC_ASSERT(!intersects(point, {{{-1.0, -1.0, -1.0}}, {{0.0, 0.0, 0.0}}}));
+  STATIC_ASSERT(intersects(point, Box{{{0.0, 0.0, 0.0}}, {{2.0, 2.0, 2.0}}}));
+  STATIC_ASSERT(
+      !intersects(point, Box{{{-1.0, -1.0, -1.0}}, {{0.0, 0.0, 0.0}}}));
   // point is on a side of a box
-  STATIC_ASSERT(intersects(point, {{{0.0, 0.0, 0.0}}, {{2.0, 2.0, 1.0}}}));
+  STATIC_ASSERT(intersects(point, Box{{{0.0, 0.0, 0.0}}, {{2.0, 2.0, 1.0}}}));
   // point is a corner of a box
-  STATIC_ASSERT(intersects(point, {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}}));
+  STATIC_ASSERT(intersects(point, Box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}}));
 
   // unit cube
   constexpr Box box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
   STATIC_ASSERT(intersects(box, box));
   STATIC_ASSERT(!intersects(box, Box{}));
   // smaller box inside
-  STATIC_ASSERT(intersects(box, {{{0.25, 0.25, 0.25}}, {{0.75, 0.75, 0.75}}}));
+  STATIC_ASSERT(
+      intersects(box, Box{{{0.25, 0.25, 0.25}}, {{0.75, 0.75, 0.75}}}));
   // bigger box that contains it
-  STATIC_ASSERT(intersects(box, {{{-1.0, -1.0, -1.0}}, {{2.0, 2.0, 2.0}}}));
+  STATIC_ASSERT(intersects(box, Box{{{-1.0, -1.0, -1.0}}, {{2.0, 2.0, 2.0}}}));
   // couple boxes that do intersect
-  STATIC_ASSERT(intersects(box, {{{0.5, 0.5, 0.5}}, {{1.5, 1.5, 1.5}}}));
-  STATIC_ASSERT(intersects(box, {{{-0.5, -0.5, -0.5}}, {{0.5, 0.5, 0.5}}}));
+  STATIC_ASSERT(intersects(box, Box{{{0.5, 0.5, 0.5}}, {{1.5, 1.5, 1.5}}}));
+  STATIC_ASSERT(intersects(box, Box{{{-0.5, -0.5, -0.5}}, {{0.5, 0.5, 0.5}}}));
   // couple boxes that do not
-  STATIC_ASSERT(!intersects(box, {{{-2.0, -2.0, -2.0}}, {{-1.0, -1.0, -1.0}}}));
-  STATIC_ASSERT(!intersects(box, {{{0.0, 0.0, 2.0}}, {{1.0, 1.0, 3.0}}}));
+  STATIC_ASSERT(
+      !intersects(box, Box{{{-2.0, -2.0, -2.0}}, {{-1.0, -1.0, -1.0}}}));
+  STATIC_ASSERT(!intersects(box, Box{{{0.0, 0.0, 2.0}}, {{1.0, 1.0, 3.0}}}));
   // boxes intersect if faces touch
-  STATIC_ASSERT(intersects(box, {{{1.0, 0.0, 0.0}}, {{2.0, 1.0, 1.0}}}));
-  STATIC_ASSERT(intersects(box, {{{-0.5, -0.5, -0.5}}, {{0.5, 0.0, 0.5}}}));
+  STATIC_ASSERT(intersects(box, Box{{{1.0, 0.0, 0.0}}, {{2.0, 1.0, 1.0}}}));
+  STATIC_ASSERT(intersects(box, Box{{{-0.5, -0.5, -0.5}}, {{0.5, 0.0, 0.5}}}));
 
   // unit sphere
   constexpr Sphere sphere{{{0., 0., 0.}}, 1.};
@@ -168,9 +172,9 @@ BOOST_AUTO_TEST_CASE(equals)
   STATIC_ASSERT(!equals(Box{{{0.0, 0.0, 0.0}}, {{1.0, 0.0, 1.0}}},
                         {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}}));
   // spheres
-  STATIC_ASSERT(equals({{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 1.}));
-  STATIC_ASSERT(!equals({{{0., 0., 0.}}, 1.}, {{{0., 1., 2.}}, 1.}));
-  STATIC_ASSERT(!equals({{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 2.}));
+  STATIC_ASSERT(equals(Sphere{{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 1.}));
+  STATIC_ASSERT(!equals(Sphere{{{0., 0., 0.}}, 1.}, {{{0., 1., 2.}}, 1.}));
+  STATIC_ASSERT(!equals(Sphere{{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 2.}));
 }
 
 BOOST_AUTO_TEST_CASE(expand)
@@ -180,14 +184,14 @@ BOOST_AUTO_TEST_CASE(expand)
   Box box;
 
   // expand box with points
-  expand(box, {{0.0, 0.0, 0.0}});
-  BOOST_TEST(equals(box, {{{0.0, 0.0, 0.0}}, {{0.0, 0.0, 0.0}}}));
-  expand(box, {{1.0, 1.0, 1.0}});
-  BOOST_TEST(equals(box, {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}}));
-  expand(box, {{0.25, 0.75, 0.25}});
-  BOOST_TEST(equals(box, {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}}));
-  expand(box, {{-1.0, -1.0, -1.0}});
-  BOOST_TEST(equals(box, {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}}));
+  expand(box, Point{{0.0, 0.0, 0.0}});
+  BOOST_TEST(equals(box, Box{{{0.0, 0.0, 0.0}}, {{0.0, 0.0, 0.0}}}));
+  expand(box, Point{{1.0, 1.0, 1.0}});
+  BOOST_TEST(equals(box, Box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}}));
+  expand(box, Point{{0.25, 0.75, 0.25}});
+  BOOST_TEST(equals(box, Box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}}));
+  expand(box, Point{{-1.0, -1.0, -1.0}});
+  BOOST_TEST(equals(box, Box{{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}}));
 
   // expand box with boxes
   expand(box, {{{0.25, 0.25, 0.25}}, {{0.75, 0.75, 0.75}}});
@@ -196,12 +200,12 @@ BOOST_AUTO_TEST_CASE(expand)
   BOOST_TEST(equals(box, {{{-1.0, -1.0, -1.0}}, {{11.0, 11.0, 11.0}}}));
 
   // expand box with spheres
-  expand(box, {{{0., 1., 2.}}, 3.});
-  BOOST_TEST(equals(box, {{{-3., -2., -1.}}, {{11., 11., 11.}}}));
-  expand(box, {{{0., 0., 0.}}, 1.});
-  BOOST_TEST(equals(box, {{{-3., -2., -1.}}, {{11., 11., 11.}}}));
-  expand(box, {{{0., 0., 0.}}, 24.});
-  BOOST_TEST(equals(box, {{{-24., -24., -24.}}, {{24., 24., 24.}}}));
+  expand(box, Sphere{{{0., 1., 2.}}, 3.});
+  BOOST_TEST(equals(box, Box{{{-3., -2., -1.}}, {{11., 11., 11.}}}));
+  expand(box, Sphere{{{0., 0., 0.}}, 1.});
+  BOOST_TEST(equals(box, Box{{{-3., -2., -1.}}, {{11., 11., 11.}}}));
+  expand(box, Sphere{{{0., 0., 0.}}, 24.});
+  BOOST_TEST(equals(box, Box{{{-24., -24., -24.}}, {{24., 24., 24.}}}));
 }
 
 BOOST_AUTO_TEST_CASE(centroid)

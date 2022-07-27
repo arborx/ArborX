@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(expand)
   // be expanded using Boost.Geometry algorithm.
   BOOST_TEST(!bg::is_valid(box));
   bg::expand(box, details::Point{{0., 0., 0.}});
-  details::expand(box, {{1., 1., 1.}});
+  details::expand(box, details::Point{{1., 1., 1.}});
   BOOST_TEST(equals(box, {{{0., 0., 0.}}, {{1., 1., 1.}}}));
   bg::expand(box, details::Box{{{1., 2., 3.}}, {{4., 5., 6.}}});
   details::expand(box, {{{-1., -2., -3.}}, {{0., 0., 0.}}});
