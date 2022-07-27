@@ -56,6 +56,8 @@ target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   $<INSTALL_INTERFACE:include>
   $<INSTALL_INTERFACE:include/details>
+  $<INSTALL_INTERFACE:include/geometry>
+  $<INSTALL_INTERFACE:include/kokkos_ext>
 )
 
 install(TARGETS ArborX
