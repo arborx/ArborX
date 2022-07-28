@@ -387,16 +387,15 @@ int main(int argc, char *argv[])
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_boxes),
       KOKKOS_LAMBDA(int i, int &error) {
         using Kokkos::Experimental::fabs;
-        float const rel_error =
-            (energy_intersects(i) == 0.f)
-                ? 0.f
-                : fabs(energy_ordered_intersects(i) - energy_intersects(i)) /
-                      fabs(energy_intersects(i));
-        if (rel_error > rel_tol)
+        float const abs_error =
+            fabs(energy_ordered_intersects(i) - energy_intersects(i)) /
+            fabs(energy_intersects(i));
+        if (abs_error > rel_tol * fabs(energy_intersects(i)))
         {
 #ifndef KOKKOS_ENABLE_SYCL
           printf("%d: %f != %f, relative error: %f\n", i,
-                 energy_ordered_intersects(i), energy_intersects(i), rel_error);
+                 energy_ordered_intersects(i), energy_intersects(i),
+                 abs_error / fabs(energy_intersects(i)));
 #endif
           ++error;
         }
