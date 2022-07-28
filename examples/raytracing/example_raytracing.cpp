@@ -31,6 +31,9 @@
 
 #include <numeric>
 
+// The total energy that is distributed across all rays
+float const total_energy = 4000.f;
+
 namespace OrderedIntersectsBased
 {
 /*
@@ -305,7 +308,7 @@ int main(int argc, char *argv[])
     Kokkos::View<float *, MemorySpace> ray_energy(
         Kokkos::view_alloc("Example::ray_energy", Kokkos::WithoutInitializing),
         num_rays * num_boxes);
-    Kokkos::deep_copy(ray_energy, (4000. * dx * dy * dz) / num_rays);
+    Kokkos::deep_copy(ray_energy, (total_energy * dx * dy * dz) / num_rays);
     energy_ordered_intersects = Kokkos::View<float *, MemorySpace>(
         "Example::energy_ordered_intersects", num_boxes);
 
@@ -359,7 +362,7 @@ int main(int argc, char *argv[])
                                             num_rays * num_boxes),
         KOKKOS_LAMBDA(int i) {
           using Kokkos::Experimental::expm1;
-          float ray_energy = (4000. * dx * dy * dz) / num_rays;
+          float ray_energy = (total_energy * dx * dy * dz) / num_rays;
           for (int j = offsets(i); j < offsets(i + 1); ++j)
           {
             float const energy_deposited =
