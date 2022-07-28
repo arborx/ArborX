@@ -64,6 +64,7 @@ add_test(NAME ArborX_DetailsUtils_Test COMMAND ./ArborX_DetailsUtils.exe)
 
 add_executable(ArborX_Geometry.exe
   tstDetailsAlgorithms.cpp
+  tstCompileOnlyGeometry.cpp
   tstRay.cpp
   tstKDOP.cpp
 )

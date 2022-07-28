@@ -41,6 +41,16 @@ struct tag
 };
 
 template <typename Geometry>
+using DimensionNotSpecializedArchetypeAlias =
+    typename dimension<Geometry>::not_specialized;
+
+template <typename Geometry>
+using TagNotSpecializedArchetypeAlias = typename tag<Geometry>::not_specialized;
+
+template <typename Geometry>
+using DimensionArchetypeAlias = decltype(dimension<Geometry>::value);
+
+template <typename Geometry>
 using TagArchetypeAlias = typename tag<Geometry>::type;
 
 template <typename Geometry>
@@ -56,6 +66,34 @@ template <typename Geometry>
 struct is_sphere
     : Kokkos::is_detected_exact<SphereTag, TagArchetypeAlias, Geometry>
 {};
+
+template <typename Geometry>
+void check_valid_geometry_traits()
+{
+  static_assert(
+      !Kokkos::is_detected<DimensionNotSpecializedArchetypeAlias, Geometry>{},
+      "Must specialize GeometryTraits::dimension<Geometry>");
+  static_assert(
+      !Kokkos::is_detected<TagNotSpecializedArchetypeAlias, Geometry>{},
+      "Must specialize GeometryTraits::tag<Geometry>");
+
+  static_assert(
+      Kokkos::is_detected<DimensionArchetypeAlias, Geometry>{},
+      "GeometryTraits::dimension<Geometry> must define 'value' member type");
+  static_assert(
+      std::is_integral<
+          Kokkos::detected_t<DimensionArchetypeAlias, Geometry>>{} &&
+          GeometryTraits::dimension<Geometry>::value > 0,
+      "GeometryTraits::dimension<Geometry>::value must be a positive integral");
+
+  static_assert(Kokkos::is_detected<TagArchetypeAlias, Geometry>{},
+                "GeometryTraits::tag<Geometry> must define 'type' member type");
+  using Tag = Kokkos::detected_t<TagArchetypeAlias, Geometry>;
+  static_assert(std::is_same<Tag, PointTag>{} || std::is_same<Tag, BoxTag>{} ||
+                    std::is_same<Tag, SphereTag>{},
+                "GeometryTraits::tag<Geometry>::type must be PointTag, BoxTag "
+                "or SphereTag");
+}
 
 } // namespace GeometryTraits
 
