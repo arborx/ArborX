@@ -205,11 +205,10 @@ int main(int argc, char *argv[])
   bpo::options_description desc("Allowed options");
   desc.add_options()("help", "help message")(
       "rays per box", bpo::value<int>(&num_rays)->default_value(10),
-      "number of rays")("lx", bpo::value<float>(&lx)->default_value(1.0),
+      "number of rays")("lx", bpo::value<float>(&lx)->default_value(100.0),
                         "Length of X side")(
-      "ly", bpo::value<float>(&ly)->default_value(100000.0),
-      "Length of Y side")("lz", bpo::value<float>(&lz)->default_value(100000.0),
-                          "Length of Z side")(
+      "ly", bpo::value<float>(&ly)->default_value(100.0), "Length of Y side")(
+      "lz", bpo::value<float>(&lz)->default_value(100.0), "Length of Z side")(
       "nx", bpo::value<int>(&nx)->default_value(10), "number of X boxes")(
       "ny", bpo::value<int>(&ny)->default_value(10), "number of Y boxes")(
       "nz", bpo::value<int>(&nz)->default_value(10), "number of Z boxes");
