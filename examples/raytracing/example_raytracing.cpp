@@ -194,25 +194,25 @@ int main(int argc, char *argv[])
 
   namespace bpo = boost::program_options;
 
-  int Nx;
-  int Ny;
-  int Nz;
+  int nx;
+  int ny;
+  int nz;
   int num_rays;
-  float Lx;
-  float Ly;
-  float Lz;
+  float lx;
+  float ly;
+  float lz;
 
   bpo::options_description desc("Allowed options");
   desc.add_options()("help", "help message")(
       "rays per box", bpo::value<int>(&num_rays)->default_value(10),
-      "number of rays")("Lx", bpo::value<float>(&Lx)->default_value(1.0),
+      "number of rays")("lx", bpo::value<float>(&lx)->default_value(1.0),
                         "Length of X side")(
-      "Ly", bpo::value<float>(&Ly)->default_value(100000.0),
-      "Length of Y side")("Lz", bpo::value<float>(&Lz)->default_value(100000.0),
+      "ly", bpo::value<float>(&ly)->default_value(100000.0),
+      "Length of Y side")("lz", bpo::value<float>(&lz)->default_value(100000.0),
                           "Length of Z side")(
-      "Nx", bpo::value<int>(&Nx)->default_value(10), "number of X boxes")(
-      "Ny", bpo::value<int>(&Ny)->default_value(10), "number of Y boxes")(
-      "Nz", bpo::value<int>(&Nz)->default_value(10), "number of Z boxes");
+      "nx", bpo::value<int>(&nx)->default_value(10), "number of X boxes")(
+      "ny", bpo::value<int>(&ny)->default_value(10), "number of Y boxes")(
+      "nz", bpo::value<int>(&nz)->default_value(10), "number of Z boxes");
   bpo::variables_map vm;
   bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
   bpo::notify(vm);
@@ -223,10 +223,10 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  int num_boxes = Nx * Ny * Nz;
-  float dx = Lx / (float)Nx;
-  float dy = Ly / (float)Ny;
-  float dz = Lz / (float)Nz;
+  int num_boxes = nx * ny * nz;
+  float dx = lx / (float)nx;
+  float dy = ly / (float)ny;
+  float dz = lz / (float)nz;
 
   ExecutionSpace exec_space{};
 
@@ -238,9 +238,9 @@ int main(int argc, char *argv[])
   Kokkos::parallel_for(
       "initialize_boxes",
       Kokkos::MDRangePolicy<Kokkos::Rank<3>, ExecutionSpace>(
-          exec_space, {0, 0, 0}, {Nx, Ny, Nz}),
+          exec_space, {0, 0, 0}, {nx, ny, nz}),
       KOKKOS_LAMBDA(int i, int j, int k) {
-        int const box_id = i + Nx * j + Nx * Ny * k;
+        int const box_id = i + nx * j + nx * ny * k;
         boxes(box_id) = {{i * dx, j * dy, k * dz},
                          {(i + 1) * dx, (j + 1) * dy, (k + 1) * dz}};
       });
