@@ -12,7 +12,6 @@
 #ifndef ARBORX_SPACE_FILLING_CURVES_HPP
 #define ARBORX_SPACE_FILLING_CURVES_HPP
 
-#include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsMortonCode.hpp>
 
@@ -26,35 +25,41 @@ namespace Experimental
 
 struct Morton32
 {
+  template <typename Box, typename Point,
+            std::enable_if_t<GeometryTraits::is_point<Point>{}> * = nullptr>
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box, Point p) const
   {
     Details::translateAndScale(p, p, scene_bounding_box);
-    return Details::morton32(p[0], p[1], p[2]);
+    return Details::morton32(p);
   }
-  template <typename Geometry>
+  template <typename Box, typename Geometry,
+            std::enable_if_t<!GeometryTraits::is_point<Geometry>{}> * = nullptr>
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box,
                                   Geometry const &geometry) const
   {
     auto p = Details::returnCentroid(geometry);
     Details::translateAndScale(p, p, scene_bounding_box);
-    return Details::morton32(p[0], p[1], p[2]);
+    return Details::morton32(p);
   }
 };
 
 struct Morton64
 {
+  template <typename Box, typename Point,
+            std::enable_if_t<GeometryTraits::is_point<Point>{}> * = nullptr>
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box, Point p) const
   {
     Details::translateAndScale(p, p, scene_bounding_box);
-    return Details::morton64(p[0], p[1], p[2]);
+    return Details::morton64(p);
   }
-  template <class Geometry>
+  template <typename Box, class Geometry,
+            std::enable_if_t<!GeometryTraits::is_point<Geometry>{}> * = nullptr>
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box,
                                   Geometry const &geometry) const
   {
     auto p = Details::returnCentroid(geometry);
     Details::translateAndScale(p, p, scene_bounding_box);
-    return Details::morton64(p[0], p[1], p[2]);
+    return Details::morton64(p);
   }
 };
 
@@ -63,30 +68,32 @@ struct Morton64
 namespace Details
 {
 
-template <class SpaceFillingCurve, class Geometry>
+template <class SpaceFillingCurve, typename Box, class Geometry>
 using SpaceFillingCurveProjectionArchetypeExpression =
     decltype(std::declval<SpaceFillingCurve const &>()(
         std::declval<Box const &>(), std::declval<Geometry const &>()));
 
-template <class SpaceFillingCurve>
+template <class SpaceFillingCurve, typename Box>
 void check_valid_space_filling_curve(SpaceFillingCurve const &)
 {
+  using Point = std::decay_t<decltype(std::declval<Box>().minCorner())>;
+
   static_assert(
       Kokkos::is_detected<SpaceFillingCurveProjectionArchetypeExpression,
-                          SpaceFillingCurve, Point>::value);
+                          SpaceFillingCurve, Box, Point>::value);
   static_assert(
       Kokkos::is_detected<SpaceFillingCurveProjectionArchetypeExpression,
-                          SpaceFillingCurve, Box>::value);
+                          SpaceFillingCurve, Box, Box>::value);
   using OrderValueType =
       Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
-                         SpaceFillingCurve, Point>;
+                         SpaceFillingCurve, Box, Point>;
   static_assert(std::is_same<OrderValueType, unsigned int>::value ||
                 std::is_same<OrderValueType, unsigned long long>::value);
   static_assert(
       std::is_same<
           OrderValueType,
           Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
-                             SpaceFillingCurve, Box>>::value);
+                             SpaceFillingCurve, Box, Box>>::value);
 }
 
 } // namespace Details

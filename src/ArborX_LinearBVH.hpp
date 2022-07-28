@@ -148,7 +148,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                               ExecutionSpace>::value,
                 "Primitives must be accessible from the execution space");
-  Details::check_valid_space_filling_curve(curve);
+  Details::check_valid_space_filling_curve<SpaceFillingCurve, Box>(curve);
 
   KokkosExt::ScopedProfileRegion guard("ArborX::BVH::BVH");
 
@@ -185,7 +185,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   // map primitives from multidimensional domain to one-dimensional interval
   using LinearOrderingValueType = Kokkos::detected_t<
       Details::SpaceFillingCurveProjectionArchetypeExpression,
-      SpaceFillingCurve, Point>;
+      SpaceFillingCurve, Box, Point>;
   Kokkos::View<LinearOrderingValueType *, MemorySpace> linear_ordering_indices(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::BVH::BVH::linear_ordering"),
