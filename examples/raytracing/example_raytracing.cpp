@@ -31,8 +31,15 @@
 
 #include <numeric>
 
-// The total energy that is distributed across all rays
+// The total energy that is distributed across all rays.
 float const total_energy = 4000.f;
+
+// Energy a rays loses when passing through a cell.
+KOKKOS_INLINE_FUNCTION float lost_energy(float ray_energy, float path_length)
+{
+  using Kokkos::Experimental::expm1;
+  return -ray_energy * expm1(-path_length);
+}
 
 namespace OrderedIntersectsBased
 {
@@ -61,7 +68,6 @@ struct DepositEnergy
   {
     float length;
     float entrylength;
-    using Kokkos::Experimental::expm1;
     auto const &ray = ArborX::getGeometry(predicate);
     auto const &box = _boxes(primitive_index);
     int const predicate_index = ArborX::getData(predicate);
@@ -70,7 +76,7 @@ struct DepositEnergy
     float const optical_path_length = kappa * length;
 
     float const energy_deposited =
-        -_ray_energy(predicate_index) * expm1(-optical_path_length);
+        lost_energy(_ray_energy(predicate_index), optical_path_length);
     _ray_energy(predicate_index) += energy_deposited;
     Kokkos::atomic_add(&_energy(primitive_index), energy_deposited);
   }
@@ -361,17 +367,14 @@ int main(int argc, char *argv[])
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0,
                                             num_rays * num_boxes),
         KOKKOS_LAMBDA(int i) {
-          using Kokkos::Experimental::expm1;
           float ray_energy = (total_energy * dx * dy * dz) / num_rays;
           for (int j = offsets(i); j < offsets(i + 1); ++j)
           {
+            const auto &v = values(permutation(j));
             float const energy_deposited =
-                -ray_energy *
-                expm1(-values(permutation(j)).optical_path_length);
+                lost_energy(ray_energy, v.optical_path_length);
             ray_energy += energy_deposited;
-            Kokkos::atomic_add(
-                &energy_intersects(values(permutation(j)).cell_id),
-                energy_deposited);
+            Kokkos::atomic_add(&energy_intersects(v.cell_id), energy_deposited);
           }
         });
     Kokkos::Profiling::popRegion();
