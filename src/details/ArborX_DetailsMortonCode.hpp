@@ -51,6 +51,43 @@ KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy<2>(unsigned int x)
   return x;
 }
 
+// Insert three 0 bits after each of the 8 low bits of x
+template <>
+KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy<3>(unsigned int x)
+{
+  x &= 0xffu;
+  x = (x | x << 16) & 0xc0003fu;
+  x = (x | x << 8) & 0xc03807u;
+  x = (x | x << 4) & 0x8430843u;
+  x = (x | x << 2) & 0x9090909u;
+  x = (x | x << 1) & 0x11111111u;
+  return x;
+}
+
+// Insert four 0 bits after each of the 6 low bits of x
+template <>
+KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy<4>(unsigned int x)
+{
+  x &= 0x3fu;
+  x = (x | x << 16) & 0x30000fu;
+  x = (x | x << 8) & 0x300c03u;
+  x = (x | x << 4) & 0x2108421u;
+  return x;
+}
+
+// Insert five 0 bits after each of the 5 low bits of x
+template <>
+KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy<5>(unsigned int x)
+{
+  x &= 0x1fu;
+  x = (x | x << 16) & 0x10000fu;
+  x = (x | x << 8) & 0x100c03u;
+  x = (x | x << 4) & 0x1008421u;
+  x = (x | x << 2) & 0x1021021u;
+  x = (x | x << 1) & 0x1041041u;
+  return x;
+}
+
 template <int DIM>
 KOKKOS_INLINE_FUNCTION unsigned long long expandBitsBy(unsigned long long);
 
