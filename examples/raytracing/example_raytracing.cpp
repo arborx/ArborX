@@ -107,10 +107,10 @@ struct Rays
 
 /*
  * IntersectedCell is a storage container for all intersections between rays and
- * boxes that are detected when calling the AccumRaySphereOptDist struct. The
- * member variables that are relevant for sorting the intersection according to
- * box and ray are contained in the base class IntersectedCellForSorting as
- * performance improvement.
+ * boxes that are detected when calling the AccumulateRaySphereIntersections
+ * struct. The member variables that are relevant for sorting the intersection
+ * according to box and ray are contained in the base class
+ * IntersectedCellForSorting as performance improvement.
  */
 struct IntersectedCellForSorting
 {
@@ -142,7 +142,7 @@ struct IntersectedCell : public IntersectedCellForSorting
  * Callback for storing all intersections.
  */
 template <typename MemorySpace>
-struct AccumRaySphereOptDist
+struct AccumulateRaySphereIntersections
 {
   Kokkos::View<ArborX::Box *, MemorySpace> _boxes;
 
@@ -319,9 +319,10 @@ int main(int argc, char *argv[])
     Kokkos::Profiling::pushRegion("intersects_approach");
     Kokkos::View<IntersectsBased::IntersectedCell *> values("values", 0);
     Kokkos::View<int *> offsets("offsets", 0);
-    bvh.query(exec_space, IntersectsBased::Rays<MemorySpace>{rays},
-              IntersectsBased::AccumRaySphereOptDist<MemorySpace>{boxes},
-              values, offsets);
+    bvh.query(
+        exec_space, IntersectsBased::Rays<MemorySpace>{rays},
+        IntersectsBased::AccumulateRaySphereIntersections<MemorySpace>{boxes},
+        values, offsets);
 
     Kokkos::View<IntersectsBased::IntersectedCellForSorting *, MemorySpace>
         sort_array(Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
