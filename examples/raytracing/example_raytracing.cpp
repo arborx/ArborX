@@ -229,13 +229,14 @@ int main(int argc, char *argv[])
 
   ExecutionSpace exec_space{};
 
-  Kokkos::Profiling::pushRegion("problem_setup");
-  Kokkos::Profiling::pushRegion("make_grid");
+  Kokkos::Profiling::pushRegion("Example::problem_setup");
+  Kokkos::Profiling::pushRegion("Example::make_grid");
   Kokkos::View<ArborX::Box *, MemorySpace> boxes(
-      Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing, "boxes"),
+      Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
+                         "Example::boxes"),
       num_boxes);
   Kokkos::parallel_for(
-      "initialize_boxes",
+      "Example::initialize_boxes",
       Kokkos::MDRangePolicy<Kokkos::Rank<3>, ExecutionSpace>(
           exec_space, {0, 0, 0}, {nx, ny, nz}),
       KOKKOS_LAMBDA(int i, int j, int k) {
@@ -247,9 +248,9 @@ int main(int argc, char *argv[])
 
   // For every box shoot rays from random (uniformly distributed) points inside
   // the box in random (uniformly distributed) directions.
-  Kokkos::Profiling::pushRegion("make_rays");
+  Kokkos::Profiling::pushRegion("Example::make_rays");
   Kokkos::View<ArborX::Experimental::Ray *, MemorySpace> rays(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "rays"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::rays"),
       num_rays * num_boxes);
   {
     using RandPoolType = Kokkos::Random_XorShift64_Pool<>;
@@ -257,7 +258,7 @@ int main(int argc, char *argv[])
     using GeneratorType = RandPoolType::generator_type;
 
     Kokkos::parallel_for(
-        "initialize_rays",
+        "Example::initialize_rays",
         Kokkos::MDRangePolicy<Kokkos::Rank<2>, ExecutionSpace>(
             exec_space, {0, 0}, {num_boxes, num_rays}),
         KOKKOS_LAMBDA(const size_t i, const size_t j) {
@@ -298,13 +299,13 @@ int main(int argc, char *argv[])
   // OrderedIntersects-based approach
   Kokkos::View<float *, MemorySpace> energy_ordered_intersects;
   {
-    Kokkos::Profiling::pushRegion("ordered_intersects_approach");
+    Kokkos::Profiling::pushRegion("Example::ordered_intersects_approach");
     Kokkos::View<float *, MemorySpace> ray_energy(
-        Kokkos::view_alloc("ray_energy", Kokkos::WithoutInitializing),
+        Kokkos::view_alloc("Example::ray_energy", Kokkos::WithoutInitializing),
         num_rays * num_boxes);
     Kokkos::deep_copy(ray_energy, (4000. * dx * dy * dz) / num_rays);
     energy_ordered_intersects = Kokkos::View<float *, MemorySpace>(
-        "energy_ordered_intersects", num_boxes);
+        "Example::energy_ordered_intersects", num_boxes);
 
     bvh.query(exec_space, OrderedIntersectsBased::Rays<MemorySpace>{rays},
               OrderedIntersectsBased::DepositEnergy<MemorySpace>{
@@ -315,9 +316,10 @@ int main(int argc, char *argv[])
   // Intersects-based approach
   Kokkos::View<float *, MemorySpace> energy_intersects;
   {
-    Kokkos::Profiling::pushRegion("intersects_approach");
-    Kokkos::View<IntersectsBased::IntersectedCell *> values("values", 0);
-    Kokkos::View<int *> offsets("offsets", 0);
+    Kokkos::Profiling::pushRegion("Example::intersects_approach");
+    Kokkos::View<IntersectsBased::IntersectedCell *> values("Example::values",
+                                                            0);
+    Kokkos::View<int *> offsets("Example::offsets", 0);
     bvh.query(
         exec_space, IntersectsBased::Rays<MemorySpace>{rays},
         IntersectsBased::AccumulateRaySphereIntersections<MemorySpace>{boxes},
@@ -325,19 +327,19 @@ int main(int argc, char *argv[])
 
     Kokkos::View<IntersectsBased::IntersectedCellForSorting *, MemorySpace>
         sort_array(Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
-                                      "sort_array"),
+                                      "Example::sort_array"),
                    values.size());
     Kokkos::parallel_for(
-        "copy sort_array",
+        "Example::copy sort_array",
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, values.size()),
         KOKKOS_LAMBDA(int i) { sort_array(i) = values(i); });
-    Kokkos::Profiling::pushRegion("sorting");
+    Kokkos::Profiling::pushRegion("Example::sorting");
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP) ||               \
     defined(KOKKOS_ENABLE_SYCL)
     auto permutation = ArborX::Details::sortObjects(exec_space, sort_array);
 #else
     Kokkos::View<int *> permutation(
-        Kokkos::view_alloc("permutation", Kokkos::WithoutInitializing),
+        Kokkos::view_alloc("Example::permutation", Kokkos::WithoutInitializing),
         sort_array.size());
     std::iota(permutation.data(), permutation.data() + sort_array.size(), 0);
     std::sort(permutation.data(), permutation.data() + sort_array.size(),
@@ -347,10 +349,10 @@ int main(int argc, char *argv[])
 #endif
     Kokkos::Profiling::popRegion();
 
-    energy_intersects =
-        Kokkos::View<float *, MemorySpace>("energy_intersects", num_boxes);
+    energy_intersects = Kokkos::View<float *, MemorySpace>(
+        "Example::energy_intersects", num_boxes);
     Kokkos::parallel_for(
-        "deposit_energy",
+        "Example::deposit_energy",
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0,
                                             num_rays * num_boxes),
         KOKKOS_LAMBDA(int i) {
@@ -376,7 +378,8 @@ int main(int argc, char *argv[])
   int n_errors = 0;
   float rel_tol = 1.e-5;
   Kokkos::parallel_reduce(
-      "compare", Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_boxes),
+      "Example::compare",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_boxes),
       KOKKOS_LAMBDA(int i, int &error) {
         using Kokkos::Experimental::fabs;
         float const rel_error =
