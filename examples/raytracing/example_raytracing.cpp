@@ -114,27 +114,27 @@ struct Rays
  */
 struct IntersectedCellForSorting
 {
-  float key;
-  int rid;
+  float entrylength;
+  int ray_id;
   friend KOKKOS_FUNCTION bool operator<(IntersectedCellForSorting const &l,
                                         IntersectedCellForSorting const &r)
   {
-    if (l.rid == r.rid)
-      return l.key < r.key;
-    return l.rid < r.rid;
+    if (l.ray_id == r.ray_id)
+      return l.entrylength < r.entrylength;
+    return l.ray_id < r.ray_id;
   }
 };
 
 struct IntersectedCell : public IntersectedCellForSorting
 {
   float optical_path_length; // optical distance through box
-  int cid;                   // box ID
+  int cell_id;               // box ID
   KOKKOS_FUNCTION IntersectedCell() = default;
   KOKKOS_FUNCTION IntersectedCell(float entry_length, float path_length,
                                   int primitive_index, int predicate_index)
       : IntersectedCellForSorting{entry_length, predicate_index}
       , optical_path_length(path_length)
-      , cid(primitive_index)
+      , cell_id(primitive_index)
   {}
 };
 
@@ -158,10 +158,10 @@ struct AccumRaySphereOptDist
     int const predicate_index = ArborX::getData(predicate);
     float const kappa = 1.;
     overlapDistance(ray, box, length, entrylength);
-    out(IntersectedCell{/*key*/ entrylength,
+    out(IntersectedCell{/*entrylength*/ entrylength,
                         /*optical_path_length*/ kappa * length,
-                        /*cid*/ primitive_index,
-                        /*rid*/ predicate_index});
+                        /*cell_id*/ primitive_index,
+                        /*ray_id*/ predicate_index});
   }
 };
 } // namespace IntersectsBased
@@ -362,8 +362,9 @@ int main(int argc, char *argv[])
                 -ray_energy *
                 expm1(-values(permutation(j)).optical_path_length);
             ray_energy += energy_deposited;
-            Kokkos::atomic_add(&energy_intersects(values(permutation(j)).cid),
-                               energy_deposited);
+            Kokkos::atomic_add(
+                &energy_intersects(values(permutation(j)).cell_id),
+                energy_deposited);
           }
         });
     Kokkos::Profiling::popRegion();
