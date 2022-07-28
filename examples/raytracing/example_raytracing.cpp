@@ -106,7 +106,7 @@ struct Rays
 };
 
 /*
- * IntersectedCell is a storage conatiner for all intersection between rays and
+ * IntersectedCell is a storage container for all intersections between rays and
  * boxes that are detected when calling the AccumRaySphereOptDist struct. The
  * member variables that are relevant for sorting the intersection according to
  * box and ray are contained in the base class IntersectedCellForSorting as
