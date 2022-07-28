@@ -51,9 +51,13 @@ cmake_dependent_option(ARBORX_USE_CUDA_AWARE_MPI
 target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/details>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/geometry>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/kokkos_ext>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-  $<INSTALL_INTERFACE:include/details>
+  $<INSTALL_INTERFACE:include/ArborX>
+  $<INSTALL_INTERFACE:include/ArborX/details>
+  $<INSTALL_INTERFACE:include/ArborX/geometry>
+  $<INSTALL_INTERFACE:include/ArborX/kokkos_ext>
 )
 
 install(TARGETS ArborX
@@ -111,14 +115,14 @@ install(FILES
   DESTINATION lib/cmake/ArborX )
 
 if(ARBORX_ENABLE_MPI)
-  install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include/ArborX
           FILES_MATCHING PATTERN "*.hpp")
 else()
-  install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include/ArborX
           FILES_MATCHING PATTERN "*.hpp"
           PATTERN "*Distribut*" EXCLUDE)
 endif()
-install(DIRECTORY ${PROJECT_BINARY_DIR}/include/ DESTINATION include
+install(DIRECTORY ${PROJECT_BINARY_DIR}/include/ DESTINATION include/ArborX
         FILES_MATCHING PATTERN "*.hpp")
 
 if(NOT CMAKE_BUILD_TYPE)
