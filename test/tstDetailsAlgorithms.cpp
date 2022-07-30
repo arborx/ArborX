@@ -194,9 +194,9 @@ BOOST_AUTO_TEST_CASE(expand)
   BOOST_TEST(equals(box, Box{{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}}));
 
   // expand box with boxes
-  expand(box, {{{0.25, 0.25, 0.25}}, {{0.75, 0.75, 0.75}}});
+  expand(box, Box{{{0.25, 0.25, 0.25}}, {{0.75, 0.75, 0.75}}});
   BOOST_TEST(equals(box, {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}}));
-  expand(box, {{{10.0, 10.0, 10.0}}, {{11.0, 11.0, 11.0}}});
+  expand(box, Box{{{10.0, 10.0, 10.0}}, {{11.0, 11.0, 11.0}}});
   BOOST_TEST(equals(box, {{{-1.0, -1.0, -1.0}}, {{11.0, 11.0, 11.0}}}));
 
   // expand box with spheres
