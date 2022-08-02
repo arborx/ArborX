@@ -39,10 +39,6 @@ if(Kokkos_ENABLE_SYCL AND ARBORX_ENABLE_ONEDPL)
     find_package(oneDPL REQUIRED)
     target_link_libraries(ArborX INTERFACE oneDPL)
   endif()
-  # libstdc++-9 and libstdc++-10 using legacy TBB that is incompatible with oneTBB, see
-  # https://stackoverflow.com/a/67924408
-  target_compile_definitions(ArborX INTERFACE _GLIBCXX_USE_TBB_PAR_BACKEND=0)
-  target_compile_definitions(ArborX INTERFACE PSTL_USE_PARALLEL_POLICIES=0)
 endif()
 
 # Refer to the alias target in examples and benchmarks so they can be built
