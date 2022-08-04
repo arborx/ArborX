@@ -31,8 +31,19 @@ endif()
 
 cmake_dependent_option(ARBORX_ENABLE_ONEDPL "Enable oneDPL support" ON "Kokkos_ENABLE_SYCL" OFF)
 if(Kokkos_ENABLE_SYCL AND ARBORX_ENABLE_ONEDPL)
-  find_package(oneDPL REQUIRED)
-  target_link_libraries(ArborX INTERFACE oneDPL)
+  include(CheckIncludeFileCXX)
+  check_include_file_cxx(oneapi/dpl/execution ARBORX_COMPILER_HAS_ONEDPL_EXECUTION_HEADER)
+  check_include_file_cxx(oneapi/dpl/algorithm ARBORX_COMPILER_HAS_ONEDPL_ALGORITHM_HEADER)
+  if (ARBORX_COMPILER_HAS_ONEDPL_EXECUTION_HEADER AND
+      ARBORX_COMPILER_HAS_ONEDPL_ALGORITHM_HEADER)
+    set(ARBORX_CXX_COMPILER_BUNDLED_ONEDPL TRUE)
+  else()
+    set(ARBORX_CXX_COMPILER_BUNDLED_ONEDPL FALSE)
+  endif()
+  if(NOT ARBORX_CXX_COMPILER_BUNDLED_ONEDPL)
+    find_package(oneDPL REQUIRED)
+    target_link_libraries(ArborX INTERFACE oneDPL)
+  endif()
 endif()
 
 # Refer to the alias target in examples and benchmarks so they can be built
