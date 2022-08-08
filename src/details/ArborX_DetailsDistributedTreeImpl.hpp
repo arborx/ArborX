@@ -21,6 +21,7 @@
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Predicates.hpp>
+#include <ArborX_Sphere.hpp>
 
 #include <Kokkos_Core.hpp>
 

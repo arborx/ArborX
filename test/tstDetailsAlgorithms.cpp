@@ -9,8 +9,11 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
+#include <ArborX_Point.hpp>
+#include <ArborX_Sphere.hpp>
 
 #define BOOST_TEST_MODULE Geometry
 #include <boost/test/unit_test.hpp>
