@@ -208,21 +208,24 @@ int main(int argc, char *argv[])
   int nx;
   int ny;
   int nz;
-  int num_rays;
+  int rays_per_box;
   float lx;
   float ly;
   float lz;
 
   bpo::options_description desc("Allowed options");
-  desc.add_options()("help", "help message")(
-      "rays per box", bpo::value<int>(&num_rays)->default_value(10),
-      "number of rays")("lx", bpo::value<float>(&lx)->default_value(100.0),
-                        "Length of X side")(
-      "ly", bpo::value<float>(&ly)->default_value(100.0), "Length of Y side")(
-      "lz", bpo::value<float>(&lz)->default_value(100.0), "Length of Z side")(
-      "nx", bpo::value<int>(&nx)->default_value(10), "number of X boxes")(
-      "ny", bpo::value<int>(&ny)->default_value(10), "number of Y boxes")(
-      "nz", bpo::value<int>(&nz)->default_value(10), "number of Z boxes");
+  // clang-format off
+  desc.add_options()
+    ("help", "help message" )
+    ("rays per box", bpo::value<int>(&rays_per_box)->default_value(10), "number of rays")
+    ("lx", bpo::value<float>(&lx)->default_value(100.0), "Length of X side")
+    ("ly", bpo::value<float>(&ly)->default_value(100.0), "Length of Y side")
+    ("lz", bpo::value<float>(&lz)->default_value(100.0), "Length of Z side")
+    ("nx", bpo::value<int>(&nx)->default_value(10), "number of X boxes")
+    ("ny", bpo::value<int>(&ny)->default_value(10), "number of Y boxes")
+    ("nz", bpo::value<int>(&nz)->default_value(10), "number of Z boxes")
+    ;
+  // clang-format on
   bpo::variables_map vm;
   bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
   bpo::notify(vm);
@@ -262,7 +265,7 @@ int main(int argc, char *argv[])
   Kokkos::Profiling::pushRegion("Example::make_rays");
   Kokkos::View<ArborX::Experimental::Ray *, MemorySpace> rays(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::rays"),
-      num_rays * num_boxes);
+      rays_per_box * num_boxes);
   {
     using RandPoolType = Kokkos::Random_XorShift64_Pool<>;
     RandPoolType rand_pool(5374857);
@@ -271,36 +274,35 @@ int main(int argc, char *argv[])
     Kokkos::parallel_for(
         "Example::initialize_rays",
         Kokkos::MDRangePolicy<Kokkos::Rank<2>, ExecutionSpace>(
-            exec_space, {0, 0}, {num_boxes, num_rays}),
+            exec_space, {0, 0}, {num_boxes, rays_per_box}),
         KOKKOS_LAMBDA(const size_t i, const size_t j) {
           // The origins of rays are uniformly distributed in the boxes. The
           // direction vectors are uniformly sampling of a full sphere.
-          GeneratorType random_generator = rand_pool.get_state();
+          GeneratorType g = rand_pool.get_state();
           using Kokkos::Experimental::cos;
           using Kokkos::Experimental::sin;
           using Kokkos::Experimental::acos;
 
-          float xi_1 =
-              Kokkos::rand<GeneratorType, float>::draw(random_generator);
-          float xi_2 =
-              Kokkos::rand<GeneratorType, float>::draw(random_generator);
-          float xi_3 =
-              Kokkos::rand<GeneratorType, float>::draw(random_generator);
-          float xi_4 =
-              Kokkos::rand<GeneratorType, float>::draw(random_generator);
-          float xi_5 =
-              Kokkos::rand<GeneratorType, float>::draw(random_generator);
+          ArborX::Box const &b = boxes(i);
+          ArborX::Point origin{
+              b.minCorner()[0] +
+                  Kokkos::rand<GeneratorType, float>::draw(g, dx),
+              b.minCorner()[1] +
+                  Kokkos::rand<GeneratorType, float>::draw(g, dy),
+              b.minCorner()[2] +
+                  Kokkos::rand<GeneratorType, float>::draw(g, dz)};
 
-          float upsilon = 2 * M_PI * xi_1;
-          float theta = acos(1 - 2 * xi_2);
+          float upsilon =
+              Kokkos::rand<GeneratorType, float>::draw(g, 2.f * M_PI);
+          float theta =
+              acos(1 - 2 * Kokkos::rand<GeneratorType, float>::draw(g));
+          ArborX::Experimental::Vector direction{
+              cos(upsilon) * sin(theta), sin(upsilon) * sin(theta), cos(theta)};
 
-          rays(j + i * num_rays) = {{xi_3 * dx + boxes(i).minCorner()[0],
-                                     xi_4 * dy + boxes(i).minCorner()[1],
-                                     xi_5 * dz + boxes(i).minCorner()[2]},
-                                    {cos(upsilon) * sin(theta),
-                                     sin(upsilon) * sin(theta), cos(theta)}};
+          rays(j + i * rays_per_box) =
+              ArborX::Experimental::Ray{origin, direction};
 
-          rand_pool.free_state(random_generator);
+          rand_pool.free_state(g);
         });
   }
   Kokkos::Profiling::popRegion();
@@ -315,8 +317,8 @@ int main(int argc, char *argv[])
     Kokkos::Profiling::pushRegion("Example::ordered_intersects_approach");
     Kokkos::View<float *, MemorySpace> ray_energy(
         Kokkos::view_alloc("Example::ray_energy", Kokkos::WithoutInitializing),
-        num_rays * num_boxes);
-    Kokkos::deep_copy(ray_energy, (total_energy * dx * dy * dz) / num_rays);
+        rays_per_box * num_boxes);
+    Kokkos::deep_copy(ray_energy, (total_energy * dx * dy * dz) / rays_per_box);
     energy_ordered_intersects = Kokkos::View<float *, MemorySpace>(
         "Example::energy_ordered_intersects", num_boxes);
 
@@ -367,9 +369,9 @@ int main(int argc, char *argv[])
     Kokkos::parallel_for(
         "Example::deposit_energy",
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0,
-                                            num_rays * num_boxes),
+                                            rays_per_box * num_boxes),
         KOKKOS_LAMBDA(int i) {
-          float ray_energy = (total_energy * dx * dy * dz) / num_rays;
+          float ray_energy = (total_energy * dx * dy * dz) / rays_per_box;
           for (int j = offsets(i); j < offsets(i + 1); ++j)
           {
             const auto &v = values(permutation(j));
