@@ -25,10 +25,12 @@
 #include <ArborX.hpp>
 #include <ArborX_Ray.hpp>
 
+#include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>
 
 #include <boost/program_options.hpp>
 
+#include <iostream>
 #include <numeric>
 
 // The total energy that is distributed across all rays.
