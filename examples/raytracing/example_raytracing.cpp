@@ -11,7 +11,7 @@
 
 /*
  * This example demonstrates how to use ArborX for a raytracing example where
- * rays carry energy that they deposit onto given boxes as they hit them.
+ * rays carry energy that they deposit onto given boxes as they traverse them.
  * The order in which these rays (which originate from one of the boxes) hit
  * the boxes is important in this case, since the ray loses energy on
  * intersection. The example shows two different ways to do that:
