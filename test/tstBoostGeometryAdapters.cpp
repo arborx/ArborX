@@ -10,7 +10,9 @@
  ****************************************************************************/
 
 #include "ArborX_BoostGeometryAdapters.hpp"
+#include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
+#include <ArborX_Point.hpp>
 
 #include <boost/test/unit_test.hpp>
 

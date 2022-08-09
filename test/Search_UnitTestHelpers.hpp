@@ -23,6 +23,9 @@
 #include "ArborX_BoostRTreeHelpers.hpp"
 #include <ArborX_DistributedTree.hpp>
 #endif
+#include <ArborX_Box.hpp>
+#include <ArborX_Point.hpp>
+#include <ArborX_Sphere.hpp>
 
 #include <boost/test/unit_test.hpp>
 

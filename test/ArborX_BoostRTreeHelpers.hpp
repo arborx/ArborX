@@ -22,6 +22,7 @@
 #include <ArborX_DetailsUtils.hpp>                        // exclusivePrefixSum
 #include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
+#include <ArborX_Sphere.hpp>
 
 #include <boost/range/adaptors.hpp>
 #include <boost/range/algorithm/copy.hpp>

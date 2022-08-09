@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include <ArborX_LinearBVH.hpp>
+#include <ArborX_Sphere.hpp>
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>

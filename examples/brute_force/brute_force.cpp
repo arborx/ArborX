@@ -11,6 +11,7 @@
 
 #include <ArborX_BruteForce.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <ArborX_Sphere.hpp>
 
 #include <Kokkos_Core.hpp>
 

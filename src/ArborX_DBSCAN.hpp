@@ -17,6 +17,7 @@
 #include <ArborX_DetailsFDBSCANDenseBox.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <ArborX_Sphere.hpp>
 
 #include <map>
 
