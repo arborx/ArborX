@@ -408,9 +408,9 @@ int main(int argc, char *argv[])
         }
       },
       n_errors);
-  std::cout << "errors = " << n_errors << '\n';
+  std::cerr << "errors = " << n_errors << '\n';
   if (n_errors > 0)
-    Kokkos::abort("The two approaches differ by more than expected!\n");
+    return EXIT_FAILURE;
 
   return EXIT_SUCCESS;
 }
