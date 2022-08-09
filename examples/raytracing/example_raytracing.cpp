@@ -348,19 +348,26 @@ int main(int argc, char *argv[])
         "Example::copy sort_array",
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, values.size()),
         KOKKOS_LAMBDA(int i) { sort_array(i) = values(i); });
-    Kokkos::Profiling::pushRegion("Example::sorting");
+    Kokkos::Profiling::pushRegion("Example::sorting by key");
+    // FIXME Users should not need to reach into the Details namespace.
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP) ||               \
     defined(KOKKOS_ENABLE_SYCL)
     auto permutation = ArborX::Details::sortObjects(exec_space, sort_array);
 #else
-    Kokkos::View<int *> permutation(
+    auto sort_array_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, sort_array);
+    Kokkos::View<int *, Kokkos::HostSpace> permutation_host(
         Kokkos::view_alloc("Example::permutation", Kokkos::WithoutInitializing),
-        sort_array.size());
-    std::iota(permutation.data(), permutation.data() + sort_array.size(), 0);
-    std::sort(permutation.data(), permutation.data() + sort_array.size(),
+        sort_array_host.size());
+    std::iota(permutation_host.data(),
+              permutation_host.data() + sort_array_host.size(), 0);
+    std::sort(permutation_host.data(),
+              permutation_host.data() + sort_array_host.size(),
               [&](int const &a, int const &b) {
-                return (sort_array(a) < sort_array(b));
+                return (sort_array_host(a) < sort_array_host(b));
               });
+    auto permutation =
+        Kokkos::create_mirror_view_and_copy(MemorySpace{}, permutation_host);
 #endif
     Kokkos::Profiling::popRegion();
 
