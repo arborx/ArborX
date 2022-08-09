@@ -13,6 +13,7 @@
 
 #include <ArborX_Config.hpp>
 
+#include <ArborX_Box.hpp>
 #include <ArborX_DetailsDistributor.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
