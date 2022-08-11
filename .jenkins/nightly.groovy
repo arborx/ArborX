@@ -47,10 +47,10 @@ pipeline {
                         }
                     }
                 }
-                stage('ROCm-4.5.2') {
+                stage('ROCm-5.2') {
                     agent {
                         docker {
-                            image 'rocm/dev-ubuntu-20.04:4.5.2-complete'
+                            image 'rocm/dev-ubuntu-20.04:5.2-complete'
                             label 'AMD_Radeon_Instinct_MI100 && rocm-docker'
                             args '--device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --env HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES}'
                         }
