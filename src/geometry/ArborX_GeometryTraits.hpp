@@ -68,7 +68,7 @@ struct is_sphere
 {};
 
 template <typename Geometry>
-void check_valid_geometry_traits()
+void check_valid_geometry_traits(Geometry const &)
 {
   static_assert(
       !Kokkos::is_detected<DimensionNotSpecializedArchetypeAlias, Geometry>{},

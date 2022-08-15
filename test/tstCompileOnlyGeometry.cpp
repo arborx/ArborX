@@ -113,27 +113,27 @@ struct tag<CorrectSpecialization>
 
 void test_geometry_compile_only()
 {
-  check_valid_geometry_traits<ArborX::Point>();
-  check_valid_geometry_traits<ArborX::Box>();
-  check_valid_geometry_traits<ArborX::Sphere>();
+  check_valid_geometry_traits(ArborX::Point{});
+  check_valid_geometry_traits(ArborX::Box{});
+  check_valid_geometry_traits(ArborX::Sphere{});
 
-  check_valid_geometry_traits<CorrectSpecialization>();
+  check_valid_geometry_traits(CorrectSpecialization{});
 
   // Uncomment to see error messages
 
-  // check_valid_geometry_traits<NoGeometryTraitsSpecialization>();
+  // check_valid_geometry_traits(NoGeometryTraitsSpecialization{});
 
-  // check_valid_geometry_traits<NoDimensionSpecialization>();
+  // check_valid_geometry_traits(NoDimensionSpecialization{});
 
-  // check_valid_geometry_traits<NoTagSpecialization>();
+  // check_valid_geometry_traits(NoTagSpecialization{});
 
-  // check_valid_geometry_traits<EmptyDimensionSpecialization>();
+  // check_valid_geometry_traits(EmptyDimensionSpecialization{});
 
-  // check_valid_geometry_traits<EmptyTagSpecialization>();
+  // check_valid_geometry_traits(EmptyTagSpecialization{});
 
-  // check_valid_geometry_traits<WrongTypeDimensionSpecialization>();
+  // check_valid_geometry_traits(WrongTypeDimensionSpecialization{});
 
-  // check_valid_geometry_traits<NegativeIntegerDimensionSpecialization>();
+  // check_valid_geometry_traits(NegativeIntegerDimensionSpecialization{});
 
-  // check_valid_geometry_traits<WrongTagSpecialization>();
+  // check_valid_geometry_traits(WrongTagSpecialization{});
 }
