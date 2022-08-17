@@ -88,7 +88,9 @@ foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
   list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH.cpp")
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BF.cpp.tmp"
     "#include <ArborX_BruteForce.hpp>\n"
-    "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX::BruteForce>\n"
+    "#include <ArborX_Box.hpp>\n"
+    "template <class MemorySpace> using ArborX__BruteForce = ArborX::BruteForce<MemorySpace, ArborX::Box>;\n"
+    "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX__BruteForce>\n"
     "#define ARBORX_TEST_DEVICE_TYPES std::tuple<${ARBORX_DEVICE_TYPES}>\n"
     "#define ARBORX_TEST_DISABLE_NEAREST_QUERY\n"
     "#define ARBORX_TEST_DISABLE_CALLBACK_EARLY_EXIT\n"
