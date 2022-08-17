@@ -12,6 +12,8 @@
 #ifndef ARBORX_DETAILS_POINT_HPP
 #define ARBORX_DETAILS_POINT_HPP
 
+#include <ArborX_GeometryTraits.hpp>
+
 #include <Kokkos_Macros.hpp>
 
 #include <utility>
@@ -67,6 +69,18 @@ public:
     return _data.coords[i];
   }
 };
+
+template <>
+struct GeometryTraits::dimension<ArborX::Point>
+{
+  static constexpr int value = 3;
+};
+template <>
+struct GeometryTraits::tag<ArborX::Point>
+{
+  using type = PointTag;
+};
+
 } // namespace ArborX
 
 #endif

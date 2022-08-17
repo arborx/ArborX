@@ -11,6 +11,7 @@
 #ifndef ARBORX_Sphere_HPP
 #define ARBORX_Sphere_HPP
 
+#include <ArborX_GeometryTraits.hpp>
 #include <ArborX_Point.hpp>
 
 #include <Kokkos_Macros.hpp>
@@ -41,6 +42,18 @@ struct Sphere
   Point _centroid = {};
   float _radius = 0.;
 };
+
+template <>
+struct GeometryTraits::dimension<ArborX::Sphere>
+{
+  static constexpr int value = 3;
+};
+template <>
+struct GeometryTraits::tag<ArborX::Sphere>
+{
+  using type = SphereTag;
+};
+
 } // namespace ArborX
 
 #endif
