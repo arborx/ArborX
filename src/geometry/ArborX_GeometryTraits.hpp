@@ -43,7 +43,7 @@ struct not_specialized
 template <typename Geometry>
 struct tag
 {
-  using type = not_specialized; // or void
+  using type = not_specialized;
 };
 
 template <typename Geometry>
