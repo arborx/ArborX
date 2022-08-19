@@ -70,8 +70,7 @@ inline void projectOntoSpaceFillingCurve(ExecutionSpace const &space,
   static_assert(
       std::is_same<typename LinearOrdering::value_type,
                    decltype(curve(scene_bounding_box,
-                                  Access::get(primitives, 0)))>::value,
-      "");
+                                  Access::get(primitives, 0)))>::value);
 
   Kokkos::parallel_for(
       "ArborX::TreeConstruction::project_primitives_onto_space_filling_curve",

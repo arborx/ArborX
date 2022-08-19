@@ -746,7 +746,7 @@ void DistributedTreeImpl<DeviceType>::forwardQueries(
   int const n_imports = distributor.createFromSends(space, indices);
 
   static_assert(
-      std::is_same<Query, typename AccessTraitsHelper<Access>::type>{}, "");
+      std::is_same<Query, typename AccessTraitsHelper<Access>::type>{});
   Kokkos::View<Query *, DeviceType> exports(
       Kokkos::view_alloc(
           space, Kokkos::WithoutInitializing,

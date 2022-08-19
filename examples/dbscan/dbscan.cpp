@@ -159,26 +159,21 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
 {
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::sortAndFilterClusters");
 
-  static_assert(Kokkos::is_view<LabelsView>{}, "");
-  static_assert(Kokkos::is_view<ClusterIndicesView>{}, "");
-  static_assert(Kokkos::is_view<ClusterOffsetView>{}, "");
+  static_assert(Kokkos::is_view<LabelsView>{});
+  static_assert(Kokkos::is_view<ClusterIndicesView>{});
+  static_assert(Kokkos::is_view<ClusterOffsetView>{});
 
   using MemorySpace = typename LabelsView::memory_space;
 
-  static_assert(std::is_same<typename LabelsView::value_type, int>{}, "");
-  static_assert(std::is_same<typename ClusterIndicesView::value_type, int>{},
-                "");
-  static_assert(std::is_same<typename ClusterOffsetView::value_type, int>{},
-                "");
+  static_assert(std::is_same<typename LabelsView::value_type, int>{});
+  static_assert(std::is_same<typename ClusterIndicesView::value_type, int>{});
+  static_assert(std::is_same<typename ClusterOffsetView::value_type, int>{});
 
-  static_assert(std::is_same<typename LabelsView::memory_space, MemorySpace>{},
-                "");
+  static_assert(std::is_same<typename LabelsView::memory_space, MemorySpace>{});
   static_assert(
-      std::is_same<typename ClusterIndicesView::memory_space, MemorySpace>{},
-      "");
+      std::is_same<typename ClusterIndicesView::memory_space, MemorySpace>{});
   static_assert(
-      std::is_same<typename ClusterOffsetView::memory_space, MemorySpace>{},
-      "");
+      std::is_same<typename ClusterOffsetView::memory_space, MemorySpace>{});
 
   ARBORX_ASSERT(cluster_min_size >= 1);
 

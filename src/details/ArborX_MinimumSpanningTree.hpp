@@ -65,7 +65,7 @@ public:
   float weight = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
 private:
-  static_assert(sizeof(unsigned long long) == 8, "");
+  static_assert(sizeof(unsigned long long) == 8);
   static constexpr int source_shift = 32;
   static constexpr int target_shift = 1;
   static constexpr unsigned long long mask_source =

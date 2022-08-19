@@ -48,8 +48,8 @@ determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
   ARBORX_ASSERT(permutation_indices.extent_int(0) == 0);
   ARBORX_ASSERT(batched_ranks.size() + 1 == batched_offsets.size());
   static_assert(
-      std::is_same<typename InputView::non_const_value_type, int>::value, "");
-  static_assert(std::is_same<typename OutputView::value_type, int>::value, "");
+      std::is_same<typename InputView::non_const_value_type, int>::value);
+  static_assert(std::is_same<typename OutputView::value_type, int>::value);
 
   // In case all the batches are empty, return an empty list of unique_ranks and
   // counts, but still have one element in offsets. This is conforming with
@@ -140,8 +140,8 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
   ARBORX_ASSERT(counts.empty());
   ARBORX_ASSERT(permutation_indices.extent_int(0) == ranks.extent_int(0));
   static_assert(
-      std::is_same<typename InputView::non_const_value_type, int>::value, "");
-  static_assert(std::is_same<typename OutputView::value_type, int>::value, "");
+      std::is_same<typename InputView::non_const_value_type, int>::value);
+  static_assert(std::is_same<typename OutputView::value_type, int>::value);
 
   offsets.push_back(0);
 
@@ -211,9 +211,9 @@ public:
                          View const &batched_destination_ranks,
                          View const &batch_offsets)
   {
-    static_assert(View::rank == 1, "");
-    static_assert(std::is_same<typename View::non_const_value_type, int>::value,
-                  "");
+    static_assert(View::rank == 1);
+    static_assert(
+        std::is_same<typename View::non_const_value_type, int>::value);
 
     // The next two function calls are the only difference to the other
     // overload.
@@ -229,9 +229,9 @@ public:
   size_t createFromSends(ExecutionSpace const &space,
                          View const &destination_ranks)
   {
-    static_assert(View::rank == 1, "");
-    static_assert(std::is_same<typename View::non_const_value_type, int>::value,
-                  "");
+    static_assert(View::rank == 1);
+    static_assert(
+        std::is_same<typename View::non_const_value_type, int>::value);
 
     // The next two function calls are the only difference to the other
     // overload.
@@ -253,14 +253,12 @@ public:
     using ValueType = typename ImportView::value_type;
     static_assert(
         std::is_same<ValueType,
-                     std::remove_cv_t<typename ExportView::value_type>>::value,
-        "");
-    static_assert(ImportView::rank == 1, "");
+                     std::remove_cv_t<typename ExportView::value_type>>::value);
+    static_assert(ImportView::rank == 1);
 
     static_assert(
         std::is_same<typename ExportView::memory_space,
-                     typename decltype(_permute)::memory_space>::value,
-        "");
+                     typename decltype(_permute)::memory_space>::value);
 
     // This allows function to work even when ExportView is unmanaged.
     using ExportViewWithoutMemoryTraits =
@@ -320,13 +318,11 @@ public:
 
     static_assert(
         decltype(dest_buffer_mirror)::rank == 1 ||
-            std::is_same<typename decltype(dest_buffer_mirror)::array_layout,
-                         Kokkos::LayoutRight>::value,
-        "");
+        std::is_same<typename decltype(dest_buffer_mirror)::array_layout,
+                     Kokkos::LayoutRight>::value);
     static_assert(ImportView::rank == 1 ||
-                      std::is_same<typename ImportView::array_layout,
-                                   Kokkos::LayoutRight>::value,
-                  "");
+                  std::is_same<typename ImportView::array_layout,
+                               Kokkos::LayoutRight>::value);
 
     int comm_rank;
     MPI_Comm_rank(_comm, &comm_rank);

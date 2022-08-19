@@ -586,34 +586,33 @@ BOOST_AUTO_TEST_CASE(ray_triangle_intersection,
 #undef ARBORX_TEST_RAY_TRIANGLE_INTERSECTION
 #undef ARBORX_TEST_RAY_TRIANGLE_NO_INTERSECTION
 
-#define STATIC_ASSERT(cond) static_assert(cond, "");
 BOOST_AUTO_TEST_CASE(make_euclidean_vector)
 {
   using ArborX::Experimental::makeVector;
   using ArborX::Experimental::Vector;
-  STATIC_ASSERT((makeVector({0, 0, 0}, {1, 2, 3}) == Vector{1, 2, 3}));
-  STATIC_ASSERT((makeVector({1, 2, 3}, {4, 5, 6}) == Vector{3, 3, 3}));
+  static_assert(makeVector({0, 0, 0}, {1, 2, 3}) == Vector{1, 2, 3});
+  static_assert(makeVector({1, 2, 3}, {4, 5, 6}) == Vector{3, 3, 3});
 }
 
 BOOST_AUTO_TEST_CASE(dot_product)
 {
   using ArborX::Experimental::dotProduct;
-  STATIC_ASSERT(dotProduct({1, 0, 0}, {1, 0, 0}) == 1);
-  STATIC_ASSERT(dotProduct({1, 0, 0}, {0, 1, 0}) == 0);
-  STATIC_ASSERT(dotProduct({1, 0, 0}, {0, 0, 1}) == 0);
-  STATIC_ASSERT(dotProduct({1, 1, 1}, {1, 1, 1}) == 3);
+  static_assert(dotProduct({1, 0, 0}, {1, 0, 0}) == 1);
+  static_assert(dotProduct({1, 0, 0}, {0, 1, 0}) == 0);
+  static_assert(dotProduct({1, 0, 0}, {0, 0, 1}) == 0);
+  static_assert(dotProduct({1, 1, 1}, {1, 1, 1}) == 3);
 }
 
 BOOST_AUTO_TEST_CASE(cross_product)
 {
   using ArborX::Experimental::crossProduct;
   using ArborX::Experimental::Vector;
-  STATIC_ASSERT((crossProduct({1, 0, 0}, {1, 0, 0}) == Vector{0, 0, 0}));
-  STATIC_ASSERT((crossProduct({1, 0, 0}, {0, 1, 0}) == Vector{0, 0, 1}));
-  STATIC_ASSERT((crossProduct({1, 0, 0}, {0, 0, 1}) == Vector{0, -1, 0}));
-  STATIC_ASSERT((crossProduct({0, 1, 0}, {1, 0, 0}) == Vector{0, 0, -1}));
-  STATIC_ASSERT((crossProduct({0, 1, 0}, {0, 1, 0}) == Vector{0, 0, 0}));
-  STATIC_ASSERT((crossProduct({0, 1, 0}, {0, 0, 1}) == Vector{1, 0, 0}));
-  STATIC_ASSERT((crossProduct({1, 1, 1}, {1, 1, 1}) == Vector{0, 0, 0}));
+  static_assert(crossProduct({1, 0, 0}, {1, 0, 0}) == Vector{0, 0, 0});
+  static_assert(crossProduct({1, 0, 0}, {0, 1, 0}) == Vector{0, 0, 1});
+  static_assert(crossProduct({1, 0, 0}, {0, 0, 1}) == Vector{0, -1, 0});
+  static_assert(crossProduct({0, 1, 0}, {1, 0, 0}) == Vector{0, 0, -1});
+  static_assert(crossProduct({0, 1, 0}, {0, 1, 0}) == Vector{0, 0, 0});
+  static_assert(crossProduct({0, 1, 0}, {0, 0, 1}) == Vector{1, 0, 0});
+  static_assert(crossProduct({1, 1, 1}, {1, 1, 1}) == Vector{0, 0, 0});
 }
-#undef STATIC_ASSERT
+#undef static_assert

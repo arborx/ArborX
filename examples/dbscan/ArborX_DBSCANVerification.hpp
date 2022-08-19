@@ -286,14 +286,13 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
 {
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::verify");
 
-  static_assert(Kokkos::is_view<LabelsView>{}, "");
+  static_assert(Kokkos::is_view<LabelsView>{});
 
   using Access = AccessTraits<Primitives, PrimitivesTag>;
   using MemorySpace = typename Access::memory_space;
 
-  static_assert(std::is_same<typename LabelsView::value_type, int>{}, "");
-  static_assert(std::is_same<typename LabelsView::memory_space, MemorySpace>{},
-                "");
+  static_assert(std::is_same<typename LabelsView::value_type, int>{});
+  static_assert(std::is_same<typename LabelsView::memory_space, MemorySpace>{});
 
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);

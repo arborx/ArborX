@@ -36,7 +36,7 @@ class DistributedTree
 {
 public:
   using memory_space = MemorySpace;
-  static_assert(Kokkos::is_memory_space<MemorySpace>::value, "");
+  static_assert(Kokkos::is_memory_space<MemorySpace>::value);
   using size_type = typename BVH<MemorySpace>::size_type;
   using bounding_volume_type = typename BVH<MemorySpace>::bounding_volume_type;
 
@@ -90,7 +90,7 @@ public:
   void query(ExecutionSpace const &space, Predicates const &predicates,
              Args &&...args) const
   {
-    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
+    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
     using Access = AccessTraits<Predicates, PredicatesTag>;
     using Tag = typename Details::AccessTraitsHelper<Access>::tag;
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
@@ -116,7 +116,7 @@ DistributedTree<MemorySpace, Enable>::DistributedTree(
 {
   Kokkos::Profiling::pushRegion("ArborX::DistributedTree::DistributedTree");
 
-  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
 
   // Create new context for the library to isolate library's communication from
   // user's

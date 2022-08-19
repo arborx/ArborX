@@ -31,7 +31,7 @@ template <class ExecutionSpace, class T, class... P>
 typename Kokkos::ViewTraits<T, P...>::non_const_value_type
 lastElement(ExecutionSpace const &space, Kokkos::View<T, P...> const &v)
 {
-  static_assert((unsigned(Kokkos::ViewTraits<T, P...>::rank) == unsigned(1)),
+  static_assert(unsigned(Kokkos::ViewTraits<T, P...>::rank) == unsigned(1),
                 "lastElement requires Views of rank 1");
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
@@ -54,8 +54,8 @@ void reallocWithoutInitializing(ExecutionSpace const &space, View &v,
                                 size_t n6 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
                                 size_t n7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG)
 {
-  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
-  static_assert(Kokkos::is_view<View>::value, "");
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
+  static_assert(Kokkos::is_view<View>::value);
   static_assert(View::is_managed, "Can only realloc managed views");
 
   size_t new_extents[8] = {n0, n1, n2, n3, n4, n5, n6, n7};
@@ -76,8 +76,8 @@ template <class ExecutionSpace, class View>
 void reallocWithoutInitializing(ExecutionSpace const &space, View &v,
                                 const typename View::array_layout &layout)
 {
-  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
-  static_assert(Kokkos::is_view<View>::value, "");
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
+  static_assert(Kokkos::is_view<View>::value);
   static_assert(View::is_managed, "Can only realloc managed views");
   v = View(Kokkos::view_alloc(space, Kokkos::WithoutInitializing, v.label()),
            layout);
@@ -86,8 +86,8 @@ void reallocWithoutInitializing(ExecutionSpace const &space, View &v,
 template <class ExecutionSpace, class View>
 typename View::non_const_type clone(ExecutionSpace const &space, View &v)
 {
-  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
-  static_assert(Kokkos::is_view<View>::value, "");
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
+  static_assert(Kokkos::is_view<View>::value);
   typename View::non_const_type w(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing, v.label()),
       v.layout());
@@ -99,8 +99,8 @@ template <class ExecutionSpace, class View>
 typename View::non_const_type
 cloneWithoutInitializingNorCopying(ExecutionSpace const &space, View &v)
 {
-  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
-  static_assert(Kokkos::is_view<View>::value, "");
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
+  static_assert(Kokkos::is_view<View>::value);
   return typename View::non_const_type(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing, v.label()),
       v.layout());

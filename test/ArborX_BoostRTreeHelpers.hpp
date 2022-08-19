@@ -185,7 +185,7 @@ template <typename Indexable, typename InputView,
 static std::tuple<OutputView, OutputView>
 performQueries(RTree<Indexable> const &rtree, InputView const &queries)
 {
-  static_assert(KokkosExt::is_accessible_from_host<InputView>::value, "");
+  static_assert(KokkosExt::is_accessible_from_host<InputView>::value);
 
   using Value = typename RTree<Indexable>::value_type;
   auto const n_queries = queries.extent_int(0);
@@ -213,7 +213,7 @@ template <typename Indexable, typename InputView,
 static std::tuple<OutputView2, OutputView1>
 performQueries(ParallelRTree<Indexable> const &rtree, InputView const &queries)
 {
-  static_assert(KokkosExt::is_accessible_from_host<InputView>::value, "");
+  static_assert(KokkosExt::is_accessible_from_host<InputView>::value);
   using Value = typename ParallelRTree<Indexable>::value_type;
   auto const n_queries = queries.extent_int(0);
   OutputView2 offset("offset", n_queries + 1);
@@ -253,7 +253,7 @@ public:
   template <typename ExecutionSpace>
   RTree(ExecutionSpace, Kokkos::View<Indexable *, DeviceType> const &values)
   {
-    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
+    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
 
     _tree = BoostRTreeHelpers::makeRTree(values);
   }
@@ -264,7 +264,7 @@ public:
   void query(ExecutionSpace const &, Predicates const &predicates,
              InputView &indices, InputView &offset, TrailingArgs &&...) const
   {
-    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
+    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
 
     std::tie(offset, indices) =
         BoostRTreeHelpers::performQueries(_tree, predicates);
@@ -275,7 +275,7 @@ public:
   void query(ExecutionSpace const &, Predicates const &, Callback const &,
              TrailingArgs &&...) const
   {
-    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
+    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
 
     throw std::runtime_error(
         "Boost RTree does not support callback only query overload.");
@@ -297,7 +297,7 @@ public:
   ParallelRTree(MPI_Comm comm, ExecutionSpace const &,
                 Kokkos::View<Indexable *, DeviceType> const &values)
   {
-    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
+    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
 
     _tree = BoostRTreeHelpers::makeRTree(comm, values);
   }
@@ -308,7 +308,7 @@ public:
   void query(ExecutionSpace const &, Predicates const &predicates,
              InputView1 &indices, InputView2 &offset, TrailingArgs &&...) const
   {
-    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
+    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
 
     std::tie(offset, indices) =
         BoostRTreeHelpers::performQueries(_tree, predicates);

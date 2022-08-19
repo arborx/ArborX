@@ -137,7 +137,7 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
   // pre-condition: offset and out are preallocated. If buffer_size > 0, offset
   // is pre-initialized
 
-  static_assert(Kokkos::is_execution_space<ExecutionSpace>{}, "");
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>{});
 
   using Access = AccessTraits<Predicates, PredicatesTag>;
   auto const n_queries = Access::size(predicates);

@@ -24,8 +24,8 @@ namespace KokkosExt
 template <typename MemorySpace, typename ExecutionSpace, typename = void>
 struct is_accessible_from : std::false_type
 {
-  static_assert(Kokkos::is_memory_space<MemorySpace>::value, "");
-  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value, "");
+  static_assert(Kokkos::is_memory_space<MemorySpace>::value);
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
 };
 
 template <typename MemorySpace, typename ExecutionSpace>
@@ -39,7 +39,7 @@ template <typename View>
 struct is_accessible_from_host
     : public is_accessible_from<typename View::memory_space, Kokkos::HostSpace>
 {
-  static_assert(Kokkos::is_view<View>::value, "");
+  static_assert(Kokkos::is_view<View>::value);
 };
 
 } // namespace KokkosExt

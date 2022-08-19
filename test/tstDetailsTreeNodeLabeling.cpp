@@ -45,8 +45,7 @@ HAPPY_TREE_FRIENDS_GET_CHILDREN_SPECIALIZATION(
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP) ||               \
     defined(KOKKOS_ENABLE_SYCL) || defined(KOKKOS_ENABLE_OPENMPTARGET)
 static_assert(!std::is_same<Kokkos::DefaultExecutionSpace::memory_space,
-                            Kokkos::HostSpace>::value,
-              "");
+                            Kokkos::HostSpace>::value);
 HAPPY_TREE_FRIENDS_GET_CHILDREN_SPECIALIZATION(Kokkos::HostSpace)
 #endif
 
