@@ -103,20 +103,12 @@ inline void initializeSingleLeafNode(ExecutionSpace const &space,
       });
 }
 
-namespace
-{
-// Ideally, this would be
-//     static constexpr int UNTOUCHED_NODE = -1;
-// inside the GenerateHierarchyFunctor class. But prior to C++17, this would
-// require to also have a definition outside the class as it is odr-used.
-// This is a workaround.
-constexpr int UNTOUCHED_NODE = -1;
-} // namespace
-
 template <typename Primitives, typename MemorySpace, typename Node,
           typename LinearOrderingValueType>
 class GenerateHierarchy
 {
+  static constexpr int UNTOUCHED_NODE = -1;
+
 public:
   template <typename ExecutionSpace,
             typename... PermutationIndicesViewProperties,
