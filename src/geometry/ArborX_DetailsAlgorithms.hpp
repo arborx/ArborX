@@ -44,11 +44,8 @@ struct expand;
 template <typename Tag1, typename Tag2, typename Geometry1, typename Geometry2>
 struct intersects;
 
-template <typename Tag1, typename Tag2, typename Geometry1, typename Geometry2>
-struct centroid;
-
 template <typename Tag, typename Geometry>
-struct returnCentroid;
+struct centroid;
 
 } // namespace Dispatch
 
@@ -95,19 +92,11 @@ KOKKOS_INLINE_FUNCTION constexpr bool intersects(Geometry1 const &geometry1,
                                                            geometry2);
 }
 
-template <typename Geometry, typename Point>
-KOKKOS_INLINE_FUNCTION void centroid(Geometry const &geometry, Point &point)
-{
-  Dispatch::centroid<typename GeometryTraits::tag<Geometry>::type,
-                     typename GeometryTraits::tag<Point>::type, Geometry,
-                     Point>::apply(geometry, point);
-}
-
 template <typename Geometry>
-KOKKOS_INLINE_FUNCTION auto returnCentroid(Geometry const &geometry)
+KOKKOS_INLINE_FUNCTION decltype(auto) returnCentroid(Geometry const &geometry)
 {
-  return Dispatch::returnCentroid<typename GeometryTraits::tag<Geometry>::type,
-                                  Geometry>::apply(geometry);
+  return Dispatch::centroid<typename GeometryTraits::tag<Geometry>::type,
+                            Geometry>::apply(geometry);
 }
 
 namespace Dispatch
@@ -417,48 +406,14 @@ struct intersects<PointTag, SphereTag, Point, Sphere>
   }
 };
 
-template <typename Sphere, typename Point>
-struct centroid<SphereTag, PointTag, Sphere, Point>
-{
-  KOKKOS_FUNCTION static void apply(Sphere const &sphere, Point &c)
-  {
-    static_assert(GeometryTraits::dimension<Point>::value ==
-                  GeometryTraits::dimension<Sphere>::value);
-    c = sphere.centroid();
-  }
-};
-
-// calculate the centroid of a box
-template <typename Box, typename Point>
-struct centroid<BoxTag, PointTag, Box, Point>
-{
-  KOKKOS_FUNCTION static void apply(Box const &box, Point &c)
-  {
-    static_assert(GeometryTraits::dimension<Point>::value ==
-                  GeometryTraits::dimension<Box>::value);
-    constexpr int DIM = GeometryTraits::dimension<Point>::value;
-    for (int d = 0; d < DIM; ++d)
-      c[d] = (box.minCorner()[d] + box.maxCorner()[d]) / 2;
-  }
-};
-
-template <typename Point1, typename Point2>
-struct centroid<PointTag, PointTag, Point1, Point2>
-{
-  KOKKOS_FUNCTION static void apply(Point1 const &point, Point2 &c)
-  {
-    c = point;
-  }
-};
-
 template <typename Point>
-struct returnCentroid<PointTag, Point>
+struct centroid<PointTag, Point>
 {
-  KOKKOS_FUNCTION static auto apply(Point const &point) { return point; }
+  KOKKOS_FUNCTION static auto const &apply(Point const &point) { return point; }
 };
 
 template <typename Box>
-struct returnCentroid<BoxTag, Box>
+struct centroid<BoxTag, Box>
 {
   KOKKOS_FUNCTION static auto apply(Box const &box)
   {
@@ -471,9 +426,9 @@ struct returnCentroid<BoxTag, Box>
 };
 
 template <typename Sphere>
-struct returnCentroid<SphereTag, Sphere>
+struct centroid<SphereTag, Sphere>
 {
-  KOKKOS_FUNCTION static auto apply(Sphere const &sphere)
+  KOKKOS_FUNCTION static auto const &apply(Sphere const &sphere)
   {
     return sphere.centroid();
   }

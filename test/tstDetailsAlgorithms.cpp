@@ -207,10 +207,9 @@ BOOST_AUTO_TEST_CASE(expand)
 
 BOOST_AUTO_TEST_CASE(centroid)
 {
-  using ArborX::Details::centroid;
+  using ArborX::Details::returnCentroid;
   Box box{{{-10.0, 0.0, 10.0}}, {{0.0, 10.0, 20.0}}};
-  Point center;
-  centroid(box, center);
+  auto center = returnCentroid(box);
   BOOST_TEST(center[0] == -5.0);
   BOOST_TEST(center[1] == 5.0);
   BOOST_TEST(center[2] == 15.0);
