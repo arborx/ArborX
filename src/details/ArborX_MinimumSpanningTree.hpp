@@ -121,7 +121,7 @@ public:
                                      << target_shift)}
       , weight{weight}
   {}
-  KOKKOS_FUNCTION constexpr DirectedEdge() = default;
+  KOKKOS_DEFAULTED_FUNCTION constexpr DirectedEdge() = default;
   KOKKOS_FUNCTION explicit constexpr operator WeightedEdge()
   {
     return {source(), target(), weight};
