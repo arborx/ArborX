@@ -18,9 +18,6 @@
 #define BOOST_TEST_MODULE Geometry
 #include <boost/test/unit_test.hpp>
 
-// NOTE: message is not required anymore with C++17
-#define STATIC_ASSERT(cond) static_assert(cond, "")
-
 using ArborX::Box;
 using ArborX::Point;
 using ArborX::Sphere;
@@ -111,43 +108,43 @@ BOOST_AUTO_TEST_CASE(intersects)
   using ArborX::Details::intersects;
 
   // uninitialized box does not intersect with other boxes
-  STATIC_ASSERT(!intersects(Box{}, Box{{{1.0, 2.0, 3.0}}, {{4.0, 5.0, 6.0}}}));
+  static_assert(!intersects(Box{}, Box{{{1.0, 2.0, 3.0}}, {{4.0, 5.0, 6.0}}}));
   // uninitialized box does not even intersect with itself
-  STATIC_ASSERT(!intersects(Box{}, Box{}));
+  static_assert(!intersects(Box{}, Box{}));
   // box with zero extent does
-  STATIC_ASSERT(intersects(Box{{{0.0, 0.0, 0.0}}, {{0.0, 0.0, 0.0}}},
+  static_assert(intersects(Box{{{0.0, 0.0, 0.0}}, {{0.0, 0.0, 0.0}}},
                            Box{{{0.0, 0.0, 0.0}}, {{0.0, 0.0, 0.0}}}));
 
   // point
   constexpr Point point{{1.0, 1.0, 1.0}};
   // point is contained in a box
-  STATIC_ASSERT(intersects(point, Box{{{0.0, 0.0, 0.0}}, {{2.0, 2.0, 2.0}}}));
-  STATIC_ASSERT(
+  static_assert(intersects(point, Box{{{0.0, 0.0, 0.0}}, {{2.0, 2.0, 2.0}}}));
+  static_assert(
       !intersects(point, Box{{{-1.0, -1.0, -1.0}}, {{0.0, 0.0, 0.0}}}));
   // point is on a side of a box
-  STATIC_ASSERT(intersects(point, Box{{{0.0, 0.0, 0.0}}, {{2.0, 2.0, 1.0}}}));
+  static_assert(intersects(point, Box{{{0.0, 0.0, 0.0}}, {{2.0, 2.0, 1.0}}}));
   // point is a corner of a box
-  STATIC_ASSERT(intersects(point, Box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}}));
+  static_assert(intersects(point, Box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}}));
 
   // unit cube
   constexpr Box box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
-  STATIC_ASSERT(intersects(box, box));
-  STATIC_ASSERT(!intersects(box, Box{}));
+  static_assert(intersects(box, box));
+  static_assert(!intersects(box, Box{}));
   // smaller box inside
-  STATIC_ASSERT(
+  static_assert(
       intersects(box, Box{{{0.25, 0.25, 0.25}}, {{0.75, 0.75, 0.75}}}));
   // bigger box that contains it
-  STATIC_ASSERT(intersects(box, Box{{{-1.0, -1.0, -1.0}}, {{2.0, 2.0, 2.0}}}));
+  static_assert(intersects(box, Box{{{-1.0, -1.0, -1.0}}, {{2.0, 2.0, 2.0}}}));
   // couple boxes that do intersect
-  STATIC_ASSERT(intersects(box, Box{{{0.5, 0.5, 0.5}}, {{1.5, 1.5, 1.5}}}));
-  STATIC_ASSERT(intersects(box, Box{{{-0.5, -0.5, -0.5}}, {{0.5, 0.5, 0.5}}}));
+  static_assert(intersects(box, Box{{{0.5, 0.5, 0.5}}, {{1.5, 1.5, 1.5}}}));
+  static_assert(intersects(box, Box{{{-0.5, -0.5, -0.5}}, {{0.5, 0.5, 0.5}}}));
   // couple boxes that do not
-  STATIC_ASSERT(
+  static_assert(
       !intersects(box, Box{{{-2.0, -2.0, -2.0}}, {{-1.0, -1.0, -1.0}}}));
-  STATIC_ASSERT(!intersects(box, Box{{{0.0, 0.0, 2.0}}, {{1.0, 1.0, 3.0}}}));
+  static_assert(!intersects(box, Box{{{0.0, 0.0, 2.0}}, {{1.0, 1.0, 3.0}}}));
   // boxes intersect if faces touch
-  STATIC_ASSERT(intersects(box, Box{{{1.0, 0.0, 0.0}}, {{2.0, 1.0, 1.0}}}));
-  STATIC_ASSERT(intersects(box, Box{{{-0.5, -0.5, -0.5}}, {{0.5, 0.0, 0.5}}}));
+  static_assert(intersects(box, Box{{{1.0, 0.0, 0.0}}, {{2.0, 1.0, 1.0}}}));
+  static_assert(intersects(box, Box{{{-0.5, -0.5, -0.5}}, {{0.5, 0.0, 0.5}}}));
 
   // unit sphere
   constexpr Sphere sphere{{{0., 0., 0.}}, 1.};
@@ -164,17 +161,17 @@ BOOST_AUTO_TEST_CASE(equals)
 {
   using ArborX::Details::equals;
   // points
-  STATIC_ASSERT(equals(Point{{0., 0., 0.}}, {{0., 0., 0.}}));
-  STATIC_ASSERT(!equals(Point{{0., 0., 0.}}, {{1., 1., 1.}}));
+  static_assert(equals(Point{{0., 0., 0.}}, {{0., 0., 0.}}));
+  static_assert(!equals(Point{{0., 0., 0.}}, {{1., 1., 1.}}));
   // boxes
-  STATIC_ASSERT(equals(Box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}},
+  static_assert(equals(Box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}},
                        {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}}));
-  STATIC_ASSERT(!equals(Box{{{0.0, 0.0, 0.0}}, {{1.0, 0.0, 1.0}}},
+  static_assert(!equals(Box{{{0.0, 0.0, 0.0}}, {{1.0, 0.0, 1.0}}},
                         {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}}));
   // spheres
-  STATIC_ASSERT(equals(Sphere{{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 1.}));
-  STATIC_ASSERT(!equals(Sphere{{{0., 0., 0.}}, 1.}, {{{0., 1., 2.}}, 1.}));
-  STATIC_ASSERT(!equals(Sphere{{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 2.}));
+  static_assert(equals(Sphere{{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 1.}));
+  static_assert(!equals(Sphere{{{0., 0., 0.}}, 1.}, {{{0., 1., 2.}}, 1.}));
+  static_assert(!equals(Sphere{{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 2.}));
 }
 
 BOOST_AUTO_TEST_CASE(expand)

@@ -43,7 +43,7 @@ class BasicBoundingVolumeHierarchy
 {
 public:
   using memory_space = MemorySpace;
-  static_assert(Kokkos::is_memory_space<MemorySpace>::value, "");
+  static_assert(Kokkos::is_memory_space<MemorySpace>::value);
   using size_type = typename MemorySpace::size_type;
   using bounding_volume_type = BoundingVolume;
 
@@ -142,7 +142,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
           _size > 0 ? 2 * _size - 1 : 0)
 {
   static_assert(
-      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
+      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
   Details::check_valid_access_traits(PrimitivesTag{}, primitives);
   using Access = AccessTraits<Primitives, PrimitivesTag>;
   static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
@@ -225,7 +225,7 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
     Callback const &callback, Experimental::TraversalPolicy const &policy) const
 {
   static_assert(
-      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value, "");
+      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
   Details::check_valid_access_traits(PredicatesTag{}, predicates);
   using Access = AccessTraits<Predicates, PredicatesTag>;
   static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,

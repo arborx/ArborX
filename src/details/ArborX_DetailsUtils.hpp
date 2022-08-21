@@ -275,7 +275,7 @@ void iota(ExecutionSpace &&space, Kokkos::View<T, P...> const &v,
           typename Kokkos::ViewTraits<T, P...>::value_type value = 0)
 {
   using ValueType = typename Kokkos::ViewTraits<T, P...>::value_type;
-  static_assert((unsigned(Kokkos::ViewTraits<T, P...>::rank) == unsigned(1)),
+  static_assert(unsigned(Kokkos::ViewTraits<T, P...>::rank) == unsigned(1),
                 "iota requires a View of rank 1");
   static_assert(std::is_arithmetic<ValueType>::value,
                 "iota requires a View with an arithmetic value type");
@@ -568,11 +568,9 @@ void computeOffsetsInOrderedView(ExecutionSpace const &exec_space, View view,
                                  Offset &offsets)
 {
   static_assert(KokkosExt::is_accessible_from<typename View::memory_space,
-                                              ExecutionSpace>::value,
-                "");
+                                              ExecutionSpace>::value);
   static_assert(KokkosExt::is_accessible_from<typename Offset::memory_space,
-                                              ExecutionSpace>::value,
-                "");
+                                              ExecutionSpace>::value);
 
   auto const n = view.extent_int(0);
 

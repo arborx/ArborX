@@ -17,9 +17,6 @@
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
 
-// NOTE: message is not required anymore with C++17
-#define STATIC_ASSERT(cond) static_assert(cond, "")
-
 namespace ArborX
 {
 namespace Details
@@ -36,8 +33,8 @@ inline constexpr bool operator==(WeightedEdge const &lhs,
 void test_weighted_edges_comparison_compile_only()
 {
   using ArborX::Details::WeightedEdge;
-  STATIC_ASSERT((WeightedEdge{1, 2, 3} == WeightedEdge{1, 2, 3}));
-  STATIC_ASSERT((WeightedEdge{1, 2, 3} == WeightedEdge{2, 1, 3}));
+  static_assert(WeightedEdge{1, 2, 3} == WeightedEdge{1, 2, 3});
+  static_assert(WeightedEdge{1, 2, 3} == WeightedEdge{2, 1, 3});
 }
 
 template <>

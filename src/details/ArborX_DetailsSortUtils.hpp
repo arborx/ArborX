@@ -138,8 +138,7 @@ Kokkos::View<SizeType *, typename ViewType::device_type> sortObjects(
 
   using ValueType = typename ViewType::value_type;
   static_assert(std::is_same<std::decay_t<decltype(space)>,
-                             typename ViewType::execution_space>::value,
-                "");
+                             typename ViewType::execution_space>::value);
 
   Kokkos::View<SizeType *, typename ViewType::device_type> permute(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
@@ -172,8 +171,7 @@ sortObjects(Kokkos::Experimental::SYCL const &space, ViewType &view)
 
   static_assert(
       KokkosExt::is_accessible_from<typename ViewType::memory_space,
-                                    Kokkos::Experimental::SYCL>::value,
-      "");
+                                    Kokkos::Experimental::SYCL>::value);
 
   Kokkos::View<SizeType *, typename ViewType::device_type> permute(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
@@ -243,8 +241,7 @@ void applyInversePermutation(ExecutionSpace const &space,
                              InputView const &input_view,
                              OutputView const &output_view)
 {
-  static_assert(std::is_integral<typename PermutationView::value_type>::value,
-                "");
+  static_assert(std::is_integral<typename PermutationView::value_type>::value);
   ARBORX_ASSERT(permutation.extent(0) == input_view.extent(0));
   ARBORX_ASSERT(output_view.extent(0) == input_view.extent(0));
 
@@ -264,8 +261,7 @@ void applyPermutation(ExecutionSpace const &space,
                       InputView const &input_view,
                       OutputView const &output_view)
 {
-  static_assert(std::is_integral<typename PermutationView::value_type>::value,
-                "");
+  static_assert(std::is_integral<typename PermutationView::value_type>::value);
   ARBORX_ASSERT(permutation.extent(0) == input_view.extent(0));
   ARBORX_ASSERT(output_view.extent(0) == input_view.extent(0));
 
@@ -282,8 +278,7 @@ template <typename ExecutionSpace, typename PermutationView, typename View>
 void applyPermutation(ExecutionSpace const &space,
                       PermutationView const &permutation, View &view)
 {
-  static_assert(std::is_integral<typename PermutationView::value_type>::value,
-                "");
+  static_assert(std::is_integral<typename PermutationView::value_type>::value);
   auto scratch_view = KokkosExt::clone(space, view);
   applyPermutation(space, permutation, scratch_view, view);
 }

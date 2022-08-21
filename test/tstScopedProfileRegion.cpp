@@ -79,14 +79,12 @@ BOOST_AUTO_TEST_CASE(scoped_profile_region)
 }
 
 static_assert(
-    !std::is_default_constructible<KokkosExt::ScopedProfileRegion>::value, "");
+    !std::is_default_constructible<KokkosExt::ScopedProfileRegion>::value);
 static_assert(
-    !std::is_copy_constructible<KokkosExt::ScopedProfileRegion>::value, "");
+    !std::is_copy_constructible<KokkosExt::ScopedProfileRegion>::value);
 static_assert(
-    !std::is_move_constructible<KokkosExt::ScopedProfileRegion>::value, "");
-static_assert(!std::is_copy_assignable<KokkosExt::ScopedProfileRegion>::value,
-              "");
-static_assert(!std::is_move_assignable<KokkosExt::ScopedProfileRegion>::value,
-              "");
+    !std::is_move_constructible<KokkosExt::ScopedProfileRegion>::value);
+static_assert(!std::is_copy_assignable<KokkosExt::ScopedProfileRegion>::value);
+static_assert(!std::is_move_assignable<KokkosExt::ScopedProfileRegion>::value);
 
 BOOST_AUTO_TEST_SUITE_END()

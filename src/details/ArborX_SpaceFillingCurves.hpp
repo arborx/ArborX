@@ -75,24 +75,20 @@ void check_valid_space_filling_curve(SpaceFillingCurve const &)
 {
   static_assert(
       Kokkos::is_detected<SpaceFillingCurveProjectionArchetypeExpression,
-                          SpaceFillingCurve, Point>::value,
-      "");
+                          SpaceFillingCurve, Point>::value);
   static_assert(
       Kokkos::is_detected<SpaceFillingCurveProjectionArchetypeExpression,
-                          SpaceFillingCurve, Box>::value,
-      "");
+                          SpaceFillingCurve, Box>::value);
   using OrderValueType =
       Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
                          SpaceFillingCurve, Point>;
   static_assert(std::is_same<OrderValueType, unsigned int>::value ||
-                    std::is_same<OrderValueType, unsigned long long>::value,
-                "");
+                std::is_same<OrderValueType, unsigned long long>::value);
   static_assert(
       std::is_same<
           OrderValueType,
           Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
-                             SpaceFillingCurve, Box>>::value,
-      "");
+                             SpaceFillingCurve, Box>>::value);
 }
 
 } // namespace Details
