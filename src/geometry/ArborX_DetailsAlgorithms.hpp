@@ -409,7 +409,7 @@ struct intersects<PointTag, SphereTag, Point, Sphere>
 template <typename Point>
 struct centroid<PointTag, Point>
 {
-  KOKKOS_FUNCTION static auto const &apply(Point const &point) { return point; }
+  KOKKOS_FUNCTION static auto apply(Point const &point) { return point; }
 };
 
 template <typename Box>
@@ -428,7 +428,7 @@ struct centroid<BoxTag, Box>
 template <typename Sphere>
 struct centroid<SphereTag, Sphere>
 {
-  KOKKOS_FUNCTION static auto const &apply(Sphere const &sphere)
+  KOKKOS_FUNCTION static auto apply(Sphere const &sphere)
   {
     return sphere.centroid();
   }
