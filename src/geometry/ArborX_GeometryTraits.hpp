@@ -28,6 +28,9 @@ struct BoxTag
 struct SphereTag
 {};
 
+struct KDOPTag
+{};
+
 template <typename Geometry>
 struct dimension
 {
@@ -89,9 +92,10 @@ void check_valid_geometry_traits(Geometry const &)
       "GeometryTraits::tag<Geometry> must define 'type' member type");
   using Tag = typename tag<Geometry>::type;
   static_assert(std::is_same<Tag, PointTag>{} || std::is_same<Tag, BoxTag>{} ||
-                    std::is_same<Tag, SphereTag>{},
-                "GeometryTraits::tag<Geometry>::type must be PointTag, BoxTag "
-                "or SphereTag");
+                    std::is_same<Tag, SphereTag>{} ||
+                    std::is_same<Tag, KDOPTag>{},
+                "GeometryTraits::tag<Geometry>::type must be PointTag, BoxTag, "
+                "SphereTag or KDOPTag");
 }
 
 } // namespace GeometryTraits
