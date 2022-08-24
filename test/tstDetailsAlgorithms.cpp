@@ -34,19 +34,19 @@ struct OldGeometries
 #include <ArborX_HyperSphere.hpp>
 namespace ArborX
 {
-namespace Experimental
+namespace ExperimentalHyperGeometry
 {
 // Deduction guide to make tests work with both old and new geometries
 template <class T>
 Point(T x, T y, T z) -> Point<3, T>;
-} // namespace Experimental
+} // namespace ExperimentalHyperGeometry
 } // namespace ArborX
 
 struct NewGeometries
 {
-  using Point = ArborX::Experimental::Point<3>;
-  using Box = ArborX::Experimental::Box<3>;
-  using Sphere = ArborX::Experimental::Sphere<3>;
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Box = ArborX::ExperimentalHyperGeometry::Box<3>;
+  using Sphere = ArborX::ExperimentalHyperGeometry::Sphere<3>;
 };
 
 using GeometryBundles = boost::mpl::list<OldGeometries, NewGeometries>;

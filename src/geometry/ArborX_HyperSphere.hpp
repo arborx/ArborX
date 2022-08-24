@@ -18,7 +18,7 @@
 
 #include <Kokkos_Macros.hpp>
 
-namespace ArborX::Experimental
+namespace ArborX::ExperimentalHyperGeometry
 {
 
 template <int DIM, class FloatingPoint = float>
@@ -47,15 +47,16 @@ struct Sphere
   FloatingPoint _radius = 0;
 };
 
-} // namespace ArborX::Experimental
+} // namespace ArborX::ExperimentalHyperGeometry
 
 template <int DIM>
-struct ArborX::GeometryTraits::dimension<ArborX::Experimental::Sphere<DIM>>
+struct ArborX::GeometryTraits::dimension<
+    ArborX::ExperimentalHyperGeometry::Sphere<DIM>>
 {
   static constexpr int value = DIM;
 };
 template <int DIM>
-struct ArborX::GeometryTraits::tag<ArborX::Experimental::Sphere<DIM>>
+struct ArborX::GeometryTraits::tag<ArborX::ExperimentalHyperGeometry::Sphere<DIM>>
 {
   using type = SphereTag;
 };

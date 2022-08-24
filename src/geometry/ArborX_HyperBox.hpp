@@ -21,7 +21,7 @@
 
 #include <Kokkos_Macros.hpp>
 
-namespace ArborX::Experimental
+namespace ArborX::ExperimentalHyperGeometry
 {
 /**
  * Axis-Aligned Bounding Box. This is just a thin wrapper around an array of
@@ -92,17 +92,17 @@ struct Box
   }
 };
 
-} // namespace ArborX::Experimental
+} // namespace ArborX::ExperimentalHyperGeometry
 
 template <int DIM, class FloatingPoint>
 struct ArborX::GeometryTraits::dimension<
-    ArborX::Experimental::Box<DIM, FloatingPoint>>
+    ArborX::ExperimentalHyperGeometry::Box<DIM, FloatingPoint>>
 {
   static constexpr int value = DIM;
 };
 template <int DIM, class FloatingPoint>
 struct ArborX::GeometryTraits::tag<
-    ArborX::Experimental::Box<DIM, FloatingPoint>>
+    ArborX::ExperimentalHyperGeometry::Box<DIM, FloatingPoint>>
 {
   using type = BoxTag;
 };
