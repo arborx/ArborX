@@ -15,6 +15,7 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
+#include <ArborX_GeometryTraits.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
 
@@ -311,6 +312,18 @@ KOKKOS_INLINE_FUNCTION Point returnCentroid(KDOP<k> const &p)
 }
 
 } // namespace Experimental
+
+template <int k>
+struct GeometryTraits::dimension<ArborX::Experimental::KDOP<k>>
+{
+  static constexpr int value = 3;
+};
+template <int k>
+struct GeometryTraits::tag<ArborX::Experimental::KDOP<k>>
+{
+  using type = KDOPTag;
+};
+
 } // namespace ArborX
 
 #endif
