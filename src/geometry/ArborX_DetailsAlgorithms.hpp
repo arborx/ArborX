@@ -303,6 +303,9 @@ struct expand<BoxTag, KDOPTag, Box, KDOP>
 {
   KOKKOS_FUNCTION static void apply(Box &box, KDOP const &kdop)
   {
+    // FIXME This is a workaround so that we can use existing conversion
+    // machinery for KDOP. In the long term, this should be replaced by a
+    // general algorithm.
     Details::expand(box, (ArborX::Box)kdop);
   }
 };

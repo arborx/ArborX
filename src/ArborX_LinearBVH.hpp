@@ -24,6 +24,7 @@
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsTreeConstruction.hpp>
 #include <ArborX_DetailsTreeTraversal.hpp>
+#include <ArborX_HyperBox.hpp>
 #include <ArborX_SpaceFillingCurves.hpp>
 #include <ArborX_TraversalPolicy.hpp>
 
@@ -162,6 +163,10 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
       "ArborX::BVH::BVH::calculate_scene_bounding_box");
 
   // determine the bounding box of the scene
+#if KOKKOS_VERSION >= 30700
+  using Box = ExperimentalHyperGeometry::Box<
+      GeometryTraits::dimension<bounding_volume_type>::value>;
+#endif
   Box bbox{};
   Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, primitives,
                                                             bbox);
@@ -259,10 +264,16 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
   {
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
+#if KOKKOS_VERSION >= 30700
+    using Box = ExperimentalHyperGeometry::Box<
+        GeometryTraits::dimension<bounding_volume_type>::value>;
+#endif
+    Box scene_bounding_box{};
+    using namespace Details;
+    expand(scene_bounding_box, bounds());
     auto permute = Details::BatchedQueries<DeviceType>::
         sortPredicatesAlongSpaceFillingCurve(space, Experimental::Morton32(),
-                                             static_cast<Box>(bounds()),
-                                             predicates);
+                                             scene_bounding_box, predicates);
     Kokkos::Profiling::popRegion();
 
     using PermutedPredicates =

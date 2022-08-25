@@ -18,6 +18,7 @@
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsSortUtils.hpp> // sortObjects
 #include <ArborX_DetailsUtils.hpp>     // exclusivePrefixSum, lastElement
+#include <ArborX_HyperBox.hpp>
 #include <ArborX_SpaceFillingCurves.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -47,7 +48,7 @@ public:
   // indirection when recording results rather than using that function at
   // the end.  We decided to keep reversePermutation around for now.
 
-  template <typename ExecutionSpace, typename Predicates,
+  template <typename ExecutionSpace, typename Predicates, typename Box,
             typename SpaceFillingCurve>
   static Kokkos::View<unsigned int *, DeviceType>
   sortPredicatesAlongSpaceFillingCurve(ExecutionSpace const &space,
@@ -58,6 +59,8 @@ public:
     using Access = AccessTraits<Predicates, PredicatesTag>;
     auto const n_queries = Access::size(predicates);
 
+    using Point = std::decay_t<decltype(returnCentroid(
+        getGeometry(Access::get(predicates, 0))))>;
     using LinearOrderingValueType =
         Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
                            SpaceFillingCurve, Box, Point>;

@@ -13,10 +13,12 @@
 #define ARBORX_DETAIL_CRS_GRAPH_WRAPPER_IMPL_HPP
 
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_Box.hpp>
 #include <ArborX_Callbacks.hpp>
 #include <ArborX_DetailsBatchedQueries.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsPermutedData.hpp>
+#include <ArborX_HyperBox.hpp>
 #include <ArborX_Predicates.hpp>
 #include <ArborX_TraversalPolicy.hpp>
 
@@ -391,10 +393,17 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
   if (policy._sort_predicates)
   {
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
+#if KOKKOS_VERSION >= 30700
+    using bounding_volume_type = std::decay_t<decltype(tree.bounds())>;
+    using Box = ExperimentalHyperGeometry::Box<
+        GeometryTraits::dimension<bounding_volume_type>::value>;
+#endif
+    Box scene_bounding_box{};
+    using namespace Details;
+    expand(scene_bounding_box, tree.bounds());
     auto permute = Details::BatchedQueries<DeviceType>::
         sortPredicatesAlongSpaceFillingCurve(space, Experimental::Morton32(),
-                                             static_cast<Box>(tree.bounds()),
-                                             predicates);
+                                             scene_bounding_box, predicates);
     Kokkos::Profiling::popRegion();
 
     queryImpl(space, tree, predicates, callback, out, offset, permute,
