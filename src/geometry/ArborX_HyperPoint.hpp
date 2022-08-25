@@ -39,6 +39,13 @@ struct Point
   FloatingPoint _coords[DIM] = {};
 };
 
+// Deduction guides
+template <class T>
+Point(T x, T y) -> Point<2, T>;
+
+template <class T>
+Point(T x, T y, T z) -> Point<3, T>;
+
 } // namespace ArborX::ExperimentalHyperGeometry
 
 template <int DIM, class FloatingPoint>

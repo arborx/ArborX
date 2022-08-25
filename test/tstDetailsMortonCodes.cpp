@@ -17,14 +17,6 @@ using namespace ArborX::Details;
 
 #if KOKKOS_VERSION >= 30700
 #include <ArborX_HyperPoint.hpp>
-namespace ArborX::Experimental
-{
-// Deduction guide to make tests work with both old and new geometries
-template <class T>
-Point(T x, T y) -> Point<2, T>;
-template <class T>
-Point(T x, T y, T z) -> Point<3, T>;
-} // namespace ArborX::Experimental
 #else
 #include <ArborX_Point.hpp>
 #endif
