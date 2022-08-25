@@ -15,15 +15,51 @@
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
 
+#include <boost/mpl/list.hpp>
+
 #define BOOST_TEST_MODULE Geometry
 #include <boost/test/unit_test.hpp>
 
-using ArborX::Box;
-using ArborX::Point;
-using ArborX::Sphere;
-
-BOOST_AUTO_TEST_CASE(distance)
+struct OldGeometries
 {
+  using Point = ArborX::Point;
+  using Box = ArborX::Box;
+  using Sphere = ArborX::Sphere;
+};
+
+#if KOKKOS_VERSION >= 30700
+
+#include <ArborX_HyperBox.hpp>
+#include <ArborX_HyperPoint.hpp>
+#include <ArborX_HyperSphere.hpp>
+namespace ArborX
+{
+namespace ExperimentalHyperGeometry
+{
+// Deduction guide to make tests work with both old and new geometries
+template <class T>
+Point(T x, T y, T z) -> Point<3, T>;
+} // namespace ExperimentalHyperGeometry
+} // namespace ArborX
+
+struct NewGeometries
+{
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Box = ArborX::ExperimentalHyperGeometry::Box<3>;
+  using Sphere = ArborX::ExperimentalHyperGeometry::Sphere<3>;
+};
+
+using GeometryBundles = boost::mpl::list<OldGeometries, NewGeometries>;
+#else
+using GeometryBundles = boost::mpl::list<OldGeometries>;
+#endif
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(distance, Geometries_t, GeometryBundles)
+{
+  using Point = typename Geometries_t::Point;
+  using Box = typename Geometries_t::Box;
+  using Sphere = typename Geometries_t::Sphere;
+
   using ArborX::Details::distance;
   BOOST_TEST(distance(Point{{1.0, 2.0, 3.0}}, Point{{1.0, 1.0, 1.0}}) ==
              std::sqrt(5.f));
@@ -49,8 +85,10 @@ BOOST_AUTO_TEST_CASE(distance)
   BOOST_TEST(distance(Point{{1., 1., 1.}}, sphere) == std::sqrt(3.f) - 1.f);
 }
 
-BOOST_AUTO_TEST_CASE(distance_box_box)
+BOOST_AUTO_TEST_CASE_TEMPLATE(distance_box_box, Geometries_t, GeometryBundles)
 {
+  using Box = typename Geometries_t::Box;
+
   using ArborX::Details::distance;
 
   constexpr Box unit_box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
@@ -83,8 +121,12 @@ BOOST_AUTO_TEST_CASE(distance_box_box)
   BOOST_TEST(distance(Box{}, Box{}) == infinity);
 }
 
-BOOST_AUTO_TEST_CASE(distance_sphere_box)
+BOOST_AUTO_TEST_CASE_TEMPLATE(distance_sphere_box, Geometries_t,
+                              GeometryBundles)
 {
+  using Box = typename Geometries_t::Box;
+  using Sphere = typename Geometries_t::Sphere;
+
   using ArborX::Details::distance;
   auto infinity = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
@@ -103,8 +145,12 @@ BOOST_AUTO_TEST_CASE(distance_sphere_box)
   BOOST_TEST(distance(sphere, Box{}) == infinity);
 }
 
-BOOST_AUTO_TEST_CASE(intersects)
+BOOST_AUTO_TEST_CASE_TEMPLATE(intersects, Geometries_t, GeometryBundles)
 {
+  using Point = typename Geometries_t::Point;
+  using Box = typename Geometries_t::Box;
+  using Sphere = typename Geometries_t::Sphere;
+
   using ArborX::Details::intersects;
 
   // uninitialized box does not intersect with other boxes
@@ -157,8 +203,12 @@ BOOST_AUTO_TEST_CASE(intersects)
   BOOST_TEST(!intersects(Point{-0.7, -0.8, 0.}, sphere));
 }
 
-BOOST_AUTO_TEST_CASE(equals)
+BOOST_AUTO_TEST_CASE_TEMPLATE(equals, Geometries_t, GeometryBundles)
 {
+  using Point = typename Geometries_t::Point;
+  using Box = typename Geometries_t::Box;
+  using Sphere = typename Geometries_t::Sphere;
+
   using ArborX::Details::equals;
   // points
   static_assert(equals(Point{{0., 0., 0.}}, {{0., 0., 0.}}));
@@ -174,8 +224,12 @@ BOOST_AUTO_TEST_CASE(equals)
   static_assert(!equals(Sphere{{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 2.}));
 }
 
-BOOST_AUTO_TEST_CASE(expand)
+BOOST_AUTO_TEST_CASE_TEMPLATE(expand, Geometries_t, GeometryBundles)
 {
+  using Point = typename Geometries_t::Point;
+  using Box = typename Geometries_t::Box;
+  using Sphere = typename Geometries_t::Sphere;
+
   using ArborX::Details::equals;
   using ArborX::Details::expand;
   Box box;
@@ -205,8 +259,10 @@ BOOST_AUTO_TEST_CASE(expand)
   BOOST_TEST(equals(box, Box{{{-24., -24., -24.}}, {{24., 24., 24.}}}));
 }
 
-BOOST_AUTO_TEST_CASE(centroid)
+BOOST_AUTO_TEST_CASE_TEMPLATE(centroid, Geometries_t, GeometryBundles)
 {
+  using Box = typename Geometries_t::Box;
+
   using ArborX::Details::returnCentroid;
   Box box{{{-10.0, 0.0, 10.0}}, {{0.0, 10.0, 20.0}}};
   auto center = returnCentroid(box);
@@ -215,11 +271,15 @@ BOOST_AUTO_TEST_CASE(centroid)
   BOOST_TEST(center[2] == 15.0);
 }
 
-BOOST_AUTO_TEST_CASE(is_valid)
+BOOST_AUTO_TEST_CASE_TEMPLATE(is_valid, Geometries_t, GeometryBundles)
 {
+  using Point = typename Geometries_t::Point;
+  using Box = typename Geometries_t::Box;
+  using Sphere = typename Geometries_t::Sphere;
+
   using ArborX::Details::isValid;
 
-  auto infty = std::numeric_limits<double>::infinity();
+  auto infty = std::numeric_limits<float>::infinity();
 
   BOOST_TEST(isValid(Point{{1., 2., 3.}}));
   BOOST_TEST(!isValid(Point{{0., infty, 0.}}));
