@@ -148,7 +148,8 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                               ExecutionSpace>::value,
                 "Primitives must be accessible from the execution space");
-  Details::check_valid_space_filling_curve<SpaceFillingCurve, Box>(curve);
+  Details::check_valid_space_filling_curve<
+      GeometryTraits::dimension<Box>::value>(curve);
 
   KokkosExt::ScopedProfileRegion guard("ArborX::BVH::BVH");
 
