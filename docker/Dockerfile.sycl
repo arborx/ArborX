@@ -118,9 +118,7 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     rm -rf ${SCRATCH_DIR}
 
 # Install Kokkos
-# FIXME hash below correspond to 3.7 release candidate branch.
-# The Kokkos version in the release branch is 3.7.00
-ARG KOKKOS_VERSION=ec6b1bda66ecc976019ce4caf2cba2719abfa845
+ARG KOKKOS_VERSION=3.7.00
 ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_SYCL=ON -DCMAKE_CXX_FLAGS=-Wno-unknown-cuda-version -DKokkos_ENABLE_UNSUPPORTED_ARCHS=ON -DKokkos_ENABLE_DEPRECATED_CODE_3=OFF -DKokkos_ARCH_VOLTA70=ON -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS=-w"
 ENV KOKKOS_DIR=/opt/kokkos
 RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
