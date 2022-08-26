@@ -15,6 +15,8 @@
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp> // min. max
 #include <ArborX_GeometryTraits.hpp>
 
+#include <Kokkos_Core.hpp>
+
 namespace ArborX
 {
 
@@ -29,6 +31,8 @@ KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy(unsigned int)
 {
   static_assert(0 < N && N < 6,
                 "expandBitsBy can only be used with values 1-5");
+  Kokkos::abort("ArborX: implementation bug");
+  return 0;
 }
 
 // Insert one 0 bit after each of the 16 low bits of x
@@ -97,6 +101,8 @@ KOKKOS_INLINE_FUNCTION unsigned long long expandBitsBy(unsigned long long)
 {
   static_assert(0 < N && N < 6,
                 "expandBitsBy can only be used with values 1-5");
+  Kokkos::abort("ArborX: implementation bug");
+  return 0;
 }
 
 // Insert one 0 bit after each of the 31 low bits of x
