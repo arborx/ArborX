@@ -26,14 +26,16 @@ namespace Experimental
 struct Morton32
 {
   template <typename Box, typename Point,
-            std::enable_if_t<GeometryTraits::is_point<Point>{}> * = nullptr>
+            std::enable_if_t<GeometryTraits::is_box<Box>{} &&
+                             GeometryTraits::is_point<Point>{}> * = nullptr>
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box, Point p) const
   {
     Details::translateAndScale(p, p, scene_bounding_box);
     return Details::morton32(p);
   }
   template <typename Box, typename Geometry,
-            std::enable_if_t<!GeometryTraits::is_point<Geometry>{}> * = nullptr>
+            std::enable_if_t<GeometryTraits::is_box<Box>{} &&
+                             !GeometryTraits::is_point<Geometry>{}> * = nullptr>
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box,
                                   Geometry const &geometry) const
   {
@@ -46,14 +48,16 @@ struct Morton32
 struct Morton64
 {
   template <typename Box, typename Point,
-            std::enable_if_t<GeometryTraits::is_point<Point>{}> * = nullptr>
+            std::enable_if_t<GeometryTraits::is_box<Box>{} &&
+                             GeometryTraits::is_point<Point>{}> * = nullptr>
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box, Point p) const
   {
     Details::translateAndScale(p, p, scene_bounding_box);
     return Details::morton64(p);
   }
   template <typename Box, class Geometry,
-            std::enable_if_t<!GeometryTraits::is_point<Geometry>{}> * = nullptr>
+            std::enable_if_t<GeometryTraits::is_box<Box>{} &&
+                             !GeometryTraits::is_point<Geometry>{}> * = nullptr>
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box,
                                   Geometry const &geometry) const
   {
@@ -68,12 +72,12 @@ struct Morton64
 namespace Details
 {
 
-template <class SpaceFillingCurve, typename Box, class Geometry>
+template <class SpaceFillingCurve, class Box, class Geometry>
 using SpaceFillingCurveProjectionArchetypeExpression =
     decltype(std::declval<SpaceFillingCurve const &>()(
         std::declval<Box const &>(), std::declval<Geometry const &>()));
 
-template <class SpaceFillingCurve, typename Box>
+template <class SpaceFillingCurve, class Box>
 void check_valid_space_filling_curve(SpaceFillingCurve const &)
 {
   using Point = std::decay_t<decltype(std::declval<Box>().minCorner())>;
