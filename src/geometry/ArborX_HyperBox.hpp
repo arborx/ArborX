@@ -65,7 +65,9 @@ struct Box
   Point<DIM, FloatingPoint> _min_corner;
   Point<DIM, FloatingPoint> _max_corner;
 
-  KOKKOS_FUNCTION auto &operator+=(Box const &other)
+  template <typename OtherBox,
+            std::enable_if_t<GeometryTraits::is_box<OtherBox>{}> * = nullptr>
+  KOKKOS_FUNCTION auto &operator+=(OtherBox const &other)
   {
     using KokkosExt::max;
     using KokkosExt::min;
@@ -78,7 +80,9 @@ struct Box
     return *this;
   }
 
-  KOKKOS_FUNCTION auto &operator+=(Point<DIM, FloatingPoint> const &point)
+  template <typename Point,
+            std::enable_if_t<GeometryTraits::is_point<Point>{}> * = nullptr>
+  KOKKOS_FUNCTION auto &operator+=(Point const &point)
   {
     using KokkosExt::max;
     using KokkosExt::min;
