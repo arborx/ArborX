@@ -23,15 +23,6 @@
 
 #include <cassert>
 
-namespace Kokkos
-{ // reduction identity must be defined in Kokkos namespace
-template <>
-struct reduction_identity<ArborX::Box>
-{
-  KOKKOS_FUNCTION static ArborX::Box sum() { return {}; }
-};
-} // namespace Kokkos
-
 namespace ArborX
 {
 namespace Details
