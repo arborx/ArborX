@@ -60,7 +60,7 @@ public:
 
     using LinearOrderingValueType =
         Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
-                           SpaceFillingCurve, Point>;
+                           SpaceFillingCurve, Box, Point>;
     Kokkos::View<LinearOrderingValueType *, DeviceType> linear_ordering_indices(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::BVH::query::linear_ordering"),

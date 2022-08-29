@@ -32,15 +32,6 @@ struct OldGeometries
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_HyperPoint.hpp>
 #include <ArborX_HyperSphere.hpp>
-namespace ArborX
-{
-namespace ExperimentalHyperGeometry
-{
-// Deduction guide to make tests work with both old and new geometries
-template <class T>
-Point(T x, T y, T z) -> Point<3, T>;
-} // namespace ExperimentalHyperGeometry
-} // namespace ArborX
 
 struct NewGeometries
 {
