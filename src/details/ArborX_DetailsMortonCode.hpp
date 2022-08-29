@@ -15,7 +15,7 @@
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp> // min. max
 #include <ArborX_GeometryTraits.hpp>
 
-#include <Kokkos_Core.hpp>
+#include <Kokkos_Core.hpp> // abort
 
 namespace ArborX
 {
