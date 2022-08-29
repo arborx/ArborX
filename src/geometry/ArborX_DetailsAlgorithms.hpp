@@ -68,6 +68,8 @@ template <typename Geometry1, typename Geometry2>
 KOKKOS_INLINE_FUNCTION float distance(Geometry1 const &geometry1,
                                       Geometry2 const &geometry2)
 {
+  static_assert(GeometryTraits::dimension<Geometry1>::value ==
+                GeometryTraits::dimension<Geometry2>::value);
   return Dispatch::distance<typename GeometryTraits::tag<Geometry1>::type,
                             typename GeometryTraits::tag<Geometry2>::type,
                             Geometry1, Geometry2>::apply(geometry1, geometry2);
@@ -77,6 +79,8 @@ template <typename Geometry1, typename Geometry2>
 KOKKOS_INLINE_FUNCTION void expand(Geometry1 &geometry1,
                                    Geometry2 const &geometry2)
 {
+  static_assert(GeometryTraits::dimension<Geometry1>::value ==
+                GeometryTraits::dimension<Geometry2>::value);
   Dispatch::expand<typename GeometryTraits::tag<Geometry1>::type,
                    typename GeometryTraits::tag<Geometry2>::type, Geometry1,
                    Geometry2>::apply(geometry1, geometry2);
@@ -86,6 +90,8 @@ template <typename Geometry1, typename Geometry2>
 KOKKOS_INLINE_FUNCTION constexpr bool intersects(Geometry1 const &geometry1,
                                                  Geometry2 const &geometry2)
 {
+  static_assert(GeometryTraits::dimension<Geometry1>::value ==
+                GeometryTraits::dimension<Geometry2>::value);
   return Dispatch::intersects<typename GeometryTraits::tag<Geometry1>::type,
                               typename GeometryTraits::tag<Geometry2>::type,
                               Geometry1, Geometry2>::apply(geometry1,
@@ -190,8 +196,6 @@ struct distance<PointTag, PointTag, Point1, Point2>
   KOKKOS_FUNCTION static float apply(Point1 const &a, Point2 const &b)
   {
     constexpr int DIM = GeometryTraits::dimension<Point1>::value;
-    static_assert(GeometryTraits::dimension<Point2>::value == DIM);
-
     float distance_squared = 0.0;
     for (int d = 0; d < DIM; ++d)
     {
@@ -209,8 +213,6 @@ struct distance<PointTag, BoxTag, Point, Box>
   KOKKOS_FUNCTION static float apply(Point const &point, Box const &box)
   {
     constexpr int DIM = GeometryTraits::dimension<Point>::value;
-    static_assert(GeometryTraits::dimension<Box>::value == DIM);
-
     Point projected_point;
     for (int d = 0; d < DIM; ++d)
     {
@@ -231,8 +233,6 @@ struct distance<PointTag, SphereTag, Point, Sphere>
 {
   KOKKOS_FUNCTION static float apply(Point const &point, Sphere const &sphere)
   {
-    static_assert(GeometryTraits::dimension<Point>::value ==
-                  GeometryTraits::dimension<Sphere>::value);
     using KokkosExt::max;
     return max(Details::distance(point, sphere.centroid()) - sphere.radius(),
                0.f);
@@ -246,8 +246,6 @@ struct distance<BoxTag, BoxTag, Box1, Box2>
   KOKKOS_FUNCTION static float apply(Box1 const &box_a, Box2 const &box_b)
   {
     constexpr int DIM = GeometryTraits::dimension<Box1>::value;
-    static_assert(GeometryTraits::dimension<Box2>::value == DIM);
-
     float distance_squared = 0.;
     for (int d = 0; d < DIM; ++d)
     {
@@ -280,9 +278,6 @@ struct distance<SphereTag, BoxTag, Sphere, Box>
 {
   KOKKOS_FUNCTION static float apply(Sphere const &sphere, Box const &box)
   {
-    static_assert(GeometryTraits::dimension<Sphere>::value ==
-                  GeometryTraits::dimension<Box>::value);
-
     using KokkosExt::max;
 
     float distance_center_box = Details::distance(sphere.centroid(), box);
@@ -296,8 +291,6 @@ struct expand<BoxTag, PointTag, Box, Point>
 {
   KOKKOS_FUNCTION static void apply(Box &box, Point const &point)
   {
-    static_assert(GeometryTraits::dimension<Box>::value ==
-                  GeometryTraits::dimension<Point>::value);
     box += point;
   }
 };
@@ -311,8 +304,6 @@ struct expand<BoxTag, BoxTag, Box1, Box2>
 {
   KOKKOS_FUNCTION static void apply(Box1 &box, Box2 const &other)
   {
-    static_assert(GeometryTraits::dimension<Box1>::value ==
-                  GeometryTraits::dimension<Box2>::value);
     box += other;
   }
 };
@@ -323,11 +314,10 @@ struct expand<BoxTag, SphereTag, Box, Sphere>
 {
   KOKKOS_FUNCTION static void apply(Box &box, Sphere const &sphere)
   {
-    constexpr int DIM = GeometryTraits::dimension<Box>::value;
-    static_assert(GeometryTraits::dimension<Sphere>::value == DIM);
-
     using KokkosExt::max;
     using KokkosExt::min;
+
+    constexpr int DIM = GeometryTraits::dimension<Box>::value;
     for (int d = 0; d < DIM; ++d)
     {
       box.minCorner()[d] =
@@ -346,8 +336,6 @@ struct intersects<BoxTag, BoxTag, Box1, Box2>
                                               Box2 const &other)
   {
     constexpr int DIM = GeometryTraits::dimension<Box1>::value;
-    static_assert(GeometryTraits::dimension<Box2>::value == DIM);
-
     for (int d = 0; d < DIM; ++d)
       if (box.minCorner()[d] > other.maxCorner()[d] ||
           box.maxCorner()[d] < other.minCorner()[d])
@@ -364,8 +352,6 @@ struct intersects<PointTag, BoxTag, Point, Box>
                                               Box const &other)
   {
     constexpr int DIM = GeometryTraits::dimension<Point>::value;
-    static_assert(GeometryTraits::dimension<Point>::value == DIM);
-
     for (int d = 0; d < DIM; ++d)
       if (point[d] > other.maxCorner()[d] || point[d] < other.minCorner()[d])
         return false;
@@ -379,8 +365,6 @@ struct intersects<SphereTag, BoxTag, Sphere, Box>
 {
   KOKKOS_FUNCTION static bool apply(Sphere const &sphere, Box const &box)
   {
-    static_assert(GeometryTraits::dimension<Sphere>::value ==
-                  GeometryTraits::dimension<Box>::value);
     return Details::distance(sphere.centroid(), box) <= sphere.radius();
   }
 };
@@ -391,8 +375,6 @@ struct intersects<SphereTag, PointTag, Sphere, Point>
 {
   KOKKOS_FUNCTION static bool apply(Sphere const &sphere, Point const &point)
   {
-    static_assert(GeometryTraits::dimension<Sphere>::value ==
-                  GeometryTraits::dimension<Point>::value);
     return Details::distance(sphere.centroid(), point) <= sphere.radius();
   }
 };
