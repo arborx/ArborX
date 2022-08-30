@@ -103,6 +103,26 @@ struct AccessTraitsHelper<AccessTraits<X, Tag>>
   using tag = Kokkos::detected_t<PredicateTagArchetypeAlias, type>;
 };
 
+template <typename X, typename Tag>
+class Adapt
+{
+  X _x;
+  using Access = AccessTraits<X, Tag>;
+
+public:
+  Adapt(Tag, X const &x)
+      : _x(x)
+  {}
+  using memory_space = typename Access::memory_space;
+  using value_type = std::decay_t<
+      Kokkos::detected_t<AccessTraitsGetArchetypeExpression, Access, X>>;
+  using size_type =
+      Kokkos::detected_t<AccessTraitsSizeArchetypeExpression, Access, X>;
+  using tag = Kokkos::detected_t<PredicateTagArchetypeAlias, value_type>;
+  decltype(auto) operator[](size_type i) const { return Access::get(_x, i); }
+  size_type size() const { return Access::size(_x); }
+};
+
 template <typename Predicates>
 void check_valid_access_traits(PredicatesTag, Predicates const &)
 {

@@ -8,10 +8,10 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
+
 #ifndef ARBORX_CALLBACKS_HPP
 #define ARBORX_CALLBACKS_HPP
 
-#include <ArborX_AccessTraits.hpp>
 #include <ArborX_Predicates.hpp> // is_valid_predicate_tag
 
 #include <Kokkos_DetectionIdiom.hpp>
@@ -97,9 +97,8 @@ void check_valid_callback(Callback const &callback, Predicates const &,
 {
   check_generic_lambda_support(callback);
 
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  using PredicateTag = typename AccessTraitsHelper<Access>::tag;
-  using Predicate = typename AccessTraitsHelper<Access>::type;
+  using Predicate = typename Predicates::value_type;
+  using PredicateTag = typename Predicate::Tag;
 
   static_assert(!(std::is_same<PredicateTag, NearestPredicateTag>{} &&
                   Kokkos::is_detected<
@@ -175,9 +174,8 @@ void check_valid_callback(Callback const &callback, Predicates const &)
 {
   check_generic_lambda_support(callback);
 
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  using PredicateTag = typename AccessTraitsHelper<Access>::tag;
-  using Predicate = typename AccessTraitsHelper<Access>::type;
+  using Predicate = typename Predicates::value_type;
+  using PredicateTag = typename Predicate::Tag;
 
   static_assert(is_valid_predicate_tag<PredicateTag>::value,
                 "The predicate tag is not valid");
