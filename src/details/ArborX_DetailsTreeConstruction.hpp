@@ -42,7 +42,7 @@ inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
       KOKKOS_LAMBDA(int i, Box &update) {
         update += Access::get(primitives, i);
       },
-      scene_bounding_box);
+      Kokkos::Sum<Box>{scene_bounding_box});
 }
 
 template <typename ExecutionSpace, typename Primitives,

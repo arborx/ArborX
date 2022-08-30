@@ -129,4 +129,16 @@ struct ArborX::GeometryTraits::tag<
   using type = BoxTag;
 };
 
+template <int DIM, typename FloatingPoint>
+struct Kokkos::reduction_identity<
+    ArborX::ExperimentalHyperGeometry::Box<DIM, FloatingPoint>>
+{
+  KOKKOS_FUNCTION static ArborX::ExperimentalHyperGeometry::Box<DIM,
+                                                                FloatingPoint>
+  sum()
+  {
+    return {};
+  }
+};
+
 #endif
