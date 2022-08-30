@@ -262,13 +262,12 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
   if (policy._sort_predicates)
   {
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
-    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     ExperimentalHyperGeometry::Box<
         GeometryTraits::dimension<bounding_volume_type>::value>
         scene_bounding_box{};
     using namespace Details;
     expand(scene_bounding_box, bounds());
-    auto permute = Details::BatchedQueries<DeviceType>::
+    auto permute = Details::BatchedQueries<MemorySpace>::
         sortPredicatesAlongSpaceFillingCurve(space, Experimental::Morton32(),
                                              scene_bounding_box, predicates);
     Kokkos::Profiling::popRegion();

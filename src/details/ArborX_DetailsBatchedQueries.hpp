@@ -30,7 +30,7 @@ namespace ArborX
 
 namespace Details
 {
-template <typename DeviceType>
+template <typename MemorySpace>
 struct BatchedQueries
 {
 public:
@@ -50,7 +50,7 @@ public:
 
   template <typename ExecutionSpace, typename Predicates, typename Box,
             typename SpaceFillingCurve>
-  static Kokkos::View<unsigned int *, DeviceType>
+  static Kokkos::View<unsigned int *, MemorySpace>
   sortPredicatesAlongSpaceFillingCurve(ExecutionSpace const &space,
                                        SpaceFillingCurve const &curve,
                                        Box const &scene_bounding_box,
@@ -64,10 +64,11 @@ public:
     using LinearOrderingValueType =
         Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
                            SpaceFillingCurve, Box, Point>;
-    Kokkos::View<LinearOrderingValueType *, DeviceType> linear_ordering_indices(
-        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                           "ArborX::BVH::query::linear_ordering"),
-        n_queries);
+    Kokkos::View<LinearOrderingValueType *, MemorySpace>
+        linear_ordering_indices(
+            Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                               "ArborX::BVH::query::linear_ordering"),
+            n_queries);
     Kokkos::parallel_for(
         "ArborX::BatchedQueries::project_predicates_onto_space_filling_curve",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
@@ -86,11 +87,11 @@ public:
   template <typename ExecutionSpace, typename Predicates>
   static auto
   applyPermutation(ExecutionSpace const &space,
-                   Kokkos::View<unsigned int const *, DeviceType> permute,
+                   Kokkos::View<unsigned int const *, MemorySpace> permute,
                    Predicates const &v)
       -> Kokkos::View<typename AccessTraitsHelper<
                           AccessTraits<Predicates, PredicatesTag>>::type *,
-                      DeviceType>
+                      MemorySpace>
   {
     using Access = AccessTraits<Predicates, PredicatesTag>;
     auto const n = Access::size(v);
@@ -98,7 +99,7 @@ public:
 
     using T = std::decay_t<decltype(Access::get(
         std::declval<Predicates const &>(), std::declval<int>()))>;
-    Kokkos::View<T *, DeviceType> w(
+    Kokkos::View<T *, MemorySpace> w(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::permuted_predicates"),
         n);
@@ -160,10 +161,10 @@ public:
   }
 
   template <typename ExecutionSpace, typename T, typename... P>
-  static std::tuple<Kokkos::View<int *, DeviceType>, Kokkos::View<T *, P...>>
+  static std::tuple<Kokkos::View<int *, MemorySpace>, Kokkos::View<T *, P...>>
   reversePermutation(ExecutionSpace const &space,
-                     Kokkos::View<unsigned int const *, DeviceType> permute,
-                     Kokkos::View<int const *, DeviceType> offset,
+                     Kokkos::View<unsigned int const *, MemorySpace> permute,
+                     Kokkos::View<int const *, MemorySpace> offset,
                      Kokkos::View<T /*const*/ *, P...> out)
   {
     auto const tmp_offset = permuteOffset(space, permute, offset);
@@ -174,14 +175,14 @@ public:
   }
 
   template <typename ExecutionSpace>
-  static std::tuple<Kokkos::View<int *, DeviceType>,
-                    Kokkos::View<int *, DeviceType>,
-                    Kokkos::View<float *, DeviceType>>
+  static std::tuple<Kokkos::View<int *, MemorySpace>,
+                    Kokkos::View<int *, MemorySpace>,
+                    Kokkos::View<float *, MemorySpace>>
   reversePermutation(ExecutionSpace const &space,
-                     Kokkos::View<unsigned int const *, DeviceType> permute,
-                     Kokkos::View<int const *, DeviceType> offset,
-                     Kokkos::View<int const *, DeviceType> indices,
-                     Kokkos::View<float const *, DeviceType> distances)
+                     Kokkos::View<unsigned int const *, MemorySpace> permute,
+                     Kokkos::View<int const *, MemorySpace> offset,
+                     Kokkos::View<int const *, MemorySpace> indices,
+                     Kokkos::View<float const *, MemorySpace> distances)
   {
     auto const tmp_offset = permuteOffset(permute, offset);
 

@@ -369,7 +369,6 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
                   Experimental::TraversalPolicy())
 {
   using MemorySpace = typename Tree::memory_space;
-  using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
 
   check_valid_callback(callback, predicates, out);
 
@@ -399,7 +398,7 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
         scene_bounding_box{};
     using namespace Details;
     expand(scene_bounding_box, tree.bounds());
-    auto permute = Details::BatchedQueries<DeviceType>::
+    auto permute = Details::BatchedQueries<MemorySpace>::
         sortPredicatesAlongSpaceFillingCurve(space, Experimental::Morton32(),
                                              scene_bounding_box, predicates);
     Kokkos::Profiling::popRegion();

@@ -34,6 +34,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(permute_offset_and_indices, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
 
   Kokkos::View<int *, DeviceType> offset("Testing::offset", 0);
   Kokkos::View<int *, DeviceType> indices("Testing::indices", 0);
@@ -57,7 +58,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(permute_offset_and_indices, DeviceType,
   std::vector<int> indices_ref = {4, 4, 4, 4, 3, 3, 3, 2, 2, 1};
 
   std::tie(offset, indices) =
-      ArborX::Details::BatchedQueries<DeviceType>::reversePermutation(
+      ArborX::Details::BatchedQueries<MemorySpace>::reversePermutation(
           ExecutionSpace{}, toView<DeviceType>(permute_),
           toView<DeviceType>(offset_), toView<DeviceType>(indices_));
   auto offset_host = Kokkos::create_mirror_view(offset);

@@ -23,9 +23,9 @@
 
 // FIXME: this is a temporary place for loadPointCloud and writePointCloud
 // Right now, only loadPointCloud is being used, and only in this example
-template <typename DeviceType>
+template <typename MemorySpace>
 void loadPointCloud(std::string const &filename,
-                    Kokkos::View<ArborX::Point *, DeviceType> &random_points)
+                    Kokkos::View<ArborX::Point *, MemorySpace> &random_points)
 {
   std::ifstream file(filename);
   if (file.is_open())
@@ -46,9 +46,9 @@ void loadPointCloud(std::string const &filename,
   }
 }
 
-template <typename Layout, typename DeviceType>
+template <typename Layout, typename MemorySpace>
 void writePointCloud(
-    Kokkos::View<ArborX::Point *, Layout, DeviceType> random_points,
+    Kokkos::View<ArborX::Point *, Layout, MemorySpace> random_points,
     std::string const &filename)
 
 {
@@ -78,8 +78,8 @@ void printPointCloud(View points, std::ostream &os)
 void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
 {
   using ExecutionSpace = Kokkos::DefaultHostExecutionSpace;
-  using DeviceType = ExecutionSpace::device_type;
-  Kokkos::View<ArborX::Point *, DeviceType> points("points", 0);
+  using MemorySpace = ExecutionSpace::memory_space;
+  Kokkos::View<ArborX::Point *, MemorySpace> points("points", 0);
   loadPointCloud(infile, points);
 
   ArborX::BVH<Kokkos::HostSpace> bvh{ExecutionSpace{}, points};
@@ -91,8 +91,8 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
   int const n_queries = bvh.size();
   if (n_neighbors < 0)
     n_neighbors = bvh.size();
-  Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> queries("queries",
-                                                                     n_queries);
+  Kokkos::View<ArborX::Nearest<ArborX::Point> *, MemorySpace> queries(
+      "queries", n_queries);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
         queries(i) = ArborX::nearest(points(i), n_neighbors);
@@ -137,11 +137,11 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
   performQueries(prefix + "shuffled_", suffix);
 
   // Sort them
-  auto permute = ArborX::Details::BatchedQueries<DeviceType>::
+  auto permute = ArborX::Details::BatchedQueries<MemorySpace>::
       sortPredicatesAlongSpaceFillingCurve(ExecutionSpace{},
                                            ArborX::Experimental::Morton32(),
                                            bvh.bounds(), queries);
-  queries = ArborX::Details::BatchedQueries<DeviceType>::applyPermutation(
+  queries = ArborX::Details::BatchedQueries<MemorySpace>::applyPermutation(
       ExecutionSpace{}, permute, queries);
   performQueries(prefix + "sorted_", suffix);
 }
