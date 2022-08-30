@@ -56,7 +56,8 @@ struct ArborX::GeometryTraits::dimension<
   static constexpr int value = DIM;
 };
 template <int DIM>
-struct ArborX::GeometryTraits::tag<ArborX::ExperimentalHyperGeometry::Sphere<DIM>>
+struct ArborX::GeometryTraits::tag<
+    ArborX::ExperimentalHyperGeometry::Sphere<DIM>>
 {
   using type = SphereTag;
 };
