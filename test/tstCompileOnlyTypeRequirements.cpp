@@ -9,6 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <ArborX_GeometryTraits.hpp>
+#include <ArborX_HyperBox.hpp>
 #include <ArborX_LinearBVH.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -24,10 +26,15 @@ struct FakeBoundingVolume
 {
   KOKKOS_FUNCTION FakeBoundingVolume &operator+=(PrimitivePointOrBox) { return *this; }
   KOKKOS_FUNCTION void operator+=(PrimitivePointOrBox) volatile {}
-  KOKKOS_FUNCTION operator ArborX::Box() const { return {}; }
 };
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakeBoundingVolume) {}
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, PrimitivePointOrBox) {}
+#if KOKKOS_VERSION >= 30700
+template<int DIM>
+KOKKOS_FUNCTION void expand(ArborX::ExperimentalHyperGeometry::Box<DIM> &, FakeBoundingVolume) { }
+#else
+KOKKOS_FUNCTION void expand(ArborX::Box &, FakeBoundingVolume) { }
+#endif
 
 struct FakePredicateGeometry {};
 KOKKOS_FUNCTION ArborX::Point returnCentroid(FakePredicateGeometry) { return {}; }
@@ -42,6 +49,12 @@ struct PoorManLambda
   {}
 };
 } // namespace Test
+
+template <>
+struct ArborX::GeometryTraits::dimension<Test::FakeBoundingVolume>
+{
+  static constexpr int value = 3;
+};
 
 // Compile-only
 void check_bounding_volume_and_predicate_geometry_type_requirements()

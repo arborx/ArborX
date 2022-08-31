@@ -11,6 +11,7 @@
 #ifndef ARBORX_DETAILS_ALGORITHMS_HPP
 #define ARBORX_DETAILS_ALGORITHMS_HPP
 
+#include <ArborX_Box.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtMathFunctions.hpp>    // isfinite
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp> // min, max
@@ -26,6 +27,7 @@ namespace Details
 namespace Dispatch
 {
 using GeometryTraits::BoxTag;
+using GeometryTraits::KDOPTag;
 using GeometryTraits::PointTag;
 using GeometryTraits::SphereTag;
 
@@ -292,6 +294,19 @@ struct expand<BoxTag, PointTag, Box, Point>
   KOKKOS_FUNCTION static void apply(Box &box, Point const &point)
   {
     box += point;
+  }
+};
+
+// expand a box to include a point
+template <typename Box, typename KDOP>
+struct expand<BoxTag, KDOPTag, Box, KDOP>
+{
+  KOKKOS_FUNCTION static void apply(Box &box, KDOP const &kdop)
+  {
+    // FIXME This is a workaround so that we can use existing conversion
+    // machinery for KDOP. In the long term, this should be replaced by a
+    // general algorithm.
+    Details::expand(box, (ArborX::Box)kdop);
   }
 };
 

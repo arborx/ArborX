@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_Point.hpp>
 
 #include <Kokkos_Core.hpp>
 

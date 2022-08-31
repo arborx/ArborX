@@ -13,7 +13,6 @@
 #define ARBORX_DETAILS_TREE_CONSTRUCTION_HPP
 
 #include <ArborX_AccessTraits.hpp>
-#include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // expand
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsNode.hpp> // makeLeafNode
@@ -23,15 +22,6 @@
 
 #include <cassert>
 
-namespace Kokkos
-{ // reduction identity must be defined in Kokkos namespace
-template <>
-struct reduction_identity<ArborX::Box>
-{
-  KOKKOS_FUNCTION static ArborX::Box sum() { return {}; }
-};
-} // namespace Kokkos
-
 namespace ArborX
 {
 namespace Details
@@ -39,7 +29,7 @@ namespace Details
 namespace TreeConstruction
 {
 
-template <typename ExecutionSpace, typename Primitives>
+template <typename ExecutionSpace, typename Primitives, typename Box>
 inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
                                            Primitives const &primitives,
                                            Box &scene_bounding_box)
@@ -56,7 +46,7 @@ inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
 }
 
 template <typename ExecutionSpace, typename Primitives,
-          typename SpaceFillingCurve, typename LinearOrdering>
+          typename SpaceFillingCurve, typename Box, typename LinearOrdering>
 inline void projectOntoSpaceFillingCurve(ExecutionSpace const &space,
                                          Primitives const &primitives,
                                          SpaceFillingCurve const &curve,

@@ -129,4 +129,10 @@ struct GeometryTraits::tag<ArborX::Box>
 
 } // namespace ArborX
 
+template <>
+struct Kokkos::reduction_identity<ArborX::Box>
+{
+  KOKKOS_FUNCTION static ArborX::Box sum() { return {}; }
+};
+
 #endif

@@ -12,7 +12,7 @@
 #ifndef ARBORX_ACCESS_TRAITS_HPP
 #define ARBORX_ACCESS_TRAITS_HPP
 
-#include <ArborX_Box.hpp>
+#include <ArborX_GeometryTraits.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
 
@@ -175,9 +175,9 @@ void check_valid_access_traits(PrimitivesTag, Primitives const &)
       "member function");
   using T = std::decay_t<Kokkos::detected_t<AccessTraitsGetArchetypeExpression,
                                             Access, Primitives>>;
-  static_assert(std::is_same<T, Point>{} || std::is_same<T, Box>{},
+  static_assert(GeometryTraits::is_point<T>{} || GeometryTraits::is_box<T>{},
                 "AccessTraits<Primitives,PrimitivesTag>::get() return type "
-                "must decay to Point or to Box");
+                "must decay to a point or a box type");
 }
 
 } // namespace Details
