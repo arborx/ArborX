@@ -17,20 +17,10 @@
 namespace KokkosExt
 {
 
-#if KOKKOS_VERSION >= 30700
-using Kokkos::acos;
-using Kokkos::cos;
-using Kokkos::expm1;
-using Kokkos::fabs;
+#if KOKKOS_VERSION >= 30699
 using Kokkos::isfinite;
-using Kokkos::sin;
 #else
-using Kokkos::Experimenatl::fabs;
-using Kokkos::Experimental::acos;
-using Kokkos::Experimental::cos;
-using Kokkos::Experimental::expm1;
 using Kokkos::Experimental::isfinite;
-using Kokkos::Experimental::sin;
 #endif
 
 } // namespace KokkosExt

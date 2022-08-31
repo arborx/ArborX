@@ -39,7 +39,11 @@ float const total_energy = 4000.f;
 // Energy a rays loses when passing through a cell.
 KOKKOS_INLINE_FUNCTION float lost_energy(float ray_energy, float path_length)
 {
-  using KokkosExt::expm1;
+#if KOKKOS_VERSION >= 30700
+  using Kokkos::expm1;
+#else
+  using Kokkos::Experimental::expm1;
+#endif
   return -ray_energy * expm1(-path_length);
 }
 
@@ -279,9 +283,15 @@ int main(int argc, char *argv[])
           // The origins of rays are uniformly distributed in the boxes. The
           // direction vectors are uniformly sampling of a full sphere.
           GeneratorType g = rand_pool.get_state();
-          using KokkosExt::cos;
-          using KokkosExt::sin;
-          using KokkosExt::acos;
+#if KOKKOS_VERSION >= 30700
+          using Kokkos::cos;
+          using Kokkos::sin;
+          using Kokkos::acos;
+#else
+          using Kokkos::Experimental::cos;
+          using Kokkos::Experimental::sin;
+          using Kokkos::Experimental::acos;
+#endif
 
           ArborX::Box const &b = boxes(i);
           ArborX::Point origin{
@@ -400,7 +410,11 @@ int main(int argc, char *argv[])
       "Example::compare",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_boxes),
       KOKKOS_LAMBDA(int i, int &error) {
-        using KokkosExt::fabs;
+#if KOKKOS_VERSION >= 30700
+        using Kokkos::fabs;
+#else
+        using Kokkos::Experimental::fabs;
+#endif
         float const abs_error =
             fabs(energy_ordered_intersects(i) - energy_intersects(i)) /
             fabs(energy_intersects(i));
