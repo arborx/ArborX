@@ -54,7 +54,7 @@ determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
   // In case all the batches are empty, return an empty list of unique_ranks and
   // counts, but still have one element in offsets. This is conforming with
   // creating the total offsets from batched_ranks and batched_offsets ignoring
-  // empty batches and calling sortAndDetermeineBufferLayout.
+  // empty batches and calling sortAndDetermineBufferLayout.
   offsets.push_back(0);
 
   auto const n_batched_ranks = batched_ranks.size();

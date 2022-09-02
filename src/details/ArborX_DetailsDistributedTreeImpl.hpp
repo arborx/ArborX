@@ -595,6 +595,20 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
       communicateResultsBack(comm, space, indices, offset, ranks, ids,
                              &distances);
 
+      auto ranks_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ranks);
+      std::vector<int> unique_ranks;
+      if (ranks_host.size() > 0)
+        unique_ranks.push_back(ranks_host(0));
+      for (unsigned int i=1; i<ranks_host.size(); ++i)
+      {
+        if (ranks_host(i-1) != ranks_host(i))
+        {
+          if (std::find(unique_ranks.begin(), unique_ranks.end(), ranks_host(i)) != unique_ranks.end())
+            Kokkos::abort("bla");
+          unique_ranks.push_back(ranks_host(i));
+        }
+      }
+
       // Merge results
       Kokkos::Profiling::pushRegion(
           "ArborX::DistributedTree::nearest::postprocess_results");
@@ -656,6 +670,19 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
 
     // Communicate results back
     communicateResultsBack(comm, space, out, offset, ranks, ids);
+    auto ranks_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ranks);
+    std::vector<int> unique_ranks;
+    if (ranks_host.size() > 0)
+      unique_ranks.push_back(ranks_host(0));
+    for (unsigned int i=1; i<ranks_host.size(); ++i)
+    {
+      if (ranks_host(i-1) != ranks_host(i))
+      {
+        if (std::find(unique_ranks.begin(), unique_ranks.end(), ranks_host(i)) != unique_ranks.end())
+          Kokkos::abort("bla");
+	unique_ranks.push_back(ranks_host(i));
+      }
+    }
 
     Kokkos::Profiling::pushRegion(
         "ArborX::DistributedTree::spatial::postprocess_results");
