@@ -14,7 +14,7 @@
 #include <Kokkos_Core.hpp>
 
 // Perform intersection queries using the same objects for the queries as the
-// objects used in BVH construction that are located on a regular spaced
+// objects used in the construction that are located on a regular spaced
 // three-dimensional grid.
 // Each box will only intersect with itself.
 //
@@ -131,9 +131,11 @@ int main()
     Boxes<DeviceType> boxes(execution_space);
     std::cout << "Bounding boxes set up." << '\n';
 
-    std::cout << "Creating BVH tree." << '\n';
+    std::cout << "Creating index." << '\n';
+    // Here, any available index could be used. For example, to use brute force
+    // algorithm replace ArborX::BVH with ArborX::BruteForce.
     ArborX::BVH<MemorySpace> const tree(execution_space, boxes);
-    std::cout << "BVH tree set up." << '\n';
+    std::cout << "Index set up." << '\n';
 
     std::cout << "Starting the queries." << '\n';
     // The query will resize indices and offsets accordingly
