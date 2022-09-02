@@ -14,14 +14,8 @@
 
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsMortonCode.hpp>
-
-#if KOKKOS_VERSION >= 30700
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_HyperPoint.hpp>
-#else
-#include <ArborX_Box.hpp>
-#include <ArborX_Point.hpp>
-#endif
 
 #include <Kokkos_DetectionIdiom.hpp>
 #include <Kokkos_Macros.hpp>
@@ -88,13 +82,8 @@ using SpaceFillingCurveProjectionArchetypeExpression =
 template <int DIM, class SpaceFillingCurve>
 void check_valid_space_filling_curve(SpaceFillingCurve const &)
 {
-#if KOKKOS_VERSION >= 30700
   using Point = ExperimentalHyperGeometry::Point<DIM>;
   using Box = ExperimentalHyperGeometry::Box<DIM>;
-#else
-  using Point = ArborX::Point;
-  using Box = ArborX::Box;
-#endif
 
   static_assert(
       Kokkos::is_detected<SpaceFillingCurveProjectionArchetypeExpression,

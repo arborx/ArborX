@@ -49,6 +49,23 @@ struct Sphere
 
 } // namespace ArborX::ExperimentalHyperGeometry
 
+#else
+
+#include <ArborX_Sphere.hpp>
+
+namespace ArborX::ExperimentalHyperGeometry
+{
+template <int DIM, class FloatingPoint = float>
+struct Sphere : public ArborX::Sphere
+{
+  static_assert(DIM == 3);
+  static_assert(std::is_same_v<FloatingPoint, float>);
+  using ArborX::Sphere::Sphere;
+};
+} // namespace ArborX::ExperimentalHyperGeometry
+
+#endif
+
 template <int DIM>
 struct ArborX::GeometryTraits::dimension<
     ArborX::ExperimentalHyperGeometry::Sphere<DIM>>
@@ -56,11 +73,10 @@ struct ArborX::GeometryTraits::dimension<
   static constexpr int value = DIM;
 };
 template <int DIM>
-struct ArborX::GeometryTraits::tag<ArborX::ExperimentalHyperGeometry::Sphere<DIM>>
+struct ArborX::GeometryTraits::tag<
+    ArborX::ExperimentalHyperGeometry::Sphere<DIM>>
 {
   using type = SphereTag;
 };
-
-#endif
 
 #endif

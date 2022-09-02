@@ -15,11 +15,7 @@
 
 using namespace ArborX::Details;
 
-#if KOKKOS_VERSION >= 30700
 #include <ArborX_HyperPoint.hpp>
-#else
-#include <ArborX_Point.hpp>
-#endif
 
 BOOST_AUTO_TEST_SUITE(MortonCodes)
 
@@ -47,9 +43,9 @@ BOOST_AUTO_TEST_CASE(expand_bits)
 
 BOOST_AUTO_TEST_CASE(morton_codes)
 {
-#if KOKKOS_VERSION >= 30700
   using ArborX::ExperimentalHyperGeometry::Point;
 
+#if KOKKOS_VERSION >= 30700
   BOOST_TEST(morton32(Point{0.f, 0.f}) == 0x0u);
   BOOST_TEST(morton32(Point{1.f, 1.f}) == 0xffffffffu);
   BOOST_TEST(morton32(Point{0.f, 1.f}) == 0x55555555u);
@@ -59,8 +55,6 @@ BOOST_AUTO_TEST_CASE(morton_codes)
   BOOST_TEST(morton64(Point{1.f, 1.f}) == 0x3fffffffffffffffllu);
   BOOST_TEST(morton64(Point{0.f, 1.f}) == 0x1555555555555555llu);
   BOOST_TEST(morton64(Point{1.f, 0.f}) == 0x2aaaaaaaaaaaaaaallu);
-#else
-  using ArborX::Point;
 #endif
 
   BOOST_TEST(morton32(Point{0.f, 0.f, 0.f}) == 0x0u);
