@@ -750,8 +750,6 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   Kokkos::View<int *, ExecutionSpace> ranks(
         "ArborX::DistributedTree::query::nearest::ranks", 0);
 
-  // NOTE: compiler would not deduce __range for the braced-init-list, but I
-  // got it to work with the static_cast to function pointers.
   using Strategy =
       void (*)(ExecutionSpace const &, Predicates const &,
                DistributedTree const &, Indices &, OffsetView &, Distances &);
@@ -812,8 +810,11 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
       Kokkos::Profiling::popRegion();
     }
   };
-  execute_strategy(static_cast<Strategy>(DistributedTreeImpl<DeviceType>::deviseStrategy));
-  execute_strategy(static_cast<Strategy>(DistributedTreeImpl<DeviceType>::reassessStrategy));
+  execute_strategy(DistributedTreeImpl<DeviceType>::deviseStrategy);
+  execute_strategy(DistributedTreeImpl<DeviceType>::reassessStrategy);
+
+  /*Distributor
+  createFromSends*/
 
   auto const n = indices.extent(0);
     KokkosExt::reallocWithoutInitializing(space, out, n);
