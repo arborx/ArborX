@@ -17,6 +17,8 @@
 #include <ArborX_DetailsFDBSCAN.hpp>
 #include <ArborX_DetailsFDBSCANDenseBox.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
+#include <ArborX_HyperBox.hpp>
+#include <ArborX_HyperSphere.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Sphere.hpp>
 
@@ -52,25 +54,25 @@ template <typename Primitives>
 struct PrimitivesWithRadius
 {
   Primitives _primitives;
-  double _r;
+  float _r;
 };
 
 template <typename Primitives, typename PermuteFilter>
 struct PrimitivesWithRadiusReorderedAndFiltered
 {
   Primitives _primitives;
-  double _r;
+  float _r;
   PermuteFilter _filter;
 };
 
 // Mixed primitives consist of a set of boxes corresponding to dense cells,
 // followed by boxes corresponding to points in non-dense cells.
-template <typename PointPrimitives, typename DenseCellOffsets,
+template <typename PointPrimitives, typename Grid, typename DenseCellOffsets,
           typename CellIndices, typename Permutation>
 struct MixedBoxPrimitives
 {
   PointPrimitives _point_primitives;
-  Details::CartesianGrid _grid;
+  Grid _grid;
   DenseCellOffsets _dense_cell_offsets;
   int _num_points_in_dense_cells; // to avoid lastElement() in AccessTraits
   CellIndices _sorted_cell_indices;
@@ -93,8 +95,15 @@ struct AccessTraits<Details::PrimitivesWithRadius<Primitives>, PredicatesTag>
   }
   static KOKKOS_FUNCTION auto get(Predicates const &w, size_t i)
   {
+    auto const &point = PrimitivesAccess::get(w._primitives, i);
+    constexpr int dim =
+        GeometryTraits::dimension<std::decay_t<decltype(point)>>::value;
+    // FIXME reinterpret_cast is dangerous here if access traits return user
+    // point structure (e.g., struct MyPoint { float y; float x; })
+    auto const &hyper_point =
+        reinterpret_cast<ExperimentalHyperGeometry::Point<dim> const &>(point);
     return attach(
-        intersects(Sphere{PrimitivesAccess::get(w._primitives, i), w._r}),
+        intersects(ExperimentalHyperGeometry::Sphere<dim>{hyper_point, w._r}),
         (int)i);
   }
 };
@@ -118,20 +127,29 @@ struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
   static KOKKOS_FUNCTION auto get(Predicates const &w, size_t i)
   {
     int index = w._filter(i);
+    auto const &point = PrimitivesAccess::get(w._primitives, index);
+    constexpr int dim =
+        GeometryTraits::dimension<std::decay_t<decltype(point)>>::value;
+    // FIXME reinterpret_cast is dangerous here if access traits return user
+    // point structure (e.g., struct MyPoint { float y; float x; })
+    auto const &hyper_point =
+        reinterpret_cast<ExperimentalHyperGeometry::Point<dim> const &>(point);
     return attach(
-        intersects(Sphere{PrimitivesAccess::get(w._primitives, index), w._r}),
+        intersects(ExperimentalHyperGeometry::Sphere<dim>{hyper_point, w._r}),
         (int)index);
   }
 };
 
-template <typename PointPrimitives, typename MixedOffsets, typename CellIndices,
-          typename Permutation>
-struct AccessTraits<Details::MixedBoxPrimitives<PointPrimitives, MixedOffsets,
-                                                CellIndices, Permutation>,
-                    ArborX::PrimitivesTag>
+template <typename PointPrimitives, typename Grid, typename MixedOffsets,
+          typename CellIndices, typename Permutation>
+struct AccessTraits<
+    Details::MixedBoxPrimitives<PointPrimitives, Grid, MixedOffsets,
+                                CellIndices, Permutation>,
+    ArborX::PrimitivesTag>
 {
-  using Primitives = Details::MixedBoxPrimitives<PointPrimitives, MixedOffsets,
-                                                 CellIndices, Permutation>;
+  using Primitives =
+      Details::MixedBoxPrimitives<PointPrimitives, Grid, MixedOffsets,
+                                  CellIndices, Permutation>;
   static KOKKOS_FUNCTION std::size_t size(Primitives const &w)
   {
     auto const &dco = w._dense_cell_offsets;
@@ -142,15 +160,16 @@ struct AccessTraits<Details::MixedBoxPrimitives<PointPrimitives, MixedOffsets,
 
     return num_dense_primitives + num_sparse_primitives;
   }
-  static KOKKOS_FUNCTION ArborX::Box get(Primitives const &w, std::size_t i)
+  static KOKKOS_FUNCTION auto get(Primitives const &w, std::size_t i)
   {
     auto const &dco = w._dense_cell_offsets;
 
     auto num_dense_primitives = dco.size() - 1;
     if (i < num_dense_primitives)
     {
-      // For a primitive corresponding to a dense cell, use that cell's box. It
-      // may not be tight around the points inside, but is cheap to compute.
+      // For a primitive corresponding to a dense cell, use that cell's box.
+      // It may not be tight around the points inside, but is cheap to
+      // compute.
       auto cell_index = w._sorted_cell_indices(dco(i));
       return w._grid.cellBox(cell_index);
     }
@@ -161,8 +180,15 @@ struct AccessTraits<Details::MixedBoxPrimitives<PointPrimitives, MixedOffsets,
     using Access = AccessTraits<PointPrimitives, PrimitivesTag>;
 
     i = (i - num_dense_primitives) + w._num_points_in_dense_cells;
-    Point const &point = Access::get(w._point_primitives, w._permute(i));
-    return {point, point};
+
+    auto const &point = Access::get(w._point_primitives, w._permute(i));
+    constexpr int dim =
+        GeometryTraits::dimension<std::decay_t<decltype(point)>>::value;
+    // FIXME reinterpret_cast is dangerous here if access traits return user
+    // point structure (e.g., struct MyPoint { float y; float x; })
+    auto const &hyper_point =
+        reinterpret_cast<ExperimentalHyperGeometry::Point<dim> const &>(point);
+    return ExperimentalHyperGeometry::Box<dim>{hyper_point, hyper_point};
   }
   using memory_space = typename MixedOffsets::memory_space;
 };
@@ -215,6 +241,10 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
 
+  constexpr int dim = GeometryTraits::dimension<
+      typename Details::AccessTraitsHelper<Access>::type>::value;
+  using Box = ExperimentalHyperGeometry::Box<dim>;
+
   bool const is_special_case = (core_min_size == 2);
 
   Kokkos::Timer timer;
@@ -248,7 +278,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     // Build the tree
     timer_start(timer);
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::tree_construction");
-    ArborX::BVH<MemorySpace> bvh(exec_space, primitives);
+    BasicBoundingVolumeHierarchy<MemorySpace, Box> bvh(exec_space, primitives);
     Kokkos::Profiling::popRegion();
     elapsed["construction"] = timer_seconds(timer);
 
@@ -303,8 +333,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
     // The cell length is chosen to be eps/sqrt(dimension), so that any two
     // points within the same cell are within eps distance of each other.
-    float const h = eps / std::sqrt(3); // 3D (for 2D change to std::sqrt(2))
-    Details::CartesianGrid const grid(bounds, h);
+    float const h = eps / std::sqrt(dim);
+    Details::CartesianGrid<dim> const grid(bounds, h);
 
     auto cell_indices =
         Details::computeCellIndices(exec_space, primitives, grid);
@@ -338,8 +368,10 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     int num_dense_cells = dense_cell_offsets.size() - 1;
     if (verbose)
     {
-      printf("h = %e, nx = %zu, ny = %zu, nz = %zu\n", h, grid._nx, grid._ny,
-             grid._nz);
+      printf("h = %e, n = [%zu", h, grid.extent(0));
+      for (int d = 1; d < decltype(grid)::dim; ++d)
+        printf(", %zu", grid.extent(d));
+      printf("]\n");
       printf("#nonempty cells     : %10d\n", num_nonempty_cells);
       printf("#dense cells        : %10d [%.2f%%]\n", num_dense_cells,
              (100.f * num_dense_cells) / num_nonempty_cells);
@@ -358,9 +390,10 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     // Build the tree
     timer_start(timer);
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::tree_construction");
-    BVH<MemorySpace> bvh(
+    BasicBoundingVolumeHierarchy<MemorySpace, Box> bvh(
         exec_space,
-        Details::MixedBoxPrimitives<Primitives, decltype(dense_cell_offsets),
+        Details::MixedBoxPrimitives<Primitives, decltype(grid),
+                                    decltype(dense_cell_offsets),
                                     decltype(cell_indices), decltype(permute)>{
             primitives, grid, dense_cell_offsets, num_points_in_dense_cells,
             sorted_cell_indices, permute});

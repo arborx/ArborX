@@ -19,6 +19,7 @@
 #include <ArborX_DetailsMutualReachabilityDistance.hpp>
 #include <ArborX_DetailsTreeNodeLabeling.hpp>
 #include <ArborX_DetailsUtils.hpp>
+#include <ArborX_HyperBox.hpp>
 #include <ArborX_LinearBVH.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -585,7 +586,12 @@ struct MinimumSpanningTree
   {
     Kokkos::Profiling::pushRegion("ArborX::MST::MST");
 
-    BVH<MemorySpace> bvh(space, primitives);
+    using Access = AccessTraits<Primitives, PrimitivesTag>;
+    constexpr int dim = GeometryTraits::dimension<
+        typename Details::AccessTraitsHelper<Access>::type>::value;
+    using Box = ExperimentalHyperGeometry::Box<dim>;
+
+    BasicBoundingVolumeHierarchy<MemorySpace, Box> bvh(space, primitives);
     auto const n = bvh.size();
 
     if (k > 1)
