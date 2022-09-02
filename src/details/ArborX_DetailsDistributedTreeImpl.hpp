@@ -363,12 +363,15 @@ void DistributedTreeImpl<DeviceType>::deviseStrategy(
   auto const &bottom_tree_sizes = tree._bottom_tree_sizes;
 
   // Find the k nearest local trees.
+  // FIXME Is it guaranted that k intersections can be found in the nearest k trees?
+  //       Can we make sure to ignore empty trees in the construction of the top tree?
   query(top_tree, space, queries, indices, offset);
 
   // Accumulate total leave count in the local trees until it reaches k which
   // is the number of neighbors queried for.  Stop if local trees get
-  // empty because it means that they are no more leaves and there is no point
-  // on forwarding queries to leafless trees.
+  // empty because that means that there are no more leaves and there is no point
+  // in forwarding queries to leafless trees.
+  // FIXME Why does it make sense to stop when encountering the first leafless tree?
   using Access = AccessTraits<Predicates, PredicatesTag>;
   auto const n_queries = Access::size(queries);
   Kokkos::View<int *, DeviceType> new_offset(
@@ -752,12 +755,9 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   using Strategy =
       void (*)(ExecutionSpace const &, Predicates const &,
                DistributedTree const &, Indices &, OffsetView &, Distances &);
-  for (auto implementStrategy :
-       {static_cast<Strategy>(DistributedTreeImpl<DeviceType>::deviseStrategy),
-        static_cast<Strategy>(
-            DistributedTreeImpl<DeviceType>::reassessStrategy)})
-  {
-    implementStrategy(space, queries, tree, indices, offset, distances);
+
+  auto execute_strategy = [&](Strategy strategy){
+    strategy(space, queries, tree, indices, offset, distances);
 
     {
       // NOTE_COMM_NEAREST: The communication pattern here for the nearest
@@ -783,7 +783,7 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
       query(bottom_tree, space, fwd_queries, callback_with_distance, out,
             offset);
 
-            // Unzip
+      // Unzip
       auto const n = out.extent(0);
       KokkosExt::reallocWithoutInitializing(space, indices, n);
       KokkosExt::reallocWithoutInitializing(space, distances, n);
@@ -811,7 +811,9 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
 
       Kokkos::Profiling::popRegion();
     }
-  }
+  };
+  execute_strategy(static_cast<Strategy>(DistributedTreeImpl<DeviceType>::deviseStrategy));
+  execute_strategy(static_cast<Strategy>(DistributedTreeImpl<DeviceType>::reassessStrategy));
 
   auto const n = indices.extent(0);
     KokkosExt::reallocWithoutInitializing(space, out, n);
