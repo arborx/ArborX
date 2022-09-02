@@ -66,6 +66,7 @@ struct InlinePrintCallback
            data.index, data.rank, mpi_rank, point[0], point[1], point[2],
            primitive_index);
 
+    Kokkos::abort("blabla");
     out({primitive_index, mpi_rank});
   }
 };

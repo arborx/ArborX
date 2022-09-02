@@ -813,16 +813,48 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   execute_strategy(DistributedTreeImpl<DeviceType>::deviseStrategy);
   execute_strategy(DistributedTreeImpl<DeviceType>::reassessStrategy);
 
-  /*Distributor
-  createFromSends*/
+  Distributor<DeviceType> distributor(comm);
+  distributor.createFromSends(space, ranks);
 
-  auto const n = indices.extent(0);
-    KokkosExt::reallocWithoutInitializing(space, out, n);
+  using Access = AccessTraits<Predicates, PredicatesTag>;
+  using Query = typename AccessTraitsHelper<Access>::type;
+  struct QueriesWithIndices{
+    Query query;
+    int query_ids;
+    int primitive_index;
+  };
+
+  Kokkos::View<QueriesWithIndices*, typename DeviceType::memory_space> exported_queries_with_indices(Kokkos::view_alloc(space, Kokkos::WithoutInitializing, "ArborX::DistributedTree::query::exported_queries_with_indices"), ranks.size());
     Kokkos::parallel_for(
         "ArborX::DistributedTree::query::zip_indices_and_ranks",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
-          out(i) = {indices(i), ranks(i)};
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(queries)), KOKKOS_LAMBDA(int q) {
+	for (unsigned int i=offset(q); i<offset(q+1); ++i)
+          exported_queries_with_indices(i) = {Access::get(queries, q), q, indices(i)};
         });
+
+  Kokkos::View<QueriesWithIndices*, typename DeviceType::memory_space> imported_queries_with_indices(Kokkos::view_alloc(space, Kokkos::WithoutInitializing, "ArborX::DistributedTree::query::imported_queries_with_indices"), 0);
+
+  sendAcrossNetwork(space, distributor, exported_queries_with_indices, imported_queries_with_indices);
+
+  // execute imported queries
+  OutputView remote_out(Kokkos::view_alloc("ArborX::DistributedTree::query::remote_out"), imported_queries_with_indices.size());
+  Kokkos::parallel_for("ArborX::DistributedTree::query::execute_callbacks",
+		  Kokkos::RangePolicy<ExecutionSpace>(space, 0, imported_queries_with_indices.size()),
+		  KOKKOS_LAMBDA(int i) {
+      callback(imported_queries_with_indices(i).query, imported_queries_with_indices(i).primitive_index,
+    [&](typename OutputView::value_type const &value) {
+                         remote_out(i) = value;
+                     });
+});
+
+  Distributor<DeviceType> back_distributor(comm);
+  const auto& dest = distributor.get_destinations();
+  const auto& off = distributor.get_destination_offsets();
+  Kokkos::View<const int*, Kokkos::HostSpace> host_destinations(dest.data(), dest.size());
+  Kokkos::View<const int*, Kokkos::HostSpace> host_offsets(off.data(), off.size());
+  back_distributor.createFromSends(space, host_destinations, host_offsets);
+
+  sendAcrossNetwork(space, back_distributor, remote_out, out);
 
   Kokkos::Profiling::popRegion();
 }
