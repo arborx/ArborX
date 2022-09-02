@@ -54,7 +54,7 @@ public:
                                 GeometryTraits::is_point<Point>{}>>
   KOKKOS_FUNCTION size_t cellIndex(Point const &point) const
   {
-    static_assert(GeometryTraits::dimension<Point>::value == DIM);
+    static_assert(GeometryTraits::dimension_v<Point> == DIM);
 
     auto const &min_corner = _bounds.minCorner();
     size_t s = 0;

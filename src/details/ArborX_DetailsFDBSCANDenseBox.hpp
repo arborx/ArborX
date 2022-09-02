@@ -193,8 +193,8 @@ Kokkos::View<size_t *,
              typename AccessTraits<Primitives, PrimitivesTag>::memory_space>
 computeCellIndices(
     ExecutionSpace const &exec_space, Primitives const &primitives,
-    CartesianGrid<GeometryTraits::dimension<typename AccessTraitsHelper<
-        AccessTraits<Primitives, PrimitivesTag>>::type>::value> const &grid)
+    CartesianGrid<GeometryTraits::dimension_v<typename AccessTraitsHelper<
+        AccessTraits<Primitives, PrimitivesTag>>::type>> const &grid)
 {
   using Access = AccessTraits<Primitives, PrimitivesTag>;
   using MemorySpace = typename Access::memory_space;

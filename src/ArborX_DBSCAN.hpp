@@ -72,8 +72,8 @@ template <typename PointPrimitives, typename DenseCellOffsets,
 struct MixedBoxPrimitives
 {
   PointPrimitives _point_primitives;
-  CartesianGrid<GeometryTraits::dimension<typename AccessTraitsHelper<
-      AccessTraits<PointPrimitives, PrimitivesTag>>::type>::value>
+  CartesianGrid<GeometryTraits::dimension_v<typename AccessTraitsHelper<
+      AccessTraits<PointPrimitives, PrimitivesTag>>::type>>
       _grid;
   DenseCellOffsets _dense_cell_offsets;
   int _num_points_in_dense_cells; // to avoid lastElement() in AccessTraits
@@ -99,7 +99,7 @@ struct AccessTraits<Details::PrimitivesWithRadius<Primitives>, PredicatesTag>
   {
     auto const &point = PrimitivesAccess::get(w._primitives, i);
     constexpr int dim =
-        GeometryTraits::dimension<std::decay_t<decltype(point)>>::value;
+        GeometryTraits::dimension_v<std::decay_t<decltype(point)>>;
     // FIXME reinterpret_cast is dangerous here if access traits return user
     // point structure (e.g., struct MyPoint { float y; float x; })
     auto const &hyper_point =
@@ -131,7 +131,7 @@ struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
     int index = w._filter(i);
     auto const &point = PrimitivesAccess::get(w._primitives, index);
     constexpr int dim =
-        GeometryTraits::dimension<std::decay_t<decltype(point)>>::value;
+        GeometryTraits::dimension_v<std::decay_t<decltype(point)>>;
     // FIXME reinterpret_cast is dangerous here if access traits return user
     // point structure (e.g., struct MyPoint { float y; float x; })
     auto const &hyper_point =
@@ -183,7 +183,7 @@ struct AccessTraits<Details::MixedBoxPrimitives<PointPrimitives, MixedOffsets,
 
     auto const &point = Access::get(w._point_primitives, w._permute(i));
     constexpr int dim =
-        GeometryTraits::dimension<std::decay_t<decltype(point)>>::value;
+        GeometryTraits::dimension_v<std::decay_t<decltype(point)>>;
     // FIXME reinterpret_cast is dangerous here if access traits return user
     // point structure (e.g., struct MyPoint { float y; float x; })
     auto const &hyper_point =
@@ -241,8 +241,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
 
-  constexpr int dim = GeometryTraits::dimension<
-      typename Details::AccessTraitsHelper<Access>::type>::value;
+  constexpr int dim = GeometryTraits::dimension_v<
+      typename Details::AccessTraitsHelper<Access>::type>;
   using Box = ExperimentalHyperGeometry::Box<dim>;
 
   bool const is_special_case = (core_min_size == 2);
