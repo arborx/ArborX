@@ -29,12 +29,8 @@ struct FakeBoundingVolume
 };
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakeBoundingVolume) {}
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, PrimitivePointOrBox) {}
-#if KOKKOS_VERSION >= 30700
 template<int DIM>
 KOKKOS_FUNCTION void expand(ArborX::ExperimentalHyperGeometry::Box<DIM> &, FakeBoundingVolume) { }
-#else
-KOKKOS_FUNCTION void expand(ArborX::Box &, FakeBoundingVolume) { }
-#endif
 
 struct FakePredicateGeometry {};
 KOKKOS_FUNCTION ArborX::Point returnCentroid(FakePredicateGeometry) { return {}; }

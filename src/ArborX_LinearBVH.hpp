@@ -149,8 +149,10 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                               ExecutionSpace>::value,
                 "Primitives must be accessible from the execution space");
-  Details::check_valid_space_filling_curve<
-      GeometryTraits::dimension<Box>::value>(curve);
+
+  constexpr int DIM = GeometryTraits::dimension<BoundingVolume>::value;
+
+  Details::check_valid_space_filling_curve<DIM>(curve);
 
   KokkosExt::ScopedProfileRegion guard("ArborX::BVH::BVH");
 
@@ -163,11 +165,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
       "ArborX::BVH::BVH::calculate_scene_bounding_box");
 
   // determine the bounding box of the scene
-#if KOKKOS_VERSION >= 30700
-  using Box = ExperimentalHyperGeometry::Box<
-      GeometryTraits::dimension<bounding_volume_type>::value>;
-#endif
-  Box bbox{};
+  ExperimentalHyperGeometry::Box<DIM> bbox{};
   Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, primitives,
                                                             bbox);
 
@@ -191,7 +189,8 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   // map primitives from multidimensional domain to one-dimensional interval
   using LinearOrderingValueType = Kokkos::detected_t<
       Details::SpaceFillingCurveProjectionArchetypeExpression,
-      SpaceFillingCurve, Box, Point>;
+      SpaceFillingCurve, decltype(bbox),
+      std::decay_t<decltype(Access::get(primitives, 0))>>;
   Kokkos::View<LinearOrderingValueType *, MemorySpace> linear_ordering_indices(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::BVH::BVH::linear_ordering"),
@@ -264,11 +263,9 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
   {
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
-#if KOKKOS_VERSION >= 30700
-    using Box = ExperimentalHyperGeometry::Box<
-        GeometryTraits::dimension<bounding_volume_type>::value>;
-#endif
-    Box scene_bounding_box{};
+    ExperimentalHyperGeometry::Box<
+        GeometryTraits::dimension<bounding_volume_type>::value>
+        scene_bounding_box{};
     using namespace Details;
     expand(scene_bounding_box, bounds());
     auto permute = Details::BatchedQueries<DeviceType>::

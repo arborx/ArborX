@@ -393,12 +393,10 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
   if (policy._sort_predicates)
   {
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
-#if KOKKOS_VERSION >= 30700
     using bounding_volume_type = std::decay_t<decltype(tree.bounds())>;
-    using Box = ExperimentalHyperGeometry::Box<
-        GeometryTraits::dimension<bounding_volume_type>::value>;
-#endif
-    Box scene_bounding_box{};
+    ExperimentalHyperGeometry::Box<
+        GeometryTraits::dimension<bounding_volume_type>::value>
+        scene_bounding_box{};
     using namespace Details;
     expand(scene_bounding_box, tree.bounds());
     auto permute = Details::BatchedQueries<DeviceType>::
