@@ -67,12 +67,14 @@ struct PrimitivesWithRadiusReorderedAndFiltered
 
 // Mixed primitives consist of a set of boxes corresponding to dense cells,
 // followed by boxes corresponding to points in non-dense cells.
-template <typename PointPrimitives, typename Grid, typename DenseCellOffsets,
+template <typename PointPrimitives, typename DenseCellOffsets,
           typename CellIndices, typename Permutation>
 struct MixedBoxPrimitives
 {
   PointPrimitives _point_primitives;
-  Grid _grid;
+  CartesianGrid<GeometryTraits::dimension<typename AccessTraitsHelper<
+      AccessTraits<PointPrimitives, PrimitivesTag>>::type>::value>
+      _grid;
   DenseCellOffsets _dense_cell_offsets;
   int _num_points_in_dense_cells; // to avoid lastElement() in AccessTraits
   CellIndices _sorted_cell_indices;
@@ -140,16 +142,14 @@ struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
   }
 };
 
-template <typename PointPrimitives, typename Grid, typename MixedOffsets,
-          typename CellIndices, typename Permutation>
-struct AccessTraits<
-    Details::MixedBoxPrimitives<PointPrimitives, Grid, MixedOffsets,
-                                CellIndices, Permutation>,
-    ArborX::PrimitivesTag>
+template <typename PointPrimitives, typename MixedOffsets, typename CellIndices,
+          typename Permutation>
+struct AccessTraits<Details::MixedBoxPrimitives<PointPrimitives, MixedOffsets,
+                                                CellIndices, Permutation>,
+                    ArborX::PrimitivesTag>
 {
-  using Primitives =
-      Details::MixedBoxPrimitives<PointPrimitives, Grid, MixedOffsets,
-                                  CellIndices, Permutation>;
+  using Primitives = Details::MixedBoxPrimitives<PointPrimitives, MixedOffsets,
+                                                 CellIndices, Permutation>;
   static KOKKOS_FUNCTION std::size_t size(Primitives const &w)
   {
     auto const &dco = w._dense_cell_offsets;
@@ -392,8 +392,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::tree_construction");
     BasicBoundingVolumeHierarchy<MemorySpace, Box> bvh(
         exec_space,
-        Details::MixedBoxPrimitives<Primitives, decltype(grid),
-                                    decltype(dense_cell_offsets),
+        Details::MixedBoxPrimitives<Primitives, decltype(dense_cell_offsets),
                                     decltype(cell_indices), decltype(permute)>{
             primitives, grid, dense_cell_offsets, num_points_in_dense_cells,
             sorted_cell_indices, permute});
