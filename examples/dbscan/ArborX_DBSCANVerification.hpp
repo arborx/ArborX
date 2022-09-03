@@ -13,6 +13,7 @@
 #define ARBORX_DETAILSDBSCANVERIFICATION_HPP
 
 #include <ArborX_DetailsUtils.hpp>
+#include <ArborX_HyperBox.hpp>
 #include <ArborX_LinearBVH.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -297,7 +298,11 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
 
-  ArborX::BVH<MemorySpace> bvh(exec_space, primitives);
+  constexpr int dim = GeometryTraits::dimension<
+      typename Details::AccessTraitsHelper<Access>::type>::value;
+  using Box = ExperimentalHyperGeometry::Box<dim>;
+  ArborX::BasicBoundingVolumeHierarchy<MemorySpace, Box> bvh(exec_space,
+                                                             primitives);
 
   auto const predicates =
       Details::PrimitivesWithRadius<Primitives>{primitives, eps};
