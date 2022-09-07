@@ -814,7 +814,7 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   execute_strategy(DistributedTreeImpl<DeviceType>::reassessStrategy);
 
   Distributor<DeviceType> distributor(comm);
-  distributor.createFromSends(space, ranks);
+  const auto n_imports = distributor.createFromSends(space, ranks);
 
   using Access = AccessTraits<Predicates, PredicatesTag>;
   using Query = typename AccessTraitsHelper<Access>::type;
@@ -832,7 +832,7 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
           exported_queries_with_indices(i) = {Access::get(queries, q), q, indices(i)};
         });
 
-  Kokkos::View<QueriesWithIndices*, typename DeviceType::memory_space> imported_queries_with_indices(Kokkos::view_alloc(space, Kokkos::WithoutInitializing, "ArborX::DistributedTree::query::imported_queries_with_indices"), 0);
+  Kokkos::View<QueriesWithIndices*, typename DeviceType::memory_space> imported_queries_with_indices(Kokkos::view_alloc(space, Kokkos::WithoutInitializing, "ArborX::DistributedTree::query::imported_queries_with_indices"), n_imports);
 
   sendAcrossNetwork(space, distributor, exported_queries_with_indices, imported_queries_with_indices);
 
@@ -852,7 +852,8 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   const auto& off = distributor.get_destination_offsets();
   Kokkos::View<const int*, Kokkos::HostSpace> host_destinations(dest.data(), dest.size());
   Kokkos::View<const int*, Kokkos::HostSpace> host_offsets(off.data(), off.size());
-  back_distributor.createFromSends(space, host_destinations, host_offsets);
+  const auto n_imports_back = back_distributor.createFromSends(space, host_destinations, host_offsets);
+  KokkosExt::reallocWithoutInitializing(space, out, n_imports_back);
 
   sendAcrossNetwork(space, back_distributor, remote_out, out);
 
