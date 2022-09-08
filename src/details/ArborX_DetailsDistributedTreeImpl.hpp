@@ -826,9 +826,6 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
         std::cout << "point " << host_indices(j) << ", rank " << host_ranks(j) << std::endl;
     }
 
-  Distributor<DeviceType> distributor(comm);
-  const auto n_imports = distributor.createFromSends(space, ranks);
-
   using Access = AccessTraits<Predicates, PredicatesTag>;
   using Query = typename AccessTraitsHelper<Access>::type;
   struct QueriesWithIndices{
@@ -838,16 +835,23 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   };
 
   Kokkos::View<QueriesWithIndices*, typename DeviceType::memory_space> exported_queries_with_indices(Kokkos::view_alloc(space, Kokkos::WithoutInitializing, "ArborX::DistributedTree::query::exported_queries_with_indices"), ranks.size());
+   Kokkos::View<int*, typename DeviceType::memory_space> exported_ranks(Kokkos::view_alloc(space, Kokkos::WithoutInitializing, "ArborX::DistributedTree::query::exported_ranks"), ranks.size());
+   Kokkos::deep_copy(exported_ranks, comm_rank);
     Kokkos::parallel_for(
-        "ArborX::DistributedTree::query::zip_indices_and_ranks",
+        "ArborX::DistributedTree::query::zip_queries_and_primitives",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(queries)), KOKKOS_LAMBDA(int q) {
 	for (unsigned int i=offset(q); i<offset(q+1); ++i)
           exported_queries_with_indices(i) = {Access::get(queries, q), q, indices(i)};
         });
 
+ Distributor<DeviceType> distributor(comm);
+  const auto n_imports = distributor.createFromSends(space, ranks);
+
   Kokkos::View<QueriesWithIndices*, typename DeviceType::memory_space> imported_queries_with_indices(Kokkos::view_alloc(space, Kokkos::WithoutInitializing, "ArborX::DistributedTree::query::imported_queries_with_indices"), n_imports);
+  Kokkos::View<int*, typename DeviceType::memory_space> imported_ranks(Kokkos::view_alloc(space, Kokkos::WithoutInitializing, "ArborX::DistributedTree::query::exported_ranks"), n_imports);
 
   sendAcrossNetwork(space, distributor, exported_queries_with_indices, imported_queries_with_indices);
+  sendAcrossNetwork(space, distributor, exported_ranks, imported_ranks);
 
   // execute imported queries
   OutputView remote_out(Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::DistributedTree::query::remote_out"), n_imports);
@@ -855,6 +859,7 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   Kokkos::parallel_for("ArborX::DistributedTree::query::execute_callbacks",
 		  Kokkos::RangePolicy<ExecutionSpace>(space, 0, imported_queries_with_indices.size()),
 		  KOKKOS_LAMBDA(int i) {
+      printf("imported rank %d\n", imported_ranks(i));
       callback(imported_queries_with_indices(i).query, imported_queries_with_indices(i).primitive_index,
     [&](typename OutputView::value_type const &value) {
                          remote_out(i) = value;
@@ -863,13 +868,18 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
 });
 
 {
+  std::cout << distributor.get_destination_offsets().back() << " should be " << n_imports << std::endl;
+  assert(distributor.get_source_offsets().back() == n_imports);	
   Distributor<DeviceType> back_distributor(comm);
-  const auto& dest = distributor.get_destinations();
-  const auto& off = distributor.get_destination_offsets();
+  const auto& dest = distributor.get_sources();
+  const auto& off = distributor.get_source_offsets();
 
   for (int i=0; i<off.size()-1; ++i)
     for (int j=off[i]; j<off[i+1]; ++j)
       std::cout << comm_rank << " " << dest[i] << std::endl;
+  std::cout << std::endl;
+  for (unsigned int i=0; i<imported_ranks.size(); ++i)
+    std::cout << comm_rank << " " << imported_ranks(i) << std::endl;  
 
   Kokkos::View<const int*, Kokkos::HostSpace> host_destinations(dest.data(), dest.size());
   Kokkos::View<const int*, Kokkos::HostSpace> host_offsets(off.data(), off.size());
@@ -879,6 +889,8 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
           "ArborX::DistributedTree::query::nearest::query_ids", 0);
   KokkosExt::reallocWithoutInitializing(space, ids, n_imports_back);
 
+  std::cout << "remote_out: " << remote_out.size() << " out: " << out.size() << std::endl;
+  std::cout << distributor.getTotalSendLength() << ' ' << distributor.getTotalSendLength() << std::endl;
   sendAcrossNetwork(space, back_distributor, remote_out, out);
   sendAcrossNetwork(space, back_distributor, indices, ids);
 
