@@ -19,41 +19,45 @@
 
 #include <boost/program_options.hpp>
 
+using ExecutionSpace = Kokkos::DefaultExecutionSpace;
+using MemorySpace = ExecutionSpace::memory_space;
+
 template <int DIM>
 struct Dummy
 {
   int count;
 };
 
-using ExecutionSpace = Kokkos::DefaultExecutionSpace;
-using MemorySpace = ExecutionSpace::memory_space;
-
+// Primitives are a set of points located at (i, i, i),
+// with i = 0, ..., n-1
 template <int DIM>
 struct ArborX::AccessTraits<Dummy<DIM>, ArborX::PrimitivesTag>
 {
   using memory_space = MemorySpace;
   using size_type = typename MemorySpace::size_type;
-  static KOKKOS_FUNCTION size_type size(Dummy<DIM> const &d) { return d.count; }
-  static KOKKOS_FUNCTION auto get(Dummy<DIM> const &, size_type i)
+  static KOKKOS_FUNCTION size_type size(Dummy<DIM> d) { return d.count; }
+  static KOKKOS_FUNCTION auto get(Dummy<DIM>, size_type i)
   {
     ArborX::ExperimentalHyperGeometry::Point<DIM> point;
     for (int d = 0; d < DIM; ++d)
-      point[d] = (float)i;
+      point[d] = i;
     return point;
   }
 };
 
+// Predicates are sphere intersections with spheres of radius i
+// centered at (i, i, i), with i = 0, ..., n-1
 template <int DIM>
 struct ArborX::AccessTraits<Dummy<DIM>, ArborX::PredicatesTag>
 {
   using memory_space = MemorySpace;
   using size_type = typename MemorySpace::size_type;
-  static KOKKOS_FUNCTION size_type size(Dummy<DIM> const &d) { return d.count; }
-  static KOKKOS_FUNCTION auto get(Dummy<DIM> const &, size_type i)
+  static KOKKOS_FUNCTION size_type size(Dummy<DIM> d) { return d.count; }
+  static KOKKOS_FUNCTION auto get(Dummy<DIM>, size_type i)
   {
     ArborX::ExperimentalHyperGeometry::Point<DIM> center;
     for (int d = 0; d < DIM; ++d)
-      center[d] = (float)i;
+      center[d] = i;
     return attach(intersects(ArborX::ExperimentalHyperGeometry::Sphere<DIM>{
                       center, (float)i}),
                   i);
@@ -125,9 +129,9 @@ int main(int argc, char *argv[])
   desc.add_options()
       ( "help", "help message" )
       ( "dimension", bpo::value<int>(&dim)->default_value(3), "dimension" )
-      ( "iterations", bpo::value<int>(&nrepeats)->default_value(1), "number of iterations" )
       ( "predicates", bpo::value<int>(&nqueries)->default_value(5), "number of predicates" )
       ( "primitives", bpo::value<int>(&nprimitives)->default_value(5), "number of primitives" )
+      ( "repetitions", bpo::value<int>(&nrepeats)->default_value(1), "number of repetitions" )
       ;
   // clang-format on
   bpo::variables_map vm;
