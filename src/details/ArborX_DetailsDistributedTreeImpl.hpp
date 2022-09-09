@@ -796,8 +796,13 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
                                                                    dest.size());
     Kokkos::View<int const *, Kokkos::HostSpace> host_offsets(off.data(),
                                                               off.size());
+    typename DeviceType::memory_space memory_space;
+    Kokkos::View<int *, DeviceType> destinations(Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::DistributedTree::query::destinations"), dest.size());
+    Kokkos::deep_copy(space, destinations, host_destinations);
+    Kokkos::View<int *, DeviceType> offsets(Kokkos::view_alloc(Kokkos::WithoutInitializing, "ArborX::DistributedTree::query::offsets"), off.size());
+    Kokkos::deep_copy(space, offsets, host_offsets);
     auto const n_imports_back = back_distributor.createFromSends(
-        space, host_destinations, host_offsets);
+        space, destinations, offsets);
     KokkosExt::reallocWithoutInitializing(space, out, n_imports_back);
     Kokkos::View<int *, DeviceType> ids(
         "ArborX::DistributedTree::query::nearest::query_ids", 0);
