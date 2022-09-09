@@ -49,16 +49,23 @@ struct InlinePrintCallback
   Kokkos::View<ArborX::Point *, DeviceType> points;
   int mpi_rank;
 
-  InlinePrintCallback(const Kokkos::View<ArborX::Point *, DeviceType>& points_, int mpi_rank_) :
-    points(points_), mpi_rank(mpi_rank_) {}  	  
+  InlinePrintCallback(Kokkos::View<ArborX::Point *, DeviceType> const &points_,
+                      int mpi_rank_)
+      : points(points_)
+      , mpi_rank(mpi_rank_)
+  {}
 
   template <typename Predicate, typename OutputFunctor>
-  KOKKOS_FUNCTION void operator()(Predicate const &predicate, int primitive_index,
+  KOKKOS_FUNCTION void operator()(Predicate const &predicate,
+                                  int primitive_index,
                                   OutputFunctor const &out) const
   {
     auto data = ArborX::getData(predicate);
-    const auto& point = points(primitive_index);
-    printf("Intersection for query %d from MPI rank %d on MPI rank %d for point %f,%f,%f with index %d\n",     data.index, data.rank, mpi_rank, point[0], point[1], point[2], primitive_index);
+    auto const &point = points(primitive_index);
+    printf("Intersection for query %d from MPI rank %d on MPI rank %d for "
+           "point %f,%f,%f with index %d\n",
+           data.index, data.rank, mpi_rank, point[0], point[1], point[2],
+           primitive_index);
 
     out({primitive_index, mpi_rank});
   }
@@ -73,10 +80,10 @@ struct ArborX::AccessTraits<Example::Nearest<Points>, ArborX::PredicatesTag>
   {
     return x.points.extent(0);
   }
-  static KOKKOS_FUNCTION auto get(Example::Nearest<Points> const &x,
-                                  int i)
+  static KOKKOS_FUNCTION auto get(Example::Nearest<Points> const &x, int i)
   {
-    return attach(ArborX::nearest(x.points(i), x.k), Example::IndexAndRank{i, global_mpi_rank});
+    return attach(ArborX::nearest(x.points(i), x.k),
+                  Example::IndexAndRank{i, global_mpi_rank});
   }
   using memory_space = MemorySpace;
 };
@@ -109,15 +116,22 @@ int main(int argc, char *argv[])
 
     Kokkos::View<Example::IndexAndRank *, MemorySpace> values("values", 0);
     Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
-    tree.query(exec, Example::Nearest{points_device, 3}, Example::InlinePrintCallback<MemorySpace>(points_device, comm_rank), values, offsets);
+    tree.query(
+        exec, Example::Nearest{points_device, 3},
+        Example::InlinePrintCallback<MemorySpace>(points_device, comm_rank),
+        values, offsets);
 
-    auto host_values = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values);
-    auto host_offsets = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets);
-    for (unsigned int i=0; i+1<host_offsets.size(); ++i)
+    auto host_values =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values);
+    auto host_offsets =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets);
+    for (unsigned int i = 0; i + 1 < host_offsets.size(); ++i)
     {
-      std::cout << "Results for query " << i << " on MPI rank " << comm_rank << '\n';
-      for (unsigned int j=host_offsets(i); j<host_offsets(i+1); ++j)
-                      std::cout << "point " << host_values(j).index << ", rank " << host_values(j).rank << std::endl;
+      std::cout << "Results for query " << i << " on MPI rank " << comm_rank
+                << '\n';
+      for (unsigned int j = host_offsets(i); j < host_offsets(i + 1); ++j)
+        std::cout << "point " << host_values(j).index << ", rank "
+                  << host_values(j).rank << std::endl;
     }
   }
   Kokkos::finalize();
