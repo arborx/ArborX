@@ -1,4 +1,21 @@
-add_executable(ArborX_DBSCAN.exe dbscan.cpp)
+set(EXPLICIT_INSTANTIATION_SOURCE_FILES)
+set(TEMPLATE_PARAMETERS 3)
+if(Kokkos_VERSION VERSION_GREATER_EQUAL 3.7)
+  list(APPEND TEMPLATE_PARAMETERS 2 4 5 6)
+endif()
+foreach(DIM ${TEMPLATE_PARAMETERS})
+  set(filename ${CMAKE_CURRENT_BINARY_DIR}/dbscan_${DIM}.cpp)
+  file(WRITE ${filename}
+    "#include \"${CMAKE_CURRENT_SOURCE_DIR}/dbscan_timpl.hpp\"\n"
+    "template bool ArborXBenchmark::run<${DIM}>(ArborXBenchmark::Parameters const&);\n"
+  )
+  list(APPEND EXPLICIT_INSTANTIATION_SOURCE_FILES ${filename})
+endforeach()
+
+add_executable(ArborX_DBSCAN.exe
+  ${EXPLICIT_INSTANTIATION_SOURCE_FILES}
+  dbscan.cpp
+)
 target_include_directories(ArborX_DBSCAN.exe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ArborX_DBSCAN.exe ArborX::ArborX Boost::program_options)
 
