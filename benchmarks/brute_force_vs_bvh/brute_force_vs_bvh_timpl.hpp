@@ -22,21 +22,26 @@
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
 using MemorySpace = ExecutionSpace::memory_space;
 
+namespace ArborXBenchmark
+{
 template <int DIM>
-struct Dummy
+struct Placeholder
 {
   int count;
 };
+} // namespace ArborXBenchmark
 
 // Primitives are a set of points located at (i, i, i),
 // with i = 0, ..., n-1
 template <int DIM>
-struct ArborX::AccessTraits<Dummy<DIM>, ArborX::PrimitivesTag>
+struct ArborX::AccessTraits<ArborXBenchmark::Placeholder<DIM>,
+                            ArborX::PrimitivesTag>
 {
+  using Primitives = ArborXBenchmark::Placeholder<DIM>;
   using memory_space = MemorySpace;
   using size_type = typename MemorySpace::size_type;
-  static KOKKOS_FUNCTION size_type size(Dummy<DIM> d) { return d.count; }
-  static KOKKOS_FUNCTION auto get(Dummy<DIM>, size_type i)
+  static KOKKOS_FUNCTION size_type size(Primitives d) { return d.count; }
+  static KOKKOS_FUNCTION auto get(Primitives, size_type i)
   {
     ArborX::ExperimentalHyperGeometry::Point<DIM> point;
     for (int d = 0; d < DIM; ++d)
@@ -48,12 +53,14 @@ struct ArborX::AccessTraits<Dummy<DIM>, ArborX::PrimitivesTag>
 // Predicates are sphere intersections with spheres of radius i
 // centered at (i, i, i), with i = 0, ..., n-1
 template <int DIM>
-struct ArborX::AccessTraits<Dummy<DIM>, ArborX::PredicatesTag>
+struct ArborX::AccessTraits<ArborXBenchmark::Placeholder<DIM>,
+                            ArborX::PredicatesTag>
 {
+  using Predicates = ArborXBenchmark::Placeholder<DIM>;
   using memory_space = MemorySpace;
   using size_type = typename MemorySpace::size_type;
-  static KOKKOS_FUNCTION size_type size(Dummy<DIM> d) { return d.count; }
-  static KOKKOS_FUNCTION auto get(Dummy<DIM>, size_type i)
+  static KOKKOS_FUNCTION size_type size(Predicates d) { return d.count; }
+  static KOKKOS_FUNCTION auto get(Predicates, size_type i)
   {
     ArborX::ExperimentalHyperGeometry::Point<DIM> center;
     for (int d = 0; d < DIM; ++d)
@@ -68,8 +75,8 @@ template <int DIM>
 void ArborXBenchmark::run(int nprimitives, int nqueries, int nrepeats)
 {
   ExecutionSpace space{};
-  Dummy<DIM> primitives{nprimitives};
-  Dummy<DIM> predicates{nqueries};
+  Placeholder<DIM> primitives{nprimitives};
+  Placeholder<DIM> predicates{nqueries};
 
   printf("Dimension : %d\n", DIM);
   printf("Primitives: %d\n", nprimitives);
@@ -114,4 +121,3 @@ void ArborXBenchmark::run(int nprimitives, int nqueries, int nrepeats)
     }
   }
 }
-
