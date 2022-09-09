@@ -523,13 +523,13 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
   int comm_rank;
   MPI_Comm_rank(tree.getComm(), &comm_rank);
   Kokkos::View<PairIndexRank*, DeviceType> values("ArborX::DistributedTree::query::nearest::values", 0);
-  queryDispatchImpl(NearestPredicateTag{}, tree, space, queries, DefaultCallbackWithRank{comm_rank}, values, offset);
+  queryDispatch(NearestPredicateTag{}, tree, space, queries, DefaultCallbackWithRank{comm_rank}, values, offset);
 
   const int n = values.size();
   KokkosExt::reallocWithoutInitializing(space, indices, n);
   KokkosExt::reallocWithoutInitializing(space, ranks, n);
- 
-  Kokkos::parallel_for("ArborX::DistributedTree::query::split_results", Kokkos::RangePolicy<DeviceType>(space, 0, values.size()), KOKKOS_LAMBDA(int i){
+
+  Kokkos::parallel_for("ArborX::DistributedTree::query::nearest::split_results", Kokkos::RangePolicy<ExecutionSpace>(space, 0, values.size()), KOKKOS_LAMBDA(int i){
 		 indices(i) = values(i).index;
 		 ranks(i) = values(i).rank; 
 		  });
