@@ -618,6 +618,14 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   Kokkos::Profiling::popRegion();
 }
 
+template <typename Query>
+struct QueriesWithIndices
+{
+  Query query;
+  int query_id;
+  int primitive_index;
+};
+
 template <typename DeviceType>
 template <typename DistributedTree, typename ExecutionSpace,
           typename Predicates, typename OutputView, typename OffsetView,
@@ -731,14 +739,8 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
 
   using Access = AccessTraits<Predicates, PredicatesTag>;
   using Query = typename AccessTraitsHelper<Access>::type;
-  struct QueriesWithIndices
-  {
-    Query query;
-    int query_id;
-    int primitive_index;
-  };
 
-  Kokkos::View<QueriesWithIndices *, typename DeviceType::memory_space>
+  Kokkos::View<QueriesWithIndices<Query> *, typename DeviceType::memory_space>
       exported_queries_with_indices(
           Kokkos::view_alloc(
               space, Kokkos::WithoutInitializing,
@@ -756,7 +758,7 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   Distributor<DeviceType> distributor(comm);
   auto const n_imports = distributor.createFromSends(space, ranks);
 
-  Kokkos::View<QueriesWithIndices *, typename DeviceType::memory_space>
+  Kokkos::View<QueriesWithIndices<Query> *, typename DeviceType::memory_space>
       imported_queries_with_indices(
           Kokkos::view_alloc(
               space, Kokkos::WithoutInitializing,
