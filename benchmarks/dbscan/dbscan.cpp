@@ -25,6 +25,22 @@
 
 using ArborX::ExperimentalHyperGeometry::Point;
 
+struct Parameters
+{
+  std::string filename;
+  std::string algorithm;
+  bool binary;
+  bool verify;
+  bool print_dbscan_timers;
+  float eps;
+  int cluster_min_size;
+  int core_min_size;
+  int max_num_points;
+  int num_samples;
+  std::string filename_labels;
+  ArborX::DBSCAN::Implementation implementation;
+};
+
 std::pair<int, int> getDataDimensions(std::string const &filename,
                                       bool binary = true)
 {
@@ -295,19 +311,26 @@ std::ostream &operator<<(std::ostream &out,
 } // namespace DBSCAN
 } // namespace ArborX
 
-template <typename ExecutionSpace, typename Primitives>
-auto main_(ExecutionSpace const &exec_space, Primitives const &primitives,
-           float eps, int core_min_size, std::string const &algorithm,
-           ArborX::DBSCAN::Parameters const &dbscan_params,
-           int cluster_min_size, bool verify)
+template <int DIM>
+auto run(Parameters const &params)
 {
-  using MemorySpace = typename Primitives::memory_space;
+  using ExecutionSpace = Kokkos::DefaultExecutionSpace;
+  using MemorySpace = typename ExecutionSpace::memory_space;
+
+  auto data = loadData<DIM>(params.filename, params.binary,
+                            params.max_num_points, params.num_samples);
+
+  auto const primitives = vec2view<MemorySpace>(data, "primitives");
+
+  using Primitives = decltype(primitives);
+
+  ExecutionSpace exec_space;
 
   Kokkos::Timer timer_total;
   Kokkos::Timer timer;
   std::map<std::string, double> elapsed;
 
-  bool const verbose = dbscan_params._print_timers;
+  bool const verbose = params.print_dbscan_timers;
   auto timer_start = [&exec_space, verbose](Kokkos::Timer &timer) {
     if (verbose)
       exec_space.fence();
@@ -323,10 +346,15 @@ auto main_(ExecutionSpace const &exec_space, Primitives const &primitives,
 
   Kokkos::View<int *, MemorySpace> labels("Example::labels", 0);
   bool success = true;
-  if (algorithm == "dbscan")
+  if (params.algorithm == "dbscan")
   {
+    ArborX::DBSCAN::Parameters dbscan_params;
+    dbscan_params.setPrintTimers(params.print_dbscan_timers)
+        .setImplementation(params.implementation);
+
     labels = ArborX::dbscan<ExecutionSpace, Primitives>(
-        exec_space, primitives, eps, core_min_size, dbscan_params);
+        exec_space, primitives, params.eps, params.core_min_size,
+        dbscan_params);
 
     timer_start(timer);
     Kokkos::View<int *, MemorySpace> cluster_indices("Testing::cluster_indices",
@@ -334,7 +362,7 @@ auto main_(ExecutionSpace const &exec_space, Primitives const &primitives,
     Kokkos::View<int *, MemorySpace> cluster_offset("Testing::cluster_offset",
                                                     0);
     sortAndFilterClusters(exec_space, labels, cluster_indices, cluster_offset,
-                          cluster_min_size);
+                          params.cluster_min_size);
     elapsed["cluster"] = timer_seconds(timer);
     elapsed["total"] = timer_seconds(timer_total);
 
@@ -351,17 +379,17 @@ auto main_(ExecutionSpace const &exec_space, Primitives const &primitives,
     printf("#noise   points : %d [%.2f%%]\n", num_noise_points,
            (100.f * num_noise_points / num_points));
 
-    if (verify)
+    if (params.verify)
     {
-      success = ArborX::Details::verifyDBSCAN(exec_space, primitives, eps,
-                                              core_min_size, labels);
+      success = ArborX::Details::verifyDBSCAN(
+          exec_space, primitives, params.eps, params.core_min_size, labels);
       printf("Verification %s\n", (success ? "passed" : "failed"));
     }
   }
-  else if (algorithm == "mst")
+  else if (params.algorithm == "mst")
   {
     ArborX::Details::MinimumSpanningTree<MemorySpace> mst(
-        exec_space, primitives, core_min_size);
+        exec_space, primitives, params.core_min_size);
   }
 
   return std::make_pair(success, labels);
@@ -381,35 +409,24 @@ int main(int argc, char *argv[])
   namespace bpo = boost::program_options;
   using ArborX::DBSCAN::Implementation;
 
-  std::string filename;
-  std::string algorithm;
-  bool binary;
-  bool verify;
-  bool print_dbscan_timers;
-  float eps;
-  int cluster_min_size;
-  int core_min_size;
-  int max_num_points;
-  int num_samples;
-  std::string filename_labels;
-  Implementation implementation;
+  Parameters params;
 
   bpo::options_description desc("Allowed options");
   // clang-format off
   desc.add_options()
       ( "help", "help message" )
-      ( "algorithm", bpo::value<std::string>(&algorithm)->default_value("dbscan"), "algorithm (dbscan | mst)" )
-      ( "filename", bpo::value<std::string>(&filename), "filename containing data" )
-      ( "binary", bpo::bool_switch(&binary)->default_value(false), "binary file indicator")
-      ( "max-num-points", bpo::value<int>(&max_num_points)->default_value(-1), "max number of points to read in")
-      ( "eps", bpo::value<float>(&eps), "DBSCAN eps" )
-      ( "cluster-min-size", bpo::value<int>(&cluster_min_size)->default_value(1), "minimum cluster size")
-      ( "core-min-size", bpo::value<int>(&core_min_size)->default_value(2), "DBSCAN min_pts")
-      ( "verify", bpo::bool_switch(&verify)->default_value(false), "verify connected components")
-      ( "samples", bpo::value<int>(&num_samples)->default_value(-1), "number of samples" )
-      ( "labels", bpo::value<std::string>(&filename_labels)->default_value(""), "clutering results output" )
-      ( "print-dbscan-timers", bpo::bool_switch(&print_dbscan_timers)->default_value(false), "print dbscan timers")
-      ( "impl", bpo::value<Implementation>(&implementation)->default_value(Implementation::FDBSCAN), R"(implementation ("fdbscan" or "fdbscan-densebox"))")
+      ( "algorithm", bpo::value<std::string>(&params.algorithm)->default_value("dbscan"), "algorithm (dbscan | mst)" )
+      ( "filename", bpo::value<std::string>(&params.filename), "filename containing data" )
+      ( "binary", bpo::bool_switch(&params.binary)->default_value(false), "binary file indicator")
+      ( "max-num-points", bpo::value<int>(&params.max_num_points)->default_value(-1), "max number of points to read in")
+      ( "eps", bpo::value<float>(&params.eps), "DBSCAN eps" )
+      ( "cluster-min-size", bpo::value<int>(&params.cluster_min_size)->default_value(1), "minimum cluster size")
+      ( "core-min-size", bpo::value<int>(&params.core_min_size)->default_value(2), "DBSCAN min_pts")
+      ( "verify", bpo::bool_switch(&params.verify)->default_value(false), "verify connected components")
+      ( "samples", bpo::value<int>(&params.num_samples)->default_value(-1), "number of samples" )
+      ( "labels", bpo::value<std::string>(&params.filename_labels)->default_value(""), "clutering results output" )
+      ( "print-dbscan-timers", bpo::bool_switch(&params.print_dbscan_timers)->default_value(false), "print dbscan timers")
+      ( "impl", bpo::value<Implementation>(&params.implementation)->default_value(Implementation::FDBSCAN), R"(implementation ("fdbscan" or "fdbscan-densebox"))")
       ;
   // clang-format on
   bpo::variables_map vm;
@@ -423,34 +440,29 @@ int main(int argc, char *argv[])
   }
 
   std::stringstream ss;
-  ss << implementation;
+  ss << params.implementation;
 
   // Print out the runtime parameters
-  printf("algorithm         : %s\n", algorithm.c_str());
-  if (algorithm == "dbscan")
+  printf("algorithm         : %s\n", params.algorithm.c_str());
+  if (params.algorithm == "dbscan")
   {
-    printf("eps               : %f\n", eps);
-    printf("cluster min size  : %d\n", cluster_min_size);
+    printf("eps               : %f\n", params.eps);
+    printf("cluster min size  : %d\n", params.cluster_min_size);
     printf("implementation    : %s\n", ss.str().c_str());
-    printf("verify            : %s\n", (verify ? "true" : "false"));
+    printf("verify            : %s\n", (params.verify ? "true" : "false"));
   }
-  printf("minpts            : %d\n", core_min_size);
-  printf("filename          : %s [%s, max_pts = %d]\n", filename.c_str(),
-         (binary ? "binary" : "text"), max_num_points);
-  if (!filename_labels.empty())
-    printf("filename [labels] : %s [binary]\n", filename_labels.c_str());
-  printf("samples           : %d\n", num_samples);
-  printf("print timers      : %s\n", (print_dbscan_timers ? "true" : "false"));
-
-  ArborX::DBSCAN::Parameters dbscan_params;
-  dbscan_params.setPrintTimers(print_dbscan_timers)
-      .setImplementation(implementation);
-
-  ExecutionSpace exec_space;
+  printf("minpts            : %d\n", params.core_min_size);
+  printf("filename          : %s [%s, max_pts = %d]\n", params.filename.c_str(),
+         (params.binary ? "binary" : "text"), params.max_num_points);
+  if (!params.filename_labels.empty())
+    printf("filename [labels] : %s [binary]\n", params.filename_labels.c_str());
+  printf("samples           : %d\n", params.num_samples);
+  printf("print timers      : %s\n",
+         (params.print_dbscan_timers ? "true" : "false"));
 
   int num_points;
   int dim;
-  std::tie(num_points, dim) = getDataDimensions(filename, binary);
+  std::tie(num_points, dim) = getDataDimensions(params.filename, params.binary);
 
   // read in data
   bool success;
@@ -458,61 +470,29 @@ int main(int argc, char *argv[])
   switch (dim)
   {
   case 3:
-  {
-    auto data = loadData<3>(filename, binary, max_num_points, num_samples);
-    auto const primitives = vec2view<MemorySpace>(data, "primitives");
-    std::tie(success, labels) = main_<ExecutionSpace, decltype(primitives)>(
-        exec_space, primitives, eps, core_min_size, algorithm, dbscan_params,
-        cluster_min_size, verify);
+    std::tie(success, labels) = run<3>(params);
     break;
-  }
 #if KOKKOS_VERSION >= 30700
   case 2:
-  {
-    auto data = loadData<2>(filename, binary, max_num_points, num_samples);
-    auto const primitives = vec2view<MemorySpace>(data, "primitives");
-    std::tie(success, labels) = main_<ExecutionSpace, decltype(primitives)>(
-        exec_space, primitives, eps, core_min_size, algorithm, dbscan_params,
-        cluster_min_size, verify);
+    std::tie(success, labels) = run<2>(params);
     break;
-  }
   case 4:
-  {
-    auto data = loadData<4>(filename, binary, max_num_points, num_samples);
-    auto const primitives = vec2view<MemorySpace>(data, "primitives");
-    std::tie(success, labels) = main_<ExecutionSpace, decltype(primitives)>(
-        exec_space, primitives, eps, core_min_size, algorithm, dbscan_params,
-        cluster_min_size, verify);
+    std::tie(success, labels) = run<4>(params);
     break;
-  }
   case 5:
-  {
-    auto data = loadData<5>(filename, binary, max_num_points, num_samples);
-    auto const primitives = vec2view<MemorySpace>(data, "primitives");
-    std::tie(success, labels) = main_<ExecutionSpace, decltype(primitives)>(
-        exec_space, primitives, eps, core_min_size, algorithm, dbscan_params,
-        cluster_min_size, verify);
+    std::tie(success, labels) = run<5>(params);
     break;
-  }
   case 6:
-  {
-    auto data = loadData<6>(filename, binary, max_num_points, num_samples);
-    auto const primitives = vec2view<MemorySpace>(data, "primitives");
-    std::tie(success, labels) = main_<ExecutionSpace, decltype(primitives)>(
-        exec_space, primitives, eps, core_min_size, algorithm, dbscan_params,
-        cluster_min_size, verify);
+    std::tie(success, labels) = run<6>(params);
     break;
-  }
 #endif
   default:
-  {
     std::cerr << "Error: dimension " << dim << " not allowed\n" << std::endl;
     success = false;
   }
-  }
 
-  if (success && !filename_labels.empty())
-    writeLabelsData(filename_labels, labels);
+  if (success && !params.filename_labels.empty())
+    writeLabelsData(params.filename_labels, labels);
 
   return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
