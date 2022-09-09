@@ -24,8 +24,6 @@
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
 using MemorySpace = ExecutionSpace::memory_space;
 
-int global_mpi_rank;
-
 namespace Example
 {
 template <class Points>
@@ -33,9 +31,10 @@ struct Nearest
 {
   Points points;
   int k;
+  int mpi_rank;
 };
 template <class Points>
-Nearest(Points const &, int) -> Nearest<Points>;
+Nearest(Points const &, int, int) -> Nearest<Points>;
 
 struct IndexAndRank
 {
@@ -83,7 +82,7 @@ struct ArborX::AccessTraits<Example::Nearest<Points>, ArborX::PredicatesTag>
   static KOKKOS_FUNCTION auto get(Example::Nearest<Points> const &x, int i)
   {
     return attach(ArborX::nearest(x.points(i), x.k),
-                  Example::IndexAndRank{i, global_mpi_rank});
+                  Example::IndexAndRank{i, x.mpi_rank});
   }
   using memory_space = MemorySpace;
 };
@@ -96,7 +95,6 @@ int main(int argc, char *argv[])
     MPI_Comm comm = MPI_COMM_WORLD;
     int comm_rank;
     MPI_Comm_rank(comm, &comm_rank);
-    global_mpi_rank = comm_rank;
     int comm_size;
     MPI_Comm_size(comm, &comm_size);
     ArborX::Point lower_left_corner = {static_cast<float>(comm_rank),
@@ -117,7 +115,7 @@ int main(int argc, char *argv[])
     Kokkos::View<Example::IndexAndRank *, MemorySpace> values("values", 0);
     Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
     tree.query(
-        exec, Example::Nearest{points_device, 3},
+        exec, Example::Nearest{points_device, 3, comm_rank},
         Example::InlinePrintCallback<MemorySpace>(points_device, comm_rank),
         values, offsets);
 
