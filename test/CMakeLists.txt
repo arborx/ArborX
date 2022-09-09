@@ -194,7 +194,7 @@ target_include_directories(ArborX_DetailsClusteringHelpers.exe PRIVATE ${CMAKE_C
 add_test(NAME ArborX_DetailsClusteringHelpers_Test COMMAND ./ArborX_DetailsClusteringHelpers.exe)
 
 if(ARBORX_ENABLE_MPI)
-  add_executable(ArborX_DistributedTree.exe tstDistributedTree.cpp utf_main.cpp)
+  add_executable(ArborX_DistributedTree.exe tstDistributedTree.cpp tstKokkosToolsDistributedAnnotations.cpp utf_main.cpp)
   target_link_libraries(ArborX_DistributedTree.exe PRIVATE ArborX Boost::unit_test_framework)
   target_compile_definitions(ArborX_DistributedTree.exe PRIVATE BOOST_TEST_DYN_LINK ARBORX_MPI_UNIT_TEST)
   target_include_directories(ArborX_DistributedTree.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
