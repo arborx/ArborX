@@ -90,10 +90,9 @@ std::vector<Point<DIM>> loadData(std::string const &filename,
   if (max_num_points > 0 && max_num_points < num_points)
     num_points = max_num_points;
 
+  v.resize(num_points);
   if (!binary)
   {
-    v.reserve(num_points);
-
     auto it = std::istream_iterator<float>(input);
     for (int i = 0; i < num_points; ++i)
       for (int d = 0; d < DIM; ++d)
@@ -102,7 +101,6 @@ std::vector<Point<DIM>> loadData(std::string const &filename,
   else
   {
     // Directly read into a point
-    v.resize(num_points);
     input.read(reinterpret_cast<char *>(v.data()),
                num_points * sizeof(Point<DIM>));
   }
