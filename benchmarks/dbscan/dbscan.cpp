@@ -21,7 +21,10 @@
 #include <cstdlib>
 #include <fstream>
 
-std::pair<int, int> getDataDimensions(std::string const &filename, bool binary)
+// FIXME: ideally, this function would be next to `loadData` in
+// dbscan_timpl.hpp. However, that file is used for explicit instantiation,
+// which would result in multiple duplicate symbols. So it is kept here.
+int getDataDimension(std::string const &filename, bool binary)
 {
   std::ifstream input;
   if (!binary)
@@ -30,8 +33,8 @@ std::pair<int, int> getDataDimensions(std::string const &filename, bool binary)
     input.open(filename, std::ifstream::binary);
   ARBORX_ASSERT(input.good());
 
-  int num_points = 0;
-  int dim = 0;
+  int num_points;
+  int dim;
   if (!binary)
   {
     input >> num_points;
@@ -44,7 +47,7 @@ std::pair<int, int> getDataDimensions(std::string const &filename, bool binary)
   }
   input.close();
 
-  return std::make_pair(num_points, dim);
+  return dim;
 }
 
 namespace ArborX::DBSCAN
@@ -146,9 +149,7 @@ int main(int argc, char *argv[])
   printf("print timers      : %s\n",
          (params.print_dbscan_timers ? "true" : "false"));
 
-  int num_points;
-  int dim;
-  std::tie(num_points, dim) = getDataDimensions(params.filename, params.binary);
+  int dim = getDataDimension(params.filename, params.binary);
 
   using ArborXBenchmark::run;
 
