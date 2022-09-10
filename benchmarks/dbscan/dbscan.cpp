@@ -11,7 +11,6 @@
 
 #include "dbscan.hpp"
 
-#include <ArborX_DBSCAN.hpp>
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -31,7 +30,8 @@ int getDataDimension(std::string const &filename, bool binary)
     input.open(filename);
   else
     input.open(filename, std::ifstream::binary);
-  ARBORX_ASSERT(input.good());
+  if (!input.good())
+    throw std::runtime_error("Error reading file" + filename);
 
   int num_points;
   int dim;
@@ -50,43 +50,6 @@ int getDataDimension(std::string const &filename, bool binary)
   return dim;
 }
 
-namespace ArborX::DBSCAN
-{
-// This function is required for Boost program_options to be able to use the
-// Implementation enum.
-std::istream &operator>>(std::istream &in, Implementation &implementation)
-{
-  std::string impl_string;
-  in >> impl_string;
-
-  if (impl_string == "fdbscan")
-    implementation = ArborX::DBSCAN::Implementation::FDBSCAN;
-  else if (impl_string == "fdbscan-densebox")
-    implementation = ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox;
-  else
-    in.setstate(std::ios_base::failbit);
-
-  return in;
-}
-
-// This function is required for Boost program_options to use Implementation
-// enum as the default_value().
-std::ostream &operator<<(std::ostream &out,
-                         Implementation const &implementation)
-{
-  switch (implementation)
-  {
-  case ArborX::DBSCAN::Implementation::FDBSCAN:
-    out << "fdbscan";
-    break;
-  case ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox:
-    out << "fdbscan-densebox";
-    break;
-  }
-  return out;
-}
-} // namespace ArborX::DBSCAN
-
 int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
@@ -96,7 +59,6 @@ int main(int argc, char *argv[])
   std::cout << "Kokkos version    : " << KokkosExt::version() << std::endl;
 
   namespace bpo = boost::program_options;
-  using ArborX::DBSCAN::Implementation;
 
   ArborXBenchmark::Parameters params;
 
@@ -115,7 +77,7 @@ int main(int argc, char *argv[])
       ( "samples", bpo::value<int>(&params.num_samples)->default_value(-1), "number of samples" )
       ( "labels", bpo::value<std::string>(&params.filename_labels)->default_value(""), "clutering results output" )
       ( "print-dbscan-timers", bpo::bool_switch(&params.print_dbscan_timers)->default_value(false), "print dbscan timers")
-      ( "impl", bpo::value<Implementation>(&params.implementation)->default_value(Implementation::FDBSCAN), R"(implementation ("fdbscan" or "fdbscan-densebox"))")
+      ( "impl", bpo::value<std::string>(&params.implementation)->default_value("fdbscan"), R"(implementation ("fdbscan" or "fdbscan-densebox"))")
       ;
   // clang-format on
   bpo::variables_map vm;
@@ -126,6 +88,13 @@ int main(int argc, char *argv[])
   {
     std::cout << desc << '\n';
     return 1;
+  }
+
+  if (std::set<std::string>{"fdbscan", "fdbscan-densebox"}.count(
+          params.implementation) == 0)
+  {
+    std::cerr << "Implementation must be \"fdbscan\" or \"fdbscan-densebox\"\n";
+    return 2;
   }
 
   std::stringstream ss;

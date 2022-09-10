@@ -239,13 +239,6 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
   using ExecutionSpace = Kokkos::DefaultExecutionSpace;
   using MemorySpace = typename ExecutionSpace::memory_space;
 
-  auto data = loadData<DIM>(params.filename, params.binary,
-                            params.max_num_points, params.num_samples);
-
-  auto const primitives = vec2view<MemorySpace>(data, "primitives");
-
-  using Primitives = decltype(primitives);
-
   ExecutionSpace exec_space;
 
   Kokkos::Timer timer_total;
@@ -264,6 +257,20 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
     return timer.seconds();
   };
 
+  auto data = loadData<DIM>(params.filename, params.binary,
+                            params.max_num_points, params.num_samples);
+
+  auto const primitives = vec2view<MemorySpace>(data, "primitives");
+
+  using Primitives = decltype(primitives);
+
+  using ArborX::DBSCAN::Implementation;
+  Implementation implementation;
+  if (params.implementation == "fdbscan")
+    implementation = Implementation::FDBSCAN;
+  else if (params.implementation == "fdbscan-densebox")
+    implementation = Implementation::FDBSCAN_DenseBox;
+
   timer_start(timer_total);
 
   Kokkos::View<int *, MemorySpace> labels("Example::labels", 0);
@@ -272,7 +279,7 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
   {
     ArborX::DBSCAN::Parameters dbscan_params;
     dbscan_params.setPrintTimers(params.print_dbscan_timers)
-        .setImplementation(params.implementation);
+        .setImplementation(implementation);
 
     labels = ArborX::dbscan<ExecutionSpace, Primitives>(
         exec_space, primitives, params.eps, params.core_min_size,

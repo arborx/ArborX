@@ -9,8 +9,6 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_DBSCAN.hpp>
-
 #include <string>
 
 namespace ArborXBenchmark
@@ -29,7 +27,7 @@ struct Parameters
   int max_num_points;
   int num_samples;
   std::string filename_labels;
-  ArborX::DBSCAN::Implementation implementation;
+  std::string implementation;
 };
 
 template <int DIM>
