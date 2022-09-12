@@ -43,17 +43,6 @@ std::vector<Point<DIM>> sampleData(std::vector<Point<DIM>> const &data,
   return sampled_data;
 }
 
-template <typename... P, typename T>
-auto vec2view(std::vector<T> const &in, std::string const &label = "")
-{
-  Kokkos::View<T *, P...> out(
-      Kokkos::view_alloc(label, Kokkos::WithoutInitializing), in.size());
-  Kokkos::deep_copy(out, Kokkos::View<T const *, Kokkos::HostSpace,
-                                      Kokkos::MemoryTraits<Kokkos::Unmanaged>>{
-                             in.data(), in.size()});
-  return out;
-}
-
 template <int DIM>
 std::vector<Point<DIM>> loadData(std::string const &filename,
                                  bool binary = true, int max_num_points = -1,
@@ -229,6 +218,17 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
       });
 
   Kokkos::Profiling::popRegion();
+}
+
+template <typename... P, typename T>
+auto vec2view(std::vector<T> const &in, std::string const &label = "")
+{
+  Kokkos::View<T *, P...> out(
+      Kokkos::view_alloc(label, Kokkos::WithoutInitializing), in.size());
+  Kokkos::deep_copy(out, Kokkos::View<T const *, Kokkos::HostSpace,
+                                      Kokkos::MemoryTraits<Kokkos::Unmanaged>>{
+                             in.data(), in.size()});
+  return out;
 }
 
 template <int DIM>
