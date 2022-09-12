@@ -103,6 +103,51 @@ struct AccessTraitsHelper<AccessTraits<X, Tag>>
   using tag = Kokkos::detected_t<PredicateTagArchetypeAlias, type>;
 };
 
+template <typename X, typename Tag>
+class RangeAdaptor
+{
+  X _x;
+  using Access = AccessTraits<X, Tag>;
+
+public:
+  using memory_space = typename Access::memory_space;
+  using value_type = std::decay_t<
+      Kokkos::detected_t<AccessTraitsGetArchetypeExpression, Access, X>>;
+  using size_type =
+      Kokkos::detected_t<AccessTraitsSizeArchetypeExpression, Access, X>;
+
+  RangeAdaptor(Tag, X const &x)
+      : _x(x)
+  {}
+
+  KOKKOS_FUNCTION
+  decltype(auto) operator()(size_type i) const { return Access::get(_x, i); }
+
+  KOKKOS_FUNCTION
+  size_type size() const { return Access::size(_x); }
+};
+
+template <typename X, typename Tag>
+class RangeAdaptor<RangeAdaptor<X, Tag>, Tag>
+{
+  RangeAdaptor<X, Tag> _x;
+
+public:
+  using memory_space = typename RangeAdaptor<X, Tag>::memory_space;
+  using value_type = typename RangeAdaptor<X, Tag>::value_type;
+  using size_type = typename RangeAdaptor<X, Tag>::size_type;
+
+  RangeAdaptor(Tag, RangeAdaptor<X, Tag> const &x)
+      : _x(x)
+  {}
+
+  KOKKOS_FUNCTION
+  decltype(auto) operator()(size_type i) const { return _x(i); }
+
+  KOKKOS_FUNCTION
+  decltype(auto) size() const { return _x.size(); }
+};
+
 template <typename Predicates>
 void check_valid_access_traits(PredicatesTag, Predicates const &)
 {
@@ -181,6 +226,23 @@ void check_valid_access_traits(PrimitivesTag, Primitives const &)
 }
 
 } // namespace Details
+
+template <typename X, typename Tag>
+struct AccessTraits<Details::RangeAdaptor<X, Tag>, Tag>
+{
+  using RangeAdaptor = Details::RangeAdaptor<X, Tag>;
+
+  // Returns by value
+  KOKKOS_FUNCTION static decltype(auto) get(RangeAdaptor const &v, int i)
+  {
+    return v(i);
+  }
+
+  KOKKOS_FUNCTION
+  static decltype(auto) size(RangeAdaptor const &v) { return v.size(); }
+
+  using memory_space = typename RangeAdaptor::memory_space;
+};
 
 namespace Traits
 {
