@@ -145,9 +145,10 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
   Details::check_valid_access_traits(PrimitivesTag{}, primitives);
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-  static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
-                                              ExecutionSpace>::value,
+  Details::RangeAdaptor adapted_primitives(PrimitivesTag(), primitives);
+  static_assert(KokkosExt::is_accessible_from<
+                    typename decltype(adapted_primitives)::memory_space,
+                    ExecutionSpace>::value,
                 "Primitives must be accessible from the execution space");
 
   constexpr int DIM = GeometryTraits::dimension<BoundingVolume>::value;
@@ -166,15 +167,15 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
 
   // determine the bounding box of the scene
   ExperimentalHyperGeometry::Box<DIM> bbox{};
-  Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, primitives,
-                                                            bbox);
+  Details::TreeConstruction::calculateBoundingBoxOfTheScene(
+      space, adapted_primitives, bbox);
 
   Kokkos::Profiling::popRegion();
 
   if (size() == 1)
   {
     Details::TreeConstruction::initializeSingleLeafNode(
-        space, primitives, _internal_and_leaf_nodes);
+        space, adapted_primitives, _internal_and_leaf_nodes);
     Kokkos::deep_copy(
         space,
         Kokkos::View<BoundingVolume, Kokkos::HostSpace,
@@ -190,13 +191,13 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   using LinearOrderingValueType = Kokkos::detected_t<
       Details::SpaceFillingCurveProjectionArchetypeExpression,
       SpaceFillingCurve, decltype(bbox),
-      std::decay_t<decltype(Access::get(primitives, 0))>>;
+      typename decltype(adapted_primitives)::value_type>;
   Kokkos::View<LinearOrderingValueType *, MemorySpace> linear_ordering_indices(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::BVH::BVH::linear_ordering"),
       size());
   Details::TreeConstruction::projectOntoSpaceFillingCurve(
-      space, primitives, curve, bbox, linear_ordering_indices);
+      space, adapted_primitives, curve, bbox, linear_ordering_indices);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::sort_linearized_order");
@@ -210,7 +211,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
 
   // generate bounding volume hierarchy
   Details::TreeConstruction::generateHierarchy(
-      space, primitives, permutation_indices, linear_ordering_indices,
+      space, adapted_primitives, permutation_indices, linear_ordering_indices,
       getLeafNodes(), getInternalNodes());
 
   Kokkos::deep_copy(
@@ -232,13 +233,14 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
   Details::check_valid_access_traits(PredicatesTag{}, predicates);
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
-                                              ExecutionSpace>::value,
+  Details::RangeAdaptor adapted_predicates(PredicatesTag(), predicates);
+  static_assert(KokkosExt::is_accessible_from<
+                    typename decltype(adapted_predicates)::memory_space,
+                    ExecutionSpace>::value,
                 "Predicates must be accessible from the execution space");
-  Details::check_valid_callback(callback, predicates);
+  Details::check_valid_callback(callback, adapted_predicates);
 
-  using Tag = typename Details::AccessTraitsHelper<Access>::tag;
+  using Tag = typename decltype(adapted_predicates)::value_type::Tag;
   std::string profiling_prefix = "ArborX::BVH::query";
   if (std::is_same<Tag, Details::SpatialPredicateTag>{})
   {
@@ -270,17 +272,21 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
     expand(scene_bounding_box, bounds());
     auto permute = Details::BatchedQueries<DeviceType>::
         sortPredicatesAlongSpaceFillingCurve(space, Experimental::Morton32(),
-                                             scene_bounding_box, predicates);
+                                             scene_bounding_box,
+                                             adapted_predicates);
     Kokkos::Profiling::popRegion();
 
     using PermutedPredicates =
         Details::PermutedData<Predicates, decltype(permute)>;
-    Details::traverse(space, *this, PermutedPredicates{predicates, permute},
-                      callback);
+    Details::TreeTraversal(
+        space, *this,
+        Details::RangeAdaptor(PredicatesTag(),
+                              PermutedPredicates{predicates, permute}),
+        callback);
   }
   else
   {
-    Details::traverse(space, *this, predicates, callback);
+    Details::TreeTraversal(space, *this, adapted_predicates, callback);
   }
 
   Kokkos::Profiling::popRegion();

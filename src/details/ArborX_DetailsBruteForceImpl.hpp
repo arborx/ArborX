@@ -31,9 +31,7 @@ struct BruteForceImpl
       ExecutionSpace const &space, Primitives const &primitives,
       BoundingVolumes const &bounding_volumes, Bounds &bounds)
   {
-    using Access = AccessTraits<Primitives, PrimitivesTag>;
-
-    int const n = Access::size(primitives);
+    int const n = primitives.size();
 
     Kokkos::parallel_reduce(
         "ArborX::BruteForce::BruteForce::"
@@ -42,7 +40,7 @@ struct BruteForceImpl
         KOKKOS_LAMBDA(int i, Bounds &update) {
           using Details::expand;
           Bounds bounding_volume{};
-          expand(bounding_volume, Access::get(primitives, i));
+          expand(bounding_volume, primitives(i));
           bounding_volumes(i) = bounding_volume;
           update += bounding_volume;
         },
@@ -55,13 +53,11 @@ struct BruteForceImpl
                     Predicates const &predicates, Callback const &callback)
   {
     using TeamPolicy = Kokkos::TeamPolicy<ExecutionSpace>;
-    using AccessPrimitives = AccessTraits<Primitives, PrimitivesTag>;
-    using AccessPredicates = AccessTraits<Predicates, PredicatesTag>;
-    using PredicateType = typename AccessTraitsHelper<AccessPredicates>::type;
-    using PrimitiveType = typename AccessTraitsHelper<AccessPrimitives>::type;
+    using PredicateType = typename Predicates::value_type;
+    using PrimitiveType = typename Primitives::value_type;
 
-    int const n_primitives = AccessPrimitives::size(primitives);
-    int const n_predicates = AccessPredicates::size(predicates);
+    int const n_primitives = primitives.size();
+    int const n_predicates = predicates.size();
     int max_scratch_size = TeamPolicy::scratch_size_max(0);
     // half of the scratch memory used by predicates and half for primitives
     int const predicates_per_team =
@@ -113,14 +109,12 @@ struct BruteForceImpl
           Kokkos::parallel_for(
               Kokkos::TeamVectorRange(teamMember, predicates_in_this_team),
               [&](const int q) {
-                scratch_predicates(q) =
-                    AccessPredicates::get(predicates, predicate_start + q);
+                scratch_predicates(q) = predicates(predicate_start + q);
               });
           Kokkos::parallel_for(
               Kokkos::TeamVectorRange(teamMember, primitives_in_this_team),
               [&](const int j) {
-                scratch_primitives(j) =
-                    AccessPrimitives::get(primitives, primitive_start + j);
+                scratch_primitives(j) = primitives(primitive_start + j);
               });
           teamMember.team_barrier();
 

@@ -12,7 +12,6 @@
 #ifndef ARBORX_DETAILS_TREE_CONSTRUCTION_HPP
 #define ARBORX_DETAILS_TREE_CONSTRUCTION_HPP
 
-#include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // expand
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsNode.hpp> // makeLeafNode
@@ -34,14 +33,11 @@ inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
                                            Primitives const &primitives,
                                            Box &scene_bounding_box)
 {
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-  auto const n = Access::size(primitives);
+  auto const n = primitives.size();
   Kokkos::parallel_reduce(
       "ArborX::TreeConstruction::calculate_bounding_box_of_the_scene",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-      KOKKOS_LAMBDA(int i, Box &update) {
-        update += Access::get(primitives, i);
-      },
+      KOKKOS_LAMBDA(int i, Box &update) { update += primitives(i); },
       scene_bounding_box);
 }
 
@@ -53,20 +49,16 @@ inline void projectOntoSpaceFillingCurve(ExecutionSpace const &space,
                                          Box const &scene_bounding_box,
                                          LinearOrdering linear_ordering_indices)
 {
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-
-  size_t const n = Access::size(primitives);
+  size_t const n = primitives.size();
   ARBORX_ASSERT(linear_ordering_indices.extent(0) == n);
   static_assert(
-      std::is_same<typename LinearOrdering::value_type,
-                   decltype(curve(scene_bounding_box,
-                                  Access::get(primitives, 0)))>::value);
+      std::is_same_v<typename LinearOrdering::value_type,
+                     decltype(curve(scene_bounding_box, primitives(0)))>);
 
   Kokkos::parallel_for(
       "ArborX::TreeConstruction::project_primitives_onto_space_filling_curve",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
-        linear_ordering_indices(i) =
-            curve(scene_bounding_box, Access::get(primitives, i));
+        linear_ordering_indices(i) = curve(scene_bounding_box, primitives(i));
       });
 }
 
@@ -75,10 +67,8 @@ inline void initializeSingleLeafNode(ExecutionSpace const &space,
                                      Primitives const &primitives,
                                      Nodes const &leaf_nodes)
 {
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-
   ARBORX_ASSERT(leaf_nodes.extent(0) == 1);
-  ARBORX_ASSERT(Access::size(primitives) == 1);
+  ARBORX_ASSERT(primitives.size() == 1);
 
   using Node = typename Nodes::value_type;
   using BoundingVolume = typename Node::bounding_volume_type;
@@ -87,7 +77,7 @@ inline void initializeSingleLeafNode(ExecutionSpace const &space,
       "ArborX::TreeConstruction::initialize_single_leaf",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1), KOKKOS_LAMBDA(int) {
         BoundingVolume bounding_volume{};
-        expand(bounding_volume, Access::get(primitives, 0));
+        expand(bounding_volume, primitives(0));
         leaf_nodes(0) = makeLeafNode(0, std::move(bounding_volume));
       });
 }
@@ -215,8 +205,7 @@ public:
 
     using BoundingVolume = typename Node::bounding_volume_type;
     BoundingVolume bounding_volume{};
-    using Access = AccessTraits<Primitives, PrimitivesTag>;
-    expand(bounding_volume, Access::get(_primitives, original_index));
+    expand(bounding_volume, _primitives(original_index));
 
     // Initialize leaf node
     auto *leaf_node = getNodePtr(i);

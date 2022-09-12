@@ -287,6 +287,9 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
 {
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::verify");
 
+  Details::RangeAdaptor adapted_primitives(PrimitivesTag(), primitives);
+  using AdaptedPrimitives = decltype(adapted_primitives);
+
   static_assert(Kokkos::is_view<LabelsView>{});
 
   using Access = AccessTraits<Primitives, PrimitivesTag>;
@@ -301,11 +304,11 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   constexpr int dim = GeometryTraits::dimension<
       typename Details::AccessTraitsHelper<Access>::type>::value;
   using Box = ExperimentalHyperGeometry::Box<dim>;
-  ArborX::BasicBoundingVolumeHierarchy<MemorySpace, Box> bvh(exec_space,
-                                                             primitives);
+  ArborX::BasicBoundingVolumeHierarchy<MemorySpace, Box> bvh(
+      exec_space, adapted_primitives);
 
   auto const predicates =
-      Details::PrimitivesWithRadius<Primitives>{primitives, eps};
+      Details::PrimitivesWithRadius<AdaptedPrimitives>{adapted_primitives, eps};
 
   Kokkos::View<int *, MemorySpace> indices("ArborX::DBSCAN::indices", 0);
   Kokkos::View<int *, MemorySpace> offset("ArborX::DBSCAN::offset", 0);

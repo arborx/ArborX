@@ -72,8 +72,8 @@ template <typename PointPrimitives, typename DenseCellOffsets,
 struct MixedBoxPrimitives
 {
   PointPrimitives _point_primitives;
-  CartesianGrid<GeometryTraits::dimension<typename AccessTraitsHelper<
-      AccessTraits<PointPrimitives, PrimitivesTag>>::type>::value>
+  CartesianGrid<
+      GeometryTraits::dimension<typename PointPrimitives::value_type>::value>
       _grid;
   DenseCellOffsets _dense_cell_offsets;
   int _num_points_in_dense_cells; // to avoid lastElement() in AccessTraits
@@ -86,20 +86,18 @@ struct MixedBoxPrimitives
 template <typename Primitives>
 struct AccessTraits<Details::PrimitivesWithRadius<Primitives>, PredicatesTag>
 {
-  using PrimitivesAccess = AccessTraits<Primitives, PrimitivesTag>;
-
-  using memory_space = typename PrimitivesAccess::memory_space;
+  using memory_space = typename Primitives::memory_space;
   using Predicates = Details::PrimitivesWithRadius<Primitives>;
 
   static KOKKOS_FUNCTION size_t size(Predicates const &w)
   {
-    return PrimitivesAccess::size(w._primitives);
+    return w._primitives.size();
   }
   static KOKKOS_FUNCTION auto get(Predicates const &w, size_t i)
   {
-    auto const &point = PrimitivesAccess::get(w._primitives, i);
+    auto const &point = w._primitives(i);
     constexpr int dim =
-        GeometryTraits::dimension<std::decay_t<decltype(point)>>::value;
+        GeometryTraits::dimension<typename Primitives::value_type>::value;
     // FIXME reinterpret_cast is dangerous here if access traits return user
     // point structure (e.g., struct MyPoint { float y; float x; })
     auto const &hyper_point =
@@ -115,9 +113,7 @@ struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
                         Primitives, PermuteFilter>,
                     PredicatesTag>
 {
-  using PrimitivesAccess = AccessTraits<Primitives, PrimitivesTag>;
-
-  using memory_space = typename PrimitivesAccess::memory_space;
+  using memory_space = typename Primitives::memory_space;
   using Predicates =
       Details::PrimitivesWithRadiusReorderedAndFiltered<Primitives,
                                                         PermuteFilter>;
@@ -129,9 +125,9 @@ struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
   static KOKKOS_FUNCTION auto get(Predicates const &w, size_t i)
   {
     int index = w._filter(i);
-    auto const &point = PrimitivesAccess::get(w._primitives, index);
+    auto const &point = w._primitives(index);
     constexpr int dim =
-        GeometryTraits::dimension<std::decay_t<decltype(point)>>::value;
+        GeometryTraits::dimension<typename Primitives::value_type>::value;
     // FIXME reinterpret_cast is dangerous here if access traits return user
     // point structure (e.g., struct MyPoint { float y; float x; })
     auto const &hyper_point =
@@ -177,11 +173,9 @@ struct AccessTraits<Details::MixedBoxPrimitives<PointPrimitives, MixedOffsets,
     // For a primitive corresponding to a point in a non-dense cell, use that
     // point. But first, figure out its index, which requires some
     // computations.
-    using Access = AccessTraits<PointPrimitives, PrimitivesTag>;
-
     i = (i - num_dense_primitives) + w._num_points_in_dense_cells;
 
-    auto const &point = Access::get(w._point_primitives, w._permute(i));
+    auto const &point = w._point_primitives(w._permute(i));
     constexpr int dim =
         GeometryTraits::dimension<std::decay_t<decltype(point)>>::value;
     // FIXME reinterpret_cast is dangerous here if access traits return user
@@ -231,8 +225,9 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 {
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN");
 
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-  using MemorySpace = typename Access::memory_space;
+  Details::RangeAdaptor adapted_primitives(PrimitivesTag(), primitives);
+  using AdaptedPrimitives = decltype(adapted_primitives);
+  using MemorySpace = typename AdaptedPrimitives::memory_space;
 
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
@@ -241,8 +236,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
 
-  constexpr int dim = GeometryTraits::dimension<
-      typename Details::AccessTraitsHelper<Access>::type>::value;
+  constexpr int dim =
+      GeometryTraits::dimension<typename AdaptedPrimitives::value_type>::value;
   using Box = ExperimentalHyperGeometry::Box<dim>;
 
   bool const is_special_case = (core_min_size == 2);
@@ -262,7 +257,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     return timer.seconds();
   };
 
-  int const n = Access::size(primitives);
+  int const n = adapted_primitives.size();
 
   Kokkos::View<int *, MemorySpace> num_neigh("ArborX::DBSCAN::num_neighbors",
                                              0);
@@ -278,14 +273,15 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     // Build the tree
     timer_start(timer);
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::tree_construction");
-    BasicBoundingVolumeHierarchy<MemorySpace, Box> bvh(exec_space, primitives);
+    BasicBoundingVolumeHierarchy<MemorySpace, Box> bvh(exec_space,
+                                                       adapted_primitives);
     Kokkos::Profiling::popRegion();
     elapsed["construction"] = timer_seconds(timer);
 
     timer_start(timer);
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters");
-    auto const predicates =
-        Details::PrimitivesWithRadius<Primitives>{primitives, eps};
+    auto const predicates = Details::PrimitivesWithRadius<AdaptedPrimitives>{
+        adapted_primitives, eps};
     if (is_special_case)
     {
       // Perform the queries and build clusters through callback
@@ -329,7 +325,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::dense_cells");
     Box bounds;
     Details::TreeConstruction::calculateBoundingBoxOfTheScene(
-        exec_space, primitives, bounds);
+        exec_space, adapted_primitives, bounds);
 
     // The cell length is chosen to be eps/sqrt(dimension), so that any two
     // points within the same cell are within eps distance of each other.
@@ -337,7 +333,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     Details::CartesianGrid<dim> const grid(bounds, h);
 
     auto cell_indices =
-        Details::computeCellIndices(exec_space, primitives, grid);
+        Details::computeCellIndices(exec_space, adapted_primitives, grid);
 
     auto permute = Details::sortObjects(exec_space, cell_indices);
     auto &sorted_cell_indices = cell_indices; // alias
@@ -392,10 +388,11 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::tree_construction");
     BasicBoundingVolumeHierarchy<MemorySpace, Box> bvh(
         exec_space,
-        Details::MixedBoxPrimitives<Primitives, decltype(dense_cell_offsets),
+        Details::MixedBoxPrimitives<AdaptedPrimitives,
+                                    decltype(dense_cell_offsets),
                                     decltype(cell_indices), decltype(permute)>{
-            primitives, grid, dense_cell_offsets, num_points_in_dense_cells,
-            sorted_cell_indices, permute});
+            adapted_primitives, grid, dense_cell_offsets,
+            num_points_in_dense_cells, sorted_cell_indices, permute});
 
     Kokkos::Profiling::popRegion();
     elapsed["construction"] = timer_seconds(timer);
@@ -408,15 +405,14 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       // Perform the queries and build clusters through callback
       using CorePoints = Details::CCSCorePoints;
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
-      auto const predicates =
-          Details::PrimitivesWithRadius<Primitives>{primitives, eps};
-      bvh.query(
-          exec_space, predicates,
-          Details::FDBSCANDenseBoxCallback<MemorySpace, CorePoints, Primitives,
-                                           decltype(dense_cell_offsets),
-                                           decltype(permute)>{
-              labels, CorePoints{}, primitives, dense_cell_offsets, exec_space,
-              permute, eps});
+      auto const predicates = Details::PrimitivesWithRadius<AdaptedPrimitives>{
+          adapted_primitives, eps};
+      bvh.query(exec_space, predicates,
+                Details::FDBSCANDenseBoxCallback<
+                    MemorySpace, CorePoints, AdaptedPrimitives,
+                    decltype(dense_cell_offsets), decltype(permute)>{
+                    labels, CorePoints{}, adapted_primitives,
+                    dense_cell_offsets, exec_space, permute, eps});
       Kokkos::Profiling::popRegion();
     }
     else
@@ -439,13 +435,13 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
       auto const sparse_predicates =
           Details::PrimitivesWithRadiusReorderedAndFiltered<
-              Primitives, decltype(sparse_permute)>{primitives, eps,
-                                                    sparse_permute};
+              AdaptedPrimitives, decltype(sparse_permute)>{adapted_primitives,
+                                                           eps, sparse_permute};
       bvh.query(exec_space, sparse_predicates,
-                Details::CountUpToN_DenseBox<MemorySpace, Primitives,
+                Details::CountUpToN_DenseBox<MemorySpace, AdaptedPrimitives,
                                              decltype(dense_cell_offsets),
                                              decltype(permute)>(
-                    num_neigh, primitives, dense_cell_offsets, permute,
+                    num_neigh, adapted_primitives, dense_cell_offsets, permute,
                     core_min_size, eps, core_min_size));
       Kokkos::Profiling::popRegion();
       elapsed["neigh"] = timer_seconds(timer_local);
@@ -455,15 +451,15 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       // Perform the queries and build clusters through callback
       timer_start(timer_local);
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters:query");
-      auto const predicates =
-          Details::PrimitivesWithRadius<Primitives>{primitives, eps};
-      bvh.query(
-          exec_space, predicates,
-          Details::FDBSCANDenseBoxCallback<MemorySpace, CorePoints, Primitives,
-                                           decltype(dense_cell_offsets),
-                                           decltype(permute)>{
-              labels, CorePoints{num_neigh, core_min_size}, primitives,
-              dense_cell_offsets, exec_space, permute, eps});
+      auto const predicates = Details::PrimitivesWithRadius<AdaptedPrimitives>{
+          adapted_primitives, eps};
+      bvh.query(exec_space, predicates,
+                Details::FDBSCANDenseBoxCallback<
+                    MemorySpace, CorePoints, AdaptedPrimitives,
+                    decltype(dense_cell_offsets), decltype(permute)>{
+                    labels, CorePoints{num_neigh, core_min_size},
+                    adapted_primitives, dense_cell_offsets, exec_space, permute,
+                    eps});
       Kokkos::Profiling::popRegion();
       elapsed["query"] = timer_seconds(timer_local);
     }

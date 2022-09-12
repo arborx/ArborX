@@ -12,7 +12,6 @@
 #ifndef ARBORX_DETAILS_BATCHED_QUERIES_HPP
 #define ARBORX_DETAILS_BATCHED_QUERIES_HPP
 
-#include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // returnCentroid, translateAndScale
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
@@ -56,11 +55,10 @@ public:
                                        Box const &scene_bounding_box,
                                        Predicates const &predicates)
   {
-    using Access = AccessTraits<Predicates, PredicatesTag>;
-    auto const n_queries = Access::size(predicates);
+    auto const n_queries = predicates.size();
 
     using Point = std::decay_t<decltype(returnCentroid(
-        getGeometry(Access::get(predicates, 0))))>;
+        getGeometry(std::declval<typename Predicates::value_type>())))>;
     using LinearOrderingValueType =
         Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
                            SpaceFillingCurve, Box, Point>;
@@ -72,9 +70,8 @@ public:
         "ArborX::BatchedQueries::project_predicates_onto_space_filling_curve",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int i) {
-          linear_ordering_indices(i) =
-              curve(scene_bounding_box,
-                    returnCentroid(getGeometry(Access::get(predicates, i))));
+          linear_ordering_indices(i) = curve(
+              scene_bounding_box, returnCentroid(getGeometry(predicates(i))));
         });
 
     return sortObjects(space, linear_ordering_indices);
@@ -88,24 +85,19 @@ public:
   applyPermutation(ExecutionSpace const &space,
                    Kokkos::View<unsigned int const *, DeviceType> permute,
                    Predicates const &v)
-      -> Kokkos::View<typename AccessTraitsHelper<
-                          AccessTraits<Predicates, PredicatesTag>>::type *,
-                      DeviceType>
+      -> Kokkos::View<typename Predicates::value_type *, DeviceType>
   {
-    using Access = AccessTraits<Predicates, PredicatesTag>;
-    auto const n = Access::size(v);
+    auto const n = v.size();
     ARBORX_ASSERT(permute.extent(0) == n);
 
-    using T = std::decay_t<decltype(Access::get(
-        std::declval<Predicates const &>(), std::declval<int>()))>;
-    Kokkos::View<T *, DeviceType> w(
+    Kokkos::View<typename Predicates::value_type *, DeviceType> w(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::permuted_predicates"),
         n);
     Kokkos::parallel_for(
         "ArborX::BatchedQueries::permute_entries",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-        KOKKOS_LAMBDA(int i) { w(i) = Access::get(v, permute(i)); });
+        KOKKOS_LAMBDA(int i) { w(i) = v(permute(i)); });
 
     return w;
   }

@@ -602,8 +602,8 @@ struct MinimumSpanningTree
                              "ArborX::MST::core_distances"),
           n);
       bvh.query(space, NearestK<Primitives>{primitives, k},
-                MaxDistance<Primitives, decltype(core_distances)>{
-                    primitives, core_distances});
+                MaxDistance{RangeAdaptor(PrimitivesTag(), primitives),
+                            core_distances});
       Kokkos::Profiling::popRegion();
 
       MutualReachability<decltype(core_distances)> mutual_reachability{

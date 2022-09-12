@@ -371,7 +371,8 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
   using MemorySpace = typename Tree::memory_space;
   using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
 
-  check_valid_callback(callback, predicates, out);
+  check_valid_callback(callback, RangeAdaptor(PredicatesTag(), predicates),
+                       out);
 
   auto profiling_prefix =
       std::string("ArborX::CrsGraphWrapper::query::") +
@@ -400,8 +401,9 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
     using namespace Details;
     expand(scene_bounding_box, tree.bounds());
     auto permute = Details::BatchedQueries<DeviceType>::
-        sortPredicatesAlongSpaceFillingCurve(space, Experimental::Morton32(),
-                                             scene_bounding_box, predicates);
+        sortPredicatesAlongSpaceFillingCurve(
+            space, Experimental::Morton32(), scene_bounding_box,
+            RangeAdaptor(PredicatesTag(), predicates));
     Kokkos::Profiling::popRegion();
 
     queryImpl(space, tree, predicates, callback, out, offset, permute,
@@ -453,7 +455,8 @@ check_valid_callback_if_first_argument_is_not_a_view(
     Callback const &callback, Predicates const &predicates,
     OutputView const &out)
 {
-  check_valid_callback(callback, predicates, out);
+  check_valid_callback(callback, RangeAdaptor(PredicatesTag(), predicates),
+                       out);
 }
 
 template <typename Callback, typename Predicates, typename OutputView>

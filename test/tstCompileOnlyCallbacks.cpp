@@ -9,7 +9,6 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_AccessTraits.hpp>
 #include <ArborX_Callbacks.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
@@ -17,26 +16,13 @@
 // NOTE Let's not bother with __host__ __device__ annotations here
 
 struct NearestPredicates
-{};
-template <>
-struct ArborX::AccessTraits<NearestPredicates, ArborX::PredicatesTag>
 {
-  using memory_space = Kokkos::HostSpace;
-  static int size(NearestPredicates const &) { return 1; }
-  static auto get(NearestPredicates const &, int) { return nearest(Point{}); }
+  using value_type = decltype(ArborX::nearest(ArborX::Point{}));
 };
 
 struct SpatialPredicates
-{};
-template <>
-struct ArborX::AccessTraits<SpatialPredicates, ArborX::PredicatesTag>
 {
-  using memory_space = Kokkos::HostSpace;
-  static int size(SpatialPredicates const &) { return 1; }
-  static auto get(SpatialPredicates const &, int)
-  {
-    return intersects(Point{});
-  }
+  using value_type = decltype(ArborX::intersects(ArborX::Point{}));
 };
 
 // Custom callbacks

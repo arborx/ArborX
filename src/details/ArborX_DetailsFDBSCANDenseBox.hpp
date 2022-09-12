@@ -60,8 +60,6 @@ struct CountUpToN_DenseBox
   template <typename Query>
   KOKKOS_FUNCTION auto operator()(Query const &query, int k) const
   {
-    using Access = AccessTraits<Primitives, PrimitivesTag>;
-
     auto const i = getData(query);
 
     bool const is_dense_cell = (k < _num_dense_cells);
@@ -69,14 +67,14 @@ struct CountUpToN_DenseBox
     int &count = _counts(i);
     if (is_dense_cell)
     {
-      auto const &query_point = Access::get(_primitives, i);
+      auto const &query_point = _primitives(i);
 
       int const cell_start = _dense_cell_offsets(k);
       int const cell_end = _dense_cell_offsets(k + 1);
       for (int jj = cell_start; jj < cell_end; ++jj)
       {
         int j = _permute(jj);
-        if (distance(query_point, Access::get(_primitives, j)) <= eps)
+        if (distance(query_point, _primitives(j)) <= eps)
         {
           Kokkos::atomic_increment(&count);
           if (count >= _n)
@@ -129,8 +127,6 @@ struct FDBSCANDenseBoxCallback
   template <typename Query>
   KOKKOS_FUNCTION auto operator()(Query const &query, int k) const
   {
-    using Access = AccessTraits<Primitives, PrimitivesTag>;
-
     auto const i = ArborX::getData(query);
 
     bool const is_border_point = !_is_core_point(i);
@@ -149,7 +145,7 @@ struct FDBSCANDenseBoxCallback
           _union_find.representative(_permute(cell_start)))
         return ArborX::CallbackTreeTraversalControl::normal_continuation;
 
-      auto const &query_point = Access::get(_primitives, i);
+      auto const &query_point = _primitives(i);
 
       for (int jj = cell_start; jj < cell_end; ++jj)
       {
@@ -161,7 +157,7 @@ struct FDBSCANDenseBoxCallback
         if (_union_find.representative(i) == _union_find.representative(j))
           break;
 
-        if (distance(query_point, Access::get(_primitives, j)) <= eps)
+        if (distance(query_point, _primitives(j)) <= eps)
         {
           // We connected to at least one point in the dense box, thus we
           // connected to all of them, so may terminate
@@ -189,17 +185,15 @@ struct FDBSCANDenseBoxCallback
 };
 
 template <typename ExecutionSpace, typename Primitives>
-Kokkos::View<size_t *,
-             typename AccessTraits<Primitives, PrimitivesTag>::memory_space>
-computeCellIndices(
-    ExecutionSpace const &exec_space, Primitives const &primitives,
-    CartesianGrid<GeometryTraits::dimension<typename AccessTraitsHelper<
-        AccessTraits<Primitives, PrimitivesTag>>::type>::value> const &grid)
+Kokkos::View<size_t *, typename Primitives::memory_space>
+computeCellIndices(ExecutionSpace const &exec_space,
+                   Primitives const &primitives,
+                   CartesianGrid<GeometryTraits::dimension<
+                       typename Primitives::value_type>::value> const &grid)
 {
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-  using MemorySpace = typename Access::memory_space;
+  using MemorySpace = typename Primitives::memory_space;
 
-  auto const n = Access::size(primitives);
+  auto const n = primitives.size();
 
   Kokkos::View<size_t *, MemorySpace> cell_indices(
       Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
@@ -209,7 +203,7 @@ computeCellIndices(
       "ArborX::DBSCAN::compute_cell_indices",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
       KOKKOS_LAMBDA(int i) {
-        auto const &xyz = Access::get(primitives, i);
+        auto const &xyz = primitives(i);
         cell_indices(i) = grid.cellIndex(xyz);
       });
   return cell_indices;
