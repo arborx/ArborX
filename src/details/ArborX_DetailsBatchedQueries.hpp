@@ -33,6 +33,8 @@ namespace Details
 template <typename MemorySpace>
 struct BatchedQueries
 {
+  static_assert(Kokkos::is_memory_space<MemorySpace>::value);
+
 public:
   // BatchedQueries defines functions for sorting queries along the Z-order
   // space-filling curve in order to minimize data divergence.  The goal is

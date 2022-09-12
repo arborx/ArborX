@@ -42,13 +42,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(permute_offset_and_indices, DeviceType,
   Kokkos::View<unsigned int *, DeviceType> permute("Testing::permute", 0);
 
   BOOST_CHECK_THROW(
-      ArborX::Details::BatchedQueries<DeviceType>::reversePermutation(
+      ArborX::Details::BatchedQueries<MemorySpace>::reversePermutation(
           ExecutionSpace{}, permute, offset, indices),
       ArborX::SearchException);
 
   Kokkos::resize(offset, 1);
   BOOST_CHECK_NO_THROW(
-      ArborX::Details::BatchedQueries<DeviceType>::reversePermutation(
+      ArborX::Details::BatchedQueries<MemorySpace>::reversePermutation(
           ExecutionSpace{}, permute, offset, indices));
 
   std::vector<int> offset_ = {0, 0, 1, 3, 6, 10};

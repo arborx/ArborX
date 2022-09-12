@@ -149,6 +149,8 @@ inline auto create_layout_right_mirror_view_and_copy(
 template <typename T, typename MemorySpace>
 class ExclusiveScanFunctor
 {
+  static_assert(Kokkos::is_memory_space<MemorySpace>::value);
+
 public:
   ExclusiveScanFunctor(Kokkos::View<T *, MemorySpace> const &in,
                        Kokkos::View<T *, MemorySpace> const &out)
