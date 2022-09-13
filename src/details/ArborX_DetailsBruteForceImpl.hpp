@@ -14,7 +14,6 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // expand
-#include <ArborX_DetailsTreeConstruction.hpp> // Kokkos::reduction_identity<ArborX::Box>
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -46,7 +45,7 @@ struct BruteForceImpl
           bounding_volumes(i) = bounding_volume;
           update += bounding_volume;
         },
-        bounds);
+        Kokkos::Sum<Bounds>{bounds});
   }
 
   template <class ExecutionSpace, class Primitives, class Predicates,
