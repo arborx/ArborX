@@ -167,7 +167,7 @@ add_test(NAME ArborX_DetailsCrsGraphWrapperImpl_Test COMMAND ./ArborX_DetailsCrs
 add_executable(ArborX_Clustering.exe tstDBSCAN.cpp utf_main.cpp)
 target_link_libraries(ArborX_Clustering.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Clustering.exe PRIVATE BOOST_TEST_DYN_LINK)
-target_include_directories(ArborX_Clustering.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/examples/dbscan)
+target_include_directories(ArborX_Clustering.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/benchmarks/dbscan)
 add_test(NAME ArborX_Clustering_Test COMMAND ./ArborX_Clustering.exe)
 
 # compare results with a dataset of 1000 points from mlpack

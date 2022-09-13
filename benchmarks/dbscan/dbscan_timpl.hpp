@@ -11,102 +11,22 @@
 
 #include <ArborX_DBSCAN.hpp>
 #include <ArborX_DBSCANVerification.hpp>
-#include <ArborX_DetailsHeap.hpp>
-#include <ArborX_DetailsOperatorFunctionObjects.hpp> // Less
 #include <ArborX_MinimumSpanningTree.hpp>
-#include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
-
-#include <boost/program_options.hpp>
 
 #include <cstdlib>
 #include <fstream>
 
-std::vector<ArborX::Point> loadData(std::string const &filename,
-                                    bool binary = true, int max_num_points = -1)
+#include "dbscan.hpp"
+
+using ArborX::ExperimentalHyperGeometry::Point;
+
+template <int DIM>
+std::vector<Point<DIM>> sampleData(std::vector<Point<DIM>> const &data,
+                                   int num_samples)
 {
-  std::cout << "Reading in \"" << filename << "\" in "
-            << (binary ? "binary" : "text") << " mode...";
-  std::cout.flush();
-
-  std::ifstream input;
-  if (!binary)
-    input.open(filename);
-  else
-    input.open(filename, std::ifstream::binary);
-  ARBORX_ASSERT(input.good());
-
-  std::vector<ArborX::Point> v;
-
-  int num_points = 0;
-  int dim = 0;
-  if (!binary)
-  {
-    input >> num_points;
-    input >> dim;
-  }
-  else
-  {
-    input.read(reinterpret_cast<char *>(&num_points), sizeof(int));
-    input.read(reinterpret_cast<char *>(&dim), sizeof(int));
-  }
-
-  // For now, only allow reading in 2D or 3D data. Will relax in the future.
-  ARBORX_ASSERT(dim == 2 || dim == 3);
-
-  if (max_num_points > 0 && max_num_points < num_points)
-    num_points = max_num_points;
-
-  if (!binary)
-  {
-    v.reserve(num_points);
-
-    auto it = std::istream_iterator<float>(input);
-    auto read_point = [&it, dim]() {
-      float xyz[3] = {0.f, 0.f, 0.f};
-      for (int i = 0; i < dim; ++i)
-        xyz[i] = *it++;
-      return ArborX::Point{xyz[0], xyz[1], xyz[2]};
-    };
-    std::generate_n(std::back_inserter(v), num_points, read_point);
-  }
-  else
-  {
-    v.resize(num_points);
-
-    if (dim == 3)
-    {
-      // Can directly read into ArborX::Point
-      input.read(reinterpret_cast<char *>(v.data()),
-                 num_points * sizeof(ArborX::Point));
-    }
-    else
-    {
-      std::vector<float> aux(num_points * dim);
-      input.read(reinterpret_cast<char *>(aux.data()),
-                 aux.size() * sizeof(float));
-
-      for (int i = 0; i < num_points; ++i)
-      {
-        ArborX::Point p{0.f, 0.f, 0.f};
-        for (int d = 0; d < dim; ++d)
-          p[d] = aux[i * dim + d];
-        v[i] = p;
-      }
-    }
-  }
-  input.close();
-  std::cout << "done\nRead in " << num_points << " " << dim << "D points"
-            << std::endl;
-
-  return v;
-}
-
-std::vector<ArborX::Point> sampleData(std::vector<ArborX::Point> const &data,
-                                      int num_samples)
-{
-  std::vector<ArborX::Point> sampled_data(num_samples);
+  std::vector<Point<DIM>> sampled_data(num_samples);
 
   std::srand(1337);
 
@@ -123,6 +43,66 @@ std::vector<ArborX::Point> sampleData(std::vector<ArborX::Point> const &data,
   return sampled_data;
 }
 
+template <int DIM>
+std::vector<Point<DIM>> loadData(std::string const &filename,
+                                 bool binary = true, int max_num_points = -1,
+                                 int num_samples = -1)
+{
+  std::cout << "Reading in \"" << filename << "\" in "
+            << (binary ? "binary" : "text") << " mode...";
+  std::cout.flush();
+
+  std::ifstream input;
+  if (!binary)
+    input.open(filename);
+  else
+    input.open(filename, std::ifstream::binary);
+  ARBORX_ASSERT(input.good());
+
+  std::vector<Point<DIM>> v;
+
+  int num_points = 0;
+  int dim = 0;
+  if (!binary)
+  {
+    input >> num_points;
+    input >> dim;
+  }
+  else
+  {
+    input.read(reinterpret_cast<char *>(&num_points), sizeof(int));
+    input.read(reinterpret_cast<char *>(&dim), sizeof(int));
+  }
+
+  ARBORX_ASSERT(dim == DIM);
+
+  if (max_num_points > 0 && max_num_points < num_points)
+    num_points = max_num_points;
+
+  v.resize(num_points);
+  if (!binary)
+  {
+    auto it = std::istream_iterator<float>(input);
+    for (int i = 0; i < num_points; ++i)
+      for (int d = 0; d < DIM; ++d)
+        v[i][d] = *it++;
+  }
+  else
+  {
+    // Directly read into a point
+    input.read(reinterpret_cast<char *>(v.data()),
+               num_points * sizeof(Point<DIM>));
+  }
+  input.close();
+  std::cout << "done\nRead in " << num_points << " " << dim << "D points"
+            << std::endl;
+
+  if (num_samples > 0 && num_samples < (int)v.size())
+    v = sampleData(v, num_samples);
+
+  return v;
+}
+
 template <typename MemorySpace>
 void writeLabelsData(std::string const &filename,
                      Kokkos::View<int *, MemorySpace> labels)
@@ -136,17 +116,6 @@ void writeLabelsData(std::string const &filename,
   int n = labels_host.size();
   out.write((char *)&n, sizeof(int));
   out.write((char *)labels_host.data(), sizeof(int) * n);
-}
-
-template <typename... P, typename T>
-auto vec2view(std::vector<T> const &in, std::string const &label = "")
-{
-  Kokkos::View<T *, P...> out(
-      Kokkos::view_alloc(label, Kokkos::WithoutInitializing), in.size());
-  Kokkos::deep_copy(out, Kokkos::View<T const *, Kokkos::HostSpace,
-                                      Kokkos::MemoryTraits<Kokkos::Unmanaged>>{
-                             in.data(), in.size()});
-  return out;
 }
 
 template <typename ExecutionSpace, typename LabelsView,
@@ -251,126 +220,22 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
   Kokkos::Profiling::popRegion();
 }
 
-namespace ArborX
+template <typename... P, typename T>
+auto vec2view(std::vector<T> const &in, std::string const &label = "")
 {
-namespace DBSCAN
-{
-// This function is required for Boost program_options to be able to use the
-// Implementation enum.
-std::istream &operator>>(std::istream &in, Implementation &implementation)
-{
-  std::string impl_string;
-  in >> impl_string;
-
-  if (impl_string == "fdbscan")
-    implementation = ArborX::DBSCAN::Implementation::FDBSCAN;
-  else if (impl_string == "fdbscan-densebox")
-    implementation = ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox;
-  else
-    in.setstate(std::ios_base::failbit);
-
-  return in;
-}
-
-// This function is required for Boost program_options to use Implementation
-// enum as the default_value().
-std::ostream &operator<<(std::ostream &out,
-                         Implementation const &implementation)
-{
-  switch (implementation)
-  {
-  case ArborX::DBSCAN::Implementation::FDBSCAN:
-    out << "fdbscan";
-    break;
-  case ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox:
-    out << "fdbscan-densebox";
-    break;
-  }
+  Kokkos::View<T *, P...> out(
+      Kokkos::view_alloc(label, Kokkos::WithoutInitializing), in.size());
+  Kokkos::deep_copy(out, Kokkos::View<T const *, Kokkos::HostSpace,
+                                      Kokkos::MemoryTraits<Kokkos::Unmanaged>>{
+                             in.data(), in.size()});
   return out;
 }
-} // namespace DBSCAN
-} // namespace ArborX
 
-int main(int argc, char *argv[])
+template <int DIM>
+bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
 {
   using ExecutionSpace = Kokkos::DefaultExecutionSpace;
   using MemorySpace = typename ExecutionSpace::memory_space;
-
-  Kokkos::ScopeGuard guard(argc, argv);
-
-  std::cout << "ArborX version    : " << ArborX::version() << std::endl;
-  std::cout << "ArborX hash       : " << ArborX::gitCommitHash() << std::endl;
-  std::cout << "Kokkos version    : " << KokkosExt::version() << std::endl;
-
-  namespace bpo = boost::program_options;
-  using ArborX::DBSCAN::Implementation;
-
-  std::string filename;
-  std::string algorithm;
-  bool binary;
-  bool verify;
-  bool print_dbscan_timers;
-  float eps;
-  int cluster_min_size;
-  int core_min_size;
-  int max_num_points;
-  int num_samples;
-  std::string filename_labels;
-  Implementation implementation;
-
-  bpo::options_description desc("Allowed options");
-  // clang-format off
-  desc.add_options()
-      ( "help", "help message" )
-      ( "algorithm", bpo::value<std::string>(&algorithm)->default_value("dbscan"), "algorithm (dbscan | mst)" )
-      ( "filename", bpo::value<std::string>(&filename), "filename containing data" )
-      ( "binary", bpo::bool_switch(&binary)->default_value(false), "binary file indicator")
-      ( "max-num-points", bpo::value<int>(&max_num_points)->default_value(-1), "max number of points to read in")
-      ( "eps", bpo::value<float>(&eps), "DBSCAN eps" )
-      ( "cluster-min-size", bpo::value<int>(&cluster_min_size)->default_value(1), "minimum cluster size")
-      ( "core-min-size", bpo::value<int>(&core_min_size)->default_value(2), "DBSCAN min_pts")
-      ( "verify", bpo::bool_switch(&verify)->default_value(false), "verify connected components")
-      ( "samples", bpo::value<int>(&num_samples)->default_value(-1), "number of samples" )
-      ( "labels", bpo::value<std::string>(&filename_labels)->default_value(""), "clutering results output" )
-      ( "print-dbscan-timers", bpo::bool_switch(&print_dbscan_timers)->default_value(false), "print dbscan timers")
-      ( "impl", bpo::value<Implementation>(&implementation)->default_value(Implementation::FDBSCAN), R"(implementation ("fdbscan" or "fdbscan-densebox"))")
-      ;
-  // clang-format on
-  bpo::variables_map vm;
-  bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
-  bpo::notify(vm);
-
-  if (vm.count("help") > 0)
-  {
-    std::cout << desc << '\n';
-    return 1;
-  }
-
-  std::stringstream ss;
-  ss << implementation;
-
-  // Print out the runtime parameters
-  printf("algorithm         : %s\n", algorithm.c_str());
-  if (algorithm == "dbscan")
-  {
-    printf("eps               : %f\n", eps);
-    printf("cluster min size  : %d\n", cluster_min_size);
-    printf("implementation    : %s\n", ss.str().c_str());
-    printf("verify            : %s\n", (verify ? "true" : "false"));
-  }
-  printf("minpts            : %d\n", core_min_size);
-  printf("filename          : %s [%s, max_pts = %d]\n", filename.c_str(),
-         (binary ? "binary" : "text"), max_num_points);
-  if (!filename_labels.empty())
-    printf("filename [labels] : %s [binary]\n", filename_labels.c_str());
-  printf("samples           : %d\n", num_samples);
-  printf("print timers      : %s\n", (print_dbscan_timers ? "true" : "false"));
-
-  // read in data
-  std::vector<ArborX::Point> data = loadData(filename, binary, max_num_points);
-  if (num_samples > 0 && num_samples < (int)data.size())
-    data = sampleData(data, num_samples);
-  auto const primitives = vec2view<MemorySpace>(data, "primitives");
 
   ExecutionSpace exec_space;
 
@@ -378,7 +243,7 @@ int main(int argc, char *argv[])
   Kokkos::Timer timer;
   std::map<std::string, double> elapsed;
 
-  bool const verbose = print_dbscan_timers;
+  bool const verbose = params.print_dbscan_timers;
   auto timer_start = [&exec_space, verbose](Kokkos::Timer &timer) {
     if (verbose)
       exec_space.fence();
@@ -390,15 +255,33 @@ int main(int argc, char *argv[])
     return timer.seconds();
   };
 
+  auto data = loadData<DIM>(params.filename, params.binary,
+                            params.max_num_points, params.num_samples);
+
+  auto const primitives = vec2view<MemorySpace>(data, "primitives");
+
+  using Primitives = decltype(primitives);
+
+  using ArborX::DBSCAN::Implementation;
+  Implementation implementation;
+  if (params.implementation == "fdbscan")
+    implementation = Implementation::FDBSCAN;
+  else if (params.implementation == "fdbscan-densebox")
+    implementation = Implementation::FDBSCAN_DenseBox;
+
   timer_start(timer_total);
 
+  Kokkos::View<int *, MemorySpace> labels("Example::labels", 0);
   bool success = true;
-  if (algorithm == "dbscan")
+  if (params.algorithm == "dbscan")
   {
-    auto labels = ArborX::dbscan(exec_space, primitives, eps, core_min_size,
-                                 ArborX::DBSCAN::Parameters()
-                                     .setPrintTimers(print_dbscan_timers)
-                                     .setImplementation(implementation));
+    ArborX::DBSCAN::Parameters dbscan_params;
+    dbscan_params.setPrintTimers(params.print_dbscan_timers)
+        .setImplementation(implementation);
+
+    labels = ArborX::dbscan<ExecutionSpace, Primitives>(
+        exec_space, primitives, params.eps, params.core_min_size,
+        dbscan_params);
 
     timer_start(timer);
     Kokkos::View<int *, MemorySpace> cluster_indices("Testing::cluster_indices",
@@ -406,37 +289,38 @@ int main(int argc, char *argv[])
     Kokkos::View<int *, MemorySpace> cluster_offset("Testing::cluster_offset",
                                                     0);
     sortAndFilterClusters(exec_space, labels, cluster_indices, cluster_offset,
-                          cluster_min_size);
+                          params.cluster_min_size);
     elapsed["cluster"] = timer_seconds(timer);
     elapsed["total"] = timer_seconds(timer_total);
 
     printf("-- postprocess      : %10.3f\n", elapsed["cluster"]);
     printf("total time          : %10.3f\n", elapsed["total"]);
 
+    int num_points = primitives.extent_int(0);
     int num_clusters = cluster_offset.size() - 1;
     int num_cluster_points = cluster_indices.size();
     printf("\n#clusters       : %d\n", num_clusters);
     printf("#cluster points : %d [%.2f%%]\n", num_cluster_points,
-           (100.f * num_cluster_points / data.size()));
-    int const n = data.size();
-    printf("#noise   points : %d [%.2f%%]\n", n - num_cluster_points,
-           (100.f * (n - num_cluster_points) / data.size()));
+           (100.f * num_cluster_points / num_points));
+    int num_noise_points = num_points - num_cluster_points;
+    printf("#noise   points : %d [%.2f%%]\n", num_noise_points,
+           (100.f * num_noise_points / num_points));
 
-    if (verify)
+    if (params.verify)
     {
-      success = ArborX::Details::verifyDBSCAN(exec_space, primitives, eps,
-                                              core_min_size, labels);
+      success = ArborX::Details::verifyDBSCAN(
+          exec_space, primitives, params.eps, params.core_min_size, labels);
       printf("Verification %s\n", (success ? "passed" : "failed"));
     }
-
-    if (!filename_labels.empty())
-      writeLabelsData(filename_labels, labels);
   }
-  else if (algorithm == "mst")
+  else if (params.algorithm == "mst")
   {
     ArborX::Details::MinimumSpanningTree<MemorySpace> mst(
-        exec_space, primitives, core_min_size);
+        exec_space, primitives, params.core_min_size);
   }
 
-  return success ? EXIT_SUCCESS : EXIT_FAILURE;
+  if (success && !params.filename_labels.empty())
+    writeLabelsData(params.filename_labels, labels);
+
+  return success;
 }
