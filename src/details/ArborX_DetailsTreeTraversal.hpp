@@ -510,10 +510,13 @@ struct TreeTraversal<BVH, Predicates, Callback,
 
 template <typename ExecutionSpace, typename BVH, typename Predicates,
           typename Callback>
-TreeTraversal(ExecutionSpace const &, BVH const &, Predicates const &,
-              Callback const &)
-    -> TreeTraversal<BVH, Predicates, Callback,
-                     typename Predicates::value_type::Tag>;
+void traverse(ExecutionSpace const &space, BVH const &bvh,
+              Predicates const &predicates, Callback const &callback)
+{
+  using Tag = typename Predicates::value_type::Tag;
+  TreeTraversal<BVH, Predicates, Callback, Tag>(space, bvh, predicates,
+                                                callback);
+}
 
 } // namespace ArborX::Details
 

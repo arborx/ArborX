@@ -25,43 +25,18 @@ struct PermutedData
 {
   Data _data;
   Permute _permute;
-  KOKKOS_FUNCTION auto &operator()(int i) const { return _data(_permute(i)); }
+
+  using memory_space = typename Data::memory_space;
+  using value_type = typename Data::value_type;
+
+  KOKKOS_FUNCTION decltype(auto) operator()(int i) const
+  {
+    return _data(_permute(i));
+  }
+  KOKKOS_FUNCTION decltype(auto) size() const { return _data.size(); }
 };
 
 } // namespace Details
-
-template <typename Predicates, typename Permute, bool AttachIndices>
-struct AccessTraits<Details::PermutedData<Predicates, Permute, AttachIndices>,
-                    PredicatesTag>
-{
-  using PermutedPredicates =
-      Details::PermutedData<Predicates, Permute, AttachIndices>;
-  using NativeAccess = AccessTraits<Predicates, PredicatesTag>;
-
-  KOKKOS_FUNCTION static std::size_t
-  size(PermutedPredicates const &permuted_predicates)
-  {
-    return NativeAccess::size(permuted_predicates._data);
-  }
-
-  template <bool _Attach = AttachIndices>
-  KOKKOS_FUNCTION static auto get(PermutedPredicates const &permuted_predicates,
-                                  std::enable_if_t<_Attach, std::size_t> index)
-  {
-    auto const permuted_index = permuted_predicates._permute(index);
-    return attach(NativeAccess::get(permuted_predicates._data, permuted_index),
-                  (int)index);
-  }
-
-  template <bool _Attach = AttachIndices>
-  KOKKOS_FUNCTION static auto get(PermutedPredicates const &permuted_predicates,
-                                  std::enable_if_t<!_Attach, std::size_t> index)
-  {
-    auto const permuted_index = permuted_predicates._permute(index);
-    return NativeAccess::get(permuted_predicates._data, permuted_index);
-  }
-  using memory_space = typename NativeAccess::memory_space;
-};
 
 } // namespace ArborX
 

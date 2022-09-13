@@ -233,14 +233,18 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
   Details::check_valid_access_traits(PredicatesTag{}, predicates);
+
   Details::RangeAdaptor adapted_predicates(PredicatesTag(), predicates);
-  static_assert(KokkosExt::is_accessible_from<
-                    typename decltype(adapted_predicates)::memory_space,
-                    ExecutionSpace>::value,
-                "Predicates must be accessible from the execution space");
+
+  using AdaptedPredicates = decltype(adapted_predicates);
+  using Tag = typename AdaptedPredicates::value_type::Tag;
+
+  static_assert(
+      KokkosExt::is_accessible_from<typename AdaptedPredicates::memory_space,
+                                    ExecutionSpace>::value,
+      "Predicates must be accessible from the execution space");
   Details::check_valid_callback(callback, adapted_predicates);
 
-  using Tag = typename decltype(adapted_predicates)::value_type::Tag;
   std::string profiling_prefix = "ArborX::BVH::query";
   if (std::is_same<Tag, Details::SpatialPredicateTag>{})
   {
@@ -277,16 +281,14 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
     Kokkos::Profiling::popRegion();
 
     using PermutedPredicates =
-        Details::PermutedData<Predicates, decltype(permute)>;
-    Details::TreeTraversal(
-        space, *this,
-        Details::RangeAdaptor(PredicatesTag(),
-                              PermutedPredicates{predicates, permute}),
-        callback);
+        Details::PermutedData<AdaptedPredicates, decltype(permute)>;
+    Details::traverse(space, *this,
+                      PermutedPredicates{adapted_predicates, permute},
+                      callback);
   }
   else
   {
-    Details::TreeTraversal(space, *this, adapted_predicates, callback);
+    Details::traverse(space, *this, adapted_predicates, callback);
   }
 
   Kokkos::Profiling::popRegion();
