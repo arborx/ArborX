@@ -13,6 +13,7 @@
 #include "ArborX_BoostRTreeHelpers.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <ArborX_DistributedTree.hpp>
+#include <kokkos_ext/ArborX_DetailsKokkosExtClassLambda.hpp> // ARBORX_CLASS_LAMBDA
 
 #include <boost/test/unit_test.hpp>
 
@@ -589,15 +590,12 @@ struct CustomPostCallbackWithAttachment
     using ArborX::Details::distance;
     auto const n = offset.extent(0) - 1;
     Kokkos::realloc(out, in.extent(0));
-    // NOTE workaround to avoid implicit capture of *this
-    auto const &points_ = points;
-    auto const &origin_ = origin;
     Kokkos::parallel_for(
-        Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+        Kokkos::RangePolicy<ExecutionSpace>(0, n), ARBORX_CLASS_LAMBDA(int i) {
           auto data = ArborX::getData(queries(i));
           for (int j = offset(i); j < offset(i + 1); ++j)
           {
-            out(j) = (float)distance(points_(in(j)), origin_) + data;
+            out(j) = (float)distance(points(in(j)), origin) + data;
           }
         });
   }

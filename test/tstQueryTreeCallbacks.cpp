@@ -19,6 +19,8 @@
 #include "ArborXTest_TreeTypeTraits.hpp"
 // clang-format on
 
+#include <kokkos_ext/ArborX_DetailsKokkosExtClassLambda.hpp> // ARBORX_CLASS_LAMBDA
+
 BOOST_AUTO_TEST_SUITE(Callbacks)
 
 namespace tt = boost::test_tools;
@@ -53,14 +55,11 @@ struct CustomPostCallback
     using ArborX::Details::distance;
     auto const n = offset.extent(0) - 1;
     Kokkos::realloc(out, in.extent(0));
-    // NOTE workaround to avoid implicit capture of *this
-    auto const &points_ = points;
-    auto const &origin_ = origin;
     Kokkos::parallel_for(
-        Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+        Kokkos::RangePolicy<ExecutionSpace>(0, n), ARBORX_CLASS_LAMBDA(int i) {
           for (int j = offset(i); j < offset(i + 1); ++j)
           {
-            out(j) = {in(j), (float)distance(points_(in(j)), origin_)};
+            out(j) = {in(j), (float)distance(points(in(j)), origin)};
           }
         });
   }
@@ -234,16 +233,13 @@ struct CustomPostCallbackWithAttachment
     using ArborX::Details::distance;
     auto const n = offset.extent(0) - 1;
     Kokkos::realloc(out, in.extent(0));
-    // NOTE workaround to avoid implicit capture of *this
-    auto const &points_ = points;
-    auto const &origin_ = origin;
     Kokkos::parallel_for(
-        Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+        Kokkos::RangePolicy<ExecutionSpace>(0, n), ARBORX_CLASS_LAMBDA(int i) {
           auto data_2 = ArborX::getData(queries(i));
           auto data = data_2[1];
           for (int j = offset(i); j < offset(i + 1); ++j)
           {
-            out(j) = {in(j), data + (float)distance(points_(in(j)), origin_)};
+            out(j) = {in(j), data + (float)distance(points(in(j)), origin)};
           }
         });
   }
