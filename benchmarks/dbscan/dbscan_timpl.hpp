@@ -263,10 +263,8 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
   using Primitives = decltype(primitives);
 
   using ArborX::DBSCAN::Implementation;
-  Implementation implementation;
-  if (params.implementation == "fdbscan")
-    implementation = Implementation::FDBSCAN;
-  else if (params.implementation == "fdbscan-densebox")
+  Implementation implementation = Implementation::FDBSCAN;
+  if (params.implementation == "fdbscan-densebox")
     implementation = Implementation::FDBSCAN_DenseBox;
 
   timer_start(timer_total);
