@@ -28,7 +28,22 @@
 namespace tt = boost::test_tools;
 
 using PairIndexRank = Kokkos::pair<int, int>;
+using PairRankIndex = Kokkos::pair<int, int>;
 using TupleIndexRankDistance = Kokkos::pair<Kokkos::pair<int, int>, float>;
+
+struct InlineCallback
+{
+  int mpi_rank;
+
+  template <typename Predicate, typename OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Predicate const &predicate,
+                                  int primitive_index,
+                                  OutputFunctor const &out) const
+  {
+    out({mpi_rank, primitive_index});
+  }
+};
+
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
 {
@@ -126,6 +141,23 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
         make_reference_solution<PairIndexRank>(
             {{0, comm_size - 1 - comm_rank}, {1, comm_size - 1 - comm_rank}},
             {0, 2}));
+  }
+
+  // Now do the same with callbacks
+  if (comm_rank < comm_size - 1)
+  {
+    ARBORX_TEST_QUERY_TREE_CALLBACK(ExecutionSpace{}, tree, nearest_queries,
+                           InlineCallback{comm_rank}, make_reference_solution<PairRankIndex>(
+                               {{comm_size - 1 - comm_rank,0},
+                                {comm_size - 2 - comm_rank,n-1},
+                                {comm_size - 1 - comm_rank,1}}, {0,3}));
+  }
+  else
+  {
+    ARBORX_TEST_QUERY_TREE_CALLBACK(
+        ExecutionSpace{}, tree, nearest_queries, InlineCallback{comm_rank},
+        make_reference_solution<PairRankIndex>( 
+            {{comm_size - 1 - comm_rank,0}, {comm_size - 1 - comm_rank,1}}, {0,2}));
   }
 }
 
