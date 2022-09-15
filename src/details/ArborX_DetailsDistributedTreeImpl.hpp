@@ -226,10 +226,18 @@ struct DistributedTreeImpl
                 ExecutionSpace const &space, Predicates const &queries,
                 IndicesAndRanks &values, Offset &offset)
   {
-    int comm_rank;
-    MPI_Comm_rank(tree.getComm(), &comm_rank);
-    queryDispatch(tag, tree, space, queries, DefaultCallbackWithRank{comm_rank},
-                  values, offset);
+    Kokkos::View<int *, ExecutionSpace> indices(
+        "ArborX::DistributedTree::query::nearest::indices", 0);
+    Kokkos::View<int *, ExecutionSpace> ranks(
+        "ArborX::DistributedTree::query::nearest::ranks", 0);
+    queryDispatchImpl(tag, tree, space, queries, indices, offset, ranks);
+    auto const n = indices.extent(0);
+    KokkosExt::reallocWithoutInitializing(space, values, n);
+    Kokkos::parallel_for(
+        "ArborX::DistributedTree::query::zip_indices_and_ranks",
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+          values(i) = {indices(i), ranks(i)};
+        });
   }
 
   template <typename DistributedTree, typename ExecutionSpace,
@@ -557,21 +565,6 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
 
     // Communicate results back
     communicateResultsBack(comm, space, out, offset, ranks, ids);
-    auto ranks_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ranks);
-    std::vector<int> unique_ranks;
-    if (ranks_host.size() > 0)
-      unique_ranks.push_back(ranks_host(0));
-    for (unsigned int i = 1; i < ranks_host.size(); ++i)
-    {
-      if (ranks_host(i - 1) != ranks_host(i))
-      {
-        if (std::find(unique_ranks.begin(), unique_ranks.end(),
-                      ranks_host(i)) != unique_ranks.end())
-          Kokkos::abort("bla");
-        unique_ranks.push_back(ranks_host(i));
-      }
-    }
 
     Kokkos::Profiling::pushRegion(
         "ArborX::DistributedTree::spatial::postprocess_results");
