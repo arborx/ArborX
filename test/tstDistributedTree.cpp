@@ -44,7 +44,6 @@ struct InlineCallback
   }
 };
 
-
 BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using Tree = ArborX::DistributedTree<typename DeviceType::memory_space>;
@@ -147,17 +146,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
   if (comm_rank < comm_size - 1)
   {
     ARBORX_TEST_QUERY_TREE_CALLBACK(ExecutionSpace{}, tree, nearest_queries,
-                           InlineCallback{comm_rank}, make_reference_solution<PairRankIndex>(
-                               {{comm_size - 1 - comm_rank,0},
-                                {comm_size - 2 - comm_rank,n-1},
-                                {comm_size - 1 - comm_rank,1}}, {0,3}));
+                                    InlineCallback{comm_rank},
+                                    make_reference_solution<PairRankIndex>(
+                                        {{comm_size - 1 - comm_rank, 0},
+                                         {comm_size - 2 - comm_rank, n - 1},
+                                         {comm_size - 1 - comm_rank, 1}},
+                                        {0, 3}));
   }
   else
   {
     ARBORX_TEST_QUERY_TREE_CALLBACK(
         ExecutionSpace{}, tree, nearest_queries, InlineCallback{comm_rank},
-        make_reference_solution<PairRankIndex>( 
-            {{comm_size - 1 - comm_rank,0}, {comm_size - 1 - comm_rank,1}}, {0,2}));
+        make_reference_solution<PairRankIndex>(
+            {{comm_size - 1 - comm_rank, 0}, {comm_size - 1 - comm_rank, 1}},
+            {0, 2}));
   }
 }
 

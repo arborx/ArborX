@@ -711,9 +711,11 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   Kokkos::View<int *, ExecutionSpace> ranks(
       "ArborX::DistributedTree::query::nearest::ranks", 0);
 
-  queryDispatchImpl(NearestPredicateTag{}, tree, space, queries, indices, offset, ranks);
+  queryDispatchImpl(NearestPredicateTag{}, tree, space, queries, indices,
+                    offset, ranks);
 
-  Kokkos::Profiling::pushRegion("ArborX::DistributedTree::query::nearest::postprocess_callback");
+  Kokkos::Profiling::pushRegion(
+      "ArborX::DistributedTree::query::nearest::postprocess_callback");
 
   auto comm = tree.getComm();
   int comm_rank;
