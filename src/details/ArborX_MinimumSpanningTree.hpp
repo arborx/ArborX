@@ -715,7 +715,7 @@ private:
         SharedRadiiPolicy::NONE;
 #endif
 
-    if (use_lower_bounds)
+    if constexpr (use_lower_bounds)
     {
       KokkosExt::reallocWithoutInitializing(space, lower_bounds, n);
       Kokkos::deep_copy(space, lower_bounds, 0);
@@ -748,7 +748,7 @@ private:
                                                   component_out_edges, metric,
                                                   radii, lower_bounds);
       retrieveEdges(space, labels, weights, component_out_edges);
-      if (use_lower_bounds)
+      if constexpr (use_lower_bounds)
       {
         updateLowerBounds(space, labels, component_out_edges, lower_bounds);
       }
