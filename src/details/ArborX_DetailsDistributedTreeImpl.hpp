@@ -514,37 +514,6 @@ struct CallbackWithDistance
 
 template <typename DeviceType>
 template <typename DistributedTree, typename ExecutionSpace,
-          typename Predicates, typename Indices, typename Offset,
-          typename Ranks, typename Distances>
-std::enable_if_t<Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{} &&
-                 Kokkos::is_view<Ranks>{} && Kokkos::is_view<Distances>{}>
-DistributedTreeImpl<DeviceType>::queryDispatchImpl(
-    NearestPredicateTag, DistributedTree const &tree,
-    ExecutionSpace const &space, Predicates const &queries, Indices &indices,
-    Offset &offset, Ranks &ranks, Distances *distances_ptr)
-{
-  int comm_rank;
-  MPI_Comm_rank(tree.getComm(), &comm_rank);
-  Kokkos::View<PairIndexRank *, DeviceType> values(
-      "ArborX::DistributedTree::query::nearest::values", 0);
-  queryDispatch(NearestPredicateTag{}, tree, space, queries,
-                DefaultCallbackWithRank{comm_rank}, values, offset);
-
-  int const n = values.size();
-  KokkosExt::reallocWithoutInitializing(space, indices, n);
-  KokkosExt::reallocWithoutInitializing(space, ranks, n);
-
-  Kokkos::parallel_for(
-      "ArborX::DistributedTree::query::nearest::split_results",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, values.size()),
-      KOKKOS_LAMBDA(int i) {
-        indices(i) = values(i).index;
-        ranks(i) = values(i).rank;
-      });
-}
-
-template <typename DeviceType>
-template <typename DistributedTree, typename ExecutionSpace,
           typename Predicates, typename OutputView, typename OffsetView,
           typename Callback>
 std::enable_if_t<Kokkos::is_view<OutputView>{} && Kokkos::is_view<OffsetView>{}>
@@ -618,28 +587,25 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   Kokkos::Profiling::popRegion();
 }
 
-template <typename Query>
-struct QueriesWithIndices
-{
-  Query query;
-  int query_id;
-  int primitive_index;
-};
-
 template <typename DeviceType>
 template <typename DistributedTree, typename ExecutionSpace,
-          typename Predicates, typename OutputView, typename OffsetView,
-          typename Callback>
-std::enable_if_t<Kokkos::is_view<OutputView>{} && Kokkos::is_view<OffsetView>{}>
-DistributedTreeImpl<DeviceType>::queryDispatch(
+          typename Predicates, typename Indices, typename Offset,
+          typename Ranks, typename Distances>
+std::enable_if_t<Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{} &&
+                 Kokkos::is_view<Ranks>{} && Kokkos::is_view<Distances>{}>
+DistributedTreeImpl<DeviceType>::queryDispatchImpl(
     NearestPredicateTag, DistributedTree const &tree,
-    ExecutionSpace const &space, Predicates const &queries,
-    Callback const &callback, OutputView &out, OffsetView &offset)
+    ExecutionSpace const &space, Predicates const &queries, Indices &indices,
+    Offset &offset, Ranks &ranks, Distances *distances_ptr)
 {
   Kokkos::Profiling::pushRegion("ArborX::DistributedTree::query::nearest");
 
   auto const &bottom_tree = tree._bottom_tree;
   auto comm = tree.getComm();
+
+  Distances distances("ArborX::DistributedTree::query::nearest::distances", 0);
+  if (distances_ptr)
+    distances = *distances_ptr;
 
   // "Strategy" is used to determine what ranks to forward queries to.  In
   // the 1st pass, the queries are sent to as many ranks as necessary to
@@ -657,16 +623,9 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   CallbackWithDistance<BVH<typename DeviceType::memory_space>>
       callback_with_distance(space, bottom_tree);
 
-  using Indices = Kokkos::View<int *, ExecutionSpace>;
-  Indices indices("ArborX::DistributedTree::query::nearest::indices", 0);
-  using Distances = Kokkos::View<float *, ExecutionSpace>;
-  Distances distances("ArborX::DistributedTree::query::nearest::distances", 0);
-  Kokkos::View<int *, ExecutionSpace> ranks(
-      "ArborX::DistributedTree::query::nearest::ranks", 0);
-
   using Strategy =
       void (*)(ExecutionSpace const &, Predicates const &,
-               DistributedTree const &, Indices &, OffsetView &, Distances &);
+               DistributedTree const &, Indices &, Offset &, Distances &);
 
   auto execute_strategy = [&](Strategy strategy) {
     strategy(space, queries, tree, indices, offset, distances);
@@ -726,7 +685,37 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   };
   execute_strategy(DistributedTreeImpl<DeviceType>::deviseStrategy);
   execute_strategy(DistributedTreeImpl<DeviceType>::reassessStrategy);
+  Kokkos::Profiling::popRegion();
+}
 
+template <typename Query>
+struct QueriesWithIndices
+{
+  Query query;
+  int query_id;
+  int primitive_index;
+};
+
+template <typename DeviceType>
+template <typename DistributedTree, typename ExecutionSpace,
+          typename Predicates, typename OutputView, typename OffsetView,
+          typename Callback>
+std::enable_if_t<Kokkos::is_view<OutputView>{} && Kokkos::is_view<OffsetView>{}>
+DistributedTreeImpl<DeviceType>::queryDispatch(
+    NearestPredicateTag, DistributedTree const &tree,
+    ExecutionSpace const &space, Predicates const &queries,
+    Callback const &callback, OutputView &out, OffsetView &offset)
+{
+  using Indices = Kokkos::View<int *, ExecutionSpace>;
+  Indices indices("ArborX::DistributedTree::query::nearest::indices", 0);
+  Kokkos::View<int *, ExecutionSpace> ranks(
+      "ArborX::DistributedTree::query::nearest::ranks", 0);
+
+  queryDispatchImpl(NearestPredicateTag{}, tree, space, queries, indices, offset, ranks);
+
+  Kokkos::Profiling::pushRegion("ArborX::DistributedTree::query::nearest::postprocess_callback");
+
+  auto comm = tree.getComm();
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
 
