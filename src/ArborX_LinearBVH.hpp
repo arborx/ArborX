@@ -149,8 +149,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                               ExecutionSpace>::value,
                 "Primitives must be accessible from the execution space");
-
-  constexpr int DIM = GeometryTraits::dimension<BoundingVolume>::value;
+  constexpr int DIM = GeometryTraits::dimension_v<BoundingVolume>;
 
   Details::check_valid_space_filling_curve<DIM>(curve);
 
@@ -264,7 +263,7 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     ExperimentalHyperGeometry::Box<
-        GeometryTraits::dimension<bounding_volume_type>::value>
+        GeometryTraits::dimension_v<bounding_volume_type>>
         scene_bounding_box{};
     using namespace Details;
     expand(scene_bounding_box, bounds());

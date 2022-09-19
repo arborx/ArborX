@@ -70,8 +70,8 @@ template <typename Geometry1, typename Geometry2>
 KOKKOS_INLINE_FUNCTION float distance(Geometry1 const &geometry1,
                                       Geometry2 const &geometry2)
 {
-  static_assert(GeometryTraits::dimension<Geometry1>::value ==
-                GeometryTraits::dimension<Geometry2>::value);
+  static_assert(GeometryTraits::dimension_v<Geometry1> ==
+                GeometryTraits::dimension_v<Geometry2>);
   return Dispatch::distance<typename GeometryTraits::tag<Geometry1>::type,
                             typename GeometryTraits::tag<Geometry2>::type,
                             Geometry1, Geometry2>::apply(geometry1, geometry2);
@@ -81,8 +81,8 @@ template <typename Geometry1, typename Geometry2>
 KOKKOS_INLINE_FUNCTION void expand(Geometry1 &geometry1,
                                    Geometry2 const &geometry2)
 {
-  static_assert(GeometryTraits::dimension<Geometry1>::value ==
-                GeometryTraits::dimension<Geometry2>::value);
+  static_assert(GeometryTraits::dimension_v<Geometry1> ==
+                GeometryTraits::dimension_v<Geometry2>);
   Dispatch::expand<typename GeometryTraits::tag<Geometry1>::type,
                    typename GeometryTraits::tag<Geometry2>::type, Geometry1,
                    Geometry2>::apply(geometry1, geometry2);
@@ -92,8 +92,8 @@ template <typename Geometry1, typename Geometry2>
 KOKKOS_INLINE_FUNCTION constexpr bool intersects(Geometry1 const &geometry1,
                                                  Geometry2 const &geometry2)
 {
-  static_assert(GeometryTraits::dimension<Geometry1>::value ==
-                GeometryTraits::dimension<Geometry2>::value);
+  static_assert(GeometryTraits::dimension_v<Geometry1> ==
+                GeometryTraits::dimension_v<Geometry2>);
   return Dispatch::intersects<typename GeometryTraits::tag<Geometry1>::type,
                               typename GeometryTraits::tag<Geometry2>::type,
                               Geometry1, Geometry2>::apply(geometry1,
@@ -116,7 +116,7 @@ struct equals<PointTag, Point>
 {
   KOKKOS_FUNCTION static constexpr bool apply(Point const &l, Point const &r)
   {
-    constexpr int DIM = GeometryTraits::dimension<Point>::value;
+    constexpr int DIM = GeometryTraits::dimension_v<Point>;
     for (int d = 0; d < DIM; ++d)
       if (l[d] != r[d])
         return false;
@@ -153,7 +153,7 @@ struct isValid<PointTag, Point>
   KOKKOS_FUNCTION static constexpr bool apply(Point const &p)
   {
     using KokkosExt::isfinite;
-    constexpr int DIM = GeometryTraits::dimension<Point>::value;
+    constexpr int DIM = GeometryTraits::dimension_v<Point>;
     for (int d = 0; d < DIM; ++d)
       if (!isfinite(p[d]))
         return false;
@@ -168,7 +168,7 @@ struct isValid<BoxTag, Box>
   KOKKOS_FUNCTION static constexpr bool apply(Box const &b)
   {
     using KokkosExt::isfinite;
-    constexpr int DIM = GeometryTraits::dimension<Box>::value;
+    constexpr int DIM = GeometryTraits::dimension_v<Box>;
     for (int d = 0; d < DIM; ++d)
     {
       auto const r_d = b.maxCorner()[d] - b.minCorner()[d];
@@ -197,7 +197,7 @@ struct distance<PointTag, PointTag, Point1, Point2>
 {
   KOKKOS_FUNCTION static float apply(Point1 const &a, Point2 const &b)
   {
-    constexpr int DIM = GeometryTraits::dimension<Point1>::value;
+    constexpr int DIM = GeometryTraits::dimension_v<Point1>;
     float distance_squared = 0.0;
     for (int d = 0; d < DIM; ++d)
     {
@@ -214,7 +214,7 @@ struct distance<PointTag, BoxTag, Point, Box>
 {
   KOKKOS_FUNCTION static float apply(Point const &point, Box const &box)
   {
-    constexpr int DIM = GeometryTraits::dimension<Point>::value;
+    constexpr int DIM = GeometryTraits::dimension_v<Point>;
     Point projected_point;
     for (int d = 0; d < DIM; ++d)
     {
@@ -247,7 +247,7 @@ struct distance<BoxTag, BoxTag, Box1, Box2>
 {
   KOKKOS_FUNCTION static float apply(Box1 const &box_a, Box2 const &box_b)
   {
-    constexpr int DIM = GeometryTraits::dimension<Box1>::value;
+    constexpr int DIM = GeometryTraits::dimension_v<Box1>;
     float distance_squared = 0.;
     for (int d = 0; d < DIM; ++d)
     {
@@ -332,7 +332,7 @@ struct expand<BoxTag, SphereTag, Box, Sphere>
     using KokkosExt::max;
     using KokkosExt::min;
 
-    constexpr int DIM = GeometryTraits::dimension<Box>::value;
+    constexpr int DIM = GeometryTraits::dimension_v<Box>;
     for (int d = 0; d < DIM; ++d)
     {
       box.minCorner()[d] =
@@ -350,7 +350,7 @@ struct intersects<BoxTag, BoxTag, Box1, Box2>
   KOKKOS_FUNCTION static constexpr bool apply(Box1 const &box,
                                               Box2 const &other)
   {
-    constexpr int DIM = GeometryTraits::dimension<Box1>::value;
+    constexpr int DIM = GeometryTraits::dimension_v<Box1>;
     for (int d = 0; d < DIM; ++d)
       if (box.minCorner()[d] > other.maxCorner()[d] ||
           box.maxCorner()[d] < other.minCorner()[d])
@@ -366,7 +366,7 @@ struct intersects<PointTag, BoxTag, Point, Box>
   KOKKOS_FUNCTION static constexpr bool apply(Point const &point,
                                               Box const &other)
   {
-    constexpr int DIM = GeometryTraits::dimension<Point>::value;
+    constexpr int DIM = GeometryTraits::dimension_v<Point>;
     for (int d = 0; d < DIM; ++d)
       if (point[d] > other.maxCorner()[d] || point[d] < other.minCorner()[d])
         return false;
@@ -414,7 +414,7 @@ struct centroid<BoxTag, Box>
 {
   KOKKOS_FUNCTION static auto apply(Box const &box)
   {
-    constexpr int DIM = GeometryTraits::dimension<Box>::value;
+    constexpr int DIM = GeometryTraits::dimension_v<Box>;
     auto c = box.minCorner();
     for (int d = 0; d < DIM; ++d)
       c[d] = (c[d] + box.maxCorner()[d]) / 2;
@@ -441,9 +441,9 @@ template <typename Point, typename Box,
 KOKKOS_FUNCTION void translateAndScale(Point const &in, Point &out,
                                        Box const &ref)
 {
-  static_assert(GeometryTraits::dimension<Point>::value ==
-                GeometryTraits::dimension<Box>::value);
-  constexpr int DIM = GeometryTraits::dimension<Point>::value;
+  static_assert(GeometryTraits::dimension_v<Point> ==
+                GeometryTraits::dimension_v<Box>);
+  constexpr int DIM = GeometryTraits::dimension_v<Point>;
   for (int d = 0; d < DIM; ++d)
   {
     auto const a = ref.minCorner()[d];

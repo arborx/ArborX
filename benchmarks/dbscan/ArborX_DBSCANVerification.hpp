@@ -298,8 +298,8 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
 
-  constexpr int dim = GeometryTraits::dimension<
-      typename Details::AccessTraitsHelper<Access>::type>::value;
+  constexpr int dim = GeometryTraits::dimension_v<
+      typename Details::AccessTraitsHelper<Access>::type>;
   using Box = ExperimentalHyperGeometry::Box<dim>;
   ArborX::BasicBoundingVolumeHierarchy<MemorySpace, Box> bvh(exec_space,
                                                              primitives);
