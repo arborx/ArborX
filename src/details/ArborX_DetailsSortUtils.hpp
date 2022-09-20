@@ -113,11 +113,9 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
   }
 
   Kokkos::BinSort<ViewType, CompType, typename ViewType::device_type, SizeType>
-      bin_sort(view, CompType(n / 2, min_val, max_val), true);
-  bin_sort.create_permute_vector();
-  bin_sort.sort(view);
-  // FIXME Kokkos::BinSort is currently missing overloads that an execution
-  // space as argument
+      bin_sort(space, view, CompType(n / 2, min_val, max_val), true);
+  bin_sort.create_permute_vector(space);
+  bin_sort.sort(space, view);
 
   return bin_sort.get_permute_vector();
 }
