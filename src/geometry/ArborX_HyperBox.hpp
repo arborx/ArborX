@@ -20,6 +20,9 @@
 #include <ArborX_HyperPoint.hpp>
 
 #include <Kokkos_Macros.hpp>
+#if __has_include(<Kokkos_ReductionIdentity.hpp>) // since Kokkos 4.0
+#include <Kokkos_ReductionIdentity.hpp>
+#endif
 
 namespace ArborX::ExperimentalHyperGeometry
 {
