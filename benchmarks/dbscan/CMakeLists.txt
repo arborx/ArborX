@@ -14,6 +14,7 @@ endforeach()
 
 add_executable(ArborX_DBSCAN.exe
   ${EXPLICIT_INSTANTIATION_SOURCE_FILES}
+  print_timers.cpp
   dbscan.cpp
 )
 target_include_directories(ArborX_DBSCAN.exe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
