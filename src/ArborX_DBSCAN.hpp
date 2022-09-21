@@ -22,7 +22,7 @@
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Sphere.hpp>
 
-#include <map>
+#include <Kokkos_Profiling_ProfileSection.hpp>
 
 namespace ArborX
 {
@@ -247,20 +247,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
   bool const is_special_case = (core_min_size == 2);
 
-  Kokkos::Timer timer;
-  std::map<std::string, double> elapsed;
-
   bool const verbose = parameters._print_timers;
-  auto timer_start = [&exec_space, verbose](Kokkos::Timer &timer) {
-    if (verbose)
-      exec_space.fence();
-    timer.reset();
-  };
-  auto timer_seconds = [&exec_space, verbose](Kokkos::Timer const &timer) {
-    if (verbose)
-      exec_space.fence();
-    return timer.seconds();
-  };
 
   int const n = Access::size(primitives);
 
@@ -273,16 +260,20 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       n);
   ArborX::iota(exec_space, labels);
 
+  Kokkos::Profiling::ProfilingSection profile_query_and_cluster(
+      "ArborX::DBSCAN::query+cluster");
   if (parameters._implementation == DBSCAN::Implementation::FDBSCAN)
   {
     // Build the tree
-    timer_start(timer);
+    Kokkos::Profiling::ProfilingSection profile_construction(
+        "ArborX::DBSCAN::construction");
+    profile_construction.start();
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::tree_construction");
     BasicBoundingVolumeHierarchy<MemorySpace, Box> bvh(exec_space, primitives);
     Kokkos::Profiling::popRegion();
-    elapsed["construction"] = timer_seconds(timer);
+    profile_construction.stop();
 
-    timer_start(timer);
+    profile_query_and_cluster.start();
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters");
     auto const predicates =
         Details::PrimitivesWithRadius<Primitives>{primitives, eps};
@@ -300,32 +291,37 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     else
     {
       // Determine core points
-      Kokkos::Timer timer_local;
-      timer_start(timer_local);
+      Kokkos::Profiling::ProfilingSection profile_neigh(
+          "ArborX::DBSCAN::neigh");
+      profile_neigh.start();
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::num_neigh");
       Kokkos::resize(num_neigh, n);
       bvh.query(exec_space, predicates,
                 Details::CountUpToN<MemorySpace>{num_neigh, core_min_size});
       Kokkos::Profiling::popRegion();
-      elapsed["neigh"] = timer_seconds(timer_local);
+      profile_neigh.stop();
 
       using CorePoints = Details::DBSCANCorePoints<MemorySpace>;
 
       // Perform the queries and build clusters through callback
-      timer_start(timer_local);
+      Kokkos::Profiling::ProfilingSection profile_query(
+          "ArborX::DBSCAN::query");
+      profile_query.start();
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters:query");
       bvh.query(exec_space, predicates,
                 Details::FDBSCANCallback<MemorySpace, CorePoints>{
                     labels, CorePoints{num_neigh, core_min_size}});
       Kokkos::Profiling::popRegion();
-      elapsed["query"] = timer_seconds(timer_local);
+      profile_query.stop();
     }
   }
   else if (parameters._implementation ==
            DBSCAN::Implementation::FDBSCAN_DenseBox)
   {
     // Find dense boxes
-    timer_start(timer);
+    Kokkos::Profiling::ProfilingSection profile_dense_cells(
+        "ArborX::DBSCAN::dense_cells");
+    profile_dense_cells.start();
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::dense_cells");
     Box bounds;
     Details::TreeConstruction::calculateBoundingBoxOfTheScene(
@@ -385,10 +381,12 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
                                           permute, labels);
 
     Kokkos::Profiling::popRegion();
-    elapsed["dense_cells"] = timer_seconds(timer);
+    profile_dense_cells.stop();
 
     // Build the tree
-    timer_start(timer);
+    Kokkos::Profiling::ProfilingSection profile_construction(
+        "ArborX::DBSCAN::construction");
+    profile_construction.start();
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::tree_construction");
     BasicBoundingVolumeHierarchy<MemorySpace, Box> bvh(
         exec_space,
@@ -398,9 +396,9 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
             sorted_cell_indices, permute});
 
     Kokkos::Profiling::popRegion();
-    elapsed["construction"] = timer_seconds(timer);
+    profile_construction.stop();
 
-    timer_start(timer);
+    profile_query_and_cluster.start();
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters");
 
     if (is_special_case)
@@ -422,8 +420,9 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     else
     {
       // Determine core points
-      Kokkos::Timer timer_local;
-      timer_start(timer_local);
+      Kokkos::Profiling::ProfilingSection profile_neigh(
+          "ArborX::DBSCAN::neigh");
+      profile_neigh.start();
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::num_neigh");
       Kokkos::resize(num_neigh, n);
       // Set num neighbors for points in dense cells to max, so that they are
@@ -448,12 +447,14 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
                     num_neigh, primitives, dense_cell_offsets, permute,
                     core_min_size, eps, core_min_size));
       Kokkos::Profiling::popRegion();
-      elapsed["neigh"] = timer_seconds(timer_local);
+      profile_neigh.stop();
 
       using CorePoints = Details::DBSCANCorePoints<MemorySpace>;
 
       // Perform the queries and build clusters through callback
-      timer_start(timer_local);
+      Kokkos::Profiling::ProfilingSection profile_query(
+          "ArborX::DBSCAN::query");
+      profile_query.start();
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters:query");
       auto const predicates =
           Details::PrimitivesWithRadius<Primitives>{primitives, eps};
@@ -465,7 +466,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
               labels, CorePoints{num_neigh, core_min_size}, primitives,
               dense_cell_offsets, exec_space, permute, eps});
       Kokkos::Profiling::popRegion();
-      elapsed["query"] = timer_seconds(timer_local);
+      profile_query.stop();
     }
   }
 
@@ -522,20 +523,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
         });
   }
   Kokkos::Profiling::popRegion();
-  elapsed["query+cluster"] = timer_seconds(timer);
-
-  if (verbose)
-  {
-    if (parameters._implementation == DBSCAN::Implementation::FDBSCAN_DenseBox)
-      printf("-- dense cells      : %10.3f\n", elapsed["dense_cells"]);
-    printf("-- construction     : %10.3f\n", elapsed["construction"]);
-    printf("-- query+cluster    : %10.3f\n", elapsed["query+cluster"]);
-    if (!is_special_case)
-    {
-      printf("---- neigh          : %10.3f\n", elapsed["neigh"]);
-      printf("---- query          : %10.3f\n", elapsed["query"]);
-    }
-  }
+  profile_query_and_cluster.stop();
 
   Kokkos::Profiling::popRegion();
 
