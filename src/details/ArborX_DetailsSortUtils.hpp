@@ -112,10 +112,17 @@ sortObjects(ExecutionSpace const &space, ViewType &view)
     return permute;
   }
 
+#if KOKKOS_VERSION >= 30700
   Kokkos::BinSort<ViewType, CompType, typename ViewType::device_type, SizeType>
       bin_sort(space, view, CompType(n / 2, min_val, max_val), true);
   bin_sort.create_permute_vector(space);
   bin_sort.sort(space, view);
+#else
+  Kokkos::BinSort<ViewType, CompType, typename ViewType::device_type, SizeType>
+      bin_sort(view, CompType(n / 2, min_val, max_val), true);
+  bin_sort.create_permute_vector();
+  bin_sort.sort(view);
+#endif
 
   return bin_sort.get_permute_vector();
 }
