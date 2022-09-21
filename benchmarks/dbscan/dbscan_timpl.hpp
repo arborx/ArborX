@@ -264,9 +264,6 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
   if (params.implementation == "fdbscan-densebox")
     implementation = Implementation::FDBSCAN_DenseBox;
 
-  Kokkos::Profiling::ProfilingSection profile_total("ArborX::DBSCAN::total");
-  profile_total.start();
-
   Kokkos::View<int *, MemorySpace> labels("Example::labels", 0);
   bool success = true;
   if (params.algorithm == "dbscan")
@@ -274,6 +271,9 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
     ArborX::DBSCAN::Parameters dbscan_params;
     dbscan_params.setPrintTimers(params.print_dbscan_timers)
         .setImplementation(implementation);
+
+    Kokkos::Profiling::ProfilingSection profile_total("ArborX::DBSCAN::total");
+    profile_total.start();
 
     labels = ArborX::dbscan<ExecutionSpace, Primitives>(
         exec_space, primitives, params.eps, params.core_min_size,
@@ -334,8 +334,25 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
   }
   else if (params.algorithm == "mst")
   {
+
+    Kokkos::Profiling::ProfilingSection profile_total("ArborX::MST::total");
+    profile_total.start();
     ArborX::Details::MinimumSpanningTree<MemorySpace> mst(
         exec_space, primitives, params.core_min_size);
+    profile_total.stop();
+
+    if (params.print_dbscan_timers)
+    {
+      printf("-- construction     : %10.3f\n",
+             arborx_dbscan_example_get_time("ArborX::MST::construction"));
+      if (params.core_min_size > 1)
+        printf("-- core distances   : %10.3f\n",
+               arborx_dbscan_example_get_time("ArborX::MST::core_distances"));
+      printf("-- boruvka          : %10.3f\n",
+             arborx_dbscan_example_get_time("ArborX::MST::boruvka"));
+      printf("total time          : %10.3f\n",
+             arborx_dbscan_example_get_time("ArborX::MST::total"));
+    }
   }
 
   if (success && !params.filename_labels.empty())
