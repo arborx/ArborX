@@ -38,7 +38,7 @@ void arborx_dbscan_example_set_create_profile_section(char const *label,
                                                       std::uint32_t *id)
 {
   *id = arborx_dbscan_example_timers.size();
-  arborx_dbscan_example_timers.push_back({label, {}, {}});
+  arborx_dbscan_example_timers.emplace_back(label, {}, {});
 }
 
 void arborx_dbscan_example_set_destroy_profile_section(std::uint32_t) {}
