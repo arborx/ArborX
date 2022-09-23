@@ -131,7 +131,7 @@ public:
 };
 
 template <class BVH, class Labels, class Weights, class Edges, class Metric,
-          class Radii, class LowerBounds>
+          class Radii, class LowerBounds, bool UseSharedRadii>
 struct FindComponentNearestNeighbors
 {
   BVH _bvh;
@@ -150,7 +150,8 @@ struct FindComponentNearestNeighbors
                                 Labels const &labels, Weights const &weights,
                                 Edges const &edges, Metric const &metric,
                                 Radii const &radii,
-                                LowerBounds const &lower_bounds)
+                                LowerBounds const &lower_bounds,
+                                std::bool_constant<UseSharedRadii>)
       : _bvh(bvh)
       , _labels(labels)
       , _weights(weights)
@@ -214,7 +215,10 @@ struct FindComponentNearestNeighbors
     DirectedEdge current_best{};
 
     auto const n = _bvh.size();
-    auto &radius = _radii(component - n + 1);
+
+    // Use a reference for shared radii, and a copy otherwise.
+    std::conditional_t<UseSharedRadii, float &, float> radius =
+        _radii(component - n + 1);
 
     constexpr int SENTINEL = -1;
     int stack[64];
@@ -270,7 +274,10 @@ struct FindComponentNearestNeighbors
             if (candidate_edge < current_best)
             {
               current_best = candidate_edge;
-              Kokkos::atomic_min(&radius, candidate_dist);
+              if constexpr (UseSharedRadii)
+                Kokkos::atomic_min(&radius, candidate_dist);
+              else
+                radius = candidate_dist;
             }
           }
           else
@@ -292,7 +299,10 @@ struct FindComponentNearestNeighbors
             if (candidate_edge < current_best)
             {
               current_best = candidate_edge;
-              Kokkos::atomic_min(&radius, candidate_dist);
+              if constexpr (UseSharedRadii)
+                Kokkos::atomic_min(&radius, candidate_dist);
+              else
+                radius = candidate_dist;
             }
           }
           else
@@ -353,17 +363,13 @@ struct FindComponentNearestNeighbors
 // For every component C, find the shortest edge (v, w) such that v is in C
 // and w is not in C. The found edge is stored in component_out_edges(C).
 template <class ExecutionSpace, class BVH, class Labels, class Weights,
-          class Edges, class Metric, class Radii, class LowerBounds>
-void findComponentNearestNeighbors(ExecutionSpace const &space, BVH const &bvh,
-                                   Labels const &labels, Weights const &weights,
-                                   Edges const &edges, Metric const &metric,
-                                   Radii const &radii,
-                                   LowerBounds const &lower_bounds)
-{
-  FindComponentNearestNeighbors<BVH, Labels, Weights, Edges, Metric, Radii,
-                                LowerBounds>(space, bvh, labels, weights, edges,
-                                             metric, radii, lower_bounds);
-}
+          class Edges, class Metric, class Radii, class LowerBounds,
+          bool UseSharedRadii>
+FindComponentNearestNeighbors(ExecutionSpace, BVH, Labels, Weights, Edges,
+                              Metric, Radii, LowerBounds,
+                              std::bool_constant<UseSharedRadii>)
+    -> FindComponentNearestNeighbors<BVH, Labels, Weights, Edges, Metric, Radii,
+                                     LowerBounds, UseSharedRadii>;
 
 template <class ExecutionSpace, class Labels, class ComponentOutEdges,
           class LowerBounds>
@@ -684,7 +690,19 @@ private:
 #else
         false;
 #endif
-    if (use_lower_bounds)
+
+    // Shared radii may or may not be faster for CUDA depending on the problem.
+    // In the ICPP'51 paper experiments, we ended up using it only in Serial.
+    // But we would like to keep an option open for the future, so the code is
+    // written to be able to run it if we want.
+    constexpr bool use_shared_radii =
+#ifdef KOKKOS_ENABLE_SERIAL
+        std::is_same<ExecutionSpace, Kokkos::Serial>::value;
+#else
+        false;
+#endif
+
+    if constexpr (use_lower_bounds)
     {
       KokkosExt::reallocWithoutInitializing(space, lower_bounds, n);
       Kokkos::deep_copy(space, lower_bounds, 0);
@@ -713,11 +731,11 @@ private:
       Kokkos::deep_copy(space, radii, inf);
       resetSharedRadii(space, bvh, labels, metric, radii);
 
-      findComponentNearestNeighbors(space, bvh, labels, weights,
-                                    component_out_edges, metric, radii,
-                                    lower_bounds);
+      FindComponentNearestNeighbors(
+          space, bvh, labels, weights, component_out_edges, metric, radii,
+          lower_bounds, std::bool_constant<use_shared_radii>());
       retrieveEdges(space, labels, weights, component_out_edges);
-      if (use_lower_bounds)
+      if constexpr (use_lower_bounds)
       {
         updateLowerBounds(space, labels, component_out_edges, lower_bounds);
       }
