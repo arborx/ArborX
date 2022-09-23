@@ -216,7 +216,7 @@ struct FindComponentNearestNeighbors
 
     auto const n = _bvh.size();
 
-    // Use a reference for shared radii, and a value otherwise.
+    // Use a reference for shared radii, and a copy otherwise.
     std::conditional_t<UseSharedRadii, float &, float> radius =
         _radii(component - n + 1);
 
