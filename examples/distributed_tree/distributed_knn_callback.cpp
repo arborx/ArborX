@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
     ArborX::Point center = {static_cast<float>(comm_rank) + .5f,
                             static_cast<float>(comm_rank) + .5f,
                             static_cast<float>(comm_rank) + .5f};
-    std::vector<ArborX::Point> points = {lower_left_corner, center};
+    std::vector points = {lower_left_corner, center};
     auto points_device = Kokkos::create_mirror_view_and_copy(
         MemorySpace{},
         Kokkos::View<ArborX::Point *, Kokkos::HostSpace,
