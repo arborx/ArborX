@@ -43,13 +43,13 @@ struct IndexAndRank
 };
 
 template <typename DeviceType>
-struct InlinePrintCallback
+struct PrintAndInsert
 {
   Kokkos::View<ArborX::Point *, DeviceType> points;
   int mpi_rank;
 
-  InlinePrintCallback(Kokkos::View<ArborX::Point *, DeviceType> const &points_,
-                      int mpi_rank_)
+  PrintAndInsert(Kokkos::View<ArborX::Point *, DeviceType> const &points_,
+                 int mpi_rank_)
       : points(points_)
       , mpi_rank(mpi_rank_)
   {}
@@ -114,10 +114,9 @@ int main(int argc, char *argv[])
 
     Kokkos::View<Example::IndexAndRank *, MemorySpace> values("values", 0);
     Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
-    tree.query(
-        exec, Example::Nearest{points_device, 3, comm_rank},
-        Example::InlinePrintCallback<MemorySpace>(points_device, comm_rank),
-        values, offsets);
+    tree.query(exec, Example::Nearest{points_device, 3, comm_rank},
+               Example::PrintAndInsert<MemorySpace>(points_device, comm_rank),
+               values, offsets);
 
     auto host_values =
         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values);
