@@ -61,10 +61,12 @@ struct PrintAndInsert
   {
     auto data = ArborX::getData(predicate);
     auto const &point = points(primitive_index);
+#ifndef KOKKOS_ENABLE_SYCL
     printf("Intersection for query %d from MPI rank %d on MPI rank %d for "
            "point %f,%f,%f with index %d\n",
            data.index, data.rank, mpi_rank, point[0], point[1], point[2],
            primitive_index);
+#endif
 
     out({primitive_index, mpi_rank});
   }
