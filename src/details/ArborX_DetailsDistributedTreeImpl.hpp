@@ -698,13 +698,25 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   Kokkos::View<int *, ExecutionSpace> ranks(
       "ArborX::DistributedTree::query::nearest::ranks", 0);
 
-  // First find the ranks and indices for the nearest queries.
+  // The strategy for executing the callback only for the primitives that are
+  // closest for every predicate is as follows:
+  // - Find the ranks and indices for the nearest queries using the overload not
+  //   taking a callback.
+  // - Send the predicate-primitive pairs to the process where the match was
+  //   found.
+  // - Execute the callback on the process owning the primitives.
+  // - Send the result back to the process owning the predicates.
+
+  // Find the ranks and indices for the nearest queries using the overload not
+  // taking a callback.
   queryDispatchImpl(NearestPredicateTag{}, tree, space, queries, indices,
                     offset, ranks);
 
   Kokkos::Profiling::pushRegion(
       "ArborX::DistributedTree::query::nearest::postprocess_callback");
 
+  // Send the predicate-primitive pairs to the process where the match was
+  // found.
   auto comm = tree.getComm();
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
@@ -740,7 +752,7 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   sendAcrossNetwork(space, distributor, exported_queries_with_indices,
                     imported_queries_with_indices);
 
-  // execute imported queries
+  // Execute the callback on the process owning the primitives.
   OutputView remote_out(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::DistributedTree::query::remote_out"),
@@ -759,7 +771,7 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
                  });
       });
 
-  // communicate results back to the source MPI ranks
+  // Send the result back to the process owning the predicates.
   Distributor<DeviceType> back_distributor(comm);
   auto const &dest = distributor.get_sources();
   auto const &off = distributor.get_source_offsets();
