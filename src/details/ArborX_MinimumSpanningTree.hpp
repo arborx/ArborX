@@ -614,9 +614,7 @@ struct MinimumSpanningTree
       profile_core_distances.start();
       Kokkos::Profiling::pushRegion("ArborX::MST::compute_core_distances");
       Kokkos::View<float *, MemorySpace> core_distances(
-          Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                             "ArborX::MST::core_distances"),
-          n);
+          "ArborX::MST::core_distances", n);
       bvh.query(space, NearestK<Primitives>{primitives, k},
                 MaxDistance<Primitives, decltype(core_distances)>{
                     primitives, core_distances});
