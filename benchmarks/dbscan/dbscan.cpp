@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
       ( "help", "help message" )
       ( "algorithm", bpo::value<std::string>(&params.algorithm)->default_value("dbscan"), "algorithm (dbscan | mst)" )
       ( "filename", bpo::value<std::string>(&params.filename), "filename containing data" )
+      ( "backend", bpo::value<std::string>(&params.backend)->default_value("default"), "Kokkos backend (serial | openmp | cuda | hip | sycl | threads | openmptarget)" )
       ( "binary", bpo::bool_switch(&params.binary)->default_value(false), "binary file indicator")
       ( "max-num-points", bpo::value<int>(&params.max_num_points)->default_value(-1), "max number of points to read in")
       ( "eps", bpo::value<float>(&params.eps), "DBSCAN eps" )
@@ -77,7 +78,7 @@ int main(int argc, char *argv[])
       ( "samples", bpo::value<int>(&params.num_samples)->default_value(-1), "number of samples" )
       ( "labels", bpo::value<std::string>(&params.filename_labels)->default_value(""), "clutering results output" )
       ( "print-dbscan-timers", bpo::bool_switch(&params.print_dbscan_timers)->default_value(false), "print dbscan timers")
-      ( "impl", bpo::value<std::string>(&params.implementation)->default_value("fdbscan"), R"(implementation ("fdbscan" or "fdbscan-densebox"))")
+      ( "impl", bpo::value<std::string>(&params.implementation)->default_value("fdbscan"), R"(implementation (fdbscan | fdbscan-densebox))")
       ;
   // clang-format on
   bpo::variables_map vm;
@@ -93,6 +94,13 @@ int main(int argc, char *argv[])
   if (std::set<std::string>{"fdbscan", "fdbscan-densebox"}.count(
           params.implementation) == 0)
   {
+    std::cerr << "Backend must be \"fdbscan\" or \"fdbscan-densebox\"\n";
+    return 2;
+  }
+
+  if (std::set<std::string>{"fdbscan", "fdbscan-densebox"}.count(
+          params.implementation) == 0)
+  {
     std::cerr << "Implementation must be \"fdbscan\" or \"fdbscan-densebox\"\n";
     return 2;
   }
@@ -101,6 +109,7 @@ int main(int argc, char *argv[])
   ss << params.implementation;
 
   // Print out the runtime parameters
+  printf("Kokkos backend    : %s\n", params.backend.c_str());
   printf("algorithm         : %s\n", params.algorithm.c_str());
   if (params.algorithm == "dbscan")
   {

@@ -232,10 +232,10 @@ auto vec2view(std::vector<T> const &in, std::string const &label = "")
   return out;
 }
 
-template <int DIM>
-bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
+template <int DIM, typename ExecutionSpace>
+bool runImpl(ExecutionSpace const &exec_space,
+             ArborXBenchmark::Parameters const &params)
 {
-  using ExecutionSpace = Kokkos::DefaultExecutionSpace;
   using MemorySpace = typename ExecutionSpace::memory_space;
 
   if (params.print_dbscan_timers)
@@ -249,8 +249,6 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
     Kokkos::Profiling::Experimental::set_stop_profile_section_callback(
         arborx_dbscan_example_set_stop_profile_section);
   }
-
-  ExecutionSpace exec_space;
 
   auto data = loadData<DIM>(params.filename, params.binary,
                             params.max_num_points, params.num_samples);
@@ -359,4 +357,75 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
     writeLabelsData(params.filename_labels, labels);
 
   return success;
+}
+
+template <int DIM>
+bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
+{
+  if (params.backend == "default")
+    return runImpl<DIM>(Kokkos::DefaultExecutionSpace{}, params);
+
+  if (params.backend == "serial")
+  {
+#ifdef KOKKOS_ENABLE_SERIAL
+    return runImpl<DIM>(Kokkos::Serial{}, params);
+#else
+    throw std::runtime_error("Serial backend not available!");
+#endif
+  }
+
+  if (params.backend == "openmp")
+  {
+#ifdef KOKKOS_ENABLE_OPENMP
+    return runImpl<DIM>(Kokkos::OpenMP{}, params);
+#else
+    throw std::runtime_error("OpenMP backend not available!");
+#endif
+  }
+
+  if (params.backend == "threads")
+  {
+#ifdef KOKKOS_ENABLE_THREADS
+    return runImpl<DIM>(Kokkos::Threads{}, params);
+#else
+    throw std::runtime_error("Threads backend not available!");
+#endif
+  }
+
+  if (params.backend == "cuda")
+  {
+#ifdef KOKKOS_ENABLE_CUDA
+    return runImpl<DIM>(Kokkos::Cuda{}, params);
+#else
+    throw std::runtime_error("CUDA backend not available!");
+#endif
+  }
+
+  if (params.backend == "hip")
+  {
+#ifdef KOKKOS_ENABLE_HIP
+    return runImpl<DIM>(Kokkos::Experimental::HIP{}, params);
+#else
+    throw std::runtime_error("HIP backend not available!");
+#endif
+  }
+
+  if (params.backend == "openmptarget")
+  {
+#ifdef KOKKOS_ENABLE_OPENMPTARGET
+    return runImpl<DIM>(Kokkos::OpenMPTarget{}, params);
+#else
+    throw std::runtime_error("OpenMPTarget backend not available!");
+#endif
+  }
+
+  if (params.backend == "sycl")
+  {
+#ifdef KOKKOS_ENABLE_SYCL
+    return runImpl<DIM>(Kokkos::SYCL{}, params);
+#else
+    throw std::runtime_error("SYCL backend not available!");
+#endif
+  }
+  throw std::runtime_error("Unknown backend \"" + params.backend + "\"");
 }

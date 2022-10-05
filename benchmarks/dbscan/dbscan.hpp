@@ -18,6 +18,7 @@ struct Parameters
 {
   std::string filename;
   std::string algorithm;
+  std::string backend;
   bool binary;
   bool verify;
   bool print_dbscan_timers;
