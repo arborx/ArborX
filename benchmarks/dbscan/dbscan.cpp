@@ -31,7 +31,7 @@ int getDataDimension(std::string const &filename, bool binary)
   else
     input.open(filename, std::ifstream::binary);
   if (!input.good())
-    throw std::runtime_error("Error reading file" + filename);
+    throw std::runtime_error("Error reading file \"" + filename + "\"");
 
   int num_points;
   int dim;
