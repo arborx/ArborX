@@ -422,7 +422,7 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
   if (params.backend == "sycl")
   {
 #ifdef KOKKOS_ENABLE_SYCL
-    return runImpl<DIM>(Kokkos::SYCL{}, params);
+    return runImpl<DIM>(Kokkos::Experimental::SYCL{}, params);
 #else
     throw std::runtime_error("SYCL backend not available!");
 #endif

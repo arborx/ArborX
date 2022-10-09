@@ -50,6 +50,41 @@ int getDataDimension(std::string const &filename, bool binary)
   return dim;
 }
 
+std::string backendsList(std::string const &delim = "|")
+{
+  std::string list = "default";
+
+#ifdef KOKKOS_ENABLE_SERIAL
+  list += " " + delim + " serial";
+#endif
+
+#ifdef KOKKOS_ENABLE_OPENMP
+  list += " " + delim + " openmp";
+#endif
+
+#ifdef KOKKOS_ENABLE_THREADS
+  list += " " + delim + " threads";
+#endif
+
+#ifdef KOKKOS_ENABLE_CUDA
+  list += " " + delim + " cuda";
+#endif
+
+#ifdef KOKKOS_ENABLE_HIP
+  list += " " + delim + " hip";
+#endif
+
+#ifdef KOKKOS_ENABLE_OPENMPTARGET
+  list += " " + delim + " openmptarget";
+#endif
+
+#ifdef KOKKOS_ENABLE_SYCL
+  list += " " + delim + " sycl";
+#endif
+
+  return list;
+}
+
 int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
@@ -62,13 +97,15 @@ int main(int argc, char *argv[])
 
   ArborXBenchmark::Parameters params;
 
+  std::string backends_names = "Kokkos backend (" + backendsList() + ")";
+
   bpo::options_description desc("Allowed options");
   // clang-format off
   desc.add_options()
       ( "help", "help message" )
       ( "algorithm", bpo::value<std::string>(&params.algorithm)->default_value("dbscan"), "algorithm (dbscan | mst)" )
       ( "filename", bpo::value<std::string>(&params.filename), "filename containing data" )
-      ( "backend", bpo::value<std::string>(&params.backend)->default_value("default"), "Kokkos backend (serial | openmp | cuda | hip | sycl | threads | openmptarget)" )
+      ( "backend", bpo::value<std::string>(&params.backend)->default_value("default"), backends_names.c_str())
       ( "binary", bpo::bool_switch(&params.binary)->default_value(false), "binary file indicator")
       ( "max-num-points", bpo::value<int>(&params.max_num_points)->default_value(-1), "max number of points to read in")
       ( "eps", bpo::value<float>(&params.eps), "DBSCAN eps" )
@@ -89,13 +126,6 @@ int main(int argc, char *argv[])
   {
     std::cout << desc << '\n';
     return 1;
-  }
-
-  if (std::set<std::string>{"fdbscan", "fdbscan-densebox"}.count(
-          params.implementation) == 0)
-  {
-    std::cerr << "Backend must be \"fdbscan\" or \"fdbscan-densebox\"\n";
-    return 2;
   }
 
   if (std::set<std::string>{"fdbscan", "fdbscan-densebox"}.count(
