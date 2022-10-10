@@ -413,7 +413,7 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
   if (params.backend == "openmptarget")
   {
 #ifdef KOKKOS_ENABLE_OPENMPTARGET
-    return runImpl<DIM>(Kokkos::OpenMPTarget{}, params);
+    return runImpl<DIM>(Kokkos::Experimental::OpenMPTarget{}, params);
 #else
     throw std::runtime_error("OpenMPTarget backend not available!");
 #endif
