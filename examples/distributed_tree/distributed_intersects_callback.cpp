@@ -13,12 +13,7 @@
 
 #include <Kokkos_Core.hpp>
 
-#include <cstdarg>
-#include <cstdio>
-#include <iostream>
-#include <random>
-#include <vector>
-
+#include "distributed_setup.hpp"
 #include <mpi.h>
 
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
@@ -93,27 +88,15 @@ int main(int argc, char *argv[])
   Kokkos::initialize(argc, argv);
   {
     MPI_Comm comm = MPI_COMM_WORLD;
-    int comm_rank;
-    MPI_Comm_rank(comm, &comm_rank);
-    int comm_size;
-    MPI_Comm_size(comm, &comm_size);
-    ArborX::Point lower_left_corner = {static_cast<float>(comm_rank),
-                                       static_cast<float>(comm_rank),
-                                       static_cast<float>(comm_rank)};
-    ArborX::Point center = {static_cast<float>(comm_rank) + .5f,
-                            static_cast<float>(comm_rank) + .5f,
-                            static_cast<float>(comm_rank) + .5f};
-    std::vector<ArborX::Point> points = {lower_left_corner, center};
-    auto points_device = Kokkos::create_mirror_view_and_copy(
-        MemorySpace{},
-        Kokkos::View<ArborX::Point *, Kokkos::HostSpace,
-                     Kokkos::MemoryUnmanaged>(points.data(), points.size()));
-
     ExecutionSpace exec;
-    ArborX::DistributedTree<MemorySpace> tree(comm, exec, points_device);
+    Kokkos::View<ArborX::Point *, MemorySpace> points_device;
+    ArborX::DistributedTree<MemorySpace> tree =
+        ArborXExample::create_tree(comm, exec, points_device);
 
     Kokkos::View<Example::IndexAndRank *, MemorySpace> values("values", 0);
     Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
+    int comm_rank;
+    MPI_Comm_rank(comm, &comm_rank);
     tree.query(
         exec, Example::Intersects{points_device, 1., comm_rank},
         Example::InlinePrintCallback<MemorySpace>(points_device, comm_rank),
