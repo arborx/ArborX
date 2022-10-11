@@ -550,12 +550,17 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
   CallbackWithDistance<BVH<typename DeviceType::memory_space>>
       callback_with_distance(space, bottom_tree);
 
+  // NOTE: compiler would not deduce __range for the braced-init-list, but I
+  // got it to work with the static_cast to function pointers.
   using Strategy =
       void (*)(ExecutionSpace const &, Predicates const &,
                DistributedTree const &, Indices &, Offset &, Distances &);
-
-  auto execute_strategy = [&](Strategy strategy) {
-    strategy(space, queries, tree, indices, offset, distances);
+  for (auto implementStrategy :
+       {static_cast<Strategy>(DistributedTreeImpl<DeviceType>::deviseStrategy),
+        static_cast<Strategy>(
+            DistributedTreeImpl<DeviceType>::reassessStrategy)})
+  {
+    implementStrategy(space, queries, tree, indices, offset, distances);
 
     {
       // NOTE_COMM_NEAREST: The communication pattern here for the nearest
@@ -609,9 +614,7 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
 
       Kokkos::Profiling::popRegion();
     }
-  };
-  execute_strategy(DistributedTreeImpl<DeviceType>::deviseStrategy);
-  execute_strategy(DistributedTreeImpl<DeviceType>::reassessStrategy);
+  }
   Kokkos::Profiling::popRegion();
 }
 
