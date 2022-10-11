@@ -22,12 +22,7 @@ struct Timer
   using clock_type = std::chrono::high_resolution_clock;
   std::string label;
   clock_type::time_point tick;
-  clock_type::duration duration;
-
-  double elapsed() const
-  {
-    return std::chrono::duration<double>(duration).count();
-  }
+  double duration;
 };
 
 std::vector<Timer> arborx_dbscan_example_timers;
@@ -56,13 +51,13 @@ void arborx_dbscan_example_set_stop_profile_section(std::uint32_t id)
   Kokkos::fence();
   auto now = Timer::clock_type::now();
   auto &timer = arborx_dbscan_example_timers[id];
-  timer.duration = now - timer.tick;
+  timer.duration = std::chrono::duration<double>(now - timer.tick).count();
 }
 
 double arborx_dbscan_example_get_time(std::string const &label)
 {
   for (auto const &timer : arborx_dbscan_example_timers)
     if (timer.label == label)
-      return timer.elapsed();
+      return timer.duration;
   Kokkos::abort(("ArborX: no timer with label \"" + label + "\"").c_str());
 }
