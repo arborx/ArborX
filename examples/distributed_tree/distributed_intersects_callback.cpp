@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
     {
       std::cout << "Results for query " << i << " on MPI rank " << comm_rank
                 << '\n';
-      for (unsigned int j = host_offsets(i); j < host_offsets(i + 1); ++j)
+      for (int j = host_offsets(i); j < host_offsets(i + 1); ++j)
         std::cout << "point " << host_values(j).index << ", rank "
                   << host_values(j).rank << std::endl;
     }
