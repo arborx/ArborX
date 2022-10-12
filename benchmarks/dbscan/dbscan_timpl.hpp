@@ -238,7 +238,7 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
   using ExecutionSpace = Kokkos::DefaultExecutionSpace;
   using MemorySpace = typename ExecutionSpace::memory_space;
 
-  if (params.print_dbscan_timers)
+  if (params.verbose)
   {
     Kokkos::Profiling::Experimental::set_create_profile_section_callback(
         arborx_dbscan_example_set_create_profile_section);
@@ -269,7 +269,7 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
   if (params.algorithm == "dbscan")
   {
     ArborX::DBSCAN::Parameters dbscan_params;
-    dbscan_params.setPrintTimers(params.print_dbscan_timers)
+    dbscan_params.setVerbosity(params.verbose)
         .setImplementation(implementation);
 
     Kokkos::Profiling::ProfilingSection profile_total("ArborX::DBSCAN::total");
@@ -291,7 +291,7 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
     profile_postprocess.stop();
     profile_total.stop();
 
-    if (params.print_dbscan_timers)
+    if (params.verbose)
     {
       bool const is_special_case = (params.core_min_size == 2);
 
@@ -341,7 +341,7 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
         exec_space, primitives, params.core_min_size);
     profile_total.stop();
 
-    if (params.print_dbscan_timers)
+    if (params.verbose)
     {
       printf("-- construction     : %10.3f\n",
              arborx_dbscan_example_get_time("ArborX::MST::construction"));

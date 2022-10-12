@@ -70,13 +70,13 @@ int main(int argc, char *argv[])
       ( "filename", bpo::value<std::string>(&params.filename), "filename containing data" )
       ( "binary", bpo::bool_switch(&params.binary)->default_value(false), "binary file indicator")
       ( "max-num-points", bpo::value<int>(&params.max_num_points)->default_value(-1), "max number of points to read in")
-      ( "eps", bpo::value<float>(&params.eps), "DBSCAN eps" )
+      ( "eps", bpo::value<float>(&params.eps)->default_value(0), "DBSCAN eps" )
       ( "cluster-min-size", bpo::value<int>(&params.cluster_min_size)->default_value(1), "minimum cluster size")
       ( "core-min-size", bpo::value<int>(&params.core_min_size)->default_value(2), "DBSCAN min_pts")
       ( "verify", bpo::bool_switch(&params.verify)->default_value(false), "verify connected components")
       ( "samples", bpo::value<int>(&params.num_samples)->default_value(-1), "number of samples" )
       ( "labels", bpo::value<std::string>(&params.filename_labels)->default_value(""), "clutering results output" )
-      ( "print-dbscan-timers", bpo::bool_switch(&params.print_dbscan_timers)->default_value(false), "print dbscan timers")
+      ( "verbose", bpo::bool_switch(&params.verbose)->default_value(false), "verbose")
       ( "impl", bpo::value<std::string>(&params.implementation)->default_value("fdbscan"), R"(implementation ("fdbscan" or "fdbscan-densebox"))")
       ;
   // clang-format on
@@ -115,8 +115,7 @@ int main(int argc, char *argv[])
   if (!params.filename_labels.empty())
     printf("filename [labels] : %s [binary]\n", params.filename_labels.c_str());
   printf("samples           : %d\n", params.num_samples);
-  printf("print timers      : %s\n",
-         (params.print_dbscan_timers ? "true" : "false"));
+  printf("verbose           : %s\n", (params.verbose ? "true" : "false"));
 
   int dim = getDataDimension(params.filename, params.binary);
 

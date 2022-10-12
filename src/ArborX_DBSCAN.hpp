@@ -205,13 +205,13 @@ enum class Implementation
 struct Parameters
 {
   // Print timers to standard output
-  bool _print_timers = false;
+  bool _verbose = false;
   // Algorithm implementation (FDBSCAN or FDBSCAN-DenseBox)
   Implementation _implementation = Implementation::FDBSCAN_DenseBox;
 
-  Parameters &setPrintTimers(bool print_timers)
+  Parameters &setVerbosity(bool verbose)
   {
-    _print_timers = print_timers;
+    _verbose = verbose;
     return *this;
   }
   Parameters &setImplementation(Implementation impl)
@@ -247,7 +247,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
   bool const is_special_case = (core_min_size == 2);
 
-  bool const verbose = parameters._print_timers;
+  bool const verbose = parameters._verbose;
 
   int const n = Access::size(primitives);
 
