@@ -6,12 +6,10 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 endif()
 
 add_subdirectory(access_traits)
-
 add_subdirectory(callback)
-
-add_subdirectory(simple_intersection)
-
+add_subdirectory(dbscan)
 add_subdirectory(molecular_dynamics)
+add_subdirectory(simple_intersection)
 
 find_package(Boost COMPONENTS program_options)
 if(Boost_FOUND)
