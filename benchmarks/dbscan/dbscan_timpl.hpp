@@ -18,91 +18,11 @@
 #include <cstdlib>
 #include <fstream>
 
+#include "data.hpp"
 #include "dbscan.hpp"
 #include "print_timers.hpp"
 
 using ArborX::ExperimentalHyperGeometry::Point;
-
-template <int DIM>
-std::vector<Point<DIM>> sampleData(std::vector<Point<DIM>> const &data,
-                                   int num_samples)
-{
-  std::vector<Point<DIM>> sampled_data(num_samples);
-
-  std::srand(1337);
-
-  // Knuth algorithm
-  auto const N = (int)data.size();
-  auto const M = num_samples;
-  for (int in = 0, im = 0; in < N && im < M; ++in)
-  {
-    int rn = N - in;
-    int rm = M - im;
-    if (std::rand() % rn < rm)
-      sampled_data[im++] = data[in];
-  }
-  return sampled_data;
-}
-
-template <int DIM>
-std::vector<Point<DIM>> loadData(std::string const &filename,
-                                 bool binary = true, int max_num_points = -1,
-                                 int num_samples = -1)
-{
-  std::cout << "Reading in \"" << filename << "\" in "
-            << (binary ? "binary" : "text") << " mode...";
-  std::cout.flush();
-
-  std::ifstream input;
-  if (!binary)
-    input.open(filename);
-  else
-    input.open(filename, std::ifstream::binary);
-  ARBORX_ASSERT(input.good());
-
-  std::vector<Point<DIM>> v;
-
-  int num_points = 0;
-  int dim = 0;
-  if (!binary)
-  {
-    input >> num_points;
-    input >> dim;
-  }
-  else
-  {
-    input.read(reinterpret_cast<char *>(&num_points), sizeof(int));
-    input.read(reinterpret_cast<char *>(&dim), sizeof(int));
-  }
-
-  ARBORX_ASSERT(dim == DIM);
-
-  if (max_num_points > 0 && max_num_points < num_points)
-    num_points = max_num_points;
-
-  v.resize(num_points);
-  if (!binary)
-  {
-    auto it = std::istream_iterator<float>(input);
-    for (int i = 0; i < num_points; ++i)
-      for (int d = 0; d < DIM; ++d)
-        v[i][d] = *it++;
-  }
-  else
-  {
-    // Directly read into a point
-    input.read(reinterpret_cast<char *>(v.data()),
-               num_points * sizeof(Point<DIM>));
-  }
-  input.close();
-  std::cout << "done\nRead in " << num_points << " " << dim << "D points"
-            << std::endl;
-
-  if (num_samples > 0 && num_samples < (int)v.size())
-    v = sampleData(v, num_samples);
-
-  return v;
-}
 
 template <typename MemorySpace>
 void writeLabelsData(std::string const &filename,
@@ -252,8 +172,18 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
 
   ExecutionSpace exec_space;
 
-  auto data = loadData<DIM>(params.filename, params.binary,
-                            params.max_num_points, params.num_samples);
+  std::vector<ArborX::ExperimentalHyperGeometry::Point<DIM>> data;
+  if (!params.filename.empty())
+  {
+    // Read in data
+    data = loadData<DIM>(params.filename, params.binary, params.max_num_points,
+                         params.num_samples);
+  }
+  else
+  {
+    // Generate data
+    data = GanTao<DIM>(params.n, params.variable_density);
+  }
 
   auto const primitives = vec2view<MemorySpace>(data, "primitives");
 

@@ -61,23 +61,27 @@ int main(int argc, char *argv[])
   namespace bpo = boost::program_options;
 
   ArborXBenchmark::Parameters params;
+  int dim;
 
   bpo::options_description desc("Allowed options");
   // clang-format off
   desc.add_options()
       ( "help", "help message" )
       ( "algorithm", bpo::value<std::string>(&params.algorithm)->default_value("dbscan"), "algorithm (dbscan | mst)" )
-      ( "filename", bpo::value<std::string>(&params.filename), "filename containing data" )
       ( "binary", bpo::bool_switch(&params.binary)->default_value(false), "binary file indicator")
-      ( "max-num-points", bpo::value<int>(&params.max_num_points)->default_value(-1), "max number of points to read in")
-      ( "eps", bpo::value<float>(&params.eps)->default_value(0), "DBSCAN eps" )
       ( "cluster-min-size", bpo::value<int>(&params.cluster_min_size)->default_value(1), "minimum cluster size")
       ( "core-min-size", bpo::value<int>(&params.core_min_size)->default_value(2), "DBSCAN min_pts")
-      ( "verify", bpo::bool_switch(&params.verify)->default_value(false), "verify connected components")
-      ( "samples", bpo::value<int>(&params.num_samples)->default_value(-1), "number of samples" )
-      ( "labels", bpo::value<std::string>(&params.filename_labels)->default_value(""), "clutering results output" )
-      ( "verbose", bpo::bool_switch(&params.verbose)->default_value(false), "verbose")
+      ( "dimension", bpo::value<int>(&dim)->default_value(3), "dimension of points to generate" )
+      ( "eps", bpo::value<float>(&params.eps), "DBSCAN eps" )
+      ( "filename", bpo::value<std::string>(&params.filename), "filename containing data" )
       ( "impl", bpo::value<std::string>(&params.implementation)->default_value("fdbscan"), R"(implementation ("fdbscan" or "fdbscan-densebox"))")
+      ( "labels", bpo::value<std::string>(&params.filename_labels)->default_value(""), "clutering results output" )
+      ( "max-num-points", bpo::value<int>(&params.max_num_points)->default_value(-1), "max number of points to read in")
+      ( "n", bpo::value<int>(&params.n)->default_value(10), "number of points to generate" )
+      ( "samples", bpo::value<int>(&params.num_samples)->default_value(-1), "number of samples" )
+      ( "variable-density", bpo::bool_switch(&params.variable_density)->default_value(false), "type of cluster density to generate" )
+      ( "verbose", bpo::bool_switch(&params.verbose)->default_value(false), "verbose")
+      ( "verify", bpo::bool_switch(&params.verify)->default_value(false), "verify connected components")
       ;
   // clang-format on
   bpo::variables_map vm;
@@ -87,6 +91,12 @@ int main(int argc, char *argv[])
   if (vm.count("help") > 0)
   {
     std::cout << desc << '\n';
+    std::cout << "[Generator Help]\n"
+                 "If using generator, the recommended DBSCAN parameters are:\n"
+                 "- core-min-size = 10\n"
+                 "- eps = 60 (2D constant), 100 (2D variable), 200 (3D "
+                 "constant), 400 (3D variable)"
+              << std::endl;
     return 1;
   }
 
@@ -110,14 +120,26 @@ int main(int argc, char *argv[])
     printf("verify            : %s\n", (params.verify ? "true" : "false"));
   }
   printf("minpts            : %d\n", params.core_min_size);
-  printf("filename          : %s [%s, max_pts = %d]\n", params.filename.c_str(),
-         (params.binary ? "binary" : "text"), params.max_num_points);
+  if (!params.filename.empty())
+  {
+    // Data is read in
+    printf("filename          : %s [%s, max_pts = %d]\n",
+           params.filename.c_str(), (params.binary ? "binary" : "text"),
+           params.max_num_points);
+    printf("samples           : %d\n", params.num_samples);
+  }
+  else
+  {
+    // Data is generated
+    printf("generator         : n = %d, dim = %d, density = %s\n", params.n,
+           dim, (params.variable_density ? "variable" : "constant"));
+  }
   if (!params.filename_labels.empty())
     printf("filename [labels] : %s [binary]\n", params.filename_labels.c_str());
-  printf("samples           : %d\n", params.num_samples);
   printf("verbose           : %s\n", (params.verbose ? "true" : "false"));
 
-  int dim = getDataDimension(params.filename, params.binary);
+  if (!params.filename.empty())
+    dim = getDataDimension(params.filename, params.binary);
 
   using ArborXBenchmark::run;
 
