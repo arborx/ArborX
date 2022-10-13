@@ -23,7 +23,7 @@ void printLabels(Kokkos::View<int *, MemorySpace> labels)
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, labels);
   for (int i = 0; i < (int)labels_host.size(); ++i)
     std::cout << labels_host(i) << " ";
-  std::cout << std::endl;
+  std::cout << '\n';
 }
 
 int main(int argc, char *argv[])
@@ -54,16 +54,22 @@ int main(int argc, char *argv[])
   // Running with minpts = 2 and eps = 1 would produce two clusters consisting
   // of points with indices [1, 2, 3, 4] and [0, 5, 6, 7]. The corresponding
   // entries in the labels array would be the same.
+  // Expected output:
+  //   0 1 1 1 1 0 0 0 -1 -1
   auto labels = ArborX::dbscan(ExecutionSpace{}, cloud, 1.f, 2);
   printLabels(labels);
 
   // Running with minpts = 5 and eps = 1 would produce no clusters. All the
   // entries in the labels array would be marked as noise, -1.
+  // Expected output:
+  //   -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
   labels = ArborX::dbscan(ExecutionSpace{}, cloud, 1.f, 5);
   printLabels(labels);
 
   // Running with minpts = 2 and eps = 1.5 would produce a single cluster
   // consisting of points with indices [0, 1, 2, 3, 4, 5, 6, 7].
+  // Expected output:
+  //   0 0 0 0 0 0 0 0 -1 0
   labels = ArborX::dbscan(ExecutionSpace{}, cloud, 1.5f, 2);
   printLabels(labels);
 
@@ -71,6 +77,10 @@ int main(int argc, char *argv[])
   // consisting of points with indices [1, 2, 3, 4] and [0, 5, 6, 7]. The point
   // with index 9 is a border point and may be assigned to the first, or the
   // second cluster.
+  // Expected output:
+  //   0 1 1 1 1 0 0 0 -1 0
+  // or
+  //   0 1 1 1 1 0 0 0 -1 1
   labels = ArborX::dbscan(ExecutionSpace{}, cloud, 1.5f, 4);
   printLabels(labels);
 
