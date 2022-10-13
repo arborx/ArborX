@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
                     isPrefixedWith(label, "ArborX::TreeTraversal::nearest::") ||
                     isPrefixedWith(label, "ArborX::CrsGraphWrapper::") ||
                     isPrefixedWith(label, "ArborX::Sorting::") ||
-                    isPrefixedWith(label, "Kokkos::SortImpl::") ||
+                    isPrefixedWith(label, "Kokkos::") ||
                     isPrefixedWith(label, "Testing::")));
       });
 
