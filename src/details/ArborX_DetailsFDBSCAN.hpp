@@ -43,17 +43,11 @@ struct CountUpToN
   }
 };
 
-template <typename MemorySpace, typename CorePointsType>
+template <typename UnionFind, typename CorePointsType>
 struct FDBSCANCallback
 {
-  UnionFind<MemorySpace> _union_find;
+  UnionFind _union_find;
   CorePointsType _is_core_point;
-
-  FDBSCANCallback(Kokkos::View<int *, MemorySpace> const &view,
-                  CorePointsType is_core_point)
-      : _union_find(view)
-      , _is_core_point(is_core_point)
-  {}
 
   template <typename Query>
   KOKKOS_FUNCTION auto operator()(Query const &query, int j) const
