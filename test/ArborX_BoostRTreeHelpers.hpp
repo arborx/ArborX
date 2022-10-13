@@ -204,7 +204,7 @@ public:
   // WARNING trailing pack will match anything :/
   template <typename ExecutionSpace, typename Predicates, typename InputView,
             typename... TrailingArgs>
-  void query(ExecutionSpace const &space, Predicates const &predicates,
+  void query(ExecutionSpace const &, Predicates const &predicates,
              InputView &indices, InputView &offset, TrailingArgs &&...) const
   {
     static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
@@ -218,6 +218,7 @@ public:
       offset(i) =
           _tree.query(BoostRTreeHelpers::translate<Value>(predicates(i)),
                       std::back_inserter(returned_values));
+    typename Predicates::execution_space space;
     ArborX::exclusivePrefixSum(space, offset);
     auto const n_results = KokkosExt::lastElement(space, offset);
     indices = InputView("indices", n_results);
@@ -261,7 +262,7 @@ public:
   // WARNING trailing pack will match anything :/
   template <typename ExecutionSpace, typename Predicates, typename InputView1,
             typename InputView2, typename... TrailingArgs>
-  void query(ExecutionSpace const &space, Predicates const &predicates,
+  void query(ExecutionSpace const &, Predicates const &predicates,
              InputView1 &values, InputView2 &offset, TrailingArgs &&...) const
   {
     static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
@@ -274,6 +275,7 @@ public:
       offset(i) =
           _tree.query(BoostRTreeHelpers::translate<Value>(predicates(i)),
                       std::back_inserter(returned_values));
+    typename Predicates::execution_space space;
     ArborX::exclusivePrefixSum(space, offset);
     auto const n_results = KokkosExt::lastElement(space, offset);
     values = InputView1("values", n_results);
