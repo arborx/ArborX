@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
   printLabels(labels);
 
   // Running with minpts = 2 and eps = 1.5 would produce a single cluster
-  // consisting of points with indices [0, 1, 2, 3, 4, 5, 6, 7].
+  // consisting of points with indices [0, 1, 2, 3, 4, 5, 6, 7, 9].
   // Expected output:
   //   0 0 0 0 0 0 0 0 -1 0
   labels = ArborX::dbscan(ExecutionSpace{}, cloud, 1.5f, 2);
