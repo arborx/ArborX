@@ -49,7 +49,7 @@ BuildKokkosExperimental:
       cd kokkos_experimental &&
       mkdir build &&
       cd build &&
-      cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/ccsopen/proj/csc333/kokkos_experimental.install -DCMAKE_CXX_COMPILER=${CI_PROJECT_DIR}/kokkos/bin/nvcc_wrapper -DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_POWER9=ON -DKokkos_ARCH_VOLTA70=ON .. &&
+      cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/ccsopen/proj/csc333/kokkos_experimental.install -DCMAKE_CXX_COMPILER=${CI_PROJECT_DIR}/kokkos_experimental/bin/nvcc_wrapper -DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_POWER9=ON -DKokkos_ARCH_VOLTA70=ON .. &&
       make &&
       make install
   tags:
