@@ -59,9 +59,9 @@ struct PrintAndInsert
                                   int primitive_index,
                                   OutputFunctor const &out) const
   {
+#ifndef KOKKOS_ENABLE_SYCL
     auto data = ArborX::getData(predicate);
     auto const &point = points(primitive_index);
-#ifndef KOKKOS_ENABLE_SYCL
     printf("Intersection for query %d from MPI rank %d on MPI rank %d for "
            "point %f,%f,%f with index %d\n",
            data.index, data.rank, mpi_rank, point[0], point[1], point[2],
