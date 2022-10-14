@@ -13,9 +13,9 @@ foreach(DIM ${TEMPLATE_PARAMETERS})
 endforeach()
 
 
-add_executable(ArborX_BruteForceVsBVH.exe
+add_executable(ArborX_Benchmark_BruteForceVsBVH.exe
   ${EXPLICIT_INSTANTIATION_SOURCE_FILES}
   brute_force_vs_bvh.cpp
 )
-target_link_libraries(ArborX_BruteForceVsBVH.exe ArborX::ArborX Boost::program_options)
-add_test(NAME ArborX_Benchmark_BruteForceVsBVH COMMAND ./ArborX_BruteForceVsBVH.exe)
+target_link_libraries(ArborX_Benchmark_BruteForceVsBVH.exe ArborX::ArborX Boost::program_options)
+add_test(NAME ArborX_Benchmark_BruteForceVsBVH COMMAND ./ArborX_Benchmark_BruteForceVsBVH.exe)
