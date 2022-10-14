@@ -72,8 +72,7 @@ struct InlineCallback
   int mpi_rank;
 
   template <typename Predicate, typename OutputFunctor>
-  KOKKOS_FUNCTION void operator()(Predicate const &predicate,
-                                  int primitive_index,
+  KOKKOS_FUNCTION void operator()(Predicate const &, int primitive_index,
                                   OutputFunctor const &out) const
   {
     out({mpi_rank, primitive_index});

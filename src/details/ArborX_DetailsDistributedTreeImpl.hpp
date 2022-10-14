@@ -736,8 +736,9 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   Kokkos::parallel_for(
       "ArborX::DistributedTree::query::zip_queries_and_primitives",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(queries)),
-      KOKKOS_LAMBDA(int q) {
-        for (unsigned int i = offset(q); i < offset(q + 1); ++i)
+      KOKKOS_LAMBDA(int i) {
+        using index_type = typename OffsetView::value_type;
+        for (index_type i = offset(q); i < offset(q + 1); ++i)
           exported_queries_with_indices(i) = {Access::get(queries, q), q,
                                               indices(i)};
       });
