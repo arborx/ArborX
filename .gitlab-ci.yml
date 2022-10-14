@@ -45,7 +45,7 @@ BuildKokkosExperimental:
   extends: .LoadModules
   stage: buildDependencies
   script:
-    - git clone --depth=1 --branch 5071-sorting https://github.com/PhilMiller/kokkos.git kokkos_experimental &&
+    - git clone --depth=1 --branch 5071-sorting https://github.com/masterleinad/kokkos.git kokkos_experimental &&
       cd kokkos_experimental &&
       mkdir build &&
       cd build &&
