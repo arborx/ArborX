@@ -6,6 +6,7 @@ message(STATUS "Found benchmark: ${benchmark_DIR} (version \"${benchmark_VERSION
 add_subdirectory(brute_force_vs_bvh)
 add_subdirectory(bvh_driver)
 add_subdirectory(dbscan)
+add_subdirectory(develop)
 add_subdirectory(execution_space_instances)
 add_subdirectory(union_find)
 
