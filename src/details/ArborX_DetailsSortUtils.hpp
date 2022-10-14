@@ -44,7 +44,7 @@ sortObjects(ExecutionSpace const &exec_space, ViewType &view)
       view.size());
   iota(exec_space, permutation_indices);
 
-  Kokkos::Experimental::RadixSorter<typename ViewType::value_type> radix(
+  Kokkos::Experimental::RadixSorter<typename ViewType::value_type, typename ViewType::memory_space> radix(
       view.size());
   radix.sortByKeys(exec_space, view, permutation_indices);
   return permutation_indices;
