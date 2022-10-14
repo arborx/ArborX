@@ -84,7 +84,7 @@ data files commonly used are:
 For example, to run the smaller 37M HACC problem in Friends-of-Friends mode
 (`minPts = 2`), use the following command:
 ```shell
-./ArborX_DBSCAN.exe --eps 0.042 --binary --filename hacc_37M.arborx --core-min-size 2 --verbose
+./ArborX_Benchmark_DBSCAN.exe --eps 0.042 --binary --filename hacc_37M.arborx --core-min-size 2 --verbose
 ```
 which would produce an output similar to this:
 ```text
