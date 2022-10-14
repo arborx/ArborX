@@ -114,7 +114,7 @@ auto randomDomainPoint(Generator &generator, float L)
     point[d] = rd() * L;
 
   return point;
-};
+}
 
 template <int DIM, typename Generator>
 auto randomBallPoint(Generator &generator, Point<DIM> const &center,
@@ -137,7 +137,7 @@ auto randomBallPoint(Generator &generator, Point<DIM> const &center,
   for (int d = 0; d < DIM; ++d)
     p[d] = center[d] + p[d] * radius;
   return p;
-};
+}
 
 template <int DIM, typename Generator>
 auto randomShiftPoint(Generator &generator, Point<DIM> const &center,
@@ -160,7 +160,7 @@ auto randomShiftPoint(Generator &generator, Point<DIM> const &center,
     p[d] = center[d] + (direction[d] / norm) * radius;
 
   return p;
-};
+}
 
 // Seed spreader (SS) generator (as proposed in [1])
 //
