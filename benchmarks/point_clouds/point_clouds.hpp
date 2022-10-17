@@ -79,16 +79,17 @@ void hollowBoxCloud(double const half_edge,
   };
   unsigned int const n = random_points.extent(0);
   constexpr auto DIM = ArborX::GeometryTraits::dimension<Point>::value;
-  for (unsigned int i = 0; i < n;)
+  // Points are cyclically placed on the faces of a box
+  constexpr int num_faces = 2 * DIM;
+  for (int axis = 0; axis < DIM; ++axis)
   {
-    for (int face = 0; face < 2 * DIM && i < n; ++face, ++i)
-    {
-      int axis = face / 2;
-      random_points(i)[axis] = (face % 2 == 0 ? -half_edge : half_edge);
+    for (unsigned int i = 2 * axis; i < n; i += num_faces)
       for (int d = 0; d < DIM; ++d)
-        if (d != axis)
-          random_points(i)[d] = random();
-    }
+        random_points(i)[d] = (d != axis ? random() : -half_edge);
+
+    for (unsigned int i = 2 * axis + 1; i < n; i += num_faces)
+      for (int d = 0; d < DIM; ++d)
+        random_points(i)[d] = (d != axis ? random() : +half_edge);
   }
 }
 
