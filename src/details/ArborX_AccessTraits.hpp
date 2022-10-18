@@ -184,12 +184,10 @@ void check_valid_access_traits(PrimitivesTag, Primitives const &)
 
 namespace Traits
 {
-#if !defined(KOKKOS_COMPILER_NVCC) || (__CUDACC_VER_MAJOR__ >= 11)
 using PredicatesTag [[deprecated("Use ArborX::PredicatesTag instead.")]] =
     ::ArborX::PredicatesTag;
 using PrimitivesTag [[deprecated("Use ArborX::PrimitivesTag instead.")]] =
     ::ArborX::PrimitivesTag;
-#endif
 template <typename T, typename Tag, typename Enable = void>
 struct Access
 {
