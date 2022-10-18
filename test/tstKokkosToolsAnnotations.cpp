@@ -15,7 +15,6 @@
 #include <boost/test/unit_test.hpp>
 
 #include <regex>
-#include <string>
 
 #include "Search_UnitTestHelpers.hpp"
 
@@ -23,16 +22,12 @@ BOOST_AUTO_TEST_SUITE(KokkosToolsAnnotations)
 
 namespace tt = boost::test_tools;
 
-bool isPrefixedWith(std::string const &s, std::string const &prefix)
-{
-  return s.find(prefix) == 0;
-}
-
 BOOST_AUTO_TEST_CASE(is_prefixed_with)
 {
-  BOOST_TEST(isPrefixedWith("ArborX::Whatever", "ArborX"));
-  BOOST_TEST(!isPrefixedWith("Nope", "ArborX"));
-  BOOST_TEST(!isPrefixedWith("Nope::ArborX", "ArborX"));
+  std::regex re("^ArborX::.*");
+  BOOST_TEST(std::regex_match("ArborX::Whatever", re));
+  BOOST_TEST(!std::regex_match("Nope", re));
+  BOOST_TEST(!std::regex_match("Nope::ArborX", re));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, DeviceType,
