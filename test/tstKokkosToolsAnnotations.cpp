@@ -14,6 +14,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <regex>
 #include <string>
 
 #include "Search_UnitTestHelpers.hpp"
@@ -43,15 +44,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, DeviceType,
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle /*handle*/, char const *label,
          void const * /*ptr*/, uint64_t /*size*/) {
-        BOOST_TEST_MESSAGE(label);
-        BOOST_TEST(
-            (isPrefixedWith(label, "ArborX::BVH::") || // data member
-             isPrefixedWith(label, "ArborX::BVH::BVH::") ||
-             isPrefixedWith(label, "ArborX::Sorting::") ||
-             isPrefixedWith(label, "Kokkos::SortImpl::BinSortFunctor::") ||
-             isPrefixedWith(label,
-                            "Kokkos::Serial::") || // unsure what's going on
-             isPrefixedWith(label, "Testing::")));
+        std::regex re("^(Testing::"
+                      "|ArborX::BVH::"
+                      "|ArborX::Sorting::"
+                      "|Kokkos::SortImpl::BinSortFunctor::"
+                      "|Kokkos::Serial::" // unsure what's going on
+                      ").*");
+        BOOST_TEST(std::regex_match(label, re),
+                   "\"" << label << "\" matches the regular expression");
       });
 
   { // default constructed
@@ -92,15 +92,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, DeviceType,
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle /*handle*/, char const *label,
          void const * /*ptr*/, uint64_t /*size*/) {
-        BOOST_TEST_MESSAGE(label);
-        BOOST_TEST(
-            (isPrefixedWith(label, "ArborX::BVH::query::") ||
-             isPrefixedWith(label, "ArborX::TreeTraversal::spatial::") ||
-             isPrefixedWith(label, "ArborX::TreeTraversal::nearest::") ||
-             isPrefixedWith(label, "ArborX::CrsGraphWrapper::") ||
-             isPrefixedWith(label, "ArborX::Sorting::") ||
-             isPrefixedWith(label, "Kokkos::SortImpl::BinSortFunctor::") ||
-             isPrefixedWith(label, "Testing::")));
+        std::regex re("^(Testing::"
+                      "|ArborX::BVH::query::"
+                      "|ArborX::TreeTraversal::spatial::"
+                      "|ArborX::TreeTraversal::nearest::"
+                      "|ArborX::CrsGraphWrapper::"
+                      "|ArborX::Sorting::"
+                      "|Kokkos::SortImpl::BinSortFunctor::"
+                      ").*");
+        BOOST_TEST(std::regex_match(label, re),
+                   "\"" << label << "\" matches the regular expression");
       });
 
   // spatial predicates
@@ -126,9 +127,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
 
   auto const callback = [](char const *label, uint32_t, uint64_t *) {
-    BOOST_TEST_MESSAGE(label);
-    BOOST_TEST((isPrefixedWith(label, "ArborX::") ||
-                isPrefixedWith(label, "Kokkos::")));
+    std::regex re("^(ArborX::|Kokkos::).*");
+    BOOST_TEST(std::regex_match(label, re),
+               "\"" << label << "\" matches the regular expression");
   };
   Kokkos::Tools::Experimental::set_begin_parallel_for_callback(callback);
   Kokkos::Tools::Experimental::set_begin_parallel_scan_callback(callback);
@@ -189,9 +190,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
 
   Kokkos::Tools::Experimental::set_push_region_callback([](char const *label) {
-    BOOST_TEST_MESSAGE(label);
-    BOOST_TEST((isPrefixedWith(label, "ArborX::") ||
-                isPrefixedWith(label, "Kokkos::")));
+    std::regex re("^(ArborX::|Kokkos::).*");
+    BOOST_TEST(std::regex_match(label, re),
+               "\"" << label << "\" matches the regular expression");
   });
 
   // BVH::BVH
