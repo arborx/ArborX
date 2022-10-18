@@ -14,25 +14,13 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <string>
+#include <regex>
 
 #include "Search_UnitTestHelpers.hpp"
 
 BOOST_AUTO_TEST_SUITE(KokkosToolsDistributedAnnotations)
 
 namespace tt = boost::test_tools;
-
-bool isPrefixedWith(std::string const &s, std::string const &prefix)
-{
-  return s.find(prefix) == 0;
-}
-
-BOOST_AUTO_TEST_CASE(is_prefixed_with)
-{
-  BOOST_TEST(isPrefixedWith("ArborX::Whatever", "ArborX"));
-  BOOST_TEST(!isPrefixedWith("Nope", "ArborX"));
-  BOOST_TEST(!isPrefixedWith("Nope::ArborX", "ArborX"));
-}
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(
     distributed_search_tree_distributed_search_tree_allocations_prefixed,
@@ -47,11 +35,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle /*handle*/, char const *label,
          void const * /*ptr*/, uint64_t /*size*/) {
-        BOOST_TEST_MESSAGE(label);
-        BOOST_TEST((isPrefixedWith(label, "ArborX::DistributedTree::") ||
-                    isPrefixedWith(label, "ArborX::BVH::") ||
-                    isPrefixedWith(label, "ArborX::Sorting::") ||
-                    isPrefixedWith(label, "Testing::")));
+        std::regex re("^(Testing::"
+                      "|ArborX::DistributedTree::"
+                      "|ArborX::BVH::"
+                      "|ArborX::Sorting::"
+                      ").*");
+        BOOST_TEST(std::regex_match(label, re),
+                   "\"" << label << "\" matches the regular expression");
       });
 
   { // one leaf per process
@@ -79,16 +69,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle /*handle*/, char const *label,
          void const * /*ptr*/, uint64_t /*size*/) {
-        BOOST_TEST_MESSAGE(label);
-        BOOST_TEST((isPrefixedWith(label, "ArborX::DistributedTree::query::") ||
-                    isPrefixedWith(label, "ArborX::Distributor::") ||
-                    isPrefixedWith(label, "ArborX::BVH::query::") ||
-                    isPrefixedWith(label, "ArborX::TreeTraversal::spatial::") ||
-                    isPrefixedWith(label, "ArborX::TreeTraversal::nearest::") ||
-                    isPrefixedWith(label, "ArborX::CrsGraphWrapper::") ||
-                    isPrefixedWith(label, "ArborX::Sorting::") ||
-                    isPrefixedWith(label, "Kokkos::") ||
-                    isPrefixedWith(label, "Testing::")));
+        std::regex re("^(Testing::"
+                      "|ArborX::DistributedTree::query::"
+                      "|ArborX::Distributor::"
+                      "|ArborX::BVH::query::"
+                      "|ArborX::TreeTraversal::spatial::"
+                      "|ArborX::TreeTraversal::nearest::"
+                      "|ArborX::CrsGraphWrapper::"
+                      "|ArborX::Sorting::"
+                      "|Kokkos::"
+                      ").*");
+        BOOST_TEST(std::regex_match(label, re),
+                   "\"" << label << "\" matches the regular expression");
       });
 
   // spatial predicates
@@ -113,9 +105,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
 
   auto const callback = [](char const *label, uint32_t, uint64_t *) {
-    BOOST_TEST_MESSAGE(label);
-    BOOST_TEST((isPrefixedWith(label, "ArborX::") ||
-                isPrefixedWith(label, "Kokkos::")));
+    std::regex re("^(ArborX::|Kokkos::).*");
+    BOOST_TEST(std::regex_match(label, re),
+               "\"" << label << "\" matches the regular expression");
   };
   Kokkos::Tools::Experimental::set_begin_parallel_for_callback(callback);
   Kokkos::Tools::Experimental::set_begin_parallel_scan_callback(callback);
@@ -153,9 +145,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
 
   Kokkos::Tools::Experimental::set_push_region_callback([](char const *label) {
-    BOOST_TEST_MESSAGE(label);
-    BOOST_TEST((isPrefixedWith(label, "ArborX::") ||
-                isPrefixedWith(label, "Kokkos::")));
+    std::regex re("^(ArborX::|Kokkos::).*");
+    BOOST_TEST(std::regex_match(label, re),
+               "\"" << label << "\" matches the regular expression");
   });
 
   // DistributedTree::DistriibutedSearchTree
