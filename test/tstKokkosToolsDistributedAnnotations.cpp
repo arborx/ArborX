@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
                       "|ArborX::Sorting::"
                       ").*");
         BOOST_TEST(std::regex_match(label, re),
-                   "\"" << label << "\" matches the regular expression");
+                   "\"" << label << "\" does not match the regular expression");
       });
 
   { // one leaf per process
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
                       "|Kokkos::"
                       ").*");
         BOOST_TEST(std::regex_match(label, re),
-                   "\"" << label << "\" matches the regular expression");
+                   "\"" << label << "\" does not match the regular expression");
       });
 
   // spatial predicates
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   auto const callback = [](char const *label, uint32_t, uint64_t *) {
     std::regex re("^(ArborX::|Kokkos::).*");
     BOOST_TEST(std::regex_match(label, re),
-               "\"" << label << "\" matches the regular expression");
+               "\"" << label << "\" does not match the regular expression");
   };
   Kokkos::Tools::Experimental::set_begin_parallel_for_callback(callback);
   Kokkos::Tools::Experimental::set_begin_parallel_scan_callback(callback);
@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::Tools::Experimental::set_push_region_callback([](char const *label) {
     std::regex re("^(ArborX::|Kokkos::).*");
     BOOST_TEST(std::regex_match(label, re),
-               "\"" << label << "\" matches the regular expression");
+               "\"" << label << "\" does not match the regular expression");
   });
 
   // DistributedTree::DistriibutedSearchTree

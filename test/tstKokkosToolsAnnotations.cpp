@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, DeviceType,
                       "|Kokkos::Serial::" // unsure what's going on
                       ").*");
         BOOST_TEST(std::regex_match(label, re),
-                   "\"" << label << "\" matches the regular expression");
+                   "\"" << label << "\" does not match the regular expression");
       });
 
   { // default constructed
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, DeviceType,
                       "|Kokkos::SortImpl::BinSortFunctor::"
                       ").*");
         BOOST_TEST(std::regex_match(label, re),
-                   "\"" << label << "\" matches the regular expression");
+                   "\"" << label << "\" does not match the regular expression");
       });
 
   // spatial predicates
@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   auto const callback = [](char const *label, uint32_t, uint64_t *) {
     std::regex re("^(ArborX::|Kokkos::).*");
     BOOST_TEST(std::regex_match(label, re),
-               "\"" << label << "\" matches the regular expression");
+               "\"" << label << "\" does not match the regular expression");
   };
   Kokkos::Tools::Experimental::set_begin_parallel_for_callback(callback);
   Kokkos::Tools::Experimental::set_begin_parallel_scan_callback(callback);
@@ -187,7 +187,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::Tools::Experimental::set_push_region_callback([](char const *label) {
     std::regex re("^(ArborX::|Kokkos::).*");
     BOOST_TEST(std::regex_match(label, re),
-               "\"" << label << "\" matches the regular expression");
+               "\"" << label << "\" does not match the regular expression");
   });
 
   // BVH::BVH
