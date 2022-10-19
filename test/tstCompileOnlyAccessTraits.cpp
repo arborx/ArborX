@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_HyperPoint.hpp>
 #include <ArborX_Point.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -79,4 +80,28 @@ void test_access_traits_compile_only()
   // check_valid_access_traits(PrimitivesTag{}, SizeMemberFunctionNotStatic{});
 
   // check_valid_access_traits(PrimitivesTag{}, LegacyAccessTraits{});
+}
+
+template <class V>
+using deduce_point_t =
+    decltype(ArborX::AccessTraits<V, ArborX::PrimitivesTag>::get(
+        std::declval<V>(), 0));
+
+void test_deduce_point_type_from_view()
+{
+  using GoodOlePoint = ArborX::Point;
+  using ArborX::ExperimentalHyperGeometry::Point;
+  static_assert(
+      std::is_same_v<deduce_point_t<Kokkos::View<float **>>, GoodOlePoint>);
+#if KOKKOS_VERSION >= 30700
+  static_assert(
+      std::is_same_v<deduce_point_t<Kokkos::View<float *[3]>>, Point<3>>);
+  static_assert(
+      std::is_same_v<deduce_point_t<Kokkos::View<float *[2]>>, Point<2>>);
+  static_assert(
+      std::is_same_v<deduce_point_t<Kokkos::View<float *[5]>>, Point<5>>);
+#else
+  static_assert(
+      std::is_same_v<deduce_point_t<Kokkos::View<float *[3]>>, GoodOlePoint>);
+#endif
 }
