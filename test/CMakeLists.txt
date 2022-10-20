@@ -133,6 +133,10 @@ add_executable(ArborX_Test_QueryTree.exe
   utf_main.cpp)
 target_link_libraries(ArborX_Test_QueryTree.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_QueryTree.exe PRIVATE BOOST_TEST_DYN_LINK)
+# FIXME_SYCL oneDPL messes with namespace std, see https://github.com/oneapi-src/oneDPL/issues/576
+if(Kokkos_ENABLE_SYCL)
+  target_compile_definitions(ArborX_Test_QueryTree.exe PRIVATE NANORANGE_NO_STD_FORWARD_DECLARATIONS)
+endif()
 target_include_directories(ArborX_Test_QueryTree.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 add_test(NAME ArborX_Test_QueryTree COMMAND ./ArborX_Test_QueryTree.exe)
 
@@ -197,6 +201,10 @@ if(ARBORX_ENABLE_MPI)
   add_executable(ArborX_Test_DistributedTree.exe tstDistributedTree.cpp tstKokkosToolsDistributedAnnotations.cpp utf_main.cpp)
   target_link_libraries(ArborX_Test_DistributedTree.exe PRIVATE ArborX Boost::unit_test_framework)
   target_compile_definitions(ArborX_Test_DistributedTree.exe PRIVATE BOOST_TEST_DYN_LINK ARBORX_MPI_UNIT_TEST)
+  # FIXME_SYCL oneDPL messes with namespace std, see https://github.com/oneapi-src/oneDPL/issues/576
+  if(Kokkos_ENABLE_SYCL)
+    target_compile_definitions(ArborX_Test_DistributedTree.exe PRIVATE NANORANGE_NO_STD_FORWARD_DECLARATIONS)
+  endif()
   target_include_directories(ArborX_Test_DistributedTree.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
   add_test(NAME ArborX_Test_DistributedTree COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} ./ArborX_Test_DistributedTree.exe ${MPIEXEC_POSTFLAGS})
 

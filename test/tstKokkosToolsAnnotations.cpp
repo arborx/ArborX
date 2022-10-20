@@ -14,9 +14,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-#ifdef KOKKOS_ENABLE_SYCL // FIXME_SYCL
-#define NANORANGE_NO_STD_FORWARD_DECLARATIONS
-#endif
 #include <regex>
 
 #include "Search_UnitTestHelpers.hpp"
