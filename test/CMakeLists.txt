@@ -134,6 +134,7 @@ add_executable(ArborX_Test_QueryTree.exe
 target_link_libraries(ArborX_Test_QueryTree.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_QueryTree.exe PRIVATE BOOST_TEST_DYN_LINK)
 # FIXME_SYCL oneDPL messes with namespace std, see https://github.com/oneapi-src/oneDPL/issues/576
+# only needed for the tools annotation test
 if(Kokkos_ENABLE_SYCL)
   target_compile_definitions(ArborX_Test_QueryTree.exe PRIVATE NANORANGE_NO_STD_FORWARD_DECLARATIONS)
 endif()
@@ -202,6 +203,7 @@ if(ARBORX_ENABLE_MPI)
   target_link_libraries(ArborX_Test_DistributedTree.exe PRIVATE ArborX Boost::unit_test_framework)
   target_compile_definitions(ArborX_Test_DistributedTree.exe PRIVATE BOOST_TEST_DYN_LINK ARBORX_MPI_UNIT_TEST)
   # FIXME_SYCL oneDPL messes with namespace std, see https://github.com/oneapi-src/oneDPL/issues/576
+  # only needed for the tools annotation test
   if(Kokkos_ENABLE_SYCL)
     target_compile_definitions(ArborX_Test_DistributedTree.exe PRIVATE NANORANGE_NO_STD_FORWARD_DECLARATIONS)
   endif()
