@@ -22,48 +22,10 @@
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Sort.hpp>
 
-// clang-format off
 #if defined(KOKKOS_ENABLE_CUDA)
-#  if defined(KOKKOS_COMPILER_CLANG)
-
-// Older Thrust (or CUB to be more precise) versions use __shfl instead of
-// __shfl_sync for clang which was removed in PTX ISA version 6.4, also see
-// https://github.com/NVIDIA/cub/pull/170.
-#include <cub/version.cuh>
-#if defined(CUB_VERSION) && (CUB_VERSION < 101100) && !defined(CUB_USE_COOPERATIVE_GROUPS)
-#define CUB_USE_COOPERATIVE_GROUPS
+#include <thrust/device_ptr.h>
+#include <thrust/sort.h>
 #endif
-
-// Some versions of Clang fail to compile Thrust, failing with errors like
-// this:
-//    <snip>/thrust/system/cuda/detail/core/agent_launcher.h:557:11:
-//    error: use of undeclared identifier 'va_printf'
-// The exact combination of versions for Clang and Thrust (or CUDA) for this
-// failure was not investigated, however even very recent version combination
-// (Clang 10.0.0 and Cuda 10.0) demonstrated failure.
-//
-// Defining _CubLog here allows us to avoid that code path, however disabling
-// some debugging diagnostics
-//
-// If _CubLog is already defined, we save it into ARBORX_CubLog_save, and
-// restore it at the end
-#    ifdef _CubLog
-#      define ARBORX_CubLog_save _CubLog
-#    endif
-#    define _CubLog
-#    include <thrust/device_ptr.h>
-#    include <thrust/sort.h>
-#    undef _CubLog
-#    ifdef ARBORX_CubLog_save
-#      define _CubLog ARBORX_CubLog_save
-#      undef ARBORX_CubLog_save
-#    endif
-#  else // #if defined(KOKKOS_COMPILER_CLANG)
-#    include <thrust/device_ptr.h>
-#    include <thrust/sort.h>
-#  endif // #if defined(KOKKOS_COMPILER_CLANG)
-#endif   // #if defined(KOKKOS_ENABLE_CUDA)
-// clang-format on
 
 #if defined(KOKKOS_ENABLE_HIP) && defined(ARBORX_ENABLE_ROCTHRUST)
 #include <thrust/device_ptr.h>
