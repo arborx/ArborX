@@ -29,9 +29,6 @@ enum class PointCloudType
   hollow_sphere
 };
 
-namespace
-{
-
 inline PointCloudType to_point_cloud_enum(std::string const &str)
 {
   if (str == "filled_box")
@@ -165,8 +162,6 @@ void hollowSphereCloud(double const radius,
       random_points(i)[d] = radius * v[d] / norm;
   }
 }
-
-} // namespace
 
 template <class Point, typename DeviceType>
 void generatePointCloud(PointCloudType const point_cloud_type,
