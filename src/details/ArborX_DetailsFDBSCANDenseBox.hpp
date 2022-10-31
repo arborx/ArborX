@@ -95,11 +95,11 @@ struct CountUpToN_DenseBox
   }
 };
 
-template <typename MemorySpace, typename CorePointsType, typename Primitives,
+template <typename UnionFind, typename CorePointsType, typename Primitives,
           typename DenseCellOffsets, typename Permutation>
 struct FDBSCANDenseBoxCallback
 {
-  UnionFind<MemorySpace> _union_find;
+  UnionFind _union_find;
   CorePointsType _is_core_point;
   Primitives _primitives;
   DenseCellOffsets _dense_cell_offsets;
@@ -109,13 +109,13 @@ struct FDBSCANDenseBoxCallback
   float eps;
 
   template <typename ExecutionSpace>
-  FDBSCANDenseBoxCallback(Kokkos::View<int *, MemorySpace> const &labels,
+  FDBSCANDenseBoxCallback(UnionFind const &union_find,
                           CorePointsType const &is_core_point,
                           Primitives const &primitives,
                           DenseCellOffsets const &dense_cell_offsets,
                           ExecutionSpace const &exec_space,
                           Permutation const &permute, float eps_in)
-      : _union_find(labels)
+      : _union_find(union_find)
       , _is_core_point(is_core_point)
       , _primitives(primitives)
       , _dense_cell_offsets(dense_cell_offsets)
@@ -283,7 +283,7 @@ void unionFindWithinEachDenseCell(ExecutionSpace const &exec_space,
 {
   using MemorySpace = typename Permutation::memory_space;
 
-  UnionFind<MemorySpace> union_find{labels};
+  UnionFind<ExecutionSpace, MemorySpace> union_find{labels};
 
   // The algorithm relies on the fact that the cell indices array only contains
   // dense cells. Thus, as long as two cell indices are the same, a) they

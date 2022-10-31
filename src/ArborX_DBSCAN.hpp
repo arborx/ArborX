@@ -241,6 +241,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
 
+  using UnionFind = Details::UnionFind<ExecutionSpace, MemorySpace>;
+
   constexpr int dim = GeometryTraits::dimension_v<
       typename Details::AccessTraitsHelper<Access>::type>;
   using Box = ExperimentalHyperGeometry::Box<dim>;
@@ -283,9 +285,9 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       using CorePoints = Details::CCSCorePoints;
       CorePoints core_points;
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
-      bvh.query(exec_space, predicates,
-                Details::FDBSCANCallback<MemorySpace, CorePoints>{labels,
-                                                                  core_points});
+      bvh.query(
+          exec_space, predicates,
+          Details::FDBSCANCallback<UnionFind, CorePoints>{labels, core_points});
       Kokkos::Profiling::popRegion();
     }
     else
@@ -309,7 +311,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       profile_query.start();
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters:query");
       bvh.query(exec_space, predicates,
-                Details::FDBSCANCallback<MemorySpace, CorePoints>{
+                Details::FDBSCANCallback<UnionFind, CorePoints>{
                     labels, CorePoints{num_neigh, core_min_size}});
       Kokkos::Profiling::popRegion();
       profile_query.stop();
@@ -410,7 +412,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
           Details::PrimitivesWithRadius<Primitives>{primitives, eps};
       bvh.query(
           exec_space, predicates,
-          Details::FDBSCANDenseBoxCallback<MemorySpace, CorePoints, Primitives,
+          Details::FDBSCANDenseBoxCallback<UnionFind, CorePoints, Primitives,
                                            decltype(dense_cell_offsets),
                                            decltype(permute)>{
               labels, CorePoints{}, primitives, dense_cell_offsets, exec_space,
@@ -460,7 +462,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
           Details::PrimitivesWithRadius<Primitives>{primitives, eps};
       bvh.query(
           exec_space, predicates,
-          Details::FDBSCANDenseBoxCallback<MemorySpace, CorePoints, Primitives,
+          Details::FDBSCANDenseBoxCallback<UnionFind, CorePoints, Primitives,
                                            decltype(dense_cell_offsets),
                                            decltype(permute)>{
               labels, CorePoints{num_neigh, core_min_size}, primitives,

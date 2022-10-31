@@ -67,18 +67,16 @@
 
 #include <Kokkos_Core.hpp>
 
-namespace ArborX
-{
-namespace Details
+namespace ArborX::Details
 {
 
-template <typename MemorySpace>
+template <typename ExecutionSpace, typename MemorySpace>
 struct UnionFind
 {
-  Kokkos::View<int *, MemorySpace> labels_;
+  Kokkos::View<int *, MemorySpace> _labels;
 
   UnionFind(Kokkos::View<int *, MemorySpace> labels)
-      : labels_(labels)
+      : _labels(labels)
   {}
 
   // Per [1]:
@@ -108,14 +106,14 @@ struct UnionFind
   int representative(int const i) const
   {
     // ##### ECL license (see LICENSE.ECL) #####
-    int curr = labels_(i);
+    int curr = _labels(i);
     if (curr != i)
     {
       int next;
       int prev = i;
-      while (curr > (next = labels_(curr)))
+      while (curr > (next = _labels(curr)))
       {
-        labels_(prev) = next;
+        _labels(prev) = next;
         prev = curr;
         curr = next;
       }
@@ -128,10 +126,35 @@ struct UnionFind
   // that, an extra function is introduced, which assigns the label of the
   // second point (or, rather, the label of its representative) to the first.
   KOKKOS_FUNCTION
-  void merge_into(int i, int j) const { labels_(i) = representative(j); }
+  void merge_into(int i, int j) const { _labels(i) = representative(j); }
 
   KOKKOS_FUNCTION
   void merge(int i, int j) const
+  {
+#ifdef KOKKOS_ENABLE_SERIAL
+    if constexpr (std::is_same_v<ExecutionSpace, Kokkos::Serial>)
+      mergeSerial(i, j);
+    else
+#endif
+      mergeParallel(i, j);
+  }
+
+#ifdef KOKKOS_ENABLE_SERIAL
+  KOKKOS_FUNCTION
+  void mergeSerial(int i, int j) const
+  {
+    int vstat = representative(i);
+    int ostat = representative(j);
+
+    if (vstat < ostat)
+      _labels(ostat) = vstat;
+    else
+      _labels(vstat) = ostat;
+  }
+#endif
+
+  KOKKOS_FUNCTION
+  void mergeParallel(int i, int j) const
   {
     // Per [1]:
     //
@@ -161,7 +184,7 @@ struct UnionFind
         int ret;
         if (vstat < ostat)
         {
-          if ((ret = Kokkos::atomic_compare_exchange(&labels_(ostat), ostat,
+          if ((ret = Kokkos::atomic_compare_exchange(&_labels(ostat), ostat,
                                                      vstat)) != ostat)
           {
             ostat = ret;
@@ -170,7 +193,7 @@ struct UnionFind
         }
         else
         {
-          if ((ret = Kokkos::atomic_compare_exchange(&labels_(vstat), vstat,
+          if ((ret = Kokkos::atomic_compare_exchange(&_labels(vstat), vstat,
                                                      ostat)) != vstat)
           {
             vstat = ret;
@@ -182,7 +205,6 @@ struct UnionFind
   }
 };
 
-} // namespace Details
-} // namespace ArborX
+} // namespace ArborX::Details
 
 #endif
