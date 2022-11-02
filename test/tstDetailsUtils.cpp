@@ -221,6 +221,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(min_and_max, DeviceType, ARBORX_DEVICE_TYPES)
   ArborX::iota(space, w, 2);
   BOOST_TEST(ArborX::min(space, w) == 2);
   BOOST_TEST(ArborX::max(space, w) == 8);
+
+  Kokkos::View<float *, DeviceType> x("x", 3);
+  Kokkos::deep_copy(x, 3.14f);
+  BOOST_TEST(ArborX::min(space, x) == 3.14f);
+  BOOST_TEST(ArborX::max(space, x) == 3.14f);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(sort_objects, DeviceType, ARBORX_DEVICE_TYPES)
