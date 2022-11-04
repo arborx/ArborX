@@ -56,7 +56,8 @@ void dendrogramUnionFindHost(
     UnionFind<Kokkos::Serial, Kokkos::HostSpace> union_find,
     Parents &parents_host)
 {
-  Kokkos::DefaultHostExecutionSpace exec_space;
+  using ExecutionSpace = Kokkos::DefaultHostExecutionSpace;
+  ExecutionSpace host_space;
 
   int const num_edges = edges_host.size();
   int const num_vertices = num_edges + 1;
@@ -65,10 +66,10 @@ void dendrogramUnionFindHost(
   constexpr int UNDEFINED = -1;
 
   Kokkos::View<int *, Kokkos::HostSpace> set_edges_host(
-      Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
+      Kokkos::view_alloc(host_space, Kokkos::WithoutInitializing,
                          "ArborX::Dendrogram::labels"),
       num_vertices + num_edges);
-  Kokkos::deep_copy(exec_space, set_edges_host, UNDEFINED);
+  Kokkos::deep_copy(host_space, set_edges_host, UNDEFINED);
 
   for (int k = 0; k < num_edges; ++k)
   {
@@ -108,9 +109,7 @@ dendrogramUnionFind(ExecutionSpace const &exec_space,
   Kokkos::Profiling::ProfilingSection profile_edge_sort(
       "ArborX::Dendrogram::edge_sort");
   profile_edge_sort.start();
-  Kokkos::Profiling::pushRegion("ArborX::Dendrogram::edge_sort");
   auto permute = computeEdgesPermutation(exec_space, edges);
-  Kokkos::Profiling::popRegion();
   profile_edge_sort.stop();
 
   auto const num_vertices = edges.size() + 1;

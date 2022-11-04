@@ -21,7 +21,7 @@ BOOST_AUTO_TEST_SUITE(Dendrogram)
 
 using ArborX::Details::WeightedEdge;
 
-namespace Test
+namespace
 {
 
 template <class ExecutionSpace>
@@ -39,10 +39,10 @@ auto build_dendrogram(ExecutionSpace const &exec_space,
   return parents_host;
 }
 
-} // namespace Test
+} // namespace
 
 #define ARBORX_TEST_DENDROGRAM(exec_space, edges, ref)                         \
-  BOOST_TEST(Test::build_dendrogram(exec_space, edges) == ref,                 \
+  BOOST_TEST(build_dendrogram(exec_space, edges) == ref,                       \
              boost::test_tools::per_element());
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_union_find, DeviceType,

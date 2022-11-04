@@ -28,7 +28,7 @@ struct Dendrogram
   Dendrogram(ExecutionSpace const &exec_space,
              Kokkos::View<Details::WeightedEdge *, MemorySpace> edges)
   {
-    Kokkos::Profiling::pushRegion("ArborX::Dendrogram::dendrogram");
+    Kokkos::Profiling::pushRegion("ArborX::Dendrogram::Dendrogram");
 
     _parents = Details::dendrogramUnionFind(exec_space, edges);
 

@@ -12,18 +12,9 @@
 #ifndef ARBORX_DETAILS_WEIGHTED_EDGE_HPP
 #define ARBORX_DETAILS_WEIGHTED_EDGE_HPP
 
-#include <ArborX_AccessTraits.hpp>
-#include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
-#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
-#include <ArborX_DetailsMutualReachabilityDistance.hpp>
-#include <ArborX_DetailsTreeNodeLabeling.hpp>
-#include <ArborX_DetailsUtils.hpp>
-#include <ArborX_HyperBox.hpp>
-#include <ArborX_LinearBVH.hpp>
 
-#include <Kokkos_Core.hpp>
-#include <Kokkos_Profiling_ProfileSection.hpp>
+#include <Kokkos_Macros.hpp>
 
 namespace ArborX::Details
 {
