@@ -24,6 +24,12 @@
 namespace ArborX::Details
 {
 
+struct UnweightedEdge
+{
+  int source;
+  int target;
+};
+
 // Compute permutation that orders edges in increasing order
 template <typename ExecutionSpace, typename MemorySpace>
 Kokkos::View<unsigned int *, MemorySpace>
@@ -50,14 +56,13 @@ computeEdgesPermutation(ExecutionSpace const &exec_space,
   return permute;
 }
 
-template <typename Edges, typename Permute, typename Parents>
-void dendrogramUnionFindHost(Edges edges_host, Permute permute,
-                             Parents &parents_host)
+template <typename Edges, typename Parents>
+void dendrogramUnionFindHost(Edges sorted_edges_host, Parents &parents_host)
 {
   using ExecutionSpace = Kokkos::DefaultHostExecutionSpace;
   ExecutionSpace host_space;
 
-  int const num_edges = edges_host.size();
+  int const num_edges = sorted_edges_host.size();
   int const num_vertices = num_edges + 1;
   auto const vertices_offset = num_edges;
 
@@ -72,66 +77,82 @@ void dendrogramUnionFindHost(Edges edges_host, Permute permute,
       Kokkos::view_alloc(host_space, Kokkos::WithoutInitializing,
                          "ArborX::Dendrogram::labels"),
       num_vertices);
-  iota(host_space, set_edges_host, vertices_offset);
+  constexpr int UNDEFINED = -1;
+  Kokkos::deep_copy(host_space, set_edges_host, UNDEFINED);
 
   Kokkos::parallel_for(
       "ArborX::Dendrogram::dendrogram_union_find::union_find",
       Kokkos::RangePolicy<ExecutionSpace>(host_space, 0, 1),
       KOKKOS_LAMBDA(int) {
-        for (int k = 0; k < num_edges; ++k)
+        for (int e = 0; e < num_edges; ++e)
         {
-          auto e = permute(k);
+          int i = union_find.representative(sorted_edges_host(e).source);
+          int j = union_find.representative(sorted_edges_host(e).target);
 
-          int i = union_find.representative(edges_host(e).source);
-          int j = union_find.representative(edges_host(e).target);
+          for (int k : {i, j})
+          {
+            auto edge_child = set_edges_host(k);
+            if (edge_child != UNDEFINED)
+              parents_host(edge_child) = e;
+            else
+              parents_host(vertices_offset + k) = e;
+          }
 
-          parents_host(set_edges_host(i)) = e;
-          parents_host(set_edges_host(j)) = e;
-
-          // For the algorithm to work properly, we assume that the union-find
-          // algorithm will assign the smaller index to the merged component.
           union_find.merge(i, j);
 
           set_edges_host(union_find.representative(i)) = e;
         }
-        parents_host(set_edges_host(union_find.representative(0))) = -1; // root
+        parents_host(num_edges - 1) = -1; // root
       });
+  Kokkos::Profiling::popRegion();
 }
 
 template <typename ExecutionSpace, typename MemorySpace>
-Kokkos::View<int *, MemorySpace>
-dendrogramUnionFind(ExecutionSpace const &exec_space,
-                    Kokkos::View<WeightedEdge *, MemorySpace> edges)
+void dendrogramUnionFind(ExecutionSpace const &exec_space,
+                         Kokkos::View<WeightedEdge *, MemorySpace> edges,
+                         Kokkos::View<int *, MemorySpace> &parents,
+                         Kokkos::View<float *, MemorySpace> &parent_heights)
 {
   Kokkos::Profiling::pushRegion("ArborX::Dendrogram::dendrogram_union_find");
+
+  auto const num_edges = edges.size();
+  auto const num_vertices = num_edges + 1;
+
+  KokkosExt::reallocWithoutInitializing(exec_space, parents,
+                                        num_edges + num_vertices);
+  KokkosExt::reallocWithoutInitializing(exec_space, parent_heights, num_edges);
 
   Kokkos::Profiling::ProfilingSection profile_edge_sort(
       "ArborX::Dendrogram::edge_sort");
   profile_edge_sort.start();
   auto permute = computeEdgesPermutation(exec_space, edges);
+  Kokkos::View<UnweightedEdge *, MemorySpace> sorted_unweighted_edges(
+      Kokkos::view_alloc(
+          exec_space, Kokkos::WithoutInitializing,
+          "ArborX::Dendrogram::dendrogram_union_find::unweighted_edges"),
+      num_edges);
+  Kokkos::parallel_for(
+      "ArborX::Dendrogram::dendrogram_union_find::permute_and_fill",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_edges),
+      KOKKOS_LAMBDA(int i) {
+        auto &edge = edges(permute(i));
+        sorted_unweighted_edges(i) = {edge.source, edge.target};
+        parent_heights(i) = edge.weight;
+      });
   profile_edge_sort.stop();
-
-  auto const num_vertices = edges.size() + 1;
-
-  Kokkos::View<int *, MemorySpace> parents(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                         "ArborX::Dendrogram::edge_parents"),
-      2 * num_vertices - 1);
 
   Kokkos::Profiling::pushRegion(
       "ArborX::Dendrogram::dendrogram_union_find::copy_to_host");
 
-  auto edges_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, edges);
-  auto permute_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, permute);
+  auto sorted_unweighted_edges_host = Kokkos::create_mirror_view_and_copy(
+      Kokkos::HostSpace{}, sorted_unweighted_edges);
   auto parents_host = Kokkos::create_mirror_view(parents);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion(
       "ArborX::Dendrogram::dendrogram_union_find::union_find");
 
-  dendrogramUnionFindHost(edges_host, permute_host, parents_host);
+  dendrogramUnionFindHost(sorted_unweighted_edges_host, parents_host);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion(
@@ -142,8 +163,6 @@ dendrogramUnionFind(ExecutionSpace const &exec_space,
   Kokkos::Profiling::popRegion();
 
   Kokkos::Profiling::popRegion();
-
-  return parents;
 }
 
 } // namespace ArborX::Details

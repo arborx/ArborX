@@ -23,14 +23,17 @@ template <typename MemorySpace>
 struct Dendrogram
 {
   Kokkos::View<int *, MemorySpace> _parents;
+  Kokkos::View<float *, MemorySpace> _parent_heights;
 
   template <typename ExecutionSpace>
   Dendrogram(ExecutionSpace const &exec_space,
              Kokkos::View<Details::WeightedEdge *, MemorySpace> edges)
+      : _parents("ArborX::Dendrogram::parents", 0)
+      , _parent_heights("ArborX::Dendrogram::parent_heights", 0)
   {
     Kokkos::Profiling::pushRegion("ArborX::Dendrogram::Dendrogram");
 
-    _parents = Details::dendrogramUnionFind(exec_space, edges);
+    Details::dendrogramUnionFind(exec_space, edges, _parents, _parent_heights);
 
     Kokkos::Profiling::popRegion();
   }

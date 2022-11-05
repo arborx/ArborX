@@ -15,18 +15,20 @@
 #include <ArborX_DetailsWeightedEdge.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
+#include "boost_ext/TupleComparison.hpp"
 #include <boost/test/unit_test.hpp>
 
 BOOST_AUTO_TEST_SUITE(Dendrogram)
 
 using ArborX::Details::WeightedEdge;
+namespace tt = boost::test_tools;
 
 namespace
 {
 
 template <class ExecutionSpace>
-auto build_dendrogram(ExecutionSpace const &exec_space,
-                      std::vector<WeightedEdge> const &edges_host)
+auto buildDendrogram(ExecutionSpace const &exec_space,
+                     std::vector<WeightedEdge> const &edges_host)
 {
   using ArborXTest::toView;
   auto edges = toView<ExecutionSpace>(edges_host, "Test::edges");
@@ -36,14 +38,12 @@ auto build_dendrogram(ExecutionSpace const &exec_space,
 
   auto parents_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{},
                                                           dendrogram._parents);
-  return parents_host;
+  auto parent_heights_host = Kokkos::create_mirror_view_and_copy(
+      Kokkos::HostSpace{}, dendrogram._parent_heights);
+  return std::make_pair(parents_host, parent_heights_host);
 }
 
 } // namespace
-
-#define ARBORX_TEST_DENDROGRAM(exec_space, edges, ref)                         \
-  BOOST_TEST(build_dendrogram(exec_space, edges) == ref,                       \
-             boost::test_tools::per_element());
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_union_find, DeviceType,
                               ARBORX_DEVICE_TYPES)
@@ -53,31 +53,50 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_union_find, DeviceType,
 
   ExecutionSpace space;
 
-  // --0--
-  // |   |
-  // 0   1
-  ARBORX_TEST_DENDROGRAM(space, (std::vector<WeightedEdge>{{0, 1, 3.f}}),
-                         (std::vector<int>{-1, 0, 0}));
+  {
+    // Dendrogram (sorted edge indices)
+    // --0--
+    // |   |
+    // 0   1
+    auto [parents, heights] =
+        buildDendrogram(space, std::vector<WeightedEdge>{{0, 1, 3.f}});
+    BOOST_TEST(parents == (std::vector<int>{-1, 0, 0}), tt::per_element());
+    BOOST_TEST(heights == (std::vector<float>{3.f}), tt::per_element());
+  }
 
-  //      ----0---
-  //      |      |
-  //   ---1---   |
-  //   |     |   |
-  // --2--   |   |
-  // |   |   |   |
-  // 0   1   2   3
-  ARBORX_TEST_DENDROGRAM(
-      space, (std::vector<WeightedEdge>{{0, 3, 7.f}, {1, 2, 3.f}, {0, 1, 2.f}}),
-      (std::vector<int>{-1, 0, 1, 2, 2, 1, 0}));
+  {
+    // Dendrogram (sorted edge indices)
+    //      ----2---
+    //      |      |
+    //   ---1---   |
+    //   |     |   |
+    // --0--   |   |
+    // |   |   |   |
+    // 0   1   2   3
+    auto [parents, heights] = buildDendrogram(
+        space,
+        std::vector<WeightedEdge>{{0, 3, 7.f}, {1, 2, 3.f}, {0, 1, 2.f}});
+    BOOST_TEST(parents == (std::vector<int>{1, 2, -1, 0, 0, 1, 2}),
+               tt::per_element());
+    BOOST_TEST(heights == (std::vector<float>{2.f, 3.f, 7.f}),
+               tt::per_element());
+  }
 
-  //   ----1----
-  //   |       |
-  // --2--   --0--
-  // |   |   |   |
-  // 0   1   2   3
-  ARBORX_TEST_DENDROGRAM(
-      space, (std::vector<WeightedEdge>{{2, 3, 2.f}, {2, 0, 9.f}, {0, 1, 3.f}}),
-      (std::vector<int>{1, -1, 1, 2, 2, 0, 0}));
+  {
+    // Dendrogram (sorted edge indices)
+    //   ----2----
+    //   |       |
+    // --1--   --0--
+    // |   |   |   |
+    // 0   1   2   3
+    auto [parents, heights] = buildDendrogram(
+        space,
+        std::vector<WeightedEdge>{{2, 3, 2.f}, {2, 0, 9.f}, {0, 1, 3.f}});
+    BOOST_TEST(parents == (std::vector<int>{2, 2, -1, 1, 1, 0, 0}),
+               tt::per_element());
+    BOOST_TEST(heights == (std::vector<float>{2.f, 3.f, 9.f}),
+               tt::per_element());
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
