@@ -14,7 +14,8 @@
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
 
-using namespace ArborX::GeometryTraits;
+namespace ArborX::GeometryTraits
+{
 
 struct NoGeometryTraitsSpecialization
 {};
@@ -137,3 +138,4 @@ void test_geometry_compile_only()
 
   // check_valid_geometry_traits(WrongTagSpecialization{});
 }
+} // namespace ArborX::GeometryTraits
