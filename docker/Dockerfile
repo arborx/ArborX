@@ -120,7 +120,7 @@ RUN BOOST_VERSION=1.75.0 && \
 # Install Google Benchmark support library
 ENV BENCHMARK_DIR=/opt/benchmark
 RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
-    git clone https://github.com/google/benchmark.git -b v1.4.1 && \
+    git clone https://github.com/google/benchmark.git -b v1.6.1 && \
     cd benchmark && \
     mkdir build && cd build && \
     cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${BENCHMARK_DIR} -D BENCHMARK_ENABLE_TESTING=OFF .. && \
