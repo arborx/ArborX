@@ -7,6 +7,7 @@ add_subdirectory(brute_force_vs_bvh)
 add_subdirectory(bvh_driver)
 add_subdirectory(dbscan)
 add_subdirectory(execution_space_instances)
+add_subdirectory(union_find)
 
 if (ARBORX_ENABLE_MPI)
   add_subdirectory(distributed_tree_driver)
