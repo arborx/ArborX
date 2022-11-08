@@ -241,7 +241,13 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
 
-  using UnionFind = Details::UnionFind<ExecutionSpace, MemorySpace>;
+#ifdef KOKKOS_ENABLE_SERIAL
+  using UnionFind =
+      Details::UnionFind<MemorySpace,
+                         std::is_same_v<ExecutionSpace, Kokkos::Serial>>;
+#else
+  using UnionFind = Details::UnionFind<MemorySpace>;
+#endif
 
   constexpr int dim = GeometryTraits::dimension_v<
       typename Details::AccessTraitsHelper<Access>::type>;
@@ -379,8 +385,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
              num_dense_cells + num_points_in_sparse_cells);
     }
 
-    Details::unionFindWithinEachDenseCell(exec_space, dense_sorted_cell_indices,
-                                          permute, labels);
+    Details::unionFindWithinEachDenseCell<UnionFind>(
+        exec_space, dense_sorted_cell_indices, permute, labels);
 
     Kokkos::Profiling::popRegion();
     profile_dense_cells.stop();
