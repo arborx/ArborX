@@ -275,8 +275,8 @@ int reorderDenseAndSparseCells(ExecutionSpace const &exec_space,
   return num_points_in_dense_cells;
 }
 
-template <typename UnionFind, typename ExecutionSpace, typename CellIndices,
-          typename Permutation>
+template <typename ExecutionSpace, typename CellIndices, typename Permutation,
+          typename UnionFind>
 void unionFindWithinEachDenseCell(ExecutionSpace const &exec_space,
                                   CellIndices sorted_dense_cell_indices,
                                   Permutation permute, UnionFind union_find)

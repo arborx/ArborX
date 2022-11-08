@@ -70,7 +70,7 @@
 namespace ArborX::Details
 {
 
-template <typename MemorySpace, bool Serial = false>
+template <typename MemorySpace, bool DoSerial = false>
 struct UnionFind
 {
   Kokkos::View<int *, MemorySpace> _labels;
@@ -149,7 +149,7 @@ struct UnionFind
     int vstat = representative(i);
     int ostat = representative(j);
 
-    if constexpr (Serial)
+    if constexpr (DoSerial)
     {
       if (vstat < ostat)
         _labels(ostat) = vstat;

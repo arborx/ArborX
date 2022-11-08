@@ -244,7 +244,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 #ifdef KOKKOS_ENABLE_SERIAL
   using UnionFind =
       Details::UnionFind<MemorySpace,
-                         std::is_same_v<ExecutionSpace, Kokkos::Serial>>;
+                         /*DoSerial=*/std::is_same_v<ExecutionSpace, Kokkos::Serial>>;
 #else
   using UnionFind = Details::UnionFind<MemorySpace>;
 #endif
@@ -385,8 +385,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
              num_dense_cells + num_points_in_sparse_cells);
     }
 
-    Details::unionFindWithinEachDenseCell<UnionFind>(
-        exec_space, dense_sorted_cell_indices, permute, labels);
+    Details::unionFindWithinEachDenseCell(
+        exec_space, dense_sorted_cell_indices, permute, UnionFind{labels});
 
     Kokkos::Profiling::popRegion();
     profile_dense_cells.stop();
