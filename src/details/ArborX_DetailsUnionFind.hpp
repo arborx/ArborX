@@ -158,6 +158,9 @@ struct UnionFind
     }
     else
     {
+      // Note: the code does one extra iteration even when the labels array was
+      // updated. However, it does not show up in any of the performance
+      // studies, and the code is cleaner and more compact.
       while (vstat != ostat)
       {
         if (vstat < ostat)
