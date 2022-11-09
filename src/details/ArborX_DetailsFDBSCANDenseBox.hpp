@@ -276,15 +276,11 @@ int reorderDenseAndSparseCells(ExecutionSpace const &exec_space,
 }
 
 template <typename ExecutionSpace, typename CellIndices, typename Permutation,
-          typename Labels>
+          typename UnionFind>
 void unionFindWithinEachDenseCell(ExecutionSpace const &exec_space,
                                   CellIndices sorted_dense_cell_indices,
-                                  Permutation permute, Labels labels)
+                                  Permutation permute, UnionFind union_find)
 {
-  using MemorySpace = typename Permutation::memory_space;
-
-  UnionFind<ExecutionSpace, MemorySpace> union_find{labels};
-
   // The algorithm relies on the fact that the cell indices array only contains
   // dense cells. Thus, as long as two cell indices are the same, a) they
   // belong to the same cell, and b) that cell is dense, thus they should be in

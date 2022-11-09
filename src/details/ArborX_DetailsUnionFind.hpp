@@ -70,7 +70,7 @@
 namespace ArborX::Details
 {
 
-template <typename ExecutionSpace, typename MemorySpace>
+template <typename MemorySpace, bool DoSerial = false>
 struct UnionFind
 {
   Kokkos::View<int *, MemorySpace> _labels;
@@ -131,31 +131,6 @@ struct UnionFind
   KOKKOS_FUNCTION
   void merge(int i, int j) const
   {
-#ifdef KOKKOS_ENABLE_SERIAL
-    if constexpr (std::is_same_v<ExecutionSpace, Kokkos::Serial>)
-      mergeSerial(i, j);
-    else
-#endif
-      mergeParallel(i, j);
-  }
-
-#ifdef KOKKOS_ENABLE_SERIAL
-  KOKKOS_FUNCTION
-  void mergeSerial(int i, int j) const
-  {
-    int vstat = representative(i);
-    int ostat = representative(j);
-
-    if (vstat < ostat)
-      _labels(ostat) = vstat;
-    else
-      _labels(vstat) = ostat;
-  }
-#endif
-
-  KOKKOS_FUNCTION
-  void mergeParallel(int i, int j) const
-  {
     // Per [1]:
     //
     // ```
@@ -171,37 +146,31 @@ struct UnionFind
     // until there is no data race on the parent.
     // ```
 
-    // ##### ECL license (see LICENSE.ECL) #####
     int vstat = representative(i);
     int ostat = representative(j);
 
-    bool repeat;
-    do
+    if constexpr (DoSerial)
     {
-      repeat = false;
-      if (vstat != ostat)
+      if (vstat < ostat)
+        _labels(ostat) = vstat;
+      else
+        _labels(vstat) = ostat;
+    }
+    else
+    {
+      // Note: the code does one extra iteration even when the labels array was
+      // updated. However, it does not show up in any of the performance
+      // studies, and the code is cleaner and more compact.
+      while (vstat != ostat)
       {
-        int ret;
         if (vstat < ostat)
-        {
-          if ((ret = Kokkos::atomic_compare_exchange(&_labels(ostat), ostat,
-                                                     vstat)) != ostat)
-          {
-            ostat = ret;
-            repeat = true;
-          }
-        }
+          ostat =
+              Kokkos::atomic_compare_exchange(&_labels(ostat), ostat, vstat);
         else
-        {
-          if ((ret = Kokkos::atomic_compare_exchange(&_labels(vstat), vstat,
-                                                     ostat)) != vstat)
-          {
-            vstat = ret;
-            repeat = true;
-          }
-        }
+          vstat =
+              Kokkos::atomic_compare_exchange(&_labels(vstat), vstat, ostat);
       }
-    } while (repeat);
+    }
   }
 };
 
