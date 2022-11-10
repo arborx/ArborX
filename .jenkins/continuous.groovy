@@ -275,7 +275,7 @@ pipeline {
                     }
                 }
 
-                stage('gcc') {
+                stage('GCC-12.2') {
                     agent {
                         dockerfile {
                             filename "Dockerfile"
