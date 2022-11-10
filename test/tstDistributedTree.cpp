@@ -187,7 +187,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
   {
     ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
                            makeIntersectsSphereQueries<DeviceType>({
-                               {{{(float)comm_rank, 0., 0.}}, (float)comm_size},
+                               {{{(float)comm_rank, 0.f, 0.f}}, (float)comm_size},
                            }),
                            make_reference_solution<PairIndexRank>({}, {0, 0}));
   }
