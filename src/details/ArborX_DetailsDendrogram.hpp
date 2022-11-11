@@ -16,7 +16,7 @@
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUnionFind.hpp>
-#include <ArborX_MinimumSpanningTree.hpp> // WeightedEdge
+#include <ArborX_DetailsWeightedEdge.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ProfileSection.hpp>
