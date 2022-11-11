@@ -1,0 +1,3 @@
+add_executable(ArborX_Example_TriPt_Intersection.exe example_tri_pt_intersection.cpp)
+target_link_libraries(ArborX_Example_TriPt_Intersection.exe ArborX::ArborX)
+add_test(NAME ArborX_Example_TriPt_Intersection COMMAND ./ArborX_Example_TriPt_Intersection.exe)
