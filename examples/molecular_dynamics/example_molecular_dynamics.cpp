@@ -14,6 +14,8 @@
 
 #include <Kokkos_Random.hpp>
 
+#include <type_traits>
+
 template <class MemorySpace>
 struct Neighbors
 {
@@ -148,7 +150,8 @@ int main(int argc, char *argv[])
               KokkosExt::ArithmeticTraits::infinity<decltype(rsq)>::value;
           if (rsq < cutoff_sq_ij)
           {
-            auto const r2inv = static_cast<decltype(rsq)>(1) / rsq;
+            auto const r2inv =
+                static_cast<std::remove_const_t<decltype(rsq)>>(1) / rsq;
             auto const r6inv = r2inv * r2inv * r2inv;
             auto const lj1_ij = 1.f;
             auto const lj2_ij = 1.f;
@@ -181,7 +184,8 @@ int main(int argc, char *argv[])
               KokkosExt::ArithmeticTraits::infinity<decltype(rsq)>::value;
           if (rsq < cutoff_sq_ij)
           {
-            auto const r2inv = static_cast<decltype(rsq)>(1) / rsq;
+            auto const r2inv =
+                static_cast<std::remove_const_t<decltype(rsq)>>(1) / rsq;
             auto const r6inv = r2inv * r2inv * r2inv;
             auto const lj1_ij = 1.f;
             auto const lj2_ij = 1.f;

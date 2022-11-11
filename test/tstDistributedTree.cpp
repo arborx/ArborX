@@ -185,12 +185,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
   }
   else
   {
-    ARBORX_TEST_QUERY_TREE(
-        ExecutionSpace{}, tree,
-        makeIntersectsSphereQueries<DeviceType>({
-            {{{(double)comm_rank, 0., 0.}}, (double)comm_size},
-        }),
-        make_reference_solution<PairIndexRank>({}, {0, 0}));
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                           makeIntersectsSphereQueries<DeviceType>({
+                               {{{(float)comm_rank, 0.f, 0.f}}, (float)comm_size},
+                           }),
+                           make_reference_solution<PairIndexRank>({}, {0, 0}));
   }
 
   // All ranks but rank 0 have a single query with a nearest predicate
