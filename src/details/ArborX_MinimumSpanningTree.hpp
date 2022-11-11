@@ -19,46 +19,15 @@
 #include <ArborX_DetailsMutualReachabilityDistance.hpp>
 #include <ArborX_DetailsTreeNodeLabeling.hpp>
 #include <ArborX_DetailsUtils.hpp>
+#include <ArborX_DetailsWeightedEdge.hpp>
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_LinearBVH.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ProfileSection.hpp>
 
-namespace ArborX
+namespace ArborX::Details
 {
-namespace Details
-{
-
-struct WeightedEdge
-{
-  int source;
-  int target;
-  float weight;
-
-private:
-  // performs lexicographical comparison by comparing first the weights and then
-  // the unordered pair of vertices
-  friend KOKKOS_FUNCTION constexpr bool operator<(WeightedEdge const &lhs,
-                                                  WeightedEdge const &rhs)
-  {
-    if (lhs.weight != rhs.weight)
-    {
-      return (lhs.weight < rhs.weight);
-    }
-    using KokkosExt::min;
-    auto const lhs_min = min(lhs.source, lhs.target);
-    auto const rhs_min = min(rhs.source, rhs.target);
-    if (lhs_min != rhs_min)
-    {
-      return (lhs_min < rhs_min);
-    }
-    using KokkosExt::max;
-    auto const lhs_max = max(lhs.source, lhs.target);
-    auto const rhs_max = max(rhs.source, rhs.target);
-    return (lhs_max < rhs_max);
-  }
-};
 
 class DirectedEdge
 {
@@ -751,7 +720,6 @@ private:
   }
 };
 
-} // namespace Details
-} // namespace ArborX
+} // namespace ArborX::Details
 
 #endif
