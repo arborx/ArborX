@@ -33,7 +33,9 @@ struct Dendrogram
   {
     Kokkos::Profiling::pushRegion("ArborX::Dendrogram::Dendrogram");
 
-    Details::dendrogramUnionFind(exec_space, edges, _parents, _parent_heights);
+    using ConstEdges = Kokkos::View<Details::WeightedEdge const *, MemorySpace>;
+    Details::dendrogramUnionFind(exec_space, ConstEdges(edges), _parents,
+                                 _parent_heights);
 
     Kokkos::Profiling::popRegion();
   }
