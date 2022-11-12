@@ -267,8 +267,8 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
   {
     Kokkos::Profiling::ProfilingSection profile_total("ArborX::HDBSCAN::total");
     profile_total.start();
-    auto [parents, heights] = ArborX::Experimental::hdbscan(
-        exec_space, primitives, params.core_min_size);
+    auto dendrogram = ArborX::Experimental::hdbscan(exec_space, primitives,
+                                                    params.core_min_size);
 
     if (params.verbose)
     {

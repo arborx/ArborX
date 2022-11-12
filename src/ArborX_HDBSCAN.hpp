@@ -16,9 +16,6 @@
 
 #include <Kokkos_Profiling_ProfileSection.hpp>
 
-#include <iomanip>
-#include <limits>
-
 namespace ArborX::Experimental
 {
 
@@ -39,14 +36,12 @@ auto hdbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   Kokkos::Profiling::ProfilingSection profile_dendrogram(
       "ArborX::HDBSCAN::dendrogram");
   profile_dendrogram.start();
-  Kokkos::Profiling::pushRegion("ArborX::HDBSCAN::dendrogram");
   Dendrogram<MemorySpace> dendrogram(exec_space, mst.edges);
-  Kokkos::Profiling::popRegion();
   profile_dendrogram.stop();
 
   Kokkos::Profiling::popRegion();
 
-  return std::make_pair(dendrogram._parents, dendrogram._parent_heights);
+  return dendrogram;
 }
 
 } // namespace ArborX::Experimental
