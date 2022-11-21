@@ -11,6 +11,7 @@
 
 #include <ArborX_DBSCAN.hpp>
 #include <ArborX_DBSCANVerification.hpp>
+#include <ArborX_HDBSCAN.hpp>
 #include <ArborX_MinimumSpanningTree.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -189,15 +190,15 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
 
   using Primitives = decltype(primitives);
 
-  using ArborX::DBSCAN::Implementation;
-  Implementation implementation = Implementation::FDBSCAN;
-  if (params.implementation == "fdbscan-densebox")
-    implementation = Implementation::FDBSCAN_DenseBox;
-
   Kokkos::View<int *, MemorySpace> labels("Example::labels", 0);
   bool success = true;
   if (params.algorithm == "dbscan")
   {
+    using ArborX::DBSCAN::Implementation;
+    Implementation implementation = Implementation::FDBSCAN;
+    if (params.implementation == "fdbscan-densebox")
+      implementation = Implementation::FDBSCAN_DenseBox;
+
     ArborX::DBSCAN::Parameters dbscan_params;
     dbscan_params.setVerbosity(params.verbose)
         .setImplementation(implementation);
@@ -260,6 +261,25 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
       success = ArborX::Details::verifyDBSCAN(
           exec_space, primitives, params.eps, params.core_min_size, labels);
       printf("Verification %s\n", (success ? "passed" : "failed"));
+    }
+  }
+  else if (params.algorithm == "hdbscan")
+  {
+    Kokkos::Profiling::ProfilingSection profile_total("ArborX::HDBSCAN::total");
+    profile_total.start();
+    auto dendrogram = ArborX::Experimental::hdbscan(exec_space, primitives,
+                                                    params.core_min_size);
+
+    if (params.verbose)
+    {
+      printf("-- mst              : %10.3f\n",
+             arborx_dbscan_example_get_time("ArborX::HDBSCAN::mst"));
+      printf("-- dendrogram       : %10.3f\n",
+             arborx_dbscan_example_get_time("ArborX::HDBSCAN::dendrogram"));
+      printf("---- edge sort      : %10.3f\n",
+             arborx_dbscan_example_get_time("ArborX::Dendrogram::edge_sort"));
+      printf("total time          : %10.3f\n",
+             arborx_dbscan_example_get_time("ArborX::HDBSCAN::total"));
     }
   }
   else if (params.algorithm == "mst")
