@@ -299,7 +299,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       using CorePoints = Details::DBSCANCorePoints<MemorySpace>;
 
       // Perform the queries and build clusters through callback
-      Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters:query");
+      Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
       bvh.query(exec_space, predicates,
                 Details::FDBSCANCallback<UnionFind, CorePoints>{
                     labels, CorePoints{num_neigh, core_min_size}});
@@ -430,7 +430,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       using CorePoints = Details::DBSCANCorePoints<MemorySpace>;
 
       // Perform the queries and build clusters through callback
-      Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters:query");
+      Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
       auto const predicates =
           Details::PrimitivesWithRadius<Primitives>{primitives, eps};
       bvh.query(
