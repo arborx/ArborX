@@ -9,9 +9,11 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-void arborx_dbscan_example_set_create_profile_section(char const *,
-                                                      std::uint32_t *);
-void arborx_dbscan_example_set_destroy_profile_section(std::uint32_t);
-void arborx_dbscan_example_set_start_profile_section(std::uint32_t);
-void arborx_dbscan_example_set_stop_profile_section(std::uint32_t);
-double arborx_dbscan_example_get_time(std::string const &label);
+#include <string>
+
+namespace ArborX_Benchmark
+{
+void push_region(char const *);
+void pop_region();
+double get_time(std::string const &label);
+} // namespace ArborX_Benchmark

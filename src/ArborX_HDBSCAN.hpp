@@ -14,8 +14,6 @@
 #include <ArborX_Dendrogram.hpp>
 #include <ArborX_MinimumSpanningTree.hpp>
 
-#include <Kokkos_Profiling_ProfileSection.hpp>
-
 namespace ArborX::Experimental
 {
 
@@ -27,17 +25,14 @@ auto hdbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
   using MemorySpace = typename Primitives::memory_space;
 
-  Kokkos::Profiling::ProfilingSection profile_mst("ArborX::HDBSCAN::mst");
-  profile_mst.start();
+  Kokkos::Profiling::pushRegion("ArborX::HDBSCAN::mst");
   Details::MinimumSpanningTree<MemorySpace> mst(exec_space, primitives,
                                                 core_min_size);
-  profile_mst.stop();
+  Kokkos::Profiling::popRegion();
 
-  Kokkos::Profiling::ProfilingSection profile_dendrogram(
-      "ArborX::HDBSCAN::dendrogram");
-  profile_dendrogram.start();
+  Kokkos::Profiling::pushRegion("ArborX::HDBSCAN::dendrogram");
   Dendrogram<MemorySpace> dendrogram(exec_space, mst.edges);
-  profile_dendrogram.stop();
+  Kokkos::Profiling::popRegion();
 
   Kokkos::Profiling::popRegion();
 

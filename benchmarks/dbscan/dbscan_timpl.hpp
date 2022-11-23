@@ -161,14 +161,10 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
 
   if (params.verbose)
   {
-    Kokkos::Profiling::Experimental::set_create_profile_section_callback(
-        arborx_dbscan_example_set_create_profile_section);
-    Kokkos::Profiling::Experimental::set_destroy_profile_section_callback(
-        arborx_dbscan_example_set_destroy_profile_section);
-    Kokkos::Profiling::Experimental::set_start_profile_section_callback(
-        arborx_dbscan_example_set_start_profile_section);
-    Kokkos::Profiling::Experimental::set_stop_profile_section_callback(
-        arborx_dbscan_example_set_stop_profile_section);
+    Kokkos::Profiling::Experimental::set_push_region_callback(
+        ArborX_Benchmark::push_region);
+    Kokkos::Profiling::Experimental::set_pop_region_callback(
+        ArborX_Benchmark::pop_region);
   }
 
   ExecutionSpace exec_space;
@@ -203,24 +199,22 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
     dbscan_params.setVerbosity(params.verbose)
         .setImplementation(implementation);
 
-    Kokkos::Profiling::ProfilingSection profile_total("ArborX::DBSCAN::total");
-    profile_total.start();
+    Kokkos::Profiling::pushRegion("ArborX::DBSCAN::total");
 
     labels = ArborX::dbscan<ExecutionSpace, Primitives>(
         exec_space, primitives, params.eps, params.core_min_size,
         dbscan_params);
 
-    Kokkos::Profiling::ProfilingSection profile_postprocess(
-        "ArborX::DBSCAN::postprocess");
-    profile_postprocess.start();
+    Kokkos::Profiling::pushRegion("ArborX::DBSCAN::postprocess");
     Kokkos::View<int *, MemorySpace> cluster_indices("Testing::cluster_indices",
                                                      0);
     Kokkos::View<int *, MemorySpace> cluster_offset("Testing::cluster_offset",
                                                     0);
     sortAndFilterClusters(exec_space, labels, cluster_indices, cluster_offset,
                           params.cluster_min_size);
-    profile_postprocess.stop();
-    profile_total.stop();
+    Kokkos::Profiling::popRegion();
+
+    Kokkos::Profiling::popRegion();
 
     if (params.verbose)
     {
@@ -228,22 +222,23 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
 
       if (implementation == ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox)
         printf("-- dense cells      : %10.3f\n",
-               arborx_dbscan_example_get_time("ArborX::DBSCAN::dense_cells"));
+               ArborX_Benchmark::get_time("ArborX::DBSCAN::dense_cells"));
       printf("-- construction     : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::DBSCAN::construction"));
+             ArborX_Benchmark::get_time("ArborX::DBSCAN::tree_construction"));
       printf("-- query+cluster    : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::DBSCAN::query+cluster"));
+             ArborX_Benchmark::get_time("ArborX::DBSCAN::clusters"));
       if (!is_special_case)
       {
-        printf("---- neigh          : %10.3f\n",
-               arborx_dbscan_example_get_time("ArborX::DBSCAN::neigh"));
+        printf(
+            "---- neigh          : %10.3f\n",
+            ArborX_Benchmark::get_time("ArborX::DBSCAN::clusters::num_neigh"));
         printf("---- query          : %10.3f\n",
-               arborx_dbscan_example_get_time("ArborX::DBSCAN::query"));
+               ArborX_Benchmark::get_time("ArborX::DBSCAN::clusters::query"));
       }
       printf("-- postprocess      : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::DBSCAN::postprocess"));
+             ArborX_Benchmark::get_time("ArborX::DBSCAN::postprocess"));
       printf("total time          : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::DBSCAN::total"));
+             ArborX_Benchmark::get_time("ArborX::DBSCAN::total"));
     }
 
     int num_points = primitives.extent_int(0);
@@ -265,43 +260,43 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
   }
   else if (params.algorithm == "hdbscan")
   {
-    Kokkos::Profiling::ProfilingSection profile_total("ArborX::HDBSCAN::total");
-    profile_total.start();
+    Kokkos::Profiling::pushRegion("ArborX::HDBSCAN::total");
     auto dendrogram = ArborX::Experimental::hdbscan(exec_space, primitives,
                                                     params.core_min_size);
+    Kokkos::Profiling::popRegion();
 
     if (params.verbose)
     {
       printf("-- mst              : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::HDBSCAN::mst"));
+             ArborX_Benchmark::get_time("ArborX::HDBSCAN::mst"));
       printf("-- dendrogram       : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::HDBSCAN::dendrogram"));
+             ArborX_Benchmark::get_time("ArborX::HDBSCAN::dendrogram"));
       printf("---- edge sort      : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::Dendrogram::edge_sort"));
+             ArborX_Benchmark::get_time("ArborX::Dendrogram::edge_sort"));
       printf("total time          : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::HDBSCAN::total"));
+             ArborX_Benchmark::get_time("ArborX::HDBSCAN::total"));
     }
   }
   else if (params.algorithm == "mst")
   {
 
-    Kokkos::Profiling::ProfilingSection profile_total("ArborX::MST::total");
-    profile_total.start();
+    Kokkos::Profiling::pushRegion("ArborX::MST::total");
     ArborX::Details::MinimumSpanningTree<MemorySpace> mst(
         exec_space, primitives, params.core_min_size);
-    profile_total.stop();
+    Kokkos::Profiling::popRegion();
 
     if (params.verbose)
     {
       printf("-- construction     : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::MST::construction"));
+             ArborX_Benchmark::get_time("ArborX::MST::construction"));
       if (params.core_min_size > 1)
-        printf("-- core distances   : %10.3f\n",
-               arborx_dbscan_example_get_time("ArborX::MST::core_distances"));
+        printf(
+            "-- core distances   : %10.3f\n",
+            ArborX_Benchmark::get_time("ArborX::MST::compute_core_distances"));
       printf("-- boruvka          : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::MST::boruvka"));
+             ArborX_Benchmark::get_time("ArborX::MST::boruvka"));
       printf("total time          : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::MST::total"));
+             ArborX_Benchmark::get_time("ArborX::MST::total"));
     }
   }
 

@@ -19,7 +19,6 @@
 #include <ArborX_DetailsWeightedEdge.hpp>
 
 #include <Kokkos_Core.hpp>
-#include <Kokkos_Profiling_ProfileSection.hpp>
 
 namespace ArborX::Details
 {
@@ -99,9 +98,7 @@ void dendrogramUnionFind(ExecutionSpace const &exec_space,
 
   KokkosExt::reallocWithoutInitializing(exec_space, parent_heights, num_edges);
 
-  Kokkos::Profiling::ProfilingSection profile_edge_sort(
-      "ArborX::Dendrogram::edge_sort");
-  profile_edge_sort.start();
+  Kokkos::Profiling::pushRegion("ArborX::Dendrogram::edge_sort");
   Kokkos::parallel_for(
       "ArborX::Dendrogram::copy_weights",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_edges),
@@ -119,7 +116,7 @@ void dendrogramUnionFind(ExecutionSpace const &exec_space,
         auto &edge = edges(permute(i));
         sorted_unweighted_edges(i) = {edge.source, edge.target};
       });
-  profile_edge_sort.stop();
+  Kokkos::Profiling::popRegion();
 
   KokkosExt::reallocWithoutInitializing(exec_space, parents,
                                         num_edges + num_vertices);
