@@ -71,8 +71,8 @@ struct AccessTraits<
     return Access::size(x.predicates);
   }
   template <class Dummy = Geometry,
-            std::enable_if_t<std::is_same<Dummy, Geometry>::value &&
-                             std::is_same<Dummy, Point>::value> * = nullptr>
+            std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
+                             std::is_same_v<Dummy, Point>> * = nullptr>
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
     auto const point = getGeometry(Access::get(x.predicates, i));
@@ -80,8 +80,8 @@ struct AccessTraits<
     return intersects(Sphere{point, distance});
   }
   template <class Dummy = Geometry,
-            std::enable_if_t<std::is_same<Dummy, Geometry>::value &&
-                             std::is_same<Dummy, Box>::value> * = nullptr>
+            std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
+                             std::is_same_v<Dummy, Box>> * = nullptr>
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
     auto box = getGeometry(Access::get(x.predicates, i));
@@ -96,18 +96,18 @@ struct AccessTraits<
     return intersects(box);
   }
   template <class Dummy = Geometry,
-            std::enable_if_t<std::is_same<Dummy, Geometry>::value &&
-                             std::is_same<Dummy, Sphere>::value> * = nullptr>
+            std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
+                             std::is_same_v<Dummy, Sphere>> * = nullptr>
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
     auto const sphere = getGeometry(Access::get(x.predicates, i));
     auto const distance = x.distances(i);
     return intersects(Sphere{sphere.centroid(), distance + sphere.radius()});
   }
-  template <class Dummy = Geometry,
-            std::enable_if_t<std::is_same<Dummy, Geometry>::value &&
-                             std::is_same<Dummy, Experimental::Ray>::value> * =
-                nullptr>
+  template <
+      class Dummy = Geometry,
+      std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
+                       std::is_same_v<Dummy, Experimental::Ray>> * = nullptr>
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
     auto const ray = getGeometry(Access::get(x.predicates, i));

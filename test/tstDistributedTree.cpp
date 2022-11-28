@@ -835,10 +835,9 @@ private:
   Kokkos::View<ArborX::Experimental::Ray *, MemorySpace> _rays;
 };
 
-namespace ArborX
-{
 template <typename MemorySpace>
-struct AccessTraits<RayNearestPredicate<MemorySpace>, PredicatesTag>
+struct ArborX::AccessTraits<RayNearestPredicate<MemorySpace>,
+                            ArborX::PredicatesTag>
 {
   using memory_space = MemorySpace;
 
@@ -854,7 +853,6 @@ struct AccessTraits<RayNearestPredicate<MemorySpace>, PredicatesTag>
     return nearest(ray_nearest.get(i), 1);
   }
 };
-} // namespace ArborX
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(distributed_ray, DeviceType, ARBORX_DEVICE_TYPES)
 {
@@ -904,16 +902,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(distributed_ray, DeviceType, ARBORX_DEVICE_TYPES)
         }
       });
 
-  if (comm_rank > 0)
-  {
-    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, RayNearestPredicate(rays),
-                           make_reference_solution<PairIndexRank>(
-                               {{0, comm_rank}, {0, 0}}, {0, 1, 2}));
-  }
-  else
-  {
-    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, RayNearestPredicate(rays),
-                           make_reference_solution<PairIndexRank>(
-                               {{0, comm_rank}, {0, comm_rank}}, {0, 1, 2}));
-  }
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, RayNearestPredicate(rays),
+                         make_reference_solution<PairIndexRank>(
+                             {{0, comm_rank}, {0, 0}}, {0, 1, 2}));
 }
