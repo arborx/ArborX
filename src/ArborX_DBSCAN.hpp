@@ -240,9 +240,9 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   ARBORX_ASSERT(core_min_size >= 2);
 
 #ifdef KOKKOS_ENABLE_SERIAL
-  using UnionFind =
-      Details::UnionFind<MemorySpace,
-                         /*DoSerial=*/std::is_same_v<ExecutionSpace, Kokkos::Serial>>;
+  using UnionFind = Details::UnionFind<
+      MemorySpace,
+      /*DoSerial=*/std::is_same_v<ExecutionSpace, Kokkos::Serial>>;
 #else
   using UnionFind = Details::UnionFind<MemorySpace>;
 #endif
@@ -365,8 +365,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
              num_dense_cells + num_points_in_sparse_cells);
     }
 
-    Details::unionFindWithinEachDenseCell(
-        exec_space, dense_sorted_cell_indices, permute, UnionFind{labels});
+    Details::unionFindWithinEachDenseCell(exec_space, dense_sorted_cell_indices,
+                                          permute, UnionFind{labels});
 
     Kokkos::Profiling::popRegion();
 
