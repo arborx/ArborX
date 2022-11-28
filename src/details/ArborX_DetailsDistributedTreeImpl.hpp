@@ -435,6 +435,11 @@ void DistributedTreeImpl<DeviceType>::reassessStrategy(
           farthest_distances(i) = max(farthest_distances(i), distances(j));
       });
 
+  Details::check_valid_access_traits(
+      PredicatesTag{},
+      WithinDistanceFromPredicates<Predicates, decltype(farthest_distances)>{
+          queries, farthest_distances});
+
   query(top_tree, space,
         WithinDistanceFromPredicates<Predicates, decltype(farthest_distances)>{
             queries, farthest_distances},
