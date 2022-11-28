@@ -22,6 +22,7 @@
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Predicates.hpp>
+#include <ArborX_Ray.hpp>
 #include <ArborX_Sphere.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -102,6 +103,15 @@ struct AccessTraits<
     auto const sphere = getGeometry(Access::get(x.predicates, i));
     auto const distance = x.distances(i);
     return intersects(Sphere{sphere.centroid(), distance + sphere.radius()});
+  }
+  template <class Dummy = Geometry,
+            std::enable_if_t<std::is_same<Dummy, Geometry>::value &&
+                             std::is_same<Dummy, Experimental::Ray>::value> * =
+                nullptr>
+  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
+  {
+    auto const ray = getGeometry(Access::get(x.predicates, i));
+    return intersects(ray);
   }
 };
 
