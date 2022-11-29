@@ -2,6 +2,7 @@ ARG BASE=ubuntu:18.04
 FROM $BASE
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
+        git \
         wget \
         xz-utils \
         && \
