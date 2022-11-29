@@ -9,6 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include "ArborXTest_StdVectorToKokkosView.hpp"
 #include "ArborX_BoostRTreeHelpers.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <ArborX_DistributedTree.hpp>
@@ -813,4 +814,82 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, distributed_tree, within_queries,
                          query(ExecutionSpace{}, rtree, within_queries_host));
+}
+
+template <typename MemorySpace>
+class RayNearestPredicate
+{
+public:
+  RayNearestPredicate(
+      Kokkos::View<ArborX::Experimental::Ray *, MemorySpace> const &rays)
+      : _rays(rays)
+  {}
+
+  KOKKOS_FUNCTION std::size_t size() const { return _rays.extent(0); }
+
+  KOKKOS_FUNCTION ArborX::Experimental::Ray const &get(unsigned int i) const
+  {
+    return _rays(i);
+  }
+
+private:
+  Kokkos::View<ArborX::Experimental::Ray *, MemorySpace> _rays;
+};
+
+template <typename MemorySpace>
+struct ArborX::AccessTraits<RayNearestPredicate<MemorySpace>,
+                            ArborX::PredicatesTag>
+{
+  using memory_space = MemorySpace;
+
+  static KOKKOS_FUNCTION std::size_t
+  size(RayNearestPredicate<MemorySpace> const &ray_nearest)
+  {
+    return ray_nearest.size();
+  }
+
+  static KOKKOS_FUNCTION auto
+  get(RayNearestPredicate<MemorySpace> const &ray_nearest, std::size_t i)
+  {
+    return nearest(ray_nearest.get(i), 1);
+  }
+};
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(distributed_ray, DeviceType, ARBORX_DEVICE_TYPES)
+{
+  using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
+
+  MPI_Comm comm = MPI_COMM_WORLD;
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+  int comm_size;
+  MPI_Comm_size(comm, &comm_size);
+
+  //  +----------0----------1----------2----------3
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  0----------1----------2----------3----------+
+  //  [  rank 0  ]
+  //             [  rank 1  ]
+  //                        [  rank 2  ]
+  //                                   [  rank 3  ]
+  auto const tree = makeDistributedTree<DeviceType>(
+      comm,
+      {
+          {{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank + 1., 1., 1.}}},
+      });
+
+  std::vector<ArborX::Experimental::Ray> rays = {
+      {{comm_rank + 0.5f, -0.5f, 0.5f}, {0.f, 1.f, 0.f}},
+      {{-0.5f, 0.5f, 0.5f}, {1.f, 0.f, 0.f}},
+  };
+
+  ARBORX_TEST_QUERY_TREE(
+      ExecutionSpace{}, tree,
+      RayNearestPredicate(ArborXTest::toView<MemorySpace>(rays)),
+      make_reference_solution<PairIndexRank>({{0, comm_rank}, {0, 0}},
+                                             {0, 1, 2}));
 }
