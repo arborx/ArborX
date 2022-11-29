@@ -9,6 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include "ArborXTest_StdVectorToKokkosView.hpp"
 #include "ArborX_BoostRTreeHelpers.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <ArborX_DistributedTree.hpp>
@@ -881,28 +882,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(distributed_ray, DeviceType, ARBORX_DEVICE_TYPES)
           {{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank + 1., 1., 1.}}},
       });
 
-  int const n_local_rays = 2;
-  Kokkos::View<ArborX::Experimental::Ray *, MemorySpace> rays(
-      Kokkos::view_alloc(ExecutionSpace{}, Kokkos::WithoutInitializing, "rays"),
-      n_local_rays);
-  Kokkos::parallel_for(
-      Kokkos::RangePolicy<ExecutionSpace>(0, n_local_rays),
-      KOKKOS_LAMBDA(int i) {
-        if (i == 0)
-        {
-          ArborX::Point origin{comm_rank + 0.5f, -0.5f, 0.5f};
-          ArborX::Experimental::Vector direction{0.f, 1.f, 0.f};
-          rays(i) = ArborX::Experimental::Ray{origin, direction};
-        }
-        else
-        {
-          ArborX::Point origin{-0.5f, 0.5f, 0.5f};
-          ArborX::Experimental::Vector direction{1.f, 0.f, 0.f};
-          rays(i) = ArborX::Experimental::Ray{origin, direction};
-        }
-      });
+  std::vector<ArborX::Experimental::Ray> rays = {
+      {{comm_rank + 0.5f, -0.5f, 0.5f}, {0.f, 1.f, 0.f}},
+      {{-0.5f, 0.5f, 0.5f}, {1.f, 0.f, 0.f}},
+  };
 
-  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, RayNearestPredicate(rays),
-                         make_reference_solution<PairIndexRank>(
-                             {{0, comm_rank}, {0, 0}}, {0, 1, 2}));
+  ARBORX_TEST_QUERY_TREE(
+      ExecutionSpace{}, tree,
+      RayNearestPredicate(ArborXTest::toView<MemorySpace>(rays)),
+      make_reference_solution<PairIndexRank>({{0, comm_rank}, {0, 0}},
+                                             {0, 1, 2}));
 }
