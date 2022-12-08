@@ -51,6 +51,9 @@
 #    define _CubLog
 #  endif
 
+#  ifdef KOKKOS_ENABLE_OPENMP
+#    include "thrust/system/omp/execution_policy.h"
+#  endif
 #  include <thrust/device_ptr.h>
 #  include <thrust/sort.h>
 
@@ -73,6 +76,42 @@
 namespace KokkosExt
 {
 
+#ifdef ARBORX_ENABLE_THRUST
+template <typename ExecutionSpace>
+auto getThrustExecutionPolicy(ExecutionSpace const &space)
+{
+#ifdef KOKKOS_ENABLE_CUDA
+  if constexpr (std::is_same_v<ExecutionSpace, Kokkos::Cuda>)
+    return thrust::cuda::par.on(space.cuda_stream());
+  else
+#endif
+#ifdef KOKKOS_ENABLE_HIP
+      if constexpr (std::is_same_v<ExecutionSpace, Kokkos::Experimental::HIP>)
+    return thrust::hip::par.on(space.hip_stream());
+  else
+#endif
+#ifdef KOKKOS_ENABLE_OPENMP
+      if constexpr (std::is_same_v<ExecutionSpace, Kokkos::OpenMP>)
+    return thrust::omp::par;
+  else
+#endif
+#ifdef KOKKOS_ENABLE_SERIAL
+      if constexpr (std::is_same_v<ExecutionSpace, Kokkos::Serial>)
+    return thrust::seq;
+  else
+#endif
+    return;
+}
+#endif
+
+template <typename ExecutionSpace>
+struct is_thrust_available_for_space
+    : std::conditional_t<std::is_same_v<decltype(getThrustExecutionPolicy(
+                                            std::declval<ExecutionSpace>())),
+                                        void>,
+                         std::false_type, std::true_type>
+{};
+
 template <typename ExecutionSpace, typename Keys, typename Values>
 void sortByKey(ExecutionSpace const &space, Keys &keys, Values &values)
 {
@@ -92,26 +131,39 @@ void sortByKey(ExecutionSpace const &space, Keys &keys, Values &values)
   if (n == 0)
     return;
 
-  auto [min_val, max_val] = ArborX::minMax(space, keys);
-  if (min_val == max_val)
-    return;
+#ifdef ARBORX_ENABLE_THRUST
+  if constexpr (is_thrust_available_for_space<ExecutionSpace>{})
+  {
+    // Using non-declared symbols is not valid even in constexpr branch, so we
+    // have to protect the call.
+    thrust::sort_by_key(getThrustExecutionPolicy(space), keys.data(),
+                        keys.data() + keys.size(), values.data());
+  }
+  else
+#endif
+  {
+    // Use Kokkos::BinSort
+    auto [min_val, max_val] = ArborX::minMax(space, keys);
+    if (min_val == max_val)
+      return;
 
-  using SizeType = unsigned int;
-  using CompType = Kokkos::BinOp1D<Keys>;
+    using SizeType = unsigned int;
+    using CompType = Kokkos::BinOp1D<Keys>;
 
 #if KOKKOS_VERSION >= 30700
-  Kokkos::BinSort<Keys, CompType, typename Keys::device_type, SizeType>
-      bin_sort(space, keys, CompType(n / 2, min_val, max_val), true);
-  bin_sort.create_permute_vector(space);
-  bin_sort.sort(space, keys);
-  bin_sort.sort(space, values);
+    Kokkos::BinSort<Keys, CompType, typename Keys::device_type, SizeType>
+        bin_sort(space, keys, CompType(n / 2, min_val, max_val), true);
+    bin_sort.create_permute_vector(space);
+    bin_sort.sort(space, keys);
+    bin_sort.sort(space, values);
 #else
-  Kokkos::BinSort<Keys, CompType, typename Keys::device_type, SizeType>
-      bin_sort(keys, CompType(n / 2, min_val, max_val), true);
-  bin_sort.create_permute_vector();
-  bin_sort.sort(keys);
-  bin_sort.sort(values);
+    Kokkos::BinSort<Keys, CompType, typename Keys::device_type, SizeType>
+        bin_sort(keys, CompType(n / 2, min_val, max_val), true);
+    bin_sort.create_permute_vector();
+    bin_sort.sort(keys);
+    bin_sort.sort(values);
 #endif
+  }
 }
 
 #if defined(ARBORX_ENABLE_THRUST)
