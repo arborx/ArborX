@@ -12,7 +12,7 @@
 #ifndef ARBORX_DETAILS_KOKKOS_EXT_SORT_HPP
 #define ARBORX_DETAILS_KOKKOS_EXT_SORT_HPP
 
-#include <ArborX_Config.hpp> // ARBORX_ENABLE_ROCTHRUST
+#include <ArborX_Config.hpp> // ARBORX_ENABLE_THRUST
 
 #include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_DetailsUtils.hpp> // minMax
@@ -20,16 +20,16 @@
 #include <Kokkos_Sort.hpp>
 
 // clang-format off
-#if defined(KOKKOS_ENABLE_CUDA)
-#  if defined(KOKKOS_COMPILER_CLANG)
+#ifdef ARBORX_ENABLE_THRUST
+#  if defined(KOKKOS_ENABLE_CUDA) && defined(KOKKOS_COMPILER_CLANG)
 
 // Older Thrust (or CUB to be more precise) versions use __shfl instead of
 // __shfl_sync for clang which was removed in PTX ISA version 6.4, also see
 // https://github.com/NVIDIA/cub/pull/170.
-#include <cub/version.cuh>
-#if defined(CUB_VERSION) && (CUB_VERSION < 101100) && !defined(CUB_USE_COOPERATIVE_GROUPS)
-#define CUB_USE_COOPERATIVE_GROUPS
-#endif
+#    include <cub/version.cuh>
+#    if defined(CUB_VERSION) && (CUB_VERSION < 101100) && !defined(CUB_USE_COOPERATIVE_GROUPS)
+#      define CUB_USE_COOPERATIVE_GROUPS
+#    endif
 
 // Some versions of Clang fail to compile Thrust, failing with errors like
 // this:
@@ -46,26 +46,23 @@
 // restore it at the end
 #    ifdef _CubLog
 #      define ARBORX_CubLog_save _CubLog
+#      undef _CubLog
 #    endif
 #    define _CubLog
-#    include <thrust/device_ptr.h>
-#    include <thrust/sort.h>
+#  endif
+
+#  include <thrust/device_ptr.h>
+#  include <thrust/sort.h>
+
+#  if defined(KOKKOS_ENABLE_CUDA) && defined(KOKKOS_COMPILER_CLANG)
 #    undef _CubLog
 #    ifdef ARBORX_CubLog_save
 #      define _CubLog ARBORX_CubLog_save
 #      undef ARBORX_CubLog_save
 #    endif
-#  else // #if defined(KOKKOS_COMPILER_CLANG)
-#    include <thrust/device_ptr.h>
-#    include <thrust/sort.h>
-#  endif // #if defined(KOKKOS_COMPILER_CLANG)
-#endif   // #if defined(KOKKOS_ENABLE_CUDA)
-// clang-format on
-
-#if defined(KOKKOS_ENABLE_HIP) && defined(ARBORX_ENABLE_ROCTHRUST)
-#include <thrust/device_ptr.h>
-#include <thrust/sort.h>
+#  endif
 #endif
+// clang-format on
 
 #if defined(KOKKOS_ENABLE_SYCL) && defined(ARBORX_ENABLE_ONEDPL)
 #include <oneapi/dpl/algorithm>
@@ -117,8 +114,9 @@ void sortByKey(ExecutionSpace const &space, Keys &keys, Values &values)
 #endif
 }
 
-#if defined(KOKKOS_ENABLE_CUDA) ||                                             \
-    (defined(KOKKOS_ENABLE_HIP) && defined(ARBORX_ENABLE_ROCTHRUST))
+#if defined(ARBORX_ENABLE_THRUST)
+
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
 template <typename Keys, typename Values>
 void sortByKey(
 #if defined(KOKKOS_ENABLE_CUDA)
@@ -154,6 +152,8 @@ void sortByKey(
   thrust::sort_by_key(execution_policy, keys.data(), keys.data() + n,
                       values.data());
 }
+#endif
+
 #endif
 
 #if defined(KOKKOS_ENABLE_SYCL) && defined(ARBORX_ENABLE_ONEDPL)

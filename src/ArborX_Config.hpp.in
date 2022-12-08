@@ -12,7 +12,8 @@
 #ifndef ARBORX_CONFIG_HPP
 #define ARBORX_CONFIG_HPP
 
-#cmakedefine ARBORX_ENABLE_ROCTHRUST
+#cmakedefine ARBORX_ENABLE_THRUST
+#cmakedefine ARBORX_ENABLE_ROCTHRUST // only for backwards compatibility
 #cmakedefine ARBORX_ENABLE_ONEDPL
 #cmakedefine ARBORX_ENABLE_MPI
 #cmakedefine ARBORX_USE_CUDA_AWARE_MPI

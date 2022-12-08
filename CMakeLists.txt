@@ -29,6 +29,11 @@ if(Kokkos_ENABLE_HIP AND NOT ARBORX_ENABLE_ROCTHRUST)
   message(WARNING "rocThrust is NOT enabled.\nThis will negatively impact performance on AMD GPUs.")
 endif()
 
+set(ARBORX_ENABLE_THRUST OFF)
+if(Kokkos_ENABLE_CUDA OR (Kokkos_ENABLE_HIP AND ARBORX_ENABLE_ROCTHRUST))
+  set(ARBORX_ENABLE_THRUST ON)
+endif()
+
 cmake_dependent_option(ARBORX_ENABLE_ONEDPL "Enable oneDPL support" ON "Kokkos_ENABLE_SYCL" OFF)
 if(Kokkos_ENABLE_SYCL AND ARBORX_ENABLE_ONEDPL)
   include(CheckIncludeFileCXX)
