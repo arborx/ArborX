@@ -37,17 +37,12 @@
 //    error: use of undeclared identifier 'va_printf'
 // The exact combination of versions for Clang and Thrust (or CUDA) for this
 // failure was not investigated, however even very recent version combination
-// (Clang 10.0.0 and Cuda 10.0) demonstrated failure.
+// (Clang 14.0.0 and Cuda 11.0) demonstrated failure.
 //
 // Defining _CubLog here allows us to avoid that code path, however disabling
 // some debugging diagnostics
-//
-// If _CubLog is already defined, we save it into ARBORX_CubLog_save, and
-// restore it at the end
-#    ifdef _CubLog
-#      define ARBORX_CubLog_save _CubLog
-#      undef _CubLog
-#    endif
+#    pragma push_macro("_CubLog")
+#    undef _CubLog
 #    define _CubLog
 #  endif
 
@@ -58,11 +53,7 @@
 #  include <thrust/sort.h>
 
 #  if defined(KOKKOS_ENABLE_CUDA) && defined(KOKKOS_COMPILER_CLANG)
-#    undef _CubLog
-#    ifdef ARBORX_CubLog_save
-#      define _CubLog ARBORX_CubLog_save
-#      undef ARBORX_CubLog_save
-#    endif
+#    pragma pop_macro("_CubLog")
 #  endif
 #endif
 // clang-format on
