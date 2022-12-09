@@ -126,28 +126,32 @@ template <typename DeviceType>
 struct DistributedTreeImpl
 {
   // spatial queries
-  template <typename DistributedTree, typename ExecutionSpace,
+  template <typename Tag, typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename IndicesAndRanks, typename Offset>
-  static std::enable_if_t<Kokkos::is_view<IndicesAndRanks>{} &&
-                          Kokkos::is_view<Offset>{}>
-  queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
-                ExecutionSpace const &space, Predicates const &queries,
-                IndicesAndRanks &values, Offset &offset)
+  static std::enable_if_t<
+      Kokkos::is_view<IndicesAndRanks>{} && Kokkos::is_view<Offset>{} &&
+      (std::is_same_v<Tag, SpatialPredicateTag> ||
+       std::is_same_v<Tag, Experimental::OrderedSpatialPredicateTag>)>
+  queryDispatch(Tag, DistributedTree const &tree, ExecutionSpace const &space,
+                Predicates const &queries, IndicesAndRanks &values,
+                Offset &offset)
   {
     int comm_rank;
     MPI_Comm_rank(tree.getComm(), &comm_rank);
-    queryDispatch(SpatialPredicateTag{}, tree, space, queries,
+    queryDispatch(Tag{}, tree, space, queries,
                   DefaultCallbackWithRank{comm_rank}, values, offset);
   }
 
-  template <typename DistributedTree, typename ExecutionSpace,
+  template <typename Tag, typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename OutputView, typename OffsetView,
             typename Callback>
-  static std::enable_if_t<Kokkos::is_view<OutputView>{} &&
-                          Kokkos::is_view<OffsetView>{}>
-  queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
-                ExecutionSpace const &space, Predicates const &queries,
-                Callback const &callback, OutputView &out, OffsetView &offset);
+  static std::enable_if_t<
+      Kokkos::is_view<OutputView>{} && Kokkos::is_view<OffsetView>{} &&
+      (std::is_same_v<Tag, SpatialPredicateTag> ||
+       std::is_same_v<Tag, Experimental::OrderedSpatialPredicateTag>)>
+  queryDispatch(Tag, DistributedTree const &tree, ExecutionSpace const &space,
+                Predicates const &queries, Callback const &callback,
+                OutputView &out, OffsetView &offset);
 
   // nearest neighbors queries
   template <typename DistributedTree, typename ExecutionSpace,
@@ -582,26 +586,36 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
 }
 
 template <typename DeviceType>
-template <typename DistributedTree, typename ExecutionSpace,
+template <typename Tag, typename DistributedTree, typename ExecutionSpace,
           typename Predicates, typename OutputView, typename OffsetView,
           typename Callback>
-std::enable_if_t<Kokkos::is_view<OutputView>{} && Kokkos::is_view<OffsetView>{}>
-DistributedTreeImpl<DeviceType>::queryDispatch(
-    SpatialPredicateTag, DistributedTree const &tree,
-    ExecutionSpace const &space, Predicates const &queries,
-    Callback const &callback, OutputView &out, OffsetView &offset)
+std::enable_if_t<
+    Kokkos::is_view<OutputView>{} && Kokkos::is_view<OffsetView>{} &&
+    (std::is_same_v<Tag, SpatialPredicateTag> ||
+     std::is_same_v<Tag, Experimental::OrderedSpatialPredicateTag>)>
+DistributedTreeImpl<DeviceType>::queryDispatch(Tag, DistributedTree const &tree,
+                                               ExecutionSpace const &space,
+                                               Predicates const &queries,
+                                               Callback const &callback,
+                                               OutputView &out,
+                                               OffsetView &offset)
 {
-  KokkosExt::ScopedProfileRegion guard(
-      "ArborX::DistributedTree::query::spatial");
+  std::string profiling_prefix = "ArborX::DistributedTree::query";
+  if (std::is_same<Tag, SpatialPredicateTag>{})
+    profiling_prefix += "::spatial";
+  else if (std::is_same<Tag, Experimental::OrderedSpatialPredicateTag>{})
+    profiling_prefix += "::ordered_spatial";
+  else
+    Kokkos::abort("ArborX: implementation bug");
+
+  KokkosExt::ScopedProfileRegion guard(profiling_prefix);
 
   auto const &top_tree = tree._top_tree;
   auto const &bottom_tree = tree._bottom_tree;
   auto comm = tree.getComm();
 
-  Kokkos::View<int *, DeviceType> indices(
-      "ArborX::DistributedTree::query::spatial::indices", 0);
-  Kokkos::View<int *, DeviceType> ranks(
-      "ArborX::DistributedTree::query::spatial::ranks", 0);
+  Kokkos::View<int *, DeviceType> indices(profiling_prefix + "::indices", 0);
+  Kokkos::View<int *, DeviceType> ranks(profiling_prefix + "::ranks", 0);
   query(top_tree, space, queries, indices, offset);
 
   {
@@ -615,10 +629,9 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
     // Forward queries
     using Access = AccessTraits<Predicates, PredicatesTag>;
     using Query = typename AccessTraitsHelper<Access>::type;
-    Kokkos::View<int *, DeviceType> ids(
-        "ArborX::DistributedTree::query::spatial::query_ids", 0);
+    Kokkos::View<int *, DeviceType> ids(profiling_prefix + "::query_ids", 0);
     Kokkos::View<Query *, DeviceType> fwd_queries(
-        "ArborX::DistributedTree::query::spatial::fwd_queries", 0);
+        profiling_prefix + "::fwd_queries", 0);
     forwardQueries(comm, space, queries, indices, offset, fwd_queries, ids,
                    ranks);
 
@@ -628,8 +641,7 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
     // Communicate results back
     communicateResultsBack(comm, space, out, offset, ranks, ids);
 
-    Kokkos::Profiling::pushRegion(
-        "ArborX::DistributedTree::spatial::postprocess_results");
+    Kokkos::Profiling::pushRegion(profiling_prefix + "::postprocess_results");
 
     // Merge results
     int const n_queries = Access::size(queries);
