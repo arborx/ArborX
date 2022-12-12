@@ -505,9 +505,10 @@ struct TreeTraversal<BVH, Predicates, Callback,
         if (!heap.empty() && heap.top().second < closer_pair.second)
         {
           node = heap.top().first;
-          heap.pop();
           if (closer_pair.second < inf)
-            heap.push(closer_pair);
+            heap.popPush(closer_pair);
+          else
+            heap.pop();
         }
         else
           node = closer_pair.first;
