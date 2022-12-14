@@ -136,39 +136,6 @@ struct DistributedTreeImpl
                   DefaultCallbackWithRank{comm_rank}, values, offset);
   }
 
-  // NOTE NVCC did not like having definition of that type within the
-  // queryDispatch function below while using an extended __host__ __device__
-  // lambda
-  struct PairIndexRank
-  {
-    int index;
-    int rank;
-  };
-
-  template <typename DistributedTree, typename ExecutionSpace,
-            typename Predicates, typename Indices, typename Offset,
-            typename Ranks>
-  [[deprecated]] static std::enable_if_t<Kokkos::is_view<Indices>{} &&
-                                         Kokkos::is_view<Offset>{} &&
-                                         Kokkos::is_view<Ranks>{}>
-  queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
-                ExecutionSpace const &space, Predicates const &queries,
-                Indices &indices, Offset &offset, Ranks &ranks)
-  {
-    Kokkos::View<PairIndexRank *, ExecutionSpace> out(
-        "ArborX::DistributedTree::query::spatial::pairs_index_rank", 0);
-    queryDispatch(SpatialPredicateTag{}, tree, space, queries, out, offset);
-    auto const n = out.extent(0);
-    KokkosExt::reallocWithoutInitializing(space, indices, n);
-    KokkosExt::reallocWithoutInitializing(space, ranks, n);
-    Kokkos::parallel_for(
-        "ArborX::DistributedTree::query::split_pairs",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
-          indices(i) = out(i).index;
-          ranks(i) = out(i).rank;
-        });
-  }
-
   template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename OutputView, typename OffsetView,
             typename Callback>
@@ -190,34 +157,6 @@ struct DistributedTreeImpl
                     ExecutionSpace const &space, Predicates const &queries,
                     Indices &indices, Offset &offset, Ranks &ranks,
                     Distances *distances_ptr = nullptr);
-
-  template <typename DistributedTree, typename ExecutionSpace,
-            typename Predicates, typename Indices, typename Offset,
-            typename Ranks>
-  [[deprecated]] static std::enable_if_t<Kokkos::is_view<Indices>{} &&
-                                         Kokkos::is_view<Offset>{} &&
-                                         Kokkos::is_view<Ranks>{}>
-  queryDispatch(NearestPredicateTag tag, DistributedTree const &tree,
-                ExecutionSpace const &space, Predicates const &queries,
-                Indices &indices, Offset &offset, Ranks &ranks)
-  {
-    queryDispatchImpl(tag, tree, space, queries, indices, offset, ranks);
-  }
-
-  template <typename DistributedTree, typename ExecutionSpace,
-            typename Predicates, typename Indices, typename Offset,
-            typename Ranks, typename Distances>
-  [[deprecated]] static std::enable_if_t<
-      Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{} &&
-      Kokkos::is_view<Ranks>{} && Kokkos::is_view<Distances>{}>
-  queryDispatch(NearestPredicateTag tag, DistributedTree const &tree,
-                ExecutionSpace const &space, Predicates const &queries,
-                Indices &indices, Offset &offset, Ranks &ranks,
-                Distances &distances)
-  {
-    queryDispatchImpl(tag, tree, space, queries, indices, offset, ranks,
-                      &distances);
-  }
 
   template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename IndicesAndRanks, typename Offset>
