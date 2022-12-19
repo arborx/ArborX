@@ -47,7 +47,17 @@
 #  endif
 
 #  ifdef KOKKOS_ENABLE_OPENMP
+// hipcc does not define _OPENMP when compiling with "-fopenmp"
+// (https://github.com/ROCm-Developer-Tools/HIP/blob/develop/docs/markdown/hip_faq.md#why-_openmp-is-undefined-when-compiling-with--fopenmp).
+// So we have to explicitly define it here (which is safe to do due to being
+// inside KOKKOS_ENABLE_OPENMP). OpenMP specification actually requires the
+// macro to be in the form of yyyymm, but Thrust libraries only check whether
+// it's defined.
+#    pragma push_macro("_OPENMP")
+#    undef _OPENMP
+#    define _OPENMP
 #    include "thrust/system/omp/execution_policy.h"
+#    pragma pop_macro("_OPENMP")
 #  endif
 #  include <thrust/device_ptr.h>
 #  include <thrust/sort.h>
