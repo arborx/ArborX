@@ -249,7 +249,7 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
   }
   else if (std::is_same<Tag, Experimental::OrderedSpatialPredicateTag>{})
   {
-    profiling_prefix += "::ordered_spatial;";
+    profiling_prefix += "::ordered_spatial";
   }
   else
   {
