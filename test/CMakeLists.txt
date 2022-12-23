@@ -195,6 +195,7 @@ add_executable(ArborX_Test_DetailsClusteringHelpers.exe
   tstDetailsMutualReachabilityDistance.cpp
   tstMinimumSpanningTree.cpp
   tstMinimumSpanningTreeGoldenTest.cpp
+  tstUnionFind.cpp
   utf_main.cpp
 )
 target_link_libraries(ArborX_Test_DetailsClusteringHelpers.exe PRIVATE ArborX Boost::unit_test_framework)

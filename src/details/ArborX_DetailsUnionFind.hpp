@@ -73,11 +73,16 @@ namespace ArborX::Details
 template <typename MemorySpace, bool DoSerial = false>
 struct UnionFind
 {
+  using memory_space = MemorySpace;
+
   Kokkos::View<int *, MemorySpace> _labels;
 
   UnionFind(Kokkos::View<int *, MemorySpace> labels)
       : _labels(labels)
   {}
+
+  KOKKOS_FUNCTION
+  auto size() const { return _labels.size(); }
 
   // Per [1]:
   //
