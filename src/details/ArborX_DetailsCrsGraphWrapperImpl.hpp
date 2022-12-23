@@ -373,9 +373,24 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
 
   check_valid_callback(callback, predicates, out);
 
-  auto profiling_prefix =
-      std::string("ArborX::CrsGraphWrapper::query::") +
-      (std::is_same<Tag, SpatialPredicateTag>{} ? "spatial" : "nearest");
+  std::string profiling_prefix = "ArborX::CrsGraphWrapper::query::";
+  if constexpr (std::is_same_v<Tag, SpatialPredicateTag>)
+  {
+    profiling_prefix += "spatial";
+  }
+  else if constexpr (std::is_same_v<Tag,
+                                    Experimental::OrderedSpatialPredicateTag>)
+  {
+    profiling_prefix += "ordered_spatial";
+  }
+  else if constexpr (std::is_same_v<Tag, NearestPredicateTag>)
+  {
+    profiling_prefix += "nearest";
+  }
+  else
+  {
+    static_assert(std::is_void_v<Tag>, "ArborX implementation bug");
+  }
 
   Kokkos::Profiling::pushRegion(profiling_prefix);
 
