@@ -12,189 +12,36 @@
 #ifndef ARBORX_DETAILS_SORT_UTILS_HPP
 #define ARBORX_DETAILS_SORT_UTILS_HPP
 
-#include <ArborX_Config.hpp> // ARBORX_ENABLE_ROCTHRUST
-
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp> // is_accessible_from
-#include <ArborX_DetailsKokkosExtViewHelpers.hpp>         // clone
-#include <ArborX_DetailsUtils.hpp>                        // iota
+#include <ArborX_DetailsKokkosExtSort.hpp>
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp> // clone
+#include <ArborX_DetailsUtils.hpp>                // iota
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
-#include <Kokkos_Sort.hpp>
 
-// clang-format off
-#if defined(KOKKOS_ENABLE_CUDA)
-#  if defined(KOKKOS_COMPILER_CLANG)
-
-// Older Thrust (or CUB to be more precise) versions use __shfl instead of
-// __shfl_sync for clang which was removed in PTX ISA version 6.4, also see
-// https://github.com/NVIDIA/cub/pull/170.
-#include <cub/version.cuh>
-#if defined(CUB_VERSION) && (CUB_VERSION < 101100) && !defined(CUB_USE_COOPERATIVE_GROUPS)
-#define CUB_USE_COOPERATIVE_GROUPS
-#endif
-
-// Some versions of Clang fail to compile Thrust, failing with errors like
-// this:
-//    <snip>/thrust/system/cuda/detail/core/agent_launcher.h:557:11:
-//    error: use of undeclared identifier 'va_printf'
-// The exact combination of versions for Clang and Thrust (or CUDA) for this
-// failure was not investigated, however even very recent version combination
-// (Clang 10.0.0 and Cuda 10.0) demonstrated failure.
-//
-// Defining _CubLog here allows us to avoid that code path, however disabling
-// some debugging diagnostics
-//
-// If _CubLog is already defined, we save it into ARBORX_CubLog_save, and
-// restore it at the end
-#    ifdef _CubLog
-#      define ARBORX_CubLog_save _CubLog
-#    endif
-#    define _CubLog
-#    include <thrust/device_ptr.h>
-#    include <thrust/sort.h>
-#    undef _CubLog
-#    ifdef ARBORX_CubLog_save
-#      define _CubLog ARBORX_CubLog_save
-#      undef ARBORX_CubLog_save
-#    endif
-#  else // #if defined(KOKKOS_COMPILER_CLANG)
-#    include <thrust/device_ptr.h>
-#    include <thrust/sort.h>
-#  endif // #if defined(KOKKOS_COMPILER_CLANG)
-#endif   // #if defined(KOKKOS_ENABLE_CUDA)
-// clang-format on
-
-#if defined(KOKKOS_ENABLE_HIP) && defined(ARBORX_ENABLE_ROCTHRUST)
-#include <thrust/device_ptr.h>
-#include <thrust/sort.h>
-#endif
-
-#if defined(KOKKOS_ENABLE_SYCL) && defined(ARBORX_ENABLE_ONEDPL)
-#include <oneapi/dpl/algorithm>
-#include <oneapi/dpl/execution>
-#include <oneapi/dpl/iterator>
-#endif
-
-namespace ArborX
-{
-
-namespace Details
+namespace ArborX::Details
 {
 
 // NOTE returns the permutation indices **and** sorts the input view
 template <typename ExecutionSpace, typename ViewType,
           class SizeType = unsigned int>
-Kokkos::View<SizeType *, typename ViewType::device_type>
-sortObjects(ExecutionSpace const &space, ViewType &view)
+auto sortObjects(ExecutionSpace const &space, ViewType &view)
 {
-  int const n = view.extent(0);
-
-  if (n == 0)
-  {
-    return Kokkos::View<SizeType *, typename ViewType::device_type>(
-        "ArborX::Sorting::permute", 0);
-  }
-
-  using ValueType = typename ViewType::value_type;
-  using CompType = Kokkos::BinOp1D<ViewType>;
-
-  ValueType min_val;
-  ValueType max_val;
-  std::tie(min_val, max_val) = ArborX::minMax(space, view);
-  if (min_val == max_val)
-  {
-    Kokkos::View<SizeType *, typename ViewType::device_type> permute(
-        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                           "ArborX::Sorting::permute"),
-        n);
-    iota(space, permute);
-    return permute;
-  }
-
-#if KOKKOS_VERSION >= 30700
-  Kokkos::BinSort<ViewType, CompType, typename ViewType::device_type, SizeType>
-      bin_sort(space, view, CompType(n / 2, min_val, max_val), true);
-  bin_sort.create_permute_vector(space);
-  bin_sort.sort(space, view);
-#else
-  Kokkos::BinSort<ViewType, CompType, typename ViewType::device_type, SizeType>
-      bin_sort(view, CompType(n / 2, min_val, max_val), true);
-  bin_sort.create_permute_vector();
-  bin_sort.sort(view);
-#endif
-
-  return bin_sort.get_permute_vector();
-}
-
-#if defined(KOKKOS_ENABLE_CUDA) ||                                             \
-    (defined(KOKKOS_ENABLE_HIP) && defined(ARBORX_ENABLE_ROCTHRUST))
-// NOTE returns the permutation indices **and** sorts the input view
-template <typename ViewType, class SizeType = unsigned int>
-Kokkos::View<SizeType *, typename ViewType::device_type> sortObjects(
-#if defined(KOKKOS_ENABLE_CUDA)
-    Kokkos::Cuda const &space,
-#else
-    Kokkos::Experimental::HIP const &space,
-#endif
-    ViewType &view)
-{
-  int const n = view.extent(0);
-
-  using ValueType = typename ViewType::value_type;
-  static_assert(std::is_same<std::decay_t<decltype(space)>,
-                             typename ViewType::execution_space>::value);
+  Kokkos::Profiling::pushRegion("ArborX::Sorting");
 
   Kokkos::View<SizeType *, typename ViewType::device_type> permute(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                         "ArborX::Sorting::permutation"),
-      n);
+                         "ArborX::Sorting::permute"),
+      view.extent(0));
   ArborX::iota(space, permute);
 
-#if defined(KOKKOS_ENABLE_CUDA)
-  auto const execution_policy = thrust::cuda::par.on(space.cuda_stream());
-#else
-  auto const execution_policy = thrust::hip::par.on(space.hip_stream());
-#endif
+  KokkosExt::sortByKey(space, view, permute);
 
-  auto permute_ptr = thrust::device_ptr<SizeType>(permute.data());
-  auto begin_ptr = thrust::device_ptr<ValueType>(view.data());
-  auto end_ptr = thrust::device_ptr<ValueType>(view.data() + n);
-  thrust::sort_by_key(execution_policy, begin_ptr, end_ptr, permute_ptr);
+  Kokkos::Profiling::popRegion();
 
   return permute;
 }
-#endif
-
-#if defined(KOKKOS_ENABLE_SYCL) && defined(ARBORX_ENABLE_ONEDPL)
-// NOTE returns the permutation indices **and** sorts the input view
-template <typename ViewType, class SizeType = unsigned int>
-Kokkos::View<SizeType *, typename ViewType::device_type>
-sortObjects(Kokkos::Experimental::SYCL const &space, ViewType &view)
-{
-  int const n = view.extent(0);
-
-  static_assert(
-      KokkosExt::is_accessible_from<typename ViewType::memory_space,
-                                    Kokkos::Experimental::SYCL>::value);
-
-  Kokkos::View<SizeType *, typename ViewType::device_type> permute(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                         "ArborX::Sorting::permutation"),
-      n);
-  ArborX::iota(space, permute);
-
-  auto zipped_begin =
-      oneapi::dpl::make_zip_iterator(view.data(), permute.data());
-  oneapi::dpl::execution::device_policy policy(
-      *space.impl_internal_space_instance()->m_queue);
-  oneapi::dpl::sort(
-      policy, zipped_begin, zipped_begin + n,
-      [](auto lhs, auto rhs) { return std::get<0>(lhs) < std::get<0>(rhs); });
-
-  return permute;
-}
-#endif
 
 // Helper functions and structs for applyPermutations
 namespace PermuteHelper
@@ -288,8 +135,6 @@ void applyPermutation(ExecutionSpace const &space,
   applyPermutation(space, permutation, scratch_view, view);
 }
 
-} // namespace Details
-
-} // namespace ArborX
+} // namespace ArborX::Details
 
 #endif
