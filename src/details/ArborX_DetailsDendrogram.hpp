@@ -12,7 +12,6 @@
 #ifndef ARBORX_DETAILS_DENDROGRAM_HPP
 #define ARBORX_DETAILS_DENDROGRAM_HPP
 
-#include <ArborX_DetailsKokkosExtSwap.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUnionFind.hpp>
