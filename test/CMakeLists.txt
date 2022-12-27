@@ -192,6 +192,7 @@ configure_file(
 )
 
 add_executable(ArborX_Test_SelfCollision.exe
+  tstSelfCollision.cpp
   tstDetailsExpandHalfToFull.cpp
   utf_main.cpp
 )
