@@ -190,6 +190,16 @@ configure_file(
   ${CMAKE_CURRENT_BINARY_DIR}/mst_golden_test_edges.csv
   COPYONLY
 )
+
+add_executable(ArborX_Test_SelfCollision.exe
+  tstDetailsExpandHalfToFull.cpp
+  utf_main.cpp
+)
+target_link_libraries(ArborX_Test_SelfCollision.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_Test_SelfCollision.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_include_directories(ArborX_Test_SelfCollision.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_Test_SelfCollision_Test COMMAND ./ArborX_Test_SelfCollision.exe)
+
 add_executable(ArborX_Test_DetailsClusteringHelpers.exe
   tstDetailsTreeNodeLabeling.cpp
   tstDetailsMutualReachabilityDistance.cpp
