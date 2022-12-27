@@ -9,7 +9,7 @@ endif()
 if(Kokkos_ENABLE_CUDA)
   list(APPEND ARBORX_DEVICE_TYPES Kokkos::CudaSpace::device_type)
 endif()
-if(Kokkos_ENABLE_THREADS OR Kokkos_ENABLE_PTHREAD)  # Kokkos_ENABLE_PTHREAD deprecated in Kokkos 3.6
+if(Kokkos_ENABLE_THREADS)
   list(APPEND ARBORX_DEVICE_TYPES Kokkos::Threads::device_type)
 endif()
 if(Kokkos_ENABLE_HIP)
