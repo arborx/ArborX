@@ -19,6 +19,7 @@
 #include <boost/tokenizer.hpp>
 
 #include <fstream>
+#include <map>
 #include <numeric> // accumulate
 
 namespace Test
