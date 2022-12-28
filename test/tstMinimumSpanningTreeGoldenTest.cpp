@@ -131,7 +131,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(minimum_spanning_tree_golden_test, DeviceType,
         [](auto const &sum, auto const &b) { return sum + b.weight; });
   }
 
-  BOOST_TEST(std::abs(total_weight[5] - ref_total_weight[5]) < 1e-6f);
-  BOOST_TEST(std::abs(total_weight[10] - ref_total_weight[10]) < 1e-6f);
-  BOOST_TEST(std::abs(total_weight[15] - ref_total_weight[15]) < 1e-5f);
+  namespace tt = boost::test_tools;
+  BOOST_TEST(total_weight[5] == ref_total_weight[5], tt::tolerance(1e-8));
+  BOOST_TEST(total_weight[10] == ref_total_weight[10], tt::tolerance(1e-8));
+  BOOST_TEST(total_weight[15] == ref_total_weight[15], tt::tolerance(1e-8));
 }
