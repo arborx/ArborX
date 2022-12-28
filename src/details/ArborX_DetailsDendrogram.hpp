@@ -57,7 +57,8 @@ void dendrogramUnionFindHost(Edges sorted_edges_host, Parents &parents_host)
   Kokkos::deep_copy(host_space, set_edges_host, UNDEFINED);
 
   // Fence all execution spaces to make sure all the data is ready
-  Kokkos::fence();
+  Kokkos::fence("ArborX::Dendrogram::dendrogramUnionFindHost"
+                " (global fence before performing union-find on host)");
 
   Kokkos::Profiling::pushRegion(
       "ArborX::Dendrogram::dendrogram_union_find::union_find");
