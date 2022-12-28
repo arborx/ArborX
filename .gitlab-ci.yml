@@ -18,7 +18,7 @@ stages:
   extends: .LoadModules
   stage: buildDependencies
   script:
-    - git clone https://github.com/google/benchmark.git -b v1.4.1 &&
+    - git clone https://github.com/google/benchmark.git -b v1.6.0 &&
       cd benchmark &&
       mkdir build && cd build &&
       cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DBENCHMARK_ENABLE_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/ccsopen/proj/csc333/benchmark.install .. &&

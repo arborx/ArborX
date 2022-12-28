@@ -1,9 +1,8 @@
 set(POINT_CLOUDS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/benchmarks/point_clouds)
 set(UNIT_TESTS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/test)
 
-# We require version 1.4.0 or higher but the format used by Google benchmark is
-# wrong and thus, we cannot check the version during the configuration step.
-find_package(benchmark REQUIRED)
+find_package(benchmark 1.5.4 REQUIRED)
+message(STATUS "Found benchmark: ${benchmark_DIR} (version \"${benchmark_VERSION}\")")
 
 find_package(Threads REQUIRED)
 
