@@ -156,7 +156,8 @@ DistributedTree<MemorySpace, Enable>::DistributedTree(
 #ifdef ARBORX_USE_CUDA_AWARE_MPI
   Kokkos::deep_copy(space, Kokkos::subview(boxes, comm_rank),
                     _bottom_tree.bounds());
-  space.fence();
+  space.fence("ArborX::DistributedTree::DistributedTree"
+              " (fill on device done before MPI_Allgather)");
 
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                 static_cast<void *>(boxes.data()), sizeof(Box), MPI_BYTE,

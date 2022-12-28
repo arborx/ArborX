@@ -345,7 +345,8 @@ public:
 
     // make sure the data in dest_buffer has been copied before sending it.
     if (permutation_necessary)
-      space.fence();
+      space.fence("ArborX::Distributor::doPostsAndWaits"
+                  " (permute done before packing data into send buffer)");
 
     for (int i = 0; i < outdegrees; ++i)
     {
