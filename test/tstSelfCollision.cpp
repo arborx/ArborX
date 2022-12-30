@@ -56,8 +56,8 @@ auto make_random_cloud(ExecutionSpace const &space, int n)
 struct Filter
 {
   template <class Predicate, class OutputFunctor>
-  void operator()(Predicate const &predicate, int i,
-                  OutputFunctor const &out) const
+  KOKKOS_FUNCTION void operator()(Predicate const &predicate, int i,
+                                  OutputFunctor const &out) const
   {
     int const j = getData(predicate);
     if (i < j)
