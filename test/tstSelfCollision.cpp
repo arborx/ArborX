@@ -119,43 +119,109 @@ struct ArborX::AccessTraits<Test::AttachIndices<Predicates, IndexType>,
 namespace Test
 {
 
-template <class ExecutionSpace>
-auto expand(ExecutionSpace space, std::vector<int> const &offsets_host,
-            std::vector<int> const &indices_host)
+template <class MemorySpace, class ExecutionSpace, class Points>
+auto compute_reference(ExecutionSpace const &exec_space, Points const &points,
+                       float radius)
 {
-  auto offsets = toView<ExecutionSpace>(offsets_host, "Test::offsets");
-  auto indices = toView<ExecutionSpace>(indices_host, "Test::indices");
-  ArborX::Details::expandHalfToFull(space, offsets, indices);
-
+  Kokkos::View<int *, ExecutionSpace> offsets("Test::offsets", 0);
+  Kokkos::View<int *, ExecutionSpace> indices("Test::indices", 0);
+  ArborX::BoundingVolumeHierarchy<MemorySpace> bvh(exec_space, points);
+  RadiusSearch<Points> predicates{points, radius};
+  bvh.query(exec_space, AttachIndices<decltype(predicates)>{predicates},
+            Filter{}, indices, offsets);
+  ArborX::Details::expandHalfToFull(exec_space, offsets, indices);
   return make_compressed_storage(
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices));
 }
 
-#define ARBORX_TEST_EXPAND_HALF_TO_FULL(exec_space, offsets_in, indices_in,    \
-                                        offsets_out, indices_out)              \
-  BOOST_TEST(Test::expand(exec_space, offsets_in, indices_in) ==               \
-                 make_compressed_storage(offsets_out, indices_out),            \
+template <class ExecutionSpace, class Points>
+auto cabana_proxy(ExecutionSpace const &exec_space, Points const &points,
+                  float radius)
+{
+  Kokkos::View<int *, ExecutionSpace> offsets("Test::offsets", 0);
+  Kokkos::View<int *, ExecutionSpace> indices("Test::indices", 0);
+  ArborX::Details::cabana_proxy(exec_space, points, radius, offsets, indices);
+  ArborX::Details::expandHalfToFull(exec_space, offsets, indices);
+  return make_compressed_storage(
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices));
+}
+
+#define ARBORX_TEST_CABANA_PROXY(exec_space, points, radius, offsets_ref,      \
+                                 indices_ref)                                  \
+  BOOST_TEST(Test::cabana_proxy(exec_space, points, radius) ==                 \
+                 make_compressed_storage(offsets_ref, indices_ref),            \
              boost::test_tools::per_element())
 
 } // namespace Test
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(self_collision_spatial_degenerate, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  using ExecutionSpace = typename DeviceType::execution_space;
+  ExecutionSpace exec_space;
+
+  auto no_point = ArborXTest::toView<ExecutionSpace>(
+      std::vector<ArborX::Point>{}, "Test::no_point");
+
+  auto single_point = ArborXTest::toView<ExecutionSpace>(
+      std::vector<ArborX::Point>{{0.f, 0.f, 0.f}}, "Test::single_point");
+
+  constexpr auto radius = KokkosExt::ArithmeticTraits::infinity<float>::value;
+
+  ARBORX_TEST_CABANA_PROXY(exec_space, no_point, radius, (std::vector<int>{0}),
+                           (std::vector<int>{}));
+
+  ARBORX_TEST_CABANA_PROXY(exec_space, single_point, radius,
+                           (std::vector<int>{0, 0}), (std::vector<int>{}));
+}
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(self_collision_spatial, DeviceType,
                               ARBORX_DEVICE_TYPES)
+{
+  using ExecutionSpace = typename DeviceType::execution_space;
+  ExecutionSpace exec_space;
+
+  auto points = ArborXTest::toView<ExecutionSpace>(
+      std::vector<ArborX::Point>{
+          {0.f, 0.f, 0.f},
+          {1.f, 1.f, 1.f},
+          {2.f, 2.f, 2.f},
+          {3.f, 3.f, 3.f},
+      },
+      "Test::four_points");
+
+  ARBORX_TEST_CABANA_PROXY(exec_space, points, 1.f,
+                           (std::vector<int>{0, 0, 0, 0, 0}),
+                           (std::vector<int>{}));
+
+  ARBORX_TEST_CABANA_PROXY(exec_space, points, 2.f,
+                           (std::vector<int>{0, 1, 3, 5, 6}),
+                           (std::vector<int>{1, 0, 2, 1, 3, 2}));
+
+  ARBORX_TEST_CABANA_PROXY(exec_space, points, 4.f,
+                           (std::vector<int>{0, 2, 5, 8, 10}),
+                           (std::vector<int>{1, 2, 0, 2, 3, 0, 1, 3, 1, 2}));
+
+  ARBORX_TEST_CABANA_PROXY(
+      exec_space, points, 6.f, (std::vector<int>{0, 3, 6, 9, 12}),
+      (std::vector<int>{1, 2, 3, 0, 2, 3, 0, 1, 3, 0, 1, 2}));
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(
+    self_collision_spatial_compare_filtered_tree_traversal, DeviceType,
+    ARBORX_DEVICE_TYPES)
 {
   using MemorySpace = typename DeviceType::memory_space;
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec_space;
 
-  ARBORX_TEST_EXPAND_HALF_TO_FULL(exec_space, (std::vector<int>{0}),
-                                  (std::vector<int>{}), (std::vector<int>{0}),
-                                  (std::vector<int>{}));
   auto points = Test::make_random_cloud(exec_space, 100);
-  Kokkos::View<int *, ExecutionSpace> offsets("Test::offsets", 0);
-  Kokkos::View<int *, ExecutionSpace> indices("Test::indices", 0);
-  ArborX::Details::cabana_proxy(exec_space, points, 1.f, offsets, indices);
-  ArborX::BoundingVolumeHierarchy<MemorySpace> bvh(exec_space, points);
-  Test::RadiusSearch<decltype(points)> predicates{points, 1.f};
-  bvh.query(exec_space, Test::AttachIndices<decltype(predicates)>{predicates},
-            Test::Filter{}, indices, offsets);
+  auto radius = .3f;
+
+  BOOST_TEST(
+      Test::cabana_proxy(exec_space, points, radius) ==
+          Test::compute_reference<MemorySpace>(exec_space, points, radius),
+      boost::test_tools::per_element());
 }

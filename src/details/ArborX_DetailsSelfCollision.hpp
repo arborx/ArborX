@@ -64,6 +64,7 @@ struct SelfCollisionSpatial
     auto const leaf_permutation_i =
         HappyTreeFriends::getLeafPermutationIndex(_bvh, i);
 
+#define V1
     int node;
 #ifdef V1
     int next = HappyTreeFriends::getRoot(_bvh); // start with root

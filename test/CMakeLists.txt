@@ -191,16 +191,6 @@ configure_file(
   COPYONLY
 )
 
-add_executable(ArborX_Test_SelfCollision.exe
-  tstSelfCollision.cpp
-  tstDetailsExpandHalfToFull.cpp
-  utf_main.cpp
-)
-target_link_libraries(ArborX_Test_SelfCollision.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_Test_SelfCollision.exe PRIVATE BOOST_TEST_DYN_LINK)
-target_include_directories(ArborX_Test_SelfCollision.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_Test_SelfCollision_Test COMMAND ./ArborX_Test_SelfCollision.exe)
-
 add_executable(ArborX_Test_DetailsClusteringHelpers.exe
   tstDetailsTreeNodeLabeling.cpp
   tstDetailsMutualReachabilityDistance.cpp
@@ -213,6 +203,16 @@ target_link_libraries(ArborX_Test_DetailsClusteringHelpers.exe PRIVATE ArborX Bo
 target_compile_definitions(ArborX_Test_DetailsClusteringHelpers.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Test_DetailsClusteringHelpers.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_Test_DetailsClusteringHelpers COMMAND ./ArborX_Test_DetailsClusteringHelpers.exe)
+
+add_executable(ArborX_Test_SelfCollision.exe
+  tstSelfCollision.cpp
+  tstDetailsExpandHalfToFull.cpp
+  utf_main.cpp
+)
+target_link_libraries(ArborX_Test_SelfCollision.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_Test_SelfCollision.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_include_directories(ArborX_Test_SelfCollision.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_Test_SelfCollision COMMAND ./ArborX_Test_SelfCollision.exe)
 
 if(ARBORX_ENABLE_MPI)
   add_executable(ArborX_Test_DistributedTree.exe tstDistributedTree.cpp tstKokkosToolsDistributedAnnotations.cpp utf_main.cpp)

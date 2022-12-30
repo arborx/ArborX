@@ -42,9 +42,8 @@ template <typename T, typename... P>
 struct bt_iterator_traits<Kokkos::View<T, P...>, true>
 {
   using view_type = Kokkos::View<T, P...>;
-  using value_type = typename view_type::value_type;
-  using const_iterator =
-      typename std::add_pointer<typename view_type::const_value_type>::type;
+  using value_type = typename view_type::const_value_type;
+  using const_iterator = std::add_pointer_t<value_type>;
   static const_iterator begin(view_type const &v) { return v.data(); }
   static const_iterator end(view_type const &v) { return v.data() + v.size(); }
   static std::size_t size(view_type const &v) { return v.size(); }
