@@ -119,7 +119,7 @@ void dendrogramUnionFind(ExecutionSpace const &exec_space,
   Kokkos::Profiling::pushRegion(
       "ArborX::Dendrogram::dendrogram_union_find::copy_to_host");
 
-  auto unweighted_edges_host = Kokkos::create_mirror_view_and_copy(
+  auto sorted_unweighted_edges_host = Kokkos::create_mirror_view_and_copy(
       Kokkos::HostSpace{}, unweighted_edges);
   auto parents_host = Kokkos::create_mirror_view(parents);
 
@@ -127,7 +127,7 @@ void dendrogramUnionFind(ExecutionSpace const &exec_space,
   Kokkos::Profiling::pushRegion(
       "ArborX::Dendrogram::dendrogram_union_find::union_find");
 
-  dendrogramUnionFindHost(unweighted_edges_host, parents_host);
+  dendrogramUnionFindHost(sorted_unweighted_edges_host, parents_host);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion(
