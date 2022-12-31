@@ -28,9 +28,15 @@ struct UnweightedEdge
   unsigned int target;
 };
 
-template <typename ExecutionSpace>
+struct AllowLoops
+{};
+struct DisallowLoops
+{};
+
+template <typename ExecutionSpace, typename Tag,
+          std::enable_if_t<std::is_same_v<Tag, AllowLoops>> * = nullptr>
 Kokkos::View<UnweightedEdge *, typename ExecutionSpace::memory_space>
-buildEdges(ExecutionSpace const &exec_space, int num_edges, bool allow_loops)
+buildEdges(ExecutionSpace const &exec_space, int num_edges, Tag)
 {
   using MemorySpace = typename ExecutionSpace::memory_space;
   Kokkos::View<UnweightedEdge *, MemorySpace> edges(
@@ -39,48 +45,57 @@ buildEdges(ExecutionSpace const &exec_space, int num_edges, bool allow_loops)
       num_edges);
 
   Kokkos::Random_XorShift1024_Pool<ExecutionSpace> rand_pool(1984);
-  if (allow_loops)
-  {
-    Kokkos::parallel_for(
-        "ArborX::Bechmark::init_edges",
-        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_edges),
-        KOKKOS_LAMBDA(unsigned i) {
-          auto rand_gen = rand_pool.get_state();
-          do
-          {
-            edges(i) = {rand_gen.urand() % num_edges,
-                        rand_gen.urand() % num_edges};
-          } while (edges(i).source == edges(i).target); // no self loops
-          rand_pool.free_state(rand_gen);
-        });
-  }
-  else
-  {
-    // Construct random permutation by sorting a vector of random values
-    Kokkos::View<int *, MemorySpace> random_values(
-        Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
-                           "ArborX::Benchmark::random_values"),
-        num_edges);
-    Kokkos::parallel_for(
-        "ArborX::Bechmark::init_random_values",
-        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_edges),
-        KOKKOS_LAMBDA(int i) {
-          auto rand_gen = rand_pool.get_state();
-          random_values(i) = rand_gen.rand();
-          rand_pool.free_state(rand_gen);
-        });
-    auto permute = ArborX::Details::sortObjects(exec_space, random_values);
+  Kokkos::parallel_for(
+      "ArborX::Bechmark::init_edges",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_edges),
+      KOKKOS_LAMBDA(unsigned i) {
+        auto rand_gen = rand_pool.get_state();
+        do
+        {
+          edges(i) = {rand_gen.urand() % num_edges,
+                      rand_gen.urand() % num_edges};
+        } while (edges(i).source == edges(i).target); // no self loops
+        rand_pool.free_state(rand_gen);
+      });
+  return edges;
+}
 
-    // Init edges in a random order
-    Kokkos::parallel_for(
-        "ArborX::Bechmark::init_edges",
-        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_edges),
-        KOKKOS_LAMBDA(unsigned i) {
-          auto rand_gen = rand_pool.get_state();
-          edges(permute(i)) = {rand_gen.urand() % (i + 1), i + 1};
-          rand_pool.free_state(rand_gen);
-        });
-  }
+template <typename ExecutionSpace, typename Tag,
+          std::enable_if_t<std::is_same_v<Tag, DisallowLoops>> * = nullptr>
+Kokkos::View<UnweightedEdge *, typename ExecutionSpace::memory_space>
+buildEdges(ExecutionSpace const &exec_space, int num_edges, Tag)
+{
+  using MemorySpace = typename ExecutionSpace::memory_space;
+
+  Kokkos::Random_XorShift1024_Pool<ExecutionSpace> rand_pool(1984);
+  // Construct random permutation by sorting a vector of random values
+  Kokkos::View<int *, MemorySpace> random_values(
+      Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
+                         "ArborX::Benchmark::random_values"),
+      num_edges);
+  Kokkos::parallel_for(
+      "ArborX::Bechmark::init_random_values",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_edges),
+      KOKKOS_LAMBDA(int i) {
+        auto rand_gen = rand_pool.get_state();
+        random_values(i) = rand_gen.rand();
+        rand_pool.free_state(rand_gen);
+      });
+  auto permute = ArborX::Details::sortObjects(exec_space, random_values);
+
+  // Init edges in a random order
+  Kokkos::View<UnweightedEdge *, MemorySpace> edges(
+      Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
+                         "ArborX::Benchmark::edges"),
+      num_edges);
+  Kokkos::parallel_for(
+      "ArborX::Bechmark::init_edges",
+      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_edges),
+      KOKKOS_LAMBDA(unsigned i) {
+        auto rand_gen = rand_pool.get_state();
+        edges(permute(i)) = {rand_gen.urand() % (i + 1), i + 1};
+        rand_pool.free_state(rand_gen);
+      });
   return edges;
 }
 
@@ -102,16 +117,15 @@ auto buildUnionFind(ExecutionSpace const &exec_space, int n)
     return ArborX::Details::UnionFind<MemorySpace, /*DoSerial*/ false>(labels);
 }
 
-template <typename ExecutionSpace>
+template <typename ExecutionSpace, typename Tag>
 void BM_union_find(benchmark::State &state)
 {
   ExecutionSpace exec_space;
 
   auto const num_edges = state.range(0);
-  bool const allow_loops = state.range(1);
   auto const n = num_edges + 1;
 
-  auto edges = buildEdges(exec_space, num_edges, allow_loops);
+  auto edges = buildEdges(exec_space, num_edges, Tag{});
   auto union_find = buildUnionFind(exec_space, n);
 
   for (auto _ : state)
@@ -148,10 +162,15 @@ int main(int argc, char *argv[])
 
   benchmark::Initialize(&argc, argv);
 
-  using ExecutionSpace = Kokkos::DefaultExecutionSpace;
-  BENCHMARK_TEMPLATE(BM_union_find, ExecutionSpace)
-      ->ArgsProduct(
-          {{benchmark::CreateRange(10, 1000000, /*multi=*/10)}, {false, true}})
+  BENCHMARK_TEMPLATE2(BM_union_find, Kokkos::DefaultExecutionSpace, AllowLoops)
+      ->RangeMultiplier(10)
+      ->Range(10000, 100000)
+      ->UseManualTime()
+      ->Unit(benchmark::kMicrosecond);
+  BENCHMARK_TEMPLATE2(BM_union_find, Kokkos::DefaultExecutionSpace,
+                      DisallowLoops)
+      ->RangeMultiplier(10)
+      ->Range(10000, 100000)
       ->UseManualTime()
       ->Unit(benchmark::kMicrosecond);
 
