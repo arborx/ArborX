@@ -203,6 +203,15 @@ target_compile_definitions(ArborX_Test_DetailsClusteringHelpers.exe PRIVATE BOOS
 target_include_directories(ArborX_Test_DetailsClusteringHelpers.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_Test_DetailsClusteringHelpers COMMAND ./ArborX_Test_DetailsClusteringHelpers.exe)
 
+add_executable(ArborX_Test_SpecializedTraversals.exe
+  tstDetailsHalfTraversal.cpp
+  utf_main.cpp
+)
+target_link_libraries(ArborX_Test_SpecializedTraversals.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_Test_SpecializedTraversals.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_include_directories(ArborX_Test_SpecializedTraversals.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_Test_SpecializedTraversals COMMAND ./ArborX_Test_SpecializedTraversals.exe)
+
 if(ARBORX_ENABLE_MPI)
   add_executable(ArborX_Test_DistributedTree.exe tstDistributedTree.cpp tstKokkosToolsDistributedAnnotations.cpp utf_main.cpp)
   target_link_libraries(ArborX_Test_DistributedTree.exe PRIVATE ArborX Boost::unit_test_framework)
