@@ -205,6 +205,7 @@ add_test(NAME ArborX_Test_DetailsClusteringHelpers COMMAND ./ArborX_Test_Details
 
 add_executable(ArborX_Test_SpecializedTraversals.exe
   tstDetailsHalfTraversal.cpp
+  tstDetailsExpandHalfToFull.cpp
   utf_main.cpp
 )
 target_link_libraries(ArborX_Test_SpecializedTraversals.exe PRIVATE ArborX Boost::unit_test_framework)
