@@ -33,10 +33,9 @@ struct AllowLoops
 struct DisallowLoops
 {};
 
-template <typename ExecutionSpace, typename Tag,
-          std::enable_if_t<std::is_same_v<Tag, AllowLoops>> * = nullptr>
+template <typename ExecutionSpace>
 Kokkos::View<UnweightedEdge *, typename ExecutionSpace::memory_space>
-buildEdges(ExecutionSpace const &exec_space, int num_edges, Tag)
+buildEdges(AllowLoops, ExecutionSpace const &exec_space, int num_edges)
 {
   using MemorySpace = typename ExecutionSpace::memory_space;
   Kokkos::View<UnweightedEdge *, MemorySpace> edges(
@@ -60,10 +59,9 @@ buildEdges(ExecutionSpace const &exec_space, int num_edges, Tag)
   return edges;
 }
 
-template <typename ExecutionSpace, typename Tag,
-          std::enable_if_t<std::is_same_v<Tag, DisallowLoops>> * = nullptr>
+template <typename ExecutionSpace>
 Kokkos::View<UnweightedEdge *, typename ExecutionSpace::memory_space>
-buildEdges(ExecutionSpace const &exec_space, int num_edges, Tag)
+buildEdges(DisallowLoops, ExecutionSpace const &exec_space, int num_edges)
 {
   using MemorySpace = typename ExecutionSpace::memory_space;
 
@@ -125,7 +123,7 @@ void BM_union_find(benchmark::State &state)
   auto const num_edges = state.range(0);
   auto const n = num_edges + 1;
 
-  auto edges = buildEdges(exec_space, num_edges, Tag{});
+  auto edges = buildEdges(Tag{}, exec_space, num_edges);
   auto union_find = buildUnionFind(exec_space, n);
 
   for (auto _ : state)
