@@ -69,6 +69,7 @@ struct WithinRadiusGetter
     auto const &hyper_point =
         reinterpret_cast<ExperimentalHyperGeometry::Point<dim> const &>(
             box.minCorner());
+    using ArborX::intersects;
     return intersects(ExperimentalHyperGeometry::Sphere<dim>{hyper_point, _r});
   }
 };
