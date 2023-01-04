@@ -52,10 +52,10 @@ struct FDBSCANCallback
   KOKKOS_FUNCTION auto operator()(int i, int j) const
   {
     bool const is_border_point = !_is_core_point(i);
-    bool const is_neighbor_core_point = _is_core_point(j);
+    bool const neighbor_is_core_point = _is_core_point(j);
     if (is_border_point)
     {
-      if (is_neighbor_core_point)
+      if (neighbor_is_core_point)
       {
         // For a border point that is connected to a core point, set its
         // representative to that of the core point. If it is connected to
@@ -63,7 +63,7 @@ struct FDBSCANCallback
         // first found core point neighbor was in.
         //
         // NOTE: DO NOT USE merge(i, j) here. This may set this border point as
-        // a representative for the whole cluster potentially formbing a bridge
+        // a representative for the whole cluster potentially forming a bridge
         // with a different cluster.
         _union_find.merge_into(i, j);
 
@@ -74,7 +74,7 @@ struct FDBSCANCallback
     }
     else
     {
-      if (is_neighbor_core_point)
+      if (neighbor_is_core_point)
       {
         // For a core point that is connected to another core point, do the
         // standard CCS algorithm
@@ -82,7 +82,7 @@ struct FDBSCANCallback
       }
       else
       {
-        // Merge the neighbor in (see comment above).
+        // Merge the neighbor in (see NOTE about border points above).
         _union_find.merge_into(j, i);
       }
     }
