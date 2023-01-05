@@ -45,7 +45,7 @@ buildEdges(AllowLoops, ExecutionSpace const &exec_space, int num_edges)
 
   Kokkos::Random_XorShift1024_Pool<ExecutionSpace> rand_pool(1984);
   Kokkos::parallel_for(
-      "ArborX::Bechmark::init_edges",
+      "ArborX::Benchmark::init_edges",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_edges),
       KOKKOS_LAMBDA(unsigned i) {
         auto rand_gen = rand_pool.get_state();
@@ -72,7 +72,7 @@ buildEdges(DisallowLoops, ExecutionSpace const &exec_space, int num_edges)
                          "ArborX::Benchmark::random_values"),
       num_edges);
   Kokkos::parallel_for(
-      "ArborX::Bechmark::init_random_values",
+      "ArborX::Benchmark::init_random_values",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_edges),
       KOKKOS_LAMBDA(int i) {
         auto rand_gen = rand_pool.get_state();
@@ -87,7 +87,7 @@ buildEdges(DisallowLoops, ExecutionSpace const &exec_space, int num_edges)
                          "ArborX::Benchmark::edges"),
       num_edges);
   Kokkos::parallel_for(
-      "ArborX::Bechmark::init_edges",
+      "ArborX::Benchmark::init_edges",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_edges),
       KOKKOS_LAMBDA(unsigned i) {
         auto rand_gen = rand_pool.get_state();
@@ -134,7 +134,7 @@ void BM_union_find(benchmark::State &state)
     auto const start = std::chrono::high_resolution_clock::now();
 
     Kokkos::parallel_for(
-        "ArborX::Bechmark::union-find",
+        "ArborX::Benchmark::union-find",
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, edges.size()),
         KOKKOS_LAMBDA(int e) {
           int i = edges(e).source;
