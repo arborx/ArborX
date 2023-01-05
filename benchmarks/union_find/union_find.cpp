@@ -115,9 +115,11 @@ auto buildUnionFind(ExecutionSpace const &exec_space, int n)
     return ArborX::Details::UnionFind<MemorySpace, /*DoSerial*/ false>(labels);
 }
 
-template <typename ExecutionSpace, typename Tag>
+template <typename Tag>
 void BM_union_find(benchmark::State &state)
 {
+  using ExecutionSpace = Kokkos::DefaultExecutionSpace;
+
   ExecutionSpace exec_space;
 
   auto const num_edges = state.range(0);
@@ -160,13 +162,12 @@ int main(int argc, char *argv[])
 
   benchmark::Initialize(&argc, argv);
 
-  BENCHMARK_TEMPLATE2(BM_union_find, Kokkos::DefaultExecutionSpace, AllowLoops)
+  BENCHMARK_TEMPLATE1(BM_union_find, AllowLoops)
       ->RangeMultiplier(10)
       ->Range(10000, 100000)
       ->UseManualTime()
       ->Unit(benchmark::kMicrosecond);
-  BENCHMARK_TEMPLATE2(BM_union_find, Kokkos::DefaultExecutionSpace,
-                      DisallowLoops)
+  BENCHMARK_TEMPLATE1(BM_union_find, DisallowLoops)
       ->RangeMultiplier(10)
       ->Range(10000, 100000)
       ->UseManualTime()
