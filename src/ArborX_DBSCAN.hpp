@@ -60,11 +60,10 @@ struct WithinRadiusGetter
 {
   float _r;
 
-  template <typename Box>
+  template <typename Box,
+            typename Enable = std::enable_if_t<GeometryTraits::is_box<Box>{}>>
   KOKKOS_FUNCTION auto operator()(Box const &box) const
   {
-    static_assert(GeometryTraits::is_box<Box>{});
-
     constexpr int dim = GeometryTraits::dimension_v<Box>;
     auto const &hyper_point =
         reinterpret_cast<ExperimentalHyperGeometry::Point<dim> const &>(
