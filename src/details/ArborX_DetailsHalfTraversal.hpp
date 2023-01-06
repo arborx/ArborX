@@ -12,12 +12,13 @@
 #ifndef ARBORX_DETAILS_HALF_TRAVERSAL_HPP
 #define ARBORX_DETAILS_HALF_TRAVERSAL_HPP
 
-#include <ArborX_Callbacks.hpp> // LegacyCallbackWrapper
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
 
 #include <Kokkos_Core.hpp>
+
+#include <cstdlib>
 
 namespace ArborX::Details
 {
@@ -56,7 +57,7 @@ struct HalfTraversal
             "ArborX::Experimental::HalfTraversal",
             Kokkos::Experimental::prefer(
                 Kokkos::RangePolicy<ExecutionSpace>(space, 0, _bvh.size()),
-                Kokkos::Experimental::DesiredOccupancy{75}),
+                Kokkos::Experimental::DesiredOccupancy{Kokkos::AUTO}),
             *this);
       else
 #endif
