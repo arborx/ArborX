@@ -46,7 +46,8 @@ void expandHalfToFull(ExecutionSpace const &space, Offsets &offsets,
   auto const m = KokkosExt::lastElement(space, offsets);
   KokkosExt::reallocWithoutInitializing(space, indices, m);
 
-  auto counts = KokkosExt::clone(space, offsets);
+  auto counts = KokkosExt::clone(space, offsets,
+                                 "ArborX::Experimental::HalfToFull::counts");
   Kokkos::parallel_for(
       "ArborX::Experimental::HalfToFull::rewrite",
       Kokkos::TeamPolicy<ExecutionSpace>(space, n, Kokkos::AUTO, 1),
