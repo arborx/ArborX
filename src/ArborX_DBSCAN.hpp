@@ -63,7 +63,7 @@ struct WithinRadiusGetter
   template <typename Box>
   KOKKOS_FUNCTION auto operator()(Box const &box) const
   {
-    static_assert(GeometryTraits::is_box<Box>{});
+    static_assert(GeometryTraits::is_box<Box>::value);
 
     constexpr int dim = GeometryTraits::dimension_v<Box>;
     auto const &hyper_point =
