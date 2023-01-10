@@ -658,12 +658,10 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   Kokkos::View<int *, ExecutionSpace> ranks(
       "ArborX::DistributedTree::query::nearest::ranks", 0);
 
-  // The strategy for executing the callback only for the primitives that are
-  // closest for every predicate is as follows:
-  // - Find the ranks and indices for the nearest queries using the overload not
-  //   taking a callback.
-  // - Send the predicate-primitive pairs to the process where the match was
-  //   found.
+  // Distributed nearest callbacks strategy:
+  // - Find the ranks and indices for the nearest queries using a regular query
+  //   without a callback.
+  // - Scatter (predicate, primitive) pairs to the corresponding matching ranks.
   // - Execute the callback on the process owning the primitives.
   // - Send the result back to the process owning the predicates.
 
