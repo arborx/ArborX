@@ -359,13 +359,14 @@ typename ViewType::non_const_value_type min(ExecutionSpace &&space,
   static_assert(ViewType::rank == 1, "min requires a View of rank 1");
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
-  typename ViewType::non_const_value_type result;
+  using ValueType = typename ViewType::non_const_value_type;
+  ValueType result;
   Kokkos::Min<typename ViewType::non_const_value_type> reducer(result);
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_reduce(
       "ArborX::Algorithms::min", policy,
-      KOKKOS_LAMBDA(int i, int &update) {
+      KOKKOS_LAMBDA(int i, ValueType &update) {
         if (v(i) < update)
           update = v(i);
       },
@@ -393,13 +394,14 @@ typename ViewType::non_const_value_type max(ExecutionSpace &&space,
   static_assert(ViewType::rank == 1, "max requires a View of rank 1");
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
-  typename ViewType::non_const_value_type result;
+  using ValueType = typename ViewType::non_const_value_type;
+  ValueType result;
   Kokkos::Max<typename ViewType::non_const_value_type> reducer(result);
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_reduce(
       "ArborX::Algorithms::max", policy,
-      KOKKOS_LAMBDA(int i, int &update) {
+      KOKKOS_LAMBDA(int i, ValueType &update) {
         if (v(i) > update)
           update = v(i);
       },

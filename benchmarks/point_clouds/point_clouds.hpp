@@ -14,7 +14,7 @@
 
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_Exception.hpp>
-#include <ArborX_Point.hpp>
+#include <ArborX_GeometryTraits.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -43,10 +43,9 @@ inline PointCloudType to_point_cloud_enum(std::string const &str)
                            " doesn't correspond to any known PointCloudType!");
 }
 
-template <typename... ViewProperties>
-void filledBoxCloud(
-    double const half_edge,
-    Kokkos::View<ArborX::Point *, ViewProperties...> random_points)
+template <class Point, typename... ViewProperties>
+void filledBoxCloud(double const half_edge,
+                    Kokkos::View<Point *, ViewProperties...> random_points)
 {
   static_assert(
       KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
@@ -57,14 +56,15 @@ void filledBoxCloud(
     return distribution(generator);
   };
   unsigned int const n = random_points.extent(0);
+  constexpr auto DIM = ArborX::GeometryTraits::dimension<Point>::value;
   for (unsigned int i = 0; i < n; ++i)
-    random_points(i) = {{random(), random(), random()}};
+    for (int d = 0; d < DIM; ++d)
+      random_points(i)[d] = random();
 }
 
-template <typename... ViewProperties>
-void hollowBoxCloud(
-    double const half_edge,
-    Kokkos::View<ArborX::Point *, ViewProperties...> random_points)
+template <class Point, typename... ViewProperties>
+void hollowBoxCloud(double const half_edge,
+                    Kokkos::View<Point *, ViewProperties...> random_points)
 {
   static_assert(
       KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
@@ -75,59 +75,24 @@ void hollowBoxCloud(
     return distribution(generator);
   };
   unsigned int const n = random_points.extent(0);
-  for (unsigned int i = 0; i < n; ++i)
+  constexpr auto DIM = ArborX::GeometryTraits::dimension<Point>::value;
+  // Points are cyclically placed on the faces of a box
+  constexpr int num_faces = 2 * DIM;
+  for (int axis = 0; axis < DIM; ++axis)
   {
-    unsigned int face = i % 6;
-    switch (face)
-    {
-    case 0:
-    {
-      random_points(i) = {{-half_edge, random(), random()}};
+    for (unsigned int i = 2 * axis; i < n; i += num_faces)
+      for (int d = 0; d < DIM; ++d)
+        random_points(i)[d] = (d != axis ? random() : -half_edge);
 
-      break;
-    }
-    case 1:
-    {
-      random_points(i) = {{half_edge, random(), random()}};
-
-      break;
-    }
-    case 2:
-    {
-      random_points(i) = {{random(), -half_edge, random()}};
-
-      break;
-    }
-    case 3:
-    {
-      random_points(i) = {{random(), half_edge, random()}};
-
-      break;
-    }
-    case 4:
-    {
-      random_points(i) = {{random(), random(), -half_edge}};
-
-      break;
-    }
-    case 5:
-    {
-      random_points(i) = {{random(), random(), half_edge}};
-
-      break;
-    }
-    default:
-    {
-      throw std::runtime_error("Your compiler is broken");
-    }
-    }
+    for (unsigned int i = 2 * axis + 1; i < n; i += num_faces)
+      for (int d = 0; d < DIM; ++d)
+        random_points(i)[d] = (d != axis ? random() : +half_edge);
   }
 }
 
-template <typename... ViewProperties>
-void filledSphereCloud(
-    double const radius,
-    Kokkos::View<ArborX::Point *, ViewProperties...> random_points)
+template <class Point, typename... ViewProperties>
+void filledSphereCloud(double const radius,
+                       Kokkos::View<Point *, ViewProperties...> random_points)
 {
   static_assert(
       KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
@@ -140,29 +105,35 @@ void filledSphereCloud(
   };
 
   unsigned int const n = random_points.extent(0);
+  constexpr auto DIM = ArborX::GeometryTraits::dimension<Point>::value;
   for (unsigned int i = 0; i < n; ++i)
   {
     bool point_accepted = false;
     while (!point_accepted)
     {
-      double const x = random();
-      double const y = random();
-      double const z = random();
+      Point p;
+      double norm = 0.f;
+      for (int d = 0; d < DIM; ++d)
+      {
+        double v = random();
+        p[d] = v;
+        norm += v * v;
+      }
+      norm = std::sqrt(norm);
 
       // Only accept points that are in the sphere
-      if (std::sqrt(x * x + y * y + z * z) <= radius)
+      if (norm <= radius)
       {
-        random_points(i) = {{x, y, z}};
+        random_points(i) = p;
         point_accepted = true;
       }
     }
   }
 }
 
-template <typename... ViewProperties>
-void hollowSphereCloud(
-    double const radius,
-    Kokkos::View<ArborX::Point *, ViewProperties...> random_points)
+template <class Point, typename... ViewProperties>
+void hollowSphereCloud(double const radius,
+                       Kokkos::View<Point *, ViewProperties...> random_points)
 {
   static_assert(
       KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
@@ -175,23 +146,32 @@ void hollowSphereCloud(
   };
 
   unsigned int const n = random_points.extent(0);
+  constexpr auto DIM = ArborX::GeometryTraits::dimension<Point>::value;
   for (unsigned int i = 0; i < n; ++i)
   {
-    double const x = random();
-    double const y = random();
-    double const z = random();
-    double const norm = std::sqrt(x * x + y * y + z * z);
+    double v[DIM];
+    double norm = 0.;
+    for (int d = 0; d < DIM; ++d)
+    {
+      v[d] = random();
+      norm += v[d] * v[d];
+    }
+    norm = std::sqrt(norm);
 
-    random_points(i) = {
-        {radius * x / norm, radius * y / norm, radius * z / norm}};
+    for (int d = 0; d < DIM; ++d)
+      random_points(i)[d] = radius * v[d] / norm;
   }
 }
 
-template <typename DeviceType>
+template <class Point, typename DeviceType>
 void generatePointCloud(PointCloudType const point_cloud_type,
                         double const length,
-                        Kokkos::View<ArborX::Point *, DeviceType> random_points)
+                        Kokkos::View<Point *, DeviceType> random_points)
 {
+  using namespace ArborX::GeometryTraits;
+  check_valid_geometry_traits(Point{});
+  static_assert(is_point<Point>{}, "ArborX: View must contain point values");
+
   auto random_points_host = Kokkos::create_mirror_view(random_points);
   switch (point_cloud_type)
   {

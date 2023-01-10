@@ -54,8 +54,9 @@ struct AccessTraits<Details::PermutedData<Predicates, Permute, AttachIndices>,
   }
 
   template <bool _Attach = AttachIndices>
-  KOKKOS_FUNCTION static auto get(PermutedPredicates const &permuted_predicates,
-                                  std::enable_if_t<!_Attach, std::size_t> index)
+  KOKKOS_FUNCTION static decltype(auto)
+  get(PermutedPredicates const &permuted_predicates,
+      std::enable_if_t<!_Attach, std::size_t> index)
   {
     auto const permuted_index = permuted_predicates._permute(index);
     return NativeAccess::get(permuted_predicates._data, permuted_index);

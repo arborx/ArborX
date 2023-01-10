@@ -1,17 +1,15 @@
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   cmake_minimum_required(VERSION 3.16)
   project(ArborXExamples CXX)
-  find_package(ArborX 1.3 REQUIRED)
+  find_package(ArborX 1.4 REQUIRED)
   enable_testing()
 endif()
 
 add_subdirectory(access_traits)
-
 add_subdirectory(callback)
-
-add_subdirectory(simple_intersection)
-
+add_subdirectory(dbscan)
 add_subdirectory(molecular_dynamics)
+add_subdirectory(simple_intersection)
 
 if(ARBORX_ENABLE_MPI)
   add_subdirectory(distributed_tree)

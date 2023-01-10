@@ -19,46 +19,14 @@
 #include <ArborX_DetailsMutualReachabilityDistance.hpp>
 #include <ArborX_DetailsTreeNodeLabeling.hpp>
 #include <ArborX_DetailsUtils.hpp>
+#include <ArborX_DetailsWeightedEdge.hpp>
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_LinearBVH.hpp>
 
 #include <Kokkos_Core.hpp>
-#include <Kokkos_Profiling_ProfileSection.hpp>
 
-namespace ArborX
+namespace ArborX::Details
 {
-namespace Details
-{
-
-struct WeightedEdge
-{
-  int source;
-  int target;
-  float weight;
-
-private:
-  // performs lexicographical comparison by comparing first the weights and then
-  // the unordered pair of vertices
-  friend KOKKOS_FUNCTION constexpr bool operator<(WeightedEdge const &lhs,
-                                                  WeightedEdge const &rhs)
-  {
-    if (lhs.weight != rhs.weight)
-    {
-      return (lhs.weight < rhs.weight);
-    }
-    using KokkosExt::min;
-    auto const lhs_min = min(lhs.source, lhs.target);
-    auto const rhs_min = min(rhs.source, rhs.target);
-    if (lhs_min != rhs_min)
-    {
-      return (lhs_min < rhs_min);
-    }
-    using KokkosExt::max;
-    auto const lhs_max = max(lhs.source, lhs.target);
-    auto const rhs_max = max(rhs.source, rhs.target);
-    return (lhs_max < rhs_max);
-  }
-};
 
 class DirectedEdge
 {
@@ -598,20 +566,14 @@ struct MinimumSpanningTree
         typename Details::AccessTraitsHelper<Access>::type>;
     using Box = ExperimentalHyperGeometry::Box<dim>;
 
-    Kokkos::Profiling::ProfilingSection profile_construction(
-        "ArborX::MST::construction");
-    profile_construction.start();
+    Kokkos::Profiling::pushRegion("ArborX::MST::construction");
     BasicBoundingVolumeHierarchy<MemorySpace, Box> bvh(space, primitives);
-    profile_construction.stop();
+    Kokkos::Profiling::popRegion();
 
     auto const n = bvh.size();
 
-    Kokkos::Profiling::ProfilingSection profile_boruvka("ArborX::MST::boruvka");
     if (k > 1)
     {
-      Kokkos::Profiling::ProfilingSection profile_core_distances(
-          "ArborX::MST::core_distances");
-      profile_core_distances.start();
       Kokkos::Profiling::pushRegion("ArborX::MST::compute_core_distances");
       Kokkos::View<float *, MemorySpace> core_distances(
           "ArborX::MST::core_distances", n);
@@ -619,19 +581,18 @@ struct MinimumSpanningTree
                 MaxDistance<Primitives, decltype(core_distances)>{
                     primitives, core_distances});
       Kokkos::Profiling::popRegion();
-      profile_core_distances.stop();
 
       MutualReachability<decltype(core_distances)> mutual_reachability{
           core_distances};
-      profile_boruvka.start();
+      Kokkos::Profiling::pushRegion("ArborX::MST::boruvka");
       doBoruvka(space, bvh, mutual_reachability);
-      profile_boruvka.stop();
+      Kokkos::Profiling::popRegion();
     }
     else
     {
-      profile_boruvka.start();
+      Kokkos::Profiling::pushRegion("ArborX::MST::boruvka");
       doBoruvka(space, bvh, Euclidean{});
-      profile_boruvka.stop();
+      Kokkos::Profiling::popRegion();
     }
 
     finalizeEdges(space, bvh, edges);
@@ -751,7 +712,6 @@ private:
   }
 };
 
-} // namespace Details
-} // namespace ArborX
+} // namespace ArborX::Details
 
 #endif

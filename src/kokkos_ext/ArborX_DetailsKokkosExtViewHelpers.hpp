@@ -38,7 +38,7 @@ lastElement(ExecutionSpace const &space, Kokkos::View<T, P...> const &v)
   auto v_subview = Kokkos::subview(v, n - 1);
   auto v_host = Kokkos::create_mirror_view(v_subview); // FIXME
   Kokkos::deep_copy(space, v_host, v_subview);
-  space.fence();
+  space.fence("ArborX::KokkosExt::lastElement (copy to host)");
   return v_host();
 }
 
@@ -84,26 +84,41 @@ void reallocWithoutInitializing(ExecutionSpace const &space, View &v,
 }
 
 template <class ExecutionSpace, class View>
-typename View::non_const_type clone(ExecutionSpace const &space, View &v)
+typename View::non_const_type clone(ExecutionSpace const &space, View const &v,
+                                    std::string const &label)
 {
   static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
   static_assert(Kokkos::is_view<View>::value);
   typename View::non_const_type w(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, v.label()),
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, label),
       v.layout());
   Kokkos::deep_copy(space, w, v);
   return w;
 }
 
 template <class ExecutionSpace, class View>
+typename View::non_const_type clone(ExecutionSpace const &space, View const &v)
+{
+  return clone(space, v, v.label());
+}
+
+template <class ExecutionSpace, class View>
 typename View::non_const_type
-cloneWithoutInitializingNorCopying(ExecutionSpace const &space, View &v)
+cloneWithoutInitializingNorCopying(ExecutionSpace const &space, View const &v,
+                                   std::string const &label)
 {
   static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
   static_assert(Kokkos::is_view<View>::value);
   return typename View::non_const_type(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, v.label()),
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, label),
       v.layout());
+}
+
+template <class ExecutionSpace, class View>
+typename View::non_const_type
+cloneWithoutInitializingNorCopying(ExecutionSpace const &space, View const &v)
+{
+  return cloneWithoutInitializingNorCopying(space, v, v.label());
 }
 
 } // namespace KokkosExt

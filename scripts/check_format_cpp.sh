@@ -57,6 +57,12 @@ if [ $verbose -eq 0 ]; then
     exec &>/dev/null
 fi
 
+if ! command -v git &> /dev/null
+then
+    echo "git not found"
+    exit 1
+fi
+
 cpp_source_files=$(git ls-files | grep -E "\.hpp$|\.cpp$|\.h$|\.c$" | grep -v -f .clang-format-ignore)
 
 unformatted_files=()

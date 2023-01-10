@@ -67,19 +67,22 @@
 
 #include <Kokkos_Core.hpp>
 
-namespace ArborX
-{
-namespace Details
+namespace ArborX::Details
 {
 
-template <typename MemorySpace>
+template <typename MemorySpace, bool DoSerial = false>
 struct UnionFind
 {
-  Kokkos::View<int *, MemorySpace> labels_;
+  using memory_space = MemorySpace;
+
+  Kokkos::View<int *, MemorySpace> _labels;
 
   UnionFind(Kokkos::View<int *, MemorySpace> labels)
-      : labels_(labels)
+      : _labels(labels)
   {}
+
+  KOKKOS_FUNCTION
+  auto size() const { return _labels.size(); }
 
   // Per [1]:
   //
@@ -108,14 +111,14 @@ struct UnionFind
   int representative(int const i) const
   {
     // ##### ECL license (see LICENSE.ECL) #####
-    int curr = labels_(i);
+    int curr = _labels(i);
     if (curr != i)
     {
       int next;
       int prev = i;
-      while (curr > (next = labels_(curr)))
+      while (curr > (next = _labels(curr)))
       {
-        labels_(prev) = next;
+        _labels(prev) = next;
         prev = curr;
         curr = next;
       }
@@ -128,7 +131,7 @@ struct UnionFind
   // that, an extra function is introduced, which assigns the label of the
   // second point (or, rather, the label of its representative) to the first.
   KOKKOS_FUNCTION
-  void merge_into(int i, int j) const { labels_(i) = representative(j); }
+  void merge_into(int i, int j) const { _labels(i) = representative(j); }
 
   KOKKOS_FUNCTION
   void merge(int i, int j) const
@@ -148,41 +151,34 @@ struct UnionFind
     // until there is no data race on the parent.
     // ```
 
-    // ##### ECL license (see LICENSE.ECL) #####
     int vstat = representative(i);
     int ostat = representative(j);
 
-    bool repeat;
-    do
+    if constexpr (DoSerial)
     {
-      repeat = false;
-      if (vstat != ostat)
+      if (vstat < ostat)
+        _labels(ostat) = vstat;
+      else
+        _labels(vstat) = ostat;
+    }
+    else
+    {
+      // Note: the code does one extra iteration even when the labels array was
+      // updated. However, it does not show up in any of the performance
+      // studies, and the code is cleaner and more compact.
+      while (vstat != ostat)
       {
-        int ret;
         if (vstat < ostat)
-        {
-          if ((ret = Kokkos::atomic_compare_exchange(&labels_(ostat), ostat,
-                                                     vstat)) != ostat)
-          {
-            ostat = ret;
-            repeat = true;
-          }
-        }
+          ostat =
+              Kokkos::atomic_compare_exchange(&_labels(ostat), ostat, vstat);
         else
-        {
-          if ((ret = Kokkos::atomic_compare_exchange(&labels_(vstat), vstat,
-                                                     ostat)) != vstat)
-          {
-            vstat = ret;
-            repeat = true;
-          }
-        }
+          vstat =
+              Kokkos::atomic_compare_exchange(&_labels(vstat), vstat, ostat);
       }
-    } while (repeat);
+    }
   }
 };
 
-} // namespace Details
-} // namespace ArborX
+} // namespace ArborX::Details
 
 #endif

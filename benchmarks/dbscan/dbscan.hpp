@@ -16,18 +16,20 @@ namespace ArborXBenchmark
 
 struct Parameters
 {
-  std::string filename;
   std::string algorithm;
   bool binary;
-  bool verify;
-  bool print_dbscan_timers;
-  float eps;
   int cluster_min_size;
   int core_min_size;
-  int max_num_points;
-  int num_samples;
+  float eps;
+  std::string filename;
   std::string filename_labels;
   std::string implementation;
+  int max_num_points;
+  int n;
+  int num_samples;
+  bool variable_density;
+  bool verbose;
+  bool verify;
 };
 
 template <int DIM>

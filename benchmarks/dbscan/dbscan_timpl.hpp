@@ -11,6 +11,7 @@
 
 #include <ArborX_DBSCAN.hpp>
 #include <ArborX_DBSCANVerification.hpp>
+#include <ArborX_HDBSCAN.hpp>
 #include <ArborX_MinimumSpanningTree.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -18,91 +19,11 @@
 #include <cstdlib>
 #include <fstream>
 
+#include "data.hpp"
 #include "dbscan.hpp"
 #include "print_timers.hpp"
 
 using ArborX::ExperimentalHyperGeometry::Point;
-
-template <int DIM>
-std::vector<Point<DIM>> sampleData(std::vector<Point<DIM>> const &data,
-                                   int num_samples)
-{
-  std::vector<Point<DIM>> sampled_data(num_samples);
-
-  std::srand(1337);
-
-  // Knuth algorithm
-  auto const N = (int)data.size();
-  auto const M = num_samples;
-  for (int in = 0, im = 0; in < N && im < M; ++in)
-  {
-    int rn = N - in;
-    int rm = M - im;
-    if (std::rand() % rn < rm)
-      sampled_data[im++] = data[in];
-  }
-  return sampled_data;
-}
-
-template <int DIM>
-std::vector<Point<DIM>> loadData(std::string const &filename,
-                                 bool binary = true, int max_num_points = -1,
-                                 int num_samples = -1)
-{
-  std::cout << "Reading in \"" << filename << "\" in "
-            << (binary ? "binary" : "text") << " mode...";
-  std::cout.flush();
-
-  std::ifstream input;
-  if (!binary)
-    input.open(filename);
-  else
-    input.open(filename, std::ifstream::binary);
-  ARBORX_ASSERT(input.good());
-
-  std::vector<Point<DIM>> v;
-
-  int num_points = 0;
-  int dim = 0;
-  if (!binary)
-  {
-    input >> num_points;
-    input >> dim;
-  }
-  else
-  {
-    input.read(reinterpret_cast<char *>(&num_points), sizeof(int));
-    input.read(reinterpret_cast<char *>(&dim), sizeof(int));
-  }
-
-  ARBORX_ASSERT(dim == DIM);
-
-  if (max_num_points > 0 && max_num_points < num_points)
-    num_points = max_num_points;
-
-  v.resize(num_points);
-  if (!binary)
-  {
-    auto it = std::istream_iterator<float>(input);
-    for (int i = 0; i < num_points; ++i)
-      for (int d = 0; d < DIM; ++d)
-        v[i][d] = *it++;
-  }
-  else
-  {
-    // Directly read into a point
-    input.read(reinterpret_cast<char *>(v.data()),
-               num_points * sizeof(Point<DIM>));
-  }
-  input.close();
-  std::cout << "done\nRead in " << num_points << " " << dim << "D points"
-            << std::endl;
-
-  if (num_samples > 0 && num_samples < (int)v.size())
-    v = sampleData(v, num_samples);
-
-  return v;
-}
 
 template <typename MemorySpace>
 void writeLabelsData(std::string const &filename,
@@ -238,81 +159,86 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
   using ExecutionSpace = Kokkos::DefaultExecutionSpace;
   using MemorySpace = typename ExecutionSpace::memory_space;
 
-  if (params.print_dbscan_timers)
+  if (params.verbose)
   {
-    Kokkos::Profiling::Experimental::set_create_profile_section_callback(
-        arborx_dbscan_example_set_create_profile_section);
-    Kokkos::Profiling::Experimental::set_destroy_profile_section_callback(
-        arborx_dbscan_example_set_destroy_profile_section);
-    Kokkos::Profiling::Experimental::set_start_profile_section_callback(
-        arborx_dbscan_example_set_start_profile_section);
-    Kokkos::Profiling::Experimental::set_stop_profile_section_callback(
-        arborx_dbscan_example_set_stop_profile_section);
+    Kokkos::Profiling::Experimental::set_push_region_callback(
+        ArborX_Benchmark::push_region);
+    Kokkos::Profiling::Experimental::set_pop_region_callback(
+        ArborX_Benchmark::pop_region);
   }
 
   ExecutionSpace exec_space;
 
-  auto data = loadData<DIM>(params.filename, params.binary,
-                            params.max_num_points, params.num_samples);
+  std::vector<ArborX::ExperimentalHyperGeometry::Point<DIM>> data;
+  if (!params.filename.empty())
+  {
+    // Read in data
+    data = loadData<DIM>(params.filename, params.binary, params.max_num_points,
+                         params.num_samples);
+  }
+  else
+  {
+    // Generate data
+    data = GanTao<DIM>(params.n, params.variable_density);
+  }
 
   auto const primitives = vec2view<MemorySpace>(data, "primitives");
 
   using Primitives = decltype(primitives);
 
-  using ArborX::DBSCAN::Implementation;
-  Implementation implementation = Implementation::FDBSCAN;
-  if (params.implementation == "fdbscan-densebox")
-    implementation = Implementation::FDBSCAN_DenseBox;
-
   Kokkos::View<int *, MemorySpace> labels("Example::labels", 0);
   bool success = true;
   if (params.algorithm == "dbscan")
   {
+    using ArborX::DBSCAN::Implementation;
+    Implementation implementation = Implementation::FDBSCAN;
+    if (params.implementation == "fdbscan-densebox")
+      implementation = Implementation::FDBSCAN_DenseBox;
+
     ArborX::DBSCAN::Parameters dbscan_params;
-    dbscan_params.setPrintTimers(params.print_dbscan_timers)
+    dbscan_params.setVerbosity(params.verbose)
         .setImplementation(implementation);
 
-    Kokkos::Profiling::ProfilingSection profile_total("ArborX::DBSCAN::total");
-    profile_total.start();
+    Kokkos::Profiling::pushRegion("ArborX::DBSCAN::total");
 
     labels = ArborX::dbscan<ExecutionSpace, Primitives>(
         exec_space, primitives, params.eps, params.core_min_size,
         dbscan_params);
 
-    Kokkos::Profiling::ProfilingSection profile_postprocess(
-        "ArborX::DBSCAN::postprocess");
-    profile_postprocess.start();
+    Kokkos::Profiling::pushRegion("ArborX::DBSCAN::postprocess");
     Kokkos::View<int *, MemorySpace> cluster_indices("Testing::cluster_indices",
                                                      0);
     Kokkos::View<int *, MemorySpace> cluster_offset("Testing::cluster_offset",
                                                     0);
     sortAndFilterClusters(exec_space, labels, cluster_indices, cluster_offset,
                           params.cluster_min_size);
-    profile_postprocess.stop();
-    profile_total.stop();
+    Kokkos::Profiling::popRegion();
 
-    if (params.print_dbscan_timers)
+    Kokkos::Profiling::popRegion();
+
+    if (params.verbose)
     {
       bool const is_special_case = (params.core_min_size == 2);
 
       if (implementation == ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox)
         printf("-- dense cells      : %10.3f\n",
-               arborx_dbscan_example_get_time("ArborX::DBSCAN::dense_cells"));
+               ArborX_Benchmark::get_time("ArborX::DBSCAN::dense_cells"));
       printf("-- construction     : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::DBSCAN::construction"));
+             ArborX_Benchmark::get_time("ArborX::DBSCAN::tree_construction"));
       printf("-- query+cluster    : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::DBSCAN::query+cluster"));
+             ArborX_Benchmark::get_time("ArborX::DBSCAN::clusters"));
       if (!is_special_case)
       {
-        printf("---- neigh          : %10.3f\n",
-               arborx_dbscan_example_get_time("ArborX::DBSCAN::neigh"));
+        printf(
+            "---- neigh          : %10.3f\n",
+            ArborX_Benchmark::get_time("ArborX::DBSCAN::clusters::num_neigh"));
         printf("---- query          : %10.3f\n",
-               arborx_dbscan_example_get_time("ArborX::DBSCAN::query"));
+               ArborX_Benchmark::get_time("ArborX::DBSCAN::clusters::query"));
       }
       printf("-- postprocess      : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::DBSCAN::postprocess"));
+             ArborX_Benchmark::get_time("ArborX::DBSCAN::postprocess"));
       printf("total time          : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::DBSCAN::total"));
+             ArborX_Benchmark::get_time("ArborX::DBSCAN::total"));
     }
 
     int num_points = primitives.extent_int(0);
@@ -332,26 +258,45 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
       printf("Verification %s\n", (success ? "passed" : "failed"));
     }
   }
+  else if (params.algorithm == "hdbscan")
+  {
+    Kokkos::Profiling::pushRegion("ArborX::HDBSCAN::total");
+    auto dendrogram = ArborX::Experimental::hdbscan(exec_space, primitives,
+                                                    params.core_min_size);
+    Kokkos::Profiling::popRegion();
+
+    if (params.verbose)
+    {
+      printf("-- mst              : %10.3f\n",
+             ArborX_Benchmark::get_time("ArborX::HDBSCAN::mst"));
+      printf("-- dendrogram       : %10.3f\n",
+             ArborX_Benchmark::get_time("ArborX::HDBSCAN::dendrogram"));
+      printf("---- edge sort      : %10.3f\n",
+             ArborX_Benchmark::get_time("ArborX::Dendrogram::edge_sort"));
+      printf("total time          : %10.3f\n",
+             ArborX_Benchmark::get_time("ArborX::HDBSCAN::total"));
+    }
+  }
   else if (params.algorithm == "mst")
   {
 
-    Kokkos::Profiling::ProfilingSection profile_total("ArborX::MST::total");
-    profile_total.start();
+    Kokkos::Profiling::pushRegion("ArborX::MST::total");
     ArborX::Details::MinimumSpanningTree<MemorySpace> mst(
         exec_space, primitives, params.core_min_size);
-    profile_total.stop();
+    Kokkos::Profiling::popRegion();
 
-    if (params.print_dbscan_timers)
+    if (params.verbose)
     {
       printf("-- construction     : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::MST::construction"));
+             ArborX_Benchmark::get_time("ArborX::MST::construction"));
       if (params.core_min_size > 1)
-        printf("-- core distances   : %10.3f\n",
-               arborx_dbscan_example_get_time("ArborX::MST::core_distances"));
+        printf(
+            "-- core distances   : %10.3f\n",
+            ArborX_Benchmark::get_time("ArborX::MST::compute_core_distances"));
       printf("-- boruvka          : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::MST::boruvka"));
+             ArborX_Benchmark::get_time("ArborX::MST::boruvka"));
       printf("total time          : %10.3f\n",
-             arborx_dbscan_example_get_time("ArborX::MST::total"));
+             ArborX_Benchmark::get_time("ArborX::MST::total"));
     }
   }
 

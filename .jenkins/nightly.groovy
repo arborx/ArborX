@@ -8,10 +8,10 @@ pipeline {
 
         stage('Build') {
             parallel {
-                stage('CUDA-11.4.2') {
+                stage('CUDA-11.7.1') {
                     agent {
                         docker {
-                            image 'nvidia/cuda:11.4.2-devel-ubuntu20.04'
+                            image 'nvidia/cuda:11.7.1-devel-ubuntu22.04'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
                     }
@@ -47,10 +47,10 @@ pipeline {
                         }
                     }
                 }
-                stage('ROCm-5.2') {
+                stage('ROCm-5.4') {
                     agent {
                         docker {
-                            image 'rocm/dev-ubuntu-20.04:5.2-complete'
+                            image 'rocm/dev-ubuntu-22.04:5.4-complete'
                             label 'AMD_Radeon_Instinct_MI100 && rocm-docker'
                             args '--device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --env HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES}'
                         }

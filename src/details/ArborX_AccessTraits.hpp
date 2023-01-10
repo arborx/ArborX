@@ -13,6 +13,7 @@
 #define ARBORX_ACCESS_TRAITS_HPP
 
 #include <ArborX_GeometryTraits.hpp>
+#include <ArborX_HyperPoint.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
 
@@ -58,11 +59,30 @@ template <typename View, typename Tag>
 struct AccessTraits<
     View, Tag, std::enable_if_t<Kokkos::is_view<View>{} && View::rank == 2>>
 {
+#if KOKKOS_VERSION >= 30700
+  template <std::size_t... Is>
+  KOKKOS_FUNCTION static ExperimentalHyperGeometry::Point<sizeof...(Is)>
+  getPoint(std::index_sequence<Is...>, View const &v, int i)
+  {
+    return {v(i, Is)...};
+  }
+
+  // Returns by value
+  KOKKOS_FUNCTION static auto get(View const &v, int i)
+  {
+    constexpr int dim = View::static_extent(1);
+    if constexpr (dim > 0) // dimension known at compile time
+      return getPoint(std::make_index_sequence<dim>(), v, i);
+    else
+      return Point{{ v(i, 0), v(i, 1), v(i, 2) }};
+  }
+#else
   // Returns by value
   KOKKOS_FUNCTION static Point get(View const &v, int i)
   {
     return {{v(i, 0), v(i, 1), v(i, 2)}};
   }
+#endif
 
   KOKKOS_FUNCTION
   static typename View::size_type size(View const &v) { return v.extent(0); }
@@ -184,12 +204,10 @@ void check_valid_access_traits(PrimitivesTag, Primitives const &)
 
 namespace Traits
 {
-#if !defined(KOKKOS_COMPILER_NVCC) || (__CUDACC_VER_MAJOR__ >= 11)
 using PredicatesTag [[deprecated("Use ArborX::PredicatesTag instead.")]] =
     ::ArborX::PredicatesTag;
 using PrimitivesTag [[deprecated("Use ArborX::PrimitivesTag instead.")]] =
     ::ArborX::PrimitivesTag;
-#endif
 template <typename T, typename Tag, typename Enable = void>
 struct Access
 {

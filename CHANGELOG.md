@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.3](https://github.com/arborx/arborx/tree/v1.3) (2022-10-18)
+
+[Full Changelog](https://github.com/arborx/arborx/compare/v1.2...v1.3)
+
+**New features:**
+- Add multi-dimensional support (EXPERIMENTAL) [\#713](https://github.com/arborx/ArborX/pull/713), [\#722](https://github.com/arborx/ArborX/pull/722), [\#726](https://github.com/arborx/ArborX/pull/726), [\#731](https://github.com/arborx/ArborX/pull/731)
+
+**Build changes:**
+- Require C++17 [\#715](https://github.com/arborx/ArborX/pull/715)
+- Require Kokkos 3.6 [\#748](https://github.com/arborx/ArborX/pull/748)
+
+**Enhancements:**
+- Switch to using stackless spatial traversal for all backends [\#672](https://github.com/arborx/ArborX/pull/672)
+- Add ordered tree traversal (EXPERIMENTAL) [\#683](https://github.com/arborx/ArborX/pull/683)
+- Add a ray-tracing example using ordered tree traversal [\#691](https://github.com/arborx/ArborX/pull/691)
+- Add `distance()` function to the nearest predicate [\#700](https://github.com/arborx/ArborX/pull/700)
+- Template `BruteForce` on bounding volume [\#712](https://github.com/arborx/ArborX/pull/712)
+- Throw an exception when FDBSCAN-DenseBox may potentially produce wrong result [\#560](https://github.com/arborx/ArborX/pull/560)
+- Migrate full DBSCAN driver from `examples/` to `benchmarks/` [\#736](https://github.com/arborx/ArborX/pull/736)
+- Add a DBSCAN example [\#763](https://github.com/arborx/ArborX/pull/763)
+
+**Backward incompatible changes:**
+- Fail compilation when using the old `ArborX::Traits` interface [\#667](https://github.com/arborx/ArborX/pull/667)
+- Remove deprecated `BVH` version templated on a device type [\#705](https://github.com/arborx/ArborX/pull/705)
+- Remove deprecated `DistributedSearchTree` and `DistributedTree` templated on a device type [\#706](https://github.com/arborx/ArborX/pull/706)
+
+**Fixed bugs:**
+- Make sure default-initialized `BVH` and `BruteForce` do not give undefined behavior [\#692](https://github.com/arborx/ArborX/pull/692)
+- Avoid use of uninitialized core distances in the minimum spanning tree [\#753](https://github.com/arborx/ArborX/pull/753)
+
 ## [1.2](https://github.com/arborx/arborx/tree/v1.2) (2022-04-01)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v1.1...v1.2)

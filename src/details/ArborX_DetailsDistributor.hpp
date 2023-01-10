@@ -288,14 +288,11 @@ public:
     bool const permutation_necessary = _permute.size() != 0;
     if (permutation_necessary)
     {
-      auto dest_buffer = ExportViewWithoutMemoryTraits(
+      ExportViewWithoutMemoryTraits dest_buffer(
           Kokkos::view_alloc(
-              space,
+              space, Kokkos::WithoutInitializing,
               "ArborX::Distributor::doPostsAndWaits::destination_buffer"),
-          typename ExportView::array_layout{});
-
-      KokkosExt::reallocWithoutInitializing(space, dest_buffer,
-                                            exports.layout());
+          exports.layout());
 
       // We need to create a local copy to avoid capturing a member variable
       // (via the 'this' pointer) which we can't do using a KOKKOS_LAMBDA.
@@ -348,7 +345,8 @@ public:
 
     // make sure the data in dest_buffer has been copied before sending it.
     if (permutation_necessary)
-      space.fence();
+      space.fence("ArborX::Distributor::doPostsAndWaits"
+                  " (permute done before packing data into send buffer)");
 
     for (int i = 0; i < outdegrees; ++i)
     {

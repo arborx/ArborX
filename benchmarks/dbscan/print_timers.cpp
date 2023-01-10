@@ -9,9 +9,12 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include "print_timers.hpp"
+
 #include <Kokkos_Core.hpp>
 
 #include <chrono>
+#include <stack>
 #include <vector>
 
 namespace
@@ -22,47 +25,35 @@ struct Timer
   using clock_type = std::chrono::high_resolution_clock;
   std::string label;
   clock_type::time_point tick;
-  clock_type::duration duration;
-
-  double elapsed() const
-  {
-    return std::chrono::duration<double>(duration).count();
-  }
+  double duration;
 };
 
-std::vector<Timer> arborx_dbscan_example_timers;
+std::stack<Timer> current_timers;
+std::vector<Timer> done_timers;
 
 } // namespace
 
-void arborx_dbscan_example_set_create_profile_section(char const *label,
-                                                      std::uint32_t *id)
-{
-  *id = arborx_dbscan_example_timers.size();
-  arborx_dbscan_example_timers.push_back({label, {}, {}});
-}
-
-void arborx_dbscan_example_set_destroy_profile_section(std::uint32_t) {}
-
-void arborx_dbscan_example_set_start_profile_section(std::uint32_t id)
+void ArborX_Benchmark::push_region(char const *label)
 {
   Kokkos::fence();
   auto now = Timer::clock_type::now();
-  auto &timer = arborx_dbscan_example_timers[id];
-  timer.tick = now;
+  current_timers.push({label, now, {}});
 }
 
-void arborx_dbscan_example_set_stop_profile_section(std::uint32_t id)
+void ArborX_Benchmark::pop_region()
 {
   Kokkos::fence();
   auto now = Timer::clock_type::now();
-  auto &timer = arborx_dbscan_example_timers[id];
-  timer.duration = now - timer.tick;
+  auto timer = current_timers.top();
+  current_timers.pop();
+  timer.duration = std::chrono::duration<double>(now - timer.tick).count();
+  done_timers.push_back(timer);
 }
 
-double arborx_dbscan_example_get_time(std::string const &label)
+double ArborX_Benchmark::get_time(std::string const &label)
 {
-  for (auto const &timer : arborx_dbscan_example_timers)
+  for (auto const &timer : done_timers)
     if (timer.label == label)
-      return timer.elapsed();
+      return timer.duration;
   Kokkos::abort(("ArborX: no timer with label \"" + label + "\"").c_str());
 }

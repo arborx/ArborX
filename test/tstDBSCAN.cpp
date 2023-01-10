@@ -8,6 +8,7 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
+#include "ArborXTest_StdVectorToKokkosView.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <ArborX_DBSCAN.hpp>
 #include <ArborX_DBSCANVerification.hpp>
@@ -36,17 +37,9 @@ struct ArborX::AccessTraits<HiddenView<View>, ArborX::PrimitivesTag>
   using memory_space = typename View::memory_space;
 };
 
-BOOST_AUTO_TEST_SUITE(DBSCAN)
+using ArborXTest::toView;
 
-template <typename DeviceType, typename T>
-auto buildView(std::vector<T> const &v)
-{
-  Kokkos::View<T *, DeviceType> view("Testing::v", v.size());
-  Kokkos::deep_copy(view, Kokkos::View<T const *, Kokkos::HostSpace,
-                                       Kokkos::MemoryTraits<Kokkos::Unmanaged>>(
-                              v.data(), v.size()));
-  return view;
-}
+BOOST_AUTO_TEST_SUITE(DBSCAN)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier, DeviceType, ARBORX_DEVICE_TYPES)
 {
@@ -57,74 +50,72 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier, DeviceType, ARBORX_DEVICE_TYPES)
   ExecutionSpace space;
 
   {
-    auto points = buildView<DeviceType, Point>({{{0, 0, 0}}, {{1, 1, 1}}});
+    auto points = toView<DeviceType, Point>({{{0, 0, 0}}, {{1, 1, 1}}});
 
     auto r = std::sqrt(3);
 
     BOOST_TEST(verifyDBSCAN(space, points, r - 0.1, 2,
-                            buildView<DeviceType, int>({-1, -1})));
+                            toView<DeviceType, int>({-1, -1})));
     BOOST_TEST(!verifyDBSCAN(space, points, r - 0.1, 2,
-                             buildView<DeviceType, int>({1, 2})));
+                             toView<DeviceType, int>({1, 2})));
     BOOST_TEST(!verifyDBSCAN(space, points, r - 0.1, 2,
-                             buildView<DeviceType, int>({1, 1})));
+                             toView<DeviceType, int>({1, 1})));
     BOOST_TEST(
-        verifyDBSCAN(space, points, r, 2, buildView<DeviceType, int>({1, 1})));
+        verifyDBSCAN(space, points, r, 2, toView<DeviceType, int>({1, 1})));
     BOOST_TEST(
-        !verifyDBSCAN(space, points, r, 2, buildView<DeviceType, int>({1, 2})));
-    BOOST_TEST(verifyDBSCAN(space, points, r, 3,
-                            buildView<DeviceType, int>({-1, -1})));
+        !verifyDBSCAN(space, points, r, 2, toView<DeviceType, int>({1, 2})));
     BOOST_TEST(
-        !verifyDBSCAN(space, points, r, 3, buildView<DeviceType, int>({1, 1})));
+        verifyDBSCAN(space, points, r, 3, toView<DeviceType, int>({-1, -1})));
+    BOOST_TEST(
+        !verifyDBSCAN(space, points, r, 3, toView<DeviceType, int>({1, 1})));
   }
 
   {
-    auto points = buildView<DeviceType, Point>(
+    auto points = toView<DeviceType, Point>(
         {{{0, 0, 0}}, {{1, 1, 1}}, {{3, 3, 3}}, {{6, 6, 6}}});
 
     auto r = std::sqrt(3);
 
     BOOST_TEST(verifyDBSCAN(space, points, r, 2,
-                            buildView<DeviceType, int>({1, 1, -1, -1})));
+                            toView<DeviceType, int>({1, 1, -1, -1})));
     BOOST_TEST(verifyDBSCAN(space, points, r, 3,
-                            buildView<DeviceType, int>({-1, -1, -1, -1})));
+                            toView<DeviceType, int>({-1, -1, -1, -1})));
 
     BOOST_TEST(verifyDBSCAN(space, points, 2 * r, 2,
-                            buildView<DeviceType, int>({3, 3, 3, -1})));
+                            toView<DeviceType, int>({3, 3, 3, -1})));
     BOOST_TEST(verifyDBSCAN(space, points, 2 * r, 3,
-                            buildView<DeviceType, int>({3, 3, 3, -1})));
+                            toView<DeviceType, int>({3, 3, 3, -1})));
     BOOST_TEST(verifyDBSCAN(space, points, 2 * r, 4,
-                            buildView<DeviceType, int>({-1, -1, -1, -1})));
+                            toView<DeviceType, int>({-1, -1, -1, -1})));
 
     BOOST_TEST(verifyDBSCAN(space, points, 3 * r, 2,
-                            buildView<DeviceType, int>({5, 5, 5, 5})));
+                            toView<DeviceType, int>({5, 5, 5, 5})));
     BOOST_TEST(verifyDBSCAN(space, points, 3 * r, 3,
-                            buildView<DeviceType, int>({5, 5, 5, 5})));
+                            toView<DeviceType, int>({5, 5, 5, 5})));
     BOOST_TEST(verifyDBSCAN(space, points, 3 * r, 4,
-                            buildView<DeviceType, int>({7, 7, 7, 7})));
+                            toView<DeviceType, int>({7, 7, 7, 7})));
     BOOST_TEST(verifyDBSCAN(space, points, 3 * r, 5,
-                            buildView<DeviceType, int>({-1, -1, -1, -1})));
+                            toView<DeviceType, int>({-1, -1, -1, -1})));
   }
 
   {
     // check for bridging effect
-    auto points = buildView<DeviceType, Point>({{-1, 0.5, 0},
-                                                {-1, -0.5, 0},
-                                                {-1, 0, 0},
-                                                {{0, 0, 0}},
-                                                {{1, 0, 0}},
-                                                {{1, 0.5, 0}},
-                                                {{1, -0.5, 0}}});
+    auto points = toView<DeviceType, Point>({{-1, 0.5, 0},
+                                             {-1, -0.5, 0},
+                                             {-1, 0, 0},
+                                             {{0, 0, 0}},
+                                             {{1, 0, 0}},
+                                             {{1, 0.5, 0}},
+                                             {{1, -0.5, 0}}});
 
     BOOST_TEST(verifyDBSCAN(space, points, 1, 3,
-                            buildView<DeviceType, int>({5, 5, 5, 5, 5, 5, 5})));
-    BOOST_TEST(
-        (verifyDBSCAN(space, points, 1, 4,
-                      buildView<DeviceType, int>({5, 5, 5, 5, 6, 6, 6})) ||
-         verifyDBSCAN(space, points, 1, 4,
-                      buildView<DeviceType, int>({5, 5, 5, 6, 6, 6, 6}))));
-    BOOST_TEST(
-        !verifyDBSCAN(space, points, 1, 4,
-                      buildView<DeviceType, int>({5, 5, 5, 5, 5, 5, 5})));
+                            toView<DeviceType, int>({5, 5, 5, 5, 5, 5, 5})));
+    BOOST_TEST((verifyDBSCAN(space, points, 1, 4,
+                             toView<DeviceType, int>({5, 5, 5, 5, 6, 6, 6})) ||
+                verifyDBSCAN(space, points, 1, 4,
+                             toView<DeviceType, int>({5, 5, 5, 6, 6, 6, 6}))));
+    BOOST_TEST(!verifyDBSCAN(space, points, 1, 4,
+                             toView<DeviceType, int>({5, 5, 5, 5, 5, 5, 5})));
   }
 
   {
@@ -140,7 +131,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier, DeviceType, ARBORX_DEVICE_TYPES)
     // -1 |   x   x
     // -2 | x o x
     // clang-format off
-    auto points = buildView<DeviceType, Point>({
+    auto points = toView<DeviceType, Point>({
         {0, -2, 0}, {-1, -2, 0}, {1, -2, 0}, {0, -1, 0}, // bottom
         {0, 2, 0}, {-1, 2, 0}, {1, 2, 0}, {0, 1, 0}, // top
         {2, 0, 0}, {2, -1, 0}, {2, 1, 0}, {1, 0, 0}, // right
@@ -150,11 +141,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier, DeviceType, ARBORX_DEVICE_TYPES)
 
     BOOST_TEST(verifyDBSCAN(
         space, points, 1, 4,
-        buildView<DeviceType, int>({0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 5})));
+        toView<DeviceType, int>({0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 5})));
     // make sure the stripped core is not marked as noise
     BOOST_TEST(!verifyDBSCAN(
         space, points, 1, 4,
-        buildView<DeviceType, int>({0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, -1})));
+        toView<DeviceType, int>({0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, -1})));
   }
 }
 
@@ -173,7 +164,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
     ArborX::DBSCAN::Parameters params;
     params.setImplementation(impl);
     {
-      auto points = buildView<DeviceType, Point>({{{0, 0, 0}}, {{1, 1, 1}}});
+      auto points = toView<DeviceType, Point>({{{0, 0, 0}}, {{1, 1, 1}}});
 
       auto r = std::sqrt(3);
 
@@ -196,7 +187,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
     }
 
     {
-      auto points = buildView<DeviceType, Point>(
+      auto points = toView<DeviceType, Point>(
           {{{0, 0, 0}}, {{1, 1, 1}}, {{3, 3, 3}}, {{6, 6, 6}}});
 
       auto r = std::sqrt(3);
@@ -225,13 +216,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
 
     {
       // check for bridging effect
-      auto points = buildView<DeviceType, Point>({{-1, 0.5, 0},
-                                                  {-1, -0.5, 0},
-                                                  {-1, 0, 0},
-                                                  {{0, 0, 0}},
-                                                  {{1, 0, 0}},
-                                                  {{1, 0.5, 0}},
-                                                  {{1, -0.5, 0}}});
+      auto points = toView<DeviceType, Point>({{-1, 0.5, 0},
+                                               {-1, -0.5, 0},
+                                               {-1, 0, 0},
+                                               {{0, 0, 0}},
+                                               {{1, 0, 0}},
+                                               {{1, 0.5, 0}},
+                                               {{1, -0.5, 0}}});
 
       BOOST_TEST(verifyDBSCAN(space, points, 1.0, 3,
                               dbscan(space, points, 1, 3, params)));
@@ -253,7 +244,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
     // -1 |   x   x
     // -2 | x o x
     // clang-format off
-    auto points = buildView<DeviceType, Point>({
+    auto points = toView<DeviceType, Point>({
         {0, -2, 0}, {-1, -2, 0}, {1, -2, 0}, {0, -1, 0}, // bottom
         {0, 2, 0}, {-1, 2, 0}, {1, 2, 0}, {0, 1, 0}, // top
         {2, 0, 0}, {2, -1, 0}, {2, 1, 0}, {1, 0, 0}, // right

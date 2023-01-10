@@ -283,6 +283,66 @@ pipeline {
                     }
                 }
 
+                stage('GCC-12.2') {
+                    agent {
+                        dockerfile {
+                            filename "Dockerfile"
+                            dir "docker"
+                            additionalBuildArgs '--build-arg BASE=gcc:12.2.0 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_OPENMP=ON -DCMAKE_CXX_COMPILER=g++ -DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu"'
+                            args '-v /tmp/ccache:/tmp/ccache'
+                            label 'docker'
+                        }
+                    }
+                    steps {
+                        sh 'ccache --zero-stats'
+                        sh 'rm -rf build && mkdir -p build'
+                        dir('build') {
+                            sh '''
+                                cmake \
+                                    -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
+                                    -D CMAKE_BUILD_TYPE=Debug \
+                                    -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                                    -D CMAKE_CXX_COMPILER=g++ \
+                                    -D CMAKE_CXX_EXTENSIONS=OFF \
+                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
+                                    -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
+                                    -D ARBORX_ENABLE_MPI=ON \
+                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                    -D MPIEXEC_MAX_NUMPROCS=4 \
+                                    -D ARBORX_ENABLE_TESTS=ON \
+                                    -D ARBORX_ENABLE_EXAMPLES=ON \
+                                    -D ARBORX_ENABLE_BENCHMARKS=ON \
+                                ..
+                            '''
+                            sh 'make -j8 VERBOSE=1'
+                            sh 'ctest $CTEST_OPTIONS'
+                        }
+                    }
+                    post {
+                        always {
+                            sh 'ccache --show-stats'
+                            xunit reduceLog: false, tools:[CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)]
+                        }
+                        success {
+                            sh 'cd build && make install'
+                            sh 'rm -rf test_install && mkdir -p test_install'
+                            dir('test_install') {
+                                sh 'cp -r ../examples .'
+                                sh '''
+                                    cmake \
+                                        -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                                        -D CMAKE_CXX_COMPILER=g++ \
+                                        -D CMAKE_CXX_EXTENSIONS=OFF \
+                                        -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
+                                    examples \
+                                '''
+                                sh 'make VERBOSE=1'
+                                sh 'make test'
+                            }
+                        }
+                    }
+                }
+
                 stage('HIP-5.0') {
                     agent {
                         dockerfile {

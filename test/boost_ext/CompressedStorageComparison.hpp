@@ -13,6 +13,7 @@
 #define ARBORX_BOOST_TEST_COMPRESSED_STORAGE_COMPARISON_HPP
 
 #include <boost/test/tools/detail/print_helper.hpp>
+#include <boost/test/utils/is_forward_iterable.hpp>
 
 #include <iosfwd>
 #include <set>

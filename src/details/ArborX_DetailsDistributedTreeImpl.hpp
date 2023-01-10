@@ -22,6 +22,7 @@
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Predicates.hpp>
+#include <ArborX_Ray.hpp>
 #include <ArborX_Sphere.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -70,8 +71,8 @@ struct AccessTraits<
     return Access::size(x.predicates);
   }
   template <class Dummy = Geometry,
-            std::enable_if_t<std::is_same<Dummy, Geometry>::value &&
-                             std::is_same<Dummy, Point>::value> * = nullptr>
+            std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
+                             std::is_same_v<Dummy, Point>> * = nullptr>
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
     auto const point = getGeometry(Access::get(x.predicates, i));
@@ -79,8 +80,8 @@ struct AccessTraits<
     return intersects(Sphere{point, distance});
   }
   template <class Dummy = Geometry,
-            std::enable_if_t<std::is_same<Dummy, Geometry>::value &&
-                             std::is_same<Dummy, Box>::value> * = nullptr>
+            std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
+                             std::is_same_v<Dummy, Box>> * = nullptr>
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
     auto box = getGeometry(Access::get(x.predicates, i));
@@ -95,13 +96,22 @@ struct AccessTraits<
     return intersects(box);
   }
   template <class Dummy = Geometry,
-            std::enable_if_t<std::is_same<Dummy, Geometry>::value &&
-                             std::is_same<Dummy, Sphere>::value> * = nullptr>
+            std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
+                             std::is_same_v<Dummy, Sphere>> * = nullptr>
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
     auto const sphere = getGeometry(Access::get(x.predicates, i));
     auto const distance = x.distances(i);
     return intersects(Sphere{sphere.centroid(), distance + sphere.radius()});
+  }
+  template <
+      class Dummy = Geometry,
+      std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
+                       std::is_same_v<Dummy, Experimental::Ray>> * = nullptr>
+  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
+  {
+    auto const ray = getGeometry(Access::get(x.predicates, i));
+    return intersects(ray);
   }
 };
 
@@ -126,39 +136,6 @@ struct DistributedTreeImpl
                   DefaultCallbackWithRank{comm_rank}, values, offset);
   }
 
-  // NOTE NVCC did not like having definition of that type within the
-  // queryDispatch function below while using an extended __host__ __device__
-  // lambda
-  struct PairIndexRank
-  {
-    int index;
-    int rank;
-  };
-
-  template <typename DistributedTree, typename ExecutionSpace,
-            typename Predicates, typename Indices, typename Offset,
-            typename Ranks>
-  [[deprecated]] static std::enable_if_t<Kokkos::is_view<Indices>{} &&
-                                         Kokkos::is_view<Offset>{} &&
-                                         Kokkos::is_view<Ranks>{}>
-  queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
-                ExecutionSpace const &space, Predicates const &queries,
-                Indices &indices, Offset &offset, Ranks &ranks)
-  {
-    Kokkos::View<PairIndexRank *, ExecutionSpace> out(
-        "ArborX::DistributedTree::query::spatial::pairs_index_rank", 0);
-    queryDispatch(SpatialPredicateTag{}, tree, space, queries, out, offset);
-    auto const n = out.extent(0);
-    KokkosExt::reallocWithoutInitializing(space, indices, n);
-    KokkosExt::reallocWithoutInitializing(space, ranks, n);
-    Kokkos::parallel_for(
-        "ArborX::DistributedTree::query::split_pairs",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
-          indices(i) = out(i).index;
-          ranks(i) = out(i).rank;
-        });
-  }
-
   template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename OutputView, typename OffsetView,
             typename Callback>
@@ -180,34 +157,6 @@ struct DistributedTreeImpl
                     ExecutionSpace const &space, Predicates const &queries,
                     Indices &indices, Offset &offset, Ranks &ranks,
                     Distances *distances_ptr = nullptr);
-
-  template <typename DistributedTree, typename ExecutionSpace,
-            typename Predicates, typename Indices, typename Offset,
-            typename Ranks>
-  [[deprecated]] static std::enable_if_t<Kokkos::is_view<Indices>{} &&
-                                         Kokkos::is_view<Offset>{} &&
-                                         Kokkos::is_view<Ranks>{}>
-  queryDispatch(NearestPredicateTag tag, DistributedTree const &tree,
-                ExecutionSpace const &space, Predicates const &queries,
-                Indices &indices, Offset &offset, Ranks &ranks)
-  {
-    queryDispatchImpl(tag, tree, space, queries, indices, offset, ranks);
-  }
-
-  template <typename DistributedTree, typename ExecutionSpace,
-            typename Predicates, typename Indices, typename Offset,
-            typename Ranks, typename Distances>
-  [[deprecated]] static std::enable_if_t<
-      Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{} &&
-      Kokkos::is_view<Ranks>{} && Kokkos::is_view<Distances>{}>
-  queryDispatch(NearestPredicateTag tag, DistributedTree const &tree,
-                ExecutionSpace const &space, Predicates const &queries,
-                Indices &indices, Offset &offset, Ranks &ranks,
-                Distances &distances)
-  {
-    queryDispatchImpl(tag, tree, space, queries, indices, offset, ranks,
-                      &distances);
-  }
 
   template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename OutputView, typename OffsetView,
@@ -442,6 +391,11 @@ void DistributedTreeImpl<DeviceType>::reassessStrategy(
         for (int j = offset(i); j < offset(i + 1); ++j)
           farthest_distances(i) = max(farthest_distances(i), distances(j));
       });
+
+  Details::check_valid_access_traits(
+      PredicatesTag{},
+      WithinDistanceFromPredicates<Predicates, decltype(farthest_distances)>{
+          queries, farthest_distances});
 
   query(top_tree, space,
         WithinDistanceFromPredicates<Predicates, decltype(farthest_distances)>{
