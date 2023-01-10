@@ -569,6 +569,7 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
       Kokkos::Profiling::popRegion();
     }
   }
+
   Kokkos::Profiling::popRegion();
 }
 
