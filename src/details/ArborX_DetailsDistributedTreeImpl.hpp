@@ -718,6 +718,7 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
                          "ArborX::DistributedTree::query::remote_out"),
       n_imports);
   KokkosExt::reallocWithoutInitializing(space, indices, n_imports);
+  Kokkos::deep_copy(space, indices, -1);
   Kokkos::parallel_for(
       "ArborX::DistributedTree::query::execute_callbacks",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0,
@@ -726,6 +727,8 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
         callback(imported_queries_with_indices(i).query,
                  imported_queries_with_indices(i).primitive_index,
                  [&](typename OutputView::value_type const &value) {
+                   // FIXME We only allow calling the callback once per match.
+                   ARBORX_ASSERT(indices(i) == -1);
                    remote_out(i) = value;
                    indices(i) = imported_queries_with_indices(i).query_id;
                  });
