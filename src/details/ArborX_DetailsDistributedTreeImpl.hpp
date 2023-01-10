@@ -672,7 +672,7 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
   Kokkos::Profiling::popRegion();
 
   Kokkos::Profiling::pushRegion(
-      "ArborX::DistributedTree::query::nearest::postprocess_callback");
+      "ArborX::DistributedTree::query::nearest::execute_callback");
 
   // Send the predicate-primitive pairs to the process where the match was
   // found.
