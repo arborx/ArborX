@@ -653,8 +653,8 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
 {
   Kokkos::Profiling::pushRegion(
       "ArborX::DistributedTree::query::nearest_callback");
-  using Indices = Kokkos::View<int *, ExecutionSpace>;
-  Indices indices("ArborX::DistributedTree::query::nearest::indices", 0);
+  Kokkos::View<int *, ExecutionSpace> indices(
+      "ArborX::DistributedTree::query::nearest::indices", 0);
   Kokkos::View<int *, ExecutionSpace> ranks(
       "ArborX::DistributedTree::query::nearest::ranks", 0);
 
