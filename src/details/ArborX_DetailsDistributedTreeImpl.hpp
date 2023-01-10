@@ -736,8 +736,8 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
 
   // Send the result back to the process owning the predicates.
   Distributor<DeviceType> back_distributor(comm);
-  auto const &dest = distributor.get_sources();
-  auto const &off = distributor.get_source_offsets();
+  auto const &dest = distributor.getSources();
+  auto const &off = distributor.getSourceOffsets();
 
   Kokkos::View<int const *, Kokkos::HostSpace> host_destinations(dest.data(),
                                                                  dest.size());

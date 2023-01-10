@@ -384,11 +384,11 @@ public:
   size_t getTotalReceiveLength() const { return _src_offsets.back(); }
   size_t getTotalSendLength() const { return _dest_offsets.back(); }
 
-  auto const &get_destinations() const { return _destinations; }
-  auto const &get_sources() const { return _sources; }
+  auto const &getDestinations() const { return _destinations; }
+  auto const &getSources() const { return _sources; }
 
-  auto const &get_destination_offsets() const { return _dest_offsets; }
-  auto const &get_source_offsets() const { return _src_offsets; }
+  auto const &getDestinationOffsets() const { return _dest_offsets; }
+  auto const &getSourceOffsets() const { return _src_offsets; }
 
 private:
   size_t preparePointToPointCommunication()
