@@ -727,8 +727,12 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
         callback(imported_queries_with_indices(i).query,
                  imported_queries_with_indices(i).primitive_index,
                  [&](typename OutputView::value_type const &value) {
+#ifndef NDEBUG
                    // FIXME We only allow calling the callback once per match.
-                   ARBORX_ASSERT(indices(i) == -1);
+                   if (indices(i) != -1)
+                     Kokkos::abort("Inserting more than one result per "
+                                   "callback is not implemented!");
+#endif
                    remote_out(i) = value;
                    indices(i) = imported_queries_with_indices(i).query_id;
                  });
