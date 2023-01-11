@@ -28,8 +28,26 @@
 
 namespace tt = boost::test_tools;
 
-using PairIndexRank = Kokkos::pair<int, int>;
-using TupleIndexRankDistance = Kokkos::pair<Kokkos::pair<int, int>, float>;
+struct PairIndexRank
+{
+  int index;
+  int rank;
+  friend bool operator==(PairIndexRank lhs, PairIndexRank rhs)
+  {
+    return lhs.index == rhs.index && lhs.rank == rhs.rank;
+  }
+  friend bool operator<(PairIndexRank lhs, PairIndexRank rhs)
+  {
+    return lhs.index < rhs.index ||
+           (lhs.index == rhs.index && lhs.rank < rhs.rank);
+  }
+  friend std::ostream &operator<<(std::ostream &stream,
+                                  PairIndexRank const &pair)
+  {
+    return stream << '[' << pair.index << ',' << pair.rank << ']';
+  }
+};
+using TupleIndexRankDistance = Kokkos::pair<PairIndexRank, float>;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
 {
@@ -96,11 +114,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
   values.reserve(n + 1);
   for (int i = 0; i < n; ++i)
   {
-    values.emplace_back(n - 1 - i, comm_size - 1 - comm_rank);
+    values.push_back({n - 1 - i, comm_size - 1 - comm_rank});
   }
   if (comm_rank > 0)
   {
-    values.emplace_back(0, comm_size - comm_rank);
+    values.push_back({0, comm_size - comm_rank});
     ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, queries,
                            make_reference_solution(values, {0, n + 1}));
   }
@@ -317,19 +335,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
 
   if (comm_rank > 0)
   {
+    std::vector<PairIndexRank> values;
+    values.reserve(comm_size);
+    for (int i = 0; i < comm_size; ++i)
+      values.push_back({0, i});
     ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
                            makeNearestQueries<DeviceType>({
                                {{{0., 0., 0.}}, comm_rank * comm_size},
                            }),
-                           make_reference_solution(
-                               [comm_size]() {
-                                 std::vector<PairIndexRank> values;
-                                 values.reserve(comm_size);
-                                 for (int i = 0; i < comm_size; ++i)
-                                   values.emplace_back(0, i);
-                                 return values;
-                               }(),
-                               {0, comm_size}));
+                           make_reference_solution(values, {0, comm_size}));
   }
   else
   {
@@ -812,8 +826,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
   BoostExt::ParallelRTree<ArborX::Box> rtree(comm, ExecutionSpace{},
                                              bounding_boxes_host);
 
-  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, distributed_tree, within_queries,
-                         query(ExecutionSpace{}, rtree, within_queries_host));
+  ARBORX_TEST_QUERY_TREE(
+      ExecutionSpace{}, distributed_tree, within_queries,
+      query<PairIndexRank>(ExecutionSpace{}, rtree, within_queries_host));
 }
 
 template <typename MemorySpace>

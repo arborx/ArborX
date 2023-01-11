@@ -180,8 +180,7 @@ static auto translate(ArborX::Nearest<Geometry> const &query)
   return boost::geometry::index::nearest(geometry, k);
 }
 
-template <typename Indexable, typename InputView,
-          typename OutputView = Kokkos::View<int *, Kokkos::HostSpace>>
+template <typename OutputView, typename Indexable, typename InputView>
 static std::tuple<OutputView, OutputView>
 performQueries(RTree<Indexable> const &rtree, InputView const &queries)
 {
@@ -206,10 +205,8 @@ performQueries(RTree<Indexable> const &rtree, InputView const &queries)
 }
 
 #ifdef ARBORX_ENABLE_MPI
-template <typename Indexable, typename InputView,
-          typename OutputView1 =
-              Kokkos::View<Kokkos::pair<int, int> *, Kokkos::HostSpace>,
-          typename OutputView2 = Kokkos::View<int *, Kokkos::HostSpace>>
+template <typename OutputView1, typename OutputView2, typename Indexable,
+          typename InputView>
 static std::tuple<OutputView2, OutputView1>
 performQueries(ParallelRTree<Indexable> const &rtree, InputView const &queries)
 {
@@ -267,7 +264,7 @@ public:
     static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
 
     std::tie(offset, indices) =
-        BoostRTreeHelpers::performQueries(_tree, predicates);
+        BoostRTreeHelpers::performQueries<InputView>(_tree, predicates);
   }
 
   template <typename ExecutionSpace, typename Predicates, typename Callback,
@@ -311,7 +308,8 @@ public:
     static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
 
     std::tie(offset, indices) =
-        BoostRTreeHelpers::performQueries(_tree, predicates);
+        BoostRTreeHelpers::performQueries<InputView1, InputView2, Indexable,
+                                          Predicates>(_tree, predicates);
   }
 
 private:
