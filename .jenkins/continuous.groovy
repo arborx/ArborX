@@ -332,6 +332,8 @@ pipeline {
                                         -D CMAKE_CXX_COMPILER=g++ \
                                         -D CMAKE_CXX_EXTENSIONS=OFF \
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
+                                        -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                        -D MPIEXEC_MAX_NUMPROCS=4 \
                                     examples \
                                 '''
                                 sh 'make VERBOSE=1'
