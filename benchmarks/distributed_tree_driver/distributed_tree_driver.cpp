@@ -423,12 +423,11 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   if (comm_rank == 0)
     os << "construction done\n";
 
-  using PairIndexRank = Kokkos::pair<int, int>;
-
   if (perform_knn_search)
   {
     Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
-    Kokkos::View<PairIndexRank *, DeviceType> values("Testing::values", 0);
+    Kokkos::View<ArborX::PairIndexRank *, DeviceType> values("Testing::values",
+                                                             0);
 
     auto knn = time_monitor.getNewTimer("knn");
     MPI_Barrier(comm);
@@ -473,7 +472,8 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     }
 
     Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
-    Kokkos::View<PairIndexRank *, DeviceType> values("Testing::values", 0);
+    Kokkos::View<ArborX::PairIndexRank *, DeviceType> values("Testing::values",
+                                                             0);
 
     auto radius = time_monitor.getNewTimer("radius");
     MPI_Barrier(comm);
