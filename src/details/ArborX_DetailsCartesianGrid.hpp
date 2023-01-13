@@ -19,6 +19,8 @@
 
 #include <Kokkos_Macros.hpp>
 
+#include <cassert>
+
 namespace ArborX::Details
 {
 
