@@ -28,8 +28,8 @@
 
 namespace tt = boost::test_tools;
 
-using PairIndexRank = ArborX::PairIndexRank;
-using TupleIndexRankDistance = ArborX::Details::TupleIndexRankDistance;
+using ArborX::PairIndexRank;
+using ArborX::Details::TupleIndexRankDistance;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
 {
