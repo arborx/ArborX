@@ -21,6 +21,7 @@
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <ArborX_PairIndexRank.hpp>
 #include <ArborX_Predicates.hpp>
 #include <ArborX_Ray.hpp>
 #include <ArborX_Sphere.hpp>
@@ -31,22 +32,6 @@
 
 namespace ArborX
 {
-
-struct PairIndexRank
-{
-  int index;
-  int rank;
-  friend bool operator==(PairIndexRank lhs, PairIndexRank rhs)
-  {
-    return lhs.index == rhs.index && lhs.rank == rhs.rank;
-  }
-  friend bool operator<(PairIndexRank lhs, PairIndexRank rhs)
-  {
-    return lhs.index < rhs.index ||
-           (lhs.index == rhs.index && lhs.rank < rhs.rank);
-  }
-};
-
 namespace Details
 {
 using TupleIndexRankDistance = Kokkos::pair<PairIndexRank, float>;

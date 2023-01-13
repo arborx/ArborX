@@ -24,7 +24,7 @@
 #include <ArborX_Predicates.hpp>
 #include <ArborX_Sphere.hpp>
 #ifdef ARBORX_ENABLE_MPI
-#include <ArborX_DistributedTree.hpp> // PairIndexRank
+#include <ArborX_PairIndexRank.hpp>
 #endif
 
 #include <boost/range/adaptors.hpp>
@@ -34,16 +34,6 @@
 
 #ifdef ARBORX_ENABLE_MPI
 #include <mpi.h>
-#endif
-
-#ifdef ARBORX_ENABLE_MPI
-namespace ArborX
-{
-inline std::ostream &operator<<(std::ostream &stream, PairIndexRank const &pair)
-{
-  return stream << '[' << pair.index << ',' << pair.rank << ']';
-}
-} // namespace ArborX
 #endif
 
 namespace BoostRTreeHelpers
