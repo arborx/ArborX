@@ -28,8 +28,8 @@
 
 namespace tt = boost::test_tools;
 
-using PairIndexRank = Kokkos::pair<int, int>;
-using TupleIndexRankDistance = Kokkos::pair<Kokkos::pair<int, int>, float>;
+using PairIndexRank = ArborX::PairIndexRank;
+using TupleIndexRankDistance = ArborX::Details::TupleIndexRankDistance;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
 {

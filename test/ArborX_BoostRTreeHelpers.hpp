@@ -33,6 +33,10 @@
 #include <mpi.h>
 #endif
 
+#ifdef ARBORX_ENABLE_MPI
+#include <ArborX_DistributedTree.hpp> // PairIndexRank
+#endif
+
 namespace BoostRTreeHelpers
 {
 // NOTE: The balancing algorithm does not really matter since the tree is
@@ -208,7 +212,7 @@ performQueries(RTree<Indexable> const &rtree, InputView const &queries)
 #ifdef ARBORX_ENABLE_MPI
 template <typename Indexable, typename InputView,
           typename OutputView1 =
-              Kokkos::View<Kokkos::pair<int, int> *, Kokkos::HostSpace>,
+              Kokkos::View<ArborX::PairIndexRank *, Kokkos::HostSpace>,
           typename OutputView2 = Kokkos::View<int *, Kokkos::HostSpace>>
 static std::tuple<OutputView2, OutputView1>
 performQueries(ParallelRTree<Indexable> const &rtree, InputView const &queries)

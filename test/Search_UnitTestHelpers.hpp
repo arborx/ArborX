@@ -72,8 +72,12 @@ auto query(ExecutionSpace const &exec_space, Tree const &tree,
            Queries const &queries)
 {
   using memory_space = typename Tree::memory_space;
+#ifdef ARBORX_ENABLE_MPI
   using value_type =
-      std::conditional_t<is_distributed<Tree>{}, Kokkos::pair<int, int>, int>;
+      std::conditional_t<is_distributed<Tree>{}, ArborX::PairIndexRank, int>;
+#else
+  using value_type = int;
+#endif
   Kokkos::View<value_type *, memory_space> values("Testing::values", 0);
   Kokkos::View<int *, memory_space> offsets("Testing::offsets", 0);
   tree.query(exec_space, queries, values, offsets);
@@ -107,19 +111,19 @@ auto query(ExecutionSpace const &exec_space, Tree const &tree,
                  (reference),                                                  \
              boost::test_tools::per_element());
 
+#ifdef ARBORX_ENABLE_MPI
 // Workaround for NVCC that complains that the enclosing parent function
 // (query_with_distance) for an extended __host__ __device__ lambda must not
 // have deduced return type
 template <typename DeviceType, typename ExecutionSpace>
-Kokkos::View<Kokkos::pair<Kokkos::pair<int, int>, float> *, DeviceType>
+Kokkos::View<ArborX::Details::TupleIndexRankDistance *, DeviceType>
 zip(ExecutionSpace const &space, Kokkos::View<int *, DeviceType> indices,
     Kokkos::View<int *, DeviceType> ranks,
     Kokkos::View<float *, DeviceType> distances)
 {
   auto const n = indices.extent(0);
-  Kokkos::View<Kokkos::pair<Kokkos::pair<int, int>, float> *, DeviceType>
-      values(Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::values"),
-             n);
+  Kokkos::View<ArborX::Details::TupleIndexRankDistance *, DeviceType> values(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::values"), n);
   Kokkos::parallel_for(
       "ArborX:UnitTestSupport:zip",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
@@ -128,7 +132,6 @@ zip(ExecutionSpace const &space, Kokkos::View<int *, DeviceType> indices,
   return values;
 }
 
-#ifdef ARBORX_ENABLE_MPI
 template <typename ExecutionSpace, typename Tree, typename Queries>
 auto query_with_distance(ExecutionSpace const &exec_space, Tree const &tree,
                          Queries const &queries,
