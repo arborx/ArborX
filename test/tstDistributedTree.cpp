@@ -96,11 +96,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
   values.reserve(n + 1);
   for (int i = 0; i < n; ++i)
   {
-    values.emplace_back(n - 1 - i, comm_size - 1 - comm_rank);
+    values.push_back({n - 1 - i, comm_size - 1 - comm_rank});
   }
   if (comm_rank > 0)
   {
-    values.emplace_back(0, comm_size - comm_rank);
+    values.push_back({0, comm_size - comm_rank});
     ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, queries,
                            make_reference_solution(values, {0, n + 1}));
   }
@@ -326,7 +326,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
                                  std::vector<PairIndexRank> values;
                                  values.reserve(comm_size);
                                  for (int i = 0; i < comm_size; ++i)
-                                   values.emplace_back(0, i);
+                                   values.push_back({0, i});
                                  return values;
                                }(),
                                {0, comm_size}));
