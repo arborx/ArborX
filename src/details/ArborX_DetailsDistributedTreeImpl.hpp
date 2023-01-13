@@ -32,8 +32,30 @@
 namespace ArborX
 {
 
+struct PairIndexRank
+{
+  int index;
+  int rank;
+  friend bool operator==(ArborX::PairIndexRank lhs, ArborX::PairIndexRank rhs)
+  {
+    return lhs.index == rhs.index && lhs.rank == rhs.rank;
+  }
+  friend bool operator<(ArborX::PairIndexRank lhs, ArborX::PairIndexRank rhs)
+  {
+    return lhs.index < rhs.index ||
+           (lhs.index == rhs.index && lhs.rank < rhs.rank);
+  }
+  friend std::ostream &operator<<(std::ostream &stream,
+                                  ArborX::PairIndexRank const &pair)
+  {
+    return stream << '[' << pair.index << ',' << pair.rank << ']';
+  }
+};
+
 namespace Details
 {
+using TupleIndexRankDistance = Kokkos::pair<PairIndexRank, float>;
+
 struct DefaultCallbackWithRank
 {
   int _rank;
