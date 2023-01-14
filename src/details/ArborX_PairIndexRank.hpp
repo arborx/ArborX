@@ -31,8 +31,8 @@ private:
   friend KOKKOS_FUNCTION constexpr bool operator<(PairIndexRank lhs,
                                                   PairIndexRank rhs)
   {
-    return lhs.index < rhs.index ||
-           (lhs.index == rhs.index && lhs.rank < rhs.rank);
+    return lhs.rank < rhs.rank ||
+           (lhs.rank == rhs.rank && lhs.index < rhs.index);
   }
 };
 
