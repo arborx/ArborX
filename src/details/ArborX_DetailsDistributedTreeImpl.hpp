@@ -34,7 +34,7 @@ namespace ArborX
 {
 namespace Details
 {
-using TupleIndexRankDistance = Kokkos::pair<PairIndexRank, float>;
+using PairIndexRankAndDistance = Kokkos::pair<PairIndexRank, float>;
 
 struct DefaultCallbackWithRank
 {

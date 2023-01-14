@@ -117,13 +117,13 @@ auto query(ExecutionSpace const &exec_space, Tree const &tree,
 // (query_with_distance) for an extended __host__ __device__ lambda must not
 // have deduced return type
 template <typename DeviceType, typename ExecutionSpace>
-Kokkos::View<ArborX::Details::TupleIndexRankDistance *, DeviceType>
+Kokkos::View<ArborX::Details::PairIndexRankAndDistance *, DeviceType>
 zip(ExecutionSpace const &space, Kokkos::View<int *, DeviceType> indices,
     Kokkos::View<int *, DeviceType> ranks,
     Kokkos::View<float *, DeviceType> distances)
 {
   auto const n = indices.extent(0);
-  Kokkos::View<ArborX::Details::TupleIndexRankDistance *, DeviceType> values(
+  Kokkos::View<ArborX::Details::PairIndexRankAndDistance *, DeviceType> values(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::values"), n);
   Kokkos::parallel_for(
       "ArborX:UnitTestSupport:zip",
