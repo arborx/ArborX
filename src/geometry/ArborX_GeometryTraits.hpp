@@ -11,7 +11,8 @@
 #ifndef ARBORX_GEOMETRY_TRAITS_HPP
 #define ARBORX_GEOMETRY_TRAITS_HPP
 
-#include <Kokkos_Core.hpp>
+#include <Kokkos_DetectionIdiom.hpp>
+#include <Kokkos_Macros.hpp>
 
 namespace ArborX
 {

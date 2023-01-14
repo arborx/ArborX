@@ -19,28 +19,22 @@
 #include <iostream>
 
 // Enable comparison of Kokkos pairs
-namespace boost
+namespace boost::test_tools::tt_detail
 {
-namespace test_tools
-{
-namespace tt_detail
-{
-
-// FIXME needed for TuplePrinter
-template <typename T1, typename T2>
-std::ostream &operator<<(std::ostream &os, Kokkos::pair<T1, T2> const &p)
-{
-  os << '(' << p.first << ',' << p.second << ')';
-  return os;
-}
 
 template <typename T1, typename T2>
 struct print_log_value<Kokkos::pair<T1, T2>>
 {
-  void operator()(std::ostream &os, Kokkos::pair<T1, T2> const &p) { os << p; }
+  void operator()(std::ostream &os, Kokkos::pair<T1, T2> const &p)
+  {
+    os << '(';
+    print_log_value<T1>()(os, p.first);
+    os << ',';
+    print_log_value<T2>()(os, p.second);
+    os << ')';
+  }
 };
-} // namespace tt_detail
-} // namespace test_tools
-} // namespace boost
+
+} // namespace boost::test_tools::tt_detail
 
 #endif
