@@ -12,8 +12,6 @@
 #ifndef ARBORX_HYPERPOINT_HPP
 #define ARBORX_HYPERPOINT_HPP
 
-#if KOKKOS_VERSION >= 30700
-
 #include <ArborX_GeometryTraits.hpp>
 
 #include <Kokkos_Macros.hpp>
@@ -47,27 +45,6 @@ template <class T>
 Point(T x, T y, T z) -> Point<3, T>;
 
 } // namespace ArborX::ExperimentalHyperGeometry
-
-#else
-
-#include <ArborX_Point.hpp>
-
-namespace ArborX::ExperimentalHyperGeometry
-{
-template <int DIM, class FloatingPoint = float>
-struct Point : public ArborX::Point
-{
-  static_assert(DIM == 3);
-  static_assert(std::is_same_v<FloatingPoint, float>);
-  using ArborX::Point::Point;
-};
-
-template <class T>
-Point(T x, T y, T z) -> Point<3, T>;
-
-} // namespace ArborX::ExperimentalHyperGeometry
-
-#endif
 
 template <int DIM, class FloatingPoint>
 struct ArborX::GeometryTraits::dimension<

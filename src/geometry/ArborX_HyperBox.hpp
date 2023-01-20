@@ -12,8 +12,6 @@
 #ifndef ARBORX_HYPERBOX_HPP
 #define ARBORX_HYPERBOX_HPP
 
-#if KOKKOS_VERSION >= 30700
-
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_GeometryTraits.hpp>
@@ -100,24 +98,6 @@ struct Box
 };
 
 } // namespace ArborX::ExperimentalHyperGeometry
-
-#else
-
-#include <ArborX_Box.hpp>
-
-namespace ArborX::ExperimentalHyperGeometry
-{
-template <int DIM, class FloatingPoint = float>
-struct Box : public ArborX::Box
-{
-  static_assert(DIM == 3);
-  static_assert(std::is_same_v<FloatingPoint, float>);
-  using ArborX::Box::Box;
-};
-
-} // namespace ArborX::ExperimentalHyperGeometry
-
-#endif
 
 template <int DIM, class FloatingPoint>
 struct ArborX::GeometryTraits::dimension<

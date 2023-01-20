@@ -17,13 +17,8 @@
 namespace KokkosExt
 {
 
-#if KOKKOS_VERSION >= 30699
 using Kokkos::floor;
 using Kokkos::isfinite;
-#else
-using Kokkos::Experimental::floor;
-using Kokkos::Experimental::isfinite;
-#endif
 
 } // namespace KokkosExt
 

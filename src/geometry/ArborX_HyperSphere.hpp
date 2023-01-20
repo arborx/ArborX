@@ -11,8 +11,6 @@
 #ifndef ARBORX_HYPERSPHERE_HPP
 #define ARBORX_HYPERSPHERE_HPP
 
-#if KOKKOS_VERSION >= 30700
-
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperPoint.hpp>
 
@@ -48,23 +46,6 @@ struct Sphere
 };
 
 } // namespace ArborX::ExperimentalHyperGeometry
-
-#else
-
-#include <ArborX_Sphere.hpp>
-
-namespace ArborX::ExperimentalHyperGeometry
-{
-template <int DIM, class FloatingPoint = float>
-struct Sphere : public ArborX::Sphere
-{
-  static_assert(DIM == 3);
-  static_assert(std::is_same_v<FloatingPoint, float>);
-  using ArborX::Sphere::Sphere;
-};
-} // namespace ArborX::ExperimentalHyperGeometry
-
-#endif
 
 template <int DIM>
 struct ArborX::GeometryTraits::dimension<

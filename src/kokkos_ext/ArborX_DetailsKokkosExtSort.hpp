@@ -102,19 +102,11 @@ void sortByKey(ExecutionSpace const &space, Keys &keys, Values &values)
   using SizeType = unsigned int;
   using CompType = Kokkos::BinOp1D<Keys>;
 
-#if KOKKOS_VERSION >= 30700
   Kokkos::BinSort<Keys, CompType, typename Keys::device_type, SizeType>
       bin_sort(space, keys, CompType(n / 2, min_val, max_val), true);
   bin_sort.create_permute_vector(space);
   bin_sort.sort(space, keys);
   bin_sort.sort(space, values);
-#else
-  Kokkos::BinSort<Keys, CompType, typename Keys::device_type, SizeType>
-      bin_sort(keys, CompType(n / 2, min_val, max_val), true);
-  bin_sort.create_permute_vector();
-  bin_sort.sort(keys);
-  bin_sort.sort(values);
-#endif
 }
 
 #if defined(KOKKOS_ENABLE_CUDA) ||                                             \
