@@ -15,6 +15,8 @@
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
 
+#include <Kokkos_Core.hpp>
+
 namespace ArborX::Details
 {
 

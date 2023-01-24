@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -9,32 +9,33 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_BOOST_TEST_KOKKOS_PAIR_COMPARISON_HPP
-#define ARBORX_BOOST_TEST_KOKKOS_PAIR_COMPARISON_HPP
+#ifndef ARBORX_PAIR_INDEX_RANK_HPP
+#define ARBORX_PAIR_INDEX_RANK_HPP
 
-#include <Kokkos_Pair.hpp>
+#include <Kokkos_Macros.hpp>
 
-#include <boost/test/tools/detail/print_helper.hpp>
-
-#include <iostream>
-
-// Enable comparison of Kokkos pairs
-namespace boost::test_tools::tt_detail
+namespace ArborX
 {
 
-template <typename T1, typename T2>
-struct print_log_value<Kokkos::pair<T1, T2>>
+struct PairIndexRank
 {
-  void operator()(std::ostream &os, Kokkos::pair<T1, T2> const &p)
+  int index;
+  int rank;
+
+private:
+  friend KOKKOS_FUNCTION constexpr bool operator==(PairIndexRank lhs,
+                                                   PairIndexRank rhs)
   {
-    os << '(';
-    print_log_value<T1>()(os, p.first);
-    os << ',';
-    print_log_value<T2>()(os, p.second);
-    os << ')';
+    return lhs.index == rhs.index && lhs.rank == rhs.rank;
+  }
+  friend KOKKOS_FUNCTION constexpr bool operator<(PairIndexRank lhs,
+                                                  PairIndexRank rhs)
+  {
+    return lhs.rank < rhs.rank ||
+           (lhs.rank == rhs.rank && lhs.index < rhs.index);
   }
 };
 
-} // namespace boost::test_tools::tt_detail
+} // namespace ArborX
 
 #endif

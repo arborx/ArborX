@@ -21,6 +21,7 @@
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <ArborX_PairIndexRank.hpp>
 #include <ArborX_Predicates.hpp>
 #include <ArborX_Ray.hpp>
 #include <ArborX_Sphere.hpp>
@@ -31,9 +32,10 @@
 
 namespace ArborX
 {
-
 namespace Details
 {
+using PairIndexRankAndDistance = Kokkos::pair<PairIndexRank, float>;
+
 struct DefaultCallbackWithRank
 {
   int _rank;

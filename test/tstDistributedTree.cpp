@@ -28,7 +28,9 @@
 
 namespace tt = boost::test_tools;
 
-using PairIndexRank = Kokkos::pair<int, int>;
+using ArborX::PairIndexRank;
+using ArborX::Details::PairIndexRankAndDistance;
+
 struct PairRankIndex
 {
   int rank;
@@ -49,7 +51,6 @@ struct PairRankIndex
     return stream << '[' << pair.rank << ',' << pair.index << ']';
   }
 };
-using TupleIndexRankDistance = Kokkos::pair<Kokkos::pair<int, int>, float>;
 
 struct InlineCallback
 {
@@ -128,11 +129,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
   values.reserve(n + 1);
   for (int i = 0; i < n; ++i)
   {
-    values.emplace_back(n - 1 - i, comm_size - 1 - comm_rank);
+    values.push_back({n - 1 - i, comm_size - 1 - comm_rank});
   }
   if (comm_rank > 0)
   {
-    values.emplace_back(0, comm_size - comm_rank);
+    values.push_back({0, comm_size - comm_rank});
     ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, queries,
                            make_reference_solution(values, {0, n + 1}));
   }
@@ -213,7 +214,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
 
   ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
       ExecutionSpace{}, tree, makeNearestQueries<DeviceType>({}),
-      make_reference_solution<TupleIndexRankDistance>({}, {0}));
+      make_reference_solution<PairIndexRankAndDistance>({}, {0}));
 
   // Only rank 0 has a couple spatial queries with a spatial predicate
   if (comm_rank == 0)
@@ -269,7 +270,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
       makeNearestQueries<DeviceType>({
           {{{0., 0., 0.}}, comm_size},
       }),
-      make_reference_solution<TupleIndexRankDistance>({}, {0, 0}));
+      make_reference_solution<PairIndexRankAndDistance>({}, {0, 0}));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
@@ -312,7 +313,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
 
   ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
       ExecutionSpace{}, tree, makeNearestQueries<DeviceType>({}),
-      make_reference_solution<TupleIndexRankDistance>({}, {0}));
+      make_reference_solution<PairIndexRankAndDistance>({}, {0}));
 
   // Querying for more neighbors than there are leaves in the tree
   ARBORX_TEST_QUERY_TREE(
@@ -378,7 +379,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
                                  std::vector<PairIndexRank> values;
                                  values.reserve(comm_size);
                                  for (int i = 0; i < comm_size; ++i)
-                                   values.emplace_back(0, i);
+                                   values.push_back({0, i});
                                  return values;
                                }(),
                                {0, comm_size}));

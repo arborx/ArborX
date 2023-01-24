@@ -44,7 +44,7 @@ struct NodeWithLeftChildAndRope
     return left_child <= 0;
   }
 
-  KOKKOS_INLINE_FUNCTION constexpr std::size_t
+  KOKKOS_INLINE_FUNCTION constexpr unsigned
   getLeafPermutationIndex() const noexcept
   {
     assert(isLeaf());
@@ -65,7 +65,7 @@ struct NodeWithLeftChildAndRope
 
 template <class BoundingVolume>
 KOKKOS_INLINE_FUNCTION constexpr NodeWithLeftChildAndRope<BoundingVolume>
-makeLeafNode(std::size_t permutation_index,
+makeLeafNode(unsigned permutation_index,
              BoundingVolume bounding_volume) noexcept
 {
   return {-static_cast<int>(permutation_index), ROPE_SENTINEL,
