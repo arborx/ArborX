@@ -67,13 +67,14 @@ void query(ArborX::DistributedTree<MemorySpace> const &tree,
 }
 #endif
 
-template <typename ValueType, typename ExecutionSpace, typename Tree,
-          typename Queries>
+template <typename ExecutionSpace, typename Tree, typename Queries>
 auto query(ExecutionSpace const &exec_space, Tree const &tree,
            Queries const &queries)
 {
   using memory_space = typename Tree::memory_space;
-  Kokkos::View<ValueType *, memory_space> values("Testing::values", 0);
+  using value_type =
+      std::conditional_t<is_distributed<Tree>{}, Kokkos::pair<int, int>, int>;
+  Kokkos::View<value_type *, memory_space> values("Testing::values", 0);
   Kokkos::View<int *, memory_space> offsets("Testing::offsets", 0);
   tree.query(exec_space, queries, values, offsets);
   return make_compressed_storage(
@@ -82,11 +83,8 @@ auto query(ExecutionSpace const &exec_space, Tree const &tree,
 }
 
 #define ARBORX_TEST_QUERY_TREE(exec_space, tree, queries, reference)           \
-  {                                                                            \
-    using value_type = typename decltype(reference)::value_type;               \
-    BOOST_TEST(query<value_type>(exec_space, tree, queries) == (reference),    \
-               boost::test_tools::per_element());                              \
-  }
+  BOOST_TEST(query(exec_space, tree, queries) == (reference),                  \
+             boost::test_tools::per_element());
 
 template <typename ValueType, typename ExecutionSpace, typename Tree,
           typename Queries, typename Callback>
@@ -104,27 +102,24 @@ auto query(ExecutionSpace const &exec_space, Tree const &tree,
 
 #define ARBORX_TEST_QUERY_TREE_CALLBACK(exec_space, tree, queries, callback,   \
                                         reference)                             \
-  {                                                                            \
-    using value_type = typename decltype(reference)::value_type;               \
-    BOOST_TEST(query<value_type>(exec_space, tree, queries, callback) ==       \
-                   (reference),                                                \
-               boost::test_tools::per_element());                              \
-  }
+  using value_type = typename decltype(reference)::value_type;                 \
+  BOOST_TEST(query<value_type>(exec_space, tree, queries, callback) ==         \
+                 (reference),                                                  \
+             boost::test_tools::per_element());
 
-#ifdef ARBORX_ENABLE_MPI
 // Workaround for NVCC that complains that the enclosing parent function
 // (query_with_distance) for an extended __host__ __device__ lambda must not
 // have deduced return type
-template <typename TupleIndexRankDistanceType, typename DeviceType,
-          typename ExecutionSpace>
-Kokkos::View<TupleIndexRankDistanceType *, DeviceType>
+template <typename DeviceType, typename ExecutionSpace>
+Kokkos::View<Kokkos::pair<Kokkos::pair<int, int>, float> *, DeviceType>
 zip(ExecutionSpace const &space, Kokkos::View<int *, DeviceType> indices,
     Kokkos::View<int *, DeviceType> ranks,
     Kokkos::View<float *, DeviceType> distances)
 {
   auto const n = indices.extent(0);
-  Kokkos::View<TupleIndexRankDistanceType *, DeviceType> values(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::values"), n);
+  Kokkos::View<Kokkos::pair<Kokkos::pair<int, int>, float> *, DeviceType>
+      values(Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::values"),
+             n);
   Kokkos::parallel_for(
       "ArborX:UnitTestSupport:zip",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
@@ -133,8 +128,8 @@ zip(ExecutionSpace const &space, Kokkos::View<int *, DeviceType> indices,
   return values;
 }
 
-template <typename ValueType, typename ExecutionSpace, typename Tree,
-          typename Queries>
+#ifdef ARBORX_ENABLE_MPI
+template <typename ExecutionSpace, typename Tree, typename Queries>
 auto query_with_distance(ExecutionSpace const &exec_space, Tree const &tree,
                          Queries const &queries,
                          std::enable_if_t<is_distributed<Tree>{}> * = nullptr)
@@ -150,7 +145,7 @@ auto query_with_distance(ExecutionSpace const &exec_space, Tree const &tree,
       ArborX::Details::NearestPredicateTag{}, tree, exec_space, queries,
       indices, offsets, ranks, &distances);
 
-  auto values = zip<ValueType>(exec_space, indices, ranks, distances);
+  auto values = zip(exec_space, indices, ranks, distances);
 
   return make_compressed_storage(
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
@@ -160,12 +155,8 @@ auto query_with_distance(ExecutionSpace const &exec_space, Tree const &tree,
 
 #define ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(exec_space, tree, queries,        \
                                              reference)                        \
-  {                                                                            \
-    using value_type = typename decltype(reference)::value_type;               \
-    BOOST_TEST(query_with_distance<value_type>(exec_space, tree, queries) ==   \
-                   (reference),                                                \
-               boost::test_tools::per_element());                              \
-  }
+  BOOST_TEST(query_with_distance(exec_space, tree, queries) == (reference),    \
+             boost::test_tools::per_element());
 
 template <typename Tree, typename ExecutionSpace>
 auto make(ExecutionSpace const &exec_space, std::vector<ArborX::Box> const &b)

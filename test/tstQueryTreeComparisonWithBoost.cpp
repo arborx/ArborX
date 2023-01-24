@@ -153,9 +153,8 @@ void boost_rtree_nearest_predicate()
 
   BoostExt::RTree<decltype(cloud)::value_type> rtree(ExecutionSpace{}, cloud);
 
-  ARBORX_TEST_QUERY_TREE(
-      ExecutionSpace{}, tree, nearest_queries,
-      query<int>(ExecutionSpace{}, rtree, nearest_queries_host));
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, nearest_queries,
+                         query(ExecutionSpace{}, rtree, nearest_queries_host));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
@@ -236,11 +235,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
 
   ARBORX_TEST_QUERY_TREE(
       ExecutionSpace{}, tree, intersects_queries,
-      query<int>(ExecutionSpace{}, rtree, intersects_queries_host));
+      query(ExecutionSpace{}, rtree, intersects_queries_host));
 #ifndef ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_SPHERE
-  ARBORX_TEST_QUERY_TREE(
-      ExecutionSpace{}, tree, within_queries,
-      query<int>(ExecutionSpace{}, rtree, within_queries_host));
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, within_queries,
+                         query(ExecutionSpace{}, rtree, within_queries_host));
 #endif
 }
 

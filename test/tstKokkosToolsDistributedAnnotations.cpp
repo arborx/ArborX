@@ -84,18 +84,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
       });
 
   // spatial predicates
-  query<Kokkos::pair<int, int>>(ExecutionSpace{}, tree,
-                                makeIntersectsBoxQueries<DeviceType>({
-                                    {{{0, 0, 0}}, {{1, 1, 1}}},
-                                    {{{0, 0, 0}}, {{1, 1, 1}}},
-                                }));
+  query(ExecutionSpace{}, tree,
+        makeIntersectsBoxQueries<DeviceType>({
+            {{{0, 0, 0}}, {{1, 1, 1}}},
+            {{{0, 0, 0}}, {{1, 1, 1}}},
+        }));
 
   // nearest predicates
-  query<Kokkos::pair<int, int>>(ExecutionSpace{}, tree,
-                                makeNearestQueries<DeviceType>({
-                                    {{{0, 0, 0}}, 1},
-                                    {{{0, 0, 0}}, 2},
-                                }));
+  query(ExecutionSpace{}, tree,
+        makeNearestQueries<DeviceType>({
+            {{{0, 0, 0}}, 1},
+            {{{0, 0, 0}}, 2},
+        }));
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(nullptr);
 }
@@ -122,18 +122,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
                                               });
 
   // spatial predicates
-  query<Kokkos::pair<int, int>>(ExecutionSpace{}, tree,
-                                makeIntersectsBoxQueries<DeviceType>({
-                                    {{{0, 0, 0}}, {{1, 1, 1}}},
-                                    {{{0, 0, 0}}, {{1, 1, 1}}},
-                                }));
+  query(ExecutionSpace{}, tree,
+        makeIntersectsBoxQueries<DeviceType>({
+            {{{0, 0, 0}}, {{1, 1, 1}}},
+            {{{0, 0, 0}}, {{1, 1, 1}}},
+        }));
 
   // nearest predicates
-  query<Kokkos::pair<int, int>>(ExecutionSpace{}, tree,
-                                makeNearestQueries<DeviceType>({
-                                    {{{0, 0, 0}}, 1},
-                                    {{{0, 0, 0}}, 2},
-                                }));
+  query(ExecutionSpace{}, tree,
+        makeNearestQueries<DeviceType>({
+            {{{0, 0, 0}}, 1},
+            {{{0, 0, 0}}, 2},
+        }));
 
   Kokkos::Tools::Experimental::set_begin_parallel_for_callback(nullptr);
   Kokkos::Tools::Experimental::set_begin_parallel_scan_callback(nullptr);
@@ -165,18 +165,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
                                               });
 
   // spatial predicates
-  query<Kokkos::pair<int, int>>(ExecutionSpace{}, tree,
-                                makeIntersectsBoxQueries<DeviceType>({
-                                    {{{0, 0, 0}}, {{1, 1, 1}}},
-                                    {{{0, 0, 0}}, {{1, 1, 1}}},
-                                }));
+  query(ExecutionSpace{}, tree,
+        makeIntersectsBoxQueries<DeviceType>({
+            {{{0, 0, 0}}, {{1, 1, 1}}},
+            {{{0, 0, 0}}, {{1, 1, 1}}},
+        }));
 
   // nearest predicates
-  query<Kokkos::pair<int, int>>(ExecutionSpace{}, tree,
-                                makeNearestQueries<DeviceType>({
-                                    {{{0, 0, 0}}, 1},
-                                    {{{0, 0, 0}}, 2},
-                                }));
+  query(ExecutionSpace{}, tree,
+        makeNearestQueries<DeviceType>({
+            {{{0, 0, 0}}, 1},
+            {{{0, 0, 0}}, 2},
+        }));
 
   Kokkos::Tools::Experimental::set_push_region_callback(nullptr);
 }

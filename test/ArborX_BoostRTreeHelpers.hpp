@@ -180,6 +180,63 @@ static auto translate(ArborX::Nearest<Geometry> const &query)
   return boost::geometry::index::nearest(geometry, k);
 }
 
+template <typename Indexable, typename InputView,
+          typename OutputView = Kokkos::View<int *, Kokkos::HostSpace>>
+static std::tuple<OutputView, OutputView>
+performQueries(RTree<Indexable> const &rtree, InputView const &queries)
+{
+  static_assert(KokkosExt::is_accessible_from_host<InputView>::value);
+
+  using Value = typename RTree<Indexable>::value_type;
+  auto const n_queries = queries.extent_int(0);
+  OutputView offset("offset", n_queries + 1);
+  std::vector<Value> returned_values;
+  for (int i = 0; i < n_queries; ++i)
+    offset(i) = rtree.query(translate<Value>(queries(i)),
+                            std::back_inserter(returned_values));
+  using ExecutionSpace = typename InputView::execution_space;
+  ExecutionSpace space;
+  ArborX::exclusivePrefixSum(space, offset);
+  auto const n_results = KokkosExt::lastElement(space, offset);
+  OutputView indices("indices", n_results);
+  for (int i = 0; i < n_queries; ++i)
+    for (int j = offset(i); j < offset(i + 1); ++j)
+      indices(j) = returned_values[j].second;
+  return std::make_tuple(offset, indices);
+}
+
+#ifdef ARBORX_ENABLE_MPI
+template <typename Indexable, typename InputView,
+          typename OutputView1 =
+              Kokkos::View<Kokkos::pair<int, int> *, Kokkos::HostSpace>,
+          typename OutputView2 = Kokkos::View<int *, Kokkos::HostSpace>>
+static std::tuple<OutputView2, OutputView1>
+performQueries(ParallelRTree<Indexable> const &rtree, InputView const &queries)
+{
+  static_assert(KokkosExt::is_accessible_from_host<InputView>::value);
+  using Value = typename ParallelRTree<Indexable>::value_type;
+  auto const n_queries = queries.extent_int(0);
+  OutputView2 offset("offset", n_queries + 1);
+  std::vector<Value> returned_values;
+  for (int i = 0; i < n_queries; ++i)
+    offset(i) = rtree.query(translate<Value>(queries(i)),
+                            std::back_inserter(returned_values));
+  using ExecutionSpace = typename InputView::execution_space;
+  ExecutionSpace space;
+  ArborX::exclusivePrefixSum(space, offset);
+  auto const n_results = KokkosExt::lastElement(space, offset);
+  OutputView1 values("values", n_results);
+  for (int i = 0; i < n_queries; ++i)
+    for (int j = offset(i); j < offset(i + 1); ++j)
+    {
+      int index;
+      int rank;
+      boost::tie(boost::tuples::ignore, index, rank) = returned_values[j];
+      values(j) = {index, rank};
+    }
+  return std::make_tuple(offset, values);
+}
+#endif
 } // end namespace BoostRTreeHelpers
 
 namespace BoostExt
@@ -208,23 +265,9 @@ public:
              InputView &indices, InputView &offset, TrailingArgs &&...) const
   {
     static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
-    static_assert(KokkosExt::is_accessible_from_host<Predicates>::value);
 
-    using Value = typename decltype(_tree)::value_type;
-    auto const n_predicates = predicates.extent_int(0);
-    offset = InputView("offset", n_predicates + 1);
-    std::vector<Value> returned_values;
-    for (int i = 0; i < n_predicates; ++i)
-      offset(i) =
-          _tree.query(BoostRTreeHelpers::translate<Value>(predicates(i)),
-                      std::back_inserter(returned_values));
-    typename Predicates::execution_space space;
-    ArborX::exclusivePrefixSum(space, offset);
-    auto const n_results = KokkosExt::lastElement(space, offset);
-    indices = InputView("indices", n_results);
-    for (int i = 0; i < n_predicates; ++i)
-      for (int j = offset(i); j < offset(i + 1); ++j)
-        indices(j) = returned_values[j].second;
+    std::tie(offset, indices) =
+        BoostRTreeHelpers::performQueries(_tree, predicates);
   }
 
   template <typename ExecutionSpace, typename Predicates, typename Callback,
@@ -263,30 +306,12 @@ public:
   template <typename ExecutionSpace, typename Predicates, typename InputView1,
             typename InputView2, typename... TrailingArgs>
   void query(ExecutionSpace const &, Predicates const &predicates,
-             InputView1 &values, InputView2 &offset, TrailingArgs &&...) const
+             InputView1 &indices, InputView2 &offset, TrailingArgs &&...) const
   {
     static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
-    static_assert(KokkosExt::is_accessible_from_host<Predicates>::value);
-    using Value = typename decltype(_tree)::value_type;
-    auto const n_predicates = predicates.extent_int(0);
-    offset = InputView2("offset", n_predicates + 1);
-    std::vector<Value> returned_values;
-    for (int i = 0; i < n_predicates; ++i)
-      offset(i) =
-          _tree.query(BoostRTreeHelpers::translate<Value>(predicates(i)),
-                      std::back_inserter(returned_values));
-    typename Predicates::execution_space space;
-    ArborX::exclusivePrefixSum(space, offset);
-    auto const n_results = KokkosExt::lastElement(space, offset);
-    values = InputView1("values", n_results);
-    for (int i = 0; i < n_predicates; ++i)
-      for (int j = offset(i); j < offset(i + 1); ++j)
-      {
-        int index;
-        int rank;
-        boost::tie(boost::tuples::ignore, index, rank) = returned_values[j];
-        values(j) = {index, rank};
-      }
+
+    std::tie(offset, indices) =
+        BoostRTreeHelpers::performQueries(_tree, predicates);
   }
 
 private:
