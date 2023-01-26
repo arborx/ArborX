@@ -55,7 +55,7 @@ struct PrintAndInsert
   {}
 
   template <typename Predicate, typename OutputFunctor>
-  KOKKOS_FUNCTION void operator()(Predicate const &predicate,
+  KOKKOS_FUNCTION void operator()([[maybe_unused]] Predicate const &predicate,
                                   int primitive_index,
                                   OutputFunctor const &out) const
   {
