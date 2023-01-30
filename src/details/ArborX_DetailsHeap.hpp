@@ -60,11 +60,12 @@ KOKKOS_INLINE_FUNCTION void pushHeap(RandomIterator first, RandomIterator last,
   using DistanceType =
       typename std::iterator_traits<RandomIterator>::difference_type;
   using ValueType = typename std::iterator_traits<RandomIterator>::value_type;
-  if (last - first > 1)
+  auto const n = last - first;
+  if (n > 1)
   {
-    ValueType value = std::move(*(last - 1));
-    bubbleUp(first, DistanceType((last - first) - 1), DistanceType(0),
-             std::move(value), comp);
+    ValueType value = std::move(*(first + n - 1));
+    bubbleUp(first, DistanceType(n - 1), DistanceType(0), std::move(value),
+             comp);
   }
 }
 
@@ -97,12 +98,13 @@ KOKKOS_INLINE_FUNCTION void popHeap(RandomIterator first, RandomIterator last,
   using DistanceType =
       typename std::iterator_traits<RandomIterator>::difference_type;
   using ValueType = typename std::iterator_traits<RandomIterator>::value_type;
-  if (last - first > 1)
+  auto const n = last - first;
+  if (n > 1)
   {
     ValueType value = std::move(*first);
-    bubbleDown(first, DistanceType(0), DistanceType((last - first) - 1),
-               std::move(*(last - 1)), comp);
-    *(last - 1) = std::move(value);
+    bubbleDown(first, DistanceType(0), DistanceType(n - 1),
+               std::move(*(first + n - 1)), comp);
+    *(first + n - 1) = std::move(value);
   }
 }
 
