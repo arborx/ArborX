@@ -64,14 +64,14 @@ auto parseEdgesFromCSVFile(std::string const &filename)
   std::fstream fin(filename, std::ios::in);
   using Tokenizer = boost::tokenizer<boost::escaped_list_separator<char>>;
   std::string line;
-  std::vector<ArborX::Details::WeightedEdge> edges;
+  std::vector<Test::UndirectedEdge> edges;
   assert(fin.is_open());
   while (std::getline(fin, line))
   {
     Tokenizer tok(line);
     auto first = tok.begin();
     auto const last = tok.end();
-    edges.emplace_back(ArborX::Details::WeightedEdge{
+    edges.emplace_back(Test::UndirectedEdge{
         std::stoi(*first++), std::stoi(*first++), std::stof(*first++)});
     assert(first == last);
   }
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(minimum_spanning_tree_golden_test, DeviceType,
   std::sort(edges.data(), edges.data() + edges.size());
 
   BOOST_TEST(
-      reinterpret_cast<std::vector<Test::UndirectedEdge> const &>(edges_ref) ==
+      edges_ref ==
           (Kokkos::View<Test::UndirectedEdge const *, Kokkos::HostSpace>(
               reinterpret_cast<Test::UndirectedEdge const *>(edges.data()),
               edges.size())),
