@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -12,6 +12,7 @@
 #define ARBORX_DENDROGRAM_HPP
 
 #include <ArborX_DetailsDendrogram.hpp>
+#include <ArborX_DetailsKokkosExtSort.hpp>
 #include <ArborX_DetailsWeightedEdge.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -33,11 +34,46 @@ struct Dendrogram
   {
     Kokkos::Profiling::pushRegion("ArborX::Dendrogram::Dendrogram");
 
-    using ConstEdges = Kokkos::View<Details::WeightedEdge const *, MemorySpace>;
-    Details::dendrogramUnionFind(exec_space, ConstEdges(edges), _parents,
-                                 _parent_heights);
+    auto const num_edges = edges.size();
+    auto const num_vertices = num_edges + 1;
+
+    KokkosExt::reallocWithoutInitializing(exec_space, _parents,
+                                          num_edges + num_vertices);
+    KokkosExt::reallocWithoutInitializing(exec_space, _parent_heights,
+                                          num_edges);
+
+    Kokkos::View<Details::UnweightedEdge *, MemorySpace> unweighted_edges(
+        Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
+                           "ArborX::Dendrogram::unweighted_edges"),
+        num_edges);
+    splitEdges(exec_space, edges, unweighted_edges, _parent_heights);
+
+    Kokkos::Profiling::pushRegion("ArborX::Dendrogram::edge_sort");
+    KokkosExt::sortByKey(exec_space, _parent_heights, unweighted_edges);
+    Kokkos::Profiling::popRegion();
+
+    using ConstEdges =
+        Kokkos::View<Details::UnweightedEdge const *, MemorySpace>;
+    Details::dendrogramUnionFind(exec_space, ConstEdges(unweighted_edges),
+                                 _parents);
 
     Kokkos::Profiling::popRegion();
+  }
+
+  template <typename ExecutionSpace>
+  void splitEdges(
+      ExecutionSpace const &exec_space,
+      Kokkos::View<Details::WeightedEdge *, MemorySpace> edges,
+      Kokkos::View<Details::UnweightedEdge *, MemorySpace> unweighted_edges,
+      Kokkos::View<float *, MemorySpace> weights)
+  {
+    Kokkos::parallel_for(
+        "ArborX::Dendrogram::copy_weights_and_edges",
+        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, edges.size()),
+        KOKKOS_LAMBDA(int const e) {
+          weights(e) = edges(e).weight;
+          unweighted_edges(e) = {edges(e).source, edges(e).target};
+        });
   }
 };
 

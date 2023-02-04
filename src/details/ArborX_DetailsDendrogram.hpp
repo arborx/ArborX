@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -12,10 +12,9 @@
 #ifndef ARBORX_DETAILS_DENDROGRAM_HPP
 #define ARBORX_DETAILS_DENDROGRAM_HPP
 
-#include <ArborX_DetailsKokkosExtSort.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsUnionFind.hpp>
-#include <ArborX_DetailsWeightedEdge.hpp>
+#include <ArborX_DetailsUtils.hpp> // iota
 
 #include <Kokkos_Core.hpp>
 
@@ -86,42 +85,18 @@ void dendrogramUnionFindHost(Edges sorted_edges_host, Parents &parents_host)
 }
 
 template <typename ExecutionSpace, typename MemorySpace>
-void dendrogramUnionFind(ExecutionSpace const &exec_space,
-                         Kokkos::View<WeightedEdge const *, MemorySpace> edges,
-                         Kokkos::View<int *, MemorySpace> &parents,
-                         Kokkos::View<float *, MemorySpace> &weights)
+void dendrogramUnionFind(
+    ExecutionSpace const &exec_space,
+    Kokkos::View<UnweightedEdge const *, MemorySpace> sorted_unweighted_edges,
+    Kokkos::View<int *, MemorySpace> &parents)
 {
   Kokkos::Profiling::pushRegion("ArborX::Dendrogram::dendrogram_union_find");
-
-  auto const num_edges = edges.size();
-  auto const num_vertices = num_edges + 1;
-
-  KokkosExt::reallocWithoutInitializing(exec_space, weights, num_edges);
-  Kokkos::View<UnweightedEdge *, MemorySpace> unweighted_edges(
-      Kokkos::view_alloc(
-          exec_space, Kokkos::WithoutInitializing,
-          "ArborX::Dendrogram::dendrogram_union_find::unweighted_edges"),
-      num_edges);
-  Kokkos::parallel_for(
-      "ArborX::Dendrogram::dendrogram_union_find::copy_weights_and_edges",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_edges),
-      KOKKOS_LAMBDA(int const e) {
-        weights(e) = edges(e).weight;
-        unweighted_edges(e) = {edges(e).source, edges(e).target};
-      });
-
-  Kokkos::Profiling::pushRegion("ArborX::Dendrogram::edge_sort");
-  KokkosExt::sortByKey(exec_space, weights, unweighted_edges);
-  Kokkos::Profiling::popRegion();
-
-  KokkosExt::reallocWithoutInitializing(exec_space, parents,
-                                        num_edges + num_vertices);
 
   Kokkos::Profiling::pushRegion(
       "ArborX::Dendrogram::dendrogram_union_find::copy_to_host");
 
   auto sorted_unweighted_edges_host = Kokkos::create_mirror_view_and_copy(
-      Kokkos::HostSpace{}, unweighted_edges);
+      Kokkos::HostSpace{}, sorted_unweighted_edges);
   auto parents_host = Kokkos::create_mirror_view(parents);
 
   Kokkos::Profiling::popRegion();
