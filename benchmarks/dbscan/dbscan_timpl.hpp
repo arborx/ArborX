@@ -272,7 +272,7 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
       printf("-- dendrogram       : %10.3f\n",
              ArborX_Benchmark::get_time("ArborX::HDBSCAN::dendrogram"));
       printf("---- edge sort      : %10.3f\n",
-             ArborX_Benchmark::get_time("ArborX::Dendrogram::edge_sort"));
+             ArborX_Benchmark::get_time("ArborX::Dendrogram::sort_edges"));
       printf("total time          : %10.3f\n",
              ArborX_Benchmark::get_time("ArborX::HDBSCAN::total"));
     }
