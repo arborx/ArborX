@@ -47,6 +47,9 @@ bool verifyCorePointsNonnegativeIndex(ExecutionSpace const &exec_space,
         {
 #ifndef __SYCL_DEVICE_ONLY__
           printf("Core point is marked as noise: %d [%d]\n", i, labels(i));
+#else
+          sycl::ext::oneapi::experimental::printf(
+              "Core point is marked as noise: %d [%d]\n", i, labels(i));
 #endif
           update++;
         }
@@ -84,6 +87,11 @@ bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
               printf("Connected cores do not belong to the same cluster: "
                      "%d [%d] -> %d [%d]\n",
                      i, labels(i), j, labels(j));
+#else
+              sycl::ext::oneapi::experimental::printf(
+                  "Connected cores do not belong to the same cluster: "
+                  "%d [%d] -> %d [%d]\n",
+                  i, labels(i), j, labels(j));
 #endif
               update++;
             }
@@ -137,6 +145,10 @@ bool verifyBorderAndNoisePoints(ExecutionSpace const &exec_space,
 #ifndef __SYCL_DEVICE_ONLY__
             printf("Border point does not belong to a cluster: %d [%d]\n", i,
                    labels(i));
+#else
+            sycl::ext::oneapi::experimental::printf(
+                "Border point does not belong to a cluster: %d [%d]\n", i,
+                labels(i));
 #endif
             update++;
           }
@@ -146,6 +158,9 @@ bool verifyBorderAndNoisePoints(ExecutionSpace const &exec_space,
 #ifndef __SYCL_DEVICE_ONLY__
             printf("Noise point does not have index -1: %d [%d]\n", i,
                    labels(i));
+#else
+            sycl::ext::oneapi::experimental::printf(
+                "Noise point does not have index -1: %d [%d]\n", i, labels(i));
 #endif
             update++;
           }

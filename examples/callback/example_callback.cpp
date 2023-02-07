@@ -58,6 +58,9 @@ struct PrintfCallback
   {
 #ifndef __SYCL_DEVICE_ONLY__
     printf("Found %d from functor\n", primitive);
+#else
+    sycl::ext::oneapi::experimental::printf("Found %d from functor\n",
+                                            primitive);
 #endif
     out(primitive);
   }
@@ -97,7 +100,8 @@ int main(int argc, char *argv[])
 #ifndef __SYCL_DEVICE_ONLY__
           printf("Found %d from generic lambda\n", primitive);
 #else
-          (void)primitive;
+          sycl::ext::oneapi::experimental::printf(
+              "Found %d from generic lambda\n", primitive);
 #endif
         },
         values, offsets);
@@ -118,7 +122,8 @@ int main(int argc, char *argv[])
 #ifndef __SYCL_DEVICE_ONLY__
           printf("Found %d from generic lambda\n", primitive);
 #else
-          (void)primitive;
+          sycl::ext::oneapi::experimental::printf(
+              "Found %d from generic lambda\n", primitive);
 #endif
         },
         values, offsets);
@@ -137,7 +142,7 @@ int main(int argc, char *argv[])
 #ifndef __SYCL_DEVICE_ONLY__
           printf("%d %d %d\n", ++c(), -1, j);
 #else
-          (void)j;
+          sycl::ext::oneapi::experimental::printf("%d %d %d\n", ++c(), -1, j);
 #endif
         });
 #endif
