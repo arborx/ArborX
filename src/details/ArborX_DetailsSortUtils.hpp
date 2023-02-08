@@ -46,7 +46,7 @@ auto sortObjects(ExecutionSpace const &space, ViewType &view)
 // Helper functions and structs for applyPermutations
 namespace PermuteHelper
 {
-template <class DstViewType, class SrcViewType, int Rank = DstViewType::Rank>
+template <class DstViewType, class SrcViewType, int Rank = DstViewType::rank>
 struct CopyOp;
 
 template <class DstViewType, class SrcViewType>
