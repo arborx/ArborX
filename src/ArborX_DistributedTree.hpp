@@ -153,7 +153,7 @@ DistributedTree<MemorySpace, Enable>::DistributedTree(
                          "ArborX::DistributedTree::DistributedTree::"
                          "rank_bounding_boxes"),
       comm_size);
-#ifdef ARBORX_USE_CUDA_AWARE_MPI
+#ifdef ARBORX_ENABLE_GPU_AWARE_MPI
   Kokkos::deep_copy(space, Kokkos::subview(boxes, comm_rank),
                     _bottom_tree.bounds());
   space.fence("ArborX::DistributedTree::DistributedTree"

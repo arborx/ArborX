@@ -63,7 +63,7 @@ pipeline {
                                     -D ARBORX_ENABLE_MPI=ON \
                                     -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
                                     -D MPIEXEC_MAX_NUMPROCS=4 \
-                                    -D ARBORX_USE_CUDA_AWARE_MPI=ON \
+                                    -D ARBORX_ENABLE_GPU_AWARE_MPI=ON \
                                     -D ARBORX_ENABLE_TESTS=ON \
                                     -D ARBORX_ENABLE_EXAMPLES=ON \
                                     -D ARBORX_ENABLE_BENCHMARKS=ON \
