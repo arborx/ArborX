@@ -461,32 +461,10 @@ struct UpdateComponentsAndEdges
   }
 };
 
-// For every component C and a found shortest edge `(u, w)`, merge C with
-// the component that w belongs to by updating the labels, and add the edge to
-// the list of MST edges.
-template <class ExecutionSpace, class Labels, class ComponentOutEdges,
-          class Edges, class EdgesCount>
-void updateComponentsAndEdges(ExecutionSpace const &space,
-                              ComponentOutEdges const &component_out_edges,
-                              Labels const &labels, Edges const &edges,
-                              EdgesCount const &num_edges)
-{
-  using X =
-      UpdateComponentsAndEdges<Labels, ComponentOutEdges, Edges, EdgesCount>;
-  X x{labels, component_out_edges, edges, num_edges};
-
-  auto const n = component_out_edges.extent(0);
-  Kokkos::parallel_for(
-      "ArborX::MST::update_edges",
-      Kokkos::RangePolicy<ExecutionSpace, typename X::EdgesTag>(space, n - 1,
-                                                                2 * n - 1),
-      x);
-  Kokkos::parallel_for(
-      "ArborX::MST::update_labels",
-      Kokkos::RangePolicy<ExecutionSpace, typename X::LabelsTag>(space, n - 1,
-                                                                 2 * n - 1),
-      x);
-}
+template <class Labels, class OutEdges, class Edges, class EdgesCount>
+UpdateComponentsAndEdges(Labels const &labels, OutEdges const &out_edges,
+                         Edges const &edges, EdgesCount const &num_edges)
+    -> UpdateComponentsAndEdges<Labels, OutEdges, Edges, EdgesCount>;
 
 // Reverse node leaf permutation order back to original indices
 template <class ExecutionSpace, class BVH, class Edges>
@@ -701,9 +679,25 @@ private:
         updateLowerBounds(space, labels, component_out_edges, lower_bounds);
       }
 
-      // NOTE could perform the label tree reduction as part of the update
-      updateComponentsAndEdges(space, component_out_edges, labels, edges,
-                               num_edges);
+      UpdateComponentsAndEdges f{labels, component_out_edges, edges, num_edges};
+      using X = decltype(f);
+
+      // For every component C and a found shortest edge `(u, w)`, add the edge
+      // to the list of MST edges.
+      Kokkos::parallel_for(
+          "ArborX::MST::update_edges",
+          Kokkos::RangePolicy<ExecutionSpace, typename X::EdgesTag>(
+              space, n - 1, 2 * n - 1),
+          f);
+
+      // For every component C and a found shortest edge `(u, w)`, merge C with
+      // the component that w belongs to by updating the labels
+      Kokkos::parallel_for(
+          "ArborX::MST::update_labels",
+          Kokkos::RangePolicy<ExecutionSpace, typename X::LabelsTag>(
+              space, n - 1, 2 * n - 1),
+          f);
+
       int num_edges_host;
       Kokkos::deep_copy(space, num_edges_host, num_edges);
       space.fence();
