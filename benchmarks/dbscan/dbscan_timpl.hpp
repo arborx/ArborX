@@ -267,12 +267,33 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
 
     if (params.verbose)
     {
-      printf("-- mst              : %10.3f\n",
-             ArborX_Benchmark::get_time("ArborX::HDBSCAN::mst"));
-      printf("-- dendrogram       : %10.3f\n",
-             ArborX_Benchmark::get_time("ArborX::HDBSCAN::dendrogram"));
-      printf("---- edge sort      : %10.3f\n",
-             ArborX_Benchmark::get_time("ArborX::Dendrogram::sort_edges"));
+      if (params.dendrogram != "boruvka")
+      {
+        printf("-- mst              : %10.3f\n",
+               ArborX_Benchmark::get_time("ArborX::HDBSCAN::mst"));
+        printf("-- dendrogram       : %10.3f\n",
+               ArborX_Benchmark::get_time("ArborX::HDBSCAN::dendrogram"));
+        printf("---- edge sort      : %10.3f\n",
+               ArborX_Benchmark::get_time("ArborX::Dendrogram::sort_edges"));
+      }
+      else
+      {
+        printf("-- construction     : %10.3f\n",
+               ArborX_Benchmark::get_time("ArborX::MST::construction"));
+        if (params.core_min_size > 1)
+          printf("-- core distances   : %10.3f\n",
+                 ArborX_Benchmark::get_time(
+                     "ArborX::MST::compute_core_distances"));
+        printf("-- boruvka          : %10.3f\n",
+               ArborX_Benchmark::get_time("ArborX::MST::boruvka"));
+        printf("---- sided parents  : %10.3f\n",
+               ArborX_Benchmark::get_time("ArborX::MST::update_sided_parents"));
+        printf(
+            "---- vertex parents : %10.3f\n",
+            ArborX_Benchmark::get_time("ArborX::MST::compute_vertex_parents"));
+        printf("-- edge parents     : %10.3f\n",
+               ArborX_Benchmark::get_time("ArborX::MST::compute_edge_parents"));
+      }
       printf("total time          : %10.3f\n",
              ArborX_Benchmark::get_time("ArborX::HDBSCAN::total"));
     }
