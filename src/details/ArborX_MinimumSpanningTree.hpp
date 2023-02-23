@@ -395,17 +395,21 @@ void retrieveEdges(ExecutionSpace const &space, Labels const &labels,
       });
 }
 
-template <class Labels, class OutEdges, class Edges, class EdgesCount>
+template <class Labels, class OutEdges, class Edges, class EdgesMapping,
+          class EdgesCount>
 struct UpdateComponentsAndEdges
 {
   Labels _labels;
   OutEdges _out_edges;
   Edges _edges;
+  EdgesMapping _edge_mapping;
   EdgesCount _num_edges;
 
   struct LabelsTag
   {};
-  struct EdgesTag
+  struct UnidirectionalEdgesTag
+  {};
+  struct BidirectionalEdgesTag
   {};
 
   KOKKOS_FUNCTION auto computeNextComponent(int component) const
@@ -444,7 +448,7 @@ struct UpdateComponentsAndEdges
     _labels(i) = final_component;
   }
 
-  KOKKOS_FUNCTION void operator()(EdgesTag const &, int i) const
+  KOKKOS_FUNCTION void operator()(UnidirectionalEdgesTag const &, int i) const
   {
     auto const component = _labels(i);
     if (i != component || computeNextComponent(component) == component)
@@ -458,13 +462,29 @@ struct UpdateComponentsAndEdges
     auto const back =
         Kokkos::atomic_fetch_inc(&_num_edges()); // atomic post-increment
     _edges(back) = edge;
+
+    _edge_mapping(i) = back;
+  }
+
+  KOKKOS_FUNCTION void operator()(BidirectionalEdgesTag const &, int i) const
+  {
+    auto const component = _labels(i);
+    if (i != component || computeNextComponent(component) != component)
+      return;
+
+    i -= _out_edges.extent_int(0) - 1;
+
+    auto const &edge = _out_edges(i);
+    _edge_mapping(i) = _edge_mapping(_labels(edge.target()));
   }
 };
 
-template <class Labels, class OutEdges, class Edges, class EdgesCount>
-UpdateComponentsAndEdges(Labels const &labels, OutEdges const &out_edges,
-                         Edges const &edges, EdgesCount const &num_edges)
-    -> UpdateComponentsAndEdges<Labels, OutEdges, Edges, EdgesCount>;
+template <class Labels, class OutEdges, class Edges, class EdgesMapping,
+          class EdgesCount>
+UpdateComponentsAndEdges(Labels const &, OutEdges const &, Edges const &,
+                         EdgesMapping const &, EdgesCount const &)
+    -> UpdateComponentsAndEdges<Labels, OutEdges, Edges, EdgesMapping,
+                                EdgesCount>;
 
 // Reverse node leaf permutation order back to original indices
 template <class ExecutionSpace, class BVH, class Edges>
@@ -651,6 +671,11 @@ private:
     Kokkos::View<int, MemorySpace> num_edges(
         Kokkos::view_alloc(space, "ArborX::MST::num_edges")); // initialize to 0
 
+    Kokkos::View<int *, MemorySpace> edges_mapping(
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                           "ArborX::MST::edges_mapping"),
+        n);
+
     // Boruvka iterations
     int iterations = 0;
     int num_components = n;
@@ -679,15 +704,23 @@ private:
         updateLowerBounds(space, labels, component_out_edges, lower_bounds);
       }
 
-      UpdateComponentsAndEdges f{labels, component_out_edges, edges, num_edges};
+      UpdateComponentsAndEdges f{labels, component_out_edges, edges,
+                                 edges_mapping, num_edges};
       using X = decltype(f);
 
       // For every component C and a found shortest edge `(u, w)`, add the edge
       // to the list of MST edges.
       Kokkos::parallel_for(
-          "ArborX::MST::update_edges",
-          Kokkos::RangePolicy<ExecutionSpace, typename X::EdgesTag>(
-              space, n - 1, 2 * n - 1),
+          "ArborX::MST::update_unidirectional_edges",
+          Kokkos::RangePolicy<ExecutionSpace,
+                              typename X::UnidirectionalEdgesTag>(space, n - 1,
+                                                                  2 * n - 1),
+          f);
+      Kokkos::parallel_for(
+          "ArborX::MST::update_unidirectional_edges",
+          Kokkos::RangePolicy<ExecutionSpace,
+                              typename X::BidirectionalEdgesTag>(space, n - 1,
+                                                                 2 * n - 1),
           f);
 
       // For every component C and a found shortest edge `(u, w)`, merge C with
