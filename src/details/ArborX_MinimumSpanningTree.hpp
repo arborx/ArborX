@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -403,23 +403,10 @@ struct UpdateComponentsAndEdges
   Edges _edges;
   EdgesCount _num_edges;
 
-  template <class ExecutionSpace>
-  UpdateComponentsAndEdges(ExecutionSpace const &space, Labels const &labels,
-                           OutEdges const &out_edges, Edges const &edges,
-                           EdgesCount const &count)
-      : _labels(labels)
-      , _out_edges(out_edges)
-      , _edges(edges)
-      , _num_edges(count)
-  {
-    auto const n = out_edges.extent(0);
-    ARBORX_ASSERT(labels.extent(0) == 2 * n - 1);
-    ARBORX_ASSERT(edges.extent(0) == n - 1);
-
-    Kokkos::parallel_for(
-        "ArborX::MST::update_components_and_edges",
-        Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 1), *this);
-  }
+  struct LabelsTag
+  {};
+  struct EdgesTag
+  {};
 
   KOKKOS_FUNCTION auto computeNextComponent(int component) const
   {
@@ -450,25 +437,27 @@ struct UpdateComponentsAndEdges
     return next_component;
   }
 
-  KOKKOS_FUNCTION void operator()(int i) const
+  KOKKOS_FUNCTION void operator()(LabelsTag const &, int i) const
   {
     auto const component = _labels(i);
     auto const final_component = computeFinalComponent(component);
     _labels(i) = final_component;
-    if (i != component)
-    {
+  }
+
+  KOKKOS_FUNCTION void operator()(EdgesTag const &, int i) const
+  {
+    auto const component = _labels(i);
+    if (i != component || computeNextComponent(component) == component)
       return;
-    }
-    auto const n = _out_edges.extent(0);
-    if (i != final_component)
-    {
-      auto const edge = static_cast<WeightedEdge>(_out_edges(i - n + 1));
-      // append new edge at the "end" of the array (akin to
-      // std::vector::push_back)
-      auto const back =
-          Kokkos::atomic_fetch_inc(&_num_edges()); // atomic post-increment
-      _edges(back) = edge;
-    }
+
+    i -= _out_edges.extent_int(0) - 1;
+
+    // append new edge at the "end" of the array (akin to
+    // std::vector::push_back)
+    auto const edge = static_cast<WeightedEdge>(_out_edges(i));
+    auto const back =
+        Kokkos::atomic_fetch_inc(&_num_edges()); // atomic post-increment
+    _edges(back) = edge;
   }
 };
 
@@ -482,8 +471,21 @@ void updateComponentsAndEdges(ExecutionSpace const &space,
                               Labels const &labels, Edges const &edges,
                               EdgesCount const &num_edges)
 {
-  UpdateComponentsAndEdges<Labels, ComponentOutEdges, Edges, EdgesCount>(
-      space, labels, component_out_edges, edges, num_edges);
+  using X =
+      UpdateComponentsAndEdges<Labels, ComponentOutEdges, Edges, EdgesCount>;
+  X x{labels, component_out_edges, edges, num_edges};
+
+  auto const n = component_out_edges.extent(0);
+  Kokkos::parallel_for(
+      "ArborX::MST::update_edges",
+      Kokkos::RangePolicy<ExecutionSpace, typename X::EdgesTag>(space, n - 1,
+                                                                2 * n - 1),
+      x);
+  Kokkos::parallel_for(
+      "ArborX::MST::update_labels",
+      Kokkos::RangePolicy<ExecutionSpace, typename X::LabelsTag>(space, n - 1,
+                                                                 2 * n - 1),
+      x);
 }
 
 // Reverse node leaf permutation order back to original indices
