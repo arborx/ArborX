@@ -803,41 +803,52 @@ void DistributedTreeImpl<DeviceType>::communicateResultsBack(
   int const n_imports =
       distributor.createFromSends(space, ranks, static_cast<Ranks>(offset));
 
-  Kokkos::View<int *, DeviceType> export_ranks(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, ranks.label()),
-      n_exports);
-  Kokkos::deep_copy(space, export_ranks, comm_rank);
-  Kokkos::View<int *, DeviceType> export_ids(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, ids.label()),
-      n_exports);
-  Kokkos::parallel_for(
-      "ArborX::DistributedTree::query::fill_buffer",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_fwd_queries),
-      KOKKOS_LAMBDA(int q) {
-        for (int i = offset(q); i < offset(q + 1); ++i)
-        {
-          export_ids(i) = ids(q);
-        }
-      });
-  OutputView export_out = out;
+  {
+    Kokkos::View<int *, DeviceType> export_ranks(
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing, ranks.label()),
+        n_exports);
+    Kokkos::deep_copy(space, export_ranks, comm_rank);
 
-  OutputView import_out(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, out.label()),
-      n_imports);
-  Kokkos::View<int *, DeviceType> import_ranks(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, ranks.label()),
-      n_imports);
-  Kokkos::View<int *, DeviceType> import_ids(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, ids.label()),
-      n_imports);
+    Kokkos::View<int *, DeviceType> import_ranks(
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing, ranks.label()),
+        n_imports);
 
-  sendAcrossNetwork(space, distributor, export_out, import_out);
-  sendAcrossNetwork(space, distributor, export_ranks, import_ranks);
-  sendAcrossNetwork(space, distributor, export_ids, import_ids);
+    sendAcrossNetwork(space, distributor, export_ranks, import_ranks);
+    ranks = import_ranks;
+  }
 
-  ids = import_ids;
-  ranks = import_ranks;
-  out = import_out;
+  {
+    Kokkos::View<int *, DeviceType> export_ids(
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing, ids.label()),
+        n_exports);
+    Kokkos::parallel_for(
+        "ArborX::DistributedTree::query::fill_buffer",
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_fwd_queries),
+        KOKKOS_LAMBDA(int q) {
+          for (int i = offset(q); i < offset(q + 1); ++i)
+          {
+            export_ids(i) = ids(q);
+          }
+        });
+
+    Kokkos::View<int *, DeviceType> import_ids(
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing, ids.label()),
+        n_imports);
+
+    sendAcrossNetwork(space, distributor, export_ids, import_ids);
+    ids = import_ids;
+  }
+
+  {
+    OutputView export_out = out;
+
+    OutputView import_out(
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing, out.label()),
+        n_imports);
+
+    sendAcrossNetwork(space, distributor, export_out, import_out);
+    out = import_out;
+  }
 
   if (distances_ptr)
   {
