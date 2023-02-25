@@ -275,30 +275,27 @@ DistributedTreeImpl<DeviceType>::sendAcrossNetwork(
   auto const &execution_space = space;
 #endif
 
-  constexpr bool direct_mode = (View::rank == 1);
-
-  auto create_mirror = [](auto const &exec_space, auto const &view) {
-    if constexpr (direct_mode)
-      return Kokkos::create_mirror_view(exec_space, view);
-    else
-      return create_layout_right_mirror_view(exec_space, view);
-  };
-
-  auto imports_mirror = create_mirror(execution_space, imports);
+  auto imports_layout_right =
+      create_layout_right_mirror_view(execution_space, imports);
 
   Kokkos::View<NonConstValueType *, MirrorSpace,
                Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-      import_buffer(imports_mirror.data(), imports_mirror.size());
+      import_buffer(imports_layout_right.data(), imports_layout_right.size());
 
   distributor.doPostsAndWaits(space, exports, num_packets, import_buffer);
 
-  if constexpr (direct_mode)
+  if constexpr (View::rank == 1)
   {
-    Kokkos::deep_copy(space, imports, imports_mirror);
+    // For 1D views, we can directly copy to the original location, as layout is
+    // the same
+    Kokkos::deep_copy(space, imports, imports_layout_right);
   }
   else
   {
-    auto tmp_view = Kokkos::create_mirror_view_and_copy(space, imports_mirror);
+    // For multi-dimensional views, we need to first copy into a separate
+    // storage because of a different layout
+    auto tmp_view =
+        Kokkos::create_mirror_view_and_copy(space, imports_layout_right);
     Kokkos::deep_copy(space, imports, tmp_view);
   }
 
