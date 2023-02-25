@@ -294,12 +294,7 @@ public:
               "ArborX::Distributor::doPostsAndWaits::destination_buffer"),
           exports.layout());
 
-      // We need to create a local copy to avoid capturing a member variable
-      // (via the 'this' pointer) which we can't do using a KOKKOS_LAMBDA.
-      // Use KOKKOS_CLASS_LAMBDA when we require C++17.
-      auto const permute_copy = _permute;
-
-      ArborX::Details::applyInversePermutation(space, permute_copy, exports,
+      ArborX::Details::applyInversePermutation(space, _permute, exports,
                                                dest_buffer);
 
       dest_buffer_mirror =
