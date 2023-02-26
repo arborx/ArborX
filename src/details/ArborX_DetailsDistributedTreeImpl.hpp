@@ -284,10 +284,12 @@ DistributedTreeImpl<DeviceType>::sendAcrossNetwork(
 
   distributor.doPostsAndWaits(space, exports, num_packets, import_buffer);
 
-  if constexpr (View::rank == 1)
+  if constexpr (View::rank == 1 &&
+                !std::is_same_v<typename View::traits::array_layout,
+                                Kokkos::LayoutStride>)
   {
-    // For 1D views, we can directly copy to the original location, as layout is
-    // the same
+    // For 1D non-strided views, we can directly copy to the original location,
+    // as layout is the same
     Kokkos::deep_copy(space, imports, imports_layout_right);
   }
   else
