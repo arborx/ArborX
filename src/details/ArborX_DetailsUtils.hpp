@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -48,46 +48,39 @@ struct PointerDepth<PointerType[N]>
 template <typename View, typename ExecutionSpace>
 inline Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
                     typename ExecutionSpace::memory_space>
-create_layout_right_mirror_view(
-    ExecutionSpace const &space, View const &src,
-    typename std::enable_if<!(
-        (std::is_same<typename View::traits::array_layout,
-                      Kokkos::LayoutRight>::value ||
-         (View::rank == 1 && !std::is_same<typename View::traits::array_layout,
-                                           Kokkos::LayoutStride>::value)) &&
-        std::is_same<typename View::traits::memory_space,
-                     typename ExecutionSpace::memory_space>::value)>::type * =
-        nullptr)
+create_layout_right_mirror_view(ExecutionSpace const &execution_space,
+                                View const &src)
 {
-  constexpr int pointer_depth =
-      internal::PointerDepth<typename View::traits::data_type>::value;
-  return Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
-                      typename ExecutionSpace::memory_space>(
-      Kokkos::view_alloc(
-          space, Kokkos::WithoutInitializing,
-          std::string(src.label()).append("_layout_right_mirror")),
-      src.extent(0), pointer_depth > 1 ? src.extent(1) : KOKKOS_INVALID_INDEX,
-      pointer_depth > 2 ? src.extent(2) : KOKKOS_INVALID_INDEX,
-      pointer_depth > 3 ? src.extent(3) : KOKKOS_INVALID_INDEX,
-      pointer_depth > 4 ? src.extent(4) : KOKKOS_INVALID_INDEX,
-      pointer_depth > 5 ? src.extent(5) : KOKKOS_INVALID_INDEX,
-      pointer_depth > 6 ? src.extent(6) : KOKKOS_INVALID_INDEX,
-      pointer_depth > 7 ? src.extent(7) : KOKKOS_INVALID_INDEX);
-}
+  constexpr bool has_compatible_layout =
+      (std::is_same_v<typename View::traits::array_layout,
+                      Kokkos::LayoutRight> ||
+       (View::rank == 1 && !std::is_same_v<typename View::traits::array_layout,
+                                           Kokkos::LayoutStride>));
+  constexpr bool has_compatible_memory_space =
+      std::is_same_v<typename View::traits::memory_space,
+                     typename ExecutionSpace::memory_space>;
 
-template <typename View, typename ExecutionSpace>
-inline auto create_layout_right_mirror_view(
-    ExecutionSpace const & /*execution_space*/, View const &src,
-    typename std::enable_if<
-        ((std::is_same<typename View::traits::array_layout,
-                       Kokkos::LayoutRight>::value ||
-          (View::rank == 1 && !std::is_same<typename View::traits::array_layout,
-                                            Kokkos::LayoutStride>::value)) &&
-         std::is_same<typename View::traits::memory_space,
-                      typename ExecutionSpace::memory_space>::value)>::type * =
-        nullptr)
-{
-  return src;
+  if constexpr (has_compatible_layout && has_compatible_memory_space)
+  {
+    return src;
+  }
+  else
+  {
+    constexpr int pointer_depth =
+        internal::PointerDepth<typename View::traits::data_type>::value;
+    return Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
+                        typename ExecutionSpace::memory_space>(
+        Kokkos::view_alloc(
+            execution_space, Kokkos::WithoutInitializing,
+            std::string(src.label()).append("_layout_right_mirror")),
+        src.extent(0), pointer_depth > 1 ? src.extent(1) : KOKKOS_INVALID_INDEX,
+        pointer_depth > 2 ? src.extent(2) : KOKKOS_INVALID_INDEX,
+        pointer_depth > 3 ? src.extent(3) : KOKKOS_INVALID_INDEX,
+        pointer_depth > 4 ? src.extent(4) : KOKKOS_INVALID_INDEX,
+        pointer_depth > 5 ? src.extent(5) : KOKKOS_INVALID_INDEX,
+        pointer_depth > 6 ? src.extent(6) : KOKKOS_INVALID_INDEX,
+        pointer_depth > 7 ? src.extent(7) : KOKKOS_INVALID_INDEX);
+  }
 }
 
 template <typename View>
