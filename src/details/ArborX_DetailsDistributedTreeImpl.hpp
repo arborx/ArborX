@@ -17,6 +17,7 @@
 #include <ArborX_DetailsDistributor.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
+#include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_DetailsUtils.hpp>
@@ -248,7 +249,8 @@ DistributedTreeImpl<DeviceType>::sendAcrossNetwork(
     ExecutionSpace const &space, Distributor<DeviceType> const &distributor,
     View exports, typename View::non_const_type imports)
 {
-  Kokkos::Profiling::pushRegion("ArborX::DistributedTree::sendAcrossNetwork");
+  KokkosExt::ScopedProfileRegion guard(
+      "ArborX::DistributedTree::sendAcrossNetwork (" + exports.label() + ")");
 
   ARBORX_ASSERT((exports.extent(0) == distributor.getTotalSendLength()) &&
                 (imports.extent(0) == distributor.getTotalReceiveLength()) &&
@@ -300,8 +302,6 @@ DistributedTreeImpl<DeviceType>::sendAcrossNetwork(
         Kokkos::create_mirror_view_and_copy(space, imports_layout_right);
     Kokkos::deep_copy(space, imports, tmp_view);
   }
-
-  Kokkos::Profiling::popRegion();
 }
 
 template <typename DeviceType>
@@ -312,7 +312,8 @@ void DistributedTreeImpl<DeviceType>::deviseStrategy(
     ExecutionSpace const &space, Predicates const &queries,
     DistributedTree const &tree, Indices &indices, Offset &offset, Distances &)
 {
-  Kokkos::Profiling::pushRegion("ArborX::DistributedTree::deviseStrategy");
+  KokkosExt::ScopedProfileRegion guard(
+      "ArborX::DistributedTree::deviseStrategy");
 
   auto const &top_tree = tree._top_tree;
   auto const &bottom_tree_sizes = tree._bottom_tree_sizes;
@@ -362,8 +363,6 @@ void DistributedTreeImpl<DeviceType>::deviseStrategy(
 
   offset = new_offset;
   indices = new_indices;
-
-  Kokkos::Profiling::popRegion();
 }
 
 template <typename DeviceType>
@@ -375,7 +374,8 @@ void DistributedTreeImpl<DeviceType>::reassessStrategy(
     DistributedTree const &tree, Indices &indices, Offset &offset,
     Distances &distances)
 {
-  Kokkos::Profiling::pushRegion("ArborX::DistributedTree::reassessStrategy");
+  KokkosExt::ScopedProfileRegion guard(
+      "ArborX::DistributedTree::reassessStrategy");
 
   auto const &top_tree = tree._top_tree;
   using Access = AccessTraits<Predicates, PredicatesTag>;
@@ -410,8 +410,6 @@ void DistributedTreeImpl<DeviceType>::reassessStrategy(
         indices, offset);
   // NOTE: in principle, we could perform radius searches on the bottom_tree
   // rather than nearest queries.
-
-  Kokkos::Profiling::popRegion();
 }
 
 struct PairIndexDistance
@@ -486,7 +484,8 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
     ExecutionSpace const &space, Predicates const &queries, Indices &indices,
     Offset &offset, Ranks &ranks, Distances *distances_ptr)
 {
-  Kokkos::Profiling::pushRegion("ArborX::DistributedTree::query::nearest");
+  KokkosExt::ScopedProfileRegion guard(
+      "ArborX::DistributedTree::query::nearest");
 
   auto const &bottom_tree = tree._bottom_tree;
   auto comm = tree.getComm();
@@ -576,8 +575,6 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
       Kokkos::Profiling::popRegion();
     }
   }
-
-  Kokkos::Profiling::popRegion();
 }
 
 template <typename DeviceType>
@@ -590,7 +587,8 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
     ExecutionSpace const &space, Predicates const &queries,
     Callback const &callback, OutputView &out, OffsetView &offset)
 {
-  Kokkos::Profiling::pushRegion("ArborX::DistributedTree::query::spatial");
+  KokkosExt::ScopedProfileRegion guard(
+      "ArborX::DistributedTree::query::spatial");
 
   auto const &top_tree = tree._top_tree;
   auto const &bottom_tree = tree._bottom_tree;
@@ -636,8 +634,6 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
 
     Kokkos::Profiling::popRegion();
   }
-
-  Kokkos::Profiling::popRegion();
 }
 
 template <typename DeviceType>
@@ -702,7 +698,8 @@ void DistributedTreeImpl<DeviceType>::forwardQueries(
     Kokkos::View<Query *, DeviceType> &fwd_queries,
     Kokkos::View<int *, DeviceType> &fwd_ids, Ranks &fwd_ranks)
 {
-  Kokkos::Profiling::pushRegion("ArborX::DistributedTree::forwardQueries");
+  KokkosExt::ScopedProfileRegion guard(
+      "ArborX::DistributedTree::forwardQueries");
 
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
@@ -784,8 +781,6 @@ void DistributedTreeImpl<DeviceType>::forwardQueries(
     sendAcrossNetwork(space, distributor, export_ids, import_ids);
     fwd_ids = import_ids;
   }
-
-  Kokkos::Profiling::popRegion();
 }
 
 template <typename DeviceType>
@@ -796,7 +791,7 @@ void DistributedTreeImpl<DeviceType>::communicateResultsBack(
     Kokkos::View<int *, DeviceType> offset, Ranks &ranks,
     Kokkos::View<int *, DeviceType> &ids, Distances *distances_ptr)
 {
-  Kokkos::Profiling::pushRegion(
+  KokkosExt::ScopedProfileRegion guard(
       "ArborX::DistributedTree::communicateResultsBack");
 
   int comm_rank;
@@ -874,8 +869,6 @@ void DistributedTreeImpl<DeviceType>::communicateResultsBack(
     sendAcrossNetwork(space, distributor, export_distances, import_distances);
     distances = import_distances;
   }
-
-  Kokkos::Profiling::popRegion();
 }
 
 template <typename DeviceType>
@@ -886,7 +879,8 @@ void DistributedTreeImpl<DeviceType>::filterResults(
     Kokkos::View<float *, DeviceType> distances, Indices &indices,
     Offset &offset, Ranks &ranks)
 {
-  Kokkos::Profiling::pushRegion("ArborX::DistributedTree::filterResults");
+  KokkosExt::ScopedProfileRegion guard(
+      "ArborX::DistributedTree::filterResults");
 
   using Access = AccessTraits<Predicates, PredicatesTag>;
   int const n_queries = Access::size(queries);
@@ -961,8 +955,6 @@ void DistributedTreeImpl<DeviceType>::filterResults(
   indices = new_indices;
   ranks = new_ranks;
   offset = new_offset;
-
-  Kokkos::Profiling::popRegion();
 }
 
 } // namespace Details
