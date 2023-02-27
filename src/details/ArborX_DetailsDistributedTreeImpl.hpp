@@ -284,9 +284,22 @@ DistributedTreeImpl<DeviceType>::sendAcrossNetwork(
 
   distributor.doPostsAndWaits(space, exports, num_packets, import_buffer);
 
-  auto tmp_view =
-      Kokkos::create_mirror_view_and_copy(space, imports_layout_right);
-  Kokkos::deep_copy(space, imports, tmp_view);
+  if constexpr (View::rank == 1 &&
+                !std::is_same_v<typename View::traits::array_layout,
+                                Kokkos::LayoutStride>)
+  {
+    // For 1D non-strided views, we can directly copy to the original location,
+    // as layout is the same
+    Kokkos::deep_copy(space, imports, imports_layout_right);
+  }
+  else
+  {
+    // For multi-dimensional views, we need to first copy into a separate
+    // storage because of a different layout
+    auto tmp_view =
+        Kokkos::create_mirror_view_and_copy(space, imports_layout_right);
+    Kokkos::deep_copy(space, imports, tmp_view);
+  }
 
   Kokkos::Profiling::popRegion();
 }
