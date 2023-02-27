@@ -49,7 +49,7 @@ template <typename View, typename ExecutionSpace>
 inline Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
                     typename ExecutionSpace::memory_space>
 create_layout_right_mirror_view(
-    ExecutionSpace const & /*execution_space*/, View const &src,
+    ExecutionSpace const &space, View const &src,
     typename std::enable_if<!(
         (std::is_same<typename View::traits::array_layout,
                       Kokkos::LayoutRight>::value ||
@@ -63,8 +63,10 @@ create_layout_right_mirror_view(
       internal::PointerDepth<typename View::traits::data_type>::value;
   return Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
                       typename ExecutionSpace::memory_space>(
-      std::string(src.label()).append("_layout_right_mirror"), src.extent(0),
-      pointer_depth > 1 ? src.extent(1) : KOKKOS_INVALID_INDEX,
+      Kokkos::view_alloc(
+          space, Kokkos::WithoutInitializing,
+          std::string(src.label()).append("_layout_right_mirror")),
+      src.extent(0), pointer_depth > 1 ? src.extent(1) : KOKKOS_INVALID_INDEX,
       pointer_depth > 2 ? src.extent(2) : KOKKOS_INVALID_INDEX,
       pointer_depth > 3 ? src.extent(3) : KOKKOS_INVALID_INDEX,
       pointer_depth > 4 ? src.extent(4) : KOKKOS_INVALID_INDEX,
