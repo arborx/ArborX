@@ -54,7 +54,8 @@ create_layout_right_mirror_view_no_init(ExecutionSpace const &execution_space,
   constexpr bool has_compatible_layout =
       (std::is_same_v<typename View::array_layout, Kokkos::LayoutRight> ||
        (View::rank == 1 &&
-        !std::is_same_v<typename View::array_layout, Kokkos::LayoutStride>));
+        (std::is_same_v<typename View::array_layout, Kokkos::LayoutLeft> ||
+         std::is_same_v<typename View::array_layout, Kokkos::LayoutRight>)));
   constexpr bool has_compatible_memory_space =
       std::is_same_v<typename View::memory_space,
                      typename ExecutionSpace::memory_space>;
@@ -97,7 +98,8 @@ create_layout_right_mirror_view_and_copy(ExecutionSpace const &execution_space,
   constexpr bool has_compatible_layout =
       (std::is_same_v<typename View::array_layout, Kokkos::LayoutRight> ||
        (View::rank == 1 &&
-        !std::is_same_v<typename View::array_layout, Kokkos::LayoutStride>));
+        (std::is_same_v<typename View::array_layout, Kokkos::LayoutLeft> ||
+         std::is_same_v<typename View::array_layout, Kokkos::LayoutRight>)));
   constexpr bool has_compatible_memory_space =
       std::is_same_v<typename View::memory_space,
                      typename ExecutionSpace::memory_space>;
