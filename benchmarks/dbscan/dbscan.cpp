@@ -146,11 +146,11 @@ int main(int argc, char *argv[])
   bool success;
   switch (dim)
   {
-  case 3:
-    success = run<3>(params);
-    break;
   case 2:
     success = run<2>(params);
+    break;
+  case 3:
+    success = run<3>(params);
     break;
   case 4:
     success = run<4>(params);
