@@ -335,12 +335,12 @@ pipeline {
                     }
                 }
 
-                stage('HIP-5.2') {
+                stage('HIP-5.4.2') {
                     agent {
                         dockerfile {
                             filename "Dockerfile.hipcc"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=rocm/dev-ubuntu-20.04:5.2-complete --build-arg KOKKOS_ARCH=${KOKKOS_ARCH}'
+                            additionalBuildArgs '--build-arg BASE=rocm/dev-ubuntu-20.04:5.4.2-complete --build-arg KOKKOS_ARCH=${KOKKOS_ARCH}'
                             args '-v /tmp/ccache.kokkos:/tmp/ccache --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --env HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES} --env AMDGPU_TARGET=${AMDGPU_TARGET}'
                             label 'rocm-docker && vega'
                         }
