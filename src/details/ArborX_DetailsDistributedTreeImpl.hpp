@@ -16,6 +16,7 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsDistributor.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
+#include <ArborX_DetailsKokkosExtClassLambda.hpp> // ARBORX_CLASS_LAMBDA
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
@@ -26,7 +27,6 @@
 #include <ArborX_Predicates.hpp>
 #include <ArborX_Ray.hpp>
 #include <ArborX_Sphere.hpp>
-#include <kokkos_ext/ArborX_DetailsKokkosExtClassLambda.hpp> // ARBORX_CLASS_LAMBDA
 
 #include <Kokkos_Core.hpp>
 

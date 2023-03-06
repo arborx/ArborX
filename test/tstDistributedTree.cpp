@@ -11,9 +11,9 @@
 
 #include "ArborXTest_StdVectorToKokkosView.hpp"
 #include "ArborX_BoostRTreeHelpers.hpp"
-#include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
+#include "ArborX_EnableDeviceTypes.hpp"           // ARBORX_DEVICE_TYPES
+#include <ArborX_DetailsKokkosExtClassLambda.hpp> // ARBORX_CLASS_LAMBDA
 #include <ArborX_DistributedTree.hpp>
-#include <kokkos_ext/ArborX_DetailsKokkosExtClassLambda.hpp> // ARBORX_CLASS_LAMBDA
 
 #include <boost/test/unit_test.hpp>
 

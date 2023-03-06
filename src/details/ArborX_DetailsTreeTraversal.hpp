@@ -15,6 +15,7 @@
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
+#include <ArborX_DetailsKokkosExtClassLambda.hpp> // ARBORX_CLASS_LAMBDA
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
 #include <ArborX_DetailsPriorityQueue.hpp>
@@ -22,7 +23,6 @@
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_Exception.hpp>
 #include <ArborX_Predicates.hpp>
-#include <kokkos_ext/ArborX_DetailsKokkosExtClassLambda.hpp> // ARBORX_CLASS_LAMBDA
 
 namespace ArborX
 {

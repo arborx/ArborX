@@ -19,7 +19,7 @@
 #include "ArborXTest_TreeTypeTraits.hpp"
 // clang-format on
 
-#include <kokkos_ext/ArborX_DetailsKokkosExtClassLambda.hpp> // ARBORX_CLASS_LAMBDA
+#include <ArborX_DetailsKokkosExtClassLambda.hpp> // ARBORX_CLASS_LAMBDA
 
 BOOST_AUTO_TEST_SUITE(Callbacks)
 
