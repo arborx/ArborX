@@ -14,8 +14,7 @@
 
 #include <Kokkos_Macros.hpp>
 
-#if defined(KOKKOS_VERSION_GREATER_EQUAL) &&                                   \
-    KOKKOS_VERSION_GREATER_EQUAL(4, 0, 0)
+#if KOKKOS_VERSION >= 40000
 #define ARBORX_CLASS_LAMBDA KOKKOS_CLASS_LAMBDA
 #elif defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
 #define ARBORX_CLASS_LAMBDA [ =, *this ] __host__ __device__
