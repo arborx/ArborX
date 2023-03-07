@@ -15,6 +15,7 @@
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
+#include <ArborX_DetailsKokkosExtClassLambda.hpp> // ARBORX_CLASS_LAMBDA
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
 #include <ArborX_DetailsPriorityQueue.hpp>
@@ -153,13 +154,13 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     Offset offset(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                      "ArborX::TreeTraversal::nearest::offset"),
                   n_queries + 1);
-    // NOTE workaround to avoid implicit capture of *this
-    auto const &predicates = _predicates;
     Kokkos::parallel_for(
         "ArborX::TreeTraversal::nearest::"
         "scan_queries_for_numbers_of_neighbors",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
+        ARBORX_CLASS_LAMBDA(int i) {
+          offset(i) = getK(Access::get(_predicates, i));
+        });
     exclusivePrefixSum(space, offset);
     int const buffer_size = KokkosExt::lastElement(space, offset);
     // Allocate buffer over which to perform heap operations in
