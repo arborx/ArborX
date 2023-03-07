@@ -12,12 +12,12 @@
 #ifndef ARBORX_DETAILS_CARTESIAN_GRID_HPP
 #define ARBORX_DETAILS_CARTESIAN_GRID_HPP
 
-#include <ArborX_DetailsKokkosExtMathFunctions.hpp>
 #include <ArborX_Exception.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperBox.hpp>
 
 #include <Kokkos_Macros.hpp>
+#include <Kokkos_MathematicalFunctions.hpp> // floor
 
 #include <cassert>
 
@@ -62,7 +62,7 @@ public:
     size_t s = 0;
     for (int d = DIM - 1; d >= 0; --d)
     {
-      int i = KokkosExt::floor((point[d] - min_corner[d]) / _h[d]);
+      int i = Kokkos::floor((point[d] - min_corner[d]) / _h[d]);
       s = s * _n[d] + i;
     }
     return s;

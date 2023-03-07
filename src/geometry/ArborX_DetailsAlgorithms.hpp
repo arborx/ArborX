@@ -13,11 +13,11 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
-#include <ArborX_DetailsKokkosExtMathFunctions.hpp>    // isfinite
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp> // min, max
 #include <ArborX_GeometryTraits.hpp>
 
 #include <Kokkos_Macros.hpp>
+#include <Kokkos_MathematicalFunctions.hpp> // isfinite
 
 namespace ArborX
 {
@@ -152,10 +152,9 @@ struct isValid<PointTag, Point>
 {
   KOKKOS_FUNCTION static constexpr bool apply(Point const &p)
   {
-    using KokkosExt::isfinite;
     constexpr int DIM = GeometryTraits::dimension_v<Point>;
     for (int d = 0; d < DIM; ++d)
-      if (!isfinite(p[d]))
+      if (!Kokkos::isfinite(p[d]))
         return false;
     return true;
   }
@@ -167,12 +166,11 @@ struct isValid<BoxTag, Box>
 {
   KOKKOS_FUNCTION static constexpr bool apply(Box const &b)
   {
-    using KokkosExt::isfinite;
     constexpr int DIM = GeometryTraits::dimension_v<Box>;
     for (int d = 0; d < DIM; ++d)
     {
       auto const r_d = b.maxCorner()[d] - b.minCorner()[d];
-      if (r_d <= 0 || !isfinite(r_d))
+      if (r_d <= 0 || !Kokkos::isfinite(r_d))
         return false;
     }
     return true;
@@ -185,8 +183,7 @@ struct isValid<SphereTag, Sphere>
 {
   KOKKOS_FUNCTION static constexpr bool apply(Sphere const &s)
   {
-    using KokkosExt::isfinite;
-    return Details::isValid(s.centroid()) && isfinite(s.radius()) &&
+    return Details::isValid(s.centroid()) && Kokkos::isfinite(s.radius()) &&
            (s.radius() >= 0.);
   }
 };
