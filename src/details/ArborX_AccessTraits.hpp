@@ -59,7 +59,6 @@ template <typename View, typename Tag>
 struct AccessTraits<
     View, Tag, std::enable_if_t<Kokkos::is_view<View>{} && View::rank == 2>>
 {
-#if KOKKOS_VERSION >= 30700
   template <std::size_t... Is>
   KOKKOS_FUNCTION static ExperimentalHyperGeometry::Point<sizeof...(Is)>
   getPoint(std::index_sequence<Is...>, View const &v, int i)
@@ -74,15 +73,8 @@ struct AccessTraits<
     if constexpr (dim > 0) // dimension known at compile time
       return getPoint(std::make_index_sequence<dim>(), v, i);
     else
-      return Point{{ v(i, 0), v(i, 1), v(i, 2) }};
+      return Point{{v(i, 0), v(i, 1), v(i, 2)}};
   }
-#else
-  // Returns by value
-  KOKKOS_FUNCTION static Point get(View const &v, int i)
-  {
-    return {{v(i, 0), v(i, 1), v(i, 2)}};
-  }
-#endif
 
   KOKKOS_FUNCTION
   static typename View::size_type size(View const &v) { return v.extent(0); }

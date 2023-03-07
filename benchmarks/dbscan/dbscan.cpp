@@ -146,12 +146,11 @@ int main(int argc, char *argv[])
   bool success;
   switch (dim)
   {
-  case 3:
-    success = run<3>(params);
-    break;
-#if KOKKOS_VERSION >= 30700
   case 2:
     success = run<2>(params);
+    break;
+  case 3:
+    success = run<3>(params);
     break;
   case 4:
     success = run<4>(params);
@@ -162,7 +161,6 @@ int main(int argc, char *argv[])
   case 6:
     success = run<6>(params);
     break;
-#endif
   default:
     std::cerr << "Error: dimension " << dim << " not allowed\n" << std::endl;
     success = false;

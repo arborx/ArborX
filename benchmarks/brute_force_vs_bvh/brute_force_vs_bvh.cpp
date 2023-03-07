@@ -50,12 +50,11 @@ int main(int argc, char *argv[])
 
   switch (dim)
   {
-  case 3:
-    run<3>(nprimitives, nqueries, nrepeats);
-    break;
-#if KOKKOS_VERSION >= 30700
   case 2:
     run<2>(nprimitives, nqueries, nrepeats);
+    break;
+  case 3:
+    run<3>(nprimitives, nqueries, nrepeats);
     break;
   case 4:
     run<4>(nprimitives, nqueries, nrepeats);
@@ -66,7 +65,6 @@ int main(int argc, char *argv[])
   case 6:
     run<6>(nprimitives, nqueries, nrepeats);
     break;
-#endif
   default:
     std::cerr << "Dimension " << dim << " not supported.\n";
     return 1;

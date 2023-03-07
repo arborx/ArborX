@@ -84,11 +84,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(half_traversal, DeviceType, ARBORX_DEVICE_TYPES)
   HalfTraversal(
       exec_space, bvh,
       KOKKOS_LAMBDA(int i, int j) {
-#if KOKKOS_VERSION >= 30700
         auto [min_ij, max_ij] = Kokkos::minmax(i, j);
-#else
-        auto [min_ij, max_ij] = Kokkos::Experimental::minmax(i, j);
-#endif
         Kokkos::atomic_increment(&count(max_ij * (max_ij + 1) / 2 + min_ij));
       },
       Test::PredicateGetter{});

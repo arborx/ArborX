@@ -93,15 +93,10 @@ void test_deduce_point_type_from_view()
   using ArborX::ExperimentalHyperGeometry::Point;
   static_assert(
       std::is_same_v<deduce_point_t<Kokkos::View<float **>>, GoodOlePoint>);
-#if KOKKOS_VERSION >= 30700
   static_assert(
       std::is_same_v<deduce_point_t<Kokkos::View<float *[3]>>, Point<3>>);
   static_assert(
       std::is_same_v<deduce_point_t<Kokkos::View<float *[2]>>, Point<2>>);
   static_assert(
       std::is_same_v<deduce_point_t<Kokkos::View<float *[5]>>, Point<5>>);
-#else
-  static_assert(
-      std::is_same_v<deduce_point_t<Kokkos::View<float *[3]>>, GoodOlePoint>);
-#endif
 }
