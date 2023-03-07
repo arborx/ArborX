@@ -56,18 +56,6 @@ public:
   {
     return _data.coords[i];
   }
-
-  KOKKOS_INLINE_FUNCTION
-  float volatile &operator[](unsigned int i) volatile
-  {
-    return _data.coords[i];
-  }
-
-  KOKKOS_INLINE_FUNCTION
-  float const volatile &operator[](unsigned int i) const volatile
-  {
-    return _data.coords[i];
-  }
 };
 
 template <>
