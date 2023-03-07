@@ -276,7 +276,7 @@ DistributedTreeImpl<DeviceType>::sendAcrossNetwork(
 #endif
 
   auto imports_layout_right =
-      create_layout_right_mirror_view(execution_space, imports);
+      create_layout_right_mirror_view_no_init(execution_space, imports);
 
   Kokkos::View<NonConstValueType *, MirrorSpace,
                Kokkos::MemoryTraits<Kokkos::Unmanaged>>

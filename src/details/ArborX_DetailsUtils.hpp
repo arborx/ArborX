@@ -48,8 +48,8 @@ struct PointerDepth<PointerType[N]>
 template <typename View, typename ExecutionSpace>
 inline Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
                     typename ExecutionSpace::memory_space>
-create_layout_right_mirror_view(ExecutionSpace const &execution_space,
-                                View const &src)
+create_layout_right_mirror_view_no_init(ExecutionSpace const &execution_space,
+                                        View const &src)
 {
   constexpr bool has_compatible_layout =
       (std::is_same_v<typename View::array_layout, Kokkos::LayoutRight> ||
@@ -83,9 +83,9 @@ create_layout_right_mirror_view(ExecutionSpace const &execution_space,
 }
 
 template <typename View>
-inline auto create_layout_right_mirror_view(View const &src)
+inline auto create_layout_right_mirror_view_no_init(View const &src)
 {
-  return create_layout_right_mirror_view(
+  return create_layout_right_mirror_view_no_init(
       typename View::traits::host_mirror_space{}, src);
 }
 
