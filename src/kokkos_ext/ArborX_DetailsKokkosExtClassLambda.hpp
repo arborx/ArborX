@@ -14,7 +14,8 @@
 
 #include <Kokkos_Macros.hpp>
 
-#if KOKKOS_VERSION >= 40000
+// Remove when we require Kokkos 4.0.00
+#ifdef KOKKOS_CLASS_LAMBDA
 #define ARBORX_CLASS_LAMBDA KOKKOS_CLASS_LAMBDA
 #elif defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
 #define ARBORX_CLASS_LAMBDA [ =, *this ] __host__ __device__
