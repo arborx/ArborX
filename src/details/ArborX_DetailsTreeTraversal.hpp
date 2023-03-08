@@ -297,9 +297,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
         {
           if (HappyTreeFriends::isLeaf(_bvh, left_child))
           {
-            auto leaf_pair = Kokkos::make_pair(
-                HappyTreeFriends::getLeafPermutationIndex(_bvh, left_child),
-                distance_left);
+            auto leaf_pair = Kokkos::make_pair(left_child, distance_left);
             if ((int)heap.size() < k)
               heap.push(leaf_pair);
             else
@@ -318,9 +316,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
         {
           if (HappyTreeFriends::isLeaf(_bvh, right_child))
           {
-            auto leaf_pair = Kokkos::make_pair(
-                HappyTreeFriends::getLeafPermutationIndex(_bvh, right_child),
-                distance_right);
+            auto leaf_pair = Kokkos::make_pair(right_child, distance_right);
             if ((int)heap.size() < k)
               heap.push(leaf_pair);
             else
@@ -375,7 +371,8 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     sortHeap(heap.data(), heap.data() + heap.size(), heap.valueComp());
     for (decltype(heap.size()) i = 0; i < heap.size(); ++i)
     {
-      int const leaf_index = (heap.data() + i)->first;
+      int const leaf_index = HappyTreeFriends::getLeafPermutationIndex(
+          _bvh, (heap.data() + i)->first);
       _callback(predicate, leaf_index);
     }
   }
