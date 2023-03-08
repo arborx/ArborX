@@ -135,7 +135,13 @@ BOOST_AUTO_TEST_SUITE_END()
 template <typename DeviceType>
 struct InsertIntersections
 {
+  // With ROCm version 5.2, we need to use a Kokkos::View to avoid a compiler
+  // bug. See https://github.com/arborx/ArborX/issues/835
+#if (HIP_VERSION_MAJOR == 5) && (HIP_VERSION_MINOR == 2)
+  Kokkos::View<int[2], DeviceType> count;
+#else
   mutable int count[2];
+#endif
   Kokkos::View<int *[2], DeviceType> _ordered_intersections;
 
   template <typename Predicate>
@@ -203,9 +209,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_intersection_new, DeviceType,
 
   BoxesIntersectedByRayOrdered<DeviceType> predicates{device_rays};
 
+#if (HIP_VERSION_MAJOR == 5) && (HIP_VERSION_MINOR == 2)
+  Kokkos::View<int[2], DeviceType> count("count");
+  tree.query(
+      exec_space, predicates,
+      InsertIntersections<DeviceType>{count, device_ordered_intersections});
+#else
   tree.query(
       exec_space, predicates,
       InsertIntersections<DeviceType>{{0, 0}, device_ordered_intersections});
+#endif
+
   auto const host_ordered_intersections = Kokkos::create_mirror_view_and_copy(
       Kokkos::HostSpace{}, device_ordered_intersections);
   for (unsigned int i = 0; i < n; ++i)
