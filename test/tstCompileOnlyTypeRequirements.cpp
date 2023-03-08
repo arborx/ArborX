@@ -25,7 +25,6 @@ using PrimitivePointOrBox = ArborX::Point;
 struct FakeBoundingVolume
 {
   KOKKOS_FUNCTION FakeBoundingVolume &operator+=(PrimitivePointOrBox) { return *this; }
-  KOKKOS_FUNCTION void operator+=(PrimitivePointOrBox) volatile {}
 };
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakeBoundingVolume) {}
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, PrimitivePointOrBox) {}
