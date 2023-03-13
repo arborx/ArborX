@@ -279,7 +279,7 @@ DistributedTreeImpl<DeviceType>::sendAcrossNetwork(
 #endif
 
   auto imports_layout_right =
-      create_layout_right_mirror_view(execution_space, imports);
+      create_layout_right_mirror_view_no_init(execution_space, imports);
 
   Kokkos::View<NonConstValueType *, MirrorSpace,
                Kokkos::MemoryTraits<Kokkos::Unmanaged>>
@@ -287,9 +287,11 @@ DistributedTreeImpl<DeviceType>::sendAcrossNetwork(
 
   distributor.doPostsAndWaits(space, exports, num_packets, import_buffer);
 
-  if constexpr (View::rank == 1 &&
-                !std::is_same_v<typename View::traits::array_layout,
-                                Kokkos::LayoutStride>)
+  constexpr bool can_skip_copy =
+      (View::rank == 1 &&
+       (std::is_same_v<typename View::array_layout, Kokkos::LayoutLeft> ||
+        std::is_same_v<typename View::array_layout, Kokkos::LayoutRight>));
+  if constexpr (can_skip_copy)
   {
     // For 1D non-strided views, we can directly copy to the original location,
     // as layout is the same
