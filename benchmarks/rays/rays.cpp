@@ -110,7 +110,11 @@ int main(int argc, char *argv[])
 
   {
     // Read the experimental data
-    auto [rays, temperatures] = read_data<MemorySpace>();
+    auto [tmp_rays, temperatures] = read_data<MemorySpace>();
+    // We cannot do a lambda capture of structured binding on clang without
+    // C++20
+    Kokkos::View<ArborX::Experimental::Ray[n_rays], MemorySpace> rays =
+        tmp_rays;
 
     // Build the queries
     Kokkos::View<ArborX::Nearest<ArborX::Experimental::Ray> *, MemorySpace>
