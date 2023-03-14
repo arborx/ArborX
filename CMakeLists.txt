@@ -55,10 +55,19 @@ if(ARBORX_ENABLE_MPI)
   find_package(MPI REQUIRED)
   target_link_libraries(ArborX INTERFACE MPI::MPI_CXX)
 endif()
-cmake_dependent_option(ARBORX_USE_CUDA_AWARE_MPI
+cmake_dependent_option(ARBORX_ENABLE_CUDA_AWARE_MPI
+                       "Allow using device data in MPI communication"
+                       OFF "ARBORX_ENABLE_MPI" OFF)
+if(ARBORX_USE_CUDA_AWARE_MPI)                     
+  set(ARBORX_ENABLE_GPU_AWARE_MPI ON)
+    message(DEPRECATION "ARBORX_USE_CUDA_AWARE_MPI is deprecated, use ARBORX_ENABLE_GPU_AWARE_MPI instead")
+endif()
+
+cmake_dependent_option(ARBORX_ENABLE_GPU_AWARE_MPI
                        "Allow using device data in MPI communication"
                        OFF "ARBORX_ENABLE_MPI" OFF)
 
+                     
 target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/details>

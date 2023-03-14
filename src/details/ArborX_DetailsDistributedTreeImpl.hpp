@@ -270,7 +270,7 @@ DistributedTreeImpl<DeviceType>::sendAcrossNetwork(
 
   using NonConstValueType = typename View::non_const_value_type;
 
-#ifndef ARBORX_USE_CUDA_AWARE_MPI
+#ifndef ARBORX_ENABLE_GPU_AWARE_MPI
   using MirrorSpace = typename View::host_mirror_space;
   MirrorSpace const execution_space;
 #else
