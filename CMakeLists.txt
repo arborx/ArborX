@@ -60,7 +60,7 @@ cmake_dependent_option(ARBORX_ENABLE_CUDA_AWARE_MPI
                        OFF "ARBORX_ENABLE_MPI" OFF)
 if(ARBORX_USE_CUDA_AWARE_MPI)                     
   set(ARBORX_ENABLE_GPU_AWARE_MPI ON)
-  message(DEPRECATION "ARBORX_USE_CUDA_AWARE_MPI is deprecated use ARBORX_ENABLE_GPU_AWARE_MPI")
+    message(DEPRECATION "ARBORX_USE_CUDA_AWARE_MPI is deprecated, use ARBORX_ENABLE_GPU_AWARE_MPI instead")
 endif()
 
 cmake_dependent_option(ARBORX_ENABLE_GPU_AWARE_MPI
