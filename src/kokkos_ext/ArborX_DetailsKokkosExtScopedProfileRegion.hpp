@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -12,6 +12,15 @@
 #ifndef ARBORX_DETAILS_KOKKOS_EXT_SCOPED_PROFILE_REGION_HPP
 #define ARBORX_DETAILS_KOKKOS_EXT_SCOPED_PROFILE_REGION_HPP
 
+#include <Kokkos_Macros.hpp>
+
+#if KOKKOS_VERSION >= 40099
+#include <Kokkos_Profiling_ScopedRegion.hpp>
+namespace KokkosExt
+{
+using ScopedProfileRegion = Kokkos::Profiling::ScopedRegion;
+}
+#else
 #include <Kokkos_Core.hpp>
 
 #include <string>
@@ -33,5 +42,6 @@ public:
 };
 
 } // namespace KokkosExt
+#endif
 
 #endif
