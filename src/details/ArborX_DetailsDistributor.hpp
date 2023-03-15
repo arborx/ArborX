@@ -275,7 +275,7 @@ public:
 
     using DestBufferMirrorViewType =
         decltype(ArborX::Details::create_layout_right_mirror_view_and_copy(
-            std::declval<typename ImportView::memory_space>(),
+            space, std::declval<typename ImportView::memory_space>(),
             std::declval<ExportViewWithoutMemoryTraits>()));
 
     constexpr int pointer_depth = internal::PointerDepth<
@@ -306,13 +306,13 @@ public:
 
       dest_buffer_mirror =
           ArborX::Details::create_layout_right_mirror_view_and_copy(
-              typename ImportView::memory_space(), dest_buffer);
+              space, typename ImportView::memory_space(), dest_buffer);
     }
     else
     {
       dest_buffer_mirror =
           ArborX::Details::create_layout_right_mirror_view_and_copy(
-              typename ImportView::memory_space(), exports);
+              space, typename ImportView::memory_space(), exports);
     }
 
     static_assert(

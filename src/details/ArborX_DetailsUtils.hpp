@@ -96,19 +96,22 @@ inline auto create_layout_right_mirror_view_no_init(View const &src)
   return mirror_view;
 }
 
-template <typename View, typename ExecutionSpace>
+template <typename View, typename ExecutionSpace, typename MemorySpace>
 inline auto
 create_layout_right_mirror_view_and_copy(ExecutionSpace const &execution_space,
+                                         MemorySpace const &memory_space,
                                          View const &src)
 {
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
+  static_assert(Kokkos::is_memory_space<MemorySpace>::value);
+
   constexpr bool has_compatible_layout =
       (std::is_same_v<typename View::array_layout, Kokkos::LayoutRight> ||
        (View::rank == 1 &&
         (std::is_same_v<typename View::array_layout, Kokkos::LayoutLeft> ||
          std::is_same_v<typename View::array_layout, Kokkos::LayoutRight>)));
   constexpr bool has_compatible_memory_space =
-      std::is_same_v<typename View::memory_space,
-                     typename ExecutionSpace::memory_space>;
+      std::is_same_v<typename View::memory_space, MemorySpace>;
 
   if constexpr (has_compatible_layout && has_compatible_memory_space)
   {
@@ -118,11 +121,20 @@ create_layout_right_mirror_view_and_copy(ExecutionSpace const &execution_space,
   {
     constexpr int pointer_depth =
         internal::PointerDepth<typename View::traits::data_type>::value;
+
+    auto exec = [execution_space]() {
+      if constexpr (Kokkos::SpaceAccessibility<ExecutionSpace,
+                                               MemorySpace>::accessible)
+        return execution_space;
+      else
+        return typename MemorySpace::execution_space{};
+    }();
+
     Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
-                 typename ExecutionSpace::memory_space>
+                 MemorySpace>
         layout_right_view(
             Kokkos::view_alloc(
-                execution_space, Kokkos::WithoutInitializing,
+                exec, Kokkos::WithoutInitializing,
                 std::string(src.label()).append("_layout_right_mirror")),
             src.extent(0),
             pointer_depth > 1 ? src.extent(1) : KOKKOS_INVALID_INDEX,
@@ -132,9 +144,14 @@ create_layout_right_mirror_view_and_copy(ExecutionSpace const &execution_space,
             pointer_depth > 5 ? src.extent(5) : KOKKOS_INVALID_INDEX,
             pointer_depth > 6 ? src.extent(6) : KOKKOS_INVALID_INDEX,
             pointer_depth > 7 ? src.extent(7) : KOKKOS_INVALID_INDEX);
-    auto tmp_view = Kokkos::create_mirror_view_and_copy(execution_space, src);
-    // TODO not quite sure why this can't be execution_space
-    Kokkos::deep_copy(/*execution_space, */ layout_right_view, tmp_view);
+    auto tmp_view = Kokkos::create_mirror_view(
+        Kokkos::view_alloc(exec, Kokkos::WithoutInitializing, memory_space),
+        src);
+    if constexpr (!Kokkos::SpaceAccessibility<ExecutionSpace,
+                                              MemorySpace>::accessible)
+      exec.fence();
+    Kokkos::deep_copy(execution_space, tmp_view, src);
+    Kokkos::deep_copy(execution_space, layout_right_view, tmp_view);
     return layout_right_view;
   }
 }
