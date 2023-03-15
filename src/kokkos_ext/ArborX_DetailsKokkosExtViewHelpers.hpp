@@ -89,21 +89,14 @@ typename View::non_const_type clone(ExecutionSpace const &space, View const &v)
 
 template <class ExecutionSpace, class View>
 typename View::non_const_type
-cloneWithoutInitializingNorCopying(ExecutionSpace const &space, View const &v,
-                                   std::string const &label)
+cloneWithoutInitializingNorCopying(ExecutionSpace const &space, View const &v)
 {
   static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
   static_assert(Kokkos::is_view<View>::value);
-  return typename View::non_const_type(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, label),
-      v.layout());
-}
-
-template <class ExecutionSpace, class View>
-typename View::non_const_type
-cloneWithoutInitializingNorCopying(ExecutionSpace const &space, View const &v)
-{
-  return cloneWithoutInitializingNorCopying(space, v, v.label());
+  return Kokkos::create_mirror(Kokkos::view_alloc(typename View::memory_space{},
+                                                  space,
+                                                  Kokkos::WithoutInitializing),
+                               v);
 }
 
 } // namespace KokkosExt
