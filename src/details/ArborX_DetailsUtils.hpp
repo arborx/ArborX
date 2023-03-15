@@ -581,7 +581,8 @@ void computeOffsetsInOrderedView(ExecutionSpace const &exec_space, View view,
         }
       },
       num_offsets);
-  Kokkos::resize(offsets, num_offsets);
+  Kokkos::resize(Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing),
+                 offsets, num_offsets);
 }
 
 } // namespace Details

@@ -702,9 +702,10 @@ private:
       // NOTE could perform the label tree reduction as part of the update
       updateComponentsAndEdges(space, component_out_edges, labels, edges,
                                num_edges);
-      num_components =
-          static_cast<int>(n) -
-          Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, num_edges)();
+      int num_edges_host;
+      Kokkos::deep_copy(space, num_edges_host, num_edges);
+      space.fence();
+      num_components = static_cast<int>(n) - num_edges_host;
       Kokkos::Profiling::popRegion();
     } while (num_components > 1);
 

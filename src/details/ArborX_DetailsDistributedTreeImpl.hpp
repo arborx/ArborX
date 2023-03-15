@@ -301,8 +301,9 @@ DistributedTreeImpl<DeviceType>::sendAcrossNetwork(
   {
     // For multi-dimensional views, we need to first copy into a separate
     // storage because of a different layout
-    auto tmp_view =
-        Kokkos::create_mirror_view_and_copy(space, imports_layout_right);
+    auto tmp_view = Kokkos::create_mirror_view_and_copy(
+        Kokkos::view_alloc(space, typename ExecutionSpace::memory_space{}),
+        imports_layout_right);
     Kokkos::deep_copy(space, imports, tmp_view);
   }
 }
@@ -679,7 +680,7 @@ void DistributedTreeImpl<DeviceType>::countResults(
 {
   int const nnz = query_ids.extent(0);
 
-  Kokkos::realloc(offset, n_queries + 1);
+  Kokkos::realloc(Kokkos::view_alloc(space), offset, n_queries + 1);
 
   Kokkos::parallel_for(
       "ArborX::DistributedTree::query::count_results_per_query",
