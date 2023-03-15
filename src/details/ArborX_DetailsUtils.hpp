@@ -45,20 +45,23 @@ struct PointerDepth<PointerType[N]>
 };
 } // namespace internal
 
-template <typename View, typename ExecutionSpace>
+template <typename View, typename ExecutionSpace, typename MemorySpace>
 inline Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
                     typename ExecutionSpace::memory_space>
 create_layout_right_mirror_view_no_init(ExecutionSpace const &execution_space,
+                                        MemorySpace const &memory_space,
                                         View const &src)
 {
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
+  static_assert(Kokkos::is_memory_space<MemorySpace>::value);
+
   constexpr bool has_compatible_layout =
       (std::is_same_v<typename View::array_layout, Kokkos::LayoutRight> ||
        (View::rank == 1 &&
         (std::is_same_v<typename View::array_layout, Kokkos::LayoutLeft> ||
          std::is_same_v<typename View::array_layout, Kokkos::LayoutRight>)));
   constexpr bool has_compatible_memory_space =
-      std::is_same_v<typename View::memory_space,
-                     typename ExecutionSpace::memory_space>;
+      std::is_same_v<typename View::memory_space, MemorySpace>;
 
   if constexpr (has_compatible_layout && has_compatible_memory_space)
   {
@@ -69,9 +72,9 @@ create_layout_right_mirror_view_no_init(ExecutionSpace const &execution_space,
     constexpr int pointer_depth =
         internal::PointerDepth<typename View::traits::data_type>::value;
     return Kokkos::View<typename View::traits::data_type, Kokkos::LayoutRight,
-                        typename ExecutionSpace::memory_space>(
+                        MemorySpace>(
         Kokkos::view_alloc(
-            execution_space, Kokkos::WithoutInitializing,
+            execution_space, memory_space, Kokkos::WithoutInitializing,
             std::string(src.label()).append("_layout_right_mirror")),
         src.extent(0), pointer_depth > 1 ? src.extent(1) : KOKKOS_INVALID_INDEX,
         pointer_depth > 2 ? src.extent(2) : KOKKOS_INVALID_INDEX,
@@ -86,8 +89,11 @@ create_layout_right_mirror_view_no_init(ExecutionSpace const &execution_space,
 template <typename View>
 inline auto create_layout_right_mirror_view_no_init(View const &src)
 {
-  return create_layout_right_mirror_view_no_init(
-      typename View::traits::host_mirror_space{}, src);
+  typename View::traits::host_mirror_space::execution_space exec;
+  auto mirror_view = create_layout_right_mirror_view_no_init(
+      exec, typename View::traits::host_mirror_space{}, src);
+  exec.fence();
+  return mirror_view;
 }
 
 template <typename View, typename ExecutionSpace>

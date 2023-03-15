@@ -272,14 +272,18 @@ DistributedTreeImpl<DeviceType>::sendAcrossNetwork(
 
 #ifndef ARBORX_ENABLE_GPU_AWARE_MPI
   using MirrorSpace = typename View::host_mirror_space;
-  MirrorSpace const execution_space;
+  typename MirrorSpace::execution_space const execution_space;
 #else
   using MirrorSpace = typename View::device_type;
   auto const &execution_space = space;
 #endif
 
-  auto imports_layout_right =
-      create_layout_right_mirror_view_no_init(execution_space, imports);
+  auto imports_layout_right = create_layout_right_mirror_view_no_init(
+      execution_space, MirrorSpace{}, imports);
+
+#ifndef ARBORX_ENABLE_GPU_AWARE_MPI
+  execution_space.fence();
+#endif
 
   Kokkos::View<NonConstValueType *, MirrorSpace,
                Kokkos::MemoryTraits<Kokkos::Unmanaged>>
