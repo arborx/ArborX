@@ -453,15 +453,13 @@ struct CallbackWithDistance
         n);
     if (!_tree.empty())
     {
-      int const leaf_nodes_shift = _tree.size() - 1;
-      auto const &leaf_nodes = HappyTreeFriends::getLeafNodes(_tree);
       Kokkos::parallel_for(
           "ArborX::DistributedTree::query::nearest::"
           "compute_reverse_permutation",
-          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+          Kokkos::RangePolicy<ExecutionSpace>(exec_space, n - 1, 2 * n - 1),
           ARBORX_CLASS_LAMBDA(int const i) {
-            _rev_permute(leaf_nodes(i).getLeafPermutationIndex()) =
-                i + leaf_nodes_shift;
+            _rev_permute(HappyTreeFriends::getLeafPermutationIndex(_tree, i)) =
+                i;
           });
     }
   }

@@ -157,30 +157,31 @@ void generateHierarchy(Primitives primitives, MortonCodes sorted_morton_codes,
       internal_nodes);
 }
 
-template <typename Node, typename LeafNodes, typename InternalNodes>
-void traverse(LeafNodes leaf_nodes, InternalNodes internal_nodes,
-              Node const *root, std::ostringstream &sol)
+template <typename LeafNodes, typename InternalNodes>
+void traverse(LeafNodes leaf_nodes, InternalNodes internal_nodes, int root,
+              std::ostringstream &sol)
 {
   int n = leaf_nodes.extent(0);
-  auto getNodePtr = [&leaf_nodes, &internal_nodes, &n](int i) {
-    return i < n - 1 ? &internal_nodes(i) : &leaf_nodes(i - n + 1);
-  };
 
   using ArborX::Details::ROPE_SENTINEL;
 
-  std::function<void(Node const *, std::ostream &)> traverseRopes;
-  traverseRopes = [&leaf_nodes, &internal_nodes, &getNodePtr,
-                   &traverseRopes](Node const *node, std::ostream &os) {
-    if (node->isLeaf())
+  auto leafIndex = [=](int i) { return i - (n - 1); };
+
+  std::function<void(int, std::ostream &)> traverseRopes;
+  traverseRopes = [&leaf_nodes, &internal_nodes, &leafIndex,
+                   &traverseRopes](int node, std::ostream &os) {
+    int leaf_index = leafIndex(node);
+    if (leaf_index >= 0)
     {
-      os << "L" << node - leaf_nodes.data();
-      if (node->rope != ROPE_SENTINEL)
-        traverseRopes(getNodePtr(node->rope), os);
+      os << "L" << leaf_index;
+      int rope = leaf_nodes(leaf_index).rope;
+      if (rope != ROPE_SENTINEL)
+        traverseRopes(rope, os);
     }
     else
     {
-      os << "I" << node - internal_nodes.data();
-      traverseRopes(getNodePtr(node->left_child), os);
+      os << "I" << node;
+      traverseRopes(internal_nodes(node).left_child, os);
     }
   };
 
@@ -231,18 +232,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   // clang-format on
   BOOST_TEST_MESSAGE("ref = " << ref.str());
 
-  using Node =
-      ArborX::Details::NodeWithLeftChildAndRope<Test::FakeBoundingVolume>;
+  using LeafNode = ArborX::Details::LeafNode<Test::FakeBoundingVolume>;
+  using InternalNode = ArborX::Details::InternalNode<Test::FakeBoundingVolume>;
 
-  Kokkos::View<Node *, DeviceType> leaf_nodes("Testing::leaf_nodes", 0);
-  Kokkos::View<Node *, DeviceType> internal_nodes("Testing::internal_nodes", 0);
+  Kokkos::View<LeafNode *, DeviceType> leaf_nodes("Testing::leaf_nodes", 0);
+  Kokkos::View<InternalNode *, DeviceType> internal_nodes(
+      "Testing::internal_nodes", 0);
   generateHierarchy(primitives, sorted_morton_codes, leaf_nodes,
                     internal_nodes);
 
-  auto const *root = internal_nodes.data();
-
   std::ostringstream sol;
-  traverse(leaf_nodes, internal_nodes, root, sol);
+  traverse(leaf_nodes, internal_nodes, 0, sol);
 
   BOOST_TEST_MESSAGE("sol(node_with_left_child_and_rope) = " << sol.str());
 
