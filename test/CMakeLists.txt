@@ -123,14 +123,17 @@ foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
     list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_bounding_volume}.cpp")
   endforeach()
 endforeach()
-add_executable(ArborX_Test_QueryTree.exe
-  ${ARBORX_TEST_QUERY_TREE_SOURCES}
+list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES
   tstQueryTreeRay.cpp
   tstQueryTreeTraversalPolicy.cpp
   tstQueryTreeIntersectsKDOP.cpp
   tstKokkosToolsAnnotations.cpp
-  tstScopedProfileRegion.cpp
-  utf_main.cpp)
+  utf_main.cpp
+)
+if (Kokkos_VERSION VERSION_LESS 4.0.99)
+  list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES tstScopedProfileRegion.cpp)
+endif()
+add_executable(ArborX_Test_QueryTree.exe ${ARBORX_TEST_QUERY_TREE_SOURCES})
 target_link_libraries(ArborX_Test_QueryTree.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_QueryTree.exe PRIVATE BOOST_TEST_DYN_LINK)
 # FIXME_SYCL oneDPL messes with namespace std, see https://github.com/oneapi-src/oneDPL/issues/576
