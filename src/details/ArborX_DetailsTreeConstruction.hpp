@@ -261,6 +261,14 @@ public:
         if (range_right == UNTOUCHED_NODE)
           break;
 
+        // This is slightly convoluted due to the fact that the indices of leaf
+        // nodes have to be shifted. The determination whether the other child
+        // is a leaf node depends on the position of the split (which is
+        // apetrei index) to the range boundary.
+        left_child = i;
+        right_child = apetrei_parent + 1;
+        bool const right_child_is_leaf = (right_child == range_right);
+
         delta_right = delta(range_right);
 
         // Memory synchronization below ensures write from other threads to the
@@ -268,23 +276,12 @@ public:
         // thread.
         // NOTE we need acquire semantics at the device scope
         Kokkos::load_fence();
-
-        // This is slightly convoluted due to the fact that the indices of leaf
-        // nodes have to be shifted. The determination whether the other child
-        // is a leaf node depends on the position of the split (which is
-        // apetrei index) to the range boundary.
-        left_child = i;
-        right_child = apetrei_parent + 1;
+        expand(bounding_volume,
+               right_child_is_leaf
+                   ? _leaf_nodes(right_child).bounding_volume
+                   : _internal_nodes(right_child).bounding_volume);
         if (right_child == range_right)
-        {
-          // Right child is a leaf
-          expand(bounding_volume, _leaf_nodes(right_child).bounding_volume);
           right_child += leaf_nodes_shift;
-        }
-        else
-        {
-          expand(bounding_volume, _internal_nodes(right_child).bounding_volume);
-        }
       }
       else
       {
@@ -298,22 +295,19 @@ public:
         if (range_left == UNTOUCHED_NODE)
           break;
 
-        Kokkos::load_fence();
-
         left_child = apetrei_parent;
-        if (left_child == range_left)
-        {
-          // Left child is a leaf
-          expand(bounding_volume, _leaf_nodes(left_child).bounding_volume);
-          left_child += leaf_nodes_shift;
-        }
-        else
-        {
-          expand(bounding_volume, _internal_nodes(left_child).bounding_volume);
-        }
         right_child = i;
+        bool const left_child_is_leaf = left_child == range_left;
 
         delta_left = delta(range_left - 1);
+
+        Kokkos::load_fence();
+        expand(bounding_volume,
+               left_child_is_leaf
+                   ? _leaf_nodes(left_child).bounding_volume
+                   : _internal_nodes(left_child).bounding_volume);
+        if (left_child == range_left)
+          left_child += leaf_nodes_shift;
       }
 
       // Having the full range for the parent, we can compute the Karras index.
