@@ -15,6 +15,7 @@
 #include "boost_ext/CompressedStorageComparison.hpp"
 // clang-format on
 
+#include "ArborXTest_Cloud.hpp"
 #include "ArborXTest_StdVectorToKokkosView.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
@@ -29,30 +30,6 @@
 namespace Test
 {
 using ArborXTest::toView;
-
-template <class ExecutionSpace>
-Kokkos::View<ArborX::Point *, ExecutionSpace>
-make_random_cloud(ExecutionSpace const &space, int n)
-{
-  Kokkos::View<ArborX::Point *, ExecutionSpace> points(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, "Test::points"),
-      n);
-  using RandomPool = Kokkos::Random_XorShift64_Pool<ExecutionSpace>;
-  RandomPool random_pool(5374857);
-
-  Kokkos::parallel_for(
-      "Test::generate_random_points",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
-        typename RandomPool::generator_type generator = random_pool.get_state();
-        auto const x = generator.frand(0.f, 1.f);
-        auto const y = generator.frand(0.f, 1.f);
-        auto const z = generator.frand(0.f, 1.f);
-        points(i) = {x, y, z};
-        random_pool.free_state(generator);
-      });
-
-  return points;
-}
 
 struct Filter
 {
@@ -236,7 +213,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec_space;
 
-  auto points = Test::make_random_cloud(exec_space, 100);
+  auto points = ArborXTest::make_random_cloud(exec_space, 100);
   auto radius = .3f;
 
   BOOST_TEST(
