@@ -28,7 +28,8 @@ make_random_cloud(ExecutionSpace const &space, int n, float Lx = 1.f,
   static_assert(std::is_same_v<Geometry, ArborX::Point> ||
                 std::is_same_v<Geometry, ArborX::Box>);
 
-  float const min_xyz = std::min({Lx, Ly, Lz});
+  // We divide n to avoid a large number of overlapping boxes
+  auto const Ll = std::min({Lx, Ly, Lz}) / n;
 
   Kokkos::View<Geometry *, ExecutionSpace> cloud(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
@@ -44,15 +45,21 @@ make_random_cloud(ExecutionSpace const &space, int n, float Lx = 1.f,
         auto const x = generator.frand(0.f, Lx);
         auto const y = generator.frand(0.f, Ly);
         auto const z = generator.frand(0.f, Lz);
+
+#ifdef KOKKOS_COMPILER_NVCC
+        // Workaround NVCC error "An extended __host__ __device__ lambda cannot
+        // first-capture variable in constexpr-if context"
+        (void)cloud;
+        (void)Ll;
+#endif
+
         if constexpr (std::is_same_v<Geometry, ArborX::Point>)
         {
           cloud(i) = {x, y, z};
         }
         else
         {
-          // We divide min_xyz by n in order to avoid a large number of
-          // overlapping boxes
-          auto const length = generator.frand(0.f, min_xyz / n);
+          auto const length = generator.frand(0.f, Ll);
           cloud(i) = {{x, y, z}, {x + length, y + length, z + length}};
         }
         random_pool.free_state(generator);
