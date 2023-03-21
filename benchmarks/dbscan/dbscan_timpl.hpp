@@ -260,9 +260,17 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
   }
   else if (params.algorithm == "hdbscan")
   {
+    using ArborX::Experimental::DendrogramImplementation;
+    DendrogramImplementation dendrogram_impl =
+        DendrogramImplementation::DEFAULT;
+    if (params.dendrogram == "union-find")
+      dendrogram_impl = DendrogramImplementation::UNION_FIND;
+    else if (params.dendrogram == "boruvka")
+      dendrogram_impl = DendrogramImplementation::BORUVKA;
+
     Kokkos::Profiling::pushRegion("ArborX::HDBSCAN::total");
-    auto dendrogram = ArborX::Experimental::hdbscan(exec_space, primitives,
-                                                    params.core_min_size);
+    auto dendrogram = ArborX::Experimental::hdbscan(
+        exec_space, primitives, params.core_min_size, dendrogram_impl);
     Kokkos::Profiling::popRegion();
 
     if (params.verbose)
