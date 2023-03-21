@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -9,6 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include "ArborXTest_Cloud.hpp"
 #include "ArborXTest_StdVectorToKokkosView.hpp"
 #include "ArborX_BoostRTreeHelpers.hpp"
 #include "ArborX_EnableDeviceTypes.hpp"           // ARBORX_DEVICE_TYPES
@@ -702,25 +703,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
   }
 }
 
-std::vector<std::array<double, 3>>
-make_random_cloud(double const Lx, double const Ly, double const Lz,
-                  int const n, double const seed)
-{
-  std::vector<std::array<double, 3>> cloud(n);
-  std::default_random_engine generator(seed);
-  std::uniform_real_distribution<double> distribution_x(0.0, Lx);
-  std::uniform_real_distribution<double> distribution_y(0.0, Ly);
-  std::uniform_real_distribution<double> distribution_z(0.0, Lz);
-  for (int i = 0; i < n; ++i)
-  {
-    double x = distribution_x(generator);
-    double y = distribution_y(generator);
-    double z = distribution_z(generator);
-    cloud[i] = {{x, y, z}};
-  }
-  return cloud;
-}
-
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
@@ -737,8 +719,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
   double const Ly = 10.0;
   double const Lz = 10.0;
   int const n = 100;
-  auto cloud = make_random_cloud(Lx, Ly, Lz, n, 0);
-  auto queries = make_random_cloud(Lx, Ly, Lz, n, 1234);
+  auto cloud = ArborXTest::make_random_cloud<ArborX::Point>(
+      Kokkos::DefaultHostExecutionSpace{}, n, Lx, Ly, Lz, 0);
+  auto queries = ArborXTest::make_random_cloud<ArborX::Point>(
+      Kokkos::DefaultHostExecutionSpace{}, n, Lx, Ly, Lz, 1234);
 
   // The formula is a bit complicated but it does not require n be divisible
   // by comm_size
@@ -750,11 +734,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
   {
     if (i % comm_size == comm_rank)
     {
-      auto const &point = cloud[i];
-      double const x = std::get<0>(point);
-      double const y = std::get<1>(point);
-      double const z = std::get<2>(point);
-      bounding_boxes_host[i / comm_size] = {{{x, y, z}}, {{x, y, z}}};
+      auto const &point = cloud(i);
+      bounding_boxes_host[i / comm_size] = {point, point};
     }
   }
   Kokkos::deep_copy(bounding_boxes, bounding_boxes_host);
@@ -764,31 +745,26 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
       comm, ExecutionSpace{}, bounding_boxes);
 
   // make queries
-  Kokkos::View<double *[3], ExecutionSpace> point_coords(
-      "Testing::point_coords", local_n);
+  Kokkos::View<float *[3], ExecutionSpace> point_coords("Testing::point_coords",
+                                                        local_n);
   auto point_coords_host = Kokkos::create_mirror_view(point_coords);
-  Kokkos::View<double *, ExecutionSpace> radii("Testing::radii", local_n);
+  Kokkos::View<float *, ExecutionSpace> radii("Testing::radii", local_n);
   auto radii_host = Kokkos::create_mirror_view(radii);
-  Kokkos::View<int *[2], ExecutionSpace> within_n_pts("Testing::within_n_pts",
-                                                      local_n);
   std::default_random_engine generator(0);
-  std::uniform_real_distribution<double> distribution_radius(
+  std::uniform_real_distribution<float> distribution_radius(
       0.0, std::sqrt(Lx * Lx + Ly * Ly + Lz * Lz));
   std::uniform_int_distribution<int> distribution_k(1, std::floor(sqrt(n * n)));
   for (int i = 0; i < n; ++i)
   {
     if (i % comm_size == comm_rank)
     {
-      auto const &point = queries[i];
+      auto const &point = queries(i);
       int const j = i / comm_size;
-      double const x = std::get<0>(point);
-      double const y = std::get<1>(point);
-      double const z = std::get<2>(point);
       radii_host(j) = distribution_radius(generator);
 
-      point_coords_host(j, 0) = x;
-      point_coords_host(j, 1) = y;
-      point_coords_host(j, 2) = z;
+      point_coords_host(j, 0) = point[0];
+      point_coords_host(j, 1) = point[1];
+      point_coords_host(j, 2) = point[2];
     }
   }
   Kokkos::deep_copy(point_coords, point_coords_host);

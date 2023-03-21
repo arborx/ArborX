@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -9,6 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include "ArborXTest_Cloud.hpp"
 #include "ArborX_BoostRTreeHelpers.hpp"
 
 #include <boost/test/unit_test.hpp>
@@ -55,56 +56,6 @@ make_stuctured_cloud(double Lx, double Ly, double Lz, int nx, int ny, int nz)
   return cloud;
 }
 
-template <typename Geometry>
-Kokkos::View<Geometry *, Kokkos::HostSpace>
-make_random_cloud(double Lx, double Ly, double Lz, int n);
-
-template <>
-inline Kokkos::View<ArborX::Point *, Kokkos::HostSpace>
-make_random_cloud(double Lx, double Ly, double Lz, int n)
-{
-  Kokkos::View<ArborX::Point *, Kokkos::HostSpace> cloud(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "random_cloud"), n);
-  std::default_random_engine generator;
-  std::uniform_real_distribution<double> distribution_x(0.0, Lx);
-  std::uniform_real_distribution<double> distribution_y(0.0, Ly);
-  std::uniform_real_distribution<double> distribution_z(0.0, Lz);
-  for (int i = 0; i < n; ++i)
-  {
-    double x = distribution_x(generator);
-    double y = distribution_y(generator);
-    double z = distribution_z(generator);
-    cloud[i] = {{x, y, z}};
-  }
-  return cloud;
-}
-
-template <>
-inline Kokkos::View<ArborX::Box *, Kokkos::HostSpace>
-make_random_cloud(double Lx, double Ly, double Lz, int n)
-{
-  Kokkos::View<ArborX::Box *, Kokkos::HostSpace> cloud(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "random_cloud"), n);
-  std::default_random_engine generator;
-  std::uniform_real_distribution<double> distribution_x(0.0, Lx);
-  std::uniform_real_distribution<double> distribution_y(0.0, Ly);
-  std::uniform_real_distribution<double> distribution_z(0.0, Lz);
-  double const min_xyz = std::min(std::min(Lx, Ly), Lz);
-  // We divide min_xyz by n in order to avoid a large number of overlapping
-  // boxes
-  std::uniform_real_distribution<double> distribution_l(
-      0.0, min_xyz / static_cast<double>(n));
-  for (int i = 0; i < n; ++i)
-  {
-    float x = distribution_x(generator);
-    float y = distribution_y(generator);
-    float z = distribution_z(generator);
-    float length = distribution_l(generator);
-    cloud[i] = {{x, y, z}, {x + length, y + length, z + length}};
-  }
-  return cloud;
-}
-
 template <typename Tree, typename ExecutionSpace, typename DeviceType,
           typename PrimitiveGeometry>
 void boost_rtree_nearest_predicate()
@@ -122,9 +73,8 @@ void boost_rtree_nearest_predicate()
   // compare our solution against Boost R-tree
   int const n_queries = 100;
   using MemorySpace = typename Tree::memory_space;
-  auto geometry_objects = Kokkos::create_mirror_view_and_copy(
-      MemorySpace{},
-      make_random_cloud<PrimitiveGeometry>(Lx, Ly, Lz, n_queries));
+  auto geometry_objects = ArborXTest::make_random_cloud<PrimitiveGeometry>(
+      ExecutionSpace{}, n_queries, Lx, Ly, Lz);
 
   Kokkos::View<int *, ExecutionSpace> k("k", n_queries);
   auto k_host = Kokkos::create_mirror_view(k);
@@ -187,8 +137,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
   // compare our solution against Boost R-tree
   int const n_points = 100;
   using MemorySpace = typename Tree::memory_space;
-  auto points = Kokkos::create_mirror_view_and_copy(
-      MemorySpace{}, make_random_cloud<ArborX::Point>(Lx, Ly, Lz, n_points));
+  auto points = ArborXTest::make_random_cloud<ArborX::Point>(
+      ExecutionSpace{}, n_points, Lx, Ly, Lz);
 
   Kokkos::View<double *, ExecutionSpace> radii("radii", n_points);
   auto radii_host = Kokkos::create_mirror_view(radii);
