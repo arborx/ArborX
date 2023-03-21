@@ -73,9 +73,8 @@ void boost_rtree_nearest_predicate()
   // compare our solution against Boost R-tree
   int const n_queries = 100;
   using MemorySpace = typename Tree::memory_space;
-  auto geometry_objects =
-      ArborXTest::make_random_cloud<ExecutionSpace, PrimitiveGeometry>(
-          ExecutionSpace{}, n_queries, Lx, Ly, Lz);
+  auto geometry_objects = ArborXTest::make_random_cloud<PrimitiveGeometry>(
+      ExecutionSpace{}, n_queries, Lx, Ly, Lz);
 
   Kokkos::View<int *, ExecutionSpace> k("k", n_queries);
   auto k_host = Kokkos::create_mirror_view(k);
@@ -138,8 +137,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
   // compare our solution against Boost R-tree
   int const n_points = 100;
   using MemorySpace = typename Tree::memory_space;
-  auto points =
-      ArborXTest::make_random_cloud(ExecutionSpace{}, n_points, Lx, Ly, Lz);
+  auto points = ArborXTest::make_random_cloud<ArborX::Point>(
+      ExecutionSpace{}, n_points, Lx, Ly, Lz);
 
   Kokkos::View<double *, ExecutionSpace> radii("radii", n_points);
   auto radii_host = Kokkos::create_mirror_view(radii);

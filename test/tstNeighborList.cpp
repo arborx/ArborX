@@ -213,7 +213,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec_space;
 
-  auto points = ArborXTest::make_random_cloud(exec_space, 100);
+  auto points = ArborXTest::make_random_cloud<ArborX::Point>(exec_space, 100);
   auto radius = .3f;
 
   BOOST_TEST(

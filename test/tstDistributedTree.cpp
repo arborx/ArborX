@@ -719,9 +719,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
   double const Ly = 10.0;
   double const Lz = 10.0;
   int const n = 100;
-  auto cloud = ArborXTest::make_random_cloud(
+  auto cloud = ArborXTest::make_random_cloud<ArborX::Point>(
       Kokkos::DefaultHostExecutionSpace{}, n, Lx, Ly, Lz, 0);
-  auto queries = ArborXTest::make_random_cloud(
+  auto queries = ArborXTest::make_random_cloud<ArborX::Point>(
       Kokkos::DefaultHostExecutionSpace{}, n, Lx, Ly, Lz, 1234);
 
   // The formula is a bit complicated but it does not require n be divisible

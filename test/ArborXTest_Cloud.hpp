@@ -20,7 +20,7 @@
 namespace ArborXTest
 {
 
-template <typename ExecutionSpace, typename Geometry = ArborX::Point>
+template <typename Geometry, typename ExecutionSpace>
 Kokkos::View<Geometry *, ExecutionSpace>
 make_random_cloud(ExecutionSpace const &space, int n, float Lx = 1.f,
                   float Ly = 1.f, float Lz = 1.f, int const seed = 0)
@@ -28,15 +28,17 @@ make_random_cloud(ExecutionSpace const &space, int n, float Lx = 1.f,
   static_assert(std::is_same_v<Geometry, ArborX::Point> ||
                 std::is_same_v<Geometry, ArborX::Box>);
 
-  float const min_xyz = std::min(std::min(Lx, Ly), Lz);
+  float const min_xyz = std::min({Lx, Ly, Lz});
 
   Kokkos::View<Geometry *, ExecutionSpace> cloud(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, "Test::cloud"), n);
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         "ArborXTest::cloud"),
+      n);
 
   using RandomPool = Kokkos::Random_XorShift64_Pool<ExecutionSpace>;
   RandomPool random_pool(seed);
   Kokkos::parallel_for(
-      "Test::generate_random_cloud",
+      "ArborXTest::generate_random_cloud",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
         typename RandomPool::generator_type generator = random_pool.get_state();
         auto const x = generator.frand(0.f, Lx);
