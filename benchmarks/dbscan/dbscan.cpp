@@ -59,10 +59,10 @@ std::string vec2string(std::vector<T> const &s, std::string const &delim = ", ")
   assert(s.size() > 1);
 
   std::ostringstream ss;
-  ss << "(";
   std::copy(s.begin(), s.end(),
             std::ostream_iterator<std::string>{ss, delim.c_str()});
-  return ss.str().erase(ss.str().length() - delim.size()) + ")";
+  auto delimited_items = ss.str().erase(ss.str().length() - delim.size());
+  return "(" + delimited_items + ")";
 }
 
 int main(int argc, char *argv[])
@@ -79,8 +79,7 @@ int main(int argc, char *argv[])
   int dim;
 
   std::vector<std::string> allowed_algorithms = {"dbscan", "hdbscan", "mst"};
-  std::vector<std::string> allowed_dendrograms = {"default", "boruvka",
-                                                  "union-find"};
+  std::vector<std::string> allowed_dendrograms = {"boruvka", "union-find"};
   std::vector<std::string> allowed_impls = {"fdbscan", "fdbscan-densebox"};
 
   bpo::options_description desc("Allowed options");
@@ -91,7 +90,7 @@ int main(int argc, char *argv[])
       ( "binary", bpo::bool_switch(&params.binary), "binary file indicator")
       ( "cluster-min-size", bpo::value<int>(&params.cluster_min_size)->default_value(1), "minimum cluster size")
       ( "core-min-size", bpo::value<int>(&params.core_min_size)->default_value(2), "DBSCAN min_pts")
-      ( "dendrogram", bpo::value<std::string>(&params.dendrogram)->default_value("default"), ("dendrogram " + vec2string(allowed_dendrograms, " | ")).c_str() )
+      ( "dendrogram", bpo::value<std::string>(&params.dendrogram)->default_value("boruvka"), ("dendrogram " + vec2string(allowed_dendrograms, " | ")).c_str() )
       ( "dimension", bpo::value<int>(&dim)->default_value(3), "dimension of points to generate" )
       ( "eps", bpo::value<float>(&params.eps), "DBSCAN eps" )
       ( "filename", bpo::value<std::string>(&params.filename), "filename containing data" )

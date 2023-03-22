@@ -261,12 +261,16 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
   else if (params.algorithm == "hdbscan")
   {
     using ArborX::Experimental::DendrogramImplementation;
-    DendrogramImplementation dendrogram_impl =
-        DendrogramImplementation::DEFAULT;
+    DendrogramImplementation dendrogram_impl;
     if (params.dendrogram == "union-find")
       dendrogram_impl = DendrogramImplementation::UNION_FIND;
     else if (params.dendrogram == "boruvka")
       dendrogram_impl = DendrogramImplementation::BORUVKA;
+    else
+    {
+      auto error_string = "Unknown dendogram: \"" + params.dendrogram + "\"";
+      Kokkos::abort(error_string.c_str());
+    }
 
     Kokkos::Profiling::pushRegion("ArborX::HDBSCAN::total");
     auto dendrogram = ArborX::Experimental::hdbscan(
@@ -275,16 +279,7 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
 
     if (params.verbose)
     {
-      if (params.dendrogram != "boruvka")
-      {
-        printf("-- mst              : %10.3f\n",
-               ArborX_Benchmark::get_time("ArborX::HDBSCAN::mst"));
-        printf("-- dendrogram       : %10.3f\n",
-               ArborX_Benchmark::get_time("ArborX::HDBSCAN::dendrogram"));
-        printf("---- edge sort      : %10.3f\n",
-               ArborX_Benchmark::get_time("ArborX::Dendrogram::sort_edges"));
-      }
-      else
+      if (params.dendrogram == "boruvka")
       {
         printf("-- construction     : %10.3f\n",
                ArborX_Benchmark::get_time("ArborX::MST::construction"));
@@ -301,6 +296,15 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
             ArborX_Benchmark::get_time("ArborX::MST::compute_vertex_parents"));
         printf("-- edge parents     : %10.3f\n",
                ArborX_Benchmark::get_time("ArborX::MST::compute_edge_parents"));
+      }
+      else
+      {
+        printf("-- mst              : %10.3f\n",
+               ArborX_Benchmark::get_time("ArborX::HDBSCAN::mst"));
+        printf("-- dendrogram       : %10.3f\n",
+               ArborX_Benchmark::get_time("ArborX::HDBSCAN::dendrogram"));
+        printf("---- edge sort      : %10.3f\n",
+               ArborX_Benchmark::get_time("ArborX::Dendrogram::sort_edges"));
       }
       printf("total time          : %10.3f\n",
              ArborX_Benchmark::get_time("ArborX::HDBSCAN::total"));

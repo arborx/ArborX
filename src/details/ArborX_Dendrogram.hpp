@@ -22,9 +22,8 @@ namespace ArborX::Experimental
 
 enum class DendrogramImplementation
 {
-  DEFAULT,
-  UNION_FIND,
-  BORUVKA
+  BORUVKA,
+  UNION_FIND
 };
 
 template <typename MemorySpace>

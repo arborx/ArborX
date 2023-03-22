@@ -519,7 +519,8 @@ void updateSidedParents(ExecutionSpace const &space, Labels const &labels,
       KOKKOS_LAMBDA(int e) {
         auto const &edge = edges(e);
 
-        assert(labels(edge.target) == labels(edge.source));
+        // As the edge is within the same alpha vertex, labels of its vertices
+        // are the same, so can take either
         int component = labels(edge.source);
 
         int const vertex_offset = edges_mapping.extent_int(0);
@@ -618,7 +619,7 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
 
         // Comparison of weights as ints is the same as their comparison as
         // floats as long as they are positive and are not NaNs or inf
-        assert(sizeof(int) == sizeof(float));
+        static_assert(sizeof(int) == sizeof(float));
         Pun p = {edge.weight};
         keys(e) = (key << shift) + p.i;
       });

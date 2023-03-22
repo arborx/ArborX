@@ -22,34 +22,31 @@ template <typename ExecutionSpace, typename Primitives>
 auto hdbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
              int core_min_size,
              DendrogramImplementation dendrogram_impl =
-                 DendrogramImplementation::DEFAULT)
+                 DendrogramImplementation::BORUVKA)
 {
   KokkosExt::ScopedProfileRegion guard("ArborX::HDBSCAN");
 
   using MemorySpace = typename Primitives::memory_space;
 
-  if (dendrogram_impl == DendrogramImplementation::DEFAULT)
-    dendrogram_impl = DendrogramImplementation::BORUVKA;
-
-  if (dendrogram_impl != DendrogramImplementation::BORUVKA)
+  if (dendrogram_impl == DendrogramImplementation::BORUVKA)
   {
-    Kokkos::Profiling::pushRegion("ArborX::HDBSCAN::mst");
-    Details::MinimumSpanningTree<MemorySpace> mst(exec_space, primitives,
-                                                  core_min_size);
-    Kokkos::Profiling::popRegion();
-
-    Kokkos::Profiling::pushRegion("ArborX::HDBSCAN::dendrogram");
-    Dendrogram<MemorySpace> dendrogram(exec_space, mst.edges);
-    Kokkos::Profiling::popRegion();
-
-    return dendrogram;
+    // Hybrid Boruvka+dendrogram
+    Details::MinimumSpanningTree<MemorySpace, true> mst(exec_space, primitives,
+                                                        core_min_size);
+    return Dendrogram<MemorySpace>{mst.dendrogram_parents,
+                                   mst.dendrogram_parent_heights};
   }
 
-  // Hybrid Boruvka+dendrogram
-  Details::MinimumSpanningTree<MemorySpace, true> mst(exec_space, primitives,
-                                                      core_min_size);
-  return Dendrogram<MemorySpace>{mst.dendrogram_parents,
-                                 mst.dendrogram_parent_heights};
+  Kokkos::Profiling::pushRegion("ArborX::HDBSCAN::mst");
+  Details::MinimumSpanningTree<MemorySpace> mst(exec_space, primitives,
+                                                core_min_size);
+  Kokkos::Profiling::popRegion();
+
+  Kokkos::Profiling::pushRegion("ArborX::HDBSCAN::dendrogram");
+  Dendrogram<MemorySpace> dendrogram(exec_space, mst.edges);
+  Kokkos::Profiling::popRegion();
+
+  return dendrogram;
 }
 
 } // namespace ArborX::Experimental

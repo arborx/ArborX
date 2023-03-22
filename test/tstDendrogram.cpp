@@ -115,6 +115,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_boruvka, DeviceType,
   ExecutionSpace space;
 
   // Choosing n > 5000 often results in MST producing edges of equal weight.
+  // This is a bit problematic because there are multiple correspondoning
+  // binary dendrograms which are all correct. This makes the comparison very
+  // hard, and something we want to avoid for now.
   int const n = 3000;
   auto points = ArborXTest::make_random_cloud<ArborX::Point>(space, n);
 
