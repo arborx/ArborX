@@ -28,6 +28,9 @@ auto hdbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
   using MemorySpace = typename Primitives::memory_space;
 
+  if (dendrogram_impl == DendrogramImplementation::DEFAULT)
+    dendrogram_impl = DendrogramImplementation::BORUVKA;
+
   if (dendrogram_impl != DendrogramImplementation::BORUVKA)
   {
     Kokkos::Profiling::pushRegion("ArborX::HDBSCAN::mst");
