@@ -308,9 +308,6 @@ struct expand<BoxTag, KDOPTag, Box, KDOP>
 };
 
 // expand a box to include a box
-// NOTE: we must be able to use expand(box, box) in a
-// Kokkos::parallel_reduce() in which case the arguments must be declared
-// volatile
 template <typename Box1, typename Box2>
 struct expand<BoxTag, BoxTag, Box1, Box2>
 {
