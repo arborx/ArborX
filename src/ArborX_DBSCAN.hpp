@@ -297,8 +297,16 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     {
       // Perform the queries and build clusters through callback
       using CorePoints = Details::CCSCorePoints;
+#if defined(KOKKOS_COMPILER_NVCC) && (KOKKOS_COMPILER_NVCC < 1140)
+      // Workaround a compiler bug
+      using HalfTraversal = Details::HalfTraversal<
+          decltype(bvh), Details::FDBSCANCallback<UnionFind, CorePoints>,
+          Details::WithinRadiusGetter>;
+#else
+      using Details::HalfTraversal;
+#endif
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
-      Details::HalfTraversal(
+      HalfTraversal(
           exec_space, bvh,
           Details::FDBSCANCallback<UnionFind, CorePoints>{labels, CorePoints{}},
           Details::WithinRadiusGetter{eps});
@@ -317,13 +325,21 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       Kokkos::Profiling::popRegion();
 
       using CorePoints = Details::DBSCANCorePoints<MemorySpace>;
+#if defined(KOKKOS_COMPILER_NVCC) && (KOKKOS_COMPILER_NVCC < 1140)
+      // Workaround a compiler bug
+      using HalfTraversal = Details::HalfTraversal<
+          decltype(bvh), Details::FDBSCANCallback<UnionFind, CorePoints>,
+          Details::WithinRadiusGetter>;
+#else
+      using Details::HalfTraversal;
+#endif
 
       // Perform the queries and build clusters through callback
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
-      Details::HalfTraversal(exec_space, bvh,
-                             Details::FDBSCANCallback<UnionFind, CorePoints>{
-                                 labels, CorePoints{num_neigh, core_min_size}},
-                             Details::WithinRadiusGetter{eps});
+      HalfTraversal(exec_space, bvh,
+                    Details::FDBSCANCallback<UnionFind, CorePoints>{
+                        labels, CorePoints{num_neigh, core_min_size}},
+                    Details::WithinRadiusGetter{eps});
       Kokkos::Profiling::popRegion();
     }
   }

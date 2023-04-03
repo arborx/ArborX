@@ -27,7 +27,9 @@ std::vector<Point<DIM>> sampleData(std::vector<Point<DIM>> const &data,
   std::vector<Point<DIM>> sampled_data(num_samples);
 
   std::default_random_engine generator(17);
-  std::uniform_int_distribution distribution;
+  // FIXME_NVCC(11.0-11.3): not providing int here results in an internal
+  // compiler error
+  std::uniform_int_distribution<int> distribution;
   auto rand = [&distribution, &generator]() { return distribution(generator); };
 
   // Knuth algorithm
