@@ -274,7 +274,7 @@ DistributedTreeImpl<DeviceType>::sendAcrossNetwork(
   using MirrorSpace = typename View::host_mirror_space;
   typename MirrorSpace::execution_space const execution_space;
 #else
-  using MirrorSpace = typename View::device_type;
+  using MirrorSpace = typename View::device_type::memory_space;
   auto const &execution_space = space;
 #endif
 
