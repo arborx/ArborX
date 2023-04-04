@@ -319,7 +319,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
       // Determine core points
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::num_neigh");
-      Kokkos::resize(num_neigh, n);
+      Kokkos::resize(Kokkos::view_alloc(exec_space), num_neigh, n);
       bvh.query(exec_space, predicates,
                 Details::CountUpToN<MemorySpace>{num_neigh, core_min_size});
       Kokkos::Profiling::popRegion();
@@ -440,7 +440,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     {
       // Determine core points
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::num_neigh");
-      Kokkos::resize(num_neigh, n);
+      Kokkos::resize(Kokkos::view_alloc(exec_space), num_neigh, n);
       // Set num neighbors for points in dense cells to max, so that they are
       // automatically core points
       Kokkos::parallel_for(

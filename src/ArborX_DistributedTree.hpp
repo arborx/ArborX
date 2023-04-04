@@ -153,6 +153,8 @@ DistributedTree<MemorySpace, Enable>::DistributedTree(
                          "ArborX::DistributedTree::DistributedTree::"
                          "rank_bounding_boxes"),
       comm_size);
+
+  Kokkos::DefaultHostExecutionSpace host_exec;
 #ifdef ARBORX_ENABLE_GPU_AWARE_MPI
   Kokkos::deep_copy(space, Kokkos::subview(boxes, comm_rank),
                     _bottom_tree.bounds());
@@ -163,7 +165,9 @@ DistributedTree<MemorySpace, Enable>::DistributedTree(
                 static_cast<void *>(boxes.data()), sizeof(Box), MPI_BYTE,
                 getComm());
 #else
-  auto boxes_host = Kokkos::create_mirror_view(boxes);
+  auto boxes_host = Kokkos::create_mirror_view(
+      Kokkos::view_alloc(host_exec, Kokkos::WithoutInitializing), boxes);
+  host_exec.fence();
   boxes_host(comm_rank) = _bottom_tree.bounds();
 
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
@@ -184,7 +188,10 @@ DistributedTree<MemorySpace, Enable>::DistributedTree(
                          "ArborX::DistributedTree::"
                          "leave_count_in_local_trees"),
       comm_size);
-  auto bottom_tree_sizes_host = Kokkos::create_mirror_view(_bottom_tree_sizes);
+  auto bottom_tree_sizes_host = Kokkos::create_mirror_view(
+      Kokkos::view_alloc(host_exec, Kokkos::WithoutInitializing),
+      _bottom_tree_sizes);
+  host_exec.fence();
   bottom_tree_sizes_host(comm_rank) = _bottom_tree.size();
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                 static_cast<void *>(bottom_tree_sizes_host.data()),

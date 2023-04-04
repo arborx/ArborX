@@ -36,10 +36,10 @@ lastElement(ExecutionSpace const &space, Kokkos::View<T, P...> const &v)
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
   auto v_subview = Kokkos::subview(v, n - 1);
-  auto v_host = Kokkos::create_mirror_view(v_subview); // FIXME
+  typename Kokkos::ViewTraits<T, P...>::non_const_value_type v_host;
   Kokkos::deep_copy(space, v_host, v_subview);
   space.fence("ArborX::KokkosExt::lastElement (copy to host)");
-  return v_host();
+  return v_host;
 }
 
 // FIXME it is not legal to use KOKKOS_IMPL_CTOR_DEFAULT_ARG
@@ -55,21 +55,8 @@ void reallocWithoutInitializing(ExecutionSpace const &space, View &v,
                                 size_t n7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG)
 {
   static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
-  static_assert(Kokkos::is_view<View>::value);
-  static_assert(View::is_managed, "Can only realloc managed views");
-
-  size_t new_extents[8] = {n0, n1, n2, n3, n4, n5, n6, n7};
-  bool has_requested_extents = true;
-  for (unsigned int dim = 0; dim < v.rank_dynamic; ++dim)
-    if (new_extents[dim] != v.extent(dim))
-    {
-      has_requested_extents = false;
-      break;
-    }
-
-  if (!has_requested_extents)
-    v = View(Kokkos::view_alloc(space, Kokkos::WithoutInitializing, v.label()),
-             n0, n1, n2, n3, n4, n5, n6, n7);
+  Kokkos::realloc(Kokkos::view_alloc(space, Kokkos::WithoutInitializing), v, n0,
+                  n1, n2, n3, n4, n5, n6, n7);
 }
 
 template <class ExecutionSpace, class View>
@@ -77,10 +64,8 @@ void reallocWithoutInitializing(ExecutionSpace const &space, View &v,
                                 const typename View::array_layout &layout)
 {
   static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
-  static_assert(Kokkos::is_view<View>::value);
-  static_assert(View::is_managed, "Can only realloc managed views");
-  v = View(Kokkos::view_alloc(space, Kokkos::WithoutInitializing, v.label()),
-           layout);
+  Kokkos::realloc(Kokkos::view_alloc(space, Kokkos::WithoutInitializing), v,
+                  layout);
 }
 
 template <class ExecutionSpace, class View>
@@ -104,21 +89,14 @@ typename View::non_const_type clone(ExecutionSpace const &space, View const &v)
 
 template <class ExecutionSpace, class View>
 typename View::non_const_type
-cloneWithoutInitializingNorCopying(ExecutionSpace const &space, View const &v,
-                                   std::string const &label)
+cloneWithoutInitializingNorCopying(ExecutionSpace const &space, View const &v)
 {
   static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
   static_assert(Kokkos::is_view<View>::value);
-  return typename View::non_const_type(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, label),
-      v.layout());
-}
-
-template <class ExecutionSpace, class View>
-typename View::non_const_type
-cloneWithoutInitializingNorCopying(ExecutionSpace const &space, View const &v)
-{
-  return cloneWithoutInitializingNorCopying(space, v, v.label());
+  return Kokkos::create_mirror(Kokkos::view_alloc(typename View::memory_space{},
+                                                  space,
+                                                  Kokkos::WithoutInitializing),
+                               v);
 }
 
 } // namespace KokkosExt

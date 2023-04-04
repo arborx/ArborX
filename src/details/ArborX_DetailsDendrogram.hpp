@@ -97,7 +97,8 @@ void dendrogramUnionFind(
 
   auto sorted_edges_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, sorted_edges);
-  auto parents_host = Kokkos::create_mirror_view(parents);
+  auto parents_host = Kokkos::create_mirror_view(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing), parents);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion(

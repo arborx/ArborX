@@ -103,11 +103,16 @@ determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
   auto restricted_unique_ranks = InputView(
       compact_ranks, std::make_pair(0, static_cast<int>(n_unique_ranks)));
 
-  auto const unique_ranks_host = Kokkos::create_mirror_view_and_copy(
-      Kokkos::HostSpace(), restricted_unique_ranks);
+  auto const unique_ranks_host = Kokkos::create_mirror_view(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, Kokkos::HostSpace()),
+      restricted_unique_ranks);
+  Kokkos::deep_copy(space, unique_ranks_host, restricted_unique_ranks);
+  auto const offsets_host = Kokkos::create_mirror_view(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, Kokkos::HostSpace()),
+      restricted_offsets);
+  Kokkos::deep_copy(space, offsets_host, restricted_offsets);
+  space.fence();
   unique_ranks.reserve(n_unique_ranks);
-  auto const offsets_host = Kokkos::create_mirror_view_and_copy(
-      Kokkos::HostSpace(), restricted_offsets);
   offsets.reserve(n_unique_ranks + 1);
   counts.reserve(n_unique_ranks);
 
@@ -158,8 +163,10 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing, ranks.label()),
       ranks.size());
   Kokkos::deep_copy(space, device_ranks_duplicate, ranks);
-  auto device_permutation_indices =
-      Kokkos::create_mirror_view(DeviceType(), permutation_indices);
+  auto device_permutation_indices = Kokkos::create_mirror_view(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         typename DeviceType::memory_space{}),
+      permutation_indices);
   int offset = 0;
   while (true)
   {
@@ -268,7 +275,7 @@ public:
 
     using DestBufferMirrorViewType =
         decltype(ArborX::Details::create_layout_right_mirror_view_and_copy(
-            std::declval<typename ImportView::memory_space>(),
+            space, std::declval<typename ImportView::memory_space>(),
             std::declval<ExportViewWithoutMemoryTraits>()));
 
     constexpr int pointer_depth = internal::PointerDepth<
@@ -299,13 +306,13 @@ public:
 
       dest_buffer_mirror =
           ArborX::Details::create_layout_right_mirror_view_and_copy(
-              typename ImportView::memory_space(), dest_buffer);
+              space, typename ImportView::memory_space(), dest_buffer);
     }
     else
     {
       dest_buffer_mirror =
           ArborX::Details::create_layout_right_mirror_view_and_copy(
-              typename ImportView::memory_space(), exports);
+              space, typename ImportView::memory_space(), exports);
     }
 
     static_assert(
