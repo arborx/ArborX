@@ -576,18 +576,15 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
   // Encode both sided parent and edge into long long
   // This way, once we sort based on this value, edges with the same sided
   // parent will already be sorted in increasing order.
+  // The main reason for using long long values is the performance when
+  // compared with sorting pairs. The second reason is that Kokkos's BinSort
+  // does not support custom comparison operators.
   Kokkos::View<long long *, MemorySpace> keys(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::MST::keys"),
       num_edges);
 
   constexpr int shift = 32;
-
-  union Pun
-  {
-    float f;
-    int i;
-  };
 
   Kokkos::parallel_for(
       "ArborX::MST::compute_sided_alpha_parents",
@@ -620,8 +617,7 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
         // Comparison of weights as ints is the same as their comparison as
         // floats as long as they are positive and are not NaNs or inf
         static_assert(sizeof(int) == sizeof(float));
-        Pun p = {edge.weight};
-        keys(e) = (key << shift) + p.i;
+        keys(e) = (key << shift) + reinterpret_cast<int const &>(edge.weight);
       });
 
   auto permute = sortObjects(space, keys);
@@ -632,11 +628,22 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
       KOKKOS_LAMBDA(int const i) {
         int e = permute(i);
         if (i == (int)num_edges - 1)
+        {
+          // The parent of the root node is set to -1
           parents(e) = -1;
+        }
         else if ((keys(i) >> shift) == (keys(i + 1) >> shift))
+        {
+          // For the edges belonging to the same chain, assign the parent of an
+          // edge to the edge with the next larger value
           parents(e) = permute(i + 1);
+        }
         else
+        {
+          // For an edge which points to the root of a chain, assign edge's
+          // parent to be that root
           parents(e) = (keys(i) >> shift) / 2;
+        }
       });
 }
 
