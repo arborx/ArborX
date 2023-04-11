@@ -270,6 +270,7 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
     {
       auto error_string = "Unknown dendogram: \"" + params.dendrogram + "\"";
       Kokkos::abort(error_string.c_str());
+      return false;
     }
 
     Kokkos::Profiling::pushRegion("ArborX::HDBSCAN::total");
