@@ -29,8 +29,8 @@ namespace Details
 template <int N>
 KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy(unsigned int)
 {
-  static_assert(0 < N && N < 6,
-                "expandBitsBy can only be used with values 1-5");
+  static_assert(0 < N && N < 7,
+                "expandBitsBy can only be used with values 1-6");
   Kokkos::abort("ArborX: implementation bug");
   return 0;
 }
@@ -96,11 +96,23 @@ KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy<5>(unsigned int x)
   return x;
 }
 
+// Insert six 0 bits after each of the 4 low bits of x
+template <>
+KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy<6>(unsigned int x)
+{
+  x &= 0xfu;
+  x = (x | x << 16) & 0x80007u;
+  x = (x | x << 8) & 0x80403u;
+  x = (x | x << 4) & 0x84021u;
+  x = (x | x << 2) & 0x204081u;
+  return x;
+}
+
 template <int N>
 KOKKOS_INLINE_FUNCTION unsigned long long expandBitsBy(unsigned long long)
 {
-  static_assert(0 < N && N < 6,
-                "expandBitsBy can only be used with values 1-5");
+  static_assert(0 < N && N < 7,
+                "expandBitsBy can only be used with values 1-6");
   Kokkos::abort("ArborX: implementation bug");
   return 0;
 }
