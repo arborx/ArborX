@@ -171,6 +171,19 @@ KOKKOS_INLINE_FUNCTION unsigned long long expandBitsBy<5>(unsigned long long x)
   return x;
 }
 
+// Insert six 0 bits after each of the 9 low bits of x
+template <>
+KOKKOS_INLINE_FUNCTION unsigned long long expandBitsBy<6>(unsigned long long x)
+{
+  x &= 0x1ffllu;
+  x = (x | x << 32) & 0x1c00000003fllu;
+  x = (x | x << 16) & 0x10000c000380007llu;
+  x = (x | x << 8) & 0x100804030080403llu;
+  x = (x | x << 4) & 0x100840210084021llu;
+  x = (x | x << 2) & 0x102040810204081llu;
+  return x;
+}
+
 template <typename Point,
           typename Enable = std::enable_if_t<GeometryTraits::is_point<Point>{}>>
 KOKKOS_INLINE_FUNCTION unsigned int morton32(Point const &p)
