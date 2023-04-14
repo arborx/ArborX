@@ -26,20 +26,21 @@ auto hdbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 {
   KokkosExt::ScopedProfileRegion guard("ArborX::HDBSCAN");
 
+  using namespace ArborX::Details;
+
   using MemorySpace = typename Primitives::memory_space;
 
   if (dendrogram_impl == DendrogramImplementation::BORUVKA)
   {
     // Hybrid Boruvka+dendrogram
-    Details::MinimumSpanningTree<MemorySpace, true> mst(exec_space, primitives,
-                                                        core_min_size);
+    MinimumSpanningTree<MemorySpace, BoruvkaMode::HDBSCAN> mst(
+        exec_space, primitives, core_min_size);
     return Dendrogram<MemorySpace>{mst.dendrogram_parents,
                                    mst.dendrogram_parent_heights};
   }
 
   Kokkos::Profiling::pushRegion("ArborX::HDBSCAN::mst");
-  Details::MinimumSpanningTree<MemorySpace> mst(exec_space, primitives,
-                                                core_min_size);
+  MinimumSpanningTree<MemorySpace> mst(exec_space, primitives, core_min_size);
   Kokkos::Profiling::popRegion();
 
   Kokkos::Profiling::pushRegion("ArborX::HDBSCAN::dendrogram");

@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_boruvka, DeviceType,
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
 
-  using ArborX::Experimental::DendrogramImplementation;
+  using namespace ArborX::Details;
 
   ExecutionSpace space;
 
@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_boruvka, DeviceType,
   int const n = 3000;
   auto points = ArborXTest::make_random_cloud<ArborX::Point>(space, n);
 
-  ArborX::Details::MinimumSpanningTree<MemorySpace, true> mst(space, points);
+  MinimumSpanningTree<MemorySpace, BoruvkaMode::HDBSCAN> mst(space, points);
   ArborX::Experimental::Dendrogram<MemorySpace> dendrogram(space, mst.edges);
 
   // Because the dendrogram in the MST is permuted, we need to reorder it in the
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_boruvka, DeviceType,
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n - 1),
         KOKKOS_LAMBDA(int i) { weights(i) = mst.edges(i).weight; });
 
-    auto permute = ArborX::Details::sortObjects(space, weights);
+    auto permute = sortObjects(space, weights);
 
     Kokkos::View<unsigned *, MemorySpace> inv_permute(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,

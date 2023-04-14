@@ -28,6 +28,12 @@
 namespace ArborX::Details
 {
 
+enum class BoruvkaMode
+{
+  MST,
+  HDBSCAN
+};
+
 constexpr int ROOT_CHAIN_VALUE = -2;
 constexpr int FOLLOW_CHAIN_VALUE = -3;
 
@@ -406,7 +412,7 @@ struct BidirectionalEdgesTag
 {};
 
 template <class Labels, class OutEdges, class Edges, class EdgesMapping,
-          class EdgesCount, bool HDBSCANMode>
+          class EdgesCount, BoruvkaMode Mode>
 struct UpdateComponentsAndEdges
 {
   Labels _labels;
@@ -467,7 +473,7 @@ struct UpdateComponentsAndEdges
         Kokkos::atomic_fetch_inc(&_num_edges()); // atomic post-increment
     _edges(back) = edge;
 
-    if constexpr (HDBSCANMode)
+    if constexpr (Mode == BoruvkaMode::HDBSCAN)
       _edge_mapping(i) = back;
   }
 
@@ -690,7 +696,7 @@ void resetSharedRadii(ExecutionSpace const &space, BVH const &bvh,
       });
 }
 
-template <class MemorySpace, bool HDBSCANMode = false>
+template <class MemorySpace, BoruvkaMode Mode = BoruvkaMode::MST>
 struct MinimumSpanningTree
 {
   Kokkos::View<WeightedEdge *, MemorySpace> edges;
@@ -823,7 +829,7 @@ private:
 
     Kokkos::View<int *, MemorySpace> sided_parents("ArborX::MST::sided_parents",
                                                    0);
-    if constexpr (HDBSCANMode)
+    if constexpr (Mode == BoruvkaMode::HDBSCAN)
     {
       KokkosExt::reallocWithoutInitializing(space, edges_mapping, n - 1);
       KokkosExt::reallocWithoutInitializing(space, sided_parents, n - 1);
@@ -863,7 +869,7 @@ private:
 
       UpdateComponentsAndEdges<decltype(labels), decltype(component_out_edges),
                                decltype(edges), decltype(edges_mapping),
-                               decltype(num_edges), HDBSCANMode>
+                               decltype(num_edges), Mode>
           f{labels, component_out_edges, edges, edges_mapping, num_edges};
 
       // For every component C and a found shortest edge `(u, w)`, add the
@@ -878,7 +884,7 @@ private:
       Kokkos::deep_copy(space, num_edges_host, num_edges);
       space.fence();
 
-      if constexpr (HDBSCANMode)
+      if constexpr (Mode == BoruvkaMode::HDBSCAN)
       {
         Kokkos::parallel_for(
             "ArborX::MST::update_bidirectional_edges",
@@ -922,7 +928,7 @@ private:
     Kokkos::resize(component_out_edges, 0);
     Kokkos::resize(tree_parents, 0);
 
-    if constexpr (HDBSCANMode)
+    if constexpr (Mode == BoruvkaMode::HDBSCAN)
     {
 
       // Done with the recursion as there are no more alpha edges. Assign
