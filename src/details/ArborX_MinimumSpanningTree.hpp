@@ -579,18 +579,19 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
 
   auto num_edges = edges.size();
 
-  // Encode both sided parent and edge into long long
+  // Encode both a sided parent and an edge weight into long long.
   // This way, once we sort based on this value, edges with the same sided
   // parent will already be sorted in increasing order.
   // The main reason for using long long values is the performance when
   // compared with sorting pairs. The second reason is that Kokkos's BinSort
   // does not support custom comparison operators.
+  static_assert(sizeof(long long) >= sizeof(int) + sizeof(float));
   Kokkos::View<long long *, MemorySpace> keys(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::MST::keys"),
       num_edges);
 
-  constexpr int shift = 32;
+  constexpr int shift = sizeof(int) * CHAR_BIT;
 
   Kokkos::parallel_for(
       "ArborX::MST::compute_sided_alpha_parents",
