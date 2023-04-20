@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -19,6 +19,9 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <iostream>
+#include <sstream>
+#include <vector>
 
 // FIXME: ideally, this function would be next to `loadData` in
 // dbscan_timpl.hpp. However, that file is used for explicit instantiation,
@@ -50,6 +53,18 @@ int getDataDimension(std::string const &filename, bool binary)
   return dim;
 }
 
+template <typename T>
+std::string vec2string(std::vector<T> const &s, std::string const &delim = ", ")
+{
+  assert(s.size() > 1);
+
+  std::ostringstream ss;
+  std::copy(s.begin(), s.end(),
+            std::ostream_iterator<std::string>{ss, delim.c_str()});
+  auto delimited_items = ss.str().erase(ss.str().length() - delim.size());
+  return "(" + delimited_items + ")";
+}
+
 int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
@@ -63,18 +78,23 @@ int main(int argc, char *argv[])
   ArborXBenchmark::Parameters params;
   int dim;
 
+  std::vector<std::string> allowed_algorithms = {"dbscan", "hdbscan", "mst"};
+  std::vector<std::string> allowed_dendrograms = {"boruvka", "union-find"};
+  std::vector<std::string> allowed_impls = {"fdbscan", "fdbscan-densebox"};
+
   bpo::options_description desc("Allowed options");
   // clang-format off
   desc.add_options()
       ( "help", "help message" )
-      ( "algorithm", bpo::value<std::string>(&params.algorithm)->default_value("dbscan"), "algorithm (dbscan | hdbscan | mst)" )
+      ( "algorithm", bpo::value<std::string>(&params.algorithm)->default_value("dbscan"), ("algorithm " + vec2string(allowed_algorithms, " | ")).c_str() )
       ( "binary", bpo::bool_switch(&params.binary), "binary file indicator")
       ( "cluster-min-size", bpo::value<int>(&params.cluster_min_size)->default_value(1), "minimum cluster size")
       ( "core-min-size", bpo::value<int>(&params.core_min_size)->default_value(2), "DBSCAN min_pts")
+      ( "dendrogram", bpo::value<std::string>(&params.dendrogram)->default_value("boruvka"), ("dendrogram " + vec2string(allowed_dendrograms, " | ")).c_str() )
       ( "dimension", bpo::value<int>(&dim)->default_value(3), "dimension of points to generate" )
       ( "eps", bpo::value<float>(&params.eps), "DBSCAN eps" )
       ( "filename", bpo::value<std::string>(&params.filename), "filename containing data" )
-      ( "impl", bpo::value<std::string>(&params.implementation)->default_value("fdbscan"), "implementation (fdbscan | fdbscan-densebox)")
+      ( "impl", bpo::value<std::string>(&params.implementation)->default_value("fdbscan"), ("implementation " + vec2string(allowed_impls, " | ")).c_str() )
       ( "labels", bpo::value<std::string>(&params.filename_labels)->default_value(""), "clutering results output" )
       ( "max-num-points", bpo::value<int>(&params.max_num_points)->default_value(-1), "max number of points to read in")
       ( "n", bpo::value<int>(&params.n)->default_value(10), "number of points to generate" )
@@ -100,11 +120,27 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  if (std::set<std::string>{"fdbscan", "fdbscan-densebox"}.count(
-          params.implementation) == 0)
+  auto found = [](auto const &v, auto x) {
+    return std::find(v.begin(), v.end(), x) != v.end();
+  };
+
+  if (!found(allowed_impls, params.implementation))
   {
-    std::cerr << "Implementation must be \"fdbscan\" or \"fdbscan-densebox\"\n";
+    std::cerr << "Implementation must be one of " << vec2string(allowed_impls)
+              << "\n";
     return 2;
+  }
+  if (!found(allowed_algorithms, params.algorithm))
+  {
+    std::cerr << "Algorithm must be one of " << vec2string(allowed_algorithms)
+              << "\n";
+    return 3;
+  }
+  if (!found(allowed_dendrograms, params.dendrogram))
+  {
+    std::cerr << "Dendrogram must be one of " << vec2string(allowed_dendrograms)
+              << "\n";
+    return 4;
   }
 
   std::stringstream ss;
@@ -118,6 +154,10 @@ int main(int argc, char *argv[])
     printf("cluster min size  : %d\n", params.cluster_min_size);
     printf("implementation    : %s\n", ss.str().c_str());
     printf("verify            : %s\n", (params.verify ? "true" : "false"));
+  }
+  if (params.algorithm == "hdbscan")
+  {
+    printf("dendrogram        : %s\n", params.dendrogram.c_str());
   }
   printf("minpts            : %d\n", params.core_min_size);
   if (!params.filename.empty())

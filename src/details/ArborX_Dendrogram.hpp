@@ -20,11 +20,23 @@
 namespace ArborX::Experimental
 {
 
+enum class DendrogramImplementation
+{
+  BORUVKA,
+  UNION_FIND
+};
+
 template <typename MemorySpace>
 struct Dendrogram
 {
   Kokkos::View<int *, MemorySpace> _parents;
   Kokkos::View<float *, MemorySpace> _parent_heights;
+
+  Dendrogram(Kokkos::View<int *, MemorySpace> parents,
+             Kokkos::View<float *, MemorySpace> parent_heights)
+      : _parents(parents)
+      , _parent_heights(parent_heights)
+  {}
 
   template <typename ExecutionSpace>
   Dendrogram(ExecutionSpace const &exec_space,

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -27,6 +27,15 @@
 
 namespace ArborX::Details
 {
+
+enum class BoruvkaMode
+{
+  MST,
+  HDBSCAN
+};
+
+constexpr int ROOT_CHAIN_VALUE = -2;
+constexpr int FOLLOW_CHAIN_VALUE = -3;
 
 class DirectedEdge
 {
@@ -395,31 +404,22 @@ void retrieveEdges(ExecutionSpace const &space, Labels const &labels,
       });
 }
 
-template <class Labels, class OutEdges, class Edges, class EdgesCount>
+struct LabelsTag
+{};
+struct UnidirectionalEdgesTag
+{};
+struct BidirectionalEdgesTag
+{};
+
+template <class Labels, class OutEdges, class Edges, class EdgesMapping,
+          class EdgesCount, BoruvkaMode Mode>
 struct UpdateComponentsAndEdges
 {
   Labels _labels;
   OutEdges _out_edges;
   Edges _edges;
+  EdgesMapping _edge_mapping;
   EdgesCount _num_edges;
-
-  template <class ExecutionSpace>
-  UpdateComponentsAndEdges(ExecutionSpace const &space, Labels const &labels,
-                           OutEdges const &out_edges, Edges const &edges,
-                           EdgesCount const &count)
-      : _labels(labels)
-      , _out_edges(out_edges)
-      , _edges(edges)
-      , _num_edges(count)
-  {
-    auto const n = out_edges.extent(0);
-    ARBORX_ASSERT(labels.extent(0) == 2 * n - 1);
-    ARBORX_ASSERT(edges.extent(0) == n - 1);
-
-    Kokkos::parallel_for(
-        "ArborX::MST::update_components_and_edges",
-        Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 1), *this);
-  }
 
   KOKKOS_FUNCTION auto computeNextComponent(int component) const
   {
@@ -450,41 +450,46 @@ struct UpdateComponentsAndEdges
     return next_component;
   }
 
-  KOKKOS_FUNCTION void operator()(int i) const
+  KOKKOS_FUNCTION void operator()(LabelsTag, int i) const
   {
     auto const component = _labels(i);
     auto const final_component = computeFinalComponent(component);
     _labels(i) = final_component;
-    if (i != component)
-    {
+  }
+
+  KOKKOS_FUNCTION void operator()(UnidirectionalEdgesTag, int i) const
+  {
+    auto const component = _labels(i);
+    if (i != component || computeNextComponent(component) == component)
       return;
-    }
-    auto const n = _out_edges.extent(0);
-    if (i != final_component)
-    {
-      auto const edge = static_cast<WeightedEdge>(_out_edges(i - n + 1));
-      // append new edge at the "end" of the array (akin to
-      // std::vector::push_back)
-      auto const back =
-          Kokkos::atomic_fetch_inc(&_num_edges()); // atomic post-increment
-      _edges(back) = edge;
-    }
+
+    int const vertex_offset = _out_edges.extent_int(0) - 1;
+    i -= vertex_offset;
+
+    // append new edge at the "end" of the array (akin to
+    // std::vector::push_back)
+    auto const edge = static_cast<WeightedEdge>(_out_edges(i));
+    auto const back =
+        Kokkos::atomic_fetch_inc(&_num_edges()); // atomic post-increment
+    _edges(back) = edge;
+
+    if constexpr (Mode == BoruvkaMode::HDBSCAN)
+      _edge_mapping(i) = back;
+  }
+
+  KOKKOS_FUNCTION void operator()(BidirectionalEdgesTag, int i) const
+  {
+    auto const component = _labels(i);
+    if (i != component || computeNextComponent(component) != component)
+      return;
+
+    int const vertex_offset = _out_edges.extent_int(0) - 1;
+    i -= vertex_offset;
+
+    auto const &edge = _out_edges(i);
+    _edge_mapping(i) = _edge_mapping(_labels(edge.target()) - vertex_offset);
   }
 };
-
-// For every component C and a found shortest edge `(u, w)`, merge C with
-// the component that w belongs to by updating the labels, and add the edge to
-// the list of MST edges.
-template <class ExecutionSpace, class Labels, class ComponentOutEdges,
-          class Edges, class EdgesCount>
-void updateComponentsAndEdges(ExecutionSpace const &space,
-                              ComponentOutEdges const &component_out_edges,
-                              Labels const &labels, Edges const &edges,
-                              EdgesCount const &num_edges)
-{
-  UpdateComponentsAndEdges<Labels, ComponentOutEdges, Edges, EdgesCount>(
-      space, labels, component_out_edges, edges, num_edges);
-}
 
 // Reverse node leaf permutation order back to original indices
 template <class ExecutionSpace, class BVH, class Edges>
@@ -501,6 +506,151 @@ void finalizeEdges(ExecutionSpace const &space, BVH const &bvh,
             HappyTreeFriends::getLeafPermutationIndex(bvh, edges(i).source);
         edges(i).target =
             HappyTreeFriends::getLeafPermutationIndex(bvh, edges(i).target);
+      });
+}
+
+template <class ExecutionSpace, class Labels, class Edges, class EdgesMapping,
+          class SidedParents>
+void updateSidedParents(ExecutionSpace const &space, Labels const &labels,
+                        Edges const &edges, EdgesMapping const &edges_mapping,
+                        SidedParents &sided_parents, int edges_start,
+                        int edges_end)
+{
+  KokkosExt::ScopedProfileRegion guard("ArborX::MST::update_sided_parents");
+
+  // Same as dendrogram alpha's standalone "updateSidedParents"
+  Kokkos::parallel_for(
+      "ArborX::MST::update_sided_parents",
+      Kokkos::RangePolicy<ExecutionSpace>(space, edges_start, edges_end),
+      KOKKOS_LAMBDA(int e) {
+        auto const &edge = edges(e);
+
+        // As the edge is within the same alpha vertex, labels of its vertices
+        // are the same, so can take either
+        int component = labels(edge.source);
+
+        int const vertex_offset = edges_mapping.extent_int(0);
+        int const alpha_edge_index = edges_mapping(component - vertex_offset);
+
+        auto const &alpha_edge = edges(alpha_edge_index);
+
+        if (edge < alpha_edge)
+        {
+          bool is_left_side = (labels(alpha_edge.source) == component);
+          sided_parents(e) =
+              2 * alpha_edge_index + static_cast<int>(is_left_side);
+        }
+        else
+        {
+          sided_parents(e) = FOLLOW_CHAIN_VALUE - alpha_edge_index;
+        }
+      });
+}
+
+template <class ExecutionSpace, class Labels, class OutEdges,
+          class EdgesMapping, class BVH, class Parents>
+void assignVertexParents(ExecutionSpace const &space, Labels const &labels,
+                         OutEdges const &out_edges,
+                         EdgesMapping const &edges_mapping, BVH const &bvh,
+                         Parents parents)
+{
+  auto const n = edges_mapping.extent_int(0) + 1;
+  int const vertices_offset = n - 1;
+
+  Kokkos::parallel_for(
+      "ArborX::MST::compute_vertex_parents",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int e) {
+        auto const &edge = out_edges(e);
+
+        int i = labels(edge.source());
+        parents(HappyTreeFriends::getLeafPermutationIndex(bvh, i) +
+                vertices_offset) = edges_mapping(i - vertices_offset);
+      });
+}
+
+template <typename ExecutionSpace, typename Edges, typename SidedParents,
+          typename Parents>
+void computeParents(ExecutionSpace const &space, Edges const &edges,
+                    SidedParents const &sided_parents, Parents &parents)
+{
+  KokkosExt::ScopedProfileRegion guard("ArborX::MST::compute_edge_parents");
+
+  using MemorySpace = typename SidedParents::memory_space;
+
+  auto num_edges = edges.size();
+
+  // Encode both a sided parent and an edge weight into long long.
+  // This way, once we sort based on this value, edges with the same sided
+  // parent will already be sorted in increasing order.
+  // The main reason for using long long values is the performance when
+  // compared with sorting pairs. The second reason is that Kokkos's BinSort
+  // does not support custom comparison operators.
+  static_assert(sizeof(long long) >= sizeof(int) + sizeof(float));
+  Kokkos::View<long long *, MemorySpace> keys(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         "ArborX::MST::keys"),
+      num_edges);
+
+  constexpr int shift = sizeof(int) * CHAR_BIT;
+
+  Kokkos::parallel_for(
+      "ArborX::MST::compute_sided_alpha_parents",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_edges),
+      KOKKOS_LAMBDA(int const e) {
+        long long key = sided_parents(e);
+        auto const &edge = edges(e);
+        if (key <= FOLLOW_CHAIN_VALUE)
+        {
+          int next = FOLLOW_CHAIN_VALUE - key;
+          do
+          {
+            key = sided_parents(next);
+            if (key <= FOLLOW_CHAIN_VALUE)
+              next = FOLLOW_CHAIN_VALUE - key;
+            else if (key >= 0)
+            {
+              next = key / 2;
+              auto const &next_edge = edges(next);
+              if (edge < next_edge)
+                break;
+            }
+            else if (key == ROOT_CHAIN_VALUE)
+              break;
+          } while (true);
+        }
+        if (key == ROOT_CHAIN_VALUE)
+          key = INT_MAX;
+
+        // Comparison of weights as ints is the same as their comparison as
+        // floats as long as they are positive and are not NaNs or inf
+        static_assert(sizeof(int) == sizeof(float));
+        keys(e) = (key << shift) + reinterpret_cast<int const &>(edge.weight);
+      });
+
+  auto permute = sortObjects(space, keys);
+
+  Kokkos::parallel_for(
+      "ArborX::MST::compute_parents",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_edges),
+      KOKKOS_LAMBDA(int const i) {
+        int e = permute(i);
+        if (i == (int)num_edges - 1)
+        {
+          // The parent of the root node is set to -1
+          parents(e) = -1;
+        }
+        else if ((keys(i) >> shift) == (keys(i + 1) >> shift))
+        {
+          // For the edges belonging to the same chain, assign the parent of an
+          // edge to the edge with the next larger value
+          parents(e) = permute(i + 1);
+        }
+        else
+        {
+          // For an edge which points to the root of a chain, assign edge's
+          // parent to be that root
+          parents(e) = (keys(i) >> shift) / 2;
+        }
       });
 }
 
@@ -547,10 +697,12 @@ void resetSharedRadii(ExecutionSpace const &space, BVH const &bvh,
       });
 }
 
-template <class MemorySpace>
+template <class MemorySpace, BoruvkaMode Mode = BoruvkaMode::MST>
 struct MinimumSpanningTree
 {
   Kokkos::View<WeightedEdge *, MemorySpace> edges;
+  Kokkos::View<int *, MemorySpace> dendrogram_parents;
+  Kokkos::View<float *, MemorySpace> dendrogram_parent_heights;
 
   template <class ExecutionSpace, class Primitives>
   MinimumSpanningTree(ExecutionSpace const &space, Primitives const &primitives,
@@ -558,6 +710,8 @@ struct MinimumSpanningTree
       : edges(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                  "ArborX::MST::edges"),
               AccessTraits<Primitives, PrimitivesTag>::size(primitives) - 1)
+      , dendrogram_parents("ArborX::MST::dendrogram_parents", 0)
+      , dendrogram_parent_heights("ArborX::MST::dendrogram_parent_heights", 0)
   {
     Kokkos::Profiling::pushRegion("ArborX::MST::MST");
 
@@ -566,11 +720,11 @@ struct MinimumSpanningTree
         typename Details::AccessTraitsHelper<Access>::type>;
     using Box = ExperimentalHyperGeometry::Box<dim>;
 
+    auto const n = AccessTraits<Primitives, PrimitivesTag>::size(primitives);
+
     Kokkos::Profiling::pushRegion("ArborX::MST::construction");
     BasicBoundingVolumeHierarchy<MemorySpace, Box> bvh(space, primitives);
     Kokkos::Profiling::popRegion();
-
-    auto const n = bvh.size();
 
     if (k > 1)
     {
@@ -610,11 +764,11 @@ private:
                  Metric const &metric)
   {
     auto const n = bvh.size();
-    Kokkos::View<int *, MemorySpace> parents(
+    Kokkos::View<int *, MemorySpace> tree_parents(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                           "ArborX::MST::parents"),
+                           "ArborX::MST::tree_parents"),
         2 * n - 1);
-    findParents(space, bvh, parents);
+    findParents(space, bvh, tree_parents);
 
     Kokkos::Profiling::pushRegion("ArborX::MST::initialize_node_labels");
     Kokkos::View<int *, MemorySpace> labels(
@@ -671,9 +825,24 @@ private:
     Kokkos::View<int, MemorySpace> num_edges(
         Kokkos::view_alloc(space, "ArborX::MST::num_edges")); // initialize to 0
 
+    Kokkos::View<int *, MemorySpace> edges_mapping("ArborX::MST::edges_mapping",
+                                                   0);
+
+    Kokkos::View<int *, MemorySpace> sided_parents("ArborX::MST::sided_parents",
+                                                   0);
+    if constexpr (Mode == BoruvkaMode::HDBSCAN)
+    {
+      KokkosExt::reallocWithoutInitializing(space, edges_mapping, n - 1);
+      KokkosExt::reallocWithoutInitializing(space, sided_parents, n - 1);
+      KokkosExt::reallocWithoutInitializing(space, dendrogram_parents,
+                                            2 * n - 1);
+    }
+
     // Boruvka iterations
     int iterations = 0;
     int num_components = n;
+    [[maybe_unused]] int edges_start = 0;
+    [[maybe_unused]] int edges_end = 0;
     do
     {
       Kokkos::Profiling::pushRegion("ArborX::Boruvka_" +
@@ -681,7 +850,7 @@ private:
                                     std::to_string(num_components));
 
       // Propagate leaf node labels to internal nodes
-      reduceLabels(space, parents, labels);
+      reduceLabels(space, tree_parents, labels);
 
       constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
       constexpr DirectedEdge uninitialized_edge;
@@ -699,15 +868,88 @@ private:
         updateLowerBounds(space, labels, component_out_edges, lower_bounds);
       }
 
-      // NOTE could perform the label tree reduction as part of the update
-      updateComponentsAndEdges(space, component_out_edges, labels, edges,
-                               num_edges);
+      UpdateComponentsAndEdges<decltype(labels), decltype(component_out_edges),
+                               decltype(edges), decltype(edges_mapping),
+                               decltype(num_edges), Mode>
+          f{labels, component_out_edges, edges, edges_mapping, num_edges};
+
+      // For every component C and a found shortest edge `(u, w)`, add the
+      // edge to the list of MST edges.
+      Kokkos::parallel_for(
+          "ArborX::MST::update_unidirectional_edges",
+          Kokkos::RangePolicy<ExecutionSpace, UnidirectionalEdgesTag>(
+              space, n - 1, 2 * n - 1),
+          f);
+
       int num_edges_host;
       Kokkos::deep_copy(space, num_edges_host, num_edges);
       space.fence();
+
+      if constexpr (Mode == BoruvkaMode::HDBSCAN)
+      {
+        Kokkos::parallel_for(
+            "ArborX::MST::update_bidirectional_edges",
+            Kokkos::RangePolicy<ExecutionSpace, BidirectionalEdgesTag>(
+                space, n - 1, 2 * n - 1),
+            f);
+
+        if (iterations > 1)
+          updateSidedParents(space, labels, edges, edges_mapping, sided_parents,
+                             edges_start, edges_end);
+        else
+        {
+          KokkosExt::ScopedProfileRegion guard(
+              "ArborX::MST::compute_vertex_parents");
+          assignVertexParents(space, labels, component_out_edges, edges_mapping,
+                              bvh, dendrogram_parents);
+        }
+      }
+
+      // For every component C and a found shortest edge `(u, w)`, merge C
+      // with the component that w belongs to by updating the labels
+      Kokkos::parallel_for("ArborX::MST::update_labels",
+                           Kokkos::RangePolicy<ExecutionSpace, LabelsTag>(
+                               space, n - 1, 2 * n - 1),
+                           f);
+
       num_components = static_cast<int>(n) - num_edges_host;
+
+      edges_start = edges_end;
+      edges_end = num_edges_host;
+
       Kokkos::Profiling::popRegion();
     } while (num_components > 1);
+
+    // Deallocate some memory to reduce high water mark
+    Kokkos::resize(edges_mapping, 0);
+    Kokkos::resize(lower_bounds, 0);
+    Kokkos::resize(radii, 0);
+    Kokkos::resize(labels, 0);
+    Kokkos::resize(weights, 0);
+    Kokkos::resize(component_out_edges, 0);
+    Kokkos::resize(tree_parents, 0);
+
+    if constexpr (Mode == BoruvkaMode::HDBSCAN)
+    {
+
+      // Done with the recursion as there are no more alpha edges. Assign
+      // all current edges to the root chain.
+      Kokkos::deep_copy(space,
+                        Kokkos::subview(sided_parents,
+                                        std::make_pair(edges_start, edges_end)),
+                        ROOT_CHAIN_VALUE);
+
+      computeParents(space, edges, sided_parents, dendrogram_parents);
+
+      KokkosExt::reallocWithoutInitializing(space, dendrogram_parent_heights,
+                                            n - 1);
+      Kokkos::parallel_for(
+          "ArborX::MST::assign_dendrogram_parent_heights",
+          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n - 1),
+          ARBORX_CLASS_LAMBDA(int const e) {
+            dendrogram_parent_heights(e) = edges(e).weight;
+          });
+    }
 
     Kokkos::Profiling::popRegion();
   }
