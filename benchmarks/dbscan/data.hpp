@@ -26,19 +26,22 @@ std::vector<Point<DIM>> sampleData(std::vector<Point<DIM>> const &data,
 {
   std::vector<Point<DIM>> sampled_data(num_samples);
 
-  std::default_random_engine generator(17);
-  // FIXME_NVCC(11.0-11.3): not providing int here results in an internal
-  // compiler error
-  std::uniform_int_distribution<int> distribution;
-  auto rand = [&distribution, &generator]() { return distribution(generator); };
+  // Lehmer (or Park-Miller) RNG
+  assert(num_samples > 1);
+  unsigned int state =
+      1337 % (num_samples - 1) + 1; // any positive number less than modulus
+  auto rand = [&state]() {
+    state = ((unsigned long long)state * 48271) % 0x7fffffff;
+    return state;
+  };
 
   // Knuth algorithm
-  int const N = data.size();
-  int const M = num_samples;
-  for (int in = 0, im = 0; in < N && im < M; ++in)
+  unsigned int const N = data.size();
+  unsigned int const M = num_samples;
+  for (unsigned int in = 0, im = 0; in < N && im < M; ++in)
   {
-    int rn = N - in;
-    int rm = M - im;
+    auto rn = N - in;
+    auto rm = M - im;
     if (rand() % rn < rm)
       sampled_data[im++] = data[in];
   }
