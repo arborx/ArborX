@@ -26,7 +26,11 @@ std::vector<Point<DIM>> sampleData(std::vector<Point<DIM>> const &data,
 {
   std::vector<Point<DIM>> sampled_data(num_samples);
 
-  // Lehmer (or Park-Miller) RNG
+  // We use a hardcoded Lehmer (or Park-Miller) random generator instead of C++
+  // <random> to guarantee sampling reproducibility across platforms and
+  // compilers. The magic numbers are all from the Lehmer algorithm, with the
+  // exception for the state initialization, which is initialized to a positive
+  // number less than modulus.
   assert(num_samples > 1);
   unsigned int state =
       1337 % (num_samples - 1) + 1; // any positive number less than modulus
