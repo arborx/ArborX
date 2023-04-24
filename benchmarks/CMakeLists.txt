@@ -11,5 +11,5 @@ add_subdirectory(union_find)
 
 if (ARBORX_ENABLE_MPI)
   add_subdirectory(distributed_tree_driver)
-  add_subdirectory(rays)
+  add_subdirectory(ray_tracing)
 endif()
