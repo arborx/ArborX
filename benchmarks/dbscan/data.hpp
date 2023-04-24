@@ -32,9 +32,7 @@ std::vector<Point<DIM>> sampleData(std::vector<Point<DIM>> const &data,
   // exception for the state initialization, which is initialized to a positive
   // number less than modulus.
   assert(num_samples > 1);
-  unsigned int state =
-      1337 % (num_samples - 1) + 1; // any positive number less than modulus
-  auto rand = [&state]() {
+  auto rand = [state = (1337 % (num_samples - 1) + 1)]() mutable {
     state = ((unsigned long long)state * 48271) % 0x7fffffff;
     return state;
   };
