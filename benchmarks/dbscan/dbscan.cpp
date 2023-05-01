@@ -79,7 +79,8 @@ int main(int argc, char *argv[])
   int dim;
 
   std::vector<std::string> allowed_algorithms = {"dbscan", "hdbscan", "mst"};
-  std::vector<std::string> allowed_dendrograms = {"boruvka", "union-find"};
+  std::vector<std::string> allowed_dendrograms = {"alpha", "boruvka",
+                                                  "union-find"};
   std::vector<std::string> allowed_impls = {"fdbscan", "fdbscan-densebox"};
 
   bpo::options_description desc("Allowed options");
