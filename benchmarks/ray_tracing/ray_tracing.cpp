@@ -24,71 +24,62 @@ using MemorySpace = ExecutionSpace::memory_space;
 
 constexpr int n_rays = 307200;
 
-template <typename MemorySpace>
-std::pair<Kokkos::View<ArborX::Experimental::Ray[n_rays], MemorySpace>,
-          Kokkos::View<double[n_rays], MemorySpace>>
-read_data()
+template <typename DataType>
+void read_line(DataType &data, std::string &line)
 {
-  std::string filename = "rays_cam-0-0_test_full.csv";
+  std::size_t pos = 0;
+  std::size_t last_pos = 0;
+  std::size_t line_length = line.length();
+  unsigned int i = 0;
+  while (last_pos < line_length + 1)
+  {
+    pos = line.find_first_of(',', last_pos);
+    // If no comma was found then we read until the end of the file
+    if (pos == std::string::npos)
+    {
+      pos = line_length;
+    }
+
+    if (pos != last_pos)
+    {
+      char *end = line.data() + pos;
+      data[i] = std::strtod(line.data() + last_pos, &end);
+
+      ++i;
+    }
+
+    last_pos = pos + 1;
+  }
+}
+
+template <typename MemorySpace>
+Kokkos::View<ArborX::Experimental::Ray[n_rays], MemorySpace> read_data()
+{
+  std::string filename = "rays_cam-0-0_test.csv";
   Kokkos::View<ArborX::Experimental::Ray[n_rays], MemorySpace> rays("rays");
   auto rays_host = Kokkos::create_mirror_view(rays);
   Kokkos::View<double[n_rays], MemorySpace> temperatures("temperatures");
-  auto temperatures_host = Kokkos::create_mirror_view(temperatures);
 
   std::ifstream file(filename);
   std::string line;
+  //  First line is the origin of the rays
   std::getline(file, line);
+  ArborX::Point point;
+  read_line(point, line);
   // Counter to keep track of the current line
   int line_number = 0;
   while (std::getline(file, line))
   {
-    std::size_t pos = 0;
-    std::size_t last_pos = 0;
-    std::size_t line_length = line.length();
-    unsigned int i = 0;
-    ArborX::Point point;
     ArborX::Experimental::Vector direction;
-    double value = 0.;
-    while (last_pos < line_length + 1)
-    {
-      pos = line.find_first_of(',', last_pos);
-      // If no comma was found then we read until the end of the file
-      if (pos == std::string::npos)
-      {
-        pos = line_length;
-      }
-
-      if (pos != last_pos)
-      {
-        char *end = line.data() + pos;
-        if (i < 3)
-        {
-          point[i] = std::strtod(line.data() + last_pos, &end);
-        }
-        else if (i < 6)
-        {
-          direction[i - 3] = std::strtod(line.data() + last_pos, &end);
-        }
-        else
-        {
-          value = std::strtod(line.data() + last_pos, &end);
-        }
-
-        ++i;
-      }
-
-      last_pos = pos + 1;
-    }
+    read_line(direction, line);
 
     ArborX::Experimental::Ray ray{point, direction};
     rays_host(line_number) = ray;
-    temperatures_host(line_number) = value;
     ++line_number;
   }
   Kokkos::deep_copy(rays, rays_host);
-  Kokkos::deep_copy(temperatures, temperatures_host);
 
-  return {rays, temperatures};
+  return rays;
 }
 
 int main(int argc, char *argv[])
@@ -109,11 +100,8 @@ int main(int argc, char *argv[])
 
   {
     // Read the experimental data
-    auto [tmp_rays, temperatures] = read_data<MemorySpace>();
-    // We cannot do a lambda capture of structured binding on clang without
-    // C++20
     Kokkos::View<ArborX::Experimental::Ray[n_rays], MemorySpace> rays =
-        tmp_rays;
+        read_data<MemorySpace>();
 
     // Build the queries
     Kokkos::View<ArborX::Nearest<ArborX::Experimental::Ray> *, MemorySpace>
