@@ -1,4 +1,4 @@
 add_executable(ArborX_Benchmark_ExecutionSpaces.exe execution_space_instances_driver.cpp)
 target_link_libraries(ArborX_Benchmark_ExecutionSpaces.exe ArborX::ArborX Boost::program_options)
 target_include_directories(ArborX_Benchmark_ExecutionSpaces.exe PRIVATE ${CMAKE_SOURCE_DIR}/benchmarks/point_clouds)
-add_test(NAME ArborX_Benchmark_ExecutionSpaces COMMAND ./ArborX_Benchmark_ExecutionSpaces.exe)
+add_test(NAME ArborX_Benchmark_ExecutionSpaces COMMAND ArborX_Benchmark_ExecutionSpaces.exe)

@@ -1,3 +1,3 @@
 add_executable(ArborX_Example_MolecularDynamics.exe example_molecular_dynamics.cpp)
 target_link_libraries(ArborX_Example_MolecularDynamics.exe ArborX::ArborX)
-add_test(NAME ArborX_Example_MolecularDynamics COMMAND ./ArborX_Example_MolecularDynamics.exe)
+add_test(NAME ArborX_Example_MolecularDynamics COMMAND ArborX_Example_MolecularDynamics.exe)
