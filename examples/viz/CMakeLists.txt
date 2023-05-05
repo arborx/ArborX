@@ -1,5 +1,5 @@
 add_executable(ArborX_Example_TreeViz.exe tree_visualization.cpp)
 target_link_libraries(ArborX_Example_TreeViz.exe ArborX::ArborX Boost::program_options)
-add_test(NAME ArborX_Example_TreeViz COMMAND ./ArborX_Example_TreeViz.exe)
+add_test(NAME ArborX_Example_TreeViz COMMAND ArborX_Example_TreeViz.exe)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/leaf_cloud.txt ${CMAKE_CURRENT_BINARY_DIR}/leaf_cloud.txt COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/arborx_query_sort.py ${CMAKE_CURRENT_BINARY_DIR}/arborx_query_sort.py COPYONLY)

@@ -1,3 +1,3 @@
 add_executable(ArborX_Example_Callback.exe example_callback.cpp)
 target_link_libraries(ArborX_Example_Callback.exe ArborX::ArborX)
-add_test(NAME ArborX_Example_Callback COMMAND ./ArborX_Example_Callback.exe)
+add_test(NAME ArborX_Example_Callback COMMAND ArborX_Example_Callback.exe)

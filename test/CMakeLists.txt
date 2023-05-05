@@ -60,7 +60,7 @@ add_executable(ArborX_Test_DetailsUtils.exe
 target_link_libraries(ArborX_Test_DetailsUtils.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_DetailsUtils.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Test_DetailsUtils.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_Test_DetailsUtils COMMAND ./ArborX_Test_DetailsUtils.exe)
+add_test(NAME ArborX_Test_DetailsUtils COMMAND ArborX_Test_DetailsUtils.exe)
 
 add_executable(ArborX_Test_Geometry.exe
   tstDetailsAlgorithms.cpp
@@ -71,7 +71,7 @@ add_executable(ArborX_Test_Geometry.exe
 target_link_libraries(ArborX_Test_Geometry.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_Geometry.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Test_Geometry.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_Test_Geometry COMMAND ./ArborX_Test_Geometry.exe)
+add_test(NAME ArborX_Test_Geometry COMMAND ArborX_Test_Geometry.exe)
 
 set(ARBORX_TEST_QUERY_TREE_SOURCES)
 foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
@@ -142,13 +142,13 @@ if(Kokkos_ENABLE_SYCL)
   target_compile_definitions(ArborX_Test_QueryTree.exe PRIVATE NANORANGE_NO_STD_FORWARD_DECLARATIONS)
 endif()
 target_include_directories(ArborX_Test_QueryTree.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
-add_test(NAME ArborX_Test_QueryTree COMMAND ./ArborX_Test_QueryTree.exe)
+add_test(NAME ArborX_Test_QueryTree COMMAND ArborX_Test_QueryTree.exe)
 
 add_executable(ArborX_Test_DetailsTreeConstruction.exe tstDetailsMortonCodes.cpp tstDetailsTreeConstruction.cpp utf_main.cpp)
 target_link_libraries(ArborX_Test_DetailsTreeConstruction.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_DetailsTreeConstruction.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Test_DetailsTreeConstruction.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_Test_DetailsTreeConstruction COMMAND ./ArborX_Test_DetailsTreeConstruction.exe)
+add_test(NAME ArborX_Test_DetailsTreeConstruction COMMAND ArborX_Test_DetailsTreeConstruction.exe)
 
 add_executable(ArborX_Test_DetailsContainers.exe
   tstSequenceContainers.cpp
@@ -158,19 +158,19 @@ add_executable(ArborX_Test_DetailsContainers.exe
 )
 target_link_libraries(ArborX_Test_DetailsContainers.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_DetailsContainers.exe PRIVATE BOOST_TEST_DYN_LINK)
-add_test(NAME ArborX_Test_DetailsContainers COMMAND ./ArborX_Test_DetailsContainers.exe)
+add_test(NAME ArborX_Test_DetailsContainers COMMAND ArborX_Test_DetailsContainers.exe)
 
 add_executable(ArborX_Test_DetailsBatchedQueries.exe tstDetailsBatchedQueries.cpp utf_main.cpp)
 target_link_libraries(ArborX_Test_DetailsBatchedQueries.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_DetailsBatchedQueries.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Test_DetailsBatchedQueries.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_Test_DetailsBatchedQueries COMMAND ./ArborX_Test_DetailsBatchedQueries.exe)
+add_test(NAME ArborX_Test_DetailsBatchedQueries COMMAND ArborX_Test_DetailsBatchedQueries.exe)
 
 add_executable(ArborX_Test_DetailsCrsGraphWrapperImpl.exe tstDetailsCrsGraphWrapperImpl.cpp utf_main.cpp)
 target_link_libraries(ArborX_Test_DetailsCrsGraphWrapperImpl.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_DetailsCrsGraphWrapperImpl.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Test_DetailsCrsGraphWrapperImpl.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_Test_DetailsCrsGraphWrapperImpl COMMAND ./ArborX_Test_DetailsCrsGraphWrapperImpl.exe)
+add_test(NAME ArborX_Test_DetailsCrsGraphWrapperImpl COMMAND ArborX_Test_DetailsCrsGraphWrapperImpl.exe)
 
 add_executable(ArborX_Test_Clustering.exe
   tstDBSCAN.cpp
@@ -180,7 +180,7 @@ add_executable(ArborX_Test_Clustering.exe
 target_link_libraries(ArborX_Test_Clustering.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_Clustering.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Test_Clustering.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/benchmarks/dbscan)
-add_test(NAME ArborX_Test_Clustering COMMAND ./ArborX_Test_Clustering.exe)
+add_test(NAME ArborX_Test_Clustering COMMAND ArborX_Test_Clustering.exe)
 
 # compare results with a dataset of 1000 points from mlpack
 configure_file(
@@ -204,7 +204,7 @@ add_executable(ArborX_Test_DetailsClusteringHelpers.exe
 target_link_libraries(ArborX_Test_DetailsClusteringHelpers.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_DetailsClusteringHelpers.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Test_DetailsClusteringHelpers.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_Test_DetailsClusteringHelpers COMMAND ./ArborX_Test_DetailsClusteringHelpers.exe)
+add_test(NAME ArborX_Test_DetailsClusteringHelpers COMMAND ArborX_Test_DetailsClusteringHelpers.exe)
 
 add_executable(ArborX_Test_SpecializedTraversals.exe
   tstDetailsHalfTraversal.cpp
@@ -215,7 +215,7 @@ add_executable(ArborX_Test_SpecializedTraversals.exe
 target_link_libraries(ArborX_Test_SpecializedTraversals.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_SpecializedTraversals.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Test_SpecializedTraversals.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_Test_SpecializedTraversals COMMAND ./ArborX_Test_SpecializedTraversals.exe)
+add_test(NAME ArborX_Test_SpecializedTraversals COMMAND ArborX_Test_SpecializedTraversals.exe)
 
 if(ARBORX_ENABLE_MPI)
   add_executable(ArborX_Test_DistributedTree.exe tstDistributedTree.cpp tstKokkosToolsDistributedAnnotations.cpp utf_main.cpp)
@@ -227,19 +227,19 @@ if(ARBORX_ENABLE_MPI)
     target_compile_definitions(ArborX_Test_DistributedTree.exe PRIVATE NANORANGE_NO_STD_FORWARD_DECLARATIONS)
   endif()
   target_include_directories(ArborX_Test_DistributedTree.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-  add_test(NAME ArborX_Test_DistributedTree COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} ./ArborX_Test_DistributedTree.exe ${MPIEXEC_POSTFLAGS})
+  add_test(NAME ArborX_Test_DistributedTree COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} $<TARGET_FILE:ArborX_Test_DistributedTree.exe> ${MPIEXEC_POSTFLAGS})
 
   add_executable(ArborX_Test_DetailsDistributedTreeImpl.exe tstDetailsDistributedTreeImpl.cpp utf_main.cpp)
   target_link_libraries(ArborX_Test_DetailsDistributedTreeImpl.exe PRIVATE ArborX Boost::unit_test_framework)
   target_compile_definitions(ArborX_Test_DetailsDistributedTreeImpl.exe PRIVATE BOOST_TEST_DYN_LINK ARBORX_MPI_UNIT_TEST)
   target_include_directories(ArborX_Test_DetailsDistributedTreeImpl.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-  add_test(NAME ArborX_Test_DetailsDistributedTreeImpl COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} ./ArborX_Test_DetailsDistributedTreeImpl.exe ${MPIEXEC_POSTFLAGS})
+  add_test(NAME ArborX_Test_DetailsDistributedTreeImpl COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} $<TARGET_FILE:ArborX_Test_DetailsDistributedTreeImpl.exe> ${MPIEXEC_POSTFLAGS})
 endif()
 
 add_executable(ArborX_Test_BoostAdapters.exe tstBoostGeometryAdapters.cpp tstBoostRangeAdapters.cpp utf_main.cpp)
 target_link_libraries(ArborX_Test_BoostAdapters.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_BoostAdapters.exe PRIVATE BOOST_TEST_DYN_LINK)
-add_test(NAME ArborX_Test_BoostAdapters COMMAND ./ArborX_Test_BoostAdapters.exe)
+add_test(NAME ArborX_Test_BoostAdapters COMMAND ArborX_Test_BoostAdapters.exe)
 
 if(ARBORX_ENABLE_HEADER_SELF_CONTAINMENT_TESTS)
   add_subdirectory(headers_self_contained)
