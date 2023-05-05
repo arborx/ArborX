@@ -92,26 +92,21 @@ inline void initializeSingleLeafNode(ExecutionSpace const &space,
       });
 }
 
-template <typename Primitives, typename MemorySpace, typename LeafNodes,
-          typename InternalNodes, typename LinearOrderingValueType>
+template <typename Primitives, typename PermutationIndices,
+          typename LinearOrdering, typename LeafNodes, typename InternalNodes>
 class GenerateHierarchy
 {
   static constexpr int UNTOUCHED_NODE = -1;
 
-  using InternalNode = typename InternalNodes::value_type;
+  using MemorySpace = typename LeafNodes::memory_space;
+  using LinearOrderingValueType = typename LinearOrdering::non_const_value_type;
 
 public:
-  template <typename ExecutionSpace,
-            typename... PermutationIndicesViewProperties,
-            typename... LinearOrderingViewProperties>
-  GenerateHierarchy(
-      ExecutionSpace const &space, Primitives const &primitives,
-      Kokkos::View<unsigned int const *, PermutationIndicesViewProperties...>
-          permutation_indices,
-      Kokkos::View<LinearOrderingValueType const *,
-                   LinearOrderingViewProperties...>
-          sorted_morton_codes,
-      LeafNodes leaf_nodes, InternalNodes internal_nodes)
+  template <typename ExecutionSpace>
+  GenerateHierarchy(ExecutionSpace const &space, Primitives const &primitives,
+                    PermutationIndices const &permutation_indices,
+                    LinearOrdering const &sorted_morton_codes,
+                    LeafNodes leaf_nodes, InternalNodes internal_nodes)
       : _primitives(primitives)
       , _permutation_indices(permutation_indices)
       , _sorted_morton_codes(sorted_morton_codes)
@@ -325,9 +320,8 @@ public:
 
 private:
   Primitives _primitives;
-  Kokkos::View<unsigned int const *, MemorySpace> _permutation_indices;
-  Kokkos::View<LinearOrderingValueType const *, MemorySpace>
-      _sorted_morton_codes;
+  PermutationIndices _permutation_indices;
+  LinearOrdering _sorted_morton_codes;
   LeafNodes _leaf_nodes;
   InternalNodes _internal_nodes;
   Kokkos::View<int *, MemorySpace> _ranges;
@@ -352,10 +346,7 @@ void generateHierarchy(
   using ConstLinearOrdering = Kokkos::View<LinearOrderingValueType const *,
                                            LinearOrderingViewProperties...>;
 
-  using MemorySpace = typename decltype(internal_nodes)::memory_space;
-
-  GenerateHierarchy<Primitives, MemorySpace, LeafNodes, InternalNodes,
-                    LinearOrderingValueType>(
+  GenerateHierarchy(
       space, primitives, ConstPermutationIndices(permutation_indices),
       ConstLinearOrdering(sorted_morton_codes), leaf_nodes, internal_nodes);
 }
