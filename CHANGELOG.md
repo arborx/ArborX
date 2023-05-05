@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.4](https://github.com/arborx/arborx/tree/v1.4) (2023-05-05)
+
+[Full Changelog](https://github.com/arborx/arborx/compare/v1.3...v1.4)
+
+**New features:**
+- Add HDBSCAN (EXPERIMENTAL) [\#777](https://github.com/arborx/ArborX/pull/777), [\#783](https://github.com/arborx/ArborX/pull/783), [\#845](https://github.com/arborx/ArborX/pull/845)
+
+**Build changes:**
+- Require Kokkos 3.7.01 [\#834](https://github.com/arborx/ArborX/pull/834), [\#749](https://github.com/arborx/ArborX/pull/749)
+- Require Google Benchmark 1.5.4 when building benchmarks [\#799](https://github.com/arborx/ArborX/pull/799)
+
+**Enhancements:**
+- Add a faster implementation of the union-find for Serial [\#767](https://github.com/arborx/ArborX/pull/767), [\#780](https://github.com/arborx/ArborX/pull/780)
+- Annotate fences [\#805](https://github.com/arborx/ArborX/pull/805)
+- Improve performance of FDBSCAN [\#810](https://github.com/arborx/ArborX/pull/810)
+- Add new facility to find "half" or "full" neighbor lists (EXPERIMENTAL) [\#809](https://github.com/arborx/ArborX/pull/809), [\#812](https://github.com/arborx/ArborX/pull/812)
+- Introduce `ArborX::PairIndexRank` [\#819](https://github.com/arborx/ArborX/pull/819)
+- Reduce memory consumption when sending data in `DistributedTree` [\#829](https://github.com/arborx/ArborX/pull/829)
+- Avoid extra copy when sending across network in `sendAcrossNetwork` [\#830](https://github.com/arborx/ArborX/pull/830)
+- Deprecate `ARBORX_USE_CUDA_AWARE_MPI` and replace it with `ARBORX_USE_GPU_AWARE_MPI` [\#828](https://github.com/arborx/ArborX/pull/828)
+- Allow 7D data [\#853](https://github.com/arborx/ArborX/pull/853), [\#854](https://github.com/arborx/ArborX/pull/854)
+
+**Backward incompatible changes:**
+- Remove deprecated queryDispatch calls in the distributed tree [\#793](https://github.com/arborx/ArborX/pull/793)
+- Remove volatile overloads in `ArborX::Box` and `ArborX::Point` [\#838](https://github.com/arborx/ArborX/pull/838)
+
+**Fixed bugs:**
+- Fix a bug when using distributed tree with rays [\#786](https://github.com/arborx/ArborX/pull/786)
+- Fix undefined behavior when parsing boolean options in DBSCAN benchmark [\#804](https://github.com/arborx/ArborX/pull/804)
+- Fix compilation for CUDA 11.0-11.3 [\#850](https://github.com/arborx/ArborX/pull/850)
+
 ## [1.3](https://github.com/arborx/arborx/tree/v1.3) (2022-10-18)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v1.2...v1.3)
