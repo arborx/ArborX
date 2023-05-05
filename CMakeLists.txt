@@ -58,7 +58,7 @@ endif()
 cmake_dependent_option(ARBORX_ENABLE_CUDA_AWARE_MPI
                        "Allow using device data in MPI communication"
                        OFF "ARBORX_ENABLE_MPI" OFF)
-if(ARBORX_USE_CUDA_AWARE_MPI)                     
+if(ARBORX_USE_CUDA_AWARE_MPI)
   set(ARBORX_ENABLE_GPU_AWARE_MPI ON)
     message(DEPRECATION "ARBORX_USE_CUDA_AWARE_MPI is deprecated, use ARBORX_ENABLE_GPU_AWARE_MPI instead")
 endif()
@@ -67,7 +67,6 @@ cmake_dependent_option(ARBORX_ENABLE_GPU_AWARE_MPI
                        "Allow using device data in MPI communication"
                        OFF "ARBORX_ENABLE_MPI" OFF)
 
-                     
 target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/details>
@@ -90,7 +89,7 @@ install(EXPORT ArborXTargets
   DESTINATION lib/cmake/ArborX
 )
 
-set(ARBORX_VERSION_STRING "1.4 (dev)")
+set(ARBORX_VERSION_STRING "1.5 (dev)")
 
 # Make sure that the git hash in ArborX_Version.hpp is considered to be always
 # out of date, and thus is updated every recompile.
