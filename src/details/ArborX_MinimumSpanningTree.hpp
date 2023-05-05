@@ -23,6 +23,9 @@
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_LinearBVH.hpp>
 
+#if KOKKOS_VERSION >= 40100
+#include <Kokkos_BitManipulation.hpp>
+#endif
 #include <Kokkos_Core.hpp>
 
 namespace ArborX::Details
@@ -624,7 +627,12 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
         // Comparison of weights as ints is the same as their comparison as
         // floats as long as they are positive and are not NaNs or inf
         static_assert(sizeof(int) == sizeof(float));
-        keys(e) = (key << shift) + reinterpret_cast<int const &>(edge.weight);
+        keys(e) = (key << shift) +
+#if KOKKOS_VERSION >= 40100
+                  Kokkos::bit_cast<int>(edge.weight);
+#else
+                  reinterpret_cast<int const &>(edge.weight);
+#endif
       });
 
   auto permute = sortObjects(space, keys);
