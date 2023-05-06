@@ -458,8 +458,7 @@ struct CallbackWithDistance
           "compute_reverse_permutation",
           Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
           ARBORX_CLASS_LAMBDA(int const i) {
-            _rev_permute(HappyTreeFriends::getLeafPermutationIndex(_tree, i)) =
-                i;
+            _rev_permute(HappyTreeFriends::getValue(_tree, i).index) = i;
           });
     }
   }

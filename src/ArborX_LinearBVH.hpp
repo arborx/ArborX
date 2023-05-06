@@ -85,7 +85,8 @@ public:
 private:
   friend struct Details::HappyTreeFriends;
 
-  using leaf_node_type = Details::LeafNode<bounding_volume_type>;
+  using value_type = Details::PairIndexVolume<bounding_volume_type>;
+  using leaf_node_type = Details::LeafNode<value_type>;
   using internal_node_type = Details::InternalNode<bounding_volume_type>;
 
   KOKKOS_FUNCTION
@@ -98,7 +99,7 @@ private:
     assert((n == 1 || Details::HappyTreeFriends::getRoot(*this) == n) &&
            "workaround below assumes root is stored as first element");
     return (n > 1 ? &_internal_nodes.data()->bounding_volume
-                  : &_leaf_nodes.data()->bounding_volume);
+                  : &_leaf_nodes.data()->value.bounding_volume);
   }
 
   size_type _size{0};

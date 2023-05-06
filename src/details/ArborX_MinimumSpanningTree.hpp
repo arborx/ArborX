@@ -190,8 +190,7 @@ struct FindComponentNearestNeighbors
     auto const predicate = [label_i = component, &labels = _labels](int j) {
       return label_i != labels(j);
     };
-    auto const leaf_permutation_i =
-        HappyTreeFriends::getLeafPermutationIndex(_bvh, i);
+    auto const leaf_permutation_i = HappyTreeFriends::getValue(_bvh, i).index;
 
     DirectedEdge current_best{};
 
@@ -245,10 +244,10 @@ struct FindComponentNearestNeighbors
         {
           if (HappyTreeFriends::isLeaf(_bvh, left_child))
           {
-            float const candidate_dist = _metric(
-                leaf_permutation_i,
-                HappyTreeFriends::getLeafPermutationIndex(_bvh, left_child),
-                distance_left);
+            float const candidate_dist =
+                _metric(leaf_permutation_i,
+                        HappyTreeFriends::getValue(_bvh, left_child).index,
+                        distance_left);
             DirectedEdge const candidate_edge{i, left_child, candidate_dist};
             if (candidate_edge < current_best)
             {
@@ -270,10 +269,10 @@ struct FindComponentNearestNeighbors
         {
           if (HappyTreeFriends::isLeaf(_bvh, right_child))
           {
-            float const candidate_dist = _metric(
-                leaf_permutation_i,
-                HappyTreeFriends::getLeafPermutationIndex(_bvh, right_child),
-                distance_right);
+            float const candidate_dist =
+                _metric(leaf_permutation_i,
+                        HappyTreeFriends::getValue(_bvh, right_child).index,
+                        distance_right);
             DirectedEdge const candidate_edge{i, right_child, candidate_dist};
             if (candidate_edge < current_best)
             {
@@ -493,9 +492,9 @@ void finalizeEdges(ExecutionSpace const &space, BVH const &bvh,
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n - 1),
       KOKKOS_LAMBDA(int i) {
         edges(i).source =
-            HappyTreeFriends::getLeafPermutationIndex(bvh, edges(i).source);
+            HappyTreeFriends::getValue(bvh, edges(i).source).index;
         edges(i).target =
-            HappyTreeFriends::getLeafPermutationIndex(bvh, edges(i).target);
+            HappyTreeFriends::getValue(bvh, edges(i).target).index;
       });
 }
 
@@ -552,8 +551,8 @@ void assignVertexParents(ExecutionSpace const &space, Labels const &labels,
         auto const &edge = out_edges(e);
 
         int i = labels(edge.source());
-        parents(HappyTreeFriends::getLeafPermutationIndex(bvh, i) +
-                vertices_offset) = edges_mapping(i);
+        parents(HappyTreeFriends::getValue(bvh, i).index + vertices_offset) =
+            edges_mapping(i);
       });
 }
 
@@ -681,8 +680,8 @@ void resetSharedRadii(ExecutionSpace const &space, BVH const &bvh,
         if (label_i != label_j)
         {
           auto const r =
-              metric(HappyTreeFriends::getLeafPermutationIndex(bvh, i),
-                     HappyTreeFriends::getLeafPermutationIndex(bvh, j),
+              metric(HappyTreeFriends::getValue(bvh, i).index,
+                     HappyTreeFriends::getValue(bvh, j).index,
                      distance(HappyTreeFriends::getLeafBoundingVolume(bvh, i),
                               HappyTreeFriends::getLeafBoundingVolume(bvh, j)));
           Kokkos::atomic_min(&radii(label_i), r);

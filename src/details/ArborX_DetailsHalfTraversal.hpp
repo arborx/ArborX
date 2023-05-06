@@ -54,8 +54,7 @@ struct HalfTraversal
   {
     auto const predicate =
         _get_predicate(HappyTreeFriends::getLeafBoundingVolume(_bvh, i));
-    auto const leaf_permutation_i =
-        HappyTreeFriends::getLeafPermutationIndex(_bvh, i);
+    auto const leaf_permutation_i = HappyTreeFriends::getValue(_bvh, i).index;
 
     int node = HappyTreeFriends::getRope(_bvh, i);
     while (node != ROPE_SENTINEL)
@@ -70,7 +69,7 @@ struct HalfTraversal
         if (is_leaf)
         {
           _callback(leaf_permutation_i,
-                    HappyTreeFriends::getLeafPermutationIndex(_bvh, node));
+                    HappyTreeFriends::getValue(_bvh, node).index);
           node = HappyTreeFriends::getRope(_bvh, node);
         }
         else

@@ -70,15 +70,15 @@ struct HappyTreeFriends
   {
     static_assert(
         std::is_same_v<decltype(bvh._internal_nodes(0).bounding_volume),
-                       decltype(bvh._leaf_nodes(0).bounding_volume)>);
-    return bvh._leaf_nodes(i).bounding_volume;
+                       decltype(bvh._leaf_nodes(0).value.bounding_volume)>);
+    return bvh._leaf_nodes(i).value.bounding_volume;
   }
 
   template <class BVH>
-  static KOKKOS_FUNCTION auto getLeafPermutationIndex(BVH const &bvh, int i)
+  static KOKKOS_FUNCTION auto const &getValue(BVH const &bvh, int i)
   {
     assert(i >= 0 && i < (int)bvh.size());
-    return bvh._leaf_nodes(i).permutation_index;
+    return bvh._leaf_nodes(i).value;
   }
 
   template <class BVH>

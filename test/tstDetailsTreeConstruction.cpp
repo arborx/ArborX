@@ -229,7 +229,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   // clang-format on
   BOOST_TEST_MESSAGE("ref = " << ref.str());
 
-  using LeafNode = ArborX::Details::LeafNode<Test::FakeBoundingVolume>;
+  using LeafNode = ArborX::Details::LeafNode<
+      ArborX::Details::PairIndexVolume<Test::FakeBoundingVolume>>;
   using InternalNode = ArborX::Details::InternalNode<Test::FakeBoundingVolume>;
 
   Kokkos::View<LeafNode *, DeviceType> leaf_nodes("Testing::leaf_nodes", 0);
