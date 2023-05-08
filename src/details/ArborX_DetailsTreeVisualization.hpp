@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -27,6 +27,13 @@ namespace Details
 std::ostream &operator<<(std::ostream &os, Point const &p)
 {
   os << "(" << p[0] << "," << p[1] << ")";
+  return os;
+}
+std::ostream &operator<<(std::ostream &os, Box const &box)
+{
+  auto const min_corner = box.minCorner();
+  auto const max_corner = box.maxCorner();
+  os << min_corner << " rectangle " << max_corner;
   return os;
 }
 
@@ -120,12 +127,14 @@ struct TreeVisualization
     {
       auto const node_label = getNodeLabel(tree, node);
       auto const node_attributes = getNodeAttributes(tree, node);
-      auto const bounding_volume =
-          HappyTreeFriends::getBoundingVolume(tree, node);
-      auto const min_corner = bounding_volume.minCorner();
-      auto const max_corner = bounding_volume.maxCorner();
-      _os << R"(\draw)" << node_attributes << " " << min_corner << " rectangle "
-          << max_corner << " node {" << node_label << "};\n";
+      _os << R"(\draw)" << node_attributes << " ";
+      if (HappyTreeFriends::isLeaf(tree, node))
+        _os << HappyTreeFriends::getBoundingVolume(
+            InternalNodeTag{}, tree,
+            HappyTreeFriends::internalIndex(tree, node));
+      else
+        _os << HappyTreeFriends::getBoundingVolume(LeafNodeTag{}, tree, node);
+      _os << " node {" << node_label << "};\n";
     }
   };
 

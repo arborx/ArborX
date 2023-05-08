@@ -52,30 +52,38 @@ struct HalfTraversal
 
   KOKKOS_FUNCTION void operator()(int i) const
   {
-    auto const predicate =
-        _get_predicate(HappyTreeFriends::getBoundingVolume(_bvh, i));
+    auto const predicate = _get_predicate(
+        HappyTreeFriends::getBoundingVolume(LeafNodeTag{}, _bvh, i));
     auto const leaf_permutation_i =
         HappyTreeFriends::getLeafPermutationIndex(_bvh, i);
 
-    int node = HappyTreeFriends::getRope(_bvh, i);
+    int node = HappyTreeFriends::getRope(LeafNodeTag{}, _bvh, i);
     while (node != ROPE_SENTINEL)
     {
-      if (predicate(HappyTreeFriends::getBoundingVolume(_bvh, node)))
+      auto const internal_node = HappyTreeFriends::internalIndex(_bvh, node);
+      bool const is_leaf = HappyTreeFriends::isLeaf(_bvh, node);
+
+      if (predicate((is_leaf ? HappyTreeFriends::getBoundingVolume(
+                                   LeafNodeTag{}, _bvh, node)
+                             : HappyTreeFriends::getBoundingVolume(
+                                   InternalNodeTag{}, _bvh, internal_node))))
       {
-        if (!HappyTreeFriends::isLeaf(_bvh, node))
-        {
-          node = HappyTreeFriends::getLeftChild(_bvh, node);
-        }
-        else
+        if (is_leaf)
         {
           _callback(leaf_permutation_i,
                     HappyTreeFriends::getLeafPermutationIndex(_bvh, node));
-          node = HappyTreeFriends::getRope(_bvh, node);
+          node = HappyTreeFriends::getRope(LeafNodeTag{}, _bvh, node);
+        }
+        else
+        {
+          node = HappyTreeFriends::getLeftChild(_bvh, node);
         }
       }
       else
       {
-        node = HappyTreeFriends::getRope(_bvh, node);
+        node = (is_leaf ? HappyTreeFriends::getRope(LeafNodeTag{}, _bvh, node)
+                        : HappyTreeFriends::getRope(InternalNodeTag{}, _bvh,
+                                                    internal_node));
       }
     }
   }

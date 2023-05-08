@@ -19,10 +19,13 @@
 #include <type_traits>
 #include <utility> // declval
 
-namespace ArborX
+namespace ArborX::Details
 {
-namespace Details
-{
+struct LeafNodeTag
+{};
+struct InternalNodeTag
+{};
+
 struct HappyTreeFriends
 {
   template <class BVH>
@@ -46,17 +49,23 @@ struct HappyTreeFriends
     return i - (int)bvh.size();
   }
 
-  template <class BVH>
+  template <class Tag, class BVH>
+  static KOKKOS_FUNCTION
 // FIXME_HIP See https://github.com/arborx/ArborX/issues/553
 #ifdef __HIP_DEVICE_COMPILE__
-  static KOKKOS_FUNCTION auto getBoundingVolume(BVH const &bvh, int i)
+      auto
 #else
-  static KOKKOS_FUNCTION auto const &getBoundingVolume(BVH const &bvh, int i)
+      auto const &
 #endif
+      getBoundingVolume(Tag, BVH const &bvh, int i)
   {
-    auto const internal_i = internalIndex(bvh, i);
-    return (internal_i >= 0 ? bvh._internal_nodes(internal_i).bounding_volume
-                            : bvh._leaf_nodes(i).bounding_volume);
+    static_assert(
+        std::is_same_v<decltype(bvh._internal_nodes(0).bounding_volume),
+                       decltype(bvh._leaf_nodes(0).bounding_volume)>);
+    if constexpr (std::is_same_v<Tag, InternalNodeTag>)
+      return bvh._internal_nodes(i).bounding_volume;
+    else
+      return bvh._leaf_nodes(i).bounding_volume;
   }
 
   template <class BVH>
@@ -77,18 +86,22 @@ struct HappyTreeFriends
   static KOKKOS_FUNCTION auto getRightChild(BVH const &bvh, int i)
   {
     assert(!isLeaf(bvh, i));
-    return getRope(bvh, getLeftChild(bvh, i));
+    auto left_child = getLeftChild(bvh, i);
+    bool const is_leaf = isLeaf(bvh, left_child);
+    return (is_leaf ? getRope(LeafNodeTag{}, bvh, left_child)
+                    : getRope(InternalNodeTag{}, bvh,
+                              internalIndex(bvh, left_child)));
   }
 
-  template <class BVH>
-  static KOKKOS_FUNCTION auto getRope(BVH const &bvh, int i)
+  template <class Tag, class BVH>
+  static KOKKOS_FUNCTION auto getRope(Tag, BVH const &bvh, int i)
   {
-    auto const internal_i = internalIndex(bvh, i);
-    return (internal_i >= 0 ? bvh._internal_nodes(internal_i).rope
-                            : bvh._leaf_nodes(i).rope);
+    if constexpr (std::is_same_v<Tag, InternalNodeTag>)
+      return bvh._internal_nodes(i).rope;
+    else
+      return bvh._leaf_nodes(i).rope;
   }
 };
-} // namespace Details
-} // namespace ArborX
+} // namespace ArborX::Details
 
 #endif
