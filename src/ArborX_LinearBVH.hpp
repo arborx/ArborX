@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -85,42 +85,25 @@ public:
 private:
   friend struct Details::HappyTreeFriends;
 
-  using node_type = Details::NodeWithLeftChildAndRope<bounding_volume_type>;
-
-  Kokkos::View<node_type *, MemorySpace> getInternalNodes()
-  {
-    assert(!empty());
-    return Kokkos::subview(_internal_and_leaf_nodes,
-                           std::make_pair(size_type{0}, size() - 1));
-  }
-
-  Kokkos::View<node_type *, MemorySpace> getLeafNodes()
-  {
-    assert(!empty());
-    return Kokkos::subview(_internal_and_leaf_nodes,
-                           std::make_pair(size() - 1, 2 * size() - 1));
-  }
-  Kokkos::View<node_type const *, MemorySpace> getLeafNodes() const
-  {
-    assert(!empty());
-    return Kokkos::subview(_internal_and_leaf_nodes,
-                           std::make_pair(size() - 1, 2 * size() - 1));
-  }
+  using leaf_node_type = Details::LeafNode<bounding_volume_type>;
+  using internal_node_type = Details::InternalNode<bounding_volume_type>;
 
   KOKKOS_FUNCTION
   bounding_volume_type const *getRootBoundingVolumePtr() const
   {
     // Need address of the root node's bounding box to copy it back on the host,
-    // but can't access _internal_and_leaf_nodes elements from the constructor
-    // since the data is on the device.
+    // but can't access node elements from the constructor since the data is on
+    // the device.
     assert(Details::HappyTreeFriends::getRoot(*this) == 0 &&
            "workaround below assumes root is stored as first element");
-    return &_internal_and_leaf_nodes.data()->bounding_volume;
+    return (size() > 1 ? &_internal_nodes.data()->bounding_volume
+                       : &_leaf_nodes.data()->bounding_volume);
   }
 
   size_type _size{0};
   bounding_volume_type _bounds;
-  Kokkos::View<node_type *, MemorySpace> _internal_and_leaf_nodes;
+  Kokkos::View<internal_node_type *, MemorySpace> _internal_nodes;
+  Kokkos::View<leaf_node_type *, MemorySpace> _leaf_nodes;
 };
 
 template <typename MemorySpace>
@@ -137,10 +120,12 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
                                  Primitives const &primitives,
                                  SpaceFillingCurve const &curve)
     : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
-    , _internal_and_leaf_nodes(
-          Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                             "ArborX::BVH::internal_and_leaf_nodes"),
-          _size > 0 ? 2 * _size - 1 : 0)
+    , _internal_nodes(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                                         "ArborX::BVH::internal_nodes"),
+                      _size > 1 ? _size - 1 : 0)
+    , _leaf_nodes(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                                     "ArborX::BVH::leaf_nodes"),
+                  _size)
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
@@ -172,8 +157,8 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
 
   if (size() == 1)
   {
-    Details::TreeConstruction::initializeSingleLeafNode(
-        space, primitives, _internal_and_leaf_nodes);
+    Details::TreeConstruction::initializeSingleLeafNode(space, primitives,
+                                                        _leaf_nodes);
     Kokkos::deep_copy(
         space,
         Kokkos::View<BoundingVolume, Kokkos::HostSpace,
@@ -210,7 +195,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   // generate bounding volume hierarchy
   Details::TreeConstruction::generateHierarchy(
       space, primitives, permutation_indices, linear_ordering_indices,
-      getLeafNodes(), getInternalNodes());
+      _leaf_nodes, _internal_nodes);
 
   Kokkos::deep_copy(
       space,
