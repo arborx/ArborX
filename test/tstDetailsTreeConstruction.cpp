@@ -241,8 +241,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   generateHierarchy(primitives, sorted_morton_codes, leaf_nodes,
                     internal_nodes);
 
+  int const root = 0;
+
   std::ostringstream sol;
-  traverse(leaf_nodes, internal_nodes, 0, sol);
+  traverse(leaf_nodes, internal_nodes, root, sol);
 
   BOOST_TEST_MESSAGE("sol(node_with_left_child_and_rope) = " << sol.str());
 
