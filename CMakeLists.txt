@@ -3,7 +3,8 @@ project(ArborX CXX)
 
 find_package(Kokkos 3.7.01 REQUIRED CONFIG)
 message(STATUS "Found Kokkos: ${Kokkos_DIR} (version \"${Kokkos_VERSION}\")")
-if(Kokkos_ENABLE_CUDA)
+if(Kokkos_ENABLE_CUDA AND Kokkos_VERSION VERSION_LESS 4.1)
+  # CUDA_LAMBDA is deprecated starting 4.1
   kokkos_check(OPTIONS CUDA_LAMBDA)
 endif()
 
