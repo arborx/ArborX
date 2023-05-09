@@ -49,7 +49,10 @@ struct CompressedStorage
               p->values.data() + p->offsets[i + 1]};
     }
   };
-  ConstForwardIterator cbegin() const { return {0, this}; }
+  ConstForwardIterator cbegin() const
+  {
+    return {static_cast<index_type>(0), this};
+  }
   ConstForwardIterator cend() const
   {
     return {static_cast<index_type>(offsets.size()), this};
