@@ -40,7 +40,7 @@ struct CompressedStorage
       ConstForwardIterator old{*this};
       ++*this;
       return old;
-    };
+    }
     bool operator==(ConstForwardIterator const &o) { return i == o.i; }
     bool operator!=(ConstForwardIterator const &o) { return !(*this == o); }
     value_type operator*()
