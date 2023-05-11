@@ -412,25 +412,30 @@ pipeline {
                         sh 'rm -rf build && mkdir -p build'
                         dir('build') {
                             sh '''
+                                . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
                                 cmake \
                                     -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
                                     -D CMAKE_BUILD_TYPE=Release \
-                                    -D CMAKE_CXX_COMPILER=clang++ \
+                                    -D CMAKE_CXX_COMPILER=/opt/intel/oneapi/compiler/2023.0.0/linux/bin-llvm/clang++ \
                                     -D CMAKE_CXX_EXTENSIONS=OFF \
-                                    -D CMAKE_CXX_FLAGS="-fsycl-device-code-split=per_kernel -Wpedantic -Wall -Wextra -Wno-unknown-cuda-version" \
-                                    -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR;$ONE_DPL_DIR" \
+                                    -D CMAKE_CXX_FLAGS="-fp-model=precise -fsycl-device-code-split=per_kernel -Wpedantic -Wall -Wextra -Wno-unknown-cuda-version" \
+                                    -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
                                     -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
                                     -D MPIEXEC_MAX_NUMPROCS=4 \
                                     -D ARBORX_ENABLE_TESTS=ON \
                                     -D ARBORX_ENABLE_EXAMPLES=ON \
                                     -D ARBORX_ENABLE_BENCHMARKS=ON \
-                                    -D ARBORX_ENABLE_ONEDPL=ON \
-                                    -D ONEDPL_PAR_BACKEND=serial \
                                 ..
                             '''
-                            sh 'make -j8 VERBOSE=1'
-                            sh 'ctest $CTEST_OPTIONS'
+                            sh '''
+                                . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
+                                make -j8 VERBOSE=1
+                            '''
+                            sh '''
+                                . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
+                                ctest $CTEST_OPTIONS
+                            '''
                         }
                     }
                     post {
@@ -444,17 +449,23 @@ pipeline {
                             dir('test_install') {
                                 sh 'cp -r ../examples .'
                                 sh '''
+                                    . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
                                     cmake \
                                         -D CMAKE_BUILD_TYPE=Release \
-                                        -D CMAKE_CXX_COMPILER=clang++ \
+                                        -D CMAKE_CXX_COMPILER=/opt/intel/oneapi/compiler/2023.0.0/linux/bin-llvm/clang++ \
                                         -D CMAKE_CXX_EXTENSIONS=OFF \
                                         -D CMAKE_CXX_FLAGS="-Wno-unknown-cuda-version" \
-                                        -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR;$ONE_DPL_DIR" \
-                                        -D ONEDPL_PAR_BACKEND=serial \
+                                        -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
                                     examples \
                                 '''
-                                sh 'make VERBOSE=1'
-                                sh 'make test'
+                                sh '''
+                                    . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
+                                    make VERBOSE=1
+                                '''
+                                sh '''
+                                    . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
+                                    make test
+                                '''
                             }
                         }
                     }
