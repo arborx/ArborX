@@ -121,12 +121,14 @@ public:
 
     Kokkos::parallel_for(
         "ArborX::TreeConstruction::generate_hierarchy",
-        Kokkos::RangePolicy<ExecutionSpace>(space, _num_internal_nodes,
-                                            2 * _num_internal_nodes + 1),
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, leaf_nodes.extent(0)),
         *this);
   }
 
   using DeltaValueType = std::make_signed_t<LinearOrderingValueType>;
+
+  KOKKOS_FUNCTION
+  auto internalIndex(int const i) const { return i + _num_internal_nodes + 1; }
 
   KOKKOS_FUNCTION
   DeltaValueType delta(int const i) const
@@ -170,8 +172,6 @@ public:
     // greater than anything here, we downshift by 1.
   }
 
-  KOKKOS_FUNCTION int leafIndex(int i) const { return i - _num_internal_nodes; }
-
   template <typename Node>
   KOKKOS_FUNCTION void setRope(Node &node, int range_right,
                                DeltaValueType delta_right) const
@@ -183,9 +183,9 @@ public:
       // child of the first internal node that we are in the left subtree of.
       // The determination of whether that node is internal or leaf requires an
       // additional delta() evaluation.
-      rope = range_right + 1;
-      if (delta_right < delta(range_right + 1))
-        rope += _num_internal_nodes;
+      rope = (delta_right < delta(range_right + 1)
+                  ? range_right + 1
+                  : internalIndex(range_right + 1));
     }
     else
     {
@@ -199,10 +199,8 @@ public:
 
   KOKKOS_FUNCTION void operator()(int i) const
   {
-    auto const leaf_nodes_shift = _num_internal_nodes;
-
     // Index in the original order primitives were given in.
-    auto const original_index = _permutation_indices(leafIndex(i));
+    auto const original_index = _permutation_indices(i);
 
     using BoundingVolume =
         typename InternalNodes::value_type::bounding_volume_type;
@@ -211,12 +209,12 @@ public:
     expand(bounding_volume, Access::get(_primitives, original_index));
 
     // Initialize leaf node
-    auto &leaf_node = _leaf_nodes(leafIndex(i));
+    auto &leaf_node = _leaf_nodes(i);
     leaf_node = makeLeafNode(original_index, bounding_volume);
 
     // For a leaf node, the range is just one index
-    int range_left = i - leaf_nodes_shift;
-    int range_right = range_left;
+    int range_left = i;
+    int range_right = i;
 
     auto delta_left = delta(range_left - 1);
     auto delta_right = delta(range_right);
@@ -225,13 +223,13 @@ public:
 
     // Walk toward the root and do process it even though technically its
     // bounding box has already been computed (bounding box of the scene)
+    auto const root = internalIndex(0);
     do
     {
       // Determine whether this node is left or right child of its parent
-      bool const is_left_child = delta_right < delta_left;
+      bool const is_left_child = (delta_right < delta_left);
 
       int left_child;
-      int right_child;
       if (is_left_child)
       {
         // The main benefit of the Apetrei index (which is also called a split
@@ -261,7 +259,7 @@ public:
         // is a leaf node depends on the position of the split (which is
         // apetrei index) to the range boundary.
         left_child = i;
-        right_child = apetrei_parent + 1;
+        int right_child = apetrei_parent + 1;
         bool const right_child_is_leaf = (right_child == range_right);
 
         delta_right = delta(range_right);
@@ -275,8 +273,6 @@ public:
                right_child_is_leaf
                    ? _leaf_nodes(right_child).bounding_volume
                    : _internal_nodes(right_child).bounding_volume);
-        if (right_child == range_right)
-          right_child += leaf_nodes_shift;
       }
       else
       {
@@ -291,8 +287,7 @@ public:
           break;
 
         left_child = apetrei_parent;
-        right_child = i;
-        bool const left_child_is_leaf = left_child == range_left;
+        bool const left_child_is_leaf = (left_child == range_left);
 
         delta_left = delta(range_left - 1);
 
@@ -301,8 +296,9 @@ public:
                left_child_is_leaf
                    ? _leaf_nodes(left_child).bounding_volume
                    : _internal_nodes(left_child).bounding_volume);
-        if (left_child == range_left)
-          left_child += leaf_nodes_shift;
+
+        if (!left_child_is_leaf)
+          left_child = internalIndex(left_child);
       }
 
       // Having the full range for the parent, we can compute the Karras index.
@@ -314,8 +310,8 @@ public:
       setRope(parent_node, range_right, delta_right);
       parent_node.bounding_volume = bounding_volume;
 
-      i = karras_parent;
-    } while (i != 0);
+      i = internalIndex(karras_parent);
+    } while (i != root);
   }
 
 private:

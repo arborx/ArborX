@@ -91,19 +91,20 @@ private:
   KOKKOS_FUNCTION
   bounding_volume_type const *getRootBoundingVolumePtr() const
   {
+    int const n = size();
     // Need address of the root node's bounding box to copy it back on the host,
     // but can't access node elements from the constructor since the data is on
     // the device.
-    assert(Details::HappyTreeFriends::getRoot(*this) == 0 &&
+    assert(Details::HappyTreeFriends::getRoot(*this) == (n > 1 ? n : 0) &&
            "workaround below assumes root is stored as first element");
-    return (size() > 1 ? &_internal_nodes.data()->bounding_volume
-                       : &_leaf_nodes.data()->bounding_volume);
+    return (n > 1 ? &_internal_nodes.data()->bounding_volume
+                  : &_leaf_nodes.data()->bounding_volume);
   }
 
   size_type _size{0};
   bounding_volume_type _bounds;
-  Kokkos::View<internal_node_type *, MemorySpace> _internal_nodes;
   Kokkos::View<leaf_node_type *, MemorySpace> _leaf_nodes;
+  Kokkos::View<internal_node_type *, MemorySpace> _internal_nodes;
 };
 
 template <typename MemorySpace>
@@ -120,12 +121,12 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
                                  Primitives const &primitives,
                                  SpaceFillingCurve const &curve)
     : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
-    , _internal_nodes(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                                         "ArborX::BVH::internal_nodes"),
-                      _size > 1 ? _size - 1 : 0)
     , _leaf_nodes(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                      "ArborX::BVH::leaf_nodes"),
                   _size)
+    , _internal_nodes(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                                         "ArborX::BVH::internal_nodes"),
+                      _size > 1 ? _size - 1 : 0)
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);

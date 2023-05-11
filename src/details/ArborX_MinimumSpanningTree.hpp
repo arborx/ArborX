@@ -150,24 +150,22 @@ struct FindComponentNearestNeighbors
     {
       Kokkos::parallel_for(
           "ArborX::MST::find_component_nearest_neighbors_with_lower_bounds",
-          Kokkos::RangePolicy<ExecutionSpace, WithLowerBounds>(space, n - 1,
-                                                               2 * n - 1),
+          Kokkos::RangePolicy<ExecutionSpace, WithLowerBounds>(space, 0, n),
           *this);
     }
     else
 #endif
     {
-      Kokkos::parallel_for(
-          "ArborX::MST::find_component_nearest_neighbors",
-          Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 1), *this);
+      Kokkos::parallel_for("ArborX::MST::find_component_nearest_neighbors",
+                           Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+                           *this);
     }
   }
 
   KOKKOS_FUNCTION void operator()(WithLowerBounds, int i) const
   {
-    auto const n = _bvh.size();
     auto const component = _labels(i);
-    if (_lower_bounds(i - n + 1) <= _radii(component - n + 1))
+    if (_lower_bounds(i) <= _radii(component))
     {
       this->operator()(i);
     }
@@ -194,11 +192,9 @@ struct FindComponentNearestNeighbors
 
     DirectedEdge current_best{};
 
-    auto const n = _bvh.size();
-
     // Use a reference for shared radii, and a copy otherwise.
     std::conditional_t<UseSharedRadii, float &, float> radius =
-        _radii(component - n + 1);
+        _radii(component);
 
     constexpr int SENTINEL = -1;
     int stack[64];
@@ -328,13 +324,13 @@ struct FindComponentNearestNeighbors
     // This check is only here to reduce hammering the atomics for large
     // components. Otherwise, for a large number of points and a small number of
     // components it becomes extremely expensive.
-    auto &component_weight = _weights(component - n + 1);
+    auto &component_weight = _weights(component);
     if (current_best.weight < inf && current_best.weight <= component_weight)
     {
       if (Kokkos::atomic_min_fetch(&component_weight, current_best.weight) ==
           current_best.weight)
       {
-        _edges(i - n + 1) = current_best;
+        _edges(i) = current_best;
       }
     }
   }
@@ -360,12 +356,11 @@ void updateLowerBounds(ExecutionSpace const &space, Labels const &labels,
   auto const n = lower_bounds.extent(0);
   Kokkos::parallel_for(
       "ArborX::MST::update_lower_bounds",
-      Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 1),
-      KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
         using KokkosExt::max;
         auto component = labels(i);
-        auto const &edge = component_out_edges(component - n + 1);
-        lower_bounds(i - n + 1) = max(lower_bounds(i - n + 1), edge.weight);
+        auto const &edge = component_out_edges(component);
+        lower_bounds(i) = max(lower_bounds(i), edge.weight);
       });
 }
 
@@ -377,13 +372,12 @@ void retrieveEdges(ExecutionSpace const &space, Labels const &labels,
   auto const n = weights.extent(0);
   Kokkos::parallel_for(
       "ArborX::MST::reset_component_edges",
-      Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 1),
-      KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
         auto const component = labels(i);
         if (i != component)
           return;
-        auto const component_weight = weights(component - n + 1);
-        auto &component_edge = edges(component - n + 1);
+        auto const component_weight = weights(component);
+        auto &component_edge = edges(component);
         // replace stale values by neutral element for min reduction
         if (component_edge.weight != component_weight)
         {
@@ -393,14 +387,13 @@ void retrieveEdges(ExecutionSpace const &space, Labels const &labels,
       });
   Kokkos::parallel_for(
       "ArborX::MST::reduce_component_edges",
-      Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 1),
-      KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
         auto const component = labels(i);
-        auto const component_weight = weights(component - n + 1);
-        auto const &edge = edges(i - n + 1);
+        auto const component_weight = weights(component);
+        auto const &edge = edges(i);
         if (edge.weight == component_weight)
         {
-          auto &component_edge = edges(component - n + 1);
+          auto &component_edge = edges(component);
           Kokkos::atomic_min(&(component_edge.directed_edge),
                              edge.directed_edge);
         }
@@ -426,11 +419,8 @@ struct UpdateComponentsAndEdges
 
   KOKKOS_FUNCTION auto computeNextComponent(int component) const
   {
-    auto const n = _out_edges.extent(0);
-
-    int next_component = _labels(_out_edges(component - n + 1).target());
-    int next_next_component =
-        _labels(_out_edges(next_component - n + 1).target());
+    int next_component = _labels(_out_edges(component).target());
+    int next_next_component = _labels(_out_edges(next_component).target());
 
     if (next_next_component != component)
     {
@@ -466,9 +456,6 @@ struct UpdateComponentsAndEdges
     if (i != component || computeNextComponent(component) == component)
       return;
 
-    int const vertex_offset = _out_edges.extent_int(0) - 1;
-    i -= vertex_offset;
-
     // append new edge at the "end" of the array (akin to
     // std::vector::push_back)
     auto const edge = static_cast<WeightedEdge>(_out_edges(i));
@@ -486,11 +473,8 @@ struct UpdateComponentsAndEdges
     if (i != component || computeNextComponent(component) != component)
       return;
 
-    int const vertex_offset = _out_edges.extent_int(0) - 1;
-    i -= vertex_offset;
-
     auto const &edge = _out_edges(i);
-    _edge_mapping(i) = _edge_mapping(_labels(edge.target()) - vertex_offset);
+    _edge_mapping(i) = _edge_mapping(_labels(edge.target()));
   }
 };
 
@@ -532,8 +516,7 @@ void updateSidedParents(ExecutionSpace const &space, Labels const &labels,
         // are the same, so can take either
         int component = labels(edge.source);
 
-        int const vertex_offset = edges_mapping.extent_int(0);
-        int const alpha_edge_index = edges_mapping(component - vertex_offset);
+        int const alpha_edge_index = edges_mapping(component);
 
         auto const &alpha_edge = edges(alpha_edge_index);
 
@@ -567,7 +550,7 @@ void assignVertexParents(ExecutionSpace const &space, Labels const &labels,
 
         int i = labels(edge.source());
         parents(HappyTreeFriends::getLeafPermutationIndex(bvh, i) +
-                vertices_offset) = edges_mapping(i - vertices_offset);
+                vertices_offset) = edges_mapping(i);
       });
 }
 
@@ -687,7 +670,7 @@ void resetSharedRadii(ExecutionSpace const &space, BVH const &bvh,
   auto const n = bvh.size();
   Kokkos::parallel_for(
       "ArborX::MST::reset_shared_radii",
-      Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 2),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n - 1),
       KOKKOS_LAMBDA(int i) {
         int const j = i + 1;
         auto const label_i = labels(i);
@@ -699,8 +682,8 @@ void resetSharedRadii(ExecutionSpace const &space, BVH const &bvh,
                      HappyTreeFriends::getLeafPermutationIndex(bvh, j),
                      distance(HappyTreeFriends::getBoundingVolume(bvh, i),
                               HappyTreeFriends::getBoundingVolume(bvh, j)));
-          Kokkos::atomic_min(&radii(label_i - n + 1), r);
-          Kokkos::atomic_min(&radii(label_j - n + 1), r);
+          Kokkos::atomic_min(&radii(label_i), r);
+          Kokkos::atomic_min(&radii(label_j), r);
         }
       });
 }
@@ -783,8 +766,7 @@ private:
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::MST::labels"),
         2 * n - 1);
-    iota(space, Kokkos::subview(labels, std::make_pair(n - 1, 2 * n - 1)),
-         n - 1);
+    iota(space, Kokkos::subview(labels, std::make_pair((decltype(n))0, n)));
     Kokkos::Profiling::popRegion();
 
     Kokkos::View<DirectedEdge *, MemorySpace> component_out_edges(
@@ -885,8 +867,8 @@ private:
       // edge to the list of MST edges.
       Kokkos::parallel_for(
           "ArborX::MST::update_unidirectional_edges",
-          Kokkos::RangePolicy<ExecutionSpace, UnidirectionalEdgesTag>(
-              space, n - 1, 2 * n - 1),
+          Kokkos::RangePolicy<ExecutionSpace, UnidirectionalEdgesTag>(space, 0,
+                                                                      n),
           f);
 
       int num_edges_host;
@@ -897,8 +879,8 @@ private:
       {
         Kokkos::parallel_for(
             "ArborX::MST::update_bidirectional_edges",
-            Kokkos::RangePolicy<ExecutionSpace, BidirectionalEdgesTag>(
-                space, n - 1, 2 * n - 1),
+            Kokkos::RangePolicy<ExecutionSpace, BidirectionalEdgesTag>(space, 0,
+                                                                       n),
             f);
 
         if (iterations > 1)
@@ -915,10 +897,9 @@ private:
 
       // For every component C and a found shortest edge `(u, w)`, merge C
       // with the component that w belongs to by updating the labels
-      Kokkos::parallel_for("ArborX::MST::update_labels",
-                           Kokkos::RangePolicy<ExecutionSpace, LabelsTag>(
-                               space, n - 1, 2 * n - 1),
-                           f);
+      Kokkos::parallel_for(
+          "ArborX::MST::update_labels",
+          Kokkos::RangePolicy<ExecutionSpace, LabelsTag>(space, 0, n), f);
 
       num_components = static_cast<int>(n) - num_edges_host;
 

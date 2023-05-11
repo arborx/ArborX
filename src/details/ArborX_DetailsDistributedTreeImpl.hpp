@@ -456,7 +456,7 @@ struct CallbackWithDistance
       Kokkos::parallel_for(
           "ArborX::DistributedTree::query::nearest::"
           "compute_reverse_permutation",
-          Kokkos::RangePolicy<ExecutionSpace>(exec_space, n - 1, 2 * n - 1),
+          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
           ARBORX_CLASS_LAMBDA(int const i) {
             _rev_permute(HappyTreeFriends::getLeafPermutationIndex(_tree, i)) =
                 i;

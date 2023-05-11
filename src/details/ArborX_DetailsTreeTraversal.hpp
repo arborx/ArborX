@@ -89,17 +89,14 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
 
-    int node;
-    int next = HappyTreeFriends::getRoot(_bvh); // start with root
+    int node = HappyTreeFriends::getRoot(_bvh); // start with root
     do
     {
-      node = next;
-
       if (predicate(HappyTreeFriends::getBoundingVolume(_bvh, node)))
       {
         if (!HappyTreeFriends::isLeaf(_bvh, node))
         {
-          next = HappyTreeFriends::getLeftChild(_bvh, node);
+          node = HappyTreeFriends::getLeftChild(_bvh, node);
         }
         else
         {
@@ -107,14 +104,14 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
                   _callback, predicate,
                   HappyTreeFriends::getLeafPermutationIndex(_bvh, node)))
             return;
-          next = HappyTreeFriends::getRope(_bvh, node);
+          node = HappyTreeFriends::getRope(_bvh, node);
         }
       }
       else
       {
-        next = HappyTreeFriends::getRope(_bvh, node);
+        node = HappyTreeFriends::getRope(_bvh, node);
       }
-    } while (next != ROPE_SENTINEL);
+    } while (node != ROPE_SENTINEL);
   }
 };
 
