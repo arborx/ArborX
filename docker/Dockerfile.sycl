@@ -43,6 +43,8 @@ RUN CMAKE_KEY=2D2CEF1034921684 && \
     rm cmake*
 ENV PATH=${CMAKE_DIR}/bin:$PATH
 
+# Install the dpcpp compiler, see
+# https://www.intel.com/content/www/us/en/docs/vtune-profiler/installation-guide/2023-1/package-managers.html
 RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB && \
     apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB && \
     echo "deb https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list && \
@@ -51,17 +53,22 @@ RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCT
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Install Codeplay's oneAPI for NVIDIA GPUs, see
+# https://developer.codeplay.com/products/oneapi/nvidia/2023.0.0/guides/get-started-guide-nvidia
 RUN wget https://cloud.cees.ornl.gov/download/oneapi-for-nvidia-gpus-2023.0.0-linux.sh && \
     chmod +x oneapi-for-nvidia-gpus-2023.0.0-linux.sh && \
     ./oneapi-for-nvidia-gpus-2023.0.0-linux.sh -y && \
     rm oneapi-for-nvidia-gpus-2023.0.0-linux.sh
 
+# Install oneDPL, see
+# https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit-download.html?operatingsystem=linux&distributions=online&version=2023.0.0 
 RUN wget https://registrationcenter-download.intel.com/akdlm/irc_nas/19133/l_oneDPL_p_2022.0.0.25335.sh &&\
     chmod +x ./l_oneDPL_p_2022.0.0.25335.sh && \
     ./l_oneDPL_p_2022.0.0.25335.sh -a -s --eula accept && \
     rm l_oneDPL_p_2022.0.0.25335.sh
 
-# Install Boost
+# Install Boost and patch it, see
+# intel.com/content/www/us/en/developer/articles/technical/building-boost-with-oneapi.html
 ENV BOOST_DIR=/opt/boost
 RUN . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
     BOOST_VERSION=1.81.0 && \
