@@ -65,6 +65,28 @@ struct CustomPostCallback
   }
 };
 
+template <typename View>
+std::vector<Kokkos::pair<int, float>> initialize_values(View const &points,
+                                                        float const delta)
+{
+  using MemorySpace = typename View::memory_space;
+  using ExecutionSpace = typename View::execution_space;
+  int const n = points.size();
+  Kokkos::View<Kokkos::pair<int, float> *, MemorySpace> values_device(
+      "values_device", n);
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+        ArborX::Point const origin = {{0., 0., 0.}};
+        values_device(i) = {
+            i, delta + ArborX::Details::distance(points(i), origin)};
+      });
+  std::vector<Kokkos::pair<int, float>> values(n);
+  Kokkos::deep_copy(Kokkos::View<Kokkos::pair<int, float> *, Kokkos::HostSpace>(
+                        values.data(), n),
+                    values_device);
+  return values;
+}
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(callback_spatial_predicate, TreeTypeTraits,
                               TreeTypeTraitsList)
 {
@@ -80,17 +102,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_spatial_predicate, TreeTypeTraits,
         points(i) = {{(double)i, (double)i, (double)i}};
       });
 
-  Kokkos::View<Kokkos::pair<int, float> *, DeviceType> values_device(
-      "values_device", n);
-  Kokkos::parallel_for(
-      Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
-        ArborX::Point const origin = {{0., 0., 0.}};
-        values_device(i) = {i, ArborX::Details::distance(points(i), origin)};
-      });
-  std::vector<Kokkos::pair<int, float>> values(n);
-  Kokkos::deep_copy(Kokkos::View<Kokkos::pair<int, float> *, Kokkos::HostSpace>(
-                        values.data(), n),
-                    values_device);
+  auto values = initialize_values(points, /*delta*/ 0.f);
   std::vector<int> offsets = {0, n};
 
   Tree const tree(ExecutionSpace{}, points);
@@ -127,16 +139,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_nearest_predicate, TreeTypeTraits,
       });
   ArborX::Point const origin = {{0., 0., 0.}};
 
-  Kokkos::View<Kokkos::pair<int, float> *, DeviceType> values_device(
-      "values_device", n);
-  Kokkos::parallel_for(
-      Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
-        values_device(i) = {i, ArborX::Details::distance(points(i), origin)};
-      });
-  std::vector<Kokkos::pair<int, float>> values(n);
-  Kokkos::deep_copy(Kokkos::View<Kokkos::pair<int, float> *, Kokkos::HostSpace>(
-                        values.data(), n),
-                    values_device);
+  auto values = initialize_values(points, /*delta*/ 0.f);
   std::vector<int> offsets = {0, n};
 
   Tree const tree(ExecutionSpace{}, points);
@@ -269,18 +272,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_spatial_predicate,
       });
   float const delta = 5.f;
 
-  Kokkos::View<Kokkos::pair<int, float> *, DeviceType> values_device(
-      "values_device", n);
-  Kokkos::parallel_for(
-      Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
-        ArborX::Point const origin = {{0., 0., 0.}};
-        values_device(i) = {
-            i, delta + ArborX::Details::distance(points(i), origin)};
-      });
-  std::vector<Kokkos::pair<int, float>> values(n);
-  Kokkos::deep_copy(Kokkos::View<Kokkos::pair<int, float> *, Kokkos::HostSpace>(
-                        values.data(), n),
-                    values_device);
+  auto values = initialize_values(points, delta);
   std::vector<int> offsets = {0, n};
 
   Tree const tree(ExecutionSpace{}, points);
@@ -319,17 +311,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_nearest_predicate,
   float const delta = 5.f;
   ArborX::Point const origin = {{0., 0., 0.}};
 
-  Kokkos::View<Kokkos::pair<int, float> *, DeviceType> values_device(
-      "values_device", n);
-  Kokkos::parallel_for(
-      Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
-        values_device(i) = {
-            i, delta + ArborX::Details::distance(points(i), origin)};
-      });
-  std::vector<Kokkos::pair<int, float>> values(n);
-  Kokkos::deep_copy(Kokkos::View<Kokkos::pair<int, float> *, Kokkos::HostSpace>(
-                        values.data(), n),
-                    values_device);
+  auto values = initialize_values(points, delta);
   std::vector<int> offsets = {0, n};
 
   Tree const tree(ExecutionSpace{}, points);
