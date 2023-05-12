@@ -89,6 +89,8 @@ pipeline {
                                         -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper \
                                         -D CMAKE_CXX_EXTENSIONS=OFF \
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
+                                        -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                        -D MPIEXEC_MAX_NUMPROCS=4 \
                                     examples \
                                 '''
                                 sh 'make VERBOSE=1'
@@ -148,6 +150,8 @@ pipeline {
                                         -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper \
                                         -D CMAKE_CXX_EXTENSIONS=OFF \
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
+                                        -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                        -D MPIEXEC_MAX_NUMPROCS=4 \
                                     examples \
                                 '''
                                 sh 'make VERBOSE=1'
@@ -205,6 +209,8 @@ pipeline {
                                         -D CMAKE_CXX_COMPILER=clang++ \
                                         -D CMAKE_CXX_EXTENSIONS=OFF \
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
+                                        -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                        -D MPIEXEC_MAX_NUMPROCS=4 \
                                     examples \
                                 '''
                                 sh 'make VERBOSE=1'
@@ -266,6 +272,8 @@ pipeline {
                                         -D CMAKE_CXX_COMPILER=clang++ \
                                         -D CMAKE_CXX_EXTENSIONS=OFF \
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
+                                        -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                        -D MPIEXEC_MAX_NUMPROCS=4 \
                                     examples \
                                 '''
                                 sh 'make VERBOSE=1'
@@ -389,6 +397,8 @@ pipeline {
                                         -D CMAKE_CXX_EXTENSIONS=OFF \
                                         -D CMAKE_BUILD_TYPE=RelWithDebInfo \
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
+                                        -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                        -D MPIEXEC_MAX_NUMPROCS=4 \
                                     examples \
                                 '''
                                 sh 'make VERBOSE=1'
@@ -451,6 +461,8 @@ pipeline {
                                         -D CMAKE_CXX_FLAGS="-Wno-unknown-cuda-version" \
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR;$ONE_DPL_DIR" \
                                         -D ONEDPL_PAR_BACKEND=serial \
+                                        -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                        -D MPIEXEC_MAX_NUMPROCS=4 \
                                     examples \
                                 '''
                                 sh 'make VERBOSE=1'
