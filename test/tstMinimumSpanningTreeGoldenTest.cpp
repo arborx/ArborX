@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(minimum_spanning_tree_golden_test, DeviceType,
   }
 
   namespace tt = boost::test_tools;
-  float tol = 1.e-8;
+  double tol = 1.e-8;
 // FIXME_SYCL
 #ifdef KOKKOS_ENABLE_SYCL
   if constexpr (std::is_same_v<ExecutionSpace, Kokkos::Experimental::SYCL>)
