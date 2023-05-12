@@ -163,6 +163,15 @@ struct DistributedTreeImpl
                     Distances *distances_ptr = nullptr);
 
   template <typename DistributedTree, typename ExecutionSpace,
+            typename Predicates, typename OutputView, typename OffsetView,
+            typename Callback>
+  static std::enable_if_t<Kokkos::is_view<OutputView>{} &&
+                          Kokkos::is_view<OffsetView>{}>
+  queryDispatch(NearestPredicateTag, DistributedTree const &tree,
+                ExecutionSpace const &space, Predicates const &queries,
+                Callback const &callback, OutputView &out, OffsetView &offset);
+
+  template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename IndicesAndRanks, typename Offset>
   static std::enable_if_t<Kokkos::is_view<IndicesAndRanks>{} &&
                           Kokkos::is_view<Offset>{}>
@@ -170,7 +179,6 @@ struct DistributedTreeImpl
                 ExecutionSpace const &space, Predicates const &queries,
                 IndicesAndRanks &values, Offset &offset)
   {
-    // FIXME avoid zipping when distributed nearest callbacks become available
     Kokkos::View<int *, ExecutionSpace> indices(
         "ArborX::DistributedTree::query::nearest::indices", 0);
     Kokkos::View<int *, ExecutionSpace> ranks(
@@ -331,8 +339,8 @@ void DistributedTreeImpl<DeviceType>::deviseStrategy(
 
   // Accumulate total leave count in the local trees until it reaches k which
   // is the number of neighbors queried for.  Stop if local trees get
-  // empty because it means that they are no more leaves and there is no point
-  // on forwarding queries to leafless trees.
+  // empty because that means that there are no more leaves and there is no
+  // point in forwarding queries to leafless trees.
   using Access = AccessTraits<Predicates, PredicatesTag>;
   auto const n_queries = Access::size(queries);
   Kokkos::View<int *, DeviceType> new_offset(
@@ -639,6 +647,149 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
 
     Kokkos::Profiling::popRegion();
   }
+}
+
+template <typename Query>
+struct QueriesWithIndices
+{
+  Query query;
+  int query_id;
+  int primitive_index;
+};
+
+template <typename DeviceType>
+template <typename DistributedTree, typename ExecutionSpace,
+          typename Predicates, typename OutputView, typename OffsetView,
+          typename Callback>
+std::enable_if_t<Kokkos::is_view<OutputView>{} && Kokkos::is_view<OffsetView>{}>
+DistributedTreeImpl<DeviceType>::queryDispatch(
+    NearestPredicateTag, DistributedTree const &tree,
+    ExecutionSpace const &space, Predicates const &queries,
+    Callback const &callback, OutputView &out, OffsetView &offset)
+{
+  Kokkos::Profiling::pushRegion(
+      "ArborX::DistributedTree::query::nearest_callback");
+  Kokkos::View<int *, ExecutionSpace> indices(
+      "ArborX::DistributedTree::query::nearest::indices", 0);
+  Kokkos::View<int *, ExecutionSpace> ranks(
+      "ArborX::DistributedTree::query::nearest::ranks", 0);
+
+  // Distributed nearest callbacks strategy:
+  // - Find the ranks and indices for the nearest queries using a regular query
+  //   without a callback.
+  // - Scatter (predicate, primitive) pairs to the corresponding matching ranks.
+  // - Execute the callback on the process owning the primitives.
+  // - Send the result back to the process owning the predicates.
+
+  // Find the ranks and indices for the nearest queries using the overload not
+  // taking a callback.
+  queryDispatchImpl(NearestPredicateTag{}, tree, space, queries, indices,
+                    offset, ranks);
+  Kokkos::Profiling::popRegion();
+
+  Kokkos::Profiling::pushRegion(
+      "ArborX::DistributedTree::query::nearest::execute_callback");
+
+  // Send the predicate-primitive pairs to the process where the match was
+  // found.
+  auto comm = tree.getComm();
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+
+  using Access = AccessTraits<Predicates, PredicatesTag>;
+  using Query = typename AccessTraitsHelper<Access>::type;
+
+  Kokkos::View<QueriesWithIndices<Query> *, typename DeviceType::memory_space>
+      exported_queries_with_indices(
+          Kokkos::view_alloc(
+              space, Kokkos::WithoutInitializing,
+              "ArborX::DistributedTree::query::exported_queries_with_indices"),
+          ranks.size());
+  Kokkos::parallel_for(
+      "ArborX::DistributedTree::query::zip_queries_and_primitives",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(queries)),
+      KOKKOS_LAMBDA(int q) {
+        using index_type = typename OffsetView::value_type;
+        for (index_type i = offset(q); i < offset(q + 1); ++i)
+          exported_queries_with_indices(i) = {Access::get(queries, q), q,
+                                              indices(i)};
+      });
+
+  Distributor<DeviceType> distributor(comm);
+  auto const n_imports = distributor.createFromSends(space, ranks);
+
+  Kokkos::View<QueriesWithIndices<Query> *, typename DeviceType::memory_space>
+      imported_queries_with_indices(
+          Kokkos::view_alloc(
+              space, Kokkos::WithoutInitializing,
+              "ArborX::DistributedTree::query::imported_queries_with_indices"),
+          n_imports);
+
+  sendAcrossNetwork(space, distributor, exported_queries_with_indices,
+                    imported_queries_with_indices);
+
+  // Execute the callback on the process owning the primitives.
+  OutputView remote_out(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         "ArborX::DistributedTree::query::remote_out"),
+      n_imports);
+  KokkosExt::reallocWithoutInitializing(space, indices, n_imports);
+  Kokkos::deep_copy(space, indices, -1);
+  Kokkos::parallel_for(
+      "ArborX::DistributedTree::query::execute_callbacks",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0,
+                                          imported_queries_with_indices.size()),
+      KOKKOS_LAMBDA(int i) {
+        callback(imported_queries_with_indices(i).query,
+                 imported_queries_with_indices(i).primitive_index,
+                 [&](typename OutputView::value_type const &value) {
+#ifndef NDEBUG
+                   // FIXME We only allow calling the callback once per match.
+                   if (indices(i) != -1)
+                     Kokkos::abort("Inserting more than one result per "
+                                   "callback is not implemented!");
+#endif
+                   remote_out(i) = value;
+                   indices(i) = imported_queries_with_indices(i).query_id;
+                 });
+      });
+
+  // Send the result back to the process owning the predicates.
+  Distributor<DeviceType> back_distributor(comm);
+  auto const &dest = distributor.getSources();
+  auto const &off = distributor.getSourceOffsets();
+
+  Kokkos::View<int const *, Kokkos::HostSpace> host_destinations(dest.data(),
+                                                                 dest.size());
+  Kokkos::View<int const *, Kokkos::HostSpace> host_offsets(off.data(),
+                                                            off.size());
+  typename DeviceType::memory_space memory_space;
+  Kokkos::View<int *, DeviceType> destinations(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         "ArborX::DistributedTree::query::destinations"),
+      dest.size());
+  Kokkos::deep_copy(space, destinations, host_destinations);
+  Kokkos::View<int *, DeviceType> offsets(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         "ArborX::DistributedTree::query::offsets"),
+      off.size());
+  Kokkos::deep_copy(space, offsets, host_offsets);
+  auto const n_imports_back =
+      back_distributor.createFromSends(space, destinations, offsets);
+  KokkosExt::reallocWithoutInitializing(space, out, n_imports_back);
+  Kokkos::View<int *, DeviceType> query_ids(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         "ArborX::DistributedTree::query::nearest::query_ids"),
+      n_imports_back);
+
+  // FIXME does combining communication here help?
+  sendAcrossNetwork(space, back_distributor, remote_out, out);
+  sendAcrossNetwork(space, back_distributor, indices, query_ids);
+
+  auto const permutation = ArborX::Details::sortObjects(space, query_ids);
+  ArborX::Details::applyPermutation(space, permutation, out);
+
+  Kokkos::Profiling::popRegion();
 }
 
 template <typename DeviceType>

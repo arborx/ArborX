@@ -33,6 +33,39 @@ namespace tt = boost::test_tools;
 using ArborX::PairIndexRank;
 using ArborX::Details::PairIndexRankAndDistance;
 
+struct PairRankIndex
+{
+  int rank;
+  int index;
+
+  friend bool operator==(PairRankIndex lhs, PairRankIndex rhs)
+  {
+    return lhs.index == rhs.index && lhs.rank == rhs.rank;
+  }
+  friend bool operator<(PairRankIndex lhs, PairRankIndex rhs)
+  {
+    return lhs.rank < rhs.rank ||
+           (lhs.rank == rhs.rank && lhs.index < rhs.index);
+  }
+  friend std::ostream &operator<<(std::ostream &stream,
+                                  PairRankIndex const &pair)
+  {
+    return stream << '[' << pair.rank << ',' << pair.index << ']';
+  }
+};
+
+struct InlineCallback
+{
+  int mpi_rank;
+
+  template <typename Predicate, typename OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Predicate const &, int primitive_index,
+                                  OutputFunctor const &out) const
+  {
+    out({mpi_rank, primitive_index});
+  }
+};
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using Tree = ArborX::DistributedTree<typename DeviceType::memory_space>;
@@ -128,6 +161,26 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
         ExecutionSpace{}, tree, nearest_queries,
         make_reference_solution<PairIndexRank>(
             {{0, comm_size - 1 - comm_rank}, {1, comm_size - 1 - comm_rank}},
+            {0, 2}));
+  }
+
+  // Now do the same with callbacks
+  if (comm_rank < comm_size - 1)
+  {
+    ARBORX_TEST_QUERY_TREE_CALLBACK(ExecutionSpace{}, tree, nearest_queries,
+                                    InlineCallback{comm_rank},
+                                    make_reference_solution<PairRankIndex>(
+                                        {{comm_size - 1 - comm_rank, 0},
+                                         {comm_size - 2 - comm_rank, n - 1},
+                                         {comm_size - 1 - comm_rank, 1}},
+                                        {0, 3}));
+  }
+  else
+  {
+    ARBORX_TEST_QUERY_TREE_CALLBACK(
+        ExecutionSpace{}, tree, nearest_queries, InlineCallback{comm_rank},
+        make_reference_solution<PairRankIndex>(
+            {{comm_size - 1 - comm_rank, 0}, {comm_size - 1 - comm_rank, 1}},
             {0, 2}));
   }
 }
