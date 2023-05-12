@@ -100,6 +100,8 @@ BOOST_AUTO_TEST_SUITE(TreeNodeLabeling)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(find_parents, DeviceType, ARBORX_DEVICE_TYPES)
 {
+  // Mapping of internal nodes [x] in a diagram to the actual indices depends
+  // on the tree implementation. Currently, [x] -> x + n, where n = #leaves.
 
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec_space;

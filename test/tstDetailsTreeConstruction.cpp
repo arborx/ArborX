@@ -165,7 +165,7 @@ void traverse(LeafNodes leaf_nodes, InternalNodes internal_nodes, int root,
 
   using ArborX::Details::ROPE_SENTINEL;
   std::function<void(int, std::ostream &)> traverseRopes;
-  traverseRopes = [&leaf_nodes, &internal_nodes, &n,
+  traverseRopes = [&leaf_nodes, &internal_nodes, n,
                    &traverseRopes](int node, std::ostream &os) {
     if (node < n)
     {

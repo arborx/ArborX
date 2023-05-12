@@ -95,7 +95,7 @@ private:
     // Need address of the root node's bounding box to copy it back on the host,
     // but can't access node elements from the constructor since the data is on
     // the device.
-    assert(Details::HappyTreeFriends::getRoot(*this) == (n > 1 ? n : 0) &&
+    assert((n == 1 || Details::HappyTreeFriends::getRoot(*this) == n) &&
            "workaround below assumes root is stored as first element");
     return (n > 1 ? &_internal_nodes.data()->bounding_volume
                   : &_leaf_nodes.data()->bounding_volume);

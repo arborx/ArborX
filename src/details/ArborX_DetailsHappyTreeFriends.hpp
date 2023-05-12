@@ -28,12 +28,14 @@ struct HappyTreeFriends
   template <class BVH>
   static KOKKOS_FUNCTION int getRoot(BVH const &bvh)
   {
-    return (bvh.size() > 1 ? bvh.size() : 0);
+    assert(bvh.size() > 1);
+    return bvh.size();
   }
 
   template <class BVH>
   static KOKKOS_FUNCTION bool isLeaf(BVH const &bvh, int i)
   {
+    assert(bvh.size() > 1);
     assert(i >= 0 && i < 2 * (int)bvh.size() - 1);
     return i < (int)bvh.size();
   }
