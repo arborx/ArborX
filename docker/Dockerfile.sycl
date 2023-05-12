@@ -53,6 +53,7 @@ RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCT
     apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-${DPCPP_VERSION} && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+ENV DPCPP=/opt/intel/oneapi/compiler/${DPCPP_VERSION}/linux/bin-llvm/clang++
 
 # Install Codeplay's oneAPI for NVIDIA GPUs, see
 # https://developer.codeplay.com/products/oneapi/nvidia/2023.0.0/guides/get-started-guide-nvidia
@@ -121,6 +122,6 @@ RUN . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
     tar -xf ${KOKKOS_ARCHIVE} -C kokkos --strip-components=1 && \
     cd kokkos && \
     mkdir -p build && cd build && \
-    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${KOKKOS_DIR} -D CMAKE_CXX_COMPILER=/opt/intel/oneapi/compiler/2023.0.0/linux/bin-llvm/clang++ ${KOKKOS_OPTIONS} .. && \
+    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${KOKKOS_DIR} -D CMAKE_CXX_COMPILER=${DPCPP} ${KOKKOS_OPTIONS} .. && \
     make -j${NPROCS} install && \
     rm -rf ${SCRATCH_DIR}
