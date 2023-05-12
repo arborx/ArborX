@@ -30,6 +30,7 @@ struct MockBVH
   ArborX::Details::HappyTreeFriends::getLeftChild<MockBVH<MEMORY_SPACE>>(      \
       MockBVH<MEMORY_SPACE> const &x, int i)                                   \
   {                                                                            \
+    i -= x.size();                                                             \
     return x.children_(i).first;                                               \
   }                                                                            \
   template <>                                                                  \
@@ -37,6 +38,7 @@ struct MockBVH
   ArborX::Details::HappyTreeFriends::getRightChild<MockBVH<MEMORY_SPACE>>(     \
       MockBVH<MEMORY_SPACE> const &x, int i)                                   \
   {                                                                            \
+    i -= x.size();                                                             \
     return x.children_(i).second;                                              \
   }
 
@@ -98,6 +100,8 @@ BOOST_AUTO_TEST_SUITE(TreeNodeLabeling)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(find_parents, DeviceType, ARBORX_DEVICE_TYPES)
 {
+  // Mapping of internal nodes [x] in a diagram to the actual indices depends
+  // on the tree implementation. Currently, [x] -> x + n, where n = #leaves.
 
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec_space;
@@ -107,8 +111,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(find_parents, DeviceType, ARBORX_DEVICE_TYPES)
         0   1
   */
   ARBORX_TEST_FIND_PARENTS(exec_space,
-                           (std::vector<Kokkos::pair<int, int>>{{1, 2}}),
-                           (std::vector<int>{-1, 0, 0}));
+                           (std::vector<Kokkos::pair<int, int>>{{0, 1}}),
+                           (std::vector<int>{2, 2, -1}));
   /*
      [0]----*----
            / \
@@ -117,8 +121,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(find_parents, DeviceType, ARBORX_DEVICE_TYPES)
       0   1   2
   */
   ARBORX_TEST_FIND_PARENTS(
-      exec_space, (std::vector<Kokkos::pair<int, int>>{{1, 4}, {2, 3}}),
-      (std::vector<int>{-1, 0, 1, 1, 0}));
+      exec_space, (std::vector<Kokkos::pair<int, int>>{{4, 2}, {0, 1}}),
+      (std::vector<int>{4, 4, 3, -1, 3}));
   /*
      [0]------------*--------------
                    / \
@@ -131,14 +135,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(find_parents, DeviceType, ARBORX_DEVICE_TYPES)
       0   1   2   3   4   5   6   7
   */
   auto const parents =
-      std::vector<int>{-1, 3, 3, 0, 0, 4, 5, 1, 1, 2, 2, 4, 6, 6, 5};
-  //                    0  1  2  3  4  5  6  7  8  9 10 11 12 13 14
-  //                   [0][1][2][3][4][5][6] 0  1  2  3  4  5  6  7
+      std::vector<int>{9, 9, 10, 10, 12, 14, 14, 13, -1, 11, 11, 8, 8, 12, 13};
+  //                   0  1   2   3   4   5   6   7   8   9  10 11 12  13  14
+  //                   0  1   2   3   4   5   6   7, [0] [1] [2][3][4] [5] [6]
 
   auto const children = std::vector<Kokkos::pair<int, int>>{
-      {3, 4}, {7, 8}, {9, 10}, {1, 2}, {11, 5}, {6, 14}, {12, 13}};
-  //  [0]     [1]     [2]      [3]      [4]     [5]       [6]
-  //  [3][4]   0  1    2   3   [1][2]    4 [5]  [6]  7     5   6
+      {11, 12}, {0, 1}, {2, 3}, {9, 10}, {4, 13}, {14, 7}, {5, 6}};
+  //  [0]       [1]     [2]     [3]      [4]      [5]      [6]
+  //  [3] [4]    0  1    2   3  [1][2]    4 [5]   [6]  7    5  6
   ARBORX_TEST_FIND_PARENTS(exec_space, children, parents);
 }
 
@@ -156,32 +160,32 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(reduce_labels, DeviceType, ARBORX_DEVICE_TYPES)
        0   1   2   3   4   5   6   7
   */
   auto const parents =
-      std::vector<int>{-1, 3, 3, 0, 0, 4, 5, 1, 1, 2, 2, 4, 6, 6, 5};
-  //                    0  1  2  3  4  5  6  7  8  9 10 11 12 13 14
-  //                   [0][1][2][3][4][5][6] 0  1  2  3  4  5  6  7
+      std::vector<int>{9, 9, 10, 10, 12, 14, 14, 13, -1, 11, 11, 8, 8, 12, 13};
+  //                   0  1   2   3   4   5   6   7   8   9  10 11 12  13  14
+  //                   0  1   2   3   4   5   6   7, [0] [1] [2][3][4] [5] [6]
 
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec_space;
 
   ARBORX_TEST_REDUCE_LABELS(
       exec_space, parents,
-      (std::vector<int>{0, 1, 2, 3, 4, 5, 6, 0, 0, 0, 0, 0, 0, 0, 0}),
+      (std::vector<int>{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6}),
       (std::vector<int>{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}));
 
   ARBORX_TEST_REDUCE_LABELS(
       exec_space, parents,
-      (std::vector<int>{0, 1, 2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 7, 7, 7}),
+      (std::vector<int>{7, 7, 7, 7, 7, 7, 7, 7, 0, 1, 2, 3, 4, 5, 6}),
       (std::vector<int>{7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7}));
 
   ARBORX_TEST_REDUCE_LABELS(
       exec_space, parents,
-      (std::vector<int>{0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5, 6, 7}),
-      (std::vector<int>{-1, -1, -1, -1, -1, -1, -1, 0, 1, 2, 3, 4, 5, 6, 7}));
+      (std::vector<int>{0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6}),
+      (std::vector<int>{0, 1, 2, 3, 4, 5, 6, 7, -1, -1, -1, -1, -1, -1, -1}));
 
   ARBORX_TEST_REDUCE_LABELS(
       exec_space, parents,
-      (std::vector<int>{0, 1, 2, 3, 4, 5, 6, 0, 0, 0, 3, 4, 4, 4, 7}),
-      (std::vector<int>{-1, 0, -1, -1, -1, -1, 4, 0, 0, 0, 3, 4, 4, 4, 7}));
+      (std::vector<int>{0, 0, 0, 3, 4, 4, 4, 7, 0, 1, 2, 3, 4, 5, 6}),
+      (std::vector<int>{0, 0, 0, 3, 4, 4, 4, 7, -1, 0, -1, -1, -1, -1, 4}));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

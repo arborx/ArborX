@@ -76,7 +76,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
-    auto const root = HappyTreeFriends::getRoot(_bvh);
+    auto const root = 0;
     auto const &root_bounding_volume =
         HappyTreeFriends::getBoundingVolume(_bvh, root);
     if (predicate(root_bounding_volume))
@@ -421,7 +421,7 @@ struct TreeTraversal<BVH, Predicates, Callback,
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
-    auto const root = HappyTreeFriends::getRoot(_bvh);
+    auto const root = 0;
     auto const &root_bounding_volume =
         HappyTreeFriends::getBoundingVolume(_bvh, root);
     using distance_type =

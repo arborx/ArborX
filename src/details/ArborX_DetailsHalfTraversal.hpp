@@ -44,10 +44,9 @@ struct HalfTraversal
     }
     else
     {
-      auto const n = _bvh.size();
       Kokkos::parallel_for(
           "ArborX::Experimental::HalfTraversal",
-          Kokkos::RangePolicy<ExecutionSpace>(space, n - 1, 2 * n - 1), *this);
+          Kokkos::RangePolicy<ExecutionSpace>(space, 0, _bvh.size()), *this);
     }
   }
 

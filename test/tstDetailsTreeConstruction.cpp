@@ -164,22 +164,19 @@ void traverse(LeafNodes leaf_nodes, InternalNodes internal_nodes, int root,
   int n = leaf_nodes.extent(0);
 
   using ArborX::Details::ROPE_SENTINEL;
-
-  auto leafIndex = [=](int i) { return i - (n - 1); };
-
   std::function<void(int, std::ostream &)> traverseRopes;
-  traverseRopes = [&leaf_nodes, &internal_nodes, &leafIndex,
+  traverseRopes = [&leaf_nodes, &internal_nodes, n,
                    &traverseRopes](int node, std::ostream &os) {
-    int leaf_index = leafIndex(node);
-    if (leaf_index >= 0)
+    if (node < n)
     {
-      os << "L" << leaf_index;
-      int rope = leaf_nodes(leaf_index).rope;
+      os << "L" << node;
+      int rope = leaf_nodes(node).rope;
       if (rope != ROPE_SENTINEL)
         traverseRopes(rope, os);
     }
     else
     {
+      node = node - n;
       os << "I" << node;
       traverseRopes(internal_nodes(node).left_child, os);
     }
@@ -241,7 +238,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(example_tree_construction, DeviceType,
   generateHierarchy(primitives, sorted_morton_codes, leaf_nodes,
                     internal_nodes);
 
-  int const root = 0;
+  int const root = n;
 
   std::ostringstream sol;
   traverse(leaf_nodes, internal_nodes, root, sol);
