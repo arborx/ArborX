@@ -129,9 +129,8 @@ struct TreeVisualization
       auto const node_attributes = getNodeAttributes(tree, node);
       _os << R"(\draw)" << node_attributes << " ";
       if (HappyTreeFriends::isLeaf(tree, node))
-        _os << HappyTreeFriends::getBoundingVolume(
-            InternalNodeTag{}, tree,
-            HappyTreeFriends::internalIndex(tree, node));
+        _os << HappyTreeFriends::getBoundingVolume(InternalNodeTag{}, tree,
+                                                   node);
       else
         _os << HappyTreeFriends::getBoundingVolume(LeafNodeTag{}, tree, node);
       _os << " node {" << node_label << "};\n";

@@ -184,9 +184,8 @@ struct FindComponentNearestNeighbors
               bounding_volume_i,
               (HappyTreeFriends::isLeaf(bvh, j)
                    ? HappyTreeFriends::getBoundingVolume(LeafNodeTag{}, bvh, j)
-                   : HappyTreeFriends::getBoundingVolume(
-                         InternalNodeTag{}, bvh,
-                         HappyTreeFriends::internalIndex(bvh, j))));
+                   : HappyTreeFriends::getBoundingVolume(InternalNodeTag{}, bvh,
+                                                         j)));
         };
 
     auto const component = _labels(i);

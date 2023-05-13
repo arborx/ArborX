@@ -63,7 +63,7 @@ struct HappyTreeFriends
         std::is_same_v<decltype(bvh._internal_nodes(0).bounding_volume),
                        decltype(bvh._leaf_nodes(0).bounding_volume)>);
     if constexpr (std::is_same_v<Tag, InternalNodeTag>)
-      return bvh._internal_nodes(i).bounding_volume;
+      return bvh._internal_nodes(internalIndex(bvh, i)).bounding_volume;
     else
       return bvh._leaf_nodes(i).bounding_volume;
   }
@@ -86,20 +86,14 @@ struct HappyTreeFriends
   static KOKKOS_FUNCTION auto getRightChild(BVH const &bvh, int i)
   {
     assert(!isLeaf(bvh, i));
-    auto left_child = getLeftChild(bvh, i);
-    bool const is_leaf = isLeaf(bvh, left_child);
-    return (is_leaf ? getRope(LeafNodeTag{}, bvh, left_child)
-                    : getRope(InternalNodeTag{}, bvh,
-                              internalIndex(bvh, left_child)));
+    return getRope(bvh, getLeftChild(bvh, i));
   }
 
-  template <class Tag, class BVH>
-  static KOKKOS_FUNCTION auto getRope(Tag, BVH const &bvh, int i)
+  template <class BVH>
+  static KOKKOS_FUNCTION auto getRope(BVH const &bvh, int i)
   {
-    if constexpr (std::is_same_v<Tag, InternalNodeTag>)
-      return bvh._internal_nodes(i).rope;
-    else
-      return bvh._leaf_nodes(i).rope;
+    return (isLeaf(bvh, i) ? bvh._leaf_nodes(i).rope
+                           : bvh._internal_nodes(internalIndex(bvh, i)).rope);
   }
 };
 } // namespace ArborX::Details
