@@ -29,13 +29,6 @@ std::ostream &operator<<(std::ostream &os, Point const &p)
   os << "(" << p[0] << "," << p[1] << ")";
   return os;
 }
-std::ostream &operator<<(std::ostream &os, Box const &box)
-{
-  auto const min_corner = box.minCorner();
-  auto const max_corner = box.maxCorner();
-  os << min_corner << " rectangle " << max_corner;
-  return os;
-}
 
 struct TreeVisualization
 {
@@ -127,13 +120,15 @@ struct TreeVisualization
     {
       auto const node_label = getNodeLabel(tree, node);
       auto const node_attributes = getNodeAttributes(tree, node);
-      _os << R"(\draw)" << node_attributes << " ";
-      if (HappyTreeFriends::isLeaf(tree, node))
-        _os << HappyTreeFriends::getBoundingVolume(InternalNodeTag{}, tree,
-                                                   node);
-      else
-        _os << HappyTreeFriends::getBoundingVolume(LeafNodeTag{}, tree, node);
-      _os << " node {" << node_label << "};\n";
+      auto const bounding_volume =
+          HappyTreeFriends::isLeaf(tree, node)
+              ? HappyTreeFriends::getBoundingVolume(LeafNodeTag{}, tree, node)
+              : HappyTreeFriends::getBoundingVolume(InternalNodeTag{}, tree,
+                                                    node);
+      auto const min_corner = bounding_volume.minCorner();
+      auto const max_corner = bounding_volume.maxCorner();
+      _os << R"(\draw)" << node_attributes << " " << min_corner << " rectangle "
+          << max_corner << " node {" << node_label << "};\n";
     }
   };
 
