@@ -40,7 +40,7 @@ inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
       "ArborX::TreeConstruction::calculate_bounding_box_of_the_scene",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
       KOKKOS_LAMBDA(int i, Box &update) {
-        update += Access::get(primitives, i);
+        expand(update, Access::get(primitives, i));
       },
       Kokkos::Sum<Box>{scene_bounding_box});
 }
