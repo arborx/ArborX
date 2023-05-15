@@ -304,13 +304,6 @@ KOKKOS_INLINE_FUNCTION bool intersects(KDOP<k> const &a, KDOP<k> const &b)
   return a.intersects(b);
 }
 
-template <int k>
-KOKKOS_INLINE_FUNCTION Point returnCentroid(KDOP<k> const &p)
-{
-  // FIXME approximation
-  return ArborX::Details::returnCentroid((Box)p);
-}
-
 } // namespace Experimental
 
 template <int k>

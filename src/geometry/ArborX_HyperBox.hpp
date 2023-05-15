@@ -65,36 +65,6 @@ struct Box
 
   Point<DIM, FloatingPoint> _min_corner;
   Point<DIM, FloatingPoint> _max_corner;
-
-  template <typename OtherBox,
-            std::enable_if_t<GeometryTraits::is_box<OtherBox>{}> * = nullptr>
-  KOKKOS_FUNCTION auto &operator+=(OtherBox const &other)
-  {
-    using KokkosExt::max;
-    using KokkosExt::min;
-
-    for (int d = 0; d < DIM; ++d)
-    {
-      minCorner()[d] = min(minCorner()[d], other.minCorner()[d]);
-      maxCorner()[d] = max(maxCorner()[d], other.maxCorner()[d]);
-    }
-    return *this;
-  }
-
-  template <typename Point,
-            std::enable_if_t<GeometryTraits::is_point<Point>{}> * = nullptr>
-  KOKKOS_FUNCTION auto &operator+=(Point const &point)
-  {
-    using KokkosExt::max;
-    using KokkosExt::min;
-
-    for (int d = 0; d < DIM; ++d)
-    {
-      minCorner()[d] = min(minCorner()[d], point[d]);
-      maxCorner()[d] = max(maxCorner()[d], point[d]);
-    }
-    return *this;
-  }
 };
 
 } // namespace ArborX::ExperimentalHyperGeometry

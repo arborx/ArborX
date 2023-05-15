@@ -290,7 +290,35 @@ struct expand<BoxTag, PointTag, Box, Point>
 {
   KOKKOS_FUNCTION static void apply(Box &box, Point const &point)
   {
-    box += point;
+    constexpr int DIM = GeometryTraits::dimension_v<Box>;
+
+    using KokkosExt::max;
+    using KokkosExt::min;
+
+    for (int d = 0; d < DIM; ++d)
+    {
+      box.minCorner()[d] = min(box.minCorner()[d], point[d]);
+      box.maxCorner()[d] = max(box.maxCorner()[d], point[d]);
+    }
+  }
+};
+
+// expand a box to include a box
+template <typename Box1, typename Box2>
+struct expand<BoxTag, BoxTag, Box1, Box2>
+{
+  KOKKOS_FUNCTION static void apply(Box1 &box, Box2 const &other)
+  {
+    constexpr int DIM = GeometryTraits::dimension_v<Box>;
+
+    using KokkosExt::max;
+    using KokkosExt::min;
+
+    for (int d = 0; d < DIM; ++d)
+    {
+      box.minCorner()[d] = min(box.minCorner()[d], other.minCorner()[d]);
+      box.maxCorner()[d] = max(box.maxCorner()[d], other.maxCorner()[d]);
+    }
   }
 };
 
@@ -304,16 +332,6 @@ struct expand<BoxTag, KDOPTag, Box, KDOP>
     // machinery for KDOP. In the long term, this should be replaced by a
     // general algorithm.
     Details::expand(box, (ArborX::Box)kdop);
-  }
-};
-
-// expand a box to include a box
-template <typename Box1, typename Box2>
-struct expand<BoxTag, BoxTag, Box1, Box2>
-{
-  KOKKOS_FUNCTION static void apply(Box1 &box, Box2 const &other)
-  {
-    box += other;
   }
 };
 
@@ -422,6 +440,17 @@ struct centroid<SphereTag, Sphere>
   KOKKOS_FUNCTION static auto apply(Sphere const &sphere)
   {
     return sphere.centroid();
+  }
+};
+
+template <typename KDOP>
+struct centroid<KDOPTag, KDOP>
+{
+  KOKKOS_FUNCTION static auto apply(KDOP const &kdop)
+  {
+    // FIXME approximation
+    using Box = ArborX::Box;
+    return centroid<BoxTag, Box>::apply((Box)kdop);
   }
 };
 
