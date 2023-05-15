@@ -80,3 +80,50 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop, DeviceType, ARBORX_DEVICE_TYPES)
                              predicates.data(), predicates.size())),
       make_reference_solution<int>({1, 4, 7, 8}, {0, 4}));
 }
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(kdop_intersects_kdop, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
+  using kdop = ArborX::Experimental::KDOP<26>;
+  using Tree = ArborX::BasicBoundingVolumeHierarchy<MemorySpace, kdop>;
+
+  std::vector<kdop> primitives;
+  {
+    kdop tmp;
+    tmp += ArborX::Point{0.0, 0.0, 0.0};
+    tmp += ArborX::Point{1.0, 1.0, 0.0};
+    tmp += ArborX::Point{0.5, 0.0, 0.0};
+    primitives.push_back(tmp);
+  }
+  {
+    kdop tmp;
+    tmp += ArborX::Point{1.0, -1.0, 0.0};
+    tmp += ArborX::Point{1.0, 0.25, 0.0};
+    tmp += ArborX::Point{0.75, 0.0, 0.0};
+    primitives.push_back(tmp);
+  }
+  Tree const tree(
+      ExecutionSpace{},
+      Kokkos::create_mirror_view_and_copy(
+          MemorySpace{},
+          Kokkos::View<kdop *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
+              primitives.data(), primitives.size())));
+
+  kdop x;
+  x += ArborX::Point{0.5, 0.25, 0.0};
+  x += ArborX::Point{0.8, 0.25, 0.0};
+  x += ArborX::Point{0.75, 0.125, 0.0};
+
+  using IntersectsKDop = decltype(ArborX::intersects(x));
+  std::vector<IntersectsKDop> predicates = {ArborX::intersects(x)};
+
+  ARBORX_TEST_QUERY_TREE(
+      ExecutionSpace{}, tree,
+      Kokkos::create_mirror_view_and_copy(
+          MemorySpace{}, Kokkos::View<IntersectsKDop *, Kokkos::HostSpace,
+                                      Kokkos::MemoryUnmanaged>(
+                             predicates.data(), predicates.size())),
+      make_reference_solution<int>({0}, {0, 1}));
+}
