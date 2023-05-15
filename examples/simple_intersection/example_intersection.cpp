@@ -118,9 +118,9 @@ struct ArborX::AccessTraits<Boxes<DeviceType>, ArborX::PredicatesTag>
 
 // Now that we have encapsulated the objects and queries to be used within the
 // Boxes class, we can continue with performing the actual search.
-int main()
+int main(int argc, char *argv[])
 {
-  Kokkos::ScopeGuard guard;
+  Kokkos::ScopeGuard guard(argc, argv);
 
   using ExecutionSpace = Kokkos::DefaultExecutionSpace;
   using MemorySpace = typename ExecutionSpace::memory_space;
