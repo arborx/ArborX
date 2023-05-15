@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -187,9 +187,10 @@ void check_valid_access_traits(PrimitivesTag, Primitives const &)
       "member function");
   using T = std::decay_t<Kokkos::detected_t<AccessTraitsGetArchetypeExpression,
                                             Access, Primitives>>;
-  static_assert(GeometryTraits::is_point<T>{} || GeometryTraits::is_box<T>{},
+  static_assert(GeometryTraits::is_point<T>{} || GeometryTraits::is_box<T>{} ||
+                    GeometryTraits::is_kdop<T>{},
                 "AccessTraits<Primitives,PrimitivesTag>::get() return type "
-                "must decay to a point or a box type");
+                "must decay to a point, a box or a k-dop type");
 }
 
 } // namespace Details

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -14,10 +14,7 @@
 #include <Kokkos_DetectionIdiom.hpp>
 #include <Kokkos_Macros.hpp>
 
-namespace ArborX
-{
-
-namespace GeometryTraits
+namespace ArborX::GeometryTraits
 {
 
 struct PointTag
@@ -69,6 +66,10 @@ struct is_box : std::is_same<typename tag<Geometry>::type, BoxTag>
 {};
 
 template <typename Geometry>
+struct is_kdop : std::is_same<typename tag<Geometry>::type, KDOPTag>
+{};
+
+template <typename Geometry>
 struct is_sphere : std::is_same<typename tag<Geometry>::type, SphereTag>
 {};
 
@@ -102,8 +103,6 @@ void check_valid_geometry_traits(Geometry const &)
                 "SphereTag or KDOPTag");
 }
 
-} // namespace GeometryTraits
-
-} // namespace ArborX
+} // namespace ArborX::GeometryTraits
 
 #endif
