@@ -1,4 +1,4 @@
-ARG BASE=nvidia/cuda:10.2-devel
+ARG BASE=nvidia/cuda:11.7.0-devel-ubuntu22.04
 FROM $BASE
 
 ARG NPROCS=4
@@ -27,7 +27,7 @@ RUN KEYDUMP_URL=https://cloud.cees.ornl.gov/download && \
     gpg --verify ${KEYDUMP_FILE}.sig ${KEYDUMP_FILE} && \
     rm ${KEYDUMP_FILE}*
 
-ARG CMAKE_VERSION=3.19.0
+ARG CMAKE_VERSION=3.26.3
 ENV CMAKE_DIR=/opt/cmake
 RUN CMAKE_KEY=2D2CEF1034921684 && \
     CMAKE_URL=https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION} && \
@@ -43,63 +43,54 @@ RUN CMAKE_KEY=2D2CEF1034921684 && \
     rm cmake*
 ENV PATH=${CMAKE_DIR}/bin:$PATH
 
-ENV SYCL_DIR=/opt/sycl
-RUN SYCL_VERSION=20220106 && \
-    SYCL_URL=https://github.com/intel/llvm/archive/sycl-nightly && \
-    SYCL_ARCHIVE=${SYCL_VERSION}.tar.gz && \
-    SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
-    wget --quiet ${SYCL_URL}/${SYCL_ARCHIVE} && \
-    mkdir llvm && \
-    tar -xf ${SYCL_ARCHIVE} -C llvm --strip-components=1 && \
-    cd llvm && \
-    python3 buildbot/configure.py --cuda --cmake-opt="-DCMAKE_CXX_FLAGS=-w" && \
-    python3 buildbot/compile.py && \
-    mkdir -p ${SYCL_DIR} && \
-    mv ${SCRATCH_DIR}/llvm/build/install/* ${SYCL_DIR} && \
-    echo "${SYCL_DIR}/lib" > /etc/ld.so.conf.d/sycl.conf && ldconfig && \
-    rm -rf ${SCRATCH_DIR}
-ENV PATH=${SYCL_DIR}/bin:$PATH
+# Install the dpcpp compiler, see
+# https://www.intel.com/content/www/us/en/docs/vtune-profiler/installation-guide/2023-1/package-managers.html
+ARG DPCPP_VERSION=2023.0.0
+RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB && \
+    apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB && \
+    echo "deb https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list && \
+    apt-get update -o Dir::Etc::sourcelist="sources.list.d/oneAPI.list" -o APT::Get::List-Cleanup="0" && \
+    apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-${DPCPP_VERSION} && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+ENV DPCPP=/opt/intel/oneapi/compiler/${DPCPP_VERSION}/linux/bin-llvm/clang++
 
-# Install oneDPL
-ENV ONE_DPL_DIR=/opt/onedpl
-RUN ONE_DPL_VERSION=oneDPL-2021.6.0-release && \
-    ONE_DPL_URL=https://github.com/oneapi-src/oneDPL/archive && \
-    ONE_DPL_ARCHIVE=${ONE_DPL_VERSION}.tar.gz && \
-    SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
-    wget --quiet ${ONE_DPL_URL}/${ONE_DPL_ARCHIVE} && \
-    mkdir onedpl && \
-    tar -xf ${ONE_DPL_ARCHIVE} -C onedpl --strip-components=1 && cd onedpl && \
-    echo 'install(CODE "set(OUTPUT_DIR \"${CMAKE_INSTALL_PREFIX}/lib/cmake/oneDPL\")")' >> CMakeLists.txt && \
-    echo 'install(SCRIPT cmake/scripts/generate_config.cmake)' >> CMakeLists.txt && \
-    echo 'install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION linux)' >> CMakeLists.txt && \
-    mkdir build && cd build && \
-    cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS="-w" -DCMAKE_INSTALL_PREFIX=${ONE_DPL_DIR} -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=TRUE -DONEDPL_BACKEND="dpcpp_only" .. && \
-    make -j${NPROCS} install && \
-    rm -rf ${SCRATCH_DIR}
+# Install Codeplay's oneAPI for NVIDIA GPUs, see
+# https://developer.codeplay.com/products/oneapi/nvidia/2023.0.0/guides/get-started-guide-nvidia
+RUN wget https://cloud.cees.ornl.gov/download/oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh && \
+    chmod +x oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh && \
+    ./oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh -y && \
+    rm oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh
 
-# Install Boost
+# Install oneDPL, see
+# https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit-download.html?operatingsystem=linux&distributions=online&version=2023.0.0 
+RUN wget https://registrationcenter-download.intel.com/akdlm/irc_nas/19133/l_oneDPL_p_2022.0.0.25335.sh &&\
+    chmod +x ./l_oneDPL_p_2022.0.0.25335.sh && \
+    ./l_oneDPL_p_2022.0.0.25335.sh -a -s --eula accept && \
+    rm l_oneDPL_p_2022.0.0.25335.sh
+
+# Install Boost and patch it, see
+# intel.com/content/www/us/en/developer/articles/technical/building-boost-with-oneapi.html
 ENV BOOST_DIR=/opt/boost
-RUN BOOST_VERSION=1.72.0 && \
+RUN . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
+    BOOST_VERSION=1.81.0 && \
     BOOST_VERSION_UNDERSCORE=$(echo "$BOOST_VERSION" | sed -e "s/\./_/g") && \
     BOOST_KEY=379CE192D401AB61 && \
     BOOST_URL=https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VERSION}/source && \
     BOOST_ARCHIVE=boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2 && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE} && \
-    wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.asc && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json && \
-    wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE}.json.asc && \
-    gpg --verify ${BOOST_ARCHIVE}.json.asc ${BOOST_ARCHIVE}.json && \
-    gpg --verify ${BOOST_ARCHIVE}.asc ${BOOST_ARCHIVE} && \
     cat ${BOOST_ARCHIVE}.json | jq -r '. | .sha256 + "  " + .file' | sha256sum --check && \
     mkdir -p boost && \
     tar -xf ${BOOST_ARCHIVE} -C boost --strip-components=1 && \
     cd boost && \
-    CXXFLAGS="-w" ./bootstrap.sh \
-        --prefix=${BOOST_DIR} \
-        && \
+    sed -i "s/-pch-create/-Xclang -emit-pch -o/g" tools/build/src/tools/intel-linux.jam && \
+    cat tools/build/src/tools/intel-linux.jam && \
+    CXXFLAGS="-w" ./bootstrap.sh --with-toolset=intel-linux --prefix=${BOOST_DIR} && \
     ./b2 -j${NPROCS} \
         hardcode-dll-paths=true dll-path=${BOOST_DIR}/lib \
+        toolset=intel-linux \
         link=shared \
         variant=release \
         cxxflags=-w \
@@ -118,10 +109,12 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     rm -rf ${SCRATCH_DIR}
 
 # Install Kokkos
-ARG KOKKOS_VERSION=3.7.01
+# Kokkos 4.0.99 using in-order queues for SYCL+Cuda
+ARG KOKKOS_VERSION=24c62bf5cc0e30f6a19de8e95b24197fbca9dd27
 ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_SYCL=ON -DCMAKE_CXX_FLAGS=-Wno-unknown-cuda-version -DKokkos_ENABLE_UNSUPPORTED_ARCHS=ON -DKokkos_ENABLE_DEPRECATED_CODE_3=OFF -DKokkos_ARCH_VOLTA70=ON -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS=-w"
 ENV KOKKOS_DIR=/opt/kokkos
-RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
+RUN . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
+    KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
     KOKKOS_ARCHIVE=kokkos-${KOKKOS_HASH}.tar.gz && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${KOKKOS_URL} --output-document=${KOKKOS_ARCHIVE} && \
@@ -129,6 +122,6 @@ RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz
     tar -xf ${KOKKOS_ARCHIVE} -C kokkos --strip-components=1 && \
     cd kokkos && \
     mkdir -p build && cd build && \
-    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${KOKKOS_DIR} -D CMAKE_CXX_COMPILER=clang++ ${KOKKOS_OPTIONS} .. && \
+    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${KOKKOS_DIR} -D CMAKE_CXX_COMPILER=${DPCPP} ${KOKKOS_OPTIONS} .. && \
     make -j${NPROCS} install && \
     rm -rf ${SCRATCH_DIR}

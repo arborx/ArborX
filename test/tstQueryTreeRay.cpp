@@ -198,10 +198,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_intersection_new, DeviceType,
                                                                          2);
   host_rays(0) = ArborX::Experimental::Ray{
       ArborX::Point{0, 0, 0},
-      ArborX::Experimental::Vector{1. / n, 1. / n, 1. / n}};
+      ArborX::Experimental::Vector{1.f / n, 1.f / n, 1.f / n}};
   host_rays(1) = ArborX::Experimental::Ray{
       ArborX::Point{n, n, n},
-      ArborX::Experimental::Vector{-1. / n, -1. / n, -1. / n}};
+      ArborX::Experimental::Vector{-1.f / n, -1.f / n, -1.f / n}};
   auto device_rays = Kokkos::create_mirror_view_and_copy(
       typename DeviceType::memory_space{}, host_rays);
   Kokkos::View<int *[2], DeviceType> device_ordered_intersections(
