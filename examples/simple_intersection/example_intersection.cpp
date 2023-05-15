@@ -118,51 +118,48 @@ struct ArborX::AccessTraits<Boxes<DeviceType>, ArborX::PredicatesTag>
 
 // Now that we have encapsulated the objects and queries to be used within the
 // Boxes class, we can continue with performing the actual search.
-int main()
+int main(int argc, char *argv[])
 {
-  Kokkos::initialize();
-  {
-    using ExecutionSpace = Kokkos::DefaultExecutionSpace;
-    using MemorySpace = typename ExecutionSpace::memory_space;
-    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
-    ExecutionSpace execution_space;
+  Kokkos::ScopeGuard guard(argc, argv);
 
-    std::cout << "Create grid with bounding boxes" << '\n';
-    Boxes<DeviceType> boxes(execution_space);
-    std::cout << "Bounding boxes set up." << '\n';
+  using ExecutionSpace = Kokkos::DefaultExecutionSpace;
+  using MemorySpace = typename ExecutionSpace::memory_space;
+  using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
+  ExecutionSpace execution_space;
 
-    std::cout << "Creating BVH tree." << '\n';
-    ArborX::BVH<MemorySpace> const tree(execution_space, boxes);
-    std::cout << "BVH tree set up." << '\n';
+  std::cout << "Create grid with bounding boxes" << '\n';
+  Boxes<DeviceType> boxes(execution_space);
+  std::cout << "Bounding boxes set up." << '\n';
 
-    std::cout << "Starting the queries." << '\n';
-    // The query will resize indices and offsets accordingly
-    Kokkos::View<int *, MemorySpace> indices("indices", 0);
-    Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
+  std::cout << "Creating BVH tree." << '\n';
+  ArborX::BVH<MemorySpace> const tree(execution_space, boxes);
+  std::cout << "BVH tree set up." << '\n';
 
-    ArborX::query(tree, execution_space, boxes, indices, offsets);
-    std::cout << "Queries done." << '\n';
+  std::cout << "Starting the queries." << '\n';
+  // The query will resize indices and offsets accordingly
+  Kokkos::View<int *, MemorySpace> indices("indices", 0);
+  Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
 
-    std::cout << "Starting checking results." << '\n';
-    auto offsets_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets);
-    auto indices_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
+  ArborX::query(tree, execution_space, boxes, indices, offsets);
+  std::cout << "Queries done." << '\n';
 
-    unsigned int const n = boxes.size();
-    if (offsets_host.size() != n + 1)
-      Kokkos::abort("Wrong dimensions for the offsets View!\n");
-    for (int i = 0; i < static_cast<int>(n + 1); ++i)
-      if (offsets_host(i) != i)
-        Kokkos::abort("Wrong entry in the offsets View!\n");
+  std::cout << "Starting checking results." << '\n';
+  auto offsets_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets);
+  auto indices_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
 
-    if (indices_host.size() != n)
-      Kokkos::abort("Wrong dimensions for the indices View!\n");
-    for (int i = 0; i < static_cast<int>(n); ++i)
-      if (indices_host(i) != i)
-        Kokkos::abort("Wrong entry in the indices View!\n");
-    std::cout << "Checking results successful." << '\n';
-  }
+  unsigned int const n = boxes.size();
+  if (offsets_host.size() != n + 1)
+    Kokkos::abort("Wrong dimensions for the offsets View!\n");
+  for (int i = 0; i < static_cast<int>(n + 1); ++i)
+    if (offsets_host(i) != i)
+      Kokkos::abort("Wrong entry in the offsets View!\n");
 
-  Kokkos::finalize();
+  if (indices_host.size() != n)
+    Kokkos::abort("Wrong dimensions for the indices View!\n");
+  for (int i = 0; i < static_cast<int>(n); ++i)
+    if (indices_host(i) != i)
+      Kokkos::abort("Wrong entry in the indices View!\n");
+  std::cout << "Checking results successful." << '\n';
 }
