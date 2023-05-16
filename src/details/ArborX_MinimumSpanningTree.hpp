@@ -175,18 +175,16 @@ struct FindComponentNearestNeighbors
   {
     constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
-    auto const distance =
-        [bounding_volume_i =
-             HappyTreeFriends::getBoundingVolume(LeafNodeTag{}, _bvh, i),
-         &bvh = _bvh](int j) {
-          using Details::distance;
-          return distance(
-              bounding_volume_i,
-              (HappyTreeFriends::isLeaf(bvh, j)
-                   ? HappyTreeFriends::getBoundingVolume(LeafNodeTag{}, bvh, j)
-                   : HappyTreeFriends::getBoundingVolume(InternalNodeTag{}, bvh,
-                                                         j)));
-        };
+    auto const distance = [bounding_volume_i =
+                               HappyTreeFriends::getLeafBoundingVolume(_bvh, i),
+                           &bvh = _bvh](int j) {
+      using Details::distance;
+      auto &&bounding_volume_j =
+          (HappyTreeFriends::isLeaf(bvh, j)
+               ? HappyTreeFriends::getLeafBoundingVolume(bvh, j)
+               : HappyTreeFriends::getInternalBoundingVolume(bvh, j));
+      return distance(bounding_volume_i, bounding_volume_j);
+    };
 
     auto const component = _labels(i);
     auto const predicate = [label_i = component, &labels = _labels](int j) {
@@ -682,12 +680,11 @@ void resetSharedRadii(ExecutionSpace const &space, BVH const &bvh,
         auto const label_j = labels(j);
         if (label_i != label_j)
         {
-          auto const r = metric(
-              HappyTreeFriends::getLeafPermutationIndex(bvh, i),
-              HappyTreeFriends::getLeafPermutationIndex(bvh, j),
-              distance(
-                  HappyTreeFriends::getBoundingVolume(LeafNodeTag{}, bvh, i),
-                  HappyTreeFriends::getBoundingVolume(LeafNodeTag{}, bvh, j)));
+          auto const r =
+              metric(HappyTreeFriends::getLeafPermutationIndex(bvh, i),
+                     HappyTreeFriends::getLeafPermutationIndex(bvh, j),
+                     distance(HappyTreeFriends::getLeafBoundingVolume(bvh, i),
+                              HappyTreeFriends::getLeafBoundingVolume(bvh, j)));
           Kokkos::atomic_min(&radii(label_i), r);
           Kokkos::atomic_min(&radii(label_j), r);
         }
