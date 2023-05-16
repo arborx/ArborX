@@ -262,7 +262,6 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
 
     auto &bvh = _bvh;
     auto const distance = [&predicate, &bvh](int j) {
-      using Details::distance;
       return predicate.distance(
           HappyTreeFriends::isLeaf(bvh, j)
               ? HappyTreeFriends::getLeafBoundingVolume(bvh, j)
@@ -473,7 +472,6 @@ struct TreeTraversal<BVH, Predicates, Callback,
 
     auto &bvh = _bvh;
     auto const distance = [&predicate, &bvh](int j) {
-      using Details::distance;
       return predicate.distance(
           HappyTreeFriends::isLeaf(bvh, j)
               ? HappyTreeFriends::getLeafBoundingVolume(bvh, j)
