@@ -12,6 +12,7 @@
 #ifndef ARBORX_DETAILS_HALF_TRAVERSAL_HPP
 #define ARBORX_DETAILS_HALF_TRAVERSAL_HPP
 
+#include <ArborX_Callbacks.hpp> // LegacyCallbackWrapper
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
 
@@ -25,7 +26,7 @@ struct HalfTraversal
 {
   BVH _bvh;
   PredicateGetter _get_predicate;
-  Callback _callback;
+  LegacyCallbackWrapper<Callback, typename BVH::value_type> _callback;
 
   template <class ExecutionSpace>
   HalfTraversal(ExecutionSpace const &space, BVH const &bvh,
@@ -68,8 +69,7 @@ struct HalfTraversal
       {
         if (is_leaf)
         {
-          _callback(leaf_permutation_i,
-                    HappyTreeFriends::getValue(_bvh, node).index);
+          _callback(leaf_permutation_i, HappyTreeFriends::getValue(_bvh, node));
           node = HappyTreeFriends::getRope(_bvh, node);
         }
         else

@@ -153,9 +153,10 @@ struct TreeVisualization
   struct VisitorCallback
   {
     template <typename Query>
-    KOKKOS_FUNCTION void operator()(Query const &, int index) const
+    KOKKOS_FUNCTION void
+    operator()(Query const &, typename TreeType::value_type const &value) const
     {
-      _visitor.visit(_tree, permute(index));
+      _visitor.visit(_tree, permute(value.index));
     }
 
     TreeType _tree;
