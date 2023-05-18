@@ -472,7 +472,7 @@ struct CallbackWithDistance
     // need to be fixed with a proper callback abstraction.
     int const leaf_node_index = _rev_permute(index);
     auto const &leaf_node_bounding_volume =
-        HappyTreeFriends::getLeafBoundingVolume(_tree, leaf_node_index);
+        HappyTreeFriends::getIndexable(_tree, leaf_node_index);
     out({index, distance(getGeometry(query), leaf_node_bounding_volume)});
   }
 };

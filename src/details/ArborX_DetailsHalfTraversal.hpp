@@ -54,7 +54,7 @@ struct HalfTraversal
   KOKKOS_FUNCTION void operator()(int i) const
   {
     auto const predicate =
-        _get_predicate(HappyTreeFriends::getLeafBoundingVolume(_bvh, i));
+        _get_predicate(HappyTreeFriends::getIndexable(_bvh, i));
     auto const leaf_permutation_i = HappyTreeFriends::getValue(_bvh, i).index;
 
     int node = HappyTreeFriends::getRope(_bvh, i);
@@ -62,10 +62,9 @@ struct HalfTraversal
     {
       bool const is_leaf = HappyTreeFriends::isLeaf(_bvh, node);
 
-      if (predicate(
-              (is_leaf
-                   ? HappyTreeFriends::getLeafBoundingVolume(_bvh, node)
-                   : HappyTreeFriends::getInternalBoundingVolume(_bvh, node))))
+      if (predicate((is_leaf ? HappyTreeFriends::getIndexable(_bvh, node)
+                             : HappyTreeFriends::getInternalBoundingVolume(
+                                   _bvh, node))))
       {
         if (is_leaf)
         {

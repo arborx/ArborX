@@ -121,7 +121,7 @@ struct TreeVisualization
       auto const node_attributes = getNodeAttributes(tree, node);
       auto const bounding_volume =
           HappyTreeFriends::isLeaf(tree, node)
-              ? HappyTreeFriends::getLeafBoundingVolume(tree, node)
+              ? HappyTreeFriends::getIndexable(tree, node)
               : HappyTreeFriends::getInternalBoundingVolume(tree, node);
       auto const min_corner = bounding_volume.minCorner();
       auto const max_corner = bounding_volume.maxCorner();

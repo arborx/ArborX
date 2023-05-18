@@ -66,7 +66,7 @@ struct HappyTreeFriends
 #else
       auto const &
 #endif
-      getLeafBoundingVolume(BVH const &bvh, int i)
+      getIndexable(BVH const &bvh, int i)
   {
     static_assert(
         std::is_same_v<decltype(bvh._internal_nodes(0).bounding_volume),
