@@ -176,11 +176,14 @@ struct FindComponentNearestNeighbors
     constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
     auto const distance = [bounding_volume_i =
-                               HappyTreeFriends::getBoundingVolume(_bvh, i),
+                               HappyTreeFriends::getLeafBoundingVolume(_bvh, i),
                            &bvh = _bvh](int j) {
       using Details::distance;
-      return distance(bounding_volume_i,
-                      HappyTreeFriends::getBoundingVolume(bvh, j));
+      auto &&bounding_volume_j =
+          (HappyTreeFriends::isLeaf(bvh, j)
+               ? HappyTreeFriends::getLeafBoundingVolume(bvh, j)
+               : HappyTreeFriends::getInternalBoundingVolume(bvh, j));
+      return distance(bounding_volume_i, bounding_volume_j);
     };
 
     auto const component = _labels(i);
@@ -680,8 +683,8 @@ void resetSharedRadii(ExecutionSpace const &space, BVH const &bvh,
           auto const r =
               metric(HappyTreeFriends::getLeafPermutationIndex(bvh, i),
                      HappyTreeFriends::getLeafPermutationIndex(bvh, j),
-                     distance(HappyTreeFriends::getBoundingVolume(bvh, i),
-                              HappyTreeFriends::getBoundingVolume(bvh, j)));
+                     distance(HappyTreeFriends::getLeafBoundingVolume(bvh, i),
+                              HappyTreeFriends::getLeafBoundingVolume(bvh, j)));
           Kokkos::atomic_min(&radii(label_i), r);
           Kokkos::atomic_min(&radii(label_j), r);
         }

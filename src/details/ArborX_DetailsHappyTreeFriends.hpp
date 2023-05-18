@@ -19,10 +19,9 @@
 #include <type_traits>
 #include <utility> // declval
 
-namespace ArborX
+namespace ArborX::Details
 {
-namespace Details
-{
+
 struct HappyTreeFriends
 {
   template <class BVH>
@@ -47,16 +46,32 @@ struct HappyTreeFriends
   }
 
   template <class BVH>
+  static KOKKOS_FUNCTION
 // FIXME_HIP See https://github.com/arborx/ArborX/issues/553
 #ifdef __HIP_DEVICE_COMPILE__
-  static KOKKOS_FUNCTION auto getBoundingVolume(BVH const &bvh, int i)
+      auto
 #else
-  static KOKKOS_FUNCTION auto const &getBoundingVolume(BVH const &bvh, int i)
+      auto const &
 #endif
+      getInternalBoundingVolume(BVH const &bvh, int i)
   {
-    auto const internal_i = internalIndex(bvh, i);
-    return (internal_i >= 0 ? bvh._internal_nodes(internal_i).bounding_volume
-                            : bvh._leaf_nodes(i).bounding_volume);
+    return bvh._internal_nodes(internalIndex(bvh, i)).bounding_volume;
+  }
+
+  template <class BVH>
+  static KOKKOS_FUNCTION
+// FIXME_HIP See https://github.com/arborx/ArborX/issues/553
+#ifdef __HIP_DEVICE_COMPILE__
+      auto
+#else
+      auto const &
+#endif
+      getLeafBoundingVolume(BVH const &bvh, int i)
+  {
+    static_assert(
+        std::is_same_v<decltype(bvh._internal_nodes(0).bounding_volume),
+                       decltype(bvh._leaf_nodes(0).bounding_volume)>);
+    return bvh._leaf_nodes(i).bounding_volume;
   }
 
   template <class BVH>
@@ -83,12 +98,10 @@ struct HappyTreeFriends
   template <class BVH>
   static KOKKOS_FUNCTION auto getRope(BVH const &bvh, int i)
   {
-    auto const internal_i = internalIndex(bvh, i);
-    return (internal_i >= 0 ? bvh._internal_nodes(internal_i).rope
-                            : bvh._leaf_nodes(i).rope);
+    return (isLeaf(bvh, i) ? bvh._leaf_nodes(i).rope
+                           : bvh._internal_nodes(internalIndex(bvh, i)).rope);
   }
 };
-} // namespace Details
-} // namespace ArborX
+} // namespace ArborX::Details
 
 #endif

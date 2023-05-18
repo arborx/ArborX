@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -121,7 +121,9 @@ struct TreeVisualization
       auto const node_label = getNodeLabel(tree, node);
       auto const node_attributes = getNodeAttributes(tree, node);
       auto const bounding_volume =
-          HappyTreeFriends::getBoundingVolume(tree, node);
+          HappyTreeFriends::isLeaf(tree, node)
+              ? HappyTreeFriends::getLeafBoundingVolume(tree, node)
+              : HappyTreeFriends::getInternalBoundingVolume(tree, node);
       auto const min_corner = bounding_volume.minCorner();
       auto const max_corner = bounding_volume.maxCorner();
       _os << R"(\draw)" << node_attributes << " " << min_corner << " rectangle "
