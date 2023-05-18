@@ -17,24 +17,27 @@
 #include <Kokkos_Macros.hpp>
 
 #include <cassert>
-#include <climits> // UINT_MAX
 #include <utility> // std::move
 
-namespace ArborX
-{
-namespace Details
+namespace ArborX::Details
 {
 
 constexpr int ROPE_SENTINEL = -1;
 
 template <class BoundingVolume>
+struct PairIndexVolume
+{
+  unsigned index;
+  BoundingVolume bounding_volume;
+};
+
+template <class Value>
 struct LeafNode
 {
-  using bounding_volume_type = BoundingVolume;
+  using value_type = Value;
 
-  unsigned permutation_index = UINT_MAX;
   int rope = ROPE_SENTINEL;
-  BoundingVolume bounding_volume;
+  Value value;
 };
 
 template <class BoundingVolume>
@@ -48,14 +51,13 @@ struct InternalNode
   BoundingVolume bounding_volume;
 };
 
-template <class BoundingVolume>
-KOKKOS_INLINE_FUNCTION constexpr LeafNode<BoundingVolume>
-makeLeafNode(unsigned permutation_index,
-             BoundingVolume bounding_volume) noexcept
+template <class Value>
+KOKKOS_INLINE_FUNCTION constexpr LeafNode<Value>
+makeLeafNode(Value value) noexcept
 {
-  return {permutation_index, ROPE_SENTINEL, std::move(bounding_volume)};
+  return {ROPE_SENTINEL, std::move(value)};
 }
-} // namespace Details
-} // namespace ArborX
+
+} // namespace ArborX::Details
 
 #endif

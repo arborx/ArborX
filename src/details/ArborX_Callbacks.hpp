@@ -208,6 +208,19 @@ void check_valid_callback(Callback const &callback, Predicates const &)
       "Callback 'operator()' return type must be void");
 }
 
+template <typename Callback, typename Value>
+struct LegacyCallbackWrapper
+{
+  Callback _callback;
+
+  template <typename Predicate>
+  KOKKOS_FUNCTION auto operator()(Predicate const &predicate,
+                                  Value const &value) const
+  {
+    return _callback(predicate, value.index);
+  }
+};
+
 } // namespace Details
 } // namespace ArborX
 

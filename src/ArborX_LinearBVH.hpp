@@ -47,6 +47,7 @@ public:
   static_assert(Kokkos::is_memory_space<MemorySpace>::value);
   using size_type = typename MemorySpace::size_type;
   using bounding_volume_type = BoundingVolume;
+  using value_type = Details::PairIndexVolume<bounding_volume_type>;
 
   BasicBoundingVolumeHierarchy() = default; // build an empty tree
 
@@ -85,7 +86,7 @@ public:
 private:
   friend struct Details::HappyTreeFriends;
 
-  using leaf_node_type = Details::LeafNode<bounding_volume_type>;
+  using leaf_node_type = Details::LeafNode<value_type>;
   using internal_node_type = Details::InternalNode<bounding_volume_type>;
 
   KOKKOS_FUNCTION
@@ -98,7 +99,7 @@ private:
     assert((n == 1 || Details::HappyTreeFriends::getRoot(*this) == n) &&
            "workaround below assumes root is stored as first element");
     return (n > 1 ? &_internal_nodes.data()->bounding_volume
-                  : &_leaf_nodes.data()->bounding_volume);
+                  : &_leaf_nodes.data()->value.bounding_volume);
   }
 
   size_type _size{0};
@@ -212,7 +213,8 @@ template <typename MemorySpace, typename BoundingVolume, typename Enable>
 template <typename ExecutionSpace, typename Predicates, typename Callback>
 void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
     ExecutionSpace const &space, Predicates const &predicates,
-    Callback const &callback, Experimental::TraversalPolicy const &policy) const
+    Callback const &legacy_callback,
+    Experimental::TraversalPolicy const &policy) const
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
@@ -221,7 +223,9 @@ void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
   static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                               ExecutionSpace>::value,
                 "Predicates must be accessible from the execution space");
-  Details::check_valid_callback(callback, predicates);
+  Details::check_valid_callback(legacy_callback, predicates);
+  Details::LegacyCallbackWrapper<Callback, value_type> callback{
+      legacy_callback};
 
   using Tag = typename Details::AccessTraitsHelper<Access>::tag;
   std::string profiling_prefix = "ArborX::BVH::query::";

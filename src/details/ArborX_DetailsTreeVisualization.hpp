@@ -37,8 +37,7 @@ struct TreeVisualization
   {
     auto const node_is_leaf = HappyTreeFriends::isLeaf(tree, node);
     auto const node_index =
-        node_is_leaf ? HappyTreeFriends::getLeafPermutationIndex(tree, node)
-                     : node;
+        node_is_leaf ? HappyTreeFriends::getValue(tree, node).index : node;
     std::string label = node_is_leaf ? "l" : "i";
     label.append(std::to_string(node_index));
     return label;
@@ -154,9 +153,10 @@ struct TreeVisualization
   struct VisitorCallback
   {
     template <typename Query>
-    KOKKOS_FUNCTION void operator()(Query const &, int index) const
+    KOKKOS_FUNCTION void
+    operator()(Query const &, typename TreeType::value_type const &value) const
     {
-      _visitor.visit(_tree, permute(index));
+      _visitor.visit(_tree, permute(value.index));
     }
 
     TreeType _tree;
@@ -191,7 +191,7 @@ struct TreeVisualization
     Kokkos::parallel_for(
         "ArborX::Viz::compute_permutation",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
-          permute(HappyTreeFriends::getLeafPermutationIndex(tree, i)) = i;
+          permute(HappyTreeFriends::getValue(tree, i).index) = i;
         });
 
     Predicates predicates(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,

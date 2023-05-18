@@ -81,7 +81,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
         HappyTreeFriends::getLeafBoundingVolume(_bvh, root);
     if (predicate(root_bounding_volume))
     {
-      _callback(predicate, 0);
+      _callback(predicate, HappyTreeFriends::getValue(_bvh, 0));
     }
   }
 
@@ -102,8 +102,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
         if (is_leaf)
         {
           if (invoke_callback_and_check_early_exit(
-                  _callback, predicate,
-                  HappyTreeFriends::getLeafPermutationIndex(_bvh, node)))
+                  _callback, predicate, HappyTreeFriends::getValue(_bvh, node)))
             return;
           node = HappyTreeFriends::getRope(_bvh, node);
         }
@@ -218,7 +217,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     if (k < 1)
       return;
 
-    _callback(predicate, 0);
+    _callback(predicate, HappyTreeFriends::getValue(_bvh, 0));
   }
 
   KOKKOS_FUNCTION void operator()(int queryIndex) const
@@ -378,9 +377,8 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     sortHeap(heap.data(), heap.data() + heap.size(), heap.valueComp());
     for (decltype(heap.size()) i = 0; i < heap.size(); ++i)
     {
-      int const leaf_index = HappyTreeFriends::getLeafPermutationIndex(
-          _bvh, (heap.data() + i)->first);
-      _callback(predicate, leaf_index);
+      _callback(predicate,
+                HappyTreeFriends::getValue(_bvh, (heap.data() + i)->first));
     }
   }
 };
@@ -440,7 +438,7 @@ struct TreeTraversal<BVH, Predicates, Callback,
         KokkosExt::ArithmeticTraits::infinity<distance_type>::value;
     if (distance(getGeometry(predicate), root_bounding_volume) != inf)
     {
-      _callback(predicate, 0);
+      _callback(predicate, HappyTreeFriends::getValue(_bvh, 0));
     }
   }
 
@@ -487,8 +485,7 @@ struct TreeTraversal<BVH, Predicates, Callback,
       if (HappyTreeFriends::isLeaf(_bvh, node))
       {
         if (invoke_callback_and_check_early_exit(
-                _callback, predicate,
-                HappyTreeFriends::getLeafPermutationIndex(_bvh, node)))
+                _callback, predicate, HappyTreeFriends::getValue(_bvh, node)))
           return;
 
         if (heap.empty())
