@@ -12,7 +12,6 @@
 #ifndef ARBORX_DETAILS_TREE_CONSTRUCTION_HPP
 #define ARBORX_DETAILS_TREE_CONSTRUCTION_HPP
 
-#include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // expand
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsNode.hpp> // makeLeafNode
@@ -22,77 +21,59 @@
 
 #include <cassert>
 
-namespace ArborX
-{
-namespace Details
-{
-namespace TreeConstruction
+namespace ArborX::Details::TreeConstruction
 {
 
-template <typename ExecutionSpace, typename Primitives, typename Box>
+template <typename ExecutionSpace, typename Indexables, typename Box>
 inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
-                                           Primitives const &primitives,
+                                           Indexables const &indexables,
                                            Box &scene_bounding_box)
 {
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-  auto const n = Access::size(primitives);
   Kokkos::parallel_reduce(
       "ArborX::TreeConstruction::calculate_bounding_box_of_the_scene",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-      KOKKOS_LAMBDA(int i, Box &update) {
-        update += Access::get(primitives, i);
-      },
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, indexables.size()),
+      KOKKOS_LAMBDA(int i, Box &update) { update += indexables(i); },
       Kokkos::Sum<Box>{scene_bounding_box});
 }
 
-template <typename ExecutionSpace, typename Primitives,
+template <typename ExecutionSpace, typename Indexables,
           typename SpaceFillingCurve, typename Box, typename LinearOrdering>
 inline void projectOntoSpaceFillingCurve(ExecutionSpace const &space,
-                                         Primitives const &primitives,
+                                         Indexables const &indexables,
                                          SpaceFillingCurve const &curve,
                                          Box const &scene_bounding_box,
                                          LinearOrdering linear_ordering_indices)
 {
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-
-  size_t const n = Access::size(primitives);
+  size_t const n = indexables.size();
   ARBORX_ASSERT(linear_ordering_indices.extent(0) == n);
   static_assert(
       std::is_same<typename LinearOrdering::value_type,
-                   decltype(curve(scene_bounding_box,
-                                  Access::get(primitives, 0)))>::value);
+                   decltype(curve(scene_bounding_box, indexables(0)))>::value);
 
   Kokkos::parallel_for(
       "ArborX::TreeConstruction::project_primitives_onto_space_filling_curve",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
-        linear_ordering_indices(i) =
-            curve(scene_bounding_box, Access::get(primitives, i));
+        linear_ordering_indices(i) = curve(scene_bounding_box, indexables(i));
       });
 }
 
-template <typename ExecutionSpace, typename Primitives, typename Nodes>
+template <typename ExecutionSpace, typename Values, typename Nodes>
 inline void initializeSingleLeafNode(ExecutionSpace const &space,
-                                     Primitives const &primitives,
+                                     Values const &values,
                                      Nodes const &leaf_nodes)
 {
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-  using Value = typename Nodes::value_type::value_type;
-  using BoundingVolume = decltype(std::declval<Value>().bounding_volume);
-
   ARBORX_ASSERT(leaf_nodes.extent(0) == 1);
-  ARBORX_ASSERT(Access::size(primitives) == 1);
+  ARBORX_ASSERT(values.size() == 1);
 
   Kokkos::parallel_for(
       "ArborX::TreeConstruction::initialize_single_leaf",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1), KOKKOS_LAMBDA(int) {
-        BoundingVolume bounding_volume{};
-        expand(bounding_volume, Access::get(primitives, 0));
-        leaf_nodes(0) = makeLeafNode(Value{(unsigned)0, bounding_volume});
-      });
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1),
+      KOKKOS_LAMBDA(int) { leaf_nodes(0) = makeLeafNode(values(0)); });
 }
 
-template <typename Primitives, typename PermutationIndices,
-          typename LinearOrdering, typename LeafNodes, typename InternalNodes>
+template <typename Values, typename IndexableGetter,
+          typename PermutationIndices, typename LinearOrdering,
+          typename LeafNodes, typename InternalNodes>
 class GenerateHierarchy
 {
   static constexpr int UNTOUCHED_NODE = -1;
@@ -102,11 +83,13 @@ class GenerateHierarchy
 
 public:
   template <typename ExecutionSpace>
-  GenerateHierarchy(ExecutionSpace const &space, Primitives const &primitives,
+  GenerateHierarchy(ExecutionSpace const &space, Values const &values,
+                    IndexableGetter const &indexable_getter,
                     PermutationIndices const &permutation_indices,
                     LinearOrdering const &sorted_morton_codes,
                     LeafNodes leaf_nodes, InternalNodes internal_nodes)
-      : _primitives(primitives)
+      : _values(values)
+      , _indexable_getter(indexable_getter)
       , _permutation_indices(permutation_indices)
       , _sorted_morton_codes(sorted_morton_codes)
       , _leaf_nodes(leaf_nodes)
@@ -198,19 +181,17 @@ public:
 
   KOKKOS_FUNCTION void operator()(int i) const
   {
-    // Index in the original order primitives were given in.
+    // Index in the original order values were given in
     auto const original_index = _permutation_indices(i);
+
+    // Initialize leaf node
+    auto &leaf_node = _leaf_nodes(i);
+    leaf_node = makeLeafNode(_values(original_index));
 
     using BoundingVolume =
         typename InternalNodes::value_type::bounding_volume_type;
     BoundingVolume bounding_volume{};
-    using Access = AccessTraits<Primitives, PrimitivesTag>;
-    expand(bounding_volume, Access::get(_primitives, original_index));
-
-    // Initialize leaf node
-    using Value = typename LeafNodes::value_type::value_type;
-    auto &leaf_node = _leaf_nodes(i);
-    leaf_node = makeLeafNode(Value{original_index, bounding_volume});
+    expand(bounding_volume, _indexable_getter(leaf_node.value));
 
     // For a leaf node, the range is just one index
     int range_left = i;
@@ -271,7 +252,7 @@ public:
         Kokkos::load_fence();
         expand(bounding_volume,
                right_child_is_leaf
-                   ? _leaf_nodes(right_child).value.bounding_volume
+                   ? _indexable_getter(_leaf_nodes(right_child).value)
                    : _internal_nodes(right_child).bounding_volume);
       }
       else
@@ -294,7 +275,7 @@ public:
         Kokkos::load_fence();
         expand(bounding_volume,
                left_child_is_leaf
-                   ? _leaf_nodes(left_child).value.bounding_volume
+                   ? _indexable_getter(_leaf_nodes(left_child).value)
                    : _internal_nodes(left_child).bounding_volume);
 
         if (!left_child_is_leaf)
@@ -315,7 +296,8 @@ public:
   }
 
 private:
-  Primitives _primitives;
+  Values _values;
+  IndexableGetter _indexable_getter;
   PermutationIndices _permutation_indices;
   LinearOrdering _sorted_morton_codes;
   LeafNodes _leaf_nodes;
@@ -324,13 +306,14 @@ private:
   int _num_internal_nodes;
 };
 
-template <typename ExecutionSpace, typename Primitives,
+template <typename ExecutionSpace, typename Values, typename IndexableGetter,
           typename... PermutationIndicesViewProperties,
           typename LinearOrderingValueType,
           typename... LinearOrderingViewProperties, typename LeafNodes,
           typename InternalNodes>
 void generateHierarchy(
-    ExecutionSpace const &space, Primitives const &primitives,
+    ExecutionSpace const &space, Values const &values,
+    IndexableGetter const &indexable_getter,
     Kokkos::View<unsigned int *, PermutationIndicesViewProperties...>
         permutation_indices,
     Kokkos::View<LinearOrderingValueType *, LinearOrderingViewProperties...>
@@ -342,13 +325,12 @@ void generateHierarchy(
   using ConstLinearOrdering = Kokkos::View<LinearOrderingValueType const *,
                                            LinearOrderingViewProperties...>;
 
-  GenerateHierarchy(
-      space, primitives, ConstPermutationIndices(permutation_indices),
-      ConstLinearOrdering(sorted_morton_codes), leaf_nodes, internal_nodes);
+  GenerateHierarchy(space, values, indexable_getter,
+                    ConstPermutationIndices(permutation_indices),
+                    ConstLinearOrdering(sorted_morton_codes), leaf_nodes,
+                    internal_nodes);
 }
 
-} // namespace TreeConstruction
-} // namespace Details
-} // namespace ArborX
+} // namespace ArborX::Details::TreeConstruction
 
 #endif

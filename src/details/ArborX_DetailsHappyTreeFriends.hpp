@@ -71,7 +71,7 @@ struct HappyTreeFriends
     static_assert(
         std::is_same_v<decltype(bvh._internal_nodes(0).bounding_volume),
                        decltype(bvh._leaf_nodes(0).value.bounding_volume)>);
-    return bvh._leaf_nodes(i).value.bounding_volume;
+    return bvh._indexable_getter(getValue(bvh, i));
   }
 
   template <class BVH>
