@@ -12,6 +12,7 @@
 #ifndef ARBORX_HYPERBOX_HPP
 #define ARBORX_HYPERBOX_HPP
 
+#include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_GeometryTraits.hpp>
@@ -70,14 +71,7 @@ struct Box
             std::enable_if_t<GeometryTraits::is_box<OtherBox>{}> * = nullptr>
   KOKKOS_FUNCTION auto &operator+=(OtherBox const &other)
   {
-    using KokkosExt::max;
-    using KokkosExt::min;
-
-    for (int d = 0; d < DIM; ++d)
-    {
-      minCorner()[d] = min(minCorner()[d], other.minCorner()[d]);
-      maxCorner()[d] = max(maxCorner()[d], other.maxCorner()[d]);
-    }
+    ArborX::Details::expand(*this, other);
     return *this;
   }
 
@@ -85,14 +79,7 @@ struct Box
             std::enable_if_t<GeometryTraits::is_point<Point>{}> * = nullptr>
   KOKKOS_FUNCTION auto &operator+=(Point const &point)
   {
-    using KokkosExt::max;
-    using KokkosExt::min;
-
-    for (int d = 0; d < DIM; ++d)
-    {
-      minCorner()[d] = min(minCorner()[d], point[d]);
-      maxCorner()[d] = max(maxCorner()[d], point[d]);
-    }
+    ArborX::Details::expand(*this, point);
     return *this;
   }
 };
