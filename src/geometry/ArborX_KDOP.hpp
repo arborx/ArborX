@@ -255,53 +255,30 @@ struct KDOP : private Details::KDOP_Directions<k>
   }
 };
 
-template <int k>
-KOKKOS_INLINE_FUNCTION void expand(KDOP<k> &that, KDOP<k> const &other)
-{
-  that += other;
-}
-
-template <int k>
-KOKKOS_INLINE_FUNCTION void expand(KDOP<k> &that, Point const &point)
-{
-  that += point;
-}
-
-template <int k>
-KOKKOS_INLINE_FUNCTION void expand(KDOP<k> &that, Box const &box)
-{
-  that += box;
-}
-
-// NOTE intersects(predicate_geometry, bounding_volume)
-template <int k>
-KOKKOS_INLINE_FUNCTION bool intersects(Box const &a, KDOP<k> const &b)
-{
-  return b.intersects(a);
-}
-
-template <int k>
-KOKKOS_INLINE_FUNCTION bool intersects(KDOP<k> const &a, Box const &b)
-{
-  return a.intersects(b);
-}
-
-template <int k>
-KOKKOS_INLINE_FUNCTION bool intersects(Point const &p, KDOP<k> const &x)
-{
-  return x.intersects(p);
-}
-
-template <int k>
-KOKKOS_INLINE_FUNCTION bool intersects(KDOP<k> const &a, KDOP<k> const &b)
-{
-  return a.intersects(b);
-}
-
 } // namespace Experimental
 } // namespace ArborX
 
-// expand a box to include a point
+// expand a kdop to include a point
+template <typename KDOP, typename Point>
+struct ArborX::Details::Dispatch::expand<ArborX::GeometryTraits::KDOPTag,
+                                         ArborX::GeometryTraits::PointTag, KDOP,
+                                         Point>
+{
+  KOKKOS_FUNCTION static void apply(KDOP &kdop, Point const &point)
+  {
+    kdop += point;
+  }
+};
+
+// expand a kdop to include a box
+template <typename KDOP, typename Box>
+struct ArborX::Details::Dispatch::expand<
+    ArborX::GeometryTraits::KDOPTag, ArborX::GeometryTraits::BoxTag, KDOP, Box>
+{
+  KOKKOS_FUNCTION static void apply(KDOP &kdop, Box const &box) { kdop += box; }
+};
+
+// expand a box to include a kdop
 template <typename Box, typename KDOP>
 struct ArborX::Details::Dispatch::expand<
     ArborX::GeometryTraits::BoxTag, ArborX::GeometryTraits::KDOPTag, Box, KDOP>
@@ -312,6 +289,76 @@ struct ArborX::Details::Dispatch::expand<
     // machinery for KDOP. In the long term, this should be replaced by a
     // general algorithm.
     Details::expand(box, (ArborX::Box)kdop);
+  }
+};
+
+// expand a kdop to include a kdop
+template <typename KDOP1, typename KDOP2>
+struct ArborX::Details::Dispatch::expand<ArborX::GeometryTraits::KDOPTag,
+                                         ArborX::GeometryTraits::KDOPTag, KDOP1,
+                                         KDOP2>
+{
+  KOKKOS_FUNCTION static void apply(KDOP1 &kdop1, KDOP2 const &kdop2)
+  {
+    kdop1 += kdop2;
+  }
+};
+
+// check if a kdop intersects with a point
+template <typename KDOP, typename Point>
+struct ArborX::Details::Dispatch::intersects<ArborX::GeometryTraits::KDOPTag,
+                                             ArborX::GeometryTraits::PointTag,
+                                             KDOP, Point>
+{
+  KOKKOS_FUNCTION static bool apply(KDOP const &kdop, Point const &point)
+  {
+    return kdop.intersects(point);
+  }
+};
+
+// check if a point intersects with a kdop
+template <typename Point, typename KDOP>
+struct ArborX::Details::Dispatch::intersects<ArborX::GeometryTraits::PointTag,
+                                             ArborX::GeometryTraits::KDOPTag,
+                                             Point, KDOP>
+{
+  KOKKOS_FUNCTION static bool apply(Point const &point, KDOP const &kdop)
+  {
+    return Details::intersects(kdop, point);
+  }
+};
+
+// check if a kdop intersects with a box
+template <typename KDOP, typename Box>
+struct ArborX::Details::Dispatch::intersects<
+    ArborX::GeometryTraits::KDOPTag, ArborX::GeometryTraits::BoxTag, KDOP, Box>
+{
+  KOKKOS_FUNCTION static bool apply(KDOP const &kdop, Box const &box)
+  {
+    return kdop.intersects(box);
+  }
+};
+
+// check if a box intersects with a kdop
+template <typename Box, typename KDOP>
+struct ArborX::Details::Dispatch::intersects<
+    ArborX::GeometryTraits::BoxTag, ArborX::GeometryTraits::KDOPTag, Box, KDOP>
+{
+  KOKKOS_FUNCTION static bool apply(Box const &box, KDOP const &kdop)
+  {
+    return Details::intersects(kdop, box);
+  }
+};
+
+// check if two kdops intersect
+template <typename KDOP1, typename KDOP2>
+struct ArborX::Details::Dispatch::intersects<ArborX::GeometryTraits::KDOPTag,
+                                             ArborX::GeometryTraits::KDOPTag,
+                                             KDOP1, KDOP2>
+{
+  KOKKOS_FUNCTION static bool apply(KDOP1 const &kdop1, KDOP2 const &kdop2)
+  {
+    return kdop1.intersects(kdop2);
   }
 };
 

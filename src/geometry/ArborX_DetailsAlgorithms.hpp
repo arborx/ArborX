@@ -11,7 +11,6 @@
 #ifndef ARBORX_DETAILS_ALGORITHMS_HPP
 #define ARBORX_DETAILS_ALGORITHMS_HPP
 
-#include <ArborX_Box.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp> // min, max
 #include <ArborX_GeometryTraits.hpp>
