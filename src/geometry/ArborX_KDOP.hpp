@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -304,26 +304,30 @@ KOKKOS_INLINE_FUNCTION bool intersects(KDOP<k> const &a, KDOP<k> const &b)
   return a.intersects(b);
 }
 
-template <int k>
-KOKKOS_INLINE_FUNCTION Point returnCentroid(KDOP<k> const &p)
-{
-  // FIXME approximation
-  return ArborX::Details::returnCentroid((Box)p);
-}
-
 } // namespace Experimental
+} // namespace ArborX
+
+template <typename KDOP>
+struct ArborX::Details::Dispatch::centroid<ArborX::GeometryTraits::KDOPTag,
+                                           KDOP>
+{
+  KOKKOS_FUNCTION static auto apply(KDOP const &kdop)
+  {
+    // FIXME approximation
+    using Box = ArborX::Box;
+    return centroid<BoxTag, Box>::apply((Box)kdop);
+  }
+};
 
 template <int k>
-struct GeometryTraits::dimension<ArborX::Experimental::KDOP<k>>
+struct ArborX::GeometryTraits::dimension<ArborX::Experimental::KDOP<k>>
 {
   static constexpr int value = 3;
 };
 template <int k>
-struct GeometryTraits::tag<ArborX::Experimental::KDOP<k>>
+struct ArborX::GeometryTraits::tag<ArborX::Experimental::KDOP<k>>
 {
   using type = KDOPTag;
 };
-
-} // namespace ArborX
 
 #endif
