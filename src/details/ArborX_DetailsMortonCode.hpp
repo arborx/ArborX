@@ -29,8 +29,8 @@ namespace Details
 template <int N>
 KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy(unsigned int)
 {
-  static_assert(0 < N && N < 7,
-                "expandBitsBy can only be used with values 1-6");
+  static_assert(0 < N && N < 10,
+                "expandBitsBy can only be used with values 1-9");
   Kokkos::abort("ArborX: implementation bug");
   return 0;
 }
@@ -108,11 +108,46 @@ KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy<6>(unsigned int x)
   return x;
 }
 
+// Insert seven 0 bits after each of the 4 low bits of x
+template <>
+KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy<7>(unsigned int x)
+{
+  x &= 0xfu;
+  x = (x | x << 16) & 0x80007u;
+  x = (x | x << 8) & 0x80403u;
+  x = (x | x << 4) & 0x804021u;
+  x = (x | x << 2) & 0x810081u;
+  x = (x | x << 1) & 0x1010101u;
+  return x;
+}
+
+// Insert eight 0 bits after each of the 3 low bits of x
+template <>
+KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy<8>(unsigned int x)
+{
+  x &= 0x7u;
+  x = (x | x << 16) & 0x40003u;
+  x = (x | x << 8) & 0x40201u;
+  return x;
+}
+
+// Insert nine 0 bits after each of the 3 low bits of x
+template <>
+KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy<9>(unsigned int x)
+{
+  x &= 0x7u;
+  x = (x | x << 16) & 0x40003u;
+  x = (x | x << 8) & 0x40201u;
+  x = (x | x << 2) & 0x100201u;
+  x = (x | x << 1) & 0x100401u;
+  return x;
+}
+
 template <int N>
 KOKKOS_INLINE_FUNCTION unsigned long long expandBitsBy(unsigned long long)
 {
-  static_assert(0 < N && N < 7,
-                "expandBitsBy can only be used with values 1-6");
+  static_assert(0 < N && N < 10,
+                "expandBitsBy can only be used with values 1-9");
   Kokkos::abort("ArborX: implementation bug");
   return 0;
 }
@@ -193,6 +228,45 @@ KOKKOS_INLINE_FUNCTION unsigned long long expandBitsBy<6>(unsigned long long x)
   x = (x | x << 8) & 0x100804030080403llu;
   x = (x | x << 4) & 0x100840210084021llu;
   x = (x | x << 2) & 0x102040810204081llu;
+  return x;
+}
+
+// Insert seven 0 bits after each of the 7 low bits of x
+template <>
+KOKKOS_INLINE_FUNCTION unsigned long long expandBitsBy<7>(unsigned long long x)
+{
+  x &= 0x7fllu;
+  x = (x | x << 32) & 0x600000001fllu;
+  x = (x | x << 16) & 0x6000180007llu;
+  x = (x | x << 8) & 0x402010080403llu;
+  x = (x | x << 4) & 0x402100804021llu;
+  x = (x | x << 2) & 0x1008100810081llu;
+  x = (x | x << 1) & 0x1010101010101llu;
+  return x;
+}
+
+// Insert eight 0 bits after each of the 7 low bits of x
+template <>
+KOKKOS_INLINE_FUNCTION unsigned long long expandBitsBy<8>(unsigned long long x)
+{
+  x &= 0x7fllu;
+  x = (x | x << 32) & 0x700000000fllu;
+  x = (x | x << 16) & 0x400030000c0003llu;
+  x = (x | x << 8) & 0x40201008040201llu;
+  return x;
+}
+
+// Insert nine 0 bits after each of the 6 low bits of x
+template <>
+KOKKOS_INLINE_FUNCTION unsigned long long expandBitsBy<9>(unsigned long long x)
+{
+  x &= 0x3fllu;
+  x = (x | x << 32) & 0x300000000fllu;
+  x = (x | x << 16) & 0x30000c0003llu;
+  x = (x | x << 8) & 0x201008040201llu;
+  x = (x | x << 4) & 0x2010008040201llu;
+  x = (x | x << 2) & 0x2010020100201llu;
+  x = (x | x << 1) & 0x4010040100401llu;
   return x;
 }
 
