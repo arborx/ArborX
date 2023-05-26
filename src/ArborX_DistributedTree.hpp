@@ -31,7 +31,7 @@ namespace ArborX
  *  \note query() must be called as collective over all processes in the
  *  communicator passed to the constructor.
  */
-template <typename MemorySpace, typename Enable = void>
+template <typename MemorySpace>
 class DistributedTree
 {
 public:
@@ -109,10 +109,11 @@ private:
   Kokkos::View<size_type *, MemorySpace> _bottom_tree_sizes;
 };
 
-template <typename MemorySpace, typename Enable>
+template <typename MemorySpace>
 template <typename ExecutionSpace, typename Primitives>
-DistributedTree<MemorySpace, Enable>::DistributedTree(
-    MPI_Comm comm, ExecutionSpace const &space, Primitives const &primitives)
+DistributedTree<MemorySpace>::DistributedTree(MPI_Comm comm,
+                                              ExecutionSpace const &space,
+                                              Primitives const &primitives)
 {
   Kokkos::Profiling::pushRegion("ArborX::DistributedTree::DistributedTree");
 
