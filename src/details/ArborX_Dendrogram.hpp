@@ -29,6 +29,9 @@ enum class DendrogramImplementation
 template <typename MemorySpace>
 struct Dendrogram
 {
+  using memory_space = MemorySpace;
+  static_assert(Kokkos::is_memory_space<MemorySpace>::value);
+
   Kokkos::View<int *, MemorySpace> _parents;
   Kokkos::View<float *, MemorySpace> _parent_heights;
 
