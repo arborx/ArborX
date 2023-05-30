@@ -38,8 +38,7 @@ namespace Details
 struct HappyTreeFriends;
 } // namespace Details
 
-template <typename MemorySpace, typename BoundingVolume = Box,
-          typename Enable = void>
+template <typename MemorySpace, typename BoundingVolume = Box>
 class BasicBoundingVolumeHierarchy
 {
 public:
@@ -114,10 +113,10 @@ using BoundingVolumeHierarchy = BasicBoundingVolumeHierarchy<MemorySpace>;
 template <typename MemorySpace>
 using BVH = BoundingVolumeHierarchy<MemorySpace>;
 
-template <typename MemorySpace, typename BoundingVolume, typename Enable>
+template <typename MemorySpace, typename BoundingVolume>
 template <typename ExecutionSpace, typename Primitives,
           typename SpaceFillingCurve>
-BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
+BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume>::
     BasicBoundingVolumeHierarchy(ExecutionSpace const &space,
                                  Primitives const &primitives,
                                  SpaceFillingCurve const &curve)
@@ -209,9 +208,9 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::
   Kokkos::Profiling::popRegion();
 }
 
-template <typename MemorySpace, typename BoundingVolume, typename Enable>
+template <typename MemorySpace, typename BoundingVolume>
 template <typename ExecutionSpace, typename Predicates, typename Callback>
-void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume, Enable>::query(
+void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume>::query(
     ExecutionSpace const &space, Predicates const &predicates,
     Callback const &legacy_callback,
     Experimental::TraversalPolicy const &policy) const
