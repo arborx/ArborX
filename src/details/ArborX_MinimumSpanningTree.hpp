@@ -693,6 +693,9 @@ void resetSharedRadii(ExecutionSpace const &space, BVH const &bvh,
 template <class MemorySpace, BoruvkaMode Mode = BoruvkaMode::MST>
 struct MinimumSpanningTree
 {
+  using memory_space = MemorySpace;
+  static_assert(Kokkos::is_memory_space<MemorySpace>::value);
+
   Kokkos::View<WeightedEdge *, MemorySpace> edges;
   Kokkos::View<int *, MemorySpace> dendrogram_parents;
   Kokkos::View<float *, MemorySpace> dendrogram_parent_heights;
