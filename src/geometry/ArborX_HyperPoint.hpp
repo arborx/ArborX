@@ -22,9 +22,6 @@ namespace ArborX::ExperimentalHyperGeometry
 template <int DIM, class FloatingPoint = float>
 struct Point
 {
-  KOKKOS_DEFAULTED_FUNCTION
-  constexpr Point() noexcept = default;
-
   KOKKOS_FUNCTION
   constexpr auto &operator[](unsigned int i) { return _coords[i]; }
 
