@@ -1,7 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
 project(ArborX CXX)
 
-find_package(Kokkos 3.7.01 REQUIRED CONFIG)
+# Workaround to compile against Trilinos 14.0. That version
+# of Trilinos does not set the compatibility mode for Kokkos correctly.
+# FIXME: remove once we require Kokkos 4.0.1 or later.
+find_package(Kokkos QUIET 3.7.01 CONFIG)
+if (NOT Kokkos_FOUND)
+  find_package(Kokkos 4.0.00 REQUIRED CONFIG)
+endif()
 message(STATUS "Found Kokkos: ${Kokkos_DIR} (version \"${Kokkos_VERSION}\")")
 if(Kokkos_ENABLE_CUDA AND Kokkos_VERSION VERSION_LESS 4.1)
   # CUDA_LAMBDA is deprecated starting 4.1
