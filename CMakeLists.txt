@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 project(ArborX CXX)
 
+# Workaround to compile against Trilinos 14.0. That version of Trilinos does not
+# set the compatibility mode for Kokkos correctly.
 find_package(Kokkos QUIET 3.7.01 CONFIG)
 if (NOT Kokkos_FOUND)
   find_package(Kokkos 4.0.00 REQUIRED CONFIG)
