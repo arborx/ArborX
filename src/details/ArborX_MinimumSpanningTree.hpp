@@ -14,6 +14,7 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
+#include <ArborX_DetailsKokkosExtBitManipulation.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsMutualReachabilityDistance.hpp>
@@ -612,12 +613,7 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
         // Comparison of weights as ints is the same as their comparison as
         // floats as long as they are positive and are not NaNs or inf
         static_assert(sizeof(int) == sizeof(float));
-        keys(e) = (key << shift) +
-#if KOKKOS_VERSION >= 40100
-                  Kokkos::bit_cast<int>(edge.weight);
-#else
-                  reinterpret_cast<int const &>(edge.weight);
-#endif
+        keys(e) = (key << shift) + KokkosExt::bit_cast<int>(edge.weight);
       });
 
   auto permute = sortObjects(space, keys);
