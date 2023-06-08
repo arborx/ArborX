@@ -46,27 +46,15 @@ struct HappyTreeFriends
   }
 
   template <class BVH>
-  static KOKKOS_FUNCTION
-// FIXME_HIP See https://github.com/arborx/ArborX/issues/553
-#ifdef __HIP_DEVICE_COMPILE__
-      auto
-#else
-      auto const &
-#endif
-      getInternalBoundingVolume(BVH const &bvh, int i)
+  static KOKKOS_FUNCTION auto const &getInternalBoundingVolume(BVH const &bvh,
+                                                               int i)
   {
     return bvh._internal_nodes(internalIndex(bvh, i)).bounding_volume;
   }
 
   template <class BVH>
-  static KOKKOS_FUNCTION
-// FIXME_HIP See https://github.com/arborx/ArborX/issues/553
-#ifdef __HIP_DEVICE_COMPILE__
-      auto
-#else
-      auto const &
-#endif
-      getLeafBoundingVolume(BVH const &bvh, int i)
+  static KOKKOS_FUNCTION auto const &getLeafBoundingVolume(BVH const &bvh,
+                                                           int i)
   {
     static_assert(
         std::is_same_v<decltype(bvh._internal_nodes(0).bounding_volume),
