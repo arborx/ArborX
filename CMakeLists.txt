@@ -95,7 +95,7 @@ install(EXPORT ArborXTargets
   DESTINATION lib/cmake/ArborX
 )
 
-set(ARBORX_VERSION_STRING "1.4")
+set(ARBORX_VERSION_STRING "1.4.1")
 
 # Make sure that the git hash in ArborX_Version.hpp is considered to be always
 # out of date, and thus is updated every recompile.
