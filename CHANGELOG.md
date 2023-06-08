@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/arborx/arborx/tree/v1.4.1) (2023-06-08)
+
+[Full Changelog](https://github.com/arborx/arborx/compare/v1.4...v1.4.1)
+
+**Build Changes:**
+- Add support for Trilinos 14.0 [\#886](https://github.com/arborx/ArborX/pull/886)
+
 ## [1.4](https://github.com/arborx/arborx/tree/v1.4) (2023-05-05)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v1.3...v1.4)
