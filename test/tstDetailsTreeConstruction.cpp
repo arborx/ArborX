@@ -15,6 +15,7 @@
 #include <ArborX_DetailsNode.hpp>       // ROPE SENTINEL
 #include <ArborX_DetailsSortUtils.hpp>  // sortObjects
 #include <ArborX_DetailsTreeConstruction.hpp>
+#include <ArborX_IndexableGetter.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -153,8 +154,12 @@ void generateHierarchy(Primitives primitives, MortonCodes sorted_morton_codes,
   ArborX::iota(space, permutation_indices);
 
   ArborX::Details::TreeConstruction::generateHierarchy(
-      space, primitives, permutation_indices, sorted_morton_codes, leaf_nodes,
-      internal_nodes);
+      space,
+      ArborX::Details::LegacyValues<
+          Primitives, typename InternalNodes::value_type::bounding_volume_type>{
+          primitives},
+      ArborX::Details::DefaultIndexableGetter{}, permutation_indices,
+      sorted_morton_codes, leaf_nodes, internal_nodes);
 }
 
 template <typename LeafNodes, typename InternalNodes>

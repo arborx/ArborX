@@ -25,6 +25,7 @@
 #include <ArborX_DetailsTreeConstruction.hpp>
 #include <ArborX_DetailsTreeTraversal.hpp>
 #include <ArborX_HyperBox.hpp>
+#include <ArborX_IndexableGetter.hpp>
 #include <ArborX_SpaceFillingCurves.hpp>
 #include <ArborX_TraversalPolicy.hpp>
 
@@ -105,6 +106,7 @@ private:
   bounding_volume_type _bounds;
   Kokkos::View<leaf_node_type *, MemorySpace> _leaf_nodes;
   Kokkos::View<internal_node_type *, MemorySpace> _internal_nodes;
+  Details::DefaultIndexableGetter _indexable_getter;
 };
 
 template <typename MemorySpace>
@@ -151,15 +153,17 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume>::
 
   // determine the bounding box of the scene
   ExperimentalHyperGeometry::Box<DIM> bbox{};
-  Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, primitives,
-                                                            bbox);
+  Details::TreeConstruction::calculateBoundingBoxOfTheScene(
+      space, Details::Indexables<Primitives>{primitives}, bbox);
 
   Kokkos::Profiling::popRegion();
 
   if (size() == 1)
   {
-    Details::TreeConstruction::initializeSingleLeafNode(space, primitives,
-                                                        _leaf_nodes);
+    Details::TreeConstruction::initializeSingleLeafNode(
+        space,
+        Details::LegacyValues<Primitives, bounding_volume_type>{primitives},
+        _leaf_nodes);
     Kokkos::deep_copy(
         space,
         Kokkos::View<BoundingVolume, Kokkos::HostSpace,
@@ -171,7 +175,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume>::
 
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::compute_linear_ordering");
 
-  // map primitives from multidimensional domain to one-dimensional interval
+  // Map indexables from multidimensional domain to one-dimensional interval
   using LinearOrderingValueType = Kokkos::detected_t<
       Details::SpaceFillingCurveProjectionArchetypeExpression,
       SpaceFillingCurve, decltype(bbox),
@@ -181,21 +185,24 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume>::
                          "ArborX::BVH::BVH::linear_ordering"),
       size());
   Details::TreeConstruction::projectOntoSpaceFillingCurve(
-      space, primitives, curve, bbox, linear_ordering_indices);
+      space, Details::Indexables<Primitives>{primitives}, curve, bbox,
+      linear_ordering_indices);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::sort_linearized_order");
 
-  // compute the ordering of the primitives along the space-filling curve
+  // Compute the ordering of the indexables along the space-filling curve
   auto permutation_indices =
       Details::sortObjects(space, linear_ordering_indices);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::generate_hierarchy");
 
-  // generate bounding volume hierarchy
+  // Generate bounding volume hierarchy
   Details::TreeConstruction::generateHierarchy(
-      space, primitives, permutation_indices, linear_ordering_indices,
+      space,
+      Details::LegacyValues<Primitives, bounding_volume_type>{primitives},
+      _indexable_getter, permutation_indices, linear_ordering_indices,
       _leaf_nodes, _internal_nodes);
 
   Kokkos::deep_copy(

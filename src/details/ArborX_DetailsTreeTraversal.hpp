@@ -78,7 +78,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     auto const &predicate = Access::get(_predicates, queryIndex);
     auto const root = 0;
     auto const &root_bounding_volume =
-        HappyTreeFriends::getLeafBoundingVolume(_bvh, root);
+        HappyTreeFriends::getIndexable(_bvh, root);
     if (predicate(root_bounding_volume))
     {
       _callback(predicate, HappyTreeFriends::getValue(_bvh, 0));
@@ -94,10 +94,9 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     {
       bool const is_leaf = HappyTreeFriends::isLeaf(_bvh, node);
 
-      if (predicate(
-              (is_leaf
-                   ? HappyTreeFriends::getLeafBoundingVolume(_bvh, node)
-                   : HappyTreeFriends::getInternalBoundingVolume(_bvh, node))))
+      if (predicate((is_leaf ? HappyTreeFriends::getIndexable(_bvh, node)
+                             : HappyTreeFriends::getInternalBoundingVolume(
+                                   _bvh, node))))
       {
         if (is_leaf)
         {
@@ -263,7 +262,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     auto const distance = [&predicate, &bvh](int j) {
       return predicate.distance(
           HappyTreeFriends::isLeaf(bvh, j)
-              ? HappyTreeFriends::getLeafBoundingVolume(bvh, j)
+              ? HappyTreeFriends::getIndexable(bvh, j)
               : HappyTreeFriends::getInternalBoundingVolume(bvh, j));
     };
 
@@ -431,7 +430,7 @@ struct TreeTraversal<BVH, Predicates, Callback,
     auto const &predicate = Access::get(_predicates, queryIndex);
     auto const root = 0;
     auto const &root_bounding_volume =
-        HappyTreeFriends::getLeafBoundingVolume(_bvh, root);
+        HappyTreeFriends::getIndexable(_bvh, root);
     using distance_type =
         decltype(distance(getGeometry(predicate), root_bounding_volume));
     constexpr auto inf =
@@ -472,7 +471,7 @@ struct TreeTraversal<BVH, Predicates, Callback,
     auto const distance = [&predicate, &bvh](int j) {
       return predicate.distance(
           HappyTreeFriends::isLeaf(bvh, j)
-              ? HappyTreeFriends::getLeafBoundingVolume(bvh, j)
+              ? HappyTreeFriends::getIndexable(bvh, j)
               : HappyTreeFriends::getInternalBoundingVolume(bvh, j));
     };
 

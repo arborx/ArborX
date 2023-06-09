@@ -350,7 +350,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::dense_cells");
     Box bounds;
     Details::TreeConstruction::calculateBoundingBoxOfTheScene(
-        exec_space, primitives, bounds);
+        exec_space, Details::Indexables<Primitives>{primitives}, bounds);
 
     // The cell length is chosen to be eps/sqrt(dimension), so that any two
     // points within the same cell are within eps distance of each other.
