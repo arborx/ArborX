@@ -238,7 +238,7 @@ void BasicBoundingVolumeHierarchy<
   static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                               ExecutionSpace>::value,
                 "Predicates must be accessible from the execution space");
-  Details::check_valid_callback(legacy_callback, predicates);
+  Details::check_valid_callback<int>(legacy_callback, predicates);
   Details::LegacyCallbackWrapper<Callback, value_type> callback{
       legacy_callback};
 

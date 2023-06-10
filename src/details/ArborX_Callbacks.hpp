@@ -170,7 +170,7 @@ KOKKOS_INLINE_FUNCTION
   return false;
 }
 
-template <typename Callback, typename Predicates>
+template <typename Value, typename Callback, typename Predicates>
 void check_valid_callback(Callback const &callback, Predicates const &)
 {
   check_generic_lambda_support(callback);
@@ -183,7 +183,7 @@ void check_valid_callback(Callback const &callback, Predicates const &)
                 "The predicate tag is not valid");
 
   static_assert(Kokkos::is_detected<Experimental_CallbackArchetypeExpression,
-                                    Callback, Predicate, int>{},
+                                    Callback, Predicate, Value>{},
                 "Callback 'operator()' does not have the correct signature");
 
   static_assert(
@@ -193,10 +193,10 @@ void check_valid_callback(Callback const &callback, Predicates const &)
           (std::is_same<
                CallbackTreeTraversalControl,
                Kokkos::detected_t<Experimental_CallbackArchetypeExpression,
-                                  Callback, Predicate, int>>{} ||
+                                  Callback, Predicate, Value>>{} ||
            std::is_void<
                Kokkos::detected_t<Experimental_CallbackArchetypeExpression,
-                                  Callback, Predicate, int>>{}),
+                                  Callback, Predicate, Value>>{}),
       "Callback 'operator()' return type must be void or "
       "ArborX::CallbackTreeTraversalControl");
 
@@ -204,7 +204,7 @@ void check_valid_callback(Callback const &callback, Predicates const &)
       !std::is_same<PredicateTag, NearestPredicateTag>{} ||
           std::is_void<
               Kokkos::detected_t<Experimental_CallbackArchetypeExpression,
-                                 Callback, Predicate, int>>{},
+                                 Callback, Predicate, Value>>{},
       "Callback 'operator()' return type must be void");
 }
 
