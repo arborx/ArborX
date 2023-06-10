@@ -112,9 +112,46 @@ private:
 };
 
 template <typename MemorySpace>
-using BoundingVolumeHierarchy =
-    BasicBoundingVolumeHierarchy<MemorySpace, Details::PairIndexVolume<Box>,
-                                 Details::DefaultIndexableGetter, Box>;
+class BoundingVolumeHierarchy
+    : public BasicBoundingVolumeHierarchy<MemorySpace,
+                                          Details::PairIndexVolume<Box>,
+                                          Details::DefaultIndexableGetter, Box>
+{
+  using base_type =
+      BasicBoundingVolumeHierarchy<MemorySpace, Details::PairIndexVolume<Box>,
+                                   Details::DefaultIndexableGetter, Box>;
+
+public:
+  BoundingVolumeHierarchy() = default; // build an empty tree
+
+  template <typename ExecutionSpace, typename Primitives,
+            typename SpaceFillingCurve = Experimental::Morton64>
+  BoundingVolumeHierarchy(ExecutionSpace const &space,
+                          Primitives const &primitives,
+                          SpaceFillingCurve const &curve = SpaceFillingCurve())
+      : base_type(space, primitives, curve)
+  {}
+
+  template <typename ExecutionSpace, typename Predicates, typename Callback>
+  void query(ExecutionSpace const &space, Predicates const &predicates,
+             Callback const &callback,
+             Experimental::TraversalPolicy const &policy =
+                 Experimental::TraversalPolicy()) const
+  {
+    base_type::query(space, predicates, callback, policy);
+  }
+
+  template <typename ExecutionSpace, typename Predicates,
+            typename CallbackOrView, typename View, typename... Args>
+  std::enable_if_t<Kokkos::is_view<std::decay_t<View>>{}>
+  query(ExecutionSpace const &space, Predicates const &predicates,
+        CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
+  {
+    ArborX::query(*this, space, predicates,
+                  std::forward<CallbackOrView>(callback_or_view),
+                  std::forward<View>(view), std::forward<Args>(args)...);
+  }
+};
 
 template <typename MemorySpace>
 using BVH = BoundingVolumeHierarchy<MemorySpace>;
