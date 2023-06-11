@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -25,10 +25,7 @@
 
 #include <tuple>
 
-namespace ArborX
-{
-
-namespace Details
+namespace ArborX::Details
 {
 template <typename DeviceType>
 struct BatchedQueries
@@ -109,93 +106,8 @@ public:
 
     return w;
   }
-
-  template <typename ExecutionSpace, typename Permute, typename Offset>
-  static typename Offset::non_const_type
-  permuteOffset(ExecutionSpace const &space, Permute const &permute,
-                Offset const &offset)
-  {
-    auto const n = permute.extent(0);
-    ARBORX_ASSERT(offset.extent(0) == n + 1);
-
-    auto tmp_offset =
-        KokkosExt::cloneWithoutInitializingNorCopying(space, offset);
-    Kokkos::parallel_for(
-        "ArborX::BatchedQueries::adjacent_difference_and_permutation",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
-          tmp_offset(permute(i)) = offset(i + 1) - offset(i);
-        });
-
-    exclusivePrefixSum(space, tmp_offset);
-
-    return tmp_offset;
-  }
-
-  template <typename ExecutionSpace, typename Permute, typename Values,
-            typename Offset, typename Offset2>
-  static typename Values::non_const_type
-  permuteIndices(ExecutionSpace const &space, Permute const &permute,
-                 Values const &indices, Offset const &offset,
-                 Offset2 const &tmp_offset)
-  {
-    auto const n = permute.extent(0);
-
-    ARBORX_ASSERT(offset.extent(0) == n + 1);
-    ARBORX_ASSERT(tmp_offset.extent(0) == n + 1);
-    using KokkosExt::lastElement;
-    ARBORX_ASSERT(lastElement(space, offset) == indices.extent_int(0));
-    ARBORX_ASSERT(lastElement(space, tmp_offset) == indices.extent_int(0));
-
-    auto tmp_indices =
-        KokkosExt::cloneWithoutInitializingNorCopying(space, indices);
-    Kokkos::parallel_for(
-        "ArborX::BatchedQueries::permute_indices",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int q) {
-          for (int i = 0; i < offset(q + 1) - offset(q); ++i)
-          {
-            tmp_indices(tmp_offset(permute(q)) + i) = indices(offset(q) + i);
-          }
-        });
-    return tmp_indices;
-  }
-
-  template <typename ExecutionSpace, typename T, typename... P>
-  static std::tuple<Kokkos::View<int *, DeviceType>, Kokkos::View<T *, P...>>
-  reversePermutation(ExecutionSpace const &space,
-                     Kokkos::View<unsigned int const *, DeviceType> permute,
-                     Kokkos::View<int const *, DeviceType> offset,
-                     Kokkos::View<T /*const*/ *, P...> out)
-  {
-    auto const tmp_offset = permuteOffset(space, permute, offset);
-
-    auto const tmp_out =
-        permuteIndices(space, permute, out, offset, tmp_offset);
-    return std::make_tuple(tmp_offset, tmp_out);
-  }
-
-  template <typename ExecutionSpace>
-  static std::tuple<Kokkos::View<int *, DeviceType>,
-                    Kokkos::View<int *, DeviceType>,
-                    Kokkos::View<float *, DeviceType>>
-  reversePermutation(ExecutionSpace const &space,
-                     Kokkos::View<unsigned int const *, DeviceType> permute,
-                     Kokkos::View<int const *, DeviceType> offset,
-                     Kokkos::View<int const *, DeviceType> indices,
-                     Kokkos::View<float const *, DeviceType> distances)
-  {
-    auto const tmp_offset = permuteOffset(permute, offset);
-
-    auto const tmp_indices =
-        permuteIndices(space, permute, indices, offset, tmp_offset);
-
-    auto const tmp_distances =
-        permuteIndices(space, permute, distances, offset, tmp_offset);
-
-    return std::make_tuple(tmp_offset, tmp_indices, tmp_distances);
-  }
 };
 
-} // namespace Details
-} // namespace ArborX
+} // namespace ArborX::Details
 
 #endif
