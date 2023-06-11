@@ -93,8 +93,9 @@ struct InsertGenerator
         Kokkos::atomic_increment(&count);
       });
     }
-    else if constexpr (std::is_same_v<PassTag, SecondPassTag>)
+    else
     {
+      static_assert(std::is_same_v<PassTag, SecondPassTag>);
       // we store offsets in counts, and offset(permute(i)) = counts(i)
       auto &offset = count;
 
