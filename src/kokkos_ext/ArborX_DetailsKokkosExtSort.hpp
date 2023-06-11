@@ -116,7 +116,7 @@ void sortByKey(
 #if defined(KOKKOS_ENABLE_CUDA)
     Kokkos::Cuda const &space,
 #else
-    Kokkos::Experimental::HIP const &space,
+    Kokkos::HIP const &space,
 #endif
     Keys &keys, Values &values)
 {

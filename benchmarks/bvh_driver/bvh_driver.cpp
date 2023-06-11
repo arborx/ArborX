@@ -107,8 +107,7 @@ void register_bvh_benchmarks(Spec const &spec)
 
 #ifdef KOKKOS_ENABLE_HIP
   if (spec.backends == "all" || spec.backends == "hip")
-    BVHBenchmarkRegistration<Kokkos::Experimental::HIP>(spec,
-                                                        "ArborX::BVH<HIP>");
+    BVHBenchmarkRegistration<Kokkos::HIP>(spec, "ArborX::BVH<HIP>");
 #else
   if (spec.backends == "hip")
     throw std::runtime_error("HIP backend not available!");
