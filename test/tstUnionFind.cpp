@@ -37,18 +37,7 @@ build_representatives(ExecutionSpace const &space, UnionFind union_find)
       "Test::find_representatives",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
         auto r = union_find.representative(i);
-#if KOKKOS_VERSION >= 30799
         Kokkos::atomic_min(&map2smallest(r), i);
-#else
-         // Workaround for undefined
-        //   desul::atomic_min(int*, int, desul::MemoryOrderRelaxed,
-        //   desul::MemoryScopeDevice)
-        // in older Kokkos versions.
-        auto v = map2smallest(r);
-        while (v > i) {
-          v = Kokkos::atomic_compare_exchange(&map2smallest(r), v, i);
-        }
-#endif
         representatives(i) = r;
       });
   // We want the representative values to not depend on a specific
