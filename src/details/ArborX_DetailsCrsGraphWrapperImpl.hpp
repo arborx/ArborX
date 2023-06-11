@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -51,7 +51,8 @@ struct SecondPassTag
 {};
 
 template <typename PassTag, typename Predicates, typename Callback,
-          typename OutputView, typename CountView, typename PermutedOffset>
+          typename OutputView, typename CountView, typename PermutedOffset,
+          bool Legacy>
 struct InsertGenerator
 {
   Callback _callback;
@@ -62,6 +63,15 @@ struct InsertGenerator
   using ValueType = typename OutputView::value_type;
   using Access = AccessTraits<Predicates, PredicatesTag>;
   using PredicateType = typename AccessTraitsHelper<Access>::type;
+
+  // Legacy callback wrapper
+  template <typename Value, bool B = Legacy,
+            typename Enable = std::enable_if_t<!B>>
+  KOKKOS_FUNCTION auto operator()(PredicateType const &predicate,
+                                  Value const &value) const
+  {
+    return (*this)(predicate, (int)value.index);
+  }
 
   KOKKOS_FUNCTION auto operator()(PredicateType const &predicate,
                                   int primitive_index) const
@@ -114,6 +124,9 @@ struct InsertGenerator
 namespace CrsGraphWrapperImpl
 {
 
+template <typename Callback>
+using LegacyTreeArchetypeExpression = typename Callback::legacy_tree;
+
 template <typename ExecutionSpace, typename Tree, typename Predicates,
           typename Callback, typename OutputView, typename OffsetView,
           typename PermuteType>
@@ -143,6 +156,9 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
   using PermutedOffset = PermutedData<OffsetView, PermuteType>;
   PermutedOffset permuted_offset = {offset, permute};
 
+  constexpr bool Legacy =
+      Kokkos::is_detected_v<LegacyTreeArchetypeExpression, Tree>;
+
   Kokkos::Profiling::pushRegion(
       "ArborX::CrsGraphWrapper::two_pass::first_pass");
   bool underflow = false;
@@ -152,8 +168,8 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     tree.query(
         space, permuted_predicates,
         InsertGenerator<FirstPassTag, PermutedPredicates, Callback, OutputView,
-                        CountView, PermutedOffset>{callback, out, counts,
-                                                   permuted_offset},
+                        CountView, PermutedOffset, Legacy>{
+            callback, out, counts, permuted_offset},
         ArborX::Experimental::TraversalPolicy().setPredicateSorting(false));
 
     // Detecting overflow is a local operation that needs to be done for every
@@ -187,8 +203,8 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     tree.query(
         space, permuted_predicates,
         InsertGenerator<FirstPassNoBufferOptimizationTag, PermutedPredicates,
-                        Callback, OutputView, CountView, PermutedOffset>{
-            callback, out, counts, permuted_offset},
+                        Callback, OutputView, CountView, PermutedOffset,
+                        Legacy>{callback, out, counts, permuted_offset},
         ArborX::Experimental::TraversalPolicy().setPredicateSorting(false));
     // This may not be true, but it does not matter. As long as we have
     // (n_results == 0) check before second pass, this value is not used.
@@ -249,8 +265,8 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     tree.query(
         space, permuted_predicates,
         InsertGenerator<SecondPassTag, PermutedPredicates, Callback, OutputView,
-                        CountView, PermutedOffset>{callback, out, counts,
-                                                   permuted_offset},
+                        CountView, PermutedOffset, Legacy>{
+            callback, out, counts, permuted_offset},
         ArborX::Experimental::TraversalPolicy().setPredicateSorting(false));
 
     Kokkos::Profiling::popRegion();

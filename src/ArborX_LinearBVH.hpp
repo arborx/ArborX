@@ -122,6 +122,8 @@ class BoundingVolumeHierarchy
                                    Details::DefaultIndexableGetter, Box>;
 
 public:
+  using legacy_tree = void;
+
   BoundingVolumeHierarchy() = default; // build an empty tree
 
   template <typename ExecutionSpace, typename Primitives,
@@ -138,7 +140,10 @@ public:
              Experimental::TraversalPolicy const &policy =
                  Experimental::TraversalPolicy()) const
   {
-    base_type::query(space, predicates, callback, policy);
+    base_type::query(space, predicates,
+                     Details::LegacyCallbackWrapper<
+                         Callback, typename base_type::value_type>{callback},
+                     policy);
   }
 
   template <typename ExecutionSpace, typename Predicates,
@@ -265,7 +270,7 @@ void BasicBoundingVolumeHierarchy<
     MemorySpace, Value, IndexableGetter,
     BoundingVolume>::query(ExecutionSpace const &space,
                            Predicates const &predicates,
-                           Callback const &legacy_callback,
+                           Callback const &callback,
                            Experimental::TraversalPolicy const &policy) const
 {
   static_assert(
@@ -275,9 +280,7 @@ void BasicBoundingVolumeHierarchy<
   static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                               ExecutionSpace>::value,
                 "Predicates must be accessible from the execution space");
-  Details::check_valid_callback<int>(legacy_callback, predicates);
-  Details::LegacyCallbackWrapper<Callback, value_type> callback{
-      legacy_callback};
+  Details::check_valid_callback<value_type>(callback, predicates);
 
   using Tag = typename Details::AccessTraitsHelper<Access>::tag;
   std::string profiling_prefix = "ArborX::BVH::query::";

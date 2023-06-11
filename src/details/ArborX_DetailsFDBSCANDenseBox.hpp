@@ -57,11 +57,12 @@ struct CountUpToN_DenseBox
       , _n(n)
   {}
 
-  template <typename Query>
-  KOKKOS_FUNCTION auto operator()(Query const &query, int k) const
+  template <typename Query, typename Value>
+  KOKKOS_FUNCTION auto operator()(Query const &query, Value const &value) const
   {
     using Access = AccessTraits<Primitives, PrimitivesTag>;
 
+    int const k = value.index;
     auto const i = getData(query);
 
     bool const is_dense_cell = (k < _num_dense_cells);
@@ -126,11 +127,12 @@ struct FDBSCANDenseBoxCallback
       , eps(eps_in)
   {}
 
-  template <typename Query>
-  KOKKOS_FUNCTION auto operator()(Query const &query, int k) const
+  template <typename Query, typename Value>
+  KOKKOS_FUNCTION auto operator()(Query const &query, Value const &value) const
   {
     using Access = AccessTraits<Primitives, PrimitivesTag>;
 
+    int const k = value.index;
     auto const i = ArborX::getData(query);
 
     bool const is_border_point = !_is_core_point(i);

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -28,12 +28,16 @@ struct MaxDistance
 {
   Primitives _primitives;
   Distances _distances;
+
   using Access = AccessTraits<Primitives, PrimitivesTag>;
   using memory_space = typename Access::memory_space;
   using size_type = typename memory_space::size_type;
-  template <class Predicate>
-  KOKKOS_FUNCTION void operator()(Predicate const &predicate, size_type i) const
+
+  template <class Predicate, typename Value>
+  KOKKOS_FUNCTION void operator()(Predicate const &predicate,
+                                  Value const &value) const
   {
+    size_type const i = value.index;
     size_type const j = getData(predicate);
     using KokkosExt::max;
     auto const distance_ij =

@@ -29,8 +29,8 @@ struct CountUpToN
   Kokkos::View<int *, MemorySpace> _counts;
   int _n;
 
-  template <typename Query>
-  KOKKOS_FUNCTION auto operator()(Query const &query, int) const
+  template <typename Query, typename Value>
+  KOKKOS_FUNCTION auto operator()(Query const &query, Value const &) const
   {
     auto i = getData(query);
     Kokkos::atomic_increment(&_counts(i));
