@@ -57,18 +57,34 @@ inline void projectOntoSpaceFillingCurve(ExecutionSpace const &space,
       });
 }
 
-template <typename ExecutionSpace, typename Values, typename Nodes>
-inline void initializeSingleLeafNode(ExecutionSpace const &space,
-                                     Values const &values,
-                                     Nodes const &leaf_nodes)
+template <typename ExecutionSpace, typename Values, typename IndexableGetter,
+          typename Nodes, typename BoundingVolume>
+inline void
+initializeSingleLeafTree(ExecutionSpace const &space, Values const &values,
+                         IndexableGetter const &indexable_getter,
+                         Nodes const &leaf_nodes, BoundingVolume &bounds)
 {
   ARBORX_ASSERT(leaf_nodes.extent(0) == 1);
   ARBORX_ASSERT(values.size() == 1);
 
+  // Skip initialization so that we don't execute a kernel launch
+  Kokkos::View<BoundingVolume, typename Nodes::memory_space> bounding_volume(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         "ArborX::BVH::getSingleLeafBounds::bounding_volume"));
   Kokkos::parallel_for(
-      "ArborX::TreeConstruction::initialize_single_leaf",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1),
-      KOKKOS_LAMBDA(int) { leaf_nodes(0) = makeLeafNode(values(0)); });
+      "ArborX::TreeConstruction::initialize_single_leaf_tree",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1), KOKKOS_LAMBDA(int) {
+        leaf_nodes(0) = makeLeafNode(values(0));
+        BoundingVolume bv;
+        expand(bv, indexable_getter(leaf_nodes(0).value));
+        bounding_volume() = bv;
+      });
+
+  Kokkos::deep_copy(
+      space,
+      Kokkos::View<BoundingVolume, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
+          &bounds),
+      bounding_volume);
 }
 
 template <typename Values, typename IndexableGetter,
@@ -80,6 +96,8 @@ class GenerateHierarchy
 
   using MemorySpace = typename LeafNodes::memory_space;
   using LinearOrderingValueType = typename LinearOrdering::non_const_value_type;
+  using BoundingVolume =
+      typename InternalNodes::value_type::bounding_volume_type;
 
 public:
   template <typename ExecutionSpace>
@@ -87,7 +105,8 @@ public:
                     IndexableGetter const &indexable_getter,
                     PermutationIndices const &permutation_indices,
                     LinearOrdering const &sorted_morton_codes,
-                    LeafNodes leaf_nodes, InternalNodes internal_nodes)
+                    LeafNodes leaf_nodes, InternalNodes internal_nodes,
+                    BoundingVolume &bounds)
       : _values(values)
       , _indexable_getter(indexable_getter)
       , _permutation_indices(permutation_indices)
@@ -105,6 +124,22 @@ public:
         "ArborX::TreeConstruction::generate_hierarchy",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, leaf_nodes.extent(0)),
         *this);
+
+    Kokkos::deep_copy(
+        space,
+        Kokkos::View<BoundingVolume, Kokkos::HostSpace,
+                     Kokkos::MemoryUnmanaged>(&bounds),
+        Kokkos::View<BoundingVolume const, MemorySpace,
+                     Kokkos::MemoryUnmanaged>(getRootBoundingVolumePtr()));
+  }
+
+  KOKKOS_FUNCTION
+  BoundingVolume const *getRootBoundingVolumePtr() const
+  {
+    // Need address of the root node's bounding box to copy it back on the host,
+    // but can't access node elements from the constructor since the data is on
+    // the device.
+    return &_internal_nodes.data()->bounding_volume;
   }
 
   using DeltaValueType = std::make_signed_t<LinearOrderingValueType>;
@@ -188,8 +223,6 @@ public:
     auto &leaf_node = _leaf_nodes(i);
     leaf_node = makeLeafNode(_values(original_index));
 
-    using BoundingVolume =
-        typename InternalNodes::value_type::bounding_volume_type;
     BoundingVolume bounding_volume{};
     expand(bounding_volume, _indexable_getter(leaf_node.value));
 
@@ -320,7 +353,8 @@ void generateHierarchy(
         permutation_indices,
     Kokkos::View<LinearOrderingValueType *, LinearOrderingViewProperties...>
         sorted_morton_codes,
-    LeafNodes leaf_nodes, InternalNodes internal_nodes)
+    LeafNodes leaf_nodes, InternalNodes internal_nodes,
+    typename InternalNodes::value_type::bounding_volume_type &bounds)
 {
   using ConstPermutationIndices =
       Kokkos::View<unsigned int const *, PermutationIndicesViewProperties...>;
@@ -330,7 +364,7 @@ void generateHierarchy(
   GenerateHierarchy(space, values, indexable_getter,
                     ConstPermutationIndices(permutation_indices),
                     ConstLinearOrdering(sorted_morton_codes), leaf_nodes,
-                    internal_nodes);
+                    internal_nodes, bounds);
 }
 
 } // namespace ArborX::Details::TreeConstruction
