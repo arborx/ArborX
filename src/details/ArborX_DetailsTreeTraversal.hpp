@@ -94,9 +94,9 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     {
       bool const is_leaf = HappyTreeFriends::isLeaf(_bvh, node);
 
-      if (predicate((is_leaf ? HappyTreeFriends::getIndexable(_bvh, node)
-                             : HappyTreeFriends::getInternalBoundingVolume(
-                                   _bvh, node))))
+      if (is_leaf ? predicate(HappyTreeFriends::getIndexable(_bvh, node))
+                  : predicate(HappyTreeFriends::getInternalBoundingVolume(
+                        _bvh, node)))
       {
         if (is_leaf)
         {
@@ -260,10 +260,10 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
 
     auto &bvh = _bvh;
     auto const distance = [&predicate, &bvh](int j) {
-      return predicate.distance(
-          HappyTreeFriends::isLeaf(bvh, j)
-              ? HappyTreeFriends::getIndexable(bvh, j)
-              : HappyTreeFriends::getInternalBoundingVolume(bvh, j));
+      return HappyTreeFriends::isLeaf(bvh, j)
+                 ? predicate.distance(HappyTreeFriends::getIndexable(bvh, j))
+                 : predicate.distance(
+                       HappyTreeFriends::getInternalBoundingVolume(bvh, j));
     };
 
     constexpr int SENTINEL = -1;
@@ -469,10 +469,10 @@ struct TreeTraversal<BVH, Predicates, Callback,
 
     auto &bvh = _bvh;
     auto const distance = [&predicate, &bvh](int j) {
-      return predicate.distance(
-          HappyTreeFriends::isLeaf(bvh, j)
-              ? HappyTreeFriends::getIndexable(bvh, j)
-              : HappyTreeFriends::getInternalBoundingVolume(bvh, j));
+      return HappyTreeFriends::isLeaf(bvh, j)
+                 ? predicate.distance(HappyTreeFriends::getIndexable(bvh, j))
+                 : predicate.distance(
+                       HappyTreeFriends::getInternalBoundingVolume(bvh, j));
     };
 
     int node = HappyTreeFriends::getRoot(_bvh);
