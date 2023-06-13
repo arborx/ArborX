@@ -63,65 +63,51 @@ struct InsertGenerator
   using Access = AccessTraits<Predicates, PredicatesTag>;
   using PredicateType = typename AccessTraitsHelper<Access>::type;
 
-  template <typename U = PassTag,
-            std::enable_if_t<std::is_same<U, FirstPassTag>{}> * = nullptr>
   KOKKOS_FUNCTION auto operator()(PredicateType const &predicate,
                                   int primitive_index) const
   {
     auto const predicate_index = getData(predicate);
     auto const &raw_predicate = getPredicate(predicate);
-    // With permutation, we access offset in random manner, and
-    // _offset(permutated_predicate_index+1) may be in a completely different
-    // place. Instead, use pointers to get the correct value for the buffer
-    // size. For this reason, also take a reference for offset.
-    auto const &offset = _permuted_offset(predicate_index);
-    auto const buffer_size = *(&offset + 1) - offset;
     auto &count = _counts(predicate_index);
 
-    return _callback(raw_predicate, primitive_index,
-                     [&](ValueType const &value) {
-                       int count_old = Kokkos::atomic_fetch_add(&count, 1);
-                       if (count_old < buffer_size)
-                         _out(offset + count_old) = value;
-                     });
-  }
+    if constexpr (std::is_same_v<PassTag, FirstPassTag>)
+    {
+      // With permutation, we access offset in random manner, and
+      // _offset(permutated_predicate_index+1) may be in a completely different
+      // place. Instead, use pointers to get the correct value for the buffer
+      // size. For this reason, also take a reference for offset.
+      auto const &offset = _permuted_offset(predicate_index);
+      auto const buffer_size = *(&offset + 1) - offset;
 
-  template <
-      typename U = PassTag,
-      std::enable_if_t<std::is_same<U, FirstPassNoBufferOptimizationTag>{}> * =
-          nullptr>
-  KOKKOS_FUNCTION auto operator()(PredicateType const &predicate,
-                                  int primitive_index) const
-  {
-    auto const predicate_index = getData(predicate);
-    auto const &raw_predicate = getPredicate(predicate);
+      return _callback(raw_predicate, primitive_index,
+                       [&](ValueType const &value) {
+                         int count_old = Kokkos::atomic_fetch_add(&count, 1);
+                         if (count_old < buffer_size)
+                           _out(offset + count_old) = value;
+                       });
+    }
+    else if constexpr (std::is_same_v<PassTag,
+                                      FirstPassNoBufferOptimizationTag>)
+    {
+      return _callback(raw_predicate, primitive_index, [&](ValueType const &) {
+        Kokkos::atomic_increment(&count);
+      });
+    }
+    else
+    {
+      static_assert(std::is_same_v<PassTag, SecondPassTag>);
+      // we store offsets in counts, and offset(permute(i)) = counts(i)
+      auto &offset = count;
 
-    auto &count = _counts(predicate_index);
-
-    return _callback(raw_predicate, primitive_index, [&](ValueType const &) {
-      Kokkos::atomic_increment(&count);
-    });
-  }
-
-  template <typename U = PassTag,
-            std::enable_if_t<std::is_same<U, SecondPassTag>{}> * = nullptr>
-  KOKKOS_FUNCTION auto operator()(PredicateType const &predicate,
-                                  int primitive_index) const
-  {
-    auto const predicate_index = getData(predicate);
-    auto const &raw_predicate = getPredicate(predicate);
-
-    // we store offsets in counts, and offset(permute(i)) = counts(i)
-    auto &offset = _counts(predicate_index);
-
-    // TODO: there is a tradeoff here between skipping computation offset +
-    // count, and atomic increment of count. I think atomically incrementing
-    // offset is problematic for OpenMP as you potentially constantly steal
-    // cache lines.
-    return _callback(raw_predicate, primitive_index,
-                     [&](ValueType const &value) {
-                       _out(Kokkos::atomic_fetch_add(&offset, 1)) = value;
-                     });
+      // TODO: there is a tradeoff here between skipping computation offset +
+      // count, and atomic increment of count. I think atomically incrementing
+      // offset is problematic for OpenMP as you potentially constantly steal
+      // cache lines.
+      return _callback(raw_predicate, primitive_index,
+                       [&](ValueType const &value) {
+                         _out(Kokkos::atomic_fetch_add(&offset, 1)) = value;
+                       });
+    }
   }
 };
 
