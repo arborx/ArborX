@@ -20,8 +20,7 @@ namespace KokkosExt
 {
 
 #if KOKKOS_VERSION >= 40100
-template <class To, class From>
-using bit_cast = Kokkos::bit_cast<To, From>;
+using Kokkos::bit_cast;
 #else
 template <class To, class From>
 KOKKOS_FUNCTION std::enable_if_t<sizeof(To) == sizeof(From) &&
