@@ -20,9 +20,15 @@ stages:
   script:
     - git clone https://github.com/google/benchmark.git -b v1.6.0 &&
       cd benchmark &&
-      mkdir build && cd build &&
-      cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DBENCHMARK_ENABLE_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/ccsopen/proj/csc333/benchmark.install .. &&
-      make && make install
+      mkdir build &&
+      cd build &&
+      cmake -DCMAKE_INSTALL_PREFIX=/ccsopen/proj/csc333/benchmark.install
+            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_CXX_COMPILER=g++
+            -DBENCHMARK_ENABLE_TESTING=OFF .. &&
+      make &&
+      rm -rf /ccsopen/proj/csc333/benchmark.install &&
+      make install
   tags:
     - nobatch
 
@@ -34,8 +40,18 @@ BuildKokkos:
       cd kokkos &&
       mkdir build &&
       cd build &&
-      cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/ccsopen/proj/csc333/kokkos.install -DCMAKE_CXX_COMPILER=${CI_PROJECT_DIR}/kokkos/bin/nvcc_wrapper -DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_CUDA_LAMBDA=ON -DKokkos_ARCH_POWER9=ON -DKokkos_ARCH_VOLTA70=ON .. &&
+      cmake -DCMAKE_INSTALL_PREFIX=/ccsopen/proj/csc333/kokkos.install
+            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_CXX_COMPILER=${CI_PROJECT_DIR}/kokkos/bin/nvcc_wrapper
+            -DCMAKE_CXX_EXTENSIONS=OFF
+            -DKokkos_ENABLE_SERIAL=ON
+            -DKokkos_ENABLE_OPENMP=ON
+            -DKokkos_ENABLE_CUDA=ON
+            -DKokkos_ENABLE_CUDA_LAMBDA=ON
+            -DKokkos_ARCH_POWER9=ON
+            -DKokkos_ARCH_VOLTA70=ON .. &&
       make &&
+      rm -rf /ccsopen/proj/csc333/kokkos.install &&
       make install
   tags:
     - nobatch
