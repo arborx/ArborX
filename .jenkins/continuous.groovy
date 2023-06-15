@@ -415,7 +415,7 @@ pipeline {
                                 . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
                                 cmake \
                                     -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
-                                    -D CMAKE_BUILD_TYPE=Release \
+                                    -D CMAKE_BUILD_TYPE=Debug \
                                     -D CMAKE_CXX_COMPILER=${DPCPP} \
                                     -D CMAKE_CXX_EXTENSIONS=OFF \
                                     -D CMAKE_CXX_FLAGS="-fp-model=precise -fsycl-device-code-split=per_kernel -Wpedantic -Wall -Wextra -Wno-unknown-cuda-version" \
