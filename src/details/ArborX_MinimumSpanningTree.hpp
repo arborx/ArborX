@@ -180,11 +180,12 @@ struct FindComponentNearestNeighbors
                                HappyTreeFriends::getIndexable(_bvh, i),
                            &bvh = _bvh](int j) {
       using Details::distance;
-      auto &&bounding_volume_j =
-          (HappyTreeFriends::isLeaf(bvh, j)
-               ? HappyTreeFriends::getIndexable(bvh, j)
-               : HappyTreeFriends::getInternalBoundingVolume(bvh, j));
-      return distance(bounding_volume_i, bounding_volume_j);
+      return HappyTreeFriends::isLeaf(bvh, j)
+                 ? distance(bounding_volume_i,
+                            HappyTreeFriends::getIndexable(bvh, j))
+                 : distance(
+                       bounding_volume_i,
+                       HappyTreeFriends::getInternalBoundingVolume(bvh, j));
     };
 
     auto const component = _labels(i);

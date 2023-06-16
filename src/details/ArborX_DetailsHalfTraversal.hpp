@@ -62,9 +62,9 @@ struct HalfTraversal
     {
       bool const is_leaf = HappyTreeFriends::isLeaf(_bvh, node);
 
-      if (predicate((is_leaf ? HappyTreeFriends::getIndexable(_bvh, node)
-                             : HappyTreeFriends::getInternalBoundingVolume(
-                                   _bvh, node))))
+      if (is_leaf ? predicate(HappyTreeFriends::getIndexable(_bvh, node))
+                  : predicate(HappyTreeFriends::getInternalBoundingVolume(
+                        _bvh, node)))
       {
         if (is_leaf)
         {

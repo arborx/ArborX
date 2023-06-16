@@ -250,10 +250,11 @@ public:
         // thread.
         // NOTE we need acquire semantics at the device scope
         Kokkos::load_fence();
-        expand(bounding_volume,
-               right_child_is_leaf
-                   ? _indexable_getter(_leaf_nodes(right_child).value)
-                   : _internal_nodes(right_child).bounding_volume);
+        if (right_child_is_leaf)
+          expand(bounding_volume,
+                 _indexable_getter(_leaf_nodes(right_child).value));
+        else
+          expand(bounding_volume, _internal_nodes(right_child).bounding_volume);
       }
       else
       {
@@ -273,10 +274,11 @@ public:
         delta_left = delta(range_left - 1);
 
         Kokkos::load_fence();
-        expand(bounding_volume,
-               left_child_is_leaf
-                   ? _indexable_getter(_leaf_nodes(left_child).value)
-                   : _internal_nodes(left_child).bounding_volume);
+        if (left_child_is_leaf)
+          expand(bounding_volume,
+                 _indexable_getter(_leaf_nodes(left_child).value));
+        else
+          expand(bounding_volume, _internal_nodes(left_child).bounding_volume);
 
         if (!left_child_is_leaf)
           left_child = internalIndex(left_child);
