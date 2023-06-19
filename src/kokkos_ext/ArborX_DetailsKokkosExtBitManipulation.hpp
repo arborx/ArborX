@@ -13,6 +13,9 @@
 #define ARBORX_DETAILS_KOKKOS_EXT_BIT_MANIPULATION_HPP
 
 #include <Kokkos_Macros.hpp>
+#if KOKKOS_VERSION >= 40100
+#include <Kokkos_BitManipulation.hpp>
+#endif
 
 #include <type_traits>
 
