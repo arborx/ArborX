@@ -39,7 +39,9 @@ namespace Details
 struct HappyTreeFriends;
 } // namespace Details
 
-template <typename MemorySpace, typename BoundingVolume = Box>
+template <typename MemorySpace, typename Value,
+          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename BoundingVolume = Box>
 class BasicBoundingVolumeHierarchy
 {
 public:
@@ -47,7 +49,7 @@ public:
   static_assert(Kokkos::is_memory_space<MemorySpace>::value);
   using size_type = typename MemorySpace::size_type;
   using bounding_volume_type = BoundingVolume;
-  using value_type = Details::PairIndexVolume<bounding_volume_type>;
+  using value_type = Value;
 
   BasicBoundingVolumeHierarchy() = default; // build an empty tree
 
@@ -106,19 +108,23 @@ private:
   bounding_volume_type _bounds;
   Kokkos::View<leaf_node_type *, MemorySpace> _leaf_nodes;
   Kokkos::View<internal_node_type *, MemorySpace> _internal_nodes;
-  Details::DefaultIndexableGetter _indexable_getter;
+  IndexableGetter _indexable_getter;
 };
 
 template <typename MemorySpace>
-using BoundingVolumeHierarchy = BasicBoundingVolumeHierarchy<MemorySpace>;
+using BoundingVolumeHierarchy =
+    BasicBoundingVolumeHierarchy<MemorySpace, Details::PairIndexVolume<Box>,
+                                 Details::DefaultIndexableGetter, Box>;
 
 template <typename MemorySpace>
 using BVH = BoundingVolumeHierarchy<MemorySpace>;
 
-template <typename MemorySpace, typename BoundingVolume>
+template <typename MemorySpace, typename Value, typename IndexableGetter,
+          typename BoundingVolume>
 template <typename ExecutionSpace, typename Primitives,
           typename SpaceFillingCurve>
-BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume>::
+BasicBoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
+                             BoundingVolume>::
     BasicBoundingVolumeHierarchy(ExecutionSpace const &space,
                                  Primitives const &primitives,
                                  SpaceFillingCurve const &curve)
@@ -215,12 +221,15 @@ BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume>::
   Kokkos::Profiling::popRegion();
 }
 
-template <typename MemorySpace, typename BoundingVolume>
+template <typename MemorySpace, typename Value, typename IndexableGetter,
+          typename BoundingVolume>
 template <typename ExecutionSpace, typename Predicates, typename Callback>
-void BasicBoundingVolumeHierarchy<MemorySpace, BoundingVolume>::query(
-    ExecutionSpace const &space, Predicates const &predicates,
-    Callback const &legacy_callback,
-    Experimental::TraversalPolicy const &policy) const
+void BasicBoundingVolumeHierarchy<
+    MemorySpace, Value, IndexableGetter,
+    BoundingVolume>::query(ExecutionSpace const &space,
+                           Predicates const &predicates,
+                           Callback const &legacy_callback,
+                           Experimental::TraversalPolicy const &policy) const
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);

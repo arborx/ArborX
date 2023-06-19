@@ -109,7 +109,7 @@ foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
       "using KDOP14 = ArborX::Experimental::KDOP<14>;\n"
       "using KDOP18 = ArborX::Experimental::KDOP<18>;\n"
       "using KDOP26 = ArborX::Experimental::KDOP<26>;\n"
-      "template <class MemorySpace> using ArborX__BoundingVolumeHierarchy_${_bounding_volume} = ArborX::BasicBoundingVolumeHierarchy<MemorySpace, ${_bounding_volume}>;\n"
+      "template <class MemorySpace> using ArborX__BoundingVolumeHierarchy_${_bounding_volume} = ArborX::BasicBoundingVolumeHierarchy<MemorySpace, ArborX::Details::PairIndexVolume<${_bounding_volume}>, ArborX::Details::DefaultIndexableGetter, ${_bounding_volume}>;\n"
       "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX__BoundingVolumeHierarchy_${_bounding_volume}>\n"
       "#define ARBORX_TEST_DEVICE_TYPES std::tuple<${ARBORX_DEVICE_TYPES}>\n"
       "#define ARBORX_TEST_DISABLE_NEAREST_QUERY\n"

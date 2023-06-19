@@ -56,8 +56,9 @@ void check_bounding_volume_and_predicate_geometry_type_requirements()
 {
   using ExecutionSpace = Kokkos::DefaultExecutionSpace;
   using MemorySpace = ExecutionSpace::memory_space;
-  using Tree = ArborX::BasicBoundingVolumeHierarchy<MemorySpace,
-                                                    Test::FakeBoundingVolume>;
+  using Tree = ArborX::BasicBoundingVolumeHierarchy<
+      MemorySpace, ArborX::Details::PairIndexVolume<Test::FakeBoundingVolume>,
+      ArborX::Details::DefaultIndexableGetter, Test::FakeBoundingVolume>;
 
   Kokkos::View<Test::PrimitivePointOrBox *, MemorySpace> primitives(
       "primitives", 0);

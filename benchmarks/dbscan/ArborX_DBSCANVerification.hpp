@@ -305,8 +305,10 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   constexpr int dim = GeometryTraits::dimension_v<
       typename Details::AccessTraitsHelper<Access>::type>;
   using Box = ExperimentalHyperGeometry::Box<dim>;
-  ArborX::BasicBoundingVolumeHierarchy<MemorySpace, Box> bvh(exec_space,
-                                                             primitives);
+  ArborX::BasicBoundingVolumeHierarchy<
+      MemorySpace, ArborX::Details::PairIndexVolume<Box>,
+      ArborX::Details::DefaultIndexableGetter, Box>
+      bvh(exec_space, primitives);
 
   auto const predicates =
       Details::PrimitivesWithRadius<Primitives>{primitives, eps};
