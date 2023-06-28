@@ -8,6 +8,7 @@ add_subdirectory(bvh_driver)
 add_subdirectory(dbscan)
 add_subdirectory(develop)
 add_subdirectory(execution_space_instances)
+add_subdirectory(tokamak)
 add_subdirectory(union_find)
 
 if (ARBORX_ENABLE_MPI)
