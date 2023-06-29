@@ -67,18 +67,6 @@ struct Mapping
 };
 
 template <typename DeviceType>
-struct Points
-{
-  KOKKOS_FUNCTION auto const &get_point(int i) const { return points_(i, 0); }
-
-  KOKKOS_FUNCTION auto size() const { return points_.extent(0); }
-
-  Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<2> **,
-               Kokkos::LayoutLeft, typename DeviceType::memory_space>
-      points_;
-};
-
-template <typename DeviceType>
 struct Triangles
 {
   // Return the number of triangles.
@@ -224,7 +212,8 @@ parse_stl(typename DeviceType::execution_space const &execution_space)
 }
 
 template <typename DeviceType>
-Points<DeviceType>
+Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<2> **, Kokkos::LayoutLeft,
+             typename DeviceType::memory_space>
 parse_points(typename DeviceType::execution_space const &execution_space)
 {
   std::vector<ArborX::ExperimentalHyperGeometry::Point<2>> points_host;
@@ -281,7 +270,7 @@ parse_points(typename DeviceType::execution_space const &execution_space)
              points_host.size() / size_per_id, size_per_id);
   Kokkos::deep_copy(execution_space, points, points_host_view);
 
-  return {points};
+  return points;
 }
 
 // Now that we have encapsulated the objects and queries to be used within the
@@ -306,9 +295,7 @@ int main()
     std::cout << "BVH tree set up.\n";
 
     std::cout << "Starting the queries.\n";
-    int const n = points.size();
-    Kokkos::View<int *, MemorySpace> offsets("offsets", n);
-    Kokkos::View<ArborX::Point *, MemorySpace> coefficients("coefficients", n);
+    int const n = points.extent(0);
 
     struct Dummy
     {};
@@ -336,34 +323,34 @@ int main()
         "ArborX::TreeTraversal::spatial",
         Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
         KOKKOS_LAMBDA(int i) {
-          tree_traversal.search(
-              ArborX::attach(ArborX::intersects(points.get_point(i)),
-                             Attachment{offsets(i), coefficients(i)}));
+          int triangle_index = 0;
+          ArborX::Point coefficients{};
+          for (unsigned int j = 0; j < points.extent(1); ++j)
+          {
+            auto const &point = points(i, j);
+            auto const &triangle = triangles.get_triangle(triangle_index);
+            auto const &test_coeffs =
+                triangles.get_mapping(triangle_index).get_coeff(point);
+            bool intersects = test_coeffs[0] >= 0 && test_coeffs[1] >= 0 &&
+                              test_coeffs[2] >= 0;
+            if (intersects)
+            {
+              coefficients = test_coeffs;
+              KOKKOS_IMPL_DO_NOT_USE_PRINTF("%d, %d: same triangle\n", i, j);
+            }
+            else
+            {
+              tree_traversal.search(
+                  ArborX::attach(ArborX::intersects(point),
+                                 Attachment{triangle_index, coefficients}));
+              KOKKOS_IMPL_DO_NOT_USE_PRINTF("%d, %d: %d %f %f %f\n", i, j,
+                                            triangle_index, coefficients[0],
+                                            coefficients[1], coefficients[2]);
+            }
+          }
         });
 
     std::cout << "Queries done.\n";
-
-    std::cout << "Starting checking results.\n";
-    auto offsets_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets);
-    auto coeffs_host =
-        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, coefficients);
-
-    for (int i = 0; i < n; ++i)
-    {
-      auto const &c = coeffs_host(i);
-      auto const &t = triangles.get_triangle(offsets_host(i));
-      auto const &p_h = points.get_point(i);
-      auto const p = ArborX::ExperimentalHyperGeometry::Point<2>{
-          c[0] * t.a[0] + c[1] * t.b[0] + c[2] * t.c[0],
-          c[0] * t.a[1] + c[1] * t.b[1] + c[2] * t.c[1]};
-      if ((std::abs(p[0] - p_h[0]) > .1) || std::abs(p[1] - p_h[1]) > .1)
-      {
-        std::cout << "coeffs for point " << i << " are wrong!\n";
-      }
-    }
-
-    std::cout << "Checking results successful.\n";
   }
 
   Kokkos::finalize();
