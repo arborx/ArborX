@@ -310,10 +310,7 @@ int main()
         ArborX::BasicBoundingVolumeHierarchy<
             MemorySpace, ArborX::ExperimentalHyperGeometry::Box<2>>,
         Dummy, TriangleIntersectionCallback<DeviceType>,
-        ArborX::Details::SpatialPredicateTag,
-        decltype(ArborX::attach(
-            ArborX::intersects(ArborX::ExperimentalHyperGeometry::Point<2>{}),
-            std::declval<Attachment>()))>
+        ArborX::Details::SpatialPredicateTag>
         tree_traversal(tree,
                        TriangleIntersectionCallback<DeviceType>{triangles});
 

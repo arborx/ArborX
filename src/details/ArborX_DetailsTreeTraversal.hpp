@@ -29,15 +29,12 @@ namespace ArborX
 namespace Details
 {
 
-template <typename BVH, typename Predicates, typename Callback, typename Tag,
-          typename Query =
-              decltype(AccessTraits<Predicates, PredicatesTag>::get(
-                  std::declval<Predicates>(), 0))>
+template <typename BVH, typename Predicates, typename Callback, typename Tag>
 struct TreeTraversal
 {};
 
-template <typename BVH, typename Predicates, typename Callback, typename Query>
-struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag, Query>
+template <typename BVH, typename Predicates, typename Callback>
+struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
 {
   BVH _bvh;
   Predicates _predicates;
@@ -104,6 +101,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag, Query>
     search(predicate);
   }
 
+  template <typename Query>
   KOKKOS_FUNCTION void search(Query const &predicate) const
   {
     int node = HappyTreeFriends::getRoot(_bvh); // start with root
@@ -402,9 +400,9 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   }
 };
 
-template <class BVH, class Predicates, class Callback, typename Query>
+template <class BVH, class Predicates, class Callback>
 struct TreeTraversal<BVH, Predicates, Callback,
-                     Experimental::OrderedSpatialPredicateTag, Query>
+                     Experimental::OrderedSpatialPredicateTag>
 {
   BVH _bvh;
   Predicates _predicates;
@@ -477,6 +475,7 @@ struct TreeTraversal<BVH, Predicates, Callback,
     search(predicate);
   }
 
+  template <typename Query>
   KOKKOS_FUNCTION void search(Query const &predicate) const
   {
     using ArborX::Details::HappyTreeFriends;
