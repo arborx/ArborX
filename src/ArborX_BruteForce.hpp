@@ -52,10 +52,11 @@ public:
              Callback const &callback, Ignore = Ignore()) const;
 
   template <typename ExecutionSpace, typename Predicates,
-            typename CallbackOrView, typename View, typename... Args>
-  std::enable_if_t<Kokkos::is_view<std::decay_t<View>>{}>
-  query(ExecutionSpace const &space, Predicates const &predicates,
-        CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
+            typename CallbackOrView, typename View, typename... Args,
+            std::enable_if_t<Kokkos::is_view<std::decay_t<View>>{}, int> = 0>
+  void query(ExecutionSpace const &space, Predicates const &predicates,
+             CallbackOrView &&callback_or_view, View &&view,
+             Args &&...args) const
   {
     ArborX::query(*this, space, predicates,
                   std::forward<CallbackOrView>(callback_or_view),

@@ -292,12 +292,15 @@ struct Iota
 };
 
 template <typename Tag, typename ExecutionSpace, typename Predicates,
-          typename OffsetView, typename OutView>
-std::enable_if_t<std::is_same<Tag, SpatialPredicateTag>{} ||
-                 std::is_same<Tag, Experimental::OrderedSpatialPredicateTag>{}>
-allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
-                             Predicates const &predicates, OffsetView &offset,
-                             OutView &out, int buffer_size)
+          typename OffsetView, typename OutView,
+          std::enable_if_t<
+              std::is_same<Tag, SpatialPredicateTag>{} ||
+                  std::is_same<Tag, Experimental::OrderedSpatialPredicateTag>{},
+              int> = 0>
+void allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
+                                  Predicates const &predicates,
+                                  OffsetView &offset, OutView &out,
+                                  int buffer_size)
 {
   using Access = AccessTraits<Predicates, PredicatesTag>;
 
@@ -319,11 +322,12 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
 }
 
 template <typename Tag, typename ExecutionSpace, typename Predicates,
-          typename OffsetView, typename OutView>
-std::enable_if_t<std::is_same<Tag, NearestPredicateTag>{}>
-allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
-                             Predicates const &predicates, OffsetView &offset,
-                             OutView &out, int /*buffer_size*/)
+          typename OffsetView, typename OutView,
+          std::enable_if_t<std::is_same<Tag, NearestPredicateTag>{}, int> = 0>
+void allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
+                                  Predicates const &predicates,
+                                  OffsetView &offset, OutView &out,
+                                  int /*buffer_size*/)
 {
   using Access = AccessTraits<Predicates, PredicatesTag>;
 
@@ -345,14 +349,16 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
 // is called.
 template <typename Tag, typename Tree, typename ExecutionSpace,
           typename Predicates, typename OutputView, typename OffsetView,
-          typename Callback>
-std::enable_if_t<!is_tagged_post_callback<Callback>{} &&
-                 Kokkos::is_view<OutputView>{} && Kokkos::is_view<OffsetView>{}>
-queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
-              Predicates const &predicates, Callback const &callback,
-              OutputView &out, OffsetView &offset,
-              Experimental::TraversalPolicy const &policy =
-                  Experimental::TraversalPolicy())
+          typename Callback,
+          std::enable_if_t<!is_tagged_post_callback<Callback>{} &&
+                               Kokkos::is_view<OutputView>{} &&
+                               Kokkos::is_view<OffsetView>{},
+                           int> = 0>
+void queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
+                   Predicates const &predicates, Callback const &callback,
+                   OutputView &out, OffsetView &offset,
+                   Experimental::TraversalPolicy const &policy =
+                       Experimental::TraversalPolicy())
 {
   using MemorySpace = typename Tree::memory_space;
   using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
@@ -418,13 +424,16 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
   Kokkos::Profiling::popRegion();
 }
 
-template <typename Tag, typename Tree, typename ExecutionSpace,
-          typename Predicates, typename Indices, typename Offset>
-inline std::enable_if_t<Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{}>
-queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
-              Predicates const &predicates, Indices &indices, Offset &offset,
-              Experimental::TraversalPolicy const &policy =
-                  Experimental::TraversalPolicy())
+template <
+    typename Tag, typename Tree, typename ExecutionSpace, typename Predicates,
+    typename Indices, typename Offset,
+    std::enable_if_t<+Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{},
+                     int> = 0>
+inline void queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
+                          Predicates const &predicates, Indices &indices,
+                          Offset &offset,
+                          Experimental::TraversalPolicy const &policy =
+                              Experimental::TraversalPolicy())
 {
   queryDispatch(Tag{}, tree, space, predicates, DefaultCallback{}, indices,
                 offset, policy);
@@ -432,13 +441,14 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
 
 template <typename Tag, typename Tree, typename ExecutionSpace,
           typename Predicates, typename OutputView, typename OffsetView,
-          typename Callback>
-inline std::enable_if_t<is_tagged_post_callback<Callback>{}>
-queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
-              Predicates const &predicates, Callback const &callback,
-              OutputView &out, OffsetView &offset,
-              Experimental::TraversalPolicy const &policy =
-                  Experimental::TraversalPolicy())
+          typename Callback,
+          std::enable_if_t<is_tagged_post_callback<Callback>{}, int> = 0>
+inline void queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
+                          Predicates const &predicates,
+                          Callback const &callback, OutputView &out,
+                          OffsetView &offset,
+                          Experimental::TraversalPolicy const &policy =
+                              Experimental::TraversalPolicy())
 {
   using MemorySpace = typename Tree::memory_space;
   Kokkos::View<int *, MemorySpace> indices(
@@ -447,31 +457,33 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
   callback(predicates, offset, indices, out);
 }
 
-template <typename Callback, typename Predicates, typename OutputView>
-std::enable_if_t<!Kokkos::is_view<Callback>{} &&
-                 !is_tagged_post_callback<Callback>{}>
-check_valid_callback_if_first_argument_is_not_a_view(
+template <typename Callback, typename Predicates, typename OutputView,
+          std::enable_if_t<!Kokkos::is_view<Callback>{} &&
+                               !is_tagged_post_callback<Callback>{},
+                           int> = 0>
+void check_valid_callback_if_first_argument_is_not_a_view(
     Callback const &callback, Predicates const &predicates,
     OutputView const &out)
 {
   check_valid_callback(callback, predicates, out);
 }
 
-template <typename Callback, typename Predicates, typename OutputView>
-std::enable_if_t<!Kokkos::is_view<Callback>{} &&
-                 is_tagged_post_callback<Callback>{}>
-check_valid_callback_if_first_argument_is_not_a_view(Callback const &,
-                                                     Predicates const &,
-                                                     OutputView const &)
+template <typename Callback, typename Predicates, typename OutputView,
+          std::enable_if_t<!Kokkos::is_view<Callback>{} &&
+                               is_tagged_post_callback<Callback>{},
+                           int> = 0>
+void check_valid_callback_if_first_argument_is_not_a_view(Callback const &,
+                                                          Predicates const &,
+                                                          OutputView const &)
 {
   // TODO
 }
 
-template <typename View, typename Predicates, typename OutputView>
-std::enable_if_t<Kokkos::is_view<View>{}>
-check_valid_callback_if_first_argument_is_not_a_view(View const &,
-                                                     Predicates const &,
-                                                     OutputView const &)
+template <typename View, typename Predicates, typename OutputView,
+          std::enable_if_t<Kokkos::is_view<View>{}, int> = 0>
+void check_valid_callback_if_first_argument_is_not_a_view(View const &,
+                                                          Predicates const &,
+                                                          OutputView const &)
 {
   // do nothing
 }
