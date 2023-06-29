@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(ArborX CXX)
 
-find_package(Kokkos 4.0.00 REQUIRED CONFIG)
+find_package(Kokkos 4.0 REQUIRED CONFIG)
 message(STATUS "Found Kokkos: ${Kokkos_DIR} (version \"${Kokkos_VERSION}\")")
 if(Kokkos_ENABLE_CUDA AND Kokkos_VERSION VERSION_LESS 4.1)
   # CUDA_LAMBDA is deprecated starting 4.1
