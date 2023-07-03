@@ -27,6 +27,7 @@ struct Mapping
   ArborX::ExperimentalHyperGeometry::Point<2> beta;
   ArborX::ExperimentalHyperGeometry::Point<2> p0;
 
+  KOKKOS_FUNCTION
   ArborX::Point get_coeff(ArborX::ExperimentalHyperGeometry::Point<2> p) const
   {
     float alpha_coeff = alpha[0] * (p[0] - p0[0]) + alpha[1] * (p[1] - p0[1]);
@@ -268,10 +269,15 @@ parse_points(typename DeviceType::execution_space const &execution_space)
                Kokkos::LayoutLeft, typename DeviceType::memory_space>
       points(Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"),
              points_host.size() / size_per_id, size_per_id);
-  Kokkos::deep_copy(execution_space, points, points_host_view);
+  auto points_tmp_view = Kokkos::create_mirror_view_and_copy(
+      typename DeviceType::memory_space{}, points_host_view);
+  Kokkos::deep_copy(execution_space, points, points_tmp_view);
 
   return points;
 }
+
+struct Dummy
+{};
 
 // Now that we have encapsulated the objects and queries to be used within the
 // Triangles class, we can continue with performing the actual search.
@@ -296,9 +302,6 @@ int main()
 
     std::cout << "Starting the queries.\n";
     int const n = points.extent(0);
-
-    struct Dummy
-    {};
 
     struct Attachment
     {
