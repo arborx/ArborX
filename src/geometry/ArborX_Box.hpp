@@ -18,9 +18,7 @@
 #include <ArborX_Point.hpp>
 
 #include <Kokkos_Macros.hpp>
-#if __has_include(<Kokkos_ReductionIdentity.hpp>) // FIXME requires Kokkos 4.0
 #include <Kokkos_ReductionIdentity.hpp>
-#endif
 
 namespace ArborX
 {
