@@ -321,10 +321,17 @@ void allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
   }
 }
 
+#ifdef _MSVC_VER
 template <typename Tag, typename ExecutionSpace, typename Predicates,
           typename OffsetView, typename OutView,
           std::enable_if_t<std::is_same<Tag, NearestPredicateTag>{}, int> = 0>
-void allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
+void
+#else
+template <typename Tag, typename ExecutionSpace, typename Predicates,
+          typename OffsetView, typename OutView>
+std::enable_if_t<std::is_same<Tag, NearestPredicateTag>{}>
+#endif
+allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
                                   Predicates const &predicates,
                                   OffsetView &offset, OutView &out,
                                   int /*buffer_size*/)
