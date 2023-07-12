@@ -321,6 +321,9 @@ void allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
   }
 }
 
+// On Windows, the compiler does not support using SFINAE on the return type.
+// nvcc crashes if we don't do SFINAE on the return type for this particular
+// function.
 #ifdef _MSVC_VER
 template <typename Tag, typename ExecutionSpace, typename Predicates,
           typename OffsetView, typename OutView,
