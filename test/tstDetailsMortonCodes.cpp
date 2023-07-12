@@ -23,6 +23,7 @@ BOOST_AUTO_TEST_CASE(expand_bits)
 {
   // clang-format off
   unsigned x = 0b110010011101u;
+  BOOST_TEST(expandBitsBy<0>(x) ==                     0b110010011101u);
   BOOST_TEST(expandBitsBy<1>(x) ==         0b010100000100000101010001u);
   BOOST_TEST(expandBitsBy<2>(x) ==   0b000000001000000001001001000001u);
   BOOST_TEST(expandBitsBy<3>(x) == 0b00010000000000010001000100000001u);
@@ -34,6 +35,7 @@ BOOST_AUTO_TEST_CASE(expand_bits)
   BOOST_TEST(expandBitsBy<9>(x) ==   0b000000000100000000000000000001u);
 
   unsigned long long y = 0b11111111111111000001llu;
+  BOOST_TEST(expandBitsBy<0>(y) ==                                            0b11111111111111000001llu);
   BOOST_TEST(expandBitsBy<1>(y) ==                        0b0101010101010101010101010101000000000001llu);
   BOOST_TEST(expandBitsBy<2>(y) ==    0b001001001001001001001001001001001001001001000000000000000001llu);
   BOOST_TEST(expandBitsBy<3>(y) ==    0b000100010001000100010001000100010001000000000000000000000001llu);
@@ -49,6 +51,14 @@ BOOST_AUTO_TEST_CASE(expand_bits)
 BOOST_AUTO_TEST_CASE(morton_codes)
 {
   using ArborX::ExperimentalHyperGeometry::Point;
+
+  BOOST_TEST(morton32(Point{0.f}) == 0x0u);
+  BOOST_TEST(morton32(Point{0.5f}) == 0x40000000u);
+  BOOST_TEST(morton32(Point{1.f}) == 0x80000000u);
+
+  BOOST_TEST(morton64(Point{0.f}) == 0x0llu);
+  BOOST_TEST(morton64(Point{0.5f}) == 0x4000000000000000llu);
+  BOOST_TEST(morton64(Point{1.f}) == 0x8000000000000000llu);
 
   BOOST_TEST(morton32(Point{0.f, 0.f}) == 0x0u);
   BOOST_TEST(morton32(Point{1.f, 1.f}) == 0xffffffffu);

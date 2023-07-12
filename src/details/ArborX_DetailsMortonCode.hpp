@@ -29,10 +29,16 @@ namespace Details
 template <int N>
 KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy(unsigned int)
 {
-  static_assert(0 < N && N < 10,
-                "expandBitsBy can only be used with values 1-9");
+  static_assert(0 <= N && N < 10,
+                "expandBitsBy can only be used with values 0-9");
   Kokkos::abort("ArborX: implementation bug");
   return 0;
+}
+
+template <>
+KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy<0>(unsigned int x)
+{
+  return x;
 }
 
 // Insert one 0 bit after each of the 16 low bits of x
@@ -146,10 +152,16 @@ KOKKOS_INLINE_FUNCTION unsigned int expandBitsBy<9>(unsigned int x)
 template <int N>
 KOKKOS_INLINE_FUNCTION unsigned long long expandBitsBy(unsigned long long)
 {
-  static_assert(0 < N && N < 10,
-                "expandBitsBy can only be used with values 1-9");
+  static_assert(0 <= N && N < 10,
+                "expandBitsBy can only be used with values 0-9");
   Kokkos::abort("ArborX: implementation bug");
   return 0;
+}
+
+template <>
+KOKKOS_INLINE_FUNCTION unsigned long long expandBitsBy<0>(unsigned long long x)
+{
+  return x;
 }
 
 // Insert one 0 bit after each of the 31 low bits of x
@@ -275,7 +287,7 @@ template <typename Point,
 KOKKOS_INLINE_FUNCTION unsigned int morton32(Point const &p)
 {
   constexpr int DIM = GeometryTraits::dimension_v<Point>;
-  constexpr unsigned N = (1u << (32 / DIM));
+  constexpr unsigned N = (DIM == 1) ? (1u << 31) : (1llu << (32 / DIM));
 
   using KokkosExt::max;
   using KokkosExt::min;
@@ -296,7 +308,7 @@ template <typename Point,
 KOKKOS_INLINE_FUNCTION unsigned long long morton64(Point const &p)
 {
   constexpr int DIM = GeometryTraits::dimension_v<Point>;
-  constexpr unsigned N = (1u << (63 / DIM));
+  constexpr unsigned long long N = (1llu << (63 / DIM));
 
   using KokkosExt::max;
   using KokkosExt::min;
