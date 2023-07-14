@@ -21,6 +21,12 @@
 #include <stdexcept>
 #include <vector>
 
+#ifdef _MSC_VER
+#define ARBORX_STRTOK_R strtok_s
+#else
+#define ARBORX_STRTOK_R strtok_r
+#endif
+
 class Points
 {
 private:
@@ -197,7 +203,7 @@ auto loadTaxiPortoData(std::string const &filename)
       char *end_str;
       wordNo = 0;
       lonlatno = 0;
-      pch = strtok_r(line, "\"[", &end_str);
+      pch = ARBORX_STRTOK_R(line, "\"[", &end_str);
       while (pch != nullptr)
       {
         if (wordNo > 0)
@@ -205,7 +211,7 @@ auto loadTaxiPortoData(std::string const &filename)
           char *pch2;
           char *end_str2;
 
-          pch2 = strtok_r(pch, ",", &end_str2);
+          pch2 = ARBORX_STRTOK_R(pch, ",", &end_str2);
 
           if (strcmp(pch2, "]") < 0 && lonlatno < 255)
           {
@@ -218,7 +224,7 @@ auto loadTaxiPortoData(std::string const &filename)
               {
                 longitudes.push_back(thisWord);
                 // printf("lon %f",thisWord);
-                pch2 = strtok_r(nullptr, ",", &end_str2);
+                pch2 = ARBORX_STRTOK_R(nullptr, ",", &end_str2);
                 thisWord = atof(pch2);
                 if (thisWord < 42 && thisWord > 40)
                 {
@@ -235,7 +241,7 @@ auto loadTaxiPortoData(std::string const &filename)
             }
           }
         }
-        pch = strtok_r(nullptr, "[", &end_str);
+        pch = ARBORX_STRTOK_R(nullptr, "[", &end_str);
         wordNo++;
       }
       // printf("num lonlat were %d x 2\n",lonlatno);
