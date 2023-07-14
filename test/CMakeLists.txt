@@ -128,6 +128,7 @@ list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES
   tstQueryTreeTraversalPolicy.cpp
   tstQueryTreeIntersectsKDOP.cpp
   tstKokkosToolsAnnotations.cpp
+  tstKokkosToolsExecutionSpaceInstances.cpp
   utf_main.cpp
 )
 if (Kokkos_VERSION VERSION_LESS 4.0.99)
