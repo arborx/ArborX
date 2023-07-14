@@ -15,6 +15,7 @@
 #include "ArborX_EnableDeviceTypes.hpp"           // ARBORX_DEVICE_TYPES
 #include <ArborX_DetailsKokkosExtClassLambda.hpp> // ARBORX_CLASS_LAMBDA
 #include <ArborX_DistributedTree.hpp>
+#include <ArborX_HyperSphere.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -32,6 +33,119 @@ namespace tt = boost::test_tools;
 
 using ArborX::PairIndexRank;
 using ArborX::Details::PairIndexRankAndDistance;
+
+template <int dim, typename DeviceType>
+void test_hello_world_hyper()
+{
+  using HyperBox = ArborX::ExperimentalHyperGeometry::Box<dim>;
+  using HyperPoint = ArborX::ExperimentalHyperGeometry::Point<dim>;
+  using HyperSphere = ArborX::ExperimentalHyperGeometry::Sphere<dim>;
+  using Tree =
+      ArborX::DistributedTree<typename DeviceType::memory_space, HyperBox>;
+  using ExecutionSpace = typename DeviceType::execution_space;
+
+  MPI_Comm comm = MPI_COMM_WORLD;
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+  int comm_size;
+  MPI_Comm_size(comm, &comm_size);
+
+  int const n = 4;
+  Kokkos::View<HyperPoint *, DeviceType> points("Testing::points", n);
+  // [  rank 0       [  rank 1       [  rank 2       [  rank 3       [
+  // x---x---x---x---x---x---x---x---x---x---x---x---x---x---x---x---
+  // ^   ^   ^   ^
+  // 0   1   2   3   ^   ^   ^   ^
+  //                 0   1   2   3   ^   ^   ^   ^
+  //                                 0   1   2   3   ^   ^   ^   ^
+  //                                                 0   1   2   3
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<ExecutionSpace>(0, n),
+      KOKKOS_LAMBDA(int i) { points(i)[0] = (double)i / n + comm_rank; });
+
+  Tree tree(comm, ExecutionSpace{}, points);
+
+  // 0---0---0---0---1---1---1---1---2---2---2---2---3---3---3---3---
+  // |               |               |               |               |
+  // |               |               |               x   x   x   x   |
+  // |               |               |               |<------0------>|
+  // |               |               x   x   x   x   x               |
+  // |               |               |<------1------>|               |
+  // |               x   x   x   x   x               |               |
+  // |               |<------2------>|               |               |
+  // x   x   x   x   x               |               |               |
+  // |<------3------>|               |               |               |
+  // |               |               |               |               |
+  Kokkos::View<decltype(ArborX::intersects(HyperSphere{})) *, DeviceType>
+      queries("Testing::queries", 1);
+  auto queries_host = Kokkos::create_mirror_view(queries);
+  HyperSphere sphere{{}, .5};
+  sphere.centroid()[0] = 0.5 + comm_size - 1 - comm_rank;
+  queries_host(0) = ArborX::intersects(sphere);
+  deep_copy(queries, queries_host);
+
+  // 0---0---0---0---1---1---1---1---2---2---2---2---3---3---3---3---
+  // |               |               |               |               |
+  // |               |               |           x   x   x           |
+  // |               |           x   x   x        <--0-->            |
+  // |           x   x   x        <--1-->            |               |
+  // x   x        <--2-->            |               |               |
+  // 3-->            |               |               |               |
+  // |               |               |               |               |
+  Kokkos::View<ArborX::Nearest<HyperPoint> *, DeviceType> nearest_queries(
+      "Testing::nearest_queries", 1);
+  auto nearest_queries_host = Kokkos::create_mirror_view(nearest_queries);
+  HyperPoint point{};
+  point[0] = 0.0 + comm_size - 1 - comm_rank;
+  nearest_queries_host(0) =
+      ArborX::nearest(point, comm_rank < comm_size - 1 ? 3 : 2);
+  deep_copy(nearest_queries, nearest_queries_host);
+
+  std::vector<PairIndexRank> values;
+  values.reserve(n + 1);
+  for (int i = 0; i < n; ++i)
+  {
+    values.push_back({n - 1 - i, comm_size - 1 - comm_rank});
+  }
+  if (comm_rank > 0)
+  {
+    values.push_back({0, comm_size - comm_rank});
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, queries,
+                           make_reference_solution(values, {0, n + 1}));
+  }
+  else
+  {
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, queries,
+                           make_reference_solution(values, {0, n}));
+  }
+
+  BOOST_TEST(n > 2);
+  if (comm_rank < comm_size - 1)
+  {
+    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, nearest_queries,
+                           make_reference_solution<PairIndexRank>(
+                               {{0, comm_size - 1 - comm_rank},
+                                {n - 1, comm_size - 2 - comm_rank},
+                                {1, comm_size - 1 - comm_rank}},
+                               {0, 3}));
+  }
+  else
+  {
+    ARBORX_TEST_QUERY_TREE(
+        ExecutionSpace{}, tree, nearest_queries,
+        make_reference_solution<PairIndexRank>(
+            {{0, comm_size - 1 - comm_rank}, {1, comm_size - 1 - comm_rank}},
+            {0, 2}));
+  }
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world_hyper, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  test_hello_world_hyper<1, DeviceType>();
+  test_hello_world_hyper<2, DeviceType>();
+  test_hello_world_hyper<3, DeviceType>();
+}
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
 {
