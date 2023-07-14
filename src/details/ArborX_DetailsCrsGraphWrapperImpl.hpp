@@ -293,8 +293,8 @@ struct Iota
 
 template <typename Tag, typename ExecutionSpace, typename Predicates,
           typename OffsetView, typename OutView>
-std::enable_if_t<std::is_same<Tag, SpatialPredicateTag>{} ||
-                 std::is_same<Tag, Experimental::OrderedSpatialPredicateTag>{}>
+std::enable_if_t<std::is_same_v<Tag, SpatialPredicateTag> ||
+                 std::is_same_v<Tag, Experimental::OrderedSpatialPredicateTag>>
 allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
                              Predicates const &predicates, OffsetView &offset,
                              OutView &out, int buffer_size)
@@ -320,7 +320,7 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
 
 template <typename Tag, typename ExecutionSpace, typename Predicates,
           typename OffsetView, typename OutView>
-std::enable_if_t<std::is_same<Tag, NearestPredicateTag>{}>
+std::enable_if_t<std::is_same_v<Tag, NearestPredicateTag>>
 allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
                              Predicates const &predicates, OffsetView &offset,
                              OutView &out, int /*buffer_size*/)
@@ -346,8 +346,8 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
 template <typename Tag, typename Tree, typename ExecutionSpace,
           typename Predicates, typename OutputView, typename OffsetView,
           typename Callback>
-std::enable_if_t<!is_tagged_post_callback<Callback>{} &&
-                 Kokkos::is_view<OutputView>{} && Kokkos::is_view<OffsetView>{}>
+std::enable_if_t<!is_tagged_post_callback<Callback>::value &&
+                 Kokkos::is_view_v<OutputView> && Kokkos::is_view_v<OffsetView>>
 queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
               Predicates const &predicates, Callback const &callback,
               OutputView &out, OffsetView &offset,
@@ -420,7 +420,7 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
 
 template <typename Tag, typename Tree, typename ExecutionSpace,
           typename Predicates, typename Indices, typename Offset>
-inline std::enable_if_t<Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{}>
+inline std::enable_if_t<Kokkos::is_view_v<Indices> && Kokkos::is_view_v<Offset>>
 queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
               Predicates const &predicates, Indices &indices, Offset &offset,
               Experimental::TraversalPolicy const &policy =
@@ -433,7 +433,7 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
 template <typename Tag, typename Tree, typename ExecutionSpace,
           typename Predicates, typename OutputView, typename OffsetView,
           typename Callback>
-inline std::enable_if_t<is_tagged_post_callback<Callback>{}>
+inline std::enable_if_t<is_tagged_post_callback<Callback>::value>
 queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
               Predicates const &predicates, Callback const &callback,
               OutputView &out, OffsetView &offset,
@@ -448,8 +448,8 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
 }
 
 template <typename Callback, typename Predicates, typename OutputView>
-std::enable_if_t<!Kokkos::is_view<Callback>{} &&
-                 !is_tagged_post_callback<Callback>{}>
+std::enable_if_t<!Kokkos::is_view_v<Callback> &&
+                 !is_tagged_post_callback<Callback>::value>
 check_valid_callback_if_first_argument_is_not_a_view(
     Callback const &callback, Predicates const &predicates,
     OutputView const &out)
@@ -458,8 +458,8 @@ check_valid_callback_if_first_argument_is_not_a_view(
 }
 
 template <typename Callback, typename Predicates, typename OutputView>
-std::enable_if_t<!Kokkos::is_view<Callback>{} &&
-                 is_tagged_post_callback<Callback>{}>
+std::enable_if_t<!Kokkos::is_view_v<Callback> &&
+                 is_tagged_post_callback<Callback>::value>
 check_valid_callback_if_first_argument_is_not_a_view(Callback const &,
                                                      Predicates const &,
                                                      OutputView const &)
@@ -468,7 +468,7 @@ check_valid_callback_if_first_argument_is_not_a_view(Callback const &,
 }
 
 template <typename View, typename Predicates, typename OutputView>
-std::enable_if_t<Kokkos::is_view<View>{}>
+std::enable_if_t<Kokkos::is_view_v<View>>
 check_valid_callback_if_first_argument_is_not_a_view(View const &,
                                                      Predicates const &,
                                                      OutputView const &)

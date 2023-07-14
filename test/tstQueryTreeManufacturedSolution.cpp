@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <numeric>
 #include <random>
 #include <tuple>
 

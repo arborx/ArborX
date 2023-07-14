@@ -172,7 +172,7 @@ BOOST_AUTO_TEST_CASE(intersects_box)
   {                                                                            \
     float t0;                                                                  \
     float t1;                                                                  \
-    constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;  \
+    auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;      \
     BOOST_TEST(!ArborX::Experimental::intersection(ray, box, t0, t1));         \
     BOOST_TEST((t0 == inf || t1 == -inf));                                     \
   } while (false)
@@ -250,9 +250,10 @@ BOOST_AUTO_TEST_CASE(ray_box_distance)
 {
   using ArborX::Box;
   using ArborX::Experimental::Ray;
-
-  constexpr Box unit_box{{0, 0, 0}, {1, 1, 1}};
-  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  // use const instead of constexpr because MSVC shows error(error:expression
+  // must have a constant value)
+  const Box unit_box{{0, 0, 0}, {1, 1, 1}};
+  auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
   // clang-format off
   // origin is within the box
@@ -347,7 +348,7 @@ BOOST_AUTO_TEST_CASE(overlap_distance_sphere,
   {                                                                            \
     float t0;                                                                  \
     float t1;                                                                  \
-    constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;  \
+    const auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;      \
     BOOST_TEST(!ArborX::Experimental::intersection(ray, sphere, t0, t1));      \
     BOOST_TEST((t0 == inf && t1 == -inf));                                     \
   } while (false)
@@ -358,7 +359,7 @@ BOOST_AUTO_TEST_CASE(ray_sphere_intersection,
   using ArborX::Sphere;
   using ArborX::Experimental::Ray;
 
-  constexpr Sphere unit_sphere{{0, 0, 0}, 1};
+  const Sphere unit_sphere{{0, 0, 0}, 1}; // use const instead of constexpr because MSVC shows error(error:expression must have a constant value)
 
   auto const sqrtf_3 = std::sqrt(3.f);
   auto const sqrtf_2 = std::sqrt(2.f);
@@ -468,7 +469,7 @@ BOOST_AUTO_TEST_CASE(intersects_triangle)
   {                                                                            \
     float t0;                                                                  \
     float t1;                                                                  \
-    constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;  \
+    auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;      \
     BOOST_TEST(!ArborX::Experimental::intersection(ray, triangle, t0, t1));    \
     BOOST_TEST((t0 == inf && t1 == -inf));                                     \
   } while (false)

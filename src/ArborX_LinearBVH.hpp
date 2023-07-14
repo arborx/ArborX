@@ -76,7 +76,7 @@ public:
 
   template <typename ExecutionSpace, typename Predicates,
             typename CallbackOrView, typename View, typename... Args>
-  std::enable_if_t<Kokkos::is_view<std::decay_t<View>>{}>
+  std::enable_if_t<Kokkos::is_view_v<std::decay_t<View>>>
   query(ExecutionSpace const &space, Predicates const &predicates,
         CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
   {
