@@ -124,14 +124,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_execution_space_instance, DeviceType,
   arborx_test_set_tools_callbacks(exec);
 
   // spatial predicates
-  query(ExecutionSpace{}, tree,
+  query(exec, tree,
         makeIntersectsBoxQueries<DeviceType>({
             {{{0, 0, 0}}, {{1, 1, 1}}},
             {{{0, 0, 0}}, {{1, 1, 1}}},
         }));
 
   // nearest predicates
-  query(ExecutionSpace{}, tree,
+  query(exec, tree,
         makeNearestQueries<DeviceType>({
             {{{0, 0, 0}}, 1},
             {{{0, 0, 0}}, 2},
