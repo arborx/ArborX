@@ -40,11 +40,11 @@ void arborx_test_parallel_x_callback(char const *label, uint32_t device_id,
 void arborx_test_fence_callback(char const *label, uint32_t device_id,
                                 uint64_t * /*fence_id*/)
 {
-  // if (device_id != arborx_test_root_device_id)
-  BOOST_TEST(device_id == arborx_test_device_id,
-             "\"" << label
-                  << "\" fence not on the right execution space instance "
-                  << device_id << " != " << arborx_test_device_id);
+  if (device_id != arborx_test_root_device_id)
+    BOOST_TEST(device_id == arborx_test_device_id,
+               "\"" << label
+                    << "\" fence not on the right execution space instance "
+                    << device_id << " != " << arborx_test_device_id);
 }
 
 template <class ExecutionSpace>
