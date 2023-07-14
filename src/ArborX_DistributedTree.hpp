@@ -149,7 +149,7 @@ DistributedTree<MemorySpace>::DistributedTree(MPI_Comm comm,
   int comm_size;
   MPI_Comm_size(getComm(), &comm_size);
 
-  Kokkos::View<Box *, MemorySpace> boxes(
+  Kokkos::View<BoundingVolumeType *, MemorySpace> boxes(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::DistributedTree::DistributedTree::"
                          "rank_bounding_boxes"),
@@ -163,8 +163,8 @@ DistributedTree<MemorySpace>::DistributedTree(MPI_Comm comm,
               " (fill on device done before MPI_Allgather)");
 
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
-                static_cast<void *>(boxes.data()), sizeof(Box), MPI_BYTE,
-                getComm());
+                static_cast<void *>(boxes.data()), sizeof(BoundingVolumeType),
+                MPI_BYTE, getComm());
 #else
   auto boxes_host = Kokkos::create_mirror_view(
       Kokkos::view_alloc(host_exec, Kokkos::WithoutInitializing), boxes);
