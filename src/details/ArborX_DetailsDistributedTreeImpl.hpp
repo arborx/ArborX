@@ -82,7 +82,8 @@ struct AccessTraits<
   {
     auto const point = getGeometry(Access::get(x.predicates, i));
     auto const distance = x.distances(i);
-    return intersects(Sphere{point, distance});
+    return intersects(ExperimentalHyperGeometry::Sphere{
+        Details::toHyperPoint(point), distance});
   }
   template <class Dummy = Geometry,
             std::enable_if_t<std::is_same_v<Dummy, Geometry> &&

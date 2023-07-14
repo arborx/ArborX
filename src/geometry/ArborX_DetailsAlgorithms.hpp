@@ -15,6 +15,7 @@
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp> // min, max
 #include <ArborX_GeometryTraits.hpp>
+#include <ArborX_HyperPoint.hpp>
 
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_MathematicalFunctions.hpp> // isfinite
@@ -444,6 +445,20 @@ KOKKOS_FUNCTION void translateAndScale(Point const &in, Point &out,
     auto const b = ref.maxCorner()[d];
     out[d] = (a != b ? (in[d] - a) / (b - a) : 0);
   }
+}
+
+template <class T>
+KOKKOS_FUNCTION inline auto toHyperPoint(T const &p)
+{
+  static_assert(ArborX::GeometryTraits::is_point<T>{});
+  return p;
+}
+
+template <>
+KOKKOS_FUNCTION inline auto
+toHyperPoint<::ArborX::Point>(::ArborX::Point const &p)
+{
+  return ArborX::ExperimentalHyperGeometry::Point<3>{p[0], p[1], p[2]};
 }
 
 } // namespace Details
