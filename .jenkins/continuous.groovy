@@ -354,6 +354,7 @@ pipeline {
                                     -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
                                     -D CMAKE_BUILD_TYPE=Debug \
                                     -D CMAKE_CXX_COMPILER=hipcc \
+                                    -D CMAKE_CXX_STANDARD=20 \
                                     -D CMAKE_CXX_EXTENSIONS=OFF \
                                     -D CMAKE_CXX_FLAGS="-DNDEBUG -Wpedantic -Wall -Wextra" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
@@ -387,6 +388,7 @@ pipeline {
                                         -D GPU_TARGETS=${AMDGPU_TARGET} \
                                         -D CMAKE_CXX_COMPILER=hipcc \
                                         -D CMAKE_CXX_EXTENSIONS=OFF \
+                                        -D CMAKE_CXX_STANDARD=20 \
                                         -D CMAKE_BUILD_TYPE=RelWithDebInfo \
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
                                     examples \
