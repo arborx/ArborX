@@ -287,7 +287,7 @@ template <typename Point,
 KOKKOS_INLINE_FUNCTION unsigned int morton32(Point const &p)
 {
   constexpr int DIM = GeometryTraits::dimension_v<Point>;
-  constexpr unsigned N = (DIM == 1) ? (1u << 31) : (1llu << (32 / DIM));
+  constexpr unsigned N = 1u << (DIM == 1 ? 31 : 32 / DIM);
 
   using KokkosExt::max;
   using KokkosExt::min;
