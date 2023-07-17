@@ -109,8 +109,7 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     rm -rf ${SCRATCH_DIR}
 
 # Install Kokkos
-# Kokkos 4.0.99 using in-order queues for SYCL+Cuda
-ARG KOKKOS_VERSION=24c62bf5cc0e30f6a19de8e95b24197fbca9dd27
+ARG KOKKOS_VERSION=4.1.00
 ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_SYCL=ON -DCMAKE_CXX_FLAGS=-Wno-unknown-cuda-version -DKokkos_ENABLE_UNSUPPORTED_ARCHS=ON -DKokkos_ENABLE_DEPRECATED_CODE_3=OFF -DKokkos_ARCH_VOLTA70=ON -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS=-w"
 ENV KOKKOS_DIR=/opt/kokkos
 RUN . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
