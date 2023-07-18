@@ -36,6 +36,9 @@ struct Point
 
 // Deduction guides
 template <class T>
+Point(T x) -> Point<1, T>;
+
+template <class T>
 Point(T x, T y) -> Point<2, T>;
 
 template <class T>
