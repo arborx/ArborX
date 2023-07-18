@@ -398,6 +398,7 @@ pipeline {
                     }
                 }
 
+                // Disable deprecation warnings since we are using Kokkos::bit_cast which aliases a deprecated function in the oneAPI API.
                 stage('SYCL') {
                     agent {
                         dockerfile {
