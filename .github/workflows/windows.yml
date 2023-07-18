@@ -11,9 +11,6 @@ jobs:
     name: Windows Threads
     runs-on: windows-2022
 
-    env:
-      KOKKOS_INSTALL_DIR: C:\kokkos-install
-
     steps:
     - uses: actions/checkout@v3
     - name: Install dependencies via vcpkg
@@ -35,7 +32,7 @@ jobs:
         find D:/ -name "vcpkg.cmake"
         mkdir build
         cd build
-        cmake -D CMAKE_INSTALL_PREFIX=${KOKKOS_INSTALL_DIR} \
+        cmake -D CMAKE_INSTALL_PREFIX=C:\kokkos-install \
               -D Kokkos_ENABLE_THREADS=ON \
               ..
         cmake --build . --target install -- -m
@@ -43,7 +40,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Debug -DKokkos_ROOT="${KOKKOS_INSTALL_DIR}" ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} -DARBORX_ENABLE_MPI=OFF -DARBORX_ENABLE_TESTS=ON -DARBORX_ENABLE_EXAMPLES=ON -DARBORX_ENABLE_BENCHMARKS=ON ..
+        cmake -DCMAKE_BUILD_TYPE=Debug -DKokkos_ROOT="C:\kokkos-install" ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} -DARBORX_ENABLE_MPI=OFF -DARBORX_ENABLE_TESTS=ON -DARBORX_ENABLE_EXAMPLES=ON -DARBORX_ENABLE_BENCHMARKS=ON ..
     - name: Build ArborX
       shell: bash
       run: |
