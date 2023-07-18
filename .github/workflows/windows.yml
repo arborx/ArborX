@@ -43,7 +43,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Debug -DKokkos_ROOT="${KOKKOS_INSTALL_DIR}" ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} -DARBORX_ENABLE_MPI=OFF -DARBORX_ENABLE_TESTS=ON -DARBORX_ENABLE_EXAMPLES=ON -DARBORX_ENABLE_BENCHMARKS=OFF ..
+        cmake -DCMAKE_BUILD_TYPE=Debug -DKokkos_ROOT="${KOKKOS_INSTALL_DIR}" ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} -DARBORX_ENABLE_MPI=OFF -DARBORX_ENABLE_TESTS=ON -DARBORX_ENABLE_EXAMPLES=ON -DARBORX_ENABLE_BENCHMARKS=ON ..
     - name: Build ArborX
       shell: bash
       run: |
