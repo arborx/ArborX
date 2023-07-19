@@ -39,10 +39,10 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="/EHsc /bigobj" -DKokkos_ROOT="C:\kokkos-install" ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} -DARBORX_ENABLE_MPI=OFF -DARBORX_ENABLE_TESTS=ON -DARBORX_ENABLE_EXAMPLES=ON -DARBORX_ENABLE_BENCHMARKS=OFF ..
+        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="/EHsc /bigobj" -DKokkos_ROOT="C:\kokkos-install" ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} -DARBORX_ENABLE_MPI=OFF -DARBORX_ENABLE_TESTS=ON -DARBORX_ENABLE_EXAMPLES=ON -DARBORX_ENABLE_BENCHMARKS=OFF ..
     - name: Build ArborX
       shell: bash
       run: |
         cmake --build build --target install -- -m
         cd build
-        ctest -C Release --output-on-failure
+        ctest -C Debug --output-on-failure
