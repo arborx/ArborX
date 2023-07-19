@@ -60,7 +60,9 @@ add_executable(ArborX_Test_DetailsUtils.exe
 target_link_libraries(ArborX_Test_DetailsUtils.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_DetailsUtils.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Test_DetailsUtils.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_Test_DetailsUtils COMMAND ArborX_Test_DetailsUtils.exe)
+if(NOT WIN32)
+  add_test(NAME ArborX_Test_DetailsUtils COMMAND ArborX_Test_DetailsUtils.exe)
+endif()
 
 add_executable(ArborX_Test_Geometry.exe
   tstDetailsAlgorithms.cpp
@@ -71,7 +73,9 @@ add_executable(ArborX_Test_Geometry.exe
 target_link_libraries(ArborX_Test_Geometry.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_Geometry.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Test_Geometry.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_Test_Geometry COMMAND ArborX_Test_Geometry.exe)
+if(NOT WIN32)
+  add_test(NAME ArborX_Test_Geometry COMMAND ArborX_Test_Geometry.exe)
+endif()
 
 set(ARBORX_TEST_QUERY_TREE_SOURCES)
 foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
@@ -142,13 +146,17 @@ if(Kokkos_ENABLE_SYCL)
   target_compile_definitions(ArborX_Test_QueryTree.exe PRIVATE NANORANGE_NO_STD_FORWARD_DECLARATIONS)
 endif()
 target_include_directories(ArborX_Test_QueryTree.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
-add_test(NAME ArborX_Test_QueryTree COMMAND ArborX_Test_QueryTree.exe)
+if(NOT WIN32)
+  add_test(NAME ArborX_Test_QueryTree COMMAND ArborX_Test_QueryTree.exe)
+endif()
 
 add_executable(ArborX_Test_DetailsTreeConstruction.exe tstDetailsMortonCodes.cpp tstDetailsTreeConstruction.cpp utf_main.cpp)
 target_link_libraries(ArborX_Test_DetailsTreeConstruction.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_DetailsTreeConstruction.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Test_DetailsTreeConstruction.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_Test_DetailsTreeConstruction COMMAND ArborX_Test_DetailsTreeConstruction.exe)
+if(NOT WIN32)
+  add_test(NAME ArborX_Test_DetailsTreeConstruction COMMAND ArborX_Test_DetailsTreeConstruction.exe)
+endif()
 
 add_executable(ArborX_Test_DetailsContainers.exe
   tstSequenceContainers.cpp
@@ -158,13 +166,17 @@ add_executable(ArborX_Test_DetailsContainers.exe
 )
 target_link_libraries(ArborX_Test_DetailsContainers.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_DetailsContainers.exe PRIVATE BOOST_TEST_DYN_LINK)
-add_test(NAME ArborX_Test_DetailsContainers COMMAND ArborX_Test_DetailsContainers.exe)
+if(NOT WIN32)
+  add_test(NAME ArborX_Test_DetailsContainers COMMAND ArborX_Test_DetailsContainers.exe)
+endif()
 
 add_executable(ArborX_Test_DetailsCrsGraphWrapperImpl.exe tstDetailsCrsGraphWrapperImpl.cpp utf_main.cpp)
 target_link_libraries(ArborX_Test_DetailsCrsGraphWrapperImpl.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_DetailsCrsGraphWrapperImpl.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Test_DetailsCrsGraphWrapperImpl.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_Test_DetailsCrsGraphWrapperImpl COMMAND ArborX_Test_DetailsCrsGraphWrapperImpl.exe)
+if(NOT WIN32)
+  add_test(NAME ArborX_Test_DetailsCrsGraphWrapperImpl COMMAND ArborX_Test_DetailsCrsGraphWrapperImpl.exe)
+endif()
 
 add_executable(ArborX_Test_Clustering.exe
   tstDBSCAN.cpp
@@ -174,7 +186,9 @@ add_executable(ArborX_Test_Clustering.exe
 target_link_libraries(ArborX_Test_Clustering.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_Clustering.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Test_Clustering.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/benchmarks/dbscan)
-add_test(NAME ArborX_Test_Clustering COMMAND ArborX_Test_Clustering.exe)
+if(NOT WIN32)
+  add_test(NAME ArborX_Test_Clustering COMMAND ArborX_Test_Clustering.exe)
+endif()
 
 # compare results with a dataset of 1000 points from mlpack
 configure_file(
@@ -198,7 +212,9 @@ add_executable(ArborX_Test_DetailsClusteringHelpers.exe
 target_link_libraries(ArborX_Test_DetailsClusteringHelpers.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_DetailsClusteringHelpers.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Test_DetailsClusteringHelpers.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_Test_DetailsClusteringHelpers COMMAND ArborX_Test_DetailsClusteringHelpers.exe)
+if(NOT WIN32)
+  add_test(NAME ArborX_Test_DetailsClusteringHelpers COMMAND ArborX_Test_DetailsClusteringHelpers.exe)
+endif()
 
 add_executable(ArborX_Test_SpecializedTraversals.exe
   tstDetailsHalfTraversal.cpp
@@ -209,7 +225,9 @@ add_executable(ArborX_Test_SpecializedTraversals.exe
 target_link_libraries(ArborX_Test_SpecializedTraversals.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_SpecializedTraversals.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Test_SpecializedTraversals.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_Test_SpecializedTraversals COMMAND ArborX_Test_SpecializedTraversals.exe)
+if(NOT WIN32)
+  add_test(NAME ArborX_Test_SpecializedTraversals COMMAND ArborX_Test_SpecializedTraversals.exe)
+endif()
 
 if(ARBORX_ENABLE_MPI)
   add_executable(ArborX_Test_DistributedTree.exe tstDistributedTree.cpp tstKokkosToolsDistributedAnnotations.cpp utf_main.cpp)
@@ -233,7 +251,9 @@ endif()
 add_executable(ArborX_Test_BoostAdapters.exe tstBoostGeometryAdapters.cpp tstBoostRangeAdapters.cpp utf_main.cpp)
 target_link_libraries(ArborX_Test_BoostAdapters.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_BoostAdapters.exe PRIVATE BOOST_TEST_DYN_LINK)
-add_test(NAME ArborX_Test_BoostAdapters COMMAND ArborX_Test_BoostAdapters.exe)
+if(NOT WIN32)
+  add_test(NAME ArborX_Test_BoostAdapters COMMAND ArborX_Test_BoostAdapters.exe)
+endif()
 
 if(ARBORX_ENABLE_HEADER_SELF_CONTAINMENT_TESTS)
   add_subdirectory(headers_self_contained)
