@@ -44,4 +44,5 @@ jobs:
       shell: bash
       run: |
         cmake --build build --target install -- -m
-        cmake --build build --target test -- -m
+        cd build
+        ctest -C Release --output-on-failure
