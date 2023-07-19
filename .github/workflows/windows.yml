@@ -29,7 +29,6 @@ jobs:
       shell: bash
       working-directory: ${GITHUB_WORKSPACE}/../kokkos
       run: |
-        find D:/ -name "vcpkg.cmake"
         mkdir build
         cd build
         cmake -D CMAKE_INSTALL_PREFIX=C:\kokkos-install \
@@ -45,7 +44,4 @@ jobs:
       shell: bash
       run: |
         cmake --build build --target install -- -m
-    - name: Test ArborX
-      shell: bash
-      run: |
         cmake --build build --target test -- -m
