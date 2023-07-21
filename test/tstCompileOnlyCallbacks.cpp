@@ -103,8 +103,8 @@ void test_callbacks_compile_only()
   check_valid_callback(CallbackMissingTag{}, SpatialPredicates{}, v);
   check_valid_callback(CallbackMissingTag{}, NearestPredicates{}, v);
 
-  check_valid_callback(CustomCallback{}, SpatialPredicates{});
-  check_valid_callback(CustomCallback{}, NearestPredicates{});
+  check_valid_callback<int>(CustomCallback{}, SpatialPredicates{});
+  check_valid_callback<int>(CustomCallback{}, NearestPredicates{});
 
   // generic lambdas are supported if not using NVCC
 #ifndef __NVCC__
@@ -116,28 +116,31 @@ void test_callbacks_compile_only()
                           auto const & /*out*/) {},
                        NearestPredicates{}, v);
 
-  check_valid_callback([](auto const & /*predicate*/, int /*primitive*/) {},
-                       SpatialPredicates{});
+  check_valid_callback<int>(
+      [](auto const & /*predicate*/, int /*primitive*/) {},
+      SpatialPredicates{});
 
-  check_valid_callback([](auto const & /*predicate*/, int /*primitive*/) {},
-                       NearestPredicates{});
+  check_valid_callback<int>(
+      [](auto const & /*predicate*/, int /*primitive*/) {},
+      NearestPredicates{});
 #endif
 
   // Uncomment to see error messages
 
   // check_valid_callback(LegacyNearestPredicateCallback{}, NearestPredicates{},
-  //                     v);
+  //                      v);
 
   // check_valid_callback(CallbackDoesNotTakeCorrectArgument{},
-  //                     SpatialPredicates{}, v);
+  //                      SpatialPredicates{}, v);
 
-  // check_valid_callback(CustomCallbackNonVoidReturnType{},
-  //                     SpatialPredicates{});
+  // check_valid_callback<int>(CustomCallbackNonVoidReturnType{},
+  //                           SpatialPredicates{});
 
-  // check_valid_callback(CustomCallbackMissingConstQualifier{},
-  //                     SpatialPredicates{});
+  // check_valid_callback<int>(CustomCallbackMissingConstQualifier{},
+  //                           SpatialPredicates{});
 
 #ifndef __NVCC__
-  // check_valid_callback([](Wrong, int /*primitive*/) {}, SpatialPredicates{});
+  // check_valid_callback<int>([](Wrong, int /*primitive*/) {},
+  //                           SpatialPredicates{});
 #endif
 }

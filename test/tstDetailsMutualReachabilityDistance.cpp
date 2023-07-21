@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -32,7 +32,9 @@ auto compute_core_distances(ExecutionSpace exec_space,
 
   ARBORX_ASSERT(points.extent_int(0) >= k);
   using MemorySpace = typename ExecutionSpace::memory_space;
-  ArborX::BVH<MemorySpace> bvh{exec_space, points};
+  ArborX::BasicBoundingVolumeHierarchy<
+      MemorySpace, ArborX::Details::PairIndexVolume<ArborX::Box>>
+      bvh{exec_space, points};
   Kokkos::View<float *, MemorySpace> distances(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Test::core_distances"),
       bvh.size());

@@ -39,8 +39,8 @@ KOKKOS_FUNCTION float distance(FakePredicateGeometry, FakeBoundingVolume) { retu
 
 struct PoorManLambda
 {
-  template <class Predicate>
-  KOKKOS_FUNCTION void operator()(Predicate, int) const
+  template <class Predicate, typename Value>
+  KOKKOS_FUNCTION void operator()(Predicate, Value) const
   {}
 };
 } // namespace Test
@@ -71,7 +71,7 @@ void check_bounding_volume_and_predicate_geometry_type_requirements()
   tree.query(ExecutionSpace{}, spatial_predicates, Test::PoorManLambda{});
 #ifndef __NVCC__
   tree.query(ExecutionSpace{}, spatial_predicates,
-             KOKKOS_LAMBDA(SpatialPredicate, int){});
+             KOKKOS_LAMBDA(SpatialPredicate, auto){});
 #endif
 
   using NearestPredicate =
@@ -81,6 +81,6 @@ void check_bounding_volume_and_predicate_geometry_type_requirements()
   tree.query(ExecutionSpace{}, nearest_predicates, Test::PoorManLambda{});
 #ifndef __NVCC__
   tree.query(ExecutionSpace{}, nearest_predicates,
-             KOKKOS_LAMBDA(NearestPredicate, int){});
+             KOKKOS_LAMBDA(NearestPredicate, auto){});
 #endif
 }

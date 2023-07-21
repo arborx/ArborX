@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -165,8 +165,9 @@ template <class DeviceType>
 struct Experimental_CustomCallbackEarlyExit
 {
   Kokkos::View<int *, DeviceType, Kokkos::MemoryTraits<Kokkos::Atomic>> counts;
-  template <class Predicate>
-  KOKKOS_FUNCTION auto operator()(Predicate const &predicate, int) const
+  template <class Predicate, typename Value>
+  KOKKOS_FUNCTION auto operator()(Predicate const &predicate,
+                                  Value const &) const
   {
     int i = getData(predicate);
 

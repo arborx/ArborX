@@ -112,9 +112,51 @@ private:
 };
 
 template <typename MemorySpace>
-using BoundingVolumeHierarchy =
-    BasicBoundingVolumeHierarchy<MemorySpace, Details::PairIndexVolume<Box>,
-                                 Details::DefaultIndexableGetter, Box>;
+class BoundingVolumeHierarchy
+    : public BasicBoundingVolumeHierarchy<MemorySpace,
+                                          Details::PairIndexVolume<Box>,
+                                          Details::DefaultIndexableGetter, Box>
+{
+  using base_type =
+      BasicBoundingVolumeHierarchy<MemorySpace, Details::PairIndexVolume<Box>,
+                                   Details::DefaultIndexableGetter, Box>;
+
+public:
+  using legacy_tree = void;
+
+  BoundingVolumeHierarchy() = default; // build an empty tree
+
+  template <typename ExecutionSpace, typename Primitives,
+            typename SpaceFillingCurve = Experimental::Morton64>
+  BoundingVolumeHierarchy(ExecutionSpace const &space,
+                          Primitives const &primitives,
+                          SpaceFillingCurve const &curve = SpaceFillingCurve())
+      : base_type(space, primitives, curve)
+  {}
+
+  template <typename ExecutionSpace, typename Predicates, typename Callback>
+  void query(ExecutionSpace const &space, Predicates const &predicates,
+             Callback const &callback,
+             Experimental::TraversalPolicy const &policy =
+                 Experimental::TraversalPolicy()) const
+  {
+    base_type::query(space, predicates,
+                     Details::LegacyCallbackWrapper<
+                         Callback, typename base_type::value_type>{callback},
+                     policy);
+  }
+
+  template <typename ExecutionSpace, typename Predicates,
+            typename CallbackOrView, typename View, typename... Args>
+  std::enable_if_t<Kokkos::is_view<std::decay_t<View>>{}>
+  query(ExecutionSpace const &space, Predicates const &predicates,
+        CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
+  {
+    ArborX::query(*this, space, predicates,
+                  std::forward<CallbackOrView>(callback_or_view),
+                  std::forward<View>(view), std::forward<Args>(args)...);
+  }
+};
 
 template <typename MemorySpace>
 using BVH = BoundingVolumeHierarchy<MemorySpace>;
@@ -228,7 +270,7 @@ void BasicBoundingVolumeHierarchy<
     MemorySpace, Value, IndexableGetter,
     BoundingVolume>::query(ExecutionSpace const &space,
                            Predicates const &predicates,
-                           Callback const &legacy_callback,
+                           Callback const &callback,
                            Experimental::TraversalPolicy const &policy) const
 {
   static_assert(
@@ -238,9 +280,7 @@ void BasicBoundingVolumeHierarchy<
   static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                               ExecutionSpace>::value,
                 "Predicates must be accessible from the execution space");
-  Details::check_valid_callback(legacy_callback, predicates);
-  Details::LegacyCallbackWrapper<Callback, value_type> callback{
-      legacy_callback};
+  Details::check_valid_callback<value_type>(callback, predicates);
 
   using Tag = typename Details::AccessTraitsHelper<Access>::tag;
   std::string profiling_prefix = "ArborX::BVH::query::";
