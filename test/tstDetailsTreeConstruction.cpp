@@ -153,13 +153,14 @@ void generateHierarchy(Primitives primitives, MortonCodes sorted_morton_codes,
       "Testing::indices", n);
   ArborX::iota(space, permutation_indices);
 
+  using BoundingVolume =
+      typename InternalNodes::value_type::bounding_volume_type;
+  BoundingVolume bounds;
   ArborX::Details::TreeConstruction::generateHierarchy(
       space,
-      ArborX::Details::LegacyValues<
-          Primitives, typename InternalNodes::value_type::bounding_volume_type>{
-          primitives},
+      ArborX::Details::LegacyValues<Primitives, BoundingVolume>{primitives},
       ArborX::Details::DefaultIndexableGetter{}, permutation_indices,
-      sorted_morton_codes, leaf_nodes, internal_nodes);
+      sorted_morton_codes, leaf_nodes, internal_nodes, bounds);
 }
 
 template <typename LeafNodes, typename InternalNodes>
