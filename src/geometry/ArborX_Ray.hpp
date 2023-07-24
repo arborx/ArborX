@@ -40,8 +40,13 @@ struct Vector : private Point
   }
 };
 
-KOKKOS_INLINE_FUNCTION constexpr Vector makeVector(Point const &begin,
-                                                   Point const &end)
+template <typename Point1, typename Point2>
+KOKKOS_INLINE_FUNCTION constexpr std::enable_if_t<
+    GeometryTraits::is_point<Point1>{} && GeometryTraits::is_point<Point2>{} &&
+        GeometryTraits::dimension<Point1>::value == 3 &&
+        GeometryTraits::dimension<Point2>::value == 3,
+    Vector>
+makeVector(Point1 const &begin, Point2 const &end)
 {
   Vector v;
   for (int d = 0; d < 3; ++d)
@@ -292,8 +297,8 @@ KOKKOS_INLINE_FUNCTION bool rayEdgeIntersect(Point const &edge_vertex_1,
 // when the ray and the triangle is coplanar.
 // In the paper, they just need the boolean return.
 KOKKOS_INLINE_FUNCTION
-bool intersection(Ray const &ray, Triangle const &triangle, float &tmin,
-                  float &tmax)
+bool intersection(Ray const &ray, Triangle<3, float> const &triangle,
+                  float &tmin, float &tmax)
 {
   auto dir = ray.direction();
   // normalize the direction vector by its largest component.
@@ -437,8 +442,8 @@ bool intersection(Ray const &ray, Triangle const &triangle, float &tmin,
   return false;
 } // namespace Experimental
 
-KOKKOS_INLINE_FUNCTION
-bool intersects(Ray const &ray, Triangle const &triangle)
+KOKKOS_INLINE_FUNCTION bool intersects(Ray const &ray,
+                                       Triangle<3, float> const &triangle)
 {
   float tmin;
   float tmax;
