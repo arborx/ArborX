@@ -259,6 +259,9 @@ void BM_radius_search(benchmark::State &state, Spec const &spec)
       spec.n_queries, benchmark::Counter::kIsIterationInvariantRate);
 }
 
+struct Dummy
+{};
+
 template <typename ExecutionSpace, class TreeType>
 void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
 {
@@ -284,9 +287,32 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
     exec_space.fence();
     auto const start = std::chrono::high_resolution_clock::now();
 
+// #define ARBORX_BENCHMARK_USE_BATCHES
+#ifdef ARBORX_BENCHMARK_USE_BATCHES
     index.query(exec_space, queries, callback,
                 ArborX::Experimental::TraversalPolicy().setPredicateSorting(
                     spec.sort_predicates));
+#else
+    ArborX::Details::LegacyCallbackWrapper<
+        CountCallback<DeviceType>,
+        ArborX::Details::PairIndexVolume<ArborX::Box>>
+        wrapped_callback{callback};
+    ArborX::Details::TreeTraversal<TreeType, Dummy, decltype(wrapped_callback),
+                                   ArborX::Details::SpatialPredicateTag>
+        tree_traversal(index, wrapped_callback);
+
+    auto const n = queries_no_index.extent(0);
+
+    Kokkos::parallel_for(
+        "ArborX::Benchmarks::RadiusCallbackSearch",
+        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+        KOKKOS_LAMBDA(int i) {
+          const auto &query =
+              ArborX::AccessTraits<decltype(queries),
+                                   ArborX::PredicatesTag>::get(queries, i);
+          tree_traversal.search(query);
+        });
+#endif
 
     exec_space.fence();
     auto const end = std::chrono::high_resolution_clock::now();
