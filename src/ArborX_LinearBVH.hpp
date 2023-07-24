@@ -39,9 +39,12 @@ namespace Details
 struct HappyTreeFriends;
 } // namespace Details
 
-template <typename MemorySpace, typename Value,
-          typename IndexableGetter = Details::DefaultIndexableGetter,
-          typename BoundingVolume = Box>
+template <
+    typename MemorySpace, typename Value,
+    typename IndexableGetter = Details::DefaultIndexableGetter,
+    typename BoundingVolume =
+        ExperimentalHyperGeometry::Box<GeometryTraits::dimension_v<std::decay_t<
+            decltype(std::declval<IndexableGetter>()(std::declval<Value>()))>>>>
 class BasicBoundingVolumeHierarchy
 {
 public:
@@ -88,6 +91,8 @@ public:
 private:
   friend struct Details::HappyTreeFriends;
 
+  using indexable_type = std::decay_t<decltype(std::declval<IndexableGetter>()(
+      std::declval<Value>()))>;
   using leaf_node_type = Details::LeafNode<value_type>;
   using internal_node_type = Details::InternalNode<bounding_volume_type>;
 
@@ -186,8 +191,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
   if (size() == 1)
   {
     Details::TreeConstruction::initializeSingleLeafTree(
-        space,
-        Details::LegacyValues<Primitives, bounding_volume_type>{primitives},
+        space, Details::LegacyValues<Primitives, indexable_type>{primitives},
         _indexable_getter, _leaf_nodes, _bounds);
     return;
   }
@@ -228,8 +232,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
 
   // Generate bounding volume hierarchy
   Details::TreeConstruction::generateHierarchy(
-      space,
-      Details::LegacyValues<Primitives, bounding_volume_type>{primitives},
+      space, Details::LegacyValues<Primitives, indexable_type>{primitives},
       _indexable_getter, permutation_indices, linear_ordering_indices,
       _leaf_nodes, _internal_nodes, _bounds);
 
