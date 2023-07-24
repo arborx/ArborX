@@ -290,8 +290,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     // Build the tree
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::tree_construction");
     ArborX::BasicBoundingVolumeHierarchy<MemorySpace,
-                                         Details::PairIndexVolume<Box>,
-                                         Details::DefaultIndexableGetter, Box>
+                                         Details::PairIndexVolume<Box>>
         bvh(exec_space, primitives);
     Kokkos::Profiling::popRegion();
 
@@ -413,8 +412,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     // Build the tree
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::tree_construction");
     ArborX::BasicBoundingVolumeHierarchy<MemorySpace,
-                                         Details::PairIndexVolume<Box>,
-                                         Details::DefaultIndexableGetter, Box>
+                                         Details::PairIndexVolume<Box>>
         bvh(exec_space,
             Details::MixedBoxPrimitives<
                 Primitives, decltype(dense_cell_offsets),
