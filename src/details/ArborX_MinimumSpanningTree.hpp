@@ -716,9 +716,8 @@ struct MinimumSpanningTree
     auto const n = AccessTraits<Primitives, PrimitivesTag>::size(primitives);
 
     Kokkos::Profiling::pushRegion("ArborX::MST::construction");
-    BasicBoundingVolumeHierarchy<MemorySpace, PairIndexVolume<Box>,
-                                 DefaultIndexableGetter, Box>
-        bvh(space, primitives);
+    BasicBoundingVolumeHierarchy<MemorySpace, PairIndexVolume<Box>> bvh(
+        space, primitives);
     Kokkos::Profiling::popRegion();
 
     if (k > 1)
