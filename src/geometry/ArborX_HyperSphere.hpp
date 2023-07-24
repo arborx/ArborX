@@ -47,15 +47,15 @@ struct Sphere
 
 } // namespace ArborX::ExperimentalHyperGeometry
 
-template <int DIM>
+template <int DIM, class FloatingPoint>
 struct ArborX::GeometryTraits::dimension<
-    ArborX::ExperimentalHyperGeometry::Sphere<DIM>>
+    ArborX::ExperimentalHyperGeometry::Sphere<DIM, FloatingPoint>>
 {
   static constexpr int value = DIM;
 };
-template <int DIM>
+template <int DIM, class FloatingPoint>
 struct ArborX::GeometryTraits::tag<
-    ArborX::ExperimentalHyperGeometry::Sphere<DIM>>
+    ArborX::ExperimentalHyperGeometry::Sphere<DIM, FloatingPoint>>
 {
   using type = SphereTag;
 };
