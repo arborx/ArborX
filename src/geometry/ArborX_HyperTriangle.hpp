@@ -3,9 +3,7 @@
 
 #include <ArborX_HyperPoint.hpp>
 
-namespace ArborX
-{
-namespace Experimental
+namespace ArborX::ExperimentalHyperGeometry
 {
 // need to add a protection that
 // the points are not on the same line.
@@ -23,12 +21,11 @@ Triangle(ExperimentalHyperGeometry::Point<DIM, FloatingPoint>,
          ExperimentalHyperGeometry::Point<DIM, FloatingPoint>)
     -> Triangle<DIM, FloatingPoint>;
 
-} // namespace Experimental
-} // namespace ArborX
+} // namespace ArborX::ExperimentalHyperGeometry
 
 template <int DIM, class FloatingPoint>
 struct ArborX::GeometryTraits::dimension<
-    ArborX::Experimental::Triangle<DIM, FloatingPoint>>
+    ArborX::ExperimentalHyperGeometry::Triangle<DIM, FloatingPoint>>
 {
   static constexpr int value = DIM;
 };

@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 #include <ArborX_Box.hpp>
+#include <ArborX_HyperTriangle.hpp>
 #include <ArborX_Ray.hpp>
-#include <ArborX_Triangle.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -396,8 +396,8 @@ BOOST_AUTO_TEST_CASE(ray_sphere_intersection,
 BOOST_AUTO_TEST_CASE(intersects_triangle)
 {
   using ArborX::Experimental::Ray;
-  using ArborX::Experimental::Triangle;
   using ArborX::ExperimentalHyperGeometry::Point;
+  using ArborX::ExperimentalHyperGeometry::Triangle;
   constexpr Triangle unit_triangle{Point{0.f, 0.f, 0.f}, Point{1.f, 0.f, 0.f},
                                    Point{0.f, 1.f, 0.f}};
 
@@ -480,8 +480,8 @@ BOOST_AUTO_TEST_CASE(ray_triangle_intersection,
                      *boost::unit_test::tolerance(2e-6f))
 {
   using ArborX::Experimental::Ray;
-  using ArborX::Experimental::Triangle;
   using ArborX::ExperimentalHyperGeometry::Point;
+  using ArborX::ExperimentalHyperGeometry::Triangle;
 
   constexpr Triangle unit_triangle{Point{0.f, 0.f, 0.f}, Point{1.f, 0.f, 0.f},
                                    Point{0.f, 1.f, 0.f}};
