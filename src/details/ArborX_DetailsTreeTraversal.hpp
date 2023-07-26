@@ -70,7 +70,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     }
   }
 
-  TreeTraversal(BVH const &bvh, Callback const &callback)
+  KOKKOS_FUNCTION TreeTraversal(BVH const &bvh, Callback const &callback)
       : _bvh{bvh}
       , _callback{callback}
   {}
@@ -432,7 +432,7 @@ struct TreeTraversal<BVH, Predicates, Callback,
     }
   }
 
-  TreeTraversal(BVH const &bvh, Callback const &callback)
+  KOKKOS_FUNCTION TreeTraversal(BVH const &bvh, Callback const &callback)
       : _bvh{bvh}
       , _callback{callback}
   {}

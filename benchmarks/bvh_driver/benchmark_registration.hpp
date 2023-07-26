@@ -297,12 +297,7 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
         CountCallback<DeviceType>,
         ArborX::Details::PairIndexVolume<ArborX::Box>>
         wrapped_callback{callback};
-    ArborX::Details::TreeTraversal<TreeType, Dummy, decltype(wrapped_callback),
-                                   ArborX::Details::SpatialPredicateTag>
-        tree_traversal(index, wrapped_callback);
-
     auto const n = queries_no_index.extent(0);
-
     Kokkos::parallel_for(
         "ArborX::Benchmarks::RadiusCallbackSearch",
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
@@ -310,7 +305,7 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
           const auto &query =
               ArborX::AccessTraits<decltype(queries),
                                    ArborX::PredicatesTag>::get(queries, i);
-          tree_traversal.search(query);
+          ArborX::kernel_query(index, query, wrapped_callback);
         });
 #endif
 
