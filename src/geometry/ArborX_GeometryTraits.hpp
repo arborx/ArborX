@@ -51,6 +51,12 @@ struct tag
 };
 
 template <typename Geometry>
+struct coordinate_type
+{
+  using type = not_specialized;
+};
+
+template <typename Geometry>
 using DimensionNotSpecializedArchetypeAlias =
     typename dimension<Geometry>::not_specialized;
 

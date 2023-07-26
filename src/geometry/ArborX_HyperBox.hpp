@@ -109,6 +109,12 @@ struct ArborX::GeometryTraits::tag<
 {
   using type = BoxTag;
 };
+template <int DIM, class FloatingPoint>
+struct ArborX::GeometryTraits::coordinate_type<
+    ArborX::ExperimentalHyperGeometry::Box<DIM, FloatingPoint>>
+{
+  using type = FloatingPoint;
+};
 
 template <int DIM, typename FloatingPoint>
 struct Kokkos::reduction_identity<

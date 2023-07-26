@@ -59,5 +59,11 @@ struct ArborX::GeometryTraits::tag<
 {
   using type = SphereTag;
 };
+template <int DIM, class FloatingPoint>
+struct ArborX::GeometryTraits::coordinate_type<
+    ArborX::ExperimentalHyperGeometry::Sphere<DIM, FloatingPoint>>
+{
+  using type = FloatingPoint;
+};
 
 #endif
