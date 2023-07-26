@@ -24,7 +24,7 @@ using MemorySpace = ExecutionSpace::memory_space;
 
 namespace ArborXBenchmark
 {
-template <int DIM>
+template <int DIM, typename FloatingPoint>
 struct Placeholder
 {
   int count;
@@ -33,17 +33,17 @@ struct Placeholder
 
 // Primitives are a set of points located at (i, i, i),
 // with i = 0, ..., n-1
-template <int DIM>
-struct ArborX::AccessTraits<ArborXBenchmark::Placeholder<DIM>,
+template <int DIM, typename FloatingPoint>
+struct ArborX::AccessTraits<ArborXBenchmark::Placeholder<DIM, FloatingPoint>,
                             ArborX::PrimitivesTag>
 {
-  using Primitives = ArborXBenchmark::Placeholder<DIM>;
+  using Primitives = ArborXBenchmark::Placeholder<DIM, FloatingPoint>;
   using memory_space = MemorySpace;
   using size_type = typename MemorySpace::size_type;
   static KOKKOS_FUNCTION size_type size(Primitives d) { return d.count; }
   static KOKKOS_FUNCTION auto get(Primitives, size_type i)
   {
-    ArborX::ExperimentalHyperGeometry::Point<DIM> point;
+    ArborX::ExperimentalHyperGeometry::Point<DIM, FloatingPoint> point;
     for (int d = 0; d < DIM; ++d)
       point[d] = i;
     return point;
@@ -52,38 +52,38 @@ struct ArborX::AccessTraits<ArborXBenchmark::Placeholder<DIM>,
 
 // Predicates are sphere intersections with spheres of radius i
 // centered at (i, i, i), with i = 0, ..., n-1
-template <int DIM>
-struct ArborX::AccessTraits<ArborXBenchmark::Placeholder<DIM>,
+template <int DIM, typename FloatingPoint>
+struct ArborX::AccessTraits<ArborXBenchmark::Placeholder<DIM, FloatingPoint>,
                             ArborX::PredicatesTag>
 {
-  using Predicates = ArborXBenchmark::Placeholder<DIM>;
+  using Predicates = ArborXBenchmark::Placeholder<DIM, FloatingPoint>;
   using memory_space = MemorySpace;
   using size_type = typename MemorySpace::size_type;
   static KOKKOS_FUNCTION size_type size(Predicates d) { return d.count; }
   static KOKKOS_FUNCTION auto get(Predicates, size_type i)
   {
-    ArborX::ExperimentalHyperGeometry::Point<DIM> center;
+    ArborX::ExperimentalHyperGeometry::Point<DIM, FloatingPoint> center;
     for (int d = 0; d < DIM; ++d)
       center[d] = i;
-    return attach(intersects(ArborX::ExperimentalHyperGeometry::Sphere<DIM>{
-                      center, (float)i}),
-                  i);
+    return attach(
+        intersects(
+            ArborX::ExperimentalHyperGeometry::Sphere<DIM, FloatingPoint>{
+                center, (FloatingPoint)i}),
+        i);
   }
 };
 
-template <int DIM>
-void ArborXBenchmark::run(int nprimitives, int nqueries, int nrepeats)
+namespace ArborXBenchmark
+{
+
+template <int DIM, typename FloatingPoint>
+static void run_fp(int nprimitives, int nqueries, int nrepeats)
 {
   ExecutionSpace space{};
-  Placeholder<DIM> primitives{nprimitives};
-  Placeholder<DIM> predicates{nqueries};
+  Placeholder<DIM, FloatingPoint> primitives{nprimitives};
+  Placeholder<DIM, FloatingPoint> predicates{nqueries};
 
-  printf("Dimension : %d\n", DIM);
-  printf("Primitives: %d\n", nprimitives);
-  printf("Predicates: %d\n", nqueries);
-  printf("Iterations: %d\n", nrepeats);
-
-  using Box = ArborX::ExperimentalHyperGeometry::Box<DIM>;
+  using Box = ArborX::ExperimentalHyperGeometry::Box<DIM, FloatingPoint>;
 
   for (int i = 0; i < nrepeats; i++)
   {
@@ -103,7 +103,7 @@ void ArborXBenchmark::run(int nprimitives, int nqueries, int nrepeats)
       if (i == 0)
         printf("Collisions: %.5f\n",
                (float)(indices.extent(0)) / (nprimitives * nqueries));
-      printf("Time BVH: %lf\n", time);
+      printf("Time BVH  : %lf\n", time);
       out_count = indices.extent(0);
     }
 
@@ -117,8 +117,26 @@ void ArborXBenchmark::run(int nprimitives, int nqueries, int nrepeats)
 
       space.fence();
       double time = timer.seconds();
-      printf("Time BF: %lf\n", time);
+      printf("Time BF   : %lf\n", time);
       assert(out_count == indices.extent(0));
     }
   }
 }
+
+template <int DIM>
+void run(int nprimitives, int nqueries, int nrepeats)
+{
+  printf("Dimension : %d\n", DIM);
+  printf("Primitives: %d\n", nprimitives);
+  printf("Predicates: %d\n", nqueries);
+  printf("Iterations: %d\n", nrepeats);
+
+  printf("-------------------\n");
+  printf("Precision : float\n");
+  run_fp<DIM, float>(nprimitives, nqueries, nrepeats);
+  printf("-------------------\n");
+  printf("Precision : double\n");
+  run_fp<DIM, double>(nprimitives, nqueries, nrepeats);
+}
+
+} // namespace ArborXBenchmark
