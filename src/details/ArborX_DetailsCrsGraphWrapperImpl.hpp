@@ -412,7 +412,8 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
     using bounding_volume_type = std::decay_t<decltype(tree.bounds())>;
     ExperimentalHyperGeometry::Box<
-        GeometryTraits::dimension_v<bounding_volume_type>>
+        GeometryTraits::dimension_v<bounding_volume_type>,
+        typename GeometryTraits::coordinate_type<bounding_volume_type>::type>
         scene_bounding_box{};
     using namespace Details;
     expand(scene_bounding_box, tree.bounds());
