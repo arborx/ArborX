@@ -24,91 +24,89 @@ namespace Details
 {
 struct BruteForceImpl
 {
-  template <class ExecutionSpace, class Primitives, class BoundingVolumes,
-            class Bounds>
+  template <class ExecutionSpace, class Values, class IndexableGetter,
+            class Nodes, class Bounds>
   static void initializeBoundingVolumesAndReduceBoundsOfTheScene(
-      ExecutionSpace const &space, Primitives const &primitives,
-      BoundingVolumes const &bounding_volumes, Bounds &bounds)
+      ExecutionSpace const &space, Values const &values,
+      IndexableGetter const &indexable_getter, Nodes const &nodes,
+      Bounds &bounds)
   {
-    using Access = AccessTraits<Primitives, PrimitivesTag>;
-
-    int const n = Access::size(primitives);
-
     Kokkos::parallel_reduce(
         "ArborX::BruteForce::BruteForce::"
-        "initialize_bounding_volumes_and_reduce_bounds",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+        "initialize_values_and_reduce_bounds",
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, values.size()),
         KOKKOS_LAMBDA(int i, Bounds &update) {
+          nodes(i) = values(i);
+
           using Details::expand;
           Bounds bounding_volume{};
-          expand(bounding_volume, Access::get(primitives, i));
-          bounding_volumes(i) = bounding_volume;
+          expand(bounding_volume, indexable_getter(nodes(i)));
           update += bounding_volume;
         },
         Kokkos::Sum<Bounds>{bounds});
   }
 
-  template <class ExecutionSpace, class Primitives, class Predicates,
-            class Callback>
-  static void query(ExecutionSpace const &space, Primitives const &primitives,
-                    Predicates const &predicates, Callback const &callback)
+  template <class ExecutionSpace, class Predicates, class Values,
+            class Indexables, class Callback>
+  static void query(ExecutionSpace const &space, Predicates const &predicates,
+                    Values const &values, Indexables const &indexables,
+                    Callback const &callback)
   {
     using TeamPolicy = Kokkos::TeamPolicy<ExecutionSpace>;
-    using AccessPrimitives = AccessTraits<Primitives, PrimitivesTag>;
     using AccessPredicates = AccessTraits<Predicates, PredicatesTag>;
     using PredicateType = typename AccessTraitsHelper<AccessPredicates>::type;
-    using PrimitiveType = typename AccessTraitsHelper<AccessPrimitives>::type;
+    using IndexableType = std::decay_t<decltype(indexables(0))>;
 
-    int const n_primitives = AccessPrimitives::size(primitives);
+    int const n_indexables = values.size();
     int const n_predicates = AccessPredicates::size(predicates);
     int max_scratch_size = TeamPolicy::scratch_size_max(0);
-    // half of the scratch memory used by predicates and half for primitives
+    // half of the scratch memory used by predicates and half for indexables
     int const predicates_per_team =
         max_scratch_size / 2 / sizeof(PredicateType);
-    int const primitives_per_team =
-        max_scratch_size / 2 / sizeof(PrimitiveType);
+    int const indexables_per_team =
+        max_scratch_size / 2 / sizeof(IndexableType);
     ARBORX_ASSERT(predicates_per_team > 0);
-    ARBORX_ASSERT(primitives_per_team > 0);
+    ARBORX_ASSERT(indexables_per_team > 0);
 
-    int const n_primitive_tiles =
-        std::ceil((float)n_primitives / primitives_per_team);
+    int const n_indexable_tiles =
+        std::ceil((float)n_indexables / indexables_per_team);
     int const n_predicate_tiles =
         std::ceil((float)n_predicates / predicates_per_team);
-    int const n_teams = n_primitive_tiles * n_predicate_tiles;
+    int const n_teams = n_indexable_tiles * n_predicate_tiles;
 
     using ScratchPredicateType =
         Kokkos::View<PredicateType *,
                      typename ExecutionSpace::scratch_memory_space,
                      Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
-    using ScratchPrimitiveType =
-        Kokkos::View<PrimitiveType *,
+    using ScratchIndexableType =
+        Kokkos::View<IndexableType *,
                      typename ExecutionSpace::scratch_memory_space,
                      Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
     int scratch_size = ScratchPredicateType::shmem_size(predicates_per_team) +
-                       ScratchPrimitiveType::shmem_size(primitives_per_team);
+                       ScratchIndexableType::shmem_size(indexables_per_team);
 
     Kokkos::parallel_for(
         "ArborX::BruteForce::query::spatial::"
-        "check_all_predicates_against_all_primitives",
+        "check_all_predicates_against_all_indexables",
         TeamPolicy(space, n_teams, Kokkos::AUTO, 1)
             .set_scratch_size(0, Kokkos::PerTeam(scratch_size)),
         KOKKOS_LAMBDA(typename TeamPolicy::member_type const &teamMember) {
-          // select the tiles of predicates/primitives checked by each team
+          // select the tiles of predicates/indexables checked by each team
           int predicate_start = predicates_per_team *
-                                (teamMember.league_rank() / n_primitive_tiles);
-          int primitive_start = primitives_per_team *
-                                (teamMember.league_rank() % n_primitive_tiles);
+                                (teamMember.league_rank() / n_indexable_tiles);
+          int indexable_start = indexables_per_team *
+                                (teamMember.league_rank() % n_indexable_tiles);
 
           int predicates_in_this_team = KokkosExt::min(
               predicates_per_team, n_predicates - predicate_start);
-          int primitives_in_this_team = KokkosExt::min(
-              primitives_per_team, n_primitives - primitive_start);
+          int indexables_in_this_team = KokkosExt::min(
+              indexables_per_team, n_indexables - indexable_start);
 
           ScratchPredicateType scratch_predicates(teamMember.team_scratch(0),
                                                   predicates_per_team);
-          ScratchPrimitiveType scratch_primitives(teamMember.team_scratch(0),
-                                                  primitives_per_team);
-          // fill the scratch space with the predicates / primitives in the tile
+          ScratchIndexableType scratch_indexables(teamMember.team_scratch(0),
+                                                  indexables_per_team);
+          // fill the scratch space with the predicates / indexables in the tile
           Kokkos::parallel_for(
               Kokkos::TeamVectorRange(teamMember, predicates_in_this_team),
               [&](const int q) {
@@ -116,26 +114,25 @@ struct BruteForceImpl
                     AccessPredicates::get(predicates, predicate_start + q);
               });
           Kokkos::parallel_for(
-              Kokkos::TeamVectorRange(teamMember, primitives_in_this_team),
+              Kokkos::TeamVectorRange(teamMember, indexables_in_this_team),
               [&](const int j) {
-                scratch_primitives(j) =
-                    AccessPrimitives::get(primitives, primitive_start + j);
+                scratch_indexables(j) = indexables(indexable_start + j);
               });
           teamMember.team_barrier();
 
-          // start threads for every predicate / primitive combination
+          // start threads for every predicate / indexable combination
           Kokkos::parallel_for(
-              Kokkos::TeamThreadRange(teamMember, primitives_in_this_team),
+              Kokkos::TeamThreadRange(teamMember, indexables_in_this_team),
               [&](int j) {
                 Kokkos::parallel_for(
                     Kokkos::ThreadVectorRange(teamMember,
                                               predicates_in_this_team),
                     [&](const int q) {
                       auto const &predicate = scratch_predicates(q);
-                      auto const &primitive = scratch_primitives(j);
-                      if (predicate(primitive))
+                      auto const &indexable = scratch_indexables(j);
+                      if (predicate(indexable))
                       {
-                        callback(predicate, j + primitive_start);
+                        callback(predicate, values(indexable_start + j));
                       }
                     });
               });
