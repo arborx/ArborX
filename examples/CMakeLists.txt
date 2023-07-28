@@ -10,6 +10,7 @@ add_subdirectory(callback)
 add_subdirectory(dbscan)
 add_subdirectory(molecular_dynamics)
 add_subdirectory(simple_intersection)
+add_subdirectory(moving_least_squares)
 
 find_package(Boost COMPONENTS program_options)
 if(Boost_FOUND)
