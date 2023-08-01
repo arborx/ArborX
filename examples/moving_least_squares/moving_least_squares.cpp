@@ -54,7 +54,8 @@ int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
   constexpr std::size_t num_neighbors = 5;
-  constexpr std::size_t source_points_num = 10;
+  constexpr std::size_t cube_side = 4;
+  constexpr std::size_t source_points_num = cube_side * cube_side * cube_side;
   constexpr std::size_t target_points_num = 4;
 
   auto source_points = Kokkos::View<ArborX::Point *, MemorySpace>(
@@ -63,27 +64,28 @@ int main(int argc, char *argv[])
   auto target_points = Kokkos::View<ArborX::Point *, MemorySpace>(
     Kokkos::view_alloc(Kokkos::WithoutInitializing, "MLS_EX::target_points"),
     target_points_num);
-  auto source_points_host = Kokkos::create_mirror_view(source_points);
   auto target_points_host = Kokkos::create_mirror_view(target_points);
 
-  // Generate source points
-  source_points_host(0) = ArborX::Point {  1.,  1.,  0. };
-  source_points_host(1) = ArborX::Point { -1.,  1.,  0. };
-  source_points_host(2) = ArborX::Point { -1., -1.,  0. };
-  source_points_host(3) = ArborX::Point {  1., -1.,  0. };
-  source_points_host(4) = ArborX::Point {  0.,  0.,  1. };
-  source_points_host(5) = ArborX::Point {  1.,  1.,  2. };
-  source_points_host(6) = ArborX::Point { -1.,  1.,  2. };
-  source_points_host(7) = ArborX::Point { -1., -1.,  2. };
-  source_points_host(8) = ArborX::Point {  1., -1.,  2. };
-  source_points_host(9) = ArborX::Point {  0.,  0., -1. };
-  Kokkos::deep_copy(source_points, source_points_host);
+  // Generate source points (Organized within a [-10, 10]^3 cube)
+  Kokkos::parallel_for(
+    "MLS_EX::source_points_init",
+    Kokkos::MDRangePolicy<ExecutionSpace, Kokkos::Rank<3>>(
+      {0, 0, 0}, {cube_side, cube_side, cube_side}),
+    KOKKOS_LAMBDA (const int i, const int j, const int k) {
+      source_points(i * cube_side * cube_side +
+                    j * cube_side +
+                    k ) = ArborX::Point {
+        20.f * (float(i) / (cube_side - 1) - .5f),
+        20.f * (float(j) / (cube_side - 1) - .5f),
+        20.f * (float(k) / (cube_side - 1) - .5f)
+      };
+  });
 
   // Generate target points
-  target_points_host(0) = ArborX::Point {  0.,  0.,  0. };
-  target_points_host(1) = ArborX::Point {  .5,  .5,  .5 };
-  target_points_host(2) = ArborX::Point { -.5,  .5,  1. };
-  target_points_host(3) = ArborX::Point {  .1, -.33, 1.5 };
+  target_points_host(0) = ArborX::Point {  0.f,   0.f,  0.f };
+  target_points_host(1) = ArborX::Point {  5.f,   5.f,  5.f };
+  target_points_host(2) = ArborX::Point { -5.f,   5.f,  3.f };
+  target_points_host(3) = ArborX::Point {  1.f, -3.3f,  7.f };
   Kokkos::deep_copy(target_points, target_points_host);
 
   // Organize source points as tree
