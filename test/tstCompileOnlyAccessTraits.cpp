@@ -82,6 +82,22 @@ void test_access_traits_compile_only()
   // check_valid_access_traits(PrimitivesTag{}, LegacyAccessTraits{});
 }
 
+void test_point_ctad()
+{
+  using ArborX::ExperimentalHyperGeometry::Point;
+  static_assert(std::is_same_v<decltype(Point{}), Point<0, float>>);
+  static_assert(std::is_same_v<decltype(Point{1}), Point<1, float>>);
+  static_assert(std::is_same_v<decltype(Point{1.}), Point<1, double>>);
+  static_assert(std::is_same_v<decltype(Point{1., 2}), Point<2, double>>);
+  static_assert(std::is_same_v<decltype(Point{1, 2.}), Point<2, double>>);
+  static_assert(std::is_same_v<decltype(Point{2, 2}), Point<2, float>>);
+  static_assert(std::is_same_v<decltype(Point{2., 3.f, 2.}), Point<3, double>>);
+  static_assert(
+      std::is_same_v<decltype(Point{2.f, 3.f, 2.f}), Point<3, float>>);
+  static_assert(
+      std::is_same_v<decltype(Point<3, int>{2, 3, 2}), Point<3, int>>);
+}
+
 template <class V>
 using deduce_point_t =
     decltype(ArborX::AccessTraits<V, ArborX::PrimitivesTag>::get(
