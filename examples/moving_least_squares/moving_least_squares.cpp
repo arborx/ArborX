@@ -45,6 +45,28 @@ struct MVPolynomialBasis_3D
   }
 };
 
+struct TargetPoints
+{
+  Kokkos::View<ArborX::Point *, MemorySpace> target_points;
+  std::size_t num_neighbors;
+};
+
+template <>
+struct ArborX::AccessTraits<TargetPoints, ArborX::PredicatesTag>
+{
+  static KOKKOS_FUNCTION std::size_t size(TargetPoints const &tp)
+  {
+    return tp.target_points.extent(0);
+  }
+
+  static KOKKOS_FUNCTION auto get(TargetPoints const &tp, std::size_t i)
+  {
+    return ArborX::nearest(tp.target_points(i), tp.num_neighbors);
+  }
+
+  using memory_space = MemorySpace;
+};
+
 // Function to approximate
 KOKKOS_INLINE_FUNCTION float manufactured_solution(ArborX::Point const &p)
 {
@@ -54,7 +76,7 @@ KOKKOS_INLINE_FUNCTION float manufactured_solution(ArborX::Point const &p)
 int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
-  constexpr std::size_t num_neighbors = 5;
+  constexpr std::size_t num_neighbors = 7;
   constexpr std::size_t cube_side = 4;
   constexpr std::size_t source_points_num = cube_side * cube_side * cube_side;
   constexpr std::size_t target_points_num = 4;
@@ -91,21 +113,11 @@ int main(int argc, char *argv[])
   // Organize source points as tree
   ArborX::BVH<MemorySpace> source_tree(space, source_points);
 
-  // Create the queries
-  // For each target point we query the closest source points
-  auto queries = Kokkos::View<ArborX::Nearest<ArborX::Point> *, MemorySpace>(
-      "Example::queries", target_points_num);
-  Kokkos::parallel_for(
-      "Example::make_queries",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, target_points_num),
-      KOKKOS_LAMBDA(int const i) {
-        queries(i) = ArborX::nearest(target_points(i), num_neighbors);
-      });
-
   // Perform the query
   auto indices = Kokkos::View<int *, MemorySpace>("Example::indices", 0);
   auto offsets = Kokkos::View<int *, MemorySpace>("Example::offsets", 0);
-  source_tree.query(space, queries, indices, offsets);
+  source_tree.query(space, TargetPoints{target_points, num_neighbors}, indices,
+                    offsets);
 
   // Now that we have the neighbors, we recompute their position using
   // their target point as the origin.
