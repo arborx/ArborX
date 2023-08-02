@@ -83,10 +83,10 @@ int main(int argc, char *argv[])
 
   ExecutionSpace space{};
 
-  auto source_points = Kokkos::View<ArborX::Point *, MemorySpace>(
+  Kokkos::View<ArborX::Point *, MemorySpace> source_points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::source_points"),
       source_points_num);
-  auto target_points = Kokkos::View<ArborX::Point *, MemorySpace>(
+  Kokkos::View<ArborX::Point *, MemorySpace> target_points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::target_points"),
       target_points_num);
   auto target_points_host = Kokkos::create_mirror_view(target_points);
@@ -114,15 +114,15 @@ int main(int argc, char *argv[])
   ArborX::BVH<MemorySpace> source_tree(space, source_points);
 
   // Perform the query
-  auto indices = Kokkos::View<int *, MemorySpace>("Example::indices", 0);
-  auto offsets = Kokkos::View<int *, MemorySpace>("Example::offsets", 0);
+  Kokkos::View<int *, MemorySpace> indices("Example::indices", 0);
+  Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
   source_tree.query(space, TargetPoints{target_points, num_neighbors}, indices,
                     offsets);
 
   // Now that we have the neighbors, we recompute their position using
   // their target point as the origin.
   // This is used as an optimisation later in the algorithm
-  auto tr_source_points = Kokkos::View<ArborX::Point **, MemorySpace>(
+  Kokkos::View<ArborX::Point **, MemorySpace> tr_source_points(
       "Example::tr_source_points", target_points_num, num_neighbors);
   Kokkos::parallel_for(
       "Example::transform_source_points",
@@ -139,8 +139,7 @@ int main(int argc, char *argv[])
       });
 
   // Compute the radii for the weight (phi) vector
-  auto radii =
-      Kokkos::View<float *, MemorySpace>("Example::radii", target_points_num);
+  Kokkos::View<float *, MemorySpace> radii("Example::radii", target_points_num);
   constexpr float epsilon = std::numeric_limits<float>::epsilon();
   Kokkos::parallel_for(
       "Example::radii_computation",
@@ -159,13 +158,13 @@ int main(int argc, char *argv[])
       });
 
   // Compute the weight (phi) vector
-  auto phi = Kokkos::View<float **, MemorySpace>(
-      "Example::phi", target_points_num, num_neighbors);
+  Kokkos::View<float **, MemorySpace> phi("Example::phi", target_points_num,
+                                          num_neighbors);
   Kokkos::parallel_for(
       "Example::phi_computation",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, target_points_num),
       KOKKOS_LAMBDA(int const i) {
-        auto rbf = RBFWendland_0{radii(i)};
+        RBFWendland_0 rbf{radii(i)};
 
         for (int j = 0; j < num_neighbors; j++)
         {
@@ -176,9 +175,9 @@ int main(int argc, char *argv[])
       });
 
   // Compute multivariable Vandermonde (P) matrix
-  auto p = Kokkos::View<float ***, MemorySpace>(
-      "Example::vandermonde", target_points_num, num_neighbors,
-      MVPolynomialBasis_3D::size);
+  Kokkos::View<float ***, MemorySpace> p("Example::vandermonde",
+                                         target_points_num, num_neighbors,
+                                         MVPolynomialBasis_3D::size);
   Kokkos::parallel_for(
       "Example::vandermonde_computation",
       Kokkos::MDRangePolicy<ExecutionSpace, Kokkos::Rank<2>>(
@@ -193,9 +192,9 @@ int main(int argc, char *argv[])
       });
 
   // Compute moment (A) matrix
-  auto a = Kokkos::View<float ***, MemorySpace>("Example::A", target_points_num,
-                                                MVPolynomialBasis_3D::size,
-                                                MVPolynomialBasis_3D::size);
+  Kokkos::View<float ***, MemorySpace> a("Example::A", target_points_num,
+                                         MVPolynomialBasis_3D::size,
+                                         MVPolynomialBasis_3D::size);
   Kokkos::parallel_for(
       "Example::A_computation",
       Kokkos::MDRangePolicy<ExecutionSpace, Kokkos::Rank<3>>(
@@ -217,7 +216,7 @@ int main(int argc, char *argv[])
   // first one are applied to the second
   // Kind of works, errors out quite often.
   // A better method should be employed (SVD?)
-  auto a_inv = Kokkos::View<float ***, MemorySpace>(
+  Kokkos::View<float ***, MemorySpace> a_inv(
       "Example::A_inv", target_points_num, MVPolynomialBasis_3D::size,
       MVPolynomialBasis_3D::size);
   Kokkos::parallel_for(
@@ -287,8 +286,8 @@ int main(int argc, char *argv[])
       });
 
   // Compute the coefficients
-  auto coeffs = Kokkos::View<float **, MemorySpace>(
-      "Example::coefficients", target_points_num, num_neighbors);
+  Kokkos::View<float **, MemorySpace> coeffs("Example::coefficients",
+                                             target_points_num, num_neighbors);
   Kokkos::parallel_for(
       "Example::coefficients_computation",
       Kokkos::MDRangePolicy<ExecutionSpace, Kokkos::Rank<2>>(
@@ -305,8 +304,8 @@ int main(int argc, char *argv[])
       });
 
   // Compute source values
-  auto source_values = Kokkos::View<float *, MemorySpace>(
-      "Example::source_values", source_points_num);
+  Kokkos::View<float *, MemorySpace> source_values("Example::source_values",
+                                                   source_points_num);
   Kokkos::parallel_for(
       "Example::source_evaluation",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, source_points_num),
@@ -315,8 +314,8 @@ int main(int argc, char *argv[])
       });
 
   // Compute target values via interpolation
-  auto target_values = Kokkos::View<float *, MemorySpace>(
-      "Example::target_values", target_points_num);
+  Kokkos::View<float *, MemorySpace> target_values("Example::target_values",
+                                                   target_points_num);
   Kokkos::parallel_for(
       "Example::target_interpolation",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, target_points_num),
@@ -330,7 +329,7 @@ int main(int argc, char *argv[])
       });
 
   // Compute target values via evaluation
-  auto target_values_exact = Kokkos::View<float *, MemorySpace>(
+  Kokkos::View<float *, MemorySpace> target_values_exact(
       "Example::target_values_exact", target_points_num);
   Kokkos::parallel_for(
       "Example::target_evaluation",
