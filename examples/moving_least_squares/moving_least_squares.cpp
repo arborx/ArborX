@@ -18,6 +18,7 @@
 
 #include <Kokkos_Core.hpp>
 
+#include <cmath>
 #include <limits>
 
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
@@ -77,8 +78,10 @@ KOKKOS_INLINE_FUNCTION float manufactured_solution(ArborX::Point const &p)
 int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
-  constexpr std::size_t num_neighbors = 10;
-  constexpr std::size_t cube_side = 4;
+
+  constexpr float epsilon = std::numeric_limits<float>::epsilon();
+  constexpr std::size_t num_neighbors = 20;
+  constexpr std::size_t cube_side = 10;
   constexpr std::size_t source_points_num = cube_side * cube_side * cube_side;
   constexpr std::size_t target_points_num = 4;
 
@@ -141,7 +144,6 @@ int main(int argc, char *argv[])
 
   // Compute the radii for the weight (phi) vector
   Kokkos::View<float *, MemorySpace> radii("Example::radii", target_points_num);
-  constexpr float epsilon = std::numeric_limits<float>::epsilon();
   Kokkos::parallel_for(
       "Example::radii_computation",
       Kokkos::RangePolicy(space, 0, target_points_num),
@@ -212,14 +214,22 @@ int main(int argc, char *argv[])
         a(i, j, k) = tmp;
       });
 
-  // Inverse moment matrix
-  // Gaussian inverse method. Both matrix are used and modifications on the
-  // first one are applied to the second
-  // Kind of works, errors out quite often.
-  // A better method should be employed (SVD?)
+  // Pseudo-inverse moment matrix using SVD
+  // We must find U, E (diagonal and positive) and V such that A = U.E.V^T
+  // We also know that A is symmetric (by construction), so U = SV where S is
+  // a sign matrix (only 1 or -1 in the diagonal, 0 elsewhere).
+  // Thus A = U.E.S.U^T
+  static constexpr float pi_4 = M_PI_4;
   Kokkos::View<float ***, MemorySpace> a_inv(
       "Example::A_inv", target_points_num, MVPolynomialBasis_3D::size,
       MVPolynomialBasis_3D::size);
+  Kokkos::View<float ***, MemorySpace> svd_u(
+      "Example::SVD::U", target_points_num, MVPolynomialBasis_3D::size,
+      MVPolynomialBasis_3D::size);
+  Kokkos::View<float ***, MemorySpace> svd_es(
+      "Example::SVD::E.S", target_points_num, MVPolynomialBasis_3D::size,
+      MVPolynomialBasis_3D::size);
+  Kokkos::deep_copy(space, svd_es, a);
   Kokkos::parallel_for(
       "Example::A_inv_computation",
       Kokkos::RangePolicy(space, 0, target_points_num),
@@ -228,61 +238,128 @@ int main(int argc, char *argv[])
         {
           for (int k = 0; k < MVPolynomialBasis_3D::size; k++)
           {
-            a_inv(i, j, k) = (j == k) * 1.f;
+            svd_u(i, j, k) = (j == k) * 1.f;
           }
         }
 
-        // This needs to be done for every column
+        // This finds the biggest off-diagonal value of E.S as well as its
+        // coordinates. Being symmetric, we can always check on the upper
+        // triangle (and always have q > p)
+        auto argmax = [=](int &p, int &q) {
+          float max = 0.f;
+          p = -1;
+          q = -1;
+          for (int j = 0; j < MVPolynomialBasis_3D::size; j++)
+          {
+            for (int k = j + 1; k < MVPolynomialBasis_3D::size; k++)
+            {
+              float val = Kokkos::abs(svd_es(i, j, k));
+              if (max < val)
+              {
+                max = val;
+                p = j;
+                q = k;
+              }
+            }
+          }
+
+          return max;
+        };
+
+        // Iterative approach, we will "deconstruct" E.S until only the diagonal
+        // is relevent inside the matrix
+        // It is possible to prove that, at each step, the "norm" of the matrix
+        // is strictly less that of the previous
+        int p, q;
+        float norm = argmax(p, q);
+        while (norm > epsilon)
+        {
+          // Our submatrix is now
+          // +----------+----------+   +---+---+
+          // | es(p, p) | es(p, q) |   | a | b |
+          // +----------+----------+ = +---+---+
+          // | es(q, p) | es(q, q) |   | b | c |
+          // +----------+----------+   +---+---+
+          float a = svd_es(i, p, p);
+          float b = svd_es(i, p, q);
+          float c = svd_es(i, q, q);
+
+          float theta, u, v;
+          if (a == c)
+          {
+            theta = pi_4;
+            u = a + b;
+            v = a - b;
+          }
+          else
+          {
+            theta = .5f * Kokkos::atanf((2.f * b) / (a - c));
+            float cos2 = Kokkos::cosf(2.f * theta);
+            u = .5f * (a + c + (a - c) / cos2);
+            v = .5f * (a + c - (a - c) / cos2);
+          }
+          float cos = Kokkos::cosf(theta);
+          float sin = Kokkos::sinf(theta);
+
+          // We must now apply the rotation matrix to the left
+          // and right of E.S and on the right of U
+
+          // Left of E.S (mult by R(theta)^T)
+          for (int j = 0; j < MVPolynomialBasis_3D::size; j++)
+          {
+            float es_ipj = svd_es(i, p, j);
+            float es_iqj = svd_es(i, q, j);
+            svd_es(i, p, j) = cos * es_ipj + sin * es_iqj;
+            svd_es(i, q, j) = -sin * es_ipj + cos * es_iqj;
+          }
+
+          // Right of E.S (mult by R(theta))
+          for (int j = 0; j < MVPolynomialBasis_3D::size; j++)
+          {
+            float es_ijp = svd_es(i, j, p);
+            float es_ijq = svd_es(i, j, q);
+            svd_es(i, j, p) = cos * es_ijp + sin * es_ijq;
+            svd_es(i, j, q) = -sin * es_ijp + cos * es_ijq;
+          }
+
+          // Right of U (mult by R(theta))
+          for (int j = 0; j < MVPolynomialBasis_3D::size; j++)
+          {
+            float u_ijp = svd_u(i, j, p);
+            float u_ijq = svd_u(i, j, q);
+            svd_u(i, j, p) = cos * u_ijp + sin * u_ijq;
+            svd_u(i, j, q) = -sin * u_ijp + cos * u_ijq;
+          }
+
+          // These should theorically hold but is it ok to force them to their
+          // real value?
+          svd_es(i, p, p) = u;
+          svd_es(i, q, q) = v;
+          svd_es(i, p, q) = 0.f;
+          svd_es(i, q, p) = 0.f;
+
+          norm = argmax(p, q);
+        }
+
+        // We should now have a correct U and E.S
+        // We'll compute the pseudo inverse of A by taking the
+        // pseudo inverse of E.S which is simply inverting the diagonal of
+        // E.S
         for (int j = 0; j < MVPolynomialBasis_3D::size; j++)
         {
-
-          // We find the line with a non-negative element on column j
-          int k = j;
-          for (; k < MVPolynomialBasis_3D::size; k++)
+          for (int k = 0; k < MVPolynomialBasis_3D::size; k++)
           {
-            if (a(i, k, j) != 0.f)
-              break;
-          }
-
-          // We divide the line with said value
-          float tmp = a(i, k, j);
-          for (int l = 0; l < MVPolynomialBasis_3D::size; l++)
-          {
-            a(i, k, l) /= tmp;
-            a_inv(i, k, l) /= tmp;
-          }
-
-          // If line and column are not the same, move the column to the top
-          if (k != j)
-          {
+            float value = 0.;
             for (int l = 0; l < MVPolynomialBasis_3D::size; l++)
             {
-              float tmp = a(i, k, l);
-              a(i, k, l) = a(i, j, l);
-              a(i, j, l) = tmp;
-
-              tmp = a_inv(i, k, l);
-              a_inv(i, k, l) = a_inv(i, j, l);
-              a_inv(i, j, l) = tmp;
+              if (Kokkos::abs(svd_es(i, l, l)) >= epsilon)
+              {
+                value += svd_u(i, j, l) * svd_u(i, l, k) / svd_es(i, l, l);
+              }
             }
+
+            a_inv(i, j, k) = value;
           }
-
-          // Now, set at zero all other elements of the column (Ll <- Ll - a*Lj)
-          for (int l = 0; l < MVPolynomialBasis_3D::size; l++)
-          {
-            if (l == j || a(i, l, j) == 0.f)
-              continue;
-            float mul = a(i, l, j);
-
-            for (int m = 0; m < MVPolynomialBasis_3D::size; m++)
-            {
-              a(i, l, m) -= mul * a(i, j, m);
-              a_inv(i, l, m) -= mul * a_inv(i, j, m);
-            }
-            a(i, l, j) = 0.f;
-          }
-
-          // Now a_inv should contain the inverse of a
         }
       });
 
