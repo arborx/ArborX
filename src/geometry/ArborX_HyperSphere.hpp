@@ -19,15 +19,14 @@
 namespace ArborX::ExperimentalHyperGeometry
 {
 
-template <int DIM, class FloatingPoint = float>
+template <int DIM, class Coordinate = float>
 struct Sphere
 {
   KOKKOS_DEFAULTED_FUNCTION
   Sphere() = default;
 
   KOKKOS_FUNCTION
-  constexpr Sphere(Point<DIM, FloatingPoint> const &centroid,
-                   FloatingPoint radius)
+  constexpr Sphere(Point<DIM, Coordinate> const &centroid, Coordinate radius)
       : _centroid(centroid)
       , _radius(radius)
   {}
@@ -41,29 +40,29 @@ struct Sphere
   KOKKOS_FUNCTION
   constexpr auto radius() const { return _radius; }
 
-  Point<DIM, FloatingPoint> _centroid = {};
-  FloatingPoint _radius = 0;
+  Point<DIM, Coordinate> _centroid = {};
+  Coordinate _radius = 0;
 };
 
 } // namespace ArborX::ExperimentalHyperGeometry
 
-template <int DIM, class FloatingPoint>
+template <int DIM, class Coordinate>
 struct ArborX::GeometryTraits::dimension<
-    ArborX::ExperimentalHyperGeometry::Sphere<DIM, FloatingPoint>>
+    ArborX::ExperimentalHyperGeometry::Sphere<DIM, Coordinate>>
 {
   static constexpr int value = DIM;
 };
-template <int DIM, class FloatingPoint>
+template <int DIM, class Coordinate>
 struct ArborX::GeometryTraits::tag<
-    ArborX::ExperimentalHyperGeometry::Sphere<DIM, FloatingPoint>>
+    ArborX::ExperimentalHyperGeometry::Sphere<DIM, Coordinate>>
 {
   using type = SphereTag;
 };
-template <int DIM, class FloatingPoint>
+template <int DIM, class Coordinate>
 struct ArborX::GeometryTraits::coordinate_type<
-    ArborX::ExperimentalHyperGeometry::Sphere<DIM, FloatingPoint>>
+    ArborX::ExperimentalHyperGeometry::Sphere<DIM, Coordinate>>
 {
-  using type = FloatingPoint;
+  using type = Coordinate;
 };
 
 #endif

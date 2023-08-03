@@ -27,7 +27,7 @@ namespace ArborX::ExperimentalHyperGeometry
  * size 2x spatial dimension with a default constructor to initialize
  * properly an "empty" box.
  */
-template <int DIM, class FloatingPoint = float>
+template <int DIM, class Coordinate = float>
 struct Box
 {
   KOKKOS_FUNCTION
@@ -36,15 +36,15 @@ struct Box
     for (int d = 0; d < DIM; ++d)
     {
       _min_corner[d] =
-          KokkosExt::ArithmeticTraits::finite_max<FloatingPoint>::value;
+          KokkosExt::ArithmeticTraits::finite_max<Coordinate>::value;
       _max_corner[d] =
-          KokkosExt::ArithmeticTraits::finite_min<FloatingPoint>::value;
+          KokkosExt::ArithmeticTraits::finite_min<Coordinate>::value;
     }
   }
 
   KOKKOS_FUNCTION
-  constexpr Box(Point<DIM, FloatingPoint> const &min_corner,
-                Point<DIM, FloatingPoint> const &max_corner)
+  constexpr Box(Point<DIM, Coordinate> const &min_corner,
+                Point<DIM, Coordinate> const &max_corner)
       : _min_corner(min_corner)
       , _max_corner(max_corner)
   {}
@@ -61,8 +61,8 @@ struct Box
   KOKKOS_FUNCTION
   constexpr auto const &maxCorner() const { return _max_corner; }
 
-  Point<DIM, FloatingPoint> _min_corner;
-  Point<DIM, FloatingPoint> _max_corner;
+  Point<DIM, Coordinate> _min_corner;
+  Point<DIM, Coordinate> _max_corner;
 
   template <typename OtherBox,
             std::enable_if_t<GeometryTraits::is_box<OtherBox>{}> * = nullptr>
@@ -97,31 +97,30 @@ struct Box
 
 } // namespace ArborX::ExperimentalHyperGeometry
 
-template <int DIM, class FloatingPoint>
+template <int DIM, class Coordinate>
 struct ArborX::GeometryTraits::dimension<
-    ArborX::ExperimentalHyperGeometry::Box<DIM, FloatingPoint>>
+    ArborX::ExperimentalHyperGeometry::Box<DIM, Coordinate>>
 {
   static constexpr int value = DIM;
 };
-template <int DIM, class FloatingPoint>
+template <int DIM, class Coordinate>
 struct ArborX::GeometryTraits::tag<
-    ArborX::ExperimentalHyperGeometry::Box<DIM, FloatingPoint>>
+    ArborX::ExperimentalHyperGeometry::Box<DIM, Coordinate>>
 {
   using type = BoxTag;
 };
-template <int DIM, class FloatingPoint>
+template <int DIM, class Coordinate>
 struct ArborX::GeometryTraits::coordinate_type<
-    ArborX::ExperimentalHyperGeometry::Box<DIM, FloatingPoint>>
+    ArborX::ExperimentalHyperGeometry::Box<DIM, Coordinate>>
 {
-  using type = FloatingPoint;
+  using type = Coordinate;
 };
 
-template <int DIM, typename FloatingPoint>
+template <int DIM, typename Coordinate>
 struct Kokkos::reduction_identity<
-    ArborX::ExperimentalHyperGeometry::Box<DIM, FloatingPoint>>
+    ArborX::ExperimentalHyperGeometry::Box<DIM, Coordinate>>
 {
-  KOKKOS_FUNCTION static ArborX::ExperimentalHyperGeometry::Box<DIM,
-                                                                FloatingPoint>
+  KOKKOS_FUNCTION static ArborX::ExperimentalHyperGeometry::Box<DIM, Coordinate>
   sum()
   {
     return {};
