@@ -22,6 +22,8 @@ namespace ArborX::ExperimentalHyperGeometry
 template <int DIM, class FloatingPoint = float>
 struct Point
 {
+  static_assert(DIM > 0);
+
   KOKKOS_FUNCTION
   constexpr auto &operator[](unsigned int i) { return _coords[i]; }
 
@@ -34,15 +36,11 @@ struct Point
   FloatingPoint _coords[DIM] = {};
 };
 
-// Deduction guides
-template <class T>
-Point(T x) -> Point<1, T>;
-
-template <class T>
-Point(T x, T y) -> Point<2, T>;
-
-template <class T>
-Point(T x, T y, T z) -> Point<3, T>;
+template <typename... T>
+Point(T...)
+    -> Point<sizeof...(T), std::conditional_t<
+                               (... || std::is_same_v<std::decay_t<T>, double>),
+                               double, float>>;
 
 } // namespace ArborX::ExperimentalHyperGeometry
 
