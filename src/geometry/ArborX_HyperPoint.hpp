@@ -22,6 +22,8 @@ namespace ArborX::ExperimentalHyperGeometry
 template <int DIM, class FloatingPoint = float>
 struct Point
 {
+  static_assert(DIM > 0);
+
   KOKKOS_FUNCTION
   constexpr auto &operator[](unsigned int i) { return _coords[i]; }
 

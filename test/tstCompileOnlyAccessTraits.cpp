@@ -85,7 +85,6 @@ void test_access_traits_compile_only()
 void test_point_ctad()
 {
   using ArborX::ExperimentalHyperGeometry::Point;
-  static_assert(std::is_same_v<decltype(Point{}), Point<0, float>>);
   static_assert(std::is_same_v<decltype(Point{1}), Point<1, float>>);
   static_assert(std::is_same_v<decltype(Point{1.}), Point<1, double>>);
   static_assert(std::is_same_v<decltype(Point{1., 2}), Point<2, double>>);
