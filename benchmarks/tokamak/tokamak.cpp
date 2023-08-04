@@ -10,16 +10,11 @@
  ****************************************************************************/
 
 #include <ArborX.hpp>
+#include <ArborX_HyperTriangle.hpp>
 
 #include <Kokkos_Core.hpp>
 
 #include <fstream>
-
-template <int dim>
-struct Triangle
-{
-  ArborX::ExperimentalHyperGeometry::Point<dim> a, b, c;
-};
 
 struct Mapping
 {
@@ -37,7 +32,7 @@ struct Mapping
 
   // x = a + alpha * (b - a) + beta * (c - a)
   //   = (1-beta-alpha) * a + alpha * b + beta * c
-  void compute(Triangle<2> const &triangle)
+  void compute(ArborX::ExperimentalHyperGeometry::Triangle<2> const &triangle)
   {
     auto const &a = triangle.a;
     auto const &b = triangle.b;
@@ -55,7 +50,7 @@ struct Mapping
     p0 = a;
   }
 
-  Triangle<2> get_triangle() const
+  ArborX::ExperimentalHyperGeometry::Triangle<2> get_triangle() const
   {
     float const inv_det = 1. / (alpha[0] * beta[1] - alpha[1] * beta[0]);
     ArborX::ExperimentalHyperGeometry::Point<2> a = p0;
@@ -74,7 +69,8 @@ struct Triangles
   KOKKOS_FUNCTION int size() const { return triangles_.size(); }
 
   // Return the triangle with index i.
-  KOKKOS_FUNCTION Triangle<2> const &get_triangle(int i) const
+  KOKKOS_FUNCTION ArborX::ExperimentalHyperGeometry::Triangle<2> const &
+  get_triangle(int i) const
   {
     return triangles_(i);
   }
@@ -84,7 +80,9 @@ struct Triangles
     return mappings_(i);
   }
 
-  Kokkos::View<Triangle<2> *, typename DeviceType::memory_space> triangles_;
+  Kokkos::View<ArborX::ExperimentalHyperGeometry::Triangle<2> *,
+               typename DeviceType::memory_space>
+      triangles_;
   Kokkos::View<Mapping *, typename DeviceType::memory_space> mappings_;
 };
 
@@ -150,7 +148,7 @@ template <typename DeviceType>
 Triangles<DeviceType>
 parse_stl(typename DeviceType::execution_space const &execution_space)
 {
-  std::vector<Triangle<2>> triangles_host;
+  std::vector<ArborX::ExperimentalHyperGeometry::Triangle<2>> triangles_host;
   std::vector<Mapping> mappings_host;
   std::ifstream stl_file("RZGrid.stl");
   if (!stl_file.good())
@@ -158,7 +156,7 @@ parse_stl(typename DeviceType::execution_space const &execution_space)
   std::string line;
   std::istringstream in;
   Mapping mapping;
-  Triangle<2> triangle;
+  ArborX::ExperimentalHyperGeometry::Triangle<2> triangle;
   std::string dummy;
   while (std::getline(stl_file >> std::ws, line))
   {
@@ -195,12 +193,15 @@ parse_stl(typename DeviceType::execution_space const &execution_space)
 
   std::cout << "Read " << triangles_host.size() << " Triangles\n";
 
-  Kokkos::View<Triangle<2> *, typename DeviceType::memory_space> triangles(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "triangles"),
-      triangles_host.size());
-  Kokkos::deep_copy(execution_space, triangles,
-                    Kokkos::View<Triangle<2> *, Kokkos::HostSpace>(
-                        triangles_host.data(), triangles_host.size()));
+  Kokkos::View<ArborX::ExperimentalHyperGeometry::Triangle<2> *,
+               typename DeviceType::memory_space>
+      triangles(Kokkos::view_alloc(Kokkos::WithoutInitializing, "triangles"),
+                triangles_host.size());
+  Kokkos::deep_copy(
+      execution_space, triangles,
+      Kokkos::View<ArborX::ExperimentalHyperGeometry::Triangle<2> *,
+                   Kokkos::HostSpace>(triangles_host.data(),
+                                      triangles_host.size()));
 
   Kokkos::View<Mapping *, typename DeviceType::memory_space> mappings(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "mappings"),
@@ -296,7 +297,8 @@ int main()
 
     std::cout << "Creating BVH tree.\n";
     ArborX::BasicBoundingVolumeHierarchy<
-        MemorySpace, ArborX::ExperimentalHyperGeometry::Box<2>> const
+        MemorySpace, ArborX::Details::PairIndexVolume<
+                         ArborX::ExperimentalHyperGeometry::Box<2>>> const
         tree(execution_space, triangles);
     std::cout << "BVH tree set up.\n";
 
@@ -309,11 +311,9 @@ int main()
       ArborX::Point &coeffs;
     };
 
-    ArborX::Details::TreeTraversal<
-        ArborX::BasicBoundingVolumeHierarchy<
-            MemorySpace, ArborX::ExperimentalHyperGeometry::Box<2>>,
-        Dummy, TriangleIntersectionCallback<DeviceType>,
-        ArborX::Details::SpatialPredicateTag>
+    ArborX::Details::TreeTraversal<decltype(tree), Dummy,
+                                   TriangleIntersectionCallback<DeviceType>,
+                                   ArborX::Details::SpatialPredicateTag>
         tree_traversal(tree,
                        TriangleIntersectionCallback<DeviceType>{triangles});
 
