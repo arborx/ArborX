@@ -118,7 +118,7 @@ public:
   {}
 
   template <typename Query>
-  KOKKOS_FUNCTION void operator()(
+  KOKKOS_FUNCTION auto operator()(
       Query const &query,
       ArborX::Details::PairIndexVolume<
           ArborX::ExperimentalHyperGeometry::Box<2>> const &predicate) const
@@ -137,7 +137,9 @@ public:
     {
       attachment.triangle_index = predicate.index;
       attachment.coeffs = coeffs;
+      return ArborX::CallbackTreeTraversalControl::early_exit;
     }
+    return ArborX::CallbackTreeTraversalControl::normal_continuation;
   }
 
 private:
