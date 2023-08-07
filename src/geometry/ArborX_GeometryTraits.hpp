@@ -29,6 +29,9 @@ struct BoxTag
 struct SphereTag
 {};
 
+struct TriangleTag
+{};
+
 struct KDOPTag
 {};
 
@@ -110,9 +113,10 @@ void check_valid_geometry_traits(Geometry const &)
   using Tag = typename tag<Geometry>::type;
   static_assert(std::is_same<Tag, PointTag>{} || std::is_same<Tag, BoxTag>{} ||
                     std::is_same<Tag, SphereTag>{} ||
+                    std::is_same<Tag, TriangleTag>{} ||
                     std::is_same<Tag, KDOPTag>{},
                 "GeometryTraits::tag<Geometry>::type must be PointTag, BoxTag, "
-                "SphereTag or KDOPTag");
+                "SphereTag, TriangleTag or KDOPTag");
 
   static_assert(!std::is_same<typename coordinate_type<Geometry>::type,
                               not_specialized>::value,

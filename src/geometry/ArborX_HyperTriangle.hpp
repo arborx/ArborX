@@ -29,4 +29,17 @@ struct ArborX::GeometryTraits::dimension<
 {
   static constexpr int value = DIM;
 };
+template <int DIM, class Coordinate>
+struct ArborX::GeometryTraits::tag<
+    ArborX::ExperimentalHyperGeometry::Triangle<DIM, Coordinate>>
+{
+  using type = TriangleTag;
+};
+template <int DIM, class Coordinate>
+struct ArborX::GeometryTraits::coordinate_type<
+    ArborX::ExperimentalHyperGeometry::Triangle<DIM, Coordinate>>
+{
+  using type = Coordinate;
+};
+
 #endif
