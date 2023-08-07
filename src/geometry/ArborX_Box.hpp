@@ -103,6 +103,11 @@ struct GeometryTraits::tag<ArborX::Box>
 {
   using type = BoxTag;
 };
+template <>
+struct ArborX::GeometryTraits::coordinate_type<ArborX::Box>
+{
+  using type = float;
+};
 
 } // namespace ArborX
 

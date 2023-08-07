@@ -329,5 +329,10 @@ struct ArborX::GeometryTraits::tag<ArborX::Experimental::KDOP<k>>
 {
   using type = KDOPTag;
 };
+template <int k>
+struct ArborX::GeometryTraits::coordinate_type<ArborX::Experimental::KDOP<k>>
+{
+  using type = float;
+};
 
 #endif
