@@ -311,12 +311,6 @@ int main()
       ArborX::Point &coeffs;
     };
 
-    ArborX::Details::TreeTraversal<decltype(tree), Dummy,
-                                   TriangleIntersectionCallback<DeviceType>,
-                                   ArborX::Details::SpatialPredicateTag>
-        tree_traversal(tree,
-                       TriangleIntersectionCallback<DeviceType>{triangles});
-
     std::cout << "n: " << n << std::endl;
 
     Kokkos::parallel_for(
@@ -340,9 +334,11 @@ int main()
             }
             else
             {
-              tree_traversal.search(
+              ArborX::kernel_query(
+                  tree,
                   ArborX::attach(ArborX::intersects(point),
-                                 Attachment{triangle_index, coefficients}));
+                                 Attachment{triangle_index, coefficients}),
+                  TriangleIntersectionCallback<DeviceType>{triangles});
               KOKKOS_IMPL_DO_NOT_USE_PRINTF("%d, %d: %d %f %f %f\n", i, j,
                                             triangle_index, coefficients[0],
                                             coefficients[1], coefficients[2]);
