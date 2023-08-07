@@ -72,7 +72,7 @@ struct ArborX::AccessTraits<TargetPoints, ArborX::PredicatesTag>
 // Function to approximate
 KOKKOS_INLINE_FUNCTION float manufactured_solution(ArborX::Point const &p)
 {
-  return p[2] * p[1] + p[0];
+  return Kokkos::sin(p[0]) * p[2] + p[1];
 }
 
 int main(int argc, char *argv[])
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
   Kokkos::ScopeGuard guard(argc, argv);
 
   constexpr float epsilon = std::numeric_limits<float>::epsilon();
-  constexpr std::size_t num_neighbors = 20;
+  constexpr std::size_t num_neighbors = MVPolynomialBasis_3D::size;
   constexpr std::size_t cube_side = 10;
   constexpr std::size_t source_points_num = cube_side * cube_side * cube_side;
   constexpr std::size_t target_points_num = 4;
@@ -344,17 +344,17 @@ int main(int argc, char *argv[])
         // We should now have a correct U and E.S
         // We'll compute the pseudo inverse of A by taking the
         // pseudo inverse of E.S which is simply inverting the diagonal of
-        // E.S
+        // E.S. We have pseudoA = U^T.pseudoES.U
         for (int j = 0; j < MVPolynomialBasis_3D::size; j++)
         {
           for (int k = 0; k < MVPolynomialBasis_3D::size; k++)
           {
-            float value = 0.;
+            float value = 0.f;
             for (int l = 0; l < MVPolynomialBasis_3D::size; l++)
             {
               if (Kokkos::abs(svd_es(i, l, l)) >= epsilon)
               {
-                value += svd_u(i, j, l) * svd_u(i, l, k) / svd_es(i, l, l);
+                value += svd_u(i, j, l) * svd_u(i, k, l) / svd_es(i, l, l);
               }
             }
 
@@ -371,7 +371,7 @@ int main(int argc, char *argv[])
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>(
           space, {0, 0}, {target_points_num, num_neighbors}),
       KOKKOS_LAMBDA(int const i, int const j) {
-        float tmp = 0;
+        float tmp = 0.f;
 
         for (int k = 0; k < MVPolynomialBasis_3D::size; k++)
         {
