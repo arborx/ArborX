@@ -73,23 +73,6 @@ struct ArborX::AccessTraits<TargetPoints, ArborX::PredicatesTag>
   using memory_space = MemorySpace;
 };
 
-/*
-0: ==== Target 0
-0: Interpolation: 0.717408
-0: Real value   : 0.841471
-0: ==== Target 1
-0: Interpolation: 0.210617
-0: Real value   : 0.205379
-0: ==== Target 2
-0: Interpolation: 7.36529
-0: Real value   : 7.87677
-0: ==== Target 3
-0: Interpolation: 1.41947
-0: Real value   : 2.5903
-0: ====
-0: Maximum error: 1.17083
-*/
-
 // Function to approximate
 KOKKOS_INLINE_FUNCTION float manufactured_solution(ArborX::Point const &p)
 {
@@ -124,16 +107,17 @@ int main(int argc, char *argv[])
   auto target_points_host = Kokkos::create_mirror_view(target_points);
 
   // Generate source points (Organized within a [-10, 10]^3 cube)
+  std::size_t thickness = cube_side / mpi_size;
   Kokkos::parallel_for(
       "Example::source_points_init",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>>(
-          space, {0, 0, 0}, {cube_side, cube_side, cube_side / mpi_size}),
+      Kokkos::MDRangePolicy<Kokkos::Rank<3>>(space, {0, 0, 0},
+                                             {cube_side, cube_side, thickness}),
       KOKKOS_LAMBDA(int const i, int const j, int const k) {
-        source_points(i * cube_side * cube_side + j * cube_side + k) =
-            ArborX::Point{20.f * (float(i) / (cube_side - 1) - .5f),
-                          20.f * (float(j) / (cube_side - 1) - .5f),
-                          20.f * (float(k) / (cube_side - 1) - .5f +
-                                  (float(mpi_rank) / mpi_size))};
+        source_points(i * cube_side * cube_side + j * cube_side +
+                      k) = ArborX::Point{
+            20.f * (float(i) / (cube_side - 1) - .5f),
+            20.f * (float(j) / (cube_side - 1) - .5f),
+            20.f * (float(k + thickness * mpi_rank) / (cube_side - 1) - .5f)};
       });
 
   // Generate target points
@@ -178,7 +162,7 @@ int main(int argc, char *argv[])
       distributor_first.createFromSends(space, local_ranks);
 
   // "Middlemen" buffers
-  // - mpi_mid_in_indices(i) corresponds to an index that zill be used to
+  // - mpi_mid_in_indices(i) corresponds to an index that will be used to
   // construct the final value
   // - mpi_mid_rank(i) corresponds to the request origin for value (i)
   // - mpi_mid_indices(i) corresponds to the point's index in the nn query
@@ -572,16 +556,16 @@ int main(int argc, char *argv[])
   for (int i = 0; i < target_points_num; i++)
   {
     error = Kokkos::max(
-        Kokkos::abs(target_values_host(i) - target_values_exact_host(i)),
+        Kokkos::abs(target_values_host(i) - target_values_exact_host(i)) /
+            Kokkos::abs(target_values_exact_host(i)),
         error);
     ss << mpi_rank << ": ==== Target " << i << '\n'
-              << mpi_rank << ": Interpolation: " << target_values_host(i)
-              << '\n'
-              << mpi_rank << ": Real value   : " << target_values_exact_host(i)
-              << '\n';
+       << mpi_rank << ": Interpolation: " << target_values_host(i) << '\n'
+       << mpi_rank << ": Real value   : " << target_values_exact_host(i)
+       << '\n';
   }
   ss << mpi_rank << ": ====\n"
-            << mpi_rank << ": Maximum error: " << error << std::endl;
+     << mpi_rank << ": Maximum relative error: " << error << std::endl;
 
   std::cout << ss.str();
   MPI_Finalize();
