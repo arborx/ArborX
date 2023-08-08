@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -8,57 +8,14 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_Sphere_HPP
-#define ARBORX_Sphere_HPP
+#ifndef ARBORX_SPHERE_HPP
+#define ARBORX_SPHERE_HPP
 
-#include <ArborX_GeometryTraits.hpp>
-#include <ArborX_Point.hpp>
-
-#include <Kokkos_Macros.hpp>
+#include <ArborX_HyperSphere.hpp>
 
 namespace ArborX
 {
-
-struct Sphere
-{
-  KOKKOS_DEFAULTED_FUNCTION
-  Sphere() = default;
-
-  KOKKOS_INLINE_FUNCTION
-  constexpr Sphere(Point const &centroid, double radius) // FIXME
-      : _centroid(centroid)
-      , _radius(static_cast<float>(radius))
-  {}
-
-  KOKKOS_INLINE_FUNCTION
-  constexpr Point &centroid() { return _centroid; }
-
-  KOKKOS_INLINE_FUNCTION
-  constexpr Point const &centroid() const { return _centroid; }
-
-  KOKKOS_INLINE_FUNCTION
-  constexpr float radius() const { return _radius; }
-
-  Point _centroid = {};
-  float _radius = 0.;
-};
-
-template <>
-struct GeometryTraits::dimension<ArborX::Sphere>
-{
-  static constexpr int value = 3;
-};
-template <>
-struct GeometryTraits::tag<ArborX::Sphere>
-{
-  using type = SphereTag;
-};
-template <>
-struct ArborX::GeometryTraits::coordinate_type<ArborX::Sphere>
-{
-  using type = float;
-};
-
-} // namespace ArborX
+using Sphere = ArborX::ExperimentalHyperGeometry::Sphere<3, float>;
+}
 
 #endif
