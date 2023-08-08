@@ -45,6 +45,9 @@ struct BenchmarkRegistration<ExecutionSpace, ArborX::BVH<MemorySpace>>
         spec, description);
     register_benchmark_spatial_query_callback<ExecutionSpace, TreeType>(
         spec, description);
+    register_benchmark_spatial_query_callback_kernel_query<ExecutionSpace,
+                                                           TreeType>(
+        spec, description);
     register_benchmark_nearest_query_no_callback<ExecutionSpace, TreeType>(
         spec, description);
     register_benchmark_nearest_query_callback<ExecutionSpace, TreeType>(

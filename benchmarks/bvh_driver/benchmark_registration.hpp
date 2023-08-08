@@ -259,9 +259,6 @@ void BM_radius_search(benchmark::State &state, Spec const &spec)
       spec.n_queries, benchmark::Counter::kIsIterationInvariantRate);
 }
 
-struct Dummy
-{};
-
 template <typename ExecutionSpace, class TreeType>
 void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
 {
@@ -287,12 +284,45 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
     exec_space.fence();
     auto const start = std::chrono::high_resolution_clock::now();
 
-// #define ARBORX_BENCHMARK_USE_BATCHES
-#ifdef ARBORX_BENCHMARK_USE_BATCHES
     index.query(exec_space, queries, callback,
                 ArborX::Experimental::TraversalPolicy().setPredicateSorting(
                     spec.sort_predicates));
-#else
+
+    exec_space.fence();
+    auto const end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    state.SetIterationTime(elapsed_seconds.count());
+  }
+  state.counters["rate"] = benchmark::Counter(
+      spec.n_queries, benchmark::Counter::kIsIterationInvariantRate);
+}
+
+template <typename ExecutionSpace, class TreeType>
+void BM_radius_callback_search_kernel_query(benchmark::State &state,
+                                            Spec const &spec)
+{
+  using DeviceType =
+      Kokkos::Device<ExecutionSpace, typename TreeType::memory_space>;
+
+  ExecutionSpace exec_space;
+
+  TreeType index(
+      ExecutionSpace{},
+      constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type));
+  auto const queries_no_index = makeSpatialQueries<DeviceType>(
+      spec.n_values, spec.n_queries, spec.n_neighbors,
+      spec.target_point_cloud_type);
+  QueriesWithIndex<decltype(queries_no_index)> queries{queries_no_index};
+
+  for (auto _ : state)
+  {
+    Kokkos::View<int *, DeviceType> num_neigh("Testing::num_neigh",
+                                              spec.n_queries);
+    CountCallback<DeviceType> callback{num_neigh};
+
+    exec_space.fence();
+    auto const start = std::chrono::high_resolution_clock::now();
+
     ArborX::Details::LegacyCallbackWrapper<
         CountCallback<DeviceType>,
         ArborX::Details::PairIndexVolume<ArborX::Box>>
@@ -307,7 +337,6 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
                                    ArborX::PredicatesTag>::get(queries, i);
           ArborX::kernel_query(index, query, wrapped_callback);
         });
-#endif
 
     exec_space.fence();
     auto const end = std::chrono::high_resolution_clock::now();
@@ -424,6 +453,21 @@ void register_benchmark_spatial_query_callback(Spec const &spec,
       spec.create_label_radius_search(description, "callback").c_str(),
       [=](benchmark::State &state) {
         BM_radius_callback_search<ExecutionSpace, TreeType>(state, spec);
+      })
+      ->UseManualTime()
+      ->Unit(benchmark::kMicrosecond);
+}
+
+template <typename ExecutionSpace, typename TreeType>
+void register_benchmark_spatial_query_callback_kernel_query(
+    Spec const &spec, std::string const &description)
+{
+  benchmark::RegisterBenchmark(
+      spec.create_label_radius_search(description, "callback_kernel_query")
+          .c_str(),
+      [=](benchmark::State &state) {
+        BM_radius_callback_search_kernel_query<ExecutionSpace, TreeType>(state,
+                                                                         spec);
       })
       ->UseManualTime()
       ->Unit(benchmark::kMicrosecond);
