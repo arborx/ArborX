@@ -196,6 +196,19 @@ struct CountCallback
   }
 };
 
+template <typename DeviceType>
+struct CountCallbackKernelQuery
+{
+  Kokkos::View<int *, DeviceType> count_;
+
+  template <typename Query, typename Primitive>
+  KOKKOS_FUNCTION void operator()(Query const &query, Primitive const &) const
+  {
+    auto const i = ArborX::getData(query);
+    Kokkos::atomic_increment(&count_(i));
+  }
+};
+
 template <typename ExecutionSpace, class TreeType>
 void BM_construction(benchmark::State &state, Spec const &spec)
 {
@@ -318,15 +331,11 @@ void BM_radius_callback_search_kernel_query(benchmark::State &state,
   {
     Kokkos::View<int *, DeviceType> num_neigh("Testing::num_neigh",
                                               spec.n_queries);
-    CountCallback<DeviceType> callback{num_neigh};
+    CountCallbackKernelQuery<DeviceType> callback{num_neigh};
 
     exec_space.fence();
     auto const start = std::chrono::high_resolution_clock::now();
 
-    ArborX::Details::LegacyCallbackWrapper<
-        CountCallback<DeviceType>,
-        ArborX::Details::PairIndexVolume<ArborX::Box>>
-        wrapped_callback{callback};
     auto const n = queries_no_index.extent(0);
     Kokkos::parallel_for(
         "ArborX::Benchmarks::RadiusCallbackSearch",
@@ -335,7 +344,7 @@ void BM_radius_callback_search_kernel_query(benchmark::State &state,
           const auto &query =
               ArborX::AccessTraits<decltype(queries),
                                    ArborX::PredicatesTag>::get(queries, i);
-          ArborX::kernel_query(index, query, wrapped_callback);
+          ArborX::kernel_query(index, query, callback);
         });
 
     exec_space.fence();
