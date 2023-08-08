@@ -38,14 +38,12 @@ struct Vector : public Point
   }
 };
 
-template <typename Point1, typename Point2>
+template <typename Point>
 KOKKOS_INLINE_FUNCTION constexpr std::enable_if_t<
-    GeometryTraits::is_point<Point1>::value &&
-        GeometryTraits::is_point<Point2>::value &&
-        GeometryTraits::dimension_v<Point1> == 3 &&
-        GeometryTraits::dimension_v<Point2> == 3,
+    GeometryTraits::is_point<Point>::value &&
+        GeometryTraits::dimension_v<Point> == 3,
     Vector>
-makeVector(Point1 const &begin, Point2 const &end)
+makeVector(Point const &begin, Point const &end)
 {
   Vector v;
   for (int d = 0; d < 3; ++d)
