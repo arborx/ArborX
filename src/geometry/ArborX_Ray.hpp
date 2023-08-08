@@ -29,10 +29,8 @@ namespace ArborX
 namespace Experimental
 {
 
-struct Vector : private Point
+struct Vector : public Point
 {
-  using Point::Point;
-  using Point::operator[];
   friend KOKKOS_FUNCTION constexpr bool operator==(Vector const &v,
                                                    Vector const &w)
   {
