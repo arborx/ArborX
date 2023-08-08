@@ -178,7 +178,7 @@ template <typename DeviceType>
 struct RadiusSearches
 {
   Kokkos::View<ArborX::Point *, DeviceType> points;
-  double radius;
+  float radius;
 };
 
 template <typename DeviceType>
@@ -299,10 +299,10 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::queries"),
       n_queries);
   {
-    double a = 0.;
-    double offset_x = 0.;
-    double offset_y = 0.;
-    double offset_z = 0.;
+    float a = 0.;
+    float offset_x = 0.;
+    float offset_y = 0.;
+    float offset_z = 0.;
     int i_max = 0;
     // Change the geometry of the problem. In 1D, all the point clouds are
     // aligned on a line. In 2D, the point clouds create a board and in 3D,
@@ -349,7 +349,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     }
 
     // Generate random points uniformly distributed within a box.
-    std::uniform_real_distribution<double> distribution(-1., 1.);
+    std::uniform_real_distribution<float> distribution(-1., 1.);
     std::default_random_engine generator;
     auto random = [&distribution, &generator]() {
       return distribution(generator);
@@ -405,11 +405,10 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   Kokkos::parallel_for(
       "bvh_driver:construct_bounding_boxes",
       Kokkos::RangePolicy<ExecutionSpace>(0, n_values), KOKKOS_LAMBDA(int i) {
-        double const x = random_values(i)[0];
-        double const y = random_values(i)[1];
-        double const z = random_values(i)[2];
-        bounding_boxes(i) = {{{x - 1., y - 1., z - 1.}},
-                             {{x + 1., y + 1., z + 1.}}};
+        float const x = random_values(i)[0];
+        float const y = random_values(i)[1];
+        float const z = random_values(i)[2];
+        bounding_boxes(i) = {{{x - 1, y - 1, z - 1}}, {{x + 1, y + 1, z + 1}}};
       });
 
   auto construction = time_monitor.getNewTimer("construction");
@@ -452,23 +451,23 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     // average of the lengths of a half-edge and a half-diagonal to account for
     // that (approximately). An exact calculation would require computing
     // an integral.
-    double r = 0.;
+    float r = 0.;
     switch (partition_dim)
     {
     case 1:
       // Derivation (first term): n_values*(2*r)/(2a) = n_neighbors
-      r = static_cast<double>(n_neighbors) - 1.;
+      r = static_cast<float>(n_neighbors) - 1.;
       break;
     case 2:
       // Derivation (first term): n_values*(pi*r^2)/(2a)^2 = n_neighbors
-      r = std::sqrt(static_cast<double>(n_neighbors) * 4. /
-                    Kokkos::numbers::pi_v<double>) -
+      r = std::sqrt(static_cast<float>(n_neighbors) * 4 /
+                    Kokkos::numbers::pi_v<float>) -
           (1. + std::sqrt(2.)) / 2;
       break;
     case 3:
       // Derivation (first term): n_values*(4/3*pi*r^3)/(2a)^3 = n_neighbors
-      r = std::cbrt(static_cast<double>(n_neighbors) * 6. /
-                    Kokkos::numbers::pi_v<double>) -
+      r = std::cbrt(static_cast<float>(n_neighbors) * 6 /
+                    Kokkos::numbers::pi_v<float>) -
           (1. + std::cbrt(3.)) / 2;
       break;
     }

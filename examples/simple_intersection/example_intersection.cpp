@@ -61,9 +61,9 @@ public:
         for (int k = 0; k < nz; ++k)
         {
           ArborX::Point p_lower{
-              {(i - .25) * hx, (j - .25) * hy, (k - .25) * hz}};
+              {(i - .25f) * hx, (j - .25f) * hy, (k - .25f) * hz}};
           ArborX::Point p_upper{
-              {(i + .25) * hx, (j + .25) * hy, (k + .25) * hz}};
+              {(i + .25f) * hx, (j + .25f) * hy, (k + .25f) * hz}};
           boxes_host[index(i, j, k)] = {p_lower, p_upper};
         }
     Kokkos::deep_copy(execution_space, _boxes, boxes_host);

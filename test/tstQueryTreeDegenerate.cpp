@@ -350,8 +350,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_spatial_predicate,
   boxes.reserve(n);
   for (int i = 0; i < n; ++i)
   {
-    double const a = i;
-    double const b = i + 1;
+    float const a = i;
+    float const b = i + 1;
     boxes.push_back({{{a, a, a}}, {{b, b, b}}});
   }
   ExecutionSpace space;
@@ -384,8 +384,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_nearest_predicate,
   boxes.reserve(n);
   for (int i = 0; i < n; ++i)
   {
-    double const a = i;
-    double const b = i + 1;
+    float const a = i;
+    float const b = i + 1;
     boxes.push_back({{{a, a, a}}, {{b, b, b}}});
   }
   ExecutionSpace space;

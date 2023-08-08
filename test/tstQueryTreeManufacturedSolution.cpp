@@ -227,7 +227,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   std::uniform_int_distribution<> dist_x(0, nx - 1);
   std::uniform_int_distribution<> dist_y(0, ny - 1);
   std::uniform_int_distribution<> dist_z(0, nz - 1);
-  std::uniform_real_distribution<double> dist_shift(-0.45, 0.45);
+  std::uniform_real_distribution<float> dist_shift(-0.45, 0.45);
 
   // The generation is a bit convoluted to avoid a situation where a centroid
   // of a box falls on any of the lattice planes, resulting in multiple
@@ -244,8 +244,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
     auto const x = (i + dist_shift(generator)) * hx;
     auto const y = (j + dist_shift(generator)) * hy;
     auto const z = (k + dist_shift(generator)) * hz;
-    bounding_boxes_host(l) = {{{x - 0.5 * hx, y - 0.5 * hy, z - 0.5 * hz}},
-                              {{x + 0.5 * hx, y + 0.5 * hy, z + 0.5 * hz}}};
+    bounding_boxes_host(l) = {{{x - 0.5f * hx, y - 0.5f * hy, z - 0.5f * hz}},
+                              {{x + 0.5f * hx, y + 0.5f * hy, z + 0.5f * hz}}};
 
     // Save the indices for the check
     indices_ref[l] = ind(i, j, k);
