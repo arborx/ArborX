@@ -65,7 +65,8 @@ public:
 private:
   // U and E.S are computed, we can now build the inverse
   // U . [ E^-1.S ] . U^T
-  KOKKOS_FUNCTION void fill_inv(std::size_t i, std::size_t j, std::size_t k) const
+  KOKKOS_FUNCTION void fill_inv(std::size_t i, std::size_t j,
+                                std::size_t k) const
   {
     ValueType value = _zero;
     for (std::size_t l = 0; l < _size; l++)

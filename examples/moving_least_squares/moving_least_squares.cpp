@@ -408,26 +408,23 @@ int main(int argc, char *argv[])
       Kokkos::create_mirror_view(target_values_exact);
   Kokkos::deep_copy(space, target_values_exact_host, target_values_exact);
 
-  if (mpi_rank == 0)
+  std::stringstream ss{};
+  float error = 0.f;
+  for (int i = 0; i < target_points_num; i++)
   {
-    std::stringstream ss{};
-    float error = 0.f;
-    for (int i = 0; i < target_points_num; i++)
-    {
-      error = Kokkos::max(
-          Kokkos::abs(target_values_host(i) - target_values_exact_host(i)) /
-              Kokkos::abs(target_values_exact_host(i)),
-          error);
-      ss << mpi_rank << ": ==== Target " << i << '\n'
-         << mpi_rank << ": Interpolation: " << target_values_host(i) << '\n'
-         << mpi_rank << ": Real value   : " << target_values_exact_host(i)
-         << '\n';
-    }
-    ss << mpi_rank << ": ====\n"
-       << mpi_rank << ": Maximum relative error: " << error << std::endl;
-
-    std::cout << ss.str();
+    error = Kokkos::max(
+        Kokkos::abs(target_values_host(i) - target_values_exact_host(i)) /
+            Kokkos::abs(target_values_exact_host(i)),
+        error);
+    /*
+    ss << mpi_rank << ": ==== Target " << i << '\n'
+        << mpi_rank << ": Interpolation: " << target_values_host(i) << '\n'
+        << mpi_rank << ": Real value   : " << target_values_exact_host(i)
+        << '\n'; */
   }
+  ss << mpi_rank << ": Maximum relative error: " << error << std::endl;
+
+  std::cout << ss.str();
 
   MPI_Finalize();
   return 0;
