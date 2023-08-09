@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
       Kokkos::MDRangePolicy<Kokkos::Rank<3>>(space, {0, 0, 0},
                                              {cube_side, cube_side, thickness}),
       KOKKOS_LAMBDA(int const i, int const j, int const k) {
-        source_points(i * cube_side * cube_side + j * cube_side +
+        source_points(i * cube_side * thickness + j * thickness +
                       k) = ArborX::Point{
             20.f * (float(i) / (cube_side - 1) - .5f),
             20.f * (float(j) / (cube_side - 1) - .5f),
