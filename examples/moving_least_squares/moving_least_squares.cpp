@@ -22,6 +22,7 @@
 #include <limits>
 #include <sstream>
 
+#include "mpi_comms.hpp"
 #include "symmetric_pseudoinverse_svd.hpp"
 #include <mpi.h>
 
@@ -151,80 +152,9 @@ int main(int argc, char *argv[])
         local_ranks(i) = index_ranks(i).second;
       });
 
-  // Before moving on, we must gather the coordinates of all the requested
-  // source points. DTK does that by distributing in a "who wants what" matter
-  // The distribution is done in two phases. A first pass where every process
-  // receives the information on "who wants what" from them. Then a second pass
-  // is done where values are set up and sent back to processes
-
-  // First pass setup
-  ArborX::Details::Distributor<DeviceSpace> distributor_first(mpi_comm);
-  int const local_requests_num =
-      distributor_first.createFromSends(space, local_ranks);
-
-  // "Middlemen" buffers
-  // - mpi_mid_in_indices(i) corresponds to an index that will be used to
-  // construct the final value
-  // - mpi_mid_rank(i) corresponds to the request origin for value (i)
-  // - mpi_mid_indices(i) corresponds to the point's index in the nn query
-  // from which mpi_mid_points(i) is attached to
-  Kokkos::View<int *, MemorySpace> mpi_mid_in_indices(
-      "Example::mpi_mid_in_indices", local_requests_num);
-  Kokkos::View<int *, MemorySpace> mpi_mid_indices("Example::mpi_mid_indices",
-                                                   local_requests_num);
-  Kokkos::View<int *, MemorySpace> mpi_mid_ranks("Example::mpi_mid_ranks",
-                                                 local_requests_num);
-  Kokkos::View<ArborX::Point *, MemorySpace> mpi_mid_points(
-      "Example::mpi_mid_points", local_requests_num);
-
-  // First pass comms
-  Kokkos::View<int *, MemorySpace> mpi_tmp("Example::mpi_tmp",
-                                           target_points_num * num_neighbors);
-  ArborX::iota(space, mpi_tmp);
-  ArborX::Details::DistributedTreeImpl<DeviceSpace>::sendAcrossNetwork(
-      space, distributor_first, mpi_tmp, mpi_mid_in_indices);
-  ArborX::Details::DistributedTreeImpl<DeviceSpace>::sendAcrossNetwork(
-      space, distributor_first, local_indices, mpi_mid_indices);
-  Kokkos::deep_copy(space, mpi_tmp, mpi_rank);
-  ArborX::Details::DistributedTreeImpl<DeviceSpace>::sendAcrossNetwork(
-      space, distributor_first, mpi_tmp, mpi_mid_ranks);
-  Kokkos::parallel_for(
-      "Example::mpi_mid_points_fill",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, local_requests_num),
-      KOKKOS_LAMBDA(int const i) {
-        mpi_mid_points(i) = source_points(mpi_mid_indices(i));
-      });
-
-  // This process now knows "who wants what" and is ready to send everything
-  // back
-
-  // Second pass setup
-  ArborX::Details::Distributor<DeviceSpace> distributor_second(mpi_comm);
-  int const local_responses_num =
-      distributor_second.createFromSends(space, mpi_mid_ranks);
-  Kokkos::View<ArborX::Point *, MemorySpace> local_untreated_source_points(
-      "Example::local_untreated_source_points",
-      target_points_num * num_neighbors);
-  // We have local_responses_num == target_points_num * num_neighbors
-
-  // Temporary buffers
-  Kokkos::View<int *, MemorySpace> mpi_tmp_in_indices(
-      "Examples::mpi_tmp_in_indices", local_responses_num);
-  Kokkos::View<ArborX::Point *, MemorySpace> mpi_tmp_points(
-      "Examples::mpi_tmp_points", local_responses_num);
-
-  // Second pass comms
-  ArborX::Details::DistributedTreeImpl<DeviceSpace>::sendAcrossNetwork(
-      space, distributor_second, mpi_mid_points, mpi_tmp_points);
-  ArborX::Details::DistributedTreeImpl<DeviceSpace>::sendAcrossNetwork(
-      space, distributor_second, mpi_mid_in_indices, mpi_tmp_in_indices);
-  Kokkos::parallel_for(
-      "Example::local_untreated_source_points_fill",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, local_responses_num),
-      KOKKOS_LAMBDA(int const i) {
-        local_untreated_source_points(mpi_tmp_in_indices(i)) =
-            mpi_tmp_points(i);
-      });
+  MPIComms<ExecutionSpace, MemorySpace> comms(space, mpi_comm, local_indices,
+                                              local_ranks);
+  auto local_source_points = comms.distribute(space, source_points);
 
   // Now that we have the neighbors, we recompute their position using
   // their target point as the origin.
@@ -238,9 +168,9 @@ int main(int argc, char *argv[])
         for (int j = offsets(i); j < offsets(i + 1); j++)
         {
           tr_source_points(i, j - offsets(i)) = ArborX::Point{
-              local_untreated_source_points(j)[0] - target_points(i)[0],
-              local_untreated_source_points(j)[1] - target_points(i)[1],
-              local_untreated_source_points(j)[2] - target_points(i)[2],
+              local_source_points(j)[0] - target_points(i)[0],
+              local_source_points(j)[1] - target_points(i)[1],
+              local_source_points(j)[2] - target_points(i)[2],
           };
         }
       });
@@ -350,31 +280,7 @@ int main(int argc, char *argv[])
         source_values(i) = manufactured_solution(source_points(i));
       });
 
-  // To approximate the function, we have to gather the correct source values
-  // We have to redo part of the earlier passes
-  Kokkos::View<float *, MemorySpace> mpi_mid_values("Example::mpi_mid_values",
-                                                    local_requests_num);
-  Kokkos::parallel_for(
-      "Example::mpi_mid_values_fill",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, local_requests_num),
-      KOKKOS_LAMBDA(int const i) {
-        mpi_mid_values(i) = source_values(mpi_mid_indices(i));
-      });
-
-  Kokkos::View<float *, MemorySpace> local_untreated_source_values(
-      "Example::local_untreated_source_values",
-      target_points_num * num_neighbors);
-  Kokkos::View<float *, MemorySpace> mpi_tmp_values("Examples::mpi_tmp_values",
-                                                    local_responses_num);
-  ArborX::Details::DistributedTreeImpl<DeviceSpace>::sendAcrossNetwork(
-      space, distributor_second, mpi_mid_values, mpi_tmp_values);
-  Kokkos::parallel_for(
-      "Example::local_untreated_source_values_fill",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, local_responses_num),
-      KOKKOS_LAMBDA(int const i) {
-        local_untreated_source_values(mpi_tmp_in_indices(i)) =
-            mpi_tmp_values(i);
-      });
+  auto local_source_values = comms.distribute(space, source_values);
 
   // Compute target values via interpolation
   Kokkos::View<float *, MemorySpace> target_values("Example::target_values",
@@ -386,7 +292,7 @@ int main(int argc, char *argv[])
         float tmp = 0;
         for (int j = offsets(i); j < offsets(i + 1); j++)
         {
-          tmp += coeffs(i, j - offsets(i)) * local_untreated_source_values(j);
+          tmp += coeffs(i, j - offsets(i)) * local_source_values(j);
         }
         target_values(i) = tmp;
       });
@@ -416,11 +322,11 @@ int main(int argc, char *argv[])
         Kokkos::abs(target_values_host(i) - target_values_exact_host(i)) /
             Kokkos::abs(target_values_exact_host(i)),
         error);
-    /*
+
     ss << mpi_rank << ": ==== Target " << i << '\n'
-        << mpi_rank << ": Interpolation: " << target_values_host(i) << '\n'
-        << mpi_rank << ": Real value   : " << target_values_exact_host(i)
-        << '\n'; */
+       << mpi_rank << ": Interpolation: " << target_values_host(i) << '\n'
+       << mpi_rank << ": Real value   : " << target_values_exact_host(i)
+       << '\n';
   }
   ss << mpi_rank << ": Maximum relative error: " << error << std::endl;
 
