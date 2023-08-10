@@ -22,8 +22,8 @@
 #include <limits>
 #include <sstream>
 
+#include "mls_computation.hpp"
 #include "mpi_comms.hpp"
-#include "symmetric_pseudoinverse_svd.hpp"
 #include <mpi.h>
 
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
@@ -45,8 +45,8 @@ struct MVPolynomialBasis_3D
 {
   static constexpr std::size_t size = 10;
 
-  KOKKOS_INLINE_FUNCTION Kokkos::Array<float, size>
-  operator()(ArborX::Point const &p) const
+  KOKKOS_INLINE_FUNCTION static Kokkos::Array<float, size>
+  basis(ArborX::Point const &p)
   {
     return {{1.f, p[0], p[1], p[2], p[0] * p[0], p[0] * p[1], p[0] * p[2],
              p[1] * p[1], p[1] * p[2], p[2] * p[2]}};
@@ -156,119 +156,9 @@ int main(int argc, char *argv[])
                                               local_ranks);
   auto local_source_points = comms.distribute(space, source_points);
 
-  // Now that we have the neighbors, we recompute their position using
-  // their target point as the origin.
-  // This is used as an optimisation later in the algorithm
-  Kokkos::View<ArborX::Point **, MemorySpace> tr_source_points(
-      "Example::tr_source_points", target_points_num, num_neighbors);
-  Kokkos::parallel_for(
-      "Example::transform_source_points",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, target_points_num),
-      KOKKOS_LAMBDA(int const i) {
-        for (int j = offsets(i); j < offsets(i + 1); j++)
-        {
-          tr_source_points(i, j - offsets(i)) = ArborX::Point{
-              local_source_points(j)[0] - target_points(i)[0],
-              local_source_points(j)[1] - target_points(i)[1],
-              local_source_points(j)[2] - target_points(i)[2],
-          };
-        }
-      });
-
-  // Compute the radii for the weight (phi) vector
-  Kokkos::View<float *, MemorySpace> radii("Example::radii", target_points_num);
-  Kokkos::parallel_for(
-      "Example::radii_computation",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, target_points_num),
-      KOKKOS_LAMBDA(int const i) {
-        float radius = 10.f * epsilon;
-
-        for (int j = 0; j < num_neighbors; j++)
-        {
-          float norm = ArborX::Details::distance(tr_source_points(i, j),
-                                                 ArborX::Point{0.f, 0.f, 0.f});
-          radius = (radius < norm) ? norm : radius;
-        }
-
-        radii(i) = 1.1f * radius;
-      });
-
-  // Compute the weight (phi) vector
-  Kokkos::View<float **, MemorySpace> phi("Example::phi", target_points_num,
-                                          num_neighbors);
-  Kokkos::parallel_for(
-      "Example::phi_computation",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, target_points_num),
-      KOKKOS_LAMBDA(int const i) {
-        RBFWendland_0 rbf{radii(i)};
-
-        for (int j = 0; j < num_neighbors; j++)
-        {
-          float norm = ArborX::Details::distance(tr_source_points(i, j),
-                                                 ArborX::Point{0.f, 0.f, 0.f});
-          phi(i, j) = rbf(norm);
-        }
-      });
-
-  // Compute multivariable Vandermonde (P) matrix
-  Kokkos::View<float ***, MemorySpace> p("Example::vandermonde",
-                                         target_points_num, num_neighbors,
-                                         MVPolynomialBasis_3D::size);
-  Kokkos::parallel_for(
-      "Example::vandermonde_computation",
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>(
-          space, {0, 0}, {target_points_num, num_neighbors}),
-      KOKKOS_LAMBDA(int const i, int const j) {
-        auto basis = MVPolynomialBasis_3D{}(tr_source_points(i, j));
-
-        for (int k = 0; k < MVPolynomialBasis_3D::size; k++)
-        {
-          p(i, j, k) = basis[k];
-        }
-      });
-
-  // Compute moment (A) matrix
-  Kokkos::View<float ***, MemorySpace> a("Example::A", target_points_num,
-                                         MVPolynomialBasis_3D::size,
-                                         MVPolynomialBasis_3D::size);
-  Kokkos::parallel_for(
-      "Example::A_computation",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>>(space, {0, 0, 0},
-                                             {target_points_num,
-                                              MVPolynomialBasis_3D::size,
-                                              MVPolynomialBasis_3D::size}),
-      KOKKOS_LAMBDA(int const i, int const j, int const k) {
-        float tmp = 0;
-        for (int l = 0; l < num_neighbors; l++)
-        {
-          tmp += p(i, l, j) * p(i, l, k) * phi(i, l);
-        }
-
-        a(i, j, k) = tmp;
-      });
-
-  // Compute the pseudo inverse
-  auto a_inv =
-      SymmPseudoInverseSVD<float, ExecutionSpace,
-                           MemorySpace>::compute_pseudo_inverses(space, a);
-
-  // Compute the coefficients
-  Kokkos::View<float **, MemorySpace> coeffs("Example::coefficients",
-                                             target_points_num, num_neighbors);
-  Kokkos::parallel_for(
-      "Example::coefficients_computation",
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>(
-          space, {0, 0}, {target_points_num, num_neighbors}),
-      KOKKOS_LAMBDA(int const i, int const j) {
-        float tmp = 0.f;
-
-        for (int k = 0; k < MVPolynomialBasis_3D::size; k++)
-        {
-          tmp += a_inv(i, 0, k) * p(i, j, k) * phi(i, j);
-        }
-
-        coeffs(i, j) = tmp;
-      });
+  MLSComputation<float, MVPolynomialBasis_3D, RBFWendland_0, ExecutionSpace,
+                 MemorySpace>
+      mlsc(space, local_source_points, target_points);
 
   // Compute source values
   Kokkos::View<float *, MemorySpace> source_values("Example::source_values",
@@ -282,20 +172,7 @@ int main(int argc, char *argv[])
 
   auto local_source_values = comms.distribute(space, source_values);
 
-  // Compute target values via interpolation
-  Kokkos::View<float *, MemorySpace> target_values("Example::target_values",
-                                                   target_points_num);
-  Kokkos::parallel_for(
-      "Example::target_interpolation",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, target_points_num),
-      KOKKOS_LAMBDA(int const i) {
-        float tmp = 0;
-        for (int j = offsets(i); j < offsets(i + 1); j++)
-        {
-          tmp += coeffs(i, j - offsets(i)) * local_source_values(j);
-        }
-        target_values(i) = tmp;
-      });
+  auto target_values = mlsc.eval(space, local_source_values);
 
   // Compute target values via evaluation
   Kokkos::View<float *, MemorySpace> target_values_exact(
