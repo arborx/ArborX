@@ -24,8 +24,8 @@ class MPIComms
 {
 public:
   MPIComms(ExecutionSpace const &space, MPI_Comm comm,
-        Kokkos::View<int *, MemorySpace> indices,
-        Kokkos::View<int *, MemorySpace> ranks)
+           Kokkos::View<int *, MemorySpace> indices,
+           Kokkos::View<int *, MemorySpace> ranks)
       : _distributor_back(comm)
   {
     assert(indices.extent(0) == ranks.extent(0));
