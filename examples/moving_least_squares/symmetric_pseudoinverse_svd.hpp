@@ -39,8 +39,8 @@ public:
     Kokkos::parallel_for(
         "Example::SVD::compute_U_ES",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, spis._num_matrices),
-        KOKKOS_LAMBDA(std::size_t i) {
-          std::size_t p, q;
+        KOKKOS_LAMBDA(int const i) {
+          int p, q;
           ValueType norm = spis.argmax_off_diagonal(i, p, q);
           while (norm > spis._epsilon)
           {
@@ -55,7 +55,7 @@ public:
         "Example::SVD::fill_inv",
         Kokkos::MDRangePolicy<Kokkos::Rank<3>>(
             space, {0, 0, 0}, {spis._num_matrices, spis._size, spis._size}),
-        KOKKOS_LAMBDA(std::size_t i, std::size_t j, std::size_t k) {
+        KOKKOS_LAMBDA(int const i, int const j, int const k) {
           spis.fill_inv(i, j, k);
         });
 
@@ -65,11 +65,10 @@ public:
 private:
   // U and E.S are computed, we can now build the inverse
   // U . [ E^-1.S ] . U^T
-  KOKKOS_FUNCTION void fill_inv(std::size_t i, std::size_t j,
-                                std::size_t k) const
+  KOKKOS_FUNCTION void fill_inv(int const i, int const j, int const k) const
   {
     ValueType value = _zero;
-    for (std::size_t l = 0; l < _size; l++)
+    for (int l = 0; l < _size; l++)
     {
       ValueType v = _es(i, l, l);
       if (Kokkos::abs(v) > _epsilon)
@@ -83,8 +82,8 @@ private:
 
   // We found the biggest value in our off-diagonal. We will remove it by
   // computing a "local" svd and update U and E.S
-  KOKKOS_FUNCTION void compute_u_es_single(std::size_t i, std::size_t p,
-                                           std::size_t q) const
+  KOKKOS_FUNCTION void compute_u_es_single(int const i, int const p,
+                                           int const q) const
   {
     ValueType a = _es(i, p, p);
     ValueType b = _es(i, p, q);
@@ -126,28 +125,28 @@ private:
     // U  <- U . R'(theta)
 
     // R'(theta)^T . E.S
-    for (std::size_t j = 0; j < _size; j++)
+    for (int j = 0; j < _size; j++)
     {
-      float es_ipj = _es(i, p, j);
-      float es_iqj = _es(i, q, j);
+      ValueType es_ipj = _es(i, p, j);
+      ValueType es_iqj = _es(i, q, j);
       _es(i, p, j) = cos * es_ipj + sin * es_iqj;
       _es(i, q, j) = -sin * es_ipj + cos * es_iqj;
     }
 
     // [R'(theta)^T . E.S] . R'(theta)
-    for (std::size_t j = 0; j < _size; j++)
+    for (int j = 0; j < _size; j++)
     {
-      float es_ijp = _es(i, j, p);
-      float es_ijq = _es(i, j, q);
+      ValueType es_ijp = _es(i, j, p);
+      ValueType es_ijq = _es(i, j, q);
       _es(i, j, p) = cos * es_ijp + sin * es_ijq;
       _es(i, j, q) = -sin * es_ijp + cos * es_ijq;
     }
 
     // U . R'(theta)
-    for (std::size_t j = 0; j < _size; j++)
+    for (int j = 0; j < _size; j++)
     {
-      float u_ijp = _u(i, j, p);
-      float u_ijq = _u(i, j, q);
+      ValueType u_ijp = _u(i, j, p);
+      ValueType u_ijq = _u(i, j, q);
       _u(i, j, p) = cos * u_ijp + sin * u_ijq;
       _u(i, j, q) = -sin * u_ijp + cos * u_ijq;
     }
@@ -163,14 +162,14 @@ private:
   // This finds the biggest off-diagonal value of E.S as well as its
   // coordinates. Being symmetric, we can always check on the upper
   // triangle (and always have q > p)
-  KOKKOS_FUNCTION ValueType argmax_off_diagonal(std::size_t i, std::size_t &p,
-                                                std::size_t &q) const
+  KOKKOS_FUNCTION ValueType argmax_off_diagonal(int const i, int &p,
+                                                int &q) const
   {
     ValueType max = _zero;
     p = q = 0;
-    for (std::size_t j = 0; j < _size; j++)
+    for (int j = 0; j < _size; j++)
     {
-      for (std::size_t k = j + 1; k < _size; k++)
+      for (int k = j + 1; k < _size; k++)
       {
         ValueType val = Kokkos::abs(_es(i, j, k));
         if (max < val)
@@ -206,7 +205,7 @@ private:
         "Example::SVD::U_init",
         Kokkos::MDRangePolicy<Kokkos::Rank<3>>(space, {0, 0, 0},
                                                {_num_matrices, _size, _size}),
-        KOKKOS_LAMBDA(std::size_t i, std::size_t j, std::size_t k) {
+        KOKKOS_LAMBDA(int const i, int const j, int const k) {
           _u(i, j, k) = ValueType((j == k));
         });
 
