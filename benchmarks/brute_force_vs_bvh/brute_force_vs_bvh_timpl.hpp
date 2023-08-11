@@ -94,8 +94,8 @@ void ArborXBenchmark::run(int nprimitives, int nqueries, int nrepeats)
           MemorySpace, ArborX::Details::PairIndexVolume<Box>>
           bvh{space, primitives};
 
-      Kokkos::View<int *, ExecutionSpace> indices("indices_ref", 0);
-      Kokkos::View<int *, ExecutionSpace> offset("offset_ref", 0);
+      Kokkos::View<int *, ExecutionSpace> indices("Benchmark::indices_ref", 0);
+      Kokkos::View<int *, ExecutionSpace> offset("Benchmark::offset_ref", 0);
       bvh.query(space, predicates, indices, offset);
 
       space.fence();
@@ -111,8 +111,8 @@ void ArborXBenchmark::run(int nprimitives, int nqueries, int nrepeats)
       Kokkos::Timer timer;
       ArborX::BruteForce<MemorySpace, Box> brute{space, primitives};
 
-      Kokkos::View<int *, ExecutionSpace> indices("indices", 0);
-      Kokkos::View<int *, ExecutionSpace> offset("offset", 0);
+      Kokkos::View<int *, ExecutionSpace> indices("Benchmark::indices", 0);
+      Kokkos::View<int *, ExecutionSpace> offset("Benchmark::offset", 0);
       brute.query(space, predicates, indices, offset);
 
       space.fence();

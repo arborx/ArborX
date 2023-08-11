@@ -40,12 +40,12 @@ buildEdges(AllowLoops, ExecutionSpace const &exec_space, int num_edges)
   using MemorySpace = typename ExecutionSpace::memory_space;
   Kokkos::View<UnweightedEdge *, MemorySpace> edges(
       Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
-                         "ArborX::Benchmark::edges"),
+                         "Benchmark::edges"),
       num_edges);
 
   Kokkos::Random_XorShift1024_Pool<ExecutionSpace> rand_pool(1984);
   Kokkos::parallel_for(
-      "ArborX::Benchmark::init_edges",
+      "Benchmark::init_edges",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_edges),
       KOKKOS_LAMBDA(unsigned i) {
         auto rand_gen = rand_pool.get_state();
@@ -69,10 +69,10 @@ buildEdges(DisallowLoops, ExecutionSpace const &exec_space, int num_edges)
   // Construct random permutation by sorting a vector of random values
   Kokkos::View<int *, MemorySpace> random_values(
       Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
-                         "ArborX::Benchmark::random_values"),
+                         "Benchmark::random_values"),
       num_edges);
   Kokkos::parallel_for(
-      "ArborX::Benchmark::init_random_values",
+      "Benchmark::init_random_values",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_edges),
       KOKKOS_LAMBDA(int i) {
         auto rand_gen = rand_pool.get_state();
@@ -84,10 +84,10 @@ buildEdges(DisallowLoops, ExecutionSpace const &exec_space, int num_edges)
   // Init edges in a random order
   Kokkos::View<UnweightedEdge *, MemorySpace> edges(
       Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
-                         "ArborX::Benchmark::edges"),
+                         "Benchmark::edges"),
       num_edges);
   Kokkos::parallel_for(
-      "ArborX::Benchmark::init_edges",
+      "Benchmark::init_edges",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_edges),
       KOKKOS_LAMBDA(unsigned i) {
         auto rand_gen = rand_pool.get_state();
@@ -103,9 +103,7 @@ auto buildUnionFind(ExecutionSpace const &exec_space, int n)
   using MemorySpace = typename ExecutionSpace::memory_space;
 
   Kokkos::View<int *, MemorySpace> labels(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                         "ArborX::Benchmark::labels"),
-      n);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::labels"), n);
   ArborX::iota(exec_space, labels);
 #ifdef KOKKOS_ENABLE_SERIAL
   if constexpr (std::is_same_v<ExecutionSpace, Kokkos::Serial>)
@@ -134,7 +132,7 @@ void BM_union_find(benchmark::State &state)
     auto const start = std::chrono::high_resolution_clock::now();
 
     Kokkos::parallel_for(
-        "ArborX::Benchmark::union-find",
+        "Benchmark::union-find",
         Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, edges.size()),
         KOKKOS_LAMBDA(int e) {
           int i = edges(e).source;

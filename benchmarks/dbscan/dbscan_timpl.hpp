@@ -182,7 +182,7 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
     data = GanTao<DIM>(params.n, params.variable_density);
   }
 
-  auto const primitives = vec2view<MemorySpace>(data, "primitives");
+  auto const primitives = vec2view<MemorySpace>(data, "Benchmark::primitives");
 
   using Primitives = decltype(primitives);
 
