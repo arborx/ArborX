@@ -94,8 +94,8 @@ int main(int argc, char *argv[])
       Kokkos::Timer timer;
       ArborX::BoundingVolumeHierarchy<MemorySpace> bvh{space, primitives};
 
-      Kokkos::View<int *, ExecutionSpace> indices("indices_ref", 0);
-      Kokkos::View<int *, ExecutionSpace> offset("offset_ref", 0);
+      Kokkos::View<int *, ExecutionSpace> indices("Example::indices_ref", 0);
+      Kokkos::View<int *, ExecutionSpace> offset("Example::offset_ref", 0);
       bvh.query(space, predicates, indices, offset);
 
       space.fence();
@@ -111,8 +111,8 @@ int main(int argc, char *argv[])
       Kokkos::Timer timer;
       ArborX::BruteForce<MemorySpace> brute{space, primitives};
 
-      Kokkos::View<int *, ExecutionSpace> indices("indices", 0);
-      Kokkos::View<int *, ExecutionSpace> offset("offset", 0);
+      Kokkos::View<int *, ExecutionSpace> indices("Example::indices", 0);
+      Kokkos::View<int *, ExecutionSpace> offset("Example::offset", 0);
       brute.query(space, predicates, indices, offset);
 
       space.fence();

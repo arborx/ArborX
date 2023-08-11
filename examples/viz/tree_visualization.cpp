@@ -79,7 +79,7 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
 {
   using ExecutionSpace = Kokkos::DefaultHostExecutionSpace;
   using DeviceType = ExecutionSpace::device_type;
-  Kokkos::View<ArborX::Point *, DeviceType> points("points", 0);
+  Kokkos::View<ArborX::Point *, DeviceType> points("Example::points", 0);
   loadPointCloud(infile, points);
 
   ArborX::BVH<Kokkos::HostSpace> bvh{ExecutionSpace{}, points};
@@ -91,9 +91,10 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
   int const n_queries = bvh.size();
   if (n_neighbors < 0)
     n_neighbors = bvh.size();
-  Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> queries("queries",
-                                                                     n_queries);
+  Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> queries(
+      "Example::queries", n_queries);
   Kokkos::parallel_for(
+      "Example::inititialize_queries",
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
         queries(i) = ArborX::nearest(points(i), n_neighbors);
       });
