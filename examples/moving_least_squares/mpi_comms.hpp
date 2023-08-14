@@ -23,6 +23,10 @@ template <typename ExecutionSpace, typename MemorySpace>
 class MPIComms
 {
 public:
+  MPIComms(MPI_Comm comm)
+      : _distributor_back(comm)
+  {}
+
   MPIComms(ExecutionSpace const &space, MPI_Comm comm,
            Kokkos::View<int *, MemorySpace> indices,
            Kokkos::View<int *, MemorySpace> ranks)

@@ -18,12 +18,9 @@
 
 #include <Kokkos_Core.hpp>
 
-#include <cmath>
-#include <limits>
 #include <sstream>
 
-#include "mls_computation.hpp"
-#include "mpi_comms.hpp"
+#include "mls.hpp"
 #include <mpi.h>
 
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
@@ -53,28 +50,6 @@ struct MVPolynomialBasis_3D
   }
 };
 
-struct TargetPoints
-{
-  Kokkos::View<ArborX::Point *, MemorySpace> target_points;
-  std::size_t num_neighbors;
-};
-
-template <>
-struct ArborX::AccessTraits<TargetPoints, ArborX::PredicatesTag>
-{
-  static KOKKOS_FUNCTION std::size_t size(TargetPoints const &tp)
-  {
-    return tp.target_points.extent(0);
-  }
-
-  static KOKKOS_FUNCTION auto get(TargetPoints const &tp, std::size_t i)
-  {
-    return ArborX::nearest(tp.target_points(i), tp.num_neighbors);
-  }
-
-  using memory_space = MemorySpace;
-};
-
 // Function to approximate
 KOKKOS_INLINE_FUNCTION float manufactured_solution(ArborX::Point const &p)
 {
@@ -86,7 +61,6 @@ int main(int argc, char *argv[])
   MPI_Init(&argc, &argv);
   Kokkos::ScopeGuard guard(argc, argv);
 
-  constexpr float epsilon = std::numeric_limits<float>::epsilon();
   constexpr std::size_t num_neighbors = MVPolynomialBasis_3D::size;
   constexpr std::size_t cube_side = 20;
   constexpr std::size_t source_points_num = cube_side * cube_side * cube_side;
@@ -129,36 +103,9 @@ int main(int argc, char *argv[])
   target_points_host(3) = ArborX::Point{1.f, -3.3f, 7.f};
   Kokkos::deep_copy(space, target_points, target_points_host);
 
-  // Organize source points as tree
-  ArborX::DistributedTree<MemorySpace> source_tree(mpi_comm, space,
-                                                   source_points);
-
-  // Perform the query and split the indices/ranks
-  Kokkos::View<Kokkos::pair<int, int> *, MemorySpace> index_ranks(
-      "Example::index_ranks", 0);
-  Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
-  source_tree.query(space, TargetPoints{target_points, num_neighbors},
-                    index_ranks, offsets);
-  Kokkos::View<int *, MemorySpace> local_indices(
-      "Example::local_indices", target_points_num * num_neighbors);
-  Kokkos::View<int *, MemorySpace> local_ranks(
-      "Example::local_ranks", target_points_num * num_neighbors);
-  Kokkos::parallel_for(
-      "Example::index_ranks_split",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0,
-                                          target_points_num * num_neighbors),
-      KOKKOS_LAMBDA(int const i) {
-        local_indices(i) = index_ranks(i).first;
-        local_ranks(i) = index_ranks(i).second;
-      });
-
-  MPIComms<ExecutionSpace, MemorySpace> comms(space, mpi_comm, local_indices,
-                                              local_ranks);
-  auto local_source_points = comms.distribute(space, source_points);
-
-  MLSComputation<float, MVPolynomialBasis_3D, RBFWendland_0, ExecutionSpace,
-                 MemorySpace>
-      mlsc(space, local_source_points, target_points);
+  // Create the transform from a point cloud to another
+  MLS<float, MVPolynomialBasis_3D, RBFWendland_0, ExecutionSpace, MemorySpace>
+      mls(space, mpi_comm, num_neighbors, source_points, target_points);
 
   // Compute source values
   Kokkos::View<float *, MemorySpace> source_values("Example::source_values",
@@ -170,9 +117,8 @@ int main(int argc, char *argv[])
         source_values(i) = manufactured_solution(source_points(i));
       });
 
-  auto local_source_values = comms.distribute(space, source_values);
-
-  auto target_values = mlsc.eval(space, local_source_values);
+  // Compute target values from source ones
+  auto target_values = mls.evaluate(space, source_values);
 
   // Compute target values via evaluation
   Kokkos::View<float *, MemorySpace> target_values_exact(

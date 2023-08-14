@@ -24,16 +24,18 @@ template <typename ValueType, typename PolynomialBasis, typename RBF,
 class MLSComputation
 {
 public:
+  MLSComputation() = default;
+
   MLSComputation(
       ExecutionSpace const &space,
       Kokkos::View<ArborX::Point *, MemorySpace> const &source_points,
       Kokkos::View<ArborX::Point *, MemorySpace> const &target_points)
+      : _num_neighbors(source_points.extent(0) / target_points.extent(0))
+      , _num_targets(target_points.extent(0))
   {
     // There must be a list of num_neighbors source points for each
     // target point
-    _num_neighbors = source_points.extent(0) / target_points.extent(0);
-    assert(source_points.extent(0) == target_points.extent(0) * _num_neighbors);
-    _num_targets = target_points.extent(0);
+    assert(source_points.extent(0) == _num_targets * _num_neighbors);
 
     auto source_ref_target =
         translate_to_target(space, source_points, target_points);
@@ -51,13 +53,15 @@ public:
   }
 
   Kokkos::View<ValueType *>
-  eval(ExecutionSpace const &space,
-       Kokkos::View<ValueType *, MemorySpace> const &source_values)
+  evaluate(ExecutionSpace const &space,
+           Kokkos::View<ValueType *, MemorySpace> const &source_values)
   {
+    assert(source_values.extent(0) == _num_targets * _num_neighbors);
+
     Kokkos::View<ValueType *, MemorySpace> target_values(
-        "Example::MLS::target_values", _num_targets);
+        "Example::MLSC::target_values", _num_targets);
     Kokkos::parallel_for(
-        "Example::MLS::target_interpolation",
+        "Example::MLSC::target_interpolation",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, _num_targets),
         KOKKOS_LAMBDA(int const i) {
           ValueType tmp = _zero;
@@ -81,10 +85,10 @@ private:
     // optimize the final computation
     Kokkos::View<ArborX::Point **, MemorySpace> source_ref_target(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "Example::MLS::source_ref_target"),
+                           "Example::MLSC::source_ref_target"),
         _num_targets, _num_neighbors);
     Kokkos::parallel_for(
-        "Example::MLS::source_ref_target_fill",
+        "Example::MLSC::source_ref_target_fill",
         Kokkos::MDRangePolicy<Kokkos::Rank<2>>(space, {0, 0},
                                                {_num_targets, _num_neighbors}),
         KOKKOS_LAMBDA(int const i, int const j) {
@@ -105,10 +109,10 @@ private:
       Kokkos::View<ArborX::Point **, MemorySpace> const &source_ref_target)
   {
     Kokkos::View<ValueType *, MemorySpace> radii(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::MLS::radii"),
+        Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::MLSC::radii"),
         _num_targets);
     Kokkos::parallel_for(
-        "Example::MLS::radii_computation",
+        "Example::MLSC::radii_computation",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, _num_targets),
         KOKKOS_LAMBDA(int const i) {
           ValueType radius = _ten * _epsilon;
@@ -130,10 +134,10 @@ private:
       Kokkos::View<ValueType *, MemorySpace> const &radii)
   {
     Kokkos::View<ValueType **, MemorySpace> phi(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::MLS::phi"),
+        Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::MLSC::phi"),
         _num_targets, _num_neighbors);
     Kokkos::parallel_for(
-        "Example::MLS::phi_computation",
+        "Example::MLSC::phi_computation",
         Kokkos::MDRangePolicy<Kokkos::Rank<2>>(space, {0, 0},
                                                {_num_targets, _num_neighbors}),
         KOKKOS_LAMBDA(int const i, int const j) {
@@ -154,10 +158,10 @@ private:
     // automatically?
     Kokkos::View<ValueType ***, MemorySpace> p(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "Example::MLS::vandermonde"),
+                           "Example::MLSC::vandermonde"),
         _num_targets, _num_neighbors, PolynomialBasis::size);
     Kokkos::parallel_for(
-        "Example::MLS::vandermonde_computation",
+        "Example::MLSC::vandermonde_computation",
         Kokkos::MDRangePolicy<Kokkos::Rank<2>>(space, {0, 0},
                                                {_num_targets, _num_neighbors}),
         KOKKOS_LAMBDA(int const i, int const j) {
@@ -177,10 +181,11 @@ private:
                  Kokkos::View<ValueType ***, MemorySpace> const &p)
   {
     Kokkos::View<ValueType ***, MemorySpace> a(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::MLS::moment"),
+        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                           "Example::MLSC::moment"),
         _num_targets, PolynomialBasis::size, PolynomialBasis::size);
     Kokkos::parallel_for(
-        "Example::MLS::moment_computation",
+        "Example::MLSC::moment_computation",
         Kokkos::MDRangePolicy<Kokkos::Rank<3>>(
             space, {0, 0, 0},
             {_num_targets, PolynomialBasis::size, PolynomialBasis::size}),
@@ -204,10 +209,10 @@ private:
   {
     _coeffs = Kokkos::View<ValueType **, MemorySpace>(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "Example::MLS::coefficients"),
+                           "Example::MLSC::coefficients"),
         _num_targets, _num_neighbors);
     Kokkos::parallel_for(
-        "Example::MLS::coefficients",
+        "Example::MLSC::coefficients",
         Kokkos::MDRangePolicy<Kokkos::Rank<2>>(space, {0, 0},
                                                {_num_targets, _num_neighbors}),
         KOKKOS_LAMBDA(int const i, int const j) {
