@@ -141,10 +141,9 @@ private:
         Kokkos::MDRangePolicy<Kokkos::Rank<2>>(space, {0, 0},
                                                {_num_targets, _num_neighbors}),
         KOKKOS_LAMBDA(int const i, int const j) {
-          RBF rbf{radii(i)};
           ValueType norm =
               ArborX::Details::distance(source_ref_target(i, j), _origin);
-          phi(i, j) = rbf(norm);
+          phi(i, j) = RBF::evaluate(norm / radii(i));
         });
 
     return phi;

@@ -29,13 +29,10 @@ using DeviceSpace = Kokkos::Device<ExecutionSpace, MemorySpace>;
 
 struct RBFWendland_0
 {
-  KOKKOS_INLINE_FUNCTION float operator()(float x)
+  KOKKOS_INLINE_FUNCTION static float evaluate(float x)
   {
-    x /= _radius;
     return (1.f - x) * (1.f - x);
   }
-
-  float _radius;
 };
 
 struct MVPolynomialBasis_3D
