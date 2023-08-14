@@ -170,13 +170,18 @@ void sortByKey(Kokkos::Experimental::SYCL const &space, Keys &keys,
   if (n == 0)
     return;
 
-  auto zipped_begin =
-      oneapi::dpl::make_zip_iterator(keys.data(), values.data());
   oneapi::dpl::execution::device_policy policy(
       *space.impl_internal_space_instance()->m_queue);
+#if ONEDPL_VERSION_MAJOR > 2022 ||                                             \
+    (ONEDPL_VERSION_MAJOR == 2022 && ONEDPL_VESION_MINOR >= 2)
+  oneapi::dpl::sort_by_key(policy, keys.data(), keys.data() + n, values.data());
+#else
+  auto zipped_begin =
+      oneapi::dpl::make_zip_iterator(keys.data(), values.data());
   oneapi::dpl::sort(
       policy, zipped_begin, zipped_begin + n,
       [](auto lhs, auto rhs) { return std::get<0>(lhs) < std::get<0>(rhs); });
+#endif
 }
 #endif
 
