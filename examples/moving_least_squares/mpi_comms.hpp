@@ -19,6 +19,7 @@
 #include <memory>
 #include <optional>
 
+#include "common.hpp"
 #include <mpi.h>
 
 template <typename MemorySpace>
@@ -114,10 +115,33 @@ public:
         space, *_distributor_back, mpi_rev_indices, _mpi_recv_indices);
   }
 
+  template <typename ExecutionSpace, typename Values>
+  Kokkos::View<Details::inner_value_t<Values> *, MemorySpace>
+  distributeArborX(ExecutionSpace const &space, Values const &source)
+  {
+    using value_t = Details::inner_value_t<Values>;
+    using access = ArborX::AccessTraits<Values, ArborX::PrimitivesTag>;
+    assert(_distributor_back.has_value());
+
+    // We know what each process want so we prepare the data to be sent
+    Kokkos::View<value_t *, MemorySpace> data_to_send(
+        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                           "Example::MPI::data_to_send"),
+        _num_requests);
+    Kokkos::parallel_for(
+        "Example::MPI::data_to_send_fill",
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, _num_requests),
+        KOKKOS_CLASS_LAMBDA(int const i) {
+          data_to_send(i) = access::get(source, _mpi_send_indices(i));
+        });
+
+    return distribute(space, data_to_send);
+  }
+
   template <typename ExecutionSpace, typename ValueType>
   Kokkos::View<ValueType *, MemorySpace>
-  distribute(ExecutionSpace const &space,
-             Kokkos::View<ValueType *, MemorySpace> const &source)
+  distributeView(ExecutionSpace const &space,
+                 Kokkos::View<ValueType *, MemorySpace> const &source)
   {
     assert(_distributor_back.has_value());
 
@@ -133,7 +157,23 @@ public:
           data_to_send(i) = source(_mpi_send_indices(i));
         });
 
-    // Then we properly send it, and each process has what it wants, but in the
+    return distribute(space, data_to_send);
+  }
+
+private:
+  std::shared_ptr<MPI_Comm> _comm;
+  Kokkos::View<int *, MemorySpace> _mpi_send_indices;
+  Kokkos::View<int *, MemorySpace> _mpi_recv_indices;
+  std::optional<ArborX::Details::Distributor<MemorySpace>> _distributor_back;
+  std::size_t _num_requests;
+  std::size_t _num_responses;
+
+  template <typename ExecutionSpace, typename ValueType>
+  Kokkos::View<ValueType *, MemorySpace>
+  distribute(ExecutionSpace const &space,
+             Kokkos::View<ValueType *, MemorySpace> const &data_to_send)
+  {
+    // We properly send the data, and each process has what it wants, but in the
     // wrong order
     Kokkos::View<ValueType *, MemorySpace> data_to_recv(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
@@ -155,12 +195,4 @@ public:
 
     return output;
   }
-
-private:
-  std::shared_ptr<MPI_Comm> _comm;
-  Kokkos::View<int *, MemorySpace> _mpi_send_indices;
-  Kokkos::View<int *, MemorySpace> _mpi_recv_indices;
-  std::optional<ArborX::Details::Distributor<MemorySpace>> _distributor_back;
-  std::size_t _num_requests;
-  std::size_t _num_responses;
 };

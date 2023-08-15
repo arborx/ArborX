@@ -17,6 +17,7 @@
 
 #include <cassert>
 
+#include "common.hpp"
 #include "symmetric_pseudoinverse_svd.hpp"
 
 template <typename ValueType, typename PolynomialBasis, typename RBF,
@@ -26,13 +27,17 @@ class MLSComputation
 public:
   MLSComputation() = default;
 
-  template <typename ExecutionSpace>
-  MLSComputation(
-      ExecutionSpace const &space,
-      Kokkos::View<ArborX::Point *, MemorySpace> const &source_points,
-      Kokkos::View<ArborX::Point *, MemorySpace> const &target_points)
-      : _num_neighbors(source_points.extent(0) / target_points.extent(0))
-      , _num_targets(target_points.extent(0))
+  template <typename ExecutionSpace, typename Points>
+  MLSComputation(ExecutionSpace const &space,
+                 Kokkos::View<Details::inner_value_t<Points> *,
+                              MemorySpace> const &source_points,
+                 Points const &target_points)
+      : _num_neighbors(
+            source_points.extent(0) /
+            ArborX::AccessTraits<Points, ArborX::PrimitivesTag>::size(
+                target_points))
+      , _num_targets(ArborX::AccessTraits<Points, ArborX::PrimitivesTag>::size(
+            target_points))
   {
     // There must be a list of num_neighbors source points for each
     // target point
@@ -78,12 +83,16 @@ public:
   }
 
 private:
-  template <typename ExecutionSpace>
-  Kokkos::View<ArborX::Point **, MemorySpace> translateToTarget(
-      ExecutionSpace const &space,
-      Kokkos::View<ArborX::Point *, MemorySpace> const &source_points,
-      Kokkos::View<ArborX::Point *, MemorySpace> const &target_points)
+  template <typename ExecutionSpace, typename Points>
+  Kokkos::View<ArborX::Point **, MemorySpace>
+  translateToTarget(ExecutionSpace const &space,
+                    Kokkos::View<Details::inner_value_t<Points> *,
+                                 MemorySpace> const &source_points,
+                    Points const &target_points)
   {
+    using point_t = Details::inner_value_t<Points>;
+    using access = ArborX::AccessTraits<Points, ArborX::PrimitivesTag>;
+
     // We center each group around the target as it ables you to
     // optimize the final computation
     Kokkos::View<ArborX::Point **, MemorySpace> source_ref_target(
@@ -95,8 +104,8 @@ private:
         Kokkos::MDRangePolicy<Kokkos::Rank<2>>(space, {0, 0},
                                                {_num_targets, _num_neighbors}),
         KOKKOS_LAMBDA(int const i, int const j) {
-          ArborX::Point src = source_points(i * _num_neighbors + j);
-          ArborX::Point tgt = target_points(i);
+          point_t src = source_points(i * _num_neighbors + j);
+          point_t tgt = access::get(target_points, i);
           source_ref_target(i, j) = ArborX::Point{
               src[0] - tgt[0],
               src[1] - tgt[1],
