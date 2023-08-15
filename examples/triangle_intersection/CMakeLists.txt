@@ -1,3 +1,3 @@
 add_executable(ArborX_TriangleIntersection.exe triangle_intersection.cpp)
 target_link_libraries(ArborX_TriangleIntersection.exe ArborX::ArborX)
-add_test(NAME ArborX_TriangleIntersection_Example COMMAND ./ArborX_TriangleIntersection.exe)
+add_test(NAME ArborX_TriangleIntersection_Example COMMAND ArborX_TriangleIntersection.exe)
