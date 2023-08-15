@@ -20,12 +20,13 @@
 #include "symmetric_pseudoinverse_svd.hpp"
 
 template <typename ValueType, typename PolynomialBasis, typename RBF,
-          typename ExecutionSpace, typename MemorySpace>
+          typename MemorySpace>
 class MLSComputation
 {
 public:
   MLSComputation() = default;
 
+  template <typename ExecutionSpace>
   MLSComputation(
       ExecutionSpace const &space,
       Kokkos::View<ArborX::Point *, MemorySpace> const &source_points,
@@ -46,12 +47,13 @@ public:
 
     auto a = computeMoment(space, phi, p);
     auto a_inv =
-        SymmPseudoInverseSVD<ValueType, ExecutionSpace,
-                             MemorySpace>::computePseudoInverses(space, a);
+        SymmPseudoInverseSVD<ValueType, MemorySpace>::computePseudoInverses(
+            space, a);
 
     computeCoefficients(space, phi, p, a_inv);
   }
 
+  template <typename ExecutionSpace>
   Kokkos::View<ValueType *>
   apply(ExecutionSpace const &space,
         Kokkos::View<ValueType *, MemorySpace> const &source_values)
@@ -76,6 +78,7 @@ public:
   }
 
 private:
+  template <typename ExecutionSpace>
   Kokkos::View<ArborX::Point **, MemorySpace> translateToTarget(
       ExecutionSpace const &space,
       Kokkos::View<ArborX::Point *, MemorySpace> const &source_points,
@@ -104,6 +107,7 @@ private:
     return source_ref_target;
   }
 
+  template <typename ExecutionSpace>
   Kokkos::View<ValueType *, MemorySpace> computeRadii(
       ExecutionSpace const &space,
       Kokkos::View<ArborX::Point **, MemorySpace> const &source_ref_target)
@@ -128,6 +132,7 @@ private:
     return radii;
   }
 
+  template <typename ExecutionSpace>
   Kokkos::View<ValueType **, MemorySpace> computeWeight(
       ExecutionSpace const &space,
       Kokkos::View<ArborX::Point **, MemorySpace> const &source_ref_target,
@@ -149,6 +154,7 @@ private:
     return phi;
   }
 
+  template <typename ExecutionSpace>
   Kokkos::View<ValueType ***, MemorySpace> computeVandermonde(
       ExecutionSpace const &space,
       Kokkos::View<ArborX::Point **, MemorySpace> const &source_ref_target)
@@ -174,6 +180,7 @@ private:
     return p;
   }
 
+  template <typename ExecutionSpace>
   Kokkos::View<ValueType ***, MemorySpace>
   computeMoment(ExecutionSpace const &space,
                 Kokkos::View<ValueType **, MemorySpace> const &phi,
@@ -200,6 +207,7 @@ private:
     return a;
   }
 
+  template <typename ExecutionSpace>
   void
   computeCoefficients(ExecutionSpace const &space,
                       Kokkos::View<ValueType **, MemorySpace> const &phi,

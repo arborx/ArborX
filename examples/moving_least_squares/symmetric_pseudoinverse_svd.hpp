@@ -22,10 +22,11 @@
 // We also know that A is symmetric (by construction), so U = SV where S is
 // a sign matrix (only 1 or -1 in the diagonal, 0 elsewhere).
 // Thus A = U.E.S.U^T
-template <class ValueType, typename ExecutionSpace, typename MemorySpace>
+template <class ValueType, typename MemorySpace>
 class SymmPseudoInverseSVD
 {
 public:
+  template <typename ExecutionSpace>
   static Kokkos::View<ValueType ***, MemorySpace>
   computePseudoInverses(ExecutionSpace const &space,
                         Kokkos::View<ValueType ***, MemorySpace> const &mats)
@@ -183,7 +184,7 @@ private:
     return max;
   }
 
-  KOKKOS_FUNCTION
+  template <typename ExecutionSpace>
   SymmPseudoInverseSVD(ExecutionSpace const &space,
                        Kokkos::View<ValueType ***, MemorySpace> const &mats)
       : _num_matrices(mats.extent(0))

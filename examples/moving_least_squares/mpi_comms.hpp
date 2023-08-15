@@ -21,12 +21,13 @@
 
 #include <mpi.h>
 
-template <typename ExecutionSpace, typename MemorySpace>
+template <typename MemorySpace>
 class MPIComms
 {
 public:
   MPIComms() = default;
 
+  template <typename ExecutionSpace>
   MPIComms(ExecutionSpace const &space, MPI_Comm comm,
            Kokkos::View<int *, MemorySpace> indices,
            Kokkos::View<int *, MemorySpace> ranks)
@@ -113,7 +114,7 @@ public:
         space, *_distributor_back, mpi_rev_indices, _mpi_recv_indices);
   }
 
-  template <typename ValueType>
+  template <typename ExecutionSpace, typename ValueType>
   Kokkos::View<ValueType *, MemorySpace>
   distribute(ExecutionSpace const &space,
              Kokkos::View<ValueType *, MemorySpace> const &source)

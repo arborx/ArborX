@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
   Kokkos::deep_copy(space, target_points, target_points_host);
 
   // Create the transform from a point cloud to another
-  MLS<float, MVPolynomialBasis_3D, RBFWendland_0, ExecutionSpace, MemorySpace>
+  MLS<float, MVPolynomialBasis_3D, RBFWendland_0, MemorySpace>
       mls(space, mpi_comm, source_points, target_points);
 
   // Compute source values

@@ -28,10 +28,11 @@ struct TargetPoints
 };
 
 template <typename ValueType, typename PolynomialBasis, typename RBF,
-          typename ExecutionSpace, typename MemorySpace>
+          typename MemorySpace>
 class MLS
 {
 public:
+  template <typename ExecutionSpace>
   MLS(ExecutionSpace const &space, MPI_Comm comm,
       Kokkos::View<ArborX::Point *, MemorySpace> const &source_points,
       Kokkos::View<ArborX::Point *, MemorySpace> const &target_points,
@@ -70,16 +71,16 @@ public:
         });
 
     // Set up comms and local source points
-    _comms = MPIComms<ExecutionSpace, MemorySpace>(space, comm, local_indices,
-                                                   local_ranks);
+    _comms = MPIComms<MemorySpace>(space, comm, local_indices, local_ranks);
     auto local_source_points = _comms.distribute(space, source_points);
 
     // Compute the internal MLS
     _mlsc =
-        MLSComputation<ValueType, PolynomialBasis, RBF, ExecutionSpace,
+        MLSComputation<ValueType, PolynomialBasis, RBF,
                        MemorySpace>(space, local_source_points, target_points);
   }
 
+  template <typename ExecutionSpace>
   Kokkos::View<ValueType *, MemorySpace>
   apply(ExecutionSpace const &space,
         Kokkos::View<ValueType *, MemorySpace> const &source_values)
@@ -89,9 +90,9 @@ public:
   }
 
 private:
-  MLSComputation<ValueType, PolynomialBasis, RBF, ExecutionSpace, MemorySpace>
+  MLSComputation<ValueType, PolynomialBasis, RBF, MemorySpace>
       _mlsc;
-  MPIComms<ExecutionSpace, MemorySpace> _comms;
+  MPIComms<MemorySpace> _comms;
   std::size_t _num_neighbors;
   std::size_t _src_size;
   std::size_t _tgt_size;
