@@ -104,7 +104,9 @@ public:
   {
     _points = Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<2> *,
                            MemorySpace>(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), 2 * n);
+        Kokkos::view_alloc(execution_space, Kokkos::WithoutInitializing,
+                           "points"),
+        2 * n);
 
     Kokkos::parallel_for(
         Kokkos::MDRangePolicy<Kokkos::Rank<2>, ExecutionSpace>(
@@ -144,9 +146,13 @@ public:
   {
     _triangles = Kokkos::View<ArborX::ExperimentalHyperGeometry::Triangle<2> *,
                               MemorySpace>(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing, "triangles"), 2 * n);
+        Kokkos::view_alloc(execution_space, Kokkos::WithoutInitializing,
+                           "triangles"),
+        2 * n);
     _mappings = Kokkos::View<Mapping *, MemorySpace>(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing, "mappings"), 2 * n);
+        Kokkos::view_alloc(execution_space, Kokkos::WithoutInitializing,
+                           "mappings"),
+        2 * n);
 
     Kokkos::parallel_for(
         Kokkos::MDRangePolicy<Kokkos::Rank<2>, ExecutionSpace>(
