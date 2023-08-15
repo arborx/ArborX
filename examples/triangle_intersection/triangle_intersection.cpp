@@ -330,60 +330,57 @@ private:
 // Triangles class, we can continue with performing the actual search.
 int main()
 {
-  Kokkos::initialize();
-  {
-    using ExecutionSpace = Kokkos::DefaultExecutionSpace;
-    using MemorySpace = typename ExecutionSpace::memory_space;
-    ExecutionSpace execution_space;
+  Kokkos::ScopeGuard guard;
 
-    std::cout << "Create grid with triangles.\n";
-    Triangles<MemorySpace> triangles(execution_space);
-    std::cout << "Triangles set up.\n";
+  using ExecutionSpace = Kokkos::DefaultExecutionSpace;
+  using MemorySpace = typename ExecutionSpace::memory_space;
+  ExecutionSpace execution_space;
 
-    std::cout << "Creating BVH tree.\n";
-    ArborX::BasicBoundingVolumeHierarchy<
-        MemorySpace, ArborX::Details::PairIndexVolume<
-                         ArborX::ExperimentalHyperGeometry::Box<2>>> const
-        tree(execution_space, triangles);
-    std::cout << "BVH tree set up.\n";
+  std::cout << "Create grid with triangles.\n";
+  Triangles<MemorySpace> triangles(execution_space);
+  std::cout << "Triangles set up.\n";
 
-    std::cout << "Create the points used for queries.\n";
-    Points<MemorySpace> points(execution_space);
-    std::cout << "Points for queries set up.\n";
+  std::cout << "Creating BVH tree.\n";
+  ArborX::BasicBoundingVolumeHierarchy<
+      MemorySpace, ArborX::Details::PairIndexVolume<
+                       ArborX::ExperimentalHyperGeometry::Box<2>>> const
+      tree(execution_space, triangles);
+  std::cout << "BVH tree set up.\n";
 
-    std::cout << "Starting the queries.\n";
-    int const n = points.size();
-    Kokkos::View<int *, MemorySpace> offsets("offsets", n);
-    Kokkos::View<ArborX::Point *, MemorySpace> coefficients("coefficients", n);
+  std::cout << "Create the points used for queries.\n";
+  Points<MemorySpace> points(execution_space);
+  std::cout << "Points for queries set up.\n";
 
-    tree.query(execution_space, points,
-               TriangleIntersectionCallback<MemorySpace>{triangles, offsets,
-                                                         coefficients});
-    std::cout << "Queries done.\n";
+  std::cout << "Starting the queries.\n";
+  int const n = points.size();
+  Kokkos::View<int *, MemorySpace> offsets("offsets", n);
+  Kokkos::View<ArborX::Point *, MemorySpace> coefficients("coefficients", n);
+
+  tree.query(execution_space, points,
+             TriangleIntersectionCallback<MemorySpace>{triangles, offsets,
+                                                       coefficients});
+  std::cout << "Queries done.\n";
 
 #ifndef NDEBUG
-    std::cout << "Starting checking results.\n";
-    Kokkos::parallel_for(
-        Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
-        KOKKOS_LAMBDA(int i) {
-          constexpr float eps = 1.e-3;
+  std::cout << "Starting checking results.\n";
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
+      KOKKOS_LAMBDA(int i) {
+        constexpr float eps = 1.e-3;
 
-          if (offsets(i) != i)
-            Kokkos::abort("Offsets are wrong");
-          auto const &c = coefficients(i);
-          auto const &t = triangles(offsets(i));
-          auto const &p_h = points(i);
-          auto const p = ArborX::ExperimentalHyperGeometry::Point<2>{
-              c[0] * t.a[0] + c[1] * t.b[0] + c[2] * t.c[0],
-              c[0] * t.a[1] + c[1] * t.b[1] + c[2] * t.c[1]};
-          if ((Kokkos::abs(p[0] - p_h[0]) > eps) ||
-              Kokkos::abs(p[1] - p_h[1]) > eps)
-            Kokkos::abort("Coefficients are wrong");
-        });
-    std::cout << "Checking results successful.\n";
+        if (offsets(i) != i)
+          Kokkos::abort("Offsets are wrong");
+        auto const &c = coefficients(i);
+        auto const &t = triangles(offsets(i));
+        auto const &p_h = points(i);
+        auto const p = ArborX::ExperimentalHyperGeometry::Point<2>{
+            c[0] * t.a[0] + c[1] * t.b[0] + c[2] * t.c[0],
+            c[0] * t.a[1] + c[1] * t.b[1] + c[2] * t.c[1]};
+        if ((Kokkos::abs(p[0] - p_h[0]) > eps) ||
+            Kokkos::abs(p[1] - p_h[1]) > eps)
+          Kokkos::abort("Coefficients are wrong");
+      });
+  std::cout << "Checking results successful.\n";
 #endif
-    execution_space.fence();
-  }
-
-  Kokkos::finalize();
+  execution_space.fence();
 }
