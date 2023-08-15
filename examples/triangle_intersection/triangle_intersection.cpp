@@ -102,7 +102,7 @@ public:
   template <typename ExecutionSpace>
   void initialize(ExecutionSpace const &execution_space)
   {
-    points_ = Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<2> *,
+    _points = Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<2> *,
                            MemorySpace>(
         Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), 2 * n);
 
@@ -112,18 +112,18 @@ public:
         KOKKOS_CLASS_LAMBDA(int i, int j) {
           auto index = [](int i, int j) { return i + j * nx; };
 
-          points_[2 * index(i, j)] = {(i + .25f) * hx, (j + .25f) * hy};
-          points_[2 * index(i, j) + 1] = {(i + .75f) * hx, (j + .75f) * hy};
+          _points[2 * index(i, j)] = {(i + .25f) * hx, (j + .25f) * hy};
+          _points[2 * index(i, j) + 1] = {(i + .75f) * hx, (j + .75f) * hy};
         });
   }
 
-  KOKKOS_FUNCTION auto const &get_point(int i) const { return points_(i); }
+  KOKKOS_FUNCTION auto const &get_point(int i) const { return _points(i); }
 
-  KOKKOS_FUNCTION auto size() const { return points_.size(); }
+  KOKKOS_FUNCTION auto size() const { return _points.size(); }
 
 private:
   Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<2> *, MemorySpace>
-      points_;
+      _points;
 };
 
 template <typename MemorySpace>
@@ -142,10 +142,10 @@ public:
   template <typename ExecutionSpace>
   void initialize(ExecutionSpace const &execution_space)
   {
-    triangles_ = Kokkos::View<ArborX::ExperimentalHyperGeometry::Triangle<2> *,
+    _triangles = Kokkos::View<ArborX::ExperimentalHyperGeometry::Triangle<2> *,
                               MemorySpace>(
         Kokkos::view_alloc(Kokkos::WithoutInitializing, "triangles"), 2 * n);
-    mappings_ = Kokkos::View<Mapping *, MemorySpace>(
+    _mappings = Kokkos::View<Mapping *, MemorySpace>(
         Kokkos::view_alloc(Kokkos::WithoutInitializing, "mappings"), 2 * n);
 
     Kokkos::parallel_for(
@@ -160,11 +160,11 @@ public:
 
           auto index = [](int i, int j) { return i + j * nx; };
 
-          triangles_[2 * index(i, j)] = {tl, bl, br};
-          mappings_[2 * index(i, j)] = Mapping(triangles_[2 * index(i, j)]);
-          triangles_[2 * index(i, j) + 1] = {tl, br, tr};
-          mappings_[2 * index(i, j) + 1] =
-              Mapping(triangles_[2 * index(i, j) + 1]);
+          _triangles[2 * index(i, j)] = {tl, bl, br};
+          _mappings[2 * index(i, j)] = Mapping(_triangles[2 * index(i, j)]);
+          _triangles[2 * index(i, j) + 1] = {tl, br, tr};
+          _mappings[2 * index(i, j) + 1] =
+              Mapping(_triangles[2 * index(i, j) + 1]);
         });
 
 #ifndef NDEBUG
@@ -172,39 +172,39 @@ public:
         Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, 2 * n),
         KOKKOS_CLASS_LAMBDA(int k) {
           ArborX::ExperimentalHyperGeometry::Triangle<2> recover_triangle =
-              mappings_[k].get_triangle();
+              _mappings[k].get_triangle();
 
           constexpr float eps = 1.e-3;
 
           for (unsigned int i = 0; i < 2; ++i)
-            if (Kokkos::abs(triangles_[k].a[i] - recover_triangle.a[i]) > eps)
+            if (Kokkos::abs(_triangles[k].a[i] - recover_triangle.a[i]) > eps)
               Kokkos::abort(
                   "Mismatch for first point when recovering triangle");
 
           for (unsigned int i = 0; i < 2; ++i)
-            if (Kokkos::abs(triangles_[k].b[i] - recover_triangle.b[i]) > eps)
+            if (Kokkos::abs(_triangles[k].b[i] - recover_triangle.b[i]) > eps)
               Kokkos::abort(
                   "Mismatch for second point when recovering triangle");
 
           for (unsigned int i = 0; i < 2; ++i)
-            if (Kokkos::abs(triangles_[k].c[i] - recover_triangle.c[i]) > eps)
+            if (Kokkos::abs(_triangles[k].c[i] - recover_triangle.c[i]) > eps)
               Kokkos::abort(
                   "Mismatch for third point when recoverning triangle");
 
-          auto const &coeff_a = mappings_[k].get_coeff(triangles_[k].a);
+          auto const &coeff_a = _mappings[k].get_coeff(_triangles[k].a);
           if ((Kokkos::abs(coeff_a[0] - 1.) > eps) ||
               Kokkos::abs(coeff_a[1]) > eps || Kokkos::abs(coeff_a[2]) > eps)
             Kokkos::abort(
                 "Mismatch for coefficients of first point in triangle");
 
-          auto const &coeff_b = mappings_[k].get_coeff(triangles_[k].b);
+          auto const &coeff_b = _mappings[k].get_coeff(_triangles[k].b);
           if ((Kokkos::abs(coeff_b[0]) > eps) ||
               Kokkos::abs(coeff_b[1] - 1.) > eps ||
               Kokkos::abs(coeff_b[2]) > eps)
             Kokkos::abort(
                 "Mismatch for coefficients of first point in triangle");
 
-          auto const &coeff_c = mappings_[k].get_coeff(triangles_[k].c);
+          auto const &coeff_c = _mappings[k].get_coeff(_triangles[k].c);
           if ((Kokkos::abs(coeff_c[0]) > eps) ||
               Kokkos::abs(coeff_c[1]) > eps ||
               Kokkos::abs(coeff_c[2] - 1.) > eps)
@@ -214,23 +214,23 @@ public:
 #endif
   }
 
-  KOKKOS_FUNCTION int size() const { return triangles_.size(); }
+  KOKKOS_FUNCTION int size() const { return _triangles.size(); }
 
   KOKKOS_FUNCTION ArborX::ExperimentalHyperGeometry::Triangle<2> const &
   get_triangle(int i) const
   {
-    return triangles_(i);
+    return _triangles(i);
   }
 
   KOKKOS_FUNCTION Mapping const &get_mapping(int i) const
   {
-    return mappings_(i);
+    return _mappings(i);
   }
 
 private:
   Kokkos::View<ArborX::ExperimentalHyperGeometry::Triangle<2> *, MemorySpace>
-      triangles_;
-  Kokkos::View<Mapping *, MemorySpace> mappings_;
+      _triangles;
+  Kokkos::View<Mapping *, MemorySpace> _mappings;
 };
 
 // For creating the bounding volume hierarchy given a Triangles object, we
@@ -281,9 +281,9 @@ public:
       Triangles<MemorySpace> triangles,
       Kokkos::View<int *, MemorySpace> offsets,
       Kokkos::View<ArborX::Point *, MemorySpace> coefficients)
-      : triangles_(triangles)
-      , offsets_(offsets)
-      , coefficients_(coefficients)
+      : _triangles(triangles)
+      , _offsets(offsets)
+      , _coefficients(coefficients)
   {}
 
   // The search tree consists entirely of boxes, although the primitives are
@@ -302,22 +302,22 @@ public:
     auto query_index = ArborX::getData(query);
 
     auto const coeffs =
-        triangles_.get_mapping(primitive.index).get_coeff(point);
+        _triangles.get_mapping(primitive.index).get_coeff(point);
     bool intersects = coeffs[0] >= 0 && coeffs[1] >= 0 && coeffs[2] >= 0;
 
     if (intersects)
     {
-      offsets_(query_index) = primitive.index;
-      coefficients_(query_index) = coeffs;
+      _offsets(query_index) = primitive.index;
+      _coefficients(query_index) = coeffs;
       return ArborX::CallbackTreeTraversalControl::early_exit;
     }
     return ArborX::CallbackTreeTraversalControl::normal_continuation;
   }
 
 private:
-  Triangles<MemorySpace> triangles_;
-  Kokkos::View<int *, MemorySpace> offsets_;
-  Kokkos::View<ArborX::Point *, MemorySpace> coefficients_;
+  Triangles<MemorySpace> _triangles;
+  Kokkos::View<int *, MemorySpace> _offsets;
+  Kokkos::View<ArborX::Point *, MemorySpace> _coefficients;
 };
 
 // Now that we have encapsulated the objects and queries to be used within the
