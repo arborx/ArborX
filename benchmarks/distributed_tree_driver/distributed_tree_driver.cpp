@@ -460,13 +460,15 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
       r = static_cast<double>(n_neighbors) - 1.;
       break;
     case 2:
-      // Derivation (first term): n_values*(M_PI*r^2)/(2a)^2 = n_neighbors
-      r = std::sqrt(static_cast<double>(n_neighbors) * 4. / M_PI) -
+      // Derivation (first term): n_values*(pi*r^2)/(2a)^2 = n_neighbors
+      r = std::sqrt(static_cast<double>(n_neighbors) * 4. /
+                    Kokkos::numbers::pi_v<double>) -
           (1. + std::sqrt(2.)) / 2;
       break;
     case 3:
-      // Derivation (first term): n_values*(4/3*M_PI*r^3)/(2a)^3 = n_neighbors
-      r = std::cbrt(static_cast<double>(n_neighbors) * 6. / M_PI) -
+      // Derivation (first term): n_values*(4/3*pi*r^3)/(2a)^3 = n_neighbors
+      r = std::cbrt(static_cast<double>(n_neighbors) * 6. /
+                    Kokkos::numbers::pi_v<double>) -
           (1. + std::cbrt(3.)) / 2;
       break;
     }

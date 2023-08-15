@@ -1,0 +1,47 @@
+name: github-windows
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${ {github.event_name }}-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{github.event_name == 'pull_request'}}
+
+jobs:
+  windows-threads:
+    name: Windows Threads
+    runs-on: windows-2022
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies via vcpkg
+      uses: johnwason/vcpkg-action@v5
+      id: vcpkg
+      with:
+        pkgs: boost-test boost-program-options boost-geometry benchmark
+        triplet: x64-windows-release
+        token: ${{ github.token }}
+    - uses: actions/checkout@v3
+      with:
+        repository: kokkos/kokkos
+        ref: 4.0.00
+        path: ${GITHUB_WORKSPACE}/../kokkos
+    - name: Install Kokkos
+      shell: bash
+      working-directory: ${GITHUB_WORKSPACE}/../kokkos
+      run: |
+        mkdir build
+        cd build
+        cmake -D CMAKE_INSTALL_PREFIX=C:\kokkos-install \
+              -D Kokkos_ENABLE_THREADS=ON \
+              ..
+        cmake --build . --target install -- -m
+    - name: Configure ArborX
+      run: |
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="/EHsc /bigobj" -DKokkos_ROOT="C:\kokkos-install" ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} -DARBORX_ENABLE_MPI=OFF -DARBORX_ENABLE_TESTS=ON -DARBORX_ENABLE_EXAMPLES=ON -DARBORX_ENABLE_BENCHMARKS=ON ..
+    - name: Build ArborX
+      shell: bash
+      run: |
+        cmake --build build --target install -- -m
+        cd build

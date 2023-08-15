@@ -172,7 +172,6 @@ BOOST_AUTO_TEST_CASE(intersects_box)
   {                                                                            \
     float t0;                                                                  \
     float t1;                                                                  \
-    constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;  \
     BOOST_TEST(!ArborX::Experimental::intersection(ray, box, t0, t1));         \
     BOOST_TEST((t0 == inf || t1 == -inf));                                     \
   } while (false)
@@ -181,6 +180,12 @@ BOOST_AUTO_TEST_CASE(ray_box_intersection, *boost::unit_test::tolerance(1e-6f))
 {
   using ArborX::Box;
   using ArborX::Experimental::Ray;
+
+#ifdef _MSC_VER
+  auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+#else
+  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+#endif
 
   constexpr Box unit_box{{0, 0, 0}, {1, 1, 1}};
 
@@ -250,9 +255,15 @@ BOOST_AUTO_TEST_CASE(ray_box_distance)
 {
   using ArborX::Box;
   using ArborX::Experimental::Ray;
-
+  // use const instead of constexpr because MSVC shows error(error:expression
+  // must have a constant value)
   constexpr Box unit_box{{0, 0, 0}, {1, 1, 1}};
+
+#ifdef _MSC_VER
+  auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+#else
   constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+#endif
 
   // clang-format off
   // origin is within the box
@@ -347,7 +358,6 @@ BOOST_AUTO_TEST_CASE(overlap_distance_sphere,
   {                                                                            \
     float t0;                                                                  \
     float t1;                                                                  \
-    constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;  \
     BOOST_TEST(!ArborX::Experimental::intersection(ray, sphere, t0, t1));      \
     BOOST_TEST((t0 == inf && t1 == -inf));                                     \
   } while (false)
@@ -359,9 +369,14 @@ BOOST_AUTO_TEST_CASE(ray_sphere_intersection,
   using ArborX::Experimental::Ray;
 
   constexpr Sphere unit_sphere{{0, 0, 0}, 1};
-
   auto const sqrtf_3 = std::sqrt(3.f);
   auto const sqrtf_2 = std::sqrt(2.f);
+
+#ifdef _MSC_VER
+  auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+#else
+  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+#endif
 
   // clang-format off
   // hit center of the sphere
@@ -471,7 +486,6 @@ BOOST_AUTO_TEST_CASE(intersects_triangle)
   {                                                                            \
     float t0;                                                                  \
     float t1;                                                                  \
-    constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;  \
     BOOST_TEST(!ArborX::Experimental::intersection(ray, triangle, t0, t1));    \
     BOOST_TEST((t0 == inf && t1 == -inf));                                     \
   } while (false)
@@ -482,6 +496,12 @@ BOOST_AUTO_TEST_CASE(ray_triangle_intersection,
   using ArborX::Experimental::Ray;
   using ArborX::ExperimentalHyperGeometry::Point;
   using ArborX::ExperimentalHyperGeometry::Triangle;
+
+#ifdef _MSC_VER
+  auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+#else
+  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+#endif
 
   constexpr Triangle unit_triangle{Point{0, 0, 0}, Point{1, 0, 0},
                                    Point{0, 1, 0}};
