@@ -16,7 +16,6 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsDistributor.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
-#include <ArborX_DetailsKokkosExtClassLambda.hpp> // ARBORX_CLASS_LAMBDA
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
@@ -457,7 +456,7 @@ struct CallbackWithDistance
           "ArborX::DistributedTree::query::nearest::"
           "compute_reverse_permutation",
           Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-          ARBORX_CLASS_LAMBDA(int const i) {
+          KOKKOS_CLASS_LAMBDA(int const i) {
             _rev_permute(HappyTreeFriends::getValue(_tree, i).index) = i;
           });
     }

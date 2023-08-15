@@ -12,8 +12,7 @@
 #include "ArborXTest_Cloud.hpp"
 #include "ArborXTest_StdVectorToKokkosView.hpp"
 #include "ArborX_BoostRTreeHelpers.hpp"
-#include "ArborX_EnableDeviceTypes.hpp"           // ARBORX_DEVICE_TYPES
-#include <ArborX_DetailsKokkosExtClassLambda.hpp> // ARBORX_CLASS_LAMBDA
+#include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <ArborX_DistributedTree.hpp>
 
 #include <boost/test/unit_test.hpp>
@@ -592,7 +591,7 @@ struct CustomPostCallbackWithAttachment
     auto const n = offset.extent(0) - 1;
     Kokkos::realloc(out, in.extent(0));
     Kokkos::parallel_for(
-        Kokkos::RangePolicy<ExecutionSpace>(0, n), ARBORX_CLASS_LAMBDA(int i) {
+        Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_CLASS_LAMBDA(int i) {
           auto data = ArborX::getData(queries(i));
           for (int j = offset(i); j < offset(i + 1); ++j)
           {

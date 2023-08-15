@@ -938,7 +938,7 @@ private:
       Kokkos::parallel_for(
           "ArborX::MST::assign_dendrogram_parent_heights",
           Kokkos::RangePolicy<ExecutionSpace>(space, 0, n - 1),
-          ARBORX_CLASS_LAMBDA(int const e) {
+          KOKKOS_CLASS_LAMBDA(int const e) {
             dendrogram_parent_heights(e) = edges(e).weight;
           });
     }
