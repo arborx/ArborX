@@ -57,7 +57,6 @@ int main(int argc, char *argv[])
   MPI_Init(&argc, &argv);
   Kokkos::ScopeGuard guard(argc, argv);
 
-  constexpr std::size_t num_neighbors = MVPolynomialBasis_3D::size;
   constexpr std::size_t cube_side = 20;
   constexpr std::size_t source_points_num = cube_side * cube_side * cube_side;
   constexpr std::size_t target_points_num = 4;
@@ -101,7 +100,7 @@ int main(int argc, char *argv[])
 
   // Create the transform from a point cloud to another
   MLS<float, MVPolynomialBasis_3D, RBFWendland_0, ExecutionSpace, MemorySpace>
-      mls(space, mpi_comm, num_neighbors, source_points, target_points);
+      mls(space, mpi_comm, source_points, target_points);
 
   // Compute source values
   Kokkos::View<float *, MemorySpace> source_values("Example::source_values",

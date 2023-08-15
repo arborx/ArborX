@@ -32,9 +32,10 @@ template <typename ValueType, typename PolynomialBasis, typename RBF,
 class MLS
 {
 public:
-  MLS(ExecutionSpace const &space, MPI_Comm comm, std::size_t num_neighbors,
+  MLS(ExecutionSpace const &space, MPI_Comm comm,
       Kokkos::View<ArborX::Point *, MemorySpace> const &source_points,
-      Kokkos::View<ArborX::Point *, MemorySpace> const &target_points)
+      Kokkos::View<ArborX::Point *, MemorySpace> const &target_points,
+      std::size_t num_neighbors = PolynomialBasis::size)
       : _num_neighbors(num_neighbors)
       , _src_size(source_points.extent(0))
       , _tgt_size(target_points.extent(0))

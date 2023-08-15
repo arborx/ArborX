@@ -38,18 +38,18 @@ public:
     assert(source_points.extent(0) == _num_targets * _num_neighbors);
 
     auto source_ref_target =
-        translate_to_target(space, source_points, target_points);
+        translateToTarget(space, source_points, target_points);
 
-    auto radii = compute_radii(space, source_ref_target);
-    auto phi = compute_weight(space, source_ref_target, radii);
-    auto p = compute_vandermonde(space, source_ref_target);
+    auto radii = computeRadii(space, source_ref_target);
+    auto phi = computeWeight(space, source_ref_target, radii);
+    auto p = computeVandermonde(space, source_ref_target);
 
-    auto a = compute_moment(space, phi, p);
+    auto a = computeMoment(space, phi, p);
     auto a_inv =
         SymmPseudoInverseSVD<ValueType, ExecutionSpace,
-                             MemorySpace>::compute_pseudo_inverses(space, a);
+                             MemorySpace>::computePseudoInverses(space, a);
 
-    compute_coefficients(space, phi, p, a_inv);
+    computeCoefficients(space, phi, p, a_inv);
   }
 
   Kokkos::View<ValueType *>
@@ -76,7 +76,7 @@ public:
   }
 
 private:
-  Kokkos::View<ArborX::Point **, MemorySpace> translate_to_target(
+  Kokkos::View<ArborX::Point **, MemorySpace> translateToTarget(
       ExecutionSpace const &space,
       Kokkos::View<ArborX::Point *, MemorySpace> const &source_points,
       Kokkos::View<ArborX::Point *, MemorySpace> const &target_points)
@@ -104,7 +104,7 @@ private:
     return source_ref_target;
   }
 
-  Kokkos::View<ValueType *, MemorySpace> compute_radii(
+  Kokkos::View<ValueType *, MemorySpace> computeRadii(
       ExecutionSpace const &space,
       Kokkos::View<ArborX::Point **, MemorySpace> const &source_ref_target)
   {
@@ -128,7 +128,7 @@ private:
     return radii;
   }
 
-  Kokkos::View<ValueType **, MemorySpace> compute_weight(
+  Kokkos::View<ValueType **, MemorySpace> computeWeight(
       ExecutionSpace const &space,
       Kokkos::View<ArborX::Point **, MemorySpace> const &source_ref_target,
       Kokkos::View<ValueType *, MemorySpace> const &radii)
@@ -149,7 +149,7 @@ private:
     return phi;
   }
 
-  Kokkos::View<ValueType ***, MemorySpace> compute_vandermonde(
+  Kokkos::View<ValueType ***, MemorySpace> computeVandermonde(
       ExecutionSpace const &space,
       Kokkos::View<ArborX::Point **, MemorySpace> const &source_ref_target)
   {
@@ -175,9 +175,9 @@ private:
   }
 
   Kokkos::View<ValueType ***, MemorySpace>
-  compute_moment(ExecutionSpace const &space,
-                 Kokkos::View<ValueType **, MemorySpace> const &phi,
-                 Kokkos::View<ValueType ***, MemorySpace> const &p)
+  computeMoment(ExecutionSpace const &space,
+                Kokkos::View<ValueType **, MemorySpace> const &phi,
+                Kokkos::View<ValueType ***, MemorySpace> const &p)
   {
     Kokkos::View<ValueType ***, MemorySpace> a(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
@@ -201,10 +201,10 @@ private:
   }
 
   void
-  compute_coefficients(ExecutionSpace const &space,
-                       Kokkos::View<ValueType **, MemorySpace> const &phi,
-                       Kokkos::View<ValueType ***, MemorySpace> const &p,
-                       Kokkos::View<ValueType ***, MemorySpace> const &a_inv)
+  computeCoefficients(ExecutionSpace const &space,
+                      Kokkos::View<ValueType **, MemorySpace> const &phi,
+                      Kokkos::View<ValueType ***, MemorySpace> const &p,
+                      Kokkos::View<ValueType ***, MemorySpace> const &a_inv)
   {
     _coeffs = Kokkos::View<ValueType **, MemorySpace>(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,

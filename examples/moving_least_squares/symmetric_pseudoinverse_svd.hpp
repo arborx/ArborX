@@ -27,8 +27,8 @@ class SymmPseudoInverseSVD
 {
 public:
   static Kokkos::View<ValueType ***, MemorySpace>
-  compute_pseudo_inverses(ExecutionSpace const &space,
-                          Kokkos::View<ValueType ***, MemorySpace> const &mats)
+  computePseudoInverses(ExecutionSpace const &space,
+                        Kokkos::View<ValueType ***, MemorySpace> const &mats)
   {
     SymmPseudoInverseSVD spis(space, mats);
 
@@ -41,11 +41,11 @@ public:
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, spis._num_matrices),
         KOKKOS_LAMBDA(int const i) {
           int p, q;
-          ValueType norm = spis.argmax_off_diagonal(i, p, q);
+          ValueType norm = spis.argmaxOffDiagonal(i, p, q);
           while (norm > spis._epsilon)
           {
-            spis.compute_u_es_single(i, p, q);
-            norm = spis.argmax_off_diagonal(i, p, q);
+            spis.computeUESSingle(i, p, q);
+            norm = spis.argmaxOffDiagonal(i, p, q);
           }
         });
 
@@ -56,7 +56,7 @@ public:
         Kokkos::MDRangePolicy<Kokkos::Rank<3>>(
             space, {0, 0, 0}, {spis._num_matrices, spis._size, spis._size}),
         KOKKOS_LAMBDA(int const i, int const j, int const k) {
-          spis.fill_inv(i, j, k);
+          spis.fillInv(i, j, k);
         });
 
     return spis._inv;
@@ -65,7 +65,7 @@ public:
 private:
   // U and E.S are computed, we can now build the inverse
   // U . [ E^-1.S ] . U^T
-  KOKKOS_FUNCTION void fill_inv(int const i, int const j, int const k) const
+  KOKKOS_FUNCTION void fillInv(int const i, int const j, int const k) const
   {
     ValueType value = _zero;
     for (int l = 0; l < _size; l++)
@@ -82,8 +82,8 @@ private:
 
   // We found the biggest value in our off-diagonal. We will remove it by
   // computing a "local" svd and update U and E.S
-  KOKKOS_FUNCTION void compute_u_es_single(int const i, int const p,
-                                           int const q) const
+  KOKKOS_FUNCTION void computeUESSingle(int const i, int const p,
+                                        int const q) const
   {
     ValueType a = _es(i, p, p);
     ValueType b = _es(i, p, q);
@@ -162,8 +162,7 @@ private:
   // This finds the biggest off-diagonal value of E.S as well as its
   // coordinates. Being symmetric, we can always check on the upper
   // triangle (and always have q > p)
-  KOKKOS_FUNCTION ValueType argmax_off_diagonal(int const i, int &p,
-                                                int &q) const
+  KOKKOS_FUNCTION ValueType argmaxOffDiagonal(int const i, int &p, int &q) const
   {
     ValueType max = _zero;
     p = q = 0;
