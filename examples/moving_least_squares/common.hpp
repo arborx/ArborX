@@ -18,7 +18,9 @@
 namespace Details
 {
 template <typename T>
-using inner_value_t = std::decay_t<std::invoke_result_t<
-    decltype(ArborX::AccessTraits<T, ArborX::PrimitivesTag>::get), T const &,
-    int>>;
+using access = ArborX::AccessTraits<T, ArborX::PrimitivesTag>;
+
+template <typename T>
+using inner_value_t = std::decay_t<
+    std::invoke_result_t<decltype(access<T>::get), T const &, int>>;
 } // namespace Details

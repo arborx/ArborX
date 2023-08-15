@@ -120,7 +120,6 @@ public:
   distributeArborX(ExecutionSpace const &space, Values const &source)
   {
     using value_t = Details::inner_value_t<Values>;
-    using access = ArborX::AccessTraits<Values, ArborX::PrimitivesTag>;
     assert(_distributor_back.has_value());
 
     // We know what each process want so we prepare the data to be sent
@@ -132,7 +131,8 @@ public:
         "Example::MPI::data_to_send_fill",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, _num_requests),
         KOKKOS_CLASS_LAMBDA(int const i) {
-          data_to_send(i) = access::get(source, _mpi_send_indices(i));
+          data_to_send(i) =
+              Details::access<Values>::get(source, _mpi_send_indices(i));
         });
 
     return distribute(space, data_to_send);

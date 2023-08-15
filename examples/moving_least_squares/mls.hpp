@@ -17,33 +17,31 @@
 
 #include <cassert>
 
+#include "common.hpp"
 #include "mls_computation.hpp"
 #include "mpi_comms.hpp"
 
-template <typename MemorySpace, typename Points>
+template <typename Points>
 struct TargetPoints
 {
   Points target_points;
   std::size_t num_neighbors;
 };
 
-template <typename MemorySpace, typename Points>
-struct ArborX::AccessTraits<TargetPoints<MemorySpace, Points>,
-                            ArborX::PredicatesTag>
+template <typename Points>
+struct ArborX::AccessTraits<TargetPoints<Points>, ArborX::PredicatesTag>
 {
-  static KOKKOS_FUNCTION std::size_t
-  size(TargetPoints<MemorySpace, Points> const &tp)
+  static KOKKOS_FUNCTION std::size_t size(TargetPoints<Points> const &tp)
   {
     return tp.target_points.extent(0);
   }
 
-  static KOKKOS_FUNCTION auto get(TargetPoints<MemorySpace, Points> const &tp,
-                                  std::size_t i)
+  static KOKKOS_FUNCTION auto get(TargetPoints<Points> const &tp, std::size_t i)
   {
     return ArborX::nearest(tp.target_points(i), tp.num_neighbors);
   }
 
-  using memory_space = MemorySpace;
+  using memory_space = typename ::Details::access<Points>::memory_space;
 };
 
 template <typename ValueType, typename PolynomialBasis, typename RBF,
@@ -56,12 +54,9 @@ public:
       Points const &target_points,
       std::size_t num_neighbors = PolynomialBasis::size)
       : _num_neighbors(num_neighbors)
-      , _src_size(ArborX::AccessTraits<Points, ArborX::PrimitivesTag>::size(
-            source_points))
-      , _tgt_size(ArborX::AccessTraits<Points, ArborX::PrimitivesTag>::size(
-            target_points))
+      , _src_size(Details::access<Points>::size(source_points))
+      , _tgt_size(Details::access<Points>::size(target_points))
   {
-    // There must be enough source points
     assert(_src_size >= _num_neighbors);
 
     // Organize source points as tree
@@ -72,9 +67,9 @@ public:
     Kokkos::View<Kokkos::pair<int, int> *, MemorySpace> index_ranks(
         "Example::MLS::index_ranks", 0);
     Kokkos::View<int *, MemorySpace> offsets("Example::MLS::offsets", 0);
-    source_tree.query(
-        space, TargetPoints<MemorySpace, Points>{target_points, _num_neighbors},
-        index_ranks, offsets);
+    source_tree.query(space,
+                      TargetPoints<Points>{target_points, _num_neighbors},
+                      index_ranks, offsets);
 
     // Split indices/ranks
     Kokkos::View<int *, MemorySpace> local_indices(

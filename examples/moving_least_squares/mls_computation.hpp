@@ -32,12 +32,9 @@ public:
                  Kokkos::View<Details::inner_value_t<Points> *,
                               MemorySpace> const &source_points,
                  Points const &target_points)
-      : _num_neighbors(
-            source_points.extent(0) /
-            ArborX::AccessTraits<Points, ArborX::PrimitivesTag>::size(
-                target_points))
-      , _num_targets(ArborX::AccessTraits<Points, ArborX::PrimitivesTag>::size(
-            target_points))
+      : _num_neighbors(source_points.extent(0) /
+                       Details::access<Points>::size(target_points))
+      , _num_targets(Details::access<Points>::size(target_points))
   {
     // There must be a list of num_neighbors source points for each
     // target point
@@ -91,7 +88,6 @@ private:
                     Points const &target_points)
   {
     using point_t = Details::inner_value_t<Points>;
-    using access = ArborX::AccessTraits<Points, ArborX::PrimitivesTag>;
 
     // We center each group around the target as it ables you to
     // optimize the final computation
@@ -105,7 +101,7 @@ private:
                                                {_num_targets, _num_neighbors}),
         KOKKOS_LAMBDA(int const i, int const j) {
           point_t src = source_points(i * _num_neighbors + j);
-          point_t tgt = access::get(target_points, i);
+          point_t tgt = Details::access<Points>::get(target_points, i);
           source_ref_target(i, j) = ArborX::Point{
               src[0] - tgt[0],
               src[1] - tgt[1],
