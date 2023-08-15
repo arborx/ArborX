@@ -38,7 +38,6 @@ public:
       : _num_neighbors(num_neighbors)
       , _src_size(source_points.extent(0))
       , _tgt_size(target_points.extent(0))
-      , _comms(comm)
   {
     // There must be enough source points
     assert(_src_size >= _num_neighbors);
@@ -81,11 +80,11 @@ public:
   }
 
   Kokkos::View<ValueType *, MemorySpace>
-  evaluate(ExecutionSpace const &space,
-           Kokkos::View<ValueType *, MemorySpace> const &source_values)
+  apply(ExecutionSpace const &space,
+        Kokkos::View<ValueType *, MemorySpace> const &source_values)
   {
     assert(source_values.extent(0) == _src_size);
-    return _mlsc.evaluate(space, _comms.distribute(space, source_values));
+    return _mlsc.apply(space, _comms.distribute(space, source_values));
   }
 
 private:

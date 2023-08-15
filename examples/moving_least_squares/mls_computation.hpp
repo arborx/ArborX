@@ -53,8 +53,8 @@ public:
   }
 
   Kokkos::View<ValueType *>
-  evaluate(ExecutionSpace const &space,
-           Kokkos::View<ValueType *, MemorySpace> const &source_values)
+  apply(ExecutionSpace const &space,
+        Kokkos::View<ValueType *, MemorySpace> const &source_values)
   {
     assert(source_values.extent(0) == _num_targets * _num_neighbors);
 
@@ -143,7 +143,7 @@ private:
         KOKKOS_LAMBDA(int const i, int const j) {
           ValueType norm =
               ArborX::Details::distance(source_ref_target(i, j), _origin);
-          phi(i, j) = RBF::evaluate(norm / radii(i));
+          phi(i, j) = RBF::apply(norm / radii(i));
         });
 
     return phi;

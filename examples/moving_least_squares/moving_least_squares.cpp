@@ -25,11 +25,10 @@
 
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
 using MemorySpace = ExecutionSpace::memory_space;
-using DeviceSpace = Kokkos::Device<ExecutionSpace, MemorySpace>;
 
 struct RBFWendland_0
 {
-  KOKKOS_INLINE_FUNCTION static float evaluate(float x)
+  KOKKOS_INLINE_FUNCTION static float apply(float x)
   {
     return (1.f - x) * (1.f - x);
   }
@@ -115,7 +114,7 @@ int main(int argc, char *argv[])
       });
 
   // Compute target values from source ones
-  auto target_values = mls.evaluate(space, source_values);
+  auto target_values = mls.apply(space, source_values);
 
   // Compute target values via evaluation
   Kokkos::View<float *, MemorySpace> target_values_exact(
