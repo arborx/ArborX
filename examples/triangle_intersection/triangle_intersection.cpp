@@ -119,7 +119,7 @@ public:
         });
   }
 
-  KOKKOS_FUNCTION auto const &get_point(int i) const { return _points(i); }
+  KOKKOS_FUNCTION auto operator()(int i) const { return _points(i); }
 
   KOKKOS_FUNCTION auto size() const { return _points.size(); }
 
@@ -223,7 +223,7 @@ public:
   KOKKOS_FUNCTION int size() const { return _triangles.size(); }
 
   KOKKOS_FUNCTION ArborX::ExperimentalHyperGeometry::Triangle<2> const &
-  get_triangle(int i) const
+  operator()(int i) const
   {
     return _triangles(i);
   }
@@ -256,7 +256,7 @@ struct ArborX::AccessTraits<Triangles<MemorySpace>, ArborX::PrimitivesTag>
   static KOKKOS_FUNCTION auto get(Triangles<MemorySpace> const &triangles,
                                   int i)
   {
-    auto const &triangle = triangles.get_triangle(i);
+    auto const &triangle = triangles(i);
     ArborX::ExperimentalHyperGeometry::Box<2> box{};
     box += triangle.a;
     box += triangle.b;
@@ -275,7 +275,7 @@ struct ArborX::AccessTraits<Points<MemorySpace>, ArborX::PredicatesTag>
   }
   static KOKKOS_FUNCTION auto get(Points<MemorySpace> const &points, int i)
   {
-    return ArborX::attach(ArborX::intersects(points.get_point(i)), i);
+    return ArborX::attach(ArborX::intersects(points(i)), i);
   }
 };
 
@@ -371,8 +371,8 @@ int main()
           if (offsets(i) != i)
             Kokkos::abort("Offsets are wrong");
           auto const &c = coefficients(i);
-          auto const &t = triangles.get_triangle(offsets(i));
-          auto const &p_h = points.get_point(i);
+          auto const &t = triangles(offsets(i));
+          auto const &p_h = points(i);
           auto const p = ArborX::ExperimentalHyperGeometry::Point<2>{
               c[0] * t.a[0] + c[1] * t.b[0] + c[2] * t.c[0],
               c[0] * t.a[1] + c[1] * t.b[1] + c[2] * t.c[1]};
