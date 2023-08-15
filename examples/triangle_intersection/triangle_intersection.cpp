@@ -89,24 +89,25 @@ struct Mapping
 };
 
 // Store the points that represent the queries.
-template <typename DeviceType>
+template <typename MemorySpace>
 class Points
 {
 public:
-  Points(typename DeviceType::execution_space const &execution_space)
+  template <typename ExecutionSpace>
+  Points(ExecutionSpace const &execution_space)
   {
     initialize(execution_space);
   }
 
-  void initialize(typename DeviceType::execution_space const &execution_space)
+  template <typename ExecutionSpace>
+  void initialize(ExecutionSpace const &execution_space)
   {
     points_ = Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<2> *,
-                           typename DeviceType::memory_space>(
+                           MemorySpace>(
         Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), 2 * n);
 
     Kokkos::parallel_for(
-        Kokkos::MDRangePolicy<Kokkos::Rank<2>,
-                              typename DeviceType::execution_space>(
+        Kokkos::MDRangePolicy<Kokkos::Rank<2>, ExecutionSpace>(
             execution_space, {0, 0}, {nx, ny}),
         KOKKOS_CLASS_LAMBDA(int i, int j) {
           auto index = [](int i, int j) { return i + j * nx; };
@@ -121,16 +122,16 @@ public:
   KOKKOS_FUNCTION auto size() const { return points_.size(); }
 
 private:
-  Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<2> *,
-               typename DeviceType::memory_space>
+  Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<2> *, MemorySpace>
       points_;
 };
 
-template <typename DeviceType>
+template <typename MemorySpace>
 class Triangles
 {
 public:
-  Triangles(typename DeviceType::execution_space const &execution_space)
+  template <typename ExecutionSpace>
+  Triangles(ExecutionSpace const &execution_space)
   {
     initialize(execution_space);
   }
@@ -138,19 +139,17 @@ public:
   // Create non-intersecting triangles on a 2D cartesian grid
   // used for the primitives in the tree construction, and compute and store the
   // mappings used in the queries.
-  void initialize(typename DeviceType::execution_space const &execution_space)
+  template <typename ExecutionSpace>
+  void initialize(ExecutionSpace const &execution_space)
   {
-    using ExecutionSpaceType = typename DeviceType::execution_space;
-    using MemorySpaceType = typename DeviceType::memory_space;
-
     triangles_ = Kokkos::View<ArborX::ExperimentalHyperGeometry::Triangle<2> *,
-                              MemorySpaceType>(
+                              MemorySpace>(
         Kokkos::view_alloc(Kokkos::WithoutInitializing, "triangles"), 2 * n);
-    mappings_ = Kokkos::View<Mapping *, MemorySpaceType>(
+    mappings_ = Kokkos::View<Mapping *, MemorySpace>(
         Kokkos::view_alloc(Kokkos::WithoutInitializing, "mappings"), 2 * n);
 
     Kokkos::parallel_for(
-        Kokkos::MDRangePolicy<Kokkos::Rank<2>, ExecutionSpaceType>(
+        Kokkos::MDRangePolicy<Kokkos::Rank<2>, ExecutionSpace>(
             execution_space, {0, 0}, {nx, ny}),
         KOKKOS_CLASS_LAMBDA(int i, int j) {
           ArborX::ExperimentalHyperGeometry::Point<2> bl{i * hx, j * hy};
@@ -170,7 +169,7 @@ public:
 
 #ifndef NDEBUG
     Kokkos::parallel_for(
-        Kokkos::RangePolicy<ExecutionSpaceType>(execution_space, 0, 2 * n),
+        Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, 2 * n),
         KOKKOS_CLASS_LAMBDA(int k) {
           ArborX::ExperimentalHyperGeometry::Triangle<2> recover_triangle =
               mappings_[k].get_triangle();
@@ -229,27 +228,27 @@ public:
   }
 
 private:
-  Kokkos::View<ArborX::ExperimentalHyperGeometry::Triangle<2> *,
-               typename DeviceType::memory_space>
+  Kokkos::View<ArborX::ExperimentalHyperGeometry::Triangle<2> *, MemorySpace>
       triangles_;
-  Kokkos::View<Mapping *, typename DeviceType::memory_space> mappings_;
+  Kokkos::View<Mapping *, MemorySpace> mappings_;
 };
 
 // For creating the bounding volume hierarchy given a Triangles object, we
 // need to define the memory space, how to get the total number of objects,
 // and how to access a specific box. Since there are corresponding functions in
 // the Triangles class, we just resort to them.
-template <typename DeviceType>
-struct ArborX::AccessTraits<Triangles<DeviceType>, ArborX::PrimitivesTag>
+template <typename MemorySpace>
+struct ArborX::AccessTraits<Triangles<MemorySpace>, ArborX::PrimitivesTag>
 {
-  using memory_space = typename DeviceType::memory_space;
+  using memory_space = MemorySpace;
 
-  static KOKKOS_FUNCTION int size(Triangles<DeviceType> const &triangles)
+  static KOKKOS_FUNCTION int size(Triangles<MemorySpace> const &triangles)
   {
     return triangles.size();
   }
 
-  static KOKKOS_FUNCTION auto get(Triangles<DeviceType> const &triangles, int i)
+  static KOKKOS_FUNCTION auto get(Triangles<MemorySpace> const &triangles,
+                                  int i)
   {
     auto const &triangle = triangles.get_triangle(i);
     ArborX::ExperimentalHyperGeometry::Box<2> box{};
@@ -260,27 +259,28 @@ struct ArborX::AccessTraits<Triangles<DeviceType>, ArborX::PrimitivesTag>
   }
 };
 
-template <typename DeviceType>
-struct ArborX::AccessTraits<Points<DeviceType>, ArborX::PredicatesTag>
+template <typename MemorySpace>
+struct ArborX::AccessTraits<Points<MemorySpace>, ArborX::PredicatesTag>
 {
-  using memory_space = typename DeviceType::memory_space;
-  static KOKKOS_FUNCTION int size(Points<DeviceType> const &points)
+  using memory_space = MemorySpace;
+  static KOKKOS_FUNCTION int size(Points<MemorySpace> const &points)
   {
     return points.size();
   }
-  static KOKKOS_FUNCTION auto get(Points<DeviceType> const &points, int i)
+  static KOKKOS_FUNCTION auto get(Points<MemorySpace> const &points, int i)
   {
     return ArborX::attach(ArborX::intersects(points.get_point(i)), i);
   }
 };
 
-template <typename DeviceType>
+template <typename MemorySpace>
 class TriangleIntersectionCallback
 {
 public:
   TriangleIntersectionCallback(
-      Triangles<DeviceType> triangles, Kokkos::View<int *, DeviceType> offsets,
-      Kokkos::View<ArborX::Point *, DeviceType> coefficients)
+      Triangles<MemorySpace> triangles,
+      Kokkos::View<int *, MemorySpace> offsets,
+      Kokkos::View<ArborX::Point *, MemorySpace> coefficients)
       : triangles_(triangles)
       , offsets_(offsets)
       , coefficients_(coefficients)
@@ -315,9 +315,9 @@ public:
   }
 
 private:
-  Triangles<DeviceType> triangles_;
-  Kokkos::View<int *, DeviceType> offsets_;
-  Kokkos::View<ArborX::Point *, DeviceType> coefficients_;
+  Triangles<MemorySpace> triangles_;
+  Kokkos::View<int *, MemorySpace> offsets_;
+  Kokkos::View<ArborX::Point *, MemorySpace> coefficients_;
 };
 
 // Now that we have encapsulated the objects and queries to be used within the
@@ -328,11 +328,10 @@ int main()
   {
     using ExecutionSpace = Kokkos::DefaultExecutionSpace;
     using MemorySpace = typename ExecutionSpace::memory_space;
-    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     ExecutionSpace execution_space;
 
     std::cout << "Create grid with triangles.\n";
-    Triangles<DeviceType> triangles(execution_space);
+    Triangles<MemorySpace> triangles(execution_space);
     std::cout << "Triangles set up.\n";
 
     std::cout << "Creating BVH tree.\n";
@@ -343,7 +342,7 @@ int main()
     std::cout << "BVH tree set up.\n";
 
     std::cout << "Create the points used for queries.\n";
-    Points<DeviceType> points(execution_space);
+    Points<MemorySpace> points(execution_space);
     std::cout << "Points for queries set up.\n";
 
     std::cout << "Starting the queries.\n";
@@ -352,8 +351,8 @@ int main()
     Kokkos::View<ArborX::Point *, MemorySpace> coefficients("coefficients", n);
 
     tree.query(execution_space, points,
-               TriangleIntersectionCallback<DeviceType>{triangles, offsets,
-                                                        coefficients});
+               TriangleIntersectionCallback<MemorySpace>{triangles, offsets,
+                                                         coefficients});
     std::cout << "Queries done.\n";
 
 #ifndef NDEBUG
