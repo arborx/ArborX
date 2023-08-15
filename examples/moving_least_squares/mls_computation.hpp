@@ -12,6 +12,7 @@
 #pragma once
 
 #include <ArborX.hpp>
+#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -36,6 +37,14 @@ public:
                        Details::access<Points>::size(target_points))
       , _num_targets(Details::access<Points>::size(target_points))
   {
+    static_assert(
+        KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
+    static_assert(KokkosExt::is_accessible_from<
+                  typename Details::access<Points>::memory_space,
+                  ExecutionSpace>::value);
+    ArborX::Details::check_valid_access_traits(ArborX::PrimitivesTag{},
+                                               target_points);
+
     // There must be a list of num_neighbors source points for each
     // target point
     assert(source_points.extent(0) == _num_targets * _num_neighbors);
@@ -60,6 +69,8 @@ public:
   apply(ExecutionSpace const &space,
         Kokkos::View<ValueType *, MemorySpace> const &source_values)
   {
+    static_assert(
+        KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
     assert(source_values.extent(0) == _num_targets * _num_neighbors);
 
     Kokkos::View<ValueType *, MemorySpace> target_values(

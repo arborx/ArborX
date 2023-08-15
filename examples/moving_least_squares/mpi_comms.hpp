@@ -12,6 +12,7 @@
 #pragma once
 
 #include <ArborX.hpp>
+#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -33,6 +34,8 @@ public:
            Kokkos::View<int *, MemorySpace> indices,
            Kokkos::View<int *, MemorySpace> ranks)
   {
+    static_assert(
+        KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
     assert(indices.extent(0) == ranks.extent(0));
     std::size_t data_len = indices.extent(0);
 
@@ -120,6 +123,13 @@ public:
   distributeArborX(ExecutionSpace const &space, Values const &source)
   {
     using value_t = Details::inner_value_t<Values>;
+    static_assert(
+        KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
+    static_assert(KokkosExt::is_accessible_from<
+                  typename Details::access<Values>::memory_space,
+                  ExecutionSpace>::value);
+    ArborX::Details::check_valid_access_traits(ArborX::PrimitivesTag{}, source);
+
     assert(_distributor_back.has_value());
 
     // We know what each process want so we prepare the data to be sent
@@ -143,6 +153,8 @@ public:
   distributeView(ExecutionSpace const &space,
                  Kokkos::View<ValueType *, MemorySpace> const &source)
   {
+    static_assert(
+        KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
     assert(_distributor_back.has_value());
 
     // We know what each process want so we prepare the data to be sent

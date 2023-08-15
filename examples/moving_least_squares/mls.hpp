@@ -12,6 +12,7 @@
 #pragma once
 
 #include <ArborX.hpp>
+#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -57,6 +58,15 @@ public:
       , _src_size(Details::access<Points>::size(source_points))
       , _tgt_size(Details::access<Points>::size(target_points))
   {
+    static_assert(
+        KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
+    static_assert(KokkosExt::is_accessible_from<
+                  typename Details::access<Points>::memory_space,
+                  ExecutionSpace>::value);
+    ArborX::Details::check_valid_access_traits(ArborX::PrimitivesTag{},
+                                               source_points);
+
+    // A minimum nuber of source points are needed
     assert(_src_size >= _num_neighbors);
 
     // Organize source points as tree
@@ -99,6 +109,8 @@ public:
   apply(ExecutionSpace const &space,
         Kokkos::View<ValueType *, MemorySpace> const &source_values)
   {
+    static_assert(
+        KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
     assert(source_values.extent(0) == _src_size);
     return _mlsc.apply(space, _comms.distributeView(space, source_values));
   }

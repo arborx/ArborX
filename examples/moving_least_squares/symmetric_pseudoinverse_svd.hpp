@@ -11,6 +11,8 @@
 
 #pragma once
 
+#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+
 #include <Kokkos_Core.hpp>
 
 #include <cassert>
@@ -31,6 +33,9 @@ public:
   computePseudoInverses(ExecutionSpace const &space,
                         Kokkos::View<ValueType ***, MemorySpace> const &mats)
   {
+    static_assert(
+        KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
+
     SymmPseudoInverseSVD spis(space, mats);
 
     // Iterative approach, we will "deconstruct" E.S until only the diagonal
