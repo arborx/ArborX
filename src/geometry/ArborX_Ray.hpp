@@ -45,12 +45,7 @@ KOKKOS_INLINE_FUNCTION constexpr std::enable_if_t<
     Vector>
 makeVector(Point const &begin, Point const &end)
 {
-  Vector v;
-  for (int d = 0; d < 3; ++d)
-  {
-    v[d] = end[d] - begin[d];
-  }
-  return v;
+  return {end[0] - begin[0], end[1] - begin[1], end[2] - begin[2]};
 }
 
 KOKKOS_INLINE_FUNCTION constexpr auto dotProduct(Vector const &v,
