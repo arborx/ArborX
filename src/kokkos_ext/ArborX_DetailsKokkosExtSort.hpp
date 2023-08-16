@@ -173,7 +173,7 @@ void sortByKey(Kokkos::Experimental::SYCL const &space, Keys &keys,
   oneapi::dpl::execution::device_policy policy(
       *space.impl_internal_space_instance()->m_queue);
 #if ONEDPL_VERSION_MAJOR > 2022 ||                                             \
-    (ONEDPL_VERSION_MAJOR == 2022 && ONEDPL_VESION_MINOR >= 2)
+    (ONEDPL_VERSION_MAJOR == 2022 && ONEDPL_VERSION_MINOR >= 2)
   oneapi::dpl::sort_by_key(policy, keys.data(), keys.data() + n, values.data());
 #else
   auto zipped_begin =
