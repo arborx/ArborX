@@ -105,7 +105,7 @@ public:
     _points = Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<2> *,
                            MemorySpace>(
         Kokkos::view_alloc(execution_space, Kokkos::WithoutInitializing,
-                           "points"),
+                           "Example::points"),
         2 * n);
 
     Kokkos::parallel_for(
@@ -147,11 +147,11 @@ public:
     _triangles = Kokkos::View<ArborX::ExperimentalHyperGeometry::Triangle<2> *,
                               MemorySpace>(
         Kokkos::view_alloc(execution_space, Kokkos::WithoutInitializing,
-                           "triangles"),
+                           "Example::triangles"),
         2 * n);
     _mappings = Kokkos::View<Mapping *, MemorySpace>(
         Kokkos::view_alloc(execution_space, Kokkos::WithoutInitializing,
-                           "mappings"),
+                           "Example::mappings"),
         2 * n);
 
     Kokkos::parallel_for(
@@ -353,8 +353,9 @@ int main()
 
   std::cout << "Starting the queries.\n";
   int const n = points.size();
-  Kokkos::View<int *, MemorySpace> offsets("offsets", n);
-  Kokkos::View<ArborX::Point *, MemorySpace> coefficients("coefficients", n);
+  Kokkos::View<int *, MemorySpace> offsets("Example::offsets", n);
+  Kokkos::View<ArborX::Point *, MemorySpace> coefficients(
+      "Example::coefficients", n);
 
   tree.query(execution_space, points,
              TriangleIntersectionCallback<MemorySpace>{triangles, offsets,
