@@ -40,7 +40,7 @@ pipeline {
                 stage('MemorySanitizer') {
                     agent {
                         docker {
-                            image 'ubuntu:22.04'
+                            image 'ubuntu:23.04'
                             label 'docker'
                         }
                     }
