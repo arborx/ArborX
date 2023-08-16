@@ -46,7 +46,7 @@ pipeline {
                     }
                     environment {
                         CTEST_OPTIONS = '--timeout 180 --no-compress-output -T Test'
-                        CMAKE_OPTIONS = '-D CMAKE_BUILD_TYPE=Release  -D CMAKE_CXX_EXTENSIONS=OFF -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_CXX_FLAGS="-fsanitize=memory"'
+                        CMAKE_OPTIONS = '-D CMAKE_BUILD_TYPE=RelWithDebInfo  -D CMAKE_CXX_EXTENSIONS=OFF -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_CXX_FLAGS="-fsanitize=memory"'
                     }
                     steps {
                         sh 'apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y git cmake libboost-program-options-dev libboost-test-dev libbenchmark-dev clang'
