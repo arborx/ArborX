@@ -18,7 +18,7 @@
 
 #include <cassert>
 
-#include "symmetric_pseudoinverse_svd.hpp"
+#include "DetailsSymmetricPseudoInverseSVD.hpp"
 
 template <typename ValueType, typename PolynomialBasis, typename RBF,
           typename MemorySpace>
@@ -61,9 +61,7 @@ public:
     auto p = computeVandermonde(space, source_ref_target);
 
     auto a = computeMoment(space, phi, p);
-    auto a_inv =
-        SymmPseudoInverseSVD<ValueType, MemorySpace>::computePseudoInverses(
-            space, a);
+    auto a_inv = Details::symmetricPseudoInverseSVD(space, a);
 
     computeCoefficients(space, phi, p, a_inv);
   }
