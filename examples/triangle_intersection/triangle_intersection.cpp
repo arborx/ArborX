@@ -39,8 +39,8 @@ constexpr float hy = Ly / (ny - 1);
 // allowing for computing the barycentric coordinates for a given point.
 struct Mapping
 {
-  ArborX::ExperimentalHyperGeometry::Point<2> alpha;
-  ArborX::ExperimentalHyperGeometry::Point<2> beta;
+  float alpha[2];
+  float beta[2];
   ArborX::ExperimentalHyperGeometry::Point<2> p0;
 
   // x = a + alpha * (b - a) + beta * (c - a)
@@ -57,10 +57,10 @@ struct Mapping
 
     float const inv_det = 1. / (v[1] * u[0] - v[0] * u[1]);
 
-    alpha = ArborX::ExperimentalHyperGeometry::Point<2>{v[1] * inv_det,
-                                                        -v[0] * inv_det};
-    beta = ArborX::ExperimentalHyperGeometry::Point<2>{-u[1] * inv_det,
-                                                       u[0] * inv_det};
+    alpha[0] = v[1] * inv_det;
+    alpha[1] = -v[0] * inv_det;
+    beta[0] = -u[1] * inv_det;
+    beta[1] = u[0] * inv_det;
     p0 = a;
   }
 
