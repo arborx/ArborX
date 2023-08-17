@@ -27,8 +27,8 @@
 // |x\|x\|x\|
 // __________
 
-constexpr float Lx = 100.0;
-constexpr float Ly = 100.0;
+constexpr float Lx = 100.f;
+constexpr float Ly = 100.f;
 constexpr int nx = 101;
 constexpr int ny = 101;
 constexpr int n = nx * ny;
