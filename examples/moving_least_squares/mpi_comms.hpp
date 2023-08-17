@@ -20,7 +20,6 @@
 #include <memory>
 #include <optional>
 
-#include "common.hpp"
 #include <mpi.h>
 
 template <typename MemorySpace>
@@ -30,7 +29,7 @@ public:
   MPIComms() = default;
 
   template <typename ExecutionSpace>
-  MPIComms(ExecutionSpace const &space, MPI_Comm comm,
+  MPIComms(MPI_Comm comm, ExecutionSpace const &space,
            Kokkos::View<int *, MemorySpace> indices,
            Kokkos::View<int *, MemorySpace> ranks)
   {
@@ -119,15 +118,20 @@ public:
   }
 
   template <typename ExecutionSpace, typename Values>
-  Kokkos::View<Details::inner_value_t<Values> *, MemorySpace>
+  Kokkos::View<typename ArborX::Details::AccessTraitsHelper<
+                   ArborX::AccessTraits<Values, ArborX::PrimitivesTag>>::type *,
+               MemorySpace>
   distributeArborX(ExecutionSpace const &space, Values const &source)
   {
-    using value_t = Details::inner_value_t<Values>;
+    using value_t = typename ArborX::Details::AccessTraitsHelper<
+        ArborX::AccessTraits<Values, ArborX::PrimitivesTag>>::type;
     static_assert(
         KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
-    static_assert(KokkosExt::is_accessible_from<
-                  typename Details::access<Values>::memory_space,
-                  ExecutionSpace>::value);
+    static_assert(
+        KokkosExt::is_accessible_from<
+            typename ArborX::AccessTraits<Values,
+                                          ArborX::PrimitivesTag>::memory_space,
+            ExecutionSpace>::value);
     ArborX::Details::check_valid_access_traits(ArborX::PrimitivesTag{}, source);
 
     assert(_distributor_back.has_value());
@@ -142,7 +146,8 @@ public:
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, _num_requests),
         KOKKOS_CLASS_LAMBDA(int const i) {
           data_to_send(i) =
-              Details::access<Values>::get(source, _mpi_send_indices(i));
+              ArborX::AccessTraits<Values, ArborX::PrimitivesTag>::get(
+                  source, _mpi_send_indices(i));
         });
 
     return distribute(space, data_to_send);

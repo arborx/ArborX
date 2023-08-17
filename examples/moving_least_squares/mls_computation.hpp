@@ -18,7 +18,6 @@
 
 #include <cassert>
 
-#include "common.hpp"
 #include "symmetric_pseudoinverse_svd.hpp"
 
 template <typename ValueType, typename PolynomialBasis, typename RBF,
@@ -29,24 +28,29 @@ public:
   MLSComputation() = default;
 
   template <typename ExecutionSpace, typename Points>
-  MLSComputation(ExecutionSpace const &space,
-                 Kokkos::View<Details::inner_value_t<Points> *,
-                              MemorySpace> const &source_points,
-                 Points const &target_points)
-      : _num_neighbors(source_points.extent(0) /
-                       Details::access<Points>::size(target_points))
-      , _num_targets(Details::access<Points>::size(target_points))
+  MLSComputation(
+      ExecutionSpace const &space,
+      Kokkos::View<
+          typename ArborX::Details::AccessTraitsHelper<
+              ArborX::AccessTraits<Points, ArborX::PrimitivesTag>>::type *,
+          MemorySpace> const &source_points,
+      Points const &target_points)
+      : _num_targets(ArborX::AccessTraits<Points, ArborX::PrimitivesTag>::size(
+            target_points))
   {
     static_assert(
         KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
-    static_assert(KokkosExt::is_accessible_from<
-                  typename Details::access<Points>::memory_space,
-                  ExecutionSpace>::value);
+    static_assert(
+        KokkosExt::is_accessible_from<
+            typename ArborX::AccessTraits<Points,
+                                          ArborX::PrimitivesTag>::memory_space,
+            ExecutionSpace>::value);
     ArborX::Details::check_valid_access_traits(ArborX::PrimitivesTag{},
                                                target_points);
 
     // There must be a list of num_neighbors source points for each
     // target point
+    _num_neighbors = source_points.extent(0) / _num_targets;
     assert(source_points.extent(0) == _num_targets * _num_neighbors);
 
     auto source_ref_target =
@@ -92,13 +96,16 @@ public:
 
 private:
   template <typename ExecutionSpace, typename Points>
-  Kokkos::View<ArborX::Point **, MemorySpace>
-  translateToTarget(ExecutionSpace const &space,
-                    Kokkos::View<Details::inner_value_t<Points> *,
-                                 MemorySpace> const &source_points,
-                    Points const &target_points)
+  Kokkos::View<ArborX::Point **, MemorySpace> translateToTarget(
+      ExecutionSpace const &space,
+      Kokkos::View<
+          typename ArborX::Details::AccessTraitsHelper<
+              ArborX::AccessTraits<Points, ArborX::PrimitivesTag>>::type *,
+          MemorySpace> const &source_points,
+      Points const &target_points)
   {
-    using point_t = Details::inner_value_t<Points>;
+    using point_t = typename ArborX::Details::AccessTraitsHelper<
+        ArborX::AccessTraits<Points, ArborX::PrimitivesTag>>::type;
 
     // We center each group around the target as it ables you to
     // optimize the final computation
@@ -112,7 +119,9 @@ private:
                                                {_num_targets, _num_neighbors}),
         KOKKOS_LAMBDA(int const i, int const j) {
           point_t src = source_points(i * _num_neighbors + j);
-          point_t tgt = Details::access<Points>::get(target_points, i);
+          point_t tgt =
+              ArborX::AccessTraits<Points, ArborX::PrimitivesTag>::get(
+                  target_points, i);
           source_ref_target(i, j) = ArborX::Point{
               src[0] - tgt[0],
               src[1] - tgt[1],

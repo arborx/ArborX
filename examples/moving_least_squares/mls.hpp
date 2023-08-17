@@ -18,7 +18,6 @@
 
 #include <cassert>
 
-#include "common.hpp"
 #include "mls_computation.hpp"
 #include "mpi_comms.hpp"
 
@@ -34,15 +33,21 @@ struct ArborX::AccessTraits<TargetPoints<Points>, ArborX::PredicatesTag>
 {
   static KOKKOS_FUNCTION std::size_t size(TargetPoints<Points> const &tp)
   {
-    return tp.target_points.extent(0);
+    return ArborX::AccessTraits<Points, ArborX::PrimitivesTag>::size(
+        tp.target_points);
   }
 
   static KOKKOS_FUNCTION auto get(TargetPoints<Points> const &tp, std::size_t i)
   {
-    return ArborX::nearest(tp.target_points(i), tp.num_neighbors);
+    return ArborX::nearest(
+        ArborX::AccessTraits<Points, ArborX::PrimitivesTag>::get(
+            tp.target_points, i),
+        tp.num_neighbors);
   }
 
-  using memory_space = typename ::Details::access<Points>::memory_space;
+  using memory_space =
+      typename ArborX::AccessTraits<Points,
+                                    ArborX::PrimitivesTag>::memory_space;
 };
 
 template <typename ValueType, typename PolynomialBasis, typename RBF,
@@ -51,18 +56,22 @@ class MLS
 {
 public:
   template <typename ExecutionSpace, typename Points>
-  MLS(ExecutionSpace const &space, MPI_Comm comm, Points const &source_points,
+  MLS(MPI_Comm comm, ExecutionSpace const &space, Points const &source_points,
       Points const &target_points,
       std::size_t num_neighbors = PolynomialBasis::size)
       : _num_neighbors(num_neighbors)
-      , _src_size(Details::access<Points>::size(source_points))
-      , _tgt_size(Details::access<Points>::size(target_points))
+      , _src_size(ArborX::AccessTraits<Points, ArborX::PrimitivesTag>::size(
+            source_points))
+      , _tgt_size(ArborX::AccessTraits<Points, ArborX::PrimitivesTag>::size(
+            target_points))
   {
     static_assert(
         KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
-    static_assert(KokkosExt::is_accessible_from<
-                  typename Details::access<Points>::memory_space,
-                  ExecutionSpace>::value);
+    static_assert(
+        KokkosExt::is_accessible_from<
+            typename ArborX::AccessTraits<Points,
+                                          ArborX::PrimitivesTag>::memory_space,
+            ExecutionSpace>::value);
     ArborX::Details::check_valid_access_traits(ArborX::PrimitivesTag{},
                                                source_points);
 
@@ -74,7 +83,7 @@ public:
                                                      source_points);
 
     // Perform the query
-    Kokkos::View<Kokkos::pair<int, int> *, MemorySpace> index_ranks(
+    Kokkos::View<ArborX::PairIndexRank *, MemorySpace> index_ranks(
         "Example::MLS::index_ranks", 0);
     Kokkos::View<int *, MemorySpace> offsets("Example::MLS::offsets", 0);
     source_tree.query(space,
@@ -83,20 +92,24 @@ public:
 
     // Split indices/ranks
     Kokkos::View<int *, MemorySpace> local_indices(
-        "Example::MLS::local_indices", _tgt_size * _num_neighbors);
-    Kokkos::View<int *, MemorySpace> local_ranks("Example::MLS::local_ranks",
-                                                 _tgt_size * _num_neighbors);
+        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                           "Example::MLS::local_indices"),
+        _tgt_size * _num_neighbors);
+    Kokkos::View<int *, MemorySpace> local_ranks(
+        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                           "Example::MLS::local_ranks"),
+        _tgt_size * _num_neighbors);
     Kokkos::parallel_for(
         "Example::MLS::index_ranks_split",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0,
                                             _tgt_size * _num_neighbors),
         KOKKOS_LAMBDA(int const i) {
-          local_indices(i) = index_ranks(i).first;
-          local_ranks(i) = index_ranks(i).second;
+          local_indices(i) = index_ranks(i).index;
+          local_ranks(i) = index_ranks(i).rank;
         });
 
     // Set up comms and local source points
-    _comms = MPIComms<MemorySpace>(space, comm, local_indices, local_ranks);
+    _comms = MPIComms<MemorySpace>(comm, space, local_indices, local_ranks);
     auto local_source_points = _comms.distributeArborX(space, source_points);
 
     // Compute the internal MLS
