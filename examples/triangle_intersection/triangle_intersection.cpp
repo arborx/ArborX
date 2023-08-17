@@ -295,15 +295,22 @@ int main()
   tree.query(execution_space, points,
              TriangleIntersectionCallback<MemorySpace>{triangles, offsets,
                                                        coefficients});
-#ifndef NDEBUG
+  execution_space.fence();
+
+// FIXME_SYCL doesn't support printf
+#if !defined(NDEBUG) && !defined(KOKKOS_ENABLE_SYCL)
   // Check the results
-  Kokkos::parallel_for(
+  bool fail = false;
+  Kokkos::parallel_reduce(
       Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
-      KOKKOS_LAMBDA(int i) {
+      KOKKOS_LAMBDA(int i, bool &update) {
         constexpr float eps = 1.e-3;
 
         if (offsets(i) != i)
-          Kokkos::abort("Offsets are wrong");
+        {
+          printf("Offsets are wrong for query %d.\n", i);
+          update = true;
+        }
         auto const &c = coefficients(i);
         auto const &t = triangles(offsets(i));
         auto const &p_h = points(i);
@@ -311,8 +318,13 @@ int main()
                              c[0] * t.a[1] + c[1] * t.b[1] + c[2] * t.c[1]};
         if ((Kokkos::abs(p[0] - p_h[0]) > eps) ||
             Kokkos::abs(p[1] - p_h[1]) > eps)
-          Kokkos::abort("Coefficients are wrong");
-      });
+        {
+          printf("Coefficients are wrong for query %d.\n", i);
+          update = true;
+        }
+      },
+      Kokkos::LOr<bool, Kokkos::HostSpace>(fail));
+  std::cout << fail << std::endl;
+  return fail;
 #endif
-  execution_space.fence();
 }
