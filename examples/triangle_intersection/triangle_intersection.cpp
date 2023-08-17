@@ -334,22 +334,19 @@ int main()
   using MemorySpace = typename ExecutionSpace::memory_space;
   ExecutionSpace execution_space;
 
-  std::cout << "Create grid with triangles.\n";
+  // Create grid with triangles
   Triangles<MemorySpace> triangles(execution_space);
-  std::cout << "Triangles set up.\n";
 
-  std::cout << "Creating BVH tree.\n";
+  // Create BVH tree
   ArborX::BasicBoundingVolumeHierarchy<
       MemorySpace, ArborX::Details::PairIndexVolume<
                        ArborX::ExperimentalHyperGeometry::Box<2>>> const
       tree(execution_space, triangles);
-  std::cout << "BVH tree set up.\n";
 
-  std::cout << "Create the points used for queries.\n";
+  // Create the points used for queries
   Points<MemorySpace> points(execution_space);
-  std::cout << "Points for queries set up.\n";
 
-  std::cout << "Starting the queries.\n";
+  // Execute the queries
   int const n = points.size();
   Kokkos::View<int *, MemorySpace> offsets("Example::offsets", n);
   Kokkos::View<Kokkos::Array<float, 3> *, MemorySpace> coefficients(
@@ -358,10 +355,8 @@ int main()
   tree.query(execution_space, points,
              TriangleIntersectionCallback<MemorySpace>{triangles, offsets,
                                                        coefficients});
-  std::cout << "Queries done.\n";
-
 #ifndef NDEBUG
-  std::cout << "Starting checking results.\n";
+  // Check the results
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
       KOKKOS_LAMBDA(int i) {
@@ -378,7 +373,6 @@ int main()
             Kokkos::abs(p[1] - p_h[1]) > eps)
           Kokkos::abort("Coefficients are wrong");
       });
-  std::cout << "Checking results successful.\n";
 #endif
   execution_space.fence();
 }
