@@ -55,7 +55,10 @@ struct Mapping
     ArborX::ExperimentalHyperGeometry::Point<2> u = {b[0] - a[0], b[1] - a[1]};
     ArborX::ExperimentalHyperGeometry::Point<2> v = {c[0] - a[0], c[1] - a[1]};
 
-    float const inv_det = 1. / (v[1] * u[0] - v[0] * u[1]);
+    float const det = v[1] * u[0] - v[0] * u[1];
+    if (det == 0)
+      Kokkos::abort("Degenerate triangles are not supported!");
+    float const inv_det = 1.f / det;
 
     alpha[0] = v[1] * inv_det;
     alpha[1] = -v[0] * inv_det;
