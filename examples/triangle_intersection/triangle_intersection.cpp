@@ -35,25 +35,28 @@ constexpr int n = nx * ny;
 constexpr float hx = Lx / (nx - 1);
 constexpr float hy = Ly / (ny - 1);
 
+using Point = ArborX::ExperimentalHyperGeometry::Point<2>;
+using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<2>;
+
 // The Mapping class stores the mapping from a unit triangle to a given triangle
 // allowing for computing the barycentric coordinates for a given point.
 struct Mapping
 {
   float alpha[2];
   float beta[2];
-  ArborX::ExperimentalHyperGeometry::Point<2> p0;
+  Point p0;
 
   // x = a + alpha * (b - a) + beta * (c - a)
   //   = (1-beta-alpha) * a + alpha * b + beta * c
   KOKKOS_FUNCTION
-  Mapping(ArborX::ExperimentalHyperGeometry::Triangle<2> const &triangle)
+  Mapping(Triangle const &triangle)
   {
     auto const &a = triangle.a;
     auto const &b = triangle.b;
     auto const &c = triangle.c;
 
-    ArborX::ExperimentalHyperGeometry::Point<2> u = {b[0] - a[0], b[1] - a[1]};
-    ArborX::ExperimentalHyperGeometry::Point<2> v = {c[0] - a[0], c[1] - a[1]};
+    Point u = {b[0] - a[0], b[1] - a[1]};
+    Point v = {c[0] - a[0], c[1] - a[1]};
 
     float const det = v[1] * u[0] - v[0] * u[1];
     if (det == 0)
@@ -67,8 +70,8 @@ struct Mapping
     p0 = a;
   }
 
-  KOKKOS_FUNCTION Kokkos::Array<float, 3> get_barycentric_coordinates(
-      ArborX::ExperimentalHyperGeometry::Point<2> p) const
+  KOKKOS_FUNCTION Kokkos::Array<float, 3>
+  get_barycentric_coordinates(Point p) const
   {
     float alpha_coeff = alpha[0] * (p[0] - p0[0]) + alpha[1] * (p[1] - p0[1]);
     float beta_coeff = beta[0] * (p[0] - p0[0]) + beta[1] * (p[1] - p0[1]);
@@ -77,15 +80,12 @@ struct Mapping
 
 #ifndef NDEBUG
   // Recover the triangle from the mapping. Only used for debugging.
-  KOKKOS_FUNCTION ArborX::ExperimentalHyperGeometry::Triangle<2>
-  get_triangle() const
+  KOKKOS_FUNCTION Triangle get_triangle() const
   {
     float const inv_det = 1. / (alpha[0] * beta[1] - alpha[1] * beta[0]);
-    ArborX::ExperimentalHyperGeometry::Point<2> a = p0;
-    ArborX::ExperimentalHyperGeometry::Point<2> b = {
-        {p0[0] + inv_det * beta[1], p0[1] - inv_det * beta[0]}};
-    ArborX::ExperimentalHyperGeometry::Point<2> c = {
-        {p0[0] - inv_det * alpha[1], p0[1] + inv_det * alpha[0]}};
+    Point a = p0;
+    Point b = {{p0[0] + inv_det * beta[1], p0[1] - inv_det * beta[0]}};
+    Point c = {{p0[0] - inv_det * alpha[1], p0[1] + inv_det * alpha[0]}};
     return {a, b, c};
   }
 #endif
@@ -105,8 +105,7 @@ public:
   template <typename ExecutionSpace>
   void initialize(ExecutionSpace const &execution_space)
   {
-    _points = Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<2> *,
-                           MemorySpace>(
+    _points = Kokkos::View<Point *, MemorySpace>(
         Kokkos::view_alloc(execution_space, Kokkos::WithoutInitializing,
                            "Example::points"),
         2 * n);
@@ -127,8 +126,7 @@ public:
   KOKKOS_FUNCTION auto size() const { return _points.size(); }
 
 private:
-  Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<2> *, MemorySpace>
-      _points;
+  Kokkos::View<Point *, MemorySpace> _points;
 };
 
 template <typename MemorySpace>
@@ -147,8 +145,7 @@ public:
   template <typename ExecutionSpace>
   void initialize(ExecutionSpace const &execution_space)
   {
-    _triangles = Kokkos::View<ArborX::ExperimentalHyperGeometry::Triangle<2> *,
-                              MemorySpace>(
+    _triangles = Kokkos::View<Triangle *, MemorySpace>(
         Kokkos::view_alloc(execution_space, Kokkos::WithoutInitializing,
                            "Example::triangles"),
         2 * n);
@@ -161,11 +158,10 @@ public:
         Kokkos::MDRangePolicy<Kokkos::Rank<2>, ExecutionSpace>(
             execution_space, {0, 0}, {nx, ny}),
         KOKKOS_CLASS_LAMBDA(int i, int j) {
-          ArborX::ExperimentalHyperGeometry::Point<2> bl{i * hx, j * hy};
-          ArborX::ExperimentalHyperGeometry::Point<2> br{(i + 1) * hx, j * hy};
-          ArborX::ExperimentalHyperGeometry::Point<2> tl{i * hx, (j + 1) * hy};
-          ArborX::ExperimentalHyperGeometry::Point<2> tr{(i + 1) * hx,
-                                                         (j + 1) * hy};
+          Point bl{i * hx, j * hy};
+          Point br{(i + 1) * hx, j * hy};
+          Point tl{i * hx, (j + 1) * hy};
+          Point tr{(i + 1) * hx, (j + 1) * hy};
 
           auto index = [](int i, int j) { return i + j * nx; };
 
@@ -180,8 +176,7 @@ public:
     Kokkos::parallel_for(
         Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, 2 * n),
         KOKKOS_CLASS_LAMBDA(int k) {
-          ArborX::ExperimentalHyperGeometry::Triangle<2> recover_triangle =
-              _mappings[k].get_triangle();
+          Triangle recover_triangle = _mappings[k].get_triangle();
 
           constexpr float eps = 1.e-3;
 
@@ -228,8 +223,7 @@ public:
 
   KOKKOS_FUNCTION int size() const { return _triangles.size(); }
 
-  KOKKOS_FUNCTION ArborX::ExperimentalHyperGeometry::Triangle<2> const &
-  operator()(int i) const
+  KOKKOS_FUNCTION Triangle const &operator()(int i) const
   {
     return _triangles(i);
   }
@@ -240,8 +234,7 @@ public:
   }
 
 private:
-  Kokkos::View<ArborX::ExperimentalHyperGeometry::Triangle<2> *, MemorySpace>
-      _triangles;
+  Kokkos::View<Triangle *, MemorySpace> _triangles;
   Kokkos::View<Mapping *, MemorySpace> _mappings;
 };
 
@@ -309,8 +302,7 @@ public:
   KOKKOS_FUNCTION auto operator()(Query const &query,
                                   Primitive const &primitive) const
   {
-    ArborX::ExperimentalHyperGeometry::Point<2> const &point =
-        getGeometry(getPredicate(query));
+    Point const &point = getGeometry(getPredicate(query));
     auto query_index = ArborX::getData(query);
 
     auto const coeffs = _triangles.get_mapping(primitive.index)
@@ -380,9 +372,8 @@ int main()
         auto const &c = coefficients(i);
         auto const &t = triangles(offsets(i));
         auto const &p_h = points(i);
-        auto const p = ArborX::ExperimentalHyperGeometry::Point<2>{
-            c[0] * t.a[0] + c[1] * t.b[0] + c[2] * t.c[0],
-            c[0] * t.a[1] + c[1] * t.b[1] + c[2] * t.c[1]};
+        auto const p = Point{c[0] * t.a[0] + c[1] * t.b[0] + c[2] * t.c[0],
+                             c[0] * t.a[1] + c[1] * t.b[1] + c[2] * t.c[1]};
         if ((Kokkos::abs(p[0] - p_h[0]) > eps) ||
             Kokkos::abs(p[1] - p_h[1]) > eps)
           Kokkos::abort("Coefficients are wrong");
