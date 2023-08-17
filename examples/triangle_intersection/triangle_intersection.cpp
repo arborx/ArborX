@@ -293,7 +293,7 @@ public:
 
   // The search tree consists entirely of boxes, although the primitives are
   // triangles. Thus, a detected collision doesn't mean that the point is
-  // actuallt inside the wrapped triangle and we have to check that here. This
+  // actually inside the wrapped triangle and we have to check that here. This
   // also gives us the opportunity to store the barycentric coordinates in case
   // there is an intersection. Since the triangles don't overlap in this
   // example, there is at most one triangle that contains a given point and we
