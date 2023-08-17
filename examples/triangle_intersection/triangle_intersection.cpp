@@ -77,18 +77,6 @@ struct Mapping
     float beta_coeff = beta[0] * (p[0] - p0[0]) + beta[1] * (p[1] - p0[1]);
     return {1 - alpha_coeff - beta_coeff, alpha_coeff, beta_coeff};
   }
-
-#ifndef NDEBUG
-  // Recover the triangle from the mapping. Only used for debugging.
-  KOKKOS_FUNCTION Triangle get_triangle() const
-  {
-    float const inv_det = 1. / (alpha[0] * beta[1] - alpha[1] * beta[0]);
-    Point a = p0;
-    Point b = {{p0[0] + inv_det * beta[1], p0[1] - inv_det * beta[0]}};
-    Point c = {{p0[0] - inv_det * alpha[1], p0[1] + inv_det * alpha[0]}};
-    return {a, b, c};
-  }
-#endif
 };
 
 // Store the points that represent the queries.
@@ -171,54 +159,6 @@ public:
           _mappings[2 * index(i, j) + 1] =
               Mapping(_triangles[2 * index(i, j) + 1]);
         });
-
-#ifndef NDEBUG
-    Kokkos::parallel_for(
-        Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, 2 * n),
-        KOKKOS_CLASS_LAMBDA(int k) {
-          Triangle recover_triangle = _mappings[k].get_triangle();
-
-          constexpr float eps = 1.e-3;
-
-          for (unsigned int i = 0; i < 2; ++i)
-            if (Kokkos::abs(_triangles[k].a[i] - recover_triangle.a[i]) > eps)
-              Kokkos::abort(
-                  "Mismatch for first point when recovering triangle");
-
-          for (unsigned int i = 0; i < 2; ++i)
-            if (Kokkos::abs(_triangles[k].b[i] - recover_triangle.b[i]) > eps)
-              Kokkos::abort(
-                  "Mismatch for second point when recovering triangle");
-
-          for (unsigned int i = 0; i < 2; ++i)
-            if (Kokkos::abs(_triangles[k].c[i] - recover_triangle.c[i]) > eps)
-              Kokkos::abort(
-                  "Mismatch for third point when recoverning triangle");
-
-          auto const &coeff_a =
-              _mappings[k].get_barycentric_coordinates(_triangles[k].a);
-          if ((Kokkos::abs(coeff_a[0] - 1.) > eps) ||
-              Kokkos::abs(coeff_a[1]) > eps || Kokkos::abs(coeff_a[2]) > eps)
-            Kokkos::abort(
-                "Mismatch for coefficients of first point in triangle");
-
-          auto const &coeff_b =
-              _mappings[k].get_barycentric_coordinates(_triangles[k].b);
-          if ((Kokkos::abs(coeff_b[0]) > eps) ||
-              Kokkos::abs(coeff_b[1] - 1.) > eps ||
-              Kokkos::abs(coeff_b[2]) > eps)
-            Kokkos::abort(
-                "Mismatch for coefficients of first point in triangle");
-
-          auto const &coeff_c =
-              _mappings[k].get_barycentric_coordinates(_triangles[k].c);
-          if ((Kokkos::abs(coeff_c[0]) > eps) ||
-              Kokkos::abs(coeff_c[1]) > eps ||
-              Kokkos::abs(coeff_c[2] - 1.) > eps)
-            Kokkos::abort(
-                "Mismatch for coefficients of first point in triangle");
-        });
-#endif
   }
 
   KOKKOS_FUNCTION int size() const { return _triangles.size(); }
