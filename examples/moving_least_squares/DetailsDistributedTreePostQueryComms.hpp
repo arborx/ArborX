@@ -12,31 +12,28 @@
 #pragma once
 
 #include <ArborX.hpp>
-#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 
 #include <Kokkos_Core.hpp>
 
-#include <cassert>
 #include <memory>
 #include <optional>
 
 #include <mpi.h>
 
+namespace Details
+{
+
 template <typename MemorySpace>
-class MPIComms
+class DistributedTreePostQueryComms
 {
 public:
-  MPIComms() = default;
+  DistributedTreePostQueryComms() = default;
 
-  template <typename ExecutionSpace>
-  MPIComms(MPI_Comm comm, ExecutionSpace const &space,
-           Kokkos::View<int *, MemorySpace> indices,
-           Kokkos::View<int *, MemorySpace> ranks)
+  template <typename ExecutionSpace, typename IndicesAndRanks>
+  DistributedTreePostQueryComms(MPI_Comm comm, ExecutionSpace const &space,
+                                IndicesAndRanks const &indices_and_ranks)
   {
-    static_assert(
-        KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
-    assert(indices.extent(0) == ranks.extent(0));
-    std::size_t data_len = indices.extent(0);
+    std::size_t data_len = indices_and_ranks.extent(0);
 
     _comm.reset(
         [comm]() {
@@ -56,8 +53,25 @@ public:
     MPI_Comm_rank(*_comm, &rank);
 
     Kokkos::View<int *, MemorySpace> mpi_tmp(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::MPI::tmp"),
+        Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::DTPQC::tmp"),
         data_len);
+
+    // Split indices/ranks
+    Kokkos::View<int *, MemorySpace> indices(
+        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                           "Example::DTPQC::indices"),
+        data_len);
+    Kokkos::View<int *, MemorySpace> ranks(
+        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                           "Example::DTPQC::ranks"),
+        data_len);
+    Kokkos::parallel_for(
+        "Example::DTPQC::indices_and_ranks_split",
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, data_len),
+        KOKKOS_LAMBDA(int const i) {
+          indices(i) = indices_and_ranks(i).index;
+          ranks(i) = indices_and_ranks(i).rank;
+        });
 
     // Computes what will be common to every exchange. Every time
     // someone wants to get the value from the same set of elements,
@@ -75,7 +89,7 @@ public:
     // array that rebuilds the output
     Kokkos::View<int *, MemorySpace> mpi_rev_indices(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "Example::MPI::rev_indices"),
+                           "Example::DTPQC::rev_indices"),
         _num_requests);
     ArborX::iota(space, mpi_tmp);
     ArborX::Details::DistributedTreeImpl<MemorySpace>::sendAcrossNetwork(
@@ -85,7 +99,7 @@ public:
     // the process owning the source
     _mpi_send_indices = Kokkos::View<int *, MemorySpace>(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "Example::MPI::send_indices"),
+                           "Example::DTPQC::send_indices"),
         _num_requests);
     ArborX::Details::DistributedTreeImpl<MemorySpace>::sendAcrossNetwork(
         space, distributor_forth, indices, _mpi_send_indices);
@@ -94,117 +108,68 @@ public:
     // distributor to dispatch the values
     Kokkos::View<int *, MemorySpace> mpi_rev_ranks(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "Example::MPI::rev_ranks"),
+                           "Example::DTPQC::rev_ranks"),
         _num_requests);
     Kokkos::deep_copy(space, mpi_tmp, rank);
     ArborX::Details::DistributedTreeImpl<MemorySpace>::sendAcrossNetwork(
         space, distributor_forth, mpi_tmp, mpi_rev_ranks);
 
     // This will create the reverse of the previous distributor
-    _distributor_back = ArborX::Details::Distributor<MemorySpace>(*_comm);
-    _num_responses = _distributor_back->createFromSends(space, mpi_rev_ranks);
+    _distributor = ArborX::Details::Distributor<MemorySpace>(*_comm);
+    _num_responses = _distributor->createFromSends(space, mpi_rev_ranks);
 
     // There should be enough responses to perfectly fill what was requested
-    assert(_num_responses == data_len);
+    // i.e. _num_responses == data_len
 
     // The we send back the requested indices so that each process can rebuild
-    // the output
+    // their output
     _mpi_recv_indices = Kokkos::View<int *, MemorySpace>(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "Example::MPI::recv_indices"),
+                           "Example::DTPQC::recv_indices"),
         _num_responses);
     ArborX::Details::DistributedTreeImpl<MemorySpace>::sendAcrossNetwork(
-        space, *_distributor_back, mpi_rev_indices, _mpi_recv_indices);
+        space, *_distributor, mpi_rev_indices, _mpi_recv_indices);
   }
 
   template <typename ExecutionSpace, typename Values>
   Kokkos::View<typename ArborX::Details::AccessTraitsHelper<
                    ArborX::AccessTraits<Values, ArborX::PrimitivesTag>>::type *,
-               MemorySpace>
-  distributeArborX(ExecutionSpace const &space, Values const &source)
+               typename ArborX::AccessTraits<
+                   Values, ArborX::PrimitivesTag>::memory_space>
+  distribute(ExecutionSpace const &space, Values const &source)
   {
-    using value_t = typename ArborX::Details::AccessTraitsHelper<
-        ArborX::AccessTraits<Values, ArborX::PrimitivesTag>>::type;
-    static_assert(
-        KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
-    static_assert(
-        KokkosExt::is_accessible_from<
-            typename ArborX::AccessTraits<Values,
-                                          ArborX::PrimitivesTag>::memory_space,
-            ExecutionSpace>::value);
-    ArborX::Details::check_valid_access_traits(ArborX::PrimitivesTag{}, source);
-
-    assert(_distributor_back.has_value());
+    using src_acc = ArborX::AccessTraits<Values, ArborX::PrimitivesTag>;
+    using value_t = typename ArborX::Details::AccessTraitsHelper<src_acc>::type;
+    using memory_space = typename src_acc::memory_space;
 
     // We know what each process want so we prepare the data to be sent
     Kokkos::View<value_t *, MemorySpace> data_to_send(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "Example::MPI::data_to_send"),
+                           "Example::DTPQC::data_to_send"),
         _num_requests);
     Kokkos::parallel_for(
-        "Example::MPI::data_to_send_fill",
+        "Example::DTPQC::data_to_send_fill",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, _num_requests),
         KOKKOS_CLASS_LAMBDA(int const i) {
-          data_to_send(i) =
-              ArborX::AccessTraits<Values, ArborX::PrimitivesTag>::get(
-                  source, _mpi_send_indices(i));
+          data_to_send(i) = src_acc::get(source, _mpi_send_indices(i));
         });
 
-    return distribute(space, data_to_send);
-  }
-
-  template <typename ExecutionSpace, typename ValueType>
-  Kokkos::View<ValueType *, MemorySpace>
-  distributeView(ExecutionSpace const &space,
-                 Kokkos::View<ValueType *, MemorySpace> const &source)
-  {
-    static_assert(
-        KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
-    assert(_distributor_back.has_value());
-
-    // We know what each process want so we prepare the data to be sent
-    Kokkos::View<ValueType *, MemorySpace> data_to_send(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "Example::MPI::data_to_send"),
-        _num_requests);
-    Kokkos::parallel_for(
-        "Example::MPI::data_to_send_fill",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, _num_requests),
-        KOKKOS_CLASS_LAMBDA(int const i) {
-          data_to_send(i) = source(_mpi_send_indices(i));
-        });
-
-    return distribute(space, data_to_send);
-  }
-
-private:
-  std::shared_ptr<MPI_Comm> _comm;
-  Kokkos::View<int *, MemorySpace> _mpi_send_indices;
-  Kokkos::View<int *, MemorySpace> _mpi_recv_indices;
-  std::optional<ArborX::Details::Distributor<MemorySpace>> _distributor_back;
-  std::size_t _num_requests;
-  std::size_t _num_responses;
-
-  template <typename ExecutionSpace, typename ValueType>
-  Kokkos::View<ValueType *, MemorySpace>
-  distribute(ExecutionSpace const &space,
-             Kokkos::View<ValueType *, MemorySpace> const &data_to_send)
-  {
     // We properly send the data, and each process has what it wants, but in the
     // wrong order
-    Kokkos::View<ValueType *, MemorySpace> data_to_recv(
+    Kokkos::View<value_t *, MemorySpace> data_to_recv(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "Example::MPI::data_to_recv"),
+                           "Example::DTPQC::data_to_recv"),
         _num_responses);
     ArborX::Details::DistributedTreeImpl<MemorySpace>::sendAcrossNetwork(
-        space, *_distributor_back, data_to_send, data_to_recv);
+        space, *_distributor, data_to_send, data_to_recv);
 
     // So we fix this by moving everything
-    Kokkos::View<ValueType *, MemorySpace> output(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::MPI::output"),
+    Kokkos::View<value_t *, memory_space> output(
+        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                           "Example::DTPQC::output"),
         _num_responses);
     Kokkos::parallel_for(
-        "Example::MPI::output_fill",
+        "Example::DTPQC::output_fill",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, _num_responses),
         KOKKOS_CLASS_LAMBDA(int const i) {
           output(_mpi_recv_indices(i)) = data_to_recv(i);
@@ -212,4 +177,14 @@ private:
 
     return output;
   }
+
+private:
+  std::shared_ptr<MPI_Comm> _comm;
+  Kokkos::View<int *, MemorySpace> _mpi_send_indices;
+  Kokkos::View<int *, MemorySpace> _mpi_recv_indices;
+  std::optional<ArborX::Details::Distributor<MemorySpace>> _distributor;
+  std::size_t _num_requests;
+  std::size_t _num_responses;
 };
+
+} // namespace Details

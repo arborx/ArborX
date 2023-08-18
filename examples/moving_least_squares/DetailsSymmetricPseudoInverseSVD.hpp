@@ -13,7 +13,6 @@
 
 #include <Kokkos_Core.hpp>
 
-#include <cassert>
 #include <cmath>
 #include <limits>
 

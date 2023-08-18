@@ -18,8 +18,8 @@
 
 #include <cassert>
 
+#include "DetailsDistributedTreePostQueryComms.hpp"
 #include "DetailsMovingLeastSquaresComputation.hpp"
-#include "mpi_comms.hpp"
 
 template <typename Points>
 struct TargetPoints
@@ -90,27 +90,10 @@ public:
                       TargetPoints<Points>{target_points, _num_neighbors},
                       index_ranks, offsets);
 
-    // Split indices/ranks
-    Kokkos::View<int *, MemorySpace> local_indices(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "Example::MLS::local_indices"),
-        _tgt_size * _num_neighbors);
-    Kokkos::View<int *, MemorySpace> local_ranks(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "Example::MLS::local_ranks"),
-        _tgt_size * _num_neighbors);
-    Kokkos::parallel_for(
-        "Example::MLS::index_ranks_split",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0,
-                                            _tgt_size * _num_neighbors),
-        KOKKOS_LAMBDA(int const i) {
-          local_indices(i) = index_ranks(i).index;
-          local_ranks(i) = index_ranks(i).rank;
-        });
-
     // Set up comms and local source points
-    _comms = MPIComms<MemorySpace>(comm, space, local_indices, local_ranks);
-    auto local_source_points = _comms.distributeArborX(space, source_points);
+    _comms = Details::DistributedTreePostQueryComms<MemorySpace>(comm, space,
+                                                                 index_ranks);
+    auto local_source_points = _comms.distribute(space, source_points);
 
     // Compute the internal MLS
     _mlsc = Details::MovingLeastSquaresComputation<ValueType, MemorySpace>(
@@ -125,12 +108,12 @@ public:
     static_assert(
         KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
     assert(source_values.extent(0) == _src_size);
-    return _mlsc.apply(space, _comms.distributeView(space, source_values));
+    return _mlsc.apply(space, _comms.distribute(space, source_values));
   }
 
 private:
   Details::MovingLeastSquaresComputation<ValueType, MemorySpace> _mlsc;
-  MPIComms<MemorySpace> _comms;
+  Details::DistributedTreePostQueryComms<MemorySpace> _comms;
   std::size_t _num_neighbors;
   std::size_t _src_size;
   std::size_t _tgt_size;

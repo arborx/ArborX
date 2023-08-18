@@ -15,8 +15,6 @@
 
 #include <Kokkos_Core.hpp>
 
-#include <cassert>
-
 #include "DetailsSymmetricPseudoInverseSVD.hpp"
 
 namespace Details
