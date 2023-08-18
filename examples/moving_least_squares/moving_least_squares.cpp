@@ -13,6 +13,8 @@
 // (https://github.com/ORNL-CEES/DataTransferKit)
 // with MLS resolution from
 // (http://dx.doi.org/10.1016/j.jcp.2015.11.055)
+// and
+// (A conservative mesh-free approach for fluid-structure interface problems)
 
 #include <ArborX.hpp>
 
@@ -20,7 +22,7 @@
 
 #include <sstream>
 
-#include "mls.hpp"
+#include "MovingLeastSquares.hpp"
 #include <mpi.h>
 
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
@@ -99,8 +101,9 @@ int main(int argc, char *argv[])
   Kokkos::deep_copy(space, target_points, target_points_host);
 
   // Create the transform from a point cloud to another
-  MLS<float, MVPolynomialBasis_3D, RBFWendland_0, MemorySpace> mls(
-      mpi_comm, space, source_points, target_points);
+  MovingLeastSquares<MemorySpace, float> mls(
+      mpi_comm, space, source_points, target_points, MVPolynomialBasis_3D{},
+      RBFWendland_0{});
 
   // Compute source values
   Kokkos::View<float *, MemorySpace> source_values("Example::source_values",

@@ -20,7 +20,7 @@
 namespace Details
 {
 
-template <typename CoefficientType, typename MemorySpace>
+template <typename MemorySpace, typename CoefficientType>
 class MovingLeastSquaresComputation
 {
 public:
