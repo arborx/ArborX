@@ -38,6 +38,7 @@ constexpr float hy = Ly / (ny - 1);
 using Point = ArborX::ExperimentalHyperGeometry::Point<2>;
 using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<2>;
 
+#ifdef PRECOMPUTE_MAPPING
 // The Mapping class stores the mapping from a unit triangle to a given triangle
 // allowing for computing the barycentric coordinates for a given point.
 struct Mapping
@@ -78,6 +79,7 @@ struct Mapping
     return {1 - alpha_coeff - beta_coeff, alpha_coeff, beta_coeff};
   }
 };
+#endif
 
 // Store the points that represent the queries.
 template <typename MemorySpace>
@@ -137,10 +139,12 @@ public:
         Kokkos::view_alloc(execution_space, Kokkos::WithoutInitializing,
                            "Example::triangles"),
         2 * n);
+#ifdef PRECOMPUTE_MAPPING
     _mappings = Kokkos::View<Mapping *, MemorySpace>(
         Kokkos::view_alloc(execution_space, Kokkos::WithoutInitializing,
                            "Example::mappings"),
         2 * n);
+#endif
 
     Kokkos::parallel_for(
         Kokkos::MDRangePolicy<Kokkos::Rank<2>, ExecutionSpace>(
@@ -154,10 +158,12 @@ public:
           auto index = [](int i, int j) { return i + j * nx; };
 
           _triangles[2 * index(i, j)] = {tl, bl, br};
-          _mappings[2 * index(i, j)] = Mapping(_triangles[2 * index(i, j)]);
           _triangles[2 * index(i, j) + 1] = {tl, br, tr};
+#ifdef PRECOMPUTE_MAPPING
+          _mappings[2 * index(i, j)] = Mapping(_triangles[2 * index(i, j)]);
           _mappings[2 * index(i, j) + 1] =
               Mapping(_triangles[2 * index(i, j) + 1]);
+#endif
         });
   }
 
@@ -168,14 +174,18 @@ public:
     return _triangles(i);
   }
 
+#ifdef PRECOMPUTE_MAPPING
   KOKKOS_FUNCTION Mapping const &get_mapping(int i) const
   {
     return _mappings(i);
   }
+#endif
 
 private:
   Kokkos::View<Triangle *, MemorySpace> _triangles;
+#ifdef PRECOMPUTE_MAPPING
   Kokkos::View<Mapping *, MemorySpace> _mappings;
+#endif
 };
 
 // For creating the bounding volume hierarchy given a Triangles object, we
@@ -244,14 +254,45 @@ public:
   {
     Point const &point = getGeometry(getPredicate(query));
     auto query_index = ArborX::getData(query);
+    auto triangle_index = primitive.index;
 
-    auto const coeffs = _triangles.get_mapping(primitive.index)
+#ifdef PRECOMPUTE_MAPPING
+    auto const coeffs = _triangles.get_mapping(triangle_index)
                             .get_barycentric_coordinates(point);
+#else
+    Triangle const &triangle = _triangles(triangle_index);
+    auto const &a = triangle.a;
+    auto const &b = triangle.b;
+    auto const &c = triangle.c;
+
+    // Find coefficients alpha and beta such that
+    // x = a + alpha * (b - a) + beta * (c - a)
+    //   = (1 - alpha - beta) * a + alpha * b + beta * c
+    // recognizing the linear system
+    // ((b - a) (c - a)) (alpha beta)^T = (x - a)
+    float u[2] = {b[0] - a[0], b[1] - a[1]};
+    float v[2] = {c[0] - a[0], c[1] - a[1]};
+    float const det = v[1] * u[0] - v[0] * u[1];
+    if (det == 0)
+      Kokkos::abort("Degenerate triangles are not supported!");
+    float const inv_det = 1.f / det;
+
+    float alpha[2] = {v[1] * inv_det, -v[0] * inv_det};
+    float beta[2] = {-u[1] * inv_det, u[0] * inv_det};
+
+    float alpha_coeff =
+        alpha[0] * (point[0] - a[0]) + alpha[1] * (point[1] - a[1]);
+    float beta_coeff =
+        beta[0] * (point[0] - a[0]) + beta[1] * (point[1] - a[1]);
+
+    Kokkos::Array<float, 3> coeffs = {1 - alpha_coeff - beta_coeff, alpha_coeff,
+                                      beta_coeff};
+#endif
     bool intersects = coeffs[0] >= 0 && coeffs[1] >= 0 && coeffs[2] >= 0;
 
     if (intersects)
     {
-      _offsets(query_index) = primitive.index;
+      _offsets(query_index) = triangle_index;
       _coefficients(query_index) = coeffs;
       return ArborX::CallbackTreeTraversalControl::early_exit;
     }
