@@ -20,21 +20,15 @@
 
 #include <Kokkos_Core.hpp>
 
+#include <limits>
 #include <sstream>
 
+#include "DetailsRadialBasisFunctions.hpp"
 #include "MovingLeastSquares.hpp"
 #include <mpi.h>
 
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
 using MemorySpace = ExecutionSpace::memory_space;
-
-struct RBFWendland_0
-{
-  KOKKOS_INLINE_FUNCTION static float apply(float x)
-  {
-    return (1.f - x) * (1.f - x);
-  }
-};
 
 struct MVPolynomialBasis_3D
 {
@@ -51,7 +45,7 @@ struct MVPolynomialBasis_3D
 // Function to approximate
 KOKKOS_INLINE_FUNCTION float manufactured_solution(ArborX::Point const &p)
 {
-  return Kokkos::sin(p[0]) * p[2] + p[1];
+  return p[2] + p[1];
 }
 
 int main(int argc, char *argv[])
@@ -103,7 +97,7 @@ int main(int argc, char *argv[])
   // Create the transform from a point cloud to another
   MovingLeastSquares<MemorySpace, float> mls(
       mpi_comm, space, source_points, target_points, MVPolynomialBasis_3D{},
-      RBFWendland_0{});
+      Details::Wendland<0>{});
 
   // Compute source values
   Kokkos::View<float *, MemorySpace> source_values("Example::source_values",

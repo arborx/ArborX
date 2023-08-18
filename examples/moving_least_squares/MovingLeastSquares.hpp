@@ -62,10 +62,10 @@ template <typename MemorySpace, typename FloatingCalculationType = float>
 class MovingLeastSquares
 {
 public:
-  template <typename ExecustionSpace, typename PolynomialBasis,
+  template <typename ExecutionSpace, typename PolynomialBasis,
             typename RadialBasisFunction, typename SourcePoints,
             typename TargetPoints>
-  MovingLeastSquares(MPI_Comm comm, ExecustionSpace const &space,
+  MovingLeastSquares(MPI_Comm comm, ExecutionSpace const &space,
                      SourcePoints const &source_points,
                      TargetPoints const &target_points,
                      PolynomialBasis const &pb, RadialBasisFunction const &rbf,
