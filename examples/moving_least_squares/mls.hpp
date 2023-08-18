@@ -18,7 +18,7 @@
 
 #include <cassert>
 
-#include "mls_computation.hpp"
+#include "DetailsMovingLeastSquaresComputation.hpp"
 #include "mpi_comms.hpp"
 
 template <typename Points>
@@ -113,8 +113,8 @@ public:
     auto local_source_points = _comms.distributeArborX(space, source_points);
 
     // Compute the internal MLS
-    _mlsc = MLSComputation<ValueType, PolynomialBasis, RBF, MemorySpace>(
-        space, local_source_points, target_points);
+    _mlsc = Details::MovingLeastSquaresComputation<ValueType, MemorySpace>(
+        space, local_source_points, target_points, PolynomialBasis{}, RBF{});
   }
 
   template <typename ExecutionSpace>
@@ -129,7 +129,7 @@ public:
   }
 
 private:
-  MLSComputation<ValueType, PolynomialBasis, RBF, MemorySpace> _mlsc;
+  Details::MovingLeastSquaresComputation<ValueType, MemorySpace> _mlsc;
   MPIComms<MemorySpace> _comms;
   std::size_t _num_neighbors;
   std::size_t _src_size;

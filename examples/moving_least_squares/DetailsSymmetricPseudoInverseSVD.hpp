@@ -11,8 +11,6 @@
 
 #pragma once
 
-#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
-
 #include <Kokkos_Core.hpp>
 
 #include <cassert>
