@@ -62,10 +62,14 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     }
     else
     {
-      Kokkos::parallel_for("ArborX::TreeTraversal::spatial",
-                           Kokkos::RangePolicy<ExecutionSpace>(
-                               space, 0, Access::size(predicates)),
-                           *this);
+      Kokkos::RangePolicy<ExecutionSpace> policy(space, 0,
+                                                 Access::size(predicates));
+      // FIXME_SYCL
+#ifdef KOKKOS_ENABLE_SYCL
+      if constexpr (std::is_same_v<ExecutionSpace, Kokkos::Experimental::SYCL>)
+        policy.set_chunk_size(1024);
+#endif
+      Kokkos::parallel_for("ArborX::TreeTraversal::spatial", policy, *this);
     }
   }
 
