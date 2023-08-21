@@ -77,8 +77,8 @@ int main(int argc, char *argv[])
   std::size_t thickness = cube_side / mpi_size;
   Kokkos::parallel_for(
       "Example::source_points_init",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>>(space, {0, 0, 0},
-                                             {cube_side, cube_side, thickness}),
+      Kokkos::MDRangePolicy<ExecutionSpace, Kokkos::Rank<3>>(
+          space, {0, 0, 0}, {cube_side, cube_side, thickness}),
       KOKKOS_LAMBDA(int const i, int const j, int const k) {
         source_points(i * cube_side * thickness + j * thickness +
                       k) = ArborX::Point{

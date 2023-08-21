@@ -78,8 +78,8 @@ symmetricPseudoInverseSVD(ExecutionSpace const &space, Matrices const &mats)
       mats.layout());
   Kokkos::parallel_for(
       "Example::SPISVD::ES_U_init",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>>(space, {0, 0, 0},
-                                             {num_matrices, size, size}),
+      Kokkos::MDRangePolicy<ExecutionSpace, Kokkos::Rank<3>>(
+          space, {0, 0, 0}, {num_matrices, size, size}),
       KOKKOS_LAMBDA(int const i, int const j, int const k) {
         es(i, j, k) = value_t(mats(i, j, k));
         u(i, j, k) = value_t((j == k));
@@ -184,8 +184,8 @@ symmetricPseudoInverseSVD(ExecutionSpace const &space, Matrices const &mats)
       mats.layout());
   Kokkos::parallel_for(
       "Example::SPISVD::inv_fill",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>>(space, {0, 0, 0},
-                                             {num_matrices, size, size}),
+      Kokkos::MDRangePolicy<ExecutionSpace, Kokkos::Rank<3>>(
+          space, {0, 0, 0}, {num_matrices, size, size}),
       KOKKOS_LAMBDA(int const i, int const j, int const k) {
         value_t value = 0;
         for (int l = 0; l < size; l++)

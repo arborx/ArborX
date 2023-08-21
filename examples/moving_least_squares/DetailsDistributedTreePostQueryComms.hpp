@@ -57,21 +57,10 @@ public:
         data_len);
 
     // Split indices/ranks
-    Kokkos::View<int *, MemorySpace> indices(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "Example::DTPQC::indices"),
-        data_len);
-    Kokkos::View<int *, MemorySpace> ranks(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "Example::DTPQC::ranks"),
-        data_len);
-    Kokkos::parallel_for(
-        "Example::DTPQC::indices_and_ranks_split",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, data_len),
-        KOKKOS_LAMBDA(int const i) {
-          indices(i) = indices_and_ranks(i).index;
-          ranks(i) = indices_and_ranks(i).rank;
-        });
+    Kokkos::Array<Kokkos::View<int *, MemorySpace>, 2> split_indices_ranks =
+        indicesAndRanksSplit(space, indices_and_ranks, data_len);
+    Kokkos::View<int *, MemorySpace> indices = split_indices_ranks[0];
+    Kokkos::View<int *, MemorySpace> ranks = split_indices_ranks[1];
 
     // Computes what will be common to every exchange. Every time
     // someone wants to get the value from the same set of elements,
@@ -176,6 +165,32 @@ public:
         });
 
     return output;
+  }
+
+  template <typename ExecutionSpace, typename IndicesAndRanks>
+  static Kokkos::Array<Kokkos::View<int *, MemorySpace>, 2>
+  indicesAndRanksSplit(ExecutionSpace const &space,
+                       IndicesAndRanks const &indices_and_ranks,
+                       std::size_t data_len)
+  {
+    Kokkos::View<int *, MemorySpace> indices(
+        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                           "Example::DTPQC::indices"),
+        data_len);
+    Kokkos::View<int *, MemorySpace> ranks(
+        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                           "Example::DTPQC::ranks"),
+        data_len);
+
+    Kokkos::parallel_for(
+        "Example::DTPQC::indices_and_ranks_split",
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, data_len),
+        KOKKOS_LAMBDA(int const i) {
+          indices(i) = indices_and_ranks(i).index;
+          ranks(i) = indices_and_ranks(i).rank;
+        });
+
+    return {{indices, ranks}};
   }
 
 private:
