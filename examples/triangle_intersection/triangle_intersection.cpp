@@ -71,8 +71,7 @@ struct Mapping
     p0 = a;
   }
 
-  KOKKOS_FUNCTION Kokkos::Array<float, 3>
-  get_barycentric_coordinates(Point p) const
+  KOKKOS_FUNCTION ArborX::Point get_barycentric_coordinates(Point p) const
   {
     float alpha_coeff = alpha[0] * (p[0] - p0[0]) + alpha[1] * (p[1] - p0[1]);
     float beta_coeff = beta[0] * (p[0] - p0[0]) + beta[1] * (p[1] - p0[1]);
@@ -235,7 +234,7 @@ public:
   TriangleIntersectionCallback(
       Triangles<MemorySpace> triangles,
       Kokkos::View<int *, MemorySpace> offsets,
-      Kokkos::View<Kokkos::Array<float, 3> *, MemorySpace> coefficients)
+      Kokkos::View<ArborX::Point *, MemorySpace> coefficients)
       : _triangles(triangles)
       , _offsets(offsets)
       , _coefficients(coefficients)
@@ -285,8 +284,8 @@ public:
     float beta_coeff =
         beta[0] * (point[0] - a[0]) + beta[1] * (point[1] - a[1]);
 
-    Kokkos::Array<float, 3> coeffs = {1 - alpha_coeff - beta_coeff, alpha_coeff,
-                                      beta_coeff};
+    ArborX::Point coeffs = {1 - alpha_coeff - beta_coeff, alpha_coeff,
+                            beta_coeff};
 #endif
     bool intersects = coeffs[0] >= 0 && coeffs[1] >= 0 && coeffs[2] >= 0;
 
@@ -302,7 +301,7 @@ public:
 private:
   Triangles<MemorySpace> _triangles;
   Kokkos::View<int *, MemorySpace> _offsets;
-  Kokkos::View<Kokkos::Array<float, 3> *, MemorySpace> _coefficients;
+  Kokkos::View<ArborX::Point *, MemorySpace> _coefficients;
 };
 
 // Now that we have encapsulated the objects and queries to be used within the
@@ -330,7 +329,7 @@ int main()
   // Execute the queries
   int const n = points.size();
   Kokkos::View<int *, MemorySpace> offsets("Example::offsets", n);
-  Kokkos::View<Kokkos::Array<float, 3> *, MemorySpace> coefficients(
+  Kokkos::View<ArborX::Point *, MemorySpace> coefficients(
       "Example::coefficients", n);
 
   tree.query(execution_space, points,
