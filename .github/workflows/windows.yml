@@ -45,3 +45,4 @@ jobs:
       run: |
         cmake --build build --target install -- -m
         cd build
+        ctest -C Debug -V
