@@ -17,6 +17,7 @@
 
 #include "DetailsDistributedTreePostQueryComms.hpp"
 #include "DetailsMovingLeastSquaresComputation.hpp"
+#include "DetailsPolynomialBasis.hpp"
 
 namespace Details
 {
@@ -62,14 +63,15 @@ template <typename MemorySpace, typename FloatingCalculationType = float>
 class MovingLeastSquares
 {
 public:
-  template <typename ExecutionSpace, typename PolynomialBasis,
-            typename RadialBasisFunction, typename SourcePoints,
+  template <typename ExecutionSpace, typename RadialBasisFunction,
+            typename PolynomialDegree, typename SourcePoints,
             typename TargetPoints>
-  MovingLeastSquares(MPI_Comm comm, ExecutionSpace const &space,
-                     SourcePoints const &source_points,
-                     TargetPoints const &target_points,
-                     PolynomialBasis const &pb, RadialBasisFunction const &rbf,
-                     std::size_t num_neighbors = PolynomialBasis::size)
+  MovingLeastSquares(
+      MPI_Comm comm, ExecutionSpace const &space,
+      SourcePoints const &source_points, TargetPoints const &target_points,
+      PolynomialDegree const &pd, RadialBasisFunction const &rbf,
+      std::size_t num_neighbors = Details::polynomialBasisSizeFromAT<
+          SourcePoints, PolynomialDegree::value>)
   {
     // Organize the source points as a tree and create the predicates
     ArborX::DistributedTree<MemorySpace> source_tree(comm, space,
@@ -91,7 +93,7 @@ public:
     // Finally, compute the local MLS for the local target points
     _mlsc = Details::MovingLeastSquaresComputation<MemorySpace,
                                                    FloatingCalculationType>(
-        space, local_source_points, target_points, pb, rbf);
+        space, local_source_points, target_points, pd, rbf);
   }
 
   template <typename ExecutionSpace, typename SourceValues>

@@ -15,6 +15,7 @@
 
 #include <Kokkos_Core.hpp>
 
+#include "DetailsPolynomialBasis.hpp"
 #include "DetailsSymmetricPseudoInverseSVD.hpp"
 
 namespace Details
@@ -26,13 +27,13 @@ class MovingLeastSquaresComputation
 public:
   MovingLeastSquaresComputation() = default;
 
-  template <typename ExecutionSpace, typename PolynomialBasis,
+  template <typename ExecutionSpace, typename PolynomialDegree,
             typename RadialBasisFunction, typename SourcePoints,
             typename TargetPoints>
   MovingLeastSquaresComputation(ExecutionSpace const &space,
                                 SourcePoints const &source_points,
                                 TargetPoints const &target_points,
-                                PolynomialBasis const &pb,
+                                PolynomialDegree const &pd,
                                 RadialBasisFunction const &rbf)
   {
     using src_acc = ArborX::AccessTraits<SourcePoints, ArborX::PrimitivesTag>;
@@ -40,6 +41,9 @@ public:
 
     _num_targets = tgt_acc::size(target_points);
     _num_neighbors = src_acc::size(source_points) / _num_targets;
+
+    static constexpr std::size_t polynomialBasisSize =
+        polynomialBasisSizeFromAT<SourcePoints, PolynomialDegree::value>;
 
     // We center each group of points around the target as it ables us to
     // optimize the final computation and transfer point types into ours
@@ -62,12 +66,12 @@ public:
     // Instead of relying on an external type, could it be produced
     // automatically?
     Kokkos::View<CoefficientType ***, MemorySpace> p = vandermondeComputation(
-        space, source_ref_target, _num_targets, _num_neighbors, pb);
+        space, source_ref_target, _num_targets, _num_neighbors, pd);
 
     // From the weight and Vandermonde matrices, we can compute the moment
     // matrix as A = P^T.PHI.P
-    Kokkos::View<CoefficientType ***, MemorySpace> a =
-        momentComputation(space, phi, p, _num_targets, _num_neighbors, pb);
+    Kokkos::View<CoefficientType ***, MemorySpace> a = momentComputation(
+        space, phi, p, _num_targets, _num_neighbors, polynomialBasisSize);
 
     // We then take the pseudo-inverse of that moment matrix.
     Kokkos::View<CoefficientType ***, MemorySpace> a_inv =
@@ -75,7 +79,7 @@ public:
 
     // We finally build the coefficients as C = [1 0 0 ...].A^-1.P^T.PHI
     _coeffs = coefficientsComputation(space, phi, p, a_inv, _num_targets,
-                                      _num_neighbors, pb);
+                                      _num_neighbors, polynomialBasisSize);
   }
 
   template <typename ExecutionSpace, typename SourceValues>
@@ -203,26 +207,30 @@ public:
     return phi;
   }
 
-  template <typename ExecutionSpace, typename PolynomialBasis>
+  template <typename ExecutionSpace, typename PolynomialDegree>
   static Kokkos::View<CoefficientType ***, MemorySpace> vandermondeComputation(
       ExecutionSpace const &space,
       Kokkos::View<ArborX::Point **, MemorySpace> const &source_ref_target,
       std::size_t num_targets, std::size_t num_neighbors,
-      PolynomialBasis const &)
+      PolynomialDegree const &)
   {
+    static constexpr std::size_t polynomialBasisSize =
+        polynomialBasisSizeFromT<ArborX::Point, PolynomialDegree::value>;
+
     Kokkos::View<CoefficientType ***, MemorySpace> p(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
                            "Example::MLSC::vandermonde"),
-        num_targets, num_neighbors, PolynomialBasis::size);
+        num_targets, num_neighbors, polynomialBasisSize);
 
     Kokkos::parallel_for(
         "Example::MLSC::vandermonde_computation",
         Kokkos::MDRangePolicy<ExecutionSpace, Kokkos::Rank<2>>(
             space, {0, 0}, {num_targets, num_neighbors}),
         KOKKOS_LAMBDA(int const i, int const j) {
-          auto basis = PolynomialBasis::basis(source_ref_target(i, j));
+          auto basis = polynomialBasis<ArborX::Point, PolynomialDegree::value>(
+              source_ref_target(i, j));
 
-          for (int k = 0; k < PolynomialBasis::size; k++)
+          for (int k = 0; k < polynomialBasisSize; k++)
           {
             p(i, j, k) = basis[k];
           }
@@ -231,24 +239,24 @@ public:
     return p;
   }
 
-  template <typename ExecutionSpace, typename PolynomialBasis>
+  template <typename ExecutionSpace>
   static Kokkos::View<CoefficientType ***, MemorySpace>
   momentComputation(ExecutionSpace const &space,
                     Kokkos::View<CoefficientType **, MemorySpace> const &phi,
                     Kokkos::View<CoefficientType ***, MemorySpace> const &p,
                     std::size_t num_targets, std::size_t num_neighbors,
-                    PolynomialBasis const &)
+                    std::size_t polynomialBasisSize)
   {
     Kokkos::View<CoefficientType ***, MemorySpace> a(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
                            "Example::MLSC::moment"),
-        num_targets, PolynomialBasis::size, PolynomialBasis::size);
+        num_targets, polynomialBasisSize, polynomialBasisSize);
 
     Kokkos::parallel_for(
         "Example::MLSC::moment_computation",
         Kokkos::MDRangePolicy<ExecutionSpace, Kokkos::Rank<3>>(
             space, {0, 0, 0},
-            {num_targets, PolynomialBasis::size, PolynomialBasis::size}),
+            {num_targets, polynomialBasisSize, polynomialBasisSize}),
         KOKKOS_LAMBDA(int const i, int const j, int const k) {
           CoefficientType tmp = 0;
 
@@ -263,14 +271,14 @@ public:
     return a;
   }
 
-  template <typename ExecutionSpace, typename PolynomialBasis>
+  template <typename ExecutionSpace>
   static Kokkos::View<CoefficientType **, MemorySpace> coefficientsComputation(
       ExecutionSpace const &space,
       Kokkos::View<CoefficientType **, MemorySpace> const &phi,
       Kokkos::View<CoefficientType ***, MemorySpace> const &p,
       Kokkos::View<CoefficientType ***, MemorySpace> const &a_inv,
       std::size_t num_targets, std::size_t num_neighbors,
-      PolynomialBasis const &)
+      std::size_t polynomialBasisSize)
   {
     Kokkos::View<CoefficientType **, MemorySpace> coeffs(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
@@ -284,7 +292,7 @@ public:
         KOKKOS_LAMBDA(int const i, int const j) {
           CoefficientType tmp = 0;
 
-          for (int k = 0; k < PolynomialBasis::size; k++)
+          for (int k = 0; k < polynomialBasisSize; k++)
           {
             tmp += a_inv(i, 0, k) * p(i, j, k) * phi(i, j);
           }

@@ -30,18 +30,6 @@
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
 using MemorySpace = ExecutionSpace::memory_space;
 
-struct MVPolynomialBasis_3D
-{
-  static constexpr std::size_t size = 10;
-
-  KOKKOS_INLINE_FUNCTION static Kokkos::Array<float, size>
-  basis(ArborX::Point const &p)
-  {
-    return {{1.f, p[0], p[1], p[2], p[0] * p[0], p[0] * p[1], p[0] * p[2],
-             p[1] * p[1], p[1] * p[2], p[2] * p[2]}};
-  }
-};
-
 // Function to approximate
 KOKKOS_INLINE_FUNCTION float manufactured_solution(ArborX::Point const &p)
 {
@@ -95,9 +83,9 @@ int main(int argc, char *argv[])
   Kokkos::deep_copy(space, target_points, target_points_host);
 
   // Create the transform from a point cloud to another
-  MovingLeastSquares<MemorySpace, float> mls(
-      mpi_comm, space, source_points, target_points, MVPolynomialBasis_3D{},
-      Details::Wendland<0>{});
+  MovingLeastSquares<MemorySpace, float> mls(mpi_comm, space, source_points,
+                                             target_points, Details::degree<2>,
+                                             Details::wendland<0>);
 
   // Compute source values
   Kokkos::View<float *, MemorySpace> source_values("Example::source_values",
