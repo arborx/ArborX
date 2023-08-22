@@ -21,6 +21,16 @@
 namespace Details
 {
 
+template <typename Point>
+using PointEquivalence = ArborX::ExperimentalHyperGeometry::Point<
+    ArborX::GeometryTraits::dimension_v<Point>,
+    typename ArborX::GeometryTraits::coordinate_type<Point>::type>;
+
+template <typename Points>
+using PointEquivalenceFromAT =
+    PointEquivalence<typename ArborX::Details::AccessTraitsHelper<
+        ArborX::AccessTraits<Points, ArborX::PrimitivesTag>>::type>;
+
 template <typename MemorySpace, typename CoefficientType>
 class MovingLeastSquaresComputation
 {
@@ -38,6 +48,7 @@ public:
   {
     using src_acc = ArborX::AccessTraits<SourcePoints, ArborX::PrimitivesTag>;
     using tgt_acc = ArborX::AccessTraits<TargetPoints, ArborX::PrimitivesTag>;
+    using point_t = PointEquivalenceFromAT<SourcePoints>;
 
     _num_targets = tgt_acc::size(target_points);
     _num_neighbors = src_acc::size(source_points) / _num_targets;
@@ -48,7 +59,7 @@ public:
     // We center each group of points around the target as it ables us to
     // optimize the final computation and transfer point types into ours
     // TODO: Use multidimensional points!
-    Kokkos::View<ArborX::Point **, MemorySpace> source_ref_target =
+    Kokkos::View<point_t **, MemorySpace> source_ref_target =
         sourceRefTargetFill(space, source_points, target_points, _num_targets,
                             _num_neighbors);
 
@@ -115,7 +126,7 @@ public:
 
   template <typename ExecutionSpace, typename SourcePoints,
             typename TargetPoints>
-  static Kokkos::View<ArborX::Point **, MemorySpace>
+  static Kokkos::View<PointEquivalenceFromAT<SourcePoints> **, MemorySpace>
   sourceRefTargetFill(ExecutionSpace const &space,
                       SourcePoints const &source_points,
                       TargetPoints const &target_points,
@@ -123,8 +134,9 @@ public:
   {
     using src_acc = ArborX::AccessTraits<SourcePoints, ArborX::PrimitivesTag>;
     using tgt_acc = ArborX::AccessTraits<TargetPoints, ArborX::PrimitivesTag>;
+    using point_t = PointEquivalenceFromAT<SourcePoints>;
 
-    Kokkos::View<ArborX::Point **, MemorySpace> source_ref_target(
+    Kokkos::View<point_t **, MemorySpace> source_ref_target(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
                            "Example::MLSC::source_ref_target"),
         num_targets, num_neighbors);
@@ -136,25 +148,26 @@ public:
         KOKKOS_LAMBDA(int const i, int const j) {
           auto src = src_acc::get(source_points, i * num_neighbors + j);
           auto tgt = tgt_acc::get(target_points, i);
-          source_ref_target(i, j) = ArborX::Point{
-              src[0] - tgt[0],
-              src[1] - tgt[1],
-              src[2] - tgt[2],
-          };
+          point_t t{};
+
+          for (int k = 0; k < ArborX::GeometryTraits::dimension_v<point_t>; k++)
+            t[k] = src[k] - tgt[k];
+
+          source_ref_target(i, j) = t;
         });
 
     return source_ref_target;
   }
 
-  template <typename ExecutionSpace>
-  static Kokkos::View<CoefficientType *, MemorySpace> radiiComputation(
-      ExecutionSpace const &space,
-      Kokkos::View<ArborX::Point **, MemorySpace> const &source_ref_target,
-      std::size_t num_targets, std::size_t num_neighbors)
+  template <typename ExecutionSpace, typename Point>
+  static Kokkos::View<CoefficientType *, MemorySpace>
+  radiiComputation(ExecutionSpace const &space,
+                   Kokkos::View<Point **, MemorySpace> const &source_ref_target,
+                   std::size_t num_targets, std::size_t num_neighbors)
   {
     constexpr CoefficientType epsilon =
         std::numeric_limits<CoefficientType>::epsilon();
-    constexpr ArborX::Point origin = ArborX::Point{0, 0, 0};
+    constexpr Point origin{};
 
     Kokkos::View<CoefficientType *, MemorySpace> radii(
         Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::MLSC::radii"),
@@ -180,15 +193,16 @@ public:
     return radii;
   }
 
-  template <typename ExecutionSpace, typename RadialBasisFunction>
+  template <typename ExecutionSpace, typename RadialBasisFunction,
+            typename Point>
   static Kokkos::View<CoefficientType **, MemorySpace> weightComputation(
       ExecutionSpace const &space,
-      Kokkos::View<ArborX::Point **, MemorySpace> const &source_ref_target,
+      Kokkos::View<Point **, MemorySpace> const &source_ref_target,
       Kokkos::View<CoefficientType *, MemorySpace> const &radii,
       std::size_t num_targets, std::size_t num_neighbors,
       RadialBasisFunction const &)
   {
-    constexpr ArborX::Point origin = ArborX::Point{0, 0, 0};
+    constexpr Point origin{};
 
     Kokkos::View<CoefficientType **, MemorySpace> phi(
         Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::MLSC::phi"),
@@ -207,15 +221,15 @@ public:
     return phi;
   }
 
-  template <typename ExecutionSpace, typename PolynomialDegree>
+  template <typename ExecutionSpace, typename PolynomialDegree, typename Point>
   static Kokkos::View<CoefficientType ***, MemorySpace> vandermondeComputation(
       ExecutionSpace const &space,
-      Kokkos::View<ArborX::Point **, MemorySpace> const &source_ref_target,
+      Kokkos::View<Point **, MemorySpace> const &source_ref_target,
       std::size_t num_targets, std::size_t num_neighbors,
       PolynomialDegree const &)
   {
     static constexpr std::size_t polynomialBasisSize =
-        polynomialBasisSizeFromT<ArborX::Point, PolynomialDegree::value>;
+        polynomialBasisSizeFromT<Point, PolynomialDegree::value>;
 
     Kokkos::View<CoefficientType ***, MemorySpace> p(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
@@ -227,7 +241,7 @@ public:
         Kokkos::MDRangePolicy<ExecutionSpace, Kokkos::Rank<2>>(
             space, {0, 0}, {num_targets, num_neighbors}),
         KOKKOS_LAMBDA(int const i, int const j) {
-          auto basis = polynomialBasis<ArborX::Point, PolynomialDegree::value>(
+          auto basis = polynomialBasis<Point, PolynomialDegree::value>(
               source_ref_target(i, j));
 
           for (int k = 0; k < polynomialBasisSize; k++)
