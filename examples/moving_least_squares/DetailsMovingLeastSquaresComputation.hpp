@@ -105,7 +105,9 @@ public:
     Kokkos::View<CoefficientType **, MemorySpace> coeffs = _coeffs;
 
     Kokkos::View<value_t *, memory_space> target_values(
-        "Example::MLSC::target_values", _num_targets);
+        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                           "Example::MLSC::target_values"),
+        _num_targets);
 
     Kokkos::parallel_for(
         "Example::MLSC::target_interpolation",

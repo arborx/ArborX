@@ -20,9 +20,12 @@
 
 #include <Kokkos_Core.hpp>
 
+#include <iostream>
 #include <limits>
-#include <sstream>
+#include <tuple>
+#include <vector>
 
+#include "../../benchmarks/point_clouds/point_clouds.hpp"
 #include "DetailsRadialBasisFunctions.hpp"
 #include "MovingLeastSquares.hpp"
 #include <mpi.h>
@@ -33,7 +36,7 @@ using MemorySpace = ExecutionSpace::memory_space;
 // Function to approximate
 KOKKOS_INLINE_FUNCTION float manufactured_solution(ArborX::Point const &p)
 {
-  return p[2] + p[1];
+  return Kokkos::cos(5 * p[2]) * p[0] + p[1] + 1;
 }
 
 int main(int argc, char *argv[])
@@ -41,45 +44,64 @@ int main(int argc, char *argv[])
   MPI_Init(&argc, &argv);
   Kokkos::ScopeGuard guard(argc, argv);
 
-  constexpr std::size_t cube_side = 20;
-  constexpr std::size_t source_points_num = cube_side * cube_side * cube_side;
-  constexpr std::size_t target_points_num = 4;
-
   ExecutionSpace space{};
   MPI_Comm mpi_comm = MPI_COMM_WORLD;
   int mpi_size, mpi_rank;
   MPI_Comm_size(mpi_comm, &mpi_size);
   MPI_Comm_rank(mpi_comm, &mpi_rank);
 
-  std::size_t local_source_points_num = source_points_num / mpi_size;
+  static constexpr std::size_t total_source_points = 1024 * 512;
+  std::size_t local_source_points_num = total_source_points / mpi_size;
+  static constexpr std::size_t total_target_points = 1024;
+  std::size_t local_target_points_num = total_target_points / mpi_size;
+  static constexpr double cube_side = 5;
 
   Kokkos::View<ArborX::Point *, MemorySpace> source_points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::source_points"),
       local_source_points_num);
+  auto source_points_host = Kokkos::create_mirror_view(source_points);
   Kokkos::View<ArborX::Point *, MemorySpace> target_points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::target_points"),
-      target_points_num);
+      local_source_points_num);
   auto target_points_host = Kokkos::create_mirror_view(target_points);
 
-  // Generate source points (Organized within a [-10, 10]^3 cube)
-  std::size_t thickness = cube_side / mpi_size;
-  Kokkos::parallel_for(
-      "Example::source_points_init",
-      Kokkos::MDRangePolicy<ExecutionSpace, Kokkos::Rank<3>>(
-          space, {0, 0, 0}, {cube_side, cube_side, thickness}),
-      KOKKOS_LAMBDA(int const i, int const j, int const k) {
-        source_points(i * cube_side * thickness + j * thickness +
-                      k) = ArborX::Point{
-            20.f * (float(i) / (cube_side - 1) - .5f),
-            20.f * (float(j) / (cube_side - 1) - .5f),
-            20.f * (float(k + thickness * mpi_rank) / (cube_side - 1) - .5f)};
-      });
+  // source and target points are within a 5x5x5 cube
+  if (mpi_rank == 0)
+  {
+    Kokkos::View<ArborX::Point *, Kokkos::HostSpace> all_source_points(
+        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                           "Example::all_source_points"),
+        total_source_points);
+    filledBoxCloud(cube_side / 2, all_source_points);
+    MPI_Scatter(
+        all_source_points.data(), local_source_points_num * 3 * sizeof(float),
+        MPI_BYTE, source_points_host.data(),
+        local_source_points_num * 3 * sizeof(float), MPI_BYTE, 0, mpi_comm);
 
-  // Generate target points
-  target_points_host(0) = ArborX::Point{1.f, 0.f, 1.f};
-  target_points_host(1) = ArborX::Point{5.f, 5.f, 5.f};
-  target_points_host(2) = ArborX::Point{-5.f, 5.f, 3.f};
-  target_points_host(3) = ArborX::Point{1.f, -3.3f, 7.f};
+    Kokkos::View<ArborX::Point *, Kokkos::HostSpace> all_target_points(
+        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                           "Example::all_target_points"),
+        total_target_points);
+    filledBoxCloud(cube_side / 2, all_target_points);
+    MPI_Scatter(
+        all_target_points.data(), local_target_points_num * 3 * sizeof(float),
+        MPI_BYTE, target_points_host.data(),
+        local_target_points_num * 3 * sizeof(float), MPI_BYTE, 0, mpi_comm);
+  }
+  else
+  {
+    MPI_Scatter(nullptr, local_source_points_num * 3 * sizeof(float), MPI_BYTE,
+                source_points_host.data(),
+                local_source_points_num * 3 * sizeof(float), MPI_BYTE, 0,
+                mpi_comm);
+
+    MPI_Scatter(nullptr, local_target_points_num * 3 * sizeof(float), MPI_BYTE,
+                target_points_host.data(),
+                local_target_points_num * 3 * sizeof(float), MPI_BYTE, 0,
+                mpi_comm);
+  }
+
+  Kokkos::deep_copy(space, source_points, source_points_host);
   Kokkos::deep_copy(space, target_points, target_points_host);
 
   // Create the transform from a point cloud to another
@@ -99,41 +121,66 @@ int main(int argc, char *argv[])
 
   // Compute target values from source ones
   auto target_values = mls.apply(space, source_values);
+  auto target_values_host = Kokkos::create_mirror_view(target_values);
+  Kokkos::deep_copy(space, target_values_host, target_values);
 
   // Compute target values via evaluation
   Kokkos::View<float *, MemorySpace> target_values_exact(
-      "Example::target_values_exact", target_points_num);
+      "Example::target_values_exact", local_target_points_num);
   Kokkos::parallel_for(
       "Example::target_evaluation",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, target_points_num),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, local_target_points_num),
       KOKKOS_LAMBDA(int const i) {
         target_values_exact(i) = manufactured_solution(target_points(i));
       });
 
-  // Show difference
-  auto target_values_host = Kokkos::create_mirror_view(target_values);
-  Kokkos::deep_copy(space, target_values_host, target_values);
-  auto target_values_exact_host =
-      Kokkos::create_mirror_view(target_values_exact);
-  Kokkos::deep_copy(space, target_values_exact_host, target_values_exact);
+  // Compute local error
+  static constexpr float epsilon = std::numeric_limits<float>::epsilon();
+  using ErrType = typename Kokkos::MaxLoc<float, std::size_t>::value_type;
+  ErrType error{0, 0};
+  Kokkos::parallel_reduce(
+      "Example::error_computation",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, local_target_points_num),
+      KOKKOS_LAMBDA(int const i, ErrType &loc_error) {
+        float abs_error =
+            Kokkos::abs(target_values(i) - target_values_exact(i));
+        float abs_value = Kokkos::abs(target_values_exact(i)) +
+                          epsilon;
 
-  std::stringstream ss{};
-  float error = 0.f;
-  for (int i = 0; i < target_points_num; i++)
+        if (loc_error.val < abs_error / abs_value)
+        {
+          loc_error.val = abs_error / abs_value;
+          loc_error.loc = i;
+        }
+      },
+      Kokkos::MaxLoc<float, std::size_t>(error));
+
+  std::tuple<float, ArborX::Point, float> error_obj{
+      error.val, target_points_host(error.loc), target_values_host(error.loc)};
+
+  if (mpi_rank == 0)
   {
-    error = Kokkos::max(
-        Kokkos::abs(target_values_host(i) - target_values_exact_host(i)) /
-            Kokkos::abs(target_values_exact_host(i)),
-        error);
+    std::vector<decltype(error_obj)> all_error_obj(mpi_size);
+    MPI_Gather(&error_obj, sizeof(decltype(error_obj)), MPI_BYTE,
+               all_error_obj.data(), sizeof(decltype(error_obj)), MPI_BYTE, 0,
+               mpi_comm);
 
-    ss << mpi_rank << ": ==== Target " << i << '\n'
-       << mpi_rank << ": Interpolation: " << target_values_host(i) << '\n'
-       << mpi_rank << ": Real value   : " << target_values_exact_host(i)
-       << '\n';
+    for (int i = 0; i < mpi_size; i++)
+      if (std::get<0>(error_obj) < std::get<0>(all_error_obj[i]))
+        error_obj = all_error_obj[i];
+
+    float error = std::get<0>(error_obj), approx = std::get<2>(error_obj);
+    auto point = std::get<1>(error_obj);
+    std::cout << "Maximum error: " << error << " at point " << point[0] << ", "
+              << point[1] << ", " << point[2]
+              << "\nTrue value: " << manufactured_solution(point)
+              << "\nComputed: " << approx << std::endl;
   }
-  ss << mpi_rank << ": Maximum relative error: " << error << std::endl;
-
-  std::cout << ss.str();
+  else
+  {
+    MPI_Gather(&error_obj, sizeof(decltype(error_obj)), MPI_BYTE, nullptr,
+               sizeof(decltype(error_obj)), MPI_BYTE, 0, mpi_comm);
+  }
 
   MPI_Finalize();
   return 0;

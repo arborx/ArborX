@@ -50,6 +50,7 @@ KOKKOS_FUNCTION constexpr std::size_t polynomialBasisSize()
 
   return size;
 }
+
 template <typename Point, std::size_t Deg>
 static constexpr std::size_t polynomialBasisSizeFromT =
     polynomialBasisSize<ArborX::GeometryTraits::dimension_v<Point>, Deg>();
