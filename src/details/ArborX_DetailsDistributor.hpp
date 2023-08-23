@@ -278,8 +278,9 @@ public:
             space, std::declval<typename ImportView::memory_space>(),
             std::declval<ExportViewWithoutMemoryTraits>()));
 
-    constexpr int pointer_depth = internal::PointerDepth<
-        typename DestBufferMirrorViewType::traits::data_type>::value;
+    // nvcc-12.2 fails compiling if using DestBufferMirrorViewType here
+    constexpr int pointer_depth =
+        internal::PointerDepth<typename ExportView::data_type>::value;
     DestBufferMirrorViewType dest_buffer_mirror(
         "ArborX::Distributor::doPostsAndWaits::destination_buffer_mirror", 0,
         pointer_depth > 1 ? 0 : KOKKOS_INVALID_INDEX,
