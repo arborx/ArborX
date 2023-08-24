@@ -73,18 +73,30 @@ cmake_dependent_option(ARBORX_ENABLE_GPU_AWARE_MPI
 
 target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/details>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/geometry>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/kokkos_ext>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/cluster>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/cluster/details>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/distributed>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/distributed/details>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/interpolation>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/interpolation/details>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/spatial>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/spatial/details>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/misc>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   $<INSTALL_INTERFACE:include/ArborX>
-  $<INSTALL_INTERFACE:include/ArborX/details>
   $<INSTALL_INTERFACE:include/ArborX/geometry>
   $<INSTALL_INTERFACE:include/ArborX/kokkos_ext>
+  $<INSTALL_INTERFACE:include/ArborX/cluster>
+  $<INSTALL_INTERFACE:include/ArborX/cluster/details>
+  $<INSTALL_INTERFACE:include/ArborX/distributed>
+  $<INSTALL_INTERFACE:include/ArborX/distributed/details>
   $<INSTALL_INTERFACE:include/ArborX/interpolation>
   $<INSTALL_INTERFACE:include/ArborX/interpolation/details>
+  $<INSTALL_INTERFACE:include/ArborX/spatial>
+  $<INSTALL_INTERFACE:include/ArborX/spatial/details>
+  $<INSTALL_INTERFACE:include/ArborX/misc>
 )
 
 install(TARGETS ArborX
