@@ -188,21 +188,8 @@ struct CountCallback
 {
   Kokkos::View<int *, DeviceType> count_;
 
-  template <typename Query>
-  KOKKOS_FUNCTION void operator()(Query const &query, int) const
-  {
-    auto const i = ArborX::getData(query);
-    Kokkos::atomic_increment(&count_(i));
-  }
-};
-
-template <typename DeviceType>
-struct CountCallbackKernelQuery
-{
-  Kokkos::View<int *, DeviceType> count_;
-
-  template <typename Query, typename Primitive>
-  KOKKOS_FUNCTION void operator()(Query const &query, Primitive const &) const
+  template <typename Query, typename Value>
+  KOKKOS_FUNCTION void operator()(Query const &query, Value const &) const
   {
     auto const i = ArborX::getData(query);
     Kokkos::atomic_increment(&count_(i));
@@ -331,7 +318,7 @@ void BM_radius_callback_search_kernel_query(benchmark::State &state,
   {
     Kokkos::View<int *, DeviceType> num_neigh("Testing::num_neigh",
                                               spec.n_queries);
-    CountCallbackKernelQuery<DeviceType> callback{num_neigh};
+    CountCallback<DeviceType> callback{num_neigh};
 
     exec_space.fence();
     auto const start = std::chrono::high_resolution_clock::now();
