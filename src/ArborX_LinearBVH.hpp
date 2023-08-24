@@ -88,6 +88,13 @@ public:
                   std::forward<View>(view), std::forward<Args>(args)...);
   }
 
+  template <typename Predicate, typename Callback>
+  KOKKOS_FUNCTION void kernel_query(Predicate const &predicate,
+                                    Callback const &callback) const
+  {
+    ArborX::kernel_query(*this, predicate, callback);
+  }
+
 private:
   friend struct Details::HappyTreeFriends;
 

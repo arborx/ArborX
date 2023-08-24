@@ -331,7 +331,7 @@ void BM_radius_callback_search_kernel_query(benchmark::State &state,
           const auto &query =
               ArborX::AccessTraits<decltype(queries),
                                    ArborX::PredicatesTag>::get(queries, i);
-          ArborX::kernel_query(index, query, callback);
+          index.kernel_query(query, callback);
         });
 
     exec_space.fence();
