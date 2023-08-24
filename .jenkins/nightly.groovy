@@ -26,7 +26,7 @@ pipeline {
                         dir('source-kokkos') {
                             sh 'git rev-parse --short HEAD'
                         }
-                        sh 'cmake -S source-kokkos -B build-kokkos -D CMAKE_INSTALL_PREFIX=$PWD/install-kokkos $CMAKE_OPTIONS -D Kokkos_ENABLE_CUDA=ON -D Kokkos_ENABLE_CUDA_LAMBDA=ON'
+                        sh 'cmake -S source-kokkos -B build-kokkos -D CMAKE_INSTALL_PREFIX=$PWD/install-kokkos $CMAKE_OPTIONS -DKokkos_ENABLE_DEPRECATION_WARNINGS=OFF -D Kokkos_ENABLE_CUDA=ON -D Kokkos_ENABLE_CUDA_LAMBDA=ON'
                         sh 'cmake --build build-kokkos --parallel 8'
                         sh 'cmake --install build-kokkos'
                         // Disable tests as Ubuntu 22.04 comes with Boost 1.74 which causes build issues with CUDA
@@ -68,7 +68,7 @@ pipeline {
                         dir('source-kokkos') {
                             sh 'git rev-parse --short HEAD'
                         }
-                        sh 'cmake -S source-kokkos -B build-kokkos -D CMAKE_INSTALL_PREFIX=$PWD/install-kokkos $CMAKE_OPTIONS -D Kokkos_ENABLE_HIP=ON -DKokkos_ARCH_VEGA908=ON'
+                        sh 'cmake -S source-kokkos -B build-kokkos -D CMAKE_INSTALL_PREFIX=$PWD/install-kokkos $CMAKE_OPTIONS -DKokkos_ENABLE_DEPRECATION_WARNINGS=OFF -D Kokkos_ENABLE_HIP=ON -DKokkos_ARCH_VEGA908=ON'
                         sh 'cmake --build build-kokkos --parallel 8'
                         sh 'cmake --install build-kokkos'
                         sh 'cmake -B build-arborx -D CMAKE_INSTALL_PREFIX=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS -D ARBORX_ENABLE_BENCHMARKS=ON -D ARBORX_ENABLE_TESTS=ON -D ARBORX_ENABLE_EXAMPLES=ON -DCMAKE_PREFIX_PATH=/opt/rocm'
@@ -107,7 +107,7 @@ pipeline {
                         dir('source-kokkos') {
                             sh 'git rev-parse --short HEAD'
                         }
-                        sh 'cmake -S source-kokkos -B build-kokkos -D CMAKE_INSTALL_PREFIX=$PWD/install-kokkos $CMAKE_OPTIONS -D Kokkos_ENABLE_SERIAL=ON'
+                        sh 'cmake -S source-kokkos -B build-kokkos -D CMAKE_INSTALL_PREFIX=$PWD/install-kokkos $CMAKE_OPTIONS -DKokkos_ENABLE_DEPRECATION_WARNINGS=OFF -D Kokkos_ENABLE_SERIAL=ON'
                         sh 'cmake --build build-kokkos --parallel 8'
                         sh 'cmake --install build-kokkos'
                         sh 'cmake -B build-arborx -D CMAKE_INSTALL_PREFIX=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS -D ARBORX_ENABLE_BENCHMARKS=ON -D ARBORX_ENABLE_TESTS=ON -D ARBORX_ENABLE_EXAMPLES=ON'
