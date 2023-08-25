@@ -368,5 +368,5 @@ int main()
       },
       Kokkos::LAnd<bool, Kokkos::HostSpace>(success));
   std::cout << "Check " << (success ? "succeeded" : "failed") << std::endl;
-  return !success;
+  return success ? 0 : 1;
 }
