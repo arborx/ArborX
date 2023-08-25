@@ -57,29 +57,16 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     {
       Kokkos::parallel_for(
           "ArborX::TreeTraversal::spatial::degenerated_one_leaf_tree",
-          Kokkos::RangePolicy<ExecutionSpace>(space, 0,
-                                              Access::size(predicates)),
-          KOKKOS_LAMBDA(int queryIndex) {
-            auto const &predicate = Access::get(_predicates, queryIndex);
-            auto const root = 0;
-            auto const &root_bounding_volume =
-                HappyTreeFriends::getIndexable(_bvh, root);
-            if (predicate(root_bounding_volume))
-            {
-              _callback(predicate, HappyTreeFriends::getValue(_bvh, 0));
-            }
-          });
+          Kokkos::RangePolicy<ExecutionSpace, OneLeafTree>(
+              space, 0, Access::size(predicates)),
+          *this);
     }
     else
     {
-      Kokkos::parallel_for(
-          "ArborX::TreeTraversal::spatial",
-          Kokkos::RangePolicy<ExecutionSpace>(space, 0,
-                                              Access::size(predicates)),
-          KOKKOS_LAMBDA(int queryIndex) {
-            auto const &predicate = Access::get(_predicates, queryIndex);
-            operator()(predicate);
-          });
+      Kokkos::parallel_for("ArborX::TreeTraversal::spatial",
+                           Kokkos::RangePolicy<ExecutionSpace, OrdinaryTree>(
+                               space, 0, Access::size(predicates)),
+                           *this);
     }
   }
 
@@ -89,6 +76,9 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   {}
 
   struct OneLeafTree
+  {};
+
+  struct OrdinaryTree
   {};
 
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
@@ -101,6 +91,12 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     {
       _callback(predicate, HappyTreeFriends::getValue(_bvh, 0));
     }
+  }
+
+  KOKKOS_FUNCTION void operator()(OrdinaryTree, int queryIndex) const
+  {
+    auto const &predicate = Access::get(_predicates, queryIndex);
+    operator()(predicate);
   }
 
   template <typename Predicate>
