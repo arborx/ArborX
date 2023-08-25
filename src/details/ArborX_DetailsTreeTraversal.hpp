@@ -57,16 +57,29 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     {
       Kokkos::parallel_for(
           "ArborX::TreeTraversal::spatial::degenerated_one_leaf_tree",
-          Kokkos::RangePolicy<ExecutionSpace, OneLeafTree>(
-              space, 0, Access::size(predicates)),
-          *this);
+          Kokkos::RangePolicy<ExecutionSpace>(space, 0,
+                                              Access::size(predicates)),
+          KOKKOS_LAMBDA(int queryIndex) {
+            auto const &predicate = Access::get(_predicates, queryIndex);
+            auto const root = 0;
+            auto const &root_bounding_volume =
+                HappyTreeFriends::getIndexable(_bvh, root);
+            if (predicate(root_bounding_volume))
+            {
+              _callback(predicate, HappyTreeFriends::getValue(_bvh, 0));
+            }
+          });
     }
     else
     {
-      Kokkos::parallel_for("ArborX::TreeTraversal::spatial",
-                           Kokkos::RangePolicy<ExecutionSpace>(
-                               space, 0, Access::size(predicates)),
-                           *this);
+      Kokkos::parallel_for(
+          "ArborX::TreeTraversal::spatial",
+          Kokkos::RangePolicy<ExecutionSpace>(space, 0,
+                                              Access::size(predicates)),
+          KOKKOS_LAMBDA(int queryIndex) {
+            auto const &predicate = Access::get(_predicates, queryIndex);
+            search(predicate);
+          });
     }
   }
 
@@ -88,12 +101,6 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     {
       _callback(predicate, HappyTreeFriends::getValue(_bvh, 0));
     }
-  }
-
-  KOKKOS_FUNCTION void operator()(int queryIndex) const
-  {
-    auto const &predicate = Access::get(_predicates, queryIndex);
-    search(predicate);
   }
 
   template <typename Query>
