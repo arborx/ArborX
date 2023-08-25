@@ -10,7 +10,7 @@ pipeline {
 
     environment {
         CCACHE_DIR = '/tmp/ccache'
-        CCACHE_MAXSIZE = '10G'
+        CCACHE_MAXSIZE = '5G'
         ARBORX_DIR = '/opt/arborx'
         BENCHMARK_COLOR = 'no'
         BOOST_TEST_COLOR_OUTPUT = 'no'
