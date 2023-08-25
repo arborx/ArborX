@@ -42,6 +42,9 @@ inline void query(Tree const &tree, ExecutionSpace const &space,
   Kokkos::Profiling::popRegion();
 }
 
+namespace Experimental
+{
+
 template <typename Tree, typename Predicate, typename Callback>
 KOKKOS_FUNCTION void kernel_query(Tree const &tree, Predicate const &predicate,
                                   Callback const &callback)
@@ -51,6 +54,8 @@ KOKKOS_FUNCTION void kernel_query(Tree const &tree, Predicate const &predicate,
       tree_traversal(tree, callback);
   tree_traversal.search(predicate);
 }
+
+} // namespace Experimental
 
 } // namespace ArborX
 
