@@ -78,7 +78,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
                                               Access::size(predicates)),
           KOKKOS_LAMBDA(int queryIndex) {
             auto const &predicate = Access::get(_predicates, queryIndex);
-            search(predicate);
+            operator()(predicate);
           });
     }
   }
@@ -103,8 +103,8 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     }
   }
 
-  template <typename Query>
-  KOKKOS_FUNCTION void search(Query const &predicate) const
+  template <typename Predicate>
+  KOKKOS_FUNCTION void operator()(Predicate const &predicate) const
   {
     int node = HappyTreeFriends::getRoot(_bvh); // start with root
     do

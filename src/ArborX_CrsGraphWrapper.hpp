@@ -52,7 +52,7 @@ KOKKOS_FUNCTION void kernel_query(Tree const &tree, Predicate const &predicate,
   ArborX::Details::TreeTraversal<Tree, /* Dummy */ std::true_type, Callback,
                                  typename Predicate::Tag>
       tree_traversal(tree, callback);
-  tree_traversal.search(predicate);
+  tree_traversal(predicate);
 }
 
 } // namespace Experimental
