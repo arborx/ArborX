@@ -41,15 +41,13 @@ namespace Details
 struct HappyTreeFriends;
 } // namespace Details
 
-template <
-    typename MemorySpace, typename Value,
-    typename IndexableGetter = Details::DefaultIndexableGetter,
-    typename BoundingVolume = ExperimentalHyperGeometry::Box<
-        GeometryTraits::dimension_v<std::decay_t<
-            decltype(std::declval<IndexableGetter>()(std::declval<Value>()))>>,
-        typename GeometryTraits::coordinate_type<
-            std::decay_t<decltype(std::declval<IndexableGetter>()(
-                std::declval<Value>()))>>::type>>
+template <typename MemorySpace, typename Value,
+          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename BoundingVolume = ExperimentalHyperGeometry::Box<
+              GeometryTraits::dimension_v<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
+              typename GeometryTraits::coordinate_type<std::decay_t<
+                  std::invoke_result_t<IndexableGetter, Value>>>::type>>
 class BasicBoundingVolumeHierarchy
 {
 public:
@@ -106,8 +104,8 @@ public:
 private:
   friend struct Details::HappyTreeFriends;
 
-  using indexable_type = std::decay_t<decltype(std::declval<IndexableGetter>()(
-      std::declval<Value>()))>;
+  using indexable_type =
+      std::decay_t<std::invoke_result_t<IndexableGetter, Value>>;
   using leaf_node_type = Details::LeafNode<value_type>;
   using internal_node_type = Details::InternalNode<bounding_volume_type>;
 
