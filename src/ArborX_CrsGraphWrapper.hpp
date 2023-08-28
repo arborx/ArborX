@@ -13,7 +13,6 @@
 #define ARBORX_CRS_GRAPH_WRAPPER_HPP
 
 #include "ArborX_DetailsCrsGraphWrapperImpl.hpp"
-#include "ArborX_DetailsTreeTraversal.hpp"
 
 namespace ArborX
 {
@@ -41,21 +40,6 @@ inline void query(Tree const &tree, ExecutionSpace const &space,
 
   Kokkos::Profiling::popRegion();
 }
-
-namespace Experimental
-{
-
-template <typename Tree, typename Predicate, typename Callback>
-KOKKOS_FUNCTION void kernel_query(Tree const &tree, Predicate const &predicate,
-                                  Callback const &callback)
-{
-  ArborX::Details::TreeTraversal<Tree, /* Dummy */ std::true_type, Callback,
-                                 typename Predicate::Tag>
-      tree_traversal(tree, callback);
-  tree_traversal(predicate);
-}
-
-} // namespace Experimental
 
 } // namespace ArborX
 

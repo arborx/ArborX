@@ -95,7 +95,11 @@ public:
   KOKKOS_FUNCTION void kernel_query(Predicate const &predicate,
                                     Callback const &callback) const
   {
-    ArborX::Experimental::kernel_query(*this, predicate, callback);
+    ArborX::Details::TreeTraversal<BasicBoundingVolumeHierarchy,
+                                   /* Dummy */ std::true_type, Callback,
+                                   typename Predicate::Tag>
+        tree_traversal(*this, callback);
+    tree_traversal(predicate);
   }
 
 private:
