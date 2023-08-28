@@ -17,6 +17,7 @@
 #include <ArborX_Callbacks.hpp>
 #include <ArborX_CrsGraphWrapper.hpp>
 #include <ArborX_DetailsBatchedQueries.hpp>
+#include <ArborX_DetailsCrsGraphWrapperImpl.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_DetailsNode.hpp>
@@ -86,9 +87,19 @@ public:
   query(ExecutionSpace const &space, Predicates const &predicates,
         CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
   {
-    ArborX::query(*this, space, predicates,
-                  std::forward<CallbackOrView>(callback_or_view),
-                  std::forward<View>(view), std::forward<Args>(args)...);
+    KokkosExt::ScopedProfileRegion guard("ArborX::BVH::query_crs");
+
+    Details::CrsGraphWrapperImpl::
+        check_valid_callback_if_first_argument_is_not_a_view(callback_or_view,
+                                                             predicates, view);
+
+    using Access = AccessTraits<Predicates, PredicatesTag>;
+    using Tag = typename Details::AccessTraitsHelper<Access>::tag;
+
+    Details::CrsGraphWrapperImpl::queryDispatch(
+        Tag{}, *this, space, predicates,
+        std::forward<CallbackOrView>(callback_or_view),
+        std::forward<View>(view), std::forward<Args>(args)...);
   }
 
 private:
@@ -147,9 +158,9 @@ public:
   query(ExecutionSpace const &space, Predicates const &predicates,
         CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
   {
-    ArborX::query(*this, space, predicates,
-                  std::forward<CallbackOrView>(callback_or_view),
-                  std::forward<View>(view), std::forward<Args>(args)...);
+    base_type::query(space, predicates,
+                     std::forward<CallbackOrView>(callback_or_view),
+                     std::forward<View>(view), std::forward<Args>(args)...);
   }
 };
 
