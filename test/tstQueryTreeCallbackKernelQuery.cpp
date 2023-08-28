@@ -60,8 +60,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_intersects, DeviceType,
         float center = i;
         ArborX::Box box{{center - .5f, center - .5f, center - .5f},
                         {center + .5f, center + .5f, center + .5f}};
-        tree.kernel_query(ArborX::intersects(box),
-                          IntersectionCallback{i, update});
+        tree.query(ArborX::Experimental::PerThread{}, ArborX::intersects(box),
+                   IntersectionCallback{i, update});
       },
       Kokkos::LAnd<bool, Kokkos::HostSpace>(success));
 

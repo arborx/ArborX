@@ -34,6 +34,12 @@
 namespace ArborX
 {
 
+namespace Experimental
+{
+struct PerThread
+{};
+} // namespace Experimental
+
 namespace Details
 {
 struct HappyTreeFriends;
@@ -92,8 +98,9 @@ public:
   }
 
   template <typename Predicate, typename Callback>
-  KOKKOS_FUNCTION void kernel_query(Predicate const &predicate,
-                                    Callback const &callback) const
+  KOKKOS_FUNCTION void query(Experimental::PerThread,
+                             Predicate const &predicate,
+                             Callback const &callback) const
   {
     ArborX::Details::TreeTraversal<BasicBoundingVolumeHierarchy,
                                    /* Dummy */ std::true_type, Callback,
@@ -141,10 +148,11 @@ public:
   {}
 
   template <typename ExecutionSpace, typename Predicates, typename Callback>
-  void query(ExecutionSpace const &space, Predicates const &predicates,
-             Callback const &callback,
-             Experimental::TraversalPolicy const &policy =
-                 Experimental::TraversalPolicy()) const
+  std::enable_if_t<Kokkos::is_execution_space<ExecutionSpace>::value>
+  query(ExecutionSpace const &space, Predicates const &predicates,
+        Callback const &callback,
+        Experimental::TraversalPolicy const &policy =
+            Experimental::TraversalPolicy()) const
   {
     base_type::query(space, predicates,
                      Details::LegacyCallbackWrapper<
@@ -161,6 +169,14 @@ public:
     ArborX::query(*this, space, predicates,
                   std::forward<CallbackOrView>(callback_or_view),
                   std::forward<View>(view), std::forward<Args>(args)...);
+  }
+
+  template <typename Predicate, typename Callback>
+  KOKKOS_FUNCTION void query(Experimental::PerThread tag,
+                             Predicate const &predicate,
+                             Callback const &callback) const
+  {
+    base_type::query(tag, predicate, callback);
   }
 };
 
