@@ -50,6 +50,11 @@ struct ArborX::GeometryTraits::dimension<Test::FakeBoundingVolume>
 {
   static constexpr int value = 3;
 };
+template <>
+struct ArborX::GeometryTraits::coordinate_type<Test::FakeBoundingVolume>
+{
+  using type = float;
+};
 
 // Compile-only
 void check_bounding_volume_and_predicate_geometry_type_requirements()

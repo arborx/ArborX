@@ -42,9 +42,12 @@ struct HappyTreeFriends;
 template <
     typename MemorySpace, typename Value,
     typename IndexableGetter = Details::DefaultIndexableGetter,
-    typename BoundingVolume =
-        ExperimentalHyperGeometry::Box<GeometryTraits::dimension_v<std::decay_t<
-            decltype(std::declval<IndexableGetter>()(std::declval<Value>()))>>>>
+    typename BoundingVolume = ExperimentalHyperGeometry::Box<
+        GeometryTraits::dimension_v<std::decay_t<
+            decltype(std::declval<IndexableGetter>()(std::declval<Value>()))>>,
+        typename GeometryTraits::coordinate_type<
+            std::decay_t<decltype(std::declval<IndexableGetter>()(
+                std::declval<Value>()))>>::type>>
 class BasicBoundingVolumeHierarchy
 {
 public:
@@ -79,7 +82,7 @@ public:
 
   template <typename ExecutionSpace, typename Predicates,
             typename CallbackOrView, typename View, typename... Args>
-  std::enable_if_t<Kokkos::is_view<std::decay_t<View>>{}>
+  std::enable_if_t<Kokkos::is_view_v<std::decay_t<View>>>
   query(ExecutionSpace const &space, Predicates const &predicates,
         CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
   {
@@ -147,7 +150,7 @@ public:
 
   template <typename ExecutionSpace, typename Predicates,
             typename CallbackOrView, typename View, typename... Args>
-  std::enable_if_t<Kokkos::is_view<std::decay_t<View>>{}>
+  std::enable_if_t<Kokkos::is_view_v<std::decay_t<View>>>
   query(ExecutionSpace const &space, Predicates const &predicates,
         CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
   {
@@ -207,7 +210,9 @@ BasicBoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
       "ArborX::BVH::BVH::calculate_scene_bounding_box");
 
   // determine the bounding box of the scene
-  ExperimentalHyperGeometry::Box<DIM> bbox{};
+  ExperimentalHyperGeometry::Box<
+      DIM, typename GeometryTraits::coordinate_type<BoundingVolume>::type>
+      bbox{};
   Details::TreeConstruction::calculateBoundingBoxOfTheScene(
       space, Details::Indexables<Primitives>{primitives}, bbox);
 
@@ -292,7 +297,8 @@ void BasicBoundingVolumeHierarchy<
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     ExperimentalHyperGeometry::Box<
-        GeometryTraits::dimension_v<bounding_volume_type>>
+        GeometryTraits::dimension_v<bounding_volume_type>,
+        typename GeometryTraits::coordinate_type<bounding_volume_type>::type>
         scene_bounding_box{};
     using namespace Details;
     expand(scene_bounding_box, bounds());

@@ -19,9 +19,11 @@
 namespace ArborX::ExperimentalHyperGeometry
 {
 
-template <int DIM, class FloatingPoint = float>
+template <int DIM, class Coordinate = float>
 struct Point
 {
+  static_assert(DIM > 0);
+
   KOKKOS_FUNCTION
   constexpr auto &operator[](unsigned int i) { return _coords[i]; }
 
@@ -31,32 +33,34 @@ struct Point
   // Initialization is needed to be able to use Point in constexpr
   // TODO: do we want to actually want to zero initialize it? Seems like
   // unnecessary work.
-  FloatingPoint _coords[DIM] = {};
+  Coordinate _coords[DIM] = {};
 };
 
-// Deduction guides
-template <class T>
-Point(T x) -> Point<1, T>;
-
-template <class T>
-Point(T x, T y) -> Point<2, T>;
-
-template <class T>
-Point(T x, T y, T z) -> Point<3, T>;
+template <typename... T>
+Point(T...)
+    -> Point<sizeof...(T), std::conditional_t<
+                               (... || std::is_same_v<std::decay_t<T>, double>),
+                               double, float>>;
 
 } // namespace ArborX::ExperimentalHyperGeometry
 
-template <int DIM, class FloatingPoint>
+template <int DIM, class Coordinate>
 struct ArborX::GeometryTraits::dimension<
-    ArborX::ExperimentalHyperGeometry::Point<DIM, FloatingPoint>>
+    ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>>
 {
   static constexpr int value = DIM;
 };
-template <int DIM, class FloatingPoint>
+template <int DIM, class Coordinate>
 struct ArborX::GeometryTraits::tag<
-    ArborX::ExperimentalHyperGeometry::Point<DIM, FloatingPoint>>
+    ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>>
 {
   using type = PointTag;
+};
+template <int DIM, class Coordinate>
+struct ArborX::GeometryTraits::coordinate_type<
+    ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>>
+{
+  using type = Coordinate;
 };
 
 #endif

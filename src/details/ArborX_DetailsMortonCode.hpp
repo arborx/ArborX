@@ -295,7 +295,7 @@ KOKKOS_INLINE_FUNCTION unsigned int morton32(Point const &p)
   unsigned int r = 0;
   for (int d = 0; d < DIM; ++d)
   {
-    auto x = min(max(p[d] * N, 0.f), (float)N - 1);
+    auto x = min(max((float)p[d] * N, 0.f), (float)N - 1);
     r += (expandBitsBy<DIM - 1>((unsigned int)x) << (DIM - d - 1));
   }
 
@@ -316,7 +316,7 @@ KOKKOS_INLINE_FUNCTION unsigned long long morton64(Point const &p)
   unsigned long long r = 0;
   for (int d = 0; d < DIM; ++d)
   {
-    auto x = min(max(p[d] * N, 0.f), (float)N - 1);
+    auto x = min(max((float)p[d] * N, 0.f), (float)N - 1);
     r += (expandBitsBy<DIM - 1>((unsigned long long)x) << (DIM - d - 1));
   }
 

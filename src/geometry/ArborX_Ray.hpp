@@ -15,9 +15,9 @@
 #include <ArborX_DetailsAlgorithms.hpp> // equal
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtSwap.hpp>
+#include <ArborX_HyperTriangle.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
-#include <ArborX_Triangle.hpp>
 
 #include <Kokkos_Macros.hpp>
 
@@ -40,8 +40,14 @@ struct Vector : private Point
   }
 };
 
-KOKKOS_INLINE_FUNCTION constexpr Vector makeVector(Point const &begin,
-                                                   Point const &end)
+template <typename Point1, typename Point2>
+KOKKOS_INLINE_FUNCTION constexpr std::enable_if_t<
+    GeometryTraits::is_point<Point1>::value &&
+        GeometryTraits::is_point<Point2>::value &&
+        GeometryTraits::dimension_v<Point1> == 3 &&
+        GeometryTraits::dimension_v<Point2> == 3,
+    Vector>
+makeVector(Point1 const &begin, Point2 const &end)
 {
   Vector v;
   for (int d = 0; d < 3; ++d)
@@ -292,8 +298,9 @@ KOKKOS_INLINE_FUNCTION bool rayEdgeIntersect(Point const &edge_vertex_1,
 // when the ray and the triangle is coplanar.
 // In the paper, they just need the boolean return.
 KOKKOS_INLINE_FUNCTION
-bool intersection(Ray const &ray, Triangle const &triangle, float &tmin,
-                  float &tmax)
+bool intersection(Ray const &ray,
+                  ExperimentalHyperGeometry::Triangle<3> const &triangle,
+                  float &tmin, float &tmax)
 {
   auto dir = ray.direction();
   // normalize the direction vector by its largest component.
@@ -437,8 +444,9 @@ bool intersection(Ray const &ray, Triangle const &triangle, float &tmin,
   return false;
 } // namespace Experimental
 
-KOKKOS_INLINE_FUNCTION
-bool intersects(Ray const &ray, Triangle const &triangle)
+KOKKOS_INLINE_FUNCTION bool
+intersects(Ray const &ray,
+           ExperimentalHyperGeometry::Triangle<3> const &triangle)
 {
   float tmin;
   float tmax;

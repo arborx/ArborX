@@ -139,12 +139,13 @@ int main(int argc, char *argv[])
   };
 
   Kokkos::View<ArborX::Point *, MemorySpace> primitives(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "primitives"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::primitives"),
       num_primitives * num_problems);
   Kokkos::View<decltype(ArborX::attach(ArborX::intersects(ArborX::Sphere{}),
                                        int{})) *,
                MemorySpace>
-      predicates(Kokkos::view_alloc(Kokkos::WithoutInitializing, "predicates"),
+      predicates(Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                                    "Benchmark::predicates"),
                  num_predicates * num_problems);
   for (int p = 0; p < num_problems; ++p)
   {
@@ -152,7 +153,7 @@ int main(int argc, char *argv[])
     float offset_x = p * shift;
 
     Kokkos::View<ArborX::Point *, MemorySpace> points(
-        "points", std::max(num_primitives, num_predicates));
+        "Benchmark::points", std::max(num_primitives, num_predicates));
     auto points_host = Kokkos::create_mirror_view(points);
     for (int i = 0; i < (int)points.extent(0); ++i)
       points_host(i) = {offset_x + random(), random(), random()};
@@ -164,7 +165,7 @@ int main(int argc, char *argv[])
             Kokkos::make_pair(p * num_primitives, (p + 1) * num_primitives)),
         Kokkos::subview(points, Kokkos::make_pair(0, num_primitives)));
     Kokkos::parallel_for(
-        "construct_predicates",
+        "Benchmark::construct_predicates",
         Kokkos::RangePolicy<ExecutionSpace>(
             ExecutionSpace{}, p * num_predicates, (p + 1) * num_predicates),
         KOKKOS_LAMBDA(int i) {
@@ -190,7 +191,7 @@ int main(int argc, char *argv[])
   }
   ArborX::BVH<MemorySpace> tree(instances[0], primitives);
 
-  Kokkos::View<int *, MemorySpace> counts("counts",
+  Kokkos::View<int *, MemorySpace> counts("Benchmark::counts",
                                           num_predicates * num_problems);
 
   Kokkos::fence();

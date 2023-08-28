@@ -29,6 +29,9 @@ struct BoxTag
 struct SphereTag
 {};
 
+struct TriangleTag
+{};
+
 struct KDOPTag
 {};
 
@@ -51,11 +54,21 @@ struct tag
 };
 
 template <typename Geometry>
+struct coordinate_type
+{
+  using type = not_specialized;
+};
+
+template <typename Geometry>
 using DimensionNotSpecializedArchetypeAlias =
     typename dimension<Geometry>::not_specialized;
 
 template <typename Geometry>
 using TagNotSpecializedArchetypeAlias = typename tag<Geometry>::not_specialized;
+
+template <typename Geometry>
+using CoordinateNotSpecializedArchetypeAlias =
+    typename coordinate_type<Geometry>::not_specialized;
 
 template <typename Geometry>
 using DimensionArchetypeAlias = decltype(dimension_v<Geometry>);
@@ -81,6 +94,9 @@ void check_valid_geometry_traits(Geometry const &)
   static_assert(
       !Kokkos::is_detected<TagNotSpecializedArchetypeAlias, Geometry>{},
       "Must specialize GeometryTraits::tag<Geometry>");
+  static_assert(
+      !Kokkos::is_detected<CoordinateNotSpecializedArchetypeAlias, Geometry>{},
+      "Must specialize GeometryTraits::coordinate_type<Geometry>");
 
   static_assert(
       Kokkos::is_detected<DimensionArchetypeAlias, Geometry>{},
@@ -97,9 +113,19 @@ void check_valid_geometry_traits(Geometry const &)
   using Tag = typename tag<Geometry>::type;
   static_assert(std::is_same<Tag, PointTag>{} || std::is_same<Tag, BoxTag>{} ||
                     std::is_same<Tag, SphereTag>{} ||
+                    std::is_same<Tag, TriangleTag>{} ||
                     std::is_same<Tag, KDOPTag>{},
                 "GeometryTraits::tag<Geometry>::type must be PointTag, BoxTag, "
-                "SphereTag or KDOPTag");
+                "SphereTag, TriangleTag or KDOPTag");
+
+  static_assert(!std::is_same<typename coordinate_type<Geometry>::type,
+                              not_specialized>::value,
+                "GeometryTraits::coordinate_type<Geometry> must define 'type' "
+                "member type");
+  using Coordinate = typename coordinate_type<Geometry>::type;
+  static_assert(
+      std::is_arithmetic_v<Coordinate>,
+      "GeometryTraits::coordinate_type<Geometry> must be an arithmetic type");
 }
 
 } // namespace GeometryTraits

@@ -293,10 +293,10 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   }
 
   Kokkos::View<ArborX::Point *, DeviceType> random_values(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::values"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::values"),
       n_values);
   Kokkos::View<ArborX::Point *, DeviceType> random_queries(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::queries"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::queries"),
       n_queries);
   {
     double a = 0.;
@@ -358,7 +358,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     // The boxes in which the points are placed have side length two, centered
     // around offset_[xyz] and scaled by a.
     Kokkos::View<ArborX::Point *, DeviceType> random_points(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::points"),
+        Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::points"),
         std::max(n_values, n_queries));
     auto random_points_host = Kokkos::create_mirror_view(random_points);
     for (int i = 0; i < random_points.extent_int(0); ++i)
@@ -425,9 +425,9 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
 
   if (perform_knn_search)
   {
-    Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
-    Kokkos::View<ArborX::PairIndexRank *, DeviceType> values("Testing::values",
-                                                             0);
+    Kokkos::View<int *, DeviceType> offsets("Benchmark::offsets", 0);
+    Kokkos::View<ArborX::PairIndexRank *, DeviceType> values(
+        "Benchmark::values", 0);
 
     auto knn = time_monitor.getNewTimer("knn");
     MPI_Barrier(comm);
@@ -460,13 +460,15 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
       r = static_cast<double>(n_neighbors) - 1.;
       break;
     case 2:
-      // Derivation (first term): n_values*(M_PI*r^2)/(2a)^2 = n_neighbors
-      r = std::sqrt(static_cast<double>(n_neighbors) * 4. / M_PI) -
+      // Derivation (first term): n_values*(pi*r^2)/(2a)^2 = n_neighbors
+      r = std::sqrt(static_cast<double>(n_neighbors) * 4. /
+                    Kokkos::numbers::pi_v<double>) -
           (1. + std::sqrt(2.)) / 2;
       break;
     case 3:
-      // Derivation (first term): n_values*(4/3*M_PI*r^3)/(2a)^3 = n_neighbors
-      r = std::cbrt(static_cast<double>(n_neighbors) * 6. / M_PI) -
+      // Derivation (first term): n_values*(4/3*pi*r^3)/(2a)^3 = n_neighbors
+      r = std::cbrt(static_cast<double>(n_neighbors) * 6. /
+                    Kokkos::numbers::pi_v<double>) -
           (1. + std::cbrt(3.)) / 2;
       break;
     }
