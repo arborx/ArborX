@@ -19,6 +19,7 @@
 #include <ArborX_DetailsBatchedQueries.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
+#include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsPermutedData.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
