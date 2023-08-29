@@ -14,6 +14,7 @@
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_HyperPoint.hpp>
 #include <ArborX_HyperSphere.hpp>
+#include <ArborX_HyperTriangle.hpp>
 
 #include <boost/mpl/list.hpp>
 
@@ -23,6 +24,7 @@
 using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
 using Box = ArborX::ExperimentalHyperGeometry::Box<3>;
 using Sphere = ArborX::ExperimentalHyperGeometry::Sphere<3>;
+using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<3>;
 
 BOOST_AUTO_TEST_CASE(distance)
 {
@@ -205,6 +207,12 @@ BOOST_AUTO_TEST_CASE(expand)
   BOOST_TEST(equals(box, Box{{{-3., -2., -1.}}, {{11., 11., 11.}}}));
   expand(box, Sphere{{{0., 0., 0.}}, 24.});
   BOOST_TEST(equals(box, Box{{{-24., -24., -24.}}, {{24., 24., 24.}}}));
+
+  // expand box with triangles
+  expand(box, Triangle{{{-1, -1, 0}}, {{2, 2, 2}}, {{1, 1, 0}}});
+  BOOST_TEST(equals(box, Box{{{-24., -24., -24.}}, {{24., 24., 24.}}}));
+  expand(box, Triangle{{{0, 0, 0}}, {{48, 0, 0}}, {{0, 48, 0}}});
+  BOOST_TEST(equals(box, Box{{{-24., -24., -24.}}, {{48., 48., 24.}}}));
 }
 
 BOOST_AUTO_TEST_CASE(centroid)

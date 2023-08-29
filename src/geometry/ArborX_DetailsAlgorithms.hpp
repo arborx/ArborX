@@ -19,6 +19,8 @@
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_MathematicalFunctions.hpp> // isfinite
 
+#include <cassert>
+
 namespace ArborX
 {
 namespace Details
@@ -30,6 +32,7 @@ using GeometryTraits::BoxTag;
 using GeometryTraits::KDOPTag;
 using GeometryTraits::PointTag;
 using GeometryTraits::SphereTag;
+using GeometryTraits::TriangleTag;
 
 template <typename Tag, typename Geometry>
 struct equals;
@@ -334,6 +337,18 @@ struct expand<BoxTag, SphereTag, Box, Sphere>
       box.maxCorner()[d] =
           max(box.maxCorner()[d], sphere.centroid()[d] + sphere.radius());
     }
+  }
+};
+
+// expand a box to include a triangle
+template <typename Box, typename Triangle>
+struct expand<BoxTag, TriangleTag, Box, Triangle>
+{
+  KOKKOS_FUNCTION static void apply(Box &box, Triangle const &triangle)
+  {
+    Details::expand(box, triangle.a);
+    Details::expand(box, triangle.b);
+    Details::expand(box, triangle.c);
   }
 };
 
