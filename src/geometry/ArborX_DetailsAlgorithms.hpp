@@ -412,6 +412,45 @@ struct intersects<PointTag, SphereTag, Point, Sphere>
   }
 };
 
+template <typename Point, typename Triangle>
+struct intersects<PointTag, TriangleTag, Point, Triangle>
+{
+  KOKKOS_FUNCTION static bool apply(Point const &point,
+                                    Triangle const &triangle)
+  {
+    constexpr int DIM = GeometryTraits::dimension_v<Point>;
+    static_assert(DIM == 2);
+
+    auto const &a = triangle.a;
+    auto const &b = triangle.b;
+    auto const &c = triangle.c;
+
+    using Float = typename GeometryTraits::coordinate_type<Point>::type;
+
+    // Find coefficients alpha and beta such that
+    // x = a + alpha * (b - a) + beta * (c - a)
+    //   = (1 - alpha - beta) * a + alpha * b + beta * c
+    // recognizing the linear system
+    // ((b - a) (c - a)) (alpha beta)^T = (x - a)
+    Float u[] = {b[0] - a[0], b[1] - a[1]};
+    Float v[] = {c[0] - a[0], c[1] - a[1]};
+    Float const det = v[1] * u[0] - v[0] * u[1];
+    assert(det != 0);
+    Float const inv_det = 1 / det;
+
+    Float alpha[] = {v[1] * inv_det, -v[0] * inv_det};
+    Float beta[] = {-u[1] * inv_det, u[0] * inv_det};
+
+    Float alpha_coeff =
+        alpha[0] * (point[0] - a[0]) + alpha[1] * (point[1] - a[1]);
+    Float beta_coeff =
+        beta[0] * (point[0] - a[0]) + beta[1] * (point[1] - a[1]);
+
+    Float coeffs[] = {1 - alpha_coeff - beta_coeff, alpha_coeff, beta_coeff};
+    return (coeffs[0] >= 0 && coeffs[1] >= 0 && coeffs[2] >= 0);
+  }
+};
+
 template <typename Point>
 struct centroid<PointTag, Point>
 {

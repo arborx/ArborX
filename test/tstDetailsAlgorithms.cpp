@@ -159,6 +159,19 @@ BOOST_AUTO_TEST_CASE(intersects)
   BOOST_TEST(intersects(Point{-1., 0., 0.}, sphere));
   BOOST_TEST(intersects(Point{-0.6, -0.8, 0.}, sphere));
   BOOST_TEST(!intersects(Point{-0.7, -0.8, 0.}, sphere));
+
+  // triangle
+  using Point2 = ArborX::ExperimentalHyperGeometry::Point<2>;
+  constexpr ArborX::ExperimentalHyperGeometry::Triangle<2> triangle{
+      {{0, 0}}, {{1, 0}}, {{0, 2}}};
+  BOOST_TEST(intersects(Point2{{0, 0}}, triangle));
+  BOOST_TEST(intersects(Point2{{1, 0}}, triangle));
+  BOOST_TEST(intersects(Point2{{0.5, 1}}, triangle));
+  BOOST_TEST(intersects(Point2{{0.25, 0.5}}, triangle));
+  BOOST_TEST(!intersects(Point2{{1, 1}}, triangle));
+  BOOST_TEST(!intersects(Point2{{0.5, 1.1}}, triangle));
+  BOOST_TEST(!intersects(Point2{{1.1, 0}}, triangle));
+  BOOST_TEST(!intersects(Point2{{-0.1, 0}}, triangle));
 }
 
 BOOST_AUTO_TEST_CASE(equals)
