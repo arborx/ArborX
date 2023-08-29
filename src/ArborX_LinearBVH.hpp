@@ -103,8 +103,8 @@ public:
                              Callback const &callback) const
   {
     ArborX::Details::TreeTraversal<BasicBoundingVolumeHierarchy,
-                                   /* Dummy */ std::true_type, Callback,
-                                   typename Predicate::Tag>
+                                   /* Predicates Dummy */ std::true_type,
+                                   Callback, typename Predicate::Tag>
         tree_traversal(*this, callback);
     tree_traversal(predicate);
   }
