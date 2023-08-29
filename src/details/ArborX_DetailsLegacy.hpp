@@ -70,4 +70,25 @@ struct LegacyCallbackWrapper
 
 } // namespace ArborX::Details
 
+template <typename Primitives, typename BoundingVolume>
+struct ArborX::AccessTraits<
+    ArborX::Details::LegacyValues<Primitives, BoundingVolume>,
+    ArborX::PrimitivesTag>
+{
+  using Values = ArborX::Details::LegacyValues<Primitives, BoundingVolume>;
+
+  using memory_space = typename Values::memory_space;
+  using size_type = typename Values::size_type;
+  using value_type = typename Values::value_type;
+
+  KOKKOS_FUNCTION static size_type size(Values const &values)
+  {
+    return values.size();
+  }
+  KOKKOS_FUNCTION static decltype(auto) get(Values const &values, size_type i)
+  {
+    return values(i);
+  }
+};
+
 #endif

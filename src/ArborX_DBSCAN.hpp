@@ -60,15 +60,14 @@ struct WithinRadiusGetter
 {
   float _r;
 
-  template <typename Box>
-  KOKKOS_FUNCTION auto operator()(Box const &box) const
+  template <typename Point>
+  KOKKOS_FUNCTION auto operator()(Point const &point) const
   {
-    static_assert(GeometryTraits::is_box<Box>::value);
+    static_assert(GeometryTraits::is_point<Point>::value);
 
-    constexpr int dim = GeometryTraits::dimension_v<Box>;
+    constexpr int dim = GeometryTraits::dimension_v<Point>;
     auto const &hyper_point =
-        reinterpret_cast<ExperimentalHyperGeometry::Point<dim> const &>(
-            box.minCorner());
+        reinterpret_cast<ExperimentalHyperGeometry::Point<dim> const &>(point);
     using ArborX::intersects;
     return intersects(ExperimentalHyperGeometry::Sphere<dim>{hyper_point, _r});
   }
@@ -96,6 +95,22 @@ struct MixedBoxPrimitives
   int _num_points_in_dense_cells; // to avoid lastElement() in AccessTraits
   CellIndices _sorted_cell_indices;
   Permutation _permute;
+};
+
+template <typename Primitives>
+struct PrimitivesIndexables
+{
+  Primitives _primitives;
+
+  using Access = AccessTraits<Primitives, PrimitivesTag>;
+  using memory_space = typename Access::memory_space;
+
+  KOKKOS_FUNCTION decltype(auto) operator()(int i) const
+  {
+    return Access::get(_primitives, i);
+  }
+
+  KOKKOS_FUNCTION auto size() const { return Access::size(_primitives); }
 };
 
 } // namespace Details
@@ -266,8 +281,9 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   using UnionFind = Details::UnionFind<MemorySpace>;
 #endif
 
-  constexpr int dim = GeometryTraits::dimension_v<
-      typename Details::AccessTraitsHelper<Access>::type>;
+  using Point = typename Details::AccessTraitsHelper<Access>::type;
+  static_assert(GeometryTraits::is_point<Point>{});
+  constexpr int dim = GeometryTraits::dimension_v<Point>;
   using Box = ExperimentalHyperGeometry::Box<dim>;
 
   bool const is_special_case = (core_min_size == 2);
@@ -290,8 +306,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     // Build the tree
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::tree_construction");
     ArborX::BasicBoundingVolumeHierarchy<MemorySpace,
-                                         Details::PairIndexVolume<Box>>
-        bvh(exec_space, primitives);
+                                         Details::PairIndexVolume<Point>>
+        bvh(exec_space, Details::LegacyValues<Primitives, Point>{primitives});
     Kokkos::Profiling::popRegion();
 
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters");
@@ -352,7 +368,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::dense_cells");
     Box bounds;
     Details::TreeConstruction::calculateBoundingBoxOfTheScene(
-        exec_space, Details::Indexables<Primitives>{primitives}, bounds);
+        exec_space, Details::PrimitivesIndexables<Primitives>{primitives},
+        bounds);
 
     // The cell length is chosen to be eps/sqrt(dimension), so that any two
     // points within the same cell are within eps distance of each other.
@@ -411,14 +428,16 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
     // Build the tree
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::tree_construction");
+    Details::MixedBoxPrimitives<Primitives, decltype(dense_cell_offsets),
+                                decltype(cell_indices), decltype(permute)>
+        mixed_primitives{primitives,          grid,
+                         dense_cell_offsets,  num_points_in_dense_cells,
+                         sorted_cell_indices, permute};
+
     ArborX::BasicBoundingVolumeHierarchy<MemorySpace,
                                          Details::PairIndexVolume<Box>>
-        bvh(exec_space,
-            Details::MixedBoxPrimitives<
-                Primitives, decltype(dense_cell_offsets),
-                decltype(cell_indices), decltype(permute)>{
-                primitives, grid, dense_cell_offsets, num_points_in_dense_cells,
-                sorted_cell_indices, permute});
+        bvh(exec_space, Details::LegacyValues<decltype(mixed_primitives), Box>{
+                            mixed_primitives});
 
     Kokkos::Profiling::popRegion();
 

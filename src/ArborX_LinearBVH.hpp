@@ -61,10 +61,11 @@ public:
 
   BasicBoundingVolumeHierarchy() = default; // build an empty tree
 
-  template <typename ExecutionSpace, typename Primitives,
+  template <typename ExecutionSpace, typename Values,
             typename SpaceFillingCurve = Experimental::Morton64>
   BasicBoundingVolumeHierarchy(
-      ExecutionSpace const &space, Primitives const &primitives,
+      ExecutionSpace const &space, Values const &values,
+      IndexableGetter const &indexable_getter = IndexableGetter(),
       SpaceFillingCurve const &curve = SpaceFillingCurve());
 
   KOKKOS_FUNCTION
@@ -131,6 +132,8 @@ class BoundingVolumeHierarchy
 public:
   using legacy_tree = void;
 
+  using bounding_volume_type = typename base_type::bounding_volume_type;
+
   BoundingVolumeHierarchy() = default; // build an empty tree
 
   template <typename ExecutionSpace, typename Primitives,
@@ -138,7 +141,13 @@ public:
   BoundingVolumeHierarchy(ExecutionSpace const &space,
                           Primitives const &primitives,
                           SpaceFillingCurve const &curve = SpaceFillingCurve())
-      : base_type(space, primitives, curve)
+      : base_type(
+            space,
+            // Validate the primitives before calling the base constructor
+            (Details::check_valid_access_traits(PrimitivesTag{}, primitives),
+             Details::LegacyValues<Primitives, bounding_volume_type>{
+                 primitives}),
+            Details::DefaultIndexableGetter(), curve)
   {}
 
   template <typename ExecutionSpace, typename Predicates, typename Callback>
@@ -170,28 +179,32 @@ using BVH = BoundingVolumeHierarchy<MemorySpace>;
 
 template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
-template <typename ExecutionSpace, typename Primitives,
-          typename SpaceFillingCurve>
+template <typename ExecutionSpace, typename Values, typename SpaceFillingCurve>
 BasicBoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
                              BoundingVolume>::
     BasicBoundingVolumeHierarchy(ExecutionSpace const &space,
-                                 Primitives const &primitives,
+                                 Values const &user_values,
+                                 IndexableGetter const &indexable_getter,
                                  SpaceFillingCurve const &curve)
-    : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
+    : _size(AccessTraits<Values, PrimitivesTag>::size(user_values))
     , _leaf_nodes(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                      "ArborX::BVH::leaf_nodes"),
                   _size)
     , _internal_nodes(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                          "ArborX::BVH::internal_nodes"),
                       _size > 1 ? _size - 1 : 0)
+    , _indexable_getter(indexable_getter)
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
-  Details::check_valid_access_traits(PrimitivesTag{}, primitives);
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
+  // FIXME redo with RangeTraits
+  Details::check_valid_access_traits<Values>(
+      PrimitivesTag{}, user_values, Details::DoNotCheckGetReturnType());
+  using Access = AccessTraits<Values, PrimitivesTag>;
   static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                               ExecutionSpace>::value,
-                "Primitives must be accessible from the execution space");
+                "Values must be accessible from the execution space");
+
   constexpr int DIM = GeometryTraits::dimension_v<BoundingVolume>;
 
   Details::check_valid_space_filling_curve<DIM>(curve);
@@ -203,13 +216,17 @@ BasicBoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
     return;
   }
 
+  Details::AccessValues<Values> values{user_values};
+
   if (size() == 1)
   {
     Details::TreeConstruction::initializeSingleLeafTree(
-        space, Details::LegacyValues<Primitives, indexable_type>{primitives},
-        _indexable_getter, _leaf_nodes, _bounds);
+        space, values, _indexable_getter, _leaf_nodes, _bounds);
     return;
   }
+
+  Details::Indexables<decltype(values), IndexableGetter> indexables{
+      values, indexable_getter};
 
   Kokkos::Profiling::pushRegion(
       "ArborX::BVH::BVH::calculate_scene_bounding_box");
@@ -218,24 +235,21 @@ BasicBoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
   ExperimentalHyperGeometry::Box<
       DIM, typename GeometryTraits::coordinate_type<BoundingVolume>::type>
       bbox{};
-  Details::TreeConstruction::calculateBoundingBoxOfTheScene(
-      space, Details::Indexables<Primitives>{primitives}, bbox);
-
+  Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, indexables,
+                                                            bbox);
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::compute_linear_ordering");
 
   // Map indexables from multidimensional domain to one-dimensional interval
   using LinearOrderingValueType = Kokkos::detected_t<
       Details::SpaceFillingCurveProjectionArchetypeExpression,
-      SpaceFillingCurve, decltype(bbox),
-      std::decay_t<decltype(Access::get(primitives, 0))>>;
+      SpaceFillingCurve, decltype(bbox), indexable_type>;
   Kokkos::View<LinearOrderingValueType *, MemorySpace> linear_ordering_indices(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::BVH::BVH::linear_ordering"),
       size());
   Details::TreeConstruction::projectOntoSpaceFillingCurve(
-      space, Details::Indexables<Primitives>{primitives}, curve, bbox,
-      linear_ordering_indices);
+      space, indexables, curve, bbox, linear_ordering_indices);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::sort_linearized_order");
@@ -249,9 +263,8 @@ BasicBoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
 
   // Generate bounding volume hierarchy
   Details::TreeConstruction::generateHierarchy(
-      space, Details::LegacyValues<Primitives, indexable_type>{primitives},
-      _indexable_getter, permutation_indices, linear_ordering_indices,
-      _leaf_nodes, _internal_nodes, _bounds);
+      space, values, _indexable_getter, permutation_indices,
+      linear_ordering_indices, _leaf_nodes, _internal_nodes, _bounds);
 
   Kokkos::Profiling::popRegion();
 }

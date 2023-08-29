@@ -91,7 +91,9 @@ BruteForce<MemorySpace, BoundingVolume>::BruteForce(
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
-  Details::check_valid_access_traits(PrimitivesTag{}, primitives);
+  // FIXME for now, do not check the return type of get()
+  Details::check_valid_access_traits<Primitives>(
+      PrimitivesTag{}, primitives, Details::DoNotCheckGetReturnType());
   using Access = AccessTraits<Primitives, PrimitivesTag>;
   static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                               ExecutionSpace>::value,
