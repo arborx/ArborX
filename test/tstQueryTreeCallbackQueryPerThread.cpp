@@ -63,4 +63,50 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_intersects, DeviceType,
   BOOST_TEST(success);
 }
 
+struct OrderedIntersectionCallback
+{
+  int query_index;
+  bool &success;
+
+  template <typename Query, typename Value>
+  KOKKOS_FUNCTION auto operator()(Query const &, Value const &value) const
+  {
+    success = (query_index == value.index);
+    return ArborX::CallbackTreeTraversalControl::early_exit;
+  }
+};
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(callback_ordered_intersects, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  using MemorySpace = typename DeviceType::memory_space;
+  using ExecutionSpace = typename DeviceType::execution_space;
+  using Tree = ArborX::BVH<MemorySpace>;
+
+  int const n = 10;
+  Kokkos::View<ArborX::Point *, DeviceType> points(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
+        points(i) = {{(float)i, (double)i, (double)i}};
+      });
+
+  Tree const tree(ExecutionSpace{}, points);
+
+  bool success;
+  Kokkos::parallel_reduce(
+      Kokkos::RangePolicy<ExecutionSpace>(0, n),
+      KOKKOS_LAMBDA(int i, bool &update) {
+        float center = i;
+        ArborX::Box box{{center - .5f, center - .5f, center - .5f},
+                        {center + .5f, center + .5f, center + .5f}};
+        tree.query(ArborX::Experimental::PerThread{},
+                   ArborX::Experimental::ordered_intersects(box),
+                   OrderedIntersectionCallback{i, update});
+      },
+      Kokkos::LAnd<bool, Kokkos::HostSpace>(success));
+
+  BOOST_TEST(success);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
