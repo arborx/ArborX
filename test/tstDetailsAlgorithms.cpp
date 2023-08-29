@@ -223,6 +223,12 @@ BOOST_AUTO_TEST_CASE(centroid)
   BOOST_TEST(center[0] == -5.0);
   BOOST_TEST(center[1] == 5.0);
   BOOST_TEST(center[2] == 15.0);
+
+  Triangle triangle{{{0, 0, -2}}, {{3, 0, 1}}, {{0, 3, 1}}};
+  auto tri_center = returnCentroid(triangle);
+  BOOST_TEST(tri_center[0] == 1);
+  BOOST_TEST(tri_center[1] == 1);
+  BOOST_TEST(tri_center[2] == 0);
 }
 
 BOOST_AUTO_TEST_CASE(is_valid)

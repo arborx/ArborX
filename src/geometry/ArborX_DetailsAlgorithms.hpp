@@ -440,6 +440,19 @@ struct centroid<SphereTag, Sphere>
   }
 };
 
+template <typename Triangle>
+struct centroid<TriangleTag, Triangle>
+{
+  KOKKOS_FUNCTION static auto apply(Triangle const &triangle)
+  {
+    constexpr int DIM = GeometryTraits::dimension_v<Triangle>;
+    auto c = triangle.a;
+    for (int d = 0; d < DIM; ++d)
+      c[d] = (c[d] + triangle.b[d] + triangle.c[d]) / 3;
+    return c;
+  }
+};
+
 } // namespace Dispatch
 
 // transformation that maps the unit cube into a new axis-aligned box
