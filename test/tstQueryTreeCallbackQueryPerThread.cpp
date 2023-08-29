@@ -17,7 +17,7 @@
 #include <numeric>
 #include <vector>
 
-BOOST_AUTO_TEST_SUITE(KerneliQueryCallbacks)
+BOOST_AUTO_TEST_SUITE(PerThread)
 
 struct IntersectionCallback
 {
@@ -27,12 +27,7 @@ struct IntersectionCallback
   template <typename Query, typename Value>
   KOKKOS_FUNCTION void operator()(Query const &, Value const &value) const
   {
-    ArborX::Box actual_box = value.bounding_volume;
-    ArborX::Point min = actual_box.minCorner();
-    if (query_index != min[0] || query_index != min[1] || query_index != min[2])
-      success = false;
-    else
-      success = true;
+    success = (query_index == value.index);
   }
 };
 
@@ -48,7 +43,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_intersects, DeviceType,
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
-        points(i) = {{(double)i, (double)i, (double)i}};
+        points(i) = {{(float)i, (double)i, (double)i}};
       });
 
   Tree const tree(ExecutionSpace{}, points);
