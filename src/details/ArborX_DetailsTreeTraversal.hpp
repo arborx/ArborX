@@ -63,7 +63,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     else
     {
       Kokkos::parallel_for("ArborX::TreeTraversal::spatial",
-                           Kokkos::RangePolicy<ExecutionSpace, OrdinaryTree>(
+                           Kokkos::RangePolicy<ExecutionSpace, FullTree>(
                                space, 0, Access::size(predicates)),
                            *this);
     }
@@ -77,7 +77,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   struct OneLeafTree
   {};
 
-  struct OrdinaryTree
+  struct FullTree
   {};
 
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
@@ -92,7 +92,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     }
   }
 
-  KOKKOS_FUNCTION void operator()(OrdinaryTree, int queryIndex) const
+  KOKKOS_FUNCTION void operator()(FullTree, int queryIndex) const
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
     operator()(predicate);
