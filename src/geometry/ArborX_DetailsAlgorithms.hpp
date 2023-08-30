@@ -387,7 +387,8 @@ struct intersects<PointTag, BoxTag, Point, Box>
 template <typename Sphere, typename Box>
 struct intersects<SphereTag, BoxTag, Sphere, Box>
 {
-  KOKKOS_FUNCTION static bool apply(Sphere const &sphere, Box const &box)
+  KOKKOS_FUNCTION static constexpr bool apply(Sphere const &sphere,
+                                              Box const &box)
   {
     return Details::distance(sphere.centroid(), box) <= sphere.radius();
   }
@@ -397,7 +398,8 @@ struct intersects<SphereTag, BoxTag, Sphere, Box>
 template <typename Sphere, typename Point>
 struct intersects<SphereTag, PointTag, Sphere, Point>
 {
-  KOKKOS_FUNCTION static bool apply(Sphere const &sphere, Point const &point)
+  KOKKOS_FUNCTION static constexpr bool apply(Sphere const &sphere,
+                                              Point const &point)
   {
     return Details::distance(sphere.centroid(), point) <= sphere.radius();
   }
@@ -406,7 +408,8 @@ struct intersects<SphereTag, PointTag, Sphere, Point>
 template <typename Point, typename Sphere>
 struct intersects<PointTag, SphereTag, Point, Sphere>
 {
-  KOKKOS_FUNCTION static bool apply(Point const &point, Sphere const &sphere)
+  KOKKOS_FUNCTION static constexpr bool apply(Point const &point,
+                                              Sphere const &sphere)
   {
     return Details::intersects(sphere, point);
   }
@@ -415,8 +418,8 @@ struct intersects<PointTag, SphereTag, Point, Sphere>
 template <typename Point, typename Triangle>
 struct intersects<PointTag, TriangleTag, Point, Triangle>
 {
-  KOKKOS_FUNCTION static bool apply(Point const &point,
-                                    Triangle const &triangle)
+  KOKKOS_FUNCTION static constexpr bool apply(Point const &point,
+                                              Triangle const &triangle)
   {
     constexpr int DIM = GeometryTraits::dimension_v<Point>;
     static_assert(DIM == 2);
@@ -454,13 +457,16 @@ struct intersects<PointTag, TriangleTag, Point, Triangle>
 template <typename Point>
 struct centroid<PointTag, Point>
 {
-  KOKKOS_FUNCTION static auto apply(Point const &point) { return point; }
+  KOKKOS_FUNCTION static constexpr auto apply(Point const &point)
+  {
+    return point;
+  }
 };
 
 template <typename Box>
 struct centroid<BoxTag, Box>
 {
-  KOKKOS_FUNCTION static auto apply(Box const &box)
+  KOKKOS_FUNCTION static constexpr auto apply(Box const &box)
   {
     constexpr int DIM = GeometryTraits::dimension_v<Box>;
     auto c = box.minCorner();
@@ -473,7 +479,7 @@ struct centroid<BoxTag, Box>
 template <typename Sphere>
 struct centroid<SphereTag, Sphere>
 {
-  KOKKOS_FUNCTION static auto apply(Sphere const &sphere)
+  KOKKOS_FUNCTION static constexpr auto apply(Sphere const &sphere)
   {
     return sphere.centroid();
   }
@@ -482,7 +488,7 @@ struct centroid<SphereTag, Sphere>
 template <typename Triangle>
 struct centroid<TriangleTag, Triangle>
 {
-  KOKKOS_FUNCTION static auto apply(Triangle const &triangle)
+  KOKKOS_FUNCTION static constexpr auto apply(Triangle const &triangle)
   {
     constexpr int DIM = GeometryTraits::dimension_v<Triangle>;
     auto c = triangle.a;
