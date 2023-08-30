@@ -14,6 +14,7 @@
 
 #include <ArborX_Callbacks.hpp> // LegacyCallbackWrapper
 #include <ArborX_DetailsHappyTreeFriends.hpp>
+#include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
 
 #include <Kokkos_Core.hpp>
