@@ -148,11 +148,10 @@ public:
   {}
 
   template <typename ExecutionSpace, typename Predicates, typename Callback>
-  std::enable_if_t<Kokkos::is_execution_space<ExecutionSpace>::value>
-  query(ExecutionSpace const &space, Predicates const &predicates,
-        Callback const &callback,
-        Experimental::TraversalPolicy const &policy =
-            Experimental::TraversalPolicy()) const
+  void query(ExecutionSpace const &space, Predicates const &predicates,
+             Callback const &callback,
+             Experimental::TraversalPolicy const &policy =
+                 Experimental::TraversalPolicy()) const
   {
     base_type::query(space, predicates,
                      Details::LegacyCallbackWrapper<
