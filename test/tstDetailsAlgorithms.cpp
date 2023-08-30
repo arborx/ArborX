@@ -166,7 +166,10 @@ BOOST_AUTO_TEST_CASE(intersects)
       {{0, 0}}, {{1, 0}}, {{0, 2}}};
   BOOST_TEST(intersects(Point2{{0, 0}}, triangle));
   BOOST_TEST(intersects(Point2{{1, 0}}, triangle));
+  BOOST_TEST(intersects(Point2{{0, 2}}, triangle));
+  BOOST_TEST(intersects(Point2{{0.5, 0}}, triangle));
   BOOST_TEST(intersects(Point2{{0.5, 1}}, triangle));
+  BOOST_TEST(intersects(Point2{{0, 1}}, triangle));
   BOOST_TEST(intersects(Point2{{0.25, 0.5}}, triangle));
   BOOST_TEST(!intersects(Point2{{1, 1}}, triangle));
   BOOST_TEST(!intersects(Point2{{0.5, 1.1}}, triangle));
@@ -237,11 +240,16 @@ BOOST_AUTO_TEST_CASE(centroid)
   BOOST_TEST(center[1] == 5.0);
   BOOST_TEST(center[2] == 15.0);
 
-  Triangle triangle{{{0, 0, -2}}, {{3, 0, 1}}, {{0, 3, 1}}};
-  auto tri_center = returnCentroid(triangle);
-  BOOST_TEST(tri_center[0] == 1);
-  BOOST_TEST(tri_center[1] == 1);
-  BOOST_TEST(tri_center[2] == 0);
+  Triangle tri2{{{-1, -0.5}}, {{1, -0.5}}, {{0, 1}}};
+  auto tri2_center = returnCentroid(tri2);
+  BOOST_TEST(tri2_center[0] == 0);
+  BOOST_TEST(tri2_center[1] == 0);
+
+  Triangle tri3{{{0, 0, -2}}, {{3, 0, 1}}, {{0, 3, 1}}};
+  auto tri3_center = returnCentroid(tri3);
+  BOOST_TEST(tri3_center[0] == 1);
+  BOOST_TEST(tri3_center[1] == 1);
+  BOOST_TEST(tri3_center[2] == 0);
 }
 
 BOOST_AUTO_TEST_CASE(is_valid)
