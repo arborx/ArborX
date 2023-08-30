@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_intersects, DeviceType,
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
-        points(i) = {{(float)i, (double)i, (double)i}};
+        points(i) = {{(float)i, (float)i, (float)i}};
       });
 
   Tree const tree(ExecutionSpace{}, points);
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_ordered_intersects, DeviceType,
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
-        points(i) = {{(float)i, (double)i, (double)i}};
+        points(i) = {{(float)i, (float)i, (float)i}};
       });
 
   Tree const tree(ExecutionSpace{}, points);
