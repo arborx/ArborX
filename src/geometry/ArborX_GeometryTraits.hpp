@@ -86,6 +86,10 @@ struct is_sphere : std::is_same<typename tag<Geometry>::type, SphereTag>
 {};
 
 template <typename Geometry>
+struct is_triangle : std::is_same<typename tag<Geometry>::type, TriangleTag>
+{};
+
+template <typename Geometry>
 void check_valid_geometry_traits(Geometry const &)
 {
   static_assert(
