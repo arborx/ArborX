@@ -20,7 +20,7 @@
 
 struct ExecutionEnvironmentScopeGuard
 {
-  ExecutionEnvironmentScopeGuard(int argc, char *argv[])
+  ExecutionEnvironmentScopeGuard(int &argc, char *argv[])
   {
 #if defined(ARBORX_MPI_UNIT_TEST)
     MPI_Init(&argc, &argv);
