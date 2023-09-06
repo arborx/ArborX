@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -20,7 +20,7 @@
 
 struct ExecutionEnvironmentScopeGuard
 {
-  ExecutionEnvironmentScopeGuard(int argc, char *argv[])
+  ExecutionEnvironmentScopeGuard(int &argc, char *argv[])
   {
 #if defined(ARBORX_MPI_UNIT_TEST)
     MPI_Init(&argc, &argv);
