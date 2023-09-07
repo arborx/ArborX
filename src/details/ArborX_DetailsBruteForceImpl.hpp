@@ -99,10 +99,10 @@ struct BruteForceImpl
           int primitive_start = primitives_per_team *
                                 (teamMember.league_rank() % n_primitive_tiles);
 
-          int predicates_in_this_team = KokkosExt::min(
-              predicates_per_team, n_predicates - predicate_start);
-          int primitives_in_this_team = KokkosExt::min(
-              primitives_per_team, n_primitives - primitive_start);
+          int predicates_in_this_team =
+              Kokkos::min(predicates_per_team, n_predicates - predicate_start);
+          int primitives_in_this_team =
+              Kokkos::min(primitives_per_team, n_primitives - primitive_start);
 
           ScratchPredicateType scratch_predicates(teamMember.team_scratch(0),
                                                   predicates_per_team);

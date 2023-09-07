@@ -16,7 +16,6 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsDistributor.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
-#include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsPriorityQueue.hpp>
@@ -400,7 +399,7 @@ void DistributedTreeImpl<DeviceType>::reassessStrategy(
       "ArborX::DistributedTree::query::most_distant_neighbor_so_far",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int i) {
-        using KokkosExt::max;
+        using Kokkos::max;
         farthest_distances(i) = 0.;
         for (int j = offset(i); j < offset(i + 1); ++j)
           farthest_distances(i) = max(farthest_distances(i), distances(j));
@@ -895,7 +894,7 @@ void DistributedTreeImpl<DeviceType>::filterResults(
       "ArborX::DistributedTree::query::discard_results",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int q) {
-        using KokkosExt::min;
+        using Kokkos::min;
         new_offset(q) =
             min(offset(q + 1) - offset(q), getK(Access::get(queries, q)));
       });

@@ -13,9 +13,10 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
-#include <ArborX_DetailsKokkosExtMinMaxOperations.hpp> // min, max
+// min, max
 #include <ArborX_GeometryTraits.hpp>
 
+#include <Kokkos_Core.hpp> // min, max
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_MathematicalFunctions.hpp> // isfinite
 
@@ -235,7 +236,7 @@ struct distance<PointTag, SphereTag, Point, Sphere>
 {
   KOKKOS_FUNCTION static float apply(Point const &point, Sphere const &sphere)
   {
-    using KokkosExt::max;
+    using Kokkos::max;
     return max(Details::distance(point, sphere.centroid()) - sphere.radius(),
                0.f);
   }
@@ -280,7 +281,7 @@ struct distance<SphereTag, BoxTag, Sphere, Box>
 {
   KOKKOS_FUNCTION static float apply(Sphere const &sphere, Box const &box)
   {
-    using KokkosExt::max;
+    using Kokkos::max;
 
     float distance_center_box = Details::distance(sphere.centroid(), box);
     return max(distance_center_box - sphere.radius(), 0.f);
@@ -326,8 +327,8 @@ struct expand<BoxTag, SphereTag, Box, Sphere>
 {
   KOKKOS_FUNCTION static void apply(Box &box, Sphere const &sphere)
   {
-    using KokkosExt::max;
-    using KokkosExt::min;
+    using Kokkos::max;
+    using Kokkos::min;
 
     constexpr int DIM = GeometryTraits::dimension_v<Box>;
     for (int d = 0; d < DIM; ++d)

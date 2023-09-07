@@ -408,15 +408,15 @@ bool intersection(Ray const &ray,
   bool bc_intersect = rayEdgeIntersect(B_star, C_star, t_bc);
   if (bc_intersect)
   {
-    tmin = KokkosExt::min(tmin, t_bc);
-    tmax = KokkosExt::max(tmax, t_bc);
+    tmin = Kokkos::min(tmin, t_bc);
+    tmax = Kokkos::max(tmax, t_bc);
   }
   float t_ca = inf;
   bool ca_intersect = rayEdgeIntersect(C_star, A_star, t_ca);
   if (ca_intersect)
   {
-    tmin = KokkosExt::min(tmin, t_ca);
-    tmax = KokkosExt::max(tmax, t_ca);
+    tmin = Kokkos::min(tmin, t_ca);
+    tmax = Kokkos::max(tmax, t_ca);
   }
 
   if (ab_intersect || bc_intersect || ca_intersect)
@@ -552,7 +552,7 @@ overlapDistance(Ray const &ray, Geometry const &geometry, float &length,
   if (intersection(ray, geometry, tmin, tmax) && (tmin <= tmax && tmax >= 0))
   {
     // Overlap [tmin, tmax] with [0, +inf)
-    tmin = KokkosExt::max(0.f, tmin);
+    tmin = Kokkos::max(0.f, tmin);
     // As direction is normalized,
     //   |(o + tmax*d) - (o + tmin*d)| = tmax - tmin
     length = tmax - tmin;

@@ -12,8 +12,7 @@
 #ifndef ARBORX_DETAILS_WEIGHTED_EDGE_HPP
 #define ARBORX_DETAILS_WEIGHTED_EDGE_HPP
 
-#include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
-
+#include <Kokkos_Core.hpp> // min, max
 #include <Kokkos_Macros.hpp>
 
 namespace ArborX::Details
@@ -35,14 +34,14 @@ private:
     {
       return (lhs.weight < rhs.weight);
     }
-    using KokkosExt::min;
+    using Kokkos::min;
     auto const lhs_min = min(lhs.source, lhs.target);
     auto const rhs_min = min(rhs.source, rhs.target);
     if (lhs_min != rhs_min)
     {
       return (lhs_min < rhs_min);
     }
-    using KokkosExt::max;
+    using Kokkos::max;
     auto const lhs_max = max(lhs.source, lhs.target);
     auto const rhs_max = max(rhs.source, rhs.target);
     return (lhs_max < rhs_max);

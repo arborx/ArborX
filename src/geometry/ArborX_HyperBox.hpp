@@ -13,10 +13,10 @@
 #define ARBORX_HYPERBOX_HPP
 
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
-#include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperPoint.hpp>
 
+#include <Kokkos_Core.hpp> // min, max
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_ReductionIdentity.hpp>
 
@@ -68,8 +68,8 @@ struct Box
             std::enable_if_t<GeometryTraits::is_box<OtherBox>{}> * = nullptr>
   KOKKOS_FUNCTION auto &operator+=(OtherBox const &other)
   {
-    using KokkosExt::max;
-    using KokkosExt::min;
+    using Kokkos::max;
+    using Kokkos::min;
 
     for (int d = 0; d < DIM; ++d)
     {
@@ -83,8 +83,8 @@ struct Box
             std::enable_if_t<GeometryTraits::is_point<Point>{}> * = nullptr>
   KOKKOS_FUNCTION auto &operator+=(Point const &point)
   {
-    using KokkosExt::max;
-    using KokkosExt::min;
+    using Kokkos::max;
+    using Kokkos::min;
 
     for (int d = 0; d < DIM; ++d)
     {
