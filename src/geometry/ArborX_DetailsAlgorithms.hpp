@@ -70,8 +70,8 @@ KOKKOS_INLINE_FUNCTION constexpr bool isValid(Geometry const &geometry)
 }
 
 template <typename Geometry1, typename Geometry2>
-KOKKOS_INLINE_FUNCTION float distance(Geometry1 const &geometry1,
-                                      Geometry2 const &geometry2)
+KOKKOS_INLINE_FUNCTION auto distance(Geometry1 const &geometry1,
+                                     Geometry2 const &geometry2)
 {
   static_assert(GeometryTraits::dimension_v<Geometry1> ==
                 GeometryTraits::dimension_v<Geometry2>);
@@ -195,16 +195,17 @@ struct isValid<SphereTag, Sphere>
 template <typename Point1, typename Point2>
 struct distance<PointTag, PointTag, Point1, Point2>
 {
-  KOKKOS_FUNCTION static float apply(Point1 const &a, Point2 const &b)
+  KOKKOS_FUNCTION static auto apply(Point1 const &a, Point2 const &b)
   {
     constexpr int DIM = GeometryTraits::dimension_v<Point1>;
-    float distance_squared = 0.0;
+    using Coordinate = typename GeometryTraits::coordinate_type<Point1>::type;
+    Coordinate distance_squared = 0;
     for (int d = 0; d < DIM; ++d)
     {
-      float tmp = b[d] - a[d];
+      auto tmp = b[d] - a[d];
       distance_squared += tmp * tmp;
     }
-    return std::sqrt(distance_squared);
+    return Kokkos::sqrt(distance_squared);
   }
 };
 
@@ -212,7 +213,7 @@ struct distance<PointTag, PointTag, Point1, Point2>
 template <typename Point, typename Box>
 struct distance<PointTag, BoxTag, Point, Box>
 {
-  KOKKOS_FUNCTION static float apply(Point const &point, Box const &box)
+  KOKKOS_FUNCTION static auto apply(Point const &point, Box const &box)
   {
     constexpr int DIM = GeometryTraits::dimension_v<Point>;
     Point projected_point;
@@ -233,7 +234,7 @@ struct distance<PointTag, BoxTag, Point, Box>
 template <typename Point, typename Sphere>
 struct distance<PointTag, SphereTag, Point, Sphere>
 {
-  KOKKOS_FUNCTION static float apply(Point const &point, Sphere const &sphere)
+  KOKKOS_FUNCTION static auto apply(Point const &point, Sphere const &sphere)
   {
     using KokkosExt::max;
     return max(Details::distance(point, sphere.centroid()) - sphere.radius(),
@@ -245,10 +246,11 @@ struct distance<PointTag, SphereTag, Point, Sphere>
 template <typename Box1, typename Box2>
 struct distance<BoxTag, BoxTag, Box1, Box2>
 {
-  KOKKOS_FUNCTION static float apply(Box1 const &box_a, Box2 const &box_b)
+  KOKKOS_FUNCTION static auto apply(Box1 const &box_a, Box2 const &box_b)
   {
     constexpr int DIM = GeometryTraits::dimension_v<Box1>;
-    float distance_squared = 0.;
+    using Coordinate = typename GeometryTraits::coordinate_type<Box1>::type;
+    Coordinate distance_squared = 0;
     for (int d = 0; d < DIM; ++d)
     {
       auto const a_min = box_a.minCorner()[d];
@@ -257,12 +259,12 @@ struct distance<BoxTag, BoxTag, Box1, Box2>
       auto const b_max = box_b.maxCorner()[d];
       if (a_min > b_max)
       {
-        float const delta = a_min - b_max;
+        auto const delta = a_min - b_max;
         distance_squared += delta * delta;
       }
       else if (b_min > a_max)
       {
-        float const delta = b_min - a_max;
+        auto const delta = b_min - a_max;
         distance_squared += delta * delta;
       }
       else
@@ -270,7 +272,7 @@ struct distance<BoxTag, BoxTag, Box1, Box2>
         // The boxes overlap on this axis: distance along this axis is zero.
       }
     }
-    return std::sqrt(distance_squared);
+    return Kokkos::sqrt(distance_squared);
   }
 };
 
@@ -278,11 +280,11 @@ struct distance<BoxTag, BoxTag, Box1, Box2>
 template <typename Sphere, typename Box>
 struct distance<SphereTag, BoxTag, Sphere, Box>
 {
-  KOKKOS_FUNCTION static float apply(Sphere const &sphere, Box const &box)
+  KOKKOS_FUNCTION static auto apply(Sphere const &sphere, Box const &box)
   {
     using KokkosExt::max;
 
-    float distance_center_box = Details::distance(sphere.centroid(), box);
+    auto distance_center_box = Details::distance(sphere.centroid(), box);
     return max(distance_center_box - sphere.radius(), 0.f);
   }
 };
