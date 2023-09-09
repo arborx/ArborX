@@ -198,7 +198,9 @@ struct distance<PointTag, PointTag, Point1, Point2>
   KOKKOS_FUNCTION static auto apply(Point1 const &a, Point2 const &b)
   {
     constexpr int DIM = GeometryTraits::dimension_v<Point1>;
-    using Coordinate = typename GeometryTraits::coordinate_type<Point1>::type;
+    // Points may have different coordinate types. Try using implicit
+    // conversion to get the best one.
+    using Coordinate = decltype(b[0] - a[0]);
     Coordinate distance_squared = 0;
     for (int d = 0; d < DIM; ++d)
     {
@@ -249,7 +251,9 @@ struct distance<BoxTag, BoxTag, Box1, Box2>
   KOKKOS_FUNCTION static auto apply(Box1 const &box_a, Box2 const &box_b)
   {
     constexpr int DIM = GeometryTraits::dimension_v<Box1>;
-    using Coordinate = typename GeometryTraits::coordinate_type<Box1>::type;
+    // Boxes may have different coordinate types. Try using implicit
+    // conversion to get the best one.
+    using Coordinate = decltype(box_b.minCorner()[0] - box_a.minCorner()[0]);
     Coordinate distance_squared = 0;
     for (int d = 0; d < DIM; ++d)
     {
