@@ -68,9 +68,9 @@ symmetricPseudoInverseSVDSerialKernel(InOutMatrix &io, SMatrix &s, UMatrix &u)
   static constexpr value_t epsilon = Kokkos::Experimental::epsilon_v<float>;
   while (norm > epsilon)
   {
-    value_t a = s(p, p);
-    value_t b = s(p, q);
-    value_t c = s(q, q);
+    value_t const a = s(p, p);
+    value_t const b = s(p, q);
+    value_t const c = s(q, q);
 
     // Our submatrix is now
     // +---------+---------+   +---+---+
@@ -86,74 +86,65 @@ symmetricPseudoInverseSVDSerialKernel(InOutMatrix &io, SMatrix &s, UMatrix &u)
     // | b | c |              | 0 | y |
     // +---+---+              +---+---+
 
-    // Alternative without trig
-    // if (a != c)
-    //   u = (2 * b) / (a - c)
-    //   v = 1 / sqrt(u * u + 1)
-    //   cos = sqrt((1 + v) / 2)
-    //   sin = sgn(u) * sqrt((1 - v) / 2)
-    //   x = (a + c + (a - c) / v) / 2
-    //   y = (a + c - (a - c) / v) / 2 or y = a + c - x
-    // else
-    //   cos = sqrt(2) / 2
-    //   sin = sqrt(2) / 2
-    //   x = a + b
-    //   y = a - b
-
-    value_t theta, x, y;
-    if (a == c) // <-- better to check if |a - c| < epsilon?
+    value_t cos, sin, x, y;
+    if (a == c)
     {
-      theta = Kokkos::numbers::pi_v<value_t> / 4;
+      cos = Kokkos::sqrt(value_t(2)) / 2;
+      sin = Kokkos::sqrt(value_t(2)) / 2;
       x = a + b;
       y = a - b;
     }
     else
     {
-      theta = Kokkos::atan((2 * b) / (a - c)) / 2;
-      value_t a_c_cos2 = (a - c) / Kokkos::cos(2 * theta);
-      x = (a + c + a_c_cos2) / 2;
-      y = (a + c - a_c_cos2) / 2;
+      value_t const u = (2 * b) / (a - c);
+      value_t const v = 1 / Kokkos::sqrt(u * u + 1);
+      cos = Kokkos::sqrt((1 + v) / 2);
+      sin = Kokkos::copysign(Kokkos::sqrt((1 - v) / 2), u);
+      x = (a + c + (a - c) / v) / 2;
+      y = a + c - x;
     }
-    value_t cos_theta = Kokkos::cos(theta);
-    value_t sin_theta = Kokkos::sin(theta);
 
     // Now lets compute the following new values for U amd E.S
     // M <- R'(theta)^T . S . R'(theta)
-    // U  <- U . R'(theta)
+    // U <- U . R'(theta)
 
-    // R'(theta)^T . S
-    for (std::size_t i = 0; i < size; i++)
+    // R'(theta)^T . S . R'(theta)
+    std::size_t i = 0;
+    for (; i < p; i++)
     {
-      value_t s_pi = s(p, i);
-      value_t s_qi = s(q, i);
-      s(p, i) = cos_theta * s_pi + sin_theta * s_qi;
-      s(q, i) = -sin_theta * s_pi + cos_theta * s_qi;
+      value_t const s_ip = s(i, p);
+      value_t const s_iq = s(i, q);
+      s(i, p) = cos * s_ip + sin * s_iq;
+      s(i, q) = -sin * s_ip + cos * s_iq;
     }
-
-    // [R'(theta)^T . S] . R'(theta)
-    for (std::size_t i = 0; i < size; i++)
+    s(p, p) = x;
+    i++;
+    for (; i < q; i++)
     {
-      value_t s_ip = s(i, p);
-      value_t s_iq = s(i, q);
-      s(i, p) = cos_theta * s_ip + sin_theta * s_iq;
-      s(i, q) = -sin_theta * s_ip + cos_theta * s_iq;
+      value_t const s_pi = s(p, i);
+      value_t const s_iq = s(i, q);
+      s(p, i) = cos * s_pi + sin * s_iq;
+      s(i, q) = -sin * s_pi + cos * s_iq;
     }
+    s(q, q) = y;
+    i++;
+    for (; i < size; i++)
+    {
+      value_t const s_pi = s(p, i);
+      value_t const s_qi = s(q, i);
+      s(p, i) = cos * s_pi + sin * s_qi;
+      s(q, i) = -sin * s_pi + cos * s_qi;
+    }
+    s(p, q) = 0;
 
     // U . R'(theta)
     for (std::size_t i = 0; i < size; i++)
     {
-      value_t u_ip = u(i, p);
-      value_t u_iq = u(i, q);
-      u(i, p) = cos_theta * u_ip + sin_theta * u_iq;
-      u(i, q) = -sin_theta * u_ip + cos_theta * u_iq;
+      value_t const u_ip = u(i, p);
+      value_t const u_iq = u(i, q);
+      u(i, p) = cos * u_ip + sin * u_iq;
+      u(i, q) = -sin * u_ip + cos * u_iq;
     }
-
-    // These should theorically hold but is it ok to force them to their
-    // real value?
-    s(p, p) = x;
-    s(q, q) = y;
-    s(p, q) = 0;
-    s(q, p) = 0;
 
     norm = argmaxUpperTriangle(p, q);
   }
