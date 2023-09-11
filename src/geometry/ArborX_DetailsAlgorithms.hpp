@@ -16,6 +16,7 @@
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp> // min, max
 #include <ArborX_GeometryTraits.hpp>
 
+#include <Kokkos_Core.hpp> // KOKKOS_ASSERT
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_MathematicalFunctions.hpp> // isfinite
 

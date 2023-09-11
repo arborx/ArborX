@@ -14,6 +14,7 @@
 
 #include <ArborX_DetailsNode.hpp>
 
+#include <Kokkos_Core.hpp> // KOKKOS_ASSERT
 #include <Kokkos_Macros.hpp>
 
 #include <type_traits>

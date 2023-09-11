@@ -16,6 +16,7 @@
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperBox.hpp>
 
+#include <Kokkos_Core.hpp> // KOKKOS_ASSERT
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_MathematicalFunctions.hpp> // floor
 

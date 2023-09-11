@@ -19,6 +19,7 @@
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
 
+#include <Kokkos_Core.hpp> // KOKKOS_ASSERT
 #include <Kokkos_Macros.hpp>
 
 #include <cmath>

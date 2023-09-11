@@ -11,6 +11,7 @@
 #ifndef ARBORX_DETAILS_CONTAINERS_HPP
 #define ARBORX_DETAILS_CONTAINERS_HPP
 
+#include <Kokkos_Core.hpp> // KOKKOS_ASSERT
 #include <Kokkos_Macros.hpp>
 
 #include <cstddef> // size_t, ptrdiff_t
