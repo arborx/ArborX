@@ -28,7 +28,6 @@ struct KokkosViewIterator<Kokkos::View<T, P...>>
   using self_t = KokkosViewIterator<Kokkos::View<T, P...>>;
   using view_t = Kokkos::View<T, P...>;
   using value_t = typename view_t::value_type;
-  static constexpr std::size_t rank = view_t::rank;
 
   value_t &operator*()
   {
@@ -40,10 +39,10 @@ struct KokkosViewIterator<Kokkos::View<T, P...>>
 
   self_t &operator++()
   {
-    index[rank - 1]++;
+    index[7]++;
     auto const layout = view.layout();
 
-    for (std::size_t i = rank - 1; i > 0; i--)
+    for (std::size_t i = 7; i > 0; i--)
       if (index[i] == layout.dimension[i] ||
           layout.dimension[i] == KOKKOS_INVALID_INDEX)
       {

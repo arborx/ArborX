@@ -188,11 +188,11 @@ void symmetricPseudoInverseSVD(ExecutionSpace const &space, InOutMatrices &ios)
     assert(ios.extent(1) == ios.extent(2)); // Matrices must be square
 
     view_t s_matrices(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::SymmetricPseudoInverseSVD::sigma_list"),
         ios.extent(0), ios.extent(1), ios.extent(2));
     view_t u_matrices(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::SymmetricPseudoInverseSVD::givens_list"),
         ios.extent(0), ios.extent(1), ios.extent(2));
 
@@ -211,11 +211,11 @@ void symmetricPseudoInverseSVD(ExecutionSpace const &space, InOutMatrices &ios)
     assert(ios.extent(0) == ios.extent(1)); // Matrix must be square
 
     view_t s_matrices(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::SymmetricPseudoInverseSVD::sigma"),
         ios.extent(0), ios.extent(1));
     view_t u_matrices(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::SymmetricPseudoInverseSVD::givens"),
         ios.extent(0), ios.extent(1));
 

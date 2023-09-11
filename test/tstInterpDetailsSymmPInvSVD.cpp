@@ -29,18 +29,31 @@ void equalityCheck(U const &u, V const &v,
   BOOST_TEST(u_host == v_host, tt::tolerance(tol) << tt::per_element());
 }
 
-// Makes a unmanaged view from a 2D C array
+// Makes a view from a 2D C array
 template <typename U, std::size_t N>
 auto viewHostRef2(double (&a)[N][N])
 {
-  return typename U::HostMirror(&a[0][0], N, N);
+  typename U::HostMirror r("r", N, N);
+
+  for (std::size_t i = 0; i < N; i++)
+    for (std::size_t j = 0; j < N; j++)
+      r(i, j) = a[i][j];
+
+  return r;
 }
 
-// Makes a unmanaged view from a 3D C array
+// Makes a view from a 3D C array
 template <typename U, std::size_t M, std::size_t N>
 auto viewHostRef3(double (&a)[M][N][N])
 {
-  return typename U::HostMirror(&a[0][0][0], M, N, N);
+  typename U::HostMirror r("r", M, N, N);
+
+  for (std::size_t i = 0; i < M; i++)
+    for (std::size_t j = 0; j < N; j++)
+      for (std::size_t k = 0; k < N; k++)
+        r(i, j, k) = a[i][j][k];
+
+  return r;
 }
 
 // Computes the pseudo-inverse from a single matrix
@@ -83,16 +96,14 @@ void makeCaseList(ES const &es, double (&src)[M][N][N], double (&ref)[M][N][N])
   equalityCheck(rref, inv);
 }
 
-// Pseudo-inverses are computed using numpy's "linalg.pinv" solver
-// If possible, results will be written with their exact values (as ratios)
-// Layout is forced to be LayoutRight so that matrices are represented in the
-// same way under host and device code
+// Pseudo-inverses were computed using numpy's "linalg.pinv" solver and
+// simplified to be ratios
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(pseudo_inv_symm2, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-  using view_t = Kokkos::View<double **, Kokkos::LayoutRight, MemorySpace>;
+  using view_t = Kokkos::View<double **, MemorySpace>;
   ExecutionSpace space{};
 
   double mat0[2][2] = {{1, 2}, {2, 3}};
@@ -120,7 +131,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(pseudo_inv_symm3, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-  using view_t = Kokkos::View<double **, Kokkos::LayoutRight, MemorySpace>;
+  using view_t = Kokkos::View<double **, MemorySpace>;
   ExecutionSpace space{};
 
   double mat0[3][3] = {{2, 2, 3}, {2, 0, 1}, {3, 1, -2}};
@@ -147,7 +158,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(pseudo_inv_symm128, DeviceType,
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-  using view_t = Kokkos::View<double **, Kokkos::LayoutRight, MemorySpace>;
+  using view_t = Kokkos::View<double **, MemorySpace>;
   ExecutionSpace space{};
 
   // 128x128 matrix full of -2
@@ -171,7 +182,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(pseudo_inv_scalar_like, DeviceType,
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-  using view_t = Kokkos::View<double **, Kokkos::LayoutRight, MemorySpace>;
+  using view_t = Kokkos::View<double **, MemorySpace>;
   ExecutionSpace space{};
 
   double mat0[1][1] = {{2}};
@@ -188,7 +199,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(pseudo_inv_empty, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-  using view_t = Kokkos::View<double **, Kokkos::LayoutRight, MemorySpace>;
+  using view_t = Kokkos::View<double **, MemorySpace>;
   ExecutionSpace space{};
 
   view_t mat(0, 0);
@@ -202,7 +213,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(pseudo_inv_symm2_list, DeviceType,
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-  using view_t = Kokkos::View<double ***, Kokkos::LayoutRight, MemorySpace>;
+  using view_t = Kokkos::View<double ***, MemorySpace>;
   ExecutionSpace space{};
 
   double mat[5][2][2] = {{{1, 2}, {2, 3}},
@@ -223,7 +234,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(pseudo_inv_symm3_list, DeviceType,
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-  using view_t = Kokkos::View<double ***, Kokkos::LayoutRight, MemorySpace>;
+  using view_t = Kokkos::View<double ***, MemorySpace>;
   ExecutionSpace space{};
 
   double mat[3][3][3] = {{{2, 2, 3}, {2, 0, 1}, {3, 1, -2}},
