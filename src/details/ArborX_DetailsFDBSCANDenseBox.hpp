@@ -22,8 +22,6 @@
 
 #include <Kokkos_Core.hpp>
 
-#include <cassert>
-
 namespace ArborX
 {
 namespace Details

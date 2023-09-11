@@ -21,7 +21,6 @@
 
 #include <Kokkos_Macros.hpp>
 
-#include <cassert>
 #include <cmath>
 
 namespace ArborX

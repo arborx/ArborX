@@ -19,8 +19,6 @@
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_MathematicalFunctions.hpp> // isfinite
 
-#include <cassert>
-
 namespace ArborX
 {
 namespace Details
