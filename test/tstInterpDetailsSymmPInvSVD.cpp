@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include "ArborX_EnableDeviceTypes.hpp"
+#include "ArborX_EnableViewComparison.hpp"
 #include <interpolation/details/ArborX_InterpDetailsSymmetricPseudoInverseSVD.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
@@ -23,19 +24,9 @@ template <typename U, typename V>
 void equalityCheck(U const &u, V const &v,
                    double tol = Kokkos::Experimental::epsilon_v<float>)
 {
-  if constexpr (U::rank == 2)
-  {
-    for (std::size_t i = 0; i < u.extent(0); i++)
-      for (std::size_t j = 0; j < u.extent(1); j++)
-        BOOST_TEST(u(i, j) == v(i, j), tt::tolerance(tol));
-  }
-  else if constexpr (U::rank == 3)
-  {
-    for (std::size_t i = 0; i < u.extent(0); i++)
-      for (std::size_t j = 0; j < u.extent(1); j++)
-        for (std::size_t k = 0; k < u.extent(2); k++)
-          BOOST_TEST(u(i, j, k) == v(i, j, k), tt::tolerance(tol));
-  }
+  auto u_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, u);
+  auto v_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, v);
+  BOOST_TEST(u_host == v_host, tt::tolerance(tol) << tt::per_element());
 }
 
 // Makes a unmanaged view from a 2D C array
@@ -59,7 +50,7 @@ auto makePseudoInverse(ES const &es, typename U::HostMirror const &a)
   U inv("inv", N, N);
   Kokkos::deep_copy(es, inv, a);
   axid::symmetricPseudoInverseSVD(es, inv);
-  return Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, inv);
+  return inv;
 }
 
 // Computes the pseudo-inverse from a list of matrices
@@ -69,7 +60,7 @@ auto makePseudoInverseList(ES const &es, typename U::HostMirror const &a)
   U inv("inv", M, N, N);
   Kokkos::deep_copy(es, inv, a);
   axid::symmetricPseudoInverseSVD(es, inv);
-  return Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, inv);
+  return inv;
 }
 
 // Makes the case for a single matrix
