@@ -90,7 +90,7 @@ public:
   KOKKOS_FUNCTION
   auto extent(int d) const
   {
-    assert(0 <= d && d < DIM);
+    KOKKOS_ASSERT(0 <= d && d < DIM);
     return _n[d];
   }
 

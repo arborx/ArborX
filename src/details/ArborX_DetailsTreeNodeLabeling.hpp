@@ -61,9 +61,9 @@ void reduceLabels(ExecutionSpace const &exec_space, Parents const &parents,
       "ArborX::reduce_internal_node_labels",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
       KOKKOS_LAMBDA(int i) {
-        assert(labels(i) != indeterminate);
-        assert(labels(i) != untouched);
-        assert(parents(i) >= 0);
+        KOKKOS_ASSERT(labels(i) != indeterminate);
+        KOKKOS_ASSERT(labels(i) != untouched);
+        KOKKOS_ASSERT(parents(i) >= 0);
 
         // TODO consider asserting the precondition below holds at call site or
         // taking root as an input argument
