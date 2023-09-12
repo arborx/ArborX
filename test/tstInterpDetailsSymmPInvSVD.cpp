@@ -194,20 +194,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(pseudo_inv_scalar_like, DeviceType,
   makeCase<ExecutionSpace, view_t, 1>(space, mat1, inv1);
 }
 
-#if 0
-BOOST_AUTO_TEST_CASE_TEMPLATE(pseudo_inv_empty, DeviceType, ARBORX_DEVICE_TYPES)
-{
-  using ExecutionSpace = typename DeviceType::execution_space;
-  using MemorySpace = typename DeviceType::memory_space;
-  using view_t = Kokkos::View<double **, MemorySpace>;
-  ExecutionSpace space{};
-
-  view_t mat(0, 0);
-  axid::symmetricPseudoInverseSVD(space, mat);
-  BOOST_TEST(mat.size() == 0);
-}
-#endif
-
 BOOST_AUTO_TEST_CASE_TEMPLATE(pseudo_inv_symm2_list, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
