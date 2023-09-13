@@ -20,8 +20,7 @@ namespace tt = boost::test_tools;
 namespace axid = ArborX::Interpolation::Details;
 
 template <typename ES, typename U, typename V>
-void makeCase(ES const &es, std::size_t id, V &src_arr, V &ref_arr,
-              std::size_t n, std::size_t m = 0)
+void makeCase(ES const &es, int id, V &src_arr, V &ref_arr, int n, int m = 0)
 {
   std::string id_string = std::to_string(id);
   using host_view = typename U::HostMirror;
@@ -36,8 +35,8 @@ void makeCase(ES const &es, std::size_t id, V &src_arr, V &ref_arr,
     ref = host_view("ref" + id_string, n, n);
     inv = U("inv" + id_string, n, n);
 
-    for (std::size_t i = 0; i < n; i++)
-      for (std::size_t j = 0; j < n; j++)
+    for (int i = 0; i < n; i++)
+      for (int j = 0; j < n; j++)
       {
         src(i, j) = src_arr[i][j];
         ref(i, j) = ref_arr[i][j];
@@ -49,9 +48,9 @@ void makeCase(ES const &es, std::size_t id, V &src_arr, V &ref_arr,
     ref = host_view("ref" + id_string, m, n, n);
     inv = U("inv" + id_string, m, n, n);
 
-    for (std::size_t i = 0; i < m; i++)
-      for (std::size_t j = 0; j < n; j++)
-        for (std::size_t k = 0; k < n; k++)
+    for (int i = 0; i < m; i++)
+      for (int j = 0; j < n; j++)
+        for (int k = 0; k < n; k++)
         {
           src(i, j, k) = src_arr[i][j][k];
           ref(i, j, k) = ref_arr[i][j][k];
@@ -133,8 +132,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(pseudo_inv_symm128, DeviceType,
   // pseudo-inverse is a 128x128 matrix of 1 / (128 * 128 * -2)
   double mat[128][128] = {};
   double inv[128][128] = {};
-  for (std::size_t i = 0; i < 128; i++)
-    for (std::size_t j = 0; j < 128; j++)
+  for (int i = 0; i < 128; i++)
+    for (int j = 0; j < 128; j++)
     {
       mat[i][j] = -2;
       inv[i][j] = 1 / (128 * 128 * -2.);

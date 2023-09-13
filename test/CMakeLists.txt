@@ -235,11 +235,11 @@ target_link_libraries(ArborX_Test_BoostAdapters.exe PRIVATE ArborX Boost::unit_t
 target_compile_definitions(ArborX_Test_BoostAdapters.exe PRIVATE BOOST_TEST_DYN_LINK)
 add_test(NAME ArborX_Test_BoostAdapters COMMAND ArborX_Test_BoostAdapters.exe)
 
-add_executable(ArborX_Test_InterpDetailsSymmPInvSVD.exe tstInterpDetailsSymmPInvSVD.cpp utf_main.cpp)
-target_link_libraries(ArborX_Test_InterpDetailsSymmPInvSVD.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_Test_InterpDetailsSymmPInvSVD.exe PRIVATE BOOST_TEST_DYN_LINK)
-target_include_directories(ArborX_Test_InterpDetailsSymmPInvSVD.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_Test_InterpDetailsSymmPInvSVD COMMAND ArborX_Test_InterpDetailsSymmPInvSVD.exe)
+add_executable(ArborX_Test_InterpDetailsSVD.exe tstInterpDetailsSVD.cpp utf_main.cpp)
+target_link_libraries(ArborX_Test_InterpDetailsSVD.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_Test_InterpDetailsSVD.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_include_directories(ArborX_Test_InterpDetailsSVD.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_Test_InterpDetailsSVD COMMAND ArborX_Test_InterpDetailsSVD.exe)
 
 if(ARBORX_ENABLE_HEADER_SELF_CONTAINMENT_TESTS)
   add_subdirectory(headers_self_contained)

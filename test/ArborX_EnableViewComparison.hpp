@@ -24,12 +24,12 @@ template <typename U, typename V>
 void arborxViewCheck(U const &u, V const &v, std::string const &u_name,
                      std::string const &v_name, double tol = 0.)
 {
-  static constexpr std::size_t rank = U::rank;
+  static constexpr int rank = U::rank;
 
   bool same_dim_size = true;
-  for (std::size_t i = 0; i < rank; i++)
+  for (int i = 0; i < rank; i++)
   {
-    std::size_t ui = u.extent(i), vi = v.extent(i);
+    int ui = u.extent(i), vi = v.extent(i);
     BOOST_TEST(ui == vi, u_name << " == " << v_name << " dimension " << i
                                 << " sizes"
                                 << boost::test_tools::tolerance(0.));
@@ -40,11 +40,11 @@ void arborxViewCheck(U const &u, V const &v, std::string const &u_name,
     return;
 
   auto const layout = u.layout();
-  Kokkos::Array<std::size_t, 8> index{0, 0, 0, 0, 0, 0, 0, 0};
+  Kokkos::Array<int, 8> index{0, 0, 0, 0, 0, 0, 0, 0};
   auto make_index = [&]() {
     std::stringstream sstr;
     sstr << "(";
-    for (std::size_t i = 0; i < rank - 1; i++)
+    for (int i = 0; i < rank - 1; i++)
       sstr << index[i] << ", ";
     sstr << index[rank - 1] << ")";
     return sstr.str();
@@ -62,7 +62,7 @@ void arborxViewCheck(U const &u, V const &v, std::string const &u_name,
                                     << boost::test_tools::tolerance(tol));
 
     index[rank - 1]++;
-    for (std::size_t i = rank - 1; i > 0; i--)
+    for (int i = rank - 1; i > 0; i--)
       if (index[i] == layout.dimension[i])
       {
         index[i] = 0;

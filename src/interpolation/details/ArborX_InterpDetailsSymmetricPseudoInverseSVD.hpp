@@ -28,23 +28,23 @@ KOKKOS_INLINE_FUNCTION void isSquareMatrix(Matrix const &mat)
   KOKKOS_ASSERT(mat.extent(0) == mat.extent(1));
 }
 
-// Gets the argmax from the upper triamgle part of a matrix
+// Gets the argmax from the upper triangle part of a matrix
 template <typename Matrix>
 KOKKOS_FUNCTION auto argmaxUpperTriangle(Matrix const &mat)
 {
   isSquareMatrix(mat);
   using value_t = typename Matrix::non_const_value_type;
-  std::size_t const size = mat.extent(0);
+  int const size = mat.extent(0);
 
   struct
   {
     value_t max = 0;
-    std::size_t row = 0;
-    std::size_t col = 0;
+    int row = 0;
+    int col = 0;
   } result;
 
-  for (std::size_t i = 0; i < size; i++)
-    for (std::size_t j = i + 1; j < size; j++)
+  for (int i = 0; i < size; i++)
+    for (int j = i + 1; j < size; j++)
     {
       value_t val = Kokkos::abs(mat(i, j));
       if (result.max < val)
@@ -62,59 +62,55 @@ KOKKOS_FUNCTION auto argmaxUpperTriangle(Matrix const &mat)
 // We must find U, E (diagonal and positive) and V such that A = U.E.V^T
 // We also suppose, as the input, that A is symmetric, so U = SV where S is
 // a sign matrix (only 1 or -1 in the diagonal, 0 elsewhere).
-// Thus A = U.E.S.U^T and A^-1 = U.[ E^-1.S ].U^T
-// Here inv_matrix is A and A^-1, sigma is E.S and ortho is U
-template <typename InvMatrix, typename Sigma, typename Ortho>
+// Thus A = U.ES.U^T and A^-1 = U.[ ES^-1 ].U^T
+template <typename AMatrix, typename ESMatrix, typename UMatrix>
 KOKKOS_FUNCTION void
-symmetricPseudoInverseSVDSerialKernel(InvMatrix &inv_matrix, Sigma &sigma,
-                                      Ortho &ortho)
+symmetricPseudoInverseSVDSerialKernel(AMatrix &A, ESMatrix &ES, UMatrix &U)
 {
-  isSquareMatrix(inv_matrix);
-  static_assert(!std::is_const_v<typename InvMatrix::value_type>,
-                "inv_matrix must be writable");
-  isSquareMatrix(sigma);
-  static_assert(!std::is_const_v<typename Sigma::value_type>,
-                "sigma must be writable");
-  isSquareMatrix(ortho);
-  static_assert(!std::is_const_v<typename Ortho::value_type>,
-                "ortho must be writable");
-  static_assert(std::is_same_v<typename InvMatrix::value_type,
-                               typename Sigma::value_type> &&
-                    std::is_same_v<typename Sigma::value_type,
-                                   typename Ortho::value_type>,
+  isSquareMatrix(A);
+  static_assert(!std::is_const_v<typename AMatrix::value_type>,
+                "A must be writable");
+  isSquareMatrix(ES);
+  static_assert(!std::is_const_v<typename ESMatrix::value_type>,
+                "ES must be writable");
+  isSquareMatrix(U);
+  static_assert(!std::is_const_v<typename UMatrix::value_type>,
+                "U must be writable");
+  static_assert(std::is_same_v<typename AMatrix::value_type,
+                               typename ESMatrix::value_type> &&
+                    std::is_same_v<typename ESMatrix::value_type,
+                                   typename UMatrix::value_type>,
                 "Each input matrix must have the same value type");
-  KOKKOS_ASSERT(inv_matrix.extent(0) == sigma.extent(0) &&
-                sigma.extent(0) == ortho.extent(0));
-  using value_t = typename InvMatrix::non_const_value_type;
-  std::size_t const size = inv_matrix.extent(0);
+  KOKKOS_ASSERT(A.extent(0) == ES.extent(0) && ES.extent(0) == U.extent(0));
+  using value_t = typename AMatrix::non_const_value_type;
+  int const size = A.extent(0);
 
-  // We first initialize ortho as the identity matrix and copy inv_matrix to
-  // sigma
-  for (std::size_t i = 0; i < size; i++)
-    for (std::size_t j = 0; j < size; j++)
+  // We first initialize U as the identity matrix and copy A to ES
+  for (int i = 0; i < size; i++)
+    for (int j = 0; j < size; j++)
     {
-      ortho(i, j) = value_t(i == j);
-      sigma(i, j) = inv_matrix(i, j);
+      U(i, j) = value_t(i == j);
+      ES(i, j) = A(i, j);
     }
 
   static constexpr value_t epsilon = Kokkos::Experimental::epsilon_v<float>;
   while (true)
   {
     // We have a guarantee that p < q
-    auto [max, p, q] = argmaxUpperTriangle(sigma);
-    if (max <= epsilon)
+    auto [max_val, p, q] = argmaxUpperTriangle(ES);
+    if (max_val <= epsilon)
       break;
 
-    value_t const a = sigma(p, p);
-    value_t const b = sigma(p, q);
-    value_t const c = sigma(q, q);
+    auto const a = ES(p, p);
+    auto const b = ES(p, q);
+    auto const c = ES(q, q);
 
     // Our submatrix is now
-    // +---------+---------+   +---+---+
-    // | s(p, p) | s(p, q) |   | a | b |
-    // +---------+---------+ = +---+---+
-    // | s(q, p) | s(q, q) |   | b | c |
-    // +---------+---------+   +---+---+
+    // +----------+----------+   +---+---+
+    // | ES(p, p) | ES(p, q) |   | a | b |
+    // +----------+----------+ = +---+---+
+    // | ES(q, p) | ES(q, q) |   | b | c |
+    // +----------+----------+   +---+---+
 
     // Lets compute x, y and theta such that
     // +---+---+              +---+---+
@@ -123,147 +119,143 @@ symmetricPseudoInverseSVDSerialKernel(InvMatrix &inv_matrix, Sigma &sigma,
     // | b | c |              | 0 | y |
     // +---+---+              +---+---+
 
-    value_t cos, sin, x, y;
+    value_t cos_theta, sin_theta, x, y;
     if (a == c)
     {
-      cos = Kokkos::sqrt(value_t(2)) / 2;
-      sin = Kokkos::sqrt(value_t(2)) / 2;
+      cos_theta = Kokkos::sqrt(value_t(2)) / 2;
+      sin_theta = cos_theta;
       x = a + b;
       y = a - b;
     }
     else
     {
-      value_t const u = (2 * b) / (a - c);
-      value_t const v = 1 / Kokkos::sqrt(u * u + 1);
-      cos = Kokkos::sqrt((1 + v) / 2);
-      sin = Kokkos::copysign(Kokkos::sqrt((1 - v) / 2), u);
+      auto const u = (2 * b) / (a - c);
+      auto const v = 1 / Kokkos::sqrt(u * u + 1);
+      cos_theta = Kokkos::sqrt((1 + v) / 2);
+      sin_theta = Kokkos::copysign(Kokkos::sqrt((1 - v) / 2), u);
       x = (a + c + (a - c) / v) / 2;
       y = a + c - x;
     }
 
-    // Now lets compute the following new values for U amd E.S
-    // M <- R'(theta)^T . S . R'(theta)
-    // U <- U . R'(theta)
+    // Now lets compute the following new values for U and ES
+    // ES <- R'(theta)^T . ES . R'(theta)
+    // U  <- U . R'(theta)
 
-    // R'(theta)^T . S . R'(theta)
-    std::size_t i = 0;
+    // R'(theta)^T . ES . R'(theta)
+    int i = 0;
     for (; i < p; i++)
     {
-      value_t const s_ip = sigma(i, p);
-      value_t const s_iq = sigma(i, q);
-      sigma(i, p) = cos * s_ip + sin * s_iq;
-      sigma(i, q) = -sin * s_ip + cos * s_iq;
+      auto const es_ip = ES(i, p);
+      auto const es_iq = ES(i, q);
+      ES(i, p) = cos_theta * es_ip + sin_theta * es_iq;
+      ES(i, q) = -sin_theta * es_ip + cos_theta * es_iq;
     }
-    sigma(p, p) = x;
+    ES(p, p) = x;
     i++;
     for (; i < q; i++)
     {
-      value_t const s_pi = sigma(p, i);
-      value_t const s_iq = sigma(i, q);
-      sigma(p, i) = cos * s_pi + sin * s_iq;
-      sigma(i, q) = -sin * s_pi + cos * s_iq;
+      auto const es_pi = ES(p, i);
+      auto const es_iq = ES(i, q);
+      ES(p, i) = cos_theta * es_pi + sin_theta * es_iq;
+      ES(i, q) = -sin_theta * es_pi + cos_theta * es_iq;
     }
-    sigma(q, q) = y;
+    ES(q, q) = y;
     i++;
     for (; i < size; i++)
     {
-      value_t const s_pi = sigma(p, i);
-      value_t const s_qi = sigma(q, i);
-      sigma(p, i) = cos * s_pi + sin * s_qi;
-      sigma(q, i) = -sin * s_pi + cos * s_qi;
+      auto const es_pi = ES(p, i);
+      auto const es_qi = ES(q, i);
+      ES(p, i) = cos_theta * es_pi + sin_theta * es_qi;
+      ES(q, i) = -sin_theta * es_pi + cos_theta * es_qi;
     }
-    sigma(p, q) = 0;
+    ES(p, q) = 0;
 
     // U . R'(theta)
-    for (std::size_t i = 0; i < size; i++)
+    for (int i = 0; i < size; i++)
     {
-      value_t const o_ip = ortho(i, p);
-      value_t const o_iq = ortho(i, q);
-      ortho(i, p) = cos * o_ip + sin * o_iq;
-      ortho(i, q) = -sin * o_ip + cos * o_iq;
+      auto const u_ip = U(i, p);
+      auto const u_iq = U(i, q);
+      U(i, p) = cos_theta * u_ip + sin_theta * u_iq;
+      U(i, q) = -sin_theta * u_ip + cos_theta * u_iq;
     }
   }
 
   // We compute the max to get a range of the invertible eigen values
-  value_t max_eigen = epsilon;
-  for (std::size_t i = 0; i < size; i++)
-    max_eigen = Kokkos::max(Kokkos::abs(sigma(i, i)), max_eigen);
+  auto max_eigen = epsilon;
+  for (int i = 0; i < size; i++)
+    max_eigen = Kokkos::max(Kokkos::abs(ES(i, i)), max_eigen);
 
-  // We inverse the diagonal of S, except if "0" is found
-  for (std::size_t i = 0; i < size; i++)
-    sigma(i, i) =
-        (Kokkos::abs(sigma(i, i)) < max_eigen * epsilon) ? 0 : 1 / sigma(i, i);
+  // We inverse the diagonal of ES, except if "0" is found
+  for (int i = 0; i < size; i++)
+    ES(i, i) = (Kokkos::abs(ES(i, i)) < max_eigen * epsilon) ? 0 : 1 / ES(i, i);
 
-  // Then we fill out IO as the pseudo inverse
-  for (std::size_t i = 0; i < size; i++)
-    for (std::size_t j = 0; j < size; j++)
+  // Then we fill out A as the pseudo inverse
+  for (int i = 0; i < size; i++)
+    for (int j = 0; j < size; j++)
     {
       value_t tmp = 0;
-      for (std::size_t k = 0; k < size; k++)
-        tmp += sigma(k, k) * ortho(i, k) * ortho(j, k);
-      inv_matrix(i, j) = tmp;
+      for (int k = 0; k < size; k++)
+        tmp += ES(k, k) * U(i, k) * U(j, k);
+      A(i, j) = tmp;
     }
 }
 
-template <typename ExecutionSpace, typename InvMatrices>
+template <typename ExecutionSpace, typename InOutMatrices>
 void symmetricPseudoInverseSVD(ExecutionSpace const &space,
-                               InvMatrices &inv_matrices)
+                               InOutMatrices &matrices)
 {
-  // InvMatrices is a single or list of matrices (i.e 2 or 3D view)
-  static_assert(Kokkos::is_view_v<InvMatrices>, "inv_matrices must be a view");
-  static_assert(!std::is_const_v<typename InvMatrices::value_type>,
-                "inv_matrices must be writable");
-  static_assert(InvMatrices::rank == 3 || InvMatrices::rank == 2,
-                "inv_matrices must be a matrix or a list of matrices");
+  // InOutMatrices is a single or list of matrices (i.e 2 or 3D view)
+  static_assert(Kokkos::is_view_v<InOutMatrices>, "matrices must be a view");
+  static_assert(!std::is_const_v<typename InOutMatrices::value_type>,
+                "matrices must be writable");
+  static_assert(InOutMatrices::rank == 3 || InOutMatrices::rank == 2,
+                "matrices must be a matrix or a list of matrices");
   static_assert(
-      KokkosExt::is_accessible_from<typename InvMatrices::memory_space,
+      KokkosExt::is_accessible_from<typename InOutMatrices::memory_space,
                                     ExecutionSpace>::value,
-      "inv_matrices must be accessible from the execution space");
+      "matrices must be accessible from the execution space");
 
-  if constexpr (InvMatrices::rank == 3)
+  if constexpr (InOutMatrices::rank == 3)
   {
-    ARBORX_ASSERT(inv_matrices.extent(1) ==
-                  inv_matrices.extent(2)); // Must be square
+    ARBORX_ASSERT(matrices.extent(1) == matrices.extent(2)); // Must be square
 
-    InvMatrices sigmas(
+    InOutMatrices ESs(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                           "ArborX::SymmetricPseudoInverseSVD::sigmas"),
-        inv_matrices.extent(0), inv_matrices.extent(1), inv_matrices.extent(2));
-    InvMatrices orthos(
+                           "ArborX::SymmetricPseudoInverseSVD::ESs"),
+        matrices.extent(0), matrices.extent(1), matrices.extent(2));
+    InOutMatrices Us(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                           "ArborX::SymmetricPseudoInverseSVD::orthos"),
-        inv_matrices.extent(0), inv_matrices.extent(1), inv_matrices.extent(2));
+                           "ArborX::SymmetricPseudoInverseSVD::Us"),
+        matrices.extent(0), matrices.extent(1), matrices.extent(2));
 
     Kokkos::parallel_for(
-        "ArborX::SymmetricPseudoInverseSVD::computation_list",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, inv_matrices.extent(0)),
+        "ArborX::SymmetricPseudoInverseSVD::computations",
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, matrices.extent(0)),
         KOKKOS_LAMBDA(int const i) {
-          auto inv_matrix =
-              Kokkos::subview(inv_matrices, i, Kokkos::ALL, Kokkos::ALL);
-          auto sigma = Kokkos::subview(sigmas, i, Kokkos::ALL, Kokkos::ALL);
-          auto ortho = Kokkos::subview(orthos, i, Kokkos::ALL, Kokkos::ALL);
-          symmetricPseudoInverseSVDSerialKernel(inv_matrix, sigma, ortho);
+          auto A = Kokkos::subview(matrices, i, Kokkos::ALL, Kokkos::ALL);
+          auto ES = Kokkos::subview(ESs, i, Kokkos::ALL, Kokkos::ALL);
+          auto U = Kokkos::subview(Us, i, Kokkos::ALL, Kokkos::ALL);
+          symmetricPseudoInverseSVDSerialKernel(A, ES, U);
         });
   }
-  else if constexpr (InvMatrices::rank == 2)
+  else if constexpr (InOutMatrices::rank == 2)
   {
-    ARBORX_ASSERT(inv_matrices.extent(0) ==
-                  inv_matrices.extent(1)); // Must be square
+    auto A = matrices;
+    ARBORX_ASSERT(A.extent(0) == A.extent(1)); // Must be square
 
-    InvMatrices sigma(
+    InOutMatrices ES(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                           "ArborX::SymmetricPseudoInverseSVD::sigma"),
-        inv_matrices.extent(0), inv_matrices.extent(1));
-    InvMatrices ortho(
-        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                           "ArborX::SymmetricPseudoInverseSVD::ortho"),
-        inv_matrices.extent(0), inv_matrices.extent(1));
+                           "ArborX::SymmetricPseudoInverseSVD::ES"),
+        A.extent(0), A.extent(1));
+    InOutMatrices U(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                                       "ArborX::SymmetricPseudoInverseSVD::U"),
+                    A.extent(0), A.extent(1));
 
     Kokkos::parallel_for(
         "ArborX::SymmetricPseudoInverseSVD::computation",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1),
         KOKKOS_LAMBDA(int const) {
-          symmetricPseudoInverseSVDSerialKernel(inv_matrices, sigma, ortho);
+          symmetricPseudoInverseSVDSerialKernel(A, ES, U);
         });
   }
 }
