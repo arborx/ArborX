@@ -28,6 +28,30 @@ KOKKOS_INLINE_FUNCTION void isSquareMatrix(Matrix const &mat)
   KOKKOS_ASSERT(mat.extent(0) == mat.extent(1));
 }
 
+template <typename Matrix>
+KOKKOS_INLINE_FUNCTION void isSquareSymmetricMatrix(Matrix const &mat)
+{
+  isSquareMatrix(mat);
+  using value_t = typename Matrix::non_const_value_type;
+  auto isSymmetric = [&]() {
+    int size = mat.extent(0);
+    for (int i = 0; i < size; i++)
+      for (int j = i + 1; j < size; j++)
+      {
+        auto const val = Kokkos::abs(mat(i, j) - mat(j, i));
+        auto const ref = Kokkos::abs(mat(i, j));
+        static constexpr value_t epsilon =
+            Kokkos::Experimental::epsilon_v<float>;
+        if (ref == value_t(0) && val > epsilon)
+          return false;
+        if (ref != value_t(0) && val / ref > epsilon)
+          return false;
+      }
+    return true;
+  };
+  KOKKOS_ASSERT(isSymmetric());
+}
+
 // Gets the argmax from the upper triangle part of a matrix
 template <typename Matrix>
 KOKKOS_FUNCTION auto argmaxUpperTriangle(Matrix const &mat)
@@ -67,7 +91,7 @@ template <typename AMatrix, typename ESMatrix, typename UMatrix>
 KOKKOS_FUNCTION void
 symmetricPseudoInverseSVDSerialKernel(AMatrix &A, ESMatrix &ES, UMatrix &U)
 {
-  isSquareMatrix(A);
+  isSquareSymmetricMatrix(A);
   static_assert(!std::is_const_v<typename AMatrix::value_type>,
                 "A must be writable");
   isSquareMatrix(ES);
@@ -97,7 +121,7 @@ symmetricPseudoInverseSVDSerialKernel(AMatrix &A, ESMatrix &ES, UMatrix &U)
   while (true)
   {
     // We have a guarantee that p < q
-    auto [max_val, p, q] = argmaxUpperTriangle(ES);
+    auto const [max_val, p, q] = argmaxUpperTriangle(ES);
     if (max_val <= epsilon)
       break;
 
