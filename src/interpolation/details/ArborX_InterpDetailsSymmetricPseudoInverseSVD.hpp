@@ -34,21 +34,24 @@ KOKKOS_INLINE_FUNCTION void ensureIsSquareSymmetricMatrix(Matrix const &mat)
   ensureIsSquareMatrix(mat);
   using value_t = typename Matrix::non_const_value_type;
 
-  bool is_symmetric = true;
-  int size = mat.extent(0);
-  for (int i = 0; i < size; i++)
-    for (int j = i + 1; j < size; j++)
-    {
-      auto const val = Kokkos::abs(mat(i, j) - mat(j, i));
-      auto const ref = Kokkos::abs(mat(i, j));
-      static constexpr value_t epsilon = Kokkos::Experimental::epsilon_v<float>;
-      if (ref == value_t(0) && val > epsilon)
-        is_symmetric = false;
-      if (ref != value_t(0) && val / ref > epsilon)
-        is_symmetric = false;
-    }
+  auto is_symmetric = [&]() {
+    int size = mat.extent(0);
+    for (int i = 0; i < size; i++)
+      for (int j = i + 1; j < size; j++)
+      {
+        auto const val = Kokkos::abs(mat(i, j) - mat(j, i));
+        auto const ref = Kokkos::abs(mat(i, j));
+        static constexpr value_t epsilon =
+            Kokkos::Experimental::epsilon_v<float>;
+        if (ref == value_t(0) && val > epsilon)
+          return false;
+        if (ref != value_t(0) && val / ref > epsilon)
+          return false;
+      }
+    return true;
+  };
 
-  KOKKOS_ASSERT(is_symmetric);
+  KOKKOS_ASSERT(is_symmetric());
 }
 
 // Gets the argmax from the upper triangle part of a matrix
