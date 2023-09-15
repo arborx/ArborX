@@ -16,7 +16,6 @@
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
 
-namespace tt = boost::test_tools;
 namespace axid = ArborX::Interpolation::Details;
 
 template <typename ES, typename U, typename V>

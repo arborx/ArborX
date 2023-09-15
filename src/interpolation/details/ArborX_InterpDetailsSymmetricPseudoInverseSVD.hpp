@@ -21,7 +21,7 @@ namespace ArborX::Interpolation::Details
 {
 
 template <typename Matrix>
-KOKKOS_INLINE_FUNCTION void isSquareMatrix(Matrix const &mat)
+KOKKOS_INLINE_FUNCTION void ensureIsSquareMatrix(Matrix const &mat)
 {
   static_assert(Kokkos::is_view_v<Matrix>, "Matrix must be a view");
   static_assert(Matrix::rank == 2, "Matrix must be 2D");
@@ -29,34 +29,33 @@ KOKKOS_INLINE_FUNCTION void isSquareMatrix(Matrix const &mat)
 }
 
 template <typename Matrix>
-KOKKOS_INLINE_FUNCTION void isSquareSymmetricMatrix(Matrix const &mat)
+KOKKOS_INLINE_FUNCTION void ensureIsSquareSymmetricMatrix(Matrix const &mat)
 {
-  isSquareMatrix(mat);
+  ensureIsSquareMatrix(mat);
   using value_t = typename Matrix::non_const_value_type;
-  auto isSymmetric = [&]() {
-    int size = mat.extent(0);
-    for (int i = 0; i < size; i++)
-      for (int j = i + 1; j < size; j++)
-      {
-        auto const val = Kokkos::abs(mat(i, j) - mat(j, i));
-        auto const ref = Kokkos::abs(mat(i, j));
-        static constexpr value_t epsilon =
-            Kokkos::Experimental::epsilon_v<float>;
-        if (ref == value_t(0) && val > epsilon)
-          return false;
-        if (ref != value_t(0) && val / ref > epsilon)
-          return false;
-      }
-    return true;
-  };
-  KOKKOS_ASSERT(isSymmetric());
+
+  bool is_symmetric = true;
+  int size = mat.extent(0);
+  for (int i = 0; i < size; i++)
+    for (int j = i + 1; j < size; j++)
+    {
+      auto const val = Kokkos::abs(mat(i, j) - mat(j, i));
+      auto const ref = Kokkos::abs(mat(i, j));
+      static constexpr value_t epsilon = Kokkos::Experimental::epsilon_v<float>;
+      if (ref == value_t(0) && val > epsilon)
+        is_symmetric = false;
+      if (ref != value_t(0) && val / ref > epsilon)
+        is_symmetric = false;
+    }
+
+  KOKKOS_ASSERT(is_symmetric);
 }
 
 // Gets the argmax from the upper triangle part of a matrix
 template <typename Matrix>
 KOKKOS_FUNCTION auto argmaxUpperTriangle(Matrix const &mat)
 {
-  isSquareMatrix(mat);
+  ensureIsSquareMatrix(mat);
   using value_t = typename Matrix::non_const_value_type;
   int const size = mat.extent(0);
 
@@ -91,13 +90,13 @@ template <typename AMatrix, typename ESMatrix, typename UMatrix>
 KOKKOS_FUNCTION void
 symmetricPseudoInverseSVDSerialKernel(AMatrix &A, ESMatrix &ES, UMatrix &U)
 {
-  isSquareSymmetricMatrix(A);
+  ensureIsSquareSymmetricMatrix(A);
   static_assert(!std::is_const_v<typename AMatrix::value_type>,
                 "A must be writable");
-  isSquareMatrix(ES);
+  ensureIsSquareMatrix(ES);
   static_assert(!std::is_const_v<typename ESMatrix::value_type>,
                 "ES must be writable");
-  isSquareMatrix(U);
+  ensureIsSquareMatrix(U);
   static_assert(!std::is_const_v<typename UMatrix::value_type>,
                 "U must be writable");
   static_assert(std::is_same_v<typename AMatrix::value_type,

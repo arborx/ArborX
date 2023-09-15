@@ -21,8 +21,13 @@
 #include <boost/test/utils/is_forward_iterable.hpp>
 
 template <typename U, typename V>
+using CommonValueType =
+    typename boost::common_type<typename U::non_const_value_type,
+                                typename V::non_const_value_type>::type;
+
+template <typename U, typename V>
 void arborxViewCheck(U const &u, V const &v, std::string const &u_name,
-                     std::string const &v_name, double tol = 0.)
+                     std::string const &v_name, CommonValueType<U, V> tol = 0)
 {
   static constexpr int rank = U::rank;
 
@@ -30,9 +35,9 @@ void arborxViewCheck(U const &u, V const &v, std::string const &u_name,
   for (int i = 0; i < rank; i++)
   {
     int ui = u.extent(i), vi = v.extent(i);
-    BOOST_TEST(ui == vi, u_name << " == " << v_name << " dimension " << i
-                                << " sizes"
-                                << boost::test_tools::tolerance(0.));
+    BOOST_TEST(ui == vi, "check " << u_name << " == " << v_name
+                                  << " failed at dimension " << i << " size ["
+                                  << ui << " != " << vi << "]");
     same_dim_size = (ui == vi) && same_dim_size;
   }
 
@@ -58,8 +63,15 @@ void arborxViewCheck(U const &u, V const &v, std::string const &u_name,
                          index[5], index[6], index[7]);
     std::string index_str = make_index();
 
-    BOOST_TEST(uval == vval, u_name << " == " << v_name << " at " << index_str
-                                    << boost::test_tools::tolerance(tol));
+    // Can "tol" be used as a tolerance value? If not, go back to regular
+    // comparison
+    if constexpr (boost::math::fpc::tolerance_based<decltype(tol)>::value)
+      BOOST_TEST(uval == vval, u_name << " == " << v_name << " at " << index_str
+                                      << boost::test_tools::tolerance(tol));
+    else
+      BOOST_TEST(uval == vval, "check " << u_name << " == " << v_name
+                                        << " failed at " << index_str << " ["
+                                        << uval << " != " << vval << "]");
 
     index[rank - 1]++;
     for (int i = rank - 1; i > 0; i--)
