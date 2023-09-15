@@ -35,7 +35,7 @@ KOKKOS_INLINE_FUNCTION void ensureIsSquareSymmetricMatrix(Matrix const &mat)
   using value_t = typename Matrix::non_const_value_type;
 
   auto is_symmetric = [&]() {
-    int size = mat.extent(0);
+    int const size = mat.extent(0);
     for (int i = 0; i < size; i++)
       for (int j = i + 1; j < size; j++)
       {
@@ -60,7 +60,6 @@ KOKKOS_FUNCTION auto argmaxUpperTriangle(Matrix const &mat)
 {
   ensureIsSquareMatrix(mat);
   using value_t = typename Matrix::non_const_value_type;
-  int const size = mat.extent(0);
 
   struct
   {
@@ -69,6 +68,7 @@ KOKKOS_FUNCTION auto argmaxUpperTriangle(Matrix const &mat)
     int col = 0;
   } result;
 
+  int const size = mat.extent(0);
   for (int i = 0; i < size; i++)
     for (int j = i + 1; j < size; j++)
     {

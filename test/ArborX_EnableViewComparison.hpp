@@ -44,8 +44,7 @@ void arborxViewCheck(U const &u, V const &v, std::string const &u_name,
   if (!same_dim_size)
     return;
 
-  auto const layout = u.layout();
-  Kokkos::Array<int, 8> index{0, 0, 0, 0, 0, 0, 0, 0};
+  int index[8]{0, 0, 0, 0, 0, 0, 0, 0};
   auto make_index = [&]() {
     std::stringstream sstr;
     sstr << "(";
@@ -55,7 +54,7 @@ void arborxViewCheck(U const &u, V const &v, std::string const &u_name,
     return sstr.str();
   };
 
-  while (index[0] != layout.dimension[0])
+  while (index[0] != u.extent_int(0))
   {
     auto uval = u.access(index[0], index[1], index[2], index[3], index[4],
                          index[5], index[6], index[7]);
@@ -75,7 +74,7 @@ void arborxViewCheck(U const &u, V const &v, std::string const &u_name,
 
     index[rank - 1]++;
     for (int i = rank - 1; i > 0; i--)
-      if (index[i] == layout.dimension[i])
+      if (index[i] == u.extent_int(i))
       {
         index[i] = 0;
         index[i - 1]++;
