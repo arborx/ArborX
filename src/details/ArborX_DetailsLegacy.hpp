@@ -36,7 +36,7 @@ public:
   {}
 
   KOKKOS_FUNCTION
-  decltype(auto) operator()(size_type i) const
+  auto operator()(size_type i) const
   {
     if constexpr (std::is_same_v<BoundingVolume,
                                  typename AccessTraitsHelper<Access>::type>)

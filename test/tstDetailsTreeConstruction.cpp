@@ -79,6 +79,19 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(assign_morton_codes, DeviceType,
   BOOST_TEST(ArborX::Details::equals(
       scene_host, {{{0.0, 0.0, 0.0}}, {{(float)N, (float)N, (float)N}}}));
 
+  ArborX::Details::LegacyValues<decltype(boxes), ArborX::Box> values{boxes};
+  ArborX::Details::Indexables<decltype(values),
+                              ArborX::Details::DefaultIndexableGetter>
+      indexables{values, ArborX::Details::DefaultIndexableGetter{}};
+
+  // Test for a bug where missing move ref operator() in DefaultIndexableGetter
+  // results in a default initialized indexable used in scene box calucation.
+  scene_host = ArborX::Box{};
+  ArborX::Details::TreeConstruction::calculateBoundingBoxOfTheScene(
+      space, indexables, scene_host);
+  BOOST_TEST(ArborX::Details::equals(
+      scene_host, {{{0.0, 0.0, 0.0}}, {{(float)N, (float)N, (float)N}}}));
+
   Kokkos::View<unsigned long long *, DeviceType> morton_codes("morton_codes",
                                                               n);
   ArborX::Details::TreeConstruction::projectOntoSpaceFillingCurve(

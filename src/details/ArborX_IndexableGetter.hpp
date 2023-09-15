@@ -38,6 +38,12 @@ struct DefaultIndexableGetter
   {
     return pair.bounding_volume;
   }
+
+  template <typename Geometry>
+  KOKKOS_FUNCTION Geometry operator()(PairIndexVolume<Geometry> &&pair) const
+  {
+    return pair.bounding_volume;
+  }
 };
 
 template <typename Values, typename IndexableGetter>
