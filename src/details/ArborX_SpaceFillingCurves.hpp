@@ -76,8 +76,7 @@ namespace Details
 
 template <class SpaceFillingCurve, class Box, class Geometry>
 using SpaceFillingCurveProjectionArchetypeExpression =
-    decltype(std::declval<SpaceFillingCurve const &>()(
-        std::declval<Box const &>(), std::declval<Geometry const &>()));
+    std::invoke_result_t<SpaceFillingCurve, Box, Geometry>;
 
 template <int DIM, class SpaceFillingCurve>
 void check_valid_space_filling_curve(SpaceFillingCurve const &)
