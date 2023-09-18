@@ -292,8 +292,8 @@ int main(int argc, char *argv[])
               b.minCorner()[2] +
                   Kokkos::rand<GeneratorType, float>::draw(g, dz)};
 
-          float upsilon =
-              Kokkos::rand<GeneratorType, float>::draw(g, 2.f * M_PI);
+          float upsilon = Kokkos::rand<GeneratorType, float>::draw(
+              g, 2.f * Kokkos::numbers::pi_v<float>);
           float theta =
               acos(1 - 2 * Kokkos::rand<GeneratorType, float>::draw(g));
           ArborX::Experimental::Vector direction{

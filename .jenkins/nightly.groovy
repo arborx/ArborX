@@ -29,7 +29,48 @@ pipeline {
                         sh 'cmake -S source-kokkos -B build-kokkos -D CMAKE_INSTALL_PREFIX=$PWD/install-kokkos $CMAKE_OPTIONS -D Kokkos_ENABLE_CUDA=ON -D Kokkos_ENABLE_CUDA_LAMBDA=ON'
                         sh 'cmake --build build-kokkos --parallel 8'
                         sh 'cmake --install build-kokkos'
-                        sh 'cmake -B build-arborx -D CMAKE_INSTALL_PREFIX=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS -D ARBORX_ENABLE_BENCHMARKS=ON -D ARBORX_ENABLE_TESTS=ON -D ARBORX_ENABLE_EXAMPLES=ON'
+                        // Disable tests as Ubuntu 22.04 comes with Boost 1.74 which causes build issues with CUDA
+                        sh 'cmake -B build-arborx -D CMAKE_INSTALL_PREFIX=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS -D ARBORX_ENABLE_BENCHMARKS=ON -D ARBORX_ENABLE_TESTS=OFF -D ARBORX_ENABLE_EXAMPLES=ON'
+                        sh 'cmake --build build-arborx --parallel 8'
+                        dir('build-arborx') {
+                            sh 'ctest $CTEST_OPTIONS'
+                        }
+                        sh 'cmake --install build-arborx'
+                        sh 'cmake -S examples -B build-examples -D ArborX_ROOT=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS'
+                        sh 'cmake --build build-examples --parallel 8'
+                        dir('build-examples') {
+                            sh 'ctest $CTEST_OPTIONS'
+                        }
+                    }
+                    post {
+                        always {
+                            xunit reduceLog: false, tools:[CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build-*/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)]
+                        }
+                    }
+                }
+                stage('CUDA-12.2.0-MPI') {
+                    agent {
+                        docker {
+                            image 'nvidia/cuda:12.2.0-devel-ubuntu22.04'
+                            label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
+                        }
+                    }
+                    environment {
+                        CTEST_OPTIONS = '--timeout 180 --no-compress-output -T Test'
+                        CMAKE_OPTIONS = '-D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_STANDARD=17 -D CMAKE_CXX_EXTENSIONS=OFF'
+                    }
+                    steps {
+                        sh 'apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y git cmake libboost-program-options-dev libboost-test-dev libbenchmark-dev libopenmpi-dev'
+                        sh 'rm -rf source* build* install*'
+                        sh 'git clone https://github.com/kokkos/kokkos.git --branch develop --depth 1 source-kokkos'
+                        dir('source-kokkos') {
+                            sh 'git rev-parse --short HEAD'
+                        }
+                        sh 'cmake -S source-kokkos -B build-kokkos -D CMAKE_INSTALL_PREFIX=$PWD/install-kokkos $CMAKE_OPTIONS -D Kokkos_ENABLE_CUDA=ON -D Kokkos_ENABLE_CUDA_LAMBDA=ON'
+                        sh 'cmake --build build-kokkos --parallel 8'
+                        sh 'cmake --install build-kokkos'
+                        // Disable tests as Ubuntu 22.04 comes with Boost 1.74 which causes build issues with CUDA
+                        sh 'cmake -B build-arborx -D CMAKE_INSTALL_PREFIX=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS -D ARBORX_ENABLE_MPI=ON -D MPIEXEC_PREFLAGS="--allow-run-as-root" -D MPIEXEC_MAX_NUMPROCS=4 -D ARBORX_ENABLE_BENCHMARKS=ON -D ARBORX_ENABLE_TESTS=OFF -D ARBORX_ENABLE_EXAMPLES=ON'
                         sh 'cmake --build build-arborx --parallel 8'
                         dir('build-arborx') {
                             sh 'ctest $CTEST_OPTIONS'

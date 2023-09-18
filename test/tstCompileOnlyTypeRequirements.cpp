@@ -24,7 +24,6 @@ using PrimitivePointOrBox = ArborX::Point;
 // clang-format off
 struct FakeBoundingVolume
 {
-  KOKKOS_FUNCTION FakeBoundingVolume &operator+=(PrimitivePointOrBox) { return *this; }
 };
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakeBoundingVolume) {}
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, PrimitivePointOrBox) {}
@@ -49,6 +48,11 @@ template <>
 struct ArborX::GeometryTraits::dimension<Test::FakeBoundingVolume>
 {
   static constexpr int value = 3;
+};
+template <>
+struct ArborX::GeometryTraits::coordinate_type<Test::FakeBoundingVolume>
+{
+  using type = float;
 };
 
 // Compile-only

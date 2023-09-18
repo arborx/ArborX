@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
 
-  Kokkos::View<ArborX::Point *, MemorySpace> cloud("point_cloud", 10);
+  Kokkos::View<ArborX::Point *, MemorySpace> cloud("Example::point_cloud", 10);
   auto cloud_host = Kokkos::create_mirror_view(cloud);
   // 4 |       0 7
   // 3 |       5 6

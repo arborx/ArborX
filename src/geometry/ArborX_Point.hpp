@@ -68,6 +68,11 @@ struct GeometryTraits::tag<ArborX::Point>
 {
   using type = PointTag;
 };
+template <>
+struct ArborX::GeometryTraits::coordinate_type<ArborX::Point>
+{
+  using type = float;
+};
 
 } // namespace ArborX
 

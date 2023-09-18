@@ -200,8 +200,8 @@ struct TreeVisualization
     predicates(0) = pred;
 
     TreeTraversal<Tree, Predicates, Callback, NearestPredicateTag>
-        tree_traversal(tree, predicates, Callback{tree, visitor, permute});
-    tree_traversal.run(ExecutionSpace{});
+        tree_traversal(space, tree, predicates,
+                       Callback{tree, visitor, permute});
 #endif
   }
 };

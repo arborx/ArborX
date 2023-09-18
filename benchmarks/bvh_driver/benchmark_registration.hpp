@@ -101,7 +101,8 @@ Kokkos::View<ArborX::Point *, DeviceType>
 constructPoints(int n_values, PointCloudType point_cloud_type)
 {
   Kokkos::View<ArborX::Point *, DeviceType> random_points(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "random_points"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                         "Benchmark::random_points"),
       n_values);
   // Generate random points uniformly distributed within a box.  The edge
   // length of the box chosen such that object density (here objects will be
@@ -119,21 +120,24 @@ makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
                    PointCloudType target_point_cloud_type)
 {
   Kokkos::View<ArborX::Point *, DeviceType> random_points(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "random_points"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                         "Benchmark::random_points"),
       n_queries);
   auto const a = std::cbrt(n_values);
   generatePointCloud(target_point_cloud_type, a, random_points);
 
   Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
-      queries(Kokkos::view_alloc(Kokkos::WithoutInitializing, "queries"),
-              n_queries);
+      queries(
+          Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::queries"),
+          n_queries);
   // Radius is computed so that the number of results per query for a uniformly
   // distributed points in a [-a,a]^3 box is approximately n_neighbors.
-  // Calculation: n_values*(4/3*M_PI*r^3)/(2a)^3 = n_neighbors
-  double const r = std::cbrt(static_cast<double>(n_neighbors) * 6. / M_PI);
+  // Calculation: n_values*(4/3*pi*r^3)/(2a)^3 = n_neighbors
+  double const r = std::cbrt(static_cast<double>(n_neighbors) * 6. /
+                             Kokkos::numbers::pi_v<double>);
   using ExecutionSpace = typename DeviceType::execution_space;
   Kokkos::parallel_for(
-      "bvh_driver:setup_radius_search_queries",
+      "Benchmark::setup_radius_search_queries",
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
         queries(i) = ArborX::intersects(ArborX::Sphere{random_points(i), r});
       });
@@ -146,16 +150,18 @@ makeNearestQueries(int n_values, int n_queries, int n_neighbors,
                    PointCloudType target_point_cloud_type)
 {
   Kokkos::View<ArborX::Point *, DeviceType> random_points(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "random_points"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                         "Benchmark::random_points"),
       n_queries);
   auto const a = std::cbrt(n_values);
   generatePointCloud(target_point_cloud_type, a, random_points);
 
   Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> queries(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "queries"), n_queries);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::queries"),
+      n_queries);
   using ExecutionSpace = typename DeviceType::execution_space;
   Kokkos::parallel_for(
-      "bvh_driver:setup_knn_search_queries",
+      "Benchmark::setup_knn_search_queries",
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
         queries(i) =
             ArborX::nearest<ArborX::Point>(random_points(i), n_neighbors);
@@ -334,8 +340,8 @@ void BM_knn_search(benchmark::State &state, Spec const &spec)
 
   for (auto _ : state)
   {
-    Kokkos::View<int *, DeviceType> offset("offset", 0);
-    Kokkos::View<int *, DeviceType> indices("indices", 0);
+    Kokkos::View<int *, DeviceType> offset("Benchmark::offset", 0);
+    Kokkos::View<int *, DeviceType> indices("Benchmark::indices", 0);
 
     exec_space.fence();
     auto const start = std::chrono::high_resolution_clock::now();
@@ -370,7 +376,7 @@ void BM_knn_callback_search(benchmark::State &state, Spec const &spec)
 
   for (auto _ : state)
   {
-    Kokkos::View<int *, DeviceType> num_neigh("Testing::num_neigh",
+    Kokkos::View<int *, DeviceType> num_neigh("Benchmark::num_neigh",
                                               spec.n_queries);
     CountCallback<DeviceType> callback{num_neigh};
 

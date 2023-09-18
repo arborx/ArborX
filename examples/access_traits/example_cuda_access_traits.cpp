@@ -80,12 +80,13 @@ int main(int argc, char *argv[])
   Kokkos::Cuda cuda{stream};
   ArborX::BVH<Kokkos::CudaSpace> bvh{cuda, PointCloud{d_a, d_a, d_a, N}};
 
-  Kokkos::View<int *, Kokkos::CudaSpace> indices("indices", 0);
-  Kokkos::View<int *, Kokkos::CudaSpace> offset("offset", 0);
+  Kokkos::View<int *, Kokkos::CudaSpace> indices("Example::indices", 0);
+  Kokkos::View<int *, Kokkos::CudaSpace> offset("Example::offset", 0);
   ArborX::query(bvh, cuda, Spheres{d_a, d_a, d_a, d_a, N}, indices, offset);
 
   Kokkos::parallel_for(
-      Kokkos::RangePolicy<Kokkos::Cuda>(cuda, 0, N), KOKKOS_LAMBDA(int i) {
+      "Example::print_indices", Kokkos::RangePolicy<Kokkos::Cuda>(cuda, 0, N),
+      KOKKOS_LAMBDA(int i) {
         for (int j = offset(i); j < offset(i + 1); ++j)
         {
           printf("%i %i\n", i, indices(j));

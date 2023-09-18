@@ -15,7 +15,6 @@
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
-#include <ArborX_DetailsKokkosExtClassLambda.hpp> // ARBORX_CLASS_LAMBDA
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
 #include <ArborX_DetailsPriorityQueue.hpp>
@@ -168,7 +167,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
         "ArborX::TreeTraversal::nearest::"
         "scan_queries_for_numbers_of_neighbors",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        ARBORX_CLASS_LAMBDA(int i) {
+        KOKKOS_CLASS_LAMBDA(int i) {
           offset(i) = getK(Access::get(_predicates, i));
         });
     exclusivePrefixSum(space, offset);

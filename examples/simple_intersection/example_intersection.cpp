@@ -137,8 +137,8 @@ int main(int argc, char *argv[])
 
   std::cout << "Starting the queries." << '\n';
   // The query will resize indices and offsets accordingly
-  Kokkos::View<int *, MemorySpace> indices("indices", 0);
-  Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
+  Kokkos::View<int *, MemorySpace> indices("Example::indices", 0);
+  Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
 
   ArborX::query(tree, execution_space, boxes, indices, offsets);
   std::cout << "Queries done." << '\n';

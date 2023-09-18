@@ -53,6 +53,11 @@ struct GeometryTraits::tag<ArborX::Sphere>
 {
   using type = SphereTag;
 };
+template <>
+struct ArborX::GeometryTraits::coordinate_type<ArborX::Sphere>
+{
+  using type = float;
+};
 
 } // namespace ArborX
 

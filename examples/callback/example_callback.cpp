@@ -86,8 +86,8 @@ int main(int argc, char *argv[])
                        Kokkos::MemoryUnmanaged>(points.data(), points.size()))};
 
   {
-    Kokkos::View<int *, MemorySpace> values("values", 0);
-    Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
+    Kokkos::View<int *, MemorySpace> values("Example::values", 0);
+    Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
     ArborX::query(bvh, ExecutionSpace{}, FirstOctant{}, PrintfCallback{},
                   values, offsets);
 #ifndef __NVCC__
@@ -106,8 +106,8 @@ int main(int argc, char *argv[])
 
   {
     int const k = 10;
-    Kokkos::View<int *, MemorySpace> values("values", 0);
-    Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
+    Kokkos::View<int *, MemorySpace> values("Example::values", 0);
+    Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
     ArborX::query(bvh, ExecutionSpace{}, NearestToOrigin{k}, PrintfCallback{},
                   values, offsets);
 #ifndef __NVCC__

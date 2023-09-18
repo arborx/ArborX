@@ -17,8 +17,10 @@
 #include <ArborX_Callbacks.hpp>
 #include <ArborX_CrsGraphWrapper.hpp>
 #include <ArborX_DetailsBatchedQueries.hpp>
+#include <ArborX_DetailsCrsGraphWrapperImpl.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
+#include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsPermutedData.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
@@ -42,9 +44,12 @@ struct HappyTreeFriends;
 template <
     typename MemorySpace, typename Value,
     typename IndexableGetter = Details::DefaultIndexableGetter,
-    typename BoundingVolume =
-        ExperimentalHyperGeometry::Box<GeometryTraits::dimension_v<std::decay_t<
-            decltype(std::declval<IndexableGetter>()(std::declval<Value>()))>>>>
+    typename BoundingVolume = ExperimentalHyperGeometry::Box<
+        GeometryTraits::dimension_v<std::decay_t<
+            decltype(std::declval<IndexableGetter>()(std::declval<Value>()))>>,
+        typename GeometryTraits::coordinate_type<
+            std::decay_t<decltype(std::declval<IndexableGetter>()(
+                std::declval<Value>()))>>::type>>
 class BasicBoundingVolumeHierarchy
 {
 public:
@@ -79,13 +84,23 @@ public:
 
   template <typename ExecutionSpace, typename Predicates,
             typename CallbackOrView, typename View, typename... Args>
-  std::enable_if_t<Kokkos::is_view<std::decay_t<View>>{}>
+  std::enable_if_t<Kokkos::is_view_v<std::decay_t<View>>>
   query(ExecutionSpace const &space, Predicates const &predicates,
         CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
   {
-    ArborX::query(*this, space, predicates,
-                  std::forward<CallbackOrView>(callback_or_view),
-                  std::forward<View>(view), std::forward<Args>(args)...);
+    KokkosExt::ScopedProfileRegion guard("ArborX::BVH::query_crs");
+
+    Details::CrsGraphWrapperImpl::
+        check_valid_callback_if_first_argument_is_not_a_view(callback_or_view,
+                                                             predicates, view);
+
+    using Access = AccessTraits<Predicates, PredicatesTag>;
+    using Tag = typename Details::AccessTraitsHelper<Access>::tag;
+
+    Details::CrsGraphWrapperImpl::queryDispatch(
+        Tag{}, *this, space, predicates,
+        std::forward<CallbackOrView>(callback_or_view),
+        std::forward<View>(view), std::forward<Args>(args)...);
   }
 
 private:
@@ -140,13 +155,13 @@ public:
 
   template <typename ExecutionSpace, typename Predicates,
             typename CallbackOrView, typename View, typename... Args>
-  std::enable_if_t<Kokkos::is_view<std::decay_t<View>>{}>
+  std::enable_if_t<Kokkos::is_view_v<std::decay_t<View>>>
   query(ExecutionSpace const &space, Predicates const &predicates,
         CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
   {
-    ArborX::query(*this, space, predicates,
-                  std::forward<CallbackOrView>(callback_or_view),
-                  std::forward<View>(view), std::forward<Args>(args)...);
+    base_type::query(space, predicates,
+                     std::forward<CallbackOrView>(callback_or_view),
+                     std::forward<View>(view), std::forward<Args>(args)...);
   }
 };
 
@@ -200,7 +215,9 @@ BasicBoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
       "ArborX::BVH::BVH::calculate_scene_bounding_box");
 
   // determine the bounding box of the scene
-  ExperimentalHyperGeometry::Box<DIM> bbox{};
+  ExperimentalHyperGeometry::Box<
+      DIM, typename GeometryTraits::coordinate_type<BoundingVolume>::type>
+      bbox{};
   Details::TreeConstruction::calculateBoundingBoxOfTheScene(
       space, Details::Indexables<Primitives>{primitives}, bbox);
 
@@ -285,7 +302,8 @@ void BasicBoundingVolumeHierarchy<
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     ExperimentalHyperGeometry::Box<
-        GeometryTraits::dimension_v<bounding_volume_type>>
+        GeometryTraits::dimension_v<bounding_volume_type>,
+        typename GeometryTraits::coordinate_type<bounding_volume_type>::type>
         scene_bounding_box{};
     using namespace Details;
     expand(scene_bounding_box, bounds());

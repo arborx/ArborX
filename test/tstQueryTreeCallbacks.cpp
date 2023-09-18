@@ -19,8 +19,6 @@
 #include "ArborXTest_TreeTypeTraits.hpp"
 // clang-format on
 
-#include <ArborX_DetailsKokkosExtClassLambda.hpp> // ARBORX_CLASS_LAMBDA
-
 BOOST_AUTO_TEST_SUITE(Callbacks)
 
 namespace tt = boost::test_tools;
@@ -56,7 +54,7 @@ struct CustomPostCallback
     auto const n = offset.extent(0) - 1;
     Kokkos::realloc(out, in.extent(0));
     Kokkos::parallel_for(
-        Kokkos::RangePolicy<ExecutionSpace>(0, n), ARBORX_CLASS_LAMBDA(int i) {
+        Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_CLASS_LAMBDA(int i) {
           for (int j = offset(i); j < offset(i + 1); ++j)
           {
             out(j) = {in(j), (float)distance(points(in(j)), origin)};
@@ -246,7 +244,7 @@ struct CustomPostCallbackWithAttachment
     auto const n = offset.extent(0) - 1;
     Kokkos::realloc(out, in.extent(0));
     Kokkos::parallel_for(
-        Kokkos::RangePolicy<ExecutionSpace>(0, n), ARBORX_CLASS_LAMBDA(int i) {
+        Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_CLASS_LAMBDA(int i) {
           auto data_2 = ArborX::getData(queries(i));
           auto data = data_2[1];
           for (int j = offset(i); j < offset(i + 1); ++j)

@@ -11,6 +11,7 @@
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsAlgorithms.hpp>
+#include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_DetailsMortonCode.hpp> // expandBits, morton32
 #include <ArborX_DetailsNode.hpp>       // ROPE SENTINEL
 #include <ArborX_DetailsSortUtils.hpp>  // sortObjects
