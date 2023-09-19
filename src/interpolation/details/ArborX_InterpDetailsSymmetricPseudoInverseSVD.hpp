@@ -231,56 +231,32 @@ void symmetricPseudoInverseSVD(ExecutionSpace const &space,
   static_assert(Kokkos::is_view_v<InOutMatrices>, "matrices must be a view");
   static_assert(!std::is_const_v<typename InOutMatrices::value_type>,
                 "matrices must be writable");
-  static_assert(InOutMatrices::rank == 3 || InOutMatrices::rank == 2,
-                "matrices must be a matrix or a list of matrices");
+  static_assert(InOutMatrices::rank == 3,
+                "matrices must be a list of square matrices");
   static_assert(
       KokkosExt::is_accessible_from<typename InOutMatrices::memory_space,
                                     ExecutionSpace>::value,
       "matrices must be accessible from the execution space");
 
-  if constexpr (InOutMatrices::rank == 3)
-  {
-    ARBORX_ASSERT(matrices.extent(1) == matrices.extent(2)); // Must be square
+  ARBORX_ASSERT(matrices.extent(1) == matrices.extent(2)); // Must be square
 
-    InOutMatrices ESs(
-        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                           "ArborX::SymmetricPseudoInverseSVD::ESs"),
-        matrices.extent(0), matrices.extent(1), matrices.extent(2));
-    InOutMatrices Us(
-        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                           "ArborX::SymmetricPseudoInverseSVD::Us"),
-        matrices.extent(0), matrices.extent(1), matrices.extent(2));
+  InOutMatrices ESs(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         "ArborX::SymmetricPseudoInverseSVD::ESs"),
+      matrices.extent(0), matrices.extent(1), matrices.extent(2));
+  InOutMatrices Us(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                                      "ArborX::SymmetricPseudoInverseSVD::Us"),
+                   matrices.extent(0), matrices.extent(1), matrices.extent(2));
 
-    Kokkos::parallel_for(
-        "ArborX::SymmetricPseudoInverseSVD::computations",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, matrices.extent(0)),
-        KOKKOS_LAMBDA(int const i) {
-          auto A = Kokkos::subview(matrices, i, Kokkos::ALL, Kokkos::ALL);
-          auto ES = Kokkos::subview(ESs, i, Kokkos::ALL, Kokkos::ALL);
-          auto U = Kokkos::subview(Us, i, Kokkos::ALL, Kokkos::ALL);
-          symmetricPseudoInverseSVDSerialKernel(A, ES, U);
-        });
-  }
-  else if constexpr (InOutMatrices::rank == 2)
-  {
-    auto A = matrices;
-    ARBORX_ASSERT(A.extent(0) == A.extent(1)); // Must be square
-
-    InOutMatrices ES(
-        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                           "ArborX::SymmetricPseudoInverseSVD::ES"),
-        A.extent(0), A.extent(1));
-    InOutMatrices U(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                                       "ArborX::SymmetricPseudoInverseSVD::U"),
-                    A.extent(0), A.extent(1));
-
-    Kokkos::parallel_for(
-        "ArborX::SymmetricPseudoInverseSVD::computation",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1),
-        KOKKOS_LAMBDA(int const) {
-          symmetricPseudoInverseSVDSerialKernel(A, ES, U);
-        });
-  }
+  Kokkos::parallel_for(
+      "ArborX::SymmetricPseudoInverseSVD::computations",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, matrices.extent(0)),
+      KOKKOS_LAMBDA(int const i) {
+        auto A = Kokkos::subview(matrices, i, Kokkos::ALL, Kokkos::ALL);
+        auto ES = Kokkos::subview(ESs, i, Kokkos::ALL, Kokkos::ALL);
+        auto U = Kokkos::subview(Us, i, Kokkos::ALL, Kokkos::ALL);
+        symmetricPseudoInverseSVDSerialKernel(A, ES, U);
+      });
 }
 
 } // namespace ArborX::Interpolation::Details
