@@ -168,8 +168,7 @@ symmetricPseudoInverseSVDSerialKernel(AMatrix &A, ESMatrix &ES, UMatrix &U)
     // U  <- U . R'(theta)
 
     // R'(theta)^T . ES . R'(theta)
-    int i = 0;
-    for (; i < p; i++)
+    for (int i = 0; i < p; i++)
     {
       auto const es_ip = ES(i, p);
       auto const es_iq = ES(i, q);
@@ -177,8 +176,7 @@ symmetricPseudoInverseSVDSerialKernel(AMatrix &A, ESMatrix &ES, UMatrix &U)
       ES(i, q) = -sin_theta * es_ip + cos_theta * es_iq;
     }
     ES(p, p) = x;
-    i++;
-    for (; i < q; i++)
+    for (int i = p + 1; i < q; i++)
     {
       auto const es_pi = ES(p, i);
       auto const es_iq = ES(i, q);
@@ -186,8 +184,7 @@ symmetricPseudoInverseSVDSerialKernel(AMatrix &A, ESMatrix &ES, UMatrix &U)
       ES(i, q) = -sin_theta * es_pi + cos_theta * es_iq;
     }
     ES(q, q) = y;
-    i++;
-    for (; i < size; i++)
+    for (int i = q + 1; i < size; i++)
     {
       auto const es_pi = ES(p, i);
       auto const es_qi = ES(q, i);
