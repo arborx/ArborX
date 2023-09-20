@@ -16,16 +16,14 @@
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
 
-namespace axid = ArborX::Interpolation::Details;
-
 template <typename ES, typename U, typename V>
 void makeCase(ES const &es, V &src_arr, V &ref_arr, int n, int m)
 {
   using host_view = typename U::HostMirror;
 
-  host_view src("src", m, n, n);
-  host_view ref("ref", m, n, n);
-  U inv("inv", m, n, n);
+  host_view src("Testing::src", m, n, n);
+  host_view ref("Testing::ref", m, n, n);
+  U inv("Testing::inv", m, n, n);
 
   for (int i = 0; i < m; i++)
     for (int j = 0; j < n; j++)
@@ -36,7 +34,7 @@ void makeCase(ES const &es, V &src_arr, V &ref_arr, int n, int m)
       }
 
   Kokkos::deep_copy(es, inv, src);
-  axid::symmetricPseudoInverseSVD(es, inv);
+  ArborX::Interpolation::Details::symmetricPseudoInverseSVD(es, inv);
   ARBORX_MDVIEW_TEST(ref, inv, Kokkos::Experimental::epsilon_v<float>);
 }
 
@@ -129,6 +127,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(pseudo_inv_empty, DeviceType, ARBORX_DEVICE_TYPES)
   ExecutionSpace space{};
 
   view_t mat("mat", 0, 0, 0);
-  axid::symmetricPseudoInverseSVD(space, mat);
+  ArborX::Interpolation::Details::symmetricPseudoInverseSVD(space, mat);
   BOOST_TEST(mat.size() == 0);
 }

@@ -32,22 +32,13 @@ template <typename Matrix>
 KOKKOS_INLINE_FUNCTION void ensureIsSquareSymmetricMatrix(Matrix const &mat)
 {
   ensureIsSquareMatrix(mat);
-  using value_t = typename Matrix::non_const_value_type;
 
   auto is_symmetric = [&]() {
     int const size = mat.extent(0);
     for (int i = 0; i < size; i++)
       for (int j = i + 1; j < size; j++)
-      {
-        auto const val = Kokkos::abs(mat(i, j) - mat(j, i));
-        auto const ref = Kokkos::abs(mat(i, j));
-        static constexpr value_t epsilon =
-            Kokkos::Experimental::epsilon_v<float>;
-        if (ref == value_t(0) && val > epsilon)
+        if (mat(i, j) != mat(j, i))
           return false;
-        if (ref != value_t(0) && val / ref > epsilon)
-          return false;
-      }
     return true;
   };
 
