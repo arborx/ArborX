@@ -87,7 +87,7 @@ KOKKOS_FUNCTION auto argmaxUpperTriangle(Matrix const &mat)
 // Pseudo-inverse of symmetric matrices using SVD
 // We must find U, E (diagonal and positive) and V such that A = U.E.V^T
 // We also suppose, as the input, that A is symmetric, so U = SV where S is
-// a sign matrix (only 1 or -1 in the diagonal, 0 elsewhere).
+// a sign matrix (only 1 or -1 on the diagonal, 0 elsewhere).
 // Thus A = U.ES.U^T and A^-1 = U.[ ES^-1 ].U^T
 template <typename AMatrix, typename ESMatrix, typename UMatrix>
 KOKKOS_FUNCTION void
@@ -106,7 +106,7 @@ symmetricPseudoInverseSVDSerialKernel(AMatrix &A, ESMatrix &ES, UMatrix &U)
                                typename ESMatrix::value_type> &&
                     std::is_same_v<typename ESMatrix::value_type,
                                    typename UMatrix::value_type>,
-                "Each input matrix must have the same value type");
+                "All input matrices must have the same value type");
   KOKKOS_ASSERT(A.extent(0) == ES.extent(0) && ES.extent(0) == U.extent(0));
   using value_t = typename AMatrix::non_const_value_type;
   int const size = A.extent(0);
@@ -138,7 +138,7 @@ symmetricPseudoInverseSVDSerialKernel(AMatrix &A, ESMatrix &ES, UMatrix &U)
     // | ES(q, p) | ES(q, q) |   | b | c |
     // +----------+----------+   +---+---+
 
-    // Lets compute x, y and theta such that
+    // Let's compute x, y and theta such that
     // +---+---+              +---+---+
     // | a | b |              | x | 0 |
     // +---+---+ = R(theta) * +---+---+ * R(theta)^T
@@ -163,7 +163,7 @@ symmetricPseudoInverseSVDSerialKernel(AMatrix &A, ESMatrix &ES, UMatrix &U)
       y = a + c - x;
     }
 
-    // Now lets compute the following new values for U and ES
+    // Now let's compute the following new values for U and ES
     // ES <- R'(theta)^T . ES . R'(theta)
     // U  <- U . R'(theta)
 
@@ -203,12 +203,12 @@ symmetricPseudoInverseSVDSerialKernel(AMatrix &A, ESMatrix &ES, UMatrix &U)
     }
   }
 
-  // We compute the max to get a range of the invertible eigen values
+  // We compute the max to get a range of the invertible eigenvalues
   auto max_eigen = epsilon;
   for (int i = 0; i < size; i++)
     max_eigen = Kokkos::max(Kokkos::abs(ES(i, i)), max_eigen);
 
-  // We inverse the diagonal of ES, except if "0" is found
+  // We invert the diagonal of ES, except if "0" is found
   for (int i = 0; i < size; i++)
     ES(i, i) = (Kokkos::abs(ES(i, i)) < max_eigen * epsilon) ? 0 : 1 / ES(i, i);
 
@@ -227,7 +227,7 @@ template <typename ExecutionSpace, typename InOutMatrices>
 void symmetricPseudoInverseSVD(ExecutionSpace const &space,
                                InOutMatrices &matrices)
 {
-  // InOutMatrices is a single or list of matrices (i.e 2 or 3D view)
+  // InOutMatrices is a list of square symmetric matrices (3D view)
   static_assert(Kokkos::is_view_v<InOutMatrices>, "matrices must be a view");
   static_assert(!std::is_const_v<typename InOutMatrices::value_type>,
                 "matrices must be writable");
