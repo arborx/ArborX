@@ -36,6 +36,12 @@
 namespace ArborX
 {
 
+namespace Experimental
+{
+struct PerThread
+{};
+} // namespace Experimental
+
 namespace Details
 {
 struct HappyTreeFriends;
@@ -101,6 +107,18 @@ public:
         std::forward<View>(view), std::forward<Args>(args)...);
   }
 
+  template <typename Predicate, typename Callback>
+  KOKKOS_FUNCTION void query(Experimental::PerThread,
+                             Predicate const &predicate,
+                             Callback const &callback) const
+  {
+    ArborX::Details::TreeTraversal<BasicBoundingVolumeHierarchy,
+                                   /* Predicates Dummy */ std::true_type,
+                                   Callback, typename Predicate::Tag>
+        tree_traversal(*this, callback);
+    tree_traversal(predicate);
+  }
+
 private:
   friend struct Details::HappyTreeFriends;
 
@@ -160,6 +178,14 @@ public:
     base_type::query(space, predicates,
                      std::forward<CallbackOrView>(callback_or_view),
                      std::forward<View>(view), std::forward<Args>(args)...);
+  }
+
+  template <typename Predicate, typename Callback>
+  KOKKOS_FUNCTION void query(Experimental::PerThread tag,
+                             Predicate const &predicate,
+                             Callback const &callback) const
+  {
+    base_type::query(tag, predicate, callback);
   }
 };
 

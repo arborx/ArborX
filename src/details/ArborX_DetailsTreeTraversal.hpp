@@ -63,13 +63,21 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     else
     {
       Kokkos::parallel_for("ArborX::TreeTraversal::spatial",
-                           Kokkos::RangePolicy<ExecutionSpace>(
+                           Kokkos::RangePolicy<ExecutionSpace, FullTree>(
                                space, 0, Access::size(predicates)),
                            *this);
     }
   }
 
+  KOKKOS_FUNCTION TreeTraversal(BVH const &bvh, Callback const &callback)
+      : _bvh{bvh}
+      , _callback{callback}
+  {}
+
   struct OneLeafTree
+  {};
+
+  struct FullTree
   {};
 
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
@@ -84,10 +92,15 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     }
   }
 
-  KOKKOS_FUNCTION void operator()(int queryIndex) const
+  KOKKOS_FUNCTION void operator()(FullTree, int queryIndex) const
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
+    operator()(predicate);
+  }
 
+  template <typename Predicate>
+  KOKKOS_FUNCTION void operator()(Predicate const &predicate) const
+  {
     int node = HappyTreeFriends::getRoot(_bvh); // start with root
     do
     {
@@ -415,13 +428,21 @@ struct TreeTraversal<BVH, Predicates, Callback,
     {
       Kokkos::parallel_for(
           "ArborX::Experimental::TreeTraversal::OrderedSpatialPredicate",
-          Kokkos::RangePolicy<ExecutionSpace>(space, 0,
-                                              Access::size(predicates)),
+          Kokkos::RangePolicy<ExecutionSpace, FullTree>(
+              space, 0, Access::size(predicates)),
           *this);
     }
   }
 
+  KOKKOS_FUNCTION TreeTraversal(BVH const &bvh, Callback const &callback)
+      : _bvh{bvh}
+      , _callback{callback}
+  {}
+
   struct OneLeafTree
+  {};
+
+  struct FullTree
   {};
 
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
@@ -440,9 +461,15 @@ struct TreeTraversal<BVH, Predicates, Callback,
     }
   }
 
-  KOKKOS_FUNCTION void operator()(int queryIndex) const
+  KOKKOS_FUNCTION void operator()(FullTree, int queryIndex) const
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
+    operator()(predicate);
+  }
+
+  template <typename Predicate>
+  KOKKOS_FUNCTION void operator()(Predicate const &predicate) const
+  {
     using ArborX::Details::HappyTreeFriends;
 
     using distance_type = decltype(predicate.distance(
