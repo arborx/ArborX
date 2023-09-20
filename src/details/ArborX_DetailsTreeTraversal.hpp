@@ -63,7 +63,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     else
     {
       Kokkos::parallel_for("ArborX::TreeTraversal::spatial",
-                           Kokkos::RangePolicy<ExecutionSpace>(
+                           Kokkos::RangePolicy<ExecutionSpace, FullTree>(
                                space, 0, Access::size(predicates)),
                            *this);
     }
@@ -75,6 +75,9 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   {}
 
   struct OneLeafTree
+  {};
+
+  struct FullTree
   {};
 
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
@@ -89,14 +92,14 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     }
   }
 
-  KOKKOS_FUNCTION void operator()(int queryIndex) const
+  KOKKOS_FUNCTION void operator()(FullTree, int queryIndex) const
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
-    search(predicate);
+    operator()(predicate);
   }
 
-  template <typename Query>
-  KOKKOS_FUNCTION void search(Query const &predicate) const
+  template <typename Predicate>
+  KOKKOS_FUNCTION void operator()(Predicate const &predicate) const
   {
     int node = HappyTreeFriends::getRoot(_bvh); // start with root
     do
@@ -401,7 +404,7 @@ struct TreeTraversal<BVH, Predicates, Callback,
 
   using Access = AccessTraits<Predicates, PredicatesTag>;
 
-  template <typename ExecutionSpace>
+  template <class ExecutionSpace>
   TreeTraversal(ExecutionSpace const &space, BVH const &bvh,
                 Predicates const &predicates, Callback const &callback)
       : _bvh{bvh}
@@ -425,8 +428,8 @@ struct TreeTraversal<BVH, Predicates, Callback,
     {
       Kokkos::parallel_for(
           "ArborX::Experimental::TreeTraversal::OrderedSpatialPredicate",
-          Kokkos::RangePolicy<ExecutionSpace>(space, 0,
-                                              Access::size(predicates)),
+          Kokkos::RangePolicy<ExecutionSpace, FullTree>(
+              space, 0, Access::size(predicates)),
           *this);
     }
   }
@@ -437,6 +440,9 @@ struct TreeTraversal<BVH, Predicates, Callback,
   {}
 
   struct OneLeafTree
+  {};
+
+  struct FullTree
   {};
 
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
@@ -455,14 +461,14 @@ struct TreeTraversal<BVH, Predicates, Callback,
     }
   }
 
-  KOKKOS_FUNCTION void operator()(int queryIndex) const
+  KOKKOS_FUNCTION void operator()(FullTree, int queryIndex) const
   {
     auto const &predicate = Access::get(_predicates, queryIndex);
-    search(predicate);
+    operator()(predicate);
   }
 
-  template <typename Query>
-  KOKKOS_FUNCTION void search(Query const &predicate) const
+  template <typename Predicate>
+  KOKKOS_FUNCTION void operator()(Predicate const &predicate) const
   {
     using ArborX::Details::HappyTreeFriends;
 

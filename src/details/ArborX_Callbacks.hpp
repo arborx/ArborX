@@ -17,7 +17,7 @@
 #include <Kokkos_DetectionIdiom.hpp>
 #include <Kokkos_Macros.hpp>
 
-#include <utility> // declval
+#include <type_traits>
 
 namespace ArborX
 {
@@ -50,15 +50,12 @@ struct DefaultCallback
 // archetypal expression for user callbacks
 template <typename Callback, typename Predicate, typename Out>
 using InlineCallbackArchetypeExpression =
-    decltype(std::declval<Callback const &>()(std::declval<Predicate const &>(),
-                                              0, std::declval<Out const &>()));
+    std::invoke_result_t<Callback, Predicate, int, Out>;
 
 // legacy nearest predicate archetypal expression for user callbacks
 template <typename Callback, typename Predicate, typename Out>
 using Legacy_NearestPredicateInlineCallbackArchetypeExpression =
-    decltype(std::declval<Callback const &>()(std::declval<Predicate const &>(),
-                                              0, 0.f,
-                                              std::declval<Out const &>()));
+    std::invoke_result_t<Callback, Predicate, int, float, Out>;
 
 // archetypal alias for a 'tag' type member in user callbacks
 template <typename Callback>
@@ -125,8 +122,7 @@ Sorry!)error");
 // EXPERIMENTAL archetypal expression for user callbacks
 template <typename Callback, typename Predicate, typename Primitive>
 using Experimental_CallbackArchetypeExpression =
-    decltype(std::declval<Callback const &>()(
-        std::declval<Predicate const &>(), std::declval<Primitive const &>()));
+    std::invoke_result_t<Callback, Predicate, Primitive>;
 
 // Determine whether the callback returns a hint to exit the tree traversal
 // early.

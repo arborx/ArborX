@@ -17,7 +17,6 @@
 #include <Kokkos_Macros.hpp>
 
 #include <type_traits>
-#include <utility> // declval
 
 namespace ArborX::Details
 {

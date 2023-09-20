@@ -124,6 +124,7 @@ foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
   endforeach()
 endforeach()
 list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES
+  tstQueryTreeCallbackQueryPerThread.cpp
   tstQueryTreeRay.cpp
   tstQueryTreeTraversalPolicy.cpp
   tstQueryTreeIntersectsKDOP.cpp

@@ -291,8 +291,8 @@ int main()
             }
             else
             {
-              ArborX::kernel_query(
-                  tree,
+              tree.query(
+                  ArborX::Experimental::PerThread{},
                   ArborX::attach(ArborX::intersects(point),
                                  Attachment{triangle_index, coefficients}),
                   TriangleIntersectionCallback<DeviceType>{triangles});
