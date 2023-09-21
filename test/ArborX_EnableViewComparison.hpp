@@ -34,7 +34,8 @@ void arborxViewCheck(U const &u, V const &v, std::string const &u_name,
   bool same_dim_size = true;
   for (int i = 0; i < rank; i++)
   {
-    int ui = u.extent(i), vi = v.extent(i);
+    int ui = u.extent_int(i);
+    int vi = v.extent_int(i);
     BOOST_TEST(ui == vi, "check " << u_name << " == " << v_name
                                   << " failed at dimension " << i << " size ["
                                   << ui << " != " << vi << "]");
@@ -82,12 +83,13 @@ void arborxViewCheck(U const &u, V const &v, std::string const &u_name,
   }
 }
 
-#define ARBORX_MDVIEW_TEST(VIEWA, VIEWB, ...)                                  \
+#define ARBORX_MDVIEW_TEST_TOL(VIEWA, VIEWB, TOL)                              \
   [](decltype(VIEWA) const &u, decltype(VIEWB) const &v) {                     \
     auto view_a = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, u); \
     auto view_b = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, v); \
                                                                                \
-    static_assert(decltype(view_a)::rank == decltype(view_b)::rank,            \
+    static_assert(std::decay_t<decltype(u)>::rank ==                           \
+                      std::decay_t<decltype(v)>::rank,                         \
                   "'" #VIEWA "' and '" #VIEWB "' must have the same rank");    \
                                                                                \
     std::string view_a_name(#VIEWA);                                           \
@@ -96,8 +98,10 @@ void arborxViewCheck(U const &u, V const &v, std::string const &u_name,
     std::string view_b_name(#VIEWB);                                           \
     view_b_name += " (" + view_b.label() + ")";                                \
                                                                                \
-    arborxViewCheck(view_a, view_b, view_a_name, view_b_name, ##__VA_ARGS__);  \
+    arborxViewCheck(view_a, view_b, view_a_name, view_b_name, TOL);            \
   }(VIEWA, VIEWB)
+
+#define ARBORX_MDVIEW_TEST(VIEWA, VIEWB) ARBORX_MDVIEW_TEST_TOL(VIEWA, VIEWB, 0)
 
 // Enable element-wise comparison for views that are accessible from the host
 namespace boost

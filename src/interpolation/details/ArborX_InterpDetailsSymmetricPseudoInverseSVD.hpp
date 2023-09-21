@@ -21,7 +21,8 @@ namespace ArborX::Interpolation::Details
 {
 
 template <typename Matrix>
-KOKKOS_INLINE_FUNCTION void ensureIsSquareMatrix(Matrix const &mat)
+KOKKOS_INLINE_FUNCTION void
+ensureIsSquareMatrix([[maybe_unused]] Matrix const &mat)
 {
   static_assert(Kokkos::is_view_v<Matrix>, "Matrix must be a view");
   static_assert(Matrix::rank == 2, "Matrix must be 2D");
@@ -33,7 +34,7 @@ KOKKOS_INLINE_FUNCTION void ensureIsSquareSymmetricMatrix(Matrix const &mat)
 {
   ensureIsSquareMatrix(mat);
 
-  auto is_symmetric = [&]() {
+  [[maybe_unused]] auto is_symmetric = [&]() {
     int const size = mat.extent(0);
     for (int i = 0; i < size; i++)
       for (int j = i + 1; j < size; j++)
@@ -136,7 +137,10 @@ symmetricPseudoInverseSVDSerialKernel(AMatrix &A, ESMatrix &ES, UMatrix &U)
     // | b | c |              | 0 | y |
     // +---+---+              +---+---+
 
-    value_t cos_theta, sin_theta, x, y;
+    value_t cos_theta;
+    value_t sin_theta;
+    value_t x;
+    value_t y;
     if (a == c)
     {
       cos_theta = Kokkos::sqrt(value_t(2)) / 2;

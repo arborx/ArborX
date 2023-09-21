@@ -35,7 +35,7 @@ void makeCase(ES const &es, V &src_arr, V &ref_arr, int n, int m)
 
   Kokkos::deep_copy(es, inv, src);
   ArborX::Interpolation::Details::symmetricPseudoInverseSVD(es, inv);
-  ARBORX_MDVIEW_TEST(ref, inv, Kokkos::Experimental::epsilon_v<float>);
+  ARBORX_MDVIEW_TEST_TOL(ref, inv, Kokkos::Experimental::epsilon_v<float>);
 }
 
 // Pseudo-inverses were computed using numpy's "linalg.pinv" solver and
