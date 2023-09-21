@@ -28,7 +28,7 @@ struct IntersectionCallback
   template <typename Query, typename Value>
   KOKKOS_FUNCTION void operator()(Query const &, Value const &value) const
   {
-    success = (query_index == value.index);
+    success = (query_index == (int)value.index);
   }
 };
 
@@ -72,7 +72,7 @@ struct OrderedIntersectionCallback
   template <typename Query, typename Value>
   KOKKOS_FUNCTION auto operator()(Query const &, Value const &value) const
   {
-    success = (query_index == value.index);
+    success = (query_index == (int)value.index);
     return ArborX::CallbackTreeTraversalControl::early_exit;
   }
 };
