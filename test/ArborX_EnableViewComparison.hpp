@@ -88,8 +88,8 @@ void arborxViewCheck(U const &u, V const &v, std::string const &u_name,
     auto view_a = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, u); \
     auto view_b = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, v); \
                                                                                \
-    static_assert(std::decay_t<decltype(u)>::rank ==                           \
-                      std::decay_t<decltype(v)>::rank,                         \
+    static_assert(unsigned(std::decay_t<decltype(u)>::rank) ==                 \
+                      unsigned(std::decay_t<decltype(v)>::rank),               \
                   "'" #VIEWA "' and '" #VIEWB "' must have the same rank");    \
                                                                                \
     std::string view_a_name(#VIEWA);                                           \
