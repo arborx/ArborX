@@ -145,8 +145,8 @@ KOKKOS_INLINE_FUNCTION
                                          Predicate &&predicate,
                                          Primitive &&primitive)
 {
-  return ((Callback &&)callback)((Predicate &&)predicate,
-                                 (Primitive &&)primitive) ==
+  return ((Callback &&) callback)((Predicate &&) predicate,
+                                  (Primitive &&) primitive) ==
          CallbackTreeTraversalControl::early_exit;
 }
 
@@ -162,7 +162,7 @@ KOKKOS_INLINE_FUNCTION
                                          Predicate &&predicate,
                                          Primitive &&primitive)
 {
-  ((Callback &&)callback)((Predicate &&)predicate, (Primitive &&)primitive);
+  ((Callback &&) callback)((Predicate &&) predicate, (Primitive &&) primitive);
   return false;
 }
 

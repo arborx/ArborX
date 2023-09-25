@@ -287,7 +287,9 @@ int main()
             if (intersects)
             {
               coefficients = test_coeffs;
-              KOKKOS_IMPL_DO_NOT_USE_PRINTF("%d, %d: same triangle\n", i, j);
+              KOKKOS_IMPL_DO_NOT_USE_PRINTF("%d, %d: %f %f in %d (same)\n", i,
+                                            j, point[0], point[1],
+                                            triangle_index);
             }
             else
             {
@@ -296,9 +298,8 @@ int main()
                   ArborX::attach(ArborX::intersects(point),
                                  Attachment{triangle_index, coefficients}),
                   TriangleIntersectionCallback<DeviceType>{triangles});
-              KOKKOS_IMPL_DO_NOT_USE_PRINTF("%d, %d: %d %f %f %f\n", i, j,
-                                            triangle_index, coefficients[0],
-                                            coefficients[1], coefficients[2]);
+              KOKKOS_IMPL_DO_NOT_USE_PRINTF("%d, %d: %f %f in %d\n", i, j,
+                                            point[0], point[1], triangle_index);
             }
           }
         });
