@@ -92,7 +92,7 @@ template <typename DeviceType>
 class TriangleIntersectionCallback
 {
 public:
-  TriangleIntersectionCallback(
+  KOKKOS_FUNCTION TriangleIntersectionCallback(
       Kokkos::View<Triangle *, typename DeviceType::memory_space> triangles)
       : _triangles(triangles)
   {}
