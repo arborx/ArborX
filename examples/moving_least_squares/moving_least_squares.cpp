@@ -10,7 +10,7 @@
  ****************************************************************************/
 
 #include <ArborX.hpp>
-#include <interpolation/ArborX_InterpMovingLeastSquares.hpp>
+#include <ArborX_Interp.hpp>
 
 #include <Kokkos_Core.hpp>
 

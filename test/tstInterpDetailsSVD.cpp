@@ -11,7 +11,7 @@
 
 #include "ArborX_EnableDeviceTypes.hpp"
 #include "ArborX_EnableViewComparison.hpp"
-#include <interpolation/details/ArborX_InterpDetailsSymmetricPseudoInverseSVD.hpp>
+#include <ArborX_InterpDetailsSymmetricPseudoInverseSVD.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
@@ -23,9 +23,9 @@ void makeCase(ES const &es, V const (&src_arr)[M][N][N],
   using device_view = Kokkos::View<V[M][N][N], MS>;
   using host_view = typename device_view::HostMirror;
 
-  host_view src("Testing::src", M, N, N);
-  host_view ref("Testing::ref", M, N, N);
-  device_view inv("Testing::inv", M, N, N);
+  host_view src("Testing::src");
+  host_view ref("Testing::ref");
+  device_view inv("Testing::inv");
 
   for (int i = 0; i < M; i++)
     for (int j = 0; j < N; j++)

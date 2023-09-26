@@ -11,7 +11,7 @@
 
 #include "ArborX_EnableDeviceTypes.hpp"
 #include "ArborX_EnableViewComparison.hpp"
-#include <interpolation/ArborX_InterpMovingLeastSquares.hpp>
+#include <ArborX_InterpMovingLeastSquares.hpp>
 
 #include <Kokkos_Core.hpp>
 

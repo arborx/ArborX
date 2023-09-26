@@ -69,11 +69,15 @@ target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/details>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/geometry>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/kokkos_ext>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/interpolation>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/interpolation/details>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   $<INSTALL_INTERFACE:include/ArborX>
   $<INSTALL_INTERFACE:include/ArborX/details>
   $<INSTALL_INTERFACE:include/ArborX/geometry>
   $<INSTALL_INTERFACE:include/ArborX/kokkos_ext>
+  $<INSTALL_INTERFACE:include/ArborX/interpolation>
+  $<INSTALL_INTERFACE:include/ArborX/interpolation/details>
 )
 
 install(TARGETS ArborX

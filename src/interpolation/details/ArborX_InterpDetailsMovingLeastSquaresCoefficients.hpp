@@ -16,8 +16,8 @@
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperPoint.hpp>
-#include <interpolation/details/ArborX_InterpDetailsPolynomialBasis.hpp>
-#include <interpolation/details/ArborX_InterpDetailsSymmetricPseudoInverseSVD.hpp>
+#include <ArborX_InterpDetailsPolynomialBasis.hpp>
+#include <ArborX_InterpDetailsSymmetricPseudoInverseSVD.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -93,7 +93,7 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
   // This lets us use p(0) which is [1 0 ... 0].
   Kokkos::View<point_t **, memory_space> source_ref_target(
       Kokkos::view_alloc(
-          Kokkos::WithoutInitializing,
+          space, Kokkos::WithoutInitializing,
           "ArborX::MovingLeastSquaresCoefficients::source_ref_target"),
       num_targets, num_neighbors);
   Kokkos::parallel_for(
@@ -114,7 +114,7 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
   // We then compute the radius for each target that will be used in evaluating
   // the weight for each source point.
   Kokkos::View<value_t *, memory_space> radii(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::MovingLeastSquaresCoefficients::radii"),
       num_targets);
   Kokkos::parallel_for(
@@ -136,7 +136,7 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
 
   // This computes PHI given the source points as well as the radius
   Kokkos::View<value_t **, memory_space> phi(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::MovingLeastSquaresCoefficients::phi"),
       num_targets, num_neighbors);
   Kokkos::parallel_for(
@@ -151,7 +151,7 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
 
   // This builds the Vandermonde (P) matrix
   Kokkos::View<value_t ***, memory_space> p(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::MovingLeastSquaresCoefficients::vandermonde"),
       num_targets, num_neighbors, poly_size);
   Kokkos::parallel_for(
@@ -167,7 +167,7 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
   // We then create what is called the moment matrix, which is A = P^T.PHI.P. By
   // construction, A is symmetric.
   Kokkos::View<value_t ***, memory_space> a(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::MovingLeastSquaresCoefficients::moment"),
       num_targets, poly_size, poly_size);
   Kokkos::parallel_for(

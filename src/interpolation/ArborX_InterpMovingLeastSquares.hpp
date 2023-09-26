@@ -16,9 +16,9 @@
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_IndexableGetter.hpp>
+#include <ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
+#include <ArborX_InterpDetailsMovingLeastSquaresCoefficients.hpp>
 #include <ArborX_LinearBVH.hpp>
-#include <interpolation/details/ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
-#include <interpolation/details/ArborX_InterpDetailsMovingLeastSquaresCoefficients.hpp>
 
 #include <Kokkos_Core.hpp>
 
