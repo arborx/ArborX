@@ -16,7 +16,12 @@
 
 #include <Kokkos_Core.hpp>
 
-namespace ArborX::Interpolation::Details
+#include <type_traits>
+
+namespace ArborX::Interpolation
+{
+
+namespace Details
 {
 
 // The goal of these functions is to evaluate the polynomial basis at any degree
@@ -139,6 +144,12 @@ KOKKOS_FUNCTION auto evaluatePolynomialBasis(Point const &p)
   return arr;
 }
 
-} // namespace ArborX::Interpolation::Details
+} // namespace Details
+
+template <std::size_t Degree>
+struct PolynomialDegree : std::integral_constant<std::size_t, Degree>
+{};
+
+} // namespace ArborX::Interpolation
 
 #endif
