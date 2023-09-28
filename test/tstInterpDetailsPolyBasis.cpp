@@ -54,7 +54,8 @@ BOOST_AUTO_TEST_CASE(polynomial_basis)
   using view = Kokkos::View<double *, Kokkos::HostSpace>;
 
   double point0[5] = {1, 2, 3, 4, 5};
-  auto arr0 = ArborX::Interpolation::Details::polynomialBasis<5, 3>(point0);
+  auto arr0 =
+      ArborX::Interpolation::Details::evaluatePolynomialBasis<5, 3>(point0);
   double ref0[56] = {1,  1,  2,  3,  4,  5,  1,  2,  4,  3,  6,  9,  4,   8,
                      12, 16, 5,  10, 15, 20, 25, 1,  2,  4,  8,  3,  6,   12,
                      9,  18, 27, 4,  8,  16, 12, 24, 36, 16, 32, 48, 64,  5,
@@ -64,7 +65,8 @@ BOOST_AUTO_TEST_CASE(polynomial_basis)
   ARBORX_MDVIEW_TEST(arr0_view, ref0_view);
 
   double point1[2] = {-2, 0};
-  auto arr1 = ArborX::Interpolation::Details::polynomialBasis<2, 3>(point1);
+  auto arr1 =
+      ArborX::Interpolation::Details::evaluatePolynomialBasis<2, 3>(point1);
   double ref1[10] = {1, -2, 0, 4, 0, 0, -8, 0, 0, 0};
   view arr1_view(arr1.data(), 10);
   view ref1_view(&ref1[0], 10);

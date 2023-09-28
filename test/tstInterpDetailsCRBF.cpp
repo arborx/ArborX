@@ -16,15 +16,15 @@
 
 #include <tuple>
 
-using Functions = std::tuple<ArborX::Interpolation::Details::Wendland<0>,
-                             ArborX::Interpolation::Details::Wendland<2>,
-                             ArborX::Interpolation::Details::Wendland<4>,
-                             ArborX::Interpolation::Details::Wendland<6>,
-                             ArborX::Interpolation::Details::Wu<2>,
-                             ArborX::Interpolation::Details::Wu<4>,
-                             ArborX::Interpolation::Details::Buhmann<2>,
-                             ArborX::Interpolation::Details::Buhmann<3>,
-                             ArborX::Interpolation::Details::Buhmann<4>>;
+using Functions = std::tuple<ArborX::Interpolation::CRBF::Wendland<0>,
+                             ArborX::Interpolation::CRBF::Wendland<2>,
+                             ArborX::Interpolation::CRBF::Wendland<4>,
+                             ArborX::Interpolation::CRBF::Wendland<6>,
+                             ArborX::Interpolation::CRBF::Wu<2>,
+                             ArborX::Interpolation::CRBF::Wu<4>,
+                             ArborX::Interpolation::CRBF::Buhmann<2>,
+                             ArborX::Interpolation::CRBF::Buhmann<3>,
+                             ArborX::Interpolation::CRBF::Buhmann<4>>;
 
 template <typename CRBF, typename T>
 void makeCase(T tol = 1e-5)
@@ -38,19 +38,19 @@ void makeCase(T tol = 1e-5)
     T zero = 0;
 
     // ]-inf; -1]
-    BOOST_TEST(CRBF::apply(-out_unit) >= zero);
-    BOOST_TEST(CRBF::apply(-out_unit) == zero,
+    BOOST_TEST(CRBF::evaluate(-out_unit) >= zero);
+    BOOST_TEST(CRBF::evaluate(-out_unit) == zero,
                boost::test_tools::tolerance(tol));
 
     // ]-1; 1[
-    BOOST_TEST(CRBF::apply(-in_unit) >= zero);
-    BOOST_TEST(CRBF::apply(in_unit) >= zero);
-    BOOST_TEST(CRBF::apply(in_unit) == CRBF::apply(-in_unit),
+    BOOST_TEST(CRBF::evaluate(-in_unit) >= zero);
+    BOOST_TEST(CRBF::evaluate(in_unit) >= zero);
+    BOOST_TEST(CRBF::evaluate(in_unit) == CRBF::evaluate(-in_unit),
                boost::test_tools::tolerance(tol));
 
     // [1; +inf[
-    BOOST_TEST(CRBF::apply(out_unit) >= zero);
-    BOOST_TEST(CRBF::apply(out_unit) == zero,
+    BOOST_TEST(CRBF::evaluate(out_unit) >= zero);
+    BOOST_TEST(CRBF::evaluate(out_unit) == zero,
                boost::test_tools::tolerance(tol));
   }
 }

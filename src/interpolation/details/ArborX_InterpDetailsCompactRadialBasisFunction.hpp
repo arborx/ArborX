@@ -14,42 +14,24 @@
 
 #include <Kokkos_Core.hpp>
 
-namespace ArborX::Interpolation
+namespace ArborX::Interpolation::CRBF
 {
 
 #define CRBF_DECL(NAME)                                                        \
-  namespace Details                                                            \
-  {                                                                            \
   template <std::size_t>                                                       \
-  struct NAME;                                                                 \
-  }                                                                            \
-                                                                               \
-  namespace CRBF                                                               \
-  {                                                                            \
-  template <std::size_t I>                                                     \
-  static constexpr Details::NAME<I> NAME{};                                    \
-  }
+  struct NAME;
 
 #define CRBF_DEF(NAME, N, FUNC)                                                \
-  namespace Details                                                            \
-  {                                                                            \
   template <>                                                                  \
   struct NAME<N>                                                               \
   {                                                                            \
     template <typename T>                                                      \
-    KOKKOS_INLINE_FUNCTION static constexpr T apply(T const y)                 \
+    KOKKOS_INLINE_FUNCTION static constexpr T evaluate(T const y)              \
     {                                                                          \
       T const x = Kokkos::min(Kokkos::abs(y), T(1));                           \
       return Kokkos::abs(FUNC);                                                \
     }                                                                          \
-                                                                               \
-    template <typename T>                                                      \
-    KOKKOS_INLINE_FUNCTION constexpr T operator()(T const y) const             \
-    {                                                                          \
-      return NAME<N>::apply(y);                                                \
-    }                                                                          \
-  };                                                                           \
-  }
+  };
 
 CRBF_DECL(Wendland)
 CRBF_DEF(Wendland, 0, (1 - x) * (1 - x))
@@ -89,6 +71,6 @@ CRBF_DEF(Buhmann, 4,
 #undef CRBF_DEF
 #undef CRBF_DECL
 
-} // namespace ArborX::Interpolation
+} // namespace ArborX::Interpolation::CRBF
 
 #endif

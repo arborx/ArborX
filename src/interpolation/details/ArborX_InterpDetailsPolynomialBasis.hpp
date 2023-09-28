@@ -49,11 +49,24 @@ namespace Details
 //    |   | xz |      ||    |   |    | xyy |
 //    |   | yz |      ||    |   |    | yyy |
 //    |   | zz |      ||
+//
+// This generates:    || This generates:
+// [1, x, y, z, xx,   || [1, x, y, xx, xy, yy,
+//  xy, yy, xz, yz,   ||  xxx, xxy, xyy, yyy]
+//  zz]               ||
 
 // The size of each cell is 1 if it is at degree 1 or at variable x
 // And the sum of the cells' size to the left and above. (1 alone is not
 // counted). This essentially creates Pascal's triangle where line n corresponds
 // to the "dim + deg = n"-th diagonal
+//
+// Given the previous two diagrams, the two 2D arrays would be:
+//
+// Deg \ Dim | x | y | z  || Deg \ Dim | x | y
+// ----------+---+---+--- || ----------+---+---
+//      1    | 1 | 1 | 1  ||      1    | 1 | 1
+//      2    | 1 | 2 | 3  ||      2    | 1 | 2
+//                        ||      3    | 1 | 3
 template <std::size_t Dim, std::size_t Deg>
 KOKKOS_FUNCTION constexpr auto polynomialBasisCellSizes()
 {
@@ -81,6 +94,9 @@ KOKKOS_FUNCTION constexpr auto polynomialBasisCellSizes()
 
 // This returns the size of the polynomial basis, which is the sum of all the
 // cells' sizes and 1.
+//
+// Given the previous two diagrams and 2D arrays, both the Quadratic/3D and
+// Cubic/2D would have 10 elements in total.
 template <std::size_t Dim, std::size_t Deg>
 KOKKOS_FUNCTION constexpr std::size_t polynomialBasisSize()
 {
@@ -103,7 +119,7 @@ KOKKOS_FUNCTION constexpr std::size_t polynomialBasisSize()
 
 // This builds the array as described above
 template <std::size_t Dim, std::size_t Deg, typename Point>
-KOKKOS_FUNCTION auto polynomialBasis(Point const &p)
+KOKKOS_FUNCTION auto evaluatePolynomialBasis(Point const &p)
 {
   using value_t = std::decay_t<decltype(p[0])>;
   Kokkos::Array<value_t, polynomialBasisSize<Dim, Deg>()> arr{};
@@ -111,7 +127,7 @@ KOKKOS_FUNCTION auto polynomialBasis(Point const &p)
 
   if constexpr (Deg != 0 && Dim != 0)
   {
-    // Cannot use struct binding with constexpr
+    // Cannot use structured binding with constexpr
     static constexpr auto cell_sizes_struct =
         polynomialBasisCellSizes<Dim, Deg>();
     static constexpr auto &cell_sizes = cell_sizes_struct.arr;
@@ -139,13 +155,11 @@ KOKKOS_FUNCTION auto polynomialBasis(Point const &p)
   return arr;
 }
 
+} // namespace Details
+
 template <std::size_t Deg>
 struct PolynomialDegree : std::integral_constant<std::size_t, Deg>
 {};
-
-} // namespace Details
-template <std::size_t Deg>
-static constexpr Details::PolynomialDegree<Deg> PolynomialDegree{};
 
 } // namespace ArborX::Interpolation
 
