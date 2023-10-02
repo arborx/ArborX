@@ -43,8 +43,8 @@ void makeCase(T tol = 1e-5)
                boost::test_tools::tolerance(tol));
 
     // ]-1; 1[
-    BOOST_TEST(CRBF::evaluate(-in_unit) >= zero);
-    BOOST_TEST(CRBF::evaluate(in_unit) >= zero);
+    BOOST_TEST(CRBF::evaluate(-in_unit) > zero);
+    BOOST_TEST(CRBF::evaluate(in_unit) > zero);
     BOOST_TEST(CRBF::evaluate(in_unit) == CRBF::evaluate(-in_unit),
                boost::test_tools::tolerance(tol));
 

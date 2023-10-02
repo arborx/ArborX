@@ -22,56 +22,52 @@ namespace ArborX::Interpolation
 namespace Details
 {
 
-// Polynomial basis is computed in the same way as the following example
-// diagrams. Each cell is the product of the variable times everything on the
-// left cell and above.
+// The goal of these functions is to evaluate the polynomial basis at any degree
+// and dimension. For example, the polynomial basis of degree 2 evaluated at a
+// point {x, y, z} would be [1, x, y, z, xx, xy, yy, xz, yz, zz].
 //
-// For example, the "degree 3 / variable y" has size 3 because it multiplies
-// every element of "degree 2 / variable y" and "degree 2 / variable x".
+// To compute it, the list of values is sliced against its degree and highest
+// dimension. From the previous list, we would have the following sublists:
+// - [1]                             at degree 0
+// - [x], [y] and [z]                at degree 1
+// - [xx], [xy, yy] and [xz, yz, zz] at degree 2
+// One can then infer a recursive pattern that will be used to build the list:
+// - [1]                             at degree 0
+// - x*[1], y*[1] and z*[1]          at degree 1
+// - x*[x], y*[x, y] and z*[x, y, z] at degree 2
+// So, given a slice at degree n and dimension u, its values would be the
+// product of all the slices of degree n-1 and of dimension u or less.
 //
-//   Quadratic |  3D  ||        Cubic      |  2D
-// ------------+----- || ------------------+-----
-//    degree   | var  ||       degree      | var
-// ---+---+----+      || ---+---+----+-----+
-//  0 | 1 |  2 |      ||  0 | 1 |  2 |  3  |
-// ---+---+----+      || ---+---+----+-----+
-// ---+---+----+      || ---+---+----+-----+
-//  1 |   |    |      ||  1 |   |    |     |
-// ---+---+----+----- || ---+---+----+-----+-----
-//    | x |    |  x   ||    | x |    |     |  x
-//    |   | xx |      ||    |   | xx |     |
-//    +---+----+----- ||    |   |    | xxx |
-//    | y |    |  y   ||    +---+----+-----+-----
-//    |   | xy |      ||    | y |    |     |  y
-//    |   | yy |      ||    |   | xy |     |
-//    +---+----+----- ||    |   | yy |     |
-//    | z |    |  z   ||    |   |    | xxy |
-//    |   | xz |      ||    |   |    | xyy |
-//    |   | yz |      ||    |   |    | yyy |
-//    |   | zz |      ||
-//
-// This generates:    || This generates:
-// [1, x, y, z, xx,   || [1, x, y, xx, xy, yy,
-//  xy, yy, xz, yz,   ||  xxx, xxy, xyy, yyy]
-//  zz]               ||
+// As another example, if we can take the polynomial basis of degree 3 evaluated
+// at a point {x, y} would be [1, x, y, xx, xy, yy, xxx, xxy, xyy, yyy]. Its
+// slices are:
+// - [1]                       at degree 0
+// - [x] and [y]               at degree 1
+// - [xx] and [xy, yy]         at degree 2
+// - [xxx] and [xxy, xyy, yyy] at degree 3
+// And its recursive pattern:
+// - [1]                       at degree 0
+// - x*[1] and y*[1]           at degree 1
+// - x*[x] and y*[x, y]        at degree 2
+// - x*[xx] and y*[xx, xy, yy] at degree 3
 
-// The size of each cell is 1 if it is at degree 1 or at variable x
-// And the sum of the cells' size to the left and above. (1 alone is not
-// counted). This essentially creates Pascal's triangle where line n corresponds
-// to the "dim + deg = n"-th diagonal
+// This function returns the lengths of the slices for a given maximum degree
+// and dimension.
+// Given a slice at degree n and dimension u, its length would be the sum of all
+// the slices' lengths of degree n-1 and of same or smaller dimension.
 //
-// Given the previous two diagrams, the two 2D arrays would be:
-//
+// Given the previous two examples, the two arrays would be:
 // Deg \ Dim | x | y | z  || Deg \ Dim | x | y
 // ----------+---+---+--- || ----------+---+---
 //      1    | 1 | 1 | 1  ||      1    | 1 | 1
 //      2    | 1 | 2 | 3  ||      2    | 1 | 2
 //                        ||      3    | 1 | 3
 template <std::size_t Dim, std::size_t Deg>
-KOKKOS_FUNCTION constexpr auto polynomialBasisCellSizes()
+KOKKOS_FUNCTION constexpr auto polynomialBasisSliceLengths()
 {
-  static_assert(Deg != 0 && Dim != 0,
-                "Unable to compute cell sizes for a constant polynomial basis");
+  static_assert(
+      Deg != 0 && Dim != 0,
+      "Unable to compute slice lengths for a constant polynomial basis");
 
   struct
   {
@@ -93,16 +89,14 @@ KOKKOS_FUNCTION constexpr auto polynomialBasisCellSizes()
 }
 
 // This returns the size of the polynomial basis, which is the sum of all the
-// cells' sizes and 1.
-//
-// Given the previous two diagrams and 2D arrays, both the Quadratic/3D and
-// Cubic/2D would have 10 elements in total.
+// slices lengths and 1.
+// Both of the previous examples will result in a polynomial basis of size 10
 template <std::size_t Dim, std::size_t Deg>
 KOKKOS_FUNCTION constexpr std::size_t polynomialBasisSize()
 {
   if constexpr (Deg != 0 && Dim != 0)
   {
-    auto [arr] = polynomialBasisCellSizes<Dim, Deg>();
+    auto [arr] = polynomialBasisSliceLengths<Dim, Deg>();
     std::size_t size = 1;
 
     for (std::size_t deg = 0; deg < Deg; deg++)
@@ -117,7 +111,7 @@ KOKKOS_FUNCTION constexpr std::size_t polynomialBasisSize()
   }
 }
 
-// This builds the array as described above
+// This creates the list by building each slices in-place
 template <std::size_t Dim, std::size_t Deg, typename Point>
 KOKKOS_FUNCTION auto evaluatePolynomialBasis(Point const &p)
 {
@@ -128,9 +122,9 @@ KOKKOS_FUNCTION auto evaluatePolynomialBasis(Point const &p)
   if constexpr (Deg != 0 && Dim != 0)
   {
     // Cannot use structured binding with constexpr
-    static constexpr auto cell_sizes_struct =
-        polynomialBasisCellSizes<Dim, Deg>();
-    static constexpr auto &cell_sizes = cell_sizes_struct.arr;
+    static constexpr auto slice_lengths_struct =
+        polynomialBasisSliceLengths<Dim, Deg>();
+    static constexpr auto &slice_lengths = slice_lengths_struct.arr;
 
     std::size_t prev_col = 0;
     std::size_t curr_col = 1;
@@ -141,10 +135,10 @@ KOKKOS_FUNCTION auto evaluatePolynomialBasis(Point const &p)
       for (std::size_t dim = 0; dim < Dim; dim++)
       {
         // copy the previous column and multply by p[dim]
-        for (std::size_t i = 0; i < cell_sizes[deg][dim]; i++)
+        for (std::size_t i = 0; i < slice_lengths[deg][dim]; i++)
           arr[loc_offset + i] = arr[prev_col + i] * p[dim];
 
-        loc_offset += cell_sizes[deg][dim];
+        loc_offset += slice_lengths[deg][dim];
       }
 
       prev_col = curr_col;

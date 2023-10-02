@@ -14,12 +14,12 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_AUTO_TEST_CASE(polynomial_basis_column_sizes)
+BOOST_AUTO_TEST_CASE(polynomial_basis_slice_lengths)
 {
   using view = Kokkos::View<std::size_t **, Kokkos::HostSpace>;
 
   auto [arr0] =
-      ArborX::Interpolation::Details::polynomialBasisCellSizes<5, 3>();
+      ArborX::Interpolation::Details::polynomialBasisSliceLengths<5, 3>();
   std::size_t ref0[3][5] = {
       {1, 1, 1, 1, 1}, {1, 2, 3, 4, 5}, {1, 3, 6, 10, 15}};
   view arr0_view(&arr0[0][0], 3, 5);
@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(polynomial_basis_column_sizes)
   ARBORX_MDVIEW_TEST(arr0_view, ref0_view);
 
   auto [arr1] =
-      ArborX::Interpolation::Details::polynomialBasisCellSizes<2, 3>();
+      ArborX::Interpolation::Details::polynomialBasisSliceLengths<2, 3>();
   std::size_t ref1[3][2] = {{1, 1}, {1, 2}, {1, 3}};
   view arr1_view(&arr1[0][0], 3, 2);
   view ref1_view(&ref1[0][0], 3, 2);
