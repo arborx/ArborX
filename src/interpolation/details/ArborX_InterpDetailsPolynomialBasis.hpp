@@ -16,10 +16,7 @@
 
 #include <type_traits>
 
-namespace ArborX::Interpolation
-{
-
-namespace Details
+namespace ArborX::Interpolation::Details
 {
 
 // The goal of these functions is to evaluate the polynomial basis at any degree
@@ -36,7 +33,8 @@ namespace Details
 // - x*[1], y*[1] and z*[1]          at degree 1
 // - x*[x], y*[x, y] and z*[x, y, z] at degree 2
 // So, given a slice at degree n and dimension u, its values would be the
-// product of all the slices of degree n-1 and of dimension u or less.
+// product of all the slices of degree n-1 and of dimension u or less with the
+// coordinate of dimension u.
 //
 // As another example, if we can take the polynomial basis of degree 3 evaluated
 // at a point {x, y} would be [1, x, y, xx, xy, yy, xxx, xxy, xyy, yyy]. Its
@@ -50,6 +48,27 @@ namespace Details
 // - x*[1] and y*[1]           at degree 1
 // - x*[x] and y*[x, y]        at degree 2
 // - x*[xx] and y*[xx, xy, yy] at degree 3
+//
+// These examples can be represented in 2D as the following tables:
+//   Quadratic |  3D  ||        Cubic      |  2D
+// ------------+----- || ------------------+-----
+//    degree   | dim  ||       degree      | dim
+// ---+---+----+      || ---+---+----+-----+
+//  0 | 1 |  2 |      ||  0 | 1 |  2 |  3  |
+// ===o===o====o      || ===o===o====o=====o
+//  1 |        |      ||  1 |              |
+// ---+---+----+----- || ---+---+----+-----+-----
+//    | x |    |  x   ||    | x |    |     |  x
+//    |   | xx |      ||    |   | xx |     |
+//    +---+----+----- ||    |   |    | xxx |
+//    | y |    |  y   ||    +---+----+-----+-----
+//    |   | xy |      ||    | y |    |     |  y
+//    |   | yy |      ||    |   | xy |     |
+//    +---+----+----- ||    |   | yy |     |
+//    | z |    |  z   ||    |   |    | xxy |
+//    |   | xz |      ||    |   |    | xyy |
+//    |   | yz |      ||    |   |    | yyy |
+//    |   | zz |      ||
 
 // This function returns the lengths of the slices for a given maximum degree
 // and dimension.
@@ -149,12 +168,6 @@ KOKKOS_FUNCTION auto evaluatePolynomialBasis(Point const &p)
   return arr;
 }
 
-} // namespace Details
-
-template <std::size_t Deg>
-struct PolynomialDegree : std::integral_constant<std::size_t, Deg>
-{};
-
-} // namespace ArborX::Interpolation
+} // namespace ArborX::Interpolation::Details
 
 #endif
