@@ -12,9 +12,9 @@
 #ifndef ARBORX_INTERP_DETAILS_POLYNOMIAL_BASIS_HPP
 #define ARBORX_INTERP_DETAILS_POLYNOMIAL_BASIS_HPP
 
-#include <Kokkos_Core.hpp>
+#include <ArborX_GeometryTraits.hpp>
 
-#include <type_traits>
+#include <Kokkos_Core.hpp>
 
 namespace ArborX::Interpolation::Details
 {
@@ -49,109 +49,86 @@ namespace ArborX::Interpolation::Details
 // - x*[x] and y*[x, y]        at degree 2
 // - x*[xx] and y*[xx, xy, yy] at degree 3
 //
-// These examples can be represented in 2D as the following tables:
-//   Quadratic |  3D  ||        Cubic      |  2D
-// ------------+----- || ------------------+-----
-//    degree   | dim  ||       degree      | dim
-// ---+---+----+      || ---+---+----+-----+
-//  0 | 1 |  2 |      ||  0 | 1 |  2 |  3  |
-// ===o===o====o      || ===o===o====o=====o
-//  1 |        |      ||  1 |              |
-// ---+---+----+----- || ---+---+----+-----+-----
-//    | x |    |  x   ||    | x |    |     |  x
-//    |   | xx |      ||    |   | xx |     |
-//    +---+----+----- ||    |   |    | xxx |
-//    | y |    |  y   ||    +---+----+-----+-----
-//    |   | xy |      ||    | y |    |     |  y
-//    |   | yy |      ||    |   | xy |     |
-//    +---+----+----- ||    |   | yy |     |
-//    | z |    |  z   ||    |   |    | xxy |
-//    |   | xz |      ||    |   |    | xyy |
-//    |   | yz |      ||    |   |    | yyy |
-//    |   | zz |      ||
-
-// This function returns the lengths of the slices for a given maximum degree
-// and dimension.
-// Given a slice at degree n and dimension u, its length would be the sum of all
-// the slices' lengths of degree n-1 and of same or smaller dimension.
-//
-// Given the previous two examples, the two arrays would be:
-// Deg \ Dim | x | y | z  || Deg \ Dim | x | y
-// ----------+---+---+--- || ----------+---+---
-//      1    | 1 | 1 | 1  ||      1    | 1 | 1
-//      2    | 1 | 2 | 3  ||      2    | 1 | 2
-//                        ||      3    | 1 | 3
-template <std::size_t Dim, std::size_t Deg>
+// The lengths for the slices would be
+// Deg \ Dim | x | y | z
+// ----------+---+---+---
+//     1     | 1 | 1 | 1
+//     2     | 1 | 2 | 3
+//     3     | 1 | 3 | 6
+template <std::size_t DIM, std::size_t Degree>
 KOKKOS_FUNCTION constexpr auto polynomialBasisSliceLengths()
 {
   static_assert(
-      Deg != 0 && Dim != 0,
+      Degree > 0 && DIM > 0,
       "Unable to compute slice lengths for a constant polynomial basis");
 
   struct
   {
-    std::size_t arr[Deg][Dim]{};
+    std::size_t arr[Degree][DIM]{};
   } result;
   auto &arr = result.arr;
 
-  for (std::size_t dim = 0; dim < Dim; dim++)
+  for (std::size_t dim = 0; dim < DIM; dim++)
     arr[0][dim] = 1;
 
-  for (std::size_t deg = 0; deg < Deg; deg++)
+  for (std::size_t deg = 0; deg < Degree; deg++)
     arr[deg][0] = 1;
 
-  for (std::size_t deg = 1; deg < Deg; deg++)
-    for (std::size_t dim = 1; dim < Dim; dim++)
+  for (std::size_t deg = 1; deg < Degree; deg++)
+    for (std::size_t dim = 1; dim < DIM; dim++)
       arr[deg][dim] = arr[deg - 1][dim] + arr[deg][dim - 1];
 
   return result;
 }
 
-// This returns the size of the polynomial basis, which is the sum of all the
-// slices lengths and 1.
-// Both of the previous examples will result in a polynomial basis of size 10
-template <std::size_t Dim, std::size_t Deg>
-KOKKOS_FUNCTION constexpr std::size_t polynomialBasisSize()
+// This returns the size of the polynomial basis. Counting the constant 1, the
+// size would be "Deg + Dim choose Dim" or "Deg + Dim choose Deg".
+KOKKOS_FUNCTION constexpr std::size_t polynomialBasisSize(std::size_t dim,
+                                                          std::size_t deg)
 {
-  if constexpr (Deg != 0 && Dim != 0)
-  {
-    auto [arr] = polynomialBasisSliceLengths<Dim, Deg>();
-    std::size_t size = 1;
+  std::size_t dim_fact = 1;
+  std::size_t deg_fact = 1;
+  std::size_t dim_deg_fact = 1;
 
-    for (std::size_t deg = 0; deg < Deg; deg++)
-      for (std::size_t dim = 0; dim < Dim; dim++)
-        size += arr[deg][dim];
+  for (std::size_t i = 2; i <= dim; i++)
+    dim_fact *= i;
 
-    return size;
-  }
-  else
-  {
-    return 1;
-  }
+  for (std::size_t i = 2; i <= deg; i++)
+    deg_fact *= i;
+
+  for (std::size_t i = 2; i <= dim + deg; i++)
+    dim_deg_fact *= i;
+
+  return dim_deg_fact / (dim_fact * deg_fact);
 }
 
 // This creates the list by building each slices in-place
-template <std::size_t Dim, std::size_t Deg, typename Point>
+template <std::size_t Degree, typename Point>
 KOKKOS_FUNCTION auto evaluatePolynomialBasis(Point const &p)
 {
-  using value_t = std::decay_t<decltype(p[0])>;
-  Kokkos::Array<value_t, polynomialBasisSize<Dim, Deg>()> arr{};
+  GeometryTraits::check_valid_geometry_traits(Point{});
+  static_assert(GeometryTraits::is_point<Point>::value,
+                "point must be a point");
+  static constexpr std::size_t DIM = GeometryTraits::dimension_v<Point>;
+  using value_t = typename GeometryTraits::coordinate_type<Point>::type;
+
+  Kokkos::Array<value_t, polynomialBasisSize(DIM, Degree)> arr{};
   arr[0] = value_t(1);
 
-  if constexpr (Deg != 0 && Dim != 0)
+  if constexpr (Degree > 0 && DIM > 0)
   {
     // Cannot use structured binding with constexpr
     static constexpr auto slice_lengths_struct =
-        polynomialBasisSliceLengths<Dim, Deg>();
+        polynomialBasisSliceLengths<DIM, Degree>();
     static constexpr auto &slice_lengths = slice_lengths_struct.arr;
 
     std::size_t prev_col = 0;
     std::size_t curr_col = 1;
 
-    for (std::size_t deg = 0; deg < Deg; deg++)
+    for (std::size_t deg = 0; deg < Degree; deg++)
     {
       std::size_t loc_offset = curr_col;
-      for (std::size_t dim = 0; dim < Dim; dim++)
+      for (std::size_t dim = 0; dim < DIM; dim++)
       {
         // copy the previous column and multply by p[dim]
         for (std::size_t i = 0; i < slice_lengths[deg][dim]; i++)

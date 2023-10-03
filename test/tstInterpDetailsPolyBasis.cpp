@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include "ArborX_EnableViewComparison.hpp"
+#include <ArborX_HyperPoint.hpp>
 #include <interpolation/details/ArborX_InterpDetailsPolynomialBasis.hpp>
 
 #include <boost/test/unit_test.hpp>
@@ -36,16 +37,16 @@ BOOST_AUTO_TEST_CASE(polynomial_basis_slice_lengths)
 
 BOOST_AUTO_TEST_CASE(polynomial_basis_size)
 {
-  auto sz0 = ArborX::Interpolation::Details::polynomialBasisSize<5, 3>();
+  auto sz0 = ArborX::Interpolation::Details::polynomialBasisSize(5, 3);
   BOOST_TEST(sz0 == 56);
 
-  auto sz1 = ArborX::Interpolation::Details::polynomialBasisSize<2, 3>();
+  auto sz1 = ArborX::Interpolation::Details::polynomialBasisSize(2, 3);
   BOOST_TEST(sz1 == 10);
 
-  auto sz2 = ArborX::Interpolation::Details::polynomialBasisSize<3, 0>();
+  auto sz2 = ArborX::Interpolation::Details::polynomialBasisSize(3, 0);
   BOOST_TEST(sz2 == 1);
 
-  auto sz3 = ArborX::Interpolation::Details::polynomialBasisSize<0, 3>();
+  auto sz3 = ArborX::Interpolation::Details::polynomialBasisSize(0, 3);
   BOOST_TEST(sz3 == 1);
 }
 
@@ -53,9 +54,9 @@ BOOST_AUTO_TEST_CASE(polynomial_basis)
 {
   using view = Kokkos::View<double *, Kokkos::HostSpace>;
 
-  double point0[5] = {1, 2, 3, 4, 5};
+  ArborX::ExperimentalHyperGeometry::Point<5, double> point0 = {1, 2, 3, 4, 5};
   auto arr0 =
-      ArborX::Interpolation::Details::evaluatePolynomialBasis<5, 3>(point0);
+      ArborX::Interpolation::Details::evaluatePolynomialBasis<3>(point0);
   double ref0[56] = {1,  1,  2,  3,  4,  5,  1,  2,  4,  3,  6,  9,  4,   8,
                      12, 16, 5,  10, 15, 20, 25, 1,  2,  4,  8,  3,  6,   12,
                      9,  18, 27, 4,  8,  16, 12, 24, 36, 16, 32, 48, 64,  5,
@@ -64,9 +65,9 @@ BOOST_AUTO_TEST_CASE(polynomial_basis)
   view ref0_view(&ref0[0], 56);
   ARBORX_MDVIEW_TEST(arr0_view, ref0_view);
 
-  double point1[2] = {-2, 0};
+  ArborX::ExperimentalHyperGeometry::Point<2, double> point1 = {-2, 0};
   auto arr1 =
-      ArborX::Interpolation::Details::evaluatePolynomialBasis<2, 3>(point1);
+      ArborX::Interpolation::Details::evaluatePolynomialBasis<3>(point1);
   double ref1[10] = {1, -2, 0, 4, 0, 0, -8, 0, 0, 0};
   view arr1_view(arr1.data(), 10);
   view ref1_view(&ref1[0], 10);

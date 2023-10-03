@@ -22,6 +22,8 @@ namespace ArborX::Interpolation
 namespace Details
 {
 
+// Polynomials are represented with the highest coefficient first. For example,
+// x^2 - 2x + 1 would be {1, -2, 1}
 template <typename T>
 KOKKOS_INLINE_FUNCTION T
 evaluatePolynomial(T const x, std::initializer_list<T> const coeffs)
@@ -48,6 +50,10 @@ namespace CRBF
     template <typename T>                                                      \
     KOKKOS_INLINE_FUNCTION static constexpr T evaluate(T const y)              \
     {                                                                          \
+      /* We force the input to be between 0 and 1.                             \
+         Because CRBF(-a) = CRBF(a) = CRBF(|a|), we take the absolute value    \
+         and clamp the range to [0, 1] before entering in the definition of    \
+         the CRBF. */                                                          \
       T const x = Kokkos::min(Kokkos::abs(y), T(1));                           \
       return Kokkos::abs(FUNC);                                                \
     }                                                                          \
