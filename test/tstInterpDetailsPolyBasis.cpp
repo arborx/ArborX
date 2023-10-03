@@ -37,17 +37,12 @@ BOOST_AUTO_TEST_CASE(polynomial_basis_slice_lengths)
 
 BOOST_AUTO_TEST_CASE(polynomial_basis_size)
 {
-  auto sz0 = ArborX::Interpolation::Details::polynomialBasisSize(5, 3);
-  BOOST_TEST(sz0 == 56);
-
-  auto sz1 = ArborX::Interpolation::Details::polynomialBasisSize(2, 3);
-  BOOST_TEST(sz1 == 10);
-
-  auto sz2 = ArborX::Interpolation::Details::polynomialBasisSize(3, 0);
-  BOOST_TEST(sz2 == 1);
-
-  auto sz3 = ArborX::Interpolation::Details::polynomialBasisSize(0, 3);
-  BOOST_TEST(sz3 == 1);
+  BOOST_TEST(
+      (ArborX::Interpolation::Details::polynomialBasisSize<5, 3>() == 56));
+  BOOST_TEST(
+      (ArborX::Interpolation::Details::polynomialBasisSize<2, 3>() == 10));
+  BOOST_TEST(
+      (ArborX::Interpolation::Details::polynomialBasisSize<3, 0>() == 1));
 }
 
 BOOST_AUTO_TEST_CASE(polynomial_basis)

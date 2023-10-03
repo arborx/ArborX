@@ -17,8 +17,8 @@
 #include <boost/math/tools/polynomial.hpp>
 #include <boost/test/unit_test.hpp>
 
-template <typename T, typename ES, typename CRBF, typename TrueFunc>
-void makeCase(ES const &es, CRBF, TrueFunc const &tf, T tol = 1e-5)
+template <typename T, typename CRBF, typename ES>
+void makeCase(ES const &es, std::function<T(T const)> const &tf, T tol = 1e-5)
 {
   using View = Kokkos::View<T *, typename ES::memory_space>;
   using HostView = typename View::HostMirror;
@@ -39,7 +39,7 @@ void makeCase(ES const &es, CRBF, TrueFunc const &tf, T tol = 1e-5)
       "Testing::eval_crbf", Kokkos::RangePolicy<ES>(es, 0, 4 * range),
       KOKKOS_LAMBDA(int const i) { eval(i) = CRBF::evaluate(eval(i)); });
 
-  if constexpr (!std::is_same_v<TrueFunc, std::nullptr_t>)
+  if (bool(tf))
   {
     HostView reference("Testing::reference", 4 * range);
     for (int i = 0; i < range; i++)
@@ -62,18 +62,25 @@ void makeCase(ES const &es, CRBF, TrueFunc const &tf, T tol = 1e-5)
   BOOST_AUTO_TEST_CASE_TEMPLATE(crbf_##F##_##I, DeviceType,                    \
                                 ARBORX_DEVICE_TYPES)                           \
   {                                                                            \
-    makeCase<double>(typename DeviceType::execution_space{},                   \
-                     ArborX::Interpolation::CRBF::F<I>{}, TF);                 \
+    makeCase<double, ArborX::Interpolation::CRBF::F<I>>(                       \
+        typename DeviceType::execution_space{}, TF<double>);                   \
   }
 
 #define MAKE_TEST_POLY(F, I, POLY)                                             \
-  MAKE_TEST(F, I, [](auto x) -> decltype(x) {                                  \
+  template <typename T>                                                        \
+  T func##F##I(T const x)                                                      \
+  {                                                                            \
     using boost::math::tools::pow;                                             \
-    using poly = boost::math::tools::polynomial<decltype(x)>;                  \
+    using poly = boost::math::tools::polynomial<T>;                            \
     return (POLY)(x);                                                          \
-  })
+  }                                                                            \
+                                                                               \
+  MAKE_TEST(F, I, func##F##I)
 
-#define MAKE_TEST_NONE(F, I) MAKE_TEST(F, I, nullptr)
+template <typename T>
+static std::function<T(T const)> emptyFunc = {};
+
+#define MAKE_TEST_NONE(F, I) MAKE_TEST(F, I, emptyFunc)
 
 MAKE_TEST_POLY(Wendland, 0, (pow(poly{1, -1}, 2)))
 MAKE_TEST_POLY(Wendland, 2, (pow(poly{1, -1}, 4) * poly{1, 4}))

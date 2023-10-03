@@ -23,7 +23,7 @@ namespace Details
 {
 
 // Polynomials are represented with the highest coefficient first. For example,
-// x^2 - 2x + 1 would be {1, -2, 1}
+// 3x^2 - 2x + 1 would be {3, -2, 1}
 template <typename T>
 KOKKOS_INLINE_FUNCTION T
 evaluatePolynomial(T const x, std::initializer_list<T> const coeffs)

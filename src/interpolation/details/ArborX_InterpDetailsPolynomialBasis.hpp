@@ -58,8 +58,9 @@ namespace ArborX::Interpolation::Details
 template <std::size_t DIM, std::size_t Degree>
 KOKKOS_FUNCTION constexpr auto polynomialBasisSliceLengths()
 {
+  static_assert(DIM > 0, "Polynomial basis with no dimension is invalid");
   static_assert(
-      Degree > 0 && DIM > 0,
+      Degree > 0,
       "Unable to compute slice lengths for a constant polynomial basis");
 
   struct
@@ -83,20 +84,22 @@ KOKKOS_FUNCTION constexpr auto polynomialBasisSliceLengths()
 
 // This returns the size of the polynomial basis. Counting the constant 1, the
 // size would be "Deg + Dim choose Dim" or "Deg + Dim choose Deg".
-KOKKOS_FUNCTION constexpr std::size_t polynomialBasisSize(std::size_t dim,
-                                                          std::size_t deg)
+template <std::size_t DIM, std::size_t Degree>
+KOKKOS_FUNCTION constexpr std::size_t polynomialBasisSize()
 {
+  static_assert(DIM > 0, "Polynomial basis with no dimension is invalid");
+
   std::size_t dim_fact = 1;
   std::size_t deg_fact = 1;
   std::size_t dim_deg_fact = 1;
 
-  for (std::size_t i = 2; i <= dim; i++)
+  for (std::size_t i = 2; i <= DIM; i++)
     dim_fact *= i;
 
-  for (std::size_t i = 2; i <= deg; i++)
+  for (std::size_t i = 2; i <= Degree; i++)
     deg_fact *= i;
 
-  for (std::size_t i = 2; i <= dim + deg; i++)
+  for (std::size_t i = 2; i <= DIM + Degree; i++)
     dim_deg_fact *= i;
 
   return dim_deg_fact / (dim_fact * deg_fact);
@@ -111,11 +114,12 @@ KOKKOS_FUNCTION auto evaluatePolynomialBasis(Point const &p)
                 "point must be a point");
   static constexpr std::size_t DIM = GeometryTraits::dimension_v<Point>;
   using value_t = typename GeometryTraits::coordinate_type<Point>::type;
+  static_assert(DIM > 0, "Polynomial basis with no dimension is invalid");
 
-  Kokkos::Array<value_t, polynomialBasisSize(DIM, Degree)> arr{};
+  Kokkos::Array<value_t, polynomialBasisSize<DIM, Degree>()> arr{};
   arr[0] = value_t(1);
 
-  if constexpr (Degree > 0 && DIM > 0)
+  if constexpr (Degree > 0)
   {
     // Cannot use structured binding with constexpr
     static constexpr auto slice_lengths_struct =
