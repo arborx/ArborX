@@ -14,18 +14,21 @@
 
 #include <Kokkos_Core.hpp>
 
+#include <initializer_list>
+
 namespace ArborX::Interpolation
 {
 
 namespace Details
 {
 
-template <typename T, std::size_t N>
-KOKKOS_INLINE_FUNCTION T evaluatePolynomial(T const x, T const (&coeffs)[N])
+template <typename T>
+KOKKOS_INLINE_FUNCTION T
+evaluatePolynomial(T const x, std::initializer_list<T> const coeffs)
 {
   T eval = 0;
-  for (std::size_t i = 0; i < N; i++)
-    eval = x * eval + coeffs[i];
+  for (auto const coeff : coeffs)
+    eval = x * eval + coeff;
   return eval;
 }
 
@@ -54,14 +57,14 @@ namespace CRBF
 #define CRBF_POW(X, N) Kokkos::pow(X, N)
 
 CRBF_DECL(Wendland)
-CRBF_DEF(Wendland, 0, CRBF_POW(1 - x, 2))
-CRBF_DEF(Wendland, 2, CRBF_POW(1 - x, 4) * CRBF_POLY(4, 1))
-CRBF_DEF(Wendland, 4, CRBF_POW(1 - x, 6) * CRBF_POLY(35, 18, 3))
-CRBF_DEF(Wendland, 6, CRBF_POW(1 - x, 6) * CRBF_POLY(32, 25, 8, 1))
+CRBF_DEF(Wendland, 0, CRBF_POW(CRBF_POLY(-1, 1), 2))
+CRBF_DEF(Wendland, 2, CRBF_POW(CRBF_POLY(-1, 1), 4) * CRBF_POLY(4, 1))
+CRBF_DEF(Wendland, 4, CRBF_POW(CRBF_POLY(-1, 1), 6) * CRBF_POLY(35, 18, 3))
+CRBF_DEF(Wendland, 6, CRBF_POW(CRBF_POLY(-1, 1), 8) * CRBF_POLY(32, 25, 8, 1))
 
 CRBF_DECL(Wu)
-CRBF_DEF(Wu, 2, CRBF_POW(1 - x, 4) * CRBF_POLY(3, 12, 16, 4))
-CRBF_DEF(Wu, 4, CRBF_POW(1 - x, 6) * CRBF_POLY(5, 30, 72, 82, 36, 6))
+CRBF_DEF(Wu, 2, CRBF_POW(CRBF_POLY(-1, 1), 4) * CRBF_POLY(3, 12, 16, 4))
+CRBF_DEF(Wu, 4, CRBF_POW(CRBF_POLY(-1, 1), 6) * CRBF_POLY(5, 30, 72, 82, 36, 6))
 
 CRBF_DECL(Buhmann)
 CRBF_DEF(Buhmann, 2,
