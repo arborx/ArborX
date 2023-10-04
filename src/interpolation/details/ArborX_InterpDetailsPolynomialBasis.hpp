@@ -119,7 +119,7 @@ KOKKOS_FUNCTION auto evaluatePolynomialBasis(Point const &p)
     // Cannot use structured binding with constexpr
     static constexpr auto slice_lengths_struct =
         polynomialBasisSliceLengths<DIM, Degree>();
-    static constexpr auto &slice_lengths = slice_lengths_struct.arr;
+    auto &slice_lengths = slice_lengths_struct.arr;
 
     std::size_t prev_col = 0;
     std::size_t curr_col = 1;

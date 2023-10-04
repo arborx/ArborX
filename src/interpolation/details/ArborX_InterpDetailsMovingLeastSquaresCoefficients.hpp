@@ -76,10 +76,9 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
   using value_t = typename Coefficients::non_const_value_type;
   using point_t = ExperimentalHyperGeometry::Point<dimension, value_t>;
   using memory_space = typename Coefficients::memory_space;
-  constexpr auto epsilon = Kokkos::Experimental::epsilon_v<value_t>;
-  constexpr point_t origin{};
-  constexpr int degree = PolynomialDegree::value;
-  constexpr int poly_size = polynomialBasisSize<dimension, degree>();
+  static constexpr auto epsilon = Kokkos::Experimental::epsilon_v<value_t>;
+  static constexpr int degree = PolynomialDegree::value;
+  static constexpr int poly_size = polynomialBasisSize<dimension, degree>();
 
   // The goal is to compute the following line vector for each target point:
   // p(0).[P^T.PHI.P]^-1.P^T.PHI
@@ -126,7 +125,7 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
         for (int j = 0; j < num_neighbors; j++)
         {
           value_t norm =
-              ArborX::Details::distance(source_ref_target(i, j), origin);
+              ArborX::Details::distance(source_ref_target(i, j), point_t{});
           radius = Kokkos::max(radius, norm);
         }
 
@@ -145,7 +144,7 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
           space, {0, 0}, {num_targets, num_neighbors}),
       KOKKOS_LAMBDA(int const i, int const j) {
         value_t norm =
-            ArborX::Details::distance(source_ref_target(i, j), origin);
+            ArborX::Details::distance(source_ref_target(i, j), point_t{});
         phi(i, j) = CRBF::evaluate(norm / radii(i));
       });
 
