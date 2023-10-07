@@ -24,6 +24,8 @@
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_LinearBVH.hpp>
 
+#include <Kokkos_MathematicalFunctions.hpp> // isfinite, signbit
+
 #if KOKKOS_VERSION >= 40100
 #include <Kokkos_BitManipulation.hpp>
 #endif
@@ -612,8 +614,12 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
           key = INT_MAX;
 
         // Comparison of weights as ints is the same as their comparison as
-        // floats as long as they are positive and are not NaNs or inf
+        // floats as long as they are positive and are not NaNs or inf. We use
+        // signbit instead of >= 0 just as an extra precaution against negative
+        // floating zeros.
         static_assert(sizeof(int) == sizeof(float));
+        assert(Kokkos::isfinite(edge.weight) &&
+               Kokkos::signbit(edge.weight) == 0);
         keys(e) = (key << shift) + KokkosExt::bit_cast<int>(edge.weight);
       });
 
