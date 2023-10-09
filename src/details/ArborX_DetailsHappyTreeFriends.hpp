@@ -14,8 +14,12 @@
 
 #include <ArborX_DetailsNode.hpp>
 
-#include <Kokkos_Core.hpp> // KOKKOS_ASSERT
 #include <Kokkos_Macros.hpp>
+#if KOKKOS_VERSION >= 40199
+#include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
+#else
+#include <Kokkos_Core.hpp> // KOKKOS_ASSERT
+#endif
 
 #include <type_traits>
 #include <utility> // declval
