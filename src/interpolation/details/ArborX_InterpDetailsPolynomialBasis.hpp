@@ -89,20 +89,10 @@ KOKKOS_FUNCTION constexpr std::size_t polynomialBasisSize()
 {
   static_assert(DIM > 0, "Polynomial basis with no dimension is invalid");
 
-  std::size_t dim_fact = 1;
-  std::size_t deg_fact = 1;
-  std::size_t dim_deg_fact = 1;
-
-  for (std::size_t i = 2; i <= DIM; i++)
-    dim_fact *= i;
-
-  for (std::size_t i = 2; i <= Degree; i++)
-    deg_fact *= i;
-
-  for (std::size_t i = 2; i <= DIM + Degree; i++)
-    dim_deg_fact *= i;
-
-  return dim_deg_fact / (dim_fact * deg_fact);
+  std::size_t result = 1;
+  for (std::size_t k = 0; k < Kokkos::min(DIM, Degree); ++k)
+    result = result * (DIM + Degree - k) / (k + 1);
+  return result;
 }
 
 // This creates the list by building each slices in-place
