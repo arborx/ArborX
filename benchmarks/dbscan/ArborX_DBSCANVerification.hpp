@@ -18,6 +18,7 @@
 
 #include <Kokkos_Core.hpp>
 
+#include <iostream>
 #include <set>
 #include <stack>
 #include <vector>

@@ -21,6 +21,7 @@
 #include <chrono>
 #include <cmath> // sqrt, cbrt
 #include <iomanip>
+#include <iostream>
 #include <numeric>
 #include <random>
 #include <utility>
