@@ -32,6 +32,7 @@ pipeline {
             }
             steps {
                 sh './scripts/check_format_cpp.sh'
+                sh './scripts/check_copyright.sh'
             }
         }
 
