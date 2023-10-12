@@ -406,11 +406,14 @@ int main(int argc, char *argv[])
             fabs(energy_intersects(i));
         if (abs_error > rel_tol * fabs(energy_intersects(i)))
         {
-#ifndef KOKKOS_ENABLE_SYCL
+#if KOKKOS_VERSION >= 40199
+          using Kokkos::printf;
+#elif defined(__SYCL_DEVICE_ONLY__)
+          using sycl::ext::oneapi::experimental::printf;
+#endif
           printf("%d: %f != %f, relative error: %f\n", i,
                  energy_ordered_intersects(i), energy_intersects(i),
                  abs_error / fabs(energy_intersects(i)));
-#endif
           ++error;
         }
       },
