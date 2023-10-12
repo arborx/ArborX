@@ -15,6 +15,7 @@
 #include <ArborX_Exception.hpp>
 #include <ArborX_HyperPoint.hpp>
 
+#include <iostream>
 #include <random>
 #include <vector>
 

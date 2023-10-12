@@ -14,6 +14,8 @@
 
 #include <Kokkos_Core.hpp>
 
+#include <iostream>
+
 // Perform intersection queries using 2D triangles on a regular mesh as
 // primitives and intersection with points as queries. One point per triangle.
 // __________
