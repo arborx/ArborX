@@ -84,7 +84,7 @@ void arborxViewCheck(U const &u, V const &v, std::string const &u_name,
 }
 
 #define ARBORX_MDVIEW_TEST_TOL(VIEWA, VIEWB, TOL)                              \
-  [](decltype(VIEWA) const &u, decltype(VIEWB) const &v) {                     \
+  [&](decltype(VIEWA) const &u, decltype(VIEWB) const &v) {                    \
     auto view_a = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, u); \
     auto view_b = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, v); \
                                                                                \
