@@ -12,7 +12,7 @@
 #define ARBORX_DETAILS_CONTAINERS_HPP
 
 #include <Kokkos_Macros.hpp>
-#if KOKKOS_VERSION >= 40199
+#if KOKKOS_VERSION >= 40200
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
 #else
 #include <Kokkos_Core.hpp> // KOKKOS_ASSERT
