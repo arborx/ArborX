@@ -46,7 +46,7 @@ bool verifyCorePointsNonnegativeIndex(ExecutionSpace const &exec_space,
         bool self_is_core_point = (offset(i + 1) - offset(i) >= core_min_size);
         if (self_is_core_point && labels(i) < 0)
         {
-#if KOKKOS_VERSION >= 40199
+#if KOKKOS_VERSION >= 40200
           using Kokkos::printf;
 #elif defined(__SYCL_DEVICE_ONLY__)
           using sycl::ext::oneapi::experimental::printf;
@@ -84,7 +84,7 @@ bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
 
             if (neigh_is_core_point && labels(i) != labels(j))
             {
-#if KOKKOS_VERSION >= 40199
+#if KOKKOS_VERSION >= 40200
               using Kokkos::printf;
 #elif defined(__SYCL_DEVICE_ONLY__)
               using sycl::ext::oneapi::experimental::printf;
@@ -138,7 +138,7 @@ bool verifyBorderAndNoisePoints(ExecutionSpace const &exec_space,
             }
           }
 
-#if KOKKOS_VERSION >= 40199
+#if KOKKOS_VERSION >= 40200
           using Kokkos::printf;
 #elif defined(__SYCL_DEVICE_ONLY__)
           using sycl::ext::oneapi::experimental::printf;

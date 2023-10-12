@@ -345,7 +345,7 @@ int main()
       KOKKOS_LAMBDA(int i, bool &update) {
         constexpr float eps = 1.e-3;
 
-#if KOKKOS_VERSION >= 40199
+#if KOKKOS_VERSION >= 40200
         using Kokkos::printf;
 #elif defined(__SYCL_DEVICE_ONLY__)
         using sycl::ext::oneapi::experimental::printf;
