@@ -18,6 +18,7 @@
 #include <boost/program_options.hpp>
 
 #include <cstdlib>
+#include <iostream>
 
 #include "benchmark_registration.hpp"
 
