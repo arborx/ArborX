@@ -46,7 +46,9 @@ bool verifyCorePointsNonnegativeIndex(ExecutionSpace const &exec_space,
         bool self_is_core_point = (offset(i + 1) - offset(i) >= core_min_size);
         if (self_is_core_point && labels(i) < 0)
         {
-#ifdef __SYCL_DEVICE_ONLY__
+#if KOKKOS_VERSION >= 40200
+          using Kokkos::printf;
+#elif defined(__SYCL_DEVICE_ONLY__)
           using sycl::ext::oneapi::experimental::printf;
 #endif
           printf("Core point is marked as noise: %d [%d]\n", i, labels(i));
@@ -82,7 +84,9 @@ bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
 
             if (neigh_is_core_point && labels(i) != labels(j))
             {
-#ifdef __SYCL_DEVICE_ONLY__
+#if KOKKOS_VERSION >= 40200
+              using Kokkos::printf;
+#elif defined(__SYCL_DEVICE_ONLY__)
               using sycl::ext::oneapi::experimental::printf;
 #endif
               printf("Connected cores do not belong to the same cluster: "
@@ -134,12 +138,15 @@ bool verifyBorderAndNoisePoints(ExecutionSpace const &exec_space,
             }
           }
 
+#if KOKKOS_VERSION >= 40200
+          using Kokkos::printf;
+#elif defined(__SYCL_DEVICE_ONLY__)
+          using sycl::ext::oneapi::experimental::printf;
+#endif
+
           // Border point must be connected to a core point
           if (is_border && !have_shared_core)
           {
-#ifdef __SYCL_DEVICE_ONLY__
-            using sycl::ext::oneapi::experimental::printf;
-#endif
             printf("Border point does not belong to a cluster: %d [%d]\n", i,
                    labels(i));
             update++;
@@ -147,9 +154,6 @@ bool verifyBorderAndNoisePoints(ExecutionSpace const &exec_space,
           // Noise points must have index -1
           if (!is_border && labels(i) != -1)
           {
-#ifdef __SYCL_DEVICE_ONLY__
-            using sycl::ext::oneapi::experimental::printf;
-#endif
             printf("Noise point does not have index -1: %d [%d]\n", i,
                    labels(i));
             update++;
