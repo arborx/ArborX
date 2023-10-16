@@ -30,10 +30,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
   // SRC:        0   2   4   6
   // TGT:          1   3   5
   using point0 = ArborX::ExperimentalHyperGeometry::Point<1, double>;
-  Kokkos::View<point0 *, MemorySpace> srcp0("srcp", 4);
-  Kokkos::View<point0 *, MemorySpace> tgtp0("tgtp", 3);
-  Kokkos::View<double *, MemorySpace> srcv0("srcv", 4);
-  Kokkos::View<double *, MemorySpace> tgtv0("tgtv", 3);
+  Kokkos::View<point0 *, MemorySpace> srcp0("Testing::srcp0", 4);
+  Kokkos::View<point0 *, MemorySpace> tgtp0("Testing::tgtp0", 3);
+  Kokkos::View<double *, MemorySpace> srcv0("Testing::srcv0", 4);
+  Kokkos::View<double *, MemorySpace> tgtv0("Testing::tgtv0", 3);
   Kokkos::parallel_for(
       "for", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 4),
       KOKKOS_LAMBDA(int const i) {
@@ -64,10 +64,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
   //    S   S   S
   //        |
   using point1 = ArborX::ExperimentalHyperGeometry::Point<2, double>;
-  Kokkos::View<point1 *, MemorySpace> srcp1("srcp", 9);
-  Kokkos::View<point1 *, MemorySpace> tgtp1("tgtp", 4);
-  Kokkos::View<double *, MemorySpace> srcv1("srcv", 9);
-  Kokkos::View<double *, MemorySpace> tgtv1("tgtv", 4);
+  Kokkos::View<point1 *, MemorySpace> srcp1("Testing::srcp1", 9);
+  Kokkos::View<point1 *, MemorySpace> tgtp1("Testing::tgtp1", 4);
+  Kokkos::View<double *, MemorySpace> srcv1("Testing::srcv1", 9);
+  Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
   Kokkos::parallel_for(
       "for", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 9),
       KOKKOS_LAMBDA(int const i) {
@@ -101,10 +101,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
 
   // Case 1: Same as previous case 1, but points are 2D and locked on y=0
   using point0 = ArborX::ExperimentalHyperGeometry::Point<2, double>;
-  Kokkos::View<point0 *, MemorySpace> srcp0("srcp", 4);
-  Kokkos::View<point0 *, MemorySpace> tgtp0("tgtp", 3);
-  Kokkos::View<double *, MemorySpace> srcv0("srcv", 4);
-  Kokkos::View<double *, MemorySpace> tgtv0("tgtv", 3);
+  Kokkos::View<point0 *, MemorySpace> srcp0("Testing::srcp0", 4);
+  Kokkos::View<point0 *, MemorySpace> tgtp0("Testing::tgtp0", 3);
+  Kokkos::View<double *, MemorySpace> srcv0("Testing::srcv0", 4);
+  Kokkos::View<double *, MemorySpace> tgtv0("Testing::tgtv0", 3);
   Kokkos::parallel_for(
       "for", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 4),
       KOKKOS_LAMBDA(int const i) {
@@ -127,10 +127,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
 
   // Case 2: Same but corner source points are also targets
   using point1 = ArborX::ExperimentalHyperGeometry::Point<2, double>;
-  Kokkos::View<point1 *, MemorySpace> srcp1("srcp", 9);
-  Kokkos::View<point1 *, MemorySpace> tgtp1("tgtp", 4);
-  Kokkos::View<double *, MemorySpace> srcv1("srcv", 9);
-  Kokkos::View<double *, MemorySpace> tgtv1("tgtv", 4);
+  Kokkos::View<point1 *, MemorySpace> srcp1("Testing::srcp1", 9);
+  Kokkos::View<point1 *, MemorySpace> tgtp1("Testing::tgtp1", 4);
+  Kokkos::View<double *, MemorySpace> srcv1("Testing::srcv1", 9);
+  Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
   Kokkos::parallel_for(
       "for", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 9),
       KOKKOS_LAMBDA(int const i) {
