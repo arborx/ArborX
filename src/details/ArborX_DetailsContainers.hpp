@@ -15,7 +15,7 @@
 #if KOKKOS_VERSION >= 40200
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
 #else
-#include <Kokkos_Core.hpp> // KOKKOS_ASSERT
+#include <impl/Kokkos_Error.hpp> // KOKKOS_ASSERT
 #endif
 
 #include <cstddef> // size_t, ptrdiff_t
