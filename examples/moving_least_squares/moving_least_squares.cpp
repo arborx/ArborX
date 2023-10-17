@@ -14,25 +14,47 @@
 
 #include <Kokkos_Core.hpp>
 
+#include <boost/program_options.hpp>
+
 #include <iostream>
+#include <random>
 
-template <typename T>
-KOKKOS_INLINE_FUNCTION double step(T const &p)
-{
-  return Kokkos::signbit(p[0]) ? 0 : 1;
-}
-
-using Point = ArborX::ExperimentalHyperGeometry::Point<1, double>;
+using Point = ArborX::ExperimentalHyperGeometry::Point<2, double>;
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
 using MemorySpace = typename ExecutionSpace::memory_space;
 
-int main(int argc, char *argv[])
+// Randomly fills a 2 * half_edge box centered at 0
+void filledBoxRandom(double half_edge,
+                     Kokkos::View<Point *, MemorySpace> points)
 {
-  Kokkos::ScopeGuard guard(argc, argv);
+  constexpr auto DIM = ArborX::GeometryTraits::dimension<Point>::value;
+  int n = points.extent(0);
+  auto points_host = Kokkos::create_mirror_view(points);
+
+  std::uniform_real_distribution<double> dist(-half_edge, half_edge);
+  std::random_device rd;
+  std::default_random_engine gen(rd());
+  auto random = [&dist, &gen]() { return dist(gen); };
+  for (int i = 0; i < n; ++i)
+    for (int d = 0; d < DIM; ++d)
+      points_host(i)[d] = random();
+
+  Kokkos::deep_copy(points, points_host);
+}
+
+// Step function that returns 1 if the point is on the right of the y-axis, 0
+// elsewhere
+KOKKOS_INLINE_FUNCTION double functionToApproximate(Point const &p)
+{
+  auto const x = p[0];
+  return (x >= 0) ? 1 : 0;
+}
+
+void mls_example(std::size_t num_points)
+{
   ExecutionSpace space{};
 
-  static constexpr std::size_t num_points = 1000;
-
+  // Generation of random points uniformely distributed in a [-1/2; 1/2] square.
   Kokkos::View<Point *, MemorySpace> source_points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::source_points"),
       num_points);
@@ -45,18 +67,14 @@ int main(int argc, char *argv[])
   Kokkos::View<double *, MemorySpace> target_values(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::target_values"),
       num_points);
+  filledBoxRandom(0.5, source_points);
+  filledBoxRandom(0.5, target_points);
   Kokkos::parallel_for(
       "Example::fill_views",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_points),
       KOKKOS_LAMBDA(int const i) {
-        double loc = i / (num_points - 1.);
-        double off = .5 / (num_points - 1.);
-
-        source_points(i)[0] = 2 * loc - 1;
-        target_points(i)[0] = 2 * loc - 1 + off;
-
-        source_values(i) = step(source_points(i));
-        target_values(i) = step(target_points(i));
+        source_values(i) = functionToApproximate(source_points(i));
+        target_values(i) = functionToApproximate(target_points(i));
       });
 
   ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls(
@@ -64,17 +82,46 @@ int main(int argc, char *argv[])
 
   auto approx_values = mls.apply(space, source_values);
 
-  double max_error = 0.;
+  double l2_error;
   Kokkos::parallel_reduce(
-      "Example::reduce_error",
+      "Example::l2_error",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_points),
       KOKKOS_LAMBDA(int const i, double &loc_error) {
-        loc_error = Kokkos::max(
-            loc_error, Kokkos::abs(target_values(i) - approx_values(i)));
+        auto val = target_values(i) - approx_values(i);
+        loc_error += val * val;
       },
-      Kokkos::Max<double>(max_error));
+      Kokkos::Sum<double>(l2_error));
+  l2_error = Kokkos::sqrt(l2_error / num_points);
 
-  std::cout << "Error: " << max_error << '\n';
+  std::cout << "L2 Error: " << l2_error << '\n';
+}
 
+int main(int argc, char *argv[])
+{
+  Kokkos::ScopeGuard guard(argc, argv);
+
+  std::size_t num_points;
+  boost::program_options::options_description desc("Allowed options");
+  // clang-format off
+  desc.add_options()
+    ("help", "show help message")
+    ("points",
+      boost::program_options::value<std::size_t>(&num_points)
+        ->default_value(1000),
+      "Sets the number of points in the [-1/2 ; 1/2] range");
+  // clang-format on
+
+  boost::program_options::variables_map vm;
+  boost::program_options::store(
+      boost::program_options::parse_command_line(argc, argv, desc), vm);
+  boost::program_options::notify(vm);
+
+  if (vm.count("help") > 0)
+  {
+    std::cout << desc << "\n";
+    return 1;
+  }
+
+  mls_example(num_points);
   return 0;
 }

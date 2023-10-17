@@ -1,3 +1,3 @@
 add_executable(ArborX_Example_MovingLeastSquares.exe moving_least_squares.cpp)
-target_link_libraries(ArborX_Example_MovingLeastSquares.exe ArborX::ArborX)
+target_link_libraries(ArborX_Example_MovingLeastSquares.exe ArborX::ArborX Boost::program_options)
 add_test(NAME ArborX_Example_MovingLeastSquares COMMAND ArborX_Example_MovingLeastSquares.exe)
