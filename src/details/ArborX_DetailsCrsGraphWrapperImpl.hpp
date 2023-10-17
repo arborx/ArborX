@@ -175,7 +175,7 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     // Detecting overflow is a local operation that needs to be done for every
     // index. We allow individual buffer sizes to differ, so it's not as easy
     // as computing max counts.
-    int overflow_int = 0;
+    int overflow_int;
     Kokkos::parallel_reduce(
         "ArborX::CrsGraphWrapper::compute_overflow",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
@@ -189,7 +189,7 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
 
     if (!overflow)
     {
-      int n_results = 0;
+      int n_results;
       Kokkos::parallel_reduce(
           "ArborX::CrsGraphWrapper::compute_underflow",
           Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),

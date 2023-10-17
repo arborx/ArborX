@@ -394,7 +394,7 @@ int main(int argc, char *argv[])
   // Now check that the results we got are the same apart from numerical errors
   // introduced by depositing energy to a particular cell from separate rays
   // in different order.
-  int n_errors = 0;
+  int n_errors;
   float rel_tol = 1.e-5;
   Kokkos::parallel_reduce(
       "Example::compare",

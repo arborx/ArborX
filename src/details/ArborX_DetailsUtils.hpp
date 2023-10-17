@@ -451,7 +451,7 @@ accumulate(ExecutionSpace &&space, ViewType const &v,
   // Rather than going through the hassle of defining a custom functor for
   // the reduction, introduce here a temporary variable and add it to init
   // before returning.
-  typename ViewType::non_const_value_type tmp = 0;
+  typename ViewType::non_const_value_type tmp;
   Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
       std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_reduce(
