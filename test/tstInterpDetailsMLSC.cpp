@@ -26,7 +26,7 @@ apply(ExecutionSpace const &space, SourceValues const &source_values,
   int num_neighbors = coeffs.extent(1);
 
   Kokkos::View<double *, typename SourceValues::memory_space> target_values(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "target_values"),
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::target_values"),
       num_targets);
   Kokkos::parallel_for(
       "target_interpolation",
@@ -52,11 +52,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
   // SRC:        0   2   4   6
   // TGT:          1   3   5
   using point0 = ArborX::ExperimentalHyperGeometry::Point<1, double>;
-  Kokkos::View<point0 **, MemorySpace> srcp0("srcp", 3, 2);
-  Kokkos::View<point0 *, MemorySpace> tgtp0("tgtp", 3);
-  Kokkos::View<double **, MemorySpace> srcv0("srcv", 3, 2);
-  Kokkos::View<double *, MemorySpace> tgtv0("tgtv", 3);
-  Kokkos::View<double **, MemorySpace> coeffs0("coeffs", 0, 0);
+  Kokkos::View<point0 **, MemorySpace> srcp0("Testing::srcp0", 3, 2);
+  Kokkos::View<point0 *, MemorySpace> tgtp0("Testing::tgtp0", 3);
+  Kokkos::View<double **, MemorySpace> srcv0("Testing::srcv0", 3, 2);
+  Kokkos::View<double *, MemorySpace> tgtv0("Testing::tgtv0", 3);
+  Kokkos::View<double **, MemorySpace> coeffs0("Testing::coeffs0", 0, 0);
   Kokkos::parallel_for(
       "for", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 3),
       KOKKOS_LAMBDA(int const i) {
@@ -86,11 +86,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
   //    S   S   S
   //        |
   using point1 = ArborX::ExperimentalHyperGeometry::Point<2, double>;
-  Kokkos::View<point1 **, MemorySpace> srcp1("srcp", 4, 8);
-  Kokkos::View<point1 *, MemorySpace> tgtp1("tgtp", 4);
-  Kokkos::View<double **, MemorySpace> srcv1("srcv", 4, 8);
-  Kokkos::View<double *, MemorySpace> tgtv1("tgtv", 4);
-  Kokkos::View<double **, MemorySpace> coeffs1("coeffs", 0, 0);
+  Kokkos::View<point1 **, MemorySpace> srcp1("Testing::srcp1", 4, 8);
+  Kokkos::View<point1 *, MemorySpace> tgtp1("Testing::tgtp1", 4);
+  Kokkos::View<double **, MemorySpace> srcv1("Testing::srcv1", 4, 8);
+  Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
+  Kokkos::View<double **, MemorySpace> coeffs1("Testing::coeffs1", 0, 0);
   Kokkos::parallel_for(
       "for", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 4),
       KOKKOS_LAMBDA(int const i) {
@@ -130,11 +130,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients_edge_cases, DeviceType,
 
   // Case 1: Same as previous case 1, but points are 2D and locked on y=0
   using point0 = ArborX::ExperimentalHyperGeometry::Point<2, double>;
-  Kokkos::View<point0 **, MemorySpace> srcp0("srcp", 3, 2);
-  Kokkos::View<point0 *, MemorySpace> tgtp0("tgtp", 3);
-  Kokkos::View<double **, MemorySpace> srcv0("srcv", 3, 2);
-  Kokkos::View<double *, MemorySpace> tgtv0("tgtv", 3);
-  Kokkos::View<double **, MemorySpace> coeffs0("coeffs", 0, 0);
+  Kokkos::View<point0 **, MemorySpace> srcp0("Testing::srcp0", 3, 2);
+  Kokkos::View<point0 *, MemorySpace> tgtp0("Testing::tgtp0", 3);
+  Kokkos::View<double **, MemorySpace> srcv0("Testing::srcv0", 3, 2);
+  Kokkos::View<double *, MemorySpace> tgtv0("Testing::tgtv0", 3);
+  Kokkos::View<double **, MemorySpace> coeffs0("Testing::coeffs0", 0, 0);
   Kokkos::parallel_for(
       "for", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 3),
       KOKKOS_LAMBDA(int const i) {
@@ -156,11 +156,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients_edge_cases, DeviceType,
 
   // Case 2: Same but corner source points are also targets
   using point1 = ArborX::ExperimentalHyperGeometry::Point<2, double>;
-  Kokkos::View<point1 **, MemorySpace> srcp1("srcp", 4, 8);
-  Kokkos::View<point1 *, MemorySpace> tgtp1("tgtp", 4);
-  Kokkos::View<double **, MemorySpace> srcv1("srcv", 4, 8);
-  Kokkos::View<double *, MemorySpace> tgtv1("tgtv", 4);
-  Kokkos::View<double **, MemorySpace> coeffs1("coeffs", 0, 0);
+  Kokkos::View<point1 **, MemorySpace> srcp1("Testing::srcp1", 4, 8);
+  Kokkos::View<point1 *, MemorySpace> tgtp1("Testing::tgtp1", 4);
+  Kokkos::View<double **, MemorySpace> srcv1("Testing::srcv1", 4, 8);
+  Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
+  Kokkos::View<double **, MemorySpace> coeffs1("Testing::coeffs1", 0, 0);
   Kokkos::parallel_for(
       "for", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 4),
       KOKKOS_LAMBDA(int const i) {
