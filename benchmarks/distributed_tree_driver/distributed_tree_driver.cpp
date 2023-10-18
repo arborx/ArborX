@@ -20,6 +20,7 @@
 #include <chrono>
 #include <cmath> // sqrt, cbrt
 #include <iomanip>
+#include <iostream> // cout
 #include <numeric>
 #include <random>
 #include <utility>
