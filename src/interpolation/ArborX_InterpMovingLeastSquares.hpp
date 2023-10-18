@@ -13,6 +13,7 @@
 #define ARBORX_INTERP_MOVING_LEAST_SQUARES_HPP
 
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_IndexableGetter.hpp>
@@ -79,6 +80,8 @@ public:
                      TargetPoints const &target_points, int num_neighbors, CRBF,
                      PolynomialDegree)
   {
+    KokkosExt::ScopedProfileRegion guard("ArborX::MovingLeastSquares");
+
     static_assert(
         KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
         "Memory space must be accessible from the execution space");
@@ -180,6 +183,9 @@ public:
       Kokkos::View<int *, MemorySpace> const &offsets, int const num_targets,
       int const num_neighbors, SourcePoints const &source_points)
   {
+    KokkosExt::ScopedProfileRegion guard(
+        "ArborX::MovingLeastSquares::fillValuesIndicesAndGetSourceView");
+
     using src_acc = AccessTraits<SourcePoints, PrimitivesTag>;
     using src_point =
         typename ArborX::Details::AccessTraitsHelper<src_acc>::type;
@@ -212,6 +218,8 @@ public:
                typename SourceValues::memory_space>
   apply(ExecutionSpace const &space, SourceValues const &source_values) const
   {
+    KokkosExt::ScopedProfileRegion guard("ArborX::MovingLeastSquares::apply");
+
     static_assert(
         KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
         "Memory space must be accessible from the execution space");

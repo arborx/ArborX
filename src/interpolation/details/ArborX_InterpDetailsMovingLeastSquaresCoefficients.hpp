@@ -14,6 +14,7 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperPoint.hpp>
 #include <ArborX_InterpDetailsPolynomialBasis.hpp>
@@ -31,6 +32,9 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
                                     TargetPoints const &target_points,
                                     Coefficients &coeffs)
 {
+  KokkosExt::ScopedProfileRegion guard(
+      "ArborX::MovingLeastSquaresCoefficients");
+
   // SourcePoints is a 2D view of points
   static_assert(Kokkos::is_view_v<SourcePoints> && SourcePoints::rank == 2,
                 "source points must be a 2D view of points");
@@ -80,6 +84,9 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
   static constexpr int degree = PolynomialDegree::value;
   static constexpr int poly_size = polynomialBasisSize<dimension, degree>();
 
+  Kokkos::Profiling::pushRegion(
+      "ArborX::MovingLeastSquaresCoefficients::source_ref_target_fill");
+
   // The goal is to compute the following line vector for each target point:
   // p(0).[P^T.PHI.P]^-1.P^T.PHI
   // Where:
@@ -110,6 +117,10 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
         source_ref_target(i, j) = t;
       });
 
+  Kokkos::Profiling::popRegion();
+  Kokkos::Profiling::pushRegion(
+      "ArborX::MovingLeastSquaresCoefficients::radii_computation");
+
   // We then compute the radius for each target that will be used in evaluating
   // the weight for each source point.
   Kokkos::View<value_t *, memory_space> radii(
@@ -133,6 +144,10 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
         radii(i) = 1.1 * radius;
       });
 
+  Kokkos::Profiling::popRegion();
+  Kokkos::Profiling::pushRegion(
+      "ArborX::MovingLeastSquaresCoefficients::phi_computation");
+
   // This computes PHI given the source points as well as the radius
   Kokkos::View<value_t **, memory_space> phi(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
@@ -148,6 +163,10 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
         phi(i, j) = CRBF::evaluate(norm / radii(i));
       });
 
+  Kokkos::Profiling::popRegion();
+  Kokkos::Profiling::pushRegion(
+      "ArborX::MovingLeastSquaresCoefficients::vandermonde");
+
   // This builds the Vandermonde (P) matrix
   Kokkos::View<value_t ***, memory_space> p(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
@@ -162,6 +181,10 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
         for (int k = 0; k < poly_size; k++)
           p(i, j, k) = basis[k];
       });
+
+  Kokkos::Profiling::popRegion();
+  Kokkos::Profiling::pushRegion(
+      "ArborX::MovingLeastSquaresCoefficients::moment");
 
   // We then create what is called the moment matrix, which is A = P^T.PHI.P. By
   // construction, A is symmetric.
@@ -180,10 +203,18 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
         a(i, j, k) = tmp;
       });
 
+  Kokkos::Profiling::popRegion();
+  Kokkos::Profiling::pushRegion(
+      "ArborX::MovingLeastSquaresCoefficients::pseudo_inverse_svd");
+
   // We need the inverse of A = P^T.PHI.P, and because A is symmetric, we can
   // use the symmetric SVD algorithm to get it.
   symmetricPseudoInverseSVD(space, a);
   // Now, A = [P^T.PHI.P]^-1
+
+  Kokkos::Profiling::popRegion();
+  Kokkos::Profiling::pushRegion(
+      "ArborX::MovingLeastSquaresCoefficients::coefficients_computation");
 
   // Finally, the result is produced by computing p(0).A.P^T.PHI
   Kokkos::resize(space, coeffs, num_targets, num_neighbors);
@@ -197,6 +228,8 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
           tmp += a(i, 0, k) * p(i, j, k) * phi(i, j);
         coeffs(i, j) = tmp;
       });
+
+  Kokkos::Profiling::popRegion();
 }
 
 } // namespace ArborX::Interpolation::Details
