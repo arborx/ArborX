@@ -35,7 +35,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
   Kokkos::View<double *, MemorySpace> srcv0("Testing::srcv0", 4);
   Kokkos::View<double *, MemorySpace> tgtv0("Testing::tgtv0", 3);
   Kokkos::parallel_for(
-      "for", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 4),
+      "Testing::moving_least_squares::for0",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 4),
       KOKKOS_LAMBDA(int const i) {
         auto f = [](const point0 &) { return 3.; };
 
@@ -51,7 +52,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
   ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls0(
       space, srcp0, tgtp0, 2, ArborX::Interpolation::CRBF::Wendland<0>{},
       ArborX::Interpolation::PolynomialDegree<1>{});
-  auto eval0 = mls0.apply(space, srcv0);
+  auto eval0 = mls0.interpolate(space, srcv0);
   ARBORX_MDVIEW_TEST_TOL(eval0, tgtv0, Kokkos::Experimental::epsilon_v<float>);
 
   // Case 2: f(x, y) = xy + x, 8 neighbors, quad
@@ -69,7 +70,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
   Kokkos::View<double *, MemorySpace> srcv1("Testing::srcv1", 9);
   Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
   Kokkos::parallel_for(
-      "for", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 9),
+      "Testing::moving_least_squares::for1",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 9),
       KOKKOS_LAMBDA(int const i) {
         int u = (i / 2) * 2 - 1;
         int v = (i % 2) * 2 - 1;
@@ -88,7 +90,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
   ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls1(
       space, srcp1, tgtp1, 8, ArborX::Interpolation::CRBF::Wendland<2>{},
       ArborX::Interpolation::PolynomialDegree<2>{});
-  auto eval1 = mls1.apply(space, srcv1);
+  auto eval1 = mls1.interpolate(space, srcv1);
   ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1, Kokkos::Experimental::epsilon_v<float>);
 }
 
@@ -106,7 +108,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
   Kokkos::View<double *, MemorySpace> srcv0("Testing::srcv0", 4);
   Kokkos::View<double *, MemorySpace> tgtv0("Testing::tgtv0", 3);
   Kokkos::parallel_for(
-      "for", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 4),
+      "Testing::moving_least_squares_edge_cases::for0",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 4),
       KOKKOS_LAMBDA(int const i) {
         auto f = [](const point0 &) { return 3.; };
 
@@ -122,7 +125,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
   ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls0(
       space, srcp0, tgtp0, 2, ArborX::Interpolation::CRBF::Wendland<0>{},
       ArborX::Interpolation::PolynomialDegree<1>{});
-  auto eval0 = mls0.apply(space, srcv0);
+  auto eval0 = mls0.interpolate(space, srcv0);
   ARBORX_MDVIEW_TEST_TOL(eval0, tgtv0, Kokkos::Experimental::epsilon_v<float>);
 
   // Case 2: Same but corner source points are also targets
@@ -132,7 +135,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
   Kokkos::View<double *, MemorySpace> srcv1("Testing::srcv1", 9);
   Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
   Kokkos::parallel_for(
-      "for", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 9),
+      "Testing::moving_least_squares_edge_cases::for0",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 9),
       KOKKOS_LAMBDA(int const i) {
         int u = (i / 2) * 2 - 1;
         int v = (i % 2) * 2 - 1;
@@ -151,6 +155,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
   ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls1(
       space, srcp1, tgtp1, 8, ArborX::Interpolation::CRBF::Wendland<2>{},
       ArborX::Interpolation::PolynomialDegree<2>{});
-  auto eval1 = mls1.apply(space, srcv1);
+  auto eval1 = mls1.interpolate(space, srcv1);
   ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1, Kokkos::Experimental::epsilon_v<float>);
 }

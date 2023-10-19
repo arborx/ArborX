@@ -10,7 +10,7 @@
  ****************************************************************************/
 
 #include <ArborX.hpp>
-#include <ArborX_Interp.hpp>
+#include <ArborX_InterpMovingLeastSquares.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -80,7 +80,7 @@ void mls_example(std::size_t num_points)
   ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls(
       space, source_points, target_points);
 
-  auto approx_values = mls.apply(space, source_values);
+  auto approx_values = mls.interpolate(space, source_values);
 
   double l2_error;
   Kokkos::parallel_reduce(

@@ -23,6 +23,8 @@
 
 #include <Kokkos_Core.hpp>
 
+#include <optional>
+
 namespace ArborX::Interpolation::Details
 {
 
@@ -77,8 +79,8 @@ public:
             typename TargetPoints, typename CRBF, typename PolynomialDegree>
   MovingLeastSquares(ExecutionSpace const &space,
                      SourcePoints const &source_points,
-                     TargetPoints const &target_points, int num_neighbors, CRBF,
-                     PolynomialDegree)
+                     TargetPoints const &target_points,
+                     std::optional<int> num_neighbors, CRBF, PolynomialDegree)
   {
     KokkosExt::ScopedProfileRegion guard("ArborX::MovingLeastSquares");
 
@@ -113,15 +115,15 @@ public:
     static_assert(dimension == GeometryTraits::dimension_v<tgt_point>,
                   "Target and source points must have the same dimension");
 
-    num_neighbors =
-        (num_neighbors <= 0)
+    int num_neighbors_val =
+        (!num_neighbors)
             ? Details::polynomialBasisSize<dimension, PolynomialDegree::value>()
-            : num_neighbors;
+            : *num_neighbors;
 
     int const num_targets = tgt_acc::size(target_points);
     _source_size = source_points.extent(0);
     // There must be enough source points
-    ARBORX_ASSERT(num_neighbors <= _source_size);
+    ARBORX_ASSERT(0 < num_neighbors_val && num_neighbors_val <= _source_size);
 
     // Organize the source points as a tree
     using src_coord = typename GeometryTraits::coordinate_type<src_point>::type;
@@ -133,7 +135,7 @@ public:
 
     // Create the predicates
     Details::MLSTargetPointsPredicateWrapper<TargetPoints> predicates{
-        target_points, num_neighbors};
+        target_points, num_neighbors_val};
 
     // Query the source
     Kokkos::View<int *, MemorySpace> indices(
@@ -143,10 +145,9 @@ public:
     source_tree.query(space, predicates, indices, offsets);
 
     // Fill in the value indices object so values can be transferred from a 1D
-    // source data to a properly distributed 2D array for each target and do it
-    // for source points
+    // source data to a properly distributed 2D array for each target.
     auto const source_view = fillValuesIndicesAndGetSourceView(
-        space, indices, offsets, num_targets, num_neighbors, source_points);
+        space, indices, offsets, num_targets, num_neighbors_val, source_points);
 
     // Compute the Moving Least Squares
     _coeffs = Kokkos::View<FloatingCalculationType **, MemorySpace>(
@@ -160,8 +161,8 @@ public:
   MovingLeastSquares(ExecutionSpace const &space,
                      SourcePoints const &source_points,
                      TargetPoints const &target_points, CRBF, PolynomialDegree)
-      : MovingLeastSquares(space, source_points, target_points, 0, CRBF{},
-                           PolynomialDegree{})
+      : MovingLeastSquares(space, source_points, target_points, std::nullopt,
+                           CRBF{}, PolynomialDegree{})
   {}
 
   template <typename ExecutionSpace, typename SourcePoints,
@@ -198,15 +199,13 @@ public:
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
                            "ArborX::MovingLeastSquares::source_view"),
         num_targets, num_neighbors);
-    auto const values_indices = _values_indices;
     Kokkos::parallel_for(
         "ArborX::MovingLeastSquares::values_indices_and_source_view_fill",
         Kokkos::MDRangePolicy<ExecutionSpace, Kokkos::Rank<2>>(
             space, {0, 0}, {num_targets, num_neighbors}),
-        KOKKOS_LAMBDA(int const i, int const j) {
+        KOKKOS_CLASS_LAMBDA(int const i, int const j) {
           auto index = indices(offsets(i) + j);
-          // auto index = indices(i * num_neighbors + j);
-          values_indices(i, j) = index;
+          _values_indices(i, j) = index;
           source_view(i, j) = src_acc::get(source_points, index);
         });
 
@@ -216,9 +215,11 @@ public:
   template <typename ExecutionSpace, typename SourceValues>
   Kokkos::View<typename SourceValues::non_const_value_type *,
                typename SourceValues::memory_space>
-  apply(ExecutionSpace const &space, SourceValues const &source_values) const
+  interpolate(ExecutionSpace const &space,
+              SourceValues const &source_values) const
   {
-    KokkosExt::ScopedProfileRegion guard("ArborX::MovingLeastSquares::apply");
+    KokkosExt::ScopedProfileRegion guard(
+        "ArborX::MovingLeastSquares::interpolate");
 
     static_assert(
         KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
@@ -241,8 +242,6 @@ public:
 
     int const num_targets = _values_indices.extent(0);
     int const num_neighbors = _values_indices.extent(1);
-    auto const values_indices = _values_indices;
-    auto const coeffs = _coeffs;
 
     view_t target_values(
         Kokkos::view_alloc(Kokkos::WithoutInitializing,
@@ -251,10 +250,10 @@ public:
     Kokkos::parallel_for(
         "ArborX::MovingLeastSquares::target_interpolation",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_targets),
-        KOKKOS_LAMBDA(int const i) {
+        KOKKOS_CLASS_LAMBDA(int const i) {
           value_t tmp = 0;
           for (int j = 0; j < num_neighbors; j++)
-            tmp += coeffs(i, j) * source_values(values_indices(i, j));
+            tmp += _coeffs(i, j) * source_values(_values_indices(i, j));
           target_values(i) = tmp;
         });
 

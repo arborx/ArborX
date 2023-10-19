@@ -88,11 +88,11 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
       "ArborX::MovingLeastSquaresCoefficients::source_ref_target_fill");
 
   // The goal is to compute the following line vector for each target point:
-  // p(0).[P^T.PHI.P]^-1.P^T.PHI
+  // p(x).[P^T.PHI.P]^-1.P^T.PHI
   // Where:
   // - p(x) is the polynomial basis of point x (line vector).
   // - P is the multidimensional Vandermonde matrix built from the source
-  //   points, that is each line is the polynomial basis of a source point.
+  //   points, i.e., each line is the polynomial basis of a source point.
   // - PHI is the diagonal weight matrix / CRBF evaluated at each source point.
 
   // We first change the origin of the evaluation to be at the target point.
