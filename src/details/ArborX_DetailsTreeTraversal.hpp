@@ -264,7 +264,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     // preserve the heap structure internally at all time.  There is no
     // memory allocation, elements are stored in the buffer passed as an
     // argument. The farthest leaf node is on top.
-    assert(k == (int)buffer.size());
+    KOKKOS_ASSERT(k == (int)buffer.size());
     PriorityQueue<PairIndexDistance, CompareDistance,
                   UnmanagedStaticVector<PairIndexDistance>>
         heap(UnmanagedStaticVector<PairIndexDistance>(buffer.data(),

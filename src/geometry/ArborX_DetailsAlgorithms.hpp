@@ -17,9 +17,12 @@
 #include <ArborX_GeometryTraits.hpp>
 
 #include <Kokkos_Macros.hpp>
+#if KOKKOS_VERSION >= 40200
+#include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
+#else
+#include <impl/Kokkos_Error.hpp> // KOKKOS_ASSERT
+#endif
 #include <Kokkos_MathematicalFunctions.hpp> // isfinite
-
-#include <cassert>
 
 namespace ArborX
 {
@@ -444,7 +447,7 @@ struct intersects<PointTag, TriangleTag, Point, Triangle>
     Float u[] = {b[0] - a[0], b[1] - a[1]};
     Float v[] = {c[0] - a[0], c[1] - a[1]};
     Float const det = v[1] * u[0] - v[0] * u[1];
-    assert(det != 0);
+    KOKKOS_ASSERT(det != 0);
     Float const inv_det = 1 / det;
 
     Float alpha[] = {v[1] * inv_det, -v[0] * inv_det};

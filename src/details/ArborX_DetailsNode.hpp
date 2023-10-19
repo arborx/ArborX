@@ -16,7 +16,6 @@
 
 #include <Kokkos_Macros.hpp>
 
-#include <cassert>
 #include <utility> // std::move
 
 namespace ArborX::Details

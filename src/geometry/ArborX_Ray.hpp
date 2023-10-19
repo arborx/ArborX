@@ -20,8 +20,12 @@
 #include <ArborX_Sphere.hpp>
 
 #include <Kokkos_Macros.hpp>
+#if KOKKOS_VERSION >= 40200
+#include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
+#else
+#include <impl/Kokkos_Error.hpp> // KOKKOS_ASSERT
+#endif
 
-#include <cassert>
 #include <cmath>
 
 namespace ArborX
@@ -125,7 +129,7 @@ private:
   KOKKOS_FUNCTION static void normalize(Vector &v)
   {
     auto const magv = norm(v);
-    assert(magv > 0);
+    KOKKOS_ASSERT(magv > 0);
     for (int d = 0; d < 3; ++d)
       v[d] /= magv;
   }
@@ -475,7 +479,7 @@ float distance(Ray const &ray, Box const &box)
 KOKKOS_INLINE_FUNCTION bool solveQuadratic(float const a, float const b,
                                            float const c, float &x1, float &x2)
 {
-  assert(a != 0);
+  KOKKOS_ASSERT(a != 0);
 
   auto const discriminant = b * b - 4 * a * c;
   if (discriminant < 0)
