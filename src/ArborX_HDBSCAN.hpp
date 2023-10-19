@@ -12,8 +12,9 @@
 #define ARBORX_HDBSCAN_HPP
 
 #include <ArborX_Dendrogram.hpp>
-#include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_MinimumSpanningTree.hpp>
+
+#include <Kokkos_Profiling_ScopedRegion.hpp>
 
 namespace ArborX::Experimental
 {
@@ -24,7 +25,7 @@ auto hdbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
              DendrogramImplementation dendrogram_impl =
                  DendrogramImplementation::BORUVKA)
 {
-  KokkosExt::ScopedProfileRegion guard("ArborX::HDBSCAN");
+  Kokkos::Profiling::ScopedRegion guard("ArborX::HDBSCAN");
 
   using namespace ArborX::Details;
 

@@ -19,7 +19,6 @@
 #include <ArborX_DetailsBatchedQueries.hpp>
 #include <ArborX_DetailsCrsGraphWrapperImpl.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
-#include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsPermutedData.hpp>
@@ -32,6 +31,7 @@
 #include <ArborX_TraversalPolicy.hpp>
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_Profiling_ScopedRegion.hpp>
 
 namespace ArborX
 {
@@ -93,7 +93,7 @@ public:
   query(ExecutionSpace const &space, Predicates const &predicates,
         CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
   {
-    KokkosExt::ScopedProfileRegion guard("ArborX::BVH::query_crs");
+    Kokkos::Profiling::ScopedRegion guard("ArborX::BVH::query_crs");
 
     Details::CrsGraphWrapperImpl::
         check_valid_callback_if_first_argument_is_not_a_view<value_type>(
@@ -206,7 +206,7 @@ public:
     }
     else
     {
-      KokkosExt::ScopedProfileRegion guard("ArborX::BVH::query_crs");
+      Kokkos::Profiling::ScopedRegion guard("ArborX::BVH::query_crs");
 
       Kokkos::View<int *, MemorySpace> indices(
           "ArborX::CrsGraphWrapper::query::indices", 0);
@@ -266,7 +266,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
 
   Details::check_valid_space_filling_curve<DIM>(curve);
 
-  KokkosExt::ScopedProfileRegion guard("ArborX::BVH::BVH");
+  Kokkos::Profiling::ScopedRegion guard("ArborX::BVH::BVH");
 
   if (empty())
   {

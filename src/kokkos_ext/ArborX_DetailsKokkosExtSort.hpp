@@ -14,9 +14,9 @@
 
 #include <ArborX_Config.hpp> // ARBORX_ENABLE_ROCTHRUST
 
-#include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_DetailsUtils.hpp> // minMax
 
+#include <Kokkos_Profiling_ScopedRegion.hpp>
 #include <Kokkos_Sort.hpp>
 
 // clang-format off
@@ -79,7 +79,7 @@ namespace KokkosExt
 template <typename ExecutionSpace, typename Keys, typename Values>
 void sortByKey(ExecutionSpace const &space, Keys &keys, Values &values)
 {
-  KokkosExt::ScopedProfileRegion guard("ArborX::KokkosExt::sortByKey::Kokkos");
+  Kokkos::Profiling::ScopedRegion guard("ArborX::KokkosExt::sortByKey::Kokkos");
 
   static_assert(Kokkos::is_view<Keys>::value);
   static_assert(Kokkos::is_view<Values>::value);
@@ -120,7 +120,7 @@ void sortByKey(
 #endif
     Keys &keys, Values &values)
 {
-  KokkosExt::ScopedProfileRegion guard("ArborX::KokkosExt::sortByKey::Thrust");
+  Kokkos::Profiling::ScopedRegion guard("ArborX::KokkosExt::sortByKey::Thrust");
 
   using ExecutionSpace = std::decay_t<decltype(space)>;
   static_assert(Kokkos::is_view<Keys>::value);
@@ -153,7 +153,7 @@ template <typename Keys, typename Values>
 void sortByKey(Kokkos::Experimental::SYCL const &space, Keys &keys,
                Values &values)
 {
-  KokkosExt::ScopedProfileRegion guard("ArborX::KokkosExt::sortByKey::OneDPL");
+  Kokkos::Profiling::ScopedRegion guard("ArborX::KokkosExt::sortByKey::OneDPL");
 
   using ExecutionSpace = std::decay_t<decltype(space)>;
   static_assert(Kokkos::is_view<Keys>::value);

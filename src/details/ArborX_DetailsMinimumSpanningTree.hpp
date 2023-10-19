@@ -17,13 +17,13 @@
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtBitManipulation.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
-#include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_DetailsKokkosExtSwap.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_DetailsWeightedEdge.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_MathematicalFunctions.hpp> // isfinite, signbit
+#include <Kokkos_Profiling_ScopedRegion.hpp>
 
 namespace ArborX::Details
 {
@@ -503,7 +503,7 @@ void updateSidedParents(ExecutionSpace const &space, Labels const &labels,
                         SidedParents &sided_parents, int edges_start,
                         int edges_end)
 {
-  KokkosExt::ScopedProfileRegion guard("ArborX::MST::update_sided_parents");
+  Kokkos::Profiling::ScopedRegion guard("ArborX::MST::update_sided_parents");
 
   // Same as dendrogram alpha's standalone "updateSidedParents"
   Kokkos::parallel_for(
@@ -559,7 +559,7 @@ template <typename ExecutionSpace, typename Edges, typename SidedParents,
 void computeParents(ExecutionSpace const &space, Edges const &edges,
                     SidedParents const &sided_parents, Parents &parents)
 {
-  KokkosExt::ScopedProfileRegion guard("ArborX::MST::compute_edge_parents");
+  Kokkos::Profiling::ScopedRegion guard("ArborX::MST::compute_edge_parents");
 
   using MemorySpace = typename SidedParents::memory_space;
 
