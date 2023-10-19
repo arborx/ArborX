@@ -8,14 +8,15 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_PREDICATE_HPP
-#define ARBORX_PREDICATE_HPP
+#ifndef ARBORX_PREDICATES_HPP
+#define ARBORX_PREDICATES_HPP
 
 #include <algorithms/ArborX_Distance.hpp>
 #include <algorithms/ArborX_Intersects.hpp>
 
 #include <Kokkos_Macros.hpp>
 
+#include <string>
 #include <type_traits>
 
 namespace ArborX
@@ -35,6 +36,22 @@ concept is_valid_predicate_tag =
     (std::same_as<PredicateTag, SpatialPredicateTag> ||
      std::same_as<PredicateTag, NearestPredicateTag> ||
      std::same_as<PredicateTag, OrderedSpatialPredicateTag>);
+
+template <typename PredicateTag>
+  requires(is_valid_predicate_tag<PredicateTag>)
+std::string toString(PredicateTag)
+{
+  if constexpr (std::is_same_v<PredicateTag, SpatialPredicateTag>)
+    return "spatial";
+  else if constexpr (std::is_same_v<PredicateTag, NearestPredicateTag>)
+    return "nearest";
+  else if constexpr (std::is_same_v<PredicateTag, OrderedSpatialPredicateTag>)
+    return "ordered_spatial";
+  else
+  {
+    static_assert(std::is_void_v<PredicateTag>, "ArborX implementation bug");
+  }
+}
 } // namespace Details
 
 template <typename Geometry>
