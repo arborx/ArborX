@@ -38,7 +38,7 @@ bool verifyCorePointsNonnegativeIndex(ExecutionSpace const &exec_space,
 {
   int n = labels.size();
 
-  int num_incorrect = 0;
+  int num_incorrect;
   Kokkos::parallel_reduce(
       "ArborX::DBSCAN::verify_core_points_nonnegative",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
@@ -68,7 +68,7 @@ bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
 {
   int n = labels.size();
 
-  int num_incorrect = 0;
+  int num_incorrect;
   Kokkos::parallel_reduce(
       "ArborX::DBSCAN::verify_connected_core_points",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
@@ -111,7 +111,7 @@ bool verifyBorderAndNoisePoints(ExecutionSpace const &exec_space,
 {
   int n = labels.size();
 
-  int num_incorrect = 0;
+  int num_incorrect;
   Kokkos::parallel_reduce(
       "ArborX::DBSCAN::verify_connected_border_points",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),

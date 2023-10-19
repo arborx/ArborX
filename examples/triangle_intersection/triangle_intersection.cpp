@@ -339,7 +339,7 @@ int main()
                                                        coefficients});
 
   // Check the results
-  bool success = true;
+  bool success;
   Kokkos::parallel_reduce(
       Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
       KOKKOS_LAMBDA(int i, bool &update) {
