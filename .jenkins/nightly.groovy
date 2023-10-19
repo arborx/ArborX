@@ -26,7 +26,7 @@ pipeline {
                         dir('source-kokkos') {
                             sh 'git rev-parse --short HEAD'
                         }
-                        sh 'cmake -S source-kokkos -B build-kokkos -D CMAKE_INSTALL_PREFIX=$PWD/install-kokkos $CMAKE_OPTIONS -D Kokkos_ENABLE_CUDA=ON -D Kokkos_ENABLE_CUDA_LAMBDA=ON'
+                        sh 'cmake -S source-kokkos -B build-kokkos -D CMAKE_INSTALL_PREFIX=$PWD/install-kokkos $CMAKE_OPTIONS -D Kokkos_ENABLE_CUDA=ON'
                         sh 'cmake --build build-kokkos --parallel 8'
                         sh 'cmake --install build-kokkos'
                         // Disable tests as Ubuntu 22.04 comes with Boost 1.74 which causes build issues with CUDA
@@ -66,7 +66,7 @@ pipeline {
                         dir('source-kokkos') {
                             sh 'git rev-parse --short HEAD'
                         }
-                        sh 'cmake -S source-kokkos -B build-kokkos -D CMAKE_INSTALL_PREFIX=$PWD/install-kokkos $CMAKE_OPTIONS -D Kokkos_ENABLE_CUDA=ON -D Kokkos_ENABLE_CUDA_LAMBDA=ON'
+                        sh 'cmake -S source-kokkos -B build-kokkos -D CMAKE_INSTALL_PREFIX=$PWD/install-kokkos $CMAKE_OPTIONS -D Kokkos_ENABLE_CUDA=ON'
                         sh 'cmake --build build-kokkos --parallel 8'
                         sh 'cmake --install build-kokkos'
                         // Disable tests as Ubuntu 22.04 comes with Boost 1.74 which causes build issues with CUDA
