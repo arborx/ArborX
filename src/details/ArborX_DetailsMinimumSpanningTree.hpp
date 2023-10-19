@@ -15,12 +15,12 @@
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
-#include <ArborX_DetailsKokkosExtBitManipulation.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_DetailsKokkosExtSwap.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_DetailsWeightedEdge.hpp>
 
+#include <Kokkos_BitManipulation.hpp>
 #include <Kokkos_Core.hpp>
 #include <Kokkos_MathematicalFunctions.hpp> // isfinite, signbit
 #include <Kokkos_Profiling_ScopedRegion.hpp>
@@ -614,7 +614,7 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
         static_assert(sizeof(int) == sizeof(float));
         KOKKOS_ASSERT(Kokkos::isfinite(edge.weight) &&
                       Kokkos::signbit(edge.weight) == 0);
-        keys(e) = (key << shift) + KokkosExt::bit_cast<int>(edge.weight);
+        keys(e) = (key << shift) + Kokkos::bit_cast<int>(edge.weight);
       });
 
   auto permute = sortObjects(space, keys);

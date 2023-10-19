@@ -21,6 +21,7 @@
 #include <ArborX_DetailsWeightedEdge.hpp>
 #include <ArborX_LinearBVH.hpp>
 
+#include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
 
 namespace ArborX::Details
