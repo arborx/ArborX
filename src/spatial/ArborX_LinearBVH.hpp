@@ -279,23 +279,8 @@ void BoundingVolumeHierarchy<
   Predicates predicates{user_predicates}; // NOLINT
 
   using Tag = typename Predicates::value_type::Tag;
-  std::string profiling_prefix = "ArborX::BVH::query::";
-  if constexpr (std::is_same_v<Tag, Details::SpatialPredicateTag>)
-  {
-    profiling_prefix += "spatial";
-  }
-  else if constexpr (std::is_same_v<Tag, Details::NearestPredicateTag>)
-  {
-    profiling_prefix += "nearest";
-  }
-  else if constexpr (std::is_same_v<Tag, Details::OrderedSpatialPredicateTag>)
-  {
-    profiling_prefix += "ordered_spatial";
-  }
-  else
-  {
-    static_assert(std::is_void_v<Tag>, "ArborX implementation bug");
-  }
+  std::string profiling_prefix =
+      "ArborX::BVH::query::" + Details::toString(Tag{});
 
   Kokkos::Profiling::pushRegion(profiling_prefix);
 
