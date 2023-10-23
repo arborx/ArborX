@@ -44,7 +44,7 @@ auto hdbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   Kokkos::Profiling::popRegion();
 
   Kokkos::Profiling::pushRegion("ArborX::HDBSCAN::dendrogram");
-  Dendrogram<MemorySpace> dendrogram(exec_space, mst.edges);
+  Dendrogram<MemorySpace> dendrogram(exec_space, mst.edges, dendrogram_impl);
   Kokkos::Profiling::popRegion();
 
   return dendrogram;

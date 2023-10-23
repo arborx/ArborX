@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -264,6 +264,8 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
     DendrogramImplementation dendrogram_impl;
     if (params.dendrogram == "union-find")
       dendrogram_impl = DendrogramImplementation::UNION_FIND;
+    else if (params.dendrogram == "alpha")
+      dendrogram_impl = DendrogramImplementation::ALPHA;
     else if (params.dendrogram == "boruvka")
       dendrogram_impl = DendrogramImplementation::BORUVKA;
     else
@@ -306,14 +308,35 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
                ArborX_Benchmark::get_time("ArborX::HDBSCAN::dendrogram"));
         printf("---- edge sort      : %10.3f\n",
                ArborX_Benchmark::get_time("ArborX::Dendrogram::sort_edges"));
+        if (params.dendrogram == "alpha")
+        {
+          printf("---- alpha edges    : %10.3f\n",
+                 ArborX_Benchmark::get_time(
+                     "ArborX::Dendrogram::find_alpha_edges"));
+          printf("---- alpha vertices : %10.3f\n",
+                 ArborX_Benchmark::get_time(
+                     "ArborX::Dendrogram::assign_alpha_vertices"));
+          printf("---- alpha matrix   : %10.3f\n",
+                 ArborX_Benchmark::get_time(
+                     "ArborX::Dendrogram::build_alpha_incidence_matrix"));
+          printf("---- sided parents  : %10.3f\n",
+                 ArborX_Benchmark::get_time(
+                     "ArborX::Dendrogram::update_sided_parents"));
+          printf("---- compression    : %10.3f\n",
+                 ArborX_Benchmark::get_time("ArborX::Dendrogram::compress"));
+          printf("---- parents        : %10.3f\n",
+                 ArborX_Benchmark::get_time(
+                     "ArborX::Dendrogram::compute_edge_parents") +
+                     ArborX_Benchmark::get_time(
+                         "ArborX::Dendrogram::compute_vertex_parents"));
+        }
+        printf("total time          : %10.3f\n",
+               ArborX_Benchmark::get_time("ArborX::HDBSCAN::total"));
       }
-      printf("total time          : %10.3f\n",
-             ArborX_Benchmark::get_time("ArborX::HDBSCAN::total"));
     }
   }
   else if (params.algorithm == "mst")
   {
-
     Kokkos::Profiling::pushRegion("ArborX::MST::total");
     ArborX::Details::MinimumSpanningTree<MemorySpace> mst(
         exec_space, primitives, params.core_min_size);
