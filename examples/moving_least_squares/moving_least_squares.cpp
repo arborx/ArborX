@@ -16,6 +16,7 @@
 
 #include <boost/program_options.hpp>
 
+#include <fstream>
 #include <iostream>
 #include <random>
 
@@ -42,15 +43,60 @@ void filledBoxRandom(double half_edge,
   Kokkos::deep_copy(points, points_host);
 }
 
-// Step function that returns 1 if the point is on the right of the y-axis, 0
-// elsewhere
+// Dumps the data in a file in a csv format
+void dump_msl_data(std::string const &dump_filename,
+                   Kokkos::View<Point *, MemorySpace> source_points,
+                   Kokkos::View<Point *, MemorySpace> target_points,
+                   Kokkos::View<double *, MemorySpace> source_values,
+                   Kokkos::View<double *, MemorySpace> target_values,
+                   Kokkos::View<double *, MemorySpace> approx_values)
+{
+  std::fstream dump_file_stream(dump_filename, std::ios::out | std::ios::trunc);
+  if (!dump_file_stream)
+    throw std::runtime_error("Unable to open/create file " + dump_filename);
+
+  int const dim = ArborX::GeometryTraits::dimension_v<Point>;
+  for (int i = 0; i < dim; i++)
+    dump_file_stream << "source coord " << i << ';';
+  dump_file_stream << "source value;";
+  for (int i = 0; i < dim; i++)
+    dump_file_stream << "target coord " << i << ';';
+  dump_file_stream << "target value;approx value\n";
+
+  auto source_points_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, source_points);
+  auto target_points_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, target_points);
+  auto source_values_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, source_values);
+  auto target_values_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, target_values);
+  auto approx_values_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, approx_values);
+
+  int const num_points = source_points.extent(0);
+  for (int i = 0; i < num_points; i++)
+  {
+    for (int j = 0; j < dim; j++)
+      dump_file_stream << source_points_host(i)[j] << ';';
+    dump_file_stream << source_values_host(i) << ';';
+    for (int j = 0; j < dim; j++)
+      dump_file_stream << target_points_host(i)[j] << ';';
+    dump_file_stream << target_values_host(i) << ';' << approx_values_host(i)
+                     << '\n';
+  }
+
+  dump_file_stream.close();
+}
+
+// Funtion to approximate
 KOKKOS_INLINE_FUNCTION double functionToApproximate(Point const &p)
 {
   auto const x = p[0];
-  return (x >= 0) ? 1 : 0;
+  return (x > 0) ? 1 : 0;
 }
 
-void mls_example(std::size_t num_points)
+void mls_example(std::size_t num_points, std::string const &dump_file)
 {
   ExecutionSpace space{};
 
@@ -94,6 +140,10 @@ void mls_example(std::size_t num_points)
   l2_error = Kokkos::sqrt(l2_error / num_points);
 
   std::cout << "L2 Error: " << l2_error << '\n';
+
+  if (!dump_file.empty())
+    dump_msl_data(dump_file, source_points, target_points, source_values,
+                  target_values, approx_values);
 }
 
 int main(int argc, char *argv[])
@@ -101,6 +151,7 @@ int main(int argc, char *argv[])
   Kokkos::ScopeGuard guard(argc, argv);
 
   std::size_t num_points;
+  std::string dump_file;
   boost::program_options::options_description desc("Allowed options");
   // clang-format off
   desc.add_options()
@@ -108,7 +159,11 @@ int main(int argc, char *argv[])
     ("points",
       boost::program_options::value<std::size_t>(&num_points)
         ->default_value(1000),
-      "Sets the number of points in the [-1/2 ; 1/2] range");
+      "Sets the number of points in the [-1/2 ; 1/2] range")
+    ("dump",
+      boost::program_options::value<std::string>(&dump_file)
+        ->default_value(""),
+      "Dump file name (as csv format)");
   // clang-format on
 
   boost::program_options::variables_map vm;
@@ -122,6 +177,6 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  mls_example(num_points);
+  mls_example(num_points, dump_file);
   return 0;
 }

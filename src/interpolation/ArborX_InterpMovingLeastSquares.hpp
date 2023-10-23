@@ -74,7 +74,6 @@ template <typename MemorySpace, typename FloatingCalculationType>
 class MovingLeastSquares
 {
 public:
-  // If num_neighbors is 0 or negative, it will instead be a default value
   template <typename ExecutionSpace, typename SourcePoints,
             typename TargetPoints, typename CRBF, typename PolynomialDegree>
   MovingLeastSquares(ExecutionSpace const &space,
