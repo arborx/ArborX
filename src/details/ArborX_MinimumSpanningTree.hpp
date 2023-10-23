@@ -570,7 +570,7 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
 
   using MemorySpace = typename SidedParents::memory_space;
 
-  auto num_edges = edges.size();
+  int num_edges = edges.size();
 
   // Encode both a sided parent and an edge weight into long long.
   // This way, once we sort based on this value, edges with the same sided
@@ -619,8 +619,8 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
         // signbit instead of >= 0 just as an extra precaution against negative
         // floating zeros.
         static_assert(sizeof(int) == sizeof(float));
-        assert(Kokkos::isfinite(edge.weight) &&
-               Kokkos::signbit(edge.weight) == 0);
+        KOKKOS_ASSERT(Kokkos::isfinite(edge.weight) &&
+                      Kokkos::signbit(edge.weight) == 0);
         keys(e) = (key << shift) + KokkosExt::bit_cast<int>(edge.weight);
       });
 
@@ -660,7 +660,7 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
           // Find the index of the smallest edge with the same weight in
           // this chain
           int m = i;
-          for (int k = i + 1; k < (int)num_edges && keys(k) == key; ++k)
+          for (int k = i + 1; k < num_edges && keys(k) == key; ++k)
             if (edges(permute(k)) < edges(permute(m)))
               m = k;
 
@@ -675,7 +675,7 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_edges),
       KOKKOS_LAMBDA(int const i) {
         int e = permute(i);
-        if (i == (int)num_edges - 1)
+        if (i == num_edges - 1)
         {
           // The parent of the root node is set to -1
           parents(e) = -1;

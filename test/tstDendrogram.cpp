@@ -226,7 +226,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_boruvka_same_weights, DeviceType,
         Kokkos::atomic_inc(&counts(mst.dendrogram_parents(i)));
       });
 
-  int wrong_counts = 0;
+  int wrong_counts;
   Kokkos::parallel_reduce(
       "Testing::check_counts",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, 2 * n - 1),
