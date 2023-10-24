@@ -236,7 +236,7 @@ void symmetricPseudoInverseSVD(ExecutionSpace const &space,
                                     ExecutionSpace>::value,
       "matrices must be accessible from the execution space");
 
-  ARBORX_ASSERT(matrices.extent(1) == matrices.extent(2)); // Must be square
+  KOKKOS_ASSERT(matrices.extent(1) == matrices.extent(2)); // Must be square
 
   InOutMatrices ESs(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,

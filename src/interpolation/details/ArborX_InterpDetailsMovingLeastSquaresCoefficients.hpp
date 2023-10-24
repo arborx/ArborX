@@ -75,7 +75,7 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
   int const num_neighbors = source_points.extent(1);
 
   // There must be a set of neighbors for each target
-  ARBORX_ASSERT(num_targets == source_points.extent_int(0));
+  KOKKOS_ASSERT(num_targets == source_points.extent_int(0));
 
   using value_t = typename Coefficients::non_const_value_type;
   using point_t = ExperimentalHyperGeometry::Point<dimension, value_t>;

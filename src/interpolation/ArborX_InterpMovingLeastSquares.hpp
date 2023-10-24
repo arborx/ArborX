@@ -122,7 +122,7 @@ public:
     int const num_targets = tgt_acc::size(target_points);
     _source_size = source_points.extent(0);
     // There must be enough source points
-    ARBORX_ASSERT(0 < num_neighbors_val && num_neighbors_val <= _source_size);
+    KOKKOS_ASSERT(0 < num_neighbors_val && num_neighbors_val <= _source_size);
 
     // Organize the source points as a tree
     using src_coord = typename GeometryTraits::coordinate_type<src_point>::type;
@@ -234,7 +234,7 @@ public:
 
     // Source values must be a valuation on the points so must be as big as the
     // original input
-    ARBORX_ASSERT(_source_size == source_values.extent_int(0));
+    KOKKOS_ASSERT(_source_size == source_values.extent_int(0));
 
     using value_t = typename SourceValues::non_const_value_type;
     using view_t = Kokkos::View<value_t *, typename SourceValues::memory_space>;

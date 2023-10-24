@@ -85,8 +85,6 @@ void dump_msl_data(std::string const &dump_filename,
     dump_file_stream << target_values_host(i) << ';' << approx_values_host(i)
                      << '\n';
   }
-
-  dump_file_stream.close();
 }
 
 // Funtion to approximate
