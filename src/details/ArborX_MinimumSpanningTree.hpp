@@ -16,6 +16,7 @@
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtBitManipulation.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
+#include <ArborX_DetailsKokkosExtSwap.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsMutualReachabilityDistance.hpp>
 #include <ArborX_DetailsTreeNodeLabeling.hpp>
@@ -23,6 +24,8 @@
 #include <ArborX_DetailsWeightedEdge.hpp>
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_LinearBVH.hpp>
+
+#include <Kokkos_MathematicalFunctions.hpp> // isfinite, signbit
 
 #if KOKKOS_VERSION >= 40100
 #include <Kokkos_BitManipulation.hpp>
@@ -567,7 +570,7 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
 
   using MemorySpace = typename SidedParents::memory_space;
 
-  auto num_edges = edges.size();
+  int num_edges = edges.size();
 
   // Encode both a sided parent and an edge weight into long long.
   // This way, once we sort based on this value, edges with the same sided
@@ -612,19 +615,67 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
           key = INT_MAX;
 
         // Comparison of weights as ints is the same as their comparison as
-        // floats as long as they are positive and are not NaNs or inf
+        // floats as long as they are positive and are not NaNs or inf. We use
+        // signbit instead of >= 0 just as an extra precaution against negative
+        // floating zeros.
         static_assert(sizeof(int) == sizeof(float));
+        KOKKOS_ASSERT(Kokkos::isfinite(edge.weight) &&
+                      Kokkos::signbit(edge.weight) == 0);
         keys(e) = (key << shift) + KokkosExt::bit_cast<int>(edge.weight);
       });
 
   auto permute = sortObjects(space, keys);
+
+  // Make sure we produce a binary dendrogram
+  //
+  // The issue is that the edges are sorted above, edges that are in the same
+  // chain and have same weight may be in unpredictable order. For the most
+  // part, it does not matter, as we don't care about some minor dendrogram
+  // perturbations. However, there is one situation that needs to be addressed.
+  //
+  // Specifically, what could happen is that during edge construction, an edge
+  // can already be set as having two children. That could happen either for
+  // leaf edges (an edge having two vertex children), or an alpha edge. Then,
+  // during the sort, if that edge is not the first one in the chain, it gains
+  // a third child, breaking the binary nature of the dendrogram. Note that
+  // this can only happen to one edge in the chain, and it's going to be the
+  // smallest one there.
+  //
+  // So, we identify the smallest edge in the chain, and put it first. We don't
+  // need to scan the whole chain, just the smallest part of it.
+  //
+  // Note that this issue could have been avoided if we sorted the edges based
+  // on their rank. But obtaining the rank would require another sort that we
+  // want to avoid.
+  Kokkos::parallel_for(
+      "ArborX::MST::fix_same_weight_order",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_edges - 1),
+      KOKKOS_LAMBDA(int const i) {
+        auto key = keys(i);
+
+        if (i == 0 || ((keys(i - 1) >> shift) != (key >> shift)))
+        {
+          // i is at the start of a chain
+
+          // Find the index of the smallest edge with the same weight in
+          // this chain
+          int m = i;
+          for (int k = i + 1; k < num_edges && keys(k) == key; ++k)
+            if (edges(permute(k)) < edges(permute(m)))
+              m = k;
+
+          // Place the smallest edge at the beginning of the chain
+          if (m != i)
+            KokkosExt::swap(permute(i), permute(m));
+        }
+      });
 
   Kokkos::parallel_for(
       "ArborX::MST::compute_parents",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_edges),
       KOKKOS_LAMBDA(int const i) {
         int e = permute(i);
-        if (i == (int)num_edges - 1)
+        if (i == num_edges - 1)
         {
           // The parent of the root node is set to -1
           parents(e) = -1;

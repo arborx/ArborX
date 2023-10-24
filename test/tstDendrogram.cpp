@@ -188,4 +188,56 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_boruvka, DeviceType,
   BOOST_TEST(heights_boruvka == heights_union_find, tt::per_element());
 }
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_boruvka_same_weights, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
+
+  using namespace ArborX::Details;
+  using Point = ArborX::ExperimentalHyperGeometry::Point<2, float>;
+
+  ExecutionSpace space;
+
+  // Construct a Cartesian grid of points.
+  // All points (except border ones) will have the same core distance.
+  int const N = 4;
+  int const n = N * N;
+  std::vector<Point> points_v(N * N);
+  for (int j = 0; j < N; ++j)
+    for (int i = 0; i < N; ++i)
+      points_v[j * N + i] = Point{(float)i, (float)j};
+  auto points = ArborXTest::toView<DeviceType>(points_v, "Testing::points");
+
+  // minpts = 5 is the first value that leads to the test failure with N = 4
+  int const minpts = 5;
+  MinimumSpanningTree<MemorySpace, BoruvkaMode::HDBSCAN> mst(space, points,
+                                                             minpts);
+  ArborX::Experimental::Dendrogram<MemorySpace> dendrogram(space, mst.edges);
+
+  // Check that the dendrogram is binary
+  Kokkos::View<int *, MemorySpace> counts(
+      Kokkos::view_alloc(space, "Testing::count"), 2 * n - 1);
+
+  Kokkos::parallel_for(
+      "Testing::count_children",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 2 * n - 1),
+      KOKKOS_LAMBDA(int i) {
+        Kokkos::atomic_inc(&counts(mst.dendrogram_parents(i)));
+      });
+
+  int wrong_counts;
+  Kokkos::parallel_reduce(
+      "Testing::check_counts",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 2 * n - 1),
+      KOKKOS_LAMBDA(int i, int &update) {
+        bool const is_edge = (i < n - 1);
+        int const expected_num_children = (is_edge ? 2 : 0);
+        if (counts(i) != expected_num_children)
+          ++update;
+      },
+      wrong_counts);
+  BOOST_TEST(wrong_counts == 0);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
