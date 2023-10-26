@@ -340,6 +340,7 @@ BOOST_AUTO_TEST_SUITE(Miscellaneous)
 BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_spatial_predicate,
                               TreeTypeTraits, TreeTypeTraitsList)
 {
+  // FIXME This unit test might make little sense for other trees than BVH
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
@@ -372,6 +373,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_spatial_predicate,
 BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_nearest_predicate,
                               TreeTypeTraits, TreeTypeTraitsList)
 {
+  // FIXME This unit test might make little sense for other trees than BVH
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;

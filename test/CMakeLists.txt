@@ -77,13 +77,13 @@ set(ARBORX_TEST_QUERY_TREE_SOURCES)
 foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH.cpp.tmp"
     "#include <ArborX_LinearBVH.hpp>\n"
-    "#include \"Search_UnitTestHelpers.hpp\"\n"
+    "#include \"ArborXTest_LegacyTree.hpp\"\n"
     "template <class MemorySpace>\n"
-    "using ArborX__BoundingVolumeHierarchy_Box =\n"
+    "using ArborX_Legacy_BasicBVH_Box =\n"
     "    LegacyTree<ArborX::BasicBoundingVolumeHierarchy<\n"
     "        MemorySpace, ArborX::Details::PairIndexVolume<ArborX::Box>,\n"
     "        ArborX::Details::DefaultIndexableGetter, ArborX::Box>>;\n"
-    "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX::BVH, ArborX__BoundingVolumeHierarchy_Box>\n"
+    "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX::BVH, ArborX_Legacy_BasicBVH_Box>\n"
     "#define ARBORX_TEST_DEVICE_TYPES std::tuple<${ARBORX_DEVICE_TYPES}>\n"
     "#include <tstQueryTree${_test}.cpp>\n"
   )
@@ -92,7 +92,6 @@ foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
     "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH.cpp" COPYONLY
   )
   list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH.cpp")
-
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BF.cpp.tmp"
     "#include <ArborX_BruteForce.hpp>\n"
     "#include <ArborX_Box.hpp>\n"
@@ -112,17 +111,17 @@ foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_bounding_volume}.cpp.tmp"
       "#include <ArborX_LinearBVH.hpp>\n"
       "#include <ArborX_KDOP.hpp>\n"
-      "#include \"Search_UnitTestHelpers.hpp\"\n"
+      "#include \"ArborXTest_LegacyTree.hpp\"\n"
       "using KDOP6 = ArborX::Experimental::KDOP<6>;\n"
       "using KDOP14 = ArborX::Experimental::KDOP<14>;\n"
       "using KDOP18 = ArborX::Experimental::KDOP<18>;\n"
       "using KDOP26 = ArborX::Experimental::KDOP<26>;\n"
       "template <class MemorySpace>\n"
-      "using ArborX__BoundingVolumeHierarchy_${_bounding_volume} =\n"
+      "using ArborX_Legacy_BasicBVH_${_bounding_volume} =\n"
       "    LegacyTree<ArborX::BasicBoundingVolumeHierarchy<\n"
       "        MemorySpace, ArborX::Details::PairIndexVolume<${_bounding_volume}>,\n"
       "        ArborX::Details::DefaultIndexableGetter, ${_bounding_volume}>>;\n"
-      "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX__BoundingVolumeHierarchy_${_bounding_volume}>\n"
+      "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX_Legacy_BasicBVH_${_bounding_volume}>\n"
       "#define ARBORX_TEST_DEVICE_TYPES std::tuple<${ARBORX_DEVICE_TYPES}>\n"
       "#define ARBORX_TEST_DISABLE_NEAREST_QUERY\n"
       "#define ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_SPHERE\n"

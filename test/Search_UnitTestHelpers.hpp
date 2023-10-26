@@ -25,7 +25,6 @@
 #include <ArborX_DistributedTree.hpp>
 #endif
 #include <ArborX_Box.hpp>
-#include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
 
@@ -162,21 +161,6 @@ auto query_with_distance(ExecutionSpace const &exec_space, Tree const &tree,
                                              reference)                        \
   BOOST_TEST(query_with_distance(exec_space, tree, queries) == (reference),    \
              boost::test_tools::per_element());
-
-template <typename Tree>
-class LegacyTree : public Tree
-{
-public:
-  LegacyTree() = default;
-
-  template <typename ExecutionSpace, typename Primitives>
-  LegacyTree(ExecutionSpace const &space, Primitives const &primitives)
-      : Tree(space,
-             ArborX::Details::LegacyValues<Primitives,
-                                           typename Tree::bounding_volume_type>{
-                 primitives})
-  {}
-};
 
 template <typename Tree, typename ExecutionSpace>
 auto make(ExecutionSpace const &exec_space, std::vector<ArborX::Box> const &b)
