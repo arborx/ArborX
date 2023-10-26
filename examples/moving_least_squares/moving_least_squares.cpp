@@ -18,6 +18,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <random>
 
 using Point = ArborX::ExperimentalHyperGeometry::Point<2, double>;
@@ -132,7 +133,8 @@ KOKKOS_INLINE_FUNCTION double functionToApproximate(Point const &p)
   return (x > 0) ? 1 : 0;
 }
 
-void mls_example(std::size_t num_points, std::string const &dump_file)
+void mls_example(std::size_t num_points, std::optional<int> num_neighbors,
+                 std::string const &dump_file)
 {
   ExecutionSpace space{};
   int const side_len = Kokkos::pow(num_points, 1. / DIM);
@@ -143,10 +145,16 @@ void mls_example(std::size_t num_points, std::string const &dump_file)
   Kokkos::parallel_for(
       "Example::fill_basis", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1),
       KOKKOS_LAMBDA(int const) {
-        source_basis(0) = {1, 0};
-        source_basis(1) = {0, 1};
-        target_basis(0) = {1, 0};
-        target_basis(1) = {0, 1};
+        for (int i = 0; i < DIM; i++)
+        {
+          source_basis(i) = Point{};
+          target_basis(i) = Point{};
+          for (int j = 0; j < DIM; j++)
+          {
+            source_basis(i)[j] = double(i == j);
+            target_basis(i)[j] = double(i == j);
+          }
+        }
       });
 
   // Generation of points
@@ -165,8 +173,10 @@ void mls_example(std::size_t num_points, std::string const &dump_file)
 
   // Sets the meshes
   filledBoxEven(0.5, {side_len, side_len}, source_points);
+  // filledBoxRandom(0.5, source_points);
   basisChange(space, source_points, source_basis, Point{});
   filledBoxEven(0.5, {side_len, side_len}, target_points);
+  // filledBoxRandom(0.5, target_points);
   basisChange(space, target_points, target_basis, Point{});
 
   Kokkos::parallel_for(
@@ -178,7 +188,9 @@ void mls_example(std::size_t num_points, std::string const &dump_file)
       });
 
   ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls(
-      space, source_points, target_points);
+      space, source_points, target_points, num_neighbors,
+      ArborX::Interpolation::CRBF::Wendland<0>{},
+      ArborX::Interpolation::PolynomialDegree<2>{});
 
   auto approx_values = mls.interpolate(space, source_values);
 
@@ -206,6 +218,7 @@ int main(int argc, char *argv[])
 
   std::size_t num_points;
   std::string dump_file;
+  std::size_t num_neighbors;
   boost::program_options::options_description desc("Allowed options");
   // clang-format off
   desc.add_options()
@@ -214,6 +227,10 @@ int main(int argc, char *argv[])
       boost::program_options::value<std::size_t>(&num_points)
         ->default_value(Kokkos::pow(100, DIM)),
       "Sets the number of points in the [-1/2 ; 1/2] range")
+    ("neighbors",
+      boost::program_options::value<std::size_t>(&num_neighbors)
+        ->default_value(0),
+      "Sets the number of neighbors")
     ("dump",
       boost::program_options::value<std::string>(&dump_file)
         ->default_value(""),
@@ -231,6 +248,8 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  mls_example(num_points, dump_file);
+  mls_example(num_points,
+              num_neighbors == 0 ? std::nullopt : std::optional(num_neighbors),
+              dump_file);
   return 0;
 }

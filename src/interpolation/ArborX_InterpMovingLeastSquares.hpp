@@ -170,7 +170,7 @@ public:
                      SourcePoints const &source_points,
                      TargetPoints const &target_points)
       : MovingLeastSquares(space, source_points, target_points,
-                           CRBF::Wendland<2>{}, PolynomialDegree<2>{})
+                           CRBF::Wendland<0>{}, PolynomialDegree<2>{})
   {}
 
   template <typename ExecutionSpace, typename SourcePoints>
