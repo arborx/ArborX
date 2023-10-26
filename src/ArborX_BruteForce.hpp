@@ -18,6 +18,7 @@
 #include <ArborX_DetailsBruteForceImpl.hpp>
 #include <ArborX_DetailsCrsGraphWrapperImpl.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_IndexableGetter.hpp>
 
@@ -102,7 +103,7 @@ class BruteForce
 public:
   using legacy_tree = void;
 
-  using bounding_volume_type = Box;
+  using bounding_volume_type = typename base_type::bounding_volume_type;
 
   BruteForce() = default;
 
