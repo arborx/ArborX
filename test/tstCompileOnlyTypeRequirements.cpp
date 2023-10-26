@@ -34,6 +34,8 @@ struct FakePredicateGeometry {};
 KOKKOS_FUNCTION ArborX::Point returnCentroid(FakePredicateGeometry) { return {}; }
 KOKKOS_FUNCTION bool intersects(FakePredicateGeometry, FakeBoundingVolume) { return true; }
 KOKKOS_FUNCTION float distance(FakePredicateGeometry, FakeBoundingVolume) { return 0.f; }
+KOKKOS_FUNCTION bool intersects(FakePredicateGeometry, PrimitivePointOrBox) { return true; }
+KOKKOS_FUNCTION float distance(FakePredicateGeometry, PrimitivePointOrBox) { return 0.f; }
 // clang-format on
 
 struct PoorManLambda
@@ -61,7 +63,7 @@ void check_bounding_volume_and_predicate_geometry_type_requirements()
   using ExecutionSpace = Kokkos::DefaultExecutionSpace;
   using MemorySpace = ExecutionSpace::memory_space;
   using Tree = ArborX::BasicBoundingVolumeHierarchy<
-      MemorySpace, ArborX::Details::PairIndexVolume<Test::FakeBoundingVolume>,
+      MemorySpace, Test::PrimitivePointOrBox,
       ArborX::Details::DefaultIndexableGetter, Test::FakeBoundingVolume>;
 
   Kokkos::View<Test::PrimitivePointOrBox *, MemorySpace> primitives(

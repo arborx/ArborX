@@ -760,15 +760,13 @@ struct MinimumSpanningTree
     Kokkos::Profiling::pushRegion("ArborX::MST::MST");
 
     using Access = AccessTraits<Primitives, PrimitivesTag>;
-    constexpr int dim = GeometryTraits::dimension_v<
-        typename Details::AccessTraitsHelper<Access>::type>;
-    using Box = ExperimentalHyperGeometry::Box<dim>;
+    using Point = typename AccessTraitsHelper<Access>::type;
 
     auto const n = AccessTraits<Primitives, PrimitivesTag>::size(primitives);
 
     Kokkos::Profiling::pushRegion("ArborX::MST::construction");
-    BasicBoundingVolumeHierarchy<MemorySpace, PairIndexVolume<Box>> bvh(
-        space, primitives);
+    BasicBoundingVolumeHierarchy<MemorySpace, PairIndexVolume<Point>> bvh(
+        space, Details::LegacyValues<Primitives, Point>{primitives});
     Kokkos::Profiling::popRegion();
 
     if (k > 1)

@@ -24,9 +24,9 @@ struct DefaultIndexableGetter
   KOKKOS_DEFAULTED_FUNCTION
   DefaultIndexableGetter() = default;
 
-  template <typename Geometry,
-            std::enable_if_t<GeometryTraits::is_point<Geometry>{} ||
-                             GeometryTraits::is_box<Geometry>{}>>
+  template <typename Geometry, typename Enable = std::enable_if_t<
+                                   GeometryTraits::is_point<Geometry>{} ||
+                                   GeometryTraits::is_box<Geometry>{}>>
   KOKKOS_FUNCTION auto const &operator()(Geometry const &geometry) const
   {
     return geometry;
@@ -38,21 +38,28 @@ struct DefaultIndexableGetter
   {
     return pair.bounding_volume;
   }
+
+  template <typename Geometry>
+  KOKKOS_FUNCTION Geometry operator()(PairIndexVolume<Geometry> &&pair) const
+  {
+    return pair.bounding_volume;
+  }
 };
 
-template <typename Primitives>
+template <typename Values, typename IndexableGetter>
 struct Indexables
 {
-  Primitives _primitives;
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-  using memory_space = typename Access::memory_space;
+  Values _values;
+  IndexableGetter _indexable_getter;
+
+  using memory_space = typename Values::memory_space;
 
   KOKKOS_FUNCTION decltype(auto) operator()(int i) const
   {
-    return Access::get(_primitives, i);
+    return _indexable_getter(_values(i));
   }
 
-  KOKKOS_FUNCTION auto size() const { return Access::size(_primitives); }
+  KOKKOS_FUNCTION auto size() const { return _values.size(); }
 };
 
 } // namespace ArborX::Details
