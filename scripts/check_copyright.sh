@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
 
-header_length=$(wc -l < LICENSE_FILE_HEADER)
 cur_year=$(date +%Y)
 
-license_file="LICENSE_FILE_HEADER"
+license="/****************************************************************************
+ * Copyright (c) ${cur_year} by the ArborX authors                                 *
+ * All rights reserved.                                                     *
+ *                                                                          *
+ * This file is part of the ArborX library. ArborX is                       *
+ * distributed under a BSD 3-clause license. For the licensing terms see    *
+ * the LICENSE file in the top-level directory.                             *
+ *                                                                          *
+ * SPDX-License-Identifier: BSD-3-Clause                                    *
+ ****************************************************************************/"
+header_length=$(echo "$license" | wc -l)
+
 temp_header_file="scripts/.temp_header"
 master="origin/master"
 
@@ -13,11 +23,11 @@ do
   header="$(head -n ${header_length} ${file})"
   header=$(echo "$header" | sed 's/[[:digit:]]\{4\}-//')
   echo "${header}" > ${temp_header_file}
-  diff=$(diff -q -w "${temp_header_file}" "${license_file}")
+  diff=$(diff -q -w "${temp_header_file}" <(echo "$license"))
   if [[ "$diff" != "" ]]
   then
     echo "File \"${file}\" does not have a correct license or year"
-    diff -w "${temp_header_file}" "${license_file}"
+    diff -w "${temp_header_file}" <(echo "$license")
 
     n_wrong_licenses=$((n_wrong_licenses + 1))
   fi
