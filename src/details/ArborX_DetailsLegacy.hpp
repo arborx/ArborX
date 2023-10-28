@@ -87,7 +87,28 @@ struct LegacyDefaultCallback
   }
 };
 
+struct LegacyDefaultTemplateValue
+{};
+
 } // namespace ArborX::Details
+
+template <>
+struct ArborX::GeometryTraits::dimension<
+    ArborX::Details::LegacyDefaultTemplateValue>
+{
+  static constexpr int value = 3;
+};
+template <>
+struct ArborX::GeometryTraits::tag<ArborX::Details::LegacyDefaultTemplateValue>
+{
+  using type = BoxTag;
+};
+template <>
+struct ArborX::GeometryTraits::coordinate_type<
+    ArborX::Details::LegacyDefaultTemplateValue>
+{
+  using type = float;
+};
 
 template <typename Primitives, typename BoundingVolume>
 struct ArborX::AccessTraits<

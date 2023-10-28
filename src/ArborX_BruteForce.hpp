@@ -27,14 +27,15 @@
 namespace ArborX
 {
 
-template <typename MemorySpace, typename Value,
-          typename IndexableGetter = Details::DefaultIndexableGetter,
-          typename BoundingVolume = ExperimentalHyperGeometry::Box<
-              GeometryTraits::dimension_v<
-                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
-              typename GeometryTraits::coordinate_type<std::decay_t<
-                  std::invoke_result_t<IndexableGetter, Value>>>::type>>
-class BasicBruteForce
+template <
+    typename MemorySpace, typename Value = Details::LegacyDefaultTemplateValue,
+    typename IndexableGetter = Details::DefaultIndexableGetter,
+    typename BoundingVolume = ExperimentalHyperGeometry::Box<
+        GeometryTraits::dimension_v<
+            std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
+        typename GeometryTraits::coordinate_type<
+            std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>::type>>
+class BruteForce
 {
 public:
   using memory_space = MemorySpace;
@@ -43,11 +44,11 @@ public:
   using bounding_volume_type = BoundingVolume;
   using value_type = Value;
 
-  BasicBruteForce() = default;
+  BruteForce() = default;
 
   template <typename ExecutionSpace, typename Values>
-  BasicBruteForce(ExecutionSpace const &space, Values const &values,
-                  IndexableGetter const &indexable_getter = IndexableGetter());
+  BruteForce(ExecutionSpace const &space, Values const &values,
+             IndexableGetter const &indexable_getter = IndexableGetter());
 
   KOKKOS_FUNCTION
   size_type size() const noexcept { return _size; }
@@ -91,14 +92,15 @@ private:
   IndexableGetter _indexable_getter;
 };
 
-template <typename MemorySpace, typename BoundingVolume = Box>
-class BruteForce
-    : public BasicBruteForce<MemorySpace, Details::PairIndexVolume<Box>,
-                             Details::DefaultIndexableGetter, BoundingVolume>
+template <typename MemorySpace>
+class BruteForce<MemorySpace, Details::LegacyDefaultTemplateValue,
+                 Details::DefaultIndexableGetter,
+                 ExperimentalHyperGeometry::Box<3, float>>
+    : public BruteForce<MemorySpace, Details::PairIndexVolume<Box>,
+                        Details::DefaultIndexableGetter, Box>
 {
-  using base_type =
-      BasicBruteForce<MemorySpace, Details::PairIndexVolume<Box>,
-                      Details::DefaultIndexableGetter, BoundingVolume>;
+  using base_type = BruteForce<MemorySpace, Details::PairIndexVolume<Box>,
+                               Details::DefaultIndexableGetter, Box>;
 
 public:
   using bounding_volume_type = typename base_type::bounding_volume_type;
@@ -172,9 +174,9 @@ public:
 template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
 template <typename ExecutionSpace, typename UserValues>
-BasicBruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::
-    BasicBruteForce(ExecutionSpace const &space, UserValues const &user_values,
-                    IndexableGetter const &indexable_getter)
+BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
+    ExecutionSpace const &space, UserValues const &user_values,
+    IndexableGetter const &indexable_getter)
     : _size(AccessTraits<UserValues, PrimitivesTag>::size(user_values))
     , _values(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                  "ArborX::BruteForce::values"),
@@ -209,11 +211,9 @@ template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
 template <typename ExecutionSpace, typename Predicates, typename Callback,
           typename Ignore>
-void BasicBruteForce<MemorySpace, Value, IndexableGetter,
-                     BoundingVolume>::query(ExecutionSpace const &space,
-                                            Predicates const &predicates,
-                                            Callback const &callback,
-                                            Ignore) const
+void BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::query(
+    ExecutionSpace const &space, Predicates const &predicates,
+    Callback const &callback, Ignore) const
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);

@@ -32,7 +32,7 @@ auto compute_core_distances(ExecutionSpace exec_space,
 
   ARBORX_ASSERT(points.extent_int(0) >= k);
   using MemorySpace = typename ExecutionSpace::memory_space;
-  ArborX::BasicBoundingVolumeHierarchy<
+  ArborX::BoundingVolumeHierarchy<
       MemorySpace, ArborX::Details::PairIndexVolume<ArborX::Point>>
       bvh{exec_space,
           ArborX::Details::LegacyValues<decltype(points), ArborX::Point>{
