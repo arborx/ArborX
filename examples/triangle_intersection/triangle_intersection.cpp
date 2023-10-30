@@ -14,6 +14,8 @@
 
 #include <Kokkos_Core.hpp>
 
+#include <iostream>
+
 // Perform intersection queries using 2D triangles on a regular mesh as
 // primitives and intersection with points as queries. One point per triangle.
 // __________
@@ -343,12 +345,14 @@ int main()
       KOKKOS_LAMBDA(int i, bool &update) {
         constexpr float eps = 1.e-3;
 
+#if KOKKOS_VERSION >= 40200
+        using Kokkos::printf;
+#elif defined(__SYCL_DEVICE_ONLY__)
+        using sycl::ext::oneapi::experimental::printf;
+#endif
         if (offsets(i) != i)
         {
-// FIXME_SYCL doesn't support printf
-#ifndef KOKKOS_ENABLE_SYCL
           printf("Offsets are wrong for query %d.\n", i);
-#endif
           update = false;
         }
         auto const &c = coefficients(i);
@@ -359,10 +363,7 @@ int main()
         if ((Kokkos::abs(p[0] - p_ref[0]) > eps) ||
             Kokkos::abs(p[1] - p_ref[1]) > eps)
         {
-// FIXME_SYCL doesn't support printf
-#ifndef KOKKOS_ENABLE_SYCL
           printf("Coefficients are wrong for query %d.\n", i);
-#endif
           update = false;
         }
       },

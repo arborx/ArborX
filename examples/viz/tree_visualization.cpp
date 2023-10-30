@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <iostream>
 #include <random>
 
 // FIXME: this is a temporary place for loadPointCloud and writePointCloud

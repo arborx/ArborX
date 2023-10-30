@@ -13,6 +13,8 @@
 
 #include <Kokkos_Core.hpp>
 
+#include <iostream>
+
 // Perform intersection queries using the same objects for the queries as the
 // objects used in BVH construction that are located on a regular spaced
 // three-dimensional grid.

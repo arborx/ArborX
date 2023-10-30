@@ -14,6 +14,7 @@
 
 #include <Kokkos_Random.hpp>
 
+#include <iostream>
 #include <type_traits>
 
 template <class MemorySpace>

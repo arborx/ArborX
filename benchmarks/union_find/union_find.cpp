@@ -20,6 +20,8 @@
 
 #include <boost/program_options.hpp>
 
+#include <iostream>
+
 #include <benchmark/benchmark.h>
 
 struct UnweightedEdge
