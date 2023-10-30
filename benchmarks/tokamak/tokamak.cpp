@@ -14,9 +14,10 @@
 
 #include <Kokkos_Core.hpp>
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
+using Box = ArborX::ExperimentalHyperGeometry::Box<2>;
 using Point = ArborX::ExperimentalHyperGeometry::Point<2>;
 using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<2>;
 
@@ -51,7 +52,7 @@ struct ArborX::AccessTraits<Triangles<DeviceType>, ArborX::PrimitivesTag>
   static KOKKOS_FUNCTION auto get(Triangles<DeviceType> const &triangles, int i)
   {
     auto const &triangle = triangles(i);
-    ArborX::ExperimentalHyperGeometry::Box<2> box{};
+    Box box{};
     box += triangle.a;
     box += triangle.b;
     box += triangle.c;
@@ -255,9 +256,10 @@ int main()
 
     std::cout << "Creating BVH tree.\n";
     ArborX::BasicBoundingVolumeHierarchy<
-        MemorySpace, ArborX::Details::PairIndexVolume<
-                         ArborX::ExperimentalHyperGeometry::Box<2>>> const
-        tree(execution_space, Triangles<MemorySpace>{triangles});
+        MemorySpace, ArborX::Details::PairIndexVolume<Box>> const
+        tree(
+            execution_space,
+            ArborX::Details::LegacyValues<decltype(triangles), Box>{triangles});
     std::cout << "BVH tree set up.\n";
 
     std::cout << "Starting the queries.\n";
