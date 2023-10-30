@@ -341,7 +341,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_spatial_predicate,
                               TreeTypeTraits, TreeTypeTraitsList)
 {
   // FIXME This unit test might make little sense for other trees than BVH
-  // using Tree = typename TreeTypeTraits::type;
+  using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
 
@@ -355,8 +355,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_spatial_predicate,
     boxes.push_back({{{a, a, a}}, {{b, b, b}}});
   }
   ExecutionSpace space;
-  auto const bvh =
-      make<ArborX::BVH<typename DeviceType::memory_space>>(space, boxes);
+  auto const bvh = make<Tree>(space, boxes);
 
   Kokkos::View<int *, DeviceType> indices("indices", 0);
   Kokkos::View<int *, DeviceType> offset("offset", 0);
@@ -375,7 +374,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_nearest_predicate,
                               TreeTypeTraits, TreeTypeTraitsList)
 {
   // FIXME This unit test might make little sense for other trees than BVH
-  // using Tree = typename TreeTypeTraits::type;
+  using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
 
@@ -389,8 +388,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_nearest_predicate,
     boxes.push_back({{{a, a, a}}, {{b, b, b}}});
   }
   ExecutionSpace space;
-  auto const bvh =
-      make<ArborX::BVH<typename DeviceType::memory_space>>(space, boxes);
+  auto const bvh = make<Tree>(space, boxes);
 
   Kokkos::View<int *, DeviceType> indices("indices", 0);
   Kokkos::View<int *, DeviceType> offset("offset", 0);

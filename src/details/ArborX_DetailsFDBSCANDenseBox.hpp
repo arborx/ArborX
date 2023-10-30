@@ -22,8 +22,6 @@
 
 #include <Kokkos_Core.hpp>
 
-#include <cassert>
-
 namespace ArborX
 {
 namespace Details
@@ -232,7 +230,7 @@ int reorderDenseAndSparseCells(ExecutionSpace const &exec_space,
   auto const num_nonempty_cells = cell_offsets.size() - 1;
 
   // Count the number of points in the dense cells
-  int num_points_in_dense_cells = 0;
+  int num_points_in_dense_cells;
   Kokkos::parallel_reduce(
       "ArborX::DBSCAN::count_points_in_dense_cells",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_nonempty_cells),

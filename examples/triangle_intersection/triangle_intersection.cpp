@@ -38,6 +38,7 @@ constexpr float hx = Lx / (nx - 1);
 constexpr float hy = Ly / (ny - 1);
 
 using Point = ArborX::ExperimentalHyperGeometry::Point<2>;
+using Box = ArborX::ExperimentalHyperGeometry::Box<2>;
 using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<2>;
 
 #ifdef PRECOMPUTE_MAPPING
@@ -321,9 +322,9 @@ int main()
 
   // Create BVH tree
   ArborX::BasicBoundingVolumeHierarchy<
-      MemorySpace, ArborX::Details::PairIndexVolume<
-                       ArborX::ExperimentalHyperGeometry::Box<2>>> const
-      tree(execution_space, triangles);
+      MemorySpace, ArborX::Details::PairIndexVolume<Box>> const
+      tree(execution_space,
+           ArborX::Details::LegacyValues<decltype(triangles), Box>{triangles});
 
   // Create the points used for queries
   Points<MemorySpace> points(execution_space);
@@ -339,7 +340,7 @@ int main()
                                                        coefficients});
 
   // Check the results
-  bool success = true;
+  bool success;
   Kokkos::parallel_reduce(
       Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
       KOKKOS_LAMBDA(int i, bool &update) {

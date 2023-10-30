@@ -17,9 +17,12 @@
 #include <ArborX_HyperBox.hpp>
 
 #include <Kokkos_Macros.hpp>
+#if KOKKOS_VERSION >= 40200
+#include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
+#else
+#include <impl/Kokkos_Error.hpp> // KOKKOS_ASSERT
+#endif
 #include <Kokkos_MathematicalFunctions.hpp> // floor
-
-#include <cassert>
 
 namespace ArborX::Details
 {
@@ -90,7 +93,7 @@ public:
   KOKKOS_FUNCTION
   auto extent(int d) const
   {
-    assert(0 <= d && d < DIM);
+    KOKKOS_ASSERT(0 <= d && d < DIM);
     return _n[d];
   }
 

@@ -38,7 +38,7 @@ bool verifyCorePointsNonnegativeIndex(ExecutionSpace const &exec_space,
 {
   int n = labels.size();
 
-  int num_incorrect = 0;
+  int num_incorrect;
   Kokkos::parallel_reduce(
       "ArborX::DBSCAN::verify_core_points_nonnegative",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
@@ -68,7 +68,7 @@ bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
 {
   int n = labels.size();
 
-  int num_incorrect = 0;
+  int num_incorrect;
   Kokkos::parallel_reduce(
       "ArborX::DBSCAN::verify_connected_core_points",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
@@ -111,7 +111,7 @@ bool verifyBorderAndNoisePoints(ExecutionSpace const &exec_space,
 {
   int n = labels.size();
 
-  int num_incorrect = 0;
+  int num_incorrect;
   Kokkos::parallel_reduce(
       "ArborX::DBSCAN::verify_connected_border_points",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
@@ -307,12 +307,14 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
 
-  constexpr int dim = GeometryTraits::dimension_v<
-      typename Details::AccessTraitsHelper<Access>::type>;
+  using Point = typename Details::AccessTraitsHelper<Access>::type;
+  static_assert(GeometryTraits::is_point<Point>{});
+  constexpr int dim = GeometryTraits::dimension_v<Point>;
   using Box = ExperimentalHyperGeometry::Box<dim>;
   ArborX::BasicBoundingVolumeHierarchy<MemorySpace,
                                        ArborX::Details::PairIndexVolume<Box>>
-      bvh(exec_space, primitives);
+      bvh(exec_space,
+          ArborX::Details::LegacyValues<Primitives, Box>{primitives});
 
   auto const predicates =
       Details::PrimitivesWithRadius<Primitives>{primitives, eps};
