@@ -18,25 +18,36 @@
 #include <ArborX_DetailsBruteForceImpl.hpp>
 #include <ArborX_DetailsCrsGraphWrapperImpl.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
+#include <ArborX_DetailsLegacy.hpp>
+#include <ArborX_IndexableGetter.hpp>
 
 #include <Kokkos_Core.hpp>
 
 namespace ArborX
 {
 
-template <typename MemorySpace, typename BoundingVolume = Box>
-class BruteForce
+template <typename MemorySpace, typename Value,
+          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename BoundingVolume = ExperimentalHyperGeometry::Box<
+              GeometryTraits::dimension_v<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
+              typename GeometryTraits::coordinate_type<std::decay_t<
+                  std::invoke_result_t<IndexableGetter, Value>>>::type>>
+class BasicBruteForce
 {
 public:
   using memory_space = MemorySpace;
   static_assert(Kokkos::is_memory_space<MemorySpace>::value);
   using size_type = typename MemorySpace::size_type;
   using bounding_volume_type = BoundingVolume;
+  using value_type = Value;
 
-  BruteForce() = default;
+  BasicBruteForce() = default;
 
-  template <typename ExecutionSpace, typename Primitives>
-  BruteForce(ExecutionSpace const &space, Primitives const &primitives);
+  template <typename ExecutionSpace, typename Values>
+  BasicBruteForce(ExecutionSpace const &space, Values const &values,
+                  IndexableGetter const &indexable_getter = IndexableGetter());
 
   KOKKOS_FUNCTION
   size_type size() const noexcept { return _size; }
@@ -76,43 +87,103 @@ public:
 private:
   size_type _size{0};
   bounding_volume_type _bounds;
-  Kokkos::View<bounding_volume_type *, memory_space> _bounding_volumes;
+  Kokkos::View<value_type *, memory_space> _values;
+  IndexableGetter _indexable_getter;
 };
 
-template <typename MemorySpace, typename BoundingVolume>
-template <typename ExecutionSpace, typename Primitives>
-BruteForce<MemorySpace, BoundingVolume>::BruteForce(
-    ExecutionSpace const &space, Primitives const &primitives)
-    : _size(AccessTraits<Primitives, PrimitivesTag>::size(primitives))
-    , _bounding_volumes(
-          Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                             "ArborX::BruteForce::bounding_volumes"),
-          _size)
+template <typename MemorySpace, typename BoundingVolume = Box>
+class BruteForce
+    : public BasicBruteForce<MemorySpace, Details::PairIndexVolume<Box>,
+                             Details::DefaultIndexableGetter, BoundingVolume>
+{
+  using base_type =
+      BasicBruteForce<MemorySpace, Details::PairIndexVolume<Box>,
+                      Details::DefaultIndexableGetter, BoundingVolume>;
+
+public:
+  using legacy_tree = void;
+
+  using bounding_volume_type = typename base_type::bounding_volume_type;
+
+  BruteForce() = default;
+
+  template <typename ExecutionSpace, typename Primitives>
+  BruteForce(ExecutionSpace const &space, Primitives const &primitives)
+      : base_type(
+            space,
+            // Validate the primitives before calling the base constructor
+            (Details::check_valid_access_traits(PrimitivesTag{}, primitives),
+             Details::LegacyValues<Primitives, bounding_volume_type>{
+                 primitives}),
+            Details::DefaultIndexableGetter())
+  {}
+
+  template <typename ExecutionSpace, typename Predicates, typename Callback,
+            typename Ignore = int>
+  void query(ExecutionSpace const &space, Predicates const &predicates,
+             Callback const &callback, Ignore = Ignore()) const
+  {
+    base_type::query(space, predicates,
+                     Details::LegacyCallbackWrapper<
+                         Callback, typename base_type::value_type>{callback});
+  }
+
+  template <typename ExecutionSpace, typename Predicates,
+            typename CallbackOrView, typename View, typename... Args>
+  std::enable_if_t<Kokkos::is_view_v<std::decay_t<View>>>
+  query(ExecutionSpace const &space, Predicates const &predicates,
+        CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
+  {
+    base_type::query(space, predicates,
+                     std::forward<CallbackOrView>(callback_or_view),
+                     std::forward<View>(view), std::forward<Args>(args)...);
+  }
+};
+
+template <typename MemorySpace, typename Value, typename IndexableGetter,
+          typename BoundingVolume>
+template <typename ExecutionSpace, typename Values>
+BasicBruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::
+    BasicBruteForce(ExecutionSpace const &space, Values const &user_values,
+                    IndexableGetter const &indexable_getter)
+    : _size(AccessTraits<Values, PrimitivesTag>::size(user_values))
+    , _values(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                                 "ArborX::BruteForce::values"),
+              _size)
+    , _indexable_getter(indexable_getter)
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
-  // FIXME for now, do not check the return type of get()
-  Details::check_valid_access_traits<Primitives>(
-      PrimitivesTag{}, primitives, Details::DoNotCheckGetReturnType());
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
+  // FIXME redo with RangeTraits
+  Details::check_valid_access_traits<Values>(
+      PrimitivesTag{}, user_values, Details::DoNotCheckGetReturnType());
+  using Access = AccessTraits<Values, PrimitivesTag>;
   static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
                                               ExecutionSpace>::value,
-                "Primitives must be accessible from the execution space");
+                "Values must be accessible from the execution space");
 
-  Kokkos::Profiling::pushRegion("ArborX::BruteForce::BruteForce");
+  KokkosExt::ScopedProfileRegion guard("ArborX::BruteForce::BruteForce");
+
+  if (empty())
+  {
+    return;
+  }
+
+  Details::AccessValues<Values> values{user_values};
 
   Details::BruteForceImpl::initializeBoundingVolumesAndReduceBoundsOfTheScene(
-      space, primitives, _bounding_volumes, _bounds);
-
-  Kokkos::Profiling::popRegion();
+      space, values, _indexable_getter, _values, _bounds);
 }
 
-template <typename MemorySpace, typename BoundingVolume>
+template <typename MemorySpace, typename Value, typename IndexableGetter,
+          typename BoundingVolume>
 template <typename ExecutionSpace, typename Predicates, typename Callback,
           typename Ignore>
-void BruteForce<MemorySpace, BoundingVolume>::query(
-    ExecutionSpace const &space, Predicates const &predicates,
-    Callback const &callback, Ignore) const
+void BasicBruteForce<MemorySpace, Value, IndexableGetter,
+                     BoundingVolume>::query(ExecutionSpace const &space,
+                                            Predicates const &predicates,
+                                            Callback const &callback,
+                                            Ignore) const
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
@@ -124,13 +195,15 @@ void BruteForce<MemorySpace, BoundingVolume>::query(
   using Tag = typename Details::AccessTraitsHelper<Access>::tag;
   static_assert(std::is_same<Tag, Details::SpatialPredicateTag>{},
                 "nearest query not implemented yet");
-  using Value = int;
   Details::check_valid_callback<Value>(callback, predicates);
 
   Kokkos::Profiling::pushRegion("ArborX::BruteForce::query::spatial");
 
-  Details::BruteForceImpl::query(space, _bounding_volumes, predicates,
-                                 callback);
+  Details::BruteForceImpl::query(
+      space, predicates, _values,
+      Details::Indexables<decltype(_values), IndexableGetter>{
+          _values, _indexable_getter},
+      callback);
 
   Kokkos::Profiling::popRegion();
 }
