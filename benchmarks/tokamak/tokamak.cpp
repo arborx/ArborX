@@ -14,6 +14,7 @@
 
 #include <Kokkos_Core.hpp>
 
+#include <iostream>
 #include <fstream>
 
 using Point = ArborX::ExperimentalHyperGeometry::Point<2>;
