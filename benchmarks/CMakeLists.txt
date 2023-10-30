@@ -6,7 +6,6 @@ message(STATUS "Found benchmark: ${benchmark_DIR} (version \"${benchmark_VERSION
 add_subdirectory(brute_force_vs_bvh)
 add_subdirectory(dbscan)
 add_subdirectory(execution_space_instances)
-add_subdirectory(tokamak)
 if(NOT WIN32)
   # FIXME: for now, skip the benchmarks using Google benchmark
   # when building for Windows, as we have trouble linking it
