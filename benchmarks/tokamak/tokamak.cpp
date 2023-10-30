@@ -21,45 +21,6 @@ using Box = ArborX::ExperimentalHyperGeometry::Box<2>;
 using Point = ArborX::ExperimentalHyperGeometry::Point<2>;
 using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<2>;
 
-template <typename MemorySpace>
-struct Triangles
-{
-  // Return the number of triangles.
-  KOKKOS_FUNCTION int size() const { return _triangles.size(); }
-
-  // Return the triangle with index i.
-  KOKKOS_FUNCTION Triangle const &operator()(int i) const
-  {
-    return _triangles(i);
-  }
-
-  Kokkos::View<ArborX::ExperimentalHyperGeometry::Triangle<2> *, MemorySpace>
-      _triangles;
-};
-
-// For creating the bounding volume hierarchy given a Triangles object, we
-// need to define the memory space, how to get the total number of objects,
-// and how to access a specific box. Since there are corresponding functions in
-// the Triangles class, we just resort to them.
-template <typename DeviceType>
-struct ArborX::AccessTraits<Triangles<DeviceType>, ArborX::PrimitivesTag>
-{
-  using memory_space = typename DeviceType::memory_space;
-  static KOKKOS_FUNCTION int size(Triangles<DeviceType> const &triangles)
-  {
-    return triangles.size();
-  }
-  static KOKKOS_FUNCTION auto get(Triangles<DeviceType> const &triangles, int i)
-  {
-    auto const &triangle = triangles(i);
-    Box box{};
-    box += triangle.a;
-    box += triangle.b;
-    box += triangle.c;
-    return box;
-  }
-};
-
 KOKKOS_FUNCTION
 ArborX::Point compute_barycentric_coordinates(Triangle const &triangle,
                                               Point const &point)
