@@ -256,10 +256,10 @@ int main()
 
     std::cout << "Creating BVH tree.\n";
     ArborX::BasicBoundingVolumeHierarchy<
-        MemorySpace, ArborX::Details::PairIndexVolume<Box>> const
-        tree(
-            execution_space,
-            ArborX::Details::LegacyValues<decltype(triangles), Box>{triangles});
+        MemorySpace, ArborX::Details::PairIndexVolume<Triangle>> const
+        tree(execution_space,
+             ArborX::Details::LegacyValues<decltype(triangles), Triangle>{
+                 triangles});
     std::cout << "BVH tree set up.\n";
 
     std::cout << "Starting the queries.\n";
