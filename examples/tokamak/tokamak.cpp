@@ -248,13 +248,19 @@ int main()
                 compute_barycentric_coordinates(triangle, point);
             bool intersects = test_coeffs[0] >= 0 && test_coeffs[1] >= 0 &&
                               test_coeffs[2] >= 0;
+
+#if KOKKOS_VERSION >= 40200
+            using Kokkos::printf;
+#elif defined(__SYCL_DEVICE_ONLY__)
+            using sycl::ext::oneapi::experimental::printf;
+#endif
+
             if (intersects)
             {
               coefficients = test_coeffs;
-              KOKKOS_IMPL_DO_NOT_USE_PRINTF(
-                  "%d, %d: %f %f in %d (same), coefficients: %f, %f, %f\n", i,
-                  j, point[0], point[1], triangle_index, coefficients[0],
-                  coefficients[1], coefficients[2]);
+              printf("%d, %d: %f %f in %d (same), coefficients: %f, %f, %f\n",
+                     i, j, point[0], point[1], triangle_index, coefficients[0],
+                     coefficients[1], coefficients[2]);
             }
             else
             {
@@ -263,10 +269,9 @@ int main()
                   ArborX::attach(ArborX::intersects(point),
                                  Attachment{triangle_index, coefficients}),
                   TriangleIntersectionCallback<DeviceType>{triangles});
-              KOKKOS_IMPL_DO_NOT_USE_PRINTF(
-                  "%d, %d: %f %f in %d, coefficients: %f, %f, %f\n", i, j,
-                  point[0], point[1], triangle_index, coefficients[0],
-                  coefficients[1], coefficients[2]);
+              printf("%d, %d: %f %f in %d, coefficients: %f, %f, %f\n", i, j,
+                     point[0], point[1], triangle_index, coefficients[0],
+                     coefficients[1], coefficients[2]);
             }
           }
         });
