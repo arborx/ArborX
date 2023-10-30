@@ -71,15 +71,9 @@ public:
 
     ArborX::Point coeffs = compute_barycentric_coordinates(triangle, point);
 
-    bool intersects = coeffs[0] >= 0 && coeffs[1] >= 0 && coeffs[2] >= 0;
-
-    if (intersects)
-    {
-      attachment.triangle_index = triangle_index;
-      attachment.coeffs = coeffs;
-      return ArborX::CallbackTreeTraversalControl::early_exit;
-    }
-    return ArborX::CallbackTreeTraversalControl::normal_continuation;
+    attachment.triangle_index = triangle_index;
+    attachment.coeffs = coeffs;
+    return ArborX::CallbackTreeTraversalControl::early_exit;
   }
 
 private:
