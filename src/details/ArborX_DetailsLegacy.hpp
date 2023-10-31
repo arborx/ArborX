@@ -60,10 +60,6 @@ struct LegacyCallbackWrapper
 {
   Callback _callback;
 
-  LegacyCallbackWrapper(Callback const &callback)
-      : _callback(callback)
-  {}
-
   template <typename Predicate, typename Geometry>
   KOKKOS_FUNCTION auto operator()(Predicate const &predicate,
                                   PairIndexVolume<Geometry> const &value) const
@@ -71,6 +67,9 @@ struct LegacyCallbackWrapper
     return _callback(predicate, value.index);
   }
 };
+
+template <typename Callback>
+LegacyCallbackWrapper(Callback) -> LegacyCallbackWrapper<Callback>;
 
 } // namespace ArborX::Details
 

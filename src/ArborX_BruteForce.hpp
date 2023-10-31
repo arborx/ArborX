@@ -124,7 +124,7 @@ public:
              Callback const &callback, Ignore = Ignore()) const
   {
     base_type::query(space, predicates,
-                     Details::LegacyCallbackWrapper<Callback>{callback});
+                     Details::LegacyCallbackWrapper{callback});
   }
 
   template <typename ExecutionSpace, typename Predicates,
