@@ -27,7 +27,7 @@ struct HalfTraversal
 {
   BVH _bvh;
   PredicateGetter _get_predicate;
-  LegacyCallbackWrapper<Callback, typename BVH::value_type> _callback;
+  LegacyCallbackWrapper<Callback> _callback;
 
   template <class ExecutionSpace>
   HalfTraversal(ExecutionSpace const &space, BVH const &bvh,

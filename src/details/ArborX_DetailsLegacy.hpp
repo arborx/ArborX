@@ -55,14 +55,18 @@ public:
   size_type size() const { return Access::size(_primitives); }
 };
 
-template <typename Callback, typename Value>
+template <typename Callback>
 struct LegacyCallbackWrapper
 {
   Callback _callback;
 
-  template <typename Predicate>
+  LegacyCallbackWrapper(Callback const &callback)
+      : _callback(callback)
+  {}
+
+  template <typename Predicate, typename Geometry>
   KOKKOS_FUNCTION auto operator()(Predicate const &predicate,
-                                  Value const &value) const
+                                  PairIndexVolume<Geometry> const &value) const
   {
     return _callback(predicate, value.index);
   }
