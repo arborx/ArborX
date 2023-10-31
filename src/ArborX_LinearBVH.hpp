@@ -172,6 +172,7 @@ public:
              Experimental::TraversalPolicy const &policy =
                  Experimental::TraversalPolicy()) const
   {
+    Details::check_valid_callback<int>(callback, predicates);
     base_type::query(space, predicates,
                      Details::LegacyCallbackWrapper<Callback>{callback},
                      policy);

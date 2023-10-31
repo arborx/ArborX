@@ -123,6 +123,7 @@ public:
   void query(ExecutionSpace const &space, Predicates const &predicates,
              Callback const &callback, Ignore = Ignore()) const
   {
+    Details::check_valid_callback<int>(callback, predicates);
     base_type::query(space, predicates,
                      Details::LegacyCallbackWrapper<Callback>{callback});
   }
