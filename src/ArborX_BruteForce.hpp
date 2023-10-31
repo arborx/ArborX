@@ -171,11 +171,11 @@ public:
 
 template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
-template <typename ExecutionSpace, typename Values>
+template <typename ExecutionSpace, typename UserValues>
 BasicBruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::
-    BasicBruteForce(ExecutionSpace const &space, Values const &user_values,
+    BasicBruteForce(ExecutionSpace const &space, UserValues const &user_values,
                     IndexableGetter const &indexable_getter)
-    : _size(AccessTraits<Values, PrimitivesTag>::size(user_values))
+    : _size(AccessTraits<UserValues, PrimitivesTag>::size(user_values))
     , _values(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                  "ArborX::BruteForce::values"),
               _size)
@@ -184,10 +184,13 @@ BasicBruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
   // FIXME redo with RangeTraits
-  Details::check_valid_access_traits<Values>(
+  Details::check_valid_access_traits<UserValues>(
       PrimitivesTag{}, user_values, Details::DoNotCheckGetReturnType());
-  using Access = AccessTraits<Values, PrimitivesTag>;
-  static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
+
+  using Values = Details::AccessValues<UserValues>;
+  Values values{user_values};
+
+  static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,
                                               ExecutionSpace>::value,
                 "Values must be accessible from the execution space");
 
@@ -197,8 +200,6 @@ BasicBruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::
   {
     return;
   }
-
-  Details::AccessValues<Values> values{user_values};
 
   Details::BruteForceImpl::initializeBoundingVolumesAndReduceBoundsOfTheScene(
       space, values, _indexable_getter, _values, _bounds);

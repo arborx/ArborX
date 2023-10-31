@@ -298,8 +298,8 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
 
   static_assert(Kokkos::is_view<LabelsView>{});
 
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-  using MemorySpace = typename Access::memory_space;
+  using Points = Details::AccessValues<Primitives>;
+  using MemorySpace = typename Points::memory_space;
 
   static_assert(std::is_same<typename LabelsView::value_type, int>{});
   static_assert(std::is_same<typename LabelsView::memory_space, MemorySpace>{});
@@ -307,17 +307,16 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
 
-  using Point = typename Details::AccessTraitsHelper<Access>::type;
-  static_assert(GeometryTraits::is_point<Point>{});
-  constexpr int dim = GeometryTraits::dimension_v<Point>;
-  using Box = ExperimentalHyperGeometry::Box<dim>;
-  ArborX::BasicBoundingVolumeHierarchy<MemorySpace,
-                                       ArborX::Details::PairIndexVolume<Box>>
-      bvh(exec_space,
-          ArborX::Details::LegacyValues<Primitives, Box>{primitives});
+  Points points{primitives};
 
-  auto const predicates =
-      Details::PrimitivesWithRadius<Primitives>{primitives, eps};
+  using Point = typename Points::value_type;
+  static_assert(GeometryTraits::is_point<Point>{});
+
+  ArborX::BasicBoundingVolumeHierarchy<MemorySpace,
+                                       ArborX::Details::PairIndexVolume<Point>>
+      bvh(exec_space, ArborX::Details::LegacyValues<Points, Point>{points});
+
+  auto const predicates = Details::PrimitivesWithRadius<Points>{points, eps};
 
   Kokkos::View<int *, MemorySpace> indices("ArborX::DBSCAN::indices", 0);
   Kokkos::View<int *, MemorySpace> offset("ArborX::DBSCAN::offset", 0);

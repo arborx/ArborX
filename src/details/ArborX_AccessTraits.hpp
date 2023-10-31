@@ -209,6 +209,8 @@ public:
   Values _values;
 
   using memory_space = typename Access::memory_space;
+  using value_type = std::decay_t<
+      Kokkos::detected_t<AccessTraitsGetArchetypeExpression, Access, Values>>;
 
   KOKKOS_FUNCTION
   decltype(auto) operator()(int i) const { return Access::get(_values, i); }
@@ -218,6 +220,22 @@ public:
 };
 
 } // namespace Details
+
+template <typename Values>
+struct AccessTraits<Details::AccessValues<Values>, PrimitivesTag>
+{
+  using AccessValues = Details::AccessValues<Values>;
+
+  using memory_space = typename AccessValues::memory_space;
+
+  KOKKOS_FUNCTION static decltype(auto) get(AccessValues const &w, int i)
+  {
+    return w(i);
+  }
+
+  KOKKOS_FUNCTION
+  static decltype(auto) size(AccessValues const &w) { return w.size(); }
+};
 
 namespace Traits
 {

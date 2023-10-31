@@ -62,17 +62,17 @@ struct AttachIndices
 template <class Points>
 struct ArborX::AccessTraits<Test::RadiusSearch<Points>, ArborX::PredicatesTag>
 {
-  using Access = AccessTraits<Points, PrimitivesTag>;
   using Self = Test::RadiusSearch<Points>;
-  using memory_space = typename Access::memory_space;
-  using size_type = decltype(Access::size(std::declval<Points const &>()));
+  using memory_space = typename Points::memory_space;
+  using size_type = typename Points::size_type;
   static KOKKOS_FUNCTION size_type size(Self const &x)
   {
-    return Access::size(x.points);
+    return x.points.size();
+    ;
   }
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
-    return intersects(Sphere{Access::get(x.points, i), x.radius});
+    return intersects(Sphere{x.points(i), x.radius});
   }
 };
 
