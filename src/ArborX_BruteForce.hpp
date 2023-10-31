@@ -58,10 +58,11 @@ public:
   KOKKOS_FUNCTION
   bounding_volume_type bounds() const noexcept { return _bounds; }
 
-  template <typename ExecutionSpace, typename Predicates, typename Callback,
-            typename Ignore = int>
+  template <typename ExecutionSpace, typename Predicates, typename Callback>
   void query(ExecutionSpace const &space, Predicates const &predicates,
-             Callback const &callback, Ignore = Ignore()) const;
+             Callback const &callback,
+             Experimental::TraversalPolicy const &policy =
+                 Experimental::TraversalPolicy()) const;
 
   template <typename ExecutionSpace, typename Predicates,
             typename CallbackOrView, typename View, typename... Args>
@@ -118,10 +119,11 @@ public:
             Details::DefaultIndexableGetter())
   {}
 
-  template <typename ExecutionSpace, typename Predicates, typename Callback,
-            typename Ignore = int>
+  template <typename ExecutionSpace, typename Predicates, typename Callback>
   void query(ExecutionSpace const &space, Predicates const &predicates,
-             Callback const &callback, Ignore = Ignore()) const
+             Callback const &callback,
+             Experimental::TraversalPolicy const &policy =
+                 Experimental::TraversalPolicy()) const
   {
     base_type::query(space, predicates,
                      Details::LegacyCallbackWrapper<
@@ -177,13 +179,11 @@ BasicBruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::
 
 template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
-template <typename ExecutionSpace, typename Predicates, typename Callback,
-          typename Ignore>
-void BasicBruteForce<MemorySpace, Value, IndexableGetter,
-                     BoundingVolume>::query(ExecutionSpace const &space,
-                                            Predicates const &predicates,
-                                            Callback const &callback,
-                                            Ignore) const
+template <typename ExecutionSpace, typename Predicates, typename Callback>
+void BasicBruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::
+    query(ExecutionSpace const &space, Predicates const &predicates,
+          Callback const &callback,
+          Experimental::TraversalPolicy const &policy) const
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
