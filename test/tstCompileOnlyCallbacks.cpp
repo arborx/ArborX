@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_Box.hpp>
 #include <ArborX_Callbacks.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
@@ -94,27 +95,27 @@ void test_callbacks_compile_only()
   // view type does not matter as long as we do not call the output functor
   Kokkos::View<float *> v;
 
-  check_valid_callback(ArborX::Details::DefaultCallback{}, SpatialPredicates{},
-                       v);
-  check_valid_callback(ArborX::Details::DefaultCallback{}, NearestPredicates{},
-                       v);
+  check_valid_callback<int>(ArborX::Details::DefaultCallback{},
+                            SpatialPredicates{}, v);
+  check_valid_callback<int>(ArborX::Details::DefaultCallback{},
+                            NearestPredicates{}, v);
 
   // not required to tag inline callbacks anymore
-  check_valid_callback(CallbackMissingTag{}, SpatialPredicates{}, v);
-  check_valid_callback(CallbackMissingTag{}, NearestPredicates{}, v);
+  check_valid_callback<int>(CallbackMissingTag{}, SpatialPredicates{}, v);
+  check_valid_callback<int>(CallbackMissingTag{}, NearestPredicates{}, v);
 
   check_valid_callback<int>(CustomCallback{}, SpatialPredicates{});
   check_valid_callback<int>(CustomCallback{}, NearestPredicates{});
 
   // generic lambdas are supported if not using NVCC
 #ifndef __NVCC__
-  check_valid_callback([](auto const & /*predicate*/, int /*primitive*/,
-                          auto const & /*out*/) {},
-                       SpatialPredicates{}, v);
+  check_valid_callback<int>([](auto const & /*predicate*/, int /*primitive*/,
+                               auto const & /*out*/) {},
+                            SpatialPredicates{}, v);
 
-  check_valid_callback([](auto const & /*predicate*/, int /*primitive*/,
-                          auto const & /*out*/) {},
-                       NearestPredicates{}, v);
+  check_valid_callback<int>([](auto const & /*predicate*/, int /*primitive*/,
+                               auto const & /*out*/) {},
+                            NearestPredicates{}, v);
 
   check_valid_callback<int>(
       [](auto const & /*predicate*/, int /*primitive*/) {},
@@ -127,10 +128,11 @@ void test_callbacks_compile_only()
 
   // Uncomment to see error messages
 
-  // check_valid_callback(LegacyNearestPredicateCallback{}, NearestPredicates{},
+  // check_valid_callback<int>(LegacyNearestPredicateCallback{},
+  // NearestPredicates{},
   //                      v);
 
-  // check_valid_callback(CallbackDoesNotTakeCorrectArgument{},
+  // check_valid_callback<int>(CallbackDoesNotTakeCorrectArgument{},
   //                      SpatialPredicates{}, v);
 
   // check_valid_callback<int>(CustomCallbackNonVoidReturnType{},

@@ -51,8 +51,7 @@ struct SecondPassTag
 {};
 
 template <typename PassTag, typename Predicates, typename Callback,
-          typename OutputView, typename CountView, typename PermutedOffset,
-          bool Legacy>
+          typename OutputView, typename CountView, typename PermutedOffset>
 struct InsertGenerator
 {
   Callback _callback;
@@ -64,17 +63,9 @@ struct InsertGenerator
   using Access = AccessTraits<Predicates, PredicatesTag>;
   using PredicateType = typename AccessTraitsHelper<Access>::type;
 
-  // Legacy callback wrapper
-  template <typename Value, bool B = Legacy,
-            typename Enable = std::enable_if_t<!B>>
+  template <typename Value>
   KOKKOS_FUNCTION auto operator()(PredicateType const &predicate,
                                   Value const &value) const
-  {
-    return (*this)(predicate, (int)value.index);
-  }
-
-  KOKKOS_FUNCTION auto operator()(PredicateType const &predicate,
-                                  int primitive_index) const
   {
     auto const predicate_index = getData(predicate);
     auto const &raw_predicate = getPredicate(predicate);
@@ -89,17 +80,16 @@ struct InsertGenerator
       auto const &offset = _permuted_offset(predicate_index);
       auto const buffer_size = *(&offset + 1) - offset;
 
-      return _callback(raw_predicate, primitive_index,
-                       [&](ValueType const &value) {
-                         int count_old = Kokkos::atomic_fetch_add(&count, 1);
-                         if (count_old < buffer_size)
-                           _out(offset + count_old) = value;
-                       });
+      return _callback(raw_predicate, value, [&](ValueType const &v) {
+        int count_old = Kokkos::atomic_fetch_add(&count, 1);
+        if (count_old < buffer_size)
+          _out(offset + count_old) = v;
+      });
     }
     else if constexpr (std::is_same_v<PassTag,
                                       FirstPassNoBufferOptimizationTag>)
     {
-      return _callback(raw_predicate, primitive_index, [&](ValueType const &) {
+      return _callback(raw_predicate, value, [&](ValueType const &) {
         Kokkos::atomic_increment(&count);
       });
     }
@@ -113,19 +103,15 @@ struct InsertGenerator
       // count, and atomic increment of count. I think atomically incrementing
       // offset is problematic for OpenMP as you potentially constantly steal
       // cache lines.
-      return _callback(raw_predicate, primitive_index,
-                       [&](ValueType const &value) {
-                         _out(Kokkos::atomic_fetch_add(&offset, 1)) = value;
-                       });
+      return _callback(raw_predicate, value, [&](ValueType const &v) {
+        _out(Kokkos::atomic_fetch_add(&offset, 1)) = v;
+      });
     }
   }
 };
 
 namespace CrsGraphWrapperImpl
 {
-
-template <typename Callback>
-using LegacyTreeArchetypeExpression = typename Callback::legacy_tree;
 
 template <typename ExecutionSpace, typename Tree, typename Predicates,
           typename Callback, typename OutputView, typename OffsetView,
@@ -156,9 +142,6 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
   using PermutedOffset = PermutedData<OffsetView, PermuteType>;
   PermutedOffset permuted_offset = {offset, permute};
 
-  constexpr bool Legacy =
-      Kokkos::is_detected_v<LegacyTreeArchetypeExpression, Tree>;
-
   Kokkos::Profiling::pushRegion(
       "ArborX::CrsGraphWrapper::two_pass::first_pass");
   bool underflow = false;
@@ -168,8 +151,8 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     tree.query(
         space, permuted_predicates,
         InsertGenerator<FirstPassTag, PermutedPredicates, Callback, OutputView,
-                        CountView, PermutedOffset, Legacy>{
-            callback, out, counts, permuted_offset},
+                        CountView, PermutedOffset>{callback, out, counts,
+                                                   permuted_offset},
         ArborX::Experimental::TraversalPolicy().setPredicateSorting(false));
 
     // Detecting overflow is a local operation that needs to be done for every
@@ -203,8 +186,8 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     tree.query(
         space, permuted_predicates,
         InsertGenerator<FirstPassNoBufferOptimizationTag, PermutedPredicates,
-                        Callback, OutputView, CountView, PermutedOffset,
-                        Legacy>{callback, out, counts, permuted_offset},
+                        Callback, OutputView, CountView, PermutedOffset>{
+            callback, out, counts, permuted_offset},
         ArborX::Experimental::TraversalPolicy().setPredicateSorting(false));
     // This may not be true, but it does not matter. As long as we have
     // (n_results == 0) check before second pass, this value is not used.
@@ -265,8 +248,8 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     tree.query(
         space, permuted_predicates,
         InsertGenerator<SecondPassTag, PermutedPredicates, Callback, OutputView,
-                        CountView, PermutedOffset, Legacy>{
-            callback, out, counts, permuted_offset},
+                        CountView, PermutedOffset>{callback, out, counts,
+                                                   permuted_offset},
         ArborX::Experimental::TraversalPolicy().setPredicateSorting(false));
 
     Kokkos::Profiling::popRegion();
@@ -373,7 +356,7 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
   using MemorySpace = typename Tree::memory_space;
   using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
 
-  check_valid_callback(callback, predicates, out);
+  check_valid_callback<typename Tree::value_type>(callback, predicates, out);
 
   std::string profiling_prefix = "ArborX::CrsGraphWrapper::query::";
   if constexpr (std::is_same_v<Tag, SpatialPredicateTag>)
@@ -458,23 +441,27 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
                   Experimental::TraversalPolicy())
 {
   using MemorySpace = typename Tree::memory_space;
-  Kokkos::View<int *, MemorySpace> indices(
+
+  Kokkos::View<typename Tree::value_type *, MemorySpace> indices(
       "ArborX::CrsGraphWrapper::query::indices", 0);
-  queryDispatch(Tag{}, tree, space, predicates, indices, offset, policy);
+  queryDispatch(Tag{}, tree, space, predicates, DefaultCallback{}, indices,
+                offset, policy);
   callback(predicates, offset, indices, out);
 }
 
-template <typename Callback, typename Predicates, typename OutputView>
+template <typename Value, typename Callback, typename Predicates,
+          typename OutputView>
 std::enable_if_t<!Kokkos::is_view_v<Callback> &&
                  !is_tagged_post_callback<Callback>::value>
 check_valid_callback_if_first_argument_is_not_a_view(
     Callback const &callback, Predicates const &predicates,
     OutputView const &out)
 {
-  check_valid_callback(callback, predicates, out);
+  check_valid_callback<Value>(callback, predicates, out);
 }
 
-template <typename Callback, typename Predicates, typename OutputView>
+template <typename Value, typename Callback, typename Predicates,
+          typename OutputView>
 std::enable_if_t<!Kokkos::is_view_v<Callback> &&
                  is_tagged_post_callback<Callback>::value>
 check_valid_callback_if_first_argument_is_not_a_view(Callback const &,
@@ -484,7 +471,8 @@ check_valid_callback_if_first_argument_is_not_a_view(Callback const &,
   // TODO
 }
 
-template <typename View, typename Predicates, typename OutputView>
+template <typename Value, typename View, typename Predicates,
+          typename OutputView>
 std::enable_if_t<Kokkos::is_view_v<View>>
 check_valid_callback_if_first_argument_is_not_a_view(View const &,
                                                      Predicates const &,

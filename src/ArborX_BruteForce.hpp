@@ -72,8 +72,8 @@ public:
     KokkosExt::ScopedProfileRegion guard("ArborX::BruteForce::query_crs");
 
     Details::CrsGraphWrapperImpl::
-        check_valid_callback_if_first_argument_is_not_a_view(callback_or_view,
-                                                             predicates, view);
+        check_valid_callback_if_first_argument_is_not_a_view<value_type>(
+            callback_or_view, predicates, view);
 
     using Access = AccessTraits<Predicates, PredicatesTag>;
     using Tag = typename Details::AccessTraitsHelper<Access>::tag;
@@ -101,8 +101,6 @@ class BruteForce
                       Details::DefaultIndexableGetter, BoundingVolume>;
 
 public:
-  using legacy_tree = void;
-
   using bounding_volume_type = typename base_type::bounding_volume_type;
 
   BruteForce() = default;
@@ -128,15 +126,46 @@ public:
                      Details::LegacyCallbackWrapper<Callback>{callback});
   }
 
-  template <typename ExecutionSpace, typename Predicates,
-            typename CallbackOrView, typename View, typename... Args>
+  template <typename ExecutionSpace, typename Predicates, typename View,
+            typename... Args>
   std::enable_if_t<Kokkos::is_view_v<std::decay_t<View>>>
-  query(ExecutionSpace const &space, Predicates const &predicates,
-        CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
+  query(ExecutionSpace const &space, Predicates const &predicates, View &&view,
+        Args &&...args) const
   {
-    base_type::query(space, predicates,
-                     std::forward<CallbackOrView>(callback_or_view),
+    base_type::query(space, predicates, Details::LegacyDefaultCallback{},
                      std::forward<View>(view), std::forward<Args>(args)...);
+  }
+
+  template <typename ExecutionSpace, typename Predicates, typename Callback,
+            typename OutputView, typename OffsetView, typename... Args>
+  std::enable_if_t<!Kokkos::is_view_v<std::decay_t<Callback>>>
+  query(ExecutionSpace const &space, Predicates const &predicates,
+        Callback &&callback, OutputView &&out, OffsetView &&offset,
+        Args &&...args) const
+  {
+    if constexpr (!Details::is_tagged_post_callback<
+                      std::decay_t<Callback>>::value)
+    {
+      Details::check_valid_callback<int>(callback, predicates, out);
+      base_type::query(space, predicates,
+                       Details::LegacyCallbackWrapper<std::decay_t<Callback>>{
+                           std::forward<Callback>(callback)},
+                       std::forward<OutputView>(out),
+                       std::forward<OffsetView>(offset),
+                       std::forward<Args>(args)...);
+    }
+    else
+    {
+      KokkosExt::ScopedProfileRegion guard("ArborX::BruteForce::query_crs");
+
+      Kokkos::View<int *, MemorySpace> indices(
+          "ArborX::CrsGraphWrapper::query::indices", 0);
+      base_type::query(space, predicates, Details::LegacyDefaultCallback{},
+                       indices, std::forward<OffsetView>(offset),
+                       std::forward<Args>(args)...);
+      callback(predicates, std::forward<OffsetView>(offset), indices,
+               std::forward<OutputView>(out));
+    }
   }
 };
 
