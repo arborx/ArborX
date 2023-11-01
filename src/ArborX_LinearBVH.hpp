@@ -173,8 +173,7 @@ public:
                  Experimental::TraversalPolicy()) const
   {
     base_type::query(space, predicates,
-                     Details::LegacyCallbackWrapper<
-                         Callback, typename base_type::value_type>{callback},
+                     Details::LegacyCallbackWrapper<Callback>{callback},
                      policy);
   }
 
