@@ -68,9 +68,6 @@ struct LegacyCallbackWrapper
   }
 };
 
-template <typename Callback>
-LegacyCallbackWrapper(Callback) -> LegacyCallbackWrapper<Callback>;
-
 } // namespace ArborX::Details
 
 template <typename Primitives, typename BoundingVolume>
