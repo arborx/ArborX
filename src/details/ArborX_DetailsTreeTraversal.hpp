@@ -11,7 +11,6 @@
 #ifndef ARBORX_DETAILS_TREE_TRAVERSAL_HPP
 #define ARBORX_DETAILS_TREE_TRAVERSAL_HPP
 
-#include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
@@ -39,8 +38,6 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
   Predicates _predicates;
   Callback _callback;
 
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-
   template <typename ExecutionSpace>
   TreeTraversal(ExecutionSpace const &space, BVH const &bvh,
                 Predicates const &predicates, Callback const &callback)
@@ -56,15 +53,15 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     {
       Kokkos::parallel_for(
           "ArborX::TreeTraversal::spatial::degenerated_one_leaf_tree",
-          Kokkos::RangePolicy<ExecutionSpace, OneLeafTree>(
-              space, 0, Access::size(predicates)),
+          Kokkos::RangePolicy<ExecutionSpace, OneLeafTree>(space, 0,
+                                                           predicates.size()),
           *this);
     }
     else
     {
       Kokkos::parallel_for("ArborX::TreeTraversal::spatial",
                            Kokkos::RangePolicy<ExecutionSpace, FullTree>(
-                               space, 0, Access::size(predicates)),
+                               space, 0, predicates.size()),
                            *this);
     }
   }
@@ -82,7 +79,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
 
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
   {
-    auto const &predicate = Access::get(_predicates, queryIndex);
+    auto const &predicate = _predicates(queryIndex);
     auto const root = 0;
     auto const &root_bounding_volume =
         HappyTreeFriends::getIndexable(_bvh, root);
@@ -94,8 +91,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
 
   KOKKOS_FUNCTION void operator()(FullTree, int queryIndex) const
   {
-    auto const &predicate = Access::get(_predicates, queryIndex);
-    operator()(predicate);
+    operator()(_predicates(queryIndex));
   }
 
   template <typename Predicate>
@@ -132,8 +128,6 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   Predicates _predicates;
   Callback _callback;
 
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-
   using Buffer = Kokkos::View<Kokkos::pair<int, float> *, MemorySpace>;
   using Offset = Kokkos::View<int *, MemorySpace>;
   struct BufferProvider
@@ -154,7 +148,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   template <typename ExecutionSpace>
   void allocateBuffer(ExecutionSpace const &space)
   {
-    auto const n_queries = Access::size(_predicates);
+    auto const n_queries = _predicates.size();
 
     Offset offset(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                      "ArborX::TreeTraversal::nearest::offset"),
@@ -163,9 +157,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
         "ArborX::TreeTraversal::nearest::"
         "scan_queries_for_numbers_of_neighbors",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_CLASS_LAMBDA(int i) {
-          offset(i) = getK(Access::get(_predicates, i));
-        });
+        KOKKOS_CLASS_LAMBDA(int i) { offset(i) = getK(_predicates(i)); });
     exclusivePrefixSum(space, offset);
     int const buffer_size = KokkosExt::lastElement(space, offset);
     // Allocate buffer over which to perform heap operations in
@@ -194,18 +186,18 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     {
       Kokkos::parallel_for(
           "ArborX::TreeTraversal::nearest::degenerated_one_leaf_tree",
-          Kokkos::RangePolicy<ExecutionSpace, OneLeafTree>(
-              space, 0, Access::size(predicates)),
+          Kokkos::RangePolicy<ExecutionSpace, OneLeafTree>(space, 0,
+                                                           predicates.size()),
           *this);
     }
     else
     {
       allocateBuffer(space);
 
-      Kokkos::parallel_for("ArborX::TreeTraversal::nearest",
-                           Kokkos::RangePolicy<ExecutionSpace>(
-                               space, 0, Access::size(predicates)),
-                           *this);
+      Kokkos::parallel_for(
+          "ArborX::TreeTraversal::nearest",
+          Kokkos::RangePolicy<ExecutionSpace>(space, 0, predicates.size()),
+          *this);
     }
   }
 
@@ -214,7 +206,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
 
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
   {
-    auto const &predicate = Access::get(_predicates, queryIndex);
+    auto const &predicate = _predicates(queryIndex);
     auto const k = getK(predicate);
 
     // NOTE thinking about making this a precondition
@@ -226,7 +218,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
 
   KOKKOS_FUNCTION void operator()(int queryIndex) const
   {
-    auto const &predicate = Access::get(_predicates, queryIndex);
+    auto const &predicate = _predicates(queryIndex);
     auto const k = getK(predicate);
     auto const buffer = _buffer(queryIndex);
 
@@ -395,8 +387,6 @@ struct TreeTraversal<BVH, Predicates, Callback,
   Predicates _predicates;
   Callback _callback;
 
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-
   template <class ExecutionSpace>
   TreeTraversal(ExecutionSpace const &space, BVH const &bvh,
                 Predicates const &predicates, Callback const &callback)
@@ -413,16 +403,16 @@ struct TreeTraversal<BVH, Predicates, Callback,
       Kokkos::parallel_for(
           "ArborX::Experimental::TreeTraversal::OrderedSpatialPredicate"
           "degenerated_one_leaf_tree",
-          Kokkos::RangePolicy<ExecutionSpace, OneLeafTree>(
-              space, 0, Access::size(predicates)),
+          Kokkos::RangePolicy<ExecutionSpace, OneLeafTree>(space, 0,
+                                                           predicates.size()),
           *this);
     }
     else
     {
       Kokkos::parallel_for(
           "ArborX::Experimental::TreeTraversal::OrderedSpatialPredicate",
-          Kokkos::RangePolicy<ExecutionSpace, FullTree>(
-              space, 0, Access::size(predicates)),
+          Kokkos::RangePolicy<ExecutionSpace, FullTree>(space, 0,
+                                                        predicates.size()),
           *this);
     }
   }
@@ -440,7 +430,7 @@ struct TreeTraversal<BVH, Predicates, Callback,
 
   KOKKOS_FUNCTION void operator()(OneLeafTree, int queryIndex) const
   {
-    auto const &predicate = Access::get(_predicates, queryIndex);
+    auto const &predicate = _predicates(queryIndex);
     auto const root = 0;
     auto const &root_bounding_volume =
         HappyTreeFriends::getIndexable(_bvh, root);
@@ -456,8 +446,7 @@ struct TreeTraversal<BVH, Predicates, Callback,
 
   KOKKOS_FUNCTION void operator()(FullTree, int queryIndex) const
   {
-    auto const &predicate = Access::get(_predicates, queryIndex);
-    operator()(predicate);
+    operator()(_predicates(queryIndex));
   }
 
   template <typename Predicate>
@@ -549,8 +538,7 @@ template <typename ExecutionSpace, typename BVH, typename Predicates,
 void traverse(ExecutionSpace const &space, BVH const &bvh,
               Predicates const &predicates, Callback const &callback)
 {
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  using Tag = typename AccessTraitsHelper<Access>::tag;
+  using Tag = typename Predicates::value_type::Tag;
   TreeTraversal<BVH, Predicates, Callback, Tag>(space, bvh, predicates,
                                                 callback);
 }

@@ -61,24 +61,24 @@ template <class Predicates, class Distances>
 struct AccessTraits<
     Details::WithinDistanceFromPredicates<Predicates, Distances>, PredicatesTag>
 {
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  using Predicate = typename Details::AccessTraitsHelper<Access>::type;
+  using Predicate = typename Predicates::value_type;
   using Geometry =
       std::decay_t<decltype(getGeometry(std::declval<Predicate const &>()))>;
   using Self = Details::WithinDistanceFromPredicates<Predicates, Distances>;
 
-  using memory_space = typename Access::memory_space;
-  using size_type = decltype(Access::size(std::declval<Predicates const &>()));
+  using memory_space = typename Predicates::memory_space;
+  using size_type = decltype(std::declval<Predicates const &>().size());
+
   static KOKKOS_FUNCTION size_type size(Self const &x)
   {
-    return Access::size(x.predicates);
+    return x.predicates.size();
   }
   template <class Dummy = Geometry,
             std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
                              std::is_same_v<Dummy, Point>> * = nullptr>
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
-    auto const point = getGeometry(Access::get(x.predicates, i));
+    auto const point = getGeometry(x.predicates(i));
     auto const distance = x.distances(i);
     return intersects(Sphere{point, distance});
   }
@@ -87,7 +87,7 @@ struct AccessTraits<
                              std::is_same_v<Dummy, Box>> * = nullptr>
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
-    auto box = getGeometry(Access::get(x.predicates, i));
+    auto box = getGeometry(x.predicates(i));
     auto &min_corner = box.minCorner();
     auto &max_corner = box.maxCorner();
     auto const distance = x.distances(i);
@@ -103,7 +103,7 @@ struct AccessTraits<
                              std::is_same_v<Dummy, Sphere>> * = nullptr>
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
-    auto const sphere = getGeometry(Access::get(x.predicates, i));
+    auto const sphere = getGeometry(x.predicates(i));
     auto const distance = x.distances(i);
     return intersects(Sphere{sphere.centroid(), distance + sphere.radius()});
   }
@@ -113,7 +113,7 @@ struct AccessTraits<
                        std::is_same_v<Dummy, Experimental::Ray>> * = nullptr>
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
-    auto const ray = getGeometry(Access::get(x.predicates, i));
+    auto const ray = getGeometry(x.predicates(i));
     return intersects(ray);
   }
 };
@@ -332,8 +332,7 @@ void DistributedTreeImpl<DeviceType>::deviseStrategy(
   // is the number of neighbors queried for.  Stop if local trees get
   // empty because it means that they are no more leaves and there is no point
   // on forwarding queries to leafless trees.
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  auto const n_queries = Access::size(queries);
+  auto const n_queries = queries.size();
   Kokkos::View<int *, DeviceType> new_offset(
       Kokkos::view_alloc(space, offset.label()), n_queries + 1);
   Kokkos::parallel_for(
@@ -342,7 +341,7 @@ void DistributedTreeImpl<DeviceType>::deviseStrategy(
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int i) {
         int leaves_count = 0;
-        int const n_nearest_neighbors = getK(Access::get(queries, i));
+        int const n_nearest_neighbors = getK(queries(i));
         for (int j = offset(i); j < offset(i + 1); ++j)
         {
           int const bottom_tree_size = bottom_tree_sizes(indices(j));
@@ -385,8 +384,7 @@ void DistributedTreeImpl<DeviceType>::reassessStrategy(
       "ArborX::DistributedTree::reassessStrategy");
 
   auto const &top_tree = tree._top_tree;
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  auto const n_queries = Access::size(queries);
+  auto const n_queries = queries.size();
 
   // Determine distance to the farthest neighbor found so far.
   Kokkos::View<float *, DeviceType> farthest_distances(
@@ -534,8 +532,7 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
       // - results filtering
 
       // Forward queries
-      using Access = AccessTraits<Predicates, PredicatesTag>;
-      using Query = typename AccessTraitsHelper<Access>::type;
+      using Query = typename Predicates::value_type;
       Kokkos::View<int *, DeviceType> ids(
           "ArborX::DistributedTree::query::nearest::query_ids", 0);
       Kokkos::View<Query *, DeviceType> fwd_queries(
@@ -570,7 +567,7 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
       Kokkos::Profiling::pushRegion(
           "ArborX::DistributedTree::nearest::postprocess_results");
 
-      int const n_queries = Access::size(queries);
+      int const n_queries = queries.size();
       countResults(space, n_queries, ids, offset);
       sortResults(space, ids, indices, ranks, distances);
       filterResults(space, queries, distances, indices, offset, ranks);
@@ -612,8 +609,7 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
     // - no results filtering
 
     // Forward queries
-    using Access = AccessTraits<Predicates, PredicatesTag>;
-    using Query = typename AccessTraitsHelper<Access>::type;
+    using Query = typename Predicates::value_type;
     Kokkos::View<int *, DeviceType> ids(
         "ArborX::DistributedTree::query::spatial::query_ids", 0);
     Kokkos::View<Query *, DeviceType> fwd_queries(
@@ -631,7 +627,7 @@ DistributedTreeImpl<DeviceType>::queryDispatch(
         "ArborX::DistributedTree::spatial::postprocess_results");
 
     // Merge results
-    int const n_queries = Access::size(queries);
+    int const n_queries = queries.size();
     countResults(space, n_queries, ids, offset);
     sortResults(space, ids, out);
 
@@ -709,13 +705,11 @@ void DistributedTreeImpl<DeviceType>::forwardQueries(
 
   Distributor<DeviceType> distributor(comm);
 
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  int const n_queries = Access::size(queries);
+  int const n_queries = queries.size();
   int const n_exports = KokkosExt::lastElement(space, offset);
   int const n_imports = distributor.createFromSends(space, indices);
 
-  static_assert(
-      std::is_same<Query, typename AccessTraitsHelper<Access>::type>{});
+  static_assert(std::is_same_v<Query, typename Predicates::value_type>);
 
   {
     Kokkos::View<int *, DeviceType> export_ranks(
@@ -747,7 +741,7 @@ void DistributedTreeImpl<DeviceType>::forwardQueries(
         KOKKOS_LAMBDA(int q) {
           for (int i = offset(q); i < offset(q + 1); ++i)
           {
-            exports(i) = Access::get(queries, q);
+            exports(i) = queries(q);
           }
         });
     Kokkos::View<Query *, DeviceType> imports(
@@ -885,8 +879,7 @@ void DistributedTreeImpl<DeviceType>::filterResults(
   Kokkos::Profiling::ScopedRegion guard(
       "ArborX::DistributedTree::filterResults");
 
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  int const n_queries = Access::size(queries);
+  int const n_queries = queries.size();
   // truncated views are prefixed with an underscore
   Kokkos::View<int *, DeviceType> new_offset(
       Kokkos::view_alloc(space, offset.label()), n_queries + 1);
@@ -896,8 +889,7 @@ void DistributedTreeImpl<DeviceType>::filterResults(
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int q) {
         using KokkosExt::min;
-        new_offset(q) =
-            min(offset(q + 1) - offset(q), getK(Access::get(queries, q)));
+        new_offset(q) = min(offset(q + 1) - offset(q), getK(queries(q)));
       });
 
   exclusivePrefixSum(space, new_offset);
@@ -946,7 +938,7 @@ void DistributedTreeImpl<DeviceType>::filterResults(
           }
 
           int count = 0;
-          while (!queue.empty() && count < getK(Access::get(queries, q)))
+          while (!queue.empty() && count < getK(queries(q)))
           {
             new_indices(new_offset(q) + count) = queue.top().first[0];
             new_ranks(new_offset(q) + count) = queue.top().first[1];
