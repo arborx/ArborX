@@ -321,7 +321,8 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
 
   Kokkos::View<int *, MemorySpace> indices("ArborX::DBSCAN::indices", 0);
   Kokkos::View<int *, MemorySpace> offset("ArborX::DBSCAN::offset", 0);
-  ArborX::query(bvh, exec_space, predicates, indices, offset);
+  ArborX::query(bvh, exec_space, predicates,
+                ArborX::Details::LegacyDefaultCallback{}, indices, offset);
 
   auto passed = Details::verifyClusters(exec_space, indices, offset, labels,
                                         core_min_size);

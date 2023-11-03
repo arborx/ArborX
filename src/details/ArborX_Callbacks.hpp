@@ -39,18 +39,18 @@ struct PostCallbackTag
 
 struct DefaultCallback
 {
-  template <typename Query, typename OutputFunctor>
-  KOKKOS_FUNCTION void operator()(Query const &, int index,
+  template <typename Query, typename Value, typename OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Query const &, Value const &value,
                                   OutputFunctor const &output) const
   {
-    output(index);
+    output(value);
   }
 };
 
 // archetypal expression for user callbacks
-template <typename Callback, typename Predicate, typename Out>
+template <typename Callback, typename Predicate, typename Value, typename Out>
 using InlineCallbackArchetypeExpression =
-    std::invoke_result_t<Callback, Predicate, int, Out>;
+    std::invoke_result_t<Callback, Predicate, Value, Out>;
 
 // legacy nearest predicate archetypal expression for user callbacks
 template <typename Callback, typename Predicate, typename Out>
@@ -88,7 +88,8 @@ void check_generic_lambda_support(Callback const &)
 #endif
 }
 
-template <typename Callback, typename Predicates, typename OutputView>
+template <typename Value, typename Callback, typename Predicates,
+          typename OutputView>
 void check_valid_callback(Callback const &callback, Predicates const &,
                           OutputView const &)
 {
@@ -106,16 +107,16 @@ void check_valid_callback(Callback const &callback, Predicates const &,
 See https://github.com/arborx/ArborX/pull/366 for more details.
 Sorry!)error");
 
-  static_assert(
-      is_valid_predicate_tag<PredicateTag>::value &&
-          Kokkos::is_detected<InlineCallbackArchetypeExpression, Callback,
-                              Predicate, OutputFunctorHelper<OutputView>>{},
-      "Callback 'operator()' does not have the correct signature");
+  static_assert(is_valid_predicate_tag<PredicateTag>::value &&
+                    Kokkos::is_detected<InlineCallbackArchetypeExpression,
+                                        Callback, Predicate, Value,
+                                        OutputFunctorHelper<OutputView>>{},
+                "Callback 'operator()' does not have the correct signature");
 
   static_assert(
-      std::is_void<
-          Kokkos::detected_t<InlineCallbackArchetypeExpression, Callback,
-                             Predicate, OutputFunctorHelper<OutputView>>>{},
+      std::is_void<Kokkos::detected_t<InlineCallbackArchetypeExpression,
+                                      Callback, Predicate, Value,
+                                      OutputFunctorHelper<OutputView>>>{},
       "Callback 'operator()' return type must be void");
 }
 
