@@ -14,6 +14,7 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
+#include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_IndexableGetter.hpp>
@@ -130,7 +131,8 @@ public:
     using bvh = BasicBoundingVolumeHierarchy<
         MemorySpace, ArborX::Details::PairIndexVolume<box>,
         ArborX::Details::DefaultIndexableGetter, box>;
-    bvh source_tree(space, source_points);
+    bvh source_tree(
+        space, ArborX::Details::LegacyValues<SourcePoints, box>{source_points});
 
     // Create the predicates
     Details::MLSTargetPointsPredicateWrapper<TargetPoints> predicates{
@@ -141,7 +143,9 @@ public:
         "ArborX::MovingLeastSquares::indices", 0);
     Kokkos::View<int *, MemorySpace> offsets(
         "ArborX::MovingLeastSquares::offsets", 0);
-    source_tree.query(space, predicates, indices, offsets);
+    source_tree.query(space, predicates,
+                      ArborX::Details::LegacyDefaultCallback{}, indices,
+                      offsets);
 
     // Fill in the value indices object so values can be transferred from a 1D
     // source data to a properly distributed 2D array for each target.
