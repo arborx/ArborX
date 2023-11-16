@@ -44,7 +44,8 @@ BOOST_AUTO_TEST_SUITE(DBSCAN)
 BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
-  using Point = ArborX::Point<3>;
+  using Coordinate = float;
+  using Point = ArborX::Point<3, Coordinate>;
   using ArborX::Details::verifyDBSCAN;
 
   ExecutionSpace space;
@@ -52,13 +53,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier, DeviceType, ARBORX_DEVICE_TYPES)
   {
     auto points = toView<DeviceType, Point>({{{0, 0, 0}}, {{1, 1, 1}}});
 
-    auto r = std::sqrt(3);
+    Coordinate r = std::sqrt(3);
 
-    BOOST_TEST(verifyDBSCAN(space, points, r - 0.1, 2,
+    BOOST_TEST(verifyDBSCAN(space, points, r - (Coordinate)0.1, 2,
                             toView<DeviceType, int>({-1, -1})));
-    BOOST_TEST(!verifyDBSCAN(space, points, r - 0.1, 2,
+    BOOST_TEST(!verifyDBSCAN(space, points, r - (Coordinate)0.1, 2,
                              toView<DeviceType, int>({1, 2})));
-    BOOST_TEST(!verifyDBSCAN(space, points, r - 0.1, 2,
+    BOOST_TEST(!verifyDBSCAN(space, points, r - (Coordinate)0.1, 2,
                              toView<DeviceType, int>({1, 1})));
     BOOST_TEST(
         verifyDBSCAN(space, points, r, 2, toView<DeviceType, int>({1, 1})));
@@ -74,9 +75,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier, DeviceType, ARBORX_DEVICE_TYPES)
     auto points = toView<DeviceType, Point>(
         {{{0, 0, 0}}, {{1, 1, 1}}, {{3, 3, 3}}, {{6, 6, 6}}});
 
-    auto r = std::sqrt(3.f);
-    auto r2 = std::sqrt(12.f);
-    auto r3 = std::sqrt(48.f);
+    Coordinate r = std::sqrt(3);
+    Coordinate r2 = std::sqrt(12);
+    Coordinate r3 = std::sqrt(48);
 
     BOOST_TEST(verifyDBSCAN(space, points, r, 2,
                             toView<DeviceType, int>({1, 1, -1, -1})));
@@ -154,9 +155,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier, DeviceType, ARBORX_DEVICE_TYPES)
 BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
+  using Coordinate = float;
   using ArborX::dbscan;
   using ArborX::Details::verifyDBSCAN;
-  using Point = ArborX::Point<3>;
+  using Point = ArborX::Point<3, Coordinate>;
 
   ExecutionSpace space;
 
@@ -168,10 +170,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
     {
       auto points = toView<DeviceType, Point>({{{0, 0, 0}}, {{1, 1, 1}}});
 
-      auto r = std::sqrt(3.1f);
+      Coordinate r = std::sqrt(3.1);
 
-      BOOST_TEST(verifyDBSCAN(space, points, r - 0.1, 2,
-                              dbscan(space, points, r - 0.1, 2, params)));
+      BOOST_TEST(
+          verifyDBSCAN(space, points, r - (Coordinate)0.1, 2,
+                       dbscan(space, points, r - (Coordinate)0.1, 2, params)));
       BOOST_TEST(verifyDBSCAN(space, points, r, 2,
                               dbscan(space, points, r, 2, params)));
       BOOST_TEST(verifyDBSCAN(space, points, r, 3,
@@ -179,9 +182,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
 
       // Test non-View primitives
       HiddenView<decltype(points)> hidden_points{points};
-      BOOST_TEST(
-          verifyDBSCAN(space, hidden_points, r - 0.1, 2,
-                       dbscan(space, hidden_points, r - 0.1, 2, params)));
+      BOOST_TEST(verifyDBSCAN(
+          space, hidden_points, r - (Coordinate)0.1, 2,
+          dbscan(space, hidden_points, r - (Coordinate)0.1, 2, params)));
       BOOST_TEST(verifyDBSCAN(space, hidden_points, r, 2,
                               dbscan(space, hidden_points, r, 2, params)));
       BOOST_TEST(verifyDBSCAN(space, hidden_points, r, 3,
@@ -192,7 +195,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
       auto points = toView<DeviceType, Point>(
           {{{0, 0, 0}}, {{1, 1, 1}}, {{3, 3, 3}}, {{6, 6, 6}}});
 
-      auto r = std::sqrt(3.1f);
+      Coordinate r = std::sqrt(3.1);
 
       BOOST_TEST(verifyDBSCAN(space, points, r, 2,
                               dbscan(space, points, r, 2, params)));
@@ -227,9 +230,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
                                                {{1, -0.5, 0}}});
 
       BOOST_TEST(verifyDBSCAN(space, points, 1.0, 3,
-                              dbscan(space, points, 1, 3, params)));
+                              dbscan(space, points, (Coordinate)1, 3, params)));
       BOOST_TEST(verifyDBSCAN(space, points, 1.0, 4,
-                              dbscan(space, points, 1, 4, params)));
+                              dbscan(space, points, (Coordinate)1, 4, params)));
     }
   }
 
@@ -256,7 +259,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
 
     // This does *not* guarantee to trigger the issue, as it depends on the
     // specific implementation and runtime. But it may.
-    BOOST_TEST(verifyDBSCAN(space, points, 1, 4, dbscan(space, points, 1, 4)));
+    BOOST_TEST(verifyDBSCAN(space, points, (Coordinate)1, 4,
+                            dbscan(space, points, (Coordinate)1, 4)));
   }
 }
 

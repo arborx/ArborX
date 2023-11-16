@@ -52,9 +52,10 @@ struct DBSCANCorePoints
   }
 };
 
+template <typename Coordinate>
 struct WithinRadiusGetter
 {
-  float _r;
+  Coordinate _r;
 
   template <typename Point, typename Index>
   KOKKOS_FUNCTION auto
@@ -63,18 +64,17 @@ struct WithinRadiusGetter
     static_assert(GeometryTraits::is_point_v<Point>);
 
     constexpr int DIM = GeometryTraits::dimension_v<Point>;
-    using Coordinate = GeometryTraits::coordinate_type_t<Point>;
     using ArborX::intersects;
     return intersects(
         Sphere{convert<::ArborX::Point<DIM, Coordinate>>(pair.value), _r});
   }
 };
 
-template <typename Primitives, typename PermuteFilter>
-struct PrimitivesWithRadiusReorderedAndFiltered
+template <typename Points, typename PermuteFilter>
+struct PointsWithRadiusReorderedAndFiltered
 {
-  Primitives _primitives;
-  float _r;
+  Points _points;
+  GeometryTraits::coordinate_type_t<typename Points::value_type> _r;
   PermuteFilter _filter;
 };
 
@@ -84,8 +84,11 @@ template <typename Points, typename DenseCellOffsets, typename CellIndices,
           typename Permutation>
 struct MixedBoxPrimitives
 {
+  using Point = typename Points::value_type;
   Points _points;
-  CartesianGrid<GeometryTraits::dimension_v<typename Points::value_type>> _grid;
+  CartesianGrid<GeometryTraits::dimension_v<Point>,
+                GeometryTraits::coordinate_type_t<Point>>
+      _grid;
   DenseCellOffsets _dense_cell_offsets;
   int _num_points_in_dense_cells; // to avoid lastElement() in AccessTraits
   CellIndices _sorted_cell_indices;
@@ -95,13 +98,12 @@ struct MixedBoxPrimitives
 } // namespace Details
 
 template <typename Primitives, typename PermuteFilter>
-struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
-    Primitives, PermuteFilter>>
+struct AccessTraits<
+    Details::PointsWithRadiusReorderedAndFiltered<Primitives, PermuteFilter>>
 {
   using memory_space = typename Primitives::memory_space;
   using Predicates =
-      Details::PrimitivesWithRadiusReorderedAndFiltered<Primitives,
-                                                        PermuteFilter>;
+      Details::PointsWithRadiusReorderedAndFiltered<Primitives, PermuteFilter>;
 
   static KOKKOS_FUNCTION size_t size(Predicates const &w)
   {
@@ -110,13 +112,14 @@ struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
   static KOKKOS_FUNCTION auto get(Predicates const &w, size_t i)
   {
     int index = w._filter(i);
-    auto const &point = w._primitives(index);
-    constexpr int dim =
-        GeometryTraits::dimension_v<std::decay_t<decltype(point)>>;
+    auto const &point = w._points(index);
+    using Point = std::decay_t<decltype(point)>;
+    constexpr int DIM = GeometryTraits::dimension_v<Point>;
+    using Coordinate = GeometryTraits::coordinate_type_t<Point>;
     // FIXME reinterpret_cast is dangerous here if access traits return user
     // point structure (e.g., struct MyPoint { float y; float x; })
     auto const &hyper_point =
-        reinterpret_cast<::ArborX::Point<dim> const &>(point);
+        reinterpret_cast<::ArborX::Point<DIM, Coordinate> const &>(point);
     return attach(intersects(Sphere{hyper_point, w._r}), (int)index);
   }
 };
@@ -158,12 +161,16 @@ struct AccessTraits<
     i = (i - num_dense_primitives) + w._num_points_in_dense_cells;
 
     auto const &point = w._points(w._permute(i));
-    constexpr int dim =
-        GeometryTraits::dimension_v<std::decay_t<decltype(point)>>;
+
+    using Point = std::decay_t<decltype(point)>;
+    constexpr int DIM = GeometryTraits::dimension_v<Point>;
+    using Coordinate = typename GeometryTraits::coordinate_type<Point>::type;
+
     // FIXME reinterpret_cast is dangerous here if access traits return user
     // point structure (e.g., struct MyPoint { float y; float x; })
-    auto const &hyper_point = reinterpret_cast<Point<dim> const &>(point);
-    return Box<dim>{hyper_point, hyper_point};
+    auto const &hyper_point =
+        reinterpret_cast<::ArborX::Point<DIM, Coordinate> const &>(point);
+    return Box{hyper_point, hyper_point};
   }
   using memory_space = typename MixedOffsets::memory_space;
 };
@@ -197,10 +204,10 @@ struct Parameters
 };
 } // namespace DBSCAN
 
-template <typename ExecutionSpace, typename Primitives>
+template <typename ExecutionSpace, typename Primitives, typename Coordinate>
 Kokkos::View<int *, typename AccessTraits<Primitives>::memory_space>
 dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
-       float eps, int core_min_size,
+       Coordinate eps, int core_min_size,
        DBSCAN::Parameters const &parameters = DBSCAN::Parameters())
 {
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN");
@@ -227,8 +234,12 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
   using Point = typename Points::value_type;
   static_assert(GeometryTraits::is_point_v<Point>);
-  constexpr int dim = GeometryTraits::dimension_v<Point>;
-  using Box = Box<dim>;
+  constexpr int DIM = GeometryTraits::dimension_v<Point>;
+  static_assert(
+      std::is_same_v<typename GeometryTraits::coordinate_type<Point>::type,
+                     Coordinate>);
+
+  using Box = Box<DIM, Coordinate>;
 
   bool const is_special_case = (core_min_size == 2);
 
@@ -265,7 +276,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       Details::HalfTraversal(
           exec_space, bvh,
           Details::FDBSCANCallback<UnionFind, CorePoints>{labels, CorePoints{}},
-          Details::WithinRadiusGetter{eps});
+          Details::WithinRadiusGetter<Coordinate>{eps});
       Kokkos::Profiling::popRegion();
     }
     else
@@ -287,7 +298,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       Details::HalfTraversal(exec_space, bvh,
                              Details::FDBSCANCallback<UnionFind, CorePoints>{
                                  labels, CorePoints{num_neigh, core_min_size}},
-                             Details::WithinRadiusGetter{eps});
+                             Details::WithinRadiusGetter<Coordinate>{eps});
       Kokkos::Profiling::popRegion();
     }
   }
@@ -304,8 +315,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
     // The cell length is chosen to be eps/sqrt(dimension), so that any two
     // points within the same cell are within eps distance of each other.
-    float const h = eps / std::sqrt(dim);
-    Details::CartesianGrid<dim> const grid(bounds, h);
+    auto const h = eps / std::sqrt((Coordinate)DIM);
+    Details::CartesianGrid const grid(bounds, h);
 
     auto cell_indices = Details::computeCellIndices(exec_space, points, grid);
 
@@ -339,7 +350,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     if (verbose)
     {
       printf("h = %e, n = [%zu", h, grid.extent(0));
-      for (int d = 1; d < decltype(grid)::dim; ++d)
+      for (int d = 1; d < DIM; ++d)
         printf(", %zu", grid.extent(d));
       printf("]\n");
       printf("#nonempty cells     : %10d\n", num_nonempty_cells);
@@ -409,7 +420,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
           permute, Kokkos::make_pair(num_points_in_dense_cells, n));
 
       auto const sparse_predicates =
-          Details::PrimitivesWithRadiusReorderedAndFiltered<
+          Details::PointsWithRadiusReorderedAndFiltered<
               Points, decltype(sparse_permute)>{points, eps, sparse_permute};
       bvh.query(exec_space, sparse_predicates,
                 Details::CountUpToN_DenseBox<MemorySpace, Points,

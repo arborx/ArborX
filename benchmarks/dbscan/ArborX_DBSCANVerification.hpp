@@ -295,9 +295,10 @@ struct IndexOnlyCallback
   }
 };
 
-template <typename ExecutionSpace, typename Primitives, typename LabelsView>
+template <typename ExecutionSpace, typename Primitives, typename LabelsView,
+          typename Coordinate>
 bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
-                  float eps, int core_min_size, LabelsView const &labels,
+                  Coordinate eps, int core_min_size, LabelsView const &labels,
                   bool verbose = false)
 {
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::verify");
