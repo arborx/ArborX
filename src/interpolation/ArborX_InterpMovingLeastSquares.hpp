@@ -116,9 +116,9 @@ public:
                   "Target and source points must have the same dimension");
 
     int num_neighbors_val =
-        (!num_neighbors)
-            ? Details::polynomialBasisSize<dimension, PolynomialDegree::value>()
-            : *num_neighbors;
+        num_neighbors ? *num_neighbors
+                      : Details::polynomialBasisSize<dimension,
+                                                     PolynomialDegree::value>();
 
     int const num_targets = tgt_acc::size(target_points);
     _source_size = source_points.extent(0);
@@ -152,11 +152,10 @@ public:
     auto const source_view = fillValuesIndicesAndGetSourceView(
         space, indices, offsets, num_targets, num_neighbors_val, source_points);
 
-    // Compute the Moving Least Squares
-    _coeffs = Kokkos::View<FloatingCalculationType **, MemorySpace>(
-        "ArborX::MovingLeastSquares::coefficients", 0, 0);
-    Details::movingLeastSquaresCoefficients<CRBF, PolynomialDegree>(
-        space, source_view, target_points, _coeffs);
+    // Compute the moving least squares coefficients
+    _coeffs = Details::movingLeastSquaresCoefficients<
+        CRBF, PolynomialDegree, FloatingCalculationType, MemorySpace>(
+        space, source_view, target_points);
   }
 
   template <typename ExecutionSpace, typename SourcePoints,

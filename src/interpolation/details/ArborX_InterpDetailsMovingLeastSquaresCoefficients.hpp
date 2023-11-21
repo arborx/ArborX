@@ -25,15 +25,20 @@
 namespace ArborX::Interpolation::Details
 {
 
-template <typename CRBF, typename PolynomialDegree, typename ExecutionSpace,
-          typename SourcePoints, typename TargetPoints, typename Coefficients>
-void movingLeastSquaresCoefficients(ExecutionSpace const &space,
-                                    SourcePoints const &source_points,
-                                    TargetPoints const &target_points,
-                                    Coefficients &coeffs)
+template <typename CRBF, typename PolynomialDegree, typename CoefficientsType,
+          typename MemorySpace, typename ExecutionSpace, typename SourcePoints,
+          typename TargetPoints>
+Kokkos::View<CoefficientsType **, MemorySpace>
+movingLeastSquaresCoefficients(ExecutionSpace const &space,
+                               SourcePoints const &source_points,
+                               TargetPoints const &target_points)
 {
   KokkosExt::ScopedProfileRegion guard(
       "ArborX::MovingLeastSquaresCoefficients");
+
+  static_assert(
+      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
+      "Memory space must be accessible from the execution space");
 
   // SourcePoints is a 2D view of points
   static_assert(Kokkos::is_view_v<SourcePoints> && SourcePoints::rank == 2,
@@ -61,26 +66,15 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
   static_assert(dimension == GeometryTraits::dimension_v<tgt_point>,
                 "target and source points must have the same dimension");
 
-  // Coefficients is a 2D view of values
-  static_assert(Kokkos::is_view_v<Coefficients> && Coefficients::rank == 2,
-                "coeffs must be a 2D view");
-  static_assert(
-      KokkosExt::is_accessible_from<typename Coefficients::memory_space,
-                                    ExecutionSpace>::value,
-      "coeffs must be accessible from the execution space");
-  static_assert(!std::is_const_v<typename Coefficients::value_type>,
-                "coeffs must be writable");
-
   int const num_targets = tgt_acc::size(target_points);
   int const num_neighbors = source_points.extent(1);
 
   // There must be a set of neighbors for each target
   KOKKOS_ASSERT(num_targets == source_points.extent_int(0));
 
-  using value_t = typename Coefficients::non_const_value_type;
-  using point_t = ExperimentalHyperGeometry::Point<dimension, value_t>;
-  using memory_space = typename Coefficients::memory_space;
-  static constexpr auto epsilon = Kokkos::Experimental::epsilon_v<value_t>;
+  using point_t = ExperimentalHyperGeometry::Point<dimension, CoefficientsType>;
+  static constexpr auto epsilon =
+      Kokkos::Experimental::epsilon_v<CoefficientsType>;
   static constexpr int degree = PolynomialDegree::value;
   static constexpr int poly_size = polynomialBasisSize<dimension, degree>();
 
@@ -97,7 +91,7 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
 
   // We first change the origin of the evaluation to be at the target point.
   // This lets us use p(0) which is [1 0 ... 0].
-  Kokkos::View<point_t **, memory_space> source_ref_target(
+  Kokkos::View<point_t **, MemorySpace> source_ref_target(
       Kokkos::view_alloc(
           space, Kokkos::WithoutInitializing,
           "ArborX::MovingLeastSquaresCoefficients::source_ref_target"),
@@ -123,7 +117,7 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
 
   // We then compute the radius for each target that will be used in evaluating
   // the weight for each source point.
-  Kokkos::View<value_t *, memory_space> radii(
+  Kokkos::View<CoefficientsType *, MemorySpace> radii(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::MovingLeastSquaresCoefficients::radii"),
       num_targets);
@@ -131,11 +125,11 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
       "ArborX::MovingLeastSquaresCoefficients::radii_computation",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_targets),
       KOKKOS_LAMBDA(int const i) {
-        value_t radius = epsilon;
+        CoefficientsType radius = epsilon;
 
         for (int j = 0; j < num_neighbors; j++)
         {
-          value_t norm =
+          CoefficientsType norm =
               ArborX::Details::distance(source_ref_target(i, j), point_t{});
           radius = Kokkos::max(radius, norm);
         }
@@ -149,7 +143,7 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
       "ArborX::MovingLeastSquaresCoefficients::phi_computation");
 
   // This computes PHI given the source points as well as the radius
-  Kokkos::View<value_t **, memory_space> phi(
+  Kokkos::View<CoefficientsType **, MemorySpace> phi(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::MovingLeastSquaresCoefficients::phi"),
       num_targets, num_neighbors);
@@ -158,7 +152,7 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
       Kokkos::MDRangePolicy<ExecutionSpace, Kokkos::Rank<2>>(
           space, {0, 0}, {num_targets, num_neighbors}),
       KOKKOS_LAMBDA(int const i, int const j) {
-        value_t norm =
+        CoefficientsType norm =
             ArborX::Details::distance(source_ref_target(i, j), point_t{});
         phi(i, j) = CRBF::evaluate(norm / radii(i));
       });
@@ -168,7 +162,7 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
       "ArborX::MovingLeastSquaresCoefficients::vandermonde");
 
   // This builds the Vandermonde (P) matrix
-  Kokkos::View<value_t ***, memory_space> p(
+  Kokkos::View<CoefficientsType ***, MemorySpace> p(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::MovingLeastSquaresCoefficients::vandermonde"),
       num_targets, num_neighbors, poly_size);
@@ -188,7 +182,7 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
 
   // We then create what is called the moment matrix, which is A = P^T.PHI.P. By
   // construction, A is symmetric.
-  Kokkos::View<value_t ***, memory_space> a(
+  Kokkos::View<CoefficientsType ***, MemorySpace> a(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::MovingLeastSquaresCoefficients::moment"),
       num_targets, poly_size, poly_size);
@@ -197,7 +191,7 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
       Kokkos::MDRangePolicy<ExecutionSpace, Kokkos::Rank<3>>(
           space, {0, 0, 0}, {num_targets, poly_size, poly_size}),
       KOKKOS_LAMBDA(int const i, int const j, int const k) {
-        value_t tmp = 0;
+        CoefficientsType tmp = 0;
         for (int l = 0; l < num_neighbors; l++)
           tmp += p(i, l, j) * p(i, l, k) * phi(i, l);
         a(i, j, k) = tmp;
@@ -217,19 +211,24 @@ void movingLeastSquaresCoefficients(ExecutionSpace const &space,
       "ArborX::MovingLeastSquaresCoefficients::coefficients_computation");
 
   // Finally, the result is produced by computing p(0).A.P^T.PHI
-  Kokkos::resize(space, coeffs, num_targets, num_neighbors);
+  Kokkos::View<CoefficientsType **, MemorySpace> coeffs(
+      Kokkos::view_alloc(
+          space, Kokkos::WithoutInitializing,
+          "ArborX::MovingLeastSquaresCoefficients::coefficients"),
+      num_targets, num_neighbors);
   Kokkos::parallel_for(
       "ArborX::MovingLeastSquaresCoefficients::coefficients_computation",
       Kokkos::MDRangePolicy<ExecutionSpace, Kokkos::Rank<2>>(
           space, {0, 0}, {num_targets, num_neighbors}),
       KOKKOS_LAMBDA(int const i, int const j) {
-        value_t tmp = 0;
+        CoefficientsType tmp = 0;
         for (int k = 0; k < poly_size; k++)
           tmp += a(i, 0, k) * p(i, j, k) * phi(i, j);
         coeffs(i, j) = tmp;
       });
 
   Kokkos::Profiling::popRegion();
+  return coeffs;
 }
 
 } // namespace ArborX::Interpolation::Details

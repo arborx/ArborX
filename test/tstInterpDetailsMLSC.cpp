@@ -56,7 +56,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::View<point0 *, MemorySpace> tgtp0("Testing::tgtp0", 3);
   Kokkos::View<double **, MemorySpace> srcv0("Testing::srcv0", 3, 2);
   Kokkos::View<double *, MemorySpace> tgtv0("Testing::tgtv0", 3);
-  Kokkos::View<double **, MemorySpace> coeffs0("Testing::coeffs0", 0, 0);
   Kokkos::parallel_for(
       "Testing::mls_coefficients::for0",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, 3),
@@ -71,9 +70,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
         srcv0(i, 1) = f(srcp0(i, 1));
         tgtv0(i) = f(tgtp0(i));
       });
-  ArborX::Interpolation::Details::movingLeastSquaresCoefficients<
+  auto coeffs0 = ArborX::Interpolation::Details::movingLeastSquaresCoefficients<
       ArborX::Interpolation::CRBF::Wendland<0>,
-      ArborX::Interpolation::PolynomialDegree<1>>(space, srcp0, tgtp0, coeffs0);
+      ArborX::Interpolation::PolynomialDegree<1>, double, MemorySpace>(
+      space, srcp0, tgtp0);
   auto eval0 = interpolate(space, srcv0, coeffs0);
   ARBORX_MDVIEW_TEST_TOL(eval0, tgtv0, Kokkos::Experimental::epsilon_v<float>);
 
@@ -91,7 +91,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::View<point1 *, MemorySpace> tgtp1("Testing::tgtp1", 4);
   Kokkos::View<double **, MemorySpace> srcv1("Testing::srcv1", 4, 8);
   Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
-  Kokkos::View<double **, MemorySpace> coeffs1("Testing::coeffs1", 0, 0);
   Kokkos::parallel_for(
       "Testing::mls_coefficients::for1",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, 4),
@@ -116,9 +115,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
           srcv1(i, j) = f(srcp1(i, j));
         tgtv1(i) = f(tgtp1(i));
       });
-  ArborX::Interpolation::Details::movingLeastSquaresCoefficients<
+  auto coeffs1 = ArborX::Interpolation::Details::movingLeastSquaresCoefficients<
       ArborX::Interpolation::CRBF::Wendland<2>,
-      ArborX::Interpolation::PolynomialDegree<2>>(space, srcp1, tgtp1, coeffs1);
+      ArborX::Interpolation::PolynomialDegree<2>, double, MemorySpace>(
+      space, srcp1, tgtp1);
   auto eval1 = interpolate(space, srcv1, coeffs1);
   ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1, Kokkos::Experimental::epsilon_v<float>);
 }
@@ -136,7 +136,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients_edge_cases, DeviceType,
   Kokkos::View<point0 *, MemorySpace> tgtp0("Testing::tgtp0", 3);
   Kokkos::View<double **, MemorySpace> srcv0("Testing::srcv0", 3, 2);
   Kokkos::View<double *, MemorySpace> tgtv0("Testing::tgtv0", 3);
-  Kokkos::View<double **, MemorySpace> coeffs0("Testing::coeffs0", 0, 0);
   Kokkos::parallel_for(
       "Testing::mls_coefficients_edge_cases::for0",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, 3),
@@ -151,9 +150,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients_edge_cases, DeviceType,
         srcv0(i, 1) = f(srcp0(i, 1));
         tgtv0(i) = f(tgtp0(i));
       });
-  ArborX::Interpolation::Details::movingLeastSquaresCoefficients<
+  auto coeffs0 = ArborX::Interpolation::Details::movingLeastSquaresCoefficients<
       ArborX::Interpolation::CRBF::Wendland<0>,
-      ArborX::Interpolation::PolynomialDegree<1>>(space, srcp0, tgtp0, coeffs0);
+      ArborX::Interpolation::PolynomialDegree<1>, double, MemorySpace>(
+      space, srcp0, tgtp0);
   auto eval0 = interpolate(space, srcv0, coeffs0);
   ARBORX_MDVIEW_TEST_TOL(eval0, tgtv0, Kokkos::Experimental::epsilon_v<float>);
 
@@ -163,7 +163,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients_edge_cases, DeviceType,
   Kokkos::View<point1 *, MemorySpace> tgtp1("Testing::tgtp1", 4);
   Kokkos::View<double **, MemorySpace> srcv1("Testing::srcv1", 4, 8);
   Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
-  Kokkos::View<double **, MemorySpace> coeffs1("Testing::coeffs1", 0, 0);
   Kokkos::parallel_for(
       "Testing::mls_coefficients_edge_cases::for1",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, 4),
@@ -188,9 +187,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients_edge_cases, DeviceType,
           srcv1(i, j) = f(srcp1(i, j));
         tgtv1(i) = f(tgtp1(i));
       });
-  ArborX::Interpolation::Details::movingLeastSquaresCoefficients<
+  auto coeffs1 = ArborX::Interpolation::Details::movingLeastSquaresCoefficients<
       ArborX::Interpolation::CRBF::Wendland<2>,
-      ArborX::Interpolation::PolynomialDegree<2>>(space, srcp1, tgtp1, coeffs1);
+      ArborX::Interpolation::PolynomialDegree<2>, double, MemorySpace>(
+      space, srcp1, tgtp1);
   auto eval1 = interpolate(space, srcv1, coeffs1);
   ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1, Kokkos::Experimental::epsilon_v<float>);
 }
