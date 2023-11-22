@@ -84,7 +84,7 @@ void basisChange(ExecutionSpace space,
 }
 
 // Dumps the data in a file in a csv format
-void dump_msl_data(std::string const &dump_filename,
+void dump_mls_data(std::string const &dump_filename,
                    Kokkos::View<Point *, MemorySpace> const source_points,
                    Kokkos::View<Point *, MemorySpace> const target_points,
                    Kokkos::View<double *, MemorySpace> const source_values,
@@ -208,7 +208,7 @@ void mls_example(std::size_t num_points, std::optional<int> num_neighbors,
   std::cout << "L2 Error: " << l2_error << '\n';
 
   if (!dump_file.empty())
-    dump_msl_data(dump_file, source_points, target_points, source_values,
+    dump_mls_data(dump_file, source_points, target_points, source_values,
                   target_values, approx_values);
 }
 
@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
     ("points",
       boost::program_options::value<std::size_t>(&num_points)
         ->default_value(Kokkos::pow(100, DIM)),
-      "Sets the number of points in the [-1/2 ; 1/2] range")
+      "Sets the number of source and target points")
     ("neighbors",
       boost::program_options::value<std::size_t>(&num_neighbors)
         ->default_value(0),
@@ -234,7 +234,7 @@ int main(int argc, char *argv[])
     ("dump",
       boost::program_options::value<std::string>(&dump_file)
         ->default_value(""),
-      "Dump file name (as csv format)");
+      "Dumps evaluation and approximation in filename (in csv format)");
   // clang-format on
 
   boost::program_options::variables_map vm;
