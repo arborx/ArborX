@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
   auto eval0 = mls0.interpolate(space, srcv0);
   ARBORX_MDVIEW_TEST_TOL(eval0, tgtv0, Kokkos::Experimental::epsilon_v<float>);
 
-  // Case 2: f(x, y) = xy + x, 8 neighbors, quad
+  // Case 2: f(x, y) = xy + 4x, 8 neighbors, quad
   //        ^
   //        |
   //    S   S   S
@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
         int v = (i % 2) * 2 - 1;
         int x = (i / 3) - 1;
         int y = (i % 3) - 1;
-        auto f = [](const point1 &p) { return p[0] * p[1] + p[0]; };
+        auto f = [](const point1 &p) { return p[0] * p[1] + 4 * p[0]; };
 
         srcp1(i) = {{x * 2., y * 2.}};
         srcv1(i) = f(srcp1(i));
@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
         int v = (i % 2) * 2 - 1;
         int x = (i / 3) - 1;
         int y = (i % 3) - 1;
-        auto f = [](const point1 &p) { return p[0] * p[1] + p[0]; };
+        auto f = [](const point1 &p) { return p[0] * p[1] + 4 * p[0]; };
 
         srcp1(i) = {{x * 2., y * 2.}};
         srcv1(i) = f(srcp1(i));
