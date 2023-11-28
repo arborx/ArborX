@@ -14,6 +14,7 @@
 
 #include <Kokkos_Core.hpp>
 
+/*
 #include <boost/program_options.hpp>
 
 #include <fstream>
@@ -251,5 +252,12 @@ int main(int argc, char *argv[])
   mls_example(num_points,
               num_neighbors == 0 ? std::nullopt : std::optional(num_neighbors),
               dump_file);
+  return 0;
+}
+*/
+
+int main(int argc, char *argv[])
+{
+  Kokkos::ScopeGuard guard(argc, argv);
   return 0;
 }
