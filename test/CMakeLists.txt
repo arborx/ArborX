@@ -31,11 +31,6 @@ endif()
 configure_file(ArborX_EnableDeviceTypes.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/ArborX_EnableDeviceTypes.hpp @ONLY)
 
 find_package(Boost 1.67.0 REQUIRED COMPONENTS unit_test_framework)
-# CMake Boost version check is tricky due to multiple changes to the way Boost
-# package stores version information
-if(NOT DEFINED Boost_VERSION_MINOR)
-  set(Boost_VERSION_MINOR ${Boost_MINOR_VERSION})
-endif()
 if(Kokkos_ENABLE_CUDA AND Boost_VERSION VERSION_GREATER 1.68 AND Boost_VERSION VERSION_LESS 1.75)
   message(WARNING "Boost versions 1.69 to 1.74 are known to yield build issues with NVCC")
 endif()
