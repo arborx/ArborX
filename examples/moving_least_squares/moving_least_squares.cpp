@@ -14,75 +14,16 @@
 
 #include <Kokkos_Core.hpp>
 
-/*
 #include <boost/program_options.hpp>
 
 #include <fstream>
 #include <iostream>
 #include <optional>
-#include <random>
 
 using Point = ArborX::ExperimentalHyperGeometry::Point<2, double>;
 constexpr int DIM = ArborX::GeometryTraits::dimension<Point>::value;
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
 using MemorySpace = typename ExecutionSpace::memory_space;
-
-// Randomly fills a 2 * half_edge box centered at 0
-void filledBoxRandom(double half_edge,
-                     Kokkos::View<Point *, MemorySpace> points)
-{
-  int n = points.extent(0);
-  auto points_host = Kokkos::create_mirror_view(points);
-
-  std::uniform_real_distribution<double> dist(-half_edge, half_edge);
-  std::random_device rd;
-  std::default_random_engine gen(rd());
-  auto random = [&dist, &gen]() { return dist(gen); };
-  for (int i = 0; i < n; ++i)
-    for (int d = 0; d < DIM; ++d)
-      points_host(i)[d] = random();
-
-  Kokkos::deep_copy(points, points_host);
-}
-
-// Evenly fills a 2 * half_edge box centered at 0
-void filledBoxEven(double half_edge, std::array<int, DIM> const line_len,
-                   Kokkos::View<Point *, MemorySpace> points)
-{
-  int n = points.extent(0);
-  auto points_host = Kokkos::create_mirror_view(points);
-
-  for (int i = 0; i < n; ++i)
-  {
-    int j = i;
-    for (int d = 0; d < DIM; ++d)
-    {
-      points_host(i)[d] =
-          2 * (j % line_len[d]) * half_edge / (line_len[d] - 1) - half_edge;
-      j = j / line_len[d];
-    }
-  }
-
-  Kokkos::deep_copy(points, points_host);
-}
-
-// Switches the set of points to the new base
-void basisChange(ExecutionSpace space,
-                 Kokkos::View<Point *, MemorySpace> points,
-                 Kokkos::View<Point[DIM], MemorySpace> const basis,
-                 Point const offset)
-{
-  int n = points.extent(0);
-  Kokkos::parallel_for(
-      "Example::basis_change", Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-      KOKKOS_LAMBDA(int const i) {
-        Point t = offset;
-        for (int j = 0; j < DIM; j++)
-          for (int k = 0; k < DIM; k++)
-            t[j] += points(i)[k] * basis(k)[j];
-        points(i) = t;
-      });
-}
 
 // Dumps the data in a file in a csv format
 void dump_mls_data(std::string const &dump_filename,
@@ -92,16 +33,23 @@ void dump_mls_data(std::string const &dump_filename,
                    Kokkos::View<double *, MemorySpace> const target_values,
                    Kokkos::View<double *, MemorySpace> const approx_values)
 {
-  std::fstream dump_file_stream(dump_filename, std::ios::out | std::ios::trunc);
-  if (!dump_file_stream)
-    throw std::runtime_error("Unable to open/create file " + dump_filename);
+  std::fstream source_fs("source-" + dump_filename,
+                         std::ios::out | std::ios::trunc);
+  if (!source_fs)
+    throw std::runtime_error("Unable to open/create file source-" +
+                             dump_filename);
+  std::fstream target_fs("target-" + dump_filename,
+                         std::ios::out | std::ios::trunc);
+  if (!target_fs)
+    throw std::runtime_error("Unable to open/create file target-" +
+                             dump_filename);
 
   for (int i = 0; i < DIM; i++)
-    dump_file_stream << "source coord " << i << ';';
-  dump_file_stream << "source value;";
+    source_fs << "source coord " << i << ';';
+  source_fs << "source value\n";
   for (int i = 0; i < DIM; i++)
-    dump_file_stream << "target coord " << i << ';';
-  dump_file_stream << "target value;approx value\n";
+    target_fs << "target coord " << i << ';';
+  target_fs << "target value;approx value\n";
 
   auto source_points_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, source_points);
@@ -114,17 +62,57 @@ void dump_mls_data(std::string const &dump_filename,
   auto approx_values_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, approx_values);
 
-  int const num_points = source_points.extent(0);
-  for (int i = 0; i < num_points; i++)
+  int const source_num_points = source_points.extent(0);
+  int const target_num_points = target_points.extent(0);
+  for (int i = 0; i < source_num_points; i++)
   {
     for (int j = 0; j < DIM; j++)
-      dump_file_stream << source_points_host(i)[j] << ';';
-    dump_file_stream << source_values_host(i) << ';';
-    for (int j = 0; j < DIM; j++)
-      dump_file_stream << target_points_host(i)[j] << ';';
-    dump_file_stream << target_values_host(i) << ';' << approx_values_host(i)
-                     << '\n';
+      source_fs << source_points_host(i)[j] << ';';
+    source_fs << source_values_host(i) << '\n';
   }
+  for (int i = 0; i < target_num_points; i++)
+  {
+    for (int j = 0; j < DIM; j++)
+      target_fs << target_points_host(i)[j] << ';';
+    target_fs << target_values_host(i) << ';' << approx_values_host(i) << '\n';
+  }
+}
+
+// Evenly fills a [-1, 1] box centered at 0
+void filledBoxEven(Kokkos::View<Point *, MemorySpace> points)
+{
+  int n = points.extent(0);
+  auto points_host = Kokkos::create_mirror_view(points);
+  int const side_length = Kokkos::pow(points.extent(0), 1. / DIM);
+
+  for (int i = 0; i < n; ++i)
+  {
+    int j = i;
+    for (int d = 0; d < DIM; ++d)
+    {
+      points_host(i)[d] = 2 * (j % side_length) * 1. / (side_length - 1) - 1.;
+      j = j / side_length;
+    }
+  }
+
+  Kokkos::deep_copy(points, points_host);
+}
+
+// Switches the set of points to the new base
+void basisChange(ExecutionSpace space,
+                 Kokkos::View<Point *, MemorySpace> points,
+                 Kokkos::View<Point[DIM], MemorySpace> const basis)
+{
+  int n = points.extent(0);
+  Kokkos::parallel_for(
+      "Example::basis_change", Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+      KOKKOS_LAMBDA(int const i) {
+        Point t = Point{};
+        for (int j = 0; j < DIM; j++)
+          for (int k = 0; k < DIM; k++)
+            t[j] += points(i)[k] * basis(k)[j];
+        points(i) = t;
+      });
 }
 
 // Funtion to approximate
@@ -134,77 +122,66 @@ KOKKOS_INLINE_FUNCTION double functionToApproximate(Point const &p)
   return (x > 0) ? 1 : 0;
 }
 
-void mls_example(std::size_t num_points, std::optional<int> num_neighbors,
-                 std::string const &dump_file)
+void mls_example(int source_num_points, int target_num_points,
+                 std::optional<int> num_neighbors, std::string const &dump_file)
 {
   ExecutionSpace space{};
-  int const side_len = Kokkos::pow(num_points, 1. / DIM);
-
-  // Basis change
-  Kokkos::View<Point[DIM], MemorySpace> source_basis("Example::source_basis");
-  Kokkos::View<Point[DIM], MemorySpace> target_basis("Example::target_basis");
-  Kokkos::parallel_for(
-      "Example::fill_basis", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1),
-      KOKKOS_LAMBDA(int const) {
-        for (int i = 0; i < DIM; i++)
-        {
-          source_basis(i) = Point{};
-          target_basis(i) = Point{};
-          for (int j = 0; j < DIM; j++)
-          {
-            source_basis(i)[j] = double(i == j);
-            target_basis(i)[j] = double(i == j);
-          }
-        }
-      });
 
   // Generation of points
   Kokkos::View<Point *, MemorySpace> source_points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::source_points"),
-      num_points);
+      source_num_points);
   Kokkos::View<double *, MemorySpace> source_values(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::source_values"),
-      num_points);
+      source_num_points);
   Kokkos::View<Point *, MemorySpace> target_points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::target_points"),
-      num_points);
+      target_num_points);
   Kokkos::View<double *, MemorySpace> target_values(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::target_values"),
-      num_points);
+      target_num_points);
 
-  // Sets the meshes
-  filledBoxEven(0.5, {side_len, side_len}, source_points);
-  // filledBoxRandom(0.5, source_points);
-  basisChange(space, source_points, source_basis, Point{});
-  filledBoxEven(0.5, {side_len, side_len}, target_points);
-  // filledBoxRandom(0.5, target_points);
-  basisChange(space, target_points, target_basis, Point{});
+  filledBoxEven(source_points);
+  filledBoxEven(target_points);
+
+  // Basis change
+  Kokkos::View<Point[DIM], MemorySpace> target_basis("Example::target_basis");
+  Kokkos::parallel_for(
+      "Example::fill_basis", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1),
+      KOKKOS_LAMBDA(int const) {
+        auto const sqrt2 = Kokkos::sqrt(2.);
+        target_basis(0) = {.5 * sqrt2 / 2, .5 * sqrt2 / 2};
+        target_basis(1) = {.5 * -sqrt2 / 2, .5 * sqrt2 / 2};
+      });
+  basisChange(space, target_points, target_basis);
 
   Kokkos::parallel_for(
       "Example::fill_views",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_points),
+      Kokkos::RangePolicy<ExecutionSpace>(
+          space, 0, Kokkos::max(source_num_points, target_num_points)),
       KOKKOS_LAMBDA(int const i) {
-        source_values(i) = functionToApproximate(source_points(i));
-        target_values(i) = functionToApproximate(target_points(i));
+        if (i < source_num_points)
+          source_values(i) = functionToApproximate(source_points(i));
+        if (i < target_num_points)
+          target_values(i) = functionToApproximate(target_points(i));
       });
 
   ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls(
       space, source_points, target_points, num_neighbors,
       ArborX::Interpolation::CRBF::Wendland<0>{},
       ArborX::Interpolation::PolynomialDegree<2>{});
-
   auto approx_values = mls.interpolate(space, source_values);
 
   double l2_error;
   Kokkos::parallel_reduce(
       "Example::l2_error",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_points),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, target_num_points),
       KOKKOS_LAMBDA(int const i, double &loc_error) {
         auto val = target_values(i) - approx_values(i);
         loc_error += val * val;
       },
       Kokkos::Sum<double>(l2_error));
-  l2_error = Kokkos::sqrt(l2_error / num_points);
+  l2_error = Kokkos::sqrt(l2_error / target_num_points);
 
   std::cout << "L2 Error: " << l2_error << '\n';
 
@@ -217,17 +194,23 @@ int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
 
-  std::size_t num_points;
+  std::size_t source_num_points;
+  std::size_t target_num_points;
   std::string dump_file;
   std::size_t num_neighbors;
   boost::program_options::options_description desc("Allowed options");
+
   // clang-format off
   desc.add_options()
     ("help", "show help message")
-    ("points",
-      boost::program_options::value<std::size_t>(&num_points)
+    ("src",
+      boost::program_options::value<std::size_t>(&source_num_points)
         ->default_value(Kokkos::pow(100, DIM)),
-      "Sets the number of source and target points")
+      "Sets the number of source points")
+    ("tgt",
+      boost::program_options::value<std::size_t>(&target_num_points)
+        ->default_value(Kokkos::pow(100, DIM)),
+      "Sets the number of target points")
     ("neighbors",
       boost::program_options::value<std::size_t>(&num_neighbors)
         ->default_value(0),
@@ -249,15 +232,8 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  mls_example(num_points,
+  mls_example(source_num_points, target_num_points,
               num_neighbors == 0 ? std::nullopt : std::optional(num_neighbors),
               dump_file);
-  return 0;
-}
-*/
-
-int main(int argc, char *argv[])
-{
-  Kokkos::ScopeGuard guard(argc, argv);
   return 0;
 }
