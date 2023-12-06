@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.5.0](https://github.com/arborx/arborx/tree/v1.5.0) (2023-12-16)
+
+[Full Changelog](https://github.com/arborx/arborx/compare/v1.4.1...v1.5.0)
+
+**Build Changes:**
+- Require Kokkos 4.0.00 [\#895](https://github.com/arborx/ArborX/pull/895)
+
+**Enhancements:**
+- Add a multi-dimensional triangle (EXPERIMENTAL) [\#916](https://github.com/arborx/ArborX/pull/916)
+- Add example of triangle-point intersections [\#542](https://github.com/arborx/ArborX/pull/542)
+- Allow running individual queries in non-batch mode (EXPERIMENTAL) [\#917](https://github.com/arborx/ArborX/pull/917)
+- Support for MSVC (core only) [\#908](https://github.com/arborx/ArborX/pull/908)
+
+**Fixed bugs:**
+- Fix compilation for CUDA-12.2 [\#933](https://github.com/arborx/ArborX/pull/933)
+- Fix a bug in the dendrogram generation [\#955](https://github.com/arborx/ArborX/pull/955)
+- Fix compilation for C++20 [\#884](https://github.com/arborx/ArborX/pull/884)
+
 ## [1.4.1](https://github.com/arborx/arborx/tree/v1.4.1) (2023-06-08)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v1.4...v1.4.1)
