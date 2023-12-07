@@ -13,7 +13,6 @@
 #define ARBORX_DETAILSDBSCANVERIFICATION_HPP
 
 #include <ArborX_DetailsUtils.hpp>
-#include <ArborX_HyperBox.hpp>
 #include <ArborX_LinearBVH.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -312,9 +311,8 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   using Point = typename Points::value_type;
   static_assert(GeometryTraits::is_point<Point>{});
 
-  ArborX::BoundingVolumeHierarchy<MemorySpace,
-                                  ArborX::Details::PairIndexVolume<Point>>
-      bvh(exec_space, ArborX::Details::LegacyValues<Points, Point>{points});
+  ArborX::BoundingVolumeHierarchy<MemorySpace, ArborX::PairValueIndex<Point>>
+      bvh(exec_space, ArborX::AttachIndices<Points>{points});
 
   auto const predicates = Details::PrimitivesWithRadius<Points>{points, eps};
 

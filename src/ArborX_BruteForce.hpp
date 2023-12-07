@@ -96,10 +96,10 @@ template <typename MemorySpace>
 class BruteForce<MemorySpace, Details::LegacyDefaultTemplateValue,
                  Details::DefaultIndexableGetter,
                  ExperimentalHyperGeometry::Box<3, float>>
-    : public BruteForce<MemorySpace, Details::PairIndexVolume<Box>,
+    : public BruteForce<MemorySpace, PairValueIndex<Box>,
                         Details::DefaultIndexableGetter, Box>
 {
-  using base_type = BruteForce<MemorySpace, Details::PairIndexVolume<Box>,
+  using base_type = BruteForce<MemorySpace, PairValueIndex<Box>,
                                Details::DefaultIndexableGetter, Box>;
 
 public:

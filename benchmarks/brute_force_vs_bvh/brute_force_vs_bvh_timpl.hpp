@@ -90,9 +90,8 @@ static void run_fp(int nprimitives, int nqueries, int nrepeats)
     {
       Kokkos::Timer timer;
       ArborX::BoundingVolumeHierarchy<MemorySpace,
-                                      ArborX::Details::PairIndexVolume<Point>>
-          bvh{space, ArborX::Details::LegacyValues<decltype(primitives), Point>{
-                         primitives}};
+                                      ArborX::PairValueIndex<Point>>
+          bvh{space, ArborX::AttachIndices<decltype(primitives)>{primitives}};
 
       Kokkos::View<int *, ExecutionSpace> indices("Benchmark::indices_ref", 0);
       Kokkos::View<int *, ExecutionSpace> offset("Benchmark::offset_ref", 0);
@@ -110,10 +109,8 @@ static void run_fp(int nprimitives, int nqueries, int nrepeats)
 
     {
       Kokkos::Timer timer;
-      ArborX::BruteForce<MemorySpace, ArborX::Details::PairIndexVolume<Point>>
-          brute{space,
-                ArborX::Details::LegacyValues<decltype(primitives), Point>{
-                    primitives}};
+      ArborX::BruteForce<MemorySpace, ArborX::PairValueIndex<Point>> brute{
+          space, ArborX::AttachIndices<decltype(primitives)>{primitives}};
 
       Kokkos::View<int *, ExecutionSpace> indices("Benchmark::indices", 0);
       Kokkos::View<int *, ExecutionSpace> offset("Benchmark::offset", 0);

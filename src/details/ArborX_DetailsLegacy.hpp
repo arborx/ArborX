@@ -13,7 +13,7 @@
 #define ARBORX_DETAILS_LEGACY_HPP
 
 #include <ArborX_AccessTraits.hpp>
-#include <ArborX_DetailsNode.hpp>
+#include <ArborX_PairValueIndex.hpp>
 
 namespace ArborX::Details
 {
@@ -26,7 +26,8 @@ class LegacyValues
 
 public:
   using memory_space = typename Access::memory_space;
-  using value_type = Details::PairIndexVolume<BoundingVolume>;
+  using index_type = unsigned;
+  using value_type = PairValueIndex<BoundingVolume, index_type>;
   using size_type =
       Kokkos::detected_t<Details::AccessTraitsSizeArchetypeExpression, Access,
                          Primitives>;
@@ -41,13 +42,13 @@ public:
     if constexpr (std::is_same_v<BoundingVolume,
                                  typename AccessTraitsHelper<Access>::type>)
     {
-      return value_type{(unsigned)i, Access::get(_primitives, i)};
+      return value_type{Access::get(_primitives, i), (index_type)i};
     }
     else
     {
       BoundingVolume bounding_volume{};
       expand(bounding_volume, Access::get(_primitives, i));
-      return value_type{(unsigned)i, bounding_volume};
+      return value_type{bounding_volume, (index_type)i};
     }
   }
 
@@ -60,16 +61,16 @@ struct LegacyCallbackWrapper
 {
   Callback _callback;
 
-  template <typename Predicate, typename Geometry>
+  template <typename Predicate, typename Value>
   KOKKOS_FUNCTION auto operator()(Predicate const &predicate,
-                                  PairIndexVolume<Geometry> const &value) const
+                                  PairValueIndex<Value> const &value) const
   {
     return _callback(predicate, value.index);
   }
 
-  template <typename Predicate, typename Geometry, typename Output>
+  template <typename Predicate, typename Value, typename Output>
   KOKKOS_FUNCTION auto operator()(Predicate const &predicate,
-                                  PairIndexVolume<Geometry> const &value,
+                                  PairValueIndex<Value> const &value,
                                   Output const &out) const
   {
     return _callback(predicate, value.index, out);
@@ -78,9 +79,9 @@ struct LegacyCallbackWrapper
 
 struct LegacyDefaultCallback
 {
-  template <typename Query, typename Geometry, typename OutputFunctor>
+  template <typename Query, typename Value, typename OutputFunctor>
   KOKKOS_FUNCTION void operator()(Query const &,
-                                  PairIndexVolume<Geometry> const &value,
+                                  PairValueIndex<Value> const &value,
                                   OutputFunctor const &output) const
   {
     output(value.index);

@@ -23,13 +23,6 @@ namespace ArborX::Details
 
 constexpr int ROPE_SENTINEL = -1;
 
-template <class BoundingVolume>
-struct PairIndexVolume
-{
-  unsigned index;
-  BoundingVolume bounding_volume;
-};
-
 template <class Value>
 struct LeafNode
 {
