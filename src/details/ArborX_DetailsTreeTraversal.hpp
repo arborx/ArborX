@@ -104,9 +104,7 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     int node = HappyTreeFriends::getRoot(_bvh); // start with root
     do
     {
-      bool const is_leaf = HappyTreeFriends::isLeaf(_bvh, node);
-
-      if (is_leaf)
+      if (HappyTreeFriends::isLeaf(_bvh, node))
       {
         if (predicate(HappyTreeFriends::getIndexable(_bvh, node)) &&
             invoke_callback_and_check_early_exit(

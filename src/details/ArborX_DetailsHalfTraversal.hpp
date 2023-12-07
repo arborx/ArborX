@@ -61,9 +61,7 @@ struct HalfTraversal
     int node = HappyTreeFriends::getRope(_bvh, i);
     while (node != ROPE_SENTINEL)
     {
-      bool const is_leaf = HappyTreeFriends::isLeaf(_bvh, node);
-
-      if (is_leaf)
+      if (HappyTreeFriends::isLeaf(_bvh, node))
       {
         if (predicate(HappyTreeFriends::getIndexable(_bvh, node)))
           _callback(leaf_permutation_i, HappyTreeFriends::getValue(_bvh, node));
