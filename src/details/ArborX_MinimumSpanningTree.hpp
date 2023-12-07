@@ -46,14 +46,17 @@ struct MinimumSpanningTree
   {
     Kokkos::Profiling::pushRegion("ArborX::MST::MST");
 
-    using Access = AccessTraits<Primitives, PrimitivesTag>;
-    using Point = typename AccessTraitsHelper<Access>::type;
+    using Points = Details::AccessValues<Primitives>;
+    using Point = typename Points::value_type;
+    static_assert(GeometryTraits::is_point<Point>{});
 
-    auto const n = AccessTraits<Primitives, PrimitivesTag>::size(primitives);
+    Points points{primitives};
+
+    auto const n = points.size();
 
     Kokkos::Profiling::pushRegion("ArborX::MST::construction");
     BasicBoundingVolumeHierarchy<MemorySpace, PairIndexVolume<Point>> bvh(
-        space, Details::LegacyValues<Primitives, Point>{primitives});
+        space, Details::LegacyValues<Points, Point>{points});
     Kokkos::Profiling::popRegion();
 
     if (k > 1)
@@ -61,9 +64,9 @@ struct MinimumSpanningTree
       Kokkos::Profiling::pushRegion("ArborX::MST::compute_core_distances");
       Kokkos::View<float *, MemorySpace> core_distances(
           "ArborX::MST::core_distances", n);
-      bvh.query(space, NearestK<Primitives>{primitives, k},
-                MaxDistance<Primitives, decltype(core_distances)>{
-                    primitives, core_distances});
+      bvh.query(space, NearestK<Points>{points, k},
+                MaxDistance<Points, decltype(core_distances)>{points,
+                                                              core_distances});
       Kokkos::Profiling::popRegion();
 
       MutualReachability<decltype(core_distances)> mutual_reachability{

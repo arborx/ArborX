@@ -29,8 +29,7 @@ struct MaxDistance
   Primitives _primitives;
   Distances _distances;
 
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-  using memory_space = typename Access::memory_space;
+  using memory_space = typename Primitives::memory_space;
   using size_type = typename memory_space::size_type;
 
   template <class Predicate, typename Value>
@@ -40,8 +39,7 @@ struct MaxDistance
     size_type const i = value.index;
     size_type const j = getData(predicate);
     using KokkosExt::max;
-    auto const distance_ij =
-        distance(Access::get(_primitives, i), Access::get(_primitives, j));
+    auto const distance_ij = distance(_primitives(i), _primitives(j));
     // NOTE using knowledge that each nearest predicate traversal is performed
     // by a single thread.  The distance update below would need to be atomic
     // otherwise.
@@ -61,17 +59,16 @@ struct NearestK
 template <class Primitives>
 struct AccessTraits<Details::NearestK<Primitives>, PredicatesTag>
 {
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
-  using memory_space = typename Access::memory_space;
+  using memory_space = typename Primitives::memory_space;
   using size_type = typename memory_space::size_type;
   static KOKKOS_FUNCTION size_type size(Details::NearestK<Primitives> const &x)
   {
-    return Access::size(x.primitives);
+    return x.primitives.size();
   }
   static KOKKOS_FUNCTION auto get(Details::NearestK<Primitives> const &x,
                                   size_type i)
   {
-    return attach(nearest(Access::get(x.primitives, i), x.k), i);
+    return attach(nearest(x.primitives(i), x.k), i);
   }
 };
 

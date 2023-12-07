@@ -232,14 +232,15 @@ using BVH = BoundingVolumeHierarchy<MemorySpace>;
 
 template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
-template <typename ExecutionSpace, typename Values, typename SpaceFillingCurve>
+template <typename ExecutionSpace, typename UserValues,
+          typename SpaceFillingCurve>
 BasicBoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
                              BoundingVolume>::
     BasicBoundingVolumeHierarchy(ExecutionSpace const &space,
-                                 Values const &user_values,
+                                 UserValues const &user_values,
                                  IndexableGetter const &indexable_getter,
                                  SpaceFillingCurve const &curve)
-    : _size(AccessTraits<Values, PrimitivesTag>::size(user_values))
+    : _size(AccessTraits<UserValues, PrimitivesTag>::size(user_values))
     , _leaf_nodes(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                      "ArborX::BVH::leaf_nodes"),
                   _size)
@@ -251,10 +252,13 @@ BasicBoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
   // FIXME redo with RangeTraits
-  Details::check_valid_access_traits<Values>(
+  Details::check_valid_access_traits<UserValues>(
       PrimitivesTag{}, user_values, Details::DoNotCheckGetReturnType());
-  using Access = AccessTraits<Values, PrimitivesTag>;
-  static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
+
+  using Values = Details::AccessValues<UserValues>;
+  Values values{user_values};
+
+  static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,
                                               ExecutionSpace>::value,
                 "Values must be accessible from the execution space");
 
@@ -269,8 +273,6 @@ BasicBoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
     return;
   }
 
-  Details::AccessValues<Values> values{user_values};
-
   if (size() == 1)
   {
     Details::TreeConstruction::initializeSingleLeafTree(
@@ -278,8 +280,8 @@ BasicBoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
     return;
   }
 
-  Details::Indexables<decltype(values), IndexableGetter> indexables{
-      values, indexable_getter};
+  Details::Indexables<Values, IndexableGetter> indexables{values,
+                                                          indexable_getter};
 
   Kokkos::Profiling::pushRegion(
       "ArborX::BVH::BVH::calculate_scene_bounding_box");
