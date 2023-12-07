@@ -104,27 +104,20 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     int node = HappyTreeFriends::getRoot(_bvh); // start with root
     do
     {
-      bool const is_leaf = HappyTreeFriends::isLeaf(_bvh, node);
-
-      if (is_leaf ? predicate(HappyTreeFriends::getIndexable(_bvh, node))
-                  : predicate(HappyTreeFriends::getInternalBoundingVolume(
-                        _bvh, node)))
+      if (HappyTreeFriends::isLeaf(_bvh, node))
       {
-        if (is_leaf)
-        {
-          if (invoke_callback_and_check_early_exit(
-                  _callback, predicate, HappyTreeFriends::getValue(_bvh, node)))
-            return;
-          node = HappyTreeFriends::getRope(_bvh, node);
-        }
-        else
-        {
-          node = HappyTreeFriends::getLeftChild(_bvh, node);
-        }
+        if (predicate(HappyTreeFriends::getIndexable(_bvh, node)) &&
+            invoke_callback_and_check_early_exit(
+                _callback, predicate, HappyTreeFriends::getValue(_bvh, node)))
+          return;
+        node = HappyTreeFriends::getRope(_bvh, node);
       }
       else
       {
-        node = HappyTreeFriends::getRope(_bvh, node);
+        node =
+            (predicate(HappyTreeFriends::getInternalBoundingVolume(_bvh, node))
+                 ? HappyTreeFriends::getLeftChild(_bvh, node)
+                 : HappyTreeFriends::getRope(_bvh, node));
       }
     } while (node != ROPE_SENTINEL);
   }
