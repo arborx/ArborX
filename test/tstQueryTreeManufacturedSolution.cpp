@@ -27,7 +27,7 @@ namespace ArborX
 {
 namespace Experimental
 {
-template <int k>
+template <int k, typename Coordinate>
 struct KDOP;
 }
 } // namespace ArborX

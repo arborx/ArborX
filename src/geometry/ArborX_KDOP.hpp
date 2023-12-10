@@ -26,108 +26,114 @@ namespace ArborX
 {
 namespace Details
 {
+template <typename Coordinate>
 struct Direction
 {
-  float _data[3];
+  Coordinate _data[3];
 };
 
-template <int k>
+template <int k, typename Coordinate>
 struct KDOP_Directions;
 
-template <>
-struct KDOP_Directions<6>
+template <typename Coordinate>
+struct KDOP_Directions<6, Coordinate>
 {
 protected:
   static constexpr int n_directions = 3;
-  static KOKKOS_FUNCTION Kokkos::Array<Direction, n_directions> const &
-  directions()
+  static KOKKOS_FUNCTION auto const &directions()
   {
-    static constexpr Kokkos::Array<Direction, n_directions> directions = {
-        Direction{1, 0, 0},
-        Direction{0, 1, 0},
-        Direction{0, 0, 1},
-    };
+    static constexpr Kokkos::Array<Direction<Coordinate>, n_directions>
+        directions = {
+            Direction<Coordinate>{1, 0, 0},
+            Direction<Coordinate>{0, 1, 0},
+            Direction<Coordinate>{0, 0, 1},
+        };
     return directions;
   }
 };
 
-template <>
-struct KDOP_Directions<14>
+template <typename Coordinate>
+struct KDOP_Directions<14, Coordinate>
 {
 protected:
   static constexpr int n_directions = 7;
-  static KOKKOS_FUNCTION Kokkos::Array<Direction, n_directions> const &
-  directions()
+  static KOKKOS_FUNCTION auto const &directions()
   {
-    static constexpr Kokkos::Array<Direction, n_directions> directions = {
-        Direction{1, 0, 0},
-        Direction{0, 1, 0},
-        Direction{0, 0, 1},
-        // corners
-        Direction{1, 1, 1},
-        Direction{1, -1, 1},
-        Direction{1, 1, -1},
-        Direction{1, -1, -1},
-    };
+    static constexpr Kokkos::Array<Direction<Coordinate>, n_directions>
+        directions = {
+            Direction<Coordinate>{1, 0, 0},
+            Direction<Coordinate>{0, 1, 0},
+            Direction<Coordinate>{0, 0, 1},
+            // corners
+            Direction<Coordinate>{1, 1, 1},
+            Direction<Coordinate>{1, -1, 1},
+            Direction<Coordinate>{1, 1, -1},
+            Direction<Coordinate>{1, -1, -1},
+        };
     return directions;
   }
 };
 
-template <>
-struct KDOP_Directions<18>
+template <typename Coordinate>
+struct KDOP_Directions<18, Coordinate>
 {
 protected:
   static constexpr int n_directions = 9;
-  static KOKKOS_FUNCTION Kokkos::Array<Direction, n_directions> const &
-  directions()
+  static KOKKOS_FUNCTION auto const &directions()
   {
-    static constexpr Kokkos::Array<Direction, n_directions> directions = {
-        Direction{1, 0, 0},
-        Direction{0, 1, 0},
-        Direction{0, 0, 1},
-        // edges
-        Direction{1, 1, 0},
-        Direction{1, 0, 1},
-        Direction{0, 1, 1},
-        Direction{1, -1, 0},
-        Direction{1, 0, -1},
-        Direction{0, 1, -1},
-    };
+    static constexpr Kokkos::Array<Direction<Coordinate>, n_directions>
+        directions = {
+            Direction<Coordinate>{1, 0, 0},
+            Direction<Coordinate>{0, 1, 0},
+            Direction<Coordinate>{0, 0, 1},
+            // edges
+            Direction<Coordinate>{1, 1, 0},
+            Direction<Coordinate>{1, 0, 1},
+            Direction<Coordinate>{0, 1, 1},
+            Direction<Coordinate>{1, -1, 0},
+            Direction<Coordinate>{1, 0, -1},
+            Direction<Coordinate>{0, 1, -1},
+        };
     return directions;
   }
 };
 
-template <>
-struct KDOP_Directions<26>
+template <typename Coordinate>
+struct KDOP_Directions<26, Coordinate>
 {
 protected:
   static constexpr int n_directions = 13;
-  static KOKKOS_FUNCTION Kokkos::Array<Direction, n_directions> const &
-  directions()
+  static KOKKOS_FUNCTION auto const &directions()
   {
-    static constexpr Kokkos::Array<Direction, n_directions> directions = {
-        Direction{1, 0, 0},
-        Direction{0, 1, 0},
-        Direction{0, 0, 1},
-        // edges
-        Direction{1, 1, 0},
-        Direction{1, 0, 1},
-        Direction{0, 1, 1},
-        Direction{1, -1, 0},
-        Direction{1, 0, -1},
-        Direction{0, 1, -1},
-        // corners
-        Direction{1, 1, 1},
-        Direction{1, -1, 1},
-        Direction{1, 1, -1},
-        Direction{1, -1, -1},
-    };
+    static constexpr Kokkos::Array<Direction<Coordinate>, n_directions>
+        directions = {
+            Direction<Coordinate>{1, 0, 0},
+            Direction<Coordinate>{0, 1, 0},
+            Direction<Coordinate>{0, 0, 1},
+            // edges
+            Direction<Coordinate>{1, 1, 0},
+            Direction<Coordinate>{1, 0, 1},
+            Direction<Coordinate>{0, 1, 1},
+            Direction<Coordinate>{1, -1, 0},
+            Direction<Coordinate>{1, 0, -1},
+            Direction<Coordinate>{0, 1, -1},
+            // corners
+            Direction<Coordinate>{1, 1, 1},
+            Direction<Coordinate>{1, -1, 1},
+            Direction<Coordinate>{1, 1, -1},
+            Direction<Coordinate>{1, -1, -1},
+        };
     return directions;
   }
 };
-KOKKOS_INLINE_FUNCTION float project(Point const &p, Direction const &d)
+template <typename Coordinate>
+KOKKOS_INLINE_FUNCTION auto project(Point const &p,
+                                    Direction<Coordinate> const &d)
 {
-  float r = 0.;
+  static_assert(
+      std::is_same_v<GeometryTraits::coordinate_type<Point>::type, Coordinate>);
+
+  Coordinate r = 0;
   for (int i = 0; i < 3; ++i)
   {
     r += p[i] * d._data[i];
@@ -139,20 +145,21 @@ KOKKOS_INLINE_FUNCTION float project(Point const &p, Direction const &d)
 namespace Experimental
 {
 
-template <int k>
-struct KDOP : private Details::KDOP_Directions<k>
+template <int k, typename Coordinate = float>
+struct KDOP : private Details::KDOP_Directions<k, Coordinate>
 {
-  static constexpr int n_directions = Details::KDOP_Directions<k>::n_directions;
-  Kokkos::Array<float, n_directions> _min_values;
-  Kokkos::Array<float, n_directions> _max_values;
+  static constexpr int n_directions =
+      Details::KDOP_Directions<k, Coordinate>::n_directions;
+  Kokkos::Array<Coordinate, n_directions> _min_values;
+  Kokkos::Array<Coordinate, n_directions> _max_values;
   KOKKOS_FUNCTION KDOP()
   {
     for (int i = 0; i < n_directions; ++i)
     {
       _min_values[i] =
-          Details::KokkosExt::ArithmeticTraits::finite_max<float>::value;
+          Details::KokkosExt::ArithmeticTraits::finite_max<Coordinate>::value;
       _max_values[i] =
-          Details::KokkosExt::ArithmeticTraits::finite_min<float>::value;
+          Details::KokkosExt::ArithmeticTraits::finite_min<Coordinate>::value;
     }
   }
   KOKKOS_FUNCTION KDOP &operator+=(Point const &p)
@@ -321,20 +328,22 @@ struct ArborX::Details::Dispatch::centroid<ArborX::GeometryTraits::KDOPTag,
   }
 };
 
-template <int k>
-struct ArborX::GeometryTraits::dimension<ArborX::Experimental::KDOP<k>>
+template <int k, typename Coordinate>
+struct ArborX::GeometryTraits::dimension<
+    ArborX::Experimental::KDOP<k, Coordinate>>
 {
   static constexpr int value = 3;
 };
-template <int k>
-struct ArborX::GeometryTraits::tag<ArborX::Experimental::KDOP<k>>
+template <int k, typename Coordinate>
+struct ArborX::GeometryTraits::tag<ArborX::Experimental::KDOP<k, Coordinate>>
 {
   using type = KDOPTag;
 };
-template <int k>
-struct ArborX::GeometryTraits::coordinate_type<ArborX::Experimental::KDOP<k>>
+template <int k, typename Coordinate>
+struct ArborX::GeometryTraits::coordinate_type<
+    ArborX::Experimental::KDOP<k, Coordinate>>
 {
-  using type = float;
+  using type = Coordinate;
 };
 
 #endif
