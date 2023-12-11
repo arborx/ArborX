@@ -272,11 +272,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   Kokkos::View<int *, MemorySpace> num_neigh("ArborX::DBSCAN::num_neighbors",
                                              0);
 
-  Kokkos::View<int *, MemorySpace> labels(
-      Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
-                         "ArborX::DBSCAN::labels"),
-      n);
-  ArborX::iota(exec_space, labels);
+  Kokkos::View<int *, MemorySpace> labels("ArborX::DBSCAN::labels", 0);
 
   if (parameters._implementation == DBSCAN::Implementation::FDBSCAN)
   {
@@ -286,6 +282,12 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
                                          Details::PairIndexVolume<Point>>
         bvh(exec_space, Details::LegacyValues<Points, Point>{points});
     Kokkos::Profiling::popRegion();
+
+    // Initialize labels after the hierarchy construction to lower memory high
+    // water mark
+    Kokkos::resize(Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing),
+                   labels, n);
+    ArborX::iota(exec_space, labels);
 
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters");
     if (is_special_case)
@@ -398,6 +400,10 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       printf("#mixed primitives   : %10d\n",
              num_dense_cells + num_points_in_sparse_cells);
     }
+
+    Kokkos::resize(Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing),
+                   labels, n);
+    ArborX::iota(exec_space, labels);
 
     Details::unionFindWithinEachDenseCell(exec_space, dense_sorted_cell_indices,
                                           permute, UnionFind{labels});
