@@ -14,7 +14,7 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // equal
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
-#include <ArborX_DetailsKokkosExtSwap.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_HyperTriangle.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>

@@ -18,7 +18,7 @@
 #include <ArborX_DetailsKokkosExtBitManipulation.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
-#include <ArborX_DetailsKokkosExtSwap.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_DetailsWeightedEdge.hpp>
 
