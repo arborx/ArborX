@@ -17,7 +17,7 @@
 #include <tuple>
 
 // NOTE Because std::tuple does not take template template parameters
-template <template <class> class...>
+template <template <class...> class...>
 struct Tuple
 {};
 
@@ -35,7 +35,7 @@ using ArborX__BoundingVolumeHierarchy =
   std::tuple<Kokkos::DefaultExecutionSpace::device_type>
 #endif
 
-template <template <class> class Tree, class DeviceType>
+template <template <class...> class Tree, class DeviceType>
 struct TreeExecutionAndMemorySpaces
 // NOTE The name of this class will be part of the resulting name of the unit
 // test produced by Boost.Test, such as
@@ -69,7 +69,8 @@ struct CartesianProduct<Tuple<>, std::tuple<Us...>>
   using type = std::tuple<>;
 };
 
-template <template <class> class T, template <class> class... Ts, class... Us>
+template <template <class...> class T, template <class...> class... Ts,
+          class... Us>
 struct CartesianProduct<Tuple<T, Ts...>, std::tuple<Us...>>
 {
   using type = typename Concatenate<
