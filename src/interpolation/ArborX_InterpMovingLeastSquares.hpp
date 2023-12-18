@@ -71,7 +71,7 @@ struct AccessTraits<
 namespace ArborX::Interpolation
 {
 
-template <typename MemorySpace, typename FloatingCalculationType>
+template <typename MemorySpace, typename FloatingCalculationType = double>
 class MovingLeastSquares
 {
 public:
@@ -214,11 +214,11 @@ public:
     return source_view;
   }
 
-  template <typename ExecutionSpace, typename SourceValues>
-  Kokkos::View<typename SourceValues::non_const_value_type *,
-               typename SourceValues::memory_space>
-  interpolate(ExecutionSpace const &space,
-              SourceValues const &source_values) const
+  template <typename ExecutionSpace, typename SourceValues,
+            typename ApproxValues>
+  void interpolate(ExecutionSpace const &space,
+                   SourceValues const &source_values,
+                   ApproxValues &approx_values) const
   {
     KokkosExt::ScopedProfileRegion guard(
         "ArborX::MovingLeastSquares::interpolate");
@@ -235,20 +235,27 @@ public:
                                       ExecutionSpace>::value,
         "Source values must be accessible from the execution space");
 
+    // ApproxValues is a 1D view for approximated values
+    static_assert(Kokkos::is_view_v<ApproxValues> && ApproxValues::rank == 1,
+                  "Approx values must be a 1D view");
+    static_assert(
+        KokkosExt::is_accessible_from<typename ApproxValues::memory_space,
+                                      ExecutionSpace>::value,
+        "Approx values must be accessible from the execution space");
+    static_assert(!std::is_const_v<typename ApproxValues::value_type>,
+                  "Approx values must be writable");
+
     // Source values must be a valuation on the points so must be as big as the
     // original input
     KOKKOS_ASSERT(_source_size == source_values.extent_int(0));
 
-    using value_t = typename SourceValues::non_const_value_type;
-    using view_t = Kokkos::View<value_t *, typename SourceValues::memory_space>;
+    using value_t = typename ApproxValues::non_const_value_type;
 
     int const num_targets = _values_indices.extent(0);
     int const num_neighbors = _values_indices.extent(1);
 
-    view_t target_values(
-        Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                           "ArborX::MovingLeastSquares::target_values"),
-        num_targets);
+    KokkosExt::reallocWithoutInitializing(space, approx_values, num_targets);
+
     Kokkos::parallel_for(
         "ArborX::MovingLeastSquares::target_interpolation",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_targets),
@@ -256,10 +263,8 @@ public:
           value_t tmp = 0;
           for (int j = 0; j < num_neighbors; j++)
             tmp += _coeffs(i, j) * source_values(_values_indices(i, j));
-          target_values(i) = tmp;
+          approx_values(i) = tmp;
         });
-
-    return target_values;
   }
 
 private:

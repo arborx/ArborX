@@ -140,6 +140,9 @@ void mls_example(int source_num_points, int target_num_points,
   Kokkos::View<double *, MemorySpace> target_values(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::target_values"),
       target_num_points);
+  Kokkos::View<double *, MemorySpace> approx_values(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::approx_values"),
+      0);
 
   filledBoxEven(source_points);
   filledBoxEven(target_points);
@@ -170,7 +173,7 @@ void mls_example(int source_num_points, int target_num_points,
       space, source_points, target_points, num_neighbors,
       ArborX::Interpolation::CRBF::Wendland<0>{},
       ArborX::Interpolation::PolynomialDegree<2>{});
-  auto approx_values = mls.interpolate(space, source_values);
+  mls.interpolate(space, source_values, approx_values);
 
   double l2_error;
   Kokkos::parallel_reduce(
