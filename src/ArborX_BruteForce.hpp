@@ -18,11 +18,11 @@
 #include <ArborX_DetailsBruteForceImpl.hpp>
 #include <ArborX_DetailsCrsGraphWrapperImpl.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
-#include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_IndexableGetter.hpp>
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_Profiling_ScopedRegion.hpp>
 
 namespace ArborX
 {
@@ -69,7 +69,7 @@ public:
   query(ExecutionSpace const &space, Predicates const &predicates,
         CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
   {
-    KokkosExt::ScopedProfileRegion guard("ArborX::BruteForce::query_crs");
+    Kokkos::Profiling::ScopedRegion guard("ArborX::BruteForce::query_crs");
 
     Details::CrsGraphWrapperImpl::
         check_valid_callback_if_first_argument_is_not_a_view<value_type>(
@@ -156,7 +156,7 @@ public:
     }
     else
     {
-      KokkosExt::ScopedProfileRegion guard("ArborX::BruteForce::query_crs");
+      Kokkos::Profiling::ScopedRegion guard("ArborX::BruteForce::query_crs");
 
       Kokkos::View<int *, MemorySpace> indices(
           "ArborX::CrsGraphWrapper::query::indices", 0);
@@ -194,7 +194,7 @@ BasicBruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::
                                               ExecutionSpace>::value,
                 "Values must be accessible from the execution space");
 
-  KokkosExt::ScopedProfileRegion guard("ArborX::BruteForce::BruteForce");
+  Kokkos::Profiling::ScopedRegion guard("ArborX::BruteForce::BruteForce");
 
   if (empty())
   {

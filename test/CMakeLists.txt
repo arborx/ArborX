@@ -146,9 +146,6 @@ list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES
   tstKokkosToolsAnnotations.cpp
   utf_main.cpp
 )
-if (Kokkos_VERSION VERSION_LESS 4.0.99)
-  list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES tstScopedProfileRegion.cpp)
-endif()
 add_executable(ArborX_Test_QueryTree.exe ${ARBORX_TEST_QUERY_TREE_SOURCES})
 target_link_libraries(ArborX_Test_QueryTree.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_QueryTree.exe PRIVATE BOOST_TEST_DYN_LINK)

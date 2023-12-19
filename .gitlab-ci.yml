@@ -36,7 +36,7 @@ BuildKokkos:
   extends: .LoadModules
   stage: buildDependencies
   script:
-    - git clone --depth=1 --branch 4.0.00 https://github.com/kokkos/kokkos.git &&
+    - git clone --depth=1 --branch 4.1.00 https://github.com/kokkos/kokkos.git &&
       cd kokkos &&
       mkdir build &&
       cd build &&

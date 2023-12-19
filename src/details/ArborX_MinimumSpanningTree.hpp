@@ -13,7 +13,6 @@
 #define ARBORX_MINIMUM_SPANNING_TREE_HPP
 
 #include <ArborX_AccessTraits.hpp>
-#include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsMinimumSpanningTree.hpp>
 #include <ArborX_DetailsMutualReachabilityDistance.hpp>
@@ -21,6 +20,9 @@
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_DetailsWeightedEdge.hpp>
 #include <ArborX_LinearBVH.hpp>
+
+#include <Kokkos_Core.hpp>
+#include <Kokkos_Profiling_ScopedRegion.hpp>
 
 namespace ArborX::Details
 {
@@ -230,7 +232,7 @@ private:
                              edges_start, edges_end);
         else
         {
-          KokkosExt::ScopedProfileRegion guard(
+          Kokkos::Profiling::ScopedRegion guard(
               "ArborX::MST::compute_vertex_parents");
           assignVertexParents(space, labels, component_out_edges, edges_mapping,
                               bvh, dendrogram_parents);
