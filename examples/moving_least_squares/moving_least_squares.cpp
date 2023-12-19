@@ -123,7 +123,7 @@ KOKKOS_INLINE_FUNCTION double functionToApproximate(Point const &p)
 }
 
 void mls_example(int source_num_points, int target_num_points,
-                 std::optional<int> num_neighbors, std::string const &dump_file)
+                 int num_neighbors, std::string const &dump_file)
 {
   ExecutionSpace space{};
 
@@ -169,8 +169,11 @@ void mls_example(int source_num_points, int target_num_points,
           target_values(i) = functionToApproximate(target_points(i));
       });
 
+  std::optional<int> num_neighbors_opt =
+      (num_neighbors == 0) ? std::nullopt : std::optional(num_neighbors);
+
   ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls(
-      space, source_points, target_points, num_neighbors,
+      space, source_points, target_points, num_neighbors_opt,
       ArborX::Interpolation::CRBF::Wendland<0>{},
       ArborX::Interpolation::PolynomialDegree<2>{});
   mls.interpolate(space, source_values, approx_values);
@@ -235,8 +238,6 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  mls_example(source_num_points, target_num_points,
-              num_neighbors == 0 ? std::nullopt : std::optional(num_neighbors),
-              dump_file);
+  mls_example(source_num_points, target_num_points, num_neighbors, dump_file);
   return 0;
 }
