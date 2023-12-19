@@ -90,7 +90,7 @@ install(EXPORT ArborXTargets
   DESTINATION lib/cmake/ArborX
 )
 
-set(ARBORX_VERSION_STRING "1.5 (dev)")
+set(ARBORX_VERSION_STRING "1.6 (dev)")
 
 # Make sure that the git hash in ArborX_Version.hpp is considered to be always
 # out of date, and thus is updated every recompile.
@@ -126,7 +126,7 @@ configure_package_config_file(cmake/ArborXConfig.cmake.in
 )
 write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/ArborXConfigVersion.cmake
   VERSION ${ARBORX_VERSION_STRING}
-  COMPATIBILITY SameMajorVersion
+  COMPATIBILITY AnyNewerVersion
 )
 install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
