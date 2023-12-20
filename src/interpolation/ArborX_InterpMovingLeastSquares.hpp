@@ -13,7 +13,6 @@
 #define ARBORX_INTERP_MOVING_LEAST_SQUARES_HPP
 
 #include <ArborX_AccessTraits.hpp>
-#include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperBox.hpp>
@@ -23,6 +22,7 @@
 #include <ArborX_LinearBVH.hpp>
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_Profiling_ScopedRegion.hpp>
 
 #include <optional>
 
@@ -82,7 +82,7 @@ public:
                      TargetPoints const &target_points,
                      std::optional<int> num_neighbors, CRBF, PolynomialDegree)
   {
-    KokkosExt::ScopedProfileRegion guard("ArborX::MovingLeastSquares");
+    auto guard = Kokkos::Profiling::ScopedRegion("ArborX::MovingLeastSquares");
 
     static_assert(
         KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
@@ -186,7 +186,7 @@ public:
       Kokkos::View<int *, MemorySpace> const &offsets, int const num_targets,
       int const num_neighbors, SourcePoints const &source_points)
   {
-    KokkosExt::ScopedProfileRegion guard(
+    auto guard = Kokkos::Profiling::ScopedRegion(
         "ArborX::MovingLeastSquares::fillValuesIndicesAndGetSourceView");
 
     using src_acc = AccessTraits<SourcePoints, PrimitivesTag>;
@@ -220,7 +220,7 @@ public:
                    SourceValues const &source_values,
                    ApproxValues &approx_values) const
   {
-    KokkosExt::ScopedProfileRegion guard(
+    auto guard = Kokkos::Profiling::ScopedRegion(
         "ArborX::MovingLeastSquares::interpolate");
 
     static_assert(

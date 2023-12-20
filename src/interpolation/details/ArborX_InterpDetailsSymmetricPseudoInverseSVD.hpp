@@ -13,10 +13,10 @@
 #define ARBORX_INTERP_DETAILS_SYMMETRIC_PSEUDO_INVERSE_SVD_HPP
 
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
-#include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_Profiling_ScopedRegion.hpp>
 
 namespace ArborX::Interpolation::Details
 {
@@ -223,7 +223,8 @@ template <typename ExecutionSpace, typename InOutMatrices>
 void symmetricPseudoInverseSVD(ExecutionSpace const &space,
                                InOutMatrices &matrices)
 {
-  KokkosExt::ScopedProfileRegion guard("ArborX::SymmetricPseudoInverseSVD");
+  auto guard =
+      Kokkos::Profiling::ScopedRegion("ArborX::SymmetricPseudoInverseSVD");
 
   // InOutMatrices is a list of square symmetric matrices (3D view)
   static_assert(Kokkos::is_view_v<InOutMatrices>, "matrices must be a view");

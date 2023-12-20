@@ -14,13 +14,13 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
-#include <ArborX_DetailsKokkosExtScopedProfileRegion.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperPoint.hpp>
 #include <ArborX_InterpDetailsPolynomialBasis.hpp>
 #include <ArborX_InterpDetailsSymmetricPseudoInverseSVD.hpp>
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_Profiling_ScopedRegion.hpp>
 
 namespace ArborX::Interpolation::Details
 {
@@ -33,8 +33,8 @@ movingLeastSquaresCoefficients(ExecutionSpace const &space,
                                SourcePoints const &source_points,
                                TargetPoints const &target_points)
 {
-  KokkosExt::ScopedProfileRegion guard(
-      "ArborX::MovingLeastSquaresCoefficients");
+  auto guard =
+      Kokkos::Profiling::ScopedRegion("ArborX::MovingLeastSquaresCoefficients");
 
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
