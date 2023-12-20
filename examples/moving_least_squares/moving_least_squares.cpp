@@ -17,8 +17,6 @@
 #include <iostream>
 
 using Point = ArborX::ExperimentalHyperGeometry::Point<2, double>;
-using ExecutionSpace = Kokkos::DefaultExecutionSpace;
-using MemorySpace = typename ExecutionSpace::memory_space;
 
 KOKKOS_FUNCTION double functionToApproximate(Point const &p)
 {
@@ -29,6 +27,8 @@ int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
 
+  using ExecutionSpace = Kokkos::DefaultExecutionSpace;
+  using MemorySpace = typename ExecutionSpace::memory_space;
   ExecutionSpace space{};
 
   // Source space is a 3x3 grid
@@ -39,15 +39,15 @@ int main(int argc, char *argv[])
   //  S     S     S
   //  |
   //  |   T
-  //  S     S     S
+  //  S     S  T  S
   //  |
-  //  |
+  //  | T
   // -S-----S-----S->
   //  |
 
   // Set up points
   Kokkos::View<Point *, MemorySpace> src_points("Example::src_points", 9);
-  Kokkos::View<Point *, MemorySpace> tgt_points("Example::tgt_points", 1);
+  Kokkos::View<Point *, MemorySpace> tgt_points("Example::tgt_points", 3);
   Kokkos::parallel_for(
       "Example::make_points", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1),
       KOKKOS_LAMBDA(int const) {
@@ -61,15 +61,20 @@ int main(int argc, char *argv[])
         src_points(7) = {1., 2.};
         src_points(8) = {2., 2.};
         tgt_points(0) = {4. / 6., 4. / 3.};
+        tgt_points(1) = {9. / 6., 3. / 3.};
+        tgt_points(2) = {2. / 6., 1. / 3.};
       });
 
   // Set up values
   Kokkos::View<double *, MemorySpace> src_values("Example::src_values", 9);
-  Kokkos::View<double *, MemorySpace> app_values("Example::app_values", 1);
+  Kokkos::View<double *, MemorySpace> app_values("Example::app_values", 3);
+  Kokkos::View<double *, MemorySpace> tgt_values("Example::tgt_values", 3);
   Kokkos::parallel_for(
       "Example::make_values", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 9),
       KOKKOS_LAMBDA(int const i) {
         src_values(i) = functionToApproximate(src_points(i));
+        if (i < 3)
+          tgt_values(i) = functionToApproximate(tgt_points(i));
       });
 
   // Build the moving least squares coefficients
@@ -80,16 +85,20 @@ int main(int argc, char *argv[])
   mls.interpolate(space, src_values, app_values);
 
   // Show results
-  auto tgt_points_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, tgt_points);
   auto app_values_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, app_values);
-  auto tgt_value = functionToApproximate(tgt_points_host(0));
+  auto tgt_values_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, tgt_values);
+  auto diff = [=](int const i) {
+    return Kokkos::abs(app_values_host(i) - tgt_values_host(i));
+  };
 
-  std::cout << "Approximated value: " << app_values_host(0) << '\n';
-  std::cout << "Real value        : " << tgt_value << '\n';
-  std::cout << "Difference        : "
-            << Kokkos::abs(app_values_host(0) - tgt_value) << '\n';
+  std::cout << "Approximated values: " << app_values_host(0) << ' '
+            << app_values_host(1) << ' ' << app_values_host(2) << '\n';
+  std::cout << "Real values        : " << tgt_values_host(0) << ' '
+            << tgt_values_host(1) << ' ' << tgt_values_host(2) << '\n';
+  std::cout << "Differences        : " << diff(0) << ' ' << diff(1) << ' '
+            << diff(2) << '\n';
 
   return 0;
 }
