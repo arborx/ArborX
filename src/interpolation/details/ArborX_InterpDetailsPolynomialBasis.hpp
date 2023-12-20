@@ -99,7 +99,6 @@ KOKKOS_FUNCTION constexpr std::size_t polynomialBasisSize()
 template <std::size_t Degree, typename Point>
 KOKKOS_FUNCTION auto evaluatePolynomialBasis(Point const &p)
 {
-  GeometryTraits::check_valid_geometry_traits(Point{});
   static_assert(GeometryTraits::is_point<Point>::value,
                 "point must be a point");
   static constexpr std::size_t DIM = GeometryTraits::dimension_v<Point>;
