@@ -100,11 +100,12 @@ public:
                                       ExecutionSpace>::value,
         "Predicates must be accessible from the execution space");
 
+    Predicates predicates{user_predicates};
+
     using Tag = typename Predicates::value_type::Tag;
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     Details::DistributedTreeImpl<DeviceType>::queryDispatch(
-        Tag{}, *this, space, Predicates{user_predicates},
-        std::forward<Args>(args)...);
+        Tag{}, *this, space, predicates, std::forward<Args>(args)...);
   }
 
 private:
