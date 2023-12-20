@@ -47,14 +47,15 @@ namespace Details
 struct HappyTreeFriends;
 } // namespace Details
 
-template <typename MemorySpace, typename Value,
-          typename IndexableGetter = Details::DefaultIndexableGetter,
-          typename BoundingVolume = ExperimentalHyperGeometry::Box<
-              GeometryTraits::dimension_v<
-                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
-              typename GeometryTraits::coordinate_type<std::decay_t<
-                  std::invoke_result_t<IndexableGetter, Value>>>::type>>
-class BasicBoundingVolumeHierarchy
+template <
+    typename MemorySpace, typename Value = Details::LegacyDefaultTemplateValue,
+    typename IndexableGetter = Details::DefaultIndexableGetter,
+    typename BoundingVolume = ExperimentalHyperGeometry::Box<
+        GeometryTraits::dimension_v<
+            std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
+        typename GeometryTraits::coordinate_type<
+            std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>::type>>
+class BoundingVolumeHierarchy
 {
 public:
   using memory_space = MemorySpace;
@@ -63,11 +64,11 @@ public:
   using bounding_volume_type = BoundingVolume;
   using value_type = Value;
 
-  BasicBoundingVolumeHierarchy() = default; // build an empty tree
+  BoundingVolumeHierarchy() = default; // build an empty tree
 
   template <typename ExecutionSpace, typename Values,
             typename SpaceFillingCurve = Experimental::Morton64>
-  BasicBoundingVolumeHierarchy(
+  BoundingVolumeHierarchy(
       ExecutionSpace const &space, Values const &values,
       IndexableGetter const &indexable_getter = IndexableGetter(),
       SpaceFillingCurve const &curve = SpaceFillingCurve());
@@ -113,7 +114,7 @@ public:
                              Predicate const &predicate,
                              Callback const &callback) const
   {
-    ArborX::Details::TreeTraversal<BasicBoundingVolumeHierarchy,
+    ArborX::Details::TreeTraversal<BoundingVolumeHierarchy,
                                    /* Predicates Dummy */ std::true_type,
                                    Callback, typename Predicate::Tag>
         tree_traversal(*this, callback);
@@ -135,15 +136,17 @@ private:
   IndexableGetter _indexable_getter;
 };
 
+// The partial template specialization parameters *must* match the default ones
 template <typename MemorySpace>
-class BoundingVolumeHierarchy
-    : public BasicBoundingVolumeHierarchy<MemorySpace,
-                                          Details::PairIndexVolume<Box>,
-                                          Details::DefaultIndexableGetter, Box>
+class BoundingVolumeHierarchy<MemorySpace, Details::LegacyDefaultTemplateValue,
+                              Details::DefaultIndexableGetter,
+                              ExperimentalHyperGeometry::Box<3, float>>
+    : public BoundingVolumeHierarchy<MemorySpace, Details::PairIndexVolume<Box>,
+                                     Details::DefaultIndexableGetter, Box>
 {
   using base_type =
-      BasicBoundingVolumeHierarchy<MemorySpace, Details::PairIndexVolume<Box>,
-                                   Details::DefaultIndexableGetter, Box>;
+      BoundingVolumeHierarchy<MemorySpace, Details::PairIndexVolume<Box>,
+                              Details::DefaultIndexableGetter, Box>;
 
 public:
   using bounding_volume_type = typename base_type::bounding_volume_type;
@@ -227,19 +230,26 @@ public:
   }
 };
 
-template <typename MemorySpace>
-using BVH = BoundingVolumeHierarchy<MemorySpace>;
+template <
+    typename MemorySpace, typename Value = Details::LegacyDefaultTemplateValue,
+    typename IndexableGetter = Details::DefaultIndexableGetter,
+    typename BoundingVolume = ExperimentalHyperGeometry::Box<
+        GeometryTraits::dimension_v<
+            std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
+        typename GeometryTraits::coordinate_type<
+            std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>::type>>
+using BVH = BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
+                                    BoundingVolume>;
 
 template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
 template <typename ExecutionSpace, typename UserValues,
           typename SpaceFillingCurve>
-BasicBoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
-                             BoundingVolume>::
-    BasicBoundingVolumeHierarchy(ExecutionSpace const &space,
-                                 UserValues const &user_values,
-                                 IndexableGetter const &indexable_getter,
-                                 SpaceFillingCurve const &curve)
+BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter, BoundingVolume>::
+    BoundingVolumeHierarchy(ExecutionSpace const &space,
+                            UserValues const &user_values,
+                            IndexableGetter const &indexable_getter,
+                            SpaceFillingCurve const &curve)
     : _size(AccessTraits<UserValues, PrimitivesTag>::size(user_values))
     , _leaf_nodes(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                      "ArborX::BVH::leaf_nodes"),
@@ -327,7 +337,7 @@ BasicBoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
 template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
 template <typename ExecutionSpace, typename Predicates, typename Callback>
-void BasicBoundingVolumeHierarchy<
+void BoundingVolumeHierarchy<
     MemorySpace, Value, IndexableGetter,
     BoundingVolume>::query(ExecutionSpace const &space,
                            Predicates const &predicates,

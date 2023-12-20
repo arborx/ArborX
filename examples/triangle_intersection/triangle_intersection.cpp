@@ -321,8 +321,8 @@ int main()
   Triangles<MemorySpace> triangles(execution_space);
 
   // Create BVH tree
-  ArborX::BasicBoundingVolumeHierarchy<
-      MemorySpace, ArborX::Details::PairIndexVolume<Box>> const
+  ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                  ArborX::Details::PairIndexVolume<Box>> const
       tree(execution_space,
            ArborX::Details::LegacyValues<decltype(triangles), Box>{triangles});
 

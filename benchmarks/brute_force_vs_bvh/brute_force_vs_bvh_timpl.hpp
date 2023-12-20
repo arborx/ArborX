@@ -89,8 +89,8 @@ static void run_fp(int nprimitives, int nqueries, int nrepeats)
     [[maybe_unused]] unsigned int out_count;
     {
       Kokkos::Timer timer;
-      ArborX::BasicBoundingVolumeHierarchy<
-          MemorySpace, ArborX::Details::PairIndexVolume<Point>>
+      ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                      ArborX::Details::PairIndexVolume<Point>>
           bvh{space, ArborX::Details::LegacyValues<decltype(primitives), Point>{
                          primitives}};
 
@@ -110,8 +110,7 @@ static void run_fp(int nprimitives, int nqueries, int nrepeats)
 
     {
       Kokkos::Timer timer;
-      ArborX::BasicBruteForce<MemorySpace,
-                              ArborX::Details::PairIndexVolume<Point>>
+      ArborX::BruteForce<MemorySpace, ArborX::Details::PairIndexVolume<Point>>
           brute{space,
                 ArborX::Details::LegacyValues<decltype(primitives), Point>{
                     primitives}};
