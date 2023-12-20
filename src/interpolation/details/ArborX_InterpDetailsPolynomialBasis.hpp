@@ -147,8 +147,7 @@ KOKKOS_FUNCTION auto evaluatePolynomialBasis(Point const &p)
 } // namespace Details
 
 template <std::size_t Degree>
-struct PolynomialDegree : std::integral_constant<std::size_t, Degree>
-{};
+using PolynomialDegree = std::integral_constant<std::size_t, Degree>;
 
 } // namespace ArborX::Interpolation
 
