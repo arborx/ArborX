@@ -19,6 +19,7 @@
 #include <ArborX_IndexableGetter.hpp>
 #include <ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
 #include <ArborX_InterpDetailsMovingLeastSquaresCoefficients.hpp>
+#include <ArborX_InterpDetailsPolynomialBasis.hpp>
 #include <ArborX_LinearBVH.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -76,11 +77,13 @@ class MovingLeastSquares
 {
 public:
   template <typename ExecutionSpace, typename SourcePoints,
-            typename TargetPoints, typename CRBF, typename PolynomialDegree>
+            typename TargetPoints, typename CRBF = CRBF::Wendland<0>,
+            typename PolynomialDegree = PolynomialDegree<2>>
   MovingLeastSquares(ExecutionSpace const &space,
                      SourcePoints const &source_points,
-                     TargetPoints const &target_points,
-                     std::optional<int> num_neighbors, CRBF, PolynomialDegree)
+                     TargetPoints const &target_points, CRBF = {},
+                     PolynomialDegree = {},
+                     std::optional<int> num_neighbors = std::nullopt)
   {
     auto guard = Kokkos::Profiling::ScopedRegion("ArborX::MovingLeastSquares");
 
@@ -157,24 +160,6 @@ public:
         CRBF, PolynomialDegree, FloatingCalculationType, MemorySpace>(
         space, source_view, target_points);
   }
-
-  template <typename ExecutionSpace, typename SourcePoints,
-            typename TargetPoints, typename CRBF, typename PolynomialDegree>
-  MovingLeastSquares(ExecutionSpace const &space,
-                     SourcePoints const &source_points,
-                     TargetPoints const &target_points, CRBF, PolynomialDegree)
-      : MovingLeastSquares(space, source_points, target_points, std::nullopt,
-                           CRBF{}, PolynomialDegree{})
-  {}
-
-  template <typename ExecutionSpace, typename SourcePoints,
-            typename TargetPoints>
-  MovingLeastSquares(ExecutionSpace const &space,
-                     SourcePoints const &source_points,
-                     TargetPoints const &target_points)
-      : MovingLeastSquares(space, source_points, target_points,
-                           CRBF::Wendland<0>{}, PolynomialDegree<2>{})
-  {}
 
   template <typename ExecutionSpace, typename SourcePoints>
   Kokkos::View<typename ArborX::Details::AccessTraitsHelper<

@@ -51,8 +51,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
         }
       });
   ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls0(
-      space, srcp0, tgtp0, 2, ArborX::Interpolation::CRBF::Wendland<0>{},
-      ArborX::Interpolation::PolynomialDegree<1>{});
+      space, srcp0, tgtp0, ArborX::Interpolation::CRBF::Wendland<0>{},
+      ArborX::Interpolation::PolynomialDegree<1>{}, 2);
   mls0.interpolate(space, srcv0, eval0);
   ARBORX_MDVIEW_TEST_TOL(eval0, tgtv0, Kokkos::Experimental::epsilon_v<float>);
 
@@ -90,8 +90,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
         }
       });
   ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls1(
-      space, srcp1, tgtp1, 8, ArborX::Interpolation::CRBF::Wendland<2>{},
-      ArborX::Interpolation::PolynomialDegree<2>{});
+      space, srcp1, tgtp1, ArborX::Interpolation::CRBF::Wendland<2>{},
+      ArborX::Interpolation::PolynomialDegree<2>{}, 8);
   mls1.interpolate(space, srcv1, eval1);
   ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1, Kokkos::Experimental::epsilon_v<float>);
 }
@@ -126,8 +126,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
         }
       });
   ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls0(
-      space, srcp0, tgtp0, 2, ArborX::Interpolation::CRBF::Wendland<0>{},
-      ArborX::Interpolation::PolynomialDegree<1>{});
+      space, srcp0, tgtp0, ArborX::Interpolation::CRBF::Wendland<0>{},
+      ArborX::Interpolation::PolynomialDegree<1>{}, 2);
   mls0.interpolate(space, srcv0, eval0);
   ARBORX_MDVIEW_TEST_TOL(eval0, tgtv0, Kokkos::Experimental::epsilon_v<float>);
 
@@ -157,8 +157,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
         }
       });
   ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls1(
-      space, srcp1, tgtp1, 8, ArborX::Interpolation::CRBF::Wendland<2>{},
-      ArborX::Interpolation::PolynomialDegree<2>{});
+      space, srcp1, tgtp1, ArborX::Interpolation::CRBF::Wendland<2>{},
+      ArborX::Interpolation::PolynomialDegree<2>{}, 8);
   mls1.interpolate(space, srcv1, eval1);
   ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1, Kokkos::Experimental::epsilon_v<float>);
 }
