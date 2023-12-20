@@ -255,7 +255,7 @@ add_executable(ArborX_Test_InterpMovingLeastSquares.exe
   tstInterpDetailsSVD.cpp
   tstInterpDetailsCRBF.cpp
   tstInterpDetailsPolyBasis.cpp
-  tstInterpDetailsMLSC.cpp
+  tstInterpDetailsMLSCoefficients.cpp
   tstInterpMovingLeastSquares.cpp
   utf_main.cpp)
 target_link_libraries(ArborX_Test_InterpMovingLeastSquares.exe PRIVATE ArborX Boost::unit_test_framework)
