@@ -131,9 +131,8 @@ public:
     // Organize the source points as a tree
     using src_coord = typename GeometryTraits::coordinate_type<src_point>::type;
     using box = ExperimentalHyperGeometry::Box<dimension, src_coord>;
-    using bvh = BasicBoundingVolumeHierarchy<
-        MemorySpace, ArborX::Details::PairIndexVolume<box>,
-        ArborX::Details::DefaultIndexableGetter, box>;
+    using bvh = BoundingVolumeHierarchy<MemorySpace,
+                                        ArborX::Details::PairIndexVolume<box>>;
     bvh source_tree(
         space, ArborX::Details::LegacyValues<SourcePoints, box>{source_points});
 
