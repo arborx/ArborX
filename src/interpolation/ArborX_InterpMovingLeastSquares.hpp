@@ -147,22 +147,8 @@ public:
     // There must be enough source points
     KOKKOS_ASSERT(0 < _num_neighbors && _num_neighbors <= _source_size);
 
-    // Organize the source points as a tree
-    BoundingVolumeHierarchy<MemorySpace, ArborX::PairValueIndex<SourcePoint>>
-        source_tree(space, ArborX::Experimental::attach_indices(source_points));
-
-    // Create the predicates
-    Details::MLSTargetPointsPredicateWrapper<TargetPoints> predicates{
-        {target_points}, _num_neighbors};
-
-    // Query the source
-    _indices = Kokkos::View<int *, MemorySpace>(
-        "ArborX::MovingLeastSquares::indices", 0);
-    Kokkos::View<int *, MemorySpace> offsets(
-        "ArborX::MovingLeastSquares::offsets", 0);
-    source_tree.query(space, predicates,
-                      ArborX::Details::LegacyDefaultCallback{}, _indices,
-                      offsets);
+    // Search for neighbors
+    searchNeighbors(space, source_points, target_points);
 
     // Fill in the value indices object so values can be transferred from a 1D
     // source data to a properly distributed 2D array for each target.
@@ -256,6 +242,36 @@ private:
         kernel);
 
     return source_view;
+  }
+
+  template <typename ExecutionSpace, typename SourcePoints,
+            typename TargetPoints>
+  void searchNeighbors(ExecutionSpace const &space,
+                       SourcePoints const &source_points,
+                       TargetPoints const &target_points)
+  {
+    auto guard = Kokkos::Profiling::ScopedRegion(
+        "ArborX::MovingLeastSquares::searchNeighbors");
+
+    // Organize the source points as a tree
+    using SourcePoint =
+        typename ArborX::Details::AccessValues<SourcePoints,
+                                               PrimitivesTag>::value_type;
+    BoundingVolumeHierarchy<MemorySpace, ArborX::PairValueIndex<SourcePoint>>
+        source_tree(space, ArborX::Experimental::attach_indices(source_points));
+
+    // Create the predicates
+    Details::MLSTargetPointsPredicateWrapper<TargetPoints> predicates{
+        {target_points}, _num_neighbors};
+
+    // Query the source
+    _indices = Kokkos::View<int *, MemorySpace>(
+        "ArborX::MovingLeastSquares::indices", 0);
+    Kokkos::View<int *, MemorySpace> offsets(
+        "ArborX::MovingLeastSquares::offsets", 0);
+    source_tree.query(space, predicates,
+                      ArborX::Details::LegacyDefaultCallback{}, _indices,
+                      offsets);
   }
 
   Kokkos::View<FloatingCalculationType **, MemorySpace> _coeffs;
