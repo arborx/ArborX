@@ -410,20 +410,7 @@ struct intersects<SphereTag, PointTag, Sphere, Point>
   KOKKOS_FUNCTION static constexpr bool apply(Sphere const &sphere,
                                               Point const &point)
   {
-    constexpr int DIM = GeometryTraits::dimension_v<Point>;
-    auto c = sphere.centroid();
-    // Points may have different coordinate types. Try using implicit
-    // conversion to get the best one.
-    using Coordinate = decltype(c[0] - point[0]);
-    Coordinate distance_squared = 0;
-    for (int d = 0; d < DIM; ++d)
-    {
-      auto tmp = c[d] - point[d];
-      distance_squared += tmp * tmp;
-    }
-
-    auto r = sphere.radius();
-    return distance_squared <= r * r;
+    return Details::distance(sphere.centroid(), point) <= sphere.radius();
   }
 };
 
