@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
   ExecutionSpace space{};
 
   // Source space is a 3x3 grid
-  // Target space is a single point
+  // Target space is 3 off-grid points
   //
   //  ^
   //  |
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
                                                  num_sources);
   Kokkos::View<double *, MemorySpace> app_values("Example::app_values",
                                                  num_targets);
-  Kokkos::View<double *, MemorySpace> tgt_values("Example::tgt_values",
+  Kokkos::View<double *, MemorySpace> ref_values("Example::ref_values",
                                                  num_targets);
   Kokkos::parallel_for(
       "Example::make_values",
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
       KOKKOS_LAMBDA(int const i) {
         src_values(i) = functionToApproximate(src_points(i));
         if (i < num_targets)
-          tgt_values(i) = functionToApproximate(tgt_points(i));
+          ref_values(i) = functionToApproximate(tgt_points(i));
       });
 
   // Build the moving least squares coefficients
@@ -96,16 +96,16 @@ int main(int argc, char *argv[])
   // Show results
   auto app_values_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, app_values);
-  auto tgt_values_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, tgt_values);
+  auto ref_values_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, ref_values);
   auto diff = [=](int const i) {
-    return Kokkos::abs(app_values_host(i) - tgt_values_host(i));
+    return Kokkos::abs(app_values_host(i) - ref_values_host(i));
   };
 
   std::cout << "Approximated values: " << app_values_host(0) << ' '
             << app_values_host(1) << ' ' << app_values_host(2) << '\n';
-  std::cout << "Real values        : " << tgt_values_host(0) << ' '
-            << tgt_values_host(1) << ' ' << tgt_values_host(2) << '\n';
+  std::cout << "Real values        : " << ref_values_host(0) << ' '
+            << ref_values_host(1) << ' ' << ref_values_host(2) << '\n';
   std::cout << "Differences        : " << diff(0) << ' ' << diff(1) << ' '
             << diff(2) << '\n';
 
