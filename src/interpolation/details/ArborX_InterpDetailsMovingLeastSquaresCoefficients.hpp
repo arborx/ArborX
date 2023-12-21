@@ -57,18 +57,21 @@ movingLeastSquaresCoefficients(ExecutionSpace const &space,
 
   // TargetPoints is an access trait of points
   ArborX::Details::check_valid_access_traits(PrimitivesTag{}, target_points);
-  using tgt_acc = AccessTraits<TargetPoints, PrimitivesTag>;
-  static_assert(KokkosExt::is_accessible_from<typename tgt_acc::memory_space,
-                                              ExecutionSpace>::value,
-                "target points must be accessible from the execution space");
-  using tgt_point = typename ArborX::Details::AccessTraitsHelper<tgt_acc>::type;
-  GeometryTraits::check_valid_geometry_traits(tgt_point{});
-  static_assert(GeometryTraits::is_point<tgt_point>::value,
+  using TargetAccess =
+      ArborX::Details::AccessValues<TargetPoints, PrimitivesTag>;
+  static_assert(
+      KokkosExt::is_accessible_from<typename TargetAccess::memory_space,
+                                    ExecutionSpace>::value,
+      "target points must be accessible from the execution space");
+  using TargetPoint = typename TargetAccess::value_type;
+  GeometryTraits::check_valid_geometry_traits(TargetPoint{});
+  static_assert(GeometryTraits::is_point<TargetPoint>::value,
                 "target points elements must be points");
-  static_assert(dimension == GeometryTraits::dimension_v<tgt_point>,
+  static_assert(dimension == GeometryTraits::dimension_v<TargetPoint>,
                 "target and source points must have the same dimension");
 
-  int const num_targets = tgt_acc::size(target_points);
+  TargetAccess target_access{target_points};
+  int const num_targets = target_access.size();
   int const num_neighbors = source_points.extent(1);
 
   // There must be a set of neighbors for each target
@@ -104,7 +107,7 @@ movingLeastSquaresCoefficients(ExecutionSpace const &space,
           space, {0, 0}, {num_targets, num_neighbors}),
       KOKKOS_LAMBDA(int const i, int const j) {
         auto src = source_points(i, j);
-        auto tgt = tgt_acc::get(target_points, i);
+        auto tgt = target_access(i);
         point_t t{};
 
         for (int k = 0; k < dimension; k++)
