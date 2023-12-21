@@ -124,7 +124,7 @@ public:
                                                      PolynomialDegree::value>();
 
     int const num_targets = tgt_acc::size(target_points);
-    _source_size = source_points.extent(0);
+    _source_size = src_acc::size(source_points);
     // There must be enough source points
     KOKKOS_ASSERT(0 < num_neighbors_val && num_neighbors_val <= _source_size);
 
