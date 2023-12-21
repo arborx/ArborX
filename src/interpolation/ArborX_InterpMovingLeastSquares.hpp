@@ -236,7 +236,7 @@ public:
     // original input
     KOKKOS_ASSERT(_source_size == source_values.extent_int(0));
 
-    using value_t = typename ApproxValues::non_const_value_type;
+    using Value = typename ApproxValues::non_const_value_type;
 
     int const num_targets = _values_indices.extent(0);
     int const num_neighbors = _values_indices.extent(1);
@@ -247,7 +247,7 @@ public:
         "ArborX::MovingLeastSquares::target_interpolation",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_targets),
         KOKKOS_CLASS_LAMBDA(int const i) {
-          value_t tmp = 0;
+          Value tmp = 0;
           for (int j = 0; j < num_neighbors; j++)
             tmp += _coeffs(i, j) * source_values(_values_indices(i, j));
           approx_values(i) = tmp;

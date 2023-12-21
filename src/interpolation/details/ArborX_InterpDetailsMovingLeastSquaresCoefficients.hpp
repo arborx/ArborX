@@ -49,11 +49,11 @@ movingLeastSquaresCoefficients(ExecutionSpace const &space,
       KokkosExt::is_accessible_from<typename SourcePoints::memory_space,
                                     ExecutionSpace>::value,
       "source points must be accessible from the execution space");
-  using src_point = typename SourcePoints::non_const_value_type;
-  GeometryTraits::check_valid_geometry_traits(src_point{});
-  static_assert(GeometryTraits::is_point<src_point>::value,
+  using SourcePoint = typename SourcePoints::non_const_value_type;
+  GeometryTraits::check_valid_geometry_traits(SourcePoint{});
+  static_assert(GeometryTraits::is_point<SourcePoint>::value,
                 "source points elements must be points");
-  static constexpr int dimension = GeometryTraits::dimension_v<src_point>;
+  static constexpr int dimension = GeometryTraits::dimension_v<SourcePoint>;
 
   // TargetPoints is an access trait of points
   ArborX::Details::check_valid_access_traits(PrimitivesTag{}, target_points);
@@ -77,7 +77,7 @@ movingLeastSquaresCoefficients(ExecutionSpace const &space,
   // There must be a set of neighbors for each target
   KOKKOS_ASSERT(num_targets == source_points.extent_int(0));
 
-  using point_t = ExperimentalHyperGeometry::Point<dimension, CoefficientsType>;
+  using Point = ExperimentalHyperGeometry::Point<dimension, CoefficientsType>;
   static constexpr auto epsilon =
       Kokkos::Experimental::epsilon_v<CoefficientsType>;
   static constexpr int degree = PolynomialDegree::value;
@@ -96,7 +96,7 @@ movingLeastSquaresCoefficients(ExecutionSpace const &space,
 
   // We first change the origin of the evaluation to be at the target point.
   // This lets us use p(0) which is [1 0 ... 0].
-  Kokkos::View<point_t **, MemorySpace> source_ref_target(
+  Kokkos::View<Point **, MemorySpace> source_ref_target(
       Kokkos::view_alloc(
           space, Kokkos::WithoutInitializing,
           "ArborX::MovingLeastSquaresCoefficients::source_ref_target"),
@@ -108,7 +108,7 @@ movingLeastSquaresCoefficients(ExecutionSpace const &space,
       KOKKOS_LAMBDA(int const i, int const j) {
         auto src = source_points(i, j);
         auto tgt = target_access(i);
-        point_t t{};
+        Point t{};
 
         for (int k = 0; k < dimension; k++)
           t[k] = src[k] - tgt[k];
@@ -135,7 +135,7 @@ movingLeastSquaresCoefficients(ExecutionSpace const &space,
         for (int j = 0; j < num_neighbors; j++)
         {
           CoefficientsType norm =
-              ArborX::Details::distance(source_ref_target(i, j), point_t{});
+              ArborX::Details::distance(source_ref_target(i, j), Point{});
           radius = Kokkos::max(radius, norm);
         }
 
@@ -158,7 +158,7 @@ movingLeastSquaresCoefficients(ExecutionSpace const &space,
           space, {0, 0}, {num_targets, num_neighbors}),
       KOKKOS_LAMBDA(int const i, int const j) {
         CoefficientsType norm =
-            ArborX::Details::distance(source_ref_target(i, j), point_t{});
+            ArborX::Details::distance(source_ref_target(i, j), Point{});
         phi(i, j) = CRBF::evaluate(norm / radii(i));
       });
 

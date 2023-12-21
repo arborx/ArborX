@@ -52,11 +52,11 @@ template <typename Matrix>
 KOKKOS_FUNCTION auto argmaxUpperTriangle(Matrix const &mat)
 {
   ensureIsSquareMatrix(mat);
-  using value_t = typename Matrix::non_const_value_type;
+  using Value = typename Matrix::non_const_value_type;
 
   struct
   {
-    value_t max = 0;
+    Value max = 0;
     int row = 0;
     int col = 0;
   } result;
@@ -65,7 +65,7 @@ KOKKOS_FUNCTION auto argmaxUpperTriangle(Matrix const &mat)
   for (int i = 0; i < size; i++)
     for (int j = i + 1; j < size; j++)
     {
-      value_t val = Kokkos::abs(mat(i, j));
+      Value val = Kokkos::abs(mat(i, j));
       if (result.max < val)
       {
         result.max = val;
@@ -101,18 +101,18 @@ symmetricPseudoInverseSVDSerialKernel(AMatrix &A, ESMatrix &ES, UMatrix &U)
                                    typename UMatrix::value_type>,
                 "All input matrices must have the same value type");
   KOKKOS_ASSERT(A.extent(0) == ES.extent(0) && ES.extent(0) == U.extent(0));
-  using value_t = typename AMatrix::non_const_value_type;
+  using Value = typename AMatrix::non_const_value_type;
   int const size = A.extent(0);
 
   // We first initialize U as the identity matrix and copy A to ES
   for (int i = 0; i < size; i++)
     for (int j = 0; j < size; j++)
     {
-      U(i, j) = value_t(i == j);
+      U(i, j) = Value(i == j);
       ES(i, j) = A(i, j);
     }
 
-  static constexpr value_t epsilon = Kokkos::Experimental::epsilon_v<float>;
+  static constexpr Value epsilon = Kokkos::Experimental::epsilon_v<float>;
   while (true)
   {
     // We have a guarantee that p < q
@@ -138,13 +138,13 @@ symmetricPseudoInverseSVDSerialKernel(AMatrix &A, ESMatrix &ES, UMatrix &U)
     // | b | c |              | 0 | y |
     // +---+---+              +---+---+
 
-    value_t cos_theta;
-    value_t sin_theta;
-    value_t x;
-    value_t y;
+    Value cos_theta;
+    Value sin_theta;
+    Value x;
+    Value y;
     if (a == c)
     {
-      cos_theta = Kokkos::sqrt(value_t(2)) / 2;
+      cos_theta = Kokkos::sqrt(Value(2)) / 2;
       sin_theta = cos_theta;
       x = a + b;
       y = a - b;
@@ -212,7 +212,7 @@ symmetricPseudoInverseSVDSerialKernel(AMatrix &A, ESMatrix &ES, UMatrix &U)
   for (int i = 0; i < size; i++)
     for (int j = 0; j < size; j++)
     {
-      value_t tmp = 0;
+      Value tmp = 0;
       for (int k = 0; k < size; k++)
         tmp += ES(k, k) * U(i, k) * U(j, k);
       A(i, j) = tmp;

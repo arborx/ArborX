@@ -51,9 +51,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
   //      -------0--------------->
   // SRC:        0   2   4   6
   // TGT:          1   3   5
-  using point0 = ArborX::ExperimentalHyperGeometry::Point<1, double>;
-  Kokkos::View<point0 **, MemorySpace> srcp0("Testing::srcp0", 3, 2);
-  Kokkos::View<point0 *, MemorySpace> tgtp0("Testing::tgtp0", 3);
+  using Point0 = ArborX::ExperimentalHyperGeometry::Point<1, double>;
+  Kokkos::View<Point0 **, MemorySpace> srcp0("Testing::srcp0", 3, 2);
+  Kokkos::View<Point0 *, MemorySpace> tgtp0("Testing::tgtp0", 3);
   Kokkos::View<double **, MemorySpace> srcv0("Testing::srcv0", 3, 2);
   Kokkos::View<double *, MemorySpace> tgtv0("Testing::tgtv0", 3);
   Kokkos::parallel_for(
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
         srcp0(i, 1) = {{2. * i + 2}};
         tgtp0(i) = {{2. * i + 1}};
 
-        auto f = [](const point0 &) { return 3.; };
+        auto f = [](const Point0 &) { return 3.; };
 
         srcv0(i, 0) = f(srcp0(i, 0));
         srcv0(i, 1) = f(srcp0(i, 1));
@@ -86,9 +86,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
   //      T | T
   //    S   S   S
   //        |
-  using point1 = ArborX::ExperimentalHyperGeometry::Point<2, double>;
-  Kokkos::View<point1 **, MemorySpace> srcp1("Testing::srcp1", 4, 8);
-  Kokkos::View<point1 *, MemorySpace> tgtp1("Testing::tgtp1", 4);
+  using Point1 = ArborX::ExperimentalHyperGeometry::Point<2, double>;
+  Kokkos::View<Point1 **, MemorySpace> srcp1("Testing::srcp1", 4, 8);
+  Kokkos::View<Point1 *, MemorySpace> tgtp1("Testing::tgtp1", 4);
   Kokkos::View<double **, MemorySpace> srcv1("Testing::srcv1", 4, 8);
   Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
   Kokkos::parallel_for(
@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
         }
         tgtp1(i) = {{double(u), double(v)}};
 
-        auto f = [](const point1 &p) { return p[0] * p[1] + 4 * p[0]; };
+        auto f = [](const Point1 &p) { return p[0] * p[1] + 4 * p[0]; };
 
         for (int j = 0; j < 8; j++)
           srcv1(i, j) = f(srcp1(i, j));
@@ -131,9 +131,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients_edge_cases, DeviceType,
   ExecutionSpace space{};
 
   // Case 1: Same as previous case 1, but points are 2D and locked on y=0
-  using point0 = ArborX::ExperimentalHyperGeometry::Point<2, double>;
-  Kokkos::View<point0 **, MemorySpace> srcp0("Testing::srcp0", 3, 2);
-  Kokkos::View<point0 *, MemorySpace> tgtp0("Testing::tgtp0", 3);
+  using Point0 = ArborX::ExperimentalHyperGeometry::Point<2, double>;
+  Kokkos::View<Point0 **, MemorySpace> srcp0("Testing::srcp0", 3, 2);
+  Kokkos::View<Point0 *, MemorySpace> tgtp0("Testing::tgtp0", 3);
   Kokkos::View<double **, MemorySpace> srcv0("Testing::srcv0", 3, 2);
   Kokkos::View<double *, MemorySpace> tgtv0("Testing::tgtv0", 3);
   Kokkos::parallel_for(
@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients_edge_cases, DeviceType,
         srcp0(i, 1) = {{2. * i + 2, 0.}};
         tgtp0(i) = {{2. * i + 1, 0.}};
 
-        auto f = [](const point0 &) { return 3.; };
+        auto f = [](const Point0 &) { return 3.; };
 
         srcv0(i, 0) = f(srcp0(i, 0));
         srcv0(i, 1) = f(srcp0(i, 1));
@@ -158,9 +158,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients_edge_cases, DeviceType,
   ARBORX_MDVIEW_TEST_TOL(eval0, tgtv0, Kokkos::Experimental::epsilon_v<float>);
 
   // Case 2: Same but corner source points are also targets
-  using point1 = ArborX::ExperimentalHyperGeometry::Point<2, double>;
-  Kokkos::View<point1 **, MemorySpace> srcp1("Testing::srcp1", 4, 8);
-  Kokkos::View<point1 *, MemorySpace> tgtp1("Testing::tgtp1", 4);
+  using Point1 = ArborX::ExperimentalHyperGeometry::Point<2, double>;
+  Kokkos::View<Point1 **, MemorySpace> srcp1("Testing::srcp1", 4, 8);
+  Kokkos::View<Point1 *, MemorySpace> tgtp1("Testing::tgtp1", 4);
   Kokkos::View<double **, MemorySpace> srcv1("Testing::srcv1", 4, 8);
   Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
   Kokkos::parallel_for(
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients_edge_cases, DeviceType,
         }
         tgtp1(i) = {{u * 2., v * 2.}};
 
-        auto f = [](const point1 &p) { return p[0] * p[1] + 4 * p[0]; };
+        auto f = [](const Point1 &p) { return p[0] * p[1] + 4 * p[0]; };
 
         for (int j = 0; j < 8; j++)
           srcv1(i, j) = f(srcp1(i, j));

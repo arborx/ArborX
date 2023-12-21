@@ -20,12 +20,12 @@ template <typename MS, typename ES, typename V, int M, int N>
 void makeCase(ES const &es, V const (&src_arr)[M][N][N],
               V const (&ref_arr)[M][N][N])
 {
-  using device_view = Kokkos::View<V[M][N][N], MS>;
-  using host_view = typename device_view::HostMirror;
+  using DeviceView = Kokkos::View<V[M][N][N], MS>;
+  using HostView = typename DeviceView::HostMirror;
 
-  host_view src("Testing::src");
-  host_view ref("Testing::ref");
-  device_view inv("Testing::inv");
+  HostView src("Testing::src");
+  HostView ref("Testing::ref");
+  DeviceView inv("Testing::inv");
 
   for (int i = 0; i < M; i++)
     for (int j = 0; j < N; j++)
