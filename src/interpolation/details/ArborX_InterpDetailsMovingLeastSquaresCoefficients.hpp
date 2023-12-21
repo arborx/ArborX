@@ -27,9 +27,9 @@ namespace ArborX::Interpolation::Details
 {
 
 template <typename CRBFunc, typename PolynomialDegree,
-          typename CoefficientsType, typename MemorySpace,
-          typename ExecutionSpace, typename SourcePoints, typename TargetPoints>
-Kokkos::View<CoefficientsType **, MemorySpace>
+          typename CoefficientsType, typename ExecutionSpace,
+          typename SourcePoints, typename TargetPoints>
+Kokkos::View<CoefficientsType **, typename SourcePoints::memory_space>
 movingLeastSquaresCoefficients(ExecutionSpace const &space,
                                SourcePoints const &source_points,
                                TargetPoints const &target_points)
@@ -39,6 +39,7 @@ movingLeastSquaresCoefficients(ExecutionSpace const &space,
 
   namespace KokkosExt = ::ArborX::Details::KokkosExt;
 
+  using MemorySpace = typename SourcePoints::memory_space;
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
       "Memory space must be accessible from the execution space");

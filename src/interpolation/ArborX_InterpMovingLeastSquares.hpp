@@ -155,8 +155,8 @@ public:
     auto const source_view = getSourceView(space, source_points);
 
     // Compute the moving least squares coefficients
-    _coeffs = Details::movingLeastSquaresCoefficients<
-        CRBFunc, PolynomialDegree, FloatingCalculationType, MemorySpace>(
+    _coeffs = Details::movingLeastSquaresCoefficients<CRBFunc, PolynomialDegree,
+                                                      FloatingCalculationType>(
         space, source_view, target_points);
   }
 
