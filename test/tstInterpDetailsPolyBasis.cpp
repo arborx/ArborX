@@ -11,7 +11,7 @@
 
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_HyperPoint.hpp>
-#include <interpolation/details/ArborX_InterpDetailsPolynomialBasis.hpp>
+#include <ArborX_InterpDetailsPolynomialBasis.hpp>
 
 #include <boost/test/unit_test.hpp>
 

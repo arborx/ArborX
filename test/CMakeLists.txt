@@ -251,15 +251,17 @@ target_link_libraries(ArborX_Test_BoostAdapters.exe PRIVATE ArborX Boost::unit_t
 target_compile_definitions(ArborX_Test_BoostAdapters.exe PRIVATE BOOST_TEST_DYN_LINK)
 add_test(NAME ArborX_Test_BoostAdapters COMMAND ArborX_Test_BoostAdapters.exe)
 
-add_executable(ArborX_Test_InterpDetailsMLS.exe
+add_executable(ArborX_Test_InterpMovingLeastSquares.exe
   tstInterpDetailsSVD.cpp
   tstInterpDetailsCRBF.cpp
   tstInterpDetailsPolyBasis.cpp
+  tstInterpDetailsMLSCoefficients.cpp
+  tstInterpMovingLeastSquares.cpp
   utf_main.cpp)
-target_link_libraries(ArborX_Test_InterpDetailsMLS.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_Test_InterpDetailsMLS.exe PRIVATE BOOST_TEST_DYN_LINK)
-target_include_directories(ArborX_Test_InterpDetailsMLS.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_Test_InterpDetailsMLS COMMAND ArborX_Test_InterpDetailsMLS.exe)
+target_link_libraries(ArborX_Test_InterpMovingLeastSquares.exe PRIVATE ArborX Boost::unit_test_framework)
+target_compile_definitions(ArborX_Test_InterpMovingLeastSquares.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_include_directories(ArborX_Test_InterpMovingLeastSquares.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_Test_InterpMovingLeastSquares COMMAND ArborX_Test_InterpMovingLeastSquares.exe)
 
 if(ARBORX_ENABLE_HEADER_SELF_CONTAINMENT_TESTS)
   add_subdirectory(headers_self_contained)

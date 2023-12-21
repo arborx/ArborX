@@ -16,6 +16,7 @@
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_Profiling_ScopedRegion.hpp>
 
 namespace ArborX::Interpolation::Details
 {
@@ -222,6 +223,9 @@ template <typename ExecutionSpace, typename InOutMatrices>
 void symmetricPseudoInverseSVD(ExecutionSpace const &space,
                                InOutMatrices &matrices)
 {
+  auto guard =
+      Kokkos::Profiling::ScopedRegion("ArborX::SymmetricPseudoInverseSVD");
+
   // InOutMatrices is a list of square symmetric matrices (3D view)
   static_assert(Kokkos::is_view_v<InOutMatrices>, "matrices must be a view");
   static_assert(!std::is_const_v<typename InOutMatrices::value_type>,
@@ -233,7 +237,7 @@ void symmetricPseudoInverseSVD(ExecutionSpace const &space,
                                     ExecutionSpace>::value,
       "matrices must be accessible from the execution space");
 
-  ARBORX_ASSERT(matrices.extent(1) == matrices.extent(2)); // Must be square
+  KOKKOS_ASSERT(matrices.extent(1) == matrices.extent(2)); // Must be square
 
   InOutMatrices ESs(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
