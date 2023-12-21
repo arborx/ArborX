@@ -116,9 +116,8 @@ KOKKOS_FUNCTION auto evaluatePolynomialBasis(Point const &p)
   if constexpr (Degree > 0)
   {
     // Cannot use structured binding with constexpr
-    static constexpr auto slice_lengths_struct =
+    static constexpr auto slice_lengths =
         polynomialBasisSliceLengths<DIM, Degree>();
-    auto &slice_lengths = slice_lengths_struct.arr;
 
     std::size_t prev_col = 0;
     std::size_t curr_col = 1;
@@ -129,10 +128,10 @@ KOKKOS_FUNCTION auto evaluatePolynomialBasis(Point const &p)
       for (std::size_t dim = 0; dim < DIM; dim++)
       {
         // copy the previous column and multply by p[dim]
-        for (std::size_t i = 0; i < slice_lengths[deg][dim]; i++)
+        for (std::size_t i = 0; i < slice_lengths.arr[deg][dim]; i++)
           arr[loc_offset + i] = arr[prev_col + i] * p[dim];
 
-        loc_offset += slice_lengths[deg][dim];
+        loc_offset += slice_lengths.arr[deg][dim];
       }
 
       prev_col = curr_col;
