@@ -10,7 +10,6 @@
  ****************************************************************************/
 
 #include <ArborX.hpp>
-#include <ArborX_Version.hpp>
 
 #include <Kokkos_Random.hpp>
 
