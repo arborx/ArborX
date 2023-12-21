@@ -129,12 +129,8 @@ public:
     KOKKOS_ASSERT(0 < num_neighbors_val && num_neighbors_val <= _source_size);
 
     // Organize the source points as a tree
-    using src_coord = typename GeometryTraits::coordinate_type<src_point>::type;
-    using box = ExperimentalHyperGeometry::Box<dimension, src_coord>;
-    using bvh = BoundingVolumeHierarchy<MemorySpace,
-                                        ArborX::Details::PairIndexVolume<box>>;
-    bvh source_tree(
-        space, ArborX::Details::LegacyValues<SourcePoints, box>{source_points});
+    BoundingVolumeHierarchy<MemorySpace, ArborX::PairValueIndex<src_point>>
+        source_tree(space, ArborX::AttachIndices<SourcePoints>{source_points});
 
     // Create the predicates
     Details::MLSTargetPointsPredicateWrapper<TargetPoints> predicates{
