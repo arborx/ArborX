@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
   Kokkos::View<Point0 *, MemorySpace> tgtp0("Testing::tgtp0", 3);
   Kokkos::View<double *, MemorySpace> srcv0("Testing::srcv0", 4);
   Kokkos::View<double *, MemorySpace> tgtv0("Testing::tgtv0", 3);
-  Kokkos::View<double *, MemorySpace> eval0("Testing::eval0", 0);
+  Kokkos::View<double *, MemorySpace> eval0("Testing::eval0", 3);
   Kokkos::parallel_for(
       "Testing::moving_least_squares::for0",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, 4),
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
   Kokkos::View<Point1 *, MemorySpace> tgtp1("Testing::tgtp1", 4);
   Kokkos::View<double *, MemorySpace> srcv1("Testing::srcv1", 9);
   Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
-  Kokkos::View<double *, MemorySpace> eval1("Testing::eval1", 0);
+  Kokkos::View<double *, MemorySpace> eval1("Testing::eval1", 4);
   Kokkos::parallel_for(
       "Testing::moving_least_squares::for1",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, 9),
@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
   Kokkos::View<Point0 *, MemorySpace> tgtp0("Testing::tgtp0", 3);
   Kokkos::View<double *, MemorySpace> srcv0("Testing::srcv0", 4);
   Kokkos::View<double *, MemorySpace> tgtv0("Testing::tgtv0", 3);
-  Kokkos::View<double *, MemorySpace> eval0("Testing::eval0", 0);
+  Kokkos::View<double *, MemorySpace> eval0("Testing::eval0", 3);
   Kokkos::parallel_for(
       "Testing::moving_least_squares_edge_cases::for0",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, 4),
@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
   Kokkos::View<Point1 *, MemorySpace> tgtp1("Testing::tgtp1", 4);
   Kokkos::View<double *, MemorySpace> srcv1("Testing::srcv1", 9);
   Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
-  Kokkos::View<double *, MemorySpace> eval1("Testing::eval1", 0);
+  Kokkos::View<double *, MemorySpace> eval1("Testing::eval1", 4);
   Kokkos::parallel_for(
       "Testing::moving_least_squares_edge_cases::for0",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, 9),
