@@ -48,13 +48,13 @@ struct AccessTraits<
     Interpolation::Details::MLSTargetPointsPredicateWrapper<Points>,
     PredicatesTag>
 {
-  KOKKOS_INLINE_FUNCTION static auto size(
+  KOKKOS_FUNCTION static auto size(
       Interpolation::Details::MLSTargetPointsPredicateWrapper<Points> const &tp)
   {
     return AccessTraits<Points, PrimitivesTag>::size(tp.target_points);
   }
 
-  KOKKOS_INLINE_FUNCTION static auto
+  KOKKOS_FUNCTION static auto
   get(Interpolation::Details::MLSTargetPointsPredicateWrapper<Points> const &tp,
       int const i)
   {
