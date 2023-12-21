@@ -16,6 +16,7 @@
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperPoint.hpp>
+#include <ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
 #include <ArborX_InterpDetailsPolynomialBasis.hpp>
 #include <ArborX_InterpDetailsSymmetricPseudoInverseSVD.hpp>
 
@@ -25,9 +26,9 @@
 namespace ArborX::Interpolation::Details
 {
 
-template <typename CRBF, typename PolynomialDegree, typename CoefficientsType,
-          typename MemorySpace, typename ExecutionSpace, typename SourcePoints,
-          typename TargetPoints>
+template <typename CRBFunc, typename PolynomialDegree,
+          typename CoefficientsType, typename MemorySpace,
+          typename ExecutionSpace, typename SourcePoints, typename TargetPoints>
 Kokkos::View<CoefficientsType **, MemorySpace>
 movingLeastSquaresCoefficients(ExecutionSpace const &space,
                                SourcePoints const &source_points,
@@ -157,9 +158,7 @@ movingLeastSquaresCoefficients(ExecutionSpace const &space,
       Kokkos::MDRangePolicy<ExecutionSpace, Kokkos::Rank<2>>(
           space, {0, 0}, {num_targets, num_neighbors}),
       KOKKOS_LAMBDA(int const i, int const j) {
-        CoefficientsType norm =
-            ArborX::Details::distance(source_ref_target(i, j), Point{});
-        phi(i, j) = CRBF::evaluate(norm / radii(i));
+        phi(i, j) = CRBF::evaluate<CRBFunc>(source_ref_target(i, j), radii(i));
       });
 
   Kokkos::Profiling::popRegion();

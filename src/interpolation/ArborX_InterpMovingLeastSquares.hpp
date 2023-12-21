@@ -75,11 +75,11 @@ class MovingLeastSquares
 {
 public:
   template <typename ExecutionSpace, typename SourcePoints,
-            typename TargetPoints, typename CRBF = CRBF::Wendland<0>,
+            typename TargetPoints, typename CRBFunc = CRBF::Wendland<0>,
             typename PolynomialDegree = PolynomialDegree<2>>
   MovingLeastSquares(ExecutionSpace const &space,
                      SourcePoints const &source_points,
-                     TargetPoints const &target_points, CRBF = {},
+                     TargetPoints const &target_points, CRBFunc = {},
                      PolynomialDegree = {},
                      std::optional<int> num_neighbors = std::nullopt)
   {
@@ -156,7 +156,7 @@ public:
 
     // Compute the moving least squares coefficients
     _coeffs = Details::movingLeastSquaresCoefficients<
-        CRBF, PolynomialDegree, FloatingCalculationType, MemorySpace>(
+        CRBFunc, PolynomialDegree, FloatingCalculationType, MemorySpace>(
         space, source_view, target_points);
   }
 

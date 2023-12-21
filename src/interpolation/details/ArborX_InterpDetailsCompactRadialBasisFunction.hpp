@@ -12,6 +12,9 @@
 #ifndef ARBORX_INTERP_DETAILS_COMPACT_RADIAL_BASIS_FUNCTION_HPP
 #define ARBORX_INTERP_DETAILS_COMPACT_RADIAL_BASIS_FUNCTION_HPP
 
+#include <ArborX_DetailsAlgorithms.hpp>
+#include <ArborX_GeometryTraits.hpp>
+
 #include <Kokkos_Core.hpp>
 
 #include <initializer_list>
@@ -40,20 +43,22 @@ namespace CRBF
 {
 
 #define CRBF_DECL(NAME)                                                        \
-  template <std::size_t>                                                       \
+  template <std::size_t N>                                                     \
   struct NAME;
 
 #define CRBF_DEF(NAME, N, FUNC)                                                \
   template <>                                                                  \
   struct NAME<N>                                                               \
   {                                                                            \
-    template <typename T>                                                      \
+    template <std::size_t DIM, typename T>                                     \
     KOKKOS_INLINE_FUNCTION static constexpr T evaluate(T const y)              \
     {                                                                          \
       /* We force the input to be between 0 and 1.                             \
          Because CRBF(-a) = CRBF(a) = CRBF(|a|), we take the absolute value    \
          and clamp the range to [0, 1] before entering in the definition of    \
-         the CRBF. */                                                          \
+         the CRBF.                                                             \
+         We also template the internal function on the dimension as CRBFs      \
+         depend on the point's dimensionality. */                              \
       T const x = Kokkos::min(Kokkos::abs(y), T(1));                           \
       return Kokkos::abs(FUNC);                                                \
     }                                                                          \
@@ -89,6 +94,18 @@ CRBF_DEF(Buhmann, 4,
 #undef CRBF_POLY
 #undef CRBF_DEF
 #undef CRBF_DECL
+
+template <typename CRBFunc, typename Point>
+KOKKOS_INLINE_FUNCTION constexpr auto
+evaluate(Point const &point,
+         typename GeometryTraits::coordinate_type<Point>::type const radius)
+{
+  static_assert(GeometryTraits::is_point<Point>::value,
+                "point must be a point");
+  constexpr std::size_t dim = GeometryTraits::dimension_v<Point>;
+  return CRBFunc::template evaluate<dim>(
+      ArborX::Details::distance(point, Point{}) / radius);
+}
 
 } // namespace CRBF
 

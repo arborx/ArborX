@@ -11,6 +11,8 @@
 
 #include "ArborX_EnableDeviceTypes.hpp"
 #include "ArborX_EnableViewComparison.hpp"
+#include <ArborX_DetailsAlgorithms.hpp>
+#include <ArborX_HyperPoint.hpp>
 #include <ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
@@ -20,6 +22,7 @@
 template <typename T, typename CRBF, typename ES>
 void makeCase(ES const &es, std::function<T(T const)> const &tf, T tol = 1e-5)
 {
+  using Point = ArborX::ExperimentalHyperGeometry::Point<1, T>;
   using View = Kokkos::View<T *, typename ES::memory_space>;
   using HostView = typename View::HostMirror;
   static constexpr int range = 15;
@@ -37,7 +40,10 @@ void makeCase(ES const &es, std::function<T(T const)> const &tf, T tol = 1e-5)
   Kokkos::deep_copy(es, eval, input);
   Kokkos::parallel_for(
       "Testing::eval_crbf", Kokkos::RangePolicy<ES>(es, 0, 4 * range),
-      KOKKOS_LAMBDA(int const i) { eval(i) = CRBF::evaluate(eval(i)); });
+      KOKKOS_LAMBDA(int const i) {
+        eval(i) =
+            ArborX::Interpolation::CRBF::evaluate<CRBF>(Point{eval(i)}, 1);
+      });
 
   if (bool(tf))
   {
