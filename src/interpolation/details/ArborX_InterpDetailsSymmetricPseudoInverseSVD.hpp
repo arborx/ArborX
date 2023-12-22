@@ -82,54 +82,58 @@ KOKKOS_FUNCTION auto argmaxUpperTriangle(Matrix const &mat)
 // We also suppose, as the input, that A is symmetric, so U = SV where S is
 // a sign matrix (only 1 or -1 on the diagonal, 0 elsewhere).
 // Thus A = U.ES.U^T and A^-1 = U.[ ES^-1 ].U^T
-template <typename AMatrix, typename ESMatrix, typename UMatrix>
-KOKKOS_FUNCTION void
-symmetricPseudoInverseSVDSerialKernel(AMatrix &A, ESMatrix &ES, UMatrix &U)
+//
+// mat <=> initial ES
+// diag <=> final ES
+// unit <=> U
+template <typename Matrix, typename Diag, typename Unit>
+KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
+                                                     Unit &unit)
 {
-  ensureIsSquareSymmetricMatrix(A);
-  static_assert(!std::is_const_v<typename AMatrix::value_type>,
-                "A must be writable");
-  ensureIsSquareMatrix(ES);
-  static_assert(!std::is_const_v<typename ESMatrix::value_type>,
-                "ES must be writable");
-  ensureIsSquareMatrix(U);
-  static_assert(!std::is_const_v<typename UMatrix::value_type>,
-                "U must be writable");
-  static_assert(std::is_same_v<typename AMatrix::value_type,
-                               typename ESMatrix::value_type> &&
-                    std::is_same_v<typename ESMatrix::value_type,
-                                   typename UMatrix::value_type>,
-                "All input matrices must have the same value type");
-  KOKKOS_ASSERT(A.extent(0) == ES.extent(0) && ES.extent(0) == U.extent(0));
-  using Value = typename AMatrix::non_const_value_type;
-  int const size = A.extent(0);
+  ensureIsSquareSymmetricMatrix(mat);
+  static_assert(!std::is_const_v<typename Matrix::value_type>,
+                "mat must be writable");
 
-  // We first initialize U as the identity matrix and copy A to ES
+  static_assert(Kokkos::is_view_v<Diag>, "diag must be a view");
+  static_assert(Diag::rank == 1, "diag must be 1D");
+  static_assert(!std::is_const_v<typename Diag::value_type>,
+                "diag must be writable");
+
+  ensureIsSquareMatrix(unit);
+  static_assert(!std::is_const_v<typename Unit::value_type>,
+                "unit must be writable");
+  static_assert(
+      std::is_same_v<typename Matrix::value_type, typename Diag::value_type> &&
+          std::is_same_v<typename Diag::value_type, typename Unit::value_type>,
+      "All input matrices must have the same value type");
+  KOKKOS_ASSERT(mat.extent(0) == diag.extent(0) &&
+                diag.extent(0) == unit.extent(0));
+  using Value = typename Matrix::non_const_value_type;
+  int const size = mat.extent(0);
+
+  // We first initialize 'unit' as the identity matrix
   for (int i = 0; i < size; i++)
     for (int j = 0; j < size; j++)
-    {
-      U(i, j) = Value(i == j);
-      ES(i, j) = A(i, j);
-    }
+      unit(i, j) = Value(i == j);
 
   static constexpr Value epsilon = Kokkos::Experimental::epsilon_v<float>;
   while (true)
   {
     // We have a guarantee that p < q
-    auto const [max_val, p, q] = argmaxUpperTriangle(ES);
+    auto const [max_val, p, q] = argmaxUpperTriangle(mat);
     if (max_val <= epsilon)
       break;
 
-    auto const a = ES(p, p);
-    auto const b = ES(p, q);
-    auto const c = ES(q, q);
+    auto const a = mat(p, p);
+    auto const b = mat(p, q);
+    auto const c = mat(q, q);
 
     // Our submatrix is now
-    // +----------+----------+   +---+---+
-    // | ES(p, p) | ES(p, q) |   | a | b |
-    // +----------+----------+ = +---+---+
-    // | ES(q, p) | ES(q, q) |   | b | c |
-    // +----------+----------+   +---+---+
+    // +-----------+-----------+   +---+---+
+    // | mat(p, p) | mat(p, q) |   | a | b |
+    // +-----------+-----------+ = +---+---+
+    // | mat(q, p) | mat(q, q) |   | b | c |
+    // +-----------+-----------+   +---+---+
 
     // Let's compute x, y and theta such that
     // +---+---+              +---+---+
@@ -159,63 +163,66 @@ symmetricPseudoInverseSVDSerialKernel(AMatrix &A, ESMatrix &ES, UMatrix &U)
       y = a + c - x;
     }
 
-    // Now let's compute the following new values for U and ES
-    // ES <- R'(theta)^T . ES . R'(theta)
-    // U  <- U . R'(theta)
+    // Now let's compute the following new values for 'unit' and 'mat'
+    // mat  <- R'(theta)^T . mat . R'(theta)
+    // unit <- unit . R'(theta)
 
-    // R'(theta)^T . ES . R'(theta)
+    // R'(theta)^T . mat . R'(theta)
     for (int i = 0; i < p; i++)
     {
-      auto const es_ip = ES(i, p);
-      auto const es_iq = ES(i, q);
-      ES(i, p) = cos_theta * es_ip + sin_theta * es_iq;
-      ES(i, q) = -sin_theta * es_ip + cos_theta * es_iq;
+      auto const es_ip = mat(i, p);
+      auto const es_iq = mat(i, q);
+      mat(i, p) = cos_theta * es_ip + sin_theta * es_iq;
+      mat(i, q) = -sin_theta * es_ip + cos_theta * es_iq;
     }
-    ES(p, p) = x;
+    mat(p, p) = x;
+    mat(p, q) = 0;
     for (int i = p + 1; i < q; i++)
     {
-      auto const es_pi = ES(p, i);
-      auto const es_iq = ES(i, q);
-      ES(p, i) = cos_theta * es_pi + sin_theta * es_iq;
-      ES(i, q) = -sin_theta * es_pi + cos_theta * es_iq;
+      auto const es_pi = mat(p, i);
+      auto const es_iq = mat(i, q);
+      mat(p, i) = cos_theta * es_pi + sin_theta * es_iq;
+      mat(i, q) = -sin_theta * es_pi + cos_theta * es_iq;
     }
-    ES(q, q) = y;
+    mat(q, q) = y;
     for (int i = q + 1; i < size; i++)
     {
-      auto const es_pi = ES(p, i);
-      auto const es_qi = ES(q, i);
-      ES(p, i) = cos_theta * es_pi + sin_theta * es_qi;
-      ES(q, i) = -sin_theta * es_pi + cos_theta * es_qi;
+      auto const es_pi = mat(p, i);
+      auto const es_qi = mat(q, i);
+      mat(p, i) = cos_theta * es_pi + sin_theta * es_qi;
+      mat(q, i) = -sin_theta * es_pi + cos_theta * es_qi;
     }
-    ES(p, q) = 0;
 
-    // U . R'(theta)
+    // unit . R'(theta)
     for (int i = 0; i < size; i++)
     {
-      auto const u_ip = U(i, p);
-      auto const u_iq = U(i, q);
-      U(i, p) = cos_theta * u_ip + sin_theta * u_iq;
-      U(i, q) = -sin_theta * u_ip + cos_theta * u_iq;
+      auto const u_ip = unit(i, p);
+      auto const u_iq = unit(i, q);
+      unit(i, p) = cos_theta * u_ip + sin_theta * u_iq;
+      unit(i, q) = -sin_theta * u_ip + cos_theta * u_iq;
     }
   }
 
   // We compute the max to get a range of the invertible eigenvalues
   auto max_eigen = epsilon;
   for (int i = 0; i < size; i++)
-    max_eigen = Kokkos::max(Kokkos::abs(ES(i, i)), max_eigen);
+  {
+    diag(i) = mat(i, i);
+    max_eigen = Kokkos::max(Kokkos::abs(diag(i)), max_eigen);
+  }
+  auto const threshold = max_eigen * epsilon;
 
-  // We invert the diagonal of ES, except if "0" is found
+  // We invert the diagonal of 'mat', except if "0" is found
   for (int i = 0; i < size; i++)
-    ES(i, i) = (Kokkos::abs(ES(i, i)) < max_eigen * epsilon) ? 0 : 1 / ES(i, i);
+    diag(i) = (Kokkos::abs(diag(i)) < threshold) ? 0 : 1 / diag(i);
 
-  // Then we fill out A as the pseudo inverse
+  // Then we fill out 'mat' as the pseudo inverse
   for (int i = 0; i < size; i++)
     for (int j = 0; j < size; j++)
     {
-      Value tmp = 0;
+      mat(i, j) = 0;
       for (int k = 0; k < size; k++)
-        tmp += ES(k, k) * U(i, k) * U(j, k);
-      A(i, j) = tmp;
+        mat(i, j) += diag(k) * unit(i, k) * unit(j, k);
     }
 }
 
@@ -239,22 +246,26 @@ void symmetricPseudoInverseSVD(ExecutionSpace const &space,
 
   KOKKOS_ASSERT(matrices.extent(1) == matrices.extent(2)); // Must be square
 
-  InOutMatrices ESs(
+  using Value = typename InOutMatrices::non_const_value_type;
+  using MemorySpace = typename InOutMatrices::memory_space;
+
+  Kokkos::View<Value **, MemorySpace> diags(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                         "ArborX::SymmetricPseudoInverseSVD::ESs"),
+                         "ArborX::SymmetricPseudoInverseSVD::diags"),
+      matrices.extent(0), matrices.extent(1));
+  Kokkos::View<Value ***, MemorySpace> units(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         "ArborX::SymmetricPseudoInverseSVD::units"),
       matrices.extent(0), matrices.extent(1), matrices.extent(2));
-  InOutMatrices Us(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                                      "ArborX::SymmetricPseudoInverseSVD::Us"),
-                   matrices.extent(0), matrices.extent(1), matrices.extent(2));
 
   Kokkos::parallel_for(
       "ArborX::SymmetricPseudoInverseSVD::computations",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, matrices.extent(0)),
       KOKKOS_LAMBDA(int const i) {
-        auto A = Kokkos::subview(matrices, i, Kokkos::ALL, Kokkos::ALL);
-        auto ES = Kokkos::subview(ESs, i, Kokkos::ALL, Kokkos::ALL);
-        auto U = Kokkos::subview(Us, i, Kokkos::ALL, Kokkos::ALL);
-        symmetricPseudoInverseSVDSerialKernel(A, ES, U);
+        auto mat = Kokkos::subview(matrices, i, Kokkos::ALL, Kokkos::ALL);
+        auto diag = Kokkos::subview(diags, i, Kokkos::ALL);
+        auto unit = Kokkos::subview(units, i, Kokkos::ALL, Kokkos::ALL);
+        symmetricPseudoInverseSVDKernel(mat, diag, unit);
       });
 }
 
