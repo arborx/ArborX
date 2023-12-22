@@ -10,7 +10,6 @@
  ****************************************************************************/
 
 #include <ArborX.hpp>
-#include <ArborX_Version.hpp>
 
 #include <Kokkos_Random.hpp>
 
@@ -56,10 +55,6 @@ struct ExcludeSelfCollision
 int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
-
-  std::cout << "ArborX version    : " << ArborX::version() << std::endl;
-  std::cout << "ArborX hash       : " << ArborX::gitCommitHash() << std::endl;
-  std::cout << "Kokkos version    : " << KokkosExt::version() << std::endl;
 
   using ExecutionSpace = Kokkos::DefaultExecutionSpace;
   using MemorySpace = ExecutionSpace::memory_space;
