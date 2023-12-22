@@ -58,7 +58,7 @@ struct MinimumSpanningTree
 
     Kokkos::Profiling::pushRegion("ArborX::MST::construction");
     BoundingVolumeHierarchy<MemorySpace, PairValueIndex<Point>> bvh(
-        space, AttachIndices<Points>{points});
+        space, Experimental::attach_indices(points));
     Kokkos::Profiling::popRegion();
 
     if (k > 1)

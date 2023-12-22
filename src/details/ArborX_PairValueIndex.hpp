@@ -31,7 +31,9 @@ struct PairValueIndex
   Index index;
 };
 
-template <typename Values, typename Index = unsigned>
+namespace Experimental
+{
+template <typename Values, typename Index>
 class AttachIndices
 {
 private:
@@ -54,13 +56,20 @@ public:
   auto size() const { return _data.size(); }
 };
 
+template <typename Values, typename Index = unsigned>
+auto attach_indices(Values const &values)
+{
+  return AttachIndices<Values, Index>{values};
+}
+} // namespace Experimental
+
 } // namespace ArborX
 
 template <typename Values, typename Index>
-struct ArborX::AccessTraits<ArborX::AttachIndices<Values, Index>,
+struct ArborX::AccessTraits<ArborX::Experimental::AttachIndices<Values, Index>,
                             ArborX::PrimitivesTag>
 {
-  using Self = ArborX::AttachIndices<Values, Index>;
+  using Self = ArborX::Experimental::AttachIndices<Values, Index>;
 
   using memory_space = typename Self::memory_space;
 

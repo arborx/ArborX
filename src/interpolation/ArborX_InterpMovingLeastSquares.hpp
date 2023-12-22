@@ -130,7 +130,7 @@ public:
 
     // Organize the source points as a tree
     BoundingVolumeHierarchy<MemorySpace, ArborX::PairValueIndex<src_point>>
-        source_tree(space, ArborX::AttachIndices<SourcePoints>{source_points});
+        source_tree(space, ArborX::Experimental::attach_indices(source_points));
 
     // Create the predicates
     Details::MLSTargetPointsPredicateWrapper<TargetPoints> predicates{

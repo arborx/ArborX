@@ -34,7 +34,7 @@ auto compute_core_distances(ExecutionSpace exec_space,
   using MemorySpace = typename ExecutionSpace::memory_space;
   ArborX::BoundingVolumeHierarchy<MemorySpace,
                                   ArborX::PairValueIndex<ArborX::Point>>
-      bvh{exec_space, ArborX::AttachIndices<decltype(points)>{points}};
+      bvh{exec_space, ArborX::Experimental::attach_indices(points)};
   Kokkos::View<float *, MemorySpace> distances(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Test::core_distances"),
       bvh.size());

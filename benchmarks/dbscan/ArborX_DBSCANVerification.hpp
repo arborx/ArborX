@@ -312,7 +312,7 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   static_assert(GeometryTraits::is_point<Point>{});
 
   ArborX::BoundingVolumeHierarchy<MemorySpace, ArborX::PairValueIndex<Point>>
-      bvh(exec_space, ArborX::AttachIndices<Points>{points});
+      bvh(exec_space, ArborX::Experimental::attach_indices(points));
 
   auto const predicates = Details::PrimitivesWithRadius<Points>{points, eps};
 
