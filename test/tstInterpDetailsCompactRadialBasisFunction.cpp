@@ -65,8 +65,8 @@ void makeCase(ES const &es, std::function<T(T const)> const &tf, T tol = 1e-5)
 }
 
 #define MAKE_TEST(F, I, TF)                                                    \
-  BOOST_AUTO_TEST_CASE_TEMPLATE(crbf_##F##_##I, DeviceType,                    \
-                                ARBORX_DEVICE_TYPES)                           \
+  BOOST_AUTO_TEST_CASE_TEMPLATE(compact_radial_basis_function_##F##_##I,       \
+                                DeviceType, ARBORX_DEVICE_TYPES)               \
   {                                                                            \
     makeCase<double, ArborX::Interpolation::CRBF::F<I>>(                       \
         typename DeviceType::execution_space{}, TF<double>);                   \
