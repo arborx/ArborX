@@ -189,7 +189,7 @@ BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
   Details::check_valid_access_traits<UserValues>(
       PrimitivesTag{}, user_values, Details::DoNotCheckGetReturnType());
 
-  using Values = Details::AccessValues<UserValues>;
+  using Values = Details::AccessValues<UserValues, PrimitivesTag>;
   Values values{user_values};
 
   static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,

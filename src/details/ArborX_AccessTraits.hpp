@@ -199,7 +199,7 @@ void check_valid_access_traits(PrimitivesTag, Primitives const &,
   }
 }
 
-template <typename Values, typename Tag = PrimitivesTag>
+template <typename Values, typename Tag>
 class AccessValues
 {
 private:
