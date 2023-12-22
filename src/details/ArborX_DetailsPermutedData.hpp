@@ -33,7 +33,7 @@ struct PermutedData
   {
     return _data(_permute(i));
   }
-  KOKKOS_FUNCTION decltype(auto) size() const { return _data.size(); }
+  KOKKOS_FUNCTION auto size() const { return _data.size(); }
 };
 
 } // namespace Details
