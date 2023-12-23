@@ -135,10 +135,9 @@ public:
     Kokkos::TeamPolicy<ExecutionSpace> policy(space, 1, Kokkos::AUTO);
     int team_rec =
         policy.team_size_recommended(*this, Kokkos::ParallelForTag{});
-    int div = _num_targets / team_rec;
     int mod = _num_targets % team_rec;
+    int div = (_num_targets - mod) / team_rec;
     int league_rec = div + ((mod == 0) ? 0 : 1);
-    printf("Memory per block: %ld\n", team_shmem_size(team_rec));
     return Kokkos::TeamPolicy<ExecutionSpace>(space, league_rec, team_rec);
   }
 
