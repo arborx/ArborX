@@ -13,8 +13,8 @@
 #define ARBORX_INDEXABLE_GETTER_HPP
 
 #include <ArborX_AccessTraits.hpp>
-#include <ArborX_DetailsNode.hpp> // PairIndexVolume
 #include <ArborX_GeometryTraits.hpp>
+#include <ArborX_PairValueIndex.hpp>
 
 namespace ArborX::Details
 {
@@ -32,17 +32,17 @@ struct DefaultIndexableGetter
     return geometry;
   }
 
-  template <typename Geometry>
-  KOKKOS_FUNCTION Geometry const &
-  operator()(PairIndexVolume<Geometry> const &pair) const
+  template <typename Value, typename Index>
+  KOKKOS_FUNCTION Value const &
+  operator()(PairValueIndex<Value, Index> const &pair) const
   {
-    return pair.bounding_volume;
+    return pair.value;
   }
 
-  template <typename Geometry>
-  KOKKOS_FUNCTION Geometry operator()(PairIndexVolume<Geometry> &&pair) const
+  template <typename Value, typename Index>
+  KOKKOS_FUNCTION Value operator()(PairValueIndex<Value, Index> &&pair) const
   {
-    return pair.bounding_volume;
+    return pair.value;
   }
 };
 

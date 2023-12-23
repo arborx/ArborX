@@ -141,11 +141,11 @@ template <typename MemorySpace>
 class BoundingVolumeHierarchy<MemorySpace, Details::LegacyDefaultTemplateValue,
                               Details::DefaultIndexableGetter,
                               ExperimentalHyperGeometry::Box<3, float>>
-    : public BoundingVolumeHierarchy<MemorySpace, Details::PairIndexVolume<Box>,
+    : public BoundingVolumeHierarchy<MemorySpace, PairValueIndex<Box>,
                                      Details::DefaultIndexableGetter, Box>
 {
   using base_type =
-      BoundingVolumeHierarchy<MemorySpace, Details::PairIndexVolume<Box>,
+      BoundingVolumeHierarchy<MemorySpace, PairValueIndex<Box>,
                               Details::DefaultIndexableGetter, Box>;
 
 public:

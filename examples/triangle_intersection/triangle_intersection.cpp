@@ -322,9 +322,8 @@ int main()
 
   // Create BVH tree
   ArborX::BoundingVolumeHierarchy<MemorySpace,
-                                  ArborX::Details::PairIndexVolume<Box>> const
-      tree(execution_space,
-           ArborX::Details::LegacyValues<decltype(triangles), Box>{triangles});
+                                  ArborX::PairValueIndex<Box>> const
+      tree(execution_space, ArborX::Experimental::attach_indices(triangles));
 
   // Create the points used for queries
   Points<MemorySpace> points(execution_space);
