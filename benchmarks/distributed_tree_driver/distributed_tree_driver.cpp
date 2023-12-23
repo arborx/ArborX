@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include <ArborX_DistributedTree.hpp>
+#include <ArborX_PairIndexRank.hpp>
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>

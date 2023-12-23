@@ -14,8 +14,8 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
-#include <ArborX_DetailsDistributedTreeImpl.hpp>
-#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_DetailsDistributedTreeNearest.hpp>
+#include <ArborX_DetailsDistributedTreeSpatial.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_LinearBVH.hpp>
 
@@ -28,11 +28,8 @@
 namespace ArborX
 {
 
-/** \brief Distributed search tree
- *
- *  \note query() must be called as collective over all processes in the
- *  communicator passed to the constructor.
- */
+// NOTE: query() must be called as collective over all processes in the
+// communicator passed to the constructor
 template <typename MemorySpace>
 class DistributedTree
 {
@@ -46,48 +43,31 @@ public:
   DistributedTree(MPI_Comm comm, ExecutionSpace const &space,
                   Primitives const &primitives);
 
-  /** Returns the smallest axis-aligned box able to contain all the objects
-   *  stored in the tree or an invalid box if the tree is empty.
-   */
+  // Return the smallest axis-aligned box able to contain all the objects
+  // stored in the tree or an invalid box if the tree is empty.
   bounding_volume_type bounds() const noexcept { return _top_tree.bounds(); }
 
-  /** Returns the global number of objects stored in the tree.
-   */
+  // Return the global number of objects stored in the tree
   size_type size() const noexcept { return _top_tree_size; }
 
-  /** Indicates whether the tree is empty on all processes.
-   */
+  // Indicate whether the tree is empty on all processes
   bool empty() const noexcept { return size() == 0; }
 
-  /** \brief Finds object satisfying the passed predicates (e.g. nearest to
-   *  some point or intersecting with some box)
-   *
-   *  This query function performs a batch of spatial or k-nearest neighbors
-   *  searches.  The results give indices of the objects that satisfy
-   *  predicates (as given to the constructor).  They are organized in a
-   *  distributed compressed row storage format.
-   *
-   *  \c indices stores the indices of the objects that satisfy the
-   *  predicates.  \c offset stores the locations in the \c indices view that
-   *  start a predicate, that is, \c queries(q) is satisfied by \c indices(o)
-   *  for <code>objects(q) <= o < objects(q+1)</code> that live on processes
-   *  \c ranks(o) respectively.  Following the usual convention,
-   *  <code>offset(n) = nnz</code>, where \c n is the number of queries that
-   *  were performed and \c nnz is the total number of collisions.
-   *
-   *  \note The views \c indices, \c offset, and \c ranks are passed by
-   *  reference because \c Kokkos::realloc() calls the assignment operator.
-   *
-   *  \param[in] predicates Collection of predicates of the same type.  These
-   *  may be spatial predicates or nearest predicates.
-   *  \param[out] args
-   *     - \c indices Object local indices that satisfy the predicates.
-   *     - \c offset Array of predicate offsets for one-dimensional
-   *       storage.
-   *     - \c ranks Process ranks that own objects.
-   *     - \c distances Computed distances (optional and only for nearest
-   *       predicates).
-   */
+  // Find objects satisfying the passed predicates (e.g. nearest to some point
+  // or intersecting with some box)
+  //
+  // This query function performs a batch of spatial or k-nearest neighbors
+  // searches.  The results give indices of the objects that satisfy predicates
+  // (as given to the constructor).  They are organized in a distributed
+  // compressed row storage format.
+  //
+  // `indices` stores the indices of the objects that satisfy the predicates.
+  // `offset` stores the locations in the `indices` view that start a
+  // predicate, that is, "queries(q)" is satisfied by `indices(o)` for
+  // `objects(q) <= o < objects(q+1)` that live on processes `ranks(o)`
+  // respectively.  Following the usual convention, `offset(n) = nnz`, where
+  // `n` is the number of queries that were performed and `nnz` is the total
+  // number of collisions.
   template <typename ExecutionSpace, typename UserPredicates, typename... Args>
   void query(ExecutionSpace const &space, UserPredicates const &user_predicates,
              Args &&...args) const
@@ -104,15 +84,15 @@ public:
     Predicates predicates{user_predicates};
 
     using Tag = typename Predicates::value_type::Tag;
-    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
-    Details::DistributedTreeImpl<DeviceType>::queryDispatch(
-        Tag{}, *this, space, predicates, std::forward<Args>(args)...);
+    Details::DistributedTreeImpl::queryDispatch(Tag{}, *this, space, predicates,
+                                                std::forward<Args>(args)...);
   }
 
 private:
-  template <typename DeviceType>
   friend struct Details::DistributedTreeImpl;
+
   MPI_Comm getComm() const { return *_comm_ptr; }
+
   std::shared_ptr<MPI_Comm> _comm_ptr;
   BVH<MemorySpace> _top_tree;    // replicated
   BVH<MemorySpace> _bottom_tree; // local
