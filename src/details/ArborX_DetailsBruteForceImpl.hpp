@@ -12,7 +12,6 @@
 #ifndef ARBORX_DETAILS_BRUTE_FORCE_IMPL_HPP
 #define ARBORX_DETAILS_BRUTE_FORCE_IMPL_HPP
 
-#include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // expand
 #include <ArborX_Exception.hpp>
 
@@ -53,12 +52,11 @@ struct BruteForceImpl
                     Callback const &callback)
   {
     using TeamPolicy = Kokkos::TeamPolicy<ExecutionSpace>;
-    using AccessPredicates = AccessTraits<Predicates, PredicatesTag>;
-    using PredicateType = typename AccessTraitsHelper<AccessPredicates>::type;
+    using PredicateType = typename Predicates::value_type;
     using IndexableType = std::decay_t<decltype(indexables(0))>;
 
     int const n_indexables = values.size();
-    int const n_predicates = AccessPredicates::size(predicates);
+    int const n_predicates = predicates.size();
     int max_scratch_size = TeamPolicy::scratch_size_max(0);
     // half of the scratch memory used by predicates and half for indexables
     int const predicates_per_team =
@@ -110,8 +108,7 @@ struct BruteForceImpl
           Kokkos::parallel_for(
               Kokkos::TeamVectorRange(teamMember, predicates_in_this_team),
               [&](const int q) {
-                scratch_predicates(q) =
-                    AccessPredicates::get(predicates, predicate_start + q);
+                scratch_predicates(q) = predicates(predicate_start + q);
               });
           Kokkos::parallel_for(
               Kokkos::TeamVectorRange(teamMember, indexables_in_this_team),

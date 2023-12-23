@@ -12,7 +12,6 @@
 #ifndef ARBORX_DETAIL_CRS_GRAPH_WRAPPER_IMPL_HPP
 #define ARBORX_DETAIL_CRS_GRAPH_WRAPPER_IMPL_HPP
 
-#include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_Callbacks.hpp>
 #include <ArborX_DetailsBatchedQueries.hpp>
@@ -50,8 +49,8 @@ struct FirstPassNoBufferOptimizationTag
 struct SecondPassTag
 {};
 
-template <typename PassTag, typename Predicates, typename Callback,
-          typename OutputView, typename CountView, typename PermutedOffset>
+template <typename PassTag, typename Callback, typename OutputView,
+          typename CountView, typename PermutedOffset>
 struct InsertGenerator
 {
   Callback _callback;
@@ -60,11 +59,9 @@ struct InsertGenerator
   PermutedOffset _permuted_offset;
 
   using ValueType = typename OutputView::value_type;
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  using PredicateType = typename AccessTraitsHelper<Access>::type;
 
-  template <typename Value>
-  KOKKOS_FUNCTION auto operator()(PredicateType const &predicate,
+  template <typename Predicate, typename Value>
+  KOKKOS_FUNCTION auto operator()(Predicate const &predicate,
                                   Value const &value) const
   {
     auto const predicate_index = getData(predicate);
@@ -126,8 +123,7 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
 
   static_assert(Kokkos::is_execution_space<ExecutionSpace>{});
 
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  auto const n_queries = Access::size(predicates);
+  auto const n_queries = predicates.size();
 
   Kokkos::Profiling::pushRegion("ArborX::CrsGraphWrapper::two_pass");
 
@@ -150,9 +146,8 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
   {
     tree.query(
         space, permuted_predicates,
-        InsertGenerator<FirstPassTag, PermutedPredicates, Callback, OutputView,
-                        CountView, PermutedOffset>{callback, out, counts,
-                                                   permuted_offset},
+        InsertGenerator<FirstPassTag, Callback, OutputView, CountView,
+                        PermutedOffset>{callback, out, counts, permuted_offset},
         ArborX::Experimental::TraversalPolicy().setPredicateSorting(false));
 
     // Detecting overflow is a local operation that needs to be done for every
@@ -185,9 +180,9 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
   {
     tree.query(
         space, permuted_predicates,
-        InsertGenerator<FirstPassNoBufferOptimizationTag, PermutedPredicates,
-                        Callback, OutputView, CountView, PermutedOffset>{
-            callback, out, counts, permuted_offset},
+        InsertGenerator<FirstPassNoBufferOptimizationTag, Callback, OutputView,
+                        CountView, PermutedOffset>{callback, out, counts,
+                                                   permuted_offset},
         ArborX::Experimental::TraversalPolicy().setPredicateSorting(false));
     // This may not be true, but it does not matter. As long as we have
     // (n_results == 0) check before second pass, this value is not used.
@@ -247,9 +242,8 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
 
     tree.query(
         space, permuted_predicates,
-        InsertGenerator<SecondPassTag, PermutedPredicates, Callback, OutputView,
-                        CountView, PermutedOffset>{callback, out, counts,
-                                                   permuted_offset},
+        InsertGenerator<SecondPassTag, Callback, OutputView, CountView,
+                        PermutedOffset>{callback, out, counts, permuted_offset},
         ArborX::Experimental::TraversalPolicy().setPredicateSorting(false));
 
     Kokkos::Profiling::popRegion();
@@ -298,9 +292,7 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
                              Predicates const &predicates, OffsetView &offset,
                              OutView &out, int buffer_size)
 {
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-
-  auto const n_queries = Access::size(predicates);
+  auto const n_queries = predicates.size();
   KokkosExt::reallocWithoutInitializing(space, offset, n_queries + 1);
 
   buffer_size = std::abs(buffer_size);
@@ -324,16 +316,14 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
                              Predicates const &predicates, OffsetView &offset,
                              OutView &out, int /*buffer_size*/)
 {
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-
-  auto const n_queries = Access::size(predicates);
+  auto const n_queries = predicates.size();
   KokkosExt::reallocWithoutInitializing(space, offset, n_queries + 1);
 
   Kokkos::parallel_for(
       "ArborX::CrsGraphWrapper::query::nearest::"
       "scan_queries_for_numbers_of_nearest_neighbors",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-      KOKKOS_LAMBDA(int i) { offset(i) = getK(Access::get(predicates, i)); });
+      KOKKOS_LAMBDA(int i) { offset(i) = getK(predicates(i)); });
   exclusivePrefixSum(space, offset);
 
   KokkosExt::reallocWithoutInitializing(space, out,

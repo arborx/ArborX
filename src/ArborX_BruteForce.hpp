@@ -64,23 +64,23 @@ public:
   void query(ExecutionSpace const &space, Predicates const &predicates,
              Callback const &callback, Ignore = Ignore()) const;
 
-  template <typename ExecutionSpace, typename Predicates,
+  template <typename ExecutionSpace, typename UserPredicates,
             typename CallbackOrView, typename View, typename... Args>
   std::enable_if_t<Kokkos::is_view_v<std::decay_t<View>>>
-  query(ExecutionSpace const &space, Predicates const &predicates,
+  query(ExecutionSpace const &space, UserPredicates const &user_predicates,
         CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
   {
     Kokkos::Profiling::ScopedRegion guard("ArborX::BruteForce::query_crs");
 
     Details::CrsGraphWrapperImpl::
         check_valid_callback_if_first_argument_is_not_a_view<value_type>(
-            callback_or_view, predicates, view);
+            callback_or_view, user_predicates, view);
 
-    using Access = AccessTraits<Predicates, PredicatesTag>;
-    using Tag = typename Details::AccessTraitsHelper<Access>::tag;
+    using Predicates = Details::AccessValues<UserPredicates, PredicatesTag>;
+    using Tag = typename Predicates::value_type::Tag;
 
     Details::CrsGraphWrapperImpl::queryDispatch(
-        Tag{}, *this, space, predicates,
+        Tag{}, *this, space, Predicates{user_predicates},
         std::forward<CallbackOrView>(callback_or_view),
         std::forward<View>(view), std::forward<Args>(args)...);
   }
@@ -189,7 +189,7 @@ BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
   Details::check_valid_access_traits<UserValues>(
       PrimitivesTag{}, user_values, Details::DoNotCheckGetReturnType());
 
-  using Values = Details::AccessValues<UserValues>;
+  using Values = Details::AccessValues<UserValues, PrimitivesTag>;
   Values values{user_values};
 
   static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,
@@ -209,23 +209,27 @@ BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
 
 template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
-template <typename ExecutionSpace, typename Predicates, typename Callback,
+template <typename ExecutionSpace, typename UserPredicates, typename Callback,
           typename Ignore>
 void BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::query(
-    ExecutionSpace const &space, Predicates const &predicates,
+    ExecutionSpace const &space, UserPredicates const &user_predicates,
     Callback const &callback, Ignore) const
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
-  Details::check_valid_access_traits(PredicatesTag{}, predicates);
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  static_assert(KokkosExt::is_accessible_from<typename Access::memory_space,
+  Details::check_valid_access_traits(PredicatesTag{}, user_predicates);
+  Details::check_valid_callback<value_type>(callback, user_predicates);
+
+  using Predicates = Details::AccessValues<UserPredicates, PredicatesTag>;
+  static_assert(KokkosExt::is_accessible_from<typename Predicates::memory_space,
                                               ExecutionSpace>::value,
                 "Predicates must be accessible from the execution space");
-  using Tag = typename Details::AccessTraitsHelper<Access>::tag;
+
+  Predicates predicates{user_predicates};
+
+  using Tag = typename Predicates::value_type::Tag;
   static_assert(std::is_same<Tag, Details::SpatialPredicateTag>{},
                 "nearest query not implemented yet");
-  Details::check_valid_callback<Value>(callback, predicates);
 
   Kokkos::Profiling::pushRegion("ArborX::BruteForce::query::spatial");
 

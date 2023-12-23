@@ -199,11 +199,11 @@ void check_valid_access_traits(PrimitivesTag, Primitives const &,
   }
 }
 
-template <typename Values>
+template <typename Values, typename Tag>
 class AccessValues
 {
 private:
-  using Access = AccessTraits<Values, PrimitivesTag>;
+  using Access = AccessTraits<Values, Tag>;
 
 public:
   Values _values;
@@ -221,10 +221,10 @@ public:
 
 } // namespace Details
 
-template <typename Values>
-struct AccessTraits<Details::AccessValues<Values>, PrimitivesTag>
+template <typename Values, typename Tag>
+struct AccessTraits<Details::AccessValues<Values, Tag>, Tag>
 {
-  using AccessValues = Details::AccessValues<Values>;
+  using AccessValues = Details::AccessValues<Values, Tag>;
 
   using memory_space = typename AccessValues::memory_space;
 

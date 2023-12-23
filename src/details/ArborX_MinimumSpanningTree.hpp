@@ -48,7 +48,7 @@ struct MinimumSpanningTree
   {
     Kokkos::Profiling::pushRegion("ArborX::MST::MST");
 
-    using Points = Details::AccessValues<Primitives>;
+    using Points = Details::AccessValues<Primitives, PrimitivesTag>;
     using Point = typename Points::value_type;
     static_assert(GeometryTraits::is_point<Point>{});
 

@@ -12,6 +12,7 @@
 #ifndef ARBORX_DISTRIBUTED_TREE_HPP
 #define ARBORX_DISTRIBUTED_TREE_HPP
 
+#include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsDistributedTreeImpl.hpp>
 #include <ArborX_DetailsUtils.hpp> // accumulate
@@ -86,13 +87,22 @@ public:
    *     - \c distances Computed distances (optional and only for nearest
    *       predicates).
    */
-  template <typename ExecutionSpace, typename Predicates, typename... Args>
-  void query(ExecutionSpace const &space, Predicates const &predicates,
+  template <typename ExecutionSpace, typename UserPredicates, typename... Args>
+  void query(ExecutionSpace const &space, UserPredicates const &user_predicates,
              Args &&...args) const
   {
-    static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
-    using Access = AccessTraits<Predicates, PredicatesTag>;
-    using Tag = typename Details::AccessTraitsHelper<Access>::tag;
+    static_assert(
+        KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
+
+    using Predicates = Details::AccessValues<UserPredicates, PredicatesTag>;
+    static_assert(
+        KokkosExt::is_accessible_from<typename Predicates::memory_space,
+                                      ExecutionSpace>::value,
+        "Predicates must be accessible from the execution space");
+
+    Predicates predicates{user_predicates};
+
+    using Tag = typename Predicates::value_type::Tag;
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     Details::DistributedTreeImpl<DeviceType>::queryDispatch(
         Tag{}, *this, space, predicates, std::forward<Args>(args)...);
