@@ -407,7 +407,7 @@ pipeline {
                             filename "Dockerfile.sycl"
                             dir "docker"
                             args '-v /tmp/ccache.kokkos:/tmp/ccache'
-                            label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
+                            label 'nvidia-docker && ampere'
                         }
                     }
                     steps {
