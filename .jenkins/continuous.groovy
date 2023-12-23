@@ -438,7 +438,7 @@ pipeline {
                             '''
                             sh '''
                                 . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
-                                ctest $CTEST_OPTIONS
+                                ctest --output-on-failure
                             '''
                         }
                     }
