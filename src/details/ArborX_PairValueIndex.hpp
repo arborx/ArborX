@@ -37,7 +37,7 @@ template <typename Values, typename Index>
 class AttachIndices
 {
 private:
-  using Data = Details::AccessValues<Values>;
+  using Data = Details::AccessValues<Values, PrimitivesTag>;
 
 public:
   Data _data;
