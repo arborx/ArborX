@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_SUITE(ComparisonWithBoost)
 namespace tt = boost::test_tools;
 
 inline Kokkos::View<ArborX::Point *, Kokkos::HostSpace>
-make_stuctured_cloud(double Lx, double Ly, double Lz, int nx, int ny, int nz)
+make_stuctured_cloud(float Lx, float Ly, float Lz, int nx, int ny, int nz)
 {
   std::function<int(int, int, int)> ind = [nx, ny](int i, int j, int k) {
     return i + j * nx + k * (nx * ny);
@@ -61,9 +61,9 @@ template <typename Tree, typename ExecutionSpace, typename DeviceType,
 void boost_rtree_nearest_predicate()
 {
   // construct a cloud of points (nodes of a structured grid)
-  double Lx = 10.0;
-  double Ly = 10.0;
-  double Lz = 10.0;
+  float Lx = 10.0;
+  float Ly = 10.0;
+  float Lz = 10.0;
   int nx = 11;
   int ny = 11;
   int nz = 11;
@@ -125,9 +125,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
 #endif
 
   // construct a cloud of points (nodes of a structured grid)
-  double Lx = 10.0;
-  double Ly = 10.0;
-  double Lz = 10.0;
+  float Lx = 10.0;
+  float Ly = 10.0;
+  float Lz = 10.0;
   int nx = 11;
   int ny = 11;
   int nz = 11;
@@ -140,11 +140,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
   auto points = ArborXTest::make_random_cloud<ArborX::Point>(
       ExecutionSpace{}, n_points, Lx, Ly, Lz);
 
-  Kokkos::View<double *, ExecutionSpace> radii("radii", n_points);
+  Kokkos::View<float *, ExecutionSpace> radii("radii", n_points);
   auto radii_host = Kokkos::create_mirror_view(radii);
   // use random radius for the search
   std::default_random_engine generator;
-  std::uniform_real_distribution<double> distribution_radius(
+  std::uniform_real_distribution<float> distribution_radius(
       0.0, std::sqrt(Lx * Lx + Ly * Ly + Lz * Lz));
   for (unsigned int i = 0; i < n_points; ++i)
   {

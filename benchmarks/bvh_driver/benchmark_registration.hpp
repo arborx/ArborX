@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2017-2023 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -132,9 +132,9 @@ makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
           n_queries);
   // Radius is computed so that the number of results per query for a uniformly
   // distributed points in a [-a,a]^3 box is approximately n_neighbors.
-  // Calculation: n_values*(4/3*pi*r^3)/(2a)^3 = n_neighbors
-  double const r = std::cbrt(static_cast<double>(n_neighbors) * 6. /
-                             Kokkos::numbers::pi_v<double>);
+  // Calculation: n_values*(4/3*M_PI*r^3)/(2a)^3 = n_neighbors
+  float const r = std::cbrt(static_cast<float>(n_neighbors) * 6 /
+                            Kokkos::numbers::pi_v<float>);
   using ExecutionSpace = typename DeviceType::execution_space;
   Kokkos::parallel_for(
       "Benchmark::setup_radius_search_queries",

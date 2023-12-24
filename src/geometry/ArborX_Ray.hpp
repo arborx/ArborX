@@ -33,10 +33,8 @@ namespace ArborX
 namespace Experimental
 {
 
-struct Vector : private Point
+struct Vector : public Point
 {
-  using Point::Point;
-  using Point::operator[];
   friend KOKKOS_FUNCTION constexpr bool operator==(Vector const &v,
                                                    Vector const &w)
   {
@@ -44,21 +42,14 @@ struct Vector : private Point
   }
 };
 
-template <typename Point1, typename Point2>
+template <typename Point>
 KOKKOS_INLINE_FUNCTION constexpr std::enable_if_t<
-    GeometryTraits::is_point<Point1>::value &&
-        GeometryTraits::is_point<Point2>::value &&
-        GeometryTraits::dimension_v<Point1> == 3 &&
-        GeometryTraits::dimension_v<Point2> == 3,
+    GeometryTraits::is_point<Point>::value &&
+        GeometryTraits::dimension_v<Point> == 3,
     Vector>
-makeVector(Point1 const &begin, Point2 const &end)
+makeVector(Point const &begin, Point const &end)
 {
-  Vector v;
-  for (int d = 0; d < 3; ++d)
-  {
-    v[d] = end[d] - begin[d];
-  }
-  return v;
+  return {end[0] - begin[0], end[1] - begin[1], end[2] - begin[2]};
 }
 
 KOKKOS_INLINE_FUNCTION constexpr auto dotProduct(Vector const &v,
