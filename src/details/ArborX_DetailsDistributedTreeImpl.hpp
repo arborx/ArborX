@@ -140,6 +140,13 @@ struct DistributedTreeImpl
   }
 
   template <typename DistributedTree, typename ExecutionSpace,
+            typename Predicates, typename Callback>
+  static void queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
+                            ExecutionSpace const &space,
+                            Predicates const &queries,
+                            Callback const &callback);
+
+  template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename OutputView, typename OffsetView,
             typename Callback>
   static std::enable_if_t<Kokkos::is_view<OutputView>{} &&
@@ -575,6 +582,54 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
       Kokkos::Profiling::popRegion();
     }
   }
+}
+
+template <typename DeviceType>
+template <typename DistributedTree, typename ExecutionSpace,
+          typename Predicates, typename Callback>
+void DistributedTreeImpl<DeviceType>::queryDispatch(SpatialPredicateTag,
+                                                    DistributedTree const &tree,
+                                                    ExecutionSpace const &space,
+                                                    Predicates const &queries,
+                                                    Callback const &callback)
+{
+  Kokkos::Profiling::pushRegion("ArborX::DistributedTree::query::spatial");
+
+  auto const &top_tree = tree._top_tree;
+  auto const &bottom_tree = tree._bottom_tree;
+  auto comm = tree.getComm();
+
+  Kokkos::View<int *, DeviceType> indices(
+      "ArborX::DistributedTree::query::spatial::indices", 0);
+  Kokkos::View<int *, DeviceType> ranks(
+      "ArborX::DistributedTree::query::spatial::ranks", 0);
+  Kokkos::View<int *, DeviceType> offset(
+      "ArborX::DistributedTree::query::spatial::offset", 0);
+  query(top_tree, space, queries, indices, offset);
+
+  {
+    // NOTE_COMM_SPATIAL: The communication pattern here for the spatial search
+    // is identical to that of the nearest search (see NOTE_COMM_NEAREST). The
+    // code differences are:
+    // - usage of callbacks
+    // - no explicit distances
+    // - no results filtering
+
+    // Forward queries
+    using Access = AccessTraits<Predicates, PredicatesTag>;
+    using Query = typename AccessTraitsHelper<Access>::type;
+    Kokkos::View<int *, DeviceType> ids(
+        "ArborX::DistributedTree::query::spatial::query_ids", 0);
+    Kokkos::View<Query *, DeviceType> fwd_queries(
+        "ArborX::DistributedTree::query::spatial::fwd_queries", 0);
+    forwardQueries(comm, space, queries, indices, offset, fwd_queries, ids,
+                   ranks);
+
+    // Perform queries that have been received
+    bottom_tree.query(space, fwd_queries, callback);
+  }
+
+  Kokkos::Profiling::popRegion();
 }
 
 template <typename DeviceType>

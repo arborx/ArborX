@@ -1,0 +1,4 @@
+add_executable(ArborX_DistributedTree_IntersectsCallbackNoStore.exe distributed_intersects_callback_no_store.cpp)
+target_link_libraries(ArborX_DistributedTree_IntersectsCallbackNoStore.exe ArborX::ArborX)
+add_test(NAME ArborX_DistributedTree_IntersectsCallbackNoStore_Example COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} ./ArborX_DistributedTree_IntersectsCallbackNoStore.exe ${MPIEXEC_POSTFLAGS})
+
