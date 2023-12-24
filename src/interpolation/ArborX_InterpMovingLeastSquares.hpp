@@ -31,10 +31,10 @@ namespace ArborX::Interpolation::Details
 {
 
 // This is done to avoid a clash with another predicates access trait
-template <typename TargetPoints>
+template <typename TargetAccess>
 struct MLSTargetPointsPredicateWrapper
 {
-  ArborX::Details::AccessValues<TargetPoints, PrimitivesTag> target_access;
+  TargetAccess target_access;
   int num_neighbors;
 };
 
@@ -66,26 +66,25 @@ struct SearchNeighborsCallback
 namespace ArborX
 {
 
-template <typename Points>
+template <typename TargetAccess>
 struct AccessTraits<
-    Interpolation::Details::MLSTargetPointsPredicateWrapper<Points>,
+    Interpolation::Details::MLSTargetPointsPredicateWrapper<TargetAccess>,
     PredicatesTag>
 {
-  KOKKOS_FUNCTION static auto size(
-      Interpolation::Details::MLSTargetPointsPredicateWrapper<Points> const &tp)
+  using Self =
+      Interpolation::Details::MLSTargetPointsPredicateWrapper<TargetAccess>;
+
+  KOKKOS_FUNCTION static auto size(Self const &tp)
   {
     return tp.target_access.size();
   }
 
-  KOKKOS_FUNCTION static auto
-  get(Interpolation::Details::MLSTargetPointsPredicateWrapper<Points> const &tp,
-      int const i)
+  KOKKOS_FUNCTION static auto get(Self const &tp, int const i)
   {
     return attach(nearest(tp.target_access(i), tp.num_neighbors), i);
   }
 
-  using memory_space =
-      typename Details::AccessValues<Points, PrimitivesTag>::memory_space;
+  using memory_space = typename TargetAccess::memory_space;
 };
 
 } // namespace ArborX
@@ -150,18 +149,19 @@ public:
 
     TargetAccess target_access{target_points};
     SourceAccess source_access{source_points};
+
     _num_targets = target_access.size();
     _source_size = source_access.size();
     // There must be enough source points
     KOKKOS_ASSERT(0 < _num_neighbors && _num_neighbors <= _source_size);
 
     // Search for neighbors and get the arranged source points
-    auto source_view = searchNeighbors(space, source_points, target_points);
+    auto source_view = searchNeighbors(space, source_access, target_access);
 
     // Compute the moving least squares coefficients
     _coeffs = Details::movingLeastSquaresCoefficients<CRBFunc, PolynomialDegree,
                                                       FloatingCalculationType>(
-        space, source_view, target_points);
+        space, source_view, target_access._values);
   }
 
   template <typename ExecutionSpace, typename SourceValues,
@@ -218,25 +218,23 @@ public:
   }
 
 private:
-  template <typename ExecutionSpace, typename SourcePoints,
-            typename TargetPoints>
+  template <typename ExecutionSpace, typename SourceAccess,
+            typename TargetAccess>
   auto searchNeighbors(ExecutionSpace const &space,
-                       SourcePoints const &source_points,
-                       TargetPoints const &target_points)
+                       SourceAccess const &source_access,
+                       TargetAccess const &target_access)
   {
     auto guard = Kokkos::Profiling::ScopedRegion(
         "ArborX::MovingLeastSquares::searchNeighbors");
 
     // Organize the source points as a tree
-    using SourcePoint =
-        typename ArborX::Details::AccessValues<SourcePoints,
-                                               PrimitivesTag>::value_type;
+    using SourcePoint = typename SourceAccess::value_type;
     BoundingVolumeHierarchy<MemorySpace, ArborX::PairValueIndex<SourcePoint>>
-        source_tree(space, ArborX::Experimental::attach_indices(source_points));
+        source_tree(space, ArborX::Experimental::attach_indices(source_access));
 
     // Create the predicates
-    Details::MLSTargetPointsPredicateWrapper<TargetPoints> predicates{
-        {target_points}, _num_neighbors};
+    Details::MLSTargetPointsPredicateWrapper<TargetAccess> predicates{
+        target_access, _num_neighbors};
 
     // Create the callback
     Kokkos::View<SourcePoint **, MemorySpace> source_view(

@@ -28,11 +28,11 @@ namespace ArborX::Interpolation::Details
 
 template <typename CRBFunc, typename PolynomialDegree,
           typename CoefficientsType, typename ExecutionSpace,
-          typename SourcePoints, typename TargetPoints>
+          typename SourcePoints, typename TargetAccess>
 Kokkos::View<CoefficientsType **, typename SourcePoints::memory_space>
 movingLeastSquaresCoefficients(ExecutionSpace const &space,
                                SourcePoints const &source_points,
-                               TargetPoints const &target_points)
+                               TargetAccess const &target_access)
 {
   auto guard =
       Kokkos::Profiling::ScopedRegion("ArborX::MovingLeastSquaresCoefficients");
@@ -57,22 +57,18 @@ movingLeastSquaresCoefficients(ExecutionSpace const &space,
                 "source points elements must be points");
   static constexpr int dimension = GeometryTraits::dimension_v<SourcePoint>;
 
-  // TargetPoints is an access trait of points
-  ArborX::Details::check_valid_access_traits(PrimitivesTag{}, target_points);
-  using TargetAccess =
-      ArborX::Details::AccessValues<TargetPoints, PrimitivesTag>;
+  // TargetAccess is an access values of points
   static_assert(
       KokkosExt::is_accessible_from<typename TargetAccess::memory_space,
                                     ExecutionSpace>::value,
-      "target points must be accessible from the execution space");
+      "target access must be accessible from the execution space");
   using TargetPoint = typename TargetAccess::value_type;
   GeometryTraits::check_valid_geometry_traits(TargetPoint{});
   static_assert(GeometryTraits::is_point<TargetPoint>::value,
-                "target points elements must be points");
+                "target access elements must be points");
   static_assert(dimension == GeometryTraits::dimension_v<TargetPoint>,
                 "target and source points must have the same dimension");
 
-  TargetAccess target_access{target_points};
   int const num_targets = target_access.size();
   int const num_neighbors = source_points.extent(1);
 
