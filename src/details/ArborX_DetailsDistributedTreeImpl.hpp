@@ -15,6 +15,9 @@
 
 #include <Kokkos_Core.hpp>
 
+// Don't really need it, but our self containment tests rely on its presence
+#include <mpi.h>
+
 namespace ArborX::Details
 {
 struct DistributedTreeImpl
