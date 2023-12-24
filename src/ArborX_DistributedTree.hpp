@@ -32,14 +32,14 @@ namespace ArborX
  *  \note query() must be called as collective over all processes in the
  *  communicator passed to the constructor.
  */
-template <typename MemorySpace>
+template <typename MemorySpace, typename BoundingVolumeType = Box>
 class DistributedTree
 {
 public:
   using memory_space = MemorySpace;
   static_assert(Kokkos::is_memory_space<MemorySpace>::value);
   using size_type = typename BVH<MemorySpace>::size_type;
-  using bounding_volume_type = typename BVH<MemorySpace>::bounding_volume_type;
+  using bounding_volume_type = BoundingVolumeType;
 
   template <typename ExecutionSpace, typename Primitives>
   DistributedTree(MPI_Comm comm, ExecutionSpace const &space,
@@ -113,17 +113,22 @@ private:
   friend struct Details::DistributedTreeImpl;
   MPI_Comm getComm() const { return *_comm_ptr; }
   std::shared_ptr<MPI_Comm> _comm_ptr;
-  BVH<MemorySpace> _top_tree;    // replicated
-  BVH<MemorySpace> _bottom_tree; // local
+  BasicBoundingVolumeHierarchy<
+      MemorySpace, Details::PairIndexVolume<BoundingVolumeType>,
+      Details::DefaultIndexableGetter, BoundingVolumeType>
+      _top_tree; // replicated
+  BasicBoundingVolumeHierarchy<
+      MemorySpace, Details::PairIndexVolume<BoundingVolumeType>,
+      Details::DefaultIndexableGetter, BoundingVolumeType>
+      _bottom_tree; // local
   size_type _top_tree_size;
   Kokkos::View<size_type *, MemorySpace> _bottom_tree_sizes;
 };
 
-template <typename MemorySpace>
+template <typename MemorySpace, typename BoundingVolumeType>
 template <typename ExecutionSpace, typename Primitives>
-DistributedTree<MemorySpace>::DistributedTree(MPI_Comm comm,
-                                              ExecutionSpace const &space,
-                                              Primitives const &primitives)
+DistributedTree<MemorySpace, BoundingVolumeType>::DistributedTree(
+    MPI_Comm comm, ExecutionSpace const &space, Primitives const &primitives)
 {
   Kokkos::Profiling::pushRegion("ArborX::DistributedTree::DistributedTree");
 
@@ -148,7 +153,9 @@ DistributedTree<MemorySpace>::DistributedTree(MPI_Comm comm,
   Kokkos::Profiling::pushRegion("ArborX::DistributedTree::DistributedTree::"
                                 "bottom_tree_construction");
 
-  _bottom_tree = BVH<MemorySpace>(space, primitives);
+  _bottom_tree = BasicBoundingVolumeHierarchy<
+      MemorySpace, Details::PairIndexVolume<BoundingVolumeType>,
+      Details::DefaultIndexableGetter, BoundingVolumeType>(space, primitives);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::DistributedTree::DistributedTree::"
@@ -159,7 +166,7 @@ DistributedTree<MemorySpace>::DistributedTree(MPI_Comm comm,
   int comm_size;
   MPI_Comm_size(getComm(), &comm_size);
 
-  Kokkos::View<Box *, MemorySpace> boxes(
+  Kokkos::View<BoundingVolumeType *, MemorySpace> boxes(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::DistributedTree::DistributedTree::"
                          "rank_bounding_boxes"),
@@ -173,8 +180,8 @@ DistributedTree<MemorySpace>::DistributedTree(MPI_Comm comm,
               " (fill on device done before MPI_Allgather)");
 
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
-                static_cast<void *>(boxes.data()), sizeof(Box), MPI_BYTE,
-                getComm());
+                static_cast<void *>(boxes.data()), sizeof(BoundingVolumeType),
+                MPI_BYTE, getComm());
 #else
   auto boxes_host = Kokkos::create_mirror_view(
       Kokkos::view_alloc(host_exec, Kokkos::WithoutInitializing), boxes);
@@ -182,13 +189,15 @@ DistributedTree<MemorySpace>::DistributedTree(MPI_Comm comm,
   boxes_host(comm_rank) = _bottom_tree.bounds();
 
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
-                static_cast<void *>(boxes_host.data()), sizeof(Box), MPI_BYTE,
-                getComm());
+                static_cast<void *>(boxes_host.data()),
+                sizeof(BoundingVolumeType), MPI_BYTE, getComm());
 
   Kokkos::deep_copy(space, boxes, boxes_host);
 #endif
 
-  _top_tree = BVH<MemorySpace>{space, boxes};
+  _top_tree = BasicBoundingVolumeHierarchy<
+      MemorySpace, Details::PairIndexVolume<BoundingVolumeType>,
+      Details::DefaultIndexableGetter, BoundingVolumeType>{space, boxes};
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::DistributedTree::DistributedTree::"

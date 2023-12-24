@@ -20,6 +20,7 @@
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_DetailsUtils.hpp>
+#include <ArborX_HyperSphere.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_PairIndexRank.hpp>
 #include <ArborX_Predicates.hpp>
@@ -75,16 +76,17 @@ struct AccessTraits<
   }
   template <class Dummy = Geometry,
             std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
-                             std::is_same_v<Dummy, Point>> * = nullptr>
+                             GeometryTraits::is_point<Dummy>{}> * = nullptr>
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
     auto const point = getGeometry(x.predicates(i));
     auto const distance = x.distances(i);
-    return intersects(Sphere{point, distance});
+    return intersects(ExperimentalHyperGeometry::Sphere{
+        Details::toHyperPoint(point), distance});
   }
   template <class Dummy = Geometry,
             std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
-                             std::is_same_v<Dummy, Box>> * = nullptr>
+                             GeometryTraits::is_box<Dummy>{}> * = nullptr>
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
     auto box = getGeometry(x.predicates(i));
@@ -100,7 +102,7 @@ struct AccessTraits<
   }
   template <class Dummy = Geometry,
             std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
-                             std::is_same_v<Dummy, Sphere>> * = nullptr>
+                             GeometryTraits::is_sphere<Dummy>{}> * = nullptr>
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
     auto const sphere = getGeometry(x.predicates(i));
@@ -505,11 +507,7 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
   // recompute everything instead of just searching for potential better
   // neighbors and updating the list.
 
-  // Right now, distance calculations only work with BVH due to using functions
-  // in DistributedTreeNearestUtils. So, there's no point in replacing this
-  // with decltype.
-  CallbackWithDistance<BVH<typename DeviceType::memory_space>>
-      callback_with_distance(space, bottom_tree);
+  CallbackWithDistance callback_with_distance(space, bottom_tree);
 
   // NOTE: compiler would not deduce __range for the braced-init-list, but I
   // got it to work with the static_cast to function pointers.

@@ -39,8 +39,8 @@ struct is_distributed : std::false_type
 {};
 
 #ifdef ARBORX_ENABLE_MPI
-template <typename D>
-struct is_distributed<ArborX::DistributedTree<D>> : std::true_type
+template <typename D, typename B>
+struct is_distributed<ArborX::DistributedTree<D, B>> : std::true_type
 {};
 
 template <typename I>
