@@ -12,11 +12,11 @@
 #ifndef ARBORX_DETAILS_MUTUAL_REACHABILITY_DISTANCE_HPP
 #define ARBORX_DETAILS_MUTUAL_REACHABILITY_DISTANCE_HPP
 
-#include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_Predicates.hpp>
+#include <ArborX_RangeTraits.hpp>
 
 namespace ArborX
 {
@@ -57,7 +57,7 @@ struct NearestK
 } // namespace Details
 
 template <class Primitives>
-struct AccessTraits<Details::NearestK<Primitives>, PredicatesTag>
+struct RangeTraits<Details::NearestK<Primitives>>
 {
   using memory_space = typename Primitives::memory_space;
   using size_type = typename memory_space::size_type;

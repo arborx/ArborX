@@ -13,6 +13,7 @@
 #define ARBORX_DETAILS_LEGACY_HPP
 
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_Callbacks.hpp>
 #include <ArborX_PairValueIndex.hpp>
 #include <ArborX_RangeTraits.hpp>
 
@@ -88,6 +89,77 @@ struct LegacyDefaultCallback
     output(value.index);
   }
 };
+
+template <typename Value, typename Callback, typename Predicates,
+          typename OutputView>
+void check_valid_callback_accesstraits(Callback const &callback,
+                                       Predicates const &, OutputView const &)
+{
+  check_generic_lambda_support(callback);
+
+  using Access = AccessTraits<Predicates, PredicatesTag>;
+  using PredicateTag = typename AccessTraitsHelper<Access>::tag;
+  using Predicate = typename AccessTraitsHelper<Access>::type;
+
+  static_assert(!(std::is_same<PredicateTag, NearestPredicateTag>{} &&
+                  Kokkos::is_detected<
+                      Legacy_NearestPredicateInlineCallbackArchetypeExpression,
+                      Callback, Predicate, OutputFunctorHelper<OutputView>>{}),
+                R"error(Callback signature has changed for nearest predicates.
+See https://github.com/arborx/ArborX/pull/366 for more details.
+Sorry!)error");
+
+  static_assert(is_valid_predicate_tag<PredicateTag>::value &&
+                    Kokkos::is_detected<InlineCallbackArchetypeExpression,
+                                        Callback, Predicate, Value,
+                                        OutputFunctorHelper<OutputView>>{},
+                "Callback 'operator()' does not have the correct signature");
+
+  static_assert(
+      std::is_void<Kokkos::detected_t<InlineCallbackArchetypeExpression,
+                                      Callback, Predicate, Value,
+                                      OutputFunctorHelper<OutputView>>>{},
+      "Callback 'operator()' return type must be void");
+}
+
+template <typename Value, typename Callback, typename Predicates>
+void check_valid_callback_accesstraits(Callback const &callback,
+                                       Predicates const &)
+{
+  check_generic_lambda_support(callback);
+
+  using Access = AccessTraits<Predicates, PredicatesTag>;
+  using PredicateTag = typename AccessTraitsHelper<Access>::tag;
+  using Predicate = typename AccessTraitsHelper<Access>::type;
+
+  static_assert(is_valid_predicate_tag<PredicateTag>::value,
+                "The predicate tag is not valid");
+
+  static_assert(Kokkos::is_detected<Experimental_CallbackArchetypeExpression,
+                                    Callback, Predicate, Value>{},
+                "Callback 'operator()' does not have the correct signature");
+
+  static_assert(
+      !(std::is_same<PredicateTag, SpatialPredicateTag>{} ||
+        std::is_same<PredicateTag,
+                     Experimental::OrderedSpatialPredicateTag>{}) ||
+          (std::is_same<
+               CallbackTreeTraversalControl,
+               Kokkos::detected_t<Experimental_CallbackArchetypeExpression,
+                                  Callback, Predicate, Value>>{} ||
+           std::is_void<
+               Kokkos::detected_t<Experimental_CallbackArchetypeExpression,
+                                  Callback, Predicate, Value>>{}),
+      "Callback 'operator()' return type must be void or "
+      "ArborX::CallbackTreeTraversalControl");
+
+  static_assert(
+      !std::is_same<PredicateTag, NearestPredicateTag>{} ||
+          std::is_void<
+              Kokkos::detected_t<Experimental_CallbackArchetypeExpression,
+                                 Callback, Predicate, Value>>{},
+      "Callback 'operator()' return type must be void");
+}
 
 struct LegacyDefaultTemplateValue
 {};

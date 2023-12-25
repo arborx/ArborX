@@ -71,6 +71,21 @@ template <typename Traits, typename Values>
 using RangeTraitsGetArchetypeExpression =
     decltype(Traits::get(std::declval<Values const &>(), 0));
 
+template <typename P>
+using PredicateTagArchetypeAlias = typename P::Tag;
+
+template <typename Range>
+struct RangeTraitsHelper;
+
+template <typename Values>
+struct RangeTraitsHelper<RangeTraits<Values>>
+{
+  using type =
+      std::decay_t<Kokkos::detected_t<RangeTraitsGetArchetypeExpression,
+                                      RangeTraits<Values>, Values>>;
+  using tag = Kokkos::detected_t<PredicateTagArchetypeAlias, type>;
+};
+
 template <typename Values>
 void check_valid_range_traits(Values const &)
 {

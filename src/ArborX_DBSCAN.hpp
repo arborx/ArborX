@@ -12,7 +12,6 @@
 #ifndef ARBORX_DBSCAN_HPP
 #define ARBORX_DBSCAN_HPP
 
-#include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsCartesianGrid.hpp>
 #include <ArborX_DetailsFDBSCAN.hpp>
 #include <ArborX_DetailsFDBSCANDenseBox.hpp>
@@ -99,7 +98,7 @@ struct MixedBoxPrimitives
 } // namespace Details
 
 template <typename Primitives>
-struct AccessTraits<Details::PrimitivesWithRadius<Primitives>, PredicatesTag>
+struct RangeTraits<Details::PrimitivesWithRadius<Primitives>>
 {
   using memory_space = typename Primitives::memory_space;
   using Predicates = Details::PrimitivesWithRadius<Primitives>;
@@ -124,9 +123,8 @@ struct AccessTraits<Details::PrimitivesWithRadius<Primitives>, PredicatesTag>
 };
 
 template <typename Primitives, typename PermuteFilter>
-struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
-                        Primitives, PermuteFilter>,
-                    PredicatesTag>
+struct RangeTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
+    Primitives, PermuteFilter>>
 {
   using memory_space = typename Primitives::memory_space;
   using Predicates =

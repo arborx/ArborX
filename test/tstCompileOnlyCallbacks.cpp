@@ -9,9 +9,9 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_Callbacks.hpp>
+#include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
 
@@ -20,7 +20,7 @@
 struct NearestPredicates
 {};
 template <>
-struct ArborX::AccessTraits<NearestPredicates, ArborX::PredicatesTag>
+struct ArborX::RangeTraits<NearestPredicates>
 {
   using memory_space = Kokkos::HostSpace;
   static int size(NearestPredicates const &) { return 1; }
@@ -30,7 +30,7 @@ struct ArborX::AccessTraits<NearestPredicates, ArborX::PredicatesTag>
 struct SpatialPredicates
 {};
 template <>
-struct ArborX::AccessTraits<SpatialPredicates, ArborX::PredicatesTag>
+struct ArborX::RangeTraits<SpatialPredicates>
 {
   using memory_space = Kokkos::HostSpace;
   static int size(SpatialPredicates const &) { return 1; }

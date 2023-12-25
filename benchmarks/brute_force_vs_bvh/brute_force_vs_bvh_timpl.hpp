@@ -23,7 +23,7 @@ using MemorySpace = ExecutionSpace::memory_space;
 
 namespace ArborXBenchmark
 {
-template <int DIM, typename FloatingPoint>
+template <int DIM, typename FloatingPoint, typename Tag>
 struct Placeholder
 {
   int count;
@@ -33,9 +33,11 @@ struct Placeholder
 // Primitives are a set of points located at (i, i, i),
 // with i = 0, ..., n-1
 template <int DIM, typename FloatingPoint>
-struct ArborX::RangeTraits<ArborXBenchmark::Placeholder<DIM, FloatingPoint>>
+struct ArborX::RangeTraits<
+    ArborXBenchmark::Placeholder<DIM, FloatingPoint, ArborX::PrimitivesTag>>
 {
-  using Primitives = ArborXBenchmark::Placeholder<DIM, FloatingPoint>;
+  using Primitives =
+      ArborXBenchmark::Placeholder<DIM, FloatingPoint, ArborX::PrimitivesTag>;
   using memory_space = MemorySpace;
   using size_type = typename MemorySpace::size_type;
   static KOKKOS_FUNCTION size_type size(Primitives d) { return d.count; }
@@ -51,10 +53,11 @@ struct ArborX::RangeTraits<ArborXBenchmark::Placeholder<DIM, FloatingPoint>>
 // Predicates are sphere intersections with spheres of radius i
 // centered at (i, i, i), with i = 0, ..., n-1
 template <int DIM, typename FloatingPoint>
-struct ArborX::AccessTraits<ArborXBenchmark::Placeholder<DIM, FloatingPoint>,
-                            ArborX::PredicatesTag>
+struct ArborX::RangeTraits<
+    ArborXBenchmark::Placeholder<DIM, FloatingPoint, ArborX::PredicatesTag>>
 {
-  using Predicates = ArborXBenchmark::Placeholder<DIM, FloatingPoint>;
+  using Predicates =
+      ArborXBenchmark::Placeholder<DIM, FloatingPoint, ArborX::PredicatesTag>;
   using memory_space = MemorySpace;
   using size_type = typename MemorySpace::size_type;
   static KOKKOS_FUNCTION size_type size(Predicates d) { return d.count; }
@@ -78,8 +81,9 @@ template <int DIM, typename FloatingPoint>
 static void run_fp(int nprimitives, int nqueries, int nrepeats)
 {
   ExecutionSpace space{};
-  Placeholder<DIM, FloatingPoint> primitives{nprimitives};
-  Placeholder<DIM, FloatingPoint> predicates{nqueries};
+  Placeholder<DIM, FloatingPoint, ArborX::PrimitivesTag> primitives{
+      nprimitives};
+  Placeholder<DIM, FloatingPoint, ArborX::PredicatesTag> predicates{nqueries};
 
   using Point = ArborX::ExperimentalHyperGeometry::Point<DIM, FloatingPoint>;
 

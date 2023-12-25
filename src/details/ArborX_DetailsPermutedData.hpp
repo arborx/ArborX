@@ -12,7 +12,7 @@
 #ifndef ARBORX_DETAILS_PERMUTED_DATA_HPP
 #define ARBORX_DETAILS_PERMUTED_DATA_HPP
 
-#include <ArborX_AccessTraits.hpp>
+#include <ArborX_RangeTraits.hpp>
 
 namespace ArborX
 {
@@ -39,8 +39,7 @@ struct PermutedData
 } // namespace Details
 
 template <typename Predicates, typename Permute, bool AttachIndices>
-struct AccessTraits<Details::PermutedData<Predicates, Permute, AttachIndices>,
-                    PredicatesTag>
+struct RangeTraits<Details::PermutedData<Predicates, Permute, AttachIndices>>
 {
   using PermutedPredicates =
       Details::PermutedData<Predicates, Permute, AttachIndices>;

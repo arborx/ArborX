@@ -77,7 +77,7 @@ public:
         check_valid_callback_if_first_argument_is_not_a_view<value_type>(
             callback_or_view, user_predicates, view);
 
-    using Predicates = Details::AccessValues<UserPredicates, PredicatesTag>;
+    using Predicates = Details::RangeValues<UserPredicates>;
     using Tag = typename Predicates::value_type::Tag;
 
     Details::CrsGraphWrapperImpl::queryDispatch(
@@ -124,9 +124,11 @@ public:
   void query(ExecutionSpace const &space, Predicates const &predicates,
              Callback const &callback, Ignore = Ignore()) const
   {
-    Details::check_valid_callback<int>(callback, predicates);
-    base_type::query(space, predicates,
-                     Details::LegacyCallbackWrapper<Callback>{callback});
+    Details::check_valid_callback_accesstraits<int>(callback, predicates);
+    Details::check_valid_access_traits(PredicatesTag{}, predicates);
+    base_type::query(
+        space, Details::AccessValues<Predicates, PredicatesTag>{predicates},
+        Details::LegacyCallbackWrapper<Callback>{callback});
   }
 
   template <typename ExecutionSpace, typename Predicates, typename View,
@@ -135,8 +137,11 @@ public:
   query(ExecutionSpace const &space, Predicates const &predicates, View &&view,
         Args &&...args) const
   {
-    base_type::query(space, predicates, Details::LegacyDefaultCallback{},
-                     std::forward<View>(view), std::forward<Args>(args)...);
+    Details::check_valid_access_traits(PredicatesTag{}, predicates);
+    base_type::query(
+        space, Details::AccessValues<Predicates, PredicatesTag>{predicates},
+        Details::LegacyDefaultCallback{}, std::forward<View>(view),
+        std::forward<Args>(args)...);
   }
 
   template <typename ExecutionSpace, typename Predicates, typename Callback,
@@ -146,16 +151,18 @@ public:
         Callback &&callback, OutputView &&out, OffsetView &&offset,
         Args &&...args) const
   {
+    Details::check_valid_access_traits(PredicatesTag{}, predicates);
     if constexpr (!Details::is_tagged_post_callback<
                       std::decay_t<Callback>>::value)
     {
-      Details::check_valid_callback<int>(callback, predicates, out);
-      base_type::query(space, predicates,
-                       Details::LegacyCallbackWrapper<std::decay_t<Callback>>{
-                           std::forward<Callback>(callback)},
-                       std::forward<OutputView>(out),
-                       std::forward<OffsetView>(offset),
-                       std::forward<Args>(args)...);
+      Details::check_valid_callback_accesstraits<int>(callback, predicates,
+                                                      out);
+      base_type::query(
+          space, Details::AccessValues<Predicates, PredicatesTag>{predicates},
+          Details::LegacyCallbackWrapper<std::decay_t<Callback>>{
+              std::forward<Callback>(callback)},
+          std::forward<OutputView>(out), std::forward<OffsetView>(offset),
+          std::forward<Args>(args)...);
     }
     else
     {
@@ -163,9 +170,10 @@ public:
 
       Kokkos::View<int *, MemorySpace> indices(
           "ArborX::CrsGraphWrapper::query::indices", 0);
-      base_type::query(space, predicates, Details::LegacyDefaultCallback{},
-                       indices, std::forward<OffsetView>(offset),
-                       std::forward<Args>(args)...);
+      base_type::query(
+          space, Details::AccessValues<Predicates, PredicatesTag>{predicates},
+          Details::LegacyDefaultCallback{}, indices,
+          std::forward<OffsetView>(offset), std::forward<Args>(args)...);
       callback(predicates, std::forward<OffsetView>(offset), indices,
                std::forward<OutputView>(out));
     }
@@ -216,10 +224,10 @@ void BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::query(
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
-  Details::check_valid_access_traits(PredicatesTag{}, user_predicates);
+  Details::check_valid_range_traits(user_predicates);
   Details::check_valid_callback<value_type>(callback, user_predicates);
 
-  using Predicates = Details::AccessValues<UserPredicates, PredicatesTag>;
+  using Predicates = Details::RangeValues<UserPredicates>;
   static_assert(KokkosExt::is_accessible_from<typename Predicates::memory_space,
                                               ExecutionSpace>::value,
                 "Predicates must be accessible from the execution space");

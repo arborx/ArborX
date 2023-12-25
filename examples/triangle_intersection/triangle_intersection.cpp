@@ -217,7 +217,7 @@ struct ArborX::RangeTraits<Triangles<MemorySpace>>
 };
 
 template <typename MemorySpace>
-struct ArborX::AccessTraits<Points<MemorySpace>, ArborX::PredicatesTag>
+struct ArborX::RangeTraits<Points<MemorySpace>>
 {
   using memory_space = MemorySpace;
   static KOKKOS_FUNCTION int size(Points<MemorySpace> const &points)
