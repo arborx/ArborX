@@ -23,16 +23,6 @@
 // clang-format on
 #include <Kokkos_Core.hpp>
 
-// We need a forward-declaration for NVCC, see below.
-namespace ArborX
-{
-namespace Experimental
-{
-template <int k, typename Coordinate>
-struct KDOP;
-}
-} // namespace ArborX
-
 BOOST_AUTO_TEST_SUITE(ComparisonWithBoost)
 
 namespace tt = boost::test_tools;
@@ -117,11 +107,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
   // FIXME_NVCC we see inexplainable test failures with NVCC and KDOP<18> and
   // KDOP<26> here.
 #ifdef __NVCC__
-  if (std::is_same<typename Tree::bounding_volume_type,
-                   ArborX::Experimental::KDOP<18>>::value ||
-      std::is_same<typename Tree::bounding_volume_type,
-                   ArborX::Experimental::KDOP<26>>::value)
-    return;
+  using BoundingVolume = typename Tree::bounding_volume_type;
+  if constexpr (ArborX::GeometryTraits::is_kdop_v<BoundingVolume>)
+  {
+    if constexpr (BoundingVolume::n_directions == 9 ||
+                  BoundingVolume::n_directions == 13)
+      return;
+  }
 #endif
 
   // construct a cloud of points (nodes of a structured grid)
