@@ -14,6 +14,7 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_PairValueIndex.hpp>
+#include <ArborX_RangeTraits.hpp>
 
 namespace ArborX::Details
 {
@@ -112,9 +113,8 @@ struct ArborX::GeometryTraits::coordinate_type<
 };
 
 template <typename Primitives, typename BoundingVolume>
-struct ArborX::AccessTraits<
-    ArborX::Details::LegacyValues<Primitives, BoundingVolume>,
-    ArborX::PrimitivesTag>
+struct ArborX::RangeTraits<
+    ArborX::Details::LegacyValues<Primitives, BoundingVolume>>
 {
   using Values = ArborX::Details::LegacyValues<Primitives, BoundingVolume>;
 
@@ -130,6 +130,24 @@ struct ArborX::AccessTraits<
   {
     return values(i);
   }
+};
+
+template <typename X, typename Tag>
+class ArborX::RangeTraits<ArborX::Details::AccessValues<X, Tag>>
+{
+private:
+  using Values = ArborX::Details::AccessValues<X, Tag>;
+
+public:
+  using memory_space = typename Values::memory_space;
+
+  KOKKOS_FUNCTION static decltype(auto) get(Values const &values, int i)
+  {
+    return values(i);
+  }
+
+  KOKKOS_FUNCTION
+  static auto size(Values const &values) { return values.size(); }
 };
 
 #endif

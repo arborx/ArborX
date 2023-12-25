@@ -20,6 +20,7 @@
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_IndexableGetter.hpp>
+#include <ArborX_RangeTraits.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
@@ -177,7 +178,7 @@ template <typename ExecutionSpace, typename UserValues>
 BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
     ExecutionSpace const &space, UserValues const &user_values,
     IndexableGetter const &indexable_getter)
-    : _size(AccessTraits<UserValues, PrimitivesTag>::size(user_values))
+    : _size(RangeTraits<UserValues>::size(user_values))
     , _values(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                  "ArborX::BruteForce::values"),
               _size)
@@ -185,11 +186,9 @@ BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
-  // FIXME redo with RangeTraits
-  Details::check_valid_access_traits<UserValues>(
-      PrimitivesTag{}, user_values, Details::DoNotCheckGetReturnType());
+  Details::check_valid_range_traits<UserValues>(user_values);
 
-  using Values = Details::AccessValues<UserValues, PrimitivesTag>;
+  using Values = Details::RangeValues<UserValues>;
   Values values{user_values};
 
   static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,

@@ -195,7 +195,7 @@ private:
 // and how to access a specific box. Since there are corresponding functions in
 // the Triangles class, we just resort to them.
 template <typename MemorySpace>
-struct ArborX::AccessTraits<Triangles<MemorySpace>, ArborX::PrimitivesTag>
+struct ArborX::RangeTraits<Triangles<MemorySpace>>
 {
   using memory_space = MemorySpace;
 

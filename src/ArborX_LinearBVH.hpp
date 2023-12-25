@@ -27,6 +27,7 @@
 #include <ArborX_DetailsTreeTraversal.hpp>
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_IndexableGetter.hpp>
+#include <ArborX_RangeTraits.hpp>
 #include <ArborX_SpaceFillingCurves.hpp>
 #include <ArborX_TraversalPolicy.hpp>
 
@@ -250,7 +251,7 @@ BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter, BoundingVolume>::
                             UserValues const &user_values,
                             IndexableGetter const &indexable_getter,
                             SpaceFillingCurve const &curve)
-    : _size(AccessTraits<UserValues, PrimitivesTag>::size(user_values))
+    : _size(RangeTraits<UserValues>::size(user_values))
     , _leaf_nodes(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                      "ArborX::BVH::leaf_nodes"),
                   _size)
@@ -261,11 +262,9 @@ BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter, BoundingVolume>::
 {
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
-  // FIXME redo with RangeTraits
-  Details::check_valid_access_traits<UserValues>(
-      PrimitivesTag{}, user_values, Details::DoNotCheckGetReturnType());
+  Details::check_valid_range_traits(user_values);
 
-  using Values = Details::AccessValues<UserValues, PrimitivesTag>;
+  using Values = Details::RangeValues<UserValues>;
   Values values{user_values};
 
   static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,

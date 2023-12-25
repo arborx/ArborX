@@ -12,7 +12,7 @@
 #ifndef ARBORX_PAIR_VALUE_INDEX_HPP
 #define ARBORX_PAIR_VALUE_INDEX_HPP
 
-#include <ArborX_AccessTraits.hpp>
+#include <ArborX_RangeTraits.hpp>
 
 #include <Kokkos_Macros.hpp>
 
@@ -37,7 +37,7 @@ template <typename Values, typename Index>
 class AttachIndices
 {
 private:
-  using Data = Details::AccessValues<Values, PrimitivesTag>;
+  using Data = Details::RangeValues<Values>;
 
 public:
   Data _data;
@@ -66,18 +66,17 @@ auto attach_indices(Values const &values)
 } // namespace ArborX
 
 template <typename Values, typename Index>
-struct ArborX::AccessTraits<ArborX::Experimental::AttachIndices<Values, Index>,
-                            ArborX::PrimitivesTag>
+struct ArborX::RangeTraits<ArborX::Experimental::AttachIndices<Values, Index>>
 {
   using Self = ArborX::Experimental::AttachIndices<Values, Index>;
 
   using memory_space = typename Self::memory_space;
 
-  KOKKOS_FUNCTION static auto size(Self const &values) { return values.size(); }
   KOKKOS_FUNCTION static decltype(auto) get(Self const &values, int i)
   {
     return values(i);
   }
+  KOKKOS_FUNCTION static auto size(Self const &values) { return values.size(); }
 };
 
 #endif

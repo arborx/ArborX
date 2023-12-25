@@ -21,6 +21,7 @@
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_HyperSphere.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <ArborX_RangeTraits.hpp>
 #include <ArborX_Sphere.hpp>
 
 namespace ArborX
@@ -154,9 +155,8 @@ struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
 
 template <typename Points, typename MixedOffsets, typename CellIndices,
           typename Permutation>
-struct AccessTraits<
-    Details::MixedBoxPrimitives<Points, MixedOffsets, CellIndices, Permutation>,
-    ArborX::PrimitivesTag>
+struct RangeTraits<
+    Details::MixedBoxPrimitives<Points, MixedOffsets, CellIndices, Permutation>>
 {
   using Primitives = Details::MixedBoxPrimitives<Points, MixedOffsets,
                                                  CellIndices, Permutation>;

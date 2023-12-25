@@ -33,8 +33,7 @@ struct Placeholder
 // Primitives are a set of points located at (i, i, i),
 // with i = 0, ..., n-1
 template <int DIM, typename FloatingPoint>
-struct ArborX::AccessTraits<ArborXBenchmark::Placeholder<DIM, FloatingPoint>,
-                            ArborX::PrimitivesTag>
+struct ArborX::RangeTraits<ArborXBenchmark::Placeholder<DIM, FloatingPoint>>
 {
   using Primitives = ArborXBenchmark::Placeholder<DIM, FloatingPoint>;
   using memory_space = MemorySpace;
