@@ -163,15 +163,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(reduce, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace space{};
 
-  namespace KokkosExt = ArborX::Details::KokkosExt;
+  using ArborX::Details::KokkosExt::reduce;
 
   Kokkos::View<int[6], DeviceType> v("v");
   Kokkos::deep_copy(v, 5);
-  BOOST_TEST(KokkosExt::reduce(space, v, 3) == 33);
+  BOOST_TEST(reduce(space, v, 3) == 33);
 
   Kokkos::View<int *, DeviceType> w("w", 5);
   ArborX::iota(space, w, 2);
-  BOOST_TEST(KokkosExt::reduce(space, w, 4) == 24);
+  BOOST_TEST(reduce(space, w, 4) == 24);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(adjacent_difference, DeviceType,
@@ -179,6 +179,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(adjacent_difference, DeviceType,
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace space{};
+
+  using ArborX::Details::KokkosExt::adjacent_difference;
 
   Kokkos::View<int[5], DeviceType> v("v");
   auto v_host = Kokkos::create_mirror_view(v);
@@ -189,10 +191,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(adjacent_difference, DeviceType,
   v_host(4) = 10;
   Kokkos::deep_copy(v, v_host);
   // In-place operation is not allowed
-  BOOST_CHECK_THROW(ArborX::adjacentDifference(space, v, v),
-                    ArborX::SearchException);
+  BOOST_CHECK_THROW(adjacent_difference(space, v, v), ArborX::SearchException);
   auto w = Kokkos::create_mirror(DeviceType(), v);
-  BOOST_CHECK_NO_THROW(ArborX::adjacentDifference(space, v, w));
+  BOOST_CHECK_NO_THROW(adjacent_difference(space, v, w));
   auto w_host = Kokkos::create_mirror_view(w);
   Kokkos::deep_copy(w_host, w);
   std::vector<int> w_ref(5, 2);
@@ -200,10 +201,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(adjacent_difference, DeviceType,
 
   Kokkos::View<float *, DeviceType> x("x", 10);
   Kokkos::deep_copy(x, 3.14);
-  BOOST_CHECK_THROW(ArborX::adjacentDifference(space, x, x),
-                    ArborX::SearchException);
+  BOOST_CHECK_THROW(adjacent_difference(space, x, x), ArborX::SearchException);
   Kokkos::View<float[10], DeviceType> y("y");
-  BOOST_CHECK_NO_THROW(ArborX::adjacentDifference(space, x, y));
+  BOOST_CHECK_NO_THROW(adjacent_difference(space, x, y));
   std::vector<float> y_ref(10);
   y_ref[0] = 3.14;
   auto y_host = Kokkos::create_mirror_view(y);
@@ -211,8 +211,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(adjacent_difference, DeviceType,
   BOOST_TEST(y_host == y_ref, tt::per_element());
 
   Kokkos::resize(x, 5);
-  BOOST_CHECK_THROW(ArborX::adjacentDifference(space, y, x),
-                    ArborX::SearchException);
+  BOOST_CHECK_THROW(adjacent_difference(space, y, x), ArborX::SearchException);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(min_and_max, DeviceType, ARBORX_DEVICE_TYPES)
