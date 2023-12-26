@@ -16,7 +16,7 @@
 
 #include <initializer_list>
 
-namespace KokkosBlah
+namespace ArborX::Details::KokkosExt
 {
 
 //! Compute the maximum of two values.
@@ -73,6 +73,6 @@ KOKKOS_INLINE_FUNCTION constexpr T min(std::initializer_list<T> ilist)
   return result;
 }
 
-} // namespace KokkosBlah
+} // namespace ArborX::Details::KokkosExt
 
 #endif

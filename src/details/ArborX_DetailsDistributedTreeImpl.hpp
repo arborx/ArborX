@@ -398,7 +398,7 @@ void DistributedTreeImpl<DeviceType>::reassessStrategy(
       "ArborX::DistributedTree::query::most_distant_neighbor_so_far",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int i) {
-        using KokkosBlah::max;
+        using KokkosExt::max;
         farthest_distances(i) = 0.;
         for (int j = offset(i); j < offset(i + 1); ++j)
           farthest_distances(i) = max(farthest_distances(i), distances(j));
@@ -888,7 +888,7 @@ void DistributedTreeImpl<DeviceType>::filterResults(
       "ArborX::DistributedTree::query::discard_results",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int q) {
-        using KokkosBlah::min;
+        using KokkosExt::min;
         new_offset(q) = min(offset(q + 1) - offset(q), getK(queries(q)));
       });
 

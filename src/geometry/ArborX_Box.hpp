@@ -61,8 +61,8 @@ struct Box
 
   KOKKOS_FUNCTION Box &operator+=(Box const &other)
   {
-    using KokkosBlah::max;
-    using KokkosBlah::min;
+    using Details::KokkosExt::max;
+    using Details::KokkosExt::min;
 
     for (int d = 0; d < 3; ++d)
     {
@@ -74,8 +74,8 @@ struct Box
 
   KOKKOS_FUNCTION Box &operator+=(Point const &point)
   {
-    using KokkosBlah::max;
-    using KokkosBlah::min;
+    using Details::KokkosExt::max;
+    using Details::KokkosExt::min;
 
     for (int d = 0; d < 3; ++d)
     {
