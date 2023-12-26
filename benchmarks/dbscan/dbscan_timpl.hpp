@@ -118,7 +118,7 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
       },
       num_clusters);
   Kokkos::resize(Kokkos::WithoutInitializing, cluster_offset, num_clusters + 1);
-  ArborX::exclusivePrefixSum(exec_space, cluster_offset);
+  KokkosExt::exclusive_scan(exec_space, cluster_offset);
 
   auto cluster_starts = KokkosExt::clone(exec_space, cluster_offset);
   KokkosExt::reallocWithoutInitializing(

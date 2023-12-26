@@ -13,8 +13,8 @@
 #define ARBORX_NEIGHBOR_LIST_HPP
 
 #include <ArborX_DetailsHalfTraversal.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp> // reallocWithoutInitializing
-#include <ArborX_DetailsUtils.hpp>                // exclusivePrefixSum
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Sphere.hpp>
 
@@ -57,7 +57,7 @@ void findHalfNeighborList(ExecutionSpace const &space,
       space, bvh,
       KOKKOS_LAMBDA(int, int j) { Kokkos::atomic_increment(&offsets(j)); },
       NeighborListPredicateGetter{radius});
-  exclusivePrefixSum(space, offsets);
+  KokkosExt::exclusive_scan(space, offsets);
   KokkosExt::reallocWithoutInitializing(space, indices,
                                         KokkosExt::lastElement(space, offsets));
 
@@ -105,7 +105,7 @@ void findFullNeighborList(ExecutionSpace const &space,
         Kokkos::atomic_increment(&offsets(j));
       },
       NeighborListPredicateGetter{radius});
-  exclusivePrefixSum(space, offsets);
+  KokkosExt::exclusive_scan(space, offsets);
   KokkosExt::reallocWithoutInitializing(space, indices,
                                         KokkosExt::lastElement(space, offsets));
 
