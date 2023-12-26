@@ -56,6 +56,7 @@ BOOST_AUTO_TEST_CASE(distance)
 BOOST_AUTO_TEST_CASE(distance_box_box)
 {
   using ArborX::Details::distance;
+  namespace KokkosExt = ArborX::Details::KokkosExt;
 
   constexpr Box unit_box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
 
@@ -81,7 +82,7 @@ BOOST_AUTO_TEST_CASE(distance_box_box)
   BOOST_TEST(distance(unit_box, Box{{{.1, .2, .3}}, {{4, 5, 6}}}) == 0);
 
   // distance to empty boxes
-  auto infinity = KokkosBlah::ArithmeticTraits::infinity<float>::value;
+  auto infinity = KokkosExt::ArithmeticTraits::infinity<float>::value;
   BOOST_TEST(distance(unit_box, Box{}) == infinity);
   BOOST_TEST(distance(Box{}, unit_box) == infinity);
   BOOST_TEST(distance(Box{}, Box{}) == infinity);
@@ -90,7 +91,9 @@ BOOST_AUTO_TEST_CASE(distance_box_box)
 BOOST_AUTO_TEST_CASE(distance_sphere_box)
 {
   using ArborX::Details::distance;
-  auto infinity = KokkosBlah::ArithmeticTraits::infinity<float>::value;
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
+  auto infinity = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
   // unit sphere
   constexpr Sphere sphere{{{0., 0., 0.}}, 1.};

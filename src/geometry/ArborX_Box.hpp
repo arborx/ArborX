@@ -51,13 +51,13 @@ struct Box
   constexpr Point const &maxCorner() const { return _max_corner; }
 
   Point _min_corner = {
-      {KokkosBlah::ArithmeticTraits::finite_max<float>::value,
-       KokkosBlah::ArithmeticTraits::finite_max<float>::value,
-       KokkosBlah::ArithmeticTraits::finite_max<float>::value}};
+      {Details::KokkosExt::ArithmeticTraits::finite_max<float>::value,
+       Details::KokkosExt::ArithmeticTraits::finite_max<float>::value,
+       Details::KokkosExt::ArithmeticTraits::finite_max<float>::value}};
   Point _max_corner = {
-      {KokkosBlah::ArithmeticTraits::finite_min<float>::value,
-       KokkosBlah::ArithmeticTraits::finite_min<float>::value,
-       KokkosBlah::ArithmeticTraits::finite_min<float>::value}};
+      {Details::KokkosExt::ArithmeticTraits::finite_min<float>::value,
+       Details::KokkosExt::ArithmeticTraits::finite_min<float>::value,
+       Details::KokkosExt::ArithmeticTraits::finite_min<float>::value}};
 
   KOKKOS_FUNCTION Box &operator+=(Box const &other)
   {

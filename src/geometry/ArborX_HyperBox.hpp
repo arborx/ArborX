@@ -36,9 +36,9 @@ struct Box
     for (int d = 0; d < DIM; ++d)
     {
       _min_corner[d] =
-          KokkosBlah::ArithmeticTraits::finite_max<Coordinate>::value;
+          Details::KokkosExt::ArithmeticTraits::finite_max<Coordinate>::value;
       _max_corner[d] =
-          KokkosBlah::ArithmeticTraits::finite_min<Coordinate>::value;
+          Details::KokkosExt::ArithmeticTraits::finite_min<Coordinate>::value;
     }
   }
 

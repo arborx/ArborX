@@ -149,8 +149,10 @@ struct KDOP : private Details::KDOP_Directions<k>
   {
     for (int i = 0; i < n_directions; ++i)
     {
-      _min_values[i] = KokkosBlah::ArithmeticTraits::finite_max<float>::value;
-      _max_values[i] = KokkosBlah::ArithmeticTraits::finite_min<float>::value;
+      _min_values[i] =
+          Details::KokkosExt::ArithmeticTraits::finite_max<float>::value;
+      _max_values[i] =
+          Details::KokkosExt::ArithmeticTraits::finite_min<float>::value;
     }
   }
   KOKKOS_FUNCTION KDOP &operator+=(Point const &p)

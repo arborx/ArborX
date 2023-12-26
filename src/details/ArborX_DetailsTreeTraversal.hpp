@@ -229,7 +229,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     // Nodes with a distance that exceed that radius can safely be
     // discarded. Initialize the radius to infinity and tighten it once k
     // neighbors have been found.
-    auto radius = KokkosBlah::ArithmeticTraits::infinity<float>::value;
+    auto radius = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
     using PairIndexDistance = Kokkos::pair<int, float>;
     static_assert(
@@ -437,7 +437,7 @@ struct TreeTraversal<BVH, Predicates, Callback,
     using distance_type =
         decltype(distance(getGeometry(predicate), root_bounding_volume));
     constexpr auto inf =
-        KokkosBlah::ArithmeticTraits::infinity<distance_type>::value;
+        KokkosExt::ArithmeticTraits::infinity<distance_type>::value;
     if (distance(getGeometry(predicate), root_bounding_volume) != inf)
     {
       _callback(predicate, HappyTreeFriends::getValue(_bvh, 0));
@@ -473,7 +473,7 @@ struct TreeTraversal<BVH, Predicates, Callback,
         heap(UnmanagedStaticVector<PairIndexDistance>(buffer, buffer_size));
 
     constexpr auto inf =
-        KokkosBlah::ArithmeticTraits::infinity<distance_type>::value;
+        KokkosExt::ArithmeticTraits::infinity<distance_type>::value;
 
     auto &bvh = _bvh;
     auto const distance = [&predicate, &bvh](int j) {

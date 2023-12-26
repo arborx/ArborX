@@ -98,6 +98,8 @@ private:
   void doBoruvka(ExecutionSpace const &space, BVH const &bvh,
                  Metric const &metric)
   {
+    namespace KokkosExt = ArborX::Details::KokkosExt;
+
     auto const n = bvh.size();
     Kokkos::View<int *, MemorySpace> tree_parents(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
@@ -186,7 +188,7 @@ private:
       // Propagate leaf node labels to internal nodes
       reduceLabels(space, tree_parents, labels);
 
-      constexpr auto inf = KokkosBlah::ArithmeticTraits::infinity<float>::value;
+      constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
       constexpr DirectedEdge uninitialized_edge;
       Kokkos::deep_copy(space, component_out_edges, uninitialized_edge);
       Kokkos::deep_copy(space, weights, inf);

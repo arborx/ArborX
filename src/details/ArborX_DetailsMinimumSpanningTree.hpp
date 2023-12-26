@@ -41,7 +41,7 @@ class DirectedEdge
 {
 public:
   unsigned long long directed_edge = ULLONG_MAX;
-  float weight = KokkosBlah::ArithmeticTraits::infinity<float>::value;
+  float weight = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
 private:
   static_assert(sizeof(unsigned long long) == 8);
@@ -170,7 +170,7 @@ struct FindComponentNearestNeighbors
 
   KOKKOS_FUNCTION void operator()(int i) const
   {
-    constexpr auto inf = KokkosBlah::ArithmeticTraits::infinity<float>::value;
+    constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
     auto const distance = [bounding_volume_i =
                                HappyTreeFriends::getIndexable(_bvh, i),
