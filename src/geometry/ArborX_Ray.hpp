@@ -306,6 +306,8 @@ bool intersection(Ray const &ray,
                   ExperimentalHyperGeometry::Triangle<3> const &triangle,
                   float &tmin, float &tmax)
 {
+  namespace KokkosExt = Details::KokkosExt;
+
   auto dir = ray.direction();
   // normalize the direction vector by its largest component.
   auto kz = findLargestComp(dir);
@@ -313,7 +315,7 @@ bool intersection(Ray const &ray,
   int ky = (kz + 2) % 3;
 
   if (dir[kz] < 0)
-    KokkosBlah::swap(kx, ky);
+    KokkosExt::swap(kx, ky);
 
   Vector s;
 
@@ -440,7 +442,7 @@ bool intersection(Ray const &ray,
       // we want tmin = -1 and tmax = -2, when the
       // ray travels backward
       if (tmin < 0)
-        KokkosBlah::swap(tmin, tmax);
+        KokkosExt::swap(tmin, tmax);
     }
     return true;
   }
@@ -536,7 +538,7 @@ KOKKOS_INLINE_FUNCTION bool intersection(Ray const &ray, Sphere const &sphere,
   {
     // ensures that tmin <= tmax
     if (tmin > tmax)
-      KokkosBlah::swap(tmin, tmax);
+      Details::KokkosExt::swap(tmin, tmax);
 
     return true;
   }
