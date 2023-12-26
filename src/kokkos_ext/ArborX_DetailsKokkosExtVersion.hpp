@@ -17,7 +17,7 @@
 #include <sstream>
 #include <string>
 
-namespace KokkosBlah
+namespace ArborX::Details::KokkosExt
 {
 
 inline std::string version()
@@ -28,6 +28,6 @@ inline std::string version()
   return sstr.str();
 }
 
-} // namespace KokkosBlah
+} // namespace ArborX::Details::KokkosExt
 
 #endif
