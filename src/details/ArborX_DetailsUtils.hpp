@@ -368,39 +368,12 @@ max(ViewType const &v)
   return max(ExecutionSpace{}, v);
 }
 
-/** \brief Accumulate values in a view
- *
- *  \param[in] space Execution space
- *  \param[in] v Input view
- *  \param[in] init Initial value of the sum
- *
- *  Returns the sum of the given \p init value and elements in the given view \p
- *  v.  Uses operator+ to sum up the elements.
- */
 template <typename ExecutionSpace, typename ViewType>
-typename ViewType::non_const_value_type
+[[deprecated]] typename ViewType::non_const_value_type
 accumulate(ExecutionSpace &&space, ViewType const &v,
            typename ViewType::non_const_value_type init)
 {
-  static_assert(ViewType::rank == 1, "accumulate requires a View of rank 1");
-  auto const n = v.extent(0);
-  // NOTE: Passing the argument init directly to the parallel_reduce() while
-  // using a lambda does not yield the expected result because Kokkos will
-  // supply a default init method that sets the reduction result to zero.
-  // Rather than going through the hassle of defining a custom functor for
-  // the reduction, introduce here a temporary variable and add it to init
-  // before returning.
-  typename ViewType::non_const_value_type tmp;
-  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
-      std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_reduce(
-      "ArborX::Algorithms::accumulate", policy,
-      KOKKOS_LAMBDA(int i, typename ViewType::non_const_value_type &update) {
-        update += v(i);
-      },
-      tmp);
-  init += tmp;
-  return init;
+  Details::KokkosExt::reduce(std::forward<ExecutionSpace>(space), v, init);
 }
 
 template <typename ViewType>
@@ -516,7 +489,6 @@ template <typename View>
 
 namespace Details
 {
-
 template <typename ExecutionSpace, typename View, typename Offset>
 void computeOffsetsInOrderedView(ExecutionSpace const &exec_space, View view,
                                  Offset &offsets)
