@@ -158,18 +158,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(minmax, DeviceType, ARBORX_DEVICE_TYPES)
 #endif
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(accumulate, DeviceType, ARBORX_DEVICE_TYPES)
+BOOST_AUTO_TEST_CASE_TEMPLATE(reduce, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace space{};
 
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   Kokkos::View<int[6], DeviceType> v("v");
   Kokkos::deep_copy(v, 5);
-  BOOST_TEST(ArborX::accumulate(space, v, 3) == 33);
+  BOOST_TEST(KokkosExt::reduce(space, v, 3) == 33);
 
   Kokkos::View<int *, DeviceType> w("w", 5);
   ArborX::iota(space, w, 2);
-  BOOST_TEST(ArborX::accumulate(space, w, 4) == 24);
+  BOOST_TEST(KokkosExt::reduce(space, w, 4) == 24);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(adjacent_difference, DeviceType,
