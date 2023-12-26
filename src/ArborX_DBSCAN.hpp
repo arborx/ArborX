@@ -239,11 +239,13 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 {
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN");
 
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   using Points = Details::AccessValues<Primitives, PrimitivesTag>;
   using MemorySpace = typename Points::memory_space;
 
   static_assert(
-      KokkosBlah::is_accessible_from<MemorySpace, ExecutionSpace>::value,
+      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
       "Primitives must be accessible from the execution space");
 
   ARBORX_ASSERT(eps > 0);

@@ -47,8 +47,9 @@ template <class Point, typename... ViewProperties>
 void filledBoxCloud(double const half_edge,
                     Kokkos::View<Point *, ViewProperties...> random_points)
 {
+  namespace KokkosExt = ArborX::Details::KokkosExt;
   static_assert(
-      KokkosBlah::is_accessible_from_host<decltype(random_points)>::value,
+      KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
   std::uniform_real_distribution<double> distribution(-half_edge, half_edge);
   std::default_random_engine generator;
@@ -66,8 +67,9 @@ template <class Point, typename... ViewProperties>
 void hollowBoxCloud(double const half_edge,
                     Kokkos::View<Point *, ViewProperties...> random_points)
 {
+  namespace KokkosExt = ArborX::Details::KokkosExt;
   static_assert(
-      KokkosBlah::is_accessible_from_host<decltype(random_points)>::value,
+      KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
   std::uniform_real_distribution<double> distribution(-half_edge, half_edge);
   std::default_random_engine generator;
@@ -94,8 +96,9 @@ template <class Point, typename... ViewProperties>
 void filledSphereCloud(double const radius,
                        Kokkos::View<Point *, ViewProperties...> random_points)
 {
+  namespace KokkosExt = ArborX::Details::KokkosExt;
   static_assert(
-      KokkosBlah::is_accessible_from_host<decltype(random_points)>::value,
+      KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
   std::default_random_engine generator;
 
@@ -135,8 +138,9 @@ template <class Point, typename... ViewProperties>
 void hollowSphereCloud(double const radius,
                        Kokkos::View<Point *, ViewProperties...> random_points)
 {
+  namespace KokkosExt = ArborX::Details::KokkosExt;
   static_assert(
-      KokkosBlah::is_accessible_from_host<decltype(random_points)>::value,
+      KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
   std::default_random_engine generator;
 

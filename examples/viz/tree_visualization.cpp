@@ -53,8 +53,9 @@ void writePointCloud(
     std::string const &filename)
 
 {
+  namespace KokkosExt = ArborX::Details::KokkosExt;
   static_assert(
-      KokkosBlah::is_accessible_from_host<decltype(random_points)>::value,
+      KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
   std::ofstream file(filename);
   if (file.is_open())

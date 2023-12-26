@@ -219,7 +219,7 @@ int reorderDenseAndSparseCells(ExecutionSpace const &exec_space,
   using MemorySpace = typename CellIndices::memory_space;
 
   static_assert(
-      KokkosBlah::is_accessible_from<MemorySpace, ExecutionSpace>::value);
+      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
 
   auto const num_nonempty_cells = cell_offsets.size() - 1;
 

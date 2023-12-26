@@ -85,17 +85,19 @@ public:
                      PolynomialDegree = {},
                      std::optional<int> num_neighbors = std::nullopt)
   {
+    namespace KokkosExt = ArborX::Details::KokkosExt;
+
     auto guard = Kokkos::Profiling::ScopedRegion("ArborX::MovingLeastSquares");
 
     static_assert(
-        KokkosBlah::is_accessible_from<MemorySpace, ExecutionSpace>::value,
+        KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
         "Memory space must be accessible from the execution space");
 
     // SourcePoints is an access trait of points
     ArborX::Details::check_valid_access_traits(PrimitivesTag{}, source_points);
     using src_acc = AccessTraits<SourcePoints, PrimitivesTag>;
-    static_assert(KokkosBlah::is_accessible_from<typename src_acc::memory_space,
-                                                 ExecutionSpace>::value,
+    static_assert(KokkosExt::is_accessible_from<typename src_acc::memory_space,
+                                                ExecutionSpace>::value,
                   "Source points must be accessible from the execution space");
     using src_point =
         typename ArborX::Details::AccessTraitsHelper<src_acc>::type;
@@ -107,8 +109,8 @@ public:
     // TargetPoints is an access trait of points
     ArborX::Details::check_valid_access_traits(PrimitivesTag{}, target_points);
     using tgt_acc = AccessTraits<TargetPoints, PrimitivesTag>;
-    static_assert(KokkosBlah::is_accessible_from<typename tgt_acc::memory_space,
-                                                 ExecutionSpace>::value,
+    static_assert(KokkosExt::is_accessible_from<typename tgt_acc::memory_space,
+                                                ExecutionSpace>::value,
                   "Target points must be accessible from the execution space");
     using tgt_point =
         typename ArborX::Details::AccessTraitsHelper<tgt_acc>::type;
@@ -203,24 +205,26 @@ public:
     auto guard = Kokkos::Profiling::ScopedRegion(
         "ArborX::MovingLeastSquares::interpolate");
 
+    namespace KokkosExt = ArborX::Details::KokkosExt;
+
     static_assert(
-        KokkosBlah::is_accessible_from<MemorySpace, ExecutionSpace>::value,
+        KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
         "Memory space must be accessible from the execution space");
 
     // SourceValues is a 1D view of all source values
     static_assert(Kokkos::is_view_v<SourceValues> && SourceValues::rank == 1,
                   "Source values must be a 1D view of values");
     static_assert(
-        KokkosBlah::is_accessible_from<typename SourceValues::memory_space,
-                                       ExecutionSpace>::value,
+        KokkosExt::is_accessible_from<typename SourceValues::memory_space,
+                                      ExecutionSpace>::value,
         "Source values must be accessible from the execution space");
 
     // ApproxValues is a 1D view for approximated values
     static_assert(Kokkos::is_view_v<ApproxValues> && ApproxValues::rank == 1,
                   "Approx values must be a 1D view");
     static_assert(
-        KokkosBlah::is_accessible_from<typename ApproxValues::memory_space,
-                                       ExecutionSpace>::value,
+        KokkosExt::is_accessible_from<typename ApproxValues::memory_space,
+                                      ExecutionSpace>::value,
         "Approx values must be accessible from the execution space");
     static_assert(!std::is_const_v<typename ApproxValues::value_type>,
                   "Approx values must be writable");

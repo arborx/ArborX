@@ -85,10 +85,10 @@ void sortByKey(ExecutionSpace const &space, Keys &keys, Values &values)
   static_assert(Kokkos::is_view<Values>::value);
   static_assert(Keys::rank == 1);
   static_assert(Values::rank == 1);
-  static_assert(KokkosBlah::is_accessible_from<typename Keys::memory_space,
-                                               ExecutionSpace>::value);
-  static_assert(KokkosBlah::is_accessible_from<typename Values::memory_space,
-                                               ExecutionSpace>::value);
+  static_assert(KokkosExt::is_accessible_from<typename Keys::memory_space,
+                                              ExecutionSpace>::value);
+  static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,
+                                              ExecutionSpace>::value);
   auto const n = keys.size();
   ARBORX_ASSERT(values.size() == n);
 
@@ -127,10 +127,10 @@ void sortByKey(
   static_assert(Kokkos::is_view<Values>::value);
   static_assert(Keys::rank == 1);
   static_assert(Values::rank == 1);
-  static_assert(KokkosBlah::is_accessible_from<typename Keys::memory_space,
-                                               ExecutionSpace>::value);
-  static_assert(KokkosBlah::is_accessible_from<typename Values::memory_space,
-                                               ExecutionSpace>::value);
+  static_assert(KokkosExt::is_accessible_from<typename Keys::memory_space,
+                                              ExecutionSpace>::value);
+  static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,
+                                              ExecutionSpace>::value);
   auto const n = keys.size();
   ARBORX_ASSERT(values.size() == n);
 
@@ -160,10 +160,10 @@ void sortByKey(Kokkos::Experimental::SYCL const &space, Keys &keys,
   static_assert(Kokkos::is_view<Values>::value);
   static_assert(Keys::rank == 1);
   static_assert(Values::rank == 1);
-  static_assert(KokkosBlah::is_accessible_from<typename Keys::memory_space,
-                                               ExecutionSpace>::value);
-  static_assert(KokkosBlah::is_accessible_from<typename Values::memory_space,
-                                               ExecutionSpace>::value);
+  static_assert(KokkosExt::is_accessible_from<typename Keys::memory_space,
+                                              ExecutionSpace>::value);
+  static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,
+                                              ExecutionSpace>::value);
   auto const n = keys.size();
   ARBORX_ASSERT(values.size() == n);
 

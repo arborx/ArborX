@@ -36,16 +36,18 @@ movingLeastSquaresCoefficients(ExecutionSpace const &space,
   auto guard =
       Kokkos::Profiling::ScopedRegion("ArborX::MovingLeastSquaresCoefficients");
 
+  namespace KokkosExt = ::ArborX::Details::KokkosExt;
+
   static_assert(
-      KokkosBlah::is_accessible_from<MemorySpace, ExecutionSpace>::value,
+      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
       "Memory space must be accessible from the execution space");
 
   // SourcePoints is a 2D view of points
   static_assert(Kokkos::is_view_v<SourcePoints> && SourcePoints::rank == 2,
                 "source points must be a 2D view of points");
   static_assert(
-      KokkosBlah::is_accessible_from<typename SourcePoints::memory_space,
-                                     ExecutionSpace>::value,
+      KokkosExt::is_accessible_from<typename SourcePoints::memory_space,
+                                    ExecutionSpace>::value,
       "source points must be accessible from the execution space");
   using src_point = typename SourcePoints::non_const_value_type;
   GeometryTraits::check_valid_geometry_traits(src_point{});
@@ -56,8 +58,8 @@ movingLeastSquaresCoefficients(ExecutionSpace const &space,
   // TargetPoints is an access trait of points
   ArborX::Details::check_valid_access_traits(PrimitivesTag{}, target_points);
   using tgt_acc = AccessTraits<TargetPoints, PrimitivesTag>;
-  static_assert(KokkosBlah::is_accessible_from<typename tgt_acc::memory_space,
-                                               ExecutionSpace>::value,
+  static_assert(KokkosExt::is_accessible_from<typename tgt_acc::memory_space,
+                                              ExecutionSpace>::value,
                 "target points must be accessible from the execution space");
   using tgt_point = typename ArborX::Details::AccessTraitsHelper<tgt_acc>::type;
   GeometryTraits::check_valid_geometry_traits(tgt_point{});

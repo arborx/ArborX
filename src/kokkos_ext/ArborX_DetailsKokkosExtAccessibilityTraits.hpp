@@ -16,9 +16,7 @@
 
 #include <type_traits>
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-
-namespace KokkosBlah
+namespace ArborX::Details::KokkosExt
 {
 
 template <typename MemorySpace, typename ExecutionSpace, typename = void>
@@ -42,8 +40,6 @@ struct is_accessible_from_host
   static_assert(Kokkos::is_view<View>::value);
 };
 
-} // namespace KokkosBlah
-
-#endif // DOXYGEN_SHOULD_SKIP_THIS
+} // namespace ArborX::Details::KokkosExt
 
 #endif

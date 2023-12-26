@@ -581,10 +581,10 @@ template <typename ExecutionSpace, typename View, typename Offset>
 void computeOffsetsInOrderedView(ExecutionSpace const &exec_space, View view,
                                  Offset &offsets)
 {
-  static_assert(KokkosBlah::is_accessible_from<typename View::memory_space,
-                                               ExecutionSpace>::value);
-  static_assert(KokkosBlah::is_accessible_from<typename Offset::memory_space,
-                                               ExecutionSpace>::value);
+  static_assert(KokkosExt::is_accessible_from<typename View::memory_space,
+                                              ExecutionSpace>::value);
+  static_assert(KokkosExt::is_accessible_from<typename Offset::memory_space,
+                                              ExecutionSpace>::value);
 
   auto const n = view.extent_int(0);
 
