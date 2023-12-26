@@ -153,7 +153,7 @@ private:
 
     if constexpr (use_lower_bounds)
     {
-      KokkosBlah::reallocWithoutInitializing(space, lower_bounds, n);
+      KokkosExt::reallocWithoutInitializing(space, lower_bounds, n);
       Kokkos::deep_copy(space, lower_bounds, 0);
     }
 
@@ -168,10 +168,10 @@ private:
                                                    0);
     if constexpr (Mode == BoruvkaMode::HDBSCAN)
     {
-      KokkosBlah::reallocWithoutInitializing(space, edges_mapping, n - 1);
-      KokkosBlah::reallocWithoutInitializing(space, sided_parents, n - 1);
-      KokkosBlah::reallocWithoutInitializing(space, dendrogram_parents,
-                                             2 * n - 1);
+      KokkosExt::reallocWithoutInitializing(space, edges_mapping, n - 1);
+      KokkosExt::reallocWithoutInitializing(space, sided_parents, n - 1);
+      KokkosExt::reallocWithoutInitializing(space, dendrogram_parents,
+                                            2 * n - 1);
     }
 
     // Boruvka iterations
@@ -276,8 +276,8 @@ private:
 
       computeParents(space, edges, sided_parents, dendrogram_parents);
 
-      KokkosBlah::reallocWithoutInitializing(space, dendrogram_parent_heights,
-                                             n - 1);
+      KokkosExt::reallocWithoutInitializing(space, dendrogram_parent_heights,
+                                            n - 1);
       Kokkos::parallel_for(
           "ArborX::MST::assign_dendrogram_parent_heights",
           Kokkos::RangePolicy<ExecutionSpace>(space, 0, n - 1),

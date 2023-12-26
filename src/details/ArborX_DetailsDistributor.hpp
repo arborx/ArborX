@@ -59,7 +59,7 @@ determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
 
   auto const n_batched_ranks = batched_ranks.size();
   if (n_batched_ranks == 0 ||
-      KokkosBlah::lastElement(space, batched_offsets) == 0)
+      KokkosExt::lastElement(space, batched_offsets) == 0)
     return;
 
   using DeviceType = typename InputView::traits::device_type;
@@ -242,8 +242,8 @@ public:
 
     // The next two function calls are the only difference to the other
     // overload.
-    KokkosBlah::reallocWithoutInitializing(space, _permute,
-                                           destination_ranks.size());
+    KokkosExt::reallocWithoutInitializing(space, _permute,
+                                          destination_ranks.size());
     sortAndDetermineBufferLayout(space, destination_ranks, _permute,
                                  _destinations, _dest_counts, _dest_offsets);
 

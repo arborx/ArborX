@@ -159,7 +159,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_CLASS_LAMBDA(int i) { offset(i) = getK(_predicates(i)); });
     exclusivePrefixSum(space, offset);
-    int const buffer_size = KokkosBlah::lastElement(space, offset);
+    int const buffer_size = KokkosExt::lastElement(space, offset);
     // Allocate buffer over which to perform heap operations in
     // TreeTraversal::nearestQuery() to store nearest leaf nodes found so far.
     // It is not possible to anticipate how much memory to allocate since the

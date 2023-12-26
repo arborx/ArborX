@@ -238,7 +238,7 @@ public:
     int const num_targets = _values_indices.extent(0);
     int const num_neighbors = _values_indices.extent(1);
 
-    KokkosBlah::reallocWithoutInitializing(space, approx_values, num_targets);
+    KokkosExt::reallocWithoutInitializing(space, approx_values, num_targets);
 
     Kokkos::parallel_for(
         "ArborX::MovingLeastSquares::target_interpolation",

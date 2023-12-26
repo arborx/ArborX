@@ -131,7 +131,7 @@ void applyPermutation(ExecutionSpace const &space,
                       PermutationView const &permutation, View &view)
 {
   static_assert(std::is_integral<typename PermutationView::value_type>::value);
-  auto scratch_view = KokkosBlah::clone(space, view);
+  auto scratch_view = KokkosExt::clone(space, view);
   applyPermutation(space, permutation, scratch_view, view);
 }
 

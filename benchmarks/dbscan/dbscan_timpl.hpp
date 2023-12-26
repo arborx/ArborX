@@ -50,6 +50,8 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
 {
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::sortAndFilterClusters");
 
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   static_assert(Kokkos::is_view<LabelsView>{});
   static_assert(Kokkos::is_view<ClusterIndicesView>{});
   static_assert(Kokkos::is_view<ClusterOffsetView>{});
@@ -93,7 +95,7 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
   auto &map_cluster_to_offset_position = cluster_sizes;
   constexpr int IGNORED_CLUSTER = -1;
   int num_clusters;
-  KokkosBlah::reallocWithoutInitializing(exec_space, cluster_offset, n + 1);
+  KokkosExt::reallocWithoutInitializing(exec_space, cluster_offset, n + 1);
   Kokkos::parallel_scan(
       "ArborX::DBSCAN::compute_cluster_offset_with_filter",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
@@ -118,10 +120,10 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
   Kokkos::resize(Kokkos::WithoutInitializing, cluster_offset, num_clusters + 1);
   ArborX::exclusivePrefixSum(exec_space, cluster_offset);
 
-  auto cluster_starts = KokkosBlah::clone(exec_space, cluster_offset);
-  KokkosBlah::reallocWithoutInitializing(
+  auto cluster_starts = KokkosExt::clone(exec_space, cluster_offset);
+  KokkosExt::reallocWithoutInitializing(
       exec_space, cluster_indices,
-      KokkosBlah::lastElement(exec_space, cluster_offset));
+      KokkosExt::lastElement(exec_space, cluster_offset));
   Kokkos::parallel_for(
       "ArborX::DBSCAN::compute_cluster_indices",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),

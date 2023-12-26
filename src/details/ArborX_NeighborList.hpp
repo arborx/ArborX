@@ -40,6 +40,7 @@ void findHalfNeighborList(ExecutionSpace const &space,
 {
   Kokkos::Profiling::pushRegion("ArborX::Experimental::HalfNeighborList");
 
+  namespace KokkosExt = ArborX::Details::KokkosExt;
   using Details::HalfTraversal;
 
   using MemorySpace =
@@ -50,22 +51,22 @@ void findHalfNeighborList(ExecutionSpace const &space,
   Kokkos::Profiling::pushRegion(
       "ArborX::Experimental::HalfNeighborList::Count");
 
-  KokkosBlah::reallocWithoutInitializing(space, offsets, n + 1);
+  KokkosExt::reallocWithoutInitializing(space, offsets, n + 1);
   Kokkos::deep_copy(space, offsets, 0);
   HalfTraversal(
       space, bvh,
       KOKKOS_LAMBDA(int, int j) { Kokkos::atomic_increment(&offsets(j)); },
       NeighborListPredicateGetter{radius});
   exclusivePrefixSum(space, offsets);
-  KokkosBlah::reallocWithoutInitializing(
-      space, indices, KokkosBlah::lastElement(space, offsets));
+  KokkosExt::reallocWithoutInitializing(space, indices,
+                                        KokkosExt::lastElement(space, offsets));
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::Experimental::HalfNeighborList::Fill");
 
   auto counts =
-      KokkosBlah::clone(space, Kokkos::subview(offsets, std::make_pair(0, n)),
-                        "ArborX::Experimental::HalfNeighborList::counts");
+      KokkosExt::clone(space, Kokkos::subview(offsets, std::make_pair(0, n)),
+                       "ArborX::Experimental::HalfNeighborList::counts");
   HalfTraversal(
       space, bvh,
       KOKKOS_LAMBDA(int i, int j) {
@@ -84,6 +85,7 @@ void findFullNeighborList(ExecutionSpace const &space,
 {
   Kokkos::Profiling::pushRegion("ArborX::Experimental::FullNeighborList");
 
+  namespace KokkosExt = ArborX::Details::KokkosExt;
   using Details::HalfTraversal;
 
   using MemorySpace =
@@ -94,7 +96,7 @@ void findFullNeighborList(ExecutionSpace const &space,
   Kokkos::Profiling::pushRegion(
       "ArborX::Experimental::FullNeighborList::Count");
 
-  KokkosBlah::reallocWithoutInitializing(space, offsets, n + 1);
+  KokkosExt::reallocWithoutInitializing(space, offsets, n + 1);
   Kokkos::deep_copy(space, offsets, 0);
   HalfTraversal(
       space, bvh,
@@ -104,15 +106,15 @@ void findFullNeighborList(ExecutionSpace const &space,
       },
       NeighborListPredicateGetter{radius});
   exclusivePrefixSum(space, offsets);
-  KokkosBlah::reallocWithoutInitializing(
-      space, indices, KokkosBlah::lastElement(space, offsets));
+  KokkosExt::reallocWithoutInitializing(space, indices,
+                                        KokkosExt::lastElement(space, offsets));
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::Experimental::FullNeighborList::Fill");
 
   auto counts =
-      KokkosBlah::clone(space, Kokkos::subview(offsets, std::make_pair(0, n)),
-                        "ArborX::Experimental::FullNeighborList::counts");
+      KokkosExt::clone(space, Kokkos::subview(offsets, std::make_pair(0, n)),
+                       "ArborX::Experimental::FullNeighborList::counts");
   HalfTraversal(
       space, bvh,
       KOKKOS_LAMBDA(int i, int j) {
@@ -123,7 +125,7 @@ void findFullNeighborList(ExecutionSpace const &space,
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::Experimental::FullNeighborList::Copy");
 
-  auto counts_copy = KokkosBlah::clone(space, counts, counts.label() + "_copy");
+  auto counts_copy = KokkosExt::clone(space, counts, counts.label() + "_copy");
   Kokkos::parallel_for(
       "ArborX::Experimental::FullNeighborList::Copy",
       Kokkos::TeamPolicy<ExecutionSpace>(space, n, Kokkos::AUTO, 1),

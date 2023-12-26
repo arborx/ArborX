@@ -118,7 +118,7 @@ struct FDBSCANDenseBoxCallback
       , _dense_cell_offsets(dense_cell_offsets)
       , _num_dense_cells(dense_cell_offsets.size() - 1)
       , _num_points_in_dense_cells(
-            KokkosBlah::lastElement(exec_space, _dense_cell_offsets))
+            KokkosExt::lastElement(exec_space, _dense_cell_offsets))
       , _permute(permute)
       , eps(eps_in)
   {}
@@ -244,8 +244,8 @@ int reorderDenseAndSparseCells(ExecutionSpace const &exec_space,
   Kokkos::deep_copy(exec_space, sparse_offset, num_points_in_dense_cells);
 
   auto reordered_permute =
-      KokkosBlah::cloneWithoutInitializingNorCopying(exec_space, permute);
-  auto reordered_cell_indices = KokkosBlah::cloneWithoutInitializingNorCopying(
+      KokkosExt::cloneWithoutInitializingNorCopying(exec_space, permute);
+  auto reordered_cell_indices = KokkosExt::cloneWithoutInitializingNorCopying(
       exec_space, sorted_cell_indices);
   Kokkos::parallel_for(
       "ArborX::DBSCAN::reorder_cell_indices_and_permutation",

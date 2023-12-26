@@ -29,7 +29,7 @@ void expandHalfToFull(ExecutionSpace const &space, Offsets &offsets,
   typename Indices::const_type const indices_orig = indices;
 
   auto const n = offsets.extent(0) - 1;
-  offsets = KokkosBlah::cloneWithoutInitializingNorCopying(space, offsets_orig);
+  offsets = KokkosExt::cloneWithoutInitializingNorCopying(space, offsets_orig);
   Kokkos::deep_copy(space, offsets, 0);
   Kokkos::parallel_for(
       "ArborX::Experimental::HalfToFull::count",
@@ -43,11 +43,11 @@ void expandHalfToFull(ExecutionSpace const &space, Offsets &offsets,
       });
   exclusivePrefixSum(space, offsets);
 
-  auto const m = KokkosBlah::lastElement(space, offsets);
-  KokkosBlah::reallocWithoutInitializing(space, indices, m);
+  auto const m = KokkosExt::lastElement(space, offsets);
+  KokkosExt::reallocWithoutInitializing(space, indices, m);
 
-  auto counts = KokkosBlah::clone(space, offsets,
-                                  "ArborX::Experimental::HalfToFull::counts");
+  auto counts = KokkosExt::clone(space, offsets,
+                                 "ArborX::Experimental::HalfToFull::counts");
   Kokkos::parallel_for(
       "ArborX::Experimental::HalfToFull::rewrite",
       Kokkos::TeamPolicy<ExecutionSpace>(space, n, Kokkos::AUTO, 1),

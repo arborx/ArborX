@@ -188,8 +188,9 @@ template <typename Indexable, typename InputView,
 static std::tuple<OutputView, OutputView>
 performQueries(RTree<Indexable> const &rtree, InputView const &queries)
 {
-  static_assert(
-      ArborX::Details::KokkosExt::is_accessible_from_host<InputView>::value);
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
+  static_assert(KokkosExt::is_accessible_from_host<InputView>::value);
 
   using Value = typename RTree<Indexable>::value_type;
   auto const n_queries = queries.extent_int(0);
@@ -201,7 +202,7 @@ performQueries(RTree<Indexable> const &rtree, InputView const &queries)
   using ExecutionSpace = typename InputView::execution_space;
   ExecutionSpace space;
   ArborX::exclusivePrefixSum(space, offset);
-  auto const n_results = KokkosBlah::lastElement(space, offset);
+  auto const n_results = KokkosExt::lastElement(space, offset);
   OutputView indices("indices", n_results);
   for (int i = 0; i < n_queries; ++i)
     for (int j = offset(i); j < offset(i + 1); ++j)
@@ -217,8 +218,9 @@ template <typename Indexable, typename InputView,
 static std::tuple<OutputView2, OutputView1>
 performQueries(ParallelRTree<Indexable> const &rtree, InputView const &queries)
 {
-  static_assert(
-      ArborX::Details::KokkosExt::is_accessible_from_host<InputView>::value);
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
+  static_assert(KokkosExt::is_accessible_from_host<InputView>::value);
   using Value = typename ParallelRTree<Indexable>::value_type;
   auto const n_queries = queries.extent_int(0);
   OutputView2 offset("offset", n_queries + 1);
@@ -229,7 +231,7 @@ performQueries(ParallelRTree<Indexable> const &rtree, InputView const &queries)
   using ExecutionSpace = typename InputView::execution_space;
   ExecutionSpace space;
   ArborX::exclusivePrefixSum(space, offset);
-  auto const n_results = KokkosBlah::lastElement(space, offset);
+  auto const n_results = KokkosExt::lastElement(space, offset);
   OutputView1 values("values", n_results);
   for (int i = 0; i < n_queries; ++i)
     for (int j = offset(i); j < offset(i + 1); ++j)
