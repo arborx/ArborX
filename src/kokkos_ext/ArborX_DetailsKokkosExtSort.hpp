@@ -73,14 +73,13 @@
 #include <oneapi/dpl/iterator>
 #endif
 
-namespace KokkosBlah
+namespace ArborX::Details::KokkosExt
 {
 
 template <typename ExecutionSpace, typename Keys, typename Values>
 void sortByKey(ExecutionSpace const &space, Keys &keys, Values &values)
 {
-  Kokkos::Profiling::ScopedRegion guard(
-      "ArborX::KokkosBlah::sortByKey::Kokkos");
+  Kokkos::Profiling::ScopedRegion guard("ArborX::KokkosExt::sortByKey::Kokkos");
 
   static_assert(Kokkos::is_view<Keys>::value);
   static_assert(Kokkos::is_view<Values>::value);
@@ -121,8 +120,7 @@ void sortByKey(
 #endif
     Keys &keys, Values &values)
 {
-  Kokkos::Profiling::ScopedRegion guard(
-      "ArborX::KokkosBlah::sortByKey::Thrust");
+  Kokkos::Profiling::ScopedRegion guard("ArborX::KokkosExt::sortByKey::Thrust");
 
   using ExecutionSpace = std::decay_t<decltype(space)>;
   static_assert(Kokkos::is_view<Keys>::value);
@@ -155,8 +153,7 @@ template <typename Keys, typename Values>
 void sortByKey(Kokkos::Experimental::SYCL const &space, Keys &keys,
                Values &values)
 {
-  Kokkos::Profiling::ScopedRegion guard(
-      "ArborX::KokkosBlah::sortByKey::OneDPL");
+  Kokkos::Profiling::ScopedRegion guard("ArborX::KokkosExt::sortByKey::OneDPL");
 
   using ExecutionSpace = std::decay_t<decltype(space)>;
   static_assert(Kokkos::is_view<Keys>::value);
@@ -188,6 +185,6 @@ void sortByKey(Kokkos::Experimental::SYCL const &space, Keys &keys,
 }
 #endif
 
-} // namespace KokkosBlah
+} // namespace ArborX::Details::KokkosExt
 
 #endif

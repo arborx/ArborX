@@ -64,7 +64,8 @@ struct Dendrogram
     splitEdges(exec_space, edges, unweighted_edges, _parent_heights);
 
     Kokkos::Profiling::pushRegion("ArborX::Dendrogram::sort_edges");
-    KokkosBlah::sortByKey(exec_space, _parent_heights, unweighted_edges);
+    Details::KokkosExt::sortByKey(exec_space, _parent_heights,
+                                  unweighted_edges);
     Kokkos::Profiling::popRegion();
 
     using ConstEdges =

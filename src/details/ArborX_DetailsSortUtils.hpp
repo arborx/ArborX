@@ -36,7 +36,7 @@ auto sortObjects(ExecutionSpace const &space, ViewType &view)
       view.extent(0));
   ArborX::iota(space, permute);
 
-  KokkosBlah::sortByKey(space, view, permute);
+  KokkosExt::sortByKey(space, view, permute);
 
   Kokkos::Profiling::popRegion();
 
