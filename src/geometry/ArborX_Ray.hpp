@@ -363,8 +363,7 @@ bool intersection(Ray const &ray,
     w = (double)B[0] * A[1] - (double)B[1] * A[0];
   }
 
-  constexpr auto inf =
-      Details::KokkosExt::ArithmeticTraits::infinity<float>::value;
+  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
   tmin = inf;
   tmax = -inf;
 
@@ -528,6 +527,8 @@ KOKKOS_INLINE_FUNCTION bool solveQuadratic(float const a, float const b,
 KOKKOS_INLINE_FUNCTION bool intersection(Ray const &ray, Sphere const &sphere,
                                          float &tmin, float &tmax)
 {
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   auto const &r = sphere.radius();
 
   // Vector oc = (origin_of_ray - center_of_sphere)
@@ -541,12 +542,11 @@ KOKKOS_INLINE_FUNCTION bool intersection(Ray const &ray, Sphere const &sphere,
   {
     // ensures that tmin <= tmax
     if (tmin > tmax)
-      Details::KokkosExt::swap(tmin, tmax);
+      KokkosExt::swap(tmin, tmax);
 
     return true;
   }
-  constexpr auto inf =
-      Details::KokkosExt::ArithmeticTraits::infinity<float>::value;
+  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
   tmin = inf;
   tmax = -inf;
   return false;
@@ -557,12 +557,14 @@ KOKKOS_INLINE_FUNCTION void
 overlapDistance(Ray const &ray, Geometry const &geometry, float &length,
                 float &distance_to_origin)
 {
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   float tmin;
   float tmax;
   if (intersection(ray, geometry, tmin, tmax) && (tmin <= tmax && tmax >= 0))
   {
     // Overlap [tmin, tmax] with [0, +inf)
-    tmin = Details::KokkosExt::max(0.f, tmin);
+    tmin = KokkosExt::max(0.f, tmin);
     // As direction is normalized,
     //   |(o + tmax*d) - (o + tmin*d)| = tmax - tmin
     length = tmax - tmin;
@@ -571,8 +573,7 @@ overlapDistance(Ray const &ray, Geometry const &geometry, float &length,
   else
   {
     length = 0;
-    distance_to_origin =
-        Details::KokkosExt::ArithmeticTraits::infinity<float>::value;
+    distance_to_origin = KokkosExt::ArithmeticTraits::infinity<float>::value;
   }
 }
 
