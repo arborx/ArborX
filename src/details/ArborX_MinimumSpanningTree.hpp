@@ -151,7 +151,7 @@ private:
 
     if constexpr (use_lower_bounds)
     {
-      KokkosExt::reallocWithoutInitializing(space, lower_bounds, n);
+      KokkosBlah::reallocWithoutInitializing(space, lower_bounds, n);
       Kokkos::deep_copy(space, lower_bounds, 0);
     }
 
@@ -166,10 +166,10 @@ private:
                                                    0);
     if constexpr (Mode == BoruvkaMode::HDBSCAN)
     {
-      KokkosExt::reallocWithoutInitializing(space, edges_mapping, n - 1);
-      KokkosExt::reallocWithoutInitializing(space, sided_parents, n - 1);
-      KokkosExt::reallocWithoutInitializing(space, dendrogram_parents,
-                                            2 * n - 1);
+      KokkosBlah::reallocWithoutInitializing(space, edges_mapping, n - 1);
+      KokkosBlah::reallocWithoutInitializing(space, sided_parents, n - 1);
+      KokkosBlah::reallocWithoutInitializing(space, dendrogram_parents,
+                                             2 * n - 1);
     }
 
     // Boruvka iterations
@@ -186,7 +186,7 @@ private:
       // Propagate leaf node labels to internal nodes
       reduceLabels(space, tree_parents, labels);
 
-      constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+      constexpr auto inf = KokkosBlah::ArithmeticTraits::infinity<float>::value;
       constexpr DirectedEdge uninitialized_edge;
       Kokkos::deep_copy(space, component_out_edges, uninitialized_edge);
       Kokkos::deep_copy(space, weights, inf);
@@ -274,8 +274,8 @@ private:
 
       computeParents(space, edges, sided_parents, dendrogram_parents);
 
-      KokkosExt::reallocWithoutInitializing(space, dendrogram_parent_heights,
-                                            n - 1);
+      KokkosBlah::reallocWithoutInitializing(space, dendrogram_parent_heights,
+                                             n - 1);
       Kokkos::parallel_for(
           "ArborX::MST::assign_dendrogram_parent_heights",
           Kokkos::RangePolicy<ExecutionSpace>(space, 0, n - 1),

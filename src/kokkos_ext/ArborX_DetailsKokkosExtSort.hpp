@@ -73,22 +73,23 @@
 #include <oneapi/dpl/iterator>
 #endif
 
-namespace KokkosExt
+namespace KokkosBlah
 {
 
 template <typename ExecutionSpace, typename Keys, typename Values>
 void sortByKey(ExecutionSpace const &space, Keys &keys, Values &values)
 {
-  Kokkos::Profiling::ScopedRegion guard("ArborX::KokkosExt::sortByKey::Kokkos");
+  Kokkos::Profiling::ScopedRegion guard(
+      "ArborX::KokkosBlah::sortByKey::Kokkos");
 
   static_assert(Kokkos::is_view<Keys>::value);
   static_assert(Kokkos::is_view<Values>::value);
   static_assert(Keys::rank == 1);
   static_assert(Values::rank == 1);
-  static_assert(KokkosExt::is_accessible_from<typename Keys::memory_space,
-                                              ExecutionSpace>::value);
-  static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,
-                                              ExecutionSpace>::value);
+  static_assert(KokkosBlah::is_accessible_from<typename Keys::memory_space,
+                                               ExecutionSpace>::value);
+  static_assert(KokkosBlah::is_accessible_from<typename Values::memory_space,
+                                               ExecutionSpace>::value);
   auto const n = keys.size();
   ARBORX_ASSERT(values.size() == n);
 
@@ -120,17 +121,18 @@ void sortByKey(
 #endif
     Keys &keys, Values &values)
 {
-  Kokkos::Profiling::ScopedRegion guard("ArborX::KokkosExt::sortByKey::Thrust");
+  Kokkos::Profiling::ScopedRegion guard(
+      "ArborX::KokkosBlah::sortByKey::Thrust");
 
   using ExecutionSpace = std::decay_t<decltype(space)>;
   static_assert(Kokkos::is_view<Keys>::value);
   static_assert(Kokkos::is_view<Values>::value);
   static_assert(Keys::rank == 1);
   static_assert(Values::rank == 1);
-  static_assert(KokkosExt::is_accessible_from<typename Keys::memory_space,
-                                              ExecutionSpace>::value);
-  static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,
-                                              ExecutionSpace>::value);
+  static_assert(KokkosBlah::is_accessible_from<typename Keys::memory_space,
+                                               ExecutionSpace>::value);
+  static_assert(KokkosBlah::is_accessible_from<typename Values::memory_space,
+                                               ExecutionSpace>::value);
   auto const n = keys.size();
   ARBORX_ASSERT(values.size() == n);
 
@@ -153,17 +155,18 @@ template <typename Keys, typename Values>
 void sortByKey(Kokkos::Experimental::SYCL const &space, Keys &keys,
                Values &values)
 {
-  Kokkos::Profiling::ScopedRegion guard("ArborX::KokkosExt::sortByKey::OneDPL");
+  Kokkos::Profiling::ScopedRegion guard(
+      "ArborX::KokkosBlah::sortByKey::OneDPL");
 
   using ExecutionSpace = std::decay_t<decltype(space)>;
   static_assert(Kokkos::is_view<Keys>::value);
   static_assert(Kokkos::is_view<Values>::value);
   static_assert(Keys::rank == 1);
   static_assert(Values::rank == 1);
-  static_assert(KokkosExt::is_accessible_from<typename Keys::memory_space,
-                                              ExecutionSpace>::value);
-  static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,
-                                              ExecutionSpace>::value);
+  static_assert(KokkosBlah::is_accessible_from<typename Keys::memory_space,
+                                               ExecutionSpace>::value);
+  static_assert(KokkosBlah::is_accessible_from<typename Values::memory_space,
+                                               ExecutionSpace>::value);
   auto const n = keys.size();
   ARBORX_ASSERT(values.size() == n);
 
@@ -185,6 +188,6 @@ void sortByKey(Kokkos::Experimental::SYCL const &space, Keys &keys,
 }
 #endif
 
-} // namespace KokkosExt
+} // namespace KokkosBlah
 
 #endif

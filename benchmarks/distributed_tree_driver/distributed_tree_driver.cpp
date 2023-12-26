@@ -505,7 +505,7 @@ int main(int argc, char *argv[])
   {
     std::cout << "ArborX version: " << ArborX::version() << std::endl;
     std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
-    std::cout << "Kokkos version: " << KokkosExt::version() << std::endl;
+    std::cout << "Kokkos version: " << KokkosBlah::version() << std::endl;
   }
 
   // Strip "--help" and "--kokkos-help" from the flags passed to Kokkos if we

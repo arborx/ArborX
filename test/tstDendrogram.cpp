@@ -126,9 +126,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_boruvka, DeviceType,
 
   // Because the dendrogram in the MST is permuted, we need to reorder it in the
   // increasing edge order to compare with union-find
-  auto parents_boruvka_device = KokkosExt::cloneWithoutInitializingNorCopying(
+  auto parents_boruvka_device = KokkosBlah::cloneWithoutInitializingNorCopying(
       space, mst.dendrogram_parents);
-  auto heights_boruvka_device = KokkosExt::cloneWithoutInitializingNorCopying(
+  auto heights_boruvka_device = KokkosBlah::cloneWithoutInitializingNorCopying(
       space, mst.dendrogram_parent_heights);
   {
     Kokkos::View<float *, MemorySpace> weights(

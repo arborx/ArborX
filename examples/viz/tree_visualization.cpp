@@ -54,7 +54,7 @@ void writePointCloud(
 
 {
   static_assert(
-      KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
+      KokkosBlah::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
   std::ofstream file(filename);
   if (file.is_open())

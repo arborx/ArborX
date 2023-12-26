@@ -118,7 +118,7 @@ struct is_forward_iterable<Kokkos::View<T, P...>> : public boost::mpl::true_
       Kokkos::View<T, P...>::rank == 1 &&
           !std::is_same<typename Kokkos::View<T, P...>::array_layout,
                         Kokkos::LayoutStride>::value &&
-          KokkosExt::is_accessible_from_host<Kokkos::View<T, P...>>::value,
+          KokkosBlah::is_accessible_from_host<Kokkos::View<T, P...>>::value,
       "Restricted to contiguous rank-one host-accessible views");
 };
 

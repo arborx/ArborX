@@ -268,7 +268,7 @@ template <typename T, typename... P>
 lastElement(Kokkos::View<T, P...> const &v)
 {
   using ExecutionSpace = typename Kokkos::View<T, P...>::execution_space;
-  return KokkosExt::lastElement(ExecutionSpace{}, v);
+  return KokkosBlah::lastElement(ExecutionSpace{}, v);
 }
 
 /** \brief Fills the view with a sequence of numbers
@@ -540,8 +540,8 @@ reallocWithoutInitializing(View &v, size_t n0 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
                            size_t n7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG)
 {
   using ExecutionSpace = typename View::execution_space;
-  KokkosExt::reallocWithoutInitializing(ExecutionSpace{}, v, n0, n1, n2, n3, n4,
-                                        n5, n6, n7);
+  KokkosBlah::reallocWithoutInitializing(ExecutionSpace{}, v, n0, n1, n2, n3,
+                                         n4, n5, n6, n7);
 }
 
 template <typename View>
@@ -549,7 +549,7 @@ template <typename View>
 reallocWithoutInitializing(View &v, const typename View::array_layout &layout)
 {
   using ExecutionSpace = typename View::execution_space;
-  KokkosExt::reallocWithoutInitializing(ExecutionSpace{}, v, layout);
+  KokkosBlah::reallocWithoutInitializing(ExecutionSpace{}, v, layout);
 }
 
 template <typename View>
@@ -557,21 +557,21 @@ template <typename View>
 cloneWithoutInitializingNorCopying(View &v)
 {
   using ExecutionSpace = typename View::execution_space;
-  return KokkosExt::cloneWithoutInitializingNorCopying(ExecutionSpace{}, v);
+  return KokkosBlah::cloneWithoutInitializingNorCopying(ExecutionSpace{}, v);
 }
 
 template <typename ExecutionSpace, typename View>
 [[deprecated]] typename View::non_const_type clone(ExecutionSpace const &space,
                                                    View &v)
 {
-  return KokkosExt::clone(space, v);
+  return KokkosBlah::clone(space, v);
 }
 
 template <typename View>
 [[deprecated]] inline typename View::non_const_type clone(View &v)
 {
   using ExecutionSpace = typename View::execution_space;
-  return KokkosExt::clone(ExecutionSpace{}, v);
+  return KokkosBlah::clone(ExecutionSpace{}, v);
 }
 
 namespace Details
@@ -581,15 +581,15 @@ template <typename ExecutionSpace, typename View, typename Offset>
 void computeOffsetsInOrderedView(ExecutionSpace const &exec_space, View view,
                                  Offset &offsets)
 {
-  static_assert(KokkosExt::is_accessible_from<typename View::memory_space,
-                                              ExecutionSpace>::value);
-  static_assert(KokkosExt::is_accessible_from<typename Offset::memory_space,
-                                              ExecutionSpace>::value);
+  static_assert(KokkosBlah::is_accessible_from<typename View::memory_space,
+                                               ExecutionSpace>::value);
+  static_assert(KokkosBlah::is_accessible_from<typename Offset::memory_space,
+                                               ExecutionSpace>::value);
 
   auto const n = view.extent_int(0);
 
   int num_offsets;
-  KokkosExt::reallocWithoutInitializing(exec_space, offsets, n + 1);
+  KokkosBlah::reallocWithoutInitializing(exec_space, offsets, n + 1);
   Kokkos::parallel_scan(
       "ArborX::Algorithms::compute_offsets_in_sorted_view",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n + 1),

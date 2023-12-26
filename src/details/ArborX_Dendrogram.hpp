@@ -52,10 +52,10 @@ struct Dendrogram
     auto const num_edges = edges.size();
     auto const num_vertices = num_edges + 1;
 
-    KokkosExt::reallocWithoutInitializing(exec_space, _parents,
-                                          num_edges + num_vertices);
-    KokkosExt::reallocWithoutInitializing(exec_space, _parent_heights,
-                                          num_edges);
+    KokkosBlah::reallocWithoutInitializing(exec_space, _parents,
+                                           num_edges + num_vertices);
+    KokkosBlah::reallocWithoutInitializing(exec_space, _parent_heights,
+                                           num_edges);
 
     Kokkos::View<Details::UnweightedEdge *, MemorySpace> unweighted_edges(
         Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
@@ -64,7 +64,7 @@ struct Dendrogram
     splitEdges(exec_space, edges, unweighted_edges, _parent_heights);
 
     Kokkos::Profiling::pushRegion("ArborX::Dendrogram::sort_edges");
-    KokkosExt::sortByKey(exec_space, _parent_heights, unweighted_edges);
+    KokkosBlah::sortByKey(exec_space, _parent_heights, unweighted_edges);
     Kokkos::Profiling::popRegion();
 
     using ConstEdges =

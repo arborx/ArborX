@@ -50,17 +50,19 @@ struct Box
   KOKKOS_INLINE_FUNCTION
   constexpr Point const &maxCorner() const { return _max_corner; }
 
-  Point _min_corner = {{KokkosExt::ArithmeticTraits::finite_max<float>::value,
-                        KokkosExt::ArithmeticTraits::finite_max<float>::value,
-                        KokkosExt::ArithmeticTraits::finite_max<float>::value}};
-  Point _max_corner = {{KokkosExt::ArithmeticTraits::finite_min<float>::value,
-                        KokkosExt::ArithmeticTraits::finite_min<float>::value,
-                        KokkosExt::ArithmeticTraits::finite_min<float>::value}};
+  Point _min_corner = {
+      {KokkosBlah::ArithmeticTraits::finite_max<float>::value,
+       KokkosBlah::ArithmeticTraits::finite_max<float>::value,
+       KokkosBlah::ArithmeticTraits::finite_max<float>::value}};
+  Point _max_corner = {
+      {KokkosBlah::ArithmeticTraits::finite_min<float>::value,
+       KokkosBlah::ArithmeticTraits::finite_min<float>::value,
+       KokkosBlah::ArithmeticTraits::finite_min<float>::value}};
 
   KOKKOS_FUNCTION Box &operator+=(Box const &other)
   {
-    using KokkosExt::max;
-    using KokkosExt::min;
+    using KokkosBlah::max;
+    using KokkosBlah::min;
 
     for (int d = 0; d < 3; ++d)
     {
@@ -72,8 +74,8 @@ struct Box
 
   KOKKOS_FUNCTION Box &operator+=(Point const &point)
   {
-    using KokkosExt::max;
-    using KokkosExt::min;
+    using KokkosBlah::max;
+    using KokkosBlah::min;
 
     for (int d = 0; d < 3; ++d)
     {

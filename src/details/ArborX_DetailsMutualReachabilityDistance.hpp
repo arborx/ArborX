@@ -38,7 +38,7 @@ struct MaxDistance
   {
     size_type const i = value.index;
     size_type const j = getData(predicate);
-    using KokkosExt::max;
+    using KokkosBlah::max;
     auto const distance_ij = distance(_primitives(i), _primitives(j));
     // NOTE using knowledge that each nearest predicate traversal is performed
     // by a single thread.  The distance update below would need to be atomic
@@ -85,7 +85,7 @@ struct MutualReachability
   KOKKOS_FUNCTION value_type operator()(size_type i, size_type j,
                                         value_type distance_ij) const
   {
-    using KokkosExt::max;
+    using KokkosBlah::max;
     return max({_core_distances(i), _core_distances(j), distance_ij});
   }
 };

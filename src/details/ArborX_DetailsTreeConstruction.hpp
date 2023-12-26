@@ -159,9 +159,9 @@ public:
     //   number.
 
     constexpr auto max_value =
-        KokkosExt::ArithmeticTraits::finite_max<DeltaValueType>::value;
+        KokkosBlah::ArithmeticTraits::finite_max<DeltaValueType>::value;
     constexpr auto min_value =
-        KokkosExt::ArithmeticTraits::finite_min<DeltaValueType>::value;
+        KokkosBlah::ArithmeticTraits::finite_min<DeltaValueType>::value;
 
     // This check is here simply to avoid code complications in the main
     // operator

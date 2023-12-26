@@ -18,7 +18,7 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-namespace KokkosExt
+namespace KokkosBlah
 {
 
 template <typename MemorySpace, typename ExecutionSpace, typename = void>
@@ -42,7 +42,7 @@ struct is_accessible_from_host
   static_assert(Kokkos::is_view<View>::value);
 };
 
-} // namespace KokkosExt
+} // namespace KokkosBlah
 
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 

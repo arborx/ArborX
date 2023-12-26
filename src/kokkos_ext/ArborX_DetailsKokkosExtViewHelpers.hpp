@@ -16,7 +16,7 @@
 
 #include <Kokkos_Core.hpp>
 
-namespace KokkosExt
+namespace KokkosBlah
 {
 
 /** \brief Get a copy of the last element.
@@ -38,7 +38,7 @@ lastElement(ExecutionSpace const &space, Kokkos::View<T, P...> const &v)
   auto v_subview = Kokkos::subview(v, n - 1);
   typename Kokkos::ViewTraits<T, P...>::non_const_value_type v_host;
   Kokkos::deep_copy(space, v_host, v_subview);
-  space.fence("ArborX::KokkosExt::lastElement (copy to host)");
+  space.fence("ArborX::KokkosBlah::lastElement (copy to host)");
   return v_host;
 }
 
@@ -99,6 +99,6 @@ cloneWithoutInitializingNorCopying(ExecutionSpace const &space, View const &v)
                                v);
 }
 
-} // namespace KokkosExt
+} // namespace KokkosBlah
 
 #endif

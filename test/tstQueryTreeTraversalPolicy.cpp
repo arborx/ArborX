@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
 
   // compute number of results per query
   auto counts =
-      KokkosExt::cloneWithoutInitializingNorCopying(ExecutionSpace{}, offset);
+      KokkosBlah::cloneWithoutInitializingNorCopying(ExecutionSpace{}, offset);
   ArborX::adjacentDifference(ExecutionSpace{}, offset, counts);
   // extract optimal buffer size
   auto const max_results_per_query = ArborX::max(ExecutionSpace{}, counts);

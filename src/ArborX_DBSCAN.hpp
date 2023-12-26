@@ -243,7 +243,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   using MemorySpace = typename Points::memory_space;
 
   static_assert(
-      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
+      KokkosBlah::is_accessible_from<MemorySpace, ExecutionSpace>::value,
       "Primitives must be accessible from the execution space");
 
   ARBORX_ASSERT(eps > 0);

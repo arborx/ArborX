@@ -18,13 +18,13 @@
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
 
-#define BOOST_TEST_MODULE KokkosExtViewHelpers
+#define BOOST_TEST_MODULE KokkosBlahViewHelpers
 
 namespace tt = boost::test_tools;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(last_element, DeviceType, ARBORX_DEVICE_TYPES)
 {
-  using KokkosExt::lastElement;
+  using KokkosBlah::lastElement;
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace execution_space;
   Kokkos::View<int *, DeviceType> v("v", 2);

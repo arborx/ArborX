@@ -233,8 +233,8 @@ void symmetricPseudoInverseSVD(ExecutionSpace const &space,
   static_assert(InOutMatrices::rank == 3,
                 "matrices must be a list of square matrices");
   static_assert(
-      KokkosExt::is_accessible_from<typename InOutMatrices::memory_space,
-                                    ExecutionSpace>::value,
+      KokkosBlah::is_accessible_from<typename InOutMatrices::memory_space,
+                                     ExecutionSpace>::value,
       "matrices must be accessible from the execution space");
 
   KOKKOS_ASSERT(matrices.extent(1) == matrices.extent(2)); // Must be square

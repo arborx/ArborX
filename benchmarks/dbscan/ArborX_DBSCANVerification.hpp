@@ -273,7 +273,7 @@ bool verifyClusters(ExecutionSpace const &exec_space, IndicesView indices,
 {
   int n = labels.size();
   if ((int)offset.size() != n + 1 ||
-      KokkosExt::lastElement(exec_space, offset) != (int)indices.size())
+      KokkosBlah::lastElement(exec_space, offset) != (int)indices.size())
     return false;
 
   using Verify = bool (*)(ExecutionSpace const &, IndicesView, OffsetView,

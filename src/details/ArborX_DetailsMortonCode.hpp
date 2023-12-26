@@ -289,8 +289,8 @@ KOKKOS_INLINE_FUNCTION unsigned int morton32(Point const &p)
   constexpr int DIM = GeometryTraits::dimension_v<Point>;
   constexpr unsigned N = 1u << (DIM == 1 ? 31 : 32 / DIM);
 
-  using KokkosExt::max;
-  using KokkosExt::min;
+  using KokkosBlah::max;
+  using KokkosBlah::min;
 
   unsigned int r = 0;
   for (int d = 0; d < DIM; ++d)
@@ -310,8 +310,8 @@ KOKKOS_INLINE_FUNCTION unsigned long long morton64(Point const &p)
   constexpr int DIM = GeometryTraits::dimension_v<Point>;
   constexpr unsigned long long N = (1llu << (63 / DIM));
 
-  using KokkosExt::max;
-  using KokkosExt::min;
+  using KokkosBlah::max;
+  using KokkosBlah::min;
 
   unsigned long long r = 0;
   for (int d = 0; d < DIM; ++d)
@@ -334,8 +334,8 @@ KOKKOS_INLINE_FUNCTION unsigned long long morton64(Point const &p)
   // direction).
   constexpr unsigned N = (1u << 31);
 
-  using KokkosExt::max;
-  using KokkosExt::min;
+  using KokkosBlah::max;
+  using KokkosBlah::min;
 
   // Have to use double as float is not sufficient to represent large
   // integers, which would result in some missing bins.

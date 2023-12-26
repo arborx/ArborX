@@ -174,7 +174,7 @@ bool intersection(Ray const &ray, Box const &box, float &tmin, float &tmax)
   auto const &orig = ray.origin();
   auto const &dir = ray.direction();
 
-  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  constexpr auto inf = KokkosBlah::ArithmeticTraits::infinity<float>::value;
   tmin = -inf;
   tmax = inf;
 
@@ -313,7 +313,7 @@ bool intersection(Ray const &ray,
   int ky = (kz + 2) % 3;
 
   if (dir[kz] < 0)
-    KokkosExt::swap(kx, ky);
+    KokkosBlah::swap(kx, ky);
 
   Vector s;
 
@@ -360,7 +360,7 @@ bool intersection(Ray const &ray,
     w = (double)B[0] * A[1] - (double)B[1] * A[0];
   }
 
-  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  constexpr auto inf = KokkosBlah::ArithmeticTraits::infinity<float>::value;
   tmin = inf;
   tmax = -inf;
 
@@ -412,15 +412,15 @@ bool intersection(Ray const &ray,
   bool bc_intersect = rayEdgeIntersect(B_star, C_star, t_bc);
   if (bc_intersect)
   {
-    tmin = KokkosExt::min(tmin, t_bc);
-    tmax = KokkosExt::max(tmax, t_bc);
+    tmin = KokkosBlah::min(tmin, t_bc);
+    tmax = KokkosBlah::max(tmax, t_bc);
   }
   float t_ca = inf;
   bool ca_intersect = rayEdgeIntersect(C_star, A_star, t_ca);
   if (ca_intersect)
   {
-    tmin = KokkosExt::min(tmin, t_ca);
-    tmax = KokkosExt::max(tmax, t_ca);
+    tmin = KokkosBlah::min(tmin, t_ca);
+    tmax = KokkosBlah::max(tmax, t_ca);
   }
 
   if (ab_intersect || bc_intersect || ca_intersect)
@@ -440,7 +440,7 @@ bool intersection(Ray const &ray,
       // we want tmin = -1 and tmax = -2, when the
       // ray travels backward
       if (tmin < 0)
-        KokkosExt::swap(tmin, tmax);
+        KokkosBlah::swap(tmin, tmax);
     }
     return true;
   }
@@ -470,7 +470,7 @@ float distance(Ray const &ray, Box const &box)
   float tmax;
   bool intersects = intersection(ray, box, tmin, tmax) && (tmax >= 0.f);
   return intersects ? (tmin > 0.f ? tmin : 0.f)
-                    : KokkosExt::ArithmeticTraits::infinity<float>::value;
+                    : KokkosBlah::ArithmeticTraits::infinity<float>::value;
 }
 
 // Solves a*x^2 + b*x + c = 0.
@@ -536,11 +536,11 @@ KOKKOS_INLINE_FUNCTION bool intersection(Ray const &ray, Sphere const &sphere,
   {
     // ensures that tmin <= tmax
     if (tmin > tmax)
-      KokkosExt::swap(tmin, tmax);
+      KokkosBlah::swap(tmin, tmax);
 
     return true;
   }
-  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  constexpr auto inf = KokkosBlah::ArithmeticTraits::infinity<float>::value;
   tmin = inf;
   tmax = -inf;
   return false;
@@ -556,7 +556,7 @@ overlapDistance(Ray const &ray, Geometry const &geometry, float &length,
   if (intersection(ray, geometry, tmin, tmax) && (tmin <= tmax && tmax >= 0))
   {
     // Overlap [tmin, tmax] with [0, +inf)
-    tmin = KokkosExt::max(0.f, tmin);
+    tmin = KokkosBlah::max(0.f, tmin);
     // As direction is normalized,
     //   |(o + tmax*d) - (o + tmin*d)| = tmax - tmin
     length = tmax - tmin;
@@ -565,7 +565,7 @@ overlapDistance(Ray const &ray, Geometry const &geometry, float &length,
   else
   {
     length = 0;
-    distance_to_origin = KokkosExt::ArithmeticTraits::infinity<float>::value;
+    distance_to_origin = KokkosBlah::ArithmeticTraits::infinity<float>::value;
   }
 }
 

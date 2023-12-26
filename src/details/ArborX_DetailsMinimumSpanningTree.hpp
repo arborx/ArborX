@@ -41,7 +41,7 @@ class DirectedEdge
 {
 public:
   unsigned long long directed_edge = ULLONG_MAX;
-  float weight = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  float weight = KokkosBlah::ArithmeticTraits::infinity<float>::value;
 
 private:
   static_assert(sizeof(unsigned long long) == 8);
@@ -170,7 +170,7 @@ struct FindComponentNearestNeighbors
 
   KOKKOS_FUNCTION void operator()(int i) const
   {
-    constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+    constexpr auto inf = KokkosBlah::ArithmeticTraits::infinity<float>::value;
 
     auto const distance = [bounding_volume_i =
                                HappyTreeFriends::getIndexable(_bvh, i),
@@ -357,7 +357,7 @@ void updateLowerBounds(ExecutionSpace const &space, Labels const &labels,
   Kokkos::parallel_for(
       "ArborX::MST::update_lower_bounds",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
-        using KokkosExt::max;
+        using KokkosBlah::max;
         auto component = labels(i);
         auto const &edge = component_out_edges(component);
         lower_bounds(i) = max(lower_bounds(i), edge.weight);
@@ -429,7 +429,7 @@ struct UpdateComponentsAndEdges
     }
     // The component's edge is bidirectional, uniquely resolve the bidirectional
     // edge
-    return KokkosExt::min(component, next_component);
+    return KokkosBlah::min(component, next_component);
   }
 
   KOKKOS_FUNCTION auto computeFinalComponent(int component) const
@@ -659,7 +659,7 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
 
           // Place the smallest edge at the beginning of the chain
           if (m != i)
-            KokkosExt::swap(permute(i), permute(m));
+            KokkosBlah::swap(permute(i), permute(m));
         }
       });
 

@@ -149,14 +149,14 @@ struct KDOP : private Details::KDOP_Directions<k>
   {
     for (int i = 0; i < n_directions; ++i)
     {
-      _min_values[i] = KokkosExt::ArithmeticTraits::finite_max<float>::value;
-      _max_values[i] = KokkosExt::ArithmeticTraits::finite_min<float>::value;
+      _min_values[i] = KokkosBlah::ArithmeticTraits::finite_max<float>::value;
+      _max_values[i] = KokkosBlah::ArithmeticTraits::finite_min<float>::value;
     }
   }
   KOKKOS_FUNCTION KDOP &operator+=(Point const &p)
   {
-    using KokkosExt::max;
-    using KokkosExt::min;
+    using KokkosBlah::max;
+    using KokkosBlah::min;
     for (int i = 0; i < n_directions; ++i)
     {
       auto const proj_i = Details::project(p, this->directions()[i]);
@@ -203,8 +203,8 @@ struct KDOP : private Details::KDOP_Directions<k>
   }
   KOKKOS_FUNCTION KDOP &operator+=(KDOP const &other)
   {
-    using KokkosExt::max;
-    using KokkosExt::min;
+    using KokkosBlah::max;
+    using KokkosBlah::min;
     for (int i = 0; i < n_directions; ++i)
     {
       _min_values[i] = min(_min_values[i], other._min_values[i]);

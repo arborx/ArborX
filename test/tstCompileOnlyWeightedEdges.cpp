@@ -26,7 +26,7 @@ KOKKOS_FUNCTION constexpr bool test_directed_edges()
   static_assert(DirectedEdge{6, 5, 4.f}.source() == 6);
   static_assert(DirectedEdge{6, 5, 4.f}.target() == 5);
 
-  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  constexpr auto inf = KokkosBlah::ArithmeticTraits::infinity<float>::value;
   static_assert(DirectedEdge{}.weight == inf);
   static_assert(DirectedEdge{}.source() == INT_MAX);
   static_assert(DirectedEdge{}.target() == INT_MAX);

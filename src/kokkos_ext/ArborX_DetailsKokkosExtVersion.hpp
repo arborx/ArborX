@@ -17,7 +17,7 @@
 #include <sstream>
 #include <string>
 
-namespace KokkosExt
+namespace KokkosBlah
 {
 
 inline std::string version()
@@ -28,6 +28,6 @@ inline std::string version()
   return sstr.str();
 }
 
-} // namespace KokkosExt
+} // namespace KokkosBlah
 
 #endif

@@ -28,7 +28,7 @@ namespace boost
   static_assert(Traits::rank == 1,                                             \
                 "Adaptor to Boost.Range only available for Views of rank 1");  \
   static_assert(                                                               \
-      KokkosExt::is_accessible_from_host<View>::value,                         \
+      KokkosBlah::is_accessible_from_host<View>::value,                        \
       "Adaptor to Boost.Range only available when View memory space is "       \
       "accessible from host");
 

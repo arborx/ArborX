@@ -176,7 +176,7 @@ struct DistributedTreeImpl
         "ArborX::DistributedTree::query::nearest::ranks", 0);
     queryDispatchImpl(tag, tree, space, queries, indices, offset, ranks);
     auto const n = indices.extent(0);
-    KokkosExt::reallocWithoutInitializing(space, values, n);
+    KokkosBlah::reallocWithoutInitializing(space, values, n);
     Kokkos::parallel_for(
         "ArborX::DistributedTree::query::zip_indices_and_ranks",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
@@ -358,7 +358,7 @@ void DistributedTreeImpl<DeviceType>::deviseStrategy(
   // trees as necessary to find k neighbors.
   Kokkos::View<int *, DeviceType> new_indices(
       Kokkos::view_alloc(space, indices.label()),
-      KokkosExt::lastElement(space, new_offset));
+      KokkosBlah::lastElement(space, new_offset));
   Kokkos::parallel_for(
       "ArborX::DistributedTree::query::truncate_before_forwarding",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
@@ -398,7 +398,7 @@ void DistributedTreeImpl<DeviceType>::reassessStrategy(
       "ArborX::DistributedTree::query::most_distant_neighbor_so_far",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int i) {
-        using KokkosExt::max;
+        using KokkosBlah::max;
         farthest_distances(i) = 0.;
         for (int j = offset(i); j < offset(i + 1); ++j)
           farthest_distances(i) = max(farthest_distances(i), distances(j));
@@ -548,8 +548,8 @@ DistributedTreeImpl<DeviceType>::queryDispatchImpl(
 
       // Unzip
       auto const n = out.extent(0);
-      KokkosExt::reallocWithoutInitializing(space, indices, n);
-      KokkosExt::reallocWithoutInitializing(space, distances, n);
+      KokkosBlah::reallocWithoutInitializing(space, indices, n);
+      KokkosBlah::reallocWithoutInitializing(space, distances, n);
       Kokkos::parallel_for(
           "ArborX::DistributedTree::query::nearest::split_"
           "index_distance_pairs",
@@ -706,7 +706,7 @@ void DistributedTreeImpl<DeviceType>::forwardQueries(
   Distributor<DeviceType> distributor(comm);
 
   int const n_queries = queries.size();
-  int const n_exports = KokkosExt::lastElement(space, offset);
+  int const n_exports = KokkosBlah::lastElement(space, offset);
   int const n_imports = distributor.createFromSends(space, indices);
 
   static_assert(std::is_same_v<Query, typename Predicates::value_type>);
@@ -795,7 +795,7 @@ void DistributedTreeImpl<DeviceType>::communicateResultsBack(
   MPI_Comm_rank(comm, &comm_rank);
 
   int const n_fwd_queries = offset.extent_int(0) - 1;
-  int const n_exports = KokkosExt::lastElement(space, offset);
+  int const n_exports = KokkosBlah::lastElement(space, offset);
 
   // We are assuming here that if the same rank is related to multiple batches
   // these batches appear consecutively. Hence, no reordering is necessary.
@@ -888,13 +888,13 @@ void DistributedTreeImpl<DeviceType>::filterResults(
       "ArborX::DistributedTree::query::discard_results",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int q) {
-        using KokkosExt::min;
+        using KokkosBlah::min;
         new_offset(q) = min(offset(q + 1) - offset(q), getK(queries(q)));
       });
 
   exclusivePrefixSum(space, new_offset);
 
-  int const n_truncated_results = KokkosExt::lastElement(space, new_offset);
+  int const n_truncated_results = KokkosBlah::lastElement(space, new_offset);
   Kokkos::View<int *, DeviceType> new_indices(
       Kokkos::view_alloc(space, indices.label()), n_truncated_results);
   Kokkos::View<int *, DeviceType> new_ranks(
@@ -911,7 +911,7 @@ void DistributedTreeImpl<DeviceType>::filterResults(
     }
   };
 
-  int const n_results = KokkosExt::lastElement(space, offset);
+  int const n_results = KokkosBlah::lastElement(space, offset);
   Kokkos::View<PairIndexDistance *, DeviceType> buffer(
       Kokkos::view_alloc(
           space, Kokkos::WithoutInitializing,

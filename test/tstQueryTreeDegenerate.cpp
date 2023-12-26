@@ -366,7 +366,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_spatial_predicate,
                                          {{{0., 0., 0.}}, {{n, n, n}}},
                                      }),
                                      indices, offset));
-  BOOST_TEST(KokkosExt::lastElement(space, offset) == n);
+  BOOST_TEST(KokkosBlah::lastElement(space, offset) == n);
 }
 
 #ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
@@ -398,7 +398,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_nearest_predicate,
                                          {{{0., 0., 0.}}, n},
                                      }),
                                      indices, offset));
-  BOOST_TEST(KokkosExt::lastElement(space, offset) == n);
+  BOOST_TEST(KokkosBlah::lastElement(space, offset) == n);
 }
 #endif
 

@@ -92,12 +92,12 @@ public:
              Args &&...args) const
   {
     static_assert(
-        KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
+        KokkosBlah::is_accessible_from<MemorySpace, ExecutionSpace>::value);
 
     using Predicates = Details::AccessValues<UserPredicates, PredicatesTag>;
     static_assert(
-        KokkosExt::is_accessible_from<typename Predicates::memory_space,
-                                      ExecutionSpace>::value,
+        KokkosBlah::is_accessible_from<typename Predicates::memory_space,
+                                       ExecutionSpace>::value,
         "Predicates must be accessible from the execution space");
 
     Predicates predicates{user_predicates};

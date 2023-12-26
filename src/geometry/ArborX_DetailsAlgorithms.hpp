@@ -241,7 +241,7 @@ struct distance<PointTag, SphereTag, Point, Sphere>
 {
   KOKKOS_FUNCTION static auto apply(Point const &point, Sphere const &sphere)
   {
-    using KokkosExt::max;
+    using KokkosBlah::max;
     return max(Details::distance(point, sphere.centroid()) - sphere.radius(),
                0.f);
   }
@@ -289,7 +289,7 @@ struct distance<SphereTag, BoxTag, Sphere, Box>
 {
   KOKKOS_FUNCTION static auto apply(Sphere const &sphere, Box const &box)
   {
-    using KokkosExt::max;
+    using KokkosBlah::max;
 
     auto distance_center_box = Details::distance(sphere.centroid(), box);
     return max(distance_center_box - sphere.radius(), 0.f);
@@ -335,8 +335,8 @@ struct expand<BoxTag, SphereTag, Box, Sphere>
 {
   KOKKOS_FUNCTION static void apply(Box &box, Sphere const &sphere)
   {
-    using KokkosExt::max;
-    using KokkosExt::min;
+    using KokkosBlah::max;
+    using KokkosBlah::min;
 
     constexpr int DIM = GeometryTraits::dimension_v<Box>;
     for (int d = 0; d < DIM; ++d)

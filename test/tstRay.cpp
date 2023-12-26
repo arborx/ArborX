@@ -182,9 +182,9 @@ BOOST_AUTO_TEST_CASE(ray_box_intersection, *boost::unit_test::tolerance(1e-6f))
   using ArborX::Experimental::Ray;
 
 #ifdef _MSC_VER
-  auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  auto const inf = KokkosBlah::ArithmeticTraits::infinity<float>::value;
 #else
-  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  constexpr auto inf = KokkosBlah::ArithmeticTraits::infinity<float>::value;
 #endif
 
   constexpr Box unit_box{{0, 0, 0}, {1, 1, 1}};
@@ -260,9 +260,9 @@ BOOST_AUTO_TEST_CASE(ray_box_distance)
   constexpr Box unit_box{{0, 0, 0}, {1, 1, 1}};
 
 #ifdef _MSC_VER
-  auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  auto const inf = KokkosBlah::ArithmeticTraits::infinity<float>::value;
 #else
-  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  constexpr auto inf = KokkosBlah::ArithmeticTraits::infinity<float>::value;
 #endif
 
   // clang-format off
@@ -373,9 +373,9 @@ BOOST_AUTO_TEST_CASE(ray_sphere_intersection,
   auto const sqrtf_2 = std::sqrt(2.f);
 
 #ifdef _MSC_VER
-  auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  auto const inf = KokkosBlah::ArithmeticTraits::infinity<float>::value;
 #else
-  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  constexpr auto inf = KokkosBlah::ArithmeticTraits::infinity<float>::value;
 #endif
 
   // clang-format off
@@ -498,9 +498,9 @@ BOOST_AUTO_TEST_CASE(ray_triangle_intersection,
   using ArborX::ExperimentalHyperGeometry::Triangle;
 
 #ifdef _MSC_VER
-  auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  auto const inf = KokkosBlah::ArithmeticTraits::infinity<float>::value;
 #else
-  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  constexpr auto inf = KokkosBlah::ArithmeticTraits::infinity<float>::value;
 #endif
 
   constexpr Triangle unit_triangle{Point{0, 0, 0}, Point{1, 0, 0},

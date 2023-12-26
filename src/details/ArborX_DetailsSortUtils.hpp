@@ -36,7 +36,7 @@ auto sortObjects(ExecutionSpace const &space, ViewType &view)
       view.extent(0));
   ArborX::iota(space, permute);
 
-  KokkosExt::sortByKey(space, view, permute);
+  KokkosBlah::sortByKey(space, view, permute);
 
   Kokkos::Profiling::popRegion();
 
@@ -131,7 +131,7 @@ void applyPermutation(ExecutionSpace const &space,
                       PermutationView const &permutation, View &view)
 {
   static_assert(std::is_integral<typename PermutationView::value_type>::value);
-  auto scratch_view = KokkosExt::clone(space, view);
+  auto scratch_view = KokkosBlah::clone(space, view);
   applyPermutation(space, permutation, scratch_view, view);
 }
 

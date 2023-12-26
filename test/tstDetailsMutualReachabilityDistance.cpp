@@ -38,7 +38,7 @@ auto compute_core_distances(ExecutionSpace exec_space,
   Kokkos::View<float *, MemorySpace> distances(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Test::core_distances"),
       bvh.size());
-  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  constexpr auto inf = KokkosBlah::ArithmeticTraits::infinity<float>::value;
   Kokkos::deep_copy(exec_space, distances, -inf);
   bvh.query(exec_space, ArborX::Details::NearestK<decltype(points)>{points, k},
             ArborX::Details::MaxDistance<decltype(points), decltype(distances)>{
