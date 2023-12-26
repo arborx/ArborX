@@ -106,6 +106,34 @@ reduce(ExecutionSpace &&space, ViewType const &v,
   return init;
 }
 
+template <typename ExecutionSpace, typename SrcViewType, typename DstViewType>
+void adjacent_difference(ExecutionSpace &&space, SrcViewType const &src,
+                         DstViewType const &dst)
+{
+  static_assert(SrcViewType::rank == 1 && DstViewType::rank == 1,
+                "adjacentDifference operates on rank-1 views");
+  static_assert(std::is_same<typename DstViewType::value_type,
+                             typename DstViewType::non_const_value_type>::value,
+                "adjacentDifference requires non-const destination value type");
+  static_assert(std::is_same<typename SrcViewType::non_const_value_type,
+                             typename DstViewType::value_type>::value,
+                "adjacentDifference requires same value type for source and "
+                "destination");
+  // QUESTION Should we assert anything about the memory spaces?
+  auto const n = src.extent(0);
+  ARBORX_ASSERT(n == dst.extent(0));
+  ARBORX_ASSERT(src != dst);
+  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
+      std::forward<ExecutionSpace>(space), 0, n);
+  Kokkos::parallel_for(
+      "ArborX::Algorithms::adjacent_difference", policy, KOKKOS_LAMBDA(int i) {
+        if (i > 0)
+          dst(i) = src(i) - src(i - 1);
+        else
+          dst(i) = src(i);
+      });
+}
+
 } // namespace ArborX::Details::KokkosExt
 
 #endif
