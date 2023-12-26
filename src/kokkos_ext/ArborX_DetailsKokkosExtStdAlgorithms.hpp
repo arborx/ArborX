@@ -134,6 +134,27 @@ void adjacent_difference(ExecutionSpace &&space, SrcViewType const &src,
       });
 }
 
+template <typename ExecutionSpace, typename T, typename... P>
+void iota(ExecutionSpace &&space, Kokkos::View<T, P...> const &v,
+          typename Kokkos::ViewTraits<T, P...>::value_type value = 0)
+{
+  using ValueType = typename Kokkos::ViewTraits<T, P...>::value_type;
+  static_assert(unsigned(Kokkos::ViewTraits<T, P...>::rank) == unsigned(1),
+                "iota requires a View of rank 1");
+  static_assert(std::is_arithmetic<ValueType>::value,
+                "iota requires a View with an arithmetic value type");
+  static_assert(
+      std::is_same<ValueType, typename Kokkos::ViewTraits<
+                                  T, P...>::non_const_value_type>::value,
+      "iota requires a View with non-const value type");
+  auto const n = v.extent(0);
+  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
+      std::forward<ExecutionSpace>(space), 0, n);
+  Kokkos::parallel_for(
+      "ArborX::Algorithms::iota", policy,
+      KOKKOS_LAMBDA(int i) { v(i) = value + (ValueType)i; });
+}
+
 } // namespace ArborX::Details::KokkosExt
 
 #endif
