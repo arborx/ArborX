@@ -14,7 +14,7 @@
 
 #include <ArborX_Config.hpp> // ARBORX_ENABLE_ROCTHRUST
 
-#include <ArborX_DetailsUtils.hpp> // minMax
+#include <ArborX_DetailsKokkosExtMinMaxReductions.hpp>
 
 #include <Kokkos_Profiling_ScopedRegion.hpp>
 #include <Kokkos_Sort.hpp>
@@ -95,7 +95,7 @@ void sortByKey(ExecutionSpace const &space, Keys &keys, Values &values)
   if (n == 0)
     return;
 
-  auto [min_val, max_val] = ArborX::minMax(space, keys);
+  auto [min_val, max_val] = minmax_reduce(space, keys);
   if (min_val == max_val)
     return;
 

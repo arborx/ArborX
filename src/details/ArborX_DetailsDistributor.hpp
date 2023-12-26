@@ -13,6 +13,7 @@
 
 #include <ArborX_Config.hpp>
 
+#include <ArborX_DetailsKokkosExtMinMaxReductions.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUtils.hpp> // max
@@ -20,8 +21,7 @@
 
 #include <Kokkos_Core.hpp>
 
-#include <algorithm> // max_element
-#include <numeric>   // iota
+#include <numeric> // iota
 #include <sstream>
 #include <vector>
 
@@ -170,7 +170,8 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
   int offset = 0;
   while (true)
   {
-    int const largest_rank = ArborX::max(space, device_ranks_duplicate);
+    int const largest_rank =
+        KokkosExt::max_reduce(space, device_ranks_duplicate);
     if (largest_rank == -1)
       break;
     unique_ranks.push_back(largest_rank);

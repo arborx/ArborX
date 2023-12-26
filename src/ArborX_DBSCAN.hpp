@@ -20,6 +20,7 @@
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
+#include <ArborX_DetailsUtils.hpp>
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_HyperSphere.hpp>
 #include <ArborX_LinearBVH.hpp>
