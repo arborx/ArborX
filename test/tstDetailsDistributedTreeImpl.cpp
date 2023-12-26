@@ -400,7 +400,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(send_across_network, DeviceType,
       });
 
   Kokkos::View<int *, DeviceType> ranks_u("", comm_size);
-  ArborX::iota(ExecutionSpace{}, ranks_u, 0);
+  ArborX::Details::KokkosExt::iota(ExecutionSpace{}, ranks_u, 0);
 
   Kokkos::View<int **, DeviceType> u_ref("u_ref", comm_size, DIM);
   Kokkos::parallel_for(

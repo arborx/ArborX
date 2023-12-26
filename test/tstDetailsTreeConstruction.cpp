@@ -165,7 +165,7 @@ void generateHierarchy(Primitives primitives, MortonCodes sorted_morton_codes,
 
   Kokkos::View<unsigned int *, DeviceType> permutation_indices(
       "Testing::indices", n);
-  ArborX::iota(space, permutation_indices);
+  ArborX::Details::KokkosExt::iota(space, permutation_indices);
 
   using BoundingVolume =
       typename InternalNodes::value_type::bounding_volume_type;

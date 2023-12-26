@@ -112,7 +112,8 @@ private:
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::MST::labels"),
         2 * n - 1);
-    iota(space, Kokkos::subview(labels, std::make_pair((decltype(n))0, n)));
+    KokkosExt::iota(space,
+                    Kokkos::subview(labels, std::make_pair((decltype(n))0, n)));
     Kokkos::Profiling::popRegion();
 
     Kokkos::View<DirectedEdge *, MemorySpace> component_out_edges(

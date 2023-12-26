@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(union_find, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::View<int *, MemorySpace> labels(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing, "Test::labels"),
       n);
-  ArborX::iota(space, labels);
+  ArborX::Details::KokkosExt::iota(space, labels);
   UnionFind union_find(labels);
 
   ARBORX_TEST_UNION_FIND_REPRESENTATIVES(space, union_find,

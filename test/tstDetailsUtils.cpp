@@ -32,11 +32,14 @@ namespace tt = boost::test_tools;
 BOOST_AUTO_TEST_CASE_TEMPLATE(iota, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   ExecutionSpace space{};
   int const n = 10;
   double const val = 3.;
+
   Kokkos::View<double *, DeviceType> v("v", n);
-  ArborX::iota(space, v, val);
+  KokkosExt::iota(space, v, val);
   std::vector<double> v_ref(n);
   std::iota(v_ref.begin(), v_ref.end(), val);
   auto v_host = Kokkos::create_mirror_view(v);
@@ -44,14 +47,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(iota, DeviceType, ARBORX_DEVICE_TYPES)
   BOOST_TEST(v_ref == v_host, tt::per_element());
 
   Kokkos::View<int[3], DeviceType> w("w");
-  ArborX::iota(space, w);
+  KokkosExt::iota(space, w);
   std::vector<int> w_ref = {0, 1, 2};
   auto w_host = Kokkos::create_mirror_view(w);
   Kokkos::deep_copy(w_host, w);
   BOOST_TEST(w_ref == w_host, tt::per_element());
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(prefix_sum, DeviceType, ARBORX_DEVICE_TYPES)
+BOOST_AUTO_TEST_CASE_TEMPLATE(exclusive_scan, DeviceType, ARBORX_DEVICE_TYPES)
 {
   namespace KokkosExt = ArborX::Details::KokkosExt;
   using ExecutionSpace = typename DeviceType::execution_space;
@@ -163,15 +166,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(reduce, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace space{};
 
-  using ArborX::Details::KokkosExt::reduce;
+  namespace KokkosExt = ArborX::Details::KokkosExt;
 
   Kokkos::View<int[6], DeviceType> v("v");
   Kokkos::deep_copy(v, 5);
-  BOOST_TEST(reduce(space, v, 3) == 33);
+  BOOST_TEST(KokkosExt::reduce(space, v, 3) == 33);
 
   Kokkos::View<int *, DeviceType> w("w", 5);
-  ArborX::iota(space, w, 2);
-  BOOST_TEST(reduce(space, w, 4) == 24);
+  KokkosExt::iota(space, w, 2);
+  BOOST_TEST(KokkosExt::reduce(space, w, 4) == 24);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(adjacent_difference, DeviceType,
@@ -219,13 +222,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(min_and_max, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace space{};
 
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   Kokkos::View<int[4], DeviceType> v("v");
-  ArborX::iota(space, v);
+  KokkosExt::iota(space, v);
   BOOST_TEST(ArborX::min(space, v) == 0);
   BOOST_TEST(ArborX::max(space, v) == 3);
 
   Kokkos::View<int *, DeviceType> w("w", 7);
-  ArborX::iota(space, w, 2);
+  KokkosExt::iota(space, w, 2);
   BOOST_TEST(ArborX::min(space, w) == 2);
   BOOST_TEST(ArborX::max(space, w) == 8);
 

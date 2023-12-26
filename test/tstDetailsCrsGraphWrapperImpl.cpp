@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::View<unsigned int *, DeviceType> permute(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::permute"), n);
   ExecutionSpace space;
-  ArborX::iota(space, permute);
+  KokkosExt::iota(space, permute);
 
   KokkosExt::exclusive_scan(space, offset);
   Kokkos::realloc(indices, KokkosExt::lastElement(space, offset));
