@@ -16,7 +16,7 @@ namespace
 
 KOKKOS_FUNCTION constexpr bool test_directed_edges()
 {
-  using ArborX::Details::DirectedEdge;
+  using namespace ArborX::Details;
 
   static_assert(DirectedEdge{0, 1, 2.f}.weight == 2.f);
   static_assert(DirectedEdge{0, 1, 2.f}.source() == 0);

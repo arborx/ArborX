@@ -174,7 +174,8 @@ bool intersection(Ray const &ray, Box const &box, float &tmin, float &tmax)
   auto const &orig = ray.origin();
   auto const &dir = ray.direction();
 
-  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  constexpr auto inf =
+      Details::KokkosExt::ArithmeticTraits::infinity<float>::value;
   tmin = -inf;
   tmax = inf;
 
@@ -306,6 +307,8 @@ bool intersection(Ray const &ray,
                   ExperimentalHyperGeometry::Triangle<3> const &triangle,
                   float &tmin, float &tmax)
 {
+  namespace KokkosExt = Details::KokkosExt;
+
   auto dir = ray.direction();
   // normalize the direction vector by its largest component.
   auto kz = findLargestComp(dir);
@@ -469,8 +472,9 @@ float distance(Ray const &ray, Box const &box)
   float tmin;
   float tmax;
   bool intersects = intersection(ray, box, tmin, tmax) && (tmax >= 0.f);
-  return intersects ? (tmin > 0.f ? tmin : 0.f)
-                    : KokkosExt::ArithmeticTraits::infinity<float>::value;
+  return intersects
+             ? (tmin > 0.f ? tmin : 0.f)
+             : Details::KokkosExt::ArithmeticTraits::infinity<float>::value;
 }
 
 // Solves a*x^2 + b*x + c = 0.
@@ -523,6 +527,8 @@ KOKKOS_INLINE_FUNCTION bool solveQuadratic(float const a, float const b,
 KOKKOS_INLINE_FUNCTION bool intersection(Ray const &ray, Sphere const &sphere,
                                          float &tmin, float &tmax)
 {
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   auto const &r = sphere.radius();
 
   // Vector oc = (origin_of_ray - center_of_sphere)
@@ -551,6 +557,8 @@ KOKKOS_INLINE_FUNCTION void
 overlapDistance(Ray const &ray, Geometry const &geometry, float &length,
                 float &distance_to_origin)
 {
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   float tmin;
   float tmax;
   if (intersection(ray, geometry, tmin, tmax) && (tmin <= tmax && tmax >= 0))

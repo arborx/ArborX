@@ -50,6 +50,8 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
 {
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::sortAndFilterClusters");
 
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   static_assert(Kokkos::is_view<LabelsView>{});
   static_assert(Kokkos::is_view<ClusterIndicesView>{});
   static_assert(Kokkos::is_view<ClusterOffsetView>{});

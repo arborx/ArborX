@@ -70,7 +70,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
   ArborX::iota(space, permute);
 
   ArborX::exclusivePrefixSum(space, offset);
-  Kokkos::realloc(indices, KokkosExt::lastElement(space, offset));
+  Kokkos::realloc(indices,
+                  ArborX::Details::KokkosExt::lastElement(space, offset));
   ArborX::Details::CrsGraphWrapperImpl::queryImpl(
       space, Test1{}, predicates, ArborX::Details::DefaultCallback{}, indices,
       offset, permute, ArborX::Details::BufferStatus::PreallocationHard);

@@ -268,7 +268,7 @@ template <typename T, typename... P>
 lastElement(Kokkos::View<T, P...> const &v)
 {
   using ExecutionSpace = typename Kokkos::View<T, P...>::execution_space;
-  return KokkosExt::lastElement(ExecutionSpace{}, v);
+  return Details::KokkosExt::lastElement(ExecutionSpace{}, v);
 }
 
 /** \brief Fills the view with a sequence of numbers
@@ -540,8 +540,8 @@ reallocWithoutInitializing(View &v, size_t n0 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
                            size_t n7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG)
 {
   using ExecutionSpace = typename View::execution_space;
-  KokkosExt::reallocWithoutInitializing(ExecutionSpace{}, v, n0, n1, n2, n3, n4,
-                                        n5, n6, n7);
+  Details::KokkosExt::reallocWithoutInitializing(ExecutionSpace{}, v, n0, n1,
+                                                 n2, n3, n4, n5, n6, n7);
 }
 
 template <typename View>
@@ -549,7 +549,7 @@ template <typename View>
 reallocWithoutInitializing(View &v, const typename View::array_layout &layout)
 {
   using ExecutionSpace = typename View::execution_space;
-  KokkosExt::reallocWithoutInitializing(ExecutionSpace{}, v, layout);
+  Details::KokkosExt::reallocWithoutInitializing(ExecutionSpace{}, v, layout);
 }
 
 template <typename View>
@@ -557,21 +557,22 @@ template <typename View>
 cloneWithoutInitializingNorCopying(View &v)
 {
   using ExecutionSpace = typename View::execution_space;
-  return KokkosExt::cloneWithoutInitializingNorCopying(ExecutionSpace{}, v);
+  return Details::KokkosExt::cloneWithoutInitializingNorCopying(
+      ExecutionSpace{}, v);
 }
 
 template <typename ExecutionSpace, typename View>
 [[deprecated]] typename View::non_const_type clone(ExecutionSpace const &space,
                                                    View &v)
 {
-  return KokkosExt::clone(space, v);
+  return Details::KokkosExt::clone(space, v);
 }
 
 template <typename View>
 [[deprecated]] inline typename View::non_const_type clone(View &v)
 {
   using ExecutionSpace = typename View::execution_space;
-  return KokkosExt::clone(ExecutionSpace{}, v);
+  return Details::KokkosExt::clone(ExecutionSpace{}, v);
 }
 
 namespace Details

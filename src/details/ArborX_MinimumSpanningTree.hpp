@@ -98,6 +98,8 @@ private:
   void doBoruvka(ExecutionSpace const &space, BVH const &bvh,
                  Metric const &metric)
   {
+    namespace KokkosExt = ArborX::Details::KokkosExt;
+
     auto const n = bvh.size();
     Kokkos::View<int *, MemorySpace> tree_parents(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,

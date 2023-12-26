@@ -49,6 +49,8 @@ struct Dendrogram
   {
     Kokkos::Profiling::pushRegion("ArborX::Dendrogram::Dendrogram");
 
+    namespace KokkosExt = ArborX::Details::KokkosExt;
+
     auto const num_edges = edges.size();
     auto const num_vertices = num_edges + 1;
 

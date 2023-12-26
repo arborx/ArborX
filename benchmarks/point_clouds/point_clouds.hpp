@@ -47,6 +47,7 @@ template <class Point, typename... ViewProperties>
 void filledBoxCloud(double const half_edge,
                     Kokkos::View<Point *, ViewProperties...> random_points)
 {
+  namespace KokkosExt = ArborX::Details::KokkosExt;
   static_assert(
       KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
@@ -66,6 +67,7 @@ template <class Point, typename... ViewProperties>
 void hollowBoxCloud(double const half_edge,
                     Kokkos::View<Point *, ViewProperties...> random_points)
 {
+  namespace KokkosExt = ArborX::Details::KokkosExt;
   static_assert(
       KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
@@ -94,6 +96,7 @@ template <class Point, typename... ViewProperties>
 void filledSphereCloud(double const radius,
                        Kokkos::View<Point *, ViewProperties...> random_points)
 {
+  namespace KokkosExt = ArborX::Details::KokkosExt;
   static_assert(
       KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
@@ -135,6 +138,7 @@ template <class Point, typename... ViewProperties>
 void hollowSphereCloud(double const radius,
                        Kokkos::View<Point *, ViewProperties...> random_points)
 {
+  namespace KokkosExt = ArborX::Details::KokkosExt;
   static_assert(
       KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");

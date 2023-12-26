@@ -183,8 +183,8 @@ BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
               _size)
     , _indexable_getter(indexable_getter)
 {
-  static_assert(
-      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
+  static_assert(Details::KokkosExt::is_accessible_from<MemorySpace,
+                                                       ExecutionSpace>::value);
   // FIXME redo with RangeTraits
   Details::check_valid_access_traits<UserValues>(
       PrimitivesTag{}, user_values, Details::DoNotCheckGetReturnType());
@@ -192,9 +192,10 @@ BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
   using Values = Details::AccessValues<UserValues, PrimitivesTag>;
   Values values{user_values};
 
-  static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,
-                                              ExecutionSpace>::value,
-                "Values must be accessible from the execution space");
+  static_assert(
+      Details::KokkosExt::is_accessible_from<typename Values::memory_space,
+                                             ExecutionSpace>::value,
+      "Values must be accessible from the execution space");
 
   Kokkos::Profiling::ScopedRegion guard("ArborX::BruteForce::BruteForce");
 
@@ -215,15 +216,16 @@ void BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::query(
     ExecutionSpace const &space, UserPredicates const &user_predicates,
     Callback const &callback, Ignore) const
 {
-  static_assert(
-      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
+  static_assert(Details::KokkosExt::is_accessible_from<MemorySpace,
+                                                       ExecutionSpace>::value);
   Details::check_valid_access_traits(PredicatesTag{}, user_predicates);
   Details::check_valid_callback<value_type>(callback, user_predicates);
 
   using Predicates = Details::AccessValues<UserPredicates, PredicatesTag>;
-  static_assert(KokkosExt::is_accessible_from<typename Predicates::memory_space,
-                                              ExecutionSpace>::value,
-                "Predicates must be accessible from the execution space");
+  static_assert(
+      Details::KokkosExt::is_accessible_from<typename Predicates::memory_space,
+                                             ExecutionSpace>::value,
+      "Predicates must be accessible from the execution space");
 
   Predicates predicates{user_predicates};
 

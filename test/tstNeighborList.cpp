@@ -164,7 +164,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(find_neighbor_list_degenerate, DeviceType,
   auto single_point = ArborXTest::toView<ExecutionSpace>(
       std::vector<ArborX::Point>{{0.f, 0.f, 0.f}}, "Test::single_point");
 
-  constexpr auto radius = KokkosExt::ArithmeticTraits::infinity<float>::value;
+  constexpr auto radius =
+      ArborX::Details::KokkosExt::ArithmeticTraits::infinity<float>::value;
 
   ARBORX_TEST_NEIGHBOR_LIST(exec_space, no_point, radius, (std::vector<int>{0}),
                             (std::vector<int>{}));

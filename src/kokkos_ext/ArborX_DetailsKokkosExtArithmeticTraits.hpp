@@ -14,7 +14,7 @@
 
 #include <Kokkos_NumericTraits.hpp>
 
-namespace KokkosExt::ArithmeticTraits
+namespace ArborX::Details::KokkosExt::ArithmeticTraits
 {
 
 template <class T>
@@ -29,6 +29,6 @@ using finite_min = Kokkos::Experimental::finite_min<T>;
 template <class T>
 using epsilon = Kokkos::Experimental::epsilon<T>;
 
-} // namespace KokkosExt::ArithmeticTraits
+} // namespace ArborX::Details::KokkosExt::ArithmeticTraits
 
 #endif

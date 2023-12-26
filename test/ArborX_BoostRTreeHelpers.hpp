@@ -188,6 +188,8 @@ template <typename Indexable, typename InputView,
 static std::tuple<OutputView, OutputView>
 performQueries(RTree<Indexable> const &rtree, InputView const &queries)
 {
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   static_assert(KokkosExt::is_accessible_from_host<InputView>::value);
 
   using Value = typename RTree<Indexable>::value_type;
@@ -216,6 +218,8 @@ template <typename Indexable, typename InputView,
 static std::tuple<OutputView2, OutputView1>
 performQueries(ParallelRTree<Indexable> const &rtree, InputView const &queries)
 {
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   static_assert(KokkosExt::is_accessible_from_host<InputView>::value);
   using Value = typename ParallelRTree<Indexable>::value_type;
   auto const n_queries = queries.extent_int(0);

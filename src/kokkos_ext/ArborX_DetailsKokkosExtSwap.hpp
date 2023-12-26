@@ -17,7 +17,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace KokkosExt
+namespace ArborX::Details::KokkosExt
 {
 
 template <class T>
@@ -30,6 +30,6 @@ swap(T &a, T &b) noexcept(std::is_nothrow_move_constructible<T>::value
   b = std::move(tmp);
 }
 
-} // namespace KokkosExt
+} // namespace ArborX::Details::KokkosExt
 
 #endif

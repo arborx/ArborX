@@ -181,6 +181,7 @@ BOOST_AUTO_TEST_CASE(ray_box_intersection, *boost::unit_test::tolerance(1e-6f))
   using ArborX::Box;
   using ArborX::Experimental::Ray;
 
+  namespace KokkosExt = ArborX::Details::KokkosExt;
 #ifdef _MSC_VER
   auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
 #else
@@ -259,6 +260,7 @@ BOOST_AUTO_TEST_CASE(ray_box_distance)
   // must have a constant value)
   constexpr Box unit_box{{0, 0, 0}, {1, 1, 1}};
 
+  namespace KokkosExt = ArborX::Details::KokkosExt;
 #ifdef _MSC_VER
   auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
 #else
@@ -372,6 +374,7 @@ BOOST_AUTO_TEST_CASE(ray_sphere_intersection,
   auto const sqrtf_3 = std::sqrt(3.f);
   auto const sqrtf_2 = std::sqrt(2.f);
 
+  namespace KokkosExt = ArborX::Details::KokkosExt;
 #ifdef _MSC_VER
   auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
 #else
@@ -497,6 +500,7 @@ BOOST_AUTO_TEST_CASE(ray_triangle_intersection,
   using ArborX::ExperimentalHyperGeometry::Point;
   using ArborX::ExperimentalHyperGeometry::Triangle;
 
+  namespace KokkosExt = ArborX::Details::KokkosExt;
 #ifdef _MSC_VER
   auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
 #else

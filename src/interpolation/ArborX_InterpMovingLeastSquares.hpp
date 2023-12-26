@@ -85,6 +85,8 @@ public:
                      PolynomialDegree = {},
                      std::optional<int> num_neighbors = std::nullopt)
   {
+    namespace KokkosExt = ArborX::Details::KokkosExt;
+
     auto guard = Kokkos::Profiling::ScopedRegion("ArborX::MovingLeastSquares");
 
     static_assert(
@@ -202,6 +204,8 @@ public:
   {
     auto guard = Kokkos::Profiling::ScopedRegion(
         "ArborX::MovingLeastSquares::interpolate");
+
+    namespace KokkosExt = ArborX::Details::KokkosExt;
 
     static_assert(
         KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,

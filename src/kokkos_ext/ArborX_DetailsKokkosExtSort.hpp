@@ -73,7 +73,7 @@
 #include <oneapi/dpl/iterator>
 #endif
 
-namespace KokkosExt
+namespace ArborX::Details::KokkosExt
 {
 
 template <typename ExecutionSpace, typename Keys, typename Values>
@@ -185,6 +185,6 @@ void sortByKey(Kokkos::Experimental::SYCL const &space, Keys &keys,
 }
 #endif
 
-} // namespace KokkosExt
+} // namespace ArborX::Details::KokkosExt
 
 #endif

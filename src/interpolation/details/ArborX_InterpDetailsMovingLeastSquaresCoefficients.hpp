@@ -36,6 +36,8 @@ movingLeastSquaresCoefficients(ExecutionSpace const &space,
   auto guard =
       Kokkos::Profiling::ScopedRegion("ArborX::MovingLeastSquaresCoefficients");
 
+  namespace KokkosExt = ::ArborX::Details::KokkosExt;
+
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
       "Memory space must be accessible from the execution space");

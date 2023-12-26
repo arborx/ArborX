@@ -36,9 +36,9 @@ struct Box
     for (int d = 0; d < DIM; ++d)
     {
       _min_corner[d] =
-          KokkosExt::ArithmeticTraits::finite_max<Coordinate>::value;
+          Details::KokkosExt::ArithmeticTraits::finite_max<Coordinate>::value;
       _max_corner[d] =
-          KokkosExt::ArithmeticTraits::finite_min<Coordinate>::value;
+          Details::KokkosExt::ArithmeticTraits::finite_min<Coordinate>::value;
     }
   }
 
@@ -68,8 +68,8 @@ struct Box
             std::enable_if_t<GeometryTraits::is_box<OtherBox>{}> * = nullptr>
   KOKKOS_FUNCTION auto &operator+=(OtherBox const &other)
   {
-    using KokkosExt::max;
-    using KokkosExt::min;
+    using Details::KokkosExt::max;
+    using Details::KokkosExt::min;
 
     for (int d = 0; d < DIM; ++d)
     {
@@ -83,8 +83,8 @@ struct Box
             std::enable_if_t<GeometryTraits::is_point<Point>{}> * = nullptr>
   KOKKOS_FUNCTION auto &operator+=(Point const &point)
   {
-    using KokkosExt::max;
-    using KokkosExt::min;
+    using Details::KokkosExt::max;
+    using Details::KokkosExt::min;
 
     for (int d = 0; d < DIM; ++d)
     {

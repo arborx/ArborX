@@ -56,6 +56,7 @@ BOOST_AUTO_TEST_CASE(distance)
 BOOST_AUTO_TEST_CASE(distance_box_box)
 {
   using ArborX::Details::distance;
+  namespace KokkosExt = ArborX::Details::KokkosExt;
 
   constexpr Box unit_box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
 
@@ -90,6 +91,8 @@ BOOST_AUTO_TEST_CASE(distance_box_box)
 BOOST_AUTO_TEST_CASE(distance_sphere_box)
 {
   using ArborX::Details::distance;
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   auto infinity = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
   // unit sphere

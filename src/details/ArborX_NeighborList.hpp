@@ -40,6 +40,7 @@ void findHalfNeighborList(ExecutionSpace const &space,
 {
   Kokkos::Profiling::pushRegion("ArborX::Experimental::HalfNeighborList");
 
+  namespace KokkosExt = ArborX::Details::KokkosExt;
   using Details::HalfTraversal;
 
   using MemorySpace =
@@ -84,6 +85,7 @@ void findFullNeighborList(ExecutionSpace const &space,
 {
   Kokkos::Profiling::pushRegion("ArborX::Experimental::FullNeighborList");
 
+  namespace KokkosExt = ArborX::Details::KokkosExt;
   using Details::HalfTraversal;
 
   using MemorySpace =

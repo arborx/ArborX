@@ -16,7 +16,7 @@
 
 #include <Kokkos_Core.hpp>
 
-namespace KokkosExt
+namespace ArborX::Details::KokkosExt
 {
 
 /** \brief Get a copy of the last element.
@@ -99,6 +99,6 @@ cloneWithoutInitializingNorCopying(ExecutionSpace const &space, View const &v)
                                v);
 }
 
-} // namespace KokkosExt
+} // namespace ArborX::Details::KokkosExt
 
 #endif

@@ -239,6 +239,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 {
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN");
 
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   using Points = Details::AccessValues<Primitives, PrimitivesTag>;
   using MemorySpace = typename Points::memory_space;
 
