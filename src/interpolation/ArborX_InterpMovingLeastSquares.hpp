@@ -32,7 +32,7 @@ namespace ArborX::Interpolation::Details
 
 // This is done to avoid a clash with another predicates access trait
 template <typename TargetAccess>
-struct MLSTargetPointsPredicateWrapper
+struct MLSPredicateWrapper
 {
   TargetAccess target_access;
   int num_neighbors;
@@ -40,7 +40,7 @@ struct MLSTargetPointsPredicateWrapper
 
 // Functor used in the tree query to create the 2D source view and indices
 template <typename SourceView, typename IndicesView, typename CounterView>
-struct SearchNeighborsCallback
+struct MLSSearchNeighborsCallback
 {
   SourceView source_view;
   IndicesView indices;
@@ -67,12 +67,10 @@ namespace ArborX
 {
 
 template <typename TargetAccess>
-struct AccessTraits<
-    Interpolation::Details::MLSTargetPointsPredicateWrapper<TargetAccess>,
-    PredicatesTag>
+struct AccessTraits<Interpolation::Details::MLSPredicateWrapper<TargetAccess>,
+                    PredicatesTag>
 {
-  using Self =
-      Interpolation::Details::MLSTargetPointsPredicateWrapper<TargetAccess>;
+  using Self = Interpolation::Details::MLSPredicateWrapper<TargetAccess>;
 
   KOKKOS_FUNCTION static auto size(Self const &tp)
   {
@@ -233,8 +231,8 @@ private:
         source_tree(space, ArborX::Experimental::attach_indices(source_access));
 
     // Create the predicates
-    Details::MLSTargetPointsPredicateWrapper<TargetAccess> predicates{
-        target_access, _num_neighbors};
+    Details::MLSPredicateWrapper<TargetAccess> predicates{target_access,
+                                                          _num_neighbors};
 
     // Create the callback
     Kokkos::View<SourcePoint **, MemorySpace> source_view(
@@ -247,8 +245,8 @@ private:
         _num_targets, _num_neighbors);
     Kokkos::View<int *, MemorySpace> counter(
         "ArborX::MovingLeastSquares::counter", _num_targets);
-    Details::SearchNeighborsCallback<decltype(source_view), decltype(_indices),
-                                     decltype(counter)>
+    Details::MLSSearchNeighborsCallback<decltype(source_view),
+                                        decltype(_indices), decltype(counter)>
         callback{source_view, _indices, counter};
 
     // Query the source tree
