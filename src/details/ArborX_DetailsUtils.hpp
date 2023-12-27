@@ -167,7 +167,7 @@ template <typename ExecutionSpace, typename ST, typename... SP, typename DT,
                                        Kokkos::View<DT, DP...> const &dst)
 {
   Details::KokkosExt::exclusive_scan(std::forward<ExecutionSpace>(space), src,
-                                     dst);
+                                     dst, 0);
 }
 
 template <typename ExecutionSpace, typename T, typename... P>

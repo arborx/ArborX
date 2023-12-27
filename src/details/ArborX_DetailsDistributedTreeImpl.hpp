@@ -353,7 +353,7 @@ void DistributedTreeImpl<DeviceType>::deviseStrategy(
         }
       });
 
-  KokkosExt::exclusive_scan(space, new_offset, new_offset);
+  KokkosExt::exclusive_scan(space, new_offset, new_offset, 0);
 
   // Truncate results so that queries will only be forwarded to as many local
   // trees as necessary to find k neighbors.
@@ -685,7 +685,7 @@ void DistributedTreeImpl<DeviceType>::countResults(
         Kokkos::atomic_increment(&offset(query_ids(i)));
       });
 
-  KokkosExt::exclusive_scan(space, offset, offset);
+  KokkosExt::exclusive_scan(space, offset, offset, 0);
 }
 
 template <typename DeviceType>
@@ -893,7 +893,7 @@ void DistributedTreeImpl<DeviceType>::filterResults(
         new_offset(q) = min(offset(q + 1) - offset(q), getK(queries(q)));
       });
 
-  KokkosExt::exclusive_scan(space, new_offset, new_offset);
+  KokkosExt::exclusive_scan(space, new_offset, new_offset, 0);
 
   int const n_truncated_results = KokkosExt::lastElement(space, new_offset);
   Kokkos::View<int *, DeviceType> new_indices(

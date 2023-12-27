@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
   ExecutionSpace space;
   KokkosExt::iota(space, permute);
 
-  KokkosExt::exclusive_scan(space, offset, offset);
+  KokkosExt::exclusive_scan(space, offset, offset, 0);
   Kokkos::realloc(indices, KokkosExt::lastElement(space, offset));
   ArborX::Details::CrsGraphWrapperImpl::queryImpl(
       space, Test1{}, predicates, ArborX::Details::DefaultCallback{}, indices,

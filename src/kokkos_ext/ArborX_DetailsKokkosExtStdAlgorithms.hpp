@@ -21,12 +21,11 @@ namespace ArborX::Details::KokkosExt
 {
 
 template <typename ExecutionSpace, typename SrcView, typename DstView,
-          typename InitValueType = typename DstView::value_type>
+          typename InitValueType>
 void exclusive_scan(ExecutionSpace const &space, SrcView const &src,
-                    DstView const &dst, InitValueType init = 0)
+                    DstView const &dst, InitValueType init)
 {
-  static_assert(
-      Kokkos::is_execution_space<std::decay_t<ExecutionSpace>>::value);
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
   static_assert(Kokkos::is_view<SrcView>::value);
   static_assert(Kokkos::is_view<DstView>::value);
   static_assert(
@@ -63,8 +62,7 @@ typename ViewType::non_const_value_type
 reduce(ExecutionSpace const &space, ViewType const &v,
        typename ViewType::non_const_value_type init)
 {
-  static_assert(
-      Kokkos::is_execution_space<std::decay_t<ExecutionSpace>>::value);
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
   static_assert(Kokkos::is_view<ViewType>::value);
   static_assert(is_accessible_from<typename ViewType::memory_space,
                                    ExecutionSpace>::value,
@@ -93,8 +91,7 @@ template <typename ExecutionSpace, typename SrcView, typename DstView>
 void adjacent_difference(ExecutionSpace const &space, SrcView const &src,
                          DstView const &dst)
 {
-  static_assert(
-      Kokkos::is_execution_space<std::decay_t<ExecutionSpace>>::value);
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
   static_assert(Kokkos::is_view<SrcView>::value);
   static_assert(Kokkos::is_view<DstView>::value);
   static_assert(
@@ -133,6 +130,9 @@ void iota(ExecutionSpace const &space, ViewType const &v,
 {
   static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
   static_assert(Kokkos::is_view<ViewType>::value);
+  static_assert(is_accessible_from<typename ViewType::memory_space,
+                                   ExecutionSpace>::value,
+                "View must be accessible from the execution space");
   static_assert(unsigned(ViewType::rank) == unsigned(1),
                 "iota requires a View of rank 1");
 

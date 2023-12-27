@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(exclusive_scan, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::deep_copy(x, x_host);
 
   Kokkos::View<int *, DeviceType> y("y", n);
-  KokkosExt::exclusive_scan(space, x, y);
+  KokkosExt::exclusive_scan(space, x, y, 0);
 
   std::vector<int> y_ref(n);
   std::iota(y_ref.begin(), y_ref.end(), 0);
@@ -78,13 +78,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(exclusive_scan, DeviceType, ARBORX_DEVICE_TYPES)
   BOOST_TEST(y_host == y_ref, tt::per_element());
   BOOST_TEST(x_host == x_ref, tt::per_element());
   // in-place
-  KokkosExt::exclusive_scan(space, x, x);
+  KokkosExt::exclusive_scan(space, x, x, 0);
   Kokkos::deep_copy(x_host, x);
   BOOST_TEST(x_host == y_ref, tt::per_element());
   int const m = 11;
   BOOST_TEST(n != m);
   Kokkos::View<int *, DeviceType> z("z", m);
-  BOOST_CHECK_THROW(KokkosExt::exclusive_scan(space, x, z),
+  BOOST_CHECK_THROW(KokkosExt::exclusive_scan(space, x, z, 0),
                     ArborX::SearchException);
   Kokkos::View<double[3], DeviceType> v("v");
   auto v_host = Kokkos::create_mirror_view(v);
@@ -92,19 +92,19 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(exclusive_scan, DeviceType, ARBORX_DEVICE_TYPES)
   v_host(1) = 1.;
   v_host(2) = 0.;
   Kokkos::deep_copy(v, v_host);
-  KokkosExt::exclusive_scan(space, v, v);
+  KokkosExt::exclusive_scan(space, v, v, 5.);
   Kokkos::deep_copy(v_host, v);
-  std::vector<double> v_ref = {0., 1., 2.};
+  std::vector<double> v_ref = {5., 6., 7.};
   BOOST_TEST(v_host == v_ref, tt::per_element());
   Kokkos::View<double *, DeviceType> w("w", 4);
-  BOOST_CHECK_THROW(KokkosExt::exclusive_scan(space, v, w),
+  BOOST_CHECK_THROW(KokkosExt::exclusive_scan(space, v, w, 0),
                     ArborX::SearchException);
   v_host(0) = 1.;
   v_host(1) = 0.;
   v_host(2) = 0.;
   Kokkos::deep_copy(v, v_host);
   Kokkos::resize(w, 3);
-  KokkosExt::exclusive_scan(space, v, w);
+  KokkosExt::exclusive_scan(space, v, w, 0);
   auto w_host = Kokkos::create_mirror_view(w);
   Kokkos::deep_copy(w_host, w);
   std::vector<double> w_ref = {0., 1., 1.};
