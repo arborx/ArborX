@@ -253,7 +253,7 @@ add_test(NAME ArborX_Test_BoostAdapters COMMAND ArborX_Test_BoostAdapters.exe)
 
 add_executable(ArborX_Test_InterpMovingLeastSquares.exe
   tstInterpDetailsSVD.cpp
-  tstInterpDetailsCRBF.cpp
+  tstInterpDetailsCompactRadialBasisFunction.cpp
   tstInterpDetailsPolyBasis.cpp
   tstInterpDetailsMLSCoefficients.cpp
   tstInterpMovingLeastSquares.cpp
