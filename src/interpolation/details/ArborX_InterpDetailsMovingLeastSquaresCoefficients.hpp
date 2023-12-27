@@ -26,8 +26,9 @@
 namespace ArborX::Interpolation::Details
 {
 
-template <typename CRBFunc, typename PolynomialDegree, typename SourcePoints,
-          typename TargetAccess, typename Coefficients, typename ExecutionSpace>
+template <typename SourcePoints, typename TargetAccess, typename Coefficients,
+          typename ExecutionSpace, typename CRBFunc = CRBF::Wendland<0>,
+          typename PolynomialDegree = PolynomialDegree<2>>
 class MovingLeastSquaresCoefficientsKernel
 {
 private:
@@ -43,15 +44,15 @@ private:
   static constexpr int poly_size = polynomialBasisSize<dimension, degree>();
 
   template <typename T>
-  using UnmanagedView =
+  using ScratchView =
       Kokkos::View<T, ScratchMemorySpace, Kokkos::MemoryUnmanaged>;
 
   using LocalSourcePoints = Kokkos::Subview<SourcePoints, int, Kokkos::ALL_t>;
-  using LocalPhi = UnmanagedView<CoefficientsType *>;
-  using LocalVandermonde = UnmanagedView<CoefficientsType **>;
-  using LocalMoment = UnmanagedView<CoefficientsType **>;
-  using LocalSVDDiag = UnmanagedView<CoefficientsType *>;
-  using LocalSVDUnit = UnmanagedView<CoefficientsType **>;
+  using LocalPhi = ScratchView<CoefficientsType *>;
+  using LocalVandermonde = ScratchView<CoefficientsType **>;
+  using LocalMoment = ScratchView<CoefficientsType **>;
+  using LocalSVDDiag = ScratchView<CoefficientsType *>;
+  using LocalSVDUnit = ScratchView<CoefficientsType **>;
   using LocalCoefficients = Kokkos::Subview<Coefficients, int, Kokkos::ALL_t>;
 
 public:
@@ -78,13 +79,11 @@ public:
   }
 
   template <typename TeamMember>
-  KOKKOS_FUNCTION void operator()(TeamMember member) const
+  KOKKOS_FUNCTION void operator()(TeamMember const &member) const
   {
-    int const rank = member.team_rank();
-    int const size = member.team_size();
     auto const &scratch = member.thread_scratch(0);
 
-    int target = member.league_rank() * size + rank;
+    int target = member.league_rank() * member.team_size() + member.team_rank();
     if (target >= _num_targets)
       return;
 
@@ -108,17 +107,17 @@ public:
 
     // We first change the origin of the evaluation to be at the target point.
     // This lets us use p(0) which is [1 0 ... 0].
-    sourceRecenteringKernel(target_point, source_points);
+    sourceRecentering(target_point, source_points);
 
     // This computes PHI given the source points (radius is computed inside)
-    phiKernel(source_points, phi);
+    phiComputation(source_points, phi);
 
     // This builds the Vandermonde (P) matrix
-    vandermondeKernel(source_points, vandermonde);
+    vandermondeComputation(source_points, vandermonde);
 
     // We then create what is called the moment matrix, which is P^T.PHI.P. By
     // construction, it is symmetric.
-    momentKernel(phi, vandermonde, moment);
+    momentComputation(phi, vandermonde, moment);
 
     // We need the inverse of P^T.PHI.P, and because it is symmetric, we can use
     // the symmetric SVD algorithm to get it.
@@ -126,7 +125,7 @@ public:
     // Now, the moment has [P^T.PHI.P]^-1
 
     // Finally, the result is produced by computing p(0).[P^T.PHI.P]^-1.P^T.PHI
-    coefficientsKernel(phi, vandermonde, moment, coefficients);
+    coefficientsComputation(phi, vandermonde, moment, coefficients);
   }
 
   Kokkos::TeamPolicy<ExecutionSpace>
@@ -143,9 +142,8 @@ public:
 
 private:
   // Recenters the source points so that the target is at the origin
-  KOKKOS_FUNCTION void
-  sourceRecenteringKernel(TargetPoint const &target_point,
-                          LocalSourcePoints &source_points) const
+  KOKKOS_FUNCTION void sourceRecentering(TargetPoint const &target_point,
+                                         LocalSourcePoints &source_points) const
   {
     for (int neighbor = 0; neighbor < _num_neighbors; neighbor++)
       for (int k = 0; k < dimension; k++)
@@ -153,8 +151,8 @@ private:
   }
 
   // Computes the weight matrix
-  KOKKOS_FUNCTION void phiKernel(LocalSourcePoints const &source_points,
-                                 LocalPhi &phi) const
+  KOKKOS_FUNCTION void phiComputation(LocalSourcePoints const &source_points,
+                                      LocalPhi &phi) const
   {
     CoefficientsType radius = Kokkos::Experimental::epsilon_v<CoefficientsType>;
     for (int neighbor = 0; neighbor < _num_neighbors; neighbor++)
@@ -172,8 +170,9 @@ private:
   }
 
   // Computes the vandermonde matrix
-  KOKKOS_FUNCTION void vandermondeKernel(LocalSourcePoints const &source_points,
-                                         LocalVandermonde &vandermonde) const
+  KOKKOS_FUNCTION void
+  vandermondeComputation(LocalSourcePoints const &source_points,
+                         LocalVandermonde &vandermonde) const
   {
     for (int neighbor = 0; neighbor < _num_neighbors; neighbor++)
     {
@@ -184,9 +183,9 @@ private:
   }
 
   // Computes the moment matrix
-  KOKKOS_FUNCTION void momentKernel(LocalPhi const &phi,
-                                    LocalVandermonde const &vandermonde,
-                                    LocalMoment &moment) const
+  KOKKOS_FUNCTION void momentComputation(LocalPhi const &phi,
+                                         LocalVandermonde const &vandermonde,
+                                         LocalMoment &moment) const
   {
     for (int i = 0; i < poly_size; i++)
       for (int j = 0; j < poly_size; j++)
@@ -199,10 +198,9 @@ private:
   }
 
   // Computes the coefficients
-  KOKKOS_FUNCTION void coefficientsKernel(LocalPhi const &phi,
-                                          LocalVandermonde const &vandermonde,
-                                          LocalMoment const &moment,
-                                          LocalCoefficients &coefficients) const
+  KOKKOS_FUNCTION void coefficientsComputation(
+      LocalPhi const &phi, LocalVandermonde const &vandermonde,
+      LocalMoment const &moment, LocalCoefficients &coefficients) const
   {
     for (int neighbor = 0; neighbor < _num_neighbors; neighbor++)
     {
@@ -265,7 +263,7 @@ auto movingLeastSquaresCoefficients(ExecutionSpace const &space,
                 "target and source points must have the same dimension");
 
   // The number of source groups must be correct
-  KOKKOS_ASSERT(target_access.size() == source_points.extent_int(0));
+  KOKKOS_ASSERT(std::size_t{target_access.size()} == source_points.extent(0));
 
   Kokkos::View<CoefficientsType **, MemorySpace> coefficients(
       Kokkos::view_alloc(
@@ -273,9 +271,9 @@ auto movingLeastSquaresCoefficients(ExecutionSpace const &space,
           "ArborX::MovingLeastSquaresCoefficients::coefficients"),
       source_points.extent_int(0), source_points.extent_int(1));
 
-  MovingLeastSquaresCoefficientsKernel<CRBFunc, PolynomialDegree, SourcePoints,
-                                       TargetAccess, decltype(coefficients),
-                                       ExecutionSpace>
+  MovingLeastSquaresCoefficientsKernel<SourcePoints, TargetAccess,
+                                       decltype(coefficients), ExecutionSpace,
+                                       CRBFunc, PolynomialDegree>
       kernel(space, target_access, source_points, coefficients);
 
   Kokkos::parallel_for("ArborX::MovingLeastSquaresCoefficients::kernel",
