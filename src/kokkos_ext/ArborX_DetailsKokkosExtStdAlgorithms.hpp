@@ -12,6 +12,7 @@
 #ifndef ARBORX_DETAILS_KOKKOS_EXT_STD_ALGORITHMS_HPP
 #define ARBORX_DETAILS_KOKKOS_EXT_STD_ALGORITHMS_HPP
 
+#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -44,41 +45,51 @@ private:
   Kokkos::View<T *, DeviceType> _out;
 };
 
-template <typename ExecutionSpace, typename ST, typename... SP, typename DT,
-          typename... DP>
-void exclusive_scan(ExecutionSpace &&space, Kokkos::View<ST, SP...> const &src,
-                    Kokkos::View<DT, DP...> const &dst)
+template <typename ExecutionSpace, typename SrcView, typename DstView>
+void exclusive_scan(ExecutionSpace const &space, SrcView const &src,
+                    DstView const &dst)
 {
   static_assert(
-      std::is_same<
-          typename Kokkos::ViewTraits<DT, DP...>::value_type,
-          typename Kokkos::ViewTraits<DT, DP...>::non_const_value_type>::value,
-      "exclusivePrefixSum requires non-const destination type");
-
+      Kokkos::is_execution_space<std::decay_t<ExecutionSpace>>::value);
+  static_assert(Kokkos::is_view<SrcView>::value);
+  static_assert(Kokkos::is_view<DstView>::value);
   static_assert(
-      (unsigned(Kokkos::ViewTraits<DT, DP...>::rank) ==
-       unsigned(Kokkos::ViewTraits<ST, SP...>::rank)) &&
-          (unsigned(Kokkos::ViewTraits<DT, DP...>::rank) == unsigned(1)),
-      "exclusivePrefixSum requires Views of rank 1");
+      is_accessible_from<typename SrcView::memory_space, ExecutionSpace>::value,
+      "Source view must be accessible from the execution space");
+  static_assert(
+      is_accessible_from<typename DstView::memory_space, ExecutionSpace>::value,
+      "Destination view must be accessible from the execution "
+      "space");
+  static_assert(std::is_same<typename SrcView::value_type,
+                             typename DstView::non_const_value_type>::value,
+                "exclusive_scan requires non-const destination type");
+  static_assert(unsigned(DstView::rank) == unsigned(SrcView::rank) &&
+                    unsigned(DstView::rank) == unsigned(1),
+                "exclusive_scan requires Views of rank 1");
 
-  using ValueType = typename Kokkos::ViewTraits<DT, DP...>::value_type;
-  using DeviceType = typename Kokkos::ViewTraits<DT, DP...>::device_type;
+  using ValueType = typename DstView::value_type;
+  using DeviceType = typename DstView::device_type;
 
   auto const n = src.extent(0);
   ARBORX_ASSERT(n == dst.extent(0));
-  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
-      std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_scan("ArborX::Algorithms::exclusive_scan", policy,
+  Kokkos::parallel_scan("ArborX::Algorithms::exclusive_scan",
+                        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
                         ExclusiveScanFunctor<ValueType, DeviceType>(src, dst));
 }
 
 template <typename ExecutionSpace, typename ViewType>
 typename ViewType::non_const_value_type
-reduce(ExecutionSpace &&space, ViewType const &v,
+reduce(ExecutionSpace const &space, ViewType const &v,
        typename ViewType::non_const_value_type init)
 {
+  static_assert(
+      Kokkos::is_execution_space<std::decay_t<ExecutionSpace>>::value);
+  static_assert(Kokkos::is_view<ViewType>::value);
+  static_assert(is_accessible_from<typename ViewType::memory_space,
+                                   ExecutionSpace>::value,
+                "Source view must be accessible from the execution space");
   static_assert(ViewType::rank == 1, "accumulate requires a View of rank 1");
-  auto const n = v.extent(0);
+
   // NOTE: Passing the argument init directly to the parallel_reduce() while
   // using a lambda does not yield the expected result because Kokkos will
   // supply a default init method that sets the reduction result to zero.
@@ -86,10 +97,9 @@ reduce(ExecutionSpace &&space, ViewType const &v,
   // the reduction, introduce here a temporary variable and add it to init
   // before returning.
   typename ViewType::non_const_value_type tmp;
-  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
-      std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_reduce(
-      "ArborX::Algorithms::accumulate", policy,
+      "ArborX::Algorithms::accumulate",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, v.extent(0)),
       KOKKOS_LAMBDA(int i, typename ViewType::non_const_value_type &update) {
         update += v(i);
       },
@@ -98,27 +108,37 @@ reduce(ExecutionSpace &&space, ViewType const &v,
   return init;
 }
 
-template <typename ExecutionSpace, typename SrcViewType, typename DstViewType>
-void adjacent_difference(ExecutionSpace &&space, SrcViewType const &src,
-                         DstViewType const &dst)
+template <typename ExecutionSpace, typename SrcView, typename DstView>
+void adjacent_difference(ExecutionSpace const &space, SrcView const &src,
+                         DstView const &dst)
 {
-  static_assert(SrcViewType::rank == 1 && DstViewType::rank == 1,
-                "adjacentDifference operates on rank-1 views");
-  static_assert(std::is_same<typename DstViewType::value_type,
-                             typename DstViewType::non_const_value_type>::value,
-                "adjacentDifference requires non-const destination value type");
-  static_assert(std::is_same<typename SrcViewType::non_const_value_type,
-                             typename DstViewType::value_type>::value,
-                "adjacentDifference requires same value type for source and "
+  static_assert(
+      Kokkos::is_execution_space<std::decay_t<ExecutionSpace>>::value);
+  static_assert(Kokkos::is_view<SrcView>::value);
+  static_assert(Kokkos::is_view<DstView>::value);
+  static_assert(
+      is_accessible_from<typename SrcView::memory_space, ExecutionSpace>::value,
+      "Source view must be accessible from the execution space");
+  static_assert(
+      is_accessible_from<typename DstView::memory_space, ExecutionSpace>::value,
+      "Destination view must be accessible from the execution space");
+  static_assert(SrcView::rank == 1 && DstView::rank == 1,
+                "adjacent_difference operates on rank-1 views");
+  static_assert(
+      std::is_same<typename DstView::value_type,
+                   typename DstView::non_const_value_type>::value,
+      "adjacent_difference requires non-const destination value type");
+  static_assert(std::is_same<typename SrcView::non_const_value_type,
+                             typename DstView::value_type>::value,
+                "adjacent_difference requires same value type for source and "
                 "destination");
-  // QUESTION Should we assert anything about the memory spaces?
+
   auto const n = src.extent(0);
   ARBORX_ASSERT(n == dst.extent(0));
   ARBORX_ASSERT(src != dst);
-  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
-      std::forward<ExecutionSpace>(space), 0, n);
   Kokkos::parallel_for(
-      "ArborX::Algorithms::adjacent_difference", policy, KOKKOS_LAMBDA(int i) {
+      "ArborX::Algorithms::adjacent_difference",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
         if (i > 0)
           dst(i) = src(i) - src(i - 1);
         else
@@ -126,24 +146,25 @@ void adjacent_difference(ExecutionSpace &&space, SrcViewType const &src,
       });
 }
 
-template <typename ExecutionSpace, typename T, typename... P>
-void iota(ExecutionSpace &&space, Kokkos::View<T, P...> const &v,
-          typename Kokkos::ViewTraits<T, P...>::value_type value = 0)
+template <typename ExecutionSpace, typename ViewType>
+void iota(ExecutionSpace const &space, ViewType const &v,
+          typename ViewType::value_type value = 0)
 {
-  using ValueType = typename Kokkos::ViewTraits<T, P...>::value_type;
-  static_assert(unsigned(Kokkos::ViewTraits<T, P...>::rank) == unsigned(1),
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
+  static_assert(Kokkos::is_view<ViewType>::value);
+  static_assert(unsigned(ViewType::rank) == unsigned(1),
                 "iota requires a View of rank 1");
+
+  using ValueType = typename ViewType::value_type;
   static_assert(std::is_arithmetic<ValueType>::value,
                 "iota requires a View with an arithmetic value type");
   static_assert(
-      std::is_same<ValueType, typename Kokkos::ViewTraits<
-                                  T, P...>::non_const_value_type>::value,
+      std::is_same<ValueType, typename ViewType::non_const_value_type>::value,
       "iota requires a View with non-const value type");
-  auto const n = v.extent(0);
-  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
-      std::forward<ExecutionSpace>(space), 0, n);
+
   Kokkos::parallel_for(
-      "ArborX::Algorithms::iota", policy,
+      "ArborX::Algorithms::iota",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, v.extent(0)),
       KOKKOS_LAMBDA(int i) { v(i) = value + (ValueType)i; });
 }
 
