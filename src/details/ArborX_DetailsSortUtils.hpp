@@ -12,7 +12,6 @@
 #ifndef ARBORX_DETAILS_SORT_UTILS_HPP
 #define ARBORX_DETAILS_SORT_UTILS_HPP
 
-#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp> // is_accessible_from
 #include <ArborX_DetailsKokkosExtSort.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp> // iota
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>   // clone

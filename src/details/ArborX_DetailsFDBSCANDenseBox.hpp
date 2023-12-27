@@ -17,7 +17,6 @@
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsUnionFind.hpp>
-#include <ArborX_DetailsUtils.hpp>
 #include <ArborX_Predicates.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -143,7 +142,7 @@ struct FDBSCANDenseBoxCallback
       // Skip the dense box if they were already merged together
       if (_union_find.representative(i) ==
           _union_find.representative(_permute(cell_start)))
-        return ArborX::CallbackTreeTraversalControl::normal_continuation;
+        return CallbackTreeTraversalControl::normal_continuation;
 
       auto const &query_point = _primitives(i);
 
@@ -180,7 +179,7 @@ struct FDBSCANDenseBoxCallback
         _union_find.merge_into(j, i);
     }
 
-    return ArborX::CallbackTreeTraversalControl::normal_continuation;
+    return CallbackTreeTraversalControl::normal_continuation;
   }
 };
 

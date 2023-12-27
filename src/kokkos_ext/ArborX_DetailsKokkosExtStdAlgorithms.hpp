@@ -19,7 +19,7 @@
 namespace ArborX::Details::KokkosExt
 {
 
-// NOTE: This functor is used in exclusivePrefixSum( src, dst ).  We were
+// NOTE: This functor is used in exclusive_scan( src, dst ).  We were
 // getting a compile error on CUDA when using a KOKKOS_LAMBDA.
 template <typename T, typename DeviceType>
 class ExclusiveScanFunctor

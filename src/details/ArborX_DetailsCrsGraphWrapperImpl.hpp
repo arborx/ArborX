@@ -15,6 +15,7 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_Callbacks.hpp>
 #include <ArborX_DetailsBatchedQueries.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsPermutedData.hpp>
 #include <ArborX_HyperBox.hpp>

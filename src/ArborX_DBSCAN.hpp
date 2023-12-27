@@ -17,6 +17,8 @@
 #include <ArborX_DetailsFDBSCAN.hpp>
 #include <ArborX_DetailsFDBSCANDenseBox.hpp>
 #include <ArborX_DetailsHalfTraversal.hpp>
+#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_HyperSphere.hpp>

@@ -13,7 +13,6 @@
 #define ARBORX_DETAILS_DENDROGRAM_HPP
 
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp> // iota
-#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsUnionFind.hpp>
 
 #include <Kokkos_Core.hpp>

@@ -14,11 +14,11 @@
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_DetailsStack.hpp>
-#include <ArborX_DetailsUtils.hpp>
 #include <ArborX_Exception.hpp>
 #include <ArborX_Predicates.hpp>
 

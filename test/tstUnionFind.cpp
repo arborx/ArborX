@@ -10,6 +10,7 @@
  ****************************************************************************/
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsUnionFind.hpp>
 #include <ArborX_DetailsUtils.hpp> // iota
 
