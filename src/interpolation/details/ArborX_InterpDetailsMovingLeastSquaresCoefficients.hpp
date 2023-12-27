@@ -265,8 +265,7 @@ auto movingLeastSquaresCoefficients(ExecutionSpace const &space,
                 "target and source points must have the same dimension");
 
   // The number of source groups must be correct
-  KOKKOS_ASSERT(TargetAccess{target_points}.size() ==
-                source_points.extent_int(0));
+  KOKKOS_ASSERT(target_access.size() == source_points.extent_int(0));
 
   Kokkos::View<CoefficientsType **, MemorySpace> coefficients(
       Kokkos::view_alloc(
