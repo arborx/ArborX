@@ -72,14 +72,6 @@ void exclusive_scan(ExecutionSpace &&space, Kokkos::View<ST, SP...> const &src,
                         ExclusiveScanFunctor<ValueType, DeviceType>(src, dst));
 }
 
-template <typename ExecutionSpace, typename T, typename... P>
-inline std::enable_if_t<
-    Kokkos::is_execution_space<std::remove_reference_t<ExecutionSpace>>::value>
-exclusive_scan(ExecutionSpace &&space, Kokkos::View<T, P...> const &v)
-{
-  exclusive_scan(std::forward<ExecutionSpace>(space), v, v);
-}
-
 template <typename ExecutionSpace, typename ViewType>
 typename ViewType::non_const_value_type
 reduce(ExecutionSpace &&space, ViewType const &v,

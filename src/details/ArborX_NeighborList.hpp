@@ -57,7 +57,7 @@ void findHalfNeighborList(ExecutionSpace const &space,
       space, bvh,
       KOKKOS_LAMBDA(int, int j) { Kokkos::atomic_increment(&offsets(j)); },
       NeighborListPredicateGetter{radius});
-  KokkosExt::exclusive_scan(space, offsets);
+  KokkosExt::exclusive_scan(space, offsets, offsets);
   KokkosExt::reallocWithoutInitializing(space, indices,
                                         KokkosExt::lastElement(space, offsets));
 
@@ -105,7 +105,7 @@ void findFullNeighborList(ExecutionSpace const &space,
         Kokkos::atomic_increment(&offsets(j));
       },
       NeighborListPredicateGetter{radius});
-  KokkosExt::exclusive_scan(space, offsets);
+  KokkosExt::exclusive_scan(space, offsets, offsets);
   KokkosExt::reallocWithoutInitializing(space, indices,
                                         KokkosExt::lastElement(space, offsets));
 

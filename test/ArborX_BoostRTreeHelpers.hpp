@@ -201,7 +201,7 @@ performQueries(RTree<Indexable> const &rtree, InputView const &queries)
                             std::back_inserter(returned_values));
   using ExecutionSpace = typename InputView::execution_space;
   ExecutionSpace space;
-  KokkosExt::exclusive_scan(space, offset);
+  KokkosExt::exclusive_scan(space, offset, offset);
   auto const n_results = KokkosExt::lastElement(space, offset);
   OutputView indices("indices", n_results);
   for (int i = 0; i < n_queries; ++i)
@@ -230,7 +230,7 @@ performQueries(ParallelRTree<Indexable> const &rtree, InputView const &queries)
                             std::back_inserter(returned_values));
   using ExecutionSpace = typename InputView::execution_space;
   ExecutionSpace space;
-  KokkosExt::exclusive_scan(space, offset);
+  KokkosExt::exclusive_scan(space, offset, offset);
   auto const n_results = KokkosExt::lastElement(space, offset);
   OutputView1 values("values", n_results);
   for (int i = 0; i < n_queries; ++i)
