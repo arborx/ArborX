@@ -10,9 +10,8 @@
  ****************************************************************************/
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
-#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp> // iota
 #include <ArborX_DetailsUnionFind.hpp>
-#include <ArborX_DetailsUtils.hpp> // iota
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
