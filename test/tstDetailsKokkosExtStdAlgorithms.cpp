@@ -92,6 +92,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(exclusive_scan, DeviceType, ARBORX_DEVICE_TYPES)
   v_host(1) = 1.;
   v_host(2) = 0.;
   Kokkos::deep_copy(v, v_host);
+  // in-place with init value
   KokkosExt::exclusive_scan(space, v, v, 5.);
   Kokkos::deep_copy(v_host, v);
   std::vector<double> v_ref = {5., 6., 7.};

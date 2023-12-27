@@ -11,8 +11,8 @@
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
-#include <ArborX_DetailsCrsGraphWrapperImpl.hpp> // exclusive_scan
-#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
+#include <ArborX_DetailsCrsGraphWrapperImpl.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp> // exclusive_scan
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_Predicates.hpp>
 #include <ArborX_TraversalPolicy.hpp>
