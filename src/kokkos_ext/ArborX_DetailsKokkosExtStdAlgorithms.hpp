@@ -20,34 +20,10 @@
 namespace ArborX::Details::KokkosExt
 {
 
-// NOTE: This functor is used in exclusive_scan( src, dst ).  We were
-// getting a compile error on CUDA when using a KOKKOS_LAMBDA.
-template <typename T, typename DeviceType>
-class ExclusiveScanFunctor
-{
-public:
-  ExclusiveScanFunctor(Kokkos::View<T *, DeviceType> const &in,
-                       Kokkos::View<T *, DeviceType> const &out)
-      : _in(in)
-      , _out(out)
-  {}
-  KOKKOS_INLINE_FUNCTION void operator()(int i, T &update,
-                                         bool final_pass) const
-  {
-    T const in_i = _in(i);
-    if (final_pass)
-      _out(i) = update;
-    update += in_i;
-  }
-
-private:
-  Kokkos::View<T *, DeviceType> _in;
-  Kokkos::View<T *, DeviceType> _out;
-};
-
-template <typename ExecutionSpace, typename SrcView, typename DstView>
+template <typename ExecutionSpace, typename SrcView, typename DstView,
+          typename InitValueType = typename DstView::value_type>
 void exclusive_scan(ExecutionSpace const &space, SrcView const &src,
-                    DstView const &dst)
+                    DstView const &dst, InitValueType init = 0)
 {
   static_assert(
       Kokkos::is_execution_space<std::decay_t<ExecutionSpace>>::value);
@@ -68,13 +44,18 @@ void exclusive_scan(ExecutionSpace const &space, SrcView const &src,
                 "exclusive_scan requires Views of rank 1");
 
   using ValueType = typename DstView::value_type;
-  using DeviceType = typename DstView::device_type;
 
   auto const n = src.extent(0);
   ARBORX_ASSERT(n == dst.extent(0));
-  Kokkos::parallel_scan("ArborX::Algorithms::exclusive_scan",
-                        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-                        ExclusiveScanFunctor<ValueType, DeviceType>(src, dst));
+  Kokkos::parallel_scan(
+      "ArborX::Algorithms::exclusive_scan",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+      KOKKOS_LAMBDA(int i, ValueType &update, bool final_pass) {
+        auto const tmp = src(i);
+        if (final_pass)
+          dst(i) = update + init;
+        update += tmp;
+      });
 }
 
 template <typename ExecutionSpace, typename ViewType>
