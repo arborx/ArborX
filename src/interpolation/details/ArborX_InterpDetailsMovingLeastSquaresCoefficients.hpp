@@ -67,17 +67,6 @@ public:
       , _num_neighbors(source_points.extent_int(1))
   {}
 
-  std::size_t team_shmem_size(int const team_size) const
-  {
-    std::size_t val = 0;
-    val += LocalPhi::shmem_size(_num_neighbors);
-    val += LocalVandermonde::shmem_size(_num_neighbors, poly_size);
-    val += LocalMoment::shmem_size(poly_size, poly_size);
-    val += LocalSVDDiag::shmem_size(poly_size);
-    val += LocalSVDUnit::shmem_size(poly_size, poly_size);
-    return team_size * val;
-  }
-
   template <typename TeamMember>
   KOKKOS_FUNCTION void operator()(TeamMember const &member) const
   {
@@ -129,18 +118,29 @@ public:
   }
 
   Kokkos::TeamPolicy<ExecutionSpace>
-  make_policy(ExecutionSpace const &space) const
+  makePolicy(ExecutionSpace const &space) const
   {
-    Kokkos::TeamPolicy<ExecutionSpace> policy(space, 1, Kokkos::AUTO);
-    int team_rec =
-        policy.team_size_recommended(*this, Kokkos::ParallelForTag{});
-    int mod = _num_targets % team_rec;
-    int div = (_num_targets - mod) / team_rec;
-    int league_rec = div + ((mod == 0) ? 0 : 1);
-    return Kokkos::TeamPolicy<ExecutionSpace>(space, league_rec, team_rec);
+    Kokkos::TeamPolicy<ExecutionSpace> dummy_policy(space, 1, Kokkos::AUTO);
+    dummy_policy.set_scratch_size(0, Kokkos::PerThread(perTargetMem()));
+    int team_size =
+        dummy_policy.team_size_recommended(*this, Kokkos::ParallelForTag{});
+    int league_size = (_num_targets + team_size - 1) / team_size;
+    return Kokkos::TeamPolicy<ExecutionSpace>(space, league_size, team_size)
+        .set_scratch_size(0, Kokkos::PerThread(perTargetMem()));
   }
 
 private:
+  std::size_t perTargetMem() const
+  {
+    std::size_t val = 0;
+    val += LocalPhi::shmem_size(_num_neighbors);
+    val += LocalVandermonde::shmem_size(_num_neighbors, poly_size);
+    val += LocalMoment::shmem_size(poly_size, poly_size);
+    val += LocalSVDDiag::shmem_size(poly_size);
+    val += LocalSVDUnit::shmem_size(poly_size, poly_size);
+    return val;
+  }
+
   // Recenters the source points so that the target is at the origin
   KOKKOS_FUNCTION void sourceRecentering(TargetPoint const &target_point,
                                          LocalSourcePoints &source_points) const
@@ -277,7 +277,7 @@ auto movingLeastSquaresCoefficients(ExecutionSpace const &space,
       kernel(space, target_access, source_points, coefficients);
 
   Kokkos::parallel_for("ArborX::MovingLeastSquaresCoefficients::kernel",
-                       kernel.make_policy(space), kernel);
+                       kernel.makePolicy(space), kernel);
 
   return coefficients;
 }
