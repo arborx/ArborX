@@ -27,6 +27,9 @@ minmax_reduce(ExecutionSpace const &space, ViewType const &v)
 {
   static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
   static_assert(Kokkos::is_view<ViewType>::value);
+  static_assert(is_accessible_from<typename ViewType::memory_space,
+                                   ExecutionSpace>::value,
+                "View must be accessible from the execution space");
   static_assert(ViewType::rank == 1, "minmax_reduce requires a View of rank 1");
 
   auto const n = v.extent(0);
@@ -39,15 +42,15 @@ minmax_reduce(ExecutionSpace const &space, ViewType const &v)
   Kokkos::parallel_reduce(
       "ArborX::Algorithms::minmax",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-      KOKKOS_LAMBDA(int i, ValueType &local_min, ValueType &local_max) {
+      KOKKOS_LAMBDA(int i, ValueType &partial_min, ValueType &partial_max) {
         auto const &val = v(i);
-        if (val < local_min)
+        if (val < partial_min)
         {
-          local_min = val;
+          partial_min = val;
         }
-        if (local_max < val)
+        if (partial_max < val)
         {
-          local_max = val;
+          partial_max = val;
         }
       },
       Kokkos::Min<ValueType>(min_val), Kokkos::Max<ValueType>(max_val));
@@ -60,6 +63,9 @@ typename ViewType::non_const_value_type min_reduce(ExecutionSpace const &space,
 {
   static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
   static_assert(Kokkos::is_view<ViewType>::value);
+  static_assert(is_accessible_from<typename ViewType::memory_space,
+                                   ExecutionSpace>::value,
+                "View must be accessible from the execution space");
   static_assert(ViewType::rank == 1, "min_reduce requires a View of rank 1");
 
   auto const n = v.extent(0);
@@ -85,6 +91,9 @@ typename ViewType::non_const_value_type max_reduce(ExecutionSpace const &space,
 {
   static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
   static_assert(Kokkos::is_view<ViewType>::value);
+  static_assert(is_accessible_from<typename ViewType::memory_space,
+                                   ExecutionSpace>::value,
+                "View must be accessible from the execution space");
   static_assert(ViewType::rank == 1, "max_reduce requires a View of rank 1");
 
   auto const n = v.extent(0);
