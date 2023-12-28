@@ -157,7 +157,7 @@ private:
     CoefficientsType radius = Kokkos::Experimental::epsilon_v<CoefficientsType>;
     for (int neighbor = 0; neighbor < _num_neighbors; neighbor++)
     {
-      auto const norm =
+      CoefficientsType const norm =
           ArborX::Details::distance(source_points(neighbor), SourcePoint{});
       radius = Kokkos::max(radius, norm);
     }
