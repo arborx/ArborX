@@ -64,17 +64,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(minmax_reduce, DeviceType, ARBORX_DEVICE_TYPES)
   u_host(1, 1) = 5; // y
   u_host(1, 2) = 6; // Z
   Kokkos::deep_copy(u, u_host);
-#if 0
-    // FIXME might be an issue with CUDA
-    auto const minmax_x =
-        KokkosExt::minmax_reduce( Kokkos::subview( u, Kokkos::ALL, 0 ) );
-    BOOST_TEST( std::get<0>( minmax_x ) == 1 );
-    BOOST_TEST( std::get<1>( minmax_x ) == 4 );
-    auto const minmax_y =
-        KokkosExt::minmax_reduce( Kokkos::subview( u, Kokkos::ALL, 1 ) );
-    BOOST_TEST( std::get<0>( minmax_y ) == 2 );
-    BOOST_TEST( std::get<1>( minmax_y ) == 5 );
-#endif
+  auto const minmax_x =
+      KokkosExt::minmax_reduce(space, Kokkos::subview(u, Kokkos::ALL, 0));
+  BOOST_TEST(std::get<0>(minmax_x) == 1);
+  BOOST_TEST(std::get<1>(minmax_x) == 4);
+  auto const minmax_y =
+      KokkosExt::minmax_reduce(space, Kokkos::subview(u, Kokkos::ALL, 1));
+  BOOST_TEST(std::get<0>(minmax_y) == 2);
+  BOOST_TEST(std::get<1>(minmax_y) == 5);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(min_and_max, DeviceType, ARBORX_DEVICE_TYPES)
