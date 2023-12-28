@@ -102,19 +102,6 @@ using AccessTraitsGetArchetypeExpression =
 template <typename P>
 using PredicateTagArchetypeAlias = typename P::Tag;
 
-template <typename Access>
-struct AccessTraitsHelper;
-
-template <typename X, typename Tag>
-struct AccessTraitsHelper<AccessTraits<X, Tag>>
-{
-  // Deduce return type of get()
-  using type =
-      std::decay_t<Kokkos::detected_t<AccessTraitsGetArchetypeExpression,
-                                      AccessTraits<X, Tag>, X>>;
-  using tag = Kokkos::detected_t<PredicateTagArchetypeAlias, type>;
-};
-
 template <typename Predicates>
 void check_valid_access_traits(PredicatesTag, Predicates const &)
 {
@@ -148,7 +135,10 @@ void check_valid_access_traits(PredicatesTag, Predicates const &)
       "AccessTraits<Predicates,PredicatesTag> must define 'get()' static "
       "member function");
 
-  using Tag = typename AccessTraitsHelper<Access>::tag;
+  using Predicate =
+      std::decay_t<Kokkos::detected_t<AccessTraitsGetArchetypeExpression,
+                                      Access, Predicates>>;
+  using Tag = Kokkos::detected_t<PredicateTagArchetypeAlias, Predicate>;
   static_assert(is_valid_predicate_tag<Tag>::value,
                 "Invalid tag for the predicates");
 }

@@ -39,8 +39,8 @@ public:
   KOKKOS_FUNCTION
   auto operator()(size_type i) const
   {
-    if constexpr (std::is_same_v<BoundingVolume,
-                                 typename AccessTraitsHelper<Access>::type>)
+    using Primitive = std::decay_t<decltype(Access::get(_primitives, i))>;
+    if constexpr (std::is_same_v<BoundingVolume, Primitive>)
     {
       return value_type{Access::get(_primitives, i), (index_type)i};
     }
