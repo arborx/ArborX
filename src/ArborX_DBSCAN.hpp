@@ -17,6 +17,8 @@
 #include <ArborX_DetailsFDBSCAN.hpp>
 #include <ArborX_DetailsFDBSCANDenseBox.hpp>
 #include <ArborX_DetailsHalfTraversal.hpp>
+#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_HyperSphere.hpp>
@@ -288,7 +290,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     // water mark
     Kokkos::resize(Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing),
                    labels, n);
-    ArborX::iota(exec_space, labels);
+    KokkosExt::iota(exec_space, labels);
 
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters");
     if (is_special_case)
@@ -404,7 +406,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
     Kokkos::resize(Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing),
                    labels, n);
-    ArborX::iota(exec_space, labels);
+    KokkosExt::iota(exec_space, labels);
 
     Details::unionFindWithinEachDenseCell(exec_space, dense_sorted_cell_indices,
                                           permute, UnionFind{labels});

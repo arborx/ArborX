@@ -10,8 +10,8 @@
  ****************************************************************************/
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp> // iota
 #include <ArborX_DetailsUnionFind.hpp>
-#include <ArborX_DetailsUtils.hpp> // iota
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(union_find, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::View<int *, MemorySpace> labels(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing, "Test::labels"),
       n);
-  ArborX::iota(space, labels);
+  ArborX::Details::KokkosExt::iota(space, labels);
   UnionFind union_find(labels);
 
   ARBORX_TEST_UNION_FIND_REPRESENTATIVES(space, union_find,

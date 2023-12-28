@@ -11,6 +11,7 @@
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsAlgorithms.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_DetailsMortonCode.hpp> // expandBits, morton32
 #include <ArborX_DetailsNode.hpp>       // ROPE SENTINEL
@@ -165,7 +166,7 @@ void generateHierarchy(Primitives primitives, MortonCodes sorted_morton_codes,
 
   Kokkos::View<unsigned int *, DeviceType> permutation_indices(
       "Testing::indices", n);
-  ArborX::iota(space, permutation_indices);
+  ArborX::Details::KokkosExt::iota(space, permutation_indices);
 
   using BoundingVolume =
       typename InternalNodes::value_type::bounding_volume_type;

@@ -15,7 +15,8 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsDistributedTreeImpl.hpp>
-#include <ArborX_DetailsUtils.hpp> // accumulate
+#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_LinearBVH.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -209,7 +210,7 @@ DistributedTree<MemorySpace>::DistributedTree(MPI_Comm comm,
                 sizeof(size_type), MPI_BYTE, getComm());
   Kokkos::deep_copy(space, _bottom_tree_sizes, bottom_tree_sizes_host);
 
-  _top_tree_size = accumulate(space, _bottom_tree_sizes, 0);
+  _top_tree_size = Details::KokkosExt::reduce(space, _bottom_tree_sizes, 0);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::popRegion();

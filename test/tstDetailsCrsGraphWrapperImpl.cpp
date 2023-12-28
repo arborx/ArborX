@@ -12,6 +12,8 @@
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsCrsGraphWrapperImpl.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp> // exclusive_scan
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_Predicates.hpp>
 #include <ArborX_TraversalPolicy.hpp>
 
@@ -48,6 +50,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
 
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   Kokkos::View<int *, DeviceType> offset("offset", 0);
   Kokkos::View<int *, DeviceType> indices("indices", 0);
 
@@ -67,11 +71,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::View<unsigned int *, DeviceType> permute(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::permute"), n);
   ExecutionSpace space;
-  ArborX::iota(space, permute);
+  KokkosExt::iota(space, permute);
 
-  ArborX::exclusivePrefixSum(space, offset);
-  Kokkos::realloc(indices,
-                  ArborX::Details::KokkosExt::lastElement(space, offset));
+  KokkosExt::exclusive_scan(space, offset, offset, 0);
+  Kokkos::realloc(indices, KokkosExt::lastElement(space, offset));
   ArborX::Details::CrsGraphWrapperImpl::queryImpl(
       space, Test1{}, predicates, ArborX::Details::DefaultCallback{}, indices,
       offset, permute, ArborX::Details::BufferStatus::PreallocationHard);

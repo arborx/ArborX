@@ -10,6 +10,8 @@
  ****************************************************************************/
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_LinearBVH.hpp>
 
 #include <boost/test/unit_test.hpp>
@@ -28,6 +30,8 @@ namespace tt = boost::test_tools;
 BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   using ExecutionSpace = typename DeviceType::execution_space;
 
   auto const bvh = make<ArborX::BVH<typename DeviceType::memory_space>>(
@@ -66,9 +70,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
   checkResultsAreFine();
 
   // compute number of results per query
-  auto counts = ArborX::Details::KokkosExt::cloneWithoutInitializingNorCopying(
-      ExecutionSpace{}, offset);
-  ArborX::adjacentDifference(ExecutionSpace{}, offset, counts);
+  auto counts =
+      KokkosExt::cloneWithoutInitializingNorCopying(ExecutionSpace{}, offset);
+  KokkosExt::adjacent_difference(ExecutionSpace{}, offset, counts);
   // extract optimal buffer size
   auto const max_results_per_query = ArborX::max(ExecutionSpace{}, counts);
   BOOST_TEST(max_results_per_query == 4);

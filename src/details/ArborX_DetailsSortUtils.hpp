@@ -12,10 +12,9 @@
 #ifndef ARBORX_DETAILS_SORT_UTILS_HPP
 #define ARBORX_DETAILS_SORT_UTILS_HPP
 
-#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp> // is_accessible_from
 #include <ArborX_DetailsKokkosExtSort.hpp>
-#include <ArborX_DetailsKokkosExtViewHelpers.hpp> // clone
-#include <ArborX_DetailsUtils.hpp>                // iota
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp> // iota
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>   // clone
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -34,7 +33,7 @@ auto sortObjects(ExecutionSpace const &space, ViewType &view)
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::Sorting::permute"),
       view.extent(0));
-  ArborX::iota(space, permute);
+  KokkosExt::iota(space, permute);
 
   KokkosExt::sortByKey(space, view, permute);
 

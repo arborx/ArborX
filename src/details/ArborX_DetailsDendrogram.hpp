@@ -12,9 +12,8 @@
 #ifndef ARBORX_DETAILS_DENDROGRAM_HPP
 #define ARBORX_DETAILS_DENDROGRAM_HPP
 
-#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp> // iota
 #include <ArborX_DetailsUnionFind.hpp>
-#include <ArborX_DetailsUtils.hpp> // iota
 
 #include <Kokkos_Core.hpp>
 
@@ -44,7 +43,7 @@ void dendrogramUnionFindHost(Edges sorted_edges_host, Parents &parents_host)
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
                          "ArborX::Dendrogram::dendrogram_union_find::labels"),
       num_vertices);
-  iota(host_space, labels);
+  KokkosExt::iota(host_space, labels);
   UnionFind<Kokkos::HostSpace, true> union_find(labels);
 
   Kokkos::View<int *, Kokkos::HostSpace> set_edges_host(

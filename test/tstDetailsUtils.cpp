@@ -12,6 +12,7 @@
 #include "ArborXTest_StdVectorToKokkosView.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_Exception.hpp>
@@ -27,83 +28,6 @@
 #define BOOST_TEST_MODULE StandardAlgorithms
 
 namespace tt = boost::test_tools;
-
-BOOST_AUTO_TEST_CASE_TEMPLATE(iota, DeviceType, ARBORX_DEVICE_TYPES)
-{
-  using ExecutionSpace = typename DeviceType::execution_space;
-  ExecutionSpace space{};
-  int const n = 10;
-  double const val = 3.;
-  Kokkos::View<double *, DeviceType> v("v", n);
-  ArborX::iota(space, v, val);
-  std::vector<double> v_ref(n);
-  std::iota(v_ref.begin(), v_ref.end(), val);
-  auto v_host = Kokkos::create_mirror_view(v);
-  Kokkos::deep_copy(v_host, v);
-  BOOST_TEST(v_ref == v_host, tt::per_element());
-
-  Kokkos::View<int[3], DeviceType> w("w");
-  ArborX::iota(space, w);
-  std::vector<int> w_ref = {0, 1, 2};
-  auto w_host = Kokkos::create_mirror_view(w);
-  Kokkos::deep_copy(w_host, w);
-  BOOST_TEST(w_ref == w_host, tt::per_element());
-}
-
-BOOST_AUTO_TEST_CASE_TEMPLATE(prefix_sum, DeviceType, ARBORX_DEVICE_TYPES)
-{
-  using ExecutionSpace = typename DeviceType::execution_space;
-  ExecutionSpace space{};
-  int const n = 10;
-  Kokkos::View<int *, DeviceType> x("x", n);
-  std::vector<int> x_ref(n, 1);
-  x_ref.back() = 0;
-  auto x_host = Kokkos::create_mirror_view(x);
-  for (int i = 0; i < n; ++i)
-    x_host(i) = x_ref[i];
-  Kokkos::deep_copy(x, x_host);
-  Kokkos::View<int *, DeviceType> y("y", n);
-  ArborX::exclusivePrefixSum(space, x, y);
-  std::vector<int> y_ref(n);
-  std::iota(y_ref.begin(), y_ref.end(), 0);
-  auto y_host = Kokkos::create_mirror_view(y);
-  Kokkos::deep_copy(y_host, y);
-  Kokkos::deep_copy(x_host, x);
-  BOOST_TEST(y_host == y_ref, tt::per_element());
-  BOOST_TEST(x_host == x_ref, tt::per_element());
-  // in-place
-  ArborX::exclusivePrefixSum(space, x, x);
-  Kokkos::deep_copy(x_host, x);
-  BOOST_TEST(x_host == y_ref, tt::per_element());
-  int const m = 11;
-  BOOST_TEST(n != m);
-  Kokkos::View<int *, DeviceType> z("z", m);
-  BOOST_CHECK_THROW(ArborX::exclusivePrefixSum(space, x, z),
-                    ArborX::SearchException);
-  Kokkos::View<double[3], DeviceType> v("v");
-  auto v_host = Kokkos::create_mirror_view(v);
-  v_host(0) = 1.;
-  v_host(1) = 1.;
-  v_host(2) = 0.;
-  Kokkos::deep_copy(v, v_host);
-  ArborX::exclusivePrefixSum(space, v);
-  Kokkos::deep_copy(v_host, v);
-  std::vector<double> v_ref = {0., 1., 2.};
-  BOOST_TEST(v_host == v_ref, tt::per_element());
-  Kokkos::View<double *, DeviceType> w("w", 4);
-  BOOST_CHECK_THROW(ArborX::exclusivePrefixSum(space, v, w),
-                    ArborX::SearchException);
-  v_host(0) = 1.;
-  v_host(1) = 0.;
-  v_host(2) = 0.;
-  Kokkos::deep_copy(v, v_host);
-  Kokkos::resize(w, 3);
-  ArborX::exclusivePrefixSum(space, v, w);
-  auto w_host = Kokkos::create_mirror_view(w);
-  Kokkos::deep_copy(w_host, w);
-  std::vector<double> w_ref = {0., 1., 1.};
-  BOOST_TEST(w_host == w_ref, tt::per_element());
-}
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(minmax, DeviceType, ARBORX_DEVICE_TYPES)
 {
@@ -152,73 +76,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(minmax, DeviceType, ARBORX_DEVICE_TYPES)
 #endif
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(accumulate, DeviceType, ARBORX_DEVICE_TYPES)
-{
-  using ExecutionSpace = typename DeviceType::execution_space;
-  ExecutionSpace space{};
-
-  Kokkos::View<int[6], DeviceType> v("v");
-  Kokkos::deep_copy(v, 5);
-  BOOST_TEST(ArborX::accumulate(space, v, 3) == 33);
-
-  Kokkos::View<int *, DeviceType> w("w", 5);
-  ArborX::iota(space, w, 2);
-  BOOST_TEST(ArborX::accumulate(space, w, 4) == 24);
-}
-
-BOOST_AUTO_TEST_CASE_TEMPLATE(adjacent_difference, DeviceType,
-                              ARBORX_DEVICE_TYPES)
-{
-  using ExecutionSpace = typename DeviceType::execution_space;
-  ExecutionSpace space{};
-
-  Kokkos::View<int[5], DeviceType> v("v");
-  auto v_host = Kokkos::create_mirror_view(v);
-  v_host(0) = 2;
-  v_host(1) = 4;
-  v_host(2) = 6;
-  v_host(3) = 8;
-  v_host(4) = 10;
-  Kokkos::deep_copy(v, v_host);
-  // In-place operation is not allowed
-  BOOST_CHECK_THROW(ArborX::adjacentDifference(space, v, v),
-                    ArborX::SearchException);
-  auto w = Kokkos::create_mirror(DeviceType(), v);
-  BOOST_CHECK_NO_THROW(ArborX::adjacentDifference(space, v, w));
-  auto w_host = Kokkos::create_mirror_view(w);
-  Kokkos::deep_copy(w_host, w);
-  std::vector<int> w_ref(5, 2);
-  BOOST_TEST(w_host == w_ref, tt::per_element());
-
-  Kokkos::View<float *, DeviceType> x("x", 10);
-  Kokkos::deep_copy(x, 3.14);
-  BOOST_CHECK_THROW(ArborX::adjacentDifference(space, x, x),
-                    ArborX::SearchException);
-  Kokkos::View<float[10], DeviceType> y("y");
-  BOOST_CHECK_NO_THROW(ArborX::adjacentDifference(space, x, y));
-  std::vector<float> y_ref(10);
-  y_ref[0] = 3.14;
-  auto y_host = Kokkos::create_mirror_view(y);
-  Kokkos::deep_copy(y_host, y);
-  BOOST_TEST(y_host == y_ref, tt::per_element());
-
-  Kokkos::resize(x, 5);
-  BOOST_CHECK_THROW(ArborX::adjacentDifference(space, y, x),
-                    ArborX::SearchException);
-}
-
 BOOST_AUTO_TEST_CASE_TEMPLATE(min_and_max, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace space{};
 
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   Kokkos::View<int[4], DeviceType> v("v");
-  ArborX::iota(space, v);
+  KokkosExt::iota(space, v);
   BOOST_TEST(ArborX::min(space, v) == 0);
   BOOST_TEST(ArborX::max(space, v) == 3);
 
   Kokkos::View<int *, DeviceType> w("w", 7);
-  ArborX::iota(space, w, 2);
+  KokkosExt::iota(space, w, 2);
   BOOST_TEST(ArborX::min(space, w) == 2);
   BOOST_TEST(ArborX::max(space, w) == 8);
 

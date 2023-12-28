@@ -14,11 +14,11 @@
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_DetailsStack.hpp>
-#include <ArborX_DetailsUtils.hpp>
 #include <ArborX_Exception.hpp>
 #include <ArborX_Predicates.hpp>
 
@@ -158,7 +158,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
         "scan_queries_for_numbers_of_neighbors",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_CLASS_LAMBDA(int i) { offset(i) = getK(_predicates(i)); });
-    exclusivePrefixSum(space, offset);
+    KokkosExt::exclusive_scan(space, offset, offset, 0);
     int const buffer_size = KokkosExt::lastElement(space, offset);
     // Allocate buffer over which to perform heap operations in
     // TreeTraversal::nearestQuery() to store nearest leaf nodes found so far.

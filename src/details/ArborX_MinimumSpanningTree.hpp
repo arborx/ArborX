@@ -13,11 +13,11 @@
 #define ARBORX_MINIMUM_SPANNING_TREE_HPP
 
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsMinimumSpanningTree.hpp>
 #include <ArborX_DetailsMutualReachabilityDistance.hpp>
 #include <ArborX_DetailsTreeNodeLabeling.hpp>
-#include <ArborX_DetailsUtils.hpp>
 #include <ArborX_DetailsWeightedEdge.hpp>
 #include <ArborX_LinearBVH.hpp>
 
@@ -112,7 +112,8 @@ private:
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::MST::labels"),
         2 * n - 1);
-    iota(space, Kokkos::subview(labels, std::make_pair((decltype(n))0, n)));
+    KokkosExt::iota(space,
+                    Kokkos::subview(labels, std::make_pair((decltype(n))0, n)));
     Kokkos::Profiling::popRegion();
 
     Kokkos::View<DirectedEdge *, MemorySpace> component_out_edges(

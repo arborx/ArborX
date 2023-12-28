@@ -9,6 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
+#include <ArborX_DetailsKokkosExtVersion.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUnionFind.hpp>
 #include <ArborX_DetailsUtils.hpp>
@@ -106,7 +108,7 @@ auto buildUnionFind(ExecutionSpace const &exec_space, int n)
 
   Kokkos::View<int *, MemorySpace> labels(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::labels"), n);
-  ArborX::iota(exec_space, labels);
+  ArborX::Details::KokkosExt::iota(exec_space, labels);
 #ifdef KOKKOS_ENABLE_SERIAL
   if constexpr (std::is_same_v<ExecutionSpace, Kokkos::Serial>)
     return ArborX::Details::UnionFind<MemorySpace, /*DoSerial*/ true>(labels);

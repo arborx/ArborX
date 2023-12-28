@@ -17,6 +17,7 @@
 #include <ArborX_DetailsDistributor.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_DetailsUtils.hpp>
@@ -352,7 +353,7 @@ void DistributedTreeImpl<DeviceType>::deviseStrategy(
         }
       });
 
-  exclusivePrefixSum(space, new_offset);
+  KokkosExt::exclusive_scan(space, new_offset, new_offset, 0);
 
   // Truncate results so that queries will only be forwarded to as many local
   // trees as necessary to find k neighbors.
@@ -684,7 +685,7 @@ void DistributedTreeImpl<DeviceType>::countResults(
         Kokkos::atomic_increment(&offset(query_ids(i)));
       });
 
-  exclusivePrefixSum(space, offset);
+  KokkosExt::exclusive_scan(space, offset, offset, 0);
 }
 
 template <typename DeviceType>
@@ -892,7 +893,7 @@ void DistributedTreeImpl<DeviceType>::filterResults(
         new_offset(q) = min(offset(q + 1) - offset(q), getK(queries(q)));
       });
 
-  exclusivePrefixSum(space, new_offset);
+  KokkosExt::exclusive_scan(space, new_offset, new_offset, 0);
 
   int const n_truncated_results = KokkosExt::lastElement(space, new_offset);
   Kokkos::View<int *, DeviceType> new_indices(

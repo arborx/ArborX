@@ -13,6 +13,8 @@
 #define ARBORX_DETAILS_UTILS_HPP
 
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_Exception.hpp>
 
@@ -156,83 +158,20 @@ create_layout_right_mirror_view_and_copy(ExecutionSpace const &execution_space,
   }
 }
 
-// NOTE: This functor is used in exclusivePrefixSum( src, dst ).  We were
-// getting a compile error on CUDA when using a KOKKOS_LAMBDA.
-template <typename T, typename DeviceType>
-class ExclusiveScanFunctor
-{
-public:
-  ExclusiveScanFunctor(Kokkos::View<T *, DeviceType> const &in,
-                       Kokkos::View<T *, DeviceType> const &out)
-      : _in(in)
-      , _out(out)
-  {}
-  KOKKOS_INLINE_FUNCTION void operator()(int i, T &update,
-                                         bool final_pass) const
-  {
-    T const in_i = _in(i);
-    if (final_pass)
-      _out(i) = update;
-    update += in_i;
-  }
-
-private:
-  Kokkos::View<T *, DeviceType> _in;
-  Kokkos::View<T *, DeviceType> _out;
-};
 } // namespace Details
 
-/** \brief Computes an exclusive scan.
- *
- *  \param[in] space Execution space
- *  \param[in] src Input view with range of elements to sum
- *  \param[out] dst Output view; may be equal to \p src
- *
- *  When \p dst is not provided or if \p src and \p dst are the same view, the
- *  scan is performed in-place.  "Exclusive" means that the i-th input element
- *  is not included in the i-th sum.
- *
- *  \pre \p src and \p dst must be of rank 1 and have the same size.
- */
 template <typename ExecutionSpace, typename ST, typename... SP, typename DT,
           typename... DP>
-void exclusivePrefixSum(ExecutionSpace &&space,
-                        Kokkos::View<ST, SP...> const &src,
-                        Kokkos::View<DT, DP...> const &dst)
+[[deprecated]] void exclusivePrefixSum(ExecutionSpace &&space,
+                                       Kokkos::View<ST, SP...> const &src,
+                                       Kokkos::View<DT, DP...> const &dst)
 {
-  static_assert(
-      std::is_same<
-          typename Kokkos::ViewTraits<DT, DP...>::value_type,
-          typename Kokkos::ViewTraits<DT, DP...>::non_const_value_type>::value,
-      "exclusivePrefixSum requires non-const destination type");
-
-  static_assert(
-      (unsigned(Kokkos::ViewTraits<DT, DP...>::rank) ==
-       unsigned(Kokkos::ViewTraits<ST, SP...>::rank)) &&
-          (unsigned(Kokkos::ViewTraits<DT, DP...>::rank) == unsigned(1)),
-      "exclusivePrefixSum requires Views of rank 1");
-
-  using ValueType = typename Kokkos::ViewTraits<DT, DP...>::value_type;
-  using DeviceType = typename Kokkos::ViewTraits<DT, DP...>::device_type;
-
-  auto const n = src.extent(0);
-  ARBORX_ASSERT(n == dst.extent(0));
-  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
-      std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_scan(
-      "ArborX::Algorithms::exclusive_scan", policy,
-      Details::ExclusiveScanFunctor<ValueType, DeviceType>(src, dst));
+  Details::KokkosExt::exclusive_scan(std::forward<ExecutionSpace>(space), src,
+                                     dst, 0);
 }
 
-/** \brief In-place exclusive scan.
- *
- *  \param[in] space Execution space
- *  \param[in,out] v View with range of elements to sum
- *
- *  Calls \c exclusivePrefixSum(v, v)
- */
 template <typename ExecutionSpace, typename T, typename... P>
-inline std::enable_if_t<
+[[deprecated]] inline std::enable_if_t<
     Kokkos::is_execution_space<std::remove_reference_t<ExecutionSpace>>::value>
 exclusivePrefixSum(ExecutionSpace &&space, Kokkos::View<T, P...> const &v)
 {
@@ -271,36 +210,12 @@ lastElement(Kokkos::View<T, P...> const &v)
   return Details::KokkosExt::lastElement(ExecutionSpace{}, v);
 }
 
-/** \brief Fills the view with a sequence of numbers
- *
- *  \param[in] space Execution space
- *  \param[out] v Output view
- *  \param[in] value (optional) Initial value
- *
- *  \note Similar to \c std::iota() but differs in that it directly assigns
- *  <code>v(i) = value + i</code> instead of repetitively evaluating
- *  <code>++value</code> which would be difficult to achieve in a performant
- *  manner while still guaranteeing the order of execution.
- */
 template <typename ExecutionSpace, typename T, typename... P>
-void iota(ExecutionSpace &&space, Kokkos::View<T, P...> const &v,
-          typename Kokkos::ViewTraits<T, P...>::value_type value = 0)
+[[deprecated]] void
+iota(ExecutionSpace &&space, Kokkos::View<T, P...> const &v,
+     typename Kokkos::ViewTraits<T, P...>::value_type value = 0)
 {
-  using ValueType = typename Kokkos::ViewTraits<T, P...>::value_type;
-  static_assert(unsigned(Kokkos::ViewTraits<T, P...>::rank) == unsigned(1),
-                "iota requires a View of rank 1");
-  static_assert(std::is_arithmetic<ValueType>::value,
-                "iota requires a View with an arithmetic value type");
-  static_assert(
-      std::is_same<ValueType, typename Kokkos::ViewTraits<
-                                  T, P...>::non_const_value_type>::value,
-      "iota requires a View with non-const value type");
-  auto const n = v.extent(0);
-  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
-      std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_for(
-      "ArborX::Algorithms::iota", policy,
-      KOKKOS_LAMBDA(int i) { v(i) = value + (ValueType)i; });
+  Details::KokkosExt::iota(std::forward<ExecutionSpace>(space), v, value);
 }
 
 template <typename T, typename... P>
@@ -429,39 +344,12 @@ max(ViewType const &v)
   return max(ExecutionSpace{}, v);
 }
 
-/** \brief Accumulate values in a view
- *
- *  \param[in] space Execution space
- *  \param[in] v Input view
- *  \param[in] init Initial value of the sum
- *
- *  Returns the sum of the given \p init value and elements in the given view \p
- *  v.  Uses operator+ to sum up the elements.
- */
 template <typename ExecutionSpace, typename ViewType>
-typename ViewType::non_const_value_type
+[[deprecated]] typename ViewType::non_const_value_type
 accumulate(ExecutionSpace &&space, ViewType const &v,
            typename ViewType::non_const_value_type init)
 {
-  static_assert(ViewType::rank == 1, "accumulate requires a View of rank 1");
-  auto const n = v.extent(0);
-  // NOTE: Passing the argument init directly to the parallel_reduce() while
-  // using a lambda does not yield the expected result because Kokkos will
-  // supply a default init method that sets the reduction result to zero.
-  // Rather than going through the hassle of defining a custom functor for
-  // the reduction, introduce here a temporary variable and add it to init
-  // before returning.
-  typename ViewType::non_const_value_type tmp;
-  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
-      std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_reduce(
-      "ArborX::Algorithms::accumulate", policy,
-      KOKKOS_LAMBDA(int i, typename ViewType::non_const_value_type &update) {
-        update += v(i);
-      },
-      tmp);
-  init += tmp;
-  return init;
+  Details::KokkosExt::reduce(std::forward<ExecutionSpace>(space), v, init);
 }
 
 template <typename ViewType>
@@ -476,44 +364,13 @@ accumulate(ViewType const &v, typename ViewType::non_const_value_type init)
 template <typename View>
 typename View::non_const_type clone(View &v);
 
-/** \brief Computes the adjacent difference.
- *
- *  \param[in] space Execution space
- *  \param[in] src Input view
- *  \param[out] dst Output view; may not be equal to \p dst
- *
- *  Assigns to every element in the \p dst view the difference between its
- *  corresponding element and the one preceding it in the \p src view, except
- *  for the first element \c dst[0] which is assigned \c src[0]
- *
- *  \warning Undefined behavior if \p src and \p dst arrays overlap in any way.
- */
 template <typename ExecutionSpace, typename SrcViewType, typename DstViewType>
-void adjacentDifference(ExecutionSpace &&space, SrcViewType const &src,
-                        DstViewType const &dst)
+[[deprecated]] void adjacentDifference(ExecutionSpace &&space,
+                                       SrcViewType const &src,
+                                       DstViewType const &dst)
 {
-  static_assert(SrcViewType::rank == 1 && DstViewType::rank == 1,
-                "adjacentDifference operates on rank-1 views");
-  static_assert(std::is_same<typename DstViewType::value_type,
-                             typename DstViewType::non_const_value_type>::value,
-                "adjacentDifference requires non-const destination value type");
-  static_assert(std::is_same<typename SrcViewType::non_const_value_type,
-                             typename DstViewType::value_type>::value,
-                "adjacentDifference requires same value type for source and "
-                "destination");
-  // QUESTION Should we assert anything about the memory spaces?
-  auto const n = src.extent(0);
-  ARBORX_ASSERT(n == dst.extent(0));
-  ARBORX_ASSERT(src != dst);
-  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
-      std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_for(
-      "ArborX::Algorithms::adjacent_difference", policy, KOKKOS_LAMBDA(int i) {
-        if (i > 0)
-          dst(i) = src(i) - src(i - 1);
-        else
-          dst(i) = src(i);
-      });
+  Details::KokkosExt::adjacent_difference(std::forward<ExecutionSpace>(space),
+                                          src, dst);
 }
 
 template <typename SrcViewType, typename DstViewType>
@@ -577,7 +434,6 @@ template <typename View>
 
 namespace Details
 {
-
 template <typename ExecutionSpace, typename View, typename Offset>
 void computeOffsetsInOrderedView(ExecutionSpace const &exec_space, View view,
                                  Offset &offsets)

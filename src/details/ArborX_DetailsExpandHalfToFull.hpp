@@ -12,8 +12,8 @@
 #ifndef ARBORX_DETAILS_EXPAND_HALF_TO_FULL_HPP
 #define ARBORX_DETAILS_EXPAND_HALF_TO_FULL_HPP
 
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
-#include <ArborX_DetailsUtils.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -41,7 +41,7 @@ void expandHalfToFull(ExecutionSpace const &space, Offsets &offsets,
           Kokkos::atomic_increment(&offsets(k));
         }
       });
-  exclusivePrefixSum(space, offsets);
+  KokkosExt::exclusive_scan(space, offsets, offsets, 0);
 
   auto const m = KokkosExt::lastElement(space, offsets);
   KokkosExt::reallocWithoutInitializing(space, indices, m);

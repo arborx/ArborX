@@ -11,6 +11,8 @@
 
 #include <ArborX_DBSCAN.hpp>
 #include <ArborX_DBSCANVerification.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_HDBSCAN.hpp>
 #include <ArborX_MinimumSpanningTree.hpp>
 
@@ -118,7 +120,7 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
       },
       num_clusters);
   Kokkos::resize(Kokkos::WithoutInitializing, cluster_offset, num_clusters + 1);
-  ArborX::exclusivePrefixSum(exec_space, cluster_offset);
+  KokkosExt::exclusive_scan(exec_space, cluster_offset, cluster_offset, 0);
 
   auto cluster_starts = KokkosExt::clone(exec_space, cluster_offset);
   KokkosExt::reallocWithoutInitializing(

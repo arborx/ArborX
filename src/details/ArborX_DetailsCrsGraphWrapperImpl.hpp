@@ -15,6 +15,7 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_Callbacks.hpp>
 #include <ArborX_DetailsBatchedQueries.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsPermutedData.hpp>
 #include <ArborX_HyperBox.hpp>
@@ -205,7 +206,7 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
       "ArborX::CrsGraphWrapper::copy_counts_to_offsets",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int const i) { permuted_offset(i) = counts(i); });
-  exclusivePrefixSum(space, offset);
+  KokkosExt::exclusive_scan(space, offset, offset, 0);
 
   int const n_results = KokkosExt::lastElement(space, offset);
 
@@ -301,7 +302,7 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
 
   if (buffer_size != 0)
   {
-    exclusivePrefixSum(space, offset);
+    KokkosExt::exclusive_scan(space, offset, offset, 0);
 
     // Use calculation for the size to avoid calling lastElement(space, offset)
     // as it will launch an extra kernel to copy to host.
@@ -324,7 +325,7 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
       "scan_queries_for_numbers_of_nearest_neighbors",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int i) { offset(i) = getK(predicates(i)); });
-  exclusivePrefixSum(space, offset);
+  KokkosExt::exclusive_scan(space, offset, offset, 0);
 
   KokkosExt::reallocWithoutInitializing(space, out,
                                         KokkosExt::lastElement(space, offset));
