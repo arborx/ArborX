@@ -16,12 +16,11 @@
 #include <ArborX_DetailsKokkosExtMinMaxReductions.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
-#include <ArborX_DetailsUtils.hpp> // max
+#include <ArborX_DetailsUtils.hpp> // create_layout_right...
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
 
-#include <numeric> // iota
 #include <sstream>
 #include <vector>
 

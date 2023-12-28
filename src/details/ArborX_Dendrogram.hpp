@@ -13,7 +13,7 @@
 
 #include <ArborX_DetailsDendrogram.hpp>
 #include <ArborX_DetailsKokkosExtSort.hpp>
-#include <ArborX_DetailsUtils.hpp>
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsWeightedEdge.hpp>
 
 #include <Kokkos_Core.hpp>
