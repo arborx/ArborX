@@ -124,9 +124,17 @@ public:
     dummy_policy.set_scratch_size(0, Kokkos::PerThread(perTargetMem()));
     int team_size =
         dummy_policy.team_size_recommended(*this, Kokkos::ParallelForTag{});
-    int league_size = (_num_targets + team_size - 1) / team_size;
-    return Kokkos::TeamPolicy<ExecutionSpace>(space, league_size, team_size)
-        .set_scratch_size(0, Kokkos::PerThread(perTargetMem()));
+    if (team_size != 0)
+    {
+      int league_size = (_num_targets + team_size - 1) / team_size;
+      return Kokkos::TeamPolicy<ExecutionSpace>(space, league_size, team_size)
+          .set_scratch_size(0, Kokkos::PerThread(perTargetMem()));
+    }
+    else
+    {
+      return Kokkos::TeamPolicy<ExecutionSpace>(space, _num_targets, 1, 1)
+          .set_scratch_size(0, Kokkos::PerTeam(perTargetMem()));
+    }
   }
 
 private:
