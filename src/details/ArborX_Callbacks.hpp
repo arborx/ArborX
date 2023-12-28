@@ -90,19 +90,19 @@ void check_valid_callback(Callback const &callback, Predicates const &,
   using Predicate = typename AccessTraitsHelper<Access>::type;
 
   static_assert(!(std::is_same_v<PredicateTag, NearestPredicateTag> &&
-                  std::is_invocable_v<Callback, Predicate, int, float,
+                  std::is_invocable_v<Callback const &, Predicate, int, float,
                                       OutputFunctorHelper<OutputView>>),
                 R"error(Callback signature has changed for nearest predicates.
 See https://github.com/arborx/ArborX/pull/366 for more details.
 Sorry!)error");
 
   static_assert(is_valid_predicate_tag<PredicateTag>::value &&
-                    std::is_invocable_v<Callback, Predicate, Value,
+                    std::is_invocable_v<Callback const &, Predicate, Value,
                                         OutputFunctorHelper<OutputView>>,
                 "Callback 'operator()' does not have the correct signature");
 
   static_assert(
-      std::is_void_v<std::invoke_result_t<Callback, Predicate, Value,
+      std::is_void_v<std::invoke_result_t<Callback const &, Predicate, Value,
                                           OutputFunctorHelper<OutputView>>>,
       "Callback 'operator()' return type must be void");
 }
@@ -144,22 +144,25 @@ void check_valid_callback(Callback const &callback, Predicates const &)
   static_assert(is_valid_predicate_tag<PredicateTag>::value,
                 "The predicate tag is not valid");
 
-  static_assert(std::is_invocable_v<Callback, Predicate, Value>,
+  static_assert(std::is_invocable_v<Callback const &, Predicate, Value>,
                 "Callback 'operator()' does not have the correct signature");
 
   static_assert(
       !(std::is_same_v<PredicateTag, SpatialPredicateTag> ||
         std::is_same_v<PredicateTag,
                        Experimental::OrderedSpatialPredicateTag>) ||
-          (std::is_same_v<CallbackTreeTraversalControl,
-                          std::invoke_result_t<Callback, Predicate, Value>> ||
-           std::is_void_v<std::invoke_result_t<Callback, Predicate, Value>>),
+          (std::is_same_v<
+               CallbackTreeTraversalControl,
+               std::invoke_result_t<Callback const &, Predicate, Value>> ||
+           std::is_void_v<
+               std::invoke_result_t<Callback const &, Predicate, Value>>),
       "Callback 'operator()' return type must be void or "
       "ArborX::CallbackTreeTraversalControl");
 
   static_assert(
       !std::is_same_v<PredicateTag, NearestPredicateTag> ||
-          std::is_void_v<std::invoke_result_t<Callback, Predicate, Value>>,
+          std::is_void_v<
+              std::invoke_result_t<Callback const &, Predicate, Value>>,
       "Callback 'operator()' return type must be void");
 }
 
