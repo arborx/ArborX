@@ -57,8 +57,7 @@ public:
     using Point =
         std::decay_t<decltype(returnCentroid(getGeometry(predicates(0))))>;
     using LinearOrderingValueType =
-        Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
-                           SpaceFillingCurve, Box, Point>;
+        std::invoke_result_t<SpaceFillingCurve, Box, Point>;
     Kokkos::View<LinearOrderingValueType *, DeviceType> linear_ordering_indices(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::BVH::query::linear_ordering"),
