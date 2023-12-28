@@ -49,10 +49,10 @@ private:
 
   using LocalSourcePoints = Kokkos::Subview<SourcePoints, int, Kokkos::ALL_t>;
   using LocalPhi = ScratchView<CoefficientsType *>;
-  using LocalVandermonde = ScratchView<CoefficientsType **>;
-  using LocalMoment = ScratchView<CoefficientsType **>;
-  using LocalSVDDiag = ScratchView<CoefficientsType *>;
-  using LocalSVDUnit = ScratchView<CoefficientsType **>;
+  using LocalVandermonde = ScratchView<CoefficientsType *[poly_size]>;
+  using LocalMoment = ScratchView<CoefficientsType[poly_size][poly_size]>;
+  using LocalSVDDiag = ScratchView<CoefficientsType[poly_size]>;
+  using LocalSVDUnit = ScratchView<CoefficientsType[poly_size][poly_size]>;
   using LocalCoefficients = Kokkos::Subview<Coefficients, int, Kokkos::ALL_t>;
 
 public:
@@ -79,10 +79,10 @@ public:
     auto target_point = _target_access(target);
     auto source_points = Kokkos::subview(_source_points, target, Kokkos::ALL);
     LocalPhi phi(scratch, _num_neighbors);
-    LocalVandermonde vandermonde(scratch, _num_neighbors, poly_size);
-    LocalMoment moment(scratch, poly_size, poly_size);
-    LocalSVDDiag svd_diag(scratch, poly_size);
-    LocalSVDUnit svd_unit(scratch, poly_size, poly_size);
+    LocalVandermonde vandermonde(scratch, _num_neighbors);
+    LocalMoment moment(scratch);
+    LocalSVDDiag svd_diag(scratch);
+    LocalSVDUnit svd_unit(scratch);
     auto coefficients = Kokkos::subview(_coefficients, target, Kokkos::ALL);
 
     // The goal is to compute the following line vector for each target point:
@@ -134,10 +134,10 @@ private:
   {
     std::size_t val = 0;
     val += LocalPhi::shmem_size(_num_neighbors);
-    val += LocalVandermonde::shmem_size(_num_neighbors, poly_size);
-    val += LocalMoment::shmem_size(poly_size, poly_size);
-    val += LocalSVDDiag::shmem_size(poly_size);
-    val += LocalSVDUnit::shmem_size(poly_size, poly_size);
+    val += LocalVandermonde::shmem_size(_num_neighbors);
+    val += LocalMoment::shmem_size();
+    val += LocalSVDDiag::shmem_size();
+    val += LocalSVDUnit::shmem_size();
     return val;
   }
 
