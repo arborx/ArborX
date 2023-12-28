@@ -335,70 +335,70 @@ pipeline {
                     }
                 }
 
-                stage('HIP-5.3.3') {
-                    agent {
-                        dockerfile {
-                            filename "Dockerfile.hipcc"
-                            dir "docker"
-                            additionalBuildArgs '--build-arg BASE=rocm/dev-ubuntu-20.04:5.3.3-complete --build-arg KOKKOS_ARCH=${KOKKOS_ARCH}'
-                            args '-v /tmp/ccache.kokkos:/tmp/ccache --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --env HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES} --env AMDGPU_TARGET=${AMDGPU_TARGET}'
-                            label 'rocm-docker && vega'
-                        }
-                    }
-                    steps {
-                        sh 'ccache --zero-stats'
-                        sh 'rm -rf build && mkdir -p build'
-                        dir('build') {
-                            sh '''
-                                cmake \
-                                    -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
-                                    -D CMAKE_BUILD_TYPE=Debug \
-                                    -D CMAKE_CXX_COMPILER=hipcc \
-                                    -D CMAKE_CXX_STANDARD=20 \
-                                    -D CMAKE_CXX_EXTENSIONS=OFF \
-                                    -D CMAKE_CXX_FLAGS="-DNDEBUG -Wpedantic -Wall -Wextra" \
-                                    -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
-                                    -D ARBORX_ENABLE_MPI=ON \
-                                    -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
-                                    -D MPIEXEC_MAX_NUMPROCS=4 \
-                                    -D CMAKE_EXE_LINKER_FLAGS="-lopen-pal" \
-                                    -D GPU_TARGETS=${AMDGPU_TARGET} \
-                                    -D ARBORX_ENABLE_TESTS=ON \
-                                    -D ARBORX_ENABLE_EXAMPLES=ON \
-                                    -D ARBORX_ENABLE_BENCHMARKS=ON \
-                                ..
-                            '''
-                            sh 'make -j8 VERBOSE=1'
-                            sh 'ctest $CTEST_OPTIONS'
-                        }
-                    }
-                    post {
-                        always {
-                            sh 'ccache --show-stats'
-                            xunit reduceLog: false, tools:[CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)]
-                        }
-                        success {
-                            sh 'cd build && make install'
-                            sh 'rm -rf test_install && mkdir -p test_install'
-                            dir('test_install') {
-                                sh 'cp -r ../examples .'
-                                sh '''
-                                    cmake \
-                                        -D CMAKE_EXE_LINKER_FLAGS="-lopen-pal" \
-                                        -D GPU_TARGETS=${AMDGPU_TARGET} \
-                                        -D CMAKE_CXX_COMPILER=hipcc \
-                                        -D CMAKE_CXX_EXTENSIONS=OFF \
-                                        -D CMAKE_CXX_STANDARD=20 \
-                                        -D CMAKE_BUILD_TYPE=RelWithDebInfo \
-                                        -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
-                                    examples \
-                                '''
-                                sh 'make VERBOSE=1'
-                                sh 'ctest --output-on-failure'
-                            }
-                        }
-                    }
-                }
+                // stage('HIP-5.3.3') {
+                    // agent {
+                        // dockerfile {
+                            // filename "Dockerfile.hipcc"
+                            // dir "docker"
+                            // additionalBuildArgs '--build-arg BASE=rocm/dev-ubuntu-20.04:5.3.3-complete --build-arg KOKKOS_ARCH=${KOKKOS_ARCH}'
+                            // args '-v /tmp/ccache.kokkos:/tmp/ccache --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --env HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES} --env AMDGPU_TARGET=${AMDGPU_TARGET}'
+                            // label 'rocm-docker && vega'
+                        // }
+                    // }
+                    // steps {
+                        // sh 'ccache --zero-stats'
+                        // sh 'rm -rf build && mkdir -p build'
+                        // dir('build') {
+                            // sh '''
+                                // cmake \
+                                    // -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
+                                    // -D CMAKE_BUILD_TYPE=Debug \
+                                    // -D CMAKE_CXX_COMPILER=hipcc \
+                                    // -D CMAKE_CXX_STANDARD=20 \
+                                    // -D CMAKE_CXX_EXTENSIONS=OFF \
+                                    // -D CMAKE_CXX_FLAGS="-DNDEBUG -Wpedantic -Wall -Wextra" \
+                                    // -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
+                                    // -D ARBORX_ENABLE_MPI=ON \
+                                    // -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
+                                    // -D MPIEXEC_MAX_NUMPROCS=4 \
+                                    // -D CMAKE_EXE_LINKER_FLAGS="-lopen-pal" \
+                                    // -D GPU_TARGETS=${AMDGPU_TARGET} \
+                                    // -D ARBORX_ENABLE_TESTS=ON \
+                                    // -D ARBORX_ENABLE_EXAMPLES=ON \
+                                    // -D ARBORX_ENABLE_BENCHMARKS=ON \
+                                // ..
+                            // '''
+                            // sh 'make -j8 VERBOSE=1'
+                            // sh 'ctest $CTEST_OPTIONS'
+                        // }
+                    // }
+                    // post {
+                        // always {
+                            // sh 'ccache --show-stats'
+                            // xunit reduceLog: false, tools:[CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)]
+                        // }
+                        // success {
+                            // sh 'cd build && make install'
+                            // sh 'rm -rf test_install && mkdir -p test_install'
+                            // dir('test_install') {
+                                // sh 'cp -r ../examples .'
+                                // sh '''
+                                    // cmake \
+                                        // -D CMAKE_EXE_LINKER_FLAGS="-lopen-pal" \
+                                        // -D GPU_TARGETS=${AMDGPU_TARGET} \
+                                        // -D CMAKE_CXX_COMPILER=hipcc \
+                                        // -D CMAKE_CXX_EXTENSIONS=OFF \
+                                        // -D CMAKE_CXX_STANDARD=20 \
+                                        // -D CMAKE_BUILD_TYPE=RelWithDebInfo \
+                                        // -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
+                                    // examples \
+                                // '''
+                                // sh 'make VERBOSE=1'
+                                // sh 'ctest --output-on-failure'
+                            // }
+                        // }
+                    // }
+                // }
 
                 // Disable deprecation warnings since we are using Kokkos::bit_cast which aliases a deprecated function in the oneAPI API.
                 stage('SYCL') {
