@@ -85,9 +85,9 @@ void check_valid_callback(Callback const &callback, Predicates const &,
 {
   check_generic_lambda_support(callback);
 
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  using PredicateTag = typename AccessTraitsHelper<Access>::tag;
-  using Predicate = typename AccessTraitsHelper<Access>::type;
+  using Predicate =
+      typename AccessValues<Predicates, PredicatesTag>::value_type;
+  using PredicateTag = typename Predicate::Tag;
 
   static_assert(!(std::is_same_v<PredicateTag, NearestPredicateTag> &&
                   std::is_invocable_v<Callback const &, Predicate, int, float,
@@ -137,9 +137,9 @@ void check_valid_callback(Callback const &callback, Predicates const &)
 {
   check_generic_lambda_support(callback);
 
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  using PredicateTag = typename AccessTraitsHelper<Access>::tag;
-  using Predicate = typename AccessTraitsHelper<Access>::type;
+  using Predicate =
+      typename AccessValues<Predicates, PredicatesTag>::value_type;
+  using PredicateTag = typename Predicate::Tag;
 
   static_assert(is_valid_predicate_tag<PredicateTag>::value,
                 "The predicate tag is not valid");
