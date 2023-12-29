@@ -44,7 +44,6 @@ struct DVDKernel1
 
   KOKKOS_FUNCTION void operator()(int const i) const
   {
-    printf("%d, %d\n", rank, indices_and_ranks(i).rank);
     dst_ranks(i) = indices_and_ranks(i).rank;
     src_data(i).dst_index = indices_and_ranks(i).index;
     src_data(i).src_rank = rank;
@@ -81,6 +80,8 @@ public:
     auto guard =
         Kokkos::Profiling::ScopedRegion("ArborX::DistributedValuesDistributor");
 
+    namespace KokkosExt = ArborX::Details::KokkosExt;
+
     static_assert(
         KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
         "Memory space must be accessible from the execution space");
@@ -104,11 +105,7 @@ public:
           return p;
         }(),
         [](MPI_Comm *p) {
-          // Avoid freeing if MPI has already exited
-          int mpi_finalized;
-          MPI_Finalized(&mpi_finalized);
-          if (!mpi_finalized)
-            MPI_Comm_free(p);
+          MPI_Comm_free(p);
           delete p;
         });
 
@@ -186,6 +183,8 @@ public:
   {
     auto guard = Kokkos::Profiling::ScopedRegion(
         "ArborX::DistributedValuesDistributor::distribute");
+
+    namespace KokkosExt = ArborX::Details::KokkosExt;
 
     static_assert(
         KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
