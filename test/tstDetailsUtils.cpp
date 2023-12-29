@@ -12,7 +12,6 @@
 #include "ArborXTest_StdVectorToKokkosView.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
-#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_Exception.hpp>
@@ -25,79 +24,9 @@
 #include <numeric>
 #include <vector>
 
-#define BOOST_TEST_MODULE StandardAlgorithms
+#define BOOST_TEST_MODULE Utils
 
 namespace tt = boost::test_tools;
-
-BOOST_AUTO_TEST_CASE_TEMPLATE(minmax, DeviceType, ARBORX_DEVICE_TYPES)
-{
-  using ExecutionSpace = typename DeviceType::execution_space;
-  ExecutionSpace space{};
-
-  Kokkos::View<double[4], DeviceType> v("v");
-  auto v_host = Kokkos::create_mirror_view(v);
-  v_host(0) = 3.14;
-  v_host(1) = 1.41;
-  v_host(2) = 2.71;
-  v_host(3) = 1.62;
-  Kokkos::deep_copy(v, v_host);
-
-  auto const result_float = ArborX::minMax(space, v);
-  BOOST_TEST(std::get<0>(result_float) == 1.41);
-  BOOST_TEST(std::get<1>(result_float) == 3.14);
-  Kokkos::View<int *, DeviceType> w("w", 0);
-  BOOST_CHECK_THROW(ArborX::minMax(space, w), ArborX::SearchException);
-  Kokkos::resize(w, 1);
-  Kokkos::deep_copy(w, 255);
-  auto const result_int = ArborX::minMax(space, w);
-  BOOST_TEST(std::get<0>(result_int) == 255);
-  BOOST_TEST(std::get<1>(result_int) == 255);
-
-  // testing use case in ORNL-CEES/DataTransferKit#336
-  Kokkos::View<int[2][3], DeviceType> u("u");
-  auto u_host = Kokkos::create_mirror_view(u);
-  u_host(0, 0) = 1; // x
-  u_host(0, 1) = 2; // y
-  u_host(0, 2) = 3; // z
-  u_host(1, 0) = 4; // x
-  u_host(1, 1) = 5; // y
-  u_host(1, 2) = 6; // Z
-  Kokkos::deep_copy(u, u_host);
-#if 0
-    // FIXME might be an issue with CUDA
-    auto const minmax_x =
-        ArborX::minMax( Kokkos::subview( u, Kokkos::ALL, 0 ) );
-    BOOST_TEST( std::get<0>( minmax_x ) == 1 );
-    BOOST_TEST( std::get<1>( minmax_x ) == 4 );
-    auto const minmax_y =
-        ArborX::minMax( Kokkos::subview( u, Kokkos::ALL, 1 ) );
-    BOOST_TEST( std::get<0>( minmax_y ) == 2 );
-    BOOST_TEST( std::get<1>( minmax_y ) == 5 );
-#endif
-}
-
-BOOST_AUTO_TEST_CASE_TEMPLATE(min_and_max, DeviceType, ARBORX_DEVICE_TYPES)
-{
-  using ExecutionSpace = typename DeviceType::execution_space;
-  ExecutionSpace space{};
-
-  namespace KokkosExt = ArborX::Details::KokkosExt;
-
-  Kokkos::View<int[4], DeviceType> v("v");
-  KokkosExt::iota(space, v);
-  BOOST_TEST(ArborX::min(space, v) == 0);
-  BOOST_TEST(ArborX::max(space, v) == 3);
-
-  Kokkos::View<int *, DeviceType> w("w", 7);
-  KokkosExt::iota(space, w, 2);
-  BOOST_TEST(ArborX::min(space, w) == 2);
-  BOOST_TEST(ArborX::max(space, w) == 8);
-
-  Kokkos::View<float *, DeviceType> x("x", 3);
-  Kokkos::deep_copy(x, 3.14f);
-  BOOST_TEST(ArborX::min(space, x) == 3.14f);
-  BOOST_TEST(ArborX::max(space, x) == 3.14f);
-}
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(sort_objects, DeviceType, ARBORX_DEVICE_TYPES)
 {

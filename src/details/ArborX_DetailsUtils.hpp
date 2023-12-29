@@ -13,7 +13,7 @@
 #define ARBORX_DETAILS_UTILS_HPP
 
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
-#include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
+#include <ArborX_DetailsKokkosExtMinMaxReduce.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_Exception.hpp>
@@ -227,42 +227,13 @@ iota(Kokkos::View<T, P...> const &v,
   iota(ExecutionSpace{}, v, value);
 }
 
-/** \brief Returns the smallest and the greatest element in the view
- *
- *  \param[in] space Execution space
- *  \param[in] v Input view
- *
- *  Returns a pair on the host with the smallest value in the view as the first
- *  element and the greatest as the second.
- */
 template <typename ExecutionSpace, typename ViewType>
-std::pair<typename ViewType::non_const_value_type,
-          typename ViewType::non_const_value_type>
+[[deprecated]] std::pair<typename ViewType::non_const_value_type,
+                         typename ViewType::non_const_value_type>
 minMax(ExecutionSpace &&space, ViewType const &v)
 {
-  static_assert(ViewType::rank == 1, "minMax requires a View of rank 1");
-  auto const n = v.extent(0);
-  ARBORX_ASSERT(n > 0);
-  using ValueType = typename ViewType::non_const_value_type;
-  ValueType min_val;
-  ValueType max_val;
-  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
-      std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_reduce(
-      "ArborX::Algorithms::minmax", policy,
-      KOKKOS_LAMBDA(int i, ValueType &local_min, ValueType &local_max) {
-        auto const &val = v(i);
-        if (val < local_min)
-        {
-          local_min = val;
-        }
-        if (local_max < val)
-        {
-          local_max = val;
-        }
-      },
-      Kokkos::Min<ValueType>(min_val), Kokkos::Max<ValueType>(max_val));
-  return std::make_pair(min_val, max_val);
+  return Details::KokkosExt::minmax_reduce(std::forward<ExecutionSpace>(space),
+                                           v);
 }
 
 template <typename ViewType>
@@ -274,31 +245,11 @@ minMax(ViewType const &v)
   return minMax(ExecutionSpace{}, v);
 }
 
-/** \brief Returns the smallest element in the view
- *
- *  \param[in] space Execution space
- *  \param[in] v Input view
- */
 template <typename ExecutionSpace, typename ViewType>
-typename ViewType::non_const_value_type min(ExecutionSpace &&space,
-                                            ViewType const &v)
+[[deprecated]] typename ViewType::non_const_value_type
+min(ExecutionSpace &&space, ViewType const &v)
 {
-  static_assert(ViewType::rank == 1, "min requires a View of rank 1");
-  auto const n = v.extent(0);
-  ARBORX_ASSERT(n > 0);
-  using ValueType = typename ViewType::non_const_value_type;
-  ValueType result;
-  Kokkos::Min<typename ViewType::non_const_value_type> reducer(result);
-  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
-      std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_reduce(
-      "ArborX::Algorithms::min", policy,
-      KOKKOS_LAMBDA(int i, ValueType &update) {
-        if (v(i) < update)
-          update = v(i);
-      },
-      reducer);
-  return result;
+  return Details::KokkosExt::min_reduce(std::forward<ExecutionSpace>(space), v);
 }
 
 template <typename ViewType>
@@ -309,31 +260,11 @@ min(ViewType const &v)
   return min(ExecutionSpace{}, v);
 }
 
-/** \brief Returns the greatest element in the view
- *
- *  \param[in] space Execution space
- *  \param[in] v Input view
- */
 template <typename ExecutionSpace, typename ViewType>
-typename ViewType::non_const_value_type max(ExecutionSpace &&space,
-                                            ViewType const &v)
+[[deprecated]] typename ViewType::non_const_value_type
+max(ExecutionSpace &&space, ViewType const &v)
 {
-  static_assert(ViewType::rank == 1, "max requires a View of rank 1");
-  auto const n = v.extent(0);
-  ARBORX_ASSERT(n > 0);
-  using ValueType = typename ViewType::non_const_value_type;
-  ValueType result;
-  Kokkos::Max<typename ViewType::non_const_value_type> reducer(result);
-  Kokkos::RangePolicy<std::decay_t<ExecutionSpace>> policy(
-      std::forward<ExecutionSpace>(space), 0, n);
-  Kokkos::parallel_reduce(
-      "ArborX::Algorithms::max", policy,
-      KOKKOS_LAMBDA(int i, ValueType &update) {
-        if (v(i) > update)
-          update = v(i);
-      },
-      reducer);
-  return result;
+  return Details::KokkosExt::max_reduce(std::forward<ExecutionSpace>(space), v);
 }
 
 template <typename ViewType>

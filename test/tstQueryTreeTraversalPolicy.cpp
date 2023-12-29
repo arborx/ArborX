@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
+#include <ArborX_DetailsKokkosExtMinMaxReduce.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_LinearBVH.hpp>
@@ -69,12 +70,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
       ArborX::query(bvh, ExecutionSpace{}, queries, indices, offset));
   checkResultsAreFine();
 
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+
   // compute number of results per query
   auto counts =
       KokkosExt::cloneWithoutInitializingNorCopying(ExecutionSpace{}, offset);
   KokkosExt::adjacent_difference(ExecutionSpace{}, offset, counts);
   // extract optimal buffer size
-  auto const max_results_per_query = ArborX::max(ExecutionSpace{}, counts);
+  auto const max_results_per_query =
+      KokkosExt::max_reduce(ExecutionSpace{}, counts);
   BOOST_TEST(max_results_per_query == 4);
 
   // optimal size
