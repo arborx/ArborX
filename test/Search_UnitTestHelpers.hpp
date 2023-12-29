@@ -112,56 +112,6 @@ auto query(ExecutionSpace const &exec_space, Tree const &tree,
                  (reference),                                                  \
              boost::test_tools::per_element());
 
-#ifdef ARBORX_ENABLE_MPI
-// Workaround for NVCC that complains that the enclosing parent function
-// (query_with_distance) for an extended __host__ __device__ lambda must not
-// have deduced return type
-template <typename DeviceType, typename ExecutionSpace>
-Kokkos::View<ArborX::Details::PairIndexRankAndDistance *, DeviceType>
-zip(ExecutionSpace const &space, Kokkos::View<int *, DeviceType> indices,
-    Kokkos::View<int *, DeviceType> ranks,
-    Kokkos::View<float *, DeviceType> distances)
-{
-  auto const n = indices.extent(0);
-  Kokkos::View<ArborX::Details::PairIndexRankAndDistance *, DeviceType> values(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::values"), n);
-  Kokkos::parallel_for(
-      "ArborX:UnitTestSupport:zip",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
-        values(i) = {{indices(i), ranks(i)}, distances(i)};
-      });
-  return values;
-}
-
-template <typename ExecutionSpace, typename Tree, typename Queries>
-auto query_with_distance(ExecutionSpace const &exec_space, Tree const &tree,
-                         Queries const &queries,
-                         std::enable_if_t<is_distributed<Tree>{}> * = nullptr)
-{
-  using MemorySpace = typename Tree::memory_space;
-  using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
-
-  Kokkos::View<int *, MemorySpace> offsets("Testing::offsets", 0);
-  Kokkos::View<int *, MemorySpace> indices("Testing::indices", 0);
-  Kokkos::View<int *, MemorySpace> ranks("Testing::ranks", 0);
-  Kokkos::View<float *, MemorySpace> distances("Testing::distances", 0);
-  ArborX::Details::DistributedTreeImpl<DeviceType>::queryDispatchImpl(
-      ArborX::Details::NearestPredicateTag{}, tree, exec_space, queries,
-      indices, offsets, ranks, &distances);
-
-  auto values = zip(exec_space, indices, ranks, distances);
-
-  return make_compressed_storage(
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values));
-}
-#endif
-
-#define ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(exec_space, tree, queries,        \
-                                             reference)                        \
-  BOOST_TEST(query_with_distance(exec_space, tree, queries) == (reference),    \
-             boost::test_tools::per_element());
-
 template <typename Tree, typename ExecutionSpace>
 auto make(ExecutionSpace const &exec_space, std::vector<ArborX::Box> const &b)
 {

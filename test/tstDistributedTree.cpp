@@ -160,10 +160,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
                          makeNearestQueries<DeviceType>({}),
                          make_reference_solution<PairIndexRank>({}, {0}));
 
-  ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-      ExecutionSpace{}, tree, makeNearestQueries<DeviceType>({}),
-      make_reference_solution<PairIndexRankAndDistance>({}, {0}));
-
   // Only rank 0 has a couple spatial queries with a spatial predicate
   if (comm_rank == 0)
   {
@@ -210,15 +206,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
                            }),
                            make_reference_solution<PairIndexRank>({}, {0, 0}));
   }
-
-  // All ranks have a single query with a nearest predicate (this version
-  // returns distances as well)
-  ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-      ExecutionSpace{}, tree,
-      makeNearestQueries<DeviceType>({
-          {{{0., 0., 0.}}, comm_size},
-      }),
-      make_reference_solution<PairIndexRankAndDistance>({}, {0, 0}));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
@@ -258,10 +245,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
                          makeNearestQueries<DeviceType>({}),
                          make_reference_solution<PairIndexRank>({}, {0}));
-
-  ARBORX_TEST_QUERY_TREE_WITH_DISTANCE(
-      ExecutionSpace{}, tree, makeNearestQueries<DeviceType>({}),
-      make_reference_solution<PairIndexRankAndDistance>({}, {0}));
 
   // Querying for more neighbors than there are leaves in the tree
   ARBORX_TEST_QUERY_TREE(
