@@ -30,7 +30,6 @@
 namespace tt = boost::test_tools;
 
 using ArborX::PairIndexRank;
-using ArborX::Details::PairIndexRankAndDistance;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
 {
