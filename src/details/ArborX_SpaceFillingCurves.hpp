@@ -20,6 +20,8 @@
 #include <Kokkos_DetectionIdiom.hpp>
 #include <Kokkos_Macros.hpp>
 
+#include <type_traits>
+
 namespace ArborX
 {
 namespace Experimental
@@ -74,32 +76,22 @@ struct Morton64
 namespace Details
 {
 
-template <class SpaceFillingCurve, class Box, class Geometry>
-using SpaceFillingCurveProjectionArchetypeExpression =
-    std::invoke_result_t<SpaceFillingCurve, Box, Geometry>;
-
 template <int DIM, class SpaceFillingCurve>
 void check_valid_space_filling_curve(SpaceFillingCurve const &)
 {
   using Point = ExperimentalHyperGeometry::Point<DIM>;
   using Box = ExperimentalHyperGeometry::Box<DIM>;
 
-  static_assert(
-      Kokkos::is_detected<SpaceFillingCurveProjectionArchetypeExpression,
-                          SpaceFillingCurve, Box, Point>::value);
-  static_assert(
-      Kokkos::is_detected<SpaceFillingCurveProjectionArchetypeExpression,
-                          SpaceFillingCurve, Box, Box>::value);
+  static_assert(std::is_invocable_v<SpaceFillingCurve const &, Box, Point>);
+  static_assert(std::is_invocable_v<SpaceFillingCurve const &, Box, Box>);
+
   using OrderValueType =
-      Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
-                         SpaceFillingCurve, Box, Point>;
+      std::invoke_result_t<SpaceFillingCurve const &, Box, Point>;
   static_assert(std::is_same<OrderValueType, unsigned int>::value ||
                 std::is_same<OrderValueType, unsigned long long>::value);
-  static_assert(
-      std::is_same<
-          OrderValueType,
-          Kokkos::detected_t<SpaceFillingCurveProjectionArchetypeExpression,
-                             SpaceFillingCurve, Box, Box>>::value);
+  static_assert(std::is_same_v<
+                OrderValueType,
+                std::invoke_result_t<SpaceFillingCurve const &, Box, Box>>);
 }
 
 } // namespace Details

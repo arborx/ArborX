@@ -307,9 +307,8 @@ BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter, BoundingVolume>::
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::compute_linear_ordering");
 
   // Map indexables from multidimensional domain to one-dimensional interval
-  using LinearOrderingValueType = Kokkos::detected_t<
-      Details::SpaceFillingCurveProjectionArchetypeExpression,
-      SpaceFillingCurve, decltype(bbox), indexable_type>;
+  using LinearOrderingValueType =
+      std::invoke_result_t<SpaceFillingCurve, decltype(bbox), indexable_type>;
   Kokkos::View<LinearOrderingValueType *, MemorySpace> linear_ordering_indices(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::BVH::BVH::linear_ordering"),
