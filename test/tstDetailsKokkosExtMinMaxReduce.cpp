@@ -12,7 +12,7 @@
 #include "ArborXTest_StdVectorToKokkosView.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
-#include <ArborX_DetailsKokkosExtMinMaxReductions.hpp>
+#include <ArborX_DetailsKokkosExtMinMaxReduce.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -23,7 +23,7 @@
 #include <numeric>
 #include <vector>
 
-#define BOOST_TEST_MODULE MinMaxReductions
+#define BOOST_TEST_MODULE MinMaxReduce
 
 namespace tt = boost::test_tools;
 

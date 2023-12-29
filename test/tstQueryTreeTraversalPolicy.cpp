@@ -10,7 +10,7 @@
  ****************************************************************************/
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
-#include <ArborX_DetailsKokkosExtMinMaxReductions.hpp>
+#include <ArborX_DetailsKokkosExtMinMaxReduce.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_LinearBVH.hpp>

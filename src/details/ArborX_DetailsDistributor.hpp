@@ -13,7 +13,7 @@
 
 #include <ArborX_Config.hpp>
 
-#include <ArborX_DetailsKokkosExtMinMaxReductions.hpp>
+#include <ArborX_DetailsKokkosExtMinMaxReduce.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUtils.hpp> // create_layout_right...
