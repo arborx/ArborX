@@ -281,7 +281,7 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
                                        ExecutionSpace const &space,
                                        Predicates const &queries,
                                        Indices &indices, Offset &offset,
-                                       Ranks &ranks, Distances *distances_ptr)
+                                       Ranks &ranks)
 {
   Kokkos::Profiling::ScopedRegion guard(
       "ArborX::DistributedTree::query::nearest");
@@ -293,8 +293,6 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
   auto comm = tree.getComm();
 
   Distances distances("ArborX::DistributedTree::query::nearest::distances", 0);
-  if (distances_ptr)
-    distances = *distances_ptr;
 
   // "Strategy" is used to determine what ranks to forward queries to.  In
   // the 1st pass, the queries are sent to as many ranks as necessary to

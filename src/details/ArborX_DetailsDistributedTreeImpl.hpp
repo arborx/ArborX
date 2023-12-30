@@ -51,8 +51,7 @@ struct DistributedTreeImpl
       Kokkos::is_view<Ranks>{} && Kokkos::is_view<Distances>{}>
   queryDispatchImpl(NearestPredicateTag, DistributedTree const &tree,
                     ExecutionSpace const &space, Predicates const &queries,
-                    Indices &indices, Offset &offset, Ranks &ranks,
-                    Distances *distances_ptr = nullptr);
+                    Indices &indices, Offset &offset, Ranks &ranks);
 
   template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename IndicesAndRanks, typename Offset>
