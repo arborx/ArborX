@@ -1,3 +1,3 @@
-add_executable(ArborX_Example_BruteForce.exe brute_force.cpp)
-target_link_libraries(ArborX_Example_BruteForce.exe ArborX::ArborX Boost::program_options)
+add_executable(ArborX_Example_BruteForce.exe example_brute_force.cpp)
+target_link_libraries(ArborX_Example_BruteForce.exe ArborX::ArborX)
 add_test(NAME ArborX_Example_BruteForce COMMAND ArborX_Example_BruteForce.exe)
