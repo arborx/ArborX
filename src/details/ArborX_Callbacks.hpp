@@ -61,7 +61,7 @@ struct is_tagged_post_callback
 template <typename T>
 struct Sink
 {
-  void operator()(T const &) const {}
+  KOKKOS_FUNCTION void operator()(T const &) const {}
 };
 
 template <typename OutputView>
