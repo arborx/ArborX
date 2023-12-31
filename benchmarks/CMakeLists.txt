@@ -1,5 +1,7 @@
 find_package(Boost 1.56.0 REQUIRED COMPONENTS program_options)
 
+# FIXME: when we start requiring benchmark >= 1.8.0, reenable
+# "readability-redundant-string-cstr" check in .clang-tidy
 find_package(benchmark 1.5.4 REQUIRED)
 message(STATUS "Found benchmark: ${benchmark_DIR} (version \"${benchmark_VERSION}\")")
 
