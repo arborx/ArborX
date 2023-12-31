@@ -130,11 +130,8 @@ public:
       return Kokkos::TeamPolicy<ExecutionSpace>(space, league_size, team_size)
           .set_scratch_size(0, Kokkos::PerThread(perTargetMem()));
     }
-    else
-    {
-      return Kokkos::TeamPolicy<ExecutionSpace>(space, _num_targets, 1, 1)
-          .set_scratch_size(0, Kokkos::PerTeam(perTargetMem()));
-    }
+    return Kokkos::TeamPolicy<ExecutionSpace>(space, _num_targets, 1, 1)
+        .set_scratch_size(0, Kokkos::PerTeam(perTargetMem()));
   }
 
 private:
