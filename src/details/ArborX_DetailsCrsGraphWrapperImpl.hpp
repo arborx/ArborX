@@ -210,6 +210,13 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
 
   int const n_results = KokkosExt::lastElement(space, offset);
 
+  if(n_results < 0){
+    // overflow
+    throw std::runtime_error("The search resulted in too many neighbor pairs. "
+                             "Please ensure the primitive positions are not "
+                             "in a degenerate state.");
+  }
+
   Kokkos::Profiling::popRegion();
 
   if (n_results == 0)
