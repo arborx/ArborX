@@ -13,6 +13,7 @@
 
 #include <ArborX_DetailsDistributedTreeImpl.hpp>
 #include <ArborX_DetailsDistributedTreeUtils.hpp>
+#include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_Predicates.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -52,12 +53,13 @@ DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
   auto const &bottom_tree = tree._bottom_tree;
   auto comm = tree.getComm();
 
-  Kokkos::View<int *, MemorySpace> indices(
-      "ArborX::DistributedTree::query::spatial::indices", 0);
+  Kokkos::View<int *, MemorySpace> intersected_ranks(
+      "ArborX::DistributedTree::query::spatial::intersected_ranks", 0);
+  query(top_tree, space, queries, LegacyDefaultCallback{}, intersected_ranks,
+        offset);
+
   Kokkos::View<int *, MemorySpace> ranks(
       "ArborX::DistributedTree::query::spatial::ranks", 0);
-  query(top_tree, space, queries, indices, offset);
-
   {
     // NOTE_COMM_SPATIAL: The communication pattern here for the spatial search
     // is identical to that of the nearest search (see NOTE_COMM_NEAREST). The
@@ -72,8 +74,8 @@ DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
         "ArborX::DistributedTree::query::spatial::query_ids", 0);
     Kokkos::View<Query *, MemorySpace> fwd_queries(
         "ArborX::DistributedTree::query::spatial::fwd_queries", 0);
-    forwardQueries(comm, space, queries, indices, offset, fwd_queries, ids,
-                   ranks);
+    forwardQueries(comm, space, queries, intersected_ranks, offset, fwd_queries,
+                   ids, ranks);
 
     // Perform queries that have been received
     query(bottom_tree, space, fwd_queries, callback, out, offset);
