@@ -56,7 +56,9 @@ public:
   auto size() const { return _data.size(); }
 };
 
-template <typename Values, typename Index = unsigned>
+// Make sure the default Index matches the default in PairValueIndex
+template <typename Values,
+          typename Index = typename PairValueIndex<int>::index_type>
 auto attach_indices(Values const &values)
 {
   return AttachIndices<Values, Index>{values};
