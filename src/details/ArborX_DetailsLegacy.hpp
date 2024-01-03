@@ -61,27 +61,29 @@ struct LegacyCallbackWrapper
 {
   Callback _callback;
 
-  template <typename Predicate, typename Value>
-  KOKKOS_FUNCTION auto operator()(Predicate const &predicate,
-                                  PairValueIndex<Value> const &value) const
+  template <typename Predicate, typename Value, typename Index>
+  KOKKOS_FUNCTION auto
+  operator()(Predicate const &predicate,
+             PairValueIndex<Value, Index> const &value) const
   {
     return _callback(predicate, value.index);
   }
 
-  template <typename Predicate, typename Value, typename Output>
-  KOKKOS_FUNCTION auto operator()(Predicate const &predicate,
-                                  PairValueIndex<Value> const &value,
+  template <typename Predicate, typename Value, typename Index, typename Output>
+  KOKKOS_FUNCTION void operator()(Predicate const &predicate,
+                                  PairValueIndex<Value, Index> const &value,
                                   Output const &out) const
   {
-    return _callback(predicate, value.index, out);
+    _callback(predicate, value.index, out);
   }
 };
 
 struct LegacyDefaultCallback
 {
-  template <typename Query, typename Value, typename OutputFunctor>
+  template <typename Query, typename Value, typename Index,
+            typename OutputFunctor>
   KOKKOS_FUNCTION void operator()(Query const &,
-                                  PairValueIndex<Value> const &value,
+                                  PairValueIndex<Value, Index> const &value,
                                   OutputFunctor const &output) const
   {
     output(value.index);
