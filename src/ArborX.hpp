@@ -24,5 +24,8 @@
 #include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
 #include <ArborX_Sphere.hpp>
+// for backward compatiblity for those using the now deprecated algorithms min
+// or max that used to namespace ArborX
+#include <ArborX_DetailsUtils.hpp>
 
 #endif
