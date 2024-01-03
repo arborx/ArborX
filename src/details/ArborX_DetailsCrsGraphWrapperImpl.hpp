@@ -211,10 +211,13 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
   int const n_results = KokkosExt::lastElement(space, offset);
 
   if(n_results < 0){
-    // overflow
+    // This condition confirms an overflow has occurred. Note that a positive 
+    // value doesn't necessarily mean an overflow hasn't happened. That would
+    // involve iterating through the `offset` array to check for negative value,
+    // something we leave to the user.
     throw std::runtime_error("The search resulted in too many neighbor pairs. "
-                             "Please ensure the primitive positions are not "
-                             "in a degenerate state.");
+                             "Please ensure that the primitive positions are "
+                             "not in a degenerate state.");
   }
 
   Kokkos::Profiling::popRegion();
