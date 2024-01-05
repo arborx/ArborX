@@ -57,8 +57,8 @@ public:
 };
 
 // Make sure the default Index matches the default in PairValueIndex
-template <typename Values,
-          typename Index = typename PairValueIndex<int>::index_type>
+template <typename Index = typename PairValueIndex<int>::index_type,
+          typename Values = void>
 auto attach_indices(Values const &values)
 {
   return AttachIndices<Values, Index>{values};
