@@ -12,12 +12,8 @@
 #ifndef ARBORX_DETAILS_HAPPY_TREE_FRIENDS_HPP
 #define ARBORX_DETAILS_HAPPY_TREE_FRIENDS_HPP
 
-#include <Kokkos_Macros.hpp>
-#if KOKKOS_VERSION >= 40200
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
-#else
-#include <impl/Kokkos_Error.hpp> // KOKKOS_ASSERT
-#endif
+#include <Kokkos_Macros.hpp>
 
 #include <type_traits>
 
