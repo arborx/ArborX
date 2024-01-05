@@ -55,8 +55,8 @@ DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
 
   Kokkos::View<int *, MemorySpace> intersected_ranks(
       "ArborX::DistributedTree::query::spatial::intersected_ranks", 0);
-  query(top_tree, space, predicates, LegacyDefaultCallback{}, intersected_ranks,
-        offset);
+  top_tree.query(space, predicates, LegacyDefaultCallback{}, intersected_ranks,
+                 offset);
 
   Kokkos::View<int *, MemorySpace> ranks(
       "ArborX::DistributedTree::query::spatial::ranks", 0);
@@ -78,7 +78,7 @@ DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
                    fwd_predicates, ids, ranks);
 
     // Perform predicates that have been received
-    query(bottom_tree, space, fwd_predicates, callback, out, offset);
+    bottom_tree.query(space, fwd_predicates, callback, out, offset);
 
     // Communicate results back
     communicateResultsBack(comm, space, out, offset, ranks, ids);

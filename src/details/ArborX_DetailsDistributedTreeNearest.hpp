@@ -183,8 +183,8 @@ void DistributedTreeImpl::deviseStrategy(ExecutionSpace const &space,
   auto const &bottom_tree_sizes = tree._bottom_tree_sizes;
 
   // Find the k nearest local trees.
-  query(top_tree, space, predicates, LegacyDefaultCallback{}, nearest_ranks,
-        offset);
+  top_tree.query(space, predicates, LegacyDefaultCallback{}, nearest_ranks,
+                 offset);
 
   // Accumulate total leave count in the local trees until it reaches k which
   // is the number of neighbors queried for.  Stop if local trees get
@@ -267,10 +267,11 @@ void DistributedTreeImpl::reassessStrategy(
       WithinDistanceFromPredicates<Predicates, decltype(farthest_distances)>{
           queries, farthest_distances});
 
-  query(top_tree, space,
-        WithinDistanceFromPredicates<Predicates, decltype(farthest_distances)>{
-            queries, farthest_distances},
-        LegacyDefaultCallback{}, nearest_ranks, offset);
+  top_tree.query(
+      space,
+      WithinDistanceFromPredicates<Predicates, decltype(farthest_distances)>{
+          queries, farthest_distances},
+      LegacyDefaultCallback{}, nearest_ranks, offset);
   // NOTE: in principle, we could perform radius searches on the bottom_tree
   // rather than nearest queries.
 }
@@ -345,8 +346,8 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
       // Perform queries that have been received
       Kokkos::View<PairIndexDistance *, MemorySpace> out(
           "ArborX::DistributedTree::query::pairs_index_distance", 0);
-      query(bottom_tree, space, fwd_queries, callback_with_distance, out,
-            offset);
+      bottom_tree.query(space, fwd_queries, callback_with_distance, out,
+                        offset);
 
       // Unzip
       auto const n = out.extent(0);
