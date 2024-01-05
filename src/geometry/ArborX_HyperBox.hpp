@@ -13,7 +13,6 @@
 #define ARBORX_HYPERBOX_HPP
 
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
-#include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperPoint.hpp>
 

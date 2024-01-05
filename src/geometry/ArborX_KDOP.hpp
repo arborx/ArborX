@@ -21,6 +21,7 @@
 
 #include <Kokkos_Array.hpp>
 #include <Kokkos_Macros.hpp>
+#include <Kokkos_MinMax.hpp>
 
 namespace ArborX
 {
@@ -209,8 +210,8 @@ struct expand<KDOPTag, KDOPTag, KDOP1, KDOP2>
 {
   KOKKOS_FUNCTION static void apply(KDOP1 &that, KDOP2 const &other)
   {
-    using Details::KokkosExt::max;
-    using Details::KokkosExt::min;
+    using Kokkos::max;
+    using Kokkos::min;
 
     constexpr int n_directions = KDOP1::n_directions;
     static_assert(KDOP2::n_directions == n_directions);
@@ -227,8 +228,8 @@ struct expand<KDOPTag, PointTag, KDOP, Point>
 {
   KOKKOS_FUNCTION static void apply(KDOP &kdop, Point const &point)
   {
-    using Details::KokkosExt::max;
-    using Details::KokkosExt::min;
+    using Kokkos::max;
+    using Kokkos::min;
 
     constexpr int DIM = GeometryTraits::dimension_v<Point>;
     constexpr int n_directions = KDOP::n_directions;

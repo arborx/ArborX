@@ -15,7 +15,6 @@
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
-#include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_DetailsWeightedEdge.hpp>
 
@@ -354,7 +353,7 @@ void updateLowerBounds(ExecutionSpace const &space, Labels const &labels,
   Kokkos::parallel_for(
       "ArborX::MST::update_lower_bounds",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
-        using KokkosExt::max;
+        using Kokkos::max;
         auto component = labels(i);
         auto const &edge = component_out_edges(component);
         lower_bounds(i) = max(lower_bounds(i), edge.weight);
@@ -426,7 +425,7 @@ struct UpdateComponentsAndEdges
     }
     // The component's edge is bidirectional, uniquely resolve the bidirectional
     // edge
-    return KokkosExt::min(component, next_component);
+    return Kokkos::min(component, next_component);
   }
 
   KOKKOS_FUNCTION auto computeFinalComponent(int component) const
