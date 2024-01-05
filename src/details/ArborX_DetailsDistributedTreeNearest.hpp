@@ -19,6 +19,7 @@
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
+#include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
@@ -164,15 +165,16 @@ struct CallbackWithDistance
   }
 };
 
-template <typename Tree, typename ExecutionSpace, typename Predicates,
-          typename Indices, typename Offset, typename Distances>
+template <typename ExecutionSpace, typename Tree, typename Predicates,
+          typename Distances, typename Indices, typename Offset>
 void DistributedTreeImpl::deviseStrategy(ExecutionSpace const &space,
-                                         Predicates const &queries,
-                                         Tree const &tree, Indices &indices,
-                                         Offset &offset, Distances &)
+                                         Tree const &tree,
+                                         Predicates const &predicates,
+                                         Distances const &,
+                                         Indices &nearest_ranks, Offset &offset)
 {
   Kokkos::Profiling::ScopedRegion guard(
-      "ArborX::DistributedTree::deviseStrategy");
+      "ArborX::DistributedTree::query::nearest::deviseStrategy");
 
   using namespace DistributedTree;
   using MemorySpace = typename Tree::memory_space;
@@ -181,25 +183,26 @@ void DistributedTreeImpl::deviseStrategy(ExecutionSpace const &space,
   auto const &bottom_tree_sizes = tree._bottom_tree_sizes;
 
   // Find the k nearest local trees.
-  query(top_tree, space, queries, indices, offset);
+  top_tree.query(space, predicates, LegacyDefaultCallback{}, nearest_ranks,
+                 offset);
 
   // Accumulate total leave count in the local trees until it reaches k which
   // is the number of neighbors queried for.  Stop if local trees get
   // empty because it means that they are no more leaves and there is no point
-  // on forwarding queries to leafless trees.
-  auto const n_queries = queries.size();
+  // on forwarding predicates to leafless trees.
+  auto const n_predicates = predicates.size();
   Kokkos::View<int *, MemorySpace> new_offset(
-      Kokkos::view_alloc(space, offset.label()), n_queries + 1);
+      Kokkos::view_alloc(space, offset.label()), n_predicates + 1);
   Kokkos::parallel_for(
-      "ArborX::DistributedTree::query::"
+      "ArborX::DistributedTree::query::nearest::"
       "bottom_trees_with_required_cumulated_leaves_count",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_predicates),
       KOKKOS_LAMBDA(int i) {
         int leaves_count = 0;
-        int const n_nearest_neighbors = getK(queries(i));
+        int const n_nearest_neighbors = getK(predicates(i));
         for (int j = offset(i); j < offset(i + 1); ++j)
         {
-          int const bottom_tree_size = bottom_tree_sizes(indices(j));
+          int const bottom_tree_size = bottom_tree_sizes(nearest_ranks(j));
           if ((bottom_tree_size == 0) || (leaves_count >= n_nearest_neighbors))
             break;
           leaves_count += bottom_tree_size;
@@ -209,32 +212,31 @@ void DistributedTreeImpl::deviseStrategy(ExecutionSpace const &space,
 
   KokkosExt::exclusive_scan(space, new_offset, new_offset, 0);
 
-  // Truncate results so that queries will only be forwarded to as many local
+  // Truncate results so that predicates will only be forwarded to as many local
   // trees as necessary to find k neighbors.
-  Kokkos::View<int *, MemorySpace> new_indices(
-      Kokkos::view_alloc(space, indices.label()),
+  Kokkos::View<int *, MemorySpace> new_nearest_ranks(
+      Kokkos::view_alloc(space, nearest_ranks.label()),
       KokkosExt::lastElement(space, new_offset));
   Kokkos::parallel_for(
-      "ArborX::DistributedTree::query::truncate_before_forwarding",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+      "ArborX::DistributedTree::query::nearest::truncate_before_forwarding",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_predicates),
       KOKKOS_LAMBDA(int i) {
         for (int j = 0; j < new_offset(i + 1) - new_offset(i); ++j)
-          new_indices(new_offset(i) + j) = indices(offset(i) + j);
+          new_nearest_ranks(new_offset(i) + j) = nearest_ranks(offset(i) + j);
       });
 
   offset = new_offset;
-  indices = new_indices;
+  nearest_ranks = new_nearest_ranks;
 }
 
-template <typename Tree, typename ExecutionSpace, typename Predicates,
-          typename Indices, typename Offset, typename Distances>
-void DistributedTreeImpl::reassessStrategy(ExecutionSpace const &space,
-                                           Predicates const &queries,
-                                           Tree const &tree, Indices &indices,
-                                           Offset &offset, Distances &distances)
+template <typename ExecutionSpace, typename Tree, typename Predicates,
+          typename Distances, typename Indices, typename Offset>
+void DistributedTreeImpl::reassessStrategy(
+    ExecutionSpace const &space, Tree const &tree, Predicates const &queries,
+    Distances const &distances, Indices &nearest_ranks, Offset &offset)
 {
   Kokkos::Profiling::ScopedRegion guard(
-      "ArborX::DistributedTree::reassessStrategy");
+      "ArborX::DistributedTree::query::nearest::reassessStrategy");
 
   using namespace DistributedTree;
   using MemorySpace = typename Tree::memory_space;
@@ -244,14 +246,14 @@ void DistributedTreeImpl::reassessStrategy(ExecutionSpace const &space,
 
   // Determine distance to the farthest neighbor found so far.
   Kokkos::View<float *, MemorySpace> farthest_distances(
-      Kokkos::view_alloc(
-          space, Kokkos::WithoutInitializing,
-          "ArborX::DistributedTree::query::reassessStrategy::distances"),
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         "ArborX::DistributedTree::query::nearest::"
+                         "reassessStrategy::distances"),
       n_queries);
   // NOTE: in principle distances( j ) are arranged in ascending order for
   // offset( i ) <= j < offset( i + 1 ) so max() is not necessary.
   Kokkos::parallel_for(
-      "ArborX::DistributedTree::query::most_distant_neighbor_so_far",
+      "ArborX::DistributedTree::query::nearest::most_distant_neighbor_so_far",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int i) {
         using KokkosExt::max;
@@ -265,10 +267,11 @@ void DistributedTreeImpl::reassessStrategy(ExecutionSpace const &space,
       WithinDistanceFromPredicates<Predicates, decltype(farthest_distances)>{
           queries, farthest_distances});
 
-  query(top_tree, space,
-        WithinDistanceFromPredicates<Predicates, decltype(farthest_distances)>{
-            queries, farthest_distances},
-        indices, offset);
+  top_tree.query(
+      space,
+      WithinDistanceFromPredicates<Predicates, decltype(farthest_distances)>{
+          queries, farthest_distances},
+      LegacyDefaultCallback{}, nearest_ranks, offset);
   // NOTE: in principle, we could perform radius searches on the bottom_tree
   // rather than nearest queries.
 }
@@ -310,14 +313,18 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
   CallbackWithDistance<ArborX::BVH<MemorySpace>> callback_with_distance(
       space, bottom_tree);
 
+  Kokkos::View<int *, MemorySpace> nearest_ranks(
+      "ArborX::DistributedTree::query::nearest::nearest_ranks", 0);
+
   // NOTE: compiler would not deduce __range for the braced-init-list, but I
   // got it to work with the static_cast to function pointers.
-  using Strategy = void (*)(ExecutionSpace const &, Predicates const &,
-                            Tree const &, Indices &, Offset &, Distances &);
+  using Strategy =
+      void (*)(ExecutionSpace const &, Tree const &, Predicates const &,
+               Distances const &, decltype(nearest_ranks) &, Offset &);
   for (auto implementStrategy : {static_cast<Strategy>(deviseStrategy),
                                  static_cast<Strategy>(reassessStrategy)})
   {
-    implementStrategy(space, queries, tree, indices, offset, distances);
+    implementStrategy(space, tree, queries, distances, nearest_ranks, offset);
 
     {
       // NOTE_COMM_NEAREST: The communication pattern here for the nearest
@@ -333,14 +340,14 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
           "ArborX::DistributedTree::query::nearest::query_ids", 0);
       Kokkos::View<Query *, MemorySpace> fwd_queries(
           "ArborX::DistributedTree::query::nearest::fwd_queries", 0);
-      forwardQueries(comm, space, queries, indices, offset, fwd_queries, ids,
-                     ranks);
+      forwardQueries(comm, space, queries, nearest_ranks, offset, fwd_queries,
+                     ids, ranks);
 
       // Perform queries that have been received
       Kokkos::View<PairIndexDistance *, MemorySpace> out(
           "ArborX::DistributedTree::query::pairs_index_distance", 0);
-      query(bottom_tree, space, fwd_queries, callback_with_distance, out,
-            offset);
+      bottom_tree.query(space, fwd_queries, callback_with_distance, out,
+                        offset);
 
       // Unzip
       auto const n = out.extent(0);
@@ -361,7 +368,7 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
 
       // Merge results
       Kokkos::Profiling::pushRegion(
-          "ArborX::DistributedTree::nearest::postprocess_results");
+          "ArborX::DistributedTree::query::nearest::postprocess_results");
 
       int const n_queries = queries.size();
       countResults(space, n_queries, ids, offset);

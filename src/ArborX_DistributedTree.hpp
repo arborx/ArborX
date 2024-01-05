@@ -18,6 +18,8 @@
 #include <ArborX_DetailsDistributedTreeSpatial.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <ArborX_PairIndexRank.hpp>
+#include <ArborX_PairValueIndex.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -33,11 +35,19 @@ namespace ArborX
 template <typename MemorySpace>
 class DistributedTree
 {
+  using BoundingVolume = typename BVH<MemorySpace>::bounding_volume_type;
+
+  using BottomTree = BVH<MemorySpace>;
+
+  using TopTree =
+      BoundingVolumeHierarchy<MemorySpace, PairValueIndex<BoundingVolume, int>,
+                              Details::DefaultIndexableGetter, BoundingVolume>;
+
 public:
   using memory_space = MemorySpace;
   static_assert(Kokkos::is_memory_space<MemorySpace>::value);
-  using size_type = typename BVH<MemorySpace>::size_type;
-  using bounding_volume_type = typename BVH<MemorySpace>::bounding_volume_type;
+  using size_type = typename BottomTree::size_type;
+  using bounding_volume_type = BoundingVolume;
 
   template <typename ExecutionSpace, typename Primitives>
   DistributedTree(MPI_Comm comm, ExecutionSpace const &space,
@@ -94,8 +104,8 @@ private:
   MPI_Comm getComm() const { return *_comm_ptr; }
 
   std::shared_ptr<MPI_Comm> _comm_ptr;
-  BVH<MemorySpace> _top_tree;    // replicated
-  BVH<MemorySpace> _bottom_tree; // local
+  BottomTree _bottom_tree; // local
+  TopTree _top_tree;       // replicated
   size_type _top_tree_size;
   Kokkos::View<size_type *, MemorySpace> _bottom_tree_sizes;
 };
@@ -129,7 +139,7 @@ DistributedTree<MemorySpace>::DistributedTree(MPI_Comm comm,
   Kokkos::Profiling::pushRegion("ArborX::DistributedTree::DistributedTree::"
                                 "bottom_tree_construction");
 
-  _bottom_tree = BVH<MemorySpace>(space, primitives);
+  _bottom_tree = BottomTree(space, primitives);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::DistributedTree::DistributedTree::"
@@ -140,36 +150,37 @@ DistributedTree<MemorySpace>::DistributedTree(MPI_Comm comm,
   int comm_size;
   MPI_Comm_size(getComm(), &comm_size);
 
-  Kokkos::View<Box *, MemorySpace> boxes(
+  Kokkos::View<BoundingVolume *, MemorySpace> volumes(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::DistributedTree::DistributedTree::"
-                         "rank_bounding_boxes"),
+                         "rank_bounding_volumes"),
       comm_size);
 
   Kokkos::DefaultHostExecutionSpace host_exec;
 #ifdef ARBORX_ENABLE_GPU_AWARE_MPI
-  Kokkos::deep_copy(space, Kokkos::subview(boxes, comm_rank),
+  Kokkos::deep_copy(space, Kokkos::subview(volumes, comm_rank),
                     _bottom_tree.bounds());
   space.fence("ArborX::DistributedTree::DistributedTree"
               " (fill on device done before MPI_Allgather)");
 
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
-                static_cast<void *>(boxes.data()), sizeof(Box), MPI_BYTE,
-                getComm());
+                static_cast<void *>(volumes.data()), sizeof(BoundingVolume),
+                MPI_BYTE, getComm());
 #else
-  auto boxes_host = Kokkos::create_mirror_view(
-      Kokkos::view_alloc(host_exec, Kokkos::WithoutInitializing), boxes);
+  auto volumes_host = Kokkos::create_mirror_view(
+      Kokkos::view_alloc(host_exec, Kokkos::WithoutInitializing), volumes);
   host_exec.fence();
-  boxes_host(comm_rank) = _bottom_tree.bounds();
+  volumes_host(comm_rank) = _bottom_tree.bounds();
 
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
-                static_cast<void *>(boxes_host.data()), sizeof(Box), MPI_BYTE,
-                getComm());
+                static_cast<void *>(volumes_host.data()),
+                sizeof(BoundingVolume), MPI_BYTE, getComm());
 
-  Kokkos::deep_copy(space, boxes, boxes_host);
+  Kokkos::deep_copy(space, volumes, volumes_host);
 #endif
 
-  _top_tree = BVH<MemorySpace>{space, boxes};
+  // Build top tree with attached ranks
+  _top_tree = TopTree{space, Experimental::attach_indices<int>(volumes)};
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::DistributedTree::DistributedTree::"
