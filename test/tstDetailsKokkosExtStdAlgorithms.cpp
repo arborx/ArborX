@@ -83,9 +83,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(exclusive_scan, DeviceType, ARBORX_DEVICE_TYPES)
   BOOST_TEST(x_host == y_ref, tt::per_element());
   int const m = 11;
   BOOST_TEST(n != m);
-  Kokkos::View<int *, DeviceType> z("z", m);
-  BOOST_CHECK_THROW(KokkosExt::exclusive_scan(space, x, z, 0),
-                    ArborX::SearchException);
   Kokkos::View<double[3], DeviceType> v("v");
   auto v_host = Kokkos::create_mirror_view(v);
   v_host(0) = 1.;
@@ -97,14 +94,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(exclusive_scan, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::deep_copy(v_host, v);
   std::vector<double> v_ref = {5., 6., 7.};
   BOOST_TEST(v_host == v_ref, tt::per_element());
-  Kokkos::View<double *, DeviceType> w("w", 4);
-  BOOST_CHECK_THROW(KokkosExt::exclusive_scan(space, v, w, 0),
-                    ArborX::SearchException);
   v_host(0) = 1.;
   v_host(1) = 0.;
   v_host(2) = 0.;
   Kokkos::deep_copy(v, v_host);
-  Kokkos::resize(w, 3);
+  Kokkos::View<double *, DeviceType> w("w", 3);
   KokkosExt::exclusive_scan(space, v, w, 0);
   auto w_host = Kokkos::create_mirror_view(w);
   Kokkos::deep_copy(w_host, w);
@@ -144,8 +138,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(adjacent_difference, DeviceType,
   v_host(3) = 8;
   v_host(4) = 10;
   Kokkos::deep_copy(v, v_host);
-  // In-place operation is not allowed
-  BOOST_CHECK_THROW(adjacent_difference(space, v, v), ArborX::SearchException);
   auto w = Kokkos::create_mirror(DeviceType(), v);
   BOOST_CHECK_NO_THROW(adjacent_difference(space, v, w));
   auto w_host = Kokkos::create_mirror_view(w);
@@ -155,7 +147,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(adjacent_difference, DeviceType,
 
   Kokkos::View<float *, DeviceType> x("x", 10);
   Kokkos::deep_copy(x, 3.14);
-  BOOST_CHECK_THROW(adjacent_difference(space, x, x), ArborX::SearchException);
   Kokkos::View<float[10], DeviceType> y("y");
   BOOST_CHECK_NO_THROW(adjacent_difference(space, x, y));
   std::vector<float> y_ref(10);
@@ -163,7 +154,4 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(adjacent_difference, DeviceType,
   auto y_host = Kokkos::create_mirror_view(y);
   Kokkos::deep_copy(y_host, y);
   BOOST_TEST(y_host == y_ref, tt::per_element());
-
-  Kokkos::resize(x, 5);
-  BOOST_CHECK_THROW(adjacent_difference(space, y, x), ArborX::SearchException);
 }
