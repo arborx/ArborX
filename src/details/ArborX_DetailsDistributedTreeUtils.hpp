@@ -16,6 +16,7 @@
 #include <ArborX_DetailsContainers.hpp>
 #include <ArborX_DetailsDistributor.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
+#include <ArborX_DetailsKokkosExtSort.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsPriorityQueue.hpp>
@@ -107,24 +108,28 @@ void sortResults(ExecutionSpace const &space, View keys,
   if (n == 0)
     return;
 
-  // We only want to get the permutation here, but sortObjects also sorts the
-  // elements given to it. Hence, we need to create a copy.
-  // TODO try to avoid the copy
-  View keys_clone(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                         "ArborX::DistributedTree::query::sortResults::keys"),
-      keys.size());
-  Kokkos::deep_copy(space, keys_clone, keys);
-  auto const permutation = ArborX::Details::sortObjects(space, keys_clone);
+  // We don't want to sort the keys, so we create a copy.
+  auto keys_clone = KokkosExt::clone(space, keys);
+  if constexpr (sizeof...(OtherViews) == 1 &&
+                std::tuple_element_t<0, std::tuple<OtherViews...>>::rank == 1)
+  {
+    // If there's only one 1D view to process, we can avoid computing the
+    // permutation.
+    KokkosExt::sortByKey(space, keys_clone, other_views...);
+  }
+  else
+  {
+    auto const permutation = ArborX::Details::sortObjects(space, keys_clone);
 
-  // Call applyPermutation for every entry in the parameter pack.
-  // We need to use the comma operator here since the function returns void.
-  // The variable we assign to is actually not needed. We just need something
-  // to store the initializer list (that contains only zeros).
-  auto dummy = {
-      (ArborX::Details::applyPermutation(space, permutation, other_views),
-       0)...};
-  std::ignore = dummy;
+    // Call applyPermutation for every entry in the parameter pack.
+    // We need to use the comma operator here since the function returns void.
+    // The variable we assign to is actually not needed. We just need something
+    // to store the initializer list (that contains only zeros).
+    auto dummy = {
+        (ArborX::Details::applyPermutation(space, permutation, other_views),
+         0)...};
+    std::ignore = dummy;
+  }
 }
 
 template <typename ExecutionSpace, typename QueryIdsView, typename OffsetView>
