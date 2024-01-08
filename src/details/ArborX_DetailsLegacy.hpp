@@ -90,6 +90,18 @@ struct LegacyDefaultCallback
   }
 };
 
+struct LegacyDefaultCallbackWithRank
+{
+  int _rank;
+
+  template <typename Predicate, typename OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Predicate const &, int primitive_index,
+                                  OutputFunctor const &out) const
+  {
+    out({primitive_index, _rank});
+  }
+};
+
 struct LegacyDefaultTemplateValue
 {};
 

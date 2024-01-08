@@ -19,7 +19,6 @@
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
-#include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
@@ -108,15 +107,42 @@ struct AccessTraits<
 namespace Details
 {
 
-struct PairIndexDistance
+template <typename Value>
+struct PairValueDistance
 {
-  int index;
+  Value value;
   float distance;
 };
 
 template <typename Tree>
 struct CallbackWithDistance
 {
+  Tree _tree;
+
+  template <typename ExecutionSpace>
+  CallbackWithDistance(ExecutionSpace const &, Tree const &tree)
+      : _tree(tree)
+  {}
+
+  template <typename Query, typename Value, typename Output>
+  KOKKOS_FUNCTION void operator()(Query const &query, Value const &value,
+                                  Output const &out) const
+  {
+    // FIXME no access to indexable getter
+    out({value, distance(getGeometry(query), _tree._indexable_getter(value))});
+  }
+};
+
+template <typename MemorySpace>
+struct CallbackWithDistance<BoundingVolumeHierarchy<
+    MemorySpace, Details::LegacyDefaultTemplateValue,
+    Details::DefaultIndexableGetter, ExperimentalHyperGeometry::Box<3, float>>>
+{
+  using Tree =
+      BoundingVolumeHierarchy<MemorySpace, Details::LegacyDefaultTemplateValue,
+                              Details::DefaultIndexableGetter,
+                              ExperimentalHyperGeometry::Box<3, float>>;
+
   Tree _tree;
   Kokkos::View<unsigned int *, typename Tree::memory_space> _rev_permute;
 
@@ -277,13 +303,13 @@ void DistributedTreeImpl::reassessStrategy(
 }
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
-          typename Indices, typename Offset, typename Ranks, typename Distances>
-std::enable_if_t<Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{} &&
+          typename Values, typename Offset, typename Ranks, typename Distances>
+std::enable_if_t<Kokkos::is_view<Values>{} && Kokkos::is_view<Offset>{} &&
                  Kokkos::is_view<Ranks>{} && Kokkos::is_view<Distances>{}>
 DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
                                        ExecutionSpace const &space,
                                        Predicates const &queries,
-                                       Indices &indices, Offset &offset,
+                                       Values &values, Offset &offset,
                                        Ranks &ranks)
 {
   Kokkos::Profiling::ScopedRegion guard(
@@ -291,6 +317,7 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
 
   using namespace DistributedTree;
   using MemorySpace = typename Tree::memory_space;
+  using Value = typename Values::value_type;
 
   auto const &bottom_tree = tree._bottom_tree;
   auto comm = tree.getComm();
@@ -306,12 +333,8 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
   // The current implementation discards the results after the 1st pass and
   // recompute everything instead of just searching for potential better
   // neighbors and updating the list.
-
-  // Right now, distance calculations only work with BVH due to using functions
-  // in DistributedTreeNearestUtils. So, there's no point in replacing this
-  // with decltype.
-  CallbackWithDistance<ArborX::BVH<MemorySpace>> callback_with_distance(
-      space, bottom_tree);
+  CallbackWithDistance<std::decay_t<decltype(bottom_tree)>>
+      callback_with_distance(space, bottom_tree);
 
   Kokkos::View<int *, MemorySpace> nearest_ranks(
       "ArborX::DistributedTree::query::nearest::nearest_ranks", 0);
@@ -344,26 +367,26 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
                      ids, ranks);
 
       // Perform queries that have been received
-      Kokkos::View<PairIndexDistance *, MemorySpace> out(
-          "ArborX::DistributedTree::query::pairs_index_distance", 0);
+      Kokkos::View<PairValueDistance<Value> *, MemorySpace> out(
+          "ArborX::DistributedTree::query::nearest::pairs_index_distance", 0);
       bottom_tree.query(space, fwd_queries, callback_with_distance, out,
                         offset);
 
       // Unzip
       auto const n = out.extent(0);
-      KokkosExt::reallocWithoutInitializing(space, indices, n);
+      KokkosExt::reallocWithoutInitializing(space, values, n);
       KokkosExt::reallocWithoutInitializing(space, distances, n);
       Kokkos::parallel_for(
           "ArborX::DistributedTree::query::nearest::split_"
           "index_distance_pairs",
           Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
           KOKKOS_LAMBDA(int i) {
-            indices(i) = out(i).index;
+            values(i) = out(i).value;
             distances(i) = out(i).distance;
           });
 
       // Communicate results back
-      communicateResultsBack(comm, space, indices, offset, ranks, ids,
+      communicateResultsBack(comm, space, values, offset, ranks, ids,
                              &distances);
 
       // Merge results
@@ -372,8 +395,8 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
 
       int const n_queries = queries.size();
       countResults(space, n_queries, ids, offset);
-      sortResults(space, ids, indices, ranks, distances);
-      filterResults(space, queries, distances, indices, offset, ranks);
+      sortResults(space, ids, values, ranks, distances);
+      filterResults(space, queries, distances, values, offset, ranks);
 
       Kokkos::Profiling::popRegion();
     }
@@ -381,29 +404,17 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
 }
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
-          typename IndicesAndRanks, typename Offset>
-std::enable_if_t<Kokkos::is_view<IndicesAndRanks>{} &&
-                 Kokkos::is_view<Offset>{}>
+          typename Values, typename Offset>
+std::enable_if_t<Kokkos::is_view<Values>{} && Kokkos::is_view<Offset>{}>
 DistributedTreeImpl::queryDispatch(NearestPredicateTag tag, Tree const &tree,
                                    ExecutionSpace const &space,
-                                   Predicates const &queries,
-                                   IndicesAndRanks &values, Offset &offset)
+                                   Predicates const &queries, Values &values,
+                                   Offset &offset)
 {
-  // FIXME avoid zipping when distributed nearest callbacks become available
-  Kokkos::View<int *, ExecutionSpace> indices(
-      "ArborX::DistributedTree::query::nearest::indices", 0);
   Kokkos::View<int *, ExecutionSpace> ranks(
       "ArborX::DistributedTree::query::nearest::ranks", 0);
-  queryDispatchImpl(tag, tree, space, queries, indices, offset, ranks);
-  auto const n = indices.extent(0);
-  KokkosExt::reallocWithoutInitializing(space, values, n);
-  Kokkos::parallel_for(
-      "ArborX::DistributedTree::query::zip_indices_and_ranks",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
-        values(i) = {indices(i), ranks(i)};
-      });
+  queryDispatchImpl(tag, tree, space, queries, values, offset, ranks);
 }
-
 } // namespace Details
 } // namespace ArborX
 

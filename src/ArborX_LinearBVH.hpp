@@ -45,6 +45,8 @@ struct PerThread
 namespace Details
 {
 struct HappyTreeFriends;
+template <typename Tree>
+struct CallbackWithDistance;
 } // namespace Details
 
 template <
@@ -123,6 +125,8 @@ public:
 
 private:
   friend struct Details::HappyTreeFriends;
+  template <typename Tree>
+  friend struct Details::CallbackWithDistance;
 
   using indexable_type =
       std::decay_t<std::invoke_result_t<IndexableGetter, Value>>;

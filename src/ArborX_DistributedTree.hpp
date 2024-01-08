@@ -30,28 +30,30 @@
 namespace ArborX
 {
 
-// NOTE: query() must be called as collective over all processes in the
-// communicator passed to the constructor
-template <typename MemorySpace>
-class DistributedTree
+template <typename BottomTree>
+class DistributedTreeBase
 {
-  using BoundingVolume = typename BVH<MemorySpace>::bounding_volume_type;
-
-  using BottomTree = BVH<MemorySpace>;
-
+private:
+  using MemorySpace = typename BottomTree::memory_space;
+  using BoundingVolume = typename BottomTree::bounding_volume_type;
   using TopTree =
       BoundingVolumeHierarchy<MemorySpace, PairValueIndex<BoundingVolume, int>,
                               Details::DefaultIndexableGetter, BoundingVolume>;
 
+  using bottom_tree_type = BottomTree;
+  using top_tree_type = TopTree;
+
 public:
   using memory_space = MemorySpace;
   static_assert(Kokkos::is_memory_space<MemorySpace>::value);
-  using size_type = typename BottomTree::size_type;
+  using size_type = typename MemorySpace::size_type;
   using bounding_volume_type = BoundingVolume;
+  using value_type = typename BottomTree::value_type;
 
-  template <typename ExecutionSpace, typename Primitives>
-  DistributedTree(MPI_Comm comm, ExecutionSpace const &space,
-                  Primitives const &primitives);
+public:
+  template <typename ExecutionSpace, typename... Args>
+  DistributedTreeBase(MPI_Comm comm, ExecutionSpace const &space,
+                      Args &&...args);
 
   // Return the smallest axis-aligned box able to contain all the objects
   // stored in the tree or an invalid box if the tree is empty.
@@ -98,10 +100,11 @@ public:
                                                 std::forward<Args>(args)...);
   }
 
+protected:
+  MPI_Comm getComm() const { return *_comm_ptr; }
+
 private:
   friend struct Details::DistributedTreeImpl;
-
-  MPI_Comm getComm() const { return *_comm_ptr; }
 
   std::shared_ptr<MPI_Comm> _comm_ptr;
   BottomTree _bottom_tree; // local
@@ -110,11 +113,123 @@ private:
   Kokkos::View<size_type *, MemorySpace> _bottom_tree_sizes;
 };
 
+// NOTE: query() must be called as collective over all processes in the
+// communicator passed to the constructor
+template <
+    typename MemorySpace, typename Value = Details::LegacyDefaultTemplateValue,
+    typename IndexableGetter = Details::DefaultIndexableGetter,
+    typename BoundingVolume = ExperimentalHyperGeometry::Box<
+        GeometryTraits::dimension_v<
+            std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
+        typename GeometryTraits::coordinate_type<
+            std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>::type>>
+class DistributedTree
+    : public DistributedTreeBase<BoundingVolumeHierarchy<
+          MemorySpace, Value, IndexableGetter, BoundingVolume>>
+
+{
+  using base_type = DistributedTreeBase<BoundingVolumeHierarchy<
+      MemorySpace, Value, IndexableGetter, BoundingVolume>>;
+
+public:
+  using memory_space = MemorySpace;
+  static_assert(Kokkos::is_memory_space<MemorySpace>::value);
+  using bounding_volume_type = BoundingVolume;
+  using value_type = Value;
+
+  template <typename ExecutionSpace, typename Values>
+  DistributedTree(MPI_Comm comm, ExecutionSpace const &space,
+                  Values const &values,
+                  IndexableGetter const &indexable_getter = IndexableGetter())
+      : base_type(comm, space, values, indexable_getter)
+  {}
+};
+
 template <typename MemorySpace>
-template <typename ExecutionSpace, typename Primitives>
-DistributedTree<MemorySpace>::DistributedTree(MPI_Comm comm,
-                                              ExecutionSpace const &space,
-                                              Primitives const &primitives)
+class DistributedTree<MemorySpace, Details::LegacyDefaultTemplateValue,
+                      Details::DefaultIndexableGetter,
+                      ExperimentalHyperGeometry::Box<3, float>>
+    : public DistributedTreeBase<BoundingVolumeHierarchy<MemorySpace>>
+{
+  using base_type = DistributedTreeBase<BoundingVolumeHierarchy<MemorySpace>>;
+
+public:
+  using memory_space = MemorySpace;
+  using value_type = int;
+  using bounding_volume_type = typename base_type::bounding_volume_type;
+
+  template <typename ExecutionSpace, typename Primitives>
+  DistributedTree(MPI_Comm comm, ExecutionSpace const &space,
+                  Primitives const &primitives)
+      : base_type(comm, space, primitives)
+  {}
+
+  template <typename ExecutionSpace, typename UserPredicates,
+            typename IndicesAndRanks, typename OffsetView>
+  void query(ExecutionSpace const &space, UserPredicates const &user_predicates,
+             IndicesAndRanks &&indices_and_ranks, OffsetView &&offset) const
+  {
+    namespace KokkosExt = Details::KokkosExt;
+
+    static_assert(
+        KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
+
+    using Predicates = Details::AccessValues<UserPredicates, PredicatesTag>;
+    static_assert(
+        KokkosExt::is_accessible_from<typename Predicates::memory_space,
+                                      ExecutionSpace>::value,
+        "Predicates must be accessible from the execution space");
+
+    Predicates predicates{user_predicates};
+
+    using Tag = typename Predicates::value_type::Tag;
+    if constexpr (std::is_same_v<Tag, Details::SpatialPredicateTag>)
+    {
+      int comm_rank;
+      MPI_Comm_rank(base_type::getComm(), &comm_rank);
+
+      base_type::query(space, predicates,
+                       Details::LegacyDefaultCallbackWithRank{comm_rank},
+                       std::forward<IndicesAndRanks>(indices_and_ranks),
+                       std::forward<OffsetView>(offset));
+    }
+    else if constexpr (std::is_same_v<Tag, Details::NearestPredicateTag>)
+    {
+      // FIXME avoid zipping when distributed nearest callbacks become available
+      Kokkos::View<value_type *, ExecutionSpace> values(
+          "ArborX::DistributedTree::query::nearest::values", 0);
+      Kokkos::View<int *, ExecutionSpace> ranks(
+          "ArborX::DistributedTree::query::nearest::ranks", 0);
+
+      Details::DistributedTreeImpl::queryDispatchImpl(
+          Tag{}, *this, space, predicates, values,
+          std::forward<OffsetView>(offset), ranks);
+
+      auto const n = values.extent(0);
+      KokkosExt::reallocWithoutInitializing(space, indices_and_ranks, n);
+      Kokkos::parallel_for(
+          "ArborX::DistributedTree::query::zip_indices_and_ranks",
+          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+          KOKKOS_LAMBDA(int i) {
+            indices_and_ranks(i) = {values(i), ranks(i)};
+          });
+    }
+  }
+
+  template <typename ExecutionSpace, typename UserPredicates, typename Callback,
+            typename Indices, typename Offset>
+  void query(ExecutionSpace const &space, UserPredicates const &user_predicates,
+             Callback &&callback, Indices &&out, Offset &&offset) const
+  {
+    base_type::query(space, user_predicates, std::forward<Callback>(callback),
+                     std::forward<Indices>(out), std::forward<Offset>(offset));
+  }
+};
+
+template <typename BottomTree>
+template <typename ExecutionSpace, typename... Args>
+DistributedTreeBase<BottomTree>::DistributedTreeBase(
+    MPI_Comm comm, ExecutionSpace const &space, Args &&...args)
 {
   Kokkos::Profiling::pushRegion("ArborX::DistributedTree::DistributedTree");
 
@@ -139,7 +254,7 @@ DistributedTree<MemorySpace>::DistributedTree(MPI_Comm comm,
   Kokkos::Profiling::pushRegion("ArborX::DistributedTree::DistributedTree::"
                                 "bottom_tree_construction");
 
-  _bottom_tree = BottomTree(space, primitives);
+  _bottom_tree = BottomTree(space, std::forward<Args>(args)...);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::DistributedTree::DistributedTree::"
