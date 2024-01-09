@@ -28,8 +28,9 @@ struct NeighborListPredicateGetter
 {
   float _radius;
 
-  template <typename Point>
-  KOKKOS_FUNCTION auto operator()(Point point) const
+  template <typename Point, typename Index>
+  KOKKOS_FUNCTION auto
+  operator()(PairValueIndex<Point, Index> const &pair) const
   {
     static_assert(GeometryTraits::is_point_v<Point>);
 
@@ -37,7 +38,7 @@ struct NeighborListPredicateGetter
     using Coordinate = typename GeometryTraits::coordinate_type_t<Point>;
 
     auto const &hyper_point = reinterpret_cast<
-        ExperimentalHyperGeometry::Point<dim, Coordinate> const &>(point);
+        ExperimentalHyperGeometry::Point<dim, Coordinate> const &>(pair.value);
     return intersects(ExperimentalHyperGeometry::Sphere<dim, Coordinate>{
         hyper_point, _radius});
   }
@@ -76,7 +77,9 @@ void findHalfNeighborList(ExecutionSpace const &space,
   Kokkos::deep_copy(space, offsets, 0);
   HalfTraversal(
       space, bvh,
-      KOKKOS_LAMBDA(int, int j) { Kokkos::atomic_increment(&offsets(j)); },
+      KOKKOS_LAMBDA(auto, auto const &value) {
+        Kokkos::atomic_increment(&offsets(value.index));
+      },
       NeighborListPredicateGetter{radius});
   KokkosExt::exclusive_scan(space, offsets, offsets, 0);
   KokkosExt::reallocWithoutInitializing(space, indices,
@@ -90,8 +93,8 @@ void findHalfNeighborList(ExecutionSpace const &space,
                        "ArborX::Experimental::HalfNeighborList::counts");
   HalfTraversal(
       space, bvh,
-      KOKKOS_LAMBDA(int i, int j) {
-        indices(Kokkos::atomic_fetch_inc(&counts(j))) = i;
+      KOKKOS_LAMBDA(auto const &value1, auto const &value2) {
+        indices(Kokkos::atomic_fetch_inc(&counts(value2.index))) = value1.index;
       },
       NeighborListPredicateGetter{radius});
 
@@ -132,9 +135,9 @@ void findFullNeighborList(ExecutionSpace const &space,
   Kokkos::deep_copy(space, offsets, 0);
   HalfTraversal(
       space, bvh,
-      KOKKOS_LAMBDA(int i, int j) {
-        Kokkos::atomic_increment(&offsets(i));
-        Kokkos::atomic_increment(&offsets(j));
+      KOKKOS_LAMBDA(auto const &value1, auto const &value2) {
+        Kokkos::atomic_increment(&offsets(value1.index));
+        Kokkos::atomic_increment(&offsets(value2.index));
       },
       NeighborListPredicateGetter{radius});
   KokkosExt::exclusive_scan(space, offsets, offsets, 0);
@@ -149,8 +152,8 @@ void findFullNeighborList(ExecutionSpace const &space,
                        "ArborX::Experimental::FullNeighborList::counts");
   HalfTraversal(
       space, bvh,
-      KOKKOS_LAMBDA(int i, int j) {
-        indices(Kokkos::atomic_fetch_inc(&counts(j))) = i;
+      KOKKOS_LAMBDA(auto const &value1, auto const &value2) {
+        indices(Kokkos::atomic_fetch_inc(&counts(value2.index))) = value1.index;
       },
       NeighborListPredicateGetter{radius});
 

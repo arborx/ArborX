@@ -57,14 +57,16 @@ struct WithinRadiusGetter
 {
   float _r;
 
-  template <typename Point>
-  KOKKOS_FUNCTION auto operator()(Point const &point) const
+  template <typename Point, typename Index>
+  KOKKOS_FUNCTION auto
+  operator()(PairValueIndex<Point, Index> const &value) const
   {
     static_assert(GeometryTraits::is_point_v<Point>);
 
     constexpr int dim = GeometryTraits::dimension_v<Point>;
     auto const &hyper_point =
-        reinterpret_cast<ExperimentalHyperGeometry::Point<dim> const &>(point);
+        reinterpret_cast<ExperimentalHyperGeometry::Point<dim> const &>(
+            value.value);
     using ArborX::intersects;
     return intersects(ExperimentalHyperGeometry::Sphere<dim>{hyper_point, _r});
   }
