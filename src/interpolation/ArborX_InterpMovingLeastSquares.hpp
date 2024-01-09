@@ -159,7 +159,7 @@ public:
     // Compute the moving least squares coefficients
     _coeffs = Details::movingLeastSquaresCoefficients<CRBFunc, PolynomialDegree,
                                                       FloatingCalculationType>(
-        space, source_view, target_access._values);
+        space, source_view, target_access);
   }
 
   template <typename ExecutionSpace, typename SourceValues,

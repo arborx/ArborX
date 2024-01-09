@@ -194,10 +194,12 @@ class AccessValues
 {
 private:
   using Access = AccessTraits<Values, Tag>;
-
-public:
   Values _values;
 
+public:
+  explicit AccessValues(Values values)
+      : _values(std::move(values))
+  {}
   using memory_space = typename Access::memory_space;
   using value_type = std::decay_t<
       Kokkos::detected_t<AccessTraitsGetArchetypeExpression, Access, Values>>;
