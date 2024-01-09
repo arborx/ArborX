@@ -303,9 +303,9 @@ void DistributedTreeImpl::reassessStrategy(
 }
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
-          typename Values, typename Offset, typename Ranks, typename Distances>
+          typename Values, typename Offset, typename Ranks>
 std::enable_if_t<Kokkos::is_view<Values>{} && Kokkos::is_view<Offset>{} &&
-                 Kokkos::is_view<Ranks>{} && Kokkos::is_view<Distances>{}>
+                 Kokkos::is_view<Ranks>{}>
 DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
                                        ExecutionSpace const &space,
                                        Predicates const &queries,
@@ -322,6 +322,7 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
   auto const &bottom_tree = tree._bottom_tree;
   auto comm = tree.getComm();
 
+  using Distances = Kokkos::View<float *, MemorySpace>;
   Distances distances("ArborX::DistributedTree::query::nearest::distances", 0);
 
   // "Strategy" is used to determine what ranks to forward queries to.  In

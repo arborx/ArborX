@@ -43,12 +43,9 @@ struct DistributedTreeImpl
   // nearest neighbors queries
   template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename Indices, typename Offset,
-            typename Ranks,
-            typename Distances =
-                Kokkos::View<float *, typename DistributedTree::memory_space>>
-  static std::enable_if_t<
-      Kokkos::is_view<Indices>{} && Kokkos::is_view<Offset>{} &&
-      Kokkos::is_view<Ranks>{} && Kokkos::is_view<Distances>{}>
+            typename Ranks>
+  static std::enable_if_t<Kokkos::is_view<Indices>{} &&
+                          Kokkos::is_view<Offset>{} && Kokkos::is_view<Ranks>{}>
   queryDispatchImpl(NearestPredicateTag, DistributedTree const &tree,
                     ExecutionSpace const &space, Predicates const &queries,
                     Indices &indices, Offset &offset, Ranks &ranks);
