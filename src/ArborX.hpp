@@ -24,8 +24,10 @@
 #include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
 #include <ArborX_Sphere.hpp>
-// for backward compatiblity for those using the now deprecated algorithms min
-// or max that used to namespace ArborX
+// FIXME: we include ArborX_DetailsUtils.hpp only for backward compatibility for
+// users using deprecated functions in ArborX namespace (min, max,
+// adjacentDifference, ...). This header should be removed when we remove those
+// functions.
 #include <ArborX_DetailsUtils.hpp>
 
 #endif
