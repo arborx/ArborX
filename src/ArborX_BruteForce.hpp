@@ -51,6 +51,13 @@ public:
              IndexableGetter const &indexable_getter = IndexableGetter());
 
   KOKKOS_FUNCTION
+  value_type const &operator[](size_type i) const
+  {
+    KOKKOS_ASSERT(i < size());
+    return _values(i);
+  }
+
+  KOKKOS_FUNCTION
   size_type size() const noexcept { return _size; }
 
   KOKKOS_FUNCTION
