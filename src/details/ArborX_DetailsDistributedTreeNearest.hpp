@@ -128,8 +128,7 @@ struct CallbackWithDistance
   KOKKOS_FUNCTION void operator()(Query const &query, Value const &value,
                                   Output const &out) const
   {
-    // FIXME no access to indexable getter
-    out({value, distance(getGeometry(query), _tree._indexable_getter(value))});
+    out({value, distance(getGeometry(query), _tree.indexable_get()(value))});
   }
 };
 
