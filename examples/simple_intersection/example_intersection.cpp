@@ -22,13 +22,6 @@ int main(int argc, char *argv[])
   using ExecutionSpace = Kokkos::DefaultExecutionSpace;
   using MemorySpace = ExecutionSpace::memory_space;
 
-  // -----------
-  // |    | 1  |
-  // |    |  0 |
-  // |----2----|
-  // |    |    |
-  // |    |    |
-  // -----------
   Kokkos::View<ArborX::Box *, MemorySpace> boxes("Example::boxes", 4);
   auto boxes_host = Kokkos::create_mirror_view(boxes);
   boxes_host[0] = {{0, 0, 0}, {1, 1, 1}};
@@ -37,8 +30,14 @@ int main(int argc, char *argv[])
   boxes_host[3] = {{1, 1, 0}, {2, 2, 1}};
   Kokkos::deep_copy(boxes, boxes_host);
 
-  Kokkos::View<decltype(ArborX::intersects(std::declval<ArborX::Point>())) *,
-               MemorySpace>
+  // -----------
+  // |    | 1  |
+  // |    |  0 |
+  // |----2----|
+  // |    |    |
+  // |    |    |
+  // -----------
+  Kokkos::View<decltype(ArborX::intersects(ArborX::Point())) *, MemorySpace>
       queries("Example::queries", 3);
   auto queries_host = Kokkos::create_mirror_view(queries);
   queries_host[0] = ArborX::intersects(ArborX::Point{1.8, 1.5, 0.5});
