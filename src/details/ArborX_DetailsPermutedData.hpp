@@ -36,6 +36,31 @@ struct PermutedData
   KOKKOS_FUNCTION auto size() const { return _data.size(); }
 };
 
+template <typename Data, typename Permute>
+struct PermutedData<Data, Permute, /*AttachIndices=*/true>
+{
+  using memory_space = typename Data::memory_space;
+  using value_type =
+      std::decay_t<decltype(attach(std::declval<Data const &>()(0), 0))>;
+
+  Data _data;
+  Permute _permute;
+
+  KOKKOS_FUNCTION decltype(auto) operator()(int i) const
+  {
+    return attach(_data(_permute(i)), i);
+  }
+  KOKKOS_FUNCTION auto size() const { return _data.size(); }
+};
+
+template <typename Data, typename Permute, bool AttachIndices, typename Tag>
+class AccessValuesI<PermutedData<Data, Permute, AttachIndices>, Tag>
+    : public PermutedData<Data, Permute, AttachIndices>
+{
+public:
+  using self_type = PermutedData<Data, Permute, AttachIndices>;
+};
+
 } // namespace Details
 
 template <typename Predicates, typename Permute, bool AttachIndices>
@@ -50,24 +75,13 @@ struct AccessTraits<Details::PermutedData<Predicates, Permute, AttachIndices>,
   KOKKOS_FUNCTION static std::size_t
   size(PermutedPredicates const &permuted_predicates)
   {
-    return permuted_predicates._data.size();
+    return permuted_predicates.size();
   }
 
-  template <bool _Attach = AttachIndices>
-  KOKKOS_FUNCTION static auto get(PermutedPredicates const &permuted_predicates,
-                                  std::enable_if_t<_Attach, std::size_t> index)
-  {
-    auto const permuted_index = permuted_predicates._permute(index);
-    return attach(permuted_predicates._data(permuted_index), (int)index);
-  }
-
-  template <bool _Attach = AttachIndices>
   KOKKOS_FUNCTION static decltype(auto)
-  get(PermutedPredicates const &permuted_predicates,
-      std::enable_if_t<!_Attach, std::size_t> index)
+  get(PermutedPredicates const &permuted_predicates, std::size_t index)
   {
-    auto const permuted_index = permuted_predicates._permute(index);
-    return permuted_predicates._data(permuted_index);
+    return permuted_predicates(index);
   }
 };
 

@@ -56,6 +56,14 @@ public:
   size_type size() const { return Access::size(_primitives); }
 };
 
+template <typename Primitives, typename BoundingVolume>
+class AccessValuesI<LegacyValues<Primitives, BoundingVolume>, PrimitivesTag>
+    : public LegacyValues<Primitives, BoundingVolume>
+{
+public:
+  using self_type = LegacyValues<Primitives, BoundingVolume>;
+};
+
 template <typename Callback>
 struct LegacyCallbackWrapper
 {
