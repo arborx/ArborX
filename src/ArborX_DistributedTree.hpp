@@ -100,6 +100,8 @@ public:
                                                 std::forward<Args>(args)...);
   }
 
+  auto const &indexable_get() const { return _bottom_tree.indexable_get(); }
+
 protected:
   MPI_Comm getComm() const { return *_comm_ptr; }
 

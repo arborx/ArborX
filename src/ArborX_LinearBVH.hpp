@@ -123,6 +123,8 @@ public:
     tree_traversal(predicate);
   }
 
+  auto const &indexable_get() const { return _indexable_getter; }
+
 private:
   friend struct Details::HappyTreeFriends;
   template <typename Tree>
