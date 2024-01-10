@@ -15,6 +15,8 @@
 
 #include <Kokkos_Core.hpp>
 
+#include <iostream>
+
 struct Dummy
 {
   int count;
@@ -50,6 +52,17 @@ struct ArborX::AccessTraits<Dummy, ArborX::PredicatesTag>
   }
 };
 
+template <typename View,
+          typename Enable = std::enable_if_t<Kokkos::is_view_v<View>>>
+std::ostream &operator<<(std::ostream &os, View const &view)
+{
+  auto view_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, view);
+  std::copy(view_host.data(), view_host.data() + view.size(),
+            std::ostream_iterator<typename View::value_type>(std::cout, " "));
+  return os;
+}
+
 int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
@@ -71,6 +84,9 @@ int main(int argc, char *argv[])
     bvh.query(space, predicates, indices, offset);
 
     out_count = indices.extent(0);
+
+    std::cout << "offset (bvh): " << offset << std::endl;
+    std::cout << "indices (bvh): " << indices << std::endl;
   }
 
   {
@@ -79,6 +95,12 @@ int main(int argc, char *argv[])
     Kokkos::View<int *, ExecutionSpace> indices("Example::indices", 0);
     Kokkos::View<int *, ExecutionSpace> offset("Example::offset", 0);
     brute.query(space, predicates, indices, offset);
+
+    // The offset output should match the one from bvh. The indices output
+    // should have the same indices for each offset entry, but they may be
+    // in a different order.
+    std::cout << "offset (bf): " << offset << std::endl;
+    std::cout << "indices (bf): " << indices << std::endl;
 
     ARBORX_ASSERT(out_count == indices.extent(0));
   }
