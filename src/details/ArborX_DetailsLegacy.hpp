@@ -12,6 +12,8 @@
 #ifndef ARBORX_DETAILS_LEGACY_HPP
 #define ARBORX_DETAILS_LEGACY_HPP
 
+#include <ArborX_Config.hpp>
+
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_PairValueIndex.hpp>
 
@@ -90,6 +92,7 @@ struct LegacyDefaultCallback
   }
 };
 
+#ifdef ARBORX_ENABLE_MPI
 struct LegacyDefaultCallbackWithRank
 {
   int _rank;
@@ -101,6 +104,7 @@ struct LegacyDefaultCallbackWithRank
     out({primitive_index, _rank});
   }
 };
+#endif
 
 struct LegacyDefaultTemplateValue
 {};
