@@ -15,8 +15,9 @@
 #include <ArborX_DetailsHalfTraversal.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp> // reallocWithoutInitializing
+#include <ArborX_GeometryTraits.hpp>
+#include <ArborX_HyperSphere.hpp>
 #include <ArborX_LinearBVH.hpp>
-#include <ArborX_Sphere.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -27,9 +28,18 @@ struct NeighborListPredicateGetter
 {
   float _radius;
 
-  KOKKOS_FUNCTION auto operator()(Box b) const
+  template <typename Point>
+  KOKKOS_FUNCTION auto operator()(Point point) const
   {
-    return intersects(Sphere{b.minCorner(), _radius});
+    static_assert(GeometryTraits::is_point<Point>{});
+
+    constexpr int dim = GeometryTraits::dimension_v<Point>;
+    using Coordinate = typename GeometryTraits::coordinate_type<Point>::type;
+
+    auto const &hyper_point = reinterpret_cast<
+        ExperimentalHyperGeometry::Point<dim, Coordinate> const &>(point);
+    return intersects(ExperimentalHyperGeometry::Sphere<dim, Coordinate>{
+        hyper_point, _radius});
   }
 };
 
@@ -43,10 +53,21 @@ void findHalfNeighborList(ExecutionSpace const &space,
   namespace KokkosExt = ArborX::Details::KokkosExt;
   using Details::HalfTraversal;
 
-  using MemorySpace =
-      typename AccessTraits<Primitives, PrimitivesTag>::memory_space;
-  BVH<MemorySpace> bvh(space, primitives);
-  int const n = bvh.size();
+  using Points = Details::AccessValues<Primitives, PrimitivesTag>;
+
+  using MemorySpace = typename Points::memory_space;
+  static_assert(
+      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
+      "Primitives must be accessible from the execution space");
+
+  using Point = typename Points::value_type;
+  static_assert(GeometryTraits::is_point<Point>{});
+
+  Points points{primitives};
+  int const n = points.size();
+
+  BoundingVolumeHierarchy<MemorySpace, PairValueIndex<Point>> bvh(
+      space, Experimental::attach_indices(points));
 
   Kokkos::Profiling::pushRegion(
       "ArborX::Experimental::HalfNeighborList::Count");
@@ -88,10 +109,21 @@ void findFullNeighborList(ExecutionSpace const &space,
   namespace KokkosExt = ArborX::Details::KokkosExt;
   using Details::HalfTraversal;
 
-  using MemorySpace =
-      typename AccessTraits<Primitives, PrimitivesTag>::memory_space;
-  BVH<MemorySpace> bvh(space, primitives);
-  int const n = bvh.size();
+  using Points = Details::AccessValues<Primitives, PrimitivesTag>;
+
+  using MemorySpace = typename Points::memory_space;
+  static_assert(
+      KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
+      "Primitives must be accessible from the execution space");
+
+  using Point = typename Points::value_type;
+  static_assert(GeometryTraits::is_point<Point>{});
+
+  Points points{primitives};
+  int const n = points.size();
+
+  BoundingVolumeHierarchy<MemorySpace, PairValueIndex<Point>> bvh(
+      space, Experimental::attach_indices(points));
 
   Kokkos::Profiling::pushRegion(
       "ArborX::Experimental::FullNeighborList::Count");
