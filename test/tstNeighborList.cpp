@@ -21,6 +21,7 @@
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsExpandHalfToFull.hpp>
 #include <ArborX_NeighborList.hpp>
+#include <ArborX_Sphere.hpp>
 
 #include <Kokkos_Random.hpp>
 
