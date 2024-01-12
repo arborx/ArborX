@@ -190,14 +190,14 @@ void check_valid_access_traits(PrimitivesTag, Primitives const &,
 }
 
 template <typename Values, typename Tag>
-class AccessValues
+class AccessValuesI
 {
 private:
   using Access = AccessTraits<Values, Tag>;
   Values _values;
 
 public:
-  explicit AccessValues(Values values)
+  explicit AccessValuesI(Values values)
       : _values(std::move(values))
   {}
   using memory_space = typename Access::memory_space;
@@ -209,14 +209,33 @@ public:
 
   KOKKOS_FUNCTION
   auto size() const { return Access::size(_values); }
+
+  using self_type = AccessValuesI<Values, Tag>;
 };
+
+template <typename D, typename... P, typename Tag>
+class AccessValuesI<Kokkos::View<D, P...>, Tag> : public Kokkos::View<D, P...>
+{
+public:
+  using self_type = Kokkos::View<D, P...>;
+};
+
+template <typename Values, typename Tag1, typename Tag2>
+class AccessValuesI<AccessValuesI<Values, Tag1>, Tag2>
+    : public AccessValuesI<Values, Tag1>
+{
+  static_assert(std::is_same_v<Tag1, Tag2>);
+};
+
+template <typename Values, typename Tag>
+using AccessValues = typename AccessValuesI<Values, Tag>::self_type;
 
 } // namespace Details
 
 template <typename Values, typename Tag>
-struct AccessTraits<Details::AccessValues<Values, Tag>, Tag>
+struct AccessTraits<Details::AccessValuesI<Values, Tag>, Tag>
 {
-  using AccessValues = Details::AccessValues<Values, Tag>;
+  using AccessValues = Details::AccessValuesI<Values, Tag>;
 
   using memory_space = typename AccessValues::memory_space;
 
