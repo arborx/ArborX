@@ -9,9 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_BruteForce.hpp>
-#include <ArborX_LinearBVH.hpp>
-#include <ArborX_Sphere.hpp>
+#include <ArborX.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -31,7 +29,7 @@ struct ArborX::AccessTraits<Dummy, ArborX::PrimitivesTag>
   using memory_space = MemorySpace;
   using size_type = typename MemorySpace::size_type;
   static KOKKOS_FUNCTION size_type size(Dummy const &d) { return d.count; }
-  static KOKKOS_FUNCTION Point get(Dummy const &, size_type i)
+  static KOKKOS_FUNCTION ArborX::Point get(Dummy const &, size_type i)
   {
     return {{(float)i, (float)i, (float)i}};
   }
@@ -102,7 +100,8 @@ int main(int argc, char *argv[])
     std::cout << "offset (bf): " << offset << std::endl;
     std::cout << "indices (bf): " << indices << std::endl;
 
-    ARBORX_ASSERT(out_count == indices.extent(0));
+    if (indices.extent(0) != out_count)
+      Kokkos::abort("The sizes of indices do not match");
   }
 
   return 0;
