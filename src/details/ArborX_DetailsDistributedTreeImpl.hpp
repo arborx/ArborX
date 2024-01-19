@@ -25,8 +25,8 @@ struct DistributedTreeImpl
   // spatial queries
   template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename IndicesAndRanks, typename Offset>
-  static std::enable_if_t<Kokkos::is_view<IndicesAndRanks>{} &&
-                          Kokkos::is_view<Offset>{}>
+  static std::enable_if_t<Kokkos::is_view_v<IndicesAndRanks> &&
+                          Kokkos::is_view_v<Offset>>
   queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
                 ExecutionSpace const &space, Predicates const &queries,
                 IndicesAndRanks &values, Offset &offset);
@@ -34,8 +34,8 @@ struct DistributedTreeImpl
   template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename OutputView, typename OffsetView,
             typename Callback>
-  static std::enable_if_t<Kokkos::is_view<OutputView>{} &&
-                          Kokkos::is_view<OffsetView>{}>
+  static std::enable_if_t<Kokkos::is_view_v<OutputView> &&
+                          Kokkos::is_view_v<OffsetView>>
   queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
                 ExecutionSpace const &space, Predicates const &queries,
                 Callback const &callback, OutputView &out, OffsetView &offset);
@@ -44,16 +44,16 @@ struct DistributedTreeImpl
   template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename Indices, typename Offset,
             typename Ranks>
-  static std::enable_if_t<Kokkos::is_view<Indices>{} &&
-                          Kokkos::is_view<Offset>{} && Kokkos::is_view<Ranks>{}>
+  static std::enable_if_t<Kokkos::is_view_v<Indices> &&
+                          Kokkos::is_view_v<Offset> && Kokkos::is_view_v<Ranks>>
   queryDispatchImpl(NearestPredicateTag, DistributedTree const &tree,
                     ExecutionSpace const &space, Predicates const &queries,
                     Indices &indices, Offset &offset, Ranks &ranks);
 
   template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename IndicesAndRanks, typename Offset>
-  static std::enable_if_t<Kokkos::is_view<IndicesAndRanks>{} &&
-                          Kokkos::is_view<Offset>{}>
+  static std::enable_if_t<Kokkos::is_view_v<IndicesAndRanks> &&
+                          Kokkos::is_view_v<Offset>>
   queryDispatch(NearestPredicateTag tag, DistributedTree const &tree,
                 ExecutionSpace const &space, Predicates const &queries,
                 IndicesAndRanks &values, Offset &offset);

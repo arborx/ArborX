@@ -27,7 +27,7 @@ namespace ArborX::Details
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
           typename Values, typename Offset, typename Callback>
-std::enable_if_t<Kokkos::is_view<Values>{} && Kokkos::is_view<Offset>{}>
+std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
 DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
                                    ExecutionSpace const &space,
                                    Predicates const &predicates,
@@ -88,7 +88,7 @@ DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
           typename Values, typename Offset>
-std::enable_if_t<Kokkos::is_view<Values>{} && Kokkos::is_view<Offset>{}>
+std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
 DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
                                    ExecutionSpace const &space,
                                    Predicates const &predicates, Values &values,

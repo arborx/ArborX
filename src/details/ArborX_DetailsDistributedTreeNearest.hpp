@@ -303,8 +303,8 @@ void DistributedTreeImpl::reassessStrategy(
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
           typename Values, typename Offset, typename Ranks>
-std::enable_if_t<Kokkos::is_view<Values>{} && Kokkos::is_view<Offset>{} &&
-                 Kokkos::is_view<Ranks>{}>
+std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset> &&
+                 Kokkos::is_view_v<Ranks>>
 DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
                                        ExecutionSpace const &space,
                                        Predicates const &queries,
@@ -405,7 +405,7 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
           typename Values, typename Offset>
-std::enable_if_t<Kokkos::is_view<Values>{} && Kokkos::is_view<Offset>{}>
+std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
 DistributedTreeImpl::queryDispatch(NearestPredicateTag tag, Tree const &tree,
                                    ExecutionSpace const &space,
                                    Predicates const &queries, Values &values,
