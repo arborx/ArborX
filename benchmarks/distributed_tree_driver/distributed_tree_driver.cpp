@@ -400,25 +400,11 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
     }
   }
 
-  Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                         "Testing::bounding_boxes"),
-      n_values);
-  Kokkos::parallel_for(
-      "bvh_driver:construct_bounding_boxes",
-      Kokkos::RangePolicy<ExecutionSpace>(0, n_values), KOKKOS_LAMBDA(int i) {
-        double const x = random_values(i)[0];
-        double const y = random_values(i)[1];
-        double const z = random_values(i)[2];
-        bounding_boxes(i) = {{{x - 1., y - 1., z - 1.}},
-                             {{x + 1., y + 1., z + 1.}}};
-      });
-
   auto construction = time_monitor.getNewTimer("construction");
   MPI_Barrier(comm);
   construction->start();
-  ArborX::DistributedTree<MemorySpace> distributed_tree(comm, ExecutionSpace{},
-                                                        bounding_boxes);
+  ArborX::DistributedTree<MemorySpace, ArborX::Point> distributed_tree(
+      comm, ExecutionSpace{}, random_values);
   construction->stop();
 
   std::ostream &os = std::cout;
@@ -428,8 +414,7 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   if (perform_knn_search)
   {
     Kokkos::View<int *, DeviceType> offsets("Benchmark::offsets", 0);
-    Kokkos::View<ArborX::PairIndexRank *, DeviceType> values(
-        "Benchmark::values", 0);
+    Kokkos::View<ArborX::Point *, DeviceType> values("Benchmark::values", 0);
 
     auto knn = time_monitor.getNewTimer("knn");
     MPI_Barrier(comm);
@@ -448,36 +433,26 @@ int main_(std::vector<std::string> const &args, const MPI_Comm comm)
   {
     // Radius is computed so that the number of results per query for a
     // uniformly distributed primitives in a [-a,a]^d box is approximately
-    // n_neighbors. The primivites are boxes and not points. Thus, the radius
-    // we would have chosen for the case of point primitives has to be adjusted
-    // to account for box-box interaction. The radius is decreased by an
-    // average of the lengths of a half-edge and a half-diagonal to account for
-    // that (approximately). An exact calculation would require computing
-    // an integral.
-    double r = 0.;
+    // n_neighbors.
+    float r = 0.;
     switch (partition_dim)
     {
     case 1:
-      // Derivation (first term): n_values*(2*r)/(2a) = n_neighbors
-      r = static_cast<double>(n_neighbors) - 1.;
+      // Derivation: n_values*(2*r)/(2a) = n_neighbors
+      r = static_cast<float>(n_neighbors);
       break;
     case 2:
-      // Derivation (first term): n_values*(pi*r^2)/(2a)^2 = n_neighbors
-      r = std::sqrt(static_cast<double>(n_neighbors) * 4. /
-                    Kokkos::numbers::pi_v<double>) -
-          (1. + std::sqrt(2.)) / 2;
+      // Derivation: n_values*(pi*r^2)/(2a)^2 = n_neighbors
+      r = std::sqrt(n_neighbors * 4.f / Kokkos::numbers::pi_v<float>);
       break;
     case 3:
-      // Derivation (first term): n_values*(4/3*pi*r^3)/(2a)^3 = n_neighbors
-      r = std::cbrt(static_cast<double>(n_neighbors) * 6. /
-                    Kokkos::numbers::pi_v<double>) -
-          (1. + std::cbrt(3.)) / 2;
+      // Derivation: n_values*(4/3*pi*r^3)/(2a)^3 = n_neighbors
+      r = std::cbrt(n_neighbors * 6.f / Kokkos::numbers::pi_v<float>);
       break;
     }
 
     Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
-    Kokkos::View<ArborX::PairIndexRank *, DeviceType> values("Testing::values",
-                                                             0);
+    Kokkos::View<ArborX::Point *, DeviceType> values("Testing::values", 0);
 
     auto radius = time_monitor.getNewTimer("radius");
     MPI_Barrier(comm);

@@ -11,6 +11,7 @@
 #ifndef ARBORX_DETAILS_DISTRIBUTED_TREE_SPATIAL_HPP
 #define ARBORX_DETAILS_DISTRIBUTED_TREE_SPATIAL_HPP
 
+#include <ArborX_Callbacks.hpp>
 #include <ArborX_DetailsDistributedTreeImpl.hpp>
 #include <ArborX_DetailsDistributedTreeUtils.hpp>
 #include <ArborX_DetailsLegacy.hpp>
@@ -23,25 +24,15 @@
 
 namespace ArborX::Details
 {
-struct DefaultCallbackWithRank
-{
-  int _rank;
-  template <typename Predicate, typename OutputFunctor>
-  KOKKOS_FUNCTION void operator()(Predicate const &, int primitive_index,
-                                  OutputFunctor const &out) const
-  {
-    out({primitive_index, _rank});
-  }
-};
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
-          typename OutputView, typename OffsetView, typename Callback>
-std::enable_if_t<Kokkos::is_view<OutputView>{} && Kokkos::is_view<OffsetView>{}>
+          typename Values, typename Offset, typename Callback>
+std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
 DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
                                    ExecutionSpace const &space,
                                    Predicates const &predicates,
-                                   Callback const &callback, OutputView &out,
-                                   OffsetView &offset)
+                                   Callback const &callback, Values &values,
+                                   Offset &offset)
 {
   Kokkos::Profiling::ScopedRegion guard(
       "ArborX::DistributedTree::query::spatial");
@@ -78,10 +69,10 @@ DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
                    fwd_predicates, ids, ranks);
 
     // Perform predicates that have been received
-    bottom_tree.query(space, fwd_predicates, callback, out, offset);
+    bottom_tree.query(space, fwd_predicates, callback, values, offset);
 
     // Communicate results back
-    communicateResultsBack(comm, space, out, offset, ranks, ids);
+    communicateResultsBack(comm, space, values, offset, ranks, ids);
 
     Kokkos::Profiling::pushRegion(
         "ArborX::DistributedTree::spatial::postprocess_results");
@@ -89,25 +80,22 @@ DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
     // Merge results
     int const n_predicates = predicates.size();
     countResults(space, n_predicates, ids, offset);
-    sortResults(space, ids, out);
+    sortResults(space, ids, values);
 
     Kokkos::Profiling::popRegion();
   }
 }
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
-          typename IndicesAndRanks, typename Offset>
-std::enable_if_t<Kokkos::is_view<IndicesAndRanks>{} &&
-                 Kokkos::is_view<Offset>{}>
+          typename Values, typename Offset>
+std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
 DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
                                    ExecutionSpace const &space,
-                                   Predicates const &predicates,
-                                   IndicesAndRanks &values, Offset &offset)
+                                   Predicates const &predicates, Values &values,
+                                   Offset &offset)
 {
-  int comm_rank;
-  MPI_Comm_rank(tree.getComm(), &comm_rank);
   queryDispatch(SpatialPredicateTag{}, tree, space, predicates,
-                DefaultCallbackWithRank{comm_rank}, values, offset);
+                DefaultCallback{}, values, offset);
 }
 
 } // namespace ArborX::Details

@@ -328,13 +328,15 @@ void communicateResultsBack(MPI_Comm comm, ExecutionSpace const &space,
 }
 
 template <typename ExecutionSpace, typename MemorySpace, typename Predicates,
-          typename Indices, typename Offset, typename Ranks>
+          typename Values, typename Offset, typename Ranks>
 void filterResults(ExecutionSpace const &space, Predicates const &queries,
                    Kokkos::View<float *, MemorySpace> const &distances,
-                   Indices &indices, Offset &offset, Ranks &ranks)
+                   Values &values, Offset &offset, Ranks &ranks)
 {
   Kokkos::Profiling::ScopedRegion guard(
       "ArborX::DistributedTree::filterResults");
+
+  using Value = typename Values::value_type;
 
   int const n_queries = queries.size();
   // truncated views are prefixed with an underscore
@@ -352,16 +354,17 @@ void filterResults(ExecutionSpace const &space, Predicates const &queries,
   KokkosExt::exclusive_scan(space, new_offset, new_offset, 0);
 
   int const n_truncated_results = KokkosExt::lastElement(space, new_offset);
-  Kokkos::View<int *, MemorySpace> new_indices(
-      Kokkos::view_alloc(space, indices.label()), n_truncated_results);
+  Kokkos::View<Value *, MemorySpace> new_values(
+      Kokkos::view_alloc(space, values.label()), n_truncated_results);
   Kokkos::View<int *, MemorySpace> new_ranks(
       Kokkos::view_alloc(space, ranks.label()), n_truncated_results);
 
-  using PairIndexDistance = Kokkos::pair<Kokkos::Array<int, 2>, float>;
+  using PairValueRank = Kokkos::pair<Value, int>;
+  using PairValueRankDistance = Kokkos::pair<PairValueRank, float>;
   struct CompareDistance
   {
-    KOKKOS_INLINE_FUNCTION bool operator()(PairIndexDistance const &lhs,
-                                           PairIndexDistance const &rhs)
+    KOKKOS_INLINE_FUNCTION bool operator()(PairValueRankDistance const &lhs,
+                                           PairValueRankDistance const &rhs)
     {
       // reverse order (larger distance means lower priority)
       return lhs.second > rhs.second;
@@ -369,14 +372,14 @@ void filterResults(ExecutionSpace const &space, Predicates const &queries,
   };
 
   int const n_results = KokkosExt::lastElement(space, offset);
-  Kokkos::View<PairIndexDistance *, MemorySpace> buffer(
+  Kokkos::View<PairValueRankDistance *, MemorySpace> buffer(
       Kokkos::view_alloc(
           space, Kokkos::WithoutInitializing,
           "ArborX::DistributedTree::query::filterResults::buffer"),
       n_results);
   using PriorityQueue =
-      Details::PriorityQueue<PairIndexDistance, CompareDistance,
-                             UnmanagedStaticVector<PairIndexDistance>>;
+      Details::PriorityQueue<PairValueRankDistance, CompareDistance,
+                             UnmanagedStaticVector<PairValueRankDistance>>;
 
   Kokkos::parallel_for(
       "ArborX::DistributedTree::query::truncate_results",
@@ -386,25 +389,26 @@ void filterResults(ExecutionSpace const &space, Predicates const &queries,
         {
           auto local_buffer = Kokkos::subview(
               buffer, Kokkos::make_pair(offset(q), offset(q + 1)));
-          PriorityQueue queue(UnmanagedStaticVector<PairIndexDistance>(
+
+          PriorityQueue queue(UnmanagedStaticVector<PairValueRankDistance>(
               local_buffer.data(), local_buffer.size()));
+
           for (int i = offset(q); i < offset(q + 1); ++i)
           {
-            queue.emplace(Kokkos::Array<int, 2>{{indices(i), ranks(i)}},
-                          distances(i));
+            queue.emplace(PairValueRank{values(i), ranks(i)}, distances(i));
           }
 
           int count = 0;
           while (!queue.empty() && count < getK(queries(q)))
           {
-            new_indices(new_offset(q) + count) = queue.top().first[0];
-            new_ranks(new_offset(q) + count) = queue.top().first[1];
+            new_values(new_offset(q) + count) = queue.top().first.first;
+            new_ranks(new_offset(q) + count) = queue.top().first.second;
             queue.pop();
             ++count;
           }
         }
       });
-  indices = new_indices;
+  values = new_values;
   ranks = new_ranks;
   offset = new_offset;
 }

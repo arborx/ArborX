@@ -12,6 +12,8 @@
 #ifndef ARBORX_DETAILS_LEGACY_HPP
 #define ARBORX_DETAILS_LEGACY_HPP
 
+#include <ArborX_Config.hpp>
+
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_PairValueIndex.hpp>
 
@@ -97,6 +99,20 @@ struct LegacyDefaultCallback
     output(value.index);
   }
 };
+
+#ifdef ARBORX_ENABLE_MPI
+struct LegacyDefaultCallbackWithRank
+{
+  int _rank;
+
+  template <typename Predicate, typename OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Predicate const &, int primitive_index,
+                                  OutputFunctor const &out) const
+  {
+    out({primitive_index, _rank});
+  }
+};
+#endif
 
 struct LegacyDefaultTemplateValue
 {};

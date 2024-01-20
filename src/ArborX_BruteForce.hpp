@@ -85,6 +85,8 @@ public:
         std::forward<View>(view), std::forward<Args>(args)...);
   }
 
+  auto const &indexable_get() const { return _indexable_getter; }
+
 private:
   size_type _size{0};
   bounding_volume_type _bounds;
