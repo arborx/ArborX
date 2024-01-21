@@ -60,7 +60,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(distributed_tree_post_query_comms, DeviceType,
   dtpqc0.distribute(space, loc0);
   ARBORX_MDVIEW_TEST(ref0, loc0);
 
-
   // 0:             0: b+1   a+1
   // 1: a+1 b+1 --> 1: b+2   a+2
   // r: a+r b+r     r: b+r+1 a+r+1
