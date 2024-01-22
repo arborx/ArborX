@@ -92,7 +92,7 @@ public:
                       typename Predicates::memory_space, ExecutionSpace>::value,
                   "Predicates must be accessible from the execution space");
 
-    Predicates const &predicates{user_predicates};
+    Predicates predicates{user_predicates}; // NOLINT
 
     using Tag = typename Predicates::value_type::Tag;
     Details::DistributedTreeImpl::queryDispatch(Tag{}, *this, space, predicates,
@@ -181,7 +181,7 @@ public:
                                       ExecutionSpace>::value,
         "Predicates must be accessible from the execution space");
 
-    Predicates const &predicates{user_predicates};
+    Predicates predicates{user_predicates}; // NOLINT
 
     using Tag = typename Predicates::value_type::Tag;
     if constexpr (std::is_same_v<Tag, Details::SpatialPredicateTag>)

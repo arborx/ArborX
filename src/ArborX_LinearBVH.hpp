@@ -268,7 +268,7 @@ BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter, BoundingVolume>::
       PrimitivesTag{}, user_values, Details::DoNotCheckGetReturnType());
 
   using Values = Details::AccessValues<UserValues, PrimitivesTag>;
-  Values const &values{user_values};
+  Values values{user_values}; // NOLINT
 
   static_assert(
       Details::KokkosExt::is_accessible_from<typename Values::memory_space,
@@ -356,7 +356,7 @@ void BoundingVolumeHierarchy<
       Details::KokkosExt::is_accessible_from<typename Predicates::memory_space,
                                              ExecutionSpace>::value,
       "Predicates must be accessible from the execution space");
-  Predicates const &predicates{user_predicates};
+  Predicates predicates{user_predicates}; // NOLINT
 
   using Tag = typename Predicates::value_type::Tag;
   std::string profiling_prefix = "ArborX::BVH::query::";

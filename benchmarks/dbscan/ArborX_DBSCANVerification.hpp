@@ -306,7 +306,7 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
 
-  Points const &points{primitives};
+  Points points{primitives}; // NOLINT
 
   using Point = typename Points::value_type;
   static_assert(GeometryTraits::is_point<Point>{});
