@@ -64,8 +64,8 @@ struct DistributedTreeImpl
             typename Offset>
   static void deviseStrategy(ExecutionSpace const &space,
                              DistributedTree const &tree,
-                             Predicates const &queries, Distances const &,
-                             Indices &indices, Offset &offset);
+                             Predicates const &predicates, Distances const &,
+                             Indices &nearest_ranks, Offset &offset);
 
   template <typename ExecutionSpace, typename DistributedTree,
             typename Predicates, typename Distances, typename Indices,

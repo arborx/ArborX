@@ -92,7 +92,7 @@ void applyInversePermutation(ExecutionSpace const &space,
                              InputView const &input_view,
                              OutputView const &output_view)
 {
-  static_assert(std::is_integral<typename PermutationView::value_type>::value);
+  static_assert(std::is_integral_v<typename PermutationView::value_type>);
   ARBORX_ASSERT(permutation.extent(0) == input_view.extent(0));
   ARBORX_ASSERT(output_view.extent(0) == input_view.extent(0));
 
@@ -112,7 +112,7 @@ void applyPermutation(ExecutionSpace const &space,
                       InputView const &input_view,
                       OutputView const &output_view)
 {
-  static_assert(std::is_integral<typename PermutationView::value_type>::value);
+  static_assert(std::is_integral_v<typename PermutationView::value_type>);
   ARBORX_ASSERT(permutation.extent(0) == input_view.extent(0));
   ARBORX_ASSERT(output_view.extent(0) == input_view.extent(0));
 
@@ -129,7 +129,7 @@ template <typename ExecutionSpace, typename PermutationView, typename View>
 void applyPermutation(ExecutionSpace const &space,
                       PermutationView const &permutation, View &view)
 {
-  static_assert(std::is_integral<typename PermutationView::value_type>::value);
+  static_assert(std::is_integral_v<typename PermutationView::value_type>);
   auto scratch_view = KokkosExt::clone(space, view);
   applyPermutation(space, permutation, scratch_view, view);
 }

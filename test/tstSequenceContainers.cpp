@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(non_owning_view_over_dynamic_array)
   //                        ^^^^ ^^^^ ^^^^
   UnmanagedStaticVector<float> a(data + 2, 3);
 
-  BOOST_TEST(!std::is_default_constructible<decltype(a)>::value);
+  BOOST_TEST(!std::is_default_constructible_v<decltype(a)>);
   BOOST_TEST(a.data() == data + 2);
 
   BOOST_TEST(a.empty());

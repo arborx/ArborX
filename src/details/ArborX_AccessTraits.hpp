@@ -268,7 +268,7 @@ struct AccessTraits<
     : Traits::Access<T, Tag>
 {
   template <class U>
-  static constexpr bool always_false = std::is_void<U>::value;
+  static constexpr bool always_false = std::is_void_v<U>;
   static_assert(
       always_false<T>,
       "ArborX::Traits::Access was removed. Use ArborX::AccessTraits instead");

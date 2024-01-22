@@ -35,8 +35,8 @@ void exclusive_scan(ExecutionSpace const &space, SrcView const &src,
       is_accessible_from<typename DstView::memory_space, ExecutionSpace>::value,
       "Destination view must be accessible from the execution "
       "space");
-  static_assert(std::is_same<typename SrcView::value_type,
-                             typename DstView::non_const_value_type>::value,
+  static_assert(std::is_same_v<typename SrcView::value_type,
+                               typename DstView::non_const_value_type>,
                 "exclusive_scan requires non-const destination type");
   static_assert(unsigned(DstView::rank) == unsigned(SrcView::rank) &&
                     unsigned(DstView::rank) == unsigned(1),
@@ -103,11 +103,11 @@ void adjacent_difference(ExecutionSpace const &space, SrcView const &src,
   static_assert(SrcView::rank == 1 && DstView::rank == 1,
                 "adjacent_difference operates on rank-1 views");
   static_assert(
-      std::is_same<typename DstView::value_type,
-                   typename DstView::non_const_value_type>::value,
+      std::is_same_v<typename DstView::value_type,
+                     typename DstView::non_const_value_type>,
       "adjacent_difference requires non-const destination value type");
-  static_assert(std::is_same<typename SrcView::non_const_value_type,
-                             typename DstView::value_type>::value,
+  static_assert(std::is_same_v<typename SrcView::non_const_value_type,
+                               typename DstView::value_type>,
                 "adjacent_difference requires same value type for source and "
                 "destination");
 
@@ -137,10 +137,10 @@ void iota(ExecutionSpace const &space, ViewType const &v,
                 "iota requires a View of rank 1");
 
   using ValueType = typename ViewType::value_type;
-  static_assert(std::is_arithmetic<ValueType>::value,
+  static_assert(std::is_arithmetic_v<ValueType>,
                 "iota requires a View with an arithmetic value type");
   static_assert(
-      std::is_same<ValueType, typename ViewType::non_const_value_type>::value,
+      std::is_same_v<ValueType, typename ViewType::non_const_value_type>,
       "iota requires a View with non-const value type");
 
   Kokkos::parallel_for(

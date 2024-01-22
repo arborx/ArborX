@@ -46,9 +46,8 @@ determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
   ARBORX_ASSERT(counts.empty());
   ARBORX_ASSERT(permutation_indices.extent_int(0) == 0);
   ARBORX_ASSERT(batched_ranks.size() + 1 == batched_offsets.size());
-  static_assert(
-      std::is_same<typename InputView::non_const_value_type, int>::value);
-  static_assert(std::is_same<typename OutputView::value_type, int>::value);
+  static_assert(std::is_same_v<typename InputView::non_const_value_type, int>);
+  static_assert(std::is_same_v<typename OutputView::value_type, int>);
 
   // In case all the batches are empty, return an empty list of unique_ranks and
   // counts, but still have one element in offsets. This is conforming with
@@ -143,9 +142,8 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
   ARBORX_ASSERT(offsets.empty());
   ARBORX_ASSERT(counts.empty());
   ARBORX_ASSERT(permutation_indices.extent_int(0) == ranks.extent_int(0));
-  static_assert(
-      std::is_same<typename InputView::non_const_value_type, int>::value);
-  static_assert(std::is_same<typename OutputView::value_type, int>::value);
+  static_assert(std::is_same_v<typename InputView::non_const_value_type, int>);
+  static_assert(std::is_same_v<typename OutputView::value_type, int>);
 
   offsets.push_back(0);
 

@@ -271,7 +271,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
   bool const verbose = parameters._verbose;
 
-  Points points{primitives};
+  Points const &points{primitives};
   int const n = points.size();
 
   Kokkos::View<int *, MemorySpace> num_neigh("ArborX::DBSCAN::num_neighbors",

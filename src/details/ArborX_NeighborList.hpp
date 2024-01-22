@@ -63,7 +63,7 @@ void findHalfNeighborList(ExecutionSpace const &space,
   using Point = typename Points::value_type;
   static_assert(GeometryTraits::is_point<Point>{});
 
-  Points points{primitives};
+  Points const &points{primitives};
   int const n = points.size();
 
   BoundingVolumeHierarchy<MemorySpace, PairValueIndex<Point>> bvh(
@@ -119,7 +119,7 @@ void findFullNeighborList(ExecutionSpace const &space,
   using Point = typename Points::value_type;
   static_assert(GeometryTraits::is_point<Point>{});
 
-  Points points{primitives};
+  Points const &points{primitives};
   int const n = points.size();
 
   BoundingVolumeHierarchy<MemorySpace, PairValueIndex<Point>> bvh(

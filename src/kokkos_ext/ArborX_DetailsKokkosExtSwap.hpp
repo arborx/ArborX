@@ -22,8 +22,8 @@ namespace ArborX::Details::KokkosExt
 
 template <class T>
 KOKKOS_FUNCTION constexpr void
-swap(T &a, T &b) noexcept(std::is_nothrow_move_constructible<T>::value
-                              &&std::is_nothrow_move_assignable<T>::value)
+swap(T &a, T &b) noexcept(std::is_nothrow_move_constructible_v<T>
+                              &&std::is_nothrow_move_assignable_v<T>)
 {
   T tmp = std::move(a);
   a = std::move(b);

@@ -38,8 +38,8 @@ struct range_iterator<Kokkos::View<T, P...>>
 {
   using View = Kokkos::View<T, P...>;
   ARBORX_ASSERT_VIEW_COMPATIBLE(View)
-  using type = typename std::add_pointer<
-      typename Kokkos::ViewTraits<T, P...>::value_type>::type;
+  using type =
+      std::add_pointer_t<typename Kokkos::ViewTraits<T, P...>::value_type>;
 };
 
 template <typename T, typename... P>
@@ -47,8 +47,8 @@ struct range_const_iterator<Kokkos::View<T, P...>>
 {
   using View = Kokkos::View<T, P...>;
   ARBORX_ASSERT_VIEW_COMPATIBLE(View)
-  using type = typename std::add_pointer<
-      typename Kokkos::ViewTraits<T, P...>::const_value_type>::type;
+  using type = std::add_pointer_t<
+      typename Kokkos::ViewTraits<T, P...>::const_value_type>;
 };
 
 template <typename T, typename... P>

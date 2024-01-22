@@ -32,7 +32,7 @@ public:
   using size_type = typename Container::size_type;
   using reference = typename Container::reference;
   using const_reference = typename Container::const_reference;
-  static_assert(std::is_same<value_type, T>::value,
+  static_assert(std::is_same_v<value_type, T>,
                 "Template parameter T in Stack is not the same as "
                 "the type of the elements stored by the underlying "
                 "container Container::value_type");

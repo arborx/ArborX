@@ -275,7 +275,7 @@ int main(int argc, char *argv[])
         "Example::initialize_rays",
         Kokkos::MDRangePolicy<Kokkos::Rank<2>, ExecutionSpace>(
             exec_space, {0, 0}, {num_boxes, rays_per_box}),
-        KOKKOS_LAMBDA(const size_t i, const size_t j) {
+        KOKKOS_LAMBDA(size_t const i, size_t const j) {
           // The origins of rays are uniformly distributed in the boxes. The
           // direction vectors are uniformly sampling of a full sphere.
           GeneratorType g = rand_pool.get_state();

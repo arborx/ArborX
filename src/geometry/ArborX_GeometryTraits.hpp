@@ -111,9 +111,8 @@ void check_valid_geometry_traits(Geometry const &)
           GeometryTraits::dimension_v<Geometry> > 0,
       "GeometryTraits::dimension<Geometry>::value must be a positive integral");
 
-  static_assert(
-      !std::is_same<typename tag<Geometry>::type, not_specialized>::value,
-      "GeometryTraits::tag<Geometry> must define 'type' member type");
+  static_assert(!std::is_same_v<typename tag<Geometry>::type, not_specialized>,
+                "GeometryTraits::tag<Geometry> must define 'type' member type");
   using Tag = typename tag<Geometry>::type;
   static_assert(std::is_same<Tag, PointTag>{} || std::is_same<Tag, BoxTag>{} ||
                     std::is_same<Tag, SphereTag>{} ||
@@ -122,8 +121,8 @@ void check_valid_geometry_traits(Geometry const &)
                 "GeometryTraits::tag<Geometry>::type must be PointTag, BoxTag, "
                 "SphereTag, TriangleTag or KDOPTag");
 
-  static_assert(!std::is_same<typename coordinate_type<Geometry>::type,
-                              not_specialized>::value,
+  static_assert(!std::is_same_v<typename coordinate_type<Geometry>::type,
+                                not_specialized>,
                 "GeometryTraits::coordinate_type<Geometry> must define 'type' "
                 "member type");
   using Coordinate = typename coordinate_type<Geometry>::type;

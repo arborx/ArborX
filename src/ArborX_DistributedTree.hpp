@@ -50,7 +50,6 @@ public:
   using bounding_volume_type = BoundingVolume;
   using value_type = typename BottomTree::value_type;
 
-public:
   template <typename ExecutionSpace, typename... Args>
   DistributedTreeBase(MPI_Comm comm, ExecutionSpace const &space,
                       Args &&...args);
@@ -93,7 +92,7 @@ public:
                       typename Predicates::memory_space, ExecutionSpace>::value,
                   "Predicates must be accessible from the execution space");
 
-    Predicates predicates{user_predicates};
+    Predicates const &predicates{user_predicates};
 
     using Tag = typename Predicates::value_type::Tag;
     Details::DistributedTreeImpl::queryDispatch(Tag{}, *this, space, predicates,
@@ -182,7 +181,7 @@ public:
                                       ExecutionSpace>::value,
         "Predicates must be accessible from the execution space");
 
-    Predicates predicates{user_predicates};
+    Predicates const &predicates{user_predicates};
 
     using Tag = typename Predicates::value_type::Tag;
     if constexpr (std::is_same_v<Tag, Details::SpatialPredicateTag>)

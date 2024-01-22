@@ -219,7 +219,7 @@ struct ArborX::AccessTraits<NearestNeighborsSearches<DeviceType>,
 namespace bpo = boost::program_options;
 
 template <class NO>
-int main_(std::vector<std::string> const &args, const MPI_Comm comm)
+int main_(std::vector<std::string> const &args, MPI_Comm const comm)
 {
   TimeMonitor time_monitor;
 
