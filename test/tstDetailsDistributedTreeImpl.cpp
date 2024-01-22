@@ -194,9 +194,9 @@ inline void checkViewWasNotAllocated(View1 const &v1, View2 const &v2)
 
   BOOST_TEST((int)View1::rank == (int)View2::rank);
   BOOST_TEST((std::is_same_v<typename View1::const_value_type,
-                           typename View2::const_value_type>));
+                             typename View2::const_value_type>));
   BOOST_TEST((std::is_same_v<typename View1::memory_space,
-                           typename View2::memory_space>));
+                             typename View2::memory_space>));
 
   BOOST_TEST(v1.extent(0) == v2.extent(0));
   BOOST_TEST(v1.extent(1) == v2.extent(1));
@@ -215,7 +215,7 @@ inline void checkNewViewWasAllocated(View1 const &v1, View2 const &v2)
 
   BOOST_TEST((int)View1::rank == (int)View2::rank);
   BOOST_TEST((std::is_same_v<typename View1::const_value_type,
-                           typename View2::const_value_type>));
+                             typename View2::const_value_type>));
 
   BOOST_TEST(v1.extent(0) == v2.extent(0));
   BOOST_TEST(v1.extent(1) == v2.extent(1));
