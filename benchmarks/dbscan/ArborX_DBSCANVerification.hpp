@@ -254,12 +254,12 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
   }
   if (cluster_sets.size() != num_unique_cluster_indices)
   {
-    std::cerr << "Number of components does not match" << '\n';
+    std::cerr << "Number of components does not match\n";
     return false;
   }
   if (num_clusters != num_unique_cluster_indices)
   {
-    std::cerr << "Cluster IDs are not unique" << '\n';
+    std::cerr << "Cluster IDs are not unique\n";
     return false;
   }
 
