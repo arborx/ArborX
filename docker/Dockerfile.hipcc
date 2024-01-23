@@ -1,4 +1,4 @@
-ARG BASE=rocm/dev-ubuntu-20.04:5.3.3-complete
+ARG BASE=rocm/dev-ubuntu-20.04:5.6
 FROM $BASE
 
 ARG NPROCS=4
