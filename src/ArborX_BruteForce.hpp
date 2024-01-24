@@ -85,7 +85,10 @@ public:
         std::forward<View>(view), std::forward<Args>(args)...);
   }
 
-  auto const &indexable_get() const { return _indexable_getter; }
+  KOKKOS_FUNCTION auto const &indexable_get() const
+  {
+    return _indexable_getter;
+  }
 
 private:
   size_type _size{0};
