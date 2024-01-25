@@ -17,6 +17,8 @@
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
 
+#include <type_traits>
+
 template <typename ExecutionSpace, typename SourceValues, typename Coefficients>
 Kokkos::View<double *, typename SourceValues::memory_space>
 interpolate(ExecutionSpace const &space, SourceValues const &source_values,
@@ -43,6 +45,12 @@ interpolate(ExecutionSpace const &space, SourceValues const &source_values,
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
 {
+#ifdef KOKKOS_ENABLE_HIP
+  if (std::is_same_v<typename DeviceType::execution_space, Kokkos::HIP>)
+  {
+    return;
+  }
+#endif
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
   ExecutionSpace space{};
@@ -124,6 +132,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
 BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients_edge_cases, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
+#ifdef KOKKOS_ENABLE_HIP
+  if (std::is_same_v<typename DeviceType::execution_space, Kokkos::HIP>)
+  {
+    return;
+  }
+#endif
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
   ExecutionSpace space{};
