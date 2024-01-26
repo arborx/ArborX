@@ -659,7 +659,7 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
 
           // Place the smallest edge at the beginning of the chain
           if (m != i)
-            KokkosExt::swap(permute(i), permute(m));
+            KokkosExt::kokkos_swap(permute(i), permute(m));
         }
       });
 

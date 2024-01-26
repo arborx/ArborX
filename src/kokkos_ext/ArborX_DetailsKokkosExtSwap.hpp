@@ -13,23 +13,11 @@
 #define ARBORX_DETAILS_KOKKOS_EXT_SWAP_HPP
 
 #include <Kokkos_Macros.hpp>
-
-#include <type_traits>
-#include <utility>
+#include <Kokkos_Swap.hpp>
 
 namespace ArborX::Details::KokkosExt
 {
-
-template <class T>
-KOKKOS_FUNCTION constexpr void
-swap(T &a, T &b) noexcept(std::is_nothrow_move_constructible_v<T>
-                              &&std::is_nothrow_move_assignable_v<T>)
-{
-  T tmp = std::move(a);
-  a = std::move(b);
-  b = std::move(tmp);
+using Kokkos::kokkos_swap;
 }
-
-} // namespace ArborX::Details::KokkosExt
 
 #endif
