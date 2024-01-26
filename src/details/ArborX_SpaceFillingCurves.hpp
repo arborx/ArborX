@@ -87,8 +87,8 @@ void check_valid_space_filling_curve(SpaceFillingCurve const &)
 
   using OrderValueType =
       std::invoke_result_t<SpaceFillingCurve const &, Box, Point>;
-  static_assert(std::is_same<OrderValueType, unsigned int>::value ||
-                std::is_same<OrderValueType, unsigned long long>::value);
+  static_assert(std::is_same_v<OrderValueType, unsigned int> ||
+                std::is_same_v<OrderValueType, unsigned long long>);
   static_assert(std::is_same_v<
                 OrderValueType,
                 std::invoke_result_t<SpaceFillingCurve const &, Box, Box>>);

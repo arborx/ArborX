@@ -114,12 +114,13 @@ struct is_forward_iterable<Kokkos::View<T, P...>> : public boost::mpl::true_
 {
   // NOTE Prefer static assertion to SFINAE because error message about no
   // operator== for the operands is not as clear.
-  static_assert(Kokkos::View<T, P...>::rank == 1 &&
-                    !std::is_same<typename Kokkos::View<T, P...>::array_layout,
-                                  Kokkos::LayoutStride>::value &&
-                    ArborX::Details::KokkosExt::is_accessible_from_host<
-                        Kokkos::View<T, P...>>::value,
-                "Restricted to contiguous rank-one host-accessible views");
+  static_assert(
+      Kokkos::View<T, P...>::rank == 1 &&
+          !std::is_same_v<typename Kokkos::View<T, P...>::array_layout,
+                          Kokkos::LayoutStride> &&
+          ArborX::Details::KokkosExt::is_accessible_from_host<
+              Kokkos::View<T, P...>>::value,
+      "Restricted to contiguous rank-one host-accessible views");
 };
 
 template <typename T, typename... P>
@@ -128,7 +129,7 @@ struct bt_iterator_traits<Kokkos::View<T, P...>, true>
   using view_type = Kokkos::View<T, P...>;
   using value_type = typename view_type::value_type;
   using const_iterator =
-      typename std::add_pointer<typename view_type::const_value_type>::type;
+      std::add_pointer_t<typename view_type::const_value_type>;
   static const_iterator begin(view_type const &v) { return v.data(); }
   static const_iterator end(view_type const &v) { return v.data() + v.size(); }
   static std::size_t size(view_type const &v) { return v.size(); }

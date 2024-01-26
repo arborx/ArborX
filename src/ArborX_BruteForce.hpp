@@ -195,7 +195,7 @@ BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
       PrimitivesTag{}, user_values, Details::DoNotCheckGetReturnType());
 
   using Values = Details::AccessValues<UserValues, PrimitivesTag>;
-  Values values{user_values};
+  Values values{user_values}; // NOLINT
 
   static_assert(
       Details::KokkosExt::is_accessible_from<typename Values::memory_space,
@@ -232,7 +232,7 @@ void BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::query(
                                              ExecutionSpace>::value,
       "Predicates must be accessible from the execution space");
 
-  Predicates predicates{user_predicates};
+  Predicates predicates{user_predicates}; // NOLINT
 
   using Tag = typename Predicates::value_type::Tag;
   static_assert(std::is_same<Tag, Details::SpatialPredicateTag>{},

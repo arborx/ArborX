@@ -334,7 +334,7 @@ reallocWithoutInitializing(View &v, size_t n0 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
 
 template <typename View>
 [[deprecated]] void
-reallocWithoutInitializing(View &v, const typename View::array_layout &layout)
+reallocWithoutInitializing(View &v, typename View::array_layout const &layout)
 {
   using ExecutionSpace = typename View::execution_space;
   Details::KokkosExt::reallocWithoutInitializing(ExecutionSpace{}, v, layout);

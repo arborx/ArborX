@@ -45,8 +45,8 @@ inline void projectOntoSpaceFillingCurve(ExecutionSpace const &space,
   size_t const n = indexables.size();
   ARBORX_ASSERT(linear_ordering_indices.extent(0) == n);
   static_assert(
-      std::is_same<typename LinearOrdering::value_type,
-                   decltype(curve(scene_bounding_box, indexables(0)))>::value);
+      std::is_same_v<typename LinearOrdering::value_type,
+                     decltype(curve(scene_bounding_box, indexables(0)))>);
 
   Kokkos::parallel_for(
       "ArborX::TreeConstruction::project_primitives_onto_space_filling_curve",

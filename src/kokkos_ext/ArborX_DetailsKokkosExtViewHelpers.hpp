@@ -61,7 +61,7 @@ void reallocWithoutInitializing(ExecutionSpace const &space, View &v,
 
 template <class ExecutionSpace, class View>
 void reallocWithoutInitializing(ExecutionSpace const &space, View &v,
-                                const typename View::array_layout &layout)
+                                typename View::array_layout const &layout)
 {
   static_assert(Kokkos::is_execution_space<ExecutionSpace>::value);
   Kokkos::realloc(Kokkos::view_alloc(space, Kokkos::WithoutInitializing), v,

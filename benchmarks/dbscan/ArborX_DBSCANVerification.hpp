@@ -254,12 +254,12 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
   }
   if (cluster_sets.size() != num_unique_cluster_indices)
   {
-    std::cerr << "Number of components does not match" << std::endl;
+    std::cerr << "Number of components does not match\n";
     return false;
   }
   if (num_clusters != num_unique_cluster_indices)
   {
-    std::cerr << "Cluster IDs are not unique" << std::endl;
+    std::cerr << "Cluster IDs are not unique\n";
     return false;
   }
 
@@ -306,7 +306,7 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
 
-  Points points{primitives};
+  Points points{primitives}; // NOLINT
 
   using Point = typename Points::value_type;
   static_assert(GeometryTraits::is_point<Point>{});

@@ -30,7 +30,7 @@ namespace ArborX::Details::DistributedTree
 {
 
 template <typename ExecutionSpace, typename Distributor, typename View>
-typename std::enable_if<Kokkos::is_view<View>::value>::type
+std::enable_if_t<Kokkos::is_view<View>::value>
 sendAcrossNetwork(ExecutionSpace const &space, Distributor const &distributor,
                   View exports, typename View::non_const_type imports)
 {

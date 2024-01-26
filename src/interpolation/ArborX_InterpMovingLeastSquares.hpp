@@ -145,8 +145,8 @@ public:
                       : Details::polynomialBasisSize<dimension,
                                                      PolynomialDegree::value>();
 
-    TargetAccess target_access{target_points};
-    SourceAccess source_access{source_points};
+    TargetAccess target_access{target_points}; // NOLINT
+    SourceAccess source_access{source_points}; // NOLINT
 
     _num_targets = target_access.size();
     _source_size = source_access.size();

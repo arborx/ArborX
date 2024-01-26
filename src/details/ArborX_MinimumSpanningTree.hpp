@@ -52,7 +52,7 @@ struct MinimumSpanningTree
     using Point = typename Points::value_type;
     static_assert(GeometryTraits::is_point<Point>{});
 
-    Points points{primitives};
+    Points points{primitives}; // NOLINT
 
     auto const n = points.size();
 
