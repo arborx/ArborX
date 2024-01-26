@@ -15,6 +15,7 @@
 #include <ArborX_Config.hpp>
 
 #include <ArborX_Box.hpp>
+#include <ArborX_BruteForce.hpp>
 #ifdef ARBORX_ENABLE_MPI
 #include <ArborX_DistributedTree.hpp>
 #endif
