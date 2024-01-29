@@ -14,6 +14,7 @@
 
 #include <ArborX_Callbacks.hpp>
 #include <ArborX_DetailsUnionFind.hpp>
+#include <ArborX_PairValueIndex.hpp>
 #include <ArborX_Predicates.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -49,8 +50,14 @@ struct FDBSCANCallback
   UnionFind _union_find;
   CorePointsType _is_core_point;
 
-  KOKKOS_FUNCTION auto operator()(int i, int j) const
+  template <typename Value, typename Index>
+  KOKKOS_FUNCTION auto
+  operator()(PairValueIndex<Value, Index> const &value1,
+             PairValueIndex<Value, Index> const &value2) const
   {
+    int i = value1.index;
+    int j = value2.index;
+
     bool const is_border_point = !_is_core_point(i);
     bool const neighbor_is_core_point = _is_core_point(j);
     if (is_border_point)
