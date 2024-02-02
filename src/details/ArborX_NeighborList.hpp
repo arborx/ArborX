@@ -34,7 +34,7 @@ struct NeighborListPredicateGetter
     static_assert(GeometryTraits::is_point<Point>{});
 
     constexpr int dim = GeometryTraits::dimension_v<Point>;
-    using Coordinate = typename GeometryTraits::coordinate_type<Point>::type;
+    using Coordinate = typename GeometryTraits::coordinate_type_t<Point>;
 
     auto const &hyper_point = reinterpret_cast<
         ExperimentalHyperGeometry::Point<dim, Coordinate> const &>(point);

@@ -52,12 +52,16 @@ struct tag
 {
   using type = not_specialized;
 };
+template <typename Geometry>
+using tag_t = typename tag<Geometry>::type;
 
 template <typename Geometry>
 struct coordinate_type
 {
   using type = not_specialized;
 };
+template <typename Geometry>
+using coordinate_type_t = typename coordinate_type<Geometry>::type;
 
 template <typename Geometry>
 using DimensionNotSpecializedArchetypeAlias =
@@ -111,7 +115,7 @@ void check_valid_geometry_traits(Geometry const &)
           GeometryTraits::dimension_v<Geometry> > 0,
       "GeometryTraits::dimension<Geometry>::value must be a positive integral");
 
-  static_assert(!std::is_same_v<typename tag<Geometry>::type, not_specialized>,
+  static_assert(!std::is_same_v<tag_t<Geometry>, not_specialized>,
                 "GeometryTraits::tag<Geometry> must define 'type' member type");
   using Tag = typename tag<Geometry>::type;
   static_assert(std::is_same<Tag, PointTag>{} || std::is_same<Tag, BoxTag>{} ||
@@ -121,11 +125,10 @@ void check_valid_geometry_traits(Geometry const &)
                 "GeometryTraits::tag<Geometry>::type must be PointTag, BoxTag, "
                 "SphereTag, TriangleTag or KDOPTag");
 
-  static_assert(!std::is_same_v<typename coordinate_type<Geometry>::type,
-                                not_specialized>,
+  static_assert(!std::is_same_v<coordinate_type_t<Geometry>, not_specialized>,
                 "GeometryTraits::coordinate_type<Geometry> must define 'type' "
                 "member type");
-  using Coordinate = typename coordinate_type<Geometry>::type;
+  using Coordinate = coordinate_type_t<Geometry>;
   static_assert(
       std::is_arithmetic_v<Coordinate>,
       "GeometryTraits::coordinate_type<Geometry> must be an arithmetic type");

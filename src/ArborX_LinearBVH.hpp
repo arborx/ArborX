@@ -47,14 +47,14 @@ namespace Details
 struct HappyTreeFriends;
 } // namespace Details
 
-template <
-    typename MemorySpace, typename Value = Details::LegacyDefaultTemplateValue,
-    typename IndexableGetter = Details::DefaultIndexableGetter,
-    typename BoundingVolume = ExperimentalHyperGeometry::Box<
-        GeometryTraits::dimension_v<
-            std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
-        typename GeometryTraits::coordinate_type<
-            std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>::type>>
+template <typename MemorySpace,
+          typename Value = Details::LegacyDefaultTemplateValue,
+          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename BoundingVolume = ExperimentalHyperGeometry::Box<
+              GeometryTraits::dimension_v<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
+              typename GeometryTraits::coordinate_type_t<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
 class BoundingVolumeHierarchy
 {
 public:
@@ -235,14 +235,14 @@ public:
   }
 };
 
-template <
-    typename MemorySpace, typename Value = Details::LegacyDefaultTemplateValue,
-    typename IndexableGetter = Details::DefaultIndexableGetter,
-    typename BoundingVolume = ExperimentalHyperGeometry::Box<
-        GeometryTraits::dimension_v<
-            std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
-        typename GeometryTraits::coordinate_type<
-            std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>::type>>
+template <typename MemorySpace,
+          typename Value = Details::LegacyDefaultTemplateValue,
+          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename BoundingVolume = ExperimentalHyperGeometry::Box<
+              GeometryTraits::dimension_v<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
+              typename GeometryTraits::coordinate_type_t<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
 using BVH = BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
                                     BoundingVolume>;
 
@@ -304,7 +304,7 @@ BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter, BoundingVolume>::
 
   // determine the bounding box of the scene
   ExperimentalHyperGeometry::Box<
-      DIM, typename GeometryTraits::coordinate_type<BoundingVolume>::type>
+      DIM, typename GeometryTraits::coordinate_type_t<BoundingVolume>>
       bbox{};
   Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, indexables,
                                                             bbox);
@@ -389,7 +389,7 @@ void BoundingVolumeHierarchy<
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
     ExperimentalHyperGeometry::Box<
         GeometryTraits::dimension_v<bounding_volume_type>,
-        typename GeometryTraits::coordinate_type<bounding_volume_type>::type>
+        typename GeometryTraits::coordinate_type_t<bounding_volume_type>>
         scene_bounding_box{};
     using namespace Details;
     expand(scene_bounding_box, bounds());

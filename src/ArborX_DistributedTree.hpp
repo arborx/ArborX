@@ -116,14 +116,14 @@ private:
 
 // NOTE: query() must be called as collective over all processes in the
 // communicator passed to the constructor
-template <
-    typename MemorySpace, typename Value = Details::LegacyDefaultTemplateValue,
-    typename IndexableGetter = Details::DefaultIndexableGetter,
-    typename BoundingVolume = ExperimentalHyperGeometry::Box<
-        GeometryTraits::dimension_v<
-            std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
-        typename GeometryTraits::coordinate_type<
-            std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>::type>>
+template <typename MemorySpace,
+          typename Value = Details::LegacyDefaultTemplateValue,
+          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename BoundingVolume = ExperimentalHyperGeometry::Box<
+              GeometryTraits::dimension_v<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
+              typename GeometryTraits::coordinate_type_t<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
 class DistributedTree
     : public DistributedTreeBase<BoundingVolumeHierarchy<
           MemorySpace, Value, IndexableGetter, BoundingVolume>>

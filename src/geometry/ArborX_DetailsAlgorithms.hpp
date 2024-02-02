@@ -61,14 +61,14 @@ template <typename Geometry>
 KOKKOS_INLINE_FUNCTION constexpr bool equals(Geometry const &l,
                                              Geometry const &r)
 {
-  return Dispatch::equals<typename GeometryTraits::tag<Geometry>::type,
+  return Dispatch::equals<typename GeometryTraits::tag_t<Geometry>,
                           Geometry>::apply(l, r);
 }
 
 template <typename Geometry>
 KOKKOS_INLINE_FUNCTION constexpr bool isValid(Geometry const &geometry)
 {
-  return Dispatch::isValid<typename GeometryTraits::tag<Geometry>::type,
+  return Dispatch::isValid<typename GeometryTraits::tag_t<Geometry>,
                            Geometry>::apply(geometry);
 }
 
@@ -78,8 +78,8 @@ KOKKOS_INLINE_FUNCTION auto distance(Geometry1 const &geometry1,
 {
   static_assert(GeometryTraits::dimension_v<Geometry1> ==
                 GeometryTraits::dimension_v<Geometry2>);
-  return Dispatch::distance<typename GeometryTraits::tag<Geometry1>::type,
-                            typename GeometryTraits::tag<Geometry2>::type,
+  return Dispatch::distance<typename GeometryTraits::tag_t<Geometry1>,
+                            typename GeometryTraits::tag_t<Geometry2>,
                             Geometry1, Geometry2>::apply(geometry1, geometry2);
 }
 
@@ -89,8 +89,8 @@ KOKKOS_INLINE_FUNCTION void expand(Geometry1 &geometry1,
 {
   static_assert(GeometryTraits::dimension_v<Geometry1> ==
                 GeometryTraits::dimension_v<Geometry2>);
-  Dispatch::expand<typename GeometryTraits::tag<Geometry1>::type,
-                   typename GeometryTraits::tag<Geometry2>::type, Geometry1,
+  Dispatch::expand<typename GeometryTraits::tag_t<Geometry1>,
+                   typename GeometryTraits::tag_t<Geometry2>, Geometry1,
                    Geometry2>::apply(geometry1, geometry2);
 }
 
@@ -100,8 +100,8 @@ KOKKOS_INLINE_FUNCTION constexpr bool intersects(Geometry1 const &geometry1,
 {
   static_assert(GeometryTraits::dimension_v<Geometry1> ==
                 GeometryTraits::dimension_v<Geometry2>);
-  return Dispatch::intersects<typename GeometryTraits::tag<Geometry1>::type,
-                              typename GeometryTraits::tag<Geometry2>::type,
+  return Dispatch::intersects<typename GeometryTraits::tag_t<Geometry1>,
+                              typename GeometryTraits::tag_t<Geometry2>,
                               Geometry1, Geometry2>::apply(geometry1,
                                                            geometry2);
 }
@@ -109,7 +109,7 @@ KOKKOS_INLINE_FUNCTION constexpr bool intersects(Geometry1 const &geometry1,
 template <typename Geometry>
 KOKKOS_INLINE_FUNCTION decltype(auto) returnCentroid(Geometry const &geometry)
 {
-  return Dispatch::centroid<typename GeometryTraits::tag<Geometry>::type,
+  return Dispatch::centroid<typename GeometryTraits::tag_t<Geometry>,
                             Geometry>::apply(geometry);
 }
 
@@ -437,7 +437,7 @@ struct intersects<PointTag, TriangleTag, Point, Triangle>
     auto const &b = triangle.b;
     auto const &c = triangle.c;
 
-    using Float = typename GeometryTraits::coordinate_type<Point>::type;
+    using Float = typename GeometryTraits::coordinate_type_t<Point>;
 
     // Find coefficients alpha and beta such that
     // x = a + alpha * (b - a) + beta * (c - a)
