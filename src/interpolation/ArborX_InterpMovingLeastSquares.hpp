@@ -121,7 +121,7 @@ public:
         "Source points must be accessible from the execution space");
     using SourcePoint = typename SourceAccess::value_type;
     GeometryTraits::check_valid_geometry_traits(SourcePoint{});
-    static_assert(GeometryTraits::is_point<SourcePoint>::value,
+    static_assert(GeometryTraits::is_point_v<SourcePoint>,
                   "Source points elements must be points");
     static constexpr int dimension = GeometryTraits::dimension_v<SourcePoint>;
 
@@ -135,7 +135,7 @@ public:
         "Target points must be accessible from the execution space");
     using TargetPoint = typename TargetAccess::value_type;
     GeometryTraits::check_valid_geometry_traits(TargetPoint{});
-    static_assert(GeometryTraits::is_point<TargetPoint>::value,
+    static_assert(GeometryTraits::is_point_v<TargetPoint>,
                   "Target points elements must be points");
     static_assert(dimension == GeometryTraits::dimension_v<TargetPoint>,
                   "Target and source points must have the same dimension");

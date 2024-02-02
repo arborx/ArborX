@@ -309,7 +309,7 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   Points points{primitives}; // NOLINT
 
   using Point = typename Points::value_type;
-  static_assert(GeometryTraits::is_point<Point>{});
+  static_assert(GeometryTraits::is_point_v<Point>);
 
   ArborX::BoundingVolumeHierarchy<MemorySpace, ArborX::PairValueIndex<Point>>
       bvh(exec_space, ArborX::Experimental::attach_indices(points));

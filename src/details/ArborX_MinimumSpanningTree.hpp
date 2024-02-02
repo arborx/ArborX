@@ -50,7 +50,7 @@ struct MinimumSpanningTree
 
     using Points = Details::AccessValues<Primitives, PrimitivesTag>;
     using Point = typename Points::value_type;
-    static_assert(GeometryTraits::is_point<Point>{});
+    static_assert(GeometryTraits::is_point_v<Point>);
 
     Points points{primitives}; // NOLINT
 

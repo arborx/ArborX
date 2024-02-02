@@ -174,7 +174,7 @@ void generatePointCloud(PointCloudType const point_cloud_type,
 {
   using namespace ArborX::GeometryTraits;
   check_valid_geometry_traits(Point{});
-  static_assert(is_point<Point>{}, "ArborX: View must contain point values");
+  static_assert(is_point_v<Point>, "ArborX: View must contain point values");
 
   auto random_points_host = Kokkos::create_mirror_view(random_points);
   switch (point_cloud_type)

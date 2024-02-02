@@ -80,7 +80,7 @@ struct Box
   }
 
   template <typename Point,
-            std::enable_if_t<GeometryTraits::is_point<Point>{}> * = nullptr>
+            std::enable_if_t<GeometryTraits::is_point_v<Point>> * = nullptr>
   KOKKOS_FUNCTION auto &operator+=(Point const &point)
   {
     using Details::KokkosExt::max;

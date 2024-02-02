@@ -25,8 +25,8 @@ struct DefaultIndexableGetter
   DefaultIndexableGetter() = default;
 
   template <typename Geometry, typename Enable = std::enable_if_t<
-                                   GeometryTraits::is_point<Geometry>{} ||
-                                   GeometryTraits::is_box<Geometry>{}>>
+                                   GeometryTraits::is_point_v<Geometry> ||
+                                   GeometryTraits::is_box_v<Geometry>>>
   KOKKOS_FUNCTION auto const &operator()(Geometry const &geometry) const
   {
     return geometry;

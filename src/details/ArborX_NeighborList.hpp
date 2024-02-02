@@ -31,7 +31,7 @@ struct NeighborListPredicateGetter
   template <typename Point>
   KOKKOS_FUNCTION auto operator()(Point point) const
   {
-    static_assert(GeometryTraits::is_point<Point>{});
+    static_assert(GeometryTraits::is_point_v<Point>);
 
     constexpr int dim = GeometryTraits::dimension_v<Point>;
     using Coordinate = typename GeometryTraits::coordinate_type_t<Point>;
@@ -61,7 +61,7 @@ void findHalfNeighborList(ExecutionSpace const &space,
       "Primitives must be accessible from the execution space");
 
   using Point = typename Points::value_type;
-  static_assert(GeometryTraits::is_point<Point>{});
+  static_assert(GeometryTraits::is_point_v<Point>);
 
   Points points{primitives}; // NOLINT
   int const n = points.size();
@@ -117,7 +117,7 @@ void findFullNeighborList(ExecutionSpace const &space,
       "Primitives must be accessible from the execution space");
 
   using Point = typename Points::value_type;
-  static_assert(GeometryTraits::is_point<Point>{});
+  static_assert(GeometryTraits::is_point_v<Point>);
 
   Points points{primitives}; // NOLINT
   int const n = points.size();

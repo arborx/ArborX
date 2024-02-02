@@ -66,7 +66,7 @@ struct WithinRadiusGetter
   template <typename Point>
   KOKKOS_FUNCTION auto operator()(Point const &point) const
   {
-    static_assert(GeometryTraits::is_point<Point>::value);
+    static_assert(GeometryTraits::is_point_v<Point>);
 
     constexpr int dim = GeometryTraits::dimension_v<Point>;
     auto const &hyper_point =
@@ -263,7 +263,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 #endif
 
   using Point = typename Points::value_type;
-  static_assert(GeometryTraits::is_point<Point>{});
+  static_assert(GeometryTraits::is_point_v<Point>);
   constexpr int dim = GeometryTraits::dimension_v<Point>;
   using Box = ExperimentalHyperGeometry::Box<dim>;
 

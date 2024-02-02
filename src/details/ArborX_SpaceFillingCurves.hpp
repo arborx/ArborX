@@ -30,16 +30,16 @@ namespace Experimental
 struct Morton32
 {
   template <typename Box, typename Point,
-            std::enable_if_t<GeometryTraits::is_box<Box>{} &&
-                             GeometryTraits::is_point<Point>{}> * = nullptr>
+            std::enable_if_t<GeometryTraits::is_box_v<Box> &&
+                             GeometryTraits::is_point_v<Point>> * = nullptr>
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box, Point p) const
   {
     Details::translateAndScale(p, p, scene_bounding_box);
     return Details::morton32(p);
   }
   template <typename Box, typename Geometry,
-            std::enable_if_t<GeometryTraits::is_box<Box>{} &&
-                             !GeometryTraits::is_point<Geometry>{}> * = nullptr>
+            std::enable_if_t<GeometryTraits::is_box_v<Box> &&
+                             !GeometryTraits::is_point_v<Geometry>> * = nullptr>
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box,
                                   Geometry const &geometry) const
   {
@@ -52,16 +52,16 @@ struct Morton32
 struct Morton64
 {
   template <typename Box, typename Point,
-            std::enable_if_t<GeometryTraits::is_box<Box>{} &&
-                             GeometryTraits::is_point<Point>{}> * = nullptr>
+            std::enable_if_t<GeometryTraits::is_box_v<Box> &&
+                             GeometryTraits::is_point_v<Point>> * = nullptr>
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box, Point p) const
   {
     Details::translateAndScale(p, p, scene_bounding_box);
     return Details::morton64(p);
   }
   template <typename Box, class Geometry,
-            std::enable_if_t<GeometryTraits::is_box<Box>{} &&
-                             !GeometryTraits::is_point<Geometry>{}> * = nullptr>
+            std::enable_if_t<GeometryTraits::is_box_v<Box> &&
+                             !GeometryTraits::is_point_v<Geometry>> * = nullptr>
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box,
                                   Geometry const &geometry) const
   {
