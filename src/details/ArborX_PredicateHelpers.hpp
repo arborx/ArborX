@@ -1,0 +1,165 @@
+/****************************************************************************
+ * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * All rights reserved.                                                     *
+ *                                                                          *
+ * This file is part of the ArborX library. ArborX is                       *
+ * distributed under a BSD 3-clause license. For the licensing terms see    *
+ * the LICENSE file in the top-level directory.                             *
+ *                                                                          *
+ * SPDX-License-Identifier: BSD-3-Clause                                    *
+ ****************************************************************************/
+#ifndef ARBORX_PREDICATE_HELPERS_HPP
+#define ARBORX_PREDICATE_HELPERS_HPP
+
+#include <ArborX_AccessTraits.hpp>
+#include <ArborX_GeometryTraits.hpp>
+#include <ArborX_HyperSphere.hpp>
+#include <ArborX_Predicates.hpp>
+
+namespace ArborX
+{
+namespace Experimental
+{
+
+template <typename UserPrimitives>
+struct PrimitivesIntersect
+{
+private:
+  using Primitives = Details::AccessValues<UserPrimitives, PrimitivesTag>;
+  // FIXME:
+  // using Geometry = typename Primitives::value_type;
+  // static_assert(GeometryTraits::is_valid_geometry<Geometry>{});
+
+public:
+  Primitives _primitives;
+};
+
+template <typename UserPrimitives>
+struct PrimitivesWithRadius
+{
+private:
+  using Primitives = Details::AccessValues<UserPrimitives, PrimitivesTag>;
+  using Point = typename Primitives::value_type;
+  static_assert(GeometryTraits::is_point<Point>::value);
+  using Coordinate = typename GeometryTraits::coordinate_type<Point>::type;
+
+public:
+  Primitives _primitives;
+  Coordinate _r;
+
+  PrimitivesWithRadius(UserPrimitives const &user_primitives, Coordinate r)
+      : _primitives(user_primitives)
+      , _r(r)
+  {}
+};
+
+template <class UserPrimitives>
+struct PrimitivesNearestK
+{
+private:
+  using Primitives = Details::AccessValues<UserPrimitives, PrimitivesTag>;
+
+public:
+  Primitives _primitives;
+  int _k; // not including self-collisions
+};
+
+template <typename Primitives>
+auto intersect_geometries(Primitives const &primitives)
+{
+  Details::check_valid_access_traits(PrimitivesTag{}, primitives,
+                                     Details::DoNotCheckGetReturnType());
+  return PrimitivesIntersect<Primitives>{primitives};
+}
+
+template <typename Primitives, typename Coordinate>
+auto intersect_geometries_with_radius(Primitives const &primitives,
+                                      Coordinate r)
+{
+  Details::check_valid_access_traits(PrimitivesTag{}, primitives);
+  return PrimitivesWithRadius<Primitives>(primitives, r);
+}
+
+template <typename Primitives>
+auto nearest_k(Primitives const &primitives, int k)
+{
+  Details::check_valid_access_traits(PrimitivesTag{}, primitives);
+  return PrimitivesNearestK<Primitives>{primitives, k};
+}
+
+} // namespace Experimental
+
+template <class Primitives>
+struct AccessTraits<Experimental::PrimitivesIntersect<Primitives>,
+                    PredicatesTag>
+{
+private:
+  using Self = Experimental::PrimitivesIntersect<Primitives>;
+
+public:
+  using memory_space = typename Primitives::memory_space;
+  using size_type = typename memory_space::size_type;
+
+  static KOKKOS_FUNCTION size_type size(Self const &x)
+  {
+    return x._primitives.size();
+  }
+  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
+  {
+    return intersects(x._primitives(i));
+  }
+};
+
+template <class Primitives>
+struct AccessTraits<Experimental::PrimitivesWithRadius<Primitives>,
+                    PredicatesTag>
+{
+private:
+  using Self = Experimental::PrimitivesWithRadius<Primitives>;
+
+public:
+  using memory_space = typename Primitives::memory_space;
+  using size_type = typename memory_space::size_type;
+
+  static KOKKOS_FUNCTION size_type size(Self const &x)
+  {
+    return x._primitives.size();
+  }
+  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
+  {
+    auto const &point = x._primitives(i);
+    using Point = std::decay_t<decltype(point)>;
+    constexpr int dim = GeometryTraits::dimension_v<Point>;
+    using Coordinate = typename GeometryTraits::coordinate_type<Point>::type;
+    // FIXME reinterpret_cast is dangerous here if access traits return user
+    // point structure (e.g., struct MyPoint { float y; float x; })
+    auto const &hyper_point = reinterpret_cast<
+        ExperimentalHyperGeometry::Point<dim, Coordinate> const &>(point);
+    return intersects(
+        ExperimentalHyperGeometry::Sphere<dim, Coordinate>(hyper_point, x._r));
+  }
+};
+
+template <class Primitives>
+struct AccessTraits<Experimental::PrimitivesNearestK<Primitives>, PredicatesTag>
+{
+private:
+  using Self = Experimental::PrimitivesNearestK<Primitives>;
+
+public:
+  using memory_space = typename Primitives::memory_space;
+  using size_type = typename memory_space::size_type;
+
+  static KOKKOS_FUNCTION size_type size(Self const &x)
+  {
+    return x._primitives.size();
+  }
+  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
+  {
+    return nearest(x._primitives(i), x._k);
+  }
+};
+
+} // namespace ArborX
+
+#endif

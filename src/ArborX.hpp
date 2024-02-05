@@ -23,6 +23,7 @@
 #include <ArborX_Exception.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Point.hpp>
+#include <ArborX_PredicateHelpers.hpp>
 #include <ArborX_Predicates.hpp>
 #include <ArborX_Sphere.hpp>
 // FIXME: we include ArborX_DetailsUtils.hpp only for backward compatibility for
