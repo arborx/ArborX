@@ -45,7 +45,7 @@ struct WithinDistanceFromPredicates
 
 template <class Predicates, class Distances>
 struct AccessTraits<
-    Details::WithinDistanceFromPredicates<Predicates, Distances>, PredicatesTag>
+    Details::WithinDistanceFromPredicates<Predicates, Distances>>
 {
   using Predicate = typename Predicates::value_type;
   using Geometry =
