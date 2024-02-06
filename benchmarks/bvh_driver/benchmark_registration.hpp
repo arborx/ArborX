@@ -169,26 +169,6 @@ makeNearestQueries(int n_values, int n_queries, int n_neighbors,
   return queries;
 }
 
-template <typename Queries>
-struct QueriesWithIndex
-{
-  Queries _queries;
-};
-
-template <typename Queries>
-struct ArborX::AccessTraits<QueriesWithIndex<Queries>, ArborX::PredicatesTag>
-{
-  using memory_space = typename Queries::memory_space;
-  static KOKKOS_FUNCTION size_t size(QueriesWithIndex<Queries> const &q)
-  {
-    return q._queries.extent(0);
-  }
-  static KOKKOS_FUNCTION auto get(QueriesWithIndex<Queries> const &q, size_t i)
-  {
-    return attach(q._queries(i), (int)i);
-  }
-};
-
 template <typename DeviceType>
 struct CountCallback
 {
@@ -276,10 +256,9 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
   TreeType index(
       ExecutionSpace{},
       constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type));
-  auto const queries_no_index = makeSpatialQueries<DeviceType>(
+  auto const queries = makeSpatialQueries<DeviceType>(
       spec.n_values, spec.n_queries, spec.n_neighbors,
       spec.target_point_cloud_type);
-  QueriesWithIndex<decltype(queries_no_index)> queries{queries_no_index};
 
   for (auto _ : state)
   {
@@ -290,7 +269,8 @@ void BM_radius_callback_search(benchmark::State &state, Spec const &spec)
     exec_space.fence();
     auto const start = std::chrono::high_resolution_clock::now();
 
-    index.query(exec_space, queries, callback,
+    index.query(exec_space, ArborX::Experimental::attach_indices<int>(queries),
+                callback,
                 ArborX::Experimental::TraversalPolicy().setPredicateSorting(
                     spec.sort_predicates));
 
@@ -348,10 +328,9 @@ void BM_knn_callback_search(benchmark::State &state, Spec const &spec)
 
   TreeType index(exec_space, constructPoints<DeviceType>(
                                  spec.n_values, spec.source_point_cloud_type));
-  auto const queries_no_index = makeNearestQueries<DeviceType>(
+  auto const queries = makeNearestQueries<DeviceType>(
       spec.n_values, spec.n_queries, spec.n_neighbors,
       spec.target_point_cloud_type);
-  QueriesWithIndex<decltype(queries_no_index)> queries{queries_no_index};
 
   for (auto _ : state)
   {
@@ -362,7 +341,8 @@ void BM_knn_callback_search(benchmark::State &state, Spec const &spec)
     exec_space.fence();
     auto const start = std::chrono::high_resolution_clock::now();
 
-    index.query(exec_space, queries, callback,
+    index.query(exec_space, ArborX::Experimental::attach_indices<int>(queries),
+                callback,
                 ArborX::Experimental::TraversalPolicy().setPredicateSorting(
                     spec.sort_predicates));
 
