@@ -13,6 +13,7 @@
 #define ARBORX_BRUTE_FORCE_HPP
 
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_AttachIndices.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_CrsGraphWrapper.hpp>
 #include <ArborX_DetailsBruteForceImpl.hpp>
