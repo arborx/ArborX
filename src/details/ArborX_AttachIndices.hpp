@@ -43,7 +43,8 @@ struct ArborX::AccessTraits<ArborX::Experimental::AttachIndices<Values, Index>,
 {
 private:
   using Self = ArborX::Experimental::AttachIndices<Values, Index>;
-  using Access = AccessTraits<Values, ArborX::PrimitivesTag>;
+  using Access =
+      AccessTraits<Values, Details::TrueTag<Values, ArborX::PrimitivesTag>>;
   using value_type = ArborX::PairValueIndex<
       std::decay_t<Kokkos::detected_t<
           ArborX::Details::AccessTraitsGetArchetypeExpression, Access, Values>>,
@@ -67,7 +68,8 @@ struct ArborX::AccessTraits<ArborX::Experimental::AttachIndices<Values, Index>,
 {
 private:
   using Self = ArborX::Experimental::AttachIndices<Values, Index>;
-  using Access = AccessTraits<Values, ArborX::PredicatesTag>;
+  using Access =
+      AccessTraits<Values, Details::TrueTag<Values, ArborX::PredicatesTag>>;
 
 public:
   using memory_space = typename Access::memory_space;
