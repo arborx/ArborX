@@ -62,7 +62,7 @@ DEFINE_GEOMETRY(sphere, SphereTag);
 DEFINE_GEOMETRY(triangle, TriangleTag);
 DEFINE_GEOMETRY(kdop, KDOPTag);
 DEFINE_GEOMETRY(ray, RayTag);
-#undef IS_GEOMETRY
+#undef DEFINE_GEOMETRY
 
 template <typename Geometry>
 inline constexpr bool
