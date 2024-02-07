@@ -60,7 +60,7 @@ private:
 
 public:
   Primitives _primitives;
-  int _k; // not including self-collisions
+  int _k;
 };
 
 template <typename Primitives, typename Coordinate>
