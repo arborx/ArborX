@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_AttachIndices.hpp>
 #include <ArborX_HyperPoint.hpp>
 #include <ArborX_Point.hpp>
 
@@ -58,6 +59,10 @@ struct ArborX::Traits::Access<LegacyAccessTraits, Tag>
   static Point get(LegacyAccessTraits, int) { return {}; }
 };
 
+template <class V, class Tag>
+using deduce_type_t =
+    decltype(ArborX::AccessTraits<V, Tag>::get(std::declval<V>(), 0));
+
 void test_access_traits_compile_only()
 {
   Kokkos::View<ArborX::Point *> p;
@@ -65,9 +70,29 @@ void test_access_traits_compile_only()
   check_valid_access_traits(PrimitivesTag{}, p);
   check_valid_access_traits(PrimitivesTag{}, v);
 
+  auto p_with_indices = ArborX::Experimental::attach_indices(p);
+  check_valid_access_traits(PrimitivesTag{}, p_with_indices,
+                            ArborX::Details::DoNotCheckGetReturnType());
+  static_assert(
+      std::is_same_v<deduce_type_t<decltype(p_with_indices), PrimitivesTag>,
+                     ArborX::PairValueIndex<ArborX::Point, unsigned>>);
+
+  auto p_with_indices_long = ArborX::Experimental::attach_indices<long>(p);
+  static_assert(std::is_same_v<
+                deduce_type_t<decltype(p_with_indices_long), PrimitivesTag>,
+                ArborX::PairValueIndex<ArborX::Point, long>>);
+
   using NearestPredicate = decltype(ArborX::nearest(ArborX::Point{}));
   Kokkos::View<NearestPredicate *> q;
   check_valid_access_traits(PredicatesTag{}, q);
+
+  auto q_with_indices = ArborX::Experimental::attach_indices<long>(q);
+  check_valid_access_traits(PredicatesTag{}, q_with_indices);
+  using predicate = deduce_type_t<decltype(q_with_indices), PredicatesTag>;
+  static_assert(
+      std::is_same_v<
+          std::decay_t<decltype(ArborX::getData(std::declval<predicate>()))>,
+          long>);
 
   // Uncomment to see error messages
 
@@ -82,21 +107,21 @@ void test_access_traits_compile_only()
   // check_valid_access_traits(PrimitivesTag{}, LegacyAccessTraits{});
 }
 
-template <class V>
-using deduce_point_t =
-    decltype(ArborX::AccessTraits<V, ArborX::PrimitivesTag>::get(
-        std::declval<V>(), 0));
-
 void test_deduce_point_type_from_view()
 {
   using GoodOlePoint = ArborX::Point;
+  using ArborX::PrimitivesTag;
   using ArborX::ExperimentalHyperGeometry::Point;
   static_assert(
-      std::is_same_v<deduce_point_t<Kokkos::View<float **>>, GoodOlePoint>);
+      std::is_same_v<deduce_type_t<Kokkos::View<float **>, PrimitivesTag>,
+                     GoodOlePoint>);
   static_assert(
-      std::is_same_v<deduce_point_t<Kokkos::View<float *[3]>>, Point<3>>);
+      std::is_same_v<deduce_type_t<Kokkos::View<float *[3]>, PrimitivesTag>,
+                     Point<3>>);
   static_assert(
-      std::is_same_v<deduce_point_t<Kokkos::View<float *[2]>>, Point<2>>);
+      std::is_same_v<deduce_type_t<Kokkos::View<float *[2]>, PrimitivesTag>,
+                     Point<2>>);
   static_assert(
-      std::is_same_v<deduce_point_t<Kokkos::View<float *[5]>>, Point<5>>);
+      std::is_same_v<deduce_type_t<Kokkos::View<float *[5]>, PrimitivesTag>,
+                     Point<5>>);
 }
