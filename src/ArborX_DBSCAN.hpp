@@ -24,6 +24,7 @@
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_HyperSphere.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <ArborX_PredicateHelpers.hpp>
 #include <ArborX_Sphere.hpp>
 
 namespace ArborX
@@ -50,13 +51,6 @@ struct DBSCANCorePoints
   {
     return _num_neigh(i) >= _core_min_size;
   }
-};
-
-template <typename Primitives>
-struct PrimitivesWithRadius
-{
-  Primitives _primitives;
-  float _r;
 };
 
 struct WithinRadiusGetter
@@ -99,31 +93,6 @@ struct MixedBoxPrimitives
 };
 
 } // namespace Details
-
-template <typename Primitives>
-struct AccessTraits<Details::PrimitivesWithRadius<Primitives>, PredicatesTag>
-{
-  using memory_space = typename Primitives::memory_space;
-  using Predicates = Details::PrimitivesWithRadius<Primitives>;
-
-  static KOKKOS_FUNCTION size_t size(Predicates const &w)
-  {
-    return w._primitives.size();
-  }
-  static KOKKOS_FUNCTION auto get(Predicates const &w, size_t i)
-  {
-    auto const &point = w._primitives(i);
-    constexpr int dim =
-        GeometryTraits::dimension_v<std::decay_t<decltype(point)>>;
-    // FIXME reinterpret_cast is dangerous here if access traits return user
-    // point structure (e.g., struct MyPoint { float y; float x; })
-    auto const &hyper_point =
-        reinterpret_cast<ExperimentalHyperGeometry::Point<dim> const &>(point);
-    return attach(
-        intersects(ExperimentalHyperGeometry::Sphere<dim>{hyper_point, w._r}),
-        (int)i);
-  }
-};
 
 template <typename Primitives, typename PermuteFilter>
 struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
@@ -315,8 +284,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     }
     else
     {
-      auto const predicates =
-          Details::PrimitivesWithRadius<Points>{points, eps};
+      auto const predicates = ArborX::Experimental::attach_indices(
+          ArborX::Experimental::intersect_geometries_with_radius(points, eps));
 
       // Determine core points
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::num_neigh");
@@ -437,8 +406,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       // Perform the queries and build clusters through callback
       using CorePoints = Details::CCSCorePoints;
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
-      auto const predicates =
-          Details::PrimitivesWithRadius<Points>{points, eps};
+      auto const predicates = Experimental::attach_indices(
+          Experimental::intersect_geometries_with_radius(points, eps));
       bvh.query(exec_space, predicates,
                 Details::FDBSCANDenseBoxCallback<UnionFind, CorePoints, Points,
                                                  decltype(dense_cell_offsets),
@@ -478,8 +447,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
       // Perform the queries and build clusters through callback
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
-      auto const predicates =
-          Details::PrimitivesWithRadius<Points>{points, eps};
+      auto const predicates = Experimental::attach_indices(
+          Experimental::intersect_geometries_with_radius(points, eps));
       bvh.query(exec_space, predicates,
                 Details::FDBSCANDenseBoxCallback<UnionFind, CorePoints, Points,
                                                  decltype(dense_cell_offsets),

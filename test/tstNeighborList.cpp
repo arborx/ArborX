@@ -46,35 +46,6 @@ struct Filter
   }
 };
 
-template <class Points>
-struct RadiusSearch
-{
-  Points points;
-  float radius;
-};
-
-} // namespace Test
-
-template <class Points>
-struct ArborX::AccessTraits<Test::RadiusSearch<Points>, ArborX::PredicatesTag>
-{
-  using Self = Test::RadiusSearch<Points>;
-  using memory_space = typename Points::memory_space;
-  using size_type = typename Points::size_type;
-  static KOKKOS_FUNCTION size_type size(Self const &x)
-  {
-    return x.points.size();
-    ;
-  }
-  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
-  {
-    return intersects(Sphere{x.points(i), x.radius});
-  }
-};
-
-namespace Test
-{
-
 template <class MemorySpace, class ExecutionSpace, class Points>
 auto compute_reference(ExecutionSpace const &exec_space, Points const &points,
                        float radius)
@@ -82,9 +53,9 @@ auto compute_reference(ExecutionSpace const &exec_space, Points const &points,
   Kokkos::View<int *, ExecutionSpace> offsets("Test::offsets", 0);
   Kokkos::View<int *, ExecutionSpace> indices("Test::indices", 0);
   ArborX::BoundingVolumeHierarchy<MemorySpace> bvh(exec_space, points);
-  RadiusSearch<Points> predicates{points, radius};
-  bvh.query(exec_space, ArborX::Experimental::attach_indices<int>(predicates),
-            Filter{}, indices, offsets);
+  auto predicates = ArborX::Experimental::attach_indices<int>(
+      ArborX::Experimental::intersect_geometries_with_radius(points, radius));
+  bvh.query(exec_space, predicates, Filter{}, indices, offsets);
   ArborX::Details::expandHalfToFull(exec_space, offsets, indices);
   return make_compressed_storage(
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets),

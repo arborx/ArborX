@@ -107,14 +107,6 @@ struct ArborX::AccessTraits<OrderedIntersectsBased::Rays<MemorySpace>,
 
 namespace IntersectsBased
 {
-/*
- * Storage for the rays and access traits used in the query/traverse.
- */
-template <typename MemorySpace>
-struct Rays
-{
-  Kokkos::View<ArborX::Experimental::Ray *, MemorySpace> _rays;
-};
 
 /*
  * IntersectedCell is a storage container for all intersections between rays and
@@ -176,25 +168,6 @@ struct AccumulateRaySphereIntersections
   }
 };
 } // namespace IntersectsBased
-
-template <typename MemorySpace>
-struct ArborX::AccessTraits<IntersectsBased::Rays<MemorySpace>,
-                            ArborX::PredicatesTag>
-{
-  using memory_space = MemorySpace;
-  using size_type = std::size_t;
-
-  KOKKOS_FUNCTION
-  static size_type size(IntersectsBased::Rays<MemorySpace> const &rays)
-  {
-    return rays._rays.extent(0);
-  }
-  KOKKOS_FUNCTION
-  static auto get(IntersectsBased::Rays<MemorySpace> const &rays, size_type i)
-  {
-    return attach(intersects(rays._rays(i)), (int)i);
-  }
-};
 
 int main(int argc, char *argv[])
 {
@@ -336,7 +309,9 @@ int main(int argc, char *argv[])
                                                             0);
     Kokkos::View<int *> offsets("Example::offsets", 0);
     bvh.query(
-        exec_space, IntersectsBased::Rays<MemorySpace>{rays},
+        exec_space,
+        ArborX::Experimental::attach_indices<int>(
+            ArborX::Experimental::intersect_geometries(rays)),
         IntersectsBased::AccumulateRaySphereIntersections<MemorySpace>{boxes},
         values, offsets);
 

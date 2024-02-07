@@ -16,28 +16,6 @@
 #include <iostream>
 #include <type_traits>
 
-template <class MemorySpace>
-struct Neighbors
-{
-  Kokkos::View<ArborX::Point *, MemorySpace> _particles;
-  float _radius;
-};
-
-template <class MemorySpace>
-struct ArborX::AccessTraits<Neighbors<MemorySpace>, ArborX::PredicatesTag>
-{
-  using memory_space = MemorySpace;
-  using size_type = std::size_t;
-  static KOKKOS_FUNCTION size_type size(Neighbors<MemorySpace> const &x)
-  {
-    return x._particles.extent(0);
-  }
-  static KOKKOS_FUNCTION auto get(Neighbors<MemorySpace> const &x, size_type i)
-  {
-    return attach(intersects(Sphere{x._particles(i), x._radius}), (int)i);
-  }
-};
-
 struct ExcludeSelfCollision
 {
   template <class Predicate, class OutputFunctor>
@@ -119,8 +97,11 @@ int main(int argc, char *argv[])
 
   Kokkos::View<int *, MemorySpace> indices("Example::indices", 0);
   Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
-  index.query(execution_space, Neighbors<MemorySpace>{particles, r},
-              ExcludeSelfCollision{}, indices, offsets);
+  index.query(
+      execution_space,
+      ArborX::Experimental::attach_indices<int>(
+          ArborX::Experimental::intersect_geometries_with_radius(particles, r)),
+      ExcludeSelfCollision{}, indices, offsets);
 
   Kokkos::View<float *[3], MemorySpace> forces(
       Kokkos::view_alloc(execution_space, "Example::forces"), n);

@@ -314,7 +314,8 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   ArborX::BoundingVolumeHierarchy<MemorySpace, ArborX::PairValueIndex<Point>>
       bvh(exec_space, ArborX::Experimental::attach_indices(points));
 
-  auto const predicates = Details::PrimitivesWithRadius<Points>{points, eps};
+  auto const predicates = ArborX::Experimental::attach_indices(
+      ArborX::Experimental::intersect_geometries_with_radius(points, eps));
 
   Kokkos::View<int *, MemorySpace> indices("ArborX::DBSCAN::indices", 0);
   Kokkos::View<int *, MemorySpace> offset("ArborX::DBSCAN::offset", 0);

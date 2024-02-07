@@ -58,10 +58,13 @@ struct PrimitivesNearestK
 {
 private:
   using Primitives = Details::AccessValues<UserPrimitives, PrimitivesTag>;
+  // FIXME:
+  // using Geometry = typename Primitives::value_type;
+  // static_assert(GeometryTraits::is_valid_geometry<Geometry>{});
 
 public:
   Primitives _primitives;
-  int _k; // not including self-collisions
+  int _k;
 };
 
 template <typename Primitives>
@@ -83,7 +86,8 @@ auto intersect_geometries_with_radius(Primitives const &primitives,
 template <typename Primitives>
 auto nearest_k(Primitives const &primitives, int k)
 {
-  Details::check_valid_access_traits(PrimitivesTag{}, primitives);
+  Details::check_valid_access_traits(PrimitivesTag{}, primitives,
+                                     Details::DoNotCheckGetReturnType());
   return PrimitivesNearestK<Primitives>{primitives, k};
 }
 
