@@ -61,13 +61,14 @@ DEFINE_GEOMETRY(box, BoxTag);
 DEFINE_GEOMETRY(sphere, SphereTag);
 DEFINE_GEOMETRY(triangle, TriangleTag);
 DEFINE_GEOMETRY(kdop, KDOPTag);
+DEFINE_GEOMETRY(ray, RayTag);
 #undef IS_GEOMETRY
 
 template <typename Geometry>
 inline constexpr bool
     is_valid_geometry = (is_point_v<Geometry> || is_box_v<Geometry> ||
                          is_sphere_v<Geometry> || is_kdop_v<Geometry> ||
-                         is_triangle_v<Geometry>);
+                         is_triangle_v<Geometry> || is_ray_v<Geometry>);
 
 template <typename Geometry>
 using DimensionNotSpecializedArchetypeAlias =
@@ -109,7 +110,7 @@ void check_valid_geometry_traits(Geometry const &)
                 "GeometryTraits::tag<Geometry> must define 'type' member type");
   static_assert(is_valid_geometry<Geometry>,
                 "GeometryTraits::tag<Geometry>::type must be PointTag, BoxTag, "
-                "SphereTag, TriangleTag or KDOPTag");
+                "SphereTag, TriangleTag, KDOPTag, or RayTag");
 
   static_assert(!std::is_same_v<coordinate_type_t<Geometry>, not_specialized>,
                 "GeometryTraits::coordinate_type<Geometry> must define 'type' "
