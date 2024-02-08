@@ -94,6 +94,20 @@ void test_access_traits_compile_only()
           std::decay_t<decltype(ArborX::getData(std::declval<predicate>()))>,
           long>);
 
+  struct CustomIndex
+  {
+    char index;
+    CustomIndex(int i) { index = i; }
+  };
+  auto q_with_custom_indices =
+      ArborX::Experimental::attach_indices<CustomIndex>(q);
+  check_valid_access_traits(PredicatesTag{}, q_with_custom_indices);
+  using predicate_custom =
+      deduce_type_t<decltype(q_with_custom_indices), PredicatesTag>;
+  static_assert(std::is_same_v<std::decay_t<decltype(ArborX::getData(
+                                   std::declval<predicate_custom>()))>,
+                               CustomIndex>);
+
   // Uncomment to see error messages
 
   // check_valid_access_traits(PrimitivesTag{}, NoAccessTraitsSpecialization{});

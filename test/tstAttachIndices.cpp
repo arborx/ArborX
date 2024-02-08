@@ -16,7 +16,7 @@
 
 BOOST_AUTO_TEST_SUITE(AttachIndices)
 
-BOOST_AUTO_TEST_CASE(attach_indices)
+BOOST_AUTO_TEST_CASE(attach_indices_to_primitives)
 {
   using ArborX::Details::AccessValues;
   using ArborX::Experimental::attach_indices;
@@ -25,8 +25,15 @@ BOOST_AUTO_TEST_CASE(attach_indices)
   auto p_with_indices = attach_indices(p);
   AccessValues<decltype(p_with_indices), ArborX::PrimitivesTag> p_values{
       p_with_indices};
+  static_assert(std::is_same_v<decltype(p_values(0).index), unsigned>);
   BOOST_TEST(p_values(0).index == 0);
   BOOST_TEST(p_values(9).index == 9);
+}
+
+BOOST_AUTO_TEST_CASE(attach_indices_to_predicates)
+{
+  using ArborX::Details::AccessValues;
+  using ArborX::Experimental::attach_indices;
 
   using IntersectsPredicate = decltype(ArborX::intersects(ArborX::Point{}));
   Kokkos::View<IntersectsPredicate *, Kokkos::HostSpace> q("Testing::q", 10);
