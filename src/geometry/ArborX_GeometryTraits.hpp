@@ -20,27 +20,11 @@ namespace ArborX
 namespace GeometryTraits
 {
 
-struct PointTag
-{};
-
-struct BoxTag
-{};
-
-struct SphereTag
-{};
-
-struct TriangleTag
-{};
-
-struct KDOPTag
-{};
-
 template <typename Geometry>
 struct dimension
 {
   using not_specialized = void; // tag to detect existence of a specialization
 };
-
 template <typename Geometry>
 inline constexpr int dimension_v = dimension<Geometry>::value;
 
@@ -52,12 +36,39 @@ struct tag
 {
   using type = not_specialized;
 };
+template <typename Geometry>
+using tag_t = typename tag<Geometry>::type;
 
 template <typename Geometry>
 struct coordinate_type
 {
   using type = not_specialized;
 };
+template <typename Geometry>
+using coordinate_type_t = typename coordinate_type<Geometry>::type;
+
+// clang-format off
+#define DEFINE_GEOMETRY(name, name_tag)                                        \
+  struct name_tag{};                                                           \
+  template <typename Geometry>                                                 \
+  struct is_##name : std::is_same<tag_t<Geometry>, name_tag>{};              \
+  template <typename Geometry>                                                 \
+  inline constexpr bool is_##name##_v = is_##name<Geometry>::value
+// clang-format on
+
+DEFINE_GEOMETRY(point, PointTag);
+DEFINE_GEOMETRY(box, BoxTag);
+DEFINE_GEOMETRY(sphere, SphereTag);
+DEFINE_GEOMETRY(triangle, TriangleTag);
+DEFINE_GEOMETRY(kdop, KDOPTag);
+DEFINE_GEOMETRY(ray, RayTag);
+#undef DEFINE_GEOMETRY
+
+template <typename Geometry>
+inline constexpr bool
+    is_valid_geometry = (is_point_v<Geometry> || is_box_v<Geometry> ||
+                         is_sphere_v<Geometry> || is_kdop_v<Geometry> ||
+                         is_triangle_v<Geometry> || is_ray_v<Geometry>);
 
 template <typename Geometry>
 using DimensionNotSpecializedArchetypeAlias =
@@ -72,22 +83,6 @@ using CoordinateNotSpecializedArchetypeAlias =
 
 template <typename Geometry>
 using DimensionArchetypeAlias = decltype(dimension_v<Geometry>);
-
-template <typename Geometry>
-struct is_point : std::is_same<typename tag<Geometry>::type, PointTag>
-{};
-
-template <typename Geometry>
-struct is_box : std::is_same<typename tag<Geometry>::type, BoxTag>
-{};
-
-template <typename Geometry>
-struct is_sphere : std::is_same<typename tag<Geometry>::type, SphereTag>
-{};
-
-template <typename Geometry>
-struct is_triangle : std::is_same<typename tag<Geometry>::type, TriangleTag>
-{};
 
 template <typename Geometry>
 void check_valid_geometry_traits(Geometry const &)
@@ -111,21 +106,16 @@ void check_valid_geometry_traits(Geometry const &)
           GeometryTraits::dimension_v<Geometry> > 0,
       "GeometryTraits::dimension<Geometry>::value must be a positive integral");
 
-  static_assert(!std::is_same_v<typename tag<Geometry>::type, not_specialized>,
+  static_assert(!std::is_same_v<tag_t<Geometry>, not_specialized>,
                 "GeometryTraits::tag<Geometry> must define 'type' member type");
-  using Tag = typename tag<Geometry>::type;
-  static_assert(std::is_same<Tag, PointTag>{} || std::is_same<Tag, BoxTag>{} ||
-                    std::is_same<Tag, SphereTag>{} ||
-                    std::is_same<Tag, TriangleTag>{} ||
-                    std::is_same<Tag, KDOPTag>{},
+  static_assert(is_valid_geometry<Geometry>,
                 "GeometryTraits::tag<Geometry>::type must be PointTag, BoxTag, "
-                "SphereTag, TriangleTag or KDOPTag");
+                "SphereTag, TriangleTag, KDOPTag, or RayTag");
 
-  static_assert(!std::is_same_v<typename coordinate_type<Geometry>::type,
-                                not_specialized>,
+  static_assert(!std::is_same_v<coordinate_type_t<Geometry>, not_specialized>,
                 "GeometryTraits::coordinate_type<Geometry> must define 'type' "
                 "member type");
-  using Coordinate = typename coordinate_type<Geometry>::type;
+  using Coordinate = coordinate_type_t<Geometry>;
   static_assert(
       std::is_arithmetic_v<Coordinate>,
       "GeometryTraits::coordinate_type<Geometry> must be an arithmetic type");

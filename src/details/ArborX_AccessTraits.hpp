@@ -183,7 +183,7 @@ void check_valid_access_traits(PrimitivesTag, Primitives const &,
                                             Access, Primitives>>;
   if constexpr (CheckGetReturnType())
   {
-    static_assert(GeometryTraits::is_point<T>{} || GeometryTraits::is_box<T>{},
+    static_assert(GeometryTraits::is_point_v<T> || GeometryTraits::is_box_v<T>,
                   "AccessTraits<Primitives,PrimitivesTag>::get() return type "
                   "must decay to a point or a box type");
   }

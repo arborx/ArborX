@@ -28,9 +28,7 @@
 
 #include <cmath>
 
-namespace ArborX
-{
-namespace Experimental
+namespace ArborX::Experimental
 {
 
 struct Vector : private Point
@@ -586,6 +584,22 @@ KOKKOS_INLINE_FUNCTION float overlapDistance(Ray const &ray,
   return length;
 }
 
-} // namespace Experimental
-} // namespace ArborX
+} // namespace ArborX::Experimental
+
+template <>
+struct ArborX::GeometryTraits::dimension<ArborX::Experimental::Ray>
+{
+  static constexpr int value = 3;
+};
+template <>
+struct ArborX::GeometryTraits::tag<ArborX::Experimental::Ray>
+{
+  using type = RayTag;
+};
+template <>
+struct ArborX::GeometryTraits::coordinate_type<ArborX::Experimental::Ray>
+{
+  using type = float;
+};
+
 #endif

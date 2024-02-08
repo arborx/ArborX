@@ -56,7 +56,7 @@ public:
   }
 
   template <typename Point, typename Enable = std::enable_if_t<
-                                GeometryTraits::is_point<Point>{}>>
+                                GeometryTraits::is_point_v<Point>>>
   KOKKOS_FUNCTION size_t cellIndex(Point const &point) const
   {
     static_assert(GeometryTraits::dimension_v<Point> == DIM);

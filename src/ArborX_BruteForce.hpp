@@ -28,14 +28,14 @@
 namespace ArborX
 {
 
-template <
-    typename MemorySpace, typename Value = Details::LegacyDefaultTemplateValue,
-    typename IndexableGetter = Details::DefaultIndexableGetter,
-    typename BoundingVolume = ExperimentalHyperGeometry::Box<
-        GeometryTraits::dimension_v<
-            std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
-        typename GeometryTraits::coordinate_type<
-            std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>::type>>
+template <typename MemorySpace,
+          typename Value = Details::LegacyDefaultTemplateValue,
+          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename BoundingVolume = ExperimentalHyperGeometry::Box<
+              GeometryTraits::dimension_v<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
+              typename GeometryTraits::coordinate_type_t<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
 class BruteForce
 {
 public:

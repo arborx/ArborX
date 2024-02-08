@@ -98,10 +98,9 @@ CRBF_DEF(Buhmann, 4,
 template <typename CRBFunc, typename Point>
 KOKKOS_INLINE_FUNCTION constexpr auto
 evaluate(Point const &point,
-         typename GeometryTraits::coordinate_type<Point>::type const radius)
+         typename GeometryTraits::coordinate_type_t<Point> const radius)
 {
-  static_assert(GeometryTraits::is_point<Point>::value,
-                "point must be a point");
+  static_assert(GeometryTraits::is_point_v<Point>, "Point must be a point");
   constexpr std::size_t dim = GeometryTraits::dimension_v<Point>;
   return CRBFunc::template evaluate<dim>(
       ArborX::Details::distance(point, Point{}) / radius);
