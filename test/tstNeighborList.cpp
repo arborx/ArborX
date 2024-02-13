@@ -53,11 +53,6 @@ struct RadiusSearch
   float radius;
 };
 
-template <class Predicates, class IndexType = int>
-struct AttachIndices
-{
-  Predicates predicates;
-};
 } // namespace Test
 
 template <class Points>
@@ -77,24 +72,6 @@ struct ArborX::AccessTraits<Test::RadiusSearch<Points>, ArborX::PredicatesTag>
   }
 };
 
-template <class Predicates, class IndexType>
-struct ArborX::AccessTraits<Test::AttachIndices<Predicates, IndexType>,
-                            ArborX::PredicatesTag>
-{
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  using Self = Test::AttachIndices<Predicates, IndexType>;
-  using memory_space = typename Access::memory_space;
-  using size_type = decltype(Access::size(std::declval<Predicates const &>()));
-  static KOKKOS_FUNCTION size_type size(Self const &x)
-  {
-    return Access::size(x.predicates);
-  }
-  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
-  {
-    return attach(Access::get(x.predicates, i), static_cast<IndexType>(i));
-  }
-};
-
 namespace Test
 {
 
@@ -106,7 +83,7 @@ auto compute_reference(ExecutionSpace const &exec_space, Points const &points,
   Kokkos::View<int *, ExecutionSpace> indices("Test::indices", 0);
   ArborX::BoundingVolumeHierarchy<MemorySpace> bvh(exec_space, points);
   RadiusSearch<Points> predicates{points, radius};
-  bvh.query(exec_space, AttachIndices<decltype(predicates)>{predicates},
+  bvh.query(exec_space, ArborX::Experimental::attach_indices<int>(predicates),
             Filter{}, indices, offsets);
   ArborX::Details::expandHalfToFull(exec_space, offsets, indices);
   return make_compressed_storage(
