@@ -22,9 +22,8 @@ namespace Experimental
 {
 
 template <typename UserPrimitives>
-struct PrimitivesIntersect
+class PrimitivesIntersect
 {
-private:
   using Primitives = Details::AccessValues<UserPrimitives, PrimitivesTag>;
   // FIXME:
   // using Geometry = typename Primitives::value_type;
@@ -35,9 +34,8 @@ public:
 };
 
 template <typename UserPrimitives>
-struct PrimitivesWithRadius
+class PrimitivesWithRadius
 {
-private:
   using Primitives = Details::AccessValues<UserPrimitives, PrimitivesTag>;
   using Point = typename Primitives::value_type;
   static_assert(GeometryTraits::is_point<Point>::value);
@@ -54,9 +52,8 @@ public:
 };
 
 template <class UserPrimitives>
-struct PrimitivesNearestK
+class PrimitivesNearestK
 {
-private:
   using Primitives = Details::AccessValues<UserPrimitives, PrimitivesTag>;
   // FIXME:
   // using Geometry = typename Primitives::value_type;
