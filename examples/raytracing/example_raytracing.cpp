@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
     bvh.query(
         exec_space,
         ArborX::Experimental::attach_indices<int>(
-            ArborX::Experimental::intersect_geometries(rays)),
+            ArborX::Experimental::make_intersects(rays)),
         IntersectsBased::AccumulateRaySphereIntersections<MemorySpace>{boxes},
         values, offsets);
 

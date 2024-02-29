@@ -42,7 +42,7 @@ auto compute_core_distances(ExecutionSpace exec_space,
       ArborX::Details::KokkosExt::ArithmeticTraits::infinity<float>::value;
   Kokkos::deep_copy(exec_space, distances, -inf);
   auto predicates = ArborX::Experimental::attach_indices(
-      ArborX::Experimental::nearest_k(points, k));
+      ArborX::Experimental::make_nearest(points, k));
   bvh.query(exec_space, predicates,
             ArborX::Details::MaxDistance<decltype(points), decltype(distances)>{
                 points, distances});

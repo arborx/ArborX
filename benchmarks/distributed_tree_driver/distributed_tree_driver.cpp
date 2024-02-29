@@ -375,7 +375,7 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
     knn->start();
     distributed_tree.query(
         ExecutionSpace{},
-        ArborX::Experimental::nearest_k(random_queries, n_neighbors), values,
+        ArborX::Experimental::make_nearest(random_queries, n_neighbors), values,
         offsets);
     knn->stop();
 
@@ -413,9 +413,8 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
     radius->start();
     distributed_tree.query(
         ExecutionSpace{},
-        ArborX::Experimental::intersect_geometries_with_radius(random_queries,
-                                                               r),
-        values, offsets);
+        ArborX::Experimental::make_intersects(random_queries, r), values,
+        offsets);
     radius->stop();
 
     if (comm_rank == 0)

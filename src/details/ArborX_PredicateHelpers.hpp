@@ -65,7 +65,7 @@ public:
 };
 
 template <typename Primitives>
-auto intersect_geometries(Primitives const &primitives)
+auto make_intersects(Primitives const &primitives)
 {
   Details::check_valid_access_traits(PrimitivesTag{}, primitives,
                                      Details::DoNotCheckGetReturnType());
@@ -73,15 +73,14 @@ auto intersect_geometries(Primitives const &primitives)
 }
 
 template <typename Primitives, typename Coordinate>
-auto intersect_geometries_with_radius(Primitives const &primitives,
-                                      Coordinate r)
+auto make_intersects(Primitives const &primitives, Coordinate r)
 {
   Details::check_valid_access_traits(PrimitivesTag{}, primitives);
   return PrimitivesWithRadius<Primitives>(primitives, r);
 }
 
 template <typename Primitives>
-auto nearest_k(Primitives const &primitives, int k)
+auto make_nearest(Primitives const &primitives, int k)
 {
   Details::check_valid_access_traits(PrimitivesTag{}, primitives,
                                      Details::DoNotCheckGetReturnType());

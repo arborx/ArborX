@@ -201,7 +201,7 @@ private:
 
     // Create the predicates
     auto predicates = Experimental::attach_indices(
-        Experimental::nearest_k(target_access, _num_neighbors));
+        Experimental::make_nearest(target_access, _num_neighbors));
 
     // Create the callback
     Kokkos::View<SourcePoint **, MemorySpace> source_view(

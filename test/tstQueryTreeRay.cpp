@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_nearest, DeviceType,
       ray, ArborX::Box{ArborX::Point{0, 0, 0}, ArborX::Point{1, 1, 1}}));
 
   ARBORX_TEST_QUERY_TREE(exec_space, tree,
-                         ArborX::Experimental::nearest_k(device_rays, 1),
+                         ArborX::Experimental::make_nearest(device_rays, 1),
                          make_reference_solution<int>({0}, {0, 1}));
 }
 
@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_intersection, DeviceType,
   Kokkos::deep_copy(exec_space, device_rays, ray);
 
   ARBORX_TEST_QUERY_TREE(
-      exec_space, tree, ArborX::Experimental::intersect_geometries(device_rays),
+      exec_space, tree, ArborX::Experimental::make_intersects(device_rays),
       make_reference_solution<int>({0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, {0, 10}));
 }
 BOOST_AUTO_TEST_SUITE_END()

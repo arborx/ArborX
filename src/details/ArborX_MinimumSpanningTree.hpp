@@ -69,7 +69,7 @@ struct MinimumSpanningTree
           "ArborX::MST::core_distances", n);
       bvh.query(
           space,
-          Experimental::attach_indices(Experimental::nearest_k(points, k)),
+          Experimental::attach_indices(Experimental::make_nearest(points, k)),
           MaxDistance<Points, decltype(core_distances)>{points,
                                                         core_distances});
       Kokkos::Profiling::popRegion();

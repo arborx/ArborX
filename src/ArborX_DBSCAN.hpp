@@ -285,7 +285,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     else
     {
       auto const predicates = ArborX::Experimental::attach_indices(
-          ArborX::Experimental::intersect_geometries_with_radius(points, eps));
+          ArborX::Experimental::make_intersects(points, eps));
 
       // Determine core points
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::num_neigh");
@@ -407,7 +407,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       using CorePoints = Details::CCSCorePoints;
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
       auto const predicates = Experimental::attach_indices(
-          Experimental::intersect_geometries_with_radius(points, eps));
+          Experimental::make_intersects(points, eps));
       bvh.query(exec_space, predicates,
                 Details::FDBSCANDenseBoxCallback<UnionFind, CorePoints, Points,
                                                  decltype(dense_cell_offsets),
@@ -448,7 +448,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       // Perform the queries and build clusters through callback
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
       auto const predicates = Experimental::attach_indices(
-          Experimental::intersect_geometries_with_radius(points, eps));
+          Experimental::make_intersects(points, eps));
       bvh.query(exec_space, predicates,
                 Details::FDBSCANDenseBoxCallback<UnionFind, CorePoints, Points,
                                                  decltype(dense_cell_offsets),

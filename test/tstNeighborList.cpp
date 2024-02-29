@@ -54,7 +54,7 @@ auto compute_reference(ExecutionSpace const &exec_space, Points const &points,
   Kokkos::View<int *, ExecutionSpace> indices("Test::indices", 0);
   ArborX::BoundingVolumeHierarchy<MemorySpace> bvh(exec_space, points);
   auto predicates = ArborX::Experimental::attach_indices<int>(
-      ArborX::Experimental::intersect_geometries_with_radius(points, radius));
+      ArborX::Experimental::make_intersects(points, radius));
   bvh.query(exec_space, predicates, Filter{}, indices, offsets);
   ArborX::Details::expandHalfToFull(exec_space, offsets, indices);
   return make_compressed_storage(
