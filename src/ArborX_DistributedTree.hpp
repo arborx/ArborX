@@ -50,6 +50,8 @@ public:
   using bounding_volume_type = BoundingVolume;
   using value_type = typename BottomTree::value_type;
 
+  DistributedTreeBase() = default; // build an empty tree
+
   template <typename ExecutionSpace, typename... Args>
   DistributedTreeBase(MPI_Comm comm, ExecutionSpace const &space,
                       Args &&...args);
@@ -110,7 +112,7 @@ private:
   std::shared_ptr<MPI_Comm> _comm_ptr;
   BottomTree _bottom_tree; // local
   TopTree _top_tree;       // replicated
-  size_type _top_tree_size;
+  size_type _top_tree_size{0};
   Kokkos::View<size_type *, MemorySpace> _bottom_tree_sizes;
 };
 
@@ -138,6 +140,8 @@ public:
   using bounding_volume_type = BoundingVolume;
   using value_type = Value;
 
+  DistributedTree() = default; // build an empty tree
+
   template <typename ExecutionSpace, typename Values>
   DistributedTree(MPI_Comm comm, ExecutionSpace const &space,
                   Values const &values,
@@ -158,6 +162,8 @@ public:
   using memory_space = MemorySpace;
   using value_type = int;
   using bounding_volume_type = typename base_type::bounding_volume_type;
+
+  DistributedTree() = default; // build an empty tree
 
   template <typename ExecutionSpace, typename Primitives>
   DistributedTree(MPI_Comm comm, ExecutionSpace const &space,
@@ -186,8 +192,11 @@ public:
     using Tag = typename Predicates::value_type::Tag;
     if constexpr (std::is_same_v<Tag, Details::SpatialPredicateTag>)
     {
-      int comm_rank;
-      MPI_Comm_rank(base_type::getComm(), &comm_rank);
+      int comm_rank = -1;
+      // Do not access getComm() for an empty tree (which could be default
+      // constructed and not have any communicator)
+      if (!base_type::empty())
+        MPI_Comm_rank(base_type::getComm(), &comm_rank);
 
       base_type::query(space, predicates,
                        Details::LegacyDefaultCallbackWithRank{comm_rank},

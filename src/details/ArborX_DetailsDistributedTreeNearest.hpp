@@ -314,6 +314,14 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
   Kokkos::Profiling::ScopedRegion guard(
       "ArborX::DistributedTree::query::nearest");
 
+  if (tree.empty())
+  {
+    KokkosExt::reallocWithoutInitializing(space, values, 0);
+    KokkosExt::reallocWithoutInitializing(space, offset, queries.size() + 1);
+    Kokkos::deep_copy(space, offset, 0);
+    return;
+  }
+
   using namespace DistributedTree;
   using MemorySpace = typename Tree::memory_space;
   using Value = typename Values::value_type;
