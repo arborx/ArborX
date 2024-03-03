@@ -63,11 +63,21 @@ RUN wget https://cloud.cees.ornl.gov/download/oneapi-for-nvidia-gpus-${DPCPP_VER
     rm oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh
 
 # Install oneDPL, see
-# https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit-download.html?operatingsystem=linux&distributions=online&version=2023.0.0 
+# https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit-download.html?operatingsystem=linux&distributions=online&version=2023.0.0
 RUN wget https://registrationcenter-download.intel.com/akdlm/irc_nas/19133/l_oneDPL_p_2022.0.0.25335.sh &&\
     chmod +x ./l_oneDPL_p_2022.0.0.25335.sh && \
     ./l_oneDPL_p_2022.0.0.25335.sh -a -s --eula accept && \
     rm l_oneDPL_p_2022.0.0.25335.sh
+
+# Set up environment variables to avoid using setvars.sh in CI
+# clang++
+ENV PATH=/opt/intel/oneapi/compiler/latest/linux/bin-llvm/:$PATH
+# sycl-ls, icpx
+ENV PATH=/opt/intel/oneapi/compiler/latest/linux/bin/:$PATH
+# libsycl
+ENV LD_LIBRARY_PATH=/opt/intel/oneapi/compiler/latest/linux/lib:$LD_LIBRARY_PATH
+# libsvml
+ENV LD_LIBRARY_PATH=/opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin:$LD_LIBRARY_PATH
 
 # Install Boost and patch it, see
 # intel.com/content/www/us/en/developer/articles/technical/building-boost-with-oneapi.html

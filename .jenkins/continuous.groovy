@@ -415,7 +415,6 @@ pipeline {
                         sh 'rm -rf build && mkdir -p build'
                         dir('build') {
                             sh '''
-                                . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
                                 cmake \
                                     -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
                                     -D CMAKE_BUILD_TYPE=Release \
@@ -433,11 +432,9 @@ pipeline {
                                 ..
                             '''
                             sh '''
-                                . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
                                 make -j8 VERBOSE=1
                             '''
                             sh '''
-                                . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
                                 ctest $CTEST_OPTIONS
                             '''
                         }
@@ -453,7 +450,6 @@ pipeline {
                             dir('test_install') {
                                 sh 'cp -r ../examples .'
                                 sh '''
-                                    . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
                                     cmake \
                                         -D CMAKE_BUILD_TYPE=Release \
                                         -D CMAKE_CXX_COMPILER=${DPCPP} \
@@ -463,11 +459,9 @@ pipeline {
                                     examples \
                                 '''
                                 sh '''
-                                    . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
                                     make VERBOSE=1
                                 '''
                                 sh '''
-                                    . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
                                     make test
                                 '''
                             }
