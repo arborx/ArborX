@@ -109,7 +109,8 @@ protected:
 private:
   friend struct Details::DistributedTreeImpl;
 
-  std::shared_ptr<MPI_Comm> _comm_ptr;
+  std::shared_ptr<MPI_Comm> _comm_ptr{
+      std::make_unique<MPI_Comm>(MPI_COMM_NULL)};
   BottomTree _bottom_tree; // local
   TopTree _top_tree;       // replicated
   size_type _top_tree_size{0};
@@ -193,9 +194,7 @@ public:
     if constexpr (std::is_same_v<Tag, Details::SpatialPredicateTag>)
     {
       int comm_rank = -1;
-      // Do not access getComm() for an empty tree (which could be default
-      // constructed and not have any communicator)
-      if (!base_type::empty())
+      if (base_type::getComm() != MPI_COMM_NULL)
         MPI_Comm_rank(base_type::getComm(), &comm_rank);
 
       base_type::query(space, predicates,
