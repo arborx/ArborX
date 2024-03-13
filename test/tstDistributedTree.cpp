@@ -132,6 +132,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
 {
+  using Tree = ArborX::DistributedTree<typename DeviceType::memory_space>;
   using ExecutionSpace = typename DeviceType::execution_space;
 
   MPI_Comm comm = MPI_COMM_WORLD;
@@ -140,70 +141,80 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree, DeviceType, ARBORX_DEVICE_TYPES)
   int comm_size;
   MPI_Comm_size(comm, &comm_size);
 
-  auto const tree = makeDistributedTree<DeviceType>(comm, {});
-
-  BOOST_TEST(tree.empty());
-  BOOST_TEST(tree.size() == 0);
-
-  BOOST_TEST(ArborX::Details::equals(tree.bounds(), {}));
-
-  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeIntersectsBoxQueries<DeviceType>({}),
-                         make_reference_solution<PairIndexRank>({}, {0}));
-
-  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeIntersectsSphereQueries<DeviceType>({}),
-                         make_reference_solution<PairIndexRank>({}, {0}));
-
-  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeNearestQueries<DeviceType>({}),
-                         make_reference_solution<PairIndexRank>({}, {0}));
-
-  // Only rank 0 has a couple spatial queries with a spatial predicate
-  if (comm_rank == 0)
+  Tree default_initialized;
+  Tree value_initialized{};
+  for (auto const &tree : {
+           default_initialized, value_initialized,
+           makeDistributedTree<DeviceType>(
+               comm, {}) // constructed with empty view of boxes
+       })
   {
-    ARBORX_TEST_QUERY_TREE(
-        ExecutionSpace{}, tree, makeIntersectsBoxQueries<DeviceType>({{}, {}}),
-        make_reference_solution<PairIndexRank>({}, {0, 0, 0}));
-  }
-  else
-  {
+
+    BOOST_TEST(tree.empty());
+    BOOST_TEST(tree.size() == 0);
+
+    BOOST_TEST(ArborX::Details::equals(tree.bounds(), {}));
+
     ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
                            makeIntersectsBoxQueries<DeviceType>({}),
                            make_reference_solution<PairIndexRank>({}, {0}));
-  }
 
-  // All ranks but rank 0 have a single query with a spatial predicate
-  if (comm_rank == 0)
-  {
     ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
                            makeIntersectsSphereQueries<DeviceType>({}),
                            make_reference_solution<PairIndexRank>({}, {0}));
-  }
-  else
-  {
-    ARBORX_TEST_QUERY_TREE(
-        ExecutionSpace{}, tree,
-        makeIntersectsSphereQueries<DeviceType>({
-            {{{(float)comm_rank, 0.f, 0.f}}, (float)comm_size},
-        }),
-        make_reference_solution<PairIndexRank>({}, {0, 0}));
-  }
 
-  // All ranks but rank 0 have a single query with a nearest predicate
-  if (comm_rank == 0)
-  {
     ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
                            makeNearestQueries<DeviceType>({}),
                            make_reference_solution<PairIndexRank>({}, {0}));
-  }
-  else
-  {
-    ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                           makeNearestQueries<DeviceType>({
-                               {{{0., 0., 0.}}, comm_rank},
-                           }),
-                           make_reference_solution<PairIndexRank>({}, {0, 0}));
+
+    // Only rank 0 has a couple spatial queries with a spatial predicate
+    if (comm_rank == 0)
+    {
+      ARBORX_TEST_QUERY_TREE(
+          ExecutionSpace{}, tree,
+          makeIntersectsBoxQueries<DeviceType>({{}, {}}),
+          make_reference_solution<PairIndexRank>({}, {0, 0, 0}));
+    }
+    else
+    {
+      ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                             makeIntersectsBoxQueries<DeviceType>({}),
+                             make_reference_solution<PairIndexRank>({}, {0}));
+    }
+
+    // All ranks but rank 0 have a single query with a spatial predicate
+    if (comm_rank == 0)
+    {
+      ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                             makeIntersectsSphereQueries<DeviceType>({}),
+                             make_reference_solution<PairIndexRank>({}, {0}));
+    }
+    else
+    {
+      ARBORX_TEST_QUERY_TREE(
+          ExecutionSpace{}, tree,
+          makeIntersectsSphereQueries<DeviceType>({
+              {{{(float)comm_rank, 0.f, 0.f}}, (float)comm_size},
+          }),
+          make_reference_solution<PairIndexRank>({}, {0, 0}));
+    }
+
+    // All ranks but rank 0 have a single query with a nearest predicate
+    if (comm_rank == 0)
+    {
+      ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                             makeNearestQueries<DeviceType>({}),
+                             make_reference_solution<PairIndexRank>({}, {0}));
+    }
+    else
+    {
+      ARBORX_TEST_QUERY_TREE(
+          ExecutionSpace{}, tree,
+          makeNearestQueries<DeviceType>({
+              {{{0., 0., 0.}}, comm_rank},
+          }),
+          make_reference_solution<PairIndexRank>({}, {0, 0}));
+    }
   }
 }
 
