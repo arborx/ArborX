@@ -98,7 +98,7 @@ pipeline {
                     }
                     environment {
                         CTEST_OPTIONS = '--timeout 180 --no-compress-output -T Test'
-                        CMAKE_OPTIONS = '-D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_STANDARD=17 -D CMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_COMPILER=hipcc'
+                        CMAKE_OPTIONS = '-D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_STANDARD=17 -D CMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_COMPILER=hipcc -DCMAKE_PREFIX_PATH=/opt/rocm'
                         ROCM_PATH = '/opt/rocm'
                     }
                     steps {
@@ -111,13 +111,13 @@ pipeline {
                         sh 'cmake -S source-kokkos -B build-kokkos -D CMAKE_INSTALL_PREFIX=$PWD/install-kokkos $CMAKE_OPTIONS -D Kokkos_ENABLE_HIP=ON -DKokkos_ARCH_VEGA908=ON'
                         sh 'cmake --build build-kokkos --parallel 8'
                         sh 'cmake --install build-kokkos'
-                        sh 'cmake -B build-arborx -D CMAKE_INSTALL_PREFIX=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS -D ARBORX_ENABLE_BENCHMARKS=ON -D ARBORX_ENABLE_TESTS=ON -D ARBORX_ENABLE_EXAMPLES=ON -DCMAKE_PREFIX_PATH=/opt/rocm'
+                        sh 'cmake -B build-arborx -D CMAKE_INSTALL_PREFIX=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS -D ARBORX_ENABLE_BENCHMARKS=ON -D ARBORX_ENABLE_TESTS=ON -D ARBORX_ENABLE_EXAMPLES=ON'
                         sh 'cmake --build build-arborx --parallel 8'
                         dir('build-arborx') {
                             sh 'ctest $CTEST_OPTIONS'
                         }
                         sh 'cmake --install build-arborx'
-                        sh 'cmake -S examples -B build-examples -D ArborX_ROOT=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS -DCMAKE_PREFIX_PATH=/opt/rocm'
+                        sh 'cmake -S examples -B build-examples -D ArborX_ROOT=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS'
                         sh 'cmake --build build-examples --parallel 8'
                         dir('build-examples') {
                             sh 'ctest $CTEST_OPTIONS'
