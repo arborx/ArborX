@@ -99,7 +99,6 @@ pipeline {
                     environment {
                         CTEST_OPTIONS = '--timeout 180 --no-compress-output -T Test'
                         CMAKE_OPTIONS = '-D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_STANDARD=17 -D CMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_COMPILER=hipcc -DCMAKE_PREFIX_PATH=/opt/rocm'
-                        ROCM_PATH = '/opt/rocm'
                     }
                     steps {
                         sh 'apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y git cmake libboost-program-options-dev libboost-test-dev libbenchmark-dev'
