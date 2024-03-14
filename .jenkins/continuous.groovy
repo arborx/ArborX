@@ -21,6 +21,13 @@ pipeline {
     }
     stages {
 
+        stage('Checkout') {
+            agent any
+            steps {
+                scmSkip(deleteBuild: true, skipPattern:'.*\\[ci skip\\].*')
+            }
+        }
+
         stage("Style") {
             agent {
                 dockerfile {
