@@ -163,7 +163,12 @@ endif()
 target_include_directories(ArborX_Test_QueryTree.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 add_test(NAME ArborX_Test_QueryTree COMMAND ArborX_Test_QueryTree.exe)
 
-add_executable(ArborX_Test_DetailsTreeConstruction.exe tstDetailsMortonCodes.cpp tstDetailsTreeConstruction.cpp utf_main.cpp)
+add_executable(ArborX_Test_DetailsTreeConstruction.exe
+  tstDetailsMortonCodes.cpp
+  tstDetailsTreeConstruction.cpp
+  tstIndexableGetter.cpp
+  utf_main.cpp
+)
 target_link_libraries(ArborX_Test_DetailsTreeConstruction.exe PRIVATE ArborX Boost::unit_test_framework)
 target_compile_definitions(ArborX_Test_DetailsTreeConstruction.exe PRIVATE BOOST_TEST_DYN_LINK)
 target_include_directories(ArborX_Test_DetailsTreeConstruction.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
