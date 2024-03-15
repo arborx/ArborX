@@ -47,34 +47,6 @@ struct MaxDistance
   }
 };
 
-template <class Primitives>
-struct NearestK
-{
-  Primitives primitives;
-  int k; // including self-collisions
-};
-
-} // namespace Details
-
-template <class Primitives>
-struct AccessTraits<Details::NearestK<Primitives>, PredicatesTag>
-{
-  using memory_space = typename Primitives::memory_space;
-  using size_type = typename memory_space::size_type;
-  static KOKKOS_FUNCTION size_type size(Details::NearestK<Primitives> const &x)
-  {
-    return x.primitives.size();
-  }
-  static KOKKOS_FUNCTION auto get(Details::NearestK<Primitives> const &x,
-                                  size_type i)
-  {
-    return attach(nearest(x.primitives(i), x.k), i);
-  }
-};
-
-namespace Details
-{
-
 template <class CoreDistances>
 struct MutualReachability
 {

@@ -22,6 +22,7 @@
 #include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_IndexableGetter.hpp>
 #include <ArborX_PairValueIndex.hpp>
+#include <ArborX_PredicateHelpers.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>

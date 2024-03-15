@@ -167,7 +167,7 @@ struct FDBSCANDenseBoxCallback
     }
     else
     {
-      int j = _permute(_num_points_in_dense_cells + (k - _num_dense_cells));
+      auto j = _permute(_num_points_in_dense_cells + (k - _num_dense_cells));
 
       // No need to check the distance here, as the fact that we are inside the
       // callback guarantees that it is <= eps

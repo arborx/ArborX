@@ -29,6 +29,7 @@
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_IndexableGetter.hpp>
 #include <ArborX_PairValueIndex.hpp>
+#include <ArborX_PredicateHelpers.hpp>
 #include <ArborX_SpaceFillingCurves.hpp>
 #include <ArborX_TraversalPolicy.hpp>
 
