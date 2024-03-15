@@ -12,12 +12,13 @@
 #ifndef ARBORX_DETAILS_HALF_TRAVERSAL_HPP
 #define ARBORX_DETAILS_HALF_TRAVERSAL_HPP
 
-#include <ArborX_Callbacks.hpp> // LegacyCallbackWrapper
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
 
 #include <Kokkos_Core.hpp>
+
+#include <cstdlib>
 
 namespace ArborX::Details
 {
@@ -46,9 +47,23 @@ struct HalfTraversal
     }
     else
     {
-      Kokkos::parallel_for(
-          "ArborX::Experimental::HalfTraversal",
-          Kokkos::RangePolicy<ExecutionSpace>(space, 0, _bvh.size()), *this);
+#if defined(KOKKOS_ENABLE_CUDA)
+      // While DesiredOccupancy option is only implemented for Cuda and is
+      // no-op for other backends, we don't want a surprise in the future once
+      // it's implemented for HIP. It is also unclear at this point what HIP
+      // value is going to be.
+      if constexpr (std::is_same_v<ExecutionSpace, Kokkos::Cuda>)
+        Kokkos::parallel_for(
+            "ArborX::Experimental::HalfTraversal",
+            Kokkos::Experimental::prefer(
+                Kokkos::RangePolicy<ExecutionSpace>(space, 0, _bvh.size()),
+                Kokkos::Experimental::DesiredOccupancy{Kokkos::AUTO}),
+            *this);
+      else
+#endif
+        Kokkos::parallel_for(
+            "ArborX::Experimental::HalfTraversal",
+            Kokkos::RangePolicy<ExecutionSpace>(space, 0, _bvh.size()), *this);
     }
   }
 
