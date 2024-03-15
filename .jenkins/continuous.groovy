@@ -14,7 +14,7 @@ pipeline {
         ARBORX_DIR = '/opt/arborx'
         BENCHMARK_COLOR = 'no'
         BOOST_TEST_COLOR_OUTPUT = 'no'
-        CTEST_OPTIONS = '--timeout 180 --no-compress-output -T Test --test-output-size-passed=65536 --test-output-size-failed=1048576'
+        CTEST_OPTIONS = '--timeout 360 --no-compress-output -T Test --test-output-size-passed=65536 --test-output-size-failed=1048576'
         OMP_NUM_THREADS = 8
         OMP_PLACES = 'threads'
         OMP_PROC_BIND = 'spread'
@@ -407,7 +407,7 @@ pipeline {
                             filename "Dockerfile.sycl"
                             dir "docker"
                             args '-v /tmp/ccache.kokkos:/tmp/ccache'
-                            label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
+                            label 'nvidia-docker && ampere'
                         }
                     }
                     steps {
