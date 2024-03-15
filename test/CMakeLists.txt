@@ -150,6 +150,7 @@ list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES
   tstQueryTreeTraversalPolicy.cpp
   tstQueryTreeIntersectsKDOP.cpp
   tstKokkosToolsAnnotations.cpp
+  tstKokkosToolsExecutionSpaceInstances.cpp
   utf_main.cpp
 )
 add_executable(ArborX_Test_QueryTree.exe ${ARBORX_TEST_QUERY_TREE_SOURCES})
