@@ -31,6 +31,13 @@ struct DefaultIndexableGetter
     return geometry;
   }
 
+  template <typename Geometry, typename Enable = std::enable_if_t<
+                                   GeometryTraits::is_valid_geometry<Geometry>>>
+  KOKKOS_FUNCTION auto operator()(Geometry &&geometry) const
+  {
+    return geometry;
+  }
+
   template <typename Value, typename Index>
   KOKKOS_FUNCTION Value const &
   operator()(PairValueIndex<Value, Index> const &pair) const
