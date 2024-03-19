@@ -247,6 +247,115 @@ struct distance<PointTag, SphereTag, Point, Sphere>
   }
 };
 
+// distance point-triangle
+template <typename Point, typename Triangle>
+struct distance<PointTag, TriangleTag, Point, Triangle>
+{
+  static constexpr int DIM = GeometryTraits::dimension_v<Point>;
+  using Coordinate = GeometryTraits::coordinate_type_t<Triangle>;
+
+  static_assert(DIM == 2 || DIM == 3);
+
+  struct Vector : private Point
+  {
+    using Point::Point;
+    using Point::operator[];
+    KOKKOS_FUNCTION Vector(Point const &a, Point const &b)
+    {
+      for (int d = 0; d < DIM; ++d)
+        (*this)[d] = b[d] - a[d];
+    }
+  };
+
+  KOKKOS_FUNCTION static auto dot_product(Vector const &v, Vector const &w)
+  {
+    auto r = v[0] * w[0];
+    for (int d = 1; d < DIM; ++d)
+      r += v[d] * w[d];
+    return r;
+  }
+  KOKKOS_FUNCTION static auto combine(Point const &a, Point const &b,
+                                      Point const &c, Coordinate u,
+                                      Coordinate v, Coordinate w)
+  {
+    Point r;
+    for (int d = 0; d < DIM; ++d)
+      r[d] = u * a[d] + v * b[d] + w * c[d];
+    return r;
+  }
+  KOKKOS_FUNCTION static auto closest_point(Point const &p, Point const &a,
+                                            Point const &b, Point const &c)
+  {
+    // Zones
+    //      \ 2/
+    //       \/
+    //   5   /\b  6
+    //      /  \
+    //     /    \
+    // \  /   0  \  /
+    //  \/a______c\/
+    // 1 |    4   | 3
+    //   |        |
+
+    Vector ab(a, b);
+    Vector ac(a, c);
+    Vector ap(a, p);
+
+    auto const d1 = dot_product(ab, ap);
+    auto const d2 = dot_product(ac, ap);
+    if (d1 <= 0 && d2 <= 0) // zone 1
+      return a;
+
+    Vector bp(b, p);
+    auto const d3 = dot_product(ab, bp);
+    auto const d4 = dot_product(ac, bp);
+    if (d3 >= 0 && d4 <= d3) // zone 2
+      return b;
+
+    Vector cp(c, p);
+    auto const d5 = dot_product(ab, cp);
+    auto const d6 = dot_product(ac, cp);
+    if (d6 >= 0 && d5 <= d6) // zone 3
+      return c;
+
+    auto const vc = d1 * d4 - d3 * d2;
+    if (vc <= 0 && d1 >= 0 && d3 <= 0) // zone 5
+    {
+      auto const v = d1 / (d1 - d3);
+      return combine(a, b, c, 1 - v, v, 0);
+    }
+
+    auto const vb = d5 * d2 - d1 * d6;
+    if (vb <= 0 && d2 >= 0 && d6 <= 0) // zone 4
+    {
+      auto const v = d2 / (d2 - d6);
+      return combine(a, b, c, 1 - v, 0, v);
+    }
+
+    auto const va = d3 * d6 - d5 * d4;
+    if (va <= 0 && (d4 - d3) >= 0 && (d5 - d6) >= 0) // zone 6
+    {
+      auto const v = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+      return combine(a, b, c, 0, 1 - v, v);
+    }
+
+    // zone 0
+    auto const denom = 1 / (va + vb + vc);
+    auto const v = vb * denom;
+    auto const w = vc * denom;
+    return combine(a, b, c, 1 - v - w, v, w);
+  }
+
+  KOKKOS_FUNCTION static auto apply(Point const &p, Triangle const &triangle)
+  {
+    auto const &a = triangle.a;
+    auto const &b = triangle.b;
+    auto const &c = triangle.c;
+
+    return Details::distance(p, closest_point(p, a, b, c));
+  }
+};
+
 // distance box-box
 template <typename Box1, typename Box2>
 struct distance<BoxTag, BoxTag, Box1, Box2>

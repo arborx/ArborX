@@ -26,11 +26,16 @@ using Box = ArborX::ExperimentalHyperGeometry::Box<3>;
 using Sphere = ArborX::ExperimentalHyperGeometry::Sphere<3>;
 using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<3>;
 
-BOOST_AUTO_TEST_CASE(distance)
+BOOST_AUTO_TEST_CASE(distance_point_point)
 {
   using ArborX::Details::distance;
   BOOST_TEST(distance(Point{{1.0, 2.0, 3.0}}, Point{{1.0, 1.0, 1.0}}) ==
              std::sqrt(5.f));
+}
+
+BOOST_AUTO_TEST_CASE(distance_point_box)
+{
+  using ArborX::Details::distance;
 
   // box is unit cube
   constexpr Box box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}};
@@ -45,12 +50,83 @@ BOOST_AUTO_TEST_CASE(distance)
   BOOST_TEST(distance(Point{{2.0, 0.75, -1.0}}, box) == std::sqrt(2.f));
   // projection onto corner node
   BOOST_TEST(distance(Point{{-1.0, 2.0, 2.0}}, box) == std::sqrt(3.f));
+}
+
+BOOST_AUTO_TEST_CASE(distance_point_sphere)
+{
+  using ArborX::Details::distance;
 
   // unit sphere
   constexpr Sphere sphere{{{0., 0., 0.}}, 1.};
   BOOST_TEST(distance(Point{{.5, .5, .5}}, sphere) == 0.);
   BOOST_TEST(distance(Point{{2., 0., 0.}}, sphere) == 1.);
   BOOST_TEST(distance(Point{{1., 1., 1.}}, sphere) == std::sqrt(3.f) - 1.f);
+}
+
+BOOST_AUTO_TEST_CASE(distance_point_triangle)
+{
+  using ArborX::Details::distance;
+
+  // Zones
+  //      \ 2/
+  //       \/
+  //   5   /\   6
+  //      /  \
+  //     /    \
+  // \  /   0  \  /
+  //  \/________\/
+  // 1 |    4   | 3
+  //   |        |
+  using Point2 = ArborX::ExperimentalHyperGeometry::Point<2>;
+  constexpr ArborX::ExperimentalHyperGeometry::Triangle<2> triangle2{
+      Point2{-1, 0}, Point2{1, 0}, Point2{0, 1}};
+
+  // vertices
+  BOOST_TEST(distance(Point2{-1, 0}, triangle2) == 0);
+  BOOST_TEST(distance(Point2{1, 0}, triangle2) == 0);
+  BOOST_TEST(distance(Point2{0, 1}, triangle2) == 0);
+  // mid edges
+  BOOST_TEST(distance(Point2{-0.5f, 0.5f}, triangle2) == 0);
+  BOOST_TEST(distance(Point2{0.5f, 0.5f}, triangle2) == 0);
+  BOOST_TEST(distance(Point2{0, 0}, triangle2) == 0);
+  // inside
+  BOOST_TEST(distance(Point2{0, 0.5f}, triangle2) == 0);
+  // outside zone 1
+  BOOST_TEST(distance(Point2{-2, 0}, triangle2) == 1);
+  // outside zone 2
+  BOOST_TEST(distance(Point2{0, 2}, triangle2) == 1);
+  // outside zone 3
+  BOOST_TEST(distance(Point2{2, 0}, triangle2) == 1);
+  // outside zone 4
+  BOOST_TEST(distance(Point2{0, -1}, triangle2) == 1);
+  // outside zone 5
+  BOOST_TEST(distance(Point2{-1, 1}, triangle2) == std::sqrt(2.f) / 2);
+  // outside zone 6
+  BOOST_TEST(distance(Point2{1, 1}, triangle2) == std::sqrt(2.f) / 2);
+
+  using Point3 = ArborX::ExperimentalHyperGeometry::Point<3>;
+  constexpr ArborX::ExperimentalHyperGeometry::Triangle<3> triangle3{
+      Point3{1, 0, 0}, Point3{0, 1, 0}, Point3{0, 0, 0}};
+
+  // same plane
+  BOOST_TEST(distance(Point3{2, 0, 0}, triangle3) == 1);
+  BOOST_TEST(distance(Point3{0.5f, -0.5f, 0}, triangle3) == 0.5f);
+  BOOST_TEST(distance(Point3{-0.5f, 0.5f, 0}, triangle3) == 0.5f);
+  // projected to inside
+  BOOST_TEST(distance(Point3{0, 0, 1}, triangle3) == 1);
+  BOOST_TEST(distance(Point3{1, 0, -1}, triangle3) == 1);
+  BOOST_TEST(distance(Point3{0, 1, 2}, triangle3) == 2);
+  BOOST_TEST(distance(Point3{0.25f, 0.25f, 2.f}, triangle3) == 2);
+  // projected outside
+  BOOST_TEST(distance(Point3{-1, 0, 1}, triangle3) == std::sqrt(2.f));
+  BOOST_TEST(distance(Point3{0, -1, -1}, triangle3) == std::sqrt(2.f));
+  BOOST_TEST(distance(Point3{2, -1, -1}, triangle3) == std::sqrt(3.f));
+
+  constexpr ArborX::ExperimentalHyperGeometry::Triangle<3> triangle3_2{
+      Point3{0, 0, 0}, Point3{0, 1, 0}, Point3{0, 0, 1}};
+  BOOST_TEST(distance(Point3{-1, 0, 1}, triangle3_2) == 1);
+  BOOST_TEST(distance(Point3{0, -1, -1}, triangle3_2) == std::sqrt(2.f));
+  BOOST_TEST(distance(Point3{1, -1, -1}, triangle3_2) == std::sqrt(3.f));
 }
 
 BOOST_AUTO_TEST_CASE(distance_box_box)
