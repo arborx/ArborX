@@ -286,16 +286,17 @@ struct distance<PointTag, TriangleTag, Point, Triangle>
   KOKKOS_FUNCTION static auto closest_point(Point const &p, Point const &a,
                                             Point const &b, Point const &c)
   {
-    // Zones
-    //      \ 2/
-    //       \/
-    //   5   /\b  6
-    //      /  \
-    //     /    \
-    // \  /   0  \  /
-    //  \/a______c\/
-    // 1 |    4   | 3
-    //   |        |
+    /* Zones
+           \ 2/
+            \/
+        5   /\b  6
+           /  \
+          /    \
+      \  /   0  \  /
+       \/a______c\/
+      1 |    4   | 3
+        |        |
+    */
 
     Vector ab(a, b);
     Vector ac(a, c);

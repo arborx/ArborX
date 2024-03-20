@@ -67,16 +67,17 @@ BOOST_AUTO_TEST_CASE(distance_point_triangle)
 {
   using ArborX::Details::distance;
 
-  // Zones
-  //      \ 2/
-  //       \/
-  //   5   /\   6
-  //      /  \
-  //     /    \
-  // \  /   0  \  /
-  //  \/________\/
-  // 1 |    4   | 3
-  //   |        |
+  /* Zones
+         \ 2/
+          \/
+      5   /\b  6
+         /  \
+        /    \
+    \  /   0  \  /
+     \/a______c\/
+    1 |    4   | 3
+      |        |
+  */
   using Point2 = ArborX::ExperimentalHyperGeometry::Point<2>;
   constexpr ArborX::ExperimentalHyperGeometry::Triangle<2> triangle2{
       Point2{-1, 0}, Point2{1, 0}, Point2{0, 1}};
