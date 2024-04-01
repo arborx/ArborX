@@ -92,7 +92,7 @@ pipeline {
                     agent {
                         docker {
                             image 'rocm/dev-ubuntu-22.04:5.4-complete'
-                            label 'AMD_Radeon_Instinct_MI100 && rocm-docker'
+                            label 'AMD_Radeon_Instinct_MI210 && rocm-docker'
                             args '--device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --env HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES}'
                         }
                     }
