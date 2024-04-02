@@ -75,29 +75,25 @@ int main(int argc, char *argv[])
 
   cudaStream_t stream;
   cudaStreamCreate(&stream);
+  Kokkos::push_finalize_hook([stream]() { cudaStreamDestroy(stream); });
+
   cudaMemcpyAsync(d_a, a.data(), sizeof(a), cudaMemcpyHostToDevice, stream);
 
-  {
-    // Place the code using CUDA instance in a block to make sure the instance
-    // is destroyed prior to destroying the stream.
-    Kokkos::Cuda cuda{stream};
-    ArborX::BVH<Kokkos::CudaSpace> bvh{cuda, PointCloud{d_a, d_a, d_a, N}};
+  Kokkos::Cuda cuda{stream};
+  ArborX::BVH<Kokkos::CudaSpace> bvh{cuda, PointCloud{d_a, d_a, d_a, N}};
 
-    Kokkos::View<int *, Kokkos::CudaSpace> indices("Example::indices", 0);
-    Kokkos::View<int *, Kokkos::CudaSpace> offset("Example::offset", 0);
-    ArborX::query(bvh, cuda, Spheres{d_a, d_a, d_a, d_a, N}, indices, offset);
+  Kokkos::View<int *, Kokkos::CudaSpace> indices("Example::indices", 0);
+  Kokkos::View<int *, Kokkos::CudaSpace> offset("Example::offset", 0);
+  ArborX::query(bvh, cuda, Spheres{d_a, d_a, d_a, d_a, N}, indices, offset);
 
-    Kokkos::parallel_for(
-        "Example::print_indices", Kokkos::RangePolicy<Kokkos::Cuda>(cuda, 0, N),
-        KOKKOS_LAMBDA(int i) {
-          for (int j = offset(i); j < offset(i + 1); ++j)
-          {
-            printf("%i %i\n", i, indices(j));
-          }
-        });
-  }
-
-  cudaStreamDestroy(stream);
+  Kokkos::parallel_for(
+      "Example::print_indices", Kokkos::RangePolicy<Kokkos::Cuda>(cuda, 0, N),
+      KOKKOS_LAMBDA(int i) {
+        for (int j = offset(i); j < offset(i + 1); ++j)
+        {
+          printf("%i %i\n", i, indices(j));
+        }
+      });
 
   return 0;
 }
