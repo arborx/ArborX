@@ -59,6 +59,9 @@ public:
 
   ~InstanceManager()
   {
+    // Destroy CUDA instances prior to destroying streams
+    _instances.clear();
+
     for (auto &stream : _streams)
       cudaStreamDestroy(stream);
   }

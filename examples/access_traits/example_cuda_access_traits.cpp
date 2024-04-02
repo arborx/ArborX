@@ -75,6 +75,8 @@ int main(int argc, char *argv[])
 
   cudaStream_t stream;
   cudaStreamCreate(&stream);
+  Kokkos::push_finalize_hook([stream]() { cudaStreamDestroy(stream); });
+
   cudaMemcpyAsync(d_a, a.data(), sizeof(a), cudaMemcpyHostToDevice, stream);
 
   Kokkos::Cuda cuda{stream};
@@ -92,8 +94,6 @@ int main(int argc, char *argv[])
           printf("%i %i\n", i, indices(j));
         }
       });
-
-  cudaStreamDestroy(stream);
 
   return 0;
 }
