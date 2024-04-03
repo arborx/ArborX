@@ -237,18 +237,12 @@ void BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::query(
   Predicates predicates{user_predicates}; // NOLINT
 
   using Tag = typename Predicates::value_type::Tag;
-  static_assert(std::is_same<Tag, Details::SpatialPredicateTag>{},
-                "nearest query not implemented yet");
-
-  Kokkos::Profiling::pushRegion("ArborX::BruteForce::query::spatial");
 
   Details::BruteForceImpl::query(
-      space, predicates, _values,
+      Tag{}, space, predicates, _values,
       Details::Indexables<decltype(_values), IndexableGetter>{
           _values, _indexable_getter},
       callback);
-
-  Kokkos::Profiling::popRegion();
 }
 
 } // namespace ArborX

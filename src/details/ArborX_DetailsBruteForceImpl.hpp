@@ -14,13 +14,15 @@
 
 #include <ArborX_DetailsAlgorithms.hpp> // expand
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
+#include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_Profiling_ScopedRegion.hpp>
 
-namespace ArborX
-{
-namespace Details
+namespace ArborX::Details
 {
 struct BruteForceImpl
 {
@@ -48,10 +50,12 @@ struct BruteForceImpl
 
   template <class ExecutionSpace, class Predicates, class Values,
             class Indexables, class Callback>
-  static void query(ExecutionSpace const &space, Predicates const &predicates,
-                    Values const &values, Indexables const &indexables,
-                    Callback const &callback)
+  static void query(SpatialPredicateTag, ExecutionSpace const &space,
+                    Predicates const &predicates, Values const &values,
+                    Indexables const &indexables, Callback const &callback)
   {
+    Kokkos::Profiling::ScopedRegion guard("ArborX::BruteForce::query::spatial");
+
     using TeamPolicy = Kokkos::TeamPolicy<ExecutionSpace>;
     using PredicateType = typename Predicates::value_type;
     using IndexableType = std::decay_t<decltype(indexables(0))>;
@@ -105,7 +109,8 @@ struct BruteForceImpl
                                                   predicates_per_team);
           ScratchIndexableType scratch_indexables(teamMember.team_scratch(0),
                                                   indexables_per_team);
-          // fill the scratch space with the predicates / indexables in the tile
+          // fill the scratch space with the predicates / indexables in the
+          // tile
           Kokkos::parallel_for(
               Kokkos::TeamVectorRange(teamMember, predicates_in_this_team),
               [&](const int q) {
@@ -136,8 +141,110 @@ struct BruteForceImpl
               });
         });
   }
+
+  template <class ExecutionSpace, class Predicates, class Values,
+            class Indexables, class Callback>
+  static void query(NearestPredicateTag, ExecutionSpace const &space,
+                    Predicates const &predicates, Values const &values,
+                    Indexables const &indexables, Callback const &callback)
+  {
+    Kokkos::Profiling::ScopedRegion guard("ArborX::BruteForce::query::nearest");
+
+    using MemorySpace = typename Values::memory_space;
+
+    int const n_indexables = values.size();
+    int const n_predicates = predicates.size();
+
+    using Buffer = Kokkos::View<Kokkos::pair<int, float> *, MemorySpace>;
+    using Offset = Kokkos::View<int *, MemorySpace>;
+    struct BufferProvider
+    {
+      Buffer _buffer;
+      Offset _offset;
+
+      KOKKOS_FUNCTION auto operator()(int i) const
+      {
+        auto const *offset_ptr = &_offset(i);
+        return Kokkos::subview(
+            _buffer, Kokkos::make_pair(*offset_ptr, *(offset_ptr + 1)));
+      }
+    };
+
+    Offset offset(
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                           "ArborX::BruteForce::query::nearest::offset"),
+        n_predicates + 1);
+    Kokkos::parallel_for(
+        "ArborX::BruteForce::query::nearest::"
+        "scan_queries_for_numbers_of_neighbors",
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_predicates),
+        KOKKOS_LAMBDA(int i) { offset(i) = getK(predicates(i)); });
+    KokkosExt::exclusive_scan(space, offset, offset, 0);
+    int const buffer_size = KokkosExt::lastElement(space, offset);
+
+    Buffer buffer(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                                     "ArborX::TreeTraversal::nearest::buffer"),
+                  buffer_size);
+    BufferProvider buffer_provider{buffer, offset};
+
+    Kokkos::parallel_for(
+        "ArborX::BruteForce::query::nearest::"
+        "check_all_predicates_against_all_indexables",
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_predicates),
+        KOKKOS_LAMBDA(int i) {
+          auto const &predicate = predicates(i);
+          auto const k = getK(predicate);
+          auto const buffer = buffer_provider(i);
+
+          if (k < 1)
+            return;
+
+          auto radius = KokkosExt::ArithmeticTraits::infinity<float>::value;
+
+          using PairIndexDistance = Kokkos::pair<int, float>;
+          static_assert(std::is_same<typename decltype(buffer)::value_type,
+                                     PairIndexDistance>::value,
+                        "Type of the elements stored in the buffer passed as "
+                        "argument to "
+                        "TreeTraversal::nearestQuery is not right");
+          struct CompareDistance
+          {
+            KOKKOS_INLINE_FUNCTION bool
+            operator()(PairIndexDistance const &lhs,
+                       PairIndexDistance const &rhs) const
+            {
+              return lhs.second < rhs.second;
+            }
+          };
+
+          PriorityQueue<PairIndexDistance, CompareDistance,
+                        UnmanagedStaticVector<PairIndexDistance>>
+              heap(UnmanagedStaticVector<PairIndexDistance>(buffer.data(),
+                                                            buffer.size()));
+
+          for (int j = 0; j < n_indexables; ++j)
+          {
+            auto const distance = predicate.distance(indexables(j));
+            if (distance < radius)
+            {
+              auto pair = Kokkos::make_pair(j, distance);
+              if ((int)heap.size() < k)
+                heap.push(pair);
+              else
+                heap.popPush(pair);
+              if ((int)heap.size() == k)
+                radius = heap.top().second;
+            }
+          }
+          while (!heap.empty())
+          {
+            callback(predicate, values(heap.top().first));
+            heap.pop();
+          }
+        });
+  }
 };
-} // namespace Details
-} // namespace ArborX
+
+} // namespace ArborX::Details
 
 #endif
