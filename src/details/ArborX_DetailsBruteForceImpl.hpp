@@ -192,18 +192,19 @@ struct BruteForceImpl
           // neighbors have been found.
           auto radius = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
-          for (int j = 0; j < n_indexables; ++j)
+          int j = 0;
+          for (; j < n_indexables && j < k; ++j)
+          {
+            auto const distance = predicate.distance(indexables(j));
+            heap.push(Kokkos::make_pair(j, distance));
+          }
+          for (; j < n_indexables; ++j)
           {
             auto const distance = predicate.distance(indexables(j));
             if (distance < radius)
             {
-              auto pair = Kokkos::make_pair(j, distance);
-              if ((int)heap.size() < k)
-                heap.push(pair);
-              else
-                heap.popPush(pair);
-              if ((int)heap.size() == k)
-                radius = heap.top().second;
+              heap.popPush(Kokkos::make_pair(j, distance));
+              radius = heap.top().second;
             }
           }
           while (!heap.empty())
