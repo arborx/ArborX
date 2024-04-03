@@ -16,6 +16,7 @@
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
+#include <ArborX_DetailsNearestBufferProvider.hpp>
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_Exception.hpp>
 
@@ -155,37 +156,7 @@ struct BruteForceImpl
     int const n_indexables = values.size();
     int const n_predicates = predicates.size();
 
-    using Buffer = Kokkos::View<Kokkos::pair<int, float> *, MemorySpace>;
-    using Offset = Kokkos::View<int *, MemorySpace>;
-    struct BufferProvider
-    {
-      Buffer _buffer;
-      Offset _offset;
-
-      KOKKOS_FUNCTION auto operator()(int i) const
-      {
-        auto const *offset_ptr = &_offset(i);
-        return Kokkos::subview(
-            _buffer, Kokkos::make_pair(*offset_ptr, *(offset_ptr + 1)));
-      }
-    };
-
-    Offset offset(
-        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                           "ArborX::BruteForce::query::nearest::offset"),
-        n_predicates + 1);
-    Kokkos::parallel_for(
-        "ArborX::BruteForce::query::nearest::"
-        "scan_queries_for_numbers_of_neighbors",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_predicates),
-        KOKKOS_LAMBDA(int i) { offset(i) = getK(predicates(i)); });
-    KokkosExt::exclusive_scan(space, offset, offset, 0);
-    int const buffer_size = KokkosExt::lastElement(space, offset);
-
-    Buffer buffer(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                                     "ArborX::TreeTraversal::nearest::buffer"),
-                  buffer_size);
-    BufferProvider buffer_provider{buffer, offset};
+    NearestBufferProvider<MemorySpace> buffer_provider(space, predicates);
 
     Kokkos::parallel_for(
         "ArborX::BruteForce::query::nearest::"
@@ -199,14 +170,8 @@ struct BruteForceImpl
           if (k < 1)
             return;
 
-          auto radius = KokkosExt::ArithmeticTraits::infinity<float>::value;
-
-          using PairIndexDistance = Kokkos::pair<int, float>;
-          static_assert(std::is_same<typename decltype(buffer)::value_type,
-                                     PairIndexDistance>::value,
-                        "Type of the elements stored in the buffer passed as "
-                        "argument to "
-                        "TreeTraversal::nearestQuery is not right");
+          using PairIndexDistance =
+              typename NearestBufferProvider<MemorySpace>::PairIndexDistance;
           struct CompareDistance
           {
             KOKKOS_INLINE_FUNCTION bool
@@ -221,6 +186,11 @@ struct BruteForceImpl
                         UnmanagedStaticVector<PairIndexDistance>>
               heap(UnmanagedStaticVector<PairIndexDistance>(buffer.data(),
                                                             buffer.size()));
+
+          // Nodes with a distance that exceed that radius can safely be
+          // discarded. Initialize the radius to infinity and tighten it once k
+          // neighbors have been found.
+          auto radius = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
           for (int j = 0; j < n_indexables; ++j)
           {
