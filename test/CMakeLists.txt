@@ -106,7 +106,6 @@ foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
     "        ArborX::Details::DefaultIndexableGetter, ArborX::Box>>;\n"
     "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX_BruteForce_Box, ArborX_Legacy_BruteForce_Box>\n"
     "#define ARBORX_TEST_DEVICE_TYPES std::tuple<${ARBORX_DEVICE_TYPES}>\n"
-    "#define ARBORX_TEST_DISABLE_NEAREST_QUERY\n"
     "#define ARBORX_TEST_DISABLE_CALLBACK_EARLY_EXIT\n"
     "#include <tstQueryTree${_test}.cpp>\n"
   )
