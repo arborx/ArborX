@@ -41,7 +41,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, DeviceType,
          void const * /*ptr*/, uint64_t /*size*/) {
         std::regex re("^(Testing::"
                       "|ArborX::BVH::"
-                      "|ArborX::NearestBufferProvider::"
                       "|ArborX::Sorting::"
                       "|Kokkos::SortImpl::BinSortFunctor::"
                       "|Kokkos::Serial::" // unsure what's going on

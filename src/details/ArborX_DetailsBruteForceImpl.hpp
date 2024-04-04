@@ -110,8 +110,7 @@ struct BruteForceImpl
                                                   predicates_per_team);
           ScratchIndexableType scratch_indexables(teamMember.team_scratch(0),
                                                   indexables_per_team);
-          // fill the scratch space with the predicates / indexables in the
-          // tile
+          // fill the scratch space with the predicates / indexables in the tile
           Kokkos::parallel_for(
               Kokkos::TeamVectorRange(teamMember, predicates_in_this_team),
               [&](const int q) {
