@@ -19,6 +19,7 @@
 #include <ArborX_DetailsNearestBufferProvider.hpp>
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_Exception.hpp>
+#include <ArborX_Predicates.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
