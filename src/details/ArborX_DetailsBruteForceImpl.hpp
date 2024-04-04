@@ -206,11 +206,11 @@ struct BruteForceImpl
               radius = heap.top().second;
             }
           }
-          while (!heap.empty())
-          {
-            callback(predicate, values(heap.top().first));
-            heap.pop();
-          }
+
+          // Match the logic in TreeTraversal and do the sorting
+          sortHeap(heap.data(), heap.data() + heap.size(), heap.valueComp());
+          for (decltype(heap.size()) i = 0; i < heap.size(); ++i)
+            callback(predicate, values((heap.data() + i)->first));
         });
   }
 };

@@ -46,6 +46,11 @@ struct NearestBufferProvider
                            Kokkos::make_pair(*offset_ptr, *(offset_ptr + 1)));
   }
 
+  // Enclosing function for an extended __host__ __device__ lambda cannot have
+  // private or protected access within its class
+#ifndef KOKKOS_COMPILER_NVCC
+private:
+#endif
   template <typename ExecutionSpace, typename Predicates>
   void allocateBuffer(ExecutionSpace const &space, Predicates const &predicates)
   {
