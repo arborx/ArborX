@@ -41,9 +41,8 @@ struct NearestBufferProvider
 
   KOKKOS_FUNCTION auto operator()(int i) const
   {
-    auto const *offset_ptr = &_offset(i);
     return Kokkos::subview(_buffer,
-                           Kokkos::make_pair(*offset_ptr, *(offset_ptr + 1)));
+                           Kokkos::make_pair(_offset(i), _offset(i + 1)));
   }
 
   // Enclosing function for an extended __host__ __device__ lambda cannot have
