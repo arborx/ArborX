@@ -431,12 +431,8 @@ pipeline {
                                     -D ARBORX_ENABLE_ONEDPL=ON \
                                 ..
                             '''
-                            sh '''
-                                make -j8 VERBOSE=1
-                            '''
-                            sh '''
-                                ctest $CTEST_OPTIONS
-                            '''
+                            sh 'make -j8 VERBOSE=1'
+                            sh 'ctest $CTEST_OPTIONS'
                         }
                     }
                     post {
@@ -458,12 +454,8 @@ pipeline {
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
                                     examples \
                                 '''
-                                sh '''
-                                    make VERBOSE=1
-                                '''
-                                sh '''
-                                    make test
-                                '''
+                                sh 'make VERBOSE=1'
+                                sh 'make test'
                             }
                         }
                     }
