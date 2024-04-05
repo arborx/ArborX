@@ -12,6 +12,7 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_IndexableGetter.hpp>
 
+#include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
 
 using namespace ArborX::Details;
@@ -112,7 +113,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
 
     ArborX::Box box;
     calculateBoundingBoxOfTheScene(ExecutionSpace{}, indexables, box);
-    BOOST_ASSERT(equals(box, scene_bounding_box));
+    BOOST_TEST(equals(box, scene_bounding_box));
   }
 
   {
@@ -128,7 +129,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
 
     ArborX::Box box;
     calculateBoundingBoxOfTheScene(ExecutionSpace{}, indexables, box);
-    BOOST_ASSERT(equals(box, scene_bounding_box));
+    BOOST_TEST(equals(box, scene_bounding_box));
   }
 }
 
