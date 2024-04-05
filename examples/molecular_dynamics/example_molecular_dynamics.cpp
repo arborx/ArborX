@@ -34,7 +34,7 @@ struct ArborX::AccessTraits<Neighbors<MemorySpace>, ArborX::PredicatesTag>
   }
   static KOKKOS_FUNCTION auto get(Neighbors<MemorySpace> const &x, size_type i)
   {
-    return attach(intersects(Sphere{x._particles(i), x._radius}), (int)i);
+    return intersects(Sphere{x._particles(i), x._radius});
   }
 };
 
@@ -119,7 +119,9 @@ int main(int argc, char *argv[])
 
   Kokkos::View<int *, MemorySpace> indices("Example::indices", 0);
   Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
-  index.query(execution_space, Neighbors<MemorySpace>{particles, r},
+  index.query(execution_space,
+              ArborX::Experimental::attach_indices<int>(
+                  Neighbors<MemorySpace>{particles, r}),
               ExcludeSelfCollision{}, indices, offsets);
 
   Kokkos::View<float *[3], MemorySpace> forces(

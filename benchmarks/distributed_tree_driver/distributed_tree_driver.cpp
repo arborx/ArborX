@@ -170,52 +170,6 @@ public:
   }
 };
 
-template <typename DeviceType>
-struct NearestNeighborsSearches
-{
-  Kokkos::View<ArborX::Point *, DeviceType> points;
-  int k;
-};
-template <typename DeviceType>
-struct RadiusSearches
-{
-  Kokkos::View<ArborX::Point *, DeviceType> points;
-  double radius;
-};
-
-template <typename DeviceType>
-struct ArborX::AccessTraits<RadiusSearches<DeviceType>, ArborX::PredicatesTag>
-{
-  using memory_space = typename DeviceType::memory_space;
-  static KOKKOS_FUNCTION std::size_t
-  size(RadiusSearches<DeviceType> const &pred)
-  {
-    return pred.points.extent(0);
-  }
-  static KOKKOS_FUNCTION auto get(RadiusSearches<DeviceType> const &pred,
-                                  std::size_t i)
-  {
-    return ArborX::intersects(ArborX::Sphere{pred.points(i), pred.radius});
-  }
-};
-
-template <typename DeviceType>
-struct ArborX::AccessTraits<NearestNeighborsSearches<DeviceType>,
-                            ArborX::PredicatesTag>
-{
-  using memory_space = typename DeviceType::memory_space;
-  static KOKKOS_FUNCTION std::size_t
-  size(NearestNeighborsSearches<DeviceType> const &pred)
-  {
-    return pred.points.extent(0);
-  }
-  static KOKKOS_FUNCTION auto
-  get(NearestNeighborsSearches<DeviceType> const &pred, std::size_t i)
-  {
-    return ArborX::nearest(pred.points(i), pred.k);
-  }
-};
-
 namespace bpo = boost::program_options;
 
 template <class NO>
@@ -421,8 +375,8 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
     knn->start();
     distributed_tree.query(
         ExecutionSpace{},
-        NearestNeighborsSearches<DeviceType>{random_queries, n_neighbors},
-        values, offsets);
+        ArborX::Experimental::make_nearest(random_queries, n_neighbors), values,
+        offsets);
     knn->stop();
 
     if (comm_rank == 0)
@@ -457,9 +411,10 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
     auto radius = time_monitor.getNewTimer("radius");
     MPI_Barrier(comm);
     radius->start();
-    distributed_tree.query(ExecutionSpace{},
-                           RadiusSearches<DeviceType>{random_queries, r},
-                           values, offsets);
+    distributed_tree.query(
+        ExecutionSpace{},
+        ArborX::Experimental::make_intersects(random_queries, r), values,
+        offsets);
     radius->stop();
 
     if (comm_rank == 0)

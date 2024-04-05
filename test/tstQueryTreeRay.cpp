@@ -23,52 +23,6 @@
 #include "ArborXTest_TreeTypeTraits.hpp"
 // clang-format on
 
-template <typename DeviceType>
-struct NearestBoxToRay
-{
-  Kokkos::View<ArborX::Experimental::Ray *, DeviceType> rays;
-  int k;
-};
-
-template <typename DeviceType>
-struct BoxesIntersectedByRay
-{
-  Kokkos::View<ArborX::Experimental::Ray *, DeviceType> rays;
-};
-
-template <typename DeviceType>
-struct ArborX::AccessTraits<NearestBoxToRay<DeviceType>, ArborX::PredicatesTag>
-{
-  using memory_space = typename DeviceType::memory_space;
-  static KOKKOS_FUNCTION int
-  size(NearestBoxToRay<DeviceType> const &nearest_boxes)
-  {
-    return nearest_boxes.rays.size();
-  }
-  static KOKKOS_FUNCTION auto
-  get(NearestBoxToRay<DeviceType> const &nearest_boxes, int i)
-  {
-    return nearest(nearest_boxes.rays(i), nearest_boxes.k);
-  }
-};
-
-template <typename DeviceType>
-struct ArborX::AccessTraits<BoxesIntersectedByRay<DeviceType>,
-                            ArborX::PredicatesTag>
-{
-  using memory_space = typename DeviceType::memory_space;
-  static KOKKOS_FUNCTION int
-  size(BoxesIntersectedByRay<DeviceType> const &nearest_boxes)
-  {
-    return nearest_boxes.rays.size();
-  }
-  static KOKKOS_FUNCTION auto
-  get(BoxesIntersectedByRay<DeviceType> const &nearest_boxes, int i)
-  {
-    return intersects(nearest_boxes.rays(i));
-  }
-};
-
 BOOST_AUTO_TEST_SUITE(RayTraversals)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_nearest, DeviceType,
@@ -96,9 +50,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_nearest, DeviceType,
   BOOST_TEST(intersects(
       ray, ArborX::Box{ArborX::Point{0, 0, 0}, ArborX::Point{1, 1, 1}}));
 
-  NearestBoxToRay<DeviceType> predicates{device_rays, 1};
-
-  ARBORX_TEST_QUERY_TREE(exec_space, tree, predicates,
+  ARBORX_TEST_QUERY_TREE(exec_space, tree,
+                         ArborX::Experimental::make_nearest(device_rays, 1),
                          make_reference_solution<int>({0}, {0, 1}));
 }
 
@@ -124,10 +77,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_intersection, DeviceType,
   Kokkos::View<ArborX::Experimental::Ray *, DeviceType> device_rays("rays", 1);
   Kokkos::deep_copy(exec_space, device_rays, ray);
 
-  BoxesIntersectedByRay<DeviceType> predicates{device_rays};
-
   ARBORX_TEST_QUERY_TREE(
-      exec_space, tree, predicates,
+      exec_space, tree, ArborX::Experimental::make_intersects(device_rays),
       make_reference_solution<int>({0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, {0, 10}));
 }
 BOOST_AUTO_TEST_SUITE_END()

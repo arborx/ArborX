@@ -21,6 +21,7 @@
 #include <ArborX_InterpDetailsMovingLeastSquaresCoefficients.hpp>
 #include <ArborX_InterpDetailsPolynomialBasis.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <ArborX_PredicateHelpers.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
@@ -29,14 +30,6 @@
 
 namespace ArborX::Interpolation::Details
 {
-
-// This is done to avoid a clash with another predicates access trait
-template <typename TargetAccess>
-struct MLSPredicateWrapper
-{
-  TargetAccess target_access;
-  int num_neighbors;
-};
 
 // Functor used in the tree query to create the 2D source view and indices
 template <typename SourceView, typename IndicesView, typename CounterView>
@@ -62,30 +55,6 @@ struct MLSSearchNeighborsCallback
 };
 
 } // namespace ArborX::Interpolation::Details
-
-namespace ArborX
-{
-
-template <typename TargetAccess>
-struct AccessTraits<Interpolation::Details::MLSPredicateWrapper<TargetAccess>,
-                    PredicatesTag>
-{
-  using Self = Interpolation::Details::MLSPredicateWrapper<TargetAccess>;
-
-  KOKKOS_FUNCTION static auto size(Self const &tp)
-  {
-    return tp.target_access.size();
-  }
-
-  KOKKOS_FUNCTION static auto get(Self const &tp, int const i)
-  {
-    return attach(nearest(tp.target_access(i), tp.num_neighbors), i);
-  }
-
-  using memory_space = typename TargetAccess::memory_space;
-};
-
-} // namespace ArborX
 
 namespace ArborX::Interpolation
 {
@@ -231,8 +200,8 @@ private:
         source_tree(space, ArborX::Experimental::attach_indices(source_access));
 
     // Create the predicates
-    Details::MLSPredicateWrapper<TargetAccess> predicates{target_access,
-                                                          _num_neighbors};
+    auto predicates = Experimental::attach_indices(
+        Experimental::make_nearest(target_access, _num_neighbors));
 
     // Create the callback
     Kokkos::View<SourcePoint **, MemorySpace> source_view(

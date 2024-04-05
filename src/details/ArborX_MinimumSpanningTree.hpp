@@ -20,6 +20,7 @@
 #include <ArborX_DetailsTreeNodeLabeling.hpp>
 #include <ArborX_DetailsWeightedEdge.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <ArborX_PredicateHelpers.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
@@ -66,9 +67,11 @@ struct MinimumSpanningTree
       Kokkos::Profiling::pushRegion("ArborX::MST::compute_core_distances");
       Kokkos::View<float *, MemorySpace> core_distances(
           "ArborX::MST::core_distances", n);
-      bvh.query(space, NearestK<Points>{points, k},
-                MaxDistance<Points, decltype(core_distances)>{points,
-                                                              core_distances});
+      bvh.query(
+          space,
+          Experimental::attach_indices(Experimental::make_nearest(points, k)),
+          MaxDistance<Points, decltype(core_distances)>{points,
+                                                        core_distances});
       Kokkos::Profiling::popRegion();
 
       MutualReachability<decltype(core_distances)> mutual_reachability{
