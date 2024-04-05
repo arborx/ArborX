@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
 
     ArborX::Box box;
     calculateBoundingBoxOfTheScene(ExecutionSpace{}, indexables, box);
-    BOOST_ASSERT(equals(box, scene_bounding_box));
+    BOOST_TEST(equals(box, scene_bounding_box));
   }
 
   {
@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
 
     ArborX::Box box;
     calculateBoundingBoxOfTheScene(ExecutionSpace{}, indexables, box);
-    BOOST_ASSERT(equals(box, scene_bounding_box));
+    BOOST_TEST(equals(box, scene_bounding_box));
   }
 }
 
