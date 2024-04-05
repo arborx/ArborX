@@ -73,6 +73,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
                       "|ArborX::DistributedTree::query::"
                       "|ArborX::Distributor::"
                       "|ArborX::BVH::query::"
+                      "|ArborX::NearestBufferProvider::"
                       "|ArborX::TreeTraversal::spatial::"
                       "|ArborX::TreeTraversal::nearest::"
                       "|ArborX::CrsGraphWrapper::"

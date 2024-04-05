@@ -89,6 +89,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, DeviceType,
          void const * /*ptr*/, uint64_t /*size*/) {
         std::regex re("^(Testing::"
                       "|ArborX::BVH::query::"
+                      "|ArborX::NearestBufferProvider::"
                       "|ArborX::TreeTraversal::spatial::"
                       "|ArborX::TreeTraversal::nearest::"
                       "|ArborX::CrsGraphWrapper::"

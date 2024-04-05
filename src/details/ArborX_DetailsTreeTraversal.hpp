@@ -16,6 +16,7 @@
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
+#include <ArborX_DetailsNearestBufferProvider.hpp>
 #include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
 #include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_DetailsStack.hpp>
@@ -128,48 +129,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   Predicates _predicates;
   Callback _callback;
 
-  using Buffer = Kokkos::View<Kokkos::pair<int, float> *, MemorySpace>;
-  using Offset = Kokkos::View<int *, MemorySpace>;
-  struct BufferProvider
-  {
-    Buffer _buffer;
-    Offset _offset;
-
-    KOKKOS_FUNCTION auto operator()(int i) const
-    {
-      auto const *offset_ptr = &_offset(i);
-      return Kokkos::subview(_buffer,
-                             Kokkos::make_pair(*offset_ptr, *(offset_ptr + 1)));
-    }
-  };
-
-  BufferProvider _buffer;
-
-  template <typename ExecutionSpace>
-  void allocateBuffer(ExecutionSpace const &space)
-  {
-    auto const n_queries = _predicates.size();
-
-    Offset offset(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                                     "ArborX::TreeTraversal::nearest::offset"),
-                  n_queries + 1);
-    Kokkos::parallel_for(
-        "ArborX::TreeTraversal::nearest::"
-        "scan_queries_for_numbers_of_neighbors",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_CLASS_LAMBDA(int i) { offset(i) = getK(_predicates(i)); });
-    KokkosExt::exclusive_scan(space, offset, offset, 0);
-    int const buffer_size = KokkosExt::lastElement(space, offset);
-    // Allocate buffer over which to perform heap operations in
-    // TreeTraversal::nearestQuery() to store nearest leaf nodes found so far.
-    // It is not possible to anticipate how much memory to allocate since the
-    // number of nearest neighbors k is only known at runtime.
-
-    Buffer buffer(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                                     "ArborX::TreeTraversal::nearest::buffer"),
-                  buffer_size);
-    _buffer = BufferProvider{buffer, offset};
-  }
+  NearestBufferProvider<MemorySpace> _buffer;
 
   template <typename ExecutionSpace>
   TreeTraversal(ExecutionSpace const &space, BVH const &bvh,
@@ -192,7 +152,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     }
     else
     {
-      allocateBuffer(space);
+      _buffer = NearestBufferProvider<MemorySpace>(space, predicates);
 
       Kokkos::parallel_for(
           "ArborX::TreeTraversal::nearest",
@@ -226,17 +186,8 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     if (k < 1)
       return;
 
-    // Nodes with a distance that exceed that radius can safely be
-    // discarded. Initialize the radius to infinity and tighten it once k
-    // neighbors have been found.
-    auto radius = KokkosExt::ArithmeticTraits::infinity<float>::value;
-
-    using PairIndexDistance = Kokkos::pair<int, float>;
-    static_assert(
-        std::is_same<typename decltype(buffer)::value_type,
-                     PairIndexDistance>::value,
-        "Type of the elements stored in the buffer passed as argument to "
-        "TreeTraversal::nearestQuery is not right");
+    using PairIndexDistance =
+        typename NearestBufferProvider<MemorySpace>::PairIndexDistance;
     struct CompareDistance
     {
       KOKKOS_INLINE_FUNCTION bool operator()(PairIndexDistance const &lhs,
@@ -280,6 +231,11 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     float distance_left = 0.f;
     float distance_right = 0.f;
     float distance_node = 0.f;
+
+    // Nodes with a distance that exceed that radius can safely be
+    // discarded. Initialize the radius to infinity and tighten it once k
+    // neighbors have been found.
+    auto radius = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
     do
     {

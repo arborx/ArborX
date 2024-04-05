@@ -14,13 +14,17 @@
 
 #include <ArborX_DetailsAlgorithms.hpp> // expand
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
+#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
+#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
+#include <ArborX_DetailsNearestBufferProvider.hpp>
+#include <ArborX_DetailsPriorityQueue.hpp>
 #include <ArborX_Exception.hpp>
+#include <ArborX_Predicates.hpp>
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_Profiling_ScopedRegion.hpp>
 
-namespace ArborX
-{
-namespace Details
+namespace ArborX::Details
 {
 struct BruteForceImpl
 {
@@ -48,10 +52,12 @@ struct BruteForceImpl
 
   template <class ExecutionSpace, class Predicates, class Values,
             class Indexables, class Callback>
-  static void query(ExecutionSpace const &space, Predicates const &predicates,
-                    Values const &values, Indexables const &indexables,
-                    Callback const &callback)
+  static void query(SpatialPredicateTag, ExecutionSpace const &space,
+                    Predicates const &predicates, Values const &values,
+                    Indexables const &indexables, Callback const &callback)
   {
+    Kokkos::Profiling::ScopedRegion guard("ArborX::BruteForce::query::spatial");
+
     using TeamPolicy = Kokkos::TeamPolicy<ExecutionSpace>;
     using PredicateType = typename Predicates::value_type;
     using IndexableType = std::decay_t<decltype(indexables(0))>;
@@ -136,8 +142,80 @@ struct BruteForceImpl
               });
         });
   }
+
+  template <class ExecutionSpace, class Predicates, class Values,
+            class Indexables, class Callback>
+  static void query(NearestPredicateTag, ExecutionSpace const &space,
+                    Predicates const &predicates, Values const &values,
+                    Indexables const &indexables, Callback const &callback)
+  {
+    Kokkos::Profiling::ScopedRegion guard("ArborX::BruteForce::query::nearest");
+
+    using MemorySpace = typename Values::memory_space;
+
+    int const n_indexables = values.size();
+    int const n_predicates = predicates.size();
+
+    NearestBufferProvider<MemorySpace> buffer_provider(space, predicates);
+
+    Kokkos::parallel_for(
+        "ArborX::BruteForce::query::nearest::"
+        "check_all_predicates_against_all_indexables",
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_predicates),
+        KOKKOS_LAMBDA(int i) {
+          auto const &predicate = predicates(i);
+          auto const k = getK(predicate);
+          auto const buffer = buffer_provider(i);
+
+          if (k < 1)
+            return;
+
+          using PairIndexDistance =
+              typename NearestBufferProvider<MemorySpace>::PairIndexDistance;
+          struct CompareDistance
+          {
+            KOKKOS_INLINE_FUNCTION bool
+            operator()(PairIndexDistance const &lhs,
+                       PairIndexDistance const &rhs) const
+            {
+              return lhs.second < rhs.second;
+            }
+          };
+
+          PriorityQueue<PairIndexDistance, CompareDistance,
+                        UnmanagedStaticVector<PairIndexDistance>>
+              heap(UnmanagedStaticVector<PairIndexDistance>(buffer.data(),
+                                                            buffer.size()));
+
+          // Nodes with a distance that exceed that radius can safely be
+          // discarded. Initialize the radius to infinity and tighten it once k
+          // neighbors have been found.
+          auto radius = KokkosExt::ArithmeticTraits::infinity<float>::value;
+
+          int j = 0;
+          for (; j < n_indexables && j < k; ++j)
+          {
+            auto const distance = predicate.distance(indexables(j));
+            heap.push(Kokkos::make_pair(j, distance));
+          }
+          for (; j < n_indexables; ++j)
+          {
+            auto const distance = predicate.distance(indexables(j));
+            if (distance < radius)
+            {
+              heap.popPush(Kokkos::make_pair(j, distance));
+              radius = heap.top().second;
+            }
+          }
+
+          // Match the logic in TreeTraversal and do the sorting
+          sortHeap(heap.data(), heap.data() + heap.size(), heap.valueComp());
+          for (decltype(heap.size()) i = 0; i < heap.size(); ++i)
+            callback(predicate, values((heap.data() + i)->first));
+        });
+  }
 };
-} // namespace Details
-} // namespace ArborX
+
+} // namespace ArborX::Details
 
 #endif
