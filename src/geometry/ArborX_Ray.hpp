@@ -14,7 +14,6 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // equal
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
-#include <ArborX_DetailsKokkosExtSwap.hpp>
 #include <ArborX_DetailsVector.hpp>
 #include <ArborX_HyperPoint.hpp>
 #include <ArborX_HyperTriangle.hpp>
@@ -246,7 +245,7 @@ bool intersection(Ray const &ray,
   int ky = (kz + 2) % 3;
 
   if (dir[kz] < 0)
-    KokkosExt::kokkos_swap(kx, ky);
+    Kokkos::kokkos_swap(kx, ky);
 
   Vector s;
 
@@ -378,7 +377,7 @@ bool intersection(Ray const &ray,
       // we want tmin = -1 and tmax = -2, when the
       // ray travels backward
       if (tmin < 0)
-        KokkosExt::kokkos_swap(tmin, tmax);
+        Kokkos::kokkos_swap(tmin, tmax);
     }
     return true;
   }
@@ -477,7 +476,7 @@ KOKKOS_INLINE_FUNCTION bool intersection(Ray const &ray, Sphere const &sphere,
   {
     // ensures that tmin <= tmax
     if (tmin > tmax)
-      KokkosExt::kokkos_swap(tmin, tmax);
+      Kokkos::kokkos_swap(tmin, tmax);
 
     return true;
   }
