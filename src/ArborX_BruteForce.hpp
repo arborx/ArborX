@@ -82,10 +82,39 @@ public:
     using Predicates = Details::AccessValues<UserPredicates, PredicatesTag>;
     using Tag = typename Predicates::value_type::Tag;
 
-    Details::CrsGraphWrapperImpl::queryDispatch(
-        Tag{}, *this, space, Predicates{user_predicates},
-        std::forward<CallbackOrView>(callback_or_view),
-        std::forward<View>(view), std::forward<Args>(args)...);
+    // Automatically add LegacyDefaultCallback if
+    //   1. A user does not provide a callback
+    //   2. The index is constructed on PairValueIndex
+    //   3. The output value_type matches the index_type in the PairValueIndex
+    constexpr bool use_convenient_shortcut = []() {
+      if constexpr (!Kokkos::is_view_v<std::decay_t<CallbackOrView>>)
+        return false;
+      else if constexpr (!Details::is_pair_value_index_v<value_type>)
+        return false;
+      else
+      {
+        return std::is_same_v<typename std::decay_t<CallbackOrView>::value_type,
+                              typename value_type::index_type>;
+      }
+    }();
+
+    if constexpr (use_convenient_shortcut)
+    {
+      // Simplified way to get APIv1 result using APIv2 interface
+      Details::CrsGraphWrapperImpl::queryDispatch(
+          Tag{}, *this, space, Predicates{user_predicates},
+          Details::LegacyDefaultCallback{},
+          std::forward<CallbackOrView>(callback_or_view),
+          std::forward<View>(view), std::forward<Args>(args)...);
+      return;
+    }
+    else
+    {
+      Details::CrsGraphWrapperImpl::queryDispatch(
+          Tag{}, *this, space, Predicates{user_predicates},
+          std::forward<CallbackOrView>(callback_or_view),
+          std::forward<View>(view), std::forward<Args>(args)...);
+    }
   }
 
   KOKKOS_FUNCTION auto const &indexable_get() const
