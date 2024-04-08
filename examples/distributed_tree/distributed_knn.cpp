@@ -14,12 +14,23 @@
 #include <Kokkos_Core.hpp>
 
 #include <cstdarg>
+#include <iostream>
+#include <iterator>
 #include <vector>
 
 #include <mpi.h>
 
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
 using MemorySpace = ExecutionSpace::memory_space;
+
+namespace std
+{
+std::ostream &operator<<(std::ostream &os, ArborX::PairIndexRank const &x)
+{
+  os << "(" << x.index << ", " << x.rank << ")";
+  return os;
+}
+} // namespace std
 
 int main(int argc, char *argv[])
 {
@@ -34,6 +45,14 @@ int main(int argc, char *argv[])
     int comm_size;
     MPI_Comm_size(comm, &comm_size);
 
+    // ranks: | 0 | 1 | 2 |
+    //        -------------
+    //        |   |   |  x|
+    //        |   |   |x  |
+    //        |   |  x|   |
+    //        |   |x  |   |
+    //        |  x|   |   |
+    //        |x  |   |   |
     ArborX::Point lower_left_corner = {(float)comm_rank, (float)comm_rank,
                                        (float)comm_rank};
     ArborX::Point center = {comm_rank + .5f, comm_rank + .5f, comm_rank + .5f};
@@ -47,10 +66,31 @@ int main(int argc, char *argv[])
     ExecutionSpace exec;
     ArborX::DistributedTree<MemorySpace> tree(comm, exec, points_device);
 
-    Kokkos::View<ArborX::PairIndexRank *, MemorySpace> values("values", 0);
-    Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
+    Kokkos::View<ArborX::PairIndexRank *, MemorySpace> values("Example::values",
+                                                              0);
+    Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
     tree.query(exec, ArborX::Experimental::make_nearest(points_device, 3),
                values, offsets);
+
+    if (comm_rank == 0)
+    {
+      auto offsets_host =
+          Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets);
+      auto values_host =
+          Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values);
+
+      // Expected output for 2+ ranks:
+      //   offsets: 0 3 6
+      //   values : (0, 0) (1, 0) (0, 1) (1, 0) (0, 0) (0, 1)
+      // The order of the last 4 values may vary.
+      std::cout << "offsets: ";
+      std::copy(offsets_host.data(), offsets_host.data() + offsets.size(),
+                std::ostream_iterator<int>(std::cout, " "));
+      std::cout << "\nvalues : ";
+      std::copy(values_host.data(), values_host.data() + values.size(),
+                std::ostream_iterator<ArborX::PairIndexRank>(std::cout, " "));
+      std::cout << "\n";
+    }
   }
 
   Kokkos::finalize();
