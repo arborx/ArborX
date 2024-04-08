@@ -1,8 +1,8 @@
 # Changelog
 
-## [1.5.0](https://github.com/arborx/arborx/tree/v1.5.0) (2023-12-16)
+## [1.5](https://github.com/arborx/arborx/tree/v1.5.0) (2023-12-16)
 
-[Full Changelog](https://github.com/arborx/arborx/compare/v1.4.1...v1.5.0)
+[Full Changelog](https://github.com/arborx/arborx/compare/v1.4.1...v1.5)
 
 **Build Changes:**
 - Require Kokkos 4.0.00 [\#895](https://github.com/arborx/ArborX/pull/895)
