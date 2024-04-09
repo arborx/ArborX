@@ -27,12 +27,12 @@
 using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
 using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<3>;
 
-void icosahedron(std::vector<Point> &vertices, std::vector<int> &triangles)
+auto icosahedron()
 {
   auto a = Kokkos::numbers::phi_v<float>;
   auto b = 1.f;
 
-  vertices.clear();
+  std::vector<Point> vertices;
 
   vertices.push_back(Point{0, b, -a});
   vertices.push_back(Point{b, a, 0});
@@ -47,7 +47,7 @@ void icosahedron(std::vector<Point> &vertices, std::vector<int> &triangles)
   vertices.push_back(Point{b, -a, 0});
   vertices.push_back(Point{-b, -a, 0});
 
-  triangles.clear();
+  std::vector<int> triangles;
 
   triangles.insert(triangles.end(), {2, 1, 0});
   triangles.insert(triangles.end(), {1, 2, 3});
@@ -69,8 +69,18 @@ void icosahedron(std::vector<Point> &vertices, std::vector<int> &triangles)
   triangles.insert(triangles.end(), {7, 10, 6});
   triangles.insert(triangles.end(), {5, 11, 4});
   triangles.insert(triangles.end(), {10, 8, 4});
+
+  return std::make_pair(vertices, triangles);
 }
 
+/* Suvdivide every triangle into four
+         /\              /\
+        /  \            /  \
+       /    \   --->   /____\
+      /      \        /\    /\
+     /        \      /  \  /  \
+    /__________\    /____\/____\
+*/
 void subdivide(std::vector<Point> &vertices, std::vector<int> &triangles)
 {
   std::map<std::pair<int, int>, int> hash;
@@ -126,16 +136,17 @@ void projectVerticesToSphere(std::vector<Point> &vertices, float radius)
   }
 }
 
-void buildTriangles(float radius, int num_refinements,
-                    std::vector<Point> &vertices, std::vector<int> &triangles)
+auto buildTriangles(float radius, int num_refinements)
 {
   Kokkos::Profiling::ScopedRegion guard("Benchmark::build_triangles");
 
-  icosahedron(vertices, triangles);
+  auto [vertices, triangles] = icosahedron();
   for (int i = 1; i <= num_refinements; ++i)
     subdivide(vertices, triangles);
 
   projectVerticesToSphere(vertices, radius);
+
+  return std::make_pair(vertices, triangles);
 }
 
 template <typename... P, typename T>
@@ -232,7 +243,7 @@ void writeVtk(std::string const &filename, Points const &vertices,
 
 int main(int argc, char *argv[])
 {
-  Kokkos::ScopeGuard guard;
+  Kokkos::ScopeGuard guard(argc, argv);
 
   using ExecutionSpace = Kokkos::DefaultExecutionSpace;
   using MemorySpace = typename ExecutionSpace::memory_space;
@@ -268,9 +279,7 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  std::vector<Point> vertices_v;
-  std::vector<int> triangles_v;
-  buildTriangles(radius, num_refinements, vertices_v, triangles_v);
+  auto [vertices_v, triangles_v] = buildTriangles(radius, num_refinements);
 
   auto vertices = vec2view<MemorySpace>(vertices_v);
   auto triangles = vec2view<MemorySpace>(triangles_v);
