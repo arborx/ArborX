@@ -67,7 +67,9 @@ void findHalfNeighborList(ExecutionSpace const &space,
   Points points{primitives}; // NOLINT
   int const n = points.size();
 
-  BoundingVolumeHierarchy<MemorySpace, PairValueIndex<Point>> bvh(
+  using Value = PairValueIndex<Point>;
+
+  BoundingVolumeHierarchy<MemorySpace, Value> bvh(
       space, Experimental::attach_indices(points));
 
   Kokkos::Profiling::pushRegion(
@@ -77,7 +79,7 @@ void findHalfNeighborList(ExecutionSpace const &space,
   Kokkos::deep_copy(space, offsets, 0);
   HalfTraversal(
       space, bvh,
-      KOKKOS_LAMBDA(auto, auto const &value) {
+      KOKKOS_LAMBDA(Value const &, Value const &value) {
         Kokkos::atomic_increment(&offsets(value.index));
       },
       NeighborListPredicateGetter{radius});
@@ -93,7 +95,7 @@ void findHalfNeighborList(ExecutionSpace const &space,
                        "ArborX::Experimental::HalfNeighborList::counts");
   HalfTraversal(
       space, bvh,
-      KOKKOS_LAMBDA(auto const &value1, auto const &value2) {
+      KOKKOS_LAMBDA(Value const &value1, Value const &value2) {
         indices(Kokkos::atomic_fetch_inc(&counts(value2.index))) = value1.index;
       },
       NeighborListPredicateGetter{radius});
@@ -125,7 +127,9 @@ void findFullNeighborList(ExecutionSpace const &space,
   Points points{primitives}; // NOLINT
   int const n = points.size();
 
-  BoundingVolumeHierarchy<MemorySpace, PairValueIndex<Point>> bvh(
+  using Value = PairValueIndex<Point>;
+
+  BoundingVolumeHierarchy<MemorySpace, Value> bvh(
       space, Experimental::attach_indices(points));
 
   Kokkos::Profiling::pushRegion(
@@ -135,7 +139,7 @@ void findFullNeighborList(ExecutionSpace const &space,
   Kokkos::deep_copy(space, offsets, 0);
   HalfTraversal(
       space, bvh,
-      KOKKOS_LAMBDA(auto const &value1, auto const &value2) {
+      KOKKOS_LAMBDA(Value const &value1, Value const &value2) {
         Kokkos::atomic_increment(&offsets(value1.index));
         Kokkos::atomic_increment(&offsets(value2.index));
       },
@@ -152,7 +156,7 @@ void findFullNeighborList(ExecutionSpace const &space,
                        "ArborX::Experimental::FullNeighborList::counts");
   HalfTraversal(
       space, bvh,
-      KOKKOS_LAMBDA(auto const &value1, auto const &value2) {
+      KOKKOS_LAMBDA(Value const &value1, Value const &value2) {
         indices(Kokkos::atomic_fetch_inc(&counts(value2.index))) = value1.index;
       },
       NeighborListPredicateGetter{radius});
