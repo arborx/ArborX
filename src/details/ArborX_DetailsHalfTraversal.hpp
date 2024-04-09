@@ -52,7 +52,7 @@ struct HalfTraversal
 
   KOKKOS_FUNCTION void operator()(int i) const
   {
-    auto const &leaf_value = HappyTreeFriends::getValue(_bvh, i);
+    auto const leaf_value = HappyTreeFriends::getValue(_bvh, i);
     auto const predicate = _get_predicate(leaf_value);
 
     int node = HappyTreeFriends::getRope(_bvh, i);
