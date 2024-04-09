@@ -11,7 +11,6 @@ add_subdirectory(callback)
 add_subdirectory(dbscan)
 add_subdirectory(molecular_dynamics)
 add_subdirectory(simple_intersection)
-
 add_subdirectory(triangle_intersection)
 
 find_package(Boost COMPONENTS program_options)
