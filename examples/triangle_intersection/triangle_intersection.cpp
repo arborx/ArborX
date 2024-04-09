@@ -26,13 +26,14 @@ int main(int argc, char *argv[])
   using Point = ArborX::ExperimentalHyperGeometry::Point<2>;
   using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<2>;
 
-  //  6_____7_____8
-  //  |\  x |\   x|
-  //  |  \  |  \  |
-  //  3____\4____\5
-  //  |\    |\    |
-  //  |  \ x|x \  |
-  //  0____\1____\2
+  // Vertices:
+  // 6_____7_____8
+  // |\    |\    |
+  // |  \  |  \  |
+  // 3____\4____\5
+  // |\    |\    |
+  // |  \  |  \  |
+  // 0____\1____\2
   std::vector<Point> v(9);
   v[0] = {0, 0};
   v[1] = {1, 0};
@@ -44,6 +45,14 @@ int main(int argc, char *argv[])
   v[7] = {1, 2};
   v[8] = {2, 2};
 
+  // Triangles:
+  // _____________
+  // |\  5 |\  7 |
+  // |4 \  |6 \  |
+  // |____\|____\|
+  // |\  1 |\  3 |
+  // |0 \  |2 \  |
+  // |____\|____\|
   Kokkos::View<Triangle *, MemorySpace> triangles("Example::triangles", 8);
   auto triangles_host = Kokkos::create_mirror_view(triangles);
   triangles_host[0] = {v[0], v[1], v[3]};
@@ -56,6 +65,14 @@ int main(int argc, char *argv[])
   triangles_host[7] = {v[5], v[8], v[7]};
   Kokkos::deep_copy(triangles, triangles_host);
 
+  // Query points:
+  // _____________
+  // |\  x |\   x|
+  // |  \  |  \  |
+  // |____\|____\|
+  // |\    |\    |
+  // |  \ x|x \  |
+  // _____\|____\|
   Kokkos::View<decltype(ArborX::intersects(Point())) *, MemorySpace> queries(
       "Example::queries", 4);
   auto queries_host = Kokkos::create_mirror_view(queries);
