@@ -255,6 +255,27 @@ BOOST_AUTO_TEST_CASE(intersects)
   BOOST_TEST(!intersects(Point2{{0.5, 1.1}}, triangle));
   BOOST_TEST(!intersects(Point2{{1.1, 0}}, triangle));
   BOOST_TEST(!intersects(Point2{{-0.1, 0}}, triangle));
+
+  // triangle box
+  constexpr ArborX::ExperimentalHyperGeometry::Triangle<3> triangle3{
+      {{1, 0, 0}}, {{0, 1, 0}}, {{0, 0, 1}}};
+  constexpr Box unit_box{{{0, 0, 0}}, {{1, 1, 1}}};
+  BOOST_TEST(intersects(triangle3, Box{{{0., 0., 0.}}, {{1., 1., 1.}}}));
+  BOOST_TEST(intersects(triangle3, Box{{{.2, .25, .25}}, {{.4, .3, .5}}}));
+  BOOST_TEST(!intersects(triangle3, Box{{{.1, .2, .3}}, {{.2, .3, .4}}}));
+  BOOST_TEST(intersects(triangle3, Box{{{0, 0, 0}}, {{.5, .25, .25}}}));
+  BOOST_TEST(intersects(
+      ArborX::ExperimentalHyperGeometry::Triangle<3>{
+          {{0, 0, 0}}, {{0, 1, 0}}, {{1, 0, 0}}},
+      unit_box));
+  BOOST_TEST(intersects(
+      ArborX::ExperimentalHyperGeometry::Triangle<3>{
+          {{0, 0, 0}}, {{0, 1, 0}}, {{-1, 0, 0}}},
+      unit_box));
+  BOOST_TEST(intersects(
+      ArborX::ExperimentalHyperGeometry::Triangle<3>{
+          {{.1, .1, .1}}, {{.1, .9, .1}}, {{.9, .1, .1}}},
+      unit_box));
 }
 
 BOOST_AUTO_TEST_CASE(equals)
