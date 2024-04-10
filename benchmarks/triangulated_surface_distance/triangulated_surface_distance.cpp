@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2023 by the ArborX authors                                 *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -73,7 +73,7 @@ auto icosahedron()
   return std::make_pair(vertices, triangles);
 }
 
-/* Suvdivide every triangle into four
+/* Subdivide every triangle into four
          /\              /\
         /  \            /  \
        /    \   --->   /____\
