@@ -403,7 +403,7 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
 
       int const n_queries = queries.size();
       countResults(space, n_queries, ids, offset);
-      sortResults(space, ids, values, ranks, distances);
+      sortResultsByKey(space, ids, values, ranks, distances);
       filterResults(space, queries, distances, values, offset, ranks);
 
       Kokkos::Profiling::popRegion();

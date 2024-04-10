@@ -88,7 +88,7 @@ DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
     // Merge results
     int const n_predicates = predicates.size();
     countResults(space, n_predicates, ids, offset);
-    sortResults(space, ids, values);
+    sortResultsByKey(space, ids, values);
 
     Kokkos::Profiling::popRegion();
   }

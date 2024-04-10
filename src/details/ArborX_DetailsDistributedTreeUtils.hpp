@@ -98,8 +98,8 @@ sendAcrossNetwork(ExecutionSpace const &space, Distributor const &distributor,
 }
 
 template <typename ExecutionSpace, typename View, typename... OtherViews>
-void sortResults(ExecutionSpace const &space, View keys,
-                 OtherViews... other_views)
+void sortResultsByKey(ExecutionSpace const &space, View keys,
+                      OtherViews... other_views)
 {
   auto const n = keys.extent(0);
   // If they were no queries, min_val and max_val values won't change after
@@ -108,18 +108,16 @@ void sortResults(ExecutionSpace const &space, View keys,
   if (n == 0)
     return;
 
-  // We don't want to sort the keys, so we create a copy.
-  auto keys_clone = KokkosExt::clone(space, keys);
   if constexpr (sizeof...(OtherViews) == 1 &&
                 std::tuple_element_t<0, std::tuple<OtherViews...>>::rank == 1)
   {
     // If there's only one 1D view to process, we can avoid computing the
     // permutation.
-    KokkosExt::sortByKey(space, keys_clone, other_views...);
+    KokkosExt::sortByKey(space, keys, other_views...);
   }
   else
   {
-    auto const permutation = ArborX::Details::sortObjects(space, keys_clone);
+    auto const permutation = ArborX::Details::sortObjects(space, keys);
 
     // Call applyPermutation for every entry in the parameter pack.
     // We need to use the comma operator here since the function returns void.
