@@ -12,9 +12,7 @@
 #ifndef ARBORX_DETAILS_HALF_TRAVERSAL_HPP
 #define ARBORX_DETAILS_HALF_TRAVERSAL_HPP
 
-#include <ArborX_Callbacks.hpp> // LegacyCallbackWrapper
 #include <ArborX_DetailsHappyTreeFriends.hpp>
-#include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
 
 #include <Kokkos_Core.hpp>
@@ -27,7 +25,7 @@ struct HalfTraversal
 {
   BVH _bvh;
   PredicateGetter _get_predicate;
-  LegacyCallbackWrapper<Callback> _callback;
+  Callback _callback;
 
   template <class ExecutionSpace>
   HalfTraversal(ExecutionSpace const &space, BVH const &bvh,
@@ -54,9 +52,8 @@ struct HalfTraversal
 
   KOKKOS_FUNCTION void operator()(int i) const
   {
-    auto const predicate =
-        _get_predicate(HappyTreeFriends::getIndexable(_bvh, i));
-    auto const leaf_permutation_i = HappyTreeFriends::getValue(_bvh, i).index;
+    auto const leaf_value = HappyTreeFriends::getValue(_bvh, i);
+    auto const predicate = _get_predicate(leaf_value);
 
     int node = HappyTreeFriends::getRope(_bvh, i);
     while (node != ROPE_SENTINEL)
@@ -64,7 +61,7 @@ struct HalfTraversal
       if (HappyTreeFriends::isLeaf(_bvh, node))
       {
         if (predicate(HappyTreeFriends::getIndexable(_bvh, node)))
-          _callback(leaf_permutation_i, HappyTreeFriends::getValue(_bvh, node));
+          _callback(leaf_value, HappyTreeFriends::getValue(_bvh, node));
         node = HappyTreeFriends::getRope(_bvh, node);
       }
       else
