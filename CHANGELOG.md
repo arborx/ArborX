@@ -1,6 +1,38 @@
 # Changelog
 
-## [1.5](https://github.com/arborx/arborx/tree/v1.5.0) (2023-12-16)
+## [1.6](https://github.com/arborx/arborx/tree/v1.6) (2024-04-11)
+
+[Full Changelog](https://github.com/arborx/arborx/compare/v1.5...v1.6)
+
+**Build Changes:**
+- Require Kokkos 4.1.00 [\#973](https://github.com/arborx/ArborX/pull/973)
+
+**New features:**
+- Introduce new API for ArborX indexes (EXPERIMENTAL) [\#970](https://github.com/arborx/ArborX/pull/970), [\#1017](https://github.com/arborx/ArborX/pull/1017)
+- Add Moving Least Squares (MLS) interpolation (EXPERIMENTAL) [\#946](https://github.com/arborx/ArborX/pull/946), [\#992](https://github.com/arborx/ArborX/pull/992), [\#1000](https://github.com/arborx/ArborX/pull/1000)
+
+**Enhancements:**
+- Introduce `PairValueIndex` and `Experimental::attach_indices` [\#969](https://github.com/arborx/ArborX/pull/969), [\#1016](https://github.com/arborx/ArborX/pull/1016), [\#1036](https://github.com/arborx/ArborX/pull/1036)
+- Improve examples [\#1008](https://github.com/arborx/ArborX/pull/1008), [\#1009](https://github.com/arborx/ArborX/pull/1009), [\#936](https://github.com/arborx/ArborX/pull/936)
+- Auto-fetch Google benchmark when not found locally [\#1039](https://github.com/arborx/ArborX/pull/1039)
+- Allow default initialized distributed tree [\#1040](https://github.com/arborx/ArborX/pull/1040)
+- Implement distance point-triangle [\#1046](https://github.com/arborx/ArborX/pull/1046)
+- Implement nearest query for BruteForce [\#1053](https://github.com/arborx/ArborX/pull/1053)
+- Add helper functions to construct predicates [\#1038](https://github.com/arborx/ArborX/pull/1038)
+- Add an example of a distributed tree k-nearest neighbors search [\#724](https://github.com/arborx/ArborX/pull/724)
+- Add triangulated surface distance benchmark [\#1052](https://github.com/arborx/ArborX/pull/1052)
+
+**Deprecations:**
+- Deprecate `min`, `max`, `minMax` [\#998](https://github.com/arborx/ArborX/pull/998)
+- Deprecate `iota`, `exclusivePrefixSum`, `accumulate`, `adjacentDifference` [\#999](https://github.com/arborx/ArborX/pull/999)
+
+**Fixed bugs:**
+- Fixed CUDA build warning [\#1010](https://github.com/arborx/ArborX/pull/1010)
+- Fixed HIP build with ROCm 6 [\#1030](https://github.com/arborx/ArborX/pull/1030)
+- Fixed FDBSCAN-DenseBox issue with user provided `AccessTraits` [\#1045](https://github.com/arborx/ArborX/pull/1045)
+- Fixed stream destruction order in CUDA access traits example and execution spaces benchmark [\#1050](https://github.com/arborx/ArborX/pull/1050)
+
+## [1.5](https://github.com/arborx/arborx/tree/v1.5) (2023-12-16)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v1.4.1...v1.5)
 
