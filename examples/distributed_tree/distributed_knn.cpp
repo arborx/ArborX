@@ -13,7 +13,6 @@
 
 #include <Kokkos_Core.hpp>
 
-#include <cstdarg>
 #include <iostream>
 #include <iterator>
 #include <vector>
@@ -23,14 +22,19 @@
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
 using MemorySpace = ExecutionSpace::memory_space;
 
-namespace std
+// WARNING: It is not allowed to add any definition into namespace ArborX. We
+// do it out of convenience here to print the results using
+// `std::ostream_iterator`. Please do not copy this code to your own code as
+// ArborX reserves the right to overload `operator<<` for any type defined
+// within its namespace. This means your code could break in the future.
+namespace ArborX
 {
 std::ostream &operator<<(std::ostream &os, ArborX::PairIndexRank const &x)
 {
   os << "(" << x.index << ", " << x.rank << ")";
   return os;
 }
-} // namespace std
+} // namespace ArborX
 
 int main(int argc, char *argv[])
 {
