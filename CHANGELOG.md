@@ -13,15 +13,13 @@
 
 **Enhancements:**
 - Introduce `PairValueIndex` and `Experimental::attach_indices` [\#969](https://github.com/arborx/ArborX/pull/969), [\#1016](https://github.com/arborx/ArborX/pull/1016), [\#1036](https://github.com/arborx/ArborX/pull/1036)
-- Improve the simple intersection example [\#1008](https://github.com/arborx/ArborX/pull/1008)
-- Improve the brute force example [\#1009](https://github.com/arborx/ArborX/pull/1009)
+- Improve examples [\#1008](https://github.com/arborx/ArborX/pull/1008), [\#1009](https://github.com/arborx/ArborX/pull/1009), [\#936](https://github.com/arborx/ArborX/pull/936)
 - Auto-fetch Google benchmark when not found locally [\#1039](https://github.com/arborx/ArborX/pull/1039)
 - Allow default initialized distributed tree [\#1040](https://github.com/arborx/ArborX/pull/1040)
 - Implement distance point-triangle [\#1046](https://github.com/arborx/ArborX/pull/1046)
 - Implement nearest query for BruteForce [\#1053](https://github.com/arborx/ArborX/pull/1053)
 - Add helper functions to construct predicates [\#1038](https://github.com/arborx/ArborX/pull/1038)
 - Add an example of a distributed tree k-nearest neighbors search [\#724](https://github.com/arborx/ArborX/pull/724)
-- Improve the triangle intersection example [\#936](https://github.com/arborx/ArborX/pull/936)
 - Add triangulated surface distance benchmark [\#1052](https://github.com/arborx/ArborX/pull/1052)
 
 **Deprecations:**
