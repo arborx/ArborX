@@ -109,7 +109,7 @@ public:
     // Automatically add LegacyDefaultCallback if
     //   1. A user does not provide a callback
     //   2. The index is constructed on PairValueIndex
-    //   3. The output value_type matches the index_type in the PairValueIndex
+    //   3. The output value_type is an integral type
     constexpr bool use_convenient_shortcut = []() {
       if constexpr (!Kokkos::is_view_v<std::decay_t<CallbackOrView>>)
         return false;
@@ -125,7 +125,7 @@ public:
       // Simplified way to get APIv1 result using APIv2 interface
       Details::CrsGraphWrapperImpl::queryDispatch(
           Tag{}, *this, space, Predicates{user_predicates},
-          Details::LegacyDefaultCallback{},
+          Details::LegacyDefaultCallback{}, // inject legacy callback arg
           std::forward<CallbackOrView>(callback_or_view),
           std::forward<View>(view), std::forward<Args>(args)...);
       return;
