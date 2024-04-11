@@ -22,12 +22,15 @@ int main(int argc, char *argv[])
   using ExecutionSpace = Kokkos::DefaultExecutionSpace;
   using MemorySpace = ExecutionSpace::memory_space;
 
-  Kokkos::View<ArborX::Box *, MemorySpace> boxes("Example::boxes", 4);
+  using Box = ArborX::ExperimentalHyperGeometry::Box<2>;
+  using Point = ArborX::ExperimentalHyperGeometry::Point<2>;
+
+  Kokkos::View<Box *, MemorySpace> boxes("Example::boxes", 4);
   auto boxes_host = Kokkos::create_mirror_view(boxes);
-  boxes_host[0] = {{0, 0, 0}, {1, 1, 1}};
-  boxes_host[1] = {{1, 0, 0}, {2, 1, 1}};
-  boxes_host[2] = {{0, 1, 0}, {1, 2, 1}};
-  boxes_host[3] = {{1, 1, 0}, {2, 2, 1}};
+  boxes_host[0] = {{0, 0}, {1, 1}};
+  boxes_host[1] = {{1, 0}, {2, 1}};
+  boxes_host[2] = {{0, 1}, {1, 2}};
+  boxes_host[3] = {{1, 1}, {2, 2}};
   Kokkos::deep_copy(boxes, boxes_host);
 
   // -----------
@@ -37,17 +40,18 @@ int main(int argc, char *argv[])
   // |    |    |
   // |    |    |
   // -----------
-  Kokkos::View<decltype(ArborX::intersects(ArborX::Point())) *, MemorySpace>
-      queries("Example::queries", 3);
+  Kokkos::View<decltype(ArborX::intersects(Point{})) *, MemorySpace> queries(
+      "Example::queries", 3);
   auto queries_host = Kokkos::create_mirror_view(queries);
-  queries_host[0] = ArborX::intersects(ArborX::Point{1.8, 1.5, 0.5});
-  queries_host[1] = ArborX::intersects(ArborX::Point{1.3, 1.7, 0.5});
-  queries_host[2] = ArborX::intersects(ArborX::Point{1, 1, 0.5});
+  queries_host[0] = ArborX::intersects(Point{1.8, 1.5});
+  queries_host[1] = ArborX::intersects(Point{1.3, 1.7});
+  queries_host[2] = ArborX::intersects(Point{1, 1});
   Kokkos::deep_copy(queries, queries_host);
 
   ExecutionSpace space;
 
-  ArborX::BVH<MemorySpace> const tree(space, boxes);
+  ArborX::BVH<MemorySpace, ArborX::PairValueIndex<Box>> const tree(
+      space, ArborX::Experimental::attach_indices(boxes));
 
   // The query will resize indices and offsets accordingly
   Kokkos::View<int *, MemorySpace> indices("Example::indices", 0);
