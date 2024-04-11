@@ -68,12 +68,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sort_results, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::deep_copy(ranks, ranks_host);
 
   using ExecutionSpace = typename DeviceType::execution_space;
-  ArborX::Details::DistributedTree::sortResults(ExecutionSpace{}, ids, results,
-                                                ranks);
-
-  // COMMENT: ids are untouched
-  Kokkos::deep_copy(ids_host, ids);
-  BOOST_TEST(ids_host == ids_, tt::per_element());
+  ArborX::Details::DistributedTree::sortResultsByKey(ExecutionSpace{}, ids,
+                                                     results, ranks);
 
   Kokkos::deep_copy(results_host, results);
   Kokkos::deep_copy(ranks_host, ranks);
@@ -85,7 +81,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sort_results, DeviceType, ARBORX_DEVICE_TYPES)
     }
 
   Kokkos::View<int *, DeviceType> not_sized_properly("", m);
-  BOOST_CHECK_THROW(ArborX::Details::DistributedTree::sortResults(
+  BOOST_CHECK_THROW(ArborX::Details::DistributedTree::sortResultsByKey(
                         ExecutionSpace{}, ids, not_sized_properly),
                     ArborX::SearchException);
 }
@@ -109,8 +105,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sort_results_2d, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::deep_copy(results_2d, results_2d_host);
 
   using ExecutionSpace = typename DeviceType::execution_space;
-  ArborX::Details::DistributedTree::sortResults(ExecutionSpace{}, ids,
-                                                results_2d);
+  ArborX::Details::DistributedTree::sortResultsByKey(ExecutionSpace{}, ids,
+                                                     results_2d);
 
   Kokkos::deep_copy(results_2d_host, results_2d);
   for (int i = 0; i < 5; ++i)
@@ -146,8 +142,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sort_results_3d, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::deep_copy(results_3d, results_3d_host);
 
   using ExecutionSpace = typename DeviceType::execution_space;
-  ArborX::Details::DistributedTree::sortResults(ExecutionSpace{}, ids,
-                                                results_3d);
+  ArborX::Details::DistributedTree::sortResultsByKey(ExecutionSpace{}, ids,
+                                                     results_3d);
 
   Kokkos::deep_copy(results_3d_host, results_3d);
   for (int i = 0; i < 5; ++i)
