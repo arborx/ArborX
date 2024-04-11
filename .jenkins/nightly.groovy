@@ -76,7 +76,7 @@ pipeline {
                             sh 'ctest $CTEST_OPTIONS'
                         }
                         sh 'cmake --install build-arborx'
-                        sh 'cmake -S examples -B build-examples -D ArborX_ROOT=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS'
+                        sh 'cmake -S examples -B build-examples -D ArborX_ROOT=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos -D MPIEXEC_PREFLAGS="--allow-run-as-root" $CMAKE_OPTIONS'
                         sh 'cmake --build build-examples --parallel 8'
                         dir('build-examples') {
                             sh 'ctest $CTEST_OPTIONS'
