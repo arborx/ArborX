@@ -93,8 +93,7 @@ static void run_fp(int nprimitives, int nqueries, int nrepeats)
                                       ArborX::PairValueIndex<Point>>
           bvh{space, ArborX::Experimental::attach_indices(primitives)};
 
-      Kokkos::View<unsigned *, ExecutionSpace> indices("Benchmark::indices_ref",
-                                                       0);
+      Kokkos::View<int *, ExecutionSpace> indices("Benchmark::indices_ref", 0);
       Kokkos::View<int *, ExecutionSpace> offset("Benchmark::offset_ref", 0);
       bvh.query(space, predicates, indices, offset);
 
@@ -112,7 +111,7 @@ static void run_fp(int nprimitives, int nqueries, int nrepeats)
       ArborX::BruteForce<MemorySpace, ArborX::PairValueIndex<Point>> brute{
           space, ArborX::Experimental::attach_indices(primitives)};
 
-      Kokkos::View<unsigned *, ExecutionSpace> indices("Benchmark::indices", 0);
+      Kokkos::View<int *, ExecutionSpace> indices("Benchmark::indices", 0);
       Kokkos::View<int *, ExecutionSpace> offset("Benchmark::offset", 0);
       brute.query(space, predicates, indices, offset);
 

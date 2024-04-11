@@ -92,10 +92,8 @@ public:
       else if constexpr (!Details::is_pair_value_index_v<value_type>)
         return false;
       else
-      {
-        return std::is_same_v<typename std::decay_t<CallbackOrView>::value_type,
-                              typename value_type::index_type>;
-      }
+        return std::is_integral_v<
+            typename std::decay_t<CallbackOrView>::value_type>;
     }();
 
     if constexpr (use_convenient_shortcut)

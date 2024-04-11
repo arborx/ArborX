@@ -317,7 +317,7 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   auto const predicates = ArborX::Experimental::attach_indices(
       ArborX::Experimental::make_intersects(points, eps));
 
-  Kokkos::View<unsigned *, MemorySpace> indices("ArborX::DBSCAN::indices", 0);
+  Kokkos::View<int *, MemorySpace> indices("ArborX::DBSCAN::indices", 0);
   Kokkos::View<int *, MemorySpace> offset("ArborX::DBSCAN::offset", 0);
   ArborX::query(bvh, exec_space, predicates, indices, offset);
 
