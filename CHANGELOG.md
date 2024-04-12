@@ -4,12 +4,12 @@
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v1.5...v1.6)
 
-**Build Changes:**
-- Require Kokkos 4.1.00 [\#973](https://github.com/arborx/ArborX/pull/973)
-
 **New features:**
 - Introduce new API for ArborX indexes (EXPERIMENTAL) [\#970](https://github.com/arborx/ArborX/pull/970), [\#1017](https://github.com/arborx/ArborX/pull/1017)
 - Add Moving Least Squares (MLS) interpolation (EXPERIMENTAL) [\#946](https://github.com/arborx/ArborX/pull/946), [\#992](https://github.com/arborx/ArborX/pull/992), [\#1000](https://github.com/arborx/ArborX/pull/1000)
+
+**Build Changes:**
+- Require Kokkos 4.1.00 [\#973](https://github.com/arborx/ArborX/pull/973)
 
 **Enhancements:**
 - Introduce `PairValueIndex` and `Experimental::attach_indices` [\#969](https://github.com/arborx/ArborX/pull/969), [\#1016](https://github.com/arborx/ArborX/pull/1016), [\#1036](https://github.com/arborx/ArborX/pull/1036)
