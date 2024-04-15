@@ -16,12 +16,8 @@
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperBox.hpp>
 
-#include <Kokkos_Macros.hpp>
-#if KOKKOS_VERSION >= 40200
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
-#else
-#include <impl/Kokkos_Error.hpp> // KOKKOS_ASSERT
-#endif
+#include <Kokkos_Macros.hpp>
 #include <Kokkos_MathematicalFunctions.hpp> // floor
 
 namespace ArborX::Details

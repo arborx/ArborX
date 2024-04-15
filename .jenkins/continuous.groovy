@@ -42,7 +42,7 @@ pipeline {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:11.5.2-devel-ubuntu20.04 --build-arg KOKKOS_VERSION=4.1.00 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ARCH_VOLTA70=ON" --build-arg CUDA_AWARE_MPI=1'
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:11.5.2-devel-ubuntu20.04 --build-arg KOKKOS_VERSION=4.3.00 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ARCH_VOLTA70=ON" --build-arg CUDA_AWARE_MPI=1'
                             args '-v /tmp/ccache:/tmp/ccache --env NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES}'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
@@ -163,7 +163,7 @@ pipeline {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:11.0.3-devel-ubuntu18.04 --build-arg KOKKOS_VERSION="4.1.00" --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_COMPILER=clang++ -DKokkos_ENABLE_THREADS=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ARCH_VOLTA70=ON -DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu"'
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:11.0.3-devel-ubuntu18.04 --build-arg KOKKOS_VERSION="4.3.00" --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_COMPILER=clang++ -DKokkos_ENABLE_THREADS=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ARCH_VOLTA70=ON -DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu"'
                             args '-v /tmp/ccache:/tmp/ccache --env NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES}'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
@@ -412,7 +412,7 @@ pipeline {
                             filename "Dockerfile.sycl"
                             dir "docker"
                             args '-v /tmp/ccache.kokkos:/tmp/ccache'
-                            label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
+                            label 'nvidia-docker && ampere'
                         }
                     }
                     steps {
@@ -436,12 +436,8 @@ pipeline {
                                     -D ARBORX_ENABLE_ONEDPL=ON \
                                 ..
                             '''
-                            sh '''
-                                make -j8 VERBOSE=1
-                            '''
-                            sh '''
-                                ctest $CTEST_OPTIONS
-                            '''
+                            sh 'make -j8 VERBOSE=1'
+                            sh 'ctest $CTEST_OPTIONS'
                         }
                     }
                     post {
@@ -464,12 +460,8 @@ pipeline {
                                         -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
                                     examples \
                                 '''
-                                sh '''
-                                    make VERBOSE=1
-                                '''
-                                sh '''
-                                    make test
-                                '''
+                                sh 'make VERBOSE=1'
+                                sh 'make test'
                             }
                         }
                     }

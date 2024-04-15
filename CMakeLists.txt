@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(ArborX CXX)
 
-find_package(Kokkos 4.1 REQUIRED CONFIG)
+find_package(Kokkos 4.2 REQUIRED CONFIG)
 message(STATUS "Found Kokkos: ${Kokkos_DIR} (version \"${Kokkos_VERSION}\")")
 
 add_library(ArborX INTERFACE)

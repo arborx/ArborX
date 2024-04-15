@@ -56,12 +56,7 @@ struct PrintfCallback
   KOKKOS_FUNCTION void operator()(Predicate, int primitive,
                                   OutputFunctor const &out) const
   {
-#if KOKKOS_VERSION >= 40200
-    using Kokkos::printf;
-#elif defined(__SYCL_DEVICE_ONLY__)
-    using sycl::ext::oneapi::experimental::printf;
-#endif
-    printf("Found %d from functor\n", primitive);
+    Kokkos::printf("Found %d from functor\n", primitive);
     out(primitive);
   }
 };
@@ -97,12 +92,7 @@ int main(int argc, char *argv[])
         bvh, ExecutionSpace{}, FirstOctant{},
         KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
                       auto /*output_functor*/) {
-#if KOKKOS_VERSION >= 40200
-          using Kokkos::printf;
-#elif defined(__SYCL_DEVICE_ONLY__)
-          using sycl::ext::oneapi::experimental::printf;
-#endif
-          printf("Found %d from generic lambda\n", primitive);
+          Kokkos::printf("Found %d from generic lambda\n", primitive);
         },
         values, offsets);
 #endif
@@ -119,12 +109,7 @@ int main(int argc, char *argv[])
         bvh, ExecutionSpace{}, NearestToOrigin{k},
         KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
                       auto /*output_functor*/) {
-#if KOKKOS_VERSION >= 40200
-          using Kokkos::printf;
-#elif defined(__SYCL_DEVICE_ONLY__)
-          using sycl::ext::oneapi::experimental::printf;
-#endif
-          printf("Found %d from generic lambda\n", primitive);
+          Kokkos::printf("Found %d from generic lambda\n", primitive);
         },
         values, offsets);
 #endif
@@ -139,12 +124,7 @@ int main(int argc, char *argv[])
     bvh.query(
         ExecutionSpace{}, FirstOctant{},
         KOKKOS_LAMBDA(auto /*predicate*/, int j) {
-#if KOKKOS_VERSION >= 40200
-          using Kokkos::printf;
-#elif defined(__SYCL_DEVICE_ONLY__)
-          using sycl::ext::oneapi::experimental::printf;
-#endif
-          printf("%d %d %d\n", ++c(), -1, j);
+          Kokkos::printf("%d %d %d\n", ++c(), -1, j);
         });
 #endif
   }
