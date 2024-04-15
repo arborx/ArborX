@@ -274,6 +274,10 @@ void unionFindWithinEachDenseCell(ExecutionSpace const &exec_space,
                                   CellIndices sorted_dense_cell_indices,
                                   Permutation permute, UnionFind union_find)
 {
+  auto const n = sorted_dense_cell_indices.size();
+  if (n <= 1)
+    return;
+
   // The algorithm relies on the fact that the cell indices array only contains
   // dense cells. Thus, as long as two cell indices are the same, a) they
   // belong to the same cell, and b) that cell is dense, thus they should be in
@@ -281,7 +285,6 @@ void unionFindWithinEachDenseCell(ExecutionSpace const &exec_space,
   // non-dense cells, that would not have been possible, as an additional
   // computations would have to be done to figure out if the points belong to a
   // dense cell, which would have required a linear scan.
-  auto const n = sorted_dense_cell_indices.size();
   Kokkos::parallel_for(
       "ArborX::DBSCAN::union_find_within_each_dense_box",
       Kokkos::RangePolicy<ExecutionSpace>(exec_space, 1, n),
