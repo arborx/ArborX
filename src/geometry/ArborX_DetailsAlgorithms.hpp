@@ -15,7 +15,6 @@
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp> // min, max
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_HyperPoint.hpp>
 
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
 #include <Kokkos_Macros.hpp>
@@ -610,19 +609,17 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
       b[i] += shift;
       c[i] += shift;
     }
-    ExperimentalHyperGeometry::Point<DIM, Float> vector_ab{
-        b[0] - a[0], b[1] - a[1], b[2] - a[2]};
-    ExperimentalHyperGeometry::Point<DIM, Float> vector_ac{
-        c[0] - a[0], c[1] - a[1], c[2] - a[2]};
-    ExperimentalHyperGeometry::Point<DIM, Float> extents{
-        max_corner[0] - min_corner[0], max_corner[1] - min_corner[1],
-        max_corner[2] - min_corner[2]};
+
+    using Point = decltype(a);
+    Point vector_ab{b[0] - a[0], b[1] - a[1], b[2] - a[2]};
+    Point vector_ac{c[0] - a[0], c[1] - a[1], c[2] - a[2]};
+    Point extents{max_corner[0] - min_corner[0], max_corner[1] - min_corner[1],
+                  max_corner[2] - min_corner[2]};
 
     // Test normal of the triangle
-    ExperimentalHyperGeometry::Point<DIM, Float> normal{
-        {vector_ab[1] * vector_ac[2] - vector_ab[2] * vector_ac[1],
-         vector_ab[2] * vector_ac[0] - vector_ab[0] * vector_ac[2],
-         vector_ab[0] * vector_ac[1] - vector_ab[1] * vector_ac[0]}};
+    Point normal{{vector_ab[1] * vector_ac[2] - vector_ab[2] * vector_ac[1],
+                  vector_ab[2] * vector_ac[0] - vector_ab[0] * vector_ac[2],
+                  vector_ab[0] * vector_ac[1] - vector_ab[1] * vector_ac[0]}};
     Float radius = extents[0] * Kokkos::abs(normal[0]) +
                    extents[1] * Kokkos::abs(normal[1]) +
                    extents[2] * Kokkos::abs(normal[2]);
@@ -631,8 +628,7 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
       return false;
 
     // Test crossproducts
-    ExperimentalHyperGeometry::Point<DIM, Float> vector_bc{
-        c[0] - b[0], c[1] - b[1], c[2] - b[2]};
+    Point vector_bc{c[0] - b[0], c[1] - b[1], c[2] - b[2]};
 
     // e_x x vector_ab = (0, -vector_ab[2],  vector_ab[1])
     {
