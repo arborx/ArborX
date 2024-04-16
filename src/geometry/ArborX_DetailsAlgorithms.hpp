@@ -587,9 +587,9 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
 
     // Testing the normals of the box is the same as testing the overlap of
     // bounding boxes.
-    Box triangle_bounding_box;
-    ArborX::Details::expand(triangle_bounding_box, triangle);
-    if (!ArborX::Details::intersects(triangle_bounding_box, box))
+    Box bounding_box;
+    ArborX::Details::expand(bounding_box, triangle);
+    if (!ArborX::Details::intersects(bounding_box, box))
       return false;
 
     // shift box and triangle so that the box's center is at the origin to
@@ -600,22 +600,20 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     using Float = typename GeometryTraits::coordinate_type_t<Triangle>;
     auto min_corner = box.minCorner();
     auto max_corner = box.maxCorner();
-    auto triangle_a = triangle.a;
-    auto triangle_b = triangle.b;
-    auto triangle_c = triangle.c;
+    auto a = triangle.a;
+    auto b = triangle.b;
+    auto c = triangle.c;
     for (int i = 0; i < DIM; ++i)
     {
       Float const shift = -(max_corner[i] + min_corner[i]) / 2;
-      triangle_a[i] += shift;
-      triangle_b[i] += shift;
-      triangle_c[i] += shift;
+      a[i] += shift;
+      b[i] += shift;
+      c[i] += shift;
     }
     ExperimentalHyperGeometry::Point<DIM, Float> edge_ab{
-        triangle_b[0] - triangle_a[0], triangle_b[1] - triangle_a[1],
-        triangle_b[2] - triangle_a[2]};
+        b[0] - a[0], b[1] - a[1], b[2] - a[2]};
     ExperimentalHyperGeometry::Point<DIM, Float> edge_ac{
-        triangle_c[0] - triangle_a[0], triangle_c[1] - triangle_a[1],
-        triangle_c[2] - triangle_a[2]};
+        c[0] - a[0], c[1] - a[1], c[2] - a[2]};
     ExperimentalHyperGeometry::Point<DIM, Float> extents{
         max_corner[0] - min_corner[0], max_corner[1] - min_corner[1],
         max_corner[2] - min_corner[2]};
@@ -628,23 +626,20 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     Float radius = extents[0] * Kokkos::abs(normal[0]) +
                    extents[1] * Kokkos::abs(normal[1]) +
                    extents[2] * Kokkos::abs(normal[2]);
-    Float triangle_a_projected = triangle_a[0] * normal[0] +
-                                 triangle_a[1] * normal[1] +
-                                 triangle_a[2] * normal[2];
-    if (Kokkos::abs(triangle_a_projected) > radius)
+    Float a_projected = a[0] * normal[0] + a[1] * normal[1] + a[2] * normal[2];
+    if (Kokkos::abs(a_projected) > radius)
       return false;
 
     // Test crossproducts
     ExperimentalHyperGeometry::Point<DIM, Float> edge_bc{
-        triangle_c[0] - triangle_b[0], triangle_c[1] - triangle_b[1],
-        triangle_c[2] - triangle_b[2]};
+        c[0] - b[0], c[1] - b[1], c[2] - b[2]};
 
     // e_x x edge_ab = (0, -edge_ab[2],  edge_ab[1])
     {
       Float radius = extents[1] * Kokkos::abs(edge_ab[2]) +
                      extents[2] * Kokkos::abs(edge_ab[1]);
-      Float xab_0 = -triangle_a[1] * edge_ab[2] + triangle_a[2] * edge_ab[1];
-      Float xab_1 = -triangle_c[1] * edge_ab[2] + triangle_c[2] * edge_ab[1];
+      Float xab_0 = -a[1] * edge_ab[2] + a[2] * edge_ab[1];
+      Float xab_1 = -c[1] * edge_ab[2] + c[2] * edge_ab[1];
       if (Kokkos::fmin(xab_0, xab_1) > radius ||
           Kokkos::fmax(xab_0, xab_1) < -radius)
         return false;
@@ -652,8 +647,8 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     {
       Float radius = extents[1] * Kokkos::abs(edge_ac[2]) +
                      extents[2] * Kokkos::abs(edge_ac[1]);
-      Float xac_0 = -triangle_a[1] * edge_ac[2] + triangle_a[2] * edge_ac[1];
-      Float xac_1 = -triangle_b[1] * edge_ac[2] + triangle_b[2] * edge_ac[1];
+      Float xac_0 = -a[1] * edge_ac[2] + a[2] * edge_ac[1];
+      Float xac_1 = -b[1] * edge_ac[2] + b[2] * edge_ac[1];
       if (Kokkos::fmin(xac_0, xac_1) > radius ||
           Kokkos::fmax(xac_0, xac_1) < -radius)
         return false;
@@ -661,8 +656,8 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     {
       Float radius = extents[1] * Kokkos::abs(edge_bc[2]) +
                      extents[2] * Kokkos::abs(edge_bc[1]);
-      Float xbc_0 = -triangle_a[1] * edge_bc[2] + triangle_a[2] * edge_bc[1];
-      Float xbc_1 = -triangle_b[1] * edge_bc[2] + triangle_b[2] * edge_bc[1];
+      Float xbc_0 = -a[1] * edge_bc[2] + a[2] * edge_bc[1];
+      Float xbc_1 = -b[1] * edge_bc[2] + b[2] * edge_bc[1];
       if (Kokkos::fmin(xbc_0, xbc_1) > radius ||
           Kokkos::fmax(xbc_0, xbc_1) < -radius)
         return false;
@@ -672,8 +667,8 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     {
       Float radius = extents[0] * Kokkos::abs(edge_ab[2]) +
                      extents[2] * Kokkos::abs(edge_ab[0]);
-      Float yab_0 = triangle_a[0] * edge_ab[2] - triangle_a[2] * edge_ab[0];
-      Float yab_1 = triangle_c[0] * edge_ab[2] - triangle_c[2] * edge_ab[0];
+      Float yab_0 = a[0] * edge_ab[2] - a[2] * edge_ab[0];
+      Float yab_1 = c[0] * edge_ab[2] - c[2] * edge_ab[0];
       if (Kokkos::fmin(yab_0, yab_1) > radius ||
           Kokkos::fmax(yab_0, yab_1) < -radius)
         return false;
@@ -681,8 +676,8 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     {
       Float radius = extents[0] * Kokkos::abs(edge_ac[2]) +
                      extents[2] * Kokkos::abs(edge_ac[0]);
-      Float yac_0 = triangle_a[0] * edge_ac[2] - triangle_a[2] * edge_ac[0];
-      Float yac_1 = triangle_b[0] * edge_ac[2] - triangle_b[2] * edge_ac[0];
+      Float yac_0 = a[0] * edge_ac[2] - a[2] * edge_ac[0];
+      Float yac_1 = b[0] * edge_ac[2] - b[2] * edge_ac[0];
       if (Kokkos::fmin(yac_0, yac_1) > radius ||
           Kokkos::fmax(yac_0, yac_1) < -radius)
         return false;
@@ -690,8 +685,8 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     {
       Float radius = extents[0] * Kokkos::abs(edge_bc[2]) +
                      extents[2] * Kokkos::abs(edge_bc[0]);
-      Float ybc_0 = triangle_a[1] * edge_bc[2] - triangle_a[2] * edge_bc[0];
-      Float ybc_1 = triangle_b[1] * edge_bc[2] - triangle_b[2] * edge_bc[0];
+      Float ybc_0 = a[1] * edge_bc[2] - a[2] * edge_bc[0];
+      Float ybc_1 = b[1] * edge_bc[2] - b[2] * edge_bc[0];
       if (Kokkos::fmin(ybc_0, ybc_1) > radius ||
           Kokkos::fmax(ybc_0, ybc_1) < -radius)
         return false;
@@ -701,8 +696,8 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     {
       Float radius = extents[0] * Kokkos::abs(edge_ab[1]) +
                      extents[1] * Kokkos::abs(edge_ab[0]);
-      Float zab_0 = -triangle_a[0] * edge_ab[1] + triangle_a[1] * edge_ab[0];
-      Float zab_1 = -triangle_c[0] * edge_ab[1] + triangle_c[1] * edge_ab[0];
+      Float zab_0 = -a[0] * edge_ab[1] + a[1] * edge_ab[0];
+      Float zab_1 = -c[0] * edge_ab[1] + c[1] * edge_ab[0];
       if (Kokkos::fmin(zab_0, zab_1) > radius ||
           Kokkos::fmax(zab_0, zab_1) < -radius)
         return false;
@@ -710,8 +705,8 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     {
       Float radius = extents[0] * Kokkos::abs(edge_ac[1]) +
                      extents[1] * Kokkos::abs(edge_ac[0]);
-      Float xac_0 = -triangle_a[0] * edge_ac[1] + triangle_a[1] * edge_ac[0];
-      Float xac_1 = -triangle_b[0] * edge_ac[1] + triangle_b[1] * edge_ac[0];
+      Float xac_0 = -a[0] * edge_ac[1] + a[1] * edge_ac[0];
+      Float xac_1 = -b[0] * edge_ac[1] + b[1] * edge_ac[0];
       if (Kokkos::fmin(xac_0, xac_1) > radius ||
           Kokkos::fmax(xac_0, xac_1) < -radius)
         return false;
@@ -719,8 +714,8 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     {
       Float radius = extents[0] * Kokkos::abs(edge_bc[1]) +
                      extents[1] * Kokkos::abs(edge_bc[0]);
-      Float zbc_0 = -triangle_a[0] * edge_bc[1] + triangle_a[1] * edge_bc[0];
-      Float zbc_1 = -triangle_b[0] * edge_bc[1] + triangle_b[1] * edge_bc[0];
+      Float zbc_0 = -a[0] * edge_bc[1] + a[1] * edge_bc[0];
+      Float zbc_1 = -b[0] * edge_bc[1] + b[1] * edge_bc[0];
       if (Kokkos::fmin(zbc_0, zbc_1) > radius ||
           Kokkos::fmax(zbc_0, zbc_1) < -radius)
         return false;
