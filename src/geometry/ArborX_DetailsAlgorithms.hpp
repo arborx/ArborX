@@ -610,9 +610,9 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
       b[i] += shift;
       c[i] += shift;
     }
-    ExperimentalHyperGeometry::Point<DIM, Float> edge_ab{
+    ExperimentalHyperGeometry::Point<DIM, Float> vector_ab{
         b[0] - a[0], b[1] - a[1], b[2] - a[2]};
-    ExperimentalHyperGeometry::Point<DIM, Float> edge_ac{
+    ExperimentalHyperGeometry::Point<DIM, Float> vector_ac{
         c[0] - a[0], c[1] - a[1], c[2] - a[2]};
     ExperimentalHyperGeometry::Point<DIM, Float> extents{
         max_corner[0] - min_corner[0], max_corner[1] - min_corner[1],
@@ -620,9 +620,9 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
 
     // Test normal of the triangle
     ExperimentalHyperGeometry::Point<DIM, Float> normal{
-        {edge_ab[1] * edge_ac[2] - edge_ab[2] * edge_ac[1],
-         edge_ab[2] * edge_ac[0] - edge_ab[0] * edge_ac[2],
-         edge_ab[0] * edge_ac[1] - edge_ab[1] * edge_ac[0]}};
+        {vector_ab[1] * vector_ac[2] - vector_ab[2] * vector_ac[1],
+         vector_ab[2] * vector_ac[0] - vector_ab[0] * vector_ac[2],
+         vector_ab[0] * vector_ac[1] - vector_ab[1] * vector_ac[0]}};
     Float radius = extents[0] * Kokkos::abs(normal[0]) +
                    extents[1] * Kokkos::abs(normal[1]) +
                    extents[2] * Kokkos::abs(normal[2]);
@@ -631,91 +631,91 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
       return false;
 
     // Test crossproducts
-    ExperimentalHyperGeometry::Point<DIM, Float> edge_bc{
+    ExperimentalHyperGeometry::Point<DIM, Float> vector_bc{
         c[0] - b[0], c[1] - b[1], c[2] - b[2]};
 
-    // e_x x edge_ab = (0, -edge_ab[2],  edge_ab[1])
+    // e_x x vector_ab = (0, -vector_ab[2],  vector_ab[1])
     {
-      Float radius = extents[1] * Kokkos::abs(edge_ab[2]) +
-                     extents[2] * Kokkos::abs(edge_ab[1]);
-      Float xab_0 = -a[1] * edge_ab[2] + a[2] * edge_ab[1];
-      Float xab_1 = -c[1] * edge_ab[2] + c[2] * edge_ab[1];
+      Float radius = extents[1] * Kokkos::abs(vector_ab[2]) +
+                     extents[2] * Kokkos::abs(vector_ab[1]);
+      Float xab_0 = -a[1] * vector_ab[2] + a[2] * vector_ab[1];
+      Float xab_1 = -c[1] * vector_ab[2] + c[2] * vector_ab[1];
       if (Kokkos::fmin(xab_0, xab_1) > radius ||
           Kokkos::fmax(xab_0, xab_1) < -radius)
         return false;
     }
     {
-      Float radius = extents[1] * Kokkos::abs(edge_ac[2]) +
-                     extents[2] * Kokkos::abs(edge_ac[1]);
-      Float xac_0 = -a[1] * edge_ac[2] + a[2] * edge_ac[1];
-      Float xac_1 = -b[1] * edge_ac[2] + b[2] * edge_ac[1];
+      Float radius = extents[1] * Kokkos::abs(vector_ac[2]) +
+                     extents[2] * Kokkos::abs(vector_ac[1]);
+      Float xac_0 = -a[1] * vector_ac[2] + a[2] * vector_ac[1];
+      Float xac_1 = -b[1] * vector_ac[2] + b[2] * vector_ac[1];
       if (Kokkos::fmin(xac_0, xac_1) > radius ||
           Kokkos::fmax(xac_0, xac_1) < -radius)
         return false;
     }
     {
-      Float radius = extents[1] * Kokkos::abs(edge_bc[2]) +
-                     extents[2] * Kokkos::abs(edge_bc[1]);
-      Float xbc_0 = -a[1] * edge_bc[2] + a[2] * edge_bc[1];
-      Float xbc_1 = -b[1] * edge_bc[2] + b[2] * edge_bc[1];
+      Float radius = extents[1] * Kokkos::abs(vector_bc[2]) +
+                     extents[2] * Kokkos::abs(vector_bc[1]);
+      Float xbc_0 = -a[1] * vector_bc[2] + a[2] * vector_bc[1];
+      Float xbc_1 = -b[1] * vector_bc[2] + b[2] * vector_bc[1];
       if (Kokkos::fmin(xbc_0, xbc_1) > radius ||
           Kokkos::fmax(xbc_0, xbc_1) < -radius)
         return false;
     }
 
-    // e_y x edge_ab = (edge_ab[2], 0, -edge_ab[0])
+    // e_y x vector_ab = (vector_ab[2], 0, -vector_ab[0])
     {
-      Float radius = extents[0] * Kokkos::abs(edge_ab[2]) +
-                     extents[2] * Kokkos::abs(edge_ab[0]);
-      Float yab_0 = a[0] * edge_ab[2] - a[2] * edge_ab[0];
-      Float yab_1 = c[0] * edge_ab[2] - c[2] * edge_ab[0];
+      Float radius = extents[0] * Kokkos::abs(vector_ab[2]) +
+                     extents[2] * Kokkos::abs(vector_ab[0]);
+      Float yab_0 = a[0] * vector_ab[2] - a[2] * vector_ab[0];
+      Float yab_1 = c[0] * vector_ab[2] - c[2] * vector_ab[0];
       if (Kokkos::fmin(yab_0, yab_1) > radius ||
           Kokkos::fmax(yab_0, yab_1) < -radius)
         return false;
     }
     {
-      Float radius = extents[0] * Kokkos::abs(edge_ac[2]) +
-                     extents[2] * Kokkos::abs(edge_ac[0]);
-      Float yac_0 = a[0] * edge_ac[2] - a[2] * edge_ac[0];
-      Float yac_1 = b[0] * edge_ac[2] - b[2] * edge_ac[0];
+      Float radius = extents[0] * Kokkos::abs(vector_ac[2]) +
+                     extents[2] * Kokkos::abs(vector_ac[0]);
+      Float yac_0 = a[0] * vector_ac[2] - a[2] * vector_ac[0];
+      Float yac_1 = b[0] * vector_ac[2] - b[2] * vector_ac[0];
       if (Kokkos::fmin(yac_0, yac_1) > radius ||
           Kokkos::fmax(yac_0, yac_1) < -radius)
         return false;
     }
     {
-      Float radius = extents[0] * Kokkos::abs(edge_bc[2]) +
-                     extents[2] * Kokkos::abs(edge_bc[0]);
-      Float ybc_0 = a[1] * edge_bc[2] - a[2] * edge_bc[0];
-      Float ybc_1 = b[1] * edge_bc[2] - b[2] * edge_bc[0];
+      Float radius = extents[0] * Kokkos::abs(vector_bc[2]) +
+                     extents[2] * Kokkos::abs(vector_bc[0]);
+      Float ybc_0 = a[1] * vector_bc[2] - a[2] * vector_bc[0];
+      Float ybc_1 = b[1] * vector_bc[2] - b[2] * vector_bc[0];
       if (Kokkos::fmin(ybc_0, ybc_1) > radius ||
           Kokkos::fmax(ybc_0, ybc_1) < -radius)
         return false;
     }
 
-    // e_z x edge_ab = (-edge_ab[1], edge_ab[0], 0)
+    // e_z x vector_ab = (-vector_ab[1], vector_ab[0], 0)
     {
-      Float radius = extents[0] * Kokkos::abs(edge_ab[1]) +
-                     extents[1] * Kokkos::abs(edge_ab[0]);
-      Float zab_0 = -a[0] * edge_ab[1] + a[1] * edge_ab[0];
-      Float zab_1 = -c[0] * edge_ab[1] + c[1] * edge_ab[0];
+      Float radius = extents[0] * Kokkos::abs(vector_ab[1]) +
+                     extents[1] * Kokkos::abs(vector_ab[0]);
+      Float zab_0 = -a[0] * vector_ab[1] + a[1] * vector_ab[0];
+      Float zab_1 = -c[0] * vector_ab[1] + c[1] * vector_ab[0];
       if (Kokkos::fmin(zab_0, zab_1) > radius ||
           Kokkos::fmax(zab_0, zab_1) < -radius)
         return false;
     }
     {
-      Float radius = extents[0] * Kokkos::abs(edge_ac[1]) +
-                     extents[1] * Kokkos::abs(edge_ac[0]);
-      Float xac_0 = -a[0] * edge_ac[1] + a[1] * edge_ac[0];
-      Float xac_1 = -b[0] * edge_ac[1] + b[1] * edge_ac[0];
+      Float radius = extents[0] * Kokkos::abs(vector_ac[1]) +
+                     extents[1] * Kokkos::abs(vector_ac[0]);
+      Float xac_0 = -a[0] * vector_ac[1] + a[1] * vector_ac[0];
+      Float xac_1 = -b[0] * vector_ac[1] + b[1] * vector_ac[0];
       if (Kokkos::fmin(xac_0, xac_1) > radius ||
           Kokkos::fmax(xac_0, xac_1) < -radius)
         return false;
     }
     {
-      Float radius = extents[0] * Kokkos::abs(edge_bc[1]) +
-                     extents[1] * Kokkos::abs(edge_bc[0]);
-      Float zbc_0 = -a[0] * edge_bc[1] + a[1] * edge_bc[0];
-      Float zbc_1 = -b[0] * edge_bc[1] + b[1] * edge_bc[0];
+      Float radius = extents[0] * Kokkos::abs(vector_bc[1]) +
+                     extents[1] * Kokkos::abs(vector_bc[0]);
+      Float zbc_0 = -a[0] * vector_bc[1] + a[1] * vector_bc[0];
+      Float zbc_1 = -b[0] * vector_bc[1] + b[1] * vector_bc[0];
       if (Kokkos::fmin(zbc_0, zbc_1) > radius ||
           Kokkos::fmax(zbc_0, zbc_1) < -radius)
         return false;
