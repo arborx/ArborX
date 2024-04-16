@@ -28,15 +28,30 @@ struct PrimitivesTag
 struct PredicatesTag
 {};
 
-template <typename T, typename Tag, typename Enable = void>
+namespace Details
+{
+struct AnyTag
+{};
+} // namespace Details
+
+template <typename T, typename Tag = Details::AnyTag, typename Enable = void>
 struct AccessTraits
 {
   using not_specialized = void; // tag to detect existence of a specialization
 };
 
+namespace Details
+{
 template <typename Traits>
 using AccessTraitsNotSpecializedArchetypeAlias =
     typename Traits::not_specialized;
+
+template <typename T, typename Tag>
+using TrueTag = std::conditional_t<
+    !Kokkos::is_detected<AccessTraitsNotSpecializedArchetypeAlias,
+                         AccessTraits<T, AnyTag>>{},
+    AnyTag, Tag>;
+} // namespace Details
 
 template <typename View, typename Tag>
 struct AccessTraits<
@@ -105,7 +120,8 @@ using PredicateTagArchetypeAlias = typename P::Tag;
 template <typename Predicates>
 void check_valid_access_traits(PredicatesTag, Predicates const &)
 {
-  using Access = AccessTraits<Predicates, PredicatesTag>;
+  using Access =
+      AccessTraits<Predicates, Details::TrueTag<Predicates, PredicatesTag>>;
   static_assert(
       !Kokkos::is_detected<AccessTraitsNotSpecializedArchetypeAlias, Access>{},
       "Must specialize 'AccessTraits<Predicates,PredicatesTag>'");
@@ -150,7 +166,8 @@ template <typename Primitives, typename CheckGetReturnType = std::true_type>
 void check_valid_access_traits(PrimitivesTag, Primitives const &,
                                CheckGetReturnType = {})
 {
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
+  using Access =
+      AccessTraits<Primitives, Details::TrueTag<Primitives, PrimitivesTag>>;
   static_assert(
       !Kokkos::is_detected<AccessTraitsNotSpecializedArchetypeAlias, Access>{},
       "Must specialize 'AccessTraits<Primitives,PrimitivesTag>'");
@@ -193,7 +210,7 @@ template <typename Values, typename Tag>
 class AccessValuesI
 {
 private:
-  using Access = AccessTraits<Values, Tag>;
+  using Access = AccessTraits<Values, TrueTag<Values, Tag>>;
   Values _values;
 
 public:
@@ -210,7 +227,7 @@ public:
   KOKKOS_FUNCTION
   auto size() const { return Access::size(_values); }
 
-  using self_type = AccessValuesI<Values, Tag>;
+  using self_type = AccessValuesI<Values, TrueTag<Values, Tag>>;
 };
 
 template <typename D, typename... P, typename Tag>
@@ -224,7 +241,8 @@ template <typename Values, typename Tag1, typename Tag2>
 class AccessValuesI<AccessValuesI<Values, Tag1>, Tag2>
     : public AccessValuesI<Values, Tag1>
 {
-  static_assert(std::is_same_v<Tag1, Tag2>);
+  static_assert(std::is_same_v<Tag1, Tag2> || std::is_same_v<Tag1, AnyTag> ||
+                std::is_same_v<Tag2, AnyTag>);
 };
 
 template <typename Values, typename Tag>
@@ -261,11 +279,10 @@ struct Access
 };
 } // namespace Traits
 template <typename T, typename Tag>
-struct AccessTraits<
-    T, Tag,
-    std::enable_if_t<!Kokkos::is_detected<
-        AccessTraitsNotSpecializedArchetypeAlias, Traits::Access<T, Tag>>{}>>
-    : Traits::Access<T, Tag>
+struct AccessTraits<T, Tag,
+                    std::enable_if_t<!Kokkos::is_detected<
+                        Details::AccessTraitsNotSpecializedArchetypeAlias,
+                        Traits::Access<T, Tag>>{}>> : Traits::Access<T, Tag>
 {
   template <class U>
   static constexpr bool always_false = std::is_void_v<U>;

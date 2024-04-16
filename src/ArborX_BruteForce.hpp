@@ -212,10 +212,7 @@ template <typename ExecutionSpace, typename UserValues>
 BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
     ExecutionSpace const &space, UserValues const &user_values,
     IndexableGetter const &indexable_getter)
-    : _size(AccessTraits<UserValues, PrimitivesTag>::size(user_values))
-    , _values(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                                 "ArborX::BruteForce::values"),
-              _size)
+    : _values("ArborX::BruteForce::values", 0)
     , _indexable_getter(indexable_getter)
 {
   static_assert(Details::KokkosExt::is_accessible_from<MemorySpace,
@@ -234,10 +231,13 @@ BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
 
   Kokkos::Profiling::ScopedRegion guard("ArborX::BruteForce::BruteForce");
 
+  _size = values.size();
   if (empty())
   {
     return;
   }
+
+  Details::KokkosExt::reallocWithoutInitializing(space, _values, _size);
 
   Details::BruteForceImpl::initializeBoundingVolumesAndReduceBoundsOfTheScene(
       space, values, _indexable_getter, _values, _bounds);

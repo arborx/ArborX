@@ -98,8 +98,7 @@ struct MixedBoxPrimitives
 
 template <typename Primitives, typename PermuteFilter>
 struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
-                        Primitives, PermuteFilter>,
-                    PredicatesTag>
+    Primitives, PermuteFilter>>
 {
   using memory_space = typename Primitives::memory_space;
   using Predicates =
@@ -129,8 +128,7 @@ struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
 template <typename Points, typename MixedOffsets, typename CellIndices,
           typename Permutation>
 struct AccessTraits<
-    Details::MixedBoxPrimitives<Points, MixedOffsets, CellIndices, Permutation>,
-    ArborX::PrimitivesTag>
+    Details::MixedBoxPrimitives<Points, MixedOffsets, CellIndices, Permutation>>
 {
   using Primitives = Details::MixedBoxPrimitives<Points, MixedOffsets,
                                                  CellIndices, Permutation>;

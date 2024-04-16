@@ -285,13 +285,8 @@ BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter, BoundingVolume>::
                             UserValues const &user_values,
                             IndexableGetter const &indexable_getter,
                             SpaceFillingCurve const &curve)
-    : _size(AccessTraits<UserValues, PrimitivesTag>::size(user_values))
-    , _leaf_nodes(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                                     "ArborX::BVH::leaf_nodes"),
-                  _size)
-    , _internal_nodes(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                                         "ArborX::BVH::internal_nodes"),
-                      _size > 1 ? _size - 1 : 0)
+    : _leaf_nodes("ArborX::BVH::leaf_nodes", 0)
+    , _internal_nodes("ArborX::BVH::internal_nodes", 0)
     , _indexable_getter(indexable_getter)
 {
   static_assert(Details::KokkosExt::is_accessible_from<MemorySpace,
@@ -314,10 +309,15 @@ BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter, BoundingVolume>::
 
   Kokkos::Profiling::ScopedRegion guard("ArborX::BVH::BVH");
 
+  _size = values.size();
   if (empty())
   {
     return;
   }
+
+  Details::KokkosExt::reallocWithoutInitializing(space, _leaf_nodes, _size);
+  Details::KokkosExt::reallocWithoutInitializing(space, _internal_nodes,
+                                                 _size - 1);
 
   if (size() == 1)
   {
