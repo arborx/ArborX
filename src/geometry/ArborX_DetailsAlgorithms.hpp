@@ -577,6 +577,7 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
                                               Triangle const &triangle)
   {
     // Based on the Separating Axis Theorem
+    // https://doi.org/10.1145/1198555.1198747
 
     // Test bounding boxes, i.e., normals of the box
     Box triangle_bounding_box;
