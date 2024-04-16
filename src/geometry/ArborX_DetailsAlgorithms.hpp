@@ -603,21 +603,22 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     auto triangle_a = triangle.a;
     auto triangle_b = triangle.b;
     auto triangle_c = triangle.c;
-    ExperimentalHyperGeometry::Point<DIM, Float> edge_ab;
-    ExperimentalHyperGeometry::Point<DIM, Float> edge_ac;
-    ExperimentalHyperGeometry::Point<DIM, Float> extents;
     for (int i = 0; i < DIM; ++i)
     {
       Float const shift = -(max_corner[i] + min_corner[i]) / 2;
-      min_corner[i] += shift;
-      max_corner[i] += shift;
       triangle_a[i] += shift;
       triangle_b[i] += shift;
       triangle_c[i] += shift;
-      edge_ab[i] = triangle_b[i] - triangle_a[i];
-      edge_ac[i] = triangle_c[i] - triangle_a[i];
-      extents[i] = (max_corner[i] - min_corner[i]) / 2;
     }
+    ExperimentalHyperGeometry::Point<DIM, Float> edge_ab{
+        triangle_b[0] - triangle_a[0], triangle_b[1] - triangle_a[1],
+        triangle_b[2] - triangle_a[2]};
+    ExperimentalHyperGeometry::Point<DIM, Float> edge_ac{
+        triangle_c[0] - triangle_a[0], triangle_c[1] - triangle_a[1],
+        triangle_c[2] - triangle_a[2]};
+    ExperimentalHyperGeometry::Point<DIM, Float> extents{
+        max_corner[0] - min_corner[0], max_corner[1] - min_corner[1],
+        max_corner[2] - min_corner[2]};
 
     // Test normal of the triangle
     ExperimentalHyperGeometry::Point<DIM, Float> normal{
