@@ -578,14 +578,22 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
   {
     // Based on the Separating Axis Theorem
     // https://doi.org/10.1145/1198555.1198747
+    // we have to project the box and the triangle onto 13 axes and check for
+    // overlap. These axes are:
+    // - the 3 normals of the box
+    // - the normal of the triangle
+    // - the 9 crossproduct between the 3 edge (directions) of the box and the 3
+    // edges of the triangle
 
-    // Test bounding boxes, i.e., normals of the box
+    // Testing the normals of the box is the same as testing the overlap of
+    // bounding boxes.
     Box triangle_bounding_box;
     ArborX::Details::expand(triangle_bounding_box, triangle);
     if (!ArborX::Details::intersects(triangle_bounding_box, box))
       return false;
 
-    // shift to origin
+    // shift box and triangle so that the box's center is at the origin to
+    // simplify the following checks.
     constexpr int DIM = GeometryTraits::dimension_v<Triangle>;
     static_assert(DIM == 3,
                   "Box-Triangle intersection only implemented in 3d!");
