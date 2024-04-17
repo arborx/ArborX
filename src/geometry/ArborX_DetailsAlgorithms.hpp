@@ -616,7 +616,9 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
                   (max_corner[1] - min_corner[1]) / 2,
                   (max_corner[2] - min_corner[2]) / 2};
 
-    // Test normal of the triangle
+    // test normal of the triangle
+    // check if the projection of the triangle its normal lies in the interval
+    // defined by the projecting of the box onto the same vector
     Point normal{{vector_ab[1] * vector_ac[2] - vector_ab[2] * vector_ac[1],
                   vector_ab[2] * vector_ac[0] - vector_ab[0] * vector_ac[2],
                   vector_ab[0] * vector_ac[1] - vector_ab[1] * vector_ac[0]}};
@@ -627,7 +629,7 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     if (Kokkos::abs(a_projected) > radius)
       return false;
 
-    // Test crossproducts
+    // Test crossproducts in a similar way as the triangle's normal above
     Point vector_bc{c[0] - b[0], c[1] - b[1], c[2] - b[2]};
 
     // e_x x vector_ab = (0, -vector_ab[2],  vector_ab[1])
