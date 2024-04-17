@@ -613,8 +613,9 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     using Point = decltype(a);
     Point vector_ab{b[0] - a[0], b[1] - a[1], b[2] - a[2]};
     Point vector_ac{c[0] - a[0], c[1] - a[1], c[2] - a[2]};
-    Point extents{max_corner[0] - min_corner[0], max_corner[1] - min_corner[1],
-                  max_corner[2] - min_corner[2]};
+    Point extents{(max_corner[0] - min_corner[0]) / 2,
+                  (max_corner[1] - min_corner[1]) / 2,
+                  (max_corner[2] - min_corner[2]) / 2};
 
     // Test normal of the triangle
     Point normal{{vector_ab[1] * vector_ac[2] - vector_ab[2] * vector_ac[1],
