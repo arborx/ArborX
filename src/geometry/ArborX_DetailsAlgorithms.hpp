@@ -596,7 +596,6 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     constexpr int DIM = GeometryTraits::dimension_v<Triangle>;
     static_assert(DIM == 3,
                   "Box-Triangle intersection only implemented in 3d!");
-    using Float = typename GeometryTraits::coordinate_type_t<Triangle>;
     auto min_corner = box.minCorner();
     auto max_corner = box.maxCorner();
     auto a = triangle.a;
@@ -604,7 +603,7 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     auto c = triangle.c;
     for (int i = 0; i < DIM; ++i)
     {
-      Float const shift = -(max_corner[i] + min_corner[i]) / 2;
+      auto const shift = -(max_corner[i] + min_corner[i]) / 2;
       a[i] += shift;
       b[i] += shift;
       c[i] += shift;
@@ -621,10 +620,10 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     Point normal{{vector_ab[1] * vector_ac[2] - vector_ab[2] * vector_ac[1],
                   vector_ab[2] * vector_ac[0] - vector_ab[0] * vector_ac[2],
                   vector_ab[0] * vector_ac[1] - vector_ab[1] * vector_ac[0]}};
-    Float radius = extents[0] * Kokkos::abs(normal[0]) +
-                   extents[1] * Kokkos::abs(normal[1]) +
-                   extents[2] * Kokkos::abs(normal[2]);
-    Float a_projected = a[0] * normal[0] + a[1] * normal[1] + a[2] * normal[2];
+    auto radius = extents[0] * Kokkos::abs(normal[0]) +
+                  extents[1] * Kokkos::abs(normal[1]) +
+                  extents[2] * Kokkos::abs(normal[2]);
+    auto a_projected = a[0] * normal[0] + a[1] * normal[1] + a[2] * normal[2];
     if (Kokkos::abs(a_projected) > radius)
       return false;
 
@@ -633,28 +632,28 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
 
     // e_x x vector_ab = (0, -vector_ab[2],  vector_ab[1])
     {
-      Float radius = extents[1] * Kokkos::abs(vector_ab[2]) +
-                     extents[2] * Kokkos::abs(vector_ab[1]);
-      Float xab_0 = -a[1] * vector_ab[2] + a[2] * vector_ab[1];
-      Float xab_1 = -c[1] * vector_ab[2] + c[2] * vector_ab[1];
+      auto radius = extents[1] * Kokkos::abs(vector_ab[2]) +
+                    extents[2] * Kokkos::abs(vector_ab[1]);
+      auto xab_0 = -a[1] * vector_ab[2] + a[2] * vector_ab[1];
+      auto xab_1 = -c[1] * vector_ab[2] + c[2] * vector_ab[1];
       if (Kokkos::fmin(xab_0, xab_1) > radius ||
           Kokkos::fmax(xab_0, xab_1) < -radius)
         return false;
     }
     {
-      Float radius = extents[1] * Kokkos::abs(vector_ac[2]) +
-                     extents[2] * Kokkos::abs(vector_ac[1]);
-      Float xac_0 = -a[1] * vector_ac[2] + a[2] * vector_ac[1];
-      Float xac_1 = -b[1] * vector_ac[2] + b[2] * vector_ac[1];
+      auto radius = extents[1] * Kokkos::abs(vector_ac[2]) +
+                    extents[2] * Kokkos::abs(vector_ac[1]);
+      auto xac_0 = -a[1] * vector_ac[2] + a[2] * vector_ac[1];
+      auto xac_1 = -b[1] * vector_ac[2] + b[2] * vector_ac[1];
       if (Kokkos::fmin(xac_0, xac_1) > radius ||
           Kokkos::fmax(xac_0, xac_1) < -radius)
         return false;
     }
     {
-      Float radius = extents[1] * Kokkos::abs(vector_bc[2]) +
-                     extents[2] * Kokkos::abs(vector_bc[1]);
-      Float xbc_0 = -a[1] * vector_bc[2] + a[2] * vector_bc[1];
-      Float xbc_1 = -b[1] * vector_bc[2] + b[2] * vector_bc[1];
+      auto radius = extents[1] * Kokkos::abs(vector_bc[2]) +
+                    extents[2] * Kokkos::abs(vector_bc[1]);
+      auto xbc_0 = -a[1] * vector_bc[2] + a[2] * vector_bc[1];
+      auto xbc_1 = -b[1] * vector_bc[2] + b[2] * vector_bc[1];
       if (Kokkos::fmin(xbc_0, xbc_1) > radius ||
           Kokkos::fmax(xbc_0, xbc_1) < -radius)
         return false;
@@ -662,28 +661,28 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
 
     // e_y x vector_ab = (vector_ab[2], 0, -vector_ab[0])
     {
-      Float radius = extents[0] * Kokkos::abs(vector_ab[2]) +
-                     extents[2] * Kokkos::abs(vector_ab[0]);
-      Float yab_0 = a[0] * vector_ab[2] - a[2] * vector_ab[0];
-      Float yab_1 = c[0] * vector_ab[2] - c[2] * vector_ab[0];
+      auto radius = extents[0] * Kokkos::abs(vector_ab[2]) +
+                    extents[2] * Kokkos::abs(vector_ab[0]);
+      auto yab_0 = a[0] * vector_ab[2] - a[2] * vector_ab[0];
+      auto yab_1 = c[0] * vector_ab[2] - c[2] * vector_ab[0];
       if (Kokkos::fmin(yab_0, yab_1) > radius ||
           Kokkos::fmax(yab_0, yab_1) < -radius)
         return false;
     }
     {
-      Float radius = extents[0] * Kokkos::abs(vector_ac[2]) +
-                     extents[2] * Kokkos::abs(vector_ac[0]);
-      Float yac_0 = a[0] * vector_ac[2] - a[2] * vector_ac[0];
-      Float yac_1 = b[0] * vector_ac[2] - b[2] * vector_ac[0];
+      auto radius = extents[0] * Kokkos::abs(vector_ac[2]) +
+                    extents[2] * Kokkos::abs(vector_ac[0]);
+      auto yac_0 = a[0] * vector_ac[2] - a[2] * vector_ac[0];
+      auto yac_1 = b[0] * vector_ac[2] - b[2] * vector_ac[0];
       if (Kokkos::fmin(yac_0, yac_1) > radius ||
           Kokkos::fmax(yac_0, yac_1) < -radius)
         return false;
     }
     {
-      Float radius = extents[0] * Kokkos::abs(vector_bc[2]) +
-                     extents[2] * Kokkos::abs(vector_bc[0]);
-      Float ybc_0 = a[1] * vector_bc[2] - a[2] * vector_bc[0];
-      Float ybc_1 = b[1] * vector_bc[2] - b[2] * vector_bc[0];
+      auto radius = extents[0] * Kokkos::abs(vector_bc[2]) +
+                    extents[2] * Kokkos::abs(vector_bc[0]);
+      auto ybc_0 = a[1] * vector_bc[2] - a[2] * vector_bc[0];
+      auto ybc_1 = b[1] * vector_bc[2] - b[2] * vector_bc[0];
       if (Kokkos::fmin(ybc_0, ybc_1) > radius ||
           Kokkos::fmax(ybc_0, ybc_1) < -radius)
         return false;
@@ -691,28 +690,28 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
 
     // e_z x vector_ab = (-vector_ab[1], vector_ab[0], 0)
     {
-      Float radius = extents[0] * Kokkos::abs(vector_ab[1]) +
-                     extents[1] * Kokkos::abs(vector_ab[0]);
-      Float zab_0 = -a[0] * vector_ab[1] + a[1] * vector_ab[0];
-      Float zab_1 = -c[0] * vector_ab[1] + c[1] * vector_ab[0];
+      auto radius = extents[0] * Kokkos::abs(vector_ab[1]) +
+                    extents[1] * Kokkos::abs(vector_ab[0]);
+      auto zab_0 = -a[0] * vector_ab[1] + a[1] * vector_ab[0];
+      auto zab_1 = -c[0] * vector_ab[1] + c[1] * vector_ab[0];
       if (Kokkos::fmin(zab_0, zab_1) > radius ||
           Kokkos::fmax(zab_0, zab_1) < -radius)
         return false;
     }
     {
-      Float radius = extents[0] * Kokkos::abs(vector_ac[1]) +
-                     extents[1] * Kokkos::abs(vector_ac[0]);
-      Float xac_0 = -a[0] * vector_ac[1] + a[1] * vector_ac[0];
-      Float xac_1 = -b[0] * vector_ac[1] + b[1] * vector_ac[0];
+      auto radius = extents[0] * Kokkos::abs(vector_ac[1]) +
+                    extents[1] * Kokkos::abs(vector_ac[0]);
+      auto xac_0 = -a[0] * vector_ac[1] + a[1] * vector_ac[0];
+      auto xac_1 = -b[0] * vector_ac[1] + b[1] * vector_ac[0];
       if (Kokkos::fmin(xac_0, xac_1) > radius ||
           Kokkos::fmax(xac_0, xac_1) < -radius)
         return false;
     }
     {
-      Float radius = extents[0] * Kokkos::abs(vector_bc[1]) +
-                     extents[1] * Kokkos::abs(vector_bc[0]);
-      Float zbc_0 = -a[0] * vector_bc[1] + a[1] * vector_bc[0];
-      Float zbc_1 = -b[0] * vector_bc[1] + b[1] * vector_bc[0];
+      auto radius = extents[0] * Kokkos::abs(vector_bc[1]) +
+                    extents[1] * Kokkos::abs(vector_bc[0]);
+      auto zbc_0 = -a[0] * vector_bc[1] + a[1] * vector_bc[0];
+      auto zbc_1 = -b[0] * vector_bc[1] + b[1] * vector_bc[0];
       if (Kokkos::fmin(zbc_0, zbc_1) > radius ||
           Kokkos::fmax(zbc_0, zbc_1) < -radius)
         return false;
