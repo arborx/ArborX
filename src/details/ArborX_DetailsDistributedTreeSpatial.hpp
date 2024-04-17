@@ -47,14 +47,50 @@ DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
 
   using MemorySpace = typename Tree::memory_space;
 
+  auto const &top_tree = tree._top_tree;
+
   Kokkos::View<int *, MemorySpace> intersected_ranks(
       "ArborX::DistributedTree::query::spatial::intersected_ranks", 0);
-  tree._top_tree.query(space, predicates, LegacyDefaultCallback{},
-                       intersected_ranks, offset);
+  top_tree.query(space, predicates, intersected_ranks, offset);
 
   DistributedTree::forwardQueriesAndCommunicateResults(
       tree.getComm(), space, tree._bottom_tree, predicates, callback,
       intersected_ranks, offset, values);
+}
+
+template <typename Tree, typename ExecutionSpace, typename Predicates,
+          typename Callback>
+void DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
+                                        ExecutionSpace const &space,
+                                        Predicates const &predicates,
+                                        Callback const &callback)
+{
+  std::string prefix = "ArborX::DistributedTree::query::spatial(pure)";
+
+  Kokkos::Profiling::ScopedRegion guard(prefix);
+
+  if (tree.empty())
+    return;
+
+  using MemorySpace = typename Tree::memory_space;
+  using namespace DistributedTree;
+
+  auto const &top_tree = tree._top_tree;
+  auto const &bottom_tree = tree._bottom_tree;
+  auto comm = tree.getComm();
+
+  Kokkos::View<int *, MemorySpace> intersected_ranks(
+      prefix + "::intersected_ranks", 0);
+  Kokkos::View<int *, MemorySpace> offset(prefix + "::offset", 0);
+  top_tree.query(space, predicates, intersected_ranks, offset);
+
+  using Query = typename Predicates::value_type;
+  Kokkos::View<Query *, MemorySpace> fwd_predicates(prefix + "::fwd_predicates",
+                                                    0);
+  forwardQueries(comm, space, predicates, intersected_ranks, offset,
+                 fwd_predicates);
+
+  bottom_tree.query(space, fwd_predicates, callback);
 }
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,

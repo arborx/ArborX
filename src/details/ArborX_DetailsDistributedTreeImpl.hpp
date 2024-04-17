@@ -40,6 +40,13 @@ struct DistributedTreeImpl
                 ExecutionSpace const &space, Predicates const &queries,
                 Callback const &callback, OutputView &out, OffsetView &offset);
 
+  template <typename DistributedTree, typename ExecutionSpace,
+            typename Predicates, typename Callback>
+  static void queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
+                            ExecutionSpace const &space,
+                            Predicates const &predicates,
+                            Callback const &callback);
+
   // nearest neighbors queries
   template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename Callback, typename Indices,
