@@ -60,12 +60,10 @@ struct DistributedTreeImpl
 
   // nearest neighbors helpers
   template <typename ExecutionSpace, typename DistributedTree,
-            typename Predicates, typename Distances, typename Indices,
-            typename Offset>
-  static void deviseStrategy(ExecutionSpace const &space,
-                             DistributedTree const &tree,
-                             Predicates const &queries, Distances const &,
-                             Indices &indices, Offset &offset);
+            typename Predicates, typename Indices, typename Offset>
+  static void
+  deviseStrategy(ExecutionSpace const &space, DistributedTree const &tree,
+                 Predicates const &queries, Indices &indices, Offset &offset);
 
   template <typename ExecutionSpace, typename DistributedTree,
             typename Predicates, typename Distances, typename Indices,

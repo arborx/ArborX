@@ -191,11 +191,10 @@ struct CallbackWithDistance<BoundingVolumeHierarchy<
 };
 
 template <typename ExecutionSpace, typename Tree, typename Predicates,
-          typename Distances, typename Indices, typename Offset>
+          typename Indices, typename Offset>
 void DistributedTreeImpl::deviseStrategy(ExecutionSpace const &space,
                                          Tree const &tree,
                                          Predicates const &predicates,
-                                         Distances const &,
                                          Indices &nearest_ranks, Offset &offset)
 {
   Kokkos::Profiling::ScopedRegion guard(
@@ -347,36 +346,47 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
   Kokkos::View<int *, MemorySpace> nearest_ranks(
       "ArborX::DistributedTree::query::nearest::nearest_ranks", 0);
 
-  // NOTE: compiler would not deduce __range for the braced-init-list, but I
-  // got it to work with the static_cast to function pointers.
-  using Strategy =
-      void (*)(ExecutionSpace const &, Tree const &, Predicates const &,
-               Distances const &, decltype(nearest_ranks) &, Offset &);
-  for (auto implementStrategy : {static_cast<Strategy>(deviseStrategy),
-                                 static_cast<Strategy>(reassessStrategy)})
-  {
-    implementStrategy(space, tree, queries, distances, nearest_ranks, offset);
+  Kokkos::View<PairValueDistance<Value> *, MemorySpace> out(
+      "ArborX::DistributedTree::query::nearest::pairs_index_distance", 0);
 
-    Kokkos::View<PairValueDistance<Value> *, MemorySpace> out(
-        "ArborX::DistributedTree::query::nearest::pairs_index_distance", 0);
-    forwardQueriesAndCommunicateResults(comm, space, bottom_tree, queries,
-                                        callback_with_distance, nearest_ranks,
-                                        offset, out, ranks);
+  // Phase I
+  deviseStrategy(space, tree, queries, nearest_ranks, offset);
+  forwardQueriesAndCommunicateResults(comm, space, bottom_tree, queries,
+                                      callback_with_distance, nearest_ranks,
+                                      offset, out, ranks);
+  // unzip
+  auto n = out.extent(0);
+  KokkosExt::reallocWithoutInitializing(space, values, n);
+  KokkosExt::reallocWithoutInitializing(space, distances, n);
+  Kokkos::parallel_for(
+      "ArborX::DistributedTree::query::nearest::"
+      "split_index_distance_pairs",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+        values(i) = out(i).value;
+        distances(i) = out(i).distance;
+      });
 
-    // Unzip
-    auto const n = out.extent(0);
-    KokkosExt::reallocWithoutInitializing(space, values, n);
-    KokkosExt::reallocWithoutInitializing(space, distances, n);
-    Kokkos::parallel_for(
-        "ArborX::DistributedTree::query::nearest::"
-        "split_index_distance_pairs",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
-          values(i) = out(i).value;
-          distances(i) = out(i).distance;
-        });
+  filterResults(space, queries, distances, values, offset, ranks);
 
-    filterResults(space, queries, distances, values, offset, ranks);
-  }
+  // Phase II
+  reassessStrategy(space, tree, queries, distances, nearest_ranks, offset);
+  forwardQueriesAndCommunicateResults(comm, space, bottom_tree, queries,
+                                      callback_with_distance, nearest_ranks,
+                                      offset, out, ranks);
+
+  // Unzip
+  n = out.extent(0);
+  KokkosExt::reallocWithoutInitializing(space, values, n);
+  KokkosExt::reallocWithoutInitializing(space, distances, n);
+  Kokkos::parallel_for(
+      "ArborX::DistributedTree::query::nearest::"
+      "split_index_distance_pairs",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+        values(i) = out(i).value;
+        distances(i) = out(i).distance;
+      });
+
+  filterResults(space, queries, distances, values, offset, ranks);
 }
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
