@@ -357,57 +357,25 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
   {
     implementStrategy(space, tree, queries, distances, nearest_ranks, offset);
 
-    {
-      // NOTE_COMM_NEAREST: The communication pattern here for the nearest
-      // search is identical to that of the spatial search (see
-      // NOTE_COMM_SPATIAL). The code differences are:
-      // - no callbacks
-      // - explicit distances
-      // - results filtering
+    Kokkos::View<PairValueDistance<Value> *, MemorySpace> out(
+        "ArborX::DistributedTree::query::nearest::pairs_index_distance", 0);
+    forwardQueriesAndCommunicateResults(comm, space, bottom_tree, queries,
+                                        callback_with_distance, nearest_ranks,
+                                        offset, out, ranks);
 
-      // Forward queries
-      using Query = typename Predicates::value_type;
-      Kokkos::View<int *, MemorySpace> ids(
-          "ArborX::DistributedTree::query::nearest::query_ids", 0);
-      Kokkos::View<Query *, MemorySpace> fwd_queries(
-          "ArborX::DistributedTree::query::nearest::fwd_queries", 0);
-      forwardQueries(comm, space, queries, nearest_ranks, offset, fwd_queries,
-                     ids, ranks);
+    // Unzip
+    auto const n = out.extent(0);
+    KokkosExt::reallocWithoutInitializing(space, values, n);
+    KokkosExt::reallocWithoutInitializing(space, distances, n);
+    Kokkos::parallel_for(
+        "ArborX::DistributedTree::query::nearest::"
+        "split_index_distance_pairs",
+        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+          values(i) = out(i).value;
+          distances(i) = out(i).distance;
+        });
 
-      // Perform queries that have been received
-      Kokkos::View<PairValueDistance<Value> *, MemorySpace> out(
-          "ArborX::DistributedTree::query::nearest::pairs_index_distance", 0);
-      bottom_tree.query(space, fwd_queries, callback_with_distance, out,
-                        offset);
-
-      // Unzip
-      auto const n = out.extent(0);
-      KokkosExt::reallocWithoutInitializing(space, values, n);
-      KokkosExt::reallocWithoutInitializing(space, distances, n);
-      Kokkos::parallel_for(
-          "ArborX::DistributedTree::query::nearest::split_"
-          "index_distance_pairs",
-          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-          KOKKOS_LAMBDA(int i) {
-            values(i) = out(i).value;
-            distances(i) = out(i).distance;
-          });
-
-      // Communicate results back
-      communicateResultsBack(comm, space, values, offset, ranks, ids,
-                             &distances);
-
-      // Merge results
-      Kokkos::Profiling::pushRegion(
-          "ArborX::DistributedTree::query::nearest::postprocess_results");
-
-      int const n_queries = queries.size();
-      countResults(space, n_queries, ids, offset);
-      sortResultsByKey(space, ids, values, ranks, distances);
-      filterResults(space, queries, distances, values, offset, ranks);
-
-      Kokkos::Profiling::popRegion();
-    }
+    filterResults(space, queries, distances, values, offset, ranks);
   }
 }
 

@@ -108,8 +108,9 @@ void sortResultsByKey(ExecutionSpace const &space, View keys,
   if (n == 0)
     return;
 
-  if constexpr (sizeof...(OtherViews) == 1 &&
-                std::tuple_element_t<0, std::tuple<OtherViews...>>::rank == 1)
+  using ViewType = std::tuple_element_t<0, std::tuple<OtherViews...>>;
+  if constexpr (sizeof...(OtherViews) == 1 && ViewType::rank == 1 &&
+                std::is_arithmetic_v<typename ViewType::value_type>)
   {
     // If there's only one 1D view to process, we can avoid computing the
     // permutation.
@@ -363,7 +364,7 @@ void forwardQueriesAndCommunicateResults(
   // Merge results
   int const n_predicates = predicates.size();
   countResults(space, n_predicates, ids, offset);
-  sortResultsByKey(space, ids, values);
+  sortResultsByKey(space, ids, values, ranks);
 
   Kokkos::Profiling::popRegion();
 }
