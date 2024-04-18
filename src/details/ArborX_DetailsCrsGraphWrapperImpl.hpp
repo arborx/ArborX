@@ -288,7 +288,7 @@ struct Iota
 template <typename Tag, typename ExecutionSpace, typename Predicates,
           typename OffsetView, typename OutView>
 std::enable_if_t<std::is_same_v<Tag, SpatialPredicateTag> ||
-                 std::is_same_v<Tag, Experimental::OrderedSpatialPredicateTag>>
+                 std::is_same_v<Tag, OrderedSpatialPredicateTag>>
 allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
                              Predicates const &predicates, OffsetView &offset,
                              OutView &out, int buffer_size)
@@ -355,7 +355,7 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
     profiling_prefix += "spatial";
   }
   else if constexpr (std::is_same_v<Tag,
-                                    Experimental::OrderedSpatialPredicateTag>)
+                                    OrderedSpatialPredicateTag>)
   {
     profiling_prefix += "ordered_spatial";
   }

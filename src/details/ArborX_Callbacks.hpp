@@ -149,8 +149,7 @@ void check_valid_callback(Callback const &callback, Predicates const &)
 
   static_assert(
       !(std::is_same_v<PredicateTag, SpatialPredicateTag> ||
-        std::is_same_v<PredicateTag,
-                       Experimental::OrderedSpatialPredicateTag>) ||
+        std::is_same_v<PredicateTag, OrderedSpatialPredicateTag>) ||
           (std::is_same_v<
                CallbackTreeTraversalControl,
                std::invoke_result_t<Callback const &, Predicate, Value>> ||

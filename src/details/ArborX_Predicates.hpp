@@ -21,15 +21,9 @@ struct NearestPredicateTag
 {};
 struct SpatialPredicateTag
 {};
-} // namespace Details
-namespace Experimental
-{
 struct OrderedSpatialPredicateTag
 {};
-} // namespace Experimental
 
-namespace Details
-{
 // nvcc has problems with using std::interal_constant here.
 template <typename PredicateTag>
 struct is_valid_predicate_tag
@@ -37,7 +31,7 @@ struct is_valid_predicate_tag
   static constexpr bool value =
       std::is_same<PredicateTag, SpatialPredicateTag>{} ||
       std::is_same<PredicateTag, NearestPredicateTag>{} ||
-      std::is_same<PredicateTag, Experimental::OrderedSpatialPredicateTag>{};
+      std::is_same<PredicateTag, OrderedSpatialPredicateTag>{};
 };
 } // namespace Details
 
@@ -92,7 +86,7 @@ namespace Experimental
 template <typename Geometry>
 struct OrderedSpatial
 {
-  using Tag = Experimental::OrderedSpatialPredicateTag;
+  using Tag = Details::OrderedSpatialPredicateTag;
 
   KOKKOS_DEFAULTED_FUNCTION
   OrderedSpatial() = default;
