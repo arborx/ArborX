@@ -13,6 +13,7 @@
 #define ARBORX_DETAILS_KOKKOS_EXT_STD_ALGORITHMS_HPP
 
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_DetailsKokkosExtSwap.hpp>
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -147,6 +148,49 @@ void iota(ExecutionSpace const &space, ViewType const &v,
       "ArborX::Algorithms::iota",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, v.extent(0)),
       KOKKOS_LAMBDA(int i) { v(i) = value + (ValueType)i; });
+}
+
+template <typename Iterator>
+KOKKOS_FUNCTION void nth_element(Iterator first, Iterator nth, Iterator last)
+{
+  if (first == last || nth == last)
+    return;
+
+  // Lomuto partitioning
+  auto partition = [](Iterator left, Iterator right, Iterator pivot) {
+    --right;
+
+    KokkosExt::swap(*pivot, *right);
+    auto it_i = left;
+    auto it_j = left;
+    while (it_j < right)
+    {
+      if (*it_j < *right)
+        KokkosExt::swap(*it_j, *(it_i++));
+      ++it_j;
+    }
+    KokkosExt::swap(*it_i, *right);
+    return it_i;
+  };
+
+  // Simple quickselect implementation
+  while (true)
+  {
+    if (first == last)
+      return;
+
+    // Choosing nth element as a pivot should lead to early exit if the array is
+    // sorted
+    auto pivot = partition(first, last, nth);
+
+    if (pivot == nth)
+      return;
+
+    if (nth < pivot)
+      last = pivot;
+    else
+      first = pivot + 1;
+  }
 }
 
 } // namespace ArborX::Details::KokkosExt
