@@ -59,19 +59,18 @@ struct DistributedTreeImpl
                 IndicesAndRanks &values, Offset &offset);
 
   // nearest neighbors helpers
-  template <typename ExecutionSpace, typename DistributedTree,
-            typename Predicates, typename Indices, typename Offset>
-  static void
-  deviseStrategy(ExecutionSpace const &space, DistributedTree const &tree,
-                 Predicates const &queries, Indices &indices, Offset &offset);
+  template <typename ExecutionSpace, typename Tree, typename Predicates,
+            typename Distances>
+  static void phaseI(ExecutionSpace const &space, Tree const &tree,
+                     Predicates const &predicates,
+                     Distances &farthest_distances);
 
-  template <typename ExecutionSpace, typename DistributedTree,
-            typename Predicates, typename Distances, typename Indices,
-            typename Offset>
-  static void
-  reassessStrategy(ExecutionSpace const &space, DistributedTree const &tree,
-                   Predicates const &queries, Distances const &distances,
-                   Indices &indices, Offset &offset);
+  template <typename ExecutionSpace, typename Tree, typename Predicates,
+            typename Distances, typename Offset, typename Values,
+            typename Ranks>
+  static void phaseII(ExecutionSpace const &space, Tree const &tree,
+                      Predicates const &queries, Distances &distances,
+                      Offset &offset, Values &values, Ranks &ranks);
 };
 
 } // namespace ArborX::Details
