@@ -331,13 +331,15 @@ void communicateResultsBack(MPI_Comm comm, ExecutionSpace const &space,
   }
 }
 
-template <typename ExecutionSpace, typename BottomTree, typename Predicates,
-          typename Callback, typename RanksTo, typename Offset, typename Values,
-          typename Ranks>
+template <
+    typename ExecutionSpace, typename BottomTree, typename Predicates,
+    typename Callback, typename RanksTo, typename Offset, typename Values,
+    typename Ranks = Kokkos::View<int *, typename BottomTree::memory_space>>
 void forwardQueriesAndCommunicateResults(
     MPI_Comm comm, ExecutionSpace const &space, BottomTree const &bottom_tree,
     Predicates const &predicates, Callback const &callback,
-    RanksTo const &ranks_to, Offset &offset, Values &values, Ranks &ranks)
+    RanksTo const &ranks_to, Offset &offset, Values &values,
+    Ranks *ranks_ptr = nullptr)
 {
   std::string prefix =
       "ArborX::DistributedTree::query::forwardQueriesAndCommunicateResults";
@@ -345,6 +347,9 @@ void forwardQueriesAndCommunicateResults(
 
   using Query = typename Predicates::value_type;
   using MemorySpace = typename BottomTree::memory_space;
+
+  Ranks ranks_aux(prefix + "::ranks", 0);
+  auto &ranks = (ranks_ptr != nullptr ? *ranks_ptr : ranks_aux);
 
   // Forward predicates
   Kokkos::View<int *, MemorySpace> ids(prefix + "::query_ids", 0);
@@ -364,7 +369,10 @@ void forwardQueriesAndCommunicateResults(
   // Merge results
   int const n_predicates = predicates.size();
   countResults(space, n_predicates, ids, offset);
-  sortResultsByKey(space, ids, values, ranks);
+  if (ranks_ptr != nullptr)
+    sortResultsByKey(space, ids, values, ranks);
+  else
+    sortResultsByKey(space, ids, values);
 
   Kokkos::Profiling::popRegion();
 }

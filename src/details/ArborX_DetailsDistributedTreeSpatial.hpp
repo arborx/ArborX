@@ -52,11 +52,9 @@ DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
   tree._top_tree.query(space, predicates, LegacyDefaultCallback{},
                        intersected_ranks, offset);
 
-  Kokkos::View<int *, MemorySpace> ranks(
-      "ArborX::DistributedTree::query::spatial::ranks", 0);
   DistributedTree::forwardQueriesAndCommunicateResults(
       tree.getComm(), space, tree._bottom_tree, predicates, callback,
-      intersected_ranks, offset, values, ranks);
+      intersected_ranks, offset, values);
 }
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,

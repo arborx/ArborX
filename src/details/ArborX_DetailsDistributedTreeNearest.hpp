@@ -353,7 +353,7 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
   deviseStrategy(space, tree, queries, nearest_ranks, offset);
   forwardQueriesAndCommunicateResults(comm, space, bottom_tree, queries,
                                       callback_with_distance, nearest_ranks,
-                                      offset, out, ranks);
+                                      offset, out, &ranks);
   // unzip
   auto n = out.extent(0);
   KokkosExt::reallocWithoutInitializing(space, values, n);
@@ -372,7 +372,7 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
   reassessStrategy(space, tree, queries, distances, nearest_ranks, offset);
   forwardQueriesAndCommunicateResults(comm, space, bottom_tree, queries,
                                       callback_with_distance, nearest_ranks,
-                                      offset, out, ranks);
+                                      offset, out, &ranks);
 
   // Unzip
   n = out.extent(0);
