@@ -336,8 +336,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
 };
 
 template <class BVH, class Predicates, class Callback>
-struct TreeTraversal<BVH, Predicates, Callback,
-                     Experimental::OrderedSpatialPredicateTag>
+struct TreeTraversal<BVH, Predicates, Callback, OrderedSpatialPredicateTag>
 {
   BVH _bvh;
   Predicates _predicates;

@@ -401,8 +401,7 @@ void BoundingVolumeHierarchy<
   {
     profiling_prefix += "nearest";
   }
-  else if constexpr (std::is_same_v<Tag,
-                                    Experimental::OrderedSpatialPredicateTag>)
+  else if constexpr (std::is_same_v<Tag, Details::OrderedSpatialPredicateTag>)
   {
     profiling_prefix += "ordered_spatial";
   }
