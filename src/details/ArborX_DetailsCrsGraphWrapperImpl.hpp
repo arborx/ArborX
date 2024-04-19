@@ -354,8 +354,7 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
   {
     profiling_prefix += "spatial";
   }
-  else if constexpr (std::is_same_v<Tag,
-                                    OrderedSpatialPredicateTag>)
+  else if constexpr (std::is_same_v<Tag, OrderedSpatialPredicateTag>)
   {
     profiling_prefix += "ordered_spatial";
   }
