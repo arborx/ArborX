@@ -569,6 +569,169 @@ struct intersects<PointTag, TriangleTag, Point, Triangle>
   }
 };
 
+template <typename Box, typename Triangle>
+struct intersects<BoxTag, TriangleTag, Box, Triangle>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Box const &box,
+                                              Triangle const &triangle)
+  {
+    // Based on the Separating Axis Theorem
+    // https://doi.org/10.1145/1198555.1198747
+    // we have to project the box and the triangle onto 13 axes and check for
+    // overlap. These axes are:
+    // - the 3 normals of the box
+    // - the normal of the triangle
+    // - the 9 crossproduct between the 3 edge (directions) of the box and the 3
+    // edges of the triangle
+
+    // Testing the normals of the box is the same as testing the overlap of
+    // bounding boxes.
+    Box bounding_box;
+    ArborX::Details::expand(bounding_box, triangle);
+    if (!ArborX::Details::intersects(bounding_box, box))
+      return false;
+
+    // shift box and triangle so that the box's center is at the origin to
+    // simplify the following checks.
+    constexpr int DIM = GeometryTraits::dimension_v<Triangle>;
+    static_assert(DIM == 3,
+                  "Box-Triangle intersection only implemented in 3d!");
+    auto min_corner = box.minCorner();
+    auto max_corner = box.maxCorner();
+    auto a = triangle.a;
+    auto b = triangle.b;
+    auto c = triangle.c;
+    for (int i = 0; i < DIM; ++i)
+    {
+      auto const shift = -(max_corner[i] + min_corner[i]) / 2;
+      a[i] += shift;
+      b[i] += shift;
+      c[i] += shift;
+    }
+
+    using Point = decltype(a);
+    Point vector_ab{b[0] - a[0], b[1] - a[1], b[2] - a[2]};
+    Point vector_ac{c[0] - a[0], c[1] - a[1], c[2] - a[2]};
+    Point extents{(max_corner[0] - min_corner[0]) / 2,
+                  (max_corner[1] - min_corner[1]) / 2,
+                  (max_corner[2] - min_corner[2]) / 2};
+
+    // test normal of the triangle
+    // check if the projection of the triangle its normal lies in the interval
+    // defined by the projecting of the box onto the same vector
+    Point normal{{vector_ab[1] * vector_ac[2] - vector_ab[2] * vector_ac[1],
+                  vector_ab[2] * vector_ac[0] - vector_ab[0] * vector_ac[2],
+                  vector_ab[0] * vector_ac[1] - vector_ab[1] * vector_ac[0]}};
+    auto radius = extents[0] * Kokkos::abs(normal[0]) +
+                  extents[1] * Kokkos::abs(normal[1]) +
+                  extents[2] * Kokkos::abs(normal[2]);
+    auto a_projected = a[0] * normal[0] + a[1] * normal[1] + a[2] * normal[2];
+    if (Kokkos::abs(a_projected) > radius)
+      return false;
+
+    // Test crossproducts in a similar way as the triangle's normal above
+    Point vector_bc{c[0] - b[0], c[1] - b[1], c[2] - b[2]};
+
+    // e_x x vector_ab = (0, -vector_ab[2],  vector_ab[1])
+    {
+      auto radius = extents[1] * Kokkos::abs(vector_ab[2]) +
+                    extents[2] * Kokkos::abs(vector_ab[1]);
+      auto xab_0 = -a[1] * vector_ab[2] + a[2] * vector_ab[1];
+      auto xab_1 = -c[1] * vector_ab[2] + c[2] * vector_ab[1];
+      if (Kokkos::fmin(xab_0, xab_1) > radius ||
+          Kokkos::fmax(xab_0, xab_1) < -radius)
+        return false;
+    }
+    {
+      auto radius = extents[1] * Kokkos::abs(vector_ac[2]) +
+                    extents[2] * Kokkos::abs(vector_ac[1]);
+      auto xac_0 = -a[1] * vector_ac[2] + a[2] * vector_ac[1];
+      auto xac_1 = -b[1] * vector_ac[2] + b[2] * vector_ac[1];
+      if (Kokkos::fmin(xac_0, xac_1) > radius ||
+          Kokkos::fmax(xac_0, xac_1) < -radius)
+        return false;
+    }
+    {
+      auto radius = extents[1] * Kokkos::abs(vector_bc[2]) +
+                    extents[2] * Kokkos::abs(vector_bc[1]);
+      auto xbc_0 = -a[1] * vector_bc[2] + a[2] * vector_bc[1];
+      auto xbc_1 = -b[1] * vector_bc[2] + b[2] * vector_bc[1];
+      if (Kokkos::fmin(xbc_0, xbc_1) > radius ||
+          Kokkos::fmax(xbc_0, xbc_1) < -radius)
+        return false;
+    }
+
+    // e_y x vector_ab = (vector_ab[2], 0, -vector_ab[0])
+    {
+      auto radius = extents[0] * Kokkos::abs(vector_ab[2]) +
+                    extents[2] * Kokkos::abs(vector_ab[0]);
+      auto yab_0 = a[0] * vector_ab[2] - a[2] * vector_ab[0];
+      auto yab_1 = c[0] * vector_ab[2] - c[2] * vector_ab[0];
+      if (Kokkos::fmin(yab_0, yab_1) > radius ||
+          Kokkos::fmax(yab_0, yab_1) < -radius)
+        return false;
+    }
+    {
+      auto radius = extents[0] * Kokkos::abs(vector_ac[2]) +
+                    extents[2] * Kokkos::abs(vector_ac[0]);
+      auto yac_0 = a[0] * vector_ac[2] - a[2] * vector_ac[0];
+      auto yac_1 = b[0] * vector_ac[2] - b[2] * vector_ac[0];
+      if (Kokkos::fmin(yac_0, yac_1) > radius ||
+          Kokkos::fmax(yac_0, yac_1) < -radius)
+        return false;
+    }
+    {
+      auto radius = extents[0] * Kokkos::abs(vector_bc[2]) +
+                    extents[2] * Kokkos::abs(vector_bc[0]);
+      auto ybc_0 = a[1] * vector_bc[2] - a[2] * vector_bc[0];
+      auto ybc_1 = b[1] * vector_bc[2] - b[2] * vector_bc[0];
+      if (Kokkos::fmin(ybc_0, ybc_1) > radius ||
+          Kokkos::fmax(ybc_0, ybc_1) < -radius)
+        return false;
+    }
+
+    // e_z x vector_ab = (-vector_ab[1], vector_ab[0], 0)
+    {
+      auto radius = extents[0] * Kokkos::abs(vector_ab[1]) +
+                    extents[1] * Kokkos::abs(vector_ab[0]);
+      auto zab_0 = -a[0] * vector_ab[1] + a[1] * vector_ab[0];
+      auto zab_1 = -c[0] * vector_ab[1] + c[1] * vector_ab[0];
+      if (Kokkos::fmin(zab_0, zab_1) > radius ||
+          Kokkos::fmax(zab_0, zab_1) < -radius)
+        return false;
+    }
+    {
+      auto radius = extents[0] * Kokkos::abs(vector_ac[1]) +
+                    extents[1] * Kokkos::abs(vector_ac[0]);
+      auto xac_0 = -a[0] * vector_ac[1] + a[1] * vector_ac[0];
+      auto xac_1 = -b[0] * vector_ac[1] + b[1] * vector_ac[0];
+      if (Kokkos::fmin(xac_0, xac_1) > radius ||
+          Kokkos::fmax(xac_0, xac_1) < -radius)
+        return false;
+    }
+    {
+      auto radius = extents[0] * Kokkos::abs(vector_bc[1]) +
+                    extents[1] * Kokkos::abs(vector_bc[0]);
+      auto zbc_0 = -a[0] * vector_bc[1] + a[1] * vector_bc[0];
+      auto zbc_1 = -b[0] * vector_bc[1] + b[1] * vector_bc[0];
+      if (Kokkos::fmin(zbc_0, zbc_1) > radius ||
+          Kokkos::fmax(zbc_0, zbc_1) < -radius)
+        return false;
+    }
+    return true;
+  }
+};
+
+template <typename Triangle, typename Box>
+struct intersects<TriangleTag, BoxTag, Triangle, Box>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Triangle const &triangle,
+                                              Box const &box)
+  {
+    return intersects<BoxTag, TriangleTag, Box, Triangle>::apply(box, triangle);
+  }
+};
+
 template <typename Point>
 struct centroid<PointTag, Point>
 {
