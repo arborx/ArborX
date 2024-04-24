@@ -115,14 +115,17 @@ struct PairValueDistance
   float distance;
 };
 
-template <typename Tree, bool UseValues>
+template <typename Tree, typename Callback, typename OutValue, bool UseValues>
 struct CallbackWithDistance
 {
   Tree _tree;
+  Callback _callback;
 
   template <typename ExecutionSpace>
-  CallbackWithDistance(ExecutionSpace const &, Tree const &tree)
+  CallbackWithDistance(ExecutionSpace const &, Tree const &tree,
+                       Callback const &callback)
       : _tree(tree)
+      , _callback(callback)
   {}
 
   template <typename Query, typename Value, typename Output>
@@ -130,18 +133,29 @@ struct CallbackWithDistance
                                   Output const &out) const
   {
     if constexpr (UseValues)
-      out({value, distance(getGeometry(query), _tree.indexable_get()(value))});
+    {
+      OutValue out_value;
+      int count = 0;
+      _callback(query, value, [&](OutValue const &ov) {
+        out_value = ov;
+        ++count;
+      });
+      KOKKOS_ASSERT(count == 1);
+      out({out_value,
+           distance(getGeometry(query), _tree.indexable_get()(value))});
+    }
     else
       out(distance(getGeometry(query), _tree.indexable_get()(value)));
   }
 };
 
-template <typename MemorySpace, bool UseValues>
+template <typename MemorySpace, typename Callback, typename OutValue,
+          bool UseValues>
 struct CallbackWithDistance<
     BoundingVolumeHierarchy<MemorySpace, Details::LegacyDefaultTemplateValue,
                             Details::DefaultIndexableGetter,
                             ExperimentalHyperGeometry::Box<3, float>>,
-    UseValues>
+    Callback, OutValue, UseValues>
 {
   using Tree =
       BoundingVolumeHierarchy<MemorySpace, Details::LegacyDefaultTemplateValue,
@@ -149,11 +163,14 @@ struct CallbackWithDistance<
                               ExperimentalHyperGeometry::Box<3, float>>;
 
   Tree _tree;
+  Callback _callback;
   Kokkos::View<unsigned int *, typename Tree::memory_space> _rev_permute;
 
   template <typename ExecutionSpace>
-  CallbackWithDistance(ExecutionSpace const &exec_space, Tree const &tree)
+  CallbackWithDistance(ExecutionSpace const &exec_space, Tree const &tree,
+                       Callback const &callback)
       : _tree(tree)
+      , _callback(callback)
   {
     // NOTE cannot have extended __host__ __device__  lambda in constructor with
     // NVCC
@@ -193,7 +210,16 @@ struct CallbackWithDistance<
     auto const &leaf_node_bounding_volume =
         HappyTreeFriends::getIndexable(_tree, leaf_node_index);
     if constexpr (UseValues)
-      out({index, distance(getGeometry(query), leaf_node_bounding_volume)});
+    {
+      OutValue out_value;
+      int count = 0;
+      _callback(query, index, [&](OutValue const &ov) {
+        out_value = ov;
+        ++count;
+      });
+      KOKKOS_ASSERT(count == 1);
+      out({out_value, distance(getGeometry(query), leaf_node_bounding_volume)});
+    }
     else
       out(distance(getGeometry(query), leaf_node_bounding_volume));
   }
@@ -268,7 +294,8 @@ void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
   Kokkos::View<float *, MemorySpace> distances(prefix + "::distances", 0);
   forwardQueriesAndCommunicateResults(
       comm, space, bottom_tree, predicates,
-      CallbackWithDistance<BottomTree, false>(space, bottom_tree),
+      CallbackWithDistance<BottomTree, DefaultCallback, float, false>(
+          space, bottom_tree, DefaultCallback{}),
       nearest_ranks, offset, distances);
 
   // Postprocess distances to find the k-th farthest
@@ -288,11 +315,13 @@ void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
 }
 
 template <typename ExecutionSpace, typename Tree, typename Predicates,
-          typename Distances, typename Offset, typename Values, typename Ranks>
+          typename Callback, typename Distances, typename Offset,
+          typename Values>
 void DistributedTreeImpl::phaseII(ExecutionSpace const &space, Tree const &tree,
                                   Predicates const &predicates,
+                                  Callback const &callback,
                                   Distances &distances, Offset &offset,
-                                  Values &values, Ranks &ranks)
+                                  Values &values)
 {
   std::string prefix = "ArborX::DistributedTree::query::nearest::phaseII";
   Kokkos::Profiling::ScopedRegion guard(prefix);
@@ -312,10 +341,12 @@ void DistributedTreeImpl::phaseII(ExecutionSpace const &space, Tree const &tree,
   // rather than nearest predicates.
   Kokkos::View<PairValueDistance<typename Values::value_type> *, MemorySpace>
       out(prefix + "::pairs_value_distance", 0);
+  Kokkos::View<int *, MemorySpace> ranks(prefix + "::ranks", 0);
   DistributedTree::forwardQueriesAndCommunicateResults(
       tree.getComm(), space, bottom_tree, predicates,
-      CallbackWithDistance<BottomTree, true>(space, bottom_tree), nearest_ranks,
-      offset, out, &ranks);
+      CallbackWithDistance<BottomTree, Callback, typename Values::value_type,
+                           true>(space, bottom_tree, callback),
+      nearest_ranks, offset, out, &ranks);
 
   // Unzip
   auto n = out.extent(0);
@@ -333,14 +364,13 @@ void DistributedTreeImpl::phaseII(ExecutionSpace const &space, Tree const &tree,
 }
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
-          typename Values, typename Offset, typename Ranks>
-std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset> &&
-                 Kokkos::is_view_v<Ranks>>
+          typename Callback, typename Values, typename Offset>
+std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
 DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
                                        ExecutionSpace const &space,
                                        Predicates const &predicates,
-                                       Values &values, Offset &offset,
-                                       Ranks &ranks)
+                                       Callback const &callback, Values &values,
+                                       Offset &offset)
 {
   std::string prefix = "ArborX::DistributedTree::query::nearest";
 
@@ -371,7 +401,8 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
   // The current implementation discards the results after the first phase.
   // Everything is recomputed from scratch instead of just searching for
   // potential better neighbors and updating the list.
-  phaseII(space, tree, predicates, farthest_distances, offset, values, ranks);
+  phaseII(space, tree, predicates, callback, farthest_distances, offset,
+          values);
 }
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
@@ -382,9 +413,20 @@ DistributedTreeImpl::queryDispatch(NearestPredicateTag tag, Tree const &tree,
                                    Predicates const &predicates, Values &values,
                                    Offset &offset)
 {
-  Kokkos::View<int *, ExecutionSpace> ranks(
-      "ArborX::DistributedTree::query::nearest::ranks", 0);
-  queryDispatchImpl(tag, tree, space, predicates, values, offset, ranks);
+  queryDispatchImpl(tag, tree, space, predicates, DefaultCallback{}, values,
+                    offset);
+}
+
+template <typename Tree, typename ExecutionSpace, typename Predicates,
+          typename Callback, typename Values, typename Offset>
+std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
+DistributedTreeImpl::queryDispatch(NearestPredicateTag tag, Tree const &tree,
+                                   ExecutionSpace const &space,
+                                   Predicates const &predicates,
+                                   Callback const &callback, Values &values,
+                                   Offset &offset)
+{
+  queryDispatchImpl(tag, tree, space, predicates, callback, values, offset);
 }
 
 } // namespace Details

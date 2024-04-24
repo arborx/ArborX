@@ -190,39 +190,14 @@ public:
 
     Predicates predicates{user_predicates}; // NOLINT
 
-    using Tag = typename Predicates::value_type::Tag;
-    if constexpr (std::is_same_v<Tag, Details::SpatialPredicateTag>)
-    {
-      int comm_rank = -1;
-      if (base_type::getComm() != MPI_COMM_NULL)
-        MPI_Comm_rank(base_type::getComm(), &comm_rank);
+    int comm_rank = -1;
+    if (base_type::getComm() != MPI_COMM_NULL)
+      MPI_Comm_rank(base_type::getComm(), &comm_rank);
 
-      base_type::query(space, predicates,
-                       Details::LegacyDefaultCallbackWithRank{comm_rank},
-                       std::forward<IndicesAndRanks>(indices_and_ranks),
-                       std::forward<OffsetView>(offset));
-    }
-    else if constexpr (std::is_same_v<Tag, Details::NearestPredicateTag>)
-    {
-      // FIXME avoid zipping when distributed nearest callbacks become available
-      Kokkos::View<value_type *, ExecutionSpace> values(
-          "ArborX::DistributedTree::query::nearest::values", 0);
-      Kokkos::View<int *, ExecutionSpace> ranks(
-          "ArborX::DistributedTree::query::nearest::ranks", 0);
-
-      Details::DistributedTreeImpl::queryDispatchImpl(
-          Tag{}, *this, space, predicates, values,
-          std::forward<OffsetView>(offset), ranks);
-
-      auto const n = values.extent(0);
-      KokkosExt::reallocWithoutInitializing(space, indices_and_ranks, n);
-      Kokkos::parallel_for(
-          "ArborX::DistributedTree::query::zip_indices_and_ranks",
-          Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-          KOKKOS_LAMBDA(int i) {
-            indices_and_ranks(i) = {values(i), ranks(i)};
-          });
-    }
+    base_type::query(space, predicates,
+                     Details::LegacyDefaultCallbackWithRank{comm_rank},
+                     std::forward<IndicesAndRanks>(indices_and_ranks),
+                     std::forward<OffsetView>(offset));
   }
 
   template <typename ExecutionSpace, typename UserPredicates, typename Callback,
