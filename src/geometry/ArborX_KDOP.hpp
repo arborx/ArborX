@@ -309,18 +309,6 @@ KOKKOS_INLINE_FUNCTION bool intersects(KDOP<k> const &a, KDOP<k> const &b)
 } // namespace Experimental
 } // namespace ArborX
 
-template <typename KDOP>
-struct ArborX::Details::Dispatch::centroid<ArborX::GeometryTraits::KDOPTag,
-                                           KDOP>
-{
-  KOKKOS_FUNCTION static auto apply(KDOP const &kdop)
-  {
-    // FIXME approximation
-    using Box = ArborX::Box;
-    return centroid<BoxTag, Box>::apply((Box)kdop);
-  }
-};
-
 template <int k>
 struct ArborX::GeometryTraits::dimension<ArborX::Experimental::KDOP<k>>
 {
@@ -352,6 +340,17 @@ struct expand<BoxTag, KDOPTag, Box, KDOP>
     // machinery for KDOP. In the long term, this should be replaced by a
     // general algorithm.
     Details::expand(box, (ArborX::Box)kdop);
+  }
+};
+
+template <typename KDOP>
+struct centroid<KDOPTag, KDOP>
+{
+  KOKKOS_FUNCTION static auto apply(KDOP const &kdop)
+  {
+    // FIXME approximation
+    using Box = ArborX::Box;
+    return centroid<BoxTag, Box>::apply((Box)kdop);
   }
 };
 
