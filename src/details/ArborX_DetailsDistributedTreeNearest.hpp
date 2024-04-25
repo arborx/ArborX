@@ -359,8 +359,7 @@ void DistributedTreeImpl::phaseII(ExecutionSpace const &space, Tree const &tree,
         distances(i) = out(i).distance;
       });
 
-  DistributedTree::filterResults(space, predicates, distances, values, offset,
-                                 ranks);
+  DistributedTree::filterResults(space, predicates, distances, values, offset);
 }
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
