@@ -10,6 +10,7 @@
  ****************************************************************************/
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_Box.hpp>
 #include <ArborX_IndexableGetter.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"

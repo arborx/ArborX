@@ -8,10 +8,11 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_Sphere_HPP
-#define ARBORX_Sphere_HPP
+#ifndef ARBORX_SPHERE_HPP
+#define ARBORX_SPHERE_HPP
 
 #include <ArborX_GeometryTraits.hpp>
+#include <ArborX_HyperSphere.hpp> // for algorithms
 #include <ArborX_Point.hpp>
 
 #include <Kokkos_Macros.hpp>

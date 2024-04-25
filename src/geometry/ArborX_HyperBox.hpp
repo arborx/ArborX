@@ -12,12 +12,14 @@
 #ifndef ARBORX_HYPERBOX_HPP
 #define ARBORX_HYPERBOX_HPP
 
+#include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperPoint.hpp>
 
 #include <Kokkos_Macros.hpp>
+#include <Kokkos_MathematicalFunctions.hpp> // isfinite, sqrt
 #include <Kokkos_ReductionIdentity.hpp>
 
 namespace ArborX::ExperimentalHyperGeometry
@@ -127,4 +129,159 @@ struct Kokkos::reduction_identity<
   }
 };
 
+namespace ArborX::Details::Dispatch
+{
+using GeometryTraits::BoxTag;
+using GeometryTraits::PointTag;
+
+// equals box-box
+template <typename Box>
+struct equals<BoxTag, Box>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Box const &l, Box const &r)
+  {
+    return Details::equals(l.minCorner(), r.minCorner()) &&
+           Details::equals(l.maxCorner(), r.maxCorner());
+  }
+};
+
+// isValid box
+template <typename Box>
+struct isValid<BoxTag, Box>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Box const &b)
+  {
+    constexpr int DIM = GeometryTraits::dimension_v<Box>;
+    for (int d = 0; d < DIM; ++d)
+    {
+      auto const r_d = b.maxCorner()[d] - b.minCorner()[d];
+      if (r_d <= 0 || !Kokkos::isfinite(r_d))
+        return false;
+    }
+    return true;
+  }
+};
+
+// distance point-box
+template <typename Point, typename Box>
+struct distance<PointTag, BoxTag, Point, Box>
+{
+  KOKKOS_FUNCTION static auto apply(Point const &point, Box const &box)
+  {
+    constexpr int DIM = GeometryTraits::dimension_v<Point>;
+    Point projected_point;
+    for (int d = 0; d < DIM; ++d)
+    {
+      if (point[d] < box.minCorner()[d])
+        projected_point[d] = box.minCorner()[d];
+      else if (point[d] > box.maxCorner()[d])
+        projected_point[d] = box.maxCorner()[d];
+      else
+        projected_point[d] = point[d];
+    }
+    return Details::distance(point, projected_point);
+  }
+};
+
+// distance box-box
+template <typename Box1, typename Box2>
+struct distance<BoxTag, BoxTag, Box1, Box2>
+{
+  KOKKOS_FUNCTION static auto apply(Box1 const &box_a, Box2 const &box_b)
+  {
+    constexpr int DIM = GeometryTraits::dimension_v<Box1>;
+    // Boxes may have different coordinate types. Try using implicit
+    // conversion to get the best one.
+    using Coordinate = decltype(box_b.minCorner()[0] - box_a.minCorner()[0]);
+    Coordinate distance_squared = 0;
+    for (int d = 0; d < DIM; ++d)
+    {
+      auto const a_min = box_a.minCorner()[d];
+      auto const a_max = box_a.maxCorner()[d];
+      auto const b_min = box_b.minCorner()[d];
+      auto const b_max = box_b.maxCorner()[d];
+      if (a_min > b_max)
+      {
+        auto const delta = a_min - b_max;
+        distance_squared += delta * delta;
+      }
+      else if (b_min > a_max)
+      {
+        auto const delta = b_min - a_max;
+        distance_squared += delta * delta;
+      }
+      else
+      {
+        // The boxes overlap on this axis: distance along this axis is zero.
+      }
+    }
+    return Kokkos::sqrt(distance_squared);
+  }
+};
+
+// expand a box to include a point
+template <typename Box, typename Point>
+struct expand<BoxTag, PointTag, Box, Point>
+{
+  KOKKOS_FUNCTION static void apply(Box &box, Point const &point)
+  {
+    box += point;
+  }
+};
+
+// expand a box to include a box
+template <typename Box1, typename Box2>
+struct expand<BoxTag, BoxTag, Box1, Box2>
+{
+  KOKKOS_FUNCTION static void apply(Box1 &box, Box2 const &other)
+  {
+    box += other;
+  }
+};
+
+// check if two axis-aligned bounding boxes intersect
+template <typename Box1, typename Box2>
+struct intersects<BoxTag, BoxTag, Box1, Box2>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Box1 const &box,
+                                              Box2 const &other)
+  {
+    constexpr int DIM = GeometryTraits::dimension_v<Box1>;
+    for (int d = 0; d < DIM; ++d)
+      if (box.minCorner()[d] > other.maxCorner()[d] ||
+          box.maxCorner()[d] < other.minCorner()[d])
+        return false;
+    return true;
+  }
+};
+
+// check it a box intersects with a point
+template <typename Point, typename Box>
+struct intersects<PointTag, BoxTag, Point, Box>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Point const &point,
+                                              Box const &other)
+  {
+    constexpr int DIM = GeometryTraits::dimension_v<Point>;
+    for (int d = 0; d < DIM; ++d)
+      if (point[d] > other.maxCorner()[d] || point[d] < other.minCorner()[d])
+        return false;
+    return true;
+  }
+};
+
+template <typename Box>
+struct centroid<BoxTag, Box>
+{
+  KOKKOS_FUNCTION static constexpr auto apply(Box const &box)
+  {
+    constexpr int DIM = GeometryTraits::dimension_v<Box>;
+    auto c = box.minCorner();
+    for (int d = 0; d < DIM; ++d)
+      c[d] = (c[d] + box.maxCorner()[d]) / 2;
+    return c;
+  }
+};
+
+} // namespace ArborX::Details::Dispatch
 #endif
