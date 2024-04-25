@@ -93,6 +93,76 @@ struct WithinDistanceFromPredicates
   Predicates predicates;
   Distances distances;
 };
+
+namespace Dispatch
+{
+
+template <typename Tag, typename Geometry>
+struct approx_expand_by_radius;
+
+template <typename Point>
+struct approx_expand_by_radius<PointTag, Point>
+{
+  template <typename Float>
+  KOKKOS_FUNCTION static auto apply(Point const &point, Float r)
+  {
+    constexpr int DIM = GeometryTraits::dimension_v<Box>;
+    using Coordinate = GeometryTraits::coordinate_type_t<Point>;
+    auto const &hyper_point = reinterpret_cast<
+        ExperimentalHyperGeometry::Point<DIM, Coordinate> const &>(point);
+    return ExperimentalHyperGeometry::Sphere<DIM, Coordinate>{hyper_point, r};
+  }
+};
+
+template <typename Box>
+struct approx_expand_by_radius<BoxTag, Box>
+{
+  template <typename Float>
+  KOKKOS_FUNCTION static auto apply(Box const &box, Float r)
+  {
+    Box new_box = box;
+    auto &min_corner = new_box.minCorner();
+    auto &max_corner = new_box.maxCorner();
+    constexpr int DIM = GeometryTraits::dimension_v<Box>;
+    for (int d = 0; d < DIM; ++d)
+    {
+      min_corner[d] -= r;
+      max_corner[d] += r;
+    }
+    return new_box;
+  }
+};
+
+template <typename Sphere>
+struct approx_expand_by_radius<SphereTag, Sphere>
+{
+  template <typename Float>
+  KOKKOS_FUNCTION static auto apply(Sphere const &sphere, Float r)
+  {
+    return Sphere{sphere.centroid(), sphere.radius() + r};
+  }
+};
+
+template <typename Ray>
+struct approx_expand_by_radius<RayTag, Ray>
+{
+  template <typename Float>
+  KOKKOS_FUNCTION static auto const &apply(Ray const &ray, Float)
+  {
+    return ray;
+  }
+};
+
+} // namespace Dispatch
+
+template <typename Geometry, typename Float>
+KOKKOS_INLINE_FUNCTION auto approx_expand_by_radius(Geometry const &geometry,
+                                                    Float r)
+{
+  return Dispatch::approx_expand_by_radius<
+      typename GeometryTraits::tag_t<Geometry>, Geometry>::apply(geometry, r);
+}
+
 } // namespace Details
 
 template <class Predicates, class Distances>
@@ -111,48 +181,11 @@ struct AccessTraits<
   {
     return x.predicates.size();
   }
-  template <class Dummy = Geometry,
-            std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
-                             std::is_same_v<Dummy, Point>> * = nullptr>
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
-    auto const point = getGeometry(x.predicates(i));
-    auto const distance = x.distances(i);
-    return intersects(Sphere{point, distance});
-  }
-  template <class Dummy = Geometry,
-            std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
-                             std::is_same_v<Dummy, Box>> * = nullptr>
-  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
-  {
-    auto box = getGeometry(x.predicates(i));
-    auto &min_corner = box.minCorner();
-    auto &max_corner = box.maxCorner();
-    auto const distance = x.distances(i);
-    for (int d = 0; d < 3; ++d)
-    {
-      min_corner[d] -= distance;
-      max_corner[d] += distance;
-    }
-    return intersects(box);
-  }
-  template <class Dummy = Geometry,
-            std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
-                             std::is_same_v<Dummy, Sphere>> * = nullptr>
-  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
-  {
-    auto const sphere = getGeometry(x.predicates(i));
-    auto const distance = x.distances(i);
-    return intersects(Sphere{sphere.centroid(), distance + sphere.radius()});
-  }
-  template <
-      class Dummy = Geometry,
-      std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
-                       std::is_same_v<Dummy, Experimental::Ray>> * = nullptr>
-  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
-  {
-    auto const ray = getGeometry(x.predicates(i));
-    return intersects(ray);
+    using Details::approx_expand_by_radius;
+    return intersects(
+        approx_expand_by_radius(getGeometry(x.predicates(i)), x.distances(i)));
   }
 };
 
