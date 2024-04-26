@@ -14,6 +14,7 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp> // min, max
+#include <ArborX_DetailsVector.hpp>
 #include <ArborX_GeometryTraits.hpp>
 
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
@@ -252,24 +253,6 @@ struct distance<PointTag, TriangleTag, Point, Triangle>
 
   static_assert(DIM == 2 || DIM == 3);
 
-  struct Vector : private Point
-  {
-    using Point::Point;
-    using Point::operator[];
-    KOKKOS_FUNCTION Vector(Point const &a, Point const &b)
-    {
-      for (int d = 0; d < DIM; ++d)
-        (*this)[d] = b[d] - a[d];
-    }
-  };
-
-  KOKKOS_FUNCTION static auto dot_product(Vector const &v, Vector const &w)
-  {
-    auto r = v[0] * w[0];
-    for (int d = 1; d < DIM; ++d)
-      r += v[d] * w[d];
-    return r;
-  }
   KOKKOS_FUNCTION static auto combine(Point const &a, Point const &b,
                                       Point const &c, Coordinate u,
                                       Coordinate v, Coordinate w)
@@ -294,24 +277,24 @@ struct distance<PointTag, TriangleTag, Point, Triangle>
         |        |
     */
 
-    Vector ab(a, b);
-    Vector ac(a, c);
-    Vector ap(a, p);
+    auto const ab = b - a;
+    auto const ac = c - a;
+    auto const ap = p - a;
 
-    auto const d1 = dot_product(ab, ap);
-    auto const d2 = dot_product(ac, ap);
+    auto const d1 = ab.dot(ap);
+    auto const d2 = ac.dot(ap);
     if (d1 <= 0 && d2 <= 0) // zone 1
       return a;
 
-    Vector bp(b, p);
-    auto const d3 = dot_product(ab, bp);
-    auto const d4 = dot_product(ac, bp);
+    auto const bp = p - b;
+    auto const d3 = ab.dot(bp);
+    auto const d4 = ac.dot(bp);
     if (d3 >= 0 && d4 <= d3) // zone 2
       return b;
 
-    Vector cp(c, p);
-    auto const d5 = dot_product(ab, cp);
-    auto const d6 = dot_product(ac, cp);
+    auto const cp = p - c;
+    auto const d5 = ab.dot(cp);
+    auto const d6 = ac.dot(cp);
     if (d6 >= 0 && d5 <= d6) // zone 3
       return c;
 
@@ -610,8 +593,8 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     }
 
     using Point = decltype(a);
-    Point vector_ab{b[0] - a[0], b[1] - a[1], b[2] - a[2]};
-    Point vector_ac{c[0] - a[0], c[1] - a[1], c[2] - a[2]};
+    auto const vector_ab = b - a;
+    auto const vector_ac = c - a;
     Point extents{(max_corner[0] - min_corner[0]) / 2,
                   (max_corner[1] - min_corner[1]) / 2,
                   (max_corner[2] - min_corner[2]) / 2};
@@ -619,9 +602,7 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     // test normal of the triangle
     // check if the projection of the triangle its normal lies in the interval
     // defined by the projecting of the box onto the same vector
-    Point normal{{vector_ab[1] * vector_ac[2] - vector_ab[2] * vector_ac[1],
-                  vector_ab[2] * vector_ac[0] - vector_ab[0] * vector_ac[2],
-                  vector_ab[0] * vector_ac[1] - vector_ab[1] * vector_ac[0]}};
+    auto normal = vector_ab.cross(vector_ac);
     auto radius = extents[0] * Kokkos::abs(normal[0]) +
                   extents[1] * Kokkos::abs(normal[1]) +
                   extents[2] * Kokkos::abs(normal[2]);
@@ -630,7 +611,7 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
       return false;
 
     // Test crossproducts in a similar way as the triangle's normal above
-    Point vector_bc{c[0] - b[0], c[1] - b[1], c[2] - b[2]};
+    auto const vector_bc = c - b;
 
     // e_x x vector_ab = (0, -vector_ab[2],  vector_ab[1])
     {

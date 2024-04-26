@@ -269,7 +269,7 @@ int main(int argc, char *argv[])
               g, 2.f * Kokkos::numbers::pi_v<float>);
           float theta =
               acos(1 - 2 * Kokkos::rand<GeneratorType, float>::draw(g));
-          ArborX::Experimental::Vector direction{
+          typename ArborX::Experimental::Ray::Vector direction{
               cos(upsilon) * sin(theta), sin(upsilon) * sin(theta), cos(theta)};
 
           rays(j + i * rays_per_box) =

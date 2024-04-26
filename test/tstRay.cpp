@@ -617,32 +617,32 @@ BOOST_AUTO_TEST_CASE(ray_triangle_intersection,
 
 BOOST_AUTO_TEST_CASE(make_euclidean_vector)
 {
-  using ArborX::Experimental::makeVector;
-  using ArborX::Experimental::Vector;
+  using Vector = ArborX::Details::Vector<3>;
   using ArborX::ExperimentalHyperGeometry::Point;
-  static_assert(makeVector(Point{0, 0, 0}, Point{1, 2, 3}) == Vector{1, 2, 3});
-  static_assert(makeVector(Point{1, 2, 3}, Point{4, 5, 6}) == Vector{3, 3, 3});
+  static_assert(Point{1, 2, 3} - Point{0, 0, 0} == Vector{1, 2, 3});
+  static_assert(Point{4, 5, 6} - Point{1, 2, 3} == Vector{3, 3, 3});
 }
 
 BOOST_AUTO_TEST_CASE(dot_product)
 {
-  using ArborX::Experimental::dotProduct;
-  static_assert(dotProduct({1, 0, 0}, {1, 0, 0}) == 1);
-  static_assert(dotProduct({1, 0, 0}, {0, 1, 0}) == 0);
-  static_assert(dotProduct({1, 0, 0}, {0, 0, 1}) == 0);
-  static_assert(dotProduct({1, 1, 1}, {1, 1, 1}) == 3);
+  using ArborX::Details::Vector;
+  static_assert(Vector{1, 0, 0}.dot(Vector{1, 0, 0}) == 1);
+  static_assert(Vector{1, 0, 0}.dot(Vector{0, 1, 0}) == 0);
+  static_assert(Vector{1, 0, 0}.dot(Vector{0, 0, 1}) == 0);
+  static_assert(Vector{1, 1, 1}.dot(Vector{1, 1, 1}) == 3);
 }
 
 BOOST_AUTO_TEST_CASE(cross_product)
 {
-  using ArborX::Experimental::crossProduct;
-  using ArborX::Experimental::Vector;
-  static_assert(crossProduct({1, 0, 0}, {1, 0, 0}) == Vector{0, 0, 0});
-  static_assert(crossProduct({1, 0, 0}, {0, 1, 0}) == Vector{0, 0, 1});
-  static_assert(crossProduct({1, 0, 0}, {0, 0, 1}) == Vector{0, -1, 0});
-  static_assert(crossProduct({0, 1, 0}, {1, 0, 0}) == Vector{0, 0, -1});
-  static_assert(crossProduct({0, 1, 0}, {0, 1, 0}) == Vector{0, 0, 0});
-  static_assert(crossProduct({0, 1, 0}, {0, 0, 1}) == Vector{1, 0, 0});
-  static_assert(crossProduct({1, 1, 1}, {1, 1, 1}) == Vector{0, 0, 0});
+  using ArborX::Details::Vector;
+  // clang-format off
+  static_assert(Vector{1, 0, 0}.cross(Vector{1, 0, 0}) == Vector{0, 0, 0});
+  static_assert(Vector{1, 0, 0}.cross(Vector{0, 1, 0}) == Vector{0, 0, 1});
+  static_assert(Vector{1, 0, 0}.cross(Vector{0, 0, 1}) == Vector{0, -1, 0});
+  static_assert(Vector{0, 1, 0}.cross(Vector{1, 0, 0}) == Vector{0, 0, -1});
+  static_assert(Vector{0, 1, 0}.cross(Vector{0, 1, 0}) == Vector{0, 0, 0});
+  static_assert(Vector{0, 1, 0}.cross(Vector{0, 0, 1}) == Vector{1, 0, 0});
+  static_assert(Vector{1, 1, 1}.cross(Vector{1, 1, 1}) == Vector{0, 0, 0});
+  // clang-format on
 }
 #undef static_assert
