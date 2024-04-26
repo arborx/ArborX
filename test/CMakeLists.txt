@@ -47,6 +47,7 @@ target_link_libraries(ArborX_Test_CompileOnly.exe PRIVATE ArborX)
 
 add_executable(ArborX_Test_DetailsUtils.exe
   tstAttachIndices.cpp
+  tstDetailsVector.cpp
   tstDetailsUtils.cpp
   tstDetailsKokkosExtStdAlgorithms.cpp
   tstDetailsKokkosExtMinMaxReduce.cpp
