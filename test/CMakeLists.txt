@@ -49,6 +49,7 @@ add_executable(ArborX_Test_DetailsUtils.exe
   tstAttachIndices.cpp
   tstDetailsUtils.cpp
   tstDetailsKokkosExtStdAlgorithms.cpp
+  tstDetailsKokkosExtKernelStdAlgorithms.cpp
   tstDetailsKokkosExtMinMaxReduce.cpp
   tstDetailsKokkosExtViewHelpers.cpp
   utf_main.cpp
