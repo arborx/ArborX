@@ -70,7 +70,63 @@ auto icosahedron()
   triangles.push_back({5, 11, 4});
   triangles.push_back({10, 8, 4});
 
-  return std::make_pair(vertices, triangles);
+  return std::make_tuple(vertices, triangles);
+}
+
+void convertTriangles2EdgeForm(std::vector<Kokkos::Array<int, 3>> &triangles,
+                               std::vector<Kokkos::Array<int, 2>> &edges)
+{
+  std::map<std::pair<int, int>, int> hash;
+
+  int const num_triangles = triangles.size();
+  edges.clear();
+  for (int i = 0, eindex = 0; i < num_triangles; ++i)
+  {
+    int v[3] = {triangles[i][0], triangles[i][1], triangles[i][2]};
+    int e[3];
+    for (int j = 0; j < 3; ++j)
+    {
+      int vmin = std::min(v[j], v[(j + 1) % 3]);
+      int vmax = std::max(v[j], v[(j + 1) % 3]);
+
+      auto it = hash.find(std::make_pair(vmin, vmax));
+      if (it == hash.end())
+      {
+        edges.push_back({vmin, vmax});
+        e[j] = eindex;
+        hash[std::make_pair(vmin, vmax)] = eindex;
+        ++eindex;
+      }
+      else
+      {
+        e[j] = it->second;
+      }
+    }
+    triangles[i] = {e[0], e[1], e[2]};
+  }
+}
+
+template <typename ExecutionSpace, typename MemorySpace>
+void convertTriangles2VertexForm(
+    ExecutionSpace const &space,
+    Kokkos::View<Kokkos::Array<int, 3> *, MemorySpace> &triangles,
+    Kokkos::View<Kokkos::Array<int, 2> *, MemorySpace> const &edges)
+{
+  int const num_triangles = triangles.size();
+  Kokkos::parallel_for(
+      "Benchmark::to_vertex_form",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_triangles),
+      KOKKOS_LAMBDA(int i) {
+        auto const &e0 = edges(triangles(i)[0]);
+        auto const &e1 = edges(triangles(i)[1]);
+
+        KOKKOS_ASSERT(e0[0] == e1[0] || e0[0] == e1[1] || e0[1] == e1[0] ||
+                      e0[1] == e1[1]);
+        if (e0[0] == e1[0] || e0[1] == e1[0])
+          triangles(i) = {e0[0], e0[1], e1[1]};
+        else
+          triangles(i) = {e0[0], e0[1], e1[0]};
+      });
 }
 
 /* Subdivide every triangle into four
@@ -81,72 +137,90 @@ auto icosahedron()
      /        \      /  \  /  \
     /__________\    /____\/____\
 */
-void subdivide(std::vector<Point> &vertices,
-               std::vector<Kokkos::Array<int, 3>> &triangles)
+template <typename ExecutionSpace, typename MemorySpace>
+void subdivide(ExecutionSpace const &space,
+               Kokkos::View<Point *, MemorySpace> &vertices,
+               Kokkos::View<Kokkos::Array<int, 2> *, MemorySpace> &edges,
+               Kokkos::View<Kokkos::Array<int, 3> *, MemorySpace> &triangles)
 {
-  std::map<std::pair<int, int>, int> hash;
-
+  int const num_vertices = vertices.size();
+  int const num_edges = edges.size();
   int const num_triangles = triangles.size();
 
-  int vindex = vertices.size();
-  std::vector<Kokkos::Array<int, 3>> new_triangles;
-  for (int i = 0; i < num_triangles; ++i)
-  {
-    int v[3] = {triangles[i][0], triangles[i][1], triangles[i][2]};
-    int vmid[3];
+  Kokkos::resize(space, vertices, vertices.size() + edges.size());
 
-    for (int j = 0; j < 3; ++j)
-    {
-      int vmin = std::min(v[j], v[(j + 1) % 3]);
-      int vmax = std::max(v[j], v[(j + 1) % 3]);
+  // Each edge is split in two, and each triangle adds three internal edges
+  Kokkos::View<Kokkos::Array<int, 2> *, MemorySpace> new_edges(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         "Benchmark::edges"),
+      2 * num_edges + 3 * num_triangles);
+  Kokkos::parallel_for(
+      "Benchmark::split_edges",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_edges),
+      KOKKOS_LAMBDA(int i) {
+        int v = edges(i)[0];
+        int w = edges(i)[1];
 
-      auto it = hash.find(std::make_pair(vmin, vmax));
-      if (it != hash.end())
-      {
-        vmid[j] = it->second;
-      }
-      else
-      {
-        vmid[j] = vindex;
-        hash[std::make_pair(vmin, vmax)] = vindex;
-        ++vindex;
+        int new_vindex = num_vertices + i;
+        vertices(new_vindex) = Point{(vertices(v)[0] + vertices(w)[0]) / 2,
+                                     (vertices(v)[1] + vertices(w)[1]) / 2,
+                                     (vertices(v)[2] + vertices(w)[2]) / 2};
+        new_edges(2 * i + 0) = {v, new_vindex};
+        new_edges(2 * i + 1) = {w, new_vindex};
+      });
 
-        vertices.push_back(Point{(vertices[vmin][0] + vertices[vmax][0]) / 2,
-                                 (vertices[vmin][1] + vertices[vmax][1]) / 2,
-                                 (vertices[vmin][2] + vertices[vmax][2]) / 2});
-      }
-    }
+  Kokkos::View<Kokkos::Array<int, 3> *, MemorySpace> new_triangles(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         "Benchmark::triangles"),
+      4 * num_triangles);
+  Kokkos::parallel_for(
+      "Benchmark::split_triangles",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_triangles),
+      KOKKOS_LAMBDA(int i) {
+        int e[3] = {triangles(i)[0], triangles(i)[1], triangles(i)[2]};
 
-    new_triangles.push_back({v[0], vmid[0], vmid[2]});
-    new_triangles.push_back({v[1], vmid[0], vmid[1]});
-    new_triangles.push_back({v[2], vmid[2], vmid[1]});
-    new_triangles.push_back({vmid[0], vmid[1], vmid[2]});
-  }
+        int new_edges_offset = 2 * num_edges + 3 * i;
+        for (int j = 0; j < 3; ++j)
+        {
+          int e0 = 2 * e[j];
+          int e1 = 2 * e[(j + 1) % 3];
+          if (new_edges(e0)[0] == new_edges(e1 + 1)[0])
+            ++e1;
+          else if (new_edges(e0 + 1)[0] == new_edges(e1)[0])
+            ++e0;
+          else if (new_edges(e0 + 1)[0] == new_edges(e1 + 1)[0])
+          {
+            ++e0;
+            ++e1;
+          }
+          assert(new_edges(e0)[0] == new_edges(e1)[0]);
+          int enew = new_edges_offset + j;
+
+          new_edges(enew) = {new_edges(e0)[1], new_edges(e1)[1]};
+          new_triangles(4 * i + j) = {e0, e1, enew};
+        }
+        new_triangles[4 * i + 3] = {new_edges_offset + 0, new_edges_offset + 1,
+                                    new_edges_offset + 2};
+      });
+  edges = new_edges;
   triangles = new_triangles;
 }
 
-void projectVerticesToSphere(std::vector<Point> &vertices, float radius)
+template <typename ExecutionSpace, typename MemorySpace>
+void projectVerticesToSphere(ExecutionSpace const &space,
+                             Kokkos::View<Point *, MemorySpace> &points,
+                             float radius)
 {
-  for (auto &v : vertices)
-  {
-    auto norm = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-    v[0] *= radius / norm;
-    v[1] *= radius / norm;
-    v[2] *= radius / norm;
-  }
-}
-
-auto buildTriangles(float radius, int num_refinements)
-{
-  Kokkos::Profiling::ScopedRegion guard("Benchmark::build_triangles");
-
-  auto [vertices, triangles] = icosahedron();
-  for (int i = 1; i <= num_refinements; ++i)
-    subdivide(vertices, triangles);
-
-  projectVerticesToSphere(vertices, radius);
-
-  return std::make_pair(vertices, triangles);
+  Kokkos::parallel_for(
+      "Benchmark::project_to_surface",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, points.size()),
+      KOKKOS_LAMBDA(int i) {
+        auto &v = points(i);
+        auto norm = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+        v[0] *= radius / norm;
+        v[1] *= radius / norm;
+        v[2] *= radius / norm;
+      });
 }
 
 template <typename... P, typename T>
@@ -158,6 +232,32 @@ auto vec2view(std::vector<T> const &in, std::string const &label = "")
                                       Kokkos::MemoryTraits<Kokkos::Unmanaged>>{
                              in.data(), in.size()});
   return out;
+}
+
+template <typename MemorySpace, typename ExecutionSpace>
+auto buildTriangles(ExecutionSpace const &space, float radius,
+                    int num_refinements)
+{
+  Kokkos::Profiling::ScopedRegion guard("Benchmark::build_triangles");
+
+  auto [vertices_v, triangles_v] = icosahedron();
+
+  // Convert to edge form
+  std::vector<Kokkos::Array<int, 2>> edges_v;
+  convertTriangles2EdgeForm(triangles_v, edges_v);
+
+  auto vertices = vec2view<MemorySpace>(vertices_v);
+  auto edges = vec2view<MemorySpace>(edges_v);
+  auto triangles = vec2view<MemorySpace>(triangles_v);
+
+  for (int i = 1; i <= num_refinements; ++i)
+    subdivide(space, vertices, edges, triangles);
+
+  projectVerticesToSphere(space, vertices, radius);
+
+  convertTriangles2VertexForm(space, triangles, edges);
+
+  return std::make_pair(vertices, triangles);
 }
 
 template <typename MemorySpace>
@@ -278,15 +378,13 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  auto [vertices_v, triangles_v] = buildTriangles(radius, num_refinements);
+  ExecutionSpace space;
 
-  auto vertices = vec2view<MemorySpace>(vertices_v);
-  auto triangles = vec2view<MemorySpace>(triangles_v);
+  auto [vertices, triangles] =
+      buildTriangles<MemorySpace>(space, radius, num_refinements);
 
   if (!vtk_filename.empty())
     writeVtk(vtk_filename, vertices, triangles);
-
-  ExecutionSpace space;
 
   Kokkos::Profiling::pushRegion("Benchmark::build_points");
   Kokkos::View<Point *, MemorySpace> random_points(
