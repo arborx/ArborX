@@ -13,6 +13,7 @@
 #define ARBORX_DETAILS_POINT_HPP
 
 #include <ArborX_GeometryTraits.hpp>
+#include <ArborX_HyperPoint.hpp> // for algorithms
 
 #include <Kokkos_Macros.hpp>
 

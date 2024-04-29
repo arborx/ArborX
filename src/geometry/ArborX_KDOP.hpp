@@ -309,18 +309,6 @@ KOKKOS_INLINE_FUNCTION bool intersects(KDOP<k> const &a, KDOP<k> const &b)
 } // namespace Experimental
 } // namespace ArborX
 
-template <typename KDOP>
-struct ArborX::Details::Dispatch::centroid<ArborX::GeometryTraits::KDOPTag,
-                                           KDOP>
-{
-  KOKKOS_FUNCTION static auto apply(KDOP const &kdop)
-  {
-    // FIXME approximation
-    using Box = ArborX::Box;
-    return centroid<BoxTag, Box>::apply((Box)kdop);
-  }
-};
-
 template <int k>
 struct ArborX::GeometryTraits::dimension<ArborX::Experimental::KDOP<k>>
 {
@@ -336,5 +324,36 @@ struct ArborX::GeometryTraits::coordinate_type<ArborX::Experimental::KDOP<k>>
 {
   using type = float;
 };
+
+namespace ArborX::Details::Dispatch
+{
+using GeometryTraits::BoxTag;
+using GeometryTraits::KDOPTag;
+
+// expand a box to include a kdop
+template <typename Box, typename KDOP>
+struct expand<BoxTag, KDOPTag, Box, KDOP>
+{
+  KOKKOS_FUNCTION static void apply(Box &box, KDOP const &kdop)
+  {
+    // FIXME This is a workaround so that we can use existing conversion
+    // machinery for KDOP. In the long term, this should be replaced by a
+    // general algorithm.
+    Details::expand(box, (ArborX::Box)kdop);
+  }
+};
+
+template <typename KDOP>
+struct centroid<KDOPTag, KDOP>
+{
+  KOKKOS_FUNCTION static auto apply(KDOP const &kdop)
+  {
+    // FIXME approximation
+    using Box = ArborX::Box;
+    return centroid<BoxTag, Box>::apply((Box)kdop);
+  }
+};
+
+} // namespace ArborX::Details::Dispatch
 
 #endif

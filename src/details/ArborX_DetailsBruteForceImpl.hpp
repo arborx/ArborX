@@ -13,6 +13,7 @@
 #define ARBORX_DETAILS_BRUTE_FORCE_IMPL_HPP
 
 #include <ArborX_DetailsAlgorithms.hpp> // expand
+#include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
