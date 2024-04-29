@@ -13,6 +13,8 @@
 
 #include <ArborX_DetailsAlgorithms.hpp>
 
+#include <utility>
+
 namespace ArborX
 {
 namespace Details

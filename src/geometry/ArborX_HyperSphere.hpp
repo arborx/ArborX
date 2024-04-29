@@ -12,6 +12,7 @@
 #define ARBORX_HYPERSPHERE_HPP
 
 #include <ArborX_DetailsAlgorithms.hpp>
+#include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperPoint.hpp>
 
