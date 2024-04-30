@@ -14,6 +14,7 @@
 #include <ArborX_HyperTriangle.hpp>
 #include <ArborX_Version.hpp>
 
+#include <Kokkos_Array.hpp>
 #include <Kokkos_MathematicalConstants.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
 
@@ -46,28 +47,28 @@ auto icosahedron()
   vertices.push_back(Point{b, -a, 0});
   vertices.push_back(Point{-b, -a, 0});
 
-  std::vector<int> triangles;
+  std::vector<Kokkos::Array<int, 3>> triangles;
 
-  triangles.insert(triangles.end(), {2, 1, 0});
-  triangles.insert(triangles.end(), {1, 2, 3});
-  triangles.insert(triangles.end(), {5, 4, 3});
-  triangles.insert(triangles.end(), {4, 8, 3});
-  triangles.insert(triangles.end(), {7, 6, 0});
-  triangles.insert(triangles.end(), {6, 9, 0});
-  triangles.insert(triangles.end(), {11, 10, 4});
-  triangles.insert(triangles.end(), {10, 11, 6});
-  triangles.insert(triangles.end(), {9, 5, 2});
-  triangles.insert(triangles.end(), {5, 9, 11});
-  triangles.insert(triangles.end(), {8, 7, 1});
-  triangles.insert(triangles.end(), {7, 8, 10});
-  triangles.insert(triangles.end(), {2, 5, 3});
-  triangles.insert(triangles.end(), {8, 1, 3});
-  triangles.insert(triangles.end(), {9, 2, 0});
-  triangles.insert(triangles.end(), {1, 7, 0});
-  triangles.insert(triangles.end(), {11, 9, 6});
-  triangles.insert(triangles.end(), {7, 10, 6});
-  triangles.insert(triangles.end(), {5, 11, 4});
-  triangles.insert(triangles.end(), {10, 8, 4});
+  triangles.push_back({2, 1, 0});
+  triangles.push_back({1, 2, 3});
+  triangles.push_back({5, 4, 3});
+  triangles.push_back({4, 8, 3});
+  triangles.push_back({7, 6, 0});
+  triangles.push_back({6, 9, 0});
+  triangles.push_back({11, 10, 4});
+  triangles.push_back({10, 11, 6});
+  triangles.push_back({9, 5, 2});
+  triangles.push_back({5, 9, 11});
+  triangles.push_back({8, 7, 1});
+  triangles.push_back({7, 8, 10});
+  triangles.push_back({2, 5, 3});
+  triangles.push_back({8, 1, 3});
+  triangles.push_back({9, 2, 0});
+  triangles.push_back({1, 7, 0});
+  triangles.push_back({11, 9, 6});
+  triangles.push_back({7, 10, 6});
+  triangles.push_back({5, 11, 4});
+  triangles.push_back({10, 8, 4});
 
   return std::make_pair(vertices, triangles);
 }
@@ -80,18 +81,18 @@ auto icosahedron()
      /        \      /  \  /  \
     /__________\    /____\/____\
 */
-void subdivide(std::vector<Point> &vertices, std::vector<int> &triangles)
+void subdivide(std::vector<Point> &vertices,
+               std::vector<Kokkos::Array<int, 3>> &triangles)
 {
   std::map<std::pair<int, int>, int> hash;
 
-  int const num_triangles = triangles.size() / 3;
+  int const num_triangles = triangles.size();
 
   int vindex = vertices.size();
-  std::vector<int> new_triangles;
+  std::vector<Kokkos::Array<int, 3>> new_triangles;
   for (int i = 0; i < num_triangles; ++i)
   {
-    int v[3] = {triangles[3 * i + 0], triangles[3 * i + 1],
-                triangles[3 * i + 2]};
+    int v[3] = {triangles[i][0], triangles[i][1], triangles[i][2]};
     int vmid[3];
 
     for (int j = 0; j < 3; ++j)
@@ -116,10 +117,10 @@ void subdivide(std::vector<Point> &vertices, std::vector<int> &triangles)
       }
     }
 
-    new_triangles.insert(new_triangles.end(), {v[0], vmid[0], vmid[2]});
-    new_triangles.insert(new_triangles.end(), {v[1], vmid[0], vmid[1]});
-    new_triangles.insert(new_triangles.end(), {v[2], vmid[2], vmid[1]});
-    new_triangles.insert(new_triangles.end(), {vmid[0], vmid[1], vmid[2]});
+    new_triangles.push_back({v[0], vmid[0], vmid[2]});
+    new_triangles.push_back({v[1], vmid[0], vmid[1]});
+    new_triangles.push_back({v[2], vmid[2], vmid[1]});
+    new_triangles.push_back({vmid[0], vmid[1], vmid[2]});
   }
   triangles = new_triangles;
 }
@@ -163,7 +164,7 @@ template <typename MemorySpace>
 struct Triangles
 {
   Kokkos::View<Point *, MemorySpace> _points;
-  Kokkos::View<int *, MemorySpace> _triangle_vertices;
+  Kokkos::View<Kokkos::Array<int, 3> *, MemorySpace> _triangle_vertices;
 };
 
 template <typename MemorySpace>
@@ -176,14 +177,13 @@ public:
 
   static KOKKOS_FUNCTION auto size(Self const &self)
   {
-    return self._triangle_vertices.size() / 3;
+    return self._triangle_vertices.size();
   }
   static KOKKOS_FUNCTION auto get(Self const &self, int i)
   {
     auto const &vertices = self._triangle_vertices;
-    return Triangle{self._points(vertices(3 * i + 0)),
-                    self._points(vertices(3 * i + 1)),
-                    self._points(vertices(3 * i + 2))};
+    return Triangle{self._points(vertices(i)[0]), self._points(vertices(i)[1]),
+                    self._points(vertices(i)[2])};
   }
 };
 
@@ -204,7 +204,7 @@ void writeVtk(std::string const &filename, Points const &vertices,
               Triangles const &triangles)
 {
   int const num_vertices = vertices.size();
-  int const num_elements = triangles.size() / 3;
+  int const num_elements = triangles.size();
 
   constexpr int DIM =
       ArborX::GeometryTraits::dimension_v<typename Points::value_type>;
@@ -228,14 +228,14 @@ void writeVtk(std::string const &filename, Points const &vertices,
     out << '\n';
   }
 
-  int const num_cell_vertices = 3;
+  constexpr int num_cell_vertices = 3;
   out << "\nPOLYGONS " << num_elements << " "
       << (num_elements * (1 + num_cell_vertices)) << '\n';
   for (int i = 0; i < num_elements; ++i)
   {
     out << num_cell_vertices;
     for (int j = 0; j < num_cell_vertices; ++j)
-      out << " " << triangles(i * num_cell_vertices + j);
+      out << " " << triangles(i)[j];
     out << '\n';
   }
 }

@@ -40,7 +40,10 @@ if(NOT WIN32)
   add_subdirectory(develop)
   add_subdirectory(union_find)
 endif()
-add_subdirectory(triangulated_surface_distance)
+
+if(Kokkos_VERSION VERSION_GREATER_EQUAL 4.3.99)
+  add_subdirectory(triangulated_surface_distance)
+endif()
 
 if (ARBORX_ENABLE_MPI)
   add_subdirectory(distributed_tree_driver)
