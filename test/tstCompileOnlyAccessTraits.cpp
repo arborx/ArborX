@@ -48,17 +48,6 @@ struct ArborX::AccessTraits<SizeMemberFunctionNotStatic, Tag>
   int size(SizeMemberFunctionNotStatic) { return 255; }
 };
 
-// Ensure legacy access traits are still valid
-struct LegacyAccessTraits
-{};
-template <typename Tag>
-struct ArborX::Traits::Access<LegacyAccessTraits, Tag>
-{
-  using memory_space = Kokkos::HostSpace;
-  static int size(LegacyAccessTraits) { return 0; }
-  static Point get(LegacyAccessTraits, int) { return {}; }
-};
-
 template <class V, class Tag>
 using deduce_type_t =
     decltype(ArborX::AccessTraits<V, Tag>::get(std::declval<V>(), 0));
@@ -117,8 +106,6 @@ void test_access_traits_compile_only()
   // check_valid_access_traits(PrimitivesTag{}, InvalidMemorySpace{});
 
   // check_valid_access_traits(PrimitivesTag{}, SizeMemberFunctionNotStatic{});
-
-  // check_valid_access_traits(PrimitivesTag{}, LegacyAccessTraits{});
 }
 
 void test_deduce_point_type_from_view()
