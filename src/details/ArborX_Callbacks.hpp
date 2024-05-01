@@ -31,9 +31,6 @@ enum class CallbackTreeTraversalControl
 namespace Details
 {
 
-struct [[deprecated]] InlineCallbackTag
-{};
-
 struct PostCallbackTag
 {};
 
