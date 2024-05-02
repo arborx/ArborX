@@ -70,11 +70,8 @@ struct Vector
   }
 };
 
-template <typename... T>
-Vector(T...) -> Vector<
-    sizeof...(T),
-    std::conditional_t<(... || std::is_same_v<std::decay_t<T>, double>), double,
-                       float>>;
+template <typename T, typename... U>
+Vector(T, U...) -> Vector<1 + sizeof...(U), T>;
 
 } // namespace ArborX::Details
 
