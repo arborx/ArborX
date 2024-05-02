@@ -20,7 +20,7 @@
 
 namespace ArborX::ExperimentalHyperGeometry
 {
-// Need to add a protection that the points are not on the same plance
+// Need to add a protection that the points are not on the same plane
 template <class Coordinate = float>
 struct Tetrahedron
 {
