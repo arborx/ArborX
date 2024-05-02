@@ -614,35 +614,3 @@ BOOST_AUTO_TEST_CASE(ray_triangle_intersection,
 
 #undef ARBORX_TEST_RAY_TRIANGLE_INTERSECTION
 #undef ARBORX_TEST_RAY_TRIANGLE_NO_INTERSECTION
-
-BOOST_AUTO_TEST_CASE(make_euclidean_vector)
-{
-  using ArborX::Experimental::makeVector;
-  using ArborX::Experimental::Vector;
-  using ArborX::ExperimentalHyperGeometry::Point;
-  static_assert(makeVector(Point{0, 0, 0}, Point{1, 2, 3}) == Vector{1, 2, 3});
-  static_assert(makeVector(Point{1, 2, 3}, Point{4, 5, 6}) == Vector{3, 3, 3});
-}
-
-BOOST_AUTO_TEST_CASE(dot_product)
-{
-  using ArborX::Experimental::dotProduct;
-  static_assert(dotProduct({1, 0, 0}, {1, 0, 0}) == 1);
-  static_assert(dotProduct({1, 0, 0}, {0, 1, 0}) == 0);
-  static_assert(dotProduct({1, 0, 0}, {0, 0, 1}) == 0);
-  static_assert(dotProduct({1, 1, 1}, {1, 1, 1}) == 3);
-}
-
-BOOST_AUTO_TEST_CASE(cross_product)
-{
-  using ArborX::Experimental::crossProduct;
-  using ArborX::Experimental::Vector;
-  static_assert(crossProduct({1, 0, 0}, {1, 0, 0}) == Vector{0, 0, 0});
-  static_assert(crossProduct({1, 0, 0}, {0, 1, 0}) == Vector{0, 0, 1});
-  static_assert(crossProduct({1, 0, 0}, {0, 0, 1}) == Vector{0, -1, 0});
-  static_assert(crossProduct({0, 1, 0}, {1, 0, 0}) == Vector{0, 0, -1});
-  static_assert(crossProduct({0, 1, 0}, {0, 1, 0}) == Vector{0, 0, 0});
-  static_assert(crossProduct({0, 1, 0}, {0, 0, 1}) == Vector{1, 0, 0});
-  static_assert(crossProduct({1, 1, 1}, {1, 1, 1}) == Vector{0, 0, 0});
-}
-#undef static_assert

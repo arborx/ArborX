@@ -15,6 +15,7 @@
 #include <ArborX_DetailsAlgorithms.hpp> // equal
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtSwap.hpp>
+#include <ArborX_DetailsVector.hpp>
 #include <ArborX_HyperTriangle.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
@@ -27,54 +28,10 @@
 namespace ArborX::Experimental
 {
 
-struct Vector : private Point
-{
-  using Point::Point;
-  using Point::operator[];
-  friend KOKKOS_FUNCTION constexpr bool operator==(Vector const &v,
-                                                   Vector const &w)
-  {
-    return v[0] == w[0] && v[1] == w[1] && v[2] == w[2];
-  }
-};
-
-template <typename Point1, typename Point2>
-KOKKOS_INLINE_FUNCTION constexpr std::enable_if_t<
-    GeometryTraits::is_point<Point1>::value &&
-        GeometryTraits::is_point<Point2>::value &&
-        GeometryTraits::dimension_v<Point1> == 3 &&
-        GeometryTraits::dimension_v<Point2> == 3,
-    Vector>
-makeVector(Point1 const &begin, Point2 const &end)
-{
-  Vector v;
-  for (int d = 0; d < 3; ++d)
-  {
-    v[d] = end[d] - begin[d];
-  }
-  return v;
-}
-
-KOKKOS_INLINE_FUNCTION constexpr auto dotProduct(Vector const &v,
-                                                 Vector const &w)
-{
-  return v[0] * w[0] + v[1] * w[1] + v[2] * w[2];
-}
-
-KOKKOS_INLINE_FUNCTION constexpr Vector crossProduct(Vector const &v,
-                                                     Vector const &w)
-{
-  return {v[1] * w[2] - v[2] * w[1], v[2] * w[0] - v[0] * w[2],
-          v[0] * w[1] - v[1] * w[0]};
-}
-
-KOKKOS_INLINE_FUNCTION constexpr bool equals(Vector const &v, Vector const &w)
-{
-  return v == w;
-}
-
 struct Ray
 {
+  using Vector = ArborX::Details::Vector<3>;
+
   Point _origin = {};
   Vector _direction = {};
 
@@ -133,7 +90,7 @@ KOKKOS_INLINE_FUNCTION
 constexpr bool equals(Ray const &l, Ray const &r)
 {
   using ArborX::Details::equals;
-  return equals(l.origin(), r.origin()) && equals(l.direction(), r.direction());
+  return equals(l.origin(), r.origin()) && l.direction() == r.direction();
 }
 
 KOKKOS_INLINE_FUNCTION
@@ -206,7 +163,7 @@ bool intersects(Ray const &ray, Box const &box)
 
 // The function returns the index of the largest
 // component of the direction vector.
-KOKKOS_INLINE_FUNCTION int findLargestComp(Vector const &dir)
+KOKKOS_INLINE_FUNCTION int findLargestComp(typename Ray::Vector const &dir)
 {
   int kz = 0;
 
@@ -303,6 +260,8 @@ bool intersection(Ray const &ray,
 {
   namespace KokkosExt = Details::KokkosExt;
 
+  using Vector = typename Ray::Vector;
+
   auto dir = ray.direction();
   // normalize the direction vector by its largest component.
   auto kz = findLargestComp(dir);
@@ -319,15 +278,20 @@ bool intersection(Ray const &ray,
   s[1] = dir[ky] * s[2];
 
   // calculate vertices relative to ray origin
-  Vector const oA = makeVector(ray.origin(), triangle.a);
-  Vector const oB = makeVector(ray.origin(), triangle.b);
-  Vector const oC = makeVector(ray.origin(), triangle.c);
+  constexpr int dim = GeometryTraits::dimension_v<Point>;
+  using Float = GeometryTraits::coordinate_type_t<Point>;
+  auto const &o =
+      reinterpret_cast<ExperimentalHyperGeometry::Point<dim, Float> const &>(
+          ray.origin());
+  auto const oA = triangle.a - o;
+  auto const oB = triangle.b - o;
+  auto const oC = triangle.c - o;
 
   // oA, oB, oB need to be normalized, otherwise they
   // will scale with the problem size.
-  float const mag_oA = std::sqrt(dotProduct(oA, oA));
-  float const mag_oB = std::sqrt(dotProduct(oB, oB));
-  float const mag_oC = std::sqrt(dotProduct(oC, oC));
+  auto const mag_oA = oA.norm();
+  auto const mag_oB = oB.norm();
+  auto const mag_oC = oC.norm();
 
   auto mag_bar = 3.0 / (mag_oA + mag_oB + mag_oC);
 
@@ -526,11 +490,11 @@ KOKKOS_INLINE_FUNCTION bool intersection(Ray const &ray, Sphere const &sphere,
   auto const &r = sphere.radius();
 
   // Vector oc = (origin_of_ray - center_of_sphere)
-  Vector const oc = makeVector(sphere.centroid(), ray.origin());
+  auto const oc = ray.origin() - sphere.centroid();
 
   float const a2 = 1.f; // directions are normalized
-  float const a1 = 2.f * dotProduct(ray.direction(), oc);
-  float const a0 = dotProduct(oc, oc) - r * r;
+  float const a1 = 2.f * oc.dot(ray.direction());
+  float const a0 = oc.dot(oc) - r * r;
 
   if (solveQuadratic(a2, a1, a0, tmin, tmax))
   {
