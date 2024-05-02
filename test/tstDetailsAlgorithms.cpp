@@ -15,6 +15,7 @@
 #include <ArborX_HyperPoint.hpp>
 #include <ArborX_HyperSphere.hpp>
 #include <ArborX_HyperTriangle.hpp>
+#include <ArborX_Tetrahedron.hpp>
 
 #include <boost/mpl/list.hpp>
 
@@ -25,6 +26,7 @@ using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
 using Box = ArborX::ExperimentalHyperGeometry::Box<3>;
 using Sphere = ArborX::ExperimentalHyperGeometry::Sphere<3>;
 using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<3>;
+using Tetrahedron = ArborX::ExperimentalHyperGeometry::Tetrahedron<>;
 
 BOOST_AUTO_TEST_CASE(distance_point_point)
 {
@@ -276,6 +278,19 @@ BOOST_AUTO_TEST_CASE(intersects)
       ArborX::ExperimentalHyperGeometry::Triangle<3>{
           {{.1, .1, .1}}, {{.1, .9, .1}}, {{.9, .1, .1}}},
       unit_box));
+
+  // tetrahedron
+  constexpr Tetrahedron tet{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+  BOOST_TEST(intersects(Point{0, 0, 0}, tet));
+  BOOST_TEST(intersects(Point{1, 0, 0}, tet));
+  BOOST_TEST(intersects(Point{0, 1, 0}, tet));
+  BOOST_TEST(intersects(Point{0, 0, 1}, tet));
+  BOOST_TEST(intersects(Point{0.2, 0.2, 0.1}, tet));
+  BOOST_TEST(!intersects(Point{-0.1, 0, 0}, tet));
+  BOOST_TEST(!intersects(Point{0, -0.1, 0}, tet));
+  BOOST_TEST(!intersects(Point{0, 0, 1.1}, tet));
+  BOOST_TEST(!intersects(Point{0.5, 0.5, 0.5}, tet));
+  BOOST_TEST(!intersects(Point{-0.5, 0.5, 0.5}, tet));
 }
 
 BOOST_AUTO_TEST_CASE(equals)
@@ -330,6 +345,13 @@ BOOST_AUTO_TEST_CASE(expand)
   BOOST_TEST(equals(box, Box{{{-24., -24., -24.}}, {{24., 24., 24.}}}));
   expand(box, Triangle{{{0, 0, 0}}, {{48, 0, 0}}, {{0, 48, 0}}});
   BOOST_TEST(equals(box, Box{{{-24., -24., -24.}}, {{48., 48., 24.}}}));
+
+  // expand box with tetrahedrons
+  box = Box{};
+  expand(box, Tetrahedron{{-1, -2, 3}, {1, 3, 2}, {0, 3, 7}, {-5, 4, 7}});
+  BOOST_TEST(equals(box, Box{{-5, -2, 2}, {1, 4, 7}}));
+  expand(box, Tetrahedron{{-3, -5, 2}, {2, 6, -1}, {3, 2, 3}, {5, 8, -3}});
+  BOOST_TEST(equals(box, Box{{-5, -5, -3}, {5, 8, 7}}));
 }
 
 BOOST_AUTO_TEST_CASE(centroid)
