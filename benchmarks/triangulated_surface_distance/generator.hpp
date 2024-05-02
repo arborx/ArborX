@@ -11,8 +11,25 @@
 
 #include <ArborX_HyperTriangle.hpp>
 
-#include <Kokkos_Array.hpp>
 #include <Kokkos_MathematicalConstants.hpp>
+
+#if KOKKOS_VERSION >= 40400
+#include <Kokkos_Array.hpp>
+using Array = Kokkos::Array;
+#else
+template <class T, size_t N>
+struct Array
+{
+  static constexpr auto size() { return N; }
+  KOKKOS_FUNCTION constexpr T &operator[](int i) { return _data[i]; }
+  KOKKOS_FUNCTION constexpr T const &operator[](int i) const
+  {
+    return _data[i];
+  }
+
+  T _data[N];
+};
+#endif
 
 static auto icosahedron()
 {
@@ -36,7 +53,7 @@ static auto icosahedron()
   vertices.push_back(Point{b, -a, 0});
   vertices.push_back(Point{-b, -a, 0});
 
-  std::vector<Kokkos::Array<int, 3>> triangles;
+  std::vector<Array<int, 3>> triangles;
 
   triangles.push_back({2, 1, 0});
   triangles.push_back({1, 2, 3});
@@ -62,8 +79,8 @@ static auto icosahedron()
   return std::make_tuple(vertices, triangles);
 }
 
-void convertTriangles2EdgeForm(std::vector<Kokkos::Array<int, 3>> &triangles,
-                               std::vector<Kokkos::Array<int, 2>> &edges)
+void convertTriangles2EdgeForm(std::vector<Array<int, 3>> &triangles,
+                               std::vector<Array<int, 2>> &edges)
 {
   std::map<std::pair<int, int>, int> hash;
 
@@ -94,8 +111,8 @@ void convertTriangles2EdgeForm(std::vector<Kokkos::Array<int, 3>> &triangles,
 template <typename ExecutionSpace, typename MemorySpace>
 void convertTriangles2VertexForm(
     ExecutionSpace const &space,
-    Kokkos::View<Kokkos::Array<int, 3> *, MemorySpace> &triangles,
-    Kokkos::View<Kokkos::Array<int, 2> *, MemorySpace> const &edges)
+    Kokkos::View<Array<int, 3> *, MemorySpace> &triangles,
+    Kokkos::View<Array<int, 2> *, MemorySpace> const &edges)
 {
   int const num_triangles = triangles.size();
   Kokkos::parallel_for(
@@ -126,8 +143,8 @@ template <typename ExecutionSpace, typename MemorySpace>
 void subdivide(ExecutionSpace const &space,
                Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<3> *,
                             MemorySpace> &vertices,
-               Kokkos::View<Kokkos::Array<int, 2> *, MemorySpace> &edges,
-               Kokkos::View<Kokkos::Array<int, 3> *, MemorySpace> &triangles)
+               Kokkos::View<Array<int, 2> *, MemorySpace> &edges,
+               Kokkos::View<Array<int, 3> *, MemorySpace> &triangles)
 {
   using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
 
@@ -138,7 +155,7 @@ void subdivide(ExecutionSpace const &space,
   Kokkos::resize(space, vertices, vertices.size() + edges.size());
 
   // Each edge is split in two, and each triangle adds three internal edges
-  Kokkos::View<Kokkos::Array<int, 2> *, MemorySpace> new_edges(
+  Kokkos::View<Array<int, 2> *, MemorySpace> new_edges(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "Benchmark::edges"),
       2 * num_edges + 3 * num_triangles);
@@ -157,7 +174,7 @@ void subdivide(ExecutionSpace const &space,
         new_edges(2 * i + 1) = {w, new_vindex};
       });
 
-  Kokkos::View<Kokkos::Array<int, 3> *, MemorySpace> new_triangles(
+  Kokkos::View<Array<int, 3> *, MemorySpace> new_triangles(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "Benchmark::triangles"),
       4 * num_triangles);
@@ -234,7 +251,7 @@ auto buildTriangles(ExecutionSpace const &space, float radius,
   auto [vertices_v, triangles_v] = icosahedron();
 
   // Convert to edge form
-  std::vector<Kokkos::Array<int, 2>> edges_v;
+  std::vector<Array<int, 2>> edges_v;
   convertTriangles2EdgeForm(triangles_v, edges_v);
 
   auto vertices = vec2view<MemorySpace>(vertices_v);

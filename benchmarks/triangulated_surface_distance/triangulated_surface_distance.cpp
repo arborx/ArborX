@@ -14,7 +14,6 @@
 #include <ArborX_HyperTriangle.hpp>
 #include <ArborX_Version.hpp>
 
-#include <Kokkos_Array.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
 
 #include <boost/program_options.hpp>
@@ -32,7 +31,7 @@ template <typename MemorySpace>
 struct Triangles
 {
   Kokkos::View<Point *, MemorySpace> _points;
-  Kokkos::View<Kokkos::Array<int, 3> *, MemorySpace> _triangle_vertices;
+  Kokkos::View<Array<int, 3> *, MemorySpace> _triangle_vertices;
 };
 
 template <typename MemorySpace>
