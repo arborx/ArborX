@@ -248,31 +248,6 @@ struct AccessTraits<Details::AccessValuesI<Values, Tag>, Tag>
   static decltype(auto) size(AccessValues const &w) { return w.size(); }
 };
 
-namespace Traits
-{
-using PredicatesTag [[deprecated("Use ArborX::PredicatesTag instead.")]] =
-    ::ArborX::PredicatesTag;
-using PrimitivesTag [[deprecated("Use ArborX::PrimitivesTag instead.")]] =
-    ::ArborX::PrimitivesTag;
-template <typename T, typename Tag, typename Enable = void>
-struct Access
-{
-  using not_specialized = void;
-};
-} // namespace Traits
-template <typename T, typename Tag>
-struct AccessTraits<
-    T, Tag,
-    std::enable_if_t<!Kokkos::is_detected<
-        AccessTraitsNotSpecializedArchetypeAlias, Traits::Access<T, Tag>>{}>>
-    : Traits::Access<T, Tag>
-{
-  template <class U>
-  static constexpr bool always_false = std::is_void_v<U>;
-  static_assert(
-      always_false<T>,
-      "ArborX::Traits::Access was removed. Use ArborX::AccessTraits instead");
-};
 } // namespace ArborX
 
 #endif
