@@ -20,7 +20,7 @@
 
 namespace ArborX::ExperimentalHyperGeometry
 {
-// Need to add a protection that the points are not on the same plane
+// Need to add a protection that the points are not in the same plane
 template <class Coordinate = float>
 struct Tetrahedron
 {
@@ -89,7 +89,7 @@ struct intersects<PointTag, TetrahedronTag, Point, Tetrahedron>
     Kokkos::Array<decltype(tet.a), N> v = {tet.a, tet.b, tet.c, tet.d};
 
     // For every plane check that the vertex lies within the same halfspace as
-    // the other tetrahedron vertex. This a simple but possibly not very
+    // the other tetrahedron vertex. This is a simple but possibly not very
     // efficient algorithm.
     for (int j = 0; j < N; ++j)
     {
