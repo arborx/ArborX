@@ -1,6 +1,6 @@
-set(POINT_CLOUDS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/benchmarks/point_clouds)
+set(BENCHMARKS_UTILS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/benchmarks/utils)
 
 add_executable(ArborX_Benchmark_TriangulatedSurfaceDistance.exe triangulated_surface_distance.cpp)
-target_include_directories(ArborX_Benchmark_TriangulatedSurfaceDistance.exe PRIVATE ${POINT_CLOUDS_INCLUDE_DIR})
+target_include_directories(ArborX_Benchmark_TriangulatedSurfaceDistance.exe PRIVATE ${BENCHMARKS_UTILS_INCLUDE_DIR})
 target_link_libraries(ArborX_Benchmark_TriangulatedSurfaceDistance.exe ArborX::ArborX Boost::program_options)
 add_test(NAME ArborX_Benchmark_TriangulatedSurfaceDistance COMMAND ArborX_Benchmark_TriangulatedSurfaceDistance.exe)
