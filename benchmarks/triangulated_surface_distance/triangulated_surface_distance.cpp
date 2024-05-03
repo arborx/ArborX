@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include <ArborX.hpp>
+#include <ArborXBenchmark_PointClouds.hpp>
 #include <ArborX_HyperTriangle.hpp>
 #include <ArborX_Version.hpp>
 
@@ -21,8 +22,6 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-
-#include <point_clouds.hpp>
 
 using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
 using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<3>;

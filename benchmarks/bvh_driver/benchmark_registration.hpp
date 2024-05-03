@@ -12,6 +12,7 @@
 #ifndef BENCHMARK_REGISTRATION_HPP
 #define BENCHMARK_REGISTRATION_HPP
 
+#include <ArborXBenchmark_PointClouds.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
 
@@ -21,7 +22,6 @@
 #include <cmath> // cbrt
 
 #include <benchmark/benchmark.h>
-#include <point_clouds.hpp>
 
 struct Spec
 {

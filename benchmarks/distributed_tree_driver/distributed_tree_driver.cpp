@@ -9,6 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <ArborXBenchmark_TimeMonitor.hpp>
 #include <ArborX_DistributedTree.hpp>
 #include <ArborX_PairIndexRank.hpp>
 #include <ArborX_Version.hpp>
@@ -23,7 +24,6 @@
 #include <vector>
 
 #include <mpi.h>
-#include <time_monitor.hpp>
 
 struct HelpPrinted
 {};

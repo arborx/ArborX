@@ -9,6 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <ArborXBenchmark_PointClouds.hpp>
 #include <ArborX_BoostRTreeHelpers.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Version.hpp>
@@ -21,7 +22,6 @@
 #include <iostream>
 
 #include "benchmark_registration.hpp"
-#include <point_clouds.hpp>
 
 #ifdef ARBORX_PERFORMANCE_TESTING
 #include <mpi.h>
