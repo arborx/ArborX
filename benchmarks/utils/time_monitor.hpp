@@ -8,8 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_TIME_MONITOR
-#define ARBORX_TIME_MONITOR
+#ifndef ARBORX_BENCHMARK_TIME_MONITOR
+#define ARBORX_BENCHMARK_TIME_MONITOR
 
 #include <algorithm> // min_element, max_element
 #include <cassert>
@@ -25,7 +25,7 @@
 
 #include <mpi.h>
 
-namespace Benchmarks
+namespace ArborXBenchmark
 {
 
 // The TimeMonitor class can be used to measure for a series of events, i.e. it
@@ -166,6 +166,6 @@ public:
   }
 };
 
-} // namespace Benchmarks
+} // namespace ArborXBenchmark
 
 #endif

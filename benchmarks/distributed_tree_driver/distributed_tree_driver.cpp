@@ -33,7 +33,7 @@ namespace bpo = boost::program_options;
 template <class NO>
 int main_(std::vector<std::string> const &args, MPI_Comm const comm)
 {
-  Benchmarks::TimeMonitor time_monitor;
+  ArborXBenchmark::TimeMonitor time_monitor;
 
   using DeviceType = typename NO::device_type;
   using ExecutionSpace = typename DeviceType::execution_space;
