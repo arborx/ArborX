@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_POINT_CLOUDS_HPP
-#define ARBORX_POINT_CLOUDS_HPP
+#ifndef ARBORX_BENCHMARK_POINT_CLOUDS_HPP
+#define ARBORX_BENCHMARK_POINT_CLOUDS_HPP
 
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_Exception.hpp>
@@ -20,6 +20,9 @@
 
 #include <fstream>
 #include <random>
+
+namespace ArborXBenchmark
+{
 
 enum class PointCloudType
 {
@@ -42,6 +45,9 @@ inline PointCloudType to_point_cloud_enum(std::string const &str)
   throw std::runtime_error(str +
                            " doesn't correspond to any known PointCloudType!");
 }
+
+namespace Details
+{
 
 template <class Point, typename... ViewProperties>
 void filledBoxCloud(double const half_edge,
@@ -167,6 +173,8 @@ void hollowSphereCloud(double const radius,
   }
 }
 
+} // namespace Details
+
 template <class Point, typename DeviceType>
 void generatePointCloud(PointCloudType const point_cloud_type,
                         double const length,
@@ -180,21 +188,23 @@ void generatePointCloud(PointCloudType const point_cloud_type,
   switch (point_cloud_type)
   {
   case PointCloudType::filled_box:
-    filledBoxCloud(length, random_points_host);
+    Details::filledBoxCloud(length, random_points_host);
     break;
   case PointCloudType::hollow_box:
-    hollowBoxCloud(length, random_points_host);
+    Details::hollowBoxCloud(length, random_points_host);
     break;
   case PointCloudType::filled_sphere:
-    filledSphereCloud(length, random_points_host);
+    Details::filledSphereCloud(length, random_points_host);
     break;
   case PointCloudType::hollow_sphere:
-    hollowSphereCloud(length, random_points_host);
+    Details::hollowSphereCloud(length, random_points_host);
     break;
   default:
     throw ArborX::SearchException("not implemented");
   }
   Kokkos::deep_copy(random_points, random_points_host);
 }
+
+} // namespace ArborXBenchmark
 
 #endif

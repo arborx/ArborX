@@ -294,7 +294,8 @@ int main(int argc, char *argv[])
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "Benchmark::points"),
       n);
-  generatePointCloud(PointCloudType::filled_box, std::cbrt(n), random_points);
+  ArborXBenchmark::generatePointCloud(
+      ArborXBenchmark::PointCloudType::filled_box, std::cbrt(n), random_points);
   Kokkos::Profiling::popRegion();
 
   std::cout << "#triangles        : " << triangles.size() << '\n';

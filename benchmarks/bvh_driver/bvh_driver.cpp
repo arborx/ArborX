@@ -21,6 +21,7 @@
 #include <iostream>
 
 #include "benchmark_registration.hpp"
+#include <point_clouds.hpp>
 
 #ifdef ARBORX_PERFORMANCE_TESTING
 #include <mpi.h>
@@ -275,8 +276,10 @@ int main(int argc, char *argv[])
   if (vm.count("exact-spec") == 0)
   {
     single_spec.backends = "all";
-    single_spec.source_point_cloud_type = to_point_cloud_enum(source_pt_cloud);
-    single_spec.target_point_cloud_type = to_point_cloud_enum(target_pt_cloud);
+    single_spec.source_point_cloud_type =
+        ArborXBenchmark::to_point_cloud_enum(source_pt_cloud);
+    single_spec.target_point_cloud_type =
+        ArborXBenchmark::to_point_cloud_enum(target_pt_cloud);
     specs.push_back(single_spec);
   }
 
