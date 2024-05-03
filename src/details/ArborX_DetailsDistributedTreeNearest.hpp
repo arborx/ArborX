@@ -220,8 +220,8 @@ void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
 
   // Accumulate total leave count in the local trees until it reaches k which
   // is the number of neighbors queried for.  Stop if local trees get
-  // empty because it means that they are no more leaves and there is no point
-  // on forwarding predicates to leafless trees.
+  // empty because it means that there are no more leaves and there is no point
+  // in forwarding predicates to leafless trees.
   auto const n_predicates = predicates.size();
   auto const &bottom_tree_sizes = tree._bottom_tree_sizes;
   Kokkos::View<int *, MemorySpace> new_offset(

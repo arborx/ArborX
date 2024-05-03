@@ -113,7 +113,8 @@ void sortResultsByKey(ExecutionSpace const &space, View keys,
                 std::is_arithmetic_v<typename ViewType::value_type>)
   {
     // If there's only one 1D view to process, we can avoid computing the
-    // permutation.
+    // permutation. We also avoid 1D views with non-arithmetic types as we
+    // can't guarantee they provide comparison operator.
     KokkosExt::sortByKey(space, keys, other_views...);
   }
   else
