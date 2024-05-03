@@ -243,12 +243,10 @@ void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
 }
 
 template <typename ExecutionSpace, typename OutputView, typename Offset,
-          typename Ranks, typename Ids,
-          typename Distances =
-              Kokkos::View<float *, typename OutputView::memory_space>>
+          typename Ranks, typename Ids>
 void communicateResultsBack(MPI_Comm comm, ExecutionSpace const &space,
                             OutputView &out, Offset const &offset, Ranks &ranks,
-                            Ids &ids, Distances *distances_ptr = nullptr)
+                            Ids &ids)
 {
   Kokkos::Profiling::ScopedRegion guard(
       "ArborX::DistributedTree::communicateResultsBack");
@@ -317,18 +315,6 @@ void communicateResultsBack(MPI_Comm comm, ExecutionSpace const &space,
 
     sendAcrossNetwork(space, distributor, export_out, import_out);
     out = import_out;
-  }
-
-  if (distances_ptr)
-  {
-    auto &distances = *distances_ptr;
-    Kokkos::View<float *, MemorySpace> export_distances = distances;
-    Kokkos::View<float *, MemorySpace> import_distances(
-        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                           distances.label()),
-        n_imports);
-    sendAcrossNetwork(space, distributor, export_distances, import_distances);
-    distances = import_distances;
   }
 }
 
