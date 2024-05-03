@@ -195,7 +195,7 @@ public:
       MPI_Comm_rank(base_type::getComm(), &comm_rank);
 
     base_type::query(space, predicates,
-                     Details::LegacyDefaultCallbackWithRank{comm_rank},
+                     Details::DefaultCallbackWithRank{comm_rank},
                      std::forward<IndicesAndRanks>(indices_and_ranks),
                      std::forward<OffsetView>(offset));
   }

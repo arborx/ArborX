@@ -54,6 +54,8 @@ struct PairRankIndex
 
 struct DistributedNearestCallback
 {
+  using tag = ArborX::Details::ConstrainedNearestCallbackTag;
+
   int rank;
 
   template <typename Predicate, typename Value, typename OutputFunctor>

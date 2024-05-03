@@ -84,7 +84,7 @@ struct LegacyCallbackWrapper
                                   PairValueIndex<Value, Index> const &value,
                                   Output const &out) const
   {
-    _callback(predicate, value.index, out);
+    _callback(predicate, (int)value.index, out);
   }
 };
 
@@ -96,23 +96,9 @@ struct LegacyDefaultCallback
                                   PairValueIndex<Value, Index> const &value,
                                   OutputFunctor const &output) const
   {
-    output(value.index);
+    output((int)value.index);
   }
 };
-
-#ifdef ARBORX_ENABLE_MPI
-struct LegacyDefaultCallbackWithRank
-{
-  int _rank;
-
-  template <typename Predicate, typename OutputFunctor>
-  KOKKOS_FUNCTION void operator()(Predicate const &, int primitive_index,
-                                  OutputFunctor const &out) const
-  {
-    out({primitive_index, _rank});
-  }
-};
-#endif
 
 struct LegacyDefaultTemplateValue
 {};

@@ -174,12 +174,10 @@ void DistributedTreeImpl::phaseII(ExecutionSpace const &space, Tree const &tree,
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
           typename Callback, typename Values, typename Offset>
-std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
-DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
-                                       ExecutionSpace const &space,
-                                       Predicates const &predicates,
-                                       Callback const &callback, Values &values,
-                                       Offset &offset)
+void DistributedTreeImpl::queryDispatch2RoundImpl(
+    NearestPredicateTag, Tree const &tree, ExecutionSpace const &space,
+    Predicates const &predicates, Callback const &callback, Values &values,
+    Offset &offset)
 {
   std::string prefix = "ArborX::DistributedTree::query::nearest";
 
@@ -222,20 +220,24 @@ DistributedTreeImpl::queryDispatch(NearestPredicateTag tag, Tree const &tree,
                                    Predicates const &predicates, Values &values,
                                    Offset &offset)
 {
-  queryDispatchImpl(tag, tree, space, predicates, DefaultCallback{}, values,
-                    offset);
+  queryDispatch2RoundImpl(tag, tree, space, predicates, DefaultCallback{},
+                          values, offset);
 }
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
           typename Callback, typename Values, typename Offset>
 std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
-DistributedTreeImpl::queryDispatch(NearestPredicateTag tag, Tree const &tree,
+DistributedTreeImpl::queryDispatch(NearestPredicateTag, Tree const &tree,
                                    ExecutionSpace const &space,
                                    Predicates const &predicates,
                                    Callback const &callback, Values &values,
                                    Offset &offset)
 {
-  queryDispatchImpl(tag, tree, space, predicates, callback, values, offset);
+  static_assert(Kokkos::is_detected_v<CallbackTagArchetypeAlias, Callback>);
+  static_assert(
+      std::is_same_v<typename Callback::tag, ConstrainedNearestCallbackTag>);
+  queryDispatch2RoundImpl(NearestPredicateTag{}, tree, space, predicates,
+                          callback, values, offset);
 }
 
 } // namespace ArborX::Details

@@ -11,6 +11,8 @@
 #ifndef ARBORX_CALLBACKS_HPP
 #define ARBORX_CALLBACKS_HPP
 
+#include <ArborX_Config.hpp>
+
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_Predicates.hpp> // is_valid_predicate_tag
 
@@ -43,6 +45,25 @@ struct DefaultCallback
     out(value);
   }
 };
+
+#ifdef ARBORX_ENABLE_MPI
+struct ConstrainedNearestCallbackTag
+{};
+
+struct DefaultCallbackWithRank
+{
+  using tag = ConstrainedNearestCallbackTag;
+
+  int _rank;
+
+  template <typename Predicate, typename Value, typename OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Predicate const &, Value const &value,
+                                  OutputFunctor const &out) const
+  {
+    out({value, _rank});
+  }
+};
+#endif
 
 // archetypal alias for a 'tag' type member in user callbacks
 template <typename Callback>
