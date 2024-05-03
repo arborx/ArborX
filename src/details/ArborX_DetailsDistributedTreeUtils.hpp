@@ -108,11 +108,13 @@ void sortResultsByKey(ExecutionSpace const &space, View keys,
   if (n == 0)
     return;
 
-  if constexpr (sizeof...(OtherViews) == 1 &&
-                std::tuple_element_t<0, std::tuple<OtherViews...>>::rank == 1)
+  using ViewType = std::tuple_element_t<0, std::tuple<OtherViews...>>;
+  if constexpr (sizeof...(OtherViews) == 1 && ViewType::rank == 1 &&
+                std::is_arithmetic_v<typename ViewType::value_type>)
   {
     // If there's only one 1D view to process, we can avoid computing the
-    // permutation.
+    // permutation. We also avoid 1D views with non-arithmetic types as we
+    // can't guarantee they provide comparison operator.
     KokkosExt::sortByKey(space, keys, other_views...);
   }
   else
@@ -328,6 +330,52 @@ void communicateResultsBack(MPI_Comm comm, ExecutionSpace const &space,
     sendAcrossNetwork(space, distributor, export_distances, import_distances);
     distances = import_distances;
   }
+}
+
+template <
+    typename ExecutionSpace, typename BottomTree, typename Predicates,
+    typename Callback, typename RanksTo, typename Offset, typename Values,
+    typename Ranks = Kokkos::View<int *, typename BottomTree::memory_space>>
+void forwardQueriesAndCommunicateResults(
+    MPI_Comm comm, ExecutionSpace const &space, BottomTree const &bottom_tree,
+    Predicates const &predicates, Callback const &callback,
+    RanksTo const &ranks_to, Offset &offset, Values &values,
+    Ranks *ranks_ptr = nullptr)
+{
+  std::string prefix =
+      "ArborX::DistributedTree::query::forwardQueriesAndCommunicateResults";
+  Kokkos::Profiling::ScopedRegion guard(prefix);
+
+  using Query = typename Predicates::value_type;
+  using MemorySpace = typename BottomTree::memory_space;
+
+  Ranks ranks_aux(prefix + "::ranks", 0);
+  auto &ranks = (ranks_ptr != nullptr ? *ranks_ptr : ranks_aux);
+
+  // Forward predicates
+  Kokkos::View<int *, MemorySpace> ids(prefix + "::query_ids", 0);
+  Kokkos::View<Query *, MemorySpace> fwd_predicates(prefix + "::fwd_predicates",
+                                                    0);
+  forwardQueries(comm, space, predicates, ranks_to, offset, fwd_predicates, ids,
+                 ranks);
+
+  // Perform predicates that have been received
+  bottom_tree.query(space, fwd_predicates, callback, values, offset);
+
+  // Communicate results back
+  communicateResultsBack(comm, space, values, offset, ranks, ids);
+
+  Kokkos::Profiling::pushRegion(prefix + "postprocess_results");
+
+  // Merge results
+  int const n_predicates = predicates.size();
+  countResults(space, n_predicates, ids, offset);
+  if (ranks_ptr != nullptr)
+    sortResultsByKey(space, ids, values, ranks);
+  else
+    sortResultsByKey(space, ids, values);
+
+  Kokkos::Profiling::popRegion();
 }
 
 template <typename ExecutionSpace, typename MemorySpace, typename Predicates,

@@ -45,53 +45,16 @@ DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
     return;
   }
 
-  using namespace DistributedTree;
   using MemorySpace = typename Tree::memory_space;
-
-  auto const &top_tree = tree._top_tree;
-  auto const &bottom_tree = tree._bottom_tree;
-  auto comm = tree.getComm();
 
   Kokkos::View<int *, MemorySpace> intersected_ranks(
       "ArborX::DistributedTree::query::spatial::intersected_ranks", 0);
-  top_tree.query(space, predicates, LegacyDefaultCallback{}, intersected_ranks,
-                 offset);
+  tree._top_tree.query(space, predicates, LegacyDefaultCallback{},
+                       intersected_ranks, offset);
 
-  Kokkos::View<int *, MemorySpace> ranks(
-      "ArborX::DistributedTree::query::spatial::ranks", 0);
-  {
-    // NOTE_COMM_SPATIAL: The communication pattern here for the spatial search
-    // is identical to that of the nearest search (see NOTE_COMM_NEAREST). The
-    // code differences are:
-    // - usage of callbacks
-    // - no explicit distances
-    // - no results filtering
-
-    // Forward predicates
-    using Query = typename Predicates::value_type;
-    Kokkos::View<int *, MemorySpace> ids(
-        "ArborX::DistributedTree::query::spatial::query_ids", 0);
-    Kokkos::View<Query *, MemorySpace> fwd_predicates(
-        "ArborX::DistributedTree::query::spatial::fwd_predicates", 0);
-    forwardQueries(comm, space, predicates, intersected_ranks, offset,
-                   fwd_predicates, ids, ranks);
-
-    // Perform predicates that have been received
-    bottom_tree.query(space, fwd_predicates, callback, values, offset);
-
-    // Communicate results back
-    communicateResultsBack(comm, space, values, offset, ranks, ids);
-
-    Kokkos::Profiling::pushRegion(
-        "ArborX::DistributedTree::spatial::postprocess_results");
-
-    // Merge results
-    int const n_predicates = predicates.size();
-    countResults(space, n_predicates, ids, offset);
-    sortResultsByKey(space, ids, values);
-
-    Kokkos::Profiling::popRegion();
-  }
+  DistributedTree::forwardQueriesAndCommunicateResults(
+      tree.getComm(), space, tree._bottom_tree, predicates, callback,
+      intersected_ranks, offset, values);
 }
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
