@@ -9,6 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <ArborXBenchmark_PointClouds.hpp>
 #include <ArborX_BoostRTreeHelpers.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Version.hpp>
@@ -275,8 +276,10 @@ int main(int argc, char *argv[])
   if (vm.count("exact-spec") == 0)
   {
     single_spec.backends = "all";
-    single_spec.source_point_cloud_type = to_point_cloud_enum(source_pt_cloud);
-    single_spec.target_point_cloud_type = to_point_cloud_enum(target_pt_cloud);
+    single_spec.source_point_cloud_type =
+        ArborXBenchmark::to_point_cloud_enum(source_pt_cloud);
+    single_spec.target_point_cloud_type =
+        ArborXBenchmark::to_point_cloud_enum(target_pt_cloud);
     specs.push_back(single_spec);
   }
 

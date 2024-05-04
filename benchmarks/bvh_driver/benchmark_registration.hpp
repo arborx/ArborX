@@ -12,6 +12,7 @@
 #ifndef BENCHMARK_REGISTRATION_HPP
 #define BENCHMARK_REGISTRATION_HPP
 
+#include <ArborXBenchmark_PointClouds.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
 
@@ -21,10 +22,11 @@
 #include <cmath> // cbrt
 
 #include <benchmark/benchmark.h>
-#include <point_clouds.hpp>
 
 struct Spec
 {
+  using PointCloudType = ArborXBenchmark::PointCloudType;
+
   std::string backends;
   int n_values;
   int n_queries;
@@ -98,7 +100,7 @@ struct Spec
 
 template <typename DeviceType>
 Kokkos::View<ArborX::Point *, DeviceType>
-constructPoints(int n_values, PointCloudType point_cloud_type)
+constructPoints(int n_values, ArborXBenchmark::PointCloudType point_cloud_type)
 {
   Kokkos::View<ArborX::Point *, DeviceType> random_points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
@@ -109,7 +111,7 @@ constructPoints(int n_values, PointCloudType point_cloud_type)
   // boxes 2x2x2 centered around a random point) will remain constant as
   // problem size is changed.
   auto const a = std::cbrt(n_values);
-  generatePointCloud(point_cloud_type, a, random_points);
+  ArborXBenchmark::generatePointCloud(point_cloud_type, a, random_points);
 
   return random_points;
 }
@@ -117,14 +119,15 @@ constructPoints(int n_values, PointCloudType point_cloud_type)
 template <typename DeviceType>
 Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
 makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
-                   PointCloudType target_point_cloud_type)
+                   ArborXBenchmark::PointCloudType target_point_cloud_type)
 {
   Kokkos::View<ArborX::Point *, DeviceType> random_points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
                          "Benchmark::random_points"),
       n_queries);
   auto const a = std::cbrt(n_values);
-  generatePointCloud(target_point_cloud_type, a, random_points);
+  ArborXBenchmark::generatePointCloud(target_point_cloud_type, a,
+                                      random_points);
 
   Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
       queries(
@@ -147,14 +150,15 @@ makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
 template <typename DeviceType>
 Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType>
 makeNearestQueries(int n_values, int n_queries, int n_neighbors,
-                   PointCloudType target_point_cloud_type)
+                   ArborXBenchmark::PointCloudType target_point_cloud_type)
 {
   Kokkos::View<ArborX::Point *, DeviceType> random_points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
                          "Benchmark::random_points"),
       n_queries);
   auto const a = std::cbrt(n_values);
-  generatePointCloud(target_point_cloud_type, a, random_points);
+  ArborXBenchmark::generatePointCloud(target_point_cloud_type, a,
+                                      random_points);
 
   Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> queries(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::queries"),
