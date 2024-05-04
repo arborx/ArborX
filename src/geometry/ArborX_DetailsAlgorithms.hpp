@@ -403,19 +403,6 @@ struct expand<BoxTag, PointTag, Box, Point>
   }
 };
 
-// expand a box to include a point
-template <typename Box, typename KDOP>
-struct expand<BoxTag, KDOPTag, Box, KDOP>
-{
-  KOKKOS_FUNCTION static void apply(Box &box, KDOP const &kdop)
-  {
-    // FIXME This is a workaround so that we can use existing conversion
-    // machinery for KDOP. In the long term, this should be replaced by a
-    // general algorithm.
-    Details::expand(box, (ArborX::Box)kdop);
-  }
-};
-
 // expand a box to include a box
 template <typename Box1, typename Box2>
 struct expand<BoxTag, BoxTag, Box1, Box2>

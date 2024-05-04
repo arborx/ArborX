@@ -15,9 +15,9 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
+#include <ArborX_DetailsVector.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_Point.hpp>
-#include <ArborX_Sphere.hpp>
+#include <ArborX_HyperPoint.hpp>
 
 #include <Kokkos_Array.hpp>
 #include <Kokkos_Macros.hpp>
@@ -26,132 +26,109 @@ namespace ArborX
 {
 namespace Details
 {
-template <typename Coordinate>
-struct Direction
-{
-  Coordinate _data[3];
-};
-
-template <int k, typename Coordinate>
+template <int DIM, int k, typename Coordinate>
 struct KDOP_Directions;
 
 template <typename Coordinate>
-struct KDOP_Directions<6, Coordinate>
+struct KDOP_Directions<3, 6, Coordinate>
 {
-protected:
   static constexpr int n_directions = 3;
   static KOKKOS_FUNCTION auto const &directions()
   {
-    static constexpr Kokkos::Array<Direction<Coordinate>, n_directions>
-        directions = {
-            Direction<Coordinate>{1, 0, 0},
-            Direction<Coordinate>{0, 1, 0},
-            Direction<Coordinate>{0, 0, 1},
-        };
+    using Direction = Vector<3, Coordinate>;
+    static constexpr Kokkos::Array<Direction, n_directions> directions = {
+        Direction{1, 0, 0},
+        Direction{0, 1, 0},
+        Direction{0, 0, 1},
+    };
     return directions;
   }
 };
 
 template <typename Coordinate>
-struct KDOP_Directions<14, Coordinate>
+struct KDOP_Directions<3, 14, Coordinate>
 {
-protected:
   static constexpr int n_directions = 7;
   static KOKKOS_FUNCTION auto const &directions()
   {
-    static constexpr Kokkos::Array<Direction<Coordinate>, n_directions>
-        directions = {
-            Direction<Coordinate>{1, 0, 0},
-            Direction<Coordinate>{0, 1, 0},
-            Direction<Coordinate>{0, 0, 1},
-            // corners
-            Direction<Coordinate>{1, 1, 1},
-            Direction<Coordinate>{1, -1, 1},
-            Direction<Coordinate>{1, 1, -1},
-            Direction<Coordinate>{1, -1, -1},
-        };
+    using Direction = Vector<3, Coordinate>;
+    static constexpr Kokkos::Array<Direction, n_directions> directions = {
+        Direction{1, 0, 0},
+        Direction{0, 1, 0},
+        Direction{0, 0, 1},
+        // corners
+        Direction{1, 1, 1},
+        Direction{1, -1, 1},
+        Direction{1, 1, -1},
+        Direction{1, -1, -1},
+    };
     return directions;
   }
 };
 
 template <typename Coordinate>
-struct KDOP_Directions<18, Coordinate>
+struct KDOP_Directions<3, 18, Coordinate>
 {
-protected:
   static constexpr int n_directions = 9;
   static KOKKOS_FUNCTION auto const &directions()
   {
-    static constexpr Kokkos::Array<Direction<Coordinate>, n_directions>
-        directions = {
-            Direction<Coordinate>{1, 0, 0},
-            Direction<Coordinate>{0, 1, 0},
-            Direction<Coordinate>{0, 0, 1},
-            // edges
-            Direction<Coordinate>{1, 1, 0},
-            Direction<Coordinate>{1, 0, 1},
-            Direction<Coordinate>{0, 1, 1},
-            Direction<Coordinate>{1, -1, 0},
-            Direction<Coordinate>{1, 0, -1},
-            Direction<Coordinate>{0, 1, -1},
-        };
+    using Direction = Vector<3, Coordinate>;
+    static constexpr Kokkos::Array<Direction, n_directions> directions = {
+        Direction{1, 0, 0},
+        Direction{0, 1, 0},
+        Direction{0, 0, 1},
+        // edges
+        Direction{1, 1, 0},
+        Direction{1, 0, 1},
+        Direction{0, 1, 1},
+        Direction{1, -1, 0},
+        Direction{1, 0, -1},
+        Direction{0, 1, -1},
+    };
     return directions;
   }
 };
 
 template <typename Coordinate>
-struct KDOP_Directions<26, Coordinate>
+struct KDOP_Directions<3, 26, Coordinate>
 {
-protected:
   static constexpr int n_directions = 13;
   static KOKKOS_FUNCTION auto const &directions()
   {
-    static constexpr Kokkos::Array<Direction<Coordinate>, n_directions>
-        directions = {
-            Direction<Coordinate>{1, 0, 0},
-            Direction<Coordinate>{0, 1, 0},
-            Direction<Coordinate>{0, 0, 1},
-            // edges
-            Direction<Coordinate>{1, 1, 0},
-            Direction<Coordinate>{1, 0, 1},
-            Direction<Coordinate>{0, 1, 1},
-            Direction<Coordinate>{1, -1, 0},
-            Direction<Coordinate>{1, 0, -1},
-            Direction<Coordinate>{0, 1, -1},
-            // corners
-            Direction<Coordinate>{1, 1, 1},
-            Direction<Coordinate>{1, -1, 1},
-            Direction<Coordinate>{1, 1, -1},
-            Direction<Coordinate>{1, -1, -1},
-        };
+    using Direction = Vector<3, Coordinate>;
+    static constexpr Kokkos::Array<Direction, n_directions> directions = {
+        Direction{1, 0, 0},
+        Direction{0, 1, 0},
+        Direction{0, 0, 1},
+        // edges
+        Direction{1, 1, 0},
+        Direction{1, 0, 1},
+        Direction{0, 1, 1},
+        Direction{1, -1, 0},
+        Direction{1, 0, -1},
+        Direction{0, 1, -1},
+        // corners
+        Direction{1, 1, 1},
+        Direction{1, -1, 1},
+        Direction{1, 1, -1},
+        Direction{1, -1, -1},
+    };
     return directions;
   }
 };
-template <typename Coordinate>
-KOKKOS_INLINE_FUNCTION auto project(Point const &p,
-                                    Direction<Coordinate> const &d)
-{
-  static_assert(
-      std::is_same_v<GeometryTraits::coordinate_type<Point>::type, Coordinate>);
-
-  Coordinate r = 0;
-  for (int i = 0; i < 3; ++i)
-  {
-    r += p[i] * d._data[i];
-  }
-  return r;
-}
 } // namespace Details
 
 namespace Experimental
 {
 
-template <int k, typename Coordinate = float>
-struct KDOP : private Details::KDOP_Directions<k, Coordinate>
+template <int DIM, int k, typename Coordinate = float>
+struct KDOP : public Details::KDOP_Directions<DIM, k, Coordinate>
 {
   static constexpr int n_directions =
-      Details::KDOP_Directions<k, Coordinate>::n_directions;
+      Details::KDOP_Directions<DIM, k, Coordinate>::n_directions;
   Kokkos::Array<Coordinate, n_directions> _min_values;
   Kokkos::Array<Coordinate, n_directions> _max_values;
+
   KOKKOS_FUNCTION KDOP()
   {
     for (int i = 0; i < n_directions; ++i)
@@ -162,19 +139,84 @@ struct KDOP : private Details::KDOP_Directions<k, Coordinate>
           Details::KokkosExt::ArithmeticTraits::finite_min<Coordinate>::value;
     }
   }
-  KOKKOS_FUNCTION KDOP &operator+=(Point const &p)
+
+  KOKKOS_FUNCTION explicit operator Box() const
+  {
+    Box box;
+    expand(box, *this);
+    return box;
+  }
+};
+} // namespace Experimental
+} // namespace ArborX
+
+template <int DIM, int k, typename Coordinate>
+struct ArborX::GeometryTraits::dimension<
+    ArborX::Experimental::KDOP<DIM, k, Coordinate>>
+{
+  static constexpr int value = DIM;
+};
+template <int DIM, int k, typename Coordinate>
+struct ArborX::GeometryTraits::tag<
+    ArborX::Experimental::KDOP<DIM, k, Coordinate>>
+{
+  using type = KDOPTag;
+};
+template <int DIM, int k, typename Coordinate>
+struct ArborX::GeometryTraits::coordinate_type<
+    ArborX::Experimental::KDOP<DIM, k, Coordinate>>
+{
+  using type = Coordinate;
+};
+
+namespace ArborX::Details::Dispatch
+{
+
+template <typename KDOP1, typename KDOP2>
+struct expand<KDOPTag, KDOPTag, KDOP1, KDOP2>
+{
+  KOKKOS_FUNCTION static void apply(KDOP1 &that, KDOP2 const &other)
   {
     using Details::KokkosExt::max;
     using Details::KokkosExt::min;
+
+    constexpr int n_directions = KDOP1::n_directions;
+    static_assert(KDOP2::n_directions == n_directions);
     for (int i = 0; i < n_directions; ++i)
     {
-      auto const proj_i = Details::project(p, this->directions()[i]);
-      _min_values[i] = min(_min_values[i], proj_i);
-      _max_values[i] = max(_max_values[i], proj_i);
+      that._min_values[i] = min(that._min_values[i], other._min_values[i]);
+      that._max_values[i] = max(that._max_values[i], other._max_values[i]);
     }
-    return *this;
   }
-  KOKKOS_FUNCTION KDOP &operator+=(Box const &b)
+};
+
+template <typename KDOP, typename Point>
+struct expand<KDOPTag, PointTag, KDOP, Point>
+{
+  KOKKOS_FUNCTION static void apply(KDOP &kdop, Point const &point)
+  {
+    using Details::KokkosExt::max;
+    using Details::KokkosExt::min;
+
+    constexpr int DIM = GeometryTraits::dimension_v<Point>;
+    constexpr int n_directions = KDOP::n_directions;
+    for (int i = 0; i < n_directions; ++i)
+    {
+      auto const &dir = kdop.directions()[i];
+      auto proj_i = point[0] * dir[0];
+      for (int d = 1; d < DIM; ++d)
+        proj_i += point[d] * dir[d];
+
+      kdop._min_values[i] = min(kdop._min_values[i], proj_i);
+      kdop._max_values[i] = max(kdop._max_values[i], proj_i);
+    }
+  }
+};
+
+template <typename KDOP, typename Box>
+struct expand<KDOPTag, BoxTag, KDOP, Box>
+{
+  KOKKOS_FUNCTION static void apply(KDOP &kdop, Box const &box)
   {
     // NOTE if any of the ranges is invalid, the code below would actually
     // expand the KDOP which is not what we want.
@@ -182,19 +224,15 @@ struct KDOP : private Details::KDOP_Directions<k, Coordinate>
     // precondition but this would be a breaking change (going from a wide to a
     // narrow contract).
     for (int i = 0; i < 3; ++i)
-    {
-      if (b.minCorner()[i] > b.maxCorner()[i])
-      {
-        return *this;
-      }
-    }
+      if (box.minCorner()[i] > box.maxCorner()[i])
+        return;
 
-    auto const xmin = b.minCorner()[0];
-    auto const ymin = b.minCorner()[1];
-    auto const zmin = b.minCorner()[2];
-    auto const xmax = b.maxCorner()[0];
-    auto const ymax = b.maxCorner()[1];
-    auto const zmax = b.maxCorner()[2];
+    auto const xmin = box.minCorner()[0];
+    auto const ymin = box.minCorner()[1];
+    auto const zmin = box.minCorner()[2];
+    auto const xmax = box.maxCorner()[0];
+    auto const ymax = box.maxCorner()[1];
+    auto const zmax = box.maxCorner()[2];
     for (auto const &point : {
              Point{xmin, ymin, zmin},
              Point{xmin, ymax, zmin},
@@ -206,56 +244,83 @@ struct KDOP : private Details::KDOP_Directions<k, Coordinate>
              Point{xmax, ymax, zmax},
          })
     {
-      *this += point;
+      Details::expand(kdop, point);
     }
-    return *this;
   }
-  KOKKOS_FUNCTION KDOP &operator+=(KDOP const &other)
+};
+
+template <typename Box, typename KDOP>
+struct expand<BoxTag, KDOPTag, Box, KDOP>
+{
+  KOKKOS_FUNCTION static void apply(Box &box, KDOP const &kdop)
   {
-    using Details::KokkosExt::max;
-    using Details::KokkosExt::min;
+    constexpr int DIM = GeometryTraits::dimension_v<KDOP>;
+
+    // WARNING implicit requirement on KDOP first DIM directions
+    Box other;
+    for (int d = 0; d < DIM; ++d)
+    {
+      other.minCorner()[d] = kdop._min_values[d];
+      other.maxCorner()[d] = kdop._max_values[d];
+    }
+    Details::expand(box, other);
+  }
+};
+
+template <typename KDOP, typename Box>
+struct intersects<KDOPTag, BoxTag, KDOP, Box>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(KDOP const &kdop, Box const &box)
+  {
+    KDOP other{};
+    Details::expand(other, box);
+    return Details::intersects(kdop, other);
+  }
+};
+
+template <typename Box, typename KDOP>
+struct intersects<BoxTag, KDOPTag, Box, KDOP>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Box const &box, KDOP const &kdop)
+  {
+    return Details::intersects(kdop, box);
+  }
+};
+
+template <typename Point, typename KDOP>
+struct intersects<PointTag, KDOPTag, Point, KDOP>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Point const &point,
+                                              KDOP const &kdop)
+  {
+    constexpr int DIM = GeometryTraits::dimension_v<Point>;
+    constexpr int n_directions = KDOP::n_directions;
     for (int i = 0; i < n_directions; ++i)
     {
-      _min_values[i] = min(_min_values[i], other._min_values[i]);
-      _max_values[i] = max(_max_values[i], other._max_values[i]);
-    }
-    return *this;
-  }
-  KOKKOS_FUNCTION explicit operator Box() const
-  {
-    // WARNING implicit requirement on KDOP first three directions
-    Box b{};
-    for (int i = 0; i < 3; ++i)
-    {
-      b.minCorner()[i] = _min_values[i];
-      b.maxCorner()[i] = _max_values[i];
-    }
-    return b;
-  }
-  KOKKOS_FUNCTION bool intersects(Point const &point) const
-  {
-    for (int i = 0; i < n_directions; ++i)
-    {
-      auto const proj_i = Details::project(point, this->directions()[i]);
-      if (proj_i < _min_values[i] || proj_i > _max_values[i])
-      {
+      auto const &dir = kdop.directions()[i];
+      auto proj_i = point[0] * dir[0];
+      for (int d = 1; d < DIM; ++d)
+        proj_i += point[d] * dir[d];
+
+      if (proj_i < kdop._min_values[i] || proj_i > kdop._max_values[i])
         return false;
-      }
     }
     return true;
   }
-  KOKKOS_FUNCTION bool intersects(Box const &box) const
+};
+
+template <typename KDOP1, typename KDOP2>
+struct intersects<KDOPTag, KDOPTag, KDOP1, KDOP2>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(KDOP1 const &kdop,
+                                              KDOP2 const &other)
   {
-    KDOP other{};
-    other += box;
-    return intersects(other);
-  }
-  KOKKOS_FUNCTION bool intersects(KDOP<k> const &other) const
-  {
-    for (int i = 0; i < n_directions; ++i)
+    constexpr int n_directions = KDOP1::n_directions;
+    static_assert(KDOP2::n_directions == n_directions);
+    for (int i = 0; i < kdop.n_directions; ++i)
     {
-      if (other._max_values[i] < _min_values[i] ||
-          other._min_values[i] > _max_values[i])
+      if (other._max_values[i] < kdop._min_values[i] ||
+          other._min_values[i] > kdop._max_values[i])
       {
         return false;
       }
@@ -264,86 +329,22 @@ struct KDOP : private Details::KDOP_Directions<k, Coordinate>
   }
 };
 
-template <int k>
-KOKKOS_INLINE_FUNCTION void expand(KDOP<k> &that, KDOP<k> const &other)
-{
-  that += other;
-}
-
-template <int k>
-KOKKOS_INLINE_FUNCTION void expand(KDOP<k> &that, Point const &point)
-{
-  that += point;
-}
-
-template <int k>
-KOKKOS_INLINE_FUNCTION void expand(KDOP<k> &that, Box const &box)
-{
-  that += box;
-}
-
-template <int k>
-KOKKOS_INLINE_FUNCTION void expand(Box &a, KDOP<k> const &b)
-{
-  ArborX::Details::expand(a, (Box)b);
-}
-
-// NOTE intersects(predicate_geometry, bounding_volume)
-template <int k>
-KOKKOS_INLINE_FUNCTION bool intersects(Box const &a, KDOP<k> const &b)
-{
-  return b.intersects(a);
-}
-
-template <int k>
-KOKKOS_INLINE_FUNCTION bool intersects(KDOP<k> const &a, Box const &b)
-{
-  return a.intersects(b);
-}
-
-template <int k>
-KOKKOS_INLINE_FUNCTION bool intersects(Point const &p, KDOP<k> const &x)
-{
-  return x.intersects(p);
-}
-
-template <int k>
-KOKKOS_INLINE_FUNCTION bool intersects(KDOP<k> const &a, KDOP<k> const &b)
-{
-  return a.intersects(b);
-}
-
-} // namespace Experimental
-} // namespace ArborX
-
 template <typename KDOP>
-struct ArborX::Details::Dispatch::centroid<ArborX::GeometryTraits::KDOPTag,
-                                           KDOP>
+struct centroid<KDOPTag, KDOP>
 {
   KOKKOS_FUNCTION static auto apply(KDOP const &kdop)
   {
-    // FIXME approximation
-    using Box = ArborX::Box;
-    return centroid<BoxTag, Box>::apply((Box)kdop);
+    constexpr int DIM = GeometryTraits::dimension_v<KDOP>;
+    using Coordinate = GeometryTraits::coordinate_type_t<KDOP>;
+
+    // WARNING implicit requirement on KDOP first DIM directions
+    ExperimentalHyperGeometry::Point<DIM, Coordinate> point;
+    for (int d = 0; d < DIM; ++d)
+      point[d] = (kdop._min_values[d] + kdop._max_values[d]) / 2;
+    return point;
   }
 };
 
-template <int k, typename Coordinate>
-struct ArborX::GeometryTraits::dimension<
-    ArborX::Experimental::KDOP<k, Coordinate>>
-{
-  static constexpr int value = 3;
-};
-template <int k, typename Coordinate>
-struct ArborX::GeometryTraits::tag<ArborX::Experimental::KDOP<k, Coordinate>>
-{
-  using type = KDOPTag;
-};
-template <int k, typename Coordinate>
-struct ArborX::GeometryTraits::coordinate_type<
-    ArborX::Experimental::KDOP<k, Coordinate>>
-{
-  using type = Coordinate;
-};
+} // namespace ArborX::Details::Dispatch
 
 #endif
