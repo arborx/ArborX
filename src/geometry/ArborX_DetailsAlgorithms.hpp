@@ -391,7 +391,15 @@ struct expand<BoxTag, PointTag, Box, Point>
 {
   KOKKOS_FUNCTION static void apply(Box &box, Point const &point)
   {
-    box += point;
+    using Details::KokkosExt::max;
+    using Details::KokkosExt::min;
+
+    constexpr int DIM = GeometryTraits::dimension_v<Box>;
+    for (int d = 0; d < DIM; ++d)
+    {
+      box.minCorner()[d] = min(box.minCorner()[d], point[d]);
+      box.maxCorner()[d] = max(box.maxCorner()[d], point[d]);
+    }
   }
 };
 
@@ -414,7 +422,15 @@ struct expand<BoxTag, BoxTag, Box1, Box2>
 {
   KOKKOS_FUNCTION static void apply(Box1 &box, Box2 const &other)
   {
-    box += other;
+    using Details::KokkosExt::max;
+    using Details::KokkosExt::min;
+
+    constexpr int DIM = GeometryTraits::dimension_v<Box1>;
+    for (int d = 0; d < DIM; ++d)
+    {
+      box.minCorner()[d] = min(box.minCorner()[d], other.minCorner()[d]);
+      box.maxCorner()[d] = max(box.maxCorner()[d], other.maxCorner()[d]);
+    }
   }
 };
 
