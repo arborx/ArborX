@@ -63,36 +63,6 @@ struct Box
 
   Point<DIM, Coordinate> _min_corner;
   Point<DIM, Coordinate> _max_corner;
-
-  template <typename OtherBox,
-            std::enable_if_t<GeometryTraits::is_box<OtherBox>{}> * = nullptr>
-  KOKKOS_FUNCTION auto &operator+=(OtherBox const &other)
-  {
-    using Details::KokkosExt::max;
-    using Details::KokkosExt::min;
-
-    for (int d = 0; d < DIM; ++d)
-    {
-      minCorner()[d] = min(minCorner()[d], other.minCorner()[d]);
-      maxCorner()[d] = max(maxCorner()[d], other.maxCorner()[d]);
-    }
-    return *this;
-  }
-
-  template <typename Point,
-            std::enable_if_t<GeometryTraits::is_point_v<Point>> * = nullptr>
-  KOKKOS_FUNCTION auto &operator+=(Point const &point)
-  {
-    using Details::KokkosExt::max;
-    using Details::KokkosExt::min;
-
-    for (int d = 0; d < DIM; ++d)
-    {
-      minCorner()[d] = min(minCorner()[d], point[d]);
-      maxCorner()[d] = max(maxCorner()[d], point[d]);
-    }
-    return *this;
-  }
 };
 
 } // namespace ArborX::ExperimentalHyperGeometry
@@ -117,7 +87,7 @@ struct ArborX::GeometryTraits::coordinate_type<
 };
 
 template <int DIM, typename Coordinate>
-struct Kokkos::reduction_identity<
+struct [[deprecated]] Kokkos::reduction_identity<
     ArborX::ExperimentalHyperGeometry::Box<DIM, Coordinate>>
 {
   KOKKOS_FUNCTION static ArborX::ExperimentalHyperGeometry::Box<DIM, Coordinate>

@@ -59,7 +59,8 @@ struct Box
        Details::KokkosExt::ArithmeticTraits::finite_min<float>::value,
        Details::KokkosExt::ArithmeticTraits::finite_min<float>::value}};
 
-  KOKKOS_FUNCTION Box &operator+=(Box const &other)
+  [[deprecated("Use expand(Box, Box) instead.")]] KOKKOS_FUNCTION Box &
+  operator+=(Box const &other)
   {
     using Details::KokkosExt::max;
     using Details::KokkosExt::min;
@@ -72,7 +73,8 @@ struct Box
     return *this;
   }
 
-  KOKKOS_FUNCTION Box &operator+=(Point const &point)
+  [[deprecated("Use expand(Box, Point) instead.")]] KOKKOS_FUNCTION Box &
+  operator+=(Point const &point)
   {
     using Details::KokkosExt::max;
     using Details::KokkosExt::min;
@@ -88,7 +90,7 @@ struct Box
 // FIXME Temporary workaround until we clarify requirements on the Kokkos side.
 #if defined(KOKKOS_ENABLE_OPENMPTARGET) || defined(KOKKOS_ENABLE_SYCL)
 private:
-  friend KOKKOS_FUNCTION Box operator+(Box box, Box const &other)
+  [[deprecated]] friend KOKKOS_FUNCTION Box operator+(Box box, Box const &other)
   {
     return box += other;
   }
@@ -114,7 +116,7 @@ struct ArborX::GeometryTraits::coordinate_type<ArborX::Box>
 } // namespace ArborX
 
 template <>
-struct Kokkos::reduction_identity<ArborX::Box>
+struct [[deprecated]] Kokkos::reduction_identity<ArborX::Box>
 {
   KOKKOS_FUNCTION static ArborX::Box sum() { return {}; }
 };
