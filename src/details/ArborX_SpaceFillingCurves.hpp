@@ -43,7 +43,8 @@ struct Morton32
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box,
                                   Geometry const &geometry) const
   {
-    auto p = Details::returnCentroid(geometry);
+    using Details::returnCentroid;
+    auto p = returnCentroid(geometry);
     Details::translateAndScale(p, p, scene_bounding_box);
     return Details::morton32(p);
   }
@@ -65,7 +66,8 @@ struct Morton64
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box,
                                   Geometry const &geometry) const
   {
-    auto p = Details::returnCentroid(geometry);
+    using Details::returnCentroid;
+    auto p = returnCentroid(geometry);
     Details::translateAndScale(p, p, scene_bounding_box);
     return Details::morton64(p);
   }
