@@ -8,13 +8,11 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_DETAILS_KOKKOS_EXT_STD_MEMORY_HPP
-#define ARBORX_DETAILS_KOKKOS_EXT_STD_MEMORY_HPP
+#ifndef ARBORX_DETAILS_KOKKOS_EXT_UNINITIALIZED_MEMORY_ALGORITHMS_HPP
+#define ARBORX_DETAILS_KOKKOS_EXT_UNINITIALIZED_MEMORY_ALGORITHMS_HPP
 
 #include <Kokkos_Assert.hpp>
 #include <Kokkos_Macros.hpp>
-
-#include <utility>
 
 namespace ArborX::Details::KokkosExt
 {
@@ -23,7 +21,7 @@ template <class T, class... Args>
 KOKKOS_FUNCTION constexpr T *construct_at(T *p, Args &&...args)
 {
   return ::new (const_cast<void *>(static_cast<void const volatile *>(p)))
-      T(std::forward<Args>(args)...);
+      T((Args &&) args...);
 }
 
 template <class T>
