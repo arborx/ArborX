@@ -10,7 +10,7 @@
  ****************************************************************************/
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
-#include <ArborX_DetailsKokkosExtMemory.hpp>
+#include <ArborX_DetailsKokkosExtUninitializedMemoryAlgorithms.hpp>
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -18,7 +18,7 @@
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
 
-#define BOOST_TEST_MODULE KokkosExtMemory
+#define BOOST_TEST_MODULE KokkosExtUninitializedMemoryAlgorithms
 
 namespace tt = boost::test_tools;
 

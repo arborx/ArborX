@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2024 by the ArborX authors                                 *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -11,6 +11,7 @@
 #ifndef ARBORX_DETAILS_KOKKOS_EXT_STD_MEMORY_HPP
 #define ARBORX_DETAILS_KOKKOS_EXT_STD_MEMORY_HPP
 
+#include <Kokkos_Assert.hpp>
 #include <Kokkos_Macros.hpp>
 
 #include <utility>
@@ -19,14 +20,16 @@ namespace ArborX::Details::KokkosExt
 {
 
 template <class T, class... Args>
-KOKKOS_INLINE_FUNCTION constexpr T *construct_at(T *p, Args &&...args)
+KOKKOS_FUNCTION constexpr T *construct_at(T *p, Args &&...args)
 {
-  return ::new (static_cast<void *>(p)) T(std::forward<Args>(args)...);
+  return ::new (const_cast<void *>(static_cast<void const volatile *>(p)))
+      T(std::forward<Args>(args)...);
 }
 
 template <class T>
-KOKKOS_INLINE_FUNCTION constexpr void destroy_at(T *p)
+KOKKOS_FUNCTION constexpr void destroy_at(T *p)
 {
+  KOKKOS_ASSERT(p != nullptr);
   p->~T();
 }
 
