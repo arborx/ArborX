@@ -217,7 +217,8 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     // Exit early if either no results were found for any of the queries, or
     // nothing was inserted inside a callback for found results. This check
     // guarantees that the second pass will not be executed.
-    Kokkos::resize(out, 0);
+    Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing), out,
+                   0);
     // FIXME: do we need to reset offset if it was preallocated here?
     Kokkos::Profiling::popRegion();
     return;
