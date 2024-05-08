@@ -39,4 +39,5 @@ IncludeCategories:
 # Finally the standard library
   - Regex: "<[a-z_]+>"
     Priority: 10
-QualifierAlignment: Right
+QualifierAlignment: Custom
+QualifierOrder: ['static', 'inline', 'constexpr', 'type', 'const', 'volatile']
