@@ -28,7 +28,11 @@ struct NoDefaultConstructor
   KOKKOS_FUNCTION NoDefaultConstructor(int x)
       : value(x)
   {}
-  KOKKOS_FUNCTION ~NoDefaultConstructor() { value = -1; }
+  KOKKOS_FUNCTION ~NoDefaultConstructor()
+  {
+    // Make sure compiler does not optimize out the write
+    *((int volatile *)&value) = -1;
+  }
 };
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(construct_destroy_at, DeviceType,
@@ -55,7 +59,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(construct_destroy_at, DeviceType,
   Kokkos::parallel_for(
       "Test::destroy", Kokkos::RangePolicy<ExecutionSpace>(exec, 0, n),
       KOKKOS_LAMBDA(int i) { destroy_at(&view(i)); });
-  Kokkos::deep_copy(exec, view_host, view);
+  Kokkos::deep_copy(view_host, view);
   BOOST_TEST(view_host(0).value == -1);
   BOOST_TEST(view_host(1).value == -1);
 }
