@@ -14,7 +14,6 @@
 #include <ArborX_HyperTriangle.hpp>
 #include <ArborX_Version.hpp>
 
-#include <Kokkos_MathematicalConstants.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
 
 #include <boost/program_options.hpp>
@@ -23,147 +22,16 @@
 #include <iostream>
 #include <string>
 
+#include "generator.hpp"
+
 using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
 using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<3>;
-
-auto icosahedron()
-{
-  auto a = Kokkos::numbers::phi_v<float>;
-  auto b = 1.f;
-
-  std::vector<Point> vertices;
-
-  vertices.push_back(Point{0, b, -a});
-  vertices.push_back(Point{b, a, 0});
-  vertices.push_back(Point{-b, a, 0});
-  vertices.push_back(Point{0, b, a});
-  vertices.push_back(Point{0, -b, a});
-  vertices.push_back(Point{-a, 0, b});
-  vertices.push_back(Point{0, -b, -a});
-  vertices.push_back(Point{a, 0, -b});
-  vertices.push_back(Point{a, 0, b});
-  vertices.push_back(Point{-a, 0, -b});
-  vertices.push_back(Point{b, -a, 0});
-  vertices.push_back(Point{-b, -a, 0});
-
-  std::vector<int> triangles;
-
-  triangles.insert(triangles.end(), {2, 1, 0});
-  triangles.insert(triangles.end(), {1, 2, 3});
-  triangles.insert(triangles.end(), {5, 4, 3});
-  triangles.insert(triangles.end(), {4, 8, 3});
-  triangles.insert(triangles.end(), {7, 6, 0});
-  triangles.insert(triangles.end(), {6, 9, 0});
-  triangles.insert(triangles.end(), {11, 10, 4});
-  triangles.insert(triangles.end(), {10, 11, 6});
-  triangles.insert(triangles.end(), {9, 5, 2});
-  triangles.insert(triangles.end(), {5, 9, 11});
-  triangles.insert(triangles.end(), {8, 7, 1});
-  triangles.insert(triangles.end(), {7, 8, 10});
-  triangles.insert(triangles.end(), {2, 5, 3});
-  triangles.insert(triangles.end(), {8, 1, 3});
-  triangles.insert(triangles.end(), {9, 2, 0});
-  triangles.insert(triangles.end(), {1, 7, 0});
-  triangles.insert(triangles.end(), {11, 9, 6});
-  triangles.insert(triangles.end(), {7, 10, 6});
-  triangles.insert(triangles.end(), {5, 11, 4});
-  triangles.insert(triangles.end(), {10, 8, 4});
-
-  return std::make_pair(vertices, triangles);
-}
-
-/* Subdivide every triangle into four
-         /\              /\
-        /  \            /  \
-       /    \   --->   /____\
-      /      \        /\    /\
-     /        \      /  \  /  \
-    /__________\    /____\/____\
-*/
-void subdivide(std::vector<Point> &vertices, std::vector<int> &triangles)
-{
-  std::map<std::pair<int, int>, int> hash;
-
-  int const num_triangles = triangles.size() / 3;
-
-  int vindex = vertices.size();
-  std::vector<int> new_triangles;
-  for (int i = 0; i < num_triangles; ++i)
-  {
-    int v[3] = {triangles[3 * i + 0], triangles[3 * i + 1],
-                triangles[3 * i + 2]};
-    int vmid[3];
-
-    for (int j = 0; j < 3; ++j)
-    {
-      int vmin = std::min(v[j], v[(j + 1) % 3]);
-      int vmax = std::max(v[j], v[(j + 1) % 3]);
-
-      auto it = hash.find(std::make_pair(vmin, vmax));
-      if (it != hash.end())
-      {
-        vmid[j] = it->second;
-      }
-      else
-      {
-        vmid[j] = vindex;
-        hash[std::make_pair(vmin, vmax)] = vindex;
-        ++vindex;
-
-        vertices.push_back(Point{(vertices[vmin][0] + vertices[vmax][0]) / 2,
-                                 (vertices[vmin][1] + vertices[vmax][1]) / 2,
-                                 (vertices[vmin][2] + vertices[vmax][2]) / 2});
-      }
-    }
-
-    new_triangles.insert(new_triangles.end(), {v[0], vmid[0], vmid[2]});
-    new_triangles.insert(new_triangles.end(), {v[1], vmid[0], vmid[1]});
-    new_triangles.insert(new_triangles.end(), {v[2], vmid[2], vmid[1]});
-    new_triangles.insert(new_triangles.end(), {vmid[0], vmid[1], vmid[2]});
-  }
-  triangles = new_triangles;
-}
-
-void projectVerticesToSphere(std::vector<Point> &vertices, float radius)
-{
-  for (auto &v : vertices)
-  {
-    auto norm = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-    v[0] *= radius / norm;
-    v[1] *= radius / norm;
-    v[2] *= radius / norm;
-  }
-}
-
-auto buildTriangles(float radius, int num_refinements)
-{
-  Kokkos::Profiling::ScopedRegion guard("Benchmark::build_triangles");
-
-  auto [vertices, triangles] = icosahedron();
-  for (int i = 1; i <= num_refinements; ++i)
-    subdivide(vertices, triangles);
-
-  projectVerticesToSphere(vertices, radius);
-
-  return std::make_pair(vertices, triangles);
-}
-
-template <typename... P, typename T>
-auto vec2view(std::vector<T> const &in, std::string const &label = "")
-{
-  Kokkos::View<T *, P...> out(
-      Kokkos::view_alloc(label, Kokkos::WithoutInitializing), in.size());
-  Kokkos::deep_copy(out, Kokkos::View<T const *, Kokkos::HostSpace,
-                                      Kokkos::MemoryTraits<Kokkos::Unmanaged>>{
-                             in.data(), in.size()});
-  return out;
-}
 
 template <typename MemorySpace>
 struct Triangles
 {
   Kokkos::View<Point *, MemorySpace> _points;
-  Kokkos::View<int *, MemorySpace> _triangle_vertices;
+  Kokkos::View<KokkosArray<int, 3> *, MemorySpace> _triangle_vertices;
 };
 
 template <typename MemorySpace>
@@ -176,14 +44,13 @@ public:
 
   static KOKKOS_FUNCTION auto size(Self const &self)
   {
-    return self._triangle_vertices.size() / 3;
+    return self._triangle_vertices.size();
   }
   static KOKKOS_FUNCTION auto get(Self const &self, int i)
   {
     auto const &vertices = self._triangle_vertices;
-    return Triangle{self._points(vertices(3 * i + 0)),
-                    self._points(vertices(3 * i + 1)),
-                    self._points(vertices(3 * i + 2))};
+    return Triangle{self._points(vertices(i)[0]), self._points(vertices(i)[1]),
+                    self._points(vertices(i)[2])};
   }
 };
 
@@ -204,7 +71,7 @@ void writeVtk(std::string const &filename, Points const &vertices,
               Triangles const &triangles)
 {
   int const num_vertices = vertices.size();
-  int const num_elements = triangles.size() / 3;
+  int const num_elements = triangles.size();
 
   constexpr int DIM =
       ArborX::GeometryTraits::dimension_v<typename Points::value_type>;
@@ -228,14 +95,14 @@ void writeVtk(std::string const &filename, Points const &vertices,
     out << '\n';
   }
 
-  int const num_cell_vertices = 3;
+  constexpr int num_cell_vertices = 3;
   out << "\nPOLYGONS " << num_elements << " "
       << (num_elements * (1 + num_cell_vertices)) << '\n';
   for (int i = 0; i < num_elements; ++i)
   {
     out << num_cell_vertices;
     for (int j = 0; j < num_cell_vertices; ++j)
-      out << " " << triangles(i * num_cell_vertices + j);
+      out << " " << triangles(i)[j];
     out << '\n';
   }
 }
@@ -278,15 +145,13 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  auto [vertices_v, triangles_v] = buildTriangles(radius, num_refinements);
+  ExecutionSpace space;
 
-  auto vertices = vec2view<MemorySpace>(vertices_v);
-  auto triangles = vec2view<MemorySpace>(triangles_v);
+  auto [vertices, triangles] =
+      buildTriangles<MemorySpace>(space, radius, num_refinements);
 
   if (!vtk_filename.empty())
     writeVtk(vtk_filename, vertices, triangles);
-
-  ExecutionSpace space;
 
   Kokkos::Profiling::pushRegion("Benchmark::build_points");
   Kokkos::View<Point *, MemorySpace> random_points(
