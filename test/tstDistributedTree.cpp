@@ -54,8 +54,6 @@ struct PairRankIndex
 
 struct DistributedNearestCallback
 {
-  using tag = ArborX::Details::ConstrainedNearestCallbackTag;
-
   int rank;
 
   template <typename Predicate, typename Value, typename OutputFunctor>
@@ -167,19 +165,22 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
   // Now do the same with callbacks
   if (comm_rank < comm_size - 1)
   {
-    ARBORX_TEST_QUERY_TREE_CALLBACK(ExecutionSpace{}, tree, nearest_queries,
-                                    DistributedNearestCallback{comm_rank},
-                                    make_reference_solution<PairRankIndex>(
-                                        {{comm_size - 1 - comm_rank, 0},
-                                         {comm_size - 2 - comm_rank, n - 1},
-                                         {comm_size - 1 - comm_rank, 1}},
-                                        {0, 3}));
+    ARBORX_TEST_QUERY_TREE_CALLBACK(
+        ExecutionSpace{}, tree, nearest_queries,
+        ArborX::Experimental::declare_callback_constrained(
+            DistributedNearestCallback{comm_rank}),
+        make_reference_solution<PairRankIndex>(
+            {{comm_size - 1 - comm_rank, 0},
+             {comm_size - 2 - comm_rank, n - 1},
+             {comm_size - 1 - comm_rank, 1}},
+            {0, 3}));
   }
   else
   {
     ARBORX_TEST_QUERY_TREE_CALLBACK(
         ExecutionSpace{}, tree, nearest_queries,
-        DistributedNearestCallback{comm_rank},
+        ArborX::Experimental::declare_callback_constrained(
+            DistributedNearestCallback{comm_rank}),
         make_reference_solution<PairRankIndex>(
             {{comm_size - 1 - comm_rank, 0}, {comm_size - 1 - comm_rank, 1}},
             {0, 2}));

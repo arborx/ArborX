@@ -21,8 +21,67 @@
 
 namespace ArborX
 {
+
+namespace Experimental
+{
+
+// Constrained callback is a callback that a user promises to:
+// - be not pure
+// - be allowed to be called on non-final results
+// - produce exactly one result for each match
+template <class Callback>
+struct ConstrainedDistributedNearestCallback
+{
+  Callback _callback;
+
+  template <class... Args>
+  KOKKOS_FUNCTION void operator()(Args &&...args) const
+  {
+    _callback((Args &&) args...);
+  }
+};
+
+template <class Callback>
+auto declare_callback_constrained(Callback const &callback)
+{
+  return ConstrainedDistributedNearestCallback<Callback>{callback};
+}
+
+} // namespace Experimental
+
 namespace Details
 {
+
+struct DefaultCallbackWithRank
+{
+  int _rank;
+
+  template <typename Predicate, typename Value, typename OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Predicate const &, Value const &value,
+                                  OutputFunctor const &out) const
+  {
+    out({value, _rank});
+  }
+};
+
+template <class Callback>
+struct is_constrained_callback : std::false_type
+{};
+template <class Callback>
+struct is_constrained_callback<
+    Experimental::ConstrainedDistributedNearestCallback<Callback>>
+    : std::true_type
+{};
+template <>
+struct is_constrained_callback<DefaultCallback> : std::true_type
+{};
+template <>
+struct is_constrained_callback<DefaultCallbackWithRank> : std::true_type
+{};
+
+template <class Callback>
+inline constexpr bool is_constrained_callback_v =
+    is_constrained_callback<Callback>::value;
 
 template <class Predicates, class Distances>
 struct WithinDistanceFromPredicates
@@ -116,7 +175,7 @@ struct CallbackWithDistance
     if constexpr (UseValues)
     {
       OutValue out_value;
-      int count = 0;
+      [[maybe_unused]] int count = 0;
       _callback(query, value, [&](OutValue const &ov) {
         out_value = ov;
         ++count;
@@ -193,7 +252,7 @@ struct CallbackWithDistance<
     if constexpr (UseValues)
     {
       OutValue out_value;
-      int count = 0;
+      [[maybe_unused]] int count = 0;
       _callback(query, index, [&](OutValue const &ov) {
         out_value = ov;
         ++count;

@@ -183,6 +183,8 @@ void DistributedTreeImpl::queryDispatch2RoundImpl(
 
   Kokkos::Profiling::ScopedRegion guard(prefix);
 
+  static_assert(is_constrained_callback_v<Callback>);
+
   if (tree.empty())
   {
     KokkosExt::reallocWithoutInitializing(space, values, 0);
@@ -233,11 +235,15 @@ DistributedTreeImpl::queryDispatch(NearestPredicateTag, Tree const &tree,
                                    Callback const &callback, Values &values,
                                    Offset &offset)
 {
-  static_assert(Kokkos::is_detected_v<CallbackTagArchetypeAlias, Callback>);
-  static_assert(
-      std::is_same_v<typename Callback::tag, ConstrainedNearestCallbackTag>);
-  queryDispatch2RoundImpl(NearestPredicateTag{}, tree, space, predicates,
-                          callback, values, offset);
+  if constexpr (is_constrained_callback_v<Callback>)
+  {
+    queryDispatch2RoundImpl(NearestPredicateTag{}, tree, space, predicates,
+                            callback, values, offset);
+  }
+  else
+  {
+    Kokkos::abort("3-arg callback not implemented yet.");
+  }
 }
 
 } // namespace ArborX::Details
