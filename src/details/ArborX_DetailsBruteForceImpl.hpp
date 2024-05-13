@@ -28,6 +28,28 @@ namespace ArborX::Details
 {
 struct BruteForceImpl
 {
+
+  template <typename Values, typename IndexableGetter, typename Nodes,
+            typename BoundingVolume>
+  struct SceneReductionFunctor
+  {
+    Values _values;
+    IndexableGetter _indexable_getter;
+    Nodes _nodes;
+
+    KOKKOS_FUNCTION void operator()(int i, BoundingVolume &update) const
+    {
+      using Details::expand;
+      _nodes(i) = _values(i);
+      expand(update, _indexable_getter(_nodes(i)));
+    }
+    KOKKOS_FUNCTION void join(BoundingVolume &result,
+                              BoundingVolume const &update) const
+    {
+      expand(result, update);
+    }
+  };
+
   template <class ExecutionSpace, class Values, class IndexableGetter,
             class Nodes, class Bounds>
   static void initializeBoundingVolumesAndReduceBoundsOfTheScene(
@@ -39,15 +61,9 @@ struct BruteForceImpl
         "ArborX::BruteForce::BruteForce::"
         "initialize_values_and_reduce_bounds",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, values.size()),
-        KOKKOS_LAMBDA(int i, Bounds &update) {
-          nodes(i) = values(i);
-
-          using Details::expand;
-          Bounds bounding_volume{};
-          expand(bounding_volume, indexable_getter(nodes(i)));
-          update += bounding_volume;
-        },
-        Kokkos::Sum<Bounds>{bounds});
+        SceneReductionFunctor<Values, IndexableGetter, Nodes, Bounds>{
+            values, indexable_getter, nodes},
+        bounds);
   }
 
   template <class ExecutionSpace, class Predicates, class Values,
