@@ -27,10 +27,6 @@ struct SceneReductionFunctor
 {
   Indexables _indexables;
 
-  KOKKOS_FUNCTION void init(BoundingVolume &volume) const
-  {
-    volume = BoundingVolume{};
-  }
   KOKKOS_FUNCTION void operator()(int i, BoundingVolume &update) const
   {
     using Details::expand;

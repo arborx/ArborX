@@ -71,10 +71,6 @@ struct SceneReductionFunctor
 {
   Indexables _indexables;
 
-  KOKKOS_FUNCTION void init(BoundingVolume &volume)
-  {
-    volume = BoundingVolume{};
-  }
   KOKKOS_FUNCTION void operator()(int i, BoundingVolume &update) const
   {
     ArborX::Details::expand(update, _indexables(i));
