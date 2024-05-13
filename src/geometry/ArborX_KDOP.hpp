@@ -30,6 +30,38 @@ template <int DIM, int k, typename Coordinate>
 struct KDOP_Directions;
 
 template <typename Coordinate>
+struct KDOP_Directions<2, 4, Coordinate>
+{
+  static constexpr int n_directions = 2;
+  static KOKKOS_FUNCTION auto const &directions()
+  {
+    using Direction = Vector<2, Coordinate>;
+    static constexpr Kokkos::Array<Direction, n_directions> directions = {
+        Direction{1, 0},
+        Direction{0, 1},
+    };
+    return directions;
+  }
+};
+
+template <typename Coordinate>
+struct KDOP_Directions<2, 8, Coordinate>
+{
+  static constexpr int n_directions = 4;
+  static KOKKOS_FUNCTION auto const &directions()
+  {
+    using Direction = Vector<2, Coordinate>;
+    static constexpr Kokkos::Array<Direction, n_directions> directions = {
+        Direction{1, 0},
+        Direction{0, 1},
+        Direction{1, 1},
+        Direction{1, -1},
+    };
+    return directions;
+  }
+};
+
+template <typename Coordinate>
 struct KDOP_Directions<3, 6, Coordinate>
 {
   static constexpr int n_directions = 3;
