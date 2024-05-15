@@ -22,16 +22,6 @@
 #include "ArborXTest_TreeTypeTraits.hpp"
 // clang-format on
 
-// We need a forward-declaration for NVCC, see below.
-namespace ArborX
-{
-namespace Experimental
-{
-template <int k>
-struct KDOP;
-}
-} // namespace ArborX
-
 BOOST_AUTO_TEST_SUITE(ManufacturedSolution)
 
 namespace tt = boost::test_tools;
@@ -46,11 +36,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   // FIXME_NVCC we see inexplainable test failures with NVCC and KDOP<18> and
   // KDOP<26> here.
 #ifdef __NVCC__
-  if (std::is_same<typename Tree::bounding_volume_type,
-                   ArborX::Experimental::KDOP<18>>::value ||
-      std::is_same<typename Tree::bounding_volume_type,
-                   ArborX::Experimental::KDOP<26>>::value)
-    return;
+  using BoundingVolume = typename Tree::bounding_volume_type;
+  if constexpr (ArborX::GeometryTraits::is_kdop_v<BoundingVolume>)
+  {
+    if constexpr (BoundingVolume::n_directions == 9 ||
+                  BoundingVolume::n_directions == 13)
+      return;
+  }
 #endif
 
   float Lx = 100.0;
