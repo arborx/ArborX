@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
   // clang-format off
   desc.add_options()
       ( "help", "help message" )
-      ( "n", bpo::value<int>(&n)->default_value(1000), "number of points" )
+      ( "n", bpo::value<int>(&n)->default_value(-1), "number of query points" )
       ( "radius", bpo::value<float>(&radius)->default_value(1.f), "sphere radius" )
       ( "refinements", bpo::value<int>(&num_refinements)->default_value(5), "number of icosahedron refinements" )
       ( "vtk-filename", bpo::value<std::string>(&vtk_filename), "filename to dump mesh to in VTK format" )
@@ -150,6 +150,9 @@ int main(int argc, char *argv[])
 
   auto [vertices, triangles] =
       buildTriangles<MemorySpace>(space, radius, num_refinements);
+
+  if (n == -1)
+    n = vertices.size();
 
   if (!vtk_filename.empty())
     writeVtk(vtk_filename, vertices, triangles);
