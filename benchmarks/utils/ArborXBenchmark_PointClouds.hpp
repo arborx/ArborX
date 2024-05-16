@@ -58,7 +58,8 @@ void filledBoxCloud(double const half_edge,
       KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
   std::uniform_real_distribution<double> distribution(-half_edge, half_edge);
-  std::default_random_engine generator;
+  constexpr int seed = 14;
+  std::default_random_engine generator(seed);
   auto random = [&distribution, &generator]() {
     return distribution(generator);
   };
@@ -78,7 +79,8 @@ void hollowBoxCloud(double const half_edge,
       KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
   std::uniform_real_distribution<double> distribution(-half_edge, half_edge);
-  std::default_random_engine generator;
+  constexpr int seed = 15;
+  std::default_random_engine generator(seed);
   auto random = [&distribution, &generator]() {
     return distribution(generator);
   };
@@ -106,7 +108,8 @@ void filledSphereCloud(double const radius,
   static_assert(
       KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
-  std::default_random_engine generator;
+  constexpr int seed = 16;
+  std::default_random_engine generator(seed);
 
   std::uniform_real_distribution<double> distribution(-radius, radius);
   auto random = [&distribution, &generator]() {
@@ -148,7 +151,8 @@ void hollowSphereCloud(double const radius,
   static_assert(
       KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
-  std::default_random_engine generator;
+  constexpr int seed = 17;
+  std::default_random_engine generator(seed);
 
   std::normal_distribution<float> distribution(0.f, 1.f);
   auto random = [&distribution, &generator]() {

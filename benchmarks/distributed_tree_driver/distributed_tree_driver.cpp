@@ -164,7 +164,8 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
 
     // Generate random points uniformly distributed within a box.
     std::uniform_real_distribution<double> distribution(-1., 1.);
-    std::default_random_engine generator;
+    constexpr int seed = 13;
+    std::default_random_engine generator(seed);
     auto random = [&distribution, &generator]() {
       return distribution(generator);
     };

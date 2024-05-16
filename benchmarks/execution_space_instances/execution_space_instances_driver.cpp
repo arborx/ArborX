@@ -137,7 +137,8 @@ int main(int argc, char *argv[])
 
   // Generate random points uniformly distributed within a box.
   std::uniform_real_distribution<float> distribution(-1., 1.);
-  std::default_random_engine generator;
+  constexpr int seed = 17;
+  std::default_random_engine generator(seed);
   auto random = [&distribution, &generator]() {
     return distribution(generator);
   };
