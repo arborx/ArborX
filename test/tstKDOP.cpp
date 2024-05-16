@@ -11,6 +11,7 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
+#include <ArborX_HyperBox.hpp>
 #include <ArborX_HyperPoint.hpp>
 #include <ArborX_KDOP.hpp>
 #include <ArborX_Point.hpp>
@@ -36,6 +37,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_kdop_2D, KDOP_t, KDOP_2D_types)
   expand(x, Point{0, 1});
   BOOST_TEST(intersects(x, x));
   BOOST_TEST(!intersects(x, KDOP_t{}));
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_box_2D, KDOP_t, KDOP_2D_types)
+{
+  using Point = ArborX::ExperimentalHyperGeometry::Point<2>;
+  using Box = ArborX::ExperimentalHyperGeometry::Box<2>;
+
+  KDOP_t x;
+  BOOST_TEST(!intersects(x, Box{}));
+  BOOST_TEST(!intersects(x, Box{{0, 0}, {1, 1}}));
+  expand(x, Point{1, 0});
+  expand(x, Point{0, 1});
+  BOOST_TEST(!intersects(x, Box{}));
+  BOOST_TEST(intersects(x, Box{{0, 0}, {1, 1}}));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_point_kdop_2D, KDOP_t, KDOP_2D_types)
