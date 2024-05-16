@@ -31,6 +31,14 @@ struct KokkosArray
 };
 #endif
 
+struct GeometryParams
+{
+  std::string type;
+  float radius;
+  float angle;
+  int num_refinements;
+};
+
 auto icosahedron()
 {
   auto a = Kokkos::numbers::phi_v<float>;
@@ -271,10 +279,39 @@ void projectVerticesToSphere(
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, points.size()),
       KOKKOS_LAMBDA(int i) {
         auto &v = points(i);
-        auto norm = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+        auto norm = Kokkos::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
         v[0] *= radius / norm;
         v[1] *= radius / norm;
         v[2] *= radius / norm;
+      });
+}
+
+template <typename ExecutionSpace, typename MemorySpace>
+void rotateVertices(ExecutionSpace const &space,
+                    Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<3> *,
+                                 MemorySpace> &points,
+                    float angle)
+{
+  // Rotate points around (1, -1, 0) axis given angle (in degrees)
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Vector = ArborX::Details::Vector<3>;
+
+  Point o{0, 0, 0};
+  Vector k{1 / std::sqrt(2.f), -1 / std::sqrt(2.f), 0}; // normalized axis
+  auto cos = Kokkos::cos(Kokkos::numbers::pi_v<float> / 180 * angle);
+  auto sin = Kokkos::sin(Kokkos::numbers::pi_v<float> / 180 * angle);
+  Kokkos::parallel_for(
+      "Benchmark::project_to_surface",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, points.size()),
+      KOKKOS_LAMBDA(int i) {
+        auto &p = points(i);
+        Vector v = p - o;
+        auto kxv = k.cross(v);
+        auto kv = k.dot(v);
+
+        // Rodrigues rotation formula
+        for (int d = 0; d < 3; ++d)
+          p[d] = v[d] * cos + kxv[d] * sin + k[d] * kv * (1 - cos);
       });
 }
 
@@ -290,13 +327,12 @@ auto vec2view(std::vector<T> const &in, std::string const &label = "")
 }
 
 template <typename MemorySpace, typename ExecutionSpace>
-auto buildTriangles(ExecutionSpace const &space, float radius,
-                    int num_refinements, std::string const &geometry)
+auto buildTriangles(ExecutionSpace const &space, GeometryParams const &params)
 {
   Kokkos::Profiling::ScopedRegion guard("Benchmark::build_triangles");
 
   auto [vertices_v, triangles_v] =
-      (geometry == "ball" ? icosahedron() : plane());
+      (params.type == "ball" ? icosahedron() : plane());
 
   // Convert to edge form
   std::vector<KokkosArray<int, 2>> edges_v;
@@ -306,11 +342,13 @@ auto buildTriangles(ExecutionSpace const &space, float radius,
   auto edges = vec2view<MemorySpace>(edges_v);
   auto triangles = vec2view<MemorySpace>(triangles_v);
 
-  for (int i = 1; i <= num_refinements; ++i)
+  for (int i = 1; i <= params.num_refinements; ++i)
     subdivide(space, vertices, edges, triangles);
 
-  if (geometry == "ball")
-    projectVerticesToSphere(space, vertices, radius);
+  if (params.type == "ball")
+    projectVerticesToSphere(space, vertices, params.radius);
+  else
+    rotateVertices(space, vertices, params.angle);
 
   convertTriangles2VertexForm(space, edges, triangles);
 
