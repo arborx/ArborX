@@ -30,6 +30,38 @@ template <int DIM, int k, typename Coordinate>
 struct KDOP_Directions;
 
 template <typename Coordinate>
+struct KDOP_Directions<2, 4, Coordinate>
+{
+  static constexpr int n_directions = 2;
+  static KOKKOS_FUNCTION auto const &directions()
+  {
+    using Direction = Vector<2, Coordinate>;
+    static constexpr Kokkos::Array<Direction, n_directions> directions = {
+        Direction{1, 0},
+        Direction{0, 1},
+    };
+    return directions;
+  }
+};
+
+template <typename Coordinate>
+struct KDOP_Directions<2, 8, Coordinate>
+{
+  static constexpr int n_directions = 4;
+  static KOKKOS_FUNCTION auto const &directions()
+  {
+    using Direction = Vector<2, Coordinate>;
+    static constexpr Kokkos::Array<Direction, n_directions> directions = {
+        Direction{1, 0},
+        Direction{0, 1},
+        Direction{1, 1},
+        Direction{1, -1},
+    };
+    return directions;
+  }
+};
+
+template <typename Coordinate>
 struct KDOP_Directions<3, 6, Coordinate>
 {
   static constexpr int n_directions = 3;
@@ -218,33 +250,56 @@ struct expand<KDOPTag, BoxTag, KDOP, Box>
 {
   KOKKOS_FUNCTION static void apply(KDOP &kdop, Box const &box)
   {
+    constexpr int DIM = GeometryTraits::dimension_v<KDOP>;
+    static_assert(DIM == 2 || DIM == 3);
+
     // NOTE if any of the ranges is invalid, the code below would actually
     // expand the KDOP which is not what we want.
     // We may revisit this later and decide passing a valid box becomes a
     // precondition but this would be a breaking change (going from a wide to a
     // narrow contract).
-    for (int i = 0; i < 3; ++i)
-      if (box.minCorner()[i] > box.maxCorner()[i])
+    for (int d = 0; d < DIM; ++d)
+      if (box.minCorner()[d] > box.maxCorner()[d])
         return;
 
-    auto const xmin = box.minCorner()[0];
-    auto const ymin = box.minCorner()[1];
-    auto const zmin = box.minCorner()[2];
-    auto const xmax = box.maxCorner()[0];
-    auto const ymax = box.maxCorner()[1];
-    auto const zmax = box.maxCorner()[2];
-    for (auto const &point : {
-             Point{xmin, ymin, zmin},
-             Point{xmin, ymax, zmin},
-             Point{xmin, ymin, zmax},
-             Point{xmin, ymax, zmax},
-             Point{xmax, ymin, zmin},
-             Point{xmax, ymax, zmin},
-             Point{xmax, ymin, zmax},
-             Point{xmax, ymax, zmax},
-         })
+    using Point = std::decay_t<decltype(box.minCorner())>;
+    if constexpr (DIM == 3)
     {
-      Details::expand(kdop, point);
+      auto const xmin = box.minCorner()[0];
+      auto const ymin = box.minCorner()[1];
+      auto const zmin = box.minCorner()[2];
+      auto const xmax = box.maxCorner()[0];
+      auto const ymax = box.maxCorner()[1];
+      auto const zmax = box.maxCorner()[2];
+      for (auto const &point : {
+               Point{xmin, ymin, zmin},
+               Point{xmin, ymax, zmin},
+               Point{xmin, ymin, zmax},
+               Point{xmin, ymax, zmax},
+               Point{xmax, ymin, zmin},
+               Point{xmax, ymax, zmin},
+               Point{xmax, ymin, zmax},
+               Point{xmax, ymax, zmax},
+           })
+      {
+        Details::expand(kdop, point);
+      }
+    }
+    else
+    {
+      auto const xmin = box.minCorner()[0];
+      auto const ymin = box.minCorner()[1];
+      auto const xmax = box.maxCorner()[0];
+      auto const ymax = box.maxCorner()[1];
+      for (auto const &point : {
+               Point{xmin, ymin},
+               Point{xmin, ymax},
+               Point{xmax, ymin},
+               Point{xmax, ymax},
+           })
+      {
+        Details::expand(kdop, point);
+      }
     }
   }
 };
