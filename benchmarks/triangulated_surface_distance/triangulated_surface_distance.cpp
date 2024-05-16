@@ -15,6 +15,7 @@
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Profiling_ScopedRegion.hpp>
+#include <Kokkos_Timer.hpp>
 
 #include <boost/program_options.hpp>
 
@@ -166,13 +167,25 @@ int main(int argc, char *argv[])
   std::cout << "#triangles        : " << triangles.size() << '\n';
   std::cout << "#queries          : " << random_points.size() << '\n';
 
+  Kokkos::Timer timer;
+
+  Kokkos::fence();
   ArborX::BVH<MemorySpace, Triangle> index(
       space, Triangles<MemorySpace>{vertices, triangles});
+  Kokkos::fence();
+  auto construction_time = timer.seconds();
 
+  Kokkos::fence();
+  timer.reset();
   Kokkos::View<int *, MemorySpace> offset("Benchmark::offsets", 0);
   Kokkos::View<float *, MemorySpace> distances("Benchmark::distances", 0);
   index.query(space, ArborX::Experimental::make_nearest(random_points, 1),
               DistanceCallback{}, distances, offset);
+  Kokkos::fence();
+  auto query_time = timer.seconds();
+
+  printf("-- construction   : %5.3f\n", construction_time);
+  printf("-- query          : %5.3f\n", query_time);
 
   return 0;
 }
