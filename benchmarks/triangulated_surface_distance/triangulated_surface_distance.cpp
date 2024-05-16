@@ -142,10 +142,11 @@ int main(int argc, char *argv[])
   int n;
   std::string vtk_filename;
   GeometryParams params;
+  float angle;
   // clang-format off
   desc.add_options()
       ( "help", "help message" )
-      ( "angle", bpo::value<float>(&params.angle)->default_value(0), "Angle (degrees)" )
+      ( "angle", bpo::value<float>(&angle)->default_value(0), "Angle (degrees)" )
       ( "geometry", bpo::value<std::string>(&params.type)->default_value("ball"), ("geometry " + vec2string(allowed_geometries, " | ")).c_str() )
       ( "n", bpo::value<int>(&n)->default_value(-1), "number of query points" )
       ( "radius", bpo::value<float>(&params.radius)->default_value(1.f), "sphere radius" )
@@ -175,13 +176,12 @@ int main(int argc, char *argv[])
 
   ExecutionSpace space;
 
+  Kokkos::Profiling::pushRegion("Benchmark::build_points");
   auto [vertices, triangles] = buildTriangles<MemorySpace>(space, params);
+  Kokkos::Profiling::popRegion();
 
   if (n == -1)
     n = vertices.size();
-
-  if (!vtk_filename.empty())
-    writeVtk(vtk_filename, vertices, triangles);
 
   Kokkos::Profiling::pushRegion("Benchmark::build_points");
   Kokkos::View<Point *, MemorySpace> random_points(
@@ -192,6 +192,15 @@ int main(int argc, char *argv[])
       space, ArborXBenchmark::PointCloudType::filled_box, std::cbrt(n),
       random_points);
   Kokkos::Profiling::popRegion();
+
+  if (angle != 0)
+  {
+    rotateVertices(space, vertices, angle);
+    rotateVertices(space, random_points, angle);
+  }
+
+  if (!vtk_filename.empty())
+    writeVtk(vtk_filename, vertices, triangles);
 
   std::cout << "geometry          : " << params.type << '\n';
   std::cout << "#triangles        : " << triangles.size() << '\n';
@@ -216,6 +225,7 @@ int main(int argc, char *argv[])
 
   printf("-- construction   : %5.3f\n", construction_time);
   printf("-- query          : %5.3f\n", query_time);
+  printf("-- rate           : %5.3f\n", n / (1'000'000 * query_time));
 
   return 0;
 }
