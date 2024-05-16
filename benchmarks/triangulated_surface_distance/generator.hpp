@@ -79,6 +79,53 @@ auto icosahedron()
   return std::make_tuple(vertices, triangles);
 }
 
+auto plane()
+{
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+
+  std::vector<Point> vertices;
+
+  vertices.push_back(Point{0, 0, 0});
+  vertices.push_back(Point{1, 0, 0});
+  vertices.push_back(Point{2, 0, 0});
+  vertices.push_back(Point{3, 0, 0});
+  vertices.push_back(Point{0, 1, 0});
+  vertices.push_back(Point{1, 1, 0});
+  vertices.push_back(Point{2, 1, 0});
+  vertices.push_back(Point{3, 1, 0});
+  vertices.push_back(Point{0, 2, 0});
+  vertices.push_back(Point{1, 2, 0});
+  vertices.push_back(Point{2, 2, 0});
+  vertices.push_back(Point{3, 2, 0});
+  vertices.push_back(Point{0, 3, 0});
+  vertices.push_back(Point{1, 3, 0});
+  vertices.push_back(Point{2, 3, 0});
+  vertices.push_back(Point{3, 3, 0});
+
+  std::vector<KokkosArray<int, 3>> triangles;
+
+  triangles.push_back({0, 1, 4});
+  triangles.push_back({1, 5, 4});
+  triangles.push_back({1, 2, 5});
+  triangles.push_back({2, 6, 5});
+  triangles.push_back({2, 3, 6});
+  triangles.push_back({3, 7, 6});
+  triangles.push_back({4, 5, 8});
+  triangles.push_back({5, 9, 8});
+  triangles.push_back({5, 6, 9});
+  triangles.push_back({6, 10, 9});
+  triangles.push_back({6, 7, 10});
+  triangles.push_back({7, 11, 10});
+  triangles.push_back({8, 9, 12});
+  triangles.push_back({9, 13, 12});
+  triangles.push_back({9, 10, 13});
+  triangles.push_back({10, 14, 13});
+  triangles.push_back({10, 11, 14});
+  triangles.push_back({11, 15, 14});
+
+  return std::make_tuple(vertices, triangles);
+}
+
 void convertTriangles2EdgeForm(std::vector<KokkosArray<int, 2>> &edges,
                                std::vector<KokkosArray<int, 3>> &triangles)
 {
@@ -244,11 +291,12 @@ auto vec2view(std::vector<T> const &in, std::string const &label = "")
 
 template <typename MemorySpace, typename ExecutionSpace>
 auto buildTriangles(ExecutionSpace const &space, float radius,
-                    int num_refinements)
+                    int num_refinements, std::string const &geometry)
 {
   Kokkos::Profiling::ScopedRegion guard("Benchmark::build_triangles");
 
-  auto [vertices_v, triangles_v] = icosahedron();
+  auto [vertices_v, triangles_v] =
+      (geometry == "ball" ? icosahedron() : plane());
 
   // Convert to edge form
   std::vector<KokkosArray<int, 2>> edges_v;
@@ -261,7 +309,8 @@ auto buildTriangles(ExecutionSpace const &space, float radius,
   for (int i = 1; i <= num_refinements; ++i)
     subdivide(space, vertices, edges, triangles);
 
-  projectVerticesToSphere(space, vertices, radius);
+  if (geometry == "ball")
+    projectVerticesToSphere(space, vertices, radius);
 
   convertTriangles2VertexForm(space, edges, triangles);
 

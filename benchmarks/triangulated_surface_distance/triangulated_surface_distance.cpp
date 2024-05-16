@@ -21,7 +21,9 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #include "generator.hpp"
 
@@ -108,6 +110,18 @@ void writeVtk(std::string const &filename, Points const &vertices,
   }
 }
 
+template <typename T>
+std::string vec2string(std::vector<T> const &s, std::string const &delim = ", ")
+{
+  assert(s.size() > 1);
+
+  std::ostringstream ss;
+  std::copy(s.begin(), s.end(),
+            std::ostream_iterator<std::string>{ss, delim.c_str()});
+  auto delimited_items = ss.str().erase(ss.str().length() - delim.size());
+  return "(" + delimited_items + ")";
+}
+
 int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
@@ -122,14 +136,18 @@ int main(int argc, char *argv[])
 
   namespace bpo = boost::program_options;
 
+  std::vector<std::string> allowed_geometries = {"ball", "plane"};
+
   bpo::options_description desc("Allowed options");
   int n;
   int num_refinements;
   float radius;
   std::string vtk_filename;
+  std::string geometry;
   // clang-format off
   desc.add_options()
       ( "help", "help message" )
+      ( "geometry", bpo::value<std::string>(&geometry)->default_value("ball"), ("geometry " + vec2string(allowed_geometries, " | ")).c_str() )
       ( "n", bpo::value<int>(&n)->default_value(-1), "number of query points" )
       ( "radius", bpo::value<float>(&radius)->default_value(1.f), "sphere radius" )
       ( "refinements", bpo::value<int>(&num_refinements)->default_value(5), "number of icosahedron refinements" )
@@ -146,10 +164,20 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+  auto found = [](auto const &v, auto x) {
+    return std::find(v.begin(), v.end(), x) != v.end();
+  };
+  if (!found(allowed_geometries, geometry))
+  {
+    std::cerr << "Geometry must be one of " << vec2string(allowed_geometries)
+              << "\n";
+    return 2;
+  }
+
   ExecutionSpace space;
 
   auto [vertices, triangles] =
-      buildTriangles<MemorySpace>(space, radius, num_refinements);
+      buildTriangles<MemorySpace>(space, radius, num_refinements, geometry);
 
   if (n == -1)
     n = vertices.size();
@@ -167,6 +195,7 @@ int main(int argc, char *argv[])
       random_points);
   Kokkos::Profiling::popRegion();
 
+  std::cout << "geometry          : " << geometry << '\n';
   std::cout << "#triangles        : " << triangles.size() << '\n';
   std::cout << "#queries          : " << random_points.size() << '\n';
 
