@@ -26,7 +26,7 @@ namespace Experimental
 {
 
 // Constrained callback is a callback that a user promises to:
-// - be not pure
+// - be not pure (i.e., allow output argument in the signature)
 // - be allowed to be called on non-final results
 // - produce exactly one result for each match
 template <class Callback>
@@ -182,6 +182,11 @@ struct CallbackWithDistance
       [[maybe_unused]] int count = 0;
       _callback(query, value, [&](OutValue const &ov) {
         out_value = ov;
+        // NOTE: this will break if we are running multiple threads per query.
+        // It could happen that the callback is called by different threads,
+        // resulting in multiple outputs while having count = 1 in each thread.
+        // As we don't envision this happening in the near future, it is ok for
+        // now.
         ++count;
       });
       // If the user callback produces no output, we have nothing to attach the
