@@ -84,6 +84,9 @@ struct LegacyCallbackWrapper
                                   PairValueIndex<Value, Index> const &value,
                                   Output const &out) const
   {
+    // APIv1 callback has the signature operator()(Query, int)
+    // As we store PairValueIndex with potentially non int index (like
+    // unsigned), we explicitly cast it here.
     _callback(predicate, (int)value.index, out);
   }
 };
@@ -96,6 +99,9 @@ struct LegacyDefaultCallback
                                   PairValueIndex<Value, Index> const &value,
                                   OutputFunctor const &output) const
   {
+    // APIv1 callback has the signature operator()(Query, int)
+    // As we store PairValueIndex with potentially non int index (like
+    // unsigned), we explicitly cast it here.
     output((int)value.index);
   }
 };

@@ -60,6 +60,8 @@ struct DistributedNearestCallback
   KOKKOS_FUNCTION void operator()(Predicate const &, Value const &value,
                                   OutputFunctor const &out) const
   {
+    // This is almost like the DefaultCallbackWithRank, except the order is
+    // swapped, with rank going first. This is strictly for testing.
     out({rank, value});
   }
 };

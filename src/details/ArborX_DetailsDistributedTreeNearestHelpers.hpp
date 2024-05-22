@@ -72,9 +72,13 @@ struct is_constrained_callback<
     Experimental::ConstrainedDistributedNearestCallback<Callback>>
     : std::true_type
 {};
+// We need DefaultCallback specialization for the case without a user-provided
+// callback and using APIv2
 template <>
 struct is_constrained_callback<DefaultCallback> : std::true_type
 {};
+// We need DefaultCallbackWithRank specialization for the case without a
+// user-provided callback and using APIv1
 template <>
 struct is_constrained_callback<DefaultCallbackWithRank> : std::true_type
 {};
@@ -180,6 +184,11 @@ struct CallbackWithDistance
         out_value = ov;
         ++count;
       });
+      // If the user callback produces no output, we have nothing to attach the
+      // distance to, which is problematic as we would not be able to do the
+      // final filtering. If there are multiple outputs, it will currently
+      // break our communication routines and filtering. We rely on 3-phase
+      // nearest implementation for these cases.
       KOKKOS_ASSERT(count == 1);
       out({out_value,
            distance(getGeometry(query), _tree.indexable_get()(value))});
@@ -212,7 +221,7 @@ struct CallbackWithDistance<
       : _tree(tree)
       , _callback(callback)
   {
-    // NOTE cannot have extended __host__ __device__  lambda in constructor with
+    // NOTE cannot have extended __host__ __device__ lambda in constructor with
     // NVCC
     computeReversePermutation(exec_space);
   }
@@ -220,6 +229,9 @@ struct CallbackWithDistance<
   template <typename ExecutionSpace>
   void computeReversePermutation(ExecutionSpace const &exec_space)
   {
+    if (_tree.empty())
+      return;
+
     auto const n = _tree.size();
 
     _rev_permute = Kokkos::View<unsigned int *, typename Tree::memory_space>(
@@ -227,16 +239,13 @@ struct CallbackWithDistance<
             Kokkos::WithoutInitializing,
             "ArborX::DistributedTree::query::nearest::reverse_permutation"),
         n);
-    if (!_tree.empty())
-    {
-      Kokkos::parallel_for(
-          "ArborX::DistributedTree::query::nearest::"
-          "compute_reverse_permutation",
-          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-          KOKKOS_CLASS_LAMBDA(int const i) {
-            _rev_permute(HappyTreeFriends::getValue(_tree, i).index) = i;
-          });
-    }
+    Kokkos::parallel_for(
+        "ArborX::DistributedTree::query::nearest::"
+        "compute_reverse_permutation",
+        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+        KOKKOS_CLASS_LAMBDA(int const i) {
+          _rev_permute(HappyTreeFriends::getValue(_tree, i).index) = i;
+        });
   }
 
   template <typename Query, typename OutputFunctor>
@@ -257,6 +266,11 @@ struct CallbackWithDistance<
         out_value = ov;
         ++count;
       });
+      // If the user callback produces no output, we have nothing to attach the
+      // distance to, which is problematic as we would not be able to do the
+      // final filtering. If there are multiple outputs, it will currently
+      // break our communication routines and filtering. We rely on 3-phase
+      // nearest implementation for these cases.
       KOKKOS_ASSERT(count == 1);
       out({out_value, distance(getGeometry(query), leaf_node_bounding_volume)});
     }
