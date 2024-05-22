@@ -24,12 +24,12 @@ struct DistributedTreeImpl
 {
   // spatial queries
   template <typename DistributedTree, typename ExecutionSpace,
-            typename Predicates, typename IndicesAndRanks, typename Offset>
-  static std::enable_if_t<Kokkos::is_view_v<IndicesAndRanks> &&
+            typename Predicates, typename Values, typename Offset>
+  static std::enable_if_t<Kokkos::is_view_v<Values> &&
                           Kokkos::is_view_v<Offset>>
   queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
                 ExecutionSpace const &space, Predicates const &queries,
-                IndicesAndRanks &values, Offset &offset);
+                Values &values, Offset &offset);
 
   template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename OutputView, typename OffsetView,
@@ -42,21 +42,28 @@ struct DistributedTreeImpl
 
   // nearest neighbors queries
   template <typename DistributedTree, typename ExecutionSpace,
-            typename Predicates, typename Indices, typename Offset,
-            typename Ranks>
-  static std::enable_if_t<Kokkos::is_view_v<Indices> &&
-                          Kokkos::is_view_v<Offset> && Kokkos::is_view_v<Ranks>>
-  queryDispatchImpl(NearestPredicateTag, DistributedTree const &tree,
-                    ExecutionSpace const &space, Predicates const &queries,
-                    Indices &indices, Offset &offset, Ranks &ranks);
+            typename Predicates, typename Callback, typename Indices,
+            typename Offset>
+  static void
+  queryDispatch2RoundImpl(NearestPredicateTag, DistributedTree const &tree,
+                          ExecutionSpace const &space,
+                          Predicates const &queries, Callback const &callback,
+                          Indices &indices, Offset &offset);
 
   template <typename DistributedTree, typename ExecutionSpace,
-            typename Predicates, typename IndicesAndRanks, typename Offset>
-  static std::enable_if_t<Kokkos::is_view_v<IndicesAndRanks> &&
+            typename Predicates, typename Values, typename Offset>
+  static std::enable_if_t<Kokkos::is_view_v<Values> &&
                           Kokkos::is_view_v<Offset>>
   queryDispatch(NearestPredicateTag tag, DistributedTree const &tree,
                 ExecutionSpace const &space, Predicates const &queries,
-                IndicesAndRanks &values, Offset &offset);
+                Values &values, Offset &offset);
+  template <typename Tree, typename ExecutionSpace, typename Predicates,
+            typename Callback, typename Values, typename Offset>
+  static std::enable_if_t<Kokkos::is_view_v<Values> &&
+                          Kokkos::is_view_v<Offset>>
+  queryDispatch(NearestPredicateTag, Tree const &tree,
+                ExecutionSpace const &space, Predicates const &predicates,
+                Callback const &callback, Values &values, Offset &offset);
 
   // nearest neighbors helpers
   template <typename ExecutionSpace, typename Tree, typename Predicates,
@@ -66,11 +73,11 @@ struct DistributedTreeImpl
                      Distances &farthest_distances);
 
   template <typename ExecutionSpace, typename Tree, typename Predicates,
-            typename Distances, typename Offset, typename Values,
-            typename Ranks>
+            typename Callback, typename Distances, typename Offset,
+            typename Values>
   static void phaseII(ExecutionSpace const &space, Tree const &tree,
-                      Predicates const &queries, Distances &distances,
-                      Offset &offset, Values &values, Ranks &ranks);
+                      Predicates const &predicates, Callback const &callback,
+                      Distances &distances, Offset &offset, Values &values);
 };
 
 } // namespace ArborX::Details

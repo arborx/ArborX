@@ -243,12 +243,10 @@ void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
 }
 
 template <typename ExecutionSpace, typename OutputView, typename Offset,
-          typename Ranks, typename Ids,
-          typename Distances =
-              Kokkos::View<float *, typename OutputView::memory_space>>
+          typename Ranks, typename Ids>
 void communicateResultsBack(MPI_Comm comm, ExecutionSpace const &space,
                             OutputView &out, Offset const &offset, Ranks &ranks,
-                            Ids &ids, Distances *distances_ptr = nullptr)
+                            Ids &ids)
 {
   Kokkos::Profiling::ScopedRegion guard(
       "ArborX::DistributedTree::communicateResultsBack");
@@ -318,29 +316,14 @@ void communicateResultsBack(MPI_Comm comm, ExecutionSpace const &space,
     sendAcrossNetwork(space, distributor, export_out, import_out);
     out = import_out;
   }
-
-  if (distances_ptr)
-  {
-    auto &distances = *distances_ptr;
-    Kokkos::View<float *, MemorySpace> export_distances = distances;
-    Kokkos::View<float *, MemorySpace> import_distances(
-        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                           distances.label()),
-        n_imports);
-    sendAcrossNetwork(space, distributor, export_distances, import_distances);
-    distances = import_distances;
-  }
 }
 
-template <
-    typename ExecutionSpace, typename BottomTree, typename Predicates,
-    typename Callback, typename RanksTo, typename Offset, typename Values,
-    typename Ranks = Kokkos::View<int *, typename BottomTree::memory_space>>
+template <typename ExecutionSpace, typename BottomTree, typename Predicates,
+          typename Callback, typename RanksTo, typename Offset, typename Values>
 void forwardQueriesAndCommunicateResults(
     MPI_Comm comm, ExecutionSpace const &space, BottomTree const &bottom_tree,
     Predicates const &predicates, Callback const &callback,
-    RanksTo const &ranks_to, Offset &offset, Values &values,
-    Ranks *ranks_ptr = nullptr)
+    RanksTo const &ranks_to, Offset &offset, Values &values)
 {
   std::string prefix =
       "ArborX::DistributedTree::query::forwardQueriesAndCommunicateResults";
@@ -349,13 +332,11 @@ void forwardQueriesAndCommunicateResults(
   using Query = typename Predicates::value_type;
   using MemorySpace = typename BottomTree::memory_space;
 
-  Ranks ranks_aux(prefix + "::ranks", 0);
-  auto &ranks = (ranks_ptr != nullptr ? *ranks_ptr : ranks_aux);
-
   // Forward predicates
   Kokkos::View<int *, MemorySpace> ids(prefix + "::query_ids", 0);
   Kokkos::View<Query *, MemorySpace> fwd_predicates(prefix + "::fwd_predicates",
                                                     0);
+  Kokkos::View<int *, MemorySpace> ranks(prefix + "::ranks", 0);
   forwardQueries(comm, space, predicates, ranks_to, offset, fwd_predicates, ids,
                  ranks);
 
@@ -370,19 +351,16 @@ void forwardQueriesAndCommunicateResults(
   // Merge results
   int const n_predicates = predicates.size();
   countResults(space, n_predicates, ids, offset);
-  if (ranks_ptr != nullptr)
-    sortResultsByKey(space, ids, values, ranks);
-  else
-    sortResultsByKey(space, ids, values);
+  sortResultsByKey(space, ids, values);
 
   Kokkos::Profiling::popRegion();
 }
 
 template <typename ExecutionSpace, typename MemorySpace, typename Predicates,
-          typename Values, typename Offset, typename Ranks>
+          typename Values, typename Offset>
 void filterResults(ExecutionSpace const &space, Predicates const &queries,
                    Kokkos::View<float *, MemorySpace> const &distances,
-                   Values &values, Offset &offset, Ranks &ranks)
+                   Values &values, Offset &offset)
 {
   Kokkos::Profiling::ScopedRegion guard(
       "ArborX::DistributedTree::filterResults");
@@ -407,15 +385,12 @@ void filterResults(ExecutionSpace const &space, Predicates const &queries,
   int const n_truncated_results = KokkosExt::lastElement(space, new_offset);
   Kokkos::View<Value *, MemorySpace> new_values(
       Kokkos::view_alloc(space, values.label()), n_truncated_results);
-  Kokkos::View<int *, MemorySpace> new_ranks(
-      Kokkos::view_alloc(space, ranks.label()), n_truncated_results);
 
-  using PairValueRank = Kokkos::pair<Value, int>;
-  using PairValueRankDistance = Kokkos::pair<PairValueRank, float>;
+  using PairValueDistance = Kokkos::pair<Value, float>;
   struct CompareDistance
   {
-    KOKKOS_INLINE_FUNCTION bool operator()(PairValueRankDistance const &lhs,
-                                           PairValueRankDistance const &rhs)
+    KOKKOS_INLINE_FUNCTION bool operator()(PairValueDistance const &lhs,
+                                           PairValueDistance const &rhs)
     {
       // reverse order (larger distance means lower priority)
       return lhs.second > rhs.second;
@@ -423,44 +398,40 @@ void filterResults(ExecutionSpace const &space, Predicates const &queries,
   };
 
   int const n_results = KokkosExt::lastElement(space, offset);
-  Kokkos::View<PairValueRankDistance *, MemorySpace> buffer(
+  Kokkos::View<PairValueDistance *, MemorySpace> buffer(
       Kokkos::view_alloc(
           space, Kokkos::WithoutInitializing,
           "ArborX::DistributedTree::query::filterResults::buffer"),
       n_results);
   using PriorityQueue =
-      Details::PriorityQueue<PairValueRankDistance, CompareDistance,
-                             UnmanagedStaticVector<PairValueRankDistance>>;
+      Details::PriorityQueue<PairValueDistance, CompareDistance,
+                             UnmanagedStaticVector<PairValueDistance>>;
 
   Kokkos::parallel_for(
       "ArborX::DistributedTree::query::truncate_results",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
       KOKKOS_LAMBDA(int q) {
-        if (offset(q + 1) > offset(q))
+        if (offset(q) == offset(q + 1))
+          return;
+
+        auto local_buffer = Kokkos::subview(
+            buffer, Kokkos::make_pair(offset(q), offset(q + 1)));
+
+        PriorityQueue queue(UnmanagedStaticVector<PairValueDistance>(
+            local_buffer.data(), local_buffer.size()));
+
+        for (int i = offset(q); i < offset(q + 1); ++i)
+          queue.emplace(values(i), distances(i));
+
+        int count = 0;
+        while (!queue.empty() && count < getK(queries(q)))
         {
-          auto local_buffer = Kokkos::subview(
-              buffer, Kokkos::make_pair(offset(q), offset(q + 1)));
-
-          PriorityQueue queue(UnmanagedStaticVector<PairValueRankDistance>(
-              local_buffer.data(), local_buffer.size()));
-
-          for (int i = offset(q); i < offset(q + 1); ++i)
-          {
-            queue.emplace(PairValueRank{values(i), ranks(i)}, distances(i));
-          }
-
-          int count = 0;
-          while (!queue.empty() && count < getK(queries(q)))
-          {
-            new_values(new_offset(q) + count) = queue.top().first.first;
-            new_ranks(new_offset(q) + count) = queue.top().first.second;
-            queue.pop();
-            ++count;
-          }
+          new_values(new_offset(q) + count) = queue.top().first;
+          queue.pop();
+          ++count;
         }
       });
   values = new_values;
-  ranks = new_ranks;
   offset = new_offset;
 }
 

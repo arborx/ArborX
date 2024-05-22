@@ -11,20 +11,14 @@
 #ifndef ARBORX_DETAILS_DISTRIBUTED_TREE_NEAREST_HPP
 #define ARBORX_DETAILS_DISTRIBUTED_TREE_NEAREST_HPP
 
-#include <ArborX_AccessTraits.hpp>
-#include <ArborX_Box.hpp>
 #include <ArborX_DetailsDistributedTreeImpl.hpp>
+#include <ArborX_DetailsDistributedTreeNearestHelpers.hpp>
 #include <ArborX_DetailsDistributedTreeUtils.hpp>
-#include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtKernelStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
-#include <ArborX_LinearBVH.hpp>
-#include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
-#include <ArborX_Ray.hpp>
-#include <ArborX_Sphere.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
@@ -32,80 +26,7 @@
 // Don't really need it, but our self containment tests rely on its presence
 #include <mpi.h>
 
-namespace ArborX
-{
-namespace Details
-{
-template <class Predicates, class Distances>
-struct WithinDistanceFromPredicates
-{
-  Predicates predicates;
-  Distances distances;
-};
-} // namespace Details
-
-template <class Predicates, class Distances>
-struct AccessTraits<
-    Details::WithinDistanceFromPredicates<Predicates, Distances>, PredicatesTag>
-{
-  using Predicate = typename Predicates::value_type;
-  using Geometry =
-      std::decay_t<decltype(getGeometry(std::declval<Predicate const &>()))>;
-  using Self = Details::WithinDistanceFromPredicates<Predicates, Distances>;
-
-  using memory_space = typename Predicates::memory_space;
-  using size_type = decltype(std::declval<Predicates const &>().size());
-
-  static KOKKOS_FUNCTION size_type size(Self const &x)
-  {
-    return x.predicates.size();
-  }
-  template <class Dummy = Geometry,
-            std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
-                             std::is_same_v<Dummy, Point>> * = nullptr>
-  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
-  {
-    auto const point = getGeometry(x.predicates(i));
-    auto const distance = x.distances(i);
-    return intersects(Sphere{point, distance});
-  }
-  template <class Dummy = Geometry,
-            std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
-                             std::is_same_v<Dummy, Box>> * = nullptr>
-  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
-  {
-    auto box = getGeometry(x.predicates(i));
-    auto &min_corner = box.minCorner();
-    auto &max_corner = box.maxCorner();
-    auto const distance = x.distances(i);
-    for (int d = 0; d < 3; ++d)
-    {
-      min_corner[d] -= distance;
-      max_corner[d] += distance;
-    }
-    return intersects(box);
-  }
-  template <class Dummy = Geometry,
-            std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
-                             std::is_same_v<Dummy, Sphere>> * = nullptr>
-  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
-  {
-    auto const sphere = getGeometry(x.predicates(i));
-    auto const distance = x.distances(i);
-    return intersects(Sphere{sphere.centroid(), distance + sphere.radius()});
-  }
-  template <
-      class Dummy = Geometry,
-      std::enable_if_t<std::is_same_v<Dummy, Geometry> &&
-                       std::is_same_v<Dummy, Experimental::Ray>> * = nullptr>
-  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
-  {
-    auto const ray = getGeometry(x.predicates(i));
-    return intersects(ray);
-  }
-};
-
-namespace Details
+namespace ArborX::Details
 {
 
 template <typename Value>
@@ -113,90 +34,6 @@ struct PairValueDistance
 {
   Value value;
   float distance;
-};
-
-template <typename Tree, bool UseValues>
-struct CallbackWithDistance
-{
-  Tree _tree;
-
-  template <typename ExecutionSpace>
-  CallbackWithDistance(ExecutionSpace const &, Tree const &tree)
-      : _tree(tree)
-  {}
-
-  template <typename Query, typename Value, typename Output>
-  KOKKOS_FUNCTION void operator()(Query const &query, Value const &value,
-                                  Output const &out) const
-  {
-    if constexpr (UseValues)
-      out({value, distance(getGeometry(query), _tree.indexable_get()(value))});
-    else
-      out(distance(getGeometry(query), _tree.indexable_get()(value)));
-  }
-};
-
-template <typename MemorySpace, bool UseValues>
-struct CallbackWithDistance<
-    BoundingVolumeHierarchy<MemorySpace, Details::LegacyDefaultTemplateValue,
-                            Details::DefaultIndexableGetter,
-                            ExperimentalHyperGeometry::Box<3, float>>,
-    UseValues>
-{
-  using Tree =
-      BoundingVolumeHierarchy<MemorySpace, Details::LegacyDefaultTemplateValue,
-                              Details::DefaultIndexableGetter,
-                              ExperimentalHyperGeometry::Box<3, float>>;
-
-  Tree _tree;
-  Kokkos::View<unsigned int *, typename Tree::memory_space> _rev_permute;
-
-  template <typename ExecutionSpace>
-  CallbackWithDistance(ExecutionSpace const &exec_space, Tree const &tree)
-      : _tree(tree)
-  {
-    // NOTE cannot have extended __host__ __device__  lambda in constructor with
-    // NVCC
-    computeReversePermutation(exec_space);
-  }
-
-  template <typename ExecutionSpace>
-  void computeReversePermutation(ExecutionSpace const &exec_space)
-  {
-    auto const n = _tree.size();
-
-    _rev_permute = Kokkos::View<unsigned int *, typename Tree::memory_space>(
-        Kokkos::view_alloc(
-            Kokkos::WithoutInitializing,
-            "ArborX::DistributedTree::query::nearest::reverse_permutation"),
-        n);
-    if (!_tree.empty())
-    {
-      Kokkos::parallel_for(
-          "ArborX::DistributedTree::query::nearest::"
-          "compute_reverse_permutation",
-          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-          KOKKOS_CLASS_LAMBDA(int const i) {
-            _rev_permute(HappyTreeFriends::getValue(_tree, i).index) = i;
-          });
-    }
-  }
-
-  template <typename Query, typename OutputFunctor>
-  KOKKOS_FUNCTION void operator()(Query const &query, int index,
-                                  OutputFunctor const &out) const
-  {
-    // TODO: This breaks the abstraction of the distributed Tree not knowing
-    // the details of the local tree. Right now, this is the only way. Will
-    // need to be fixed with a proper callback abstraction.
-    int const leaf_node_index = _rev_permute(index);
-    auto const &leaf_node_bounding_volume =
-        HappyTreeFriends::getIndexable(_tree, leaf_node_index);
-    if constexpr (UseValues)
-      out({index, distance(getGeometry(query), leaf_node_bounding_volume)});
-    else
-      out(distance(getGeometry(query), leaf_node_bounding_volume));
-  }
 };
 
 template <typename ExecutionSpace, typename Tree, typename Predicates,
@@ -268,7 +105,8 @@ void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
   Kokkos::View<float *, MemorySpace> distances(prefix + "::distances", 0);
   forwardQueriesAndCommunicateResults(
       comm, space, bottom_tree, predicates,
-      CallbackWithDistance<BottomTree, false>(space, bottom_tree),
+      CallbackWithDistance<BottomTree, DefaultCallback, float, false>(
+          space, bottom_tree, DefaultCallback{}),
       nearest_ranks, offset, distances);
 
   // Postprocess distances to find the k-th farthest
@@ -288,11 +126,13 @@ void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
 }
 
 template <typename ExecutionSpace, typename Tree, typename Predicates,
-          typename Distances, typename Offset, typename Values, typename Ranks>
+          typename Callback, typename Distances, typename Offset,
+          typename Values>
 void DistributedTreeImpl::phaseII(ExecutionSpace const &space, Tree const &tree,
                                   Predicates const &predicates,
+                                  Callback const &callback,
                                   Distances &distances, Offset &offset,
-                                  Values &values, Ranks &ranks)
+                                  Values &values)
 {
   std::string prefix = "ArborX::DistributedTree::query::nearest::phaseII";
   Kokkos::Profiling::ScopedRegion guard(prefix);
@@ -314,8 +154,9 @@ void DistributedTreeImpl::phaseII(ExecutionSpace const &space, Tree const &tree,
       out(prefix + "::pairs_value_distance", 0);
   DistributedTree::forwardQueriesAndCommunicateResults(
       tree.getComm(), space, bottom_tree, predicates,
-      CallbackWithDistance<BottomTree, true>(space, bottom_tree), nearest_ranks,
-      offset, out, &ranks);
+      CallbackWithDistance<BottomTree, Callback, typename Values::value_type,
+                           true>(space, bottom_tree, callback),
+      nearest_ranks, offset, out);
 
   // Unzip
   auto n = out.extent(0);
@@ -328,23 +169,21 @@ void DistributedTreeImpl::phaseII(ExecutionSpace const &space, Tree const &tree,
         distances(i) = out(i).distance;
       });
 
-  DistributedTree::filterResults(space, predicates, distances, values, offset,
-                                 ranks);
+  DistributedTree::filterResults(space, predicates, distances, values, offset);
 }
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
-          typename Values, typename Offset, typename Ranks>
-std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset> &&
-                 Kokkos::is_view_v<Ranks>>
-DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
-                                       ExecutionSpace const &space,
-                                       Predicates const &predicates,
-                                       Values &values, Offset &offset,
-                                       Ranks &ranks)
+          typename Callback, typename Values, typename Offset>
+void DistributedTreeImpl::queryDispatch2RoundImpl(
+    NearestPredicateTag, Tree const &tree, ExecutionSpace const &space,
+    Predicates const &predicates, Callback const &callback, Values &values,
+    Offset &offset)
 {
   std::string prefix = "ArborX::DistributedTree::query::nearest";
 
   Kokkos::Profiling::ScopedRegion guard(prefix);
+
+  static_assert(is_constrained_callback_v<Callback>);
 
   if (tree.empty())
   {
@@ -371,7 +210,8 @@ DistributedTreeImpl::queryDispatchImpl(NearestPredicateTag, Tree const &tree,
   // The current implementation discards the results after the first phase.
   // Everything is recomputed from scratch instead of just searching for
   // potential better neighbors and updating the list.
-  phaseII(space, tree, predicates, farthest_distances, offset, values, ranks);
+  phaseII(space, tree, predicates, callback, farthest_distances, offset,
+          values);
 }
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
@@ -382,12 +222,30 @@ DistributedTreeImpl::queryDispatch(NearestPredicateTag tag, Tree const &tree,
                                    Predicates const &predicates, Values &values,
                                    Offset &offset)
 {
-  Kokkos::View<int *, ExecutionSpace> ranks(
-      "ArborX::DistributedTree::query::nearest::ranks", 0);
-  queryDispatchImpl(tag, tree, space, predicates, values, offset, ranks);
+  queryDispatch2RoundImpl(tag, tree, space, predicates, DefaultCallback{},
+                          values, offset);
 }
 
-} // namespace Details
-} // namespace ArborX
+template <typename Tree, typename ExecutionSpace, typename Predicates,
+          typename Callback, typename Values, typename Offset>
+std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
+DistributedTreeImpl::queryDispatch(NearestPredicateTag, Tree const &tree,
+                                   ExecutionSpace const &space,
+                                   Predicates const &predicates,
+                                   Callback const &callback, Values &values,
+                                   Offset &offset)
+{
+  if constexpr (is_constrained_callback_v<Callback>)
+  {
+    queryDispatch2RoundImpl(NearestPredicateTag{}, tree, space, predicates,
+                            callback, values, offset);
+  }
+  else
+  {
+    Kokkos::abort("3-arg callback not implemented yet.");
+  }
+}
+
+} // namespace ArborX::Details
 
 #endif
