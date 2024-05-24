@@ -140,17 +140,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_point_kdop, KDOP_t, KDOP_3D_types)
   {
     KDOP_t x; // unit cube with (1,1,0)--(1,1,1) edge chopped away
     // bottom face
-    expand(x, Point(0, 0, 0));
-    expand(x, Point(1, 0, 0));
-    expand(x, Point(1, 0.75, 0));
-    expand(x, Point(0.75, 1, 0));
-    expand(x, Point(0, 1, 0));
+    expand(x, Point{0, 0, 0});
+    expand(x, Point{1, 0, 0});
+    expand(x, Point{1, 0.75, 0});
+    expand(x, Point{0.75, 1, 0});
+    expand(x, Point{0, 1, 0});
     // top
-    expand(x, Point(0, 0, 1));
-    expand(x, Point(1, 0, 1));
-    expand(x, Point(1, 0.75, 1));
-    expand(x, Point(0.75, 1, 1));
-    expand(x, Point(0, 1, 1));
+    expand(x, Point{0, 0, 1});
+    expand(x, Point{1, 0, 1});
+    expand(x, Point{1, 0.75, 1});
+    expand(x, Point{0.75, 1, 1});
+    expand(x, Point{0, 1, 1});
     // test intersection with point on the missing edge
     BOOST_TEST(intersects(Point{1, 1, 0.5}, x) ==
                (std::is_same<KDOP_t, KDOP<3, 6>>::value ||
@@ -178,16 +178,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_point_kdop, KDOP_t, KDOP_3D_types)
   {
     KDOP_t x; // unit cube with (1,1,1) corner cut off
     // bottom face
-    expand(x, Point(0, 0, 0));
-    expand(x, Point(1, 0, 0));
-    expand(x, Point(1, 1, 0));
-    expand(x, Point(0, 1, 0));
+    expand(x, Point{0, 0, 0});
+    expand(x, Point{1, 0, 0});
+    expand(x, Point{1, 1, 0});
+    expand(x, Point{0, 1, 0});
     // top
-    expand(x, Point(0, 0, 1));
-    expand(x, Point(1, 0, 1));
-    expand(x, Point(1, 0.75, 1));
-    expand(x, Point(0.75, 1, 1));
-    expand(x, Point(0, 1, 1));
+    expand(x, Point{0, 0, 1});
+    expand(x, Point{1, 0, 1});
+    expand(x, Point{1, 0.75, 1});
+    expand(x, Point{0.75, 1, 1});
+    expand(x, Point{0, 1, 1});
     // test intersection with center of the missing corner
     BOOST_TEST(intersects(Point{1, 1, 1}, x) ==
                (std::is_same<KDOP_t, KDOP<3, 6>>::value ||

@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
   //                                                 0   1   2   3
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
-        points(i) = {{(double)i / n + comm_rank, 0., 0.}};
+        points(i) = {{(float)i / n + comm_rank, 0., 0.}};
       });
 
   Tree tree(comm, ExecutionSpace{}, points);
@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
       queries("Testing::queries", 1);
   auto queries_host = Kokkos::create_mirror_view(queries);
   queries_host(0) = ArborX::intersects(
-      ArborX::Sphere{{{0.5 + comm_size - 1 - comm_rank, 0., 0.}}, 0.5});
+      ArborX::Sphere{{{0.5f + comm_size - 1 - comm_rank, 0., 0.}}, 0.5});
   deep_copy(queries, queries_host);
 
   // 0---0---0---0---1---1---1---1---2---2---2---2---3---3---3---3---
@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world, DeviceType, ARBORX_DEVICE_TYPES)
       "Testing::nearest_queries", 1);
   auto nearest_queries_host = Kokkos::create_mirror_view(nearest_queries);
   nearest_queries_host(0) = ArborX::nearest<ArborX::Point>(
-      {{0.0 + comm_size - 1 - comm_rank, 0., 0.}},
+      {{0.f + comm_size - 1 - comm_rank, 0., 0.}},
       comm_rank < comm_size - 1 ? 3 : 2);
   deep_copy(nearest_queries, nearest_queries_host);
 
@@ -319,8 +319,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unique_leaf_on_rank_0, DeviceType,
   ARBORX_TEST_QUERY_TREE(
       ExecutionSpace{}, tree,
       makeNearestQueries<DeviceType>({
-          {{{(double)comm_rank, (double)comm_rank, (double)comm_rank}},
-           comm_size},
+          {{{(float)comm_rank, (float)comm_rank, (float)comm_rank}}, comm_size},
       }),
       make_reference_solution<PairIndexRank>({{0, 0}}, {0, 1}));
 }
@@ -340,22 +339,22 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank, DeviceType,
   auto const tree = makeDistributedTree<DeviceType>(
       comm,
       {
-          {{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank + 1., 1., 1.}}},
+          {{{(float)comm_rank, 0., 0.}}, {{(float)comm_rank + 1, 1., 1.}}},
       });
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST((int)tree.size() == comm_size);
 
   BOOST_TEST(ArborX::Details::equals(
-      tree.bounds(), {{{0., 0., 0.}}, {{(double)comm_size, 1., 1.}}}));
+      tree.bounds(), {{{0., 0., 0.}}, {{(float)comm_size, 1., 1.}}}));
 
   ARBORX_TEST_QUERY_TREE(
       ExecutionSpace{}, tree,
       makeIntersectsBoxQueries<DeviceType>({
-          {{{(double)comm_size - (double)comm_rank - .5, .5, .5}},
-           {{(double)comm_size - (double)comm_rank - .5, .5, .5}}},
-          {{{(double)comm_rank + .5, .5, .5}},
-           {{(double)comm_rank + .5, .5, .5}}},
+          {{{(float)comm_size - (float)comm_rank - .5f, .5, .5}},
+           {{(float)comm_size - (float)comm_rank - .5f, .5, .5}}},
+          {{{(float)comm_rank + .5f, .5, .5}},
+           {{(float)comm_rank + .5f, .5, .5}}},
       }),
       make_reference_solution<PairIndexRank>(
           {{0, comm_size - 1 - comm_rank}, {0, comm_rank}}, {0, 1, 2}));
@@ -448,11 +447,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_nearest_neighbors, DeviceType,
   //                        [  rank 2  ]
   //                                   [  rank 3  ]
   auto const tree = makeDistributedTree<DeviceType>(
-      comm, {
-                {{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank, 0., 0.}}},
-                {{{(double)comm_rank + 1., 1., 1.}},
-                 {{(double)comm_rank + 1., 1., 1.}}},
-            });
+      comm,
+      {
+          {{{(float)comm_rank, 0., 0.}}, {{(float)comm_rank, 0., 0.}}},
+          {{{(float)comm_rank + 1, 1., 1.}}, {{(float)comm_rank + 1, 1., 1.}}},
+      });
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST((int)tree.size() == 2 * comm_size);
@@ -470,7 +469,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_nearest_neighbors, DeviceType,
     ARBORX_TEST_QUERY_TREE(
         ExecutionSpace{}, tree,
         makeNearestQueries<DeviceType>({
-            {{{(double)(comm_size - 1 - comm_rank) + .75, 0., 0.}}, 1},
+            {{{(float)(comm_size - 1 - comm_rank) + .75f, 0., 0.}}, 1},
         }),
         make_reference_solution<PairIndexRank>({{0, comm_size - comm_rank}},
                                                {0, 1}));
@@ -480,7 +479,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_nearest_neighbors, DeviceType,
     ARBORX_TEST_QUERY_TREE(
         ExecutionSpace{}, tree,
         makeNearestQueries<DeviceType>({
-            {{{(double)(comm_size - 1 - comm_rank) + .75, 0., 0.}}, 1},
+            {{{(float)(comm_size - 1 - comm_rank) + .75f, 0., 0.}}, 1},
         }),
         make_reference_solution<PairIndexRank>({{0, comm_size - 1}}, {0, 1}));
   }
@@ -508,11 +507,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_box_nearest_neighbors, DeviceType,
   //                        [  rank 2  ]
   //                                   [  rank 3  ]
   auto const tree = makeDistributedTree<DeviceType>(
-      comm, {
-                {{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank, 0., 0.}}},
-                {{{(double)comm_rank + 1., 1., 1.}},
-                 {{(double)comm_rank + 1., 1., 1.}}},
-            });
+      comm,
+      {
+          {{{(float)comm_rank, 0., 0.}}, {{(float)comm_rank, 0., 0.}}},
+          {{{(float)comm_rank + 1, 1., 1.}}, {{(float)comm_rank + 1, 1., 1.}}},
+      });
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST((int)tree.size() == 2 * comm_size);
@@ -530,8 +529,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_box_nearest_neighbors, DeviceType,
     ARBORX_TEST_QUERY_TREE(
         ExecutionSpace{}, tree,
         makeBoxNearestQueries<DeviceType>({
-            {{{(double)(comm_size - 1 - comm_rank) + .65, 0., 0.}},
-             {{(double)(comm_size - 1 - comm_rank) + .85, 0., 0.}},
+            {{{(float)(comm_size - 1 - comm_rank) + .65f, 0., 0.}},
+             {{(float)(comm_size - 1 - comm_rank) + .85f, 0., 0.}},
              1},
         }),
         make_reference_solution<PairIndexRank>({{0, comm_size - comm_rank}},
@@ -542,8 +541,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_box_nearest_neighbors, DeviceType,
     ARBORX_TEST_QUERY_TREE(
         ExecutionSpace{}, tree,
         makeBoxNearestQueries<DeviceType>({
-            {{{(double)(comm_size - 1 - comm_rank) + .65, 0., 0.}},
-             {{(double)(comm_size - 1 - comm_rank) + .85, 0., 0.}},
+            {{{(float)(comm_size - 1 - comm_rank) + .65f, 0., 0.}},
+             {{(float)(comm_size - 1 - comm_rank) + .85f, 0., 0.}},
              1},
         }),
         make_reference_solution<PairIndexRank>({{0, comm_size - 1}}, {0, 1}));
@@ -572,11 +571,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_sphere_nearest_neighbors,
   //                        [  rank 2  ]
   //                                   [  rank 3  ]
   auto const tree = makeDistributedTree<DeviceType>(
-      comm, {
-                {{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank, 0., 0.}}},
-                {{{(double)comm_rank + 1., 1., 1.}},
-                 {{(double)comm_rank + 1., 1., 1.}}},
-            });
+      comm,
+      {
+          {{{(float)comm_rank, 0., 0.}}, {{(float)comm_rank, 0., 0.}}},
+          {{{(float)comm_rank + 1, 1., 1.}}, {{(float)comm_rank + 1, 1., 1.}}},
+      });
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST((int)tree.size() == 2 * comm_size);
@@ -594,7 +593,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_sphere_nearest_neighbors,
     ARBORX_TEST_QUERY_TREE(
         ExecutionSpace{}, tree,
         makeSphereNearestQueries<DeviceType>({
-            {{{(double)(comm_size - 1 - comm_rank) + .75, 0., 0.}}, 0.1, 1},
+            {{{(float)(comm_size - 1 - comm_rank) + .75f, 0., 0.}}, 0.1, 1},
         }),
         make_reference_solution<PairIndexRank>({{0, comm_size - comm_rank}},
                                                {0, 1}));
@@ -604,7 +603,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(non_approximate_sphere_nearest_neighbors,
     ARBORX_TEST_QUERY_TREE(
         ExecutionSpace{}, tree,
         makeSphereNearestQueries<DeviceType>({
-            {{{(double)(comm_size - 1 - comm_rank) + .75, 0., 0.}}, 0.1, 1},
+            {{{(float)(comm_size - 1 - comm_rank) + .75f, 0., 0.}}, 0.1, 1},
         }),
         make_reference_solution<PairIndexRank>({{0, comm_size - 1}}, {0, 1}));
   }
@@ -674,8 +673,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
   //                        [  rank 2  ]
   //                                   [  rank 3  ]
   auto const tree = makeDistributedTree<DeviceType>(
-      comm,
-      {{{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank + 1, 1., 1.}}}});
+      comm, {{{{(float)comm_rank, 0., 0.}}, {{(float)comm_rank + 1, 1., 1.}}}});
 
   //  +--------0---------1----------2---------3
   //  |        |         |          |         |
@@ -904,7 +902,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(distributed_ray, DeviceType, ARBORX_DEVICE_TYPES)
   auto const tree = makeDistributedTree<DeviceType>(
       comm,
       {
-          {{{(double)comm_rank, 0., 0.}}, {{(double)comm_rank + 1., 1., 1.}}},
+          {{{(float)comm_rank, 0., 0.}}, {{(float)comm_rank + 1, 1., 1.}}},
       });
 
   std::vector<ArborX::Experimental::Ray> rays = {
