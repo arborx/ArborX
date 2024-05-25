@@ -25,8 +25,8 @@
 #include <ArborX_DistributedTree.hpp>
 #endif
 #include <ArborX_Box.hpp>
-#include <ArborX_Point.hpp>
-#include <ArborX_Sphere.hpp>
+#include <ArborX_HyperPoint.hpp>
+#include <ArborX_HyperSphere.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -157,13 +157,18 @@ auto makeIntersectsBoxQueries(std::vector<ArborX::Box> const &boxes)
   return queries;
 }
 
-template <typename DeviceType, typename Data>
+template <typename DeviceType, typename Data, int DIM = 3,
+          typename Coordinate = float>
 auto makeIntersectsBoxWithAttachmentQueries(
-    std::vector<ArborX::Box> const &boxes, std::vector<Data> const &data)
+    std::vector<ArborX::ExperimentalHyperGeometry::Box<DIM, Coordinate>> const
+        &boxes,
+    std::vector<Data> const &data)
 {
   int const n = boxes.size();
-  Kokkos::View<decltype(ArborX::attach(ArborX::intersects(ArborX::Box{}),
-                                       Data{})) *,
+  Kokkos::View<decltype(ArborX::attach(
+                   ArborX::intersects(ArborX::ExperimentalHyperGeometry::Box<
+                                      DIM, Coordinate>{}),
+                   Data{})) *,
                DeviceType>
       queries("Testing::intersecting_with_box_with_attachment_predicates", n);
   auto queries_host = Kokkos::create_mirror_view(queries);
@@ -173,15 +178,19 @@ auto makeIntersectsBoxWithAttachmentQueries(
   return queries;
 }
 
-template <typename DeviceType>
+template <typename DeviceType, int DIM = 3, typename Coordinate = float>
 auto makeNearestQueries(
-    std::vector<std::pair<ArborX::Point, int>> const &points)
+    std::vector<std::pair<
+        ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>, int>> const
+        &points)
 {
   // NOTE: `points` is not a very descriptive name here. It stores both the
   // actual point and the number k of neighbors to query for.
   int const n = points.size();
-  Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> queries(
-      "Testing::nearest_queries", n);
+  Kokkos::View<ArborX::Nearest<
+                   ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>> *,
+               DeviceType>
+      queries("Testing::nearest_queries", n);
   auto queries_host = Kokkos::create_mirror_view(queries);
   for (int i = 0; i < n; ++i)
     queries_host(i) = ArborX::nearest(points[i].first, points[i].second);
@@ -189,53 +198,65 @@ auto makeNearestQueries(
   return queries;
 }
 
-template <typename DeviceType>
+template <typename DeviceType, int DIM = 3, typename Coordinate = float>
 auto makeBoxNearestQueries(
-    std::vector<std::tuple<ArborX::Point, ArborX::Point, int>> const &boxes)
+    std::vector<std::tuple<
+        ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>,
+        ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>, int>> const
+        &boxes)
 {
   // NOTE: `boxes` is not a very descriptive name here. It stores both the
   // corners of the boxe and the number k of neighbors to query for.
+  using Box = ArborX::ExperimentalHyperGeometry::Box<DIM, Coordinate>;
   int const n = boxes.size();
-  Kokkos::View<ArborX::Nearest<ArborX::Box> *, DeviceType> queries(
+  Kokkos::View<ArborX::Nearest<Box> *, DeviceType> queries(
       "Testing::nearest_queries", n);
   auto queries_host = Kokkos::create_mirror_view(queries);
   for (int i = 0; i < n; ++i)
-    queries_host(i) = ArborX::nearest(
-        ArborX::Box{std::get<0>(boxes[i]), std::get<1>(boxes[i])},
-        std::get<2>(boxes[i]));
+    queries_host(i) =
+        ArborX::nearest(Box{std::get<0>(boxes[i]), std::get<1>(boxes[i])},
+                        std::get<2>(boxes[i]));
   Kokkos::deep_copy(queries, queries_host);
   return queries;
 }
 
-template <typename DeviceType>
+template <typename DeviceType, int DIM = 3, typename Coordinate = float>
 auto makeSphereNearestQueries(
-    std::vector<std::tuple<ArborX::Point, float, int>> const &spheres)
+    std::vector<
+        std::tuple<ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>,
+                   float, int>> const &spheres)
 {
   // NOTE: `sphere` is not a very descriptive name here. It stores both the
   // center and the radius of the sphere and the number k of neighbors to query
   // for.
+  using Sphere = ArborX::ExperimentalHyperGeometry::Sphere<DIM, Coordinate>;
   int const n = spheres.size();
-  Kokkos::View<ArborX::Nearest<ArborX::Sphere> *, DeviceType> queries(
+  Kokkos::View<ArborX::Nearest<Sphere> *, DeviceType> queries(
       "Testing::nearest_queries", n);
   auto queries_host = Kokkos::create_mirror_view(queries);
   for (int i = 0; i < n; ++i)
     queries_host(i) = ArborX::nearest(
-        ArborX::Sphere{std::get<0>(spheres[i]), std::get<1>(spheres[i])},
+        Sphere{std::get<0>(spheres[i]), std::get<1>(spheres[i])},
         std::get<2>(spheres[i]));
   Kokkos::deep_copy(queries, queries_host);
   return queries;
 }
 
-template <typename DeviceType, typename Data>
+template <typename DeviceType, typename Data, int DIM = 3,
+          typename Coordinate = float>
 auto makeNearestWithAttachmentQueries(
-    std::vector<std::pair<ArborX::Point, int>> const &points,
+    std::vector<std::pair<
+        ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>, int>> const
+        &points,
     std::vector<Data> const &data)
 {
   // NOTE: `points` is not a very descriptive name here. It stores both the
   // actual point and the number k of neighbors to query for.
   int const n = points.size();
-  Kokkos::View<decltype(ArborX::attach(ArborX::Nearest<ArborX::Point>{},
-                                       Data{})) *,
+  Kokkos::View<decltype(ArborX::attach(
+                   ArborX::Nearest<ArborX::ExperimentalHyperGeometry::Point<
+                       DIM, Coordinate>>{},
+                   Data{})) *,
                DeviceType>
       queries("Testing::nearest_queries", n);
   auto queries_host = Kokkos::create_mirror_view(queries);
@@ -246,20 +267,22 @@ auto makeNearestWithAttachmentQueries(
   return queries;
 }
 
-template <typename DeviceType>
-Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
-makeIntersectsSphereQueries(
-    std::vector<std::pair<ArborX::Point, float>> const &points)
+template <typename DeviceType, int DIM = 3, typename Coordinate = float>
+auto makeIntersectsSphereQueries(
+    std::vector<std::pair<
+        ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>, float>> const
+        &points)
 {
   // NOTE: `points` is not a very descriptive name here. It stores both the
   // actual point and the radius for the search around that point.
+  using Sphere = ArborX::ExperimentalHyperGeometry::Sphere<DIM, Coordinate>;
   int const n = points.size();
-  Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
-      queries("Testing::intersecting_with_sphere_predicates", n);
+  Kokkos::View<decltype(ArborX::intersects(Sphere{})) *, DeviceType> queries(
+      "Testing::intersecting_with_sphere_predicates", n);
   auto queries_host = Kokkos::create_mirror_view(queries);
   for (int i = 0; i < n; ++i)
     queries_host(i) =
-        ArborX::intersects(ArborX::Sphere{points[i].first, points[i].second});
+        ArborX::intersects(Sphere{points[i].first, points[i].second});
   Kokkos::deep_copy(queries, queries_host);
   return queries;
 }
