@@ -256,21 +256,23 @@ int main(int argc, char *argv[])
           using Kokkos::sin;
           using Kokkos::acos;
 
+          using Point = typename ArborX::Experimental::Ray::Point;
+          using Vector = typename ArborX::Experimental::Ray::Vector;
+
           ArborX::Box const &b = boxes(i);
-          ArborX::Point origin{
-              b.minCorner()[0] +
-                  Kokkos::rand<GeneratorType, float>::draw(g, dx),
-              b.minCorner()[1] +
-                  Kokkos::rand<GeneratorType, float>::draw(g, dy),
-              b.minCorner()[2] +
-                  Kokkos::rand<GeneratorType, float>::draw(g, dz)};
+          Point origin{b.minCorner()[0] +
+                           Kokkos::rand<GeneratorType, float>::draw(g, dx),
+                       b.minCorner()[1] +
+                           Kokkos::rand<GeneratorType, float>::draw(g, dy),
+                       b.minCorner()[2] +
+                           Kokkos::rand<GeneratorType, float>::draw(g, dz)};
 
           float upsilon = Kokkos::rand<GeneratorType, float>::draw(
               g, 2.f * Kokkos::numbers::pi_v<float>);
           float theta =
               acos(1 - 2 * Kokkos::rand<GeneratorType, float>::draw(g));
-          typename ArborX::Experimental::Ray::Vector direction{
-              cos(upsilon) * sin(theta), sin(upsilon) * sin(theta), cos(theta)};
+          Vector direction{cos(upsilon) * sin(theta), sin(upsilon) * sin(theta),
+                           cos(theta)};
 
           rays(j + i * rays_per_box) =
               ArborX::Experimental::Ray{origin, direction};

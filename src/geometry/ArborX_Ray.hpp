@@ -16,8 +16,8 @@
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtSwap.hpp>
 #include <ArborX_DetailsVector.hpp>
+#include <ArborX_HyperPoint.hpp>
 #include <ArborX_HyperTriangle.hpp>
-#include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
 
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
@@ -30,6 +30,7 @@ namespace ArborX::Experimental
 
 struct Ray
 {
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
   using Vector = ArborX::Details::Vector<3>;
 
   Point _origin = {};
@@ -94,7 +95,7 @@ constexpr bool equals(Ray const &l, Ray const &r)
 }
 
 KOKKOS_INLINE_FUNCTION
-Point returnCentroid(Ray const &ray) { return ray.origin(); }
+auto returnCentroid(Ray const &ray) { return ray.origin(); }
 
 // The ray-box intersection algorithm is based on [1]. Their 'efficient slag'
 // algorithm checks the intersections both in front and behind the ray.
