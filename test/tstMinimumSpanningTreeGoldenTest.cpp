@@ -52,7 +52,7 @@ auto parsePointsFromCSVFile(std::string const &filename)
     Tokenizer tok(line);
     auto first = tok.begin();
     auto const last = tok.end();
-    points.push_back(
+    points.push_back( // NOLINT(modernize-use-emplace)
         {std::stof(*first++), std::stof(*first++), std::stof(*first++)});
     assert(first == last);
   }
