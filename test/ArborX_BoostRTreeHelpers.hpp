@@ -20,7 +20,6 @@
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp> // is_accessible_from_host
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>       // exclusive_scan
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>         // lastElement
-#include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
 #include <ArborX_Sphere.hpp>
 #ifdef ARBORX_ENABLE_MPI

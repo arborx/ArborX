@@ -55,7 +55,9 @@ struct BenchmarkRegistration<ExecutionSpace, ArborX::BVH<MemorySpace>>
 };
 
 template <typename ExecutionSpace>
-struct BenchmarkRegistration<ExecutionSpace, BoostExt::RTree<ArborX::Point>>
+struct BenchmarkRegistration<
+    ExecutionSpace,
+    BoostExt::RTree<ArborX::ExperimentalHyperGeometry::Point<3>>>
 {
   using TreeType = BoostExt::RTree<ArborX::Point>;
   BenchmarkRegistration(Spec const &spec, std::string const &description)
