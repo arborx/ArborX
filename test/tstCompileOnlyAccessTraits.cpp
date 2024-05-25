@@ -12,7 +12,6 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_AttachIndices.hpp>
 #include <ArborX_HyperPoint.hpp>
-#include <ArborX_Point.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -54,7 +53,9 @@ using deduce_type_t =
 
 void test_access_traits_compile_only()
 {
-  Kokkos::View<ArborX::Point *> p;
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+
+  Kokkos::View<Point *> p;
   Kokkos::View<float **> v;
   check_valid_access_traits(PrimitivesTag{}, p);
   check_valid_access_traits(PrimitivesTag{}, v);
@@ -64,14 +65,14 @@ void test_access_traits_compile_only()
                             ArborX::Details::DoNotCheckGetReturnType());
   static_assert(
       std::is_same_v<deduce_type_t<decltype(p_with_indices), PrimitivesTag>,
-                     ArborX::PairValueIndex<ArborX::Point, unsigned>>);
+                     ArborX::PairValueIndex<Point, unsigned>>);
 
   auto p_with_indices_long = ArborX::Experimental::attach_indices<long>(p);
   static_assert(std::is_same_v<
                 deduce_type_t<decltype(p_with_indices_long), PrimitivesTag>,
-                ArborX::PairValueIndex<ArborX::Point, long>>);
+                ArborX::PairValueIndex<Point, long>>);
 
-  using NearestPredicate = decltype(ArborX::nearest(ArborX::Point{}));
+  using NearestPredicate = decltype(ArborX::nearest(Point{}));
   Kokkos::View<NearestPredicate *> q;
   check_valid_access_traits(PredicatesTag{}, q);
 
@@ -110,12 +111,11 @@ void test_access_traits_compile_only()
 
 void test_deduce_point_type_from_view()
 {
-  using GoodOlePoint = ArborX::Point;
   using ArborX::PrimitivesTag;
   using ArborX::ExperimentalHyperGeometry::Point;
   static_assert(
       std::is_same_v<deduce_type_t<Kokkos::View<float **>, PrimitivesTag>,
-                     GoodOlePoint>);
+                     Point<3>>);
   static_assert(
       std::is_same_v<deduce_type_t<Kokkos::View<float *[3]>, PrimitivesTag>,
                      Point<3>>);

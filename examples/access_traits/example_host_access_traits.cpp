@@ -29,13 +29,15 @@ int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
 
-  std::vector<ArborX::Point> points;
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+
+  std::vector<Point> points;
   // Fill vector with random points in [-1, 1]^3
   std::uniform_real_distribution<float> dis{-1., 1.};
   std::default_random_engine gen;
   auto rd = [&]() { return dis(gen); };
   std::generate_n(std::back_inserter(points), 100, [&]() {
-    return ArborX::Point{rd(), rd(), rd()};
+    return Point{rd(), rd(), rd()};
   });
 
   // Pass directly the vector of points to use the access traits defined above
@@ -45,7 +47,7 @@ int main(int argc, char *argv[])
   // As a supported alternative, wrap the vector in an unmanaged View
   bvh = ArborX::BVH<Kokkos::HostSpace>{
       Kokkos::DefaultHostExecutionSpace{},
-      Kokkos::View<ArborX::Point *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>{
+      Kokkos::View<Point *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>{
           points.data(), points.size()}};
 
   return 0;

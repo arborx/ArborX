@@ -55,9 +55,11 @@ struct BenchmarkRegistration<ExecutionSpace, ArborX::BVH<MemorySpace>>
 };
 
 template <typename ExecutionSpace>
-struct BenchmarkRegistration<ExecutionSpace, BoostExt::RTree<ArborX::Point>>
+struct BenchmarkRegistration<
+    ExecutionSpace,
+    BoostExt::RTree<ArborX::ExperimentalHyperGeometry::Point<3>>>
 {
-  using TreeType = BoostExt::RTree<ArborX::Point>;
+  using TreeType = BoostExt::RTree<ArborX::ExperimentalHyperGeometry::Point<3>>;
   BenchmarkRegistration(Spec const &spec, std::string const &description)
   {
     register_benchmark_construction<ExecutionSpace, TreeType>(spec,
@@ -138,7 +140,9 @@ void register_boostrtree_benchmarks(Spec const &spec)
 {
 #ifdef KOKKOS_ENABLE_SERIAL
   if (spec.backends == "all" || spec.backends == "rtree")
-    BenchmarkRegistration<Kokkos::Serial, BoostExt::RTree<ArborX::Point>>(
+    BenchmarkRegistration<
+        Kokkos::Serial,
+        BoostExt::RTree<ArborX::ExperimentalHyperGeometry::Point<3>>>(
         spec, "BoostRTree");
 #else
   std::ignore = spec;

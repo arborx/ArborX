@@ -12,7 +12,6 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperPoint.hpp>
-#include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
 
 namespace ArborX::GeometryTraits
@@ -187,9 +186,10 @@ struct coordinate_type<CorrectSpecialization>
 
 void test_geometry_compile_only()
 {
-  check_valid_geometry_traits(ArborX::Point{});
   check_valid_geometry_traits(ArborX::Box{});
   check_valid_geometry_traits(ArborX::Sphere{});
+
+  check_valid_geometry_traits(ArborX::ExperimentalHyperGeometry::Point<3>{});
 
   check_valid_geometry_traits(CorrectSpecialization{});
 
@@ -220,7 +220,7 @@ void test_geometry_compile_only()
 
 void test_point_cv_compile_only()
 {
-  using Point = ArborX::Point;
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
   namespace GT = ArborX::GeometryTraits;
 
   static_assert(GT::dimension_v<Point const> == 3);

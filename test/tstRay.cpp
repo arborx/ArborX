@@ -17,7 +17,6 @@
 BOOST_AUTO_TEST_CASE(intersects_box)
 {
   using ArborX::Box;
-  using ArborX::Point;
   using ArborX::Experimental::Ray;
 
   constexpr Box unit_box{{0, 0, 0}, {1, 1, 1}};

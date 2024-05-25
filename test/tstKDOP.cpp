@@ -14,7 +14,6 @@
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_HyperPoint.hpp>
 #include <ArborX_KDOP.hpp>
-#include <ArborX_Point.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
@@ -104,7 +103,7 @@ using KDOP_3D_types =
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_kdop_3D, KDOP_t, KDOP_3D_types)
 {
-  using ArborX::Point;
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
 
   KDOP_t x;
   BOOST_TEST(!intersects(x, x));
@@ -118,7 +117,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_kdop_3D, KDOP_t, KDOP_3D_types)
 BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_box_3D, KDOP_t, KDOP_3D_types)
 {
   using ArborX::Box;
-  using ArborX::Point;
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
 
   KDOP_t x;
   BOOST_TEST(!intersects(x, Box{}));
@@ -132,7 +131,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_box_3D, KDOP_t, KDOP_3D_types)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_point_kdop, KDOP_t, KDOP_3D_types)
 {
-  using ArborX::Point;
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
   {
     KDOP_t x;
     BOOST_TEST(!intersects(Point{1, 1, 1}, x));

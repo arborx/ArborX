@@ -24,10 +24,14 @@
 
 // FIXME: this is a temporary place for loadPointCloud and writePointCloud
 // Right now, only loadPointCloud is being used, and only in this example
-template <typename DeviceType>
-void loadPointCloud(std::string const &filename,
-                    Kokkos::View<ArborX::Point *, DeviceType> &random_points)
+template <typename Points>
+void loadPointCloud(std::string const &filename, Points &random_points)
 {
+  static_assert(Kokkos::is_view_v<Points>);
+  static_assert(Points::rank == 1);
+  static_assert(
+      ArborX::GeometryTraits::dimension_v<typename Points::value_type> == 3);
+
   std::ifstream file(filename);
   if (file.is_open())
   {
@@ -47,16 +51,19 @@ void loadPointCloud(std::string const &filename,
   }
 }
 
-template <typename Layout, typename DeviceType>
-void writePointCloud(
-    Kokkos::View<ArborX::Point *, Layout, DeviceType> random_points,
-    std::string const &filename)
-
+template <typename Points>
+void writePointCloud(Points random_points, std::string const &filename)
 {
+  static_assert(Kokkos::is_view_v<Points>);
+  static_assert(Points::rank == 1);
+  static_assert(
+      ArborX::GeometryTraits::dimension_v<typename Points::value_type> == 3);
+
   namespace KokkosExt = ArborX::Details::KokkosExt;
   static_assert(
       KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
       "The View should be accessible on the Host");
+
   std::ofstream file(filename);
   if (file.is_open())
   {
@@ -81,7 +88,10 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
 {
   using ExecutionSpace = Kokkos::DefaultHostExecutionSpace;
   using DeviceType = ExecutionSpace::device_type;
-  Kokkos::View<ArborX::Point *, DeviceType> points("Example::points", 0);
+
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+
+  Kokkos::View<Point *, DeviceType> points("Example::points", 0);
   loadPointCloud(infile, points);
 
   ArborX::BVH<Kokkos::HostSpace> bvh{ExecutionSpace{}, points};
@@ -93,8 +103,8 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
   int const n_queries = bvh.size();
   if (n_neighbors < 0)
     n_neighbors = bvh.size();
-  Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> queries(
-      "Example::queries", n_queries);
+  Kokkos::View<ArborX::Nearest<Point> *, DeviceType> queries("Example::queries",
+                                                             n_queries);
   Kokkos::parallel_for(
       "Example::inititialize_queries",
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {

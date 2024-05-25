@@ -45,7 +45,8 @@ struct ArborX::AccessTraits<NearestToOrigin, ArborX::PredicatesTag>
   static KOKKOS_FUNCTION std::size_t size(NearestToOrigin) { return 1; }
   static KOKKOS_FUNCTION auto get(NearestToOrigin d, std::size_t)
   {
-    return ArborX::nearest(ArborX::Point{0, 0, 0}, d.k);
+    return ArborX::nearest(ArborX::ExperimentalHyperGeometry::Point{0, 0, 0},
+                           d.k);
   }
   using memory_space = MemorySpace;
 };
@@ -65,22 +66,24 @@ int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
 
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+
   int const n = 100;
-  std::vector<ArborX::Point> points;
+  std::vector<Point> points;
   // Fill vector with random points in [-1, 1]^3
   std::uniform_real_distribution<float> dis{-1., 1.};
   std::default_random_engine gen;
   auto rd = [&]() { return dis(gen); };
   std::generate_n(std::back_inserter(points), n, [&]() {
-    return ArborX::Point{rd(), rd(), rd()};
+    return Point{rd(), rd(), rd()};
   });
 
   ArborX::BVH<MemorySpace> bvh{
       ExecutionSpace{},
       Kokkos::create_mirror_view_and_copy(
           MemorySpace{},
-          Kokkos::View<ArborX::Point *, Kokkos::HostSpace,
-                       Kokkos::MemoryUnmanaged>(points.data(), points.size()))};
+          Kokkos::View<Point *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
+              points.data(), points.size()))};
 
   {
     Kokkos::View<int *, MemorySpace> values("Example::values", 0);

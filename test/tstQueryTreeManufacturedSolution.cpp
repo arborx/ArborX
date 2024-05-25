@@ -45,6 +45,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   }
 #endif
 
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Box = ArborX::ExperimentalHyperGeometry::Box<3>;
+
   float Lx = 100.0;
   float Ly = 100.0;
   float Lz = 100.0;
@@ -60,14 +63,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
     return i + j * nx + k * (nx * ny);
   };
 
-  Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes("bounding_boxes", n);
+  Kokkos::View<Box *, DeviceType> bounding_boxes("bounding_boxes", n);
   auto bounding_boxes_host = Kokkos::create_mirror_view(bounding_boxes);
 
   for (int i = 0; i < nx; ++i)
     for (int j = 0; j < ny; ++j)
       for (int k = 0; k < nz; ++k)
       {
-        ArborX::Point p{{i * hx, j * hy, k * hz}};
+        Point p{{i * hx, j * hy, k * hz}};
         bounding_boxes_host[ind(i, j, k)] = {p, p};
       }
   Kokkos::deep_copy(bounding_boxes, bounding_boxes_host);
@@ -93,8 +96,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   std::iota(offset_ref.begin(), offset_ref.end(), 0);
   std::iota(indices_ref.begin(), indices_ref.end(), 0);
 
-  Kokkos::View<decltype(ArborX::intersects(ArborX::Box{})) *, DeviceType>
-      queries("queries", n);
+  Kokkos::View<decltype(ArborX::intersects(Box{})) *, DeviceType> queries(
+      "queries", n);
   Kokkos::parallel_for(
       "fill_queries", Kokkos::RangePolicy<ExecutionSpace>(0, n),
       KOKKOS_LAMBDA(int i) {

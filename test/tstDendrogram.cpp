@@ -119,7 +119,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_boruvka, DeviceType,
   // binary dendrograms which are all correct. This makes the comparison very
   // hard, and something we want to avoid for now.
   int const n = 3000;
-  auto points = ArborXTest::make_random_cloud<ArborX::Point>(space, n);
+  auto points = ArborXTest::make_random_cloud<
+      ArborX::ExperimentalHyperGeometry::Point<3>>(space, n);
 
   MinimumSpanningTree<MemorySpace, BoruvkaMode::HDBSCAN> mst(space, points);
   ArborX::Experimental::Dendrogram<MemorySpace> dendrogram(space, mst.edges);

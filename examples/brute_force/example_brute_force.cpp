@@ -29,9 +29,10 @@ struct ArborX::AccessTraits<Dummy, ArborX::PrimitivesTag>
   using memory_space = MemorySpace;
   using size_type = typename MemorySpace::size_type;
   static KOKKOS_FUNCTION size_type size(Dummy const &d) { return d.count; }
-  static KOKKOS_FUNCTION ArborX::Point get(Dummy const &, size_type i)
+  static KOKKOS_FUNCTION auto get(Dummy const &, size_type i)
   {
-    return {{(float)i, (float)i, (float)i}};
+    return ArborX::ExperimentalHyperGeometry::Point{(float)i, (float)i,
+                                                    (float)i};
   }
 };
 
@@ -44,9 +45,10 @@ struct ArborX::AccessTraits<Dummy, ArborX::PredicatesTag>
   static KOKKOS_FUNCTION size_type size(Dummy const &d) { return d.count; }
   static KOKKOS_FUNCTION auto get(Dummy const &, size_type i)
   {
-    ArborX::Point center{(float)i, (float)i, (float)i};
-    float radius = i;
-    return ArborX::intersects(Sphere{center, radius});
+    ArborX::ExperimentalHyperGeometry::Point center{(float)i, (float)i,
+                                                    (float)i};
+    return ArborX::intersects(
+        ExperimentalHyperGeometry::Sphere{center, (float)i});
   }
 };
 

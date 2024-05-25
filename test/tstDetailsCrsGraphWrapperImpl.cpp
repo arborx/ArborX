@@ -52,6 +52,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
 
   namespace KokkosExt = ArborX::Details::KokkosExt;
 
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+
   Kokkos::View<int *, DeviceType> offset("offset", 0);
   Kokkos::View<int *, DeviceType> indices("indices", 0);
 
@@ -59,7 +61,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(query_impl, DeviceType, ARBORX_DEVICE_TYPES)
   // Build a view of predicates.  Won't actually call any of them.  All is
   // required is a valid access traits assocated to it. 'get()' nevers get
   // called, only 'size()'.  FIXME
-  using Predicate = decltype(ArborX::intersects(std::declval<ArborX::Point>()));
+  using Predicate = decltype(ArborX::intersects(std::declval<Point>()));
   Kokkos::View<Predicate *, DeviceType> predicates(
       Kokkos::view_alloc("predicates", Kokkos::WithoutInitializing), n);
 
