@@ -101,6 +101,8 @@ template <typename ExecutionSpace, typename View, typename... OtherViews>
 void sortResultsByKey(ExecutionSpace const &space, View keys,
                       OtherViews... other_views)
 {
+  static_assert((View::rank == 1) && ((OtherViews::rank == 1) && ...));
+
   auto const n = keys.extent(0);
   // If they were no queries, min_val and max_val values won't change after
   // the parallel reduce (they are initialized to +infty and -infty
@@ -109,7 +111,7 @@ void sortResultsByKey(ExecutionSpace const &space, View keys,
     return;
 
   using ViewType = std::tuple_element_t<0, std::tuple<OtherViews...>>;
-  if constexpr (sizeof...(OtherViews) == 1 && ViewType::rank == 1 &&
+  if constexpr (sizeof...(OtherViews) == 1 &&
                 std::is_arithmetic_v<typename ViewType::value_type>)
   {
     // If there's only one 1D view to process, we can avoid computing the
