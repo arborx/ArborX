@@ -75,13 +75,18 @@ Vector(T, U...) -> Vector<1 + sizeof...(U), T>;
 
 } // namespace ArborX::Details
 
-template <typename Point, typename Enable = std::enable_if_t<
-                              ArborX::GeometryTraits::is_point_v<Point>>>
+// FIXME: remove second template argument when ExperimentalHyperGeometry switch
+// happens
+template <typename Point, typename Point2,
+          typename Enable =
+              std::enable_if_t<ArborX::GeometryTraits::is_point_v<Point> &&
+                               ArborX::GeometryTraits::is_point_v<Point2>>>
 KOKKOS_INLINE_FUNCTION constexpr auto operator-(Point const &end,
-                                                Point const &begin)
+                                                Point2 const &begin)
 {
   namespace GT = ArborX::GeometryTraits;
   constexpr int DIM = GT::dimension_v<Point>;
+  static_assert(GT::dimension_v<Point2> == DIM);
   ArborX::Details::Vector<DIM, GT::coordinate_type_t<Point>> v;
   for (int d = 0; d < DIM; ++d)
     v[d] = end[d] - begin[d];
