@@ -119,6 +119,10 @@ create_layout_right_mirror_view_and_copy(ExecutionSpace const &execution_space,
   {
     return src;
   }
+  else if constexpr (has_compatible_layout)
+  {
+    return Kokkos::create_mirror_view_and_copy(memory_space, src);
+  }
   else
   {
     constexpr int pointer_depth =
