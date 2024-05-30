@@ -97,43 +97,6 @@ sendAcrossNetwork(ExecutionSpace const &space, Distributor const &distributor,
   }
 }
 
-template <typename ExecutionSpace, typename View, typename... OtherViews>
-void sortResultsByKey(ExecutionSpace const &space, View keys,
-                      OtherViews... other_views)
-{
-  static_assert((View::rank == 1) && ((OtherViews::rank == 1) && ...));
-
-  auto const n = keys.extent(0);
-  // If they were no queries, min_val and max_val values won't change after
-  // the parallel reduce (they are initialized to +infty and -infty
-  // respectively) and the sort will hang.
-  if (n == 0)
-    return;
-
-  using ViewType = std::tuple_element_t<0, std::tuple<OtherViews...>>;
-  if constexpr (sizeof...(OtherViews) == 1 &&
-                std::is_arithmetic_v<typename ViewType::value_type>)
-  {
-    // If there's only one 1D view to process, we can avoid computing the
-    // permutation. We also avoid 1D views with non-arithmetic types as we
-    // can't guarantee they provide comparison operator.
-    KokkosExt::sortByKey(space, keys, other_views...);
-  }
-  else
-  {
-    auto const permutation = ArborX::Details::sortObjects(space, keys);
-
-    // Call applyPermutation for every entry in the parameter pack.
-    // We need to use the comma operator here since the function returns void.
-    // The variable we assign to is actually not needed. We just need something
-    // to store the initializer list (that contains only zeros).
-    auto dummy = {
-        (ArborX::Details::applyPermutation(space, permutation, other_views),
-         0)...};
-    std::ignore = dummy;
-  }
-}
-
 template <typename ExecutionSpace, typename QueryIdsView, typename OffsetView>
 void countResults(ExecutionSpace const &space, int n_queries,
                   QueryIdsView const &query_ids, OffsetView &offset)
@@ -353,7 +316,7 @@ void forwardQueriesAndCommunicateResults(
   // Merge results
   int const n_predicates = predicates.size();
   countResults(space, n_predicates, ids, offset);
-  sortResultsByKey(space, ids, values);
+  KokkosExt::sortByKey(space, ids, values);
 
   Kokkos::Profiling::popRegion();
 }
