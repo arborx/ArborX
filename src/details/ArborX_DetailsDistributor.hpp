@@ -20,6 +20,7 @@
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_Profiling_ScopedRegion.hpp>
 
 #include <sstream>
 #include <vector>
@@ -41,6 +42,9 @@ determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
                       std::vector<int> &unique_ranks, std::vector<int> &counts,
                       std::vector<int> &offsets)
 {
+  Kokkos::Profiling::ScopedRegion guard(
+      "ArborX::Distributor::determineBufferLayout");
+
   ARBORX_ASSERT(unique_ranks.empty());
   ARBORX_ASSERT(offsets.empty());
   ARBORX_ASSERT(counts.empty());
@@ -138,6 +142,9 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
                                          std::vector<int> &counts,
                                          std::vector<int> &offsets)
 {
+  Kokkos::Profiling::ScopedRegion guard(
+      "ArborX::Distributor::sortAndDetermineBufferLayout");
+
   ARBORX_ASSERT(unique_ranks.empty());
   ARBORX_ASSERT(offsets.empty());
   ARBORX_ASSERT(counts.empty());
@@ -216,6 +223,9 @@ public:
                          View const &batched_destination_ranks,
                          View const &batch_offsets)
   {
+    Kokkos::Profiling::ScopedRegion guard(
+        "ArborX::Distributor::createFromSends(batched)");
+
     static_assert(View::rank == 1);
     static_assert(
         std::is_same<typename View::non_const_value_type, int>::value);
@@ -234,6 +244,9 @@ public:
   size_t createFromSends(ExecutionSpace const &space,
                          View const &destination_ranks)
   {
+    Kokkos::Profiling::ScopedRegion guard(
+        "ArborX::Distributor::createFromSends");
+
     static_assert(View::rank == 1);
     static_assert(
         std::is_same<typename View::non_const_value_type, int>::value);
@@ -252,6 +265,9 @@ public:
   void doPostsAndWaits(ExecutionSpace const &space, ExportView const &exports,
                        size_t num_packets, ImportView const &imports) const
   {
+    Kokkos::Profiling::ScopedRegion guard(
+        "ArborX::Distributor::doPostsAndWaits");
+
     ARBORX_ASSERT(num_packets * _src_offsets.back() == imports.size());
     ARBORX_ASSERT(num_packets * _dest_offsets.back() == exports.size());
 
@@ -388,6 +404,9 @@ public:
 private:
   size_t preparePointToPointCommunication()
   {
+    Kokkos::Profiling::ScopedRegion guard(
+        "ArborX::Distributor::preparePointToPointCommunication");
+
     int comm_size;
     MPI_Comm_size(_comm, &comm_size);
 
