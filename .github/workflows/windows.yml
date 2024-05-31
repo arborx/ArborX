@@ -20,6 +20,9 @@ jobs:
         pkgs: boost-test boost-program-options boost-geometry benchmark
         triplet: x64-windows-release
         token: ${{ github.token }}
+        # FIXME: remove revision once microsoft/vcpkg makes a release after 2024.05.24
+        # Current hash corresponds to the merge of https://github.com/microsoft/vcpkg/pull/38979
+        revision: a8954b904ad2a6939ecd8fc213e87702fa1243ea
         github-binarycache: true
     - uses: actions/checkout@v3
       with:
