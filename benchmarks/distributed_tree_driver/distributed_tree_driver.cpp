@@ -42,7 +42,7 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
   int n_values;
   int n_queries;
   int n_neighbors;
-  double shift;
+  float shift;
   int partition_dim;
   bool perform_knn_search = true;
   bool perform_radius_search = true;
@@ -55,7 +55,7 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
         ( "values", bpo::value<int>(&n_values)->default_value(20000), "Number of indexable values (source) per MPI rank." )
         ( "queries", bpo::value<int>(&n_queries)->default_value(5000), "Number of queries (target) per MPI rank." )
         ( "neighbors", bpo::value<int>(&n_neighbors)->default_value(10), "Desired number of results per query." )
-        ( "shift", bpo::value<double>(&shift)->default_value(1.), "Shift of the point clouds. '0' means the clouds are built "
+        ( "shift", bpo::value<float>(&shift)->default_value(1.f), "Shift of the point clouds. '0' means the clouds are built "
 	                                                          "at the same place, while '1' places the clouds next to each"
 								  "other. Negative values and values larger than one "
                                                                   "mean that the clouds are separated." )
@@ -113,10 +113,10 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::queries"),
       n_queries);
   {
-    double a = 0.;
-    double offset_x = 0.;
-    double offset_y = 0.;
-    double offset_z = 0.;
+    float a = 0.;
+    float offset_x = 0.;
+    float offset_y = 0.;
+    float offset_z = 0.;
     int i_max = 0;
     // Change the geometry of the problem. In 1D, all the point clouds are
     // aligned on a line. In 2D, the point clouds create a board and in 3D,
@@ -163,7 +163,7 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
     }
 
     // Generate random points uniformly distributed within a box.
-    std::uniform_real_distribution<double> distribution(-1., 1.);
+    std::uniform_real_distribution<float> distribution(-1, 1);
     std::default_random_engine generator;
     auto random = [&distribution, &generator]() {
       return distribution(generator);
