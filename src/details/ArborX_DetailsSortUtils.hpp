@@ -60,7 +60,7 @@ struct CopyOp<DstViewType, SrcViewType, 1>
 };
 
 template <class DstViewType, class SrcViewType>
-struct CopyOp<DstViewType, SrcViewType, 2>
+struct [[deprecated]] CopyOp<DstViewType, SrcViewType, 2>
 {
   KOKKOS_INLINE_FUNCTION
   static void copy(DstViewType const &dst, size_t i_dst, SrcViewType const &src,
@@ -72,7 +72,7 @@ struct CopyOp<DstViewType, SrcViewType, 2>
 };
 
 template <class DstViewType, class SrcViewType>
-struct CopyOp<DstViewType, SrcViewType, 3>
+struct [[deprecated]] CopyOp<DstViewType, SrcViewType, 3>
 {
   KOKKOS_INLINE_FUNCTION
   static void copy(DstViewType const &dst, size_t i_dst, SrcViewType const &src,
