@@ -138,13 +138,26 @@ private:
   KOKKOS_FUNCTION auto hollowSpherePoint(Random const &random) const
   {
     Point p;
-    Coordinate norm = 0;
-    for (int d = 0; d < DIM; ++d)
+    // We use "Alternative method 2" from
+    // https://corysimon.github.io/articles/uniformdistn-on-sphere/.
+    // Note that once the dimensions go high, more and more points are going to
+    // be rejected, and the algorithm based on normal distribution would be
+    // more efficient.
+    auto const radius_squared = 1;
+    Coordinate norm_squared;
+    do
     {
-      p[d] = random();
-      norm += p[d] * p[d];
-    }
-    norm = Kokkos::sqrt(norm);
+      norm_squared = 0;
+      for (int d = 0; d < DIM; ++d)
+      {
+        p[d] = random();
+        norm_squared += p[d] * p[d];
+      }
+
+      // Only accept points that are in the sphere
+    } while (norm_squared > radius_squared || norm_squared == 0);
+
+    auto norm = Kokkos::sqrt(norm_squared);
     for (int d = 0; d < DIM; ++d)
       p[d] /= norm;
 
