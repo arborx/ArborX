@@ -19,6 +19,8 @@
 #include <ArborX_Ray.hpp>
 #include <ArborX_Sphere.hpp>
 
+#include <Kokkos_BitManipulation.hpp>
+
 namespace ArborX
 {
 
@@ -108,9 +110,10 @@ struct approx_expand_by_radius<PointTag, Point>
   {
     constexpr int DIM = GeometryTraits::dimension_v<Box>;
     using Coordinate = GeometryTraits::coordinate_type_t<Point>;
-    auto const &hyper_point = reinterpret_cast<
-        ExperimentalHyperGeometry::Point<DIM, Coordinate> const &>(point);
-    return ExperimentalHyperGeometry::Sphere<DIM, Coordinate>{hyper_point, r};
+    return ExperimentalHyperGeometry::Sphere<DIM, Coordinate>{
+        Kokkos::bit_cast<ExperimentalHyperGeometry::Point<DIM, Coordinate>>(
+            point),
+        r};
   }
 };
 
