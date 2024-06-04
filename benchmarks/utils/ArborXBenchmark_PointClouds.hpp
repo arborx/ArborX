@@ -63,38 +63,45 @@ public:
       : _point_cloud_type(point_cloud_type)
   {}
 
-  // Assume random generates in (-1, 1) interval
-  template <typename Random>
-  KOKKOS_FUNCTION auto operator()(int i, Random const &random) const
+  template <typename Generator>
+  KOKKOS_FUNCTION auto operator()(int i, Generator &generator) const
   {
     switch (_point_cloud_type)
     {
     case PointCloudType::filled_box:
-      return filledBoxPoint(random);
+      return filledBoxPoint(generator);
     case PointCloudType::hollow_box:
-      return hollowBoxPoint(i, random);
+      return hollowBoxPoint(i, generator);
     case PointCloudType::filled_sphere:
-      return filledSpherePoint(random);
+      return filledSpherePoint(generator);
     case PointCloudType::hollow_sphere:
-      return hollowSpherePoint(random);
+      return hollowSpherePoint(generator);
     default:
       Kokkos::abort("ArborX: implementation bug");
     }
   }
 
 private:
-  template <typename Random>
-  KOKKOS_FUNCTION auto filledBoxPoint(Random const &random) const
+  template <typename Generator>
+  KOKKOS_FUNCTION auto filledBoxPoint(Generator &generator) const
   {
+    auto random = [&generator]() {
+      return Kokkos::rand<Generator, Coordinate>::draw(generator, -1, 1);
+    };
+
     Point p;
     for (int d = 0; d < DIM; ++d)
       p[d] = random();
     return p;
   }
 
-  template <typename Random>
-  KOKKOS_FUNCTION auto hollowBoxPoint(int i, Random const &random) const
+  template <typename Generator>
+  KOKKOS_FUNCTION auto hollowBoxPoint(int i, Generator &generator) const
   {
+    auto random = [&generator]() {
+      return Kokkos::rand<Generator, Coordinate>::draw(generator, -1, 1);
+    };
+
     Point p;
     // For 3D, the order is
     // Indices: 0  1  2  3  4  5  6  7  8  9
@@ -113,51 +120,56 @@ private:
     return p;
   }
 
-  template <typename Random>
-  KOKKOS_FUNCTION auto filledSpherePoint(Random const &random) const
+  template <typename Generator>
+  KOKKOS_FUNCTION auto filledSpherePoint(Generator &generator) const
   {
+    auto random01 = [&generator]() {
+      return Kokkos::rand<Generator, Coordinate>::draw(generator, 0, 1);
+    };
+    auto random_normal = [&generator]() {
+      return generator.normal(); // draws double
+    };
+
     Point p;
-    auto const radius_squared = 1;
     Coordinate norm_squared;
     do
     {
       norm_squared = 0;
       for (int d = 0; d < DIM; ++d)
       {
-        p[d] = random();
+        p[d] = random_normal();
         norm_squared += p[d] * p[d];
       }
+    } while (norm_squared == 0);
+    auto norm = Kokkos::sqrt(norm_squared);
 
-      // Only accept points that are in the sphere
-    } while (norm_squared > radius_squared);
+    auto scaling = Kokkos::pow(random01(), 1 / (Coordinate)DIM) / norm;
+    for (int d = 0; d < DIM; ++d)
+      p[d] *= scaling;
 
     return p;
   }
 
-  template <typename Random>
-  KOKKOS_FUNCTION auto hollowSpherePoint(Random const &random) const
+  template <typename Generator>
+  KOKKOS_FUNCTION auto hollowSpherePoint(Generator &generator) const
   {
+    auto random_normal = [&generator]() {
+      return generator.normal(); // draws double
+    };
+
     Point p;
-    // We use "Alternative method 2" from
-    // https://corysimon.github.io/articles/uniformdistn-on-sphere/.
-    // Note that once the dimensions go high, more and more points are going to
-    // be rejected, and the algorithm based on normal distribution would be
-    // more efficient.
-    auto const radius_squared = 1;
     Coordinate norm_squared;
     do
     {
       norm_squared = 0;
       for (int d = 0; d < DIM; ++d)
       {
-        p[d] = random();
+        p[d] = random_normal();
         norm_squared += p[d] * p[d];
       }
-
-      // Only accept points that are in the sphere
-    } while (norm_squared > radius_squared || norm_squared == 0);
-
+    } while (norm_squared == 0);
     auto norm = Kokkos::sqrt(norm_squared);
+
     for (int d = 0; d < DIM; ++d)
       p[d] /= norm;
 
@@ -186,10 +198,8 @@ void generatePointCloud(ExecutionSpace const &exec,
                 point_cloud_type == PointCloudType::hollow_sphere);
 
   static constexpr int DIM = ArborX::GeometryTraits::dimension_v<Point>;
-  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<Point>;
 
   using GeneratorPool = Kokkos::Random_XorShift1024_Pool<ExecutionSpace>;
-  using Generator = typename GeneratorPool::generator_type;
   constexpr unsigned int batch_size = 8;
 
   GeneratorPool random_pool(0);
@@ -200,15 +210,12 @@ void generatePointCloud(ExecutionSpace const &exec,
       Kokkos::RangePolicy<ExecutionSpace>(exec, 0, n / batch_size),
       KOKKOS_LAMBDA(int i) {
         auto generator = random_pool.get_state();
-        auto random = [&generator]() {
-          return Kokkos::rand<Generator, Coordinate>::draw(generator, -1, 1);
-        };
 
         auto begin = i * batch_size;
         auto end = Kokkos::min((i + 1) * batch_size, n);
         for (unsigned int k = begin; k < end; ++k)
         {
-          random_points(k) = functor(k, random);
+          random_points(k) = functor(k, generator);
 
           for (int d = 0; d < DIM; ++d)
             random_points(k)[d] *= length;
