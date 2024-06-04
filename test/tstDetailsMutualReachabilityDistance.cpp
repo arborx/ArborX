@@ -23,17 +23,15 @@ namespace Test
 {
 using ArborXTest::toView;
 
-template <class ExecutionSpace>
+template <class ExecutionSpace, typename Point>
 auto compute_core_distances(ExecutionSpace exec_space,
-                            std::vector<ArborX::Point> const &points_host,
-                            int k)
+                            std::vector<Point> const &points_host, int k)
 {
   auto points = toView<ExecutionSpace>(points_host, "Test::points");
 
   ARBORX_ASSERT(points.extent_int(0) >= k);
   using MemorySpace = typename ExecutionSpace::memory_space;
-  ArborX::BoundingVolumeHierarchy<MemorySpace,
-                                  ArborX::PairValueIndex<ArborX::Point>>
+  ArborX::BoundingVolumeHierarchy<MemorySpace, ArborX::PairValueIndex<Point>>
       bvh{exec_space, ArborX::Experimental::attach_indices(points)};
   Kokkos::View<float *, MemorySpace> distances(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Test::core_distances"),
@@ -101,7 +99,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(compute_core_distances, DeviceType,
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec_space;
 
-  std::vector<ArborX::Point> points{
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+
+  std::vector<Point> points{
       {0, 0, 0}, {1, 0, 0}, {2, 0, 0}, {3, 0, 0}, {4, 0, 0},
   };
   ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, points, 1,
@@ -115,7 +115,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(compute_core_distances, DeviceType,
   ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, points, 5,
                                      (std::vector<float>{4, 3, 2, 3, 4}));
 
-  std::vector<ArborX::Point> non_equidistant_points{
+  std::vector<Point> non_equidistant_points{
       {0, 0, 0}, {1, 0, 0}, {2, 0, 0}, {3, 0, 0}, {6, 0, 0}, {10, 0, 0},
   };
   ARBORX_TEST_COMPUTE_CORE_DISTANCES(exec_space, non_equidistant_points, 2,

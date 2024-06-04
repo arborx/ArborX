@@ -21,10 +21,10 @@
 namespace Test
 {
 template <class ExecutionSpace>
-Kokkos::View<ArborX::Point *, ExecutionSpace>
+Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<3> *>
 make_points(ExecutionSpace const &space, int n)
 {
-  Kokkos::View<ArborX::Point *, ExecutionSpace> points(
+  Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<3> *> points(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing, "Test::points"),
       n);
 

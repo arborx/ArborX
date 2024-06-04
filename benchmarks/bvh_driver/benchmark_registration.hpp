@@ -13,7 +13,7 @@
 #define BENCHMARK_REGISTRATION_HPP
 
 #include <ArborXBenchmark_PointClouds.hpp>
-#include <ArborX_Point.hpp>
+#include <ArborX_HyperPoint.hpp>
 #include <ArborX_Predicates.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -99,10 +99,11 @@ struct Spec
 };
 
 template <typename DeviceType>
-Kokkos::View<ArborX::Point *, DeviceType>
-constructPoints(int n_values, ArborXBenchmark::PointCloudType point_cloud_type)
+auto constructPoints(int n_values,
+                     ArborXBenchmark::PointCloudType point_cloud_type)
 {
-  Kokkos::View<ArborX::Point *, DeviceType> random_points(
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  Kokkos::View<Point *, DeviceType> random_points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
                          "Benchmark::random_points"),
       n_values);
@@ -117,11 +118,11 @@ constructPoints(int n_values, ArborXBenchmark::PointCloudType point_cloud_type)
 }
 
 template <typename DeviceType>
-Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
-makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
-                   ArborXBenchmark::PointCloudType target_point_cloud_type)
+auto makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
+                        ArborXBenchmark::PointCloudType target_point_cloud_type)
 {
-  Kokkos::View<ArborX::Point *, DeviceType> random_points(
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  Kokkos::View<Point *, DeviceType> random_points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
                          "Benchmark::random_points"),
       n_queries);
@@ -129,30 +130,21 @@ makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
   ArborXBenchmark::generatePointCloud(target_point_cloud_type, a,
                                       random_points);
 
-  Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
-      queries(
-          Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::queries"),
-          n_queries);
   // Radius is computed so that the number of results per query for a uniformly
   // distributed points in a [-a,a]^3 box is approximately n_neighbors.
   // Calculation: n_values*(4/3*pi*r^3)/(2a)^3 = n_neighbors
   double const r = std::cbrt(static_cast<double>(n_neighbors) * 6. /
                              Kokkos::numbers::pi_v<double>);
-  using ExecutionSpace = typename DeviceType::execution_space;
-  Kokkos::parallel_for(
-      "Benchmark::setup_radius_search_queries",
-      Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
-        queries(i) = ArborX::intersects(ArborX::Sphere{random_points(i), r});
-      });
-  return queries;
+
+  return ArborX::Experimental::make_intersects(random_points, r);
 }
 
 template <typename DeviceType>
-Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType>
-makeNearestQueries(int n_values, int n_queries, int n_neighbors,
-                   ArborXBenchmark::PointCloudType target_point_cloud_type)
+auto makeNearestQueries(int n_values, int n_queries, int n_neighbors,
+                        ArborXBenchmark::PointCloudType target_point_cloud_type)
 {
-  Kokkos::View<ArborX::Point *, DeviceType> random_points(
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  Kokkos::View<Point *, DeviceType> random_points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
                          "Benchmark::random_points"),
       n_queries);
@@ -160,17 +152,7 @@ makeNearestQueries(int n_values, int n_queries, int n_neighbors,
   ArborXBenchmark::generatePointCloud(target_point_cloud_type, a,
                                       random_points);
 
-  Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> queries(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::queries"),
-      n_queries);
-  using ExecutionSpace = typename DeviceType::execution_space;
-  Kokkos::parallel_for(
-      "Benchmark::setup_knn_search_queries",
-      Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
-        queries(i) =
-            ArborX::nearest<ArborX::Point>(random_points(i), n_neighbors);
-      });
-  return queries;
+  return ArborX::Experimental::make_nearest(random_points, n_neighbors);
 }
 
 template <typename DeviceType>

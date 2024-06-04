@@ -9,8 +9,9 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <ArborX_HyperPoint.hpp>
+#include <ArborX_HyperSphere.hpp>
 #include <ArborX_LinearBVH.hpp>
-#include <ArborX_Sphere.hpp>
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -142,11 +143,13 @@ int main(int argc, char *argv[])
     return distribution(generator);
   };
 
-  Kokkos::View<ArborX::Point *, MemorySpace> primitives(
+  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Sphere = ArborX::ExperimentalHyperGeometry::Sphere<3>;
+
+  Kokkos::View<Point *, MemorySpace> primitives(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::primitives"),
       num_primitives * num_problems);
-  Kokkos::View<decltype(ArborX::attach(ArborX::intersects(ArborX::Sphere{}),
-                                       int{})) *,
+  Kokkos::View<decltype(ArborX::attach(ArborX::intersects(Sphere{}), int{})) *,
                MemorySpace>
       predicates(Kokkos::view_alloc(Kokkos::WithoutInitializing,
                                     "Benchmark::predicates"),
@@ -156,7 +159,7 @@ int main(int argc, char *argv[])
     // Points are placed in a box [offset_x-1, offset_x+1] x [-1, 1] x [-1, 1]
     float offset_x = p * shift;
 
-    Kokkos::View<ArborX::Point *, MemorySpace> points(
+    Kokkos::View<Point *, MemorySpace> points(
         "Benchmark::points", std::max(num_primitives, num_predicates));
     auto points_host = Kokkos::create_mirror_view(points);
     for (int i = 0; i < (int)points.extent(0); ++i)
@@ -173,10 +176,8 @@ int main(int argc, char *argv[])
         Kokkos::RangePolicy<ExecutionSpace>(
             ExecutionSpace{}, p * num_predicates, (p + 1) * num_predicates),
         KOKKOS_LAMBDA(int i) {
-          predicates(i) =
-              ArborX::attach(ArborX::intersects(ArborX::Sphere{
-                                 points(i - p * num_predicates), r}),
-                             i);
+          predicates(i) = ArborX::attach(
+              ArborX::intersects(Sphere{points(i - p * num_predicates), r}), i);
         });
   }
 
