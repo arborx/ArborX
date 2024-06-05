@@ -18,8 +18,6 @@
 
 #define BOOST_TEST_MODULE DetailsDistributedTree
 
-#include <set>
-
 namespace tt = boost::test_tools;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(count_results, DeviceType, ARBORX_DEVICE_TYPES)
@@ -48,100 +46,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(count_results, DeviceType, ARBORX_DEVICE_TYPES)
   auto offset_host = Kokkos::create_mirror_view(offset);
   Kokkos::deep_copy(offset_host, offset);
   BOOST_TEST(offset_host == offset_ref, tt::per_element());
-}
-
-template <typename View1, typename View2>
-inline void checkViewWasNotAllocated(View1 const &v1, View2 const &v2)
-{
-  // NOTE: cannot use operator== here because array layout may "change" for
-  // rank-1 views
-  BOOST_TEST(v1.data() == v2.data());
-  BOOST_TEST(v1.span() == v2.span());
-
-  BOOST_TEST((int)View1::rank == (int)View2::rank);
-  BOOST_TEST((std::is_same_v<typename View1::const_value_type,
-                             typename View2::const_value_type>));
-  BOOST_TEST((std::is_same_v<typename View1::memory_space,
-                             typename View2::memory_space>));
-
-  BOOST_TEST(v1.extent(0) == v2.extent(0));
-  BOOST_TEST(v1.extent(1) == v2.extent(1));
-  BOOST_TEST(v1.extent(2) == v2.extent(2));
-  BOOST_TEST(v1.extent(3) == v2.extent(3));
-  BOOST_TEST(v1.extent(4) == v2.extent(4));
-  BOOST_TEST(v1.extent(5) == v2.extent(5));
-  BOOST_TEST(v1.extent(6) == v2.extent(6));
-  BOOST_TEST(v1.extent(7) == v2.extent(7));
-}
-
-template <typename View1, typename View2>
-inline void checkNewViewWasAllocated(View1 const &v1, View2 const &v2)
-{
-  BOOST_TEST(v1.data() != v2.data());
-
-  BOOST_TEST((int)View1::rank == (int)View2::rank);
-  BOOST_TEST((std::is_same_v<typename View1::const_value_type,
-                             typename View2::const_value_type>));
-
-  BOOST_TEST(v1.extent(0) == v2.extent(0));
-  BOOST_TEST(v1.extent(1) == v2.extent(1));
-  BOOST_TEST(v1.extent(2) == v2.extent(2));
-  BOOST_TEST(v1.extent(3) == v2.extent(3));
-  BOOST_TEST(v1.extent(4) == v2.extent(4));
-  BOOST_TEST(v1.extent(5) == v2.extent(5));
-  BOOST_TEST(v1.extent(6) == v2.extent(6));
-  BOOST_TEST(v1.extent(7) == v2.extent(7));
-}
-
-BOOST_AUTO_TEST_CASE_TEMPLATE(create_layout_right_mirror_view_no_init,
-                              DeviceType, ARBORX_DEVICE_TYPES)
-{
-  using ArborX::Details::create_layout_right_mirror_view_no_init;
-  using Kokkos::ALL;
-  using Kokkos::LayoutLeft;
-  using Kokkos::LayoutRight;
-  using Kokkos::make_pair;
-  using Kokkos::subview;
-  using Kokkos::View;
-
-  if (!Kokkos::SpaceAccessibility<
-          Kokkos::HostSpace, typename DeviceType::memory_space>::accessible)
-    return;
-
-  // rank-1 and not strided -> do not allocate
-  View<int *, LayoutLeft, DeviceType> u("u", 255);
-  auto u_h = create_layout_right_mirror_view_no_init(u);
-  checkViewWasNotAllocated(u, u_h);
-
-  // right layout -> do not allocate
-  View<int **, LayoutRight, DeviceType> v("v", 2, 3);
-  auto v_h = create_layout_right_mirror_view_no_init(v);
-  checkViewWasNotAllocated(v, v_h);
-
-  // the same with compile time size
-  View<int[2][3], LayoutRight, DeviceType> v_c("v");
-  auto v_c_h = create_layout_right_mirror_view_no_init(v_c);
-  checkViewWasNotAllocated(v_c, v_c_h);
-
-  // left layout and rank > 1 -> allocate
-  View<int **, LayoutLeft, DeviceType> w("w", 4, 5);
-  auto w_h = create_layout_right_mirror_view_no_init(w);
-  checkNewViewWasAllocated(w, w_h);
-
-  // the same with compile time size
-  View<int *[5], LayoutLeft, DeviceType> w_c("v", 4);
-  auto w_c_h = create_layout_right_mirror_view_no_init(w_c);
-  checkNewViewWasAllocated(w_c, w_c_h);
-
-  // strided layout -> allocate
-  auto x = subview(v, ALL, 0);
-  auto x_h = create_layout_right_mirror_view_no_init(x);
-  checkNewViewWasAllocated(x, x_h);
-
-  // subview is rank-1 and not strided -> do not allocate
-  auto y = subview(u, make_pair(8, 16));
-  auto y_h = create_layout_right_mirror_view_no_init(y);
-  checkViewWasNotAllocated(y, y_h);
 }
 
 void checkBufferLayout(std::vector<int> const &ranks,
@@ -180,35 +84,6 @@ BOOST_AUTO_TEST_CASE(sort_and_determine_buffer_layout)
                     {3, 2, 1}, {0, 3, 5, 6});
   checkBufferLayout({0, 1, 2, 3}, {3, 2, 1, 0}, {3, 2, 1, 0}, {1, 1, 1, 1},
                     {0, 1, 2, 3, 4});
-}
-
-BOOST_AUTO_TEST_CASE(pointer_depth)
-{
-  static_assert(ArborX::Details::internal::PointerDepth<double>::value == 0,
-                "Failing for double");
-  static_assert(ArborX::Details::internal::PointerDepth<double *>::value == 1,
-                "Failing for double*");
-  static_assert(ArborX::Details::internal::PointerDepth<double[2]>::value == 0,
-                "Failing for double[2]");
-  static_assert(ArborX::Details::internal::PointerDepth<double **>::value == 2,
-                "Failing for double**");
-  static_assert(ArborX::Details::internal::PointerDepth<double *[2]>::value ==
-                    1,
-                "Failing for double*[2]");
-  static_assert(ArborX::Details::internal::PointerDepth<double[2][3]>::value ==
-                    0,
-                "Failing for double[2][3]");
-  static_assert(ArborX::Details::internal::PointerDepth<double ***>::value == 3,
-                "Failing for double***");
-  static_assert(ArborX::Details::internal::PointerDepth<double **[2]>::value ==
-                    2,
-                "Failing for double[2]");
-  static_assert(
-      ArborX::Details::internal::PointerDepth<double *[2][3]>::value == 1,
-      "Failing for double*[2][3]");
-  static_assert(
-      ArborX::Details::internal::PointerDepth<double[2][3][4]>::value == 0,
-      "Failing for double[2][3][4]");
 }
 
 template <typename DeviceType>
