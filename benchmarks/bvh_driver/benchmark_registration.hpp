@@ -102,8 +102,11 @@ template <typename DeviceType>
 Kokkos::View<ArborX::Point *, DeviceType>
 constructPoints(int n_values, ArborXBenchmark::PointCloudType point_cloud_type)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+  ExecutionSpace exec;
+
   Kokkos::View<ArborX::Point *, DeviceType> random_points(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+      Kokkos::view_alloc(exec, Kokkos::WithoutInitializing,
                          "Benchmark::random_points"),
       n_values);
   // Generate random points uniformly distributed within a box.  The edge
@@ -111,7 +114,7 @@ constructPoints(int n_values, ArborXBenchmark::PointCloudType point_cloud_type)
   // boxes 2x2x2 centered around a random point) will remain constant as
   // problem size is changed.
   auto const a = std::cbrt(n_values);
-  ArborXBenchmark::generatePointCloud(point_cloud_type, a, random_points);
+  ArborXBenchmark::generatePointCloud(exec, point_cloud_type, a, random_points);
 
   return random_points;
 }
@@ -121,12 +124,15 @@ Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
 makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
                    ArborXBenchmark::PointCloudType target_point_cloud_type)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+  ExecutionSpace exec;
+
   Kokkos::View<ArborX::Point *, DeviceType> random_points(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+      Kokkos::view_alloc(exec, Kokkos::WithoutInitializing,
                          "Benchmark::random_points"),
       n_queries);
   auto const a = std::cbrt(n_values);
-  ArborXBenchmark::generatePointCloud(target_point_cloud_type, a,
+  ArborXBenchmark::generatePointCloud(exec, target_point_cloud_type, a,
                                       random_points);
 
   Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
@@ -138,10 +144,10 @@ makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
   // Calculation: n_values*(4/3*pi*r^3)/(2a)^3 = n_neighbors
   double const r = std::cbrt(static_cast<double>(n_neighbors) * 6. /
                              Kokkos::numbers::pi_v<double>);
-  using ExecutionSpace = typename DeviceType::execution_space;
   Kokkos::parallel_for(
       "Benchmark::setup_radius_search_queries",
-      Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy<ExecutionSpace>(exec, 0, n_queries),
+      KOKKOS_LAMBDA(int i) {
         queries(i) = ArborX::intersects(ArborX::Sphere{random_points(i), r});
       });
   return queries;
@@ -152,21 +158,24 @@ Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType>
 makeNearestQueries(int n_values, int n_queries, int n_neighbors,
                    ArborXBenchmark::PointCloudType target_point_cloud_type)
 {
+  using ExecutionSpace = typename DeviceType::execution_space;
+  ExecutionSpace exec;
+
   Kokkos::View<ArborX::Point *, DeviceType> random_points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
                          "Benchmark::random_points"),
       n_queries);
   auto const a = std::cbrt(n_values);
-  ArborXBenchmark::generatePointCloud(target_point_cloud_type, a,
+  ArborXBenchmark::generatePointCloud(exec, target_point_cloud_type, a,
                                       random_points);
 
   Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> queries(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::queries"),
       n_queries);
-  using ExecutionSpace = typename DeviceType::execution_space;
   Kokkos::parallel_for(
       "Benchmark::setup_knn_search_queries",
-      Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy<ExecutionSpace>(exec, 0, n_queries),
+      KOKKOS_LAMBDA(int i) {
         queries(i) =
             ArborX::nearest<ArborX::Point>(random_points(i), n_neighbors);
       });
@@ -192,10 +201,10 @@ void BM_construction(benchmark::State &state, Spec const &spec)
   using DeviceType =
       Kokkos::Device<ExecutionSpace, typename TreeType::memory_space>;
 
+  ExecutionSpace exec_space;
+
   auto const points =
       constructPoints<DeviceType>(spec.n_values, spec.source_point_cloud_type);
-
-  ExecutionSpace exec_space;
 
   for (auto _ : state)
   {

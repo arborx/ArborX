@@ -12,13 +12,11 @@
 #ifndef ARBORX_BENCHMARK_POINT_CLOUDS_HPP
 #define ARBORX_BENCHMARK_POINT_CLOUDS_HPP
 
-#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
-#include <ArborX_Exception.hpp>
 #include <ArborX_GeometryTraits.hpp>
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_Random.hpp>
 
-#include <fstream>
 #include <random>
 
 namespace ArborXBenchmark
@@ -49,160 +47,182 @@ inline PointCloudType to_point_cloud_enum(std::string const &str)
 namespace Details
 {
 
-template <class Point, typename... ViewProperties>
-void filledBoxCloud(double const half_edge,
-                    Kokkos::View<Point *, ViewProperties...> random_points)
+template <typename Point>
+class PointGenerationFunctor
 {
-  namespace KokkosExt = ArborX::Details::KokkosExt;
-  static_assert(
-      KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
-      "The View should be accessible on the Host");
-  std::uniform_real_distribution<double> distribution(-half_edge, half_edge);
-  std::default_random_engine generator;
-  auto random = [&distribution, &generator]() {
-    return distribution(generator);
-  };
-  unsigned int const n = random_points.extent(0);
-  constexpr auto DIM = ArborX::GeometryTraits::dimension<Point>::value;
-  for (unsigned int i = 0; i < n; ++i)
-    for (int d = 0; d < DIM; ++d)
-      random_points(i)[d] = random();
-}
+private:
+  static_assert(ArborX::GeometryTraits::is_point_v<Point>);
 
-template <class Point, typename... ViewProperties>
-void hollowBoxCloud(double const half_edge,
-                    Kokkos::View<Point *, ViewProperties...> random_points)
-{
-  namespace KokkosExt = ArborX::Details::KokkosExt;
-  static_assert(
-      KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
-      "The View should be accessible on the Host");
-  std::uniform_real_distribution<double> distribution(-half_edge, half_edge);
-  std::default_random_engine generator;
-  auto random = [&distribution, &generator]() {
-    return distribution(generator);
-  };
-  unsigned int const n = random_points.extent(0);
-  constexpr auto DIM = ArborX::GeometryTraits::dimension<Point>::value;
-  // Points are cyclically placed on the faces of a box
-  constexpr int num_faces = 2 * DIM;
-  for (int axis = 0; axis < DIM; ++axis)
+  static constexpr int DIM = ArborX::GeometryTraits::dimension_v<Point>;
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<Point>;
+
+  PointCloudType _point_cloud_type;
+
+public:
+  PointGenerationFunctor(PointCloudType point_cloud_type)
+      : _point_cloud_type(point_cloud_type)
+  {}
+
+  template <typename Generator>
+  KOKKOS_FUNCTION auto operator()(int i, Generator &generator) const
   {
-    for (unsigned int i = 2 * axis; i < n; i += num_faces)
-      for (int d = 0; d < DIM; ++d)
-        random_points(i)[d] = (d != axis ? random() : -half_edge);
-
-    for (unsigned int i = 2 * axis + 1; i < n; i += num_faces)
-      for (int d = 0; d < DIM; ++d)
-        random_points(i)[d] = (d != axis ? random() : +half_edge);
-  }
-}
-
-template <class Point, typename... ViewProperties>
-void filledSphereCloud(double const radius,
-                       Kokkos::View<Point *, ViewProperties...> random_points)
-{
-  namespace KokkosExt = ArborX::Details::KokkosExt;
-  static_assert(
-      KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
-      "The View should be accessible on the Host");
-  std::default_random_engine generator;
-
-  std::uniform_real_distribution<double> distribution(-radius, radius);
-  auto random = [&distribution, &generator]() {
-    return distribution(generator);
-  };
-
-  unsigned int const n = random_points.extent(0);
-  constexpr auto DIM = ArborX::GeometryTraits::dimension<Point>::value;
-  for (unsigned int i = 0; i < n; ++i)
-  {
-    bool point_accepted = false;
-    while (!point_accepted)
+    switch (_point_cloud_type)
     {
-      Point p;
-      double norm = 0.f;
-      for (int d = 0; d < DIM; ++d)
-      {
-        double v = random();
-        p[d] = v;
-        norm += v * v;
-      }
-      norm = std::sqrt(norm);
-
-      // Only accept points that are in the sphere
-      if (norm <= radius)
-      {
-        random_points(i) = p;
-        point_accepted = true;
-      }
+    case PointCloudType::filled_box:
+      return filledBoxPoint(generator);
+    case PointCloudType::hollow_box:
+      return hollowBoxPoint(i, generator);
+    case PointCloudType::filled_sphere:
+      return filledSpherePoint(generator);
+    case PointCloudType::hollow_sphere:
+      return hollowSpherePoint(generator);
+    default:
+      Kokkos::abort("ArborX: implementation bug");
     }
   }
-}
 
-template <class Point, typename... ViewProperties>
-void hollowSphereCloud(double const radius,
-                       Kokkos::View<Point *, ViewProperties...> random_points)
-{
-  namespace KokkosExt = ArborX::Details::KokkosExt;
-  static_assert(
-      KokkosExt::is_accessible_from_host<decltype(random_points)>::value,
-      "The View should be accessible on the Host");
-  std::default_random_engine generator;
-
-  std::normal_distribution<float> distribution(0.f, 1.f);
-  auto random = [&distribution, &generator]() {
-    return distribution(generator);
-  };
-
-  unsigned int const n = random_points.extent(0);
-  constexpr auto DIM = ArborX::GeometryTraits::dimension<Point>::value;
-  for (unsigned int i = 0; i < n; ++i)
+private:
+  template <typename Generator>
+  KOKKOS_FUNCTION auto filledBoxPoint(Generator &generator) const
   {
-    double v[DIM];
-    double norm = 0.;
+    auto random = [&generator]() {
+      return Kokkos::rand<Generator, Coordinate>::draw(generator, -1, 1);
+    };
+
+    Point p;
+    for (int d = 0; d < DIM; ++d)
+      p[d] = random();
+    return p;
+  }
+
+  template <typename Generator>
+  KOKKOS_FUNCTION auto hollowBoxPoint(int i, Generator &generator) const
+  {
+    auto random = [&generator]() {
+      return Kokkos::rand<Generator, Coordinate>::draw(generator, -1, 1);
+    };
+
+    Point p;
+    // For 3D, the order is
+    // Indices: 0  1  2  3  4  5  6  7  8  9
+    // Axes   : 0- 0+ 1- 1+ 2- 2+ 0- 0+ 1- 1+
+    int axis = (i / 2) % DIM;
     for (int d = 0; d < DIM; ++d)
     {
-      v[d] = random();
-      norm += v[d] * v[d];
+      if (d != axis)
+        p[d] = random();
+      else if (i % 2 == 0)
+        p[d] = -1;
+      else
+        p[d] = 1;
     }
-    norm = std::sqrt(norm);
+
+    return p;
+  }
+
+  template <typename Generator>
+  KOKKOS_FUNCTION auto filledSpherePoint(Generator &generator) const
+  {
+    auto random01 = [&generator]() {
+      return Kokkos::rand<Generator, Coordinate>::draw(generator, 0, 1);
+    };
+    auto random_normal = [&generator]() {
+      return generator.normal(); // draws double
+    };
+
+    Point p;
+    Coordinate norm_squared;
+    do
+    {
+      norm_squared = 0;
+      for (int d = 0; d < DIM; ++d)
+      {
+        p[d] = random_normal();
+        norm_squared += p[d] * p[d];
+      }
+    } while (norm_squared == 0);
+    auto norm = Kokkos::sqrt(norm_squared);
+
+    auto scaling = Kokkos::pow(random01(), 1 / (Coordinate)DIM) / norm;
+    for (int d = 0; d < DIM; ++d)
+      p[d] *= scaling;
+
+    return p;
+  }
+
+  template <typename Generator>
+  KOKKOS_FUNCTION auto hollowSpherePoint(Generator &generator) const
+  {
+    auto random_normal = [&generator]() {
+      return generator.normal(); // draws double
+    };
+
+    Point p;
+    Coordinate norm_squared;
+    do
+    {
+      norm_squared = 0;
+      for (int d = 0; d < DIM; ++d)
+      {
+        p[d] = random_normal();
+        norm_squared += p[d] * p[d];
+      }
+    } while (norm_squared == 0);
+    auto norm = Kokkos::sqrt(norm_squared);
 
     for (int d = 0; d < DIM; ++d)
-      random_points(i)[d] = radius * v[d] / norm;
+      p[d] /= norm;
+
+    return p;
   }
-}
+};
 
 } // namespace Details
 
-template <class Point, typename DeviceType>
-void generatePointCloud(PointCloudType const point_cloud_type,
-                        double const length,
-                        Kokkos::View<Point *, DeviceType> random_points)
+template <typename ExecutionSpace, typename Points>
+void generatePointCloud(ExecutionSpace const &exec,
+                        PointCloudType const point_cloud_type,
+                        double const length, Points &random_points)
 {
+  static_assert(Kokkos::is_view_v<Points>);
+
+  using Point = typename Points::value_type;
+
   using namespace ArborX::GeometryTraits;
   check_valid_geometry_traits(Point{});
   static_assert(is_point_v<Point>, "ArborX: View must contain point values");
 
-  auto random_points_host = Kokkos::create_mirror_view(random_points);
-  switch (point_cloud_type)
-  {
-  case PointCloudType::filled_box:
-    Details::filledBoxCloud(length, random_points_host);
-    break;
-  case PointCloudType::hollow_box:
-    Details::hollowBoxCloud(length, random_points_host);
-    break;
-  case PointCloudType::filled_sphere:
-    Details::filledSphereCloud(length, random_points_host);
-    break;
-  case PointCloudType::hollow_sphere:
-    Details::hollowSphereCloud(length, random_points_host);
-    break;
-  default:
-    throw ArborX::SearchException("not implemented");
-  }
-  Kokkos::deep_copy(random_points, random_points_host);
+  KOKKOS_ASSERT(point_cloud_type == PointCloudType::filled_box ||
+                point_cloud_type == PointCloudType::hollow_box ||
+                point_cloud_type == PointCloudType::filled_sphere ||
+                point_cloud_type == PointCloudType::hollow_sphere);
+
+  static constexpr int DIM = ArborX::GeometryTraits::dimension_v<Point>;
+
+  using GeneratorPool = Kokkos::Random_XorShift1024_Pool<ExecutionSpace>;
+  constexpr unsigned int batch_size = 8;
+
+  GeneratorPool random_pool(0);
+  Details::PointGenerationFunctor<Point> functor(point_cloud_type);
+  unsigned int const n = random_points.extent(0);
+  Kokkos::parallel_for(
+      "ArborXBenchmark::generatePointCloud::generate",
+      Kokkos::RangePolicy<ExecutionSpace>(exec, 0, n / batch_size),
+      KOKKOS_LAMBDA(int i) {
+        auto generator = random_pool.get_state();
+
+        auto begin = i * batch_size;
+        auto end = Kokkos::min((i + 1) * batch_size, n);
+        for (unsigned int k = begin; k < end; ++k)
+        {
+          random_points(k) = functor(k, generator);
+
+          for (int d = 0; d < DIM; ++d)
+            random_points(k)[d] *= length;
+        }
+
+        random_pool.free_state(generator);
+      });
 }
 
 } // namespace ArborXBenchmark
