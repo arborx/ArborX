@@ -249,7 +249,7 @@ if(ARBORX_ENABLE_MPI)
   target_include_directories(ArborX_Test_DistributedTree.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
   add_test(NAME ArborX_Test_DistributedTree COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} $<TARGET_FILE:ArborX_Test_DistributedTree.exe> ${MPIEXEC_POSTFLAGS})
 
-  add_executable(ArborX_Test_DetailsDistributedTreeImpl.exe tstDetailsDistributedTreeImpl.cpp utf_main.cpp)
+  add_executable(ArborX_Test_DetailsDistributedTreeImpl.exe tstDetailsDistributedTreeImpl.cpp tstDetailsDistributor.cpp utf_main.cpp)
   target_link_libraries(ArborX_Test_DetailsDistributedTreeImpl.exe PRIVATE ArborX Boost::unit_test_framework)
   target_compile_definitions(ArborX_Test_DetailsDistributedTreeImpl.exe PRIVATE BOOST_TEST_DYN_LINK ARBORX_MPI_UNIT_TEST)
   target_include_directories(ArborX_Test_DetailsDistributedTreeImpl.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

@@ -16,7 +16,6 @@
 #include <ArborX_DetailsKokkosExtMinMaxReduce.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
-#include <ArborX_DetailsUtils.hpp> // create_layout_right...
 #include <ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -263,85 +262,102 @@ public:
 
   template <typename ExecutionSpace, typename ExportView, typename ImportView>
   void doPostsAndWaits(ExecutionSpace const &space, ExportView const &exports,
-                       size_t num_packets, ImportView const &imports) const
+                       ImportView const &imports) const
   {
     Kokkos::Profiling::ScopedRegion guard(
         "ArborX::Distributor::doPostsAndWaits");
 
-    ARBORX_ASSERT(num_packets * _src_offsets.back() == imports.size());
-    ARBORX_ASSERT(num_packets * _dest_offsets.back() == exports.size());
+    static_assert(ExportView::rank == 1 &&
+                  (std::is_same_v<typename ExportView::array_layout,
+                                  Kokkos::LayoutLeft> ||
+                   std::is_same_v<typename ExportView::array_layout,
+                                  Kokkos::LayoutRight>));
+    static_assert(ImportView::rank == 1 &&
+                  (std::is_same_v<typename ImportView::array_layout,
+                                  Kokkos::LayoutLeft> ||
+                   std::is_same_v<typename ImportView::array_layout,
+                                  Kokkos::LayoutRight>));
+
+    using MemorySpace = typename ExportView::memory_space;
+    static_assert(
+        std::is_same_v<MemorySpace, typename ImportView::memory_space>);
+    static_assert(
+        std::is_same_v<MemorySpace, typename decltype(_permute)::memory_space>);
 
     using ValueType = typename ImportView::value_type;
     static_assert(
         std::is_same<ValueType,
                      std::remove_cv_t<typename ExportView::value_type>>::value);
-    static_assert(ImportView::rank == 1);
 
-    static_assert(
-        std::is_same<typename ExportView::memory_space,
-                     typename decltype(_permute)::memory_space>::value);
+    bool const permutation_necessary = _permute.size() != 0;
 
-    // This allows function to work even when ExportView is unmanaged.
+    ARBORX_ASSERT(!permutation_necessary || exports.size() == _permute.size());
+    ARBORX_ASSERT(exports.size() == getTotalSendLength());
+    ARBORX_ASSERT(imports.size() == getTotalReceiveLength());
+
+    // Make sure things work even if ExportView is unmanaged
     using ExportViewWithoutMemoryTraits =
         Kokkos::View<typename ExportView::data_type,
                      typename ExportView::array_layout,
                      typename ExportView::device_type>;
+    ExportViewWithoutMemoryTraits permuted_exports_storage(
+        "ArborX::Distributor::doPostsAndWaits::permuted_exports", 0);
 
-    using DestBufferMirrorViewType =
-        decltype(ArborX::Details::create_layout_right_mirror_view_and_copy(
-            space, std::declval<typename ImportView::memory_space>(),
-            std::declval<ExportViewWithoutMemoryTraits>()));
-
-    // nvcc-12.2 fails compiling if using DestBufferMirrorViewType here
-    constexpr int pointer_depth =
-        internal::PointerDepth<typename ExportView::data_type>::value;
-    DestBufferMirrorViewType dest_buffer_mirror(
-        "ArborX::Distributor::doPostsAndWaits::destination_buffer_mirror", 0,
-        pointer_depth > 1 ? 0 : KOKKOS_INVALID_INDEX,
-        pointer_depth > 2 ? 0 : KOKKOS_INVALID_INDEX,
-        pointer_depth > 3 ? 0 : KOKKOS_INVALID_INDEX,
-        pointer_depth > 4 ? 0 : KOKKOS_INVALID_INDEX,
-        pointer_depth > 5 ? 0 : KOKKOS_INVALID_INDEX,
-        pointer_depth > 6 ? 0 : KOKKOS_INVALID_INDEX,
-        pointer_depth > 7 ? 0 : KOKKOS_INVALID_INDEX);
-
-    // If _permute is empty, we are assuming that we don't need to permute
-    // exports.
-    bool const permutation_necessary = _permute.size() != 0;
+    auto permuted_exports = exports;
     if (permutation_necessary)
     {
-      ExportViewWithoutMemoryTraits dest_buffer(
-          Kokkos::view_alloc(
-              space, Kokkos::WithoutInitializing,
-              "ArborX::Distributor::doPostsAndWaits::destination_buffer"),
-          exports.layout());
+      KokkosExt::reallocWithoutInitializing(space, permuted_exports_storage,
+                                            exports.size());
 
+      permuted_exports = permuted_exports_storage;
       ArborX::Details::applyInversePermutation(space, _permute, exports,
-                                               dest_buffer);
-
-      dest_buffer_mirror =
-          ArborX::Details::create_layout_right_mirror_view_and_copy(
-              space, typename ImportView::memory_space(), dest_buffer);
+                                               permuted_exports);
     }
-    else
-    {
-      dest_buffer_mirror =
-          ArborX::Details::create_layout_right_mirror_view_and_copy(
-              space, typename ImportView::memory_space(), exports);
-    }
-
-    static_assert(
-        decltype(dest_buffer_mirror)::rank == 1 ||
-        std::is_same<typename decltype(dest_buffer_mirror)::array_layout,
-                     Kokkos::LayoutRight>::value);
-    static_assert(ImportView::rank == 1 ||
-                  std::is_same<typename ImportView::array_layout,
-                               Kokkos::LayoutRight>::value);
 
     int comm_rank;
     MPI_Comm_rank(_comm, &comm_rank);
-    int comm_size;
-    MPI_Comm_size(_comm, &comm_size);
+
+    int same_rank_destination = -1;
+    int same_rank_source = -1;
+    {
+      auto it =
+          std::find(_destinations.begin(), _destinations.end(), comm_rank);
+      if (it != _destinations.end())
+      {
+        same_rank_destination = it - _destinations.begin();
+
+        it = std::find(_sources.begin(), _sources.end(), comm_rank);
+        ARBORX_ASSERT(it != _sources.end());
+        same_rank_source = it - _sources.begin();
+      }
+    }
+
+#ifndef ARBORX_ENABLE_GPU_AWARE_MPI
+    using MirrorSpace = typename ExportView::host_mirror_space;
+
+    auto exports_comm = Kokkos::create_mirror_view(
+        Kokkos::WithoutInitializing, MirrorSpace{}, permuted_exports);
+    if (same_rank_destination != -1)
+    {
+      // Only copy the parts of the exports that we need to send remotely
+      for (auto interval :
+           {std::make_pair(0, _dest_offsets[same_rank_destination]),
+            std::make_pair(_dest_offsets[same_rank_destination + 1],
+                           _dest_offsets.back())})
+        Kokkos::deep_copy(space, Kokkos::subview(exports_comm, interval),
+                          Kokkos::subview(permuted_exports, interval));
+    }
+    else
+    {
+      Kokkos::deep_copy(space, exports_comm, permuted_exports);
+    }
+    auto imports_comm = Kokkos::create_mirror_view(Kokkos::WithoutInitializing,
+                                                   MirrorSpace{}, imports);
+#else
+    auto exports_comm = permuted_exports;
+    auto imports_comm = imports;
+#endif
+
     int const indegrees = _sources.size();
     int const outdegrees = _destinations.size();
     std::vector<MPI_Request> requests;
@@ -350,53 +366,61 @@ public:
     {
       if (_sources[i] != comm_rank)
       {
-        auto const message_size =
-            _src_counts[i] * num_packets * sizeof(ValueType);
-        auto const receive_buffer_ptr =
-            imports.data() + _src_offsets[i] * num_packets;
+        auto const receive_buffer_ptr = imports_comm.data() + _src_offsets[i];
+        auto const message_size = _src_counts[i] * sizeof(ValueType);
         requests.emplace_back();
         MPI_Irecv(receive_buffer_ptr, message_size, MPI_BYTE, _sources[i], 123,
                   _comm, &requests.back());
       }
     }
 
-    // make sure the data in dest_buffer has been copied before sending it.
-    if (permutation_necessary)
-      space.fence("ArborX::Distributor::doPostsAndWaits"
-                  " (permute done before packing data into send buffer)");
+    // Make sure the data is ready before sending it
+    space.fence(
+        "ArborX::Distributor::doPostsAndWaits (data ready before sending)");
 
     for (int i = 0; i < outdegrees; ++i)
     {
-      auto const message_size =
-          _dest_counts[i] * num_packets * sizeof(ValueType);
-      auto const send_buffer_ptr =
-          dest_buffer_mirror.data() + _dest_offsets[i] * num_packets;
-      if (_destinations[i] == comm_rank)
-      {
-        auto const it = std::find(_sources.begin(), _sources.end(), comm_rank);
-        ARBORX_ASSERT(it != _sources.end());
-        auto const position = it - _sources.begin();
-        auto const receive_buffer_ptr =
-            imports.data() + _src_offsets[position] * num_packets;
-
-        Kokkos::View<ValueType *, typename ImportView::traits::device_type,
-                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-            receive_view(receive_buffer_ptr, message_size / sizeof(ValueType));
-        Kokkos::View<ValueType const *,
-                     typename ExportView::traits::device_type,
-                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-            send_view(send_buffer_ptr, message_size / sizeof(ValueType));
-        Kokkos::deep_copy(space, receive_view, send_view);
-      }
-      else
+      if (_destinations[i] != comm_rank)
       {
         requests.emplace_back();
-        MPI_Isend(send_buffer_ptr, message_size, MPI_BYTE, _destinations[i],
-                  123, _comm, &requests.back());
+        MPI_Isend(exports_comm.data() + _dest_offsets[i],
+                  _dest_counts[i] * sizeof(ValueType), MPI_BYTE,
+                  _destinations[i], 123, _comm, &requests.back());
       }
     }
     if (!requests.empty())
       MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
+
+    if (same_rank_destination != -1)
+    {
+      ARBORX_ASSERT((_src_offsets[same_rank_source + 1] -
+                     _src_offsets[same_rank_source]) ==
+                    (_dest_offsets[same_rank_destination + 1] -
+                     _dest_offsets[same_rank_destination]));
+      Kokkos::deep_copy(
+          space,
+          Kokkos::subview(imports,
+                          std::pair(_src_offsets[same_rank_source],
+                                    _src_offsets[same_rank_source + 1])),
+          Kokkos::subview(permuted_exports,
+                          std::pair(_dest_offsets[same_rank_destination],
+                                    _dest_offsets[same_rank_destination + 1])));
+    }
+
+#ifndef ARBORX_ENABLE_GPU_AWARE_MPI
+    if (same_rank_destination != -1)
+    {
+      for (auto interval : {std::make_pair(0, _src_offsets[same_rank_source]),
+                            std::make_pair(_src_offsets[same_rank_source + 1],
+                                           _src_offsets.back())})
+        Kokkos::deep_copy(space, Kokkos::subview(imports, interval),
+                          Kokkos::subview(imports_comm, interval));
+    }
+    else
+    {
+      Kokkos::deep_copy(space, imports, imports_comm);
+    }
+#endif
   }
   size_t getTotalReceiveLength() const { return _src_offsets.back(); }
   size_t getTotalSendLength() const { return _dest_offsets.back(); }

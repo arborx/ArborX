@@ -31,13 +31,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(count_results, DeviceType, ARBORX_DEVICE_TYPES)
   BOOST_TEST(ids_ref.size() == nnz);
   BOOST_TEST(offset_ref.size() == m + 1);
 
-  Kokkos::View<int *, DeviceType> ids("query_ids", nnz);
+  Kokkos::View<int *, DeviceType> ids("Testing::query_ids", nnz);
   auto ids_host = Kokkos::create_mirror_view(ids);
   for (int i = 0; i < nnz; ++i)
     ids_host(i) = ids_ref[i];
   Kokkos::deep_copy(ids, ids_host);
 
-  Kokkos::View<int *, DeviceType> offset("offset", m);
+  Kokkos::View<int *, DeviceType> offset("Testing::offset", m);
 
   using ExecutionSpace = typename DeviceType::execution_space;
   ArborX::Details::DistributedTree::countResults(ExecutionSpace{}, m, ids,
@@ -84,76 +84,4 @@ BOOST_AUTO_TEST_CASE(sort_and_determine_buffer_layout)
                     {3, 2, 1}, {0, 3, 5, 6});
   checkBufferLayout({0, 1, 2, 3}, {3, 2, 1, 0}, {3, 2, 1, 0}, {1, 1, 1, 1},
                     {0, 1, 2, 3, 4});
-}
-
-template <typename DeviceType>
-struct Helper
-{
-  template <typename View1, typename View2, typename View3>
-  static void checkSendAcrossNetwork(MPI_Comm comm, View1 const &ranks,
-                                     View2 const &v_exp, View3 const &v_ref)
-  {
-    ArborX::Details::Distributor<DeviceType> distributor(comm);
-    distributor.createFromSends(typename DeviceType::execution_space{}, ranks);
-
-    // NOTE here we assume that the reference solution is sized properly
-    auto v_imp = Kokkos::create_mirror(typename View3::memory_space(), v_ref);
-
-    ArborX::Details::DistributedTree::sendAcrossNetwork(
-        typename DeviceType::execution_space{}, distributor, v_exp, v_imp);
-
-    auto v_imp_host = Kokkos::create_mirror_view(v_imp);
-    Kokkos::deep_copy(v_imp_host, v_imp);
-    auto v_ref_host = Kokkos::create_mirror_view(v_ref);
-    Kokkos::deep_copy(v_ref_host, v_ref);
-
-    BOOST_TEST(v_imp.extent(0) == v_ref.extent(0));
-    BOOST_TEST(v_imp.extent(1) == v_ref.extent(1));
-    for (unsigned int i = 0; i < v_imp.extent(0); ++i)
-    {
-      for (unsigned int j = 0; j < v_imp.extent(1); ++j)
-      {
-        BOOST_TEST(v_imp_host(i, j) == v_ref_host(i, j));
-      }
-    }
-  }
-};
-
-BOOST_AUTO_TEST_CASE_TEMPLATE(send_across_network, DeviceType,
-                              ARBORX_DEVICE_TYPES)
-{
-  using ExecutionSpace = typename DeviceType::execution_space;
-  MPI_Comm comm = MPI_COMM_WORLD;
-  int comm_rank;
-  MPI_Comm_rank(comm, &comm_rank);
-  int comm_size;
-  MPI_Comm_size(comm, &comm_size);
-
-  int const DIM = 3;
-
-  // send 1 packet to rank k
-  // receive comm_size packets
-  Kokkos::View<int **, DeviceType> u_exp("u_exp", comm_size, DIM);
-  Kokkos::parallel_for(
-      Kokkos::RangePolicy<ExecutionSpace>(0, comm_size), KOKKOS_LAMBDA(int i) {
-        for (int j = 0; j < DIM; ++j)
-          u_exp(i, j) = i + j * comm_rank;
-      });
-
-  Kokkos::View<int *, DeviceType> ranks_u("", comm_size);
-  ArborX::Details::KokkosExt::iota(ExecutionSpace{}, ranks_u, 0);
-
-  Kokkos::View<int **, DeviceType> u_ref("u_ref", comm_size, DIM);
-  Kokkos::parallel_for(
-      Kokkos::RangePolicy<ExecutionSpace>(0, comm_size), KOKKOS_LAMBDA(int i) {
-        for (int j = 0; j < DIM; ++j)
-          u_ref(i, j) = comm_rank + i * j;
-      });
-
-  Helper<DeviceType>::checkSendAcrossNetwork(comm, ranks_u, u_exp, u_ref);
-
-  Kokkos::View<int **, DeviceType, Kokkos::MemoryUnmanaged> u_exp_unmanaged{
-      u_exp};
-  Helper<DeviceType>::checkSendAcrossNetwork(comm, ranks_u, u_exp_unmanaged,
-                                             u_ref);
 }
