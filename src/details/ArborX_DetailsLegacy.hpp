@@ -52,7 +52,7 @@ public:
       expand(bounding_volume, Access::get(_primitives, i));
       return value_type{bounding_volume, (index_type)i};
     }
-#if (defined(KOKKOS_COMPILER_NVCC) && (KOKKOS_COMPILER_NVCC < 1150)) || \
+#if (defined(KOKKOS_COMPILER_NVCC) && (KOKKOS_COMPILER_NVCC < 1150)) ||        \
     (defined(KOKKOS_COMPILER_INTEL) && (KOKKOS_COMPILER_INTEL <= 2021))
     // FIXME_NVCC, FIXME_INTEL: workaround for spurios "missing return
     // statement at end of non-void function" warning
