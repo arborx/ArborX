@@ -15,6 +15,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <limits>
 #include <string>
 
 #include "Search_UnitTestHelpers.hpp"
@@ -28,8 +29,9 @@ namespace
 // Lambdas can only be converted to function pointers if they do not capture.
 // Using a global non-static variable in an unnamed namespace to "capture" the
 // device id.
-uint32_t arborx_test_device_id = -1;
-uint32_t arborx_test_root_device_id = -1;
+uint32_t INVALID_DEVICE_ID = std::numeric_limits<uint32_t>::max();
+uint32_t arborx_test_device_id = INVALID_DEVICE_ID;
+uint32_t arborx_test_root_device_id = INVALID_DEVICE_ID;
 
 void arborx_test_parallel_x_callback(char const *label, uint32_t device_id,
                                      uint64_t * /*kernel_id*/)
@@ -66,8 +68,8 @@ void arborx_test_unset_tools_callbacks()
   Kokkos::Tools::Experimental::set_begin_parallel_for_callback(nullptr);
   Kokkos::Tools::Experimental::set_begin_parallel_reduce_callback(nullptr);
   Kokkos::Tools::Experimental::set_begin_parallel_scan_callback(nullptr);
-  arborx_test_device_id = -1;
-  arborx_test_root_device_id = -1;
+  arborx_test_device_id = INVALID_DEVICE_ID;
+  arborx_test_root_device_id = INVALID_DEVICE_ID;
 }
 
 } // namespace
