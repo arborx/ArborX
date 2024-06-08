@@ -38,15 +38,13 @@ template <typename ExecutionSpace, typename InputView, typename OutputView>
 static void
 determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
                       InputView batched_offsets, OutputView permutation_indices,
-                      std::vector<int> &unique_ranks, std::vector<int> &counts,
-                      std::vector<int> &offsets)
+                      std::vector<int> &unique_ranks, std::vector<int> &offsets)
 {
   Kokkos::Profiling::ScopedRegion guard(
       "ArborX::Distributor::determineBufferLayout");
 
   ARBORX_ASSERT(unique_ranks.empty());
   ARBORX_ASSERT(offsets.empty());
-  ARBORX_ASSERT(counts.empty());
   ARBORX_ASSERT(permutation_indices.extent_int(0) == 0);
   ARBORX_ASSERT(batched_ranks.size() + 1 == batched_offsets.size());
   static_assert(std::is_same_v<typename InputView::non_const_value_type, int>);
@@ -115,7 +113,6 @@ determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
   space.fence();
   unique_ranks.reserve(n_unique_ranks);
   offsets.reserve(n_unique_ranks + 1);
-  counts.reserve(n_unique_ranks);
 
   for (int i = 0; i < n_unique_ranks; ++i)
   {
@@ -123,7 +120,6 @@ determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
         i == 0 ? offsets_host(0) : offsets_host(i) - offsets_host(i - 1);
     if (count > 0)
     {
-      counts.push_back(count);
       offsets.push_back(offsets_host(i));
       unique_ranks.push_back(unique_ranks_host(i));
     }
@@ -138,7 +134,6 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
                                          InputView ranks,
                                          OutputView permutation_indices,
                                          std::vector<int> &unique_ranks,
-                                         std::vector<int> &counts,
                                          std::vector<int> &offsets)
 {
   Kokkos::Profiling::ScopedRegion guard(
@@ -146,7 +141,6 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
 
   ARBORX_ASSERT(unique_ranks.empty());
   ARBORX_ASSERT(offsets.empty());
-  ARBORX_ASSERT(counts.empty());
   ARBORX_ASSERT(permutation_indices.extent_int(0) == ranks.extent_int(0));
   static_assert(std::is_same_v<typename InputView::non_const_value_type, int>);
   static_assert(std::is_same_v<typename OutputView::value_type, int>);
@@ -199,9 +193,6 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
     offset += result;
     offsets.push_back(offset);
   }
-  counts.reserve(offsets.size() - 1);
-  for (unsigned int i = 1; i < offsets.size(); ++i)
-    counts.push_back(offsets[i] - offsets[i - 1]);
   Kokkos::deep_copy(space, permutation_indices, device_permutation_indices);
   ARBORX_ASSERT(offsets.back() == static_cast<int>(ranks.size()));
 }
@@ -234,7 +225,7 @@ public:
     // Note that we don't resize _permute here since we are assuming that no
     // reordering is necessary.
     determineBufferLayout(space, batched_destination_ranks, batch_offsets,
-                          _permute, _destinations, _dest_counts, _dest_offsets);
+                          _permute, _destinations, _dest_offsets);
 
     return preparePointToPointCommunication();
   }
@@ -255,7 +246,7 @@ public:
     KokkosExt::reallocWithoutInitializing(space, _permute,
                                           destination_ranks.size());
     sortAndDetermineBufferLayout(space, destination_ranks, _permute,
-                                 _destinations, _dest_counts, _dest_offsets);
+                                 _destinations, _dest_offsets);
 
     return preparePointToPointCommunication();
   }
@@ -367,7 +358,8 @@ public:
       if (_sources[i] != comm_rank)
       {
         auto const receive_buffer_ptr = imports_comm.data() + _src_offsets[i];
-        auto const message_size = _src_counts[i] * sizeof(ValueType);
+        auto const message_size =
+            (_src_offsets[i + 1] - _src_offsets[i]) * sizeof(ValueType);
         requests.emplace_back();
         MPI_Irecv(receive_buffer_ptr, message_size, MPI_BYTE, _sources[i], 123,
                   _comm, &requests.back());
@@ -384,8 +376,8 @@ public:
       {
         requests.emplace_back();
         MPI_Isend(exports_comm.data() + _dest_offsets[i],
-                  _dest_counts[i] * sizeof(ValueType), MPI_BYTE,
-                  _destinations[i], 123, _comm, &requests.back());
+                  (_dest_offsets[i + 1] - _dest_offsets[i]) * sizeof(ValueType),
+                  MPI_BYTE, _destinations[i], 123, _comm, &requests.back());
       }
     }
     if (!requests.empty())
@@ -438,7 +430,8 @@ private:
     int const dest_size = _destinations.size();
     for (int i = 0; i < dest_size; ++i)
     {
-      src_counts_dense[_destinations[i]] = _dest_counts[i];
+      src_counts_dense[_destinations[i]] =
+          _dest_offsets[i + 1] - _dest_offsets[i];
     }
     MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, src_counts_dense.data(), 1,
                  MPI_INT, _comm);
@@ -448,8 +441,7 @@ private:
       if (src_counts_dense[i] > 0)
       {
         _sources.push_back(i);
-        _src_counts.push_back(src_counts_dense[i]);
-        _src_offsets.push_back(_src_offsets.back() + _src_counts.back());
+        _src_offsets.push_back(_src_offsets.back() + src_counts_dense[i]);
       }
 
     return _src_offsets.back();
@@ -458,9 +450,7 @@ private:
   MPI_Comm _comm;
   Kokkos::View<int *, DeviceType> _permute;
   std::vector<int> _dest_offsets;
-  std::vector<int> _dest_counts;
   std::vector<int> _src_offsets;
-  std::vector<int> _src_counts;
   std::vector<int> _sources;
   std::vector<int> _destinations;
 };

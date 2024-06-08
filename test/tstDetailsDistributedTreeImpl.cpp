@@ -51,12 +51,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(count_results, DeviceType, ARBORX_DEVICE_TYPES)
 void checkBufferLayout(std::vector<int> const &ranks,
                        std::vector<int> const &permute_ref,
                        std::vector<int> const &unique_ref,
-                       std::vector<int> const &counts_ref,
                        std::vector<int> const &offsets_ref)
 {
   std::vector<int> permute(ranks.size());
   std::vector<int> unique;
-  std::vector<int> counts;
   std::vector<int> offsets;
   Kokkos::DefaultHostExecutionSpace space;
   ArborX::Details::sortAndDetermineBufferLayout(
@@ -67,21 +65,19 @@ void checkBufferLayout(std::vector<int> const &ranks,
       Kokkos::View<int *, Kokkos::HostSpace,
                    Kokkos::MemoryTraits<Kokkos::Unmanaged>>(permute.data(),
                                                             permute.size()),
-      unique, counts, offsets);
+      unique, offsets);
   BOOST_TEST(permute_ref == permute, tt::per_element());
   BOOST_TEST(unique_ref == unique, tt::per_element());
-  BOOST_TEST(counts_ref == counts, tt::per_element());
   BOOST_TEST(offsets_ref == offsets, tt::per_element());
 }
 
 BOOST_AUTO_TEST_CASE(sort_and_determine_buffer_layout)
 {
-  checkBufferLayout({}, {}, {}, {}, {0});
-  checkBufferLayout({2, 2}, {0, 1}, {2}, {2}, {0, 2});
+  checkBufferLayout({}, {}, {}, {0});
+  checkBufferLayout({2, 2}, {0, 1}, {2}, {0, 2});
   checkBufferLayout({3, 3, 2, 3, 2, 1}, {0, 1, 3, 2, 4, 5}, {3, 2, 1},
-                    {3, 2, 1}, {0, 3, 5, 6});
+                    {0, 3, 5, 6});
   checkBufferLayout({1, 2, 3, 2, 3, 3}, {5, 3, 0, 4, 1, 2}, {3, 2, 1},
-                    {3, 2, 1}, {0, 3, 5, 6});
-  checkBufferLayout({0, 1, 2, 3}, {3, 2, 1, 0}, {3, 2, 1, 0}, {1, 1, 1, 1},
-                    {0, 1, 2, 3, 4});
+                    {0, 3, 5, 6});
+  checkBufferLayout({0, 1, 2, 3}, {3, 2, 1, 0}, {3, 2, 1, 0}, {0, 1, 2, 3, 4});
 }
