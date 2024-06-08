@@ -251,12 +251,37 @@ public:
     static_assert(
         std::is_same<typename View::non_const_value_type, int>::value);
 
-    // The next two function calls are the only difference to the other
-    // overload.
-    KokkosExt::reallocWithoutInitializing(space, _permute,
-                                          destination_ranks.size());
-    sortAndDetermineBufferLayout(space, destination_ranks, _permute,
-                                 _destinations, _dest_counts, _dest_offsets);
+    auto const n = destination_ranks.extent_int(0);
+
+    if (n == 0)
+    {
+      _dest_offsets = {0};
+    }
+    else
+    {
+      int comm_rank;
+      MPI_Comm_rank(_comm, &comm_rank);
+
+      auto [smallest_rank, largest_rank] =
+          KokkosExt::minmax_reduce(space, destination_ranks);
+
+      if (smallest_rank == largest_rank && smallest_rank == comm_rank)
+      {
+        // The data is only sent to the same rank
+        _destinations = {comm_rank};
+        _dest_counts = {n};
+        _dest_offsets = {0, n};
+      }
+      else
+      {
+        KokkosExt::reallocWithoutInitializing(space, _permute,
+                                              destination_ranks.size());
+
+        sortAndDetermineBufferLayout(space, destination_ranks, _permute,
+                                     _destinations, _dest_counts,
+                                     _dest_offsets);
+      }
+    }
 
     return preparePointToPointCommunication();
   }
