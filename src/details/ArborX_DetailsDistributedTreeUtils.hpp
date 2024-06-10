@@ -70,17 +70,6 @@ void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
   int const n_imports = distributor.createFromSends(space, indices);
 
   {
-    Kokkos::View<int *, MemorySpace> export_ranks(
-        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                           prefix + "::export_ranks"),
-        n_exports);
-    Kokkos::deep_copy(space, export_ranks, comm_rank);
-
-    KokkosExt::reallocWithoutInitializing(space, fwd_ranks, n_imports);
-    distributor.doPostsAndWaits(space, distributor, export_ranks, fwd_ranks);
-  }
-
-  {
     Kokkos::View<Query *, MemorySpace> export_queries(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            prefix + "::export_queries"),
@@ -94,8 +83,18 @@ void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
         });
 
     KokkosExt::reallocWithoutInitializing(space, fwd_queries, n_imports);
-    distributor.doPostsAndWaits(space, distributor, export_queries,
-                                fwd_queries);
+    distributor.doPostsAndWaits(space, export_queries, fwd_queries);
+  }
+
+  {
+    Kokkos::View<int *, MemorySpace> export_ranks(
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                           prefix + "::export_ranks"),
+        n_exports);
+    Kokkos::deep_copy(space, export_ranks, comm_rank);
+
+    KokkosExt::reallocWithoutInitializing(space, fwd_ranks, n_imports);
+    distributor.doPostsAndWaits(space, export_ranks, fwd_ranks);
   }
 
   {
@@ -112,7 +111,7 @@ void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
         });
 
     KokkosExt::reallocWithoutInitializing(space, fwd_ids, n_imports);
-    distributor.doPostsAndWaits(space, distributor, export_ids, fwd_ids);
+    distributor.doPostsAndWaits(space, export_ids, fwd_ids);
   }
 }
 
