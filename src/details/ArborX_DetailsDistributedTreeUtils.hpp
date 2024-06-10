@@ -53,8 +53,9 @@ void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
                     Offset const &offset, FwdQueries &fwd_queries,
                     FwdIds &fwd_ids, Ranks &fwd_ranks)
 {
-  Kokkos::Profiling::ScopedRegion guard(
-      "ArborX::DistributedTree::forwardQueries");
+  std::string prefix = "ArborX::DistributedTree::query::forwardQueries";
+
+  Kokkos::Profiling::ScopedRegion guard(prefix);
 
   using MemorySpace = typename Predicates::memory_space;
   using Query = typename Predicates::value_type;
@@ -68,74 +69,50 @@ void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
   int const n_exports = KokkosExt::lastElement(space, offset);
   int const n_imports = distributor.createFromSends(space, indices);
 
-  static_assert(std::is_same_v<Query, typename Predicates::value_type>);
-
   {
     Kokkos::View<int *, MemorySpace> export_ranks(
-        Kokkos::view_alloc(
-            space, Kokkos::WithoutInitializing,
-            "ArborX::DistributedTree::query::forwardQueries::export_ranks"),
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                           prefix + "::export_ranks"),
         n_exports);
     Kokkos::deep_copy(space, export_ranks, comm_rank);
 
-    Kokkos::View<int *, MemorySpace> import_ranks(
-        Kokkos::view_alloc(
-            space, Kokkos::WithoutInitializing,
-            "ArborX::DistributedTree::query::forwardQueries::import_ranks"),
-        n_imports);
-
-    distributor.doPostsAndWaits(space, export_ranks, import_ranks);
-    fwd_ranks = import_ranks;
+    KokkosExt::reallocWithoutInitializing(space, fwd_ranks, n_imports);
+    distributor.doPostsAndWaits(space, distributor, export_ranks, fwd_ranks);
   }
 
   {
-    Kokkos::View<Query *, MemorySpace> exports(
-        Kokkos::view_alloc(
-            space, Kokkos::WithoutInitializing,
-            "ArborX::DistributedTree::query::forwardQueries::exports"),
+    Kokkos::View<Query *, MemorySpace> export_queries(
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                           prefix + "::export_queries"),
         n_exports);
     Kokkos::parallel_for(
-        "ArborX::DistributedTree::query::forward_queries_fill_buffer",
+        prefix + "::forward_queries_fill_buffer",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int q) {
           for (int i = offset(q); i < offset(q + 1); ++i)
-          {
-            exports(i) = queries(q);
-          }
+            export_queries(i) = queries(q);
         });
-    Kokkos::View<Query *, MemorySpace> imports(
-        Kokkos::view_alloc(
-            space, Kokkos::WithoutInitializing,
-            "ArborX::DistributedTree::query::forwardQueries::imports"),
-        n_imports);
 
-    distributor.doPostsAndWaits(space, exports, imports);
-    fwd_queries = imports;
+    KokkosExt::reallocWithoutInitializing(space, fwd_queries, n_imports);
+    distributor.doPostsAndWaits(space, distributor, export_queries,
+                                fwd_queries);
   }
 
   {
     Kokkos::View<int *, MemorySpace> export_ids(
-        Kokkos::view_alloc(
-            space, Kokkos::WithoutInitializing,
-            "ArborX::DistributedTree::query::forwardQueries::export_ids"),
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                           prefix + "::export_ids"),
         n_exports);
     Kokkos::parallel_for(
-        "ArborX::DistributedTree::query::forward_queries_fill_ids",
+        prefix + "::forward_queries_fill_ids",
         Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
         KOKKOS_LAMBDA(int q) {
           for (int i = offset(q); i < offset(q + 1); ++i)
-          {
             export_ids(i) = q;
-          }
         });
-    Kokkos::View<int *, MemorySpace> import_ids(
-        Kokkos::view_alloc(
-            space, Kokkos::WithoutInitializing,
-            "ArborX::DistributedTree::query::forwardQueries::import_ids"),
-        n_imports);
 
-    distributor.doPostsAndWaits(space, export_ids, import_ids);
-    fwd_ids = import_ids;
+    KokkosExt::reallocWithoutInitializing(space, fwd_ids, n_imports);
+    distributor.doPostsAndWaits(space, distributor, export_ids, fwd_ids);
   }
 }
 
