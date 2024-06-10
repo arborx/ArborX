@@ -115,6 +115,41 @@ void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
   }
 }
 
+template <typename ExecutionSpace, typename Predicates, typename Indices,
+          typename Offset, typename FwdQueries>
+void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
+                    Predicates const &queries, Indices const &indices,
+                    Offset const &offset, FwdQueries &fwd_queries)
+{
+  std::string prefix =
+      "ArborX::DistributedTree::query::forwardQueries(partial)";
+
+  Kokkos::Profiling::ScopedRegion guard(prefix);
+
+  using MemorySpace = typename Predicates::memory_space;
+  using Query = typename Predicates::value_type;
+
+  Distributor<MemorySpace> distributor(comm);
+
+  int const n_exports = KokkosExt::lastElement(space, offset);
+  int const n_imports = distributor.createFromSends(space, indices);
+
+  Kokkos::View<Query *, MemorySpace> export_queries(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         prefix + "::export_queries"),
+      n_exports);
+  Kokkos::parallel_for(
+      prefix + "::forward_queries_fill_buffer",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, queries.size()),
+      KOKKOS_LAMBDA(int q) {
+        for (int i = offset(q); i < offset(q + 1); ++i)
+          export_queries(i) = queries(q);
+      });
+
+  KokkosExt::reallocWithoutInitializing(space, fwd_queries, n_imports);
+  distributor.doPostsAndWaits(space, export_queries, fwd_queries);
+}
+
 template <typename ExecutionSpace, typename OutputView, typename Offset,
           typename Ranks, typename Ids>
 void communicateResultsBack(MPI_Comm comm, ExecutionSpace const &space,
