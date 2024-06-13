@@ -27,7 +27,8 @@ jobs:
     - uses: actions/checkout@v3
       with:
         repository: kokkos/kokkos
-        ref: 4.2.00
+        # FIXME: remove revision once Kokkos 4.4 has been released
+        ref: d54619970c051fcb82ed0a9eab29975998baf832
         path: ${GITHUB_WORKSPACE}/../kokkos
     - name: Install Kokkos
       shell: bash
