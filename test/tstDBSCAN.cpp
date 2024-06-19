@@ -74,27 +74,29 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier, DeviceType, ARBORX_DEVICE_TYPES)
     auto points = toView<DeviceType, Point>(
         {{{0, 0, 0}}, {{1, 1, 1}}, {{3, 3, 3}}, {{6, 6, 6}}});
 
-    auto r = std::sqrt(3);
+    auto r = std::sqrt(3.f);
+    auto r2 = std::sqrt(12.f);
+    auto r3 = std::sqrt(48.f);
 
     BOOST_TEST(verifyDBSCAN(space, points, r, 2,
                             toView<DeviceType, int>({1, 1, -1, -1})));
     BOOST_TEST(verifyDBSCAN(space, points, r, 3,
                             toView<DeviceType, int>({-1, -1, -1, -1})));
 
-    BOOST_TEST(verifyDBSCAN(space, points, 2 * r, 2,
+    BOOST_TEST(verifyDBSCAN(space, points, r2, 2,
                             toView<DeviceType, int>({3, 3, 3, -1})));
-    BOOST_TEST(verifyDBSCAN(space, points, 2 * r, 3,
+    BOOST_TEST(verifyDBSCAN(space, points, r2, 3,
                             toView<DeviceType, int>({3, 3, 3, -1})));
-    BOOST_TEST(verifyDBSCAN(space, points, 2 * r, 4,
+    BOOST_TEST(verifyDBSCAN(space, points, r2, 4,
                             toView<DeviceType, int>({-1, -1, -1, -1})));
 
-    BOOST_TEST(verifyDBSCAN(space, points, 3 * r, 2,
+    BOOST_TEST(verifyDBSCAN(space, points, r3, 2,
                             toView<DeviceType, int>({5, 5, 5, 5})));
-    BOOST_TEST(verifyDBSCAN(space, points, 3 * r, 3,
+    BOOST_TEST(verifyDBSCAN(space, points, r3, 3,
                             toView<DeviceType, int>({5, 5, 5, 5})));
-    BOOST_TEST(verifyDBSCAN(space, points, 3 * r, 4,
+    BOOST_TEST(verifyDBSCAN(space, points, r3, 4,
                             toView<DeviceType, int>({7, 7, 7, 7})));
-    BOOST_TEST(verifyDBSCAN(space, points, 3 * r, 5,
+    BOOST_TEST(verifyDBSCAN(space, points, r3, 5,
                             toView<DeviceType, int>({-1, -1, -1, -1})));
   }
 
