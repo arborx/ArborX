@@ -117,11 +117,12 @@ auto make(ExecutionSpace const &exec_space, std::vector<ArborX::Box> const &b)
 {
   int const n = b.size();
   Kokkos::View<ArborX::Box *, typename Tree::memory_space> boxes(
-      "Testing::boxes", n);
-  auto boxes_host = Kokkos::create_mirror_view(boxes);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::boxes"), n);
+  auto boxes_host =
+      Kokkos::create_mirror_view(Kokkos::WithoutInitializing, boxes);
   for (int i = 0; i < n; ++i)
     boxes_host(i) = b[i];
-  Kokkos::deep_copy(boxes, boxes_host);
+  Kokkos::deep_copy(exec_space, boxes, boxes_host);
   return Tree(exec_space, boxes);
 }
 
