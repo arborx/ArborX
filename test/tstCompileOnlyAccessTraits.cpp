@@ -86,6 +86,8 @@ void test_access_traits_compile_only()
   struct CustomIndex
   {
     char index;
+
+    KOKKOS_FUNCTION
     CustomIndex(int i) { index = i; }
   };
   auto q_with_custom_indices =

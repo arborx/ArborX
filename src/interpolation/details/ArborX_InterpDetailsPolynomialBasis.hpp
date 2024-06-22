@@ -95,8 +95,13 @@ KOKKOS_FUNCTION constexpr std::size_t polynomialBasisSize()
   static_assert(DIM > 0, "Polynomial basis with no dimension is invalid");
 
   std::size_t result = 1;
-  for (std::size_t k = 0; k < Kokkos::min(DIM, Degree); ++k)
-    result = result * (DIM + Degree - k) / (k + 1);
+
+  constexpr auto D = Kokkos::min(DIM, Degree);
+  if constexpr (D > 0)
+  {
+    for (std::size_t k = 0; k < D; ++k)
+      result = result * (DIM + Degree - k) / (k + 1);
+  }
   return result;
 }
 
