@@ -275,6 +275,7 @@ struct CustomPostCallbackWithAttachment
         });
   }
 };
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
@@ -374,6 +375,68 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
                    make_compressed_storage(offset_host, ref_host),
                tt::per_element());
   }
+}
+
+template <typename DeviceType>
+struct CustomPureInlineCallback
+{
+  Kokkos::View<int *, DeviceType> counts;
+
+  template <typename Query>
+  KOKKOS_FUNCTION void operator()(Query const &, int index) const
+  {
+    Kokkos::atomic_inc(&counts(index));
+  }
+};
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(pure_spatial_callback, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  using ExecutionSpace = typename DeviceType::execution_space;
+
+  MPI_Comm comm = MPI_COMM_WORLD;
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+  int comm_size;
+  MPI_Comm_size(comm, &comm_size);
+
+  //  +----------0----------1----------2----------3
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  |          |          |          |          |
+  //  0----------1----------2----------3----------+
+  //  [  rank 0  ]
+  //             [  rank 1  ]
+  //                        [  rank 2  ]
+  //                                   [  rank 3  ]
+  auto const tree = makeDistributedTree<DeviceType>(
+      comm, {{{{(float)comm_rank, 0., 0.}}, {{(float)comm_rank + 1, 1., 1.}}}});
+
+  //  +--------0---------1----------2---------3
+  //  |        |         |          |         |
+  //  |        |         |          |         |
+  //  |        |         |          |         |
+  //  |        |         |          |         |
+  //  0--------1----x----2-----x----3----x----+    x
+  //                ^          ^         ^         ^
+  //                0          1         2         3
+  Kokkos::View<decltype(ArborX::intersects(ArborX::Point{})) *, DeviceType>
+      queries("Testing::queries", 1);
+  auto queries_host = Kokkos::create_mirror_view(queries);
+  queries_host(0) = ArborX::intersects(ArborX::Point{1.5f + comm_rank, 0, 0});
+  deep_copy(queries, queries_host);
+
+  Kokkos::View<int *, DeviceType> counts("Testing::counts", queries.size());
+  tree.query(ExecutionSpace{}, queries,
+             CustomPureInlineCallback<DeviceType>{counts});
+  auto counts_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, counts);
+
+  std::vector<int> counts_ref;
+  counts_ref.push_back(comm_rank > 0 ? 1 : 0);
+
+  BOOST_TEST(counts_host == counts_ref, tt::per_element());
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
