@@ -1,4 +1,4 @@
-ARG BASE=nvidia/cuda:11.7.1-devel-ubuntu22.04
+ARG BASE=nvidia/cuda:12.2.2-devel-ubuntu22.04
 FROM $BASE
 
 ARG NPROCS=4
@@ -43,31 +43,14 @@ RUN CMAKE_KEY=2D2CEF1034921684 && \
     rm cmake*
 ENV PATH=${CMAKE_DIR}/bin:$PATH
 
-# Install the dpcpp compiler, see
-# https://www.intel.com/content/www/us/en/docs/vtune-profiler/installation-guide/2023-1/package-managers.html
-ARG DPCPP_VERSION=2023.0.0
-RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB && \
-    apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB && \
-    echo "deb https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list && \
-    apt-get update -o Dir::Etc::sourcelist="sources.list.d/oneAPI.list" -o APT::Get::List-Cleanup="0" && \
-    apt-get install -y intel-oneapi-compiler-dpcpp-cpp-${DPCPP_VERSION} && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-ENV DPCPP=/opt/intel/oneapi/compiler/${DPCPP_VERSION}/linux/bin-llvm/clang++
-
-# Install Codeplay's oneAPI for NVIDIA GPUs, see
-# https://developer.codeplay.com/products/oneapi/nvidia/2023.0.0/guides/get-started-guide-nvidia
-RUN wget https://cloud.cees.ornl.gov/download/oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh && \
-    chmod +x oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh && \
-    ./oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh -y && \
-    rm oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh
-
-# Install oneDPL, see
-# https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit-download.html?operatingsystem=linux&distributions=online&version=2023.0.0
-RUN wget https://registrationcenter-download.intel.com/akdlm/irc_nas/19133/l_oneDPL_p_2022.0.0.25335.sh &&\
-    chmod +x ./l_oneDPL_p_2022.0.0.25335.sh && \
-    ./l_oneDPL_p_2022.0.0.25335.sh -a -s --eula accept && \
-    rm l_oneDPL_p_2022.0.0.25335.sh
+# Install oneAPI base toolkit (version 2024.2.0)
+# https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit-download.html?operatingsystem=linux&linux-install-type=online
+ARG DPCPP_VERSION=2024.2.0
+# RUN wget https://cloud.cees.ornl.gov/download/l_BaseKit_p_2024.2.0.634.sh && \
+RUN wget "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/9a98af19-1c68-46ce-9fdd-e249240c7c42/l_BaseKit_p_2024.2.0.634.sh" && \
+    chmod +x ./l_BaseKit_p_2024.2.0.634.sh && \
+    ./l_BaseKit_p_2024.2.0.634.sh -a -s --cli --eula accept && \
+    rm l_BaseKit_p_2024.2.0.634.sh
 
 # Set up environment variables to avoid using setvars.sh in CI
 # clang++
@@ -78,6 +61,15 @@ ENV PATH=/opt/intel/oneapi/compiler/latest/linux/bin/:$PATH
 ENV LD_LIBRARY_PATH=/opt/intel/oneapi/compiler/latest/linux/lib:$LD_LIBRARY_PATH
 # libsvml
 ENV LD_LIBRARY_PATH=/opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin:$LD_LIBRARY_PATH
+
+
+# Install Codeplay's oneAPI for NVIDIA GPUs, see
+# https://developer.codeplay.com/products/oneapi/nvidia/2024.2.0/guides/get-started-guide-nvidia
+# RUN wget https://cloud.cees.ornl.gov/download/oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh && \
+RUN wget "https://developer.codeplay.com/api/v1/products/download?product=oneapi&variant=nvidia&version=${DPCPP_VERSION}&filters[]=12.0&filters[]=linux" && \
+    chmod +x oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh && \
+    ./oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh -y && \
+    rm oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh
 
 # Install Boost and patch it, see
 # intel.com/content/www/us/en/developer/articles/technical/building-boost-with-oneapi.html
