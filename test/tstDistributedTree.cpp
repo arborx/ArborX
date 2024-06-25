@@ -839,45 +839,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
                          query(ExecutionSpace{}, rtree, within_queries_host));
 }
 
-template <typename MemorySpace>
-class RayNearestPredicate
-{
-public:
-  RayNearestPredicate(
-      Kokkos::View<ArborX::Experimental::Ray *, MemorySpace> const &rays)
-      : _rays(rays)
-  {}
-
-  KOKKOS_FUNCTION std::size_t size() const { return _rays.extent(0); }
-
-  KOKKOS_FUNCTION ArborX::Experimental::Ray const &get(unsigned int i) const
-  {
-    return _rays(i);
-  }
-
-private:
-  Kokkos::View<ArborX::Experimental::Ray *, MemorySpace> _rays;
-};
-
-template <typename MemorySpace>
-struct ArborX::AccessTraits<RayNearestPredicate<MemorySpace>,
-                            ArborX::PredicatesTag>
-{
-  using memory_space = MemorySpace;
-
-  static KOKKOS_FUNCTION std::size_t
-  size(RayNearestPredicate<MemorySpace> const &ray_nearest)
-  {
-    return ray_nearest.size();
-  }
-
-  static KOKKOS_FUNCTION auto
-  get(RayNearestPredicate<MemorySpace> const &ray_nearest, std::size_t i)
-  {
-    return nearest(ray_nearest.get(i), 1);
-  }
-};
-
 BOOST_AUTO_TEST_CASE_TEMPLATE(distributed_ray, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
@@ -910,9 +871,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(distributed_ray, DeviceType, ARBORX_DEVICE_TYPES)
       {{-0.5f, 0.5f, 0.5f}, {1.f, 0.f, 0.f}},
   };
 
-  ARBORX_TEST_QUERY_TREE(
-      ExecutionSpace{}, tree,
-      RayNearestPredicate(ArborXTest::toView<MemorySpace>(rays)),
-      make_reference_solution<PairIndexRank>({{0, comm_rank}, {0, 0}},
-                                             {0, 1, 2}));
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         ArborX::Experimental::make_nearest(
+                             ArborXTest::toView<MemorySpace>(rays), 1),
+                         make_reference_solution<PairIndexRank>(
+                             {{0, comm_rank}, {0, 0}}, {0, 1, 2}));
 }
