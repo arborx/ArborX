@@ -238,7 +238,7 @@ target_include_directories(ArborX_Test_SpecializedTraversals.exe PRIVATE ${CMAKE
 add_test(NAME ArborX_Test_SpecializedTraversals COMMAND ArborX_Test_SpecializedTraversals.exe)
 
 if(ARBORX_ENABLE_MPI)
-  add_executable(ArborX_Test_DistributedTree.exe tstDistributedTree.cpp tstKokkosToolsDistributedAnnotations.cpp utf_main.cpp)
+  add_executable(ArborX_Test_DistributedTree.exe tstDistributedTreeNearest.cpp tstDistributedTreeSpatial.cpp tstKokkosToolsDistributedAnnotations.cpp utf_main.cpp)
   target_link_libraries(ArborX_Test_DistributedTree.exe PRIVATE ArborX Boost::unit_test_framework)
   target_compile_definitions(ArborX_Test_DistributedTree.exe PRIVATE BOOST_TEST_DYN_LINK ARBORX_MPI_UNIT_TEST)
   # FIXME_SYCL oneDPL messes with namespace std, see https://github.com/oneapi-src/oneDPL/issues/576
