@@ -66,7 +66,7 @@ ENV LD_LIBRARY_PATH=/opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64
 # Install Codeplay's oneAPI for NVIDIA GPUs, see
 # https://developer.codeplay.com/products/oneapi/nvidia/2024.2.0/guides/get-started-guide-nvidia
 # RUN wget https://cloud.cees.ornl.gov/download/oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh && \
-RUN wget "https://developer.codeplay.com/api/v1/products/download?product=oneapi&variant=nvidia&version=${DPCPP_VERSION}&filters[]=12.0&filters[]=linux" && \
+RUN wget --content-disposition "https://developer.codeplay.com/api/v1/products/download?product=oneapi&variant=nvidia&version=${DPCPP_VERSION}&filters[]=12.0&filters[]=linux" && \
     chmod +x oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh && \
     ./oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh -y && \
     rm oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh
