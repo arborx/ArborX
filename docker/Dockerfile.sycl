@@ -123,6 +123,6 @@ RUN . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
     tar -xf ${KOKKOS_ARCHIVE} -C kokkos --strip-components=1 && \
     cd kokkos && \
     mkdir -p build && cd build && \
-    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${KOKKOS_DIR} -D CMAKE_CXX_COMPILER=${DPCPP} ${KOKKOS_OPTIONS} .. && \
+    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${KOKKOS_DIR} -D CMAKE_CXX_COMPILER=clang++ ${KOKKOS_OPTIONS} .. && \
     make -j${NPROCS} install && \
     rm -rf ${SCRATCH_DIR}
