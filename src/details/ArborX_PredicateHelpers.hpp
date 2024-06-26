@@ -34,6 +34,15 @@ public:
 };
 
 template <typename UserPrimitives>
+class PrimitivesOrderedIntersect
+{
+  using Primitives = Details::AccessValues<UserPrimitives, PrimitivesTag>;
+
+public:
+  Primitives _primitives;
+};
+
+template <typename UserPrimitives>
 class PrimitivesWithRadius
 {
   using Primitives = Details::AccessValues<UserPrimitives, PrimitivesTag>;
@@ -80,6 +89,14 @@ auto make_intersects(Primitives const &primitives, Coordinate r)
 }
 
 template <typename Primitives>
+auto make_ordered_intersects(Primitives const &primitives)
+{
+  Details::check_valid_access_traits(PrimitivesTag{}, primitives,
+                                     Details::DoNotCheckGetReturnType());
+  return PrimitivesOrderedIntersect<Primitives>{primitives};
+}
+
+template <typename Primitives>
 auto make_nearest(Primitives const &primitives, int k)
 {
   Details::check_valid_access_traits(PrimitivesTag{}, primitives,
@@ -107,6 +124,27 @@ public:
   static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
   {
     return intersects(x._primitives(i));
+  }
+};
+
+template <class Primitives>
+struct AccessTraits<Experimental::PrimitivesOrderedIntersect<Primitives>,
+                    PredicatesTag>
+{
+private:
+  using Self = Experimental::PrimitivesOrderedIntersect<Primitives>;
+
+public:
+  using memory_space = typename Primitives::memory_space;
+  using size_type = typename memory_space::size_type;
+
+  static KOKKOS_FUNCTION size_type size(Self const &x)
+  {
+    return x._primitives.size();
+  }
+  static KOKKOS_FUNCTION auto get(Self const &x, size_type i)
+  {
+    return ordered_intersects(x._primitives(i));
   }
 };
 

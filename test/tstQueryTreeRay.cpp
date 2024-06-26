@@ -104,29 +104,6 @@ struct InsertIntersections
   }
 };
 
-template <typename DeviceType>
-struct BoxesIntersectedByRayOrdered
-{
-  Kokkos::View<ArborX::Experimental::Ray *, DeviceType> rays;
-};
-
-template <typename DeviceType>
-struct ArborX::AccessTraits<BoxesIntersectedByRayOrdered<DeviceType>,
-                            ArborX::PredicatesTag>
-{
-  using memory_space = typename DeviceType::memory_space;
-  static KOKKOS_FUNCTION int
-  size(BoxesIntersectedByRayOrdered<DeviceType> const &nearest_boxes)
-  {
-    return nearest_boxes.rays.size();
-  }
-  static KOKKOS_FUNCTION auto
-  get(BoxesIntersectedByRayOrdered<DeviceType> const &nearest_boxes, int i)
-  {
-    return attach(ordered_intersects(nearest_boxes.rays(i)), i);
-  }
-};
-
 BOOST_AUTO_TEST_SUITE(RayTraversals)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_intersection_new, DeviceType,
@@ -155,7 +132,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_intersection_new, DeviceType,
   Kokkos::View<int *[2], DeviceType> device_ordered_intersections(
       "ordered_intersections", n);
 
-  BoxesIntersectedByRayOrdered<DeviceType> predicates{device_rays};
+  auto predicates = ArborX::Experimental::attach_indices(
+      ArborX::Experimental::make_ordered_intersects(device_rays));
 
 #if (HIP_VERSION_MAJOR == 5) && (HIP_VERSION_MINOR == 2)
   Kokkos::View<int[2], DeviceType> count("count");
