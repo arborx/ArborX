@@ -53,8 +53,6 @@ RUN wget "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/9a98af19-1
     rm l_BaseKit_p_2024.2.0.634.sh
 
 # Set up environment variables to avoid using setvars.sh in CI
-# clang++
-ENV PATH=/opt/intel/oneapi/compiler/latest/linux/bin-llvm/:$PATH
 # sycl-ls, icpx
 ENV PATH=/opt/intel/oneapi/compiler/latest/linux/bin/:$PATH
 # libsycl
