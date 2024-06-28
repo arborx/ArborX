@@ -51,6 +51,7 @@ RUN wget "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/9a98af19-1
     chmod +x ./l_BaseKit_p_2024.2.0.634.sh && \
     ./l_BaseKit_p_2024.2.0.634.sh -a -s --cli --eula accept && \
     rm l_BaseKit_p_2024.2.0.634.sh
+ENV DPCPP=/opt/intel/oneapi/compiler/latest/linux/bin/icpx
 
 # Set up environment variables to avoid using setvars.sh in CI
 # sycl-ls, icpx
@@ -110,10 +111,9 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
 
 # Install Kokkos
 ARG KOKKOS_VERSION=4.3.00
-ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_SYCL=ON -DCMAKE_CXX_FLAGS=-Wno-unknown-cuda-version -DKokkos_ENABLE_UNSUPPORTED_ARCHS=ON -DKokkos_ENABLE_DEPRECATED_CODE_3=OFF -DKokkos_ARCH_VOLTA70=ON -DKOKKOS_IMPL_SYCL_DEVICE_GLOBAL_SUPPORTED=0 -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS=-w"
+ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_SYCL=ON -DCMAKE_CXX_FLAGS=-Wno-unknown-cuda-version -DKokkos_ENABLE_UNSUPPORTED_ARCHS=ON -DKokkos_ENABLE_DEPRECATED_CODE_3=OFF -DKokkos_ARCH_AMPERE80=ON -DKOKKOS_IMPL_SYCL_DEVICE_GLOBAL_SUPPORTED=0 -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS=-w"
 ENV KOKKOS_DIR=/opt/kokkos
-RUN . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
-    KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
+RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
     KOKKOS_ARCHIVE=kokkos-${KOKKOS_HASH}.tar.gz && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${KOKKOS_URL} --output-document=${KOKKOS_ARCHIVE} && \
@@ -121,6 +121,6 @@ RUN . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
     tar -xf ${KOKKOS_ARCHIVE} -C kokkos --strip-components=1 && \
     cd kokkos && \
     mkdir -p build && cd build && \
-    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${KOKKOS_DIR} -D CMAKE_CXX_COMPILER=icpx ${KOKKOS_OPTIONS} .. && \
+    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${KOKKOS_DIR} -D CMAKE_CXX_COMPILER=${DPCPP} ${KOKKOS_OPTIONS} .. && \
     make -j${NPROCS} install && \
     rm -rf ${SCRATCH_DIR}
