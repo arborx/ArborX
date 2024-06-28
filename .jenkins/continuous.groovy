@@ -52,6 +52,7 @@ pipeline {
                         sh 'rm -rf build && mkdir -p build'
                         dir('build') {
                             sh '''
+                                . /opt/intel/oneapi/setvars.sh && \
                                 cmake \
                                     -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
                                     -D CMAKE_BUILD_TYPE=Release \
@@ -83,6 +84,7 @@ pipeline {
                             dir('test_install') {
                                 sh 'cp -r ../examples .'
                                 sh '''
+                                    . /opt/intel/oneapi/setvars.sh && \
                                     cmake \
                                         -D CMAKE_BUILD_TYPE=Release \
                                         -D CMAKE_CXX_COMPILER=${DPCPP} \
