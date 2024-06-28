@@ -55,7 +55,7 @@ pipeline {
                                 cmake \
                                     -D CMAKE_INSTALL_PREFIX=$ARBORX_DIR \
                                     -D CMAKE_BUILD_TYPE=Release \
-                                    -D CMAKE_CXX_COMPILER=${DPCPP} \
+                                    -D CMAKE_CXX_COMPILER=icpx \
                                     -D CMAKE_CXX_EXTENSIONS=OFF \
                                     -D CMAKE_CXX_FLAGS="-fp-model=precise -fsycl-device-code-split=per_kernel -Wpedantic -Wall -Wextra -Wno-sycl-target -Wno-unknown-cuda-version -Wno-deprecated-declarations" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
@@ -85,7 +85,7 @@ pipeline {
                                 sh '''
                                     cmake \
                                         -D CMAKE_BUILD_TYPE=Release \
-                                        -D CMAKE_CXX_COMPILER=${DPCPP} \
+                                        -D CMAKE_CXX_COMPILER=icpx \
                                         -D CMAKE_CXX_EXTENSIONS=OFF \
                                         -D CMAKE_CXX_FLAGS="-Wno-sycl-target -Wno-unknown-cuda-version -Wno-deprecated-declarations" \
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
