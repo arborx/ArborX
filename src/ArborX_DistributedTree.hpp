@@ -200,6 +200,13 @@ public:
                      std::forward<OffsetView>(offset));
   }
 
+  template <typename ExecutionSpace, typename UserPredicates, typename Callback>
+  void query(ExecutionSpace const &space, UserPredicates const &user_predicates,
+             Callback &&callback) const
+  {
+    base_type::query(space, user_predicates, std::forward<Callback>(callback));
+  }
+
   template <typename ExecutionSpace, typename UserPredicates, typename Callback,
             typename Indices, typename Offset>
   void query(ExecutionSpace const &space, UserPredicates const &user_predicates,
