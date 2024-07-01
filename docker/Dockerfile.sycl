@@ -1,9 +1,7 @@
-ARG BASE=nvidia/cuda:11.7.1-devel-ubuntu22.04
+ARG BASE=intel/oneapi:2023.0.0-devel-ubuntu22.04
 FROM $BASE
 
 ARG NPROCS=4
-
-RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
         bc \
@@ -16,6 +14,12 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
         jq \
         libopenmpi-dev \
         && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb && \
+    dpkg -i cuda-keyring_1.1-1_all.deb && \
+    apt-get update && sudo apt-get -y install cuda-toolkit-12-5 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -43,41 +47,13 @@ RUN CMAKE_KEY=2D2CEF1034921684 && \
     rm cmake*
 ENV PATH=${CMAKE_DIR}/bin:$PATH
 
-# Install the dpcpp compiler, see
-# https://www.intel.com/content/www/us/en/docs/vtune-profiler/installation-guide/2023-1/package-managers.html
-ARG DPCPP_VERSION=2023.0.0
-RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB && \
-    apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB && \
-    echo "deb https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list && \
-    apt-get update -o Dir::Etc::sourcelist="sources.list.d/oneAPI.list" -o APT::Get::List-Cleanup="0" && \
-    apt-get install -y intel-oneapi-compiler-dpcpp-cpp-${DPCPP_VERSION} && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-ENV DPCPP=/opt/intel/oneapi/compiler/${DPCPP_VERSION}/linux/bin-llvm/clang++
-
 # Install Codeplay's oneAPI for NVIDIA GPUs, see
-# https://developer.codeplay.com/products/oneapi/nvidia/2023.0.0/guides/get-started-guide-nvidia
-RUN wget https://cloud.cees.ornl.gov/download/oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh && \
-    chmod +x oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh && \
-    ./oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh -y && \
-    rm oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh
-
-# Install oneDPL, see
-# https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit-download.html?operatingsystem=linux&distributions=online&version=2023.0.0
-RUN wget https://registrationcenter-download.intel.com/akdlm/irc_nas/19133/l_oneDPL_p_2022.0.0.25335.sh &&\
-    chmod +x ./l_oneDPL_p_2022.0.0.25335.sh && \
-    ./l_oneDPL_p_2022.0.0.25335.sh -a -s --eula accept && \
-    rm l_oneDPL_p_2022.0.0.25335.sh
-
-# Set up environment variables to avoid using setvars.sh in CI
-# clang++
-ENV PATH=/opt/intel/oneapi/compiler/latest/linux/bin-llvm/:$PATH
-# sycl-ls, icpx
-ENV PATH=/opt/intel/oneapi/compiler/latest/linux/bin/:$PATH
-# libsycl
-ENV LD_LIBRARY_PATH=/opt/intel/oneapi/compiler/latest/linux/lib:$LD_LIBRARY_PATH
-# libsvml
-ENV LD_LIBRARY_PATH=/opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin:$LD_LIBRARY_PATH
+# https://developer.codeplay.com/products/oneapi/nvidia/2024.2.0/guides/get-started-guide-nvidia
+# RUN wget https://cloud.cees.ornl.gov/download/oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh && \
+RUN wget --content-disposition "https://developer.codeplay.com/api/v1/products/download?product=oneapi&variant=nvidia&version=${DPCPP_VERSION}&filters[]=12.0&filters[]=linux" && \
+    chmod +x oneapi-for-nvidia-gpus-${DPCPP_VERSION}-cuda-12.0-linux.sh && \
+    ./oneapi-for-nvidia-gpus-${DPCPP_VERSION}-cuda-12.0-linux.sh -y && \
+    rm oneapi-for-nvidia-gpus-${DPCPP_VERSION}-cuda-12.0-linux.sh
 
 # Install Boost and patch it, see
 # intel.com/content/www/us/en/developer/articles/technical/building-boost-with-oneapi.html
@@ -120,9 +96,9 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
 
 # Install Kokkos
 ARG KOKKOS_VERSION=4.3.00
-ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_SYCL=ON -DCMAKE_CXX_FLAGS=-Wno-unknown-cuda-version -DKokkos_ENABLE_UNSUPPORTED_ARCHS=ON -DKokkos_ENABLE_DEPRECATED_CODE_3=OFF -DKokkos_ARCH_VOLTA70=ON -DKOKKOS_IMPL_SYCL_DEVICE_GLOBAL_SUPPORTED=0 -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS=-w"
+ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_SYCL=ON -DCMAKE_CXX_FLAGS=-Wno-unknown-cuda-version -DKokkos_ENABLE_UNSUPPORTED_ARCHS=ON -DKokkos_ENABLE_DEPRECATED_CODE_3=OFF -DKokkos_ARCH_AMPERE80=ON -DKOKKOS_IMPL_SYCL_DEVICE_GLOBAL_SUPPORTED=0 -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS=-w"
 ENV KOKKOS_DIR=/opt/kokkos
-RUN . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
+RUN . /opt/intel/oneapi/setvars.sh && \
     KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
     KOKKOS_ARCHIVE=kokkos-${KOKKOS_HASH}.tar.gz && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
@@ -131,6 +107,6 @@ RUN . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
     tar -xf ${KOKKOS_ARCHIVE} -C kokkos --strip-components=1 && \
     cd kokkos && \
     mkdir -p build && cd build && \
-    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${KOKKOS_DIR} -D CMAKE_CXX_COMPILER=${DPCPP} ${KOKKOS_OPTIONS} .. && \
+    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=${KOKKOS_DIR} -D CMAKE_CXX_COMPILER=icpx ${KOKKOS_OPTIONS} .. && \
     make -j${NPROCS} install && \
     rm -rf ${SCRATCH_DIR}
