@@ -270,10 +270,8 @@ public:
                                   Kokkos::LayoutRight>));
 
     using MemorySpace = typename ExportView::memory_space;
-    static_assert(
-        std::is_same_v<MemorySpace, typename ImportView::memory_space>);
-    static_assert(
-        std::is_same_v<MemorySpace, typename decltype(_permute)::memory_space>);
+    static_assert(Kokkos::SpaceAccessibility<MemorySpace, typename ImportView::memory_space>::accessible);
+     static_assert(Kokkos::SpaceAccessibility<MemorySpace, typename decltype(_permute)::memory_space>::accessible);
 
     using ValueType = typename ImportView::value_type;
     static_assert(
