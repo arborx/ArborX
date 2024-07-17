@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 project(ArborX CXX)
 
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.30.0)
+  message(STATUS "Setting policy CMP0167 to use FindBoost module")
+  cmake_policy(SET CMP0167 OLD)
+endif()
+
 find_package(Kokkos 4.2 REQUIRED CONFIG)
 message(STATUS "Found Kokkos: ${Kokkos_DIR} (version \"${Kokkos_VERSION}\")")
 
