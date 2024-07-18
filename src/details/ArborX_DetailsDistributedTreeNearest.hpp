@@ -65,8 +65,7 @@ void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
   Kokkos::parallel_for(
       "ArborX::DistributedTree::query::nearest::"
       "bottom_trees_with_required_cumulated_leaves_count",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_predicates),
-      KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy(space, 0, n_predicates), KOKKOS_LAMBDA(int i) {
         int leaves_count = 0;
         int const n_nearest_neighbors = getK(predicates(i));
         for (int j = offset(i); j < offset(i + 1); ++j)
@@ -88,8 +87,7 @@ void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
       KokkosExt::lastElement(space, new_offset));
   Kokkos::parallel_for(
       prefix + "::truncate_before_forwarding",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_predicates),
-      KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy(space, 0, n_predicates), KOKKOS_LAMBDA(int i) {
         for (int j = 0; j < new_offset(i + 1) - new_offset(i); ++j)
           new_nearest_ranks(new_offset(i) + j) = nearest_ranks(offset(i) + j);
       });
@@ -111,8 +109,7 @@ void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
   // Postprocess distances to find the k-th farthest
   Kokkos::parallel_for(
       prefix + "::compute_farthest_distances",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, predicates.size()),
-      KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy(space, 0, predicates.size()), KOKKOS_LAMBDA(int i) {
         auto const num_distances = offset(i + 1) - offset(i);
         if (num_distances == 0)
           return;
@@ -162,8 +159,8 @@ void DistributedTreeImpl::phaseII(ExecutionSpace const &space, Tree const &tree,
   KokkosExt::reallocWithoutInitializing(space, values, n);
   KokkosExt::reallocWithoutInitializing(space, distances, n);
   Kokkos::parallel_for(
-      prefix + "::split_index_distance_pairs",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+      prefix + "::split_index_distance_pairs", Kokkos::RangePolicy(space, 0, n),
+      KOKKOS_LAMBDA(int i) {
         values(i) = out(i).value;
         distances(i) = out(i).distance;
       });

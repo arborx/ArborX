@@ -154,10 +154,9 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     {
       _buffer = NearestBufferProvider<MemorySpace>(space, predicates);
 
-      Kokkos::parallel_for(
-          "ArborX::TreeTraversal::nearest",
-          Kokkos::RangePolicy<ExecutionSpace>(space, 0, predicates.size()),
-          *this);
+      Kokkos::parallel_for("ArborX::TreeTraversal::nearest",
+                           Kokkos::RangePolicy(space, 0, predicates.size()),
+                           *this);
     }
   }
 

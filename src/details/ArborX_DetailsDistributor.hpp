@@ -80,7 +80,7 @@ determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
   int n_unique_ranks;
   Kokkos::parallel_scan(
       "ArborX::Distributor::compact_offsets_and_ranks",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_batched_ranks),
+      Kokkos::RangePolicy(space, 0, n_batched_ranks),
       KOKKOS_LAMBDA(unsigned int i, int &update, bool last_pass) {
         if (i == batched_ranks.size() - 1 ||
             batched_ranks(i + 1) != batched_ranks(i))
@@ -175,7 +175,7 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
     int result = 0;
     Kokkos::parallel_scan(
         "ArborX::Distributor::process_biggest_rank_items",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+        Kokkos::RangePolicy(space, 0, n),
         KOKKOS_LAMBDA(int i, int &update, bool last_pass) {
           bool const is_largest_rank =
               (device_ranks_duplicate(i) == largest_rank);

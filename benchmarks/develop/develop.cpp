@@ -30,8 +30,7 @@ void BM_benchmark(benchmark::State &state)
   {
     // This code gets timed
     Kokkos::parallel_for(
-        "Benchmark::iota",
-        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+        "Benchmark::iota", Kokkos::RangePolicy(exec_space, 0, n),
         KOKKOS_LAMBDA(int i) { view(i) = i; });
     exec_space.fence();
   }

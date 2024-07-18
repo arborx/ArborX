@@ -117,8 +117,7 @@ void convertTriangles2VertexForm(
 {
   int const num_triangles = triangles.size();
   Kokkos::parallel_for(
-      "Benchmark::to_vertex_form",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_triangles),
+      "Benchmark::to_vertex_form", Kokkos::RangePolicy(space, 0, num_triangles),
       KOKKOS_LAMBDA(int i) {
         auto const &e0 = edges(triangles(i)[0]);
         auto const &e1 = edges(triangles(i)[1]);
@@ -160,8 +159,7 @@ void subdivide(ExecutionSpace const &space,
                          "Benchmark::edges"),
       2 * num_edges + 3 * num_triangles);
   Kokkos::parallel_for(
-      "Benchmark::split_edges",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_edges),
+      "Benchmark::split_edges", Kokkos::RangePolicy(space, 0, num_edges),
       KOKKOS_LAMBDA(int i) {
         int v = edges(i)[0];
         int w = edges(i)[1];
@@ -180,8 +178,7 @@ void subdivide(ExecutionSpace const &space,
       4 * num_triangles);
   Kokkos::parallel_for(
       "Benchmark::split_triangles",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_triangles),
-      KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy(space, 0, num_triangles), KOKKOS_LAMBDA(int i) {
         int e[3] = {triangles(i)[0], triangles(i)[1], triangles(i)[2]};
 
         int new_edges_offset = 2 * num_edges + 3 * i;
@@ -219,8 +216,7 @@ void projectVerticesToSphere(
 {
   Kokkos::parallel_for(
       "Benchmark::project_to_surface",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, points.size()),
-      KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy(space, 0, points.size()), KOKKOS_LAMBDA(int i) {
         auto &v = points(i);
         auto norm = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
         v[0] *= radius / norm;

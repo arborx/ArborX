@@ -32,8 +32,7 @@ interpolate(ExecutionSpace const &space, SourceValues const &source_values,
       num_targets);
   Kokkos::parallel_for(
       "Testing::mls_coefficients::target_interpolation",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_targets),
-      KOKKOS_LAMBDA(int const i) {
+      Kokkos::RangePolicy(space, 0, num_targets), KOKKOS_LAMBDA(int const i) {
         double tmp = 0;
         for (int j = 0; j < num_neighbors; j++)
           tmp += coeffs(i, j) * source_values(i, j);
@@ -70,8 +69,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::View<double **, MemorySpace> srcv0("Testing::srcv0", 3, 2);
   Kokkos::View<double *, MemorySpace> tgtv0("Testing::tgtv0", 3);
   Kokkos::parallel_for(
-      "Testing::mls_coefficients::for0",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 3),
+      "Testing::mls_coefficients::for0", Kokkos::RangePolicy(space, 0, 3),
       KOKKOS_LAMBDA(int const i) {
         srcp0(i, 0) = {{2. * i}};
         srcp0(i, 1) = {{2. * i + 2}};
@@ -104,8 +102,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::View<double **, MemorySpace> srcv1("Testing::srcv1", 4, 8);
   Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
   Kokkos::parallel_for(
-      "Testing::mls_coefficients::for1",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 4),
+      "Testing::mls_coefficients::for1", Kokkos::RangePolicy(space, 0, 4),
       KOKKOS_LAMBDA(int const i) {
         int u = (i / 2) * 2 - 1;
         int v = (i % 2) * 2 - 1;
@@ -160,8 +157,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients_edge_cases, DeviceType,
   Kokkos::View<double *, MemorySpace> tgtv0("Testing::tgtv0", 3);
   Kokkos::parallel_for(
       "Testing::mls_coefficients_edge_cases::for0",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 3),
-      KOKKOS_LAMBDA(int const i) {
+      Kokkos::RangePolicy(space, 0, 3), KOKKOS_LAMBDA(int const i) {
         srcp0(i, 0) = {{2. * i, 0.}};
         srcp0(i, 1) = {{2. * i + 2, 0.}};
         tgtp0(i) = {{2. * i + 1, 0.}};
@@ -186,8 +182,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients_edge_cases, DeviceType,
   Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
   Kokkos::parallel_for(
       "Testing::mls_coefficients_edge_cases::for1",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 4),
-      KOKKOS_LAMBDA(int const i) {
+      Kokkos::RangePolicy(space, 0, 4), KOKKOS_LAMBDA(int const i) {
         int u = (i / 2) * 2 - 1;
         int v = (i % 2) * 2 - 1;
         for (int j = 0, k = 0; j < 9; j++)

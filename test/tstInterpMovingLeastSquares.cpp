@@ -48,8 +48,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
   Kokkos::View<double *, MemorySpace> tgtv0("Testing::tgtv0", 3);
   Kokkos::View<double *, MemorySpace> eval0("Testing::eval0", 3);
   Kokkos::parallel_for(
-      "Testing::moving_least_squares::for0",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 4),
+      "Testing::moving_least_squares::for0", Kokkos::RangePolicy(space, 0, 4),
       KOKKOS_LAMBDA(int const i) {
         auto f = [](const Point0 &) { return 3.; };
 
@@ -84,8 +83,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
   Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
   Kokkos::View<double *, MemorySpace> eval1("Testing::eval1", 4);
   Kokkos::parallel_for(
-      "Testing::moving_least_squares::for1",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 9),
+      "Testing::moving_least_squares::for1", Kokkos::RangePolicy(space, 0, 9),
       KOKKOS_LAMBDA(int const i) {
         int u = (i / 2) * 2 - 1;
         int v = (i % 2) * 2 - 1;
@@ -136,8 +134,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
   Kokkos::View<double *, MemorySpace> eval0("Testing::eval0", 3);
   Kokkos::parallel_for(
       "Testing::moving_least_squares_edge_cases::for0",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 4),
-      KOKKOS_LAMBDA(int const i) {
+      Kokkos::RangePolicy(space, 0, 4), KOKKOS_LAMBDA(int const i) {
         auto f = [](const Point0 &) { return 3.; };
 
         srcp0(i) = {{2. * i, 0.}};
@@ -164,8 +161,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
   Kokkos::View<double *, MemorySpace> eval1("Testing::eval1", 4);
   Kokkos::parallel_for(
       "Testing::moving_least_squares_edge_cases::for0",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 9),
-      KOKKOS_LAMBDA(int const i) {
+      Kokkos::RangePolicy(space, 0, 9), KOKKOS_LAMBDA(int const i) {
         int u = (i / 2) * 2 - 1;
         int v = (i % 2) * 2 - 1;
         int x = (i / 3) - 1;

@@ -33,7 +33,7 @@ void expandHalfToFull(ExecutionSpace const &space, Offsets &offsets,
   Kokkos::deep_copy(space, offsets, 0);
   Kokkos::parallel_for(
       "ArborX::Experimental::HalfToFull::count",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy(space, 0, n), KOKKOS_LAMBDA(int i) {
         for (int j = offsets_orig(i); j < offsets_orig(i + 1); ++j)
         {
           int const k = indices_orig(j);

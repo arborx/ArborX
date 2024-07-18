@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(nth_element, DeviceType, ARBORX_DEVICE_TYPES)
     {
       auto v_copy = ArborX::Details::KokkosExt::clone(space, v);
       Kokkos::parallel_for(
-          Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1), KOKKOS_LAMBDA(int) {
+          Kokkos::RangePolicy(space, 0, 1), KOKKOS_LAMBDA(int) {
             nth_element(v_copy.data(), v_copy.data() + i, v_copy.data() + n);
             nth(i) = v_copy(i);
           });

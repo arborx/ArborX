@@ -260,7 +260,7 @@ void symmetricPseudoInverseSVD(ExecutionSpace const &space,
 
   Kokkos::parallel_for(
       "ArborX::SymmetricPseudoInverseSVD::computations",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, matrices.extent(0)),
+      Kokkos::RangePolicy(space, 0, matrices.extent(0)),
       KOKKOS_LAMBDA(int const i) {
         auto mat = Kokkos::subview(matrices, i, Kokkos::ALL, Kokkos::ALL);
         auto diag = Kokkos::subview(diags, i, Kokkos::ALL);

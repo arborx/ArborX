@@ -40,7 +40,7 @@ bool verifyCorePointsNonnegativeIndex(ExecutionSpace const &exec_space,
   int num_incorrect;
   Kokkos::parallel_reduce(
       "ArborX::DBSCAN::verify_core_points_nonnegative",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+      Kokkos::RangePolicy(exec_space, 0, n),
       KOKKOS_LAMBDA(int i, int &update) {
         bool self_is_core_point = (offset(i + 1) - offset(i) >= core_min_size);
         if (self_is_core_point && labels(i) < 0)
@@ -66,7 +66,7 @@ bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
   int num_incorrect;
   Kokkos::parallel_reduce(
       "ArborX::DBSCAN::verify_connected_core_points",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+      Kokkos::RangePolicy(exec_space, 0, n),
       KOKKOS_LAMBDA(int i, int &update) {
         bool self_is_core_point = (offset(i + 1) - offset(i) >= core_min_size);
         if (self_is_core_point)
@@ -105,7 +105,7 @@ bool verifyBorderAndNoisePoints(ExecutionSpace const &exec_space,
   int num_incorrect;
   Kokkos::parallel_reduce(
       "ArborX::DBSCAN::verify_connected_border_points",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+      Kokkos::RangePolicy(exec_space, 0, n),
       KOKKOS_LAMBDA(int i, int &update) {
         bool self_is_core_point = (offset(i + 1) - offset(i) >= core_min_size);
         if (!self_is_core_point)

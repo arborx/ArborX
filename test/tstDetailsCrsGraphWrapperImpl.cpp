@@ -35,7 +35,7 @@ struct Test1
     using Access = ArborX::AccessTraits<Predicates, ArborX::PredicatesTag>;
 
     Kokkos::parallel_for(
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, Access::size(predicates)),
+        Kokkos::RangePolicy(space, 0, Access::size(predicates)),
         KOKKOS_LAMBDA(int predicate_index) {
           for (int primitive_index = 0; primitive_index < predicate_index;
                ++primitive_index)

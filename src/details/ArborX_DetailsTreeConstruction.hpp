@@ -29,7 +29,7 @@ inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
 {
   Kokkos::parallel_reduce(
       "ArborX::TreeConstruction::calculate_bounding_box_of_the_scene",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, indexables.size()),
+      Kokkos::RangePolicy(space, 0, indexables.size()),
       KOKKOS_LAMBDA(int i, Box &update) {
         using Details::expand;
         expand(update, indexables(i));
@@ -53,7 +53,7 @@ inline void projectOntoSpaceFillingCurve(ExecutionSpace const &space,
 
   Kokkos::parallel_for(
       "ArborX::TreeConstruction::project_primitives_onto_space_filling_curve",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy(space, 0, n), KOKKOS_LAMBDA(int i) {
         linear_ordering_indices(i) = curve(scene_bounding_box, indexables(i));
       });
 }
@@ -74,7 +74,7 @@ initializeSingleLeafTree(ExecutionSpace const &space, Values const &values,
                          "ArborX::BVH::getSingleLeafBounds::bounding_volume"));
   Kokkos::parallel_for(
       "ArborX::TreeConstruction::initialize_single_leaf_tree",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1), KOKKOS_LAMBDA(int) {
+      Kokkos::RangePolicy(space, 0, 1), KOKKOS_LAMBDA(int) {
         leaf_nodes(0) = makeLeafNode(values(0));
         BoundingVolume bv;
         expand(bv, indexable_getter(leaf_nodes(0).value));
@@ -121,10 +121,9 @@ public:
   {
     Kokkos::deep_copy(space, _ranges, UNTOUCHED_NODE);
 
-    Kokkos::parallel_for(
-        "ArborX::TreeConstruction::generate_hierarchy",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, leaf_nodes.extent(0)),
-        *this);
+    Kokkos::parallel_for("ArborX::TreeConstruction::generate_hierarchy",
+                         Kokkos::RangePolicy(space, 0, leaf_nodes.extent(0)),
+                         *this);
 
     Kokkos::deep_copy(
         space,

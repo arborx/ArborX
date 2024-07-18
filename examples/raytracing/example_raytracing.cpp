@@ -326,7 +326,7 @@ int main(int argc, char *argv[])
                    values.size());
     Kokkos::parallel_for(
         "Example::copy sort_array",
-        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, values.size()),
+        Kokkos::RangePolicy(exec_space, 0, values.size()),
         KOKKOS_LAMBDA(int i) { sort_array(i) = values(i); });
     Kokkos::Profiling::pushRegion("Example::sorting by key");
     // FIXME Users should not need to reach into the Details namespace.
@@ -355,8 +355,7 @@ int main(int argc, char *argv[])
         "Example::energy_intersects", num_boxes);
     Kokkos::parallel_for(
         "Example::deposit_energy",
-        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0,
-                                            rays_per_box * num_boxes),
+        Kokkos::RangePolicy(exec_space, 0, rays_per_box * num_boxes),
         KOKKOS_LAMBDA(int i) {
           float ray_energy = (total_energy * dx * dy * dz) / rays_per_box;
           for (int j = offsets(i); j < offsets(i + 1); ++j)
@@ -377,8 +376,7 @@ int main(int argc, char *argv[])
   int n_errors;
   float rel_tol = 1.e-5;
   Kokkos::parallel_reduce(
-      "Example::compare",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_boxes),
+      "Example::compare", Kokkos::RangePolicy(exec_space, 0, num_boxes),
       KOKKOS_LAMBDA(int i, int &error) {
         using Kokkos::fabs;
         float const abs_error =

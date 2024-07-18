@@ -75,7 +75,7 @@ inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
 {
   Kokkos::parallel_reduce(
       "ArborX::TreeConstruction::calculate_bounding_box_of_the_scene",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, indexables.size()),
+      Kokkos::RangePolicy(space, 0, indexables.size()),
       KOKKOS_LAMBDA(int i, Box &update) { expand(update, indexables(i)); },
       ArborX::Details::GeometryReducer<Box>{scene_bounding_box});
 }

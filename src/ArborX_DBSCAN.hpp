@@ -406,8 +406,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       // automatically core points
       Kokkos::parallel_for(
           "ArborX::DBSCAN::mark_dense_cells_core_points",
-          Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0,
-                                              num_points_in_dense_cells),
+          Kokkos::RangePolicy(exec_space, 0, num_points_in_dense_cells),
           KOKKOS_LAMBDA(int i) { num_neigh(permute(i)) = INT_MAX; });
       // Count neighbors for points in sparse cells
       auto sparse_permute = Kokkos::subview(
@@ -449,8 +448,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   Kokkos::View<int *, MemorySpace> cluster_sizes(
       Kokkos::view_alloc(exec_space, "ArborX::DBSCAN::cluster_sizes"), n);
   Kokkos::parallel_for(
-      "ArborX::DBSCAN::finalize_labels",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+      "ArborX::DBSCAN::finalize_labels", Kokkos::RangePolicy(exec_space, 0, n),
       KOKKOS_LAMBDA(int const i) {
         // ##### ECL license (see LICENSE.ECL) #####
         int next;
@@ -474,8 +472,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     // - DBSCANCorePoints cannot be used either as num_neigh is not initialized
     //   in the special case.
     Kokkos::parallel_for(
-        "ArborX::DBSCAN::mark_noise",
-        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+        "ArborX::DBSCAN::mark_noise", Kokkos::RangePolicy(exec_space, 0, n),
         KOKKOS_LAMBDA(int const i) {
           if (cluster_sizes(labels(i)) == 1)
             labels(i) = -1;
@@ -485,8 +482,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   {
     Details::DBSCANCorePoints<MemorySpace> is_core{num_neigh, core_min_size};
     Kokkos::parallel_for(
-        "ArborX::DBSCAN::mark_noise",
-        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
+        "ArborX::DBSCAN::mark_noise", Kokkos::RangePolicy(exec_space, 0, n),
         KOKKOS_LAMBDA(int const i) {
           if (cluster_sizes(labels(i)) == 1 && !is_core(i))
             labels(i) = -1;

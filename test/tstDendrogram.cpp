@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_boruvka, DeviceType,
         n - 1);
     Kokkos::parallel_for(
         "ArborX::Testing::compute_weights",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n - 1),
+        Kokkos::RangePolicy(space, 0, n - 1),
         KOKKOS_LAMBDA(int i) { weights(i) = mst.edges(i).weight; });
 
     auto permute = sortObjects(space, weights);
@@ -147,14 +147,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_boruvka, DeviceType,
                            "Testing::inv_permute"),
         n - 1);
     Kokkos::parallel_for(
-        "Testing::compute_inv_permute",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n - 1),
+        "Testing::compute_inv_permute", Kokkos::RangePolicy(space, 0, n - 1),
         KOKKOS_LAMBDA(int i) { inv_permute(permute(i)) = i; });
 
     Kokkos::parallel_for(
         "Testing::reorder_mst_dendrogram",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, 2 * n - 1),
-        KOKKOS_LAMBDA(int i) {
+        Kokkos::RangePolicy(space, 0, 2 * n - 1), KOKKOS_LAMBDA(int i) {
           if (i < n - 1)
           {
             // Edge
@@ -220,16 +218,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_boruvka_same_weights, DeviceType,
       Kokkos::view_alloc(space, "Testing::count"), 2 * n - 1);
 
   Kokkos::parallel_for(
-      "Testing::count_children",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 2 * n - 1),
+      "Testing::count_children", Kokkos::RangePolicy(space, 0, 2 * n - 1),
       KOKKOS_LAMBDA(int i) {
         Kokkos::atomic_inc(&counts(mst.dendrogram_parents(i)));
       });
 
   int wrong_counts;
   Kokkos::parallel_reduce(
-      "Testing::check_counts",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, 2 * n - 1),
+      "Testing::check_counts", Kokkos::RangePolicy(space, 0, 2 * n - 1),
       KOKKOS_LAMBDA(int i, int &update) {
         bool const is_edge = (i < n - 1);
         int const expected_num_children = (is_edge ? 2 : 0);

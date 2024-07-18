@@ -44,8 +44,7 @@ void iota(ExecutionSpace const &space, ViewType const &v,
       "iota requires a View with non-const value type");
 
   Kokkos::parallel_for(
-      "ArborX::Algorithms::iota",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, v.extent(0)),
+      "ArborX::Algorithms::iota", Kokkos::RangePolicy(space, 0, v.extent(0)),
       KOKKOS_LAMBDA(int i) { v(i) = value + (ValueType)i; });
 }
 

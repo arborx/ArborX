@@ -117,7 +117,8 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
                                                              n_queries);
   Kokkos::parallel_for(
       "Example::inititialize_queries",
-      Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy(ExecutionSpace{}, 0, n_queries),
+      KOKKOS_LAMBDA(int i) {
         queries(i) = ArborX::nearest(points(i), n_neighbors);
       });
 

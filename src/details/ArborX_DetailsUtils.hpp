@@ -36,7 +36,7 @@ void computeOffsetsInOrderedView(ExecutionSpace const &exec_space, View view,
   KokkosExt::reallocWithoutInitializing(exec_space, offsets, n + 1);
   Kokkos::parallel_scan(
       "ArborX::Algorithms::compute_offsets_in_sorted_view",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n + 1),
+      Kokkos::RangePolicy(exec_space, 0, n + 1),
       KOKKOS_LAMBDA(int i, int &update, bool final_pass) {
         bool const is_cell_first_index =
             (i == 0 || i == n || view(i) != view(i - 1));
