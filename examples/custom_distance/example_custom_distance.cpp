@@ -28,7 +28,7 @@ struct CustomPoint : public Point
 // Provide the required centroid function for the custom data type
 KOKKOS_FUNCTION auto returnCentroid(CustomPoint const &point)
 {
-  return Kokkos::bit_cast<Point>(point);
+  return static_cast<Point>(point);
 }
 
 // Provide the distance function between indexable getter geometry and the
@@ -77,7 +77,7 @@ struct ArborX::AccessTraits<CustomPoints<Points>, ArborX::PredicatesTag>
 };
 
 // Callback to store the resulting distances
-struct DistanceCallback
+struct ComputeDistance
 {
   template <typename Query, typename Value, typename Output>
   KOKKOS_FUNCTION void operator()(Query const &query, Value const &value,
@@ -99,10 +99,11 @@ int main(int argc, char *argv[])
   // In L2 metric, two bottom points are the closest.
   // In custom metric, left two points are the closest.
   //
-  // x
-  //
-  // o
-  // x x
+  // | 2
+  // |
+  // | x
+  // | 0 1
+  // +-----------
   Kokkos::View<Point *, MemorySpace> points("Example::points", 3);
   auto points_host = Kokkos::create_mirror_view(points);
   points_host[0] = {0, 0};
@@ -120,7 +121,7 @@ int main(int argc, char *argv[])
   Kokkos::View<float *, MemorySpace> distances("Example::distances", 0);
   Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
   bvh.query(space, CustomPoints<decltype(query_points)>{query_points},
-            DistanceCallback{}, distances, offsets);
+            ComputeDistance{}, distances, offsets);
 
   auto offsets_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets);
