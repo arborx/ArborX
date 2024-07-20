@@ -30,6 +30,7 @@ namespace Dispatch
 {
 using GeometryTraits::BoxTag;
 using GeometryTraits::KDOPTag;
+using GeometryTraits::OBBTag;
 using GeometryTraits::PointTag;
 using GeometryTraits::RayTag;
 using GeometryTraits::SphereTag;
