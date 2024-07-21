@@ -14,6 +14,7 @@
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperPoint.hpp>
 
+#include <Kokkos_Assert.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
 
 namespace ArborX::Details
@@ -51,6 +52,17 @@ struct Vector
   KOKKOS_FUNCTION auto norm() const
   {
     return Kokkos::sqrt(dot<Precision>(*this));
+  }
+
+  template <typename Precision = Coordinate>
+  KOKKOS_FUNCTION void normalize()
+  {
+    auto const magv = norm<Precision>();
+    KOKKOS_ASSERT(magv > 0);
+
+    auto &v = *this;
+    for (int d = 0; d < DIM; ++d)
+      v[d] /= magv;
   }
 
   KOKKOS_FUNCTION

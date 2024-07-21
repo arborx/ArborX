@@ -41,6 +41,18 @@ BOOST_AUTO_TEST_CASE(vector_norm)
   BOOST_TEST((Vector{1, 1e-7, 0}.norm()) == 1);
   BOOST_TEST((Vector{1, 1e-7, 0}.norm<double>()) > 1);
 }
+
+BOOST_AUTO_TEST_CASE(vector_normalize)
+{
+  using Vector = ArborX::Details::Vector<2, float>;
+
+  Vector v{3, 0};
+  v.normalize();
+  BOOST_TEST((v == Vector{1, 0}));
+
+  Vector w{3, 4};
+  w.normalize<double>();
+  BOOST_TEST((w == Vector{0.6f, 0.8f}));
 }
 
 BOOST_AUTO_TEST_CASE(vector_cross_product)
