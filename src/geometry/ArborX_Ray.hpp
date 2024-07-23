@@ -47,7 +47,7 @@ struct Ray
     // Normalize direction using higher precision. Using `float` by default
     // creates a large error in the norm that affects ray tracing for
     // triangles.
-    _direction.normalize<double>();
+    _direction = Details::normalize<double>(_direction);
   }
 
   KOKKOS_FUNCTION

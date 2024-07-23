@@ -54,17 +54,6 @@ struct Vector
     return Kokkos::sqrt(dot<Precision>(*this));
   }
 
-  template <typename Precision = Coordinate>
-  KOKKOS_FUNCTION void normalize()
-  {
-    auto const magv = norm<Precision>();
-    KOKKOS_ASSERT(magv > 0);
-
-    auto &v = *this;
-    for (int d = 0; d < DIM; ++d)
-      v[d] /= magv;
-  }
-
   KOKKOS_FUNCTION
   constexpr auto cross(Vector const &w) const
   {
@@ -84,6 +73,24 @@ struct Vector
     return match;
   }
 };
+
+template <typename Precision, int DIM, typename Coordinate>
+KOKKOS_INLINE_FUNCTION auto normalize(Vector<DIM, Coordinate> const &v)
+{
+  auto const magv = v.template norm<Precision>();
+  KOKKOS_ASSERT(magv > 0);
+
+  Vector<DIM, Coordinate> w;
+  for (int d = 0; d < DIM; ++d)
+    w[d] = v[d] / magv;
+  return w;
+}
+
+template <int DIM, typename Coordinate>
+KOKKOS_INLINE_FUNCTION auto normalize(Vector<DIM, Coordinate> const &v)
+{
+  return normalize<Coordinate>(v);
+}
 
 template <typename T, typename... U>
 Vector(T, U...) -> Vector<1 + sizeof...(U), T>;
