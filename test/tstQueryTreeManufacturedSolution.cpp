@@ -26,6 +26,7 @@ BOOST_AUTO_TEST_SUITE(ManufacturedSolution)
 
 namespace tt = boost::test_tools;
 
+#ifndef ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_BOX
 BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
                               TreeTypeTraitsList)
 {
@@ -252,5 +253,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, queries,
                          make_reference_solution(indices_ref, offset_ref));
 }
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()

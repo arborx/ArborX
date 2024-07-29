@@ -175,9 +175,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
 
   BoostExt::RTree<decltype(cloud)::value_type> rtree(ExecutionSpace{}, cloud);
 
+#ifndef ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_BOX
   ARBORX_TEST_QUERY_TREE(
       ExecutionSpace{}, tree, intersects_queries,
       query(ExecutionSpace{}, rtree, intersects_queries_host));
+#endif
+
 #ifndef ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_SPHERE
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, within_queries,
                          query(ExecutionSpace{}, rtree, within_queries_host));
@@ -196,6 +199,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate_point,
                                 ArborX::Point>();
 }
 
+#ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY_BOX
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate_box, TreeTypeTraits,
                               TreeTypeTraitsList)
 {
@@ -206,6 +210,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate_box, TreeTypeTraits,
   boost_rtree_nearest_predicate<Tree, ExecutionSpace, DeviceType,
                                 ArborX::Box>();
 }
+#endif
 #endif
 
 BOOST_AUTO_TEST_SUITE_END()

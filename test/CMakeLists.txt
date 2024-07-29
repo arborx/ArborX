@@ -96,6 +96,26 @@ foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
     "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH.cpp" COPYONLY
   )
   list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH.cpp")
+  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_OBB.cpp.tmp"
+    "#include <ArborX_LinearBVH.hpp>\n"
+    "#include <ArborX_OBB.hpp>\n"
+    "#include \"ArborXTest_LegacyTree.hpp\"\n"
+    "template <class MemorySpace>\n"
+    "using ArborX_Legacy_BVH_OBB =\n"
+    "    LegacyTree<ArborX::BoundingVolumeHierarchy<\n"
+    "        MemorySpace, ArborX::PairValueIndex<ArborX::Experimental::OBB<3>>,\n"
+    "        ArborX::Details::DefaultIndexableGetter, ArborX::Experimental::OBB<3>>>;\n"
+    "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX_Legacy_BVH_OBB>\n"
+    "#define ARBORX_TEST_DEVICE_TYPES std::tuple<${ARBORX_DEVICE_TYPES}>\n"
+    "#define ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_BOX\n"
+    "#define ARBORX_TEST_DISABLE_NEAREST_QUERY_BOX\n"
+    "#include <tstQueryTree${_test}.cpp>\n"
+  )
+  configure_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_OBB.cpp.tmp"
+    "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_OBB.cpp" COPYONLY
+  )
+  list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_OBB.cpp")
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BF.cpp.tmp"
     "#include <ArborX_BruteForce.hpp>\n"
     "#include <ArborX_Box.hpp>\n"
