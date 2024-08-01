@@ -226,49 +226,6 @@ KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
     }
 }
 
-template <typename ExecutionSpace, typename InOutMatrices>
-void symmetricPseudoInverseSVD(ExecutionSpace const &space,
-                               InOutMatrices &matrices)
-{
-  auto guard =
-      Kokkos::Profiling::ScopedRegion("ArborX::SymmetricPseudoInverseSVD");
-
-  // InOutMatrices is a list of square symmetric matrices (3D view)
-  static_assert(Kokkos::is_view_v<InOutMatrices>, "matrices must be a view");
-  static_assert(!std::is_const_v<typename InOutMatrices::value_type>,
-                "matrices must be writable");
-  static_assert(InOutMatrices::rank == 3,
-                "matrices must be a list of square matrices");
-  static_assert(
-      ArborX::Details::KokkosExt::is_accessible_from<
-          typename InOutMatrices::memory_space, ExecutionSpace>::value,
-      "matrices must be accessible from the execution space");
-
-  KOKKOS_ASSERT(matrices.extent(1) == matrices.extent(2)); // Must be square
-
-  using Value = typename InOutMatrices::non_const_value_type;
-  using MemorySpace = typename InOutMatrices::memory_space;
-
-  Kokkos::View<Value **, MemorySpace> diags(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                         "ArborX::SymmetricPseudoInverseSVD::diags"),
-      matrices.extent(0), matrices.extent(1));
-  Kokkos::View<Value ***, MemorySpace> units(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                         "ArborX::SymmetricPseudoInverseSVD::units"),
-      matrices.extent(0), matrices.extent(1), matrices.extent(2));
-
-  Kokkos::parallel_for(
-      "ArborX::SymmetricPseudoInverseSVD::computations",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, matrices.extent(0)),
-      KOKKOS_LAMBDA(int const i) {
-        auto mat = Kokkos::subview(matrices, i, Kokkos::ALL, Kokkos::ALL);
-        auto diag = Kokkos::subview(diags, i, Kokkos::ALL);
-        auto unit = Kokkos::subview(units, i, Kokkos::ALL, Kokkos::ALL);
-        symmetricPseudoInverseSVDKernel(mat, diag, unit);
-      });
-}
-
 } // namespace ArborX::Interpolation::Details
 
 #endif

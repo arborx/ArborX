@@ -16,28 +16,39 @@
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
 
-template <typename MS, typename ES, typename V, int M, int N>
-void makeCase(ES const &es, V const (&src_arr)[M][N][N],
-              V const (&ref_arr)[M][N][N])
+template <typename MemorySpace, typename ExecutionSpace, typename Value, int M,
+          int N>
+void makeCase(ExecutionSpace const &exec, Value const (&src_arr)[M][N][N],
+              Value const (&ref_arr)[M][N][N])
 {
-  using DeviceView = Kokkos::View<V[M][N][N], MS>;
+  using DeviceView = Kokkos::View<Value[N][N], MemorySpace>;
   using HostView = typename DeviceView::HostMirror;
 
   HostView src("Testing::src");
   HostView ref("Testing::ref");
+
   DeviceView inv("Testing::inv");
+  DeviceView unit("Testing::unit");
+  Kokkos::View<Value[N], MemorySpace> diag("Testing::diag");
 
   for (int i = 0; i < M; i++)
+  {
     for (int j = 0; j < N; j++)
       for (int k = 0; k < N; k++)
       {
-        src(i, j, k) = src_arr[i][j][k];
-        ref(i, j, k) = ref_arr[i][j][k];
+        src(j, k) = src_arr[i][j][k];
+        ref(j, k) = ref_arr[i][j][k];
       }
+    Kokkos::deep_copy(exec, inv, src);
 
-  Kokkos::deep_copy(es, inv, src);
-  ArborX::Interpolation::Details::symmetricPseudoInverseSVD(es, inv);
-  ARBORX_MDVIEW_TEST_TOL(ref, inv, Kokkos::Experimental::epsilon_v<float>);
+    Kokkos::parallel_for(
+        "Testing::run_case", Kokkos::RangePolicy<ExecutionSpace>(exec, 0, 1),
+        KOKKOS_LAMBDA(int) {
+          ArborX::Interpolation::Details::symmetricPseudoInverseSVDKernel(
+              inv, diag, unit);
+        });
+    ARBORX_MDVIEW_TEST_TOL(ref, inv, Kokkos::Experimental::epsilon_v<float>);
+  }
 }
 
 // Pseudo-inverses were computed using numpy's "linalg.pinv" solver and
@@ -114,15 +125,4 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(pseudo_inv_scalar_like, DeviceType,
   double mat[2][1][1] = {{{2}}, {{0}}};
   double inv[2][1][1] = {{{1 / 2.}}, {{0}}};
   makeCase<MemorySpace>(space, mat, inv);
-}
-
-BOOST_AUTO_TEST_CASE_TEMPLATE(pseudo_inv_empty, DeviceType, ARBORX_DEVICE_TYPES)
-{
-  using ExecutionSpace = typename DeviceType::execution_space;
-  using MemorySpace = typename DeviceType::memory_space;
-  ExecutionSpace space{};
-
-  Kokkos::View<double ***, MemorySpace> mat("mat", 0, 0, 0);
-  ArborX::Interpolation::Details::symmetricPseudoInverseSVD(space, mat);
-  BOOST_TEST(mat.size() == 0);
 }
