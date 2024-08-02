@@ -135,6 +135,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_nearest_predicate, TreeTypeTraits,
       Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
         points(i) = {{(float)i, (float)i, (float)i}};
       });
+#ifdef KOKKOS_COMPILER_NVCC
+  [[maybe_unused]]
+#endif
   ArborX::Point const origin = {{0., 0., 0.}};
 
   auto values = initialize_values(points, /*delta*/ 0.f);
@@ -308,6 +311,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_nearest_predicate,
         points(i) = {{(float)i, (float)i, (float)i}};
       });
   float const delta = 5.f;
+#ifdef KOKKOS_COMPILER_NVCC
+  [[maybe_unused]]
+#endif
   ArborX::Point const origin = {{0., 0., 0.}};
 
   auto values = initialize_values(points, delta);

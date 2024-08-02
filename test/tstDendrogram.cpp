@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_boruvka, DeviceType,
 
     auto permute = sortObjects(space, weights);
 
-    Kokkos::View<unsigned *, MemorySpace> inv_permute(
+    Kokkos::View<int *, MemorySpace> inv_permute(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "Testing::inv_permute"),
         n - 1);
