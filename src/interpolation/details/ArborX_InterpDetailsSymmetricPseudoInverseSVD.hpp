@@ -77,18 +77,17 @@ KOKKOS_FUNCTION auto argmaxUpperTriangle(Matrix const &mat)
   return result;
 }
 
-// Pseudo-inverse of symmetric matrices using SVD
+// SVD of a symmetric matrix
 // We must find U, E (diagonal and positive) and V such that A = U.E.V^T
 // We also suppose, as the input, that A is symmetric, so U = SV where S is
 // a sign matrix (only 1 or -1 on the diagonal, 0 elsewhere).
-// Thus A = U.ES.U^T and A^-1 = U.[ ES^-1 ].U^T
+// Thus A = U.ES.U^T.
 //
 // mat <=> initial ES
 // diag <=> final ES
 // unit <=> U
 template <typename Matrix, typename Diag, typename Unit>
-KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
-                                                     Unit &unit)
+KOKKOS_FUNCTION void symmetricSVDKernel(Matrix &mat, Diag &diag, Unit &unit)
 {
   ensureIsSquareSymmetricMatrix(mat);
   static_assert(!std::is_const_v<typename Matrix::value_type>,
@@ -203,13 +202,34 @@ KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
     }
   }
 
+  for (int i = 0; i < size; i++)
+    diag(i) = mat(i, i);
+}
+
+// Pseudo-inverse of symmetric matrices using SVD
+// We must find U, E (diagonal and positive) and V such that A = U.E.V^T
+// We also suppose, as the input, that A is symmetric, so U = SV where S is
+// a sign matrix (only 1 or -1 on the diagonal, 0 elsewhere).
+// Thus A = U.ES.U^T and A^-1 = U.[ ES^-1 ].U^T
+//
+// mat <=> initial ES
+// diag <=> final ES
+// unit <=> U
+template <typename Matrix, typename Diag, typename Unit>
+KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
+                                                     Unit &unit)
+{
+  symmetricSVDKernel(mat, diag, unit);
+
+  int const size = mat.extent(0);
+
+  using Value = typename Matrix::non_const_value_type;
+  constexpr Value epsilon = Kokkos::Experimental::epsilon_v<float>;
+
   // We compute the max to get a range of the invertible eigenvalues
   auto max_eigen = epsilon;
   for (int i = 0; i < size; i++)
-  {
-    diag(i) = mat(i, i);
     max_eigen = Kokkos::max(Kokkos::abs(diag(i)), max_eigen);
-  }
   auto const threshold = max_eigen * epsilon;
 
   // We invert the diagonal of 'mat', except if "0" is found
