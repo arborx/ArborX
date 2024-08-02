@@ -39,10 +39,27 @@ void makeCase(ExecutionSpace const &exec, Value const (&src_arr)[M][N][N],
         src(j, k) = src_arr[i][j][k];
         ref(j, k) = ref_arr[i][j][k];
       }
-    Kokkos::deep_copy(exec, inv, src);
 
+    // Test SVD
+    Kokkos::deep_copy(exec, inv, src);
     Kokkos::parallel_for(
-        "Testing::run_case", Kokkos::RangePolicy<ExecutionSpace>(exec, 0, 1),
+        "Testing::run_svd", Kokkos::RangePolicy<ExecutionSpace>(exec, 0, 1),
+        KOKKOS_LAMBDA(int) {
+          ArborX::Interpolation::Details::symmetricSVDKernel(inv, diag, unit);
+          for (int p = 0; p < N; ++p)
+            for (int q = 0; q < N; ++q)
+            {
+              inv(p, q) = 0;
+              for (int s = 0; s < N; ++s)
+                inv(p, q) += unit(p, s) * diag(s) * unit(q, s);
+            }
+        });
+    ARBORX_MDVIEW_TEST_TOL(src, inv, Kokkos::Experimental::epsilon_v<float>);
+
+    // Test pseudo-inverse through SVD
+    Kokkos::deep_copy(exec, inv, src);
+    Kokkos::parallel_for(
+        "Testing::run_inverse", Kokkos::RangePolicy<ExecutionSpace>(exec, 0, 1),
         KOKKOS_LAMBDA(int) {
           ArborX::Interpolation::Details::symmetricPseudoInverseSVDKernel(
               inv, diag, unit);
