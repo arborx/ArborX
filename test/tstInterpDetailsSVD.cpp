@@ -11,7 +11,7 @@
 
 #include "ArborX_EnableDeviceTypes.hpp"
 #include "ArborX_EnableViewComparison.hpp"
-#include <ArborX_InterpDetailsSymmetricPseudoInverseSVD.hpp>
+#include <ArborX_DetailsSymmetricSVD.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
