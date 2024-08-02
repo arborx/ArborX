@@ -27,6 +27,9 @@ BOOST_AUTO_TEST_CASE(vector_dot_product)
   static_assert(Vector{1, 0, 0}.dot(Vector{0, 1, 0}) == 0);
   static_assert(Vector{1, 0, 0}.dot(Vector{0, 0, 1}) == 0);
   static_assert(Vector{1, 1, 1}.dot(Vector{1, 1, 1}) == 3);
+
+  static_assert(Vector{1, 1e-7, 0}.dot(Vector{1, 1e-7, 0}) == 1);
+  static_assert(Vector{1, 1e-7, 0}.dot<double>(Vector{1, 1e-7, 0}) > 1);
 }
 
 BOOST_AUTO_TEST_CASE(vector_norm)
@@ -34,6 +37,21 @@ BOOST_AUTO_TEST_CASE(vector_norm)
   using Vector = ArborX::Details::Vector<3, float>;
   BOOST_TEST((Vector{3, 4}.norm()) == 5);
   BOOST_TEST((Vector{6, 13, 18}.norm()) == 23);
+
+  BOOST_TEST((Vector{1, 1e-7, 0}.norm()) == 1);
+  BOOST_TEST((Vector{1, 1e-7, 0}.norm<double>()) > 1);
+}
+
+BOOST_AUTO_TEST_CASE(vector_normalize)
+{
+  using Vector = ArborX::Details::Vector<2, float>;
+  using ArborX::Details::normalize;
+
+  Vector v{3, 0};
+  BOOST_TEST((normalize(v) == Vector{1, 0}));
+
+  Vector w{3, 4};
+  BOOST_TEST((normalize<double>(w) == Vector{0.6f, 0.8f}));
 }
 
 BOOST_AUTO_TEST_CASE(vector_cross_product)

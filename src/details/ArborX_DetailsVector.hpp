@@ -14,6 +14,7 @@
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperPoint.hpp>
 
+#include <Kokkos_Assert.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
 
 namespace ArborX::Details
@@ -36,19 +37,22 @@ struct Vector
   KOKKOS_FUNCTION
   constexpr auto const &operator[](unsigned int i) const { return _coords[i]; }
 
-  KOKKOS_FUNCTION
-  constexpr auto dot(Vector const &w) const
+  template <typename Precision = Coordinate>
+  KOKKOS_FUNCTION constexpr auto dot(Vector const &w) const
   {
     auto const &v = *this;
 
-    Coordinate r = 0;
+    Precision r = 0;
     for (int d = 0; d < DIM; ++d)
-      r += v[d] * w[d];
+      r += static_cast<Precision>(v[d]) * static_cast<Precision>(w[d]);
     return r;
   }
 
-  KOKKOS_FUNCTION
-  auto norm() const { return Kokkos::sqrt(dot(*this)); }
+  template <typename Precision = Coordinate>
+  KOKKOS_FUNCTION auto norm() const
+  {
+    return Kokkos::sqrt(dot<Precision>(*this));
+  }
 
   KOKKOS_FUNCTION
   constexpr auto cross(Vector const &w) const
@@ -69,6 +73,24 @@ struct Vector
     return match;
   }
 };
+
+template <typename Precision, int DIM, typename Coordinate>
+KOKKOS_INLINE_FUNCTION auto normalize(Vector<DIM, Coordinate> const &v)
+{
+  auto const magv = v.template norm<Precision>();
+  KOKKOS_ASSERT(magv > 0);
+
+  Vector<DIM, Coordinate> w;
+  for (int d = 0; d < DIM; ++d)
+    w[d] = v[d] / magv;
+  return w;
+}
+
+template <int DIM, typename Coordinate>
+KOKKOS_INLINE_FUNCTION auto normalize(Vector<DIM, Coordinate> const &v)
+{
+  return normalize<Coordinate>(v);
+}
 
 template <typename T, typename... U>
 Vector(T, U...) -> Vector<1 + sizeof...(U), T>;

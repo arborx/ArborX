@@ -44,7 +44,10 @@ struct Ray
       : _origin(origin)
       , _direction(direction)
   {
-    normalize(_direction);
+    // Normalize direction using higher precision. Using `float` by default
+    // creates a large error in the norm that affects ray tracing for
+    // triangles.
+    _direction = Details::normalize<double>(_direction);
   }
 
   KOKKOS_FUNCTION
@@ -58,33 +61,6 @@ struct Ray
 
   KOKKOS_FUNCTION
   constexpr Vector const &direction() const { return _direction; }
-
-private:
-  // We would like to use Scalar defined as:
-  // using Scalar = std::decay_t<decltype(std::declval<Vector>()[0])>;
-  // However, this means using float to compute the norm. This creates a large
-  // error in the norm that affects ray tracing for triangles. Casting the
-  // norm from double to float once it has been computed is not enough to
-  // improve the value of the normalized vector. Thus, the norm has to return a
-  // double.
-  using Scalar = double;
-
-  KOKKOS_FUNCTION
-  static Scalar norm(Vector const &v)
-  {
-    Scalar sq{};
-    for (int d = 0; d < 3; ++d)
-      sq += static_cast<Scalar>(v[d]) * static_cast<Scalar>(v[d]);
-    return std::sqrt(sq);
-  }
-
-  KOKKOS_FUNCTION static void normalize(Vector &v)
-  {
-    auto const magv = norm(v);
-    KOKKOS_ASSERT(magv > 0);
-    for (int d = 0; d < 3; ++d)
-      v[d] /= magv;
-  }
 };
 
 KOKKOS_INLINE_FUNCTION
