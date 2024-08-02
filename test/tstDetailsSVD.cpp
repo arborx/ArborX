@@ -11,7 +11,7 @@
 
 #include "ArborX_EnableDeviceTypes.hpp"
 #include "ArborX_EnableViewComparison.hpp"
-#include <detail/ArborX_InterpDetailsSymmetricPseudoInverseSVD.hpp>
+#include <misc/ArborX_SymmetricSVD.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
@@ -45,7 +45,7 @@ void makeCase(ExecutionSpace const &exec, Value const (&src_arr)[M][N][N],
     Kokkos::parallel_for(
         "Testing::run_svd", Kokkos::RangePolicy<ExecutionSpace>(exec, 0, 1),
         KOKKOS_LAMBDA(int) {
-          ArborX::Interpolation::Details::symmetricSVDKernel(inv, diag, unit);
+          ArborX::Details::symmetricSVDKernel(inv, diag, unit);
           for (int p = 0; p < N; ++p)
             for (int q = 0; q < N; ++q)
             {
@@ -61,8 +61,7 @@ void makeCase(ExecutionSpace const &exec, Value const (&src_arr)[M][N][N],
     Kokkos::parallel_for(
         "Testing::run_inverse", Kokkos::RangePolicy<ExecutionSpace>(exec, 0, 1),
         KOKKOS_LAMBDA(int) {
-          ArborX::Interpolation::Details::symmetricPseudoInverseSVDKernel(
-              inv, diag, unit);
+          ArborX::Details::symmetricPseudoInverseSVDKernel(inv, diag, unit);
         });
     ARBORX_MDVIEW_TEST_TOL(ref, inv, Kokkos::Experimental::epsilon_v<float>);
   }
