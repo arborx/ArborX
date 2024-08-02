@@ -18,7 +18,7 @@
 #include <ArborX_HyperPoint.hpp>
 #include <ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
 #include <ArborX_InterpDetailsPolynomialBasis.hpp>
-#include <ArborX_InterpDetailsSymmetricPseudoInverseSVD.hpp>
+#include <ArborX_DetailsSymmetricSVD.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
