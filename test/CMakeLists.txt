@@ -49,6 +49,7 @@ add_executable(ArborX_Test_DetailsUtils.exe
   tstAttachIndices.cpp
   tstDetailsVector.cpp
   tstDetailsUtils.cpp
+  tstDetailsSVD.cpp
   tstDetailsKokkosExtStdAlgorithms.cpp
   tstDetailsKokkosExtKernelStdAlgorithms.cpp
   tstDetailsKokkosExtUninitializedMemoryAlgorithms.cpp
@@ -262,7 +263,6 @@ target_compile_definitions(ArborX_Test_BoostAdapters.exe PRIVATE BOOST_TEST_DYN_
 add_test(NAME ArborX_Test_BoostAdapters COMMAND ArborX_Test_BoostAdapters.exe)
 
 add_executable(ArborX_Test_InterpMovingLeastSquares.exe
-  tstInterpDetailsSVD.cpp
   tstInterpDetailsCompactRadialBasisFunction.cpp
   tstInterpDetailsPolyBasis.cpp
   tstInterpDetailsMLSCoefficients.cpp

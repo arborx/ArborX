@@ -14,11 +14,11 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_DetailsSymmetricSVD.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperPoint.hpp>
 #include <ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
 #include <ArborX_InterpDetailsPolynomialBasis.hpp>
-#include <ArborX_InterpDetailsSymmetricPseudoInverseSVD.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
@@ -110,7 +110,8 @@ public:
 
     // We need the inverse of P^T.PHI.P, and because it is symmetric, we can use
     // the symmetric SVD algorithm to get it.
-    symmetricPseudoInverseSVDKernel(moment, svd_diag, svd_unit);
+    ::ArborX::Details::symmetricPseudoInverseSVDKernel(moment, svd_diag,
+                                                       svd_unit);
     // Now, the moment has [P^T.PHI.P]^-1
 
     // Finally, the result is produced by computing p(0).[P^T.PHI.P]^-1.P^T.PHI

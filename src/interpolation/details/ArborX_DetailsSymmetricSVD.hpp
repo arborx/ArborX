@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_INTERP_DETAILS_SYMMETRIC_PSEUDO_INVERSE_SVD_HPP
-#define ARBORX_INTERP_DETAILS_SYMMETRIC_PSEUDO_INVERSE_SVD_HPP
+#ifndef ARBORX_DETAILS_SYMMETRIC_SVD_HPP
+#define ARBORX_DETAILS_SYMMETRIC_SVD_HPP
 
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_Exception.hpp>
@@ -18,7 +18,7 @@
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
 
-namespace ArborX::Interpolation::Details
+namespace ArborX::Details
 {
 
 template <typename Matrix>
@@ -246,6 +246,6 @@ KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
     }
 }
 
-} // namespace ArborX::Interpolation::Details
+} // namespace ArborX::Details
 
 #endif
