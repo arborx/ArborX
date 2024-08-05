@@ -26,7 +26,7 @@ struct dimension
   using not_specialized = void; // tag to detect existence of a specialization
 };
 template <typename Geometry>
-inline constexpr int dimension_v = dimension<Geometry>::value;
+inline constexpr int dimension_v = dimension<std::remove_cv_t<Geometry>>::value;
 
 struct not_specialized
 {};
@@ -37,7 +37,7 @@ struct tag
   using type = not_specialized;
 };
 template <typename Geometry>
-using tag_t = typename tag<Geometry>::type;
+using tag_t = typename tag<std::remove_cv_t<Geometry>>::type;
 
 template <typename Geometry>
 struct coordinate_type
@@ -45,7 +45,8 @@ struct coordinate_type
   using type = not_specialized;
 };
 template <typename Geometry>
-using coordinate_type_t = typename coordinate_type<Geometry>::type;
+using coordinate_type_t =
+    typename coordinate_type<std::remove_cv_t<Geometry>>::type;
 
 // clang-format off
 #define DEFINE_GEOMETRY(name, name_tag)                                        \
