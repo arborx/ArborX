@@ -62,6 +62,7 @@ DEFINE_GEOMETRY(box, BoxTag);
 DEFINE_GEOMETRY(sphere, SphereTag);
 DEFINE_GEOMETRY(triangle, TriangleTag);
 DEFINE_GEOMETRY(kdop, KDOPTag);
+DEFINE_GEOMETRY(obb, OBBTag);
 DEFINE_GEOMETRY(tetrahedron, TetrahedronTag);
 DEFINE_GEOMETRY(ray, RayTag);
 #undef DEFINE_GEOMETRY
@@ -70,7 +71,7 @@ template <typename Geometry>
 inline constexpr bool
     is_valid_geometry = (is_point_v<Geometry> || is_box_v<Geometry> ||
                          is_sphere_v<Geometry> || is_kdop_v<Geometry> ||
-                         is_triangle_v<Geometry> ||
+                         is_obb_v<Geometry> || is_triangle_v<Geometry> ||
                          is_tetrahedron_v<Geometry> || is_ray_v<Geometry>);
 
 template <typename Geometry>

@@ -85,6 +85,7 @@ std::vector<Kokkos::pair<int, float>> initialize_values(View const &points,
   return values;
 }
 
+#ifndef ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_BOX
 BOOST_AUTO_TEST_CASE_TEMPLATE(callback_spatial_predicate, TreeTypeTraits,
                               TreeTypeTraitsList)
 {
@@ -119,6 +120,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_spatial_predicate, TreeTypeTraits,
                                   CustomPostCallback<DeviceType>{points},
                                   make_compressed_storage(offsets, values));
 }
+#endif
 
 #ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
 BOOST_AUTO_TEST_CASE_TEMPLATE(callback_nearest_predicate, TreeTypeTraits,
@@ -158,7 +160,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_nearest_predicate, TreeTypeTraits,
 }
 #endif
 
-#ifndef ARBORX_TEST_DISABLE_CALLBACK_EARLY_EXIT
+#if !defined(ARBORX_TEST_DISABLE_CALLBACK_EARLY_EXIT) &&                       \
+    !defined(ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_BOX)
 template <class DeviceType>
 struct Experimental_CustomCallbackEarlyExit
 {
@@ -255,6 +258,7 @@ struct CustomPostCallbackWithAttachment
   }
 };
 
+#ifndef ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_BOX
 BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_spatial_predicate,
                               TreeTypeTraits, TreeTypeTraitsList)
 {
@@ -291,6 +295,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_spatial_predicate,
       CustomPostCallbackWithAttachment<DeviceType>{points},
       make_compressed_storage(offsets, values));
 }
+#endif
 
 #ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
 BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_nearest_predicate,
