@@ -21,7 +21,7 @@ template <class T, class... Args>
 KOKKOS_FUNCTION constexpr T *construct_at(T *p, Args &&...args)
 {
   return ::new (const_cast<void *>(static_cast<void const volatile *>(p)))
-      T((Args &&) args...);
+      T((Args &&)args...);
 }
 
 template <class T>
