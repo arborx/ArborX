@@ -115,16 +115,15 @@ KOKKOS_FUNCTION bool invoke_callback_and_check_early_exit(Callback &&callback,
   {
     // Invoke a callback that may return a hint to interrupt the tree traversal
     // and return true for early exit, or false for normal continuation.
-    return ((Callback &&) callback)((Predicate &&) predicate,
-                                    (Primitive &&) primitive) ==
+    return ((Callback &&)callback)((Predicate &&)predicate,
+                                   (Primitive &&)primitive) ==
            CallbackTreeTraversalControl::early_exit;
   }
   else
   {
     // Invoke a callback that does not return a hint.  Always return false to
     // signify that the tree traversal should continue normally.
-    ((Callback &&) callback)((Predicate &&) predicate,
-                             (Primitive &&) primitive);
+    ((Callback &&)callback)((Predicate &&)predicate, (Primitive &&)primitive);
     return false;
   }
 }

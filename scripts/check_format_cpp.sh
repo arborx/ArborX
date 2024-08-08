@@ -46,8 +46,8 @@ clang_format_version="$(${clang_format_executable} --version)"
 clang_format_major_version=$(echo "${clang_format_version}" | sed 's/^[^0-9]*\([0-9]*\).*$/\1/g')
 clang_format_minor_version=$(echo "${clang_format_version}" | sed 's/^[^0-9]*[0-9]*\.\([0-9]*\).*$/\1/g')
 clang_format_patch_version=$(echo "${clang_format_version}" | sed 's/^[^0-9]*[0-9]*\.[0-9]*\.\([0-9]*\).*$/\1/g')
-if [ "${clang_format_major_version}" -ne 14 ] || [ "${clang_format_minor_version}" -ne 0 ] || [ "${clang_format_patch_version}" -ne 0 ]; then
-  echo "***   ArborX requires clang-format version 14.0.0,"
+if [ "${clang_format_major_version}" -ne 16 ] || [ "${clang_format_minor_version}" -ne 0 ]; then
+  echo "***   ArborX requires clang-format version 16.0,"
   echo "***   but version ${clang_format_major_version}.${clang_format_minor_version}.${clang_format_patch_version} was found instead."
   exit 1
 fi

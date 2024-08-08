@@ -39,7 +39,7 @@ struct ConstrainedDistributedNearestCallback
   template <class... Args>
   KOKKOS_FUNCTION void operator()(Args &&...args) const
   {
-    _callback((Args &&) args...);
+    _callback((Args &&)args...);
   }
 };
 
