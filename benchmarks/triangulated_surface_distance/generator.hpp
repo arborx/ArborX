@@ -14,8 +14,9 @@
 #include <Kokkos_MathematicalConstants.hpp>
 
 #if KOKKOS_VERSION >= 40400
-#include <Kokkos_KokkosArray.hpp>
-using KokkosArray = Kokkos::Kokkos;
+#include <Kokkos_Array.hpp>
+template <class T, size_t N>
+using KokkosArray = Kokkos::Array<T, N>;
 #else
 template <class T, size_t N>
 struct KokkosArray
