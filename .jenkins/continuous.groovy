@@ -26,7 +26,6 @@ pipeline {
                 dockerfile {
                     filename "Dockerfile.clang-format"
                     dir "docker"
-                    additionalBuildArgs "--build-arg CLANG_FORMAT_VERSION=14.0.0"
                     label 'docker'
                 }
             }

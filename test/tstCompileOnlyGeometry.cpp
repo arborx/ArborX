@@ -223,10 +223,10 @@ void test_point_cv_compile_only()
   using Point = ArborX::Point;
   namespace GT = ArborX::GeometryTraits;
 
-  static_assert(GT::dimension_v<const Point> == 3);
-  static_assert(std::is_same_v<GT::coordinate_type_t<const Point>, float>);
-  static_assert(std::is_same_v<GT::tag_t<const Point>, GT::PointTag>);
-  static_assert(GT::is_point_v<const Point>);
+  static_assert(GT::dimension_v<Point const> == 3);
+  static_assert(std::is_same_v<GT::coordinate_type_t<Point const>, float>);
+  static_assert(std::is_same_v<GT::tag_t<Point const>, GT::PointTag>);
+  static_assert(GT::is_point_v<Point const>);
 }
 
 void test_point_ctad()
