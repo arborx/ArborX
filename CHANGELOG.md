@@ -5,14 +5,13 @@
 [Full Changelog](https://github.com/arborx/arborx/compare/v1.6...v1.7)
 
 **New features:**
-- Add a distributed nearest query with a callback [EXPERIMENTAL] [\#1075](https://github.com/arborx/ArborX/pull/1075)
+- Add a distributed tree nearest query with a callback [EXPERIMENTAL] [\#1075](https://github.com/arborx/ArborX/pull/1075)
 - Add a distributed tree spatial query only taking a callback [\#733](https://github.com/arborx/ArborX/pull/733)
 
 **Build Changes:**
 - Require Kokkos 4.2.00 [\#1054](https://github.com/arborx/ArborX/pull/1054)
 
 **Enhancements:**
-- Add README document to examples directory [\#1057](https://github.com/arborx/ArborX/pull/1057)
 - Implement box-triangle intersection [\#1059](https://github.com/arborx/ArborX/pull/1059)
 - Add tetrahedron geometry [EXPERIMENTAL] [\#1079](https://github.com/arborx/ArborX/pull/1079)
 - Expand KDOP to support different dimensions and precision [EXPERIMENTAL] [\#982](https://github.com/arborx/ArborX/pull/982)
@@ -22,16 +21,14 @@
 
 **Backward incompatible changes:**
 - Remove deprecated `InlineCallbackTag` [\#1078](https://github.com/arborx/ArborX/pull/1078)
-- Remove deprecated `ArborX::Traits::Access` [\#1078](https://github.com/arborx/ArborX/pull/1078)
+- Remove deprecated `Traits::Access` [\#1078](https://github.com/arborx/ArborX/pull/1078)
 
 **Deprecations:**
-- Deprecate `+=` and `reduction_identity` in `Box` [\#1082](https://github.com/arborx/ArborX/pull/1082)
+- Deprecate `+=` and `reduction_identity` for `Box` [\#1082](https://github.com/arborx/ArborX/pull/1082)
 - Deprecate `+=` in `KDOP` [\#982](https://github.com/arborx/ArborX/pull/982)
-- Deprecate support for 2D and 3D views in `applyPermutation` [\#1096](https://github.com/arborx/ArborX/pull/1096)
 
 **Fixed bugs:**
 - Fix a Kokkos bounds check warning reported when using FDBSCAN-DenseBox [\#1067](https://github.com/arborx/ArborX/pull/1067)
-- Fix compiler warning for NVCC and Intel compilers [\#1102](https://github.com/arborx/ArborX/pull/1102)
 - Fix DBSCAN test on Intel GPUs [\#1112](https://github.com/arborx/ArborX/pull/1112)
 - Fix policy warning when using CMake 3.30 with Boost [\#1123](https://github.com/arborx/ArborX/pull/1123)
 - Fix geometry traits for `const` geometries [\#1129](https://github.com/arborx/ArborX/pull/1129)
