@@ -245,6 +245,7 @@ public:
 
     if (n == 0)
     {
+      _destinations = {};
       _dest_offsets = {0};
     }
     else
