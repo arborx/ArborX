@@ -5,8 +5,8 @@
 [Full Changelog](https://github.com/arborx/arborx/compare/v1.6...v1.7)
 
 **New features:**
-- Add a distributed tree nearest query with a callback [EXPERIMENTAL] [\#1075](https://github.com/arborx/ArborX/pull/1075)
-- Add a distributed tree spatial query only taking a callback [\#733](https://github.com/arborx/ArborX/pull/733)
+- Distributed tree: add support for a nearest query with a callback [EXPERIMENTAL] [\#1075](https://github.com/arborx/ArborX/pull/1075)
+- Distributed tree: add support for a spatial query only taking a callback [\#733](https://github.com/arborx/ArborX/pull/733)
 
 **Build Changes:**
 - Require Kokkos 4.2.00 [\#1054](https://github.com/arborx/ArborX/pull/1054)
@@ -17,7 +17,7 @@
 - Expand KDOP to support different dimensions and precision [EXPERIMENTAL] [\#982](https://github.com/arborx/ArborX/pull/982)
 - Add 2D KDOP geometries [EXERIMENTAL] [\#1088](https://github.com/arborx/ArborX/pull/1088)
 - Improve performance of the distributed algorithms [\#1098](https://github.com/arborx/ArborX/pull/1098), [\#1103](https://github.com/arborx/ArborX/pull/1103)
-- Add `make_ordered_intersects` helper function [EXPERIMENTAL] [\#1117](https://github.com/arborx/ArborX/pull/1117)
+- Add `make_ordered_intersects` helper function to implicitly construct ordered intersect queries for a set of geometries [EXPERIMENTAL] [\#1117](https://github.com/arborx/ArborX/pull/1117)
 
 **Backward incompatible changes:**
 - Remove deprecated `InlineCallbackTag` [\#1078](https://github.com/arborx/ArborX/pull/1078)
