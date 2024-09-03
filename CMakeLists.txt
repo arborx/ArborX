@@ -6,7 +6,7 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.30.0)
   cmake_policy(SET CMP0167 OLD)
 endif()
 
-find_package(Kokkos 4.2 REQUIRED CONFIG)
+find_package(Kokkos 4.3 REQUIRED CONFIG)
 message(STATUS "Found Kokkos: ${Kokkos_DIR} (version \"${Kokkos_VERSION}\")")
 
 add_library(ArborX INTERFACE)
