@@ -83,8 +83,7 @@ int main(int argc, char *argv[])
       n);
   Kokkos::parallel_for(
       "Example::make_particles",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>, ExecutionSpace>(
-          execution_space, {0, 0, 0}, {nx, ny, nz}),
+      Kokkos::MDRangePolicy(execution_space, {0, 0, 0}, {nx, ny, nz}),
       KOKKOS_LAMBDA(int i, int j, int k) {
         int const id = i * ny * nz + j * nz + k;
         // face-centered cubic arrangement of particles

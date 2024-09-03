@@ -226,8 +226,7 @@ int main(int argc, char *argv[])
       num_boxes);
   Kokkos::parallel_for(
       "Example::initialize_boxes",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>, ExecutionSpace>(
-          exec_space, {0, 0, 0}, {nx, ny, nz}),
+      Kokkos::MDRangePolicy(exec_space, {0, 0, 0}, {nx, ny, nz}),
       KOKKOS_LAMBDA(int i, int j, int k) {
         int const box_id = i + nx * j + nx * ny * k;
         boxes(box_id) = {{i * dx, j * dy, k * dz},
@@ -248,8 +247,7 @@ int main(int argc, char *argv[])
 
     Kokkos::parallel_for(
         "Example::initialize_rays",
-        Kokkos::MDRangePolicy<Kokkos::Rank<2>, ExecutionSpace>(
-            exec_space, {0, 0}, {num_boxes, rays_per_box}),
+        Kokkos::MDRangePolicy(exec_space, {0, 0}, {num_boxes, rays_per_box}),
         KOKKOS_LAMBDA(size_t const i, size_t const j) {
           // The origins of rays are uniformly distributed in the boxes. The
           // direction vectors are uniformly sampling of a full sphere.
