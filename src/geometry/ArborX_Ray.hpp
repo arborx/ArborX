@@ -21,6 +21,7 @@
 
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
 #include <Kokkos_Macros.hpp>
+#include <Kokkos_Swap.hpp>
 
 #include <cmath>
 

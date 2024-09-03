@@ -19,11 +19,8 @@
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_DetailsWeightedEdge.hpp>
 
-#include <Kokkos_BitManipulation.hpp>
 #include <Kokkos_Core.hpp>
-#include <Kokkos_MathematicalFunctions.hpp> // isfinite, signbit
 #include <Kokkos_Profiling_ScopedRegion.hpp>
-#include <Kokkos_Swap.hpp>
 
 namespace ArborX::Details
 {

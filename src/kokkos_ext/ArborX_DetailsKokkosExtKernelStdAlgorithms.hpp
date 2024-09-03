@@ -25,6 +25,8 @@ KOKKOS_FUNCTION void nth_element(Iterator first, Iterator nth, Iterator last)
 
   // Lomuto partitioning
   auto partition = [](Iterator left, Iterator right, Iterator pivot) {
+    using Kokkos::kokkos_swap;
+
     --right;
 
     Kokkos::kokkos_swap(*pivot, *right);
@@ -33,10 +35,10 @@ KOKKOS_FUNCTION void nth_element(Iterator first, Iterator nth, Iterator last)
     while (it_j < right)
     {
       if (*it_j < *right)
-        Kokkos::kokkos_swap(*it_j, *(it_i++));
+        kokkos_swap(*it_j, *(it_i++));
       ++it_j;
     }
-    Kokkos::kokkos_swap(*it_i, *right);
+    kokkos_swap(*it_i, *right);
     return it_i;
   };
 
