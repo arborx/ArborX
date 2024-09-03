@@ -16,13 +16,10 @@
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
-#include <ArborX_DetailsKokkosExtSwap.hpp>
 #include <ArborX_DetailsUtils.hpp>
 #include <ArborX_DetailsWeightedEdge.hpp>
 
-#include <Kokkos_BitManipulation.hpp>
 #include <Kokkos_Core.hpp>
-#include <Kokkos_MathematicalFunctions.hpp> // isfinite, signbit
 #include <Kokkos_Profiling_ScopedRegion.hpp>
 
 namespace ArborX::Details
@@ -659,7 +656,7 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
 
           // Place the smallest edge at the beginning of the chain
           if (m != i)
-            KokkosExt::swap(permute(i), permute(m));
+            Kokkos::kokkos_swap(permute(i), permute(m));
         }
       });
 
