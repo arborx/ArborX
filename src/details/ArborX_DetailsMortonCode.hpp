@@ -12,10 +12,11 @@
 #ifndef ARBORX_DETAILS_MORTON_CODE_UTILS_HPP
 #define ARBORX_DETAILS_MORTON_CODE_UTILS_HPP
 
-#include <ArborX_DetailsKokkosExtMinMaxOperations.hpp> // min. max
 #include <ArborX_GeometryTraits.hpp>
 
-#include <Kokkos_Core.hpp> // abort
+#include <Kokkos_Abort.hpp>
+#include <Kokkos_Macros.hpp>
+#include <Kokkos_MinMax.hpp>
 
 namespace ArborX
 {
@@ -289,8 +290,8 @@ KOKKOS_INLINE_FUNCTION unsigned int morton32(Point const &p)
   constexpr int DIM = GeometryTraits::dimension_v<Point>;
   constexpr unsigned N = 1u << (DIM == 1 ? 31 : 32 / DIM);
 
-  using KokkosExt::max;
-  using KokkosExt::min;
+  using Kokkos::max;
+  using Kokkos::min;
 
   unsigned int r = 0;
   for (int d = 0; d < DIM; ++d)
@@ -310,8 +311,8 @@ KOKKOS_INLINE_FUNCTION unsigned long long morton64(Point const &p)
   constexpr int DIM = GeometryTraits::dimension_v<Point>;
   constexpr unsigned long long N = (1llu << (63 / DIM));
 
-  using KokkosExt::max;
-  using KokkosExt::min;
+  using Kokkos::max;
+  using Kokkos::min;
 
   unsigned long long r = 0;
   for (int d = 0; d < DIM; ++d)
@@ -334,8 +335,8 @@ KOKKOS_INLINE_FUNCTION unsigned long long morton64(Point const &p)
   // direction).
   constexpr unsigned N = (1u << 31);
 
-  using KokkosExt::max;
-  using KokkosExt::min;
+  using Kokkos::max;
+  using Kokkos::min;
 
   // Have to use double as float is not sufficient to represent large
   // integers, which would result in some missing bins.

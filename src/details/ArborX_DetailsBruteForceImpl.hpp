@@ -13,7 +13,6 @@
 #define ARBORX_DETAILS_BRUTE_FORCE_IMPL_HPP
 
 #include <ArborX_DetailsAlgorithms.hpp> // expand
-#include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsNearestBufferProvider.hpp>
@@ -118,10 +117,10 @@ struct BruteForceImpl
           int indexable_start = indexables_per_team *
                                 (teamMember.league_rank() % n_indexable_tiles);
 
-          int predicates_in_this_team = KokkosExt::min(
-              predicates_per_team, n_predicates - predicate_start);
-          int indexables_in_this_team = KokkosExt::min(
-              indexables_per_team, n_indexables - indexable_start);
+          int predicates_in_this_team =
+              Kokkos::min(predicates_per_team, n_predicates - predicate_start);
+          int indexables_in_this_team =
+              Kokkos::min(indexables_per_team, n_indexables - indexable_start);
 
           ScratchPredicateType scratch_predicates(teamMember.team_scratch(0),
                                                   predicates_per_team);

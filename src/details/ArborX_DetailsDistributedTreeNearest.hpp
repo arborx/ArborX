@@ -15,7 +15,6 @@
 #include <ArborX_DetailsDistributedTreeNearestHelpers.hpp>
 #include <ArborX_DetailsDistributedTreeUtils.hpp>
 #include <ArborX_DetailsKokkosExtKernelStdAlgorithms.hpp>
-#include <ArborX_DetailsKokkosExtMinMaxOperations.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_Predicates.hpp>
@@ -118,7 +117,7 @@ void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
         if (num_distances == 0)
           return;
 
-        auto const k = KokkosExt::min(getK(predicates(i)), num_distances) - 1;
+        auto const k = Kokkos::min(getK(predicates(i)), num_distances) - 1;
         auto *begin = distances.data() + offset(i);
         KokkosExt::nth_element(begin, begin + k, begin + num_distances);
         farthest_distances(i) = *(begin + k);
