@@ -57,7 +57,7 @@ pipeline {
                                     -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                                     -D CMAKE_CXX_COMPILER=$KOKKOS_DIR/bin/nvcc_wrapper \
                                     -D CMAKE_CXX_EXTENSIONS=OFF \
-                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
+                                    -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra -Werror -Werror all-warnings" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
                                     -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
