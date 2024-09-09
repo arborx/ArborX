@@ -373,6 +373,12 @@ BOOST_AUTO_TEST_CASE(centroid)
   BOOST_TEST(tri3_center[0] == 1);
   BOOST_TEST(tri3_center[1] == 1);
   BOOST_TEST(tri3_center[2] == 0);
+
+  Tetrahedron tet{{{0, 0, -2}}, {{-4, 3, 4}}, {{1, 9, 5}}, {{-1, 0, 1}}};
+  auto tet_center = returnCentroid(tet);
+  BOOST_TEST(tet_center[0] == -1);
+  BOOST_TEST(tet_center[1] == 3);
+  BOOST_TEST(tet_center[2] == 2);
 }
 
 BOOST_AUTO_TEST_CASE(is_valid)

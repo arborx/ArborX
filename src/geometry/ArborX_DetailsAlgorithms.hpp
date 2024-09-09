@@ -33,6 +33,7 @@ using GeometryTraits::KDOPTag;
 using GeometryTraits::PointTag;
 using GeometryTraits::RayTag;
 using GeometryTraits::SphereTag;
+using GeometryTraits::TetrahedronTag;
 using GeometryTraits::TriangleTag;
 
 template <typename Tag, typename Geometry>
@@ -757,6 +758,20 @@ struct centroid<TriangleTag, Triangle>
     auto c = triangle.a;
     for (int d = 0; d < DIM; ++d)
       c[d] = (c[d] + triangle.b[d] + triangle.c[d]) / 3;
+    return c;
+  }
+};
+
+template <typename Tetrahedron>
+struct centroid<TetrahedronTag, Tetrahedron>
+{
+  KOKKOS_FUNCTION static constexpr auto apply(Tetrahedron const &tet)
+  {
+    constexpr int DIM = GeometryTraits::dimension_v<Tetrahedron>;
+    static_assert(DIM == 3);
+    auto c = tet.a;
+    for (int d = 0; d < DIM; ++d)
+      c[d] = (c[d] + tet.b[d] + tet.c[d] + tet.d[d]) / 4;
     return c;
   }
 };
