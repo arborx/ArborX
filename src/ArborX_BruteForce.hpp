@@ -30,14 +30,13 @@
 namespace ArborX
 {
 
-template <
-    typename MemorySpace, typename Value = Details::LegacyDefaultTemplateValue,
-    typename IndexableGetter = Details::DefaultIndexableGetter,
-    typename BoundingVolume =
-        Box<GeometryTraits::dimension_v<
-                std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
-            typename GeometryTraits::coordinate_type_t<
-                std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
+template <typename MemorySpace, typename Value,
+          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename BoundingVolume = Box<
+              GeometryTraits::dimension_v<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
+              typename GeometryTraits::coordinate_type_t<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
 class BruteForce
 {
 public:
@@ -125,84 +124,6 @@ private:
   bounding_volume_type _bounds;
   Kokkos::View<value_type *, memory_space> _values;
   IndexableGetter _indexable_getter;
-};
-
-template <typename MemorySpace>
-class BruteForce<MemorySpace, Details::LegacyDefaultTemplateValue,
-                 Details::DefaultIndexableGetter, Box<3, float>>
-    : public BruteForce<MemorySpace, PairValueIndex<Box<3, float>>,
-                        Details::DefaultIndexableGetter, Box<3, float>>
-{
-  using base_type = BruteForce<MemorySpace, PairValueIndex<Box<3, float>>,
-                               Details::DefaultIndexableGetter, Box<3, float>>;
-
-public:
-  using bounding_volume_type = typename base_type::bounding_volume_type;
-
-  BruteForce() = default;
-
-  template <typename ExecutionSpace, typename Primitives>
-  BruteForce(ExecutionSpace const &space, Primitives const &primitives)
-      : base_type(
-            space,
-            // Validate the primitives before calling the base constructor
-            (Details::check_valid_access_traits(PrimitivesTag{}, primitives),
-             Details::LegacyValues<Primitives, bounding_volume_type>{
-                 primitives}),
-            Details::DefaultIndexableGetter())
-  {}
-
-  template <typename ExecutionSpace, typename Predicates, typename Callback,
-            typename Ignore = int>
-  void query(ExecutionSpace const &space, Predicates const &predicates,
-             Callback const &callback, Ignore = Ignore()) const
-  {
-    Details::check_valid_callback<int>(callback, predicates);
-    base_type::query(space, predicates,
-                     Details::LegacyCallbackWrapper<Callback>{callback});
-  }
-
-  template <typename ExecutionSpace, typename Predicates, typename View,
-            typename... Args>
-  std::enable_if_t<Kokkos::is_view_v<std::decay_t<View>>>
-  query(ExecutionSpace const &space, Predicates const &predicates, View &&view,
-        Args &&...args) const
-  {
-    base_type::query(space, predicates, Details::LegacyDefaultCallback{},
-                     std::forward<View>(view), std::forward<Args>(args)...);
-  }
-
-  template <typename ExecutionSpace, typename Predicates, typename Callback,
-            typename OutputView, typename OffsetView, typename... Args>
-  std::enable_if_t<!Kokkos::is_view_v<std::decay_t<Callback>>>
-  query(ExecutionSpace const &space, Predicates const &predicates,
-        Callback &&callback, OutputView &&out, OffsetView &&offset,
-        Args &&...args) const
-  {
-    if constexpr (!Details::is_tagged_post_callback<
-                      std::decay_t<Callback>>::value)
-    {
-      Details::check_valid_callback<int>(callback, predicates, out);
-      base_type::query(space, predicates,
-                       Details::LegacyCallbackWrapper<std::decay_t<Callback>>{
-                           std::forward<Callback>(callback)},
-                       std::forward<OutputView>(out),
-                       std::forward<OffsetView>(offset),
-                       std::forward<Args>(args)...);
-    }
-    else
-    {
-      Kokkos::Profiling::ScopedRegion guard("ArborX::BruteForce::query_crs");
-
-      Kokkos::View<int *, MemorySpace> indices(
-          "ArborX::CrsGraphWrapper::query::indices", 0);
-      base_type::query(space, predicates, Details::LegacyDefaultCallback{},
-                       indices, std::forward<OffsetView>(offset),
-                       std::forward<Args>(args)...);
-      callback(predicates, std::forward<OffsetView>(offset), indices,
-               std::forward<OutputView>(out));
-    }
-  }
 };
 
 template <typename MemorySpace, typename Value, typename IndexableGetter,
