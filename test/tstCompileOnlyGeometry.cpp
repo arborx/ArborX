@@ -187,7 +187,7 @@ struct coordinate_type<CorrectSpecialization>
 void test_geometry_compile_only()
 {
   check_valid_geometry_traits(ArborX::Box{});
-  check_valid_geometry_traits(ArborX::Sphere{});
+  check_valid_geometry_traits(ArborX::Sphere<3>{});
 
   check_valid_geometry_traits(ArborX::Point<3>{});
 

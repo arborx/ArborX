@@ -456,8 +456,8 @@ KOKKOS_INLINE_FUNCTION bool solveQuadratic(float const a, float const b,
 //     a2 = |d|^2, a1 = 2*(d, o - c), and a0 = |o - c|^2 - r^2.
 // Then, we only need to intersect the solution interval [tmin, tmax] with
 // [0, +inf) for the unidirectional ray.
-KOKKOS_INLINE_FUNCTION bool intersection(Ray const &ray, Sphere const &sphere,
-                                         float &tmin, float &tmax)
+KOKKOS_INLINE_FUNCTION bool
+intersection(Ray const &ray, Sphere<3> const &sphere, float &tmin, float &tmax)
 {
   namespace KokkosExt = ArborX::Details::KokkosExt;
 
@@ -510,7 +510,7 @@ overlapDistance(Ray const &ray, Geometry const &geometry, float &length,
 }
 
 KOKKOS_INLINE_FUNCTION float overlapDistance(Ray const &ray,
-                                             Sphere const &sphere)
+                                             Sphere<3> const &sphere)
 {
   float distance_to_origin;
   float length;

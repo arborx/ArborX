@@ -280,9 +280,8 @@ BOOST_AUTO_TEST_CASE(ray_box_distance)
 BOOST_AUTO_TEST_CASE(overlap_distance_sphere,
                      *boost::unit_test::tolerance(1e-6f))
 {
-  using ArborX::Sphere;
   using ArborX::Experimental::Ray;
-  constexpr Sphere unit_sphere{{0, 0, 0}, 1};
+  constexpr ArborX::Sphere<3> unit_sphere{{0, 0, 0}, 1};
 
   auto const sqrtf_3 = std::sqrt(3.f);
   auto const half_sqrtf_2 = std::sqrt(2.f) / 2;
@@ -366,10 +365,9 @@ BOOST_AUTO_TEST_CASE(overlap_distance_sphere,
 BOOST_AUTO_TEST_CASE(ray_sphere_intersection,
                      *boost::unit_test::tolerance(1e-6f))
 {
-  using ArborX::Sphere;
   using ArborX::Experimental::Ray;
 
-  constexpr Sphere unit_sphere{{0, 0, 0}, 1};
+  constexpr ArborX::Sphere<3> unit_sphere{{0.f, 0.f, 0.f}, 1};
   auto const sqrtf_3 = std::sqrt(3.f);
   auto const sqrtf_2 = std::sqrt(2.f);
 

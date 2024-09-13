@@ -110,8 +110,7 @@ struct approx_expand_by_radius<PointTag, Point>
   {
     constexpr int DIM = GeometryTraits::dimension_v<Box>;
     using Coordinate = GeometryTraits::coordinate_type_t<Point>;
-    return ExperimentalHyperGeometry::Sphere<DIM, Coordinate>{
-        Kokkos::bit_cast<::ArborX::Point<DIM, Coordinate>>(point), r};
+    return Sphere{Kokkos::bit_cast<::ArborX::Point<DIM, Coordinate>>(point), r};
   }
 };
 

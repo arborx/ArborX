@@ -25,8 +25,8 @@
 #include <ArborX_DistributedTree.hpp>
 #endif
 #include <ArborX_Box.hpp>
-#include <ArborX_HyperSphere.hpp>
 #include <ArborX_Point.hpp>
+#include <ArborX_Sphere.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -242,7 +242,7 @@ auto makeSphereNearestQueries(
   // NOTE: `sphere` is not a very descriptive name here. It stores both the
   // center and the radius of the sphere and the number k of neighbors to query
   // for.
-  using Sphere = ArborX::ExperimentalHyperGeometry::Sphere<DIM, Coordinate>;
+  using Sphere = ArborX::Sphere<DIM, Coordinate>;
   int const n = spheres.size();
   Kokkos::View<ArborX::Nearest<Sphere> *, DeviceType> queries(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,
@@ -291,7 +291,7 @@ auto makeIntersectsSphereQueries(
 {
   // NOTE: `points` is not a very descriptive name here. It stores both the
   // actual point and the radius for the search around that point.
-  using Sphere = ArborX::ExperimentalHyperGeometry::Sphere<DIM, Coordinate>;
+  using Sphere = ArborX::Sphere<DIM, Coordinate>;
   int const n = points.size();
   Kokkos::View<decltype(ArborX::intersects(Sphere{})) *, DeviceType> queries(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,

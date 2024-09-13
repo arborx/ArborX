@@ -16,8 +16,8 @@
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp> // reallocWithoutInitializing
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_HyperSphere.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <ArborX_Sphere.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -39,8 +39,7 @@ struct NeighborListPredicateGetter
 
     auto const &hyper_point =
         reinterpret_cast<::ArborX::Point<dim, Coordinate> const &>(pair.value);
-    return intersects(ExperimentalHyperGeometry::Sphere<dim, Coordinate>{
-        hyper_point, _radius});
+    return intersects(Sphere{hyper_point, _radius});
   }
 };
 

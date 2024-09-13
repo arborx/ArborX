@@ -34,8 +34,7 @@ struct ArborX::AccessTraits<Neighbors<MemorySpace>, ArborX::PredicatesTag>
   }
   static KOKKOS_FUNCTION auto get(Neighbors<MemorySpace> const &x, size_type i)
   {
-    return intersects(
-        ExperimentalHyperGeometry::Sphere{x._particles(i), x._radius});
+    return intersects(Sphere{x._particles(i), x._radius});
   }
 };
 

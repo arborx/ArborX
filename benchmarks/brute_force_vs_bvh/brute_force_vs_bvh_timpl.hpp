@@ -10,9 +10,9 @@
  ****************************************************************************/
 
 #include <ArborX_BruteForce.hpp>
-#include <ArborX_HyperSphere.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Point.hpp>
+#include <ArborX_Sphere.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -64,11 +64,7 @@ struct ArborX::AccessTraits<ArborXBenchmark::Placeholder<DIM, FloatingPoint>,
     ArborX::Point<DIM, FloatingPoint> center;
     for (int d = 0; d < DIM; ++d)
       center[d] = i;
-    return attach(
-        intersects(
-            ArborX::ExperimentalHyperGeometry::Sphere<DIM, FloatingPoint>{
-                center, (FloatingPoint)i}),
-        i);
+    return attach(intersects(ArborX::Sphere{center, (FloatingPoint)i}), i);
   }
 };
 

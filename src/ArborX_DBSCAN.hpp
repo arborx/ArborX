@@ -22,7 +22,6 @@
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUtils.hpp> // sortObjects
 #include <ArborX_HyperBox.hpp>
-#include <ArborX_HyperSphere.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_PredicateHelpers.hpp>
 #include <ArborX_Sphere.hpp>
@@ -67,7 +66,7 @@ struct WithinRadiusGetter
     auto const &hyper_point =
         reinterpret_cast<::ArborX::Point<dim> const &>(pair.value);
     using ArborX::intersects;
-    return intersects(ExperimentalHyperGeometry::Sphere<dim>{hyper_point, _r});
+    return intersects(Sphere{hyper_point, _r});
   }
 };
 
@@ -119,9 +118,7 @@ struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
     // point structure (e.g., struct MyPoint { float y; float x; })
     auto const &hyper_point =
         reinterpret_cast<::ArborX::Point<dim> const &>(point);
-    return attach(
-        intersects(ExperimentalHyperGeometry::Sphere<dim>{hyper_point, w._r}),
-        (int)index);
+    return attach(intersects(Sphere{hyper_point, w._r}), (int)index);
   }
 };
 

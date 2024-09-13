@@ -45,8 +45,7 @@ struct ArborX::AccessTraits<Dummy, ArborX::PredicatesTag>
   static KOKKOS_FUNCTION auto get(Dummy const &, size_type i)
   {
     ArborX::Point center{(float)i, (float)i, (float)i};
-    return ArborX::intersects(
-        ExperimentalHyperGeometry::Sphere{center, (float)i});
+    return ArborX::intersects(Sphere{center, (float)i});
   }
 };
 

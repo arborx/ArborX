@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
 
   Kokkos::deep_copy(radii, radii_host);
 
-  using Sphere = ArborX::ExperimentalHyperGeometry::Sphere<3>;
+  using Sphere = ArborX::Sphere<3>;
   Kokkos::View<decltype(ArborX::intersects(Sphere{})) *, DeviceType>
       within_queries("within_queries", n_points);
   Kokkos::parallel_for(
