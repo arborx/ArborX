@@ -20,7 +20,6 @@
 #include <ArborX_DetailsBatchedQueries.hpp>
 #include <ArborX_DetailsCrsGraphWrapperImpl.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
-#include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_DetailsNode.hpp>
 #include <ArborX_DetailsPermutedData.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
@@ -49,14 +48,13 @@ namespace Details
 struct HappyTreeFriends;
 } // namespace Details
 
-template <
-    typename MemorySpace, typename Value = Details::LegacyDefaultTemplateValue,
-    typename IndexableGetter = Details::DefaultIndexableGetter,
-    typename BoundingVolume =
-        Box<GeometryTraits::dimension_v<
-                std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
-            typename GeometryTraits::coordinate_type_t<
-                std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
+template <typename MemorySpace, typename Value,
+          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename BoundingVolume = Box<
+              GeometryTraits::dimension_v<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
+              typename GeometryTraits::coordinate_type_t<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
 class BoundingVolumeHierarchy
 {
 public:
@@ -170,108 +168,13 @@ private:
   IndexableGetter _indexable_getter;
 };
 
-// The partial template specialization parameters *must* match the default ones
-template <typename MemorySpace>
-class BoundingVolumeHierarchy<MemorySpace, Details::LegacyDefaultTemplateValue,
-                              Details::DefaultIndexableGetter, Box<3, float>>
-    : public BoundingVolumeHierarchy<MemorySpace, PairValueIndex<Box<3, float>>,
-                                     Details::DefaultIndexableGetter,
-                                     Box<3, float>>
-{
-  using base_type =
-      BoundingVolumeHierarchy<MemorySpace, PairValueIndex<Box<3, float>>,
-                              Details::DefaultIndexableGetter, Box<3, float>>;
-
-public:
-  using bounding_volume_type = typename base_type::bounding_volume_type;
-
-  BoundingVolumeHierarchy() = default; // build an empty tree
-
-  template <typename ExecutionSpace, typename Primitives,
-            typename SpaceFillingCurve = Experimental::Morton64>
-  BoundingVolumeHierarchy(ExecutionSpace const &space,
-                          Primitives const &primitives,
-                          SpaceFillingCurve const &curve = SpaceFillingCurve())
-      : base_type(
-            space,
-            // Validate the primitives before calling the base constructor
-            (Details::check_valid_access_traits(PrimitivesTag{}, primitives),
-             Details::LegacyValues<Primitives, bounding_volume_type>{
-                 primitives}),
-            Details::DefaultIndexableGetter(), curve)
-  {}
-
-  template <typename ExecutionSpace, typename Predicates, typename Callback>
-  void query(ExecutionSpace const &space, Predicates const &predicates,
-             Callback const &callback,
-             Experimental::TraversalPolicy const &policy =
-                 Experimental::TraversalPolicy()) const
-  {
-    Details::check_valid_callback<int>(callback, predicates);
-    base_type::query(space, predicates,
-                     Details::LegacyCallbackWrapper<Callback>{callback},
-                     policy);
-  }
-
-  template <typename ExecutionSpace, typename Predicates, typename View,
-            typename... Args>
-  std::enable_if_t<Kokkos::is_view_v<std::decay_t<View>>>
-  query(ExecutionSpace const &space, Predicates const &predicates, View &&view,
-        Args &&...args) const
-  {
-    base_type::query(space, predicates, Details::LegacyDefaultCallback{},
-                     std::forward<View>(view), std::forward<Args>(args)...);
-  }
-
-  template <typename ExecutionSpace, typename Predicates, typename Callback,
-            typename OutputView, typename OffsetView, typename... Args>
-  std::enable_if_t<!Kokkos::is_view_v<std::decay_t<Callback>>>
-  query(ExecutionSpace const &space, Predicates const &predicates,
-        Callback &&callback, OutputView &&out, OffsetView &&offset,
-        Args &&...args) const
-  {
-    if constexpr (!Details::is_tagged_post_callback<
-                      std::decay_t<Callback>>::value)
-    {
-      Details::check_valid_callback<int>(callback, predicates, out);
-      base_type::query(space, predicates,
-                       Details::LegacyCallbackWrapper<std::decay_t<Callback>>{
-                           std::forward<Callback>(callback)},
-                       std::forward<OutputView>(out),
-                       std::forward<OffsetView>(offset),
-                       std::forward<Args>(args)...);
-    }
-    else
-    {
-      Kokkos::Profiling::ScopedRegion guard("ArborX::BVH::query_crs");
-
-      Kokkos::View<int *, MemorySpace> indices(
-          "ArborX::CrsGraphWrapper::query::indices", 0);
-      base_type::query(space, predicates, Details::LegacyDefaultCallback{},
-                       indices, std::forward<OffsetView>(offset),
-                       std::forward<Args>(args)...);
-      callback(predicates, std::forward<OffsetView>(offset), indices,
-               std::forward<OutputView>(out));
-    }
-  }
-
-  template <typename Predicate, typename Callback>
-  KOKKOS_FUNCTION void query(Experimental::PerThread tag,
-                             Predicate const &predicate,
-                             Callback const &callback) const
-  {
-    base_type::query(tag, predicate, callback);
-  }
-};
-
-template <
-    typename MemorySpace, typename Value = Details::LegacyDefaultTemplateValue,
-    typename IndexableGetter = Details::DefaultIndexableGetter,
-    typename BoundingVolume =
-        Box<GeometryTraits::dimension_v<
-                std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
-            typename GeometryTraits::coordinate_type_t<
-                std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
+template <typename MemorySpace, typename Value,
+          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename BoundingVolume = Box<
+              GeometryTraits::dimension_v<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
+              typename GeometryTraits::coordinate_type_t<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
 using BVH = BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
                                     BoundingVolume>;
 

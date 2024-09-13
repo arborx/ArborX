@@ -12,7 +12,104 @@
 #ifndef ARBORX_TEST_LEGACY_TREE_HPP
 #define ARBORX_TEST_LEGACY_TREE_HPP
 
-#include <ArborX_DetailsLegacy.hpp>
+#include <ArborX_AccessTraits.hpp>
+#include <ArborX_Callbacks.hpp>
+#include <ArborX_DetailsAlgorithms.hpp>
+#include <ArborX_PairValueIndex.hpp>
+
+#include <Kokkos_Macros.hpp>
+
+#include <type_traits>
+#include <utility>
+
+template <typename Primitives, typename BoundingVolume>
+class LegacyValues
+{
+  Primitives _primitives;
+  using Access = ArborX::AccessTraits<Primitives, ArborX::PrimitivesTag>;
+
+public:
+  using memory_space = typename Access::memory_space;
+  using index_type = unsigned;
+  using value_type = ArborX::PairValueIndex<BoundingVolume, index_type>;
+  using size_type =
+      Kokkos::detected_t<ArborX::Details::AccessTraitsSizeArchetypeExpression,
+                         Access, Primitives>;
+
+  LegacyValues(Primitives const &primitives)
+      : _primitives(primitives)
+  {}
+
+  KOKKOS_FUNCTION
+  auto operator()(size_type i) const
+  {
+    using Primitive = std::decay_t<decltype(Access::get(_primitives, i))>;
+    if constexpr (std::is_same_v<BoundingVolume, Primitive>)
+    {
+      return value_type{Access::get(_primitives, i), (index_type)i};
+    }
+    else
+    {
+      using ArborX::Details::expand;
+      BoundingVolume bounding_volume{};
+      expand(bounding_volume, Access::get(_primitives, i));
+      return value_type{bounding_volume, (index_type)i};
+    }
+#if (defined(KOKKOS_COMPILER_NVCC) && (KOKKOS_COMPILER_NVCC < 1150)) ||        \
+    (defined(KOKKOS_COMPILER_INTEL) && (KOKKOS_COMPILER_INTEL <= 2021))
+    // FIXME_NVCC, FIXME_INTEL: workaround for spurios "missing return
+    // statement at end of non-void function" warning
+    return value_type{};
+#endif
+  }
+
+  KOKKOS_FUNCTION
+  size_type size() const { return Access::size(_primitives); }
+};
+
+template <typename Primitives, typename BoundingVolume>
+struct ArborX::AccessTraits<LegacyValues<Primitives, BoundingVolume>,
+                            ArborX::PrimitivesTag>
+{
+  using self_type = LegacyValues<Primitives, BoundingVolume>;
+
+public:
+  using memory_space = typename self_type::memory_space;
+
+  KOKKOS_FUNCTION static decltype(auto) get(self_type const &w, int i)
+  {
+    return w(i);
+  }
+
+  KOKKOS_FUNCTION
+  static decltype(auto) size(self_type const &w) { return w.size(); }
+};
+
+template <typename Callback>
+struct LegacyCallbackWrapper
+{
+  Callback _callback;
+
+  template <typename Predicate, typename Value, typename Index>
+  KOKKOS_FUNCTION auto
+  operator()(Predicate const &predicate,
+             ArborX::PairValueIndex<Value, Index> const &value) const
+  {
+    return _callback(predicate, value.index);
+  }
+
+  template <typename Predicate, typename Value, typename Index, typename Output>
+  KOKKOS_FUNCTION void
+  operator()(Predicate const &predicate,
+             ArborX::PairValueIndex<Value, Index> const &value,
+             Output const &out) const
+  {
+    // APIv1 callback has the signature operator()(Query, int)
+    // As we store PairValueIndex with potentially non int index (like
+    // unsigned), we explicitly cast it here.
+    _callback(predicate, (int)value.index, out);
+  }
+};
 
 template <typename Tree>
 class LegacyTree : public Tree
@@ -23,8 +120,7 @@ public:
   template <typename ExecutionSpace, typename Primitives>
   LegacyTree(ExecutionSpace const &space, Primitives const &primitives)
       : Tree(space,
-             ArborX::Details::LegacyValues<Primitives,
-                                           typename Tree::bounding_volume_type>{
+             LegacyValues<Primitives, typename Tree::bounding_volume_type>{
                  primitives})
   {}
 
@@ -55,12 +151,12 @@ public:
     if constexpr (!ArborX::Details::is_tagged_post_callback<
                       std::decay_t<Callback>>::value)
     {
-      Tree::query(
-          space, predicates,
-          ArborX::Details::LegacyCallbackWrapper<std::decay_t<Callback>>{
-              std::forward<Callback>(callback)},
-          std::forward<OutputView>(out), std::forward<OffsetView>(offset),
-          std::forward<Args>(args)...);
+      Tree::query(space, predicates,
+                  LegacyCallbackWrapper<std::decay_t<Callback>>{
+                      std::forward<Callback>(callback)},
+                  std::forward<OutputView>(out),
+                  std::forward<OffsetView>(offset),
+                  std::forward<Args>(args)...);
     }
     else
     {

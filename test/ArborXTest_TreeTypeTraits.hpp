@@ -21,15 +21,6 @@ template <template <class> class...>
 struct Tuple
 {};
 
-#ifndef ARBORX_TEST_TREE_TYPES
-// NOTE Emulate resulting name from using ArborX::BoundingVolumeHierarchy as
-// template parameter in Boost.Test
-template <class MemorySpace>
-using ArborX__BoundingVolumeHierarchy =
-    ArborX::BoundingVolumeHierarchy<MemorySpace>;
-#define ARBORX_TEST_TREE_TYPES Tuple<ArborX__BoundingVolumeHierarchy>
-#endif
-
 #ifndef ARBORX_TEST_DEVICE_TYPES
 #define ARBORX_TEST_DEVICE_TYPES                                               \
   std::tuple<Kokkos::DefaultExecutionSpace::device_type>

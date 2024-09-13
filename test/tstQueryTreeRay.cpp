@@ -11,6 +11,7 @@
 
 #include "ArborXTest_StdVectorToKokkosView.hpp"
 #include <ArborX.hpp>
+#include <ArborXTest_LegacyTree.hpp>
 #include <ArborX_DetailsVector.hpp>
 #include <ArborX_Ray.hpp>
 
@@ -20,31 +21,31 @@
 #include <vector>
 
 #include "Search_UnitTestHelpers.hpp"
-// clang-format off
-#include "ArborXTest_TreeTypeTraits.hpp"
-// clang-format on
+
+#define ARBORX_TEST_DEVICE_TYPES                                               \
+  std::tuple<Kokkos::DefaultExecutionSpace::device_type>
 
 BOOST_AUTO_TEST_SUITE(RayTraversals)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_nearest, DeviceType,
                               ARBORX_TEST_DEVICE_TYPES)
 {
-  using memory_space = typename DeviceType::memory_space;
+  using MemorySpace = typename DeviceType::memory_space;
   typename DeviceType::execution_space exec_space;
 
   using Point = ArborX::Point<3>;
   using Box = ArborX::Box<3>;
 
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
+
   std::vector<Box> boxes;
   for (unsigned int i = 0; i < 10; ++i)
     boxes.emplace_back(Point{(float)i, (float)i, (float)i},
                        Point{(float)i + 1, (float)i + 1, (float)i + 1});
-  Kokkos::View<Box *, DeviceType> device_boxes("boxes", 10);
-  Kokkos::deep_copy(
-      exec_space, device_boxes,
-      Kokkos::View<Box *, Kokkos::HostSpace>(boxes.data(), boxes.size()));
 
-  ArborX::BVH<memory_space> const tree(exec_space, device_boxes);
+  auto const tree = make<Tree>(exec_space, boxes);
 
   ArborX::Experimental::Ray ray{{0, 0, 0}, {.15f, .1f, 0.f}};
   Kokkos::View<ArborX::Experimental::Ray *, DeviceType> device_rays("rays", 1);
@@ -60,22 +61,22 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_nearest, DeviceType,
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_intersection, DeviceType,
                               ARBORX_TEST_DEVICE_TYPES)
 {
-  using memory_space = typename DeviceType::memory_space;
+  using MemorySpace = typename DeviceType::memory_space;
   typename DeviceType::execution_space exec_space;
 
   using Point = ArborX::Point<3>;
   using Box = ArborX::Box<3>;
 
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
+
   std::vector<Box> boxes;
   for (unsigned int i = 0; i < 10; ++i)
     boxes.emplace_back(Point{(float)i, (float)i, (float)i},
                        Point{(float)i + 1, (float)i + 1, (float)i + 1});
-  Kokkos::View<Box *, DeviceType> device_boxes("boxes", 10);
-  Kokkos::deep_copy(
-      exec_space, device_boxes,
-      Kokkos::View<Box *, Kokkos::HostSpace>(boxes.data(), boxes.size()));
 
-  ArborX::BVH<memory_space> const tree(exec_space, device_boxes);
+  auto const tree = make<Tree>(exec_space, boxes);
 
   ArborX::Experimental::Ray ray{{0, 0, 0}, {.1f, .1f, .1f}};
   Kokkos::View<ArborX::Experimental::Ray *, DeviceType> device_rays("rays", 1);
@@ -99,10 +100,11 @@ struct InsertIntersections
 #endif
   Kokkos::View<int *[2], DeviceType> _ordered_intersections;
 
-  template <typename Predicate>
+  template <typename Predicate, typename Value>
   KOKKOS_FUNCTION void operator()(Predicate const &predicate,
-                                  int const primitive_index) const
+                                  Value const &value) const
   {
+    int const primitive_index = value.index;
     auto const predicate_index = getData(predicate);
     _ordered_intersections(Kokkos::atomic_fetch_inc(&count[predicate_index]),
                            predicate_index) = primitive_index;
@@ -114,20 +116,23 @@ BOOST_AUTO_TEST_SUITE(RayTraversals)
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_intersection_new, DeviceType,
                               ARBORX_TEST_DEVICE_TYPES)
 {
-  using memory_space = typename DeviceType::memory_space;
+  using MemorySpace = typename DeviceType::memory_space;
   typename DeviceType::execution_space exec_space;
 
   using Point = ArborX::Point<3>;
   using Box = ArborX::Box<3>;
+
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
 
   std::vector<Box> boxes;
   int const n = 10;
   for (unsigned int i = 0; i < n; ++i)
     boxes.emplace_back(Point{(float)i, (float)i, (float)i},
                        Point{(float)i + 1, (float)i + 1, (float)i + 1});
-  auto device_boxes = ArborXTest::toView<DeviceType>(boxes, "boxes");
 
-  ArborX::BVH<memory_space> const tree(exec_space, device_boxes);
+  auto const tree = make<Tree>(exec_space, boxes);
 
   Kokkos::View<ArborX::Experimental::Ray *, Kokkos::HostSpace> host_rays("rays",
                                                                          2);
@@ -135,8 +140,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_intersection_new, DeviceType,
       ArborX::Experimental::Ray{{0, 0, 0}, {1.f / n, 1.f / n, 1.f / n}};
   host_rays(1) =
       ArborX::Experimental::Ray{{n, n, n}, {-1.f / n, -1.f / n, -1.f / n}};
-  auto device_rays = Kokkos::create_mirror_view_and_copy(
-      typename DeviceType::memory_space{}, host_rays);
+  auto device_rays =
+      Kokkos::create_mirror_view_and_copy(MemorySpace{}, host_rays);
   Kokkos::View<int *[2], DeviceType> device_ordered_intersections(
       "ordered_intersections", n);
 
@@ -185,7 +190,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_ordered_spatial_predicate, DeviceType,
 
   using MemorySpace = typename DeviceType::memory_space;
   using ExecutionSpace = typename DeviceType::execution_space;
-  using Tree = ArborX::BVH<MemorySpace>;
+  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
+      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
   Tree tree;
   BOOST_TEST(tree.empty());
   using ArborX::Details::equals;
@@ -209,7 +215,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_ordered_spatial_predicate,
 
   using MemorySpace = typename DeviceType::memory_space;
   using ExecutionSpace = typename DeviceType::execution_space;
-  using Tree = ArborX::BVH<MemorySpace>;
+  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
+      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
 
   auto const tree =
       make<Tree>(ExecutionSpace{}, {

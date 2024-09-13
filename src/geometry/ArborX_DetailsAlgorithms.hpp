@@ -293,6 +293,15 @@ struct distance<PointTag, BoxTag, Point, Box>
   }
 };
 
+template <typename Box, typename Point>
+struct distance<BoxTag, PointTag, Box, Point>
+{
+  KOKKOS_FUNCTION static auto apply(Box const &box, Point const &point)
+  {
+    return Details::distance(point, box);
+  }
+};
+
 // distance point-sphere
 template <typename Point, typename Sphere>
 struct distance<PointTag, SphereTag, Point, Sphere>

@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
+#include <ArborXTest_LegacyTree.hpp>
 #include <ArborX_LinearBVH.hpp>
 
 #include <boost/test/unit_test.hpp>
@@ -33,8 +34,10 @@ BOOST_AUTO_TEST_CASE(is_prefixed_with)
 BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
-  using Tree = ArborX::BVH<typename DeviceType::memory_space>;
   using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
+  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
+      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle /*handle*/, char const *label,
@@ -77,12 +80,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
+  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
+      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
 
-  auto tree = make<ArborX::BVH<typename DeviceType::memory_space>>(
-      ExecutionSpace{}, {
-                            {{{0, 0, 0}}, {{1, 1, 1}}},
-                            {{{0, 0, 0}}, {{1, 1, 1}}},
-                        });
+  auto tree = make<Tree>(ExecutionSpace{}, {
+                                               {{{0, 0, 0}}, {{1, 1, 1}}},
+                                               {{{0, 0, 0}}, {{1, 1, 1}}},
+                                           });
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle /*handle*/, char const *label,
@@ -119,8 +124,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, DeviceType,
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 {
-  using Tree = ArborX::BVH<typename DeviceType::memory_space>;
   using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
+  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
+      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
 
   auto const callback = [](char const *label, uint32_t, uint64_t *) {
     std::regex re("^(ArborX::|Kokkos::).*");
@@ -182,8 +189,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 {
-  using Tree = ArborX::BVH<typename DeviceType::memory_space>;
   using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
+  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
+      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
 
   Kokkos::Tools::Experimental::set_push_region_callback([](char const *label) {
     std::regex re("^(ArborX::|Kokkos::).*");

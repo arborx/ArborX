@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
+#include <ArborXTest_LegacyTree.hpp>
 #include <ArborX_LinearBVH.hpp>
 
 #include <boost/test/unit_test.hpp>
@@ -74,8 +75,11 @@ void arborx_test_unset_tools_callbacks()
 BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_execution_space_instance, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
-  using Tree = ArborX::BVH<typename DeviceType::memory_space>;
   using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
+
+  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
+      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
 
   auto exec = Kokkos::Experimental::partition_space(ExecutionSpace{}, 1)[0];
   arborx_test_set_tools_callbacks(exec);
@@ -108,12 +112,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_execution_space_instance, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
 
-  auto tree = make<ArborX::BVH<typename DeviceType::memory_space>>(
-      ExecutionSpace{}, {
-                            {{{0, 0, 0}}, {{1, 1, 1}}},
-                            {{{0, 0, 0}}, {{1, 1, 1}}},
-                        });
+  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
+      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
+
+  auto tree = make<Tree>(ExecutionSpace{}, {
+                                               {{{0, 0, 0}}, {{1, 1, 1}}},
+                                               {{{0, 0, 0}}, {{1, 1, 1}}},
+                                           });
 
   auto exec = Kokkos::Experimental::partition_space(ExecutionSpace{}, 1)[0];
   arborx_test_set_tools_callbacks(exec);

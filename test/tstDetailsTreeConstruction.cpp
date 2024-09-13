@@ -8,11 +8,11 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
+#include "ArborXTest_LegacyTree.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
-#include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_DetailsMortonCode.hpp> // expandBits, morton32
 #include <ArborX_DetailsNode.hpp>       // ROPE SENTINEL
 #include <ArborX_DetailsSortUtils.hpp>  // sortObjects
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(assign_morton_codes, DeviceType,
   BOOST_TEST(ArborX::Details::equals(
       scene_host, {{{0.0, 0.0, 0.0}}, {{(float)N, (float)N, (float)N}}}));
 
-  ArborX::Details::LegacyValues<decltype(boxes), ArborX::Box<3>> values{boxes};
+  LegacyValues<decltype(boxes), ArborX::Box<3>> values{boxes};
   ArborX::Details::Indexables<decltype(values),
                               ArborX::Details::DefaultIndexableGetter>
       indexables{values, ArborX::Details::DefaultIndexableGetter{}};
@@ -172,8 +172,7 @@ void generateHierarchy(Primitives primitives, MortonCodes sorted_morton_codes,
       typename InternalNodes::value_type::bounding_volume_type;
   BoundingVolume bounds;
   ArborX::Details::TreeConstruction::generateHierarchy(
-      space,
-      ArborX::Details::LegacyValues<Primitives, BoundingVolume>{primitives},
+      space, LegacyValues<Primitives, BoundingVolume>{primitives},
       ArborX::Details::DefaultIndexableGetter{}, permutation_indices,
       sorted_morton_codes, leaf_nodes, internal_nodes, bounds);
 }

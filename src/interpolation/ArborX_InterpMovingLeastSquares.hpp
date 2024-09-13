@@ -14,7 +14,6 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
-#include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_IndexableGetter.hpp>
 #include <ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
