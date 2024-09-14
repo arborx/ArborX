@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_HyperTriangle.hpp>
+#include <ArborX_Triangle.hpp>
 
 #include <Kokkos_MathematicalConstants.hpp>
 

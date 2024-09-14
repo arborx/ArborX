@@ -15,9 +15,9 @@
 #include <ArborX_DetailsAlgorithms.hpp> // equal
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsVector.hpp>
-#include <ArborX_HyperTriangle.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
+#include <ArborX_Triangle.hpp>
 
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
 #include <Kokkos_Macros.hpp>
@@ -232,9 +232,8 @@ KOKKOS_INLINE_FUNCTION bool rayEdgeIntersect(Ray::Point const &edge_vertex_1,
 // when the ray and the triangle is coplanar.
 // In the paper, they just need the boolean return.
 KOKKOS_INLINE_FUNCTION
-bool intersection(Ray const &ray,
-                  ExperimentalHyperGeometry::Triangle<3> const &triangle,
-                  float &tmin, float &tmax)
+bool intersection(Ray const &ray, Triangle<3> const &triangle, float &tmin,
+                  float &tmax)
 {
   namespace KokkosExt = Details::KokkosExt;
 
@@ -383,9 +382,8 @@ bool intersection(Ray const &ray,
   return false;
 } // namespace Experimental
 
-KOKKOS_INLINE_FUNCTION bool
-intersects(Ray const &ray,
-           ExperimentalHyperGeometry::Triangle<3> const &triangle)
+KOKKOS_INLINE_FUNCTION bool intersects(Ray const &ray,
+                                       Triangle<3> const &triangle)
 {
   float tmin;
   float tmax;

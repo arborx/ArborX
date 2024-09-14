@@ -13,7 +13,7 @@
 
 #include <ArborX_Point.hpp>
 
-namespace ArborX::ExperimentalHyperGeometry
+namespace ArborX
 {
 // need to add a protection that
 // the points are not on the same line.
@@ -26,26 +26,29 @@ struct Triangle
 };
 
 template <int DIM, class Coordinate>
-Triangle(Point<DIM, Coordinate>, Point<DIM, Coordinate>, Point<DIM, Coordinate>)
-    -> Triangle<DIM, Coordinate>;
+#if KOKKOS_VERSION >= 40400
+KOKKOS_DEDUCTION_GUIDE
+#else
+KOKKOS_FUNCTION
+#endif
+    Triangle(Point<DIM, Coordinate>, Point<DIM, Coordinate>,
+             Point<DIM, Coordinate>) -> Triangle<DIM, Coordinate>;
 
-} // namespace ArborX::ExperimentalHyperGeometry
+} // namespace ArborX
 
 template <int DIM, class Coordinate>
-struct ArborX::GeometryTraits::dimension<
-    ArborX::ExperimentalHyperGeometry::Triangle<DIM, Coordinate>>
+struct ArborX::GeometryTraits::dimension<ArborX::Triangle<DIM, Coordinate>>
 {
   static constexpr int value = DIM;
 };
 template <int DIM, class Coordinate>
-struct ArborX::GeometryTraits::tag<
-    ArborX::ExperimentalHyperGeometry::Triangle<DIM, Coordinate>>
+struct ArborX::GeometryTraits::tag<ArborX::Triangle<DIM, Coordinate>>
 {
   using type = TriangleTag;
 };
 template <int DIM, class Coordinate>
 struct ArborX::GeometryTraits::coordinate_type<
-    ArborX::ExperimentalHyperGeometry::Triangle<DIM, Coordinate>>
+    ArborX::Triangle<DIM, Coordinate>>
 {
   using type = Coordinate;
 };

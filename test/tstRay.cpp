@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 #include <ArborX_Box.hpp>
-#include <ArborX_HyperTriangle.hpp>
 #include <ArborX_Ray.hpp>
+#include <ArborX_Triangle.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -408,8 +408,8 @@ BOOST_AUTO_TEST_CASE(ray_sphere_intersection,
 BOOST_AUTO_TEST_CASE(intersects_triangle)
 {
   using ArborX::Point;
+  using ArborX::Triangle;
   using ArborX::Experimental::Ray;
-  using ArborX::ExperimentalHyperGeometry::Triangle;
   constexpr Triangle unit_triangle{Point{0, 0, 0}, Point{1, 0, 0},
                                    Point{0, 1, 0}};
 
@@ -491,8 +491,8 @@ BOOST_AUTO_TEST_CASE(ray_triangle_intersection,
                      *boost::unit_test::tolerance(2e-6f))
 {
   using ArborX::Point;
+  using ArborX::Triangle;
   using ArborX::Experimental::Ray;
-  using ArborX::ExperimentalHyperGeometry::Triangle;
 
   namespace KokkosExt = ArborX::Details::KokkosExt;
 #ifdef _MSC_VER
