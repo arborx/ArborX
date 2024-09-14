@@ -9,9 +9,9 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
-#include <ArborX_HyperBox.hpp>
 #include <ArborX_HyperTriangle.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
@@ -23,7 +23,7 @@
 #include <boost/test/unit_test.hpp>
 
 using Point = ArborX::Point<3>;
-using Box = ArborX::ExperimentalHyperGeometry::Box<3>;
+using Box = ArborX::Box<3>;
 using Sphere = ArborX::Sphere<3>;
 using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<3>;
 using Tetrahedron = ArborX::ExperimentalHyperGeometry::Tetrahedron<>;

@@ -27,7 +27,7 @@ namespace ArborX
 {
 namespace Details
 {
-using ArborX::Box;
+using Box = ArborX::Box<3>;
 using Point = ArborX::Point<3>;
 } // namespace Details
 } // namespace ArborX

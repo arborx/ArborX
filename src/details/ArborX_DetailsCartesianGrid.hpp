@@ -12,9 +12,9 @@
 #ifndef ARBORX_DETAILS_CARTESIAN_GRID_HPP
 #define ARBORX_DETAILS_CARTESIAN_GRID_HPP
 
+#include <ArborX_Box.hpp>
 #include <ArborX_Exception.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_HyperBox.hpp>
 
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
 #include <Kokkos_Macros.hpp>
@@ -27,7 +27,7 @@ template <int DIM>
 struct CartesianGrid
 {
 private:
-  using Box = ExperimentalHyperGeometry::Box<DIM>;
+  using Box = Box<DIM>;
 
 public:
   static constexpr int dim = DIM;

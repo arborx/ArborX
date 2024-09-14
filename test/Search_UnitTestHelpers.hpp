@@ -112,12 +112,15 @@ auto query(ExecutionSpace const &exec_space, Tree const &tree,
                  (reference),                                                  \
              boost::test_tools::per_element());
 
-template <typename Tree, typename ExecutionSpace>
-auto make(ExecutionSpace const &exec_space, std::vector<ArborX::Box> const &b)
+template <typename Tree, typename ExecutionSpace, int DIM = 3,
+          typename Coordinate = float>
+auto make(ExecutionSpace const &exec_space,
+          std::vector<ArborX::Box<DIM, Coordinate>> const &b)
 {
   int const n = b.size();
-  Kokkos::View<ArborX::Box *, typename Tree::memory_space> boxes(
-      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::boxes"), n);
+  Kokkos::View<ArborX::Box<DIM, Coordinate> *, typename Tree::memory_space>
+      boxes(Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::boxes"),
+            n);
   auto boxes_host =
       Kokkos::create_mirror_view(Kokkos::WithoutInitializing, boxes);
   for (int i = 0; i < n; ++i)
@@ -127,14 +130,15 @@ auto make(ExecutionSpace const &exec_space, std::vector<ArborX::Box> const &b)
 }
 
 #ifdef ARBORX_ENABLE_MPI
-template <typename DeviceType>
-ArborX::DistributedTree<typename DeviceType::memory_space>
-makeDistributedTree(MPI_Comm comm, std::vector<ArborX::Box> const &b)
+template <typename DeviceType, int DIM = 3, typename Coordinate = float>
+auto makeDistributedTree(MPI_Comm comm,
+                         std::vector<ArborX::Box<DIM, Coordinate>> const &b)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
 
   int const n = b.size();
-  Kokkos::View<ArborX::Box *, DeviceType> boxes("Testing::boxes", n);
+  Kokkos::View<ArborX::Box<DIM, Coordinate> *, DeviceType> boxes(
+      "Testing::boxes", n);
   auto boxes_host = Kokkos::create_mirror_view(boxes);
   for (int i = 0; i < n; ++i)
     boxes_host(i) = b[i];
@@ -145,13 +149,14 @@ makeDistributedTree(MPI_Comm comm, std::vector<ArborX::Box> const &b)
 }
 #endif
 
-template <typename DeviceType>
+template <typename DeviceType, int DIM = 3, typename Coordinate = float>
 auto makeIntersectsBoxQueries(
-    std::vector<ArborX::Box> const &boxes,
+    std::vector<ArborX::Box<DIM, Coordinate>> const &boxes,
     typename DeviceType::execution_space const &exec_space = {})
 {
   int const n = boxes.size();
-  Kokkos::View<decltype(ArborX::intersects(ArborX::Box{})) *, DeviceType>
+  Kokkos::View<decltype(ArborX::intersects(ArborX::Box<DIM, Coordinate>{})) *,
+               DeviceType>
       queries(Kokkos::view_alloc(Kokkos::WithoutInitializing,
                                  "Testing::intersecting_with_box_predicates"),
               n);
@@ -166,15 +171,13 @@ auto makeIntersectsBoxQueries(
 template <typename DeviceType, typename Data, int DIM = 3,
           typename Coordinate = float>
 auto makeIntersectsBoxWithAttachmentQueries(
-    std::vector<ArborX::ExperimentalHyperGeometry::Box<DIM, Coordinate>> const
-        &boxes,
+    std::vector<ArborX::Box<DIM, Coordinate>> const &boxes,
     std::vector<Data> const &data,
     typename DeviceType::execution_space const &exec_space = {})
 {
   int const n = boxes.size();
   Kokkos::View<decltype(ArborX::attach(
-                   ArborX::intersects(ArborX::ExperimentalHyperGeometry::Box<
-                                      DIM, Coordinate>{}),
+                   ArborX::intersects(ArborX::Box<DIM, Coordinate>{}),
                    Data{})) *,
                DeviceType>
       queries(Kokkos::view_alloc(
@@ -217,7 +220,7 @@ auto makeBoxNearestQueries(
 {
   // NOTE: `boxes` is not a very descriptive name here. It stores both the
   // corners of the boxe and the number k of neighbors to query for.
-  using Box = ArborX::ExperimentalHyperGeometry::Box<DIM, Coordinate>;
+  using Box = ArborX::Box<DIM, Coordinate>;
   int const n = boxes.size();
   Kokkos::View<ArborX::Nearest<Box> *, DeviceType> queries(
       Kokkos::view_alloc(Kokkos::WithoutInitializing,

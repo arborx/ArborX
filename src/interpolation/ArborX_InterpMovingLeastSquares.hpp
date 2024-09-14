@@ -13,9 +13,9 @@
 #define ARBORX_INTERP_MOVING_LEAST_SQUARES_HPP
 
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_Box.hpp>
 #include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_HyperBox.hpp>
 #include <ArborX_IndexableGetter.hpp>
 #include <ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
 #include <ArborX_InterpDetailsMovingLeastSquaresCoefficients.hpp>

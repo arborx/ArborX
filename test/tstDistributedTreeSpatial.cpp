@@ -452,7 +452,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using Point = ArborX::Point<3>;
-  using Box = ArborX::ExperimentalHyperGeometry::Box<3>;
+  using Box = ArborX::Box<3>;
   using Sphere = ArborX::Sphere<3>;
 
   MPI_Comm comm = MPI_COMM_WORLD;

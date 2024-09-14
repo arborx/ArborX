@@ -16,10 +16,9 @@
 
 BOOST_AUTO_TEST_CASE(intersects_box)
 {
-  using ArborX::Box;
   using ArborX::Experimental::Ray;
 
-  constexpr Box unit_box{{0, 0, 0}, {1, 1, 1}};
+  constexpr ArborX::Box<3> unit_box{{0, 0, 0}, {1, 1, 1}};
 
   // origin is within the box
   BOOST_TEST(intersects(Ray{{.5, .5, .5}, {1, 0, 0}}, unit_box));
@@ -177,7 +176,6 @@ BOOST_AUTO_TEST_CASE(intersects_box)
 
 BOOST_AUTO_TEST_CASE(ray_box_intersection, *boost::unit_test::tolerance(1e-6f))
 {
-  using ArborX::Box;
   using ArborX::Experimental::Ray;
 
   namespace KokkosExt = ArborX::Details::KokkosExt;
@@ -187,7 +185,7 @@ BOOST_AUTO_TEST_CASE(ray_box_intersection, *boost::unit_test::tolerance(1e-6f))
   constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
 #endif
 
-  constexpr Box unit_box{{0, 0, 0}, {1, 1, 1}};
+  constexpr ArborX::Box<3> unit_box{{0, 0, 0}, {1, 1, 1}};
 
   auto const sqrtf_5 = std::sqrt(5.f);
   auto const sqrtf_3 = std::sqrt(3.f);
@@ -253,11 +251,10 @@ BOOST_AUTO_TEST_CASE(ray_box_intersection, *boost::unit_test::tolerance(1e-6f))
 
 BOOST_AUTO_TEST_CASE(ray_box_distance)
 {
-  using ArborX::Box;
   using ArborX::Experimental::Ray;
   // use const instead of constexpr because MSVC shows error(error:expression
   // must have a constant value)
-  constexpr Box unit_box{{0, 0, 0}, {1, 1, 1}};
+  constexpr ArborX::Box<3> unit_box{{0, 0, 0}, {1, 1, 1}};
 
   namespace KokkosExt = ArborX::Details::KokkosExt;
 #ifdef _MSC_VER

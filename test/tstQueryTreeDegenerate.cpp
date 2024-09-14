@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_spatial_predicate, TreeTypeTraits,
     BOOST_TEST(tree.size() == 0);
     // Tree::bounds() returns an invalid box when the tree is empty.
     using ArborX::Details::equals;
-    BOOST_TEST(equals(static_cast<ArborX::Box>(tree.bounds()), {}));
+    BOOST_TEST(equals(static_cast<ArborX::Box<3>>(tree.bounds()), {}));
 
     // Passing a view with no query does seem a bit silly but we still need
     // to support it. And since the tag dispatching yields different tree
@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_nearest_predicate, TreeTypeTraits,
     BOOST_TEST(tree.size() == 0);
     // Tree::bounds() returns an invalid box when the tree is empty.
     using ArborX::Details::equals;
-    BOOST_TEST(equals(static_cast<ArborX::Box>(tree.bounds()), {}));
+    BOOST_TEST(equals(static_cast<ArborX::Box<3>>(tree.bounds()), {}));
 
     // Passing a view with no query does seem a bit silly but we still need
     // to support it. And since the tag dispatching yields different tree
@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_spatial_predicate,
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 1);
   using ArborX::Details::equals;
-  BOOST_TEST(equals(static_cast<ArborX::Box>(tree.bounds()),
+  BOOST_TEST(equals(static_cast<ArborX::Box<3>>(tree.bounds()),
                     {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
@@ -183,7 +183,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_nearest_predicate,
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 1);
   using ArborX::Details::equals;
-  BOOST_TEST(equals(static_cast<ArborX::Box>(tree.bounds()),
+  BOOST_TEST(equals(static_cast<ArborX::Box<3>>(tree.bounds()),
                     {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
@@ -221,7 +221,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_spatial_predicate,
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 2);
   using ArborX::Details::equals;
-  BOOST_TEST(equals(static_cast<ArborX::Box>(tree.bounds()),
+  BOOST_TEST(equals(static_cast<ArborX::Box<3>>(tree.bounds()),
                     {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   // single query intersects with nothing
@@ -284,7 +284,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_nearest_predicate,
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 2);
   using ArborX::Details::equals;
-  BOOST_TEST(equals(static_cast<ArborX::Box>(tree.bounds()),
+  BOOST_TEST(equals(static_cast<ArborX::Box<3>>(tree.bounds()),
                     {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   // no query
@@ -345,7 +345,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_spatial_predicate,
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
 
-  std::vector<ArborX::Box> boxes;
+  std::vector<ArborX::Box<3>> boxes;
   int const n = 4096; // exceeds stack capacity which is 64
   boxes.reserve(n);
   for (int i = 0; i < n; ++i)
@@ -378,7 +378,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_nearest_predicate,
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
 
-  std::vector<ArborX::Box> boxes;
+  std::vector<ArborX::Box<3>> boxes;
   int const n = 4096; // exceed stack capacity which is 64
   boxes.reserve(n);
   for (int i = 0; i < n; ++i)
