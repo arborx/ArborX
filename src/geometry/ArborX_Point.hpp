@@ -36,7 +36,7 @@ struct Point
 };
 
 template <typename... T>
-Point(T...)
+KOKKOS_FUNCTION Point(T...)
     -> Point<sizeof...(T), std::conditional_t<
                                (... || std::is_same_v<std::decay_t<T>, double>),
                                double, float>>;
