@@ -59,6 +59,34 @@ struct Box
        Details::KokkosExt::ArithmeticTraits::finite_min<float>::value,
        Details::KokkosExt::ArithmeticTraits::finite_min<float>::value}};
 
+  [[deprecated("Use expand(Box, Box) instead.")]] KOKKOS_FUNCTION Box &
+  operator+=(Box const &other)
+  {
+    using Kokkos::max;
+    using Kokkos::min;
+
+    for (int d = 0; d < 3; ++d)
+    {
+      minCorner()[d] = min(minCorner()[d], other.minCorner()[d]);
+      maxCorner()[d] = max(maxCorner()[d], other.maxCorner()[d]);
+    }
+    return *this;
+  }
+
+  [[deprecated("Use expand(Box, Point) instead.")]] KOKKOS_FUNCTION Box &
+  operator+=(Point<3> const &point)
+  {
+    using Kokkos::max;
+    using Kokkos::min;
+
+    for (int d = 0; d < 3; ++d)
+    {
+      minCorner()[d] = min(minCorner()[d], point[d]);
+      maxCorner()[d] = max(maxCorner()[d], point[d]);
+    }
+    return *this;
+  }
+
 // FIXME Temporary workaround until we clarify requirements on the Kokkos side.
 #if defined(KOKKOS_ENABLE_OPENMPTARGET) || defined(KOKKOS_ENABLE_SYCL)
 private:

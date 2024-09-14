@@ -216,7 +216,7 @@ performQueries(RTree<Indexable> const &rtree, UserPredicates const &predicates)
   static_assert(Kokkos::SpaceAccessibility<typename Predicates::memory_space,
                                            Kokkos::HostSpace>::accessible);
 
-  Predicates queries{predicates};
+  Predicates queries{predicates}; // NOLINT
 
   using Value = typename RTree<Indexable>::value_type;
   int const n_queries = queries.size();
