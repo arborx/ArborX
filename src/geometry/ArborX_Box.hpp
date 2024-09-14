@@ -14,7 +14,7 @@
 
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_Point.hpp>
+#include <ArborX_HyperPoint.hpp>
 
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_MinMax.hpp>
@@ -33,59 +33,32 @@ struct Box
   constexpr Box() = default;
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Box(Point const &min_corner, Point const &max_corner)
+  constexpr Box(ExperimentalHyperGeometry::Point<3> const &min_corner,
+                ExperimentalHyperGeometry::Point<3> const &max_corner)
       : _min_corner(min_corner)
       , _max_corner(max_corner)
   {}
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Point &minCorner() { return _min_corner; }
+  constexpr auto &minCorner() { return _min_corner; }
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Point const &minCorner() const { return _min_corner; }
+  constexpr auto const &minCorner() const { return _min_corner; }
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Point &maxCorner() { return _max_corner; }
+  constexpr auto &maxCorner() { return _max_corner; }
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Point const &maxCorner() const { return _max_corner; }
+  constexpr auto const &maxCorner() const { return _max_corner; }
 
-  Point _min_corner = {
+  ExperimentalHyperGeometry::Point<3> _min_corner = {
       {Details::KokkosExt::ArithmeticTraits::finite_max<float>::value,
        Details::KokkosExt::ArithmeticTraits::finite_max<float>::value,
        Details::KokkosExt::ArithmeticTraits::finite_max<float>::value}};
-  Point _max_corner = {
+  ExperimentalHyperGeometry::Point<3> _max_corner = {
       {Details::KokkosExt::ArithmeticTraits::finite_min<float>::value,
        Details::KokkosExt::ArithmeticTraits::finite_min<float>::value,
        Details::KokkosExt::ArithmeticTraits::finite_min<float>::value}};
-
-  [[deprecated("Use expand(Box, Box) instead.")]] KOKKOS_FUNCTION Box &
-  operator+=(Box const &other)
-  {
-    using Kokkos::max;
-    using Kokkos::min;
-
-    for (int d = 0; d < 3; ++d)
-    {
-      minCorner()[d] = min(minCorner()[d], other.minCorner()[d]);
-      maxCorner()[d] = max(maxCorner()[d], other.maxCorner()[d]);
-    }
-    return *this;
-  }
-
-  [[deprecated("Use expand(Box, Point) instead.")]] KOKKOS_FUNCTION Box &
-  operator+=(Point const &point)
-  {
-    using Kokkos::max;
-    using Kokkos::min;
-
-    for (int d = 0; d < 3; ++d)
-    {
-      minCorner()[d] = min(minCorner()[d], point[d]);
-      maxCorner()[d] = max(maxCorner()[d], point[d]);
-    }
-    return *this;
-  }
 
 // FIXME Temporary workaround until we clarify requirements on the Kokkos side.
 #if defined(KOKKOS_ENABLE_OPENMPTARGET) || defined(KOKKOS_ENABLE_SYCL)
