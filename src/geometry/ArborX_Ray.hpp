@@ -17,6 +17,7 @@
 #include <ArborX_DetailsVector.hpp>
 #include <ArborX_HyperPoint.hpp>
 #include <ArborX_HyperTriangle.hpp>
+#include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
 
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT

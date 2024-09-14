@@ -12,7 +12,7 @@
 #define ARBORX_Sphere_HPP
 
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_Point.hpp>
+#include <ArborX_HyperPoint.hpp>
 
 #include <Kokkos_Macros.hpp>
 
@@ -25,21 +25,22 @@ struct Sphere
   Sphere() = default;
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Sphere(Point const &centroid, double radius) // FIXME
+  constexpr Sphere(ExperimentalHyperGeometry::Point<3> const &centroid,
+                   double radius) // FIXME
       : _centroid(centroid)
       , _radius(static_cast<float>(radius))
   {}
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Point &centroid() { return _centroid; }
+  constexpr auto &centroid() { return _centroid; }
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Point const &centroid() const { return _centroid; }
+  constexpr auto const &centroid() const { return _centroid; }
 
   KOKKOS_INLINE_FUNCTION
   constexpr float radius() const { return _radius; }
 
-  Point _centroid = {};
+  ExperimentalHyperGeometry::Point<3> _centroid = {};
   float _radius = 0.;
 };
 
