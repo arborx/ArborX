@@ -65,8 +65,7 @@ struct WithinRadiusGetter
 
     constexpr int dim = GeometryTraits::dimension_v<Point>;
     auto const &hyper_point =
-        reinterpret_cast<ExperimentalHyperGeometry::Point<dim> const &>(
-            pair.value);
+        reinterpret_cast<::ArborX::Point<dim> const &>(pair.value);
     using ArborX::intersects;
     return intersects(ExperimentalHyperGeometry::Sphere<dim>{hyper_point, _r});
   }
@@ -119,7 +118,7 @@ struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
     // FIXME reinterpret_cast is dangerous here if access traits return user
     // point structure (e.g., struct MyPoint { float y; float x; })
     auto const &hyper_point =
-        reinterpret_cast<ExperimentalHyperGeometry::Point<dim> const &>(point);
+        reinterpret_cast<::ArborX::Point<dim> const &>(point);
     return attach(
         intersects(ExperimentalHyperGeometry::Sphere<dim>{hyper_point, w._r}),
         (int)index);
@@ -168,8 +167,7 @@ struct AccessTraits<
         GeometryTraits::dimension_v<std::decay_t<decltype(point)>>;
     // FIXME reinterpret_cast is dangerous here if access traits return user
     // point structure (e.g., struct MyPoint { float y; float x; })
-    auto const &hyper_point =
-        reinterpret_cast<ExperimentalHyperGeometry::Point<dim> const &>(point);
+    auto const &hyper_point = reinterpret_cast<Point<dim> const &>(point);
     return ExperimentalHyperGeometry::Box<dim>{hyper_point, hyper_point};
   }
   using memory_space = typename MixedOffsets::memory_space;

@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world_nearest, DeviceType,
   using Tree = ArborX::DistributedTree<typename DeviceType::memory_space>;
   using ExecutionSpace = typename DeviceType::execution_space;
 
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
@@ -312,7 +312,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(do_not_exceed_capacity, DeviceType,
   // comm_size * 512 elements into the queue.
   using ArborX::Box;
   using ArborX::nearest;
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
   using ExecutionSpace = typename DeviceType::execution_space;
   MPI_Comm comm = MPI_COMM_WORLD;
   Kokkos::View<Point *, DeviceType> points("Testing::points", 512);

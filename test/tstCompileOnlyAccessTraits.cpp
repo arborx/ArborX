@@ -11,7 +11,7 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_AttachIndices.hpp>
-#include <ArborX_HyperPoint.hpp>
+#include <ArborX_Point.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -53,7 +53,7 @@ using deduce_type_t =
 
 void test_access_traits_compile_only()
 {
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   Kokkos::View<Point *> p;
   Kokkos::View<float **> v;
@@ -111,8 +111,8 @@ void test_access_traits_compile_only()
 
 void test_deduce_point_type_from_view()
 {
+  using ArborX::Point;
   using ArborX::PrimitivesTag;
-  using ArborX::ExperimentalHyperGeometry::Point;
   static_assert(
       std::is_same_v<deduce_type_t<Kokkos::View<float **>, PrimitivesTag>,
                      Point<3>>);

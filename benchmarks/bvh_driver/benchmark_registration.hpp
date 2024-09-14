@@ -13,7 +13,7 @@
 #define BENCHMARK_REGISTRATION_HPP
 
 #include <ArborXBenchmark_PointClouds.hpp>
-#include <ArborX_HyperPoint.hpp>
+#include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -105,7 +105,7 @@ auto constructPoints(int n_values,
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec;
 
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
   Kokkos::View<Point *, DeviceType> random_points(
       Kokkos::view_alloc(exec, Kokkos::WithoutInitializing,
                          "Benchmark::random_points"),
@@ -127,7 +127,7 @@ auto makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec;
 
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
   Kokkos::View<Point *, DeviceType> random_points(
       Kokkos::view_alloc(exec, Kokkos::WithoutInitializing,
                          "Benchmark::random_points"),
@@ -152,7 +152,7 @@ auto makeNearestQueries(int n_values, int n_queries, int n_neighbors,
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec;
 
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
   Kokkos::View<Point *, DeviceType> random_points(
       Kokkos::view_alloc(exec, Kokkos::WithoutInitializing,
                          "Benchmark::random_points"),

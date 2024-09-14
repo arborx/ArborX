@@ -11,7 +11,7 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_HyperPoint.hpp>
+#include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
 
 namespace ArborX::GeometryTraits
@@ -189,7 +189,7 @@ void test_geometry_compile_only()
   check_valid_geometry_traits(ArborX::Box{});
   check_valid_geometry_traits(ArborX::Sphere{});
 
-  check_valid_geometry_traits(ArborX::ExperimentalHyperGeometry::Point<3>{});
+  check_valid_geometry_traits(ArborX::Point<3>{});
 
   check_valid_geometry_traits(CorrectSpecialization{});
 
@@ -220,7 +220,7 @@ void test_geometry_compile_only()
 
 void test_point_cv_compile_only()
 {
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
   namespace GT = ArborX::GeometryTraits;
 
   static_assert(GT::dimension_v<Point const> == 3);
@@ -231,7 +231,7 @@ void test_point_cv_compile_only()
 
 void test_point_ctad()
 {
-  using ArborX::ExperimentalHyperGeometry::Point;
+  using ArborX::Point;
   static_assert(std::is_same_v<decltype(Point{1}), Point<1, float>>);
   static_assert(std::is_same_v<decltype(Point{1.}), Point<1, double>>);
   static_assert(std::is_same_v<decltype(Point{1., 2}), Point<2, double>>);

@@ -17,7 +17,7 @@
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsVector.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_HyperPoint.hpp>
+#include <ArborX_Point.hpp>
 
 #include <Kokkos_Array.hpp>
 #include <Kokkos_Macros.hpp>
@@ -394,7 +394,7 @@ struct centroid<KDOPTag, KDOP>
     using Coordinate = GeometryTraits::coordinate_type_t<KDOP>;
 
     // WARNING implicit requirement on KDOP first DIM directions
-    ExperimentalHyperGeometry::Point<DIM, Coordinate> point;
+    Point<DIM, Coordinate> point;
     for (int d = 0; d < DIM; ++d)
       point[d] = (kdop._min_values[d] + kdop._max_values[d]) / 2;
     return point;

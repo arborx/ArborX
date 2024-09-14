@@ -12,8 +12,8 @@
 #include "ArborX_EnableDeviceTypes.hpp"
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_DetailsAlgorithms.hpp>
-#include <ArborX_HyperPoint.hpp>
 #include <ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
+#include <ArborX_Point.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/math/tools/polynomial.hpp>
@@ -22,7 +22,7 @@
 template <typename T, typename CRBF, typename ES>
 void makeCase(ES const &es, std::function<T(T const)> const &tf, T tol = 1e-5)
 {
-  using Point = ArborX::ExperimentalHyperGeometry::Point<1, T>;
+  using Point = ArborX::Point<1, T>;
   using View = Kokkos::View<T *, typename ES::memory_space>;
   using HostView = typename View::HostMirror;
   static constexpr int range = 15;

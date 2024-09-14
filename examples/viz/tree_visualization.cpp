@@ -89,7 +89,7 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
   using ExecutionSpace = Kokkos::DefaultHostExecutionSpace;
   using DeviceType = ExecutionSpace::device_type;
 
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   Kokkos::View<Point *, DeviceType> points("Example::points", 0);
   loadPointCloud(infile, points);

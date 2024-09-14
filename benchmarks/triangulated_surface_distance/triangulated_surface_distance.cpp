@@ -24,7 +24,7 @@
 
 #include "generator.hpp"
 
-using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+using Point = ArborX::Point<3>;
 using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<3>;
 
 template <typename MemorySpace>

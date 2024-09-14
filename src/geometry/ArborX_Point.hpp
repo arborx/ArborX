@@ -8,72 +8,55 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-
-#ifndef ARBORX_DETAILS_POINT_HPP
-#define ARBORX_DETAILS_POINT_HPP
+#ifndef ARBORX_POINT_HPP
+#define ARBORX_POINT_HPP
 
 #include <ArborX_GeometryTraits.hpp>
 
 #include <Kokkos_Macros.hpp>
 
-#include <utility>
-
 namespace ArborX
 {
-class Point
+
+template <int DIM, class Coordinate = float>
+struct Point
 {
-private:
-  struct Data
-  {
-    float coords[3];
-  } _data = {};
+  static_assert(DIM > 0);
 
-  struct Abomination
-  {
-    double xyz[3];
-  };
+  KOKKOS_FUNCTION
+  constexpr auto &operator[](unsigned int i) { return _coords[i]; }
 
-public:
-  KOKKOS_DEFAULTED_FUNCTION
-  constexpr Point() noexcept = default;
+  KOKKOS_FUNCTION
+  constexpr auto const &operator[](unsigned int i) const { return _coords[i]; }
 
-  KOKKOS_INLINE_FUNCTION
-  constexpr Point(Abomination data)
-      : Point(static_cast<float>(data.xyz[0]), static_cast<float>(data.xyz[1]),
-              static_cast<float>(data.xyz[2]))
-  {}
-
-  KOKKOS_INLINE_FUNCTION
-  constexpr Point(float x, float y, float z)
-      : _data{{x, y, z}}
-  {}
-
-  KOKKOS_INLINE_FUNCTION
-  constexpr float &operator[](unsigned int i) { return _data.coords[i]; }
-
-  KOKKOS_INLINE_FUNCTION
-  constexpr float const &operator[](unsigned int i) const
-  {
-    return _data.coords[i];
-  }
+  // Initialization is needed to be able to use Point in constexpr
+  // TODO: do we want to actually want to zero initialize it? Seems like
+  // unnecessary work.
+  Coordinate _coords[DIM] = {};
 };
 
-template <>
-struct GeometryTraits::dimension<ArborX::Point>
+template <typename... T>
+Point(T...)
+    -> Point<sizeof...(T), std::conditional_t<
+                               (... || std::is_same_v<std::decay_t<T>, double>),
+                               double, float>>;
+
+} // namespace ArborX
+
+template <int DIM, class Coordinate>
+struct ArborX::GeometryTraits::dimension<ArborX::Point<DIM, Coordinate>>
 {
-  static constexpr int value = 3;
+  static constexpr int value = DIM;
 };
-template <>
-struct GeometryTraits::tag<ArborX::Point>
+template <int DIM, class Coordinate>
+struct ArborX::GeometryTraits::tag<ArborX::Point<DIM, Coordinate>>
 {
   using type = PointTag;
 };
-template <>
-struct ArborX::GeometryTraits::coordinate_type<ArborX::Point>
+template <int DIM, class Coordinate>
+struct ArborX::GeometryTraits::coordinate_type<ArborX::Point<DIM, Coordinate>>
 {
-  using type = float;
+  using type = Coordinate;
 };
-
-} // namespace ArborX
 
 #endif

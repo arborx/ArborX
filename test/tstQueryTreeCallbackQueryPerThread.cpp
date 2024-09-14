@@ -40,8 +40,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_intersects, DeviceType,
   using Tree = ArborX::BVH<MemorySpace>;
 
   int const n = 10;
-  Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<3> *, DeviceType>
-      points(Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
+  Kokkos::View<ArborX::Point<3> *, DeviceType> points(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
         points(i) = {{(float)i, (float)i, (float)i}};
@@ -85,8 +85,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_ordered_intersects, DeviceType,
   using Tree = ArborX::BVH<MemorySpace>;
 
   int const n = 10;
-  Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<3> *, DeviceType>
-      points(Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
+  Kokkos::View<ArborX::Point<3> *, DeviceType> points(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
         points(i) = {{(float)i, (float)i, (float)i}};

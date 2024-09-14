@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(minimum_spanning_tree, DeviceType,
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec_space;
 
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   { // equidistant points
     // 0     1     2     3     4

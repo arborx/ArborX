@@ -14,7 +14,7 @@
 
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_HyperPoint.hpp>
+#include <ArborX_Point.hpp>
 
 #include <Kokkos_Array.hpp>
 
@@ -24,18 +24,15 @@ namespace ArborX::ExperimentalHyperGeometry
 template <class Coordinate = float>
 struct Tetrahedron
 {
-  ExperimentalHyperGeometry::Point<3, Coordinate> a;
-  ExperimentalHyperGeometry::Point<3, Coordinate> b;
-  ExperimentalHyperGeometry::Point<3, Coordinate> c;
-  ExperimentalHyperGeometry::Point<3, Coordinate> d;
+  Point<3, Coordinate> a;
+  Point<3, Coordinate> b;
+  Point<3, Coordinate> c;
+  Point<3, Coordinate> d;
 };
 
 template <class Coordinate>
-Tetrahedron(ExperimentalHyperGeometry::Point<3, Coordinate>,
-            ExperimentalHyperGeometry::Point<3, Coordinate>,
-            ExperimentalHyperGeometry::Point<3, Coordinate>,
-            ExperimentalHyperGeometry::Point<3, Coordinate>)
-    -> Tetrahedron<Coordinate>;
+Tetrahedron(Point<3, Coordinate>, Point<3, Coordinate>, Point<3, Coordinate>,
+            Point<3, Coordinate>) -> Tetrahedron<Coordinate>;
 
 } // namespace ArborX::ExperimentalHyperGeometry
 

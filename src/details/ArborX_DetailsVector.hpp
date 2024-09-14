@@ -12,7 +12,7 @@
 #define ARBORX_DETAILS_VECTOR_HPP
 
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_HyperPoint.hpp>
+#include <ArborX_Point.hpp>
 
 #include <Kokkos_Assert.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>

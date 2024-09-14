@@ -10,9 +10,9 @@
  ****************************************************************************/
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
-#include <ArborX_HyperPoint.hpp>
 #include <ArborX_KDOP.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <ArborX_Point.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop, DeviceType, ARBORX_DEVICE_TYPES)
   using MemorySpace = typename DeviceType::memory_space;
   using Tree = ArborX::BVH<MemorySpace>;
 
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   std::vector<Point> primitives = {
       {{0, 0, 0}}, // 0

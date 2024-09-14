@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(compute_core_distances, DeviceType,
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec_space;
 
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   std::vector<Point> points{
       {0, 0, 0}, {1, 0, 0}, {2, 0, 0}, {3, 0, 0}, {4, 0, 0},

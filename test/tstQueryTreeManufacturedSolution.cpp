@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   }
 #endif
 
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
   using Box = ArborX::ExperimentalHyperGeometry::Box<3>;
 
   float Lx = 100.0;

@@ -33,9 +33,9 @@ inline auto make_stuctured_cloud(float Lx, float Ly, float Lz, int nx, int ny,
   std::function<int(int, int, int)> ind = [nx, ny](int i, int j, int k) {
     return i + j * nx + k * (nx * ny);
   };
-  Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<3> *, Kokkos::HostSpace>
-      cloud(Kokkos::view_alloc(Kokkos::WithoutInitializing, "structured_cloud"),
-            nx * ny * nz);
+  Kokkos::View<ArborX::Point<3> *, Kokkos::HostSpace> cloud(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "structured_cloud"),
+      nx * ny * nz);
   for (int i = 0; i < nx; ++i)
     for (int j = 0; j < ny; ++j)
       for (int k = 0; k < nz; ++k)
@@ -129,9 +129,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
   // compare our solution against Boost R-tree
   int const n_points = 100;
   using MemorySpace = typename Tree::memory_space;
-  auto points = ArborXTest::make_random_cloud<
-      ArborX::ExperimentalHyperGeometry::Point<3>>(ExecutionSpace{}, n_points,
-                                                   Lx, Ly, Lz);
+  auto points = ArborXTest::make_random_cloud<ArborX::Point<3>>(
+      ExecutionSpace{}, n_points, Lx, Ly, Lz);
 
   Kokkos::View<float *, ExecutionSpace> radii("radii", n_points);
   auto radii_host = Kokkos::create_mirror_view(radii);
@@ -194,7 +193,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate_point,
   using DeviceType = typename TreeTypeTraits::device_type;
 
   boost_rtree_nearest_predicate<Tree, ExecutionSpace, DeviceType,
-                                ArborX::ExperimentalHyperGeometry::Point<3>>();
+                                ArborX::Point<3>>();
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate_box, TreeTypeTraits,

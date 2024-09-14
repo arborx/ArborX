@@ -158,9 +158,7 @@ static auto translate(ArborX::Intersects<ArborX::Sphere> const &query)
 {
   auto const sphere = getGeometry(query);
   auto const radius = sphere.radius();
-  auto const centroid =
-      Kokkos::bit_cast<ArborX::ExperimentalHyperGeometry::Point<3>>(
-          sphere.centroid());
+  auto const centroid = Kokkos::bit_cast<ArborX::Point<3>>(sphere.centroid());
   ArborX::Box box;
   ArborX::Details::expand(box, sphere);
   return boost::geometry::index::intersects(box) &&

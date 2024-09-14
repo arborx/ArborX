@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
     int comm_size;
     MPI_Comm_size(comm, &comm_size);
 
-    using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+    using Point = ArborX::Point<3>;
 
     // ranks: | 0 | 1 | 2 |
     //        -------------

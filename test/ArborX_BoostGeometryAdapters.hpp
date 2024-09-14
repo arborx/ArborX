@@ -14,7 +14,7 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_HyperBox.hpp>
-#include <ArborX_HyperPoint.hpp>
+#include <ArborX_Point.hpp>
 
 #include <boost/geometry.hpp>
 
@@ -25,43 +25,38 @@ namespace geometry
 namespace traits
 {
 
-// Adapt ArborX::ExperimentalHyperGeometry::Point to Boost.Geometry
+// Adapt ArborX::Point to Boost.Geometry
 template <int DIM, typename Coordinate>
-struct tag<ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>>
+struct tag<ArborX::Point<DIM, Coordinate>>
 {
   using type = point_tag;
 };
 
 template <int DIM, typename Coordinate>
-struct coordinate_type<
-    ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>>
+struct coordinate_type<ArborX::Point<DIM, Coordinate>>
 {
   using type = Coordinate;
 };
 
 template <int DIM, typename Coordinate>
-struct coordinate_system<
-    ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>>
+struct coordinate_system<ArborX::Point<DIM, Coordinate>>
 {
   using type = cs::cartesian;
 };
 
 template <int DIM, typename Coordinate>
-struct dimension<ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>>
-    : boost::mpl::int_<DIM>
+struct dimension<ArborX::Point<DIM, Coordinate>> : boost::mpl::int_<DIM>
 {};
 
 template <int DIM, typename Coordinate, size_t D>
-struct access<ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>, D>
+struct access<ArborX::Point<DIM, Coordinate>, D>
 {
-  static inline float
-  get(ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate> const &p)
+  static inline float get(ArborX::Point<DIM, Coordinate> const &p)
   {
     return p[D];
   }
 
-  static inline void
-  set(ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate> &p, float value)
+  static inline void set(ArborX::Point<DIM, Coordinate> &p, float value)
   {
     p[D] = value;
   }
@@ -77,7 +72,7 @@ struct tag<ArborX::Box>
 template <>
 struct point_type<ArborX::Box>
 {
-  using type = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using type = ArborX::Point<3>;
 };
 
 template <size_t D>
@@ -112,7 +107,7 @@ struct tag<ArborX::ExperimentalHyperGeometry::Box<DIM, Coordinate>>
 template <int DIM, typename Coordinate>
 struct point_type<ArborX::ExperimentalHyperGeometry::Box<DIM, Coordinate>>
 {
-  using type = ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>;
+  using type = ArborX::Point<DIM, Coordinate>;
 };
 
 template <int DIM, typename Coordinate, size_t D>

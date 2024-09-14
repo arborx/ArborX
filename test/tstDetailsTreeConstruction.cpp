@@ -36,14 +36,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(assign_morton_codes, DeviceType,
   // N is the number of Morton grid cells in each dimension for 64-bit Morton
   // codes.
   constexpr unsigned long long N = 1 << 21;
-  std::vector<ArborX::ExperimentalHyperGeometry::Point<3>> points = {
-      {{0.0, 0.0, 0.0}},
-      {{0.25, 0.75, 0.25}},
-      {{0.75, 0.25, 0.25}},
-      {{0.75, 0.75, 0.25}},
-      {{1.33, 2.33, 3.33}},
-      {{1.66, 2.66, 3.66}},
-      {{(float)N, (float)N, (float)N}}};
+  std::vector<ArborX::Point<3>> points = {{{0.0, 0.0, 0.0}},
+                                          {{0.25, 0.75, 0.25}},
+                                          {{0.75, 0.25, 0.25}},
+                                          {{0.75, 0.75, 0.25}},
+                                          {{1.33, 2.33, 3.33}},
+                                          {{1.66, 2.66, 3.66}},
+                                          {{(float)N, (float)N, (float)N}}};
   int const n = points.size();
   // lower left front corner of the octant the points fall in
   std::vector<std::array<unsigned long long, 3>> anchors = {

@@ -19,8 +19,7 @@
 template <class MemorySpace>
 struct Neighbors
 {
-  Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<3> *, MemorySpace>
-      _particles;
+  Kokkos::View<ArborX::Point<3> *, MemorySpace> _particles;
   float _radius;
 };
 
@@ -77,10 +76,10 @@ int main(int argc, char *argv[])
   float const r = 3.f; // cut-off radius
 
   Kokkos::Profiling::pushRegion("Example::setup");
-  Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<3> *, MemorySpace>
-      particles(Kokkos::view_alloc(execution_space, Kokkos::WithoutInitializing,
-                                   "Example::points"),
-                n);
+  Kokkos::View<ArborX::Point<3> *, MemorySpace> particles(
+      Kokkos::view_alloc(execution_space, Kokkos::WithoutInitializing,
+                         "Example::points"),
+      n);
   Kokkos::parallel_for(
       "Example::make_particles",
       Kokkos::MDRangePolicy<Kokkos::Rank<3>, ExecutionSpace>(

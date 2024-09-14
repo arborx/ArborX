@@ -33,7 +33,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world_spatial, DeviceType,
 {
   using Tree = ArborX::DistributedTree<typename DeviceType::memory_space>;
   using ExecutionSpace = typename DeviceType::execution_space;
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
@@ -239,7 +239,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank_spatial, DeviceType,
 template <typename DeviceType>
 struct CustomInlineCallbackWithAttachment
 {
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   Kokkos::View<Point *, DeviceType> points;
   Point const origin = {{0., 0., 0.}};
@@ -260,7 +260,7 @@ template <typename DeviceType>
 struct CustomPostCallbackWithAttachment
 {
   using tag = ArborX::Details::PostCallbackTag;
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   Kokkos::View<Point *, DeviceType> points;
   Point const origin = {{0., 0., 0.}};
@@ -287,7 +287,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
@@ -400,7 +400,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(pure_spatial_callback, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
@@ -450,7 +450,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(pure_spatial_callback, DeviceType,
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
   using Box = ArborX::ExperimentalHyperGeometry::Box<3>;
 
   MPI_Comm comm = MPI_COMM_WORLD;

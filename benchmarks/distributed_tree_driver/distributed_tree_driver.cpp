@@ -11,8 +11,8 @@
 
 #include <ArborXBenchmark_TimeMonitor.hpp>
 #include <ArborX_DistributedTree.hpp>
-#include <ArborX_HyperPoint.hpp>
 #include <ArborX_PairIndexRank.hpp>
+#include <ArborX_Point.hpp>
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -107,7 +107,7 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
               << '\n';
   }
 
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   Kokkos::View<Point *, DeviceType> random_values(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::values"),

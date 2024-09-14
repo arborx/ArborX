@@ -17,12 +17,12 @@
 
 using namespace ArborX::Details;
 
-#include <ArborX_HyperPoint.hpp>
+#include <ArborX_Point.hpp>
 
 template <typename MemorySpace>
 struct PointCloud
 {
-  ArborX::ExperimentalHyperGeometry::Point<3> *data;
+  ArborX::Point<3> *data;
   int n;
 };
 
@@ -45,7 +45,7 @@ struct ArborX::AccessTraits<PointCloud<MemorySpace>, ArborX::PrimitivesTag>
 template <typename MemorySpace>
 struct PairPointIndexCloud
 {
-  ArborX::ExperimentalHyperGeometry::Point<3> *data;
+  ArborX::Point<3> *data;
   int n;
 };
 
@@ -61,8 +61,8 @@ struct ArborX::AccessTraits<PairPointIndexCloud<MemorySpace>,
   }
   static KOKKOS_FUNCTION auto get(Points const &points, std::size_t i)
   {
-    return ArborX::PairValueIndex<ArborX::ExperimentalHyperGeometry::Point<3>,
-                                  int>{points.data[i], (int)i};
+    return ArborX::PairValueIndex<ArborX::Point<3>, int>{points.data[i],
+                                                         (int)i};
   }
   using memory_space = MemorySpace;
 };
@@ -106,8 +106,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
 
   using ArborX::Details::equals;
 
-  Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<3> *, MemorySpace>
-      points("Testing::points", 2);
+  Kokkos::View<ArborX::Point<3> *, MemorySpace> points("Testing::points", 2);
   auto points_host = Kokkos::create_mirror_view(points);
   points_host(0) = {-1, -1, -1};
   points_host(1) = {1, 1, 1};

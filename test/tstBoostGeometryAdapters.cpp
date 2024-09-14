@@ -12,7 +12,7 @@
 #include "ArborX_BoostGeometryAdapters.hpp"
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
-#include <ArborX_HyperPoint.hpp>
+#include <ArborX_Point.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -28,7 +28,7 @@ namespace ArborX
 namespace Details
 {
 using ArborX::Box;
-using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+using Point = ArborX::Point<3>;
 } // namespace Details
 } // namespace ArborX
 namespace boost

@@ -412,8 +412,8 @@ BOOST_AUTO_TEST_CASE(ray_sphere_intersection,
 
 BOOST_AUTO_TEST_CASE(intersects_triangle)
 {
+  using ArborX::Point;
   using ArborX::Experimental::Ray;
-  using ArborX::ExperimentalHyperGeometry::Point;
   using ArborX::ExperimentalHyperGeometry::Triangle;
   constexpr Triangle unit_triangle{Point{0, 0, 0}, Point{1, 0, 0},
                                    Point{0, 1, 0}};
@@ -495,8 +495,8 @@ BOOST_AUTO_TEST_CASE(intersects_triangle)
 BOOST_AUTO_TEST_CASE(ray_triangle_intersection,
                      *boost::unit_test::tolerance(2e-6f))
 {
+  using ArborX::Point;
   using ArborX::Experimental::Ray;
-  using ArborX::ExperimentalHyperGeometry::Point;
   using ArborX::ExperimentalHyperGeometry::Triangle;
 
   namespace KokkosExt = ArborX::Details::KokkosExt;

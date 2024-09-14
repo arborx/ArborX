@@ -15,7 +15,6 @@
 #include <ArborX_DetailsAlgorithms.hpp> // equal
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_DetailsVector.hpp>
-#include <ArborX_HyperPoint.hpp>
 #include <ArborX_HyperTriangle.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
@@ -32,7 +31,7 @@ namespace ArborX::Experimental
 
 struct Ray
 {
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
   using Vector = ArborX::Details::Vector<3>;
 
   Point _origin = {};
@@ -175,9 +174,9 @@ KOKKOS_INLINE_FUNCTION int findLargestComp(typename Ray::Vector const &dir)
 // implementation avoids explicitly defining rotation angles
 // and directions. The following ray-edge intersection will
 // be in the x*-y* plane.
-KOKKOS_INLINE_FUNCTION Point rotate2D(Point const &point)
+KOKKOS_INLINE_FUNCTION auto rotate2D(Ray::Point const &point)
 {
-  Point point_star;
+  Ray::Point point_star;
   float r = std::sqrt(point[0] * point[0] + point[1] * point[1]);
   if (point[0] != 0)
   {
@@ -197,8 +196,8 @@ KOKKOS_INLINE_FUNCTION Point rotate2D(Point const &point)
 // the transformed and rotated triangle edges
 // The algorithm is described in
 // https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line_segment
-KOKKOS_INLINE_FUNCTION bool rayEdgeIntersect(Point const &edge_vertex_1,
-                                             Point const &edge_vertex_2,
+KOKKOS_INLINE_FUNCTION bool rayEdgeIntersect(Ray::Point const &edge_vertex_1,
+                                             Ray::Point const &edge_vertex_2,
                                              float &t)
 {
   float x3 = edge_vertex_1[0];
@@ -257,11 +256,7 @@ bool intersection(Ray const &ray,
   s[1] = dir[ky] * s[2];
 
   // calculate vertices relative to ray origin
-  constexpr int dim = GeometryTraits::dimension_v<Point>;
-  using Float = GeometryTraits::coordinate_type_t<Point>;
-  auto const &o =
-      reinterpret_cast<ExperimentalHyperGeometry::Point<dim, Float> const &>(
-          ray.origin());
+  auto const &o = ray.origin();
   auto const oA = triangle.a - o;
   auto const oB = triangle.b - o;
   auto const oC = triangle.c - o;
@@ -274,9 +269,9 @@ bool intersection(Ray const &ray,
 
   auto mag_bar = 3.0 / (mag_oA + mag_oB + mag_oC);
 
-  Point A;
-  Point B;
-  Point C;
+  Ray::Point A;
+  Ray::Point B;
+  Ray::Point C;
 
   // perform shear and scale of vertices
   // normalized by mag_bar

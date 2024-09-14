@@ -14,7 +14,7 @@
 
 BOOST_AUTO_TEST_CASE(make_euclidean_vector)
 {
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3, float>;
+  using Point = ArborX::Point<3, float>;
   using Vector = ArborX::Details::Vector<3, float>;
   static_assert(Point{1, 2, 3} - Point{0, 0, 0} == Vector{1, 2, 3});
   static_assert(Point{4, 5, 6} - Point{1, 2, 3} == Vector{3, 3, 3});

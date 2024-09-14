@@ -11,7 +11,7 @@
 #ifndef ARBORX_TRIANGLE_HPP
 #define ARBORX_TRIANGLE_HPP
 
-#include <ArborX_HyperPoint.hpp>
+#include <ArborX_Point.hpp>
 
 namespace ArborX::ExperimentalHyperGeometry
 {
@@ -20,15 +20,13 @@ namespace ArborX::ExperimentalHyperGeometry
 template <int DIM, class Coordinate = float>
 struct Triangle
 {
-  ExperimentalHyperGeometry::Point<DIM, Coordinate> a;
-  ExperimentalHyperGeometry::Point<DIM, Coordinate> b;
-  ExperimentalHyperGeometry::Point<DIM, Coordinate> c;
+  Point<DIM, Coordinate> a;
+  Point<DIM, Coordinate> b;
+  Point<DIM, Coordinate> c;
 };
 
 template <int DIM, class Coordinate>
-Triangle(ExperimentalHyperGeometry::Point<DIM, Coordinate>,
-         ExperimentalHyperGeometry::Point<DIM, Coordinate>,
-         ExperimentalHyperGeometry::Point<DIM, Coordinate>)
+Triangle(Point<DIM, Coordinate>, Point<DIM, Coordinate>, Point<DIM, Coordinate>)
     -> Triangle<DIM, Coordinate>;
 
 } // namespace ArborX::ExperimentalHyperGeometry

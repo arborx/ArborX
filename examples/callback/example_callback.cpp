@@ -45,8 +45,7 @@ struct ArborX::AccessTraits<NearestToOrigin, ArborX::PredicatesTag>
   static KOKKOS_FUNCTION std::size_t size(NearestToOrigin) { return 1; }
   static KOKKOS_FUNCTION auto get(NearestToOrigin d, std::size_t)
   {
-    return ArborX::nearest(ArborX::ExperimentalHyperGeometry::Point{0, 0, 0},
-                           d.k);
+    return ArborX::nearest(ArborX::Point{0, 0, 0}, d.k);
   }
   using memory_space = MemorySpace;
 };
@@ -66,7 +65,7 @@ int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
 
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   int const n = 100;
   std::vector<Point> points;

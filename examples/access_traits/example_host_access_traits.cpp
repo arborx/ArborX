@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
 
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   std::vector<Point> points;
   // Fill vector with random points in [-1, 1]^3

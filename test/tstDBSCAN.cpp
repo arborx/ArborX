@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_SUITE(DBSCAN)
 BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
   using ArborX::Details::verifyDBSCAN;
 
   ExecutionSpace space;
@@ -156,7 +156,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
   using ArborX::dbscan;
   using ArborX::Details::verifyDBSCAN;
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   ExecutionSpace space;
 

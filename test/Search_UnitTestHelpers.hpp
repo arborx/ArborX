@@ -25,8 +25,8 @@
 #include <ArborX_DistributedTree.hpp>
 #endif
 #include <ArborX_Box.hpp>
-#include <ArborX_HyperPoint.hpp>
 #include <ArborX_HyperSphere.hpp>
+#include <ArborX_Point.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -191,17 +191,13 @@ auto makeIntersectsBoxWithAttachmentQueries(
 
 template <typename DeviceType, int DIM = 3, typename Coordinate = float>
 auto makeNearestQueries(
-    std::vector<std::pair<
-        ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>, int>> const
-        &points,
+    std::vector<std::pair<ArborX::Point<DIM, Coordinate>, int>> const &points,
     typename DeviceType::execution_space const &exec_space = {})
 {
   // NOTE: `points` is not a very descriptive name here. It stores both the
   // actual point and the number k of neighbors to query for.
   int const n = points.size();
-  Kokkos::View<ArborX::Nearest<
-                   ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>> *,
-               DeviceType>
+  Kokkos::View<ArborX::Nearest<ArborX::Point<DIM, Coordinate>> *, DeviceType>
       queries(Kokkos::view_alloc(Kokkos::WithoutInitializing,
                                  "Testing::nearest_queries"),
               n);
@@ -215,10 +211,8 @@ auto makeNearestQueries(
 
 template <typename DeviceType, int DIM = 3, typename Coordinate = float>
 auto makeBoxNearestQueries(
-    std::vector<std::tuple<
-        ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>,
-        ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>, int>> const
-        &boxes,
+    std::vector<std::tuple<ArborX::Point<DIM, Coordinate>,
+                           ArborX::Point<DIM, Coordinate>, int>> const &boxes,
     typename DeviceType::execution_space const &exec_space = {})
 {
   // NOTE: `boxes` is not a very descriptive name here. It stores both the
@@ -241,9 +235,8 @@ auto makeBoxNearestQueries(
 
 template <typename DeviceType, int DIM = 3, typename Coordinate = float>
 auto makeSphereNearestQueries(
-    std::vector<
-        std::tuple<ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>,
-                   float, int>> const &spheres,
+    std::vector<std::tuple<ArborX::Point<DIM, Coordinate>, float, int>> const
+        &spheres,
     typename DeviceType::execution_space const &exec_space = {})
 {
   // NOTE: `sphere` is not a very descriptive name here. It stores both the
@@ -268,9 +261,7 @@ auto makeSphereNearestQueries(
 template <typename DeviceType, typename Data, int DIM = 3,
           typename Coordinate = float>
 auto makeNearestWithAttachmentQueries(
-    std::vector<std::pair<
-        ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>, int>> const
-        &points,
+    std::vector<std::pair<ArborX::Point<DIM, Coordinate>, int>> const &points,
     std::vector<Data> const &data,
     typename DeviceType::execution_space const &exec_space = {})
 {
@@ -278,8 +269,7 @@ auto makeNearestWithAttachmentQueries(
   // actual point and the number k of neighbors to query for.
   int const n = points.size();
   Kokkos::View<decltype(ArborX::attach(
-                   ArborX::Nearest<ArborX::ExperimentalHyperGeometry::Point<
-                       DIM, Coordinate>>{},
+                   ArborX::Nearest<ArborX::Point<DIM, Coordinate>>{},
                    Data{})) *,
                DeviceType>
       queries(Kokkos::view_alloc(Kokkos::WithoutInitializing,
@@ -296,9 +286,7 @@ auto makeNearestWithAttachmentQueries(
 
 template <typename DeviceType, int DIM = 3, typename Coordinate = float>
 auto makeIntersectsSphereQueries(
-    std::vector<std::pair<
-        ArborX::ExperimentalHyperGeometry::Point<DIM, Coordinate>, float>> const
-        &points,
+    std::vector<std::pair<ArborX::Point<DIM, Coordinate>, float>> const &points,
     typename DeviceType::execution_space const &exec_space = {})
 {
   // NOTE: `points` is not a very descriptive name here. It stores both the

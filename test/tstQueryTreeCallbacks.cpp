@@ -26,7 +26,7 @@ namespace tt = boost::test_tools;
 template <typename DeviceType>
 struct CustomInlineCallback
 {
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   Kokkos::View<Point *, DeviceType> points;
   Point const origin = {{0., 0., 0.}};
@@ -44,7 +44,7 @@ template <typename DeviceType>
 struct CustomPostCallback
 {
   using tag = ArborX::Details::PostCallbackTag;
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   Kokkos::View<Point *, DeviceType> points;
   Point const origin = {{0., 0., 0.}};
@@ -78,8 +78,7 @@ std::vector<Kokkos::pair<int, float>> initialize_values(View const &points,
       "values_device", n);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
-        ArborX::ExperimentalHyperGeometry::Point<3> const origin = {
-            {0., 0., 0.}};
+        ArborX::Point<3> const origin = {{0., 0., 0.}};
         values_device(i) = {
             i, delta + ArborX::Details::distance(points(i), origin)};
       });
@@ -98,8 +97,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_spatial_predicate, TreeTypeTraits,
   using DeviceType = typename TreeTypeTraits::device_type;
 
   int const n = 10;
-  Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<3> *, DeviceType>
-      points(Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
+  Kokkos::View<ArborX::Point<3> *, DeviceType> points(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
         points(i) = {{(float)i, (float)i, (float)i}};
@@ -132,7 +131,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_nearest_predicate, TreeTypeTraits,
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   int const n = 10;
   Kokkos::View<Point *, DeviceType> points(
@@ -222,7 +221,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_early_exit, TreeTypeTraits,
 template <typename DeviceType>
 struct CustomInlineCallbackWithAttachment
 {
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   Kokkos::View<Point *, DeviceType> points;
   Point const origin = {{0., 0., 0.}};
@@ -243,7 +242,7 @@ struct CustomPostCallbackWithAttachment
 {
   using tag = ArborX::Details::PostCallbackTag;
 
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   Kokkos::View<Point *, DeviceType> points;
   Point const origin = {{0., 0., 0.}};
@@ -275,7 +274,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_spatial_predicate,
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   int const n = 10;
   Kokkos::View<Point *, DeviceType> points(
@@ -317,7 +316,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_nearest_predicate,
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
 
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   int const n = 10;
   Kokkos::View<Point *, DeviceType> points(

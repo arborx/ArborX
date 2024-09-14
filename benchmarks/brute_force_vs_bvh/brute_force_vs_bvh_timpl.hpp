@@ -10,9 +10,9 @@
  ****************************************************************************/
 
 #include <ArborX_BruteForce.hpp>
-#include <ArborX_HyperPoint.hpp>
 #include <ArborX_HyperSphere.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <ArborX_Point.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -42,7 +42,7 @@ struct ArborX::AccessTraits<ArborXBenchmark::Placeholder<DIM, FloatingPoint>,
   static KOKKOS_FUNCTION size_type size(Primitives d) { return d.count; }
   static KOKKOS_FUNCTION auto get(Primitives, size_type i)
   {
-    ArborX::ExperimentalHyperGeometry::Point<DIM, FloatingPoint> point;
+    ArborX::Point<DIM, FloatingPoint> point;
     for (int d = 0; d < DIM; ++d)
       point[d] = i;
     return point;
@@ -61,7 +61,7 @@ struct ArborX::AccessTraits<ArborXBenchmark::Placeholder<DIM, FloatingPoint>,
   static KOKKOS_FUNCTION size_type size(Predicates d) { return d.count; }
   static KOKKOS_FUNCTION auto get(Predicates, size_type i)
   {
-    ArborX::ExperimentalHyperGeometry::Point<DIM, FloatingPoint> center;
+    ArborX::Point<DIM, FloatingPoint> center;
     for (int d = 0; d < DIM; ++d)
       center[d] = i;
     return attach(
@@ -82,7 +82,7 @@ static void run_fp(int nprimitives, int nqueries, int nrepeats)
   Placeholder<DIM, FloatingPoint> primitives{nprimitives};
   Placeholder<DIM, FloatingPoint> predicates{nqueries};
 
-  using Point = ArborX::ExperimentalHyperGeometry::Point<DIM, FloatingPoint>;
+  using Point = ArborX::Point<DIM, FloatingPoint>;
 
   for (int i = 0; i < nrepeats; i++)
   {

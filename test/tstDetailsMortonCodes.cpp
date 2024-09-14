@@ -15,7 +15,7 @@
 
 using namespace ArborX::Details;
 
-#include <ArborX_HyperPoint.hpp>
+#include <ArborX_Point.hpp>
 
 BOOST_AUTO_TEST_SUITE(MortonCodes)
 
@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(expand_bits)
 
 BOOST_AUTO_TEST_CASE(morton_codes)
 {
-  using ArborX::ExperimentalHyperGeometry::Point;
+  using ArborX::Point;
 
   BOOST_TEST(morton32(Point{0.f}) == 0x0u);
   BOOST_TEST(morton32(Point{0.5f}) == 0x40000000u);

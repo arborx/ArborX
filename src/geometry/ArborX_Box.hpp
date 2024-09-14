@@ -14,7 +14,7 @@
 
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_HyperPoint.hpp>
+#include <ArborX_Point.hpp>
 
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_MinMax.hpp>
@@ -33,8 +33,7 @@ struct Box
   constexpr Box() = default;
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Box(ExperimentalHyperGeometry::Point<3> const &min_corner,
-                ExperimentalHyperGeometry::Point<3> const &max_corner)
+  constexpr Box(Point<3> const &min_corner, Point<3> const &max_corner)
       : _min_corner(min_corner)
       , _max_corner(max_corner)
   {}
@@ -51,11 +50,11 @@ struct Box
   KOKKOS_INLINE_FUNCTION
   constexpr auto const &maxCorner() const { return _max_corner; }
 
-  ExperimentalHyperGeometry::Point<3> _min_corner = {
+  Point<3> _min_corner = {
       {Details::KokkosExt::ArithmeticTraits::finite_max<float>::value,
        Details::KokkosExt::ArithmeticTraits::finite_max<float>::value,
        Details::KokkosExt::ArithmeticTraits::finite_max<float>::value}};
-  ExperimentalHyperGeometry::Point<3> _max_corner = {
+  Point<3> _max_corner = {
       {Details::KokkosExt::ArithmeticTraits::finite_min<float>::value,
        Details::KokkosExt::ArithmeticTraits::finite_min<float>::value,
        Details::KokkosExt::ArithmeticTraits::finite_min<float>::value}};

@@ -13,7 +13,7 @@
 #define ARBORX_ACCESS_TRAITS_HPP
 
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_HyperPoint.hpp>
+#include <ArborX_Point.hpp>
 #include <ArborX_Predicates.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -62,7 +62,7 @@ struct AccessTraits<
   KOKKOS_FUNCTION static auto getPoint(std::index_sequence<Is...>,
                                        View const &v, int i)
   {
-    return ExperimentalHyperGeometry::Point<sizeof...(Is)>{v(i, Is)...};
+    return Point<sizeof...(Is)>{v(i, Is)...};
   }
 
   // Returns by value
@@ -72,7 +72,7 @@ struct AccessTraits<
     if constexpr (dim > 0) // dimension known at compile time
       return getPoint(std::make_index_sequence<dim>(), v, i);
     else
-      return ExperimentalHyperGeometry::Point{v(i, 0), v(i, 1), v(i, 2)};
+      return Point{v(i, 0), v(i, 1), v(i, 2)};
   }
 
   KOKKOS_FUNCTION
