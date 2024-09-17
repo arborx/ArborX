@@ -15,10 +15,10 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_HyperPoint.hpp>
 #include <ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
 #include <ArborX_InterpDetailsPolynomialBasis.hpp>
 #include <ArborX_InterpDetailsSymmetricPseudoInverseSVD.hpp>
+#include <ArborX_Point.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>

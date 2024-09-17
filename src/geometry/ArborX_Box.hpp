@@ -33,28 +33,28 @@ struct Box
   constexpr Box() = default;
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Box(Point const &min_corner, Point const &max_corner)
+  constexpr Box(Point<3> const &min_corner, Point<3> const &max_corner)
       : _min_corner(min_corner)
       , _max_corner(max_corner)
   {}
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Point &minCorner() { return _min_corner; }
+  constexpr auto &minCorner() { return _min_corner; }
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Point const &minCorner() const { return _min_corner; }
+  constexpr auto const &minCorner() const { return _min_corner; }
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Point &maxCorner() { return _max_corner; }
+  constexpr auto &maxCorner() { return _max_corner; }
 
   KOKKOS_INLINE_FUNCTION
-  constexpr Point const &maxCorner() const { return _max_corner; }
+  constexpr auto const &maxCorner() const { return _max_corner; }
 
-  Point _min_corner = {
+  Point<3> _min_corner = {
       {Details::KokkosExt::ArithmeticTraits::finite_max<float>::value,
        Details::KokkosExt::ArithmeticTraits::finite_max<float>::value,
        Details::KokkosExt::ArithmeticTraits::finite_max<float>::value}};
-  Point _max_corner = {
+  Point<3> _max_corner = {
       {Details::KokkosExt::ArithmeticTraits::finite_min<float>::value,
        Details::KokkosExt::ArithmeticTraits::finite_min<float>::value,
        Details::KokkosExt::ArithmeticTraits::finite_min<float>::value}};
@@ -74,7 +74,7 @@ struct Box
   }
 
   [[deprecated("Use expand(Box, Point) instead.")]] KOKKOS_FUNCTION Box &
-  operator+=(Point const &point)
+  operator+=(Point<3> const &point)
   {
     using Kokkos::max;
     using Kokkos::min;

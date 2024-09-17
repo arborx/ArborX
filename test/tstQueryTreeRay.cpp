@@ -34,8 +34,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_nearest, DeviceType,
 
   std::vector<ArborX::Box> boxes;
   for (unsigned int i = 0; i < 10; ++i)
-    boxes.emplace_back(ArborX::Point{(float)i, (float)i, (float)i},
-                       ArborX::Point{(float)i + 1, (float)i + 1, (float)i + 1});
+    boxes.emplace_back(
+        ArborX::Point<3>{(float)i, (float)i, (float)i},
+        ArborX::Point<3>{(float)i + 1, (float)i + 1, (float)i + 1});
   Kokkos::View<ArborX::Box *, DeviceType> device_boxes("boxes", 10);
   Kokkos::deep_copy(exec_space, device_boxes,
                     Kokkos::View<ArborX::Box *, Kokkos::HostSpace>(
@@ -48,7 +49,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_nearest, DeviceType,
   Kokkos::deep_copy(exec_space, device_rays, ray);
 
   BOOST_TEST(intersects(
-      ray, ArborX::Box{ArborX::Point{0, 0, 0}, ArborX::Point{1, 1, 1}}));
+      ray, ArborX::Box{ArborX::Point<3>{0, 0, 0}, ArborX::Point<3>{1, 1, 1}}));
 
   ARBORX_TEST_QUERY_TREE(exec_space, tree,
                          ArborX::Experimental::make_nearest(device_rays, 1),
@@ -63,8 +64,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_intersection, DeviceType,
 
   std::vector<ArborX::Box> boxes;
   for (unsigned int i = 0; i < 10; ++i)
-    boxes.emplace_back(ArborX::Point{(float)i, (float)i, (float)i},
-                       ArborX::Point{(float)i + 1, (float)i + 1, (float)i + 1});
+    boxes.emplace_back(
+        ArborX::Point<3>{(float)i, (float)i, (float)i},
+        ArborX::Point<3>{(float)i + 1, (float)i + 1, (float)i + 1});
   Kokkos::View<ArborX::Box *, DeviceType> device_boxes("boxes", 10);
   Kokkos::deep_copy(exec_space, device_boxes,
                     Kokkos::View<ArborX::Box *, Kokkos::HostSpace>(
@@ -115,8 +117,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_intersection_new, DeviceType,
   std::vector<ArborX::Box> boxes;
   int const n = 10;
   for (unsigned int i = 0; i < n; ++i)
-    boxes.emplace_back(ArborX::Point{(float)i, (float)i, (float)i},
-                       ArborX::Point{(float)i + 1, (float)i + 1, (float)i + 1});
+    boxes.emplace_back(
+        ArborX::Point<3>{(float)i, (float)i, (float)i},
+        ArborX::Point<3>{(float)i + 1, (float)i + 1, (float)i + 1});
   auto device_boxes = ArborXTest::toView<DeviceType>(boxes, "boxes");
 
   ArborX::BVH<memory_space> const tree(exec_space, device_boxes);

@@ -108,10 +108,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(find_neighbor_list_degenerate, DeviceType,
   ExecutionSpace exec_space;
 
   auto no_point = ArborXTest::toView<ExecutionSpace>(
-      std::vector<ArborX::Point>{}, "Test::no_point");
+      std::vector<ArborX::Point<3>>{}, "Test::no_point");
 
   auto single_point = ArborXTest::toView<ExecutionSpace>(
-      std::vector<ArborX::Point>{{0.f, 0.f, 0.f}}, "Test::single_point");
+      std::vector<ArborX::Point<3>>{{0.f, 0.f, 0.f}}, "Test::single_point");
 
   constexpr auto radius =
       ArborX::Details::KokkosExt::ArithmeticTraits::infinity<float>::value;
@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(find_neighbor_list, DeviceType,
   ExecutionSpace exec_space;
 
   auto points = ArborXTest::toView<ExecutionSpace>(
-      std::vector<ArborX::Point>{
+      std::vector<ArborX::Point<3>>{
           {0.f, 0.f, 0.f},
           {1.f, 1.f, 1.f},
           {2.f, 2.f, 2.f},
@@ -163,7 +163,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec_space;
 
-  auto points = ArborXTest::make_random_cloud<ArborX::Point>(exec_space, 100);
+  auto points =
+      ArborXTest::make_random_cloud<ArborX::Point<3>>(exec_space, 100);
   auto radius = .3f;
 
   BOOST_TEST(

@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
   using ExecutionSpace = Kokkos::DefaultExecutionSpace;
   using MemorySpace = ExecutionSpace::memory_space;
 
-  using Point = ArborX::ExperimentalHyperGeometry::Point<2>;
+  using Point = ArborX::Point<2>;
   using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<2>;
 
   // Vertices:

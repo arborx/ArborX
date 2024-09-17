@@ -12,8 +12,7 @@
 #ifndef ARBORX_TEST_CLOUD_HPP
 #define ARBORX_TEST_CLOUD_HPP
 
-#include <ArborX_Box.hpp>
-#include <ArborX_Point.hpp>
+#include <ArborX_GeometryTraits.hpp>
 
 #include <Kokkos_Random.hpp>
 
@@ -25,8 +24,8 @@ Kokkos::View<Geometry *, ExecutionSpace>
 make_random_cloud(ExecutionSpace const &space, int n, float Lx = 1.f,
                   float Ly = 1.f, float Lz = 1.f, int const seed = 0)
 {
-  static_assert(std::is_same_v<Geometry, ArborX::Point> ||
-                std::is_same_v<Geometry, ArborX::Box>);
+  static_assert(ArborX::GeometryTraits::is_point_v<Geometry> ||
+                ArborX::GeometryTraits::is_box_v<Geometry>);
 
   // We divide n to avoid a large number of overlapping boxes
   auto const Ll = std::min({Lx, Ly, Lz}) / n;
@@ -53,7 +52,7 @@ make_random_cloud(ExecutionSpace const &space, int n, float Lx = 1.f,
         (void)Ll;
 #endif
 
-        if constexpr (std::is_same_v<Geometry, ArborX::Point>)
+        if constexpr (ArborX::GeometryTraits::is_point_v<Geometry>)
         {
           cloud(i) = {x, y, z};
         }

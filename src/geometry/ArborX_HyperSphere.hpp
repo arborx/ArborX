@@ -12,7 +12,7 @@
 #define ARBORX_HYPERSPHERE_HPP
 
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_HyperPoint.hpp>
+#include <ArborX_Point.hpp>
 
 #include <Kokkos_Macros.hpp>
 

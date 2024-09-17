@@ -13,13 +13,13 @@
 #define DATA_HPP
 
 #include <ArborX_Exception.hpp>
-#include <ArborX_HyperPoint.hpp>
+#include <ArborX_Point.hpp>
 
 #include <iostream>
 #include <random>
 #include <vector>
 
-using ArborX::ExperimentalHyperGeometry::Point;
+using ArborX::Point;
 
 template <int DIM>
 std::vector<Point<DIM>> sampleData(std::vector<Point<DIM>> const &data,

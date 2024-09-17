@@ -12,9 +12,9 @@
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_HyperBox.hpp>
-#include <ArborX_HyperPoint.hpp>
 #include <ArborX_HyperSphere.hpp>
 #include <ArborX_HyperTriangle.hpp>
+#include <ArborX_Point.hpp>
 #include <ArborX_Tetrahedron.hpp>
 
 #include <boost/mpl/list.hpp>
@@ -22,7 +22,7 @@
 #define BOOST_TEST_MODULE Geometry
 #include <boost/test/unit_test.hpp>
 
-using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+using Point = ArborX::Point<3>;
 using Box = ArborX::ExperimentalHyperGeometry::Box<3>;
 using Sphere = ArborX::ExperimentalHyperGeometry::Sphere<3>;
 using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<3>;
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(distance_point_triangle)
     1 |    4   | 3
       |        |
   */
-  using Point2 = ArborX::ExperimentalHyperGeometry::Point<2>;
+  using Point2 = ArborX::Point<2>;
   constexpr ArborX::ExperimentalHyperGeometry::Triangle<2> triangle2{
       Point2{-1, 0}, Point2{1, 0}, Point2{0, 1}};
 
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(distance_point_triangle)
   // outside zone 6
   BOOST_TEST(distance(Point2{1, 1}, triangle2) == std::sqrt(2.f) / 2);
 
-  using Point3 = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point3 = ArborX::Point<3>;
   constexpr ArborX::ExperimentalHyperGeometry::Triangle<3> triangle3{
       Point3{1, 0, 0}, Point3{0, 1, 0}, Point3{0, 0, 0}};
 
@@ -243,7 +243,7 @@ BOOST_AUTO_TEST_CASE(intersects)
   BOOST_TEST(!intersects(Point{-0.7, -0.8, 0.}, sphere));
 
   // triangle
-  using Point2 = ArborX::ExperimentalHyperGeometry::Point<2>;
+  using Point2 = ArborX::Point<2>;
   constexpr ArborX::ExperimentalHyperGeometry::Triangle<2> triangle{
       {{0, 0}}, {{1, 0}}, {{0, 2}}};
   BOOST_TEST(intersects(Point2{{0, 0}}, triangle));

@@ -14,6 +14,7 @@
 #include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
 #include <ArborX_DetailsTreeTraversal.hpp>
+#include <ArborX_Point.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -24,7 +25,7 @@ namespace ArborX
 
 namespace Details
 {
-std::ostream &operator<<(std::ostream &os, Point const &p)
+std::ostream &operator<<(std::ostream &os, Point<3> const &p)
 {
   os << "(" << p[0] << "," << p[1] << ")";
   return os;

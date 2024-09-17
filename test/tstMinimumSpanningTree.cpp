@@ -51,10 +51,9 @@ namespace Test
 {
 using ArborXTest::toView;
 
-template <class ExecutionSpace>
+template <class ExecutionSpace, typename Point>
 auto build_minimum_spanning_tree(ExecutionSpace const &exec_space,
-                                 std::vector<ArborX::Point> const &points_host,
-                                 int k)
+                                 std::vector<Point> const &points_host, int k)
 {
   auto points = toView<ExecutionSpace>(points_host, "Test::points");
 
@@ -87,10 +86,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(minimum_spanning_tree, DeviceType,
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec_space;
 
+  using Point = ArborX::Point<3>;
+
   { // equidistant points
     // 0     1     2     3     4
     //[0]   [1]   [2]   [3]   [4]
-    std::vector<ArborX::Point> points{
+    std::vector<Point> points{
         {0, 0, 0}, {1, 0, 0}, {2, 0, 0}, {3, 0, 0}, {4, 0, 0},
     };
 
@@ -122,7 +123,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(minimum_spanning_tree, DeviceType,
   { // non-equidistant points
     // 0   1   2   3   4   5   6   7   8   9   10
     //[0] [1] [2] [3]         [4]             [5]
-    std::vector<ArborX::Point> non_equidistant_points{
+    std::vector<Point> non_equidistant_points{
         {0, 0, 0}, {1, 0, 0}, {2, 0, 0}, {3, 0, 0}, {6, 0, 0}, {10, 0, 0},
     };
 

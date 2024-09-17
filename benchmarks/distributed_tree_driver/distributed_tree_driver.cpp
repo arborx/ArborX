@@ -12,6 +12,7 @@
 #include <ArborXBenchmark_TimeMonitor.hpp>
 #include <ArborX_DistributedTree.hpp>
 #include <ArborX_PairIndexRank.hpp>
+#include <ArborX_Point.hpp>
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -106,10 +107,12 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
               << '\n';
   }
 
-  Kokkos::View<ArborX::Point *, DeviceType> random_values(
+  using Point = ArborX::Point<3>;
+
+  Kokkos::View<Point *, DeviceType> random_values(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::values"),
       n_values);
-  Kokkos::View<ArborX::Point *, DeviceType> random_queries(
+  Kokkos::View<Point *, DeviceType> random_queries(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::queries"),
       n_queries);
   {
@@ -171,7 +174,7 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
 
     // The boxes in which the points are placed have side length two, centered
     // around offset_[xyz] and scaled by a.
-    Kokkos::View<ArborX::Point *, DeviceType> random_points(
+    Kokkos::View<Point *, DeviceType> random_points(
         Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::points"),
         std::max(n_values, n_queries));
     auto random_points_host = Kokkos::create_mirror_view(random_points);
@@ -215,7 +218,7 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
   auto construction = time_monitor.getNewTimer("construction");
   MPI_Barrier(comm);
   construction->start();
-  ArborX::DistributedTree<MemorySpace, ArborX::Point> distributed_tree(
+  ArborX::DistributedTree<MemorySpace, Point> distributed_tree(
       comm, ExecutionSpace{}, random_values);
   construction->stop();
 
@@ -226,7 +229,7 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
   if (perform_knn_search)
   {
     Kokkos::View<int *, DeviceType> offsets("Benchmark::offsets", 0);
-    Kokkos::View<ArborX::Point *, DeviceType> values("Benchmark::values", 0);
+    Kokkos::View<Point *, DeviceType> values("Benchmark::values", 0);
 
     auto knn = time_monitor.getNewTimer("knn");
     MPI_Barrier(comm);
@@ -264,7 +267,7 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
     }
 
     Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
-    Kokkos::View<ArborX::Point *, DeviceType> values("Testing::values", 0);
+    Kokkos::View<Point *, DeviceType> values("Testing::values", 0);
 
     auto radius = time_monitor.getNewTimer("radius");
     MPI_Barrier(comm);

@@ -12,7 +12,6 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_HyperBox.hpp>
-#include <ArborX_HyperPoint.hpp>
 #include <ArborX_KDOP.hpp>
 #include <ArborX_Point.hpp>
 
@@ -30,7 +29,7 @@ using KDOP_2D_types = std::tuple<KDOP<2, 4>, KDOP<2, 8>>;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_kdop_2D, KDOP_t, KDOP_2D_types)
 {
-  using Point = ArborX::ExperimentalHyperGeometry::Point<2>;
+  using Point = ArborX::Point<2>;
   KDOP_t x;
   BOOST_TEST(!intersects(x, x));
   expand(x, Point{1, 0});
@@ -41,7 +40,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_kdop_2D, KDOP_t, KDOP_2D_types)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_box_2D, KDOP_t, KDOP_2D_types)
 {
-  using Point = ArborX::ExperimentalHyperGeometry::Point<2>;
+  using Point = ArborX::Point<2>;
   using Box = ArborX::ExperimentalHyperGeometry::Box<2>;
 
   KDOP_t x;
@@ -55,7 +54,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_box_2D, KDOP_t, KDOP_2D_types)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_point_kdop_2D, KDOP_t, KDOP_2D_types)
 {
-  using Point = ArborX::ExperimentalHyperGeometry::Point<2>;
+  using Point = ArborX::Point<2>;
   {
     KDOP_t x;
     BOOST_TEST(!intersects(Point{1, 1}, x));
@@ -104,7 +103,7 @@ using KDOP_3D_types =
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_kdop_3D, KDOP_t, KDOP_3D_types)
 {
-  using ArborX::Point;
+  using Point = ArborX::Point<3>;
 
   KDOP_t x;
   BOOST_TEST(!intersects(x, x));
@@ -118,7 +117,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_kdop_3D, KDOP_t, KDOP_3D_types)
 BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_box_3D, KDOP_t, KDOP_3D_types)
 {
   using ArborX::Box;
-  using ArborX::Point;
+  using Point = ArborX::Point<3>;
 
   KDOP_t x;
   BOOST_TEST(!intersects(x, Box{}));
@@ -132,7 +131,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_box_3D, KDOP_t, KDOP_3D_types)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_point_kdop, KDOP_t, KDOP_3D_types)
 {
-  using ArborX::Point;
+  using Point = ArborX::Point<3>;
   {
     KDOP_t x;
     BOOST_TEST(!intersects(Point{1, 1, 1}, x));

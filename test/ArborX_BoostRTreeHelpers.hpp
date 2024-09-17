@@ -16,11 +16,13 @@
 
 #include "ArborX_BoostGeometryAdapters.hpp"
 #include "ArborX_BoostRangeAdapters.hpp"
+#include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp> // is_accessible_from_host
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>       // exclusive_scan
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>         // lastElement
-#include <ArborX_Point.hpp>
+#include <ArborX_HyperBox.hpp>
+#include <ArborX_HyperSphere.hpp>
 #include <ArborX_Predicates.hpp>
 #include <ArborX_Sphere.hpp>
 #ifdef ARBORX_ENABLE_MPI
@@ -156,8 +158,27 @@ static auto translate(ArborX::Intersects<ArborX::Sphere> const &query)
 {
   auto const sphere = getGeometry(query);
   auto const radius = sphere.radius();
-  auto const centroid = sphere.centroid();
+  auto const centroid = Kokkos::bit_cast<ArborX::Point<3>>(sphere.centroid());
   ArborX::Box box;
+  ArborX::Details::expand(box, sphere);
+  return boost::geometry::index::intersects(box) &&
+         boost::geometry::index::satisfies(
+             UnaryPredicate<Value>([centroid, radius](Value const &val) {
+               boost::geometry::index::indexable<Value> indexableGetter;
+               auto const &geometry = indexableGetter(val);
+               return boost::geometry::distance(centroid, geometry) <= radius;
+             }));
+}
+
+template <typename Value, int DIM, typename Coordinate>
+static auto
+translate(ArborX::Intersects<ArborX::ExperimentalHyperGeometry::Sphere<
+              DIM, Coordinate>> const &query)
+{
+  auto const sphere = getGeometry(query);
+  auto const radius = sphere.radius();
+  auto const centroid = sphere.centroid();
+  ArborX::ExperimentalHyperGeometry::Box<DIM, Coordinate> box;
   ArborX::Details::expand(box, sphere);
   return boost::geometry::index::intersects(box) &&
          boost::geometry::index::satisfies(
@@ -183,23 +204,29 @@ static auto translate(ArborX::Nearest<Geometry> const &query)
   return boost::geometry::index::nearest(geometry, k);
 }
 
-template <typename Indexable, typename InputView,
+template <typename Indexable, typename UserPredicates,
           typename OutputView = Kokkos::View<int *, Kokkos::HostSpace>>
 static std::tuple<OutputView, OutputView>
-performQueries(RTree<Indexable> const &rtree, InputView const &queries)
+performQueries(RTree<Indexable> const &rtree, UserPredicates const &predicates)
 {
   namespace KokkosExt = ArborX::Details::KokkosExt;
 
-  static_assert(KokkosExt::is_accessible_from_host<InputView>::value);
+  using Predicates =
+      ArborX::Details::AccessValues<UserPredicates, ArborX::PredicatesTag>;
+  static_assert(Kokkos::SpaceAccessibility<typename Predicates::memory_space,
+                                           Kokkos::HostSpace>::accessible);
+
+  Predicates queries{predicates}; // NOLINT
 
   using Value = typename RTree<Indexable>::value_type;
-  auto const n_queries = queries.extent_int(0);
+  int const n_queries = queries.size();
   OutputView offset("offset", n_queries + 1);
   std::vector<Value> returned_values;
   for (int i = 0; i < n_queries; ++i)
     offset(i) = rtree.query(translate<Value>(queries(i)),
                             std::back_inserter(returned_values));
-  using ExecutionSpace = typename InputView::execution_space;
+
+  using ExecutionSpace = Kokkos::DefaultHostExecutionSpace;
   ExecutionSpace space;
   KokkosExt::exclusive_scan(space, offset, offset, 0);
   auto const n_results = KokkosExt::lastElement(space, offset);

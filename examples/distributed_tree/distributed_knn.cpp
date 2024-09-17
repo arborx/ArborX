@@ -49,6 +49,8 @@ int main(int argc, char *argv[])
     int comm_size;
     MPI_Comm_size(comm, &comm_size);
 
+    using Point = ArborX::Point<3>;
+
     // ranks: | 0 | 1 | 2 |
     //        -------------
     //        |   |   |  x|
@@ -57,15 +59,15 @@ int main(int argc, char *argv[])
     //        |   |x  |   |
     //        |  x|   |   |
     //        |x  |   |   |
-    ArborX::Point lower_left_corner = {(float)comm_rank, (float)comm_rank,
-                                       (float)comm_rank};
-    ArborX::Point center = {comm_rank + .5f, comm_rank + .5f, comm_rank + .5f};
-    std::vector<ArborX::Point> points = {lower_left_corner, center};
+    Point lower_left_corner = {(float)comm_rank, (float)comm_rank,
+                               (float)comm_rank};
+    Point center = {comm_rank + .5f, comm_rank + .5f, comm_rank + .5f};
+    std::vector<Point> points = {lower_left_corner, center};
 
     auto points_device = Kokkos::create_mirror_view_and_copy(
         MemorySpace{},
-        Kokkos::View<ArborX::Point *, Kokkos::HostSpace,
-                     Kokkos::MemoryUnmanaged>(points.data(), points.size()));
+        Kokkos::View<Point *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
+            points.data(), points.size()));
 
     ExecutionSpace exec;
     ArborX::DistributedTree<MemorySpace> tree(comm, exec, points_device);

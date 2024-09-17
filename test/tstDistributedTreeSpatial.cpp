@@ -33,6 +33,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world_spatial, DeviceType,
 {
   using Tree = ArborX::DistributedTree<typename DeviceType::memory_space>;
   using ExecutionSpace = typename DeviceType::execution_space;
+  using Point = ArborX::Point<3>;
 
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
@@ -41,7 +42,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world_spatial, DeviceType,
   MPI_Comm_size(comm, &comm_size);
 
   int const n = 4;
-  Kokkos::View<ArborX::Point *, DeviceType> points("Testing::points", n);
+  Kokkos::View<Point *, DeviceType> points("Testing::points", n);
   // [  rank 0       [  rank 1       [  rank 2       [  rank 3       [
   // x---x---x---x---x---x---x---x---x---x---x---x---x---x---x---x---
   // ^   ^   ^   ^
@@ -238,8 +239,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(one_leaf_per_rank_spatial, DeviceType,
 template <typename DeviceType>
 struct CustomInlineCallbackWithAttachment
 {
-  Kokkos::View<ArborX::Point *, DeviceType> points;
-  ArborX::Point const origin = {{0., 0., 0.}};
+  using Point = ArborX::Point<3>;
+
+  Kokkos::View<Point *, DeviceType> points;
+  Point const origin = {{0., 0., 0.}};
+
   template <typename Query, typename Insert>
   KOKKOS_FUNCTION void operator()(Query const &query, int index,
                                   Insert const &insert) const
@@ -256,8 +260,11 @@ template <typename DeviceType>
 struct CustomPostCallbackWithAttachment
 {
   using tag = ArborX::Details::PostCallbackTag;
-  Kokkos::View<ArborX::Point *, DeviceType> points;
-  ArborX::Point const origin = {{0., 0., 0.}};
+  using Point = ArborX::Point<3>;
+
+  Kokkos::View<Point *, DeviceType> points;
+  Point const origin = {{0., 0., 0.}};
+
   template <typename Predicates, typename InOutView, typename InView,
             typename OutView>
   void operator()(Predicates const &queries, InOutView &offset, InView in,
@@ -280,6 +287,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
+  using Point = ArborX::Point<3>;
 
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
@@ -311,8 +319,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
 
   int const n_queries = 1;
   using ExecutionSpace = typename DeviceType::execution_space;
-  Kokkos::View<ArborX::Point *, DeviceType> points("Testing::points",
-                                                   n_queries);
+  Kokkos::View<Point *, DeviceType> points("Testing::points", n_queries);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n_queries), KOKKOS_LAMBDA(int i) {
         points(i) = {(float)(comm_rank) + 1.5f, 0.f, 0.f};
@@ -329,7 +336,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
   // to point 1 physically, and not point 0, even though the query() call is
   // called on rank 0.
   int const n_results = (comm_rank < comm_size - 1) ? 1 : 0;
-  ArborX::Point const origin = {{0., 0., 0.}};
+  Point const origin = {{0., 0., 0.}};
   Kokkos::View<float *, DeviceType> ref("Testing::ref", n_results);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n_results), KOKKOS_LAMBDA(int i) {
@@ -393,6 +400,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(pure_spatial_callback, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
+  using Point = ArborX::Point<3>;
 
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
@@ -421,10 +429,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(pure_spatial_callback, DeviceType,
   //  0--------1----x----2-----x----3----x----+    x
   //                ^          ^         ^         ^
   //                0          1         2         3
-  Kokkos::View<decltype(ArborX::intersects(ArborX::Point{})) *, DeviceType>
-      queries("Testing::queries", 1);
+  Kokkos::View<decltype(ArborX::intersects(Point{})) *, DeviceType> queries(
+      "Testing::queries", 1);
   auto queries_host = Kokkos::create_mirror_view(queries);
-  queries_host(0) = ArborX::intersects(ArborX::Point{1.5f + comm_rank, 0, 0});
+  queries_host(0) = ArborX::intersects(Point{1.5f + comm_rank, 0, 0});
   deep_copy(queries, queries_host);
 
   Kokkos::View<int *, DeviceType> counts("Testing::counts", queries.size());
@@ -442,6 +450,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(pure_spatial_callback, DeviceType,
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
+  using Point = ArborX::Point<3>;
+  using Box = ArborX::ExperimentalHyperGeometry::Box<3>;
 
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
@@ -455,16 +465,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
   double const Ly = 10.0;
   double const Lz = 10.0;
   int const n = 100;
-  auto cloud = ArborXTest::make_random_cloud<ArborX::Point>(
+  auto cloud = ArborXTest::make_random_cloud<Point>(
       Kokkos::DefaultHostExecutionSpace{}, n, Lx, Ly, Lz, 0);
-  auto queries = ArborXTest::make_random_cloud<ArborX::Point>(
+  auto queries = ArborXTest::make_random_cloud<Point>(
       Kokkos::DefaultHostExecutionSpace{}, n, Lx, Ly, Lz, 1234);
 
   // The formula is a bit complicated but it does not require n be divisible
   // by comm_size
   int const local_n = (n + comm_size - 1 - comm_rank) / comm_size;
-  Kokkos::View<ArborX::Box *, DeviceType> bounding_boxes(
-      "Testing::bounding_boxes", local_n);
+  Kokkos::View<Box *, DeviceType> bounding_boxes("Testing::bounding_boxes",
+                                                 local_n);
   auto bounding_boxes_host = Kokkos::create_mirror_view(bounding_boxes);
   for (int i = 0; i < n; ++i)
   {
@@ -519,8 +529,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
   auto within_queries_host = Kokkos::create_mirror_view(within_queries);
   Kokkos::deep_copy(within_queries_host, within_queries);
 
-  BoostExt::ParallelRTree<ArborX::Box> rtree(comm, ExecutionSpace{},
-                                             bounding_boxes_host);
+  BoostExt::ParallelRTree<Box> rtree(comm, ExecutionSpace{},
+                                     bounding_boxes_host);
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, distributed_tree, within_queries,
                          query(ExecutionSpace{}, rtree, within_queries_host));

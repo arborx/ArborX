@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
   using MemorySpace = ExecutionSpace::memory_space;
 
   using Box = ArborX::ExperimentalHyperGeometry::Box<2>;
-  using Point = ArborX::ExperimentalHyperGeometry::Point<2>;
+  using Point = ArborX::Point<2>;
 
   Kokkos::View<Box *, MemorySpace> boxes("Example::boxes", 4);
   auto boxes_host = Kokkos::create_mirror_view(boxes);

@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
   //      -------0--------------->
   // SRC:        0   2   4   6
   // TGT:          1   3   5
-  using Point0 = ArborX::ExperimentalHyperGeometry::Point<1, double>;
+  using Point0 = ArborX::Point<1, double>;
   Kokkos::View<Point0 **, MemorySpace> srcp0("Testing::srcp0", 3, 2);
   Kokkos::View<Point0 *, MemorySpace> tgtp0("Testing::tgtp0", 3);
   Kokkos::View<double **, MemorySpace> srcv0("Testing::srcv0", 3, 2);
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
   //      T | T
   //    S   S   S
   //        |
-  using Point1 = ArborX::ExperimentalHyperGeometry::Point<2, double>;
+  using Point1 = ArborX::Point<2, double>;
   Kokkos::View<Point1 **, MemorySpace> srcp1("Testing::srcp1", 4, 8);
   Kokkos::View<Point1 *, MemorySpace> tgtp1("Testing::tgtp1", 4);
   Kokkos::View<double **, MemorySpace> srcv1("Testing::srcv1", 4, 8);
@@ -153,7 +153,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients_edge_cases, DeviceType,
   ExecutionSpace space{};
 
   // Case 1: Same as previous case 1, but points are 2D and locked on y=0
-  using Point0 = ArborX::ExperimentalHyperGeometry::Point<2, double>;
+  using Point0 = ArborX::Point<2, double>;
   Kokkos::View<Point0 **, MemorySpace> srcp0("Testing::srcp0", 3, 2);
   Kokkos::View<Point0 *, MemorySpace> tgtp0("Testing::tgtp0", 3);
   Kokkos::View<double **, MemorySpace> srcv0("Testing::srcv0", 3, 2);
@@ -179,7 +179,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients_edge_cases, DeviceType,
   ARBORX_MDVIEW_TEST_TOL(eval0, tgtv0, Kokkos::Experimental::epsilon_v<float>);
 
   // Case 2: Same but corner source points are also targets
-  using Point1 = ArborX::ExperimentalHyperGeometry::Point<2, double>;
+  using Point1 = ArborX::Point<2, double>;
   Kokkos::View<Point1 **, MemorySpace> srcp1("Testing::srcp1", 4, 8);
   Kokkos::View<Point1 *, MemorySpace> tgtp1("Testing::tgtp1", 4);
   Kokkos::View<double **, MemorySpace> srcv1("Testing::srcv1", 4, 8);

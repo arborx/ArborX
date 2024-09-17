@@ -41,10 +41,9 @@ struct ArborX::AccessTraits<PointCloud, ArborX::PrimitivesTag>
   {
     return cloud.N;
   }
-  static KOKKOS_FUNCTION ArborX::Point get(PointCloud const &cloud,
-                                           std::size_t i)
+  static KOKKOS_FUNCTION auto get(PointCloud const &cloud, std::size_t i)
   {
-    return {{cloud.d_x[i], cloud.d_y[i], cloud.d_z[i]}};
+    return ArborX::Point{cloud.d_x[i], cloud.d_y[i], cloud.d_z[i]};
   }
   using memory_space = Kokkos::CudaSpace;
 };

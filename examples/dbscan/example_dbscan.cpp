@@ -30,7 +30,8 @@ int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
 
-  Kokkos::View<ArborX::Point *, MemorySpace> cloud("Example::point_cloud", 10);
+  Kokkos::View<ArborX::Point<2> *, MemorySpace> cloud("Example::point_cloud",
+                                                      10);
   auto cloud_host = Kokkos::create_mirror_view(cloud);
   // 4 |       0 7
   // 3 |       5 6
@@ -39,16 +40,16 @@ int main(int argc, char *argv[])
   // 0 | 1 2     8
   //    ----------
   //     0 1 2 3 4
-  cloud_host[0] = {4.f, 3.f, 0.f};
-  cloud_host[1] = {0.f, 0.f, 0.f};
-  cloud_host[2] = {0.f, 1.f, 0.f};
-  cloud_host[3] = {1.f, 1.f, 0.f};
-  cloud_host[4] = {1.f, 0.f, 0.f};
-  cloud_host[5] = {3.f, 3.f, 0.f};
-  cloud_host[6] = {3.f, 4.f, 0.f};
-  cloud_host[7] = {4.f, 4.f, 0.f};
-  cloud_host[8] = {4.f, 0.f, 0.f};
-  cloud_host[9] = {2.f, 2.f, 0.f};
+  cloud_host[0] = {4.f, 3.f};
+  cloud_host[1] = {0.f, 0.f};
+  cloud_host[2] = {0.f, 1.f};
+  cloud_host[3] = {1.f, 1.f};
+  cloud_host[4] = {1.f, 0.f};
+  cloud_host[5] = {3.f, 3.f};
+  cloud_host[6] = {3.f, 4.f};
+  cloud_host[7] = {4.f, 4.f};
+  cloud_host[8] = {4.f, 0.f};
+  cloud_host[9] = {2.f, 2.f};
   Kokkos::deep_copy(cloud, cloud_host);
 
   // Running with minpts = 2 and eps = 1 would produce two clusters consisting

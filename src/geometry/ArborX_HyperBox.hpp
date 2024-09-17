@@ -14,7 +14,7 @@
 
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_HyperPoint.hpp>
+#include <ArborX_Point.hpp>
 
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_ReductionIdentity.hpp>

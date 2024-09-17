@@ -24,7 +24,10 @@ struct ArborX::AccessTraits<NearestPredicates, ArborX::PredicatesTag>
 {
   using memory_space = Kokkos::HostSpace;
   static int size(NearestPredicates const &) { return 1; }
-  static auto get(NearestPredicates const &, int) { return nearest(Point{}); }
+  static auto get(NearestPredicates const &, int)
+  {
+    return nearest(Point<3>{});
+  }
 };
 
 struct SpatialPredicates
@@ -36,7 +39,7 @@ struct ArborX::AccessTraits<SpatialPredicates, ArborX::PredicatesTag>
   static int size(SpatialPredicates const &) { return 1; }
   static auto get(SpatialPredicates const &, int)
   {
-    return intersects(Point{});
+    return intersects(Point<3>{});
   }
 };
 

@@ -12,6 +12,7 @@
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <ArborX_KDOP.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <ArborX_Point.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -27,9 +28,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop, DeviceType, ARBORX_DEVICE_TYPES)
   using MemorySpace = typename DeviceType::memory_space;
   using Tree = ArborX::BVH<MemorySpace>;
 
-  using ArborX::Point;
+  using Point = ArborX::Point<3>;
 
-  std::vector<ArborX::Point> primitives = {
+  std::vector<Point> primitives = {
       {{0, 0, 0}}, // 0
       {{1, 1, 1}}, // 1
       {{2, 2, 2}}, // 2
@@ -54,17 +55,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop, DeviceType, ARBORX_DEVICE_TYPES)
   // (0,0,0)->(1,2,3) box with (0,0,0)--(0,0,3) edge cut off
   ArborX::Experimental::KDOP<3, 18> x;
   // bottom
-  expand(x, ArborX::Point{0.25, 0, 0});
-  expand(x, ArborX::Point{1, 0, 0});
-  expand(x, ArborX::Point{1, 2, 0});
-  expand(x, ArborX::Point{0, 2, 0});
-  expand(x, ArborX::Point{0, 0.25, 0});
+  expand(x, Point{0.25, 0, 0});
+  expand(x, Point{1, 0, 0});
+  expand(x, Point{1, 2, 0});
+  expand(x, Point{0, 2, 0});
+  expand(x, Point{0, 0.25, 0});
   // top
-  expand(x, ArborX::Point{0.25, 0, 3});
-  expand(x, ArborX::Point{1, 0, 3});
-  expand(x, ArborX::Point{1, 2, 3});
-  expand(x, ArborX::Point{0, 2, 3});
-  expand(x, ArborX::Point{0, 0.25, 3});
+  expand(x, Point{0.25, 0, 3});
+  expand(x, Point{1, 0, 3});
+  expand(x, Point{1, 2, 3});
+  expand(x, Point{0, 2, 3});
+  expand(x, Point{0, 0.25, 3});
 
   using IntersectsKDop = decltype(ArborX::intersects(x));
   std::vector<IntersectsKDop> predicates = {ArborX::intersects(x)};

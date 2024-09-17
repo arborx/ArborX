@@ -12,13 +12,14 @@
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_HyperBox.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <ArborX_Point.hpp>
 
 #include <Kokkos_Core.hpp>
 
 namespace Test
 {
 // NOTE only supporting Point and Box
-using PrimitivePointOrBox = ArborX::Point;
+using PrimitivePointOrBox = ArborX::Point<3>;
 // using PrimitivePointOrBox = ArborX::Box;
 
 // clang-format off
@@ -31,7 +32,7 @@ template<int DIM>
 KOKKOS_FUNCTION void expand(ArborX::ExperimentalHyperGeometry::Box<DIM> &, FakeBoundingVolume) { }
 
 struct FakePredicateGeometry {};
-KOKKOS_FUNCTION ArborX::Point returnCentroid(FakePredicateGeometry) { return {}; }
+KOKKOS_FUNCTION ArborX::Point<3> returnCentroid(FakePredicateGeometry) { return {}; }
 KOKKOS_FUNCTION bool intersects(FakePredicateGeometry, FakeBoundingVolume) { return true; }
 KOKKOS_FUNCTION float distance(FakePredicateGeometry, FakeBoundingVolume) { return 0.f; }
 KOKKOS_FUNCTION bool intersects(FakePredicateGeometry, PrimitivePointOrBox) { return true; }

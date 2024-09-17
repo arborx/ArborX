@@ -19,7 +19,7 @@
 template <class MemorySpace>
 struct Neighbors
 {
-  Kokkos::View<ArborX::Point *, MemorySpace> _particles;
+  Kokkos::View<ArborX::Point<3> *, MemorySpace> _particles;
   float _radius;
 };
 
@@ -34,7 +34,8 @@ struct ArborX::AccessTraits<Neighbors<MemorySpace>, ArborX::PredicatesTag>
   }
   static KOKKOS_FUNCTION auto get(Neighbors<MemorySpace> const &x, size_type i)
   {
-    return intersects(Sphere{x._particles(i), x._radius});
+    return intersects(
+        ExperimentalHyperGeometry::Sphere{x._particles(i), x._radius});
   }
 };
 
@@ -75,7 +76,7 @@ int main(int argc, char *argv[])
   float const r = 3.f; // cut-off radius
 
   Kokkos::Profiling::pushRegion("Example::setup");
-  Kokkos::View<ArborX::Point *, MemorySpace> particles(
+  Kokkos::View<ArborX::Point<3> *, MemorySpace> particles(
       Kokkos::view_alloc(execution_space, Kokkos::WithoutInitializing,
                          "Example::points"),
       n);

@@ -45,7 +45,7 @@ auto parsePointsFromCSVFile(std::string const &filename)
   std::fstream fin(filename, std::ios::in);
   using Tokenizer = boost::tokenizer<boost::escaped_list_separator<char>>;
   std::string line;
-  std::vector<ArborX::Point> points;
+  std::vector<ArborX::Point<3>> points;
   assert(fin.is_open());
   while (std::getline(fin, line))
   {

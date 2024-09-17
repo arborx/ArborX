@@ -16,7 +16,7 @@
 
 #include <iostream>
 
-using Point = ArborX::ExperimentalHyperGeometry::Point<2, double>;
+using Point = ArborX::Point<2, double>;
 
 KOKKOS_FUNCTION double functionToApproximate(Point const &p)
 {

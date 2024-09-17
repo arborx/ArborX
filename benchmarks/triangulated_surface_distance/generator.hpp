@@ -37,7 +37,7 @@ auto icosahedron()
   auto a = Kokkos::numbers::phi_v<float>;
   auto b = 1.f;
 
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   std::vector<Point> vertices;
 
@@ -142,12 +142,11 @@ void convertTriangles2VertexForm(
 */
 template <typename ExecutionSpace, typename MemorySpace>
 void subdivide(ExecutionSpace const &space,
-               Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<3> *,
-                            MemorySpace> &vertices,
+               Kokkos::View<ArborX::Point<3> *, MemorySpace> &vertices,
                Kokkos::View<KokkosArray<int, 2> *, MemorySpace> &edges,
                Kokkos::View<KokkosArray<int, 3> *, MemorySpace> &triangles)
 {
-  using Point = ArborX::ExperimentalHyperGeometry::Point<3>;
+  using Point = ArborX::Point<3>;
 
   int const num_vertices = vertices.size();
   int const num_edges = edges.size();
@@ -216,9 +215,7 @@ void subdivide(ExecutionSpace const &space,
 template <typename ExecutionSpace, typename MemorySpace>
 void projectVerticesToSphere(
     ExecutionSpace const &space,
-    Kokkos::View<ArborX::ExperimentalHyperGeometry::Point<3> *, MemorySpace>
-        &points,
-    float radius)
+    Kokkos::View<ArborX::Point<3> *, MemorySpace> &points, float radius)
 {
   Kokkos::parallel_for(
       "Benchmark::project_to_surface",

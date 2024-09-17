@@ -171,8 +171,8 @@ public:
     using Coordinate = typename GeometryTraits::coordinate_type<Point>::type;
     // FIXME reinterpret_cast is dangerous here if access traits return user
     // point structure (e.g., struct MyPoint { float y; float x; })
-    auto const &hyper_point = reinterpret_cast<
-        ExperimentalHyperGeometry::Point<dim, Coordinate> const &>(point);
+    auto const &hyper_point =
+        reinterpret_cast<::ArborX::Point<dim, Coordinate> const &>(point);
     return intersects(
         ExperimentalHyperGeometry::Sphere<dim, Coordinate>(hyper_point, x._r));
   }

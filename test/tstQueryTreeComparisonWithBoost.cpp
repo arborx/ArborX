@@ -27,13 +27,13 @@ BOOST_AUTO_TEST_SUITE(ComparisonWithBoost)
 
 namespace tt = boost::test_tools;
 
-inline Kokkos::View<ArborX::Point *, Kokkos::HostSpace>
-make_stuctured_cloud(float Lx, float Ly, float Lz, int nx, int ny, int nz)
+inline auto make_stuctured_cloud(float Lx, float Ly, float Lz, int nx, int ny,
+                                 int nz)
 {
   std::function<int(int, int, int)> ind = [nx, ny](int i, int j, int k) {
     return i + j * nx + k * (nx * ny);
   };
-  Kokkos::View<ArborX::Point *, Kokkos::HostSpace> cloud(
+  Kokkos::View<ArborX::Point<3> *, Kokkos::HostSpace> cloud(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "structured_cloud"),
       nx * ny * nz);
   for (int i = 0; i < nx; ++i)
@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
   // compare our solution against Boost R-tree
   int const n_points = 100;
   using MemorySpace = typename Tree::memory_space;
-  auto points = ArborXTest::make_random_cloud<ArborX::Point>(
+  auto points = ArborXTest::make_random_cloud<ArborX::Point<3>>(
       ExecutionSpace{}, n_points, Lx, Ly, Lz);
 
   Kokkos::View<float *, ExecutionSpace> radii("radii", n_points);
@@ -145,12 +145,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
 
   Kokkos::deep_copy(radii, radii_host);
 
-  Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
+  using Sphere = ArborX::ExperimentalHyperGeometry::Sphere<3>;
+  Kokkos::View<decltype(ArborX::intersects(Sphere{})) *, DeviceType>
       within_queries("within_queries", n_points);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n_points), KOKKOS_LAMBDA(int i) {
-        within_queries(i) =
-            ArborX::intersects(ArborX::Sphere{points(i), radii(i)});
+        within_queries(i) = ArborX::intersects(Sphere{points(i), radii(i)});
       });
   auto within_queries_host = Kokkos::create_mirror_view(within_queries);
   Kokkos::deep_copy(within_queries_host, within_queries);
@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate_point,
   using DeviceType = typename TreeTypeTraits::device_type;
 
   boost_rtree_nearest_predicate<Tree, ExecutionSpace, DeviceType,
-                                ArborX::Point>();
+                                ArborX::Point<3>>();
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate_box, TreeTypeTraits,

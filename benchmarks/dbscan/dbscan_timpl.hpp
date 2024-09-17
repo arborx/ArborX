@@ -25,7 +25,7 @@
 #include "dbscan.hpp"
 #include "print_timers.hpp"
 
-using ArborX::ExperimentalHyperGeometry::Point;
+using ArborX::Point;
 
 template <typename MemorySpace>
 void writeLabelsData(std::string const &filename,
@@ -173,7 +173,7 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
 
   ExecutionSpace exec_space;
 
-  std::vector<ArborX::ExperimentalHyperGeometry::Point<DIM>> data;
+  std::vector<ArborX::Point<DIM>> data;
   if (!params.filename.empty())
   {
     // Read in data

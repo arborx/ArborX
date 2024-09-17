@@ -66,6 +66,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world_nearest, DeviceType,
   using Tree = ArborX::DistributedTree<typename DeviceType::memory_space>;
   using ExecutionSpace = typename DeviceType::execution_space;
 
+  using Point = ArborX::Point<3>;
+
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
@@ -73,7 +75,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world_nearest, DeviceType,
   MPI_Comm_size(comm, &comm_size);
 
   int const n = 4;
-  Kokkos::View<ArborX::Point *, DeviceType> points("Testing::points", n);
+  Kokkos::View<Point *, DeviceType> points("Testing::points", n);
   // [  rank 0       [  rank 1       [  rank 2       [  rank 3       [
   // x---x---x---x---x---x---x---x---x---x---x---x---x---x---x---x---
   // ^   ^   ^   ^
@@ -96,12 +98,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world_nearest, DeviceType,
   // x   x        <--2-->            |               |               |
   // 3-->            |               |               |               |
   // |               |               |               |               |
-  Kokkos::View<ArborX::Nearest<ArborX::Point> *, DeviceType> nearest_queries(
+  Kokkos::View<ArborX::Nearest<Point> *, DeviceType> nearest_queries(
       "Testing::nearest_queries", 1);
   auto nearest_queries_host = Kokkos::create_mirror_view(nearest_queries);
-  nearest_queries_host(0) = ArborX::nearest<ArborX::Point>(
-      {{0.f + comm_size - 1 - comm_rank, 0., 0.}},
-      comm_rank < comm_size - 1 ? 3 : 2);
+  nearest_queries_host(0) =
+      ArborX::nearest<Point>({{0.f + comm_size - 1 - comm_rank, 0., 0.}},
+                             comm_rank < comm_size - 1 ? 3 : 2);
   deep_copy(nearest_queries, nearest_queries_host);
 
   std::vector<PairIndexRank> values;
@@ -310,7 +312,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(do_not_exceed_capacity, DeviceType,
   // comm_size * 512 elements into the queue.
   using ArborX::Box;
   using ArborX::nearest;
-  using ArborX::Point;
+  using Point = ArborX::Point<3>;
   using ExecutionSpace = typename DeviceType::execution_space;
   MPI_Comm comm = MPI_COMM_WORLD;
   Kokkos::View<Point *, DeviceType> points("Testing::points", 512);

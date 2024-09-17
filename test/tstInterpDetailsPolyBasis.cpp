@@ -10,8 +10,8 @@
  ****************************************************************************/
 
 #include "ArborX_EnableViewComparison.hpp"
-#include <ArborX_HyperPoint.hpp>
 #include <ArborX_InterpDetailsPolynomialBasis.hpp>
+#include <ArborX_Point.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(polynomial_basis)
 {
   using View = Kokkos::View<double *, Kokkos::HostSpace>;
 
-  ArborX::ExperimentalHyperGeometry::Point<5, double> point0 = {1, 2, 3, 4, 5};
+  ArborX::Point<5, double> point0 = {1, 2, 3, 4, 5};
   auto arr0 =
       ArborX::Interpolation::Details::evaluatePolynomialBasis<3>(point0);
   double ref0[56] = {1,  1,  2,  3,  4,  5,  1,  2,  4,  3,  6,  9,  4,   8,
@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(polynomial_basis)
   View ref0_view(&ref0[0], 56);
   ARBORX_MDVIEW_TEST(arr0_view, ref0_view);
 
-  ArborX::ExperimentalHyperGeometry::Point<2, double> point1 = {-2, 0};
+  ArborX::Point<2, double> point1 = {-2, 0};
   auto arr1 =
       ArborX::Interpolation::Details::evaluatePolynomialBasis<3>(point1);
   double ref1[10] = {1, -2, 0, 4, 0, 0, -8, 0, 0, 0};

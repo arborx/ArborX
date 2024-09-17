@@ -37,8 +37,8 @@ struct NeighborListPredicateGetter
     constexpr int dim = GeometryTraits::dimension_v<Point>;
     using Coordinate = typename GeometryTraits::coordinate_type_t<Point>;
 
-    auto const &hyper_point = reinterpret_cast<
-        ExperimentalHyperGeometry::Point<dim, Coordinate> const &>(pair.value);
+    auto const &hyper_point =
+        reinterpret_cast<::ArborX::Point<dim, Coordinate> const &>(pair.value);
     return intersects(ExperimentalHyperGeometry::Sphere<dim, Coordinate>{
         hyper_point, _radius});
   }

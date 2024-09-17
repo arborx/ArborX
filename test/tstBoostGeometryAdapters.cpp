@@ -28,7 +28,7 @@ namespace ArborX
 namespace Details
 {
 using ArborX::Box;
-using ArborX::Point;
+using Point = ArborX::Point<3>;
 } // namespace Details
 } // namespace ArborX
 namespace boost
@@ -169,7 +169,7 @@ BOOST_AUTO_TEST_CASE(is_valid)
   BOOST_TEST(!bg::is_valid(other_invalid_box, message));
   BOOST_TEST(message == "Box has corners in wrong order");
 
-  auto const infty = std::numeric_limits<double>::infinity();
+  constexpr auto infty = std::numeric_limits<float>::infinity();
   other_invalid_box = {{{1., 5., 3.}}, {{infty, 3., 6.}}};
   BOOST_TEST(!details::isValid(other_invalid_box));
   BOOST_TEST(!bg::is_valid(other_invalid_box, message));
