@@ -67,22 +67,6 @@ struct ArborX::AccessTraits<PairPointIndexCloud<MemorySpace>,
   using memory_space = MemorySpace;
 };
 
-template <typename Indexables, typename BoundingVolume>
-struct SceneReductionFunctor
-{
-  Indexables _indexables;
-
-  KOKKOS_FUNCTION void operator()(int i, BoundingVolume &update) const
-  {
-    ArborX::Details::expand(update, _indexables(i));
-  }
-  KOKKOS_FUNCTION void join(BoundingVolume &result,
-                            BoundingVolume const &update)
-  {
-    expand(result, update);
-  }
-};
-
 template <typename ExecutionSpace, typename Indexables, typename Box>
 inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
                                            Indexables const &indexables,
@@ -91,7 +75,8 @@ inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
   Kokkos::parallel_reduce(
       "ArborX::TreeConstruction::calculate_bounding_box_of_the_scene",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, indexables.size()),
-      SceneReductionFunctor<Indexables, Box>{indexables}, scene_bounding_box);
+      KOKKOS_LAMBDA(int i, Box &update) { expand(update, indexables(i)); },
+      ArborX::Details::GeometryReducer<Box>{scene_bounding_box});
 }
 
 BOOST_AUTO_TEST_SUITE(IndexableGetterAccess)
