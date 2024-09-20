@@ -13,8 +13,8 @@
 
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_HyperSphere.hpp>
 #include <ArborX_Predicates.hpp>
+#include <ArborX_Sphere.hpp>
 
 namespace ArborX
 {
@@ -173,8 +173,7 @@ public:
     // point structure (e.g., struct MyPoint { float y; float x; })
     auto const &hyper_point =
         reinterpret_cast<::ArborX::Point<dim, Coordinate> const &>(point);
-    return intersects(
-        ExperimentalHyperGeometry::Sphere<dim, Coordinate>(hyper_point, x._r));
+    return intersects(Sphere(hyper_point, x._r));
   }
 };
 

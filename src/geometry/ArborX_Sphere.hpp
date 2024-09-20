@@ -8,8 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_Sphere_HPP
-#define ARBORX_Sphere_HPP
+#ifndef ARBORX_SPHERE_HPP
+#define ARBORX_SPHERE_HPP
 
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_Point.hpp>
@@ -19,47 +19,47 @@
 namespace ArborX
 {
 
+template <int DIM, class Coordinate = float>
 struct Sphere
 {
   KOKKOS_DEFAULTED_FUNCTION
   Sphere() = default;
 
-  KOKKOS_INLINE_FUNCTION
-  constexpr Sphere(Point<3> const &centroid,
-                   double radius) // FIXME
+  KOKKOS_FUNCTION
+  constexpr Sphere(Point<DIM, Coordinate> const &centroid, Coordinate radius)
       : _centroid(centroid)
-      , _radius(static_cast<float>(radius))
+      , _radius(radius)
   {}
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
   constexpr auto &centroid() { return _centroid; }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
   constexpr auto const &centroid() const { return _centroid; }
 
-  KOKKOS_INLINE_FUNCTION
-  constexpr float radius() const { return _radius; }
+  KOKKOS_FUNCTION
+  constexpr auto radius() const { return _radius; }
 
-  Point<3> _centroid = {};
-  float _radius = 0.;
-};
-
-template <>
-struct GeometryTraits::dimension<ArborX::Sphere>
-{
-  static constexpr int value = 3;
-};
-template <>
-struct GeometryTraits::tag<ArborX::Sphere>
-{
-  using type = SphereTag;
-};
-template <>
-struct ArborX::GeometryTraits::coordinate_type<ArborX::Sphere>
-{
-  using type = float;
+  Point<DIM, Coordinate> _centroid = {};
+  Coordinate _radius = 0;
 };
 
 } // namespace ArborX
+
+template <int DIM, class Coordinate>
+struct ArborX::GeometryTraits::dimension<ArborX::Sphere<DIM, Coordinate>>
+{
+  static constexpr int value = DIM;
+};
+template <int DIM, class Coordinate>
+struct ArborX::GeometryTraits::tag<ArborX::Sphere<DIM, Coordinate>>
+{
+  using type = SphereTag;
+};
+template <int DIM, class Coordinate>
+struct ArborX::GeometryTraits::coordinate_type<ArborX::Sphere<DIM, Coordinate>>
+{
+  using type = Coordinate;
+};
 
 #endif

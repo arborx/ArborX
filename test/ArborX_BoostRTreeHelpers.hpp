@@ -22,7 +22,6 @@
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>       // exclusive_scan
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>         // lastElement
 #include <ArborX_HyperBox.hpp>
-#include <ArborX_HyperSphere.hpp>
 #include <ArborX_Predicates.hpp>
 #include <ArborX_Sphere.hpp>
 #ifdef ARBORX_ENABLE_MPI
@@ -153,27 +152,9 @@ struct UnaryPredicate
   Function _pred;
 };
 
-template <typename Value>
-static auto translate(ArborX::Intersects<ArborX::Sphere> const &query)
-{
-  auto const sphere = getGeometry(query);
-  auto const radius = sphere.radius();
-  auto const centroid = Kokkos::bit_cast<ArborX::Point<3>>(sphere.centroid());
-  ArborX::Box box;
-  ArborX::Details::expand(box, sphere);
-  return boost::geometry::index::intersects(box) &&
-         boost::geometry::index::satisfies(
-             UnaryPredicate<Value>([centroid, radius](Value const &val) {
-               boost::geometry::index::indexable<Value> indexableGetter;
-               auto const &geometry = indexableGetter(val);
-               return boost::geometry::distance(centroid, geometry) <= radius;
-             }));
-}
-
 template <typename Value, int DIM, typename Coordinate>
 static auto
-translate(ArborX::Intersects<ArborX::ExperimentalHyperGeometry::Sphere<
-              DIM, Coordinate>> const &query)
+translate(ArborX::Intersects<ArborX::Sphere<DIM, Coordinate>> const &query)
 {
   auto const sphere = getGeometry(query);
   auto const radius = sphere.radius();

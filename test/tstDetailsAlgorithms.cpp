@@ -12,9 +12,9 @@
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_HyperBox.hpp>
-#include <ArborX_HyperSphere.hpp>
 #include <ArborX_HyperTriangle.hpp>
 #include <ArborX_Point.hpp>
+#include <ArborX_Sphere.hpp>
 #include <ArborX_Tetrahedron.hpp>
 
 #include <boost/mpl/list.hpp>
@@ -24,7 +24,7 @@
 
 using Point = ArborX::Point<3>;
 using Box = ArborX::ExperimentalHyperGeometry::Box<3>;
-using Sphere = ArborX::ExperimentalHyperGeometry::Sphere<3>;
+using Sphere = ArborX::Sphere<3>;
 using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<3>;
 using Tetrahedron = ArborX::ExperimentalHyperGeometry::Tetrahedron<>;
 

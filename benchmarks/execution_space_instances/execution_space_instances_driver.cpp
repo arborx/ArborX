@@ -9,9 +9,9 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_HyperSphere.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Point.hpp>
+#include <ArborX_Sphere.hpp>
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
   };
 
   using Point = ArborX::Point<3>;
-  using Sphere = ArborX::ExperimentalHyperGeometry::Sphere<3>;
+  using Sphere = ArborX::Sphere<3>;
 
   Kokkos::View<Point *, MemorySpace> primitives(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::primitives"),

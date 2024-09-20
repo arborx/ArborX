@@ -55,7 +55,7 @@ struct ArborX::AccessTraits<Spheres, ArborX::PredicatesTag>
   static KOKKOS_FUNCTION auto get(Spheres const &d, std::size_t i)
   {
     return ArborX::intersects(
-        ArborX::Sphere{{{d.d_x[i], d.d_y[i], d.d_z[i]}}, d.d_r[i]});
+        ArborX::Sphere{ArborX::Point{d.d_x[i], d.d_y[i], d.d_z[i]}, d.d_r[i]});
   }
   using memory_space = Kokkos::CudaSpace;
 };

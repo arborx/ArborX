@@ -34,6 +34,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world_spatial, DeviceType,
   using Tree = ArborX::DistributedTree<typename DeviceType::memory_space>;
   using ExecutionSpace = typename DeviceType::execution_space;
   using Point = ArborX::Point<3>;
+  using Sphere = ArborX::Sphere<3>;
 
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
@@ -68,11 +69,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world_spatial, DeviceType,
   // x   x   x   x   x               |               |               |
   // |<------3------>|               |               |               |
   // |               |               |               |               |
-  Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
-      queries("Testing::queries", 1);
+  Kokkos::View<decltype(ArborX::intersects(Sphere{})) *, DeviceType> queries(
+      "Testing::queries", 1);
   auto queries_host = Kokkos::create_mirror_view(queries);
   queries_host(0) = ArborX::intersects(
-      ArborX::Sphere{{{0.5f + comm_size - 1 - comm_rank, 0., 0.}}, 0.5});
+      Sphere{{{0.5f + comm_size - 1 - comm_rank, 0., 0.}}, 0.5});
   deep_copy(queries, queries_host);
 
   std::vector<PairIndexRank> values;
@@ -452,6 +453,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
   using Point = ArborX::Point<3>;
   using Box = ArborX::ExperimentalHyperGeometry::Box<3>;
+  using Sphere = ArborX::Sphere<3>;
 
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
@@ -516,12 +518,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_comparison, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::deep_copy(point_coords, point_coords_host);
   Kokkos::deep_copy(radii, radii_host);
 
-  Kokkos::View<decltype(ArborX::intersects(ArborX::Sphere{})) *, DeviceType>
+  Kokkos::View<decltype(ArborX::intersects(Sphere{})) *, DeviceType>
       within_queries("Testing::within_queries", local_n);
   Kokkos::parallel_for(
       "register_within_queries",
       Kokkos::RangePolicy<ExecutionSpace>(0, local_n), KOKKOS_LAMBDA(int i) {
-        within_queries(i) = ArborX::intersects(ArborX::Sphere{
+        within_queries(i) = ArborX::intersects(Sphere{
             {{point_coords(i, 0), point_coords(i, 1), point_coords(i, 2)}},
             radii(i)});
       });
