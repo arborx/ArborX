@@ -348,6 +348,18 @@ BOOST_AUTO_TEST_CASE(expand)
   BOOST_TEST(equals(box, Box{{-5, -5, -3}, {5, 8, 7}}));
 }
 
+BOOST_AUTO_TEST_CASE(convert)
+{
+  using ArborX::Point;
+  using ArborX::Details::convert;
+  using ArborX::Details::equals;
+  BOOST_TEST(equals(convert<Point<2, double>>(Point{3.f, 2.f}), Point{3., 2.}));
+  BOOST_TEST(
+      equals(convert<Point<2, float>>(Point{3.f, 2.f}), Point{3.f, 2.f}));
+  BOOST_TEST(
+      !equals(convert<Point<2, float>>(Point{3.f, 2.f}), Point{2.f, 2.f}));
+}
+
 BOOST_AUTO_TEST_CASE(centroid)
 {
   using ArborX::Details::returnCentroid;
