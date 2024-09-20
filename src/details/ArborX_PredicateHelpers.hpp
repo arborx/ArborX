@@ -169,11 +169,8 @@ public:
     using Point = std::decay_t<decltype(point)>;
     constexpr int dim = GeometryTraits::dimension_v<Point>;
     using Coordinate = typename GeometryTraits::coordinate_type<Point>::type;
-    // FIXME reinterpret_cast is dangerous here if access traits return user
-    // point structure (e.g., struct MyPoint { float y; float x; })
-    auto const &hyper_point =
-        reinterpret_cast<::ArborX::Point<dim, Coordinate> const &>(point);
-    return intersects(Sphere(hyper_point, x._r));
+    return intersects(Sphere(
+        Details::convert<::ArborX::Point<dim, Coordinate>>(point), x._r));
   }
 };
 
