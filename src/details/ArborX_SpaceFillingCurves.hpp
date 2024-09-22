@@ -12,9 +12,9 @@
 #ifndef ARBORX_SPACE_FILLING_CURVES_HPP
 #define ARBORX_SPACE_FILLING_CURVES_HPP
 
+#include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsMortonCode.hpp>
-#include <ArborX_HyperBox.hpp>
 #include <ArborX_Point.hpp>
 
 #include <Kokkos_DetectionIdiom.hpp>
@@ -82,7 +82,7 @@ template <int DIM, class SpaceFillingCurve>
 void check_valid_space_filling_curve(SpaceFillingCurve const &)
 {
   using Point = Point<DIM>;
-  using Box = ExperimentalHyperGeometry::Box<DIM>;
+  using Box = Box<DIM>;
 
   static_assert(std::is_invocable_v<SpaceFillingCurve const &, Box, Point>);
   static_assert(std::is_invocable_v<SpaceFillingCurve const &, Box, Box>);

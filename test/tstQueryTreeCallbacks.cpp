@@ -109,19 +109,21 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_spatial_predicate, TreeTypeTraits,
 
   Tree const tree(ExecutionSpace{}, points);
 
-  ARBORX_TEST_QUERY_TREE_CALLBACK(ExecutionSpace{}, tree,
-                                  makeIntersectsBoxQueries<DeviceType>({
-                                      static_cast<ArborX::Box>(tree.bounds()),
-                                  }),
-                                  CustomInlineCallback<DeviceType>{points},
-                                  make_compressed_storage(offsets, values));
+  ARBORX_TEST_QUERY_TREE_CALLBACK(
+      ExecutionSpace{}, tree,
+      makeIntersectsBoxQueries<DeviceType>({
+          static_cast<ArborX::Box<3>>(tree.bounds()),
+      }),
+      CustomInlineCallback<DeviceType>{points},
+      make_compressed_storage(offsets, values));
 
-  ARBORX_TEST_QUERY_TREE_CALLBACK(ExecutionSpace{}, tree,
-                                  makeIntersectsBoxQueries<DeviceType>({
-                                      static_cast<ArborX::Box>(tree.bounds()),
-                                  }),
-                                  CustomPostCallback<DeviceType>{points},
-                                  make_compressed_storage(offsets, values));
+  ARBORX_TEST_QUERY_TREE_CALLBACK(
+      ExecutionSpace{}, tree,
+      makeIntersectsBoxQueries<DeviceType>({
+          static_cast<ArborX::Box<3>>(tree.bounds()),
+      }),
+      CustomPostCallback<DeviceType>{points},
+      make_compressed_storage(offsets, values));
 }
 
 #ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
@@ -203,7 +205,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_early_exit, TreeTypeTraits,
   std::vector<int> counts_ref(4);
   std::iota(counts_ref.begin(), counts_ref.end(), 1);
 
-  ArborX::ExperimentalHyperGeometry::Box<3> b;
+  ArborX::Box<3> b;
   ArborX::Details::expand(b, tree.bounds());
   auto predicates = makeIntersectsBoxWithAttachmentQueries<DeviceType, int>(
       {b, b, b, b}, {0, 1, 2, 3});
@@ -290,7 +292,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_spatial_predicate,
 
   Tree const tree(ExecutionSpace{}, points);
 
-  ArborX::ExperimentalHyperGeometry::Box<3> bounds;
+  ArborX::Box<3> bounds;
   ArborX::Details::expand(bounds, tree.bounds());
 
   ARBORX_TEST_QUERY_TREE_CALLBACK(

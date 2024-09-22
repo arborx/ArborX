@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <ArborX_Box.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_HyperBox.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Point.hpp>
 
@@ -29,7 +29,7 @@ struct FakeBoundingVolume
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, FakeBoundingVolume) {}
 KOKKOS_FUNCTION void expand(FakeBoundingVolume, PrimitivePointOrBox) {}
 template<int DIM>
-KOKKOS_FUNCTION void expand(ArborX::ExperimentalHyperGeometry::Box<DIM> &, FakeBoundingVolume) { }
+KOKKOS_FUNCTION void expand(ArborX::Box<DIM> &, FakeBoundingVolume) { }
 
 struct FakePredicateGeometry {};
 KOKKOS_FUNCTION ArborX::Point<3> returnCentroid(FakePredicateGeometry) { return {}; }

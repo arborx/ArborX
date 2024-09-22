@@ -173,9 +173,9 @@ struct KDOP : public Details::KDOP_Directions<DIM, k, Coordinate>
     }
   }
 
-  KOKKOS_FUNCTION explicit operator Box() const
+  KOKKOS_FUNCTION explicit operator Box<DIM, Coordinate>() const
   {
-    Box box;
+    Box<DIM, Coordinate> box;
     expand(box, *this);
     return box;
   }

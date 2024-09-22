@@ -30,14 +30,14 @@
 namespace ArborX
 {
 
-template <typename MemorySpace,
-          typename Value = Details::LegacyDefaultTemplateValue,
-          typename IndexableGetter = Details::DefaultIndexableGetter,
-          typename BoundingVolume = ExperimentalHyperGeometry::Box<
-              GeometryTraits::dimension_v<
-                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
-              typename GeometryTraits::coordinate_type_t<
-                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
+template <
+    typename MemorySpace, typename Value = Details::LegacyDefaultTemplateValue,
+    typename IndexableGetter = Details::DefaultIndexableGetter,
+    typename BoundingVolume =
+        Box<GeometryTraits::dimension_v<
+                std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
+            typename GeometryTraits::coordinate_type_t<
+                std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
 class BruteForce
 {
 public:
@@ -129,13 +129,12 @@ private:
 
 template <typename MemorySpace>
 class BruteForce<MemorySpace, Details::LegacyDefaultTemplateValue,
-                 Details::DefaultIndexableGetter,
-                 ExperimentalHyperGeometry::Box<3, float>>
-    : public BruteForce<MemorySpace, PairValueIndex<Box>,
-                        Details::DefaultIndexableGetter, Box>
+                 Details::DefaultIndexableGetter, Box<3, float>>
+    : public BruteForce<MemorySpace, PairValueIndex<Box<3, float>>,
+                        Details::DefaultIndexableGetter, Box<3, float>>
 {
-  using base_type = BruteForce<MemorySpace, PairValueIndex<Box>,
-                               Details::DefaultIndexableGetter, Box>;
+  using base_type = BruteForce<MemorySpace, PairValueIndex<Box<3, float>>,
+                               Details::DefaultIndexableGetter, Box<3, float>>;
 
 public:
   using bounding_volume_type = typename base_type::bounding_volume_type;

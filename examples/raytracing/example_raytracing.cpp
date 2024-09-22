@@ -60,7 +60,7 @@ struct Rays
 template <typename MemorySpace>
 struct DepositEnergy
 {
-  Kokkos::View<ArborX::Box *, MemorySpace> _boxes;
+  Kokkos::View<ArborX::Box<3> *, MemorySpace> _boxes;
   Kokkos::View<float *, MemorySpace> _ray_energy;
   Kokkos::View<float *, MemorySpace> _energy;
 
@@ -147,7 +147,7 @@ struct IntersectedCell : public IntersectedCellForSorting
 template <typename MemorySpace>
 struct AccumulateRaySphereIntersections
 {
-  Kokkos::View<ArborX::Box *, MemorySpace> _boxes;
+  Kokkos::View<ArborX::Box<3> *, MemorySpace> _boxes;
 
   template <typename Predicate, typename OutputFunctor>
   KOKKOS_FUNCTION void operator()(Predicate const &predicate,
@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
 
   Kokkos::Profiling::pushRegion("Example::problem_setup");
   Kokkos::Profiling::pushRegion("Example::make_grid");
-  Kokkos::View<ArborX::Box *, MemorySpace> boxes(
+  Kokkos::View<ArborX::Box<3> *, MemorySpace> boxes(
       Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
                          "Example::boxes"),
       num_boxes);
@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
           using Point = typename ArborX::Experimental::Ray::Point;
           using Vector = typename ArborX::Experimental::Ray::Vector;
 
-          ArborX::Box const &b = boxes(i);
+          auto const &b = boxes(i);
           Point origin{b.minCorner()[0] +
                            Kokkos::rand<GeneratorType, float>::draw(g, dx),
                        b.minCorner()[1] +

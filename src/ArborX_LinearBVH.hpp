@@ -26,7 +26,6 @@
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsTreeConstruction.hpp>
 #include <ArborX_DetailsTreeTraversal.hpp>
-#include <ArborX_HyperBox.hpp>
 #include <ArborX_IndexableGetter.hpp>
 #include <ArborX_PairValueIndex.hpp>
 #include <ArborX_PredicateHelpers.hpp>
@@ -50,14 +49,14 @@ namespace Details
 struct HappyTreeFriends;
 } // namespace Details
 
-template <typename MemorySpace,
-          typename Value = Details::LegacyDefaultTemplateValue,
-          typename IndexableGetter = Details::DefaultIndexableGetter,
-          typename BoundingVolume = ExperimentalHyperGeometry::Box<
-              GeometryTraits::dimension_v<
-                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
-              typename GeometryTraits::coordinate_type_t<
-                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
+template <
+    typename MemorySpace, typename Value = Details::LegacyDefaultTemplateValue,
+    typename IndexableGetter = Details::DefaultIndexableGetter,
+    typename BoundingVolume =
+        Box<GeometryTraits::dimension_v<
+                std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
+            typename GeometryTraits::coordinate_type_t<
+                std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
 class BoundingVolumeHierarchy
 {
 public:
@@ -174,14 +173,14 @@ private:
 // The partial template specialization parameters *must* match the default ones
 template <typename MemorySpace>
 class BoundingVolumeHierarchy<MemorySpace, Details::LegacyDefaultTemplateValue,
-                              Details::DefaultIndexableGetter,
-                              ExperimentalHyperGeometry::Box<3, float>>
-    : public BoundingVolumeHierarchy<MemorySpace, PairValueIndex<Box>,
-                                     Details::DefaultIndexableGetter, Box>
+                              Details::DefaultIndexableGetter, Box<3, float>>
+    : public BoundingVolumeHierarchy<MemorySpace, PairValueIndex<Box<3, float>>,
+                                     Details::DefaultIndexableGetter,
+                                     Box<3, float>>
 {
   using base_type =
-      BoundingVolumeHierarchy<MemorySpace, PairValueIndex<Box>,
-                              Details::DefaultIndexableGetter, Box>;
+      BoundingVolumeHierarchy<MemorySpace, PairValueIndex<Box<3, float>>,
+                              Details::DefaultIndexableGetter, Box<3, float>>;
 
 public:
   using bounding_volume_type = typename base_type::bounding_volume_type;
@@ -265,14 +264,14 @@ public:
   }
 };
 
-template <typename MemorySpace,
-          typename Value = Details::LegacyDefaultTemplateValue,
-          typename IndexableGetter = Details::DefaultIndexableGetter,
-          typename BoundingVolume = ExperimentalHyperGeometry::Box<
-              GeometryTraits::dimension_v<
-                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
-              typename GeometryTraits::coordinate_type_t<
-                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
+template <
+    typename MemorySpace, typename Value = Details::LegacyDefaultTemplateValue,
+    typename IndexableGetter = Details::DefaultIndexableGetter,
+    typename BoundingVolume =
+        Box<GeometryTraits::dimension_v<
+                std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
+            typename GeometryTraits::coordinate_type_t<
+                std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
 using BVH = BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
                                     BoundingVolume>;
 
@@ -333,9 +332,7 @@ BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter, BoundingVolume>::
       "ArborX::BVH::BVH::calculate_scene_bounding_box");
 
   // determine the bounding box of the scene
-  ExperimentalHyperGeometry::Box<
-      DIM, typename GeometryTraits::coordinate_type_t<BoundingVolume>>
-      bbox{};
+  Box<DIM, typename GeometryTraits::coordinate_type_t<BoundingVolume>> bbox{};
   Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, indexables,
                                                             bbox);
   Kokkos::Profiling::popRegion();
@@ -416,8 +413,7 @@ void BoundingVolumeHierarchy<
   {
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
     using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
-    ExperimentalHyperGeometry::Box<
-        GeometryTraits::dimension_v<bounding_volume_type>,
+    Box<GeometryTraits::dimension_v<bounding_volume_type>,
         typename GeometryTraits::coordinate_type_t<bounding_volume_type>>
         scene_bounding_box{};
     using namespace Details;

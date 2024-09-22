@@ -66,28 +66,28 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(assign_morton_codes, DeviceType,
     ref[i] = fun(anchors[i]);
   // using points rather than boxes for convenience here but still have to
   // build the axis-aligned bounding boxes around them
-  Kokkos::View<ArborX::Box *, DeviceType> boxes("boxes", n);
+  Kokkos::View<ArborX::Box<3> *, DeviceType> boxes("boxes", n);
   auto boxes_host = Kokkos::create_mirror_view(boxes);
   for (int i = 0; i < n; ++i)
     ArborX::Details::expand(boxes_host(i), points[i]);
   Kokkos::deep_copy(boxes, boxes_host);
 
   typename DeviceType::execution_space space{};
-  ArborX::Box scene_host;
+  ArborX::Box<3> scene_host;
   ArborX::Details::TreeConstruction::calculateBoundingBoxOfTheScene(
       space, boxes, scene_host);
 
   BOOST_TEST(ArborX::Details::equals(
       scene_host, {{{0.0, 0.0, 0.0}}, {{(float)N, (float)N, (float)N}}}));
 
-  ArborX::Details::LegacyValues<decltype(boxes), ArborX::Box> values{boxes};
+  ArborX::Details::LegacyValues<decltype(boxes), ArborX::Box<3>> values{boxes};
   ArborX::Details::Indexables<decltype(values),
                               ArborX::Details::DefaultIndexableGetter>
       indexables{values, ArborX::Details::DefaultIndexableGetter{}};
 
   // Test for a bug where missing move ref operator() in DefaultIndexableGetter
   // results in a default initialized indexable used in scene box calucation.
-  scene_host = ArborX::Box{};
+  scene_host = {};
   ArborX::Details::TreeConstruction::calculateBoundingBoxOfTheScene(
       space, indexables, scene_host);
   BOOST_TEST(ArborX::Details::equals(

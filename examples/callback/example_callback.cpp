@@ -34,7 +34,7 @@ struct ArborX::AccessTraits<FirstOctant, ArborX::PredicatesTag>
   static KOKKOS_FUNCTION std::size_t size(FirstOctant) { return 1; }
   static KOKKOS_FUNCTION auto get(FirstOctant, std::size_t)
   {
-    return ArborX::intersects(ArborX::Box{{{0, 0, 0}}, {{1, 1, 1}}});
+    return ArborX::intersects(ArborX::Box<3>{{{0, 0, 0}}, {{1, 1, 1}}});
   }
   using memory_space = MemorySpace;
 };

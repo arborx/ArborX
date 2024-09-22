@@ -21,7 +21,6 @@
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp> // is_accessible_from_host
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>       // exclusive_scan
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>         // lastElement
-#include <ArborX_HyperBox.hpp>
 #include <ArborX_Predicates.hpp>
 #include <ArborX_Sphere.hpp>
 #ifdef ARBORX_ENABLE_MPI
@@ -159,7 +158,7 @@ translate(ArborX::Intersects<ArborX::Sphere<DIM, Coordinate>> const &query)
   auto const sphere = getGeometry(query);
   auto const radius = sphere.radius();
   auto const centroid = sphere.centroid();
-  ArborX::ExperimentalHyperGeometry::Box<DIM, Coordinate> box;
+  ArborX::Box<DIM, Coordinate> box;
   ArborX::Details::expand(box, sphere);
   return boost::geometry::index::intersects(box) &&
          boost::geometry::index::satisfies(
@@ -170,10 +169,11 @@ translate(ArborX::Intersects<ArborX::Sphere<DIM, Coordinate>> const &query)
              }));
 }
 
-template <typename Value>
-static auto translate(ArborX::Intersects<ArborX::Box> const &query)
+template <typename Value, int DIM, typename Coordinate>
+static auto
+translate(ArborX::Intersects<ArborX::Box<DIM, Coordinate>> const &query)
 {
-  ArborX::Box const &box = getGeometry(query);
+  auto const &box = getGeometry(query);
   return boost::geometry::index::intersects(box);
 }
 

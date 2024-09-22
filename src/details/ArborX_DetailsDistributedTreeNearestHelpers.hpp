@@ -108,7 +108,7 @@ struct approx_expand_by_radius<PointTag, Point>
   template <typename Float>
   KOKKOS_FUNCTION static auto apply(Point const &point, Float r)
   {
-    constexpr int DIM = GeometryTraits::dimension_v<Box>;
+    constexpr int DIM = GeometryTraits::dimension_v<Point>;
     using Coordinate = GeometryTraits::coordinate_type_t<Point>;
     return Sphere{Kokkos::bit_cast<::ArborX::Point<DIM, Coordinate>>(point), r};
   }
@@ -240,14 +240,12 @@ template <typename MemorySpace, typename Callback, typename OutValue,
           bool UseValues>
 struct CallbackWithDistance<
     BoundingVolumeHierarchy<MemorySpace, Details::LegacyDefaultTemplateValue,
-                            Details::DefaultIndexableGetter,
-                            ExperimentalHyperGeometry::Box<3, float>>,
+                            Details::DefaultIndexableGetter, Box<3, float>>,
     Callback, OutValue, UseValues>
 {
   using Tree =
       BoundingVolumeHierarchy<MemorySpace, Details::LegacyDefaultTemplateValue,
-                              Details::DefaultIndexableGetter,
-                              ExperimentalHyperGeometry::Box<3, float>>;
+                              Details::DefaultIndexableGetter, Box<3, float>>;
 
   Tree _tree;
   Callback _callback;

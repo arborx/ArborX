@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
   points_host(1) = {1, 1, 1};
   Kokkos::deep_copy(points, points_host);
 
-  ArborX::Box scene_bounding_box = ArborX::Box{{-1, -1, -1}, {1, 1, 1}};
+  ArborX::Box<3> scene_bounding_box{{-1, -1, -1}, {1, 1, 1}};
 
   using IndexableGetter = ArborX::Details::DefaultIndexableGetter;
   IndexableGetter indexable_getter;
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
     ArborX::Details::Indexables<Primitives, IndexableGetter> indexables{
         primitives, indexable_getter};
 
-    ArborX::Box box;
+    ArborX::Box<3> box;
     calculateBoundingBoxOfTheScene(ExecutionSpace{}, indexables, box);
     BOOST_TEST(equals(box, scene_bounding_box));
   }
@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
     ArborX::Details::Indexables<Primitives, IndexableGetter> indexables{
         primitives, indexable_getter};
 
-    ArborX::Box box;
+    ArborX::Box<3> box;
     calculateBoundingBoxOfTheScene(ExecutionSpace{}, indexables, box);
     BOOST_TEST(equals(box, scene_bounding_box));
   }

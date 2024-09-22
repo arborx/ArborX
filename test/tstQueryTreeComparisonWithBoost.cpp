@@ -155,16 +155,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
   auto within_queries_host = Kokkos::create_mirror_view(within_queries);
   Kokkos::deep_copy(within_queries_host, within_queries);
 
-  Kokkos::View<decltype(ArborX::intersects(ArborX::Box{})) *, DeviceType>
+  Kokkos::View<decltype(ArborX::intersects(ArborX::Box<3>{})) *, DeviceType>
       intersects_queries("intersects_queries", n_points);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n_points), KOKKOS_LAMBDA(int i) {
-        ArborX::Box box{{static_cast<float>(points(i)[0] - radii(i)),
-                         static_cast<float>(points(i)[1] - radii(i)),
-                         static_cast<float>(points(i)[2] - radii(i))},
-                        {static_cast<float>(points(i)[0] + radii(i)),
-                         static_cast<float>(points(i)[1] + radii(i)),
-                         static_cast<float>(points(i)[2] + radii(i))}};
+        ArborX::Box<3> box{{static_cast<float>(points(i)[0] - radii(i)),
+                            static_cast<float>(points(i)[1] - radii(i)),
+                            static_cast<float>(points(i)[2] - radii(i))},
+                           {static_cast<float>(points(i)[0] + radii(i)),
+                            static_cast<float>(points(i)[1] + radii(i)),
+                            static_cast<float>(points(i)[2] + radii(i))}};
         intersects_queries(i) = ArborX::intersects(box);
       });
   auto intersects_queries_host = Kokkos::create_mirror_view(intersects_queries);
@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate_box, TreeTypeTraits,
   using DeviceType = typename TreeTypeTraits::device_type;
 
   boost_rtree_nearest_predicate<Tree, ExecutionSpace, DeviceType,
-                                ArborX::Box>();
+                                ArborX::Box<3>>();
 }
 #endif
 

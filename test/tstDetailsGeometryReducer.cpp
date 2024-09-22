@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(reducer, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ArborX::Details::equals;
 
-  using Box = ArborX::Box;
+  using Box = ArborX::Box<2>;
   BOOST_TEST(equals(reduce<DeviceType, Box>({{{{0.f, 0.f}}, {{1.f, 1.f}}},
                                              {{{2.f, 2.f}}, {{3.f, 3.f}}}}),
                     Box{{{0.f, 0.f}}, {{3.f, 3.f}}}));

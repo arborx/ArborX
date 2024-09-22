@@ -18,7 +18,6 @@
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_DetailsPermutedData.hpp>
-#include <ArborX_HyperBox.hpp>
 #include <ArborX_Predicates.hpp>
 #include <ArborX_TraversalPolicy.hpp>
 
@@ -385,8 +384,7 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
   {
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
     using bounding_volume_type = std::decay_t<decltype(tree.bounds())>;
-    ExperimentalHyperGeometry::Box<
-        GeometryTraits::dimension_v<bounding_volume_type>,
+    Box<GeometryTraits::dimension_v<bounding_volume_type>,
         typename GeometryTraits::coordinate_type_t<bounding_volume_type>>
         scene_bounding_box{};
     using namespace Details;

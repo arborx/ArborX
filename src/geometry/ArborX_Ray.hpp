@@ -96,7 +96,7 @@ auto returnCentroid(Ray const &ray) { return ray.origin(); }
 // efficient and robust ray-box intersection algorithm. In ACM SIGGRAPH 2005
 // Courses (pp. 9-es).
 KOKKOS_INLINE_FUNCTION
-bool intersection(Ray const &ray, Box const &box, float &tmin, float &tmax)
+bool intersection(Ray const &ray, Box<3> const &box, float &tmin, float &tmax)
 {
   auto const &min = box.minCorner();
   auto const &max = box.maxCorner();
@@ -131,7 +131,7 @@ bool intersection(Ray const &ray, Box const &box, float &tmin, float &tmax)
 }
 
 KOKKOS_INLINE_FUNCTION
-bool intersects(Ray const &ray, Box const &box)
+bool intersects(Ray const &ray, Box<3> const &box)
 {
   float tmin;
   float tmax;
@@ -399,7 +399,7 @@ intersects(Ray const &ray,
 // "smallest distance between a point on the ray and a point in the box"
 // so we can use nearest queries for ray tracing.
 KOKKOS_INLINE_FUNCTION
-float distance(Ray const &ray, Box const &box)
+float distance(Ray const &ray, Box<3> const &box)
 {
   float tmin;
   float tmax;

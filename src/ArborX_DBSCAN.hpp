@@ -13,6 +13,7 @@
 #define ARBORX_DBSCAN_HPP
 
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_Box.hpp>
 #include <ArborX_DetailsCartesianGrid.hpp>
 #include <ArborX_DetailsFDBSCAN.hpp>
 #include <ArborX_DetailsFDBSCANDenseBox.hpp>
@@ -21,7 +22,6 @@
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_DetailsUtils.hpp> // sortObjects
-#include <ArborX_HyperBox.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_PredicateHelpers.hpp>
 #include <ArborX_Sphere.hpp>
@@ -165,7 +165,7 @@ struct AccessTraits<
     // FIXME reinterpret_cast is dangerous here if access traits return user
     // point structure (e.g., struct MyPoint { float y; float x; })
     auto const &hyper_point = reinterpret_cast<Point<dim> const &>(point);
-    return ExperimentalHyperGeometry::Box<dim>{hyper_point, hyper_point};
+    return Box<dim>{hyper_point, hyper_point};
   }
   using memory_space = typename MixedOffsets::memory_space;
 };
@@ -231,7 +231,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   using Point = typename Points::value_type;
   static_assert(GeometryTraits::is_point_v<Point>);
   constexpr int dim = GeometryTraits::dimension_v<Point>;
-  using Box = ExperimentalHyperGeometry::Box<dim>;
+  using Box = Box<dim>;
 
   bool const is_special_case = (core_min_size == 2);
 

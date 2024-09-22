@@ -15,7 +15,6 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_DetailsAlgorithms.hpp> // returnCentroid, translateAndScale
 #include <ArborX_DetailsSortUtils.hpp>  // sortObjects
-#include <ArborX_HyperBox.hpp>
 #include <ArborX_SpaceFillingCurves.hpp>
 
 #include <Kokkos_Core.hpp>

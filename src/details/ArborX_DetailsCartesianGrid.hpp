@@ -12,9 +12,9 @@
 #ifndef ARBORX_DETAILS_CARTESIAN_GRID_HPP
 #define ARBORX_DETAILS_CARTESIAN_GRID_HPP
 
+#include <ArborX_Box.hpp>
 #include <ArborX_Exception.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_HyperBox.hpp>
 
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
 #include <Kokkos_Macros.hpp>
@@ -26,13 +26,10 @@ namespace ArborX::Details
 template <int DIM>
 struct CartesianGrid
 {
-private:
-  using Box = ExperimentalHyperGeometry::Box<DIM>;
-
 public:
   static constexpr int dim = DIM;
 
-  CartesianGrid(Box const &bounds, float h)
+  CartesianGrid(Box<DIM> const &bounds, float h)
       : _bounds(bounds)
   {
     ARBORX_ASSERT(h > 0);
@@ -40,7 +37,7 @@ public:
       _h[d] = h;
     buildGrid();
   }
-  CartesianGrid(Box const &bounds, float const h[DIM])
+  CartesianGrid(Box<DIM> const &bounds, float const h[DIM])
       : _bounds(bounds)
   {
     for (int d = 0; d < DIM; ++d)
@@ -68,7 +65,7 @@ public:
   }
 
   KOKKOS_FUNCTION
-  Box cellBox(size_t cell_index) const
+  auto cellBox(size_t cell_index) const
   {
     auto min = _bounds.minCorner();
     decltype(min) max;
@@ -83,7 +80,7 @@ public:
       max[d] = min[d] + (i + 1) * _h[d];
       min[d] += i * _h[d];
     }
-    return {min, max};
+    return Box<DIM>{min, max};
   }
 
   KOKKOS_FUNCTION
@@ -141,7 +138,7 @@ private:
     }
   }
 
-  Box _bounds;
+  Box<DIM> _bounds;
   float _h[DIM];
   size_t _n[DIM];
 };

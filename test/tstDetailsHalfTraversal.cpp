@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(half_traversal, DeviceType, ARBORX_DEVICE_TYPES)
   // [n] 1  1  1  1  1  1  1  1  1  0
 
   using ArborX::Details::HalfTraversal;
-  using Value = ArborX::PairValueIndex<ArborX::Box>;
+  using Value = ArborX::PairValueIndex<ArborX::Box<3>>;
   HalfTraversal(
       exec_space, bvh,
       KOKKOS_LAMBDA(Value const &value1, Value const &value2) {

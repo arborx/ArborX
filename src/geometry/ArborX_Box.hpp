@@ -17,7 +17,6 @@
 #include <ArborX_Point.hpp>
 
 #include <Kokkos_Macros.hpp>
-#include <Kokkos_MinMax.hpp>
 #include <Kokkos_ReductionIdentity.hpp>
 
 namespace ArborX
@@ -27,61 +26,60 @@ namespace ArborX
  * size 2x spatial dimension with a default constructor to initialize
  * properly an "empty" box.
  */
+template <int DIM, class Coordinate = float>
 struct Box
 {
-  KOKKOS_DEFAULTED_FUNCTION
-  constexpr Box() = default;
+  KOKKOS_FUNCTION
+  constexpr Box()
+  {
+    for (int d = 0; d < DIM; ++d)
+    {
+      _min_corner[d] =
+          Details::KokkosExt::ArithmeticTraits::finite_max<Coordinate>::value;
+      _max_corner[d] =
+          Details::KokkosExt::ArithmeticTraits::finite_min<Coordinate>::value;
+    }
+  }
 
-  KOKKOS_INLINE_FUNCTION
-  constexpr Box(Point<3> const &min_corner, Point<3> const &max_corner)
+  KOKKOS_FUNCTION
+  constexpr Box(Point<DIM, Coordinate> const &min_corner,
+                Point<DIM, Coordinate> const &max_corner)
       : _min_corner(min_corner)
       , _max_corner(max_corner)
   {}
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
   constexpr auto &minCorner() { return _min_corner; }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
   constexpr auto const &minCorner() const { return _min_corner; }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
   constexpr auto &maxCorner() { return _max_corner; }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
   constexpr auto const &maxCorner() const { return _max_corner; }
 
-  Point<3> _min_corner = {
-      {Details::KokkosExt::ArithmeticTraits::finite_max<float>::value,
-       Details::KokkosExt::ArithmeticTraits::finite_max<float>::value,
-       Details::KokkosExt::ArithmeticTraits::finite_max<float>::value}};
-  Point<3> _max_corner = {
-      {Details::KokkosExt::ArithmeticTraits::finite_min<float>::value,
-       Details::KokkosExt::ArithmeticTraits::finite_min<float>::value,
-       Details::KokkosExt::ArithmeticTraits::finite_min<float>::value}};
-};
-
-template <>
-struct GeometryTraits::dimension<ArborX::Box>
-{
-  static constexpr int value = 3;
-};
-template <>
-struct GeometryTraits::tag<ArborX::Box>
-{
-  using type = BoxTag;
-};
-template <>
-struct ArborX::GeometryTraits::coordinate_type<ArborX::Box>
-{
-  using type = float;
+  Point<DIM, Coordinate> _min_corner;
+  Point<DIM, Coordinate> _max_corner;
 };
 
 } // namespace ArborX
 
-template <>
-struct [[deprecated]] Kokkos::reduction_identity<ArborX::Box>
+template <int DIM, class Coordinate>
+struct ArborX::GeometryTraits::dimension<ArborX::Box<DIM, Coordinate>>
 {
-  KOKKOS_FUNCTION static ArborX::Box sum() { return {}; }
+  static constexpr int value = DIM;
+};
+template <int DIM, class Coordinate>
+struct ArborX::GeometryTraits::tag<ArborX::Box<DIM, Coordinate>>
+{
+  using type = BoxTag;
+};
+template <int DIM, class Coordinate>
+struct ArborX::GeometryTraits::coordinate_type<ArborX::Box<DIM, Coordinate>>
+{
+  using type = Coordinate;
 };
 
 #endif
