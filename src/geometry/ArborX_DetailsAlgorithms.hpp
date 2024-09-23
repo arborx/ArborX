@@ -30,6 +30,7 @@ using GeometryTraits::BoxTag;
 using GeometryTraits::KDOPTag;
 using GeometryTraits::PointTag;
 using GeometryTraits::RayTag;
+using GeometryTraits::SegmentTag;
 using GeometryTraits::SphereTag;
 using GeometryTraits::TetrahedronTag;
 using GeometryTraits::TriangleTag;
