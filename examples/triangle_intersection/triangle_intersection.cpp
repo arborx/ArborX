@@ -10,7 +10,7 @@
  ****************************************************************************/
 
 #include <ArborX.hpp>
-#include <ArborX_HyperTriangle.hpp>
+#include <ArborX_Triangle.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
   using MemorySpace = ExecutionSpace::memory_space;
 
   using Point = ArborX::Point<2>;
-  using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<2>;
+  using Triangle = ArborX::Triangle<2>;
 
   // Vertices:
   // 6_____7_____8

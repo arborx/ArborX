@@ -11,7 +11,7 @@
 
 #include <ArborX.hpp>
 #include <ArborXBenchmark_PointClouds.hpp>
-#include <ArborX_HyperTriangle.hpp>
+#include <ArborX_Triangle.hpp>
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Profiling_ScopedRegion.hpp>
@@ -25,7 +25,7 @@
 #include "generator.hpp"
 
 using Point = ArborX::Point<3>;
-using Triangle = ArborX::ExperimentalHyperGeometry::Triangle<3>;
+using Triangle = ArborX::Triangle<3>;
 
 template <typename MemorySpace>
 struct Triangles
