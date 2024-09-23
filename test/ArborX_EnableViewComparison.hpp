@@ -135,15 +135,14 @@ struct bt_iterator_traits<Kokkos::View<T, P...>, true>
   static std::size_t size(view_type const &v) { return v.size(); }
 };
 
-template <typename T, size_t N, typename Proxy>
-struct is_forward_iterable<Kokkos::Array<T, N, Proxy>>
-    : public boost::mpl::true_
+template <typename T, size_t N>
+struct is_forward_iterable<Kokkos::Array<T, N>> : public boost::mpl::true_
 {};
 
-template <typename T, size_t N, typename Proxy>
-struct bt_iterator_traits<Kokkos::Array<T, N, Proxy>, true>
+template <typename T, size_t N>
+struct bt_iterator_traits<Kokkos::Array<T, N>, true>
 {
-  using array_type = Kokkos::Array<T, N, Proxy>;
+  using array_type = Kokkos::Array<T, N>;
   using value_type = typename array_type::value_type;
   using const_iterator = typename array_type::const_pointer;
   static const_iterator begin(array_type const &v) { return v.data(); }
