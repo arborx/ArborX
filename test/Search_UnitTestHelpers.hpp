@@ -13,7 +13,6 @@
 #define ARBORX_SEARCH_TEST_HELPERS_HPP
 
 // clang-format off
-#include "boost_ext/ArborXPairIndexRankComparison.hpp"
 #include "boost_ext/KokkosPairComparison.hpp"
 #include "boost_ext/TupleComparison.hpp"
 #include "boost_ext/CompressedStorageComparison.hpp"
@@ -22,6 +21,7 @@
 #include "ArborX_EnableViewComparison.hpp"
 #ifdef ARBORX_ENABLE_MPI
 #include "ArborX_BoostRTreeHelpers.hpp"
+#include "ArborX_PairIndexRank.hpp"
 #include <ArborX_DistributedTree.hpp>
 #endif
 #include <ArborX_Box.hpp>

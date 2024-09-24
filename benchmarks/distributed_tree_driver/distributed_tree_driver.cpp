@@ -11,7 +11,6 @@
 
 #include <ArborXBenchmark_TimeMonitor.hpp>
 #include <ArborX_DistributedTree.hpp>
-#include <ArborX_PairIndexRank.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Version.hpp>
 

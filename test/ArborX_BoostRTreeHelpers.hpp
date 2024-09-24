@@ -24,7 +24,7 @@
 #include <ArborX_Predicates.hpp>
 #include <ArborX_Sphere.hpp>
 #ifdef ARBORX_ENABLE_MPI
-#include <ArborX_PairIndexRank.hpp>
+#include "ArborX_PairIndexRank.hpp"
 #endif
 
 #include <boost/range/adaptors.hpp>

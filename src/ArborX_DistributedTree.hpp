@@ -18,7 +18,6 @@
 #include <ArborX_DetailsDistributedTreeSpatial.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_LinearBVH.hpp>
-#include <ArborX_PairIndexRank.hpp>
 #include <ArborX_PairValueIndex.hpp>
 
 #include <Kokkos_Core.hpp>
