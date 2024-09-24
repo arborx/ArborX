@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_PAIR_INDEX_RANK_HPP
-#define ARBORX_PAIR_INDEX_RANK_HPP
+#ifndef ARBORX_TEST_PAIR_INDEX_RANK_HPP
+#define ARBORX_TEST_PAIR_INDEX_RANK_HPP
 
 #include <Kokkos_Macros.hpp>
 
@@ -18,7 +18,7 @@
 
 #include <iostream>
 
-namespace ArborX
+namespace ArborXTest
 {
 
 struct PairIndexRank
@@ -40,15 +40,15 @@ private:
   }
 };
 
-} // namespace ArborX
+} // namespace ArborXTest
 
 namespace boost::test_tools::tt_detail
 {
 
 template <>
-struct print_log_value<ArborX::PairIndexRank>
+struct print_log_value<ArborXTest::PairIndexRank>
 {
-  void operator()(std::ostream &os, ArborX::PairIndexRank const &p)
+  void operator()(std::ostream &os, ArborXTest::PairIndexRank const &p)
   {
     os << '(' << p.index << ',' << p.rank << ')';
   }

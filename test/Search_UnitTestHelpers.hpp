@@ -21,7 +21,7 @@
 #include "ArborX_EnableViewComparison.hpp"
 #ifdef ARBORX_ENABLE_MPI
 #include "ArborX_BoostRTreeHelpers.hpp"
-#include "ArborX_PairIndexRank.hpp"
+#include "ArborXTest_PairIndexRank.hpp"
 #include <ArborX_DistributedTree.hpp>
 #endif
 #include <ArborX_Box.hpp>
@@ -74,8 +74,8 @@ auto query(ExecutionSpace const &exec_space, Tree const &tree,
 {
   using memory_space = typename Tree::memory_space;
 #ifdef ARBORX_ENABLE_MPI
-  using value_type =
-      std::conditional_t<is_distributed<Tree>{}, ArborX::PairIndexRank, int>;
+  using value_type = std::conditional_t<is_distributed<Tree>{},
+                                        ArborXTest::PairIndexRank, int>;
 #else
   using value_type = int;
 #endif

@@ -8,6 +8,7 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
+
 #include <ArborX.hpp>
 
 #include <Kokkos_Core.hpp>

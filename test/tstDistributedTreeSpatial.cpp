@@ -26,7 +26,7 @@
 
 namespace tt = boost::test_tools;
 
-using ArborX::PairIndexRank;
+using ArborXTest::PairIndexRank;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world_spatial, DeviceType,
                               ARBORX_DEVICE_TYPES)

@@ -23,7 +23,7 @@
 
 #define BOOST_TEST_MODULE DistributedTree
 
-using ArborX::PairIndexRank;
+using ArborXTest::PairIndexRank;
 
 struct PairRankIndex
 {
