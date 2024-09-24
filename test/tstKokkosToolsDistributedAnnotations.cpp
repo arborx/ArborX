@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
+#include <ArborX_Box.hpp>
 #include <ArborX_DistributedTree.hpp>
 
 #include <boost/test/unit_test.hpp>
@@ -26,11 +27,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
     distributed_search_tree_distributed_search_tree_allocations_prefixed,
     DeviceType, ARBORX_DEVICE_TYPES)
 {
-  auto tree = makeDistributedTree<DeviceType>(MPI_COMM_WORLD,
-                                              {
-                                                  {{{0, 0, 0}}, {{1, 1, 1}}},
-                                                  {{{0, 0, 0}}, {{1, 1, 1}}},
-                                              });
+  using ExecutionSpace = typename DeviceType::execution_space;
+
+  auto tree = makeDistributedTree<DeviceType, ArborX::Box<3>>(
+      MPI_COMM_WORLD, ExecutionSpace{},
+      {
+          {{{0, 0, 0}}, {{1, 1, 1}}},
+          {{{0, 0, 0}}, {{1, 1, 1}}},
+      });
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle /*handle*/, char const *label,
@@ -45,10 +49,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
       });
 
   { // one leaf per process
-    auto tree = makeDistributedTree<DeviceType>(MPI_COMM_WORLD,
-                                                {
-                                                    {{{0, 0, 0}}, {{1, 1, 1}}},
-                                                });
+    auto tree = makeDistributedTree<DeviceType, ArborX::Box<3>>(
+        MPI_COMM_WORLD, ExecutionSpace{},
+        {
+            {{{0, 0, 0}}, {{1, 1, 1}}},
+        });
   }
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(nullptr);
@@ -60,11 +65,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
 {
   using ExecutionSpace = typename DeviceType::execution_space;
 
-  auto tree = makeDistributedTree<DeviceType>(MPI_COMM_WORLD,
-                                              {
-                                                  {{{0, 0, 0}}, {{1, 1, 1}}},
-                                                  {{{0, 0, 0}}, {{1, 1, 1}}},
-                                              });
+  auto tree = makeDistributedTree<DeviceType, ArborX::Box<3>>(
+      MPI_COMM_WORLD, ExecutionSpace{},
+      {
+          {{{0, 0, 0}}, {{1, 1, 1}}},
+          {{{0, 0, 0}}, {{1, 1, 1}}},
+      });
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle /*handle*/, char const *label,
@@ -116,11 +122,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 
   // DistributedTree::query
 
-  auto tree = makeDistributedTree<DeviceType>(MPI_COMM_WORLD,
-                                              {
-                                                  {{{0, 0, 0}}, {{1, 1, 1}}},
-                                                  {{{0, 0, 0}}, {{1, 1, 1}}},
-                                              });
+  auto tree = makeDistributedTree<DeviceType, ArborX::Box<3>>(
+      MPI_COMM_WORLD, ExecutionSpace{},
+      {
+          {{{0, 0, 0}}, {{1, 1, 1}}},
+          {{{0, 0, 0}}, {{1, 1, 1}}},
+      });
 
   // spatial predicates
   query(ExecutionSpace{}, tree,
@@ -154,16 +161,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   // DistributedTree::DistriibutedSearchTree
 
   { // empty
-    auto tree = makeDistributedTree<DeviceType>(MPI_COMM_WORLD, {});
+    auto tree = makeDistributedTree<DeviceType, ArborX::Box<3>>(
+        MPI_COMM_WORLD, ExecutionSpace{}, {});
   }
 
   // DistributedTree::query
 
-  auto tree = makeDistributedTree<DeviceType>(MPI_COMM_WORLD,
-                                              {
-                                                  {{{0, 0, 0}}, {{1, 1, 1}}},
-                                                  {{{0, 0, 0}}, {{1, 1, 1}}},
-                                              });
+  auto tree = makeDistributedTree<DeviceType, ArborX::Box<3>>(
+      MPI_COMM_WORLD, ExecutionSpace{},
+      {
+          {{{0, 0, 0}}, {{1, 1, 1}}},
+          {{{0, 0, 0}}, {{1, 1, 1}}},
+      });
 
   // spatial predicates
   query(ExecutionSpace{}, tree,
