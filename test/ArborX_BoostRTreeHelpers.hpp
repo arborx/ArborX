@@ -24,7 +24,7 @@
 #include <ArborX_Predicates.hpp>
 #include <ArborX_Sphere.hpp>
 #ifdef ARBORX_ENABLE_MPI
-#include <ArborX_PairIndexRank.hpp>
+#include "ArborXTest_PairIndexRank.hpp"
 #endif
 
 #include <boost/range/adaptors.hpp>
@@ -221,7 +221,7 @@ performQueries(RTree<Indexable> const &rtree, UserPredicates const &predicates)
 #ifdef ARBORX_ENABLE_MPI
 template <typename Indexable, typename InputView,
           typename OutputView1 =
-              Kokkos::View<ArborX::PairIndexRank *, Kokkos::HostSpace>,
+              Kokkos::View<ArborXTest::PairIndexRank *, Kokkos::HostSpace>,
           typename OutputView2 = Kokkos::View<int *, Kokkos::HostSpace>>
 static std::tuple<OutputView2, OutputView1>
 performQueries(ParallelRTree<Indexable> const &rtree, InputView const &queries)

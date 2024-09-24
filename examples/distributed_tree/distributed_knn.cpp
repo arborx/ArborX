@@ -22,19 +22,30 @@
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
 using MemorySpace = ExecutionSpace::memory_space;
 
-// WARNING: It is not allowed to add any definition into namespace ArborX. We
-// do it out of convenience here to print the results using
-// `std::ostream_iterator`. Please do not copy this code to your own code as
-// ArborX reserves the right to overload `operator<<` for any type defined
-// within its namespace. This means your code could break in the future.
-namespace ArborX
+struct PairIndexRank
 {
-std::ostream &operator<<(std::ostream &os, ArborX::PairIndexRank const &x)
+  unsigned index;
+  int rank;
+};
+
+std::ostream &operator<<(std::ostream &os, PairIndexRank const &x)
 {
   os << "(" << x.index << ", " << x.rank << ")";
   return os;
 }
-} // namespace ArborX
+
+struct CallbackWithRank
+{
+  int _rank;
+
+  template <typename Predicate, typename Value, typename OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Predicate const &,
+                                  ArborX::PairValueIndex<Value> const &value,
+                                  OutputFunctor const &out) const
+  {
+    out({value.index, _rank});
+  }
+};
 
 int main(int argc, char *argv[])
 {
@@ -70,12 +81,14 @@ int main(int argc, char *argv[])
             points.data(), points.size()));
 
     ExecutionSpace exec;
-    ArborX::DistributedTree<MemorySpace> tree(comm, exec, points_device);
+    ArborX::DistributedTree<MemorySpace, ArborX::PairValueIndex<Point>> tree(
+        comm, exec, ArborX::Experimental::attach_indices(points_device));
 
-    Kokkos::View<ArborX::PairIndexRank *, MemorySpace> values("Example::values",
-                                                              0);
+    Kokkos::View<PairIndexRank *, MemorySpace> values("Example::values", 0);
     Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
     tree.query(exec, ArborX::Experimental::make_nearest(points_device, 3),
+               ArborX::Experimental::declare_callback_constrained(
+                   CallbackWithRank{comm_rank}),
                values, offsets);
 
     if (comm_rank == 0)
@@ -94,7 +107,7 @@ int main(int argc, char *argv[])
                 std::ostream_iterator<int>(std::cout, " "));
       std::cout << "\nvalues : ";
       std::copy(values_host.data(), values_host.data() + values.size(),
-                std::ostream_iterator<ArborX::PairIndexRank>(std::cout, " "));
+                std::ostream_iterator<PairIndexRank>(std::cout, " "));
       std::cout << "\n";
     }
   }
