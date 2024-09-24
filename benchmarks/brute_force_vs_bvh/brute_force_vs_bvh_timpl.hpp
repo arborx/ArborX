@@ -104,7 +104,7 @@ static void run_fp(int nprimitives, int nqueries, int nrepeats)
 
     {
       Kokkos::Timer timer;
-      ArborX::BruteForce<MemorySpace, ArborX::PairValueIndex<Point>> brute{
+      ArborX::BruteForce brute{
           space, ArborX::Experimental::attach_indices(primitives)};
 
       Kokkos::View<int *, ExecutionSpace> indices("Benchmark::indices", 0);
