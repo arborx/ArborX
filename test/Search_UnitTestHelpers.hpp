@@ -20,8 +20,8 @@
 
 #include "ArborX_EnableViewComparison.hpp"
 #ifdef ARBORX_ENABLE_MPI
-#include "ArborX_BoostRTreeHelpers.hpp"
 #include "ArborXTest_PairIndexRank.hpp"
+#include "ArborX_BoostRTreeHelpers.hpp"
 #include <ArborX_DistributedTree.hpp>
 #endif
 #include <ArborX_Box.hpp>
