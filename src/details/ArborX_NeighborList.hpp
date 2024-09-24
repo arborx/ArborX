@@ -67,8 +67,7 @@ void findHalfNeighborList(ExecutionSpace const &space,
 
   using Value = PairValueIndex<Point>;
 
-  BoundingVolumeHierarchy<MemorySpace, Value> bvh(
-      space, Experimental::attach_indices(points));
+  BoundingVolumeHierarchy bvh(space, Experimental::attach_indices(points));
 
   Kokkos::Profiling::pushRegion(
       "ArborX::Experimental::HalfNeighborList::Count");
@@ -127,8 +126,7 @@ void findFullNeighborList(ExecutionSpace const &space,
 
   using Value = PairValueIndex<Point>;
 
-  BoundingVolumeHierarchy<MemorySpace, Value> bvh(
-      space, Experimental::attach_indices(points));
+  BoundingVolumeHierarchy bvh(space, Experimental::attach_indices(points));
 
   Kokkos::Profiling::pushRegion(
       "ArborX::Experimental::FullNeighborList::Count");

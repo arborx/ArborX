@@ -35,7 +35,6 @@ struct IntersectionCallback
 BOOST_AUTO_TEST_CASE_TEMPLATE(callback_intersects, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
-  using MemorySpace = typename DeviceType::memory_space;
   using ExecutionSpace = typename DeviceType::execution_space;
 
   using Point = ArborX::Point<3>;
@@ -48,9 +47,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_intersects, DeviceType,
         points(i) = {{(float)i, (float)i, (float)i}};
       });
 
-  ArborX::BoundingVolumeHierarchy<MemorySpace,
-                                  ArborX::PairValueIndex<Point>> const
-      tree(ExecutionSpace{}, ArborX::Experimental::attach_indices(points));
+  ArborX::BoundingVolumeHierarchy const tree(
+      ExecutionSpace{}, ArborX::Experimental::attach_indices(points));
 
   bool success;
   Kokkos::parallel_reduce(
@@ -83,7 +81,6 @@ struct OrderedIntersectionCallback
 BOOST_AUTO_TEST_CASE_TEMPLATE(callback_ordered_intersects, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
-  using MemorySpace = typename DeviceType::memory_space;
   using ExecutionSpace = typename DeviceType::execution_space;
 
   using Point = ArborX::Point<3>;
@@ -96,9 +93,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_ordered_intersects, DeviceType,
         points(i) = {{(float)i, (float)i, (float)i}};
       });
 
-  ArborX::BoundingVolumeHierarchy<MemorySpace,
-                                  ArborX::PairValueIndex<Point>> const
-      tree(ExecutionSpace{}, ArborX::Experimental::attach_indices(points));
+  ArborX::BoundingVolumeHierarchy const tree(
+      ExecutionSpace{}, ArborX::Experimental::attach_indices(points));
 
   bool success;
   Kokkos::parallel_reduce(

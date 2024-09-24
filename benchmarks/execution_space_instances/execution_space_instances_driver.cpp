@@ -197,8 +197,8 @@ int main(int argc, char *argv[])
             primitives, Kokkos::pair<int, int>(p * num_primitives,
                                                (p + 1) * num_primitives))));
   }
-  ArborX::BoundingVolumeHierarchy<MemorySpace, ArborX::PairValueIndex<Point>>
-      tree(instances[0], ArborX::Experimental::attach_indices(primitives));
+  ArborX::BoundingVolumeHierarchy tree(
+      instances[0], ArborX::Experimental::attach_indices(primitives));
 
   Kokkos::View<int *, MemorySpace> counts("Benchmark::counts",
                                           num_predicates * num_problems);

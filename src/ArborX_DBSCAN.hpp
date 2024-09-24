@@ -249,8 +249,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   {
     // Build the tree
     Kokkos::Profiling::pushRegion("ArborX::DBSCAN::tree_construction");
-    BoundingVolumeHierarchy<MemorySpace, PairValueIndex<Point>> bvh(
-        exec_space, Experimental::attach_indices(points));
+    BoundingVolumeHierarchy bvh(exec_space,
+                                Experimental::attach_indices(points));
     Kokkos::Profiling::popRegion();
 
     // Initialize labels after the hierarchy construction to lower memory high
@@ -375,8 +375,8 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
                          sorted_cell_indices,
                          permute};
 
-    BoundingVolumeHierarchy<MemorySpace, PairValueIndex<Box>> bvh(
-        exec_space, Experimental::attach_indices(mixed_primitives));
+    BoundingVolumeHierarchy bvh(exec_space,
+                                Experimental::attach_indices(mixed_primitives));
 
     Kokkos::Profiling::popRegion();
 

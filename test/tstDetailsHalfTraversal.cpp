@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(half_traversal, DeviceType, ARBORX_DEVICE_TYPES)
   auto points = Test::make_points(exec_space, n);
 
   using Value = ArborX::PairValueIndex<ArborX::Point<3>>;
-  ArborX::BoundingVolumeHierarchy<MemorySpace, Value> bvh(
+  ArborX::BoundingVolumeHierarchy bvh(
       exec_space, ArborX::Experimental::attach_indices(points));
 
   Kokkos::View<int *, MemorySpace> count("Test::count", n * (n + 1) / 2);

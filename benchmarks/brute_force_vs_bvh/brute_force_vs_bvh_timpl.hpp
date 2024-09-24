@@ -78,16 +78,13 @@ static void run_fp(int nprimitives, int nqueries, int nrepeats)
   Placeholder<DIM, FloatingPoint> primitives{nprimitives};
   Placeholder<DIM, FloatingPoint> predicates{nqueries};
 
-  using Point = ArborX::Point<DIM, FloatingPoint>;
-
   for (int i = 0; i < nrepeats; i++)
   {
     [[maybe_unused]] unsigned int out_count;
     {
       Kokkos::Timer timer;
-      ArborX::BoundingVolumeHierarchy<MemorySpace,
-                                      ArborX::PairValueIndex<Point>>
-          bvh{space, ArborX::Experimental::attach_indices(primitives)};
+      ArborX::BoundingVolumeHierarchy bvh{
+          space, ArborX::Experimental::attach_indices(primitives)};
 
       Kokkos::View<int *, ExecutionSpace> indices("Benchmark::indices_ref", 0);
       Kokkos::View<int *, ExecutionSpace> offset("Benchmark::offset_ref", 0);
