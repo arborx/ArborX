@@ -37,7 +37,6 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
 
   using DeviceType = typename NO::device_type;
   using ExecutionSpace = typename DeviceType::execution_space;
-  using MemorySpace = typename DeviceType::memory_space;
 
   int n_values;
   int n_queries;
@@ -217,8 +216,8 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
   auto construction = time_monitor.getNewTimer("construction");
   MPI_Barrier(comm);
   construction->start();
-  ArborX::DistributedTree<MemorySpace, Point> distributed_tree(
-      comm, ExecutionSpace{}, random_values);
+  ArborX::DistributedTree distributed_tree(comm, ExecutionSpace{},
+                                           random_values);
   construction->stop();
 
   std::ostream &os = std::cout;

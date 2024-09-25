@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
             points.data(), points.size()));
 
     ExecutionSpace exec;
-    ArborX::DistributedTree<MemorySpace, ArborX::PairValueIndex<Point>> tree(
+    ArborX::DistributedTree tree(
         comm, exec, ArborX::Experimental::attach_indices(points_device));
 
     Kokkos::View<PairIndexRank *, MemorySpace> values("Example::values", 0);
