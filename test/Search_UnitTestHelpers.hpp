@@ -39,8 +39,9 @@ struct is_distributed : std::false_type
 {};
 
 #ifdef ARBORX_ENABLE_MPI
-template <typename D>
-struct is_distributed<ArborX::DistributedTree<D>> : std::true_type
+template <typename MemorySpace, typename Value, typename... Args>
+struct is_distributed<ArborX::DistributedTree<MemorySpace, Value, Args...>>
+    : std::true_type
 {};
 
 template <typename I>
@@ -54,19 +55,6 @@ auto make_reference_solution(std::vector<T> const &values,
 {
   return make_compressed_storage(offsets, values);
 }
-
-#ifdef ARBORX_ENABLE_MPI
-// FIXME This is a temporary workaround until we reconcile interfaces of
-// DistributedTree and BVH
-template <typename ExecutionSpace, typename MemorySpace, typename Queries,
-          typename Values, typename Offsets>
-void query(ArborX::DistributedTree<MemorySpace> const &tree,
-           ExecutionSpace const &space, Queries const &queries,
-           Values const &values, Offsets const &offsets)
-{
-  tree.query(space, queries, values, offsets);
-}
-#endif
 
 template <typename ExecutionSpace, typename Tree, typename Queries>
 auto query(ExecutionSpace const &exec_space, Tree const &tree,
@@ -130,22 +118,46 @@ auto make(ExecutionSpace const &exec_space,
 }
 
 #ifdef ARBORX_ENABLE_MPI
-template <typename DeviceType, int DIM = 3, typename Coordinate = float>
-auto makeDistributedTree(MPI_Comm comm,
-                         std::vector<ArborX::Box<DIM, Coordinate>> const &b)
+template <typename MemorySpace, typename Geometry>
+struct PairIndexRankIndexableGetter
+{
+  Kokkos::View<Geometry *, MemorySpace> _geometries;
+
+  KOKKOS_FUNCTION auto const &operator()(ArborXTest::PairIndexRank p) const
+  {
+    return _geometries(p.index);
+  }
+};
+
+template <typename DeviceType, typename Geometry>
+auto makeDistributedTree(MPI_Comm comm, typename DeviceType::execution_space,
+                         std::vector<Geometry> const &g)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
 
-  int const n = b.size();
-  Kokkos::View<ArborX::Box<DIM, Coordinate> *, DeviceType> boxes(
-      "Testing::boxes", n);
-  auto boxes_host = Kokkos::create_mirror_view(boxes);
+  using PairIndexRank = ArborXTest::PairIndexRank;
+
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+
+  int const n = g.size();
+  Kokkos::View<Geometry *, DeviceType> geometries("Testing::geometries", n);
+  Kokkos::View<PairIndexRank *, DeviceType> pairs("Testing::geometry_pairs", n);
+  auto geometries_host = Kokkos::create_mirror_view(geometries);
+  auto pairs_host = Kokkos::create_mirror_view(pairs);
   for (int i = 0; i < n; ++i)
-    boxes_host(i) = b[i];
-  Kokkos::deep_copy(boxes, boxes_host);
+  {
+    geometries_host(i) = g[i];
+    pairs_host(i) = {i, comm_rank};
+  }
+  Kokkos::deep_copy(geometries, geometries_host);
+  Kokkos::deep_copy(pairs, pairs_host);
 
-  return ArborX::DistributedTree<typename DeviceType::memory_space>(
-      comm, ExecutionSpace{}, boxes);
+  using IndexableGetter = PairIndexRankIndexableGetter<MemorySpace, Geometry>;
+
+  return ArborX::DistributedTree<MemorySpace, PairIndexRank, IndexableGetter>(
+      comm, ExecutionSpace{}, pairs, IndexableGetter{geometries});
 }
 #endif
 

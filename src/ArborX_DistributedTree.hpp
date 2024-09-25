@@ -118,14 +118,13 @@ private:
 
 // NOTE: query() must be called as collective over all processes in the
 // communicator passed to the constructor
-template <
-    typename MemorySpace, typename Value = Details::LegacyDefaultTemplateValue,
-    typename IndexableGetter = Details::DefaultIndexableGetter,
-    typename BoundingVolume =
-        Box<GeometryTraits::dimension_v<
-                std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
-            typename GeometryTraits::coordinate_type_t<
-                std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
+template <typename MemorySpace, typename Value,
+          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename BoundingVolume = Box<
+              GeometryTraits::dimension_v<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
+              typename GeometryTraits::coordinate_type_t<
+                  std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>>>
 class DistributedTree
     : public DistributedTreeBase<BoundingVolumeHierarchy<
           MemorySpace, Value, IndexableGetter, BoundingVolume>>
@@ -148,71 +147,6 @@ public:
                   IndexableGetter const &indexable_getter = IndexableGetter())
       : base_type(comm, space, values, indexable_getter)
   {}
-};
-
-template <typename MemorySpace>
-class DistributedTree<MemorySpace, Details::LegacyDefaultTemplateValue,
-                      Details::DefaultIndexableGetter, Box<3, float>>
-    : public DistributedTreeBase<BoundingVolumeHierarchy<MemorySpace>>
-{
-  using base_type = DistributedTreeBase<BoundingVolumeHierarchy<MemorySpace>>;
-
-public:
-  using memory_space = MemorySpace;
-  using value_type = int;
-  using bounding_volume_type = typename base_type::bounding_volume_type;
-
-  DistributedTree() = default; // build an empty tree
-
-  template <typename ExecutionSpace, typename Primitives>
-  DistributedTree(MPI_Comm comm, ExecutionSpace const &space,
-                  Primitives const &primitives)
-      : base_type(comm, space, primitives)
-  {}
-
-  template <typename ExecutionSpace, typename UserPredicates,
-            typename IndicesAndRanks, typename OffsetView>
-  void query(ExecutionSpace const &space, UserPredicates const &user_predicates,
-             IndicesAndRanks &&indices_and_ranks, OffsetView &&offset) const
-  {
-    namespace KokkosExt = Details::KokkosExt;
-
-    static_assert(
-        KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value);
-
-    using Predicates = Details::AccessValues<UserPredicates, PredicatesTag>;
-    static_assert(
-        KokkosExt::is_accessible_from<typename Predicates::memory_space,
-                                      ExecutionSpace>::value,
-        "Predicates must be accessible from the execution space");
-
-    Predicates predicates{user_predicates}; // NOLINT
-
-    int comm_rank = -1;
-    if (base_type::getComm() != MPI_COMM_NULL)
-      MPI_Comm_rank(base_type::getComm(), &comm_rank);
-
-    base_type::query(space, predicates,
-                     Details::DefaultCallbackWithRank{comm_rank},
-                     std::forward<IndicesAndRanks>(indices_and_ranks),
-                     std::forward<OffsetView>(offset));
-  }
-
-  template <typename ExecutionSpace, typename UserPredicates, typename Callback>
-  void query(ExecutionSpace const &space, UserPredicates const &user_predicates,
-             Callback &&callback) const
-  {
-    base_type::query(space, user_predicates, std::forward<Callback>(callback));
-  }
-
-  template <typename ExecutionSpace, typename UserPredicates, typename Callback,
-            typename Indices, typename Offset>
-  void query(ExecutionSpace const &space, UserPredicates const &user_predicates,
-             Callback &&callback, Indices &&out, Offset &&offset) const
-  {
-    base_type::query(space, user_predicates, std::forward<Callback>(callback),
-                     std::forward<Indices>(out), std::forward<Offset>(offset));
-  }
 };
 
 template <typename BottomTree>

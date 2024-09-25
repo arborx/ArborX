@@ -14,7 +14,6 @@
 #include <ArborX_Callbacks.hpp>
 #include <ArborX_DetailsDistributedTreeImpl.hpp>
 #include <ArborX_DetailsDistributedTreeUtils.hpp>
-#include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_Predicates.hpp>
 
 #include <Kokkos_Core.hpp>
