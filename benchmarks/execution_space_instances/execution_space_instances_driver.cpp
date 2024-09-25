@@ -80,8 +80,8 @@ struct CountCallback
 {
   Kokkos::View<int *, MemorySpace> _counts;
 
-  template <typename Query>
-  KOKKOS_FUNCTION void operator()(Query const &query, int) const
+  template <typename Query, typename Value>
+  KOKKOS_FUNCTION void operator()(Query const &query, Value const &) const
   {
     auto const i = ArborX::getData(query);
     Kokkos::atomic_increment(&_counts(i));
@@ -184,17 +184,21 @@ int main(int argc, char *argv[])
   InstanceManager<ExecutionSpace> instance_manager(num_exec_spaces);
   auto const &instances = instance_manager.get_instances();
 
-  std::vector<ArborX::BVH<MemorySpace>> trees;
+  std::vector<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                              ArborX::PairValueIndex<Point>>>
+      trees;
   for (int p = 0; p < num_problems; ++p)
   {
     auto const &exec_space = instances[p % num_exec_spaces];
 
     trees.emplace_back(
-        exec_space, Kokkos::subview(primitives, Kokkos::pair<int, int>(
-                                                    p * num_primitives,
-                                                    (p + 1) * num_primitives)));
+        exec_space,
+        ArborX::Experimental::attach_indices(Kokkos::subview(
+            primitives, Kokkos::pair<int, int>(p * num_primitives,
+                                               (p + 1) * num_primitives))));
   }
-  ArborX::BVH<MemorySpace> tree(instances[0], primitives);
+  ArborX::BoundingVolumeHierarchy<MemorySpace, ArborX::PairValueIndex<Point>>
+      tree(instances[0], ArborX::Experimental::attach_indices(primitives));
 
   Kokkos::View<int *, MemorySpace> counts("Benchmark::counts",
                                           num_predicates * num_problems);

@@ -79,7 +79,10 @@ int main(int argc, char *argv[])
   cudaMemcpyAsync(d_a, a.data(), sizeof(a), cudaMemcpyHostToDevice, stream);
 
   Kokkos::Cuda cuda{stream};
-  ArborX::BVH<Kokkos::CudaSpace> bvh{cuda, PointCloud{d_a, d_a, d_a, N}};
+  ArborX::BoundingVolumeHierarchy<Kokkos::CudaSpace,
+                                  ArborX::PairValueIndex<ArborX::Point<3>>>
+      bvh{cuda,
+          ArborX::Experimental::attach_indices(PointCloud{d_a, d_a, d_a, N})};
 
   Kokkos::View<int *, Kokkos::CudaSpace> indices("Example::indices", 0);
   Kokkos::View<int *, Kokkos::CudaSpace> offset("Example::offset", 0);

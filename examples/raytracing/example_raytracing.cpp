@@ -64,12 +64,13 @@ struct DepositEnergy
   Kokkos::View<float *, MemorySpace> _ray_energy;
   Kokkos::View<float *, MemorySpace> _energy;
 
-  template <typename Predicate>
+  template <typename Predicate, typename Value>
   KOKKOS_FUNCTION void operator()(Predicate const &predicate,
-                                  int const primitive_index) const
+                                  Value const &value) const
   {
     float length;
     float entrylength;
+    int const primitive_index = value.index;
     auto const &ray = ArborX::getGeometry(predicate);
     auto const &box = _boxes(primitive_index);
     int const predicate_index = ArborX::getData(predicate);
@@ -149,13 +150,14 @@ struct AccumulateRaySphereIntersections
 {
   Kokkos::View<ArborX::Box<3> *, MemorySpace> _boxes;
 
-  template <typename Predicate, typename OutputFunctor>
+  template <typename Predicate, typename Value, typename OutputFunctor>
   KOKKOS_FUNCTION void operator()(Predicate const &predicate,
-                                  int const primitive_index,
+                                  Value const &value,
                                   OutputFunctor const &out) const
   {
     float length;
     float entrylength;
+    int const primitive_index = value.index;
     auto const &ray = ArborX::getGeometry(predicate);
     auto const &box = _boxes(primitive_index);
     int const predicate_index = ArborX::getData(predicate);
@@ -284,7 +286,9 @@ int main(int argc, char *argv[])
   Kokkos::Profiling::popRegion();
 
   // Construct BVH
-  ArborX::BVH<MemorySpace> bvh{exec_space, boxes};
+  ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                  ArborX::PairValueIndex<ArborX::Box<3>>>
+      bvh{exec_space, ArborX::Experimental::attach_indices(boxes)};
 
   // OrderedIntersects-based approach
   Kokkos::View<float *, MemorySpace> energy_ordered_intersects;

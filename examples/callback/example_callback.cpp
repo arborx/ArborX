@@ -52,12 +52,13 @@ struct ArborX::AccessTraits<NearestToOrigin, ArborX::PredicatesTag>
 
 struct PrintfCallback
 {
-  template <typename Predicate, typename OutputFunctor>
-  KOKKOS_FUNCTION void operator()(Predicate, int primitive,
+  template <typename Predicate, typename Value, typename OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Predicate, Value const &value,
                                   OutputFunctor const &out) const
   {
-    Kokkos::printf("Found %d from functor\n", primitive);
-    out(primitive);
+    auto const index = value.index;
+    Kokkos::printf("Found %d from functor\n", index);
+    out(index);
   }
 };
 
@@ -77,12 +78,13 @@ int main(int argc, char *argv[])
     return Point{rd(), rd(), rd()};
   });
 
-  ArborX::BVH<MemorySpace> bvh{
-      ExecutionSpace{},
-      Kokkos::create_mirror_view_and_copy(
-          MemorySpace{},
-          Kokkos::View<Point *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
-              points.data(), points.size()))};
+  ArborX::BoundingVolumeHierarchy<MemorySpace, ArborX::PairValueIndex<Point>>
+      bvh{ExecutionSpace{},
+          ArborX::Experimental::attach_indices(
+              Kokkos::create_mirror_view_and_copy(
+                  MemorySpace{}, Kokkos::View<Point *, Kokkos::HostSpace,
+                                              Kokkos::MemoryUnmanaged>(
+                                     points.data(), points.size())))};
 
   {
     Kokkos::View<int *, MemorySpace> values("Example::values", 0);
@@ -92,9 +94,8 @@ int main(int argc, char *argv[])
 #ifndef __NVCC__
     ArborX::query(
         bvh, ExecutionSpace{}, FirstOctant{},
-        KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
-                      auto /*output_functor*/) {
-          Kokkos::printf("Found %d from generic lambda\n", primitive);
+        KOKKOS_LAMBDA(auto /*predicate*/, auto value, auto /*output_functor*/) {
+          Kokkos::printf("Found %d from generic lambda\n", value.index);
         },
         values, offsets);
 #endif
@@ -109,9 +110,8 @@ int main(int argc, char *argv[])
 #ifndef __NVCC__
     ArborX::query(
         bvh, ExecutionSpace{}, NearestToOrigin{k},
-        KOKKOS_LAMBDA(auto /*predicate*/, int primitive,
-                      auto /*output_functor*/) {
-          Kokkos::printf("Found %d from generic lambda\n", primitive);
+        KOKKOS_LAMBDA(auto /*predicate*/, auto value, auto /*output_functor*/) {
+          Kokkos::printf("Found %d from generic lambda\n", value.index);
         },
         values, offsets);
 #endif
@@ -125,8 +125,8 @@ int main(int argc, char *argv[])
 #ifndef __NVCC__
     bvh.query(
         ExecutionSpace{}, FirstOctant{},
-        KOKKOS_LAMBDA(auto /*predicate*/, int j) {
-          Kokkos::printf("%d %d %d\n", ++c(), -1, j);
+        KOKKOS_LAMBDA(auto /*predicate*/, auto value) {
+          Kokkos::printf("%d %d %d\n", ++c(), -1, value.index);
         });
 #endif
   }

@@ -535,13 +535,22 @@ template <typename Point, typename Box>
 struct intersects<PointTag, BoxTag, Point, Box>
 {
   KOKKOS_FUNCTION static constexpr bool apply(Point const &point,
-                                              Box const &other)
+                                              Box const &box)
   {
     constexpr int DIM = GeometryTraits::dimension_v<Point>;
     for (int d = 0; d < DIM; ++d)
-      if (point[d] > other.maxCorner()[d] || point[d] < other.minCorner()[d])
+      if (point[d] > box.maxCorner()[d] || point[d] < box.minCorner()[d])
         return false;
     return true;
+  }
+};
+template <typename Box, typename Point>
+struct intersects<BoxTag, PointTag, Box, Point>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Box const &box,
+                                              Point const &point)
+  {
+    return Details::intersects(point, box);
   }
 };
 

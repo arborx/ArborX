@@ -41,14 +41,18 @@ int main(int argc, char *argv[])
   });
 
   // Pass directly the vector of points to use the access traits defined above
-  ArborX::BVH<Kokkos::HostSpace> bvh{Kokkos::DefaultHostExecutionSpace{},
-                                     points};
+  ArborX::BoundingVolumeHierarchy<Kokkos::HostSpace,
+                                  ArborX::PairValueIndex<Point>>
+      bvh{Kokkos::DefaultHostExecutionSpace{},
+          ArborX::Experimental::attach_indices(points)};
 
   // As a supported alternative, wrap the vector in an unmanaged View
-  bvh = ArborX::BVH<Kokkos::HostSpace>{
+  bvh = ArborX::BoundingVolumeHierarchy<Kokkos::HostSpace,
+                                        ArborX::PairValueIndex<Point>>{
       Kokkos::DefaultHostExecutionSpace{},
-      Kokkos::View<Point *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>{
-          points.data(), points.size()}};
+      ArborX::Experimental::attach_indices(
+          Kokkos::View<Point *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>{
+              points.data(), points.size()})};
 
   return 0;
 }

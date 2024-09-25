@@ -90,11 +90,22 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
   using DeviceType = ExecutionSpace::device_type;
 
   using Point = ArborX::Point<3>;
+  using Box = ArborX::Box<3>;
 
   Kokkos::View<Point *, DeviceType> points("Example::points", 0);
   loadPointCloud(infile, points);
 
-  ArborX::BVH<Kokkos::HostSpace> bvh{ExecutionSpace{}, points};
+  Kokkos::View<Box *, DeviceType> boxes("Example::boxes", points.size());
+  Kokkos::parallel_for(
+      "Example::copy_points_to_boxes",
+      Kokkos::RangePolicy<ExecutionSpace>(0, points.size()),
+      KOKKOS_LAMBDA(int i) {
+        boxes(i) = {points(i), points(i)};
+      });
+
+  ArborX::BoundingVolumeHierarchy<Kokkos::HostSpace,
+                                  ArborX::PairValueIndex<Box>>
+      bvh{ExecutionSpace{}, ArborX::Experimental::attach_indices(boxes)};
 
   using TreeVisualization = ArborX::Details::TreeVisualization;
   using TikZVisitor = typename TreeVisualization::TikZVisitor;
