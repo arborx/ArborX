@@ -32,47 +32,29 @@
 template <typename ExecutionSpace, typename TreeType>
 struct BenchmarkRegistration
 {
-  BenchmarkRegistration(Spec const &, std::string const &) {}
-};
-
-template <typename ExecutionSpace, typename MemorySpace>
-struct BenchmarkRegistration<ExecutionSpace, ArborX::BVH<MemorySpace>>
-{
-  using TreeType = ArborX::BVH<MemorySpace>;
   BenchmarkRegistration(Spec const &spec, std::string const &description)
   {
     register_benchmark_construction<ExecutionSpace, TreeType>(spec,
                                                               description);
     register_benchmark_spatial_query_no_callback<ExecutionSpace, TreeType>(
         spec, description);
-    register_benchmark_spatial_query_callback<ExecutionSpace, TreeType>(
-        spec, description);
+    if constexpr (!is_boost_rtree_v<TreeType>)
+      register_benchmark_spatial_query_callback<ExecutionSpace, TreeType>(
+          spec, description);
     register_benchmark_nearest_query_no_callback<ExecutionSpace, TreeType>(
         spec, description);
-    register_benchmark_nearest_query_callback<ExecutionSpace, TreeType>(
-        spec, description);
+    if constexpr (!is_boost_rtree_v<TreeType>)
+      register_benchmark_nearest_query_callback<ExecutionSpace, TreeType>(
+          spec, description);
   }
 };
 
 template <typename ExecutionSpace>
-struct BenchmarkRegistration<ExecutionSpace, BoostExt::RTree<ArborX::Point<3>>>
-{
-  using TreeType = BoostExt::RTree<ArborX::Point<3>>;
-  BenchmarkRegistration(Spec const &spec, std::string const &description)
-  {
-    register_benchmark_construction<ExecutionSpace, TreeType>(spec,
-                                                              description);
-    register_benchmark_spatial_query_no_callback<ExecutionSpace, TreeType>(
-        spec, description);
-    register_benchmark_nearest_query_no_callback<ExecutionSpace, TreeType>(
-        spec, description);
-  }
-};
+using BVHBenchmarkRegistration = BenchmarkRegistration<
+    ExecutionSpace,
+    ArborX::BoundingVolumeHierarchy<typename ExecutionSpace::memory_space,
+                                    ArborX::PairValueIndex<ArborX::Point<3>>>>;
 
-template <typename ExecutionSpace>
-using BVHBenchmarkRegistration =
-    BenchmarkRegistration<ExecutionSpace,
-                          ArborX::BVH<typename ExecutionSpace::memory_space>>;
 void register_bvh_benchmarks(Spec const &spec)
 {
 #ifdef KOKKOS_ENABLE_SERIAL
