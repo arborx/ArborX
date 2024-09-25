@@ -162,7 +162,7 @@ public:
 };
 
 template <typename GeometryTo, typename GeometryFrom>
-KOKKOS_INLINE_FUNCTION auto convert(GeometryFrom const &geometry)
+KOKKOS_INLINE_FUNCTION GeometryTo convert(GeometryFrom const &geometry)
 {
   static_assert(GeometryTraits::dimension_v<GeometryFrom> ==
                 GeometryTraits::dimension_v<GeometryTo>);
