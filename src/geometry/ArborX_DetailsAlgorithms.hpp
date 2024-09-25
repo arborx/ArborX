@@ -49,6 +49,10 @@ struct expand;
 template <typename Tag1, typename Tag2, typename Geometry1, typename Geometry2>
 struct intersects;
 
+template <typename TagFrom, typename TagTo, typename GeometryFrom,
+          typename GeometryTo>
+struct convert;
+
 template <typename Tag, typename Geometry>
 struct centroid;
 
@@ -156,6 +160,16 @@ public:
   KOKKOS_FUNCTION
   bool references_scalar() const { return _references_scalar; }
 };
+
+template <typename GeometryTo, typename GeometryFrom>
+KOKKOS_INLINE_FUNCTION GeometryTo convert(GeometryFrom const &geometry)
+{
+  static_assert(GeometryTraits::dimension_v<GeometryFrom> ==
+                GeometryTraits::dimension_v<GeometryTo>);
+  return Dispatch::convert<typename GeometryTraits::tag_t<GeometryFrom>,
+                           typename GeometryTraits::tag_t<GeometryTo>,
+                           GeometryFrom, GeometryTo>::apply(geometry);
+}
 
 namespace Dispatch
 {
@@ -760,6 +774,30 @@ struct intersects<TriangleTag, BoxTag, Triangle, Box>
                                               Box const &box)
   {
     return intersects<BoxTag, TriangleTag, Box, Triangle>::apply(box, triangle);
+  }
+};
+
+template <typename PointFrom, typename PointTo>
+struct convert<PointTag, PointTag, PointFrom, PointTo>
+{
+  KOKKOS_FUNCTION static constexpr auto apply(PointFrom const &point)
+  {
+    PointTo converted;
+    constexpr int DIM = GeometryTraits::dimension_v<PointFrom>;
+    for (int d = 0; d < DIM; ++d)
+      converted[d] = point[d];
+    return converted;
+  }
+};
+
+template <int DIM, typename Coordinate>
+struct convert<PointTag, PointTag, Point<DIM, Coordinate>,
+               Point<DIM, Coordinate>>
+{
+  KOKKOS_FUNCTION static constexpr auto
+  apply(Point<DIM, Coordinate> const &point)
+  {
+    return point;
   }
 };
 

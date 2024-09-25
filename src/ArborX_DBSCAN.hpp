@@ -62,11 +62,11 @@ struct WithinRadiusGetter
   {
     static_assert(GeometryTraits::is_point_v<Point>);
 
-    constexpr int dim = GeometryTraits::dimension_v<Point>;
-    auto const &hyper_point =
-        reinterpret_cast<::ArborX::Point<dim> const &>(pair.value);
+    constexpr int DIM = GeometryTraits::dimension_v<Point>;
+    using Coordinate = GeometryTraits::coordinate_type_t<Point>;
     using ArborX::intersects;
-    return intersects(Sphere{hyper_point, _r});
+    return intersects(
+        Sphere{convert<::ArborX::Point<DIM, Coordinate>>(pair.value), _r});
   }
 };
 
