@@ -40,10 +40,12 @@ struct ArborX::AccessTraits<Neighbors<MemorySpace>, ArborX::PredicatesTag>
 
 struct ExcludeSelfCollision
 {
-  template <class Predicate, class OutputFunctor>
-  KOKKOS_FUNCTION void operator()(Predicate const &predicate, int i,
+  template <class Predicate, typename Value, class OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Predicate const &predicate,
+                                  Value const &value,
                                   OutputFunctor const &out) const
   {
+    int const i = value.index;
     int const j = getData(predicate);
     if (i != j)
     {
@@ -115,7 +117,9 @@ int main(int argc, char *argv[])
   // TODO scale velocities
   Kokkos::Profiling::popRegion();
 
-  ArborX::BVH<MemorySpace> index(execution_space, particles);
+  ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                  ArborX::PairValueIndex<ArborX::Point<3>>>
+      index(execution_space, ArborX::Experimental::attach_indices(particles));
 
   Kokkos::View<int *, MemorySpace> indices("Example::indices", 0);
   Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
