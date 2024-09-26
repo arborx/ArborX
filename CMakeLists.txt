@@ -9,6 +9,12 @@ endif()
 find_package(Kokkos 4.3 REQUIRED CONFIG)
 message(STATUS "Found Kokkos: ${Kokkos_DIR} (version \"${Kokkos_VERSION}\")")
 
+# We use minimum compiler versions from Kokkos, with the exception for NVCC (>= 11.5)
+SET(ARBORX_NVCC_MINIMUM 11.5.0)
+if(Kokkos_CXX_COMPILER_ID STREQUAL "NVIDIA" AND Kokkos_CXX_COMPILER_VERSION VERSION_LESS ${ARBORX_NVCC_MINIMUM})
+  message(FATAL_ERROR "NVCC versions prior to 11.5 are not supported by ArborX")
+endif()
+
 add_library(ArborX INTERFACE)
 target_link_libraries(ArborX INTERFACE Kokkos::kokkos)
 set_target_properties(ArborX PROPERTIES INTERFACE_COMPILE_FEATURES cxx_std_17)
