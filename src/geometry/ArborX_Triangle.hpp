@@ -34,6 +34,14 @@ KOKKOS_FUNCTION
     Triangle(Point<DIM, Coordinate>, Point<DIM, Coordinate>,
              Point<DIM, Coordinate>) -> Triangle<DIM, Coordinate>;
 
+template <typename T, std::size_t N>
+#if KOKKOS_VERSION >= 40400
+KOKKOS_DEDUCTION_GUIDE
+#else
+KOKKOS_FUNCTION
+#endif
+Triangle(T const (&)[N], T const (&)[N], T const (&)[N]) -> Triangle<N, T>;
+
 } // namespace ArborX
 
 template <int DIM, class Coordinate>

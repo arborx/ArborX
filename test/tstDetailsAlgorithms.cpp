@@ -81,8 +81,8 @@ BOOST_AUTO_TEST_CASE(distance_point_triangle)
       |        |
   */
   using Point2 = ArborX::Point<2>;
-  constexpr ArborX::Triangle<2> triangle2{Point2{-1, 0}, Point2{1, 0},
-                                          Point2{0, 1}};
+  constexpr ArborX::Triangle triangle2{Point2{-1, 0}, Point2{1, 0},
+                                       Point2{0, 1}};
 
   // vertices
   BOOST_TEST(distance(Point2{-1, 0}, triangle2) == 0);
@@ -108,8 +108,8 @@ BOOST_AUTO_TEST_CASE(distance_point_triangle)
   BOOST_TEST(distance(Point2{1, 1}, triangle2) == std::sqrt(2.f) / 2);
 
   using Point3 = ArborX::Point<3>;
-  constexpr ArborX::Triangle<3> triangle3{Point3{1, 0, 0}, Point3{0, 1, 0},
-                                          Point3{0, 0, 0}};
+  constexpr ArborX::Triangle triangle3{Point3{1, 0, 0}, Point3{0, 1, 0},
+                                       Point3{0, 0, 0}};
 
   // same plane
   BOOST_TEST(distance(Point3{2, 0, 0}, triangle3) == 1);
@@ -125,8 +125,8 @@ BOOST_AUTO_TEST_CASE(distance_point_triangle)
   BOOST_TEST(distance(Point3{0, -1, -1}, triangle3) == std::sqrt(2.f));
   BOOST_TEST(distance(Point3{2, -1, -1}, triangle3) == std::sqrt(3.f));
 
-  constexpr ArborX::Triangle<3> triangle3_2{Point3{0, 0, 0}, Point3{0, 1, 0},
-                                            Point3{0, 0, 1}};
+  constexpr ArborX::Triangle triangle3_2{Point3{0, 0, 0}, Point3{0, 1, 0},
+                                         Point3{0, 0, 1}};
   BOOST_TEST(distance(Point3{-1, 0, 1}, triangle3_2) == 1);
   BOOST_TEST(distance(Point3{0, -1, -1}, triangle3_2) == std::sqrt(2.f));
   BOOST_TEST(distance(Point3{1, -1, -1}, triangle3_2) == std::sqrt(3.f));
