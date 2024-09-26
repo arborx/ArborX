@@ -12,6 +12,7 @@
 #define ARBORX_CALLBACKS_HPP
 
 #include <ArborX_AccessTraits.hpp>
+#include <ArborX_PairValueIndex.hpp>
 #include <ArborX_Predicates.hpp> // is_valid_predicate_tag
 
 #include <Kokkos_DetectionIdiom.hpp>
@@ -41,6 +42,21 @@ struct DefaultCallback
                                   OutputFunctor const &out) const
   {
     out(value);
+  }
+};
+
+struct LegacyDefaultCallback
+{
+  template <typename Query, typename Value, typename Index,
+            typename OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Query const &,
+                                  PairValueIndex<Value, Index> const &value,
+                                  OutputFunctor const &output) const
+  {
+    // APIv1 callback has the signature operator()(Query, int)
+    // As we store PairValueIndex with potentially non int index (like
+    // unsigned), we explicitly cast it here.
+    output((int)value.index);
   }
 };
 

@@ -26,9 +26,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-  using Tree = ArborX::BVH<MemorySpace>;
 
   using Point = ArborX::Point<3>;
+  using Tree = ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                               ArborX::PairValueIndex<Point>>;
 
   std::vector<Point> primitives = {
       {{0, 0, 0}}, // 0
@@ -47,10 +48,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop, DeviceType, ARBORX_DEVICE_TYPES)
   };
   Tree const tree(
       ExecutionSpace{},
-      Kokkos::create_mirror_view_and_copy(
+      ArborX::Experimental::attach_indices(Kokkos::create_mirror_view_and_copy(
           MemorySpace{},
           Kokkos::View<Point *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
-              primitives.data(), primitives.size())));
+              primitives.data(), primitives.size()))));
 
   // (0,0,0)->(1,2,3) box with (0,0,0)--(0,0,3) edge cut off
   ArborX::Experimental::KDOP<3, 18> x;

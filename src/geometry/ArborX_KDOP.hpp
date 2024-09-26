@@ -365,6 +365,16 @@ struct intersects<PointTag, KDOPTag, Point, KDOP>
   }
 };
 
+template <typename KDOP, typename Point>
+struct intersects<KDOPTag, PointTag, KDOP, Point>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(KDOP const &kdop,
+                                              Point const &point)
+  {
+    return Details::intersects(point, kdop);
+  }
+};
+
 template <typename KDOP1, typename KDOP2>
 struct intersects<KDOPTag, KDOPTag, KDOP1, KDOP2>
 {

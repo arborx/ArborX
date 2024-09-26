@@ -15,11 +15,11 @@
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_AttachIndices.hpp>
 #include <ArborX_Box.hpp>
+#include <ArborX_Callbacks.hpp>
 #include <ArborX_CrsGraphWrapper.hpp>
 #include <ArborX_DetailsBruteForceImpl.hpp>
 #include <ArborX_DetailsCrsGraphWrapperImpl.hpp>
 #include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
-#include <ArborX_DetailsLegacy.hpp>
 #include <ArborX_IndexableGetter.hpp>
 #include <ArborX_PairValueIndex.hpp>
 #include <ArborX_PredicateHelpers.hpp>

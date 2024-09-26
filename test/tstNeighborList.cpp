@@ -34,10 +34,12 @@ using ArborXTest::toView;
 
 struct Filter
 {
-  template <class Predicate, class OutputFunctor>
-  KOKKOS_FUNCTION void operator()(Predicate const &predicate, int i,
+  template <class Predicate, typename Value, class OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Predicate const &predicate,
+                                  Value const &value,
                                   OutputFunctor const &out) const
   {
+    int const i = value.index;
     int const j = getData(predicate);
     if (i < j)
     {
@@ -52,7 +54,9 @@ auto compute_reference(ExecutionSpace const &exec_space, Points const &points,
 {
   Kokkos::View<int *, ExecutionSpace> offsets("Test::offsets", 0);
   Kokkos::View<int *, ExecutionSpace> indices("Test::indices", 0);
-  ArborX::BoundingVolumeHierarchy<MemorySpace> bvh(exec_space, points);
+  ArborX::BoundingVolumeHierarchy<
+      MemorySpace, ArborX::PairValueIndex<typename Points::value_type>>
+      bvh(exec_space, ArborX::Experimental::attach_indices(points));
   auto predicates = ArborX::Experimental::attach_indices<int>(
       ArborX::Experimental::make_intersects(points, radius));
   bvh.query(exec_space, predicates, Filter{}, indices, offsets);

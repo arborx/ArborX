@@ -37,17 +37,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_intersects, DeviceType,
 {
   using MemorySpace = typename DeviceType::memory_space;
   using ExecutionSpace = typename DeviceType::execution_space;
-  using Tree = ArborX::BVH<MemorySpace>;
+
+  using Point = ArborX::Point<3>;
 
   int const n = 10;
-  Kokkos::View<ArborX::Point<3> *, DeviceType> points(
+  Kokkos::View<Point *, DeviceType> points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
         points(i) = {{(float)i, (float)i, (float)i}};
       });
 
-  Tree const tree(ExecutionSpace{}, points);
+  ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                  ArborX::PairValueIndex<Point>> const
+      tree(ExecutionSpace{}, ArborX::Experimental::attach_indices(points));
 
   bool success;
   Kokkos::parallel_reduce(
@@ -82,17 +85,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_ordered_intersects, DeviceType,
 {
   using MemorySpace = typename DeviceType::memory_space;
   using ExecutionSpace = typename DeviceType::execution_space;
-  using Tree = ArborX::BVH<MemorySpace>;
+
+  using Point = ArborX::Point<3>;
 
   int const n = 10;
-  Kokkos::View<ArborX::Point<3> *, DeviceType> points(
+  Kokkos::View<Point *, DeviceType> points(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "points"), n);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
         points(i) = {{(float)i, (float)i, (float)i}};
       });
 
-  Tree const tree(ExecutionSpace{}, points);
+  ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                  ArborX::PairValueIndex<Point>> const
+      tree(ExecutionSpace{}, ArborX::Experimental::attach_indices(points));
 
   bool success;
   Kokkos::parallel_reduce(

@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
+#include <ArborXTest_LegacyTree.hpp>
 #include <ArborX_DetailsKokkosExtMinMaxReduce.hpp>
 #include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtViewHelpers.hpp>
@@ -34,14 +35,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
   namespace KokkosExt = ArborX::Details::KokkosExt;
 
   using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
 
-  auto const bvh = make<ArborX::BVH<typename DeviceType::memory_space>>(
-      ExecutionSpace{}, {
-                            {{{0., 0., 0.}}, {{0., 0., 0.}}},
-                            {{{1., 0., 0.}}, {{1., 0., 0.}}},
-                            {{{2., 0., 0.}}, {{2., 0., 0.}}},
-                            {{{3., 0., 0.}}, {{3., 0., 0.}}},
-                        });
+  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
+      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
+
+  auto const bvh =
+      make<Tree>(ExecutionSpace{}, {
+                                       {{{0., 0., 0.}}, {{0., 0., 0.}}},
+                                       {{{1., 0., 0.}}, {{1., 0., 0.}}},
+                                       {{{2., 0., 0.}}, {{2., 0., 0.}}},
+                                       {{{3., 0., 0.}}, {{3., 0., 0.}}},
+                                   });
 
   auto const queries = makeIntersectsBoxQueries<DeviceType>({
       {},
@@ -121,14 +126,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
 
-  auto const bvh = make<ArborX::BVH<typename DeviceType::memory_space>>(
-      ExecutionSpace{}, {
-                            {{{0., 0., 0.}}, {{0., 0., 0.}}},
-                            {{{1., 1., 1.}}, {{1., 1., 1.}}},
-                            {{{2., 2., 2.}}, {{2., 2., 2.}}},
-                            {{{3., 3., 3.}}, {{3., 3., 3.}}},
-                        });
+  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
+      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
+
+  auto const bvh =
+      make<Tree>(ExecutionSpace{}, {
+                                       {{{0., 0., 0.}}, {{0., 0., 0.}}},
+                                       {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                                       {{{2., 2., 2.}}, {{2., 2., 2.}}},
+                                       {{{3., 3., 3.}}, {{3., 3., 3.}}},
+                                   });
 
   using ViewType = Kokkos::View<int *, DeviceType>;
   ViewType indices("indices", 0);
