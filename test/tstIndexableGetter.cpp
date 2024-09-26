@@ -11,6 +11,7 @@
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <ArborX_AccessTraits.hpp>
 #include <ArborX_IndexableGetter.hpp>
+#include <ArborX_LinearBVH.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
@@ -132,6 +133,55 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
     calculateBoundingBoxOfTheScene(ExecutionSpace{}, indexables, box);
     BOOST_TEST(equals(box, scene_bounding_box));
   }
+}
+
+template <typename MemorySpace, typename Geometry>
+struct ReturnByValueIndexableGetter
+{
+  Kokkos::View<Geometry *, MemorySpace> _geometries;
+
+  KOKKOS_FUNCTION auto operator()(ArborX::PairValueIndex<Geometry> value) const
+  {
+    return _geometries(value.index);
+  }
+};
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(indexables_by_value, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  // Test that the there is no reference to temporary when indexable getter
+  // returns by value. Would produce a warning.
+
+  using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
+
+  using Point = ArborX::Point<3>;
+
+  Kokkos::View<Point *, MemorySpace> points("Testing::points", 2);
+  auto points_host = Kokkos::create_mirror_view(points);
+  points_host(0) = {-1, -1, -1};
+  points_host(1) = {1, 1, 1};
+  Kokkos::deep_copy(points, points_host);
+
+  using Value = ArborX::PairValueIndex<Point>;
+
+  using IndexableGetter = ReturnByValueIndexableGetter<MemorySpace, Point>;
+  ArborX::BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter> bvh(
+      ExecutionSpace{}, ArborX::Experimental::attach_indices(points),
+      IndexableGetter{points});
+
+  Kokkos::View<ArborX::Nearest<Point> *, MemorySpace> nearest_queries(
+      "Testing::nearest_queries", 1);
+  auto nearest_queries_host = Kokkos::create_mirror_view(nearest_queries);
+  nearest_queries_host(0) = ArborX::nearest<Point>({0, 0, 0}, 1);
+  deep_copy(nearest_queries, nearest_queries_host);
+
+  // We need to go through HappyTreeFriends to trigger the warning,
+  // as that's where we use `getIndexable()`
+  Kokkos::View<int *, MemorySpace> offsets("Testing::offsets", 0);
+  Kokkos::View<Value *, MemorySpace> values("Testing::values", 0);
+  bvh.query(ExecutionSpace{}, nearest_queries, values, offsets);
+  BOOST_TEST(offsets.size() == 2); // to prevent compiler to optimize out
 }
 
 BOOST_AUTO_TEST_SUITE_END()
