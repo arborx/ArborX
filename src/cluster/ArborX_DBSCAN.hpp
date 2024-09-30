@@ -26,6 +26,8 @@
 #include <misc/ArborX_SortUtils.hpp>
 #include <misc/ArborX_Utils.hpp> // sortObjects
 
+#include <Kokkos_Assert.hpp>
+
 namespace ArborX
 {
 
@@ -217,8 +219,17 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
       "Primitives must be accessible from the execution space");
 
-  ARBORX_ASSERT(eps > 0);
-  ARBORX_ASSERT(core_min_size >= 2);
+  if (eps <= 0)
+    Kokkos::abort((std::string("ArborX: DBSCAN parameter eps must be positive "
+                               "(provided value is ") +
+                   std::to_string(eps) + ")")
+                      .c_str());
+
+  if (core_min_size < 2)
+    Kokkos::abort((std::string("ArborX: DBSCAN parameter core_min_size must be "
+                               "greater than 1 (provided value is ") +
+                   std::to_string(core_min_size) + ")")
+                      .c_str());
 
 #ifdef KOKKOS_ENABLE_SERIAL
   using UnionFind = Details::UnionFind<

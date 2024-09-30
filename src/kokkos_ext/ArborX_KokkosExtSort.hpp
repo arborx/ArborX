@@ -90,7 +90,9 @@ void sortByKey(ExecutionSpace const &space, Keys &keys, Values &values)
   static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,
                                               ExecutionSpace>::value);
   auto const n = keys.size();
-  ARBORX_ASSERT(values.size() == n);
+  if (values.size() != n)
+    Kokkos::abort(
+        "ArborX: sortByKey: keys and values must be of the same size");
 
   if (n == 0)
     return;
@@ -132,7 +134,9 @@ void sortByKey(
   static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,
                                               ExecutionSpace>::value);
   auto const n = keys.size();
-  ARBORX_ASSERT(values.size() == n);
+  if (values.size() != n)
+    Kokkos::abort(
+        "ArborX: sortByKey: keys and values must be of the same size");
 
   if (n == 0)
     return;
@@ -165,7 +169,9 @@ void sortByKey(Kokkos::Experimental::SYCL const &space, Keys &keys,
   static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,
                                               ExecutionSpace>::value);
   auto const n = keys.size();
-  ARBORX_ASSERT(values.size() == n);
+  if (values.size() != n)
+    Kokkos::abort(
+        "ArborX: sortByKey: keys and values must be of the same size");
 
   if (n == 0)
     return;

@@ -11,7 +11,6 @@
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
-#include <misc/ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -33,8 +32,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(last_element, DeviceType, ARBORX_DEVICE_TYPES)
   v_host(1) = 24;
   Kokkos::deep_copy(v, v_host);
   BOOST_TEST(lastElement(execution_space, v) == 24);
-  Kokkos::View<int *, DeviceType> w("w", 0);
-  BOOST_CHECK_THROW(lastElement(execution_space, w), ArborX::SearchException);
+  // FIXME: need death testing
+  // Kokkos::View<int *, DeviceType> w("w", 0);
+  // BOOST_CHECK_THROW(lastElement(execution_space, w),
+  // ArborX::SearchException);
   Kokkos::View<double[1], DeviceType> u("u");
   Kokkos::deep_copy(u, 3.14);
   BOOST_TEST(lastElement(execution_space, u) == 3.14);

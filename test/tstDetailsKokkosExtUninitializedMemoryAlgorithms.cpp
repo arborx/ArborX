@@ -11,7 +11,6 @@
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <kokkos_ext/ArborX_KokkosExtUninitializedMemoryAlgorithms.hpp>
-#include <misc/ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
 

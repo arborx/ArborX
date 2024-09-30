@@ -15,7 +15,6 @@
 #include <kokkos_ext/ArborX_KokkosExtSort.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp> // iota
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>   // clone
-#include <misc/ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -56,8 +55,8 @@ void applyInversePermutation(ExecutionSpace const &space,
   static_assert(std::is_integral_v<typename PermutationView::value_type>);
 
   auto const n = input_view.extent(0);
-  ARBORX_ASSERT(permutation.extent(0) == n);
-  ARBORX_ASSERT(output_view.extent(0) == n);
+  KOKKOS_ASSERT(permutation.extent(0) == n);
+  KOKKOS_ASSERT(output_view.extent(0) == n);
 
   Kokkos::parallel_for(
       "ArborX::Sorting::inverse_permute", Kokkos::RangePolicy(space, 0, n),
@@ -78,8 +77,8 @@ void applyPermutation(ExecutionSpace const &space,
   static_assert(std::is_integral_v<typename PermutationView::value_type>);
 
   auto const n = input_view.extent(0);
-  ARBORX_ASSERT(permutation.extent(0) == n);
-  ARBORX_ASSERT(output_view.extent(0) == n);
+  KOKKOS_ASSERT(permutation.extent(0) == n);
+  KOKKOS_ASSERT(output_view.extent(0) == n);
 
   Kokkos::parallel_for(
       "ArborX::Sorting::permute", Kokkos::RangePolicy(space, 0, n),

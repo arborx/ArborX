@@ -32,7 +32,8 @@ void writeLabelsData(std::string const &filename,
                      Kokkos::View<int *, MemorySpace> labels)
 {
   std::ofstream out(filename, std::ofstream::binary);
-  ARBORX_ASSERT(out.good());
+  if (!out.good())
+    Kokkos::abort("Could not open file");
 
   auto labels_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, labels);
@@ -70,7 +71,7 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
   static_assert(
       std::is_same<typename ClusterOffsetView::memory_space, MemorySpace>{});
 
-  ARBORX_ASSERT(cluster_min_size >= 1);
+  KOKKOS_ASSERT(cluster_min_size >= 1);
 
   int const n = labels.extent_int(0);
 

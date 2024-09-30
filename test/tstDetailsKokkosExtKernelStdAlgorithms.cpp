@@ -13,7 +13,6 @@
 #include "ArborX_EnableViewComparison.hpp"
 #include <kokkos_ext/ArborX_KokkosExtKernelStdAlgorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
-#include <misc/ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
 

@@ -46,8 +46,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(minmax_reduce, DeviceType, ARBORX_DEVICE_TYPES)
   BOOST_TEST(std::get<0>(result_float) == 1.41);
   BOOST_TEST(std::get<1>(result_float) == 3.14);
   Kokkos::View<int *, DeviceType> w("w", 0);
-  BOOST_CHECK_THROW(KokkosExt::minmax_reduce(space, w),
-                    ArborX::SearchException);
+  // FIXME: need death testing
+  // BOOST_CHECK_THROW(KokkosExt::minmax_reduce(space, w),
+  // ArborX::SearchException);
   Kokkos::resize(w, 1);
   Kokkos::deep_copy(w, 255);
   auto const result_int = KokkosExt::minmax_reduce(space, w);

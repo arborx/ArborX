@@ -12,7 +12,6 @@
 #include "ArborXTest_StdVectorToKokkosView.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
-#include <misc/ArborX_Exception.hpp>
 #include <misc/ArborX_SortUtils.hpp>
 #include <misc/ArborX_Utils.hpp>
 

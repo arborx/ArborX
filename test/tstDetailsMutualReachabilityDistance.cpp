@@ -29,7 +29,7 @@ auto compute_core_distances(ExecutionSpace exec_space,
 {
   auto points = toView<ExecutionSpace>(points_host, "Test::points");
 
-  ARBORX_ASSERT(points.extent_int(0) >= k);
+  KOKKOS_ASSERT(points.extent_int(0) >= k);
   using MemorySpace = typename ExecutionSpace::memory_space;
   ArborX::BoundingVolumeHierarchy bvh{
       exec_space, ArborX::Experimental::attach_indices(points)};

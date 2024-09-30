@@ -134,9 +134,9 @@ struct FindComponentNearestNeighbors
       , _lower_bounds(lower_bounds)
   {
     int const n = bvh.size();
-    ARBORX_ASSERT(labels.extent_int(0) == 2 * n - 1);
-    ARBORX_ASSERT(edges.extent_int(0) == n);
-    ARBORX_ASSERT(radii.extent_int(0) == n);
+    KOKKOS_ASSERT(labels.extent_int(0) == 2 * n - 1);
+    KOKKOS_ASSERT(edges.extent_int(0) == n);
+    KOKKOS_ASSERT(radii.extent_int(0) == n);
 
 #ifdef KOKKOS_ENABLE_SERIAL
     if (std::is_same<ExecutionSpace, Kokkos::Serial>{})
@@ -479,7 +479,7 @@ void finalizeEdges(ExecutionSpace const &space, BVH const &bvh,
                    Edges const &edges)
 {
   int const n = bvh.size();
-  ARBORX_ASSERT(edges.extent_int(0) == n - 1);
+  KOKKOS_ASSERT(edges.extent_int(0) == n - 1);
   Kokkos::parallel_for(
       "ArborX::MST::finalize_edges", Kokkos::RangePolicy(space, 0, n - 1),
       KOKKOS_LAMBDA(int i) {

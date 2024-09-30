@@ -21,6 +21,8 @@
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
+#include <Kokkos_Assert.hpp>
+
 namespace ArborX
 {
 namespace Details
@@ -227,7 +229,8 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     // Not enough (individual) storage for results
 
     // If it was hard preallocation, we simply throw
-    ARBORX_ASSERT(buffer_status != BufferStatus::PreallocationHard);
+    if (buffer_status == BufferStatus::PreallocationHard)
+      Kokkos::abort("ArborX: overflow occued with hard preallocation");
 
     // Otherwise, do the second pass
     Kokkos::Profiling::pushRegion(

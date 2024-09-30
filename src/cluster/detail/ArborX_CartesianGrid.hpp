@@ -14,11 +14,12 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <misc/ArborX_Exception.hpp>
 
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_MathematicalFunctions.hpp> // floor
+
+#include <string>
 
 namespace ArborX::Details
 {
@@ -32,7 +33,8 @@ public:
   CartesianGrid(Box<DIM> const &bounds, float h)
       : _bounds(bounds)
   {
-    ARBORX_ASSERT(h > 0);
+    KOKKOS_ASSERT(h > 0);
+
     for (int d = 0; d < DIM; ++d)
       _h[d] = h;
     buildGrid();
@@ -42,7 +44,7 @@ public:
   {
     for (int d = 0; d < DIM; ++d)
     {
-      ARBORX_ASSERT(_h[d] > 0);
+      KOKKOS_ASSERT(_h[d] > 0);
       _h[d] = h[d];
     }
     buildGrid();
@@ -101,7 +103,7 @@ private:
       if (delta != 0)
       {
         _n[d] = std::ceil(delta / _h[d]);
-        ARBORX_ASSERT(_n[d] > 0);
+        KOKKOS_ASSERT(_n[d] > 0);
       }
       else
       {
@@ -117,7 +119,8 @@ private:
     for (int d = 1; d < DIM; ++d)
     {
       m /= _n[d - 1];
-      ARBORX_ASSERT(_n[d] < m);
+      if (_n[d] >= m)
+        Kokkos::abort("ArborX: potential overflow detected in CartesianGrid");
     }
 
     // Catch a potential loss of precision that may happen in cellBox() and can
@@ -131,7 +134,7 @@ private:
     for (int d = 0; d < DIM; ++d)
     {
       if (std::abs(_h[d] / min_corner[d]) < eps)
-        throw std::runtime_error(
+        Kokkos::abort(
             "ArborX exception: FDBSCAN-DenseBox algorithm will experience loss "
             "of precision, undetectably producing wrong results. Please switch "
             "to using FDBSCAN.");

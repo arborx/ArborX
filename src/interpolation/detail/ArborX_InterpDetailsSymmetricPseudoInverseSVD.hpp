@@ -13,7 +13,6 @@
 #define ARBORX_INTERP_SYMMETRIC_PSEUDO_INVERSE_SVD_HPP
 
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
-#include <misc/ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>

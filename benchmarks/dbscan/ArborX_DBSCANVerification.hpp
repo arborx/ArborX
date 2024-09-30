@@ -290,8 +290,8 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   static_assert(std::is_same<typename LabelsView::value_type, int>{});
   static_assert(std::is_same<typename LabelsView::memory_space, MemorySpace>{});
 
-  ARBORX_ASSERT(eps > 0);
-  ARBORX_ASSERT(core_min_size >= 2);
+  KOKKOS_ASSERT(eps > 0);
+  KOKKOS_ASSERT(core_min_size >= 2);
 
   Points points{primitives}; // NOLINT
 

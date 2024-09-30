@@ -13,7 +13,6 @@
 #define ARBORX_BOOST_RANGE_ADAPTERS_HPP
 
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
-#include <misc/ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -104,7 +103,7 @@ range_end(Kokkos::View<T, P...> &v)
 {
   using View = Kokkos::View<T, P...>;
   ARBORX_ASSERT_VIEW_COMPATIBLE(View)
-  ARBORX_ASSERT(v.span_is_contiguous());
+  KOKKOS_ASSERT(v.span_is_contiguous());
   return v.data() + v.span();
 }
 
@@ -114,7 +113,7 @@ range_end(Kokkos::View<T, P...> const &v)
 {
   using View = Kokkos::View<T, P...>;
   ARBORX_ASSERT_VIEW_COMPATIBLE(View)
-  ARBORX_ASSERT(v.span_is_contiguous());
+  KOKKOS_ASSERT(v.span_is_contiguous());
   return v.data() + v.span();
 }
 
