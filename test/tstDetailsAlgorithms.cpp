@@ -13,6 +13,7 @@
 #include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
 #include <ArborX_Point.hpp>
+#include <ArborX_Segment.hpp>
 #include <ArborX_Sphere.hpp>
 #include <ArborX_Tetrahedron.hpp>
 #include <ArborX_Triangle.hpp>
@@ -63,6 +64,27 @@ BOOST_AUTO_TEST_CASE(distance_point_sphere)
   BOOST_TEST(distance(Point{{.5, .5, .5}}, sphere) == 0.);
   BOOST_TEST(distance(Point{{2., 0., 0.}}, sphere) == 1.);
   BOOST_TEST(distance(Point{{1., 1., 1.}}, sphere) == std::sqrt(3.f) - 1.f);
+}
+
+BOOST_AUTO_TEST_CASE(distance_point_segment)
+{
+  using ArborX::Details::distance;
+
+  using ArborX::Point;
+  using ArborX::Experimental::Segment;
+
+  constexpr Segment segment0{{0.f, 0.f}, {0.f, 0.f}};
+  BOOST_TEST(distance(Point{0.f, 0.f}, segment0) == 0.f);
+  BOOST_TEST(distance(Point{1.f, 0.f}, segment0) == 1.f);
+  BOOST_TEST(distance(Point{-1.f, 0.f}, segment0) == 1.f);
+
+  constexpr Segment segment1{{0.f, 0.f}, {1.f, 1.f}};
+  BOOST_TEST(distance(Point{0.f, 0.f}, segment1) == 0.f);
+  BOOST_TEST(distance(Point{1.f, 1.f}, segment1) == 0.f);
+  BOOST_TEST(distance(Point{0.5f, 0.5f}, segment1) == 0.f);
+  BOOST_TEST(distance(Point{1.0f, 0.f}, segment1) == std::sqrt(0.5f));
+  BOOST_TEST(distance(Point{0.f, -1.f}, segment1) == 1.f);
+  BOOST_TEST(distance(Point{1.5f, 1.f}, segment1) == 0.5f);
 }
 
 BOOST_AUTO_TEST_CASE(distance_point_triangle)
@@ -346,6 +368,14 @@ BOOST_AUTO_TEST_CASE(expand)
   BOOST_TEST(equals(box, Box{{-5, -2, 2}, {1, 4, 7}}));
   expand(box, Tetrahedron{{-3, -5, 2}, {2, 6, -1}, {3, 2, 3}, {5, 8, -3}});
   BOOST_TEST(equals(box, Box{{-5, -5, -3}, {5, 8, 7}}));
+
+  // expand box with segments
+  using ArborX::Experimental::Segment;
+  box = Box{};
+  expand(box, Segment{{0.f, 0.f, 0.f}, {1.f, 1.f, 1.f}});
+  BOOST_TEST(equals(box, Box{{0, 0, 0}, {1, 1, 1}}));
+  expand(box, Segment{{-1.f, 3.0f, 0.0f}, {2.f, 1.f, 0.f}});
+  BOOST_TEST(equals(box, Box{{-1, 0, 0}, {2, 3, 1}}));
 }
 
 BOOST_AUTO_TEST_CASE(convert)
@@ -362,7 +392,9 @@ BOOST_AUTO_TEST_CASE(convert)
 
 BOOST_AUTO_TEST_CASE(centroid)
 {
+  using ArborX::Details::equals;
   using ArborX::Details::returnCentroid;
+
   Box box{{{-10.0, 0.0, 10.0}}, {{0.0, 10.0, 20.0}}};
   auto center = returnCentroid(box);
   BOOST_TEST(center[0] == -5.0);
@@ -385,6 +417,11 @@ BOOST_AUTO_TEST_CASE(centroid)
   BOOST_TEST(tet_center[0] == -1);
   BOOST_TEST(tet_center[1] == 3);
   BOOST_TEST(tet_center[2] == 2);
+
+  using ArborX::Experimental::Segment;
+  Segment segment{{-1.f, -1.f}, {3.f, 3.f}};
+  auto seg_center = returnCentroid(segment);
+  BOOST_TEST(equals(seg_center, ArborX::Point{1.f, 1.f}));
 }
 
 BOOST_AUTO_TEST_CASE(is_valid)
