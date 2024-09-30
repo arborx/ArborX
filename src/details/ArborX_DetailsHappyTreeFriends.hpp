@@ -51,7 +51,7 @@ struct HappyTreeFriends
   }
 
   template <class BVH>
-  static KOKKOS_FUNCTION auto const &getIndexable(BVH const &bvh, int i)
+  static KOKKOS_FUNCTION decltype(auto) getIndexable(BVH const &bvh, int i)
   {
     return bvh._indexable_getter(getValue(bvh, i));
   }
