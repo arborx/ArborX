@@ -175,7 +175,7 @@ KOKKOS_DEDUCTION_GUIDE
 KOKKOS_FUNCTION
 #endif
     BoundingVolumeHierarchy(ExecutionSpace, Values) -> BoundingVolumeHierarchy<
-        typename ExecutionSpace::memory_space,
+        typename Details::AccessValues<Values, PrimitivesTag>::memory_space,
         typename Details::AccessValues<Values, PrimitivesTag>::value_type>;
 
 template <typename MemorySpace, typename Value,
