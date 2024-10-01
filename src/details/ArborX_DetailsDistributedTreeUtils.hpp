@@ -38,7 +38,7 @@ void countResults(ExecutionSpace const &space, int n_queries,
 
   Kokkos::parallel_for(
       "ArborX::DistributedTree::query::count_results_per_query",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, nnz), KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy(space, 0, nnz), KOKKOS_LAMBDA(int i) {
         Kokkos::atomic_increment(&offset(query_ids(i)));
       });
 
@@ -75,8 +75,7 @@ void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
         n_exports);
     Kokkos::parallel_for(
         prefix + "::forward_queries_fill_buffer",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int q) {
+        Kokkos::RangePolicy(space, 0, n_queries), KOKKOS_LAMBDA(int q) {
           for (int i = offset(q); i < offset(q + 1); ++i)
             export_queries(i) = queries(q);
         });
@@ -103,8 +102,7 @@ void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
         n_exports);
     Kokkos::parallel_for(
         prefix + "::forward_queries_fill_ids",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int q) {
+        Kokkos::RangePolicy(space, 0, n_queries), KOKKOS_LAMBDA(int q) {
           for (int i = offset(q); i < offset(q + 1); ++i)
             export_ids(i) = q;
         });
@@ -139,8 +137,7 @@ void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
       n_exports);
   Kokkos::parallel_for(
       prefix + "::forward_queries_fill_buffer",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, queries.size()),
-      KOKKOS_LAMBDA(int q) {
+      Kokkos::RangePolicy(space, 0, queries.size()), KOKKOS_LAMBDA(int q) {
         for (int i = offset(q); i < offset(q + 1); ++i)
           export_queries(i) = queries(q);
       });
@@ -197,8 +194,7 @@ void communicateResultsBack(MPI_Comm comm, ExecutionSpace const &space,
         n_exports);
     Kokkos::parallel_for(
         "ArborX::DistributedTree::query::fill_buffer",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_fwd_queries),
-        KOKKOS_LAMBDA(int q) {
+        Kokkos::RangePolicy(space, 0, n_fwd_queries), KOKKOS_LAMBDA(int q) {
           for (int i = offset(q); i < offset(q + 1); ++i)
           {
             export_ids(i) = ids(q);
@@ -281,8 +277,7 @@ void filterResults(ExecutionSpace const &space, Predicates const &queries,
 
   Kokkos::parallel_for(
       "ArborX::DistributedTree::query::discard_results",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-      KOKKOS_LAMBDA(int q) {
+      Kokkos::RangePolicy(space, 0, n_queries), KOKKOS_LAMBDA(int q) {
         using Kokkos::min;
         new_offset(q) = min(offset(q + 1) - offset(q), getK(queries(q)));
       });
@@ -316,8 +311,7 @@ void filterResults(ExecutionSpace const &space, Predicates const &queries,
 
   Kokkos::parallel_for(
       "ArborX::DistributedTree::query::truncate_results",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-      KOKKOS_LAMBDA(int q) {
+      Kokkos::RangePolicy(space, 0, n_queries), KOKKOS_LAMBDA(int q) {
         if (offset(q) == offset(q + 1))
           return;
 

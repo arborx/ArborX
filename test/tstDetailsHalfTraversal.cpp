@@ -29,7 +29,7 @@ make_points(ExecutionSpace const &space, int n)
       n);
 
   Kokkos::parallel_for(
-      "Test::make_points", Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+      "Test::make_points", Kokkos::RangePolicy(space, 0, n),
       KOKKOS_LAMBDA(int i) {
         points(i) = {(float)i, (float)i, (float)i};
       });

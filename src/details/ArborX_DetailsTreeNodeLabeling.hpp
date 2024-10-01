@@ -33,8 +33,7 @@ void findParents(ExecutionSpace const &exec_space, BVH const &bvh,
 
   Kokkos::parallel_for(
       "ArborX::recompute_internal_and_leaf_node_parents",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, n, 2 * n - 1),
-      KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy(exec_space, n, 2 * n - 1), KOKKOS_LAMBDA(int i) {
         parents(HappyTreeFriends::getLeftChild(bvh, i)) = i;
         parents(HappyTreeFriends::getRightChild(bvh, i)) = i;
       });
@@ -59,8 +58,7 @@ void reduceLabels(ExecutionSpace const &exec_space, Parents const &parents,
   Kokkos::deep_copy(exec_space, internal_node_labels, untouched);
   Kokkos::parallel_for(
       "ArborX::reduce_internal_node_labels",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-      KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy(exec_space, 0, n), KOKKOS_LAMBDA(int i) {
         KOKKOS_ASSERT(labels(i) != indeterminate);
         KOKKOS_ASSERT(labels(i) != untouched);
         KOKKOS_ASSERT(parents(i) >= 0);

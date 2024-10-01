@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
   ArborX::query(bvh, cuda, Spheres{d_a, d_a, d_a, d_a, N}, indices, offset);
 
   Kokkos::parallel_for(
-      "Example::print_indices", Kokkos::RangePolicy<Kokkos::Cuda>(cuda, 0, N),
+      "Example::print_indices", Kokkos::RangePolicy(cuda, 0, N),
       KOKKOS_LAMBDA(int i) {
         for (int j = offset(i); j < offset(i + 1); ++j)
         {

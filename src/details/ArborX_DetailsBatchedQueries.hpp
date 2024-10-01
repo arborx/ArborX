@@ -61,8 +61,7 @@ public:
         n_queries);
     Kokkos::parallel_for(
         "ArborX::BatchedQueries::project_predicates_onto_space_filling_curve",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
-        KOKKOS_LAMBDA(int i) {
+        Kokkos::RangePolicy(space, 0, n_queries), KOKKOS_LAMBDA(int i) {
           linear_ordering_indices(i) = curve(
               scene_bounding_box, returnCentroid(getGeometry(predicates(i))));
         });
@@ -89,7 +88,7 @@ public:
         n);
     Kokkos::parallel_for(
         "ArborX::BatchedQueries::permute_entries",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+        Kokkos::RangePolicy(space, 0, n),
         KOKKOS_LAMBDA(int i) { w(i) = v(permute(i)); });
 
     return w;

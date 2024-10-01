@@ -38,7 +38,7 @@ struct BruteForceImpl
     Kokkos::parallel_reduce(
         "ArborX::BruteForce::BruteForce::"
         "initialize_values_and_reduce_bounds",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, values.size()),
+        Kokkos::RangePolicy(space, 0, values.size()),
         KOKKOS_LAMBDA(int i, Bounds &update) {
           using Details::expand;
           nodes(i) = values(i);
@@ -158,8 +158,7 @@ struct BruteForceImpl
     Kokkos::parallel_for(
         "ArborX::BruteForce::query::nearest::"
         "check_all_predicates_against_all_indexables",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_predicates),
-        KOKKOS_LAMBDA(int i) {
+        Kokkos::RangePolicy(space, 0, n_predicates), KOKKOS_LAMBDA(int i) {
           auto const &predicate = predicates(i);
           auto const k = getK(predicate);
           auto const buffer = buffer_provider(i);

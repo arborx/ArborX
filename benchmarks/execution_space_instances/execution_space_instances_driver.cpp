@@ -173,8 +173,8 @@ int main(int argc, char *argv[])
         Kokkos::subview(points, Kokkos::make_pair(0, num_primitives)));
     Kokkos::parallel_for(
         "Benchmark::construct_predicates",
-        Kokkos::RangePolicy<ExecutionSpace>(
-            ExecutionSpace{}, p * num_predicates, (p + 1) * num_predicates),
+        Kokkos::RangePolicy(ExecutionSpace{}, p * num_predicates,
+                            (p + 1) * num_predicates),
         KOKKOS_LAMBDA(int i) {
           predicates(i) = ArborX::attach(
               ArborX::intersects(Sphere{points(i - p * num_predicates), r}), i);

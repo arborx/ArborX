@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(construct_destroy_at, DeviceType,
   Kokkos::View<NoDefaultConstructor *, DeviceType> view(
       Kokkos::view_alloc(exec, Kokkos::WithoutInitializing, "Test::view"), n);
   Kokkos::parallel_for(
-      "Test::construct", Kokkos::RangePolicy<ExecutionSpace>(exec, 0, n),
+      "Test::construct", Kokkos::RangePolicy(exec, 0, n),
       KOKKOS_LAMBDA(int i) { construct_at(&view(i), i); });
 
   auto view_host =
@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(construct_destroy_at, DeviceType,
   BOOST_TEST(view_host(1).value == 1);
 
   Kokkos::parallel_for(
-      "Test::destroy", Kokkos::RangePolicy<ExecutionSpace>(exec, 0, n),
+      "Test::destroy", Kokkos::RangePolicy(exec, 0, n),
       KOKKOS_LAMBDA(int i) { destroy_at(&view(i)); });
   Kokkos::deep_copy(view_host, view);
   BOOST_TEST(view_host(0).value == -1);

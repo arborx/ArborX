@@ -87,7 +87,7 @@ struct Dendrogram
   {
     Kokkos::parallel_for(
         "ArborX::Dendrogram::copy_weights_and_edges",
-        Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, edges.size()),
+        Kokkos::RangePolicy(exec_space, 0, edges.size()),
         KOKKOS_LAMBDA(int const e) {
           weights(e) = edges(e).weight;
           unweighted_edges(e) = {edges(e).source, edges(e).target};

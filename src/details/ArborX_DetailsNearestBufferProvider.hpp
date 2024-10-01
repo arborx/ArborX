@@ -60,7 +60,7 @@ private:
 
     Kokkos::parallel_for(
         "ArborX::NearestBufferProvider::scan_queries_for_numbers_of_neighbors",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n_queries),
+        Kokkos::RangePolicy(space, 0, n_queries),
         KOKKOS_CLASS_LAMBDA(int i) { _offset(i) = getK(predicates(i)); });
     KokkosExt::exclusive_scan(space, _offset, _offset, 0);
     int const buffer_size = KokkosExt::lastElement(space, _offset);

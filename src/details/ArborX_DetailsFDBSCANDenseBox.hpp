@@ -200,8 +200,7 @@ computeCellIndices(ExecutionSpace const &exec_space,
       n);
   Kokkos::parallel_for(
       "ArborX::DBSCAN::compute_cell_indices",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-      KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy(exec_space, 0, n), KOKKOS_LAMBDA(int i) {
         auto const &xyz = primitives(i);
         cell_indices(i) = grid.cellIndex(xyz);
       });
@@ -226,7 +225,7 @@ int reorderDenseAndSparseCells(ExecutionSpace const &exec_space,
   int num_points_in_dense_cells;
   Kokkos::parallel_reduce(
       "ArborX::DBSCAN::count_points_in_dense_cells",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_nonempty_cells),
+      Kokkos::RangePolicy(exec_space, 0, num_nonempty_cells),
       KOKKOS_LAMBDA(int i, int &update) {
         int num_points_in_cell = cell_offsets(i + 1) - cell_offsets(i);
         if (num_points_in_cell >= core_min_size)
@@ -248,7 +247,7 @@ int reorderDenseAndSparseCells(ExecutionSpace const &exec_space,
       exec_space, sorted_cell_indices);
   Kokkos::parallel_for(
       "ArborX::DBSCAN::reorder_cell_indices_and_permutation",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, num_nonempty_cells),
+      Kokkos::RangePolicy(exec_space, 0, num_nonempty_cells),
       KOKKOS_LAMBDA(int i) {
         auto const num_points_in_cell = cell_offsets(i + 1) - cell_offsets(i);
         bool const is_dense_cell = (num_points_in_cell >= core_min_size);
@@ -287,8 +286,7 @@ void unionFindWithinEachDenseCell(ExecutionSpace const &exec_space,
   // dense cell, which would have required a linear scan.
   Kokkos::parallel_for(
       "ArborX::DBSCAN::union_find_within_each_dense_box",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 1, n),
-      KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy(exec_space, 1, n), KOKKOS_LAMBDA(int i) {
         if (sorted_dense_cell_indices(i) == sorted_dense_cell_indices(i - 1))
           union_find.merge(permute(i), permute(i - 1));
       });

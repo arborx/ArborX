@@ -190,8 +190,8 @@ struct TreeVisualization
                                        "ArborX::permute"),
                     n);
     Kokkos::parallel_for(
-        "ArborX::Viz::compute_permutation",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+        "ArborX::Viz::compute_permutation", Kokkos::RangePolicy(space, 0, n),
+        KOKKOS_LAMBDA(int i) {
           permute(HappyTreeFriends::getValue(tree, i).index) = i;
         });
 

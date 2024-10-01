@@ -150,8 +150,7 @@ struct FindComponentNearestNeighbors
 #endif
     {
       Kokkos::parallel_for("ArborX::MST::find_component_nearest_neighbors",
-                           Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
-                           *this);
+                           Kokkos::RangePolicy(space, 0, n), *this);
     }
   }
 
@@ -351,8 +350,8 @@ void updateLowerBounds(ExecutionSpace const &space, Labels const &labels,
 {
   auto const n = lower_bounds.extent(0);
   Kokkos::parallel_for(
-      "ArborX::MST::update_lower_bounds",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+      "ArborX::MST::update_lower_bounds", Kokkos::RangePolicy(space, 0, n),
+      KOKKOS_LAMBDA(int i) {
         using Kokkos::max;
         auto component = labels(i);
         auto const &edge = component_out_edges(component);
@@ -367,8 +366,8 @@ void retrieveEdges(ExecutionSpace const &space, Labels const &labels,
 {
   auto const n = weights.extent(0);
   Kokkos::parallel_for(
-      "ArborX::MST::reset_component_edges",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+      "ArborX::MST::reset_component_edges", Kokkos::RangePolicy(space, 0, n),
+      KOKKOS_LAMBDA(int i) {
         auto const component = labels(i);
         if (i != component)
           return;
@@ -382,8 +381,8 @@ void retrieveEdges(ExecutionSpace const &space, Labels const &labels,
         }
       });
   Kokkos::parallel_for(
-      "ArborX::MST::reduce_component_edges",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+      "ArborX::MST::reduce_component_edges", Kokkos::RangePolicy(space, 0, n),
+      KOKKOS_LAMBDA(int i) {
         auto const component = labels(i);
         auto const component_weight = weights(component);
         auto const &edge = edges(i);
@@ -482,8 +481,7 @@ void finalizeEdges(ExecutionSpace const &space, BVH const &bvh,
   int const n = bvh.size();
   ARBORX_ASSERT(edges.extent_int(0) == n - 1);
   Kokkos::parallel_for(
-      "ArborX::MST::finalize_edges",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n - 1),
+      "ArborX::MST::finalize_edges", Kokkos::RangePolicy(space, 0, n - 1),
       KOKKOS_LAMBDA(int i) {
         edges(i).source =
             HappyTreeFriends::getValue(bvh, edges(i).source).index;
@@ -504,8 +502,7 @@ void updateSidedParents(ExecutionSpace const &space, Labels const &labels,
   // Same as dendrogram alpha's standalone "updateSidedParents"
   Kokkos::parallel_for(
       "ArborX::MST::update_sided_parents",
-      Kokkos::RangePolicy<ExecutionSpace>(space, edges_start, edges_end),
-      KOKKOS_LAMBDA(int e) {
+      Kokkos::RangePolicy(space, edges_start, edges_end), KOKKOS_LAMBDA(int e) {
         auto const &edge = edges(e);
 
         // As the edge is within the same alpha vertex, labels of its vertices
@@ -540,8 +537,8 @@ void assignVertexParents(ExecutionSpace const &space, Labels const &labels,
   int const vertices_offset = n - 1;
 
   Kokkos::parallel_for(
-      "ArborX::MST::compute_vertex_parents",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int e) {
+      "ArborX::MST::compute_vertex_parents", Kokkos::RangePolicy(space, 0, n),
+      KOKKOS_LAMBDA(int e) {
         auto const &edge = out_edges(e);
 
         int i = labels(edge.source());
@@ -577,8 +574,7 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
 
   Kokkos::parallel_for(
       "ArborX::MST::compute_sided_alpha_parents",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_edges),
-      KOKKOS_LAMBDA(int const e) {
+      Kokkos::RangePolicy(space, 0, num_edges), KOKKOS_LAMBDA(int const e) {
         long long key = sided_parents(e);
         auto const &edge = edges(e);
         if (key <= FOLLOW_CHAIN_VALUE)
@@ -638,8 +634,7 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
   // want to avoid.
   Kokkos::parallel_for(
       "ArborX::MST::fix_same_weight_order",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_edges - 1),
-      KOKKOS_LAMBDA(int const i) {
+      Kokkos::RangePolicy(space, 0, num_edges - 1), KOKKOS_LAMBDA(int const i) {
         auto key = keys(i);
 
         if (i == 0 || ((keys(i - 1) >> shift) != (key >> shift)))
@@ -660,8 +655,7 @@ void computeParents(ExecutionSpace const &space, Edges const &edges,
       });
 
   Kokkos::parallel_for(
-      "ArborX::MST::compute_parents",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_edges),
+      "ArborX::MST::compute_parents", Kokkos::RangePolicy(space, 0, num_edges),
       KOKKOS_LAMBDA(int const i) {
         int e = permute(i);
         if (i == num_edges - 1)
@@ -708,8 +702,7 @@ void resetSharedRadii(ExecutionSpace const &space, BVH const &bvh,
   // typically close to each other, this should provide a reasonably low bound.
   auto const n = bvh.size();
   Kokkos::parallel_for(
-      "ArborX::MST::reset_shared_radii",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n - 1),
+      "ArborX::MST::reset_shared_radii", Kokkos::RangePolicy(space, 0, n - 1),
       KOKKOS_LAMBDA(int i) {
         int const j = i + 1;
         auto const label_i = labels(i);

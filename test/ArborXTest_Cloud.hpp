@@ -38,8 +38,8 @@ make_random_cloud(ExecutionSpace const &space, int n, float Lx = 1.f,
   using RandomPool = Kokkos::Random_XorShift64_Pool<ExecutionSpace>;
   RandomPool random_pool(seed);
   Kokkos::parallel_for(
-      "ArborXTest::generate_random_cloud",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+      "ArborXTest::generate_random_cloud", Kokkos::RangePolicy(space, 0, n),
+      KOKKOS_LAMBDA(int i) {
         typename RandomPool::generator_type generator = random_pool.get_state();
         auto const x = generator.frand(0.f, Lx);
         auto const y = generator.frand(0.f, Ly);

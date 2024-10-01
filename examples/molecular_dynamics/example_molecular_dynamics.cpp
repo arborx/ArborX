@@ -83,8 +83,7 @@ int main(int argc, char *argv[])
       n);
   Kokkos::parallel_for(
       "Example::make_particles",
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>, ExecutionSpace>(
-          execution_space, {0, 0, 0}, {nx, ny, nz}),
+      Kokkos::MDRangePolicy(execution_space, {0, 0, 0}, {nx, ny, nz}),
       KOKKOS_LAMBDA(int i, int j, int k) {
         int const id = i * ny * nz + j * nz + k;
         // face-centered cubic arrangement of particles
@@ -104,8 +103,7 @@ int main(int argc, char *argv[])
 
     Kokkos::parallel_for(
         "Example::assign_velocities",
-        Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
-        KOKKOS_LAMBDA(int i) {
+        Kokkos::RangePolicy(execution_space, 0, n), KOKKOS_LAMBDA(int i) {
           RandomPool::generator_type generator = random_pool.get_state();
           for (int d = 0; d < 3; ++d)
           {
@@ -130,8 +128,7 @@ int main(int argc, char *argv[])
   Kokkos::View<float *[3], MemorySpace> forces(
       Kokkos::view_alloc(execution_space, "Example::forces"), n);
   Kokkos::parallel_for(
-      "Example::compute_forces",
-      Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
+      "Example::compute_forces", Kokkos::RangePolicy(execution_space, 0, n),
       KOKKOS_LAMBDA(int i) {
         auto const x_i = particles(i)[0];
         auto const y_i = particles(i)[1];
@@ -170,7 +167,7 @@ int main(int argc, char *argv[])
   float potential_energy;
   Kokkos::parallel_reduce(
       "Example::compute_potential_energy",
-      Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
+      Kokkos::RangePolicy(execution_space, 0, n),
       KOKKOS_LAMBDA(int i, float &local_energy) {
         auto const x_i = particles(i)[0];
         auto const y_i = particles(i)[1];
@@ -198,8 +195,7 @@ int main(int argc, char *argv[])
 
   Kokkos::parallel_for(
       "Example::update_particles_position_and_velocity",
-      Kokkos::RangePolicy<ExecutionSpace>(execution_space, 0, n),
-      KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy(execution_space, 0, n), KOKKOS_LAMBDA(int i) {
         auto const mass_i = 1.f;
         auto const dt_m = dt / mass_i;
         for (int d = 0; d < 3; ++d)

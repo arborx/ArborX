@@ -34,8 +34,8 @@ build_representatives(ExecutionSpace const &space, UnionFind union_find)
   Kokkos::deep_copy(space, map2smallest, INT_MAX);
 
   Kokkos::parallel_for(
-      "Test::find_representatives",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+      "Test::find_representatives", Kokkos::RangePolicy(space, 0, n),
+      KOKKOS_LAMBDA(int i) {
         auto r = union_find.representative(i);
         Kokkos::atomic_min(&map2smallest(r), i);
         representatives(i) = r;
@@ -44,8 +44,8 @@ build_representatives(ExecutionSpace const &space, UnionFind union_find)
   // implementation of the union-find (e.g., not relying them being equal to
   // the smallest index in the set), so we explicitly remap them.
   Kokkos::parallel_for(
-      "Test::remap_representatives",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n), KOKKOS_LAMBDA(int i) {
+      "Test::remap_representatives", Kokkos::RangePolicy(space, 0, n),
+      KOKKOS_LAMBDA(int i) {
         representatives(i) = map2smallest(representatives(i));
       });
 
@@ -57,7 +57,7 @@ template <typename ExecutionSpace, typename UnionFind>
 void merge(ExecutionSpace const &space, UnionFind &union_find, int i, int j)
 {
   Kokkos::parallel_for(
-      "Test::merge", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1),
+      "Test::merge", Kokkos::RangePolicy(space, 0, 1),
       KOKKOS_LAMBDA(int) { union_find.merge(i, j); });
 }
 

@@ -73,8 +73,7 @@ auto compute_mutual_reachability_distances(
       distance_mutual_reach{core_distances};
   Kokkos::parallel_for(
       "Test::compute_mutual_reachability_distances",
-      Kokkos::RangePolicy<ExecutionSpace>(exec_space, 0, n),
-      KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy(exec_space, 0, n), KOKKOS_LAMBDA(int i) {
         mutual_reachability_distances(i) = distance_mutual_reach(
             edges(i).first, edges(i).second, distances(i));
       });

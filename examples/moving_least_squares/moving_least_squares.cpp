@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
   Kokkos::View<Point *, MemorySpace> tgt_points("Example::tgt_points",
                                                 num_targets);
   Kokkos::parallel_for(
-      "Example::make_points", Kokkos::RangePolicy<ExecutionSpace>(space, 0, 1),
+      "Example::make_points", Kokkos::RangePolicy(space, 0, 1),
       KOKKOS_LAMBDA(int const) {
         src_points(0) = {0., 0.};
         src_points(1) = {1., 0.};
@@ -78,8 +78,7 @@ int main(int argc, char *argv[])
   Kokkos::View<double *, MemorySpace> ref_values("Example::ref_values",
                                                  num_targets);
   Kokkos::parallel_for(
-      "Example::make_values",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, num_sources),
+      "Example::make_values", Kokkos::RangePolicy(space, 0, num_sources),
       KOKKOS_LAMBDA(int const i) {
         src_values(i) = functionToApproximate(src_points(i));
         if (i < num_targets)

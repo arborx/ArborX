@@ -98,7 +98,7 @@ void applyInversePermutation(ExecutionSpace const &space,
 
   Kokkos::parallel_for(
       "ArborX::Sorting::inverse_permute",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, input_view.extent(0)),
+      Kokkos::RangePolicy(space, 0, input_view.extent(0)),
       KOKKOS_LAMBDA(int i) {
         PermuteHelper::CopyOp<OutputView, InputView>::copy(
             output_view, permutation(i), input_view, i);
@@ -118,7 +118,7 @@ void applyPermutation(ExecutionSpace const &space,
 
   Kokkos::parallel_for(
       "ArborX::Sorting::permute",
-      Kokkos::RangePolicy<ExecutionSpace>(space, 0, input_view.extent(0)),
+      Kokkos::RangePolicy(space, 0, input_view.extent(0)),
       KOKKOS_LAMBDA(int i) {
         PermuteHelper::CopyOp<OutputView, InputView>::copy(
             output_view, i, input_view, permutation(i));

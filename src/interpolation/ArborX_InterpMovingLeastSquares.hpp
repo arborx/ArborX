@@ -174,7 +174,7 @@ public:
 
     Kokkos::parallel_for(
         "ArborX::MovingLeastSquares::target_interpolation",
-        Kokkos::RangePolicy<ExecutionSpace>(space, 0, _num_targets),
+        Kokkos::RangePolicy(space, 0, _num_targets),
         KOKKOS_CLASS_LAMBDA(int const i) {
           Value tmp = 0;
           for (int j = 0; j < _num_neighbors; j++)

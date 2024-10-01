@@ -207,8 +207,7 @@ void generatePointCloud(ExecutionSpace const &exec,
   unsigned int const n = random_points.extent(0);
   Kokkos::parallel_for(
       "ArborXBenchmark::generatePointCloud::generate",
-      Kokkos::RangePolicy<ExecutionSpace>(exec, 0, n / batch_size),
-      KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy(exec, 0, n / batch_size), KOKKOS_LAMBDA(int i) {
         auto generator = random_pool.get_state();
 
         auto begin = i * batch_size;
