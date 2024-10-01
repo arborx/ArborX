@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
   std::cout << "#triangles        : " << triangles.size() << '\n';
   std::cout << "#queries          : " << random_points.size() << '\n';
 
-  ArborX::BoundingVolumeHierarchy<MemorySpace, Triangle> index(
+  ArborX::BoundingVolumeHierarchy index(
       space, Triangles<MemorySpace>{vertices, triangles});
 
   Kokkos::View<int *, MemorySpace> offset("Benchmark::offsets", 0);

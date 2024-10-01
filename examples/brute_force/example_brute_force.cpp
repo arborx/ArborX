@@ -74,9 +74,8 @@ int main(int argc, char *argv[])
 
   unsigned int out_count;
   {
-    ArborX::BoundingVolumeHierarchy<MemorySpace,
-                                    ArborX::PairValueIndex<ArborX::Point<3>>>
-        bvh{space, ArborX::Experimental::attach_indices(primitives)};
+    ArborX::BoundingVolumeHierarchy bvh{
+        space, ArborX::Experimental::attach_indices(primitives)};
 
     Kokkos::View<int *, ExecutionSpace> indices("Example::indices_ref", 0);
     Kokkos::View<int *, ExecutionSpace> offset("Example::offset_ref", 0);
@@ -89,8 +88,8 @@ int main(int argc, char *argv[])
   }
 
   {
-    ArborX::BruteForce<MemorySpace, ArborX::PairValueIndex<ArborX::Point<3>>>
-        brute{space, ArborX::Experimental::attach_indices(primitives)};
+    ArborX::BruteForce brute{space,
+                             ArborX::Experimental::attach_indices(primitives)};
 
     Kokkos::View<int *, ExecutionSpace> indices("Example::indices", 0);
     Kokkos::View<int *, ExecutionSpace> offset("Example::offset", 0);

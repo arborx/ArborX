@@ -149,6 +149,16 @@ public:
   {}
 };
 
+template <typename ExecutionSpace, typename Values>
+#if KOKKOS_VERSION >= 40400
+KOKKOS_DEDUCTION_GUIDE
+#else
+KOKKOS_FUNCTION
+#endif
+    DistributedTree(MPI_Comm, ExecutionSpace, Values) -> DistributedTree<
+        typename ExecutionSpace::memory_space,
+        typename Details::AccessValues<Values, PrimitivesTag>::value_type>;
+
 template <typename BottomTree>
 template <typename ExecutionSpace, typename... Args>
 DistributedTreeBase<BottomTree>::DistributedTreeBase(

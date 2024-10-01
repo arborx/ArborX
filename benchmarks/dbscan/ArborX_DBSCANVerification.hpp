@@ -298,8 +298,8 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   using Point = typename Points::value_type;
   static_assert(GeometryTraits::is_point_v<Point>);
 
-  ArborX::BoundingVolumeHierarchy<MemorySpace, ArborX::PairValueIndex<Point>>
-      bvh(exec_space, ArborX::Experimental::attach_indices(points));
+  ArborX::BoundingVolumeHierarchy bvh(
+      exec_space, ArborX::Experimental::attach_indices(points));
 
   auto const predicates = ArborX::Experimental::attach_indices(
       ArborX::Experimental::make_intersects(points, eps));

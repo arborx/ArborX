@@ -78,13 +78,12 @@ int main(int argc, char *argv[])
     return Point{rd(), rd(), rd()};
   });
 
-  ArborX::BoundingVolumeHierarchy<MemorySpace, ArborX::PairValueIndex<Point>>
-      bvh{ExecutionSpace{},
-          ArborX::Experimental::attach_indices(
-              Kokkos::create_mirror_view_and_copy(
-                  MemorySpace{}, Kokkos::View<Point *, Kokkos::HostSpace,
-                                              Kokkos::MemoryUnmanaged>(
-                                     points.data(), points.size())))};
+  ArborX::BoundingVolumeHierarchy bvh{
+      ExecutionSpace{},
+      ArborX::Experimental::attach_indices(Kokkos::create_mirror_view_and_copy(
+          MemorySpace{},
+          Kokkos::View<Point *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
+              points.data(), points.size())))};
 
   {
     Kokkos::View<int *, MemorySpace> values("Example::values", 0);

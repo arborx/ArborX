@@ -117,9 +117,8 @@ int main(int argc, char *argv[])
   // TODO scale velocities
   Kokkos::Profiling::popRegion();
 
-  ArborX::BoundingVolumeHierarchy<MemorySpace,
-                                  ArborX::PairValueIndex<ArborX::Point<3>>>
-      index(execution_space, ArborX::Experimental::attach_indices(particles));
+  ArborX::BoundingVolumeHierarchy index(
+      execution_space, ArborX::Experimental::attach_indices(particles));
 
   Kokkos::View<int *, MemorySpace> indices("Example::indices", 0);
   Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);

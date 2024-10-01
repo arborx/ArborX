@@ -286,9 +286,8 @@ int main(int argc, char *argv[])
   Kokkos::Profiling::popRegion();
 
   // Construct BVH
-  ArborX::BoundingVolumeHierarchy<MemorySpace,
-                                  ArborX::PairValueIndex<ArborX::Box<3>>>
-      bvh{exec_space, ArborX::Experimental::attach_indices(boxes)};
+  ArborX::BoundingVolumeHierarchy bvh{
+      exec_space, ArborX::Experimental::attach_indices(boxes)};
 
   // OrderedIntersects-based approach
   Kokkos::View<float *, MemorySpace> energy_ordered_intersects;

@@ -84,9 +84,8 @@ int main(int argc, char *argv[])
 
   ExecutionSpace space;
 
-  ArborX::BoundingVolumeHierarchy<MemorySpace,
-                                  ArborX::PairValueIndex<Triangle>> const
-      tree(space, ArborX::Experimental::attach_indices(triangles));
+  ArborX::BoundingVolumeHierarchy const tree(
+      space, ArborX::Experimental::attach_indices(triangles));
 
   // The query will resize indices and offsets accordingly
   Kokkos::View<unsigned *, MemorySpace> indices("Example::indices", 0);

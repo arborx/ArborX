@@ -195,8 +195,8 @@ private:
 
     // Organize the source points as a tree
     using SourcePoint = typename SourceAccess::value_type;
-    BoundingVolumeHierarchy<MemorySpace, ArborX::PairValueIndex<SourcePoint>>
-        source_tree(space, ArborX::Experimental::attach_indices(source_access));
+    BoundingVolumeHierarchy source_tree(
+        space, ArborX::Experimental::attach_indices(source_access));
 
     // Create the predicates
     auto predicates = Experimental::attach_indices(

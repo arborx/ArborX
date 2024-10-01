@@ -103,9 +103,8 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
         boxes(i) = {points(i), points(i)};
       });
 
-  ArborX::BoundingVolumeHierarchy<Kokkos::HostSpace,
-                                  ArborX::PairValueIndex<Box>>
-      bvh{ExecutionSpace{}, ArborX::Experimental::attach_indices(boxes)};
+  ArborX::BoundingVolumeHierarchy bvh{
+      ExecutionSpace{}, ArborX::Experimental::attach_indices(boxes)};
 
   using TreeVisualization = ArborX::Details::TreeVisualization;
   using TikZVisitor = typename TreeVisualization::TikZVisitor;
