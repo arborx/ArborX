@@ -14,6 +14,7 @@
 #include <ArborX_Point.hpp>
 #include <ArborX_Segment.hpp>
 #include <ArborX_Sphere.hpp>
+#include <ArborX_Triangle.hpp>
 
 namespace ArborX::GeometryTraits
 {
@@ -283,6 +284,22 @@ void test_sphere_ctad()
       std::is_same_v<decltype(Sphere{{0.f, 2.f, 5.f}, 2.f}), Sphere<3, float>>);
   static_assert(std::is_same_v<decltype(Sphere{Point{3., 4., 2.}, 6.}),
                                Sphere<3, double>>);
+}
+
+void test_triangle_ctad()
+{
+  using ArborX::Point;
+  using ArborX::Triangle;
+
+  static_assert(std::is_same_v<decltype(Triangle{{0, 2}, {3, 1}, {2, 5}}),
+                               Triangle<2, int>>);
+  static_assert(
+      std::is_same_v<decltype(Triangle{{0.f, 2.f}, {3.f, 1.f}, {2.f, 5.f}}),
+                     Triangle<2, float>>);
+  static_assert(
+      std::is_same_v<decltype(Triangle{Point{3., 4., 2.}, Point{2., 2., 2.},
+                                       Point{6., 3., 5.}}),
+                     Triangle<3, double>>);
 }
 
 } // namespace ArborX::GeometryTraits

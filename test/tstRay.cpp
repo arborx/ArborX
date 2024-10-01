@@ -410,8 +410,8 @@ BOOST_AUTO_TEST_CASE(intersects_triangle)
   using ArborX::Point;
   using ArborX::Triangle;
   using ArborX::Experimental::Ray;
-  constexpr Triangle unit_triangle{Point{0.f, 0.f, 0.f}, Point{1.f, 0.f, 0.f},
-                                   Point{0.f, 1.f, 0.f}};
+  constexpr Triangle unit_triangle{
+      {0.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 1.f, 0.f}};
 
   BOOST_TEST(intersects(Ray{{.1, .2, .3}, {0, 0, -1}}, unit_triangle));
   BOOST_TEST(intersects(Ray{{1.1, 1.2, 1}, {-1, -1, -1}}, unit_triangle));
@@ -457,8 +457,8 @@ BOOST_AUTO_TEST_CASE(intersects_triangle)
   // ray in a plane parallel to the triangle
   BOOST_TEST(!intersects(Ray{{-0.1, 0, 1}, {1, 0, 0}}, unit_triangle));
 
-  constexpr Triangle tilted_triangle{Point{0.f, 0.f, 0.f}, Point{2.f, 0.f, 1.f},
-                                     Point{0.f, 2.f, 1.f}};
+  constexpr Triangle tilted_triangle{
+      {0.f, 0.f, 0.f}, {2.f, 0.f, 1.f}, {0.f, 2.f, 1.f}};
 
   // ray in the same plane as the triangle
   BOOST_TEST(!intersects(Ray{{10, 0, 0}, {1, 1, 1}}, tilted_triangle));
@@ -501,10 +501,10 @@ BOOST_AUTO_TEST_CASE(ray_triangle_intersection,
   constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
 #endif
 
-  constexpr Triangle unit_triangle{Point{0.f, 0.f, 0.f}, Point{1.f, 0.f, 0.f},
-                                   Point{0.f, 1.f, 0.f}};
+  constexpr Triangle unit_triangle{
+      {0.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 1.f, 0.f}};
   constexpr Triangle narrow_triangle{
-      Point{0.5f, 0.5f, 0.f}, Point{0.24f, 0.74f, 0.f}, Point{0.f, 1.f, 0.f}};
+      {0.5f, 0.5f, 0.f}, {0.24f, 0.74f, 0.f}, {0.f, 1.f, 0.f}};
 
   auto const sqrtf_3 = std::sqrt(3.f);
   auto const sqrtf_2 = std::sqrt(2.f);
@@ -594,12 +594,12 @@ BOOST_AUTO_TEST_CASE(ray_triangle_intersection,
   // between the origin of the ray and the vertices.
   // These tests will fail if there is no normalization.
   float const size_s = 0.0001;
-  Triangle small_triangle{Point{-size_s, 0.f, 0.f}, Point{0.f, size_s, 0.f}, Point{0.f, 0.f, size_s}};
+  Triangle small_triangle{{-size_s, 0.f, 0.f}, {0.f, size_s, 0.f}, {0.f, 0.f, size_s}};
   ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{0.0, 0.0, 0.0}, {-size_s, size_s, size_s}}), small_triangle, size_s/sqrtf_3, size_s/sqrtf_3);
   ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{-2.f*size_s, -size_s, 0.0}, {size_s, size_s, 0}}), small_triangle, sqrtf_2*size_s, 2.f*sqrtf_2*size_s);
 
   float const size_l = 10000;
-  Triangle large_triangle{Point{-size_l, 0.f, 0.f}, Point{0.f, 10000.f, 0.f}, Point{0.f, 0.f, 10000.f}};
+  Triangle large_triangle{{-size_l, 0.f, 0.f}, {0.f, 10000.f, 0.f}, {0.f, 0.f, 10000.f}};
   ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{0.0, 0.0, 0.0}, {-size_l, size_l, size_l}}), large_triangle, size_l/sqrtf_3, size_l/sqrtf_3);
   ARBORX_TEST_RAY_TRIANGLE_INTERSECTION((Ray{{-2.f*size_l, -size_l, 0.0}, {size_l, size_l, 0}}), large_triangle, sqrtf_2*size_l, 2.f*sqrtf_2*size_l);
 
