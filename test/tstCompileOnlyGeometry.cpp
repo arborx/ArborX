@@ -12,6 +12,7 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_Point.hpp>
+#include <ArborX_Segment.hpp>
 #include <ArborX_Sphere.hpp>
 
 namespace ArborX::GeometryTraits
@@ -246,6 +247,18 @@ void test_point_ctad()
       std::is_same_v<decltype(Point<3, int>{2, 3, 2}), Point<3, int>>);
   static_assert(std::is_same_v<decltype(Point<3, double>{2.f, 3.f, 2.f}),
                                Point<3, double>>);
+}
+
+void test_segment_ctad()
+{
+  using ArborX::Point;
+  using ArborX::Experimental::Segment;
+
+  static_assert(std::is_same_v<decltype(Segment{{0.f, 2.f}, {2.f, 3.f}}),
+                               Segment<2, float>>);
+  static_assert(std::is_same_v<decltype(Segment{Point<2, double>{0.f, 2.f},
+                                                Point<2, double>{2.f, 3.f}}),
+                               Segment<2, double>>);
 }
 
 void test_box_ctad()
