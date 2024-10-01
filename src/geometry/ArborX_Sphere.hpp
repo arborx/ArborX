@@ -16,6 +16,8 @@
 
 #include <Kokkos_Macros.hpp>
 
+#include <type_traits>
+
 namespace ArborX
 {
 
@@ -43,6 +45,14 @@ struct Sphere
   Point<DIM, Coordinate> _centroid = {};
   Coordinate _radius = 0;
 };
+
+template <typename T, std::size_t N>
+#if KOKKOS_VERSION >= 40400
+KOKKOS_DEDUCTION_GUIDE
+#else
+KOKKOS_FUNCTION
+#endif
+Sphere(T const (&)[N], T) -> Sphere<N, T>;
 
 } // namespace ArborX
 

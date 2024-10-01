@@ -159,12 +159,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
       intersects_queries("intersects_queries", n_points);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n_points), KOKKOS_LAMBDA(int i) {
-        ArborX::Box<3> box{{static_cast<float>(points(i)[0] - radii(i)),
-                            static_cast<float>(points(i)[1] - radii(i)),
-                            static_cast<float>(points(i)[2] - radii(i))},
-                           {static_cast<float>(points(i)[0] + radii(i)),
-                            static_cast<float>(points(i)[1] + radii(i)),
-                            static_cast<float>(points(i)[2] + radii(i))}};
+        ArborX::Box box{{points(i)[0] - radii(i), points(i)[1] - radii(i),
+                         points(i)[2] - radii(i)},
+                        {points(i)[0] + radii(i), points(i)[1] + radii(i),
+                         points(i)[2] + radii(i)}};
         intersects_queries(i) = ArborX::intersects(box);
       });
   auto intersects_queries_host = Kokkos::create_mirror_view(intersects_queries);

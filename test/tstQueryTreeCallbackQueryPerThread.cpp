@@ -57,8 +57,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_intersects, DeviceType,
       Kokkos::RangePolicy<ExecutionSpace>(0, n),
       KOKKOS_LAMBDA(int i, bool &update) {
         float center = i;
-        ArborX::Box<3> box{{center - .5f, center - .5f, center - .5f},
-                           {center + .5f, center + .5f, center + .5f}};
+        ArborX::Box box{{center - .5f, center - .5f, center - .5f},
+                        {center + .5f, center + .5f, center + .5f}};
         tree.query(ArborX::Experimental::PerThread{}, ArborX::intersects(box),
                    IntersectionCallback{i, update});
       },
@@ -105,8 +105,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_ordered_intersects, DeviceType,
       Kokkos::RangePolicy<ExecutionSpace>(0, n),
       KOKKOS_LAMBDA(int i, bool &update) {
         float center = i;
-        ArborX::Box<3> box{{center - .5f, center - .5f, center - .5f},
-                           {center + .5f, center + .5f, center + .5f}};
+        ArborX::Box box{{center - .5f, center - .5f, center - .5f},
+                        {center + .5f, center + .5f, center + .5f}};
         tree.query(ArborX::Experimental::PerThread{},
                    ArborX::Experimental::ordered_intersects(box),
                    OrderedIntersectionCallback{i, update});

@@ -15,6 +15,8 @@
 
 #include <Kokkos_Macros.hpp>
 
+#include <type_traits>
+
 namespace ArborX
 {
 
@@ -35,11 +37,24 @@ struct Point
   Coordinate _coords[DIM] = {};
 };
 
-template <typename... T>
-KOKKOS_FUNCTION Point(T...)
-    -> Point<sizeof...(T), std::conditional_t<
-                               (... || std::is_same_v<std::decay_t<T>, double>),
-                               double, float>>;
+template <typename T, typename... Ts>
+#if KOKKOS_VERSION >= 40400
+KOKKOS_DEDUCTION_GUIDE
+#else
+KOKKOS_FUNCTION
+#endif
+Point(T, Ts...)
+    -> Point<sizeof...(Ts) + 1,
+             std::enable_if_t<std::conjunction_v<std::is_same<T, Ts>...>, T>>;
+
+template <typename T, std::size_t N>
+#if KOKKOS_VERSION >= 40400
+KOKKOS_DEDUCTION_GUIDE
+#else
+KOKKOS_FUNCTION
+#endif
+Point(T const (&)[N])
+    -> Point<N, std::enable_if_t<std::is_floating_point_v<T>, T>>;
 
 } // namespace ArborX
 

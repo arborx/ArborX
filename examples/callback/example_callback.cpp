@@ -34,7 +34,7 @@ struct ArborX::AccessTraits<FirstOctant, ArborX::PredicatesTag>
   static KOKKOS_FUNCTION std::size_t size(FirstOctant) { return 1; }
   static KOKKOS_FUNCTION auto get(FirstOctant, std::size_t)
   {
-    return ArborX::intersects(ArborX::Box<3>{{{0, 0, 0}}, {{1, 1, 1}}});
+    return ArborX::intersects(ArborX::Box<3>{{0.f, 0.f, 0.f}, {1.f, 1.f, 1.f}});
   }
   using memory_space = MemorySpace;
 };
@@ -45,7 +45,7 @@ struct ArborX::AccessTraits<NearestToOrigin, ArborX::PredicatesTag>
   static KOKKOS_FUNCTION std::size_t size(NearestToOrigin) { return 1; }
   static KOKKOS_FUNCTION auto get(NearestToOrigin d, std::size_t)
   {
-    return ArborX::nearest(ArborX::Point{0, 0, 0}, d.k);
+    return ArborX::nearest(ArborX::Point{0.f, 0.f, 0.f}, d.k);
   }
   using memory_space = MemorySpace;
 };

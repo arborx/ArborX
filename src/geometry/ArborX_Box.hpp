@@ -19,6 +19,8 @@
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_ReductionIdentity.hpp>
 
+#include <type_traits>
+
 namespace ArborX
 {
 /**
@@ -63,6 +65,14 @@ struct Box
   Point<DIM, Coordinate> _min_corner;
   Point<DIM, Coordinate> _max_corner;
 };
+
+template <typename T, std::size_t N>
+#if KOKKOS_VERSION >= 40400
+KOKKOS_DEDUCTION_GUIDE
+#else
+KOKKOS_FUNCTION
+#endif
+Box(T const (&)[N], T const (&)[N]) -> Box<N, T>;
 
 } // namespace ArborX
 
