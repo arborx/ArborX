@@ -12,11 +12,11 @@
 #ifndef ARBORX_DETAILS_MINIMUM_SPANNING_TREE_HPP
 #define ARBORX_DETAILS_MINIMUM_SPANNING_TREE_HPP
 
-#include <ArborX_DetailsAlgorithms.hpp>
-#include <ArborX_DetailsHappyTreeFriends.hpp>
-#include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
-#include <ArborX_DetailsUtils.hpp>
-#include <ArborX_DetailsWeightedEdge.hpp>
+#include <ArborX_KokkosExtArithmeticTraits.hpp>
+#include <ArborX_Utils.hpp>
+#include <details/ArborX_Algorithms.hpp>
+#include <details/ArborX_HappyTreeFriends.hpp>
+#include <details/ArborX_WeightedEdge.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>

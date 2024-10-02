@@ -13,10 +13,10 @@
 
 #include <ArborX_Config.hpp>
 
-#include <ArborX_DetailsKokkosExtMinMaxReduce.hpp>
-#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
-#include <ArborX_DetailsSortUtils.hpp>
 #include <ArborX_Exception.hpp>
+#include <ArborX_KokkosExtMinMaxReduce.hpp>
+#include <ArborX_KokkosExtViewHelpers.hpp>
+#include <ArborX_SortUtils.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>

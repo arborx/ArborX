@@ -12,7 +12,7 @@
 #ifndef ARBORX_DETAILSDBSCANVERIFICATION_HPP
 #define ARBORX_DETAILSDBSCANVERIFICATION_HPP
 
-#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
+#include <ArborX_KokkosExtViewHelpers.hpp>
 #include <ArborX_LinearBVH.hpp>
 
 #include <Kokkos_Core.hpp>

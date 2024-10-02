@@ -10,8 +10,8 @@
  ****************************************************************************/
 
 #include "ArborX_EnableViewComparison.hpp"
-#include <ArborX_InterpDetailsPolynomialBasis.hpp>
 #include <ArborX_Point.hpp>
+#include <details/ArborX_InterpDetailsPolynomialBasis.hpp>
 
 #include <boost/test/unit_test.hpp>
 

@@ -12,7 +12,7 @@
 #ifndef ARBORX_DETAILS_KOKKOS_EXT_STD_ALGORITHMS_HPP
 #define ARBORX_DETAILS_KOKKOS_EXT_STD_ALGORITHMS_HPP
 
-#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
+#include <ArborX_KokkosExtAccessibilityTraits.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_StdAlgorithms.hpp>

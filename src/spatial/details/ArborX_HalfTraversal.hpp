@@ -12,8 +12,8 @@
 #ifndef ARBORX_DETAILS_HALF_TRAVERSAL_HPP
 #define ARBORX_DETAILS_HALF_TRAVERSAL_HPP
 
-#include <ArborX_DetailsHappyTreeFriends.hpp>
-#include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
+#include <details/ArborX_HappyTreeFriends.hpp>
+#include <details/ArborX_Node.hpp> // ROPE_SENTINEL
 
 #include <Kokkos_Core.hpp>
 

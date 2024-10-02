@@ -12,10 +12,10 @@
 #ifndef ARBORX_DETAILSFDBSCAN_HPP
 #define ARBORX_DETAILSFDBSCAN_HPP
 
-#include <ArborX_Callbacks.hpp>
-#include <ArborX_DetailsUnionFind.hpp>
-#include <ArborX_PairValueIndex.hpp>
-#include <ArborX_Predicates.hpp>
+#include <details/ArborX_Callbacks.hpp>
+#include <details/ArborX_PairValueIndex.hpp>
+#include <details/ArborX_Predicates.hpp>
+#include <details/ArborX_UnionFind.hpp>
 
 #include <Kokkos_Core.hpp>
 

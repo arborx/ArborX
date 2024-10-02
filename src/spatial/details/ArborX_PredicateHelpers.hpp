@@ -11,10 +11,10 @@
 #ifndef ARBORX_PREDICATE_HELPERS_HPP
 #define ARBORX_PREDICATE_HELPERS_HPP
 
-#include <ArborX_AccessTraits.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_Predicates.hpp>
 #include <ArborX_Sphere.hpp>
+#include <details/ArborX_AccessTraits.hpp>
+#include <details/ArborX_Predicates.hpp>
 
 namespace ArborX
 {

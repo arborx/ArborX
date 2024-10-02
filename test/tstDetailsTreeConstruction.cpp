@@ -11,13 +11,13 @@
 #include "ArborXTest_LegacyTree.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
-#include <ArborX_DetailsAlgorithms.hpp>
-#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
-#include <ArborX_DetailsMortonCode.hpp> // expandBits, morton32
-#include <ArborX_DetailsNode.hpp>       // ROPE SENTINEL
-#include <ArborX_DetailsSortUtils.hpp>  // sortObjects
-#include <ArborX_DetailsTreeConstruction.hpp>
-#include <ArborX_IndexableGetter.hpp>
+#include <ArborX_KokkosExtStdAlgorithms.hpp>
+#include <ArborX_MortonCode.hpp> // expandBits, morton32
+#include <ArborX_SortUtils.hpp>  // sortObjects
+#include <details/ArborX_Algorithms.hpp>
+#include <details/ArborX_IndexableGetter.hpp>
+#include <details/ArborX_Node.hpp> // ROPE SENTINEL
+#include <details/ArborX_TreeConstruction.hpp>
 
 #include <boost/test/unit_test.hpp>
 

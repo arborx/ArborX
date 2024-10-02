@@ -13,9 +13,9 @@
 #define ARBORX_SPACE_FILLING_CURVES_HPP
 
 #include <ArborX_Box.hpp>
-#include <ArborX_DetailsAlgorithms.hpp>
-#include <ArborX_DetailsMortonCode.hpp>
+#include <ArborX_MortonCode.hpp>
 #include <ArborX_Point.hpp>
+#include <details/ArborX_Algorithms.hpp>
 
 #include <Kokkos_DetectionIdiom.hpp>
 #include <Kokkos_Macros.hpp>

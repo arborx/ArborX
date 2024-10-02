@@ -11,10 +11,10 @@
 #ifndef ARBORX_DETAILS_DISTRIBUTED_TREE_NEAREST_HELPERS_HPP
 #define ARBORX_DETAILS_DISTRIBUTED_TREE_NEAREST_HELPERS_HPP
 
-#include <ArborX_AccessTraits.hpp>
-#include <ArborX_Callbacks.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
+#include <details/ArborX_AccessTraits.hpp>
+#include <details/ArborX_Callbacks.hpp>
 
 #include <Kokkos_BitManipulation.hpp>
 

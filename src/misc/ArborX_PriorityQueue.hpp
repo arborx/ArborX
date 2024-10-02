@@ -11,9 +11,9 @@
 #ifndef ARBORX_DETAILS_PRIORITY_QUEUE_HPP
 #define ARBORX_DETAILS_PRIORITY_QUEUE_HPP
 
-#include <ArborX_DetailsContainers.hpp>
-#include <ArborX_DetailsHeap.hpp>
-#include <ArborX_DetailsOperatorFunctionObjects.hpp> // Less
+#include <ArborX_Containers.hpp>
+#include <ArborX_Heap.hpp>
+#include <ArborX_OperatorFunctionObjects.hpp> // Less
 
 #include <Kokkos_Macros.hpp>
 

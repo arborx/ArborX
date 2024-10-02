@@ -12,8 +12,8 @@
 #ifndef ARBORX_INTERP_DETAILS_COMPACT_RADIAL_BASIS_FUNCTION_HPP
 #define ARBORX_INTERP_DETAILS_COMPACT_RADIAL_BASIS_FUNCTION_HPP
 
-#include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_GeometryTraits.hpp>
+#include <details/ArborX_Algorithms.hpp>
 
 #include <Kokkos_Core.hpp>
 

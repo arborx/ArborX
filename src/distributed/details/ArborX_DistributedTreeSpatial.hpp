@@ -11,10 +11,10 @@
 #ifndef ARBORX_DETAILS_DISTRIBUTED_TREE_SPATIAL_HPP
 #define ARBORX_DETAILS_DISTRIBUTED_TREE_SPATIAL_HPP
 
-#include <ArborX_Callbacks.hpp>
-#include <ArborX_DetailsDistributedTreeImpl.hpp>
-#include <ArborX_DetailsDistributedTreeUtils.hpp>
-#include <ArborX_Predicates.hpp>
+#include <details/ArborX_Callbacks.hpp>
+#include <details/ArborX_DistributedTreeImpl.hpp>
+#include <details/ArborX_DistributedTreeUtils.hpp>
+#include <details/ArborX_Predicates.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>

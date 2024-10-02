@@ -14,7 +14,7 @@
 
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_Point.hpp>
-#include <ArborX_Predicates.hpp>
+#include <details/ArborX_Predicates.hpp>
 
 #include <Kokkos_Core.hpp>
 

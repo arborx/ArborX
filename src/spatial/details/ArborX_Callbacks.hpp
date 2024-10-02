@@ -11,9 +11,9 @@
 #ifndef ARBORX_CALLBACKS_HPP
 #define ARBORX_CALLBACKS_HPP
 
-#include <ArborX_AccessTraits.hpp>
-#include <ArborX_PairValueIndex.hpp>
-#include <ArborX_Predicates.hpp> // is_valid_predicate_tag
+#include <details/ArborX_AccessTraits.hpp>
+#include <details/ArborX_PairValueIndex.hpp>
+#include <details/ArborX_Predicates.hpp> // is_valid_predicate_tag
 
 #include <Kokkos_DetectionIdiom.hpp>
 #include <Kokkos_Macros.hpp>

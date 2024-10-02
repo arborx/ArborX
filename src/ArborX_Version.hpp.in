@@ -14,7 +14,7 @@
 
 #include <ArborX_Config.hpp>
 
-#include <ArborX_DetailsKokkosExtVersion.hpp>
+#include <ArborX_KokkosExtVersion.hpp>
 
 #include <string>
 

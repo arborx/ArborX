@@ -9,12 +9,12 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
-#include <ArborX_DetailsKokkosExtVersion.hpp>
-#include <ArborX_DetailsSortUtils.hpp>
-#include <ArborX_DetailsUnionFind.hpp>
-#include <ArborX_DetailsUtils.hpp>
+#include <ArborX_KokkosExtStdAlgorithms.hpp>
+#include <ArborX_KokkosExtVersion.hpp>
+#include <ArborX_SortUtils.hpp>
+#include <ArborX_Utils.hpp>
 #include <ArborX_Version.hpp>
+#include <details/ArborX_UnionFind.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>

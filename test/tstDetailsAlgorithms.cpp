@@ -10,13 +10,13 @@
  ****************************************************************************/
 
 #include <ArborX_Box.hpp>
-#include <ArborX_DetailsAlgorithms.hpp>
-#include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
+#include <ArborX_KokkosExtArithmeticTraits.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Segment.hpp>
 #include <ArborX_Sphere.hpp>
 #include <ArborX_Tetrahedron.hpp>
 #include <ArborX_Triangle.hpp>
+#include <details/ArborX_Algorithms.hpp>
 
 #include <boost/mpl/list.hpp>
 

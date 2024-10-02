@@ -8,7 +8,7 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#include <ArborX_DetailsVector.hpp>
+#include <ArborX_Vector.hpp>
 
 #include <boost/test/unit_test.hpp>
 

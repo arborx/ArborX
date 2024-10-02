@@ -12,9 +12,9 @@
 #define ARBORX_DETAILS_ALGORITHMS_HPP
 
 #include <ArborX_Box.hpp>
-#include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
-#include <ArborX_DetailsVector.hpp>
 #include <ArborX_GeometryTraits.hpp>
+#include <ArborX_KokkosExtArithmeticTraits.hpp>
+#include <ArborX_Vector.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_MathematicalFunctions.hpp> // isfinite

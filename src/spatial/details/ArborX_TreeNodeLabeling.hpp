@@ -12,8 +12,8 @@
 #ifndef ARBORX_DETAILS_TREE_NODE_LABELING_HPP
 #define ARBORX_DETAILS_TREE_NODE_LABELING_HPP
 
-#include <ArborX_DetailsHappyTreeFriends.hpp>
 #include <ArborX_Exception.hpp>
+#include <details/ArborX_HappyTreeFriends.hpp>
 
 #include <Kokkos_Core.hpp>
 

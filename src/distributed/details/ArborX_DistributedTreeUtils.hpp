@@ -13,12 +13,12 @@
 
 #include <ArborX_Config.hpp>
 
-#include <ArborX_DetailsContainers.hpp>
-#include <ArborX_DetailsDistributor.hpp>
-#include <ArborX_DetailsKokkosExtSort.hpp>
-#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
-#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
-#include <ArborX_DetailsPriorityQueue.hpp>
+#include <ArborX_Containers.hpp>
+#include <ArborX_KokkosExtSort.hpp>
+#include <ArborX_KokkosExtStdAlgorithms.hpp>
+#include <ArborX_KokkosExtViewHelpers.hpp>
+#include <ArborX_PriorityQueue.hpp>
+#include <details/ArborX_Distributor.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
@@ -169,7 +169,7 @@ void communicateResultsBack(MPI_Comm comm, ExecutionSpace const &space,
   // FIXME Distributor::createFromSends takes two views of the same type by
   // a const reference.  There were two easy ways out, either take the views by
   // value or cast at the call site.  I went with the latter.  Proper fix
-  // involves more code cleanup in ArborX_DetailsDistributor.hpp than I am
+  // involves more code cleanup in ArborX_Distributor.hpp than I am
   // willing to do just now.
   int const n_imports =
       distributor.createFromSends(space, ranks, static_cast<Ranks>(offset));

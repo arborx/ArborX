@@ -11,7 +11,7 @@
 #ifndef ARBORX_DETAILS_DISTRIBUTED_TREE_IMPL_HPP
 #define ARBORX_DETAILS_DISTRIBUTED_TREE_IMPL_HPP
 
-#include <ArborX_AccessTraits.hpp>
+#include <details/ArborX_AccessTraits.hpp>
 
 #include <Kokkos_Core.hpp>
 

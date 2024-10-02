@@ -11,9 +11,9 @@
 #ifndef ARBORX_DETAILS_ATTACH_INDICES_HPP
 #define ARBORX_DETAILS_ATTACH_INDICES_HPP
 
-#include <ArborX_AccessTraits.hpp>
-#include <ArborX_PairValueIndex.hpp>
-#include <ArborX_Predicates.hpp>
+#include <details/ArborX_AccessTraits.hpp>
+#include <details/ArborX_PairValueIndex.hpp>
+#include <details/ArborX_Predicates.hpp>
 
 namespace ArborX
 {

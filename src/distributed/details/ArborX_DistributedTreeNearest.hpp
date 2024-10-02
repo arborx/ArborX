@@ -11,13 +11,13 @@
 #ifndef ARBORX_DETAILS_DISTRIBUTED_TREE_NEAREST_HPP
 #define ARBORX_DETAILS_DISTRIBUTED_TREE_NEAREST_HPP
 
-#include <ArborX_DetailsDistributedTreeImpl.hpp>
-#include <ArborX_DetailsDistributedTreeNearestHelpers.hpp>
-#include <ArborX_DetailsDistributedTreeUtils.hpp>
-#include <ArborX_DetailsKokkosExtKernelStdAlgorithms.hpp>
-#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
-#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
-#include <ArborX_Predicates.hpp>
+#include <ArborX_KokkosExtKernelStdAlgorithms.hpp>
+#include <ArborX_KokkosExtStdAlgorithms.hpp>
+#include <ArborX_KokkosExtViewHelpers.hpp>
+#include <details/ArborX_DistributedTreeImpl.hpp>
+#include <details/ArborX_DistributedTreeNearestHelpers.hpp>
+#include <details/ArborX_DistributedTreeUtils.hpp>
+#include <details/ArborX_Predicates.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>

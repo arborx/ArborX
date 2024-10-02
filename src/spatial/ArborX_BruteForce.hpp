@@ -12,17 +12,17 @@
 #ifndef ARBORX_BRUTE_FORCE_HPP
 #define ARBORX_BRUTE_FORCE_HPP
 
-#include <ArborX_AccessTraits.hpp>
-#include <ArborX_AttachIndices.hpp>
 #include <ArborX_Box.hpp>
-#include <ArborX_Callbacks.hpp>
 #include <ArborX_CrsGraphWrapper.hpp>
-#include <ArborX_DetailsBruteForceImpl.hpp>
-#include <ArborX_DetailsCrsGraphWrapperImpl.hpp>
-#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
-#include <ArborX_IndexableGetter.hpp>
-#include <ArborX_PairValueIndex.hpp>
-#include <ArborX_PredicateHelpers.hpp>
+#include <ArborX_KokkosExtAccessibilityTraits.hpp>
+#include <details/ArborX_AccessTraits.hpp>
+#include <details/ArborX_AttachIndices.hpp>
+#include <details/ArborX_BruteForceImpl.hpp>
+#include <details/ArborX_Callbacks.hpp>
+#include <details/ArborX_CrsGraphWrapperImpl.hpp>
+#include <details/ArborX_IndexableGetter.hpp>
+#include <details/ArborX_PairValueIndex.hpp>
+#include <details/ArborX_PredicateHelpers.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>

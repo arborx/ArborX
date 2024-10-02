@@ -12,9 +12,9 @@
 #ifndef ARBORX_INDEXABLE_GETTER_HPP
 #define ARBORX_INDEXABLE_GETTER_HPP
 
-#include <ArborX_AccessTraits.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_PairValueIndex.hpp>
+#include <details/ArborX_AccessTraits.hpp>
+#include <details/ArborX_PairValueIndex.hpp>
 
 namespace ArborX::Details
 {

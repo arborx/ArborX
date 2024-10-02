@@ -13,9 +13,9 @@
 #define ARBORX_DETAILS_BATCHED_QUERIES_HPP
 
 #include <ArborX_Box.hpp>
-#include <ArborX_DetailsAlgorithms.hpp> // returnCentroid, translateAndScale
-#include <ArborX_DetailsSortUtils.hpp>  // sortObjects
+#include <ArborX_SortUtils.hpp> // sortObjects
 #include <ArborX_SpaceFillingCurves.hpp>
+#include <details/ArborX_Algorithms.hpp> // returnCentroid, translateAndScale
 
 #include <Kokkos_Core.hpp>
 

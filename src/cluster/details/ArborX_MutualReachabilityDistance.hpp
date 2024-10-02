@@ -12,10 +12,10 @@
 #ifndef ARBORX_DETAILS_MUTUAL_REACHABILITY_DISTANCE_HPP
 #define ARBORX_DETAILS_MUTUAL_REACHABILITY_DISTANCE_HPP
 
-#include <ArborX_AccessTraits.hpp>
-#include <ArborX_DetailsAlgorithms.hpp>
-#include <ArborX_DetailsHappyTreeFriends.hpp>
-#include <ArborX_Predicates.hpp>
+#include <details/ArborX_AccessTraits.hpp>
+#include <details/ArborX_Algorithms.hpp>
+#include <details/ArborX_HappyTreeFriends.hpp>
+#include <details/ArborX_Predicates.hpp>
 
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_MinMax.hpp>

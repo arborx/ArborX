@@ -11,9 +11,9 @@
 
 #include <ArborX_DBSCAN.hpp>
 #include <ArborX_DBSCANVerification.hpp>
-#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
-#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
 #include <ArborX_HDBSCAN.hpp>
+#include <ArborX_KokkosExtStdAlgorithms.hpp>
+#include <ArborX_KokkosExtViewHelpers.hpp>
 #include <ArborX_MinimumSpanningTree.hpp>
 
 #include <Kokkos_Core.hpp>

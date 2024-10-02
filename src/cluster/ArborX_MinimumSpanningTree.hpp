@@ -12,15 +12,15 @@
 #ifndef ARBORX_MINIMUM_SPANNING_TREE_HPP
 #define ARBORX_MINIMUM_SPANNING_TREE_HPP
 
-#include <ArborX_AccessTraits.hpp>
-#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
-#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
-#include <ArborX_DetailsMinimumSpanningTree.hpp>
-#include <ArborX_DetailsMutualReachabilityDistance.hpp>
-#include <ArborX_DetailsTreeNodeLabeling.hpp>
-#include <ArborX_DetailsWeightedEdge.hpp>
+#include <ArborX_KokkosExtStdAlgorithms.hpp>
+#include <ArborX_KokkosExtViewHelpers.hpp>
 #include <ArborX_LinearBVH.hpp>
-#include <ArborX_PredicateHelpers.hpp>
+#include <details/ArborX_AccessTraits.hpp>
+#include <details/ArborX_MinimumSpanningTree.hpp>
+#include <details/ArborX_MutualReachabilityDistance.hpp>
+#include <details/ArborX_PredicateHelpers.hpp>
+#include <details/ArborX_TreeNodeLabeling.hpp>
+#include <details/ArborX_WeightedEdge.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>

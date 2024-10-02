@@ -12,10 +12,10 @@
 #ifndef ARBORX_DETAILS_SORT_UTILS_HPP
 #define ARBORX_DETAILS_SORT_UTILS_HPP
 
-#include <ArborX_DetailsKokkosExtSort.hpp>
-#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp> // iota
-#include <ArborX_DetailsKokkosExtViewHelpers.hpp>   // clone
 #include <ArborX_Exception.hpp>
+#include <ArborX_KokkosExtSort.hpp>
+#include <ArborX_KokkosExtStdAlgorithms.hpp> // iota
+#include <ArborX_KokkosExtViewHelpers.hpp>   // clone
 
 #include <Kokkos_Core.hpp>
 

@@ -12,7 +12,7 @@
 #ifndef ARBORX_DETAILS_PERMUTED_DATA_HPP
 #define ARBORX_DETAILS_PERMUTED_DATA_HPP
 
-#include <ArborX_AccessTraits.hpp>
+#include <details/ArborX_AccessTraits.hpp>
 
 namespace ArborX
 {

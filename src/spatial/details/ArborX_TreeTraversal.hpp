@@ -11,17 +11,17 @@
 #ifndef ARBORX_DETAILS_TREE_TRAVERSAL_HPP
 #define ARBORX_DETAILS_TREE_TRAVERSAL_HPP
 
-#include <ArborX_DetailsAlgorithms.hpp>
-#include <ArborX_DetailsHappyTreeFriends.hpp>
-#include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
-#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
-#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
-#include <ArborX_DetailsNearestBufferProvider.hpp>
-#include <ArborX_DetailsNode.hpp> // ROPE_SENTINEL
-#include <ArborX_DetailsPriorityQueue.hpp>
-#include <ArborX_DetailsStack.hpp>
 #include <ArborX_Exception.hpp>
-#include <ArborX_Predicates.hpp>
+#include <ArborX_KokkosExtArithmeticTraits.hpp>
+#include <ArborX_KokkosExtStdAlgorithms.hpp>
+#include <ArborX_KokkosExtViewHelpers.hpp>
+#include <ArborX_PriorityQueue.hpp>
+#include <ArborX_Stack.hpp>
+#include <details/ArborX_Algorithms.hpp>
+#include <details/ArborX_HappyTreeFriends.hpp>
+#include <details/ArborX_NearestBufferProvider.hpp>
+#include <details/ArborX_Node.hpp> // ROPE_SENTINEL
+#include <details/ArborX_Predicates.hpp>
 
 namespace ArborX
 {

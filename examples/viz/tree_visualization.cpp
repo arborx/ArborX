@@ -9,9 +9,9 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
-#include <ArborX_DetailsTreeVisualization.hpp>
+#include <ArborX_KokkosExtAccessibilityTraits.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <details/ArborX_TreeVisualization.hpp>
 
 #include <Kokkos_Core.hpp>
 

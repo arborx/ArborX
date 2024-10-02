@@ -14,7 +14,7 @@
 
 #include <ArborX_Config.hpp> // ARBORX_ENABLE_ROCTHRUST
 
-#include <ArborX_DetailsKokkosExtMinMaxReduce.hpp>
+#include <ArborX_KokkosExtMinMaxReduce.hpp>
 
 #include <Kokkos_Profiling_ScopedRegion.hpp>
 #include <Kokkos_Sort.hpp>

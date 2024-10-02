@@ -10,9 +10,9 @@
  ****************************************************************************/
 
 #include <ArborX_Box.hpp>
-#include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_KDOP.hpp>
 #include <ArborX_Point.hpp>
+#include <details/ArborX_Algorithms.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>

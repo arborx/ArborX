@@ -14,10 +14,10 @@
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_Dendrogram.hpp>
-#include <ArborX_DetailsKokkosExtViewHelpers.hpp>
-#include <ArborX_DetailsSortUtils.hpp>
-#include <ArborX_DetailsWeightedEdge.hpp>
+#include <ArborX_KokkosExtViewHelpers.hpp>
 #include <ArborX_MinimumSpanningTree.hpp>
+#include <ArborX_SortUtils.hpp>
+#include <details/ArborX_WeightedEdge.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include "boost_ext/TupleComparison.hpp"

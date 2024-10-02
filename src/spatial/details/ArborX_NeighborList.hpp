@@ -12,12 +12,12 @@
 #ifndef ARBORX_NEIGHBOR_LIST_HPP
 #define ARBORX_NEIGHBOR_LIST_HPP
 
-#include <ArborX_DetailsHalfTraversal.hpp>
-#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
-#include <ArborX_DetailsKokkosExtViewHelpers.hpp> // reallocWithoutInitializing
 #include <ArborX_GeometryTraits.hpp>
+#include <ArborX_KokkosExtStdAlgorithms.hpp>
+#include <ArborX_KokkosExtViewHelpers.hpp> // reallocWithoutInitializing
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Sphere.hpp>
+#include <details/ArborX_HalfTraversal.hpp>
 
 #include <Kokkos_Core.hpp>
 

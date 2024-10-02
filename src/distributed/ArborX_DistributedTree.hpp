@@ -12,13 +12,13 @@
 #ifndef ARBORX_DISTRIBUTED_TREE_HPP
 #define ARBORX_DISTRIBUTED_TREE_HPP
 
-#include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
-#include <ArborX_DetailsDistributedTreeNearest.hpp>
-#include <ArborX_DetailsDistributedTreeSpatial.hpp>
-#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
+#include <ArborX_KokkosExtStdAlgorithms.hpp>
 #include <ArborX_LinearBVH.hpp>
-#include <ArborX_PairValueIndex.hpp>
+#include <details/ArborX_AccessTraits.hpp>
+#include <details/ArborX_DistributedTreeNearest.hpp>
+#include <details/ArborX_DistributedTreeSpatial.hpp>
+#include <details/ArborX_PairValueIndex.hpp>
 
 #include <Kokkos_Core.hpp>
 
