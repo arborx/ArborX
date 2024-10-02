@@ -12,7 +12,7 @@
 #define ARBORX_SEGMENT_HPP
 
 #include <ArborX_GeometryTraits.hpp>
-#include <detail/ArborX_Algorithms.hpp>
+#include <detail/ArborX_GeometryAlgorithms.hpp>
 #include <misc/ArborX_Vector.hpp>
 
 #include <Kokkos_Clamp.hpp>

@@ -14,7 +14,7 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_Point.hpp>
-#include <detail/ArborX_Algorithms.hpp>
+#include <detail/ArborX_GeometryAlgorithms.hpp>
 #include <detail/ArborX_MortonCode.hpp>
 
 #include <Kokkos_DetectionIdiom.hpp>

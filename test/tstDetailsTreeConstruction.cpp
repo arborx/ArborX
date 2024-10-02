@@ -11,7 +11,7 @@
 #include "ArborXTest_LegacyTree.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
-#include <detail/ArborX_Algorithms.hpp>
+#include <detail/ArborX_GeometryAlgorithms.hpp>
 #include <detail/ArborX_IndexableGetter.hpp>
 #include <detail/ArborX_MortonCode.hpp> // expandBits, morton32
 #include <detail/ArborX_Node.hpp>       // ROPE SENTINEL

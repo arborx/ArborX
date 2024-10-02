@@ -12,7 +12,7 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_KDOP.hpp>
 #include <ArborX_Point.hpp>
-#include <detail/ArborX_Algorithms.hpp>
+#include <detail/ArborX_GeometryAlgorithms.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>

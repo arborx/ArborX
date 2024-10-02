@@ -14,7 +14,7 @@
 
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_Point.hpp>
-#include <detail/ArborX_Algorithms.hpp>
+#include <detail/ArborX_GeometryAlgorithms.hpp>
 
 #include <Kokkos_Array.hpp>
 

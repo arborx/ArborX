@@ -12,7 +12,7 @@
 #ifndef ARBORX_DETAILS_BRUTE_FORCE_IMPL_HPP
 #define ARBORX_DETAILS_BRUTE_FORCE_IMPL_HPP
 
-#include <detail/ArborX_Algorithms.hpp> // expand
+#include <detail/ArborX_GeometryAlgorithms.hpp> // expand
 #include <detail/ArborX_NearestBufferProvider.hpp>
 #include <detail/ArborX_Predicates.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>

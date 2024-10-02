@@ -13,7 +13,7 @@
 #define ARBORX_DETAILS_BATCHED_QUERIES_HPP
 
 #include <ArborX_Box.hpp>
-#include <detail/ArborX_Algorithms.hpp> // returnCentroid, translateAndScale
+#include <detail/ArborX_GeometryAlgorithms.hpp> // returnCentroid, translateAndScale
 #include <detail/ArborX_SpaceFillingCurves.hpp>
 #include <misc/ArborX_SortUtils.hpp> // sortObjects
 

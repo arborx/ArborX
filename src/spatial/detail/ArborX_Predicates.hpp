@@ -11,7 +11,7 @@
 #ifndef ARBORX_PREDICATE_HPP
 #define ARBORX_PREDICATE_HPP
 
-#include <detail/ArborX_Algorithms.hpp>
+#include <detail/ArborX_GeometryAlgorithms.hpp>
 
 namespace ArborX
 {

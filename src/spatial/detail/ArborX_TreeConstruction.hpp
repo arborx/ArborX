@@ -12,8 +12,8 @@
 #ifndef ARBORX_DETAILS_TREE_CONSTRUCTION_HPP
 #define ARBORX_DETAILS_TREE_CONSTRUCTION_HPP
 
-#include <detail/ArborX_Algorithms.hpp> // expand
-#include <detail/ArborX_Node.hpp>       // makeLeafNode
+#include <detail/ArborX_GeometryAlgorithms.hpp> // expand
+#include <detail/ArborX_Node.hpp>               // makeLeafNode
 #include <detail/ArborX_SpaceFillingCurves.hpp>
 #include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
 #include <misc/ArborX_Exception.hpp>
