@@ -10,7 +10,7 @@
  ****************************************************************************/
 
 #include <ArborX_LinearBVH.hpp>
-#include <details/ArborX_TreeVisualization.hpp>
+#include <detail/ArborX_TreeVisualization.hpp>
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
 
 #include <Kokkos_Core.hpp>

@@ -11,8 +11,8 @@
 
 #include "ArborX_EnableDeviceTypes.hpp"
 #include "ArborX_EnableViewComparison.hpp"
-#include <details/ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
-#include <details/ArborX_InterpDetailsMovingLeastSquaresCoefficients.hpp>
+#include <detail/ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
+#include <detail/ArborX_InterpDetailsMovingLeastSquaresCoefficients.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>

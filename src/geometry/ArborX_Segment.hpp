@@ -13,7 +13,7 @@
 
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_Vector.hpp>
-#include <details/ArborX_Algorithms.hpp>
+#include <detail/ArborX_Algorithms.hpp>
 
 #include <Kokkos_Clamp.hpp>
 #include <Kokkos_Macros.hpp>

@@ -10,8 +10,8 @@
  ****************************************************************************/
 
 #include <ArborX_Point.hpp>
-#include <details/ArborX_AccessTraits.hpp>
-#include <details/ArborX_AttachIndices.hpp>
+#include <detail/ArborX_AccessTraits.hpp>
+#include <detail/ArborX_AttachIndices.hpp>
 
 #include <Kokkos_Core.hpp>
 

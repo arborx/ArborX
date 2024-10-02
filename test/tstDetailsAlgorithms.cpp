@@ -15,7 +15,7 @@
 #include <ArborX_Sphere.hpp>
 #include <ArborX_Tetrahedron.hpp>
 #include <ArborX_Triangle.hpp>
-#include <details/ArborX_Algorithms.hpp>
+#include <detail/ArborX_Algorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
 
 #include <boost/mpl/list.hpp>

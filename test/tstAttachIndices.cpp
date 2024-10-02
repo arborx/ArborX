@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <details/ArborX_AccessTraits.hpp>
-#include <details/ArborX_AttachIndices.hpp>
+#include <detail/ArborX_AccessTraits.hpp>
+#include <detail/ArborX_AttachIndices.hpp>
 
 #include <boost/test/unit_test.hpp>
 

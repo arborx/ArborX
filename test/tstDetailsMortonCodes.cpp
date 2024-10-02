@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <details/ArborX_MortonCode.hpp>
+#include <detail/ArborX_MortonCode.hpp>
 
 #include <boost/test/unit_test.hpp>
 

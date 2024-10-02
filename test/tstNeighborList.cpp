@@ -20,8 +20,8 @@
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_Sphere.hpp>
-#include <details/ArborX_ExpandHalfToFull.hpp>
-#include <details/ArborX_NeighborList.hpp>
+#include <detail/ArborX_ExpandHalfToFull.hpp>
+#include <detail/ArborX_NeighborList.hpp>
 
 #include <Kokkos_Random.hpp>
 

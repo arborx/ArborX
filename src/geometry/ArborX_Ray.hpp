@@ -16,7 +16,7 @@
 #include <ArborX_Sphere.hpp>
 #include <ArborX_Triangle.hpp>
 #include <ArborX_Vector.hpp>
-#include <details/ArborX_Algorithms.hpp> // equal
+#include <detail/ArborX_Algorithms.hpp> // equal
 #include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
 
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT

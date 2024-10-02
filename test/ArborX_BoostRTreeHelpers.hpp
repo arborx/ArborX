@@ -18,8 +18,8 @@
 #include "ArborX_BoostRangeAdapters.hpp"
 #include <ArborX_Box.hpp>
 #include <ArborX_Sphere.hpp>
-#include <details/ArborX_AccessTraits.hpp>
-#include <details/ArborX_Predicates.hpp>
+#include <detail/ArborX_AccessTraits.hpp>
+#include <detail/ArborX_Predicates.hpp>
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp> // is_accessible_from_host
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp> // exclusive_scan
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>   // lastElement

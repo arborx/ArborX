@@ -14,14 +14,14 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_CrsGraphWrapper.hpp>
-#include <details/ArborX_AccessTraits.hpp>
-#include <details/ArborX_AttachIndices.hpp>
-#include <details/ArborX_BruteForceImpl.hpp>
-#include <details/ArborX_Callbacks.hpp>
-#include <details/ArborX_CrsGraphWrapperImpl.hpp>
-#include <details/ArborX_IndexableGetter.hpp>
-#include <details/ArborX_PairValueIndex.hpp>
-#include <details/ArborX_PredicateHelpers.hpp>
+#include <detail/ArborX_AccessTraits.hpp>
+#include <detail/ArborX_AttachIndices.hpp>
+#include <detail/ArborX_BruteForceImpl.hpp>
+#include <detail/ArborX_Callbacks.hpp>
+#include <detail/ArborX_CrsGraphWrapperImpl.hpp>
+#include <detail/ArborX_IndexableGetter.hpp>
+#include <detail/ArborX_PairValueIndex.hpp>
+#include <detail/ArborX_PredicateHelpers.hpp>
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
 
 #include <Kokkos_Core.hpp>

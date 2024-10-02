@@ -11,8 +11,8 @@
 #ifndef ARBORX_DENDROGRAM_HPP
 #define ARBORX_DENDROGRAM_HPP
 
-#include <details/ArborX_Dendrogram.hpp>
-#include <details/ArborX_WeightedEdge.hpp>
+#include <detail/ArborX_Dendrogram.hpp>
+#include <detail/ArborX_WeightedEdge.hpp>
 #include <kokkos_ext/ArborX_KokkosExtSort.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 

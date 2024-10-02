@@ -13,12 +13,12 @@
 #define ARBORX_MINIMUM_SPANNING_TREE_HPP
 
 #include <ArborX_LinearBVH.hpp>
-#include <details/ArborX_AccessTraits.hpp>
-#include <details/ArborX_MinimumSpanningTree.hpp>
-#include <details/ArborX_MutualReachabilityDistance.hpp>
-#include <details/ArborX_PredicateHelpers.hpp>
-#include <details/ArborX_TreeNodeLabeling.hpp>
-#include <details/ArborX_WeightedEdge.hpp>
+#include <detail/ArborX_AccessTraits.hpp>
+#include <detail/ArborX_MinimumSpanningTree.hpp>
+#include <detail/ArborX_MutualReachabilityDistance.hpp>
+#include <detail/ArborX_PredicateHelpers.hpp>
+#include <detail/ArborX_TreeNodeLabeling.hpp>
+#include <detail/ArborX_WeightedEdge.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 

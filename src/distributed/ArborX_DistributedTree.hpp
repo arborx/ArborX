@@ -14,10 +14,10 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_LinearBVH.hpp>
-#include <details/ArborX_AccessTraits.hpp>
-#include <details/ArborX_DistributedTreeNearest.hpp>
-#include <details/ArborX_DistributedTreeSpatial.hpp>
-#include <details/ArborX_PairValueIndex.hpp>
+#include <detail/ArborX_AccessTraits.hpp>
+#include <detail/ArborX_DistributedTreeNearest.hpp>
+#include <detail/ArborX_DistributedTreeSpatial.hpp>
+#include <detail/ArborX_PairValueIndex.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 
 #include <Kokkos_Core.hpp>

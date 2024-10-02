@@ -17,12 +17,12 @@
 #include <ArborX_SortUtils.hpp>
 #include <ArborX_Sphere.hpp>
 #include <ArborX_Utils.hpp> // sortObjects
-#include <details/ArborX_AccessTraits.hpp>
-#include <details/ArborX_CartesianGrid.hpp>
-#include <details/ArborX_FDBSCAN.hpp>
-#include <details/ArborX_FDBSCANDenseBox.hpp>
-#include <details/ArborX_HalfTraversal.hpp>
-#include <details/ArborX_PredicateHelpers.hpp>
+#include <detail/ArborX_AccessTraits.hpp>
+#include <detail/ArborX_CartesianGrid.hpp>
+#include <detail/ArborX_FDBSCAN.hpp>
+#include <detail/ArborX_FDBSCANDenseBox.hpp>
+#include <detail/ArborX_HalfTraversal.hpp>
+#include <detail/ArborX_PredicateHelpers.hpp>
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 

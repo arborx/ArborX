@@ -11,9 +11,9 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_Point.hpp>
-#include <details/ArborX_AccessTraits.hpp>
-#include <details/ArborX_Callbacks.hpp>
-#include <details/ArborX_Predicates.hpp>
+#include <detail/ArborX_AccessTraits.hpp>
+#include <detail/ArborX_Callbacks.hpp>
+#include <detail/ArborX_Predicates.hpp>
 
 // NOTE Let's not bother with __host__ __device__ annotations here
 

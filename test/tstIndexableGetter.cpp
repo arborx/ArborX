@@ -10,8 +10,8 @@
  ****************************************************************************/
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <ArborX_LinearBVH.hpp>
-#include <details/ArborX_AccessTraits.hpp>
-#include <details/ArborX_IndexableGetter.hpp>
+#include <detail/ArborX_AccessTraits.hpp>
+#include <detail/ArborX_IndexableGetter.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>

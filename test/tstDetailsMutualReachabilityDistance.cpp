@@ -13,7 +13,7 @@
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_LinearBVH.hpp>
-#include <details/ArborX_MutualReachabilityDistance.hpp>
+#include <detail/ArborX_MutualReachabilityDistance.hpp>
 #include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"

@@ -12,7 +12,7 @@
 #include <ArborX_SortUtils.hpp>
 #include <ArborX_Utils.hpp>
 #include <ArborX_Version.hpp>
-#include <details/ArborX_UnionFind.hpp>
+#include <detail/ArborX_UnionFind.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtVersion.hpp>
 
