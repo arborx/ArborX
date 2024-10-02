@@ -15,7 +15,6 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_CrsGraphWrapper.hpp>
 #include <ArborX_SortUtils.hpp>
-#include <ArborX_SpaceFillingCurves.hpp>
 #include <details/ArborX_AccessTraits.hpp>
 #include <details/ArborX_AttachIndices.hpp>
 #include <details/ArborX_BatchedQueries.hpp>
@@ -26,6 +25,7 @@
 #include <details/ArborX_PairValueIndex.hpp>
 #include <details/ArborX_PermutedData.hpp>
 #include <details/ArborX_PredicateHelpers.hpp>
+#include <details/ArborX_SpaceFillingCurves.hpp>
 #include <details/ArborX_TraversalPolicy.hpp>
 #include <details/ArborX_TreeConstruction.hpp>
 #include <details/ArborX_TreeTraversal.hpp>
