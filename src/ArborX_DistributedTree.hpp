@@ -156,7 +156,7 @@ KOKKOS_DEDUCTION_GUIDE
 KOKKOS_FUNCTION
 #endif
     DistributedTree(MPI_Comm, ExecutionSpace, Values) -> DistributedTree<
-        typename ExecutionSpace::memory_space,
+        typename Details::AccessValues<Values, PrimitivesTag>::memory_space,
         typename Details::AccessValues<Values, PrimitivesTag>::value_type>;
 
 template <typename BottomTree>
