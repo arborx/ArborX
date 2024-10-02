@@ -13,11 +13,11 @@
 #define ARBORX_NEIGHBOR_LIST_HPP
 
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_KokkosExtStdAlgorithms.hpp>
-#include <ArborX_KokkosExtViewHelpers.hpp> // reallocWithoutInitializing
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Sphere.hpp>
 #include <details/ArborX_HalfTraversal.hpp>
+#include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
+#include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp> // reallocWithoutInitializing
 
 #include <Kokkos_Core.hpp>
 

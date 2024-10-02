@@ -13,8 +13,8 @@
 #define ARBORX_DETAILS_UTILS_HPP
 
 #include <ArborX_Exception.hpp>
-#include <ArborX_KokkosExtAccessibilityTraits.hpp>
-#include <ArborX_KokkosExtViewHelpers.hpp>
+#include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
+#include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
 #include <Kokkos_Core.hpp>
 

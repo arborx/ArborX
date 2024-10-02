@@ -14,11 +14,11 @@
 #include <ArborX_Config.hpp>
 
 #include <ArborX_Containers.hpp>
-#include <ArborX_KokkosExtSort.hpp>
-#include <ArborX_KokkosExtStdAlgorithms.hpp>
-#include <ArborX_KokkosExtViewHelpers.hpp>
 #include <ArborX_PriorityQueue.hpp>
 #include <details/ArborX_Distributor.hpp>
+#include <kokkos_ext/ArborX_KokkosExtSort.hpp>
+#include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
+#include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>

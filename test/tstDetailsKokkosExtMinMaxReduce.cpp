@@ -12,8 +12,8 @@
 #include "ArborXTest_StdVectorToKokkosView.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
-#include <ArborX_KokkosExtMinMaxReduce.hpp>
-#include <ArborX_KokkosExtStdAlgorithms.hpp>
+#include <kokkos_ext/ArborX_KokkosExtMinMaxReduce.hpp>
+#include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 
 #include <Kokkos_Core.hpp>
 

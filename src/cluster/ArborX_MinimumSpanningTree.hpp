@@ -12,8 +12,6 @@
 #ifndef ARBORX_MINIMUM_SPANNING_TREE_HPP
 #define ARBORX_MINIMUM_SPANNING_TREE_HPP
 
-#include <ArborX_KokkosExtStdAlgorithms.hpp>
-#include <ArborX_KokkosExtViewHelpers.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <details/ArborX_AccessTraits.hpp>
 #include <details/ArborX_MinimumSpanningTree.hpp>
@@ -21,6 +19,8 @@
 #include <details/ArborX_PredicateHelpers.hpp>
 #include <details/ArborX_TreeNodeLabeling.hpp>
 #include <details/ArborX_WeightedEdge.hpp>
+#include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
+#include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>

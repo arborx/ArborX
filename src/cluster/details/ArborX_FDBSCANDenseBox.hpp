@@ -12,12 +12,12 @@
 #ifndef ARBORX_DETAILSFDBSCANDENSEBOX_HPP
 #define ARBORX_DETAILSFDBSCANDENSEBOX_HPP
 
-#include <ArborX_KokkosExtAccessibilityTraits.hpp>
-#include <ArborX_KokkosExtViewHelpers.hpp>
 #include <details/ArborX_Callbacks.hpp>
 #include <details/ArborX_CartesianGrid.hpp>
 #include <details/ArborX_Predicates.hpp>
 #include <details/ArborX_UnionFind.hpp>
+#include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
+#include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
 #include <Kokkos_Core.hpp>
 

@@ -13,13 +13,13 @@
 #define ARBORX_DETAIL_CRS_GRAPH_WRAPPER_IMPL_HPP
 
 #include <ArborX_Box.hpp>
-#include <ArborX_KokkosExtStdAlgorithms.hpp>
-#include <ArborX_KokkosExtViewHelpers.hpp>
 #include <details/ArborX_BatchedQueries.hpp>
 #include <details/ArborX_Callbacks.hpp>
 #include <details/ArborX_PermutedData.hpp>
 #include <details/ArborX_Predicates.hpp>
 #include <details/ArborX_TraversalPolicy.hpp>
+#include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
+#include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
 namespace ArborX
 {

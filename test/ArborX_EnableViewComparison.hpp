@@ -12,7 +12,7 @@
 #ifndef ARBORX_ENABLE_VIEW_COMPARISON_HPP
 #define ARBORX_ENABLE_VIEW_COMPARISON_HPP
 
-#include <ArborX_KokkosExtAccessibilityTraits.hpp> // is_accessible_from_host
+#include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp> // is_accessible_from_host
 
 #include <Kokkos_Core.hpp>
 

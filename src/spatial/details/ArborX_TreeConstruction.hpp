@@ -12,10 +12,10 @@
 #ifndef ARBORX_DETAILS_TREE_CONSTRUCTION_HPP
 #define ARBORX_DETAILS_TREE_CONSTRUCTION_HPP
 
-#include <ArborX_KokkosExtArithmeticTraits.hpp>
 #include <ArborX_SpaceFillingCurves.hpp>
 #include <details/ArborX_Algorithms.hpp> // expand
 #include <details/ArborX_Node.hpp>       // makeLeafNode
+#include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
 
 #include <Kokkos_Core.hpp>
 

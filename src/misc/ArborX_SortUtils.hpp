@@ -13,9 +13,9 @@
 #define ARBORX_DETAILS_SORT_UTILS_HPP
 
 #include <ArborX_Exception.hpp>
-#include <ArborX_KokkosExtSort.hpp>
-#include <ArborX_KokkosExtStdAlgorithms.hpp> // iota
-#include <ArborX_KokkosExtViewHelpers.hpp>   // clone
+#include <kokkos_ext/ArborX_KokkosExtSort.hpp>
+#include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp> // iota
+#include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>   // clone
 
 #include <Kokkos_Core.hpp>
 

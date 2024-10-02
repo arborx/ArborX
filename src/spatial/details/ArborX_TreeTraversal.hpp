@@ -12,9 +12,6 @@
 #define ARBORX_DETAILS_TREE_TRAVERSAL_HPP
 
 #include <ArborX_Exception.hpp>
-#include <ArborX_KokkosExtArithmeticTraits.hpp>
-#include <ArborX_KokkosExtStdAlgorithms.hpp>
-#include <ArborX_KokkosExtViewHelpers.hpp>
 #include <ArborX_PriorityQueue.hpp>
 #include <ArborX_Stack.hpp>
 #include <details/ArborX_Algorithms.hpp>
@@ -22,6 +19,9 @@
 #include <details/ArborX_NearestBufferProvider.hpp>
 #include <details/ArborX_Node.hpp> // ROPE_SENTINEL
 #include <details/ArborX_Predicates.hpp>
+#include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
+#include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
+#include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
 namespace ArborX
 {

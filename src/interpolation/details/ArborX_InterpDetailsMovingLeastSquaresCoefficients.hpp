@@ -13,12 +13,12 @@
 #define ARBORX_INTERP_DETAILS_MOVING_LEAST_SQUARES_COEFFICIENTS_HPP
 
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_KokkosExtAccessibilityTraits.hpp>
 #include <ArborX_Point.hpp>
 #include <details/ArborX_AccessTraits.hpp>
 #include <details/ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
 #include <details/ArborX_InterpDetailsPolynomialBasis.hpp>
 #include <details/ArborX_InterpDetailsSymmetricPseudoInverseSVD.hpp>
+#include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>

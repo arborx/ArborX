@@ -12,8 +12,8 @@
 #ifndef ARBORX_DETAILS_EXPAND_HALF_TO_FULL_HPP
 #define ARBORX_DETAILS_EXPAND_HALF_TO_FULL_HPP
 
-#include <ArborX_KokkosExtStdAlgorithms.hpp>
-#include <ArborX_KokkosExtViewHelpers.hpp>
+#include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
+#include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
 #include <Kokkos_Core.hpp>
 

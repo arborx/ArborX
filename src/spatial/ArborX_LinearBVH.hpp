@@ -14,7 +14,6 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_CrsGraphWrapper.hpp>
-#include <ArborX_KokkosExtAccessibilityTraits.hpp>
 #include <ArborX_SortUtils.hpp>
 #include <ArborX_SpaceFillingCurves.hpp>
 #include <details/ArborX_AccessTraits.hpp>
@@ -30,6 +29,7 @@
 #include <details/ArborX_TraversalPolicy.hpp>
 #include <details/ArborX_TreeConstruction.hpp>
 #include <details/ArborX_TreeTraversal.hpp>
+#include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>

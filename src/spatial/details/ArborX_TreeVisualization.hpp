@@ -11,10 +11,10 @@
 #ifndef ARBORX_DETAILS_TREE_VISUALIZATION_HPP
 #define ARBORX_DETAILS_TREE_VISUALIZATION_HPP
 
-#include <ArborX_KokkosExtAccessibilityTraits.hpp>
 #include <ArborX_Point.hpp>
 #include <details/ArborX_HappyTreeFriends.hpp>
 #include <details/ArborX_TreeTraversal.hpp>
+#include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
 
 #include <Kokkos_Core.hpp>
 

@@ -14,10 +14,10 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_KokkosExtArithmeticTraits.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Vector.hpp>
 #include <details/ArborX_Algorithms.hpp>
+#include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
 
 #include <Kokkos_Array.hpp>
 #include <Kokkos_Macros.hpp>

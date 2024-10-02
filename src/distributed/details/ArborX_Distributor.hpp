@@ -14,9 +14,9 @@
 #include <ArborX_Config.hpp>
 
 #include <ArborX_Exception.hpp>
-#include <ArborX_KokkosExtMinMaxReduce.hpp>
-#include <ArborX_KokkosExtViewHelpers.hpp>
 #include <ArborX_SortUtils.hpp>
+#include <kokkos_ext/ArborX_KokkosExtMinMaxReduce.hpp>
+#include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>

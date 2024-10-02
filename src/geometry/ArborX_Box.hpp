@@ -13,8 +13,8 @@
 #define ARBORX_BOX_HPP
 
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_KokkosExtArithmeticTraits.hpp>
 #include <ArborX_Point.hpp>
+#include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
 
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_ReductionIdentity.hpp>

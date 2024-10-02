@@ -11,10 +11,10 @@
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <ArborXTest_LegacyTree.hpp>
-#include <ArborX_KokkosExtMinMaxReduce.hpp>
-#include <ArborX_KokkosExtStdAlgorithms.hpp>
-#include <ArborX_KokkosExtViewHelpers.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <kokkos_ext/ArborX_KokkosExtMinMaxReduce.hpp>
+#include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
+#include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
 #include <boost/test/unit_test.hpp>
 

@@ -12,9 +12,9 @@
 #include "ArborXTest_StdVectorToKokkosView.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
-#include <ArborX_KokkosExtArithmeticTraits.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <details/ArborX_MutualReachabilityDistance.hpp>
+#include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>

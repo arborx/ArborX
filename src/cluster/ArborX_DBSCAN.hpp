@@ -13,8 +13,6 @@
 #define ARBORX_DBSCAN_HPP
 
 #include <ArborX_Box.hpp>
-#include <ArborX_KokkosExtAccessibilityTraits.hpp>
-#include <ArborX_KokkosExtStdAlgorithms.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_SortUtils.hpp>
 #include <ArborX_Sphere.hpp>
@@ -25,6 +23,8 @@
 #include <details/ArborX_FDBSCANDenseBox.hpp>
 #include <details/ArborX_HalfTraversal.hpp>
 #include <details/ArborX_PredicateHelpers.hpp>
+#include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
+#include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 
 namespace ArborX
 {

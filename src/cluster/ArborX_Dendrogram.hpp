@@ -11,10 +11,10 @@
 #ifndef ARBORX_DENDROGRAM_HPP
 #define ARBORX_DENDROGRAM_HPP
 
-#include <ArborX_KokkosExtSort.hpp>
-#include <ArborX_KokkosExtViewHelpers.hpp>
 #include <details/ArborX_Dendrogram.hpp>
 #include <details/ArborX_WeightedEdge.hpp>
+#include <kokkos_ext/ArborX_KokkosExtSort.hpp>
+#include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
 #include <Kokkos_Core.hpp>
 
