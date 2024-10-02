@@ -16,6 +16,7 @@
 #include <detail/ArborX_Node.hpp>       // makeLeafNode
 #include <detail/ArborX_SpaceFillingCurves.hpp>
 #include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
+#include <misc/ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
 

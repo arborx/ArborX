@@ -12,7 +12,7 @@
 #ifndef ARBORX_DETAILS_KOKKOS_EXT_VIEW_HELPERS_HPP
 #define ARBORX_DETAILS_KOKKOS_EXT_VIEW_HELPERS_HPP
 
-#include <ArborX_Exception.hpp>
+#include <misc/ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
 

@@ -12,8 +12,8 @@
 #define ARBORX_SEGMENT_HPP
 
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_Vector.hpp>
 #include <detail/ArborX_Algorithms.hpp>
+#include <misc/ArborX_Vector.hpp>
 
 #include <Kokkos_Clamp.hpp>
 #include <Kokkos_Macros.hpp>

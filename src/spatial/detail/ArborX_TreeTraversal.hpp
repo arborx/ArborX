@@ -11,9 +11,6 @@
 #ifndef ARBORX_DETAILS_TREE_TRAVERSAL_HPP
 #define ARBORX_DETAILS_TREE_TRAVERSAL_HPP
 
-#include <ArborX_Exception.hpp>
-#include <ArborX_PriorityQueue.hpp>
-#include <ArborX_Stack.hpp>
 #include <detail/ArborX_Algorithms.hpp>
 #include <detail/ArborX_HappyTreeFriends.hpp>
 #include <detail/ArborX_NearestBufferProvider.hpp>
@@ -22,6 +19,9 @@
 #include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
+#include <misc/ArborX_Exception.hpp>
+#include <misc/ArborX_PriorityQueue.hpp>
+#include <misc/ArborX_Stack.hpp>
 
 namespace ArborX
 {

@@ -10,8 +10,8 @@
  ****************************************************************************/
 
 #include "ArborX_EnableViewComparison.hpp"
-#include <ArborX_Heap.hpp>
-#include <ArborX_PriorityQueue.hpp> // Less, Greater
+#include <misc/ArborX_Heap.hpp>
+#include <misc/ArborX_PriorityQueue.hpp> // Less, Greater
 
 #include <Kokkos_Array.hpp>
 

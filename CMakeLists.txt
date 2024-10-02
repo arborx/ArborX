@@ -78,7 +78,6 @@ target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/distributed>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/interpolation>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/spatial>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/misc>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   $<INSTALL_INTERFACE:include/ArborX>
   $<INSTALL_INTERFACE:include/ArborX/geometry>

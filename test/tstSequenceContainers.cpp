@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_Containers.hpp>
+#include <misc/ArborX_Containers.hpp>
 
 #define BOOST_TEST_MODULE Containers
 #include <boost/test/unit_test.hpp>

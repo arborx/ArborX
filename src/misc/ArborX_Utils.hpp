@@ -12,9 +12,9 @@
 #ifndef ARBORX_DETAILS_UTILS_HPP
 #define ARBORX_DETAILS_UTILS_HPP
 
-#include <ArborX_Exception.hpp>
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
+#include <misc/ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
 

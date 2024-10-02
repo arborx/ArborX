@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_PriorityQueue.hpp>
+#include <misc/ArborX_PriorityQueue.hpp>
 
 #include <boost/test/unit_test.hpp>
 

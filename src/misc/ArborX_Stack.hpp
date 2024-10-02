@@ -11,7 +11,7 @@
 #ifndef ARBORX_DETAILS_STACK_HPP
 #define ARBORX_DETAILS_STACK_HPP
 
-#include <ArborX_Containers.hpp>
+#include <misc/ArborX_Containers.hpp>
 
 #include <Kokkos_Macros.hpp>
 

@@ -12,8 +12,8 @@
 #ifndef ARBORX_DETAILS_KOKKOS_EXT_MIN_MAX_REDUCTIONS_HPP
 #define ARBORX_DETAILS_KOKKOS_EXT_MIN_MAX_REDUCTIONS_HPP
 
-#include <ArborX_Exception.hpp>
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
+#include <misc/ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
 

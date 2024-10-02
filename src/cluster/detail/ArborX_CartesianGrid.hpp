@@ -13,8 +13,8 @@
 #define ARBORX_DETAILS_CARTESIAN_GRID_HPP
 
 #include <ArborX_Box.hpp>
-#include <ArborX_Exception.hpp>
 #include <ArborX_GeometryTraits.hpp>
+#include <misc/ArborX_Exception.hpp>
 
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
 #include <Kokkos_Macros.hpp>

@@ -12,13 +12,13 @@
 #ifndef ARBORX_DETAILS_BRUTE_FORCE_IMPL_HPP
 #define ARBORX_DETAILS_BRUTE_FORCE_IMPL_HPP
 
-#include <ArborX_Exception.hpp>
-#include <ArborX_PriorityQueue.hpp>
 #include <detail/ArborX_Algorithms.hpp> // expand
 #include <detail/ArborX_NearestBufferProvider.hpp>
 #include <detail/ArborX_Predicates.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
+#include <misc/ArborX_Exception.hpp>
+#include <misc/ArborX_PriorityQueue.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>

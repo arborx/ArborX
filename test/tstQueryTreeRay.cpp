@@ -13,7 +13,7 @@
 #include <ArborX.hpp>
 #include <ArborXTest_LegacyTree.hpp>
 #include <ArborX_Ray.hpp>
-#include <ArborX_Vector.hpp>
+#include <misc/ArborX_Vector.hpp>
 
 #include <boost/test/unit_test.hpp>
 

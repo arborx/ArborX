@@ -14,9 +14,7 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_LinearBVH.hpp>
-#include <ArborX_SortUtils.hpp>
 #include <ArborX_Sphere.hpp>
-#include <ArborX_Utils.hpp> // sortObjects
 #include <detail/ArborX_AccessTraits.hpp>
 #include <detail/ArborX_CartesianGrid.hpp>
 #include <detail/ArborX_FDBSCAN.hpp>
@@ -25,6 +23,8 @@
 #include <detail/ArborX_PredicateHelpers.hpp>
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
+#include <misc/ArborX_SortUtils.hpp>
+#include <misc/ArborX_Utils.hpp> // sortObjects
 
 namespace ArborX
 {

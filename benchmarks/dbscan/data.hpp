@@ -12,8 +12,8 @@
 #ifndef DATA_HPP
 #define DATA_HPP
 
-#include <ArborX_Exception.hpp>
 #include <ArborX_Point.hpp>
+#include <misc/ArborX_Exception.hpp>
 
 #include <iostream>
 #include <random>
