@@ -14,7 +14,7 @@
 
 #include <ArborX_LinearBVH.hpp>
 #include <detail/ArborX_AccessTraits.hpp>
-#include <detail/ArborX_MinimumSpanningTree.hpp>
+#include <detail/ArborX_BoruvkaHelpers.hpp>
 #include <detail/ArborX_MutualReachabilityDistance.hpp>
 #include <detail/ArborX_PredicateHelpers.hpp>
 #include <detail/ArborX_TreeNodeLabeling.hpp>

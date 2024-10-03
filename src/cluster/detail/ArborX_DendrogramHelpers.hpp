@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DENDROGRAM_HPP
-#define ARBORX_DENDROGRAM_HPP
+#ifndef ARBORX_DENDROGRAM_HELPERS_HPP
+#define ARBORX_DENDROGRAM_HELPERS_HPP
 
 #include <detail/ArborX_UnionFind.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp> // iota
