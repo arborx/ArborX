@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILS_SORT_UTILS_HPP
-#define ARBORX_DETAILS_SORT_UTILS_HPP
+#ifndef ARBORX_SORT_UTILS_HPP
+#define ARBORX_SORT_UTILS_HPP
 
 #include <kokkos_ext/ArborX_KokkosExtSort.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp> // iota

@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILS_CARTESIAN_GRID_HPP
-#define ARBORX_DETAILS_CARTESIAN_GRID_HPP
+#ifndef ARBORX_CARTESIAN_GRID_HPP
+#define ARBORX_CARTESIAN_GRID_HPP
 
 #include <ArborX_Box.hpp>
 #include <ArborX_GeometryTraits.hpp>

@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILS_PERMUTED_DATA_HPP
-#define ARBORX_DETAILS_PERMUTED_DATA_HPP
+#ifndef ARBORX_PERMUTED_DATA_HPP
+#define ARBORX_PERMUTED_DATA_HPP
 
 #include <detail/ArborX_AccessTraits.hpp>
 

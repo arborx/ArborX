@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILS_MINIMUM_SPANNING_TREE_HPP
-#define ARBORX_DETAILS_MINIMUM_SPANNING_TREE_HPP
+#ifndef ARBORX_MINIMUM_SPANNING_TREE_HPP
+#define ARBORX_MINIMUM_SPANNING_TREE_HPP
 
 #include <detail/ArborX_GeometryAlgorithms.hpp>
 #include <detail/ArborX_HappyTreeFriends.hpp>

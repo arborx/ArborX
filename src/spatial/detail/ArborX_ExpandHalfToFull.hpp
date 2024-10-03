@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILS_EXPAND_HALF_TO_FULL_HPP
-#define ARBORX_DETAILS_EXPAND_HALF_TO_FULL_HPP
+#ifndef ARBORX_EXPAND_HALF_TO_FULL_HPP
+#define ARBORX_EXPAND_HALF_TO_FULL_HPP
 
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>

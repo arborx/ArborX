@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_INTERP_DETAILS_POLYNOMIAL_BASIS_HPP
-#define ARBORX_INTERP_DETAILS_POLYNOMIAL_BASIS_HPP
+#ifndef ARBORX_INTERP_POLYNOMIAL_BASIS_HPP
+#define ARBORX_INTERP_POLYNOMIAL_BASIS_HPP
 
 #include <ArborX_GeometryTraits.hpp>
 

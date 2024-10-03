@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_INTERP_DETAILS_MOVING_LEAST_SQUARES_COEFFICIENTS_HPP
-#define ARBORX_INTERP_DETAILS_MOVING_LEAST_SQUARES_COEFFICIENTS_HPP
+#ifndef ARBORX_INTERP_MOVING_LEAST_SQUARES_COEFFICIENTS_HPP
+#define ARBORX_INTERP_MOVING_LEAST_SQUARES_COEFFICIENTS_HPP
 
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_Point.hpp>

@@ -8,8 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_DETAILS_KOKKOS_EXT_KERNEL_STD_ALGORITHMS_HPP
-#define ARBORX_DETAILS_KOKKOS_EXT_KERNEL_STD_ALGORITHMS_HPP
+#ifndef ARBORX_KOKKOS_EXT_KERNEL_STD_ALGORITHMS_HPP
+#define ARBORX_KOKKOS_EXT_KERNEL_STD_ALGORITHMS_HPP
 
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_Swap.hpp>

@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILS_HAPPY_TREE_FRIENDS_HPP
-#define ARBORX_DETAILS_HAPPY_TREE_FRIENDS_HPP
+#ifndef ARBORX_HAPPY_TREE_FRIENDS_HPP
+#define ARBORX_HAPPY_TREE_FRIENDS_HPP
 
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
 #include <Kokkos_Macros.hpp>

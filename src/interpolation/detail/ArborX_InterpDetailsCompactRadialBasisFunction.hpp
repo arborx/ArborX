@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_INTERP_DETAILS_COMPACT_RADIAL_BASIS_FUNCTION_HPP
-#define ARBORX_INTERP_DETAILS_COMPACT_RADIAL_BASIS_FUNCTION_HPP
+#ifndef ARBORX_INTERP_COMPACT_RADIAL_BASIS_FUNCTION_HPP
+#define ARBORX_INTERP_COMPACT_RADIAL_BASIS_FUNCTION_HPP
 
 #include <ArborX_GeometryTraits.hpp>
 #include <detail/ArborX_GeometryAlgorithms.hpp>

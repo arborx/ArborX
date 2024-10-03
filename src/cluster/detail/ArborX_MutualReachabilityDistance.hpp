@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILS_MUTUAL_REACHABILITY_DISTANCE_HPP
-#define ARBORX_DETAILS_MUTUAL_REACHABILITY_DISTANCE_HPP
+#ifndef ARBORX_MUTUAL_REACHABILITY_DISTANCE_HPP
+#define ARBORX_MUTUAL_REACHABILITY_DISTANCE_HPP
 
 #include <detail/ArborX_AccessTraits.hpp>
 #include <detail/ArborX_GeometryAlgorithms.hpp>

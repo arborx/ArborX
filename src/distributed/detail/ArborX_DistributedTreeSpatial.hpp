@@ -8,8 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_DETAILS_DISTRIBUTED_TREE_SPATIAL_HPP
-#define ARBORX_DETAILS_DISTRIBUTED_TREE_SPATIAL_HPP
+#ifndef ARBORX_DISTRIBUTED_TREE_SPATIAL_HPP
+#define ARBORX_DISTRIBUTED_TREE_SPATIAL_HPP
 
 #include <detail/ArborX_Callbacks.hpp>
 #include <detail/ArborX_DistributedTreeImpl.hpp>

@@ -8,8 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_DETAILS_DISTRIBUTED_TREE_UTILS_HPP
-#define ARBORX_DETAILS_DISTRIBUTED_TREE_UTILS_HPP
+#ifndef ARBORX_DISTRIBUTED_TREE_UTILS_HPP
+#define ARBORX_DISTRIBUTED_TREE_UTILS_HPP
 
 #include <ArborX_Config.hpp>
 

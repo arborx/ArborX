@@ -8,8 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_DETAILS_CONTAINERS_HPP
-#define ARBORX_DETAILS_CONTAINERS_HPP
+#ifndef ARBORX_CONTAINERS_HPP
+#define ARBORX_CONTAINERS_HPP
 
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
 #include <Kokkos_Macros.hpp>

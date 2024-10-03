@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILS_TREE_CONSTRUCTION_HPP
-#define ARBORX_DETAILS_TREE_CONSTRUCTION_HPP
+#ifndef ARBORX_TREE_CONSTRUCTION_HPP
+#define ARBORX_TREE_CONSTRUCTION_HPP
 
 #include <detail/ArborX_GeometryAlgorithms.hpp> // expand
 #include <detail/ArborX_Node.hpp>               // makeLeafNode

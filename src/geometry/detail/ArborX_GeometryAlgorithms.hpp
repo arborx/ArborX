@@ -8,8 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_DETAILS_ALGORITHMS_HPP
-#define ARBORX_DETAILS_ALGORITHMS_HPP
+#ifndef ARBORX_ALGORITHMS_HPP
+#define ARBORX_ALGORITHMS_HPP
 
 #include <ArborX_Box.hpp>
 #include <ArborX_GeometryTraits.hpp>

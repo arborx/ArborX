@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILS_KOKKOS_EXT_VIEW_HELPERS_HPP
-#define ARBORX_DETAILS_KOKKOS_EXT_VIEW_HELPERS_HPP
+#ifndef ARBORX_KOKKOS_EXT_VIEW_HELPERS_HPP
+#define ARBORX_KOKKOS_EXT_VIEW_HELPERS_HPP
 
 #include <misc/ArborX_Exception.hpp>
 

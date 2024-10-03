@@ -8,8 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_DETAILS_VECTOR_HPP
-#define ARBORX_DETAILS_VECTOR_HPP
+#ifndef ARBORX_VECTOR_HPP
+#define ARBORX_VECTOR_HPP
 
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_Point.hpp>

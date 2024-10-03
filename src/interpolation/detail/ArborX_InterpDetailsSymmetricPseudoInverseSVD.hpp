@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_INTERP_DETAILS_SYMMETRIC_PSEUDO_INVERSE_SVD_HPP
-#define ARBORX_INTERP_DETAILS_SYMMETRIC_PSEUDO_INVERSE_SVD_HPP
+#ifndef ARBORX_INTERP_SYMMETRIC_PSEUDO_INVERSE_SVD_HPP
+#define ARBORX_INTERP_SYMMETRIC_PSEUDO_INVERSE_SVD_HPP
 
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
 #include <misc/ArborX_Exception.hpp>

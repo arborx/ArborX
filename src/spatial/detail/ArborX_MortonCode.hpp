@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILS_MORTON_CODE_UTILS_HPP
-#define ARBORX_DETAILS_MORTON_CODE_UTILS_HPP
+#ifndef ARBORX_MORTON_CODE_UTILS_HPP
+#define ARBORX_MORTON_CODE_UTILS_HPP
 
 #include <ArborX_GeometryTraits.hpp>
 

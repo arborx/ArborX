@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILS_BRUTE_FORCE_IMPL_HPP
-#define ARBORX_DETAILS_BRUTE_FORCE_IMPL_HPP
+#ifndef ARBORX_BRUTE_FORCE_IMPL_HPP
+#define ARBORX_BRUTE_FORCE_IMPL_HPP
 
 #include <detail/ArborX_GeometryAlgorithms.hpp> // expand
 #include <detail/ArborX_NearestBufferProvider.hpp>

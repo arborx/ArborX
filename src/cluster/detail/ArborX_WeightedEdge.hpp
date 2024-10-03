@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILS_WEIGHTED_EDGE_HPP
-#define ARBORX_DETAILS_WEIGHTED_EDGE_HPP
+#ifndef ARBORX_WEIGHTED_EDGE_HPP
+#define ARBORX_WEIGHTED_EDGE_HPP
 
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_MinMax.hpp>

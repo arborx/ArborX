@@ -8,8 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_DETAILS_PRIORITY_QUEUE_HPP
-#define ARBORX_DETAILS_PRIORITY_QUEUE_HPP
+#ifndef ARBORX_PRIORITY_QUEUE_HPP
+#define ARBORX_PRIORITY_QUEUE_HPP
 
 #include <misc/ArborX_Containers.hpp>
 #include <misc/ArborX_Heap.hpp>

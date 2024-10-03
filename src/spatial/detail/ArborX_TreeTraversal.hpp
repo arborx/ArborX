@@ -8,8 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_DETAILS_TREE_TRAVERSAL_HPP
-#define ARBORX_DETAILS_TREE_TRAVERSAL_HPP
+#ifndef ARBORX_TREE_TRAVERSAL_HPP
+#define ARBORX_TREE_TRAVERSAL_HPP
 
 #include <detail/ArborX_GeometryAlgorithms.hpp>
 #include <detail/ArborX_HappyTreeFriends.hpp>

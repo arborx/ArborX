@@ -8,8 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_DETAILS_ATTACH_INDICES_HPP
-#define ARBORX_DETAILS_ATTACH_INDICES_HPP
+#ifndef ARBORX_ATTACH_INDICES_HPP
+#define ARBORX_ATTACH_INDICES_HPP
 
 #include <detail/ArborX_AccessTraits.hpp>
 #include <detail/ArborX_PairValueIndex.hpp>

@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILS_KOKKOS_EXT_MIN_MAX_REDUCTIONS_HPP
-#define ARBORX_DETAILS_KOKKOS_EXT_MIN_MAX_REDUCTIONS_HPP
+#ifndef ARBORX_KOKKOS_EXT_MIN_MAX_REDUCTIONS_HPP
+#define ARBORX_KOKKOS_EXT_MIN_MAX_REDUCTIONS_HPP
 
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
 #include <misc/ArborX_Exception.hpp>

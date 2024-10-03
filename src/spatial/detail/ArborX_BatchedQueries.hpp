@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILS_BATCHED_QUERIES_HPP
-#define ARBORX_DETAILS_BATCHED_QUERIES_HPP
+#ifndef ARBORX_BATCHED_QUERIES_HPP
+#define ARBORX_BATCHED_QUERIES_HPP
 
 #include <ArborX_Box.hpp>
 #include <detail/ArborX_GeometryAlgorithms.hpp> // returnCentroid, translateAndScale

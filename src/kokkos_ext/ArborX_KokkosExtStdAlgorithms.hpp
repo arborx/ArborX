@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILS_KOKKOS_EXT_STD_ALGORITHMS_HPP
-#define ARBORX_DETAILS_KOKKOS_EXT_STD_ALGORITHMS_HPP
+#ifndef ARBORX_KOKKOS_EXT_STD_ALGORITHMS_HPP
+#define ARBORX_KOKKOS_EXT_STD_ALGORITHMS_HPP
 
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
 

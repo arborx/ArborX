@@ -8,8 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_DETAILS_DISTRIBUTED_TREE_NEAREST_HELPERS_HPP
-#define ARBORX_DETAILS_DISTRIBUTED_TREE_NEAREST_HELPERS_HPP
+#ifndef ARBORX_DISTRIBUTED_TREE_NEAREST_HELPERS_HPP
+#define ARBORX_DISTRIBUTED_TREE_NEAREST_HELPERS_HPP
 
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>

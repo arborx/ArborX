@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_DETAILS_HALF_TRAVERSAL_HPP
-#define ARBORX_DETAILS_HALF_TRAVERSAL_HPP
+#ifndef ARBORX_HALF_TRAVERSAL_HPP
+#define ARBORX_HALF_TRAVERSAL_HPP
 
 #include <detail/ArborX_HappyTreeFriends.hpp>
 #include <detail/ArborX_Node.hpp> // ROPE_SENTINEL
