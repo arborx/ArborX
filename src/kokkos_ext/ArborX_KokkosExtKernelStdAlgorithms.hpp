@@ -63,7 +63,8 @@ KOKKOS_FUNCTION void nth_element(Iterator first, Iterator nth, Iterator last)
 }
 
 template <typename Iterator, typename T>
-KOKKOS_FUNCTION auto upper_bound(Iterator first, Iterator last, T const &value)
+KOKKOS_FUNCTION Iterator upper_bound(Iterator first, Iterator last,
+                                     T const &value)
 {
   int count = last - first;
   while (count > 0)
