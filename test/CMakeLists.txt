@@ -57,10 +57,7 @@ add_executable(ArborX_Test_DetailsUtils.exe
   tstDetailsKokkosExtViewHelpers.cpp
   utf_main.cpp
 )
-# TODO link Boost::dynamic_linking interface target to enable dynamic linking
-# (adds BOOST_ALL_DYN_LINK)
-target_link_libraries(ArborX_Test_DetailsUtils.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_Test_DetailsUtils.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_link_libraries(ArborX_Test_DetailsUtils.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
 target_include_directories(ArborX_Test_DetailsUtils.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_Test_DetailsUtils COMMAND ArborX_Test_DetailsUtils.exe)
 
@@ -70,8 +67,7 @@ add_executable(ArborX_Test_Geometry.exe
   tstRay.cpp
   tstKDOP.cpp
 )
-target_link_libraries(ArborX_Test_Geometry.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_Test_Geometry.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_link_libraries(ArborX_Test_Geometry.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
 target_include_directories(ArborX_Test_Geometry.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_Test_Geometry COMMAND ArborX_Test_Geometry.exe)
 
@@ -153,8 +149,7 @@ list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES
   utf_main.cpp
 )
 add_executable(ArborX_Test_QueryTree.exe ${ARBORX_TEST_QUERY_TREE_SOURCES})
-target_link_libraries(ArborX_Test_QueryTree.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_Test_QueryTree.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_link_libraries(ArborX_Test_QueryTree.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
 # FIXME_SYCL oneDPL messes with namespace std, see https://github.com/oneapi-src/oneDPL/issues/576
 # only needed for the tools annotation test
 if(Kokkos_ENABLE_SYCL)
@@ -169,8 +164,7 @@ add_executable(ArborX_Test_DetailsTreeConstruction.exe
   tstIndexableGetter.cpp
   utf_main.cpp
 )
-target_link_libraries(ArborX_Test_DetailsTreeConstruction.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_Test_DetailsTreeConstruction.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_link_libraries(ArborX_Test_DetailsTreeConstruction.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
 target_include_directories(ArborX_Test_DetailsTreeConstruction.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_Test_DetailsTreeConstruction COMMAND ArborX_Test_DetailsTreeConstruction.exe)
 
@@ -180,13 +174,11 @@ add_executable(ArborX_Test_DetailsContainers.exe
   tstHeapOperations.cpp
   tstPriorityQueueMiscellaneous.cpp
 )
-target_link_libraries(ArborX_Test_DetailsContainers.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_Test_DetailsContainers.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_link_libraries(ArborX_Test_DetailsContainers.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
 add_test(NAME ArborX_Test_DetailsContainers COMMAND ArborX_Test_DetailsContainers.exe)
 
 add_executable(ArborX_Test_DetailsCrsGraphWrapperImpl.exe tstDetailsCrsGraphWrapperImpl.cpp utf_main.cpp)
-target_link_libraries(ArborX_Test_DetailsCrsGraphWrapperImpl.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_Test_DetailsCrsGraphWrapperImpl.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_link_libraries(ArborX_Test_DetailsCrsGraphWrapperImpl.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
 target_include_directories(ArborX_Test_DetailsCrsGraphWrapperImpl.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_Test_DetailsCrsGraphWrapperImpl COMMAND ArborX_Test_DetailsCrsGraphWrapperImpl.exe)
 
@@ -195,8 +187,7 @@ add_executable(ArborX_Test_Clustering.exe
   tstDendrogram.cpp
   utf_main.cpp
 )
-target_link_libraries(ArborX_Test_Clustering.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_Test_Clustering.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_link_libraries(ArborX_Test_Clustering.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
 target_include_directories(ArborX_Test_Clustering.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/benchmarks/dbscan)
 add_test(NAME ArborX_Test_Clustering COMMAND ArborX_Test_Clustering.exe)
 
@@ -219,8 +210,7 @@ add_executable(ArborX_Test_DetailsClusteringHelpers.exe
   tstUnionFind.cpp
   utf_main.cpp
 )
-target_link_libraries(ArborX_Test_DetailsClusteringHelpers.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_Test_DetailsClusteringHelpers.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_link_libraries(ArborX_Test_DetailsClusteringHelpers.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
 target_include_directories(ArborX_Test_DetailsClusteringHelpers.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_Test_DetailsClusteringHelpers COMMAND ArborX_Test_DetailsClusteringHelpers.exe)
 
@@ -230,15 +220,14 @@ add_executable(ArborX_Test_SpecializedTraversals.exe
   tstNeighborList.cpp
   utf_main.cpp
 )
-target_link_libraries(ArborX_Test_SpecializedTraversals.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_Test_SpecializedTraversals.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_link_libraries(ArborX_Test_SpecializedTraversals.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
 target_include_directories(ArborX_Test_SpecializedTraversals.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_Test_SpecializedTraversals COMMAND ArborX_Test_SpecializedTraversals.exe)
 
 if(ARBORX_ENABLE_MPI)
   add_executable(ArborX_Test_DistributedTree.exe tstDistributedTreeNearest.cpp tstDistributedTreeSpatial.cpp tstKokkosToolsDistributedAnnotations.cpp utf_main.cpp)
-  target_link_libraries(ArborX_Test_DistributedTree.exe PRIVATE ArborX Boost::unit_test_framework)
-  target_compile_definitions(ArborX_Test_DistributedTree.exe PRIVATE BOOST_TEST_DYN_LINK ARBORX_MPI_UNIT_TEST)
+  target_link_libraries(ArborX_Test_DistributedTree.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
+  target_compile_definitions(ArborX_Test_DistributedTree.exe PRIVATE ARBORX_MPI_UNIT_TEST)
   # FIXME_SYCL oneDPL messes with namespace std, see https://github.com/oneapi-src/oneDPL/issues/576
   # only needed for the tools annotation test
   if(Kokkos_ENABLE_SYCL)
@@ -248,15 +237,14 @@ if(ARBORX_ENABLE_MPI)
   add_test(NAME ArborX_Test_DistributedTree COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} $<TARGET_FILE:ArborX_Test_DistributedTree.exe> ${MPIEXEC_POSTFLAGS})
 
   add_executable(ArborX_Test_DetailsDistributedTreeImpl.exe tstDetailsDistributedTreeImpl.cpp tstDetailsDistributor.cpp utf_main.cpp)
-  target_link_libraries(ArborX_Test_DetailsDistributedTreeImpl.exe PRIVATE ArborX Boost::unit_test_framework)
-  target_compile_definitions(ArborX_Test_DetailsDistributedTreeImpl.exe PRIVATE BOOST_TEST_DYN_LINK ARBORX_MPI_UNIT_TEST)
+  target_link_libraries(ArborX_Test_DetailsDistributedTreeImpl.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
+  target_compile_definitions(ArborX_Test_DetailsDistributedTreeImpl.exe PRIVATE ARBORX_MPI_UNIT_TEST)
   target_include_directories(ArborX_Test_DetailsDistributedTreeImpl.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
   add_test(NAME ArborX_Test_DetailsDistributedTreeImpl COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} $<TARGET_FILE:ArborX_Test_DetailsDistributedTreeImpl.exe> ${MPIEXEC_POSTFLAGS})
 endif()
 
 add_executable(ArborX_Test_BoostAdapters.exe tstBoostGeometryAdapters.cpp tstBoostRangeAdapters.cpp utf_main.cpp)
-target_link_libraries(ArborX_Test_BoostAdapters.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_Test_BoostAdapters.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_link_libraries(ArborX_Test_BoostAdapters.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
 add_test(NAME ArborX_Test_BoostAdapters COMMAND ArborX_Test_BoostAdapters.exe)
 
 add_executable(ArborX_Test_InterpMovingLeastSquares.exe
@@ -266,8 +254,7 @@ add_executable(ArborX_Test_InterpMovingLeastSquares.exe
   tstInterpDetailsMLSCoefficients.cpp
   tstInterpMovingLeastSquares.cpp
   utf_main.cpp)
-target_link_libraries(ArborX_Test_InterpMovingLeastSquares.exe PRIVATE ArborX Boost::unit_test_framework)
-target_compile_definitions(ArborX_Test_InterpMovingLeastSquares.exe PRIVATE BOOST_TEST_DYN_LINK)
+target_link_libraries(ArborX_Test_InterpMovingLeastSquares.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
 target_include_directories(ArborX_Test_InterpMovingLeastSquares.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME ArborX_Test_InterpMovingLeastSquares COMMAND ArborX_Test_InterpMovingLeastSquares.exe)
 
