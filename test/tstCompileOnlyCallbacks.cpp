@@ -9,11 +9,11 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
-#include <ArborX_Callbacks.hpp>
 #include <ArborX_Point.hpp>
-#include <ArborX_Predicates.hpp>
+#include <detail/ArborX_AccessTraits.hpp>
+#include <detail/ArborX_Callbacks.hpp>
+#include <detail/ArborX_Predicates.hpp>
 
 // NOTE Let's not bother with __host__ __device__ annotations here
 

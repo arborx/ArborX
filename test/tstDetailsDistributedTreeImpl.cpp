@@ -11,8 +11,8 @@
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
-#include <ArborX_DetailsDistributedTreeUtils.hpp>
-#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>
+#include <detail/ArborX_DistributedTreeUtils.hpp>
+#include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 
 #include <boost/test/unit_test.hpp>
 

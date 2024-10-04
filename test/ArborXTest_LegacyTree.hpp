@@ -12,10 +12,10 @@
 #ifndef ARBORX_TEST_LEGACY_TREE_HPP
 #define ARBORX_TEST_LEGACY_TREE_HPP
 
-#include <ArborX_AccessTraits.hpp>
-#include <ArborX_Callbacks.hpp>
-#include <ArborX_DetailsAlgorithms.hpp>
-#include <ArborX_PairValueIndex.hpp>
+#include <detail/ArborX_AccessTraits.hpp>
+#include <detail/ArborX_Callbacks.hpp>
+#include <detail/ArborX_GeometryAlgorithms.hpp>
+#include <detail/ArborX_PairValueIndex.hpp>
 
 #include <Kokkos_Macros.hpp>
 

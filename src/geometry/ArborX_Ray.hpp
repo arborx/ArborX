@@ -12,12 +12,12 @@
 #define ARBORX_RAY_HPP
 
 #include <ArborX_Box.hpp>
-#include <ArborX_DetailsAlgorithms.hpp> // equal
-#include <ArborX_DetailsKokkosExtArithmeticTraits.hpp>
-#include <ArborX_DetailsVector.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
 #include <ArborX_Triangle.hpp>
+#include <detail/ArborX_GeometryAlgorithms.hpp> // equal
+#include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
+#include <misc/ArborX_Vector.hpp>
 
 #include <Kokkos_Assert.hpp> // KOKKOS_ASSERT
 #include <Kokkos_Macros.hpp>

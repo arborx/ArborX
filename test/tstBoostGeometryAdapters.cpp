@@ -11,8 +11,8 @@
 
 #include "ArborX_BoostGeometryAdapters.hpp"
 #include <ArborX_Box.hpp>
-#include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_Point.hpp>
+#include <detail/ArborX_GeometryAlgorithms.hpp>
 
 #include <boost/test/unit_test.hpp>
 

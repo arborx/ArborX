@@ -12,15 +12,15 @@
 #ifndef ARBORX_INTERP_MOVING_LEAST_SQUARES_HPP
 #define ARBORX_INTERP_MOVING_LEAST_SQUARES_HPP
 
-#include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
 #include <ArborX_GeometryTraits.hpp>
-#include <ArborX_IndexableGetter.hpp>
-#include <ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
-#include <ArborX_InterpDetailsMovingLeastSquaresCoefficients.hpp>
-#include <ArborX_InterpDetailsPolynomialBasis.hpp>
 #include <ArborX_LinearBVH.hpp>
-#include <ArborX_PredicateHelpers.hpp>
+#include <detail/ArborX_AccessTraits.hpp>
+#include <detail/ArborX_IndexableGetter.hpp>
+#include <detail/ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
+#include <detail/ArborX_InterpDetailsMovingLeastSquaresCoefficients.hpp>
+#include <detail/ArborX_InterpDetailsPolynomialBasis.hpp>
+#include <detail/ArborX_PredicateHelpers.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>

@@ -16,13 +16,13 @@
 
 #include "ArborX_BoostGeometryAdapters.hpp"
 #include "ArborX_BoostRangeAdapters.hpp"
-#include <ArborX_AccessTraits.hpp>
 #include <ArborX_Box.hpp>
-#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp> // is_accessible_from_host
-#include <ArborX_DetailsKokkosExtStdAlgorithms.hpp>       // exclusive_scan
-#include <ArborX_DetailsKokkosExtViewHelpers.hpp>         // lastElement
-#include <ArborX_Predicates.hpp>
 #include <ArborX_Sphere.hpp>
+#include <detail/ArborX_AccessTraits.hpp>
+#include <detail/ArborX_Predicates.hpp>
+#include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp> // is_accessible_from_host
+#include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp> // exclusive_scan
+#include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>   // lastElement
 #ifdef ARBORX_ENABLE_MPI
 #include "ArborXTest_PairIndexRank.hpp"
 #endif

@@ -12,9 +12,9 @@
 #ifndef ARBORX_TETRAHEDRON_HPP
 #define ARBORX_TETRAHEDRON_HPP
 
-#include <ArborX_DetailsAlgorithms.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_Point.hpp>
+#include <detail/ArborX_GeometryAlgorithms.hpp>
 
 #include <Kokkos_Array.hpp>
 

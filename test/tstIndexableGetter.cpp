@@ -9,9 +9,9 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
-#include <ArborX_AccessTraits.hpp>
-#include <ArborX_IndexableGetter.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <detail/ArborX_AccessTraits.hpp>
+#include <detail/ArborX_IndexableGetter.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>

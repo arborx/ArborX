@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <ArborX_Exception.hpp>
+#include <misc/ArborX_Exception.hpp>
 
 #include <boost/test/unit_test.hpp>
 

@@ -12,8 +12,8 @@
 #ifndef ARBORX_BOOST_RANGE_ADAPTERS_HPP
 #define ARBORX_BOOST_RANGE_ADAPTERS_HPP
 
-#include <ArborX_DetailsKokkosExtAccessibilityTraits.hpp>
-#include <ArborX_Exception.hpp>
+#include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
+#include <misc/ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
 

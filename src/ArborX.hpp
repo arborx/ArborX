@@ -20,16 +20,16 @@
 #include <ArborX_DistributedTree.hpp>
 #endif
 #include <ArborX_CrsGraphWrapper.hpp>
-#include <ArborX_Exception.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Point.hpp>
-#include <ArborX_PredicateHelpers.hpp>
-#include <ArborX_Predicates.hpp>
 #include <ArborX_Sphere.hpp>
-// FIXME: we include ArborX_DetailsUtils.hpp only for backward compatibility for
+#include <detail/ArborX_PredicateHelpers.hpp>
+#include <detail/ArborX_Predicates.hpp>
+#include <misc/ArborX_Exception.hpp>
+// FIXME: we include ArborX_Utils.hpp only for backward compatibility for
 // users using deprecated functions in ArborX namespace (min, max,
 // adjacentDifference, ...). This header should be removed when we remove those
 // functions.
-#include <ArborX_DetailsUtils.hpp>
+#include <misc/ArborX_Utils.hpp>
 
 #endif

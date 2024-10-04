@@ -11,9 +11,9 @@
 #ifndef ARBORX_SEGMENT_HPP
 #define ARBORX_SEGMENT_HPP
 
-#include <ArborX_DetailsAlgorithms.hpp>
-#include <ArborX_DetailsVector.hpp>
 #include <ArborX_GeometryTraits.hpp>
+#include <detail/ArborX_GeometryAlgorithms.hpp>
+#include <misc/ArborX_Vector.hpp>
 
 #include <Kokkos_Clamp.hpp>
 #include <Kokkos_Macros.hpp>

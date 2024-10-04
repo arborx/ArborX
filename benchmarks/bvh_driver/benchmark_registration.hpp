@@ -14,7 +14,7 @@
 
 #include <ArborXBenchmark_PointClouds.hpp>
 #include <ArborX_Point.hpp>
-#include <ArborX_Predicates.hpp>
+#include <detail/ArborX_Predicates.hpp>
 
 #include <Kokkos_Core.hpp>
 
