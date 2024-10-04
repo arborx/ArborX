@@ -23,7 +23,6 @@
  */
 
 #include <ArborX.hpp>
-#include <ArborX_Ray.hpp>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>

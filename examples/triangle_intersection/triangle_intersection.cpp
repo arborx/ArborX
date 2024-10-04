@@ -10,7 +10,6 @@
  ****************************************************************************/
 
 #include <ArborX.hpp>
-#include <ArborX_Triangle.hpp>
 
 #include <Kokkos_Core.hpp>
 
