@@ -29,7 +29,7 @@ struct NearestToOrigin
 };
 
 template <>
-struct ArborX::AccessTraits<FirstOctant, ArborX::PredicatesTag>
+struct ArborX::AccessTraits<FirstOctant>
 {
   static KOKKOS_FUNCTION std::size_t size(FirstOctant) { return 1; }
   static KOKKOS_FUNCTION auto get(FirstOctant, std::size_t)
@@ -40,7 +40,7 @@ struct ArborX::AccessTraits<FirstOctant, ArborX::PredicatesTag>
 };
 
 template <>
-struct ArborX::AccessTraits<NearestToOrigin, ArborX::PredicatesTag>
+struct ArborX::AccessTraits<NearestToOrigin>
 {
   static KOKKOS_FUNCTION std::size_t size(NearestToOrigin) { return 1; }
   static KOKKOS_FUNCTION auto get(NearestToOrigin d, std::size_t)

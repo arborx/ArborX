@@ -32,7 +32,7 @@ struct Iota
 };
 
 template <typename MemorySpace>
-struct ArborX::AccessTraits<Iota<MemorySpace>, ArborX::PrimitivesTag>
+struct ArborX::AccessTraits<Iota<MemorySpace>>
 {
   using Self = Iota<MemorySpace>;
 
@@ -54,7 +54,7 @@ struct DummyIndexableGetter
 };
 
 template <>
-struct ArborX::AccessTraits<Dummy, ArborX::PredicatesTag>
+struct ArborX::AccessTraits<Dummy>
 {
   using memory_space = MemorySpace;
   using size_type = typename MemorySpace::size_type;

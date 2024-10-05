@@ -32,7 +32,7 @@ struct Test1
              ArborX::Experimental::TraversalPolicy const & =
                  ArborX::Experimental::TraversalPolicy()) const
   {
-    using Access = ArborX::AccessTraits<Predicates, ArborX::PredicatesTag>;
+    using Access = ArborX::AccessTraits<Predicates>;
 
     Kokkos::parallel_for(
         Kokkos::RangePolicy(space, 0, Access::size(predicates)),

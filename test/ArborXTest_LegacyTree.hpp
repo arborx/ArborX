@@ -25,7 +25,7 @@ template <typename Primitives, typename BoundingVolume>
 class LegacyValues
 {
   Primitives _primitives;
-  using Access = ArborX::AccessTraits<Primitives, ArborX::PrimitivesTag>;
+  using Access = ArborX::AccessTraits<Primitives>;
 
 public:
   using memory_space = typename Access::memory_space;
@@ -66,8 +66,7 @@ public:
 };
 
 template <typename Primitives, typename BoundingVolume>
-struct ArborX::AccessTraits<LegacyValues<Primitives, BoundingVolume>,
-                            ArborX::PrimitivesTag>
+struct ArborX::AccessTraits<LegacyValues<Primitives, BoundingVolume>>
 {
   using self_type = LegacyValues<Primitives, BoundingVolume>;
 

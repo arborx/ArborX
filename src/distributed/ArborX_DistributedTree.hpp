@@ -89,7 +89,7 @@ public:
         Details::KokkosExt::is_accessible_from<MemorySpace,
                                                ExecutionSpace>::value);
 
-    using Predicates = Details::AccessValues<UserPredicates, PredicatesTag>;
+    using Predicates = Details::AccessValues<UserPredicates>;
     static_assert(Details::KokkosExt::is_accessible_from<
                       typename Predicates::memory_space, ExecutionSpace>::value,
                   "Predicates must be accessible from the execution space");
@@ -156,9 +156,9 @@ KOKKOS_DEDUCTION_GUIDE
 #else
 KOKKOS_FUNCTION
 #endif
-    DistributedTree(MPI_Comm, ExecutionSpace, Values) -> DistributedTree<
-        typename Details::AccessValues<Values, PrimitivesTag>::memory_space,
-        typename Details::AccessValues<Values, PrimitivesTag>::value_type>;
+    DistributedTree(MPI_Comm, ExecutionSpace, Values)
+        -> DistributedTree<typename Details::AccessValues<Values>::memory_space,
+                           typename Details::AccessValues<Values>::value_type>;
 
 template <typename BottomTree>
 template <typename ExecutionSpace, typename... Args>

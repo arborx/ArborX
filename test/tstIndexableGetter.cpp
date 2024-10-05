@@ -28,7 +28,7 @@ struct PointCloud
 };
 
 template <typename MemorySpace>
-struct ArborX::AccessTraits<PointCloud<MemorySpace>, ArborX::PrimitivesTag>
+struct ArborX::AccessTraits<PointCloud<MemorySpace>>
 {
   using Points = PointCloud<MemorySpace>;
 
@@ -51,8 +51,7 @@ struct PairPointIndexCloud
 };
 
 template <typename MemorySpace>
-struct ArborX::AccessTraits<PairPointIndexCloud<MemorySpace>,
-                            ArborX::PrimitivesTag>
+struct ArborX::AccessTraits<PairPointIndexCloud<MemorySpace>>
 {
   using Points = PairPointIndexCloud<MemorySpace>;
 
@@ -106,8 +105,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
   {
     PointCloud<MemorySpace> points_cloud{points.data(), (int)points.size()};
 
-    using Primitives = ArborX::Details::AccessValues<decltype(points_cloud),
-                                                     ArborX::PrimitivesTag>;
+    using Primitives = ArborX::Details::AccessValues<decltype(points_cloud)>;
     Primitives primitives(points_cloud);
 
     ArborX::Details::Indexables indexables{primitives, indexable_getter};
@@ -121,8 +119,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
     PairPointIndexCloud<MemorySpace> points_cloud{points.data(),
                                                   (int)points.size()};
 
-    using Primitives = ArborX::Details::AccessValues<decltype(points_cloud),
-                                                     ArborX::PrimitivesTag>;
+    using Primitives = ArborX::Details::AccessValues<decltype(points_cloud)>;
     Primitives primitives(points_cloud);
 
     ArborX::Details::Indexables indexables{primitives, indexable_getter};

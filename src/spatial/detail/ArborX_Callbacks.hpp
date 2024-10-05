@@ -98,8 +98,7 @@ void check_valid_callback(Callback const &callback, Predicates const &,
 {
   check_generic_lambda_support(callback);
 
-  using Predicate =
-      typename AccessValues<Predicates, PredicatesTag>::value_type;
+  using Predicate = typename AccessValues<Predicates>::value_type;
   using PredicateTag = typename Predicate::Tag;
 
   static_assert(!(std::is_same_v<PredicateTag, NearestPredicateTag> &&
@@ -149,8 +148,7 @@ void check_valid_callback(Callback const &callback, Predicates const &)
 {
   check_generic_lambda_support(callback);
 
-  using Predicate =
-      typename AccessValues<Predicates, PredicatesTag>::value_type;
+  using Predicate = typename AccessValues<Predicates>::value_type;
   using PredicateTag = typename Predicate::Tag;
 
   static_assert(is_valid_predicate_tag<PredicateTag>::value,
