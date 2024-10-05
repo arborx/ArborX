@@ -43,13 +43,13 @@ struct MinimumSpanningTree
                       int k = 1)
       : edges(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                  "ArborX::MST::edges"),
-              AccessTraits<Primitives, PrimitivesTag>::size(primitives) - 1)
+              AccessTraits<Primitives>::size(primitives) - 1)
       , dendrogram_parents("ArborX::MST::dendrogram_parents", 0)
       , dendrogram_parent_heights("ArborX::MST::dendrogram_parent_heights", 0)
   {
     Kokkos::Profiling::pushRegion("ArborX::MST::MST");
 
-    using Points = Details::AccessValues<Primitives, PrimitivesTag>;
+    using Points = Details::AccessValues<Primitives>;
     using Point = typename Points::value_type;
     static_assert(GeometryTraits::is_point_v<Point>);
 

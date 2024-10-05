@@ -61,8 +61,7 @@ void test_access_traits_compile_only()
   check_valid_access_traits(PrimitivesTag{}, v);
 
   auto p_with_indices = ArborX::Experimental::attach_indices(p);
-  check_valid_access_traits(PrimitivesTag{}, p_with_indices,
-                            ArborX::Details::DoNotCheckGetReturnType());
+  check_valid_access_traits(PrimitivesTag{}, p_with_indices);
   static_assert(
       std::is_same_v<deduce_type_t<decltype(p_with_indices), PrimitivesTag>,
                      ArborX::PairValueIndex<Point, unsigned>>);

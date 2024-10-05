@@ -38,16 +38,11 @@ auto attach_indices(Values const &values)
 } // namespace ArborX
 
 template <typename Values, typename Index>
-struct ArborX::AccessTraits<ArborX::Experimental::AttachIndices<Values, Index>,
-                            ArborX::PrimitivesTag>
+struct ArborX::AccessTraits<ArborX::Experimental::AttachIndices<Values, Index>>
 {
 private:
   using Self = ArborX::Experimental::AttachIndices<Values, Index>;
-  using Access = AccessTraits<Values, ArborX::PrimitivesTag>;
-  using value_type = ArborX::PairValueIndex<
-      std::decay_t<Kokkos::detected_t<
-          ArborX::Details::AccessTraitsGetArchetypeExpression, Access, Values>>,
-      Index>;
+  using Access = AccessTraits<Values>;
 
 public:
   using memory_space = typename Access::memory_space;
@@ -58,27 +53,18 @@ public:
   }
   KOKKOS_FUNCTION static auto get(Self const &self, int i)
   {
-    return value_type{Access::get(self._values, i), Index(i)};
-  }
-};
-template <typename Values, typename Index>
-struct ArborX::AccessTraits<ArborX::Experimental::AttachIndices<Values, Index>,
-                            ArborX::PredicatesTag>
-{
-private:
-  using Self = ArborX::Experimental::AttachIndices<Values, Index>;
-  using Access = AccessTraits<Values, ArborX::PredicatesTag>;
+    using namespace ArborX::Details;
 
-public:
-  using memory_space = typename Access::memory_space;
+    using value_type = std::decay_t<
+        Kokkos::detected_t<AccessTraitsGetArchetypeExpression, Access, Values>>;
+    using PredicateTag =
+        Kokkos::detected_t<PredicateTagArchetypeAlias, value_type>;
 
-  KOKKOS_FUNCTION static auto size(Self const &self)
-  {
-    return Access::size(self._values);
-  }
-  KOKKOS_FUNCTION static auto get(Self const &self, int i)
-  {
-    return attach(Access::get(self._values, i), Index(i));
+    if constexpr (is_valid_predicate_tag<PredicateTag>::value)
+      return attach(Access::get(self._values, i), Index(i));
+    else
+      return PairValueIndex<value_type, Index>{Access::get(self._values, i),
+                                               Index(i)};
   }
 };
 
