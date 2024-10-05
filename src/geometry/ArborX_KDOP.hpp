@@ -395,22 +395,6 @@ struct intersects<KDOPTag, KDOPTag, KDOP1, KDOP2>
   }
 };
 
-template <typename KDOP>
-struct centroid<KDOPTag, KDOP>
-{
-  KOKKOS_FUNCTION static auto apply(KDOP const &kdop)
-  {
-    constexpr int DIM = GeometryTraits::dimension_v<KDOP>;
-    using Coordinate = GeometryTraits::coordinate_type_t<KDOP>;
-
-    // WARNING implicit requirement on KDOP first DIM directions
-    Point<DIM, Coordinate> point;
-    for (int d = 0; d < DIM; ++d)
-      point[d] = (kdop._min_values[d] + kdop._max_values[d]) / 2;
-    return point;
-  }
-};
-
 } // namespace ArborX::Details::Dispatch
 
 #endif
