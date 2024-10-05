@@ -11,9 +11,11 @@
 #ifndef ARBORX_DETAILS_GEOMETRY_DISTANCE_HPP
 #define ARBORX_DETAILS_GEOMETRY_DISTANCE_HPP
 
+#include "ArborX_GeometryEquals.hpp"
 #include <ArborX_GeometryTraits.hpp>
 #include <misc/ArborX_Vector.hpp>
 
+#include <Kokkos_Clamp.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
 #include <Kokkos_MinMax.hpp>
 
@@ -242,6 +244,33 @@ struct distance<SphereTag, BoxTag, Sphere, Box>
 
     auto distance_center_box = Details::distance(sphere.centroid(), box);
     return max(distance_center_box - sphere.radius(), 0.f);
+  }
+};
+
+template <typename Point, typename Segment>
+struct distance<PointTag, SegmentTag, Point, Segment>
+{
+  KOKKOS_FUNCTION static auto apply(Point const &point, Segment const &segment)
+  {
+    constexpr int DIM = GeometryTraits::dimension_v<Point>;
+    using Coordinate = GeometryTraits::coordinate_type_t<Point>;
+
+    if (Details::equals(segment._start, segment._end))
+      return Details::distance(point, segment._start);
+
+    auto const dir = segment._end - segment._start;
+
+    // The line of the segment [a,b] is parametrized as a + t * (b - a).
+    // Find the projection of the point to that line, and clamp it.
+    auto t =
+        Kokkos::clamp(dir.dot(point - segment._start) / dir.dot(dir),
+                      static_cast<Coordinate>(0), static_cast<Coordinate>(1));
+
+    Point projection;
+    for (int d = 0; d < DIM; ++d)
+      projection[d] = segment._start[d] + t * dir[d];
+
+    return Details::distance(point, projection);
   }
 };
 

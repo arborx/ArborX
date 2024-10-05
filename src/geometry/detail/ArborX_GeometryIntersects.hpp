@@ -15,6 +15,7 @@
 #include "ArborX_GeometryExpand.hpp"
 #include <ArborX_GeometryTraits.hpp>
 
+#include <Kokkos_Array.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
 
 namespace ArborX::Details
@@ -303,6 +304,25 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
   }
 };
 
+template <typename KDOP, typename Box>
+struct intersects<KDOPTag, BoxTag, KDOP, Box>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(KDOP const &kdop, Box const &box)
+  {
+    KDOP other{};
+    Details::expand(other, box);
+    return Details::intersects(kdop, other);
+  }
+};
+
+template <typename Box, typename KDOP>
+struct intersects<BoxTag, KDOPTag, Box, KDOP>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Box const &box, KDOP const &kdop)
+  {
+    return Details::intersects(kdop, box);
+  }
+};
 template <typename Triangle, typename Box>
 struct intersects<TriangleTag, BoxTag, Triangle, Box>
 {
@@ -310,6 +330,85 @@ struct intersects<TriangleTag, BoxTag, Triangle, Box>
                                               Box const &box)
   {
     return intersects<BoxTag, TriangleTag, Box, Triangle>::apply(box, triangle);
+  }
+};
+
+template <typename Point, typename KDOP>
+struct intersects<PointTag, KDOPTag, Point, KDOP>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Point const &point,
+                                              KDOP const &kdop)
+  {
+    constexpr int DIM = GeometryTraits::dimension_v<Point>;
+    constexpr int n_directions = KDOP::n_directions;
+    for (int i = 0; i < n_directions; ++i)
+    {
+      auto const &dir = kdop.directions()[i];
+      auto proj_i = point[0] * dir[0];
+      for (int d = 1; d < DIM; ++d)
+        proj_i += point[d] * dir[d];
+
+      if (proj_i < kdop._min_values[i] || proj_i > kdop._max_values[i])
+        return false;
+    }
+    return true;
+  }
+};
+
+template <typename KDOP, typename Point>
+struct intersects<KDOPTag, PointTag, KDOP, Point>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(KDOP const &kdop,
+                                              Point const &point)
+  {
+    return Details::intersects(point, kdop);
+  }
+};
+
+template <typename KDOP1, typename KDOP2>
+struct intersects<KDOPTag, KDOPTag, KDOP1, KDOP2>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(KDOP1 const &kdop,
+                                              KDOP2 const &other)
+  {
+    constexpr int n_directions = KDOP1::n_directions;
+    static_assert(KDOP2::n_directions == n_directions);
+    for (int i = 0; i < kdop.n_directions; ++i)
+    {
+      if (other._max_values[i] < kdop._min_values[i] ||
+          other._min_values[i] > kdop._max_values[i])
+      {
+        return false;
+      }
+    }
+    return true;
+  }
+};
+
+template <typename Point, typename Tetrahedron>
+struct intersects<PointTag, TetrahedronTag, Point, Tetrahedron>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Point const &point,
+                                              Tetrahedron const &tet)
+  {
+    static_assert(GeometryTraits::dimension_v<Point> == 3);
+
+    constexpr int N = 4;
+    Kokkos::Array<decltype(tet.a), N> v = {tet.a, tet.b, tet.c, tet.d};
+
+    // For every plane check that the vertex lies within the same halfspace as
+    // the other tetrahedron vertex. This is a simple but possibly not very
+    // efficient algorithm.
+    for (int j = 0; j < N; ++j)
+    {
+      auto normal = (v[(j + 1) % N] - v[j]).cross(v[(j + 2) % N] - v[j]);
+
+      bool same_half_space =
+          (normal.dot(v[(j + 3) % N] - v[j]) * normal.dot(point - v[j]) >= 0);
+      if (!same_half_space)
+        return false;
+    }
+    return true;
   }
 };
 

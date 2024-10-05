@@ -108,6 +108,22 @@ struct centroid<TetrahedronTag, Tetrahedron>
   }
 };
 
+template <typename Segment>
+struct centroid<SegmentTag, Segment>
+{
+  KOKKOS_FUNCTION static auto apply(Segment const &segment)
+  {
+    constexpr int DIM = GeometryTraits::dimension_v<Segment>;
+    using Coordinate = GeometryTraits::coordinate_type_t<Segment>;
+
+    // WARNING implicit requirement on KDOP first DIM directions
+    Point<DIM, Coordinate> point;
+    for (int d = 0; d < DIM; ++d)
+      point[d] = (segment._start[d] + segment._end[d]) / 2;
+    return point;
+  }
+};
+
 } // namespace Dispatch
 
 } // namespace ArborX::Details
