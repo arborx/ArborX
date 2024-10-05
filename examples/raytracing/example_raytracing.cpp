@@ -87,8 +87,7 @@ struct DepositEnergy
 } // namespace OrderedIntersectsBased
 
 template <typename MemorySpace>
-struct ArborX::AccessTraits<OrderedIntersectsBased::Rays<MemorySpace>,
-                            ArborX::PredicatesTag>
+struct ArborX::AccessTraits<OrderedIntersectsBased::Rays<MemorySpace>>
 {
   using memory_space = MemorySpace;
   using size_type = std::size_t;

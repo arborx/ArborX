@@ -22,7 +22,7 @@ struct HiddenView
   View _view;
 };
 template <typename View>
-struct ArborX::AccessTraits<HiddenView<View>, ArborX::PrimitivesTag>
+struct ArborX::AccessTraits<HiddenView<View>>
 {
   using Data = HiddenView<View>;
   static KOKKOS_FUNCTION std::size_t size(Data const &data)

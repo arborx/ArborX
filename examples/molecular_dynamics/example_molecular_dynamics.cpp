@@ -24,7 +24,7 @@ struct Neighbors
 };
 
 template <class MemorySpace>
-struct ArborX::AccessTraits<Neighbors<MemorySpace>, ArborX::PredicatesTag>
+struct ArborX::AccessTraits<Neighbors<MemorySpace>>
 {
   using memory_space = MemorySpace;
   using size_type = std::size_t;

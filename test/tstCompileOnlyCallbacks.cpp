@@ -20,7 +20,7 @@
 struct NearestPredicates
 {};
 template <>
-struct ArborX::AccessTraits<NearestPredicates, ArborX::PredicatesTag>
+struct ArborX::AccessTraits<NearestPredicates>
 {
   using memory_space = Kokkos::HostSpace;
   static int size(NearestPredicates const &) { return 1; }
@@ -33,7 +33,7 @@ struct ArborX::AccessTraits<NearestPredicates, ArborX::PredicatesTag>
 struct SpatialPredicates
 {};
 template <>
-struct ArborX::AccessTraits<SpatialPredicates, ArborX::PredicatesTag>
+struct ArborX::AccessTraits<SpatialPredicates>
 {
   using memory_space = Kokkos::HostSpace;
   static int size(SpatialPredicates const &) { return 1; }
