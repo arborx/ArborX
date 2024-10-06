@@ -13,6 +13,7 @@
 
 #include <ArborX_Config.hpp>
 
+#include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
 #include <kokkos_ext/ArborX_KokkosExtMinMaxReduce.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 #include <misc/ArborX_Exception.hpp>
@@ -279,6 +280,15 @@ public:
     Kokkos::Profiling::ScopedRegion guard(
         "ArborX::Distributor::doPostsAndWaits");
 
+    static_assert(
+        KokkosExt::is_accessible_from<typename ExportView::memory_space,
+                                      ExecutionSpace>::value);
+    static_assert(
+        KokkosExt::is_accessible_from<typename ImportView::memory_space,
+                                      ExecutionSpace>::value);
+    static_assert(
+        KokkosExt::is_accessible_from<typename decltype(_permute)::memory_space,
+                                      ExecutionSpace>::value);
     static_assert(ExportView::rank == 1 &&
                   (std::is_same_v<typename ExportView::array_layout,
                                   Kokkos::LayoutLeft> ||
@@ -289,12 +299,6 @@ public:
                                   Kokkos::LayoutLeft> ||
                    std::is_same_v<typename ImportView::array_layout,
                                   Kokkos::LayoutRight>));
-
-    using MemorySpace = typename ExportView::memory_space;
-    static_assert(
-        std::is_same_v<MemorySpace, typename ImportView::memory_space>);
-    static_assert(
-        std::is_same_v<MemorySpace, typename decltype(_permute)::memory_space>);
 
     using ValueType = typename ImportView::value_type;
     static_assert(
