@@ -8,7 +8,7 @@ endif()
 
 # use gnu standard install directories
 include(GNUInstallDirs)
-set(ARBORX_INSTALL_PACKAGEDIR "${CMAKE_INSTALL_DATADIR}/cmake/ArborX" CACHE PATH "Install location of CMake target files")
+set(ARBORX_INSTALL_PACKAGEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/ArborX" CACHE PATH "Install location of CMake target files")
 
 find_package(Kokkos 4.3 REQUIRED CONFIG)
 message(STATUS "Found Kokkos: ${Kokkos_DIR} (version \"${Kokkos_VERSION}\")")
