@@ -54,7 +54,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(nth_element, DeviceType, ARBORX_DEVICE_TYPES)
     {
       auto v_copy = ArborX::Details::KokkosExt::clone(space, v);
       Kokkos::parallel_for(
-          Kokkos::RangePolicy(space, 0, 1), KOKKOS_LAMBDA(int) {
+          "Testing::run_nth_element", Kokkos::RangePolicy(space, 0, 1),
+          KOKKOS_LAMBDA(int) {
             nth_element(v_copy.data(), v_copy.data() + i, v_copy.data() + n);
             nth(i) = v_copy(i);
           });
@@ -77,6 +78,7 @@ int findUpperBound(std::vector<float> const &v_host, float x)
 
   int pos;
   Kokkos::parallel_reduce(
+      "Testing::run_upper_bound",
       Kokkos::RangePolicy<typename DeviceType::execution_space>(0, 1),
       KOKKOS_LAMBDA(int, int &update) {
         update =
