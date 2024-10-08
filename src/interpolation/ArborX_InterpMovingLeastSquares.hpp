@@ -80,9 +80,8 @@ public:
         "Memory space must be accessible from the execution space");
 
     // SourcePoints is an access trait of points
-    ArborX::Details::check_valid_access_traits(PrimitivesTag{}, source_points);
-    using SourceAccess =
-        ArborX::Details::AccessValues<SourcePoints, PrimitivesTag>;
+    ArborX::Details::check_valid_access_traits(source_points);
+    using SourceAccess = ArborX::Details::AccessValues<SourcePoints>;
     static_assert(
         KokkosExt::is_accessible_from<typename SourceAccess::memory_space,
                                       ExecutionSpace>::value,
@@ -94,9 +93,8 @@ public:
     static constexpr int dimension = GeometryTraits::dimension_v<SourcePoint>;
 
     // TargetPoints is an access trait of points
-    ArborX::Details::check_valid_access_traits(PrimitivesTag{}, target_points);
-    using TargetAccess =
-        ArborX::Details::AccessValues<TargetPoints, PrimitivesTag>;
+    ArborX::Details::check_valid_access_traits(target_points);
+    using TargetAccess = ArborX::Details::AccessValues<TargetPoints>;
     static_assert(
         KokkosExt::is_accessible_from<typename TargetAccess::memory_space,
                                       ExecutionSpace>::value,

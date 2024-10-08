@@ -192,8 +192,7 @@ performQueries(RTree<Indexable> const &rtree, UserPredicates const &predicates)
 {
   namespace KokkosExt = ArborX::Details::KokkosExt;
 
-  using Predicates =
-      ArborX::Details::AccessValues<UserPredicates, ArborX::PredicatesTag>;
+  using Predicates = ArborX::Details::AccessValues<UserPredicates>;
   static_assert(Kokkos::SpaceAccessibility<typename Predicates::memory_space,
                                            Kokkos::HostSpace>::accessible);
 

@@ -15,6 +15,12 @@
 
 #include <iostream>
 
+struct PrimitivesTag
+{};
+struct PredicatesTag
+{};
+
+template <typename Tag>
 struct Dummy
 {
   int count;
@@ -23,26 +29,17 @@ struct Dummy
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
 using MemorySpace = ExecutionSpace::memory_space;
 
-template <>
-struct ArborX::AccessTraits<Dummy, ArborX::PrimitivesTag>
+template <typename Tag>
+struct ArborX::AccessTraits<Dummy<Tag>>
 {
   using memory_space = MemorySpace;
   using size_type = typename MemorySpace::size_type;
-  static KOKKOS_FUNCTION size_type size(Dummy const &d) { return d.count; }
-  static KOKKOS_FUNCTION auto get(Dummy const &, size_type i)
+  static KOKKOS_FUNCTION size_type size(Dummy<Tag> const &d) { return d.count; }
+  static KOKKOS_FUNCTION auto get(Dummy<PrimitivesTag> const &, size_type i)
   {
     return ArborX::Point{(float)i, (float)i, (float)i};
   }
-};
-
-template <>
-struct ArborX::AccessTraits<Dummy, ArborX::PredicatesTag>
-{
-  using memory_space = MemorySpace;
-  using size_type = typename MemorySpace::size_type;
-
-  static KOKKOS_FUNCTION size_type size(Dummy const &d) { return d.count; }
-  static KOKKOS_FUNCTION auto get(Dummy const &, size_type i)
+  static KOKKOS_FUNCTION auto get(Dummy<PredicatesTag> const &, size_type i)
   {
     ArborX::Point center{(float)i, (float)i, (float)i};
     return ArborX::intersects(Sphere{center, (float)i});
@@ -69,8 +66,8 @@ int main(int argc, char *argv[])
   int nprimitives = 5;
   int npredicates = 5;
 
-  Dummy primitives{nprimitives};
-  Dummy predicates{npredicates};
+  Dummy<PrimitivesTag> primitives{nprimitives};
+  Dummy<PredicatesTag> predicates{npredicates};
 
   unsigned int out_count;
   {

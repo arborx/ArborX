@@ -52,7 +52,7 @@ void findHalfNeighborList(ExecutionSpace const &space,
   namespace KokkosExt = ArborX::Details::KokkosExt;
   using Details::HalfTraversal;
 
-  using Points = Details::AccessValues<Primitives, PrimitivesTag>;
+  using Points = Details::AccessValues<Primitives>;
 
   using MemorySpace = typename Points::memory_space;
   static_assert(
@@ -111,7 +111,7 @@ void findFullNeighborList(ExecutionSpace const &space,
   namespace KokkosExt = ArborX::Details::KokkosExt;
   using Details::HalfTraversal;
 
-  using Points = Details::AccessValues<Primitives, PrimitivesTag>;
+  using Points = Details::AccessValues<Primitives>;
 
   using MemorySpace = typename Points::memory_space;
   static_assert(

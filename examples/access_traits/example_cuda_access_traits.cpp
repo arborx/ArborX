@@ -35,7 +35,7 @@ struct Spheres
 };
 
 template <>
-struct ArborX::AccessTraits<PointCloud, ArborX::PrimitivesTag>
+struct ArborX::AccessTraits<PointCloud>
 {
   static KOKKOS_FUNCTION std::size_t size(PointCloud const &cloud)
   {
@@ -49,7 +49,7 @@ struct ArborX::AccessTraits<PointCloud, ArborX::PrimitivesTag>
 };
 
 template <>
-struct ArborX::AccessTraits<Spheres, ArborX::PredicatesTag>
+struct ArborX::AccessTraits<Spheres>
 {
   static KOKKOS_FUNCTION std::size_t size(Spheres const &d) { return d.N; }
   static KOKKOS_FUNCTION auto get(Spheres const &d, std::size_t i)

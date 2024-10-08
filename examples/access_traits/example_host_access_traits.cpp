@@ -17,8 +17,8 @@
 #include <random>
 #include <vector>
 
-template <typename T, typename Tag>
-struct ArborX::AccessTraits<std::vector<T>, Tag>
+template <typename T>
+struct ArborX::AccessTraits<std::vector<T>>
 {
   static std::size_t size(std::vector<T> const &v) { return v.size(); }
   static T const &get(std::vector<T> const &v, std::size_t i) { return v[i]; }

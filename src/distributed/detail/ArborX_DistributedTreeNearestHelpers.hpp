@@ -148,7 +148,7 @@ KOKKOS_INLINE_FUNCTION auto approx_expand_by_radius(Geometry const &geometry,
 
 template <class Predicates, class Distances>
 struct AccessTraits<
-    Details::WithinDistanceFromPredicates<Predicates, Distances>, PredicatesTag>
+    Details::WithinDistanceFromPredicates<Predicates, Distances>>
 {
   using Predicate = typename Predicates::value_type;
   using Geometry =
