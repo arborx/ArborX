@@ -15,7 +15,13 @@
 #include <ArborX_Sphere.hpp>
 #include <ArborX_Tetrahedron.hpp>
 #include <ArborX_Triangle.hpp>
-#include <detail/ArborX_GeometryAlgorithms.hpp>
+#include <algorithms/ArborX_Centroid.hpp>
+#include <algorithms/ArborX_Convert.hpp>
+#include <algorithms/ArborX_Distance.hpp>
+#include <algorithms/ArborX_Equals.hpp>
+#include <algorithms/ArborX_Expand.hpp>
+#include <algorithms/ArborX_Intersects.hpp>
+#include <algorithms/ArborX_Valid.hpp>
 #include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
 
 #include <boost/mpl/list.hpp>

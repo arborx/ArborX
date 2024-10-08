@@ -13,6 +13,7 @@
 
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
+#include <algorithms/ArborX_Convert.hpp>
 #include <detail/ArborX_AccessTraits.hpp>
 #include <detail/ArborX_Callbacks.hpp>
 

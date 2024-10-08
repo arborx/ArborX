@@ -11,7 +11,9 @@
 
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <ArborX_Box.hpp>
-#include <detail/ArborX_GeometryAlgorithms.hpp>
+#include <algorithms/ArborX_Equals.hpp>
+#include <algorithms/ArborX_Expand.hpp>
+#include <algorithms/ArborX_Reducer.hpp>
 
 #include <Kokkos_Core.hpp>
 

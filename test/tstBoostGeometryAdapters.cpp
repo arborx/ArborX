@@ -12,7 +12,11 @@
 #include "ArborX_BoostGeometryAdapters.hpp"
 #include <ArborX_Box.hpp>
 #include <ArborX_Point.hpp>
-#include <detail/ArborX_GeometryAlgorithms.hpp>
+#include <algorithms/ArborX_Centroid.hpp>
+#include <algorithms/ArborX_Distance.hpp>
+#include <algorithms/ArborX_Equals.hpp>
+#include <algorithms/ArborX_Intersects.hpp>
+#include <algorithms/ArborX_Valid.hpp>
 
 #include <boost/test/unit_test.hpp>
 

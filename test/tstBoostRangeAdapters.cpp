@@ -13,7 +13,7 @@
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_Box.hpp>
 #include <ArborX_Point.hpp>
-#include <detail/ArborX_GeometryAlgorithms.hpp>
+#include <algorithms/ArborX_Distance.hpp>
 
 #include <Kokkos_Core.hpp>
 

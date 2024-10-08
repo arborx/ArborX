@@ -13,6 +13,7 @@
 
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_Sphere.hpp>
+#include <algorithms/ArborX_Convert.hpp>
 #include <detail/ArborX_AccessTraits.hpp>
 #include <detail/ArborX_Predicates.hpp>
 

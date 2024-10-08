@@ -13,7 +13,6 @@
 #define ARBORX_MUTUAL_REACHABILITY_DISTANCE_HPP
 
 #include <detail/ArborX_AccessTraits.hpp>
-#include <detail/ArborX_GeometryAlgorithms.hpp>
 #include <detail/ArborX_HappyTreeFriends.hpp>
 #include <detail/ArborX_Predicates.hpp>
 

@@ -12,7 +12,6 @@
 #include "ArborX_EnableDeviceTypes.hpp"
 #include "ArborX_EnableViewComparison.hpp"
 #include <ArborX_Point.hpp>
-#include <detail/ArborX_GeometryAlgorithms.hpp>
 #include <detail/ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
