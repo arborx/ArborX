@@ -14,7 +14,8 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_Point.hpp>
-#include <detail/ArborX_GeometryAlgorithms.hpp>
+#include <algorithms/ArborX_Centroid.hpp>
+#include <algorithms/ArborX_TranslateAndScale.hpp>
 #include <detail/ArborX_MortonCode.hpp>
 
 #include <Kokkos_DetectionIdiom.hpp>

@@ -11,7 +11,7 @@
 #ifndef ARBORX_DETAILS_GEOMETRY_DISTANCE_HPP
 #define ARBORX_DETAILS_GEOMETRY_DISTANCE_HPP
 
-#include "ArborX_GeometryEquals.hpp"
+#include "ArborX_Equals.hpp"
 #include <ArborX_GeometryTraits.hpp>
 #include <misc/ArborX_Vector.hpp>
 

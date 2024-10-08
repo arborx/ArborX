@@ -11,8 +11,8 @@
 #ifndef ARBORX_DETAILS_GEOMETRY_INTERSECTS_HPP
 #define ARBORX_DETAILS_GEOMETRY_INTERSECTS_HPP
 
-#include "ArborX_GeometryDistance.hpp"
-#include "ArborX_GeometryExpand.hpp"
+#include "ArborX_Distance.hpp"
+#include "ArborX_Expand.hpp"
 #include <ArborX_GeometryTraits.hpp>
 
 #include <Kokkos_Array.hpp>

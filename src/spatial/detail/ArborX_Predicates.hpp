@@ -11,7 +11,12 @@
 #ifndef ARBORX_PREDICATE_HPP
 #define ARBORX_PREDICATE_HPP
 
-#include <detail/ArborX_GeometryAlgorithms.hpp>
+#include <algorithms/ArborX_Distance.hpp>
+#include <algorithms/ArborX_Intersects.hpp>
+
+#include <Kokkos_Macros.hpp>
+
+#include <type_traits>
 
 namespace ArborX
 {

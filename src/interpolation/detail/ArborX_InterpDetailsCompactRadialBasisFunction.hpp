@@ -13,7 +13,7 @@
 #define ARBORX_INTERP_COMPACT_RADIAL_BASIS_FUNCTION_HPP
 
 #include <ArborX_GeometryTraits.hpp>
-#include <detail/ArborX_GeometryAlgorithms.hpp>
+#include <algorithms/ArborX_Distance.hpp>
 
 #include <Kokkos_Core.hpp>
 

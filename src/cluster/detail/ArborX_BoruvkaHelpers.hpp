@@ -12,7 +12,7 @@
 #ifndef ARBORX_BORUVKA_HELPERS_HPP
 #define ARBORX_BORUVKA_HELPERS_HPP
 
-#include <detail/ArborX_GeometryAlgorithms.hpp>
+#include <algorithms/ArborX_Distance.hpp>
 #include <detail/ArborX_HappyTreeFriends.hpp>
 #include <detail/ArborX_WeightedEdge.hpp>
 #include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>

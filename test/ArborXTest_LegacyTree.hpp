@@ -14,7 +14,6 @@
 
 #include <detail/ArborX_AccessTraits.hpp>
 #include <detail/ArborX_Callbacks.hpp>
-#include <detail/ArborX_GeometryAlgorithms.hpp>
 #include <detail/ArborX_PairValueIndex.hpp>
 
 #include <Kokkos_Macros.hpp>

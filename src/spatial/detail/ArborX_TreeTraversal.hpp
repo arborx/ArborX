@@ -11,7 +11,6 @@
 #ifndef ARBORX_TREE_TRAVERSAL_HPP
 #define ARBORX_TREE_TRAVERSAL_HPP
 
-#include <detail/ArborX_GeometryAlgorithms.hpp>
 #include <detail/ArborX_HappyTreeFriends.hpp>
 #include <detail/ArborX_NearestBufferProvider.hpp>
 #include <detail/ArborX_Node.hpp> // ROPE_SENTINEL

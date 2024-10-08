@@ -8,18 +8,11 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef ARBORX_ALGORITHMS_HPP
-#define ARBORX_ALGORITHMS_HPP
 
-#include "ArborX_GeometryCentroid.hpp"
-#include "ArborX_GeometryConvert.hpp"
-#include "ArborX_GeometryDistance.hpp"
-#include "ArborX_GeometryEquals.hpp"
-#include "ArborX_GeometryExpand.hpp"
-#include "ArborX_GeometryIntersects.hpp"
-#include "ArborX_GeometryValid.hpp"
+#ifndef ARBORX_REDUCER_HPP
+#define ARBORX_REDUCER_HPP
+
 #include <ArborX_GeometryTraits.hpp>
-#include <misc/ArborX_Vector.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -72,25 +65,6 @@ public:
   KOKKOS_FUNCTION
   bool references_scalar() const { return _references_scalar; }
 };
-
-// transformation that maps the unit cube into a new axis-aligned box
-// NOTE safe to perform in-place
-template <typename Point, typename Box,
-          std::enable_if_t<GeometryTraits::is_point_v<Point> &&
-                           GeometryTraits::is_box_v<Box>> * = nullptr>
-KOKKOS_FUNCTION void translateAndScale(Point const &in, Point &out,
-                                       Box const &ref)
-{
-  static_assert(GeometryTraits::dimension_v<Point> ==
-                GeometryTraits::dimension_v<Box>);
-  constexpr int DIM = GeometryTraits::dimension_v<Point>;
-  for (int d = 0; d < DIM; ++d)
-  {
-    auto const a = ref.minCorner()[d];
-    auto const b = ref.maxCorner()[d];
-    out[d] = (a != b ? (in[d] - a) / (b - a) : 0);
-  }
-}
 
 } // namespace ArborX::Details
 

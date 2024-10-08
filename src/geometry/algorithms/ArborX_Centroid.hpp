@@ -11,7 +11,7 @@
 #ifndef ARBORX_DETAILS_GEOMETRY_CENTROID_HPP
 #define ARBORX_DETAILS_GEOMETRY_CENTROID_HPP
 
-#include "ArborX_GeometryExpand.hpp"
+#include "ArborX_Expand.hpp"
 #include <ArborX_Box.hpp>
 #include <ArborX_GeometryTraits.hpp>
 
