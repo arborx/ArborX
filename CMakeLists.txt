@@ -6,6 +6,9 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.30.0)
   cmake_policy(SET CMP0167 OLD)
 endif()
 
+# use gnu standard install directories
+include(GNUInstallDirs)
+
 find_package(Kokkos 4.3 REQUIRED CONFIG)
 message(STATUS "Found Kokkos: ${Kokkos_DIR} (version \"${Kokkos_VERSION}\")")
 
@@ -79,12 +82,12 @@ target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/interpolation>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/spatial>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
-  $<INSTALL_INTERFACE:include/ArborX>
-  $<INSTALL_INTERFACE:include/ArborX/geometry>
-  $<INSTALL_INTERFACE:include/ArborX/cluster>
-  $<INSTALL_INTERFACE:include/ArborX/distributed>
-  $<INSTALL_INTERFACE:include/ArborX/interpolation>
-  $<INSTALL_INTERFACE:include/ArborX/spatial>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/ArborX>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/ArborX/geometry>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/ArborX/cluster>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/ArborX/distributed>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/ArborX/interpolation>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/ArborX/spatial>
 )
 
 install(TARGETS ArborX
@@ -94,7 +97,7 @@ install(TARGETS ArborX
 
 install(EXPORT ArborXTargets
   NAMESPACE ArborX::
-  DESTINATION lib/cmake/ArborX
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/cmake/ArborX
 )
 
 set(ARBORX_VERSION_STRING "2.0 (dev)")
@@ -129,7 +132,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/ArborXSettings.cmake.in
 include(CMakePackageConfigHelpers)
 configure_package_config_file(cmake/ArborXConfig.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
-  INSTALL_DESTINATION lib/cmake/ArborX
+  INSTALL_DESTINATION ${CMAKE_INSTALL_DATADIR}/cmake/ArborX
 )
 write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/ArborXConfigVersion.cmake
   VERSION ${ARBORX_VERSION_STRING}
@@ -139,17 +142,17 @@ install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfigVersion.cmake
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXSettings.cmake
-  DESTINATION lib/cmake/ArborX )
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/cmake/ArborX )
 
 if(ARBORX_ENABLE_MPI)
-  install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include/ArborX
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ArborX
           FILES_MATCHING PATTERN "*.hpp")
 else()
-  install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include/ArborX
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ArborX
           FILES_MATCHING PATTERN "*.hpp"
           PATTERN "*Distribut*" EXCLUDE)
 endif()
-install(DIRECTORY ${PROJECT_BINARY_DIR}/include/ DESTINATION include/ArborX
+install(DIRECTORY ${PROJECT_BINARY_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ArborX
         FILES_MATCHING PATTERN "*.hpp")
 
 if(NOT CMAKE_BUILD_TYPE)
