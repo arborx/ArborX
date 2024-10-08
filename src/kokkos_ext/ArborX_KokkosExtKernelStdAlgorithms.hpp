@@ -62,6 +62,27 @@ KOKKOS_FUNCTION void nth_element(Iterator first, Iterator nth, Iterator last)
   }
 }
 
+template <typename Iterator, typename T>
+KOKKOS_FUNCTION Iterator upper_bound(Iterator first, Iterator last,
+                                     T const &value)
+{
+  int count = last - first;
+  while (count > 0)
+  {
+    int step = count / 2;
+    if (!(value < *(first + step)))
+    {
+      first += step + 1;
+      count -= step + 1;
+    }
+    else
+    {
+      count = step;
+    }
+  }
+  return first;
+}
+
 } // namespace ArborX::Details::KokkosExt
 
 #endif

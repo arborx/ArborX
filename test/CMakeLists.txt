@@ -50,6 +50,13 @@ add_executable(ArborX_Test_DetailsUtils.exe
   tstDetailsVector.cpp
   tstDetailsUtils.cpp
   tstDetailsGeometryReducer.cpp
+  utf_main.cpp
+)
+target_link_libraries(ArborX_Test_DetailsUtils.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
+target_include_directories(ArborX_Test_DetailsUtils.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_Test_DetailsUtils COMMAND ArborX_Test_DetailsUtils.exe)
+
+add_executable(ArborX_Test_KokkosExt.exe
   tstDetailsKokkosExtStdAlgorithms.cpp
   tstDetailsKokkosExtKernelStdAlgorithms.cpp
   tstDetailsKokkosExtUninitializedMemoryAlgorithms.cpp
@@ -57,9 +64,9 @@ add_executable(ArborX_Test_DetailsUtils.exe
   tstDetailsKokkosExtViewHelpers.cpp
   utf_main.cpp
 )
-target_link_libraries(ArborX_Test_DetailsUtils.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
-target_include_directories(ArborX_Test_DetailsUtils.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME ArborX_Test_DetailsUtils COMMAND ArborX_Test_DetailsUtils.exe)
+target_link_libraries(ArborX_Test_KokkosExt.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
+target_include_directories(ArborX_Test_KokkosExt.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME ArborX_Test_KokkosExt COMMAND ArborX_Test_KokkosExt.exe)
 
 add_executable(ArborX_Test_Geometry.exe
   tstDetailsAlgorithms.cpp

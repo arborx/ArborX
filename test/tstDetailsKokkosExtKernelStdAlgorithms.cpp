@@ -27,6 +27,10 @@
 
 namespace tt = boost::test_tools;
 
+template <typename T>
+using UnmanagedHostView = Kokkos::View<T *, Kokkos::HostSpace,
+                                       Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(nth_element, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
@@ -41,18 +45,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(nth_element, DeviceType, ARBORX_DEVICE_TYPES)
   {
     int const n = v_ref.size();
 
-    Kokkos::View<float *, DeviceType> v("v", n);
-    Kokkos::deep_copy(
-        space, v,
-        Kokkos::View<float *, Kokkos::HostSpace,
-                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>(v_ref.data(), n));
+    Kokkos::View<float *, DeviceType> v("Testing::v", 0);
+    v = Kokkos::create_mirror_view_and_copy(
+        space, UnmanagedHostView<float>(v_ref.data(), n));
 
-    Kokkos::View<float *, DeviceType> nth("nth", n);
+    Kokkos::View<float *, DeviceType> nth("Testing::nth", n);
     for (int i = 0; i < n; ++i)
     {
       auto v_copy = ArborX::Details::KokkosExt::clone(space, v);
       Kokkos::parallel_for(
-          Kokkos::RangePolicy(space, 0, 1), KOKKOS_LAMBDA(int) {
+          "Testing::run_nth_element", Kokkos::RangePolicy(space, 0, 1),
+          KOKKOS_LAMBDA(int) {
             nth_element(v_copy.data(), v_copy.data() + i, v_copy.data() + n);
             nth(i) = v_copy(i);
           });
@@ -64,4 +67,41 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(nth_element, DeviceType, ARBORX_DEVICE_TYPES)
     std::sort(v_ref.begin(), v_ref.end());
     BOOST_TEST(nth_host == v_ref, tt::per_element());
   }
+}
+
+template <typename DeviceType>
+int findUpperBound(std::vector<float> const &v_host, float x)
+{
+  auto const n = v_host.size();
+  Kokkos::View<float *, DeviceType> v("Testing::v", n);
+  Kokkos::deep_copy(v, UnmanagedHostView<float const>(v_host.data(), n));
+
+  int pos;
+  Kokkos::parallel_reduce(
+      "Testing::run_upper_bound",
+      Kokkos::RangePolicy<typename DeviceType::execution_space>(0, 1),
+      KOKKOS_LAMBDA(int, int &update) {
+        update =
+            ArborX::Details::KokkosExt::upper_bound(v.data(), v.data() + n, x) -
+            v.data();
+      },
+      pos);
+
+  return pos;
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(upper_bound, DeviceType, ARBORX_DEVICE_TYPES)
+{
+  BOOST_TEST(findUpperBound<DeviceType>({}, 0) == 0);
+  BOOST_TEST(findUpperBound<DeviceType>({0}, -1) == 0);
+  BOOST_TEST(findUpperBound<DeviceType>({0}, 0) == 1);
+  BOOST_TEST(findUpperBound<DeviceType>({0}, 1) == 1);
+  BOOST_TEST(findUpperBound<DeviceType>({1, 1}, 0) == 0);
+  BOOST_TEST(findUpperBound<DeviceType>({1, 1}, 1) == 2);
+  BOOST_TEST(findUpperBound<DeviceType>({1, 3, 5}, 1) == 1);
+  BOOST_TEST(findUpperBound<DeviceType>({1, 3, 5}, 2) == 1);
+  BOOST_TEST(findUpperBound<DeviceType>({1, 3, 5}, 3) == 2);
+  BOOST_TEST(findUpperBound<DeviceType>({1, 3, 5}, 4) == 2);
+  BOOST_TEST(findUpperBound<DeviceType>({1, 3, 5}, 5) == 3);
+  BOOST_TEST(findUpperBound<DeviceType>({1, 3, 5, 7, 9, 11, 13}, 8) == 4);
 }
