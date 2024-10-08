@@ -8,7 +8,6 @@ endif()
 
 # use gnu standard install directories
 include(GNUInstallDirs)
-set(ARBORX_INSTALL_PACKAGEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/ArborX" CACHE PATH "Install location of CMake target files")
 
 find_package(Kokkos 4.3 REQUIRED CONFIG)
 message(STATUS "Found Kokkos: ${Kokkos_DIR} (version \"${Kokkos_VERSION}\")")
@@ -98,7 +97,7 @@ install(TARGETS ArborX
 
 install(EXPORT ArborXTargets
   NAMESPACE ArborX::
-  DESTINATION ${ARBORX_INSTALL_PACKAGEDIR}
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/cmake/ArborX
 )
 
 set(ARBORX_VERSION_STRING "2.0 (dev)")
@@ -133,7 +132,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/ArborXSettings.cmake.in
 include(CMakePackageConfigHelpers)
 configure_package_config_file(cmake/ArborXConfig.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
-  INSTALL_DESTINATION ${ARBORX_INSTALL_PACKAGEDIR}
+  INSTALL_DESTINATION ${CMAKE_INSTALL_DATADIR}/cmake/ArborX 
 )
 write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/ArborXConfigVersion.cmake
   VERSION ${ARBORX_VERSION_STRING}
@@ -143,7 +142,7 @@ install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfigVersion.cmake
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXSettings.cmake
-  DESTINATION ${ARBORX_INSTALL_PACKAGEDIR} )
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/cmake/ArborX 
 
 if(ARBORX_ENABLE_MPI)
   install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ArborX
