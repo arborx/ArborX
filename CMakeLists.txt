@@ -132,7 +132,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/ArborXSettings.cmake.in
 include(CMakePackageConfigHelpers)
 configure_package_config_file(cmake/ArborXConfig.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
-  INSTALL_DESTINATION ${CMAKE_INSTALL_DATADIR}/cmake/ArborX 
+  INSTALL_DESTINATION ${CMAKE_INSTALL_DATADIR}/cmake/ArborX
 )
 write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/ArborXConfigVersion.cmake
   VERSION ${ARBORX_VERSION_STRING}
@@ -142,7 +142,7 @@ install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfigVersion.cmake
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXSettings.cmake
-  DESTINATION ${CMAKE_INSTALL_DATADIR}/cmake/ArborX 
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/cmake/ArborX
 
 if(ARBORX_ENABLE_MPI)
   install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ArborX
