@@ -165,8 +165,7 @@ void viz(std::string const &prefix, std::string const &infile, int n_neighbors)
       sortPredicatesAlongSpaceFillingCurve(ExecutionSpace{},
                                            ArborX::Experimental::Morton32(),
                                            bvh.bounds(), queries);
-  queries = ArborX::Details::BatchedQueries<DeviceType>::applyPermutation(
-      ExecutionSpace{}, permute, queries);
+  ArborX::Details::applyPermutation(ExecutionSpace{}, permute, queries);
   performQueries(prefix + "sorted_", suffix);
 }
 
