@@ -28,7 +28,7 @@ template <typename Points>
 void loadPointCloud(std::string const &filename, Points &random_points)
 {
   static_assert(Kokkos::is_view_v<Points>);
-  static_assert(Points::rank == 1);
+  static_assert(Points::rank() == 1);
   static_assert(
       ArborX::GeometryTraits::dimension_v<typename Points::value_type> == 3);
 
@@ -55,7 +55,7 @@ template <typename Points>
 void writePointCloud(Points random_points, std::string const &filename)
 {
   static_assert(Kokkos::is_view_v<Points>);
-  static_assert(Points::rank == 1);
+  static_assert(Points::rank() == 1);
   static_assert(
       ArborX::GeometryTraits::dimension_v<typename Points::value_type> == 3);
 

@@ -26,7 +26,7 @@ KOKKOS_INLINE_FUNCTION void
 ensureIsSquareMatrix([[maybe_unused]] Matrix const &mat)
 {
   static_assert(Kokkos::is_view_v<Matrix>, "Matrix must be a view");
-  static_assert(Matrix::rank == 2, "Matrix must be 2D");
+  static_assert(Matrix::rank() == 2, "Matrix must be 2D");
   KOKKOS_ASSERT(mat.extent(0) == mat.extent(1));
 }
 
@@ -95,7 +95,7 @@ KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
                 "mat must be writable");
 
   static_assert(Kokkos::is_view_v<Diag>, "diag must be a view");
-  static_assert(Diag::rank == 1, "diag must be 1D");
+  static_assert(Diag::rank() == 1, "diag must be 1D");
   static_assert(!std::is_const_v<typename Diag::value_type>,
                 "diag must be writable");
 
@@ -237,7 +237,7 @@ void symmetricPseudoInverseSVD(ExecutionSpace const &space,
   static_assert(Kokkos::is_view_v<InOutMatrices>, "matrices must be a view");
   static_assert(!std::is_const_v<typename InOutMatrices::value_type>,
                 "matrices must be writable");
-  static_assert(InOutMatrices::rank == 3,
+  static_assert(InOutMatrices::rank() == 3,
                 "matrices must be a list of square matrices");
   static_assert(
       ArborX::Details::KokkosExt::is_accessible_from<

@@ -241,7 +241,7 @@ auto movingLeastSquaresCoefficients(ExecutionSpace const &space,
       "Memory space must be accessible from the execution space");
 
   // SourcePoints is a 2D view of points
-  static_assert(Kokkos::is_view_v<SourcePoints> && SourcePoints::rank == 2,
+  static_assert(Kokkos::is_view_v<SourcePoints> && SourcePoints::rank() == 2,
                 "source points must be a 2D view of points");
   static_assert(
       KokkosExt::is_accessible_from<typename SourcePoints::memory_space,

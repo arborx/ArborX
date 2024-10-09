@@ -146,7 +146,7 @@ public:
         "Memory space must be accessible from the execution space");
 
     // SourceValues is a 1D view of all source values
-    static_assert(Kokkos::is_view_v<SourceValues> && SourceValues::rank == 1,
+    static_assert(Kokkos::is_view_v<SourceValues> && SourceValues::rank() == 1,
                   "Source values must be a 1D view of values");
     static_assert(
         KokkosExt::is_accessible_from<typename SourceValues::memory_space,
@@ -154,7 +154,7 @@ public:
         "Source values must be accessible from the execution space");
 
     // ApproxValues is a 1D view for approximated values
-    static_assert(Kokkos::is_view_v<ApproxValues> && ApproxValues::rank == 1,
+    static_assert(Kokkos::is_view_v<ApproxValues> && ApproxValues::rank() == 1,
                   "Approx values must be a 1D view");
     static_assert(
         KokkosExt::is_accessible_from<typename ApproxValues::memory_space,

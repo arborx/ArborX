@@ -83,8 +83,8 @@ void sortByKey(ExecutionSpace const &space, Keys &keys, Values &values)
 
   static_assert(Kokkos::is_view<Keys>::value);
   static_assert(Kokkos::is_view<Values>::value);
-  static_assert(Keys::rank == 1);
-  static_assert(Values::rank == 1);
+  static_assert(Keys::rank() == 1);
+  static_assert(Values::rank() == 1);
   static_assert(KokkosExt::is_accessible_from<typename Keys::memory_space,
                                               ExecutionSpace>::value);
   static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,
@@ -125,8 +125,8 @@ void sortByKey(
   using ExecutionSpace = std::decay_t<decltype(space)>;
   static_assert(Kokkos::is_view<Keys>::value);
   static_assert(Kokkos::is_view<Values>::value);
-  static_assert(Keys::rank == 1);
-  static_assert(Values::rank == 1);
+  static_assert(Keys::rank() == 1);
+  static_assert(Values::rank() == 1);
   static_assert(KokkosExt::is_accessible_from<typename Keys::memory_space,
                                               ExecutionSpace>::value);
   static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,
@@ -158,8 +158,8 @@ void sortByKey(Kokkos::Experimental::SYCL const &space, Keys &keys,
   using ExecutionSpace = std::decay_t<decltype(space)>;
   static_assert(Kokkos::is_view<Keys>::value);
   static_assert(Kokkos::is_view<Values>::value);
-  static_assert(Keys::rank == 1);
-  static_assert(Values::rank == 1);
+  static_assert(Keys::rank() == 1);
+  static_assert(Values::rank() == 1);
   static_assert(KokkosExt::is_accessible_from<typename Keys::memory_space,
                                               ExecutionSpace>::value);
   static_assert(KokkosExt::is_accessible_from<typename Values::memory_space,
