@@ -67,20 +67,6 @@ public:
   constexpr Vector const &direction() const { return _direction; }
 };
 
-template <typename Coordinate>
-KOKKOS_INLINE_FUNCTION constexpr bool equals(Ray<Coordinate> const &l,
-                                             Ray<Coordinate> const &r)
-{
-  using ArborX::Details::equals;
-  return equals(l.origin(), r.origin()) && l.direction() == r.direction();
-}
-
-template <typename Coordinate>
-KOKKOS_INLINE_FUNCTION auto returnCentroid(Ray<Coordinate> const &ray)
-{
-  return ray.origin();
-}
-
 // The ray-box intersection algorithm is based on [1]. Their 'efficient slag'
 // algorithm checks the intersections both in front and behind the ray.
 //
