@@ -51,8 +51,8 @@ void applyInversePermutation(ExecutionSpace const &space,
 {
   static_assert(Kokkos::is_view_v<InputView>);
   static_assert(Kokkos::is_view_v<OutputView>);
-  static_assert(InputView::rank == 1);
-  static_assert(OutputView::rank == 1);
+  static_assert(InputView::rank() == 1);
+  static_assert(OutputView::rank() == 1);
   static_assert(std::is_integral_v<typename PermutationView::value_type>);
 
   auto const n = input_view.extent(0);
@@ -73,8 +73,8 @@ void applyPermutation(ExecutionSpace const &space,
 {
   static_assert(Kokkos::is_view_v<InputView>);
   static_assert(Kokkos::is_view_v<OutputView>);
-  static_assert(InputView::rank == 1);
-  static_assert(OutputView::rank == 1);
+  static_assert(InputView::rank() == 1);
+  static_assert(OutputView::rank() == 1);
   static_assert(std::is_integral_v<typename PermutationView::value_type>);
 
   auto const n = input_view.extent(0);

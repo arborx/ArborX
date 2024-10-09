@@ -217,7 +217,7 @@ public:
     Kokkos::Profiling::ScopedRegion guard(
         "ArborX::Distributor::createFromSends(batched)");
 
-    static_assert(View::rank == 1);
+    static_assert(View::rank() == 1);
     static_assert(
         std::is_same<typename View::non_const_value_type, int>::value);
 
@@ -238,7 +238,7 @@ public:
     Kokkos::Profiling::ScopedRegion guard(
         "ArborX::Distributor::createFromSends");
 
-    static_assert(View::rank == 1);
+    static_assert(View::rank() == 1);
     static_assert(
         std::is_same<typename View::non_const_value_type, int>::value);
 
@@ -289,12 +289,12 @@ public:
     static_assert(
         KokkosExt::is_accessible_from<typename decltype(_permute)::memory_space,
                                       ExecutionSpace>::value);
-    static_assert(ExportView::rank == 1 &&
+    static_assert(ExportView::rank() == 1 &&
                   (std::is_same_v<typename ExportView::array_layout,
                                   Kokkos::LayoutLeft> ||
                    std::is_same_v<typename ExportView::array_layout,
                                   Kokkos::LayoutRight>));
-    static_assert(ImportView::rank == 1 &&
+    static_assert(ImportView::rank() == 1 &&
                   (std::is_same_v<typename ImportView::array_layout,
                                   Kokkos::LayoutLeft> ||
                    std::is_same_v<typename ImportView::array_layout,

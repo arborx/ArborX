@@ -33,7 +33,7 @@ void iota(ExecutionSpace const &space, ViewType const &v,
   static_assert(is_accessible_from<typename ViewType::memory_space,
                                    ExecutionSpace>::value,
                 "View must be accessible from the execution space");
-  static_assert(unsigned(ViewType::rank) == unsigned(1),
+  static_assert(unsigned(ViewType::rank()) == unsigned(1),
                 "iota requires a View of rank 1");
 
   using ValueType = typename ViewType::value_type;

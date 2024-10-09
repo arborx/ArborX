@@ -29,7 +29,7 @@ template <typename U, typename V>
 void arborxViewCheck(U const &u, V const &v, std::string const &u_name,
                      std::string const &v_name, CommonValueType<U, V> tol = 0)
 {
-  static constexpr int rank = U::rank;
+  static constexpr int rank = U::rank();
 
   bool same_dim_size = true;
   for (int i = 0; i < rank; i++)
@@ -88,8 +88,8 @@ void arborxViewCheck(U const &u, V const &v, std::string const &u_name,
     auto view_a = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, u); \
     auto view_b = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, v); \
                                                                                \
-    static_assert(unsigned(std::decay_t<decltype(u)>::rank) ==                 \
-                      unsigned(std::decay_t<decltype(v)>::rank),               \
+    static_assert(unsigned(std::decay_t<decltype(u)>::rank()) ==               \
+                      unsigned(std::decay_t<decltype(v)>::rank()),             \
                   "'" #VIEWA "' and '" #VIEWB "' must have the same rank");    \
                                                                                \
     std::string view_a_name(#VIEWA);                                           \
@@ -115,7 +115,7 @@ struct is_forward_iterable<Kokkos::View<T, P...>> : public boost::mpl::true_
   // NOTE Prefer static assertion to SFINAE because error message about no
   // operator== for the operands is not as clear.
   static_assert(
-      Kokkos::View<T, P...>::rank == 1 &&
+      Kokkos::View<T, P...>::rank() == 1 &&
           !std::is_same_v<typename Kokkos::View<T, P...>::array_layout,
                           Kokkos::LayoutStride> &&
           ArborX::Details::KokkosExt::is_accessible_from_host<

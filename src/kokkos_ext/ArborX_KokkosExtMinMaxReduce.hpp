@@ -30,7 +30,8 @@ minmax_reduce(ExecutionSpace const &space, ViewType const &v)
   static_assert(is_accessible_from<typename ViewType::memory_space,
                                    ExecutionSpace>::value,
                 "View must be accessible from the execution space");
-  static_assert(ViewType::rank == 1, "minmax_reduce requires a View of rank 1");
+  static_assert(ViewType::rank() == 1,
+                "minmax_reduce requires a View of rank 1");
 
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
@@ -65,7 +66,7 @@ typename ViewType::non_const_value_type min_reduce(ExecutionSpace const &space,
   static_assert(is_accessible_from<typename ViewType::memory_space,
                                    ExecutionSpace>::value,
                 "View must be accessible from the execution space");
-  static_assert(ViewType::rank == 1, "min_reduce requires a View of rank 1");
+  static_assert(ViewType::rank() == 1, "min_reduce requires a View of rank 1");
 
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
@@ -92,7 +93,7 @@ typename ViewType::non_const_value_type max_reduce(ExecutionSpace const &space,
   static_assert(is_accessible_from<typename ViewType::memory_space,
                                    ExecutionSpace>::value,
                 "View must be accessible from the execution space");
-  static_assert(ViewType::rank == 1, "max_reduce requires a View of rank 1");
+  static_assert(ViewType::rank() == 1, "max_reduce requires a View of rank 1");
 
   auto const n = v.extent(0);
   ARBORX_ASSERT(n > 0);
