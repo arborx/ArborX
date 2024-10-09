@@ -15,7 +15,6 @@
 #include <algorithms/ArborX_Expand.hpp>
 #include <algorithms/ArborX_Reducer.hpp>
 #include <detail/ArborX_Node.hpp> // makeLeafNode
-#include <detail/ArborX_SpaceFillingCurves.hpp>
 #include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
 #include <misc/ArborX_Exception.hpp>
 
@@ -37,27 +36,6 @@ inline void calculateBoundingBoxOfTheScene(ExecutionSpace const &space,
         expand(update, indexables(i));
       },
       GeometryReducer<Box>(scene_bounding_box));
-}
-
-template <typename ExecutionSpace, typename Indexables,
-          typename SpaceFillingCurve, typename Box, typename LinearOrdering>
-inline void projectOntoSpaceFillingCurve(ExecutionSpace const &space,
-                                         Indexables const &indexables,
-                                         SpaceFillingCurve const &curve,
-                                         Box const &scene_bounding_box,
-                                         LinearOrdering linear_ordering_indices)
-{
-  size_t const n = indexables.size();
-  ARBORX_ASSERT(linear_ordering_indices.extent(0) == n);
-  static_assert(
-      std::is_same_v<typename LinearOrdering::value_type,
-                     decltype(curve(scene_bounding_box, indexables(0)))>);
-
-  Kokkos::parallel_for(
-      "ArborX::TreeConstruction::project_primitives_onto_space_filling_curve",
-      Kokkos::RangePolicy(space, 0, n), KOKKOS_LAMBDA(int i) {
-        linear_ordering_indices(i) = curve(scene_bounding_box, indexables(i));
-      });
 }
 
 template <typename ExecutionSpace, typename Values, typename IndexableGetter,

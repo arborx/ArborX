@@ -215,6 +215,24 @@ KOKKOS_INLINE_FUNCTION constexpr auto attach(Predicate &&pred, Data &&data)
       std::forward<Predicate>(pred), std::forward<Data>(data)};
 }
 
+namespace Details
+{
+template <typename Predicates>
+struct PredicateIndexables
+{
+  Predicates _predicates;
+
+  using memory_space = typename Predicates::memory_space;
+
+  KOKKOS_FUNCTION decltype(auto) operator()(int i) const
+  {
+    return getGeometry(_predicates(i));
+  }
+
+  KOKKOS_FUNCTION auto size() const { return _predicates.size(); }
+};
+} // namespace Details
+
 } // namespace ArborX
 
 #endif
