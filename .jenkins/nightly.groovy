@@ -128,10 +128,10 @@ pipeline {
                         }
                     }
                 }
-                stage('GCC-13') {
+                stage('GCC-14') {
                     agent {
                         docker {
-                            image 'gcc:13.1'
+                            image 'gcc:14.2'
                             label 'docker'
                         }
                     }
@@ -147,16 +147,16 @@ pipeline {
                             sh 'git rev-parse --short HEAD'
                         }
                         sh 'cmake -S source-kokkos -B build-kokkos -D CMAKE_INSTALL_PREFIX=$PWD/install-kokkos $CMAKE_OPTIONS -D Kokkos_ENABLE_SERIAL=ON'
-                        sh 'cmake --build build-kokkos --parallel 8'
+                        sh 'cmake --build build-kokkos --parallel 7'
                         sh 'cmake --install build-kokkos'
                         sh 'cmake -B build-arborx -D CMAKE_INSTALL_PREFIX=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS -D ARBORX_ENABLE_BENCHMARKS=ON -D ARBORX_ENABLE_TESTS=ON -D ARBORX_ENABLE_EXAMPLES=ON'
-                        sh 'cmake --build build-arborx --parallel 8'
+                        sh 'cmake --build build-arborx --parallel 7'
                         dir('build-arborx') {
                             sh 'ctest $CTEST_OPTIONS'
                         }
                         sh 'cmake --install build-arborx'
                         sh 'cmake -S examples -B build-examples -D ArborX_ROOT=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS'
-                        sh 'cmake --build build-examples --parallel 8'
+                        sh 'cmake --build build-examples --parallel 7'
                         dir('build-examples') {
                             sh 'ctest $CTEST_OPTIONS'
                         }
