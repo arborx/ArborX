@@ -1,0 +1,3 @@
+add_executable(ArborX_Example_CustomDistance.exe example_custom_distance.cpp)
+target_link_libraries(ArborX_Example_CustomDistance.exe ArborX::ArborX)
+add_test(NAME ArborX_Example_CustomDistance COMMAND ArborX_Example_CustomDistance.exe)
