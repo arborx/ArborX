@@ -40,7 +40,7 @@ using namespace GeometryTraits;
 template <typename Point>
 struct centroid<PointTag, Point>
 {
-  KOKKOS_FUNCTION static constexpr auto apply(Point const &point)
+  KOKKOS_FUNCTION static constexpr auto &apply(Point const &point)
   {
     return point;
   }
@@ -62,7 +62,7 @@ struct centroid<BoxTag, Box>
 template <typename Sphere>
 struct centroid<SphereTag, Sphere>
 {
-  KOKKOS_FUNCTION static constexpr auto apply(Sphere const &sphere)
+  KOKKOS_FUNCTION static constexpr decltype(auto) apply(Sphere const &sphere)
   {
     return sphere.centroid();
   }
