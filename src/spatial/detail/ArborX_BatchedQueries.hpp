@@ -67,31 +67,6 @@ public:
 
     return sortObjects(space, linear_ordering_indices);
   }
-
-  // NOTE  trailing return type seems required :(
-  // error: The enclosing parent function ("applyPermutation") for an extended
-  // __host__ __device__ lambda must not have deduced return type
-  template <typename ExecutionSpace, typename Predicates>
-  static auto
-  applyPermutation(ExecutionSpace const &space,
-                   Kokkos::View<unsigned int const *, DeviceType> permute,
-                   Predicates const &v)
-      -> Kokkos::View<typename Predicates::value_type *, DeviceType>
-  {
-    auto const n = v.size();
-    ARBORX_ASSERT(permute.extent(0) == n);
-
-    Kokkos::View<typename Predicates::value_type *, DeviceType> w(
-        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                           "ArborX::permuted_predicates"),
-        n);
-    Kokkos::parallel_for(
-        "ArborX::BatchedQueries::permute_entries",
-        Kokkos::RangePolicy(space, 0, n),
-        KOKKOS_LAMBDA(int i) { w(i) = v(permute(i)); });
-
-    return w;
-  }
 };
 
 } // namespace ArborX::Details
