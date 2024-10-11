@@ -233,12 +233,22 @@ BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter, BoundingVolume>::
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::compute_linear_ordering");
 
-  auto linear_ordering_indices = Details::projectOntoSpaceFillingCurve(
-      space, indexables, curve, scene_bounding_box);
+  // Map indexables from multidimensional domain to one-dimensional interval
+  using Details::returnCentroid;
+  using LinearOrderingValueType = std::invoke_result_t<
+      SpaceFillingCurve, decltype(scene_bounding_box),
+      std::decay_t<decltype(returnCentroid(indexables(0)))>>;
+  Kokkos::View<LinearOrderingValueType *, MemorySpace> linear_ordering_indices(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         "ArborX::BVH::BVH::linear_ordering"),
+      size());
+  Details::projectOntoSpaceFillingCurve(
+      space, indexables, curve, scene_bounding_box, linear_ordering_indices);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::sort_linearized_order");
 
+  // Compute the ordering of the indexables along the space-filling curve
   auto permutation_indices =
       Details::sortObjects(space, linear_ordering_indices);
 

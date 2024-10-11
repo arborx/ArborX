@@ -30,7 +30,7 @@ namespace Experimental
 
 struct Morton32
 {
-  template <typename Box, class Geometry>
+  template <typename Box, typename Geometry>
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box,
                                   Geometry const &geometry) const
   {
@@ -44,7 +44,7 @@ struct Morton32
 
 struct Morton64
 {
-  template <typename Box, class Geometry>
+  template <typename Box, typename Geometry>
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box,
                                   Geometry const &geometry) const
   {
@@ -62,35 +62,25 @@ namespace Details
 {
 
 template <typename ExecutionSpace, typename Values, typename SpaceFillingCurve,
-          typename Box>
-inline Kokkos::View<std::invoke_result_t<SpaceFillingCurve, Box,
-                                         std::decay_t<decltype(returnCentroid(
-                                             std::declval<Values>()(0)))>> *,
-                    typename Values::memory_space>
+          typename Box, typename LinearOrdering>
+inline void
 projectOntoSpaceFillingCurve(ExecutionSpace const &space, Values const &values,
                              SpaceFillingCurve const &curve,
-                             Box const &scene_bounding_box)
+                             Box const &scene_bounding_box,
+                             LinearOrdering &linear_ordering_indices)
 {
   using Point = std::decay_t<decltype(returnCentroid(values(0)))>;
   static_assert(GeometryTraits::is_point_v<Point>);
   static_assert(GeometryTraits::is_box_v<Box>);
+  ARBORX_ASSERT(linear_ordering_indices.size() == values.size());
+  static_assert(std::is_same_v<typename LinearOrdering::value_type,
+                               decltype(curve(scene_bounding_box, values(0)))>);
 
-  auto const n = values.size();
-
-  using LinearOrderingValueType =
-      std::invoke_result_t<SpaceFillingCurve, Box, Point>;
-  Kokkos::View<LinearOrderingValueType *, typename Values::memory_space>
-      linear_ordering_indices(
-          Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                             "ArborX::SpaceFillingCurve::linear_ordering"),
-          n);
   Kokkos::parallel_for(
       "ArborX::SpaceFillingCurve::project_onto_space_filling_curve",
-      Kokkos::RangePolicy(space, 0, n), KOKKOS_LAMBDA(int i) {
+      Kokkos::RangePolicy(space, 0, values.size()), KOKKOS_LAMBDA(int i) {
         linear_ordering_indices(i) = curve(scene_bounding_box, values(i));
       });
-
-  return linear_ordering_indices;
 }
 
 template <typename ExecutionSpace, typename Values, typename SpaceFillingCurve,
@@ -100,8 +90,16 @@ inline auto computeSpaceFillingCurvePermutation(ExecutionSpace const &space,
                                                 SpaceFillingCurve const &curve,
                                                 Box const &scene_bounding_box)
 {
-  auto linear_ordering_indices =
-      projectOntoSpaceFillingCurve(space, values, curve, scene_bounding_box);
+  using Point = std::decay_t<decltype(returnCentroid(values(0)))>;
+  using LinearOrderingValueType =
+      std::invoke_result_t<SpaceFillingCurve, Box, Point>;
+  Kokkos::View<LinearOrderingValueType *, typename Values::memory_space>
+      linear_ordering_indices(
+          Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                             "ArborX::SpaceFillingCurve::linear_ordering"),
+          values.size());
+  projectOntoSpaceFillingCurve(space, values, curve, scene_bounding_box,
+                               linear_ordering_indices);
   return sortObjects(space, linear_ordering_indices);
 }
 
