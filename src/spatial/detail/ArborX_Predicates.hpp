@@ -147,6 +147,11 @@ getGeometry(Nearest<Geometry> const &pred)
 {
   return pred._geometry;
 }
+template <typename Geometry>
+KOKKOS_INLINE_FUNCTION Geometry getGeometry(Nearest<Geometry> &&pred)
+{
+  return pred._geometry;
+}
 
 template <typename Geometry>
 KOKKOS_INLINE_FUNCTION Geometry const &
@@ -154,10 +159,21 @@ getGeometry(Intersects<Geometry> const &pred)
 {
   return pred._geometry;
 }
+template <typename Geometry>
+KOKKOS_INLINE_FUNCTION Geometry getGeometry(Intersects<Geometry> &&pred)
+{
+  return pred._geometry;
+}
 
 template <typename Geometry>
 KOKKOS_INLINE_FUNCTION Geometry const &
 getGeometry(Experimental::OrderedSpatial<Geometry> const &pred)
+{
+  return pred._geometry;
+}
+template <typename Geometry>
+KOKKOS_INLINE_FUNCTION Geometry
+getGeometry(Experimental::OrderedSpatial<Geometry> &&pred)
 {
   return pred._geometry;
 }
