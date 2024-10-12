@@ -238,8 +238,7 @@ BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter, BoundingVolume>::
     return;
   }
 
-  Details::Indexables<Values, IndexableGetter> indexables{values,
-                                                          indexable_getter};
+  Details::Indexables indexables{values, indexable_getter};
 
   Kokkos::Profiling::pushRegion(
       "ArborX::BVH::BVH::calculate_scene_bounding_box");

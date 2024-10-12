@@ -198,9 +198,7 @@ void BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::query(
 
   Details::BruteForceImpl::query(
       Tag{}, space, predicates, _values,
-      Details::Indexables<decltype(_values), IndexableGetter>{
-          _values, _indexable_getter},
-      callback);
+      Details::Indexables{_values, _indexable_getter}, callback);
 }
 
 } // namespace ArborX

@@ -80,9 +80,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(assign_morton_codes, DeviceType,
       scene_host, {{{0.0, 0.0, 0.0}}, {{(float)N, (float)N, (float)N}}}));
 
   LegacyValues<decltype(boxes), ArborX::Box<3>> values{boxes};
-  ArborX::Details::Indexables<decltype(values),
-                              ArborX::Details::DefaultIndexableGetter>
-      indexables{values, ArborX::Details::DefaultIndexableGetter{}};
+  ArborX::Details::Indexables indexables{
+      values, ArborX::Details::DefaultIndexableGetter{}};
 
   // Test for a bug where missing move ref operator() in DefaultIndexableGetter
   // results in a default initialized indexable used in scene box calucation.
