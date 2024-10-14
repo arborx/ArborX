@@ -17,6 +17,7 @@
 #include <detail/ArborX_AccessTraits.hpp>
 #include <detail/ArborX_DistributedTreeNearest.hpp>
 #include <detail/ArborX_DistributedTreeSpatial.hpp>
+#include <detail/ArborX_Iota.hpp>
 #include <detail/ArborX_PairValueIndex.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 
@@ -36,8 +37,9 @@ private:
   using MemorySpace = typename BottomTree::memory_space;
   using BoundingVolume = typename BottomTree::bounding_volume_type;
   using TopTree =
-      BoundingVolumeHierarchy<MemorySpace, PairValueIndex<BoundingVolume, int>,
-                              Details::DefaultIndexableGetter, BoundingVolume>;
+      BoundingVolumeHierarchy<MemorySpace, int,
+                              Kokkos::View<BoundingVolume *, MemorySpace>,
+                              BoundingVolume>;
 
   using bottom_tree_type = BottomTree;
   using top_tree_type = TopTree;
@@ -228,7 +230,8 @@ DistributedTreeBase<BottomTree>::DistributedTreeBase(
 #endif
 
   // Build top tree with attached ranks
-  _top_tree = TopTree{space, Experimental::attach_indices<int>(volumes)};
+  _top_tree =
+      TopTree{space, Experimental::Iota<MemorySpace>{volumes.size()}, volumes};
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::DistributedTree::DistributedTree::"

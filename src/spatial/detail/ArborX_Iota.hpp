@@ -18,7 +18,7 @@
 
 #include <type_traits>
 
-namespace ArborX
+namespace ArborX::Experimental
 {
 
 template <typename MemorySpace, typename Index = int>
@@ -35,11 +35,13 @@ struct Iota
       : _n(n)
   {}
 };
+} // namespace ArborX::Experimental
 
 template <typename MemorySpace>
-struct ArborX::AccessTraits<Iota<MemorySpace>, ArborX::PrimitivesTag>
+struct ArborX::AccessTraits<ArborX::Experimental::Iota<MemorySpace>,
+                            ArborX::PrimitivesTag>
 {
-  using Self = Iota<MemorySpace>;
+  using Self = ArborX::Experimental::Iota<MemorySpace>;
 
   using memory_space = typename Self::memory_space;
   static KOKKOS_FUNCTION size_t size(Self const &self) { return self._n; }
@@ -48,7 +50,5 @@ struct ArborX::AccessTraits<Iota<MemorySpace>, ArborX::PrimitivesTag>
     return (typename Self::index_type)i;
   }
 };
-
-} // namespace ArborX
 
 #endif

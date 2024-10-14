@@ -13,6 +13,7 @@
 #define ARBORX_DETAILSDBSCANVERIFICATION_HPP
 
 #include <ArborX_LinearBVH.hpp>
+#include <detail/ArborX_Iota.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -299,7 +300,8 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   static_assert(GeometryTraits::is_point_v<Point>);
 
   ArborX::BoundingVolumeHierarchy bvh(
-      exec_space, ArborX::Experimental::attach_indices(points));
+      exec_space, ArborX::Experimental::Iota<MemorySpace>{points.size()},
+      points);
 
   auto const predicates = ArborX::Experimental::attach_indices(
       ArborX::Experimental::make_intersects(points, eps));

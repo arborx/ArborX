@@ -14,6 +14,7 @@
 
 #include <ArborXBenchmark_PointClouds.hpp>
 #include <ArborX_Point.hpp>
+#include <detail/ArborX_Iota.hpp>
 #include <detail/ArborX_Predicates.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -135,7 +136,10 @@ auto makeTree(ExecutionSpace const &space, Primitives const &primitives)
   if constexpr (is_boost_rtree_v<TreeType>)
     return TreeType(space, primitives);
   else
-    return TreeType(space, ArborX::Experimental::attach_indices(primitives));
+    return TreeType(space,
+                    ArborX::Experimental::Iota<typename TreeType::memory_space>{
+                        primitives.size()},
+                    primitives);
 }
 
 template <typename DeviceType>
