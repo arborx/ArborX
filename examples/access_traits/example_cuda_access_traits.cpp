@@ -79,19 +79,20 @@ int main(int argc, char *argv[])
   cudaMemcpyAsync(d_a, a.data(), sizeof(a), cudaMemcpyHostToDevice, stream);
 
   Kokkos::Cuda cuda{stream};
-  ArborX::BoundingVolumeHierarchy bvh{
-      cuda, ArborX::Experimental::attach_indices(PointCloud{d_a, d_a, d_a, N})};
+  ArborX::BoundingVolumeHierarchy bvh{cuda, PointCloud{d_a, d_a, d_a, N}};
 
-  Kokkos::View<int *, Kokkos::CudaSpace> indices("Example::indices", 0);
+  Kokkos::View<ArborX::Point<3> *, Kokkos::CudaSpace> points("Example::points",
+                                                             0);
   Kokkos::View<int *, Kokkos::CudaSpace> offset("Example::offset", 0);
-  ArborX::query(bvh, cuda, Spheres{d_a, d_a, d_a, d_a, N}, indices, offset);
+  ArborX::query(bvh, cuda, Spheres{d_a, d_a, d_a, d_a, N}, points, offset);
 
   Kokkos::parallel_for(
-      "Example::print_indices", Kokkos::RangePolicy(cuda, 0, N),
+      "Example::print_points", Kokkos::RangePolicy(cuda, 0, N),
       KOKKOS_LAMBDA(int i) {
         for (int j = offset(i); j < offset(i + 1); ++j)
         {
-          printf("%i %i\n", i, indices(j));
+          printf("%i: (%.1f, %.1f, %.1f)\n", i, points(j)[0], points(j)[1],
+                 points(j)[2]);
         }
       });
 

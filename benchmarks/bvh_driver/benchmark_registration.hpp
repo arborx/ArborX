@@ -32,6 +32,34 @@ struct is_boost_rtree<BoostExt::RTree<Geometry>> : std::true_type
 template <typename Geometry>
 inline constexpr bool is_boost_rtree_v = is_boost_rtree<Geometry>::value;
 
+template <typename MemorySpace, typename Index = int>
+struct Iota
+{
+  using memory_space = MemorySpace;
+  using index_type = Index;
+
+  size_t _n;
+
+  template <typename T,
+            typename Enable = std::enable_if_t<std::is_integral_v<T>>>
+  Iota(T n)
+      : _n(n)
+  {}
+};
+
+template <typename MemorySpace>
+struct ArborX::AccessTraits<Iota<MemorySpace>, ArborX::PrimitivesTag>
+{
+  using Self = Iota<MemorySpace>;
+
+  using memory_space = typename Self::memory_space;
+  static KOKKOS_FUNCTION size_t size(Self const &self) { return self._n; }
+  static KOKKOS_FUNCTION auto get(Self const &, size_t i)
+  {
+    return (typename Self::index_type)i;
+  }
+};
+
 struct Spec
 {
   using PointCloudType = ArborXBenchmark::PointCloudType;
@@ -135,7 +163,9 @@ auto makeTree(ExecutionSpace const &space, Primitives const &primitives)
   if constexpr (is_boost_rtree_v<TreeType>)
     return TreeType(space, primitives);
   else
-    return TreeType(space, ArborX::Experimental::attach_indices(primitives));
+    return TreeType(space,
+                    Iota<typename TreeType::memory_space>{primitives.size()},
+                    primitives);
 }
 
 template <typename DeviceType>

@@ -18,6 +18,34 @@
 
 #include <boost/test/unit_test.hpp>
 
+template <typename MemorySpace, typename Index = int>
+struct Iota
+{
+  using memory_space = MemorySpace;
+  using index_type = Index;
+
+  size_t _n;
+
+  template <typename T,
+            typename Enable = std::enable_if_t<std::is_integral_v<T>>>
+  Iota(T n)
+      : _n(n)
+  {}
+};
+
+template <typename MemorySpace>
+struct ArborX::AccessTraits<Iota<MemorySpace>, ArborX::PrimitivesTag>
+{
+  using Self = Iota<MemorySpace>;
+
+  using memory_space = typename Self::memory_space;
+  static KOKKOS_FUNCTION size_t size(Self const &self) { return self._n; }
+  static KOKKOS_FUNCTION auto get(Self const &, size_t i)
+  {
+    return (typename Self::index_type)i;
+  }
+};
+
 #include <vector>
 
 #include "Search_UnitTestHelpers.hpp"
@@ -28,8 +56,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop, DeviceType, ARBORX_DEVICE_TYPES)
   using MemorySpace = typename DeviceType::memory_space;
 
   using Point = ArborX::Point<3>;
-  using Tree = ArborX::BoundingVolumeHierarchy<MemorySpace,
-                                               ArborX::PairValueIndex<Point>>;
 
   std::vector<Point> primitives = {
       {{0, 0, 0}}, // 0
@@ -46,12 +72,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop, DeviceType, ARBORX_DEVICE_TYPES)
       {{0, 0, 2}}, // 11
       {{0, 0, 3}}, // 12
   };
-  Tree const tree(
-      ExecutionSpace{},
-      ArborX::Experimental::attach_indices(Kokkos::create_mirror_view_and_copy(
+  ArborX::BoundingVolumeHierarchy const tree(
+      ExecutionSpace{}, Iota<MemorySpace>{primitives.size()},
+      Kokkos::create_mirror_view_and_copy(
           MemorySpace{},
           Kokkos::View<Point *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
-              primitives.data(), primitives.size()))));
+              primitives.data(), primitives.size())));
 
   // (0,0,0)->(1,2,3) box with (0,0,0)--(0,0,3) edge cut off
   ArborX::Experimental::KDOP<3, 18> x;
