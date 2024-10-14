@@ -178,6 +178,18 @@ KOKKOS_FUNCTION
         typename Details::AccessValues<Values, PrimitivesTag>::memory_space,
         typename Details::AccessValues<Values, PrimitivesTag>::value_type>;
 
+template <typename ExecutionSpace, typename Values, typename IndexableGetter>
+#if KOKKOS_VERSION >= 40400
+KOKKOS_DEDUCTION_GUIDE
+#else
+KOKKOS_FUNCTION
+#endif
+    BoundingVolumeHierarchy(ExecutionSpace, Values, IndexableGetter)
+        -> BoundingVolumeHierarchy<
+            typename Details::AccessValues<Values, PrimitivesTag>::memory_space,
+            typename Details::AccessValues<Values, PrimitivesTag>::value_type,
+            IndexableGetter>;
+
 template <typename MemorySpace, typename Value,
           typename IndexableGetter = Details::DefaultIndexableGetter,
           typename BoundingVolume = Box<

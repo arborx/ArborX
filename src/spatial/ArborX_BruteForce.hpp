@@ -136,6 +136,17 @@ KOKKOS_FUNCTION
         typename Details::AccessValues<Values, PrimitivesTag>::memory_space,
         typename Details::AccessValues<Values, PrimitivesTag>::value_type>;
 
+template <typename ExecutionSpace, typename Values, typename IndexableGetter>
+#if KOKKOS_VERSION >= 40400
+KOKKOS_DEDUCTION_GUIDE
+#else
+KOKKOS_FUNCTION
+#endif
+    BruteForce(ExecutionSpace, Values, IndexableGetter) -> BruteForce<
+        typename Details::AccessValues<Values, PrimitivesTag>::memory_space,
+        typename Details::AccessValues<Values, PrimitivesTag>::value_type,
+        IndexableGetter>;
+
 template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
 template <typename ExecutionSpace, typename UserValues>
