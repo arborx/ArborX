@@ -34,7 +34,7 @@ struct CountUpToN
   KOKKOS_FUNCTION auto operator()(Query const &query, Value const &) const
   {
     auto i = getData(query);
-    Kokkos::atomic_increment(&_counts(i));
+    Kokkos::atomic_inc(&_counts(i));
 
     if (_counts(i) < _n)
       return ArborX::CallbackTreeTraversalControl::normal_continuation;
