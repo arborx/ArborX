@@ -31,21 +31,6 @@ struct PairValueIndex
   Index index;
 };
 
-namespace Details
-{
-template <typename T>
-struct is_pair_value_index : public std::false_type
-{};
-
-template <typename Value, typename Index>
-struct is_pair_value_index<PairValueIndex<Value, Index>> : public std::true_type
-{};
-
-template <typename T>
-inline constexpr bool is_pair_value_index_v = is_pair_value_index<T>::value;
-
-} // namespace Details
-
 } // namespace ArborX
 
 #endif
