@@ -74,16 +74,14 @@ struct CountUpToN_DenseBox
         int j = _permute(jj);
         if (distance(query_point, _primitives(j)) <= eps)
         {
-          Kokkos::atomic_increment(&count);
-          if (count >= _n)
+          if (Kokkos::atomic_inc_fetch(&count) >= _n)
             return ArborX::CallbackTreeTraversalControl::early_exit;
         }
       }
     }
     else
     {
-      Kokkos::atomic_increment(&count);
-      if (count >= _n)
+      if (Kokkos::atomic_inc_fetch(&count) >= _n)
         return ArborX::CallbackTreeTraversalControl::early_exit;
     }
 

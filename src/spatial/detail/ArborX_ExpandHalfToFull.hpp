@@ -37,8 +37,8 @@ void expandHalfToFull(ExecutionSpace const &space, Offsets &offsets,
         for (int j = offsets_orig(i); j < offsets_orig(i + 1); ++j)
         {
           int const k = indices_orig(j);
-          Kokkos::atomic_increment(&offsets(i));
-          Kokkos::atomic_increment(&offsets(k));
+          Kokkos::atomic_inc(&offsets(i));
+          Kokkos::atomic_inc(&offsets(k));
         }
       });
   KokkosExt::exclusive_scan(space, offsets, offsets, 0);

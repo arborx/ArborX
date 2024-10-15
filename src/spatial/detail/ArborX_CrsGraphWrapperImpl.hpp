@@ -86,9 +86,8 @@ struct InsertGenerator
     else if constexpr (std::is_same_v<PassTag,
                                       FirstPassNoBufferOptimizationTag>)
     {
-      return _callback(raw_predicate, value, [&](ValueType const &) {
-        Kokkos::atomic_increment(&count);
-      });
+      return _callback(raw_predicate, value,
+                       [&](ValueType const &) { Kokkos::atomic_inc(&count); });
     }
     else
     {

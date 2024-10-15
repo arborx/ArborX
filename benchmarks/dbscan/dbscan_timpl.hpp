@@ -83,7 +83,7 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
         if (labels(i) < 0)
           return;
 
-        Kokkos::atomic_increment(&cluster_sizes(labels(i)));
+        Kokkos::atomic_inc(&cluster_sizes(labels(i)));
       });
 
   // This kernel serves dual purpose:

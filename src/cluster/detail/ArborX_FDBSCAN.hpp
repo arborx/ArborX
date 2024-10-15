@@ -33,14 +33,12 @@ struct CountUpToN
   template <typename Query, typename Value>
   KOKKOS_FUNCTION auto operator()(Query const &query, Value const &) const
   {
-    auto i = getData(query);
-    Kokkos::atomic_increment(&_counts(i));
+    int const i = getData(query);
+    int &count = _counts(i);
+    if (Kokkos::atomic_inc_fetch(&count) >= _n)
+      return ArborX::CallbackTreeTraversalControl::early_exit;
 
-    if (_counts(i) < _n)
-      return ArborX::CallbackTreeTraversalControl::normal_continuation;
-
-    // Once count reaches threshold, terminate the traversal.
-    return ArborX::CallbackTreeTraversalControl::early_exit;
+    return ArborX::CallbackTreeTraversalControl::normal_continuation;
   }
 };
 

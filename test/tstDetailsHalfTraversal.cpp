@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(half_traversal, DeviceType, ARBORX_DEVICE_TYPES)
         int i = value1.index;
         int j = value2.index;
         auto [min_ij, max_ij] = Kokkos::minmax(i, j);
-        Kokkos::atomic_increment(&count(max_ij * (max_ij + 1) / 2 + min_ij));
+        Kokkos::atomic_inc(&count(max_ij * (max_ij + 1) / 2 + min_ij));
       },
       Test::PredicateGetter{});
 

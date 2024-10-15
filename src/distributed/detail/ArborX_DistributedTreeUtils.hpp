@@ -38,9 +38,8 @@ void countResults(ExecutionSpace const &space, int n_queries,
 
   Kokkos::parallel_for(
       "ArborX::DistributedTree::query::count_results_per_query",
-      Kokkos::RangePolicy(space, 0, nnz), KOKKOS_LAMBDA(int i) {
-        Kokkos::atomic_increment(&offset(query_ids(i)));
-      });
+      Kokkos::RangePolicy(space, 0, nnz),
+      KOKKOS_LAMBDA(int i) { Kokkos::atomic_inc(&offset(query_ids(i))); });
 
   KokkosExt::exclusive_scan(space, offset, offset, 0);
 }
