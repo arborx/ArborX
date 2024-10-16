@@ -51,9 +51,10 @@ struct BenchmarkRegistration
 
 template <typename ExecutionSpace>
 using BVHBenchmarkRegistration = BenchmarkRegistration<
-    ExecutionSpace,
-    ArborX::BoundingVolumeHierarchy<typename ExecutionSpace::memory_space,
-                                    ArborX::PairValueIndex<ArborX::Point<3>>>>;
+    ExecutionSpace, ArborX::BoundingVolumeHierarchy<
+                        typename ExecutionSpace::memory_space, int,
+                        Kokkos::View<ArborX::Point<3> *,
+                                     typename ExecutionSpace::memory_space>>>;
 
 void register_bvh_benchmarks(Spec const &spec)
 {
