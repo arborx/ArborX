@@ -19,7 +19,7 @@
 #include <detail/ArborX_BruteForceImpl.hpp>
 #include <detail/ArborX_Callbacks.hpp>
 #include <detail/ArborX_CrsGraphWrapperImpl.hpp>
-#include <detail/ArborX_IndexableGetter.hpp>
+#include <detail/ArborX_Indexable.hpp>
 #include <detail/ArborX_PairValueIndex.hpp>
 #include <detail/ArborX_PredicateHelpers.hpp>
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
@@ -31,7 +31,7 @@ namespace ArborX
 {
 
 template <typename MemorySpace, typename Value,
-          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename IndexableGetter = Experimental::Indexable<Value>,
           typename BoundingVolume = Box<
               GeometryTraits::dimension_v<
                   std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
@@ -198,9 +198,7 @@ void BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::query(
 
   Details::BruteForceImpl::query(
       Tag{}, space, predicates, _values,
-      Details::Indexables<decltype(_values), IndexableGetter>{
-          _values, _indexable_getter},
-      callback);
+      Details::Indexables{_values, _indexable_getter}, callback);
 }
 
 } // namespace ArborX

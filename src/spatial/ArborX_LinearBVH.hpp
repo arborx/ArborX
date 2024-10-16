@@ -19,7 +19,7 @@
 #include <detail/ArborX_BatchedQueries.hpp>
 #include <detail/ArborX_Callbacks.hpp>
 #include <detail/ArborX_CrsGraphWrapperImpl.hpp>
-#include <detail/ArborX_IndexableGetter.hpp>
+#include <detail/ArborX_Indexable.hpp>
 #include <detail/ArborX_Node.hpp>
 #include <detail/ArborX_PairValueIndex.hpp>
 #include <detail/ArborX_PermutedData.hpp>
@@ -49,7 +49,7 @@ struct HappyTreeFriends;
 } // namespace Details
 
 template <typename MemorySpace, typename Value,
-          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename IndexableGetter = Experimental::Indexable<Value>,
           typename BoundingVolume = Box<
               GeometryTraits::dimension_v<
                   std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
@@ -179,7 +179,7 @@ KOKKOS_FUNCTION
         typename Details::AccessValues<Values, PrimitivesTag>::value_type>;
 
 template <typename MemorySpace, typename Value,
-          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename IndexableGetter = Experimental::Indexable<Value>,
           typename BoundingVolume = Box<
               GeometryTraits::dimension_v<
                   std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
@@ -238,8 +238,7 @@ BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter, BoundingVolume>::
     return;
   }
 
-  Details::Indexables<Values, IndexableGetter> indexables{values,
-                                                          indexable_getter};
+  Details::Indexables indexables{values, indexable_getter};
 
   Kokkos::Profiling::pushRegion(
       "ArborX::BVH::BVH::calculate_scene_bounding_box");
