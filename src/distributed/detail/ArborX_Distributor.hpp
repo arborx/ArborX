@@ -16,7 +16,6 @@
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
 #include <kokkos_ext/ArborX_KokkosExtMinMaxReduce.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
-#include <misc/ArborX_Exception.hpp>
 #include <misc/ArborX_SortUtils.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -44,10 +43,10 @@ determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
   Kokkos::Profiling::ScopedRegion guard(
       "ArborX::Distributor::determineBufferLayout");
 
-  ARBORX_ASSERT(unique_ranks.empty());
-  ARBORX_ASSERT(offsets.empty());
-  ARBORX_ASSERT(permutation_indices.extent_int(0) == 0);
-  ARBORX_ASSERT(batched_ranks.size() + 1 == batched_offsets.size());
+  KOKKOS_ASSERT(unique_ranks.empty());
+  KOKKOS_ASSERT(offsets.empty());
+  KOKKOS_ASSERT(permutation_indices.extent_int(0) == 0);
+  KOKKOS_ASSERT(batched_ranks.size() + 1 == batched_offsets.size());
   static_assert(std::is_same_v<typename InputView::non_const_value_type, int>);
   static_assert(std::is_same_v<typename OutputView::value_type, int>);
 
@@ -140,9 +139,9 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
   Kokkos::Profiling::ScopedRegion guard(
       "ArborX::Distributor::sortAndDetermineBufferLayout");
 
-  ARBORX_ASSERT(unique_ranks.empty());
-  ARBORX_ASSERT(offsets.empty());
-  ARBORX_ASSERT(permutation_indices.extent_int(0) == ranks.extent_int(0));
+  KOKKOS_ASSERT(unique_ranks.empty());
+  KOKKOS_ASSERT(offsets.empty());
+  KOKKOS_ASSERT(permutation_indices.extent_int(0) == ranks.extent_int(0));
   static_assert(std::is_same_v<typename InputView::non_const_value_type, int>);
   static_assert(std::is_same_v<typename OutputView::value_type, int>);
 
@@ -195,7 +194,7 @@ static void sortAndDetermineBufferLayout(ExecutionSpace const &space,
     offsets.push_back(offset);
   }
   Kokkos::deep_copy(space, permutation_indices, device_permutation_indices);
-  ARBORX_ASSERT(offsets.back() == static_cast<int>(ranks.size()));
+  KOKKOS_ASSERT(offsets.back() == static_cast<int>(ranks.size()));
 }
 
 template <typename DeviceType>
@@ -307,9 +306,9 @@ public:
 
     bool const permutation_necessary = _permute.size() != 0;
 
-    ARBORX_ASSERT(!permutation_necessary || exports.size() == _permute.size());
-    ARBORX_ASSERT(exports.size() == getTotalSendLength());
-    ARBORX_ASSERT(imports.size() == getTotalReceiveLength());
+    KOKKOS_ASSERT(!permutation_necessary || exports.size() == _permute.size());
+    KOKKOS_ASSERT(exports.size() == getTotalSendLength());
+    KOKKOS_ASSERT(imports.size() == getTotalReceiveLength());
 
     // Make sure things work even if ExportView is unmanaged
     using ExportViewWithoutMemoryTraits =
@@ -343,7 +342,7 @@ public:
         same_rank_destination = it - _destinations.begin();
 
         it = std::find(_sources.begin(), _sources.end(), comm_rank);
-        ARBORX_ASSERT(it != _sources.end());
+        KOKKOS_ASSERT(it != _sources.end());
         same_rank_source = it - _sources.begin();
       }
     }
@@ -410,7 +409,7 @@ public:
 
     if (same_rank_destination != -1)
     {
-      ARBORX_ASSERT((_src_offsets[same_rank_source + 1] -
+      KOKKOS_ASSERT((_src_offsets[same_rank_source + 1] -
                      _src_offsets[same_rank_source]) ==
                     (_dest_offsets[same_rank_destination + 1] -
                      _dest_offsets[same_rank_destination]));

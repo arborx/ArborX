@@ -13,7 +13,6 @@
 #define ARBORX_TREE_NODE_LABELING_HPP
 
 #include <detail/ArborX_HappyTreeFriends.hpp>
-#include <misc/ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -28,8 +27,8 @@ void findParents(ExecutionSpace const &exec_space, BVH const &bvh,
 {
   int const n = bvh.size();
 
-  ARBORX_ASSERT(n >= 2);
-  ARBORX_ASSERT((int)parents.size() == 2 * n - 1);
+  KOKKOS_ASSERT(n >= 2);
+  KOKKOS_ASSERT((int)parents.size() == 2 * n - 1);
 
   Kokkos::parallel_for(
       "ArborX::recompute_internal_and_leaf_node_parents",
@@ -45,8 +44,8 @@ void reduceLabels(ExecutionSpace const &exec_space, Parents const &parents,
 {
   int const n = (parents.size() + 1) / 2;
 
-  ARBORX_ASSERT(n >= 2);
-  ARBORX_ASSERT(labels.size() == parents.size());
+  KOKKOS_ASSERT(n >= 2);
+  KOKKOS_ASSERT(labels.size() == parents.size());
 
   using ValueType = typename Labels::value_type;
   constexpr ValueType indeterminate = -1;

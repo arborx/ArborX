@@ -25,7 +25,6 @@
 #include <ArborX_Sphere.hpp>
 #include <detail/ArborX_PredicateHelpers.hpp>
 #include <detail/ArborX_Predicates.hpp>
-#include <misc/ArborX_Exception.hpp>
 // FIXME: we include ArborX_Utils.hpp only for backward compatibility for
 // users using deprecated functions in ArborX namespace (min, max,
 // adjacentDifference, ...). This header should be removed when we remove those

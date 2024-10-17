@@ -18,7 +18,6 @@
 #include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
-#include <misc/ArborX_Exception.hpp>
 #include <misc/ArborX_PriorityQueue.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -68,8 +67,8 @@ struct BruteForceImpl
         max_scratch_size / 2 / sizeof(PredicateType);
     int const indexables_per_team =
         max_scratch_size / 2 / sizeof(IndexableType);
-    ARBORX_ASSERT(predicates_per_team > 0);
-    ARBORX_ASSERT(indexables_per_team > 0);
+    KOKKOS_ASSERT(predicates_per_team > 0);
+    KOKKOS_ASSERT(indexables_per_team > 0);
 
     int const n_indexable_tiles =
         std::ceil((float)n_indexables / indexables_per_team);

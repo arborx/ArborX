@@ -13,7 +13,6 @@
 #define DATA_HPP
 
 #include <ArborX_Point.hpp>
-#include <misc/ArborX_Exception.hpp>
 
 #include <iostream>
 #include <random>
@@ -65,7 +64,8 @@ std::vector<Point<DIM>> loadData(std::string const &filename,
     input.open(filename);
   else
     input.open(filename, std::ifstream::binary);
-  ARBORX_ASSERT(input.good());
+  if (!input.good())
+    Kokkos::abort("Could not load data");
 
   std::vector<Point<DIM>> v;
 
@@ -82,7 +82,8 @@ std::vector<Point<DIM>> loadData(std::string const &filename,
     input.read(reinterpret_cast<char *>(&dim), sizeof(int));
   }
 
-  ARBORX_ASSERT(dim == DIM);
+  if (dim != DIM)
+    Kokkos::abort("Mismatching dimensions");
 
   if (max_num_points > 0 && max_num_points < num_points)
     num_points = max_num_points;

@@ -12,8 +12,6 @@
 #ifndef ARBORX_KOKKOS_EXT_VIEW_HELPERS_HPP
 #define ARBORX_KOKKOS_EXT_VIEW_HELPERS_HPP
 
-#include <misc/ArborX_Exception.hpp>
-
 #include <Kokkos_Core.hpp>
 
 namespace ArborX::Details::KokkosExt
@@ -34,7 +32,7 @@ lastElement(ExecutionSpace const &space, Kokkos::View<T, P...> const &v)
   static_assert(unsigned(Kokkos::ViewTraits<T, P...>::rank) == unsigned(1),
                 "lastElement requires Views of rank 1");
   auto const n = v.extent(0);
-  ARBORX_ASSERT(n > 0);
+  KOKKOS_ASSERT(n > 0);
   auto v_subview = Kokkos::subview(v, n - 1);
   typename Kokkos::ViewTraits<T, P...>::non_const_value_type v_host;
   Kokkos::deep_copy(space, v_host, v_subview);

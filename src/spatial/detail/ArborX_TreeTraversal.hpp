@@ -18,7 +18,6 @@
 #include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
-#include <misc/ArborX_Exception.hpp>
 #include <misc/ArborX_PriorityQueue.hpp>
 #include <misc/ArborX_Stack.hpp>
 

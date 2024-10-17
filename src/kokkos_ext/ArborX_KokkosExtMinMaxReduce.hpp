@@ -13,7 +13,6 @@
 #define ARBORX_KOKKOS_EXT_MIN_MAX_REDUCTIONS_HPP
 
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
-#include <misc/ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -34,7 +33,8 @@ minmax_reduce(ExecutionSpace const &space, ViewType const &v)
                 "minmax_reduce requires a View of rank 1");
 
   auto const n = v.extent(0);
-  ARBORX_ASSERT(n > 0);
+  if (n == 0)
+    Kokkos::abort("ArborX: minmax_reduce: view must be non-empty");
 
   using ValueType = typename ViewType::non_const_value_type;
 
@@ -69,7 +69,8 @@ typename ViewType::non_const_value_type min_reduce(ExecutionSpace const &space,
   static_assert(ViewType::rank() == 1, "min_reduce requires a View of rank 1");
 
   auto const n = v.extent(0);
-  ARBORX_ASSERT(n > 0);
+  if (n == 0)
+    Kokkos::abort("ArborX: minmax_reduce: view must be non-empty");
 
   using ValueType = typename ViewType::non_const_value_type;
 
@@ -96,7 +97,8 @@ typename ViewType::non_const_value_type max_reduce(ExecutionSpace const &space,
   static_assert(ViewType::rank() == 1, "max_reduce requires a View of rank 1");
 
   auto const n = v.extent(0);
-  ARBORX_ASSERT(n > 0);
+  if (n == 0)
+    Kokkos::abort("ArborX: minmax_reduce: view must be non-empty");
 
   using ValueType = typename ViewType::non_const_value_type;
 

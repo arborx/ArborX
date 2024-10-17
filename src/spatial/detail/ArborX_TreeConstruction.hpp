@@ -17,7 +17,6 @@
 #include <detail/ArborX_Node.hpp> // makeLeafNode
 #include <detail/ArborX_SpaceFillingCurves.hpp>
 #include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
-#include <misc/ArborX_Exception.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -48,7 +47,7 @@ inline void projectOntoSpaceFillingCurve(ExecutionSpace const &space,
                                          LinearOrdering linear_ordering_indices)
 {
   size_t const n = indexables.size();
-  ARBORX_ASSERT(linear_ordering_indices.extent(0) == n);
+  KOKKOS_ASSERT(linear_ordering_indices.extent(0) == n);
   static_assert(
       std::is_same_v<typename LinearOrdering::value_type,
                      decltype(curve(scene_bounding_box, indexables(0)))>);
@@ -67,8 +66,8 @@ initializeSingleLeafTree(ExecutionSpace const &space, Values const &values,
                          IndexableGetter const &indexable_getter,
                          Nodes const &leaf_nodes, BoundingVolume &bounds)
 {
-  ARBORX_ASSERT(leaf_nodes.extent(0) == 1);
-  ARBORX_ASSERT(values.size() == 1);
+  KOKKOS_ASSERT(leaf_nodes.extent(0) == 1);
+  KOKKOS_ASSERT(values.size() == 1);
 
   // Skip initialization so that we don't execute a kernel launch
   Kokkos::View<BoundingVolume, typename Nodes::memory_space> bounding_volume(

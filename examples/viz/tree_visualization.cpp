@@ -37,7 +37,7 @@ void loadPointCloud(std::string const &filename, Points &random_points)
   {
     int size = -1;
     file >> size;
-    ARBORX_ASSERT(size > 0);
+    KOKKOS_ASSERT(size > 0);
     Kokkos::realloc(random_points, size);
     auto random_points_host = Kokkos::create_mirror_view(random_points);
     for (int i = 0; i < size; ++i)
