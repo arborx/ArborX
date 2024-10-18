@@ -35,21 +35,19 @@ namespace Details
 // Assuming that batched_ranks might contain elements multiply, but duplicates
 // are not separated by other elements, return the unique elements in that array
 // with the corresponding element counts and displacement (offsets).
-template <typename ExecutionSpace, typename InputView, typename OutputView>
+template <typename ExecutionSpace, typename InputView>
 static void
 determineBufferLayout(ExecutionSpace const &space, InputView batched_ranks,
-                      InputView batched_offsets, OutputView permutation_indices,
-                      std::vector<int> &unique_ranks, std::vector<int> &offsets)
+                      InputView batched_offsets, std::vector<int> &unique_ranks,
+                      std::vector<int> &offsets)
 {
   Kokkos::Profiling::ScopedRegion guard(
       "ArborX::Distributor::determineBufferLayout");
 
   ARBORX_ASSERT(unique_ranks.empty());
   ARBORX_ASSERT(offsets.empty());
-  ARBORX_ASSERT(permutation_indices.extent_int(0) == 0);
   ARBORX_ASSERT(batched_ranks.size() + 1 == batched_offsets.size());
   static_assert(std::is_same_v<typename InputView::non_const_value_type, int>);
-  static_assert(std::is_same_v<typename OutputView::value_type, int>);
 
   // In case all the batches are empty, return an empty list of unique_ranks and
   // counts, but still have one element in offsets. This is conforming with
@@ -225,8 +223,9 @@ public:
     // overload.
     // Note that we don't resize _permute here since we are assuming that no
     // reordering is necessary.
+    ARBORX_ASSERT(_permute.extent_int(0) == 0);
     determineBufferLayout(space, batched_destination_ranks, batch_offsets,
-                          _permute, _destinations, _dest_offsets);
+                          _destinations, _dest_offsets);
 
     return preparePointToPointCommunication();
   }
