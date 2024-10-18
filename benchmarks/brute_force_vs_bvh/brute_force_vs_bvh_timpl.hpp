@@ -75,43 +75,43 @@ template <int DIM, typename FloatingPoint>
 static void run_fp(int nprimitives, int nqueries, int nrepeats)
 {
   ExecutionSpace space{};
+
   Placeholder<DIM, FloatingPoint> primitives{nprimitives};
   Placeholder<DIM, FloatingPoint> predicates{nqueries};
+  using Point = ArborX::Point<DIM, FloatingPoint>;
 
   for (int i = 0; i < nrepeats; i++)
   {
     [[maybe_unused]] unsigned int out_count;
     {
       Kokkos::Timer timer;
-      ArborX::BoundingVolumeHierarchy bvh{
-          space, ArborX::Experimental::attach_indices(primitives)};
+      ArborX::BoundingVolumeHierarchy bvh{space, primitives};
 
-      Kokkos::View<int *, ExecutionSpace> indices("Benchmark::indices_ref", 0);
+      Kokkos::View<Point *, ExecutionSpace> values("Benchmark::values_ref", 0);
       Kokkos::View<int *, ExecutionSpace> offset("Benchmark::offset_ref", 0);
-      bvh.query(space, predicates, indices, offset);
+      bvh.query(space, predicates, values, offset);
 
       space.fence();
       double time = timer.seconds();
       if (i == 0)
         printf("Collisions: %.5f\n",
-               (float)(indices.extent(0)) / (nprimitives * nqueries));
+               (float)(values.extent(0)) / (nprimitives * nqueries));
       printf("Time BVH  : %lf\n", time);
-      out_count = indices.extent(0);
+      out_count = values.extent(0);
     }
 
     {
       Kokkos::Timer timer;
-      ArborX::BruteForce brute{
-          space, ArborX::Experimental::attach_indices(primitives)};
+      ArborX::BruteForce brute{space, primitives};
 
-      Kokkos::View<int *, ExecutionSpace> indices("Benchmark::indices", 0);
+      Kokkos::View<Point *, ExecutionSpace> values("Benchmark::values", 0);
       Kokkos::View<int *, ExecutionSpace> offset("Benchmark::offset", 0);
-      brute.query(space, predicates, indices, offset);
+      brute.query(space, predicates, values, offset);
 
       space.fence();
       double time = timer.seconds();
       printf("Time BF   : %lf\n", time);
-      assert(out_count == indices.extent(0));
+      assert(out_count == values.extent(0));
     }
   }
 }

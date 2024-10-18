@@ -23,6 +23,7 @@
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Sphere.hpp>
+#include <detail/ArborX_Iota.hpp>
 #include <detail/ArborX_PredicateHelpers.hpp>
 #include <detail/ArborX_Predicates.hpp>
 #include <misc/ArborX_Exception.hpp>
