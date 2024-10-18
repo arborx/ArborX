@@ -16,7 +16,7 @@
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <detail/ArborX_AccessTraits.hpp>
-#include <detail/ArborX_IndexableGetter.hpp>
+#include <detail/ArborX_Indexable.hpp>
 #include <detail/ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
 #include <detail/ArborX_InterpDetailsMovingLeastSquaresCoefficients.hpp>
 #include <detail/ArborX_InterpDetailsPolynomialBasis.hpp>

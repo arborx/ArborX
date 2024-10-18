@@ -11,7 +11,7 @@
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include <ArborX_LinearBVH.hpp>
 #include <detail/ArborX_AccessTraits.hpp>
-#include <detail/ArborX_IndexableGetter.hpp>
+#include <detail/ArborX_Indexable.hpp>
 
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
@@ -85,14 +85,16 @@ BOOST_AUTO_TEST_SUITE(IndexableGetterAccess)
 BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
 {
   // Test that the two-level wrapping Data -> AccessValues -> Indexables by
-  // using DefaultIndexableGetter works correctly.
+  // using default Indexable works correctly.
 
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
 
   using ArborX::Details::equals;
 
-  Kokkos::View<ArborX::Point<3> *, MemorySpace> points("Testing::points", 2);
+  using Point = ArborX::Point<3>;
+
+  Kokkos::View<Point *, MemorySpace> points("Testing::points", 2);
   auto points_host = Kokkos::create_mirror_view(points);
   points_host(0) = {-1, -1, -1};
   points_host(1) = {1, 1, 1};
@@ -100,18 +102,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
 
   ArborX::Box scene_bounding_box{{-1.f, -1.f, -1.f}, {1.f, 1.f, 1.f}};
 
-  using IndexableGetter = ArborX::Details::DefaultIndexableGetter;
-  IndexableGetter indexable_getter;
-
   {
     PointCloud<MemorySpace> points_cloud{points.data(), (int)points.size()};
 
     using Primitives = ArborX::Details::AccessValues<decltype(points_cloud),
                                                      ArborX::PrimitivesTag>;
+    using IndexableGetter =
+        ArborX::Experimental::Indexable<typename Primitives::value_type>;
+
     Primitives primitives(points_cloud);
 
-    ArborX::Details::Indexables<Primitives, IndexableGetter> indexables{
-        primitives, indexable_getter};
+    ArborX::Details::Indexables indexables{primitives, IndexableGetter{}};
 
     ArborX::Box<3> box;
     calculateBoundingBoxOfTheScene(ExecutionSpace{}, indexables, box);
@@ -124,10 +125,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
 
     using Primitives = ArborX::Details::AccessValues<decltype(points_cloud),
                                                      ArborX::PrimitivesTag>;
+    using IndexableGetter =
+        ArborX::Experimental::Indexable<typename Primitives::value_type>;
     Primitives primitives(points_cloud);
 
-    ArborX::Details::Indexables<Primitives, IndexableGetter> indexables{
-        primitives, indexable_getter};
+    ArborX::Details::Indexables indexables{primitives, IndexableGetter{}};
 
     ArborX::Box<3> box;
     calculateBoundingBoxOfTheScene(ExecutionSpace{}, indexables, box);

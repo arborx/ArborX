@@ -35,9 +35,10 @@ class DistributedTreeBase
 private:
   using MemorySpace = typename BottomTree::memory_space;
   using BoundingVolume = typename BottomTree::bounding_volume_type;
-  using TopTree =
-      BoundingVolumeHierarchy<MemorySpace, PairValueIndex<BoundingVolume, int>,
-                              Details::DefaultIndexableGetter, BoundingVolume>;
+  using TopTree = BoundingVolumeHierarchy<
+      MemorySpace, PairValueIndex<BoundingVolume, int>,
+      Experimental::Indexable<PairValueIndex<BoundingVolume, int>>,
+      BoundingVolume>;
 
   using bottom_tree_type = BottomTree;
   using top_tree_type = TopTree;
@@ -119,7 +120,7 @@ private:
 // NOTE: query() must be called as collective over all processes in the
 // communicator passed to the constructor
 template <typename MemorySpace, typename Value,
-          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename IndexableGetter = Experimental::Indexable<Value>,
           typename BoundingVolume = Box<
               GeometryTraits::dimension_v<
                   std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,

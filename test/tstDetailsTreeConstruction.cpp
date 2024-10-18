@@ -11,7 +11,7 @@
 #include "ArborXTest_LegacyTree.hpp"
 #include "ArborX_EnableDeviceTypes.hpp" // ARBORX_DEVICE_TYPES
 #include "ArborX_EnableViewComparison.hpp"
-#include <detail/ArborX_IndexableGetter.hpp>
+#include <detail/ArborX_Indexable.hpp>
 #include <detail/ArborX_MortonCode.hpp> // expandBits, morton32
 #include <detail/ArborX_Node.hpp>       // ROPE SENTINEL
 #include <detail/ArborX_TreeConstruction.hpp>
@@ -79,12 +79,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(assign_morton_codes, DeviceType,
   BOOST_TEST(ArborX::Details::equals(
       scene_host, {{{0.0, 0.0, 0.0}}, {{(float)N, (float)N, (float)N}}}));
 
-  LegacyValues<decltype(boxes), ArborX::Box<3>> values{boxes};
-  ArborX::Details::Indexables<decltype(values),
-                              ArborX::Details::DefaultIndexableGetter>
-      indexables{values, ArborX::Details::DefaultIndexableGetter{}};
+  using Values = LegacyValues<decltype(boxes), ArborX::Box<3>>;
+  Values values{boxes};
+  ArborX::Details::Indexables indexables{
+      values, ArborX::Experimental::Indexable<typename Values::value_type>{}};
 
-  // Test for a bug where missing move ref operator() in DefaultIndexableGetter
+  // Test for a bug where missing move ref operator() in default Indexable
   // results in a default initialized indexable used in scene box calucation.
   scene_host = {};
   ArborX::Details::TreeConstruction::calculateBoundingBoxOfTheScene(
@@ -169,11 +169,13 @@ void generateHierarchy(Primitives primitives, MortonCodes sorted_morton_codes,
 
   using BoundingVolume =
       typename InternalNodes::value_type::bounding_volume_type;
+  using Values = LegacyValues<Primitives, BoundingVolume>;
   BoundingVolume bounds;
   ArborX::Details::TreeConstruction::generateHierarchy(
-      space, LegacyValues<Primitives, BoundingVolume>{primitives},
-      ArborX::Details::DefaultIndexableGetter{}, permutation_indices,
-      sorted_morton_codes, leaf_nodes, internal_nodes, bounds);
+      space, Values{primitives},
+      ArborX::Experimental::Indexable<typename Values::value_type>{},
+      permutation_indices, sorted_morton_codes, leaf_nodes, internal_nodes,
+      bounds);
 }
 
 template <typename LeafNodes, typename InternalNodes>
