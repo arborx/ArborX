@@ -27,21 +27,11 @@ struct Segment
 };
 
 template <int DIM, typename Coordinate>
-#if KOKKOS_VERSION >= 40400
-KOKKOS_DEDUCTION_GUIDE
-#else
-KOKKOS_FUNCTION
-#endif
-    Segment(Point<DIM, Coordinate>, Point<DIM, Coordinate>)
-        -> Segment<DIM, Coordinate>;
+KOKKOS_DEDUCTION_GUIDE Segment(Point<DIM, Coordinate>, Point<DIM, Coordinate>)
+    -> Segment<DIM, Coordinate>;
 
 template <int N, typename T>
-#if KOKKOS_VERSION >= 40400
-KOKKOS_DEDUCTION_GUIDE
-#else
-KOKKOS_FUNCTION
-#endif
-Segment(T const (&)[N], T const (&)[N]) -> Segment<N, T>;
+KOKKOS_DEDUCTION_GUIDE Segment(T const (&)[N], T const (&)[N]) -> Segment<N, T>;
 
 } // namespace ArborX::Experimental
 

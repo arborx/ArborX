@@ -67,12 +67,7 @@ struct Box
 };
 
 template <typename T, std::size_t N>
-#if KOKKOS_VERSION >= 40400
-KOKKOS_DEDUCTION_GUIDE
-#else
-KOKKOS_FUNCTION
-#endif
-Box(T const (&)[N], T const (&)[N]) -> Box<N, T>;
+KOKKOS_DEDUCTION_GUIDE Box(T const (&)[N], T const (&)[N]) -> Box<N, T>;
 
 } // namespace ArborX
 

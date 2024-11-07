@@ -78,12 +78,8 @@ struct Indexables
 
 #ifdef KOKKOS_ENABLE_CXX17
 template <typename Values, typename IndexableGetter>
-#if KOKKOS_VERSION >= 40400
-KOKKOS_DEDUCTION_GUIDE
-#else
-KOKKOS_FUNCTION
-#endif
-    Indexables(Values, IndexableGetter) -> Indexables<Values, IndexableGetter>;
+KOKKOS_DEDUCTION_GUIDE Indexables(Values, IndexableGetter)
+    -> Indexables<Values, IndexableGetter>;
 #endif
 
 } // namespace Details

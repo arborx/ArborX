@@ -38,22 +38,12 @@ struct Point
 };
 
 template <typename T, typename... Ts>
-#if KOKKOS_VERSION >= 40400
-KOKKOS_DEDUCTION_GUIDE
-#else
-KOKKOS_FUNCTION
-#endif
-Point(T, Ts...)
+KOKKOS_DEDUCTION_GUIDE Point(T, Ts...)
     -> Point<sizeof...(Ts) + 1,
              std::enable_if_t<std::conjunction_v<std::is_same<T, Ts>...>, T>>;
 
 template <typename T, std::size_t N>
-#if KOKKOS_VERSION >= 40400
-KOKKOS_DEDUCTION_GUIDE
-#else
-KOKKOS_FUNCTION
-#endif
-Point(T const (&)[N])
+KOKKOS_DEDUCTION_GUIDE Point(T const (&)[N])
     -> Point<N, std::enable_if_t<std::is_floating_point_v<T>, T>>;
 
 } // namespace ArborX
