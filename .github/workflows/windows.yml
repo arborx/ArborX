@@ -24,7 +24,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         repository: kokkos/kokkos
-        ref: 4.4.00
+        ref: 4.6.00
         path: ${GITHUB_WORKSPACE}/../kokkos
     - name: Install Kokkos
       shell: bash
