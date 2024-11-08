@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
 
   ArborX::Box scene_bounding_box{{-1.f, -1.f, -1.f}, {1.f, 1.f, 1.f}};
 
-  using IndexableGetter = ArborX::Details::DefaultIndexableGetter;
+  using IndexableGetter = ArborX::Experimental::DefaultIndexableGetter;
   IndexableGetter indexable_getter;
 
   {

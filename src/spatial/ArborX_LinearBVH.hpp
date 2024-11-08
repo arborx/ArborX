@@ -49,7 +49,7 @@ struct HappyTreeFriends;
 } // namespace Details
 
 template <typename MemorySpace, typename Value,
-          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename IndexableGetter = Experimental::DefaultIndexableGetter,
           typename BoundingVolume = Box<
               GeometryTraits::dimension_v<
                   std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
@@ -179,7 +179,7 @@ KOKKOS_FUNCTION
         typename Details::AccessValues<Values, PrimitivesTag>::value_type>;
 
 template <typename MemorySpace, typename Value,
-          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename IndexableGetter = Experimental::DefaultIndexableGetter,
           typename BoundingVolume = Box<
               GeometryTraits::dimension_v<
                   std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,

@@ -16,7 +16,10 @@
 #include <detail/ArborX_AccessTraits.hpp>
 #include <detail/ArborX_PairValueIndex.hpp>
 
-namespace ArborX::Details
+namespace ArborX
+{
+
+namespace Experimental
 {
 
 struct DefaultIndexableGetter
@@ -52,6 +55,11 @@ struct DefaultIndexableGetter
   }
 };
 
+} // namespace Experimental
+
+namespace Details
+{
+
 template <typename Values, typename IndexableGetter>
 struct Indexables
 {
@@ -76,6 +84,8 @@ KOKKOS_FUNCTION
 #endif
     Indexables(Values, IndexableGetter) -> Indexables<Values, IndexableGetter>;
 
-} // namespace ArborX::Details
+} // namespace Details
+
+} // namespace ArborX
 
 #endif

@@ -31,7 +31,7 @@ namespace ArborX
 {
 
 template <typename MemorySpace, typename Value,
-          typename IndexableGetter = Details::DefaultIndexableGetter,
+          typename IndexableGetter = Experimental::DefaultIndexableGetter,
           typename BoundingVolume = Box<
               GeometryTraits::dimension_v<
                   std::decay_t<std::invoke_result_t<IndexableGetter, Value>>>,
