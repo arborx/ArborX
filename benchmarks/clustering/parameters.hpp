@@ -8,6 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
+#ifndef PARAMETERS_HPP
+#define PARAMETERS_HPP
 
 #include <string>
 
@@ -21,6 +23,7 @@ struct Parameters
   int cluster_min_size;
   int core_min_size;
   std::string dendrogram;
+  int dim;
   float eps;
   std::string filename;
   std::string filename_labels;
@@ -33,7 +36,6 @@ struct Parameters
   bool verify;
 };
 
-template <int DIM>
-bool run(Parameters const &params);
-
 } // namespace ArborXBenchmark
+
+#endif

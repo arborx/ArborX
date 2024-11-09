@@ -15,9 +15,12 @@
 #include <ArborX_Point.hpp>
 #include <misc/ArborX_Exception.hpp>
 
+#include <fstream>
 #include <iostream>
 #include <random>
 #include <vector>
+
+#include "parameters.hpp"
 
 using ArborX::Point;
 
@@ -49,6 +52,33 @@ std::vector<Point<DIM>> sampleData(std::vector<Point<DIM>> const &data,
       sampled_data[im++] = data[in];
   }
   return sampled_data;
+}
+
+static int getDataDimension(std::string const &filename, bool binary)
+{
+  std::ifstream input;
+  if (!binary)
+    input.open(filename);
+  else
+    input.open(filename, std::ifstream::binary);
+  if (!input.good())
+    throw std::runtime_error("Error reading file \"" + filename + "\"");
+
+  int num_points;
+  int dim;
+  if (!binary)
+  {
+    input >> num_points;
+    input >> dim;
+  }
+  else
+  {
+    input.read(reinterpret_cast<char *>(&num_points), sizeof(int));
+    input.read(reinterpret_cast<char *>(&dim), sizeof(int));
+  }
+  input.close();
+
+  return dim;
 }
 
 template <int DIM>
@@ -296,6 +326,43 @@ std::vector<Point<DIM>> GanTao(int n, bool variable_density = false,
   std::cout << "Generated " << n << " " << DIM << "D points" << std::endl;
 
   return points;
+}
+
+template <typename... P, typename T>
+auto vec2view(std::vector<T> const &in, std::string const &label = "")
+{
+  Kokkos::View<T *, P...> out(
+      Kokkos::view_alloc(label, Kokkos::WithoutInitializing), in.size());
+  Kokkos::deep_copy(out, Kokkos::View<T const *, Kokkos::HostSpace,
+                                      Kokkos::MemoryTraits<Kokkos::Unmanaged>>{
+                             in.data(), in.size()});
+  return out;
+}
+
+template <int DIM, typename MemorySpace>
+auto loadData(ArborXBenchmark::Parameters const &params)
+{
+  if (!params.filename.empty())
+  {
+    // Read in data
+    printf("filename          : %s [%s, max_pts = %d]\n",
+           params.filename.c_str(), (params.binary ? "binary" : "text"),
+           params.max_num_points);
+    printf("samples           : %d\n", params.num_samples);
+    return vec2view<MemorySpace>(loadData<DIM>(params.filename, params.binary,
+                                               params.max_num_points,
+                                               params.num_samples),
+                                 "Benchmark::primitives");
+  }
+  else
+  {
+    // Generate data
+    int dim = params.dim;
+    printf("generator         : n = %d, dim = %d, density = %s\n", params.n,
+           dim, (params.variable_density ? "variable" : "constant"));
+    return vec2view<MemorySpace>(GanTao<DIM>(params.n, params.variable_density),
+                                 "Benchmark::primitives");
+  }
 }
 
 #endif
