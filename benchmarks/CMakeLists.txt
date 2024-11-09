@@ -30,7 +30,7 @@ else()
 ENDIF()
 
 add_subdirectory(brute_force_vs_bvh)
-add_subdirectory(dbscan)
+add_subdirectory(clustering)
 add_subdirectory(execution_space_instances)
 if(NOT WIN32)
   # FIXME: for now, skip the benchmarks using Google benchmark
