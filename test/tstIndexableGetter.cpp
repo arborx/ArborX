@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
 
   ArborX::Box scene_bounding_box{{-1.f, -1.f, -1.f}, {1.f, 1.f, 1.f}};
 
-  using IndexableGetter = ArborX::Details::DefaultIndexableGetter;
+  using IndexableGetter = ArborX::Experimental::DefaultIndexableGetter;
   IndexableGetter indexable_getter;
 
   {
@@ -110,8 +110,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
                                                      ArborX::PrimitivesTag>;
     Primitives primitives(points_cloud);
 
-    ArborX::Details::Indexables<Primitives, IndexableGetter> indexables{
-        primitives, indexable_getter};
+    ArborX::Details::Indexables indexables{primitives, indexable_getter};
 
     ArborX::Box<3> box;
     calculateBoundingBoxOfTheScene(ExecutionSpace{}, indexables, box);
@@ -126,8 +125,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indexables, DeviceType, ARBORX_DEVICE_TYPES)
                                                      ArborX::PrimitivesTag>;
     Primitives primitives(points_cloud);
 
-    ArborX::Details::Indexables<Primitives, IndexableGetter> indexables{
-        primitives, indexable_getter};
+    ArborX::Details::Indexables indexables{primitives, indexable_getter};
 
     ArborX::Box<3> box;
     calculateBoundingBoxOfTheScene(ExecutionSpace{}, indexables, box);

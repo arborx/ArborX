@@ -80,9 +80,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(assign_morton_codes, DeviceType,
       scene_host, {{{0.0, 0.0, 0.0}}, {{(float)N, (float)N, (float)N}}}));
 
   LegacyValues<decltype(boxes), ArborX::Box<3>> values{boxes};
-  ArborX::Details::Indexables<decltype(values),
-                              ArborX::Details::DefaultIndexableGetter>
-      indexables{values, ArborX::Details::DefaultIndexableGetter{}};
+  ArborX::Details::Indexables indexables{
+      values, ArborX::Experimental::DefaultIndexableGetter{}};
 
   // Test for a bug where missing move ref operator() in DefaultIndexableGetter
   // results in a default initialized indexable used in scene box calucation.
@@ -172,7 +171,7 @@ void generateHierarchy(Primitives primitives, MortonCodes sorted_morton_codes,
   BoundingVolume bounds;
   ArborX::Details::TreeConstruction::generateHierarchy(
       space, LegacyValues<Primitives, BoundingVolume>{primitives},
-      ArborX::Details::DefaultIndexableGetter{}, permutation_indices,
+      ArborX::Experimental::DefaultIndexableGetter{}, permutation_indices,
       sorted_morton_codes, leaf_nodes, internal_nodes, bounds);
 }
 

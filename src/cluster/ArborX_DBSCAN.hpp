@@ -302,8 +302,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
     Box bounds;
     Details::TreeConstruction::calculateBoundingBoxOfTheScene(
         exec_space,
-        Details::Indexables<Points, Details::DefaultIndexableGetter>{
-            points, Details::DefaultIndexableGetter{}},
+        Details::Indexables{points, Experimental::DefaultIndexableGetter{}},
         bounds);
 
     // The cell length is chosen to be eps/sqrt(dimension), so that any two
