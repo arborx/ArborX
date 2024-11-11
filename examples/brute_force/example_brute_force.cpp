@@ -23,19 +23,12 @@ struct Dummy
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
 using MemorySpace = ExecutionSpace::memory_space;
 
-template <typename MemorySpace, typename Index = int>
+template <typename MemorySpace>
 struct Iota
 {
+  static_assert(Kokkos::is_memory_space_v<MemorySpace>);
   using memory_space = MemorySpace;
-  using index_type = Index;
-
-  size_t _n;
-
-  template <typename T,
-            typename Enable = std::enable_if_t<std::is_integral_v<T>>>
-  Iota(T n)
-      : _n(n)
-  {}
+  int _n;
 };
 
 template <typename MemorySpace>
@@ -45,10 +38,7 @@ struct ArborX::AccessTraits<Iota<MemorySpace>, ArborX::PrimitivesTag>
 
   using memory_space = typename Self::memory_space;
   static KOKKOS_FUNCTION size_t size(Self const &self) { return self._n; }
-  static KOKKOS_FUNCTION auto get(Self const &, size_t i)
-  {
-    return (typename Self::index_type)i;
-  }
+  static KOKKOS_FUNCTION auto get(Self const &, int i) { return i; }
 };
 
 struct DummyIndexableGetter

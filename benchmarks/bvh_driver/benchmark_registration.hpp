@@ -32,19 +32,12 @@ struct is_boost_rtree<BoostExt::RTree<Geometry>> : std::true_type
 template <typename Geometry>
 inline constexpr bool is_boost_rtree_v = is_boost_rtree<Geometry>::value;
 
-template <typename MemorySpace, typename Index = int>
+template <typename MemorySpace>
 struct Iota
 {
+  static_assert(Kokkos::is_memory_space_v<MemorySpace>);
   using memory_space = MemorySpace;
-  using index_type = Index;
-
-  size_t _n;
-
-  template <typename T,
-            typename Enable = std::enable_if_t<std::is_integral_v<T>>>
-  Iota(T n)
-      : _n(n)
-  {}
+  int _n;
 };
 
 template <typename MemorySpace>
@@ -54,10 +47,7 @@ struct ArborX::AccessTraits<Iota<MemorySpace>, ArborX::PrimitivesTag>
 
   using memory_space = typename Self::memory_space;
   static KOKKOS_FUNCTION size_t size(Self const &self) { return self._n; }
-  static KOKKOS_FUNCTION auto get(Self const &, size_t i)
-  {
-    return (typename Self::index_type)i;
-  }
+  static KOKKOS_FUNCTION auto get(Self const &, int i) { return i; }
 };
 
 struct Spec
@@ -164,7 +154,8 @@ auto makeTree(ExecutionSpace const &space, Primitives const &primitives)
     return TreeType(space, primitives);
   else
     return TreeType(space,
-                    Iota<typename TreeType::memory_space>{primitives.size()},
+                    Iota<typename TreeType::memory_space>{
+                        static_cast<int>(primitives.size())},
                     primitives);
 }
 
