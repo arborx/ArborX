@@ -50,18 +50,20 @@ int main(int argc, char *argv[])
 
   ExecutionSpace space;
 
+  using Value = ArborX::PairValueIndex<Box>;
+
   ArborX::BoundingVolumeHierarchy const tree(
       space, ArborX::Experimental::attach_indices(boxes));
 
-  // The query will resize indices and offsets accordingly
-  Kokkos::View<int *, MemorySpace> indices("Example::indices", 0);
+  // The query will resize values and offsets accordingly
+  Kokkos::View<Value *, MemorySpace> values("Example::values", 0);
   Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
-  tree.query(space, queries, indices, offsets);
+  tree.query(space, queries, values, offsets);
 
   auto offsets_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets);
-  auto indices_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
+  auto values_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values);
 
   // Expected output:
   //   offsets: 0 1 2 6
@@ -70,10 +72,10 @@ int main(int argc, char *argv[])
   std::cout << "offsets: ";
   std::copy(offsets_host.data(), offsets_host.data() + offsets.size(),
             std::ostream_iterator<int>(std::cout, " "));
-  std::cout << "\nindices: ";
-  std::copy(indices_host.data(), indices_host.data() + indices.size(),
-            std::ostream_iterator<int>(std::cout, " "));
-  std::cout << "\n";
+  std::cout << "\nindices:";
+  for (int i = 0; i < values_host.extent_int(0); ++i)
+    std::cout << " " << values_host(i).index;
+  std::cout << '\n';
 
   return 0;
 }

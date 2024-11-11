@@ -276,6 +276,16 @@ bool verifyClusters(ExecutionSpace const &exec_space, IndicesView indices,
   });
 }
 
+struct IndexOnlyCallback
+{
+  template <typename Query, typename Value, typename Output>
+  KOKKOS_FUNCTION auto operator()(Query const &, Value const &value,
+                                  Output const &out) const
+  {
+    out(value.index);
+  }
+};
+
 template <typename ExecutionSpace, typename Primitives, typename LabelsView>
 bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
                   float eps, int core_min_size, LabelsView const &labels)
@@ -301,12 +311,10 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   ArborX::BoundingVolumeHierarchy bvh(
       exec_space, ArborX::Experimental::attach_indices(points));
 
-  auto const predicates = ArborX::Experimental::attach_indices(
-      ArborX::Experimental::make_intersects(points, eps));
-
   Kokkos::View<int *, MemorySpace> indices("ArborX::DBSCAN::indices", 0);
   Kokkos::View<int *, MemorySpace> offset("ArborX::DBSCAN::offset", 0);
-  ArborX::query(bvh, exec_space, predicates, indices, offset);
+  bvh.query(exec_space, ArborX::Experimental::make_intersects(points, eps),
+            IndexOnlyCallback{}, indices, offset);
 
   auto passed = Details::verifyClusters(exec_space, indices, offset, labels,
                                         core_min_size);
@@ -314,6 +322,7 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
 
   return passed;
 }
+
 } // namespace Details
 } // namespace ArborX
 

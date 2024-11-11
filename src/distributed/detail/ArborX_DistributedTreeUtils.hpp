@@ -14,6 +14,7 @@
 #include <ArborX_Config.hpp>
 
 #include <detail/ArborX_Distributor.hpp>
+#include <detail/ArborX_PairValueIndex.hpp>
 #include <kokkos_ext/ArborX_KokkosExtSort.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
@@ -334,6 +335,17 @@ void filterResults(ExecutionSpace const &space, Predicates const &queries,
   values = new_values;
   offset = new_offset;
 }
+
+struct IndexOnlyCallback
+{
+  template <typename Query, typename Value, typename Index, typename Output>
+  KOKKOS_FUNCTION auto operator()(Query const &,
+                                  PairValueIndex<Value, Index> const &value,
+                                  Output const &out) const
+  {
+    out(value.index);
+  }
+};
 
 } // namespace ArborX::Details::DistributedTree
 

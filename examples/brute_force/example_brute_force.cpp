@@ -23,13 +23,31 @@ struct Dummy
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
 using MemorySpace = ExecutionSpace::memory_space;
 
-template <>
-struct ArborX::AccessTraits<Dummy, ArborX::PrimitivesTag>
+template <typename MemorySpace>
+struct Iota
 {
+  static_assert(Kokkos::is_memory_space_v<MemorySpace>);
   using memory_space = MemorySpace;
-  using size_type = typename MemorySpace::size_type;
-  static KOKKOS_FUNCTION size_type size(Dummy const &d) { return d.count; }
-  static KOKKOS_FUNCTION auto get(Dummy const &, size_type i)
+  int _n;
+};
+
+template <typename MemorySpace>
+struct ArborX::AccessTraits<Iota<MemorySpace>, ArborX::PrimitivesTag>
+{
+  using Self = Iota<MemorySpace>;
+
+  using memory_space = typename Self::memory_space;
+  static KOKKOS_FUNCTION size_t size(Self const &self) { return self._n; }
+  static KOKKOS_FUNCTION auto get(Self const &, int i) { return i; }
+};
+
+struct DummyIndexableGetter
+{
+  int count;
+
+  using memory_space = MemorySpace;
+  KOKKOS_FUNCTION auto size() const { return count; }
+  KOKKOS_FUNCTION auto operator()(int i) const
   {
     return ArborX::Point{(float)i, (float)i, (float)i};
   }
@@ -69,13 +87,13 @@ int main(int argc, char *argv[])
   int nprimitives = 5;
   int npredicates = 5;
 
-  Dummy primitives{nprimitives};
+  Iota<MemorySpace> primitives{nprimitives};
+  DummyIndexableGetter indexable_getter{nprimitives};
   Dummy predicates{npredicates};
 
   unsigned int out_count;
   {
-    ArborX::BoundingVolumeHierarchy bvh{
-        space, ArborX::Experimental::attach_indices(primitives)};
+    ArborX::BoundingVolumeHierarchy bvh{space, primitives, indexable_getter};
 
     Kokkos::View<int *, ExecutionSpace> indices("Example::indices_ref", 0);
     Kokkos::View<int *, ExecutionSpace> offset("Example::offset_ref", 0);
@@ -88,8 +106,7 @@ int main(int argc, char *argv[])
   }
 
   {
-    ArborX::BruteForce brute{space,
-                             ArborX::Experimental::attach_indices(primitives)};
+    ArborX::BruteForce brute{space, primitives, indexable_getter};
 
     Kokkos::View<int *, ExecutionSpace> indices("Example::indices", 0);
     Kokkos::View<int *, ExecutionSpace> offset("Example::offset", 0);
