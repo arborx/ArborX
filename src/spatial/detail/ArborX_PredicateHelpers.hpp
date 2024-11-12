@@ -25,7 +25,7 @@ namespace Experimental
 template <typename UserPrimitives>
 class PrimitivesIntersect
 {
-  using Primitives = Details::AccessValues<UserPrimitives, PrimitivesTag>;
+  using Primitives = Details::AccessValues<UserPrimitives>;
   // FIXME:
   // using Geometry = typename Primitives::value_type;
   // static_assert(GeometryTraits::is_valid_geometry<Geometry>{});
@@ -37,7 +37,7 @@ public:
 template <typename UserPrimitives>
 class PrimitivesOrderedIntersect
 {
-  using Primitives = Details::AccessValues<UserPrimitives, PrimitivesTag>;
+  using Primitives = Details::AccessValues<UserPrimitives>;
 
 public:
   Primitives _primitives;
@@ -46,7 +46,7 @@ public:
 template <typename UserPrimitives>
 class PrimitivesWithRadius
 {
-  using Primitives = Details::AccessValues<UserPrimitives, PrimitivesTag>;
+  using Primitives = Details::AccessValues<UserPrimitives>;
   using Point = typename Primitives::value_type;
   static_assert(GeometryTraits::is_point<Point>::value);
   using Coordinate = typename GeometryTraits::coordinate_type<Point>::type;
@@ -64,7 +64,7 @@ public:
 template <class UserPrimitives>
 class PrimitivesNearestK
 {
-  using Primitives = Details::AccessValues<UserPrimitives, PrimitivesTag>;
+  using Primitives = Details::AccessValues<UserPrimitives>;
   // FIXME:
   // using Geometry = typename Primitives::value_type;
   // static_assert(GeometryTraits::is_valid_geometry<Geometry>{});
@@ -77,39 +77,35 @@ public:
 template <typename Primitives>
 auto make_intersects(Primitives const &primitives)
 {
-  Details::check_valid_access_traits(PrimitivesTag{}, primitives,
-                                     Details::DoNotCheckGetReturnType());
+  Details::check_valid_access_traits(primitives);
   return PrimitivesIntersect<Primitives>{primitives};
 }
 
 template <typename Primitives, typename Coordinate>
 auto make_intersects(Primitives const &primitives, Coordinate r)
 {
-  Details::check_valid_access_traits(PrimitivesTag{}, primitives);
+  Details::check_valid_access_traits(primitives);
   return PrimitivesWithRadius<Primitives>(primitives, r);
 }
 
 template <typename Primitives>
 auto make_ordered_intersects(Primitives const &primitives)
 {
-  Details::check_valid_access_traits(PrimitivesTag{}, primitives,
-                                     Details::DoNotCheckGetReturnType());
+  Details::check_valid_access_traits(primitives);
   return PrimitivesOrderedIntersect<Primitives>{primitives};
 }
 
 template <typename Primitives>
 auto make_nearest(Primitives const &primitives, int k)
 {
-  Details::check_valid_access_traits(PrimitivesTag{}, primitives,
-                                     Details::DoNotCheckGetReturnType());
+  Details::check_valid_access_traits(primitives);
   return PrimitivesNearestK<Primitives>{primitives, k};
 }
 
 } // namespace Experimental
 
 template <class Primitives>
-struct AccessTraits<Experimental::PrimitivesIntersect<Primitives>,
-                    PredicatesTag>
+struct AccessTraits<Experimental::PrimitivesIntersect<Primitives>>
 {
 private:
   using Self = Experimental::PrimitivesIntersect<Primitives>;
@@ -129,8 +125,7 @@ public:
 };
 
 template <class Primitives>
-struct AccessTraits<Experimental::PrimitivesOrderedIntersect<Primitives>,
-                    PredicatesTag>
+struct AccessTraits<Experimental::PrimitivesOrderedIntersect<Primitives>>
 {
 private:
   using Self = Experimental::PrimitivesOrderedIntersect<Primitives>;
@@ -150,8 +145,7 @@ public:
 };
 
 template <class Primitives>
-struct AccessTraits<Experimental::PrimitivesWithRadius<Primitives>,
-                    PredicatesTag>
+struct AccessTraits<Experimental::PrimitivesWithRadius<Primitives>>
 {
 private:
   using Self = Experimental::PrimitivesWithRadius<Primitives>;
@@ -176,7 +170,7 @@ public:
 };
 
 template <class Primitives>
-struct AccessTraits<Experimental::PrimitivesNearestK<Primitives>, PredicatesTag>
+struct AccessTraits<Experimental::PrimitivesNearestK<Primitives>>
 {
 private:
   using Self = Experimental::PrimitivesNearestK<Primitives>;

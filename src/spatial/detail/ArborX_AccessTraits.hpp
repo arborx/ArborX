@@ -21,13 +21,7 @@
 namespace ArborX
 {
 
-struct PrimitivesTag
-{};
-
-struct PredicatesTag
-{};
-
-template <typename T, typename Tag, typename Enable = void>
+template <typename T, typename Enable = void>
 struct AccessTraits
 {
   using not_specialized = void; // tag to detect existence of a specialization
@@ -37,9 +31,9 @@ template <typename Traits>
 using AccessTraitsNotSpecializedArchetypeAlias =
     typename Traits::not_specialized;
 
-template <typename View, typename Tag>
+template <typename View>
 struct AccessTraits<
-    View, Tag, std::enable_if_t<Kokkos::is_view<View>{} && View::rank() == 1>>
+    View, std::enable_if_t<Kokkos::is_view<View>{} && View::rank() == 1>>
 {
   // Returns a const reference
   KOKKOS_FUNCTION static typename View::const_value_type &get(View const &v,
@@ -54,9 +48,9 @@ struct AccessTraits<
   using memory_space = typename View::memory_space;
 };
 
-template <typename View, typename Tag>
+template <typename View>
 struct AccessTraits<
-    View, Tag, std::enable_if_t<Kokkos::is_view<View>{} && View::rank() == 2>>
+    View, std::enable_if_t<Kokkos::is_view<View>{} && View::rank() == 2>>
 {
   template <std::size_t... Is>
   KOKKOS_FUNCTION static auto getPoint(std::index_sequence<Is...>,
@@ -101,63 +95,23 @@ using AccessTraitsGetArchetypeExpression =
 template <typename P>
 using PredicateTagArchetypeAlias = typename P::Tag;
 
-template <typename Predicates>
-void check_valid_access_traits(PredicatesTag, Predicates const &)
-{
-  using Access = AccessTraits<Predicates, PredicatesTag>;
-  static_assert(
-      !Kokkos::is_detected<AccessTraitsNotSpecializedArchetypeAlias, Access>{},
-      "Must specialize 'AccessTraits<Predicates,PredicatesTag>'");
-
-  static_assert(
-      Kokkos::is_detected<AccessTraitsMemorySpaceArchetypeAlias, Access>{},
-      "AccessTraits<Predicates,PredicatesTag> must define 'memory_space' "
-      "member type");
-  static_assert(
-      Kokkos::is_memory_space<
-          Kokkos::detected_t<AccessTraitsMemorySpaceArchetypeAlias, Access>>{},
-      "'memory_space' member type must be a valid Kokkos memory space");
-
-  static_assert(
-      Kokkos::is_detected<AccessTraitsSizeArchetypeExpression, Access,
-                          Predicates>{},
-      "AccessTraits<Predicates,PredicatesTag> must define 'size()' static "
-      "member function");
-  static_assert(
-      std::is_integral<Kokkos::detected_t<AccessTraitsSizeArchetypeExpression,
-                                          Access, Predicates>>{},
-      "size() static member function return type is not an integral type");
-
-  static_assert(
-      Kokkos::is_detected<AccessTraitsGetArchetypeExpression, Access,
-                          Predicates>{},
-      "AccessTraits<Predicates,PredicatesTag> must define 'get()' static "
-      "member function");
-
-  using Predicate =
-      std::decay_t<Kokkos::detected_t<AccessTraitsGetArchetypeExpression,
-                                      Access, Predicates>>;
-  using Tag = Kokkos::detected_t<PredicateTagArchetypeAlias, Predicate>;
-  static_assert(is_valid_predicate_tag<Tag>::value,
-                "Invalid tag for the predicates");
-}
-
-struct DoNotCheckGetReturnType : std::false_type
+struct DoNotCheckReturnTypeTag
 {};
 
-template <typename Primitives, typename CheckGetReturnType = std::true_type>
-void check_valid_access_traits(PrimitivesTag, Primitives const &,
-                               CheckGetReturnType = {})
+struct CheckReturnTypeTag
+{};
+
+template <typename Values, typename Tag = DoNotCheckReturnTypeTag>
+void check_valid_access_traits(Values const &, Tag = {})
 {
-  using Access = AccessTraits<Primitives, PrimitivesTag>;
+  using Access = AccessTraits<Values>;
   static_assert(
       !Kokkos::is_detected<AccessTraitsNotSpecializedArchetypeAlias, Access>{},
-      "Must specialize 'AccessTraits<Primitives,PrimitivesTag>'");
+      "Must specialize 'AccessTraits<Values>'");
 
   static_assert(
       Kokkos::is_detected<AccessTraitsMemorySpaceArchetypeAlias, Access>{},
-      "AccessTraits<Primitives,PrimitivesTag> must define 'memory_space' "
-      "member type");
+      "AccessTraits<Values> must define 'memory_space' member type");
   static_assert(
       Kokkos::is_memory_space<
           Kokkos::detected_t<AccessTraitsMemorySpaceArchetypeAlias, Access>>{},
@@ -165,34 +119,37 @@ void check_valid_access_traits(PrimitivesTag, Primitives const &,
 
   static_assert(
       Kokkos::is_detected<AccessTraitsSizeArchetypeExpression, Access,
-                          Primitives>{},
-      "AccessTraits<Primitives,PrimitivesTag> must define 'size()' static "
-      "member function");
+                          Values>{},
+      "AccessTraits<Values> must define 'size()' static member function");
   static_assert(
       std::is_integral<Kokkos::detected_t<AccessTraitsSizeArchetypeExpression,
-                                          Access, Primitives>>{},
+                                          Access, Values>>{},
       "size() static member function return type is not an integral type");
 
   static_assert(
-      Kokkos::is_detected<AccessTraitsGetArchetypeExpression, Access,
-                          Primitives>{},
-      "AccessTraits<Primitives,PrimitivesTag> must define 'get()' static "
-      "member function");
-  using T = std::decay_t<Kokkos::detected_t<AccessTraitsGetArchetypeExpression,
-                                            Access, Primitives>>;
-  if constexpr (CheckGetReturnType())
+      Kokkos::is_detected<AccessTraitsGetArchetypeExpression, Access, Values>{},
+      "AccessTraits<Values> must define 'get()' static member function");
+  static_assert(
+      !std::is_void_v<Kokkos::detected_t<AccessTraitsGetArchetypeExpression,
+                                         Access, Values>>,
+      "get() static member function return type must not be void");
+
+  if constexpr (std::is_same_v<Tag, CheckReturnTypeTag>)
   {
-    static_assert(GeometryTraits::is_point_v<T> || GeometryTraits::is_box_v<T>,
-                  "AccessTraits<Primitives,PrimitivesTag>::get() return type "
-                  "must decay to a point or a box type");
+    using Predicate = std::decay_t<
+        Kokkos::detected_t<AccessTraitsGetArchetypeExpression, Access, Values>>;
+    using PredicateTag =
+        Kokkos::detected_t<PredicateTagArchetypeAlias, Predicate>;
+    static_assert(is_valid_predicate_tag<PredicateTag>::value,
+                  "Invalid tag for the predicates");
   }
 }
 
-template <typename Values, typename Tag>
+template <typename Values>
 class AccessValuesI
 {
 private:
-  using Access = AccessTraits<Values, Tag>;
+  using Access = AccessTraits<Values>;
   Values _values;
 
 public:
@@ -209,32 +166,29 @@ public:
   KOKKOS_FUNCTION
   auto size() const { return Access::size(_values); }
 
-  using self_type = AccessValuesI<Values, Tag>;
+  using self_type = AccessValuesI<Values>;
 };
 
-template <typename D, typename... P, typename Tag>
-class AccessValuesI<Kokkos::View<D, P...>, Tag> : public Kokkos::View<D, P...>
+template <typename D, typename... P>
+class AccessValuesI<Kokkos::View<D, P...>> : public Kokkos::View<D, P...>
 {
 public:
   using self_type = Kokkos::View<D, P...>;
 };
 
-template <typename Values, typename Tag1, typename Tag2>
-class AccessValuesI<AccessValuesI<Values, Tag1>, Tag2>
-    : public AccessValuesI<Values, Tag1>
-{
-  static_assert(std::is_same_v<Tag1, Tag2>);
-};
+template <typename Values>
+class AccessValuesI<AccessValuesI<Values>> : public AccessValuesI<Values>
+{};
 
-template <typename Values, typename Tag>
-using AccessValues = typename AccessValuesI<Values, Tag>::self_type;
+template <typename Values>
+using AccessValues = typename AccessValuesI<Values>::self_type;
 
 } // namespace Details
 
-template <typename Values, typename Tag>
-struct AccessTraits<Details::AccessValuesI<Values, Tag>, Tag>
+template <typename Values>
+struct AccessTraits<Details::AccessValuesI<Values>>
 {
-  using AccessValues = Details::AccessValuesI<Values, Tag>;
+  using AccessValues = Details::AccessValuesI<Values>;
 
   using memory_space = typename AccessValues::memory_space;
 

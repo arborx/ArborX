@@ -27,7 +27,7 @@ struct Iota
 };
 
 template <typename MemorySpace>
-struct ArborX::AccessTraits<Iota<MemorySpace>, ArborX::PrimitivesTag>
+struct ArborX::AccessTraits<Iota<MemorySpace>>
 {
   using Self = Iota<MemorySpace>;
 

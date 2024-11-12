@@ -294,7 +294,7 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
 
   static_assert(Kokkos::is_view<LabelsView>{});
 
-  using Points = Details::AccessValues<Primitives, PrimitivesTag>;
+  using Points = Details::AccessValues<Primitives>;
   using MemorySpace = typename Points::memory_space;
 
   static_assert(std::is_same<typename LabelsView::value_type, int>{});

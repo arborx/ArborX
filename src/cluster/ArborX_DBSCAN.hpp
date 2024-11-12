@@ -96,8 +96,7 @@ struct MixedBoxPrimitives
 
 template <typename Primitives, typename PermuteFilter>
 struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
-                        Primitives, PermuteFilter>,
-                    PredicatesTag>
+    Primitives, PermuteFilter>>
 {
   using memory_space = typename Primitives::memory_space;
   using Predicates =
@@ -125,8 +124,7 @@ struct AccessTraits<Details::PrimitivesWithRadiusReorderedAndFiltered<
 template <typename Points, typename MixedOffsets, typename CellIndices,
           typename Permutation>
 struct AccessTraits<
-    Details::MixedBoxPrimitives<Points, MixedOffsets, CellIndices, Permutation>,
-    ArborX::PrimitivesTag>
+    Details::MixedBoxPrimitives<Points, MixedOffsets, CellIndices, Permutation>>
 {
   using Primitives = Details::MixedBoxPrimitives<Points, MixedOffsets,
                                                  CellIndices, Permutation>;
@@ -200,8 +198,7 @@ struct Parameters
 } // namespace DBSCAN
 
 template <typename ExecutionSpace, typename Primitives>
-Kokkos::View<int *,
-             typename AccessTraits<Primitives, PrimitivesTag>::memory_space>
+Kokkos::View<int *, typename AccessTraits<Primitives>::memory_space>
 dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
        float eps, int core_min_size,
        DBSCAN::Parameters const &parameters = DBSCAN::Parameters())
@@ -210,7 +207,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
   namespace KokkosExt = ArborX::Details::KokkosExt;
 
-  using Points = Details::AccessValues<Primitives, PrimitivesTag>;
+  using Points = Details::AccessValues<Primitives>;
   using MemorySpace = typename Points::memory_space;
 
   static_assert(

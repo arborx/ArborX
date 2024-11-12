@@ -78,7 +78,7 @@ public:
         check_valid_callback_if_first_argument_is_not_a_view<value_type>(
             callback_or_view, user_predicates, view);
 
-    using Predicates = Details::AccessValues<UserPredicates, PredicatesTag>;
+    using Predicates = Details::AccessValues<UserPredicates>;
     using Tag = typename Predicates::value_type::Tag;
 
     Details::CrsGraphWrapperImpl::queryDispatch(
@@ -105,9 +105,9 @@ KOKKOS_DEDUCTION_GUIDE
 #else
 KOKKOS_FUNCTION
 #endif
-    BruteForce(ExecutionSpace, Values) -> BruteForce<
-        typename Details::AccessValues<Values, PrimitivesTag>::memory_space,
-        typename Details::AccessValues<Values, PrimitivesTag>::value_type>;
+    BruteForce(ExecutionSpace, Values)
+        -> BruteForce<typename Details::AccessValues<Values>::memory_space,
+                      typename Details::AccessValues<Values>::value_type>;
 
 template <typename ExecutionSpace, typename Values, typename IndexableGetter>
 #if KOKKOS_VERSION >= 40400
@@ -115,10 +115,10 @@ KOKKOS_DEDUCTION_GUIDE
 #else
 KOKKOS_FUNCTION
 #endif
-    BruteForce(ExecutionSpace, Values, IndexableGetter) -> BruteForce<
-        typename Details::AccessValues<Values, PrimitivesTag>::memory_space,
-        typename Details::AccessValues<Values, PrimitivesTag>::value_type,
-        IndexableGetter>;
+    BruteForce(ExecutionSpace, Values, IndexableGetter)
+        -> BruteForce<typename Details::AccessValues<Values>::memory_space,
+                      typename Details::AccessValues<Values>::value_type,
+                      IndexableGetter>;
 
 template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
@@ -126,7 +126,7 @@ template <typename ExecutionSpace, typename UserValues>
 BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
     ExecutionSpace const &space, UserValues const &user_values,
     IndexableGetter const &indexable_getter)
-    : _size(AccessTraits<UserValues, PrimitivesTag>::size(user_values))
+    : _size(AccessTraits<UserValues>::size(user_values))
     , _values(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                                  "ArborX::BruteForce::values"),
               _size)
@@ -134,11 +134,9 @@ BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
 {
   static_assert(Details::KokkosExt::is_accessible_from<MemorySpace,
                                                        ExecutionSpace>::value);
-  // FIXME redo with RangeTraits
-  Details::check_valid_access_traits<UserValues>(
-      PrimitivesTag{}, user_values, Details::DoNotCheckGetReturnType());
+  Details::check_valid_access_traits<UserValues>(user_values);
 
-  using Values = Details::AccessValues<UserValues, PrimitivesTag>;
+  using Values = Details::AccessValues<UserValues>;
   Values values{user_values}; // NOLINT
 
   static_assert(
@@ -167,10 +165,11 @@ void BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::query(
 {
   static_assert(Details::KokkosExt::is_accessible_from<MemorySpace,
                                                        ExecutionSpace>::value);
-  Details::check_valid_access_traits(PredicatesTag{}, user_predicates);
+  Details::check_valid_access_traits(user_predicates,
+                                     Details::CheckReturnTypeTag{});
   Details::check_valid_callback<value_type>(callback, user_predicates);
 
-  using Predicates = Details::AccessValues<UserPredicates, PredicatesTag>;
+  using Predicates = Details::AccessValues<UserPredicates>;
   static_assert(
       Details::KokkosExt::is_accessible_from<typename Predicates::memory_space,
                                              ExecutionSpace>::value,

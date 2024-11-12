@@ -53,8 +53,8 @@ struct PermutedData<Data, Permute, /*AttachIndices=*/true>
   KOKKOS_FUNCTION auto size() const { return _data.size(); }
 };
 
-template <typename Data, typename Permute, bool AttachIndices, typename Tag>
-class AccessValuesI<PermutedData<Data, Permute, AttachIndices>, Tag>
+template <typename Data, typename Permute, bool AttachIndices>
+class AccessValuesI<PermutedData<Data, Permute, AttachIndices>>
     : public PermutedData<Data, Permute, AttachIndices>
 {
 public:
@@ -64,8 +64,7 @@ public:
 } // namespace Details
 
 template <typename Predicates, typename Permute, bool AttachIndices>
-struct AccessTraits<Details::PermutedData<Predicates, Permute, AttachIndices>,
-                    PredicatesTag>
+struct AccessTraits<Details::PermutedData<Predicates, Permute, AttachIndices>>
 {
   using PermutedPredicates =
       Details::PermutedData<Predicates, Permute, AttachIndices>;

@@ -23,44 +23,51 @@ using MemorySpace = ExecutionSpace::memory_space;
 
 namespace ArborXBenchmark
 {
-template <int DIM, typename FloatingPoint>
+struct PrimitivesTag
+{};
+struct PredicatesTag
+{};
+
+template <int DIM, typename FloatingPoint, typename Tag>
 struct Placeholder
 {
   int count;
 };
 } // namespace ArborXBenchmark
 
-// Primitives are a set of points located at (i, i, i),
-// with i = 0, ..., n-1
-template <int DIM, typename FloatingPoint>
-struct ArborX::AccessTraits<ArborXBenchmark::Placeholder<DIM, FloatingPoint>,
-                            ArborX::PrimitivesTag>
+template <int DIM, typename FloatingPoint, typename Tag>
+struct ArborX::AccessTraits<
+    ArborXBenchmark::Placeholder<DIM, FloatingPoint, Tag>>
 {
-  using Primitives = ArborXBenchmark::Placeholder<DIM, FloatingPoint>;
   using memory_space = MemorySpace;
   using size_type = typename MemorySpace::size_type;
-  static KOKKOS_FUNCTION size_type size(Primitives d) { return d.count; }
-  static KOKKOS_FUNCTION auto get(Primitives, size_type i)
+
+  static KOKKOS_FUNCTION size_type
+  size(ArborXBenchmark::Placeholder<DIM, FloatingPoint, Tag> d)
   {
+    return d.count;
+  }
+
+  static KOKKOS_FUNCTION auto
+  get(ArborXBenchmark::Placeholder<DIM, FloatingPoint,
+                                   ArborXBenchmark::PrimitivesTag>,
+      size_type i)
+  {
+    // Primitives are a set of points located at (i, i, i),
+    // with i = 0, ..., n-1
     ArborX::Point<DIM, FloatingPoint> point;
     for (int d = 0; d < DIM; ++d)
       point[d] = i;
     return point;
   }
-};
 
-// Predicates are sphere intersections with spheres of radius i
-// centered at (i, i, i), with i = 0, ..., n-1
-template <int DIM, typename FloatingPoint>
-struct ArborX::AccessTraits<ArborXBenchmark::Placeholder<DIM, FloatingPoint>,
-                            ArborX::PredicatesTag>
-{
-  using Predicates = ArborXBenchmark::Placeholder<DIM, FloatingPoint>;
-  using memory_space = MemorySpace;
-  using size_type = typename MemorySpace::size_type;
-  static KOKKOS_FUNCTION size_type size(Predicates d) { return d.count; }
-  static KOKKOS_FUNCTION auto get(Predicates, size_type i)
+  static KOKKOS_FUNCTION auto
+  get(ArborXBenchmark::Placeholder<DIM, FloatingPoint,
+                                   ArborXBenchmark::PredicatesTag>,
+      size_type i)
   {
+    // Predicates are sphere intersections with spheres of radius i
+    // centered at (i, i, i), with i = 0, ..., n-1
     ArborX::Point<DIM, FloatingPoint> center;
     for (int d = 0; d < DIM; ++d)
       center[d] = i;
@@ -76,8 +83,8 @@ static void run_fp(int nprimitives, int nqueries, int nrepeats)
 {
   ExecutionSpace space{};
 
-  Placeholder<DIM, FloatingPoint> primitives{nprimitives};
-  Placeholder<DIM, FloatingPoint> predicates{nqueries};
+  Placeholder<DIM, FloatingPoint, PrimitivesTag> primitives{nprimitives};
+  Placeholder<DIM, FloatingPoint, PredicatesTag> predicates{nqueries};
   using Point = ArborX::Point<DIM, FloatingPoint>;
 
   for (int i = 0; i < nrepeats; i++)
