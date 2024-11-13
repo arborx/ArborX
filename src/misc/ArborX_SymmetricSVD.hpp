@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef ARBORX_INTERP_SYMMETRIC_PSEUDO_INVERSE_SVD_HPP
-#define ARBORX_INTERP_SYMMETRIC_PSEUDO_INVERSE_SVD_HPP
+#ifndef ARBORX_SYMMETRIC_SVD_HPP
+#define ARBORX_SYMMETRIC_SVD_HPP
 
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
 #include <misc/ArborX_Exception.hpp>
@@ -18,7 +18,7 @@
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
 
-namespace ArborX::Interpolation::Details
+namespace ArborX::Details
 {
 
 template <typename Matrix>
@@ -77,18 +77,17 @@ KOKKOS_FUNCTION auto argmaxUpperTriangle(Matrix const &mat)
   return result;
 }
 
-// Pseudo-inverse of symmetric matrices using SVD
+// SVD of a symmetric matrix
 // We must find U, E (diagonal and positive) and V such that A = U.E.V^T
 // We also suppose, as the input, that A is symmetric, so U = SV where S is
 // a sign matrix (only 1 or -1 on the diagonal, 0 elsewhere).
-// Thus A = U.ES.U^T and A^-1 = U.[ ES^-1 ].U^T
+// Thus A = U.ES.U^T.
 //
 // mat <=> initial ES
 // diag <=> final ES
 // unit <=> U
 template <typename Matrix, typename Diag, typename Unit>
-KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
-                                                     Unit &unit)
+KOKKOS_FUNCTION void symmetricSVDKernel(Matrix &mat, Diag &diag, Unit &unit)
 {
   ensureIsSquareSymmetricMatrix(mat);
   static_assert(!std::is_const_v<typename Matrix::value_type>,
@@ -203,13 +202,34 @@ KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
     }
   }
 
+  for (int i = 0; i < size; i++)
+    diag(i) = mat(i, i);
+}
+
+// Pseudo-inverse of symmetric matrices using SVD
+// We must find U, E (diagonal and positive) and V such that A = U.E.V^T
+// We also suppose, as the input, that A is symmetric, so U = SV where S is
+// a sign matrix (only 1 or -1 on the diagonal, 0 elsewhere).
+// Thus A = U.ES.U^T and A^-1 = U.[ ES^-1 ].U^T
+//
+// mat <=> initial ES
+// diag <=> final ES
+// unit <=> U
+template <typename Matrix, typename Diag, typename Unit>
+KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
+                                                     Unit &unit)
+{
+  symmetricSVDKernel(mat, diag, unit);
+
+  int const size = mat.extent(0);
+
+  using Value = typename Matrix::non_const_value_type;
+  constexpr Value epsilon = Kokkos::Experimental::epsilon_v<float>;
+
   // We compute the max to get a range of the invertible eigenvalues
   auto max_eigen = epsilon;
   for (int i = 0; i < size; i++)
-  {
-    diag(i) = mat(i, i);
     max_eigen = Kokkos::max(Kokkos::abs(diag(i)), max_eigen);
-  }
   auto const threshold = max_eigen * epsilon;
 
   // We invert the diagonal of 'mat', except if "0" is found
@@ -226,49 +246,6 @@ KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
     }
 }
 
-template <typename ExecutionSpace, typename InOutMatrices>
-void symmetricPseudoInverseSVD(ExecutionSpace const &space,
-                               InOutMatrices &matrices)
-{
-  auto guard =
-      Kokkos::Profiling::ScopedRegion("ArborX::SymmetricPseudoInverseSVD");
-
-  // InOutMatrices is a list of square symmetric matrices (3D view)
-  static_assert(Kokkos::is_view_v<InOutMatrices>, "matrices must be a view");
-  static_assert(!std::is_const_v<typename InOutMatrices::value_type>,
-                "matrices must be writable");
-  static_assert(InOutMatrices::rank() == 3,
-                "matrices must be a list of square matrices");
-  static_assert(
-      ArborX::Details::KokkosExt::is_accessible_from<
-          typename InOutMatrices::memory_space, ExecutionSpace>::value,
-      "matrices must be accessible from the execution space");
-
-  KOKKOS_ASSERT(matrices.extent(1) == matrices.extent(2)); // Must be square
-
-  using Value = typename InOutMatrices::non_const_value_type;
-  using MemorySpace = typename InOutMatrices::memory_space;
-
-  Kokkos::View<Value **, MemorySpace> diags(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                         "ArborX::SymmetricPseudoInverseSVD::diags"),
-      matrices.extent(0), matrices.extent(1));
-  Kokkos::View<Value ***, MemorySpace> units(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                         "ArborX::SymmetricPseudoInverseSVD::units"),
-      matrices.extent(0), matrices.extent(1), matrices.extent(2));
-
-  Kokkos::parallel_for(
-      "ArborX::SymmetricPseudoInverseSVD::computations",
-      Kokkos::RangePolicy(space, 0, matrices.extent(0)),
-      KOKKOS_LAMBDA(int const i) {
-        auto mat = Kokkos::subview(matrices, i, Kokkos::ALL, Kokkos::ALL);
-        auto diag = Kokkos::subview(diags, i, Kokkos::ALL);
-        auto unit = Kokkos::subview(units, i, Kokkos::ALL, Kokkos::ALL);
-        symmetricPseudoInverseSVDKernel(mat, diag, unit);
-      });
-}
-
-} // namespace ArborX::Interpolation::Details
+} // namespace ArborX::Details
 
 #endif

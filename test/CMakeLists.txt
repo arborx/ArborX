@@ -49,6 +49,7 @@ add_executable(ArborX_Test_DetailsUtils.exe
   tstAttachIndices.cpp
   tstDetailsVector.cpp
   tstDetailsUtils.cpp
+  tstDetailsSVD.cpp
   tstDetailsGeometryReducer.cpp
   utf_main.cpp
 )
@@ -255,7 +256,6 @@ target_link_libraries(ArborX_Test_BoostAdapters.exe PRIVATE ArborX Boost::unit_t
 add_test(NAME ArborX_Test_BoostAdapters COMMAND ArborX_Test_BoostAdapters.exe)
 
 add_executable(ArborX_Test_InterpMovingLeastSquares.exe
-  tstInterpDetailsSVD.cpp
   tstInterpDetailsCompactRadialBasisFunction.cpp
   tstInterpDetailsPolyBasis.cpp
   tstInterpDetailsMLSCoefficients.cpp
