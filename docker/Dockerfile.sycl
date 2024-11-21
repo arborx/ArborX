@@ -19,7 +19,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN KEYDUMP_URL=https://cloud.cees.ornl.gov/download && \
+RUN KEYDUMP_URL=https://cloud1.cees.ornl.gov/download && \
     KEYDUMP_FILE=keydump && \
     wget --quiet ${KEYDUMP_URL}/${KEYDUMP_FILE} && \
     wget --quiet ${KEYDUMP_URL}/${KEYDUMP_FILE}.sig && \
@@ -57,7 +57,7 @@ ENV DPCPP=/opt/intel/oneapi/compiler/${DPCPP_VERSION}/linux/bin-llvm/clang++
 
 # Install Codeplay's oneAPI for NVIDIA GPUs, see
 # https://developer.codeplay.com/products/oneapi/nvidia/2023.0.0/guides/get-started-guide-nvidia
-RUN wget https://cloud.cees.ornl.gov/download/oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh && \
+RUN wget https://cloud1.cees.ornl.gov/download/oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh && \
     chmod +x oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh && \
     ./oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh -y && \
     rm oneapi-for-nvidia-gpus-${DPCPP_VERSION}-linux.sh
