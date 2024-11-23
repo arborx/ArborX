@@ -134,7 +134,9 @@ public:
   query(ExecutionSpace const &space, Predicates const &predicates, View &&view,
         Args &&...args) const
   {
-    Tree::query(space, predicates, ArborX::Details::LegacyDefaultCallback{},
+    Tree::query(space, predicates,
+                LegacyCallbackWrapper<ArborX::Details::DefaultCallback>{
+                    ArborX::Details::DefaultCallback{}},
                 std::forward<View>(view), std::forward<Args>(args)...);
   }
 
@@ -159,7 +161,9 @@ public:
     {
       Kokkos::View<int *, typename Tree::memory_space> indices(
           "Testing::indices", 0);
-      Tree::query(space, predicates, ArborX::Details::LegacyDefaultCallback{},
+      Tree::query(space, predicates,
+                  LegacyCallbackWrapper<ArborX::Details::DefaultCallback>{
+                      ArborX::Details::DefaultCallback{}},
                   indices, std::forward<OffsetView>(offset),
                   std::forward<Args>(args)...);
       callback(predicates, std::forward<OffsetView>(offset), indices,

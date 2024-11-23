@@ -45,21 +45,6 @@ struct DefaultCallback
   }
 };
 
-struct LegacyDefaultCallback
-{
-  template <typename Query, typename Value, typename Index,
-            typename OutputFunctor>
-  KOKKOS_FUNCTION void operator()(Query const &,
-                                  PairValueIndex<Value, Index> const &value,
-                                  OutputFunctor const &output) const
-  {
-    // APIv1 callback has the signature operator()(Query, int)
-    // As we store PairValueIndex with potentially non int index (like
-    // unsigned), we explicitly cast it here.
-    output((int)value.index);
-  }
-};
-
 // archetypal alias for a 'tag' type member in user callbacks
 template <typename Callback>
 using CallbackTagArchetypeAlias = typename Callback::tag;
