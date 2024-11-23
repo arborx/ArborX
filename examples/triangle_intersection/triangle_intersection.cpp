@@ -88,15 +88,15 @@ int main(int argc, char *argv[])
       space, ArborX::Experimental::attach_indices(triangles));
 
   // The query will resize indices and offsets accordingly
-  Kokkos::View<unsigned *, MemorySpace> indices("Example::indices", 0);
+  Kokkos::View<typename decltype(tree)::value_type *, MemorySpace> values(
+      "Example::values", 0);
   Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
-  tree.query(space, queries, ArborX::Details::LegacyDefaultCallback{}, indices,
-             offsets);
+  tree.query(space, queries, values, offsets);
 
   auto offsets_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets);
-  auto indices_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
+  auto values_host =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, values);
 
   // Expected output:
   //   offsets: 0 1 2 3 4
@@ -105,8 +105,9 @@ int main(int argc, char *argv[])
   std::copy(offsets_host.data(), offsets_host.data() + offsets.size(),
             std::ostream_iterator<int>(std::cout, " "));
   std::cout << "\nindices: ";
-  std::copy(indices_host.data(), indices_host.data() + indices.size(),
-            std::ostream_iterator<int>(std::cout, " "));
+  std::transform(values_host.data(), values_host.data() + values.size(),
+                 std::ostream_iterator<int>(std::cout, " "),
+                 [](auto value) { return value.index; });
   std::cout << "\n";
 
   return 0;

@@ -50,13 +50,12 @@ int main(int argc, char *argv[])
 
   ExecutionSpace space;
 
-  using Value = ArborX::PairValueIndex<Box>;
-
   ArborX::BoundingVolumeHierarchy const tree(
       space, ArborX::Experimental::attach_indices(boxes));
 
   // The query will resize values and offsets accordingly
-  Kokkos::View<Value *, MemorySpace> values("Example::values", 0);
+  Kokkos::View<typename decltype(tree)::value_type *, MemorySpace> values(
+      "Example::values", 0);
   Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
   tree.query(space, queries, values, offsets);
 
@@ -73,9 +72,9 @@ int main(int argc, char *argv[])
   std::copy(offsets_host.data(), offsets_host.data() + offsets.size(),
             std::ostream_iterator<int>(std::cout, " "));
   std::cout << "\nindices:";
-  for (int i = 0; i < values_host.extent_int(0); ++i)
-    std::cout << " " << values_host(i).index;
-  std::cout << '\n';
+  std::transform(values_host.data(), values_host.data() + values.size(),
+                 std::ostream_iterator<int>(std::cout, " "),
+                 [](auto value) { return value.index; });
 
   return 0;
 }
