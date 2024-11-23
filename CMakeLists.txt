@@ -100,6 +100,7 @@ install(EXPORT ArborXTargets
   DESTINATION ${CMAKE_INSTALL_DATADIR}/cmake/ArborX
 )
 
+set(ARBORX_VERSION "10799")
 set(ARBORX_VERSION_STRING "2.0 (dev)")
 
 # Make sure that the git hash in ArborX_Version.hpp is considered to be always
