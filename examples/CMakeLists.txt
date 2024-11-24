@@ -1,7 +1,7 @@
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   cmake_minimum_required(VERSION 3.22)
   project(ArborXExamples CXX)
-  find_package(ArborX 2.0 REQUIRED)
+  find_package(ArborX 1.7.99 REQUIRED)
   enable_testing()
 endif()
 

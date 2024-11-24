@@ -100,8 +100,12 @@ install(EXPORT ArborXTargets
   DESTINATION ${CMAKE_INSTALL_DATADIR}/cmake/ArborX
 )
 
-set(ARBORX_VERSION "10799")
-set(ARBORX_VERSION_STRING "2.0 (dev)")
+set(ARBORX_VERSION_MAJOR 1)
+set(ARBORX_VERSION_MINOR 7)
+set(ARBORX_VERSION_PATCH 99)
+math(EXPR ARBORX_VERSION "${ARBORX_VERSION_MAJOR} * 10000 + ${ARBORX_VERSION_MINOR} * 100 + ${ARBORX_VERSION_PATCH}")
+set(ARBORX_VERSION_STRING "${ARBORX_VERSION_MAJOR}.${ARBORX_VERSION_MINOR}.${ARBORX_VERSION_PATCH}")
+message(STATUS "ArborX version: ${ARBORX_VERSION_STRING}")
 
 # Make sure that the git hash in ArborX_Version.hpp is considered to be always
 # out of date, and thus is updated every recompile.
