@@ -154,7 +154,9 @@ struct BruteForceImpl
     int const n_indexables = values.size();
     int const n_predicates = predicates.size();
 
-    NearestBufferProvider<MemorySpace> buffer_provider(space, predicates);
+    using Coordinate = decltype(predicates(0).distance(indexables(0)));
+    NearestBufferProvider<MemorySpace, Coordinate> buffer_provider(space,
+                                                                   predicates);
 
     Kokkos::parallel_for(
         "ArborX::BruteForce::query::nearest::"
@@ -168,7 +170,7 @@ struct BruteForceImpl
             return;
 
           using PairIndexDistance =
-              typename NearestBufferProvider<MemorySpace>::PairIndexDistance;
+              typename decltype(buffer_provider)::PairIndexDistance;
           struct CompareDistance
           {
             KOKKOS_INLINE_FUNCTION bool
