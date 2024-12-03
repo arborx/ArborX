@@ -19,12 +19,12 @@
 namespace ArborX::Details
 {
 
-template <typename MemorySpace>
+template <typename MemorySpace, typename Coordinate>
 struct NearestBufferProvider
 {
   static_assert(Kokkos::is_memory_space_v<MemorySpace>);
 
-  using PairIndexDistance = Kokkos::pair<int, float>;
+  using PairIndexDistance = Kokkos::pair<int, Coordinate>;
 
   Kokkos::View<PairIndexDistance *, MemorySpace> _buffer;
   Kokkos::View<int *, MemorySpace> _offset;

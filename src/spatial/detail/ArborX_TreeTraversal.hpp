@@ -128,7 +128,10 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   Predicates _predicates;
   Callback _callback;
 
-  NearestBufferProvider<MemorySpace> _buffer;
+  using Coordinate = decltype(std::declval<Predicates>()(0).distance(
+      HappyTreeFriends::getIndexable(_bvh, 0)));
+
+  NearestBufferProvider<MemorySpace, Coordinate> _buffer;
 
   template <typename ExecutionSpace>
   TreeTraversal(ExecutionSpace const &space, BVH const &bvh,
@@ -151,7 +154,8 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     }
     else
     {
-      _buffer = NearestBufferProvider<MemorySpace>(space, predicates);
+      _buffer =
+          NearestBufferProvider<MemorySpace, Coordinate>(space, predicates);
 
       Kokkos::parallel_for("ArborX::TreeTraversal::nearest",
                            Kokkos::RangePolicy(space, 0, predicates.size()),
@@ -184,8 +188,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     if (k < 1)
       return;
 
-    using PairIndexDistance =
-        typename NearestBufferProvider<MemorySpace>::PairIndexDistance;
+    using PairIndexDistance = typename decltype(_buffer)::PairIndexDistance;
     struct CompareDistance
     {
       KOKKOS_INLINE_FUNCTION bool operator()(PairIndexDistance const &lhs,
@@ -211,9 +214,6 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
                  : predicate.distance(
                        HappyTreeFriends::getInternalBoundingVolume(bvh, j));
     };
-
-    using Coordinate =
-        decltype(predicate.distance(HappyTreeFriends::getIndexable(bvh, 0)));
 
     constexpr int SENTINEL = -1;
     int stack[64];
