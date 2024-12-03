@@ -259,15 +259,17 @@ void forwardQueriesAndCommunicateResults(
   Kokkos::Profiling::popRegion();
 }
 
-template <typename ExecutionSpace, typename MemorySpace, typename Predicates,
+template <typename ExecutionSpace, typename Predicates, typename Distances,
           typename Values, typename Offset>
 void filterResults(ExecutionSpace const &space, Predicates const &queries,
-                   Kokkos::View<float *, MemorySpace> const &distances,
-                   Values &values, Offset &offset)
+                   Distances const &distances, Values &values, Offset &offset)
 {
   Kokkos::Profiling::ScopedRegion guard(
       "ArborX::DistributedTree::filterResults");
 
+  static_assert(Kokkos::is_view_v<Distances> && Distances::rank() == 1);
+
+  using MemorySpace = typename Distances::memory_space;
   using Value = typename Values::value_type;
 
   int const n_queries = queries.size();
@@ -288,7 +290,7 @@ void filterResults(ExecutionSpace const &space, Predicates const &queries,
   Kokkos::View<Value *, MemorySpace> new_values(
       Kokkos::view_alloc(space, values.label()), n_truncated_results);
 
-  using PairValueDistance = Kokkos::pair<Value, float>;
+  using PairValueDistance = Kokkos::pair<Value, typename Distances::value_type>;
   struct CompareDistance
   {
     KOKKOS_INLINE_FUNCTION bool operator()(PairValueDistance const &lhs,
