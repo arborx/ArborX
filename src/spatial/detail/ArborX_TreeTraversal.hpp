@@ -212,12 +212,15 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
                        HappyTreeFriends::getInternalBoundingVolume(bvh, j));
     };
 
+    using Coordinate =
+        decltype(predicate.distance(HappyTreeFriends::getIndexable(bvh, 0)));
+
     constexpr int SENTINEL = -1;
     int stack[64];
     auto *stack_ptr = stack;
     *stack_ptr++ = SENTINEL;
 #if !defined(__CUDA_ARCH__)
-    float stack_distance[64];
+    Coordinate stack_distance[64];
     auto *stack_distance_ptr = stack_distance;
     *stack_distance_ptr++ = 0.f;
 #endif
@@ -226,14 +229,14 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     int left_child;
     int right_child;
 
-    float distance_left = 0.f;
-    float distance_right = 0.f;
-    float distance_node = 0.f;
+    Coordinate distance_left = 0;
+    Coordinate distance_right = 0;
+    Coordinate distance_node = 0;
 
     // Nodes with a distance that exceed that radius can safely be
     // discarded. Initialize the radius to infinity and tighten it once k
     // neighbors have been found.
-    auto radius = KokkosExt::ArithmeticTraits::infinity<float>::value;
+    auto radius = KokkosExt::ArithmeticTraits::infinity<Coordinate>::value;
 
     do
     {
