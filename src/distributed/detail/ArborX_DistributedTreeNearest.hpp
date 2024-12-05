@@ -14,6 +14,7 @@
 #include <detail/ArborX_DistributedTreeImpl.hpp>
 #include <detail/ArborX_DistributedTreeNearestHelpers.hpp>
 #include <detail/ArborX_DistributedTreeUtils.hpp>
+#include <detail/ArborX_HappyTreeFriends.hpp>
 #include <detail/ArborX_Predicates.hpp>
 #include <kokkos_ext/ArborX_KokkosExtKernelStdAlgorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
@@ -28,11 +29,11 @@
 namespace ArborX::Details
 {
 
-template <typename Value>
+template <typename Value, typename Coordinate>
 struct PairValueDistance
 {
   Value value;
-  float distance;
+  Coordinate distance;
 };
 
 template <typename ExecutionSpace, typename Tree, typename Predicates,
@@ -98,12 +99,13 @@ void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
 
   auto const &bottom_tree = tree._bottom_tree;
   using BottomTree = std::decay_t<decltype(bottom_tree)>;
+  using Coordinate = typename Distances::value_type;
 
   // Gather distances from every identified rank
-  Kokkos::View<float *, MemorySpace> distances(prefix + "::distances", 0);
+  Kokkos::View<Coordinate *, MemorySpace> distances(prefix + "::distances", 0);
   forwardQueriesAndCommunicateResults(
       comm, space, bottom_tree, predicates,
-      CallbackWithDistance<BottomTree, DefaultCallback, float, false>(
+      CallbackWithDistance<BottomTree, DefaultCallback, Coordinate, false>(
           space, bottom_tree, DefaultCallback{}),
       nearest_ranks, offset, distances);
 
@@ -145,10 +147,12 @@ void DistributedTreeImpl::phaseII(ExecutionSpace const &space, Tree const &tree,
 
   auto const &bottom_tree = tree._bottom_tree;
   using BottomTree = std::decay_t<decltype(bottom_tree)>;
+  using Coordinate = typename Distances::value_type;
 
   // NOTE: in principle, we could perform radius searches on the bottom_tree
   // rather than nearest predicates.
-  Kokkos::View<PairValueDistance<typename Values::value_type> *, MemorySpace>
+  Kokkos::View<PairValueDistance<typename Values::value_type, Coordinate> *,
+               MemorySpace>
       out(prefix + "::pairs_value_distance", 0);
   DistributedTree::forwardQueriesAndCommunicateResults(
       tree.getComm(), space, bottom_tree, predicates,
@@ -191,7 +195,13 @@ void DistributedTreeImpl::queryDispatch2RoundImpl(
     return;
   }
 
-  Kokkos::View<float *, typename Tree::memory_space> farthest_distances(
+  // Set the type for the distances to be that of the distance to a leaf node.
+  // It is possible that that is a higher precision compared to internal nodes,
+  // but it safer.
+  using Coordinate = decltype(predicates(0).distance(
+      HappyTreeFriends::getIndexable(tree._bottom_tree, 0)));
+
+  Kokkos::View<Coordinate *, typename Tree::memory_space> farthest_distances(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          prefix + "::farthest_distances"),
       predicates.size());
