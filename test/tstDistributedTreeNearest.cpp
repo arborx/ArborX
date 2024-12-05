@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world_nearest, DeviceType,
 {
   using ExecutionSpace = typename DeviceType::execution_space;
 
-  using Point = ArborX::Point<3>;
+  using Point = ArborX::Point<3, double>;
 
   MPI_Comm comm = MPI_COMM_WORLD;
   int comm_rank;
@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world_nearest, DeviceType,
   //                                 0   1   2   3   ^   ^   ^   ^
   //                                                 0   1   2   3
   for (int i = 0; i < n; ++i)
-    points[i] = {{(float)i / n + comm_rank, 0., 0.}};
+    points[i] = {{(double)i / n + comm_rank, 0., 0.}};
 
   auto tree = makeDistributedTree<DeviceType>(comm, ExecutionSpace{}, points);
 

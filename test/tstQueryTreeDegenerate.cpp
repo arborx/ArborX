@@ -28,22 +28,26 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_spatial_predicate, TreeTypeTraits,
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
+  using BoundingVolume = typename Tree::bounding_volume_type;
+  using Box =
+      ArborX::Box<ArborX::GeometryTraits::dimension_v<BoundingVolume>,
+                  ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
 
   // tree is empty, it has no leaves.
   Tree default_initialized;
   Tree value_initialized{};
   for (auto const &tree : {
            default_initialized, value_initialized,
-           make<Tree>(ExecutionSpace{},
-                      std::vector<ArborX::Box<3>>{}), // constructed with empty
-                                                      // view of boxes
+           make<Tree>(ExecutionSpace{}, std::vector<Box>{}), // constructed with
+                                                             // empty view of
+                                                             // boxes
        })
   {
     BOOST_TEST(tree.empty());
     BOOST_TEST(tree.size() == 0);
     // Tree::bounds() returns an invalid box when the tree is empty.
     using ArborX::Details::equals;
-    BOOST_TEST(equals(static_cast<ArborX::Box<3>>(tree.bounds()), {}));
+    BOOST_TEST(equals(static_cast<Box>(tree.bounds()), {}));
 
     // Passing a view with no query does seem a bit silly but we still need
     // to support it. And since the tag dispatching yields different tree
@@ -88,20 +92,24 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_nearest_predicate, TreeTypeTraits,
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
+  using BoundingVolume = typename Tree::bounding_volume_type;
+  using Box =
+      ArborX::Box<ArborX::GeometryTraits::dimension_v<BoundingVolume>,
+                  ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
 
   // tree is empty, it has no leaves.
   for (auto const &tree : {
            Tree{}, // default constructed
            make<Tree>(ExecutionSpace{},
-                      std::vector<ArborX::Box<3>>{}), // constructed with empty
-                                                      // view of boxes
+                      std::vector<Box>{}), // constructed with empty
+                                           // view of boxes
        })
   {
     BOOST_TEST(tree.empty());
     BOOST_TEST(tree.size() == 0);
     // Tree::bounds() returns an invalid box when the tree is empty.
     using ArborX::Details::equals;
-    BOOST_TEST(equals(static_cast<ArborX::Box<3>>(tree.bounds()), {}));
+    BOOST_TEST(equals(static_cast<Box>(tree.bounds()), {}));
 
     // Passing a view with no query does seem a bit silly but we still need
     // to support it. And since the tag dispatching yields different tree
@@ -129,17 +137,21 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_spatial_predicate,
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
+  using BoundingVolume = typename Tree::bounding_volume_type;
+  using Box =
+      ArborX::Box<ArborX::GeometryTraits::dimension_v<BoundingVolume>,
+                  ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
 
   // tree has a single leaf (unit box)
   auto const tree =
-      make<Tree>(ExecutionSpace{}, std::vector<ArborX::Box<3>>{
+      make<Tree>(ExecutionSpace{}, std::vector<Box>{
                                        {{{0., 0., 0.}}, {{1., 1., 1.}}},
                                    });
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 1);
   using ArborX::Details::equals;
-  BOOST_TEST(equals(static_cast<ArborX::Box<3>>(tree.bounds()),
+  BOOST_TEST(equals(static_cast<Box>(tree.bounds()),
                     {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
@@ -175,17 +187,21 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_nearest_predicate,
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
+  using BoundingVolume = typename Tree::bounding_volume_type;
+  using Box =
+      ArborX::Box<ArborX::GeometryTraits::dimension_v<BoundingVolume>,
+                  ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
 
   // tree has a single leaf (unit box)
   auto const tree =
-      make<Tree>(ExecutionSpace{}, std::vector<ArborX::Box<3>>{
+      make<Tree>(ExecutionSpace{}, std::vector<Box>{
                                        {{{0., 0., 0.}}, {{1., 1., 1.}}},
                                    });
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 1);
   using ArborX::Details::equals;
-  BOOST_TEST(equals(static_cast<ArborX::Box<3>>(tree.bounds()),
+  BOOST_TEST(equals(static_cast<Box>(tree.bounds()),
                     {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
@@ -213,9 +229,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_spatial_predicate,
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
+  using BoundingVolume = typename Tree::bounding_volume_type;
+  using Box =
+      ArborX::Box<ArborX::GeometryTraits::dimension_v<BoundingVolume>,
+                  ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
 
   auto const tree =
-      make<Tree>(ExecutionSpace{}, std::vector<ArborX::Box<3>>{
+      make<Tree>(ExecutionSpace{}, std::vector<Box>{
                                        {{{0., 0., 0.}}, {{0., 0., 0.}}},
                                        {{{1., 1., 1.}}, {{1., 1., 1.}}},
                                    });
@@ -223,7 +243,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_spatial_predicate,
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 2);
   using ArborX::Details::equals;
-  BOOST_TEST(equals(static_cast<ArborX::Box<3>>(tree.bounds()),
+  BOOST_TEST(equals(static_cast<Box>(tree.bounds()),
                     {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   // single query intersects with nothing
@@ -276,9 +296,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_nearest_predicate,
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
+  using BoundingVolume = typename Tree::bounding_volume_type;
+  using Box =
+      ArborX::Box<ArborX::GeometryTraits::dimension_v<BoundingVolume>,
+                  ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
 
   auto const tree =
-      make<Tree>(ExecutionSpace{}, std::vector<ArborX::Box<3>>{
+      make<Tree>(ExecutionSpace{}, std::vector<Box>{
                                        {{{0., 0., 0.}}, {{0., 0., 0.}}},
                                        {{{1., 1., 1.}}, {{1., 1., 1.}}},
                                    });
@@ -286,7 +310,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_nearest_predicate,
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 2);
   using ArborX::Details::equals;
-  BOOST_TEST(equals(static_cast<ArborX::Box<3>>(tree.bounds()),
+  BOOST_TEST(equals(static_cast<Box>(tree.bounds()),
                     {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   // no query
@@ -310,6 +334,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves_spatial_predicate,
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
+  using BoundingVolume = typename Tree::bounding_volume_type;
+  using Box =
+      ArborX::Box<ArborX::GeometryTraits::dimension_v<BoundingVolume>,
+                  ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
 
   // The tree contains multiple (more than two) leaves that will be assigned
   // the same Morton code.  This was able to trigger a bug that we discovered
@@ -317,7 +345,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves_spatial_predicate,
   // at construction had leaves with no parent which yielded a segfault later
   // when computing bounding boxes and walking the hierarchy toward the root.
   auto const tree =
-      make<Tree>(ExecutionSpace{}, std::vector<ArborX::Box<3>>{
+      make<Tree>(ExecutionSpace{}, std::vector<Box>{
                                        {{{0., 0., 0.}}, {{0., 0., 0.}}},
                                        {{{1., 1., 1.}}, {{1., 1., 1.}}},
                                        {{{1., 1., 1.}}, {{1., 1., 1.}}},
@@ -346,8 +374,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_spatial_predicate,
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
+  using BoundingVolume = typename Tree::bounding_volume_type;
+  using Box =
+      ArborX::Box<ArborX::GeometryTraits::dimension_v<BoundingVolume>,
+                  ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
 
-  std::vector<ArborX::Box<3>> boxes;
+  std::vector<Box> boxes;
   int const n = 4096; // exceeds stack capacity which is 64
   boxes.reserve(n);
   for (int i = 0; i < n; ++i)
@@ -379,8 +411,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_nearest_predicate,
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
+  using BoundingVolume = typename Tree::bounding_volume_type;
+  using Box =
+      ArborX::Box<ArborX::GeometryTraits::dimension_v<BoundingVolume>,
+                  ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
 
-  std::vector<ArborX::Box<3>> boxes;
+  std::vector<Box> boxes;
   int const n = 4096; // exceed stack capacity which is 64
   boxes.reserve(n);
   for (int i = 0; i < n; ++i)
