@@ -155,6 +155,69 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world_nearest, DeviceType,
   }
 }
 
+// FIXME: Almost identical to hellow_world_nearest, but uses double. Testing
+// needs refactoring.
+BOOST_AUTO_TEST_CASE_TEMPLATE(double_tree, DeviceType, ARBORX_DEVICE_TYPES)
+{
+  using ExecutionSpace = typename DeviceType::execution_space;
+
+  using Point = ArborX::Point<3, double>;
+
+  MPI_Comm comm = MPI_COMM_WORLD;
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+  int comm_size;
+  MPI_Comm_size(comm, &comm_size);
+
+  int const n = 4;
+  std::vector<Point> points(n);
+  // [  rank 0       [  rank 1       [  rank 2       [  rank 3       [
+  // x---x---x---x---x---x---x---x---x---x---x---x---x---x---x---x---
+  // ^   ^   ^   ^
+  // 0   1   2   3   ^   ^   ^   ^
+  //                 0   1   2   3   ^   ^   ^   ^
+  //                                 0   1   2   3   ^   ^   ^   ^
+  //                                                 0   1   2   3
+  for (int i = 0; i < n; ++i)
+    points[i] = {{(double)i / n + comm_rank, 0., 0.}};
+
+  auto tree = makeDistributedTree<DeviceType>(comm, ExecutionSpace{}, points);
+
+  // 0---0---0---0---1---1---1---1---2---2---2---2---3---3---3---3---
+  // |               |               |               |               |
+  // |               |               |           x   x   x           |
+  // |               |           x   x   x        <--0-->            |
+  // |           x   x   x        <--1-->            |               |
+  // x   x        <--2-->            |               |               |
+  // 3-->            |               |               |               |
+  // |               |               |               |               |
+  Kokkos::View<ArborX::Nearest<Point> *, DeviceType> nearest_queries(
+      "Testing::nearest_queries", 1);
+  auto nearest_queries_host = Kokkos::create_mirror_view(nearest_queries);
+  nearest_queries_host(0) =
+      ArborX::nearest<Point>({{0.f + comm_size - 1 - comm_rank, 0., 0.}},
+                             comm_rank < comm_size - 1 ? 3 : 2);
+  deep_copy(nearest_queries, nearest_queries_host);
+
+  std::vector<PairIndexRank> values;
+  values.reserve(n + 1);
+  for (int i = 0; i < n; ++i)
+    values.push_back({n - 1 - i, comm_size - 1 - comm_rank});
+
+  BOOST_TEST(n > 2);
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, nearest_queries,
+                         (comm_rank < comm_size - 1
+                              ? make_reference_solution<PairIndexRank>(
+                                    {{0, comm_size - 1 - comm_rank},
+                                     {n - 1, comm_size - 2 - comm_rank},
+                                     {1, comm_size - 1 - comm_rank}},
+                                    {0, 3})
+                              : make_reference_solution<PairIndexRank>(
+                                    {{0, comm_size - 1 - comm_rank},
+                                     {1, comm_size - 1 - comm_rank}},
+                                    {0, 2})));
+}
+
 #if 0
 BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_nearest, DeviceType,
                               ARBORX_DEVICE_TYPES)
