@@ -32,7 +32,8 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake -D CMAKE_INSTALL_PREFIX=C:\kokkos-install \
+        cmake -D CMAKE_BUILD_TYPE=Debug \
+              -D CMAKE_INSTALL_PREFIX=C:\kokkos-install \
               -D Kokkos_ENABLE_THREADS=ON \
               ..
         cmake --build . --target install -- -m
