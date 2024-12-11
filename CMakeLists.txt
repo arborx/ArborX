@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 project(ArborX CXX)
 
 if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.30.0)
