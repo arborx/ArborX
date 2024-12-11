@@ -32,17 +32,18 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake -D CMAKE_INSTALL_PREFIX=C:\kokkos-install \
+        cmake -D CMAKE_BUILD_TYPE=Release \
+              -D CMAKE_INSTALL_PREFIX=C:\kokkos-install \
               -D Kokkos_ENABLE_THREADS=ON \
               ..
-        cmake --build . --target install -- -m
+        cmake --build . --config Release --target install -- -m
     - name: Configure ArborX
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="/EHsc /bigobj" -DKokkos_ROOT="C:\kokkos-install" ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} -DARBORX_ENABLE_MPI=OFF -DARBORX_ENABLE_TESTS=ON -DARBORX_ENABLE_EXAMPLES=ON -DARBORX_ENABLE_BENCHMARKS=ON -DARBORX_ENABLE_HEADER_SELF_CONTAINMENT_TESTS=OFF ..
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="/EHsc /bigobj" -DKokkos_ROOT="C:\kokkos-install" ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} -DARBORX_ENABLE_MPI=OFF -DARBORX_ENABLE_TESTS=ON -DARBORX_ENABLE_EXAMPLES=ON -DARBORX_ENABLE_BENCHMARKS=ON -DARBORX_ENABLE_HEADER_SELF_CONTAINMENT_TESTS=OFF ..
     - name: Build ArborX
       shell: bash
       run: |
-        cmake --build build --target install -- -m
+        cmake --build build --config Release --target install -- -m
         cd build
