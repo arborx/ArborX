@@ -3,7 +3,7 @@ project(ArborX CXX)
 
 if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.30.0)
   message(STATUS "Setting policy CMP0167 to use FindBoost module")
-  cmake_policy(SET CMP0167 OLD)
+  cmake_policy(SET CMP0167 NEW)
 endif()
 
 # use gnu standard install directories
