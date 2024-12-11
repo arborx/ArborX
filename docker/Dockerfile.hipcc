@@ -54,7 +54,7 @@ ENV PATH=${CMAKE_DIR}/bin:$PATH
 
 # Install Boost
 ENV BOOST_DIR=/opt/boost
-RUN BOOST_VERSION=1.79.0 && \
+RUN BOOST_VERSION=1.86.0 && \
     BOOST_VERSION_UNDERSCORE=$(echo "$BOOST_VERSION" | sed -e "s/\./_/g") && \
     BOOST_KEY=379CE192D401AB61 && \
     BOOST_URL=https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VERSION}/source && \
