@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
     {
       auto points = toView<DeviceType, Point>({{{0, 0, 0}}, {{1, 1, 1}}});
 
-      auto r = std::sqrt(3);
+      auto r = std::sqrt(3.1f);
 
       BOOST_TEST(verifyDBSCAN(space, points, r - 0.1, 2,
                               dbscan(space, points, r - 0.1, 2, params)));
@@ -192,7 +192,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
       auto points = toView<DeviceType, Point>(
           {{{0, 0, 0}}, {{1, 1, 1}}, {{3, 3, 3}}, {{6, 6, 6}}});
 
-      auto r = std::sqrt(3);
+      auto r = std::sqrt(3.1f);
 
       BOOST_TEST(verifyDBSCAN(space, points, r, 2,
                               dbscan(space, points, r, 2, params)));
