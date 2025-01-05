@@ -1,9 +1,9 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 project(ArborX CXX)
 
 if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.30.0)
   message(STATUS "Setting policy CMP0167 to use FindBoost module")
-  cmake_policy(SET CMP0167 OLD)
+  cmake_policy(SET CMP0167 NEW)
 endif()
 
 # use gnu standard install directories
@@ -137,7 +137,7 @@ configure_package_config_file(cmake/ArborXConfig.cmake.in
 )
 write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/ArborXConfigVersion.cmake
   VERSION ${ARBORX_VERSION_STRING}
-  COMPATIBILITY AnyNewerVersion
+  COMPATIBILITY SameMajorVersion
 )
 install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/ArborXConfig.cmake
