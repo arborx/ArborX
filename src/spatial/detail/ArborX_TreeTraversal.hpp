@@ -128,7 +128,10 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
   Predicates _predicates;
   Callback _callback;
 
-  NearestBufferProvider<MemorySpace> _buffer;
+  using Coordinate = decltype(std::declval<Predicates>()(0).distance(
+      HappyTreeFriends::getIndexable(_bvh, 0)));
+
+  NearestBufferProvider<MemorySpace, Coordinate> _buffer;
 
   template <typename ExecutionSpace>
   TreeTraversal(ExecutionSpace const &space, BVH const &bvh,
@@ -151,7 +154,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     }
     else
     {
-      _buffer = NearestBufferProvider<MemorySpace>(space, predicates);
+      _buffer.allocateBuffer(space, predicates);
 
       Kokkos::parallel_for("ArborX::TreeTraversal::nearest",
                            Kokkos::RangePolicy(space, 0, predicates.size()),
@@ -184,8 +187,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     if (k < 1)
       return;
 
-    using PairIndexDistance =
-        typename NearestBufferProvider<MemorySpace>::PairIndexDistance;
+    using PairIndexDistance = typename decltype(_buffer)::PairIndexDistance;
     struct CompareDistance
     {
       KOKKOS_INLINE_FUNCTION bool operator()(PairIndexDistance const &lhs,
@@ -217,7 +219,7 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     auto *stack_ptr = stack;
     *stack_ptr++ = SENTINEL;
 #if !defined(__CUDA_ARCH__)
-    float stack_distance[64];
+    Coordinate stack_distance[64];
     auto *stack_distance_ptr = stack_distance;
     *stack_distance_ptr++ = 0.f;
 #endif
@@ -226,14 +228,14 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     int left_child;
     int right_child;
 
-    float distance_left = 0.f;
-    float distance_right = 0.f;
-    float distance_node = 0.f;
+    Coordinate distance_left = 0;
+    Coordinate distance_right = 0;
+    Coordinate distance_node = 0;
 
     // Nodes with a distance that exceed that radius can safely be
     // discarded. Initialize the radius to infinity and tighten it once k
     // neighbors have been found.
-    auto radius = KokkosExt::ArithmeticTraits::infinity<float>::value;
+    auto radius = KokkosExt::ArithmeticTraits::infinity<Coordinate>::value;
 
     do
     {

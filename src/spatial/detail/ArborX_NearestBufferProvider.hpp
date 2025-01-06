@@ -19,17 +19,20 @@
 namespace ArborX::Details
 {
 
-template <typename MemorySpace>
+template <typename MemorySpace, typename Coordinate>
 struct NearestBufferProvider
 {
   static_assert(Kokkos::is_memory_space_v<MemorySpace>);
 
-  using PairIndexDistance = Kokkos::pair<int, float>;
+  using PairIndexDistance = Kokkos::pair<int, Coordinate>;
 
   Kokkos::View<PairIndexDistance *, MemorySpace> _buffer;
   Kokkos::View<int *, MemorySpace> _offset;
 
-  NearestBufferProvider() = default;
+  NearestBufferProvider()
+      : _buffer("ArborX::NearestBufferProvider::buffer", 0)
+      , _offset("ArborX::NearestBufferProvider::offset", 0)
+  {}
 
   template <typename ExecutionSpace, typename Predicates>
   NearestBufferProvider(ExecutionSpace const &space,
@@ -46,11 +49,6 @@ struct NearestBufferProvider
                            Kokkos::make_pair(_offset(i), _offset(i + 1)));
   }
 
-  // Enclosing function for an extended __host__ __device__ lambda cannot have
-  // private or protected access within its class
-#ifndef KOKKOS_COMPILER_NVCC
-private:
-#endif
   template <typename ExecutionSpace, typename Predicates>
   void allocateBuffer(ExecutionSpace const &space, Predicates const &predicates)
   {
