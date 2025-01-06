@@ -37,11 +37,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
 
-  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
-      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
+  using Box = ArborX::Box<3>;
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
 
   auto const bvh =
-      make<Tree>(ExecutionSpace{}, {
+      make<Tree>(ExecutionSpace{}, std::vector<Box>{
                                        {{{0., 0., 0.}}, {{0., 0., 0.}}},
                                        {{{1., 0., 0.}}, {{1., 0., 0.}}},
                                        {{{2., 0., 0.}}, {{2., 0., 0.}}},
@@ -128,11 +130,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
 
-  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
-      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
+  using Box = ArborX::Box<3>;
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
 
   auto const bvh =
-      make<Tree>(ExecutionSpace{}, {
+      make<Tree>(ExecutionSpace{}, std::vector<Box>{
                                        {{{0., 0., 0.}}, {{0., 0., 0.}}},
                                        {{{1., 1., 1.}}, {{1., 1., 1.}}},
                                        {{{2., 2., 2.}}, {{2., 2., 2.}}},

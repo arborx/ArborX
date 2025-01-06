@@ -35,7 +35,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_spatial_predicate, TreeTypeTraits,
   for (auto const &tree : {
            default_initialized, value_initialized,
            make<Tree>(ExecutionSpace{},
-                      {}), // constructed with empty view of boxes
+                      std::vector<ArborX::Box<3>>{}), // constructed with empty
+                                                      // view of boxes
        })
   {
     BOOST_TEST(tree.empty());
@@ -92,7 +93,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_nearest_predicate, TreeTypeTraits,
   for (auto const &tree : {
            Tree{}, // default constructed
            make<Tree>(ExecutionSpace{},
-                      {}), // constructed with empty view of boxes
+                      std::vector<ArborX::Box<3>>{}), // constructed with empty
+                                                      // view of boxes
        })
   {
     BOOST_TEST(tree.empty());
@@ -130,7 +132,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_spatial_predicate,
 
   // tree has a single leaf (unit box)
   auto const tree =
-      make<Tree>(ExecutionSpace{}, {
+      make<Tree>(ExecutionSpace{}, std::vector<ArborX::Box<3>>{
                                        {{{0., 0., 0.}}, {{1., 1., 1.}}},
                                    });
 
@@ -176,7 +178,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_nearest_predicate,
 
   // tree has a single leaf (unit box)
   auto const tree =
-      make<Tree>(ExecutionSpace{}, {
+      make<Tree>(ExecutionSpace{}, std::vector<ArborX::Box<3>>{
                                        {{{0., 0., 0.}}, {{1., 1., 1.}}},
                                    });
 
@@ -213,7 +215,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_spatial_predicate,
   using DeviceType = typename TreeTypeTraits::device_type;
 
   auto const tree =
-      make<Tree>(ExecutionSpace{}, {
+      make<Tree>(ExecutionSpace{}, std::vector<ArborX::Box<3>>{
                                        {{{0., 0., 0.}}, {{0., 0., 0.}}},
                                        {{{1., 1., 1.}}, {{1., 1., 1.}}},
                                    });
@@ -276,7 +278,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_nearest_predicate,
   using DeviceType = typename TreeTypeTraits::device_type;
 
   auto const tree =
-      make<Tree>(ExecutionSpace{}, {
+      make<Tree>(ExecutionSpace{}, std::vector<ArborX::Box<3>>{
                                        {{{0., 0., 0.}}, {{0., 0., 0.}}},
                                        {{{1., 1., 1.}}, {{1., 1., 1.}}},
                                    });
@@ -315,7 +317,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves_spatial_predicate,
   // at construction had leaves with no parent which yielded a segfault later
   // when computing bounding boxes and walking the hierarchy toward the root.
   auto const tree =
-      make<Tree>(ExecutionSpace{}, {
+      make<Tree>(ExecutionSpace{}, std::vector<ArborX::Box<3>>{
                                        {{{0., 0., 0.}}, {{0., 0., 0.}}},
                                        {{{1., 1., 1.}}, {{1., 1., 1.}}},
                                        {{{1., 1., 1.}}, {{1., 1., 1.}}},

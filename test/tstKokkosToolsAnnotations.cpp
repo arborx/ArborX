@@ -36,8 +36,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, DeviceType,
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
-      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
+  using Box = ArborX::Box<3>;
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle /*handle*/, char const *label,
@@ -56,18 +58,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, DeviceType,
     Tree tree;
   }
 
+  using VectorOfBoxes = std::vector<Box>;
+
   { // empty
-    auto tree = make<Tree>(ExecutionSpace{}, {});
+    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{});
   }
 
   { // one leaf
-    auto tree = make<Tree>(ExecutionSpace{}, {
+    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{
                                                  {{{0, 0, 0}}, {{1, 1, 1}}},
                                              });
   }
 
   { // two leaves
-    auto tree = make<Tree>(ExecutionSpace{}, {
+    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{
                                                  {{{0, 0, 0}}, {{1, 1, 1}}},
                                                  {{{0, 0, 0}}, {{1, 1, 1}}},
                                              });
@@ -81,10 +85,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, DeviceType,
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
-      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
+  using Box = ArborX::Box<3>;
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
 
-  auto tree = make<Tree>(ExecutionSpace{}, {
+  auto tree = make<Tree>(ExecutionSpace{}, std::vector<Box>{
                                                {{{0, 0, 0}}, {{1, 1, 1}}},
                                                {{{0, 0, 0}}, {{1, 1, 1}}},
                                            });
@@ -126,8 +132,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
-      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
+  using Box = ArborX::Box<3>;
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
 
   auto const callback = [](char const *label, uint32_t, uint64_t *) {
     std::regex re("^(ArborX::|Kokkos::).*");
@@ -144,18 +152,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
     Tree tree;
   }
 
+  using VectorOfBoxes = std::vector<Box>;
+
   { // empty
-    auto tree = make<Tree>(ExecutionSpace{}, {});
+    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{});
   }
 
   { // one leaf
-    auto tree = make<Tree>(ExecutionSpace{}, {
+    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{
                                                  {{{0, 0, 0}}, {{1, 1, 1}}},
                                              });
   }
 
   { // two leaves
-    auto tree = make<Tree>(ExecutionSpace{}, {
+    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{
                                                  {{{0, 0, 0}}, {{1, 1, 1}}},
                                                  {{{0, 0, 0}}, {{1, 1, 1}}},
                                              });
@@ -163,7 +173,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 
   // BVH::query
 
-  auto tree = make<Tree>(ExecutionSpace{}, {
+  auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{
                                                {{{0, 0, 0}}, {{1, 1, 1}}},
                                                {{{0, 0, 0}}, {{1, 1, 1}}},
                                            });
@@ -191,8 +201,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
-      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
+  using Box = ArborX::Box<3>;
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
 
   Kokkos::Tools::Experimental::set_push_region_callback([](char const *label) {
     std::regex re("^(ArborX::|Kokkos::).*");
@@ -206,18 +218,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
     Tree tree;
   }
 
+  using VectorOfBoxes = std::vector<Box>;
+
   { // empty
-    auto tree = make<Tree>(ExecutionSpace{}, {});
+    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{});
   }
 
   { // one leaf
-    auto tree = make<Tree>(ExecutionSpace{}, {
+    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{
                                                  {{{0, 0, 0}}, {{1, 1, 1}}},
                                              });
   }
 
   { // two leaves
-    auto tree = make<Tree>(ExecutionSpace{}, {
+    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{
                                                  {{{0, 0, 0}}, {{1, 1, 1}}},
                                                  {{{0, 0, 0}}, {{1, 1, 1}}},
                                              });
@@ -225,7 +239,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 
   // BVH::query
 
-  auto tree = make<Tree>(ExecutionSpace{}, {
+  auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{
                                                {{{0, 0, 0}}, {{1, 1, 1}}},
                                                {{{0, 0, 0}}, {{1, 1, 1}}},
                                            });

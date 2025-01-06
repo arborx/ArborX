@@ -100,21 +100,19 @@ auto query(ExecutionSpace const &exec_space, Tree const &tree,
                  (reference),                                                  \
              boost::test_tools::per_element());
 
-template <typename Tree, typename ExecutionSpace, int DIM = 3,
-          typename Coordinate = float>
-auto make(ExecutionSpace const &exec_space,
-          std::vector<ArborX::Box<DIM, Coordinate>> const &b)
+template <typename Tree, typename ExecutionSpace, typename Geometry>
+auto make(ExecutionSpace const &exec_space, std::vector<Geometry> const &g)
 {
-  int const n = b.size();
-  Kokkos::View<ArborX::Box<DIM, Coordinate> *, typename Tree::memory_space>
-      boxes(Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::boxes"),
-            n);
-  auto boxes_host =
-      Kokkos::create_mirror_view(Kokkos::WithoutInitializing, boxes);
+  int const n = g.size();
+  Kokkos::View<Geometry *, typename Tree::memory_space> geometries(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "Testing::geometries"),
+      n);
+  auto geometries_host =
+      Kokkos::create_mirror_view(Kokkos::WithoutInitializing, geometries);
   for (int i = 0; i < n; ++i)
-    boxes_host(i) = b[i];
-  Kokkos::deep_copy(exec_space, boxes, boxes_host);
-  return Tree(exec_space, boxes);
+    geometries_host(i) = g[i];
+  Kokkos::deep_copy(exec_space, geometries, geometries_host);
+  return Tree(exec_space, geometries);
 }
 
 #ifdef ARBORX_ENABLE_MPI

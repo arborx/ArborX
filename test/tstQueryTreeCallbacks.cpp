@@ -196,7 +196,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_early_exit, TreeTypeTraits,
   using DeviceType = typename TreeTypeTraits::device_type;
 
   auto const tree =
-      make<Tree>(ExecutionSpace{}, {
+      make<Tree>(ExecutionSpace{}, std::vector<ArborX::Box<3>>{
                                        {{{0., 0., 0.}}, {{0., 0., 0.}}},
                                        {{{1., 1., 1.}}, {{1., 1., 1.}}},
                                        {{{2., 2., 2.}}, {{2., 2., 2.}}},
