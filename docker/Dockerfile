@@ -91,7 +91,7 @@ ENV BOOST_DIR=/opt/boost
 RUN BOOST_VERSION=1.75.0 && \
     BOOST_VERSION_UNDERSCORE=$(echo "$BOOST_VERSION" | sed -e "s/\./_/g") && \
     BOOST_KEY=379CE192D401AB61 && \
-    BOOST_URL=https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VERSION}/source && \
+    BOOST_URL=https://archives.boost.io/release/${BOOST_VERSION}/source && \
     BOOST_ARCHIVE=boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2 && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${BOOST_URL}/${BOOST_ARCHIVE} && \
