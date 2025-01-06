@@ -91,23 +91,21 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_execution_space_instance, DeviceType,
     Tree tree;
   }
 
-  using VectorOfBoxes = std::vector<Box>;
-
   { // empty
-    auto tree = make<Tree>(exec, VectorOfBoxes{});
+    auto tree = make<Tree, Box>(exec, {});
   }
 
   { // one leaf
-    auto tree = make<Tree>(exec, VectorOfBoxes{
-                                     {{{0, 0, 0}}, {{1, 1, 1}}},
-                                 });
+    auto tree = make<Tree, Box>(exec, {
+                                          {{{0, 0, 0}}, {{1, 1, 1}}},
+                                      });
   }
 
   { // two leaves
-    auto tree = make<Tree>(exec, VectorOfBoxes{
-                                     {{{0, 0, 0}}, {{1, 1, 1}}},
-                                     {{{0, 0, 0}}, {{1, 1, 1}}},
-                                 });
+    auto tree = make<Tree, Box>(exec, {
+                                          {{{0, 0, 0}}, {{1, 1, 1}}},
+                                          {{{0, 0, 0}}, {{1, 1, 1}}},
+                                      });
   }
 
   arborx_test_unset_tools_callbacks();
@@ -123,10 +121,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_execution_space_instance, DeviceType,
       LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
                                                  ArborX::PairValueIndex<Box>>>;
 
-  auto tree = make<Tree>(ExecutionSpace{}, std::vector<Box>{
-                                               {{{0, 0, 0}}, {{1, 1, 1}}},
-                                               {{{0, 0, 0}}, {{1, 1, 1}}},
-                                           });
+  auto tree = make<Tree, Box>(ExecutionSpace{}, {
+                                                    {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                    {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                });
 
   auto exec = Kokkos::Experimental::partition_space(ExecutionSpace{}, 1)[0];
   arborx_test_set_tools_callbacks(exec);

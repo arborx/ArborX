@@ -216,12 +216,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_early_exit, TreeTypeTraits,
   using Box = ArborX::Box<DIM, Coordinate>;
 
   auto const tree =
-      make<Tree>(ExecutionSpace{}, std::vector<Box>{
-                                       {{{0., 0., 0.}}, {{0., 0., 0.}}},
-                                       {{{1., 1., 1.}}, {{1., 1., 1.}}},
-                                       {{{2., 2., 2.}}, {{2., 2., 2.}}},
-                                       {{{3., 3., 3.}}, {{3., 3., 3.}}},
-                                   });
+      make<Tree, Box>(ExecutionSpace{}, {
+                                            {{{0., 0., 0.}}, {{0., 0., 0.}}},
+                                            {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                                            {{{2., 2., 2.}}, {{2., 2., 2.}}},
+                                            {{{3., 3., 3.}}, {{3., 3., 3.}}},
+                                        });
 
   Kokkos::View<int *, DeviceType> counts("counts", 4);
 

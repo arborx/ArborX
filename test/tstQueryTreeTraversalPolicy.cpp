@@ -43,12 +43,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
                                                  ArborX::PairValueIndex<Box>>>;
 
   auto const bvh =
-      make<Tree>(ExecutionSpace{}, std::vector<Box>{
-                                       {{{0., 0., 0.}}, {{0., 0., 0.}}},
-                                       {{{1., 0., 0.}}, {{1., 0., 0.}}},
-                                       {{{2., 0., 0.}}, {{2., 0., 0.}}},
-                                       {{{3., 0., 0.}}, {{3., 0., 0.}}},
-                                   });
+      make<Tree, Box>(ExecutionSpace{}, {
+                                            {{{0., 0., 0.}}, {{0., 0., 0.}}},
+                                            {{{1., 0., 0.}}, {{1., 0., 0.}}},
+                                            {{{2., 0., 0.}}, {{2., 0., 0.}}},
+                                            {{{3., 0., 0.}}, {{3., 0., 0.}}},
+                                        });
 
   auto const queries = makeIntersectsBoxQueries<DeviceType>({
       {},
@@ -136,12 +136,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
                                                  ArborX::PairValueIndex<Box>>>;
 
   auto const bvh =
-      make<Tree>(ExecutionSpace{}, std::vector<Box>{
-                                       {{{0., 0., 0.}}, {{0., 0., 0.}}},
-                                       {{{1., 1., 1.}}, {{1., 1., 1.}}},
-                                       {{{2., 2., 2.}}, {{2., 2., 2.}}},
-                                       {{{3., 3., 3.}}, {{3., 3., 3.}}},
-                                   });
+      make<Tree, Box>(ExecutionSpace{}, {
+                                            {{{0., 0., 0.}}, {{0., 0., 0.}}},
+                                            {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                                            {{{2., 2., 2.}}, {{2., 2., 2.}}},
+                                            {{{3., 3., 3.}}, {{3., 3., 3.}}},
+                                        });
 
   using ViewType = Kokkos::View<int *, DeviceType>;
   ViewType indices("indices", 0);

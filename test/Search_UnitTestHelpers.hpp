@@ -100,7 +100,7 @@ auto query(ExecutionSpace const &exec_space, Tree const &tree,
                  (reference),                                                  \
              boost::test_tools::per_element());
 
-template <typename Tree, typename ExecutionSpace, typename Geometry>
+template <typename Tree, typename Geometry, typename ExecutionSpace>
 auto make(ExecutionSpace const &exec_space, std::vector<Geometry> const &g)
 {
   int const n = g.size();

@@ -38,9 +38,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_spatial_predicate, TreeTypeTraits,
   Tree value_initialized{};
   for (auto const &tree : {
            default_initialized, value_initialized,
-           make<Tree>(ExecutionSpace{}, std::vector<Box>{}), // constructed with
-                                                             // empty view of
-                                                             // boxes
+           make<Tree, Box>(ExecutionSpace{},
+                           {}), // constructed with empty view of boxes
        })
   {
     BOOST_TEST(tree.empty());
@@ -100,9 +99,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_nearest_predicate, TreeTypeTraits,
   // tree is empty, it has no leaves.
   for (auto const &tree : {
            Tree{}, // default constructed
-           make<Tree>(ExecutionSpace{},
-                      std::vector<Box>{}), // constructed with empty
-                                           // view of boxes
+           make<Tree, Box>(ExecutionSpace{},
+                           {}), // constructed with empty view of boxes
        })
   {
     BOOST_TEST(tree.empty());
@@ -144,9 +142,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_spatial_predicate,
 
   // tree has a single leaf (unit box)
   auto const tree =
-      make<Tree>(ExecutionSpace{}, std::vector<Box>{
-                                       {{{0., 0., 0.}}, {{1., 1., 1.}}},
-                                   });
+      make<Tree, Box>(ExecutionSpace{}, {
+                                            {{{0., 0., 0.}}, {{1., 1., 1.}}},
+                                        });
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 1);
@@ -194,9 +192,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_nearest_predicate,
 
   // tree has a single leaf (unit box)
   auto const tree =
-      make<Tree>(ExecutionSpace{}, std::vector<Box>{
-                                       {{{0., 0., 0.}}, {{1., 1., 1.}}},
-                                   });
+      make<Tree, Box>(ExecutionSpace{}, {
+                                            {{{0., 0., 0.}}, {{1., 1., 1.}}},
+                                        });
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 1);
@@ -235,10 +233,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_spatial_predicate,
                   ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
 
   auto const tree =
-      make<Tree>(ExecutionSpace{}, std::vector<Box>{
-                                       {{{0., 0., 0.}}, {{0., 0., 0.}}},
-                                       {{{1., 1., 1.}}, {{1., 1., 1.}}},
-                                   });
+      make<Tree, Box>(ExecutionSpace{}, {
+                                            {{{0., 0., 0.}}, {{0., 0., 0.}}},
+                                            {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                                        });
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 2);
@@ -302,10 +300,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_nearest_predicate,
                   ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
 
   auto const tree =
-      make<Tree>(ExecutionSpace{}, std::vector<Box>{
-                                       {{{0., 0., 0.}}, {{0., 0., 0.}}},
-                                       {{{1., 1., 1.}}, {{1., 1., 1.}}},
-                                   });
+      make<Tree, Box>(ExecutionSpace{}, {
+                                            {{{0., 0., 0.}}, {{0., 0., 0.}}},
+                                            {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                                        });
 
   BOOST_TEST(!tree.empty());
   BOOST_TEST(tree.size() == 2);
@@ -345,12 +343,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves_spatial_predicate,
   // at construction had leaves with no parent which yielded a segfault later
   // when computing bounding boxes and walking the hierarchy toward the root.
   auto const tree =
-      make<Tree>(ExecutionSpace{}, std::vector<Box>{
-                                       {{{0., 0., 0.}}, {{0., 0., 0.}}},
-                                       {{{1., 1., 1.}}, {{1., 1., 1.}}},
-                                       {{{1., 1., 1.}}, {{1., 1., 1.}}},
-                                       {{{1., 1., 1.}}, {{1., 1., 1.}}},
-                                   });
+      make<Tree, Box>(ExecutionSpace{}, {
+                                            {{{0., 0., 0.}}, {{0., 0., 0.}}},
+                                            {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                                            {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                                            {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                                        });
 
   ARBORX_TEST_QUERY_TREE(
       ExecutionSpace{}, tree,

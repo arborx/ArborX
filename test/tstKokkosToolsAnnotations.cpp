@@ -58,23 +58,23 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, DeviceType,
     Tree tree;
   }
 
-  using VectorOfBoxes = std::vector<Box>;
-
   { // empty
-    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{});
+    auto tree = make<Tree, Box>(ExecutionSpace{}, {});
   }
 
   { // one leaf
-    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                             });
+    auto tree =
+        make<Tree, Box>(ExecutionSpace{}, {
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                          });
   }
 
   { // two leaves
-    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                             });
+    auto tree =
+        make<Tree, Box>(ExecutionSpace{}, {
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                          });
   }
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(nullptr);
@@ -90,10 +90,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, DeviceType,
       LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
                                                  ArborX::PairValueIndex<Box>>>;
 
-  auto tree = make<Tree>(ExecutionSpace{}, std::vector<Box>{
-                                               {{{0, 0, 0}}, {{1, 1, 1}}},
-                                               {{{0, 0, 0}}, {{1, 1, 1}}},
-                                           });
+  auto tree = make<Tree, Box>(ExecutionSpace{}, {
+                                                    {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                    {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                });
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle /*handle*/, char const *label,
@@ -152,31 +152,31 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
     Tree tree;
   }
 
-  using VectorOfBoxes = std::vector<Box>;
-
   { // empty
-    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{});
+    auto tree = make<Tree, Box>(ExecutionSpace{}, {});
   }
 
   { // one leaf
-    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                             });
+    auto tree =
+        make<Tree, Box>(ExecutionSpace{}, {
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                          });
   }
 
   { // two leaves
-    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                             });
+    auto tree =
+        make<Tree, Box>(ExecutionSpace{}, {
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                          });
   }
 
   // BVH::query
 
-  auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{
-                                               {{{0, 0, 0}}, {{1, 1, 1}}},
-                                               {{{0, 0, 0}}, {{1, 1, 1}}},
-                                           });
+  auto tree = make<Tree, Box>(ExecutionSpace{}, {
+                                                    {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                    {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                });
 
   // spatial predicates
   query(ExecutionSpace{}, tree,
@@ -218,31 +218,31 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
     Tree tree;
   }
 
-  using VectorOfBoxes = std::vector<Box>;
-
   { // empty
-    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{});
+    auto tree = make<Tree, Box>(ExecutionSpace{}, {});
   }
 
   { // one leaf
-    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                             });
+    auto tree =
+        make<Tree, Box>(ExecutionSpace{}, {
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                          });
   }
 
   { // two leaves
-    auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                             });
+    auto tree =
+        make<Tree, Box>(ExecutionSpace{}, {
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                          });
   }
 
   // BVH::query
 
-  auto tree = make<Tree>(ExecutionSpace{}, VectorOfBoxes{
-                                               {{{0, 0, 0}}, {{1, 1, 1}}},
-                                               {{{0, 0, 0}}, {{1, 1, 1}}},
-                                           });
+  auto tree = make<Tree, Box>(ExecutionSpace{}, {
+                                                    {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                    {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                });
 
   // spatial predicates
   query(ExecutionSpace{}, tree,
