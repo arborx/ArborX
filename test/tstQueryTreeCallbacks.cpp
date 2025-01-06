@@ -123,19 +123,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_spatial_predicate, TreeTypeTraits,
 
   ARBORX_TEST_QUERY_TREE_CALLBACK(
       ExecutionSpace{}, tree,
-      makeIntersectsBoxQueries<DeviceType>(std::vector<Box>{
+      (makeIntersectsQueries<DeviceType, Box>({
           static_cast<Box>(tree.bounds()),
-      }),
+      })),
       CustomInlineCallback<decltype(points)>{points},
       make_compressed_storage(offsets, values));
 
-  ARBORX_TEST_QUERY_TREE_CALLBACK(
-      ExecutionSpace{}, tree,
-      makeIntersectsBoxQueries<DeviceType>(std::vector<Box>{
-          static_cast<Box>(tree.bounds()),
-      }),
-      CustomPostCallback<decltype(points)>{points},
-      make_compressed_storage(offsets, values));
+  ARBORX_TEST_QUERY_TREE_CALLBACK(ExecutionSpace{}, tree,
+                                  (makeIntersectsQueries<DeviceType, Box>({
+                                      static_cast<Box>(tree.bounds()),
+                                  })),
+                                  CustomPostCallback<decltype(points)>{points},
+                                  make_compressed_storage(offsets, values));
 }
 
 #ifndef ARBORX_TEST_DISABLE_NEAREST_QUERY
@@ -168,19 +167,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_nearest_predicate, TreeTypeTraits,
 
   ARBORX_TEST_QUERY_TREE_CALLBACK(
       ExecutionSpace{}, tree,
-      makeNearestQueries<DeviceType>(std::vector<std::pair<Point, int>>{
+      (makeNearestQueries<DeviceType, Point>({
           {origin, n},
-      }),
+      })),
       CustomInlineCallback<decltype(points)>{points},
       make_compressed_storage(offsets, values));
 
-  ARBORX_TEST_QUERY_TREE_CALLBACK(
-      ExecutionSpace{}, tree,
-      makeNearestQueries<DeviceType>(std::vector<std::pair<Point, int>>{
-          {origin, n},
-      }),
-      CustomPostCallback<decltype(points)>{points},
-      make_compressed_storage(offsets, values));
+  ARBORX_TEST_QUERY_TREE_CALLBACK(ExecutionSpace{}, tree,
+                                  (makeNearestQueries<DeviceType, Point>({
+                                      {origin, n},
+                                  })),
+                                  CustomPostCallback<decltype(points)>{points},
+                                  make_compressed_storage(offsets, values));
 }
 #endif
 
@@ -230,8 +228,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_early_exit, TreeTypeTraits,
 
   Box b;
   ArborX::Details::expand(b, tree.bounds());
-  auto predicates = makeIntersectsBoxWithAttachmentQueries<DeviceType, int>(
-      std::vector<Box>{b, b, b, b}, {0, 1, 2, 3});
+  auto predicates = makeIntersectsWithAttachmentQueries<DeviceType, Box, int>(
+      {b, b, b, b}, {0, 1, 2, 3});
 
   tree.query(ExecutionSpace{}, predicates,
              Experimental_CustomCallbackEarlyExit<DeviceType>{counts});
@@ -323,16 +321,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_spatial_predicate,
 
   ARBORX_TEST_QUERY_TREE_CALLBACK(
       ExecutionSpace{}, tree,
-      (makeIntersectsBoxWithAttachmentQueries<DeviceType, Coordinate>(
-          std::vector<Box>{bounds}, {delta})),
+      (makeIntersectsWithAttachmentQueries<DeviceType, Box, Coordinate>(
+          {bounds}, {delta})),
       CustomInlineCallbackWithAttachment<decltype(points)>{points},
       make_compressed_storage(offsets, values));
 
   ARBORX_TEST_QUERY_TREE_CALLBACK(
       ExecutionSpace{}, tree,
-      (makeIntersectsBoxWithAttachmentQueries<DeviceType,
-                                              Kokkos::Array<Coordinate, 2>>(
-          std::vector<Box>{bounds}, {{0., delta}})),
+      (makeIntersectsWithAttachmentQueries<DeviceType, Box,
+                                           Kokkos::Array<Coordinate, 2>>(
+          {bounds}, {{0., delta}})),
       CustomPostCallbackWithAttachment<decltype(points)>{points},
       make_compressed_storage(offsets, values));
 }
@@ -368,16 +366,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment_nearest_predicate,
 
   ARBORX_TEST_QUERY_TREE_CALLBACK(
       ExecutionSpace{}, tree,
-      (makeNearestWithAttachmentQueries<DeviceType, Coordinate>(
-          std::vector<std::pair<Point, int>>{{origin, n}}, {delta})),
+      (makeNearestWithAttachmentQueries<DeviceType, Point, Coordinate>(
+          {{origin, n}}, {delta})),
       CustomInlineCallbackWithAttachment<decltype(points)>{points},
       make_compressed_storage(offsets, values));
 
   ARBORX_TEST_QUERY_TREE_CALLBACK(
       ExecutionSpace{}, tree,
-      (makeNearestWithAttachmentQueries<DeviceType,
+      (makeNearestWithAttachmentQueries<DeviceType, Point,
                                         Kokkos::Array<Coordinate, 2>>(
-          std::vector<std::pair<Point, int>>{{origin, n}}, {{0, delta}})),
+          {{origin, n}}, {{0, delta}})),
       CustomPostCallbackWithAttachment<decltype(points)>{points},
       make_compressed_storage(offsets, values));
 }

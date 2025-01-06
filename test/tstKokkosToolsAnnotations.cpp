@@ -86,6 +86,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, DeviceType,
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
   using Box = ArborX::Box<3>;
+  using Point = ArborX::Point<3>;
   using Tree =
       LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
                                                  ArborX::PairValueIndex<Box>>>;
@@ -113,14 +114,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, DeviceType,
 
   // spatial predicates
   query(ExecutionSpace{}, tree,
-        makeIntersectsBoxQueries<DeviceType>({
+        makeIntersectsQueries<DeviceType, Box>({
             {{{0, 0, 0}}, {{1, 1, 1}}},
             {{{0, 0, 0}}, {{1, 1, 1}}},
         }));
 
   // nearest predicates
   query(ExecutionSpace{}, tree,
-        makeNearestQueries<DeviceType>({
+        makeNearestQueries<DeviceType, Point>({
             {{{0, 0, 0}}, 1},
             {{{0, 0, 0}}, 2},
         }));
@@ -133,6 +134,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
   using Box = ArborX::Box<3>;
+  using Point = ArborX::Point<3>;
   using Tree =
       LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
                                                  ArborX::PairValueIndex<Box>>>;
@@ -180,14 +182,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 
   // spatial predicates
   query(ExecutionSpace{}, tree,
-        makeIntersectsBoxQueries<DeviceType>({
+        makeIntersectsQueries<DeviceType, Box>({
             {{{0, 0, 0}}, {{1, 1, 1}}},
             {{{0, 0, 0}}, {{1, 1, 1}}},
         }));
 
   // nearest predicates
   query(ExecutionSpace{}, tree,
-        makeNearestQueries<DeviceType>({
+        makeNearestQueries<DeviceType, Point>({
             {{{0, 0, 0}}, 1},
             {{{0, 0, 0}}, 2},
         }));
@@ -202,6 +204,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
   using Box = ArborX::Box<3>;
+  using Point = ArborX::Point<3>;
   using Tree =
       LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
                                                  ArborX::PairValueIndex<Box>>>;
@@ -246,14 +249,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 
   // spatial predicates
   query(ExecutionSpace{}, tree,
-        makeIntersectsBoxQueries<DeviceType>({
+        makeIntersectsQueries<DeviceType, Box>({
             {{{0, 0, 0}}, {{1, 1, 1}}},
             {{{0, 0, 0}}, {{1, 1, 1}}},
         }));
 
   // nearest predicates
   query(ExecutionSpace{}, tree,
-        makeNearestQueries<DeviceType>({
+        makeNearestQueries<DeviceType, Point>({
             {{{0, 0, 0}}, 1},
             {{{0, 0, 0}}, 2},
         }));

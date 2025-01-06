@@ -29,9 +29,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_spatial_predicate, TreeTypeTraits,
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
   using BoundingVolume = typename Tree::bounding_volume_type;
-  using Box =
-      ArborX::Box<ArborX::GeometryTraits::dimension_v<BoundingVolume>,
-                  ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
+  constexpr int DIM = ArborX::GeometryTraits::dimension_v<BoundingVolume>;
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>;
+  using Box = ArborX::Box<DIM, Coordinate>;
 
   // tree is empty, it has no leaves.
   Tree default_initialized;
@@ -53,32 +53,34 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_spatial_predicate, TreeTypeTraits,
     // traversals for nearest and spatial predicates, we do have to check
     // the results for various type of queries.
     ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                           makeIntersectsBoxQueries<DeviceType>({}),
+                           (makeIntersectsQueries<DeviceType, Box>({})),
                            make_reference_solution<int>({}, {0}));
 
     // Now passing a couple queries of various type and checking the
     // results.
     ARBORX_TEST_QUERY_TREE(
         ExecutionSpace{}, tree,
-        makeIntersectsBoxQueries<DeviceType>({
+        (makeIntersectsQueries<DeviceType, Box>({
             {}, // Did not bother giving a valid box here but that's fine.
             {},
-        }),
+        })),
         make_reference_solution<int>({}, {0, 0, 0}));
 
 #ifndef ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_SPHERE
+    using Sphere = ArborX::Sphere<DIM, Coordinate>;
+
     // NOTE: Admittedly testing for both intersection with a box and with a
     // sphere queries might be a bit overkill but I'd rather test for all the
     // queries we plan on using.
     ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                           makeIntersectsSphereQueries<DeviceType>({}),
+                           (makeIntersectsQueries<DeviceType, Sphere>({})),
                            make_reference_solution<int>({}, {0}));
 
     ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                           makeIntersectsSphereQueries<DeviceType>({
+                           (makeIntersectsQueries<DeviceType, Sphere>({
                                {{{0., 0., 0.}}, 1.},
                                {{{1., 1., 1.}}, 2.},
-                           }),
+                           })),
                            make_reference_solution<int>({}, {0, 0, 0}));
 #endif
   }
@@ -92,9 +94,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_nearest_predicate, TreeTypeTraits,
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
   using BoundingVolume = typename Tree::bounding_volume_type;
-  using Box =
-      ArborX::Box<ArborX::GeometryTraits::dimension_v<BoundingVolume>,
-                  ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
+  constexpr int DIM = ArborX::GeometryTraits::dimension_v<BoundingVolume>;
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>;
+  using Box = ArborX::Box<DIM, Coordinate>;
+  using Point = ArborX::Point<DIM, Coordinate>;
 
   // tree is empty, it has no leaves.
   for (auto const &tree : {
@@ -114,16 +117,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_nearest_predicate, TreeTypeTraits,
     // traversals for nearest and spatial predicates, we do have to check
     // the results for various type of queries.
     ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                           makeNearestQueries<DeviceType>({}),
+                           (makeNearestQueries<DeviceType, Point>({})),
                            make_reference_solution<int>({}, {0}));
 
     // Now passing a couple queries of various type and checking the
     // results.
     ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                           makeNearestQueries<DeviceType>({
+                           (makeNearestQueries<DeviceType, Point>({
                                {{{0., 0., 0.}}, 1},
                                {{{1., 1., 1.}}, 2},
-                           }),
+                           })),
                            make_reference_solution<int>({}, {0, 0, 0}));
   }
 }
@@ -136,9 +139,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_spatial_predicate,
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
   using BoundingVolume = typename Tree::bounding_volume_type;
-  using Box =
-      ArborX::Box<ArborX::GeometryTraits::dimension_v<BoundingVolume>,
-                  ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
+  constexpr int DIM = ArborX::GeometryTraits::dimension_v<BoundingVolume>;
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>;
+  using Box = ArborX::Box<DIM, Coordinate>;
 
   // tree has a single leaf (unit box)
   auto const tree =
@@ -153,27 +156,28 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_spatial_predicate,
                     {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeIntersectsBoxQueries<DeviceType>({}),
+                         (makeIntersectsQueries<DeviceType, Box>({})),
                          make_reference_solution<int>({}, {0}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeIntersectsBoxQueries<DeviceType>({
+                         (makeIntersectsQueries<DeviceType, Box>({
                              {{{5., 5., 5.}}, {{5., 5., 5.}}},
                              {{{.5, .5, .5}}, {{.5, .5, .5}}},
-                         }),
+                         })),
                          make_reference_solution<int>({0}, {0, 0, 1}));
 
 #ifndef ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_SPHERE
+  using Sphere = ArborX::Sphere<DIM, Coordinate>;
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeIntersectsSphereQueries<DeviceType>({}),
+                         (makeIntersectsQueries<DeviceType, Sphere>({})),
                          make_reference_solution<int>({}, {0}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeIntersectsSphereQueries<DeviceType>({
+                         (makeIntersectsQueries<DeviceType, Sphere>({
                              {{{0., 0., 0.}}, 1.},
                              {{{1., 1., 1.}}, 3.},
                              {{{5., 5., 5.}}, 2.},
-                         }),
+                         })),
                          make_reference_solution<int>({0, 0}, {0, 1, 2, 2}));
 #endif
 }
@@ -186,9 +190,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_nearest_predicate,
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
   using BoundingVolume = typename Tree::bounding_volume_type;
-  using Box =
-      ArborX::Box<ArborX::GeometryTraits::dimension_v<BoundingVolume>,
-                  ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
+  constexpr int DIM = ArborX::GeometryTraits::dimension_v<BoundingVolume>;
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>;
+  using Box = ArborX::Box<DIM, Coordinate>;
+  using Point = ArborX::Point<DIM, Coordinate>;
 
   // tree has a single leaf (unit box)
   auto const tree =
@@ -203,19 +208,19 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_nearest_predicate,
                     {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeNearestQueries<DeviceType>({}),
+                         (makeNearestQueries<DeviceType, Point>({})),
                          make_reference_solution<int>({}, {0}));
-  ARBORX_TEST_QUERY_TREE(
-      ExecutionSpace{}, tree,
-      makeNearestQueries<DeviceType>({{{0., 0., 0.}, 3}, {{4., 5., 1.}, 1}}),
-      make_reference_solution<int>({0, 0}, {0, 1, 2}));
+  ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
+                         (makeNearestQueries<DeviceType, Point>(
+                             {{{0., 0., 0.}, 3}, {{4., 5., 1.}, 1}})),
+                         make_reference_solution<int>({0, 0}, {0, 1, 2}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeNearestQueries<DeviceType>({
+                         (makeNearestQueries<DeviceType, Point>({
                              {{{0., 0., 0.}}, 1},
                              {{{1., 1., 1.}}, 2},
                              {{{2., 2., 2.}}, 3},
-                         }),
+                         })),
                          make_reference_solution<int>({0, 0, 0}, {0, 1, 2, 3}));
 }
 #endif
@@ -246,44 +251,44 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_spatial_predicate,
 
   // single query intersects with nothing
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeIntersectsBoxQueries<DeviceType>({
+                         (makeIntersectsQueries<DeviceType, Box>({
                              {},
-                         }),
+                         })),
                          make_reference_solution<int>({}, {0, 0}));
 
   // single query intersects with both
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeIntersectsBoxQueries<DeviceType>({
+                         (makeIntersectsQueries<DeviceType, Box>({
                              {{{0., 0., 0.}}, {{1., 1., 1.}}},
-                         }),
+                         })),
                          make_reference_solution<int>({1, 0}, {0, 2}));
 
   // single query intersects with only one
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeIntersectsBoxQueries<DeviceType>({
+                         (makeIntersectsQueries<DeviceType, Box>({
                              {{{0.5, 0.5, 0.5}}, {{1.5, 1.5, 1.5}}},
-                         }),
+                         })),
                          make_reference_solution<int>({1}, {0, 1}));
 
   // a couple queries both intersect with nothing
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeIntersectsBoxQueries<DeviceType>({
+                         (makeIntersectsQueries<DeviceType, Box>({
                              {},
                              {},
-                         }),
+                         })),
                          make_reference_solution<int>({}, {0, 0, 0}));
 
   // a couple queries first intersects with nothing second with only one
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeIntersectsBoxQueries<DeviceType>({
+                         (makeIntersectsQueries<DeviceType, Box>({
                              {},
                              {{{0., 0., 0.}}, {{0., 0., 0.}}},
-                         }),
+                         })),
                          make_reference_solution<int>({0}, {0, 0, 1}));
 
   // no query
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeIntersectsBoxQueries<DeviceType>({}),
+                         (makeIntersectsQueries<DeviceType, Box>({})),
                          make_reference_solution<int>({}, {0}));
 }
 
@@ -295,9 +300,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_nearest_predicate,
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
   using BoundingVolume = typename Tree::bounding_volume_type;
-  using Box =
-      ArborX::Box<ArborX::GeometryTraits::dimension_v<BoundingVolume>,
-                  ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
+  constexpr int DIM = ArborX::GeometryTraits::dimension_v<BoundingVolume>;
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>;
+  using Box = ArborX::Box<DIM, Coordinate>;
+  using Point = ArborX::Point<DIM, Coordinate>;
 
   auto const tree =
       make<Tree, Box>(ExecutionSpace{}, {
@@ -313,14 +319,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(couple_leaves_tree_nearest_predicate,
 
   // no query
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeNearestQueries<DeviceType>({}),
+                         (makeNearestQueries<DeviceType, Point>({})),
                          make_reference_solution<int>({}, {0}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeNearestQueries<DeviceType>({
+                         (makeNearestQueries<DeviceType, Point>({
                              {{{0., 0., 0.}}, 2},
                              {{{1., 0., 0.}}, 4},
-                         }),
+                         })),
                          make_reference_solution<int>({0, 1, 0, 1}, {0, 2, 4}));
 }
 #endif
@@ -333,9 +339,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves_spatial_predicate,
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
   using BoundingVolume = typename Tree::bounding_volume_type;
-  using Box =
-      ArborX::Box<ArborX::GeometryTraits::dimension_v<BoundingVolume>,
-                  ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
+  constexpr int DIM = ArborX::GeometryTraits::dimension_v<BoundingVolume>;
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>;
+  using Box = ArborX::Box<DIM, Coordinate>;
+  using Sphere = ArborX::Sphere<DIM, Coordinate>;
 
   // The tree contains multiple (more than two) leaves that will be assigned
   // the same Morton code.  This was able to trigger a bug that we discovered
@@ -352,11 +359,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(duplicated_leaves_spatial_predicate,
 
   ARBORX_TEST_QUERY_TREE(
       ExecutionSpace{}, tree,
-      makeIntersectsSphereQueries<DeviceType>({
+      (makeIntersectsQueries<DeviceType, Sphere>({
           {{{0., 0., 0.}}, 1.},
           {{{1., 1., 1.}}, 1.},
           {{{.5, .5, .5}}, 1.},
-      }),
+      })),
       make_reference_solution<int>({0, 1, 2, 3, 0, 1, 2, 3}, {0, 1, 4, 8}));
 }
 #endif
@@ -393,10 +400,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_spatial_predicate,
   Kokkos::View<int *, DeviceType> offset("offset", 0);
   // spatial query that is satisfied by all leaves in the tree
   BOOST_CHECK_NO_THROW(ArborX::query(bvh, space,
-                                     makeIntersectsBoxQueries<DeviceType>({
+                                     (makeIntersectsQueries<DeviceType, Box>({
                                          {},
                                          {{{0., 0., 0.}}, {{n, n, n}}},
-                                     }),
+                                     })),
                                      indices, offset));
   BOOST_TEST(ArborX::Details::KokkosExt::lastElement(space, offset) == n);
 }
@@ -410,9 +417,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_nearest_predicate,
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
   using BoundingVolume = typename Tree::bounding_volume_type;
-  using Box =
-      ArborX::Box<ArborX::GeometryTraits::dimension_v<BoundingVolume>,
-                  ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>>;
+  constexpr int DIM = ArborX::GeometryTraits::dimension_v<BoundingVolume>;
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>;
+  using Box = ArborX::Box<DIM, Coordinate>;
+  using Point = ArborX::Point<DIM, Coordinate>;
 
   std::vector<Box> boxes;
   int const n = 4096; // exceed stack capacity which is 64
@@ -430,9 +438,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(not_exceeding_stack_capacity_nearest_predicate,
   Kokkos::View<int *, DeviceType> offset("offset", 0);
   // nearest query asking for as many neighbors as they are leaves in the tree
   BOOST_CHECK_NO_THROW(ArborX::query(bvh, space,
-                                     makeNearestQueries<DeviceType>({
-                                         {{{0., 0., 0.}}, n},
-                                     }),
+                                     (makeNearestQueries<DeviceType, Point>({
+                                         {{0., 0., 0.}, n},
+                                     })),
                                      indices, offset));
   BOOST_TEST(ArborX::Details::KokkosExt::lastElement(space, offset) == n);
 }

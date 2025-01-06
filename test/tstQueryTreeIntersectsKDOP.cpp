@@ -46,6 +46,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop, DeviceType, ARBORX_DEVICE_TYPES)
   using MemorySpace = typename DeviceType::memory_space;
 
   using Point = ArborX::Point<3>;
+  using Box = ArborX::Box<3>;
 
   std::vector<Point> primitives = {
       {{0, 0, 0}}, // 0
@@ -88,7 +89,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop, DeviceType, ARBORX_DEVICE_TYPES)
   std::vector<IntersectsKDop> predicates = {ArborX::intersects(x)};
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeIntersectsBoxQueries<DeviceType>({}),
+                         (makeIntersectsQueries<DeviceType, Box>({})),
                          make_reference_solution<int>({}, {0}));
   ARBORX_TEST_QUERY_TREE(
       ExecutionSpace{}, tree,

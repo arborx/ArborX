@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
                                             {{{3., 0., 0.}}, {{3., 0., 0.}}},
                                         });
 
-  auto const queries = makeIntersectsBoxQueries<DeviceType>({
+  auto const queries = makeIntersectsQueries<DeviceType, Box>({
       {},
       {{{0., 0., 0.}}, {{3., 3., 3.}}},
       {},
@@ -131,6 +131,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
   using MemorySpace = typename DeviceType::memory_space;
 
   using Box = ArborX::Box<3>;
+  using Point = ArborX::Point<3>;
   using Tree =
       LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
                                                  ArborX::PairValueIndex<Box>>>;
@@ -161,7 +162,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
   };
 
   {
-    auto const queries = makeIntersectsBoxQueries<DeviceType>({
+    auto const queries = makeIntersectsQueries<DeviceType, Box>({
         {{{2., 2., 2.}}, {{3., 3., 3.}}},
         {{{0., 0., 0.}}, {{1., 1., 1.}}},
     });
@@ -179,7 +180,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
 
   indices_ref = {2, 3, 0, 1};
   {
-    auto queries = makeNearestQueries<DeviceType>({
+    auto queries = makeNearestQueries<DeviceType, Point>({
         {{{2.5, 2.5, 2.5}}, 2},
         {{{0.5, 0.5, 0.5}}, 2},
     });
