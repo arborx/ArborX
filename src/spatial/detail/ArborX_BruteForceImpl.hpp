@@ -60,20 +60,24 @@ struct BruteForceImpl
     using PredicateType = typename Predicates::value_type;
     using IndexableType = std::decay_t<decltype(indexables(0))>;
 
+    using ScratchPredicateType =
+        Kokkos::View<PredicateType *,
+                     typename ExecutionSpace::scratch_memory_space,
+                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+    using ScratchIndexableType =
+        Kokkos::View<IndexableType *,
+                     typename ExecutionSpace::scratch_memory_space,
+                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+
     int const n_indexables = values.size();
     int const n_predicates = predicates.size();
     int const max_scratch_size = TeamPolicy::scratch_size_max(0);
     // FIXME: adjust max_scratch_size to compensate for potential alignment
     // additions to make sure we don't accidentally exceed capacity
-    // 8 is a magical valie of scratch_memory_space::ALIGN in Kokkos
-    int indexable_alignment =
-        std::max({sizeof(IndexableType), alignof(IndexableType),
-                  static_cast<size_t>(8)});
-    int predicate_alignment =
-        std::max({sizeof(PredicateType), alignof(PredicateType),
-                  static_cast<size_t>(8)});
-    int available_scratch_size = Kokkos::max(
-        0, max_scratch_size - indexable_alignment - predicate_alignment);
+    int const alignment_correction = ScratchPredicateType::shmem_size(0) +
+                                     ScratchIndexableType::shmem_size(0);
+    int available_scratch_size =
+        Kokkos::max(0, max_scratch_size - alignment_correction);
 
     // half of the scratch memory used by predicates and half for indexables
     int const predicates_per_team =
@@ -89,14 +93,6 @@ struct BruteForceImpl
         std::ceil((float)n_predicates / predicates_per_team);
     int const n_teams = n_indexable_tiles * n_predicate_tiles;
 
-    using ScratchPredicateType =
-        Kokkos::View<PredicateType *,
-                     typename ExecutionSpace::scratch_memory_space,
-                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
-    using ScratchIndexableType =
-        Kokkos::View<IndexableType *,
-                     typename ExecutionSpace::scratch_memory_space,
-                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
     int scratch_size = ScratchPredicateType::shmem_size(predicates_per_team) +
                        ScratchIndexableType::shmem_size(indexables_per_team);
     ARBORX_ASSERT(scratch_size <= max_scratch_size);
