@@ -62,12 +62,24 @@ struct BruteForceImpl
 
     int const n_indexables = values.size();
     int const n_predicates = predicates.size();
-    int max_scratch_size = TeamPolicy::scratch_size_max(0);
+    int const max_scratch_size = TeamPolicy::scratch_size_max(0);
+    // FIXME: adjust max_scratch_size to compensate for potential alignment
+    // additions to make sure we don't accidentally exceed capacity
+    // 8 is a magical valie of scratch_memory_space::ALIGN in Kokkos
+    int indexable_alignment =
+        std::max({sizeof(IndexableType), alignof(IndexableType),
+                  static_cast<size_t>(8)});
+    int predicate_alignment =
+        std::max({sizeof(PredicateType), alignof(PredicateType),
+                  static_cast<size_t>(8)});
+    int available_scratch_size = Kokkos::max(
+        0, max_scratch_size - indexable_alignment - predicate_alignment);
+
     // half of the scratch memory used by predicates and half for indexables
     int const predicates_per_team =
-        max_scratch_size / 2 / sizeof(PredicateType);
+        available_scratch_size / 2 / sizeof(PredicateType);
     int const indexables_per_team =
-        max_scratch_size / 2 / sizeof(IndexableType);
+        available_scratch_size / 2 / sizeof(IndexableType);
     ARBORX_ASSERT(predicates_per_team > 0);
     ARBORX_ASSERT(indexables_per_team > 0);
 
@@ -87,6 +99,7 @@ struct BruteForceImpl
                      Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
     int scratch_size = ScratchPredicateType::shmem_size(predicates_per_team) +
                        ScratchIndexableType::shmem_size(indexables_per_team);
+    ARBORX_ASSERT(scratch_size <= max_scratch_size);
 
     Kokkos::parallel_for(
         "ArborX::BruteForce::query::spatial::"
