@@ -41,6 +41,7 @@ add_executable(ArborX_Test_CompileOnly.exe
   tstCompileOnlyCallbacks.cpp
   tstCompileOnlyTypeRequirements.cpp
   tstCompileOnlyWeightedEdges.cpp
+  tstCompileOnlyVersionMacros.cpp
   tstCompileOnlyMain.cpp
 )
 target_link_libraries(ArborX_Test_CompileOnly.exe PRIVATE ArborX)
