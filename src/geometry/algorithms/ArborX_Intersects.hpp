@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2024 by the ArborX authors                                 *
+ * Copyright (c) 2025, ArborX authors                                       *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
