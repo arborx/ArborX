@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2017-2022 by the ArborX authors                            *
+ * Copyright (c) 2025 UT-Battelle                                           *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
