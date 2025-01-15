@@ -41,10 +41,10 @@ using ArborXTest::toView;
 
 BOOST_AUTO_TEST_SUITE(DBSCAN)
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier, DeviceType, ARBORX_DEVICE_TYPES)
+template <typename DeviceType, typename Coordinate>
+void dbscan_verifier_f()
 {
   using ExecutionSpace = typename DeviceType::execution_space;
-  using Coordinate = float;
   using Point = ArborX::Point<3, Coordinate>;
   using ArborX::Details::verifyDBSCAN;
 
@@ -152,10 +152,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier, DeviceType, ARBORX_DEVICE_TYPES)
   }
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
+template <typename DeviceType, typename Coordinate>
+void dbscan_f()
 {
   using ExecutionSpace = typename DeviceType::execution_space;
-  using Coordinate = float;
   using ArborX::dbscan;
   using ArborX::Details::verifyDBSCAN;
   using Point = ArborX::Point<3, Coordinate>;
@@ -262,6 +262,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
     BOOST_TEST(verifyDBSCAN(space, points, (Coordinate)1, 4,
                             dbscan(space, points, (Coordinate)1, 4)));
   }
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier, DeviceType, ARBORX_DEVICE_TYPES)
+{
+  dbscan_verifier_f<DeviceType, float>();
+  dbscan_verifier_f<DeviceType, double>();
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan, DeviceType, ARBORX_DEVICE_TYPES)
+{
+  dbscan_f<DeviceType, float>();
+  dbscan_f<DeviceType, double>();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
