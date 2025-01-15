@@ -33,7 +33,7 @@ template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
 bool verifyCorePointsNonnegativeIndex(ExecutionSpace const &exec_space,
                                       IndicesView /*indices*/,
                                       OffsetView offset, LabelsView labels,
-                                      int core_min_size)
+                                      int core_min_size, bool verbose)
 {
   int n = labels.size();
 
@@ -45,8 +45,9 @@ bool verifyCorePointsNonnegativeIndex(ExecutionSpace const &exec_space,
         bool self_is_core_point = (offset(i + 1) - offset(i) >= core_min_size);
         if (self_is_core_point && labels(i) < 0)
         {
-          Kokkos::printf("Core point is marked as noise: %d [%d]\n", i,
-                         labels(i));
+          if (verbose)
+            Kokkos::printf("Core point is marked as noise: %d [%d]\n", i,
+                           labels(i));
           update++;
         }
       },
@@ -59,7 +60,8 @@ template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
           typename LabelsView>
 bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
                                          IndicesView indices, OffsetView offset,
-                                         LabelsView labels, int core_min_size)
+                                         LabelsView labels, int core_min_size,
+                                         bool verbose)
 {
   int n = labels.size();
 
@@ -79,10 +81,11 @@ bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
 
             if (neigh_is_core_point && labels(i) != labels(j))
             {
-              Kokkos::printf(
-                  "Connected cores do not belong to the same cluster: "
-                  "%d [%d] -> %d [%d]\n",
-                  i, labels(i), j, labels(j));
+              if (verbose)
+                Kokkos::printf(
+                    "Connected cores do not belong to the same cluster: "
+                    "%d [%d] -> %d [%d]\n",
+                    i, labels(i), j, labels(j));
               update++;
             }
           }
@@ -98,7 +101,8 @@ template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
           typename LabelsView>
 bool verifyBorderAndNoisePoints(ExecutionSpace const &exec_space,
                                 IndicesView indices, OffsetView offset,
-                                LabelsView labels, int core_min_size)
+                                LabelsView labels, int core_min_size,
+                                bool verbose)
 {
   int n = labels.size();
 
@@ -132,16 +136,18 @@ bool verifyBorderAndNoisePoints(ExecutionSpace const &exec_space,
           // Border point must be connected to a core point
           if (is_border && !have_shared_core)
           {
-            Kokkos::printf(
-                "Border point does not belong to a cluster: %d [%d]\n", i,
-                labels(i));
+            if (verbose)
+              Kokkos::printf(
+                  "Border point does not belong to a cluster: %d [%d]\n", i,
+                  labels(i));
             update++;
           }
           // Noise points must have index -1
           if (!is_border && labels(i) != -1)
           {
-            Kokkos::printf("Noise point does not have index -1: %d [%d]\n", i,
-                           labels(i));
+            if (verbose)
+              Kokkos::printf("Noise point does not have index -1: %d [%d]\n", i,
+                             labels(i));
             update++;
           }
         }
@@ -155,7 +161,7 @@ template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
           typename LabelsView>
 bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
                              IndicesView indices, OffsetView offset,
-                             LabelsView labels, int core_min_size)
+                             LabelsView labels, int core_min_size, bool verbose)
 {
   int n = labels.size();
 
@@ -241,12 +247,14 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
   }
   if (cluster_sets.size() != num_unique_cluster_indices)
   {
-    std::cerr << "Number of components does not match\n";
+    if (verbose)
+      std::cerr << "Number of components does not match\n";
     return false;
   }
   if (num_clusters != num_unique_cluster_indices)
   {
-    std::cerr << "Cluster IDs are not unique\n";
+    if (verbose)
+      std::cerr << "Cluster IDs are not unique\n";
     return false;
   }
 
@@ -256,7 +264,8 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
 template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
           typename LabelsView>
 bool verifyClusters(ExecutionSpace const &exec_space, IndicesView indices,
-                    OffsetView offset, LabelsView labels, int core_min_size)
+                    OffsetView offset, LabelsView labels, int core_min_size,
+                    bool verbose)
 {
   int n = labels.size();
   if ((int)offset.size() != n + 1 ||
@@ -264,7 +273,7 @@ bool verifyClusters(ExecutionSpace const &exec_space, IndicesView indices,
     return false;
 
   using Verify = bool (*)(ExecutionSpace const &, IndicesView, OffsetView,
-                          LabelsView, int);
+                          LabelsView, int, bool);
 
   std::vector<Verify> verify{
       static_cast<Verify>(verifyCorePointsNonnegativeIndex),
@@ -272,7 +281,7 @@ bool verifyClusters(ExecutionSpace const &exec_space, IndicesView indices,
       static_cast<Verify>(verifyBorderAndNoisePoints),
       static_cast<Verify>(verifyClustersAreUnique)};
   return std::all_of(verify.begin(), verify.end(), [&](Verify const &verify) {
-    return verify(exec_space, indices, offset, labels, core_min_size);
+    return verify(exec_space, indices, offset, labels, core_min_size, verbose);
   });
 }
 
@@ -288,7 +297,8 @@ struct IndexOnlyCallback
 
 template <typename ExecutionSpace, typename Primitives, typename LabelsView>
 bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
-                  float eps, int core_min_size, LabelsView const &labels)
+                  float eps, int core_min_size, LabelsView const &labels,
+                  bool verbose = false)
 {
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::verify");
 
@@ -317,7 +327,7 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
             IndexOnlyCallback{}, indices, offset);
 
   auto passed = Details::verifyClusters(exec_space, indices, offset, labels,
-                                        core_min_size);
+                                        core_min_size, verbose);
   Kokkos::Profiling::popRegion();
 
   return passed;
