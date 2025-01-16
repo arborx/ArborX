@@ -685,6 +685,10 @@ void resetSharedRadii(ExecutionSpace const &space, BVH const &bvh,
                       Labels const &labels, Metric const &metric,
                       Radii const &radii)
 {
+#if defined(KOKKOS_COMPILER_CLANG) && !defined(__HIP_DEVICE_COMPILE__)
+  // FIXME_FRONTIER #1186
+#pragma clang optimize off
+#endif
   //  We will search for the shortest outgoing edge of a component. The better
   //  we initialize the upper bound on the distance (i.e., the smaller it is),
   //  the less traversal we will do and the faster it will be.
@@ -718,6 +722,9 @@ void resetSharedRadii(ExecutionSpace const &space, BVH const &bvh,
           Kokkos::atomic_min(&radii(label_j), r);
         }
       });
+#if defined(KOKKOS_COMPILER_CLANG) && !defined(__HIP_DEVICE_COMPILE__)
+#pragma clang optimize on
+#endif
 }
 
 } // namespace ArborX::Details
