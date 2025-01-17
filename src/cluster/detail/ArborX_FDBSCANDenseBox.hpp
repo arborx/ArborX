@@ -30,20 +30,23 @@ template <typename MemorySpace, typename Primitives, typename DenseCellOffsets,
           typename Permutation>
 struct CountUpToN_DenseBox
 {
+  using Coordinate =
+      GeometryTraits::coordinate_type_t<typename Primitives::value_type>;
+
   Kokkos::View<int *, MemorySpace> _counts;
   Primitives _primitives;
   DenseCellOffsets _dense_cell_offsets;
   int _num_dense_cells;
   Permutation _permute;
   int core_min_size;
-  float eps;
+  Coordinate eps;
   int _n;
 
   CountUpToN_DenseBox(Kokkos::View<int *, MemorySpace> const &counts,
                       Primitives const &primitives,
                       DenseCellOffsets const &dense_cell_offsets,
                       Permutation const &permute, int core_min_size_in,
-                      float eps_in, int n)
+                      Coordinate eps_in, int n)
       : _counts(counts)
       , _primitives(primitives)
       , _dense_cell_offsets(dense_cell_offsets)
@@ -93,6 +96,9 @@ template <typename UnionFind, typename CorePointsType, typename Primitives,
           typename DenseCellOffsets, typename Permutation>
 struct FDBSCANDenseBoxCallback
 {
+  using Coordinate =
+      GeometryTraits::coordinate_type_t<typename Primitives::value_type>;
+
   UnionFind _union_find;
   CorePointsType _is_core_point;
   Primitives _primitives;
@@ -100,7 +106,7 @@ struct FDBSCANDenseBoxCallback
   int _num_dense_cells;
   int _num_points_in_dense_cells;
   Permutation _permute;
-  float eps;
+  Coordinate eps;
 
   template <typename ExecutionSpace>
   FDBSCANDenseBoxCallback(UnionFind const &union_find,
@@ -108,7 +114,7 @@ struct FDBSCANDenseBoxCallback
                           Primitives const &primitives,
                           DenseCellOffsets const &dense_cell_offsets,
                           ExecutionSpace const &exec_space,
-                          Permutation const &permute, float eps_in)
+                          Permutation const &permute, Coordinate eps_in)
       : _union_find(union_find)
       , _is_core_point(is_core_point)
       , _primitives(primitives)
@@ -182,11 +188,11 @@ struct FDBSCANDenseBoxCallback
 };
 
 template <typename ExecutionSpace, typename Primitives>
-Kokkos::View<size_t *, typename Primitives::memory_space>
-computeCellIndices(ExecutionSpace const &exec_space,
-                   Primitives const &primitives,
-                   CartesianGrid<GeometryTraits::dimension_v<
-                       typename Primitives::value_type>> const &grid)
+Kokkos::View<size_t *, typename Primitives::memory_space> computeCellIndices(
+    ExecutionSpace const &exec_space, Primitives const &primitives,
+    CartesianGrid<GeometryTraits::dimension_v<typename Primitives::value_type>,
+                  GeometryTraits::coordinate_type_t<
+                      typename Primitives::value_type>> const &grid)
 {
   using MemorySpace = typename Primitives::memory_space;
 

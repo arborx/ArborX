@@ -23,13 +23,11 @@
 namespace ArborX::Details
 {
 
-template <int DIM>
+template <int DIM, typename Coordinate = float>
 struct CartesianGrid
 {
 public:
-  static constexpr int dim = DIM;
-
-  CartesianGrid(Box<DIM> const &bounds, float h)
+  CartesianGrid(Box<DIM, Coordinate> const &bounds, Coordinate h)
       : _bounds(bounds)
   {
     ARBORX_ASSERT(h > 0);
@@ -37,7 +35,7 @@ public:
       _h[d] = h;
     buildGrid();
   }
-  CartesianGrid(Box<DIM> const &bounds, float const h[DIM])
+  CartesianGrid(Box<DIM, Coordinate> const &bounds, Coordinate const h[DIM])
       : _bounds(bounds)
   {
     for (int d = 0; d < DIM; ++d)
@@ -80,7 +78,7 @@ public:
       max[d] = min[d] + (i + 1) * _h[d];
       min[d] += i * _h[d];
     }
-    return Box<DIM>{min, max};
+    return Box{min, max};
   }
 
   KOKKOS_FUNCTION
@@ -127,7 +125,7 @@ private:
     // run with a full NGSIM datasets, values below 3 could still produce wrong
     // results. This may still not be conservative enough, but all runs passed
     // verification when this warning was not triggered.
-    constexpr auto eps = 5 * std::numeric_limits<float>::epsilon();
+    constexpr auto eps = 5 * std::numeric_limits<Coordinate>::epsilon();
     for (int d = 0; d < DIM; ++d)
     {
       if (std::abs(_h[d] / min_corner[d]) < eps)
@@ -138,10 +136,19 @@ private:
     }
   }
 
-  Box<DIM> _bounds;
-  float _h[DIM];
+  Box<DIM, Coordinate> _bounds;
+  Coordinate _h[DIM];
   size_t _n[DIM];
 };
+
+template <int DIM, typename Coordinate>
+#if KOKKOS_VERSION >= 40400
+KOKKOS_DEDUCTION_GUIDE
+#else
+KOKKOS_FUNCTION
+#endif
+    CartesianGrid(Box<DIM, Coordinate>, Coordinate)
+        -> CartesianGrid<DIM, Coordinate>;
 
 } // namespace ArborX::Details
 
