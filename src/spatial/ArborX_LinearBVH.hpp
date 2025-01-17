@@ -16,7 +16,6 @@
 #include <ArborX_CrsGraphWrapper.hpp>
 #include <detail/ArborX_AccessTraits.hpp>
 #include <detail/ArborX_AttachIndices.hpp>
-#include <detail/ArborX_BatchedQueries.hpp>
 #include <detail/ArborX_Callbacks.hpp>
 #include <detail/ArborX_CrsGraphWrapperImpl.hpp>
 #include <detail/ArborX_IndexableGetter.hpp>
@@ -227,21 +226,24 @@ BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter, BoundingVolume>::
       "ArborX::BVH::BVH::calculate_scene_bounding_box");
 
   // determine the bounding box of the scene
-  Box<DIM, typename GeometryTraits::coordinate_type_t<BoundingVolume>> bbox{};
+  Box<DIM, typename GeometryTraits::coordinate_type_t<BoundingVolume>>
+      scene_bounding_box{};
   Details::TreeConstruction::calculateBoundingBoxOfTheScene(space, indexables,
-                                                            bbox);
+                                                            scene_bounding_box);
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::compute_linear_ordering");
 
   // Map indexables from multidimensional domain to one-dimensional interval
-  using LinearOrderingValueType =
-      std::invoke_result_t<SpaceFillingCurve, decltype(bbox), indexable_type>;
+  using Details::returnCentroid;
+  using LinearOrderingValueType = std::invoke_result_t<
+      SpaceFillingCurve, decltype(scene_bounding_box),
+      std::decay_t<decltype(returnCentroid(indexables(0)))>>;
   Kokkos::View<LinearOrderingValueType *, MemorySpace> linear_ordering_indices(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::BVH::BVH::linear_ordering"),
       size());
-  Details::TreeConstruction::projectOntoSpaceFillingCurve(
-      space, indexables, curve, bbox, linear_ordering_indices);
+  Details::projectOntoSpaceFillingCurve(
+      space, indexables, curve, scene_bounding_box, linear_ordering_indices);
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::BVH::BVH::sort_linearized_order");
@@ -308,15 +310,16 @@ void BoundingVolumeHierarchy<
   if (policy._sort_predicates)
   {
     Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
-    using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
+    using Details::expand;
     Box<GeometryTraits::dimension_v<bounding_volume_type>,
         typename GeometryTraits::coordinate_type_t<bounding_volume_type>>
         scene_bounding_box{};
-    using namespace Details;
     expand(scene_bounding_box, bounds());
-    auto permute = Details::BatchedQueries<DeviceType>::
-        sortPredicatesAlongSpaceFillingCurve(space, Experimental::Morton32(),
-                                             scene_bounding_box, predicates);
+
+    auto permute = Details::computeSpaceFillingCurvePermutation(
+        space, Details::PredicateIndexables<Predicates>{predicates},
+        Experimental::Morton32{}, scene_bounding_box);
+
     Kokkos::Profiling::popRegion();
 
     using PermutedPredicates =

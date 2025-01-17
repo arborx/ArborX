@@ -13,10 +13,10 @@
 #define ARBORX_DETAIL_CRS_GRAPH_WRAPPER_IMPL_HPP
 
 #include <ArborX_Box.hpp>
-#include <detail/ArborX_BatchedQueries.hpp>
 #include <detail/ArborX_Callbacks.hpp>
 #include <detail/ArborX_PermutedData.hpp>
 #include <detail/ArborX_Predicates.hpp>
+#include <detail/ArborX_SpaceFillingCurves.hpp>
 #include <detail/ArborX_TraversalPolicy.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
@@ -342,9 +342,6 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
               Experimental::TraversalPolicy const &policy =
                   Experimental::TraversalPolicy())
 {
-  using MemorySpace = typename Tree::memory_space;
-  using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
-
   check_valid_callback<typename Tree::value_type>(callback, predicates, out);
 
   std::string profiling_prefix = "ArborX::CrsGraphWrapper::query::";
@@ -387,9 +384,9 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
         scene_bounding_box{};
     using namespace Details;
     expand(scene_bounding_box, tree.bounds());
-    auto permute = Details::BatchedQueries<DeviceType>::
-        sortPredicatesAlongSpaceFillingCurve(space, Experimental::Morton32(),
-                                             scene_bounding_box, predicates);
+    auto permute = computeSpaceFillingCurvePermutation(
+        space, PredicateIndexables<Predicates>{predicates},
+        Experimental::Morton32{}, scene_bounding_box);
     Kokkos::Profiling::popRegion();
 
     queryImpl(space, tree, predicates, callback, out, offset, permute,
