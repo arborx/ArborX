@@ -27,13 +27,14 @@ BOOST_AUTO_TEST_SUITE(ComparisonWithBoost)
 
 namespace tt = boost::test_tools;
 
-inline auto make_stuctured_cloud(float Lx, float Ly, float Lz, int nx, int ny,
-                                 int nz)
+template <typename Coordinate>
+inline auto make_stuctured_cloud(Coordinate Lx, Coordinate Ly, Coordinate Lz,
+                                 int nx, int ny, int nz)
 {
   std::function<int(int, int, int)> ind = [nx, ny](int i, int j, int k) {
     return i + j * nx + k * (nx * ny);
   };
-  Kokkos::View<ArborX::Point<3> *, Kokkos::HostSpace> cloud(
+  Kokkos::View<ArborX::Point<3, Coordinate> *, Kokkos::HostSpace> cloud(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "structured_cloud"),
       nx * ny * nz);
   for (int i = 0; i < nx; ++i)
@@ -50,10 +51,13 @@ template <typename Tree, typename ExecutionSpace, typename DeviceType,
           typename PrimitiveGeometry>
 void boost_rtree_nearest_predicate()
 {
+  using Coordinate =
+      ArborX::GeometryTraits::coordinate_type_t<PrimitiveGeometry>;
+
   // construct a cloud of points (nodes of a structured grid)
-  float Lx = 10.0;
-  float Ly = 10.0;
-  float Lz = 10.0;
+  Coordinate Lx = 10.0;
+  Coordinate Ly = 10.0;
+  Coordinate Lz = 10.0;
   int nx = 11;
   int ny = 11;
   int nz = 11;
@@ -91,7 +95,8 @@ void boost_rtree_nearest_predicate()
   Tree tree(ExecutionSpace{},
             Kokkos::create_mirror_view_and_copy(MemorySpace{}, cloud));
 
-  BoostExt::RTree<decltype(cloud)::value_type> rtree(ExecutionSpace{}, cloud);
+  BoostExt::RTree<typename decltype(cloud)::value_type> rtree(ExecutionSpace{},
+                                                              cloud);
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree, nearest_queries,
                          query(ExecutionSpace{}, rtree, nearest_queries_host));
@@ -103,11 +108,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
+  using BoundingVolume = typename Tree::bounding_volume_type;
+  constexpr int DIM = ArborX::GeometryTraits::dimension_v<BoundingVolume>;
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>;
+  using Point = ArborX::Point<DIM, Coordinate>;
+  using Box = ArborX::Box<DIM, Coordinate>;
 
   // FIXME_NVCC we see inexplainable test failures with NVCC and KDOP<18> and
   // KDOP<26> here.
 #ifdef __NVCC__
-  using BoundingVolume = typename Tree::bounding_volume_type;
   if constexpr (ArborX::GeometryTraits::is_kdop_v<BoundingVolume>)
   {
     if constexpr (BoundingVolume::n_directions == 9 ||
@@ -117,9 +126,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
 #endif
 
   // construct a cloud of points (nodes of a structured grid)
-  float Lx = 10.0;
-  float Ly = 10.0;
-  float Lz = 10.0;
+  Coordinate Lx = 10.0;
+  Coordinate Ly = 10.0;
+  Coordinate Lz = 10.0;
   int nx = 11;
   int ny = 11;
   int nz = 11;
@@ -129,14 +138,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
   // compare our solution against Boost R-tree
   int const n_points = 100;
   using MemorySpace = typename Tree::memory_space;
-  auto points = ArborXTest::make_random_cloud<ArborX::Point<3>>(
-      ExecutionSpace{}, n_points, Lx, Ly, Lz);
+  auto points = ArborXTest::make_random_cloud<Point>(ExecutionSpace{}, n_points,
+                                                     Lx, Ly, Lz);
 
-  Kokkos::View<float *, ExecutionSpace> radii("radii", n_points);
+  Kokkos::View<Coordinate *, ExecutionSpace> radii("radii", n_points);
   auto radii_host = Kokkos::create_mirror_view(radii);
   // use random radius for the search
   std::default_random_engine generator;
-  std::uniform_real_distribution<float> distribution_radius(
+  std::uniform_real_distribution<Coordinate> distribution_radius(
       0.0, std::sqrt(Lx * Lx + Ly * Ly + Lz * Lz));
   for (unsigned int i = 0; i < n_points; ++i)
   {
@@ -145,7 +154,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
 
   Kokkos::deep_copy(radii, radii_host);
 
-  using Sphere = ArborX::Sphere<3>;
+  using Sphere = ArborX::Sphere<DIM, Coordinate>;
   Kokkos::View<decltype(ArborX::intersects(Sphere{})) *, DeviceType>
       within_queries("within_queries", n_points);
   Kokkos::parallel_for(
@@ -155,14 +164,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
   auto within_queries_host = Kokkos::create_mirror_view(within_queries);
   Kokkos::deep_copy(within_queries_host, within_queries);
 
-  Kokkos::View<decltype(ArborX::intersects(ArborX::Box<3>{})) *, DeviceType>
+  Kokkos::View<decltype(ArborX::intersects(Box{})) *, DeviceType>
       intersects_queries("intersects_queries", n_points);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n_points), KOKKOS_LAMBDA(int i) {
-        ArborX::Box box{{points(i)[0] - radii(i), points(i)[1] - radii(i),
-                         points(i)[2] - radii(i)},
-                        {points(i)[0] + radii(i), points(i)[1] + radii(i),
-                         points(i)[2] + radii(i)}};
+        Box box{{points(i)[0] - radii(i), points(i)[1] - radii(i),
+                 points(i)[2] - radii(i)},
+                {points(i)[0] + radii(i), points(i)[1] + radii(i),
+                 points(i)[2] + radii(i)}};
         intersects_queries(i) = ArborX::intersects(box);
       });
   auto intersects_queries_host = Kokkos::create_mirror_view(intersects_queries);
@@ -171,7 +180,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_spatial_predicate, TreeTypeTraits,
   Tree tree(ExecutionSpace{},
             Kokkos::create_mirror_view_and_copy(MemorySpace{}, cloud));
 
-  BoostExt::RTree<decltype(cloud)::value_type> rtree(ExecutionSpace{}, cloud);
+  BoostExt::RTree<typename decltype(cloud)::value_type> rtree(ExecutionSpace{},
+                                                              cloud);
 
   ARBORX_TEST_QUERY_TREE(
       ExecutionSpace{}, tree, intersects_queries,
@@ -189,9 +199,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate_point,
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
+  using BoundingVolume = typename Tree::bounding_volume_type;
+  constexpr int DIM = ArborX::GeometryTraits::dimension_v<BoundingVolume>;
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>;
 
   boost_rtree_nearest_predicate<Tree, ExecutionSpace, DeviceType,
-                                ArborX::Point<3>>();
+                                ArborX::Point<DIM, Coordinate>>();
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate_box, TreeTypeTraits,
@@ -200,9 +213,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(boost_rtree_nearest_predicate_box, TreeTypeTraits,
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
+  using BoundingVolume = typename Tree::bounding_volume_type;
+  constexpr int DIM = ArborX::GeometryTraits::dimension_v<BoundingVolume>;
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>;
 
   boost_rtree_nearest_predicate<Tree, ExecutionSpace, DeviceType,
-                                ArborX::Box<3>>();
+                                ArborX::Box<DIM, Coordinate>>();
 }
 #endif
 

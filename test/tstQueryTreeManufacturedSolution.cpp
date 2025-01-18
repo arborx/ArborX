@@ -32,11 +32,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   using Tree = typename TreeTypeTraits::type;
   using ExecutionSpace = typename TreeTypeTraits::execution_space;
   using DeviceType = typename TreeTypeTraits::device_type;
+  using BoundingVolume = typename Tree::bounding_volume_type;
+  constexpr int DIM = ArborX::GeometryTraits::dimension_v<BoundingVolume>;
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<BoundingVolume>;
+  using Point = ArborX::Point<DIM, Coordinate>;
+  using Box = ArborX::Box<DIM, Coordinate>;
 
   // FIXME_NVCC we see inexplainable test failures with NVCC and KDOP<18> and
   // KDOP<26> here.
 #ifdef __NVCC__
-  using BoundingVolume = typename Tree::bounding_volume_type;
   if constexpr (ArborX::GeometryTraits::is_kdop_v<BoundingVolume>)
   {
     if constexpr (BoundingVolume::n_directions == 9 ||
@@ -45,19 +49,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   }
 #endif
 
-  using Point = ArborX::Point<3>;
-  using Box = ArborX::Box<3>;
-
-  float Lx = 100.0;
-  float Ly = 100.0;
-  float Lz = 100.0;
+  Coordinate Lx = 100.0;
+  Coordinate Ly = 100.0;
+  Coordinate Lz = 100.0;
   int nx = 11;
   int ny = 11;
   int nz = 11;
   int n = nx * ny * nz;
-  float hx = Lx / (nx - 1);
-  float hy = Ly / (ny - 1);
-  float hz = Lz / (nz - 1);
+  Coordinate hx = Lx / (nx - 1);
+  Coordinate hy = Ly / (ny - 1);
+  Coordinate hz = Lz / (nz - 1);
 
   std::function<int(int, int, int)> ind = [nx, ny](int i, int j, int k) {
     return i + j * nx + k * (nx * ny);
@@ -222,7 +223,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(structured_grid, TreeTypeTraits,
   std::uniform_int_distribution<> dist_x(0, nx - 1);
   std::uniform_int_distribution<> dist_y(0, ny - 1);
   std::uniform_int_distribution<> dist_z(0, nz - 1);
-  std::uniform_real_distribution<float> dist_shift(-0.45f, 0.45f);
+  std::uniform_real_distribution<Coordinate> dist_shift(-0.45, 0.45);
 
   // The generation is a bit convoluted to avoid a situation where a centroid
   // of a box falls on any of the lattice planes, resulting in multiple

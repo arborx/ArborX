@@ -215,13 +215,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_ordered_spatial_predicate,
 
   using MemorySpace = typename DeviceType::memory_space;
   using ExecutionSpace = typename DeviceType::execution_space;
-  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
-      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
+  using Box = ArborX::Box<3>;
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
 
   auto const tree =
-      make<Tree>(ExecutionSpace{}, {
-                                       {{{0., 0., 0.}}, {{1., 1., 1.}}},
-                                   });
+      make<Tree, Box>(ExecutionSpace{}, {
+                                            {{{0., 0., 0.}}, {{1., 1., 1.}}},
+                                        });
 
   BOOST_TEST(tree.size() == 1);
   using ArborX::Details::equals;

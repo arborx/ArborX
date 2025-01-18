@@ -64,13 +64,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
     ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
+  using Box = ArborX::Box<3>;
+  using Point = ArborX::Point<3>;
 
-  auto tree = makeDistributedTree<DeviceType, ArborX::Box<3>>(
-      MPI_COMM_WORLD, ExecutionSpace{},
-      {
-          {{{0, 0, 0}}, {{1, 1, 1}}},
-          {{{0, 0, 0}}, {{1, 1, 1}}},
-      });
+  auto tree =
+      makeDistributedTree<DeviceType, Box>(MPI_COMM_WORLD, ExecutionSpace{},
+                                           {
+                                               {{{0, 0, 0}}, {{1, 1, 1}}},
+                                               {{{0, 0, 0}}, {{1, 1, 1}}},
+                                           });
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle /*handle*/, char const *label,
@@ -92,14 +94,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
 
   // spatial predicates
   query(ExecutionSpace{}, tree,
-        makeIntersectsBoxQueries<DeviceType>({
+        makeIntersectsQueries<DeviceType, Box>({
             {{{0, 0, 0}}, {{1, 1, 1}}},
             {{{0, 0, 0}}, {{1, 1, 1}}},
         }));
 
   // nearest predicates
   query(ExecutionSpace{}, tree,
-        makeNearestQueries<DeviceType>({
+        makeNearestQueries<DeviceType, Point>({
             {{{0, 0, 0}}, 1},
             {{{0, 0, 0}}, 2},
         }));
@@ -110,6 +112,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
 BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
+  using Box = ArborX::Box<3>;
+  using Point = ArborX::Point<3>;
 
   auto const callback = [](char const *label, uint32_t, uint64_t *) {
     std::regex re("^(ArborX::|Kokkos::).*");
@@ -122,23 +126,23 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 
   // DistributedTree::query
 
-  auto tree = makeDistributedTree<DeviceType, ArborX::Box<3>>(
-      MPI_COMM_WORLD, ExecutionSpace{},
-      {
-          {{{0, 0, 0}}, {{1, 1, 1}}},
-          {{{0, 0, 0}}, {{1, 1, 1}}},
-      });
+  auto tree =
+      makeDistributedTree<DeviceType, Box>(MPI_COMM_WORLD, ExecutionSpace{},
+                                           {
+                                               {{{0, 0, 0}}, {{1, 1, 1}}},
+                                               {{{0, 0, 0}}, {{1, 1, 1}}},
+                                           });
 
   // spatial predicates
   query(ExecutionSpace{}, tree,
-        makeIntersectsBoxQueries<DeviceType>({
+        makeIntersectsQueries<DeviceType, Box>({
             {{{0, 0, 0}}, {{1, 1, 1}}},
             {{{0, 0, 0}}, {{1, 1, 1}}},
         }));
 
   // nearest predicates
   query(ExecutionSpace{}, tree,
-        makeNearestQueries<DeviceType>({
+        makeNearestQueries<DeviceType, Point>({
             {{{0, 0, 0}}, 1},
             {{{0, 0, 0}}, 2},
         }));
@@ -151,6 +155,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
+  using Box = ArborX::Box<3>;
+  using Point = ArborX::Point<3>;
 
   Kokkos::Tools::Experimental::set_push_region_callback([](char const *label) {
     std::regex re("^(ArborX::|Kokkos::).*");
@@ -161,29 +167,29 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   // DistributedTree::DistriibutedSearchTree
 
   { // empty
-    auto tree = makeDistributedTree<DeviceType, ArborX::Box<3>>(
-        MPI_COMM_WORLD, ExecutionSpace{}, {});
+    auto tree = makeDistributedTree<DeviceType, Box>(MPI_COMM_WORLD,
+                                                     ExecutionSpace{}, {});
   }
 
   // DistributedTree::query
 
-  auto tree = makeDistributedTree<DeviceType, ArborX::Box<3>>(
-      MPI_COMM_WORLD, ExecutionSpace{},
-      {
-          {{{0, 0, 0}}, {{1, 1, 1}}},
-          {{{0, 0, 0}}, {{1, 1, 1}}},
-      });
+  auto tree =
+      makeDistributedTree<DeviceType, Box>(MPI_COMM_WORLD, ExecutionSpace{},
+                                           {
+                                               {{{0, 0, 0}}, {{1, 1, 1}}},
+                                               {{{0, 0, 0}}, {{1, 1, 1}}},
+                                           });
 
   // spatial predicates
   query(ExecutionSpace{}, tree,
-        makeIntersectsBoxQueries<DeviceType>({
+        makeIntersectsQueries<DeviceType, Box>({
             {{{0, 0, 0}}, {{1, 1, 1}}},
             {{{0, 0, 0}}, {{1, 1, 1}}},
         }));
 
   // nearest predicates
   query(ExecutionSpace{}, tree,
-        makeNearestQueries<DeviceType>({
+        makeNearestQueries<DeviceType, Point>({
             {{{0, 0, 0}}, 1},
             {{{0, 0, 0}}, 2},
         }));

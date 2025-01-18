@@ -36,8 +36,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, DeviceType,
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
-      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
+  using Box = ArborX::Box<3>;
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle /*handle*/, char const *label,
@@ -57,20 +59,22 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, DeviceType,
   }
 
   { // empty
-    auto tree = make<Tree>(ExecutionSpace{}, {});
+    auto tree = make<Tree, Box>(ExecutionSpace{}, {});
   }
 
   { // one leaf
-    auto tree = make<Tree>(ExecutionSpace{}, {
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                             });
+    auto tree =
+        make<Tree, Box>(ExecutionSpace{}, {
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                          });
   }
 
   { // two leaves
-    auto tree = make<Tree>(ExecutionSpace{}, {
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                             });
+    auto tree =
+        make<Tree, Box>(ExecutionSpace{}, {
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                          });
   }
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(nullptr);
@@ -81,13 +85,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, DeviceType,
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
-      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
+  using Box = ArborX::Box<3>;
+  using Point = ArborX::Point<3>;
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
 
-  auto tree = make<Tree>(ExecutionSpace{}, {
-                                               {{{0, 0, 0}}, {{1, 1, 1}}},
-                                               {{{0, 0, 0}}, {{1, 1, 1}}},
-                                           });
+  auto tree = make<Tree, Box>(ExecutionSpace{}, {
+                                                    {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                    {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                });
 
   Kokkos::Tools::Experimental::set_allocate_data_callback(
       [](Kokkos::Profiling::SpaceHandle /*handle*/, char const *label,
@@ -107,14 +114,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, DeviceType,
 
   // spatial predicates
   query(ExecutionSpace{}, tree,
-        makeIntersectsBoxQueries<DeviceType>({
+        makeIntersectsQueries<DeviceType, Box>({
             {{{0, 0, 0}}, {{1, 1, 1}}},
             {{{0, 0, 0}}, {{1, 1, 1}}},
         }));
 
   // nearest predicates
   query(ExecutionSpace{}, tree,
-        makeNearestQueries<DeviceType>({
+        makeNearestQueries<DeviceType, Point>({
             {{{0, 0, 0}}, 1},
             {{{0, 0, 0}}, 2},
         }));
@@ -126,8 +133,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
-      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
+  using Box = ArborX::Box<3>;
+  using Point = ArborX::Point<3>;
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
 
   auto const callback = [](char const *label, uint32_t, uint64_t *) {
     std::regex re("^(ArborX::|Kokkos::).*");
@@ -145,39 +155,41 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   }
 
   { // empty
-    auto tree = make<Tree>(ExecutionSpace{}, {});
+    auto tree = make<Tree, Box>(ExecutionSpace{}, {});
   }
 
   { // one leaf
-    auto tree = make<Tree>(ExecutionSpace{}, {
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                             });
+    auto tree =
+        make<Tree, Box>(ExecutionSpace{}, {
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                          });
   }
 
   { // two leaves
-    auto tree = make<Tree>(ExecutionSpace{}, {
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                             });
+    auto tree =
+        make<Tree, Box>(ExecutionSpace{}, {
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                          });
   }
 
   // BVH::query
 
-  auto tree = make<Tree>(ExecutionSpace{}, {
-                                               {{{0, 0, 0}}, {{1, 1, 1}}},
-                                               {{{0, 0, 0}}, {{1, 1, 1}}},
-                                           });
+  auto tree = make<Tree, Box>(ExecutionSpace{}, {
+                                                    {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                    {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                });
 
   // spatial predicates
   query(ExecutionSpace{}, tree,
-        makeIntersectsBoxQueries<DeviceType>({
+        makeIntersectsQueries<DeviceType, Box>({
             {{{0, 0, 0}}, {{1, 1, 1}}},
             {{{0, 0, 0}}, {{1, 1, 1}}},
         }));
 
   // nearest predicates
   query(ExecutionSpace{}, tree,
-        makeNearestQueries<DeviceType>({
+        makeNearestQueries<DeviceType, Point>({
             {{{0, 0, 0}}, 1},
             {{{0, 0, 0}}, 2},
         }));
@@ -191,8 +203,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
-      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
+  using Box = ArborX::Box<3>;
+  using Point = ArborX::Point<3>;
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
 
   Kokkos::Tools::Experimental::set_push_region_callback([](char const *label) {
     std::regex re("^(ArborX::|Kokkos::).*");
@@ -207,39 +222,41 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   }
 
   { // empty
-    auto tree = make<Tree>(ExecutionSpace{}, {});
+    auto tree = make<Tree, Box>(ExecutionSpace{}, {});
   }
 
   { // one leaf
-    auto tree = make<Tree>(ExecutionSpace{}, {
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                             });
+    auto tree =
+        make<Tree, Box>(ExecutionSpace{}, {
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                          });
   }
 
   { // two leaves
-    auto tree = make<Tree>(ExecutionSpace{}, {
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                                 {{{0, 0, 0}}, {{1, 1, 1}}},
-                                             });
+    auto tree =
+        make<Tree, Box>(ExecutionSpace{}, {
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                              {{{0, 0, 0}}, {{1, 1, 1}}},
+                                          });
   }
 
   // BVH::query
 
-  auto tree = make<Tree>(ExecutionSpace{}, {
-                                               {{{0, 0, 0}}, {{1, 1, 1}}},
-                                               {{{0, 0, 0}}, {{1, 1, 1}}},
-                                           });
+  auto tree = make<Tree, Box>(ExecutionSpace{}, {
+                                                    {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                    {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                });
 
   // spatial predicates
   query(ExecutionSpace{}, tree,
-        makeIntersectsBoxQueries<DeviceType>({
+        makeIntersectsQueries<DeviceType, Box>({
             {{{0, 0, 0}}, {{1, 1, 1}}},
             {{{0, 0, 0}}, {{1, 1, 1}}},
         }));
 
   // nearest predicates
   query(ExecutionSpace{}, tree,
-        makeNearestQueries<DeviceType>({
+        makeNearestQueries<DeviceType, Point>({
             {{{0, 0, 0}}, 1},
             {{{0, 0, 0}}, 2},
         }));

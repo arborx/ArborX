@@ -82,68 +82,72 @@ add_test(NAME ArborX_Test_Geometry COMMAND ArborX_Test_Geometry.exe)
 
 set(ARBORX_TEST_QUERY_TREE_SOURCES)
 foreach(_test Callbacks Degenerate ManufacturedSolution ComparisonWithBoost)
-  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH.cpp.tmp"
-    "#include <ArborX_LinearBVH.hpp>\n"
-    "#include <ArborX_Box.hpp>\n"
-    "#include \"ArborXTest_LegacyTree.hpp\"\n"
-    "template <class MemorySpace>\n"
-    "using ArborX_Legacy_BVH_Box =\n"
-    "    LegacyTree<ArborX::BoundingVolumeHierarchy<\n"
-    "        MemorySpace, ArborX::PairValueIndex<ArborX::Box<3, float>>,\n"
-    "        ArborX::Experimental::DefaultIndexableGetter, ArborX::Box<3, float>>>;\n"
-    "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX_Legacy_BVH_Box>\n"
-    "#define ARBORX_TEST_DEVICE_TYPES std::tuple<${ARBORX_DEVICE_TYPES}>\n"
-    "#include <tstQueryTree${_test}.cpp>\n"
-  )
-  configure_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH.cpp.tmp"
-    "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH.cpp" COPYONLY
-  )
-  list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH.cpp")
-  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BF.cpp.tmp"
-    "#include <ArborX_BruteForce.hpp>\n"
-    "#include <ArborX_Box.hpp>\n"
-    "#include \"ArborXTest_LegacyTree.hpp\"\n"
-    "template <class MemorySpace>\n"
-    "using ArborX_Legacy_BruteForce_Box =\n"
-    "    LegacyTree<ArborX::BruteForce<\n"
-    "        MemorySpace, ArborX::PairValueIndex<ArborX::Box<3, float>>,\n"
-    "        ArborX::Experimental::DefaultIndexableGetter, ArborX::Box<3, float>>>;\n"
-    "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX_Legacy_BruteForce_Box>\n"
-    "#define ARBORX_TEST_DEVICE_TYPES std::tuple<${ARBORX_DEVICE_TYPES}>\n"
-    "#define ARBORX_TEST_DISABLE_CALLBACK_EARLY_EXIT\n"
-    "#include <tstQueryTree${_test}.cpp>\n"
-  )
-  configure_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BF.cpp.tmp"
-    "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BF.cpp" COPYONLY
-  )
-  list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BF.cpp")
-  foreach(_bounding_volume KDOP14 KDOP18) # purposefully ommitting KDOP6 and KDOP26 to reduce the number of instantiations
-    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_bounding_volume}.cpp.tmp"
+  foreach (_precision float double)
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_precision}.cpp.tmp"
       "#include <ArborX_LinearBVH.hpp>\n"
-      "#include <ArborX_KDOP.hpp>\n"
+      "#include <ArborX_Box.hpp>\n"
       "#include \"ArborXTest_LegacyTree.hpp\"\n"
-      "using KDOP6 = ArborX::Experimental::KDOP<3, 6>;\n"
-      "using KDOP14 = ArborX::Experimental::KDOP<3, 14>;\n"
-      "using KDOP18 = ArborX::Experimental::KDOP<3, 18>;\n"
-      "using KDOP26 = ArborX::Experimental::KDOP<3, 26>;\n"
       "template <class MemorySpace>\n"
-      "using ArborX_Legacy_BVH_${_bounding_volume} =\n"
+      "using ArborX_Legacy_BVH_Box_${_precision} =\n"
       "    LegacyTree<ArborX::BoundingVolumeHierarchy<\n"
-      "        MemorySpace, ArborX::PairValueIndex<${_bounding_volume}>,\n"
-      "        ArborX::Experimental::DefaultIndexableGetter, ${_bounding_volume}>>;\n"
-      "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX_Legacy_BVH_${_bounding_volume}>\n"
+      "        MemorySpace, ArborX::PairValueIndex<ArborX::Box<3, ${_precision}>>,\n"
+      "        ArborX::Experimental::DefaultIndexableGetter, ArborX::Box<3, ${_precision}>>>;\n"
+      "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX_Legacy_BVH_Box_${_precision}>\n"
       "#define ARBORX_TEST_DEVICE_TYPES std::tuple<${ARBORX_DEVICE_TYPES}>\n"
-      "#define ARBORX_TEST_DISABLE_NEAREST_QUERY\n"
-      "#define ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_SPHERE\n"
       "#include <tstQueryTree${_test}.cpp>\n"
     )
     configure_file(
-      "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_bounding_volume}.cpp.tmp"
-      "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_bounding_volume}.cpp" COPYONLY
+      "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_precision}.cpp.tmp"
+      "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_precision}.cpp" COPYONLY
     )
-    list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_bounding_volume}.cpp")
+    list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_precision}.cpp")
+
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BF_${_precision}.cpp.tmp"
+      "#include <ArborX_BruteForce.hpp>\n"
+      "#include <ArborX_Box.hpp>\n"
+      "#include \"ArborXTest_LegacyTree.hpp\"\n"
+      "template <class MemorySpace>\n"
+      "using ArborX_Legacy_BruteForce_Box_${_precision} =\n"
+      "    LegacyTree<ArborX::BruteForce<\n"
+      "        MemorySpace, ArborX::PairValueIndex<ArborX::Box<3, ${_precision}>>,\n"
+      "        ArborX::Experimental::DefaultIndexableGetter, ArborX::Box<3, ${_precision}>>>;\n"
+      "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX_Legacy_BruteForce_Box_${_precision}>\n"
+      "#define ARBORX_TEST_DEVICE_TYPES std::tuple<${ARBORX_DEVICE_TYPES}>\n"
+      "#define ARBORX_TEST_DISABLE_CALLBACK_EARLY_EXIT\n"
+      "#include <tstQueryTree${_test}.cpp>\n"
+    )
+    configure_file(
+      "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BF_${_precision}.cpp.tmp"
+      "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BF_${_precision}.cpp" COPYONLY
+    )
+    list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BF_${_precision}.cpp")
+
+    foreach(_bounding_volume KDOP14 KDOP18) # purposefully ommitting KDOP6 and KDOP26 to reduce the number of instantiations
+      file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_bounding_volume}_${_precision}.cpp.tmp"
+        "#include <ArborX_LinearBVH.hpp>\n"
+        "#include <ArborX_KDOP.hpp>\n"
+        "#include \"ArborXTest_LegacyTree.hpp\"\n"
+        "using KDOP6_${_precision} = ArborX::Experimental::KDOP<3, 6, ${_precision}>;\n"
+        "using KDOP14_${_precision} = ArborX::Experimental::KDOP<3, 14, ${_precision}>;\n"
+        "using KDOP18_${_precision} = ArborX::Experimental::KDOP<3, 18, ${_precision}>;\n"
+        "using KDOP26_${_precision} = ArborX::Experimental::KDOP<3, 26, ${_precision}>;\n"
+        "template <class MemorySpace>\n"
+        "using ArborX_Legacy_BVH_${_bounding_volume}_${_precision} =\n"
+        "    LegacyTree<ArborX::BoundingVolumeHierarchy<\n"
+        "        MemorySpace, ArborX::PairValueIndex<${_bounding_volume}_${_precision}>,\n"
+        "        ArborX::Experimental::DefaultIndexableGetter, ${_bounding_volume}_${_precision}>>;\n"
+        "#define ARBORX_TEST_TREE_TYPES Tuple<ArborX_Legacy_BVH_${_bounding_volume}_${_precision}>\n"
+        "#define ARBORX_TEST_DEVICE_TYPES std::tuple<${ARBORX_DEVICE_TYPES}>\n"
+        "#define ARBORX_TEST_DISABLE_NEAREST_QUERY\n"
+        "#define ARBORX_TEST_DISABLE_SPATIAL_QUERY_INTERSECTS_SPHERE\n"
+        "#include <tstQueryTree${_test}.cpp>\n"
+      )
+      configure_file(
+        "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_bounding_volume}_${_precision}.cpp.tmp"
+        "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_bounding_volume}_${_precision}.cpp" COPYONLY
+      )
+      list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/tstQueryTree${_test}_BVH_${_bounding_volume}_${_precision}.cpp")
+    endforeach()
   endforeach()
 endforeach()
 
